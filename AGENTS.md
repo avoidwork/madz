@@ -67,12 +67,11 @@ Misc details here.
 
 ### 2.1 Quick Commands
 
-| Command             | Purpose                        |
-|---------------------|--------------------------------|
-| `uv run oxfmt`      | Format code with oxfmt         |
-| `uv run oxlint`     | Lint code with oxlint          |
-| `uv run node --test`| Run tests                      |
-| `uv run tsc`        | Type-check with TypeScript     |
+| Command        | Purpose                        |
+|----------------|--------------------------------|
+| `oxfmt`        | Format code with oxfmt         |
+| `oxlint`       | Lint code with oxlint          |
+| `node --test`  | Run tests                      |
 
 ---
 
@@ -81,17 +80,15 @@ Misc details here.
 ### 3.1 Language & Tooling
 
 - **Node.js**: 20+ (ECMAScript modules, `package.json` `"type": "module"`)
-- **Package manager**: `uv` — the **only** supported package manager. Never use `npm` or `yarn`.
-- **Type checking**: `typescript` (strict mode) and `tsc --noEmit`
 - **Formatting**: `oxfmt` (line-length 100)
 - **Linting**: `oxlint` (strict config in `oxlint.json`)
-- **Testing**: `node --test` (built-in) or `vitest`
-- **Git hooks**: `pre-commit` (manages oxfmt, oxlint, tsc, tests)
+- **Testing**: `node --test` (built-in)
+- **Git hooks**: `pre-commit` (manages oxfmt, oxlint, tests)
 
 ### 3.2 Style
 
 - Use 2 spaces for indentation. No tabs. Maximum line length: 100 characters.
-- Top-level const with `as const` for immutable values: `const STATUS = Object.freeze({ OK: 200 });`.
+- Top-level const with `Object.freeze` for immutable values: `const STATUS = Object.freeze({ OK: 200 });`.
 - All public functions and classes MUST have JSDoc comments with `@param` and `@returns`.
 - Private fields prefixed with `#`.
 - Functions: `camelCase`. Constants: `UPPER_SNAKE_CASE`.
@@ -204,8 +201,7 @@ Session learnings — critical gotchas that affect how code must be written and 
 The pre-commit hook enforces **100% code coverage**. Every new function or class needs test coverage. No exceptions.
 
 ```bash
-uv run node --test --coverage --coverage-exclude="**/tests/**"
-uv run c8 report -r text --lines 100 --functions 100 --branches 100
+node --test --coverage --coverage-exclude="**/tests/**"
 ```
 
 ### 6.2 Pre-commit Hook and coverage.txt
@@ -214,7 +210,7 @@ The `cover` pre-commit hook runs tests then regenerates `coverage.txt`. If the h
 
 ### 6.3 Pre-commit Runs Tests
 
-The pre-commit hook runs `uv run node --test` and the coverage report in addition to linting/type-checking. A commit can fail due to test failures or insufficient coverage, not just lint or tsc.
+The pre-commit hook runs `node --test` and the coverage report in addition to linting. A commit can fail due to test failures or insufficient coverage, not just lint.
 
 ### 6.4 Mocking Settings
 
@@ -276,9 +272,10 @@ The `README.md` may show a more up-to-date project structure (e.g., additional m
 
 ## 8. Checklist Before Marking a TODO Complete
 
+- [ ] `node --test` reports all passing.
 - [ ] All JSDoc annotations present (`@param`, `@returns`) on public APIs.
-- [ ] `tsc --noEmit` reports zero errors on changed files.
-- [ ] Unit tests written and passing.
+- [ ] (removed) Unit tests written and passing.
+- [ ] Integration tests for API endpoints.
 - [ ] Integration tests for API endpoints.
 - [ ] `oxlint` and `oxfmt` pass via pre-commit hooks.
 - [ ] No hardcoded secrets or credentials introduced.
