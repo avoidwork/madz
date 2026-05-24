@@ -117,13 +117,13 @@ export default function App({ config, registry, sessionState, dispatchProvider }
 	useInput((input, key) => {
 		if (key.escape) {
 			handleQuit();
-		} else if (key.enter && !key.shift) {
+		} else if (key.return && !key.shift) {
 			handleSubmit(inputText);
-		} else if (key.up && chatHistory.length > 0) {
+		} else if (key.upArrow && chatHistory.length > 0) {
 			const newIndex = historyIndex === -1 ? chatHistory.length - 1 : Math.max(0, historyIndex - 1);
 			setHistoryIndex(newIndex);
 			setInputText(chatHistory[newIndex]);
-		} else if (key.down) {
+		} else if (key.downArrow) {
 			if (historyIndex === -1) return;
 			const nextIndex = historyIndex + 1;
 			if (nextIndex >= chatHistory.length) {
