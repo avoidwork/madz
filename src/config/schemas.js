@@ -20,10 +20,12 @@ const _ProviderConfigBase = z.object({
 	rateLimit: RateLimitSchema.default({ requestsPerMinute: 60 }),
 });
 
-export const ProvidersSchema = z.object({
-	default: z.string().min(1).default("openai"),
-	fallback_order: z.array(z.string().min(1)).default(["openai"]),
-});
+export const ProvidersSchema = z
+	.object({
+		default: z.string().min(1).default("openai"),
+		fallback_order: z.array(z.string().min(1)).default(["openai"]),
+	})
+	.passthrough();
 
 // --- Sandbox schemas ---
 
