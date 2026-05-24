@@ -1,6 +1,13 @@
 # madz
 
-AI Harness — a keyboard-driven terminal interface for orchestrating LLM conversations, sandboxed skill execution, memory persistence, and scheduled workflows.
+**Your AI companion, built right into your terminal.**
+
+`madz` is a customizable AI companion that adapts to how you work. It remembers your context, safely runs your custom skills, and automates repetitive tasks so you can focus on what matters. Tweak it, extend it, and let it handle the rest.
+
+- 🧠 **Remembers everything** → Persistent memory across sessions
+- 🛠️ **Runs your custom skills** → Safely execute plugins & tools on demand
+- ⏱️ **Automates your routines** → Schedule workflows to run on autopilot
+- 💬 **Orchestrates conversations** → Guide multi-turn LLM chats your way
 
 [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD--3--Clause-blue.svg)](LICENSE)
 [![Node.js >= 20](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](https://nodejs.org)
