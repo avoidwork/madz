@@ -121,6 +121,10 @@ describe("sandbox - URL filtering", () => {
 		it("allows http", () => assert.strictEqual(isSchemeAllowed("http://example.com"), true));
 		it("allows https", () => assert.strictEqual(isSchemeAllowed("https://example.com"), true));
 		it("blocks file://", () => assert.strictEqual(isSchemeAllowed("file:///etc/passwd"), false));
+		it("returns false for invalid URL format (catch block)", () => {
+			const result = isSchemeAllowed("://missing-scheme");
+			assert.strictEqual(result, false);
+		});
 	});
 });
 
@@ -193,6 +197,20 @@ describe("sandbox - capability enforcement", () => {
 		it("maps process:spawn to process rule", () => {
 			const result = enforceCapabilities(["process:spawn"]);
 			assert.ok(result.resources.includes("process:spawn"));
+		});
+
+		it("maps filesystem:exec to read + execute rules", () => {
+			const result = enforceCapabilities(["filesystem:exec"]);
+			assert.strictEqual(result.resources.length, 2);
+			assert.ok(result.resources.includes("filesystem:read"));
+			assert.ok(result.resources.includes("filesystem:exec"));
+			assert.ok(result.rules.some((r) => r.resource === "filesystem" && r.action === "execute"));
+		});
+
+		it("maps env:read to env rule", () => {
+			const result = enforceCapabilities(["env:read"]);
+			assert.deepStrictEqual(result.rules, [{ resource: "env", action: "read" }]);
+			assert.ok(result.resources.includes("env:read"));
 		});
 
 		it("combines multiple permissions", () => {

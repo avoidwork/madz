@@ -82,6 +82,14 @@ describe("command parser", () => {
 			assert.strictEqual(result.action, "config");
 			assert.strictEqual(result.subAction, "set");
 		});
+
+		it("returns usage message when _setConfigValue is not provided", () => {
+			const parser = new CommandParser();
+			const ctx = {};
+			const result = parser.parse(":config set foo bar", ctx);
+			assert.strictEqual(result.action, "config");
+			assert.ok(result.message.includes("Usage"));
+		});
 	});
 
 	describe("memory command", () => {
@@ -100,6 +108,13 @@ describe("command parser", () => {
 			assert.strictEqual(result.subAction, "search");
 			assert.strictEqual(result.query, "daily");
 		});
+
+		it("returns usage with unknown memory subcommand", () => {
+			const parser = new CommandParser();
+			const result = parser.parse(":memory delete", {});
+			assert.strictEqual(result.action, "memory");
+			assert.ok(result.message.includes("Usage"));
+		});
 	});
 
 	describe("schedule commands", () => {
@@ -108,6 +123,15 @@ describe("command parser", () => {
 			const ctx = { _scheduleList: [{ name: "daily" }] };
 			const result = parser.parse(":schedule", ctx);
 			assert.strictEqual(result.action, "schedule");
+		});
+
+		it("lists schedules with :schedule list", () => {
+			const parser = new CommandParser();
+			const ctx = { _scheduleList: [{ name: "daily" }] };
+			const result = parser.parse(":schedule list", ctx);
+			assert.strictEqual(result.action, "schedule");
+			assert.strictEqual(result.subAction, "list");
+			assert.deepStrictEqual(result.list, [{ name: "daily" }]);
 		});
 
 		it("pauses schedule with :schedule pause name", () => {
@@ -132,6 +156,13 @@ describe("command parser", () => {
 			assert.strictEqual(result.action, "schedule");
 			assert.strictEqual(result.subAction, "run-now");
 		});
+
+		it("returns unknown subcommand message for :schedule foo", () => {
+			const parser = new CommandParser();
+			const result = parser.parse(":schedule foo", {});
+			assert.strictEqual(result.action, "schedule");
+			assert.ok(result.message.includes("Unknown subcommand"));
+		});
 	});
 
 	describe("help command", () => {
@@ -140,6 +171,23 @@ describe("command parser", () => {
 			const result = parser.parse(":help", {});
 			assert.strictEqual(result.action, "help");
 			assert.ok(result.message.includes("Available commands"));
+		});
+	});
+
+	describe("context command", () => {
+		it("adds context with :context add text", () => {
+			const parser = new CommandParser();
+			const result = parser.parse(":context add some text", {});
+			assert.strictEqual(result.action, "context");
+			assert.strictEqual(result.subAction, "add");
+			assert.strictEqual(result.value, "some text");
+		});
+
+		it("returns usage for non-add context subcommand", () => {
+			const parser = new CommandParser();
+			const result = parser.parse(":context remove", {});
+			assert.strictEqual(result.action, "context");
+			assert.ok(result.message.includes("Usage"));
 		});
 	});
 });
