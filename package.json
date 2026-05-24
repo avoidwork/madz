@@ -23,15 +23,16 @@
     "coverage": "node --test --experimental-test-coverage --test-coverage-exclude=dist/** --test-coverage-exclude=tests/** --test-reporter=spec tests/**/*.test.js 2>&1 | grep -A 1000 \"start of coverage report\" > coverage.txt",
     "fix": "oxlint --fix *.js src tests/unit && oxfmt *.js src tests/unit --write",
     "lint": "oxlint *.js src tests/unit && oxfmt *.js src/*.js tests/unit/*.js --check",
-    "format": ""
+    "prepare": "husky"
   },
   "devDependencies": {
+    "husky": "^9.1.7",
     "oxfmt": "^0.51.0",
     "oxlint": "^1.66.0"
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.0",
-    "@opentelemetry/sdk-node": "^0.200.0",
+    "@opentelemetry/sdk-node": "^0.218.0",
     "ink": "^7.0.3",
     "js-yaml": "^4.1.0",
     "node-cron": "^4.2.1",

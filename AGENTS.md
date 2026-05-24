@@ -55,24 +55,102 @@ Follow the [OWASP Top 10](https://owasp.org/www-project-top-10/) for every piece
 
 ## 2. Project Context
 
-Description here.
+Node.js-based AI harness application using LangGraph for state machines and OpenTelemetry for observability.
 
 ### 2.0 Expected Project Layout
 
 ```
-directory structure here
+/
+├── index.js                    # Application entry point
+├── package.json
+├── config.yaml                 # Project configuration
+├── .oxlint.json                # oxlint configuration
+├── .oxfmtrc.json               # oxfmt configuration
+├── .oxfmtignore                # Files to ignore for formatting
+├── .husky/                     # Husky git hooks directory
+│   └── pre-commit              # Pre-commit hook script
+├── coverage.txt                # Coverage report output
+├── src/
+│   ├── config/                 # Configuration loading and validation
+│   │   ├── loader.js
+│   │   └── schemas.js
+│   ├── memory/                 # Memory and conversation storage
+│   │   ├── reader.js
+│   │   ├── writer.js
+│   │   ├── context.js
+│   │   └── retention.js
+│   ├── registry/               # Skills registry and lifecycle management
+│   │   ├── types.js
+│   │   ├── discoverer.js
+│   │   ├── validator.js
+│   │   ├── registry.js
+│   │   └── permissions.js
+│   ├── sandbox/                # Secure skill execution sandbox
+│   │   ├── runner.js
+│   │   ├── pathResolver.js
+│   │   ├── urlFilter.js
+│   │   ├── envInjector.js
+│   │   ├── capability.js
+│   │   └── timeoutHandler.js
+│   ├── scheduler/              # Cron-based task scheduling
+│   │   ├── parser.js
+│   │   ├── queue.js
+│   │   ├── runner.js
+│   │   ├── logger.js
+│   │   └── scheduler.js
+│   ├── session/                # Session state management
+│   │   ├── factory.js
+│   │   ├── stateManager.js
+│   │   ├── window.js
+│   │   ├── loader.js
+│   │   ├── saver.js
+│   │   └── shutdown.js
+│   ├── telemetry/              # OpenTelemetry observability
+│   │   ├── provider.js
+│   │   ├── redaction.js
+│   │   ├── llmInstrumenter.js
+│   │   ├── skillInstrumenter.js
+│   │   ├── metrics.js
+│   │   ├── sampler.js
+│   │   └── flusher.js
+│   └── tui/                    # Terminal user interface (Ink)
+│       ├── app.js
+│       ├── inputPanel.js
+│       ├── conversationPanel.js
+│       ├── skillsPanel.js
+│       ├── memoryPanel.js
+│       ├── settingsPanel.js
+│       ├── commandParser.js
+│       ├── panels.js
+│       ├── messages.js
+│       ├── hooks.js
+│       └── components.js
+├── tests/
+│   ├── unit/                   # Unit tests mirroring src/ structure
+│   │   ├── config.test.js
+│   │   ├── memory.test.js
+│   │   ├── registry.test.js
+│   │   ├── sandbox.test.js
+│   │   ├── scheduler.test.js
+│   │   ├── session.test.js
+│   │   ├── telemetry.test.js
+│   │   └── tui.test.js
+│   └── integration/            # Integration tests
+│       └── full-flow.test.js
+└── memory/                     # Persistent memory storage
+    └── schedules/              # Scheduled job output files
 ```
 
-Misc details here.
+Misc details: The `config.yaml` file is the single source of project configuration, loaded by `src/config/loader.js`. All subsystems wire into the entry point `index.js`.
 
 ### 2.1 Quick Commands
 
-| Command             | Purpose                        |
-|---------------------|--------------------------------|
-| `uv run oxfmt`      | Format code with oxfmt         |
-| `uv run oxlint`     | Lint code with oxlint          |
-| `uv run node --test`| Run tests                      |
-| `uv run tsc`        | Type-check with TypeScript     |
+| Command               | Purpose                                        |
+|-----------------------|------------------------------------------------|
+| `npm run test`        | Run all tests                                  |
+| `npm run coverage`    | Generate coverage report to `coverage.txt`     |
+| `npm run fix`         | Auto-fix lint issues and format code           |
+| `npm run lint`        | Check lint and formatting (no auto-fix)        |
 
 ---
 
@@ -81,12 +159,12 @@ Misc details here.
 ### 3.1 Language & Tooling
 
 - **Node.js**: 20+ (ECMAScript modules, `package.json` `"type": "module"`)
-- **Package manager**: `uv` — the **only** supported package manager. Never use `npm` or `yarn`.
+- **Package manager**: `npm`
 - **Type checking**: `typescript` (strict mode) and `tsc --noEmit`
 - **Formatting**: `oxfmt` (line-length 100)
 - **Linting**: `oxlint` (strict config in `oxlint.json`)
 - **Testing**: `node --test` (built-in) or `vitest`
-- **Git hooks**: `pre-commit` (manages oxfmt, oxlint, tsc, tests)
+- **Git hooks**: `pre-commit` via Husky (manages oxfmt, oxlint, tsc, tests)
 
 ### 3.2 Style
 
@@ -204,9 +282,10 @@ Session learnings — critical gotchas that affect how code must be written and 
 The pre-commit hook enforces **100% code coverage**. Every new function or class needs test coverage. No exceptions.
 
 ```bash
-uv run node --test --coverage --coverage-exclude="**/tests/**"
-uv run c8 report -r text --lines 100 --functions 100 --branches 100
+npm run coverage
 ```
+
+Generates `coverage.txt` via `node --test --experimental-test-coverage`.
 
 ### 6.2 Pre-commit Hook and coverage.txt
 
@@ -214,7 +293,7 @@ The `cover` pre-commit hook runs tests then regenerates `coverage.txt`. If the h
 
 ### 6.3 Pre-commit Runs Tests
 
-The pre-commit hook runs `uv run node --test` and the coverage report in addition to linting/type-checking. A commit can fail due to test failures or insufficient coverage, not just lint or tsc.
+The pre-commit hook runs `npm run test` and the coverage report in addition to linting/type-checking. A commit can fail due to test failures or insufficient coverage, not just lint or tsc.
 
 ### 6.4 Mocking Settings
 
