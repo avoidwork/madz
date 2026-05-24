@@ -115,9 +115,9 @@ export default function App({ config, registry, sessionState, dispatchProvider }
 		}
 	});
 
-	const visibleCount = calcVisibleCount(rows - 2, 3);
-
 	const { rows } = useWindowSize();
+
+	const visibleCount = calcVisibleCount(rows - 2, 3);
 
 	return React.createElement(
 		Box,
