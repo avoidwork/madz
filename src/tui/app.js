@@ -18,6 +18,8 @@ export default function App({ config, registry, sessionState, dispatchProvider }
 	const [messages, setMessages] = useState([]);
 	const [inputText, setInputText] = useState("");
 	const [statusMessage, setStatusMessage] = useState("Ready");
+	const [chatHistory, setChatHistory] = useState([]);
+	const [historyIndex, setHistoryIndex] = useState(-1);
 	const [scrollOffset, setScrollOffset] = useState(0);
 	const [isScrolling, setIsScrolling] = useState(false);
 
@@ -108,7 +110,7 @@ export default function App({ config, registry, sessionState, dispatchProvider }
 		setIsScrolling(false);
 	};
 
-	// Keyboard input handler - handles input typing and chat history navigation
+	// Keyboard input handler - handles input typing, history navigation, and scrolling
 	useInput((input, key) => {
 		if (key.escape) {
 			handleQuit();
@@ -119,6 +121,26 @@ export default function App({ config, registry, sessionState, dispatchProvider }
 			setInputText((prev) => prev + input);
 		}
 	});
+
+	const onScrollUp = () => {
+		if (chatHistory.length > 0) {
+			const newIndex = historyIndex === -1 ? chatHistory.length - 1 : Math.max(0, historyIndex - 1);
+			setHistoryIndex(newIndex);
+			setInputText(chatHistory[newIndex]);
+		}
+	};
+
+	const onScrollDown = () => {
+		if (historyIndex === -1) return;
+		const nextIndex = historyIndex + 1;
+		if (nextIndex >= chatHistory.length) {
+			setHistoryIndex(-1);
+			setInputText("");
+		} else {
+			setHistoryIndex(nextIndex);
+			setInputText(chatHistory[nextIndex]);
+		}
+	};
 
 	const { rows } = useWindowSize();
 
@@ -143,6 +165,8 @@ export default function App({ config, registry, sessionState, dispatchProvider }
 				setScrollOffset(offset);
 				setIsScrolling(scrolling);
 			},
+			onScrollUp: onScrollUp,
+			onScrollDown: onScrollDown,
 		}),
 		React.createElement(StatusBar, statusProps),
 		React.createElement(Text, { key: "exit-newline" }, EXIT_MESSAGE),

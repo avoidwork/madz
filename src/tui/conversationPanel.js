@@ -1,7 +1,6 @@
 import React from "react";
 import { Box, Text } from "ink";
 import { getRoleLabel, getVisibleMessages } from "./messages.js";
-import { useInput } from "ink";
 
 /**
  * Format time as HH:MM from a Date object.
@@ -39,24 +38,20 @@ export function ConversationPanel({
 	messages = [],
 	scrollOffset = 0,
 	visibleCount = 20,
-	isScrolling = false,
-	onScroll,
+	_isScrolling = false,
+	_onScroll,
+	_onScrollUp,
+	_onScrollDown,
 }) {
-	const { messages: visibleMessages, bottomReached } = getVisibleMessages(
+	const { messages: visibleMessages, _bottomReached } = getVisibleMessages(
 		messages,
 		scrollOffset,
 		visibleCount,
 	);
 
 	// Handle scroll via up/down arrows in the conversation area
-	useInput((_, key) => {
-		if (isScrolling && key.up) {
-			onScroll(scrollOffset - 1, true);
-		}
-		if (isScrolling && key.down && !bottomReached) {
-			onScroll(scrollOffset + 1, true);
-		}
-	});
+	// (delegated to parent for history coordination)
+	// Scrolling conversation is handled by parent when isScrolling is true.
 
 	const children = [React.createElement(Text, { bold: true, color: "cyan" }, " Conversation ")];
 
