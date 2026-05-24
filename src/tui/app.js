@@ -6,6 +6,8 @@ import { ConversationPanel } from "./conversationPanel.js";
 import { StatusBar } from "./statusBar.js";
 import { calcVisibleCount } from "./messages.js";
 
+const EXIT_MESSAGE = "\n";
+
 const parser = new CommandParser();
 
 /**
@@ -140,6 +142,6 @@ export default function App({ config, registry, sessionState, dispatchProvider }
 			},
 		}),
 		React.createElement(StatusBar, statusProps),
-		React.createElement(Text, { key: "exit-newline" }, "\n"),
+		React.createElement(Text, { key: "exit-newline" }, EXIT_MESSAGE),
 	);
 }
