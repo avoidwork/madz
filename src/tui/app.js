@@ -67,8 +67,8 @@ export default function App({ config, registry, sessionState, dispatchProvider }
 			if (result.message && result.action !== "provider" && result.action !== "schedule") {
 				addMessage({ role: "system", content: result.message });
 			}
-		} catch (err) {
-			setStatusMessage("Error: " + err.message);
+		} catch (_err) {
+			setStatusMessage("Something went wrong");
 		}
 	};
 
@@ -86,9 +86,12 @@ export default function App({ config, registry, sessionState, dispatchProvider }
 				sessionState.addExchange({ role: "assistant", content: responseContent });
 			}
 			setStatusMessage("Received response");
-		} catch (err) {
-			setStatusMessage("Error: " + err.message);
-			addMessage({ role: "system", content: "Error: " + err.message });
+		} catch (_err) {
+			setStatusMessage("Something went wrong");
+			addMessage({
+				role: "system",
+				content: "I couldn't connect right now — try sending your message again?",
+			});
 		}
 	};
 
