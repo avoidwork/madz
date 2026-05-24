@@ -133,6 +133,8 @@ export default function App({ config, registry, sessionState, dispatchProvider }
 				setHistoryIndex(nextIndex);
 				setInputText(chatHistory[nextIndex]);
 			}
+		} else if (key.backspace && inputText.length > 0) {
+			setInputText((prev) => prev.slice(0, -1));
 		} else if (input && input !== "\r") {
 			setInputText((prev) => prev + input);
 		}
