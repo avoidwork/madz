@@ -60,14 +60,13 @@ export function getVisibleMessages(messages, scrollOffset, visibleCount) {
 }
 
 /**
- * Format a message for display.
+ * Format a message for IRC-style display.
  * @param {Message} message
  * @returns {string}
  */
 export function formatMessage(message) {
 	const label = getRoleLabel(message.role);
-	const timestamp = message.timestamp ? ` (${message.timestamp})` : "";
-	return `${label}${timestamp}\n${message.content || "(empty)"}`;
+	return `${label}: ${(message.content || "").trim()}`;
 }
 
 /**

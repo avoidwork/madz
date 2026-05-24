@@ -1,206 +1,138 @@
-import React, { useState } from "react";
-import { Box, Text } from "ink";
+import React, { useState, useRef } from "react";
+import { Box } from "ink";
 import { useInput } from "ink";
+import { CommandParser } from "./commandParser.js";
+
+import { ConversationPanel } from "./conversationPanel.js";
+import { StatusBar } from "./statusBar.js";
+import { formatMessage } from "./messages.js";
+
+const parser = new CommandParser();
 
 /**
- * Main App component (Ink). Renders the multi-panel layout:
- * conversation (left), sidebar (right), bottom bar (input + status).
- * Tab/Shift+Tab cycles between panels.
+ * Main App component (Ink). Renders an IRC-style layout:
+ * full-height conversation REPL at top, input bar at bottom.
  */
-export default function App({ config, registry, sessionState, dispatchProvider, invokeSkill }) {
-	const [activePanel, setActivePanel] = useState("conversation");
+export default function App({ config, registry, sessionState, dispatchProvider }) {
 	const [messages, setMessages] = useState([]);
-	const [statusMessage, setStatusMessage] = useState("Ready");
 	const [inputText, setInputText] = useState("");
+	const [statusMessage, setStatusMessage] = useState("Ready");
+	const [chatHistory, setChatHistory] = useState([]);
+	const [historyIndex, setHistoryIndex] = useState(-1);
+	const scrollRef = useRef(null);
 
-	// Tab-based keyboard navigation between panels
-	const cyclePanel = (direction) => {
-		setActivePanel((prev) => {
-			const order = ["conversation", "skills", "memory", "settings"];
-			const idx = order.indexOf(prev);
-			const nextIdx =
-				direction === 1 ? (idx + 1) % order.length : (idx - 1 + order.length) % order.length;
-			return order[nextIdx];
-		});
-	};
+	const skillList = registry ? registry.list() : [];
 
-	// Handle command/message input
+	// Process command or dispatch as normal chat
 	const handleSubmit = async (text) => {
 		if (!text) return;
-		if (text.startsWith(":")) {
-			setStatusMessage(`Command: ${text}`);
-			const parts = text.split(/\s+/);
-			const cmd = parts[1];
-			const args = parts.slice(2).join(" ");
-			if (cmd === "quit") {
-				process.exit(0);
-			} else if (cmd === "status") {
-				setStatusMessage("Session active");
-			} else if (cmd === "skill" && args) {
-				try {
-					const result = await invokeSkill(args);
-					setMessages((prev) => [...prev, { role: "system", content: result.output }]);
-					setStatusMessage(`Skill ${args} executed`);
-				} catch (err) {
-					setStatusMessage(`Error: ${err.message}`);
-				}
-			} else {
-				setStatusMessage(`Unknown command: ${cmd}`);
-			}
-		} else {
-			const newMsg = { role: "user", content: text };
-			setMessages((prev) => [...prev, newMsg]);
-			setStatusMessage("Sending...");
+
+		// Track user input in chat history (non-empty lines only)
+		setChatHistory((prev) => {
+			const filtered = prev.filter((line) => line.trim());
+			return [...filtered, text];
+		});
+		setHistoryIndex(-1);
+
+		const trimmed = text.trim();
+		addMessage({ role: "user", content: trimmed });
+
+		if (parser.isCommand(trimmed)) {
 			try {
-				const response = await dispatchProvider(text, sessionState?.getProvider());
-				setMessages((prev) => [...prev, { role: "assistant", content: response.content }]);
-				sessionState?.addExchange({ role: "assistant", content: response.content });
-				setStatusMessage("Received response");
+				const result = parser.parse(trimmed, {
+					_sessionState: sessionState,
+					_setConfigValue: config && typeof config.setValue === "function" ? config.setValue : null,
+					_scheduleList: [],
+					_schedulePause: () => {},
+					_scheduleResume: () => {},
+					_contextList: false,
+				});
+				if (result.action === "quit") {
+					handleQuit();
+					return;
+				}
+				if (result.action === "unknown") {
+					setStatusMessage(result.message);
+					return;
+				}
+				setStatusMessage(result.message || `${result.action} executed`);
+				if (result.message && result.action !== "provider" && result.action !== "schedule") {
+					addMessage({ role: "system", content: result.message });
+				}
 			} catch (err) {
 				setStatusMessage(`Error: ${err.message}`);
 			}
+		} else {
+			setStatusMessage("Sending...");
+			try {
+				const response = await dispatchProvider(text, sessionState?.getProvider());
+				const responseContent = response.content || response;
+				addMessage({ role: "assistant", content: responseContent });
+				sessionState?.addExchange({ role: "assistant", content: responseContent });
+				setStatusMessage("Received response");
+			} catch (err) {
+				setStatusMessage(`Error: ${err.message}`);
+				addMessage({ role: "system", content: `Error: ${err.message}` });
+			}
 		}
 	};
 
-	// Capture keyboard input for typing and commands
-	useInput((input, key) => {
-		if (key.escape) {
-			process.exit(0);
-		} else if (key.shift && key.tab) {
-			cyclePanel(-1);
-		} else if (key.tab) {
-			cyclePanel(1);
-		} else if (key.enter && inputText.trim()) {
-			setInputText("");
-			handleSubmit(inputText.trim());
-		} else if (!key.up && !key.down && !key.left && !key.right && !key.space && !key.backspace) {
-			setInputText((prev) => prev + input);
-		}
-	});
+	const handleQuit = () => {
+		process.exit(0);
+	};
 
-	const skillList = registry ? registry.list() : [];
-	const configSections = config ? Object.keys(config) : [];
+	const addMessage = (msg) => {
+		const formatted = formatMessage(msg);
+		setMessages((prev) => [...prev, { ...msg, formatted }]);
+	};
 
-	// Render active panel content
-	let panelContent;
-	if (activePanel === "conversation") {
-		const children = [React.createElement(Text, { bold: true, color: "cyan" }, " Conversation ")];
-		if (messages.length === 0) {
-			children.push(React.createElement(Text, { gray: true }, " No messages yet. Start chatting!"));
-		} else {
-			for (let i = 0; i < messages.length; i++) {
-				const msg = messages[i];
-				children.push(
-					React.createElement(
-						Box,
-						{ key: i, flexDirection: "column" },
-						React.createElement(Text, { color: "gray" }, `[${msg.role}]`),
-						React.createElement(Text, { wrap: "wrap" }, ` ${msg.content}`),
-					),
-				);
+	// Keyboard input handler
+	useInput(
+		(input, key) => {
+			if (key.escape) {
+				handleQuit();
+			} else if (key.up && chatHistory.length > 0) {
+				const newIndex =
+					historyIndex === -1 ? chatHistory.length - 1 : Math.max(0, historyIndex - 1);
+				setHistoryIndex(newIndex);
+				setInputText(chatHistory[newIndex]);
+			} else if (key.down) {
+				if (historyIndex === -1) return;
+				const nextIndex = historyIndex + 1;
+				if (nextIndex >= chatHistory.length) {
+					setHistoryIndex(-1);
+					setInputText("");
+				} else {
+					setHistoryIndex(nextIndex);
+					setInputText(chatHistory[nextIndex]);
+				}
+			} else if (key.enter && !key.shift) {
+				setInputText("");
+				handleSubmit(input);
+			} else if (input && input !== "\r") {
+				setInputText((prev) => prev + input);
 			}
-		}
-		panelContent = React.createElement(Box, { flexDirection: "column" }, ...children);
-	} else if (activePanel === "skills") {
-		const children = [React.createElement(Text, { bold: true, color: "cyan" }, " Skills ")];
-		if (skillList.length === 0) {
-			children.push(React.createElement(Text, { gray: true }, " No skills registered."));
-		} else {
-			for (let i = 0; i < skillList.length; i++) {
-				children.push(React.createElement(Text, { key: i, wrap: "break" }, ` ${skillList[i]}`));
-			}
-		}
-		panelContent = React.createElement(Box, { flexDirection: "column" }, ...children);
-	} else if (activePanel === "memory") {
-		panelContent = React.createElement(
-			Box,
-			{ flexDirection: "column" },
-			React.createElement(Text, { bold: true, color: "cyan" }, " Memory "),
-			React.createElement(
-				Text,
-				{ gray: true },
-				`${configSections.length} config sections available`,
-			),
-			React.createElement(Text, { gray: true }, " Use :memory open to view recent entries."),
-		);
-	} else if (activePanel === "settings") {
-		const sectionEls = configSections.map((key) =>
-			React.createElement(Text, { key, wrap: "break" }, ` ${key}`),
-		);
-		panelContent = React.createElement(
-			Box,
-			{ flexDirection: "column" },
-			React.createElement(Text, { bold: true, color: "cyan" }, " Settings "),
-			...sectionEls,
-			React.createElement(
-				Box,
-				null,
-				React.createElement(Text, { color: "magenta" }, " :config set <key> <value> "),
-			),
-		);
-	}
-
-	// Render sidebar
-	const sidebar = React.createElement(
-		Box,
-		{ flexDirection: "column", width: 35, borderStyle: "single", borderColor: "gray" },
-		React.createElement(
-			Box,
-			null,
-			React.createElement(Text, { color: "cyan" }, " Active: "),
-			React.createElement(Text, { bold: true }, activePanel),
-		),
-		React.createElement(
-			Box,
-			null,
-			React.createElement(Text, { color: "cyan" }, " Skills: "),
-			React.createElement(Text, null, skillList.length),
-		),
-		React.createElement(
-			Box,
-			null,
-			React.createElement(Text, { color: "cyan" }, " Messages: "),
-			React.createElement(Text, null, messages.length),
-		),
-		React.createElement(Text, null, " "),
-		React.createElement(Box, null, React.createElement(Text, { color: "cyan" }, " Navigation: ")),
-		React.createElement(Text, { color: "gray" }, " Tab: next panel"),
-		React.createElement(Text, { color: "gray" }, " Shift+Tab: prev"),
-		React.createElement(Text, { color: "gray" }, " Enter: send"),
-		React.createElement(Text, { color: "gray" }, " Esc: quit"),
-		React.createElement(Text, null, " "),
-		React.createElement(Text, { color: "green" }, ` ${statusMessage}`),
+		},
+		{ isActive: true },
 	);
 
-	// Full render
-	return React.createElement(
-		Box,
-		{ flexDirection: "column", width: "100%", height: "100%" },
-		React.createElement(
-			Box,
-			{ flexDirection: "row", width: "100%" },
-			React.createElement(
-				Box,
-				{ flexDirection: "column", flex: 1, borderStyle: "single", borderColor: "blue" },
-				panelContent,
-			),
-			sidebar,
-		),
-		React.createElement(
-			Box,
-			{
-				flexDirection: "row",
-				width: "100%",
-				borderStyle: "double",
-				borderColor: "green",
-				paddingX: 1,
-			},
-			React.createElement(Text, null, ` [`),
-			React.createElement(Text, { color: "cyan", bold: true }, activePanel),
-			React.createElement(Text, null, ":"),
-			React.createElement(Text, { color: "yellow" }, inputText),
-			React.createElement(Text, { color: "gray" }, "_"),
-			React.createElement(Text, null, ` ]`),
-		),
+	const visibleCount = Math.max(messages.length, 20);
+
+	return (
+		<Box flexDirection="column" width="100%" height="100%">
+			<Box flexDirection="column" flex={1} marginTop={1} paddingX={1}>
+				<ConversationPanel
+					messages={messages}
+					visibleCount={visibleCount}
+					onScrollRef={scrollRef}
+				/>
+			</Box>
+			<StatusBar
+				inputText={inputText}
+				skillCount={skillList.length}
+				messageCount={messages.length}
+				statusMessage={statusMessage}
+			/>
+		</Box>
 	);
 }
