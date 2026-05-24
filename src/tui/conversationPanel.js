@@ -1,39 +1,33 @@
-import React, { useState } from "react";
+import React from "react";
 import { Box, Text } from "ink";
 import { getRoleLabel, getVisibleMessages } from "./messages.js";
-import { useInput } from "ink";
 
-export function ConversationPanel({ messages = [], visibleCount = 20 }) {
-	const [scrollOffset, setScrollOffset] = useState(0);
+/**
+ * Conversation panel component with virtualized scrolling.
+ * Renders only visible messages in the viewport.
+ */
+export function ConversationPanel({ messages = [], scrollOffset = 0, visibleCount = 20 }) {
+	const { messages: visibleMessages } = getVisibleMessages(messages, scrollOffset, visibleCount);
 
-	const { messages: visibleMessages, bottomReached } = getVisibleMessages(
-		messages,
-		scrollOffset,
-		visibleCount,
-	);
+	const children = [React.createElement(Text, { bold: true, color: "cyan" }, " Conversation ")];
 
-	useInput((_, key) => {
-		if (key.up && scrollOffset > 0) {
-			setScrollOffset((prev) => Math.max(0, prev - 1));
-		}
-		if (key.down && !bottomReached) {
-			setScrollOffset((prev) => Math.min(messages.length - visibleCount, prev + 1));
-		}
-	});
+	for (let i = 0; i < visibleMessages.length; i++) {
+		const msg = visibleMessages[i];
+		children.push(
+			React.createElement(
+				Box,
+				{ key: "msg-" + i },
+				React.createElement(Text, { color: "gray" }, "[" + getRoleLabel(msg.role) + "] "),
+				React.createElement(Text, { wrap: "wrap" }, msg.content || ""),
+			),
+		);
+	}
 
-	return (
-		<Box flexDirection="column">
-			<Text bold color="cyan">
-				{" "}
-				Conversation{" "}
-			</Text>
-			{visibleMessages.map((msg, i) => (
-				<Box key={i}>
-					<Text color="gray">[{getRoleLabel(msg.role)}] </Text>
-					<Text wrap="wrap">{msg.content}</Text>
-				</Box>
-			))}
-			{messages.length === 0 && <Text gray> No messages yet. Start chatting!</Text>}
-		</Box>
-	);
+	if (messages.length === 0) {
+		children.push(
+			React.createElement(Text, { key: "empty", gray: true }, " No messages yet. Start chatting!"),
+		);
+	}
+
+	return React.createElement(Box, { key: "panel", flexDirection: "column" }, ...children);
 }
