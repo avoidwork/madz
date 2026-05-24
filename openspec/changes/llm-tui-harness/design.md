@@ -53,6 +53,23 @@ Constraints: Node.js 20+, npm package manager, `oxfmt` (line-length 100) and `ox
 - **Rationale**: Balances usability (bulk operations shouldn't halt for every file read) with safety (destructions require human approval).
 - **Alternative considered**: Require confirmation for all tools — dismissed as too friction-heavy.
 
+### D7: Standalone Tools — Comprehensive built-in toolkit for local and remote environments
+- **Choice**: Deliver a set of built-in standalone tools covering local and remote interaction. Tools are organized into categories: filesystem, shell, SSH, Git, process management, network, package management, cloud APIs, database, webhooks, clipboard.
+- **Rationale**: The harness must interact with both local and remote environments to be useful as a developer tool. A curated set of built-in tools ensures consistent I/O contracts, validation, and security boundaries rather than forcing users to write custom tools for every common operation.
+- **Tool categories and built-in tools**:
+  - **Filesystem** (local): `fileWrite`, `fileRead`, `fileList`, `fileDelete`, `fileMove`, `fileCopy`, `fileFind` — all confined to sandbox-mounted volumes, respect `maxReadSize`
+  - **Shell** (local + remote via SSH): `shellRun`, `shellPipe` — execute commands inside Docker with timeout; SSH variant tunnels via SSH connection
+  - **SSH**: `sshConnect`, `sshRun`, `sshScp` — connect to remote servers, run commands, transfer files; credentials stored in settings or SSH agent
+  - **Git** (local + remote): `gitStatus`, `gitDiff`, `gitCommit`, `gitPush`, `gitPull`, `gitLog`, `gitBranch`, `gitMerge` — interact with Git repositories; all commands run inside Docker or via `git` subproces
+  - **Process** (local): `processList`, `processInfo`, `processKill`, `processMonitor` — inspect and manage local processes
+  - **Network** (local): `dnsLookup`, `portScan`, `ping`, `traceRoute` — probe network infrastructure; DNS and port operations restricted by allowlist to prevent abuse
+  - **Package management** (local + remote): `npmInstall`, `npmUninstall`, `dockerCompose` (local + remote); run package/dependency operations inside Docker or on remote servers via SSH
+  - **Cloud APIs** (remote): `awsInvoke`, `gcpDeploy`, `azureList` — call cloud provider APIs using credentials from settings; each provider API requires explicit allowlist
+  - **Database** (local + remote): `dbQuery`, `dbSchema`, `dbMigrate` — ad-hoc SQL queries to local/remote DBs; connections scoped to configured DB hosts
+  - **Webhooks** (remote): `webhookSend`, `webhookListen` — send HTTP POSTs to endpoints for out-of-band notification; endpoints on allowlist
+  - **Clipboard** (local): `clipboardRead`, `clipboardWrite` — read/write local system clipboard; non-destructive, no approval gate
+- **Alternatives considered**: Rely entirely on shell tool for everything — dismissed as too unstructured and error-prone for complex operations; each domain benefits from specialized tool with proper input validation and output parsing.
+
 ## Risks / Trade-offs
 
 | Risk | Mitigation |
@@ -64,3 +81,6 @@ Constraints: Node.js 20+, npm package manager, `oxfmt` (line-length 100) and `ox
 | Single-provider adapter limits out-of-box utility | Abstract adapter interface; first release ships with one but document the extension contract; accept community adapters later |
 | Docker requires root or `docker` group membership | Document group setup; provide `--no-sandbox` mode for development (warns user of reduced isolation) |
 | 100% test coverage with TUI is difficult | Test all non-UI logic (tools, memory, session, config) with 100% coverage. UI tests use `ink`'s test renderer to verify component tree output without a real terminal |
+| Too many standalone tools cause tool registry bloat | Limit to essential categories; tools are registered lazily — only tools referenced in config are loaded at startup; tools can be disabled per category via settings |
+| Remote tools (SSH, cloud) require credential management | Credentials stored in settings as env-var references or encrypted strings; never logged or written to memory files; each tool validates credentials exist before execution |
+| Local tools bypass sandbox when `--no-sandbox` is used | `--no-sandbox` mode applies the same tool allowlist and max sizes; file operations directly modify host (same risk as sandboxed), but network is still restricted by allowlist |

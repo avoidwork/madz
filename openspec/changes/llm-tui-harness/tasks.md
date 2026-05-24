@@ -76,6 +76,89 @@
 - [ ] 6.9 Write unit tests for input validation (`tests/unit/tools/validate.test.js`)
 - [ ] 6.10 Write unit tests for built-in tools (pick 2-3 representative tools with mock sandbox)
 
+## 6. Standalone Tools — Built-in Toolkit
+
+### 6.1 Tool Registry (core)
+- [ ] 6.1.1 Create tool definition zod schema in `src/tools/schema.js`: validates `name` (string), `description` (string), `destructive` (boolean), `schema` (function returning zod schema), `execute` (async function)
+- [ ] 6.1.2 Create tool registry in `src/tools/registry.js`: supports `register(toolDef)`, `get(name)`, `list()`, `remove(name)` with validation and runtime add/remove
+- [ ] 6.1.3 Implement input validation wrapper in `src/tools/validate.js`: runs zod schema before dispatch, returns structured field errors, applies PII redaction to error messages
+- [ ] 6.1.4 Implement approval gate system in `src/tools/approvals.js`: intercepts destructive tool calls in TUI mode, displays prompt with tool details, returns approval decision to session manager
+- [ ] 6.1.5 Implement batch-mode bypass in `src/tools/approvals.js`: in batch/pipeline mode, skip approval and log `[WARNING] destructive tool executed in batch mode: <name>`
+- [ ] 6.1.6 Create tool execution logger in `src/tools/logger.js`: wraps tool execution, measures duration, produces structured JSON log with PII-redacted input/output
+- [ ] 6.1.7 Write unit tests for tool registry (`tests/unit/tools/registry.test.js`)
+- [ ] 6.1.8 Write unit tests for input validation (`tests/unit/tools/validate.test.js`)
+- [ ] 6.1.9 Write unit tests for approval gates (`tests/unit/tools/approvals.test.js`)
+- [ ] 6.1.10 Write unit tests for tool logger (`tests/unit/tools/logger.test.js`)
+
+### 6.2 Filesystem Tools
+- [ ] 6.2.1 Implement `fileRead` tool in `src/tools/standalone/fileRead.js`: reads file via sandbox `fileOps.read()`, respects `maxReadSize`, validates allowlisted paths, returns content with line limits
+- [ ] 6.2.2 Implement `fileWrite` tool in `src/tools/standalone/fileWrite.js`: destructive, writes file via sandbox `fileOps.write()`, validates allowlisted paths, creates parent directories if needed
+- [ ] 6.2.3 Implement `fileList` tool in `src/tools/standalone/fileList.js`: lists directory contents via sandbox `fileOps.ls()`, supports recursive flag, respects path validation
+- [ ] 6.2.4 Implement `fileDelete` tool in `src/tools/standalone/fileDelete.js`: destructive, deletes file or directory via sandbox, validates paths
+- [ ] 6.2.5 Implement `fileMove` tool in `src/tools/standalone/fileMove.js`: destructive, moves file within mounted volumes, validates source and dest paths
+- [ ] 6.2.6 Implement `fileCopy` tool in `src/tools/standalone/fileCopy.js`: copies file within mounted volumes, validates source and dest, respects size limits
+- [ ] 6.2.7 Implement `fileFind` tool in `src/tools/standalone/fileFind.js`: searches for files by name or glob pattern, returns matching paths, respects sandbox boundaries
+
+### 6.3 Shell Tools
+- [ ] 6.3.1 Implement `shellRun` tool in `src/tools/standalone/shellRun.js`: destructive, executes command via sandbox `shell.run()`, enforces timeout, returns stdout/stderr and exit code
+- [ ] 6.3.2 Implement `shellPipe` tool in `src/tools/standalone/shellPipe.js`: executes multiple commands chained via shell pipe, destructive, returns aggregated output
+
+### 6.4 SSH Tools
+- [ ] 6.4.1 Implement `sshConnect` tool in `src/tools/standalone/sshConnect.js`: connects to remote server via SSH using credentials from settings or SSH agent, returns connection metadata
+- [ ] 6.4.2 Implement `sshRun` tool in `src/tools/standalone/sshRun.js`: destructive, executes command on remote server via SSH, returns output
+- [ ] 6.4.3 Implement `sshScp` tool in `src/tools/standalone/sshScp.js`: transfers files between local and remote via SCP, validates paths, respects size limits
+
+### 6.5 Git Tools
+- [ ] 6.5.1 Implement `gitStatus` tool in `src/tools/standalone/gitStatus.js`: runs `git status`, returns working tree state, returns structured JSON of tracked, staged, and untracked files
+- [ ] 6.5.2 Implement `gitDiff` tool in `src/tools/standalone/gitDiff.js`: runs `git diff`, returns structured diff output
+- [ ] 6.5.3 Implement `gitCommit` tool in `src/tools/standalone/gitCommit.js`: destructive, runs `git commit` with message, returns commit hash and file changes
+- [ ] 6.5.4 Implement `gitPush` tool in `src/tools/standalone/gitPush.js`: destructive, runs `git push`, returns result
+- [ ] 6.5.5 Implement `gitPull` tool in `src/tools/standalone/gitPull.js`: runs `git pull`, returns merge status
+- [ ] 6.5.6 Implement `gitLog` tool in `src/tools/standalone/gitLog.js`: runs `git log` with configurable depth, returns structured commit list
+- [ ] 6.5.7 Implement `gitBranch` tool in `src/tools/standalone/gitBranch.js`: lists branches (`git branch`) or creates new branch `git checkout -b`, returns branch list
+- [ ] 6.5.8 Implement `gitMerge` tool in `src/tools/standalone/gitMerge.js`: destructive, merges specified branch into current, returns merge result or conflict details
+
+### 6.6 Process Tools
+- [ ] 6.6.1 Implement `processList` tool in `src/tools/standalone/processList.js`: lists running processes (via `ps` inside container or local if `--no-sandbox`), returns structured process list with PID, name, CPU%, MEM%
+- [ ] 6.6.2 Implement `processInfo` tool in `src/tools/standalone/processInfo.js`: gets detailed info about a process by PID via `ps` flags, returns structured process details
+- [ ] 6.6.3 Implement `processKill` tool in `src/tools/standalone/processKill.js`: destructive, kills a process by PID via `kill -<signal>`, returns success/failure
+- [ ] 6.6.4 Implement `processMonitor` tool in `src/tools/standalone/processMonitor.js`: monitors a process over time (CPU, MEM, status), returns periodic snapshots until process terminates
+
+### 6.7 Network Tools
+- [ ] 6.7.1 Implement `dnsLookup` tool in `src/tools/standalone/dnsLookup.js`: resolves domain to IP address via `nslookup` or `dig`, validates domain against allowlist, returns A/AAAA/MX records
+- [ ] 6.7.2 Implement `portScan` tool in `src/tools/standalone/portScan.js`: scans specified ports on an allowed host, returns open ports, restricts scanning to allowlisted domains only
+- [ ] 6.7.3 Implement `ping` tool in `src/tools/standalone/ping.js`: sends ICMP ping to allowlisted host, returns latency statistics
+- [ ] 6.7.4 Implement `traceRoute` tool in `src/tools/standalone/traceRoute.js`: performs traceroute to allowlisted host, returns hop-by-hop latency and resolved IPs
+
+### 6.8 Package Management Tools
+- [ ] 6.8.1 Implement `npmInstall` tool in `src/tools/standalone/npmInstall.js`: runs `npm install <package>`, destructive, returns installation status, runs inside Docker sandbox
+- [ ] 6.8.2 Implement `npmUninstall` tool in `src/tools/standalone/npmUninstall.js`: destructive, runs `npm uninstall <package>`, returns result, runs inside Docker sandbox
+- [ ] 6.8.3 Implement `packageSearch` tool in `src/tools/standalone/packageSearch.js`: searches npm registry for packages matching query, returns ranked list, uses HTTP fetch to allowlisted npm API
+
+### 6.9 Cloud API Tools
+- [ ] 6.9.1 Implement `awsInvoke` tool in `src/tools/standalone/awsInvoke.js`: invokes AWS API (e.g., `aws s3 ls`) using AWS credentials from settings, returns structured output, runs inside Docker sandbox which has AWS CLI installed
+- [ ] 6.9.2 Implement `gcpDeploy` tool in `src/tools/standalone/gcpDeploy.js`: runs `gcloud` CLI command(s) using GCP credentials from settings, returns structured output
+- [ ] 6.9.3 Implement `azureList` tool in `src/tools/standalone/azureList.js`: runs `az` CLI command(s) using Azure credentials from settings, returns structured output
+- [ ] 6.9.4 Implement `cloudStatus` tool in `src/tools/standalone/cloudStatus.js`: queries cloud provider for instance/volume/network status, returns structured summary
+
+### 6.10 Database Tools
+- [ ] 6.10.1 Implement `dbQuery` tool in `src/tools/standalone/dbQuery.js`: executes SQL query against configured local or remote database, returns structured row set with column headers, connection parameters from settings
+- [ ] 6.10.2 Implement `dbSchema` tool in `src/tools/standalone/dbSchema.js`: retrieves database schema (tables, columns, types, relationships), returns structured schema object
+- [ ] 6.10.3 Implement `dbMigrate` tool in `src/tools/standalone/dbMigrate.js`: destructive, runs database migration script, returns migration status and affected rows
+
+### 6.11 Webhook Tools
+- [ ] 6.11.1 Implement `webhookSend` tool in `src/tools/standalone/webhookSend.js`: sends HTTP POST to allowlisted URL with JSON payload, returns response status and body, validates URL and host
+- [ ] 6.11.2 Implement `webhookListen` tool in `src/tools/standalone/webhookListen.js`: starts a short-lived HTTP listener port, accepts webhook payloads, returns captured payloads with headers and bodies
+
+### 6.12 Clipboard Tools
+- [ ] 6.12.1 Implement `clipboardRead` tool in `src/tools/standalone/clipboardRead.js`: reads local system clipboard content via system clipboard utility, non-destructive
+- [ ] 6.12.2 Implement `clipboardWrite` tool in `src/tools/standalone/clipboardWrite.js`: writes text to local system clipboard, non-destructive
+
+### 6.13 Built-in Tool Registration
+- [ ] 6.13.1 Create `src/tools/standalone/index.js` that imports and registers all standalone tools with the registry
+- [ ] 6.13.2 Create `src/tools/standalone/categories.js` that groups tools by category (filesystem, shell, ssh, git, process, network, package, cloud, database, webhook, clipboard) with descriptions for TUI display
+- [ ] 6.13.3 Write unit tests for representative tools (pick 2 from each category) with mock sandbox
+
 ## 7. LLM Adapter
 
 - [ ] 7.1 Create abstract `LLMAdapter` interface definition in `src/adapters/interface.js` with `complete(messages)` and `stream(messages)` async methods, typed with zod
