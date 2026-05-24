@@ -1,0 +1,145 @@
+/**
+ * Command parser that handles `:command` syntax with a dispatch table.
+ * Supports commands like: `:config set`, `:provider set`, `:memory open`,
+ * `:schedule list`, `:quit`, etc.
+ */
+export class CommandParser {
+	#dispatch = new Map();
+
+	constructor() {
+		// Register default commands
+		this.#register("quit", (_args, _ctx) => {
+			return { action: "quit", value: true, message: "Quitting." };
+		});
+
+		this.#register("provider", (args, ctx) => {
+			if (args[0] === "set" && args[1]) {
+				ctx._sessionState.setProvider(args[1]);
+				return { action: "provider", subAction: "set", value: args[1] };
+			}
+			return {
+				action: "provider",
+				message: `Current provider: ${ctx._sessionState.getProvider()}`,
+			};
+		});
+
+		this.#register("config", (args, ctx) => {
+			if (args[0] === "set" && args[1]) {
+				const valueStr = args[2] || args[1];
+				// Extract dot path (skipping "set")
+				const dotPath = args.slice(1).join(" ");
+				if (ctx._setConfigValue) {
+					ctx._setConfigValue(dotPath, valueStr);
+					return { action: "config", subAction: "set", path: dotPath };
+				}
+			}
+			return { action: "config", message: "Usage: :config set <path> <value>" };
+		});
+
+		this.#register("memory", (args, ctx) => {
+			if (args[0] === "open") {
+				return {
+					action: "memory",
+					subAction: "open",
+					message: ctx._contextList ? "Opening memory..." : "No memory entries.",
+				};
+			}
+			if (args[0] === "search" && args[1]) {
+				return { action: "memory", subAction: "search", query: args[1] };
+			}
+			return { action: "memory", message: "Usage: :memory open | search <query>" };
+		});
+
+		this.#register("schedule", (args, ctx) => {
+			if (!args[0]) {
+				return { action: "schedule", list: ctx._scheduleList || [] };
+			}
+			const sub = args[0];
+			if (sub === "list") {
+				return { action: "schedule", subAction: "list", list: ctx._scheduleList || [] };
+			}
+			if (sub === "pause" && args[1]) {
+				ctx._schedulePause(args[1]);
+				return { action: "schedule", subAction: "pause", name: args[1] };
+			}
+			if (sub === "resume" && args[1]) {
+				ctx._scheduleResume(args[1]);
+				return { action: "schedule", subAction: "resume", name: args[1] };
+			}
+			if (sub === "run-now" && args[1]) {
+				return { action: "schedule", subAction: "run-now", name: args[1] };
+			}
+			return { action: "schedule", message: `Unknown subcommand: ${sub}` };
+		});
+
+		this.#register("context", (args, _ctx) => {
+			if (args[0] === "add") {
+				return { action: "context", subAction: "add", value: args.slice(1).join(" ") };
+			}
+			return { action: "context", message: "Usage: :context add <text>" };
+		});
+
+		this.#register("help", (_args, _ctx) => {
+			return {
+				action: "help",
+				message: "Available commands: quit, provider, config, memory, schedule, context, help",
+			};
+		});
+	}
+
+	#register(name, handler) {
+		this.#dispatch.set(name, handler);
+	}
+
+	/**
+	 * Parse a raw input string and return a command result.
+	 * @param {string} input - The raw input (e.g., ":config set telemetry.enabled true")
+	 * @param {Object} context - The execution context with module references
+	 * @returns {Object|null} Parsed command result
+	 */
+	parse(input, context) {
+		if (!input || typeof input !== "string") return null;
+		const trimmed = input.trim();
+		if (!trimmed.startsWith(":")) return null;
+
+		const parts = trimmed.slice(1).trim().split(/\s+/);
+		const commandName = parts[0];
+		const args = parts.slice(1);
+
+		const handler = this.#dispatch.get(commandName);
+		if (!handler) {
+			return {
+				action: "unknown",
+				message: `Unknown command: :${commandName}. Type :help for available commands.`,
+			};
+		}
+
+		return handler(args, context);
+	}
+
+	/**
+	 * Check if an input is a command (starts with ":".)
+	 * @param {string} input
+	 * @returns {boolean}
+	 */
+	isCommand(input) {
+		return input && typeof input === "string" && input.trim().startsWith(":");
+	}
+
+	/**
+	 * Get a list of all registered commands.
+	 * @returns {string[]}
+	 */
+	listCommands() {
+		return Array.from(this.#dispatch.keys());
+	}
+
+	/**
+	 * Check if a command exists.
+	 * @param {string} name
+	 * @returns {boolean}
+	 */
+	hasCommand(name) {
+		return this.#dispatch.has(name);
+	}
+}

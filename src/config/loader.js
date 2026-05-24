@@ -1,0 +1,197 @@
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { createRequire } from "node:module";
+import { ConfigSchema, DEFAULT_CONFIG } from "./schemas.js";
+
+const _require = createRequire(import.meta.url);
+const yaml = await import("js-yaml");
+
+const PROJECT_ROOT = process.cwd();
+const CONFIG_PATH = join(PROJECT_ROOT, "config.yaml");
+
+/// -- Convert camelCase or kebab-case to SNAKE_CASE ---
+
+/**
+ * @param {string} str - Config key like "maxConcurrent" or "openai"
+ * @returns {string}
+ */
+function _toUpperSnake(str) {
+	// Insert underscore before each uppercase letter preceded by lowercase
+	return str
+		.split("")
+		.reduce((acc, ch) => {
+			if (/[A-Z]/.test(ch)) {
+				return acc + "_" + ch;
+			}
+			return acc + ch;
+		}, "")
+		.replace(/^_/, "")
+		.toUpperCase();
+}
+
+/// -- Parse a value string into the correct JS type ---
+
+function _parseValue(str) {
+	if (str === "true") return true;
+	if (str === "false") return false;
+	if (/^-?\d+(\.\d+)?$/.test(str)) return Number(str);
+	return str;
+}
+
+/// -- Recursive env-var resolver
+
+/**
+ * Resolve leaf values from environment variables.
+ * Maps config paths to env vars that make sense to users:
+ *   providers.openai.credentials.apiKey        → OPENAI_API_KEY
+ *   sandbox.timeout.seconds                    → SANDBOX_TIMEOUT_SECONDS
+ * The top-level section key and "credentials" container key are always dropped.
+ * @param {unknown} node - Config node to walk
+ * @param {string[]} path - Dot-path segments accumulated during recursion
+ * @returns {unknown}
+ */
+function _resolveEnvRecursively(node, path) {
+	// These container keys should not appear in the env var name
+	const DROPPED_KEYS = [
+		"providers", // e.g. providers.openai.apiKey → OPENAI_API_KEY
+		"credentials",
+	];
+
+	if (Array.isArray(node)) {
+		return node.map((item, idx) => {
+			return _resolveEnvRecursively(item, [...path, String(idx)]);
+		});
+	}
+	if (typeof node === "object" && node !== null) {
+		const result = {};
+		for (const [key, value] of Object.entries(node)) {
+			const child = [...path, key];
+			if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+				result[key] = _resolveEnvRecursively(value, child);
+				continue;
+			}
+
+			// Drop 'providers' and 'credentials' container keys; keep section names like sandbox, memory, telemetry
+			const envPath = child.filter((p) => !DROPPED_KEYS.includes(p.toLowerCase()));
+			const envKey = envPath.map(_toUpperSnake).join("_");
+
+			const envValue = process.env[envKey];
+			if (envValue !== undefined) {
+				result[key] = _parseValue(envValue);
+			} else if (typeof value === "string" && value.match(/^\$\{[A-Z_]+\}$/)) {
+				const legacy = value.slice(2, -1);
+				const legacyValue = process.env[legacy];
+				result[key] = legacyValue !== undefined ? legacyValue : value;
+			} else {
+				result[key] = value;
+			}
+		}
+		return result;
+	}
+	return node;
+}
+
+/// -- Deep merge ---
+
+/**
+ * Deep merge source into target (mutates target).
+ * @param {Object} target
+ * @param {Object} source
+ * @returns {Object}
+ */
+function deepMerge(target, source) {
+	for (const [key, value] of Object.entries(source)) {
+		if (
+			value !== undefined &&
+			typeof value === "object" &&
+			!Array.isArray(value) &&
+			target[key] !== undefined &&
+			typeof target[key] === "object"
+		) {
+			deepMerge(target[key], value);
+		} else {
+			target[key] = value;
+		}
+	}
+	return target;
+}
+
+// Validate raw config object against schema
+function validateConfig(raw) {
+	return ConfigSchema.parse(raw);
+}
+
+/**
+ * Load, parse, validate, merge defaults, and return.
+ * Resolves env vars by mapping each config path segment to an
+ * environment variable name: providers.openai.credentials.apiKey
+ * resolves to OPENAI_API_KEY.
+ * @returns {z.infer<typeof ConfigSchema>}
+ */
+export function loadConfig() {
+	let raw = DEFAULT_CONFIG;
+	if (existsSync(CONFIG_PATH)) {
+		const fileContent = readFileSync(CONFIG_PATH, "utf-8");
+		const parsed = yaml.load(fileContent);
+		if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+			raw = deepMerge({}, { ...DEFAULT_CONFIG, ...parsed });
+		}
+	}
+	const resolved = _resolveEnvRecursively(raw, []);
+	return validateConfig(resolved);
+}
+
+// Dot-path mutator used at runtime (creates intermediate objects)
+function assignPath(obj, path, value) {
+	const keys = path.split(".");
+	let current = obj;
+	for (let i = 0; i < keys.length - 1; i++) {
+		if (current[keys[i]] === undefined || current[keys[i]] === null) {
+			current[keys[i]] = {};
+		}
+		current = current[keys[i]];
+	}
+	current[keys[keys.length - 1]] = value;
+}
+
+/**
+ * Save current config to config.yaml.
+ * @param {Object} config
+ */
+export function saveConfig(config) {
+	const dir = dirname(CONFIG_PATH);
+	if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+	const yamlContent = yaml.dump(config);
+	writeFileSync(CONFIG_PATH, yamlContent);
+}
+
+/// -- Runtime mutating helpers ---
+
+// Parse a value string into the correct JS type
+/**
+ * @param {string} str
+ * @returns {boolean|number|string}
+ */
+function parseValue(str) {
+	if (str === "true") return true;
+	if (str === "false") return false;
+	if (/^-?\d+(\.\d+)?$/.test(str)) return Number(str);
+	return str;
+}
+
+/**
+ * Runtime mutation: set a dot-path value, validate, and persist.
+ * @param {Object} config
+ * @param {string} dotPath - Dotted config path
+ * @param {string} valueStr - String value to parse and save
+ * @returns {boolean} Success
+ */
+export function setConfigValue(config, dotPath, valueStr) {
+	const value = parseValue(valueStr);
+	const patched = structuredClone(config);
+	assignPath(patched, dotPath, value);
+	ConfigSchema.parse(patched);
+	assignPath(config, dotPath, value);
+	saveConfig(config);
+	return true;
+}

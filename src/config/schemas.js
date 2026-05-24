@@ -1,0 +1,150 @@
+import { z } from "zod";
+
+// --- Provider schemas ---
+
+export const RateLimitSchema = z.object({
+	requestsPerMinute: z.number().int().positive().default(60),
+});
+
+export const CredentialsSchema = z.object({
+	apiKey: z.string().min(1),
+});
+
+const _ProviderConfigBase = z.object({
+	type: z.enum(["openai"]),
+	base_url: z.string().url(),
+	model: z.string().min(1),
+	credentials: CredentialsSchema,
+	temperature: z.number().min(0).max(2).default(0.7),
+	maxTokens: z.number().int().positive().default(4096),
+	rateLimit: RateLimitSchema.default({ requestsPerMinute: 60 }),
+});
+
+export const ProvidersSchema = z
+	.object({
+		default: z.string().min(1).default("openai"),
+		fallback_order: z.array(z.string().min(1)).default(["openai"]),
+	})
+	.passthrough();
+
+// --- Sandbox schemas ---
+
+export const SandboxScopeSchema = z.object({
+	paths: z.array(z.string()).default(["memory/", "skills/", "tmp/"]),
+	timeout: z.object({
+		seconds: z.number().int().positive().default(30),
+		gracePeriod: z.number().int().positive().default(5),
+	}),
+	memoryLimit: z.string().default("512m"),
+	env: z.object({
+		allowlist: z.array(z.string()).default(["PATH", "HOME", "NODE_ENV"]),
+	}),
+});
+
+// --- Memory schemas ---
+
+export const RetentionSchema = z.object({
+	days: z.number().int().positive().default(90),
+	maxEntries: z.number().int().positive().default(1000),
+});
+
+export const MemorySchema = z.object({
+	directory: z.string().default("memory/"),
+	contextDir: z.string().default("memory/context/"),
+	toolsDir: z.string().default("memory/tools/"),
+	errorsDir: z.string().default("memory/errors/"),
+	schedulesDir: z.string().default("memory/schedules/"),
+	indexFile: z.string().default("memory/_index.md"),
+	retention: RetentionSchema.default({ days: 90, maxEntries: 1000 }),
+});
+
+// --- Telemetry schemas ---
+
+export const TelemetryExporterSchema = z.object({
+	protocol: z.enum(["console", "http", "grpc"]).default("console"),
+	endpoint: z.string().url().default("http://localhost:4318"),
+	batch: z.object({
+		maxSize: z.number().int().positive().default(512),
+		scheduledDelay: z.number().int().positive().default(5000),
+	}),
+});
+
+export const TelemetrySchema = z.object({
+	enabled: z.boolean().default(false),
+	exporter: TelemetryExporterSchema.default({
+		protocol: "console",
+		endpoint: "http://localhost:4318",
+		batch: { maxSize: 512, scheduledDelay: 5000 },
+	}),
+	sampling: z.object({
+		ratio: z.number().min(0).max(1).default(0.1),
+	}),
+	redact: z.object({
+		paths: z.array(z.string()).default(["credentials.apiKey"]),
+	}),
+});
+
+// --- Schedule schemas ---
+
+export const ScheduleEntrySchema = z.object({
+	name: z.string().min(1),
+	cron: z.string().min(1),
+	skill: z.string().min(1),
+	input: z.record(z.unknown()).default({}),
+	contextFile: z.string().default(""),
+});
+
+export const SchedulesSchema = z.object({
+	maxConcurrent: z.number().int().positive().default(1),
+	entries: z.array(ScheduleEntrySchema).default([]),
+});
+
+// --- Session schemas ---
+
+export const SessionSchema = z.object({
+	context_window_size: z.number().int().positive().default(20),
+	conversationsDir: z.string().default("memory/conversations/"),
+});
+
+// --- Root config ---
+
+export const ConfigSchema = z.object({
+	providers: ProvidersSchema,
+	sandbox: SandboxScopeSchema,
+	memory: MemorySchema,
+	telemetry: TelemetrySchema,
+	schedules: SchedulesSchema,
+	session: SessionSchema,
+});
+
+// Default values exported for merging
+export const DEFAULT_CONFIG = {
+	providers: { default: "openai", fallback_order: ["openai"] },
+	sandbox: {
+		paths: ["memory/", "skills/", "tmp/"],
+		timeout: { seconds: 30, gracePeriod: 5 },
+		memoryLimit: "512m",
+		env: { allowlist: ["PATH", "HOME", "NODE_ENV"] },
+	},
+	memory: {
+		directory: "memory/",
+		contextDir: "memory/context/",
+		toolsDir: "memory/tools/",
+		errorsDir: "memory/errors/",
+		schedulesDir: "memory/schedules/",
+		indexFile: "memory/_index.md",
+		retention: { days: 90, maxEntries: 1000 },
+	},
+	telemetry: {
+		enabled: false,
+		exporter: {
+			protocol: "console",
+			endpoint: "http://localhost:4318",
+			batch: { maxSize: 512, scheduledDelay: 5000 },
+		},
+		sampling: { ratio: 0.1 },
+		redact: { paths: ["credentials.apiKey"] },
+	},
+	schedules: { maxConcurrent: 1, entries: [] },
+	session: { context_window_size: 20, conversationsDir: "memory/conversations/" },
+};
