@@ -1,0 +1,94 @@
+# madz - AI Harness Configuration
+
+providers:
+  # Default provider used when none is specified
+  default: openai
+  # Ordered list of providers to try in sequence on failure
+  fallback_order:
+    - openai
+    - local
+  openai:
+    type: openai
+    base_url: "https://api.openai.com/v1"
+    model: "gpt-4o"
+    credentials:
+      apiKey: "${OPENAI_API_KEY}"
+    temperature: 0.7
+    maxTokens: 4096
+    rateLimit:
+      requestsPerMinute: 60
+  local:
+    type: openai
+    base_url: "http://localhost:11434/v1"
+    model: "llama3.1"
+    credentials:
+      apiKey: "local-model"
+    temperature: 0.7
+    maxTokens: 4096
+    rateLimit:
+      requestsPerMinute: 120
+
+sandbox:
+  scope:
+    # Directories the sandbox can access
+    - "memory/"
+    - "skills/"
+    - "tmp/"
+  timeout:
+    seconds: 30
+    gracePeriod: 5
+  memoryLimit: "512m"
+  env:
+    allowlist:
+      - "PATH"
+      - "HOME"
+      - "NODE_ENV"
+      - "OPENAI_API_KEY"
+      - "AUTH_API_KEY"
+
+memory:
+  directory: "memory/"
+  contextDir: "memory/context/"
+  toolsDir: "memory/tools/"
+  errorsDir: "memory/errors/"
+  schedulesDir: "memory/schedules/"
+  indexFile: "memory/_index.md"
+  retention:
+    days: 90
+    maxEntries: 1000
+
+telemetry:
+  enabled: false
+  exporter:
+    protocol: console
+    endpoint: "http://localhost:4318"
+    batch:
+      maxSize: 512
+      scheduledDelay: 5000
+  sampling:
+    ratio: 0.1
+  redact:
+    paths:
+      - "credentials.apiKey"
+      - "headers.authorization"
+      - "request.headers.x-api-key"
+
+schedules:
+  maxConcurrent: 1
+  entries:
+    - name: daily-host-report
+      cron: "0 9 * * *"
+      skill: host-info
+      input: {}
+      contextFile: ""
+    - name: weekly-api-check
+      cron: "0 6 * * 1"
+      skill: api-request
+      input:
+        url: "https://api.example.com/health"
+        method: "GET"
+      contextFile: "memory/context/api-endpoints.md"
+
+session:
+  context_window_size: 20
+  conversationsDir: "memory/conversations/"
