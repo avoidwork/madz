@@ -26,7 +26,6 @@ registry.discover("skills/");
 const {
 	writeMemoryFile,
 	readMemoryFile,
-	listContextFiles,
 	loadContext,
 	cleanRetainedMemory,
 	enforceMaxEntries,
@@ -77,8 +76,8 @@ async function dispatchProvider(message, providerName = null) {
 async function callProvider(_name, _providerConfig, _message) {
 	// Placeholder — actual provider implementation would call the LLM API
 	return {
-		provider: name,
-		content: `[No provider implementation: ${name}]`,
+		provider: _name,
+		content: `[No provider implementation: ${_name}]`,
 		tokens: { input: 0, output: 0 },
 	};
 }
@@ -149,12 +148,12 @@ registerShutdownHandler(async () => {
 });
 
 // CLI mode detection (if run directly as node index.js)
-if (import.meta.main) {
-	const args = process.argv.slice(2);
-	const mode = args.includes("--mode interactive") ? "interactive" : "chat";
+	if (import.meta.main) {
+		const args = process.argv.slice(2);
+		const mode = args.some((a, i) => a === "--mode" && args[i + 1] === "interactive") ? "interactive" : "chat";
 
-	if (mode === "chat") {
-		const message = args.filter((a) => !a.startsWith("--"))[0] || "Hello";
+		if (mode === "chat") {
+			const message = args.filter((a) => !a.startsWith("--"))[0] || "Hello";
 		try {
 			const response = await handleConversation(message);
 			console.log(JSON.stringify(response, null, 2));
@@ -184,6 +183,5 @@ export {
 	loadContext,
 	writeMemoryFile,
 	readMemoryFile,
-	listContextFiles,
 	cleanRetainedMemory,
 };
