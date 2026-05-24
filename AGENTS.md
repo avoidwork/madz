@@ -1,0 +1,287 @@
+# AGENTS.md
+
+Rules and principles for agents working on **this** project.
+
+---
+
+## 1. Core Rules
+
+### 1.0 Document Conventions
+
+When updating this document, append new information or sections. Do NOT delete or overwrite existing content unless explicitly directed. Always ask before making structural changes. When in doubt, keep it.
+
+### 1.1 Forbidden Patterns
+
+The following are **strictly prohibited**:
+
+- Hardcoded secrets, API keys, or credentials.
+- `console.log()` statements in production code (use a structured logger instead).
+- `catch (err) {}` empty or silent catch blocks.
+- `eval()`, `new Function()`, `__import__()` at any level.
+- Wildcard exports (`export * from '...'`).
+- Mutating a list while iterating over it.
+- Blocking operations (`fs.readFileSync`, `sync` HTTP clients) inside async functions.
+- Bypassing the auth middleware.
+
+### 1.2 Security Rules
+
+Follow the [OWASP Top 10](https://owasp.org/www-project-top-10/) for every piece of code written:
+
+- Every route MUST pass through authentication middleware.
+- Never store plaintext secrets. Use `process.env` or a settings module loaded from env vars.
+- Use parameterized queries or an ORM with built-in escaping. Validate and sanitize all user input via zod schemas.
+- File uploads must pass whitelist + MIME validation.
+- All settings defaults must be production-safe. No `DEBUG=true` in non-local configs.
+- Implement secure token verification. Reject tokens with weak algorithms.
+- Log at structured JSON level. Strip PII before logging.
+- Validate all outbound tool URLs against an allowlist. Disallow `file://`, `gopher://`, `dict://` schemes.
+
+### 1.3 Git Operations
+
+- **Never rebase under any circumstance without explicit agreement from the user.** Never assume your decision is correct.
+- **Never push to any branch without explicit user approval.** Git changes (checkout, reset, revert, amend) are local operations — do not auto-push. Always ask "Push to remote?" before running `git push`.
+- Never force push.
+
+### 1.4 Core Principles
+
+- **DRY**: Extract repeated logic into functions, classes, or utilities. Centralize configuration in `config.js`. Reuse SSE envelope formatter, error handler, and auth middleware across modules. No copy-paste code blocks greater than three lines.
+- **KISS**: Prefer simple, readable code over clever solutions. If a solution requires more than three levels of indentation or a helper function with more than 10 lines, reconsider it.
+- **YAGNI**: Do NOT build features, abstractions, or configurations not required by the current spec. No generic "future-proof" wrappers. Ad-hoc solutions are acceptable as long as they serve a present requirement.
+- **Single Responsibility**: Each module, class, and function must have one reason to change.
+- **Open/Closed**: Extend via composition — not by modifying existing logic.
+- **Dependency Inversion**: Depend on abstractions (interfaces / DI containers) for external services.
+
+---
+
+## 2. Project Context
+
+Description here.
+
+### 2.0 Expected Project Layout
+
+```
+directory structure here
+```
+
+Misc details here.
+
+### 2.1 Quick Commands
+
+| Command             | Purpose                        |
+|---------------------|--------------------------------|
+| `uv run oxfmt`      | Format code with oxfmt         |
+| `uv run oxlint`     | Lint code with oxlint          |
+| `uv run node --test`| Run tests                      |
+| `uv run tsc`        | Type-check with TypeScript     |
+
+---
+
+## 3. Node.js / JavaScript Conventions
+
+### 3.1 Language & Tooling
+
+- **Node.js**: 20+ (ECMAScript modules, `package.json` `"type": "module"`)
+- **Package manager**: `uv` — the **only** supported package manager. Never use `npm` or `yarn`.
+- **Type checking**: `typescript` (strict mode) and `tsc --noEmit`
+- **Formatting**: `oxfmt` (line-length 100)
+- **Linting**: `oxlint` (strict config in `oxlint.json`)
+- **Testing**: `node --test` (built-in) or `vitest`
+- **Git hooks**: `pre-commit` (manages oxfmt, oxlint, tsc, tests)
+
+### 3.2 Style
+
+- Use 2 spaces for indentation. No tabs. Maximum line length: 100 characters.
+- Top-level const with `as const` for immutable values: `const STATUS = Object.freeze({ OK: 200 });`.
+- All public functions and classes MUST have JSDoc comments with `@param` and `@returns`.
+- Private fields prefixed with `#`.
+- Functions: `camelCase`. Constants: `UPPER_SNAKE_CASE`.
+
+### 3.3 Error Handling
+
+- Use the `Error` hierarchy: define domain-specific error classes extending `Error`.
+- Catch at the boundary (top-level error handler), not inside logic.
+- Never swallow exceptions silently. Always log or re-throw.
+
+```javascript
+class AppError extends Error {
+  constructor(message, code = 500) {
+    super(message);
+    this.code = code;
+  }
+}
+```
+
+### 3.4 Async
+
+- Use `async/await` consistently. Never mix blocking I/O in async contexts.
+- Always attach a timeout to external HTTP or DB calls.
+
+```javascript
+const [data, result] = await Promise.race([
+  longOperation(),
+  new Promise((_, reject) =>
+    setTimeout(() => reject(new TimeoutError()), TIMEOUT_MS)
+  ),
+]);
+```
+
+### 3.5 Testing
+
+- Each public function or class must have at least one test.
+- Tests live in `tests/unit/` for unit tests and `tests/integration/` for integration tests.
+- Mock external services — no real API calls in tests.
+- Test filenames mirror the source structure with `.test.js` extension.
+  - `src/graphs/assistant_graph.js` → `tests/unit/graphs/assistant_graph.test.js`
+  - `src/tools/workspace.js` → `tests/unit/tools/workspace.test.js`
+
+---
+
+## 4. Framework Conventions
+
+### 4.1 LangGraph
+
+- State must be a plain object or record; never use plain `any`.
+- Use `PushMessage` / `AddMessage` annotations for message history. Keep state minimal.
+- Each node is a plain `async function` receiving the state.
+- Return an object of state updates. No side effects outside the returned object unless logged.
+- Register tools explicitly with a clear input schema (e.g. zod object).
+- Tools must NOT perform I/O without timeouts.
+
+### 4.2 Auth Modes
+
+- Modes: `jwt`, `apikey`, `none` (dev).
+- API key auth uses `authApiKey` from app settings. Env var: `AUTH_API_KEY`.
+- JWT auth uses JWKS endpoint for verification. Enforce audience and issuer claims.
+
+---
+
+## 5. Git Conventions
+
+### 5.1 Commit Messages
+
+Follow [Conventional Commits](https://www.conventionalcommits.org/):
+
+```
+feat: add file upload endpoint with whitelist validation
+fix: correct JWT audience claim validation
+docs: update AGENTS.md with new config variables
+test: add graph node unit tests for file_processor
+chore: pin all dependencies in package.json
+```
+
+### 5.2 Branching
+
+- Main branch is `main`.
+- Feature branches: `feat/<short-desc>` or `fix/<short-desc>`.
+- Never commit directly to `main`. Always create a feature branch first, then open a PR targeting `main`.
+
+### 5.2.1 Agent Workflow
+
+When auditing or modifying AGENTS.md (or any file):
+1. Create a feature branch: `git checkout -b docs/<short-desc>` (or `feat/`, `fix/`).
+2. Make changes and commit on the feature branch.
+3. Push the feature branch and open a PR with `gh pr create --base main`.
+4. Never commit or push directly to `main` or `master`.
+
+### 5.3 Code Review
+
+- All changes require at least one other reviewer (automated checks are mandatory but not sufficient).
+- No merging without passing CI (lint → type-check → test).
+- PR descriptions must reference related items from design documents.
+
+### 5.4 Pull Request Templates
+
+If a `.github/PULL_REQUEST_TEMPLATE.md` file exists, it MUST be used when creating PRs. Fill out every section — do not leave any section blank. If a section does not apply, write `N/A` rather than skipping it.
+
+---
+
+## 6. Operational Rules
+
+Session learnings — critical gotchas that affect how code must be written and tested.
+
+### 6.1 Coverage
+
+The pre-commit hook enforces **100% code coverage**. Every new function or class needs test coverage. No exceptions.
+
+```bash
+uv run node --test --coverage --coverage-exclude="**/tests/**"
+uv run c8 report -r text --lines 100 --functions 100 --branches 100
+```
+
+### 6.2 Pre-commit Hook and coverage.txt
+
+The `cover` pre-commit hook runs tests then regenerates `coverage.txt`. If the hook modifies a staged file, `git commit` fails. Always `git add -A` and `git commit --amend -C HEAD` after a failed commit from a modified `coverage.txt`.
+
+### 6.3 Pre-commit Runs Tests
+
+The pre-commit hook runs `uv run node --test` and the coverage report in addition to linting/type-checking. A commit can fail due to test failures or insufficient coverage, not just lint or tsc.
+
+### 6.4 Mocking Settings
+
+The `settings` singleton from `config.js` is the single source of configuration. When mocking:
+
+- Replace the module, don't mutate properties of the singleton.
+- Use `vi.mock()` (Vitest) or `jest.doMock()` to mock `config.js`.
+
+```javascript
+// Wrong: mutating the singleton leaks into other tests
+config.settings.auth.apiKey = "secret";
+
+// Right: replace the module entirely
+vi.mock("./config.js", () => ({
+  settings: { auth: { apiKey: "test-key" }, tools: { maxReadSize: 50 } },
+}));
+```
+
+### 6.5 Mocking MongoDB
+
+When mocking MongoDB, mock the collection methods directly. Every async call must return a proper promise.
+
+```javascript
+function makeDbMock(collections, docs) {
+  const colMap = {};
+  for (const name of collections) {
+    colMap[name] = {
+      find: () => ({
+        limit: () => ({
+          sort: () => ({
+            toArray: () => Promise.resolve(docs[name] || []),
+          }),
+        }),
+      }),
+    };
+  }
+  return {
+    listCollections: () => ({ toArray: () => Promise.resolve(collections.map(n => ({ name }))  }),
+    db: (name) => colMap[name] || { find: () => ({ toArray: () => Promise.resolve([]) }) },
+  };
+}
+```
+
+### 6.6 Unreachable Code
+
+Code that can never execute is a smell. Remove dead code to avoid coverage gaps and confusion.
+
+---
+
+## 7. Session Learnings
+
+Discovery notes about the codebase.
+
+### 7.1 README is the source of truth for project layout
+
+The `README.md` may show a more up-to-date project structure (e.g., additional middleware modules, tool files). When in doubt, use it to verify the layout in section 2.0.
+
+---
+
+## 8. Checklist Before Marking a TODO Complete
+
+- [ ] All JSDoc annotations present (`@param`, `@returns`) on public APIs.
+- [ ] `tsc --noEmit` reports zero errors on changed files.
+- [ ] Unit tests written and passing.
+- [ ] Integration tests for API endpoints.
+- [ ] `oxlint` and `oxfmt` pass via pre-commit hooks.
+- [ ] No hardcoded secrets or credentials introduced.
+- [ ] Environment variable configuration used (no config file logic).
+- [ ] 100% code coverage maintained (pre-commit will enforce this).
+- [ ] Threat model considerations addressed in PR description.
