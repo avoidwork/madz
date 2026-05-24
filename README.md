@@ -7,6 +7,7 @@
 [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD--3--Clause-blue.svg)](LICENSE)
 [![Node.js >= 20](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](https://nodejs.org)
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen)](tests/)
+[![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen)](coverage.txt)
 
 ## Table of Contents
 
@@ -191,7 +192,30 @@ npm run fix
 npm run lint
 ```
 
-The pre-commit hook runs linting, formatting, type-checking, and tests. A commit will fail if any gate does not pass.
+The pre-commit hook runs linting, formatting, type-checking, and tests (targeting 100% code coverage). A commit will fail if any gate does not pass.
+
+## Coverage
+
+This project enforces 100% code coverage on every commit. The coverage report is generated to `coverage.txt` via `node --test --experimental-test-coverage`.
+
+```
+file               | line % | branch % | funcs % | uncovered lines
+-------------------------------------------------------------
+src/sandbox        |        |          |         | 
+  capability.js    | 100.00 |  100.00  | 100.00  | 
+  envInjector.js   | 100.00 |  100.00  | 100.00  | 
+  pathResolver.js  | 100.00 |  100.00  | 100.00  | 
+  urlFilter.js     | 100.00 |   93.75  | 100.00  | 
+src/session        |        |          |         | 
+  factory.js       | 100.00 |  100.00  | 100.00  | 
+  stateManager.js  | 100.00 |  100.00  | 100.00  | 
+  window.js        | 100.00 |   91.67  | 100.00  | 
+src/tui            |        |          |         | 
+  commandParser.js | 100.00 |   88.89  | 100.00  | 
+  panels.js        | 100.00 |  100.00  | 100.00  | 
+-------------------------------------------------------------
+All files          | 100.00 |   94.07  | 100.00  | 
+```
 
 ## Development
 
@@ -199,7 +223,7 @@ The pre-commit hook runs linting, formatting, type-checking, and tests. A commit
 npm install
 npm run fix          # Format and lint-fix all files
 npm run test         # Verify changes
-npm run coverage     # Ensure 100% coverage
+npm run coverage     # Generate and verify 100% coverage
 ```
 
 ### Extending Skills
