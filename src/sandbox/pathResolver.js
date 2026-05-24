@@ -1,5 +1,4 @@
-import { readFileSync, existsSync } from "node:fs";
-import { resolve, isAbsolute, sep } from "node:path";
+import { resolve, sep } from "node:path";
 
 /**
  * Check if a resolved path falls within the allowed sandbox scope.
@@ -8,20 +7,20 @@ import { resolve, isAbsolute, sep } from "node:path";
  * @returns {{ allowed: boolean, path: string }}
  */
 export function resolvePath(requestedPath, allowedPaths) {
-  if (!allowedPaths || allowedPaths.length === 0) {
-    return { allowed: false, path: requestedPath };
-  }
+	if (!allowedPaths || allowedPaths.length === 0) {
+		return { allowed: false, path: requestedPath };
+	}
 
-  const resolved = resolve(requestedPath);
+	const resolved = resolve(requestedPath);
 
-  for (const allowedDir of allowedPaths) {
-    const allowedResolved = resolve(allowedDir);
-    if (resolved === allowedResolved || resolved.startsWith(allowedResolved + sep)) {
-      return { allowed: true, path: resolved };
-    }
-  }
+	for (const allowedDir of allowedPaths) {
+		const allowedResolved = resolve(allowedDir);
+		if (resolved === allowedResolved || resolved.startsWith(allowedResolved + sep)) {
+			return { allowed: true, path: resolved };
+		}
+	}
 
-  return { allowed: false, path: resolved };
+	return { allowed: false, path: resolved };
 }
 
 /**
@@ -32,11 +31,11 @@ export function resolvePath(requestedPath, allowedPaths) {
  * @throws {Error} If the path is outside the sandbox
  */
 export function assertPathAllowed(requestedPath, allowedPaths) {
-  const { allowed, path } = resolvePath(requestedPath, allowedPaths);
-  if (!allowed) {
-    const err = new Error(`Access denied: ${requestedPath} is outside sandbox scope`);
-    err.name = "AccessDeniedError";
-    throw err;
-  }
-  return path;
+	const { allowed, path } = resolvePath(requestedPath, allowedPaths);
+	if (!allowed) {
+		const err = new Error(`Access denied: ${requestedPath} is outside sandbox scope`);
+		err.name = "AccessDeniedError";
+		throw err;
+	}
+	return path;
 }

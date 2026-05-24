@@ -5,9 +5,9 @@ import { z } from "zod";
  * @type {z.ZodType}
  */
 export const SkillInputSchema = z.object({
-  type: z.string().default("object"),
-  required: z.array(z.string()).default([]),
-  properties: z.record(z.unknown()).default({}),
+	type: z.string().default("object"),
+	required: z.array(z.string()).default([]),
+	properties: z.record(z.unknown()).default({}),
 });
 
 /**
@@ -15,12 +15,12 @@ export const SkillInputSchema = z.object({
  * @type {z.ZodType}
  */
 export const PermissionSchema = z.enum([
-  "filesystem:read",
-  "filesystem:write",
-  "filesystem:exec",
-  "network:outbound",
-  "process:spawn",
-  "env:read",
+	"filesystem:read",
+	"filesystem:write",
+	"filesystem:exec",
+	"network:outbound",
+	"process:spawn",
+	"env:read",
 ]);
 
 /**
@@ -28,9 +28,9 @@ export const PermissionSchema = z.enum([
  * @type {z.ZodType}
  */
 export const ExecutionContextSchema = z.object({
-  cwd: z.string().default(""),
-  timeout: z.number().int().positive().default(30),
-  memoryLimit: z.string().default("512m"),
+	cwd: z.string().default(""),
+	timeout: z.number().int().positive().default(30),
+	memoryLimit: z.string().default("512m"),
 });
 
 /**
@@ -38,14 +38,14 @@ export const ExecutionContextSchema = z.object({
  * @type {z.ZodType}
  */
 export const SkillMetadataSchema = z.object({
-  name: z.string().min(1),
-  version: z.string().default("1.0.0"),
-  description: z.string().default(""),
-  inputSchema: SkillInputSchema.default({}),
-  outputSchema: SkillInputSchema.default({}),
-  permissions: z.array(PermissionSchema).default([]),
-  executionContext: ExecutionContextSchema.default({}),
-  disabled: z.boolean().default(false),
+	name: z.string().min(1),
+	version: z.string().default("1.0.0"),
+	description: z.string().default(""),
+	inputSchema: SkillInputSchema.default({}),
+	outputSchema: SkillInputSchema.default({}),
+	permissions: z.array(PermissionSchema).default([]),
+	executionContext: ExecutionContextSchema.default({}),
+	disabled: z.boolean().default(false),
 });
 
 /**

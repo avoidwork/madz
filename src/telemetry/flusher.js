@@ -5,7 +5,7 @@ let pendingSpans = [];
  * @param {Object} span - The span export data
  */
 export function queueSpan(span) {
-  pendingSpans.push(span);
+	pendingSpans.push(span);
 }
 
 /**
@@ -13,9 +13,9 @@ export function queueSpan(span) {
  * @returns {Promise<number>} Number of spans flushed
  */
 export async function flushPending() {
-  const count = pendingSpans.length;
-  pendingSpans = [];
-  return count;
+	const count = pendingSpans.length;
+	pendingSpans = [];
+	return count;
 }
 
 /**
@@ -23,9 +23,9 @@ export async function flushPending() {
  * @returns {number} Number of cleared spans
  */
 export function clearPending() {
-  const count = pendingSpans.length;
-  pendingSpans = [];
-  return count;
+	const count = pendingSpans.length;
+	pendingSpans = [];
+	return count;
 }
 
 /**
@@ -33,5 +33,5 @@ export function clearPending() {
  * @returns {number}
  */
 export function getPendingCount() {
-  return pendingSpans.length;
+	return pendingSpans.length;
 }

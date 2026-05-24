@@ -1,7 +1,4 @@
 import { readFileSync, existsSync } from "node:fs";
-import { createRequire } from "node:module";
-
-const require = createRequire(import.meta.url);
 const yaml = await import("js-yaml");
 
 /**
@@ -10,20 +7,20 @@ const yaml = await import("js-yaml");
  * @returns {{ frontmatter: Object, content: string }} Parsed frontmatter and body
  */
 export function parseFrontmatter(content) {
-  if (!content) return { frontmatter: {}, content: "" };
+	if (!content) return { frontmatter: {}, content: "" };
 
-  let frontmatter = {};
-  let body = content;
+	let frontmatter = {};
+	let body = content;
 
-  const match = content.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
-  if (match) {
-    const fmStr = match[1] || "";
-    const fmParsed = yaml.load(fmStr);
-    frontmatter = fmParsed && typeof fmParsed === "object" ? fmParsed : {};
-    body = match[2] || "";
-  }
+	const match = content.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
+	if (match) {
+		const fmStr = match[1] || "";
+		const fmParsed = yaml.load(fmStr);
+		frontmatter = fmParsed && typeof fmParsed === "object" ? fmParsed : {};
+		body = match[2] || "";
+	}
 
-  return { frontmatter, content: body.trim() };
+	return { frontmatter, content: body.trim() };
 }
 
 /**
@@ -33,8 +30,8 @@ export function parseFrontmatter(content) {
  * @returns {{ frontmatter: Object, content: string, path: string } | null}
  */
 export function readMemoryFile(filepath) {
-  if (!existsSync(filepath)) return null;
-  const content = readFileSync(filepath, "utf-8");
-  const { frontmatter, content: body } = parseFrontmatter(content);
-  return { frontmatter, content: body, path: filepath };
+	if (!existsSync(filepath)) return null;
+	const content = readFileSync(filepath, "utf-8");
+	const { frontmatter, content: body } = parseFrontmatter(content);
+	return { frontmatter, content: body, path: filepath };
 }

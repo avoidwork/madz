@@ -4,13 +4,13 @@
  * @returns {Object} Object with only allowed env vars
  */
 export function injectEnv(whitelist = []) {
-  const env = {};
-  for (const key of whitelist) {
-    if (process.env[key] !== undefined) {
-      env[key] = process.env[key];
-    }
-  }
-  return env;
+	const env = {};
+	for (const key of whitelist) {
+		if (process.env[key] !== undefined) {
+			env[key] = process.env[key];
+		}
+	}
+	return env;
 }
 
 /**
@@ -20,12 +20,12 @@ export function injectEnv(whitelist = []) {
  * @returns {Object}
  */
 export function filterEnv(env, whitelist = []) {
-  if (!env || typeof env !== "object") return {};
-  const filtered = {};
-  for (const key of whitelist) {
-    if (env[key] !== undefined) {
-      filtered[key] = env[key];
-    }
-  }
-  return filtered;
+	if (!env || typeof env !== "object") return {};
+	const filtered = {};
+	for (const key of whitelist) {
+		if (env[key] !== undefined) {
+			filtered[key] = env[key];
+		}
+	}
+	return filtered;
 }

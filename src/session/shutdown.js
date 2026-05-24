@@ -1,3 +1,5 @@
+// oxlint-disable no-console
+
 /**
  * Handle graceful session shutdown: flush telemetry, close file handles, save state.
  * @param {Object} options - Shutdown configuration
@@ -7,22 +9,22 @@
  * @returns {Promise<void>}
  */
 export async function handleShutdown(options = {}) {
-  const { flushTelemetry, saveSession, onShutdown } = options;
+	const { flushTelemetry, saveSession, onShutdown } = options;
 
-  try {
-    if (flushTelemetry) {
-      await flushTelemetry();
-    }
-    if (saveSession) {
-      await saveSession();
-    }
-    if (onShutdown) {
-      await onShutdown();
-    }
-  } catch (err) {
-    // Log but don't throw — shutdown should always complete
-    console.error("Error during shutdown:", err);
-  }
+	try {
+		if (flushTelemetry) {
+			await flushTelemetry();
+		}
+		if (saveSession) {
+			await saveSession();
+		}
+		if (onShutdown) {
+			await onShutdown();
+		}
+	} catch (_err) {
+		// Log but don't throw — shutdown should always complete
+		console.error("Error during shutdown:", err);
+	}
 }
 
 /**
@@ -31,13 +33,13 @@ export async function handleShutdown(options = {}) {
  * @returns {Function} Cleanup function to remove handlers
  */
 export function registerShutdownHandler(handler) {
-  const wrapped = () => handler();
+	const wrapped = () => handler();
 
-  process.on("SIGTERM", wrapped);
-  process.on("SIGINT", wrapped);
+	process.on("SIGTERM", wrapped);
+	process.on("SIGINT", wrapped);
 
-  return function removeHandlers() {
-    process.off("SIGTERM", wrapped);
-    process.off("SIGINT", wrapped);
-  };
+	return function removeHandlers() {
+		process.off("SIGTERM", wrapped);
+		process.off("SIGINT", wrapped);
+	};
 }

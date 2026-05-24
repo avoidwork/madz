@@ -1,4 +1,4 @@
-import { SkillMetadataSchema, DEFAULT_PERMS } from "./types.js";
+import { DEFAULT_PERMS } from "./types.js";
 
 /**
  * Resolve combined permissions for a skill by merging
@@ -7,17 +7,15 @@ import { SkillMetadataSchema, DEFAULT_PERMS } from "./types.js";
  * @returns {string[]} Merged list of permission scopes
  */
 export function resolvePermissions(skillMetadata) {
-  if (!skillMetadata || typeof skillMetadata !== "object") {
-    return [...DEFAULT_PERMS];
-  }
+	if (!skillMetadata || typeof skillMetadata !== "object") {
+		return [...DEFAULT_PERMS];
+	}
 
-  const skillPerms = Array.isArray(skillMetadata.permissions)
-    ? skillMetadata.permissions
-    : [];
+	const skillPerms = Array.isArray(skillMetadata.permissions) ? skillMetadata.permissions : [];
 
-  // Merge and deduplicate
-  const combined = new Set([...DEFAULT_PERMS, ...skillPerms]);
-  return Array.from(combined);
+	// Merge and deduplicate
+	const combined = new Set([...DEFAULT_PERMS, ...skillPerms]);
+	return Array.from(combined);
 }
 
 /**
@@ -27,7 +25,7 @@ export function resolvePermissions(skillMetadata) {
  * @returns {boolean}
  */
 export function hasPermission(permissions, permission) {
-  return permissions.includes(permission);
+	return permissions.includes(permission);
 }
 
 /**
@@ -37,38 +35,38 @@ export function hasPermission(permissions, permission) {
  * @returns {{ filesystem: string[], network: string[] }}
  */
 export function resolveCapabilities(skillMetadata) {
-  const perms = resolvePermissions(skillMetadata);
-  const capabilities = {
-    filesystem: [],
-    network: [],
-    env: [],
-    process: [],
-  };
+	const perms = resolvePermissions(skillMetadata);
+	const capabilities = {
+		filesystem: [],
+		network: [],
+		env: [],
+		process: [],
+	};
 
-  for (const perm of perms) {
-    switch (perm) {
-      case "filesystem:read":
-        capabilities.filesystem.push("read");
-        break;
-      case "filesystem:write":
-        capabilities.filesystem.push("read");
-        capabilities.filesystem.push("write");
-        break;
-      case "filesystem:exec":
-        capabilities.filesystem.push("read");
-        capabilities.filesystem.push("exec");
-        break;
-      case "network:outbound":
-        capabilities.network.push("outbound");
-        break;
-      case "process:spawn":
-        capabilities.process.push("spawn");
-        break;
-      case "env:read":
-        capabilities.env.push("read");
-        break;
-    }
-  }
+	for (const perm of perms) {
+		switch (perm) {
+			case "filesystem:read":
+				capabilities.filesystem.push("read");
+				break;
+			case "filesystem:write":
+				capabilities.filesystem.push("read");
+				capabilities.filesystem.push("write");
+				break;
+			case "filesystem:exec":
+				capabilities.filesystem.push("read");
+				capabilities.filesystem.push("exec");
+				break;
+			case "network:outbound":
+				capabilities.network.push("outbound");
+				break;
+			case "process:spawn":
+				capabilities.process.push("spawn");
+				break;
+			case "env:read":
+				capabilities.env.push("read");
+				break;
+		}
+	}
 
-  return capabilities;
+	return capabilities;
 }

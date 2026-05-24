@@ -50,6 +50,13 @@
 
 ## 6. TUI Interface
 
+- [x] 6.1 Create main App component (Ink) that renders the three-panel layout (conversation, sidebar, bottom bar)
+- [x] 6.2 Implement conversation panel with virtualized message list and scroll support
+- [x] 6.3 Implement input panel with text entry and Enter-to-send
+- [x] 6.4 Implement skills panel that lists registered skills with search
+- [x] 6.5 Implement memory panel that displays index entries with file viewer
+- [x] 6.6 Implement settings panel that shows current config sections
+- [x] 6.7 Implement tab-based keyboard navigation between panels (Tab, Shift+Tab)
 - [x] 6.8 Implement command parser that handles `:command` syntax with command dispatch table
 - [x] 6.12 Add unit tests for command parser and component rendering
 

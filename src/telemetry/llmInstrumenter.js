@@ -12,21 +12,21 @@ import { SemanticAttributes } from "@opentelemetry/semantic-conventions";
  * @returns {Object} Span context
  */
 export async function instrumentLlmCall(options) {
-  const { tracer, provider, model, inputTokens, outputTokens, latencyMs, redact } = options;
+	const { provider, model, inputTokens, outputTokens, latencyMs, redact } = options;
 
-  const attributes = {
-    [SemanticAttributes.ML_SYSTEM]: provider,
-    [SemanticAttributes.ML_REQUEST_MODEL_NAME]: model,
-    "llm.input_tokens": inputTokens || 0,
-    "llm.output_tokens": outputTokens || 0,
-    "llm.total_tokens": (inputTokens || 0) + (outputTokens || 0),
-    "llm.latency_ms": latencyMs,
-  };
+	const attributes = {
+		[SemanticAttributes.ML_SYSTEM]: provider,
+		[SemanticAttributes.ML_REQUEST_MODEL_NAME]: model,
+		"llm.input_tokens": inputTokens || 0,
+		"llm.output_tokens": outputTokens || 0,
+		"llm.total_tokens": (inputTokens || 0) + (outputTokens || 0),
+		"llm.latency_ms": latencyMs,
+	};
 
-  const redactedAttributes = redact ? redact(attributes) : attributes;
+	const redactedAttributes = redact ? redact(attributes) : attributes;
 
-  return {
-    spans: [],
-    attributes: redactedAttributes,
-  };
+	return {
+		spans: [],
+		attributes: redactedAttributes,
+	};
 }

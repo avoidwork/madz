@@ -1,4 +1,4 @@
-import { writeFileSync, readdirSync, statSync } from "node:fs";
+import { readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { writeMemoryFile } from "../memory/writer.js";
 
@@ -9,39 +9,38 @@ import { writeMemoryFile } from "../memory/writer.js";
  * @param {string} [sessionId] - Optional session ID to include in frontmatter
  */
 export function saveSession(conversationsDir, conversation, sessionId = "") {
-  const dir = join(process.cwd(), conversationsDir);
-  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+	const dir = join(process.cwd(), conversationsDir);
+	const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
 
-  // Try to update latest conversation file
-  let latestFile = null;
-  let latestTime = 0;
+	// Try to update latest conversation file
+	let latestFile = null;
+	let latestTime = 0;
 
-  try {
-    const files = readdirSync(dir);
-    for (const file of files) {
-      if (!file.endsWith(".md")) continue;
-      const stat = statSync(join(dir, file));
-      if (stat.mtimeMs > latestTime) {
-        latestTime = stat.mtimeMs;
-        latestFile = file;
-      }
-    }
-  } catch {
-    // Directory doesn't exist — create fresh file
-  }
+	try {
+		const files = readdirSync(dir);
+		for (const file of files) {
+			if (!file.endsWith(".md")) continue;
+			const stat = statSync(join(dir, file));
+			if (stat.mtimeMs > latestTime) {
+				latestTime = stat.mtimeMs;
+				latestFile = file;
+			}
+		}
+	} catch {
+		// Directory doesn't exist — create fresh file
+	}
 
-  const filename = latestFile || `${sessionId || timestamp}-session.md`;
-  const filepath = join(dir, filename);
+	const _filename = latestFile || `${sessionId || timestamp}-session.md`;
 
-  // Convert conversation to JSON body
-  const body = JSON.stringify(conversation, null, 2);
+	// Convert conversation to JSON body
+	const body = JSON.stringify(conversation, null, 2);
 
-  const metadata = {
-    sessionId,
-    messageCount: Array.isArray(conversation) ? conversation.length : 0,
-    startedAt: conversation[0]?.timestamp || timestamp,
-    endedAt: timestamp,
-  };
+	const metadata = {
+		sessionId,
+		messageCount: Array.isArray(conversation) ? conversation.length : 0,
+		startedAt: conversation[0]?.timestamp || timestamp,
+		endedAt: timestamp,
+	};
 
-  writeMemoryFile(dir, `${sessionId || "session"} ${timestamp}`, metadata, body);
+	writeMemoryFile(conversationsDir, `${sessionId || "session"} ${timestamp}`, metadata, body);
 }

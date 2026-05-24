@@ -13,33 +13,33 @@ const FRONTMATTER_DELIMITER = "---";
  * @returns {string} The path of the created file
  */
 export function writeMemoryFile(directory, title, frontmatter, body = "") {
-  mkdirSync(directory, { recursive: true });
-  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const slug = title
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-  const filename = `${timestamp}-${slug || "entry"}.md`;
-  const filepath = join(directory, filename);
+	mkdirSync(directory, { recursive: true });
+	const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+	const slug = title
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, "-")
+		.replace(/^-|-$/g, "");
+	const filename = `${timestamp}-${slug || "entry"}.md`;
+	const filepath = join(directory, filename);
 
-  const lines = [
-    FRONTMATTER_DELIMITER,
-    `title: "${title}"`,
-    `timestamp: "${timestamp}"`,
-    ...Object.entries(frontmatter).map(([k, v]) => {
-      if (v == null) return `${k}:`;
-      if (typeof v === "string") return `${k}: "${v}"`;
-      if (typeof v === "boolean") return `${k}: ${v}`;
-      if (typeof v === "number") return `${k}: ${v}`;
-      return `${k}: ${JSON.stringify(v)}`;
-    }),
-    FRONTMATTER_DELIMITER,
-    "",
-    body,
-    "",
-  ];
+	const lines = [
+		FRONTMATTER_DELIMITER,
+		`title: "${title}"`,
+		`timestamp: "${timestamp}"`,
+		...Object.entries(frontmatter).map(([k, v]) => {
+			if (v == null) return `${k}:`;
+			if (typeof v === "string") return `${k}: "${v}"`;
+			if (typeof v === "boolean") return `${k}: ${v}`;
+			if (typeof v === "number") return `${k}: ${v}`;
+			return `${k}: ${JSON.stringify(v)}`;
+		}),
+		FRONTMATTER_DELIMITER,
+		"",
+		body,
+		"",
+	];
 
-  const content = lines.join("\n");
-  writeFileSync(filepath, content);
-  return filepath;
+	const content = lines.join("\n");
+	writeFileSync(filepath, content);
+	return filepath;
 }

@@ -6,15 +6,15 @@ import { randomUUID } from "node:crypto";
  * @returns {{ sessionId: string, state: Object }}
  */
 export function createSession(config = {}) {
-  return {
-    sessionId: randomUUID(),
-    state: {
-      provider: config.provider || "openai",
-      conversation: [],
-      contextWindow: config.contextWindow || 20,
-      skills: config.skills || [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-  };
+	return {
+		sessionId: randomUUID(),
+		state: {
+			provider: config.provider || "openai",
+			conversation: [],
+			contextWindow: config.contextWindow || 20,
+			skills: config.skills || [],
+		},
+		createdAt: new Date().toISOString(),
+		updatedAt: new Date().toISOString(),
+	};
 }

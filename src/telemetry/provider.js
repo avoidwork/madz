@@ -11,43 +11,51 @@ let sdk = null;
  * @returns {Promise<NodeSDK | null>} The configured SDK or null if disabled
  */
 export async function initTelemetry(config = {}) {
-  if (!config || !config.enabled) {
-    return null;
-  }
+	if (!config || !config.enabled) {
+		return null;
+	}
 
-  const exporterConfig = config.exporter || {};
-  let traceExporter;
+	const exporterConfig = config.exporter || {};
+	let traceExporter;
 
-  if (exporterConfig.protocol === "http" || exporterConfig.protocol === "grpc") {
-    traceExporter = new OTLPTraceExporter({
-      url: exporterConfig.endpoint || "http://localhost:4318/v1/traces",
-    });
-  } else {
-    traceExporter = new ConsoleSpanExporter();
-  }
+	if (exporterConfig.protocol === "http" || exporterConfig.protocol === "grpc") {
+		traceExporter = new OTLPTraceExporter({
+			url: exporterConfig.endpoint || "http://localhost:4318/v1/traces",
+		});
+	} else {
+		traceExporter = new ConsoleSpanExporter();
+	}
 
-  const ratio = (config.sampling && config.sampling.ratio) || 0.1;
+	const ratio = (config.sampling && config.sampling.ratio) || 0.1;
 
-  sdk = new NodeSDK({
-    traceExporter,
-    sampling: {
-      strategy: "probability",
-      probability: ratio,
-    },
-    instrumentations: [getNodeAutoInstrumentations()],
-  });
+	sdk = new NodeSDK({
+		traceExporter,
+		sampling: {
+			strategy: "probability",
+			probability: ratio,
+		},
+		instrumentations: [getNodeAutoInstrumentations()],
+	});
 
-  await sdk.start();
-  return sdk;
+	await sdk.start();
+	return sdk;
 }
 
 /**
  * Get the current OTEL tracer for the harness.
- * @returns {import("@opentelemetry/api").Tracer}
+ * @returns {Promise<import("@opentelemetry/api").Tracer>}
  */
-export function getTracer() {
-  const api = await import("@opentelemetry/api");
-  return api.trace.getTracer("madz-harness");
+export async function getTracer() {
+	const api = await import("@opentelemetry/api");
+	return api.trace.getTracer("madz-harness");
+}
+
+/**
+ * Check if telemetry is initialized.
+ * @returns {boolean}
+ */
+export function isTelemetryReady() {
+	return sdk !== null;
 }
 
 /**
@@ -55,9 +63,9 @@ export function getTracer() {
  * @returns {Promise<void>}
  */
 export async function shutdownTelemetry() {
-  if (!sdk) return;
-  await sdk.shutdown();
-  sdk = null;
+	if (!sdk) return;
+	await sdk.shutdown();
+	sdk = null;
 }
 
 /**
@@ -65,5 +73,5 @@ export async function shutdownTelemetry() {
  * @returns {boolean}
  */
 export function isTelemetryEnabled() {
-  return sdk !== null;
+	return sdk !== null;
 }

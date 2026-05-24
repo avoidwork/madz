@@ -15,30 +15,30 @@ import { join } from "node:path";
  * @returns {string} Path to the created file
  */
 export function logScheduleResult(result, outputDir = "memory/schedules/") {
-  mkdirSync(join(process.cwd(), outputDir), { recursive: true });
-  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const { scheduleName, cron, startTime, endTime, exitCode, stdout, stderr } = result;
-  const status = exitCode === 0 ? "success" : "failure";
-  const filepath = join(process.cwd(), outputDir, `${timestamp}-${scheduleName}.md`);
+	mkdirSync(join(process.cwd(), outputDir), { recursive: true });
+	const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+	const { scheduleName, cron, startTime, endTime, exitCode, stdout, stderr } = result;
+	const status = exitCode === 0 ? "success" : "failure";
+	const filepath = join(process.cwd(), outputDir, `${timestamp}-${scheduleName}.md`);
 
-  const content = [
-    "---",
-    `title: "${scheduleName}"`,
-    `cron: "${cron}"`,
-    `startTime: "${startTime}"`,
-    `endTime: "${endTime}"`,
-    `exitCode: ${exitCode || "null"}`,
-    `status: "${status}"`,
-    "---",
-    "",
-    "## Stdout",
-    stdout || "(no output)",
-    "",
-    "## Stderr",
-    stderr || "(no output)",
-    "",
-  ].join("\n");
+	const content = [
+		"---",
+		`title: "${scheduleName}"`,
+		`cron: "${cron}"`,
+		`startTime: "${startTime}"`,
+		`endTime: "${endTime}"`,
+		`exitCode: ${exitCode || "null"}`,
+		`status: "${status}"`,
+		"---",
+		"",
+		"## Stdout",
+		stdout || "(no output)",
+		"",
+		"## Stderr",
+		stderr || "(no output)",
+		"",
+	].join("\n");
 
-  writeFileSync(filepath, content);
-  return filepath;
+	writeFileSync(filepath, content);
+	return filepath;
 }

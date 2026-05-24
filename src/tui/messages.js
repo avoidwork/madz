@@ -16,16 +16,16 @@
  * @returns {string}
  */
 export function getRoleLabel(role) {
-  switch (role) {
-    case "user":
-      return "You";
-    case "assistant":
-      return "Assistant";
-    case "system":
-      return "System";
-    default:
-      return role || "Unknown";
-  }
+	switch (role) {
+		case "user":
+			return "You";
+		case "assistant":
+			return "Assistant";
+		case "system":
+			return "System";
+		default:
+			return role || "Unknown";
+	}
 }
 
 /**
@@ -35,7 +35,7 @@ export function getRoleLabel(role) {
  * @returns {number} Maximum visible messages
  */
 export function calcVisibleCount(totalLines, linesPerMessage = 3) {
-  return Math.max(1, Math.floor(totalLines / linesPerMessage));
+	return Math.max(1, Math.floor(totalLines / linesPerMessage));
 }
 
 /**
@@ -46,17 +46,17 @@ export function calcVisibleCount(totalLines, linesPerMessage = 3) {
  * @returns {{ messages: Array<Message>, scrollTop: number, scrollHeight: number }}
  */
 export function getVisibleMessages(messages, scrollOffset, visibleCount) {
-  const total = messages.length;
-  const start = Math.max(0, Math.min(scrollOffset, total - visibleCount));
-  const end = Math.min(total, start + visibleCount);
-  const visible = messages.slice(start, end);
+	const total = messages.length;
+	const start = Math.max(0, Math.min(scrollOffset, total - visibleCount));
+	const end = Math.min(total, start + visibleCount);
+	const visible = messages.slice(start, end);
 
-  return {
-    messages: visible,
-    scrollTop: start,
-    scrollHeight: total,
-    bottomReached: visibleCount >= total,
-  };
+	return {
+		messages: visible,
+		scrollTop: start,
+		scrollHeight: total,
+		bottomReached: visibleCount >= total,
+	};
 }
 
 /**
@@ -65,9 +65,9 @@ export function getVisibleMessages(messages, scrollOffset, visibleCount) {
  * @returns {string}
  */
 export function formatMessage(message) {
-  const label = getRoleLabel(message.role);
-  const timestamp = message.timestamp ? ` (${message.timestamp})` : "";
-  return `${label}${timestamp}\n${message.content || "(empty)"}`;
+	const label = getRoleLabel(message.role);
+	const timestamp = message.timestamp ? ` (${message.timestamp})` : "";
+	return `${label}${timestamp}\n${message.content || "(empty)"}`;
 }
 
 /**
@@ -77,12 +77,12 @@ export function formatMessage(message) {
  * @returns {number}
  */
 export function countMessageLines(messages, lineWidth = 80) {
-  let total = 0;
-  for (const msg of messages) {
-    total += 2; // Label + content start
-    const lines = Math.ceil((msg.content || "").length / lineWidth);
-    total += Math.max(1, lines);
-    total += 1; // Separator
-  }
-  return total;
+	let total = 0;
+	for (const msg of messages) {
+		total += 2; // Label + content start
+		const lines = Math.ceil((msg.content || "").length / lineWidth);
+		total += Math.max(1, lines);
+		total += 1; // Separator
+	}
+	return total;
 }

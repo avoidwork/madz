@@ -1,6 +1,4 @@
-import { createReadStream } from "node:fs";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+// oxlint-disable no-console
 
 // Load config
 const { loadConfig, setConfigValue } = await import("./src/config/loader.js");
@@ -12,11 +10,11 @@ const config = loadConfig();
 let tracer = null;
 let shutdownFn = null;
 if (config.telemetry.enabled) {
-  const { initTelemetry, getTracer, shutdownTelemetry } =
-    await import("./src/telemetry/provider.js");
-  await initTelemetry(config.telemetry);
-  tracer = getTracer();
-  shutdownFn = shutdownTelemetry;
+	const { initTelemetry, getTracer, shutdownTelemetry } =
+		await import("./src/telemetry/provider.js");
+	await initTelemetry(config.telemetry);
+	tracer = getTracer();
+	shutdownFn = shutdownTelemetry;
 }
 
 // Initialize skill registry
@@ -25,149 +23,167 @@ const registry = new SkillRegistry();
 registry.discover("skills/");
 
 // Initialize memory system
-const { writeMemoryFile, readMemoryFile, listContextFiles, loadContext, cleanRetainedMemory, enforceMaxEntries } =
-  await import("./src/memory/index.js");
+const {
+	writeMemoryFile,
+	readMemoryFile,
+	listContextFiles,
+	loadContext,
+	cleanRetainedMemory,
+	enforceMaxEntries,
+} = await import("./src/memory/index.js");
 
 // Initialize session
-const { createSession, SessionStateManager, enforceContextWindow, loadSession, saveSession, handleShutdown, registerShutdownHandler } =
-  await import("./src/session/index.js");
+const {
+	createSession,
+	SessionStateManager,
+	enforceContextWindow,
+	saveSession,
+	handleShutdown,
+	registerShutdownHandler,
+} = await import("./src/session/index.js");
 
 // Initialize scheduler
-const { ScheduleManager, validateCron, resolvePath, filterUrl, injectEnv, enforceCapabilities } =
-  await import("./src/scheduler/index.js");
+const { ScheduleManager } = await import("./src/scheduler/index.js");
 const scheduleManager = new ScheduleManager(config.schedules.maxConcurrent);
 scheduleManager.register(config.schedules.entries);
 
 // Create session
 const { sessionId, state: initialState } = createSession({
-  provider: config.providers.default,
-  contextWindow: config.session.context_window_size,
+	provider: config.providers.default,
+	contextWindow: config.session.context_window_size,
 });
 const sessionState = new SessionStateManager(initialState);
 
 // LLM provider dispatch with fallback chain
 async function dispatchProvider(message, providerName = null) {
-  const provider = providerName || sessionState.getProvider();
-  const providersConfig = config.providers || {};
-  const fallbackOrder = providersConfig.fallback_order || [provider, "local"];
+	const provider = providerName || sessionState.getProvider();
+	const providersConfig = config.providers || {};
+	const fallbackOrder = providersConfig.fallback_order || [provider, "local"];
 
-  let lastError = null;
-  for (const name of fallbackOrder) {
-    const providerConfig = {}; // Provider-specific config from config.providers[name]
-    try {
-      const result = await callProvider(name, providerConfig, message);
-      return result;
-    } catch (err) {
-      lastError = err;
-      console.error(`Provider "${name}" failed:`, err.message);
-    }
-  }
+	let lastError = null;
+	for (const name of fallbackOrder) {
+		const _providerConfig = {}; // Provider-specific config from config.providers[name]
+		try {
+			const result = await callProvider(name, _providerConfig, message);
+			return result;
+		} catch (err) {
+			console.error(`Provider "${name}" failed:`, err.message);
+		}
+	}
 
-  throw new Error(`All providers failed. Last error: ${lastError?.message}`);
+	throw new Error(`All providers failed. Last error: ${lastError?.message}`);
 }
 
-async function callProvider(name, providerConfig, message) {
-  // Placeholder — actual provider implementation would call the LLM API
-  return {
-    provider: name,
-    content: `[No provider implementation: ${name}]`,
-    tokens: { input: 0, output: 0 },
-  };
+async function callProvider(_name, _providerConfig, _message) {
+	// Placeholder — actual provider implementation would call the LLM API
+	return {
+		provider: name,
+		content: `[No provider implementation: ${name}]`,
+		tokens: { input: 0, output: 0 },
+	};
 }
 
 // Conversation handler
 async function handleConversation(message) {
-  sessionState.addExchange({ role: "user", content: message });
-  const contextEnforced = enforceContextWindow(sessionState.getConversation(), sessionState.getContextWindow());
-  sessionState.addExchange(contextEnforced.context);
+	sessionState.addExchange({ role: "user", content: message });
+	const contextEnforced = enforceContextWindow(
+		sessionState.getConversation(),
+		sessionState.getContextWindow(),
+	);
+	sessionState.addExchange(contextEnforced.context);
 
-  const contextPrefix = loadContext();
-  const fullPrompt = [contextPrefix, message].filter(Boolean).join("\n\n");
+	const contextPrefix = loadContext();
+	const fullPrompt = [contextPrefix, message].filter(Boolean).join("\n\n");
 
-  const response = await dispatchProvider(fullPrompt);
+	const response = await dispatchProvider(fullPrompt);
 
-  sessionState.addExchange({ role: "assistant", content: response.content });
+	sessionState.addExchange({ role: "assistant", content: response.content });
 
-  // Persist to memory
-  writeMemoryFile("memory/conversations/", `Conversation ${new Date().toISOString()}`, {
-    provider: response.provider,
-    sessionId,
-  }, JSON.stringify(sessionState.getConversation(), null, 2));
+	// Persist to memory
+	writeMemoryFile(
+		"memory/conversations/",
+		`Conversation ${new Date().toISOString()}`,
+		{
+			provider: response.provider,
+			sessionId,
+		},
+		JSON.stringify(sessionState.getConversation(), null, 2),
+	);
 
-  return response;
+	return response;
 }
 
 // Skill invocation through sandbox
 async function invokeSkill(skillName, input = {}) {
-  const skill = registry.get(skillName);
-  if (!skill) {
-    throw new Error(`Unknown skill: ${skillName}`);
-  }
+	const skill = registry.get(skillName);
+	if (!skill) {
+		throw new Error(`Unknown skill: ${skillName}`);
+	}
 
-  if (skill.disabled) {
-    throw new Error(`Skill "${skillName}" is disabled`);
-  }
+	if (skill.disabled) {
+		throw new Error(`Skill "${skillName}" is disabled`);
+	}
 
-  const permissions = resolvePermissions(skill.metadata);
+	const permissions = resolvePermissions(skill.metadata);
 
-  // Placeholder — actual sandbox execution
-  return {
-    skill: skillName,
-    input,
-    output: `[Skill ${skillName} executed with permissions: ${permissions.join(", ")}]`,
-    exitCode: 0,
-  };
+	// Placeholder — actual sandbox execution
+	return {
+		skill: skillName,
+		input,
+		output: `[Skill ${skillName} executed with permissions: ${permissions.join(", ")}]`,
+		exitCode: 0,
+	};
 }
 
 // Shutdown handler
 registerShutdownHandler(async () => {
-  saveSession(config.session.conversationsDir, sessionState.getConversation());
+	saveSession(config.session.conversationsDir, sessionState.getConversation());
 
-  // Clean up retention
-  cleanRetainedMemory(config.memory.directory, config.memory.retention.days);
-  enforceMaxEntries(config.memory.directory, config.memory.retention.maxEntries);
+	// Clean up retention
+	cleanRetainedMemory(config.memory.directory, config.memory.retention.days);
+	enforceMaxEntries(config.memory.directory, config.memory.retention.maxEntries);
 
-  if (shutdownFn) {
-    await shutdownFn();
-  }
+	if (shutdownFn) {
+		await shutdownFn();
+	}
 });
 
 // CLI mode detection (if run directly as node index.js)
 if (import.meta.main) {
-  const args = process.argv.slice(2);
-  const mode = args.includes("--mode interactive") ? "interactive" : "chat";
+	const args = process.argv.slice(2);
+	const mode = args.includes("--mode interactive") ? "interactive" : "chat";
 
-  if (mode === "chat") {
-    const message = args.filter((a) => !a.startsWith("--"))[0] || "Hello";
-    try {
-      const response = await handleConversation(message);
-      console.log(JSON.stringify(response, null, 2));
-    } catch (err) {
-      console.error("Error:", err.message);
-      process.exit(1);
-    }
-  } else {
-    console.log(`Session ${sessionId} started in interactive mode`);
-    console.log(`Registry: ${registry.size} skills loaded`);
-  }
+	if (mode === "chat") {
+		const message = args.filter((a) => !a.startsWith("--"))[0] || "Hello";
+		try {
+			const response = await handleConversation(message);
+			console.log(JSON.stringify(response, null, 2));
+		} catch (err) {
+			console.error("Error:", err.message);
+			process.exit(1);
+		}
+	} else {
+		console.log(`Session ${sessionId} started in interactive mode`);
+		console.log(`Registry: ${registry.size} skills loaded`);
+	}
 }
 
 // Export for testing and TUI integration
 export {
-  config,
-  sessionId,
-  sessionState,
-  registry,
-  tracer,
-  dispatchProvider,
-  handleConversation,
-  invokeSkill,
-  handleShutdown,
-  scheduleManager,
-  setConfigValue,
-  loadContext,
-  writeMemoryFile,
-  readMemoryFile,
-  listContextFiles,
-  cleanRetainedMemory,
+	config,
+	sessionId,
+	sessionState,
+	registry,
+	tracer,
+	dispatchProvider,
+	handleConversation,
+	invokeSkill,
+	handleShutdown,
+	scheduleManager,
+	setConfigValue,
+	loadContext,
+	writeMemoryFile,
+	readMemoryFile,
+	listContextFiles,
+	cleanRetainedMemory,
 };

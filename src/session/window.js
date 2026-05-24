@@ -5,21 +5,21 @@
  * @returns {{ pruned: number, context: Array, history: Array }}
  */
 export function enforceContextWindow(conversation, windowSize) {
-  if (!conversation || conversation.length === 0) {
-    return { pruned: 0, context: [], history: [] };
-  }
+	if (!conversation || conversation.length === 0) {
+		return { pruned: 0, context: [], history: [] };
+	}
 
-  const window = Math.max(1, Math.floor(windowSize));
+	const window = Math.max(1, Math.floor(windowSize));
 
-  if (conversation.length <= window) {
-    return { pruned: 0, context: [...conversation], history: [...conversation] };
-  }
+	if (conversation.length <= window) {
+		return { pruned: 0, context: [...conversation], history: [...conversation] };
+	}
 
-  const pruned = conversation.length - window;
-  const context = conversation.slice(pruned);
-  const history = [...conversation];
+	const pruned = conversation.length - window;
+	const context = conversation.slice(pruned);
+	const history = [...conversation];
 
-  return { pruned, context, history };
+	return { pruned, context, history };
 }
 
 /**
@@ -28,10 +28,10 @@ export function enforceContextWindow(conversation, windowSize) {
  * @returns {Function} A function that takes and returns a conversation array
  */
 export function trimConversation(maxExchanges) {
-  return function(conversation) {
-    if (!conversation || conversation.length <= maxExchanges) {
-      return conversation || [];
-    }
-    return conversation.slice(-maxExchanges);
-  };
+	return function (conversation) {
+		if (!conversation || conversation.length <= maxExchanges) {
+			return conversation || [];
+		}
+		return conversation.slice(-maxExchanges);
+	};
 }

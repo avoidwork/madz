@@ -4,18 +4,18 @@
  * @returns {{ ratio: number, shouldSample: Function }}
  */
 export function createSampler(ratio = 0.1) {
-  const prob = Math.max(0, Math.min(1, ratio));
+	const prob = Math.max(0, Math.min(1, ratio));
 
-  /**
-   * Determine if a span should be sampled.
-   * @returns {boolean}
-   */
-  return {
-    ratio: prob,
-    shouldSample: function () {
-      return Math.random() < prob;
-    },
-  };
+	/**
+	 * Determine if a span should be sampled.
+	 * @returns {boolean}
+	 */
+	return {
+		ratio: prob,
+		shouldSample: function () {
+			return Math.random() < prob;
+		},
+	};
 }
 
 /**
@@ -24,6 +24,6 @@ export function createSampler(ratio = 0.1) {
  * @returns {{ ratio: number, shouldSample: Function }}
  */
 export function loadSampler(config = {}) {
-  const ratio = (config.sampling && config.sampling.ratio) || 0.1;
-  return createSampler(ratio);
+	const ratio = (config.sampling && config.sampling.ratio) || 0.1;
+	return createSampler(ratio);
 }

@@ -7,16 +7,16 @@
  * @returns {Object} Span data
  */
 export function instrumentSkillExecution({ skillName, durationMs, exitStatus }) {
-  const status = exitStatus === 0 ? "ok" : "error";
+	const status = exitStatus === 0 ? "ok" : "error";
 
-  return {
-    spanKind: "internal",
-    name: `skill:${skillName}`,
-    attributes: {
-      "mz.skill.name": skillName,
-      "mz.skill.duration_ms": durationMs,
-      "mz.skill.status": status,
-      "mz.skill.exit_code": exitStatus,
-    },
-  };
+	return {
+		spanKind: "internal",
+		name: `skill:${skillName}`,
+		attributes: {
+			"mz.skill.name": skillName,
+			"mz.skill.duration_ms": durationMs,
+			"mz.skill.status": status,
+			"mz.skill.exit_code": exitStatus,
+		},
+	};
 }
