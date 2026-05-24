@@ -289,7 +289,7 @@ Generates `coverage.txt` via `node --test --experimental-test-coverage`.
 
 ### 6.2 Pre-commit Hook and coverage.txt
 
-The `cover` pre-commit hook runs tests then regenerates `coverage.txt`. If the hook modifies a staged file, `git commit` fails. Always `git add -A` and `git commit --amend -C HEAD` after a failed commit from a modified `coverage.txt`.
+The `cover` pre-commit hook runs `npm run coverage` then regenerates `coverage.txt`. If the hook modifies a staged file, `git commit` fails. Always `git add -A` and `git commit --amend -C HEAD` after a failed commit from a modified `coverage.txt`.
 
 ### 6.3 Pre-commit Runs Tests
 
