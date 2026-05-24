@@ -1,7 +1,12 @@
 // oxlint-disable no-console
 
 // Load config
+import { fileURLToPath, dirname } from "node:path";
+
 const { loadConfig, setConfigValue } = await import("./src/config/loader.js");
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Initialize subsystems
 const config = loadConfig();
@@ -61,6 +66,7 @@ async function dispatchProvider(message, providerName = null) {
 			const result = await callProvider(name, _providerConfig, message);
 			return result;
 		} catch (err) {
+			lastError = err;
 			console.error(`Provider "${name}" failed:`, err.message);
 		}
 	}
@@ -143,7 +149,8 @@ registerShutdownHandler(async () => {
 });
 
 // CLI mode detection (if run directly as node index.js)
-if (import.meta.main) {
+const isMain = process.argv[1] === fileURLToPath(import.meta.url);
+if (isMain) {
 	const args = process.argv.slice(2);
 	const mode = args.some((a, i) => a === "--mode" && args[i + 1] === "interactive")
 		? "interactive"
