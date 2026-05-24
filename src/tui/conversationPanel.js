@@ -66,9 +66,7 @@ export function ConversationPanel({
 	// (delegated to parent for history coordination)
 	// Scrolling conversation is handled by parent when isScrolling is true.
 
-	const children = [
-		React.createElement(Text, { bold: true, color: "gray" }, "─ Conversations " + "─".repeat(40)),
-	];
+	const children = [React.createElement(Text, { bold: true, color: "cyan" }, " Conversation ")];
 
 	for (let i = 0; i < visibleMessages.length; i++) {
 		const msg = visibleMessages[i];
