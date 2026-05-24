@@ -17,47 +17,27 @@ function getStatusIndicator(status) {
 }
 
 /**
- * Bottom status bar / input panel.
- * Displays status indicator | input cursor | skills/msg count.
+ * Bottom status bar.
+ * Displays status indicator, status message, and info counts.
+ * Input text entry is handled by InputPanel with IRC-style prompt ("> text" / ": text").
  */
-export function StatusBar({
-	inputText = "",
-	statusMessage = "",
-	skillCount = 0,
-	messageCount = 0,
-}) {
-	const isCommand = inputText && inputText.startsWith(":");
+export function StatusBar({ statusMessage = "", skillCount = 0, messageCount = 0 }) {
 	const status = getStatusIndicator(statusMessage);
 
 	return React.createElement(
 		Box,
 		{ flexDirection: "row", alignItems: "center", paddingX: 1 },
-		// Connection status indicator
 		React.createElement(
 			Text,
 			{ key: "status-indicator", color: status.color, bold: true },
 			status.indicator + " ",
 		),
-		// Input text with cursor
-		React.createElement(
-			Box,
-			{ key: "input", flexDirection: "row" },
-			React.createElement(Text, { key: "text", color: isCommand ? "magenta" : "green" }, inputText),
-			React.createElement(
-				Text,
-				{ key: "cursor", color: isCommand ? "magenta" : "green" },
-				"\u2502",
-			),
-		),
-		// Status message
 		React.createElement(Text, { key: "status-msg", dim: true }, " " + statusMessage),
-		// Separators
 		React.createElement(Text, { key: "sep" }, " | "),
-		// Info
 		React.createElement(
 			Text,
 			{ key: "info", dim: true },
-			"skills:" + skillCount + " msg:" + messageCount + "\u2500",
+			"skills:" + skillCount + " msg:" + messageCount,
 		),
 	);
 }

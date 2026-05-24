@@ -1,38 +1,23 @@
-import React, { useState } from "react";
+import React from "react";
 import { Box, Text } from "ink";
-import { useInput } from "ink";
 
 /**
- * Input panel with text entry and Enter-to-send.
- * Props: onSubmit - callback when Enter is pressed
+ * Display-only input panel with IRC-style prompt.
+ * All input handling (typing, Enter-to-send, history nav, backspace)
+ * is handled by App's single useInput hook.
+ * Props:
+ *   inputText - current text being typed (for display)
  */
-export function InputPanel({ onSubmit = () => {} }) {
-	const [inputText, setInputText] = useState("");
-
-	useInput((input) => {
-		if (input === "\r" || input === "enter") {
-			// Enter-to-send
-			if (inputText.trim()) {
-				onSubmit(inputText.trim());
-				setInputText("");
-			}
-		} else if (input === "backspace" && inputText.length > 0) {
-			setInputText((prev) => prev.slice(0, -1));
-		} else {
-			// Append character
-			setInputText((prev) => prev + input);
-		}
-	});
-
+export function InputPanel({ inputText = "" }) {
 	const isCommand = inputText.startsWith(":");
 	const color = isCommand ? "magenta" : "green";
 	const prompt = isCommand ? ":" : ">";
 
-	return (
-		<Box flexDirection="row">
-			<Text color={color}>{prompt} </Text>
-			<Text>{inputText}</Text>
-			<Text dim> </Text>
-		</Box>
+	return React.createElement(
+		Box,
+		{ flexDirection: "row" },
+		React.createElement(Text, { color: color }, prompt + " "),
+		React.createElement(Text, {}, inputText),
+		React.createElement(Text, { dim: true }, " "),
 	);
 }

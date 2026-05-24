@@ -4,6 +4,7 @@ import { useInput } from "ink";
 import { CommandParser } from "./commandParser.js";
 import { ConversationPanel } from "./conversationPanel.js";
 import { StatusBar } from "./statusBar.js";
+import { InputPanel } from "./inputPanel.js";
 import { calcVisibleCount } from "./messages.js";
 
 const EXIT_MESSAGE = "\n";
@@ -16,10 +17,10 @@ const parser = new CommandParser();
  */
 export default function App({ config, registry, sessionState, dispatchProvider }) {
 	const [messages, setMessages] = useState([]);
-	const [inputText, setInputText] = useState("");
 	const [statusMessage, setStatusMessage] = useState("Ready");
 	const [chatHistory, setChatHistory] = useState([]);
 	const [historyIndex, setHistoryIndex] = useState(-1);
+	const [inputText, setInputText] = useState("");
 	const [scrollOffset, setScrollOffset] = useState(0);
 	const [isScrolling, setIsScrolling] = useState(false);
 
@@ -36,6 +37,7 @@ export default function App({ config, registry, sessionState, dispatchProvider }
 			return [...filtered, trimmed];
 		});
 		setHistoryIndex(-1);
+		setInputText("");
 
 		addMessage({ role: "user", content: trimmed });
 
@@ -110,18 +112,18 @@ export default function App({ config, registry, sessionState, dispatchProvider }
 		setIsScrolling(false);
 	};
 
-	// Keyboard input handler - handles input typing, history navigation, and scrolling
+	// Single input handler - processes all keystrokes here
+	// InputPanel is now a display-only component (no useInput handler)
 	useInput((input, key) => {
 		if (key.escape) {
 			handleQuit();
-		} else if (key.enter && !key.shift) {
-			setInputText("");
-			handleSubmit(input);
-		} else if (key.up && chatHistory.length > 0) {
+		} else if (key.return && !key.shift) {
+			handleSubmit(inputText);
+		} else if (key.upArrow && chatHistory.length > 0) {
 			const newIndex = historyIndex === -1 ? chatHistory.length - 1 : Math.max(0, historyIndex - 1);
 			setHistoryIndex(newIndex);
 			setInputText(chatHistory[newIndex]);
-		} else if (key.down) {
+		} else if (key.downArrow) {
 			if (historyIndex === -1) return;
 			const nextIndex = historyIndex + 1;
 			if (nextIndex >= chatHistory.length) {
@@ -131,17 +133,17 @@ export default function App({ config, registry, sessionState, dispatchProvider }
 				setHistoryIndex(nextIndex);
 				setInputText(chatHistory[nextIndex]);
 			}
+		} else if (key.backspace && inputText.length > 0) {
+			setInputText((prev) => prev.slice(0, -1));
 		} else if (input && input !== "\r") {
 			setInputText((prev) => prev + input);
 		}
 	});
 
 	const { rows } = useWindowSize();
-
 	const visibleCount = calcVisibleCount(rows - 2, 3);
 
 	const statusProps = {
-		inputText: inputText,
 		skillCount: skillList.length,
 		messageCount: messages.length,
 		statusMessage: statusMessage,
@@ -161,6 +163,9 @@ export default function App({ config, registry, sessionState, dispatchProvider }
 			},
 		}),
 		React.createElement(StatusBar, statusProps),
+		React.createElement(InputPanel, {
+			inputText: inputText,
+		}),
 		React.createElement(Text, { key: "exit-newline" }, EXIT_MESSAGE),
 	);
 }
