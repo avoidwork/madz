@@ -1,7 +1,8 @@
 // oxlint-disable no-console
 
 // Load config
-import { fileURLToPath, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+import { dirname } from "node:path";
 
 const { loadConfig, setConfigValue } = await import("./src/config/loader.js");
 
