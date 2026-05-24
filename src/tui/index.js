@@ -9,4 +9,5 @@ export {
 	SkillsPanel,
 	MemoryPanel,
 	SettingsPanel,
+	Banner,
 } from "./components.js";
