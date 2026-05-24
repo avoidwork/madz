@@ -311,6 +311,33 @@ describe("TUI - role colors", () => {
 	});
 });
 
+describe("TUI - bubble style", () => {
+	it("returns flex-end alignment with green border for user", () => {
+		function getBubbleStyle(role) {
+			if (role === "user") {
+				return { alignment: "flex-end", border: "green" };
+			}
+			if (role === "system") {
+				return { alignment: "flex-start", border: "yellow" };
+			}
+			return { alignment: "flex-start", border: "cyan" };
+		}
+
+		assert.deepStrictEqual(getBubbleStyle("user"), {
+			alignment: "flex-end",
+			border: "green",
+		});
+		assert.deepStrictEqual(getBubbleStyle("assistant"), {
+			alignment: "flex-start",
+			border: "cyan",
+		});
+		assert.deepStrictEqual(getBubbleStyle("system"), {
+			alignment: "flex-start",
+			border: "yellow",
+		});
+	});
+});
+
 describe("TUI - status indicator", () => {
 	it("returns correct indicator for ready status", () => {
 		function getStatusIndicator(status) {
