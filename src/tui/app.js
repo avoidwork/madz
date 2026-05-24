@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Box } from "ink";
+import { Box, useWindowSize } from "ink";
 import { useInput } from "ink";
 import { CommandParser } from "./commandParser.js";
 import { ConversationPanel } from "./conversationPanel.js";
@@ -128,18 +128,16 @@ export default function App({ config, registry, sessionState, dispatchProvider }
 
 	const visibleCount = Math.max(messages.length, 20);
 
+	const { rows } = useWindowSize();
+
 	return React.createElement(
 		Box,
-		{ flexDirection: "column", width: "100%", height: "100%" },
-		React.createElement(
-			Box,
-			{ flexDirection: "column", flex: 1, marginTop: 1, paddingX: 1 },
-			React.createElement(ConversationPanel, {
-				messages: messages,
-				visibleCount: visibleCount,
-				scrollOffset: scrollOffset,
-			}),
-		),
+		{ flexDirection: "column", width: "100%", height: rows },
+		React.createElement(ConversationPanel, {
+			messages: messages,
+			visibleCount: visibleCount,
+			scrollOffset: scrollOffset,
+		}),
 		React.createElement(StatusBar, {
 			inputText: inputText,
 			skillCount: skillList.length,

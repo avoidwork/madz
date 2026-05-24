@@ -29,5 +29,9 @@ export function ConversationPanel({ messages = [], scrollOffset = 0, visibleCoun
 		);
 	}
 
-	return React.createElement(Box, { key: "panel", flexDirection: "column" }, ...children);
+	return React.createElement(
+		Box,
+		{ key: "panel", flexDirection: "column", flexGrow: 1 },
+		...children,
+	);
 }
