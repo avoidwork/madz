@@ -178,6 +178,12 @@ if (isMain) {
 				dispatchProvider,
 				invokeSkill,
 			}),
+			{
+				onExit: async () => {
+					const shutdown = (await import("./src/session/index.js")).handleShutdown;
+					if (shutdown) await shutdown();
+				},
+			},
 		);
 	}
 }

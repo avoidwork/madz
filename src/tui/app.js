@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Box, Text } from "ink";
+import { useInput } from "ink";
 
 /**
  * Main App component (Ink). Renders the multi-panel layout:
@@ -10,9 +11,10 @@ export default function App({ config, registry, sessionState, dispatchProvider, 
 	const [activePanel, setActivePanel] = useState("conversation");
 	const [messages, setMessages] = useState([]);
 	const [statusMessage, setStatusMessage] = useState("Ready");
+	const [inputText, setInputText] = useState("");
 
-	// Tab-based keyboard navigation between panels (hooked via ink useInput in parent)
-	const _cyclePanel = (direction) => {
+	// Tab-based keyboard navigation between panels
+	const cyclePanel = (direction) => {
 		setActivePanel((prev) => {
 			const order = ["conversation", "skills", "memory", "settings"];
 			const idx = order.indexOf(prev);
@@ -23,7 +25,7 @@ export default function App({ config, registry, sessionState, dispatchProvider, 
 	};
 
 	// Handle command/message input
-	const _handleSubmit = async (text) => {
+	const handleSubmit = async (text) => {
 		if (!text) return;
 		if (text.startsWith(":")) {
 			setStatusMessage(`Command: ${text}`);
@@ -59,6 +61,22 @@ export default function App({ config, registry, sessionState, dispatchProvider, 
 			}
 		}
 	};
+
+	// Capture keyboard input for typing and commands
+	useInput((input, key) => {
+		if (key.escape) {
+			process.exit(0);
+		} else if (key.shift && key.tab) {
+			cyclePanel(-1);
+		} else if (key.tab) {
+			cyclePanel(1);
+		} else if (key.enter && inputText.trim()) {
+			setInputText("");
+			handleSubmit(inputText.trim());
+		} else if (!key.up && !key.down && !key.left && !key.right && !key.space && !key.backspace) {
+			setInputText((prev) => prev + input);
+		}
+	});
 
 	const skillList = registry ? registry.list() : [];
 	const configSections = config ? Object.keys(config) : [];
@@ -180,7 +198,7 @@ export default function App({ config, registry, sessionState, dispatchProvider, 
 			React.createElement(Text, null, ` [`),
 			React.createElement(Text, { color: "cyan", bold: true }, activePanel),
 			React.createElement(Text, null, ":"),
-			React.createElement(Text, { color: "yellow" }, " "),
+			React.createElement(Text, { color: "yellow" }, inputText),
 			React.createElement(Text, { color: "gray" }, "_"),
 			React.createElement(Text, null, ` ]`),
 		),
