@@ -140,6 +140,6 @@ export default function App({ config, registry, sessionState, dispatchProvider }
 			},
 		}),
 		React.createElement(StatusBar, statusProps),
-		React.createElement(Text, { key: "exit-newline" }, ""),
+		React.createElement(Text, { key: "exit-newline" }, "\n"),
 	);
 }
