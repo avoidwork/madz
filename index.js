@@ -179,9 +179,11 @@ if (isMain) {
 				invokeSkill,
 			}),
 			{
+				// Restore terminal with newline when app exits
 				onExit: async () => {
 					const shutdown = (await import("./src/session/index.js")).handleShutdown;
 					if (shutdown) await shutdown();
+					process.stdout.write("\n");
 				},
 			},
 		);
