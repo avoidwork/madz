@@ -117,30 +117,24 @@ export default function App({ config, registry, sessionState, dispatchProvider }
 		} else if (key.enter && !key.shift) {
 			setInputText("");
 			handleSubmit(input);
+		} else if (key.up && chatHistory.length > 0) {
+			const newIndex = historyIndex === -1 ? chatHistory.length - 1 : Math.max(0, historyIndex - 1);
+			setHistoryIndex(newIndex);
+			setInputText(chatHistory[newIndex]);
+		} else if (key.down) {
+			if (historyIndex === -1) return;
+			const nextIndex = historyIndex + 1;
+			if (nextIndex >= chatHistory.length) {
+				setHistoryIndex(-1);
+				setInputText("");
+			} else {
+				setHistoryIndex(nextIndex);
+				setInputText(chatHistory[nextIndex]);
+			}
 		} else if (input && input !== "\r") {
 			setInputText((prev) => prev + input);
 		}
 	});
-
-	const onScrollUp = () => {
-		if (chatHistory.length > 0) {
-			const newIndex = historyIndex === -1 ? chatHistory.length - 1 : Math.max(0, historyIndex - 1);
-			setHistoryIndex(newIndex);
-			setInputText(chatHistory[newIndex]);
-		}
-	};
-
-	const onScrollDown = () => {
-		if (historyIndex === -1) return;
-		const nextIndex = historyIndex + 1;
-		if (nextIndex >= chatHistory.length) {
-			setHistoryIndex(-1);
-			setInputText("");
-		} else {
-			setHistoryIndex(nextIndex);
-			setInputText(chatHistory[nextIndex]);
-		}
-	};
 
 	const { rows } = useWindowSize();
 
@@ -165,8 +159,6 @@ export default function App({ config, registry, sessionState, dispatchProvider }
 				setScrollOffset(offset);
 				setIsScrolling(scrolling);
 			},
-			onScrollUp: onScrollUp,
-			onScrollDown: onScrollDown,
 		}),
 		React.createElement(StatusBar, statusProps),
 		React.createElement(Text, { key: "exit-newline" }, EXIT_MESSAGE),

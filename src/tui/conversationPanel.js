@@ -40,8 +40,6 @@ export function ConversationPanel({
 	visibleCount = 20,
 	_isScrolling = false,
 	_onScroll,
-	_onScrollUp,
-	_onScrollDown,
 }) {
 	const { messages: visibleMessages, _bottomReached } = getVisibleMessages(
 		messages,
