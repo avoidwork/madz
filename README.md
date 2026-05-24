@@ -221,4 +221,6 @@ Reference env vars in `config.yaml` using `${ENV_VAR_NAME}` syntax. Supported va
 
 ## License
 
-BSD-3-Clause — see [LICENSE](LICENSE) for details.
+Licensed under the [BSD-3-Clause](LICENSE) License.
+
+Copyright (c) 2026 Jason Mulligan.
