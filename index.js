@@ -3,6 +3,7 @@
 // Load config
 import { fileURLToPath } from "node:url";
 import { dirname } from "node:path";
+import React from "react";
 
 const { loadConfig, setConfigValue } = await import("./src/config/loader.js");
 
@@ -167,8 +168,17 @@ if (isMain) {
 			process.exit(1);
 		}
 	} else {
-		console.log(`Session ${sessionId} started in interactive mode`);
-		console.log(`Registry: ${registry.size} skills loaded`);
+		const { render } = await import("ink");
+		const App = (await import("./src/tui/app.js")).default;
+		render(
+			React.createElement(App, {
+				config,
+				registry,
+				sessionState,
+				dispatchProvider,
+				invokeSkill,
+			}),
+		);
 	}
 }
 
