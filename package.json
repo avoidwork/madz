@@ -1,10 +1,15 @@
 {
   "name": "madz",
   "version": "1.0.0",
-  "description": "AI Harness",
+  "description": "Your terminal AI companion. Remembers context, runs your skills, and automates workflows.",
   "keywords": [
+    "cli",
     "ai",
-    "harness"
+    "engine",
+    "assistant",
+    "harness",
+    "orchestrator",
+    "orchestrator-engine"
   ],
   "homepage": "https://github.com/avoidwork/madz#readme",
   "bugs": {
