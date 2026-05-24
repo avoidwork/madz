@@ -119,6 +119,13 @@ export default function App({ config, registry, sessionState, dispatchProvider }
 
 	const visibleCount = calcVisibleCount(rows - 2, 3);
 
+	const statusProps = {
+		inputText: inputText,
+		skillCount: skillList.length,
+		messageCount: messages.length,
+		statusMessage: statusMessage,
+	};
+
 	return React.createElement(
 		Box,
 		{ flexDirection: "column", width: "100%", height: rows },
@@ -132,11 +139,7 @@ export default function App({ config, registry, sessionState, dispatchProvider }
 				setIsScrolling(scrolling);
 			},
 		}),
-		React.createElement(StatusBar, {
-			inputText: inputText,
-			skillCount: skillList.length,
-			messageCount: messages.length,
-			statusMessage: statusMessage,
-		}),
+		React.createElement(StatusBar, statusProps),
+		React.createElement(Text, { key: "exit-newline" }, ""),
 	);
 }
