@@ -23,13 +23,8 @@ const registry = new SkillRegistry();
 registry.discover("skills/");
 
 // Initialize memory system
-const {
-	writeMemoryFile,
-	readMemoryFile,
-	loadContext,
-	cleanRetainedMemory,
-	enforceMaxEntries,
-} = await import("./src/memory/index.js");
+const { writeMemoryFile, readMemoryFile, loadContext, cleanRetainedMemory, enforceMaxEntries } =
+	await import("./src/memory/index.js");
 
 // Initialize session
 const {
@@ -148,12 +143,14 @@ registerShutdownHandler(async () => {
 });
 
 // CLI mode detection (if run directly as node index.js)
-	if (import.meta.main) {
-		const args = process.argv.slice(2);
-		const mode = args.some((a, i) => a === "--mode" && args[i + 1] === "interactive") ? "interactive" : "chat";
+if (import.meta.main) {
+	const args = process.argv.slice(2);
+	const mode = args.some((a, i) => a === "--mode" && args[i + 1] === "interactive")
+		? "interactive"
+		: "chat";
 
-		if (mode === "chat") {
-			const message = args.filter((a) => !a.startsWith("--"))[0] || "Hello";
+	if (mode === "chat") {
+		const message = args.filter((a) => !a.startsWith("--"))[0] || "Hello";
 		try {
 			const response = await handleConversation(message);
 			console.log(JSON.stringify(response, null, 2));
