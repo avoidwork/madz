@@ -6,16 +6,16 @@ import { ConversationPanel } from "./conversationPanel.js";
 import { StatusBar } from "./statusBar.js";
 import { InputPanel } from "./inputPanel.js";
 import { calcVisibleCount } from "./messages.js";
+import { Banner } from "./banner.js";
 
 const EXIT_MESSAGE = "\n";
-
-const parser = new CommandParser();
 
 /**
  * Main App component (Ink). Renders an IRC-style layout:
  * full-height conversation REPL at top, input bar at bottom.
  */
 export default function App({ config, registry, sessionState, dispatchProvider }) {
+	const [showBanner, setShowBanner] = useState(true);
 	const [messages, setMessages] = useState([]);
 	const [statusMessage, setStatusMessage] = useState("Ready");
 	const [chatHistory, setChatHistory] = useState([]);
@@ -25,6 +25,8 @@ export default function App({ config, registry, sessionState, dispatchProvider }
 	const [isScrolling, setIsScrolling] = useState(false);
 
 	const skillList = registry ? registry.list() : [];
+
+	const parser = new CommandParser();
 
 	// Process command or dispatch as normal chat
 	const handleSubmit = async (text) => {
@@ -115,28 +117,39 @@ export default function App({ config, registry, sessionState, dispatchProvider }
 	// Single input handler - processes all keystrokes here
 	// InputPanel is now a display-only component (no useInput handler)
 	useInput((input, key) => {
-		if (key.escape) {
-			handleQuit();
-		} else if (key.return && !key.shift) {
-			handleSubmit(inputText);
-		} else if (key.upArrow && chatHistory.length > 0) {
-			const newIndex = historyIndex === -1 ? chatHistory.length - 1 : Math.max(0, historyIndex - 1);
-			setHistoryIndex(newIndex);
-			setInputText(chatHistory[newIndex]);
-		} else if (key.downArrow) {
-			if (historyIndex === -1) return;
-			const nextIndex = historyIndex + 1;
-			if (nextIndex >= chatHistory.length) {
-				setHistoryIndex(-1);
-				setInputText("");
-			} else {
-				setHistoryIndex(nextIndex);
-				setInputText(chatHistory[nextIndex]);
+		// When banner is showing, any key dismisses it
+		if (showBanner) {
+			if (key.escape) {
+				handleQuit();
+				return;
 			}
-		} else if (key.backspace && inputText.length > 0) {
-			setInputText((prev) => prev.slice(0, -1));
-		} else if (input && input !== "\r") {
-			setInputText((prev) => prev + input);
+			setShowBanner(false);
+			// After dismissal, fall through to normal input processing
+		} else {
+			if (key.escape) {
+				handleQuit();
+			} else if (key.return && !key.shift) {
+				handleSubmit(inputText);
+			} else if (key.upArrow && chatHistory.length > 0) {
+				const newIndex =
+					historyIndex === -1 ? chatHistory.length - 1 : Math.max(0, historyIndex - 1);
+				setHistoryIndex(newIndex);
+				setInputText(chatHistory[newIndex]);
+			} else if (key.downArrow) {
+				if (historyIndex === -1) return;
+				const nextIndex = historyIndex + 1;
+				if (nextIndex >= chatHistory.length) {
+					setHistoryIndex(-1);
+					setInputText("");
+				} else {
+					setHistoryIndex(nextIndex);
+					setInputText(chatHistory[nextIndex]);
+				}
+			} else if (key.backspace && inputText.length > 0) {
+				setInputText((prev) => prev.slice(0, -1));
+			} else if (input && input !== "\r") {
+				setInputText((prev) => prev + input);
+			}
 		}
 	});
 
@@ -152,20 +165,23 @@ export default function App({ config, registry, sessionState, dispatchProvider }
 	return React.createElement(
 		Box,
 		{ flexDirection: "column", width: "100%", height: rows },
-		React.createElement(ConversationPanel, {
-			messages: messages,
-			visibleCount: visibleCount,
-			scrollOffset: scrollOffset,
-			isScrolling: isScrolling,
-			onScroll: (offset, scrolling) => {
-				setScrollOffset(offset);
-				setIsScrolling(scrolling);
-			},
-		}),
-		React.createElement(StatusBar, statusProps),
-		React.createElement(InputPanel, {
-			inputText: inputText,
-		}),
-		React.createElement(Text, { key: "exit-newline" }, EXIT_MESSAGE),
+		showBanner
+			? React.createElement(Banner, { onDismiss: () => setShowBanner(false) })
+			: React.createElement(ConversationPanel, {
+					messages: messages,
+					visibleCount: visibleCount,
+					scrollOffset: scrollOffset,
+					isScrolling: isScrolling,
+					onScroll: (offset, scrolling) => {
+						setScrollOffset(offset);
+						setIsScrolling(scrolling);
+					},
+				}),
+		!showBanner && React.createElement(StatusBar, statusProps),
+		!showBanner &&
+			React.createElement(InputPanel, {
+				inputText: inputText,
+			}),
+		!showBanner && React.createElement(Text, { key: "exit-newline" }, EXIT_MESSAGE),
 	);
 }
