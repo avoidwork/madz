@@ -45,11 +45,11 @@ export function InputPanel({ onSubmit = () => {}, chatHistory = [] }) {
 	const color = isCommand ? "magenta" : "green";
 	const prompt = isCommand ? ":" : ">";
 
-	return (
-		<Box flexDirection="row">
-			<Text color={color}>{prompt} </Text>
-			<Text>{inputText}</Text>
-			<Text dim> </Text>
-		</Box>
+	return React.createElement(
+		Box,
+		{ flexDirection: "row" },
+		React.createElement(Text, { color: color }, prompt + " "),
+		React.createElement(Text, {}, inputText),
+		React.createElement(Text, { dim: true }, " "),
 	);
 }
