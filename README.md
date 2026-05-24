@@ -1,28 +1,45 @@
-# madz
+# Madz
 
 **Your AI companion, built right into your terminal.**
 
-`madz` is a customizable AI companion that adapts to how you work. It remembers your context, safely runs your custom skills, and automates repetitive tasks so you can focus on what matters. Tweak it, extend it, and let it handle the rest.
-
-- 🧠 **Remembers everything** → Persistent memory across sessions
-- 🛠️ **Runs your custom skills** → Safely execute plugins & tools on demand
-- ⏱️ **Automates your routines** → Schedule workflows to run on autopilot
-- 💬 **Orchestrates conversations** → Guide multi-turn LLM chats your way
+`madz` is a customizable AI companion that adapts to how you work. It remembers your context, safely runs your custom skills, and automates repetitive tasks so you can focus on what matters.
 
 [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD--3--Clause-blue.svg)](LICENSE)
 [![Node.js >= 20](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](https://nodejs.org)
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen)](tests/)
 
+## Table of Contents
+
+- [Overview](#overview)
+- [Quick Start](#quick-start)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+  - [Configuration](#configuration)
+  - [Running](#running)
+- [TUI Navigation](#tui-navigation)
+- [Features](#features)
+  - [LLM Provider Abstraction](#llm-provider-abstraction)
+  - [Skills Registry](#skills-registry)
+  - [Memory System](#memory-system)
+  - [Sandbox RTE](#sandbox-rte)
+  - [Telemetry](#telemetry)
+  - [Cron Scheduler](#cron-scheduler)
+- [Directory Structure](#directory-structure)
+- [Config Reference](#config-reference)
+- [Testing](#testing)
+- [Development](#development)
+  - [Extending Skills](#extending-skills)
+  - [Environment Variables](#environment-variables)
+- [License](#license)
+
 ## Overview
 
-madz is a Node.js AI harness that combines a terminal-based user interface with structured skill execution. It provides:
+`madz` is a Node.js AI harness that combines a terminal-based user interface with structured skill execution. Everything — conversations, tool outputs, and execution logs — is persisted as version-controllable Markdown files, making it easy to audit with `git log` and re-load across sessions.
 
-- **Chat with an LLM** — interact through a full TUI or a simple chat mode.
-- **Sandboxed skill runner** — execute tools with filesystem, network, and process scope enforcement.
-- **Persistent markdown memory** — every conversation, tool output, and execution log is stored as version-controllable `.md` files.
-- **Cron-based scheduling** — declare recurring workflows in `config.yaml`.
-- **OpenTelemetry observability** — trace LLM calls, skill runs, and sandbox exports with redaction.
-- **Session management** — per-session context windows and runtime config mutation.
+- 🧠 **Remembers everything** → Persistent memory across sessions
+- 🛠️ **Runs your custom skills** → Safely execute plugins & tools in a sandboxed runtime
+- ⏱️ **Automates your routines** → Declare cron jobs in YAML and run on autopilot
+- 💬 **Orchestrates conversations** → Multi-turn LLM chats with context-window management
 
 ## Features
 
@@ -117,7 +134,7 @@ node index.js "Summarize memory/_index.md" --json
 ## Directory Structure
 
 ```
-madz/
+/
 ├── index.js                    # Application entry point
 ├── config.yaml                 # Centralized configuration
 ├── .husky/                     # Git hooks (lint, fmt, tests)
@@ -192,7 +209,7 @@ npm run coverage     # Ensure 100% coverage
 3. Place executable scripts under `skills/your-skill/scripts/`.
 4. Restart the harness — the registry auto-discovers new skills on boot.
 
-### Adding Environment Variables
+### Environment Variables
 
 Reference env vars in `config.yaml` using `${ENV_VAR_NAME}` syntax. Supported variables:
 
