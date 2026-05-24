@@ -31,6 +31,21 @@ function getRoleColors(role) {
 }
 
 /**
+ * Get bubble layout props (alignment + colors) for a message role.
+ * @param {string} role
+ * @returns {{ alignment: "flex-start" | "flex-end", border: string }}
+ */
+function getBubbleStyle(role) {
+	if (role === "user") {
+		return { alignment: "flex-end", border: "green" };
+	}
+	if (role === "system") {
+		return { alignment: "flex-start", border: "yellow" };
+	}
+	return { alignment: "flex-start", border: "cyan" };
+}
+
+/**
  * Conversation panel component with virtualized scrolling.
  * Renders only visible messages in the viewport.
  */
@@ -54,26 +69,45 @@ export function ConversationPanel({
 	const children = [React.createElement(Text, { bold: true, color: "cyan" }, " Conversation ")];
 
 	for (let i = 0; i < visibleMessages.length; i++) {
-		if (i > 0) {
-			children.push(
-				React.createElement(
-					Text,
-					{ key: "sep-" + i, color: "gray", dim: true },
-					"\u2500".repeat(40),
-				),
-			);
-		}
 		const msg = visibleMessages[i];
 		const time = msg.time || formatTime(new Date());
 		const colors = getRoleColors(msg.role);
+		const bubble = getBubbleStyle(msg.role);
 
 		children.push(
 			React.createElement(
 				Box,
-				{ key: "msg-" + i },
-				React.createElement(Text, { color: "gray" }, "[" + time + "] "),
-				React.createElement(Text, { color: colors.label }, getRoleLabel(msg.role) + ": "),
-				React.createElement(Text, { color: colors.content, wrap: "wrap" }, msg.content || ""),
+				{
+					key: "msg-" + i,
+					flexDirection: "row",
+					paddingY: 0,
+					justifyContent: bubble.alignment,
+				},
+				React.createElement(
+					Box,
+					{
+						key: "bubble-" + i,
+						flexDirection: "column",
+						paddingX: 1,
+						borderColor: bubble.border,
+						borderStyle: "round",
+					},
+					React.createElement(
+						Box,
+						{ flexDirection: "row" },
+						React.createElement(Text, { color: "gray" }, "[" + time + "] "),
+						React.createElement(
+							Text,
+							{ color: colors.label, bold: true },
+							getRoleLabel(msg.role) + ": ",
+						),
+					),
+					React.createElement(
+						Box,
+						{ flexDirection: "row" },
+						React.createElement(Text, { color: colors.content, wrap: "true" }, msg.content || ""),
+					),
+				),
 			),
 		);
 	}
