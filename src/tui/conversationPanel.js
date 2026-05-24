@@ -1,5 +1,6 @@
 import React from "react";
 import { Box, Text } from "ink";
+import { BANNER_ART } from "./banner.js";
 import { getRoleLabel, getVisibleMessages } from "./messages.js";
 
 /**
@@ -66,7 +67,9 @@ export function ConversationPanel({
 	// (delegated to parent for history coordination)
 	// Scrolling conversation is handled by parent when isScrolling is true.
 
-	const children = [React.createElement(Text, { bold: true, color: "cyan" }, " Conversation ")];
+	const children = BANNER_ART.map((line, i) =>
+		React.createElement(Text, { key: "banner-" + i, bold: true, color: "cyan" }, line),
+	);
 
 	for (let i = 0; i < visibleMessages.length; i++) {
 		const msg = visibleMessages[i];

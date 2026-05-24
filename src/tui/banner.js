@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { Box, Text, useInput } from "ink";
 
-const BANNER_ART = `
+export const BANNER_ART = `
                     .___
   _____ _____     __| _/_______
  /     \\\\__  \\   / __ |\\___   /
