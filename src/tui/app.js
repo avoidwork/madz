@@ -4,7 +4,7 @@ import { useInput } from "ink";
 import { CommandParser } from "./commandParser.js";
 import { ConversationPanel } from "./conversationPanel.js";
 import { StatusBar } from "./statusBar.js";
-import { formatMessage } from "./messages.js";
+import { calcVisibleCount } from "./messages.js";
 
 const parser = new CommandParser();
 
@@ -16,9 +16,8 @@ export default function App({ config, registry, sessionState, dispatchProvider }
 	const [messages, setMessages] = useState([]);
 	const [inputText, setInputText] = useState("");
 	const [statusMessage, setStatusMessage] = useState("Ready");
-	const [chatHistory, setChatHistory] = useState([]);
-	const [historyIndex, setHistoryIndex] = useState(-1);
-	const [scrollOffset] = useState(0);
+	const [scrollOffset, setScrollOffset] = useState(0);
+	const [isScrolling, setIsScrolling] = useState(false);
 
 	const skillList = registry ? registry.list() : [];
 
@@ -96,28 +95,18 @@ export default function App({ config, registry, sessionState, dispatchProvider }
 	};
 
 	const addMessage = (msg) => {
-		const formatted = formatMessage(msg);
-		setMessages((prev) => [...prev, { ...msg, formatted: formatted }]);
+		const now = new Date();
+		const time =
+			String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
+		setMessages((prev) => [...prev, { ...msg, time }]);
+		setScrollOffset(0);
+		setIsScrolling(false);
 	};
 
 	// Keyboard input handler - handles input typing and chat history navigation
 	useInput((input, key) => {
 		if (key.escape) {
 			handleQuit();
-		} else if (key.up && chatHistory.length > 0) {
-			const newIndex = historyIndex === -1 ? chatHistory.length - 1 : Math.max(0, historyIndex - 1);
-			setHistoryIndex(newIndex);
-			setInputText(chatHistory[newIndex]);
-		} else if (key.down) {
-			if (historyIndex === -1) return;
-			const nextIndex = historyIndex + 1;
-			if (nextIndex >= chatHistory.length) {
-				setHistoryIndex(-1);
-				setInputText("");
-			} else {
-				setHistoryIndex(nextIndex);
-				setInputText(chatHistory[nextIndex]);
-			}
 		} else if (key.enter && !key.shift) {
 			setInputText("");
 			handleSubmit(input);
@@ -126,7 +115,7 @@ export default function App({ config, registry, sessionState, dispatchProvider }
 		}
 	});
 
-	const visibleCount = Math.max(messages.length, 20);
+	const visibleCount = calcVisibleCount(rows - 2, 3);
 
 	const { rows } = useWindowSize();
 
@@ -137,6 +126,11 @@ export default function App({ config, registry, sessionState, dispatchProvider }
 			messages: messages,
 			visibleCount: visibleCount,
 			scrollOffset: scrollOffset,
+			isScrolling: isScrolling,
+			onScroll: (offset, scrolling) => {
+				setScrollOffset(offset);
+				setIsScrolling(scrolling);
+			},
 		}),
 		React.createElement(StatusBar, {
 			inputText: inputText,

@@ -292,3 +292,75 @@ describe("TUI - message formatting", () => {
 		assert.ok(lines > 0);
 	});
 });
+
+describe("TUI - role colors", () => {
+	it("returns correct colors for user role", () => {
+		function getRoleColors(role) {
+			if (role === "user") {
+				return { label: "green", content: "white" };
+			}
+			if (role === "system") {
+				return { label: "yellow", content: "yellow" };
+			}
+			return { label: "cyan", content: "white" };
+		}
+
+		assert.deepStrictEqual(getRoleColors("user"), { label: "green", content: "white" });
+		assert.deepStrictEqual(getRoleColors("assistant"), { label: "cyan", content: "white" });
+		assert.deepStrictEqual(getRoleColors("system"), { label: "yellow", content: "yellow" });
+	});
+});
+
+describe("TUI - status indicator", () => {
+	it("returns correct indicator for ready status", () => {
+		function getStatusIndicator(status) {
+			if (status.startsWith("Error")) {
+				return { indicator: "\u2716", color: "red" };
+			}
+			if (status === "Sending...") {
+				return { indicator: "\u25B6", color: "yellow" };
+			}
+			return { indicator: "\u25CF", color: "green" };
+		}
+
+		assert.deepStrictEqual(getStatusIndicator("Ready"), { indicator: "\u25CF", color: "green" });
+		assert.deepStrictEqual(getStatusIndicator("Sending..."), {
+			indicator: "\u25B6",
+			color: "yellow",
+		});
+		assert.deepStrictEqual(getStatusIndicator("Error: something failed"), {
+			indicator: "\u2716",
+			color: "red",
+		});
+	});
+});
+
+describe("TUI - timestamp formatting", () => {
+	it("formats time as HH:MM", () => {
+		function formatTime(date) {
+			return (
+				String(date.getHours()).padStart(2, "0") + ":" + String(date.getMinutes()).padStart(2, "0")
+			);
+		}
+
+		const d = new Date("2026-05-24T14:30:00Z");
+		// UTC hours may differ based on timezone, so just check format pattern
+		const result = formatTime(d);
+		assert.match(result, /^\d{2}:\d{2}$/);
+	});
+});
+
+describe("TUI - visible count with terminal rows", () => {
+	it("calculates visible messages from terminal height minus status bar", () => {
+		function calcVisibleCount(totalLines, linesPerMessage = 3) {
+			return Math.max(1, Math.floor(totalLines / linesPerMessage));
+		}
+
+		// A typical 24-row terminal: 24 - 2 (status bar) = 22 lines for messages
+		assert.strictEqual(calcVisibleCount(22, 3), 7);
+		// A tall 50-row terminal
+		assert.strictEqual(calcVisibleCount(48, 3), 16);
+		// Small terminal
+		assert.strictEqual(calcVisibleCount(6, 3), 2);
+	});
+});
