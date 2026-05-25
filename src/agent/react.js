@@ -70,7 +70,8 @@ async function callReactAgentStreaming(agent, initMessages, originalMessage, cal
 
 	// Collect all events from the stream
 	const events = [];
-	for await (const event of agent.stream({ messages: initMessages })) {
+	const stream = await agent.stream({ messages: initMessages }, { streamMode: "updates" });
+	for await (const event of stream) {
 		events.push(event);
 	}
 
