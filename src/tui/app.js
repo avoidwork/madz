@@ -195,11 +195,11 @@ export default function App({ config, registry, sessionState, dispatchProvider }
 		Box,
 		{ flexDirection: "column", width: "100%", height: rows },
 		showBanner
-			? React.createElement(Banner, { onDismiss: () => setShowBanner(false) })
+			? React.createElement(Banner, { key: "banner", onDismiss: () => setShowBanner(false) })
 			: React.createElement(ConversationPanel, {
+					key: "panel",
 					messages: messages,
 					streamingContent: streamingContent,
-					streamingIndex: streamingIndex,
 					visibleCount: visibleCount,
 					scrollOffset: scrollOffset,
 					assistantName: config?.tui?.name || "Assistant",
@@ -209,9 +209,10 @@ export default function App({ config, registry, sessionState, dispatchProvider }
 						setIsScrolling(scrolling);
 					},
 				}),
-		!showBanner && React.createElement(StatusBar, statusProps),
+		!showBanner && React.createElement(StatusBar, { key: "status", ...statusProps }),
 		!showBanner &&
 			React.createElement(InputPanel, {
+				key: "input",
 				inputText: inputText,
 			}),
 		!showBanner && React.createElement(Text, { key: "exit-newline" }, EXIT_MESSAGE),
