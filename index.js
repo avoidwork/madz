@@ -6,6 +6,8 @@ import { dirname } from "node:path";
 import React from "react";
 
 const { loadConfig, setConfigValue } = await import("./src/config/loader.js");
+const { createChatModel } = await import("./src/provider/openai.js");
+const { createReactAgent, callReactAgent } = await import("./src/agent/react.js");
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -63,7 +65,7 @@ async function dispatchProvider(message, providerName = null) {
 
 	let lastError = null;
 	for (const name of fallbackOrder) {
-		const _providerConfig = {}; // Provider-specific config from config.providers[name]
+		const _providerConfig = config.providers[name] || {};
 		try {
 			const result = await callProvider(name, _providerConfig, message);
 			return result;
@@ -76,13 +78,11 @@ async function dispatchProvider(message, providerName = null) {
 	throw new Error(`All providers failed. Last error: ${lastError?.message}`);
 }
 
-async function callProvider(_name, _providerConfig, _message) {
-	// Placeholder — actual provider implementation would call the LLM API
-	return {
-		provider: _name,
-		content: `[No provider implementation: ${_name}]`,
-		tokens: { input: 0, output: 0 },
-	};
+async function callProvider(name, providerConfig, message) {
+	const model = createChatModel(providerConfig);
+	const agent = createReactAgent(model, []);
+	const result = await callReactAgent(agent, message);
+	return { provider: name, content: result.content, tokens: { input: 0, output: 0 } };
 }
 
 // Conversation handler
