@@ -1,6 +1,7 @@
-import React from "react";
-import { Box, Text } from "ink";
-import { getRoleLabel, getVisibleMessages } from "./messages.js";
+import React, { useRef, useEffect } from "react";
+import { Box, Text, useInput, useStdout } from "ink";
+import { ScrollView } from "ink-scroll-view";
+import { getRoleLabel } from "./messages.js";
 
 /**
  * Format time as HH:MM from a Date object.
@@ -46,31 +47,64 @@ function getBubbleStyle(role) {
 }
 
 /**
- * Conversation panel component with virtualized scrolling.
- * Renders only visible messages in the viewport.
+ * Conversation panel component with ScrollView-based scrolling.
+ * Handles keyboard scroll input, terminal resize remeasurement,
+ * and auto-scroll-to-bottom on new messages and streaming overflow.
  */
-export function ConversationPanel({
-	messages = [],
-	scrollOffset = 0,
-	visibleCount = 20,
-	assistantName = "Assistant",
-	_isScrolling = false,
-	_onScroll,
-}) {
-	const { messages: visibleMessages, _bottomReached } = getVisibleMessages(
-		messages,
-		scrollOffset,
-		visibleCount,
-	);
+export function ConversationPanel({ messages = [], assistantName = "Assistant" }) {
+	const scrollRef = useRef(null);
+	const previousMessageCount = useRef(0);
+	const { stdout } = useStdout();
 
-	// Handle scroll via up/down arrows in the conversation area
-	// (delegated to parent for history coordination)
-	// Scrolling conversation is handled by parent when isScrolling is true.
+	// Handle keyboard scroll input
+	useInput((input, key) => {
+		if (!scrollRef.current) return;
+		if (key.upArrow) {
+			scrollRef.current.scrollBy(-1);
+		}
+		if (key.downArrow) {
+			scrollRef.current.scrollBy(1);
+		}
+		if (key.pageUp) {
+			const height = scrollRef.current.getViewportHeight() || 1;
+			scrollRef.current.scrollBy(-height);
+		}
+		if (key.pageDown) {
+			const height = scrollRef.current.getViewportHeight() || 1;
+			scrollRef.current.scrollBy(height);
+		}
+	});
+
+	// Handle terminal resize by remeasuring content heights
+	useEffect(() => {
+		const handleResize = () => scrollRef.current?.remeasure();
+		stdout?.on("resize", handleResize);
+		return () => {
+			stdout?.off("resize", handleResize);
+		};
+	}, [stdout]);
+
+	// Auto-scroll to bottom when new messages arrive or when streaming content overflows viewport
+	useEffect(() => {
+		if (!scrollRef.current || messages.length === 0) return;
+		const ref = scrollRef.current;
+		const isNewMessage = messages.length > previousMessageCount.current;
+		if (isNewMessage) {
+			ref.scrollToBottom();
+			previousMessageCount.current = messages.length;
+		} else if (messages[messages.length - 1].streaming === true) {
+			const contentH = ref.getContentHeight();
+			const viewportH = ref.getViewportHeight();
+			if (contentH > viewportH) {
+				ref.scrollToBottom();
+			}
+		}
+	});
 
 	const children = [];
 
-	for (let i = 0; i < visibleMessages.length; i++) {
-		const msg = visibleMessages[i];
+	for (let i = 0; i < messages.length; i++) {
+		const msg = messages[i];
 		const time = msg.time || formatTime(new Date());
 		const colors = getRoleColors(msg.role);
 		const bubble = getBubbleStyle(msg.role);
@@ -92,6 +126,7 @@ export function ConversationPanel({
 						paddingX: 1,
 						borderColor: bubble.border,
 						borderStyle: "round",
+						maxWidth: "90%",
 					},
 					React.createElement(
 						Box,
@@ -141,6 +176,6 @@ export function ConversationPanel({
 	return React.createElement(
 		Box,
 		{ key: "panel", flexDirection: "column", flexGrow: 1 },
-		...children,
+		React.createElement(ScrollView, { ref: scrollRef }, ...children),
 	);
 }

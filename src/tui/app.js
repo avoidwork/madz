@@ -5,7 +5,7 @@ import { CommandParser } from "./commandParser.js";
 import { ConversationPanel } from "./conversationPanel.js";
 import { StatusBar } from "./statusBar.js";
 import { InputPanel } from "./inputPanel.js";
-import { calcVisibleCount, isStreamingMessage } from "./messages.js";
+import { isStreamingMessage } from "./messages.js";
 import { Banner } from "./banner.js";
 import { setConfigValue } from "../config/loader.js";
 
@@ -22,8 +22,6 @@ export default function App({ config, registry, sessionState, dispatchProvider, 
 	const [chatHistory, setChatHistory] = useState([]);
 	const [historyIndex, setHistoryIndex] = useState(-1);
 	const [inputText, setInputText] = useState("");
-	const [scrollOffset, setScrollOffset] = useState(0);
-	const [isScrolling, setIsScrolling] = useState(false);
 
 	const skillList = registry ? registry.list() : [];
 
@@ -221,8 +219,6 @@ export default function App({ config, registry, sessionState, dispatchProvider, 
 	const addMessage = (msg) => {
 		const time = getTimestamp();
 		setMessages((prev) => [...prev, { ...msg, time }]);
-		setScrollOffset(0);
-		setIsScrolling(false);
 	};
 
 	// Single input handler - processes all keystrokes here
@@ -265,7 +261,6 @@ export default function App({ config, registry, sessionState, dispatchProvider, 
 	});
 
 	const { rows } = useWindowSize();
-	const visibleCount = calcVisibleCount(rows - 2, 3);
 
 	const statusProps = {
 		skillCount: skillList.length,
@@ -281,14 +276,7 @@ export default function App({ config, registry, sessionState, dispatchProvider, 
 			? React.createElement(Banner, { onDismiss: () => setShowBanner(false) })
 			: React.createElement(ConversationPanel, {
 					messages: messages,
-					visibleCount: visibleCount,
-					scrollOffset: scrollOffset,
 					assistantName: config?.tui?.name || "Assistant",
-					isScrolling: isScrolling,
-					onScroll: (offset, scrolling) => {
-						setScrollOffset(offset);
-						setIsScrolling(scrolling);
-					},
 				}),
 		!showBanner && React.createElement(StatusBar, statusProps),
 		!showBanner &&
