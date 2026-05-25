@@ -47,11 +47,13 @@ describe("tools - buildToolConfig", () => {
 });
 
 describe("tools - buildToolConfig", () => {
-	it("returns only clarify with empty permissions", async () => {
+	it("returns only clarify and execute_code with empty permissions", async () => {
 		const { buildToolConfig } = await import("../../src/tools/index.js");
 		const tools = await buildToolConfig({ permissions: [], maxReadSize: "1mb" });
-		assert.strictEqual(tools.length, 1);
-		assert.strictEqual(tools[0].name, "clarify");
+		const toolNames = tools.map((t) => t.name);
+		assert.strictEqual(toolNames.length, 2);
+		assert.ok(toolNames.includes("clarify"));
+		assert.ok(toolNames.includes("execute_code"));
 	});
 
 	it("returns clarify + filesystem tools when filesystem:read and filesystem:write enabled", async () => {
@@ -62,6 +64,7 @@ describe("tools - buildToolConfig", () => {
 		});
 		const toolNames = tools.map((t) => t.name);
 		assert.ok(toolNames.includes("clarify"), "clarify should always register");
+		assert.ok(toolNames.includes("execute_code"), "execute_code should always register");
 		assert.ok(toolNames.includes("read_file"), "read_file should register with filesystem:read");
 		assert.ok(toolNames.includes("write_file"), "write_file should register with filesystem:write");
 		assert.ok(toolNames.includes("patch"), "patch should register with filesystem:write");
@@ -80,20 +83,27 @@ describe("tools - buildToolConfig", () => {
 		assert.ok(!toolNames.includes("process"), "process should NOT register without process:spawn");
 	});
 
-	it("returns all tools when all permissions enabled", async () => {
+	it("returns all tier 1 + tier 2 tools when all permissions enabled", async () => {
 		const { buildToolConfig } = await import("../../src/tools/index.js");
 		const tools = await buildToolConfig({
-			permissions: ["filesystem:read", "filesystem:write", "filesystem:exec", "process:spawn"],
+			permissions: [
+				"filesystem:read",
+				"filesystem:write",
+				"filesystem:exec",
+				"process:spawn",
+				"network:outbound",
+			],
 			maxReadSize: "1mb",
 		});
 		const toolNames = tools.map((t) => t.name);
-		assert.strictEqual(
-			toolNames.length,
-			12,
-			"All 12 tools should register when all permissions are enabled",
-		);
+		// Tier 1: 12 tools (all register with filesystem+process perms)
+		// Tier 2: execute_code (no perms), cronjob (network:outbound)
+		// No API keys: web_search/web_extract/vision_analyze/image_generate won't register
+		assert.ok(toolNames.length >= 13, "All tier 1 + tier 2 tools should register");
 		assert.ok(toolNames.includes("terminal"), "terminal should register");
 		assert.ok(toolNames.includes("process"), "process should register");
+		assert.ok(toolNames.includes("execute_code"), "execute_code should register");
+		assert.ok(toolNames.includes("cronjob"), "cronjob should register");
 	});
 
 	it("returns only clarify with filesystem:read-only", async () => {
@@ -119,7 +129,9 @@ describe("tools - buildToolConfig", () => {
 			permissions: [],
 			maxReadSize: "2mb",
 		});
-		assert.strictEqual(tools.length, 1);
-		assert.strictEqual(tools[0].name, "clarify");
+		const toolNames = tools.map((t) => t.name);
+		assert.strictEqual(toolNames.length, 2);
+		assert.ok(toolNames.includes("clarify"));
+		assert.ok(toolNames.includes("execute_code"));
 	});
 });

@@ -242,39 +242,35 @@ describe("tools - clarify", () => {
 describe("tools - skills", () => {
 	it("list returns empty when registry is null", async () => {
 		const result = await skillsListImpl({}, { registry: null });
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.count, 0);
+		assert.strictEqual(result.count, 0);
 	});
 
 	it("list returns empty when no skills", async () => {
 		const result = await skillsListImpl({}, { registry: { list: () => [] } });
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.count, 0);
-		assert.ok(parsed.message);
+		assert.strictEqual(result.count, 0);
+		assert.ok(result.message);
 	});
 
 	it("list returns skills when registry has skills", async () => {
 		const registry = setupMockRegistry();
 		const result = await skillsListImpl({}, { registry });
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.count, 2);
-		assert.strictEqual(parsed.skills.length, 2);
-		assert.strictEqual(parsed.skills[0].name, "code-review");
-		assert.strictEqual(parsed.skills[0].version, "1.0.0");
+		assert.strictEqual(result.count, 2);
+		assert.strictEqual(result.skills.length, 2);
+		assert.strictEqual(result.skills[0].name, "code-review");
+		assert.strictEqual(result.skills[0].version, "1.0.0");
 	});
 
 	it("view returns skill details", async () => {
 		const registry = setupMockRegistry();
 		const result = await skillViewImpl({ name: "code-review" }, { registry });
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.name, "code-review");
-		assert.strictEqual(parsed.version, "1.0.0");
-		assert.ok(parsed.description);
+		assert.strictEqual(result.name, "code-review");
+		assert.strictEqual(result.version, "1.0.0");
+		assert.ok(result.description);
 	});
 
 	it("view returns error for unknown skill", async () => {
 		const registry = setupMockRegistry();
 		const result = await skillViewImpl({ name: "nonexistent" }, { registry });
-		assert.ok(result.includes("not found") || result.includes("Error"));
+		assert.ok(result.error?.includes("not found") || result.error?.includes("Error"));
 	});
 });

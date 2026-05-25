@@ -36,12 +36,16 @@ export function discoverSkills(skillsDir = "skills/") {
 				const parsed = JSON.parse(content);
 				if (parsed && typeof parsed === "object") metadata = parsed;
 				metaPath = jsonPath;
-			} else {
-				// No valid skill metadata file — skip silently
-				continue;
 			}
 
-			if (!metadata) continue;
+			if (!metadata) {
+				// No metadata file — check for SKILL.md as fallback
+				const skillMdPath = join(skillPath, "SKILL.md");
+				if (!existsSync(skillMdPath)) {
+					continue;
+				}
+				metadata = { name, _path: skillMdPath };
+			}
 
 			// Add scripts path if available
 			const scriptsDir = join(skillPath, "scripts");
@@ -49,7 +53,9 @@ export function discoverSkills(skillsDir = "skills/") {
 				metadata.scripts = scriptsDir;
 			}
 
-			metadata._path = metaPath;
+			if (metaPath) {
+				metadata._path = metaPath;
+			}
 			metadata._directory = skillPath;
 			skills.push({
 				path: skillPath,
