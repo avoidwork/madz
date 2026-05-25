@@ -1,4 +1,5 @@
 import { createRequire } from "node:module";
+import { mkdirSync } from "node:fs";
 
 // oxlint-disable no-console
 
@@ -30,6 +31,9 @@ export function createCheckpointer(config) {
 // node:coverage ignore next
 function _initSaver() {
 	try {
+		const dir = DB_PATH.slice(0, DB_PATH.lastIndexOf("/"));
+		mkdirSync(dir, { recursive: true });
+
 		const require = createRequire(import.meta.url);
 		const SQLiteSaver = require("@langchain/langgraph-checkpoint-sqlite").SQLiteSaver;
 
