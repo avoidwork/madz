@@ -18,6 +18,9 @@ export function createReactAgent(model, tools = []) {
 /**
  * Invoke a ReAct agent with a single user message and return the final response.
  * Errors are re-thrown without modification for propagation to the caller.
+ * Searches backwards through the message history to find the last AIMessage
+ * with non-empty content (the LLM's final answer). Falls back to the
+ * original user message if no valid AI content is found.
  * @param {ReturnType<typeof createReactAgentGraph>} agent - A compiled ReAct agent
  * @param {string} message - The user message string
  * @returns {{ content: string }} The agent's final text response
@@ -27,7 +30,15 @@ export function callReactAgent(agent, message) {
 		messages: [{ role: "user", content: message }],
 	});
 
-	const finalMessages = result.messages;
-	const lastMessage = finalMessages[finalMessages.length - 1];
-	return { content: lastMessage.content };
+	const messages = result.messages || [];
+	const msgsArray = Array.isArray(messages) ? messages : [];
+
+	for (let i = msgsArray.length - 1; i >= 0; i--) {
+		const msg = msgsArray[i];
+		if (msg.type === "ai" && msg.content && msg.content !== "") {
+			return { content: msg.content };
+		}
+	}
+
+	return { content: message };
 }
