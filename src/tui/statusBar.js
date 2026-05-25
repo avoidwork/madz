@@ -54,7 +54,7 @@ export function StatusBar({ statusMessage = "", skillCount = 0, messageCount = 0
 			? [
 					React.createElement(
 						Text,
-						{ key: "app-name", color: "cyan" },
+						{ key: "app-name", color: "white" },
 						appInfo.name + " " + (appInfo.version || ""),
 					),
 				]
