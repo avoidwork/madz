@@ -42,25 +42,7 @@ describe("integration - conversational flow", () => {
 		assert.strictEqual(windowed[0].content, "msg 2");
 		assert.strictEqual(windowed[3].content, "response 3");
 	});
-
-	it("handles provider fallback on failure", async () => {
-		const providers = ["openai", "local"];
-		let usedProvider = null;
-
-		for (const provider of providers) {
-			// First fails, second succeeds
-			if (provider === "openai") {
-				usedProvider = null;
-				continue;
-			}
-			usedProvider = provider;
-			break;
-		}
-
-		assert.strictEqual(usedProvider, "local");
-	});
 });
-
 describe("integration - skill execution through sandbox", () => {
 	it("validates skill exists before execution", async () => {
 		const registry = new Map();

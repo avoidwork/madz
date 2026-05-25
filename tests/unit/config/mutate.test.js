@@ -56,7 +56,7 @@ describe("assignPath", () => {
 describe("applyDotPathMutation", () => {
 	function makeBaseConfig() {
 		return ConfigSchema.parse({
-			providers: { default: "openai", fallback_order: ["openai"] },
+			providers: {},
 			sandbox: {
 				paths: ["memory/", "skills/"],
 				timeout: { seconds: 30, gracePeriod: 5 },
