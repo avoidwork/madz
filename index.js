@@ -60,36 +60,36 @@ const sessionState = new SessionStateManager(initialState);
 
 // LLM provider dispatch with fallback chain
 async function dispatchProvider(message, providerName = null) {
-  const provider = providerName || sessionState.getProvider();
-  const providersConfig = config.providers || {};
-  const fallbackOrder = providersConfig.fallback_order || [provider, "local"];
+	const provider = providerName || sessionState.getProvider();
+	const providersConfig = config.providers || {};
+	const fallbackOrder = providersConfig.fallback_order || [provider, "local"];
 
-  let lastError = null;
-  for (const name of fallbackOrder) {
-    const _providerConfig = config.providers[name] || {};
-    try {
-      const result = await callProvider(name, _providerConfig, message);
-      return result;
-    } catch (err) {
-      lastError = err;
-      console.error(`Provider "${name}" failed:`, err.message);
-    }
-  }
+	let lastError = null;
+	for (const name of fallbackOrder) {
+		const _providerConfig = config.providers[name] || {};
+		try {
+			const result = await callProvider(name, _providerConfig, message);
+			return result;
+		} catch (err) {
+			lastError = err;
+			console.error(`Provider "${name}" failed:`, err.message);
+		}
+	}
 
-  throw new Error(`All providers failed. Last error: ${lastError?.message}`);
+	throw new Error(`All providers failed. Last error: ${lastError?.message}`);
 }
 
 async function callProvider(name, providerConfig, message) {
-  const model = createChatModel(providerConfig);
-  const tools = await buildToolConfig({
-    permissions: config.sandbox.permissions || [],
-    maxReadSize: config.sandbox.maxReadSize || "1mb",
-    registry,
-    conversationsDir: config.session.conversationsDir,
-  });
-  const agent = createReactAgent(model, tools);
-  const result = await callReactAgent(agent, message);
-  return { provider: name, content: result.content, tokens: { input: 0, output: 0 } };
+	const model = createChatModel(providerConfig);
+	const tools = await buildToolConfig({
+		permissions: config.sandbox.permissions || [],
+		maxReadSize: config.sandbox.maxReadSize || "1mb",
+		registry,
+		conversationsDir: config.session.conversationsDir,
+	});
+	const agent = createReactAgent(model, tools);
+	const result = await callReactAgent(agent, message);
+	return { provider: name, content: result.content, tokens: { input: 0, output: 0 } };
 }
 
 // Conversation handler
