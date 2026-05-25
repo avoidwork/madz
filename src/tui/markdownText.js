@@ -12,7 +12,7 @@ setOptions({ renderer: terminalRenderer.renderer });
  * @returns {string}
  */
 function parseMarkdown(markdown) {
-	return marked.parse(markdown);
+	return marked.parse(markdown).trim();
 }
 
 /**
@@ -27,5 +27,5 @@ export function MarkdownText({ content }) {
 	}
 	const text = content || "";
 	const result = parseMarkdown(text);
-	return React.createElement(Text, { wrap: "true", color: "white" }, result || "");
+	return React.createElement(Text, { wrap: "hard", color: "white" }, result || "");
 }
