@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Box, Text, useWindowSize } from "ink";
 import { useInput } from "ink";
 import { CommandParser } from "./commandParser.js";
@@ -28,6 +28,23 @@ export default function App({ config, registry, sessionState, dispatchProvider }
 	const skillList = registry ? registry.list() : [];
 
 	const parser = new CommandParser();
+
+	// Register global error handlers once on mount, remove on unmount
+	useEffect(() => {
+		function onUncaught(err) {
+			addMessage({ role: "system", content: `Uncaught error: ${err.message}` });
+		}
+		function onUnhandled(reason) {
+			const msg = reason?.message || String(reason);
+			addMessage({ role: "system", content: `Unhandled rejection: ${msg}` });
+		}
+		process.on("uncaughtException", onUncaught);
+		process.on("unhandledRejection", onUnhandled);
+		return () => {
+			process.off("uncaughtException", onUncaught);
+			process.off("unhandledRejection", onUnhandled);
+		};
+	}, []);
 
 	// Process command or dispatch as normal chat
 	const handleSubmit = async (text) => {
