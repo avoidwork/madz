@@ -25,12 +25,31 @@ export class CommandParser {
 
 		this.#register("config", (args, ctx) => {
 			if (args[0] === "set" && args[1]) {
-				const valueStr = args[2] || args[1];
-				// Extract dot path (skipping "set")
-				const dotPath = args.slice(1).join(" ");
+				// args = ["set", "<path>", "<value>"]
+				const dotPath = args[1];
+				const valueStr = args[2] || undefined;
 				if (ctx._setConfigValue) {
 					ctx._setConfigValue(dotPath, valueStr);
-					return { action: "config", subAction: "set", path: dotPath };
+					return {
+						action: "config",
+						subAction: "set",
+						path: dotPath,
+						message: `Config: ${dotPath} set.`,
+					};
+				}
+			}
+			if (args[0]) {
+				// args = ["<path>", "<value>"] (without "set")
+				const dotPath = args[0];
+				const valueStr = args[1] || undefined;
+				if (ctx._setConfigValue) {
+					ctx._setConfigValue(dotPath, valueStr);
+					return {
+						action: "config",
+						subAction: "set",
+						path: dotPath,
+						message: `Config: ${dotPath} set.`,
+					};
 				}
 			}
 			return { action: "config", message: "Usage: :config set <path> <value>" };

@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { createRequire } from "node:module";
 import { ConfigSchema, DEFAULT_CONFIG } from "./schemas.js";
+import { applyDotPathMutation } from "./mutate.js";
 
 const _require = createRequire(import.meta.url);
 const yaml = await import("js-yaml");
@@ -141,19 +142,6 @@ export function loadConfig() {
 	return validateConfig(resolved);
 }
 
-// Dot-path mutator used at runtime (creates intermediate objects)
-function assignPath(obj, path, value) {
-	const keys = path.split(".");
-	let current = obj;
-	for (let i = 0; i < keys.length - 1; i++) {
-		if (current[keys[i]] === undefined || current[keys[i]] === null) {
-			current[keys[i]] = {};
-		}
-		current = current[keys[i]];
-	}
-	current[keys[keys.length - 1]] = value;
-}
-
 /**
  * Save current config to config.yaml.
  * @param {Object} config
@@ -165,20 +153,6 @@ export function saveConfig(config) {
 	writeFileSync(CONFIG_PATH, yamlContent);
 }
 
-/// -- Runtime mutating helpers ---
-
-// Parse a value string into the correct JS type
-/**
- * @param {string} str
- * @returns {boolean|number|string}
- */
-function parseValue(str) {
-	if (str === "true") return true;
-	if (str === "false") return false;
-	if (/^-?\d+(\.\d+)?$/.test(str)) return Number(str);
-	return str;
-}
-
 /**
  * Runtime mutation: set a dot-path value, validate, and persist.
  * @param {Object} config
@@ -187,11 +161,7 @@ function parseValue(str) {
  * @returns {boolean} Success
  */
 export function setConfigValue(config, dotPath, valueStr) {
-	const value = parseValue(valueStr);
-	const patched = structuredClone(config);
-	assignPath(patched, dotPath, value);
-	ConfigSchema.parse(patched);
-	assignPath(config, dotPath, value);
+	applyDotPathMutation(config, dotPath, valueStr);
 	saveConfig(config);
 	return true;
 }

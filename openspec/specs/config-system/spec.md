@@ -1,4 +1,4 @@
-## ADDED Requirements
+## Requirements
 
 ### Requirement: Centralized Configuration File
 The system SHALL load all configuration from a single `config.yaml` file located in the project root directory using YAML parsing.
@@ -34,15 +34,15 @@ The system SHALL validate all `config.yaml` contents against a zod-based schema 
 - **THEN** the system validates the new value against the schema before applying it
 
 ### Requirement: Runtime Config Mutation
-The system SHALL allow programmatic modification of configuration at runtime via TUI commands or API, enabling dynamic adjustment of sandbox parameters, memory policies, skill permissions, and provider assignments without restarting the harness.
+The system SHALL provide a dedicated config mutator tool (`src/config/mutate.js`) that deserializes `config.yaml`, applies dot-path mutations, validates via zod, serializes back to YAML, and persists to disk — enabling dynamic adjustment of sandbox parameters, memory policies, skill permissions, and provider assignments without restarting the harness. Mutation is exposed to the TUI via `:config set <path> <value>` which calls the mutator through `config.setValue`.
 
 #### Scenario: User changes temperature at runtime
 - **WHEN** the user types `:config set inference.temperature 0.7`
-- **THEN** the system updates the in-memory config, persists the change to `config.yaml`, and applies it to active provider invocations
+- **THEN** the config mutator updates the in-memory config, validates via zod, persists the change to `config.yaml`, and applies it to active provider invocations
 
 #### Scenario: User pauses a skill at runtime
 - **WHEN** the user types `:config set skills.<name>.disabled true`
-- **THEN** the system removes the skill from the active registry without restarting
+- **THEN** the config mutator updates the in-memory config, persists the change to `config.yaml`, and the skill is removed from the active registry without restarting
 
 ### Requirement: Telemetry Configuration
 The system SHALL configure OpenTelemetry export settings (format, endpoint, sampling rate, redaction policies) within `config.yaml` under a `telemetry` section.

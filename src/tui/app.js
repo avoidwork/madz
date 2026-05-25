@@ -7,6 +7,7 @@ import { StatusBar } from "./statusBar.js";
 import { InputPanel } from "./inputPanel.js";
 import { calcVisibleCount } from "./messages.js";
 import { Banner } from "./banner.js";
+import { setConfigValue } from "../config/loader.js";
 
 const EXIT_MESSAGE = "\n";
 
@@ -55,7 +56,11 @@ export default function App({ config, registry, sessionState, dispatchProvider }
 		try {
 			const result = parser.parse(trimmed, {
 				_sessionState: sessionState,
-				_setConfigValue: config && typeof config.setValue === "function" ? config.setValue : null,
+				_setConfigValue: (dotPath, valueStr) => {
+					if (config) {
+						setConfigValue(config, dotPath, valueStr);
+					}
+				},
 				_scheduleList: [],
 				_schedulePause: () => {},
 				_scheduleResume: () => {},
