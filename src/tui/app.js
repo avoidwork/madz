@@ -5,7 +5,7 @@ import { CommandParser } from "./commandParser.js";
 import { ConversationPanel } from "./conversationPanel.js";
 import { StatusBar } from "./statusBar.js";
 import { InputPanel } from "./inputPanel.js";
-import { calcVisibleCount } from "./messages.js";
+import { calcVisibleCount, isStreamingMessage } from "./messages.js";
 import { Banner } from "./banner.js";
 import { setConfigValue } from "../config/loader.js";
 
@@ -103,31 +103,54 @@ export default function App({ config, registry, sessionState, dispatchProvider }
 		setStatusMessage("Streaming...");
 		addMessage({ role: "user", content: text });
 
-		try {
-			let streamingContent = "";
+		const assistantTime = getTimestamp();
+		setMessages((prev) => [
+			...prev,
+			{ role: "assistant", content: "", time: assistantTime, streaming: true },
+		]);
 
+		try {
 			const response = await dispatchProvider(
 				text,
 				sessionState ? sessionState.getProvider() : null,
 				(chunk) => {
-					streamingContent = chunk;
-					addMessage({ role: "assistant", content: chunk });
+					setMessages((prev) => {
+						const cloned = [...prev];
+						const last = cloned[cloned.length - 1];
+						if (last.role === "assistant" && last.streaming) {
+							last.content = chunk + "\u2588";
+						}
+						return cloned;
+					});
 				},
 			);
 
-			const responseContent = response.content || streamingContent || "";
+			const responseContent = response.content || "";
+			const committedContent = responseContent.replace(/\u2588$/, "");
+
+			setMessages((prev) => {
+				const cloned = [...prev];
+				const last = cloned[cloned.length - 1];
+				if (last.role === "assistant" && last.streaming) {
+					last.content = committedContent;
+					last.streaming = false;
+				}
+				return cloned;
+			});
+
 			if (sessionState) {
 				sessionState.addExchange({
 					role: "assistant",
-					content: responseContent,
+					content: committedContent,
 				});
 			}
 			setStatusMessage("Received response");
-		} catch (_err) {
+		} catch (err) {
+			setMessages((prev) => prev.filter((msg) => !isStreamingMessage(msg)));
 			setStatusMessage("Something went wrong");
 			addMessage({
 				role: "system",
-				content: `I couldn't connect right now - ${_err.message}. Try sending your message again?`,
+				content: `I couldn't connect right now - ${err.message}. Try sending your message again?`,
 			});
 		}
 	};
@@ -136,10 +159,19 @@ export default function App({ config, registry, sessionState, dispatchProvider }
 		process.exit(0);
 	};
 
-	const addMessage = (msg) => {
+	/**
+	 * Generate a timestamp string in HH:MM format.
+	 * @returns {string}
+	 */
+	const getTimestamp = () => {
 		const now = new Date();
-		const time =
-			String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
+		return (
+			String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0")
+		);
+	};
+
+	const addMessage = (msg) => {
+		const time = getTimestamp();
 		setMessages((prev) => [...prev, { ...msg, time }]);
 		setScrollOffset(0);
 		setIsScrolling(false);

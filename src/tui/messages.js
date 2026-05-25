@@ -73,6 +73,15 @@ export function formatMessage(message, assistantName) {
 }
 
 /**
+ * Check if a message is currently streaming.
+ * @param {Message} message
+ * @returns {boolean}
+ */
+export function isStreamingMessage(message) {
+	return message.streaming === true;
+}
+
+/**
  * Count total lines needed for all messages (for scroll height).
  * @param {Array<Message>} messages
  * @param {number} lineWidth - Maximum characters per line
