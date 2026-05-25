@@ -73,7 +73,28 @@ export function formatMessage(message, assistantName) {
 }
 
 /**
+ * Estimate additional lines added by markdown formatting (blank lines between
+ * paragraphs, heading spacers, list item spacing, code block borders).
+ * @param {string} content
+ * @returns {number}
+ */
+function estimateMarkdownLines(content) {
+	if (!content) return 0;
+	let bonus = 0;
+	const lines = content.split("\n");
+	for (const line of lines) {
+		if (/^\s*$/.test(line)) bonus += 1; // blank lines between blocks
+		if (/^#{1,6}\s/.test(line)) bonus += 1; // heading + extra line
+		if (/^(- |\d+\. )/.test(line.trim())) bonus += 0; // list items already one line
+		if (line.trim().startsWith("```")) bonus += 1; // fenced code block adds a line
+		if (line.trim().startsWith("---") || line.trim().startsWith("*** ")) bonus += 2; // h-rule
+	}
+	return Math.min(bonus, Math.floor(lines.length * 0.3));
+}
+
+/**
  * Count total lines needed for all messages (for scroll height).
+ * Assistant and system messages get a markdown line-count bonus.
  * @param {Array<Message>} messages
  * @param {number} lineWidth - Maximum characters per line
  * @returns {number}
@@ -82,8 +103,12 @@ export function countMessageLines(messages, lineWidth = 80) {
 	let total = 0;
 	for (const msg of messages) {
 		total += 2; // Label + content start
-		const lines = Math.ceil((msg.content || "").length / lineWidth);
-		total += Math.max(1, lines);
+		const content = msg.content || "";
+		const plainLines = Math.ceil(content.length / lineWidth);
+		total += Math.max(1, plainLines);
+		if (msg.role === "assistant" || msg.role === "system") {
+			total += estimateMarkdownLines(content);
+		}
 		total += 1; // Separator
 	}
 	return total;

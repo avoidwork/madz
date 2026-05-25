@@ -1,5 +1,7 @@
-import React from "react";
 import { Box, Text } from "ink";
+import Markdown from "ink-markdown";
+import React from "react";
+
 import { BANNER_ART } from "./banner.js";
 import { getRoleLabel, getVisibleMessages } from "./messages.js";
 
@@ -109,7 +111,13 @@ export function ConversationPanel({
 					React.createElement(
 						Box,
 						{ flexDirection: "row" },
-						React.createElement(Text, { color: colors.content, wrap: "true" }, msg.content || ""),
+						msg.role === "user"
+							? React.createElement(
+									Text,
+									{ color: colors.content, wrap: "true" },
+									msg.content || "",
+								)
+							: React.createElement(Markdown, null, msg.content || ""),
 					),
 				),
 			),

@@ -2,6 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert";
 import { CommandParser } from "../../src/tui/commandParser.js";
 import { PANELS, nextPanel, prevPanel, getPanelOrder } from "../../src/tui/panels.js";
+import { countMessageLines, getVisibleMessages, getRoleLabel } from "../../src/tui/messages.js";
 
 describe("command parser", () => {
 	it("parses :quit command", () => {
@@ -220,20 +221,6 @@ describe("TUI - panel navigation", () => {
 
 describe("TUI - message formatting", () => {
 	it("maps role to label", () => {
-		// Re-define locally since we can't import the function directly
-		function getRoleLabel(role, assistantName) {
-			switch (role) {
-				case "user":
-					return "You";
-				case "assistant":
-					return assistantName || "Assistant";
-				case "system":
-					return "System";
-				default:
-					return role || "Unknown";
-			}
-		}
-
 		assert.strictEqual(getRoleLabel("user"), "You");
 		assert.strictEqual(getRoleLabel("assistant"), "Assistant");
 		assert.strictEqual(getRoleLabel("assistant", "madz"), "madz");
@@ -253,13 +240,6 @@ describe("TUI - message formatting", () => {
 	});
 
 	it("gets visible messages within viewport", () => {
-		function getVisibleMessages(messages, scrollOffset, visibleCount) {
-			const total = messages.length;
-			const start = Math.max(0, Math.min(scrollOffset, total - visibleCount));
-			const end = Math.min(total, start + visibleCount);
-			return { messages: messages.slice(start, end), scrollTop: start, scrollHeight: total };
-		}
-
 		const msgs = [
 			{ role: "user", content: "1" },
 			{ role: "user", content: "2" },
@@ -271,20 +251,10 @@ describe("TUI - message formatting", () => {
 		const result = getVisibleMessages(msgs, 0, 3);
 		assert.strictEqual(result.messages.length, 3);
 		assert.strictEqual(result.scrollTop, 0);
+		assert.ok(typeof result.bottomReached === "boolean");
 	});
 
 	it("counts message lines for scrolling", () => {
-		function countMessageLines(messages, lineWidth = 80) {
-			let total = 0;
-			for (const msg of messages) {
-				total += 2;
-				const lines = Math.ceil((msg.content || "").length / lineWidth);
-				total += Math.max(1, lines);
-				total += 1;
-			}
-			return total;
-		}
-
 		const msgs = [
 			{ role: "user", content: "Short" },
 			{ role: "assistant", content: "A longer response with multiple words" },
@@ -292,6 +262,17 @@ describe("TUI - message formatting", () => {
 
 		const lines = countMessageLines(msgs);
 		assert.ok(lines > 0);
+	});
+
+	it("counts extra lines for assistant messages with markdown", () => {
+		const plainMsgs = [{ role: "user", content: "Hello world" }];
+		const mdMsgs = [{ role: "assistant", content: "# Heading\n\nSome text\n\n- item 1\n- item 2" }];
+
+		const plainLines = countMessageLines(plainMsgs);
+		const mdLines = countMessageLines(mdMsgs);
+
+		// Markdown messages should count more lines than plain text of similar length
+		assert.ok(mdLines >= plainLines);
 	});
 });
 
