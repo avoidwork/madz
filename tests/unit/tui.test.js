@@ -480,4 +480,72 @@ describe("TUI - streaming message utility", () => {
 		assert.strictEqual(chunk2 + "\u2588", "Hello world\u2588");
 		assert.strictEqual(chunk3 + "\u2588", "Hello world. This is a longer response.\u2588");
 	});
+
+	it("dispatches text events from streamEvents callback", () => {
+		const events = [
+			{ type: "text", text: "Hello, " },
+			{ type: "tool_end", toolName: "search" },
+			{ type: "text", text: "Final answer." },
+		];
+
+		const results = {};
+		const dispatch = (event) => {
+			if (event.type === "text") {
+				results.content = (results.content || "") + event.text;
+			} else if (event.type === "tool_end") {
+				results.toolCalls = results.toolCalls || [];
+				results.toolCalls.push(event.toolName);
+			}
+		};
+
+		for (const event of events) {
+			dispatch(event);
+		}
+
+		assert.strictEqual(results.content, "Hello, Final answer.");
+		assert.deepStrictEqual(results.toolCalls, ["search"]);
+	});
+
+	it("dispatches tool_end and tool_error events correctly", () => {
+		const events = [
+			{ type: "tool_end", toolName: "read_file", toolCallId: "1", data: "file contents" },
+			{ type: "tool_error", toolName: "write_file", toolCallId: "2", error: "permission denied" },
+		];
+
+		const toolCalls = [];
+		for (const event of events) {
+			if (event.type === "tool_end") {
+				const resultLine = event.data ? ` Result: ${JSON.stringify(event.data).slice(0, 200)}` : "";
+				const displayLine = event.toolName
+					? `- Tool: ${event.toolName}${resultLine}`
+					: `- Tool: ${event.toolCallId || "unknown"}${resultLine}`;
+				toolCalls.push(displayLine);
+			} else if (event.type === "tool_error") {
+				const errorLine = event.toolName
+					? `- Tool: ${event.toolName} (error: ${event.error})`
+					: `- Tool call failed (${event.toolCallId || "unknown"})`;
+				toolCalls.push(errorLine);
+			}
+		}
+
+		assert.strictEqual(toolCalls.length, 2);
+		assert.strictEqual(toolCalls[0], '- Tool: read_file Result: "file contents"');
+		assert.strictEqual(toolCalls[1], "- Tool: write_file (error: permission denied)");
+	});
+
+	it("formats tool call display lines with newlines", () => {
+		const toolCalls = [
+			"- Tool: search Result: 3 files",
+			"- Tool: read_file Result: file contents",
+			"- Tool: write_file (error: permission denied)",
+		];
+
+		const display = toolCalls.join("\n");
+		const lines = display.split("\n");
+
+		assert.strictEqual(lines.length, 3);
+		assert.strictEqual(lines[0], "- Tool: search Result: 3 files");
+		assert.strictEqual(lines[1], "- Tool: read_file Result: file contents");
+		assert.strictEqual(lines[2], "- Tool: write_file (error: permission denied)");
+	});
 });

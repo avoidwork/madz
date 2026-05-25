@@ -7,7 +7,9 @@
  * @typedef {Object} Message
  * @property {string} role - "user" | "assistant" | "system"
  * @property {string} content - The message content
- * @property {string} [timestamp] - ISO timestamp
+ * @property {string[]} [toolCalls] - Tool call result strings for assistant messages
+ * @property {string} [time] - Timestamp
+ * @property {boolean} [streaming] - Whether currently streaming
  */
 
 /**
@@ -96,4 +98,14 @@ export function countMessageLines(messages, lineWidth = 80) {
 		total += 1; // Separator
 	}
 	return total;
+}
+
+/**
+ * Get tool call display lines formatted for render output.
+ * @param {string} toolCallDisplay - Raw tool call display string with "\n" separators
+ * @returns {Array<string>}
+ */
+export function getToolCallLines(toolCallDisplay) {
+	if (!toolCallDisplay) return [];
+	return toolCallDisplay.split("\n");
 }
