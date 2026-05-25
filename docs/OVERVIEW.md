@@ -9,6 +9,9 @@ This document describes how madz is structured, how subsystems interact, and the
 - [System Diagram](#system-diagram)
 - [Entry Point](#entry-point)
 - [Config](#config)
+- [Provider](#provider)
+- [Agent](#agent)
+- [Tools](#tools)
 - [Memory](#memory)
 - [Registry / Skills](#registry--skills)
 - [Sandbox](#sandbox)
@@ -34,18 +37,24 @@ This document describes how madz is structured, how subsystems interact, and the
               ▼            ▼            ▼
        ┌──────────┐ ┌──────────┐ ┌──────────┐
        │ Telemetry│ │ Registry │ │ Scheduler│
-       └──────────┘ └────▲─────┘ └────┬─────┘
-              ┌──────────┘            │
-              ▼                       ▼
-       ┌────────────┐          ┌───────────┐
-       │ Session    │◄─────────┤  Sandbox  │──► child_process.fork()
-       └─────┬──────┘  session │  Runtime  │   skills/*/scripts/
-             │                 └───────────┘
-             │
-             ▼
-       ┌───────────┐
-       │  Memory    │──► filesystem (memory/{conversations,context,schedules}/)
-       │  Files     │
+       └──────────┘    │        └────▲─────┘
+              ┌─────────│─────────────│──────┐
+              │         │             │      │
+              ▼         ▼             │      │
+       ┌────────────┐ ┌────────┐      │      │
+       │  Provider  │ │ Agent  │      │      │
+       └──────┬─────┘ └───┬────┘      │      │
+              │           │tools      │      │
+              │           ▼           │      │
+              ├───► ┌──────────┐      │      │
+              │     │  Sandbox  │◄─────┘      │
+              │     │  Runtime │──► fork()    │
+              │     └──────────┘   scripts/   │
+              │                               │
+              ▼                               ▼
+       ┌───────────┐                  ┌────────────┐
+       │  Memory    │──► filesystem   │  Session    │──► context window
+       │  Files     │                └────────────┘
        └───────────┘
             │    ▲
       write/read    loadContext()
@@ -99,8 +108,9 @@ loadContext │ writeMemoryFile │ readMemoryFile │ cleanRetainedMemory
 
 | File | Purpose |
 |------|---------|
-| `schemas.js` | Zod schemas for every config section: `ConfigSchema`, `ProvidersSchema`, `SandboxScopeSchema`, `MemorySchema`, `TelemetrySchema`, `SchedulesSchema`, `SessionSchema` |
+| `schemas.js` | Zod schemas for every config section: `ConfigSchema`, `ProvidersSchema`, `SandboxScopeSchema`, `MemorySchema`, `TelemetrySchema`, `SchedulesSchema`, `SessionSchema`, `TuiSchema`, `RetentionSchema` |
 | `loader.js` | Loads `config.yaml`, deep-merges with defaults, resolves env vars recursively, validates against Zod |
+| `mutate.js` | `parseValue()` — string-to-JS-type coercion; `assignPath()` — dot-path mutation; `applyDotPathMutation()` — validates + mutates via Zod |
 
 **Env var resolution (`_resolveEnvRecursively`):**
 
@@ -122,6 +132,79 @@ Walks the config tree recursively and maps each leaf key to an env var:
 - Legacy `${VAR_NAME}` interpolation is still supported as fallback
 
 **Runtime mutation:** `setConfigValue(config, "telemetry.enabled", "true")` clones the config, applies the mutation at the dot-path, validates against the Zod schema, mutates the live config object, and persists to disk.
+
+**Config mutation (`mutate.js`):** `parseValue()` converts strings to JS types; `assignPath()` mutates an object by dot-path; `applyDotPathMutation()` validates the patched config via Zod before applying.
+
+---
+
+## Provider
+
+`src/provider/` — LLM provider factory that creates model instances from configuration.
+
+**Key files:**
+
+| File | Purpose |
+|------|---------|
+| `openai.js` | `createChatModel()` — factory that creates a `ChatOpenAI` instance from a `ProviderConfig`; `ProviderConfig` typedef defines `{ base_url, model, credentials: { apiKey }, temperature?, maxTokens? }` |
+
+**Provider flow:**
+
+1. `createChatModel(config)` receives a `ProviderConfig` — typically loaded from `config.providers.openai`
+2. Returns a `ChatOpenAI` instance configured with the given base URL, model, credentials, temperature, and token limits
+3. The provider instance is consumed by `Agent` (via `createReactAgent`) or `dispatchProvider()` in `index.js`
+4. Automatic fallback is handled at the `dispatchProvider()` layer using `config.providers.fallback_order`
+
+---
+
+## Agent
+
+`src/agent/` — ReAct agent wrapper around LangGraph's prebuilt agent builder. Provides a structured reasoning loop that interleaves LLM calls with tool invocations.
+
+**Key files:**
+
+| File | Purpose |
+|------|---------|
+| `react.js` | `createReactAgent()` — wraps `@langchain/langgraph/prebuilt`'s `createReactAgentGraph` to produce a compiled ReAct agent from a model and tool array; `callReactAgent()` — invokes the agent with a user message, returns the last message's content |
+
+**Agent flow:**
+
+1. `createReactAgent(model, tools)` compiles a LangGraph state graph with the given LLM model and tool definitions
+2. `callReactAgent(agent, message)` feeds a user message into the compiled agent
+3. The agent internally runs the ReAct loop: reason → call tool(s) → reason again → produce final answer
+4. Returns `{ content: string }` containing the agent's final response
+
+**Relationship to tools:** The agent's tool array is built by `buildToolConfig()` from `src/tools/index.js`, which gates LangChain tool definitions on sandbox permissions. Zero-permission tools like `clarify` are always available.
+
+---
+
+## Tools
+
+`src/tools/` — built-in LangChain tools gated by sandbox permissions. Tools are registered conditionally based on the session's enabled permission set.
+
+**Key files:**
+
+| File | Purpose |
+|------|---------|
+| `index.js` | `TOOL_PERMISSIONS` — maps tool names to required permission scopes; `buildToolConfig()` — filters tools by enabled permissions and returns LangChain tool definitions |
+| `filesystem.js` | `read_file` — read files with line-numbered output; `write_file` — write files with 500KB cap; `patch` — fuzzy-match patching with 9 strategies and unified diff output; `search_files` — ripgrep-based search with native `fs` fallback |
+| `terminal.js` | `terminal` — shell command execution (foreground/background); `process_tool` — background process management (list, poll, log, wait, kill, write, pause, resume). Shared `processTracker` `Map` keyed by PID |
+| `todo.js` | `todo` — CRUD task management persisted to `memory/tools/todo.json` |
+| `memory.js` | `memory` — key-value session memory with deduplication, persisted to `memory/context/session_memory.md` |
+| `sessionSearch.js` | `session_search` — past conversation search (keyword query, full retrieval by ID, or browse) |
+| `clarify.js` | `clarify` — sends clarification questions to the user. **Zero-permission tool** — always registered |
+| `skills.js` | `skills_list` — lists all discovered skills from the registry; `skill_view` — views a single skill's metadata and SKILL.md content |
+| `common.js` | `validatePath()` — path vs. sandbox allowlist; `validateUrl()` — scheme + hostname allowlist; `fetchWithTimeout()` — HTTP GET with AbortController; `checkFileLimit()` / `parseSizeString()` — size validation |
+
+**Permission gating in `buildToolConfig()`:**
+
+| Tool | Required Permissions |
+|------|---------------------|
+| `read_file`, `search_files`, `skills_list`, `skill_view` | `filesystem:read` |
+| `write_file`, `patch`, `todo`, `memory` | `filesystem:write` |
+| `terminal` | `filesystem:exec` + `process:spawn` |
+| `process` | `process:spawn` |
+| `session_search` | `filesystem:read` |
+| `clarify` | *(none — always registered)* |
 
 ---
 
@@ -284,7 +367,10 @@ The `matchesField()` function supports literal values (`30`), ranges (`1-5`), st
 
 | File | Purpose |
 |------|---------|
+| `index.js` | Re-exports all TUI components and utilities |
 | `app.js` | Main React component — 2-panel layout: conversation/skills/memory/settings (left), info sidebar (right), status line at bottom |
+| `banner.js` | `BANNER_ART` — ASCII ship art; `Banner` — BBS-style startup banner that dismisses on keypress |
+| `statusBar.js` | `StatusBar` — bottom status bar with colored indicator (green/red/yellow) |
 | `panels.js` | `PANELS` constant, `getPanelOrder()`, `nextPanel()`, `prevPanel()` — panel definitions and navigation |
 | `inputPanel.js` | `InputPanel` — text entry with enter-to-send, backspace support, `>` prompt for messages |
 | `conversationPanel.js` | `ConversationPanel` — virtualized message display with scroll (up/down keys) |
@@ -292,7 +378,7 @@ The `matchesField()` function supports literal values (`30`), ranges (`1-5`), st
 | `memoryPanel.js` | `MemoryPanel` — entry list + detail view split |
 | `settingsPanel.js` | `SettingsPanel` — config sections list with selection detail |
 | `commandParser.js` | `CommandParser` class — dispatch table for `:` commands: `quit`, `provider set`, `config set`, `memory open/search`, `schedule list/pause/resume/run-now`, `context add`, `help` |
-| `messages.js` | `getRoleLabel()`, `calcVisibleCount()`, `getVisibleMessages()` (virtualized windowing), `countMessageLines()` |
+| `messages.js` | `getRoleLabel()`, `calcVisibleCount()`, `getVisibleMessages()` (virtualized windowing), `countMessageLines()`, `formatMessage()` |
 | `hooks.js` | `createPanelState()` — initial state factory; `nextPanel()`, `prevPanel()` |
 | `components.js` | Re-exports all panel components |
 
@@ -326,10 +412,22 @@ index.js
     ├── enforceContextWindow(conversation, windowSize)          ← trims oldest exchanges
     ├── loadContext()                                            ← prepends context markdown
     ├── dispatchProvider(fullPrompt)
-    │     ├── callProvider("openai", ...)                        ← fetches from LLM
-    │     └── callProvider("local") ← fallback
+    │     ├── createChatModel("openai", ...)                    ← Provider
+    │     ├── createReactAgent(model, tools)                    ← Agent
+    │     └── callReactAgent(agent, message)                    ← ReAct loop
     ├── sessionState.addExchange({role: "assistant", content})
     └── writeMemoryFile("memory/conversations", ...)             ← persists to filesystem
+
+**Agent tool loop:**
+
+```
+callReactAgent(agent, message)
+    ├── LLM decides to use a tool
+    ├── buildToolConfig(permissions)                             ← filters tools by sandbox caps
+    ├── terminal.read_file → validatePath(allowedPaths)
+    ├── terminal.terminal    → validatePath + filterUrl
+    ├── tools.clarify        → (zero-permission, always available)
+    └── LLM produces final answer from tool outputs
 ```
 
 **Skill invocation flow:**
