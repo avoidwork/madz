@@ -11,8 +11,8 @@ describe("callReactAgent", () => {
 				capturedMessages = input.messages;
 				return {
 					messages: [
-						{ role: "user", content: input.messages[0].content },
-						{ role: "assistant", content: "response" },
+						{ type: "human", content: input.messages[0].content },
+						{ type: "ai", content: "response" },
 					],
 				};
 			},
@@ -26,8 +26,8 @@ describe("callReactAgent", () => {
 		const agentMock = {
 			invoke: () => ({
 				messages: [
-					{ role: "user", content: "what is 2+2" },
-					{ role: "assistant", content: "4" },
+					{ type: "human", content: "what is 2+2" },
+					{ type: "ai", content: "4" },
 				],
 			}),
 		};
@@ -40,9 +40,9 @@ describe("callReactAgent", () => {
 		const agentMock = {
 			invoke: () => ({
 				messages: [
-					{ role: "user", content: "query" },
-					{ role: "assistant", content: "first thought" },
-					{ role: "assistant", content: "final answer" },
+					{ type: "human", content: "query" },
+					{ type: "ai", content: "first thought" },
+					{ type: "ai", content: "final answer" },
 				],
 			}),
 		};
@@ -67,6 +67,44 @@ describe("callReactAgent", () => {
 
 		assert.ok(caughtError instanceof Error);
 		assert.strictEqual(caughtError.message, "model unavailable");
+	});
+
+	it("scans for last AI message with content", async () => {
+		const agentMock = {
+			invoke: () => ({
+				messages: [
+					{ type: "human", content: "query" },
+					{ type: "ai", content: undefined, tool_calls: [{ name: "search" }] },
+					{ type: "tool", content: "search results" },
+					{ type: "ai", content: "final answer" },
+				],
+			}),
+		};
+
+		const result = await callReactAgent(agentMock, "query");
+		assert.strictEqual(result.content, "final answer");
+	});
+
+	it("falls back to input message when no AI content found", async () => {
+		const agentMock = {
+			invoke: () => ({
+				messages: [{ type: "human", content: "user input" }],
+			}),
+		};
+
+		const result = await callReactAgent(agentMock, "user input");
+		assert.strictEqual(result.content, "user input");
+	});
+
+	it("falls back to input message when all messages lack content", async () => {
+		const agentMock = {
+			invoke: () => ({
+				messages: [],
+			}),
+		};
+
+		const result = await callReactAgent(agentMock, "fallback text");
+		assert.strictEqual(result.content, "fallback text");
 	});
 });
 
