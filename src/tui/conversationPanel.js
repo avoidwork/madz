@@ -108,8 +108,27 @@ export function ConversationPanel({
 					),
 					React.createElement(
 						Box,
-						{ flexDirection: "row" },
-						React.createElement(Text, { color: colors.content, wrap: "true" }, msg.content || ""),
+						{ flexDirection: "column" },
+						React.createElement(
+							Box,
+							{ flexDirection: "row" },
+							React.createElement(Text, { color: colors.content, wrap: "true" }, msg.content || ""),
+						),
+						msg.role === "assistant" && msg.toolCallDisplay
+							? React.createElement(
+									Box,
+									{ flexDirection: "column", marginTop: 1, marginLeft: 2 },
+									...msg.toolCallDisplay
+										.split("\n")
+										.map((line, j) =>
+											React.createElement(
+												Text,
+												{ key: "tool-" + i + "-" + j, dim: true, color: "gray" },
+												"  " + line,
+											),
+										),
+								)
+							: null,
 					),
 				),
 			),
