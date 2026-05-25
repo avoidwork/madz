@@ -2,8 +2,7 @@
 
 // Load config
 import { fileURLToPath } from "node:url";
-import { dirname } from "node:path";
-import { createRequire } from "node:module";
+
 import React from "react";
 
 const { loadConfig, setConfigValue } = await import("./src/config/loader.js");
@@ -11,11 +10,9 @@ const { createChatModel } = await import("./src/provider/openai.js");
 const { createReactAgent, callReactAgent } = await import("./src/agent/react.js");
 const { buildToolConfig } = await import("./src/tools/index.js");
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const _require = createRequire(import.meta.url);
-const pkg = _require("../package.json");
+const { default: pkg } = await import(new URL("package.json", import.meta.url).href, {
+	with: { type: "json" },
+});
 
 // Initialize subsystems
 const config = loadConfig();

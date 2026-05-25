@@ -271,6 +271,7 @@ export default function App({ config, registry, sessionState, dispatchProvider, 
 		skillCount: skillList.length,
 		messageCount: messages.length,
 		statusMessage: statusMessage,
+		appInfo: appInfo,
 	};
 
 	return React.createElement(
@@ -293,7 +294,6 @@ export default function App({ config, registry, sessionState, dispatchProvider, 
 		!showBanner &&
 			React.createElement(InputPanel, {
 				inputText: inputText,
-				appInfo: appInfo,
 			}),
 		!showBanner && React.createElement(Text, { key: "exit-newline" }, EXIT_MESSAGE),
 	);
