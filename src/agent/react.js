@@ -1,5 +1,14 @@
 import { createReactAgent as createReactAgentGraph } from "@langchain/langgraph/prebuilt";
-import { HumanMessage, SystemMessage, AIMessage } from "@langchain/core/messages";
+import { AIMessage, AIMessageChunk, HumanMessage, SystemMessage } from "@langchain/core/messages";
+
+/**
+ * Check if a message is an AI message (AIMessage or AIMessageChunk).
+ * @param {import("@langchain/core/messages").BaseMessage} msg - Message to check
+ * @returns {boolean}
+ */
+function isAIMessage(msg) {
+	return msg instanceof AIMessage || msg instanceof AIMessageChunk;
+}
 
 /**
  * Create a ReAct agent from a chat model and optional tools.
@@ -44,7 +53,7 @@ export function callReactAgent(agent, message, systemPrompt, callback) {
 
 	const msgsArray = Array.isArray(result.messages) ? result.messages : [];
 
-	const lastAI = [...msgsArray].reverse().find((msg) => msg instanceof AIMessage);
+	const lastAI = [...msgsArray].reverse().find((msg) => isAIMessage(msg));
 	if (lastAI && lastAI.content) {
 		const content =
 			typeof lastAI.content === "string" ? lastAI.content : JSON.stringify(lastAI.content);
@@ -57,7 +66,33 @@ export function callReactAgent(agent, message, systemPrompt, callback) {
 }
 
 /**
- * Run the agent in streaming mode, calling `callback` with each new chunk.
+ * Find the last AIMessage content from a streamMode: "updates" event object.
+ * @param {Record<string, { messages: import("@langchain/core/messages").BaseMessage[] }>} event - Stream event
+ * @returns {string} The trimmed content of the last AIMessage, or empty string
+ */
+function findLastAIMessageContent(event) {
+	if (!event) {
+		return "";
+	}
+	const allMessages = [];
+	for (const nodeUpdates of Object.values(event)) {
+		if (nodeUpdates && Array.isArray(nodeUpdates.messages)) {
+			allMessages.push(...nodeUpdates.messages);
+		}
+	}
+	if (allMessages.length > 0) {
+		const lastAI = [...allMessages].reverse().find((msg) => isAIMessage(msg));
+		if (lastAI?.content) {
+			const content =
+				typeof lastAI.content === "string" ? lastAI.content : JSON.stringify(lastAI.content);
+			return content.trim();
+		}
+	}
+	return "";
+}
+
+/**
+ * Run the agent in streaming mode, calling `callback` incrementally with each new chunk.
  * @param {ReturnType<typeof createReactAgentGraph>} agent - A compiled ReAct agent
  * @param {import("@langchain/core/messages").BaseMessage[]} initMessages - Initial messages
  * @param {string} originalMessage - Original user message (fallback)
@@ -68,39 +103,13 @@ async function callReactAgentStreaming(agent, initMessages, originalMessage, cal
 	let lastContent = "";
 	let fullContent = "";
 
-	// Collect all events from the stream
-	const events = [];
 	const stream = await agent.stream({ messages: initMessages }, { streamMode: "updates" });
 	for await (const event of stream) {
-		events.push(event);
-	}
-
-	// Process events: detect new AIMessage content
-	for (const event of events) {
-		if (!event) {
-			continue;
-		}
-		// streamMode: "updates" returns events keyed by node name.
-		// Collect ALL messages from every node in the event, then
-		// find the last AIMessage across the union.
-		const allMessages = [];
-		for (const nodeUpdates of Object.values(event)) {
-			if (nodeUpdates && Array.isArray(nodeUpdates.messages)) {
-				allMessages.push(...nodeUpdates.messages);
-			}
-		}
-		if (allMessages.length > 0) {
-			const lastAI = [...allMessages].reverse().find((msg) => msg instanceof AIMessage);
-			if (lastAI && lastAI.content) {
-				const content =
-					typeof lastAI.content === "string" ? lastAI.content : JSON.stringify(lastAI.content);
-				const trimmed = content.trim();
-				if (trimmed && trimmed !== lastContent) {
-					fullContent = trimmed;
-					lastContent = trimmed;
-					callback(trimmed);
-				}
-			}
+		const trimmed = findLastAIMessageContent(event);
+		if (trimmed && trimmed !== lastContent) {
+			fullContent = trimmed;
+			lastContent = trimmed;
+			callback(trimmed);
 		}
 	}
 

@@ -26,5 +26,6 @@ export function createChatModel(config) {
 		configuration: {
 			baseURL: config.base_url,
 		},
+		streaming: config.streaming ?? true,
 	});
 }

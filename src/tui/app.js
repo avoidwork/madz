@@ -18,6 +18,7 @@ const EXIT_MESSAGE = "\n";
 export default function App({ config, registry, sessionState, dispatchProvider }) {
 	const [showBanner, setShowBanner] = useState(true);
 	const [messages, setMessages] = useState([]);
+	const [streamingContent, setStreamingContent] = useState(null);
 	const [statusMessage, setStatusMessage] = useState("Ready");
 	const [chatHistory, setChatHistory] = useState([]);
 	const [historyIndex, setHistoryIndex] = useState(-1);
@@ -102,34 +103,31 @@ export default function App({ config, registry, sessionState, dispatchProvider }
 	const handleChat = async (text) => {
 		setStatusMessage("Streaming...");
 		addMessage({ role: "user", content: text });
+		const now = new Date();
+		const time =
+			String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
 
-		try {
-			let streamingContent = "";
+		let finalContent = "";
 
-			const response = await dispatchProvider(
-				text,
-				sessionState ? sessionState.getProvider() : null,
-				(chunk) => {
-					streamingContent = chunk;
-					addMessage({ role: "assistant", content: chunk });
-				},
-			);
+		const response = await dispatchProvider(
+			text,
+			sessionState ? sessionState.getProvider() : null,
+			(chunk) => {
+				finalContent = chunk;
+				setStreamingContent(chunk);
+			},
+		);
 
-			const responseContent = response.content || streamingContent || "";
-			if (sessionState) {
-				sessionState.addExchange({
-					role: "assistant",
-					content: responseContent,
-				});
-			}
-			setStatusMessage("Received response");
-		} catch (_err) {
-			setStatusMessage("Something went wrong");
-			addMessage({
-				role: "system",
-				content: `I couldn't connect right now - ${_err.message}. Try sending your message again?`,
+		const responseContent = response.content || finalContent || "";
+		setStreamingContent(null);
+		if (sessionState) {
+			sessionState.addExchange({
+				role: "assistant",
+				content: responseContent,
 			});
 		}
+		addMessage({ role: "assistant", content: responseContent, time });
+		setStatusMessage("Received response");
 	};
 
 	const handleQuit = () => {
@@ -200,6 +198,8 @@ export default function App({ config, registry, sessionState, dispatchProvider }
 			? React.createElement(Banner, { onDismiss: () => setShowBanner(false) })
 			: React.createElement(ConversationPanel, {
 					messages: messages,
+					streamingContent: streamingContent,
+					streamingIndex: streamingIndex,
 					visibleCount: visibleCount,
 					scrollOffset: scrollOffset,
 					assistantName: config?.tui?.name || "Assistant",

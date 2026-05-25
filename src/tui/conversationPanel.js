@@ -3,6 +3,8 @@ import { Box, Text } from "ink";
 import { BANNER_ART } from "./banner.js";
 import { getRoleLabel, getVisibleMessages } from "./messages.js";
 
+const STREAMING_MARKER = "\u2588";
+
 /**
  * Format time as HH:MM from a Date object.
  * @param {Date} date
@@ -52,6 +54,7 @@ function getBubbleStyle(role) {
  */
 export function ConversationPanel({
 	messages = [],
+	streamingContent,
 	scrollOffset = 0,
 	visibleCount = 20,
 	assistantName = "Assistant",
@@ -116,7 +119,44 @@ export function ConversationPanel({
 		);
 	}
 
-	if (messages.length === 0) {
+	if (streamingContent) {
+		const colors = getRoleColors("assistant");
+		const bubble = getBubbleStyle("assistant");
+		const content = streamingContent + STREAMING_MARKER;
+
+		children.push(
+			React.createElement(
+				Box,
+				{ key: "streaming", flexDirection: "row", justifyContent: bubble.alignment },
+				React.createElement(
+					Box,
+					{
+						key: "streaming-bubble",
+						flexDirection: "column",
+						paddingX: 1,
+						borderColor: bubble.border,
+						borderStyle: "round",
+					},
+					React.createElement(
+						Box,
+						{ flexDirection: "row" },
+						React.createElement(
+							Text,
+							{ color: colors.label, bold: true },
+							getRoleLabel("assistant", assistantName) + ": ",
+						),
+					),
+					React.createElement(
+						Box,
+						{ flexDirection: "row" },
+						React.createElement(Text, { color: colors.content, wrap: "true" }, content),
+					),
+				),
+			),
+		);
+	}
+
+	if (messages.length === 0 && !streamingContent) {
 		children.push(
 			React.createElement(Text, { key: "empty", gray: true }, " No messages yet. Start chatting!"),
 		);

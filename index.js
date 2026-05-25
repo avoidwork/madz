@@ -61,7 +61,7 @@ const tools = await buildToolConfig({
 	registry,
 	conversationsDir: config.session.conversationsDir,
 });
-const model = createChatModel(providerConfig);
+const model = createChatModel({ ...providerConfig, streaming: config.tui.streaming ?? true });
 const agent = createReactAgent(model, tools);
 
 // Load system prompt

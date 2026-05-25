@@ -79,3 +79,4 @@ session:
   conversationsDir: memory/conversations/
 tui:
   name: madz
+  streaming: true

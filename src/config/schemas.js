@@ -107,6 +107,7 @@ export const SessionSchema = z.object({
 
 export const TuiSchema = z.object({
 	name: z.string().default("madz"),
+	streaming: z.boolean().default(true),
 });
 
 // --- Root config ---
@@ -153,5 +154,5 @@ export const DEFAULT_CONFIG = {
 	},
 	schedules: { maxConcurrent: 1, entries: [] },
 	session: { context_window_size: 20, conversationsDir: "memory/conversations/" },
-	tui: { name: "madz" },
+	tui: { name: "madz", streaming: true },
 };
