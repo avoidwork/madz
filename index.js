@@ -9,6 +9,7 @@ const { loadConfig, setConfigValue } = await import("./src/config/loader.js");
 const { createChatModel } = await import("./src/provider/openai.js");
 const { createReactAgent, callReactAgent } = await import("./src/agent/react.js");
 const { buildToolConfig } = await import("./src/tools/index.js");
+const { classifyError } = await import("./src/error/index.js");
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -76,7 +77,11 @@ async function dispatchProvider(message, providerName = null) {
 		}
 	}
 
-	throw new Error(`All providers failed. Last error: ${lastError?.message}`);
+	const lastErr = lastError;
+	if (lastErr instanceof Error) {
+		throw new Error(`All providers failed. Last error: ${lastErr.message}`);
+	}
+	throw new Error("All providers failed");
 }
 
 async function callProvider(name, providerConfig, message) {
@@ -88,8 +93,13 @@ async function callProvider(name, providerConfig, message) {
 		conversationsDir: config.session.conversationsDir,
 	});
 	const agent = createReactAgent(model, tools);
-	const result = await callReactAgent(agent, message);
-	return { provider: name, content: result.content, tokens: { input: 0, output: 0 } };
+	try {
+		const result = await callReactAgent(agent, message);
+		return { provider: name, content: result.content, tokens: { input: 0, output: 0 } };
+	} catch (err) {
+		const classified = classifyError(err);
+		throw classified;
+	}
 }
 
 // Conversation handler
@@ -171,7 +181,8 @@ if (isMain) {
 			const response = await handleConversation(message);
 			console.log(JSON.stringify(response, null, 2));
 		} catch (err) {
-			console.error("Error:", err.message);
+			const code = err.code ? `Error: ${err.code} - ` : "Error: ";
+			console.error(code + err.message);
 			process.exit(1);
 		}
 	} else {
