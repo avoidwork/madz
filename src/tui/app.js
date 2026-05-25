@@ -59,8 +59,6 @@ export default function App({ config, registry, sessionState, dispatchProvider }
 		setHistoryIndex(-1);
 		setInputText("");
 
-		addMessage({ role: "user", content: trimmed });
-
 		if (parser.isCommand(trimmed)) {
 			await handleCommand(trimmed);
 		} else {
@@ -102,23 +100,34 @@ export default function App({ config, registry, sessionState, dispatchProvider }
 
 	// Handle normal chat message dispatch
 	const handleChat = async (text) => {
-		setStatusMessage("Sending...");
+		setStatusMessage("Streaming...");
+		addMessage({ role: "user", content: text });
+
 		try {
+			let streamingContent = "";
+
 			const response = await dispatchProvider(
 				text,
 				sessionState ? sessionState.getProvider() : null,
+				(chunk) => {
+					streamingContent = chunk;
+					addMessage({ role: "assistant", content: chunk });
+				},
 			);
-			const responseContent = response.content || response;
-			addMessage({ role: "assistant", content: responseContent });
+
+			const responseContent = response.content || streamingContent || "";
 			if (sessionState) {
-				sessionState.addExchange({ role: "assistant", content: responseContent });
+				sessionState.addExchange({
+					role: "assistant",
+					content: responseContent,
+				});
 			}
 			setStatusMessage("Received response");
 		} catch (_err) {
 			setStatusMessage("Something went wrong");
 			addMessage({
 				role: "system",
-				content: `I couldn't connect right now — ${_err.message}. Try sending your message again?`,
+				content: `I couldn't connect right now. Try sending your message again?`,
 			});
 		}
 	};

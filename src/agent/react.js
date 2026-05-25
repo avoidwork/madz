@@ -1,4 +1,5 @@
 import { createReactAgent as createReactAgentGraph } from "@langchain/langgraph/prebuilt";
+import { HumanMessage, SystemMessage, AIMessage } from "@langchain/core/messages";
 
 /**
  * Create a ReAct agent from a chat model and optional tools.
@@ -21,24 +22,79 @@ export function createReactAgent(model, tools = []) {
  * Searches backwards through the message history to find the last AIMessage
  * with non-empty content (the LLM's final answer). Falls back to the
  * original user message if no valid AI content is found.
+ * When a callback is provided, the agent runs in streaming mode and the
+ * callback is invoked with each new chunk of AIMessage content.
  * @param {ReturnType<typeof createReactAgentGraph>} agent - A compiled ReAct agent
  * @param {string} message - The user message string
+ * @param {string} [systemPrompt] - Optional system prompt text prepended before the user message
+ * @param {(content: string) => void} [callback] - Optional streaming callback
  * @returns {{ content: string }} The agent's final text response
  */
-export function callReactAgent(agent, message) {
-	const result = agent.invoke({
-		messages: [{ role: "user", content: message }],
-	});
+export function callReactAgent(agent, message, systemPrompt, callback) {
+	const initMessages = [
+		systemPrompt ? new SystemMessage(systemPrompt) : null,
+		new HumanMessage(message),
+	].filter(Boolean);
 
-	const messages = result.messages || [];
-	const msgsArray = Array.isArray(messages) ? messages : [];
+	if (callback) {
+		return callReactAgentStreaming(agent, initMessages, message, callback);
+	}
 
-	for (let i = msgsArray.length - 1; i >= 0; i--) {
-		const msg = msgsArray[i];
-		if (msg.type === "ai" && msg.content && msg.content !== "") {
-			return { content: msg.content };
+	const result = agent.invoke({ messages: initMessages });
+
+	const msgsArray = Array.isArray(result.messages) ? result.messages : [];
+
+	const lastAI = [...msgsArray].reverse().find((msg) => msg instanceof AIMessage);
+	if (lastAI && lastAI.content) {
+		const content =
+			typeof lastAI.content === "string" ? lastAI.content : JSON.stringify(lastAI.content);
+		if (content.trim()) {
+			return { content: content.trim() };
 		}
 	}
 
 	return { content: message };
+}
+
+/**
+ * Run the agent in streaming mode, calling `callback` with each new chunk.
+ * @param {ReturnType<typeof createReactAgentGraph>} agent - A compiled ReAct agent
+ * @param {import("@langchain/core/messages").BaseMessage[]} initMessages - Initial messages
+ * @param {string} originalMessage - Original user message (fallback)
+ * @param {(content: string) => void} callback - Streaming callback
+ * @returns {{ content: string }} The agent's final text response
+ */
+async function callReactAgentStreaming(agent, initMessages, originalMessage, callback) {
+	let lastContent = "";
+	let fullContent = "";
+
+	// Collect all events from the stream
+	const events = [];
+	for await (const event of agent.stream({ messages: initMessages })) {
+		events.push(event);
+	}
+
+	// Process events: detect new AIMessage content
+	for (const event of events) {
+		if (event && event.messages) {
+			const msgsArray = Array.isArray(event.messages) ? event.messages : [];
+			const lastAI = [...msgsArray].reverse().find((msg) => msg instanceof AIMessage);
+			if (lastAI && lastAI.content) {
+				const content =
+					typeof lastAI.content === "string" ? lastAI.content : JSON.stringify(lastAI.content);
+				const trimmed = content.trim();
+				if (trimmed && trimmed !== lastContent) {
+					fullContent = trimmed;
+					lastContent = trimmed;
+					callback(trimmed);
+				}
+			}
+		}
+	}
+
+	if (fullContent) {
+		return { content: fullContent };
+	}
+
+	return { content: originalMessage };
 }

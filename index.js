@@ -37,14 +37,8 @@ const { writeMemoryFile, readMemoryFile, loadContext, cleanRetainedMemory, enfor
 	await import("./src/memory/index.js");
 
 // Initialize session
-const {
-	createSession,
-	SessionStateManager,
-	enforceContextWindow,
-	saveSession,
-	handleShutdown,
-	registerShutdownHandler,
-} = await import("./src/session/index.js");
+const { createSession, SessionStateManager, saveSession, handleShutdown, registerShutdownHandler } =
+	await import("./src/session/index.js");
 
 // Initialize scheduler
 const { ScheduleManager } = await import("./src/scheduler/index.js");
@@ -59,43 +53,31 @@ const { sessionId, state: initialState } = createSession({
 });
 const sessionState = new SessionStateManager(initialState);
 
-// LLM provider dispatch
-async function dispatchProvider(message, _providerName = null) {
-	const name = providerName;
-	const _providerConfig = config.providers[name];
-	if (!_providerConfig) {
-		throw new Error(`Provider "${name}" not configured`);
-	}
-	return callProvider(name, _providerConfig, message);
-}
+// Build agent and tool config at startup (once)
+const providerConfig = config.providers[providerName] || {};
+const tools = await buildToolConfig({
+	permissions: config.sandbox.permissions || [],
+	maxReadSize: config.sandbox.maxReadSize || "1mb",
+	registry,
+	conversationsDir: config.session.conversationsDir,
+});
+const model = createChatModel(providerConfig);
+const agent = createReactAgent(model, tools);
 
-async function callProvider(name, providerConfig, message) {
-	const model = createChatModel(providerConfig);
-	const tools = await buildToolConfig({
-		permissions: config.sandbox.permissions || [],
-		maxReadSize: config.sandbox.maxReadSize || "1mb",
-		registry,
-		conversationsDir: config.session.conversationsDir,
-	});
-	const agent = createReactAgent(model, tools);
-	const result = await callReactAgent(agent, message);
-	return { provider: name, content: result.content, tokens: { input: 0, output: 0 } };
+// Load system prompt
+const { loadSystemPrompt } = await import("./src/memory/prompts.js");
+const systemPrompt = loadSystemPrompt();
+
+async function callProvider(_name, _providerConfig, message, streamingCallback) {
+	const result = await callReactAgent(agent, message, systemPrompt, streamingCallback);
+	return { provider: providerName, content: result.content, tokens: { input: 0, output: 0 } };
 }
 
 // Conversation handler
 async function handleConversation(message) {
+	const response = await callProvider(null, null, message);
+
 	sessionState.addExchange({ role: "user", content: message });
-	const contextEnforced = enforceContextWindow(
-		sessionState.getConversation(),
-		sessionState.getContextWindow(),
-	);
-	sessionState.addExchange(contextEnforced.context);
-
-	const contextPrefix = loadContext();
-	const fullPrompt = [contextPrefix, message].filter(Boolean).join("\n\n");
-
-	const response = await dispatchProvider(fullPrompt);
-
 	sessionState.addExchange({ role: "assistant", content: response.content });
 
 	// Persist to memory
@@ -110,6 +92,11 @@ async function handleConversation(message) {
 	);
 
 	return response;
+}
+
+// LLM provider dispatch (for TUI and external callers)
+async function dispatchProvider(message, _sessionState = null, streamingCallback) {
+	return callProvider(null, null, message, streamingCallback);
 }
 
 // Skill invocation through sandbox
