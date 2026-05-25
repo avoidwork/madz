@@ -15,7 +15,14 @@ const EXIT_MESSAGE = "\n";
  * Main App component (Ink). Renders an IRC-style layout:
  * full-height conversation REPL at top, input bar at bottom.
  */
-export default function App({ config, registry, sessionState, dispatchProvider, appInfo }) {
+export default function App({
+	config,
+	registry,
+	sessionState,
+	dispatchProvider,
+	createNewSession,
+	appInfo,
+}) {
 	const [showBanner, setShowBanner] = useState(true);
 	const [messages, setMessages] = useState([]);
 	const [statusMessage, setStatusMessage] = useState("Ready");
@@ -78,9 +85,16 @@ export default function App({ config, registry, sessionState, dispatchProvider, 
 				_schedulePause: () => {},
 				_scheduleResume: () => {},
 				_contextList: false,
+				_createNewSession: createNewSession,
 			});
 			if (result.action === "quit") {
 				handleQuit();
+				return;
+			}
+			if (result.action === "newSession") {
+				setMessages([]);
+				setStatusMessage("New session started");
+				addMessage({ role: "system", content: result.message });
 				return;
 			}
 			if (result.action === "unknown") {

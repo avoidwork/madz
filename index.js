@@ -50,12 +50,22 @@ scheduleManager.register(config.schedules.entries);
 const providerName = Object.keys(config.providers)[0] || "openai";
 const systemPrompt = (await import("./src/memory/prompts.js")).loadSystemPrompt();
 
-// Shared session state for TUI display
-const { sessionId, state: initialState } = createSession({
+// Session state — created at startup, reassigned on :new
+let { sessionId, state: initialState } = createSession({
 	provider: providerName,
 	contextWindow: config.session.context_window_size,
 });
-const sessionState = new SessionStateManager(initialState);
+let sessionState = new SessionStateManager(initialState);
+
+function createNewSession() {
+	const { sessionId: newSessionId, state: newState } = createSession({
+		provider: providerName,
+		contextWindow: config.session.context_window_size,
+	});
+	sessionId = newSessionId;
+	sessionState = new SessionStateManager(newState);
+	return sessionId;
+}
 
 // Build agent and tool config at startup (once)
 const providerConfig = config.providers[providerName] || {};
@@ -69,14 +79,9 @@ const model = createChatModel(providerConfig);
 const { saver } = createCheckpointer(config);
 const agent = createReactAgent(model, tools, saver);
 
+// Conversation handler
 async function handleConversation(message) {
-	const { sessionId, state: initialState } = createSession({
-		provider: providerName,
-		contextWindow: config.session.context_window_size,
-	});
-	const sessionState = new SessionStateManager(initialState);
-
-	const result = await callProvider(sessionId, message, systemPrompt);
+	const result = await callReactAgent(agent, message, systemPrompt, null, sessionId);
 
 	sessionState.addExchange({ role: "user", content: message });
 	sessionState.addExchange({ role: "assistant", content: result.content });
@@ -86,44 +91,19 @@ async function handleConversation(message) {
 		"memory/conversations/",
 		`Conversation ${new Date().toISOString()}`,
 		{
-			provider: result.provider,
+			provider: providerName,
 			sessionId,
 		},
 		JSON.stringify(sessionState.getConversation(), null, 2),
 	);
 
-	return result;
-}
-
-async function callProvider(sessionId, message, _systemPrompt) {
-	const result = await callReactAgent(agent, message, _systemPrompt, null, sessionId);
 	return { provider: providerName, content: result.content, tokens: { input: 0, output: 0 } };
 }
 
 // LLM provider dispatch (for TUI and external callers)
 async function dispatchProvider(message, _sessionState = null, streamingCallback) {
-	const { sessionId, state: initialState } = createSession({
-		provider: providerName,
-		contextWindow: config.session.context_window_size,
-	});
-	const sessionState = new SessionStateManager(initialState);
 	const result = await callReactAgent(agent, message, systemPrompt, streamingCallback, sessionId);
-	if (streamingCallback) {
-		return { provider: providerName, content: "", tokens: { input: 0, output: 0 } };
-	}
-	sessionState.addExchange({ role: "user", content: message });
-	// Extract last AI message content
-	const msgsArray = Array.isArray(result.messages) ? result.messages : [];
-	const lastAI = [...msgsArray]
-		.reverse()
-		.find((msg) => msg.lcTypeName === "AIMessage" && msg.content);
-	const content = lastAI
-		? typeof lastAI.content === "string"
-			? lastAI.content
-			: JSON.stringify(lastAI.content)
-		: message;
-	sessionState.addExchange({ role: "assistant", content: content });
-	return { provider: providerName, content, tokens: { input: 0, output: 0 } };
+	return { provider: providerName, content: result.content, tokens: { input: 0, output: 0 } };
 }
 
 // Skill invocation through sandbox
@@ -208,6 +188,7 @@ export {
 	config,
 	sessionId,
 	sessionState,
+	createNewSession,
 	registry,
 	tracer,
 	dispatchProvider,

@@ -8,6 +8,11 @@ export class CommandParser {
 
 	constructor() {
 		// Register default commands
+		this.#register("new", (_args, ctx) => {
+			const { sessionId: newSessionId } = ctx._createNewSession();
+			return { action: "newSession", sessionId: newSessionId, message: "New session started." };
+		});
+
 		this.#register("quit", (_args, _ctx) => {
 			return { action: "quit", value: true, message: "Quitting." };
 		});
@@ -101,7 +106,7 @@ export class CommandParser {
 		this.#register("help", (_args, _ctx) => {
 			return {
 				action: "help",
-				message: "Available commands: quit, provider, config, memory, schedule, context, help",
+				message: "Available commands: new, quit, provider, config, memory, schedule, context, help",
 			};
 		});
 	}
