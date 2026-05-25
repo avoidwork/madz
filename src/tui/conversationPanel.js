@@ -2,6 +2,7 @@ import React, { useRef, useEffect } from "react";
 import { Box, Text, useInput, useStdout } from "ink";
 import { ScrollView } from "ink-scroll-view";
 import { getRoleLabel } from "./messages.js";
+import { MarkdownText } from "./markdownText.js";
 
 /**
  * Format time as HH:MM from a Date object.
@@ -144,7 +145,7 @@ export function ConversationPanel({ messages = [], assistantName = "Assistant" }
 						React.createElement(
 							Box,
 							{ flexDirection: "row" },
-							React.createElement(Text, { color: colors.content, wrap: "true" }, msg.content || ""),
+							React.createElement(MarkdownText, { content: msg.content || "" }),
 						),
 						msg.role === "assistant" && msg.toolCallDisplay
 							? React.createElement(
