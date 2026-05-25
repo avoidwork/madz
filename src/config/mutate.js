@@ -1,5 +1,7 @@
 import { ConfigSchema } from "./schemas.js";
 
+const MAX_PATH_DEPTH = 5;
+
 /**
  * Parse a string value into the correct JavaScript type.
  * @param {string} str - String to parse (e.g., "true", "42", "hello")
@@ -21,6 +23,9 @@ export function parseValue(str) {
  */
 export function assignPath(obj, path, value) {
 	const keys = path.split(".");
+	if (keys.length > MAX_PATH_DEPTH) {
+		throw new Error(`Path depth exceeds maximum of ${MAX_PATH_DEPTH}: ${path}`);
+	}
 	let current = obj;
 	for (let i = 0; i < keys.length - 1; i++) {
 		if (current[keys[i]] === undefined || current[keys[i]] === null) {

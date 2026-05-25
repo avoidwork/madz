@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
-import { parseValue, assignPath, applyDotPathMutation } from "../../../../src/config/mutate.js";
-import { ConfigSchema } from "../../../../src/config/schemas.js";
+import { parseValue, assignPath, applyDotPathMutation } from "../../../src/config/mutate.js";
+import { ConfigSchema } from "../../../src/config/schemas.js";
 
 describe("parseValue", () => {
 	it("parses boolean true", () => assert.strictEqual(parseValue("true"), true));
@@ -37,6 +37,19 @@ describe("assignPath", () => {
 		const obj = { a: { b: "existing" } };
 		assignPath(obj, "a.c.d", "new");
 		assert.strictEqual(obj.a.c.d, "new");
+	});
+
+	it("throws when path depth exceeds 5", () => {
+		const obj = {};
+		assert.throws(() => assignPath(obj, "a.b.c.d.e.f", "deep"), {
+			message: "Path depth exceeds maximum of 5: a.b.c.d.e.f",
+		});
+	});
+
+	it("allows path with exactly 5 segments", () => {
+		const obj = {};
+		assignPath(obj, "a.b.c.d.e", "deep");
+		assert.strictEqual(obj.a.b.c.d.e, "deep");
 	});
 });
 
