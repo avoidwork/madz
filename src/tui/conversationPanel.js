@@ -126,6 +126,7 @@ export function ConversationPanel({ messages = [], assistantName = "Assistant" }
 						paddingX: 1,
 						borderColor: bubble.border,
 						borderStyle: "round",
+						maxWidth: "90%",
 					},
 					React.createElement(
 						Box,
