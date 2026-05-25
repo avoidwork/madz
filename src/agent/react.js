@@ -77,9 +77,20 @@ async function callReactAgentStreaming(agent, initMessages, originalMessage, cal
 
 	// Process events: detect new AIMessage content
 	for (const event of events) {
-		if (event && event.messages) {
-			const msgsArray = Array.isArray(event.messages) ? event.messages : [];
-			const lastAI = [...msgsArray].reverse().find((msg) => msg instanceof AIMessage);
+		if (!event) {
+			continue;
+		}
+		// streamMode: "updates" returns events keyed by node name.
+		// Collect ALL messages from every node in the event, then
+		// find the last AIMessage across the union.
+		const allMessages = [];
+		for (const nodeUpdates of Object.values(event)) {
+			if (nodeUpdates && Array.isArray(nodeUpdates.messages)) {
+				allMessages.push(...nodeUpdates.messages);
+			}
+		}
+		if (allMessages.length > 0) {
+			const lastAI = [...allMessages].reverse().find((msg) => msg instanceof AIMessage);
 			if (lastAI && lastAI.content) {
 				const content =
 					typeof lastAI.content === "string" ? lastAI.content : JSON.stringify(lastAI.content);

@@ -160,7 +160,7 @@ describe("callReactAgent streaming", () => {
 		const agentMock = {
 			stream: async function* () {
 				for (const chunk of chunks) {
-					yield { messages: [new AIMessage(chunk)] };
+					yield { agent: { messages: [new AIMessage(chunk)] } };
 				}
 			},
 		};
@@ -176,8 +176,8 @@ describe("callReactAgent streaming", () => {
 
 		const agentMock = {
 			stream: async function* () {
-				yield { messages: [new AIMessage("  hello  ")] };
-				yield { messages: [new AIMessage("  hello world  ")] };
+				yield { agent: { messages: [new AIMessage("  hello  ")] } };
+				yield { agent: { messages: [new AIMessage("  hello world  ")] } };
 			},
 		};
 
@@ -194,7 +194,7 @@ describe("callReactAgent streaming", () => {
 
 		const agentMock = {
 			stream: async function* () {
-				yield { messages: [new HumanMessage("user")] };
+				yield { agent: { messages: [new HumanMessage("user")] } };
 			},
 		};
 
