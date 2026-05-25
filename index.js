@@ -52,31 +52,21 @@ const scheduleManager = new ScheduleManager(config.schedules.maxConcurrent);
 scheduleManager.register(config.schedules.entries);
 
 // Create session
+const providerName = Object.keys(config.providers)[0] || "openai";
 const { sessionId, state: initialState } = createSession({
-	provider: config.providers.default,
+	provider: providerName,
 	contextWindow: config.session.context_window_size,
 });
 const sessionState = new SessionStateManager(initialState);
 
-// LLM provider dispatch with fallback chain
-async function dispatchProvider(message, providerName = null) {
-	const provider = providerName || sessionState.getProvider();
-	const providersConfig = config.providers || {};
-	const fallbackOrder = providersConfig.fallback_order || [provider, "local"];
-
-	let lastError = null;
-	for (const name of fallbackOrder) {
-		const _providerConfig = config.providers[name] || {};
-		try {
-			const result = await callProvider(name, _providerConfig, message);
-			return result;
-		} catch (err) {
-			lastError = err;
-			console.error(`Provider "${name}" failed:`, err.message);
-		}
+// LLM provider dispatch
+async function dispatchProvider(message, _providerName = null) {
+	const name = providerName;
+	const _providerConfig = config.providers[name];
+	if (!_providerConfig) {
+		throw new Error(`Provider "${name}" not configured`);
 	}
-
-	throw new Error(`All providers failed. Last error: ${lastError?.message}`);
+	return callProvider(name, _providerConfig, message);
 }
 
 async function callProvider(name, providerConfig, message) {

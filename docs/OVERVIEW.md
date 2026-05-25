@@ -80,7 +80,7 @@ This document describes how madz is structured, how subsystems interact, and the
 4. Loads the memory system (`src/memory/index.js`)
 5. Creates a session (generates a UUID) and wraps it in a `SessionStateManager`
 6. Creates a `ScheduleManager` with `config.schedules.maxConcurrent`
-7. Defines `dispatchProvider()` — calls the provider with automatic fallback via `config.providers.fallback_order`
+7. Defines `dispatchProvider()` — calls the configured LLM provider
 8. Defines `handleConversation()` — adds user exchange, enforces context window, prepends context, dispatches to LLM, writes to memory
 9. Defines `invokeSkill()` — looks up skill in registry, resolves permissions, invokes sandbox
 
@@ -152,7 +152,6 @@ Walks the config tree recursively and maps each leaf key to an env var:
 1. `createChatModel(config)` receives a `ProviderConfig` — typically loaded from `config.providers.openai`
 2. Returns a `ChatOpenAI` instance configured with the given base URL, model, credentials, temperature, and token limits
 3. The provider instance is consumed by `Agent` (via `createReactAgent`) or `dispatchProvider()` in `index.js`
-4. Automatic fallback is handled at the `dispatchProvider()` layer using `config.providers.fallback_order`
 
 ---
 
@@ -389,7 +388,7 @@ Input starting with `:` is parsed by `CommandParser.parse(input, context)`. The 
 | Command | Result |
 |---|---|
 | `:quit` | `{action: "quit", value: true}` |
-| `:provider set local` | `{action: "provider", subAction: "set", value: "local"}` |
+| `:provider set gpt-4` | `{action: "provider", subAction: "set", value: "gpt-4"}` |
 | `:config set telemetry.enabled true` | `{action: "config", subAction: "set", path: "..."}` |
 | `:memory open` | `{action: "memory", subAction: "open"}` |
 | `:memory search daily` | `{action: "memory", subAction: "search", query: "daily"}` |

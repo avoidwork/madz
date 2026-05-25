@@ -49,7 +49,7 @@
 
 ### LLM Provider Abstraction
 
-Configurable provider dispatch with automatic fallback, rate limiting, and context-window trimming. Supports OpenAI-compatible APIs and local models (e.g., Ollama).
+Configurable provider dispatch with rate limiting and context-window trimming. Supports OpenAI-compatible APIs.
 
 ### Agent
 
@@ -200,9 +200,7 @@ node index.js "Summarize memory/_index.md" --json
 
 | Section        | Key                   | Default            | Description                           |
 |----------------|-----------------------|--------------------|---------------------------------------|
-| `providers`    | `default`             | `openai`           | Primary LLM provider                  |
-|                | `fallback_order`      | `[openai, local]`  | Fallback chain on failure             |
-|                | `openai.model`        | `gpt-4o`           | Model name                            |
+| `providers`    | `openai.model`        | `gpt-4o`           | Model name                            |
 |                | `openai.temperature`  | `0.7`              | Sampling temperature                  |
 |                | `openai.maxTokens`    | `4096`             | Max output tokens                     |
 | `sandbox`      | `scope`               | `["memory/", "tmp/"]` | Allowed filesystem paths           |

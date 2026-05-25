@@ -1,8 +1,4 @@
 providers:
-  default: openai
-  fallback_order:
-    - openai
-    - local
   openai:
     type: openai
     base_url: https://api.openai.com/v1
@@ -13,16 +9,6 @@ providers:
     maxTokens: 4096
     rateLimit:
       requestsPerMinute: 60
-  local:
-    type: openai
-    base_url: http://localhost:11434/v1
-    model: llama3.1
-    credentials:
-      apiKey: local-model
-    temperature: 0.7
-    maxTokens: 4096
-    rateLimit:
-      requestsPerMinute: 120
 inference:
   temperature: 0.7
   maxTokens: 4096
