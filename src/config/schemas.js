@@ -106,6 +106,12 @@ export const SessionSchema = z.object({
 	conversationsDir: z.string().default("memory/conversations/"),
 });
 
+// --- TUI schemas ---
+
+export const TuiSchema = z.object({
+	name: z.string().default("madz"),
+});
+
 // --- Root config ---
 
 export const ConfigSchema = z.object({
@@ -115,6 +121,7 @@ export const ConfigSchema = z.object({
 	telemetry: TelemetrySchema,
 	schedules: SchedulesSchema,
 	session: SessionSchema,
+	tui: TuiSchema,
 });
 
 // Default values exported for merging
@@ -147,4 +154,5 @@ export const DEFAULT_CONFIG = {
 	},
 	schedules: { maxConcurrent: 1, entries: [] },
 	session: { context_window_size: 20, conversationsDir: "memory/conversations/" },
+	tui: { name: "madz" },
 };

@@ -221,12 +221,12 @@ describe("TUI - panel navigation", () => {
 describe("TUI - message formatting", () => {
 	it("maps role to label", () => {
 		// Re-define locally since we can't import the function directly
-		function getRoleLabel(role) {
+		function getRoleLabel(role, assistantName) {
 			switch (role) {
 				case "user":
 					return "You";
 				case "assistant":
-					return "Assistant";
+					return assistantName || "Assistant";
 				case "system":
 					return "System";
 				default:
@@ -236,6 +236,8 @@ describe("TUI - message formatting", () => {
 
 		assert.strictEqual(getRoleLabel("user"), "You");
 		assert.strictEqual(getRoleLabel("assistant"), "Assistant");
+		assert.strictEqual(getRoleLabel("assistant", "madz"), "madz");
+		assert.strictEqual(getRoleLabel("assistant", "oracle"), "oracle");
 		assert.strictEqual(getRoleLabel("system"), "System");
 		assert.strictEqual(getRoleLabel("unknown"), "unknown");
 	});
