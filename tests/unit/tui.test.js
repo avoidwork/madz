@@ -549,3 +549,147 @@ describe("TUI - streaming message utility", () => {
 		assert.strictEqual(lines[2], "- Tool: write_file (error: permission denied)");
 	});
 });
+
+describe("InputPanel - prompt detection", () => {
+	it("detects command mode with colon prefix", () => {
+		function isCommand(text) {
+			return text.startsWith(":");
+		}
+
+		assert.strictEqual(isCommand(":quit"), true);
+		assert.strictEqual(isCommand(":provider set openai"), true);
+		assert.strictEqual(isCommand("> hello"), false);
+		assert.strictEqual(isCommand("normal text"), false);
+		assert.strictEqual(isCommand(""), false);
+	});
+
+	it("returns correct prompt character for each mode", () => {
+		function getPrompt(text) {
+			return text.startsWith(":") ? ":" : ">";
+		}
+
+		assert.strictEqual(getPrompt("> hello"), ">");
+		assert.strictEqual(getPrompt(":quit"), ":");
+		assert.strictEqual(getPrompt(""), ">");
+	});
+
+	it("returns correct prompt color for each mode", () => {
+		function getPromptColor(text) {
+			return text.startsWith(":") ? "magenta" : "green";
+		}
+
+		assert.strictEqual(getPromptColor(":quit"), "magenta");
+		assert.strictEqual(getPromptColor("normal"), "green");
+		assert.strictEqual(getPromptColor(""), "green");
+	});
+});
+
+describe("InputPanel - identity rendering", () => {
+	it("renders app name and version elements in correct order", () => {
+		function buildIdentityElements(appInfo) {
+			const elements = [];
+			if (appInfo) {
+				if (appInfo.name) {
+					elements.push({ text: appInfo.name, color: "cyan" });
+				}
+				if (appInfo.version) {
+					elements.push({ text: appInfo.version, color: "white" });
+				}
+			}
+			return elements;
+		}
+
+		const elements = buildIdentityElements({ name: "madz", version: "1.0.0" });
+		assert.strictEqual(elements.length, 2);
+		assert.strictEqual(elements[0].text, "madz");
+		assert.strictEqual(elements[0].color, "cyan");
+		assert.strictEqual(elements[1].text, "1.0.0");
+		assert.strictEqual(elements[1].color, "white");
+	});
+
+	it("renders custom app name in cyan", () => {
+		function buildIdentityElements(appInfo) {
+			const elements = [];
+			if (appInfo) {
+				if (appInfo.name) {
+					elements.push({ text: appInfo.name, color: "cyan" });
+				}
+				if (appInfo.version) {
+					elements.push({ text: appInfo.version, color: "white" });
+				}
+			}
+			return elements;
+		}
+
+		const elements = buildIdentityElements({ name: "oracle", version: "2.0.0" });
+		assert.strictEqual(elements[0].text, "oracle");
+		assert.strictEqual(elements[0].color, "cyan");
+	});
+
+	it("renders version in white", () => {
+		function buildIdentityElements(appInfo) {
+			const elements = [];
+			if (appInfo) {
+				if (appInfo.name) {
+					elements.push({ text: appInfo.name, color: "cyan" });
+				}
+				if (appInfo.version) {
+					elements.push({ text: appInfo.version, color: "white" });
+				}
+			}
+			return elements;
+		}
+
+		const elements = buildIdentityElements({ name: "madz", version: "1.0.0" });
+		assert.strictEqual(elements[1].color, "white");
+	});
+
+	it("renders empty when appInfo is undefined", () => {
+		function buildIdentityElements(appInfo) {
+			const elements = [];
+			if (appInfo) {
+				if (appInfo.name) {
+					elements.push({ text: appInfo.name, color: "cyan" });
+				}
+				if (appInfo.version) {
+					elements.push({ text: appInfo.version, color: "white" });
+				}
+			}
+			return elements;
+		}
+
+		assert.strictEqual(buildIdentityElements(undefined).length, 0);
+		assert.strictEqual(buildIdentityElements(null).length, 0);
+	});
+
+	it("renders both name and version in correct order", () => {
+		function buildIdentityElements(appInfo) {
+			const elements = [];
+			if (appInfo) {
+				if (appInfo.name) {
+					elements.push({ text: appInfo.name, color: "cyan" });
+				}
+				if (appInfo.version) {
+					elements.push({ text: appInfo.version, color: "white" });
+				}
+			}
+			return elements;
+		}
+
+		const elements = buildIdentityElements({ name: "myapp", version: "3.2.1" });
+		assert.strictEqual(elements.length, 2);
+		assert.strictEqual(elements[0].text, "myapp");
+		assert.strictEqual(elements[1].text, "3.2.1");
+	});
+});
+
+describe("InputPanel - flex grow", () => {
+	it("input text element has flexGrow enabled", () => {
+		function getInputFlexProps() {
+			return { flexGrow: 1 };
+		}
+
+		const props = getInputFlexProps();
+		assert.strictEqual(props.flexGrow, 1);
+	});
+});

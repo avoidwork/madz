@@ -3,6 +3,7 @@
 // Load config
 import { fileURLToPath } from "node:url";
 import { dirname } from "node:path";
+import { createRequire } from "node:module";
 import React from "react";
 
 const { loadConfig, setConfigValue } = await import("./src/config/loader.js");
@@ -12,6 +13,9 @@ const { buildToolConfig } = await import("./src/tools/index.js");
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+const _require = createRequire(import.meta.url);
+const pkg = _require("../package.json");
 
 // Initialize subsystems
 const config = loadConfig();
@@ -154,6 +158,7 @@ if (isMain) {
 	} else {
 		const { render } = await import("ink");
 		const App = (await import("./src/tui/app.js")).default;
+		const appInfo = { name: config.tui.name, version: pkg.version };
 		render(
 			React.createElement(App, {
 				config,
@@ -161,6 +166,7 @@ if (isMain) {
 				sessionState,
 				dispatchProvider,
 				invokeSkill,
+				appInfo,
 			}),
 			{
 				// Restore terminal with newline when app exits
