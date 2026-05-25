@@ -171,6 +171,7 @@ export default function App({ config, registry, sessionState, dispatchProvider }
 					messages: messages,
 					visibleCount: visibleCount,
 					scrollOffset: scrollOffset,
+					assistantName: config?.tui?.name || "Assistant",
 					isScrolling: isScrolling,
 					onScroll: (offset, scrolling) => {
 						setScrollOffset(offset);

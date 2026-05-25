@@ -54,6 +54,7 @@ export function ConversationPanel({
 	messages = [],
 	scrollOffset = 0,
 	visibleCount = 20,
+	assistantName = "Assistant",
 	_isScrolling = false,
 	_onScroll,
 }) {
@@ -102,7 +103,7 @@ export function ConversationPanel({
 						React.createElement(
 							Text,
 							{ color: colors.label, bold: true },
-							getRoleLabel(msg.role) + ": ",
+							getRoleLabel(msg.role, assistantName) + ": ",
 						),
 					),
 					React.createElement(

@@ -12,15 +12,16 @@
 
 /**
  * Get the display label for a message role.
- * @param {string} role
+ * @param {string} role - Message role: "user", "assistant", or "system"
+ * @param {string} [assistantName] - Optional custom name for assistant role
  * @returns {string}
  */
-export function getRoleLabel(role) {
+export function getRoleLabel(role, assistantName) {
 	switch (role) {
 		case "user":
 			return "You";
 		case "assistant":
-			return "Assistant";
+			return assistantName || "Assistant";
 		case "system":
 			return "System";
 		default:
@@ -62,10 +63,11 @@ export function getVisibleMessages(messages, scrollOffset, visibleCount) {
 /**
  * Format a message for display.
  * @param {Message} message
+ * @param {string} [assistantName] - Optional custom name for assistant role
  * @returns {string}
  */
-export function formatMessage(message) {
-	const label = getRoleLabel(message.role);
+export function formatMessage(message, assistantName) {
+	const label = getRoleLabel(message.role, assistantName);
 	const timestamp = message.timestamp ? ` (${message.timestamp})` : "";
 	return `${label}${timestamp}\n${message.content || "(empty)"}`;
 }
