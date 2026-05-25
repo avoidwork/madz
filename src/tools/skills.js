@@ -22,18 +22,18 @@ async function pathExists(filePath) {
  * @param {z.infer<typeof SkillsListSchema>} input - The tool input (empty)
  * @param {object} options - Runtime options
  * @param {object} options.registry - The skill registry instance
- * @returns {string} List of skills with summaries
+ * @returns {object} List of skills with summaries
  */
 export async function skillsListImpl(input, options) {
 	const registry = options?.registry;
 	const skillNames = registry && typeof registry.list === "function" ? registry.list() : [];
 
 	if (skillNames.length === 0) {
-		return JSON.stringify({
+		return {
 			skills: [],
 			count: 0,
 			message: "No skills discovered. Run discovery to find available skills.",
-		});
+		};
 	}
 
 	const skills = [];
@@ -51,7 +51,7 @@ export async function skillsListImpl(input, options) {
 		}
 	}
 
-	return JSON.stringify({ skills, count: skills.length });
+	return { skills, count: skills.length };
 }
 
 /**
@@ -59,7 +59,7 @@ export async function skillsListImpl(input, options) {
  * @param {z.infer<typeof SkillsListSchema>} input - The tool input (empty)
  * @param {object} options - Runtime options
  * @param {object} options.registry - The skill registry instance
- * @returns {string} List of skills with summaries
+ * @returns {object} List of skills with summaries
  */
 export const skills_list = tool(skillsListImpl, {
 	name: "skills_list",
@@ -73,7 +73,7 @@ export const skills_list = tool(skillsListImpl, {
  * @param {z.infer<typeof SkillViewSchema>} input - The tool input
  * @param {object} options - Runtime options
  * @param {object} options.registry - The skill registry instance
- * @returns {string} Skill details and full SKILL.md content
+ * @returns {object} Skill details and full SKILL.md content
  */
 export async function skillViewImpl(input, options) {
 	const registry = options?.registry;
@@ -81,7 +81,9 @@ export async function skillViewImpl(input, options) {
 	const skill = registry && typeof registry.get === "function" ? registry.get(name) : null;
 
 	if (!skill) {
-		return `Error: Skill '${name}' was not found in the registry. Run discovery to find available skills.`;
+		return {
+			error: `Skill '${name}' was not found in the registry. Run discovery to find available skills.`,
+		};
 	}
 
 	const result = {
@@ -107,7 +109,7 @@ export async function skillViewImpl(input, options) {
 		result.skill_md = "SKILL.md not found or unreadable";
 	}
 
-	return JSON.stringify(result, null, 0);
+	return result;
 }
 
 /**
@@ -115,7 +117,7 @@ export async function skillViewImpl(input, options) {
  * @param {z.infer<typeof SkillViewSchema>} input - The tool input
  * @param {object} options - Runtime options
  * @param {object} options.registry - The skill registry instance
- * @returns {string} Skill details and full SKILL.md content
+ * @returns {object} Skill details and full SKILL.md content
  */
 export const skill_view = tool(skillViewImpl, {
 	name: "skill_view",

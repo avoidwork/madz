@@ -5,6 +5,11 @@ import { memory } from "./memory.js";
 import { session_search } from "./sessionSearch.js";
 import { clarify } from "./clarify.js";
 import { skills_list, skill_view } from "./skills.js";
+import { web_search, web_extract } from "./web.js";
+import { vision_analyze } from "./vision.js";
+import { image_generate } from "./image.js";
+import { execute_code } from "./code.js";
+import { cronjob } from "./cron.js";
 
 /**
  * Maps tool names to required permission scopes.
@@ -24,6 +29,13 @@ export const TOOL_PERMISSIONS = {
 	clarify: [],
 	skills_list: ["filesystem:read"],
 	skill_view: ["filesystem:read"],
+	// Tier 2 tools
+	web_search: ["network:outbound"],
+	web_extract: ["network:outbound"],
+	vision_analyze: [], // no permission required
+	image_generate: ["network:outbound"],
+	execute_code: [], // sandboxed, no permission needed
+	cronjob: ["network:outbound"],
 };
 
 // All tool definitions keyed by name
@@ -40,10 +52,29 @@ const ALL_TOOLS = {
 	clarify,
 	skills_list,
 	skill_view,
+	web_search,
+	web_extract,
+	vision_analyze,
+	image_generate,
+	execute_code,
+	cronjob,
 };
 
 /**
- * Build an array of LangChain tools gated by sandbox permissions.
+ * Detect which search API key is available.
+ * @returns {boolean} True if at least one key is set
+ */
+function hasSearchKey() {
+	return (
+		process.env.EXA_API_KEY ||
+		process.env.FIRECRAWL_API_KEY ||
+		process.env.TAVILY_API_KEY ||
+		process.env.PARALLEL_API_KEY
+	);
+}
+
+/**
+ * Build an array of LangChain tools gated by sandbox permissions and API keys.
  * @param {object} options - Build configuration
  * @param {string[]} options.permissions - Enabled sandbox permissions from config
  * @param {number} options.maxReadSize - Maximum read size string (e.g., "1mb")
@@ -63,28 +94,108 @@ export async function buildToolConfig(options) {
 	const tools = [];
 
 	for (const [toolName, requiredPerms] of Object.entries(TOOL_PERMISSIONS)) {
-		// Clarify (zero-permission tool) always registers
-		if (requiredPerms.length === 0) {
-			tools.push(
-				createToolWithRuntimeOptions(ALL_TOOLS[toolName], {
-					maxReadSize,
-					registry,
-					conversationsDir,
-				}),
-			);
-			continue;
-		}
-
-		// Check if all required permissions are enabled
 		const hasAllPerms = requiredPerms.every((perm) => enabledSet.has(perm));
-		if (hasAllPerms) {
-			tools.push(
-				createToolWithRuntimeOptions(ALL_TOOLS[toolName], {
-					maxReadSize,
-					registry,
-					conversationsDir,
-				}),
-			);
+
+		switch (toolName) {
+			case "clarify": {
+				// Always register
+				tools.push(
+					createToolWithRuntimeOptions(ALL_TOOLS[toolName], {
+						maxReadSize,
+						registry,
+						conversationsDir,
+					}),
+				);
+				continue;
+			}
+
+			case "execute_code": {
+				// No permission required, always register
+				tools.push(
+					createToolWithRuntimeOptions(ALL_TOOLS[toolName], {
+						maxReadSize,
+						registry,
+						conversationsDir,
+					}),
+				);
+				continue;
+			}
+
+			case "web_search":
+			case "web_extract": {
+				// Require network:outbound + at least one search API key
+				if (!hasAllPerms || !hasSearchKey()) continue;
+				tools.push(
+					createToolWithRuntimeOptions(ALL_TOOLS[toolName], {
+						maxReadSize,
+						registry,
+						conversationsDir,
+					}),
+				);
+				continue;
+			}
+
+			case "vision_analyze": {
+				// No permission required, but needs OPENAI_API_KEY
+				if (!process.env.OPENAI_API_KEY) continue;
+				tools.push(
+					createToolWithRuntimeOptions(ALL_TOOLS[toolName], {
+						maxReadSize,
+						registry,
+						conversationsDir,
+					}),
+				);
+				continue;
+			}
+
+			case "image_generate": {
+				// Require network:outbound + FAL_API_KEY
+				if (!hasAllPerms || !process.env.FAL_API_KEY) continue;
+				tools.push(
+					createToolWithRuntimeOptions(ALL_TOOLS[toolName], {
+						maxReadSize,
+						registry,
+						conversationsDir,
+					}),
+				);
+				continue;
+			}
+
+			case "cronjob": {
+				// Require network:outbound
+				if (!hasAllPerms) continue;
+				tools.push(
+					createToolWithRuntimeOptions(ALL_TOOLS[toolName], {
+						maxReadSize,
+						registry,
+						conversationsDir,
+					}),
+				);
+				continue;
+			}
+
+			default: {
+				// Tier 1 tools: permission-based gating only
+				if (requiredPerms.length === 0) {
+					tools.push(
+						createToolWithRuntimeOptions(ALL_TOOLS[toolName], {
+							maxReadSize,
+							registry,
+							conversationsDir,
+						}),
+					);
+					continue;
+				}
+				if (hasAllPerms) {
+					tools.push(
+						createToolWithRuntimeOptions(ALL_TOOLS[toolName], {
+							maxReadSize,
+							registry,
+							conversationsDir,
+						}),
+					);
+				}
+			}
 		}
 	}
 
