@@ -49,7 +49,7 @@ function getBubbleStyle(role) {
 /**
  * Conversation panel component with ScrollView-based scrolling.
  * Handles keyboard scroll input, terminal resize remeasurement,
- * and auto-scroll-to-bottom on new messages and streaming updates.
+ * and auto-scroll-to-bottom on new messages and streaming overflow.
  */
 export function ConversationPanel({ messages = [], assistantName = "Assistant" }) {
 	const scrollRef = useRef(null);
@@ -84,15 +84,20 @@ export function ConversationPanel({ messages = [], assistantName = "Assistant" }
 		};
 	}, [stdout]);
 
-	// Auto-scroll to bottom when new messages arrive or when latest message is streaming
+	// Auto-scroll to bottom when new messages arrive or when streaming content overflows viewport
 	useEffect(() => {
 		if (!scrollRef.current || messages.length === 0) return;
-		const shouldScroll =
-			messages.length > previousMessageCount.current ||
-			messages[messages.length - 1].streaming === true;
-		if (shouldScroll) {
-			scrollRef.current.scrollToBottom();
+		const ref = scrollRef.current;
+		const isNewMessage = messages.length > previousMessageCount.current;
+		if (isNewMessage) {
+			ref.scrollToBottom();
 			previousMessageCount.current = messages.length;
+		} else if (messages[messages.length - 1].streaming === true) {
+			const contentH = ref.getContentHeight();
+			const viewportH = ref.getViewportHeight();
+			if (contentH > viewportH) {
+				ref.scrollToBottom();
+			}
 		}
 	});
 
