@@ -15,7 +15,7 @@ const EXIT_MESSAGE = "\n";
  * Main App component (Ink). Renders an IRC-style layout:
  * full-height conversation REPL at top, input bar at bottom.
  */
-export default function App({ config, registry, sessionState, dispatchProvider }) {
+export default function App({ config, registry, sessionState, dispatchProvider, appInfo }) {
 	const [showBanner, setShowBanner] = useState(true);
 	const [messages, setMessages] = useState([]);
 	const [statusMessage, setStatusMessage] = useState("Ready");
@@ -271,6 +271,7 @@ export default function App({ config, registry, sessionState, dispatchProvider }
 		skillCount: skillList.length,
 		messageCount: messages.length,
 		statusMessage: statusMessage,
+		appInfo: appInfo,
 	};
 
 	return React.createElement(

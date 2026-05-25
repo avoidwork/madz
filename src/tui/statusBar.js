@@ -21,23 +21,43 @@ function getStatusIndicator(status) {
  * Displays status indicator, status message, and info counts.
  * Input text entry is handled by InputPanel with IRC-style prompt ("> text" / ": text").
  */
-export function StatusBar({ statusMessage = "", skillCount = 0, messageCount = 0 }) {
+export function StatusBar({ statusMessage = "", skillCount = 0, messageCount = 0, appInfo }) {
 	const status = getStatusIndicator(statusMessage);
 
 	return React.createElement(
 		Box,
-		{ flexDirection: "row", alignItems: "center", paddingX: 1 },
+		{
+			flexDirection: "row",
+			alignItems: "center",
+			width: "100%",
+			paddingX: 1,
+			backgroundColor: "#404040",
+			justifyContent: "space-between",
+		},
 		React.createElement(
-			Text,
-			{ key: "status-indicator", color: status.color, bold: true },
-			status.indicator + " ",
+			Box,
+			{ key: "left", flexDirection: "row", alignItems: "center" },
+			React.createElement(
+				Text,
+				{ key: "status-indicator", color: status.color, bold: true },
+				status.indicator + " ",
+			),
+			React.createElement(Text, { key: "status-msg", dim: true }, " " + statusMessage),
+			React.createElement(Text, { key: "sep" }, " | "),
+			React.createElement(
+				Text,
+				{ key: "info", dim: true },
+				"skills:" + skillCount + " msg:" + messageCount,
+			),
 		),
-		React.createElement(Text, { key: "status-msg", dim: true }, " " + statusMessage),
-		React.createElement(Text, { key: "sep" }, " | "),
-		React.createElement(
-			Text,
-			{ key: "info", dim: true },
-			"skills:" + skillCount + " msg:" + messageCount,
-		),
+		...(appInfo
+			? [
+					React.createElement(
+						Text,
+						{ key: "app-name", color: "white" },
+						appInfo.name + " " + (appInfo.version || ""),
+					),
+				]
+			: []),
 	);
 }

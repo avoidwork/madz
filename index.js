@@ -2,7 +2,7 @@
 
 // Load config
 import { fileURLToPath } from "node:url";
-import { dirname } from "node:path";
+
 import React from "react";
 
 const { loadConfig, setConfigValue } = await import("./src/config/loader.js");
@@ -10,8 +10,9 @@ const { createChatModel } = await import("./src/provider/openai.js");
 const { createReactAgent, callReactAgent } = await import("./src/agent/react.js");
 const { buildToolConfig } = await import("./src/tools/index.js");
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const { default: pkg } = await import(new URL("package.json", import.meta.url).href, {
+	with: { type: "json" },
+});
 
 // Initialize subsystems
 const config = loadConfig();
@@ -154,6 +155,7 @@ if (isMain) {
 	} else {
 		const { render } = await import("ink");
 		const App = (await import("./src/tui/app.js")).default;
+		const appInfo = { name: config.tui.name, version: pkg.version };
 		render(
 			React.createElement(App, {
 				config,
@@ -161,6 +163,7 @@ if (isMain) {
 				sessionState,
 				dispatchProvider,
 				invokeSkill,
+				appInfo,
 			}),
 			{
 				// Restore terminal with newline when app exits

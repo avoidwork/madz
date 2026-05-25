@@ -1,5 +1,6 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
-import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 import { createRequire } from "node:module";
 import { ConfigSchema, DEFAULT_CONFIG } from "./schemas.js";
 import { applyDotPathMutation } from "./mutate.js";
@@ -7,8 +8,8 @@ import { applyDotPathMutation } from "./mutate.js";
 const _require = createRequire(import.meta.url);
 const yaml = await import("js-yaml");
 
-const PROJECT_ROOT = process.cwd();
-const CONFIG_PATH = join(PROJECT_ROOT, "config.yaml");
+const PROJECT_ROOT = dirname(fileURLToPath(import.meta.url));
+const CONFIG_PATH = join(PROJECT_ROOT, "../../config.yaml");
 
 /// -- Convert camelCase or kebab-case to SNAKE_CASE ---
 
