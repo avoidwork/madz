@@ -20,7 +20,10 @@
 - [TUI Navigation](#tui-navigation)
 - [Features](#features)
   - [LLM Provider Abstraction](#llm-provider-abstraction)
+  - [Agent](#agent)
+  - [Built-in Tools](#built-in-tools)
   - [Skills Registry](#skills-registry)
+  - [Permission Gating](#permission-gating)
   - [Memory System](#memory-system)
   - [Sandbox RTE](#sandbox-rte)
   - [Telemetry](#telemetry)
@@ -48,9 +51,39 @@
 
 Configurable provider dispatch with automatic fallback, rate limiting, and context-window trimming. Supports OpenAI-compatible APIs and local models (e.g., Ollama).
 
+### Agent
+
+Wraps `@langchain/langgraph/prebuilt`'s `createReactAgentGraph` to produce a compiled ReAct agent that interleaves LLM reasoning with tool invocations. `createReactAgent(model, tools)` builds the agent from a provider model and a permission-gated tool array. `callReactAgent(agent, message)` runs the ReAct loop and returns the agent's final response.
+
+### Built-in Tools
+
+Bundled LangChain tools gated by sandbox permissions:
+
+| Category | Tools |
+|----------|-------|
+| **Filesystem** | `read_file`, `write_file` (500KB cap), `patch` (9-strategy fuzzy matching + unified diff), `search_files` (ripgrep with native fs fallback) |
+| **Terminal** | `terminal` — shell command execution (foreground/background); `process` — background process management (list, poll, wait, kill, write, pause, resume) |
+| **Task Management** | `todo` — CRUD list persisted to `memory/tools/todo.json` |
+| **Memory** | `memory` — key-value session memory with deduplication |
+| **Search** | `session_search` — query past conversations by keyword, ID, or browse |
+| **Clarification** | `clarify` — sends clarification questions to the user |
+| **Skills** | `skills_list` — lists discovered skills; `skill_view` — views skill metadata and SKILL.md |
+
 ### Skills Registry
 
 Auto-discovers skills from a `skills/` directory structure. Each skill defines input/output schemas via Zod permissions (`filesystem:read`, `network:outbound`, `process:spawn`, etc.) and is executed inside a sandboxed Node.js process.
+
+### Permission Gating
+
+Built-in tools are registered only when their required permissions are enabled for the session. Tools like `clarify` have zero permissions and always register.
+
+| Permission Required | Tools |
+|---------------------|-------|
+| `filesystem:read` | `read_file`, `search_files`, `skills_list`, `skill_view`, `session_search` |
+| `filesystem:write` | `write_file`, `patch`, `todo`, `memory` |
+| `filesystem:exec` + `process:spawn` | `terminal` |
+| `process:spawn` | `process` |
+| *(none)* | `clarify` |
 
 ### Memory System
 
@@ -142,13 +175,16 @@ node index.js "Summarize memory/_index.md" --json
 ├── config.yaml                 # Centralized configuration
 ├── .husky/                     # Git hooks (lint, fmt, tests)
 ├── src/
+│   ├── agent/                  # ReAct agent wrapper (LangGraph)
 │   ├── config/                 # YAML parsing & Zod schema validation
 │   ├── memory/                 # Markdown file persistence
+│   ├── provider/               # LLM model factory (OpenAI)
 │   ├── registry/               # Skill discovery, validation & permissions
 │   ├── sandbox/                # Process sandboxing & capability enforcement
 │   ├── scheduler/              # Cron-based job runner
 │   ├── session/                # Per-session state & context windows
 │   ├── telemetry/              # OpenTelemetry tracing & redaction
+│   ├── tools/                  # Built-in LangChain tools
 │   └── tui/                    # Ink React terminal UI
 ├── tests/
 │   ├── unit/                   # Unit tests per module
