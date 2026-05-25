@@ -2,6 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert";
 import { CommandParser } from "../../src/tui/commandParser.js";
 import { PANELS, nextPanel, prevPanel, getPanelOrder } from "../../src/tui/panels.js";
+import { isStreamingMessage } from "../../src/tui/messages.js";
 
 describe("command parser", () => {
 	it("parses :quit command", () => {
@@ -346,7 +347,7 @@ describe("TUI - status indicator", () => {
 			if (status.startsWith("Error")) {
 				return { indicator: "\u2716", color: "red" };
 			}
-			if (status === "Sending...") {
+			if (status === "Sending..." || status === "Streaming...") {
 				return { indicator: "\u25B6", color: "yellow" };
 			}
 			return { indicator: "\u25CF", color: "green" };
@@ -354,6 +355,10 @@ describe("TUI - status indicator", () => {
 
 		assert.deepStrictEqual(getStatusIndicator("Ready"), { indicator: "\u25CF", color: "green" });
 		assert.deepStrictEqual(getStatusIndicator("Sending..."), {
+			indicator: "\u25B6",
+			color: "yellow",
+		});
+		assert.deepStrictEqual(getStatusIndicator("Streaming..."), {
 			indicator: "\u25B6",
 			color: "yellow",
 		});
@@ -391,5 +396,88 @@ describe("TUI - visible count with terminal rows", () => {
 		assert.strictEqual(calcVisibleCount(48, 3), 16);
 		// Small terminal
 		assert.strictEqual(calcVisibleCount(6, 3), 2);
+	});
+});
+
+describe("TUI - streaming message utility", () => {
+	it("detects a streaming message", () => {
+		assert.strictEqual(
+			isStreamingMessage({ role: "assistant", content: "hello", streaming: true }),
+			true,
+		);
+		assert.strictEqual(
+			isStreamingMessage({ role: "assistant", content: "hello", streaming: false }),
+			false,
+		);
+		assert.strictEqual(isStreamingMessage({ role: "assistant", content: "hello" }), false);
+		assert.strictEqual(
+			isStreamingMessage({ role: "user", content: "hello", streaming: true }),
+			true,
+		);
+	});
+
+	it("removes partial streaming messages on error", () => {
+		const messages = [
+			{ role: "user", content: "hello", time: "10:00" },
+			{ role: "assistant", content: "partial\u2588", time: "10:00", streaming: true },
+		];
+
+		const isStreamingMessage = (msg) => msg.streaming === true;
+		const cleaned = messages.filter((msg) => !isStreamingMessage(msg));
+
+		assert.strictEqual(cleaned.length, 1);
+		assert.strictEqual(cleaned[0].role, "user");
+	});
+
+	it("handles multiple streaming messages during cleanup", () => {
+		const messages = [
+			{ role: "user", content: "hello", time: "10:00" },
+			{ role: "assistant", content: "chunk1\u2588", time: "10:00", streaming: true },
+			{ role: "user", content: "hi", time: "10:01" },
+			{ role: "assistant", content: "chunk2\u2588", time: "10:01", streaming: true },
+		];
+
+		const isStreamingMessage = (msg) => msg.streaming === true;
+		const cleaned = messages.filter((msg) => !isStreamingMessage(msg));
+
+		assert.strictEqual(cleaned.length, 2);
+		assert.strictEqual(cleaned[0].content, "hello");
+		assert.strictEqual(cleaned[1].content, "hi");
+	});
+
+	it("commits streaming content by stripping cursor and flag", () => {
+		function commitStreamingMessage(msg, finalContent) {
+			const committed = finalContent.replace(/\u2588$/, "");
+			return {
+				...msg,
+				content: committed,
+				streaming: false,
+			};
+		}
+
+		const streamingMsg = { role: "assistant", content: "partial\u2588", streaming: true };
+		const finalMsg = { role: "assistant", content: "final answer\u2588", streaming: true };
+
+		assert.strictEqual(commitStreamingMessage(streamingMsg, "partial\u2588").content, "partial");
+		assert.strictEqual(commitStreamingMessage(streamingMsg, "partial\u2588").streaming, false);
+		assert.strictEqual(commitStreamingMessage(finalMsg, "final answer\u2588").streaming, false);
+		assert.strictEqual(
+			commitStreamingMessage(finalMsg, "final answer\u2588").content,
+			"final answer",
+		);
+		assert.strictEqual(
+			commitStreamingMessage({ role: "assistant", streaming: false }, "no cursor").content,
+			"no cursor",
+		);
+	});
+
+	it("appends cursor to streaming content for display", () => {
+		const chunk1 = "Hello";
+		const chunk2 = "Hello world";
+		const chunk3 = "Hello world. This is a longer response.";
+
+		assert.strictEqual(chunk1 + "\u2588", "Hello\u2588");
+		assert.strictEqual(chunk2 + "\u2588", "Hello world\u2588");
+		assert.strictEqual(chunk3 + "\u2588", "Hello world. This is a longer response.\u2588");
 	});
 });
