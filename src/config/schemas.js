@@ -109,6 +109,12 @@ export const TuiSchema = z.object({
 	name: z.string().default("madz"),
 });
 
+// --- Agent schemas ---
+
+export const CheckpointsSchema = z.object({
+	enabled: z.boolean().default(true),
+});
+
 // --- Root config ---
 
 export const ConfigSchema = z.object({
@@ -119,6 +125,7 @@ export const ConfigSchema = z.object({
 	schedules: SchedulesSchema,
 	session: SessionSchema,
 	tui: TuiSchema,
+	agent: z.object({ checkpoints: CheckpointsSchema.default({ enabled: true }) }).default({}),
 });
 
 // Default values exported for merging
@@ -154,4 +161,5 @@ export const DEFAULT_CONFIG = {
 	schedules: { maxConcurrent: 1, entries: [] },
 	session: { context_window_size: 20, conversationsDir: "memory/conversations/" },
 	tui: { name: "madz" },
+	agent: { checkpoints: { enabled: true } },
 };

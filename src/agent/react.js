@@ -2,18 +2,20 @@ import { createReactAgent as createReactAgentGraph } from "@langchain/langgraph/
 import { HumanMessage, SystemMessage, AIMessage } from "@langchain/core/messages";
 
 /**
- * Create a ReAct agent from a chat model and optional tools.
+ * Create a ReAct agent from a chat model and optional tools and checkpointer.
  * The agent uses LangGraph under the hood via `@langchain/langgraph/prebuilt`.
  * @param {ChatLanguageModel} model - A chat language model instance (e.g., ChatOpenAI)
  * @param {unknown[]} [tools=[]] - Optional array of LangChain tool definitions
+ * @param {object} [checkpointer] - Optional LangGraph checkpointer instance for persistent session state
  * @returns {ReturnType<typeof createReactAgentGraph>} A compiled ReAct agent
  */
 /* istanbul ignore next */
-export function createReactAgent(model, tools = []) {
-	return createReactAgentGraph({
-		llm: model,
-		tools,
-	});
+export function createReactAgent(model, tools = [], checkpointer) {
+	const params = { llm: model, tools };
+	if (checkpointer) {
+		params.checkpointer = checkpointer;
+	}
+	return createReactAgentGraph(params);
 }
 
 /**
@@ -33,19 +35,24 @@ export function createReactAgent(model, tools = []) {
  * @param {string} message - The user message string
  * @param {string} [systemPrompt] - Optional system prompt text prepended before the user message
  * @param {(event: StreamEvent) => void} [callback] - Optional streaming event callback
+ * @param {string} [threadId] - Optional thread ID for LangGraph checkpointer state routing
  * @returns {{ content: string }} The agent's final text response
  */
-export function callReactAgent(agent, message, systemPrompt, callback) {
+export function callReactAgent(agent, message, systemPrompt, callback, threadId) {
 	const initMessages = [
 		systemPrompt ? new SystemMessage(systemPrompt) : null,
 		new HumanMessage(message),
 	].filter(Boolean);
 
 	if (callback) {
-		return callReactAgentStreaming(agent, initMessages, message, callback);
+		return callReactAgentStreaming(agent, initMessages, message, callback, threadId);
 	}
 
-	const result = agent.invoke({ messages: initMessages });
+	const invokeParams = { messages: initMessages };
+	if (threadId) {
+		invokeParams.configurable = { thread_id: threadId };
+	}
+	const result = agent.invoke(invokeParams);
 
 	const msgsArray = Array.isArray(result.messages) ? result.messages : [];
 
@@ -119,10 +126,15 @@ function emitToolEvent(event, callback) {
  * @param {import("@langchain/core/messages").BaseMessage[]} initMessages - Initial messages
  * @param {string} originalMessage - Original user message (fallback)
  * @param {(event: StreamEvent) => void} callback - Event callback function
+ * @param {string} [threadId] - Optional thread ID for LangGraph checkpointer state routing
  * @returns {{ content: string }} The agent's final text response
  */
-async function callReactAgentStreaming(agent, initMessages, originalMessage, callback) {
-	const stream = await agent.streamEvents({ messages: initMessages }, { version: "v3" });
+async function callReactAgentStreaming(agent, initMessages, originalMessage, callback, threadId) {
+	const streamParams = { version: "v3" };
+	if (threadId) {
+		streamParams.configurable = { thread_id: threadId };
+	}
+	const stream = await agent.streamEvents({ messages: initMessages }, streamParams);
 
 	let fullContent = "";
 	let hasContent = false;

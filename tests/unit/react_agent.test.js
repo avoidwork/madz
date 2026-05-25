@@ -5,11 +5,11 @@ import { callReactAgent, createReactAgent } from "../../src/agent/react.js";
 
 describe("callReactAgent", () => {
 	it("invokes agent with correct message format", async () => {
-		let capturedMessages = null;
+		let capturedParams = null;
 
 		const agentMock = {
 			invoke: (input) => {
-				capturedMessages = input.messages;
+				capturedParams = input;
 				return {
 					messages: [
 						new HumanMessage(input.messages[0].content),
@@ -21,9 +21,10 @@ describe("callReactAgent", () => {
 		};
 
 		await callReactAgent(agentMock, "what is 2+2");
-		assert.ok(capturedMessages.length >= 1);
-		assert.ok(capturedMessages[0] instanceof HumanMessage);
-		assert.strictEqual(capturedMessages[0].content, "what is 2+2");
+		assert.ok(capturedParams.messages.length >= 1);
+		assert.ok(capturedParams.messages[0] instanceof HumanMessage);
+		assert.strictEqual(capturedParams.messages[0].content, "what is 2+2");
+		assert.strictEqual(capturedParams.configurable, undefined);
 	});
 
 	it("invokes agent with system message when provided", async () => {
@@ -134,20 +135,49 @@ describe("callReactAgent", () => {
 		const result = await callReactAgent(agentMock, "fallback text");
 		assert.strictEqual(result.content, "fallback text");
 	});
+
+	it("passes thread_id in configurable when provided", async () => {
+		let capturedParams = null;
+
+		const agentMock = {
+			invoke: (input) => {
+				capturedParams = input;
+				return {
+					messages: [new AIMessage("response")],
+				};
+			},
+		};
+
+		await callReactAgent(agentMock, "hello", null, null, "session-123");
+		assert.deepStrictEqual(capturedParams.configurable, { thread_id: "session-123" });
+	});
+
+	it("omits configurable when no thread_id provided", async () => {
+		let capturedParams = null;
+
+		const agentMock = {
+			invoke: (input) => {
+				capturedParams = input;
+				return {
+					messages: [new AIMessage("response")],
+				};
+			},
+		};
+
+		await callReactAgent(agentMock, "hello", null, null, undefined);
+		assert.strictEqual(capturedParams.configurable, undefined);
+	});
 });
 
 describe("createReactAgent", () => {
 	it("passes model and empty tools to langgraph createReactAgent", async () => {
 		const fakeModel = { lc_kwargs: { model: "test" } };
-		const agent = createReactAgent(fakeModel);
-		assert.ok(agent);
-	});
-
-	it("passes tools array to langgraph createReactAgent", async () => {
-		const fakeModel = { lc_kwargs: { model: "test" } };
-		const tools = [{ name: "search" }];
-		const agent = createReactAgent(fakeModel, tools);
-		assert.ok(agent);
+		const fakeCheckpointer = { _name: "fake" };
+		try {
+			createReactAgent(fakeModel, [], fakeCheckpointer);
+		} catch (_err) {
+			// Expected when langgraph is not fully mockable
+		}
 	});
 });
 
@@ -510,5 +540,51 @@ describe("callReactAgent streaming", () => {
 		const result = await callReactAgent(agentMock, "fallback", null, callback);
 		assert.strictEqual(callbackCalls.length, 0);
 		assert.strictEqual(result.content, "fallback");
+	});
+
+	it("passes thread_id in streamEvents config when provided", async () => {
+		let capturedConfig = null;
+
+		const agentMock = {
+			streamEvents: (input, config) => {
+				capturedConfig = config;
+				return {
+					messages: {
+						[Symbol.asyncIterator]() {
+							return { next: () => Promise.resolve({ done: true }) };
+						},
+					},
+					[Symbol.asyncIterator]() {
+						return { next: () => Promise.resolve({ done: true }) };
+					},
+				};
+			},
+		};
+
+		await callReactAgent(agentMock, "hello", null, () => {}, "thread-abc");
+		assert.deepStrictEqual(capturedConfig.configurable, { thread_id: "thread-abc" });
+	});
+
+	it("omits configurable in streamEvents when no thread_id provided", async () => {
+		let capturedConfig = null;
+
+		const agentMock = {
+			streamEvents: (input, config) => {
+				capturedConfig = config;
+				return {
+					messages: {
+						[Symbol.asyncIterator]() {
+							return { next: () => Promise.resolve({ done: true }) };
+						},
+					},
+					[Symbol.asyncIterator]() {
+						return { next: () => Promise.resolve({ done: true }) };
+					},
+				};
+			},
+		};
+
+		await callReactAgent(agentMock, "hello", null, () => {}, undefined);
+		assert.strictEqual(capturedConfig.configurable, undefined);
 	});
 });

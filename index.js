@@ -8,6 +8,7 @@ import React from "react";
 const { loadConfig, setConfigValue } = await import("./src/config/loader.js");
 const { createChatModel } = await import("./src/provider/openai.js");
 const { createReactAgent, callReactAgent } = await import("./src/agent/react.js");
+const { createCheckpointer } = await import("./src/agent/checkpointer.js");
 const { buildToolConfig } = await import("./src/tools/index.js");
 
 const { default: pkg } = await import(new URL("package.json", import.meta.url).href, {
@@ -63,14 +64,15 @@ const tools = await buildToolConfig({
 	conversationsDir: config.session.conversationsDir,
 });
 const model = createChatModel(providerConfig);
-const agent = createReactAgent(model, tools);
+const { saver } = createCheckpointer(config);
+const agent = createReactAgent(model, tools, saver);
 
 // Load system prompt
 const { loadSystemPrompt } = await import("./src/memory/prompts.js");
 const systemPrompt = loadSystemPrompt();
 
 async function callProvider(_name, _providerConfig, message, streamingCallback) {
-	const result = await callReactAgent(agent, message, systemPrompt, streamingCallback);
+	const result = await callReactAgent(agent, message, systemPrompt, streamingCallback, sessionId);
 	return { provider: providerName, content: result.content, tokens: { input: 0, output: 0 } };
 }
 
