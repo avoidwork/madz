@@ -47,8 +47,10 @@ const { ScheduleManager } = await import("./src/scheduler/index.js");
 const scheduleManager = new ScheduleManager(config.schedules.maxConcurrent);
 scheduleManager.register(config.schedules.entries);
 
-// Create session
 const providerName = Object.keys(config.providers)[0] || "openai";
+const systemPrompt = (await import("./src/memory/prompts.js")).loadSystemPrompt();
+
+// Shared session state for TUI display
 const { sessionId, state: initialState } = createSession({
 	provider: providerName,
 	contextWindow: config.session.context_window_size,
@@ -67,39 +69,61 @@ const model = createChatModel(providerConfig);
 const { saver } = createCheckpointer(config);
 const agent = createReactAgent(model, tools, saver);
 
-// Load system prompt
-const { loadSystemPrompt } = await import("./src/memory/prompts.js");
-const systemPrompt = loadSystemPrompt();
-
-async function callProvider(_name, _providerConfig, message, streamingCallback) {
-	const result = await callReactAgent(agent, message, systemPrompt, streamingCallback, sessionId);
-	return { provider: providerName, content: result.content, tokens: { input: 0, output: 0 } };
-}
-
-// Conversation handler
 async function handleConversation(message) {
-	const response = await callProvider(null, null, message);
+	const { sessionId, state: initialState } = createSession({
+		provider: providerName,
+		contextWindow: config.session.context_window_size,
+	});
+	const sessionState = new SessionStateManager(initialState);
+
+	const result = await callProvider(sessionId, message, systemPrompt);
 
 	sessionState.addExchange({ role: "user", content: message });
-	sessionState.addExchange({ role: "assistant", content: response.content });
+	sessionState.addExchange({ role: "assistant", content: result.content });
 
 	// Persist to memory
 	writeMemoryFile(
 		"memory/conversations/",
 		`Conversation ${new Date().toISOString()}`,
 		{
-			provider: response.provider,
+			provider: result.provider,
 			sessionId,
 		},
 		JSON.stringify(sessionState.getConversation(), null, 2),
 	);
 
-	return response;
+	return result;
+}
+
+async function callProvider(sessionId, message, _systemPrompt) {
+	const result = await callReactAgent(agent, message, _systemPrompt, null, sessionId);
+	return { provider: providerName, content: result.content, tokens: { input: 0, output: 0 } };
 }
 
 // LLM provider dispatch (for TUI and external callers)
 async function dispatchProvider(message, _sessionState = null, streamingCallback) {
-	return callProvider(null, null, message, streamingCallback);
+	const { sessionId, state: initialState } = createSession({
+		provider: providerName,
+		contextWindow: config.session.context_window_size,
+	});
+	const sessionState = new SessionStateManager(initialState);
+	const result = await callReactAgent(agent, message, systemPrompt, streamingCallback, sessionId);
+	if (streamingCallback) {
+		return { provider: providerName, content: "", tokens: { input: 0, output: 0 } };
+	}
+	sessionState.addExchange({ role: "user", content: message });
+	// Extract last AI message content
+	const msgsArray = Array.isArray(result.messages) ? result.messages : [];
+	const lastAI = [...msgsArray]
+		.reverse()
+		.find((msg) => msg.lcTypeName === "AIMessage" && msg.content);
+	const content = lastAI
+		? typeof lastAI.content === "string"
+			? lastAI.content
+			: JSON.stringify(lastAI.content)
+		: message;
+	sessionState.addExchange({ role: "assistant", content: content });
+	return { provider: providerName, content, tokens: { input: 0, output: 0 } };
 }
 
 // Skill invocation through sandbox
