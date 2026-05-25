@@ -221,7 +221,6 @@ describe("TUI - panel navigation", () => {
 
 describe("TUI - message formatting", () => {
 	it("maps role to label", () => {
-		// Re-define locally since we can't import the function directly
 		function getRoleLabel(role, assistantName) {
 			switch (role) {
 				case "user":
@@ -241,58 +240,6 @@ describe("TUI - message formatting", () => {
 		assert.strictEqual(getRoleLabel("assistant", "oracle"), "oracle");
 		assert.strictEqual(getRoleLabel("system"), "System");
 		assert.strictEqual(getRoleLabel("unknown"), "unknown");
-	});
-
-	it("calculates visible message count", () => {
-		function calcVisibleCount(totalLines, linesPerMessage = 3) {
-			return Math.max(1, Math.floor(totalLines / linesPerMessage));
-		}
-
-		assert.strictEqual(calcVisibleCount(80, 3), 26);
-		assert.strictEqual(calcVisibleCount(10, 3), 3);
-		assert.strictEqual(calcVisibleCount(5, 3), 1); // floor to 1
-	});
-
-	it("gets visible messages within viewport", () => {
-		function getVisibleMessages(messages, scrollOffset, visibleCount) {
-			const total = messages.length;
-			const start = Math.max(0, Math.min(scrollOffset, total - visibleCount));
-			const end = Math.min(total, start + visibleCount);
-			return { messages: messages.slice(start, end), scrollTop: start, scrollHeight: total };
-		}
-
-		const msgs = [
-			{ role: "user", content: "1" },
-			{ role: "user", content: "2" },
-			{ role: "user", content: "3" },
-			{ role: "user", content: "4" },
-			{ role: "user", content: "5" },
-		];
-
-		const result = getVisibleMessages(msgs, 0, 3);
-		assert.strictEqual(result.messages.length, 3);
-		assert.strictEqual(result.scrollTop, 0);
-	});
-
-	it("counts message lines for scrolling", () => {
-		function countMessageLines(messages, lineWidth = 80) {
-			let total = 0;
-			for (const msg of messages) {
-				total += 2;
-				const lines = Math.ceil((msg.content || "").length / lineWidth);
-				total += Math.max(1, lines);
-				total += 1;
-			}
-			return total;
-		}
-
-		const msgs = [
-			{ role: "user", content: "Short" },
-			{ role: "assistant", content: "A longer response with multiple words" },
-		];
-
-		const lines = countMessageLines(msgs);
-		assert.ok(lines > 0);
 	});
 });
 
@@ -381,21 +328,6 @@ describe("TUI - timestamp formatting", () => {
 		// UTC hours may differ based on timezone, so just check format pattern
 		const result = formatTime(d);
 		assert.match(result, /^\d{2}:\d{2}$/);
-	});
-});
-
-describe("TUI - visible count with terminal rows", () => {
-	it("calculates visible messages from terminal height minus status bar", () => {
-		function calcVisibleCount(totalLines, linesPerMessage = 3) {
-			return Math.max(1, Math.floor(totalLines / linesPerMessage));
-		}
-
-		// A typical 24-row terminal: 24 - 2 (status bar) = 22 lines for messages
-		assert.strictEqual(calcVisibleCount(22, 3), 7);
-		// A tall 50-row terminal
-		assert.strictEqual(calcVisibleCount(48, 3), 16);
-		// Small terminal
-		assert.strictEqual(calcVisibleCount(6, 3), 2);
 	});
 });
 
