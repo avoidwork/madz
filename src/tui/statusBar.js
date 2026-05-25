@@ -32,22 +32,26 @@ export function StatusBar({ statusMessage = "", skillCount = 0, messageCount = 0
 			width: "100%",
 			paddingX: 1,
 			backgroundColor: "#404040",
+			justifyContent: "space-between",
 		},
 		React.createElement(
-			Text,
-			{ key: "status-indicator", color: status.color, bold: true },
-			status.indicator + " ",
-		),
-		React.createElement(Text, { key: "status-msg", dim: true }, " " + statusMessage),
-		React.createElement(Text, { key: "sep" }, " | "),
-		React.createElement(
-			Text,
-			{ key: "info", dim: true },
-			"skills:" + skillCount + " msg:" + messageCount,
+			Box,
+			{ key: "left", flexDirection: "row", alignItems: "center" },
+			React.createElement(
+				Text,
+				{ key: "status-indicator", color: status.color, bold: true },
+				status.indicator + " ",
+			),
+			React.createElement(Text, { key: "status-msg", dim: true }, " " + statusMessage),
+			React.createElement(Text, { key: "sep" }, " | "),
+			React.createElement(
+				Text,
+				{ key: "info", dim: true },
+				"skills:" + skillCount + " msg:" + messageCount,
+			),
 		),
 		...(appInfo
 			? [
-					React.createElement(Text, { key: "spacer", flexGrow: 1 }),
 					React.createElement(
 						Text,
 						{ key: "app-name", color: "cyan" },
