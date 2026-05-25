@@ -67,24 +67,32 @@ The `text_to_speech` tool SHALL call OpenAI's TTS API (`tts-1` or `tts-1-hd`), s
 - **WHEN** `OPENAI_API_KEY` is not set
 - **THEN** the tool is not registered in the tools array
 
-### Requirement: Execute Code Runs Python in Sandboxed Subprocess
-The `execute_code` tool SHALL write Python code to a temp file under `tmp/`, execute it via `python3` with a 30-second timeout and no network access, and return stdout, stderr, and exit code.
+### Requirement: Execute Code Runs Python, JavaScript, or Shell Scripts in Sandboxed Subprocess
+The `execute_code` tool SHALL write code to a temp file under `tmp/`, execute it via the appropriate interpreter based on `language` parameter (`python3`, `node`, or `sh`), enforce a configurable timeout and memory limit, and return stdout, stderr, and exit code.
 
-#### Scenario: Code executes and returns output
-- **WHEN** `execute_code` is called with `code: "print(2 + 2)"`
-- **THEN** the tool returns `{ stdout: "4\n", stderr: "", exitCode: 0, executionTime: <number> }`
+#### Scenario: Code executes with Python
+- **WHEN** `execute_code` is called with `language: "python3"`, `code: "print(2 + 2)"`
+- **THEN** the tool writes a `.py` file, runs `python3`, and returns `{ stdout: "4\n", stderr: "", exitCode: 0 }`
+
+#### Scenario: Code executes with JavaScript
+- **WHEN** `execute_code` is called with `language: "javascript"`, `code: "console.log(2 + 2)"`
+- **THEN** the tool writes a `.js` file, runs `node`, and returns `{ stdout: "4\n", stderr: "", exitCode: 0 }`
+
+#### Scenario: Code executes with shell script
+- **WHEN** `execute_code` is called with `language: "shell"`, `code: "echo hello"`
+- **THEN** the tool writes a `.sh` file, runs `sh`, and returns `{ stdout: "hello\n", stderr: "", exitCode: 0 }`
 
 #### Scenario: Code execution times out
-- **WHEN** `execute_code` is called with `code: "import time; time.sleep(60)"`
+- **WHEN** `execute_code` is called with `code: "sleep 60"` and default 30s timeout
 - **THEN** the subprocess is killed after 30 seconds and the tool returns a timeout error
 
-#### Scenario: Code execution rejects missing python3
-- **WHEN** `python3` is not found on PATH
+#### Scenario: Code execution rejects missing interpreter
+- **WHEN** `python3` is not found on PATH and `language: "python3"` is requested
 - **THEN** the tool returns an error suggesting to install Python 3
 
-#### Scenario: Code execution cleans up temp file
+#### Scenario: Code execution cleans up temp files
 - **WHEN** `execute_code` completes (success or failure)
-- **THEN** the temporary `.py` file under `tmp/` is deleted
+- **THEN** the temporary file under `tmp/` is deleted regardless of language used
 
 ### Requirement: Cron Job Manager Persists To Disk
 The `cronjob` tool SHALL manage scheduled jobs persisted as JSON files under `memory/schedules/`. Actions include `create`, `list`, `update`, `pause`, `resume`, `run`, and `remove`.

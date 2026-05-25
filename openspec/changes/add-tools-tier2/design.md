@@ -28,10 +28,10 @@ The project already has `fetchWithTimeout` from Tier 1's `common.js` module and 
 **Rationale:** The user only has one search API key at a time. Config-based selection adds a YAML field the user would need to maintain. Auto-detection from env vars is simpler.
 **Alternatives considered:** Configurable `search_backend` in config. Rejected because it adds another config field for a function that auto-detection solves.
 
-### Decision 2: Code execution uses Python only (not multi-language)
-**Choice:** `execute_code` only supports Python3 scripts written to temp files.
-**Rationale:** Python is the most common language for data processing, the primary use case for code execution. Adding more languages increases attack surface without clear benefit for Tier 2.
-**Alternatives considered:** Support JavaScript (same runtime), bash, multiple languages. Rejected because Python is the lowest-common-denominator for data scripts, and JS already executes natively in the harness.
+### Decision 2: Code execution supports Python, JavaScript (Node), and shell scripts
+**Choice:** `execute_code` takes a `language` parameter (`"python3" | "javascript" | "shell"`). Each language uses its own interpreter via `child_process.spawn` with temp file under `tmp/`.
+**Rationale:** The harness is Node.js, so shell and JS scripts run naturally. Python is widely used for data processing. Supporting all three covers the most common use cases without needing external toolchains.
+**Alternatives considered:** Python only. Rejected because the user may need to run JS (same runtime, no extra deps) or shell commands that don't need a full terminal.
 
 ### Decision 4: Cron jobs persist to `memory/schedules/` as JSON files
 **Choice:** Each cron job is a JSON file in `memory/schedules/` with fields `{ name, cron, skill, input, enabled, createdAt, updatedAt }`.

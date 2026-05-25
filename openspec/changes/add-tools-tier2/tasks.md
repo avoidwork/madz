@@ -24,9 +24,9 @@
 
 ## 5. Code Execution
 
-- [ ] 5.1 Create src/tools/code.js — implement execute_code: write temp .py, spawn python3 subprocess, enforce timeout/memory, cleanup temp
-- [ ] 5.2 Implement Python import hook via sys.meta_path_finder to block subprocess/os/socket (configurable off)
-- [ ] 5.3 Write unit tests for code.js (execution, timeout, python3 not found, temp cleanup, import hook on/off)
+- [ ] 5.1 Create src/tools/code.js — implement execute_code: support language parameter (python3/javascript/shell), write temp file, spawn interpreter, enforce timeout/memory, cleanup temp
+- [ ] 5.2 Implement Python import hook via sys.meta_path_finder to block subprocess/os/socket (configurable off, only applies to python3 language)
+- [ ] 5.3 Write unit tests for code.js (python3 execution, JS execution via node, shell execution, timeout, missing interpreter, temp cleanup, import hook on/off)
 
 ## 6. Cron Job Manager
 
