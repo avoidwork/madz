@@ -8,6 +8,7 @@ import React from "react";
 const { loadConfig, setConfigValue } = await import("./src/config/loader.js");
 const { createChatModel } = await import("./src/provider/openai.js");
 const { createReactAgent, callReactAgent } = await import("./src/agent/react.js");
+const { buildToolConfig } = await import("./src/tools/index.js");
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -80,7 +81,13 @@ async function dispatchProvider(message, providerName = null) {
 
 async function callProvider(name, providerConfig, message) {
 	const model = createChatModel(providerConfig);
-	const agent = createReactAgent(model, []);
+	const tools = await buildToolConfig({
+		permissions: config.sandbox.permissions || [],
+		maxReadSize: config.sandbox.maxReadSize || "1mb",
+		registry,
+		conversationsDir: config.session.conversationsDir,
+	});
+	const agent = createReactAgent(model, tools);
 	const result = await callReactAgent(agent, message);
 	return { provider: name, content: result.content, tokens: { input: 0, output: 0 } };
 }

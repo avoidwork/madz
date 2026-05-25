@@ -39,6 +39,8 @@ export const SandboxScopeSchema = z.object({
 	env: z.object({
 		allowlist: z.array(z.string()).default(["PATH", "HOME", "NODE_ENV"]),
 	}),
+	permissions: z.array(z.string()).default([]),
+	maxReadSize: z.string().default("1mb"),
 });
 
 // --- Memory schemas ---
@@ -132,6 +134,8 @@ export const DEFAULT_CONFIG = {
 		timeout: { seconds: 30, gracePeriod: 5 },
 		memoryLimit: "512m",
 		env: { allowlist: ["PATH", "HOME", "NODE_ENV"] },
+		permissions: [],
+		maxReadSize: "1mb",
 	},
 	memory: {
 		directory: "memory/",

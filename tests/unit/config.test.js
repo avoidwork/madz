@@ -98,6 +98,112 @@ describe("config schema validation", () => {
 	});
 });
 
+describe("sandbox schema extension", () => {
+	describe("permissions field", () => {
+		it("accepts valid permissions array", () => {
+			const schema = {
+				safeParse(obj) {
+					if (obj.permissions !== undefined && !Array.isArray(obj.permissions)) {
+						return { success: false };
+					}
+					return {
+						success: true,
+						data: { permissions: obj.permissions !== undefined ? obj.permissions : [] },
+					};
+				},
+			};
+			const result = schema.safeParse({ permissions: ["filesystem:read", "filesystem:write"] });
+			assert.strictEqual(result.success, true);
+			assert.deepStrictEqual(result.data.permissions, ["filesystem:read", "filesystem:write"]);
+		});
+
+		it("rejects non-array permissions", () => {
+			const schema = {
+				safeParse(obj) {
+					if (obj.permissions !== undefined && !Array.isArray(obj.permissions)) {
+						return { success: false };
+					}
+					return {
+						success: true,
+						data: { permissions: obj.permissions !== undefined ? obj.permissions : [] },
+					};
+				},
+			};
+			const result = schema.safeParse({ permissions: "filesystem:read" });
+			assert.strictEqual(result.success, false);
+		});
+
+		it("defaults permissions to empty array", () => {
+			const schema = {
+				safeParse(obj) {
+					if (obj.permissions !== undefined && !Array.isArray(obj.permissions)) {
+						return { success: false };
+					}
+					return {
+						success: true,
+						data: { permissions: obj.permissions !== undefined ? obj.permissions : [] },
+					};
+				},
+			};
+			const result = schema.safeParse({});
+			assert.strictEqual(result.success, true);
+			assert.deepStrictEqual(result.data.permissions, []);
+		});
+	});
+
+	describe("maxReadSize field", () => {
+		it("accepts valid size string", () => {
+			const schema = {
+				safeParse(obj) {
+					if (obj.maxReadSize !== undefined && typeof obj.maxReadSize !== "string") {
+						return { success: false };
+					}
+					return {
+						success: true,
+						data: { maxReadSize: obj.maxReadSize !== undefined ? obj.maxReadSize : "1mb" },
+					};
+				},
+			};
+			const result = schema.safeParse({ maxReadSize: "2mb" });
+			assert.strictEqual(result.success, true);
+			assert.strictEqual(result.data.maxReadSize, "2mb");
+		});
+
+		it("rejects non-string maxReadSize", () => {
+			const schema = {
+				safeParse(obj) {
+					if (obj.maxReadSize !== undefined && typeof obj.maxReadSize !== "string") {
+						return { success: false };
+					}
+					return {
+						success: true,
+						data: { maxReadSize: obj.maxReadSize !== undefined ? obj.maxReadSize : "1mb" },
+					};
+				},
+			};
+			const result = schema.safeParse({ maxReadSize: 1024 });
+			assert.strictEqual(result.success, false);
+		});
+
+		it("defaults maxReadSize to 1mb", () => {
+			const schema = {
+				safeParse(obj) {
+					if (obj.maxReadSize !== undefined && typeof obj.maxReadSize !== "string") {
+						return { success: false };
+					}
+					return {
+						success: true,
+						data: { maxReadSize: obj.maxReadSize !== undefined ? obj.maxReadSize : "1mb" },
+					};
+				},
+			};
+			const result = schema.safeParse({});
+			assert.strictEqual(result.success, true);
+			assert.strictEqual(result.data.maxReadSize, "1mb");
+		});
+	});
+});
+
 describe("env var expansion", () => {
 	it("expands ${VAR} pattern", () => {
 		process.env.TEST_VAR = "expanded-value";

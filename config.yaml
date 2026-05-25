@@ -42,6 +42,12 @@ sandbox:
       - NODE_ENV
       - OPENAI_API_KEY
       - AUTH_API_KEY
+  permissions:
+    - filesystem:read
+    - filesystem:write
+    - filesystem:exec
+    - process:spawn
+  maxReadSize: 1mb
 memory:
   directory: memory/
   contextDir: memory/context/
