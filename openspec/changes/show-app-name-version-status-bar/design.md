@@ -10,7 +10,7 @@ There is no visible app name or version anywhere on screen. The banner briefly s
 ## Goals / Non-Goals
 
 **Goals:**
-- Show app name (from `config.tui.name`, default `"madz"`) and version (from `package.json`) in the input panel row, left of the prompt.
+- Show app name and version pinned to the **far right edge** of the input panel row, separate from user input.
 
 **Non-Goals:**
 - Moving the version to the status bar.
@@ -21,7 +21,7 @@ There is no visible app name or version anywhere on screen. The banner briefly s
 
 1. **Place in InputPanel, not StatusBar.** The input panel is the last row before the exit newline, making the version the most permanently visible element. Placing it in the status bar would push the counts to the right and feel cramped.
 
-2. **Format: `> text name v<version>`.** The identity label appears on the **right side** of the input panel, after the user input text. Example: `> user input madz v1.0.0`.
+2. **Format: `> text name v<version>` with identity pinned right.** The identity label is pinned to the **far right edge** of the terminal. The input text fills all available space between the prompt and the identity label using `flex: { grow: 1 }` on the input Text. Example with a 60-column terminal: `> hello world                                  madz v1.0.0`
 
 3. **Pass version as prop from index.js.** `index.js` reads `package.json` for the version string and passes it to `App`. The `App` component forwards it to `InputPanel`. This avoids importing `package.json` in the TUI module directly and keeps the data flow top-down.
 
@@ -29,7 +29,7 @@ There is no visible app name or version anywhere on screen. The banner briefly s
 
 5. **App name in cyan, version in white.** The app name is rendered in cyan and the version is rendered in white, matching the existing TUI color palette. Format (right side): `prompt + input` + ` ` + `cyan-name` + ` ` + `white-v1.0.0`. This uses two separate `Text` components with different color props, placed after the input Text node.
 
-6. **Right-aligned identity in InputPanel box.** Since the input panel is a `flexDirection: "row"` box, the identity label is appended as the last sibling elements inside the `Box`. Using flexible width (e.g., a spacer or `grow: true` on the input text) ensures the label sits at the right edge. The input text fills available space between the prompt and the identity label.
+6. **Right-aligned identity in InputPanel box.** The InputPanel `Box` is `flexDirection: "row"`. The order of children is: (1) prompt Text, (2) input Text with `flex: { grow: 1 }`, (3) name Text (cyan), (4) version Text (white). The grow on input Text forces it to consume all free space, pinning the identity label to the far right edge regardless of input length.
 
 ## Risks / Trade-offs
 
