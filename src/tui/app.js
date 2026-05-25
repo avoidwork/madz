@@ -118,7 +118,7 @@ export default function App({ config, registry, sessionState, dispatchProvider }
 			setStatusMessage("Something went wrong");
 			addMessage({
 				role: "system",
-				content: "I couldn't connect right now — try sending your message again?",
+				content: `I couldn't connect right now — ${_err.message}. Try sending your message again?`,
 			});
 		}
 	};

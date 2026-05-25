@@ -160,11 +160,11 @@ Misc details: The `config.yaml` file is the single source of project configurati
 
 - **Node.js**: 20+ (ECMAScript modules, `package.json` `"type": "module"`)
 - **Package manager**: `npm`
-- **Type checking**: `typescript` (strict mode) and `tsc --noEmit`
+- **Type checking**: N/A (plain JavaScript)
 - **Formatting**: `oxfmt` (line-length 100)
 - **Linting**: `oxlint` (strict config in `oxlint.json`)
 - **Testing**: `node --test` (built-in) or `vitest`
-- **Git hooks**: `pre-commit` via Husky (manages oxfmt, oxlint, tsc, tests)
+- **Git hooks**: `pre-commit` via Husky (manages oxfmt, oxlint, tests)
 
 ### 3.2 Style
 
@@ -264,7 +264,7 @@ When auditing or modifying AGENTS.md (or any file):
 ### 5.3 Code Review
 
 - All changes require at least one other reviewer (automated checks are mandatory but not sufficient).
-- No merging without passing CI (lint → type-check → test).
+- No merging without passing CI (lint → test).
 - PR descriptions must reference related items from design documents.
 
 ### 5.4 Pull Request Templates
@@ -293,7 +293,7 @@ The `cover` pre-commit hook runs `npm run coverage` then regenerates `coverage.t
 
 ### 6.3 Pre-commit Runs Tests
 
-The pre-commit hook runs `npm run test` and the coverage report in addition to linting/type-checking. A commit can fail due to test failures or insufficient coverage, not just lint or tsc.
+The pre-commit hook runs `npm run test` and the coverage report in addition to linting. A commit can fail due to test failures or insufficient coverage, not just lint.
 
 ### 6.4 Mocking Settings
 
@@ -356,7 +356,6 @@ The `README.md` may show a more up-to-date project structure (e.g., additional m
 ## 8. Checklist Before Marking a TODO Complete
 
 - [ ] All JSDoc annotations present (`@param`, `@returns`) on public APIs.
-- [ ] `tsc --noEmit` reports zero errors on changed files.
 - [ ] Unit tests written and passing.
 - [ ] Integration tests for API endpoints.
 - [ ] `oxlint` and `oxfmt` pass via pre-commit hooks.
