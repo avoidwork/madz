@@ -106,6 +106,8 @@ Environment variable references (`${VAR_NAME}`) are resolved at load time.
 **Interactive TUI:**
 
 ```bash
+npm start
+# or
 node index.js --mode interactive
 ```
 
