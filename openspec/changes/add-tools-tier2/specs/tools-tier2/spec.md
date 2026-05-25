@@ -41,21 +41,6 @@ The `web_extract` tool SHALL extract content from a URL, returning markdown form
 - **WHEN** `web_extract` is called with `url: "file:///etc/passwd"`
 - **THEN** the tool returns an error without making any HTTP request
 
-### Requirement: Image Generate Uses FAL.ai API
-The `image_generate` tool SHALL call FAL.ai's `flux/klein` model to generate images from text prompts. The request must include a valid `FAL_KEY` env var.
-
-#### Scenario: Image generate returns image URL
-- **WHEN** `image_generate` is called with `prompt: "a cat sitting on a moon"` and `width: 1024`, `height: 1024`
-- **THEN** the tool POSTs to `https://queue.fal.run/fal-ai/flux/klein` with `sync_mode: true` and returns the image URL
-
-#### Scenario: Image generate validates prompt length
-- **WHEN** `image_generate` is called with a prompt exceeding 1000 characters
-- **THEN** the tool returns a validation error
-
-#### Scenario: Image generate is not registered without FAL_KEY
-- **WHEN** `FAL_KEY` is not set in the environment
-- **THEN** the `image_generate` tool is not included in the tools array
-
 ### Requirement: Vision Analyze Sends Image to Multimodal LLM
 The `vision_analyze` tool SHALL fetch an image from a URL or decode a base64 data URI, then send it to the configured multimodal LLM for analysis. The tool must not require any additional API key beyond the agent's primary model provider.
 
@@ -119,25 +104,6 @@ The `cronjob` tool SHALL manage scheduled jobs persisted as JSON files under `me
 #### Scenario: Run triggers immediate execution
 - **WHEN** `cronjob` is called with `action: "run"` and `name: "daily-report"`
 - **THEN** the job is invoked immediately via the scheduler manager
-
-### Requirement: Mixture of Agents Routes Through Multiple LLMs
-The `mixture_of_agents` tool SHALL spawn 4 parallel reference calls to different models via OpenRouter, then aggregate their responses with a 5th call. Requires `OPENROUTER_API_KEY`.
-
-#### Scenario: MOA spawns 4 parallel reference calls
-- **WHEN** `mixture_of_agents` is called with `prompt: "Solve: integrate x^2 dx"` and `model: "gpt-4o"`
-- **THEN** the tool POSTs to OpenRouter concurrently for `gpt-4o`, `claude-3.5-sonnet`, `gemini-1.5-pro`, and `llama-3.1-405b`
-
-#### Scenario: MOA aggregates with 5th call
-- **WHEN** all 4 reference responses are received
-- **THEN** the tool POSTs to OpenRouter again with all 4 responses + original prompt and returns `{ consensus, references, models }`
-
-#### Scenario: MOA times out per-call
-- **WHEN** any of the 5 OpenRouter calls takes more than 60 seconds
-- **THEN** that call is abandoned; remaining calls continue and the aggregator runs with partial results
-
-#### Scenario: MOA is not registered without OPENROUTER_API_KEY
-- **WHEN** `OPENROUTER_API_KEY` is not set
-- **THEN** the `mixture_of_agents` tool is not included in the tools array
 
 ### Requirement: Tier 2 Tools Require network:outbound Permission
 All Tier 2 tools (except `vision_analyze`) SHALL only be registered when `config.sandbox.permissions` includes `network:outbound`. `vision_analyze` registers when no permission is required (like `clarify`).

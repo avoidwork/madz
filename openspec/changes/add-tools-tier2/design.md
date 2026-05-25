@@ -7,18 +7,17 @@ The project already has `fetchWithTimeout` from Tier 1's `common.js` module and 
 ## Goals / Non-Goals
 
 **Goals:**
-- Implement 8 Tier 2 tools: web (2), vision/image (2), TTS (1), code execution (1), cron (1), MOA (1)
+- Implement 5 Tier 2 tools: web (2), vision (1), TTS (1), code execution (1), cron (1)
 - API-key-based registration: tools only registered when their required env var is present
 - Permission gating: all Tier 2 tools require `network:outbound` (except `vision_analyze`)
 - Safe code execution: Python runs in forked subprocess with 30s timeout, 512MB memory, no network
 - Scheduled tasks persisted to `memory/schedules/`, usable with `node-cron`
-- Mixture-of-agents: 4 parallel reference calls + 1 aggregator via OpenRouter
 - 100% test coverage
 
 **Non-Goals:**
 - Tier 3 tools (browser, Discord, Home Assistant, kanban, video, computer use)
 - CDP-gated browser tools
-- Image/video generation beyond single-image (FLUX 2 Klein)
+- Image generation (FLUX 2 Klein, FAL.ai)
 - Voice output through the TUI (saves to filesystem; TUI delivery is a future change)
 - Queue-based API call retry with exponential backoff (simple retry: 2 max)
 
@@ -29,12 +28,7 @@ The project already has `fetchWithTimeout` from Tier 1's `common.js` module and 
 **Rationale:** The user only has one search API key at a time. Config-based selection adds a YAML field the user would need to maintain. Auto-detection from env vars is simpler.
 **Alternatives considered:** Configurable `search_backend` in config. Rejected because it adds another config field for a function that auto-detection solves.
 
-### Decision 2: MOA uses OpenRouter as single point of contact
-**Choice:** All MOA calls go through OpenRouter's API (`https://openrouter.ai/api/v1/chat/completions`). The 4 reference models and 1 aggregator model are all selected via OpenRouter's model routing.
-**Rationale:** OpenRouter aggregates multiple providers (OpenAI, Anthropic, Google, Meta) under one API key. This is simpler than managing separate credentials for each LLM provider.
-**Alternatives considered:** Separate API calls to each provider. Rejected because it would require the user to maintain 4+ API keys.
-
-### Decision 3: Code execution uses Python only (not multi-language)
+### Decision 2: Code execution uses Python only (not multi-language)
 **Choice:** `execute_code` only supports Python3 scripts written to temp files.
 **Rationale:** Python is the most common language for data processing, the primary use case for code execution. Adding more languages increases attack surface without clear benefit for Tier 2.
 **Alternatives considered:** Support JavaScript (same runtime), bash, multiple languages. Rejected because Python is the lowest-common-denominator for data scripts, and JS already executes natively in the harness.
