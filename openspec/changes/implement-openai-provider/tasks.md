@@ -58,6 +58,6 @@
 
 - [x] 8.1 Run `npm run lint` (oxlint + oxfmt) and ensure zero errors
 
-- [x] 8.3 Run `npm run test` and ensure all tests pass
+- [x] 8.2 Run `npm run test` and ensure all tests pass
 
-- [x] 8.4 Run `npm run coverage` and ensure 100% coverage on changed files
+- [x] 8.3 Run `npm run coverage` and ensure 100% coverage on changed files
