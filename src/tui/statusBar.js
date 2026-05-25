@@ -52,11 +52,9 @@ export function StatusBar({ statusMessage = "", skillCount = 0, messageCount = 0
 		),
 		...(appInfo
 			? [
-					React.createElement(
-						Text,
-						{ key: "app-name", color: "cyan" },
-						appInfo.name + " " + (appInfo.version || ""),
-					),
+					React.createElement(Text, { key: "app-name", color: "cyan" }, appInfo.name),
+					React.createElement(Text, { key: "pad" }, " "),
+					React.createElement(Text, { key: "app-version", color: "white" }, appInfo.version || ""),
 				]
 			: []),
 	);
