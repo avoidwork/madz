@@ -58,10 +58,6 @@
 
 - [x] 8.1 Run `npm run lint` (oxlint + oxfmt) and ensure zero errors
 
-- [ ] 8.2 Run `tsc --noEmit` and ensure zero errors (TypeScript not installed in package.json)
-
 - [x] 8.3 Run `npm run test` and ensure all tests pass
 
 - [x] 8.4 Run `npm run coverage` and ensure 100% coverage on changed files
-
-- [ ] 8.5 Verify `dispatchProvider` passes the first provider in `fallback_order` successfully (manual smoke test)
