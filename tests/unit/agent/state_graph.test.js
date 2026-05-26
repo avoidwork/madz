@@ -41,7 +41,7 @@ describe("buildCheckpointedGraph", () => {
 		const fakeModel = { lc_kwargs: { model: "shared-model" } };
 		const { createReactAgent: cra } = await import("../../../src/agent/react.js");
 		const agent1 = cra(fakeModel, [], ":memory:");
-		const agent2 = cra(fakeModel, [], "different-path");
+		const agent2 = cra(fakeModel, [], ":memory-db");
 		assert.notStrictEqual(agent1, agent2);
 	});
 });
