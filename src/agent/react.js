@@ -62,6 +62,14 @@ export function callReactAgent(agent, message, systemPrompt, config) {
 
 	const result = agent.invoke({ messages: initMessages }, config);
 
+	// Debug: log result if DEBUG_MADZ env var is set
+	if (process.env.DEBUG_MADZ) {
+		// oxlint-disable-next-line no-console
+		console.error("[callReactAgent] result keys:", Object.keys(result));
+		// oxlint-disable-next-line no-console
+		console.error("[callReactAgent] result.messages:", result.messages);
+	}
+
 	const msgsArray = Array.isArray(result.messages) ? result.messages : [];
 
 	const lastAI = [...msgsArray].reverse().find((msg) => msg instanceof AIMessage);
