@@ -124,4 +124,42 @@ describe("tool registration - integration", () => {
 		const toolNames = tools.map((t) => t.name);
 		assert.ok(!toolNames.includes("cronjob"));
 	});
+
+	it("registers text_to_speech with OPENAI_API_KEY (no permission needed)", async () => {
+		process.env.OPENAI_API_KEY = "sk-test-openai";
+		delete process.env.EXA_API_KEY;
+		delete process.env.FIRECRAWL_API_KEY;
+		delete process.env.TAVILY_API_KEY;
+		delete process.env.PARALLEL_API_KEY;
+		const tools = await buildToolConfig({ permissions: [] });
+		const toolNames = tools.map((t) => t.name);
+		assert.ok(toolNames.includes("text_to_speech"));
+		delete process.env.OPENAI_API_KEY;
+	});
+
+	it("does not register text_to_speech without OPENAI_API_KEY", async () => {
+		delete process.env.OPENAI_API_KEY;
+		const tools = await buildToolConfig({ permissions: [] });
+		const toolNames = tools.map((t) => t.name);
+		assert.ok(!toolNames.includes("text_to_speech"));
+	});
+
+	it("registers mixture_of_agents with OPENROUTER_API_KEY (no permission needed)", async () => {
+		process.env.OPENROUTER_API_KEY = "sk-test-or";
+		delete process.env.EXA_API_KEY;
+		delete process.env.FIRECRAWL_API_KEY;
+		delete process.env.TAVILY_API_KEY;
+		delete process.env.PARALLEL_API_KEY;
+		const tools = await buildToolConfig({ permissions: [] });
+		const toolNames = tools.map((t) => t.name);
+		assert.ok(toolNames.includes("mixture_of_agents"));
+		delete process.env.OPENROUTER_API_KEY;
+	});
+
+	it("does not register mixture_of_agents without OPENROUTER_API_KEY", async () => {
+		delete process.env.OPENROUTER_API_KEY;
+		const tools = await buildToolConfig({ permissions: [] });
+		const toolNames = tools.map((t) => t.name);
+		assert.ok(!toolNames.includes("mixture_of_agents"));
+	});
 });

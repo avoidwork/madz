@@ -292,9 +292,9 @@ export async function cronjobImpl(input, _options) {
 }
 
 /**
- * @param {z.infer<typeof CronSchema>} input
+ * @param {z.infer<typeof CronSchema>} input - Tool input with action and parameters
  * @param {object} _options - Runtime options
- * @returns {string}
+ * @returns {string} JSON result string
  */
 export const cronjob = tool(cronjobImpl, {
 	name: "cronjob",

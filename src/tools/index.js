@@ -10,6 +10,8 @@ import { vision_analyze } from "./vision.js";
 import { image_generate } from "./image.js";
 import { execute_code } from "./code.js";
 import { cronjob } from "./cron.js";
+import { text_to_speech } from "./tts.js";
+import { mixture_of_agents } from "./moa.js";
 
 /**
  * Maps tool names to required permission scopes.
@@ -36,6 +38,8 @@ export const TOOL_PERMISSIONS = {
 	image_generate: ["network:outbound"],
 	execute_code: [], // sandboxed, no permission needed
 	cronjob: ["network:outbound"],
+	text_to_speech: [], // requires OPENAI_API_KEY, no permission (uses API key for billing)
+	mixture_of_agents: [], // requires OPENROUTER_API_KEY, no permission (uses API key for billing)
 };
 
 // All tool definitions keyed by name
@@ -58,6 +62,8 @@ const ALL_TOOLS = {
 	image_generate,
 	execute_code,
 	cronjob,
+	text_to_speech,
+	mixture_of_agents,
 };
 
 /**
@@ -164,6 +170,32 @@ export async function buildToolConfig(options) {
 			case "cronjob": {
 				// Require network:outbound
 				if (!hasAllPerms) continue;
+				tools.push(
+					createToolWithRuntimeOptions(ALL_TOOLS[toolName], {
+						maxReadSize,
+						registry,
+						conversationsDir,
+					}),
+				);
+				continue;
+			}
+
+			case "text_to_speech": {
+				// No permission required, but needs OPENAI_API_KEY
+				if (!process.env.OPENAI_API_KEY) continue;
+				tools.push(
+					createToolWithRuntimeOptions(ALL_TOOLS[toolName], {
+						maxReadSize,
+						registry,
+						conversationsDir,
+					}),
+				);
+				continue;
+			}
+
+			case "mixture_of_agents": {
+				// No permission required, but needs OPENROUTER_API_KEY
+				if (!process.env.OPENROUTER_API_KEY) continue;
 				tools.push(
 					createToolWithRuntimeOptions(ALL_TOOLS[toolName], {
 						maxReadSize,

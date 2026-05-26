@@ -35,11 +35,16 @@ sys.meta_path.insert(0, RestrictedImporter())
 /**
  * Execute code in a sandboxed subprocess.
  * @param {object} input - Tool input
- * @param {object} _options - Runtime options
+ * @param {object} options - Runtime options with timeout, memoryLimit, and safety config
  * @returns {Promise<string>} JSON result string
  */
-export async function executeCodeImpl(input, _options) {
-	const { code, language = "python3", timeout = 30 } = input;
+export async function executeCodeImpl(input, options) {
+	const { code, language = "python3", _timeout } = input;
+	const safetyConfig = options?.safety ?? {};
+	const timeoutConfig = options?.timeout ?? {};
+
+	const defaultTimeout = (timeoutConfig.seconds ?? 30) || 30;
+	const timeout = _timeout ?? (defaultTimeout === 0 ? 300 : defaultTimeout);
 
 	if (!code || typeof code !== "string" || code.trim().length === 0) {
 		return JSON.stringify({ ok: false, error: "Code is required and must be a non-empty string" });
@@ -53,13 +58,11 @@ export async function executeCodeImpl(input, _options) {
 		});
 	}
 
-	// Determine if import hook should be applied (Python only)
-	const useImportHook = language === "python3" && process.env.PYTHON_IMPORT_HOOK !== "disable";
+	const useImportHook = language === "python3" && safetyConfig.pythonImportHook !== false;
 
 	const tmpRoot = await mkdtemp(join(tmpdir(), "madz-code-"));
 	const filePath = join(tmpRoot, `code${langConfig.ext}`);
 
-	// Write code to temp file
 	let writeCode = code;
 	if (useImportHook && language === "python3") {
 		writeCode = getImportHookCode() + "\n" + code;
@@ -144,26 +147,19 @@ export async function executeCodeImpl(input, _options) {
 }
 
 /**
- * @param {z.infer<typeof CodeSchema>} input
+ * @param {z.infer<typeof CodeSchema>} input - Tool input with code and language
  * @param {object} _options - Runtime options
- * @returns {string}
+ * @returns {string} JSON result string
  */
 export const execute_code = tool(executeCodeImpl, {
 	name: "execute_code",
 	description:
-		"Execute code in a sandboxed subprocess. Supports python3, javascript (node), and shell. Code is written to a temp file and executed via the appropriate interpreter. Returns stdout, stderr, and exit code. Python execution includes an import hook to block dangerous modules (subprocess, os, socket) unless PYTHON_IMPORT_HOOK=disable. Requires sandbox timeout and memory limits from config",
+		"Execute code in a sandboxed subprocess. Supports python3, javascript (node), and shell. Code is written to a temp file and executed via the appropriate interpreter. Returns stdout, stderr, and exit code. Python execution includes an import hook to block dangerous modules (subprocess, os, socket) unless sandbox.safety.pythonImportHook is false. Uses config timeout and memory limits",
 	schema: z.object({
 		code: z.string().min(1).describe("Code to execute"),
 		language: z
 			.enum(["python3", "javascript", "shell"])
 			.default("python3")
 			.describe("Programming language"),
-		timeout: z
-			.number()
-			.int()
-			.min(1)
-			.max(300)
-			.default(30)
-			.describe("Execution timeout in seconds (max 300)"),
 	}),
 });
