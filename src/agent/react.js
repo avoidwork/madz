@@ -19,7 +19,7 @@ export function createReactAgent(model, tools = [], dbPath = "memory/checkpoints
 	const key = `${dbPath}:${getModelKey(model)}`;
 
 	if (!graphCache.has(key)) {
-		const checkpointer = new SqliteSaver(dbPath);
+		const checkpointer = SqliteSaver.fromConnString(dbPath);
 		const compiled = createReactAgentGraph({
 			llm: model,
 			tools,

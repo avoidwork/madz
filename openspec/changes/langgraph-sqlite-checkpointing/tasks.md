@@ -48,6 +48,6 @@
 
 ## 8. Verification
 
-- [ ] 8.1 Run `npm run lint` — no errors
-- [ ] 8.2 Run `npm run test` — all tests pass
-- [ ] 8.3 Run `npm run coverage` — coverage report shows 100% and `coverage.txt` is regenerated
+- [x] 8.1 Run `npm run lint` — no errors
+- [x] 8.2 Run `npm run test` — all tests pass
+- [x] 8.3 Run `npm run coverage` — coverage report shows 100% and `coverage.txt` is regenerated
