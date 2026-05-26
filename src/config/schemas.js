@@ -103,6 +103,12 @@ export const SessionSchema = z.object({
 	conversationsDir: z.string().default("memory/conversations/"),
 });
 
+// --- SQLite checkpoint schemas ---
+
+export const SqliteSchema = z.object({
+	path: z.string().default("memory/checkpoints.db"),
+});
+
 // --- TUI schemas ---
 
 export const TuiSchema = z.object({
@@ -118,6 +124,7 @@ export const ConfigSchema = z.object({
 	telemetry: TelemetrySchema,
 	schedules: SchedulesSchema,
 	session: SessionSchema,
+	sqlite: SqliteSchema,
 	tui: TuiSchema,
 });
 
@@ -153,5 +160,6 @@ export const DEFAULT_CONFIG = {
 	},
 	schedules: { maxConcurrent: 1, entries: [] },
 	session: { context_window_size: 20, conversationsDir: "memory/conversations/" },
+	sqlite: { path: "memory/checkpoints.db" },
 	tui: { name: "madz" },
 };

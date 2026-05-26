@@ -4,11 +4,18 @@ import { writeMemoryFile } from "../memory/writer.js";
 
 /**
  * Save session exchanges to the latest conversation file.
+ * @deprecated Use LangGraph's SqliteSaver for persistent session state via checkpointing.
+ * This function is kept for backward compatibility and will be removed in a future release.
  * @param {string} conversationsDir - Path to conversations directory
  * @param {Array} conversation - Conversation exchanges to save
  * @param {string} [sessionId] - Optional session ID to include in frontmatter
  */
+// oxlint-disable no-console
 export function saveSession(conversationsDir, conversation, sessionId = "") {
+	console.warn(
+		"saveSession() is deprecated: JSON file export is replaced by SQLite checkpointing via SqliteSaver. " +
+			"Session state is now persisted automatically by LangGraph checkpoints.",
+	);
 	const dir = join(process.cwd(), conversationsDir);
 	const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
 

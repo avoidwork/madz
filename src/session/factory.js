@@ -1,13 +1,16 @@
 import { randomUUID } from "node:crypto";
 
 /**
- * Generate a session UUID and create initial session state.
+ * Generate session UUIDs and create initial session state, including
+ * a `threadId` for LangGraph checkpointing.
  * @param {Object} [config] - Optional session config override
- * @returns {{ sessionId: string, state: Object }}
+ * @returns {{ sessionId: string, threadId: string, state: Object }}
  */
 export function createSession(config = {}) {
+	const sessionId = randomUUID();
 	return {
-		sessionId: randomUUID(),
+		sessionId,
+		threadId: config.threadId || sessionId,
 		state: {
 			provider: config.provider || "openai",
 			conversation: [],

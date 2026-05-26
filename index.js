@@ -48,7 +48,11 @@ scheduleManager.register(config.schedules.entries);
 
 // Create session
 const providerName = Object.keys(config.providers)[0] || "openai";
-const { sessionId, state: initialState } = createSession({
+const {
+	sessionId,
+	threadId,
+	state: initialState,
+} = createSession({
 	provider: providerName,
 	contextWindow: config.session.context_window_size,
 });
@@ -63,14 +67,20 @@ const tools = await buildToolConfig({
 	conversationsDir: config.session.conversationsDir,
 });
 const model = createChatModel(providerConfig);
-const agent = createReactAgent(model, tools);
+const agent = createReactAgent(model, tools, config.sqlite?.path);
 
 // Load system prompt
 const { loadSystemPrompt } = await import("./src/memory/prompts.js");
 const systemPrompt = loadSystemPrompt();
 
 async function callProvider(_name, _providerConfig, message, streamingCallback) {
-	const result = await callReactAgent(agent, message, systemPrompt, streamingCallback);
+	const result = await callReactAgent(
+		agent,
+		message,
+		systemPrompt,
+		{ configurable: { thread_id: threadId } },
+		streamingCallback,
+	);
 	return { provider: providerName, content: result.content, tokens: { input: 0, output: 0 } };
 }
 
@@ -181,6 +191,7 @@ if (isMain) {
 export {
 	config,
 	sessionId,
+	threadId,
 	sessionState,
 	registry,
 	tracer,

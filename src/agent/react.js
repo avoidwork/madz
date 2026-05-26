@@ -1,53 +1,86 @@
 import { createReactAgent as createReactAgentGraph } from "@langchain/langgraph/prebuilt";
+import { SqliteSaver } from "@langchain/langgraph-checkpoint-sqlite";
 import { HumanMessage, SystemMessage, AIMessage } from "@langchain/core/messages";
 
+export const graphCache = new Map();
+
 /**
- * Create a ReAct agent from a chat model and optional tools.
- * The agent uses LangGraph under the hood via `@langchain/langgraph/prebuilt`.
- * @param {ChatLanguageModel} model - A chat language model instance (e.g., ChatOpenAI)
+ * Create a ReAct agent with SQLite persistence when available,
+ * falling back to the standard prebuilt agent.
+ * The first invocation initializes the checkpointer; subsequent calls
+ * reuse the cached compiled graph keyed by dbPath and model name.
+ * @param {import("@langchain/core").BaseChatModel} model - A chat language model instance (e.g., ChatOpenAI)
  * @param {unknown[]} [tools=[]] - Optional array of LangChain tool definitions
- * @returns {ReturnType<typeof createReactAgentGraph>} A compiled ReAct agent
+ * @param {string} [dbPath] - SQLite database path (default: memory/checkpoints.db)
+ * @returns {import("@langchain/langgraph").CompiledStateGraph} A compiled ReAct agent with optional SQLite checkpointer
  */
 /* istanbul ignore next */
-export function createReactAgent(model, tools = []) {
-	return createReactAgentGraph({
-		llm: model,
-		tools,
-	});
+export function createReactAgent(model, tools = [], dbPath = "memory/checkpoints.db") {
+	const key = `${dbPath}:${getModelKey(model)}`;
+
+	if (!graphCache.has(key)) {
+		const checkpointer = new SqliteSaver(dbPath);
+		const compiled = createReactAgentGraph({
+			llm: model,
+			tools,
+			checkpointer,
+		});
+		graphCache.set(key, compiled);
+	}
+
+	return graphCache.get(key);
+}
+
+/**
+ * Get a stable identifier for a model instance for use in cache keys.
+ * @param {import("@langchain/core").BaseChatModel} model
+ * @returns {string}
+ */
+function getModelKey(model) {
+	return model.modelName || model._modelType || model.constructor.name;
 }
 
 /**
  * Invoke a ReAct agent with a single user message and return the final response.
- * Errors are re-thrown without modification for propagation to the caller.
- * Searches backwards through the message history to find the last AIMessage
- * with non-empty content (the LLM's final answer). Falls back to the
- * original user message if no valid AI content is found.
- * When a callback is provided, the agent runs in streaming mode using
- * LangGraph's event streaming v3 API. The callback receives typed events:
- *   { type: "text", text: string } — accumulated AI text for a message chunk
- *   { type: "tool_start", toolName: string, toolCallId: string } — tool invocation started
- *   { type: "tool_event", toolCallId: string, data: unknown } — intermediate tool output
- *   { type: "tool_end", toolName: string, toolCallId: string, data: unknown } — tool completed
- *   { type: "tool_error", toolName: string, toolCallId: string, error: string } — tool failed
- * @param {ReturnType<typeof createReactAgentGraph>} agent - A compiled ReAct agent
+ * Supports a configurable langGraph config (e.g. configurable: { thread_id })
+ * for checkpointing. Errors are re-thrown without modification for propagation
+ * to the caller.
+ * @param {import("@langchain/langgraph").CompiledStateGraph} agent - A compiled ReAct agent
  * @param {string} message - The user message string
  * @param {string} [systemPrompt] - Optional system prompt text prepended before the user message
- * @param {(event: StreamEvent) => void} [callback] - Optional streaming event callback
+ * @param {(object|((event: StreamEvent) => void))} [configOrCallback] - Optional callback function or config object
+ * @param {((event: StreamEvent) => void)} [callback] - Optional callback when configOrCallback is an object
  * @returns {{ content: string }} The agent's final text response
  */
-export function callReactAgent(agent, message, systemPrompt, callback) {
+export function callReactAgent(agent, message, systemPrompt, configOrCallback, callback) {
 	const initMessages = [
 		systemPrompt ? new SystemMessage(systemPrompt) : null,
 		new HumanMessage(message),
 	].filter(Boolean);
 
-	if (callback) {
-		return callReactAgentStreaming(agent, initMessages, message, callback);
+	let langGraphConfig = null;
+	let isStreaming = false;
+
+	if (typeof configOrCallback === "function") {
+		isStreaming = true;
+	} else if (typeof configOrCallback === "object" && configOrCallback !== null) {
+		langGraphConfig = configOrCallback;
+		if (typeof callback === "function") {
+			isStreaming = true;
+		}
 	}
 
-	const result = agent.invoke({ messages: initMessages });
+	if (isStreaming) {
+		return callReactAgentStreaming(agent, initMessages, message, langGraphConfig, configOrCallback);
+	}
 
-	const msgsArray = Array.isArray(result.messages) ? result.messages : [];
+	const result = agent.invoke({ messages: initMessages }, langGraphConfig);
+
+	const msgsArray = Array.isArray(result.messages)
+		? result.messages
+		: result.lc_events === undefined
+			? []
+			: [];
 
 	const lastAI = [...msgsArray].reverse().find((msg) => msg instanceof AIMessage);
 	if (lastAI && lastAI.content) {
@@ -62,7 +95,7 @@ export function callReactAgent(agent, message, systemPrompt, callback) {
 }
 
 /**
- * Emits a tool event from a tools channel ProtocolEvent.
+ * Emits a tool event from a tools channels ProtocolEvent.
  * @param {ProtocolEvent} event
  * @param {(event: StreamEvent) => void} callback
  */
@@ -113,16 +146,26 @@ function emitToolEvent(event, callback) {
 
 /**
  * Run the agent in streaming mode via LangGraph event streaming v3.
- * Iterates the `streamEvents` run stream processing text chunks from
- * the messages projection and tool events from the raw protocol stream.
- * @param {ReturnType<typeof createReactAgentGraph>} agent - A compiled ReAct agent
+ * Supports an optional langGraph config for checkpointing.
+ * @param {import("@langchain/langgraph").CompiledStateGraph} agent - A compiled ReAct agent
  * @param {import("@langchain/core/messages").BaseMessage[]} initMessages - Initial messages
  * @param {string} originalMessage - Original user message (fallback)
+ * @param {object} [langGraphConfig] - LangGraph config (e.g. configurable: { thread_id })
  * @param {(event: StreamEvent) => void} callback - Event callback function
  * @returns {{ content: string }} The agent's final text response
  */
-async function callReactAgentStreaming(agent, initMessages, originalMessage, callback) {
-	const stream = await agent.streamEvents({ messages: initMessages }, { version: "v3" });
+async function callReactAgentStreaming(
+	agent,
+	initMessages,
+	originalMessage,
+	langGraphConfig,
+	callback,
+) {
+	const streamOptions = { version: "v3" };
+	if (langGraphConfig) {
+		streamOptions.configurable = langGraphConfig.configurable;
+	}
+	const stream = await agent.streamEvents({ messages: initMessages }, streamOptions);
 
 	let fullContent = "";
 	let hasContent = false;

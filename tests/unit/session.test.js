@@ -22,6 +22,25 @@ describe("session - factory", () => {
 		const _result = createSession({ provider: "local", contextWindow: 10 });
 		// Note: factory uses config.provider || "openai", so "local" is used
 	});
+
+	it("generates a threadId alongside sessionId", () => {
+		const { sessionId, threadId } = createSession();
+		assert.ok(sessionId.length > 0);
+		assert.ok(threadId.length > 0);
+		// UUID format: 8-4-4-4-12
+		assert.ok(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(threadId));
+	});
+
+	it("uses the same threadId when no explicit threadId is passed", () => {
+		const { sessionId, threadId } = createSession();
+		assert.strictEqual(threadId, sessionId);
+	});
+
+	it("accepts an explicit threadId", () => {
+		const explicitThreadId = "explicit-thread-uuid-001";
+		const { threadId } = createSession({ threadId: explicitThreadId });
+		assert.strictEqual(threadId, explicitThreadId);
+	});
 });
 
 describe("session - state manager", () => {

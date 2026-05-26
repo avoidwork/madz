@@ -84,6 +84,7 @@ describe("applyDotPathMutation", () => {
 			},
 			schedules: { maxConcurrent: 1, entries: [] },
 			session: { context_window_size: 20, conversationsDir: "memory/conversations/" },
+			sqlite: { path: "memory/checkpoints.db" },
 			tui: { name: "madz" },
 		});
 	}

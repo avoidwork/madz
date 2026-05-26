@@ -3,6 +3,26 @@ import { join } from "node:path";
 import { parseFrontmatter } from "../memory/reader.js";
 
 /**
+ * List all thread IDs that have checkpoints in the SQLite database.
+ * @param {import("@langchain/langgraph-checkpoint-sqlite").SqliteSaver} saver - SqliteSaver instance
+ * @returns {Promise<string[]>} Array of unique thread IDs
+ */
+export async function listThreadIds(saver) {
+	const threads = new Set();
+	try {
+		for await (const tuple of saver.list({})) {
+			const tid = tuple?.config?.configurable?.thread_id;
+			if (tid) {
+				threads.add(tid);
+			}
+		}
+	} catch {
+		// DB may not exist yet or have no checkpoints — return empty
+	}
+	return [...threads];
+}
+
+/**
  * Load the latest conversation file from the sessions directory.
  * @param {string} conversationsDir - Path to conversations directory
  * @param {number} [windowSize=20] - Context window limit for loaded messages
