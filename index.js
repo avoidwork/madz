@@ -73,14 +73,10 @@ const agent = createReactAgent(model, tools, config.sqlite?.path);
 const { loadSystemPrompt } = await import("./src/memory/prompts.js");
 const systemPrompt = loadSystemPrompt();
 
-async function callProvider(_name, _providerConfig, message, streamingCallback) {
-	const result = await callReactAgent(
-		agent,
-		message,
-		systemPrompt,
-		{ configurable: { thread_id: threadId } },
-		streamingCallback,
-	);
+async function callProvider(_name, _providerConfig, message) {
+	const result = await callReactAgent(agent, message, systemPrompt, {
+		configurable: { thread_id: threadId },
+	});
 	return { provider: providerName, content: result.content, tokens: { input: 0, output: 0 } };
 }
 
@@ -106,8 +102,8 @@ async function handleConversation(message) {
 }
 
 // LLM provider dispatch (for TUI and external callers)
-async function dispatchProvider(message, _sessionState = null, streamingCallback) {
-	return callProvider(null, null, message, streamingCallback);
+async function dispatchProvider(message, _sessionState = null) {
+	return callProvider(null, null, message);
 }
 
 // Skill invocation through sandbox
