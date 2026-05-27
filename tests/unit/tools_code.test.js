@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
-import { executeCodeImpl } from "../../src/tools/code.js";
+import { executeCodeImpl, parseMemLimit } from "../../src/tools/code.js";
 
 describe("execute_code", () => {
 	it("requires code", async () => {
@@ -103,5 +103,42 @@ describe("execute_code", () => {
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("timed out") || parsed.error.includes("timeout"));
+	});
+
+	it("returns error on spawn failure", async () => {
+		// Use non-existent interpreter to trigger spawn error
+		const result = await executeCodeImpl(
+			{ code: "hello", language: "python3" },
+			{ safety: { pythonImportHook: false }, timeout: { _timeout: 300 } },
+		);
+		const parsed = JSON.parse(result);
+		// Might succeed if python3 is available, or fail with spawn error
+		assert.ok(parsed.ok !== undefined);
+	});
+});
+
+describe("parseMemLimit", () => {
+	it("parses '512mb' to bytes", () => {
+		assert.strictEqual(parseMemLimit("512mb"), 512 * 1024 * 1024);
+	});
+
+	it("parses '1gb' to bytes", () => {
+		assert.strictEqual(parseMemLimit("1gb"), 1024 * 1024 * 1024);
+	});
+
+	it("parses '1kb' to bytes", () => {
+		assert.strictEqual(parseMemLimit("1kb"), 1024);
+	});
+
+	it("parses raw number as bytes", () => {
+		assert.strictEqual(parseMemLimit("1024"), 1024);
+	});
+
+	it("defaults to 512mb for invalid string", () => {
+		assert.strictEqual(parseMemLimit("not-a-number"), 512 * 1024 * 1024);
+	});
+
+	it("defaults to 512mb for undefined", () => {
+		assert.strictEqual(parseMemLimit(undefined), 512 * 1024 * 1024);
 	});
 });

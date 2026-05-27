@@ -9,6 +9,8 @@ import {
 	nativeSearch,
 	fuzzyMatch,
 	levenshteinDistance,
+	suggestSimilarFile,
+	generateUnifiedDiff,
 } from "../../src/tools/filesystem.js";
 
 const testDir = join(process.cwd(), "memory", "__test_files__");
@@ -188,6 +190,32 @@ describe("tools - filesystem impl", () => {
 			assert.strictEqual(typeof result, "string");
 			assert.ok(result.includes("No matches"));
 		});
+
+		it("searches nested directories recursively", async () => {
+			const searchDir = join(testDir, "nested_search");
+			mkdirSync(searchDir, { recursive: true });
+			writeFileSync(join(searchDir, "file.txt"), "hello there");
+			const nested = join(searchDir, "sub");
+			mkdirSync(nested, { recursive: true });
+			writeFileSync(join(nested, "deep.txt"), "deep match");
+			const result = await nativeSearch("deep", searchDir, 10);
+			assert.ok(
+				typeof result === "string" && (result.includes("Found") || result.includes("deep")),
+			);
+		});
+	});
+
+	describe("suggestSimilarFile", () => {
+		it("suggests similar filenames when close match exists", async () => {
+			const result = await suggestSimilarFile(join(testDir, "tesdt.txt"), [testDir]);
+			assert.ok(typeof result === "string");
+			assert.ok(result.includes("Did you mean"));
+		});
+
+		it("returns null when no similar filenames", async () => {
+			const result = await suggestSimilarFile(join(testDir, "zzzznotfound123.txt"), [testDir]);
+			assert.strictEqual(result, null);
+		});
 	});
 
 	describe("fuzzyMatch", () => {
@@ -196,21 +224,49 @@ describe("tools - filesystem impl", () => {
 			assert.strictEqual(result[0].found, true);
 		});
 
-		it("finds match with trailing whitespace difference", () => {
+		it("finds match with trailing whitespace difference (strategy 3)", () => {
 			const content = "const x = 1;  \nconst y = 2;";
 			const result = fuzzyMatch("const x = 1;", content);
 			assert.strictEqual(result[0].found, true);
 		});
 
-		it("finds match with leading whitespace difference", () => {
+		it("finds match with leading whitespace difference (strategy 4)", () => {
 			const content = "    const x = 1;\nconst y = 2;";
 			const result = fuzzyMatch("const x = 1;", content);
 			assert.strictEqual(result[0].found, true);
 		});
 
-		it("finds case-insensitive match", () => {
+		it("finds case-insensitive match (strategy 6)", () => {
 			const content = "CONST X = 1;\nCONST Y = 2;";
 			const result = fuzzyMatch("const x = 1;", content);
+			assert.strictEqual(result[0].found, true);
+		});
+
+		it("finds collapsed whitespace match (strategy 5)", () => {
+			const target = "const  x  =  1";
+			const content = "const x = 1;";
+			const result = fuzzyMatch(target, content);
+			assert.strictEqual(result[0].found, true);
+		});
+
+		it("finds normalized newlines (strategy 7)", () => {
+			const target = "const x = 1\r\nconst y = 2";
+			const content = "const x = 1\nconst y = 2";
+			const result = fuzzyMatch(target, content);
+			assert.strictEqual(result[0].found, true);
+		});
+
+		it("finds normalized tabs (strategy 8)", () => {
+			const target = "const\tx = 1";
+			const content = "const    x = 1";
+			const result = fuzzyMatch(target, content);
+			assert.strictEqual(result[0].found, true);
+		});
+
+		it("finds loose substring match (strategy 9)", () => {
+			const target = "const\t\nx";
+			const content = "const x";
+			const result = fuzzyMatch(target, content);
 			assert.strictEqual(result[0].found, true);
 		});
 
@@ -232,6 +288,30 @@ describe("tools - filesystem impl", () => {
 		it("calculates distance for small edit", () => {
 			const result = levenshteinDistance("test", "tesx");
 			assert.strictEqual(result, 1);
+		});
+	});
+
+	describe("generateUnifiedDiff", () => {
+		it("generates diff for different content", () => {
+			const result = generateUnifiedDiff("old\nline", "new\nline");
+			assert.ok(result.includes("old"));
+			assert.ok(result.includes("new"));
+			assert.ok(result.includes("@@"));
+		});
+
+		it("generates same diff for identical content", () => {
+			const result = generateUnifiedDiff("same content", "same content");
+			assert.ok(result && result.length > 0);
+		});
+
+		it("generates diff for empty old string", () => {
+			const result = generateUnifiedDiff("", "new content");
+			assert.ok(result.includes("+"));
+		});
+
+		it("generates diff for empty new string", () => {
+			const result = generateUnifiedDiff("old content", "");
+			assert.ok(result.includes("-"));
 		});
 	});
 });

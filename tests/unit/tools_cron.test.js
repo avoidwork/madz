@@ -177,4 +177,56 @@ describe("cronjob", () => {
 			true,
 		);
 	});
+
+	it("creates duplicate job and rejects", async () => {
+		const createResult = await cronjobImpl(
+			{ action: "create", name: "dup-job", cron: "0 0 * * *", skill: "test" },
+			{},
+		);
+		assert.strictEqual(JSON.parse(createResult).ok, true);
+		// Now try to create again
+		const dupResult = await cronjobImpl(
+			{ action: "create", name: "dup-job", cron: "0 0 * * *", skill: "test" },
+			{},
+		);
+		assert.strictEqual(JSON.parse(dupResult).ok, false);
+		assert.ok(JSON.parse(dupResult).error.includes("already exists"));
+	});
+
+	it("rejects update with invalid cron expression", async () => {
+		// First create a valid job
+		await cronjobImpl({ action: "create", name: "bad-cron", cron: "0 0 * * *", skill: "test" }, {});
+		const result = await cronjobImpl(
+			{ action: "update", name: "bad-cron", cron: "invalid cron" },
+			{},
+		);
+		const parsed = JSON.parse(result);
+		assert.strictEqual(parsed.ok, false);
+		assert.ok(parsed.error.includes("Invalid cron") || parsed.error.includes("Invalid"));
+		// Clean up
+		await cronjobImpl({ action: "remove", name: "bad-cron" }, {});
+	});
+
+	it("updates only selected fields", async () => {
+		await cronjobImpl(
+			{ action: "create", name: "partial", cron: "0 0 * * *", skill: "skill-a", input: { a: 1 } },
+			{},
+		);
+		// Update only the skill
+		const result = await cronjobImpl({ action: "update", name: "partial", skill: "skill-b" }, {});
+		const parsed = JSON.parse(result);
+		assert.strictEqual(parsed.ok, true);
+		assert.strictEqual(parsed.job.skill, "skill-b");
+		// Input should still be there
+		assert.ok(parsed.job.input);
+		// Clean up
+		await cronjobImpl({ action: "remove", name: "partial" }, {});
+	});
+
+	it("run rejects for non-existent job", async () => {
+		const result = await cronjobImpl({ action: "run", name: "nonexistent-run" }, {});
+		const parsed = JSON.parse(result);
+		assert.strictEqual(parsed.ok, false);
+		assert.ok(parsed.error.includes("not found"));
+	});
 });

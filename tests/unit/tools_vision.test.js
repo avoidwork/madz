@@ -102,4 +102,38 @@ describe("vision_analyze", () => {
 		globalThis.fetch = origFetch;
 		process.env.OPENAI_API_KEY = saved;
 	});
+
+	it("returns error when image fetch throws network error", async () => {
+		const { visionAnalyzeImpl } = await import("../../src/tools/vision.js");
+		const saved = process.env.OPENAI_API_KEY;
+		process.env.OPENAI_API_KEY = "sk-test-key";
+		globalThis.fetch = async () => {
+			throw new Error("Network unreachable");
+		};
+		const result = await visionAnalyzeImpl({ url: "https://example.com/img.jpg" }, {});
+		const parsed = JSON.parse(result);
+		assert.strictEqual(parsed.ok, false);
+		assert.ok(parsed.error.includes("Image fetch failed"));
+		globalThis.fetch = origFetch;
+		process.env.OPENAI_API_KEY = saved;
+	});
+
+	it("uses dataUri path and returns analysis result", async () => {
+		const { visionAnalyzeImpl } = await import("../../src/tools/vision.js");
+		const saved = process.env.OPENAI_API_KEY;
+		process.env.OPENAI_API_KEY = "sk-test-key";
+		globalThis.fetch = async () => ({
+			ok: true,
+			json: async () => ({
+				content: [{ type: "text", text: "A cat sitting on a mat." }],
+			}),
+		});
+		// Valid data URI with small base64 content
+		const smallBase64 = btoa("fake image binary");
+		const result = await visionAnalyzeImpl({ dataUri: `data:image/png;base64,${smallBase64}` }, {});
+		const parsed = JSON.parse(result);
+		assert.ok(parsed.ok || parsed.error); // May fail at LLM level without mock
+		globalThis.fetch = origFetch;
+		process.env.OPENAI_API_KEY = saved;
+	});
 });

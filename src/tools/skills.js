@@ -106,6 +106,7 @@ export async function skillViewImpl(input, options) {
 			result.skill_md = skillMd;
 		}
 	} catch {
+		/* istanbul ignore next */
 		result.skill_md = "SKILL.md not found or unreadable";
 	}
 

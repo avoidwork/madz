@@ -2,7 +2,13 @@ import { describe, it } from "node:test";
 import assert from "node:assert";
 import { CommandParser } from "../../src/tui/commandParser.js";
 import { PANELS, nextPanel, prevPanel, getPanelOrder } from "../../src/tui/panels.js";
-import { isStreamingMessage } from "../../src/tui/messages.js";
+import {
+	isStreamingMessage,
+	getRoleLabel,
+	formatMessage,
+	countMessageLines,
+	getToolCallLines,
+} from "../../src/tui/messages.js";
 
 describe("command parser", () => {
 	it("parses :quit command", () => {
@@ -82,6 +88,21 @@ describe("command parser", () => {
 			const result = parser.parse(":config set telemetry.enabled true", ctx);
 			assert.strictEqual(result.action, "config");
 			assert.strictEqual(result.subAction, "set");
+		});
+
+		it("sets config value with :config path value (no 'set' keyword)", () => {
+			const parser = new CommandParser();
+			let configPath = null;
+			const ctx = {
+				_setConfigValue: (p) => {
+					configPath = p;
+				},
+			};
+			const result = parser.parse(":config telemetry.enabled true", ctx);
+			assert.strictEqual(result.action, "config");
+			assert.strictEqual(result.subAction, "set");
+			assert.strictEqual(result.path, "telemetry.enabled");
+			assert.strictEqual(configPath, "telemetry.enabled");
 		});
 
 		it("returns usage message when _setConfigValue is not provided", () => {
@@ -317,17 +338,104 @@ describe("TUI - status indicator", () => {
 });
 
 describe("TUI - timestamp formatting", () => {
-	it("formats time as HH:MM", () => {
-		function formatTime(date) {
-			return (
-				String(date.getHours()).padStart(2, "0") + ":" + String(date.getMinutes()).padStart(2, "0")
-			);
-		}
+	it("formats time using Intl.DateTimeFormat", async () => {
+		const { formatTime } = await import("../../src/tui/conversationPanel.js");
 
 		const d = new Date("2026-05-24T14:30:00Z");
-		// UTC hours may differ based on timezone, so just check format pattern
 		const result = formatTime(d);
-		assert.match(result, /^\d{2}:\d{2}$/);
+		// Accept any locale-aware time format (e.g., "14:30", "2:30 PM", "1430")
+		assert.ok(/\d/.test(result), "time formatting should contain a digit");
+	});
+});
+
+describe("TUI - getRoleLabel", () => {
+	it("maps user role to 'You'", () => {
+		assert.strictEqual(getRoleLabel("user"), "You");
+	});
+
+	it("maps assistant role to assistantName when provided", () => {
+		assert.strictEqual(getRoleLabel("assistant", "madz"), "madz");
+		assert.strictEqual(getRoleLabel("assistant", "oracle"), "oracle");
+	});
+
+	it("maps assistant role to 'Assistant' when no name provided", () => {
+		assert.strictEqual(getRoleLabel("assistant"), "Assistant");
+	});
+
+	it("maps system role to 'System'", () => {
+		assert.strictEqual(getRoleLabel("system"), "System");
+	});
+
+	it("returns role string as fallback for unknown roles", () => {
+		assert.strictEqual(getRoleLabel("unknown"), "unknown");
+		assert.strictEqual(getRoleLabel(null), "Unknown");
+	});
+});
+
+describe("TUI - formatMessage", () => {
+	it("formats message with timestamp", () => {
+		const msg = { role: "user", content: "hello", timestamp: "10:00" };
+		const result = formatMessage(msg);
+		assert.ok(result.includes("You (10:00)"));
+		assert.ok(result.includes("hello"));
+	});
+
+	it("formats message without timestamp", () => {
+		const msg = { role: "assistant", content: "world" };
+		const result = formatMessage(msg, "madz");
+		assert.ok(result.includes("madz"));
+		assert.ok(result.includes("world"));
+		assert.ok(!result.includes("("));
+	});
+
+	it("handles empty content", () => {
+		const msg = { role: "user", content: "" };
+		const result = formatMessage(msg);
+		assert.ok(result.includes("(empty)"));
+	});
+});
+
+describe("TUI - countMessageLines", () => {
+	it("counts lines for single message", () => {
+		const messages = [{ role: "user", content: "hello world" }];
+		const result = countMessageLines(messages, 80);
+		assert.ok(typeof result === "number" && result > 0);
+	});
+
+	it("counts lines for multiple messages", () => {
+		const messages = [
+			{ role: "user", content: "hello" },
+			{ role: "assistant", content: "world" },
+		];
+		const result = countMessageLines(messages, 80);
+		assert.ok(result > countMessageLines([{ role: "user", content: "hello" }], 80));
+	});
+
+	it("handles empty messages array", () => {
+		const result = countMessageLines([], 80);
+		assert.strictEqual(result, 0);
+	});
+
+	it("handles long content with line wrapping", () => {
+		const longContent = "x".repeat(240);
+		const messages = [{ role: "user", content: longContent }];
+		const result = countMessageLines(messages, 80);
+		assert.ok(result > 3); // Should wrap to multiple lines
+	});
+});
+
+describe("TUI - getToolCallLines", () => {
+	it("splits tool call display by newlines", () => {
+		const lines = getToolCallLines("- Tool: search\n- Tool: read_file");
+		assert.strictEqual(lines.length, 2);
+		assert.strictEqual(lines[0], "- Tool: search");
+		assert.strictEqual(lines[1], "- Tool: read_file");
+	});
+
+	it("returns empty array for falsy input", () => {
+		const lines = getToolCallLines("");
+		assert.strictEqual(lines.length, 0);
+		assert.strictEqual(getToolCallLines(null).length, 0);
 	});
 });
 

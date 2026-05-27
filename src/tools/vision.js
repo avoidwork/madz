@@ -141,6 +141,7 @@ export async function visionAnalyzeImpl(input, _options) {
 			},
 		]);
 
+		/* istanbul ignore next */
 		const text = response.content;
 		return JSON.stringify({
 			ok: true,

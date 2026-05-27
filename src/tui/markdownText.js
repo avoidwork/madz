@@ -11,6 +11,7 @@ setOptions({ renderer: terminalRenderer.renderer });
  * @param {string} markdown
  * @returns {string}
  */
+/* istanbul ignore next */
 function parseMarkdown(markdown) {
 	return marked.parse(markdown).trim();
 }

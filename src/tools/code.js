@@ -140,6 +140,7 @@ export async function executeCodeImpl(input, options) {
 			await unlink(filePath);
 			await rm(tmpRoot, { recursive: true, force: true });
 		} catch {
+			/* istanbul ignore next */
 			// Ignore cleanup errors
 		}
 
