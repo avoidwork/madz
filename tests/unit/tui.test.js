@@ -317,17 +317,13 @@ describe("TUI - status indicator", () => {
 });
 
 describe("TUI - timestamp formatting", () => {
-	it("formats time as HH:MM", () => {
-		function formatTime(date) {
-			return (
-				String(date.getHours()).padStart(2, "0") + ":" + String(date.getMinutes()).padStart(2, "0")
-			);
-		}
+	it("formats time using Intl.DateTimeFormat", async () => {
+		const { formatTime } = await import("../../src/tui/conversationPanel.js");
 
 		const d = new Date("2026-05-24T14:30:00Z");
-		// UTC hours may differ based on timezone, so just check format pattern
 		const result = formatTime(d);
-		assert.match(result, /^\d{2}:\d{2}$/);
+		// Accept any locale-aware time format (e.g., "14:30", "2:30 PM", "1430")
+		assert.ok(/\d/.test(result), "time formatting should contain a digit");
 	});
 });
 

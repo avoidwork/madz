@@ -5,16 +5,21 @@ import { getRoleLabel } from "./messages.js";
 import { MarkdownText } from "./markdownText.js";
 
 /**
- * Format time as HH:MM from a Date object.
- * @param {Date} date
- * @returns {string}
+ * Cached Intl.DateTimeFormat for system-localized time display.
+ * Uses the runtime's default locale with numeric hour and 2-digit minute.
  */
-function formatTime(date) {
-	return (
-		date.getHours().toString().padStart(2, "0") +
-		":" +
-		date.getMinutes().toString().padStart(2, "0")
-	);
+const timeFormatter = new Intl.DateTimeFormat(undefined, {
+	hour: "numeric",
+	minute: "2-digit",
+});
+
+/**
+ * Format a Date as a locale-aware time string using the cached formatter.
+ * @param {Date} date - The date to format
+ * @returns {string} Localized time string
+ */
+export function formatTime(date) {
+	return timeFormatter.format(date);
 }
 
 /**
