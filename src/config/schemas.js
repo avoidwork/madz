@@ -27,10 +27,14 @@ export const ProvidersSchema = z.object({}).passthrough();
 export const SandboxScopeSchema = z.object({
 	paths: z.array(z.string()).default(["memory/", "skills/", "tmp/"]),
 	timeout: z.object({
-		seconds: z.number().int().positive().default(30),
+		seconds: z.number().int().min(0).default(30),
 		gracePeriod: z.number().int().positive().default(5),
 	}),
 	memoryLimit: z.string().default("512m"),
+	safety: z.object({
+		urlFilter: z.boolean().default(true),
+		pythonImportHook: z.boolean().default(true),
+	}),
 	env: z.object({
 		allowlist: z.array(z.string()).default(["PATH", "HOME", "NODE_ENV"]),
 	}),
@@ -128,6 +132,7 @@ export const DEFAULT_CONFIG = {
 		paths: ["memory/", "skills/", "tmp/"],
 		timeout: { seconds: 30, gracePeriod: 5 },
 		memoryLimit: "512m",
+		safety: { urlFilter: true, pythonImportHook: true },
 		env: { allowlist: ["PATH", "HOME", "NODE_ENV"] },
 		permissions: [],
 		maxReadSize: "1mb",

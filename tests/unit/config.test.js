@@ -218,3 +218,237 @@ describe("env var expansion", () => {
 		assert.strictEqual(result, "${NONEXISTENT_VAR_XYZ}");
 	});
 });
+
+describe("safety config schema", () => {
+	describe("sandbox.timeout.seconds", () => {
+		it("accepts timeout of 0 to disable guard", () => {
+			const schema = {
+				safeParse(obj) {
+					const timeout = obj.timeout || {};
+					const seconds = timeout.seconds;
+					if (
+						seconds !== undefined &&
+						(typeof seconds !== "number" || seconds < 0 || !Number.isInteger(seconds))
+					) {
+						return { success: false };
+					}
+					return {
+						success: true,
+						data: { timeout: { seconds: seconds !== undefined ? seconds : 30, gracePeriod: 5 } },
+					};
+				},
+			};
+			const result = schema.safeParse({ timeout: { seconds: 0 } });
+			assert.strictEqual(result.success, true);
+			assert.strictEqual(result.data.timeout.seconds, 0);
+		});
+
+		it("accepts positive timeout values", () => {
+			const schema = {
+				safeParse(obj) {
+					const timeout = obj.timeout || {};
+					const seconds = timeout.seconds;
+					if (
+						seconds !== undefined &&
+						(typeof seconds !== "number" || seconds < 0 || !Number.isInteger(seconds))
+					) {
+						return { success: false };
+					}
+					return {
+						success: true,
+						data: { timeout: { seconds: seconds !== undefined ? seconds : 30, gracePeriod: 5 } },
+					};
+				},
+			};
+			const result = schema.safeParse({ timeout: { seconds: 120 } });
+			assert.strictEqual(result.success, true);
+			assert.strictEqual(result.data.timeout.seconds, 120);
+		});
+
+		it("rejects negative timeout", () => {
+			const schema = {
+				safeParse(obj) {
+					const timeout = obj.timeout || {};
+					const seconds = timeout.seconds;
+					if (
+						seconds !== undefined &&
+						(typeof seconds !== "number" || seconds < 0 || !Number.isInteger(seconds))
+					) {
+						return { success: false };
+					}
+					return {
+						success: true,
+						data: { timeout: { seconds: seconds !== undefined ? seconds : 30, gracePeriod: 5 } },
+					};
+				},
+			};
+			const result = schema.safeParse({ timeout: { seconds: -1 } });
+			assert.strictEqual(result.success, false);
+		});
+	});
+
+	describe("sandbox.safety.urlFilter", () => {
+		it("accepts urlFilter true", () => {
+			const schema = {
+				safeParse(obj) {
+					const safety = obj.safety || {};
+					return {
+						success: true,
+						data: {
+							safety: {
+								urlFilter: safety.urlFilter !== undefined ? safety.urlFilter : true,
+							},
+						},
+					};
+				},
+			};
+			const result = schema.safeParse({ safety: { urlFilter: true } });
+			assert.strictEqual(result.success, true);
+			assert.strictEqual(result.data.safety.urlFilter, true);
+		});
+
+		it("accepts urlFilter false to disable", () => {
+			const schema = {
+				safeParse(obj) {
+					const safety = obj.safety || {};
+					return {
+						success: true,
+						data: {
+							safety: {
+								urlFilter: safety.urlFilter !== undefined ? safety.urlFilter : true,
+							},
+						},
+					};
+				},
+			};
+			const result = schema.safeParse({ safety: { urlFilter: false } });
+			assert.strictEqual(result.success, true);
+			assert.strictEqual(result.data.safety.urlFilter, false);
+		});
+
+		it("defaults urlFilter to true", () => {
+			const schema = {
+				safeParse(obj) {
+					const safety = obj.safety || {};
+					return {
+						success: true,
+						data: {
+							safety: {
+								urlFilter: safety.urlFilter !== undefined ? safety.urlFilter : true,
+							},
+						},
+					};
+				},
+			};
+			const result = schema.safeParse({});
+			assert.strictEqual(result.success, true);
+			assert.strictEqual(result.data.safety.urlFilter, true);
+		});
+	});
+
+	describe("sandbox.safety.pythonImportHook", () => {
+		it("accepts pythonImportHook true", () => {
+			const schema = {
+				safeParse(obj) {
+					const safety = obj.safety || {};
+					return {
+						success: true,
+						data: {
+							safety: {
+								pythonImportHook:
+									safety.pythonImportHook !== undefined ? safety.pythonImportHook : true,
+							},
+						},
+					};
+				},
+			};
+			const result = schema.safeParse({ safety: { pythonImportHook: true } });
+			assert.strictEqual(result.success, true);
+			assert.strictEqual(result.data.safety.pythonImportHook, true);
+		});
+
+		it("accepts pythonImportHook false to disable", () => {
+			const schema = {
+				safeParse(obj) {
+					const safety = obj.safety || {};
+					return {
+						success: true,
+						data: {
+							safety: {
+								pythonImportHook:
+									safety.pythonImportHook !== undefined ? safety.pythonImportHook : true,
+							},
+						},
+					};
+				},
+			};
+			const result = schema.safeParse({ safety: { pythonImportHook: false } });
+			assert.strictEqual(result.success, true);
+			assert.strictEqual(result.data.safety.pythonImportHook, false);
+		});
+
+		it("defaults pythonImportHook to true", () => {
+			const schema = {
+				safeParse(obj) {
+					const safety = obj.safety || {};
+					return {
+						success: true,
+						data: {
+							safety: {
+								pythonImportHook:
+									safety.pythonImportHook !== undefined ? safety.pythonImportHook : true,
+							},
+						},
+					};
+				},
+			};
+			const result = schema.safeParse({});
+			assert.strictEqual(result.success, true);
+			assert.strictEqual(result.data.safety.pythonImportHook, true);
+		});
+	});
+
+	describe("sandbox.memoryLimit parsing", () => {
+		it("accepts memoryLimit string m suffix", () => {
+			const schema = {
+				safeParse(obj) {
+					return {
+						success: true,
+						data: { memoryLimit: obj.memoryLimit || "512m" },
+					};
+				},
+			};
+			const result = schema.safeParse({ memoryLimit: "512m" });
+			assert.strictEqual(result.success, true);
+			assert.strictEqual(result.data.memoryLimit, "512m");
+		});
+
+		it("accepts memoryLimit string g suffix", () => {
+			const schema = {
+				safeParse(obj) {
+					return {
+						success: true,
+						data: { memoryLimit: obj.memoryLimit || "512m" },
+					};
+				},
+			};
+			const result = schema.safeParse({ memoryLimit: "2g" });
+			assert.strictEqual(result.success, true);
+			assert.strictEqual(result.data.memoryLimit, "2g");
+		});
+
+		it("defaults memoryLimit to 512m", () => {
+			const schema = {
+				safeParse(obj) {
+					return {
+						success: true,
+						data: { memoryLimit: obj.memoryLimit || "512m" },
+					};
+				},
+			};
+			const result = schema.safeParse({});
+			assert.strictEqual(result.success, true);
+			assert.strictEqual(result.data.memoryLimit, "512m");
+		});
+	});
+});

@@ -21,6 +21,9 @@ sandbox:
     seconds: 30
     gracePeriod: 5
   memoryLimit: 512m
+  safety:
+    urlFilter: true
+    pythonImportHook: true
   env:
     allowlist:
       - PATH

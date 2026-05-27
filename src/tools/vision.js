@@ -4,6 +4,9 @@ import { ChatOpenAI } from "@langchain/openai";
 
 const MAX_IMAGE_SIZE = 4 * 1024 * 1024; // 4MB
 
+const analysisPrompt =
+	"Describe this image in detail. Include what is visible, any text present, the overall context, and notable features.";
+
 /**
  * Decode a base64 data URI into raw bytes.
  * @param {string} dataUri - Data URI string (e.g., "data:image/png;base64,...")
@@ -150,9 +153,9 @@ export async function visionAnalyzeImpl(input, _options) {
 }
 
 /**
- * @param {z.infer<typeof VisionSchema>} input
+ * @param {z.infer<typeof VisionSchema>} input - Tool input with url or dataUri
  * @param {object} _options - Runtime options
- * @returns {string}
+ * @returns {string} JSON result string
  */
 export const vision_analyze = tool(visionAnalyzeImpl, {
 	name: "vision_analyze",

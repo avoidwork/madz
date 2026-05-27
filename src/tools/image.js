@@ -94,9 +94,9 @@ export async function imageGenerateImpl(input, _options) {
 }
 
 /**
- * @param {z.infer<typeof ImageSchema>} input
+ * @param {z.infer<typeof ImageSchema>} input - Tool input
  * @param {object} _options - Runtime options
- * @returns {string}
+ * @returns {string} JSON result string
  */
 export const image_generate = tool(imageGenerateImpl, {
 	name: "image_generate",

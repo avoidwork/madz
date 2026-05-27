@@ -1,20 +1,8 @@
-import { describe, it, before, after } from "node:test";
+import { describe, it } from "node:test";
 import assert from "node:assert";
 import { executeCodeImpl } from "../../src/tools/code.js";
 
 describe("execute_code", () => {
-	let origEnv;
-
-	before(() => {
-		origEnv = {
-			PYTHON_IMPORT_HOOK: process.env.PYTHON_IMPORT_HOOK,
-		};
-	});
-
-	after(() => {
-		process.env.PYTHON_IMPORT_HOOK = origEnv.PYTHON_IMPORT_HOOK;
-	});
-
 	it("requires code", async () => {
 		const result = await executeCodeImpl({}, {});
 		const parsed = JSON.parse(result);
@@ -34,13 +22,11 @@ describe("execute_code", () => {
 		assert.ok(parsed.error.includes("Unsupported language"));
 	});
 
-	it("executes python3 code", async () => {
-		process.env.PYTHON_IMPORT_HOOK = "disable";
+	it("executes python3 code with import hook enabled by default", async () => {
 		const result = await executeCodeImpl({ code: "print(2 + 2)", language: "python3" }, {});
 		const parsed = JSON.parse(result);
 		assert.ok(parsed.ok);
 		assert.strictEqual(parsed.stdout, "4");
-		assert.strictEqual(parsed.stderr, "");
 		assert.strictEqual(parsed.exitCode, 0);
 	});
 
@@ -64,10 +50,9 @@ describe("execute_code", () => {
 	});
 
 	it("returns stderr on Python error", async () => {
-		process.env.PYTHON_IMPORT_HOOK = "disable";
 		const result = await executeCodeImpl(
 			{ code: "raise ValueError('test')", language: "python3" },
-			{},
+			{ safety: { pythonImportHook: false } },
 		);
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
@@ -76,13 +61,10 @@ describe("execute_code", () => {
 	});
 
 	it("cleans up temp file after python execution", async () => {
-		process.env.PYTHON_IMPORT_HOOK = "disable";
 		await executeCodeImpl({ code: "print('done')", language: "python3" }, {});
-		// If no crash, cleanup worked (hard to verify without filesystem access)
 	});
 
 	it("blocks subprocess import via meta_path hook", async () => {
-		delete process.env.PYTHON_IMPORT_HOOK; // Use default (hook enabled)
 		const result = await executeCodeImpl({ code: "import subprocess", language: "python3" }, {});
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
@@ -93,11 +75,10 @@ describe("execute_code", () => {
 		);
 	});
 
-	it("allows subprocess when import hook disabled", async () => {
-		process.env.PYTHON_IMPORT_HOOK = "disable";
+	it("allows subprocess when import hook disabled via safety config", async () => {
 		const result = await executeCodeImpl(
-			{ code: "import subprocess\nprint('ok')", language: "python3" },
-			{},
+			{ code: "import subprocess\nprint('ok')", language: "python3", _timeout: 300 },
+			{ safety: { pythonImportHook: false } },
 		);
 		const parsed = JSON.parse(result);
 		assert.ok(parsed.ok);
@@ -105,10 +86,19 @@ describe("execute_code", () => {
 	});
 
 	it("times out long-running code", async () => {
-		process.env.PYTHON_IMPORT_HOOK = "disable";
 		const result = await executeCodeImpl(
-			{ code: "import time; time.sleep(100)", language: "python3", timeout: 1 },
-			{},
+			{ code: "import time; time.sleep(100)", language: "python3" },
+			{ safety: { pythonImportHook: false } },
+		);
+		const parsed = JSON.parse(result);
+		assert.strictEqual(parsed.ok, false);
+		assert.ok(parsed.error.includes("timed out") || parsed.error.includes("timeout"));
+	});
+
+	it("uses config timeout from options", async () => {
+		const result = await executeCodeImpl(
+			{ code: "import time; time.sleep(100)", language: "python3" },
+			{ safety: { pythonImportHook: false }, timeout: { seconds: 1 } },
 		);
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);

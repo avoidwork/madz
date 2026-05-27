@@ -350,9 +350,9 @@ export async function webExtractImpl(input, _options) {
 /// -- Tool definitions --
 
 /**
- * @param {z.infer<typeof WebSearchSchema>} input
+ * @param {z.infer<typeof WebSearchSchema>} input - Tool input with query
  * @param {object} _options - Runtime options
- * @returns {string}
+ * @returns {string} JSON result string
  */
 export const web_search = tool(webSearchImpl, {
 	name: "web_search",
@@ -371,9 +371,9 @@ export const web_search = tool(webSearchImpl, {
 });
 
 /**
- * @param {z.infer<typeof WebExtractSchema>} input
+ * @param {z.infer<typeof WebExtractSchema>} input - Tool input with URL
  * @param {object} _options - Runtime options
- * @returns {string}
+ * @returns {string} JSON result string
  */
 export const web_extract = tool(webExtractImpl, {
 	name: "web_extract",
