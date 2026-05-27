@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
-import { executeCodeImpl, parseMemLimit } from "../../src/tools/code.js";
+import { executeCodeImpl, parseMemLimit, killProcess } from "../../src/tools/code.js";
 
 describe("execute_code", () => {
 	it("requires code", async () => {
@@ -105,15 +105,39 @@ describe("execute_code", () => {
 		assert.ok(parsed.error.includes("timed out") || parsed.error.includes("timeout"));
 	});
 
-	it("returns error on spawn failure", async () => {
-		// Use non-existent interpreter to trigger spawn error
+	it("uses explicit _timeout for execution duration", async () => {
 		const result = await executeCodeImpl(
-			{ code: "hello", language: "python3" },
-			{ safety: { pythonImportHook: false }, timeout: { _timeout: 300 } },
+			{ code: "print('done')", language: "python3", _timeout: 300 },
+			{ safety: { pythonImportHook: false } },
 		);
 		const parsed = JSON.parse(result);
-		// Might succeed if python3 is available, or fail with spawn error
-		assert.ok(parsed.ok !== undefined);
+		assert.ok(parsed.ok);
+		assert.strictEqual(parsed.stdout, "done");
+	});
+});
+
+describe("killProcess", () => {
+	it("kills a child that hasn't been killed yet", () => {
+		const killedArgs = [];
+		const child = { killed: false, kill: (...args) => killedArgs.push(args) };
+		killProcess(child);
+		assert.strictEqual(killedArgs.length, 1);
+		assert.deepStrictEqual(killedArgs[0], ["SIGKILL"]);
+	});
+
+	it("skills a child that's already killed", () => {
+		const killedArgs = [];
+		const child = { killed: true, kill: (...args) => killedArgs.push(args) };
+		killProcess(child);
+		assert.strictEqual(killedArgs.length, 0);
+	});
+
+	it("handles undefined child gracefully", () => {
+		killProcess(undefined);
+	});
+
+	it("handles null child gracefully", () => {
+		killProcess(null);
 	});
 });
 
