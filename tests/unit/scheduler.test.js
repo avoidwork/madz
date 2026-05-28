@@ -1,57 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
-
-// --- Scheduler parser logic (copied from parser.js) ---
-
-function validateCron(expression) {
-	if (!expression || typeof expression !== "string") {
-		return { valid: false, error: "Cron expression is required" };
-	}
-	const fields = expression.trim().split(/\s+/);
-	if (fields.length < 5 || fields.length > 6) {
-		return { valid: false, error: `Expected 5-6 fields, got ${fields.length}` };
-	}
-	const minuteRe = /^(\d{1,2}|\*)(\/\d+)?$/;
-	const hourRe = /^(\d{1,2}|\*)(\/\d+)?$/;
-	const dayRe = /^(\d{1,2}|\*(-\d{1,2})?|\*)(\/\d+)?$/;
-	const monthRe = /^(\d{1,2}|\*[/-]\d+|\*)(\/\d+)?$/;
-	const dowRe = /^(\d{1,2}|\*\(-\d+)?\*(\/\d+)?$/;
-	const patterns = [minuteRe, hourRe, dayRe, monthRe, dowRe];
-	for (let i = 0; i < fields.length - 1; i++) {
-		if (!patterns[i].test(fields[i])) {
-			return { valid: false, error: `Invalid field "${fields[i]}" at position ${i}` };
-		}
-	}
-	return { valid: true, error: "" };
-}
-
-function parseScheduleEntry(entry) {
-	if (!entry.name) {
-		return { valid: false, error: "Schedule entry must have a name" };
-	}
-	if (!entry.cron) {
-		return { valid: false, error: `Schedule "${entry.name}" must have a cron expression` };
-	}
-	const cronValidation = validateCron(entry.cron);
-	if (!cronValidation.valid) {
-		return { valid: false, error: `Schedule "${entry.name}": ${cronValidation.error}` };
-	}
-	return {
-		valid: true,
-		error: "",
-		parsed: {
-			name: entry.name,
-			cron: entry.cron,
-			skill: entry.skill || "",
-			input: entry.input || {},
-			contextFile: entry.contextFile || "",
-			enabled: entry.enabled !== false,
-			paused: false,
-			lastRun: null,
-			nextRun: null,
-		},
-	};
-}
+import { validateCron, parseScheduleEntry } from "../../src/scheduler/parser.js";
 
 // --- Queue logic ---
 
@@ -124,6 +73,39 @@ describe("scheduler - cron validation", () => {
 		assert.deepStrictEqual(validateCron(""), {
 			valid: false,
 			error: "Cron expression is required",
+		});
+	});
+
+	it("rejects non-string number", () => {
+		assert.deepStrictEqual(validateCron(123), {
+			valid: false,
+			error: "Cron expression is required",
+		});
+	});
+
+	it("rejects non-string boolean", () => {
+		assert.deepStrictEqual(validateCron(true), {
+			valid: false,
+			error: "Cron expression is required",
+		});
+	});
+
+	it("rejects non-string object", () => {
+		assert.deepStrictEqual(validateCron({}), {
+			valid: false,
+			error: "Cron expression is required",
+		});
+	});
+
+	it("rejects expression with invalid field pattern", () => {
+		assert.deepStrictEqual(validateCron("abc 9 * * *"), {
+			valid: false,
+			error: 'Invalid field "abc" at position 0',
+		});
+
+		assert.deepStrictEqual(validateCron("0 xyz * * *"), {
+			valid: false,
+			error: 'Invalid field "xyz" at position 1',
 		});
 	});
 });
