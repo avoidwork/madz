@@ -90,7 +90,7 @@ export class ScheduleManager {
 			return { error: `Schedule "${name}" is paused` };
 		}
 
-		const result = await runScheduledSkill(entry, scheduler.sandbox, scheduler.state);
+		const result = await runScheduledSkill(entry, _scheduler.sandbox, _scheduler.state);
 		const endTime = new Date().toISOString();
 
 		if (result && result.exitCode !== undefined) {
@@ -160,7 +160,7 @@ export class ScheduleManager {
  * @param {Date} now - Current date/time
  * @returns {boolean}
  */
-function shouldRun(cron, now) {
+export function shouldRun(cron, now) {
 	const fields = cron.trim().split(/\s+/);
 	const [minute, hour] = fields.length >= 2 ? [fields[0], fields[1]] : [fields[0], "*"];
 
