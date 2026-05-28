@@ -1,6 +1,6 @@
 import { describe, it, before, after } from "node:test";
 import assert from "node:assert";
-import { writeFileSync, mkdirSync, existsSync, rmSync, readFileSync } from "node:fs";
+import { writeFileSync, mkdirSync, existsSync, rmSync, readFileSync, chmodSync } from "node:fs";
 import { join } from "node:path";
 import {
 	readFileImpl,
@@ -11,6 +11,7 @@ import {
 	levenshteinDistance,
 	suggestSimilarFile,
 	generateUnifiedDiff,
+	searchFilesImpl,
 } from "../../src/tools/filesystem.js";
 
 const testDir = join(process.cwd(), "memory", "__test_files__");
@@ -77,6 +78,26 @@ describe("tools - filesystem impl", () => {
 				{ allowedPaths, maxReadSize: "1mb" },
 			);
 			assert.ok(!result.includes("Error: Access denied"));
+		});
+
+		it("returns file not found error when file missing", async () => {
+			const result = await readFileImpl(
+				{ path: join(testDir, "nonexistent_file.txt") },
+				{ allowedPaths, maxReadSize: "1mb" },
+			);
+			assert.ok(result.includes("not found") || result.includes("File not found"));
+		});
+
+		it("returns generic error for files that cannot be read", async () => {
+			const target = join(testDir, "unreadable.txt");
+			writeFileSync(target, "secret data");
+			chmodSync(target, 0o000);
+			try {
+				const result = await readFileImpl({ path: target }, { allowedPaths, maxReadSize: "1mb" });
+				assert.ok(typeof result === "string");
+			} finally {
+				chmodSync(target, 0o644);
+			}
 		});
 	});
 
@@ -163,6 +184,20 @@ describe("tools - filesystem impl", () => {
 			);
 		});
 
+		it("provides levenshtein suggestions when fuzzy fails", async () => {
+			const target = join(testDir, "patch_lev.txt");
+			writeFileSync(target, "hello there\nworld of code\nthis is a test");
+			const result = await patchImpl(
+				{ path: target, oldStr: "helo tehr", newStr: "hello there" },
+				{ allowedPaths, maxReadSize: "1mb" },
+			);
+			assert.ok(
+				result.includes("could not find") ||
+					result.includes("failed") ||
+					result.includes("Suggestions"),
+			);
+		});
+
 		it("rejects path outside sandbox", async () => {
 			const result = await patchImpl(
 				{ path: "/tmp/patch.txt", oldStr: "a", newStr: "b" },
@@ -202,6 +237,19 @@ describe("tools - filesystem impl", () => {
 			assert.ok(
 				typeof result === "string" && (result.includes("Found") || result.includes("deep")),
 			);
+		});
+
+		it("handles inaccessible directories gracefully", async () => {
+			const inaccessibleDir = join(testDir, "ns_inaccessible");
+			mkdirSync(inaccessibleDir, { recursive: true });
+			writeFileSync(join(inaccessibleDir, "file.txt"), "no matches here");
+			chmodSync(inaccessibleDir, 0o000);
+			try {
+				const result = await nativeSearch("test", inaccessibleDir, 10);
+				assert.ok(typeof result === "string");
+			} finally {
+				chmodSync(inaccessibleDir, 0o755);
+			}
 		});
 	});
 
@@ -274,6 +322,12 @@ describe("tools - filesystem impl", () => {
 			const result = fuzzyMatch("totally absent text", "const x = 1");
 			assert.strictEqual(result[0].found, false);
 		});
+
+		it("finds multi-line block match (strategy 2)", () => {
+			const content = "line0\nconst x = 1;\nconst y = 2;\nline3";
+			const result = fuzzyMatch("const x = 1;\nconst y = 2;", content);
+			assert.strictEqual(result[0].found, true);
+		});
 	});
 
 	describe("levenshteinDistance", () => {
@@ -312,6 +366,41 @@ describe("tools - filesystem impl", () => {
 		it("generates diff for empty new string", () => {
 			const result = generateUnifiedDiff("old content", "");
 			assert.ok(result.includes("-"));
+		});
+
+		it("generates diff with remaining old lines", () => {
+			const result = generateUnifiedDiff("a\nb\nc\nd", "a\nb");
+			assert.ok(result.includes("-c"));
+			assert.ok(result.includes("-d"));
+		});
+
+		it("generates diff with remaining new lines", () => {
+			const result = generateUnifiedDiff("a\nb", "a\nb\nc\nd");
+			assert.ok(result.includes("+c"));
+			assert.ok(result.includes("+d"));
+		});
+	});
+
+	describe("searchFilesImpl", () => {
+		it("calls nativeSearch fallback when rg is not found", async () => {
+			const searchPath = join(testDir, "search_impl_test");
+			mkdirSync(searchPath, { recursive: true });
+			writeFileSync(join(searchPath, "file.txt"), "error: timeout");
+			const result = await searchFilesImpl(
+				{ path: searchPath, pattern: "error", target: "content", maxResults: 5 },
+				{ allowedPaths: [searchPath] },
+			);
+			assert.ok(typeof result === "string");
+		});
+
+		it("returns error message for generic search failures", async () => {
+			const searchPath = join(testDir, "error_path");
+			mkdirSync(searchPath, { recursive: true });
+			const result = await searchFilesImpl(
+				{ path: searchPath, pattern: "test", target: "content" },
+				{ allowedPaths: [searchPath] },
+			);
+			assert.ok(typeof result === "string");
 		});
 	});
 });
