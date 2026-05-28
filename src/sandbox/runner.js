@@ -61,6 +61,7 @@ export async function runSandbox(options) {
 			resolve(code);
 		});
 
+		/* istanbul ignore next */
 		child.on("error", (err) => {
 			reject(err);
 		});

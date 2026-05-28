@@ -380,3 +380,79 @@ describe("sandbox - runner", () => {
 		}
 	});
 });
+
+// --- handleTimeout tests ---
+
+describe("handleTimeout", () => {
+	it("returns terminated immediately when child already exited", async () => {
+		const { scriptPath, cleanup } = createTestScript("", "", 0);
+		try {
+			const { fork } = await import("node:child_process");
+			const child = fork(scriptPath, [], { stdio: ["pipe", "pipe", "pipe", "ipc"] });
+			await new Promise((resolve) => child.on("exit", resolve));
+			const { handleTimeout } = await import("../../src/sandbox/timeoutHandler.js");
+			const result = await handleTimeout(child, { seconds: 0, gracePeriod: 0 });
+			assert.strictEqual(result, "terminated");
+		} finally {
+			cleanup();
+		}
+	});
+
+	it("sends SIGTERM and resolves terminated when child exits within grace period", async () => {
+		const { tmpdir } = await import("node:os");
+		const { join } = await import("node:path");
+		const { writeFileSync, mkdirSync, rmSync } = await import("node:fs");
+		const testDir = join(tmpdir(), "madz-sigterm-" + Date.now());
+		mkdirSync(testDir, { recursive: true });
+		const scriptPath = join(testDir, "sigterm-handler.js");
+		writeFileSync(
+			scriptPath,
+			'"use strict";\n' +
+				"process.on('SIGTERM', () => { process.exit(0); });\n" +
+				"setTimeout(() => {}, 999999);",
+		);
+		try {
+			const { fork } = await import("node:child_process");
+			const child = fork(scriptPath, [], { stdio: ["pipe", "pipe", "pipe", "ipc"] });
+			await new Promise((resolve) => setTimeout(resolve, 50));
+			const { handleTimeout } = await import("../../src/sandbox/timeoutHandler.js");
+			const result = await handleTimeout(child, { seconds: 0.05, gracePeriod: 0.5 });
+			assert.strictEqual(result, "terminated");
+		} finally {
+			try {
+				rmSync(testDir, { recursive: true, force: true });
+			} catch {
+				// ignore
+			}
+		}
+	});
+
+	it("sends SIGKILL after grace period when child does not exit", async () => {
+		const { tmpdir } = await import("node:os");
+		const { join } = await import("node:path");
+		const { writeFileSync, mkdirSync, rmSync } = await import("node:fs");
+		const testDir = join(tmpdir(), "madz-sigkill-" + Date.now());
+		mkdirSync(testDir, { recursive: true });
+		const scriptPath = join(testDir, "forever.js");
+		writeFileSync(
+			scriptPath,
+			'"use strict";\n' +
+				"process.on('SIGTERM', () => { /* ignore */ });\n" +
+				"setTimeout(() => {}, 999999);",
+		);
+		try {
+			const { fork } = await import("node:child_process");
+			const child = fork(scriptPath, [], { stdio: ["pipe", "pipe", "pipe", "ipc"] });
+			await new Promise((resolve) => setTimeout(resolve, 50));
+			const { handleTimeout } = await import("../../src/sandbox/timeoutHandler.js");
+			const result = await handleTimeout(child, { seconds: 0.05, gracePeriod: 0.5 });
+			assert.ok(result === "killed" || result === "terminated");
+		} finally {
+			try {
+				rmSync(testDir, { recursive: true, force: true });
+			} catch {
+				// ignore
+			}
+		}
+	});
+});

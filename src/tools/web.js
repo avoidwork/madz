@@ -165,7 +165,7 @@ async function searchWithTavily(apiKey, query, limit) {
  * @param {number} limit
  * @returns {Promise<{ ok: boolean, results?: unknown[], error?: string }>}
  */
-/* istanbul ignore next */
+/* node:coverage ignore next */
 async function searchWithParallel(query, limit) {
 	const controller = new AbortController();
 	const timeoutId = setTimeout(() => controller.abort(), 10000);

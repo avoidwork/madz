@@ -179,7 +179,7 @@ export function ConversationPanel({ messages = [], assistantName = "Assistant" }
 		);
 	}
 
-	/* istanbul ignore next */
+	/* node:coverage ignore next */
 	return React.createElement(
 		Box,
 		{ key: "panel", flexDirection: "column", flexGrow: 1 },

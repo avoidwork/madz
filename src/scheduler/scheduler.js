@@ -185,6 +185,7 @@ function matchesField(value, field) {
 		const [from, to] = field.split("-").map(Number);
 		return value >= from && value <= to;
 	}
+	/* // unreachable - parseInt never throws */
 	try {
 		return value === parseInt(field, 10);
 	} catch {

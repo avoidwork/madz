@@ -74,4 +74,32 @@ describe("sessionSearch", () => {
 		);
 		assert.ok(typeof result === "string" && result.includes("not found"));
 	});
+
+	it("browse returns serialized JSON with file, date, sessionId, preview", async () => {
+		writeFileSync(
+			join(testDir, "conv_sub", "browse-test.md"),
+			"---\nsessionId: browse-123\n---\ntest content browse",
+		);
+		const result = await sessionSearchImpl({}, { conversationsDir: testSubDir });
+		const parsed = JSON.parse(result);
+		assert.ok(Array.isArray(parsed));
+		assert.ok(parsed.length > 0);
+		const conv = parsed.find((c) => c.file === "browse-test.md");
+		assert.ok(conv);
+		assert.strictEqual(conv.sessionId, "browse-123");
+		assert.ok(typeof conv.preview === "string");
+	});
+
+	it("browse parses body as JSON array for preview", async () => {
+		writeFileSync(
+			join(testDir, "conv_sub", "json-body.md"),
+			'---\nsessionId: json-sess\n---\n[{"role": "user", "content": "Hello world"}]',
+		);
+		const result = await sessionSearchImpl({}, { conversationsDir: testSubDir });
+		const parsed = JSON.parse(result);
+		const jsonEntry = parsed.find((c) => c.file === "json-body.md");
+		assert.ok(jsonEntry);
+		// The preview should come from parsed[0].content
+		assert.ok(jsonEntry.preview.includes("Hello world"));
+	});
 });
