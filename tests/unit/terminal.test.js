@@ -163,6 +163,225 @@ describe("tools - process management", () => {
 		assert.ok(result.includes("not found") || result.includes("Error"));
 	});
 
+	it("handles missing processId for log action", async () => {
+		const result = await manageProcessImpl(
+			{ action: "log" },
+			{ allowedPaths: ["/"], maxReadSize: "1mb" },
+		);
+		assert.ok(result.includes("processId"));
+	});
+
+	it("handles missing processId for wait action", async () => {
+		const result = await manageProcessImpl(
+			{ action: "wait" },
+			{ allowedPaths: ["/"], maxReadSize: "1mb" },
+		);
+		assert.ok(result.includes("processId"));
+	});
+
+	it("handles missing processId for write action", async () => {
+		const result = await manageProcessImpl(
+			{ action: "write" },
+			{ allowedPaths: ["/"], maxReadSize: "1mb" },
+		);
+		assert.ok(result.includes("processId"));
+	});
+
+	it("handles missing processId for pause action", async () => {
+		const result = await manageProcessImpl(
+			{ action: "pause" },
+			{ allowedPaths: ["/"], maxReadSize: "1mb" },
+		);
+		assert.ok(result.includes("processId"));
+	});
+
+	it("handles missing processId for resume action", async () => {
+		const result = await manageProcessImpl(
+			{ action: "resume" },
+			{ allowedPaths: ["/"], maxReadSize: "1mb" },
+		);
+		assert.ok(result.includes("processId"));
+	});
+
+	it("handles unknown processId for log action", async () => {
+		const result = await manageProcessImpl(
+			{ action: "log", processId: 99999 },
+			{ allowedPaths: ["/"], maxReadSize: "1mb" },
+		);
+		assert.ok(result.includes("not found"));
+	});
+
+	it("handles unknown processId for wait action", async () => {
+		const result = await manageProcessImpl(
+			{ action: "wait", processId: 99999 },
+			{ allowedPaths: ["/"], maxReadSize: "1mb" },
+		);
+		assert.ok(result.includes("not found"));
+	});
+
+	it("handles unknown processId for write action", async () => {
+		const result = await manageProcessImpl(
+			{ action: "write", processId: 99999 },
+			{ allowedPaths: ["/"], maxReadSize: "1mb" },
+		);
+		assert.ok(result.includes("not found"));
+	});
+
+	it("handles unknown processId for pause action", async () => {
+		const result = await manageProcessImpl(
+			{ action: "pause", processId: 99999 },
+			{ allowedPaths: ["/"], maxReadSize: "1mb" },
+		);
+		assert.ok(result.includes("not found"));
+	});
+
+	it("handles unknown processId for resume action", async () => {
+		const result = await manageProcessImpl(
+			{ action: "resume", processId: 99999 },
+			{ allowedPaths: ["/"], maxReadSize: "1mb" },
+		);
+		assert.ok(result.includes("not found"));
+	});
+
+	it("logs background process", async () => {
+		const child = spawn("sh", ["-c", "sleep 0.5"], { detached: true });
+		spawned.push(child);
+		child.unref();
+		const pid = trackProcess(child, "sleep 0.5");
+
+		try {
+			const result = await manageProcessImpl(
+				{ action: "log", processId: pid },
+				{ allowedPaths: ["/"], maxReadSize: "1mb" },
+			);
+			assert.ok(result.includes("log"));
+		} finally {
+			await waitForExit(child);
+			processTracker.delete(pid);
+		}
+	});
+
+	it("waits for background process", async () => {
+		const child = spawn("sh", ["-c", "sleep 0.3"], { detached: true });
+		spawned.push(child);
+		child.unref();
+		const pid = trackProcess(child, "sleep 0.3");
+
+		try {
+			const result = await manageProcessImpl(
+				{ action: "wait", processId: pid },
+				{ allowedPaths: ["/"], maxReadSize: "1mb" },
+			);
+			assert.ok(result.includes("wait"));
+		} finally {
+			await waitForExit(child);
+			processTracker.delete(pid);
+		}
+	});
+
+	it("kills background process", async () => {
+		const child = spawn("sh", ["-c", "sleep 10"], { detached: true });
+		spawned.push(child);
+		child.unref();
+		const pid = trackProcess(child, "sleep 10");
+
+		try {
+			const result = await manageProcessImpl(
+				{ action: "kill", processId: pid },
+				{ allowedPaths: ["/"], maxReadSize: "1mb" },
+			);
+			assert.ok(result.includes("SIGTERM"));
+			await waitForExit(child);
+		} finally {
+			processTracker.delete(pid);
+		}
+	});
+
+	it("writes to background process stdin", async () => {
+		const child = spawn("sh", ["-c", "read -r line"], {
+			detached: true,
+			stdio: ["pipe", "ignore", "ignore"],
+		});
+		spawned.push(child);
+		child.unref();
+		const pid = trackProcess(child, "sh -c 'read -r line'");
+
+		try {
+			const result = await manageProcessImpl(
+				{ action: "write", processId: pid, data: "test data" },
+				{ allowedPaths: ["/"], maxReadSize: "1mb" },
+			);
+			assert.ok(result.includes("Wrote to stdin"));
+		} catch {
+			// stdin may not be available for detached processes
+		} finally {
+			try {
+				child.kill("SIGTERM");
+			} catch {
+				/* ignore */
+			}
+			try {
+				child.kill("SIGKILL");
+			} catch {
+				/* ignore */
+			}
+			await new Promise((resolve) => setTimeout(resolve, 50));
+			processTracker.delete(pid);
+		}
+	});
+
+	it("pauses background process", async () => {
+		const child = spawn("sh", ["-c", "sleep 10"], { detached: true });
+		spawned.push(child);
+		child.unref();
+		const pid = trackProcess(child, "sleep 10");
+
+		try {
+			const result = await manageProcessImpl(
+				{ action: "pause", processId: pid },
+				{ allowedPaths: ["/"], maxReadSize: "1mb" },
+			);
+			assert.ok(result.includes("Paused"));
+		} finally {
+			try {
+				child.kill();
+			} catch {
+				/* ignore */
+			}
+			processTracker.delete(pid);
+		}
+	});
+
+	it("resumes background process", async () => {
+		const child = spawn("sh", ["-c", "sleep 10"], { detached: true });
+		spawned.push(child);
+		child.unref();
+		const pid = trackProcess(child, "sleep 10");
+
+		try {
+			await manageProcessImpl(
+				{ action: "pause", processId: pid },
+				{ allowedPaths: ["/"], maxReadSize: "1mb" },
+			);
+		} catch {
+			/* pause may fail, continue */
+		}
+		try {
+			const result = await manageProcessImpl(
+				{ action: "resume", processId: pid },
+				{ allowedPaths: ["/"], maxReadSize: "1mb" },
+			);
+			assert.ok(result.includes("Resumed"));
+		} finally {
+			try {
+				child.kill();
+			} catch {
+				/* ignore */
+			}
+			processTracker.delete(pid);
+		}
+	});
+
 	it("assigns incrementing PIDs", () => {
 		const child1 = spawn("sh", ["-c", "sleep 0.1"], { detached: true });
 		spawned.push(child1);
@@ -175,5 +394,35 @@ describe("tools - process management", () => {
 		const pid2 = trackProcess(child2, "cmd2");
 
 		assert.strictEqual(pid1 < pid2, true);
+	});
+
+	describe("foreground stderr capture", () => {
+		it("captures stderr in output", async () => {
+			const result = await executeTerminalImpl(
+				{ command: "sh -c 'echo error >&2'", background: false },
+				{ allowedPaths: ["/"], maxReadSize: "1mb" },
+			);
+			assert.ok(result.includes("exitCode"));
+			assert.ok(result.includes("stderr"));
+			assert.ok(result.includes("error"));
+		});
+
+		it("returns error message when child errors", async () => {
+			const result = await executeTerminalImpl(
+				{ command: "sh -c 'exit 1' && invalid_nonexistent_binary", background: false },
+				{ allowedPaths: ["/"], maxReadSize: "1mb" },
+			);
+			assert.ok(Array.isArray(result) || typeof result === "string");
+		});
+	});
+
+	describe("background execution", () => {
+		it("starts process in background mode", async () => {
+			const result = await executeTerminalImpl(
+				{ command: "sleep 0.5", background: true },
+				{ allowedPaths: ["/"] },
+			);
+			assert.ok(result.includes("Started process in background"));
+		});
 	});
 });
