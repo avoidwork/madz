@@ -53,60 +53,9 @@ function parseScheduleEntry(entry) {
 	};
 }
 
-// --- Queue logic (copied from queue.js) ---
+// --- Queue logic ---
 
-class ScheduleQueue {
-	#queue = [];
-	#running = 0;
-	#maxConcurrent;
-
-	constructor(maxConcurrent = 1) {
-		this.#maxConcurrent = maxConcurrent;
-	}
-
-	enqueue(task) {
-		this.#queue.push(task);
-		this.#drain();
-		return { queued: true, position: this.#queue.length };
-	}
-
-	complete(taskId) {
-		this.#queue = this.#queue.filter((t) => t !== taskId);
-		this.#running = Math.max(0, this.#running - 1);
-		this.#drain();
-	}
-
-	isRunning() {
-		return this.#running > 0;
-	}
-
-	getLength() {
-		return this.#queue.length;
-	}
-
-	peek() {
-		return this.#queue[0] || null;
-	}
-
-	dequeue() {
-		const task = this.#queue[0];
-		if (task && this.#running < this.#maxConcurrent) {
-			this.#queue.shift();
-			this.#running++;
-			return task;
-		}
-		return null;
-	}
-
-	clear() {
-		this.#queue = [];
-		this.#running = 0;
-	}
-
-	#drain() {
-		// Auto-drain after state change
-	}
-}
+import { ScheduleQueue } from "../../src/scheduler/queue.js";
 
 // --- Field matching (copied from scheduler.js) ---
 
@@ -243,11 +192,38 @@ describe("scheduler - entry parsing", () => {
 
 describe("scheduler - queue", () => {
 	it("enforces max concurrent (default 1)", () => {
+		const q = new ScheduleQueue();
+		q.enqueue({ task: "a" });
+		const next = q.dequeue();
+		assert.ok(next);
+		assert.strictEqual(q.getLength(), 0);
+	});
+
+	it("enforces max concurrent (default 1)", () => {
 		const q = new ScheduleQueue(1);
 		q.enqueue({ task: "a" });
 		const next = q.dequeue();
 		assert.ok(next);
 		assert.strictEqual(q.getLength(), 0);
+	});
+
+	it("accepts custom maxConcurrent", () => {
+		const q = new ScheduleQueue(3);
+		assert.strictEqual(q.getLength(), 0);
+	});
+
+	it("returns position on enqueue", () => {
+		const q = new ScheduleQueue();
+		const result = q.enqueue({ task: "a" });
+		assert.strictEqual(result.queued, true);
+		assert.strictEqual(result.position, 1);
+	});
+
+	it("returns position 2 for second enqueue", () => {
+		const q = new ScheduleQueue();
+		q.enqueue({ task: "a" });
+		const result = q.enqueue({ task: "b" });
+		assert.strictEqual(result.position, 2);
 	});
 
 	it("queues up when over limit", () => {
@@ -270,6 +246,116 @@ describe("scheduler - queue", () => {
 		q.enqueue({ name: "third" });
 
 		assert.deepStrictEqual(q.dequeue(), { name: "first" });
+	});
+
+	it("isRunning returns false when empty", () => {
+		const q = new ScheduleQueue();
+		assert.strictEqual(q.isRunning(), false);
+	});
+
+	it("isRunning returns true after dequeue", () => {
+		const q = new ScheduleQueue();
+		q.enqueue({ task: "a" });
+		q.dequeue();
+		assert.strictEqual(q.isRunning(), true);
+	});
+
+	it("isRunning returns false after complete", () => {
+		const q = new ScheduleQueue();
+		q.enqueue({ task: "a" });
+		q.dequeue();
+		q.complete("a");
+		assert.strictEqual(q.isRunning(), false);
+	});
+
+	it("getLength returns count", () => {
+		const q = new ScheduleQueue();
+		assert.strictEqual(q.getLength(), 0);
+		q.enqueue({ task: "a" });
+		assert.strictEqual(q.getLength(), 1);
+		q.enqueue({ task: "b" });
+		assert.strictEqual(q.getLength(), 2);
+	});
+
+	it("getLength returns 0 after dequeue", () => {
+		const q = new ScheduleQueue();
+		q.enqueue({ task: "a" });
+		q.dequeue();
+		assert.strictEqual(q.getLength(), 0);
+	});
+
+	it("peek returns null when empty", () => {
+		const q = new ScheduleQueue();
+		assert.strictEqual(q.peek(), null);
+	});
+
+	it("peek returns first task without removing", () => {
+		const q = new ScheduleQueue(10);
+		q.enqueue({ name: "first" });
+		const p = q.peek();
+		assert.deepStrictEqual(p, { name: "first" });
+		assert.deepStrictEqual(q.peek(), { name: "first" });
+	});
+
+	it("dequeue returns null when empty", () => {
+		const q = new ScheduleQueue();
+		assert.strictEqual(q.dequeue(), null);
+	});
+
+	it("dequeue returns null when at maxConcurrent", () => {
+		const q = new ScheduleQueue(1);
+		q.enqueue({ task: "a" });
+		q.dequeue();
+		const result = q.dequeue();
+		assert.strictEqual(result, null);
+	});
+
+	it("dequeue returns task when under limit", () => {
+		const q = new ScheduleQueue(2);
+		q.enqueue({ name: "x" });
+		const result = q.dequeue();
+		assert.deepStrictEqual(result, { name: "x" });
+	});
+
+	it("complete removes task from queue", () => {
+		const q = new ScheduleQueue();
+		q.enqueue({ task: "a" });
+		const t = q.dequeue();
+		q.complete(t.task);
+		assert.strictEqual(q.getLength(), 0);
+	});
+
+	it("complete with non-existent task id still decreases running", () => {
+		const q = new ScheduleQueue();
+		q.enqueue({ id: "a" });
+		q.dequeue();
+		q.complete("nonexistent");
+		assert.strictEqual(q.isRunning(), false);
+	});
+
+	it("clear empties queue and resets running", () => {
+		const q = new ScheduleQueue(2);
+		q.enqueue({ task: "a" });
+		q.enqueue({ task: "b" });
+		q.dequeue();
+		q.clear();
+		assert.strictEqual(q.getLength(), 0);
+		assert.strictEqual(q.isRunning(), false);
+		assert.strictEqual(q.peek(), null);
+	});
+
+	it("works with maxConcurrent > 1", () => {
+		const q = new ScheduleQueue(3);
+		q.enqueue({ task: "a" });
+		q.enqueue({ task: "b" });
+		q.enqueue({ task: "c" });
+		const r1 = q.dequeue();
+		const r2 = q.dequeue();
+		const r3 = q.dequeue();
+		assert.ok(r1);
+		assert.ok(r2);
+		assert.ok(r3);
+		assert.strictEqual(q.getLength(), 0);
 	});
 });
 
