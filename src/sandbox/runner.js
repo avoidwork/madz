@@ -61,7 +61,7 @@ export async function runSandbox(options) {
 			resolve(code);
 		});
 
-		/* istanbul ignore next */
+		// node:coverage ignore next 3
 		child.on("error", (err) => {
 			reject(err);
 		});

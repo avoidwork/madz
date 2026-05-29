@@ -90,7 +90,7 @@ export async function imageGenerateImpl(input, _options) {
 		}
 	}
 
-	/* istanbul ignore next */
+	// node:coverage ignore next
 	return JSON.stringify({ ok: false, error: "Image generation failed after retries" });
 }
 
