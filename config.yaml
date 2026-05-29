@@ -36,6 +36,7 @@ sandbox:
     - filesystem:write
     - filesystem:exec
     - process:spawn
+    - network:outbound
   maxReadSize: 1mb
 memory:
   directory: memory/

@@ -137,3 +137,36 @@ export const todo = tool(todoImpl, {
 		completed: z.boolean().optional().describe("Completion status for update action"),
 	}),
 });
+
+// --- Factory functions for creating tools with runtime options ---
+
+/**
+ * Create a todo tool with runtime options
+ * @param {object} _options - Runtime options (not used, for API compatibility)
+ * @returns {object} LangChain Tool instance
+ */
+export function createTodoTool(_options) {
+	return tool((input) => todoImpl(input, _options), {
+		name: "todo",
+		description:
+			"Task management tool. Actions: read (get all todos), create (add todos with auto-generated IDs), update (modify by ID), complete (mark done), clear (remove all). Persists to memory/tools/todo.json.",
+		schema: z.object({
+			action: z
+				.enum(["read", "create", "update", "complete", "clear"])
+				.describe("Action to perform"),
+			id: z.number().int().optional().describe("Todo ID for update/complete actions"),
+			todos: z
+				.array(
+					z.object({
+						id: z.number().int().optional(),
+						content: z.string(),
+						completed: z.boolean().optional(),
+					}),
+				)
+				.optional()
+				.describe("Todo items for create action"),
+			content: z.string().optional().describe("New content for update action"),
+			completed: z.boolean().optional().describe("Completion status for update action"),
+		}),
+	});
+}

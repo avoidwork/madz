@@ -316,3 +316,33 @@ export const cronjob = tool(cronjobImpl, {
 		input: z.record(z.unknown()).optional().describe("Job input parameters"),
 	}),
 });
+
+// --- Factory functions for creating tools with runtime options ---
+
+/**
+ * Create a cronjob tool with runtime options
+ * @param {object} options - Runtime options
+ * @returns {object} LangChain Tool instance
+ */
+export function createCronTool(options) {
+	return tool((input) => cronjobImpl(input, options), {
+		name: "cronjob",
+		description:
+			"Manage scheduled cron jobs persisted to memory/schedules/. Actions: create, list, update, pause, resume, run, remove.",
+		schema: z.object({
+			action: z
+				.enum(["create", "list", "update", "pause", "resume", "run", "remove"])
+				.describe("Action to perform"),
+			name: z
+				.string()
+				.optional()
+				.describe("Job name (required for create, update, pause, resume, run, remove)"),
+			cron: z
+				.string()
+				.optional()
+				.describe("Cron expression (5-6 fields, required for create, optional for update)"),
+			skill: z.string().optional().describe("Skill name to trigger (required for create, update)"),
+			input: z.record(z.unknown()).optional().describe("Job input parameters"),
+		}),
+	});
+}

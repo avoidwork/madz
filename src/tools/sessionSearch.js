@@ -182,3 +182,23 @@ async function browseConversations(conversationsDir) {
 		0,
 	);
 }
+
+// --- Factory functions for creating tools with runtime options ---
+
+/**
+ * Create a session_search tool with runtime options
+ * @param {object} options - Runtime options
+ * @returns {object} LangChain Tool instance
+ */
+export function createSessionSearchTool(options) {
+	return tool((input) => sessionSearchImpl(input, options), {
+		name: "session_search",
+		description:
+			"Search past conversations. Use query for keyword search, conversationId for full retrieval, or call without arguments to browse available conversations.",
+		schema: z.object({
+			query: z.string().optional().describe("Search query to find matching conversations"),
+			conversationId: z.string().optional().describe("Get full conversation by ID"),
+			limit: z.number().int().positive().default(10).describe("Maximum number of search results"),
+		}),
+	});
+}

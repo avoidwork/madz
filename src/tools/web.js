@@ -2,180 +2,26 @@ import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { filterUrl } from "../sandbox/urlFilter.js";
 
-/// -- Backend selection --
+const FETCH_TIMEOUT = 10000;
+
+/// -- DuckDuckGo (HTML scrape) --
 
 /**
- * Detect which search API is configured from environment variables.
- * Priority: Exa > Firecrawl > Tavily > Parallel.
- * @returns {string} Backend name or "none"
+ * Search DuckDuckGo via HTML scrape.
+ * @param {string} query - Search query
+ * @param {number} limit - Max results
+ * @returns {Promise<{ ok: boolean, results?: object[], error?: string }>}
  */
-export function detectSearchBackend() {
-	if (process.env.EXA_API_KEY) return "exa";
-	if (process.env.FIRECRAWL_API_KEY) return "firecrawl";
-	if (process.env.TAVILY_API_KEY) return "tavily";
-	if (process.env.PARALLEL_API_KEY) return "parallel";
-	return "none";
-}
-
-/// -- Exa backend --
-
-/**
- * Search using Exa API.
- * @param {string} apiKey
- * @param {string} query
- * @param {number} limit
- * @returns {Promise<{ ok: boolean, results?: unknown[], error?: string }>}
- */
-async function searchWithExa(apiKey, query, limit) {
+async function searchWithDuckDuckGo(query, limit) {
 	const controller = new AbortController();
-	const timeoutId = setTimeout(() => controller.abort(), 10000);
-	try {
-		const resp = await fetch("https://api.exa.ai/search", {
-			method: "POST",
-			headers: {
-				Authorization: `Bearer ${apiKey}`,
-				"Content-Type": "application/json",
-			},
-			body: JSON.stringify({
-				query,
-				type: "neural",
-				numResults: Math.min(Math.max(limit, 1), 5),
-				useAutoQuery: true,
-			}),
-			signal: controller.signal,
-		});
-		clearTimeout(timeoutId);
-		if (!resp.ok) {
-			const text = await resp.text().catch(() => "");
-			return { ok: false, error: `Exa API error (${resp.status}): ${text.slice(0, 200)}` };
-		}
-		const data = await resp.json();
-		return {
-			ok: true,
-			results: (data.results || []).slice(0, limit).map((r) => ({
-				title: r.title || r.text?.slice(0, 100) || "Untitled",
-				url: r.url || "",
-				description: r.text?.slice(0, 500) || "",
-			})),
-		};
-	} catch (err) {
-		clearTimeout(timeoutId);
-		return { ok: false, error: `Exa request failed: ${err.message}` };
-	}
-}
-
-/// -- Firecrawl backend --
-
-/**
- * Search using Firecrawl API.
- * @param {string} apiKey
- * @param {string} query
- * @param {number} limit
- * @returns {Promise<{ ok: boolean, results?: unknown[], error?: string }>}
- */
-async function searchWithFirecrawl(apiKey, query, limit) {
-	const controller = new AbortController();
-	const timeoutId = setTimeout(() => controller.abort(), 10000);
-	try {
-		const resp = await fetch("https://api.firecrawl.dev/v1/search", {
-			method: "POST",
-			headers: {
-				Authorization: `Bearer ${apiKey}`,
-				"Content-Type": "application/json",
-			},
-			body: JSON.stringify({
-				query,
-				limit: Math.min(Math.max(limit, 1), 5),
-			}),
-			signal: controller.signal,
-		});
-		clearTimeout(timeoutId);
-		if (!resp.ok) {
-			const text = await resp.text().catch(() => "");
-			return { ok: false, error: `Firecrawl API error (${resp.status}): ${text.slice(0, 200)}` };
-		}
-		const data = await resp.json();
-		const pages = data.data || [];
-		return {
-			ok: true,
-			results: pages.slice(0, limit).map((p) => ({
-				title: p.metadata?.title || "Untitled",
-				url: p.metadata?.sourceURL || p.metadata?.url || "",
-				description: p.markdown?.slice(0, 500) || "",
-			})),
-		};
-	} catch (err) {
-		clearTimeout(timeoutId);
-		return { ok: false, error: `Firecrawl request failed: ${err.message}` };
-	}
-}
-
-/// -- Tavily backend --
-
-/**
- * Search using Tavily API.
- * @param {string} apiKey
- * @param {string} query
- * @param {number} limit
- * @returns {Promise<{ ok: boolean, results?: unknown[], error?: string }>}
- */
-async function searchWithTavily(apiKey, query, limit) {
-	const controller = new AbortController();
-	const timeoutId = setTimeout(() => controller.abort(), 10000);
-	try {
-		const resp = await fetch("https://api.tavily.com/search", {
-			method: "POST",
-			headers: {
-				Authorization: `Bearer ${apiKey}`,
-				"Content-Type": "application/json",
-			},
-			body: JSON.stringify({
-				query,
-				max_results: Math.min(Math.max(limit, 1), 10),
-				include_answer: false,
-			}),
-			signal: controller.signal,
-		});
-		clearTimeout(timeoutId);
-		if (!resp.ok) {
-			const text = await resp.text().catch(() => "");
-			return { ok: false, error: `Tavily API error (${resp.status}): ${text.slice(0, 200)}` };
-		}
-		const data = await resp.json();
-		return {
-			ok: true,
-			results: (data.results || []).slice(0, limit).map((r) => ({
-				title: r.title || "Untitled",
-				url: r.url || "",
-				description: r.content?.slice(0, 500) || "",
-			})),
-		};
-	} catch (err) {
-		clearTimeout(timeoutId);
-		return { ok: false, error: `Tavily request failed: ${err.message}` };
-	}
-}
-
-/// -- Parallel backend --
-
-/**
- * Fallback parallel search when no API keys are configured.
- * Uses a simple HTML fetch and basic text extraction.
- * @param {string} query
- * @param {number} limit
- * @returns {Promise<{ ok: boolean, results?: unknown[], error?: string }>}
- */
-/* node:coverage ignore next */
-async function searchWithParallel(query, limit) {
-	const controller = new AbortController();
-	const timeoutId = setTimeout(() => controller.abort(), 10000);
+	const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
 	try {
 		const resp = await fetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`, {
 			signal: controller.signal,
 		});
 		clearTimeout(timeoutId);
 		if (!resp.ok) {
-			return { ok: false, error: `Parallel search HTTP error: ${resp.status}` };
+			return { ok: false, error: `DuckDuckGo HTTP error: ${resp.status}` };
 		}
 		const html = await resp.text();
 		const results = [];
@@ -190,21 +36,181 @@ async function searchWithParallel(query, limit) {
 			});
 		}
 		if (results.length === 0) {
-			return { ok: false, error: "Parallel search returned no results" };
+			return { ok: false, error: "DuckDuckGo returned no results" };
 		}
 		return { ok: true, results };
-	} catch (err) {
+	} catch {
 		clearTimeout(timeoutId);
-		return { ok: false, error: `Parallel search failed: ${err.message}` };
+		return { ok: false, error: "DuckDuckGo search failed" };
 	}
+}
+
+/// -- Google (HTML scrape) --
+
+/// -- Bing --
+
+/**
+ * Search using Bing API.
+ * @param {string} apiKey - Bing subscription key
+ * @param {string} query - Search query
+ * @param {number} limit - Max results
+ * @returns {Promise<{ ok: boolean, results?: object[], error?: string }>}
+ */
+async function searchWithBing(apiKey, query, limit) {
+	const controller = new AbortController();
+	const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+	try {
+		const url = new URL("https://api.bing.microsoft.com/v7.0/search");
+		url.searchParams.set("q", query);
+		url.searchParams.set("count", String(Math.min(Math.max(limit, 1), 50)));
+		const resp = await fetch(url, {
+			method: "GET",
+			headers: { "Ocp-Apim-Subscription-Key": apiKey },
+			signal: controller.signal,
+		});
+		clearTimeout(timeoutId);
+		if (!resp.ok) {
+			const text = await resp.text().catch(() => "");
+			return { ok: false, error: `Bing API error (${resp.status}): ${text.slice(0, 200)}` };
+		}
+		const data = await resp.json();
+		return {
+			ok: true,
+			results: (data.webPages?.value || []).slice(0, limit).map((r) => ({
+				title: r.name || "Untitled",
+				url: r.url || "",
+				description: r.snippet || "",
+			})),
+		};
+	} catch {
+		clearTimeout(timeoutId);
+		return { ok: false, error: "Bing search failed" };
+	}
+}
+
+/// -- SearXNG --
+
+/**
+ * Search using SearXNG API.
+ * @param {string} searxngUrl - SearXNG instance URL
+ * @param {string} query - Search query
+ * @param {number} limit - Max results
+ * @returns {Promise<{ ok: boolean, results?: object[], error?: string }>}
+ */
+async function searchWithSearXNG(searxngUrl, query, limit) {
+	const controller = new AbortController();
+	const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+	try {
+		const url = new URL(searxngUrl);
+		url.searchParams.set("q", query);
+		url.searchParams.set("format", "json");
+		url.searchParams.set("number", String(Math.min(Math.max(limit, 1), 100)));
+		const resp = await fetch(url, { signal: controller.signal });
+		clearTimeout(timeoutId);
+		if (!resp.ok) {
+			return { ok: false, error: `SearXNG HTTP error: ${resp.status}` };
+		}
+		const data = await resp.json();
+		return {
+			ok: true,
+			results: (data.results || []).slice(0, limit).map((r) => ({
+				title: r.title || "Untitled",
+				url: r.url || "",
+				description: r.content?.slice(0, 500) || "",
+			})),
+		};
+	} catch {
+		clearTimeout(timeoutId);
+		return { ok: false, error: "SearXNG search failed" };
+	}
+}
+
+/// -- Custom search --
+
+/**
+ * Search using a user-configured custom endpoint.
+ * @param {object} cfg - Custom search configuration
+ * @param {string} cfg.url - Request URL with {{query}} and {{apiKey}} placeholders
+ * @param {string} [cfg.method="POST"] - HTTP method
+ * @param {string} [cfg.body] - Request body (for POST) with {{query}} and {{apiKey}} placeholders
+ * @param {string} [cfg.headers] - JSON string of headers with {{apiKey}} placeholder support
+ * @param {string} [cfg.queryKey="results"] - JSON field containing results array
+ * @param {string} [cfg.titleField="title"] - Field name for title
+ * @param {string} [cfg.urlField="url"] - Field name for URL
+ * @param {string} [cfg.descriptionField="description"] - Field name for description
+ * @param {string} [cfg.apiKey] - API key (falls back to environment variable)
+ * @param {string} query - Search query
+ * @param {number} limit - Max results
+ * @returns {Promise<{ ok: boolean, results?: object[], error?: string }>}
+ */
+async function searchWithCustom(cfg, query, limit) {
+	const controller = new AbortController();
+	const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+
+	try {
+		const apiKey = cfg.apiKey || process.env.CUSTOM_API_KEY || "";
+		let url = cfg.url || "";
+		url = url
+			.replace(/\{\{query\}\}/g, encodeURIComponent(query))
+			.replace(/\{\{apiKey\}\}/g, apiKey);
+
+		const headers = cfg.headers
+			? JSON.parse(cfg.headers.replace(/\{\{apiKey\}\}/g, apiKey))
+			: { "Content-Type": "application/json" };
+
+		const method = (cfg.method || "POST").toUpperCase();
+		const body = ["POST", "PUT", "PATCH"].includes(method)
+			? (cfg.body || "").replace(/\{\{query\}\}/g, query).replace(/\{\{apiKey\}\}/g, apiKey)
+			: undefined;
+
+		const resp = await fetch(url, { method, body, headers, signal: controller.signal });
+		clearTimeout(timeoutId);
+
+		if (!resp.ok) {
+			return { ok: false, error: `Custom search HTTP error: ${resp.status}` };
+		}
+
+		const data = await resp.json();
+		const results = Array.isArray(data[cfg.queryKey])
+			? data[cfg.queryKey]
+			: Array.isArray(data)
+				? data
+				: [data];
+
+		return {
+			ok: true,
+			results: results.slice(0, limit).map((r) => ({
+				title: r[cfg.titleField] || "Untitled",
+				url: r[cfg.urlField] || "",
+				description: r[cfg.descriptionField] || "",
+			})),
+		};
+	} catch {
+		clearTimeout(timeoutId);
+		return { ok: false, error: "Custom search failed" };
+	}
+}
+
+/// -- Backend selection --
+
+/**
+ * Detect which search engine is configured.
+ * Priority: Custom (CUSTOM_SEARCH_URL) > Bing (BING_API_KEY) > SearXNG (SEARXNG_URL) > Google > DuckDuckGo.
+ * @returns {string} Engine name or "none" (should never be none as DuckDuckGo always works)
+ */
+export function detectSearchBackend() {
+	if (process.env.CUSTOM_SEARCH_URL) return "custom";
+	if (process.env.BING_API_KEY) return "bing";
+	if (process.env.SEARXNG_URL) return "searxng";
+	return "duckduckgo"; // fallback, always available
 }
 
 /// -- Core search --
 
 /**
- * Execute web search using the detected API backend.
+ * Execute web search using the detected engine.
  * @param {object} input - Tool input
- * @param {object} _options - Runtime options (unused)
+ * @param {object} _options - Runtime options
  * @returns {Promise<string>} JSON result string
  */
 export async function webSearchImpl(input, _options) {
@@ -215,60 +221,50 @@ export async function webSearchImpl(input, _options) {
 	}
 
 	const clampedLimit = Math.min(Math.max(Number(limit) || 5, 1), 100);
-
 	const backend = detectSearchBackend();
-
-	if (backend === "none") {
-		return JSON.stringify({
-			ok: false,
-			error:
-				"No search API key configured. Set EXA_API_KEY, FIRECRAWL_API_KEY, TAVILY_API_KEY, or PARALLEL_API_KEY. " +
-				"Available keys: " +
-				[
-					process.env.EXA_API_KEY && "EXA_API_KEY",
-					process.env.FIRECRAWL_API_KEY && "FIRECRAWL_API_KEY",
-					process.env.TAVILY_API_KEY && "TAVILY_API_KEY",
-					process.env.PARALLEL_API_KEY && "PARALLEL_API_KEY",
-				]
-					.filter(Boolean)
-					.join(", "),
-		});
-	}
-
 	let result;
 
 	switch (backend) {
-		case "exa":
-			result = await searchWithExa(process.env.EXA_API_KEY, query, clampedLimit);
+		case "bing":
+			result = await searchWithBing(process.env.BING_API_KEY, query, clampedLimit);
 			break;
-		case "firecrawl":
-			result = await searchWithFirecrawl(process.env.FIRECRAWL_API_KEY, query, clampedLimit);
+		case "searxng":
+			result = await searchWithSearXNG(process.env.SEARXNG_URL, query, clampedLimit);
 			break;
-		case "tavily":
-			result = await searchWithTavily(process.env.TAVILY_API_KEY, query, clampedLimit);
+		case "custom":
+			result = await searchWithCustom(
+				{
+					url: process.env.CUSTOM_SEARCH_URL,
+					method: process.env.CUSTOM_SEARCH_METHOD,
+					body: process.env.CUSTOM_SEARCH_BODY,
+					headers: process.env.CUSTOM_SEARCH_HEADERS,
+					queryKey:
+						process.env.CUSTOM_SEARCH_QUERY_KEY || process.env.CUSTOM_RESULT_KEY || "results",
+					titleField: process.env.CUSTOM_TITLE_FIELD || "title",
+					urlField: process.env.CUSTOM_URL_FIELD || "url",
+					descriptionField: process.env.CUSTOM_DESCRIPTION_FIELD || "description",
+					apiKey: process.env.CUSTOM_API_KEY,
+				},
+				query,
+				clampedLimit,
+			);
 			break;
-		case "parallel":
-			result = await searchWithParallel(query, clampedLimit);
-			break;
+		case "duckduckgo":
+		default:
+			result = await searchWithDuckDuckGo(query, clampedLimit);
 	}
 
 	if (!result.ok) {
 		return JSON.stringify({ ok: false, error: result.error });
 	}
 
-	return JSON.stringify({
-		ok: true,
-		backend,
-		query,
-		results: result.results,
-	});
+	return JSON.stringify({ ok: true, backend, query, results: result.results });
 }
 
 /// -- Web extract --
 
 /**
- * Extract content from a URL. Returns markdown for small pages (<5000 chars)
- * or a truncated summary for large pages (>10000 chars).
+ * Extract content from a URL.
  * @param {object} input - Tool input with URL
  * @param {object} _options - Runtime options
  * @returns {Promise<string>} JSON result string
@@ -286,7 +282,7 @@ export async function webExtractImpl(input, _options) {
 	}
 
 	const controller = new AbortController();
-	const timeoutId = setTimeout(() => controller.abort(), 10000);
+	const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
 
 	try {
 		const resp = await fetch(url, {
@@ -301,10 +297,7 @@ export async function webExtractImpl(input, _options) {
 
 		const html = await resp.text();
 		if (!html || html.length < 50) {
-			return JSON.stringify({
-				ok: false,
-				error: "Page content too short or unreadable",
-			});
+			return JSON.stringify({ ok: false, error: "Page content too short or unreadable" });
 		}
 
 		let clean = html
@@ -315,7 +308,7 @@ export async function webExtractImpl(input, _options) {
 			.replace(/<a[^>]*href="[^"]*"[^>]*>/gi, " [")
 			.replace(/<\/a>/gi, "](")
 			.replace(/<img[^>]*alt="([^"]*)"[^>]*\/?>/gi, "![${1}]()")
-			.replace(/<img[^>]*src="([^"]*)"[^>]*>/gi, "![]($1)")
+			.replace(/<img[^>]*src="([^"]*)"[^>]*>/gi, "![${1}]()")
 			.replace(/<[^>]+>/g, "")
 			.replace(/&nbsp;/g, " ")
 			.replace(/&amp;/g, "&")
@@ -331,20 +324,14 @@ export async function webExtractImpl(input, _options) {
 				ok: true,
 				url,
 				contentLength: html.length,
-				content: `[Large page (${html.length} chars) — summarize with your own LLM or set summarizeLarge=false]`,
-				summary: clean || "[No extractable text content found]",
+				content: `[Large page (${html.length} chars)\n${clean?.slice(0, 500)}...]`,
 			});
 		}
 
-		return JSON.stringify({
-			ok: true,
-			url,
-			contentLength: clean.length,
-			content: clean,
-		});
-	} catch (err) {
+		return JSON.stringify({ ok: true, url, contentLength: clean.length, content: clean });
+	} catch {
 		clearTimeout(timeoutId);
-		return JSON.stringify({ ok: false, error: `Fetch failed: ${err.message}` });
+		return JSON.stringify({ ok: false, error: "Fetch failed" });
 	}
 }
 
@@ -358,7 +345,7 @@ export async function webExtractImpl(input, _options) {
 export const web_search = tool(webSearchImpl, {
 	name: "web_search",
 	description:
-		"Search the web for information using an available search API (Exa, Firecrawl, Tavily, or DuckDuckGo parallel fallback). Returns up to 100 results. Requires EXA_API_KEY, FIRECRAWL_API_KEY, TAVILY_API_KEY, or PARALLEL_API_KEY environment variable.",
+		"Search the web. Built-in engines: DuckDuckGo (default), Google, Bing (requires BING_API_KEY), SearXNG (requires SEARXNG_URL), Custom (requires CUSTOM_SEARCH_URL).",
 	schema: z.object({
 		query: z.string().min(1).describe("Search query"),
 		limit: z
@@ -378,15 +365,55 @@ export const web_search = tool(webSearchImpl, {
  */
 export const web_extract = tool(webExtractImpl, {
 	name: "web_extract",
-	description:
-		"Extract readable text content from a web page URL. Returns cleaned, stripped HTML as plain text. Large pages (>10,000 chars) are truncated unless minimizeLargePages is true.",
+	description: "Extract readable text content from a web page URL.",
 	schema: z.object({
 		url: z.string().url().describe("URL to extract content from"),
 		summarizeLarge: z
 			.boolean()
 			.optional()
-			.describe(
-				"Summarize (vs return full text) when page exceeds 10,000 characters (default: false)",
-			),
+			.describe("Summarize when page exceeds 10,000 characters"),
 	}),
 });
+
+// --- Factory functions ---
+
+/**
+ * Create a web_search tool with runtime options
+ * @param {object} options - Runtime options (unused placeholder)
+ * @returns {object} LangChain Tool
+ */
+export function createWebSearchTool(options) {
+	return tool((input) => webSearchImpl(input, options), {
+		name: "web_search",
+		description: "Search the web using DuckDuckGo, Google, Bing, SearXNG, or Custom endpoint.",
+		schema: z.object({
+			query: z.string().min(1).describe("Search query"),
+			limit: z
+				.number()
+				.int()
+				.min(1)
+				.max(100)
+				.optional()
+				.describe("Max results to return (default: 5)"),
+		}),
+	});
+}
+
+/**
+ * Create a web_extract tool with runtime options
+ * @param {object} options - Runtime options (unused placeholder)
+ * @returns {object} LangChain Tool
+ */
+export function createWebExtractTool(options) {
+	return tool((input) => webExtractImpl(input, options), {
+		name: "web_extract",
+		description: "Extract readable text content from a web page URL.",
+		schema: z.object({
+			url: z.string().url().describe("URL to extract content from"),
+			summarizeLarge: z
+				.boolean()
+				.optional()
+				.describe("Summarize when page exceeds 10,000 characters"),
+		}),
+	});
+}

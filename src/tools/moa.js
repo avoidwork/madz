@@ -174,3 +174,21 @@ export const mixture_of_agents = tool(mixtureOfAgentsImpl, {
 			),
 	}),
 });
+
+// --- Factory functions for creating tools with runtime options ---
+
+/**
+ * Create a mixture_of_agents tool with runtime options
+ * @param {object} options - Runtime options
+ * @returns {object} LangChain Tool instance
+ */
+export function createMoaTool(options) {
+	return tool((input) => mixtureOfAgentsImpl(input, options), {
+		name: "mixture_of_agents",
+		description: "Run a mixture of agents (MoA) with 4 parallel reference calls via OpenRouter.",
+		schema: z.object({
+			message: z.string().min(1).describe("Question or topic for the agents to analyze"),
+			models: z.array(z.string()).optional().describe("List of OpenRouter model IDs to use"),
+		}),
+	});
+}

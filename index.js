@@ -62,9 +62,13 @@ const systemPrompt = loadSystemPrompt();
 const providerConfig = config.providers[providerName] || {};
 const tools = await buildToolConfig({
 	permissions: config.sandbox.permissions || [],
+	allowedPaths: config.sandbox.paths || ["memory/", "skills/", "tmp/"],
 	maxReadSize: config.sandbox.maxReadSize || "1mb",
 	registry,
 	conversationsDir: config.session.conversationsDir,
+	safety: config.sandbox.safety,
+	timeout: config.sandbox.timeout,
+	memoryLimit: config.sandbox.memoryLimit,
 });
 const model = createChatModel(providerConfig);
 const agent = createReactAgent(model, tools);

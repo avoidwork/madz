@@ -247,3 +247,52 @@ export const process_tool = tool(manageProcessImpl, {
 			.describe("Data to write to process stdin (required for 'write' action)"),
 	}),
 });
+
+// --- Factory functions for creating tools with runtime options ---
+
+/**
+ * Create a terminal tool with runtime options
+ * @param {object} options - Runtime options
+ * @returns {object} LangChain Tool instance
+ */
+export function createTerminalTool(options) {
+	return tool((input) => executeTerminalImpl(input, options), {
+		name: "terminal",
+		description:
+			"Execute a shell command via sh -c. Supports foreground (blocking) and background (detached) modes. Max command length is 4096 characters.",
+		schema: z.object({
+			command: z.string().describe("Shell command to execute via sh -c"),
+			background: z
+				.boolean()
+				.default(false)
+				.describe("Run in background mode (returns immediately with PID)"),
+		}),
+	});
+}
+
+/**
+ * Create a process tool with runtime options
+ * @param {object} options - Runtime options
+ * @returns {object} LangChain Tool instance
+ */
+export function createProcessTool(options) {
+	return tool((input) => manageProcessImpl(input, options), {
+		name: "process",
+		description:
+			"Manage background processes. Actions: list (show all), poll (check status), log (stdout), wait (wait for exit), kill (SIGTERM/SIGKILL), write (send stdin data), pause (SIGSTOP), resume (SIGCONT).",
+		schema: z.object({
+			action: z
+				.enum(["list", "poll", "log", "wait", "kill", "write", "pause", "resume"])
+				.describe("Action to perform on the process"),
+			processId: z
+				.number()
+				.int()
+				.optional()
+				.describe("PID of the process to manage (required for all actions except 'list')"),
+			data: z
+				.string()
+				.optional()
+				.describe("Data to write to process stdin (required for 'write' action)"),
+		}),
+	});
+}

@@ -74,3 +74,25 @@ export const clarify = tool(clarifyImpl, {
 			.describe("Numbered choices for the user to select from"),
 	}),
 });
+
+// --- Factory functions for creating tools with runtime options ---
+
+/**
+ * Create a clarify tool with runtime options
+ * @param {object} options - Runtime options
+ * @returns {object} LangChain Tool instance
+ */
+export function createClarifyTool(options) {
+	return tool((input) => clarifyImpl(input, options), {
+		name: "clarify",
+		description:
+			"Send a clarification question to the user. Supports open-ended questions and choice prompts.",
+		schema: z.object({
+			question: z.string().describe("The clarification question to ask the user"),
+			choices: z
+				.array(z.string())
+				.optional()
+				.describe("Numbered choices for the user to select from"),
+		}),
+	});
+}
