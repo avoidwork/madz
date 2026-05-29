@@ -26,7 +26,7 @@ describe("callReactAgent", () => {
 		assert.strictEqual(capturedMessages[0].content, "what is 2+2");
 	});
 
-	it("invokes agent with system message when provided", async () => {
+	it("prepends system message on new thread (default)", async () => {
 		let capturedMessages = null;
 
 		const agentMock = {
@@ -44,6 +44,29 @@ describe("callReactAgent", () => {
 		assert.strictEqual(capturedMessages[0].content, "You are a helpful assistant.");
 		assert.ok(capturedMessages[1] instanceof HumanMessage);
 		assert.strictEqual(capturedMessages[1].content, "hello world");
+	});
+
+	it("skips system message when isNewThread is false (thread has history)", async () => {
+		let capturedMessages = null;
+
+		const agentMock = {
+			invoke: (input) => {
+				capturedMessages = input.messages;
+				return {
+					messages: [new AIMessage("response")],
+				};
+			},
+		};
+
+		await callReactAgent(
+			agentMock,
+			"hello world",
+			{ configurable: { thread_id: "abc", isNewThread: false } },
+			"You are a helpful assistant.",
+		);
+		assert.strictEqual(capturedMessages.length, 1);
+		assert.ok(capturedMessages[0] instanceof HumanMessage);
+		assert.strictEqual(capturedMessages[0].content, "hello world");
 	});
 
 	it("invokes agent with config object", async () => {

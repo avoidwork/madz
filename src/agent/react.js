@@ -2,44 +2,48 @@ import { createReactAgent as createReactAgentGraph } from "@langchain/langgraph/
 import { HumanMessage, SystemMessage, AIMessage } from "@langchain/core/messages";
 
 /**
- * Create a ReAct agent from a chat model and optional tools.
+ * Create a ReAct agent from a chat model and optional tools and checkpointer.
  * The agent uses LangGraph under the hood via `@langchain/langgraph/prebuilt`.
  * @param {ChatLanguageModel} model - A chat language model instance (e.g., ChatOpenAI)
  * @param {unknown[]} [tools=[]] - Optional array of LangChain tool definitions
+ * @param {import("@langchain/langgraph").BaseCheckpointSaver | null} [checkpointer=null] - Optional LangGraph checkpointer for persistent conversation memory
  * @returns {ReturnType<typeof createReactAgentGraph>} A compiled ReAct agent
  */
 /* node:coverage ignore next */
-export function createReactAgent(model, tools = []) {
+export function createReactAgent(model, tools = [], checkpointer = null) {
 	return createReactAgentGraph({
 		llm: model,
 		tools,
+		...(checkpointer && { checkpointer }),
 	});
 }
 
 /**
  * Invoke a ReAct agent with a single user message and return the final response.
+ * On the first call (new thread) the system prompt is prepended. On subsequent
+ * calls the checkpointer already carries the system message, so it is skipped.
  * @param {ReturnType<typeof createReactAgentGraph>} agent - A compiled ReAct agent
  * @param {string} message - The user message string
  * @param {Object} config - Config object with `configurable: { thread_id }`
- * @param {string} [systemPrompt] - Optional system prompt prepended to the first message
+ * @param {string} [systemPrompt] - Optional system prompt (prepended only on new threads)
  * @param {(event: StreamEvent) => void} [callback] - Optional streaming event callback
  * @returns {{ content: string }} The agent's final text response
  */
 export function callReactAgent(agent, message, config, systemPrompt, callback) {
-	// Add the user message to the message history
-	let initMessages = [new HumanMessage(message)];
+	let messages = [new HumanMessage(message)];
 
-	// Prepend system prompt to the initial messages
 	if (systemPrompt) {
-		initMessages.unshift(new SystemMessage(systemPrompt));
+		const isNewThread = config?.configurable?.isNewThread ?? true;
+		if (isNewThread) {
+			messages.unshift(new SystemMessage(systemPrompt));
+		}
 	}
 
-	// Run with config (contains thread_id) for checkpointing
 	if (callback) {
-		return callReactAgentStreaming(agent, initMessages, message, config, callback);
+		return callReactAgentStreaming(agent, messages, message, config, callback);
 	}
 
-	const result = agent.invoke({ messages: initMessages, ...config });
+	const result = agent.invoke({ messages, ...config });
 	return extractContent(result, message);
 }
 
