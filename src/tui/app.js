@@ -123,48 +123,54 @@ export default function App({ config, registry, sessionState, dispatchProvider, 
 				text,
 				sessionState ? sessionState.getProvider() : null,
 				(event) => {
-					if (event.type === "text") {
-						committedContent = event.text;
-						setMessages((prev) => {
-							const cloned = [...prev];
-							const last = cloned[cloned.length - 1];
-							if (last.role === "assistant" && last.streaming) {
-								last.content = committedContent + "\u2588";
-							}
-							return cloned;
-						});
-					} else if (event.type === "tool_end") {
-						currentToolCallCount++;
-						const resultLine = event.data
-							? ` Result: ${JSON.stringify(event.data).slice(0, 200)}`
-							: "";
-						const displayLine = event.toolName
-							? `- Tool: ${event.toolName}${resultLine}`
-							: `- Tool: ${event.toolCallId || "unknown"}${resultLine}`;
-						lastToolCallDisplay =
-							(lastToolCallDisplay ? lastToolCallDisplay + "\n" : "") + displayLine;
-						setMessages((prev) => {
-							const cloned = [...prev];
-							const last = cloned[cloned.length - 1];
-							if (last.role === "assistant" && last.streaming) {
-								last.toolCallDisplay = lastToolCallDisplay;
-							}
-							return cloned;
-						});
-					} else if (event.type === "tool_error") {
-						const errorLine = event.toolName
-							? `- Tool: ${event.toolName} (error: ${event.error})`
-							: `- Tool call failed (${event.toolCallId || "unknown"})`;
-						lastToolCallDisplay =
-							(lastToolCallDisplay ? lastToolCallDisplay + "\n" : "") + errorLine;
-						setMessages((prev) => {
-							const cloned = [...prev];
-							const last = cloned[cloned.length - 1];
-							if (last.role === "assistant" && last.streaming) {
-								last.toolCallDisplay = lastToolCallDisplay;
-							}
-							return cloned;
-						});
+					try {
+						if (event.type === "text") {
+							committedContent = event.text;
+							setMessages((prev) => {
+								const cloned = [...prev];
+								const last = cloned[cloned.length - 1];
+								if (last.role === "assistant" && last.streaming) {
+									last.content = committedContent + "\u2588";
+								}
+								return cloned;
+							});
+						} else if (event.type === "tool_end") {
+							_currentToolCallCount++;
+							const resultLine = event.data
+								? ` Result: ${JSON.stringify(event.data).slice(0, 200)}`
+								: "";
+							const displayLine = event.toolName
+								? `- Tool: ${event.toolName}${resultLine}`
+								: `- Tool: ${event.toolCallId || "unknown"}${resultLine}`;
+							lastToolCallDisplay =
+								(lastToolCallDisplay ? lastToolCallDisplay + "\n" : "") + displayLine;
+							setMessages((prev) => {
+								const cloned = [...prev];
+								const last = cloned[cloned.length - 1];
+								if (last.role === "assistant" && last.streaming) {
+									last.toolCallDisplay = lastToolCallDisplay;
+								}
+								return cloned;
+							});
+						} else if (event.type === "tool_error") {
+							const errorLine = event.toolName
+								? `- Tool: ${event.toolName} (error: ${event.error})`
+								: `- Tool call failed (${event.toolCallId || "unknown"})`;
+							lastToolCallDisplay =
+								(lastToolCallDisplay ? lastToolCallDisplay + "\n" : "") + errorLine;
+							setMessages((prev) => {
+								const cloned = [...prev];
+								const last = cloned[cloned.length - 1];
+								if (last.role === "assistant" && last.streaming) {
+									last.toolCallDisplay = lastToolCallDisplay;
+								}
+								return cloned;
+							});
+						}
+					} catch (cbErr) {
+						// oxlint-disable no-console
+						console.error("[TUI] streaming callback error:", cbErr.message);
+						// oxlint-enable no-console
 					}
 				},
 			);

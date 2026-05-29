@@ -159,7 +159,11 @@ async function callReactAgentStreaming(agent, initMessages, originalMessage, con
 	for await (const event of stream) {
 		if (!event || !event.params) continue;
 		if (event.method === "tools") {
-			emitToolEvent(event, callback);
+			try {
+				emitToolEvent(event, callback);
+			} catch (_emitErr) {
+				// Callback error — don't break the streaming loop
+			}
 		}
 	}
 
