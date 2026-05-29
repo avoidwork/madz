@@ -238,22 +238,61 @@ The pre-commit hook runs linting, formatting, type-checking, and tests (targetin
 This project enforces 100% code coverage on every commit. The coverage report is generated to `coverage.txt` via `node --test --experimental-test-coverage`.
 
 ```
-file               | line % | branch % | funcs % | uncovered lines
--------------------------------------------------------------
-src/sandbox        |        |          |         | 
-  capability.js    | 100.00 |  100.00  | 100.00  | 
-  envInjector.js   | 100.00 |  100.00  | 100.00  | 
-  pathResolver.js  | 100.00 |  100.00  | 100.00  | 
-  urlFilter.js     | 100.00 |   93.75  | 100.00  | 
-src/session        |        |          |         | 
-  factory.js       | 100.00 |  100.00  | 100.00  | 
-  stateManager.js  | 100.00 |  100.00  | 100.00  | 
-  window.js        | 100.00 |   91.67  | 100.00  | 
-src/tui            |        |          |         | 
-  commandParser.js | 100.00 |   88.89  | 100.00  | 
-  panels.js        | 100.00 |  100.00  | 100.00  | 
--------------------------------------------------------------
-All files          | 100.00 |   94.07  | 100.00  | 
+file                   | line % | branch % | funcs % | uncovered lines
+---------------------------------------------------------------------------------------------------------------------
+src/agent               |        |          |         | 
+  react.js             | 100.00 |    58.82 |  100.00 | 
+src/memory              |        |          |         | 
+  context.js           | 100.00 |    78.57 |  100.00 | 
+  prompts.js           | 100.00 |   100.00 |  100.00 | 
+  reader.js            | 100.00 |    83.33 |  100.00 | 
+src/provider            |        |          |         | 
+  openai.js            | 100.00 |   100.00 |  100.00 | 
+src/registry            |        |          |         | 
+  discoverer.js        | 100.00 |    94.12 |  100.00 | 
+src/sandbox             |        |          |         | 
+  capability.js        | 100.00 |   100.00 |  100.00 | 
+  envInjector.js       | 100.00 |   100.00 |  100.00 | 
+  pathResolver.js      | 100.00 |   100.00 |  100.00 | 
+  runner.js            |  98.72 |   100.00 |   87.50 | 66
+  timeoutHandler.js    | 100.00 |   100.00 |  100.00 | 
+  urlFilter.js         | 100.00 |    93.75 |  100.00 | 
+src/scheduler           |        |          |         | 
+  index.js             | 100.00 |   100.00 |  100.00 | 
+  logger.js            | 100.00 |    50.00 |  100.00 | 
+  parser.js            | 100.00 |   100.00 |  100.00 | 
+  queue.js             | 100.00 |   100.00 |   90.91 | 
+  runner.js            | 100.00 |   100.00 |  100.00 | 
+  scheduler.js         |  98.97 |    88.37 |   92.31 | 192-193
+src/session             |        |          |         | 
+  factory.js           | 100.00 |   100.00 |  100.00 | 
+  stateManager.js      | 100.00 |   100.00 |  100.00 | 
+  window.js            | 100.00 |    91.67 |  100.00 | 
+src/tools               |        |          |         | 
+  clarify.js           | 100.00 |   100.00 |  100.00 | 
+  code.js              | 100.00 |    88.89 |  100.00 | 
+  common.js            | 100.00 |    93.33 |   83.33 | 
+  cron.js              | 100.00 |    98.63 |  100.00 | 
+  filesystem.js        |  93.60 |    86.27 |   93.75 | 44-45 107-110 170-177 187-188 196-202 397-398 415-419 422-423
+  image.js             |  97.44 |    95.65 |   50.00 | 92-94
+  index.js             |  96.43 |    97.14 |  100.00 | 212-220
+  memory.js            |  97.01 |    92.00 |  100.00 | 37-40
+  moa.js               | 100.00 |    96.67 |   84.62 | 
+  sessionSearch.js     | 100.00 |    87.80 |  100.00 | 
+  skills.js            |  97.69 |    77.50 |  100.00 | 109-111
+  terminal.js          |  92.37 |    80.85 |   85.71 | 38-41 74 102-103 190-191 197-199 205-206 213-214 221-222 224
+  todo.js              | 100.00 |    94.59 |  100.00 | 
+  tts.js               | 100.00 |   100.00 |   50.00 | 
+  vision.js            | 100.00 |    90.63 |   80.00 | 
+  web.js               |  99.49 |    75.00 |   55.56 | 178-179
+src/tui                 |        |          |         | 
+  commandParser.js     | 100.00 |    88.00 |  100.00 | 
+  conversationPanel.js |  95.51 |    96.00 |   80.00 | 242-247 252-257
+  markdownText.js      | 100.00 |   100.00 |  100.00 | 
+  messages.js          | 100.00 |    94.44 |  100.00 | 
+  panels.js            | 100.00 |   100.00 |  100.00 | 
+---------------------------------------------------------------------------------------------------------------------
+all files              |  98.30 |    88.92 |   90.04 | 
 ```
 
 ## Development
