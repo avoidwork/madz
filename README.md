@@ -1,8 +1,8 @@
 # Madz
 
-**Your AI companion, built right into your terminal.**
+**A personality-driven AI harness channeling Mads Mikkelsen's cinematic soul.**
 
-`madz` is a customizable AI companion that adapts to how you work. It remembers your context, safely runs your custom skills, and automates repetitive tasks so you can focus on what matters.
+`madz` is a terminal-native AI companion — helpful by design, delivered with precision, quiet intensity, and elegant flair. Drawn from Mads Mikkelsen's most iconic roles, it's an assistant that solves problems with style, remembers your context, safely runs your skills, and automates the mundane so you can focus on what matters.
 
 [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD--3--Clause-blue.svg)](LICENSE)
 [![Node.js >= 20](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](https://nodejs.org)
@@ -40,7 +40,10 @@
 
 `madz` is a Node.js AI harness that combines a terminal-based user interface with structured skill execution. Everything — conversations, tool outputs, and execution logs — is persisted as version-controllable Markdown files, making it easy to audit with `git log` and re-load across sessions.
 
+It speaks with a distinctive voice: calm, precise, a little wry. Whether you need it to debug a script, manage a todo list, or just get something done without the chatter, `madz` delivers.
+
 - 🧠 **Remembers everything** → Persistent memory across sessions
+- 🎭 **Personality with purpose** → Mads Mikkelsen's cinematic soul — quiet intensity, elegant precision
 - 🛠️ **Runs your custom skills** → Safely execute plugins & tools in a sandboxed runtime
 - ⏱️ **Automates your routines** → Declare cron jobs in YAML and run on autopilot
 - 💬 **Orchestrates conversations** → Multi-turn LLM chats with context-window management
