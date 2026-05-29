@@ -1,29 +1,31 @@
 ## ADDED Requirements
 
 ### Requirement: Per-Session State Tracking
-The system SHALL create a unique session identifier for each TUI invocation and track session-scoped state including the active LLM provider, conversation window size, and current skill context.
+The system SHALL create a unique session identifier for each TUI invocation and track session-scoped state including the active LLM provider, conversation window size, and current skill context. The session's `sessionId` MUST be passed as `configurable.thread_id` to LangGraph agent invocations, enabling the checkpointer to associate all checkpoints with the correct conversation thread.
 
 #### Scenario: Each TUI session gets a unique ID
-- **WHEN** the user launches the harness
-- **THEN** the system generates a UUID for the session and associates all memory, telemetry, and config mutations with that ID
+- **WHEN** the harness starts and creates a session
+- **THEN** the system generates a UUID for the session and uses it as the LangGraph `thread_id` for all agent invocations
 
 #### Scenario: Active provider is tracked per session
 - **WHEN** the user switches providers via `:provider set <name>`
 - **THEN** the session state records the new provider and uses it for all subsequent LLM calls in that session
 
-### Requirement: Session Context Window
-The system SHALL maintain a conversation context window limited to the most recent N exchanges (configurable via `session.context_window_size` in `config.yaml`), discarding older exchanges from the active LLM prompt.
+### Requirement: Thread-Based Conversation Memory
+The system SHALL pass the session's `sessionId` as `configurable.thread_id` to every agent invocation (both non-streaming and streaming), enabling the LangGraph checkpointer to persist and resume conversation state within that thread.
 
-#### Scenario: Context window is enforced
-- **WHEN** a conversation exceeds `session.context_window_size` exchanges
-- **THEN** the system removes the oldest exchanges from the prompt sent to the LLM while retaining full history in memory
+#### Scenario: Multi-turn conversation accumulates in memory
+- **WHEN** the user sends multiple messages in the same session (via TUI or CLI)
+- **THEN** the agent's checkpointer saves the conversation state after each super-step
+- **THEN** subsequent invocations with the same `thread_id` resume from the last checkpoint and include prior message history
 
-#### Scenario: Context window is configured
-- **WHEN** `config.yaml` sets `session.context_window_size: 20`
-- **THEN** only the last 20 message exchanges are included in the LLM prompt
+#### Scenario: New thread_id creates independent conversation
+- **WHEN** a new session is created with a different `sessionId`
+- **THEN** the agent starts with a fresh conversation with no prior message history
+- **THEN** the previous session's messages are not visible in the new thread
 
 ### Requirement: Session Memory Loading
-On session creation, the system SHALL load the latest conversation file from `memory/` and reconstruct the visible conversation buffer to provide continuity across sessions.
+On session creation, the system SHALL load the latest conversation file from `memory/` and reconstruct the visible conversation buffer to provide continuity across sessions, up to the context window limit.
 
 #### Scenario: Session resumes from last conversation
 - **WHEN** the harness starts and a previous conversation file exists in `memory/`
