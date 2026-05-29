@@ -15,7 +15,13 @@ export function parseFrontmatter(content) {
 	const match = content.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
 	if (match) {
 		const fmStr = match[1] || "";
-		const fmParsed = yaml.load(fmStr);
+		const fmParsed = (() => {
+			try {
+				return yaml.load(fmStr);
+			} catch {
+				return {};
+			}
+		})();
 		frontmatter = fmParsed && typeof fmParsed === "object" ? fmParsed : {};
 		body = match[2] || "";
 	}

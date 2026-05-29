@@ -544,4 +544,45 @@ describe("callReactAgent streaming", () => {
 		assert.strictEqual(callbackCalls.length, 0);
 		assert.strictEqual(result.content, "fallback");
 	});
+
+	it("survives callback throwing during tool events", async () => {
+		const toolEvents = [
+			{
+				method: "tools",
+				params: { data: { event: "tool_called", name: "search", toolCallId: "1" } },
+			},
+		];
+		let toolIdx = 0;
+
+		const agentMock = {
+			streamEvents: () => ({
+				messages: {
+					[Symbol.asyncIterator]() {
+						return { next: () => Promise.resolve({ done: true }) };
+					},
+				},
+				[Symbol.asyncIterator]() {
+					return {
+						next() {
+							if (toolIdx < toolEvents.length) {
+								toolIdx++;
+								return Promise.resolve({
+									value: toolEvents[toolIdx - 1],
+									done: false,
+								});
+							}
+							return Promise.resolve({ done: true });
+						},
+					};
+				},
+			}),
+		};
+
+		const callback = () => {
+			throw new Error("callback crashed");
+		};
+
+		const result = await callReactAgent(agentMock, "original", null, null, callback);
+		assert.strictEqual(result.content, "original");
+	});
 });
