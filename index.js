@@ -71,7 +71,9 @@ const tools = await buildToolConfig({
 	memoryLimit: config.sandbox.memoryLimit,
 });
 const model = createChatModel(providerConfig);
-const agent = createReactAgent(model, tools);
+const { createCheckpointer } = await import("./src/session/checkpointer.js");
+const checkpointer = createCheckpointer(config.persistence);
+const agent = createReactAgent(model, tools, checkpointer);
 
 const sessionConfig = { configurable: { thread_id: sessionId } };
 

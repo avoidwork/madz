@@ -2,17 +2,19 @@ import { createReactAgent as createReactAgentGraph } from "@langchain/langgraph/
 import { HumanMessage, SystemMessage, AIMessage } from "@langchain/core/messages";
 
 /**
- * Create a ReAct agent from a chat model and optional tools.
+ * Create a ReAct agent from a chat model and optional tools and checkpointer.
  * The agent uses LangGraph under the hood via `@langchain/langgraph/prebuilt`.
  * @param {ChatLanguageModel} model - A chat language model instance (e.g., ChatOpenAI)
  * @param {unknown[]} [tools=[]] - Optional array of LangChain tool definitions
+ * @param {import("@langchain/langgraph").BaseCheckpointSaver | null} [checkpointer=null] - Optional LangGraph checkpointer for persistent conversation memory
  * @returns {ReturnType<typeof createReactAgentGraph>} A compiled ReAct agent
  */
 /* node:coverage ignore next */
-export function createReactAgent(model, tools = []) {
+export function createReactAgent(model, tools = [], checkpointer = null) {
 	return createReactAgentGraph({
 		llm: model,
 		tools,
+		checkpointer,
 	});
 }
 
