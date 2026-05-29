@@ -20,7 +20,7 @@ describe("callReactAgent", () => {
 			},
 		};
 
-		await callReactAgent(agentMock, "what is 2+2");
+		await callReactAgent(agentMock, "what is 2+2", null);
 		assert.ok(capturedMessages.length >= 1);
 		assert.ok(capturedMessages[0] instanceof HumanMessage);
 		assert.strictEqual(capturedMessages[0].content, "what is 2+2");
@@ -38,12 +38,29 @@ describe("callReactAgent", () => {
 			},
 		};
 
-		await callReactAgent(agentMock, "hello world", "You are a helpful assistant.");
+		await callReactAgent(agentMock, "hello world", null, "You are a helpful assistant.");
 		assert.strictEqual(capturedMessages.length, 2);
 		assert.ok(capturedMessages[0] instanceof SystemMessage);
 		assert.strictEqual(capturedMessages[0].content, "You are a helpful assistant.");
 		assert.ok(capturedMessages[1] instanceof HumanMessage);
 		assert.strictEqual(capturedMessages[1].content, "hello world");
+	});
+
+	it("invokes agent with config object", async () => {
+		let capturedConfig = null;
+
+		const agentMock = {
+			invoke: (input) => {
+				capturedConfig = input;
+				return {
+					messages: [new AIMessage("response")],
+				};
+			},
+		};
+
+		const config = { configurable: { thread_id: "abc-123" } };
+		await callReactAgent(agentMock, "hello", config);
+		assert.strictEqual(capturedConfig.configurable.thread_id, "abc-123");
 	});
 
 	it("returns { content } with last message content", async () => {
@@ -57,7 +74,7 @@ describe("callReactAgent", () => {
 			}),
 		};
 
-		const result = await callReactAgent(agentMock, "what is 2+2", "system prompt");
+		const result = await callReactAgent(agentMock, "what is 2+2", null, "system prompt");
 		assert.deepStrictEqual(result, { content: "4" });
 	});
 
@@ -73,7 +90,7 @@ describe("callReactAgent", () => {
 			}),
 		};
 
-		const result = await callReactAgent(agentMock, "query", "system");
+		const result = await callReactAgent(agentMock, "query", null, "system");
 		assert.strictEqual(result.content, "final answer");
 	});
 
@@ -86,7 +103,7 @@ describe("callReactAgent", () => {
 
 		let caughtError = null;
 		try {
-			await callReactAgent(agentMock, "test");
+			await callReactAgent(agentMock, "test", null);
 		} catch (err) {
 			caughtError = err;
 		}
@@ -109,7 +126,7 @@ describe("callReactAgent", () => {
 			}),
 		};
 
-		const result = await callReactAgent(agentMock, "query");
+		const result = await callReactAgent(agentMock, "query", null);
 		assert.strictEqual(result.content, "final answer");
 	});
 
@@ -120,7 +137,7 @@ describe("callReactAgent", () => {
 			}),
 		};
 
-		const result = await callReactAgent(agentMock, "user input");
+		const result = await callReactAgent(agentMock, "user input", null);
 		assert.strictEqual(result.content, "user input");
 	});
 
@@ -131,7 +148,7 @@ describe("callReactAgent", () => {
 			}),
 		};
 
-		const result = await callReactAgent(agentMock, "fallback text");
+		const result = await callReactAgent(agentMock, "fallback text", null);
 		assert.strictEqual(result.content, "fallback text");
 	});
 });
@@ -161,7 +178,6 @@ describe("callReactAgent streaming", () => {
 		];
 		let toolIdx = 0;
 
-		// Simulates ChatModelStream.text as async iterable yielding delta chunks
 		const chatMessage1 = {
 			text: {
 				[Symbol.asyncIterator]() {
@@ -206,14 +222,12 @@ describe("callReactAgent streaming", () => {
 					};
 				},
 			}),
-			invoke: () => ({ messages: [new AIMessage("should not be called")] }),
 		};
 
 		const callbackCalls = [];
 		const callback = (event) => callbackCalls.push(event);
 
-		const result = await callReactAgent(agentMock, "hello", null, callback);
-		// 3 text callbacks: "Hello", "Hello,", "Hello, world!"
+		const result = await callReactAgent(agentMock, "hello", null, null, callback);
 		assert.strictEqual(callbackCalls.length, 4); // 3 text + 1 tool_start
 		assert.strictEqual(callbackCalls[0].type, "text");
 		assert.strictEqual(callbackCalls[0].text, "Hello");
@@ -226,7 +240,6 @@ describe("callReactAgent streaming", () => {
 	});
 
 	it("callback receives text events only when content is non-empty", async () => {
-		// Simulates ChatModelStream.text yielding empty, whitespace, then content
 		const chatMessage = {
 			text: {
 				[Symbol.asyncIterator]() {
@@ -273,10 +286,7 @@ describe("callReactAgent streaming", () => {
 		const callbackCalls = [];
 		const callback = (event) => callbackCalls.push(event);
 
-		const result = await callReactAgent(agentMock, "fallback", null, callback);
-		// "" → accumulated "" → trim "" → falsy → no callback
-		// "   " → accumulated "   " → trim "" → falsy → no callback
-		// "hello" → accumulated "   hello" → trim "hello" → callback once
+		const result = await callReactAgent(agentMock, "fallback", null, null, callback);
 		assert.strictEqual(callbackCalls.length, 1);
 		assert.strictEqual(callbackCalls[0].type, "text");
 		assert.strictEqual(callbackCalls[0].text, "hello");
@@ -340,7 +350,7 @@ describe("callReactAgent streaming", () => {
 		const callbackCalls = [];
 		const callback = (event) => callbackCalls.push(event);
 
-		await callReactAgent(agentMock, "test", null, callback);
+		await callReactAgent(agentMock, "test", null, null, callback);
 		assert.strictEqual(callbackCalls.length, 3);
 		assert.strictEqual(callbackCalls[0].type, "tool_start");
 		assert.strictEqual(callbackCalls[0].toolName, "read_file");
@@ -369,7 +379,7 @@ describe("callReactAgent streaming", () => {
 		const callbackCalls = [];
 		const callback = (event) => callbackCalls.push(event);
 
-		const result = await callReactAgent(agentMock, "original message", null, callback);
+		const result = await callReactAgent(agentMock, "original message", null, null, callback);
 		assert.strictEqual(callbackCalls.length, 0);
 		assert.strictEqual(result.content, "original message");
 	});
@@ -381,7 +391,7 @@ describe("callReactAgent streaming", () => {
 			}),
 		};
 
-		const result = await callReactAgent(agentMock, "ask", "system");
+		const result = await callReactAgent(agentMock, "ask", null, "system");
 		assert.strictEqual(result.content, "full response");
 	});
 
@@ -429,7 +439,7 @@ describe("callReactAgent streaming", () => {
 		const callbackCalls = [];
 		const callback = (event) => callbackCalls.push(event);
 
-		const result = await callReactAgent(agentMock, "hi", null, callback);
+		const result = await callReactAgent(agentMock, "hi", null, null, callback);
 		assert.strictEqual(callbackCalls.length, 1);
 		assert.strictEqual(callbackCalls[0].type, "text");
 		assert.strictEqual(callbackCalls[0].text, "sync text");
@@ -468,7 +478,7 @@ describe("callReactAgent streaming", () => {
 		const callbackCalls = [];
 		const callback = (event) => callbackCalls.push(event);
 
-		await callReactAgent(agentMock, "test", null, callback);
+		await callReactAgent(agentMock, "test", null, null, callback);
 		assert.strictEqual(callbackCalls.length, 1);
 		assert.strictEqual(callbackCalls[0].type, "tool_event");
 		assert.strictEqual(callbackCalls[0].data, "step 1 done");
@@ -507,7 +517,7 @@ describe("callReactAgent streaming", () => {
 		const callbackCalls = [];
 		const callback = (event) => callbackCalls.push(event);
 
-		const result = await callReactAgent(agentMock, "fallback", null, callback);
+		const result = await callReactAgent(agentMock, "fallback", null, null, callback);
 		assert.strictEqual(callbackCalls.length, 0);
 		assert.strictEqual(result.content, "fallback");
 	});
