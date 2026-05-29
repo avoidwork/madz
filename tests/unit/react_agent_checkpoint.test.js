@@ -46,7 +46,7 @@ describe("callReactAgent with config", () => {
 		assert.strictEqual(capturedInput.messages[0].content, "test message");
 	});
 
-	it("passes configurable to system prompt when both config and system prompt", async () => {
+	it("passes configurable when system prompt arg is ignored (handled by compiled agent)", async () => {
 		let capturedInput = null;
 
 		const agentMock = {
@@ -67,8 +67,10 @@ describe("callReactAgent with config", () => {
 
 		assert.ok(capturedInput.configurable);
 		assert.strictEqual(capturedInput.configurable.thread_id, "def-456");
-		assert.strictEqual(capturedInput.messages[0].content, "You are helpful");
-		assert.strictEqual(capturedInput.messages[1].content, "test message");
+		// System prompt is no longer prepended here; it is embedded in the compiled agent
+		assert.strictEqual(capturedInput.messages.length, 1);
+		assert.ok(capturedInput.messages[0] instanceof HumanMessage);
+		assert.strictEqual(capturedInput.messages[0].content, "test message");
 	});
 
 	it("invokes agent with null config", async () => {

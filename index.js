@@ -73,7 +73,7 @@ const tools = await buildToolConfig({
 const model = createChatModel(providerConfig);
 const { createCheckpointer } = await import("./src/session/checkpointer.js");
 const checkpointer = createCheckpointer(config.persistence);
-const agent = createReactAgent(model, tools, checkpointer);
+const agent = createReactAgent(model, tools, checkpointer, systemPrompt);
 
 const sessionConfig = { configurable: { thread_id: sessionId } };
 
