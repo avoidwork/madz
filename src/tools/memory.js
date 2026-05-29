@@ -132,3 +132,28 @@ export const memory = tool(memoryImpl, {
 			.describe("Key-value entries to save"),
 	}),
 });
+
+// --- Factory functions for creating tools with runtime options ---
+
+/**
+ * Create a memory tool with runtime options
+ * @param {object} options - Runtime options
+ * @returns {object} LangChain Tool instance
+ */
+export function createMemoryTool(options) {
+	return tool((input) => memoryImpl(input, options), {
+		name: "memory",
+		description:
+			"Memory tool for key-value entry storage. Supports writing entries with deduplication by key. Persists to memory/context/session_memory.md with markdown frontmatter format.",
+		schema: z.object({
+			entries: z
+				.array(
+					z.object({
+						key: z.string().describe("Entry key (used for deduplication)"),
+						value: z.unknown().describe("Entry value (any type)"),
+					}),
+				)
+				.describe("Key-value entries to save"),
+		}),
+	});
+}

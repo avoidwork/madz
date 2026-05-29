@@ -128,3 +128,35 @@ export const skill_view = tool(skillViewImpl, {
 		name: z.string().describe("Name of the skill to view"),
 	}),
 });
+
+// --- Factory functions for creating tools with runtime options ---
+
+/**
+ * Create a skills_list tool with runtime options
+ * @param {object} options - Runtime options
+ * @returns {object} LangChain Tool instance
+ */
+export function createSkillsListTool(options) {
+	return tool((input) => skillsListImpl(input, options), {
+		name: "skills_list",
+		description:
+			"List all discovered skills with their name, version, description, and permissions. Returns { skills: [...], count: N }.",
+		schema: z.object({}).default({}),
+	});
+}
+
+/**
+ * Create a skill_view tool with runtime options
+ * @param {object} options - Runtime options
+ * @returns {object} LangChain Tool instance
+ */
+export function createSkillViewTool(options) {
+	return tool((input) => skillViewImpl(input, options), {
+		name: "skill_view",
+		description:
+			"View full details for a skill by name. Returns name, version, description, schemas, permissions, scripts, and full SKILL.md content.",
+		schema: z.object({
+			name: z.string().describe("Name of the skill to view"),
+		}),
+	});
+}

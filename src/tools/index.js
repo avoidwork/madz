@@ -1,22 +1,27 @@
-import { read_file, write_file, patch, search_files } from "./filesystem.js";
-import { terminal, process_tool } from "./terminal.js";
-import { todo } from "./todo.js";
-import { memory } from "./memory.js";
-import { session_search } from "./sessionSearch.js";
-import { clarify } from "./clarify.js";
-import { skills_list, skill_view } from "./skills.js";
-import { web_search, web_extract } from "./web.js";
-import { vision_analyze } from "./vision.js";
-import { image_generate } from "./image.js";
-import { execute_code } from "./code.js";
-import { cronjob } from "./cron.js";
-import { text_to_speech } from "./tts.js";
-import { mixture_of_agents } from "./moa.js";
+import {
+	createReadFileTool,
+	createWriteFileTool,
+	createPatchTool,
+	createSearchFilesTool,
+} from "./filesystem.js";
+import { createTerminalTool, createProcessTool } from "./terminal.js";
+import { createTodoTool } from "./todo.js";
+import { createMemoryTool } from "./memory.js";
+import { createSessionSearchTool } from "./sessionSearch.js";
+import { createClarifyTool } from "./clarify.js";
+import { createSkillsListTool, createSkillViewTool } from "./skills.js";
+import { createWebSearchTool, createWebExtractTool } from "./web.js";
+import { createVisionTool } from "./vision.js";
+import { createImageTool } from "./image.js";
+import { createCodeTool } from "./code.js";
+import { createCronTool } from "./cron.js";
+import { createTtsTool } from "./tts.js";
+import { createMoaTool } from "./moa.js";
 
 /**
  * Maps tool names to required permission scopes.
  * A tool registers only when ALL its required permissions are in the enabled set.
- * Clarify is exempt (always registered) since it requires zero permissions.
+ * Clarify and execute_code are exempt (always registered) since they require zero permissions.
  */
 export const TOOL_PERMISSIONS = {
 	read_file: ["filesystem:read"],
@@ -31,39 +36,39 @@ export const TOOL_PERMISSIONS = {
 	clarify: [],
 	skills_list: ["filesystem:read"],
 	skill_view: ["filesystem:read"],
-	// Tier 2 tools
+	// Tier 2 tools (need env vars in addition to permissions where applicable)
 	web_search: ["network:outbound"],
 	web_extract: ["network:outbound"],
-	vision_analyze: [], // no permission required
-	image_generate: ["network:outbound"],
+	vision_analyze: [], // requires OPENAI_API_KEY
+	image_generate: ["network:outbound"], // requires FAL_API_KEY
 	execute_code: [], // sandboxed, no permission needed
 	cronjob: ["network:outbound"],
-	text_to_speech: [], // requires OPENAI_API_KEY, no permission (uses API key for billing)
-	mixture_of_agents: [], // requires OPENROUTER_API_KEY, no permission (uses API key for billing)
+	text_to_speech: [], // requires OPENAI_API_KEY
+	mixture_of_agents: [], // requires OPENROUTER_API_KEY
 };
 
-// All tool definitions keyed by name
-const ALL_TOOLS = {
-	read_file,
-	write_file,
-	patch,
-	search_files,
-	terminal,
-	process: process_tool,
-	todo,
-	memory,
-	session_search,
-	clarify,
-	skills_list,
-	skill_view,
-	web_search,
-	web_extract,
-	vision_analyze,
-	image_generate,
-	execute_code,
-	cronjob,
-	text_to_speech,
-	mixture_of_agents,
+// Factory functions keyed by tool name
+const TOOL_FACTORIES = {
+	read_file: createReadFileTool,
+	write_file: createWriteFileTool,
+	patch: createPatchTool,
+	search_files: createSearchFilesTool,
+	terminal: createTerminalTool,
+	process: createProcessTool,
+	todo: createTodoTool,
+	memory: createMemoryTool,
+	session_search: createSessionSearchTool,
+	clarify: createClarifyTool,
+	skills_list: createSkillsListTool,
+	skill_view: createSkillViewTool,
+	web_search: createWebSearchTool,
+	web_extract: createWebExtractTool,
+	vision_analyze: createVisionTool,
+	image_generate: createImageTool,
+	execute_code: createCodeTool,
+	cronjob: createCronTool,
+	text_to_speech: createTtsTool,
+	mixture_of_agents: createMoaTool,
 };
 
 /**
@@ -81,172 +86,88 @@ function hasSearchKey() {
 
 /**
  * Build an array of LangChain tools gated by sandbox permissions and API keys.
+ * Each tool is created with runtime options captured in a closure, ensuring
+ * the impl function receives them as its second argument on every invocation.
  * @param {object} options - Build configuration
  * @param {string[]} options.permissions - Enabled sandbox permissions from config
- * @param {number} options.maxReadSize - Maximum read size string (e.g., "1mb")
+ * @param {string[]} options.allowedPaths - Sandbox-allowed paths
+ * @param {string} options.maxReadSize - Maximum read size string (e.g., "1mb")
  * @param {object} [options.registry] - SkillRegistry instance for skills_list/skill_view
  * @param {string} [options.conversationsDir] - Path to conversations directory
- * @returns {Promise<unknown[]>} Array of tool definitions
+ * @param {object} [options.safety] - Code sandbox safety config
+ * @param {object} [options.timeout] - Code execution timeout config
+ * @param {string} [options.memoryLimit] - Code execution memory limit string
+ * @returns {Promise<object[]>} Array of LangChain Tool instances
  */
 export async function buildToolConfig(options) {
 	const {
 		permissions = [],
+		allowedPaths = ["memory/", "skills/", "tmp/"],
 		maxReadSize = "1mb",
 		registry,
 		conversationsDir = "memory/conversations/",
+		safety,
+		timeout,
+		memoryLimit,
 	} = options;
 
 	const enabledSet = new Set(permissions);
 	const tools = [];
+	const runtimeOptions = {
+		allowedPaths,
+		maxReadSize,
+		registry,
+		conversationsDir,
+		safety,
+		timeout,
+		memoryLimit,
+	};
 
 	for (const [toolName, requiredPerms] of Object.entries(TOOL_PERMISSIONS)) {
 		const hasAllPerms = requiredPerms.every((perm) => enabledSet.has(perm));
 
 		switch (toolName) {
-			case "clarify": {
-				// Always register
-				tools.push(
-					createToolWithRuntimeOptions(ALL_TOOLS[toolName], {
-						maxReadSize,
-						registry,
-						conversationsDir,
-					}),
-				);
-				continue;
-			}
-
+			case "clarify":
 			case "execute_code": {
-				// No permission required, always register
-				tools.push(
-					createToolWithRuntimeOptions(ALL_TOOLS[toolName], {
-						maxReadSize,
-						registry,
-						conversationsDir,
-					}),
-				);
+				tools.push(TOOL_FACTORIES[toolName](runtimeOptions));
 				continue;
 			}
 
 			case "web_search":
 			case "web_extract": {
-				// Require network:outbound + at least one search API key
 				if (!hasAllPerms || !hasSearchKey()) continue;
-				tools.push(
-					createToolWithRuntimeOptions(ALL_TOOLS[toolName], {
-						maxReadSize,
-						registry,
-						conversationsDir,
-					}),
-				);
+				tools.push(TOOL_FACTORIES[toolName](runtimeOptions));
 				continue;
 			}
 
 			case "vision_analyze": {
-				// No permission required, but needs OPENAI_API_KEY
 				if (!process.env.OPENAI_API_KEY) continue;
-				tools.push(
-					createToolWithRuntimeOptions(ALL_TOOLS[toolName], {
-						maxReadSize,
-						registry,
-						conversationsDir,
-					}),
-				);
+				tools.push(TOOL_FACTORIES[toolName](runtimeOptions));
 				continue;
 			}
 
 			case "image_generate": {
-				// Require network:outbound + FAL_API_KEY
 				if (!hasAllPerms || !process.env.FAL_API_KEY) continue;
-				tools.push(
-					createToolWithRuntimeOptions(ALL_TOOLS[toolName], {
-						maxReadSize,
-						registry,
-						conversationsDir,
-					}),
-				);
+				tools.push(TOOL_FACTORIES[toolName](runtimeOptions));
 				continue;
 			}
 
-			case "cronjob": {
-				// Require network:outbound
-				if (!hasAllPerms) continue;
-				tools.push(
-					createToolWithRuntimeOptions(ALL_TOOLS[toolName], {
-						maxReadSize,
-						registry,
-						conversationsDir,
-					}),
-				);
-				continue;
-			}
-
-			case "text_to_speech": {
-				// No permission required, but needs OPENAI_API_KEY
-				if (!process.env.OPENAI_API_KEY) continue;
-				tools.push(
-					createToolWithRuntimeOptions(ALL_TOOLS[toolName], {
-						maxReadSize,
-						registry,
-						conversationsDir,
-					}),
-				);
-				continue;
-			}
-
+			case "cronjob":
+			case "text_to_speech":
 			case "mixture_of_agents": {
-				// No permission required, but needs OPENROUTER_API_KEY
-				if (!process.env.OPENROUTER_API_KEY) continue;
-				tools.push(
-					createToolWithRuntimeOptions(ALL_TOOLS[toolName], {
-						maxReadSize,
-						registry,
-						conversationsDir,
-					}),
-				);
+				if (toolName === "cronjob" && !hasAllPerms) continue;
+				if (toolName === "text_to_speech" && !process.env.OPENAI_API_KEY) continue;
+				if (toolName === "mixture_of_agents" && !process.env.OPENROUTER_API_KEY) continue;
+				tools.push(TOOL_FACTORIES[toolName](runtimeOptions));
 				continue;
 			}
 
 			default: {
-				// Tier 1 tools: permission-based gating only
-				if (requiredPerms.length === 0) {
-					tools.push(
-						createToolWithRuntimeOptions(ALL_TOOLS[toolName], {
-							maxReadSize,
-							registry,
-							conversationsDir,
-						}),
-					);
-					continue;
-				}
-				if (hasAllPerms) {
-					tools.push(
-						createToolWithRuntimeOptions(ALL_TOOLS[toolName], {
-							maxReadSize,
-							registry,
-							conversationsDir,
-						}),
-					);
-				}
+				if (requiredPerms.length > 0 && !hasAllPerms) continue;
+				tools.push(TOOL_FACTORIES[toolName](runtimeOptions));
 			}
 		}
 	}
 
 	return tools;
-}
-
-/**
- * Create a tool with runtime options injected via closure.
- * The @tool decorator handles the invocation; runtime options are passed
- * through the tool's second argument during invocation.
- * @param {unknown} toolDef - The tool definition from the tool decorator
- * @param {object} runtimeOptions - Options to inject at invocation time
- * @returns {unknown} A tool with runtime options configured
- */
-// eslint-disable-next-line no-unused-vars
-function createToolWithRuntimeOptions(toolDef, runtimeOptions) {
-	// The runtime options need to be available at invocation time.
-	// LangChain's @tool decorator passes runtime options as the second argument.
-	// We return the tool definition as-is and configure runtime options
-	// through the agent's tool context at runtime.
-	return toolDef;
 }

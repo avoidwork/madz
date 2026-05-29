@@ -390,3 +390,48 @@ export const web_extract = tool(webExtractImpl, {
 			),
 	}),
 });
+
+// --- Factory functions for creating tools with runtime options ---
+
+/**
+ * Create a web_search tool with runtime options
+ * @param {object} options - Runtime options
+ * @returns {object} LangChain Tool instance
+ */
+export function createWebSearchTool(options) {
+	return tool((input) => webSearchImpl(input, options), {
+		name: "web_search",
+		description:
+			"Search the web for information using an available search API (Exa, Firecrawl, Tavily, or DuckDuckGo parallel fallback). Returns up to 100 results.",
+		schema: z.object({
+			query: z.string().min(1).describe("Search query"),
+			limit: z
+				.number()
+				.int()
+				.min(1)
+				.max(100)
+				.optional()
+				.describe("Max results to return (default: 5)"),
+		}),
+	});
+}
+
+/**
+ * Create a web_extract tool with runtime options
+ * @param {object} options - Runtime options
+ * @returns {object} LangChain Tool instance
+ */
+export function createWebExtractTool(options) {
+	return tool((input) => webExtractImpl(input, options), {
+		name: "web_extract",
+		description:
+			"Extract readable text content from a web page URL. Returns cleaned, stripped HTML as plain text.",
+		schema: z.object({
+			url: z.string().url().describe("URL to extract content from"),
+			summarizeLarge: z
+				.boolean()
+				.optional()
+				.describe("Summarize (vs return full text) when page exceeds 10,000 characters"),
+		}),
+	});
+}

@@ -171,3 +171,26 @@ export const vision_analyze = tool(visionAnalyzeImpl, {
 			.describe("Question or instruction about the image (default: describe the image)"),
 	}),
 });
+
+// --- Factory functions for creating tools with runtime options ---
+
+/**
+ * Create a vision_analyze tool with runtime options
+ * @param {object} options - Runtime options
+ * @returns {object} LangChain Tool instance
+ */
+export function createVisionTool(options) {
+	return tool((input) => visionAnalyzeImpl(input, options), {
+		name: "vision_analyze",
+		description:
+			"Analyze an image by sending it to a multimodal LLM. Accepts a URL or base64 data URI.",
+		schema: z.object({
+			url: z.string().url().optional().describe("URL of the image to analyze"),
+			dataUri: z.string().optional().describe("Base64 data URI (data:image/png;base64,...)"),
+			prompt: z
+				.string()
+				.optional()
+				.describe("Question or instruction about the image (default: describe the image)"),
+		}),
+	});
+}
