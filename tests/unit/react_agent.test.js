@@ -26,7 +26,7 @@ describe("callReactAgent", () => {
 		assert.strictEqual(capturedMessages[0].content, "what is 2+2");
 	});
 
-	it("ignores system prompt arg (handled by compiled agent, not callReactAgent)", async () => {
+	it("prepends system message on new thread (default)", async () => {
 		let capturedMessages = null;
 
 		const agentMock = {
@@ -39,7 +39,31 @@ describe("callReactAgent", () => {
 		};
 
 		await callReactAgent(agentMock, "hello world", null, "You are a helpful assistant.");
-		// callReactAgent only passes the user message; system prompt is embedded in the compiled agent
+		assert.strictEqual(capturedMessages.length, 2);
+		assert.ok(capturedMessages[0] instanceof SystemMessage);
+		assert.strictEqual(capturedMessages[0].content, "You are a helpful assistant.");
+		assert.ok(capturedMessages[1] instanceof HumanMessage);
+		assert.strictEqual(capturedMessages[1].content, "hello world");
+	});
+
+	it("skips system message when isNewThread is false (thread has history)", async () => {
+		let capturedMessages = null;
+
+		const agentMock = {
+			invoke: (input) => {
+				capturedMessages = input.messages;
+				return {
+					messages: [new AIMessage("response")],
+				};
+			},
+		};
+
+		await callReactAgent(
+			agentMock,
+			"hello world",
+			{ configurable: { thread_id: "abc", isNewThread: false } },
+			"You are a helpful assistant.",
+		);
 		assert.strictEqual(capturedMessages.length, 1);
 		assert.ok(capturedMessages[0] instanceof HumanMessage);
 		assert.strictEqual(capturedMessages[0].content, "hello world");

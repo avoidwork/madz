@@ -46,7 +46,7 @@ describe("callReactAgent with config", () => {
 		assert.strictEqual(capturedInput.messages[0].content, "test message");
 	});
 
-	it("passes configurable when system prompt arg is ignored (handled by compiled agent)", async () => {
+	it("skips system message when isNewThread is false (thread has history)", async () => {
 		let capturedInput = null;
 
 		const agentMock = {
@@ -61,13 +61,15 @@ describe("callReactAgent with config", () => {
 		await callReactAgent(
 			agentMock,
 			"test message",
-			{ configurable: { thread_id: "def-456" } },
+			{ configurable: { thread_id: "def-456", isNewThread: false } },
 			"You are helpful",
 		);
 
 		assert.ok(capturedInput.configurable);
 		assert.strictEqual(capturedInput.configurable.thread_id, "def-456");
-		// System prompt is no longer prepended here; it is embedded in the compiled agent
+		capturedInput.configurable.isNewThread = false;
+		assert.strictEqual(capturedInput.configurable.isNewThread, false);
+		// System prompt is skipped when thread has history (checkpointer carries it)
 		assert.strictEqual(capturedInput.messages.length, 1);
 		assert.ok(capturedInput.messages[0] instanceof HumanMessage);
 		assert.strictEqual(capturedInput.messages[0].content, "test message");
