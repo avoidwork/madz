@@ -101,6 +101,89 @@ describe("web_search", () => {
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("Exa request failed"));
 	});
+
+	it("handles Firecrawl API error response", async () => {
+		process.env.FIRECRAWL_API_KEY = "sk-fc-test";
+		delete process.env.EXA_API_KEY;
+		globalThis.fetch = async () => ({
+			ok: false,
+			status: 403,
+			text: async () => "Forbidden",
+		});
+		const result = await webSearchImpl({ query: "firecrawl test" }, {});
+		const parsed = JSON.parse(result);
+		assert.strictEqual(parsed.ok, false);
+		assert.ok(parsed.error.includes("Firecrawl API error") || parsed.error.includes("403"));
+	});
+
+	it("handles Firecrawl request failure (network error)", async () => {
+		process.env.FIRECRAWL_API_KEY = "sk-fc-test";
+		delete process.env.EXA_API_KEY;
+		globalThis.fetch = async () => {
+			throw new Error("Network unreachable");
+		};
+		const result = await webSearchImpl({ query: "test" }, {});
+		const parsed = JSON.parse(result);
+		assert.strictEqual(parsed.ok, false);
+		assert.ok(parsed.error.includes("Firecrawl request failed"));
+	});
+
+	it("handles Tavily API error response", async () => {
+		process.env.TAVILY_API_KEY = "sk-tavily-test";
+		delete process.env.EXA_API_KEY;
+		delete process.env.FIRECRAWL_API_KEY;
+		globalThis.fetch = async () => ({
+			ok: false,
+			status: 401,
+			text: async () => "Unauthorized",
+		});
+		const result = await webSearchImpl({ query: "tavily test" }, {});
+		const parsed = JSON.parse(result);
+		assert.strictEqual(parsed.ok, false);
+		assert.ok(parsed.error.includes("Tavily API error") || parsed.error.includes("401"));
+	});
+
+	it("handles Tavily request failure (network error)", async () => {
+		process.env.TAVILY_API_KEY = "sk-tavily-test";
+		delete process.env.EXA_API_KEY;
+		delete process.env.FIRECRAWL_API_KEY;
+		globalThis.fetch = async () => {
+			throw new Error("connection timeout");
+		};
+		const result = await webSearchImpl({ query: "test" }, {});
+		const parsed = JSON.parse(result);
+		assert.strictEqual(parsed.ok, false);
+		assert.ok(parsed.error.includes("Tavily request failed"));
+	});
+
+	it("handles Parallel search no results", async () => {
+		process.env.PARALLEL_API_KEY = "sk-parallel-test";
+		delete process.env.EXA_API_KEY;
+		delete process.env.FIRECRAWL_API_KEY;
+		delete process.env.TAVILY_API_KEY;
+		globalThis.fetch = async () => ({
+			ok: true,
+			text: async () => "<html><body>No matching results here</body></html>",
+		});
+		const result = await webSearchImpl({ query: "very specific nonsense query xyz" }, {});
+		const parsed = JSON.parse(result);
+		assert.strictEqual(parsed.ok, false);
+		assert.ok(parsed.error.includes("no results"));
+	});
+
+	it("handles Parallel search failure (network error)", async () => {
+		process.env.PARALLEL_API_KEY = "sk-parallel-test";
+		delete process.env.EXA_API_KEY;
+		delete process.env.FIRECRAWL_API_KEY;
+		delete process.env.TAVILY_API_KEY;
+		globalThis.fetch = async () => {
+			throw new Error("connection refused");
+		};
+		const result = await webSearchImpl({ query: "test" }, {});
+		const parsed = JSON.parse(result);
+		assert.strictEqual(parsed.ok, false);
+		assert.ok(parsed.error.includes("Parallel search failed"));
+	});
 });
 
 describe("web_extract", () => {
