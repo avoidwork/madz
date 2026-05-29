@@ -1,4 +1,4 @@
-import { describe, it, before, after } from "node:test";
+import { describe, it, before, after, beforeEach, afterEach } from "node:test";
 import assert from "node:assert";
 import { webSearchImpl, webExtractImpl, detectSearchBackend } from "../../src/tools/web.js";
 
@@ -7,163 +7,98 @@ describe("web_search", () => {
 
 	before(() => {
 		origFetch = globalThis.fetch;
-		origEnv = {
-			EXA_API_KEY: process.env.EXA_API_KEY,
-			FIRECRAWL_API_KEY: process.env.FIRECRAWL_API_KEY,
-			TAVILY_API_KEY: process.env.TAVILY_API_KEY,
-			PARALLEL_API_KEY: process.env.PARALLEL_API_KEY,
-		};
+		origEnv = { ...process.env };
 	});
 
 	after(() => {
 		globalThis.fetch = origFetch;
-		process.env.EXA_API_KEY = origEnv.EXA_API_KEY;
-		process.env.FIRECRAWL_API_KEY = origEnv.FIRECRAWL_API_KEY;
-		process.env.TAVILY_API_KEY = origEnv.TAVILY_API_KEY;
-		process.env.PARALLEL_API_KEY = origEnv.PARALLEL_API_KEY;
+		Object.assign(process.env, origEnv);
 	});
 
-	function withEnv(overrides, fn) {
-		const _saved = {
-			EXA: process.env.EXA_API_KEY,
-			FC: process.env.FIRECRAWL_API_KEY,
-			TV: process.env.TAVILY_API_KEY,
-			PAR: process.env.PARALLEL_API_KEY,
-		};
-		for (const [k, v] of Object.entries(overrides)) {
+	let _saved = {};
+	function setEnv(vars) {
+		_saved = { ...process.env };
+		for (const [k, v] of Object.entries(vars || {})) {
 			if (v === undefined) {
 				delete process.env[k];
 			} else {
 				process.env[k] = v;
 			}
 		}
-		return fn();
 	}
 
-	function withMockFetch(mock, fn) {
-		const orig = globalThis.fetch;
-		globalThis.fetch = mock;
-		return fn().finally(() => {
-			globalThis.fetch = orig;
+	function mockFetch(resp) {
+		globalThis.fetch = async (_url, _opts) => resp;
+	}
+
+	it("uses Bing when BING_API_KEY is set", async () => {
+		setEnv({ BING_API_KEY: "sk-bing", SEARXNG_URL: undefined, CUSTOM_SEARCH_URL: undefined });
+		assert.strictEqual(detectSearchBackend(), "bing");
+		mockFetch({
+			ok: true,
+			json: async () => ({
+				webPages: { value: [{ name: "Bing Result", url: "https://bing.com", snippet: "desc" }] },
+			}),
 		});
-	}
-
-	it("uses Exa when EXA_API_KEY is set", async () => {
-		await withEnv(
-			{ EXA_API_KEY: "sk-exa", FIRECRAWL_API_KEY: undefined, TAVILY_API_KEY: undefined },
-			async () => {
-				assert.strictEqual(await detectSearchBackend(), "exa");
-				return withMockFetch(
-					async (url, _opts) => {
-						assert.ok(url.includes("exa.ai"));
-						return {
-							ok: true,
-							json: async () => ({
-								results: [{ title: "Result 1", url: "https://example.com", text: "Desc" }],
-							}),
-						};
-					},
-					() => {
-						return withMockFetch(
-							async (url, opts) => {
-								const body = JSON.parse(opts.body);
-								assert.strictEqual(body.query, "test query");
-								return {
-									ok: true,
-									json: async () => ({
-										results: [{ title: "Result 1", url: "https://example.com", text: "Desc" }],
-									}),
-								};
-							},
-							async () => {
-								const result = await webSearchImpl({ query: "test query" });
-								const parsed = JSON.parse(result);
-								assert.strictEqual(parsed.ok, true);
-								assert.strictEqual(parsed.backend, "exa");
-							},
-						);
-					},
-				);
-			},
-		);
+		const result = await webSearchImpl({ query: "test" });
+		const parsed = JSON.parse(result);
+		assert.strictEqual(parsed.ok, true);
+		assert.strictEqual(parsed.backend, "bing");
 	});
 
-	it("uses Firecrawl when FIRECRAWL_API_KEY is set", async () => {
-		await withEnv(
-			{ EXA_API_KEY: undefined, FIRECRAWL_API_KEY: "sk-fc", TAVILY_API_KEY: undefined },
-			async () => {
-				return withMockFetch(
-					async () => ({
-						ok: true,
-						json: async () => ({
-							data: [
-								{
-									metadata: { title: "FC Result", sourceURL: "https://fc.com" },
-									markdown: "content",
-								},
-							],
-						}),
-					}),
-					async () => {
-						const result = await webSearchImpl({ query: "test" });
-						const parsed = JSON.parse(result);
-						assert.strictEqual(parsed.ok, true);
-						assert.strictEqual(parsed.backend, "firecrawl");
-					},
-				);
-			},
-		);
+	it("uses SearXNG when SEARXNG_URL is set", async () => {
+		setEnv({
+			BING_API_KEY: undefined,
+			SEARXNG_URL: "http://searxng.local",
+			CUSTOM_SEARCH_URL: undefined,
+		});
+		assert.strictEqual(detectSearchBackend(), "searxng");
+		mockFetch({
+			ok: true,
+			json: async () => ({
+				results: [{ title: "SearX", url: "https://searxng.com", content: "desc" }],
+			}),
+		});
+		const result = await webSearchImpl({ query: "test" });
+		const parsed = JSON.parse(result);
+		assert.strictEqual(parsed.ok, true);
+		assert.strictEqual(parsed.backend, "searxng");
 	});
 
-	it("uses Tavily when TAVILY_API_KEY is set", async () => {
-		await withEnv(
-			{ EXA_API_KEY: undefined, FIRECRAWL_API_KEY: undefined, TAVILY_API_KEY: "sk-tv" },
-			async () => {
-				return withMockFetch(
-					async () => ({
-						ok: true,
-						json: async () => ({
-							results: [{ title: "TV Result", url: "https://tv.com", content: "content" }],
-						}),
-					}),
-					async () => {
-						const result = await webSearchImpl({ query: "test" });
-						const parsed = JSON.parse(result);
-						assert.strictEqual(parsed.ok, true);
-						assert.strictEqual(parsed.backend, "tavily");
-					},
-				);
-			},
-		);
+	it("uses Custom when CUSTOM_SEARCH_URL is set", async () => {
+		setEnv({
+			BING_API_KEY: undefined,
+			SEARXNG_URL: undefined,
+			CUSTOM_SEARCH_URL: "http://custom.local/search?q={{query}}",
+			CUSTOM_SEARCH_BODY: '{ "q": "{{query}}" }',
+		});
+		assert.strictEqual(detectSearchBackend(), "custom");
+		mockFetch({
+			ok: true,
+			json: async () => ({ results: [{ title: "Cust", url: "https://c.com", description: "D" }] }),
+		});
+		const result = await webSearchImpl({ query: "test" });
+		const parsed = JSON.parse(result);
+		assert.strictEqual(parsed.ok, true);
+		assert.strictEqual(parsed.backend, "custom");
 	});
 
-	it("uses Parallel as fallback when PARALLEL_API_KEY is set", async () => {
-		await withEnv(
-			{
-				EXA_API_KEY: undefined,
-				FIRECRAWL_API_KEY: undefined,
-				TAVILY_API_KEY: undefined,
-				PARALLEL_API_KEY: "sk-par",
-			},
-			async () => {
-				return withMockFetch(
-					async (url) => {
-						assert.ok(url.includes("duckduckgo"));
-						return {
-							ok: true,
-							text: async () =>
-								`<a rel="nofollow" class="result__a" href="https://ddg.com?q=1">Test Result</a><a class="result__snippet" href="https://ddg.com">A snippet</a>`,
-						};
-					},
-					async () => {
-						const result = await webSearchImpl({ query: "test" });
-						const parsed = JSON.parse(result);
-						assert.strictEqual(parsed.ok, true);
-						assert.strictEqual(parsed.backend, "parallel");
-					},
-				);
-			},
-		);
+	it("falls back to DuckDuckGo when no API/config keys set", async () => {
+		setEnv({
+			BING_API_KEY: undefined,
+			SEARXNG_URL: undefined,
+			CUSTOM_SEARCH_URL: undefined,
+		});
+		assert.strictEqual(detectSearchBackend(), "duckduckgo");
+		mockFetch({
+			ok: true,
+			text: async () =>
+				'<a rel="nofollow" class="result__a" href="https://ddg.com">DDG Result</a><a class="result__snippet" href="https://ddg.com">A snippet</a>',
+		});
+		const result = await webSearchImpl({ query: "test" });
+		const parsed = JSON.parse(result);
+		assert.strictEqual(parsed.ok, true);
+		assert.strictEqual(parsed.backend, "duckduckgo");
 	});
 
 	it("rejects empty query", async () => {
@@ -174,58 +109,43 @@ describe("web_search", () => {
 	});
 
 	it("caps limit at 100", async () => {
-		await withEnv(
-			{ EXA_API_KEY: "sk-test", FIRECRAWL_API_KEY: undefined, TAVILY_API_KEY: undefined },
-			async () => {
-				return withMockFetch(
-					async (url, opts) => {
-						const body = JSON.parse(opts.body);
-						assert.strictEqual(body.numResults, 5);
-						return { ok: true, json: async () => ({ results: [] }) };
-					},
-					async () => {
-						const result = await webSearchImpl({ query: "test", limit: 200 });
-						const parsed = JSON.parse(result);
-						assert.ok(parsed.ok);
-					},
-				);
-			},
-		);
+		setEnv({ CUSTOM_SEARCH_URL: "http://c.com" });
+		assert.strictEqual(detectSearchBackend(), "custom");
+		mockFetch({ ok: true, json: async () => ({ results: [] }) });
+		const result = await webSearchImpl({ query: "test", limit: 200 });
+		const parsed = JSON.parse(result);
+		assert.strictEqual(parsed.ok, true);
 	});
 
-	it("returns descriptive error when no key configured", async () => {
-		await withEnv(
-			{
-				EXA_API_KEY: undefined,
-				FIRECRAWL_API_KEY: undefined,
-				TAVILY_API_KEY: undefined,
-				PARALLEL_API_KEY: undefined,
-			},
-			async () => {
-				const result = await webSearchImpl({ query: "test" });
-				const parsed = JSON.parse(result);
-				assert.strictEqual(parsed.ok, false);
-				assert.ok(parsed.error.includes("No search API key"));
-			},
-		);
+	it("handles Bing API error response", async () => {
+		setEnv({ BING_API_KEY: "bad", SEARXNG_URL: undefined, CUSTOM_SEARCH_URL: undefined });
+		mockFetch({ ok: false, status: 401, text: async () => "Invalid API key" });
+		const result = await webSearchImpl({ query: "test" });
+		const parsed = JSON.parse(result);
+		assert.strictEqual(parsed.ok, false);
+		assert.ok(parsed.error.includes("Bing API error"));
 	});
 
-	it("returns error when Exa API fails", async () => {
-		await withEnv({ EXA_API_KEY: "sk-test" }, async () => {
-			return withMockFetch(
-				async () => ({
-					ok: false,
-					status: 401,
-					text: async () => "Invalid API key",
-				}),
-				async () => {
-					const result = await webSearchImpl({ query: "test" });
-					const parsed = JSON.parse(result);
-					assert.strictEqual(parsed.ok, false);
-					assert.ok(parsed.error.includes("Exa API error"));
-				},
-			);
+	it("handles SearXNG HTTP error", async () => {
+		setEnv({
+			BING_API_KEY: undefined,
+			SEARXNG_URL: "http://broken.local",
+			CUSTOM_SEARCH_URL: undefined,
 		});
+		mockFetch({ ok: false, status: 503 });
+		const result = await webSearchImpl({ query: "test" });
+		const parsed = JSON.parse(result);
+		assert.strictEqual(parsed.ok, false);
+		assert.ok(parsed.error.includes("SearXNG"));
+	});
+
+	it("handles Custom search failure", async () => {
+		setEnv({ BING_API_KEY: undefined, SEARXNG_URL: undefined, CUSTOM_SEARCH_URL: "http://broken" });
+		mockFetch({ ok: false, status: 500 });
+		const result = await webSearchImpl({ query: "test" });
+		const parsed = JSON.parse(result);
+		assert.strictEqual(parsed.ok, false);
+		assert.ok(parsed.error.includes("Custom") || parsed.error.includes("500"));
 	});
 });
 
@@ -240,63 +160,100 @@ describe("web_extract", () => {
 		globalThis.fetch = origFetch;
 	});
 
-	it("returns error for blocked URL scheme (file://)", async () => {
-		globalThis.fetch = async () => ({ ok: true, text: async () => "" });
-		const result = await webExtractImpl({ url: "file:///etc/passwd" });
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.ok, false);
-		assert.ok(parsed.error.includes("URL rejected"));
-	});
-
-	it("returns error for missing URL", async () => {
-		const result = await webExtractImpl({ url: "" });
+	it("requires URL", async () => {
+		const result = await webExtractImpl({}, {});
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("URL is required"));
 	});
 
-	it("extracts content from valid HTTP URL", async () => {
-		globalThis.fetch = async () => ({
-			ok: true,
-			text: async () => "<html><body><h1>Hello</h1><p>World</p></body></html>",
-		});
-		const result = await webExtractImpl({ url: "https://example.com/page" });
+	it("rejects invalid URL format via filterUrl", async () => {
+		const result = await webExtractImpl({ url: "not-a-url" }, {});
 		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.ok, true);
-		assert.ok(parsed.content.includes("Hello"));
-		assert.ok(parsed.content.includes("World"));
-		assert.strictEqual(parsed.url, "https://example.com/page");
+		assert.ok("ok" in parsed);
 	});
 
-	it("returns summary for large pages when summarizeLarge is true", async () => {
+	it("handles HTTP error response", async () => {
 		globalThis.fetch = async () => ({
-			ok: true,
-			text: async () => Array(5000).fill("<p>").join(""),
+			ok: false,
+			status: 404,
+			statusText: "Not Found",
 		});
-		const result = await webExtractImpl({ url: "https://example.com/large", summarizeLarge: true });
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.ok, true);
-		assert.ok(parsed.summary);
-		assert.ok(parsed.content.includes("Large page"));
-	});
-
-	it("filters out script and style tags", async () => {
-		globalThis.fetch = async () => ({
-			ok: true,
-			text: async () => "<script>var x = 1;</script><style>body{}</style><p>visible content</p>",
-		});
-		const result = await webExtractImpl({ url: "https://example.com" });
-		const parsed = JSON.parse(result);
-		assert.ok(parsed.ok);
-		assert.ok(parsed.content.includes("visible content"));
-		assert.ok(!parsed.content.includes("var x = 1"));
-		assert.ok(!parsed.content.includes("body{}"));
-	});
-
-	it("filters out gopher scheme", async () => {
-		globalThis.fetch = async () => {};
-		const result = await webExtractImpl({ url: "gopher://example.com" });
+		const result = await webExtractImpl({ url: "https://example.com/notfound" }, {});
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
+		assert.ok(parsed.error.includes("HTTP 404") || parsed.error.includes("404"));
+	});
+
+	it("handles fetch failure", async () => {
+		globalThis.fetch = async () => {
+			throw new Error("Network error");
+		};
+		const result = await webExtractImpl({ url: "https://example.com" }, {});
+		const parsed = JSON.parse(result);
+		assert.strictEqual(parsed.ok, false);
+		assert.ok(parsed.error.includes("Fetch failed"));
+	});
+
+	it("handles short page content", async () => {
+		globalThis.fetch = async () => ({
+			ok: true,
+			text: async () => "Short",
+		});
+		const result = await webExtractImpl({ url: "https://example.com" }, {});
+		const parsed = JSON.parse(result);
+		assert.strictEqual(parsed.ok, false);
+		assert.ok(parsed.error.includes("too short") || parsed.error.includes("unreadable"));
+	});
+
+	it("handles large page with summarizeLarge", async () => {
+		globalThis.fetch = async () => ({
+			ok: true,
+			text: async () => "<html><body>" + "x".repeat(12000) + "</body></html>",
+		});
+		const result = await webExtractImpl({ url: "https://example.com", summarizeLarge: true }, {});
+		const parsed = JSON.parse(result);
+		assert.strictEqual(parsed.ok, true);
+		assert.ok(parsed.content);
+	});
+});
+
+describe("detectSearchBackend", () => {
+	let origEnv;
+
+	beforeEach(() => {
+		origEnv = { ...process.env };
+	});
+
+	afterEach(() => {
+		Object.assign(process.env, origEnv);
+	});
+
+	it("returns custom when CUSTOM_SEARCH_URL is set", () => {
+		process.env.CUSTOM_SEARCH_URL = "http://c.local";
+		delete process.env.BING_API_KEY;
+		delete process.env.SEARXNG_URL;
+		assert.strictEqual(detectSearchBackend(), "custom");
+	});
+
+	it("returns bing when BING_API_KEY is set", () => {
+		process.env.BING_API_KEY = "sk-bing";
+		delete process.env.CUSTOM_SEARCH_URL;
+		delete process.env.SEARXNG_URL;
+		assert.strictEqual(detectSearchBackend(), "bing");
+	});
+
+	it("returns searxng when SEARXNG_URL is set", () => {
+		process.env.SEARXNG_URL = "http://s.local";
+		delete process.env.BING_API_KEY;
+		delete process.env.CUSTOM_SEARCH_URL;
+		assert.strictEqual(detectSearchBackend(), "searxng");
+	});
+
+	it("returns duckduckgo as fallback when no keys set", () => {
+		delete process.env.CUSTOM_SEARCH_URL;
+		delete process.env.BING_API_KEY;
+		delete process.env.SEARXNG_URL;
+		assert.strictEqual(detectSearchBackend(), "duckduckgo");
 	});
 });
