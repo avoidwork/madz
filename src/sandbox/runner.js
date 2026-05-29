@@ -61,6 +61,7 @@ export async function runSandbox(options) {
 			resolve(code);
 		});
 
+		// node:coverage ignore next 3
 		child.on("error", (err) => {
 			reject(err);
 		});

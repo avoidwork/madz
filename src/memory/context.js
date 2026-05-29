@@ -19,7 +19,11 @@ export function loadContext(contextDir = "memory/context/", limit = 10) {
 				const { frontmatter, content: body } = parseFrontmatter(content);
 				return { filepath, frontmatter, body, timestamp: frontmatter.timestamp || "" };
 			})
-			.sort((a, b) => (b.timestamp || "").localeCompare(a.timestamp || ""));
+			.sort((a, b) => {
+				const aTs = a.timestamp instanceof Date ? a.timestamp.toISOString() : a.timestamp;
+				const bTs = b.timestamp instanceof Date ? b.timestamp.toISOString() : b.timestamp;
+				return (bTs || "").localeCompare(aTs || "");
+			});
 
 		const recent = sorted.slice(0, limit);
 		return recent

@@ -1,8 +1,16 @@
+import React from "react";
 import { describe, it } from "node:test";
 import assert from "node:assert";
 import { CommandParser } from "../../src/tui/commandParser.js";
 import { PANELS, nextPanel, prevPanel, getPanelOrder } from "../../src/tui/panels.js";
-import { isStreamingMessage } from "../../src/tui/messages.js";
+import {
+	isStreamingMessage,
+	getRoleLabel,
+	formatMessage,
+	countMessageLines,
+	getToolCallLines,
+} from "../../src/tui/messages.js";
+import { parseMarkdown, MarkdownText } from "../../src/tui/markdownText.js";
 
 describe("command parser", () => {
 	it("parses :quit command", () => {
@@ -82,6 +90,21 @@ describe("command parser", () => {
 			const result = parser.parse(":config set telemetry.enabled true", ctx);
 			assert.strictEqual(result.action, "config");
 			assert.strictEqual(result.subAction, "set");
+		});
+
+		it("sets config value with :config path value (no 'set' keyword)", () => {
+			const parser = new CommandParser();
+			let configPath = null;
+			const ctx = {
+				_setConfigValue: (p) => {
+					configPath = p;
+				},
+			};
+			const result = parser.parse(":config telemetry.enabled true", ctx);
+			assert.strictEqual(result.action, "config");
+			assert.strictEqual(result.subAction, "set");
+			assert.strictEqual(result.path, "telemetry.enabled");
+			assert.strictEqual(configPath, "telemetry.enabled");
 		});
 
 		it("returns usage message when _setConfigValue is not provided", () => {
@@ -243,79 +266,6 @@ describe("TUI - message formatting", () => {
 	});
 });
 
-describe("TUI - role colors", () => {
-	it("returns correct colors for user role", () => {
-		function getRoleColors(role) {
-			if (role === "user") {
-				return { label: "green", content: "white" };
-			}
-			if (role === "system") {
-				return { label: "yellow", content: "yellow" };
-			}
-			return { label: "cyan", content: "white" };
-		}
-
-		assert.deepStrictEqual(getRoleColors("user"), { label: "green", content: "white" });
-		assert.deepStrictEqual(getRoleColors("assistant"), { label: "cyan", content: "white" });
-		assert.deepStrictEqual(getRoleColors("system"), { label: "yellow", content: "yellow" });
-	});
-});
-
-describe("TUI - bubble style", () => {
-	it("returns flex-end alignment with green border for user", () => {
-		function getBubbleStyle(role) {
-			if (role === "user") {
-				return { alignment: "flex-end", border: "green" };
-			}
-			if (role === "system") {
-				return { alignment: "flex-start", border: "yellow" };
-			}
-			return { alignment: "flex-start", border: "cyan" };
-		}
-
-		assert.deepStrictEqual(getBubbleStyle("user"), {
-			alignment: "flex-end",
-			border: "green",
-		});
-		assert.deepStrictEqual(getBubbleStyle("assistant"), {
-			alignment: "flex-start",
-			border: "cyan",
-		});
-		assert.deepStrictEqual(getBubbleStyle("system"), {
-			alignment: "flex-start",
-			border: "yellow",
-		});
-	});
-});
-
-describe("TUI - status indicator", () => {
-	it("returns correct indicator for ready status", () => {
-		function getStatusIndicator(status) {
-			if (status.startsWith("Error")) {
-				return { indicator: "\u2716", color: "red" };
-			}
-			if (status === "Sending..." || status === "Streaming...") {
-				return { indicator: "\u25B6", color: "yellow" };
-			}
-			return { indicator: "\u25CF", color: "green" };
-		}
-
-		assert.deepStrictEqual(getStatusIndicator("Ready"), { indicator: "\u25CF", color: "green" });
-		assert.deepStrictEqual(getStatusIndicator("Sending..."), {
-			indicator: "\u25B6",
-			color: "yellow",
-		});
-		assert.deepStrictEqual(getStatusIndicator("Streaming..."), {
-			indicator: "\u25B6",
-			color: "yellow",
-		});
-		assert.deepStrictEqual(getStatusIndicator("Error: something failed"), {
-			indicator: "\u2716",
-			color: "red",
-		});
-	});
-});
-
 describe("TUI - timestamp formatting", () => {
 	it("formats time using Intl.DateTimeFormat", async () => {
 		const { formatTime } = await import("../../src/tui/conversationPanel.js");
@@ -324,6 +274,97 @@ describe("TUI - timestamp formatting", () => {
 		const result = formatTime(d);
 		// Accept any locale-aware time format (e.g., "14:30", "2:30 PM", "1430")
 		assert.ok(/\d/.test(result), "time formatting should contain a digit");
+	});
+});
+
+describe("TUI - getRoleLabel", () => {
+	it("maps user role to 'You'", () => {
+		assert.strictEqual(getRoleLabel("user"), "You");
+	});
+
+	it("maps assistant role to assistantName when provided", () => {
+		assert.strictEqual(getRoleLabel("assistant", "madz"), "madz");
+		assert.strictEqual(getRoleLabel("assistant", "oracle"), "oracle");
+	});
+
+	it("maps assistant role to 'Assistant' when no name provided", () => {
+		assert.strictEqual(getRoleLabel("assistant"), "Assistant");
+	});
+
+	it("maps system role to 'System'", () => {
+		assert.strictEqual(getRoleLabel("system"), "System");
+	});
+
+	it("returns role string as fallback for unknown roles", () => {
+		assert.strictEqual(getRoleLabel("unknown"), "unknown");
+		assert.strictEqual(getRoleLabel(null), "Unknown");
+	});
+});
+
+describe("TUI - formatMessage", () => {
+	it("formats message with timestamp", () => {
+		const msg = { role: "user", content: "hello", timestamp: "10:00" };
+		const result = formatMessage(msg);
+		assert.ok(result.includes("You (10:00)"));
+		assert.ok(result.includes("hello"));
+	});
+
+	it("formats message without timestamp", () => {
+		const msg = { role: "assistant", content: "world" };
+		const result = formatMessage(msg, "madz");
+		assert.ok(result.includes("madz"));
+		assert.ok(result.includes("world"));
+		assert.ok(!result.includes("("));
+	});
+
+	it("handles empty content", () => {
+		const msg = { role: "user", content: "" };
+		const result = formatMessage(msg);
+		assert.ok(result.includes("(empty)"));
+	});
+});
+
+describe("TUI - countMessageLines", () => {
+	it("counts lines for single message", () => {
+		const messages = [{ role: "user", content: "hello world" }];
+		const result = countMessageLines(messages, 80);
+		assert.ok(typeof result === "number" && result > 0);
+	});
+
+	it("counts lines for multiple messages", () => {
+		const messages = [
+			{ role: "user", content: "hello" },
+			{ role: "assistant", content: "world" },
+		];
+		const result = countMessageLines(messages, 80);
+		assert.ok(result > countMessageLines([{ role: "user", content: "hello" }], 80));
+	});
+
+	it("handles empty messages array", () => {
+		const result = countMessageLines([], 80);
+		assert.strictEqual(result, 0);
+	});
+
+	it("handles long content with line wrapping", () => {
+		const longContent = "x".repeat(240);
+		const messages = [{ role: "user", content: longContent }];
+		const result = countMessageLines(messages, 80);
+		assert.ok(result > 3); // Should wrap to multiple lines
+	});
+});
+
+describe("TUI - getToolCallLines", () => {
+	it("splits tool call display by newlines", () => {
+		const lines = getToolCallLines("- Tool: search\n- Tool: read_file");
+		assert.strictEqual(lines.length, 2);
+		assert.strictEqual(lines[0], "- Tool: search");
+		assert.strictEqual(lines[1], "- Tool: read_file");
+	});
+
+	it("returns empty array for falsy input", () => {
+		const lines = getToolCallLines("");
+		assert.strictEqual(lines.length, 0);
+		assert.strictEqual(getToolCallLines(null).length, 0);
 	});
 });
 
@@ -619,5 +660,78 @@ describe("InputPanel - flex grow", () => {
 
 		const props = getInputFlexProps();
 		assert.strictEqual(props.flexGrow, 1);
+	});
+});
+
+describe("markdownText - parseMarkdown", () => {
+	it("parses markdown headings", () => {
+		const result = parseMarkdown("# Hello");
+		assert.ok(typeof result === "string");
+		assert.ok(result.length > 0);
+	});
+
+	it("parses markdown with code blocks", () => {
+		const result = parseMarkdown("```js\nconsole.log(1);\n```");
+		assert.ok(typeof result === "string");
+		assert.ok(result.length > 0);
+	});
+
+	it("parses markdown with lists", () => {
+		const result = parseMarkdown("- item 1\n- item 2\n- item 3");
+		assert.ok(typeof result === "string");
+		assert.ok(result.length > 0);
+	});
+
+	it("parses plain text", () => {
+		const result = parseMarkdown("just some text");
+		assert.strictEqual(result, "just some text");
+	});
+
+	it("trims trailing whitespace", () => {
+		const result = parseMarkdown("# Hello\n\n");
+		assert.strictEqual(result.endsWith(" "), false);
+		assert.strictEqual(result.endsWith("\n"), false);
+	});
+});
+
+describe("MarkdownText - rendering", () => {
+	it("returns null for null content", () => {
+		const result = MarkdownText({ content: null });
+		assert.strictEqual(result, null);
+	});
+
+	it("returns null for undefined content", () => {
+		const result = MarkdownText({ content: undefined });
+		assert.strictEqual(result, null);
+	});
+
+	it("returns null for empty string content", () => {
+		const result = MarkdownText({ content: "" });
+		assert.strictEqual(result, null);
+	});
+
+	it("renders Text element with normal content", () => {
+		const result = MarkdownText({ content: "# Hello" });
+		assert.ok(React.isValidElement(result));
+		assert.strictEqual(result.type.name, "Text");
+		assert.strictEqual(result.props.color, "white");
+		assert.strictEqual(result.props.wrap, "hard");
+		assert.ok(result.props.children);
+	});
+
+	it("renders with fallback for falsy content", () => {
+		const result = MarkdownText({ content: 0 });
+		assert.ok(React.isValidElement(result));
+		assert.strictEqual(result.type.name, "Text");
+		assert.strictEqual(result.props.color, "white");
+	});
+
+	it("renders content with multiple markdown elements", () => {
+		const content = "# Title\n\nSome paragraph.\n\n- list item";
+		const result = MarkdownText({ content });
+		assert.ok(React.isValidElement(result));
+		assert.strictEqual(result.type.name, "Text");
+		assert.strictEqual(result.props.color, "white");
+		assert.ok(result.props.children);
 	});
 });

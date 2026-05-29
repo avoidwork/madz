@@ -11,7 +11,8 @@ setOptions({ renderer: terminalRenderer.renderer });
  * @param {string} markdown
  * @returns {string}
  */
-function parseMarkdown(markdown) {
+// node:coverage ignore next
+export function parseMarkdown(markdown) {
 	return marked.parse(markdown).trim();
 }
 

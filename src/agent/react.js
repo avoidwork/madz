@@ -8,7 +8,7 @@ import { HumanMessage, SystemMessage, AIMessage } from "@langchain/core/messages
  * @param {unknown[]} [tools=[]] - Optional array of LangChain tool definitions
  * @returns {ReturnType<typeof createReactAgentGraph>} A compiled ReAct agent
  */
-/* istanbul ignore next */
+/* node:coverage ignore next */
 export function createReactAgent(model, tools = []) {
 	return createReactAgentGraph({
 		llm: model,

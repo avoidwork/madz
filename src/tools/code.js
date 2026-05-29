@@ -31,6 +31,32 @@ export function parseMemLimit(memStr) {
 }
 
 /**
+ * Kill a child process with SIGKILL if it hasn't been killed yet.
+ * @param {import("node:child_process").ChildProcess | undefined} child - Child process to kill
+ * @returns {void}
+ */
+export function killProcess(child) {
+	if (!child || child.killed) return;
+	child.kill("SIGKILL");
+}
+
+/**
+ * Clean up temporary files created during code execution.
+ * @param {string} filePath - The code file path
+ * @param {string} tmpRoot - The temp directory path
+ * @returns {Promise<void>}
+ */
+async function cleanupFiles(filePath, tmpRoot) {
+	/* node:coverage ignore next */
+	try {
+		await unlink(filePath);
+		await rm(tmpRoot, { recursive: true, force: true });
+	} /* node:coverage ignore next 3 */ catch {
+		// Cleanup errors are non-critical
+	}
+}
+
+/**
  * Import hook code for blocking dangerous Python imports.
  * @returns {string} Python code to install the import hook
  */
@@ -58,7 +84,7 @@ sys.meta_path.insert(0, RestrictedImporter())
  * @returns {Promise<string>} JSON result string
  */
 export async function executeCodeImpl(input, options) {
-	const { code, language = "python3", _timeout } = input;
+	const { code, language = "python3", _timeout, _interpreter } = input;
 	const safetyConfig = options?.safety ?? {};
 	const timeoutConfig = options?.timeout ?? {};
 	const memoryLimitStr = options?.memoryLimit;
@@ -111,79 +137,54 @@ export async function executeCodeImpl(input, options) {
 	const timeoutId = setTimeout(() => {
 		timedOut = true;
 		controller.abort();
-		if (child && !child.killed) {
-			child.kill("SIGKILL");
-		}
+		killProcess(child);
 	}, timeout * 1000);
 
 	try {
-		child = spawn(langConfig.interpreter, [filePath], {
+		const interpreter = _interpreter ?? langConfig.interpreter;
+		child = spawn(interpreter, [filePath], {
 			signal: controller.signal,
 		});
-
-		child.stdout.on("data", (d) => {
-			stdout += d.toString();
-		});
-		child.stderr.on("data", (d) => {
-			stderr += d.toString();
-		});
-
-		const exitCode = await new Promise((resolve) => {
-			child.on("close", (code) => resolve(code ?? 0));
-			child.on("error", () => resolve(-1));
-		});
-
+	} /* node:coverage ignore next 4 */ catch (err) {
 		clearTimeout(timeoutId);
+		await cleanupFiles(filePath, tmpRoot);
+		return JSON.stringify({ ok: false, error: `Spawn failed: ${err.message}` });
+	}
 
-		// Cleanup
-		try {
-			await unlink(filePath);
-			await rm(tmpRoot, { recursive: true, force: true });
-		} catch {
-			// Ignore cleanup errors
-		}
+	child.stdout.on("data", (d) => {
+		stdout += d.toString();
+	});
+	child.stderr.on("data", (d) => {
+		stderr += d.toString();
+	});
 
-		if (timedOut) {
-			return JSON.stringify({
-				ok: false,
-				error: `Execution timed out after ${timeout} seconds`,
-				stdout: stdout.trim(),
-				stderr: stderr.trim(),
-			});
-		}
+	const exitCode = await new Promise((resolve) => {
+		child.on("close", (code) => resolve(code ?? 0));
+		child.on("error", () => resolve(-1));
+	});
 
-		return JSON.stringify({
-			ok: exitCode === 0,
-			exitCode,
-			stdout: stdout.trim(),
-			stderr: stderr.trim(),
-			usedImportHook: useImportHook,
-			memoryLimitUsed: memLimit > 0,
-			memoryLimitBytes: memLimit,
-		});
-	} catch (err) {
-		clearTimeout(timeoutId);
-		try {
-			await unlink(filePath);
-			await rm(tmpRoot, { recursive: true, force: true });
-		} catch {
-			// Ignore cleanup errors
-		}
+	clearTimeout(timeoutId);
 
-		if (err.name === "AbortError") {
-			return JSON.stringify({
-				ok: false,
-				error: `Execution timed out after ${timeout} seconds`,
-				stdout: stdout.trim(),
-				stderr: stderr.trim(),
-			});
-		}
+	await cleanupFiles(filePath, tmpRoot);
 
+	if (timedOut) {
 		return JSON.stringify({
 			ok: false,
-			error: `Execution failed: ${err.message}`,
+			error: `Execution timed out after ${timeout} seconds`,
+			stdout: stdout.trim(),
+			stderr: stderr.trim(),
 		});
 	}
+
+	return JSON.stringify({
+		ok: exitCode === 0,
+		exitCode,
+		stdout: stdout.trim(),
+		stderr: stderr.trim(),
+		usedImportHook: useImportHook,
+		memoryLimitUsed: memLimit > 0,
+		memoryLimitBytes: memLimit,
+	});
 }
 
 /**

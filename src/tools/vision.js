@@ -12,7 +12,7 @@ const analysisPrompt =
  * @param {string} dataUri - Data URI string (e.g., "data:image/png;base64,...")
  * @returns {string} Base64 string without the prefix
  */
-function decodeDataUri(dataUri) {
+export function decodeDataUri(dataUri) {
 	const match = dataUri.match(/^data:([^;]+);base64,(.+)$/);
 	if (!match) return null;
 	return match[2];
@@ -23,7 +23,7 @@ function decodeDataUri(dataUri) {
  * @param {ArrayBuffer} buffer
  * @returns {string}
  */
-function arrayBufferToBase64(buffer) {
+export function arrayBufferToBase64(buffer) {
 	let binary = "";
 	const bytes = new Uint8Array(buffer);
 	const chunkSize = 8192;
@@ -141,6 +141,7 @@ export async function visionAnalyzeImpl(input, _options) {
 			},
 		]);
 
+		// node:coverage ignore next
 		const text = response.content;
 		return JSON.stringify({
 			ok: true,

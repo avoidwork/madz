@@ -92,6 +92,39 @@ describe("tools - fetchWithTimeout", () => {
 		assert.strictEqual(result.ok, false);
 		assert.ok(result.error);
 	});
+
+	it("succeeds with valid response", async () => {
+		globalThis.fetch = async () => ({
+			ok: true,
+			text: async () => '{"hello":"world"}',
+		});
+		const result = await fetchWithTimeout("https://httpbin.org/get", 5000);
+		assert.strictEqual(result.ok, true);
+		assert.ok(result.body);
+		globalThis.fetch = undefined;
+	});
+
+	it("handles HTTP error status", async () => {
+		globalThis.fetch = async () => ({
+			ok: false,
+			status: 503,
+			text: async () => "Service Unavailable",
+		});
+		const result = await fetchWithTimeout("https://httpbin.org/status/503", 5000);
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("503"));
+		globalThis.fetch = undefined;
+	});
+
+	it("handles abort error as timeout", async () => {
+		globalThis.fetch = async () => {
+			throw new Error("Request timed out");
+		};
+		const result = await fetchWithTimeout("http://localhost:59999/slow", 100);
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error);
+		globalThis.fetch = undefined;
+	});
 });
 
 describe("tools - parseSizeString", () => {

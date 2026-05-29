@@ -100,11 +100,47 @@ describe("tools - todo", () => {
 		await todoImpl({ action: "clear" }, {});
 	});
 
+	it("update with completed field", async () => {
+		const uid = Date.now();
+		await todoImpl({ action: "create", todos: [{ content: `Complete test ${uid}` }] }, {});
+		const result = await todoImpl({ action: "update", id: 1, completed: true }, {});
+		assert.ok(result.includes("Completed: true") || result.includes("completed: true"));
+		const readResult = await todoImpl({ action: "read" }, {});
+		const parsed = JSON.parse(readResult);
+		assert.strictEqual(parsed.todos[0].completed, true);
+		// Clean up
+		await todoImpl({ action: "clear" }, {});
+	});
+
+	it("update returns not found for missing ID", async () => {
+		const result = await todoImpl({ action: "update", id: 99999, content: "Nope" }, {});
+		assert.ok(result.includes("not found") || result.includes("Error"));
+	});
+
 	it("complete marks a todo as done", async () => {
 		await todoImpl({ action: "clear" }, {});
 		await todoImpl({ action: "create", todos: [{ content: "Complete test" }] }, {});
 		const result = await todoImpl({ action: "complete", id: 1 }, {});
 		assert.ok(result.includes("Completed"));
+	});
+
+	it("complete returns not found for missing ID", async () => {
+		await todoImpl({ action: "clear" }, {});
+		const result = await todoImpl({ action: "complete", id: 99999 }, {});
+		assert.ok(result.includes("not found") || result.includes("Error"));
+	});
+
+	it("create updates existing item by ID", async () => {
+		await todoImpl({ action: "clear" }, {});
+		await todoImpl({ action: "create", todos: [{ id: 1, content: "Original" }] }, {});
+		const result = await todoImpl(
+			{ action: "create", todos: [{ id: 1, content: "Updated via create" }] },
+			{},
+		);
+		assert.ok(result.includes("Created"));
+		const readResult = await todoImpl({ action: "read" }, {});
+		const parsed = JSON.parse(readResult);
+		assert.strictEqual(parsed.todos[0].content, "Updated via create");
 	});
 
 	it("clear removes all todos", async () => {
@@ -174,6 +210,25 @@ describe("tools - memory", () => {
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.saved, 3);
 	});
+
+	it("handles entries with undefined value", async () => {
+		// This tests the entry.key + entry.value !== undefined check
+		const result = await memoryImpl(
+			{ entries: [{ key: "test", value: undefined }] },
+			{ maxEntries: 100 },
+		);
+		const parsed = JSON.parse(result);
+		assert.strictEqual(parsed.saved, 1); // undefined values are still counted
+	});
+
+	it("handles non-string values correctly", async () => {
+		const result = await memoryImpl(
+			{ entries: [{ key: "obj", value: { nested: true } }] },
+			{ maxEntries: 100 },
+		);
+		const parsed = JSON.parse(result);
+		assert.strictEqual(parsed.saved, 1);
+	});
 });
 
 describe("tools - session_search", () => {
@@ -204,7 +259,7 @@ describe("tools - session_search", () => {
 			{ conversationId: "non_existent_id" },
 			{ conversationsDir: "memory/conversations/" },
 		);
-		assert.ok(result.includes("not found") || result.includes("not found"));
+		assert.ok(result.includes("not found") || result.includes("No conversations"));
 	});
 });
 
@@ -260,12 +315,45 @@ describe("tools - skills", () => {
 		assert.strictEqual(result.skills[0].version, "1.0.0");
 	});
 
+	it("list pushes fallback when registry.get returns null", async () => {
+		const registry = {
+			list: () => ["missing-skill"],
+			get: () => null,
+		};
+		const result = await skillsListImpl({}, { registry });
+		assert.strictEqual(result.count, 1);
+		assert.strictEqual(result.skills[0].name, "missing-skill");
+		assert.strictEqual(result.skills[0].version, "unknown");
+	});
+
 	it("view returns skill details", async () => {
 		const registry = setupMockRegistry();
 		const result = await skillViewImpl({ name: "code-review" }, { registry });
 		assert.strictEqual(result.name, "code-review");
 		assert.strictEqual(result.version, "1.0.0");
 		assert.ok(result.description);
+	});
+
+	it("view returns skill_md when SKILL.md is readable", async () => {
+		const { writeFileSync } = await import("node:fs");
+		const { join } = await import("node:path");
+		const testSkillDir = join(process.cwd(), "tests", "__skills_test__");
+		mkdirSync(testSkillDir, { recursive: true });
+		writeFileSync(join(testSkillDir, "SKILL.md"), "# Test skill\n\nThis is a test.");
+
+		const registry = {
+			list: () => [],
+			get: () => ({
+				name: "test-skill",
+				metadata: { _path: "tests/__skills_test__" },
+			}),
+		};
+		const result = await skillViewImpl({ name: "test-skill" }, { registry });
+		assert.ok(result.skill_md !== undefined);
+		assert.ok(result.skill_md.includes("Test skill"));
+
+		// Cleanup
+		rmSync(testSkillDir, { recursive: true, force: true });
 	});
 
 	it("view returns error for unknown skill", async () => {

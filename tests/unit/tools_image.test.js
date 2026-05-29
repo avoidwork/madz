@@ -97,4 +97,14 @@ describe("image_generate", () => {
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("missing image"));
 	});
+
+	it("returns error when fetch throws (network failure)", async () => {
+		globalThis.fetch = async () => {
+			throw new Error("Network error");
+		};
+		const result = await imageGenerateImpl({ prompt: "test", falApiKey: "sk-fake-key" }, {});
+		const parsed = JSON.parse(result);
+		assert.strictEqual(parsed.ok, false);
+		assert.ok(parsed.error.includes("Network error"));
+	});
 });

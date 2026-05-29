@@ -117,3 +117,10 @@ describe("discoverer - mixed", () => {
 		assert.deepStrictEqual(names, ["md-skill", "meta-skill"]);
 	});
 });
+
+describe("discoverer - edge cases", () => {
+	it("returns empty array for non-existent directory", () => {
+		const skills = discoverSkills("/nonexistent/path/that/does/not/exist");
+		assert.strictEqual(skills.length, 0);
+	});
+});

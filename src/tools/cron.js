@@ -92,14 +92,17 @@ async function listJobs() {
 /**
  * Trigger a job immediately via the scheduler.
  * @param {object} job - Job to run
+ * @param {object} [schedulerModule] - Scheduler module for testing
  * @returns {Promise<{ ok: boolean, error?: string }>}
  */
-async function runJob(job) {
+async function runJob(job, schedulerModule) {
 	if (!job.enabled) {
 		return { ok: false, error: `Job "${job.name}" is paused` };
 	}
 
-	const schedulerModule = await import("../scheduler/index.js");
+	if (!schedulerModule) {
+		schedulerModule = await import("../scheduler/index.js");
+	}
 	const scheduleEntry = {
 		name: job.name,
 		cron: job.cron,
@@ -124,10 +127,10 @@ async function runJob(job) {
 /**
  * Manage cron jobs with CRUD actions.
  * @param {object} input - Tool input with action and parameters
- * @param {object} _options - Runtime options (unused)
+ * @param {object} [options] - Runtime options (runtime or scheduler for testing)
  * @returns {Promise<string>} JSON result string
  */
-export async function cronjobImpl(input, _options) {
+export async function cronjobImpl(input, options) {
 	const { action } = input;
 
 	const actions = ["create", "list", "update", "pause", "resume", "run", "remove"];
@@ -262,7 +265,7 @@ export async function cronjobImpl(input, _options) {
 				if (!existing) {
 					return JSON.stringify({ ok: false, error: `Job "${runName}" not found` });
 				}
-				const result = await runJob(existing);
+				const result = await runJob(existing, options?.scheduler);
 				return JSON.stringify(result);
 			}
 
@@ -282,9 +285,6 @@ export async function cronjobImpl(input, _options) {
 					message: `Job "${removeName}" removed`,
 				});
 			}
-
-			default:
-				return JSON.stringify({ ok: false, error: `Unknown action: ${action}` });
 		}
 	} catch (err) {
 		return JSON.stringify({ ok: false, error: `Cron job error: ${err.message}` });
