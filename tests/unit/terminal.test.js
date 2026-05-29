@@ -344,7 +344,7 @@ describe("tools - process management", () => {
 			assert.ok(result.includes("Paused"));
 		} finally {
 			try {
-				child.kill();
+				child.kill("SIGKILL");
 			} catch {
 				/* ignore */
 			}
@@ -374,7 +374,7 @@ describe("tools - process management", () => {
 			assert.ok(result.includes("Resumed"));
 		} finally {
 			try {
-				child.kill();
+				child.kill("SIGKILL");
 			} catch {
 				/* ignore */
 			}
