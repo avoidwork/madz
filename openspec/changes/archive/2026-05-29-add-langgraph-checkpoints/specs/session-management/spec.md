@@ -1,4 +1,4 @@
-## ADDED Requirements
+## MODIFIED Requirements
 
 ### Requirement: Per-Session State Tracking
 The system SHALL create a unique session identifier for each TUI invocation and track session-scoped state including the active LLM provider, conversation window size, and current skill context. The session's `sessionId` MUST be passed as `configurable.thread_id` to LangGraph agent invocations, enabling the checkpointer to associate all checkpoints with the correct conversation thread.

@@ -113,6 +113,13 @@ export const TuiSchema = z.object({
 	name: z.string().default("madz"),
 });
 
+// --- Persistence schemas ---
+
+export const PersistenceSchema = z.object({
+	mode: z.enum(["memory", "sqlite"]).default("memory"),
+	sqlite_path: z.string().default("memory/checkpoints.db"),
+});
+
 // --- Root config ---
 
 export const ConfigSchema = z.object({
@@ -123,6 +130,7 @@ export const ConfigSchema = z.object({
 	schedules: SchedulesSchema,
 	session: SessionSchema,
 	tui: TuiSchema,
+	persistence: PersistenceSchema,
 });
 
 // Default values exported for merging
@@ -159,4 +167,5 @@ export const DEFAULT_CONFIG = {
 	schedules: { maxConcurrent: 1, entries: [] },
 	session: { context_window_size: 20, conversationsDir: "memory/conversations/" },
 	tui: { name: "madz" },
+	persistence: { mode: "memory", sqlite_path: "memory/checkpoints.db" },
 };

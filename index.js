@@ -54,6 +54,10 @@ const { sessionId, state: initialState } = createSession({
 });
 const sessionState = new SessionStateManager(initialState);
 
+// Load system prompt
+const { loadSystemPrompt } = await import("./src/memory/prompts.js");
+const systemPrompt = loadSystemPrompt();
+
 // Build agent and tool config at startup (once)
 const providerConfig = config.providers[providerName] || {};
 const tools = await buildToolConfig({
@@ -65,12 +69,16 @@ const tools = await buildToolConfig({
 const model = createChatModel(providerConfig);
 const agent = createReactAgent(model, tools);
 
-// Load system prompt
-const { loadSystemPrompt } = await import("./src/memory/prompts.js");
-const systemPrompt = loadSystemPrompt();
+const sessionConfig = { configurable: { thread_id: sessionId } };
 
 async function callProvider(_name, _providerConfig, message, streamingCallback) {
-	const result = await callReactAgent(agent, message, systemPrompt, streamingCallback);
+	const result = await callReactAgent(
+		agent,
+		message,
+		sessionConfig,
+		systemPrompt,
+		streamingCallback,
+	);
 	return { provider: providerName, content: result.content, tokens: { input: 0, output: 0 } };
 }
 

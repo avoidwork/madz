@@ -18,35 +18,38 @@ export function createReactAgent(model, tools = []) {
 
 /**
  * Invoke a ReAct agent with a single user message and return the final response.
- * Errors are re-thrown without modification for propagation to the caller.
- * Searches backwards through the message history to find the last AIMessage
- * with non-empty content (the LLM's final answer). Falls back to the
- * original user message if no valid AI content is found.
- * When a callback is provided, the agent runs in streaming mode using
- * LangGraph's event streaming v3 API. The callback receives typed events:
- *   { type: "text", text: string } — accumulated AI text for a message chunk
- *   { type: "tool_start", toolName: string, toolCallId: string } — tool invocation started
- *   { type: "tool_event", toolCallId: string, data: unknown } — intermediate tool output
- *   { type: "tool_end", toolName: string, toolCallId: string, data: unknown } — tool completed
- *   { type: "tool_error", toolName: string, toolCallId: string, error: string } — tool failed
  * @param {ReturnType<typeof createReactAgentGraph>} agent - A compiled ReAct agent
  * @param {string} message - The user message string
- * @param {string} [systemPrompt] - Optional system prompt text prepended before the user message
+ * @param {Object} config - Config object with `configurable: { thread_id }`
+ * @param {string} [systemPrompt] - Optional system prompt prepended to the first message
  * @param {(event: StreamEvent) => void} [callback] - Optional streaming event callback
  * @returns {{ content: string }} The agent's final text response
  */
-export function callReactAgent(agent, message, systemPrompt, callback) {
-	const initMessages = [
-		systemPrompt ? new SystemMessage(systemPrompt) : null,
-		new HumanMessage(message),
-	].filter(Boolean);
+export function callReactAgent(agent, message, config, systemPrompt, callback) {
+	// Add the user message to the message history
+	let initMessages = [new HumanMessage(message)];
 
-	if (callback) {
-		return callReactAgentStreaming(agent, initMessages, message, callback);
+	// Prepend system prompt to the initial messages
+	if (systemPrompt) {
+		initMessages.unshift(new SystemMessage(systemPrompt));
 	}
 
-	const result = agent.invoke({ messages: initMessages });
+	// Run with config (contains thread_id) for checkpointing
+	if (callback) {
+		return callReactAgentStreaming(agent, initMessages, message, config, callback);
+	}
 
+	const result = agent.invoke({ messages: initMessages, ...config });
+	return extractContent(result, message);
+}
+
+/**
+ * Extract response content from an agent invoke result.
+ * @param {Object} result - Agent invoke result with `messages` field
+ * @param {string} fallback - Fallback content when no AI message found
+ * @returns {{ content: string }}
+ */
+function extractContent(result, fallback) {
 	const msgsArray = Array.isArray(result.messages) ? result.messages : [];
 
 	const lastAI = [...msgsArray].reverse().find((msg) => msg instanceof AIMessage);
@@ -58,7 +61,7 @@ export function callReactAgent(agent, message, systemPrompt, callback) {
 		}
 	}
 
-	return { content: message };
+	return { content: fallback };
 }
 
 /**
@@ -113,16 +116,19 @@ function emitToolEvent(event, callback) {
 
 /**
  * Run the agent in streaming mode via LangGraph event streaming v3.
- * Iterates the `streamEvents` run stream processing text chunks from
- * the messages projection and tool events from the raw protocol stream.
  * @param {ReturnType<typeof createReactAgentGraph>} agent - A compiled ReAct agent
  * @param {import("@langchain/core/messages").BaseMessage[]} initMessages - Initial messages
  * @param {string} originalMessage - Original user message (fallback)
+ * @param {Object | null} [config] - Optional config with `configurable: { thread_id }`
  * @param {(event: StreamEvent) => void} callback - Event callback function
  * @returns {{ content: string }} The agent's final text response
  */
-async function callReactAgentStreaming(agent, initMessages, originalMessage, callback) {
-	const stream = await agent.streamEvents({ messages: initMessages }, { version: "v3" });
+async function callReactAgentStreaming(agent, initMessages, originalMessage, config, callback) {
+	const streamOptions = {
+		version: "v3",
+		...(config?.configurable && { configurable: config.configurable }),
+	};
+	const stream = await agent.streamEvents({ messages: initMessages }, streamOptions);
 
 	let fullContent = "";
 	let hasContent = false;

@@ -82,3 +82,6 @@ session:
   conversationsDir: memory/conversations/
 tui:
   name: madz
+persistence:
+  mode: memory
+  sqlite_path: memory/checkpoints.db
