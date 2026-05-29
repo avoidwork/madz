@@ -12,7 +12,7 @@ setOptions({ renderer: terminalRenderer.renderer });
  * @returns {string}
  */
 /* istanbul ignore next */
-function parseMarkdown(markdown) {
+export function parseMarkdown(markdown) {
 	return marked.parse(markdown).trim();
 }
 

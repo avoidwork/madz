@@ -1,3 +1,4 @@
+import React from "react";
 import { describe, it } from "node:test";
 import assert from "node:assert";
 import { CommandParser } from "../../src/tui/commandParser.js";
@@ -9,6 +10,7 @@ import {
 	countMessageLines,
 	getToolCallLines,
 } from "../../src/tui/messages.js";
+import { parseMarkdown, MarkdownText } from "../../src/tui/markdownText.js";
 
 describe("command parser", () => {
 	it("parses :quit command", () => {
@@ -731,5 +733,78 @@ describe("InputPanel - flex grow", () => {
 
 		const props = getInputFlexProps();
 		assert.strictEqual(props.flexGrow, 1);
+	});
+});
+
+describe("markdownText - parseMarkdown", () => {
+	it("parses markdown headings", () => {
+		const result = parseMarkdown("# Hello");
+		assert.ok(typeof result === "string");
+		assert.ok(result.length > 0);
+	});
+
+	it("parses markdown with code blocks", () => {
+		const result = parseMarkdown("```js\nconsole.log(1);\n```");
+		assert.ok(typeof result === "string");
+		assert.ok(result.length > 0);
+	});
+
+	it("parses markdown with lists", () => {
+		const result = parseMarkdown("- item 1\n- item 2\n- item 3");
+		assert.ok(typeof result === "string");
+		assert.ok(result.length > 0);
+	});
+
+	it("parses plain text", () => {
+		const result = parseMarkdown("just some text");
+		assert.strictEqual(result, "just some text");
+	});
+
+	it("trims trailing whitespace", () => {
+		const result = parseMarkdown("# Hello\n\n");
+		assert.strictEqual(result.endsWith(" "), false);
+		assert.strictEqual(result.endsWith("\n"), false);
+	});
+});
+
+describe("MarkdownText - rendering", () => {
+	it("returns null for null content", () => {
+		const result = MarkdownText({ content: null });
+		assert.strictEqual(result, null);
+	});
+
+	it("returns null for undefined content", () => {
+		const result = MarkdownText({ content: undefined });
+		assert.strictEqual(result, null);
+	});
+
+	it("returns null for empty string content", () => {
+		const result = MarkdownText({ content: "" });
+		assert.strictEqual(result, null);
+	});
+
+	it("renders Text element with normal content", () => {
+		const result = MarkdownText({ content: "# Hello" });
+		assert.ok(React.isValidElement(result));
+		assert.strictEqual(result.type.name, "Text");
+		assert.strictEqual(result.props.color, "white");
+		assert.strictEqual(result.props.wrap, "hard");
+		assert.ok(result.props.children);
+	});
+
+	it("renders with fallback for falsy content", () => {
+		const result = MarkdownText({ content: 0 });
+		assert.ok(React.isValidElement(result));
+		assert.strictEqual(result.type.name, "Text");
+		assert.strictEqual(result.props.color, "white");
+	});
+
+	it("renders content with multiple markdown elements", () => {
+		const content = "# Title\n\nSome paragraph.\n\n- list item";
+		const result = MarkdownText({ content });
+		assert.ok(React.isValidElement(result));
+		assert.strictEqual(result.type.name, "Text");
+		assert.strictEqual(result.props.color, "white");
+		assert.ok(result.props.children);
 	});
 });
