@@ -15,6 +15,12 @@ describe("web_search", () => {
 		Object.assign(process.env, origEnv);
 	});
 
+	afterEach(() => {
+		delete process.env.SEARXNG_URL;
+		delete process.env.BING_API_KEY;
+		delete process.env.CUSTOM_SEARCH_URL;
+	});
+
 	let _saved = {};
 	function setEnv(vars) {
 		_saved = { ...process.env };

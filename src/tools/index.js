@@ -72,15 +72,19 @@ const TOOL_FACTORIES = {
 };
 
 /**
- * Detect which search API key is available.
- * @returns {boolean} True if at least one key is set
+ * Detect which search backend is available.
+ * Checks EXA, Firecrawl, Tavily, Parallel API, SearXNG, Bing, or Custom endpoint.
+ * @returns {boolean} True if at least one search backend is configured
  */
 function hasSearchKey() {
 	return (
 		process.env.EXA_API_KEY ||
 		process.env.FIRECRAWL_API_KEY ||
 		process.env.TAVILY_API_KEY ||
-		process.env.PARALLEL_API_KEY
+		process.env.PARALLEL_API_KEY ||
+		process.env.SEARXNG_URL ||
+		process.env.BING_API_KEY ||
+		process.env.CUSTOM_SEARCH_URL
 	);
 }
 
