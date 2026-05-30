@@ -18,7 +18,7 @@ export async function helloWorldImpl(_input, _options) {
  */
 export const hello_world = tool(helloWorldImpl, {
 	name: "hello_world",
-	description: "A simple debug tool that always returns 'hello_world!'.",
+	description: "A simple debug tool that always returns 'hello_world!'",
 	schema: z.object({
 		name: z.string().optional().describe("Optional greeting target — e.g. 'world'"),
 	}),

@@ -1,6 +1,5 @@
 import { createReactAgent as createReactAgentGraph } from "@langchain/langgraph/prebuilt";
 import { HumanMessage, SystemMessage, AIMessage } from "@langchain/core/messages";
-import fs from "node:fs";
 
 /**
  * Create a ReAct agent from a chat model and optional tools and checkpointer.
@@ -82,29 +81,11 @@ function emitToolEvent(event, callback) {
 	// while internal handlers use "on_tool_*" prefixes.
 	const eventName = data.event || data.langgraph_event || "";
 
-	// DEBUG (sync, no await)
-	try {
-		fs.appendFileSync(
-			"/tmp/madz_emit.log",
-			`[${Date.now()}] emit ${eventName} via ${event.method}\n`,
-		);
-	} catch {
-		/* */
-	}
-
 	if (
 		eventName === "tool-started" ||
 		eventName === "on_tool_start" ||
 		eventName === "tool_called"
 	) {
-		try {
-			fs.appendFileSync(
-				"/tmp/madz_cb.log",
-				`[${Date.now()}] cb=tool_start name=${data.tool_name || data.name || ""}\n`,
-			);
-		} catch {
-			/* */
-		}
 		callback({
 			type: "tool_start",
 			toolName: data.tool_name || data.name || data.tool || "",
@@ -116,14 +97,6 @@ function emitToolEvent(event, callback) {
 		eventName === "partial_result" ||
 		eventName === "tool_output"
 	) {
-		try {
-			fs.appendFileSync(
-				"/tmp/madz_cb.log",
-				`[${Date.now()}] cb=tool_event data=${JSON.stringify(data.delta || data.output || "").slice(0, 60)}\n`,
-			);
-		} catch {
-			/* */
-		}
 		callback({
 			type: "tool_event",
 			toolCallId: data.tool_call_id || data.toolCallId || "",
@@ -134,14 +107,6 @@ function emitToolEvent(event, callback) {
 		eventName === "on_tool_end" ||
 		eventName === "tool_finished"
 	) {
-		try {
-			fs.appendFileSync(
-				"/tmp/madz_cb.log",
-				`[${Date.now()}] cb=tool_end name=${data.tool_name || data.name || ""} data=${JSON.stringify(data.output).slice(0, 60)}\n`,
-			);
-		} catch {
-			/* */
-		}
 		callback({
 			type: "tool_end",
 			toolName: data.tool_name || data.name || data.tool || "",
@@ -155,14 +120,6 @@ function emitToolEvent(event, callback) {
 		eventName === "partial_error"
 	) {
 		const errMsg = data.message || data.error || "Unknown error";
-		try {
-			fs.appendFileSync(
-				"/tmp/madz_cb.log",
-				`[${Date.now()}] cb=tool_error name=${data.tool_name || data.name || ""} err=${errMsg}\n`,
-			);
-		} catch {
-			/* */
-		}
 		callback({
 			type: "tool_error",
 			toolName: data.tool_name || data.name || data.tool || "",
@@ -196,24 +153,10 @@ async function callReactAgentStreaming(agent, initMessages, originalMessage, con
 	// ReplayBuffer blocking bug where ChatModelStream.text waits forever
 	// when an AI message contains only tool calls.
 	for await (const event of stream) {
-		// Skip events we can't handle — they won't contain tool or text data.
+		// Events without params.data won't contain tool or text data.
 		if (!event || !event.params || !event.params.data) continue;
 
 		const methodName = event.method || "<unknown>";
-		const eventKey =
-			event.params.data.event ||
-			event.params.data.node ||
-			event.params.data.graph_name ||
-			"<plain>";
-
-		// DEBUG: log every event to file (Ink TUI swallows console output).
-		// Read: tail -50 /tmp/madz_stream.log
-		const fs = (await import("node:fs")).default;
-		try {
-			fs.appendFileSync("/tmp/madz_stream.log", `[${Date.now()}] m=${methodName} e=${eventKey}\n`);
-		} catch {
-			/* ignore logging errors */
-		}
 
 		if (methodName === "tools") {
 			try {
@@ -232,14 +175,6 @@ async function callReactAgentStreaming(agent, initMessages, originalMessage, con
 			fullContent += textDelta;
 			const trimmed = fullContent.trim();
 			if (trimmed) {
-				try {
-					fs.appendFileSync(
-						"/tmp/madz_cb.log",
-						`[${Date.now()}] cb=text text=${trimmed.slice(0, 60)}\n`,
-					);
-				} catch {
-					/* */
-				}
 				callback({ type: "text", text: trimmed });
 			}
 			continue;

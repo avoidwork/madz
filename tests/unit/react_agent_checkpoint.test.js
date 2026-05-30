@@ -124,40 +124,51 @@ describe("callReactAgent streaming with config", () => {
 					},
 				};
 			},
-			invoke: () => ({ messages: [new AIMessage("response")] }),
 		};
 
-		await callReactAgent(
-			agentMock,
-			"test",
-			{ configurable: { thread_id: "stream-thread" } },
-			null,
-			() => {},
-		);
+		let caughtError = null;
+		try {
+			await callReactAgent(
+				agentMock,
+				"test",
+				{ configurable: { thread_id: "stream-thread" } },
+				null,
+				() => {},
+			);
+		} catch (err) {
+			caughtError = err;
+		}
 
 		assert.ok(capturedStreamOptions);
 		assert.strictEqual(capturedStreamOptions.configurable.thread_id, "stream-thread");
+		assert.ok(caughtError instanceof Error);
+		assert.ok(caughtError.message.includes("No response from agent"));
 	});
 
 	it("passes no configurable in streaming when config is null", async () => {
-		let capturedConfig = null;
+		let capturedInput = null;
 		const agentMock = {
 			streamEvents: (input) => {
-				capturedConfig = input;
+				capturedInput = input;
 				return {
 					[Symbol.asyncIterator]() {
 						return { next: () => Promise.resolve({ done: true }) };
 					},
 				};
 			},
-			invoke: () => ({ messages: [new AIMessage("fallback response")] }),
 		};
 
-		const result = await callReactAgent(agentMock, "original message", null, null, () => {});
+		let caughtError = null;
+		try {
+			await callReactAgent(agentMock, "original message", null, null, () => {});
+		} catch (err) {
+			caughtError = err;
+		}
 
-		assert.ok(capturedConfig);
-		// Stream produces no text → invoke fallback produces "fallback response"
-		assert.strictEqual(result.content, "fallback response");
+		assert.ok(capturedInput);
+		// Empty stream throws since no invoke fallback exists
+		assert.ok(caughtError instanceof Error);
+		assert.ok(caughtError.message.includes("No response from agent"));
 	});
 });
 
