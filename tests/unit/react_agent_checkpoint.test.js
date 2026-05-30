@@ -114,21 +114,20 @@ describe("callReactAgent with config", () => {
 
 describe("callReactAgent streaming with config", () => {
 	it("passes configurable to streamEvents when config provided", async () => {
+		let capturedStreamOptions = null;
 		const agentMock = {
-			streamEvents: () => ({
-				messages: {
+			streamEvents: (_input, options) => {
+				capturedStreamOptions = options;
+				return {
 					[Symbol.asyncIterator]() {
 						return { next: () => Promise.resolve({ done: true }) };
 					},
-				},
-				[Symbol.asyncIterator]() {
-					return { next: () => Promise.resolve({ done: true }) };
-				},
-			}),
-			invoke: () => ({ messages: [new AIMessage("should not be called")] }),
+				};
+			},
+			invoke: () => ({ messages: [new AIMessage("response")] }),
 		};
 
-		const result = await callReactAgent(
+		await callReactAgent(
 			agentMock,
 			"test",
 			{ configurable: { thread_id: "stream-thread" } },
@@ -136,26 +135,29 @@ describe("callReactAgent streaming with config", () => {
 			() => {},
 		);
 
-		assert.strictEqual(result.content, "test");
+		assert.ok(capturedStreamOptions);
+		assert.strictEqual(capturedStreamOptions.configurable.thread_id, "stream-thread");
 	});
 
 	it("passes no configurable in streaming when config is null", async () => {
+		let capturedConfig = null;
 		const agentMock = {
-			streamEvents: () => ({
-				messages: {
+			streamEvents: (input) => {
+				capturedConfig = input;
+				return {
 					[Symbol.asyncIterator]() {
 						return { next: () => Promise.resolve({ done: true }) };
 					},
-				},
-				[Symbol.asyncIterator]() {
-					return { next: () => Promise.resolve({ done: true }) };
-				},
-			}),
+				};
+			},
+			invoke: () => ({ messages: [new AIMessage("fallback response")] }),
 		};
 
 		const result = await callReactAgent(agentMock, "original message", null, null, () => {});
 
-		assert.strictEqual(result.content, "original message");
+		assert.ok(capturedConfig);
+		// Stream produces no text → invoke fallback produces "fallback response"
+		assert.strictEqual(result.content, "fallback response");
 	});
 });
 

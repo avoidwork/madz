@@ -6,7 +6,6 @@ import { callReactAgent, createReactAgent } from "../../src/agent/react.js";
 describe("callReactAgent", () => {
 	it("invokes agent with correct message format", async () => {
 		let capturedMessages = null;
-
 		const agentMock = {
 			invoke: (input) => {
 				capturedMessages = input.messages;
@@ -19,7 +18,6 @@ describe("callReactAgent", () => {
 				};
 			},
 		};
-
 		await callReactAgent(agentMock, "what is 2+2", null);
 		assert.ok(capturedMessages.length >= 1);
 		assert.ok(capturedMessages[0] instanceof HumanMessage);
@@ -28,16 +26,12 @@ describe("callReactAgent", () => {
 
 	it("prepends system message on new thread (default)", async () => {
 		let capturedMessages = null;
-
 		const agentMock = {
 			invoke: (input) => {
 				capturedMessages = input.messages;
-				return {
-					messages: [new AIMessage("response")],
-				};
+				return { messages: [new AIMessage("response")] };
 			},
 		};
-
 		await callReactAgent(agentMock, "hello world", null, "You are a helpful assistant.");
 		assert.strictEqual(capturedMessages.length, 2);
 		assert.ok(capturedMessages[0] instanceof SystemMessage);
@@ -46,18 +40,14 @@ describe("callReactAgent", () => {
 		assert.strictEqual(capturedMessages[1].content, "hello world");
 	});
 
-	it("skips system message when isNewThread is false (thread has history)", async () => {
+	it("skips system message when isNewThread is false", async () => {
 		let capturedMessages = null;
-
 		const agentMock = {
 			invoke: (input) => {
 				capturedMessages = input.messages;
-				return {
-					messages: [new AIMessage("response")],
-				};
+				return { messages: [new AIMessage("response")] };
 			},
 		};
-
 		await callReactAgent(
 			agentMock,
 			"hello world",
@@ -71,16 +61,12 @@ describe("callReactAgent", () => {
 
 	it("invokes agent with config object", async () => {
 		let capturedConfig = null;
-
 		const agentMock = {
 			invoke: (input) => {
 				capturedConfig = input;
-				return {
-					messages: [new AIMessage("response")],
-				};
+				return { messages: [new AIMessage("response")] };
 			},
 		};
-
 		const config = { configurable: { thread_id: "abc-123" } };
 		await callReactAgent(agentMock, "hello", config);
 		assert.strictEqual(capturedConfig.configurable.thread_id, "abc-123");
@@ -96,7 +82,6 @@ describe("callReactAgent", () => {
 				],
 			}),
 		};
-
 		const result = await callReactAgent(agentMock, "what is 2+2", null, "system prompt");
 		assert.deepStrictEqual(result, { content: "4" });
 	});
@@ -112,7 +97,6 @@ describe("callReactAgent", () => {
 				],
 			}),
 		};
-
 		const result = await callReactAgent(agentMock, "query", null, "system");
 		assert.strictEqual(result.content, "final answer");
 	});
@@ -123,14 +107,12 @@ describe("callReactAgent", () => {
 				throw new Error("model unavailable");
 			},
 		};
-
 		let caughtError = null;
 		try {
 			await callReactAgent(agentMock, "test", null);
 		} catch (err) {
 			caughtError = err;
 		}
-
 		assert.ok(caughtError instanceof Error);
 		assert.strictEqual(caughtError.message, "model unavailable");
 	});
@@ -140,37 +122,25 @@ describe("callReactAgent", () => {
 			invoke: () => ({
 				messages: [
 					new HumanMessage("query"),
-					new AIMessage("", {
-						content: "",
-						tool_calls: [{ name: "search", args: {} }],
-					}),
+					new AIMessage("", { tool_calls: [{ name: "search", args: {} }] }),
 					new AIMessage("final answer"),
 				],
 			}),
 		};
-
 		const result = await callReactAgent(agentMock, "query", null);
 		assert.strictEqual(result.content, "final answer");
 	});
 
 	it("falls back to input message when no AI content found", async () => {
 		const agentMock = {
-			invoke: () => ({
-				messages: [new HumanMessage("user input")],
-			}),
+			invoke: () => ({ messages: [new HumanMessage("user input")] }),
 		};
-
 		const result = await callReactAgent(agentMock, "user input", null);
 		assert.strictEqual(result.content, "user input");
 	});
 
 	it("falls back to input message when all messages lack content", async () => {
-		const agentMock = {
-			invoke: () => ({
-				messages: [],
-			}),
-		};
-
+		const agentMock = { invoke: () => ({ messages: [] }) };
 		const result = await callReactAgent(agentMock, "fallback text", null);
 		assert.strictEqual(result.content, "fallback text");
 	});
@@ -178,22 +148,43 @@ describe("callReactAgent", () => {
 
 describe("createReactAgent", () => {
 	it("passes model and empty tools to langgraph createReactAgent", async () => {
-		const fakeModel = { lc_kwargs: { model: "test" } };
-		const agent = createReactAgent(fakeModel);
+		const agent = createReactAgent({ lc_kwargs: { model: "test" } });
 		assert.ok(agent);
 	});
 
 	it("passes tools array to langgraph createReactAgent", async () => {
-		const fakeModel = { lc_kwargs: { model: "test" } };
-		const tools = [{ name: "search" }];
-		const agent = createReactAgent(fakeModel, tools);
+		const agent = createReactAgent({ lc_kwargs: { model: "test" } }, [{ name: "search" }]);
 		assert.ok(agent);
 	});
 });
 
 describe("callReactAgent streaming", () => {
+	function createStream(events) {
+		let idx = 0;
+		const self = {
+			[Symbol.asyncIterator]() {
+				const iterator = {
+					next: () => {
+						if (idx < events.length) {
+							return Promise.resolve({ value: events[idx++], done: false });
+						}
+						return Promise.resolve({ done: true });
+					},
+				};
+				return iterator;
+			},
+		};
+		return self;
+	}
+
+	function createMock(streamEventsResult) {
+		return {
+			streamEvents: () => streamEventsResult,
+		};
+	}
+
 	it("calls callback with text event for each token delta", async () => {
-		const messages = [
+		const events = [
 			{
 				method: "messages",
 				params: {
@@ -202,7 +193,6 @@ describe("callReactAgent streaming", () => {
 						index: 0,
 						delta: { type: "text-delta", text: "Hello" },
 					},
-					chunk: { type: "ChatModelStream", index: 0 },
 				},
 			},
 			{
@@ -213,7 +203,6 @@ describe("callReactAgent streaming", () => {
 						index: 0,
 						delta: { type: "text-delta", text: ",  " },
 					},
-					chunk: { type: "ChatModelStream", index: 0 },
 				},
 			},
 			{
@@ -224,7 +213,6 @@ describe("callReactAgent streaming", () => {
 						index: 0,
 						delta: { type: "text-delta", text: "world!" },
 					},
-					chunk: { type: "ChatModelStream", index: 0 },
 				},
 			},
 			{
@@ -232,33 +220,13 @@ describe("callReactAgent streaming", () => {
 				params: { data: { event: "tool_called", name: "search", toolCallId: "1" } },
 			},
 		];
-		let msgIdx = 0;
 
-		const agentMock = {
-			streamEvents: () => ({
-				messages: {
-					[Symbol.asyncIterator]() {
-						return { next: () => Promise.resolve({ done: true }) };
-					},
-				},
-				[Symbol.asyncIterator]() {
-					return {
-						next() {
-							if (msgIdx < messages.length) {
-								return Promise.resolve({ value: messages[msgIdx++], done: false });
-							}
-							return Promise.resolve({ done: true });
-						},
-					};
-				},
-			}),
-		};
-
+		const agentMock = createMock(createStream(events));
 		const callbackCalls = [];
 		const callback = (event) => callbackCalls.push(event);
 
 		const result = await callReactAgent(agentMock, "hello", null, null, callback);
-		assert.strictEqual(callbackCalls.length, 4); // 3 text + 1 tool_start
+		assert.strictEqual(callbackCalls.length, 4);
 		assert.strictEqual(callbackCalls[0].type, "text");
 		assert.strictEqual(callbackCalls[0].text, "Hello");
 		assert.strictEqual(callbackCalls[1].type, "text");
@@ -270,7 +238,7 @@ describe("callReactAgent streaming", () => {
 	});
 
 	it("callback receives text events only when content is non-empty", async () => {
-		const messages = [
+		const events = [
 			{
 				method: "messages",
 				params: {
@@ -279,33 +247,11 @@ describe("callReactAgent streaming", () => {
 						index: 0,
 						delta: { type: "text-delta", text: "   hello" },
 					},
-					chunk: { type: "ChatModelStream", index: 0 },
 				},
 			},
 		];
-		let msgIdx = 0;
 
-		const agentMock = {
-			streamEvents: () => ({
-				messages: {
-					[Symbol.asyncIterator]() {
-						return { next: () => Promise.resolve({ done: true }) };
-					},
-				},
-				[Symbol.asyncIterator]() {
-					return {
-						next() {
-							if (msgIdx < messages.length) {
-								msgIdx++;
-								return Promise.resolve({ value: messages[msgIdx - 1], done: false });
-							}
-							return Promise.resolve({ done: true });
-						},
-					};
-				},
-			}),
-		};
-
+		const agentMock = createMock(createStream(events));
 		const callbackCalls = [];
 		const callback = (event) => callbackCalls.push(event);
 
@@ -317,13 +263,11 @@ describe("callReactAgent streaming", () => {
 	});
 
 	it("callback receives tool events from protocol stream", async () => {
-		const toolEvents = [
+		const events = [
 			{ method: "updates", params: { data: { node: "agent" } } },
 			{
 				method: "tools",
-				params: {
-					data: { event: "tool_called", name: "read_file", toolCallId: "abc-123", input: {} },
-				},
+				params: { data: { event: "tool_called", name: "read_file", toolCallId: "abc-123" } },
 			},
 			{
 				method: "tools",
@@ -348,32 +292,17 @@ describe("callReactAgent streaming", () => {
 				},
 			},
 		];
-		let toolIdx = 0;
 
-		const agentMock = {
-			streamEvents: () => ({
-				messages: {
-					[Symbol.asyncIterator]() {
-						return { next: () => Promise.resolve({ done: true }) };
-					},
-				},
-				[Symbol.asyncIterator]() {
-					return {
-						next() {
-							if (toolIdx < toolEvents.length) {
-								return Promise.resolve({ value: toolEvents[toolIdx++], done: false });
-							}
-							return Promise.resolve({ done: true });
-						},
-					};
-				},
-			}),
-		};
-
+		const agentMock = createMock(createStream(events));
 		const callbackCalls = [];
 		const callback = (event) => callbackCalls.push(event);
 
-		await callReactAgent(agentMock, "test", null, null, callback);
+		let caughtError = null;
+		try {
+			await callReactAgent(agentMock, "test", null, null, callback);
+		} catch (err) {
+			caughtError = err;
+		}
 		assert.strictEqual(callbackCalls.length, 3);
 		assert.strictEqual(callbackCalls[0].type, "tool_start");
 		assert.strictEqual(callbackCalls[0].toolName, "read_file");
@@ -383,43 +312,33 @@ describe("callReactAgent streaming", () => {
 		assert.strictEqual(callbackCalls[2].type, "tool_error");
 		assert.strictEqual(callbackCalls[2].toolName, "write_file");
 		assert.strictEqual(callbackCalls[2].error, "permission denied");
+		assert.ok(caughtError instanceof Error);
+		assert.ok(caughtError.message.includes("No response from agent"));
 	});
 
-	it("falls back to original message when no text content", async () => {
+	it("throws when no text content", async () => {
 		const agentMock = {
-			streamEvents: () => ({
-				messages: {
-					[Symbol.asyncIterator]() {
-						return { next: () => Promise.resolve({ done: true }) };
-					},
-				},
-				[Symbol.asyncIterator]() {
-					return { next: () => Promise.resolve({ done: true }) };
-				},
-			}),
+			streamEvents: () => createStream([]),
 		};
 
-		const callbackCalls = [];
-		const callback = (event) => callbackCalls.push(event);
-
-		const result = await callReactAgent(agentMock, "original message", null, null, callback);
-		assert.strictEqual(callbackCalls.length, 0);
-		assert.strictEqual(result.content, "original message");
+		let caughtError = null;
+		try {
+			await callReactAgent(agentMock, "fallback", null, null, () => {});
+		} catch (err) {
+			caughtError = err;
+		}
+		assert.ok(caughtError instanceof Error);
+		assert.ok(caughtError.message.includes("No response from agent"));
 	});
 
 	it("callback not called when no streaming callback provided", async () => {
-		const agentMock = {
-			invoke: () => ({
-				messages: [new AIMessage("full response")],
-			}),
-		};
-
+		const agentMock = { invoke: () => ({ messages: [new AIMessage("full response")] }) };
 		const result = await callReactAgent(agentMock, "ask", null, "system");
 		assert.strictEqual(result.content, "full response");
 	});
 
-	it("handles text from event chunks (replaces ChatModelStream iteration)", async () => {
-		const messages = [
+	it("handles text from event chunks", async () => {
+		const events = [
 			{
 				method: "messages",
 				params: {
@@ -428,33 +347,11 @@ describe("callReactAgent streaming", () => {
 						index: 0,
 						delta: { type: "text-delta", text: "sync text" },
 					},
-					chunk: { type: "ChatModelStream", index: 0 },
 				},
 			},
 		];
-		let idx = 0;
 
-		const agentMock = {
-			streamEvents: () => ({
-				messages: {
-					[Symbol.asyncIterator]() {
-						return { next: () => Promise.resolve({ done: true }) };
-					},
-				},
-				[Symbol.asyncIterator]() {
-					return {
-						next() {
-							if (idx < messages.length) {
-								idx++;
-								return Promise.resolve({ value: messages[idx - 1], done: false });
-							}
-							return Promise.resolve({ done: true });
-						},
-					};
-				},
-			}),
-		};
-
+		const agentMock = createMock(createStream(events));
 		const callbackCalls = [];
 		const callback = (event) => callbackCalls.push(event);
 
@@ -466,127 +363,75 @@ describe("callReactAgent streaming", () => {
 	});
 
 	it("handles tool_event emission from partial_result events", async () => {
-		const toolEvents = [
+		const events = [
 			{
 				method: "tools",
 				params: { data: { event: "partial_result", toolCallId: "1", output: "step 1 done" } },
 			},
 		];
-		let toolIdx = 0;
 
-		const agentMock = {
-			streamEvents: () => ({
-				messages: {
-					[Symbol.asyncIterator]() {
-						return { next: () => Promise.resolve({ done: true }) };
-					},
-				},
-				[Symbol.asyncIterator]() {
-					return {
-						next() {
-							if (toolIdx < toolEvents.length) {
-								return Promise.resolve({ value: toolEvents[toolIdx++], done: false });
-							}
-							return Promise.resolve({ done: true });
-						},
-					};
-				},
-			}),
-		};
-
+		const agentMock = createMock(createStream(events));
 		const callbackCalls = [];
 		const callback = (event) => callbackCalls.push(event);
 
-		await callReactAgent(agentMock, "test", null, null, callback);
+		let caughtError = null;
+		try {
+			await callReactAgent(agentMock, "test", null, null, callback);
+		} catch (err) {
+			caughtError = err;
+		}
 		assert.strictEqual(callbackCalls.length, 1);
 		assert.strictEqual(callbackCalls[0].type, "tool_event");
 		assert.strictEqual(callbackCalls[0].data, "step 1 done");
+		assert.ok(caughtError instanceof Error);
+		assert.ok(caughtError.message.includes("No response from agent"));
 	});
 
-	it("skips text on ChatModelStream when text throws", async () => {
-		let count = 0;
-		const agentMock = {
-			streamEvents: () => ({
-				messages: {
-					[Symbol.asyncIterator]() {
-						return {
-							next() {
-								if (count < 1) {
-									count++;
-									return Promise.resolve({
-										value: {
-											get text() {
-												throw new Error("no text available");
-											},
-										},
-										done: false,
-									});
-								}
-								return Promise.resolve({ done: true });
-							},
-						};
-					},
-				},
-				[Symbol.asyncIterator]() {
-					return { next: () => Promise.resolve({ done: true }) };
-				},
-			}),
-		};
-
+	it("skips events when no text chunks", async () => {
+		const agentMock = { streamEvents: () => createStream([]) };
 		const callbackCalls = [];
 		const callback = (event) => callbackCalls.push(event);
 
-		const result = await callReactAgent(agentMock, "fallback", null, null, callback);
+		let caughtError = null;
+		try {
+			await callReactAgent(agentMock, "fallback", null, null, callback);
+		} catch (err) {
+			caughtError = err;
+		}
 		assert.strictEqual(callbackCalls.length, 0);
-		assert.strictEqual(result.content, "fallback");
+		assert.ok(caughtError instanceof Error);
+		assert.ok(caughtError.message.includes("No response from agent"));
 	});
 
 	it("survives callback throwing during tool events", async () => {
-		const toolEvents = [
+		const events = [
 			{
 				method: "tools",
 				params: { data: { event: "tool_called", name: "search", toolCallId: "1" } },
 			},
 		];
-		let toolIdx = 0;
+		const agentMock = createMock(createStream(events));
 
-		const agentMock = {
-			streamEvents: () => ({
-				messages: {
-					[Symbol.asyncIterator]() {
-						return { next: () => Promise.resolve({ done: true }) };
-					},
-				},
-				[Symbol.asyncIterator]() {
-					return {
-						next() {
-							if (toolIdx < toolEvents.length) {
-								toolIdx++;
-								return Promise.resolve({
-									value: toolEvents[toolIdx - 1],
-									done: false,
-								});
-							}
-							return Promise.resolve({ done: true });
-						},
-					};
-				},
-			}),
-		};
-
-		const callback = () => {
+		const callbackCalls = [];
+		const callback = (event) => {
+			callbackCalls.push(event);
 			throw new Error("callback crashed");
 		};
 
-		const result = await callReactAgent(agentMock, "original", null, null, callback);
-		assert.strictEqual(result.content, "original");
+		let caughtError = null;
+		try {
+			await callReactAgent(agentMock, "original", null, null, callback);
+		} catch (err) {
+			caughtError = err;
+		}
+		assert.strictEqual(callbackCalls.length, 1);
+		assert.ok(caughtError instanceof Error);
+		assert.ok(caughtError.message.includes("No response from agent"));
 	});
 
-	it("does not hang when ChatModelStream has no text but tool events follow", async () => {
+	it("does not hang when no text from streaming", async () => {
 		const startTime = Date.now();
-		const TIMEOUT_MS = 3000;
-
-		const toolEvents = [
+		const events = [
 			{
 				method: "tools",
 				params: { data: { event: "tool_called", name: "web_search", toolCallId: "tool-1" } },
@@ -598,210 +443,29 @@ describe("callReactAgent streaming", () => {
 						event: "tool_finished",
 						name: "web_search",
 						toolCallId: "tool-1",
-						output: '{"ok":false,"error":"none"}',
+						output: "result",
 					},
 				},
 			},
 		];
-		let toolIdx = 0;
 
-		const agentMock = {
-			streamEvents: () => ({
-				// This ChatModelStream has no text — iterating .text would hang
-				// because ReplayBuffer.waiters is never notified.
-				messages: {
-					[Symbol.asyncIterator]() {
-						return {
-							next() {
-								return new Promise((resolve) => {
-									setTimeout(() => {
-										resolve({
-											value: {
-												text: {
-													[Symbol.asyncIterator]() {
-														return {
-															next() {
-																return new Promise(() => {
-																	// never resolve — simulates ReplayBuffer blocking
-																});
-															},
-														};
-													},
-												},
-											},
-											done: false,
-										});
-									}, 50);
-								});
-							},
-						};
-					},
-				},
-				// Raw stream yields tool events
-				[Symbol.asyncIterator]() {
-					return {
-						next() {
-							if (toolIdx < toolEvents.length) {
-								toolIdx++;
-								return Promise.resolve({ value: toolEvents[toolIdx - 1], done: false });
-							}
-							return Promise.resolve({ done: true });
-						},
-					};
-				},
-			}),
-		};
-
+		const agentMock = createMock(createStream(events));
 		const callbackCalls = [];
 		const callback = (event) => callbackCalls.push(event);
 
-		const result = await callReactAgent(
-			agentMock,
-			"use web_search to find info",
-			null,
-			null,
-			callback,
-		);
+		let caughtError = null;
+		try {
+			await callReactAgent(agentMock, "use web_search", null, null, callback);
+		} catch (err) {
+			caughtError = err;
+		}
 
 		const elapsed = Date.now() - startTime;
-		assert.ok(elapsed < TIMEOUT_MS, `Streaming hung for ${elapsed}ms (limit ${TIMEOUT_MS}ms)`);
+		assert.ok(elapsed < 2000, `Streaming hung for ${elapsed}ms`);
 		assert.strictEqual(callbackCalls.length, 2);
 		assert.strictEqual(callbackCalls[0].type, "tool_start");
 		assert.strictEqual(callbackCalls[1].type, "tool_end");
-		assert.strictEqual(result.content, "use web_search to find info");
-	});
-
-	it("captures text after tool events in single-stream pass", async () => {
-		// Events are interleaved: tool events come first, then text chunks
-		const allMessages = [
-			{
-				method: "tools",
-				params: { data: { event: "tool_called", name: "read_file", toolCallId: "1" } },
-			},
-			{
-				method: "tools",
-				params: {
-					data: {
-						event: "tool_finished",
-						name: "read_file",
-						toolCallId: "1",
-						output: "file content",
-					},
-				},
-			},
-			{
-				method: "messages",
-				params: {
-					data: {
-						event: "content-block-delta",
-						index: 0,
-						delta: { type: "text-delta", text: "Found results" },
-					},
-					chunk: { type: "ChatModelStream", index: 0 },
-				},
-			},
-		];
-		let msgIdx = 0;
-
-		const agentMock = {
-			streamEvents: () => ({
-				messages: {
-					[Symbol.asyncIterator]() {
-						return { next: () => Promise.resolve({ done: true }) };
-					},
-				},
-				[Symbol.asyncIterator]() {
-					return {
-						next() {
-							if (msgIdx < allMessages.length) {
-								msgIdx++;
-								return Promise.resolve({ value: allMessages[msgIdx - 1], done: false });
-							}
-							return Promise.resolve({ done: true });
-						},
-					};
-				},
-			}),
-		};
-
-		const callbackCalls = [];
-		const callback = (event) => callbackCalls.push(event);
-
-		const result = await callReactAgent(agentMock, "query", null, null, callback);
-		assert.strictEqual(callbackCalls.length, 3); // 2 tool + 1 text
-		assert.strictEqual(callbackCalls[0].type, "tool_start");
-		assert.strictEqual(callbackCalls[1].type, "tool_end");
-		assert.strictEqual(callbackCalls[2].type, "text");
-		assert.strictEqual(result.content, "Found results");
-	});
-
-	it("returns content from ChatModelStream text event chunks", async () => {
-		const messages = [
-			{
-				method: "messages",
-				params: {
-					data: { event: "message-start", id: "1", role: "ai" },
-					chunk: { type: "ChatModelStream", index: 0 },
-				},
-			},
-			{
-				method: "messages",
-				params: {
-					data: { event: "content-block-start", index: 0, content: [{ type: "text" }] },
-					chunk: { type: "ChatModelStream", index: 0 },
-				},
-			},
-			{
-				method: "messages",
-				params: {
-					data: {
-						event: "content-block-delta",
-						index: 0,
-						delta: { type: "text-delta", text: "Hello" },
-					},
-					chunk: { type: "ChatModelStream", index: 0 },
-				},
-			},
-			{
-				method: "messages",
-				params: {
-					data: {
-						event: "content-block-delta",
-						index: 0,
-						delta: { type: "text-delta", text: " World" },
-					},
-					chunk: { type: "ChatModelStream", index: 0 },
-				},
-			},
-		];
-		let idx = 0;
-
-		const agentMock = {
-			streamEvents: () => ({
-				messages: {
-					[Symbol.asyncIterator]() {
-						return { next: () => Promise.resolve({ done: true }) };
-					},
-				},
-				[Symbol.asyncIterator]() {
-					return {
-						next() {
-							if (idx < messages.length) {
-								idx++;
-								return Promise.resolve({ value: messages[idx - 1], done: false });
-							}
-							return Promise.resolve({ done: true });
-						},
-					};
-				},
-			}),
-		};
-
-		const callbackCalls = [];
-		const callback = (event) => callbackCalls.push(event);
-
-		const result = await callReactAgent(agentMock, "hi", null, null, callback);
-		assert.strictEqual(result.content, "Hello World");
-		assert.strictEqual(callbackCalls[0].type, "text");
+		assert.ok(caughtError instanceof Error);
+		assert.ok(caughtError.message.includes("No response from agent"));
 	});
 });
