@@ -4,7 +4,7 @@
 ℹ ---------------------------------------------------------------------------------------------------------------------
 ℹ src                    |        |          |         | 
 ℹ  agent                 |        |          |         | 
-ℹ   react.js             |  99.51 |    60.00 |  100.00 | 120
+ℹ   react.js             |  98.60 |    59.15 |  100.00 | 92-93 131
 ℹ  config                |        |          |         | 
 ℹ   schemas.js           | 100.00 |   100.00 |  100.00 | 
 ℹ  memory                |        |          |         | 
@@ -59,16 +59,16 @@
 ℹ   messages.js          | 100.00 |    94.44 |  100.00 | 
 ℹ   panels.js            | 100.00 |   100.00 |  100.00 | 
 ℹ ---------------------------------------------------------------------------------------------------------------------
-ℹ all files              |  98.17 |    88.31 |   85.03 | 
+ℹ all files              |  98.14 |    88.24 |   85.03 | 
 ℹ ---------------------------------------------------------------------------------------------------------------------
 ℹ end of coverage report
 
 ✖ failing tests:
 
 test at tests/unit/react_agent_checkpoint.test.js:116:2
-✖ passes configurable to streamEvents when config provided (0.347233ms)
+✖ passes configurable to streamEvents when config provided (0.333418ms)
   Error: No response from agent — the LLM did not produce any output
-      at callReactAgentStreaming (file:///home/jason/Projects/madz/src/agent/react.js:203:8)
+      at callReactAgentStreaming (file:///home/jason/Projects/madz/src/agent/react.js:214:8)
       at async TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/react_agent_checkpoint.test.js:130:3)
       at async Test.run (node:internal/test_runner/test:1208:7)
       at async Promise.all (index 0)
@@ -76,9 +76,9 @@ test at tests/unit/react_agent_checkpoint.test.js:116:2
       at async Test.processPendingSubtests (node:internal/test_runner/test:831:7)
 
 test at tests/unit/react_agent_checkpoint.test.js:142:2
-✖ passes no configurable in streaming when config is null (0.143059ms)
+✖ passes no configurable in streaming when config is null (0.163297ms)
   Error: No response from agent — the LLM did not produce any output
-      at callReactAgentStreaming (file:///home/jason/Projects/madz/src/agent/react.js:203:8)
+      at callReactAgentStreaming (file:///home/jason/Projects/madz/src/agent/react.js:214:8)
       at async TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/react_agent_checkpoint.test.js:156:18)
       at async Test.run (node:internal/test_runner/test:1208:7)
       at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7)

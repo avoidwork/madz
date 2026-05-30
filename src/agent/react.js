@@ -1,5 +1,6 @@
 import { createReactAgent as createReactAgentGraph } from "@langchain/langgraph/prebuilt";
 import { HumanMessage, SystemMessage, AIMessage } from "@langchain/core/messages";
+import fs from "node:fs";
 
 /**
  * Create a ReAct agent from a chat model and optional tools and checkpointer.
@@ -80,6 +81,16 @@ function emitToolEvent(event, callback) {
 	// Normalize tool event names — protocol v3 uses hyphenated names
 	// while internal handlers use "on_tool_*" prefixes.
 	const eventName = data.event || data.langgraph_event || "";
+
+	// DEBUG (sync, no await)
+	try {
+		fs.appendFileSync(
+			"/tmp/madz_emit.log",
+			`[${Date.now()}] emit ${eventName} via ${event.method}\n`,
+		);
+	} catch {
+		/* */
+	}
 
 	if (
 		eventName === "tool-started" ||
