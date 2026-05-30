@@ -163,9 +163,14 @@ async function callReactAgentStreaming(agent, initMessages, originalMessage, con
 			event.params.data.graph_name ||
 			"<plain>";
 
-		// DEBUG: log every event for diagnosing streaming issues
-		// oxlint-disable-next-line no-console
-		console.debug("[stream] method=%s event=%s", methodName, eventKey);
+		// DEBUG: log every event to file (Ink TUI swallows console output).
+		// Read: tail -50 /tmp/madz_stream.log
+		const fs = (await import("node:fs")).default;
+		try {
+			fs.appendFileSync("/tmp/madz_stream.log", `[${Date.now()}] m=${methodName} e=${eventKey}\n`);
+		} catch {
+			/* ignore logging errors */
+		}
 
 		if (methodName === "tools") {
 			try {
