@@ -97,6 +97,14 @@ function emitToolEvent(event, callback) {
 		eventName === "on_tool_start" ||
 		eventName === "tool_called"
 	) {
+		try {
+			fs.appendFileSync(
+				"/tmp/madz_cb.log",
+				`[${Date.now()}] cb=tool_start name=${data.tool_name || data.name || ""}\n`,
+			);
+		} catch {
+			/* */
+		}
 		callback({
 			type: "tool_start",
 			toolName: data.tool_name || data.name || data.tool || "",
@@ -108,6 +116,14 @@ function emitToolEvent(event, callback) {
 		eventName === "partial_result" ||
 		eventName === "tool_output"
 	) {
+		try {
+			fs.appendFileSync(
+				"/tmp/madz_cb.log",
+				`[${Date.now()}] cb=tool_event data=${JSON.stringify(data.delta || data.output || "").slice(0, 60)}\n`,
+			);
+		} catch {
+			/* */
+		}
 		callback({
 			type: "tool_event",
 			toolCallId: data.tool_call_id || data.toolCallId || "",
@@ -118,6 +134,14 @@ function emitToolEvent(event, callback) {
 		eventName === "on_tool_end" ||
 		eventName === "tool_finished"
 	) {
+		try {
+			fs.appendFileSync(
+				"/tmp/madz_cb.log",
+				`[${Date.now()}] cb=tool_end name=${data.tool_name || data.name || ""} data=${JSON.stringify(data.output).slice(0, 60)}\n`,
+			);
+		} catch {
+			/* */
+		}
 		callback({
 			type: "tool_end",
 			toolName: data.tool_name || data.name || data.tool || "",
@@ -131,6 +155,14 @@ function emitToolEvent(event, callback) {
 		eventName === "partial_error"
 	) {
 		const errMsg = data.message || data.error || "Unknown error";
+		try {
+			fs.appendFileSync(
+				"/tmp/madz_cb.log",
+				`[${Date.now()}] cb=tool_error name=${data.tool_name || data.name || ""} err=${errMsg}\n`,
+			);
+		} catch {
+			/* */
+		}
 		callback({
 			type: "tool_error",
 			toolName: data.tool_name || data.name || data.tool || "",
@@ -200,6 +232,14 @@ async function callReactAgentStreaming(agent, initMessages, originalMessage, con
 			fullContent += textDelta;
 			const trimmed = fullContent.trim();
 			if (trimmed) {
+				try {
+					fs.appendFileSync(
+						"/tmp/madz_cb.log",
+						`[${Date.now()}] cb=text text=${trimmed.slice(0, 60)}\n`,
+					);
+				} catch {
+					/* */
+				}
 				callback({ type: "text", text: trimmed });
 			}
 			continue;
