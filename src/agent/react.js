@@ -137,32 +137,44 @@ async function callReactAgentStreaming(agent, initMessages, originalMessage, con
 	let fullContent = "";
 	let hasContent = false;
 
-	// Consume text: iterate ChatModelStream instances and collect incremental text deltas
-	for await (const chatMessage of stream.messages) {
-		try {
-			let accumulated = "";
-			for await (const delta of chatMessage.text) {
-				accumulated += delta;
-				const trimmed = accumulated.trim();
-				if (trimmed) {
-					hasContent = true;
-					fullContent = trimmed;
-					callback({ type: "text", text: trimmed });
-				}
-			}
-		} catch (_err) {
-			// Text projection may throw if the message had no text blocks; skip
-		}
-	}
-
-	// Consume tool and lifecycle events from the raw ProtocolEvent stream
+	// Collect text chunks while processing tool and other events in a single pass.
+	// This avoids blocking on `stream.messages` when the LLM produces an AIMessage
+	// with tool calls but no text — the ReplayBuffer inside ChatModelStream would
+	// wait forever for a message-finish that never arrives.  By iterating the raw
+	// stream and extracting text directly from event chunks we process everything
+	// (tool calls and text) without any blocking iterators.
 	for await (const event of stream) {
 		if (!event || !event.params) continue;
+
+		// Tool events are always emitted with method: "tools"
 		if (event.method === "tools") {
 			try {
 				emitToolEvent(event, callback);
-			} catch (_emitErr) {
+			} catch (_err) {
 				// Callback error — don't break the streaming loop
+			}
+			continue;
+		}
+
+		// Extract streaming text from ChatModelStream chunk events
+		const { data, chunk } = event.params;
+		if (!data || !chunk) continue;
+
+		let textDelta = "";
+		if (data.event === "content-block-start") {
+			const block = data.content?.[chunk.index] || {};
+			textDelta = block.text || "";
+		} else if (data.event === "content-block-delta") {
+			textDelta = data.delta?.text || "";
+		}
+
+		if (textDelta) {
+			const accumulated = fullContent + textDelta;
+			const trimmed = accumulated.trim();
+			if (trimmed) {
+				hasContent = true;
+				fullContent = accumulated;
+				callback({ type: "text", text: trimmed });
 			}
 		}
 	}
