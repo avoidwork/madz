@@ -147,6 +147,11 @@ async function callReactAgentStreaming(agent, initMessages, originalMessage, con
 
 	let fullContent = "";
 
+	// DEBUG TUI tool event logging
+	const fs = await import("node:fs");
+	let toolEventCount = 0;
+	let toolEventError = null;
+
 	// Collect *all* events from `stream` directly (not `stream.messages`).
 	// Tool events → `method: "tools"`, chat model chunks via `method:
 	// "messages"` with `data.event`.  Iterating `stream` avoids the
@@ -158,11 +163,18 @@ async function callReactAgentStreaming(agent, initMessages, originalMessage, con
 
 		const methodName = event.method || "<unknown>";
 
+		// DEBUG
+		fs.appendFileSync(
+			"/tmp/madz_loop.log",
+			`iter method=${methodName} event=${event.params.data.event || ""}\n`,
+		);
+
 		if (methodName === "tools") {
 			try {
 				emitToolEvent(event, callback);
+				toolEventCount++;
 			} catch (_err) {
-				/* callback error — don't break */
+				toolEventError = _err.message;
 			}
 			continue;
 		}
@@ -183,6 +195,11 @@ async function callReactAgentStreaming(agent, initMessages, originalMessage, con
 
 	// Nothing captured from agent — surface a clear error instead of
 	// silently echoing the user's message.
+	// DEBUG summary
+	fs.appendFileSync(
+		"/tmp/madz_loop.log",
+		`DONE fullContentLen=${fullContent.length} toolCallbacks=${toolEventCount} toolError=${toolEventError || "none"}\n`,
+	);
 	if (fullContent) {
 		return { content: fullContent };
 	}
