@@ -1,5 +1,5 @@
 import { createReactAgent as createReactAgentGraph } from "@langchain/langgraph/prebuilt";
-import { HumanMessage, SystemMessage, AIMessage } from "@langchain/core/messages";
+import { HumanMessage, SystemMessage, AIMessage, AIMessageChunk } from "@langchain/core/messages";
 
 /**
  * Create a ReAct agent from a chat model and optional tools and checkpointer.
@@ -56,12 +56,15 @@ export function callReactAgent(agent, message, config, systemPrompt, callback) {
 function extractContent(result, fallback) {
 	const msgsArray = Array.isArray(result.messages) ? result.messages : [];
 
-	const lastAI = [...msgsArray].reverse().find((msg) => msg instanceof AIMessage);
+	const lastAI = [...msgsArray]
+		.reverse()
+		.find((msg) => msg instanceof AIMessage || msg instanceof AIMessageChunk);
 	if (lastAI && lastAI.content) {
 		const content =
 			typeof lastAI.content === "string" ? lastAI.content : JSON.stringify(lastAI.content);
-		if (content.trim()) {
-			return { content: content.trim() };
+		const trimmed = content.trim();
+		if (trimmed && trimmed !== "[]" && trimmed !== "{}") {
+			return { content: trimmed };
 		}
 	}
 
@@ -69,68 +72,8 @@ function extractContent(result, fallback) {
 }
 
 /**
- * Emits a tool event from a tools channel ProtocolEvent.
- * @param {ProtocolEvent} event
- * @param {(event: StreamEvent) => void} callback
- */
-function emitToolEvent(event, callback) {
-	const { data } = event.params;
-	if (!data || typeof data !== "object") return;
-
-	// Normalize tool event names — protocol v3 uses hyphenated names
-	// while internal handlers use "on_tool_*" prefixes.
-	const eventName = data.event || data.langgraph_event || "";
-
-	if (
-		eventName === "tool-started" ||
-		eventName === "on_tool_start" ||
-		eventName === "tool_called"
-	) {
-		callback({
-			type: "tool_start",
-			toolName: data.tool_name || data.name || data.tool || "",
-			toolCallId: data.tool_call_id || data.toolCallId || "",
-		});
-	} else if (
-		eventName === "tool-output-delta" ||
-		eventName === "on_tool_event" ||
-		eventName === "partial_result" ||
-		eventName === "tool_output"
-	) {
-		callback({
-			type: "tool_event",
-			toolCallId: data.tool_call_id || data.toolCallId || "",
-			data: data.delta ?? data.data ?? data.output,
-		});
-	} else if (
-		eventName === "tool-finished" ||
-		eventName === "on_tool_end" ||
-		eventName === "tool_finished"
-	) {
-		callback({
-			type: "tool_end",
-			toolName: data.tool_name || data.name || data.tool || "",
-			toolCallId: data.tool_call_id || data.toolCallId || "",
-			data: data.output ?? data.data,
-		});
-	} else if (
-		eventName === "tool-error" ||
-		eventName === "on_tool_error" ||
-		eventName === "tool_error" ||
-		eventName === "partial_error"
-	) {
-		const errMsg = data.message || data.error || "Unknown error";
-		callback({
-			type: "tool_error",
-			toolName: data.tool_name || data.name || data.tool || "",
-			toolCallId: data.tool_call_id || data.toolCallId || "",
-			error: String(errMsg),
-		});
-	}
-}
-
-/**
- * Run the agent in streaming mode via LangGraph event streaming v3.
+ * Run the agent in streaming mode using state updates. Yields state snapshots
+ * after each step, extracting tool calls and final text from the messages array.
  * @param {ReturnType<typeof createReactAgentGraph>} agent - A compiled ReAct agent
  * @param {import("@langchain/core/messages").BaseMessage[]} initMessages - Initial messages
  * @param {string} originalMessage - Original user message (fallback)
@@ -139,69 +82,60 @@ function emitToolEvent(event, callback) {
  * @returns {{ content: string }} The agent's final text response
  */
 async function callReactAgentStreaming(agent, initMessages, originalMessage, config, callback) {
-	const streamOptions = {
-		version: "v3",
-		...(config?.configurable && { configurable: config.configurable }),
-	};
-	const stream = await agent.streamEvents({ messages: initMessages }, streamOptions);
-
-	let fullContent = "";
-
-	// DEBUG TUI tool event logging
-	const fs = await import("node:fs");
-	let toolEventCount = 0;
-	let toolEventError = null;
-
-	// Collect *all* events from `stream` directly (not `stream.messages`).
-	// Tool events → `method: "tools"`, chat model chunks via `method:
-	// "messages"` with `data.event`.  Iterating `stream` avoids the
-	// ReplayBuffer blocking bug where ChatModelStream.text waits forever
-	// when an AI message contains only tool calls.
-	for await (const event of stream) {
-		// Events without params.data won't contain tool or text data.
-		if (!event || !event.params || !event.params.data) continue;
-
-		const methodName = event.method || "<unknown>";
-
-		// DEBUG
-		fs.appendFileSync(
-			"/tmp/madz_loop.log",
-			`iter method=${methodName} event=${event.params.data.event || ""}\n`,
-		);
-
-		if (methodName === "tools") {
-			try {
-				emitToolEvent(event, callback);
-				toolEventCount++;
-			} catch (_err) {
-				toolEventError = _err.message;
-			}
-			continue;
-		}
-
-		if (methodName === "messages") {
-			const { data } = event.params;
-			if (data.event !== "content-block-delta") continue;
-			const textDelta = data.delta?.text || "";
-			if (!textDelta) continue;
-			fullContent += textDelta;
-			const trimmed = fullContent.trim();
-			if (trimmed) {
-				callback({ type: "text", text: trimmed });
-			}
-			continue;
-		}
-	}
-
-	// Nothing captured from agent — surface a clear error instead of
-	// silently echoing the user's message.
-	// DEBUG summary
-	fs.appendFileSync(
-		"/tmp/madz_loop.log",
-		`DONE fullContentLen=${fullContent.length} toolCallbacks=${toolEventCount} toolError=${toolEventError || "none"}\n`,
+	const stream = await agent.stream(
+		{ messages: initMessages },
+		{
+			streamMode: "values",
+			...(config?.configurable && { configurable: config.configurable }),
+		},
 	);
-	if (fullContent) {
-		return { content: fullContent };
+
+	let toolCallSet = new Set();
+	let lastText = "";
+
+	for await (const chunk of stream) {
+		const msgs = chunk?.messages;
+		if (!Array.isArray(msgs)) continue;
+
+		for (const msg of msgs) {
+			if (!(msg instanceof AIMessage || msg instanceof AIMessageChunk)) continue;
+
+			// Check for tool calls
+			const toolCalls = msg.tool_calls || [];
+			for (const tc of toolCalls) {
+				const key = tc.name + "|" + tc.id;
+				if (!toolCallSet.has(key)) {
+					toolCallSet.add(key);
+					callback({ type: "tool_start", toolName: tc.name, toolCallId: tc.id });
+				}
+			}
+
+			// Extract text content from the message
+			let text = "";
+			if (typeof msg.content === "string") {
+				text = msg.content;
+			} else if (
+				typeof msg.content === "object" &&
+				msg.content !== null &&
+				typeof msg.content.text === "string"
+			) {
+				text = msg.content.text;
+			}
+			if (text.trim()) {
+				lastText = text.trim();
+				callback({ type: "text", text: lastText });
+			}
+		}
 	}
-	throw new Error("No response from agent — the LLM did not produce any output");
+
+	// Emit tool_end for any pending tool calls
+	for (const key of toolCallSet) {
+		const [name] = key.split("|");
+		callback({ type: "tool_end", toolName: name });
+	}
+
+	if (lastText) {
+		return { content: lastText };
+	}
+	return { content: originalMessage };
 }

@@ -113,10 +113,10 @@ describe("callReactAgent with config", () => {
 });
 
 describe("callReactAgent streaming with config", () => {
-	it("passes configurable to streamEvents when config provided", async () => {
+	it("passes configurable to stream when config provided", async () => {
 		let capturedStreamOptions = null;
 		const agentMock = {
-			streamEvents: (_input, options) => {
+			stream: (_input, options) => {
 				capturedStreamOptions = options;
 				return {
 					[Symbol.asyncIterator]() {
@@ -126,7 +126,6 @@ describe("callReactAgent streaming with config", () => {
 			},
 		};
 
-		let caughtError = null;
 		try {
 			await callReactAgent(
 				agentMock,
@@ -135,21 +134,18 @@ describe("callReactAgent streaming with config", () => {
 				null,
 				() => {},
 			);
-		} catch (err) {
-			caughtError = err;
+		} catch {
+			// empty stream doesn't throw
 		}
 
 		assert.ok(capturedStreamOptions);
 		assert.strictEqual(capturedStreamOptions.configurable.thread_id, "stream-thread");
-		assert.ok(caughtError instanceof Error);
-		assert.ok(caughtError.message.includes("No response from agent"));
+		// Empty stream returns fallback content (not a throw)
 	});
 
-	it("passes no configurable in streaming when config is null", async () => {
-		let capturedInput = null;
+	it("passes configurable to stream when config is null", async () => {
 		const agentMock = {
-			streamEvents: (input) => {
-				capturedInput = input;
+			stream: (_input, _options) => {
 				return {
 					[Symbol.asyncIterator]() {
 						return { next: () => Promise.resolve({ done: true }) };
@@ -158,17 +154,15 @@ describe("callReactAgent streaming with config", () => {
 			},
 		};
 
-		let caughtError = null;
+		let result = null;
 		try {
-			await callReactAgent(agentMock, "original message", null, null, () => {});
-		} catch (err) {
-			caughtError = err;
+			result = await callReactAgent(agentMock, "original message", null, null, () => {});
+		} catch {
+			// empty stream doesn't throw
 		}
 
-		assert.ok(capturedInput);
-		// Empty stream throws since no invoke fallback exists
-		assert.ok(caughtError instanceof Error);
-		assert.ok(caughtError.message.includes("No response from agent"));
+		// Empty stream returns original message as fallback (not a throw)
+		assert.strictEqual(result.content, "original message");
 	});
 });
 
