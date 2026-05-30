@@ -13,6 +13,9 @@ describe("tool registration - integration", () => {
 			FIRECRAWL_API_KEY: process.env.FIRECRAWL_API_KEY,
 			TAVILY_API_KEY: process.env.TAVILY_API_KEY,
 			PARALLEL_API_KEY: process.env.PARALLEL_API_KEY,
+			SEARXNG_URL: process.env.SEARXNG_URL,
+			BING_API_KEY: process.env.BING_API_KEY,
+			CUSTOM_SEARCH_URL: process.env.CUSTOM_SEARCH_URL,
 			FAL_API_KEY: process.env.FAL_API_KEY,
 			OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
 		};
@@ -24,6 +27,9 @@ describe("tool registration - integration", () => {
 		process.env.FIRECRAWL_API_KEY = origEnvVars.FIRECRAWL_API_KEY;
 		process.env.TAVILY_API_KEY = origEnvVars.TAVILY_API_KEY;
 		process.env.PARALLEL_API_KEY = origEnvVars.PARALLEL_API_KEY;
+		process.env.SEARXNG_URL = origEnvVars.SEARXNG_URL;
+		process.env.BING_API_KEY = origEnvVars.BING_API_KEY;
+		process.env.CUSTOM_SEARCH_URL = origEnvVars.CUSTOM_SEARCH_URL;
 		process.env.FAL_API_KEY = origEnvVars.FAL_API_KEY;
 		process.env.OPENROUTER_API_KEY = origEnvVars.OPENROUTER_API_KEY;
 	});
@@ -54,11 +60,47 @@ describe("tool registration - integration", () => {
 		delete process.env.EXA_API_KEY;
 	});
 
-	it("does not register web tools without search key", async () => {
+	it("registers web tools when SEARXNG_URL is set", async () => {
+		process.env.SEARXNG_URL = "http://searxng.local";
+		const tools = await buildToolConfig({
+			permissions: ["network:outbound"],
+		});
+		const toolNames = tools.map((t) => t.name);
+		assert.ok(toolNames.includes("web_search"));
+		assert.ok(toolNames.includes("web_extract"));
+		delete process.env.SEARXNG_URL;
+	});
+
+	it("registers web tools when BING_API_KEY is set", async () => {
+		process.env.BING_API_KEY = "sk-bing";
+		const tools = await buildToolConfig({
+			permissions: ["network:outbound"],
+		});
+		const toolNames = tools.map((t) => t.name);
+		assert.ok(toolNames.includes("web_search"));
+		assert.ok(toolNames.includes("web_extract"));
+		delete process.env.BING_API_KEY;
+	});
+
+	it("registers web tools when CUSTOM_SEARCH_URL is set", async () => {
+		process.env.CUSTOM_SEARCH_URL = "http://custom.local/search";
+		const tools = await buildToolConfig({
+			permissions: ["network:outbound"],
+		});
+		const toolNames = tools.map((t) => t.name);
+		assert.ok(toolNames.includes("web_search"));
+		assert.ok(toolNames.includes("web_extract"));
+		delete process.env.CUSTOM_SEARCH_URL;
+	});
+
+	it("does not register web tools without any search key", async () => {
 		delete process.env.EXA_API_KEY;
 		delete process.env.FIRECRAWL_API_KEY;
 		delete process.env.TAVILY_API_KEY;
 		delete process.env.PARALLEL_API_KEY;
+		delete process.env.SEARXNG_URL;
+		delete process.env.BING_API_KEY;
+		delete process.env.CUSTOM_SEARCH_URL;
 		const tools = await buildToolConfig({
 			permissions: ["network:outbound"],
 		});
@@ -79,6 +121,9 @@ describe("tool registration - integration", () => {
 		delete process.env.FIRECRAWL_API_KEY;
 		delete process.env.TAVILY_API_KEY;
 		delete process.env.PARALLEL_API_KEY;
+		delete process.env.SEARXNG_URL;
+		delete process.env.BING_API_KEY;
+		delete process.env.CUSTOM_SEARCH_URL;
 		const tools = await buildToolConfig({ permissions: [] });
 		const toolNames = tools.map((t) => t.name);
 		assert.ok(toolNames.includes("vision_analyze"));
@@ -131,6 +176,9 @@ describe("tool registration - integration", () => {
 		delete process.env.FIRECRAWL_API_KEY;
 		delete process.env.TAVILY_API_KEY;
 		delete process.env.PARALLEL_API_KEY;
+		delete process.env.SEARXNG_URL;
+		delete process.env.BING_API_KEY;
+		delete process.env.CUSTOM_SEARCH_URL;
 		const tools = await buildToolConfig({ permissions: [] });
 		const toolNames = tools.map((t) => t.name);
 		assert.ok(toolNames.includes("text_to_speech"));
@@ -150,6 +198,9 @@ describe("tool registration - integration", () => {
 		delete process.env.FIRECRAWL_API_KEY;
 		delete process.env.TAVILY_API_KEY;
 		delete process.env.PARALLEL_API_KEY;
+		delete process.env.SEARXNG_URL;
+		delete process.env.BING_API_KEY;
+		delete process.env.CUSTOM_SEARCH_URL;
 		const tools = await buildToolConfig({ permissions: [] });
 		const toolNames = tools.map((t) => t.name);
 		assert.ok(toolNames.includes("mixture_of_agents"));
