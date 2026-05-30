@@ -83,6 +83,8 @@ session:
   conversationsDir: memory/conversations/
 tui:
   name: madz
+  cursorChar: "█"
+  blinkTimeout: 530
 persistence:
   mode: memory
   sqlite_path: memory/checkpoints.db

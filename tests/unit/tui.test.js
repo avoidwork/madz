@@ -11,6 +11,8 @@ import {
 	getToolCallLines,
 } from "../../src/tui/messages.js";
 import { parseMarkdown, MarkdownText } from "../../src/tui/markdownText.js";
+import { TuiSchema, DEFAULT_CONFIG } from "../../src/config/schemas.js";
+import { Blink, getBlinkState, renderBlink } from "../../src/tui/inputPanel.js";
 
 describe("command parser", () => {
 	it("parses :quit command", () => {
@@ -733,5 +735,154 @@ describe("MarkdownText - rendering", () => {
 		assert.strictEqual(result.type.name, "Text");
 		assert.strictEqual(result.props.color, "white");
 		assert.ok(result.props.children);
+	});
+});
+
+describe("TuiSchema - cursorChar", () => {
+	it("accepts valid cursorChar string", () => {
+		const result = TuiSchema.safeParse({ name: "test", cursorChar: "_" });
+		assert.strictEqual(result.success, true);
+		assert.strictEqual(result.data.cursorChar, "_");
+	});
+
+	it("accepts unicode block character", () => {
+		const result = TuiSchema.safeParse({ name: "test", cursorChar: "\u2588" });
+		assert.strictEqual(result.success, true);
+		assert.strictEqual(result.data.cursorChar, "\u2588");
+	});
+
+	it("rejects non-string cursorChar", () => {
+		const result = TuiSchema.safeParse({ name: "test", cursorChar: 123 });
+		assert.strictEqual(result.success, false);
+	});
+
+	it("defaults cursorChar to block when missing", () => {
+		const result = TuiSchema.safeParse({ name: "test" });
+		assert.strictEqual(result.success, true);
+		assert.strictEqual(result.data.cursorChar, "\u2588");
+	});
+});
+
+describe("TuiSchema - blinkTimeout", () => {
+	it("accepts valid blinkTimeout value", () => {
+		const result = TuiSchema.safeParse({ name: "test", blinkTimeout: 500 });
+		assert.strictEqual(result.success, true);
+		assert.strictEqual(result.data.blinkTimeout, 500);
+	});
+
+	it("rejects zero blinkTimeout", () => {
+		const result = TuiSchema.safeParse({ name: "test", blinkTimeout: 0 });
+		assert.strictEqual(result.success, false);
+	});
+
+	it("rejects negative blinkTimeout", () => {
+		const result = TuiSchema.safeParse({ name: "test", blinkTimeout: -100 });
+		assert.strictEqual(result.success, false);
+	});
+
+	it("rejects non-integer blinkTimeout", () => {
+		const result = TuiSchema.safeParse({ name: "test", blinkTimeout: 3.5 });
+		assert.strictEqual(result.success, false);
+	});
+
+	it("defaults blinkTimeout to 530 when missing", () => {
+		const result = TuiSchema.safeParse({ name: "test" });
+		assert.strictEqual(result.success, true);
+		assert.strictEqual(result.data.blinkTimeout, 530);
+	});
+});
+
+describe("DEFAULT_CONFIG - tui cursor fields", () => {
+	it("includes cursorChar default", () => {
+		assert.strictEqual(DEFAULT_CONFIG.tui.cursorChar, "\u2588");
+	});
+
+	it("includes blinkTimeout default", () => {
+		assert.strictEqual(DEFAULT_CONFIG.tui.blinkTimeout, 530);
+	});
+
+	it("matches TuiSchema defaults for cursorChar", () => {
+		const schemaResult = TuiSchema.safeParse({});
+		assert.strictEqual(schemaResult.success, true);
+		assert.strictEqual(schemaResult.data.cursorChar, DEFAULT_CONFIG.tui.cursorChar);
+	});
+
+	it("matches TuiSchema defaults for blinkTimeout", () => {
+		const schemaResult = TuiSchema.safeParse({});
+		assert.strictEqual(schemaResult.success, true);
+		assert.strictEqual(schemaResult.data.blinkTimeout, DEFAULT_CONFIG.tui.blinkTimeout);
+	});
+});
+
+describe("Blink - getBlinkState", () => {
+	it("returns true for frame 0 (visible)", () => {
+		assert.strictEqual(getBlinkState(0), true);
+	});
+
+	it("returns false for frame 1 (invisible)", () => {
+		assert.strictEqual(getBlinkState(1), false);
+	});
+
+	it("returns true for frame 2 (visible)", () => {
+		assert.strictEqual(getBlinkState(2), true);
+	});
+
+	it("toggles visibility on odd frames", () => {
+		assert.strictEqual(getBlinkState(3), false);
+		assert.strictEqual(getBlinkState(5), false);
+	});
+
+	it("is visible on even frames", () => {
+		assert.strictEqual(getBlinkState(4), true);
+		assert.strictEqual(getBlinkState(6), true);
+		assert.strictEqual(getBlinkState(10), true);
+	});
+});
+
+describe("Blink - renderBlink", () => {
+	it("renders visible cursor with even frame", () => {
+		const result = renderBlink("hello", "█", 0);
+		assert.ok(React.isValidElement(result));
+		assert.strictEqual(result.props.flexDirection, "row");
+		assert.strictEqual(result.props.children.length, 2);
+		assert.strictEqual(result.props.children[0].key, "text");
+		assert.strictEqual(result.props.children[1].key, "cursor");
+		assert.strictEqual(result.props.children[1].props.children, "█");
+	});
+
+	it("renders invisible cursor with zero-width space", () => {
+		const result = renderBlink("hello", "█", 1);
+		assert.ok(React.isValidElement(result));
+		assert.strictEqual(result.props.children[1].props.children, "\u200B");
+	});
+
+	it("renders text with flexGrow", () => {
+		const result = renderBlink("world", "█", 0);
+		assert.ok(React.isValidElement(result));
+		assert.strictEqual(result.props.children[0].type.name, "Text");
+		assert.strictEqual(result.props.children[0].props.flexGrow, 1);
+	});
+
+	it("renders cursor with bold property", () => {
+		const result = renderBlink("", "▌", 0);
+		assert.ok(React.isValidElement(result));
+		assert.ok(React.isValidElement(result.props.children[1]));
+		assert.strictEqual(result.props.children[1].type.name, "Text");
+		assert.strictEqual(result.props.children[1].props.bold, true);
+	});
+});
+
+describe("Blink - component rendering", () => {
+	it("renders visible cursor with even _testFrame", () => {
+		const result = Blink({ text: "hello", char: "█", _testFrame: 0 });
+		assert.ok(React.isValidElement(result));
+		assert.strictEqual(result.props.flexDirection, "row");
+		assert.strictEqual(result.props.children[1].props.children, "█");
+	});
+
+	it("renders invisible cursor with zero-width space", () => {
+		const result = Blink({ text: "hello", char: "█", _testFrame: 1 });
+		assert.ok(React.isValidElement(result));
+		assert.strictEqual(result.props.children[1].props.children, "\u200B");
 	});
 });

@@ -111,6 +111,8 @@ export const SessionSchema = z.object({
 
 export const TuiSchema = z.object({
 	name: z.string().default("madz"),
+	cursorChar: z.string().default("\u2588"),
+	blinkTimeout: z.number().int().positive().default(530),
 });
 
 // --- Persistence schemas ---
@@ -166,6 +168,6 @@ export const DEFAULT_CONFIG = {
 	},
 	schedules: { maxConcurrent: 1, entries: [] },
 	session: { context_window_size: 20, conversationsDir: "memory/conversations/" },
-	tui: { name: "madz" },
+	tui: { name: "madz", cursorChar: "\u2588", blinkTimeout: 530 },
 	persistence: { mode: "memory", sqlite_path: "memory/checkpoints.db" },
 };

@@ -302,6 +302,8 @@ export default function App({ config, registry, sessionState, dispatchProvider, 
 		!showBanner &&
 			React.createElement(InputPanel, {
 				inputText: inputText,
+				blinkTimeout: config?.tui?.blinkTimeout ?? 530,
+				cursorChar: config?.tui?.cursorChar ?? "\u2588",
 			}),
 		!showBanner && React.createElement(Text, { key: "exit-newline" }, EXIT_MESSAGE),
 	);
