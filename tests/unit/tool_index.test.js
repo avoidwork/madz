@@ -17,6 +17,7 @@ describe("tools - buildToolConfig", () => {
 			"clarify",
 			"skills_list",
 			"skill_view",
+			"hello_world",
 		];
 		for (const tool of expectedTools) {
 			assert.ok(TOOL_PERMISSIONS[tool], `Expected TOOL_PERMISSIONS to have ${tool}`);
@@ -47,13 +48,14 @@ describe("tools - buildToolConfig", () => {
 });
 
 describe("tools - buildToolConfig", () => {
-	it("returns only clarify and execute_code with empty permissions", async () => {
+	it("returns only clarify, execute_code and hello_world with empty permissions", async () => {
 		const { buildToolConfig } = await import("../../src/tools/index.js");
 		const tools = await buildToolConfig({ permissions: [], maxReadSize: "1mb" });
 		const toolNames = tools.map((t) => t.name);
-		assert.strictEqual(toolNames.length, 2);
+		assert.strictEqual(toolNames.length, 3);
 		assert.ok(toolNames.includes("clarify"));
 		assert.ok(toolNames.includes("execute_code"));
+		assert.ok(toolNames.includes("hello_world"));
 	});
 
 	it("returns clarify + filesystem tools when filesystem:read and filesystem:write enabled", async () => {
@@ -130,8 +132,9 @@ describe("tools - buildToolConfig", () => {
 			maxReadSize: "2mb",
 		});
 		const toolNames = tools.map((t) => t.name);
-		assert.strictEqual(toolNames.length, 2);
+		assert.strictEqual(toolNames.length, 3);
 		assert.ok(toolNames.includes("clarify"));
 		assert.ok(toolNames.includes("execute_code"));
+		assert.ok(toolNames.includes("hello_world"));
 	});
 });
