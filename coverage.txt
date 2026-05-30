@@ -62,3 +62,23 @@
 ℹ all files              |  98.17 |    88.31 |   85.03 | 
 ℹ ---------------------------------------------------------------------------------------------------------------------
 ℹ end of coverage report
+
+✖ failing tests:
+
+test at tests/unit/react_agent_checkpoint.test.js:116:2
+✖ passes configurable to streamEvents when config provided (0.327687ms)
+  Error: No response from agent — the LLM did not produce any output
+      at callReactAgentStreaming (file:///home/jason/Projects/madz/src/agent/react.js:198:8)
+      at async TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/react_agent_checkpoint.test.js:130:3)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Promise.all (index 0)
+      at async Suite.run (node:internal/test_runner/test:1619:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7)
+
+test at tests/unit/react_agent_checkpoint.test.js:142:2
+✖ passes no configurable in streaming when config is null (0.148119ms)
+  Error: No response from agent — the LLM did not produce any output
+      at callReactAgentStreaming (file:///home/jason/Projects/madz/src/agent/react.js:198:8)
+      at async TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/react_agent_checkpoint.test.js:156:18)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7)

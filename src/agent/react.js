@@ -150,50 +150,50 @@ async function callReactAgentStreaming(agent, initMessages, originalMessage, con
 	// Collect *all* events from `stream` directly (not `stream.messages`).
 	// Tool events → `method: "tools"`, chat model chunks via `method:
 	// "messages"` with `data.event`.  Iterating `stream` avoids the
-	// ChatModelStream.text blocking bug where ReplayBuffer.iterate()
-	// waits forever when an AI message has only tool calls.
+	// ReplayBuffer blocking bug where ChatModelStream.text waits forever
+	// when an AI message contains only tool calls.
 	for await (const event of stream) {
+		// Skip events we can't handle — they won't contain tool or text data.
 		if (!event || !event.params || !event.params.data) continue;
 
-		if (event.method === "tools") {
+		const methodName = event.method || "<unknown>";
+		const eventKey =
+			event.params.data.event ||
+			event.params.data.node ||
+			event.params.data.graph_name ||
+			"<plain>";
+
+		// DEBUG: log every event for diagnosing streaming issues
+		// oxlint-disable-next-line no-console
+		console.debug("[stream] method=%s event=%s", methodName, eventKey);
+
+		if (methodName === "tools") {
 			try {
 				emitToolEvent(event, callback);
 			} catch (_err) {
-				// Callback error — don't break
+				/* callback error — don't break */
 			}
 			continue;
 		}
 
-		if (event.method === "messages") {
+		if (methodName === "messages") {
 			const { data } = event.params;
-			if (data.event === "content-block-delta") {
-				const textDelta = data.delta?.text || "";
-				if (textDelta) {
-					const accumulated = fullContent + textDelta;
-					fullContent = accumulated;
-					const trimmed = accumulated.trim();
-					if (trimmed) {
-						callback({ type: "text", text: trimmed });
-					}
-				}
+			if (data.event !== "content-block-delta") continue;
+			const textDelta = data.delta?.text || "";
+			if (!textDelta) continue;
+			fullContent += textDelta;
+			const trimmed = fullContent.trim();
+			if (trimmed) {
+				callback({ type: "text", text: trimmed });
 			}
 			continue;
 		}
-	}
-
-	// If no text was captured from streaming, fall back to the
-	// non-streaming invoke which will wait for the full agent run
-	// (including tool execution) and return the complete response.
-	if (!fullContent && agent.invoke) {
-		const result = agent.invoke({ messages: initMessages, ...streamOptions });
-		fullContent = extractContent(result, "").content;
-	}
-
-	if (fullContent) {
-		return { content: fullContent };
 	}
 
 	// Nothing captured from agent — surface a clear error instead of
 	// silently echoing the user's message.
+	if (fullContent) {
+		return { content: fullContent };
+	}
 	throw new Error("No response from agent — the LLM did not produce any output");
 }
