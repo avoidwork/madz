@@ -77,42 +77,53 @@ function emitToolEvent(event, callback) {
 	const { data } = event.params;
 	if (!data || typeof data !== "object") return;
 
-	// Normalize tool event names for different LangGraph versions
+	// Normalize tool event names — protocol v3 uses hyphenated names
+	// while internal handlers use "on_tool_*" prefixes.
 	const eventName = data.event || data.langgraph_event || "";
 
-	if (eventName === "on_tool_start" || eventName === "tool_called") {
+	if (
+		eventName === "tool-started" ||
+		eventName === "on_tool_start" ||
+		eventName === "tool_called"
+	) {
 		callback({
 			type: "tool_start",
-			toolName: data.name || data.tool_name || data.tool || "",
-			toolCallId: data.toolCallId || data.tool_call_id,
+			toolName: data.tool_name || data.name || data.tool || "",
+			toolCallId: data.tool_call_id || data.toolCallId || "",
 		});
 	} else if (
+		eventName === "tool-output-delta" ||
 		eventName === "on_tool_event" ||
 		eventName === "partial_result" ||
 		eventName === "tool_output"
 	) {
 		callback({
 			type: "tool_event",
-			toolCallId: data.toolCallId || data.tool_call_id,
-			data: data.data ?? data.output,
+			toolCallId: data.tool_call_id || data.toolCallId || "",
+			data: data.delta ?? data.data ?? data.output,
 		});
-	} else if (eventName === "on_tool_end" || eventName === "tool_finished") {
+	} else if (
+		eventName === "tool-finished" ||
+		eventName === "on_tool_end" ||
+		eventName === "tool_finished"
+	) {
 		callback({
 			type: "tool_end",
-			toolName: data.name || data.tool_name || data.tool || "",
-			toolCallId: data.toolCallId || data.tool_call_id,
+			toolName: data.tool_name || data.name || data.tool || "",
+			toolCallId: data.tool_call_id || data.toolCallId || "",
 			data: data.output ?? data.data,
 		});
 	} else if (
+		eventName === "tool-error" ||
 		eventName === "on_tool_error" ||
 		eventName === "tool_error" ||
 		eventName === "partial_error"
 	) {
-		const errMsg = data.error || data.message || "Unknown error";
+		const errMsg = data.message || data.error || "Unknown error";
 		callback({
 			type: "tool_error",
-			toolName: data.name || data.tool_name || data.tool || "",
-			toolCallId: data.toolCallId || data.tool_call_id,
+			toolName: data.tool_name || data.name || data.tool || "",
+			toolCallId: data.tool_call_id || data.toolCallId || "",
 			error: String(errMsg),
 		});
 	}

@@ -267,15 +267,17 @@ describe("callReactAgent streaming", () => {
 			{ method: "updates", params: { data: { node: "agent" } } },
 			{
 				method: "tools",
-				params: { data: { event: "tool_called", name: "read_file", toolCallId: "abc-123" } },
+				params: {
+					data: { event: "tool-started", tool_name: "read_file", tool_call_id: "abc-123" },
+				},
 			},
 			{
 				method: "tools",
 				params: {
 					data: {
-						event: "tool_finished",
-						name: "read_file",
-						toolCallId: "abc-123",
+						event: "tool-finished",
+						tool_name: "read_file",
+						tool_call_id: "abc-123",
 						output: "file contents",
 					},
 				},
@@ -284,9 +286,9 @@ describe("callReactAgent streaming", () => {
 				method: "tools",
 				params: {
 					data: {
-						event: "partial_error",
-						name: "write_file",
-						toolCallId: "xyz-456",
+						event: "tool-error",
+						tool_name: "write_file",
+						tool_call_id: "xyz-456",
 						message: "permission denied",
 					},
 				},
@@ -366,7 +368,7 @@ describe("callReactAgent streaming", () => {
 		const events = [
 			{
 				method: "tools",
-				params: { data: { event: "partial_result", toolCallId: "1", output: "step 1 done" } },
+				params: { data: { event: "tool-output-delta", tool_call_id: "1", delta: "step 1 done" } },
 			},
 		];
 
@@ -407,7 +409,7 @@ describe("callReactAgent streaming", () => {
 		const events = [
 			{
 				method: "tools",
-				params: { data: { event: "tool_called", name: "search", toolCallId: "1" } },
+				params: { data: { event: "tool-started", tool_name: "search", tool_call_id: "1" } },
 			},
 		];
 		const agentMock = createMock(createStream(events));
@@ -434,15 +436,17 @@ describe("callReactAgent streaming", () => {
 		const events = [
 			{
 				method: "tools",
-				params: { data: { event: "tool_called", name: "web_search", toolCallId: "tool-1" } },
+				params: {
+					data: { event: "tool-started", tool_name: "web_search", tool_call_id: "tool-1" },
+				},
 			},
 			{
 				method: "tools",
 				params: {
 					data: {
-						event: "tool_finished",
-						name: "web_search",
-						toolCallId: "tool-1",
+						event: "tool-finished",
+						tool_name: "web_search",
+						tool_call_id: "tool-1",
 						output: "result",
 					},
 				},
