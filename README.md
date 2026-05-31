@@ -170,7 +170,6 @@ node index.js "Summarize memory/_index.md" --json
 
 | Key       | Action                         |
 |-----------|--------------------------------|
-| `Tab`     | Switch tabs (conversation → memory → skills → settings) |
 | `↑/↓`     | Scroll conversation history    |
 | `:help`   | Show available commands        |
 | `:config set <key> <value>` | Mutate config at runtime |
