@@ -4,6 +4,7 @@
 
 `madz` is a terminal-native AI companion — helpful by design, delivered with precision, quiet intensity, and elegant flair. Drawn from Mads Mikkelsen's most iconic roles, it's an assistant that solves problems with style, remembers your context, safely runs your skills, and automates the mundane so you can focus on what matters.
 
+[![Status: Beta](https://img.shields.io/badge/status-beta-orange.svg)](#)
 [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD--3--Clause-blue.svg)](LICENSE)
 [![Node.js >= 20](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](https://nodejs.org)
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen)](tests/)

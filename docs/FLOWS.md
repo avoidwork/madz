@@ -4,21 +4,29 @@ Call chains and data flows for all primary code paths in the project, excluding 
 
 ## Table of Contents
 
-| # | Section | # | Section |
-|---|---------|---|---------|
-| 1 | [Application Startup](#1-application-startup) | 12 | [File Tool Execution Flow](#12-file-tool-execution-flow) |
-| 2 | [Config Loading](#2-config-loading) | 13 | [Terminal Tool Execution Flow](#13-terminal-tool-execution-flow) |
-| 3 | [Telemetry Initialization](#3-telemetry-initialization) | 14 | [Web Tool Execution Flow](#14-web-tool-execution-flow) |
-| 4 | [Skill Registry Discovery & Validation](#4-skill-registry-discovery--validation) | 15 | [Sandbox Skill Execution](#15-sandbox-skill-execution) |
-| 5 | [Tool Configuration Building](#5-tool-configuration-building) | 16 | [Memory Persistence Flow](#16-memory-persistence-flow) |
-| 6 | [Agent Creation](#6-agent-creation) | 17 | [Context Loading](#17-context-loading) |
-| 7 | [Session Creation](#7-session-creation) | 18 | [Schedule Manager Lifecycle](#18-schedule-manager-lifecycle) |
-| 8 | [Chat Flow (CLI Chat Mode)](#8-chat-flow-cli-chat-mode) | 19 | [Memory Retention Cleanup](#19-memory-retention-cleanup) |
-| 9 | [Chat Model Creation](#9-chat-model-creation) | 20 | [Shutdown Flow](#20-shutdown-flow) |
-| 10 | [Agent ReAct Streaming](#10-agent-react-streaming) | 21 | [File Dependencies](#21-file-dependencies) |
-| 11 | [Tool Permission Enforcement](#11-tool-permission-enforcement) | | |
+- [Application Startup](#application-startup)
+- [Config Loading](#config-loading)
+- [Telemetry Initialization](#telemetry-initialization)
+- [Skill Registry Discovery & Validation](#skill-registry-discovery--validation)
+- [Tool Configuration Building](#tool-configuration-building)
+- [Agent Creation](#agent-creation)
+- [Session Creation](#session-creation)
+- [Chat Flow (CLI Chat Mode)](#chat-flow-cli-chat-mode)
+- [Chat Model Creation](#chat-model-creation)
+- [Agent ReAct Streaming](#agent-react-streaming)
+- [Tool Permission Enforcement](#tool-permission-enforcement)
+- [File Tool Execution Flow](#file-tool-execution-flow)
+- [Terminal Tool Execution Flow](#terminal-tool-execution-flow)
+- [Web Tool Execution Flow](#web-tool-execution-flow)
+- [Sandbox Skill Execution](#sandbox-skill-execution)
+- [Memory Persistence Flow](#memory-persistence-flow)
+- [Context Loading](#context-loading)
+- [Schedule Manager Lifecycle](#schedule-manager-lifecycle)
+- [Memory Retention Cleanup](#memory-retention-cleanup)
+- [Shutdown Flow](#shutdown-flow)
+- [File Dependencies](#file-dependencies)
 
-## 1. Application Startup
+## Application Startup
 
 **Entry:** `index.js`
 
@@ -26,27 +34,27 @@ Call chains and data flows for all primary code paths in the project, excluding 
 index.js (main)
 ├── import { loadConfig } from "./src/config/loader.js"
 ├── config = loadConfig()
-│   └── [see Flow 2]
+│   └── [see Config Loading]
 ├── if config.telemetry.enabled:
 │   ├── initTelemetry(config.telemetry)
 │   ├── tracer = getTracer()
 │   └── shutdownFn = shutdownTelemetry
 ├── registry = new SkillRegistry()
 ├── registry.discover("skills/")
-│   └── [see Flow 4]
+│   └── [see Skill Registry Discovery & Validation]
 ├── { writeMemoryFile, readMemoryFile, loadContext, cleanRetainedMemory, enforceMaxEntries }
 │   └── from "./src/memory/index.js"
 ├── { createSession, SessionStateManager, saveSession, handleShutdown, registerShutdownHandler }
 │   └── from "./src/session/index.js"
 ├── scheduleManager = new ScheduleManager(config.schedules.maxConcurrent)
 ├── scheduleManager.register(config.schedules.entries)
-│   └── [see Flow 18]
+│   └── [see Schedule Manager Lifecycle]
 ├── providerName = Object.keys(config.providers)[0] || "openai"
 ├── { sessionId, state: initialState } = createSession({
 │   │   provider: providerName,
 │   │   contextWindow: config.session.context_window_size,
 │   │   })
-│   └── [see Flow 7]
+│   └── [see Session Creation]
 ├── sessionState = new SessionStateManager(initialState)
 ├── { loadSystemPrompt } = import("./src/memory/prompts.js")
 ├── systemPrompt = loadSystemPrompt()
@@ -56,13 +64,13 @@ index.js (main)
 │   │   permissions, allowedPaths, maxReadSize, registry,
 │   │   conversationsDir, safety, timeout, memoryLimit,
 │   │   })
-│   └── [see Flow 5]
+│   └── [see Tool Configuration Building]
 ├── model = createChatModel(providerConfig)
-│   └── [see Flow 9]
+│   └── [see Chat Model Creation]
 ├── { createCheckpointer } = import("./src/session/checkpointer.js")
 ├── checkpointer = createCheckpointer(config.persistence)
 ├── agent = createReactAgent(model, tools, checkpointer)
-│   └── [see Flow 8]
+│   └── [see Chat Flow (CLI Chat Mode)]
 ├── sessionConfig = { configurable: { thread_id: sessionId } }
 ├── registerShutdownHandler(async () => {
 │   ├── saveSession()
@@ -76,7 +84,7 @@ index.js (main)
 │   ├── if mode === "chat":
 │   │   ├── message = first non-flag argv arg
 │   │   └── handleConversation(message)
-│   │       └── [see Flow 8]
+│   │       └── [see Chat Flow (CLI Chat Mode)]
 │   └── else (interactive):
 │       ├── { render } = import("ink")
 │       ├── App = import("./src/tui/app.js").default
@@ -88,7 +96,7 @@ index.js (main)
             cleanRetainedMemory
 ```
 
-## 2. Config Loading
+## Config Loading
 
 **Entry:** `src/config/loader.js` → `loadConfig()`
 
@@ -128,7 +136,7 @@ setConfigValue(config, dotPath, valueStr)
 └── return true
 ```
 
-## 3. Telemetry Initialization
+## Telemetry Initialization
 
 **Entry:** `src/telemetry/provider.js` → `initTelemetry(), getTracer(), shutdownTelemetry()`
 
@@ -153,7 +161,7 @@ shutdownTelemetry()
 └── SDK.shutdown() -- gracefully flushes pending spans
 ```
 
-## 4. Skill Registry Discovery & Validation
+## Skill Registry Discovery & Validation
 
 **Entry:** `index.js` → `registry.discover("skills/")`
 
@@ -185,7 +193,7 @@ registry.discover(skillsDir = "skills/")
 └── return results: [{ name, errors[] }] for each discovered skill
 ```
 
-## 5. Tool Configuration Building
+## Tool Configuration Building
 
 **Entry:** `index.js` → `buildToolConfig(options)`
 
@@ -211,13 +219,14 @@ buildToolConfig({ permissions, allowedPaths, maxReadSize, registry, safety, time
 ### Tool Factory Pattern
 
 Each tool file exports three things:
+
 1. **Core impl function** (e.g., `readFileImpl(input, options)`)
 2. **Tool definition** (`tool(impl, { name, description, schema })`)
 3. **Factory function** (e.g., `createReadFileTool(options)`)
 
 The factory closes over runtime options, creating a LangChain `tool()` instance where each invocation calls the impl with those options.
 
-## 6. Agent Creation
+## Agent Creation
 
 **Entry:** `index.js` → `createReactAgent(model, tools, checkpointer)`
 
@@ -227,7 +236,7 @@ createReactAgent(model, tools, checkpointer)
     └── Returns compiled LangGraph ReAct agent
 ```
 
-## 7. Session Creation
+## Session Creation
 
 **Entry:** `index.js` → `createSession({ provider, contextWindow })`
 
@@ -260,7 +269,7 @@ sessionState = new SessionStateManager(initialState)
 └── getState() → shallow copy of { ...state, conversation[], skills[] }
 ```
 
-## 8. Chat Flow (CLI Chat Mode)
+## Chat Flow (CLI Chat Mode)
 
 **Entry:** `index.js` → `handleConversation(message)` (non-streaming)
 
@@ -284,11 +293,11 @@ handleConversation(message)
 │   │   { provider: response.provider, sessionId },
 │   │   JSON.stringify(sessionState.getConversation(), null, 2)
 │   │   )
-│   └── [see Flow 16]
+│   └── [see Memory Persistence Flow]
 └── return response
 ```
 
-## 9. Chat Model Creation
+## Chat Model Creation
 
 **Entry:** `src/provider/openai.js` → `createChatModel(config)`
 
@@ -304,7 +313,7 @@ createChatModel(config)
     })
 ```
 
-## 10. Agent ReAct Streaming
+## Agent ReAct Streaming
 
 **Entry:** `src/agent/react.js` → `callReactAgent(..., streamingCallback)`
 
@@ -335,7 +344,7 @@ callReactAgent(agent, message, config, systemPrompt, callback)
     └── return { content: originalMessage } -- fallback
 ```
 
-## 11. Tool Permission Enforcement
+## Tool Permission Enforcement
 
 **Entry:** `src/tools/index.js` → `buildToolConfig()`
 
@@ -368,7 +377,7 @@ hasSearchKey()
 )
 ```
 
-## 12. File Tool Execution Flow
+## File Tool Execution Flow
 
 **Entry:** `src/tools/filesystem.js`
 
@@ -407,7 +416,7 @@ search_files:
     └── walk() → readdir → stat → readFile → regex test line by line
 ```
 
-## 13. Terminal Tool Execution Flow
+## Terminal Tool Execution Flow
 
 **Entry:** `src/tools/terminal.js`
 
@@ -442,7 +451,7 @@ process tool:
     └── resume → entry.child.kill("SIGCONT")
 ```
 
-## 14. Web Tool Execution Flow
+## Web Tool Execution Flow
 
 **Entry:** `src/tools/web.js`
 
@@ -464,7 +473,7 @@ Multi-engine search backends (web_search):
 └── CUSTOM_SEARCH_URL → custom endpoint
 ```
 
-## 15. Sandbox Skill Execution
+## Sandbox Skill Execution
 
 **Entry:** `index.js` → `invokeSkill(skillName, input = {})`
 
@@ -499,7 +508,7 @@ runScheduledSkill(schedule, sandbox, sessionState)
 └── return { stdout, stderr, exitCode }
 ```
 
-## 16. Memory Persistence Flow
+## Memory Persistence Flow
 
 **Entry:** `src/memory/writer.js` → `writeMemoryFile(directory, title, frontmatter, body)`
 
@@ -538,7 +547,7 @@ readMemoryFile(filepath)
 └── return { frontmatter, content, path }
 ```
 
-## 17. Context Loading
+## Context Loading
 
 **Entry:** `src/memory/context.js` → `loadContext(contextDir, limit = 10)`
 
@@ -551,10 +560,10 @@ loadContext("memory/context/", limit)
 │   └── { filepath, frontmatter, body, timestamp: frontmatter.timestamp }
 ├── sort by timestamp (descending, localeCompare)
 ├── recent = sorted.slice(0, limit)
-└── recent.map(entry → `\\n[Context: ${title}]\\n${body.trim()}`).join("\\n")
+└── recent.map(entry → `\n[Context: ${title}]\n${body.trim()}`).join("\n")
 ```
 
-## 18. Schedule Manager Lifecycle
+## Schedule Manager Lifecycle
 
 **Entry:** `src/scheduler/scheduler.js` → `ScheduleManager`
 
@@ -585,7 +594,7 @@ scheduleManager.runNow(name, scheduler)
 ├── if !entry → { error: "Unknown" }
 ├── if entry.paused → { error: "paused" }
 ├── result = await runScheduledSkill(entry, scheduler.sandbox, scheduler.state)
-│   └── [see Flow 15]
+│   └── [see Sandbox Skill Execution]
 ├── logScheduleResult({ scheduleName, cron, startTime, endTime, exitCode, stdout, stderr })
 │   └── writes markdown file to memory/schedules/
 └── entry.lastRun = endTime; return result
@@ -619,7 +628,7 @@ scheduleManager.stop()
 └── #queue.dequeue() → auto-executes tasks up to maxConcurrent
 ```
 
-## 19. Memory Retention Cleanup
+## Memory Retention Cleanup
 
 **Entry:** `src/memory/retention.js` → `cleanRetainedMemory(), enforceMaxEntries()`
 
@@ -638,7 +647,7 @@ enforceMaxEntries("memory/", maxEntries = 1000)
 └── return removed
 ```
 
-## 20. Shutdown Flow
+## Shutdown Flow
 
 **Entry:** `src/session/shutdown.js` → `handleShutdown()` + `registerShutdownHandler()`
 
@@ -651,19 +660,19 @@ registerShutdownHandler(cleanupFn)
 # At exit (onExit from ink or SIGTERM):
 saveSession(conversationsDir, conversation)
 ├── writeMemoryFile(conversationsDir, "Session", metadata, JSON.stringify(conversation))
-└── [see Flow 16]
+└── [see Memory Persistence Flow]
 
 cleanRetainedMemory(config.memory.directory, config.memory.retention.days)
-└── [see Flow 19]
+└── [see Memory Retention Cleanup]
 
 enforceMaxEntries(config.memory.directory, config.memory.retention.maxEntries)
-└── [see Flow 19]
+└── [see Memory Retention Cleanup]
 
 shutdownTelemetry()
-└── [see Flow 3]
+└── [see Telemetry Initialization]
 ```
 
-## 21. File Dependencies
+## File Dependencies
 
 ```
 index.js
