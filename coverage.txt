@@ -67,7 +67,7 @@
 ✖ failing tests:
 
 test at tests/unit/prompts.test.js:13:2
-✖ returns the system prompt content (1.234623ms)
+✖ returns the system prompt content (1.23298ms)
   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
   + actual - expected
   
@@ -93,7 +93,7 @@ test at tests/unit/prompts.test.js:13:2
   }
 
 test at tests/unit/prompts.test.js:21:2
-✖ strips frontmatter from system prompt (0.257084ms)
+✖ strips frontmatter from system prompt (0.261723ms)
   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
   + actual - expected
   
@@ -118,7 +118,7 @@ test at tests/unit/prompts.test.js:21:2
   }
 
 test at tests/unit/prompts.test.js:50:2
-✖ handles truncated frontmatter (0.150964ms)
+✖ handles truncated frontmatter (0.152116ms)
   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
   + actual - expected
   

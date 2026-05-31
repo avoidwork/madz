@@ -2,6 +2,18 @@
 
 Call chains and component interactions for all primary code paths in the terminal UI.
 
+## Table of Contents
+
+| # | Section | # | Section |
+|---|---------|---|---------|
+| 1 | [Application Lifecycle](#1-application-lifecycle) | 8 | [Input Panel](#8-input-panel) |
+| 2 | [Banner Dismissal](#2-banner-dismissal) | 9 | [Markdown Rendering](#9-markdown-rendering) |
+| 3 | [Chat Message Flow (Streaming)](#3-chat-message-flow-streaming) | 10 | [Scroll Input](#10-scroll-input) |
+| 4 | [Command Parsing Flow](#4-command-parsing-flow) | 11 | [Auto-Scroll](#11-auto-scroll) |
+| 5 | [Keyboard Input (useInput, app.js:282)](#5-keyboard-input-useinput-appjs282) | 12 | [Status Bar](#12-status-bar) |
+| 6 | [Conversation Panel Render](#6-conversation-panel-render) | 13 | [Error Handling](#13-error-handling) |
+| 7 | [Panel Navigation (Tab Cycles)](#7-panel-navigation-tab-cycles) | 14 | [File Dependencies](#14-file-dependencies) |
+
 ## 1. Application Lifecycle
 
 **Entry:** `src/tui/index.js` → `export { default as App } from "./app.js"`
