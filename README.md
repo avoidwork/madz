@@ -72,6 +72,12 @@ Bundled LangChain tools gated by sandbox permissions:
 | **Search** | `session_search` — query past conversations by keyword, ID, or browse |
 | **Clarification** | `clarify` — sends clarification questions to the user |
 | **Skills** | `skills_list` — lists discovered skills; `skill_view` — views skill metadata and SKILL.md |
+| **Code** | `code` — code execution and analysis |
+| **Web** | `web` — web request utilities |
+| **Media** | `image` — image processing; `vision` — vision/language analysis; `tts` — text-to-speech |
+| **Agents** | `moa` — multi-agent orchestration |
+| **Cron** | `cron` — cron job utilities |
+| **Utility** | `hello` — basic utility tool |
 
 ### Skills Registry
 
@@ -164,7 +170,6 @@ node index.js "Summarize memory/_index.md" --json
 
 | Key       | Action                         |
 |-----------|--------------------------------|
-| `Tab`     | Switch tabs (conversation → memory → skills → settings) |
 | `↑/↓`     | Scroll conversation history    |
 | `:help`   | Show available commands        |
 | `:config set <key> <value>` | Mutate config at runtime |
@@ -194,10 +199,6 @@ node index.js "Summarize memory/_index.md" --json
 │   ├── unit/                   # Unit tests per module
 │   └── integration/            # End-to-end flow tests
 └── memory/                     # Persistent markdown storage
-    ├── conversations/
-    ├── context/
-    ├── tools/
-    └── schedules/
 ```
 
 ## Config Reference
@@ -207,14 +208,27 @@ node index.js "Summarize memory/_index.md" --json
 | `providers`    | `openai.model`        | `gpt-4o`           | Model name                            |
 |                | `openai.temperature`  | `0.7`              | Sampling temperature                  |
 |                | `openai.maxTokens`    | `4096`             | Max output tokens                     |
-| `sandbox`      | `scope`               | `["memory/", "tmp/"]` | Allowed filesystem paths           |
+| `inference`    | `temperature`         | `0.7`              | Inference-level sampling temperature  |
+|                | `maxTokens`           | `4096`             | Max output tokens for inference       |
+| `sandbox`      | `paths`               | `["memory/", "skills/", "tmp/"]` | Allowed filesystem paths           |
 |                | `timeout.seconds`     | `30`               | Max execution time                    |
+|                | `timeout.gracePeriod` | `5`                | Kill grace period in seconds          |
 |                | `memoryLimit`         | `"512m"`           | Heap limit via `--max-old-space-size` |
 | `telemetry`    | `enabled`             | `false`            | Enable OpenTelemetry export           |
 |                | `exporter.protocol`   | `console`          | `console`, `http`, or `grpc`          |
+|                | `exporter.endpoint`   | `http://localhost:4318` | Telemetry endpoint URL             |
+|                | `exporter.batch.maxSize` | `512`           | Max batch size before flush           |
 |                | `sampling.ratio`      | `0.1`              | Trace probability                     |
+|                | `redact.paths`        | `credentials.apiKey` | Sensitive field paths for redaction |
+| `memory`       | `directory`           | `memory/`          | Base directory for persistence        |
+|                | `indexFile`           | `memory/_index.md` | Master index file                     |
+|                | `retention.days`      | `90`               | Purge entries older than N days       |
 | `schedules`    | `maxConcurrent`       | `1`                | Max parallel scheduled runs           |
 | `session`      | `context_window_size` | `20`               | Exchange count before trimming        |
+| `tui`          | `name`                | `madz`             | TUI identifier shown in banner        |
+|                | `cursorChar`          | `█`                | Cursor character                      |
+| `persistence`  | `mode`                | `memory`           | Storage backend (`memory`, `sqlite`)  |
+|                | `sqlite_path`         | `memory/checkpoints.db` | SQLite checkpointer file path    |
 
 ## Testing
 

@@ -65,19 +65,7 @@ telemetry:
       - request.headers.x-api-key
 schedules:
   maxConcurrent: 1
-  entries:
-    - name: daily-host-report
-      cron: 0 9 * * *
-      skill: host-info
-      input: {}
-      contextFile: ''
-    - name: weekly-api-check
-      cron: 0 6 * * 1
-      skill: api-request
-      input:
-        url: https://api.example.com/health
-        method: GET
-      contextFile: memory/context/api-endpoints.md
+  entries: []
 session:
   context_window_size: 20
   conversationsDir: memory/conversations/
