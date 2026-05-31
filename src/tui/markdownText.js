@@ -22,7 +22,7 @@ export function parseMarkdown(markdown) {
  * @param {string} props.content - The markdown string to render
  * @returns {React.ReactNode}
  */
-export function MarkdownText({ content }) {
+export function MarkdownTextInner({ content }) {
 	if (content === null || content === undefined || content === "") {
 		return null;
 	}
@@ -30,3 +30,8 @@ export function MarkdownText({ content }) {
 	const result = parseMarkdown(text);
 	return React.createElement(Text, { wrap: "hard", color: "white" }, result || "");
 }
+
+/**
+ * Memo-wrapped MarkdownText for rendering in the component tree.
+ */
+export const MarkdownText = React.memo(MarkdownTextInner);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { Box, Text } from "ink";
 
 /**
@@ -28,41 +28,19 @@ export function renderBlink(text, char, frame) {
 }
 
 /**
- * Blinking cursor component.
- * Toggles visibility at the given interval using internal state.
- * Uses a zero-width space when invisible so layout height stays constant.
+ * Input cursor component. Renders a static cursor to avoid periodic re-renders.
  * @param {Object} props
  * @param {string} props.text - Input text to render
  * @param {string} props.char - Cursor character
- * @param {number} props.ms - Blink interval in ms
- * @param {number} [props._testFrame] - Override frame count for unit testing
+ * @param {number} [props._testFrame] - Ignored (static cursor, no anim)
  * @returns {React.ReactElement}
  */
-export function Blink({ text = "", char = "\u2588", ms = 530, _testFrame }) {
-	if (_testFrame !== undefined) {
-		return React.createElement(
-			Box,
-			{ flexDirection: "row" },
-			React.createElement(Text, { key: "text", flexGrow: 1 }, text || ""),
-			React.createElement(
-				Text,
-				{ key: "cursor", bold: true },
-				getBlinkState(_testFrame) ? char : "\u200B",
-			),
-		);
-	}
-
-	const [visible, setVisible] = useState(true);
-	useEffect(() => {
-		const timer = setInterval(() => setVisible((prev) => !prev), ms);
-		return () => clearInterval(timer);
-	}, [ms]);
-
+export function Blink({ text = "", char = "\u2588", _testFrame }) {
 	return React.createElement(
 		Box,
 		{ flexDirection: "row" },
 		React.createElement(Text, { key: "text", flexGrow: 1 }, text || ""),
-		React.createElement(Text, { key: "cursor", bold: true }, visible ? char : "\u200B"),
+		React.createElement(Text, { key: "cursor", bold: true }, char || "\u2588"),
 	);
 }
 

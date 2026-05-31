@@ -28,13 +28,17 @@ export function formatTime(date) {
  * @returns {{ label: string, content: string }}
  */
 export function getRoleColors(role) {
-	if (role === "user") {
-		return { label: "green", content: "white" };
+	const cache = getRoleColors._cache || (getRoleColors._cache = new Map());
+	if (!cache.has(role)) {
+		if (role === "user") {
+			cache.set(role, { label: "green", content: "white" });
+		} else if (role === "system") {
+			cache.set(role, { label: "yellow", content: "yellow" });
+		} else {
+			cache.set(role, { label: "cyan", content: "white" });
+		}
 	}
-	if (role === "system") {
-		return { label: "yellow", content: "yellow" };
-	}
-	return { label: "cyan", content: "white" };
+	return cache.get(role);
 }
 
 /**
@@ -43,18 +47,148 @@ export function getRoleColors(role) {
  * @returns {{ alignment: "flex-start" | "flex-end", border: string }}
  */
 export function getBubbleStyle(role) {
-	if (role === "user") {
-		return { alignment: "flex-end", border: "green" };
+	const cache = getBubbleStyle._cache || (getBubbleStyle._cache = new Map());
+	if (!cache.has(role)) {
+		if (role === "user") {
+			cache.set(role, { alignment: "flex-end", border: "green" });
+		} else if (role === "system") {
+			cache.set(role, { alignment: "flex-start", border: "yellow" });
+		} else {
+			cache.set(role, { alignment: "flex-start", border: "cyan" });
+		}
 	}
-	if (role === "system") {
-		return { alignment: "flex-start", border: "yellow" };
-	}
-	return { alignment: "flex-start", border: "cyan" };
+	return cache.get(role);
 }
+
+/**
+ * Memoized message bubble component.
+ * Skips re-render when display-relevant message fields haven't changed.
+ * Compares: role, content, time, reasoningContent, streaming,
+ * activeToolCall, toolCallDisplay, and timestamp (appInfo).
+ * @param {object} props
+ * @param {Message} props.msg - The message data object
+ * @param {string} props.assistantName - Name to display for assistant
+ * @returns {React.ReactElement}
+ */
+const MessageBubble = React.memo(
+	function MessageBubble({ msg, assistantName }) {
+		const time = msg.time || formatTime(new Date());
+		const colors = getRoleColors(msg.role);
+		const bubble = getBubbleStyle(msg.role);
+
+		const content = msg.content || "";
+		const hasReasoning = msg.role === "assistant" && msg.reasoningContent;
+		const hasActiveToolCall = msg.role === "assistant" && msg.activeToolCall;
+		const hasToolCallDisplay = msg.role === "assistant" && msg.toolCallDisplay;
+
+		const reasoningEl = hasReasoning
+			? React.createElement(
+					Box,
+					{ flexDirection: "row", marginTop: 1, marginLeft: 2 },
+					React.createElement(
+						Text,
+						{ dim: true, color: "gray" },
+						`(thinking) ` +
+							(msg.reasoningContent || "").slice(0, 200) +
+							(msg.reasoningContent && msg.reasoningContent.length > 200
+								? "\u00b7\u00b7\u00b7"
+								: ""),
+					),
+				)
+			: null;
+
+		const toolCallEl = hasActiveToolCall
+			? React.createElement(
+					Box,
+					{ flexDirection: "row", marginTop: 1, marginLeft: 2 },
+					React.createElement(
+						Text,
+						{ dim: true, color: "gray" },
+						`- Running: ${msg.activeToolCall.name} \u00b7\u00b7\u00b7`,
+					),
+				)
+			: null;
+
+		const toolDisplayEl = hasToolCallDisplay
+			? React.createElement(
+					Box,
+					{ flexDirection: "column", marginTop: 1, marginLeft: 2 },
+					...msg.toolCallDisplay
+						.split("\n")
+						.map((line, j) =>
+							React.createElement(
+								Text,
+								{ key: "tool-" + j, dim: true, color: "gray" },
+								"  " + line,
+							),
+						),
+				)
+			: null;
+
+		return React.createElement(
+			Box,
+			{
+				key: "msg-" + msg._index,
+				flexDirection: "row",
+				paddingY: 0,
+				justifyContent: bubble.alignment,
+			},
+			React.createElement(
+				Box,
+				{
+					key: "bubble-" + msg._index,
+					flexDirection: "column",
+					paddingX: 1,
+					borderColor: bubble.border,
+					borderStyle: "round",
+					maxWidth: "90%",
+				},
+				React.createElement(
+					Box,
+					{ flexDirection: "row" },
+					React.createElement(Text, { color: "gray" }, "[" + time + "] "),
+					React.createElement(
+						Text,
+						{ color: colors.label, bold: true },
+						getRoleLabel(msg.role, assistantName) + ": ",
+					),
+				),
+				React.createElement(
+					Box,
+					{ flexDirection: "column" },
+					React.createElement(
+						Box,
+						{ flexDirection: "row" },
+						React.createElement(MarkdownText, { content }),
+					),
+					reasoningEl,
+					toolCallEl,
+					toolDisplayEl,
+				),
+			),
+		);
+	},
+	function areEqual(prevProps, nextProps) {
+		const p = prevProps.msg;
+		const n = nextProps.msg;
+		return (
+			p.role === n.role &&
+			p.content === n.content &&
+			p.time === n.time &&
+			p.reasoningContent === n.reasoningContent &&
+			p.streaming === n.streaming &&
+			p.toolCallDisplay === n.toolCallDisplay &&
+			p.activeToolCall === n.activeToolCall &&
+			p._index === n._index &&
+			prevProps.assistantName === nextProps.assistantName
+		);
+	},
+);
 
 /**
  * Render the conversation message loop for a given messages array.
  * Returns React elements for each message bubble.
+ * Uses memoized MessageBubble components to skip re-render of unchanged rows.
  * @param {Array} messages - The messages to render
  * @param {string} assistantName - Name to display for assistant messages
  * @returns {Array} React elements
@@ -64,91 +198,14 @@ export function renderMessages(messages, assistantName) {
 
 	for (let i = 0; i < messages.length; i++) {
 		const msg = messages[i];
-		const time = msg.time || formatTime(new Date());
-		const colors = getRoleColors(msg.role);
-		const bubble = getBubbleStyle(msg.role);
+		const rowKey = "msg-" + i;
 
 		children.push(
-			React.createElement(
-				Box,
-				{
-					key: "msg-" + i,
-					flexDirection: "row",
-					paddingY: 0,
-					justifyContent: bubble.alignment,
-				},
-				React.createElement(
-					Box,
-					{
-						key: "bubble-" + i,
-						flexDirection: "column",
-						paddingX: 1,
-						borderColor: bubble.border,
-						borderStyle: "round",
-						maxWidth: "90%",
-					},
-					React.createElement(
-						Box,
-						{ flexDirection: "row" },
-						React.createElement(Text, { color: "gray" }, "[" + time + "] "),
-						React.createElement(
-							Text,
-							{ color: colors.label, bold: true },
-							getRoleLabel(msg.role, assistantName) + ": ",
-						),
-					),
-					React.createElement(
-						Box,
-						{ flexDirection: "column" },
-						React.createElement(
-							Box,
-							{ flexDirection: "row" },
-							React.createElement(MarkdownText, { content: msg.content || "" }),
-						),
-						msg.role === "assistant" && msg.reasoningContent
-							? React.createElement(
-									Box,
-									{ flexDirection: "row", marginTop: 1, marginLeft: 2 },
-									React.createElement(
-										Text,
-										{ dim: true, color: "gray" },
-										`(thinking) ` +
-											(msg.reasoningContent || "").slice(0, 200) +
-											(msg.reasoningContent && msg.reasoningContent.length > 200
-												? "\u00b7\u00b7\u00b7"
-												: ""),
-									),
-								)
-							: null,
-						msg.role === "assistant" && msg.activeToolCall
-							? React.createElement(
-									Box,
-									{ flexDirection: "row", marginTop: 1, marginLeft: 2 },
-									React.createElement(
-										Text,
-										{ dim: true, color: "gray" },
-										`- Running: ${msg.activeToolCall.name} \u00b7\u00b7\u00b7`,
-									),
-								)
-							: null,
-						msg.role === "assistant" && msg.toolCallDisplay
-							? React.createElement(
-									Box,
-									{ flexDirection: "column", marginTop: 1, marginLeft: 2 },
-									...msg.toolCallDisplay
-										.split("\n")
-										.map((line, j) =>
-											React.createElement(
-												Text,
-												{ key: "tool-" + i + "-" + j, dim: true, color: "gray" },
-												"  " + line,
-											),
-										),
-								)
-							: null,
-					),
-				),
-			),
+			React.createElement(MessageBubble, {
+				key: rowKey,
+				msg: { ...msg, _index: i },
+				assistantName,
+			}),
 		);
 	}
 
@@ -258,6 +315,7 @@ export function executeAutoScroll(scrollRef, messages, previousCount, countRef) 
 export function ConversationPanel({ messages = [], assistantName = "Assistant" }) {
 	const scrollRef = useRef(null);
 	const previousMessageCount = useRef(0);
+	const lastContentHashRef = useRef(0);
 	const { stdout } = useStdout();
 
 	// Handle keyboard scroll input
@@ -273,17 +331,35 @@ export function ConversationPanel({ messages = [], assistantName = "Assistant" }
 		};
 	}, [stdout]);
 
-	// Auto-scroll to bottom when new messages arrive or when streaming content overflows viewport
-	useEffect(() => {
+	// Compute a lightweight content hash to avoid redundant auto-scroll calculations.
+	// Only triggers scroll when message count changes or streaming content overflows.
+	const prevHash = lastContentHashRef.current;
+	lastContentHashRef.current =
+		messages.length +
+		(messages.length > 0 && messages[messages.length - 1].streaming
+			? (messages[messages.length - 1].content || "").length
+			: 0);
+
+	if (prevHash !== lastContentHashRef.current && prevHash > 0) {
 		executeAutoScroll(
 			scrollRef.current,
 			messages,
 			previousMessageCount.current,
 			previousMessageCount,
 		);
-	});
+	} else if (messages.length > 0 && messages[messages.length - 1].streaming) {
+		// Streaming overflow: content grew beyond previously tracked hash
+		const contentH = scrollRef.current?.getContentHeight();
+		const viewportH = scrollRef.current?.getViewportHeight();
+		if (contentH && viewportH && contentH > viewportH) {
+			scrollRef.current.scrollToBottom();
+		}
+	}
 
-	const children = renderMessages(messages, assistantName);
+	const children = React.useMemo(
+		() => renderMessages(messages, assistantName),
+		[messages, assistantName],
+	);
 
 	return React.createElement(
 		Box,
