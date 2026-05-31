@@ -34,8 +34,15 @@ const registry = new SkillRegistry();
 registry.discover("skills/");
 
 // Initialize memory system
-const { writeMemoryFile, readMemoryFile, loadContext, cleanRetainedMemory, enforceMaxEntries } =
-	await import("./src/memory/index.js");
+const {
+	writeMemoryFile,
+	readMemoryFile,
+	loadContext,
+	cleanRetainedMemory,
+	enforceMaxEntries,
+	loadMemories,
+	formatMemoriesForPrompt,
+} = await import("./src/memory/index.js");
 
 // Initialize session
 const { createSession, SessionStateManager, saveSession, handleShutdown, registerShutdownHandler } =
@@ -54,9 +61,13 @@ const { sessionId, state: initialState } = createSession({
 });
 const sessionState = new SessionStateManager(initialState);
 
-// Load system prompt
+// Load system prompt and append memory entries
 const { loadSystemPrompt } = await import("./src/memory/prompts.js");
 const systemPrompt = loadSystemPrompt();
+const memoryEntriesDir = config.memory?.entriesDir || "memory/context/entries/";
+const memoryEntries = await loadMemories(memoryEntriesDir);
+const memoryText = formatMemoriesForPrompt(memoryEntries);
+const fullPrompt = memoryText ? `${systemPrompt}\n\n${memoryText}` : systemPrompt;
 
 // Build agent and tool config at startup (once)
 const providerConfig = config.providers[providerName] || {};
@@ -83,7 +94,7 @@ async function callProvider(_name, _providerConfig, message, streamingCallback) 
 		agent,
 		message,
 		{ ...sessionConfig, configurable: { ...sessionConfig.configurable, isNewThread } },
-		systemPrompt,
+		fullPrompt,
 		streamingCallback,
 	);
 	return { provider: providerName, content: result.content, tokens: { input: 0, output: 0 } };
@@ -209,4 +220,6 @@ export {
 	writeMemoryFile,
 	readMemoryFile,
 	cleanRetainedMemory,
+	loadMemories,
+	formatMemoriesForPrompt,
 };
