@@ -8,7 +8,6 @@ import { InputPanel } from "./inputPanel.js";
 import { isStreamingMessage } from "./messages.js";
 import { Banner } from "./banner.js";
 import { setConfigValue } from "../config/loader.js";
-import fs from "node:fs";
 
 const EXIT_MESSAGE = "\n";
 
@@ -46,6 +45,10 @@ export default function App({ config, registry, sessionState, dispatchProvider, 
 	}, []);
 
 	// Process command or dispatch as normal chat
+	/**
+	 * Handle user input: parse commands or dispatch as chat.
+	 * @param {string} text - Raw user input text
+	 */
 	const handleSubmit = async (text) => {
 		const trimmed = text.trim();
 		if (!trimmed) return;
@@ -65,7 +68,10 @@ export default function App({ config, registry, sessionState, dispatchProvider, 
 		}
 	};
 
-	// Handle IRC-style command parsing
+	/**
+	 * Handle IRC-style command parsing with dispatch table.
+	 * @param {string} trimmed - The command string (sans leading whitespace)
+	 */
 	const handleCommand = async (trimmed) => {
 		try {
 			const result = parser.parse(trimmed, {
@@ -92,12 +98,16 @@ export default function App({ config, registry, sessionState, dispatchProvider, 
 			if (result.message && result.action !== "provider" && result.action !== "schedule") {
 				addMessage({ role: "system", content: result.message });
 			}
-		} catch (_err) {
+		} catch (err) {
+			addMessage({ role: "system", content: `Command error: ${err.message}` });
 			setStatusMessage("Something went wrong");
 		}
 	};
 
-	// Handle normal chat message dispatch with streaming
+	/**
+	 * Dispatch user text to the AI agent with streaming.
+	 * @param {string} text - The user's message text
+	 */
 	const handleChat = async (text) => {
 		setStatusMessage("Streaming...");
 		addMessage({ role: "user", content: text });
@@ -115,30 +125,15 @@ export default function App({ config, registry, sessionState, dispatchProvider, 
 			},
 		]);
 
-		let _currentToolCallCount = 0;
 		let committedContent = "";
 		let committedReasoning = "";
 		let lastToolCallDisplay = "";
-		let _activeToolCall = null;
 
 		try {
 			const _response = await dispatchProvider(
 				text,
 				sessionState ? sessionState.getProvider() : null,
 				(event) => {
-					try {
-						const cbData = {
-							type: event.type,
-							text: (event.text || "").slice(0, 80),
-							toolName: event.toolName || "",
-							toolCallId: event.toolCallId || "",
-							data: event.data,
-							error: event.error || "",
-						};
-						fs.appendFileSync("/tmp/madz_tui.log", JSON.stringify(cbData) + "\n");
-					} catch {
-						/* */
-					}
 					try {
 						if (event.type === "text") {
 							committedContent = (committedContent || "") + event.text;
@@ -161,11 +156,6 @@ export default function App({ config, registry, sessionState, dispatchProvider, 
 								return cloned;
 							});
 						} else if (event.type === "tool_start") {
-							activeToolCall = {
-								name: event.toolName,
-								toolCallId: event.toolCallId,
-								startedAt: Date.now(),
-							};
 							setMessages((prev) => {
 								const cloned = [...prev];
 								const last = cloned[cloned.length - 1];
@@ -176,7 +166,6 @@ export default function App({ config, registry, sessionState, dispatchProvider, 
 								return cloned;
 							});
 						} else if (event.type === "tool_end") {
-							_currentToolCallCount++;
 							activeToolCall = null;
 							const resultLine = event.data
 								? ` Result: ${JSON.stringify(event.data).slice(0, 200)}`
@@ -338,7 +327,6 @@ export default function App({ config, registry, sessionState, dispatchProvider, 
 		!showBanner &&
 			React.createElement(InputPanel, {
 				inputText: inputText,
-				blinkTimeout: config?.tui?.blinkTimeout ?? 530,
 				cursorChar: config?.tui?.cursorChar ?? "\u2588",
 			}),
 		!showBanner && React.createElement(Text, { key: "exit-newline" }, EXIT_MESSAGE),

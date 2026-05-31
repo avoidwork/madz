@@ -2,6 +2,8 @@
  * State management hooks for TUI panels.
  */
 
+import { nextPanel as _nextPanel, prevPanel as _prevPanel } from "./panels.js";
+
 /**
  * Panel state for rendering.
  */
@@ -27,9 +29,7 @@ export function createPanelState(initialPanel) {
  * @returns {string}
  */
 export function nextPanel(current) {
-	const order = ["conversation", "skills", "memory", "settings"];
-	const idx = order.indexOf(current);
-	return order[(idx + 1) % order.length];
+	return _nextPanel(current);
 }
 
 /**
@@ -38,7 +38,5 @@ export function nextPanel(current) {
  * @returns {string}
  */
 export function prevPanel(current) {
-	const order = ["conversation", "skills", "memory", "settings"];
-	const idx = order.indexOf(current);
-	return order[(idx - 1 + order.length) % order.length];
+	return _prevPanel(current);
 }

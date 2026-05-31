@@ -26,8 +26,7 @@ export function MarkdownTextInner({ content }) {
 	if (content === null || content === undefined || content === "") {
 		return null;
 	}
-	const text = content || "";
-	const result = parseMarkdown(text);
+	const result = parseMarkdown(content || "");
 	return React.createElement(Text, { wrap: "hard", color: "white" }, result || "");
 }
 
