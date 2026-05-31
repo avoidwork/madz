@@ -63,6 +63,7 @@ function extractContent(result, fallback) {
 		const content =
 			typeof lastAI.content === "string" ? lastAI.content : JSON.stringify(lastAI.content);
 		const trimmed = content.trim();
+		// Skip empty strings and empty array/object JSON (e.g., AIMessage with tool_calls only)
 		if (trimmed && trimmed !== "[]" && trimmed !== "{}") {
 			return { content: trimmed };
 		}
@@ -74,7 +75,7 @@ function extractContent(result, fallback) {
 /**
  * Run the agent in streaming mode via LangGraph event streaming v3.
  * Uses a single loop over protocol events to decouple text streaming from tool execution.
- * Text is extracted from content-block-delta messages while tool events are emitted
+ * Text is extracted from the messages channel while tool events are emitted
  * from the tools channel, both concurrently in one pass, so text renders
  * as it arrives regardless of tool call status.
  * @param {ReturnType<typeof createReactAgentGraph>} agent - A compiled ReAct agent
@@ -100,27 +101,34 @@ async function callReactAgentStreaming(agent, initMessages, originalMessage, con
 		const data = event.params.data;
 		const eventName = data.event || data.langgraph_event || "";
 
-		// Handle text: accumulate from content-block-delta events in the messages channel
-		if (event.method === "messages" && eventName === "content-block-delta") {
-			let text = "";
-			if (typeof data.delta === "string") {
-				text = data.delta;
-			} else if (
-				typeof data.delta === "object" &&
-				data.delta !== null &&
-				typeof data.delta.text === "string"
-			) {
-				text = data.delta.text;
-			}
-			if (text) {
-				lastText += text;
-				callback({ type: "text", text: lastText });
+		// Handle text: accumulate from content-block events in the messages channel
+		// These come as part of chat model stream content, yielded when the LLM generates text
+		if (event.method === "messages") {
+			const chunk = data ?? {};
+			// content-block-delta: incremental text delta from the LLM
+			if (chunk.event === "content-block-delta" || chunk.type === "text-delta") {
+				let text = "";
+				if (typeof chunk.delta === "string") {
+					text = chunk.delta;
+				} else if (
+					typeof chunk.delta === "object" &&
+					chunk.delta !== null &&
+					typeof chunk.delta.text === "string"
+				) {
+					text = chunk.delta.text;
+				}
+				// Legacy format: chunk.text contains the accumulated text
+				if (!text && typeof chunk.text === "string") {
+					text = chunk.text;
+				}
+				if (text) {
+					lastText += text;
+					callback({ type: "text", text: lastText });
+				}
 			}
 		}
 
 		// Handle tools: emit lifecycle events from the tools channel
-		// tool_start is emitted here; tool_end is emitted at the end of the stream
-		// to avoid duplicates when multiple event types fire for the same tool.
 		if (event.method === "tools") {
 			const toolName = data.tool_name || data.name || data.tool || data.toolCall?.name || "";
 			const toolCallId =
@@ -136,6 +144,24 @@ async function callReactAgentStreaming(agent, initMessages, originalMessage, con
 						toolCallId,
 					});
 				}
+			} else if (eventName === "tool-output" || eventName === "tool-output-delta") {
+				// Emit tool result data so the TUI can display the full response
+				const output = data.output ?? data.data ?? "";
+				callback({
+					type: "tool_end",
+					toolName: toolName,
+					toolCallId,
+					data: output,
+				});
+			} else if (eventName === "tool-finished") {
+				// Tool finished event - emit tool_end for the TUI
+				const output = data.output ?? data.data ?? data.result ?? "";
+				callback({
+					type: "tool_end",
+					toolName: toolName,
+					toolCallId,
+					data: output,
+				});
 			} else if (eventName === "tool-error") {
 				const errMsg = data.error || data.message || "Unknown error";
 				const toolNameErr =
@@ -152,11 +178,7 @@ async function callReactAgentStreaming(agent, initMessages, originalMessage, con
 					toolCallId: toolCallIdErr,
 					error: String(errMsg),
 				});
-			} else if (
-				eventName === "tool-output-delta" ||
-				eventName === "on_tool_event" ||
-				eventName === "partial_result"
-			) {
+			} else if (eventName === "on_tool_event" || eventName === "partial_result") {
 				callback({
 					type: "tool_event",
 					toolCallId: data.tool_call_id || data.toolCallId || toolCallId,
