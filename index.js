@@ -149,13 +149,18 @@ registerShutdownHandler(async () => {
 // CLI mode detection (if run directly as node index.js)
 const isMain = process.argv[1] === fileURLToPath(import.meta.url);
 if (isMain) {
-	const args = process.argv.slice(2);
-	const mode = args.some((a, i) => a === "--mode" && args[i + 1] === "interactive")
-		? "interactive"
-		: "chat";
+	const { yargs } = await import("yargs");
+	const { hideBin } = await import("yargs/helpers");
 
-	if (mode === "chat") {
-		const message = args.filter((a) => !a.startsWith("--"))[0] || "Hello";
+	const argv = yargs(hideBin(process.argv))
+		.option("mode", { type: "string", choices: ["chat", "interactive"], default: "chat" })
+		.option("session", { alias: "s", type: "string", describe: "Thread ID to resume" })
+		.positional("message", { describe: "Prompt message (chat mode)", type: "string" })
+		.strict()
+		.parseSync();
+
+	if (argv.mode === "chat") {
+		const message = argv.message || "Hello";
 		try {
 			const response = await handleConversation(message);
 			console.log(JSON.stringify(response, null, 2));
@@ -164,28 +169,33 @@ if (isMain) {
 			process.exit(1);
 		}
 	} else {
-		const { render, Text } = await import("ink");
+		const { createApp } = await import("./src/tui/app.jsx");
 
-		let unmount;
+		// Save session on exit
+		const { unmount, sessionId } = createApp(
+			config,
+			sessionId,
+			(message, scb) => callProvider(null, null, message, scb),
+			handleConversation,
+			invokeSkill,
+			sessionState,
+			() => {
+				saveSession(config.session.conversationsDir, sessionState.getConversation());
+			},
+		);
 
-		const App = () => React.createElement(Text, { children: "hello world" });
+		const onExit = async () => {
+			console.log(`\nThread: ${sessionId}`);
+			saveSession(config.session.conversationsDir, sessionState.getConversation());
+			process.exit(0);
+		};
 
-		const { unmount: um } = render(React.createElement(App));
-		unmount = um;
-
-		if (process.stdin.setRawMode) {
-			try {
-				process.stdin.setRawMode(true);
-			} catch {
-				/* not a tty */
-			}
-		}
 		function onKey(data) {
 			if (Buffer.isBuffer(data) && data[0] === 0x1b) {
 				process.stdin.removeListener("data", onKey);
 				unmount();
 				process.stdout.write("\n");
-				process.exit(0);
+				onExit();
 			}
 		}
 		process.stdin.on("data", onKey);

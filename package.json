@@ -24,7 +24,7 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js --mode interactive",
+    "start": "node --experimental-transform-types index.js --mode interactive",
     "test": "node --test tests/**/*.test.js",
     "coverage": "node --test --experimental-test-coverage --test-coverage-exclude=dist/** --test-coverage-exclude=tests/** --test-reporter=spec tests/**/*.test.js 2>&1 | grep -A 1000 \"start of coverage report\" > coverage.txt",
     "fix": "oxlint --fix *.js src tests/unit && oxfmt *.js src tests/unit --write",
@@ -52,6 +52,7 @@
     "node-cron": "^4.2.1",
     "posix": "^4.2.0",
     "uuid": "^11.1.0",
+    "yargs": "^18.0.0",
     "zod": "^4.1.8"
   }
 }
