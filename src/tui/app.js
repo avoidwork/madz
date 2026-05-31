@@ -117,10 +117,12 @@ export default function App({ config, registry, sessionState, dispatchProvider, 
 
 		let _currentToolCallCount = 0;
 		let committedContent = "";
+		let committedReasoning = "";
 		let lastToolCallDisplay = "";
+		let _activeToolCall = null;
 
 		try {
-			const response = await dispatchProvider(
+			const _response = await dispatchProvider(
 				text,
 				sessionState ? sessionState.getProvider() : null,
 				(event) => {
@@ -139,7 +141,7 @@ export default function App({ config, registry, sessionState, dispatchProvider, 
 					}
 					try {
 						if (event.type === "text") {
-							committedContent = event.text;
+							committedContent = (committedContent || "") + event.text;
 							setMessages((prev) => {
 								const cloned = [...prev];
 								const last = cloned[cloned.length - 1];
@@ -148,8 +150,34 @@ export default function App({ config, registry, sessionState, dispatchProvider, 
 								}
 								return cloned;
 							});
+						} else if (event.type === "reasoning") {
+							committedReasoning = (committedReasoning || "") + event.text;
+							setMessages((prev) => {
+								const cloned = [...prev];
+								const last = cloned[cloned.length - 1];
+								if (last.role === "assistant" && last.streaming) {
+									last.reasoningContent = (committedReasoning || "") + "\u2588";
+								}
+								return cloned;
+							});
+						} else if (event.type === "tool_start") {
+							activeToolCall = {
+								name: event.toolName,
+								toolCallId: event.toolCallId,
+								startedAt: Date.now(),
+							};
+							setMessages((prev) => {
+								const cloned = [...prev];
+								const last = cloned[cloned.length - 1];
+								if (last.role === "assistant" && last.streaming) {
+									last.activeToolCall = { name: event.toolName };
+									last.toolCallDisplay = lastToolCallDisplay;
+								}
+								return cloned;
+							});
 						} else if (event.type === "tool_end") {
 							_currentToolCallCount++;
+							activeToolCall = null;
 							const resultLine = event.data
 								? ` Result: ${JSON.stringify(event.data).slice(0, 200)}`
 								: "";
@@ -162,11 +190,13 @@ export default function App({ config, registry, sessionState, dispatchProvider, 
 								const cloned = [...prev];
 								const last = cloned[cloned.length - 1];
 								if (last.role === "assistant" && last.streaming) {
+									last.activeToolCall = null;
 									last.toolCallDisplay = lastToolCallDisplay;
 								}
 								return cloned;
 							});
 						} else if (event.type === "tool_error") {
+							activeToolCall = null;
 							const errorLine = event.toolName
 								? `- Tool: ${event.toolName} (error: ${event.error})`
 								: `- Tool call failed (${event.toolCallId || "unknown"})`;
@@ -176,6 +206,7 @@ export default function App({ config, registry, sessionState, dispatchProvider, 
 								const cloned = [...prev];
 								const last = cloned[cloned.length - 1];
 								if (last.role === "assistant" && last.streaming) {
+									last.activeToolCall = null;
 									last.toolCallDisplay = lastToolCallDisplay;
 								}
 								return cloned;
@@ -189,14 +220,19 @@ export default function App({ config, registry, sessionState, dispatchProvider, 
 				},
 			);
 
-			const responseContent = response.content || committedContent || "";
+			// committedContent is accumulated from streaming text events —
+			// this is the actual AI response. response.content is only the
+			// originalMessage fallback from callReactAgentStreaming.
+			const responseContent = committedContent;
 
 			setMessages((prev) => {
 				const cloned = [...prev];
 				const last = cloned[cloned.length - 1];
 				if (last.role === "assistant" && last.streaming) {
 					last.content = responseContent;
+					last.reasoningContent = committedReasoning || undefined;
 					last.streaming = false;
+					last.activeToolCall = null;
 					if (lastToolCallDisplay) {
 						last.toolCallDisplay = lastToolCallDisplay;
 					}

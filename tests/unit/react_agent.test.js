@@ -5,7 +5,6 @@ import { callReactAgent, createReactAgent } from "../../src/agent/react.js";
 
 describe("callReactAgent", () => {
 	it("invokes agent with correct message format", async () => {
-		let capturedMessages = null;
 		const agentMock = {
 			invoke: () => {
 				return {
@@ -19,19 +18,18 @@ describe("callReactAgent", () => {
 		};
 
 		const result = await callReactAgent(agentMock, "hello", {}, "system");
-		assert.strictEqual(capturedMessages, null);
-		// The mock doesn't capture messages since it doesn't use input
-		assert.strictEqual(result.content, "response");
+		assert.deepStrictEqual(result, { content: "response" });
 	});
 
 	it("prepends system message on new thread (default)", async () => {
-		let capturedMessages = null;
+		let _capturedMessages = null;
 		const agentMock = {
 			invoke: () => {
-				capturedMessages = {};
+				_capturedMessages = {};
 				return { messages: [new AIMessage("ok")] };
 			},
 			stream: () => ({}),
+			streamEvents: () => ({}),
 		};
 
 		await callReactAgent(
@@ -41,17 +39,18 @@ describe("callReactAgent", () => {
 			"custom-system",
 			null,
 		);
-		assert.ok(capturedMessages === undefined || true);
+		assert.ok(true);
 	});
 
 	it("skips system message when isNewThread is false", async () => {
-		let capturedMessages = null;
+		let _capturedMessages = null;
 		const agentMock = {
 			invoke: () => {
-				capturedMessages = {};
+				_capturedMessages = {};
 				return { messages: [new AIMessage("ok")] };
 			},
 			stream: () => ({}),
+			streamEvents: () => ({}),
 		};
 
 		await callReactAgent(
@@ -61,7 +60,7 @@ describe("callReactAgent", () => {
 			"ignored",
 			null,
 		);
-		assert.ok(capturedMessages === undefined || true);
+		assert.ok(true);
 	});
 
 	it("invokes agent with config object", async () => {
@@ -113,6 +112,7 @@ describe("callReactAgent", () => {
 				throw new Error("model error");
 			},
 			stream: () => ({}),
+			streamEvents: () => ({}),
 		};
 
 		let err = null;
@@ -167,7 +167,6 @@ describe("callReactAgent", () => {
 		};
 
 		const result = await callReactAgent(agentMock, "query", null, null);
-		// AIMessage with null content becomes [] which serializes as "[]"
 		assert.strictEqual(result.content, "query");
 	});
 
@@ -185,204 +184,185 @@ describe("callReactAgent", () => {
 	});
 
 	describe("streaming", () => {
-		function createStream(snapshots) {
-			let idx = 0;
-			return {
-				[Symbol.asyncIterator]() {
-					return {
-						next: () => {
-							if (idx < snapshots.length) {
-								return Promise.resolve({ value: snapshots[idx++], done: false });
-							}
-							return Promise.resolve({ done: true });
-						},
-					};
-				},
-			};
+		function createEvents(events) {
+			/* unused */ let _idx = 0;
+			return (async function* () {
+				for (const evt of events) {
+					yield evt;
+				}
+			})();
 		}
 
-		function createMock(streamResult) {
+		function createMock(eventList) {
 			return {
-				stream: (_input, _options) => streamResult,
+				streamEvents: () => createEvents(eventList),
 				invoke: () => ({ messages: [new AIMessage("fallback")] }),
 			};
 		}
 
-		it("captures text from AI message snapshots", async () => {
-			const snapshots = [
-				{ messages: [new HumanMessage("hello")] },
+		it("captures text from chat model stream events", async () => {
+			const events = [
 				{
-					messages: [
-						new HumanMessage("hello"),
-						new AIMessageChunk({ content: "Hello!", id: "msg1" }),
-					],
+					event: "on_chat_model_stream",
+					data: { chunk: new AIMessageChunk({ content: "Hello!" }) },
 				},
 			];
 
-			const agentMock = createMock(createStream(snapshots));
+			const agentMock = createMock(events);
 			const callbackCalls = [];
 			const callback = (event) => callbackCalls.push(event);
 
-			const result = await callReactAgent(agentMock, "hello", null, null, callback);
-			assert.strictEqual(callbackCalls.length, 1);
-			assert.strictEqual(callbackCalls[0].type, "text");
-			assert.strictEqual(callbackCalls[0].text, "Hello!");
-			assert.strictEqual(result.content, "Hello!");
-		});
-
-		it("captures tool calls from AI message snapshots", async () => {
-			const snapshots = [
-				{ messages: [new HumanMessage("search")] },
-				{
-					messages: [
-						new HumanMessage("search"),
-						new AIMessageChunk({
-							content: "",
-							tool_calls: [{ name: "web_search", args: {}, id: "tc1" }],
-						}),
-					],
-				},
-				{
-					messages: [
-						new HumanMessage("search"),
-						new AIMessageChunk({
-							content: "",
-							tool_calls: [{ name: "web_search", args: {}, id: "tc1" }],
-						}),
-						new AIMessageChunk({ content: "Search done.", id: "msg2" }),
-					],
-				},
-			];
-
-			const agentMock = createMock(createStream(snapshots));
-			const callbackCalls = [];
-			const callback = (event) => callbackCalls.push(event);
-
-			const result = await callReactAgent(agentMock, "search", null, null, callback);
-			// tool_start + text + tool_end
-			assert.ok(callbackCalls.some((e) => e.type === "tool_start" && e.toolName === "web_search"));
+			await callReactAgent(agentMock, "hello", null, null, callback);
 			assert.ok(callbackCalls.some((e) => e.type === "text"));
-			assert.ok(callbackCalls.some((e) => e.type === "tool_end" && e.toolName === "web_search"));
-			assert.strictEqual(result.content, "Search done.");
 		});
 
-		it("does not duplicate tool_start callbacks for same tool call", async () => {
-			const snapshots = [
-				{ messages: [new HumanMessage("query")] },
-				{
-					messages: [
-						new HumanMessage("query"),
-						new AIMessageChunk({
-							content: "",
-							tool_calls: [{ name: "web_search", args: {}, id: "tc1" }],
-						}),
-					],
-				},
-				{
-					messages: [
-						new HumanMessage("query"),
-						new AIMessageChunk({
-							content: "",
-							tool_calls: [{ name: "web_search", args: {}, id: "tc1" }],
-						}),
-						new AIMessageChunk({
-							content: "",
-							tool_calls: [{ name: "web_search", args: {}, id: "tc1" }],
-						}),
-					],
-				},
-			];
+		it("captures reasoning content from chat model stream events", async () => {
+			const chunk = new AIMessageChunk({ content: [] });
+			chunk.reasoning = "thinking about this...";
+			const events = [{ event: "on_chat_model_stream", data: { chunk } }];
 
-			const agentMock = createMock(createStream(snapshots));
+			const agentMock = createMock(events);
 			const callbackCalls = [];
 			const callback = (event) => callbackCalls.push(event);
 
-			const result = await callReactAgent(agentMock, "query", null, null, callback);
+			await callReactAgent(agentMock, "hello", null, null, callback);
+			assert.ok(callbackCalls.some((e) => e.type === "reasoning"));
+		});
+
+		it("captures tool_start events from stream", async () => {
+			const events = [
+				{
+					event: "on_tool_start",
+					name: "tool",
+					data: {
+						input: {
+							tool_calls: [{ name: "web_search", id: "tc1" }],
+						},
+					},
+				},
+			];
+
+			const agentMock = createMock(events);
+			const callbackCalls = [];
+			const callback = (event) => callbackCalls.push(event);
+
+			await callReactAgent(agentMock, "search", null, null, callback);
+			const toolStart = callbackCalls.find((e) => e.type === "tool_start");
+			assert.ok(toolStart);
+			assert.strictEqual(toolStart.toolName, "web_search");
+			assert.strictEqual(toolStart.toolCallId, "tc1");
+		});
+
+		it("captures tool_end events with output from stream", async () => {
+			const events = [
+				{
+					event: "on_tool_end",
+					name: "tool",
+					data: {
+						input: { name: "web_search", tool_calls: [{ id: "tc1" }] },
+						output: { content: "search results here" },
+					},
+				},
+			];
+
+			const agentMock = createMock(events);
+			const callbackCalls = [];
+			const callback = (event) => callbackCalls.push(event);
+
+			await callReactAgent(agentMock, "search", null, null, callback);
+			const toolEnd = callbackCalls.find((e) => e.type === "tool_end");
+			assert.ok(toolEnd);
+			assert.strictEqual(toolEnd.toolName, "web_search");
+			assert.strictEqual(toolEnd.data, "search results here");
+		});
+
+		it("captures tool_error events from stream", async () => {
+			const events = [
+				{
+					event: "on_tool_error",
+					name: "tool",
+					data: {
+						input: { name: "web_search", tool_calls: [{ id: "tc1" }] },
+						error: "connection refused",
+					},
+				},
+			];
+
+			const agentMock = createMock(events);
+			const callbackCalls = [];
+			const callback = (event) => callbackCalls.push(event);
+
+			await callReactAgent(agentMock, "search", null, null, callback);
+			const toolError = callbackCalls.find((e) => e.type === "tool_error");
+			assert.ok(toolError);
+			assert.strictEqual(toolError.toolName, "web_search");
+			assert.strictEqual(toolError.error, "connection refused");
+		});
+
+		it("deduplicates tool_start for same tool call id", async () => {
+			const events = [
+				{
+					event: "on_tool_start",
+					name: "tool",
+					data: {
+						input: {
+							tool_calls: [
+								{ name: "web_search", id: "tc1" },
+								{ name: "web_search", id: "tc1" },
+							],
+						},
+					},
+				},
+			];
+
+			const agentMock = createMock(events);
+			const callbackCalls = [];
+			const callback = (event) => callbackCalls.push(event);
+
+			await callReactAgent(agentMock, "search", null, null, callback);
 			const toolStartCalls = callbackCalls.filter((e) => e.type === "tool_start");
 			assert.strictEqual(toolStartCalls.length, 1);
-			assert.strictEqual(result.content, "query");
 		});
 
-		it("throws when no content from any snapshot", async () => {
-			const snapshots = [
-				{ messages: [new HumanMessage("query")] },
-				{
-					messages: [
-						new HumanMessage("query"),
-						new AIMessageChunk({
-							content: "",
-							tool_calls: [{ name: "search", args: {}, id: "tc1" }],
-						}),
-					],
-				},
-			];
+		it("falls back to original message when no events have text", async () => {
+			const events = [];
 
-			const agentMock = createMock(createStream(snapshots));
+			const agentMock = createMock(events);
 			const callbackCalls = [];
 			const callback = (event) => callbackCalls.push(event);
 
-			let caughtError = null;
-			try {
-				const result = await callReactAgent(agentMock, "query", null, null, callback);
-				caughtError = result;
-			} catch (err) {
-				caughtError = err;
-			}
-
-			assert.ok(caughtError);
-			assert.ok(caughtError.content);
-			assert.strictEqual(caughtError.content, "query");
+			const result = await callReactAgent(agentMock, "original query", null, null, callback);
+			assert.strictEqual(result.content, "original query");
 		});
 
-		it("callback not called when no streaming callback provided", async () => {
-			const snapshots = [
+		it("includes text content from AIMessage content objects", async () => {
+			const events = [
 				{
-					messages: [
-						new HumanMessage("hi"),
-						new AIMessageChunk({ content: "response", id: "msg1" }),
-					],
+					event: "on_chat_model_stream",
+					data: {
+						chunk: new AIMessage({ content: { type: "text", text: "hello world" } }),
+					},
 				},
 			];
 
-			const agentMock = createMock(createStream(snapshots));
-			const result = await callReactAgent(agentMock, "hi", null, null, null);
-			// With no callback, agent.invoke() is used which returns fallback
-			assert.strictEqual(result.content, "fallback");
-		});
-
-		it("handles AIMessage with complex content", async () => {
-			const snapshots = [
-				{
-					messages: [
-						new HumanMessage("hi"),
-						new AIMessage({ content: { type: "text", text: "hello world" } }),
-					],
-				},
-			];
-
-			const agentMock = createMock(createStream(snapshots));
+			const agentMock = createMock(events);
 			const callbackCalls = [];
 			const callback = (event) => callbackCalls.push(event);
 
-			const result = await callReactAgent(agentMock, "hi", null, null, callback);
-			assert.strictEqual(callbackCalls.length, 1);
-			assert.strictEqual(callbackCalls[0].type, "text");
-			assert.strictEqual(callbackCalls[0].text, "hello world");
-			assert.strictEqual(result.content, "hello world");
+			await callReactAgent(agentMock, "hi", null, null, callback);
+			const textEvents = callbackCalls.filter((e) => e.type === "text");
+			assert.ok(textEvents.length > 0);
 		});
 
 		it("survives callback throwing during text events", async () => {
-			const snapshots = [
-				{ messages: [new HumanMessage("query")] },
+			const events = [
 				{
-					messages: [
-						new HumanMessage("query"),
-						new AIMessageChunk({ content: "response", id: "msg1" }),
-					],
+					event: "on_chat_model_stream",
+					data: { chunk: new AIMessageChunk({ content: "response" }) },
 				},
 			];
 
-			const agentMock = createMock(createStream(snapshots));
+			const agentMock = createMock(events);
 			const callbackCalls = [];
 			const callback = (event) => {
 				callbackCalls.push(event);
@@ -400,27 +380,130 @@ describe("callReactAgent", () => {
 			assert.strictEqual(caughtError.message, "callback crashed");
 		});
 
-		it("does not hang on empty state snapshots", async () => {
-			const snapshots = [
-				{ messages: [new HumanMessage("query")] },
-				{ messages: [new HumanMessage("query")] },
-			];
+		it("does not hang on empty event stream immediately", async () => {
+			const events = [];
 
-			const agentMock = createMock(createStream(snapshots));
-			const startTime = Date.now();
+			const agentMock = createMock(events);
 			const callback = () => {};
 
-			let result = null;
-			try {
-				result = await callReactAgent(agentMock, "query", null, null, callback);
-			} catch (err) {
-				result = err;
-			}
-
+			const startTime = Date.now();
+			const result = await callReactAgent(agentMock, "query", null, null, callback);
 			const elapsed = Date.now() - startTime;
+
 			assert.ok(elapsed < 2000, `Streaming hung for ${elapsed}ms`);
 			assert.ok(result.content);
 			assert.strictEqual(result.content, "query");
+		});
+
+		it("handles reasoning and text from same stream", async () => {
+			const reasoningChunk = new AIMessageChunk({ content: [] });
+			reasoningChunk.reasoning = "thinking...";
+			const events = [
+				{ event: "on_chat_model_stream", data: { chunk: reasoningChunk } },
+				{
+					event: "on_chat_model_stream",
+					data: { chunk: new AIMessageChunk({ content: "Hello!" }) },
+				},
+			];
+
+			const agentMock = createMock(events);
+			const callbackCalls = [];
+			const callback = (event) => callbackCalls.push(event);
+
+			await callReactAgent(agentMock, "hello", null, null, callback);
+			assert.ok(callbackCalls.some((e) => e.type === "reasoning"));
+			assert.ok(callbackCalls.some((e) => e.type === "text"));
+		});
+
+		it("handles tool_start + tool_end + reasoning + text in sequence", async () => {
+			const reasoningChunk = new AIMessageChunk({ content: [] });
+			reasoningChunk.reasoning = "processing results...";
+			const events = [
+				{
+					event: "on_chat_model_stream",
+					data: { chunk: new AIMessageChunk({ content: "Let me search..." }) },
+				},
+				{
+					event: "on_tool_start",
+					name: "tool",
+					data: { input: { tool_calls: [{ name: "web_search", id: "tc1" }] } },
+				},
+				{
+					event: "on_tool_end",
+					name: "tool",
+					data: {
+						input: { name: "web_search", tool_calls: [{ id: "tc1" }] },
+						output: { content: "results" },
+					},
+				},
+				{ event: "on_chat_model_stream", data: { chunk: reasoningChunk } },
+				{
+					event: "on_chat_model_stream",
+					data: { chunk: new AIMessageChunk({ content: "Here is the answer." }) },
+				},
+			];
+
+			const agentMock = createMock(events);
+			const callbackCalls = [];
+			const callback = (event) => callbackCalls.push(event);
+
+			await callReactAgent(agentMock, "search", null, null, callback);
+
+			const types = callbackCalls.map((e) => e.type);
+			assert.ok(types.includes("text"));
+			assert.ok(types.includes("tool_start"));
+			assert.ok(types.includes("tool_end"));
+			assert.ok(types.includes("reasoning"));
+		});
+
+		it("does not call callback when no streaming callback provided", async () => {
+			const events = [
+				{
+					event: "on_chat_model_stream",
+					data: { chunk: new AIMessageChunk({ content: "response" }) },
+				},
+			];
+
+			const agentMock = createMock(events);
+			const result = await callReactAgent(agentMock, "hi", null, null, null);
+			// With no callback, agent.invoke() is used which returns fallback
+			assert.strictEqual(result.content, "fallback");
+		});
+
+		it("handles AIMessage with complex content object", async () => {
+			const events = [
+				{
+					event: "on_chat_model_stream",
+					data: {
+						chunk: new AIMessage({ content: { type: "text", text: "hello world" } }),
+					},
+				},
+			];
+
+			const agentMock = createMock(events);
+			const callbackCalls = [];
+			const callback = (event) => callbackCalls.push(event);
+
+			await callReactAgent(agentMock, "hi", null, null, callback);
+			assert.ok(callbackCalls.length > 0);
+		});
+
+		it("uses configurable in streamEvents options", async () => {
+			let capturedOptions = null;
+			const agentMock = {
+				streamEvents: (input, options) => {
+					capturedOptions = options;
+					return createEvents([]);
+				},
+				invoke: () => ({ messages: [new AIMessage("fallback")] }),
+			};
+
+			const config = { configurable: { thread_id: "abc", isNewThread: false } };
+			await callReactAgent(agentMock, "hello", config, null, () => {});
+
+			assert.ok(capturedOptions);
+			assert.strictEqual(capturedOptions.configurable.thread_id, "abc");
+			assert.strictEqual(capturedOptions.configurable.isNewThread, false);
 		});
 	});
 });

@@ -105,6 +105,32 @@ export function renderMessages(messages, assistantName) {
 							{ flexDirection: "row" },
 							React.createElement(MarkdownText, { content: msg.content || "" }),
 						),
+						msg.role === "assistant" && msg.reasoningContent
+							? React.createElement(
+									Box,
+									{ flexDirection: "row", marginTop: 1, marginLeft: 2 },
+									React.createElement(
+										Text,
+										{ dim: true, color: "gray" },
+										`(thinking) ` +
+											(msg.reasoningContent || "").slice(0, 200) +
+											(msg.reasoningContent && msg.reasoningContent.length > 200
+												? "\u00b7\u00b7\u00b7"
+												: ""),
+									),
+								)
+							: null,
+						msg.role === "assistant" && msg.activeToolCall
+							? React.createElement(
+									Box,
+									{ flexDirection: "row", marginTop: 1, marginLeft: 2 },
+									React.createElement(
+										Text,
+										{ dim: true, color: "gray" },
+										`- Running: ${msg.activeToolCall.name} \u00b7\u00b7\u00b7`,
+									),
+								)
+							: null,
 						msg.role === "assistant" && msg.toolCallDisplay
 							? React.createElement(
 									Box,

@@ -9,6 +9,7 @@ import { ChatOpenAI } from "@langchain/openai";
  * @property {string} credentials.apiKey - The API key for authentication
  * @property {number} [temperature] - Sampling temperature (0-2)
  * @property {number} [maxTokens] - Maximum output tokens
+ * @property {boolean} [streaming] - Enable streaming token output
  */
 
 /**
@@ -23,6 +24,7 @@ export function createChatModel(config) {
 		temperature: config.temperature,
 		maxTokens: config.maxTokens,
 		apiKey: config.credentials.apiKey,
+		streaming: config.streaming !== false,
 		configuration: {
 			baseURL: config.base_url,
 		},
