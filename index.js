@@ -10,10 +10,6 @@ const { createChatModel } = await import("./src/provider/openai.js");
 const { createReactAgent, callReactAgent } = await import("./src/agent/react.js");
 const { buildToolConfig } = await import("./src/tools/index.js");
 
-const { default: pkg } = await import(new URL("package.json", import.meta.url).href, {
-	with: { type: "json" },
-});
-
 // Initialize subsystems
 const config = loadConfig();
 
@@ -168,27 +164,31 @@ if (isMain) {
 			process.exit(1);
 		}
 	} else {
-		const { render } = await import("ink");
-		const App = (await import("./src/tui/app.js")).default;
-		const appInfo = { name: config.tui.name, version: pkg.version };
-		render(
-			React.createElement(App, {
-				config,
-				registry,
-				sessionState,
-				dispatchProvider,
-				invokeSkill,
-				appInfo,
-			}),
-			{
-				// Restore terminal with newline when app exits
-				onExit: async () => {
-					const shutdown = (await import("./src/session/index.js")).handleShutdown;
-					if (shutdown) await shutdown();
-					process.stdout.write("\n");
-				},
-			},
-		);
+		const { render, Text } = await import("ink");
+
+		let unmount;
+
+		const App = () => React.createElement(Text, { children: "hello world" });
+
+		const { unmount: um } = render(React.createElement(App));
+		unmount = um;
+
+		if (process.stdin.setRawMode) {
+			try {
+				process.stdin.setRawMode(true);
+			} catch {
+				/* not a tty */
+			}
+		}
+		function onKey(data) {
+			if (Buffer.isBuffer(data) && data[0] === 0x1b) {
+				process.stdin.removeListener("data", onKey);
+				unmount();
+				process.stdout.write("\n");
+				process.exit(0);
+			}
+		}
+		process.stdin.on("data", onKey);
 	}
 }
 
