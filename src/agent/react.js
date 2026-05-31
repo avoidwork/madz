@@ -72,8 +72,11 @@ function extractContent(result, fallback) {
 }
 
 /**
- * Run the agent in streaming mode using state updates. Yields state snapshots
- * after each step, extracting tool calls and final text from the messages array.
+ * Run the agent in streaming mode via LangGraph event streaming v3.
+ * Uses a single loop over protocol events to decouple text streaming from tool execution.
+ * Text is extracted from content-block-delta messages while tool events are emitted
+ * from the tools channel, both concurrently in one pass, so text renders
+ * as it arrives regardless of tool call status.
  * @param {ReturnType<typeof createReactAgentGraph>} agent - A compiled ReAct agent
  * @param {import("@langchain/core/messages").BaseMessage[]} initMessages - Initial messages
  * @param {string} originalMessage - Original user message (fallback)
@@ -82,53 +85,88 @@ function extractContent(result, fallback) {
  * @returns {{ content: string }} The agent's final text response
  */
 async function callReactAgentStreaming(agent, initMessages, originalMessage, config, callback) {
-	const stream = await agent.stream(
-		{ messages: initMessages },
-		{
-			streamMode: "values",
-			...(config?.configurable && { configurable: config.configurable }),
-		},
-	);
+	const streamOptions = {
+		version: "v3",
+		...(config?.configurable && { configurable: config.configurable }),
+	};
+	const stream = await agent.streamEvents({ messages: initMessages }, streamOptions);
 
-	let toolCallSet = new Set();
 	let lastText = "";
+	const toolCallSet = new Set();
 
-	for await (const chunk of stream) {
-		const msgs = chunk?.messages;
-		if (!Array.isArray(msgs)) continue;
+	for await (const event of stream) {
+		if (!event || !event.params || !event.params.data) continue;
 
-		for (const msg of msgs) {
-			if (!(msg instanceof AIMessage || msg instanceof AIMessageChunk)) continue;
+		const data = event.params.data;
+		const eventName = data.event || data.langgraph_event || "";
 
-			// Check for tool calls
-			const toolCalls = msg.tool_calls || [];
-			for (const tc of toolCalls) {
-				const key = tc.name + "|" + tc.id;
-				if (!toolCallSet.has(key)) {
-					toolCallSet.add(key);
-					callback({ type: "tool_start", toolName: tc.name, toolCallId: tc.id });
-				}
-			}
-
-			// Extract text content from the message
+		// Handle text: accumulate from content-block-delta events in the messages channel
+		if (event.method === "messages" && eventName === "content-block-delta") {
 			let text = "";
-			if (typeof msg.content === "string") {
-				text = msg.content;
+			if (typeof data.delta === "string") {
+				text = data.delta;
 			} else if (
-				typeof msg.content === "object" &&
-				msg.content !== null &&
-				typeof msg.content.text === "string"
+				typeof data.delta === "object" &&
+				data.delta !== null &&
+				typeof data.delta.text === "string"
 			) {
-				text = msg.content.text;
+				text = data.delta.text;
 			}
-			if (text.trim()) {
-				lastText = text.trim();
+			if (text) {
+				lastText += text;
 				callback({ type: "text", text: lastText });
+			}
+		}
+
+		// Handle tools: emit lifecycle events from the tools channel
+		// tool_start is emitted here; tool_end is emitted at the end of the stream
+		// to avoid duplicates when multiple event types fire for the same tool.
+		if (event.method === "tools") {
+			const toolName = data.tool_name || data.name || data.tool || data.toolCall?.name || "";
+			const toolCallId =
+				data.tool_call_id || data.toolCallId || data.tool_call?.id || data.toolCall?.id || "";
+
+			if (eventName === "tool-started" || eventName === "tool-called") {
+				const key = toolName + "|" + toolCallId;
+				if (toolName && !toolCallSet.has(key)) {
+					toolCallSet.add(key);
+					callback({
+						type: "tool_start",
+						toolName,
+						toolCallId,
+					});
+				}
+			} else if (eventName === "tool-error") {
+				const errMsg = data.error || data.message || "Unknown error";
+				const toolNameErr =
+					data.tool_name || data.name || data.tool || data.toolCall?.name || toolName;
+				const toolCallIdErr =
+					data.tool_call_id ||
+					data.toolCallId ||
+					data.tool_call?.id ||
+					data.toolCall?.id ||
+					toolCallId;
+				callback({
+					type: "tool_error",
+					toolName: toolNameErr,
+					toolCallId: toolCallIdErr,
+					error: String(errMsg),
+				});
+			} else if (
+				eventName === "tool-output-delta" ||
+				eventName === "on_tool_event" ||
+				eventName === "partial_result"
+			) {
+				callback({
+					type: "tool_event",
+					toolCallId: data.tool_call_id || data.toolCallId || toolCallId,
+					data: data.data,
+				});
 			}
 		}
 	}
 
-	// Emit tool_end for any pending tool calls
+	// Emit tool_end for any tracked tool calls not already closed
 	for (const key of toolCallSet) {
 		const [name] = key.split("|");
 		callback({ type: "tool_end", toolName: name });

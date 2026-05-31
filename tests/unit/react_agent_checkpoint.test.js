@@ -113,10 +113,10 @@ describe("callReactAgent with config", () => {
 });
 
 describe("callReactAgent streaming with config", () => {
-	it("passes configurable to stream when config provided", async () => {
+	it("passes configurable to streamEvents when config provided", async () => {
 		let capturedStreamOptions = null;
 		const agentMock = {
-			stream: (_input, options) => {
+			streamEvents: (_input, options) => {
 				capturedStreamOptions = options;
 				return {
 					[Symbol.asyncIterator]() {
@@ -139,13 +139,14 @@ describe("callReactAgent streaming with config", () => {
 		}
 
 		assert.ok(capturedStreamOptions);
+		assert.strictEqual(capturedStreamOptions.version, "v3");
 		assert.strictEqual(capturedStreamOptions.configurable.thread_id, "stream-thread");
 		// Empty stream returns fallback content (not a throw)
 	});
 
-	it("passes configurable to stream when config is null", async () => {
+	it("passes configurable to streamEvents when config is null", async () => {
 		const agentMock = {
-			stream: (_input, _options) => {
+			streamEvents: (_input, _options) => {
 				return {
 					[Symbol.asyncIterator]() {
 						return { next: () => Promise.resolve({ done: true }) };

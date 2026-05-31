@@ -8,7 +8,6 @@ import { InputPanel } from "./inputPanel.js";
 import { isStreamingMessage } from "./messages.js";
 import { Banner } from "./banner.js";
 import { setConfigValue } from "../config/loader.js";
-import fs from "node:fs";
 
 const EXIT_MESSAGE = "\n";
 
@@ -124,19 +123,6 @@ export default function App({ config, registry, sessionState, dispatchProvider, 
 				text,
 				sessionState ? sessionState.getProvider() : null,
 				(event) => {
-					try {
-						const cbData = {
-							type: event.type,
-							text: (event.text || "").slice(0, 80),
-							toolName: event.toolName || "",
-							toolCallId: event.toolCallId || "",
-							data: event.data,
-							error: event.error || "",
-						};
-						fs.appendFileSync("/tmp/madz_tui.log", JSON.stringify(cbData) + "\n");
-					} catch {
-						/* */
-					}
 					try {
 						if (event.type === "text") {
 							committedContent = event.text;
