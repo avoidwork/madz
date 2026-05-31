@@ -68,4 +68,31 @@ describe("createChatModel", () => {
 		const model = createChatModel(config);
 		assert.strictEqual(model.apiKey, "my-secret-key");
 	});
+
+	it("enables streaming by default", () => {
+		const config = {
+			model: "test",
+			temperature: 0.7,
+			maxTokens: 4096,
+			credentials: { apiKey: "sk-test" },
+			base_url: "https://api.openai.com/v1",
+		};
+
+		const model = createChatModel(config);
+		assert.strictEqual(model.streaming, true);
+	});
+
+	it("allows disabling streaming via config", () => {
+		const config = {
+			model: "test",
+			temperature: 0.7,
+			maxTokens: 4096,
+			credentials: { apiKey: "sk-test" },
+			base_url: "https://api.openai.com/v1",
+			streaming: false,
+		};
+
+		const model = createChatModel(config);
+		assert.strictEqual(model.streaming, false);
+	});
 });

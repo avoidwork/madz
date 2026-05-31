@@ -72,8 +72,8 @@ function extractContent(result, fallback) {
 }
 
 /**
- * Run the agent in streaming mode using state updates. Yields state snapshots
- * after each step, extracting tool calls and final text from the messages array.
+ * Run the agent in streaming mode using the `streamEvents` API with v2 protocol.
+ * Yields granular events for text streaming, reasoning content, and tool execution.
  * @param {ReturnType<typeof createReactAgentGraph>} agent - A compiled ReAct agent
  * @param {import("@langchain/core/messages").BaseMessage[]} initMessages - Initial messages
  * @param {string} originalMessage - Original user message (fallback)
@@ -82,60 +82,116 @@ function extractContent(result, fallback) {
  * @returns {{ content: string }} The agent's final text response
  */
 async function callReactAgentStreaming(agent, initMessages, originalMessage, config, callback) {
-	const stream = await agent.stream(
+	const streamOptions = {
+		configurable: config?.configurable,
+	};
+
+	const stream = await agent.streamEvents(
 		{ messages: initMessages },
-		{
-			streamMode: "values",
-			...(config?.configurable && { configurable: config.configurable }),
-		},
+		{ version: "v2", ...streamOptions },
 	);
 
 	let toolCallSet = new Set();
-	let lastText = "";
 
-	for await (const chunk of stream) {
-		const msgs = chunk?.messages;
-		if (!Array.isArray(msgs)) continue;
+	for await (const event of stream) {
+		// Chat model text/reasoning streaming events
+		if (event.event === "on_chat_model_stream") {
+			const chunk = event.data?.chunk;
+			if (!chunk) continue;
 
-		for (const msg of msgs) {
-			if (!(msg instanceof AIMessage || msg instanceof AIMessageChunk)) continue;
+			// Track final text content from chat model stream
+			let textContent = "";
+			if (typeof chunk.content === "string") {
+				textContent = chunk.content;
+			} else if (
+				typeof chunk.content === "object" &&
+				chunk.content !== null &&
+				!Array.isArray(chunk.content) &&
+				chunk.content.text
+			) {
+				textContent = chunk.content.text;
+			}
 
-			// Check for tool calls
-			const toolCalls = msg.tool_calls || [];
+			// Emit text content deltas
+			if (Array.isArray(chunk.content)) {
+				for (const block of chunk.content) {
+					if (block.type === "text" && block.text && block.text.length > 0) {
+						textContent = block.text;
+					}
+				}
+			}
+			if (textContent.length > 0) {
+				// For tool-invoking LLM calls, the text might be empty or tool-call-related
+				callback({ type: "text", text: textContent });
+				// Note: the TUI accumulates text in committedContent for the final response,
+				// so we don't need to track it here.
+			}
+
+			// Emit reasoning/thinking content
+			if (chunk.reasoning) {
+				callback({ type: "reasoning", text: chunk.reasoning });
+			}
+		}
+
+		// Tool execution start
+		if (event.event === "on_tool_start" && event.name === "tool") {
+			const input = event.data?.input || {};
+			const toolCalls = Array.isArray(input.tool_calls) ? input.tool_calls : [];
 			for (const tc of toolCalls) {
 				const key = tc.name + "|" + tc.id;
 				if (!toolCallSet.has(key)) {
 					toolCallSet.add(key);
-					callback({ type: "tool_start", toolName: tc.name, toolCallId: tc.id });
+					callback({
+						type: "tool_start",
+						toolName: tc.name || input.name || "unknown",
+						toolCallId: tc.id,
+					});
 				}
 			}
+		}
 
-			// Extract text content from the message
-			let text = "";
-			if (typeof msg.content === "string") {
-				text = msg.content;
-			} else if (
-				typeof msg.content === "object" &&
-				msg.content !== null &&
-				typeof msg.content.text === "string"
-			) {
-				text = msg.content.text;
-			}
-			if (text.trim()) {
-				lastText = text.trim();
-				callback({ type: "text", text: lastText });
-			}
+		// Tool execution end with result
+		if (event.event === "on_tool_end" && event.name === "tool") {
+			const output = event.data?.output || {};
+			const input = event.data?.input || {};
+			const toolCalls = Array.isArray(input.tool_calls) ? input.tool_calls : [];
+			const toolName = input.name || toolCalls[0]?.name || output.tool_calls?.[0]?.name || "tool";
+			const toolCallId = toolCalls[0]?.id || "";
+			const resultData =
+				output.content || toolCalls[0]?.output || output.tool_calls?.[0]?.output || "";
+
+			callback({
+				type: "tool_end",
+				toolName,
+				toolCallId,
+				data: typeof resultData === "string" ? resultData.slice(0, 500) : resultData,
+			});
+		}
+
+		// Tool execution error
+		if (event.event === "on_tool_error" && event.name === "tool") {
+			const input = event.data?.input || {};
+			const toolCalls = Array.isArray(input.tool_calls) ? input.tool_calls : [];
+			const toolName = input.name || toolCalls[0]?.name || "unknown";
+			const toolCallId = toolCalls[0]?.id || "";
+			callback({
+				type: "tool_error",
+				toolName,
+				toolCallId,
+				error: event.data?.error,
+			});
 		}
 	}
 
-	// Emit tool_end for any pending tool calls
+	// Emit tool_end for any tool_start that didn't get a corresponding tool_end
+	// (e.g. if the stream was interrupted)
 	for (const key of toolCallSet) {
 		const [name] = key.split("|");
 		callback({ type: "tool_end", toolName: name });
 	}
 
-	if (lastText) {
-		return { content: lastText };
-	}
+	// Return originalMessage as fallback — the streaming callback
+	// accumulates the actual text in committedContent which is
+	// preferred by the TUI over this fallback value.
 	return { content: originalMessage };
 }

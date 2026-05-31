@@ -4,7 +4,7 @@
 ℹ ---------------------------------------------------------------------------------------------------------------------
 ℹ src                    |        |          |         | 
 ℹ  agent                 |        |          |         | 
-ℹ   react.js             | 100.00 |    97.62 |  100.00 | 
+ℹ   react.js             | 100.00 |    97.87 |  100.00 | 
 ℹ  config                |        |          |         | 
 ℹ   schemas.js           | 100.00 |   100.00 |  100.00 | 
 ℹ  memory                |        |          |         | 
@@ -54,12 +54,88 @@
 ℹ   web.js               |  95.47 |    64.79 |   60.00 | 24-25 39-40 43-45 86-88 123-125 177 189-191 330-331
 ℹ  tui                   |        |          |         | 
 ℹ   commandParser.js     | 100.00 |    88.00 |  100.00 | 
-ℹ   conversationPanel.js |  95.51 |    96.00 |   80.00 | 242-247 252-257
+ℹ   conversationPanel.js |  89.08 |    92.59 |   80.00 | 110-121 125-132 268-273 278-283
 ℹ   inputPanel.js        |  85.00 |    71.43 |   60.00 | 54-63 79-80
 ℹ   markdownText.js      | 100.00 |   100.00 |  100.00 | 
 ℹ   messages.js          | 100.00 |    94.44 |  100.00 | 
 ℹ   panels.js            | 100.00 |   100.00 |  100.00 | 
 ℹ ---------------------------------------------------------------------------------------------------------------------
-ℹ all files              |  97.99 |    90.21 |   84.56 | 
+ℹ all files              |  97.68 |    90.10 |   84.56 | 
 ℹ ---------------------------------------------------------------------------------------------------------------------
 ℹ end of coverage report
+
+✖ failing tests:
+
+test at tests/unit/prompts.test.js:13:2
+✖ returns the system prompt content (1.248951ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + '\n\nYou are a test assistant.'
+  - 'You are a test assistant.'
+  
+      at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/prompts.test.js:18:10)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.start (node:internal/test_runner/test:1096:17)
+      at node:internal/test_runner/test:1617:71
+      at node:internal/per_context/primordials:466:82
+      at new Promise (<anonymous>)
+      at new SafePromise (node:internal/per_context/primordials:435:3)
+      at node:internal/per_context/primordials:466:9
+      at Array.map (<anonymous>) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '\n\nYou are a test assistant.',
+    expected: 'You are a test assistant.',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/unit/prompts.test.js:21:2
+✖ strips frontmatter from system prompt (0.274557ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + '\n\nHello world.'
+  - 'Hello world.'
+  
+      at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/prompts.test.js:26:10)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Suite.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Promise.all (index 0)
+      at async Suite.run (node:internal/test_runner/test:1619:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '\n\nHello world.',
+    expected: 'Hello world.',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/unit/prompts.test.js:50:2
+✖ handles truncated frontmatter (0.205637ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + '\njust broken frontmatter'
+  - '---\njust broken frontmatter'
+  
+      at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/prompts.test.js:55:10)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Suite.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '\njust broken frontmatter',
+    expected: '---\njust broken frontmatter',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

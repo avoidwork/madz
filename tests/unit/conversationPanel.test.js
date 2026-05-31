@@ -417,12 +417,15 @@ describe("ConversationPanel - renderMessages", () => {
 		assert.strictEqual(innerBubble.props.children.length, 2);
 		const contentBox = innerBubble.props.children[1];
 		assert.ok(React.isValidElement(contentBox));
-		// Content box should have 2 children: messageText box, toolCallDisplay box
-		assert.strictEqual(contentBox.props.children.length, 2);
-		const toolCallBox = contentBox.props.children[1];
+		// Content box has 4 children: messageText box, reasoning(null), activeToolCall(null), toolCallDisplay box
+		assert.strictEqual(contentBox.props.children.length, 4);
+		const toolCallBox = contentBox.props.children[3];
 		assert.ok(React.isValidElement(toolCallBox));
 		// toolCallDisplay has 2 lines
 		assert.strictEqual(toolCallBox.props.children.length, 2);
+		// Null for reasoning and activeToolCall
+		assert.strictEqual(contentBox.props.children[1], null);
+		assert.strictEqual(contentBox.props.children[2], null);
 	});
 
 	it("renders assistant message without toolCallDisplay", () => {
@@ -433,9 +436,11 @@ describe("ConversationPanel - renderMessages", () => {
 		// Should have 2 children: header box and content box (no toolCallDisplay)
 		assert.strictEqual(innerBubble.props.children.length, 2);
 		const contentBox = innerBubble.props.children[1];
-		// Content box has 2 elements in the array, but second is null (no toolCallDisplay branch)
-		assert.strictEqual(contentBox.props.children.length, 2);
+		// Content box has 4 elements, all null except the first (messageText)
+		assert.strictEqual(contentBox.props.children.length, 4);
 		assert.strictEqual(contentBox.props.children[1], null);
+		assert.strictEqual(contentBox.props.children[2], null);
+		assert.strictEqual(contentBox.props.children[3], null);
 		// Only the first child is the messageText box
 		assert.ok(React.isValidElement(contentBox.props.children[0]));
 	});

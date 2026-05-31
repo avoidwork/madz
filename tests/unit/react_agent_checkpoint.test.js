@@ -113,53 +113,37 @@ describe("callReactAgent with config", () => {
 });
 
 describe("callReactAgent streaming with config", () => {
-	it("passes configurable to stream when config provided", async () => {
+	it("passes configurable to streamEvents when config provided", async () => {
 		let capturedStreamOptions = null;
 		const agentMock = {
-			stream: (_input, options) => {
+			streamEvents: (_input, options) => {
 				capturedStreamOptions = options;
-				return {
-					[Symbol.asyncIterator]() {
-						return { next: () => Promise.resolve({ done: true }) };
-					},
-				};
+				return (async function* () {})();
 			},
 		};
 
-		try {
-			await callReactAgent(
-				agentMock,
-				"test",
-				{ configurable: { thread_id: "stream-thread" } },
-				null,
-				() => {},
-			);
-		} catch {
-			// empty stream doesn't throw
-		}
+		await callReactAgent(
+			agentMock,
+			"test",
+			{ configurable: { thread_id: "stream-thread" } },
+			null,
+			() => {},
+		);
 
 		assert.ok(capturedStreamOptions);
 		assert.strictEqual(capturedStreamOptions.configurable.thread_id, "stream-thread");
 		// Empty stream returns fallback content (not a throw)
 	});
 
-	it("passes configurable to stream when config is null", async () => {
+	it("passes configurable to streamEvents when config is null", async () => {
 		const agentMock = {
-			stream: (_input, _options) => {
-				return {
-					[Symbol.asyncIterator]() {
-						return { next: () => Promise.resolve({ done: true }) };
-					},
-				};
+			streamEvents: (_input, _options) => {
+				return (async function* () {})();
 			},
 		};
 
-		let result = null;
-		try {
-			result = await callReactAgent(agentMock, "original message", null, null, () => {});
-		} catch {
-			// empty stream doesn't throw
-		}
+		// streaming path returns originalMessage as fallback when no text events
+		const result = await callReactAgent(agentMock, "original message", null, null, () => {});
 
 		// Empty stream returns original message as fallback (not a throw)
 		assert.strictEqual(result.content, "original message");
