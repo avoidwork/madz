@@ -4,17 +4,22 @@ Call chains and component interactions for all primary code paths in the termina
 
 ## Table of Contents
 
-| # | Section | # | Section |
-|---|---------|---|---------|
-| 1 | [Application Lifecycle](#1-application-lifecycle) | 8 | [Input Panel](#8-input-panel) |
-| 2 | [Banner Dismissal](#2-banner-dismissal) | 9 | [Markdown Rendering](#9-markdown-rendering) |
-| 3 | [Chat Message Flow (Streaming)](#3-chat-message-flow-streaming) | 10 | [Scroll Input](#10-scroll-input) |
-| 4 | [Command Parsing Flow](#4-command-parsing-flow) | 11 | [Auto-Scroll](#11-auto-scroll) |
-| 5 | [Keyboard Input (useInput, app.js:282)](#5-keyboard-input-useinput-appjs282) | 12 | [Status Bar](#12-status-bar) |
-| 6 | [Conversation Panel Render](#6-conversation-panel-render) | 13 | [Error Handling](#13-error-handling) |
-| 7 | [Panel Navigation (Tab Cycles)](#7-panel-navigation-tab-cycles) | 14 | [File Dependencies](#14-file-dependencies) |
+- [Application Lifecycle](#application-lifecycle)
+- [Banner Dismissal](#banner-dismissal)
+- [Chat Message Flow (Streaming)](#chat-message-flow-streaming)
+- [Command Parsing Flow](#command-parsing-flow)
+- [Keyboard Input (useInput, app.js:282)](#keyboard-input-useinput-appjs282)
+- [Conversation Panel Render](#conversation-panel-render)
+- [Panel Navigation (Tab Cycles)](#panel-navigation-tab-cycles)
+- [Input Panel](#input-panel)
+- [Markdown Rendering](#markdown-rendering)
+- [Scroll Input](#scroll-input)
+- [Auto-Scroll](#auto-scroll)
+- [Status Bar](#status-bar)
+- [Error Handling](#error-handling)
+- [File Dependencies](#file-dependencies)
 
-## 1. Application Lifecycle
+## Application Lifecycle
 
 **Entry:** `src/tui/index.js` → `export { default as App } from "./app.js"`
 
@@ -35,7 +40,7 @@ Mount order: state init → effects (error handlers) → input listener → wind
 
 ---
 
-## 2. Banner Dismissal
+## Banner Dismissal
 
 ```
 User presses key (useInput callback, app.js:282)
@@ -52,7 +57,7 @@ User presses key (useInput callback, app.js:282)
 
 ---
 
-## 3. Chat Message Flow (Streaming)
+## Chat Message Flow (Streaming)
 
 ```
 User presses Enter (useInput, app.js:294)
@@ -88,7 +93,7 @@ Streaming re-renders: each `setMessages` call triggers a `ConversationPanel` re-
 
 ---
 
-## 4. Command Parsing Flow
+## Command Parsing Flow
 
 ```
 User enters ":command ...", presses Enter (app.js:294)
@@ -126,7 +131,7 @@ User enters ":command ...", presses Enter (app.js:294)
 
 ---
 
-## 5. Keyboard Input (useInput, app.js:282)
+## Keyboard Input (useInput, app.js:282)
 
 ```
 useInput((input, key))
@@ -138,7 +143,7 @@ useInput((input, key))
 └── showBanner === false
     ├── key.escape → handleQuit() → process.exit(0)
     ├── key.return && !key.shift
-    │   └── handleSubmit(inputText) → [see Flow 3 / Flow 4]
+    │   └── handleSubmit(inputText) → [see Chat Message Flow / Command Parsing Flow]
     ├── key.upArrow && chatHistory.length > 0
     │   ├── historyIndex === -1 → index = length - 1
     │   ├── else → index = max(0, index - 1)
@@ -156,7 +161,7 @@ useInput((input, key))
 
 ---
 
-## 6. Conversation Panel Render
+## Conversation Panel Render
 
 ```
 ConversationPanel({ messages, assistantName })
@@ -208,7 +213,7 @@ areEqual(prevProps, nextProps):
 
 ---
 
-## 7. Panel Navigation (Tab Cycles)
+## Panel Navigation (Tab Cycles)
 
 **Order:** `conversation` → `skills` → `memory` → `settings` → `conversation` ...
 
@@ -234,7 +239,7 @@ Each panel (except Conversation) has its own internal `useInput` for arrow-key n
 
 ---
 
-## 8. Input Panel
+## Input Panel
 
 ```
 InputPanel({ inputText, blinkTimeout, cursorChar })
@@ -249,7 +254,7 @@ No useEffect, no setInterval. Pure display component.
 
 ---
 
-## 9. Markdown Rendering
+## Markdown Rendering
 
 ```
 MarkdownText({ content }) [React.memo wrapper]
@@ -264,7 +269,7 @@ MarkdownText({ content }) [React.memo wrapper]
 
 ---
 
-## 10. Scroll Input
+## Scroll Input
 
 ```
 ConversationPanel useInput((input, key))
@@ -277,7 +282,7 @@ ConversationPanel useInput((input, key))
 
 ---
 
-## 11. Auto-Scroll
+## Auto-Scroll
 
 ```
 ConversationPanel render cycle:
@@ -297,7 +302,7 @@ ConversationPanel render cycle:
 
 ---
 
-## 12. Status Bar
+## Status Bar
 
 ```
 StatusBar({ statusMessage, skillCount, messageCount, appInfo }) [React.memo]
@@ -312,7 +317,7 @@ StatusBar({ statusMessage, skillCount, messageCount, appInfo }) [React.memo]
 
 ---
 
-## 13. Error Handling
+## Error Handling
 
 ```
 app.js mount:
@@ -331,7 +336,7 @@ Streaming error:
 
 ---
 
-## 14. File Dependencies
+## File Dependencies
 
 ```
 index.js ──┐
