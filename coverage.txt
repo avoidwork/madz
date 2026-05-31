@@ -63,3 +63,20 @@
 ℹ all files              |  97.62 |    89.78 |   84.95 | 
 ℹ ---------------------------------------------------------------------------------------------------------------------
 ℹ end of coverage report
+
+✖ failing tests:
+
+test at tests/unit/tui.test.js:731:2
+✖ renders content with multiple markdown elements (0.617082ms)
+  TypeError: this.renderer.space is not a function
+  Please report this to https://github.com/markedjs/marked.
+      at __Parser.parse (file:///home/jason/Projects/madz/node_modules/marked/lib/marked.esm.js:1669:32)
+      at parse (file:///home/jason/Projects/madz/node_modules/marked/lib/marked.esm.js:1642:20)
+      at Marked.parse2 [as parse] (file:///home/jason/Projects/madz/node_modules/marked/lib/marked.esm.js:2100:21)
+      at marked [as parse] (file:///home/jason/Projects/madz/node_modules/marked/lib/marked.esm.js:2132:25)
+      at parseMarkdown (file:///home/jason/Projects/madz/src/tui/markdownText.js:16:16)
+      at MarkdownTextInner (file:///home/jason/Projects/madz/src/tui/markdownText.js:29:17)
+      at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/tui.test.js:733:18)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Suite.processPendingSubtests (node:internal/test_runner/test:831:18)
