@@ -77,7 +77,6 @@ Bundled LangChain tools gated by sandbox permissions:
 | **Media** | `image` — image processing; `vision` — vision/language analysis; `tts` — text-to-speech |
 | **Agents** | `moa` — multi-agent orchestration |
 | **Cron** | `cron` — cron job utilities |
-| **Utility** | `hello` — basic utility tool |
 
 ### Skills Registry
 
