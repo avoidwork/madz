@@ -325,7 +325,7 @@ Streaming error:
 index.js ──┐
            ├── commandParser.js ── (pure class, no deps)
            ├── panels.js ──────── (pure functions)
-           ├── hooks.js ───────── (pure functions)
+           ├── hooks.js ───────── (imports from panels.js)
            │
 app.js ─────├── conversationPanel.js ──┐
            ├── inputPanel.js ──────────┤  All components export
@@ -333,6 +333,5 @@ app.js ─────├── conversationPanel.js ──┐
            ├── banner.js ──────────────┤
            ├── messages.js ────────────┤
            ├── markdownText.js ────────┘
-           ├── config/loader.js ──── (setConfigValue import)
-           └── node:fs ─────────────── (debug logging)
+           └── config/loader.js ──── (setConfigValue import)
 ```

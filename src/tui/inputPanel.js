@@ -50,9 +50,8 @@ export function Blink({ text = "", char = "\u2588", _testFrame }) {
  * is handled by App's single useInput hook.
  * Props:
  *   inputText    - current text being typed (for display)
- *   blinkTimeout - interval in ms between cursor blinks
  *   cursorChar   - character to use as cursor indicator
  */
-export function InputPanel({ inputText = "", blinkTimeout = 530, cursorChar = "\u2588" }) {
-	return React.createElement(Blink, { text: inputText, char: cursorChar, ms: blinkTimeout });
+export function InputPanel({ inputText = "", cursorChar = "\u2588" }) {
+	return React.createElement(Blink, { text: inputText, char: cursorChar });
 }

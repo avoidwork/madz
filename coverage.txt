@@ -55,7 +55,7 @@
 ℹ  tui                   |        |          |         | 
 ℹ   commandParser.js     | 100.00 |    88.00 |  100.00 | 
 ℹ   conversationPanel.js |  87.26 |    84.29 |   82.35 | 86-97 102-109 172-184 326-331 344-349 355-356
-ℹ   inputPanel.js        |  96.55 |    80.00 |   75.00 | 57-58
+ℹ   inputPanel.js        |  96.49 |    80.00 |   75.00 | 56-57
 ℹ   markdownText.js      | 100.00 |   100.00 |  100.00 | 
 ℹ   messages.js          | 100.00 |    94.44 |  100.00 | 
 ℹ   panels.js            | 100.00 |   100.00 |  100.00 | 
@@ -67,7 +67,7 @@
 ✖ failing tests:
 
 test at tests/unit/prompts.test.js:13:2
-✖ returns the system prompt content (1.212512ms)
+✖ returns the system prompt content (1.234623ms)
   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
   + actual - expected
   
@@ -93,7 +93,7 @@ test at tests/unit/prompts.test.js:13:2
   }
 
 test at tests/unit/prompts.test.js:21:2
-✖ strips frontmatter from system prompt (0.272402ms)
+✖ strips frontmatter from system prompt (0.257084ms)
   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
   + actual - expected
   
@@ -118,7 +118,7 @@ test at tests/unit/prompts.test.js:21:2
   }
 
 test at tests/unit/prompts.test.js:50:2
-✖ handles truncated frontmatter (0.154852ms)
+✖ handles truncated frontmatter (0.150964ms)
   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
   + actual - expected
   
