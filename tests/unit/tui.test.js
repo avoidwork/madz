@@ -10,7 +10,7 @@ import {
 	countMessageLines,
 	getToolCallLines,
 } from "../../src/tui/messages.js";
-import { parseMarkdown, MarkdownText } from "../../src/tui/markdownText.js";
+import { parseMarkdown, MarkdownTextInner } from "../../src/tui/markdownText.js";
 import { TuiSchema, DEFAULT_CONFIG } from "../../src/config/schemas.js";
 import { Blink, getBlinkState, renderBlink } from "../../src/tui/inputPanel.js";
 
@@ -698,22 +698,22 @@ describe("markdownText - parseMarkdown", () => {
 
 describe("MarkdownText - rendering", () => {
 	it("returns null for null content", () => {
-		const result = MarkdownText({ content: null });
+		const result = MarkdownTextInner({ content: null });
 		assert.strictEqual(result, null);
 	});
 
 	it("returns null for undefined content", () => {
-		const result = MarkdownText({ content: undefined });
+		const result = MarkdownTextInner({ content: undefined });
 		assert.strictEqual(result, null);
 	});
 
 	it("returns null for empty string content", () => {
-		const result = MarkdownText({ content: "" });
+		const result = MarkdownTextInner({ content: "" });
 		assert.strictEqual(result, null);
 	});
 
 	it("renders Text element with normal content", () => {
-		const result = MarkdownText({ content: "# Hello" });
+		const result = MarkdownTextInner({ content: "# Hello" });
 		assert.ok(React.isValidElement(result));
 		assert.strictEqual(result.type.name, "Text");
 		assert.strictEqual(result.props.color, "white");
@@ -722,7 +722,7 @@ describe("MarkdownText - rendering", () => {
 	});
 
 	it("renders with fallback for falsy content", () => {
-		const result = MarkdownText({ content: 0 });
+		const result = MarkdownTextInner({ content: 0 });
 		assert.ok(React.isValidElement(result));
 		assert.strictEqual(result.type.name, "Text");
 		assert.strictEqual(result.props.color, "white");
@@ -730,7 +730,7 @@ describe("MarkdownText - rendering", () => {
 
 	it("renders content with multiple markdown elements", () => {
 		const content = "# Title\n\nSome paragraph.\n\n- list item";
-		const result = MarkdownText({ content });
+		const result = MarkdownTextInner({ content });
 		assert.ok(React.isValidElement(result));
 		assert.strictEqual(result.type.name, "Text");
 		assert.strictEqual(result.props.color, "white");
@@ -873,16 +873,16 @@ describe("Blink - renderBlink", () => {
 });
 
 describe("Blink - component rendering", () => {
-	it("renders visible cursor with even _testFrame", () => {
+	it("renders static cursor with even _testFrame", () => {
 		const result = Blink({ text: "hello", char: "█", _testFrame: 0 });
 		assert.ok(React.isValidElement(result));
 		assert.strictEqual(result.props.flexDirection, "row");
 		assert.strictEqual(result.props.children[1].props.children, "█");
 	});
 
-	it("renders invisible cursor with zero-width space", () => {
+	it("renders static cursor (no zero-width space toggling)", () => {
 		const result = Blink({ text: "hello", char: "█", _testFrame: 1 });
 		assert.ok(React.isValidElement(result));
-		assert.strictEqual(result.props.children[1].props.children, "\u200B");
+		assert.strictEqual(result.props.children[1].props.children, "█");
 	});
 });

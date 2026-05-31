@@ -1,5 +1,3 @@
-// oxlint-disable no-console
-
 import React, { useState } from "react";
 import { Box, Text, useInput } from "ink";
 

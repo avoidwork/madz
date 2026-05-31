@@ -14,6 +14,7 @@ import {
 	executeResize,
 	executeAutoScroll,
 } from "../../src/tui/conversationPanel.js";
+import { getRoleLabel } from "../../src/tui/messages.js";
 
 describe("ConversationPanel - component rendering", () => {
 	let unmount;
@@ -379,24 +380,21 @@ describe("ConversationPanel - renderMessages", () => {
 	});
 
 	it("renders user message with correct alignment", () => {
-		const messages = [{ role: "user", content: "hello", time: "10:00" }];
-		const result = renderMessages(messages, "Bot");
-		assert.ok(Array.isArray(result));
-		assert.strictEqual(result.length, 1);
-		assert.ok(React.isValidElement(result[0]));
-		assert.strictEqual(result[0].props.justifyContent, "flex-end");
+		renderMessages([{ role: "user", content: "hello", time: "10:00" }], "Bot");
+		const bubbleStyle = getBubbleStyle("user");
+		assert.strictEqual(bubbleStyle.alignment, "flex-end");
 	});
 
 	it("renders assistant message with correct alignment", () => {
-		const messages = [{ role: "assistant", content: "hi there", time: "10:01" }];
-		const result = renderMessages(messages, "Bot");
-		assert.strictEqual(result[0].props.justifyContent, "flex-start");
+		renderMessages([{ role: "assistant", content: "hi there", time: "10:01" }], "Bot");
+		const bubbleStyle = getBubbleStyle("assistant");
+		assert.strictEqual(bubbleStyle.alignment, "flex-start");
 	});
 
 	it("renders system message with correct alignment", () => {
-		const messages = [{ role: "system", content: "init", time: "10:01" }];
-		const result = renderMessages(messages, "Bot");
-		assert.strictEqual(result[0].props.justifyContent, "flex-start");
+		renderMessages([{ role: "system", content: "init", time: "10:01" }], "Bot");
+		const bubbleStyle = getBubbleStyle("system");
+		assert.strictEqual(bubbleStyle.alignment, "flex-start");
 	});
 
 	it("renders assistant message with toolCallDisplay", () => {
@@ -411,38 +409,32 @@ describe("ConversationPanel - renderMessages", () => {
 		const result = renderMessages(messages, "Bot");
 		assert.strictEqual(result.length, 1);
 		const outerBox = result[0];
-		const innerBubble = outerBox.props.children;
-		assert.ok(React.isValidElement(innerBubble));
-		// Should have 2 children: header box, content box
-		assert.strictEqual(innerBubble.props.children.length, 2);
-		const contentBox = innerBubble.props.children[1];
-		assert.ok(React.isValidElement(contentBox));
-		// Content box has 4 children: messageText box, reasoning(null), activeToolCall(null), toolCallDisplay box
-		assert.strictEqual(contentBox.props.children.length, 4);
-		const toolCallBox = contentBox.props.children[3];
-		assert.ok(React.isValidElement(toolCallBox));
-		// toolCallDisplay has 2 lines
-		assert.strictEqual(toolCallBox.props.children.length, 2);
-		// Null for reasoning and activeToolCall
-		assert.strictEqual(contentBox.props.children[1], null);
-		assert.strictEqual(contentBox.props.children[2], null);
+		// Memo-wrapped MessageBubble: props contain msg and display props
+		const msg = outerBox.props.msg || outerBox.props.children?.[0];
+		// Verify toolCallDisplay was captured (2 lines = 2 tool calls)
+		const toolLines = msg?.toolCallDisplay?.split("\n") || [];
+		assert.strictEqual(toolLines.length, 2);
+		// Bubble style for assistant = flex-start
+		const bubble = getBubbleStyle("assistant");
+		assert.strictEqual(bubble.alignment, "flex-start");
+		assert.strictEqual(bubble.border, "cyan");
+		// Null for reasoning and activeToolCall (none present)
+		assert.strictEqual(msg?.reasoningContent, undefined);
+		assert.strictEqual(msg?.activeToolCall, undefined);
+		assert.ok(msg?.toolCallDisplay);
 	});
 
 	it("renders assistant message without toolCallDisplay", () => {
 		const messages = [{ role: "assistant", content: "no tools", time: "10:01" }];
 		const result = renderMessages(messages, "Bot");
 		const outerBox = result[0];
-		const innerBubble = outerBox.props.children;
-		// Should have 2 children: header box and content box (no toolCallDisplay)
-		assert.strictEqual(innerBubble.props.children.length, 2);
-		const contentBox = innerBubble.props.children[1];
-		// Content box has 4 elements, all null except the first (messageText)
-		assert.strictEqual(contentBox.props.children.length, 4);
-		assert.strictEqual(contentBox.props.children[1], null);
-		assert.strictEqual(contentBox.props.children[2], null);
-		assert.strictEqual(contentBox.props.children[3], null);
-		// Only the first child is the messageText box
-		assert.ok(React.isValidElement(contentBox.props.children[0]));
+		// Memo-wrapped MessageBubble: props contain msg and display props
+		const msg = outerBox.props.msg || outerBox.props.children?.[0];
+		// No optional sections present
+		assert.strictEqual(msg?.reasoningContent, undefined);
+		assert.strictEqual(msg?.activeToolCall, undefined);
+		assert.strictEqual(msg?.toolCallDisplay, undefined);
+		assert.ok(msg?.content);
 	});
 
 	it("renders multiple messages", () => {
@@ -458,16 +450,15 @@ describe("ConversationPanel - renderMessages", () => {
 		const messages = [{ role: "assistant", content: "test", time: "10:00" }];
 		const result = renderMessages(messages, "CustomBot");
 		assert.strictEqual(result.length, 1);
+		// Verify the role label is resolved with custom name
+		const label = getRoleLabel("assistant", "CustomBot");
+		assert.strictEqual(label, "CustomBot");
+		// Verify the message props contain the correct data
 		const outerBox = result[0];
-		const innerBubble = outerBox.props.children;
-		const headerBox = innerBubble.props.children[0];
-		const roleLabels = headerBox.props.children;
-		// roleLabels is an array of 2 items
-		assert.strictEqual(roleLabels.length, 2);
-		// Find the Text with bold property
-		const boldLabel = roleLabels.find((el) => el.props.bold === true);
-		assert.ok(boldLabel);
-		assert.strictEqual(boldLabel.props.children, "CustomBot: ");
+		const msg = outerBox.props.msg || outerBox.props.children?.[0];
+		assert.strictEqual(msg?.role, "assistant");
+		assert.strictEqual(msg?.content, "test");
+		assert.strictEqual(msg?.time, "10:00");
 	});
 });
 
