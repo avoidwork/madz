@@ -363,8 +363,7 @@ Permission gates per tool:
 ├── image_generate → "network:outbound" + FAL_API_KEY
 ├── cronjob → "network:outbound"
 ├── text_to_speech → OPENAI_API_KEY
-├── mixture_of_agents → OPENROUTER_API_KEY
-└── hello_world → always (debug)
+└── mixture_of_agents → OPENROUTER_API_KEY
 ```
 
 ### Search Backend Detection
