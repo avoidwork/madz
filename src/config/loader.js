@@ -46,17 +46,18 @@ function _parseValue(str) {
  * Resolve leaf values from environment variables.
  * Maps config paths to env vars that make sense to users:
  *   providers.openai.credentials.apiKey        → OPENAI_API_KEY
- *   sandbox.timeout.seconds                    → SANDBOX_TIMEOUT_SECONDS
- * The top-level section key and "credentials" container key are always dropped.
+ *   sandbox.timeout.seconds                    → SANDBOX_SECONDS
  * @param {unknown} node - Config node to walk
  * @param {string[]} path - Dot-path segments accumulated during recursion
  * @returns {unknown}
  */
-function _resolveEnvRecursively(node, path) {
+export function _resolveEnvRecursively(node, path) {
 	// These container keys should not appear in the env var name
 	const DROPPED_KEYS = [
 		"providers", // e.g. providers.openai.apiKey → OPENAI_API_KEY
 		"credentials",
+		"ratelimit",
+		"timeout",
 	];
 
 	if (Array.isArray(node)) {
@@ -73,7 +74,7 @@ function _resolveEnvRecursively(node, path) {
 				continue;
 			}
 
-			// Drop 'providers' and 'credentials' container keys; keep section names like sandbox, memory, telemetry
+			// Drop 'providers', 'credentials', 'rateLimit', and 'timeout' container keys; keep section names
 			const envPath = child.filter((p) => !DROPPED_KEYS.includes(p.toLowerCase()));
 			const envKey = envPath.map(_toUpperSnake).join("_");
 

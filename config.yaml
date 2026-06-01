@@ -1,12 +1,12 @@
 providers:
   openai:
     type: openai
-    base_url: http://10.1.2.60:8000/v1
-    model: Qwen/Qwen3.6-35B-A3B-FP8
+    base_url: https://api.openai.com/v1
+    model: gpt-4o
     credentials:
-      apiKey: "abc"
+      apiKey: ""
     temperature: 0.7
-    maxTokens: 40960
+    maxTokens: 4096
     rateLimit:
       requestsPerMinute: 120
 inference:

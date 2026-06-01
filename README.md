@@ -269,13 +269,44 @@ npm run coverage     # Generate and verify 100% coverage
 
 ### Environment Variables
 
-Reference env vars in `config.yaml` using `${ENV_VAR_NAME}` syntax. Supported variables:
+Env vars can be used in two ways:
 
-| Variable         | Purpose                       |
-|------------------|-------------------------------|
-| `OPENAI_API_KEY` | OpenAI provider auth          |
-| `AUTH_API_KEY`   | API key authentication        |
-| `NODE_ENV`       | Environment (`production`, `development`) |
+1. **Direct** — set env vars to override config values (listed below).
+2. **Inline** — reference env vars in `config.yaml` using `${VAR_NAME}` syntax.
+
+#### OpenAI Provider Options
+
+| Variable                  | Config Key                           | Default                     |
+|---------------------------|--------------------------------------|-----------------------------|
+| `OPENAI_API_KEY`          | `providers.openai.credentials.apiKey`         | *(from config.yaml)*        |
+| `OPENAI_BASE_URL`         | `providers.openai.base_url`             | `https://api.openai.com/v1` |
+| `OPENAI_MODEL`            | `providers.openai.model`                | `gpt-4o`                    |
+| `OPENAI_TEMPERATURE`      | `providers.openai.temperature`          | `0.7`                       |
+| `OPENAI_MAX_TOKENS`       | `providers.openai.maxTokens`            | `4096`                      |
+| `OPENAI_REQUESTS_PER_MINUTE` | `providers.openai.rateLimit.requestsPerMinute` | `120`                |
+
+#### Sandbox Options
+
+| Variable                   | Config Key                       | Default         |
+|----------------------------|----------------------------------|-----------------|
+| `SANDBOX_SECONDS`          | `sandbox.timeout.seconds`        | `30`            |
+| `SANDBOX_GRACE_PERIOD`     | `sandbox.timeout.gracePeriod`    | `5`             |
+| `SANDBOX_MEMORY_LIMIT`     | `sandbox.memoryLimit`            | `"512m"`        |
+
+#### TUI Options
+
+| Variable                     | Config Key                  | Default           |
+|------------------------------|-----------------------------|-------------------|
+| `TUI_NAME`                   | `tui.name`                  | `madz`            |
+| `TUI_CURSOR_CHAR`            | `tui.cursorChar`            | `█`               |
+| `TUI_BLINK_TIMEOUT`          | `tui.blinkTimeout`          | `530`             |
+
+#### Persistence Options
+
+| Variable                     | Config Key                        | Default                       |
+|------------------------------|-----------------------------------|-------------------------------|
+| `PERSISTENCE_MODE`           | `persistence.mode`                | `memory`                      |
+| `PERSISTENCE_SQLITE_PATH`    | `persistence.sqlite_path`         | `memory/checkpoints.db`       |
 
 ## License
 
