@@ -7,6 +7,8 @@ import {
 	getRoleColors,
 	getBubbleStyle,
 	renderMessages,
+	getHighContrastColors,
+	getHighContrastBubbleStyle,
 	handleScrollInput,
 	handleResize,
 	handleAutoScroll,
@@ -614,5 +616,122 @@ describe("ConversationPanel - execute wrappers", () => {
 		executeAutoScroll(scrollRef, messages, 5, countRef);
 		assert.strictEqual(scrollToBottomCalled, false);
 		assert.strictEqual(countRef.current, 5);
+	});
+});
+
+describe("ConversationPanel - getHighContrastColors", () => {
+	it("returns white for user role in high-contrast mode", () => {
+		assert.deepStrictEqual(getHighContrastColors("user"), { label: "white", content: "white" });
+	});
+
+	it("returns white for assistant role in high-contrast mode", () => {
+		assert.deepStrictEqual(getHighContrastColors("assistant"), {
+			label: "white",
+			content: "white",
+		});
+	});
+
+	it("returns white for system role in high-contrast mode", () => {
+		assert.deepStrictEqual(getHighContrastColors("system"), { label: "white", content: "white" });
+	});
+
+	it("caches results per role", () => {
+		const result1 = getHighContrastColors("user");
+		const result2 = getHighContrastColors("user");
+		assert.strictEqual(result1, result2); // Same cached reference
+	});
+});
+
+describe("ConversationPanel - getHighContrastBubbleStyle", () => {
+	it("returns background tint for user role", () => {
+		assert.deepStrictEqual(getHighContrastBubbleStyle("user"), {
+			alignment: "flex-end",
+			border: "green",
+			background: "#2a2a2a",
+		});
+	});
+
+	it("returns background tint for assistant role", () => {
+		assert.deepStrictEqual(getHighContrastBubbleStyle("assistant"), {
+			alignment: "flex-start",
+			border: "cyan",
+			background: "#252525",
+		});
+	});
+
+	it("returns background tint for system role", () => {
+		assert.deepStrictEqual(getHighContrastBubbleStyle("system"), {
+			alignment: "flex-start",
+			border: "yellow",
+			background: "#2a2420",
+		});
+	});
+
+	it("caches results per role", () => {
+		const result1 = getHighContrastBubbleStyle("assistant");
+		const result2 = getHighContrastBubbleStyle("assistant");
+		assert.strictEqual(result1, result2);
+	});
+});
+
+describe("ConversationPanel - getRoleColors with highContrast", () => {
+	it("returns green/white for user when highContrast is false", () => {
+		assert.deepStrictEqual(getRoleColors("user", false), { label: "green", content: "white" });
+	});
+
+	it("returns white for user when highContrast is true", () => {
+		assert.deepStrictEqual(getRoleColors("user", true), { label: "white", content: "white" });
+	});
+
+	it("returns cyan/white for assistant when highContrast is false", () => {
+		assert.deepStrictEqual(getRoleColors("assistant", false), { label: "cyan", content: "white" });
+	});
+
+	it("returns white for assistant when highContrast is true", () => {
+		assert.deepStrictEqual(getRoleColors("assistant", true), { label: "white", content: "white" });
+	});
+
+	it("returns yellow for system when highContrast is false", () => {
+		assert.deepStrictEqual(getRoleColors("system", false), { label: "yellow", content: "yellow" });
+	});
+
+	it("returns white for system when highContrast is true", () => {
+		assert.deepStrictEqual(getRoleColors("system", true), { label: "white", content: "white" });
+	});
+});
+
+describe("ConversationPanel - renderMessages with highContrast", () => {
+	it("renders empty state with highContrast prop", () => {
+		const result = renderMessages([], "Bot", true);
+		assert.strictEqual(result.length, 1);
+		const emptyEl = result[0];
+		assert.strictEqual(emptyEl.props.bold, true);
+	});
+
+	it("renders empty state without bold when highContrast is false", () => {
+		const result = renderMessages([], "Bot", false);
+		assert.strictEqual(result.length, 1);
+		const emptyEl = result[0];
+		assert.strictEqual(emptyEl.props.bold, false);
+	});
+});
+
+describe("ConversationPanel - component with backgroundColor", () => {
+	it("renders with default backgroundColor", () => {
+		const { unmount } = render(
+			React.createElement(ConversationPanel, { messages: [], assistantName: "Bot" }),
+		);
+		unmount();
+	});
+
+	it("renders with custom backgroundColor", () => {
+		const { unmount } = render(
+			React.createElement(ConversationPanel, {
+				messages: [],
+				assistantName: "Bot",
+				backgroundColor: "#000000",
+			}),
+		);
+		unmount();
 	});
 });

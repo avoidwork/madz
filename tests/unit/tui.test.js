@@ -13,6 +13,7 @@ import {
 import { parseMarkdown, MarkdownTextInner } from "../../src/tui/markdownText.js";
 import { TuiSchema, DEFAULT_CONFIG } from "../../src/config/schemas.js";
 import { Blink, getBlinkState, renderBlink } from "../../src/tui/inputPanel.js";
+import { getStatusLabel } from "../../src/tui/statusBar.js";
 
 describe("command parser", () => {
 	it("parses :quit command", () => {
@@ -846,5 +847,89 @@ describe("Blink - component rendering", () => {
 		const result = Blink({ text: "hello", char: "█", _testFrame: 1 });
 		assert.ok(React.isValidElement(result));
 		assert.strictEqual(result.props.children[1].props.children, "█");
+	});
+});
+
+describe("TuiSchema - backgroundColor and highContrast", () => {
+	it("accepts valid backgroundColor", () => {
+		const result = TuiSchema.safeParse({ backgroundColor: "#1e1e1e" });
+		assert.strictEqual(result.success, true);
+		assert.strictEqual(result.data.backgroundColor, "#1e1e1e");
+	});
+
+	it("accepts highContrast true", () => {
+		const result = TuiSchema.safeParse({ highContrast: true });
+		assert.strictEqual(result.success, true);
+		assert.strictEqual(result.data.highContrast, true);
+	});
+
+	it("accepts highContrast false", () => {
+		const result = TuiSchema.safeParse({ highContrast: false });
+		assert.strictEqual(result.success, true);
+		assert.strictEqual(result.data.highContrast, false);
+	});
+
+	it("defaults backgroundColor to #1e1e1e when missing", () => {
+		const result = TuiSchema.safeParse({});
+		assert.strictEqual(result.success, true);
+		assert.strictEqual(result.data.backgroundColor, "#1e1e1e");
+	});
+
+	it("defaults highContrast to false when missing", () => {
+		const result = TuiSchema.safeParse({});
+		assert.strictEqual(result.success, true);
+		assert.strictEqual(result.data.highContrast, false);
+	});
+});
+
+describe("DEFAULT_CONFIG - new tui fields", () => {
+	it("includes backgroundColor default", () => {
+		assert.strictEqual(DEFAULT_CONFIG.tui.backgroundColor, "#1e1e1e");
+	});
+
+	it("includes highContrast default", () => {
+		assert.strictEqual(DEFAULT_CONFIG.tui.highContrast, false);
+	});
+
+	it("matches TuiSchema defaults for backgroundColor", () => {
+		const schemaResult = TuiSchema.safeParse({});
+		assert.strictEqual(schemaResult.success, true);
+		assert.strictEqual(schemaResult.data.backgroundColor, DEFAULT_CONFIG.tui.backgroundColor);
+	});
+
+	it("matches TuiSchema defaults for highContrast", () => {
+		const schemaResult = TuiSchema.safeParse({});
+		assert.strictEqual(schemaResult.success, true);
+		assert.strictEqual(schemaResult.data.highContrast, DEFAULT_CONFIG.tui.highContrast);
+	});
+});
+
+describe("getStatusLabel", () => {
+	it("returns ERROR for error status", () => {
+		assert.strictEqual(getStatusLabel("Error connecting"), "ERROR");
+	});
+
+	it("returns ERROR for status starting with Error", () => {
+		assert.strictEqual(getStatusLabel("ErrorHandler"), "ERROR");
+	});
+
+	it("returns SEND for sending status", () => {
+		assert.strictEqual(getStatusLabel("Sending..."), "SEND");
+	});
+
+	it("returns SEND for streaming status", () => {
+		assert.strictEqual(getStatusLabel("Streaming..."), "SEND");
+	});
+
+	it("returns OK for ready status", () => {
+		assert.strictEqual(getStatusLabel("Ready"), "OK");
+	});
+
+	it("returns OK for received response status", () => {
+		assert.strictEqual(getStatusLabel("Received response"), "OK");
+	});
+
+	it("returns OK for unknown status", () => {
+		assert.strictEqual(getStatusLabel("Some random status"), "OK");
 	});
 });

@@ -318,7 +318,10 @@ export default function App({ config, registry, sessionState, dispatchProvider, 
 		Box,
 		{ flexDirection: "column", width: "100%", height: rows },
 		showBanner
-			? React.createElement(Banner, { onDismiss: () => setShowBanner(false) })
+			? React.createElement(Banner, {
+					onDismiss: () => setShowBanner(false),
+					highContrast: config?.tui?.highContrast,
+				})
 			: React.createElement(ConversationPanel, {
 					messages: messages,
 					assistantName: config?.tui?.name || "Assistant",

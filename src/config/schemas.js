@@ -98,6 +98,8 @@ export const SchedulesSchema = z.object({
 export const TuiSchema = z.object({
 	name: z.string().default("madz"),
 	cursorChar: z.string().default("\u2588"),
+	backgroundColor: z.string().default("#1e1e1e"),
+	highContrast: z.boolean().default(false),
 });
 
 // --- Persistence schemas ---
@@ -149,6 +151,6 @@ export const DEFAULT_CONFIG = {
 		redact: { paths: ["credentials.apiKey"] },
 	},
 	schedules: { maxConcurrent: 1, entries: [] },
-	tui: { name: "madz", cursorChar: "\u2588" },
+	tui: { name: "madz", cursorChar: "\u2588", backgroundColor: "#1e1e1e", highContrast: false },
 	persistence: { mode: "memory", sqlite_path: "memory/checkpoints.db" },
 };

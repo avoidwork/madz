@@ -23,11 +23,54 @@ export function formatTime(date) {
 }
 
 /**
- * Get color for a message role.
+ * Get high-contrast color for a message role.
  * @param {string} role
  * @returns {{ label: string, content: string }}
  */
-export function getRoleColors(role) {
+export function getHighContrastColors(role) {
+	const cache = getHighContrastColors._cache || (getHighContrastColors._cache = new Map());
+	if (!cache.has(role)) {
+		if (role === "user") {
+			cache.set(role, { label: "white", content: "white" });
+		} else if (role === "system") {
+			cache.set(role, { label: "white", content: "white" });
+		} else {
+			cache.set(role, { label: "white", content: "white" });
+		}
+	}
+	return cache.get(role);
+}
+
+/**
+ * Get high-contrast bubble style with role-specific background tints.
+ * @param {string} role
+ * @returns {{ alignment: "flex-start" | "flex-end", border: string, background: string }}
+ */
+export function getHighContrastBubbleStyle(role) {
+	const cache =
+		getHighContrastBubbleStyle._cache || (getHighContrastBubbleStyle._cache = new Map());
+	if (!cache.has(role)) {
+		if (role === "user") {
+			cache.set(role, { alignment: "flex-end", border: "green", background: "#2a2a2a" });
+		} else if (role === "system") {
+			cache.set(role, { alignment: "flex-start", border: "yellow", background: "#2a2420" });
+		} else {
+			cache.set(role, { alignment: "flex-start", border: "cyan", background: "#252525" });
+		}
+	}
+	return cache.get(role);
+}
+
+/**
+ * Get color for a message role, optionally switching to high-contrast mode.
+ * @param {string} role
+ * @param {boolean} [highContrast] - Whether to use high-contrast colors
+ * @returns {{ label: string, content: string }}
+ */
+export function getRoleColors(role, highContrast) {
+	if (highContrast) {
+		return getHighContrastColors(role);
+	}
 	const cache = getRoleColors._cache || (getRoleColors._cache = new Map());
 	if (!cache.has(role)) {
 		if (role === "user") {
@@ -71,10 +114,10 @@ export function getBubbleStyle(role) {
  * @returns {React.ReactElement}
  */
 const MessageBubble = React.memo(
-	function MessageBubble({ msg, assistantName }) {
+	function MessageBubble({ msg, assistantName, highContrast = false }) {
 		const time = msg.time || formatTime(new Date());
-		const colors = getRoleColors(msg.role);
-		const bubble = getBubbleStyle(msg.role);
+		const colors = getRoleColors(msg.role, highContrast);
+		const bubble = highContrast ? getHighContrastBubbleStyle(msg.role) : getBubbleStyle(msg.role);
 
 		const content = msg.content || "";
 		const hasReasoning = msg.role === "assistant" && msg.reasoningContent;
@@ -87,7 +130,7 @@ const MessageBubble = React.memo(
 					{ flexDirection: "row", marginTop: 1, marginLeft: 2 },
 					React.createElement(
 						Text,
-						{ dim: true, color: "gray" },
+						{ dim: !highContrast, color: highContrast ? "white" : "gray", bold: highContrast },
 						`(thinking) ` +
 							(msg.reasoningContent || "").slice(0, 200) +
 							(msg.reasoningContent && msg.reasoningContent.length > 200
@@ -103,7 +146,7 @@ const MessageBubble = React.memo(
 					{ flexDirection: "row", marginTop: 1, marginLeft: 2 },
 					React.createElement(
 						Text,
-						{ dim: true, color: "gray" },
+						{ dim: !highContrast, color: highContrast ? "white" : "gray", bold: highContrast },
 						`- Running: ${msg.activeToolCall.name} \u00b7\u00b7\u00b7`,
 					),
 				)
@@ -113,15 +156,18 @@ const MessageBubble = React.memo(
 			? React.createElement(
 					Box,
 					{ flexDirection: "column", marginTop: 1, marginLeft: 2 },
-					...msg.toolCallDisplay
-						.split("\n")
-						.map((line, j) =>
-							React.createElement(
-								Text,
-								{ key: "tool-" + j, dim: true, color: "gray" },
-								"  " + line,
-							),
+					...msg.toolCallDisplay.split("\n").map((line, j) =>
+						React.createElement(
+							Text,
+							{
+								key: "tool-" + j,
+								dim: !highContrast,
+								color: highContrast ? "white" : "gray",
+								bold: highContrast,
+							},
+							"  " + line,
 						),
+					),
 				)
 			: null;
 
@@ -142,14 +188,19 @@ const MessageBubble = React.memo(
 					borderColor: bubble.border,
 					borderStyle: "round",
 					maxWidth: "90%",
+					backgroundColor: bubble.background,
 				},
 				React.createElement(
 					Box,
 					{ flexDirection: "row" },
-					React.createElement(Text, { color: "gray" }, "[" + time + "] "),
 					React.createElement(
 						Text,
-						{ color: colors.label, bold: true },
+						{ color: "gray", dim: !highContrast, bold: highContrast },
+						"[" + time + "] ",
+					),
+					React.createElement(
+						Text,
+						{ color: colors.label, bold: highContrast },
 						getRoleLabel(msg.role, assistantName) + ": ",
 					),
 				),
@@ -180,7 +231,8 @@ const MessageBubble = React.memo(
 			p.toolCallDisplay === n.toolCallDisplay &&
 			p.activeToolCall === n.activeToolCall &&
 			p._index === n._index &&
-			prevProps.assistantName === nextProps.assistantName
+			prevProps.assistantName === nextProps.assistantName &&
+			prevProps.highContrast === nextProps.highContrast
 		);
 	},
 );
@@ -191,9 +243,10 @@ const MessageBubble = React.memo(
  * Uses memoized MessageBubble components to skip re-render of unchanged rows.
  * @param {Array} messages - The messages to render
  * @param {string} assistantName - Name to display for assistant messages
+ * @param {boolean} [highContrast] - High-contrast mode flag for accessibility
  * @returns {Array} React elements
  */
-export function renderMessages(messages, assistantName) {
+export function renderMessages(messages, assistantName, highContrast = false) {
 	const children = [];
 
 	for (let i = 0; i < messages.length; i++) {
@@ -205,13 +258,18 @@ export function renderMessages(messages, assistantName) {
 				key: rowKey,
 				msg: { ...msg, _index: i },
 				assistantName,
+				highContrast,
 			}),
 		);
 	}
 
 	if (messages.length === 0) {
 		children.push(
-			React.createElement(Text, { key: "empty", gray: true }, " No messages yet. Start chatting!"),
+			React.createElement(
+				Text,
+				{ key: "empty", gray: true, dim: !highContrast, bold: highContrast },
+				" No messages yet. Start chatting!",
+			),
 		);
 	}
 
@@ -311,17 +369,23 @@ export function executeAutoScroll(scrollRef, messages, previousCount, countRef) 
  * Conversation panel component with ScrollView-based scrolling.
  * Handles keyboard scroll input, terminal resize remeasurement,
  * and auto-scroll-to-bottom on new messages and streaming overflow.
+ * @param {object} props
+ * @param {Array} [props.messages] - The conversation messages
+ * @param {string} [props.assistantName] - Name for assistant role display
+ * @param {string} [props.backgroundColor] - Background color hex string (e.g., "#1e1e1e")
  */
-export function ConversationPanel({ messages = [], assistantName = "Assistant" }) {
+export function ConversationPanel({
+	messages = [],
+	assistantName = "Assistant",
+	backgroundColor = "#1e1e1e",
+}) {
 	const scrollRef = useRef(null);
 	const previousMessageCount = useRef(0);
 	const lastContentHashRef = useRef(0);
 	const { stdout } = useStdout();
 
-	// Handle keyboard scroll input
 	useInput((input, key) => executeScrollInput(scrollRef.current, key));
 
-	// Handle terminal resize by remeasuring content heights
 	useEffect(() => {
 		if (!stdout) return;
 		const resizeHandler = () => executeResize(scrollRef.current);
@@ -331,8 +395,6 @@ export function ConversationPanel({ messages = [], assistantName = "Assistant" }
 		};
 	}, [stdout]);
 
-	// Compute a lightweight content hash to avoid redundant auto-scroll calculations.
-	// Only triggers scroll when message count changes or streaming content overflows.
 	const prevHash = lastContentHashRef.current;
 	lastContentHashRef.current =
 		messages.length +
@@ -348,7 +410,6 @@ export function ConversationPanel({ messages = [], assistantName = "Assistant" }
 			previousMessageCount,
 		);
 	} else if (messages.length > 0 && messages[messages.length - 1].streaming) {
-		// Streaming overflow: content grew beyond previously tracked hash
 		const contentH = scrollRef.current?.getContentHeight();
 		const viewportH = scrollRef.current?.getViewportHeight();
 		if (contentH && viewportH && contentH > viewportH) {
@@ -363,7 +424,7 @@ export function ConversationPanel({ messages = [], assistantName = "Assistant" }
 
 	return React.createElement(
 		Box,
-		{ key: "panel", flexDirection: "column", flexGrow: 1 },
+		{ key: "panel", flexDirection: "column", flexGrow: 1, backgroundColor },
 		React.createElement(ScrollView, { ref: scrollRef }, ...children),
 	);
 }

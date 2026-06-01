@@ -4,9 +4,12 @@ import { useInput } from "ink";
 
 /**
  * Memory panel that displays index entries with file viewer.
- * Props: entries - array of { title, path, timestamp }
+ * Props: entries, highContrast
+ * @param {object} props
+ * @param {Array} [props.entries] - Array of { title, path, timestamp }
+ * @param {boolean} [props.highContrast] - High-contrast display mode
  */
-export function MemoryPanel({ entries = [] }) {
+export function MemoryPanel({ entries = [], highContrast = false }) {
 	const [selectedEntry, setSelectedEntry] = useState(null);
 	const [focusIndex, setFocusIndex] = useState(0);
 
@@ -37,7 +40,10 @@ export function MemoryPanel({ entries = [] }) {
 				</Text>
 				{visibleEntries.map((entry, i) => (
 					<Box key={entry.title} borderColor={focusIndex === i ? "cyan" : "transparent"}>
-						<Text>
+						<Text
+							color={focusIndex === i && highContrast ? "white" : undefined}
+							bold={focusIndex === i && highContrast}
+						>
 							{focusIndex === i ? "▸ " : "  "}
 							{entry.title}
 						</Text>
@@ -47,9 +53,18 @@ export function MemoryPanel({ entries = [] }) {
 			</Box>
 			{selectedEntry && (
 				<Box flexDirection="column" width="50%" borderStyle="single" borderColor="gray">
-					<Text bold> {selectedEntry.title} </Text>
-					<Text gray> Path: {selectedEntry.path}</Text>
-					<Text gray> Date: {selectedEntry.timestamp}</Text>
+					<Text bold {...(highContrast && { color: "white" })}>
+						{" "}
+						{selectedEntry.title}{" "}
+					</Text>
+					<Text gray dim={!highContrast} bold={highContrast}>
+						{" "}
+						Path: {selectedEntry.path}
+					</Text>
+					<Text gray dim={!highContrast} bold={highContrast}>
+						{" "}
+						Date: {selectedEntry.timestamp}
+					</Text>
 				</Box>
 			)}
 		</Box>

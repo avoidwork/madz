@@ -4,9 +4,12 @@ import { useInput } from "ink";
 
 /**
  * Skills panel that lists registered skills with search.
- * Props: skills - array of skill names
+ * Props: skills, highContrast
+ * @param {object} props
+ * @param {string[]} [props.skills] - Array of skill names
+ * @param {boolean} [props.highContrast] - High-contrast display mode
  */
-export function SkillsPanel({ skills = [] }) {
+export function SkillsPanel({ skills = [], highContrast = false }) {
 	const [searchQuery, _setSearchQuery] = useState("");
 	const [focusedSkill, setFocusedSkill] = useState(0);
 
@@ -27,10 +30,16 @@ export function SkillsPanel({ skills = [] }) {
 				{" "}
 				Skills{" "}
 			</Text>
-			<Text gray> Filter: {searchQuery || "all"}</Text>
+			<Text gray dim={!highContrast} bold={highContrast}>
+				{" "}
+				Filter: {searchQuery || "all"}
+			</Text>
 			{filteredSkills.map((skill, i) => (
 				<Box key={skill} borderColor={focusedSkill === i ? "cyan" : "transparent"}>
-					<Text>
+					<Text
+						color={focusedSkill === i && highContrast ? "white" : undefined}
+						bold={focusedSkill === i && highContrast}
+					>
 						{focusedSkill === i ? "▸ " : "  "}
 						{skill}
 					</Text>

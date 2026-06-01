@@ -37,8 +37,9 @@ const SEPARATOR = "─".repeat(70);
  * Fixed top-left alignment. Dismisses on any key press.
  * @param {Object} props
  * @param {() => void} props.onDismiss - callback to dismiss the banner
+ * @param {boolean} [props.highContrast] - High-contrast display mode
  */
-export function Banner({ onDismiss }) {
+export function Banner({ onDismiss, highContrast = false }) {
 	const [dismissed, setDismissed] = useState(false);
 
 	useInput((input, key) => {
@@ -55,6 +56,9 @@ export function Banner({ onDismiss }) {
 	const lines = BANNER_ART.filter((l) => l.trim());
 	const bodyLines = COMMAND_GROUPS.flatMap((g) => [g.group, ...g.items.map((it) => "  " + it)]);
 
+	const separatorColor = highContrast ? "white" : "gray";
+	const separatorProps = highContrast ? { color: "white", bold: true } : { color: "white" };
+
 	const children = lines.map((line, i) =>
 		React.createElement(Text, { key: "art-" + i, color: "cyan" }, line),
 	);
@@ -63,12 +67,16 @@ export function Banner({ onDismiss }) {
 		React.createElement(
 			Box,
 			{ flexDirection: "column", marginTop: 2 },
-			React.createElement(Text, { color: "white" }, SEPARATOR),
+			React.createElement(Text, separatorProps, SEPARATOR),
 			...bodyLines.map((line, i) =>
 				React.createElement(Text, { key: "cmd-" + i, color: "white" }, line),
 			),
-			React.createElement(Text, { color: "gray" }, SEPARATOR),
-			React.createElement(Text, { color: "gray" }, "Press any key to continue..."),
+			React.createElement(Text, { color: separatorColor, bold: highContrast }, SEPARATOR),
+			React.createElement(
+				Text,
+				{ color: separatorColor, bold: highContrast },
+				"Press any key to continue...",
+			),
 		),
 	);
 

@@ -1,15 +1,11 @@
 /**
  * Settings panel section for the TUI.
+ * Props: configSections, highContrast
+ * @param {object} props
+ * @param {string[]} [props.configSections] - Array of config section names
+ * @param {boolean} [props.highContrast] - High-contrast display mode
  */
-import React, { useState } from "react";
-import { Box, Text } from "ink";
-import { useInput } from "ink";
-
-/**
- * Settings panel that shows current config sections.
- * Props: configSections - array of section names
- */
-export function SettingsPanel({ configSections = [] }) {
+export function SettingsPanel({ configSections = [], highContrast = false }) {
 	const [focusIndex, setFocusIndex] = useState(0);
 	const [selectedSection, setSelectedSection] = useState(null);
 
@@ -37,7 +33,10 @@ export function SettingsPanel({ configSections = [] }) {
 				</Text>
 				{configSections.map((section, i) => (
 					<Box key={section} borderColor={focusIndex === i ? "cyan" : "transparent"}>
-						<Text>
+						<Text
+							color={focusIndex === i && highContrast ? "white" : undefined}
+							bold={focusIndex === i && highContrast}
+						>
 							{focusIndex === i ? "▸ " : "  "}
 							{section}
 						</Text>
@@ -47,8 +46,14 @@ export function SettingsPanel({ configSections = [] }) {
 			{selectedSection && (
 				<Box flexDirection="column" width="55%" borderStyle="single" borderColor="gray">
 					<Text bold> {selectedSection} </Text>
-					<Text gray> Edit config values here.</Text>
-					<Text gray> Use :config set &lt;key&gt; &lt;value&gt;.</Text>
+					<Text gray dim={!highContrast} bold={highContrast}>
+						{" "}
+						Edit config values here.
+					</Text>
+					<Text gray dim={!highContrast} bold={highContrast}>
+						{" "}
+						Use :config set &lt;key&gt; &lt;value&gt;.
+					</Text>
 				</Box>
 			)}
 		</Box>
