@@ -61,7 +61,10 @@ describe("applyDotPathMutation", () => {
 				paths: ["memory/", "skills/"],
 				timeout: { seconds: 30, gracePeriod: 5 },
 				memoryLimit: "512m",
+				safety: { urlFilter: true, pythonImportHook: true },
 				env: { allowlist: ["PATH", "HOME"] },
+				permissions: [],
+				maxReadSize: "1mb",
 			},
 			memory: {
 				directory: "memory/",
@@ -69,8 +72,6 @@ describe("applyDotPathMutation", () => {
 				toolsDir: "memory/tools/",
 				errorsDir: "memory/errors/",
 				schedulesDir: "memory/schedules/",
-				indexFile: "memory/_index.md",
-				retention: { days: 90, maxEntries: 1000 },
 			},
 			telemetry: {
 				enabled: false,
@@ -83,8 +84,8 @@ describe("applyDotPathMutation", () => {
 				redact: { paths: ["credentials.apiKey"] },
 			},
 			schedules: { maxConcurrent: 1, entries: [] },
-			session: { context_window_size: 20, conversationsDir: "memory/conversations/" },
 			tui: { name: "madz" },
+			persistence: { mode: "memory", sqlite_path: "memory/checkpoints.db" },
 		});
 	}
 

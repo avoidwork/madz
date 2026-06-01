@@ -62,14 +62,14 @@
 ℹ   messages.js          | 100.00 |    94.44 |  100.00 | 
 ℹ   panels.js            | 100.00 |   100.00 |  100.00 | 
 ℹ ---------------------------------------------------------------------------------------------------------------------
-ℹ all files              |  96.64 |    89.55 |   83.49 | 
+ℹ all files              |  96.63 |    89.55 |   83.49 | 
 ℹ ---------------------------------------------------------------------------------------------------------------------
 ℹ end of coverage report
 
 ✖ failing tests:
 
 test at tests/unit/scheduler_runner.test.js:70:2
-✖ missing contextFile falls back to loadContext (1.156196ms)
+✖ missing contextFile falls back to loadContext (1.069743ms)
   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
   + actual - expected
   
@@ -77,7 +77,7 @@ test at tests/unit/scheduler_runner.test.js:70:2
   +   '[Context: /home/jason/Projects/madz/memory/context/clarifications.md]\n' +
   +   '## Clarification: Test question\n' +
   +   '\n' +
-  +   '- Time: 2026-06-01T02:35:43.834Z\n' +
+  +   '- Time: 2026-06-01T02:38:26.115Z\n' +
   +   '\n' +
   +   '- Options: , , Options:, 1. A, 2. B'
   - ''
@@ -87,14 +87,14 @@ test at tests/unit/scheduler_runner.test.js:70:2
       at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
     generatedMessage: true,
     code: 'ERR_ASSERTION',
-    actual: '\n[Context: /home/jason/Projects/madz/memory/context/clarifications.md]\n## Clarification: Test question\n\n- Time: 2026-06-01T02:35:43.834Z\n\n- Options: , , Options:, 1. A, 2. B',
+    actual: '\n[Context: /home/jason/Projects/madz/memory/context/clarifications.md]\n## Clarification: Test question\n\n- Time: 2026-06-01T02:38:26.115Z\n\n- Options: , , Options:, 1. A, 2. B',
     expected: '',
     operator: 'strictEqual',
     diff: 'simple'
   }
 
 test at tests/unit/tool_index.test.js:50:2
-✖ returns only clarify and execute_code with empty permissions (1.580124ms)
+✖ returns only clarify and execute_code with empty permissions (1.555478ms)
   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
   
   4 !== 2
@@ -113,7 +113,7 @@ test at tests/unit/tool_index.test.js:50:2
   }
 
 test at tests/unit/tool_index.test.js:126:2
-✖ handles maxReadSize in config (0.748608ms)
+✖ handles maxReadSize in config (0.720235ms)
   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
   
   4 !== 2
@@ -130,7 +130,7 @@ test at tests/unit/tool_index.test.js:126:2
   }
 
 test at tests/unit/tool_registration.test.js:37:2
-✖ registers clarifying (no permissions) andTier 1 tools with permissions (6.144044ms)
+✖ registers clarifying (no permissions) andTier 1 tools with permissions (6.187135ms)
   AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
   
     assert.ok(!toolNames.includes("vision_analyze"))

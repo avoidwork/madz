@@ -206,32 +206,41 @@ node index.js "Summarize memory/_index.md" --json
 
 ## Config Reference
 
-| Section        | Key                   | Default            | Description                           |
-|----------------|-----------------------|--------------------|---------------------------------------|
-| `providers`    | `openai.model`        | `gpt-4o`           | Model name                            |
-|                | `openai.temperature`  | `0.7`              | Sampling temperature                  |
-|                | `openai.maxTokens`    | `4096`             | Max output tokens                     |
-| `inference`    | `temperature`         | `0.7`              | Inference-level sampling temperature  |
-|                | `maxTokens`           | `4096`             | Max output tokens for inference       |
-| `sandbox`      | `paths`               | `["memory/", "skills/", "tmp/"]` | Allowed filesystem paths           |
-|                | `timeout.seconds`     | `30`               | Max execution time                    |
-|                | `timeout.gracePeriod` | `5`                | Kill grace period in seconds          |
-|                | `memoryLimit`         | `"512m"`           | Heap limit via `--max-old-space-size` |
-| `telemetry`    | `enabled`             | `false`            | Enable OpenTelemetry export           |
-|                | `exporter.protocol`   | `console`          | `console`, `http`, or `grpc`          |
-|                | `exporter.endpoint`   | `http://localhost:4318` | Telemetry endpoint URL             |
-|                | `exporter.batch.maxSize` | `512`           | Max batch size before flush           |
-|                | `sampling.ratio`      | `0.1`              | Trace probability                     |
-|                | `redact.paths`        | `credentials.apiKey` | Sensitive field paths for redaction |
-| `memory`       | `directory`           | `memory/`          | Base directory for persistence        |
-|                | `indexFile`           | `memory/_index.md` | Master index file                     |
-|                | `retention.days`      | `90`               | Purge entries older than N days       |
-| `schedules`    | `maxConcurrent`       | `1`                | Max parallel scheduled runs           |
-| `session`      | `context_window_size` | `20`               | Exchange count before trimming        |
-| `tui`          | `name`                | `madz`             | TUI identifier shown in banner        |
-|                | `cursorChar`          | `█`                | Cursor character                      |
-| `persistence`  | `mode`                | `memory`           | Storage backend (`memory`, `sqlite`)  |
-|                | `sqlite_path`         | `memory/checkpoints.db` | SQLite checkpointer file path    |
+| Section        | Key                                | Default                                   | Description                                       |
+|----------------|------------------------------------|-------------------------------------------|---------------------------------------------------|
+| `providers`    | `openai.type`                      | `openai`                                  | LLM provider type                                 |
+|                | `openai.base_url`                  | `https://api.openai.com/v1`               | API endpoint URL                                  |
+|                | `openai.model`                     | `gpt-4o`                                  | Model name                                        |
+|                | `openai.credentials.apiKey`        | *(empty)*                                 | API key for authentication                        |
+|                | `openai.temperature`               | `0.7`                                     | Sampling temperature (0–2)                        |
+|                | `openai.maxTokens`                 | `4096`                                    | Max output tokens                                 |
+|                | `openai.rateLimit.requestsPerMinute` | `120`                                   | Rate limit for API calls                          |
+| `sandbox`      | `paths`                            | `["memory/", "skills/", "tmp/"]`          | Allowed filesystem paths                          |
+|                | `timeout.seconds`                  | `30`                                      | Max execution time in seconds                     |
+|                | `timeout.gracePeriod`              | `5`                                       | Kill grace period in seconds                      |
+|                | `memoryLimit`                      | `"512m"`                                  | Heap limit (`--max-old-space-size`)               |
+|                | `safety.urlFilter`                 | `true`                                    | Outbound URL blocking                             |
+|                | `safety.pythonImportHook`          | `true`                                    | Prevent subprocess import                         |
+|                | `env.allowlist`                    | `["PATH", "HOME", "NODE_ENV"]`            | Allowed environment variables                     |
+|                | `permissions`                      | `["filesystem:read", ...]`                | Permission grants                                 |
+|                | `maxReadSize`                      | `"1mb"`                                   | Max file read size                                |
+| `memory`       | `directory`                        | `memory/`                                 | Base directory for persistence                    |
+|                | `contextDir`                       | `memory/context/`                         | Context file directory                            |
+|                | `toolsDir`                         | `memory/tools/`                           | Tool metadata directory                           |
+|                | `errorsDir`                        | `memory/errors/`                          | Error log directory                               |
+|                | `schedulesDir`                     | `memory/schedules/`                       | Cron result files directory                       |
+| `telemetry`    | `enabled`                          | `false`                                   | Enable OpenTelemetry export                       |
+|                | `exporter.protocol`                | `console`                                 | Exporter protocol (`console`, `http`, `grpc`)     |
+|                | `exporter.endpoint`                | `http://localhost:4318`                   | OTLP endpoint URL                                 |
+|                | `exporter.batch.maxSize`           | `512`                                     | Batch size before flush                           |
+|                | `exporter.batch.scheduledDelay`    | `5000`                                    | Scheduled flush interval in ms                    |
+|                | `sampling.ratio`                   | `0.1`                                     | Trace probability                                 |
+|                | `redact.paths`                     | `["credentials.apiKey", ...]`             | Sensitive field paths for redaction               |
+| `schedules`    | `maxConcurrent`                    | `1`                                       | Max parallel scheduled runs                       |
+| `tui`          | `name`                             | `madz`                                    | TUI identifier in banner                          |
+|                | `cursorChar`                       | `█`                                       | Cursor character                                  |
+| `persistence`  | `mode`                             | `memory`                                  | Storage backend (`memory`, `sqlite`)              |
+|                | `sqlite_path`                      | `memory/checkpoints.db`                   | SQLite checkpointer file path                     |
 
 ## Testing
 
@@ -299,7 +308,6 @@ Env vars can be used in two ways:
 |------------------------------|-----------------------------|-------------------|
 | `TUI_NAME`                   | `tui.name`                  | `madz`            |
 | `TUI_CURSOR_CHAR`            | `tui.cursorChar`            | `█`               |
-| `TUI_BLINK_TIMEOUT`          | `tui.blinkTimeout`          | `530`             |
 
 #### Persistence Options
 

@@ -189,14 +189,12 @@ describe("_resolveEnvRecursively — TUI options", () => {
 	it("resolves all TUI env vars", () => {
 		process.env.TUI_NAME = "radz";
 		process.env.TUI_CURSOR_CHAR = "▮";
-		process.env.TUI_BLINK_TIMEOUT = "700";
 		const config = {
-			tui: { name: "madz", cursorChar: "█", blinkTimeout: 530 },
+			tui: { name: "madz", cursorChar: "█" },
 		};
 		const result = _resolveEnvRecursively(config, []);
 		assert.strictEqual(result.tui.name, "radz");
 		assert.strictEqual(result.tui.cursorChar, "▮");
-		assert.strictEqual(result.tui.blinkTimeout, 700);
 	});
 });
 

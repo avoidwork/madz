@@ -44,19 +44,12 @@ export const SandboxScopeSchema = z.object({
 
 // --- Memory schemas ---
 
-export const RetentionSchema = z.object({
-	days: z.number().int().positive().default(90),
-	maxEntries: z.number().int().positive().default(1000),
-});
-
 export const MemorySchema = z.object({
 	directory: z.string().default("memory/"),
 	contextDir: z.string().default("memory/context/"),
 	toolsDir: z.string().default("memory/tools/"),
 	errorsDir: z.string().default("memory/errors/"),
 	schedulesDir: z.string().default("memory/schedules/"),
-	indexFile: z.string().default("memory/_index.md"),
-	retention: RetentionSchema.default({ days: 90, maxEntries: 1000 }),
 });
 
 // --- Telemetry schemas ---
@@ -100,19 +93,11 @@ export const SchedulesSchema = z.object({
 	entries: z.array(ScheduleEntrySchema).default([]),
 });
 
-// --- Session schemas ---
-
-export const SessionSchema = z.object({
-	context_window_size: z.number().int().positive().default(20),
-	conversationsDir: z.string().default("memory/conversations/"),
-});
-
 // --- TUI schemas ---
 
 export const TuiSchema = z.object({
 	name: z.string().default("madz"),
 	cursorChar: z.string().default("\u2588"),
-	blinkTimeout: z.number().int().positive().default(530),
 });
 
 // --- Persistence schemas ---
@@ -130,7 +115,6 @@ export const ConfigSchema = z.object({
 	memory: MemorySchema,
 	telemetry: TelemetrySchema,
 	schedules: SchedulesSchema,
-	session: SessionSchema,
 	tui: TuiSchema,
 	persistence: PersistenceSchema,
 });
@@ -153,8 +137,6 @@ export const DEFAULT_CONFIG = {
 		toolsDir: "memory/tools/",
 		errorsDir: "memory/errors/",
 		schedulesDir: "memory/schedules/",
-		indexFile: "memory/_index.md",
-		retention: { days: 90, maxEntries: 1000 },
 	},
 	telemetry: {
 		enabled: false,
@@ -167,7 +149,6 @@ export const DEFAULT_CONFIG = {
 		redact: { paths: ["credentials.apiKey"] },
 	},
 	schedules: { maxConcurrent: 1, entries: [] },
-	session: { context_window_size: 20, conversationsDir: "memory/conversations/" },
-	tui: { name: "madz", cursorChar: "\u2588", blinkTimeout: 530 },
+	tui: { name: "madz", cursorChar: "\u2588" },
 	persistence: { mode: "memory", sqlite_path: "memory/checkpoints.db" },
 };
