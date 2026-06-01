@@ -17,6 +17,7 @@ import { createCodeTool } from "./code.js";
 import { createCronTool } from "./cron.js";
 import { createTtsTool } from "./tts.js";
 import { createMoaTool } from "./moa.js";
+import { createCustomizeTool } from "./customize.js";
 
 /**
  * Maps tool names to required permission scopes.
@@ -45,6 +46,7 @@ export const TOOL_PERMISSIONS = {
 	cronjob: ["network:outbound"],
 	text_to_speech: [], // requires OPENAI_API_KEY
 	mixture_of_agents: [], // requires OPENROUTER_API_KEY
+	customize: [], // always registered (no permission required)
 };
 
 // Factory functions keyed by tool name
@@ -69,6 +71,7 @@ const TOOL_FACTORIES = {
 	cronjob: createCronTool,
 	text_to_speech: createTtsTool,
 	mixture_of_agents: createMoaTool,
+	customize: createCustomizeTool,
 };
 
 /**
