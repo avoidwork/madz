@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Profile Attributes Schema
-The system SHALL define a context profile schema with the following optional attributes: `dob` (date of birth), `relationship` (relationship status), `pets` (string describing pets), `hobbies` (comma-separated list), `expertise` (comma-separated list of domains of expertise), `communicationStyle` (string describing preferred communication style), and `notes` (free-form string). Each attribute is a single-string field; no validation beyond non-null is required.
+The system SHALL define a context profile schema with the following optional attributes: `dob` (date of birth), `relationship` (relationship status), `pets` (string describing pets), `hobbies` (comma-separated list), `expertise` (comma-separated list of domains of expertise), `favoriteBands` (comma-separated list of favorite bands), `favoriteBooks` (comma-separated list of favorite books), `favoriteTv` (comma-separated list of favorite TV shows), `favoriteMovies` (comma-separated list of favorite movies), and `notes` (free-form string). Each attribute is a single-string field; no validation beyond non-null is required.
 
 #### Scenario: Profile schema defines all optional attributes
 - **WHEN** the system needs to validate a profile structure
@@ -32,7 +32,7 @@ When the system detects that no context profile exists for the current user, it 
 
 #### Scenario: User skips a COLLECT question
 - **WHEN** the user types "skip", "none", or "n/a" in response to an attribute prompt
--**THEN** the system omits that attribute from the profile and proceeds to the next attribute
+- **THEN** the system omits that attribute from the profile and proceeds to the next attribute
 
 #### Scenario: User cancels during COLLECT phase
 - **WHEN** the user types "cancel", "stop", or "exit" during the COLLECT phase
@@ -57,58 +57,9 @@ The system MUST make three controls available at every step of the onboarding fl
 - **THEN** the system does not record a value for the current attribute and proceeds to the next one
 
 #### Scenario: Cancel during COLLECT saves partial data
-- **WHEN** the user has answered 3 of 7 attribute questions and then types "cancel"
+- **WHEN** the user has answered 3 of 10 attribute questions and then types "cancel"
 - **THEN** the system persists the 3 answered attributes to the profile file and transitions to the agent loop
 
-# Contextual profile onboarding state machine tracks flow progress.
-
-### Requirement: Onboarding State Machine
-The onboarding flow SHALL be managed by a state machine with the following phases and transitions:
-- `INIT`: No profile exists; onboarding is eligible.
-- `ATTRACTOR`: Present the onboarding intro. Transitions: `skip → SAVE`, `exit → exit application`, `proceed (user starts typing) → COLLECT`.
-- `COLLECT`: Ask attributes sequentially. State includes `currentAttributeIndex` and `profileData`. Transitions: `skip/answer → next attribute`, `done (reached end of attributes) → SAVE`, `cancel → SAVE (with partial data)`.
-- `SAVE`: Write profile to disk. Transitions: `done → TRANSCEND`.
-- `TRANSCEND`: Onboarding complete; control returns to the agent loop.
-
-- **WHEN** the user types a normal message (not "skip", "cancel", or "exit")
-- **THEN** the system treats it as proceeding into onboarding (from ATTRACTOR) or as an answer to the current attribute
-
-#### Scenario: State machine transitions through COLLECT sequentially
-- **WHEN** onboarding is in COLLECT phase with `currentAttributeIndex = 2` and 5 total attributes
-- **THEN** the system prompts for the third attribute (index 2, 0-based)
-- **THEN** after a response, the system advances `currentAttributeIndex` by 1
-
-#### Scenario: State machine detects end of attributes
-- **WHEN** `currentAttributeIndex >= totalAttributes` during COLLECT
-- **THEN** the system transitions to SAVE
-
-### Requirement: Profile to LLM Context Merge
-The system SHALL load the user's context profile and format it as a structured context block that is prepended to the LLM prompt prefix, merged with any existing user context notes from `memory/context/`. The format SHALL be `[Context: Profile]\n<brief summary of attributes>` where the summary includes only non-empty attributes joined as `key: value` pairs.
-
-#### Scenario: Profile with all fields fills context prefix
-- **WHEN** the profile has dob, hobbies, relationship, and pets set
-- **THEN** the context prefix includes `[Context: Profile]\ndob: 1990, hobbies: hiking/reading, relationship: single, pets: cat named Luna`
-
-#### Scenario: Profile with partial fields fills context prefix
-- **WHEN** the profile has only hobbies set
-- **THEN** the context prefix includes `[Context: Profile]\nhobbies: hiking/reading`
-
-#### Scenario: No profile or empty profile adds no context block
-- **WHEN** the profile file does not exist or is empty
-- **THEN** the system does not add a `[Context: Profile]` block to the LLM prompt
-
-### Requirement: Profile Persistence
-The system SHALL persist the context profile as a markdown file at `memory/profile/profile.md` using YAML frontmatter for structured fields and the markdown body for free-form notes. The file SHALL be written atomically (write to temp file, then rename) to prevent corruption.
-
-#### Scenario: New profile is written on disk
-- **WHEN** onboarding completes with collected data
-- **THEN** `memory/profile/profile.md` is created with YAML frontmatter containing the profile attributes and a timestamp
-
-#### Scenario: Existing profile is overwritten on update
-- **WHEN** the user runs onboarding again or edits their profile
-- **THEN** the existing `memory/profile/profile.md` is replaced with the updated data
-
-# Contextual profile onboarding state machine tracks flow progress.
 ### Requirement: Onboarding State Machine
 The onboarding flow SHALL be managed by a state machine with the following phases and transitions:
 - `INIT`: No profile exists; onboarding is eligible.
@@ -121,9 +72,15 @@ The onboarding flow SHALL be managed by a state machine with the following phase
 - **WHEN** the user is in ATTRACTOR and types any non-control message (e.g., "yes", "how does this work?")
 - **THEN** the system transitions to COLLECT phase
 
-- **WHEN** the system is in COLLECT phase with `currentAttributeIndex = 2` and 5 total attributes
-- **THEN** the system prompts for the third attribute (index 2, 0-based) and increments the index after receiving a response
+- **WHEN** the user types a normal message (not "skip", "cancel", or "exit")
+- **THEN** the system treats it as proceeding into onboarding (from ATTRACTOR) or as an answer to the current attribute
 
+#### Scenario: State machine transitions through COLLECT sequentially
+- **WHEN** onboarding is in COLLECT phase with `currentAttributeIndex = 2` and 10 total attributes
+- **THEN** the system prompts for the third attribute (index 2, 0-based)
+- **THEN** after a response, the system advances `currentAttributeIndex` by 1
+
+#### Scenario: State machine detects end of attributes
 - **WHEN** `currentAttributeIndex >= totalAttributes` during COLLECT
 - **THEN** the system transitions to SAVE
 
@@ -131,8 +88,8 @@ The onboarding flow SHALL be managed by a state machine with the following phase
 The system SHALL load the user's context profile and format it as a structured context block that is prepended to the LLM prompt prefix, merged with any existing user context notes from `memory/context/`. The format SHALL be `[Context: Profile]\n<brief summary of attributes>` where the summary includes only non-empty attributes joined as `key: value` pairs.
 
 #### Scenario: Profile with all fields fills context prefix
-- **WHEN** the profile has dob, hobbies, relationship, and pets set
-- **THEN** the context prefix includes `[Context: Profile]\ndob: 1990, hobbies: hiking/reading, relationship: single, pets: cat named Luna`
+- **WHEN** the profile has dob, hobbies, relationship, pets, favoriteBands, and favoriteMovies set
+- **THEN** the context prefix includes `[Context: Profile]\ndob: 1990, hobbies: hiking/reading, relationship: single, pets: cat named Luna, favoriteBands: Radiohead/Nirvana, favoriteMovies: Inception/Memento`
 
 #### Scenario: Profile with partial fields fills context prefix
 - **WHEN** the profile has only hobbies set

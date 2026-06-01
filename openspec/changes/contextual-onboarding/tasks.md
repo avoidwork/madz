@@ -25,7 +25,7 @@
 
 - [ ] 4.1 Create `src/tui/onboardingPanel.js` as a React component that renders onboarding messages
 - [ ] 4.2 Implement ATTRACTOR view: a brief explanation of the profile feature and opt-in nature
-- [ ] 4.3 Implement COLLECT view: show current question with progress indicator (e.g., "2/7")
+- [ ] 4.3 Implement COLLECT view: show current question with progress indicator (e.g., "2/10")
 - [ ] 4.4 Wire up the onboarding panel to `src/tui/app.js` — render onboarding instead of banner/conversation when session state has an active onboarding phase
 - [ ] 4.5 Write unit tests for `src/tui/onboardingPanel.js` in `tests/unit/tui.test.js` or `tests/unit/onboardingPanel.test.js`
 
