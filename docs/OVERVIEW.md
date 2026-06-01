@@ -209,7 +209,7 @@ Walks the config tree recursively and maps each leaf key to an env var:
 
 ## Memory
 
-`src/memory/` — persistent storage as timestamped Markdown files with YAML frontmatter.
+`src/memory/` — persistent storage as timestamped Markdown files with YAML frontmatter. Memories are the long-term "canon" — core details about the user that persist across sessions and are loaded into the system prompt at the start of every new conversation.
 
 **Key files:**
 
@@ -219,22 +219,11 @@ Walks the config tree recursively and maps each leaf key to an env var:
 | `reader.js` | `parseFrontmatter()` — regex-split YAML frontmatter / markdown body; `readMemoryFile()` — reads and parses a single file |
 | `context.js` | `loadContext()` — scans `memory/context/` for `.md` files, sorts by timestamp (newest first), combines the last N bodies into a single context string |
 | `retention.js` | `cleanRetainedMemory()` — deletes `.md` files older than N days; `enforceMaxEntries()` — deletes oldest files exceeding the max count |
+| `loadMemories.js` | `loadMemories()` — loads all memory entries sorted by `updatedDate` descending → `createdDate`; `parseEntryFile()` — extracts `{ metadata, memory }` from a single entry; `formatMemoriesForPrompt()` — formats entries as markdown for the system prompt |
 
-**File format:**
-```markdown
----
-title: "Conversation 2026-05-24T12:00:00.000Z"
-timestamp: "2026-05-24T12:00:00.000Z"
-provider: "openai"
-sessionId: "abc-123"
----
+**Memory entries:**
 
-[user
-{
-  "role": "user",
-  "content": "Hello"
-}
-```
+Each memory is a standalone Markdown file in `memory/context/` with lowercase snake_case names. Files carry only date metadata in YAML frontmatter, with the memory body as the file content. Memories are loaded at session start and appended to the system prompt so they become part of the core context guiding every agent interaction.
 
 ---
 

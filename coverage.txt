@@ -38,9 +38,9 @@
 ℹ  tools                 |        |          |         | 
 ℹ   clarify.js           | 100.00 |   100.00 |   80.00 | 
 ℹ   code.js              | 100.00 |    89.13 |   92.31 | 
-ℹ   common.js            | 100.00 |    93.55 |   83.33 | 
+ℹ   common.js            | 100.00 |    93.33 |   83.33 | 
 ℹ   cron.js              | 100.00 |    98.65 |   90.00 | 
-ℹ   filesystem.js        |  93.30 |    82.52 |   79.17 | 36-37 41-42 44-45 106-112 170-177 187-188 196-202 397-398 415-419 422-423
+ℹ   filesystem.js        |  93.81 |    83.81 |   79.17 | 36-37 41-42 44-45 107-110 170-177 187-188 196-202 397-398 415-419 422-423
 ℹ   image.js             |  97.90 |    95.83 |   50.00 | 92-94
 ℹ   index.js             | 100.00 |   100.00 |  100.00 | 
 ℹ   memory.js            |  96.96 |    81.69 |   93.75 | 53 96-97 108-109 189-193
@@ -60,46 +60,14 @@
 ℹ   messages.js          | 100.00 |    94.44 |  100.00 | 
 ℹ   panels.js            | 100.00 |   100.00 |  100.00 | 
 ℹ ---------------------------------------------------------------------------------------------------------------------------------
-ℹ all files              |  97.49 |    89.05 |   85.62 | 
+ℹ all files              |  97.54 |    89.14 |   85.62 | 
 ℹ ---------------------------------------------------------------------------------------------------------------------------------
 ℹ end of coverage report
 
 ✖ failing tests:
 
-test at tests/unit/filesystem.test.js:68:3
-✖ rejects file exceeding maxReadSize (2.572071ms)
-  Error: ENOENT: no such file or directory, stat '/home/jason/Projects/madz/memory/__test_files__/large.txt'
-      at async stat (node:internal/fs/promises:1030:18)
-      at async checkFileLimit (file:///home/jason/Projects/madz/src/tools/common.js:78:16)
-      at async readFileImpl (file:///home/jason/Projects/madz/src/tools/filesystem.js:97:21)
-      at async TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/filesystem.test.js:70:19)
-      at async Test.run (node:internal/test_runner/test:1208:7)
-      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
-    errno: -2,
-    code: 'ENOENT',
-    syscall: 'stat',
-    path: '/home/jason/Projects/madz/memory/__test_files__/large.txt'
-  }
-
-test at tests/unit/filesystem.test.js:91:3
-✖ returns generic error for files that cannot be read (0.133622ms)
-  Error: ENOENT: no such file or directory, open '/home/jason/Projects/madz/memory/__test_files__/unreadable.txt'
-      at writeFileSync (node:fs:2398:20)
-      at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/filesystem.test.js:93:4)
-      at Test.runInAsyncScope (node:async_hooks:226:14)
-      at Test.run (node:internal/test_runner/test:1201:25)
-      at Suite.processPendingSubtests (node:internal/test_runner/test:831:18)
-      at Test.postRun (node:internal/test_runner/test:1330:19)
-      at Test.run (node:internal/test_runner/test:1258:12)
-      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
-    errno: -2,
-    code: 'ENOENT',
-    syscall: 'open',
-    path: '/home/jason/Projects/madz/memory/__test_files__/unreadable.txt'
-  }
-
 test at tests/unit/filesystem.test.js:257:3
-✖ suggests similar filenames when close match exists (3.089866ms)
+✖ suggests similar filenames when close match exists (3.217205ms)
   AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
   
     assert.ok(typeof result === "string")
