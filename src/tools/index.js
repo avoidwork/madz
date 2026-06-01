@@ -101,6 +101,7 @@ function hasSearchKey() {
  * @param {object} [options.safety] - Code sandbox safety config
  * @param {object} [options.timeout] - Code execution timeout config
  * @param {string} [options.memoryLimit] - Code execution memory limit string
+ * @param {string} [options.contextDir] - Directory for memory entries
  * @returns {Promise<object[]>} Array of LangChain Tool instances
  */
 export async function buildToolConfig(options) {
@@ -113,6 +114,7 @@ export async function buildToolConfig(options) {
 		safety,
 		timeout,
 		memoryLimit,
+		contextDir = "memory/context/",
 	} = options;
 
 	const enabledSet = new Set(permissions);
@@ -125,6 +127,7 @@ export async function buildToolConfig(options) {
 		safety,
 		timeout,
 		memoryLimit,
+		contextDir,
 	};
 
 	for (const [toolName, requiredPerms] of Object.entries(TOOL_PERMISSIONS)) {

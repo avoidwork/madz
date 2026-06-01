@@ -64,7 +64,7 @@ const sessionState = new SessionStateManager(initialState);
 // Load system prompt and append memory entries
 const { loadSystemPrompt } = await import("./src/memory/prompts.js");
 const systemPrompt = loadSystemPrompt();
-const memoryEntriesDir = config.memory?.entriesDir || "memory/context/entries/";
+const memoryEntriesDir = config.memory?.entriesDir || "memory/context/";
 const memoryEntries = await loadMemories(memoryEntriesDir);
 const memoryText = formatMemoriesForPrompt(memoryEntries);
 const fullPrompt = memoryText ? `${systemPrompt}\n\n${memoryText}` : systemPrompt;
@@ -80,6 +80,7 @@ const tools = await buildToolConfig({
 	safety: config.sandbox.safety,
 	timeout: config.sandbox.timeout,
 	memoryLimit: config.sandbox.memoryLimit,
+	contextDir: config.memory?.contextDir || "memory/context/",
 });
 const model = createChatModel(providerConfig);
 const { createCheckpointer } = await import("./src/session/checkpointer.js");
