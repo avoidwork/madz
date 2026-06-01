@@ -10,10 +10,10 @@
 ℹ   mutate.js            |  54.72 |   100.00 |    0.00 | 11-15 25-37 48-53
 ℹ   schemas.js           | 100.00 |   100.00 |  100.00 | 
 ℹ  memory                |        |          |         | 
-ℹ   context.js           | 100.00 |    84.62 |  100.00 | 
+ℹ   context.js           | 100.00 |    78.57 |  100.00 | 
 ℹ   loadMemories.js      | 100.00 |   100.00 |  100.00 | 
 ℹ   prompts.js           | 100.00 |   100.00 |  100.00 | 
-ℹ   reader.js            | 100.00 |    84.62 |  100.00 | 
+ℹ   reader.js            |  95.35 |    78.57 |  100.00 | 22-23
 ℹ  provider              |        |          |         | 
 ℹ   openai.js            | 100.00 |   100.00 |  100.00 | 
 ℹ  registry              |        |          |         | 
@@ -38,10 +38,10 @@
 ℹ   stateManager.js      | 100.00 |   100.00 |  100.00 | 
 ℹ   window.js            | 100.00 |    91.67 |  100.00 | 
 ℹ  tools                 |        |          |         | 
-ℹ   clarify.js           | 100.00 |   100.00 |   80.00 | 
+ℹ   clarify.js           | 100.00 |    94.44 |   80.00 | 
 ℹ   code.js              | 100.00 |    89.13 |   92.31 | 
 ℹ   common.js            | 100.00 |    93.33 |   83.33 | 
-ℹ   cron.js              | 100.00 |    98.65 |   90.00 | 
+ℹ   cron.js              | 100.00 |    97.30 |   90.00 | 
 ℹ   filesystem.js        |  94.50 |    86.79 |   79.17 | 44-45 107-110 170-177 187-188 196-202 397-398 415-419 422-423
 ℹ   image.js             |  97.90 |    95.83 |   50.00 | 92-94
 ℹ   index.js             | 100.00 |   100.00 |  100.00 | 
@@ -50,7 +50,7 @@
 ℹ   sessionSearch.js     | 100.00 |    88.10 |   91.67 | 
 ℹ   skills.js            |  98.15 |    78.57 |   71.43 | 109-111
 ℹ   terminal.js          |  93.62 |    81.63 |   77.78 | 38-41 74 102-103 190-191 197-199 205-206 213-214 221-222 224
-ℹ   todo.js              | 100.00 |    94.74 |   91.67 | 
+ℹ   todo.js              |  98.84 |    91.67 |   91.67 | 16-17
 ℹ   tts.js               | 100.00 |   100.00 |   50.00 | 
 ℹ   vision.js            | 100.00 |    90.91 |   71.43 | 
 ℹ   web.js               |  95.47 |    64.79 |   60.00 | 24-25 39-40 43-45 86-88 123-125 177 189-191 330-331
@@ -62,39 +62,14 @@
 ℹ   messages.js          | 100.00 |    94.44 |  100.00 | 
 ℹ   panels.js            | 100.00 |   100.00 |  100.00 | 
 ℹ ---------------------------------------------------------------------------------------------------------------------
-ℹ all files              |  96.63 |    89.55 |   83.49 | 
+ℹ all files              |  96.58 |    89.15 |   83.49 | 
 ℹ ---------------------------------------------------------------------------------------------------------------------
 ℹ end of coverage report
 
 ✖ failing tests:
 
-test at tests/unit/scheduler_runner.test.js:70:2
-✖ missing contextFile falls back to loadContext (1.066868ms)
-  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
-  + actual - expected
-  
-  + '\n' +
-  +   '[Context: /home/jason/Projects/madz/memory/context/clarifications.md]\n' +
-  +   '## Clarification: Test question\n' +
-  +   '\n' +
-  +   '- Time: 2026-06-01T02:55:11.889Z\n' +
-  +   '\n' +
-  +   '- Options: , , Options:, 1. A, 2. B'
-  - ''
-  
-      at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/scheduler_runner.test.js:85:10)
-      at async Test.run (node:internal/test_runner/test:1208:7)
-      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
-    generatedMessage: true,
-    code: 'ERR_ASSERTION',
-    actual: '\n[Context: /home/jason/Projects/madz/memory/context/clarifications.md]\n## Clarification: Test question\n\n- Time: 2026-06-01T02:55:11.889Z\n\n- Options: , , Options:, 1. A, 2. B',
-    expected: '',
-    operator: 'strictEqual',
-    diff: 'simple'
-  }
-
 test at tests/unit/tool_index.test.js:50:2
-✖ returns only clarify and execute_code with empty permissions (1.601855ms)
+✖ returns only clarify and execute_code with empty permissions (1.320645ms)
   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
   
   4 !== 2
@@ -113,7 +88,7 @@ test at tests/unit/tool_index.test.js:50:2
   }
 
 test at tests/unit/tool_index.test.js:126:2
-✖ handles maxReadSize in config (0.768016ms)
+✖ handles maxReadSize in config (0.566226ms)
   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
   
   4 !== 2
@@ -130,7 +105,7 @@ test at tests/unit/tool_index.test.js:126:2
   }
 
 test at tests/unit/tool_registration.test.js:37:2
-✖ registers clarifying (no permissions) andTier 1 tools with permissions (6.29054ms)
+✖ registers clarifying (no permissions) andTier 1 tools with permissions (6.136841ms)
   AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
   
     assert.ok(!toolNames.includes("vision_analyze"))

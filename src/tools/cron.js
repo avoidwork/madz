@@ -3,8 +3,6 @@ import { z } from "zod";
 import { mkdir, writeFile, readFile, readdir, unlink } from "node:fs/promises";
 import { join } from "node:path";
 
-const SCHEDULES_DIR = "memory/schedules/";
-
 /// -- Cron validation --
 
 /**
@@ -35,25 +33,13 @@ function isValidCron(expression) {
 /// -- Job persistence --
 
 /**
- * Get list of schedule job files.
- * @returns {Promise<string[]>}
- */
-async function getScheduleFiles() {
-	try {
-		const entries = await readdir(SCHEDULES_DIR);
-		return entries.filter((f) => f.endsWith(".json") && f !== "meta.json");
-	} catch {
-		return [];
-	}
-}
-
-/**
  * Load a job from disk.
  * @param {string} name - Job name
+ * @param {string} schedulesDir - Directory to load from
  * @returns {Promise<object|null>}
  */
-async function loadJob(name) {
-	const filePath = join(SCHEDULES_DIR, `${name}.json`);
+async function loadJob(name, schedulesDir) {
+	const filePath = join(schedulesDir, `${name}.json`);
 	try {
 		const content = await readFile(filePath, "utf-8");
 		return JSON.parse(content);
@@ -65,23 +51,25 @@ async function loadJob(name) {
 /**
  * Save a job to disk.
  * @param {object} job - Job object
+ * @param {string} schedulesDir - Directory to save to
  * @returns {Promise<void>}
  */
-async function saveJob(job) {
-	await mkdir(SCHEDULES_DIR, { recursive: true });
-	const filePath = join(SCHEDULES_DIR, `${job.name}.json`);
+async function saveJob(job, schedulesDir) {
+	await mkdir(schedulesDir, { recursive: true });
+	const filePath = join(schedulesDir, `${job.name}.json`);
 	await writeFile(filePath, JSON.stringify(job, null, 2), "utf-8");
 }
 
 /**
  * List all jobs from disk.
+ * @param {string} schedulesDir - Directory to list from
  * @returns {Promise<{ jobs: object[] }>}
  */
-async function listJobs() {
-	const files = await getScheduleFiles();
+async function listJobs(schedulesDir) {
+	const files = await getScheduleFiles(schedulesDir);
 	const jobs = [];
 	for (const file of files) {
-		const job = await loadJob(file.replace(".json", ""));
+		const job = await loadJob(file.replace(".json", ""), schedulesDir);
 		if (job) {
 			jobs.push(job);
 		}
@@ -90,12 +78,27 @@ async function listJobs() {
 }
 
 /**
+ * Get all JSON files from the schedules directory.
+ * @param {string} schedulesDir - Directory to list files from
+ * @returns {Promise<string[]>}
+ */
+async function getScheduleFiles(schedulesDir) {
+	try {
+		const files = await readdir(schedulesDir);
+		return files.filter((f) => f.endsWith(".json"));
+	} catch {
+		return [];
+	}
+}
+
+/**
  * Trigger a job immediately via the scheduler.
  * @param {object} job - Job to run
  * @param {object} [schedulerModule] - Scheduler module for testing
+ * @param {string} [schedulesDir] - Directory to write output to
  * @returns {Promise<{ ok: boolean, error?: string }>}
  */
-async function runJob(job, schedulerModule) {
+async function runJob(job, schedulerModule, schedulesDir) {
 	if (!job.enabled) {
 		return { ok: false, error: `Job "${job.name}" is paused` };
 	}
@@ -115,8 +118,8 @@ async function runJob(job, schedulerModule) {
 		await schedulerModule.runScheduledSkill(scheduleEntry, {}, {});
 		job.lastRun = new Date().toISOString();
 		job.updatedAt = new Date().toISOString();
-		await saveJob(job);
-		return { ok: true, outputDir: SCHEDULES_DIR };
+		await saveJob(job, schedulesDir);
+		return { ok: true, outputDir: schedulesDir };
 	} catch (err) {
 		return { ok: false, error: `Scheduler execution failed: ${err.message}` };
 	}
@@ -127,11 +130,14 @@ async function runJob(job, schedulerModule) {
 /**
  * Manage cron jobs with CRUD actions.
  * @param {object} input - Tool input with action and parameters
- * @param {object} [options] - Runtime options (runtime or scheduler for testing)
+ * @param {object} [options] - Runtime options
+ * @param {string} [options.schedulesDir] - Directory for job persistence (default "memory/schedules/")
+ * @param {object} [options.scheduler] - Scheduler module for testing
  * @returns {Promise<string>} JSON result string
  */
 export async function cronjobImpl(input, options) {
 	const { action } = input;
+	const schedulesDir = options?.schedulesDir || "memory/schedules/";
 
 	const actions = ["create", "list", "update", "pause", "resume", "run", "remove"];
 	if (!actions.includes(action)) {
@@ -144,7 +150,7 @@ export async function cronjobImpl(input, options) {
 	try {
 		switch (action) {
 			case "list": {
-				const result = await listJobs();
+				const result = await listJobs(schedulesDir);
 				return JSON.stringify({ ok: true, ...result });
 			}
 
@@ -162,7 +168,7 @@ export async function cronjobImpl(input, options) {
 						error: `Invalid cron expression: "${cron}". Must be 5-6 fields (minute hour day month weekday)`,
 					});
 				}
-				const existing = await loadJob(name);
+				const existing = await loadJob(name, schedulesDir);
 				if (existing) {
 					return JSON.stringify({
 						ok: false,
@@ -179,7 +185,7 @@ export async function cronjobImpl(input, options) {
 					createdAt: now,
 					updatedAt: now,
 				};
-				await saveJob(job);
+				await saveJob(job, schedulesDir);
 				return JSON.stringify({ ok: true, message: `Job "${name}" created`, job });
 			}
 
@@ -193,7 +199,7 @@ export async function cronjobImpl(input, options) {
 				if (!updateName) {
 					return JSON.stringify({ ok: false, error: "update requires: name" });
 				}
-				const existing = await loadJob(updateName);
+				const existing = await loadJob(updateName, schedulesDir);
 				if (!existing) {
 					return JSON.stringify({
 						ok: false,
@@ -214,7 +220,7 @@ export async function cronjobImpl(input, options) {
 					existing.input = { ...existing.input, ...updateInput };
 				}
 				existing.updatedAt = new Date().toISOString();
-				await saveJob(existing);
+				await saveJob(existing, schedulesDir);
 				return JSON.stringify({ ok: true, message: `Job "${updateName}" updated`, job: existing });
 			}
 
@@ -223,13 +229,13 @@ export async function cronjobImpl(input, options) {
 				if (!pauseName) {
 					return JSON.stringify({ ok: false, error: "pause requires: name" });
 				}
-				const existing = await loadJob(pauseName);
+				const existing = await loadJob(pauseName, schedulesDir);
 				if (!existing) {
 					return JSON.stringify({ ok: false, error: `Job "${pauseName}" not found` });
 				}
 				existing.enabled = false;
 				existing.updatedAt = new Date().toISOString();
-				await saveJob(existing);
+				await saveJob(existing, schedulesDir);
 				return JSON.stringify({
 					ok: true,
 					message: `Job "${pauseName}" paused`,
@@ -242,13 +248,13 @@ export async function cronjobImpl(input, options) {
 				if (!resumeName) {
 					return JSON.stringify({ ok: false, error: "resume requires: name" });
 				}
-				const existing = await loadJob(resumeName);
+				const existing = await loadJob(resumeName, schedulesDir);
 				if (!existing) {
 					return JSON.stringify({ ok: false, error: `Job "${resumeName}" not found` });
 				}
 				existing.enabled = true;
 				existing.updatedAt = new Date().toISOString();
-				await saveJob(existing);
+				await saveJob(existing, schedulesDir);
 				return JSON.stringify({
 					ok: true,
 					message: `Job "${resumeName}" resumed`,
@@ -261,11 +267,11 @@ export async function cronjobImpl(input, options) {
 				if (!runName) {
 					return JSON.stringify({ ok: false, error: "run requires: name" });
 				}
-				const existing = await loadJob(runName);
+				const existing = await loadJob(runName, schedulesDir);
 				if (!existing) {
 					return JSON.stringify({ ok: false, error: `Job "${runName}" not found` });
 				}
-				const result = await runJob(existing, options?.scheduler);
+				const result = await runJob(existing, options?.scheduler, schedulesDir);
 				return JSON.stringify(result);
 			}
 
@@ -274,11 +280,11 @@ export async function cronjobImpl(input, options) {
 				if (!removeName) {
 					return JSON.stringify({ ok: false, error: "remove requires: name" });
 				}
-				const existing = await loadJob(removeName);
+				const existing = await loadJob(removeName, schedulesDir);
 				if (!existing) {
 					return JSON.stringify({ ok: false, error: `Job "${removeName}" not found` });
 				}
-				const filePath = join(SCHEDULES_DIR, `${removeName}.json`);
+				const filePath = join(schedulesDir, `${removeName}.json`);
 				await unlink(filePath);
 				return JSON.stringify({
 					ok: true,
