@@ -4,9 +4,9 @@ import { memoryImpl, sanitizeKey } from "../../src/tools/memory.js";
 import { mkdir, writeFile, rm, readFile } from "node:fs/promises";
 import { join } from "node:path";
 
-const ENTRIES_DIR = "memory/context/";
-const DIR = join(process.cwd(), ENTRIES_DIR);
-const defaultOpts = { maxEntries: 100 };
+const TEST_ENTRIES_DIR = "memory/__test_tools_memory__/";
+const DIR = join(process.cwd(), TEST_ENTRIES_DIR);
+const defaultOpts = { maxEntries: 100, contextDir: TEST_ENTRIES_DIR };
 
 /**
  * Write a memory entry file directly to the entries directory.
@@ -72,21 +72,7 @@ describe("sanitizeKey", () => {
 });
 
 describe("memoryImpl", () => {
-	let createdFiles = [];
-
-	async function keepTrack(key) {
-		createdFiles.push(key);
-	}
-
 	after(async () => {
-		for (const key of createdFiles) {
-			try {
-				await unlink(join(DIR, key + ".md"));
-			} catch {
-				// ignore
-			}
-		}
-		createdFiles = [];
 		try {
 			await rm(DIR, { recursive: true, force: true });
 		} catch {
@@ -109,7 +95,6 @@ describe("memoryImpl", () => {
 				defaultOpts,
 			),
 		);
-		await keepTrack("test_entry_1");
 		assert.strictEqual(result.ok, true);
 		const content = await readFile(join(DIR, "test_entry_1.md"), "utf-8");
 		assert.ok(content.includes("createdDate"));
@@ -120,7 +105,6 @@ describe("memoryImpl", () => {
 		const result = JSON.parse(
 			await memoryImpl({ action: "create", key: "My Pet", value: "Halo" }, defaultOpts),
 		);
-		await keepTrack("my_pet");
 		assert.strictEqual(result.message.includes("my_pet"), true);
 		const f = await import("node:fs/promises");
 		const files = await f.readdir(DIR).catch(() => []);
@@ -130,7 +114,6 @@ describe("memoryImpl", () => {
 	it("create fails when maxEntries exceeded", async () => {
 		const opts = { maxEntries: 1 };
 		await memoryImpl({ action: "create", key: "cap_first", value: "test" }, opts);
-		await keepTrack("cap_first");
 		const failResult = JSON.parse(
 			await memoryImpl({ action: "create", key: "overflow", value: "nope" }, opts),
 		);
@@ -148,7 +131,6 @@ describe("memoryImpl", () => {
 
 	it("read returns entry data", async () => {
 		await writeEntry("read_test", "read value", "2026-01-01T00:00:00Z", "2026-02-01T00:00:00Z");
-		await keepTrack("read_test");
 		const result = JSON.parse(await memoryImpl({ action: "read", key: "read_test" }, defaultOpts));
 		assert.strictEqual(result.ok, true);
 		assert.strictEqual(result.value, "read value");
@@ -174,7 +156,6 @@ describe("memoryImpl", () => {
 
 	it("update updates existing entry", async () => {
 		await writeEntry("update_me", "old", "2026-01-01T00:00:00Z", "2026-01-01T00:00:00Z");
-		await keepTrack("update_me");
 		const result = JSON.parse(
 			await memoryImpl({ action: "update", key: "update_me", value: "new" }, defaultOpts),
 		);
@@ -203,7 +184,6 @@ describe("memoryImpl", () => {
 
 	it("delete removes entry file", async () => {
 		await writeEntry("del_test", "to delete", "2026-01-01T00:00:00Z", "2026-01-01T00:00:00Z");
-		await keepTrack("del_test");
 		const result = JSON.parse(await memoryImpl({ action: "delete", key: "del_test" }, defaultOpts));
 		assert.strictEqual(result.ok, true);
 		const f = await import("node:fs/promises");
@@ -280,7 +260,6 @@ describe("memoryImpl", () => {
 		const result = JSON.parse(
 			await memoryImpl({ action: "create", key: "num_entry", value: 42 }, defaultOpts),
 		);
-		await keepTrack("num_entry");
 		assert.strictEqual(result.ok, true);
 		const readResult = JSON.parse(
 			await memoryImpl({ action: "read", key: "num_entry" }, defaultOpts),

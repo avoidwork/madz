@@ -7,13 +7,11 @@ import { parseFrontmatter, readMemoryFile } from "../../src/memory/reader.js";
 const testDir = join(process.cwd(), "memory", "__test_reader__");
 
 function setup() {
-	rmSync(join(process.cwd(), "memory"), { recursive: true, force: true });
 	mkdirSync(testDir, { recursive: true });
 }
 
 function teardown() {
 	rmSync(testDir, { recursive: true, force: true });
-	rmSync(join(process.cwd(), "memory"), { recursive: true, force: true });
 }
 
 describe("reader", () => {

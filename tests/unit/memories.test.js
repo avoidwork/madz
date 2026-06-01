@@ -17,7 +17,7 @@ function setup() {
 }
 
 function teardown() {
-	return rm(join(process.cwd(), "memory"), { recursive: true, force: true });
+	return rm(join(process.cwd(), "memory", "__test_memories__"), { recursive: true, force: true });
 }
 
 describe("parseEntryFile", () => {

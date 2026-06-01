@@ -3,7 +3,6 @@ import { z } from "zod";
 import { mkdir, writeFile, readFile, readdir, unlink, access } from "node:fs/promises";
 import { join, basename } from "node:path";
 
-const ENTRIES_DIR = "memory/context/";
 const DEFAULT_MAX_ENTRIES = 100;
 
 /**
@@ -81,17 +80,17 @@ export function sanitizeKey(key) {
  * @param {string} key - Entry key
  * @returns {string} Full path to the entry file
  */
-function getEntryPath(key) {
-	return join(process.cwd(), ENTRIES_DIR, sanitizeKey(key) + ".md");
+function getEntryPath(key, contextDir) {
+	return join(process.cwd(), contextDir, sanitizeKey(key) + ".md");
 }
 
 /**
  * Get the list of entry files in the entries directory.
  * @returns {Promise<string[]>} List of entry filenames
  */
-async function getEntryFiles() {
+async function getEntryFiles(contextDir) {
 	try {
-		return (await readdir(ENTRIES_DIR)).filter((f) => f.endsWith(".md"));
+		return (await readdir(contextDir)).filter((f) => f.endsWith(".md"));
 	} catch {
 		return [];
 	}
@@ -101,9 +100,9 @@ async function getEntryFiles() {
  * Count the number of entry files in the directory.
  * @returns {Promise<number>} Number of entry files
  */
-async function countEntries() {
+async function countEntries(contextDir) {
 	try {
-		return (await readdir(ENTRIES_DIR)).filter((f) => f.endsWith(".md")).length;
+		return (await readdir(contextDir)).filter((f) => f.endsWith(".md")).length;
 	} catch {
 		return 0;
 	}
@@ -115,8 +114,8 @@ async function countEntries() {
  * @returns {Promise<void>}
  * @throws {Error} When limit would be exceeded
  */
-async function validateMaxEntries(maxEntries) {
-	const count = await countEntries();
+async function validateMaxEntries(maxEntries, contextDir) {
+	const count = await countEntries(contextDir);
 	if (count >= maxEntries) {
 		throw new Error(`Memory entries (${count}) exceed maximum (${maxEntries})`);
 	}
@@ -127,8 +126,8 @@ async function validateMaxEntries(maxEntries) {
  * @param {string} key - Entry key
  * @returns {Promise<{ found: boolean, value: string, createdDate: string, updatedDate: string } | null>}
  */
-async function loadEntry(key) {
-	const filePath = getEntryPath(key);
+async function loadEntry(key, contextDir) {
+	const filePath = getEntryPath(key, contextDir);
 	try {
 		const content = await readFile(filePath, "utf-8");
 		const { frontmatter, body } = parseEntryContent(content);
@@ -151,11 +150,11 @@ async function loadEntry(key) {
  * @param {string} [createdDate] - Optional preserved creation date (omit for new entries)
  * @returns {Promise<void>}
  */
-async function saveEntry(key, value, createdDate) {
-	const filePath = getEntryPath(key);
+async function saveEntry(key, value, createdDate, contextDir) {
+	const filePath = getEntryPath(key, contextDir);
 	const now = new Date().toISOString();
 	const created = createdDate || now;
-	await mkdir(process.cwd() + "/" + ENTRIES_DIR, { recursive: true });
+	await mkdir(process.cwd() + "/" + contextDir, { recursive: true });
 	await writeFile(
 		filePath,
 		`---\ncreatedDate: "${created}"\nupdatedDate: "${now}"\n---\n\n${value}\n`,
@@ -168,8 +167,8 @@ async function saveEntry(key, value, createdDate) {
  * @param {string} key - Entry key
  * @returns {Promise<boolean>} Whether the entry was deleted
  */
-async function deleteEntry(key) {
-	const filePath = getEntryPath(key);
+async function deleteEntry(key, contextDir) {
+	const filePath = getEntryPath(key, contextDir);
 	if (!(await pathExists(filePath))) return false;
 	await unlink(filePath);
 	return true;
@@ -184,6 +183,7 @@ async function deleteEntry(key) {
  */
 export async function memoryImpl(input, options) {
 	const maxEntries = options.maxEntries || DEFAULT_MAX_ENTRIES;
+	const contextDir = options.contextDir || "memory/context/";
 	const { action } = input;
 	const actions = ["create", "read", "update", "delete", "list"];
 
@@ -201,8 +201,8 @@ export async function memoryImpl(input, options) {
 					return JSON.stringify({ ok: false, error: "create requires: key and value" });
 				}
 				const cleanedKey = sanitizeKey(input.key);
-				await validateMaxEntries(maxEntries);
-				await saveEntry(cleanedKey, String(input.value));
+				await validateMaxEntries(maxEntries, contextDir);
+				await saveEntry(cleanedKey, String(input.value), undefined, contextDir);
 				return JSON.stringify({ ok: true, message: `Memory created: "${cleanedKey}"` });
 			}
 
@@ -210,7 +210,7 @@ export async function memoryImpl(input, options) {
 				if (!input.key) {
 					return JSON.stringify({ ok: false, error: "read requires: key" });
 				}
-				const entry = await loadEntry(input.key);
+				const entry = await loadEntry(input.key, contextDir);
 				if (!entry || !entry.found) {
 					return JSON.stringify({
 						ok: false,
@@ -231,14 +231,14 @@ export async function memoryImpl(input, options) {
 					return JSON.stringify({ ok: false, error: "update requires: key and value" });
 				}
 				const cleanedKey = sanitizeKey(input.key);
-				const existing = await loadEntry(cleanedKey);
+				const existing = await loadEntry(cleanedKey, contextDir);
 				if (!existing || !existing.found) {
 					return JSON.stringify({
 						ok: false,
 						error: `Memory not found: "${cleanedKey}". Use "create" to add it.`,
 					});
 				}
-				await saveEntry(cleanedKey, String(input.value), existing.createdDate);
+				await saveEntry(cleanedKey, String(input.value), existing.createdDate, contextDir);
 				return JSON.stringify({ ok: true, message: `Memory updated: "${cleanedKey}"` });
 			}
 
@@ -247,7 +247,7 @@ export async function memoryImpl(input, options) {
 					return JSON.stringify({ ok: false, error: "delete requires: key" });
 				}
 				const cleanedKey = sanitizeKey(input.key);
-				const deleted = await deleteEntry(cleanedKey);
+				const deleted = await deleteEntry(cleanedKey, contextDir);
 				if (!deleted) {
 					return JSON.stringify({ ok: false, error: `Memory not found: "${cleanedKey}"` });
 				}
@@ -255,12 +255,12 @@ export async function memoryImpl(input, options) {
 			}
 
 			case "list": {
-				const files = await getEntryFiles();
+				const files = await getEntryFiles(contextDir);
 				const query = input.query || "";
 				const entries = [];
 
 				for (const file of files) {
-					const content = await readFile(join(ENTRIES_DIR, file), "utf-8");
+					const content = await readFile(join(contextDir, file), "utf-8");
 					const { frontmatter, body } = parseEntryContent(content);
 					const stem = basename(file, ".md").toLocaleLowerCase();
 					if (query && ![stem, body].join(" ").toLowerCase().includes(query.toLowerCase()))
