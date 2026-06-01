@@ -148,15 +148,17 @@ async function loadEntry(key) {
  * Save a single entry to its file.
  * @param {string} key - Entry key
  * @param {string} value - Entry value/body
+ * @param {string} [createdDate] - Optional preserved creation date (omit for new entries)
  * @returns {Promise<void>}
  */
-async function saveEntry(key, value) {
+async function saveEntry(key, value, createdDate) {
 	const filePath = getEntryPath(key);
 	const now = new Date().toISOString();
+	const created = createdDate || now;
 	await mkdir(process.cwd() + "/" + ENTRIES_DIR, { recursive: true });
 	await writeFile(
 		filePath,
-		`---\ncreatedDate: "${now}"\nupdatedDate: "${now}"\n---\n\n${value}\n`,
+		`---\ncreatedDate: "${created}"\nupdatedDate: "${now}"\n---\n\n${value}\n`,
 		"utf-8",
 	);
 }
@@ -236,7 +238,7 @@ export async function memoryImpl(input, options) {
 						error: `Memory not found: "${cleanedKey}". Use "create" to add it.`,
 					});
 				}
-				await saveEntry(cleanedKey, String(input.value));
+				await saveEntry(cleanedKey, String(input.value), existing.createdDate);
 				return JSON.stringify({ ok: true, message: `Memory updated: "${cleanedKey}"` });
 			}
 
