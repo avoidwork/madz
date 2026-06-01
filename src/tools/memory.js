@@ -3,7 +3,7 @@ import { z } from "zod";
 import { mkdir, writeFile, readFile, readdir, unlink, access } from "node:fs/promises";
 import { join, basename } from "node:path";
 
-const ENTRIES_DIR = "memory/context/entries/";
+const ENTRIES_DIR = "memory/context/";
 const DEFAULT_MAX_ENTRIES = 100;
 
 /**

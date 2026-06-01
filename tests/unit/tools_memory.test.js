@@ -4,7 +4,7 @@ import { memoryImpl, sanitizeKey } from "../../src/tools/memory.js";
 import { mkdir, writeFile, rm, readFile } from "node:fs/promises";
 import { join } from "node:path";
 
-const ENTRIES_DIR = "memory/context/entries/";
+const ENTRIES_DIR = "memory/context/";
 const DIR = join(process.cwd(), ENTRIES_DIR);
 const defaultOpts = { maxEntries: 100 };
 

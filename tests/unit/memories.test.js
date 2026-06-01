@@ -9,7 +9,7 @@ import {
 	parseEntryFile,
 } from "../../src/memory/loadMemories.js";
 
-const TEST_DIR = "memory/__test_memories__/entries/";
+const TEST_DIR = "memory/__test_memories__/";
 const FULL_DIR = join(process.cwd(), TEST_DIR);
 
 function setup() {
