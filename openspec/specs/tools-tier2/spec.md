@@ -41,32 +41,6 @@ The `web_extract` tool SHALL extract content from a URL, returning markdown form
 - **WHEN** `web_extract` is called with `url: "file:///etc/passwd"`
 - **THEN** the tool returns an error without making any HTTP request
 
-### Requirement: Vision Analyze Sends Image to Multimodal LLM
-The `vision_analyze` tool SHALL fetch an image from a URL or decode a base64 data URI, then send it to the configured multimodal LLM for analysis. The tool must not require any additional API key beyond the agent's primary model provider.
-
-#### Scenario: Vision analyzes image from URL
-- **WHEN** `vision_analyze` is called with `url: "https://example.com/chart.png"`
-- **THEN** the tool fetches the image (respecting max 4MB size) and returns the LLM's description
-
-#### Scenario: Vision analyzes image from data URI
-- **WHEN** `vision_analyze` is called with `dataUri: "data:image/png;base64,..."` (valid base64)
-- **THEN** the tool decodes the base64 and returns the LLM's description
-
-#### Scenario: Vision rejects oversized image
-- **WHEN** `vision_analyze` is called with a URL that fetches an image over 4MB
-- **THEN** the tool returns an error without sending it to the model
-
-### Requirement: Text to Speech Saves Audio File
-The `text_to_speech` tool SHALL call OpenAI's TTS API (`tts-1` or `tts-1-hd`), save the audio to `~/voice-memos/[timestamp]_[voice].mp3`, and return a `MEDIA:` path.
-
-#### Scenario: TTS generates speech and saves file
-- **WHEN** `text_to_speech` is called with `text: "Hello world"` and `voice: "alloy"`
-- **THEN** the tool saves a file to `~/voice-memos/[timestamp]_alloy.mp3` and returns `{ path: "MEDIA:~/voice-memos/..." }`
-
-#### Scenario: TTS requires OPENAI_API_KEY
-- **WHEN** `OPENAI_API_KEY` is not set
-- **THEN** the tool is not registered in the tools array
-
 ### Requirement: Execute Code Runs Python, JavaScript, or Shell Scripts in Sandboxed Subprocess
 The `execute_code` tool SHALL write code to a temp file under `tmp/`, execute it via the appropriate interpreter based on `language` parameter (`python3`, `node`, or `sh`), enforce a configurable timeout and memory limit, and return stdout, stderr, and exit code.
 
@@ -112,17 +86,6 @@ The `cronjob` tool SHALL manage scheduled jobs persisted as JSON files under `me
 #### Scenario: Run triggers immediate execution
 - **WHEN** `cronjob` is called with `action: "run"` and `name: "daily-report"`
 - **THEN** the job is invoked immediately via the scheduler manager
-
-### Requirement: Tier 2 Tools Require network:outbound Permission
-All Tier 2 tools (except `vision_analyze`) SHALL only be registered when `config.sandbox.permissions` includes `network:outbound`. `vision_analyze` registers when no permission is required (like `clarify`).
-
-#### Scenario: Web tools register when network:outbound is enabled
-- **WHEN** `sandbox.permissions` includes `network:outbound` and `EXA_API_KEY` is set
-- **THEN** `web_search` and `web_extract` are registered
-
-#### Scenario: Vision tool registers without network:outbound permission
-- **WHEN** `sandbox.permissions` is empty
-- **THEN** `vision_analyze` is still registered because it has no permission requirement
 
 ### Requirement: Safety Limits Are Configurable with Hardware-Aware Caps
 The system SHALL expose all safety parameters (timeout, memory, URL filtering, Python import restrictions) as configurable settings in `config.yaml`. A value of `0` disables the guard entirely. Hard caps are enforced: memory limits cannot exceed system total RAM, and timeout values of `0` mean no limit.
