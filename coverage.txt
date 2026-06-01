@@ -69,7 +69,7 @@
 ✖ failing tests:
 
 test at tests/unit/scheduler_runner.test.js:70:2
-✖ missing contextFile falls back to loadContext (1.069743ms)
+✖ missing contextFile falls back to loadContext (1.066868ms)
   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
   + actual - expected
   
@@ -77,7 +77,7 @@ test at tests/unit/scheduler_runner.test.js:70:2
   +   '[Context: /home/jason/Projects/madz/memory/context/clarifications.md]\n' +
   +   '## Clarification: Test question\n' +
   +   '\n' +
-  +   '- Time: 2026-06-01T02:38:26.115Z\n' +
+  +   '- Time: 2026-06-01T02:55:11.889Z\n' +
   +   '\n' +
   +   '- Options: , , Options:, 1. A, 2. B'
   - ''
@@ -87,14 +87,14 @@ test at tests/unit/scheduler_runner.test.js:70:2
       at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
     generatedMessage: true,
     code: 'ERR_ASSERTION',
-    actual: '\n[Context: /home/jason/Projects/madz/memory/context/clarifications.md]\n## Clarification: Test question\n\n- Time: 2026-06-01T02:38:26.115Z\n\n- Options: , , Options:, 1. A, 2. B',
+    actual: '\n[Context: /home/jason/Projects/madz/memory/context/clarifications.md]\n## Clarification: Test question\n\n- Time: 2026-06-01T02:55:11.889Z\n\n- Options: , , Options:, 1. A, 2. B',
     expected: '',
     operator: 'strictEqual',
     diff: 'simple'
   }
 
 test at tests/unit/tool_index.test.js:50:2
-✖ returns only clarify and execute_code with empty permissions (1.555478ms)
+✖ returns only clarify and execute_code with empty permissions (1.601855ms)
   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
   
   4 !== 2
@@ -113,7 +113,7 @@ test at tests/unit/tool_index.test.js:50:2
   }
 
 test at tests/unit/tool_index.test.js:126:2
-✖ handles maxReadSize in config (0.720235ms)
+✖ handles maxReadSize in config (0.768016ms)
   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
   
   4 !== 2
@@ -130,7 +130,7 @@ test at tests/unit/tool_index.test.js:126:2
   }
 
 test at tests/unit/tool_registration.test.js:37:2
-✖ registers clarifying (no permissions) andTier 1 tools with permissions (6.187135ms)
+✖ registers clarifying (no permissions) andTier 1 tools with permissions (6.29054ms)
   AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
   
     assert.ok(!toolNames.includes("vision_analyze"))
