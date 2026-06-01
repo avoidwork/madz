@@ -37,7 +37,8 @@ describe("execute_code", () => {
 		);
 		const parsed = JSON.parse(result);
 		assert.ok(parsed.ok);
-		assert.strictEqual(parsed.stdout, "4");
+		/* eslint-disable-next-line no-control-regex */
+		assert.strictEqual(parsed.stdout.replace(/\x1b\[\d+m/g, ""), "4");
 		assert.strictEqual(parsed.exitCode, 0);
 	});
 

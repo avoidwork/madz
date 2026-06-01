@@ -12,7 +12,7 @@ import { ScheduleManager, shouldRun } from "../../src/scheduler/scheduler.js";
 import { writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 
-function logScheduleResult(result, outputDir = "memory/schedules/") {
+function logScheduleResult(result, outputDir = "memory/__test_scheduler__/") {
 	mkdirSync(join(process.cwd(), outputDir), { recursive: true });
 	const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
 	const { scheduleName, cron, startTime, endTime, exitCode, stdout, stderr } = result;
@@ -371,9 +371,9 @@ describe("scheduler - result logging", () => {
 				stdout: "success",
 				stderr: "",
 			},
-			"memory/schedules/",
+			"memory/__test_scheduler__/",
 		);
-		assert.ok(result.includes("memory/schedules"));
+		assert.ok(result.includes("memory/__test_scheduler__"));
 	});
 
 	it("creates file even with missing stdout/stderr", () => {
@@ -387,9 +387,9 @@ describe("scheduler - result logging", () => {
 				stdout: "",
 				stderr: "",
 			},
-			"memory/schedules/",
+			"memory/__test_scheduler__/",
 		);
-		assert.ok(res.includes("memory/schedules"));
+		assert.ok(res.includes("memory/__test_scheduler__"));
 	});
 });
 

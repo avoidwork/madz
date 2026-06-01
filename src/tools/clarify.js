@@ -2,8 +2,6 @@ import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { writeFile, mkdir, readFile, access } from "node:fs/promises";
 
-const CLARIFICATIONS_FILE = "memory/context/clarifications.md";
-
 /**
  * Check if a file path is accessible.
  * @param {string} filePath - Path to check
@@ -21,11 +19,13 @@ async function pathExists(filePath) {
 /**
  * Core clarification logic: format choices, store question, append to file.
  * @param {z.infer<typeof ClarifySchema>} input - The tool input
- * @param {object} _options - Runtime options (unused, for API compatibility)
+ * @param {object} options - Runtime options
+ * @param {string} [options.clarificationsFile] - Path to clarifications file (default "memory/context/clarifications.md")
  * @returns {Promise<string>} Clarification result
  */
-export async function clarifyImpl(input, _options) {
+export async function clarifyImpl(input, options) {
 	const { question, choices } = input;
+	const clarificationsFile = options?.clarificationsFile || "memory/context/clarifications.md";
 
 	// Format choices as numbered list if provided
 	let choicesFormatted = "";
@@ -38,13 +38,13 @@ export async function clarifyImpl(input, _options) {
 	const entry = `## Clarification: ${question}\n\n- Time: ${timestamp}\n${choicesFormatted ? `\n- Options: ${choicesFormatted.replace(/\n/g, ", ")}` : ""}`;
 
 	// Ensure directory exists
-	const dir = CLARIFICATIONS_FILE.split("/").slice(0, -1).join("/");
+	const dir = clarificationsFile.split("/").slice(0, -1).join("/");
 	if (dir && !(await pathExists("./" + dir))) {
 		await mkdir("./" + dir, { recursive: true });
 	}
 
 	// Append to clarifications file
-	const filePath = "./" + CLARIFICATIONS_FILE;
+	const filePath = "./" + clarificationsFile;
 	const existing = (await pathExists(filePath)) ? await readFile(filePath, "utf-8") : "";
 	await writeFile(filePath, existing + "\n\n" + entry + "\n", "utf-8");
 

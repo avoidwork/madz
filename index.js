@@ -2,6 +2,7 @@
 
 // Load config
 import { fileURLToPath } from "node:url";
+import { loadSession } from "./src/session/loader.js";
 
 import React from "react";
 
@@ -34,15 +35,8 @@ const registry = new SkillRegistry();
 registry.discover("skills/");
 
 // Initialize memory system
-const {
-	writeMemoryFile,
-	readMemoryFile,
-	loadContext,
-	cleanRetainedMemory,
-	enforceMaxEntries,
-	loadMemories,
-	formatMemoriesForPrompt,
-} = await import("./src/memory/index.js");
+const { writeMemoryFile, readMemoryFile, loadContext, loadMemories, formatMemoriesForPrompt } =
+	await import("./src/memory/index.js");
 
 // Initialize session
 const { createSession, SessionStateManager, saveSession, handleShutdown, registerShutdownHandler } =
@@ -53,11 +47,10 @@ const { ScheduleManager } = await import("./src/scheduler/index.js");
 const scheduleManager = new ScheduleManager(config.schedules.maxConcurrent);
 scheduleManager.register(config.schedules.entries);
 
-// Create session
+// Create or restore session
 const providerName = Object.keys(config.providers)[0] || "openai";
 const { sessionId, state: initialState } = createSession({
 	provider: providerName,
-	contextWindow: config.session.context_window_size,
 });
 const sessionState = new SessionStateManager(initialState);
 
@@ -76,7 +69,7 @@ const tools = await buildToolConfig({
 	allowedPaths: config.sandbox.paths || ["memory/", "skills/", "tmp/"],
 	maxReadSize: config.sandbox.maxReadSize || "1mb",
 	registry,
-	conversationsDir: config.session.conversationsDir,
+	conversationsDir: "memory/sessions/",
 	safety: config.sandbox.safety,
 	timeout: config.sandbox.timeout,
 	memoryLimit: config.sandbox.memoryLimit,
@@ -102,7 +95,15 @@ async function callProvider(_name, _providerConfig, message, streamingCallback) 
 }
 
 // Conversation handler
-async function handleConversation(message) {
+async function handleConversation(message, sessionId = "") {
+	// Restore existing session if requested
+	if (sessionId) {
+		const { conversation } = await loadSession("memory/sessions/", 20);
+		if (conversation && conversation.length > 0) {
+			conversation.forEach((msg) => sessionState.addExchange(msg));
+		}
+	}
+
 	const response = await callProvider(null, null, message);
 
 	sessionState.addExchange({ role: "user", content: message });
@@ -110,7 +111,7 @@ async function handleConversation(message) {
 
 	// Persist to memory
 	writeMemoryFile(
-		"memory/conversations/",
+		"memory/sessions/",
 		`Conversation ${new Date().toISOString()}`,
 		{
 			provider: response.provider,
@@ -151,11 +152,7 @@ async function invokeSkill(skillName, input = {}) {
 
 // Shutdown handler
 registerShutdownHandler(async () => {
-	saveSession(config.session.conversationsDir, sessionState.getConversation());
-
-	// Clean up retention
-	cleanRetainedMemory(config.memory.directory, config.memory.retention.days);
-	enforceMaxEntries(config.memory.directory, config.memory.retention.maxEntries);
+	await saveSession("memory/sessions/", sessionState.getConversation(), sessionId);
 
 	if (shutdownFn) {
 		await shutdownFn();
@@ -169,11 +166,20 @@ if (isMain) {
 	const mode = args.some((a, i) => a === "--mode" && args[i + 1] === "interactive")
 		? "interactive"
 		: "chat";
+	let chatSessionId = args.reduce((id, a, i) => {
+		if (a === "--session-id" || a === "-s") return args[i + 1] || id;
+		return id;
+	}, "");
+	let message = args.filter((a) => !a.startsWith("--"))[0];
+	if (!message && chatSessionId) {
+		message = "continue";
+	}
+	message = message || "Hello";
 
 	if (mode === "chat") {
-		const message = args.filter((a) => !a.startsWith("--"))[0] || "Hello";
 		try {
-			const response = await handleConversation(message);
+			const response = await handleConversation(message, chatSessionId);
+
 			console.log(JSON.stringify(response, null, 2));
 		} catch (err) {
 			console.error("Error:", err.message);
@@ -220,7 +226,6 @@ export {
 	loadContext,
 	writeMemoryFile,
 	readMemoryFile,
-	cleanRetainedMemory,
 	loadMemories,
 	formatMemoriesForPrompt,
 };

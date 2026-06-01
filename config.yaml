@@ -1,17 +1,14 @@
 providers:
   openai:
     type: openai
-    base_url: http://10.1.2.60:8000/v1
-    model: Qwen/Qwen3.6-35B-A3B-FP8
+    base_url: https://api.openai.com/v1
+    model: gpt-4o
     credentials:
-      apiKey: "abc"
+      apiKey: ""
     temperature: 0.7
-    maxTokens: 40960
+    maxTokens: 4096
     rateLimit:
       requestsPerMinute: 120
-inference:
-  temperature: 0.7
-  maxTokens: 4096
 sandbox:
   paths:
     - memory/
@@ -44,10 +41,6 @@ memory:
   toolsDir: memory/tools/
   errorsDir: memory/errors/
   schedulesDir: memory/schedules/
-  indexFile: memory/_index.md
-  retention:
-    days: 90
-    maxEntries: 1000
 telemetry:
   enabled: false
   exporter:
@@ -66,13 +59,9 @@ telemetry:
 schedules:
   maxConcurrent: 1
   entries: []
-session:
-  context_window_size: 20
-  conversationsDir: memory/conversations/
 tui:
   name: madz
   cursorChar: "█"
-  blinkTimeout: 530
 persistence:
   mode: memory
   sqlite_path: memory/checkpoints.db

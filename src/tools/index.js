@@ -110,7 +110,7 @@ export async function buildToolConfig(options) {
 		allowedPaths = ["memory/", "skills/", "tmp/"],
 		maxReadSize = "1mb",
 		registry,
-		conversationsDir = "memory/conversations/",
+		conversationsDir = "memory/sessions/",
 		safety,
 		timeout,
 		memoryLimit,

@@ -1,46 +1,29 @@
-import { readdirSync, statSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { mkdirSync } from "node:fs";
 import { writeMemoryFile } from "../memory/writer.js";
 
 /**
- * Save session exchanges to the latest conversation file.
+ * Save session exchanges to a file named by thread ID.
  * @param {string} conversationsDir - Path to conversations directory
  * @param {Array} conversation - Conversation exchanges to save
- * @param {string} [sessionId] - Optional session ID to include in frontmatter
+ * @param {string} [threadId] - Thread ID used as filename
  */
-export function saveSession(conversationsDir, conversation, sessionId = "") {
+export function saveSession(conversationsDir, conversation, threadId = "") {
 	const dir = join(process.cwd(), conversationsDir);
+	if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+
+	const filename = threadId ? `${threadId}.md` : "unsaved.md";
 	const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
 
-	// Try to update latest conversation file
-	let latestFile = null;
-	let latestTime = 0;
-
-	try {
-		const files = readdirSync(dir);
-		for (const file of files) {
-			if (!file.endsWith(".md")) continue;
-			const stat = statSync(join(dir, file));
-			if (stat.mtimeMs > latestTime) {
-				latestTime = stat.mtimeMs;
-				latestFile = file;
-			}
-		}
-	} catch {
-		// Directory doesn't exist — create fresh file
-	}
-
-	const _filename = latestFile || `${sessionId || timestamp}-session.md`;
-
-	// Convert conversation to JSON body
 	const body = JSON.stringify(conversation, null, 2);
 
 	const metadata = {
-		sessionId,
+		threadId: threadId || "unsaved",
 		messageCount: Array.isArray(conversation) ? conversation.length : 0,
 		startedAt: conversation[0]?.timestamp || timestamp,
 		endedAt: timestamp,
 	};
 
-	writeMemoryFile(conversationsDir, `${sessionId || "session"} ${timestamp}`, metadata, body);
+	writeMemoryFile(conversationsDir, filename, metadata, body);
 }

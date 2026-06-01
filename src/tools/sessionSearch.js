@@ -29,7 +29,7 @@ async function exists(path) {
  * @returns {Promise<string>} Search results or conversation content
  */
 export async function sessionSearchImpl(input, options) {
-	const conversationsDir = join(process.cwd(), options.conversationsDir || "memory/conversations/");
+	const conversationsDir = join(process.cwd(), options.conversationsDir || "memory/sessions/");
 
 	if (input.conversationId) {
 		return getFullConversation(conversationsDir, input.conversationId);

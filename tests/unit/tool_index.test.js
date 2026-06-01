@@ -1,4 +1,4 @@
-import { describe, it } from "node:test";
+import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert";
 
 describe("tools - buildToolConfig", () => {
@@ -47,6 +47,29 @@ describe("tools - buildToolConfig", () => {
 });
 
 describe("tools - buildToolConfig", () => {
+	let _origEnv;
+
+	beforeEach(() => {
+		_origEnv = {
+			OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+			OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
+			FAL_API_KEY: process.env.FAL_API_KEY,
+		};
+		delete process.env.OPENAI_API_KEY;
+		delete process.env.OPENROUTER_API_KEY;
+		delete process.env.FAL_API_KEY;
+	});
+
+	afterEach(() => {
+		if (_origEnv.OPENAI_API_KEY !== undefined) process.env.OPENAI_API_KEY = _origEnv.OPENAI_API_KEY;
+		else delete process.env.OPENAI_API_KEY;
+		if (_origEnv.OPENROUTER_API_KEY !== undefined)
+			process.env.OPENROUTER_API_KEY = _origEnv.OPENROUTER_API_KEY;
+		else delete process.env.OPENROUTER_API_KEY;
+		if (_origEnv.FAL_API_KEY !== undefined) process.env.FAL_API_KEY = _origEnv.FAL_API_KEY;
+		else delete process.env.FAL_API_KEY;
+	});
+
 	it("returns only clarify and execute_code with empty permissions", async () => {
 		const { buildToolConfig } = await import("../../src/tools/index.js");
 		const tools = await buildToolConfig({ permissions: [], maxReadSize: "1mb" });

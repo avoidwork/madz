@@ -1,29 +1,24 @@
 import { describe, it, before, after } from "node:test";
 import assert from "node:assert";
 import { mkdirSync, readFileSync, rmSync, existsSync } from "node:fs";
+import { join } from "node:path";
 import { todoImpl } from "../../src/tools/todo.js";
 import { sessionSearchImpl } from "../../src/tools/sessionSearch.js";
 import { clarifyImpl } from "../../src/tools/clarify.js";
 import { skillsListImpl, skillViewImpl } from "../../src/tools/skills.js";
 
-const TODO_FILE = "memory/tools/todo.json";
-const MEMORY_FILE = "memory/context/session_memory.md";
-const CLARIFICATION_FILE = "memory/context/clarifications.md";
+const TEST_DIR = join(process.cwd(), "memory", "__test_tools__");
+const CLARIFICATION_FILE = "memory/__test_tools__/clarifications.md";
 
 function setupTestFiles() {
-	mkdirSync("memory/tools", { recursive: true });
-	mkdirSync("memory/context", { recursive: true });
+	mkdirSync(TEST_DIR, { recursive: true });
 }
 
 function cleanupTestFiles() {
-	if (existsSync("./" + TODO_FILE)) {
-		rmSync("./" + TODO_FILE, { force: true });
-	}
-	if (existsSync("./" + MEMORY_FILE)) {
-		rmSync("./" + MEMORY_FILE, { force: true });
-	}
-	if (existsSync("./" + CLARIFICATION_FILE)) {
-		rmSync("./" + CLARIFICATION_FILE, { force: true });
+	try {
+		rmSync(process.cwd() + "/memory/__test_tools__", { recursive: true, force: true });
+	} catch {
+		// ignore
 	}
 }
 
@@ -158,14 +153,15 @@ describe("tools - todo", () => {
 });
 
 describe("tools - session_search", () => {
+	const testOptions = {
+		conversationsDir: "memory/__test_tools__/conversations/",
+	};
+
 	before(setupTestFiles);
 	after(cleanupTestFiles);
 
 	it("browse returns list or empty message when dir empty", async () => {
-		const result = await sessionSearchImpl(
-			{ query: "", limit: 10 },
-			{ conversationsDir: "memory/conversations/" },
-		);
+		const result = await sessionSearchImpl({ query: "", limit: 10 }, testOptions);
 		assert.ok(typeof result === "string");
 		assert.ok(
 			result.includes("No conversations") || result.includes("not found") || result.includes("["),
@@ -173,28 +169,26 @@ describe("tools - session_search", () => {
 	});
 
 	it("search with non-matching query", async () => {
-		const result = await sessionSearchImpl(
-			{ query: "xyz_not_found_123" },
-			{ conversationsDir: "memory/conversations/" },
-		);
+		const result = await sessionSearchImpl({ query: "xyz_not_found_123" }, testOptions);
 		assert.ok(result.includes("No conversations") || result.includes("no matching"));
 	});
 
 	it("unknown conversation id", async () => {
-		const result = await sessionSearchImpl(
-			{ conversationId: "non_existent_id" },
-			{ conversationsDir: "memory/conversations/" },
-		);
+		const result = await sessionSearchImpl({ conversationId: "non_existent_id" }, testOptions);
 		assert.ok(result.includes("not found") || result.includes("No conversations"));
 	});
 });
 
 describe("tools - clarify", () => {
+	const testOptions = {
+		clarificationsFile: "./memory/__test_tools__/clarifications.md",
+	};
+
 	before(setupTestFiles);
 	after(cleanupTestFiles);
 
 	it("stores open-ended question", async () => {
-		const result = await clarifyImpl({ question: "Should I use TypeScript?" }, {});
+		const result = await clarifyImpl({ question: "Should I use TypeScript?" }, testOptions);
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.answered, true);
 		assert.strictEqual(parsed.source, "open_ended");
@@ -204,7 +198,7 @@ describe("tools - clarify", () => {
 	it("stores question with choices", async () => {
 		const result = await clarifyImpl(
 			{ question: "Which framework?", choices: ["React", "Vue", "Svelte"] },
-			{},
+			testOptions,
 		);
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.source, "choices");
@@ -214,7 +208,7 @@ describe("tools - clarify", () => {
 		const existing = existsSync("./" + CLARIFICATION_FILE)
 			? readFileSync("./" + CLARIFICATION_FILE, "utf-8").split("\n").length
 			: 0;
-		await clarifyImpl({ question: "Test question" }, {});
+		await clarifyImpl({ question: "Test question" }, testOptions);
 		const updated = readFileSync("./" + CLARIFICATION_FILE, "utf-8").split("\n").length;
 		assert.ok(updated >= existing);
 	});

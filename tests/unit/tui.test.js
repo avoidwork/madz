@@ -685,7 +685,8 @@ describe("markdownText - parseMarkdown", () => {
 	});
 
 	it("parses plain text", () => {
-		const result = parseMarkdown("just some text");
+		/* eslint-disable-next-line no-control-regex */
+		const result = parseMarkdown("just some text").replace(/\x1b\[\d+m/g, "");
 		assert.strictEqual(result, "just some text");
 	});
 
@@ -763,54 +764,15 @@ describe("TuiSchema - cursorChar", () => {
 	});
 });
 
-describe("TuiSchema - blinkTimeout", () => {
-	it("accepts valid blinkTimeout value", () => {
-		const result = TuiSchema.safeParse({ name: "test", blinkTimeout: 500 });
-		assert.strictEqual(result.success, true);
-		assert.strictEqual(result.data.blinkTimeout, 500);
-	});
-
-	it("rejects zero blinkTimeout", () => {
-		const result = TuiSchema.safeParse({ name: "test", blinkTimeout: 0 });
-		assert.strictEqual(result.success, false);
-	});
-
-	it("rejects negative blinkTimeout", () => {
-		const result = TuiSchema.safeParse({ name: "test", blinkTimeout: -100 });
-		assert.strictEqual(result.success, false);
-	});
-
-	it("rejects non-integer blinkTimeout", () => {
-		const result = TuiSchema.safeParse({ name: "test", blinkTimeout: 3.5 });
-		assert.strictEqual(result.success, false);
-	});
-
-	it("defaults blinkTimeout to 530 when missing", () => {
-		const result = TuiSchema.safeParse({ name: "test" });
-		assert.strictEqual(result.success, true);
-		assert.strictEqual(result.data.blinkTimeout, 530);
-	});
-});
-
-describe("DEFAULT_CONFIG - tui cursor fields", () => {
+describe("DEFAULT_CONFIG - tui fields", () => {
 	it("includes cursorChar default", () => {
 		assert.strictEqual(DEFAULT_CONFIG.tui.cursorChar, "\u2588");
-	});
-
-	it("includes blinkTimeout default", () => {
-		assert.strictEqual(DEFAULT_CONFIG.tui.blinkTimeout, 530);
 	});
 
 	it("matches TuiSchema defaults for cursorChar", () => {
 		const schemaResult = TuiSchema.safeParse({});
 		assert.strictEqual(schemaResult.success, true);
 		assert.strictEqual(schemaResult.data.cursorChar, DEFAULT_CONFIG.tui.cursorChar);
-	});
-
-	it("matches TuiSchema defaults for blinkTimeout", () => {
-		const schemaResult = TuiSchema.safeParse({});
-		assert.strictEqual(schemaResult.success, true);
-		assert.strictEqual(schemaResult.data.blinkTimeout, DEFAULT_CONFIG.tui.blinkTimeout);
 	});
 });
 

@@ -74,11 +74,11 @@ describe("runScheduledSkill", () => {
 			return { stdout: "ok" };
 		};
 
-		// Non-existent context file → should call loadContext
+		// Non-existent context file → should call loadContext which returns "" for non-existent dir
 		await runScheduledSkill(
 			{ skill: "test", contextFile: "/nonexistent/context/file.md" },
 			sandbox,
-			{},
+			{ contextDir: "__nonexistent_ctx_dir_xyz__/" },
 		);
 
 		// loadContext returns "" when directory does not exist

@@ -3,16 +3,27 @@ import { join } from "node:path";
 import { parseFrontmatter } from "../memory/reader.js";
 
 /**
- * Load the latest conversation file from the sessions directory.
+ * Load a session by ID or the latest session file.
  * @param {string} conversationsDir - Path to conversations directory
  * @param {number} [windowSize=20] - Context window limit for loaded messages
+ * @param {string} [sessionId] - Optional session/thread ID to load (fallbacks to latest)
  * @returns {{ sessionId: string, conversation: Array, metadata: Object }}
  */
-export function loadSession(conversationsDir = "memory/conversations/", windowSize = 20) {
+export function loadSession(
+	conversationsDir = "memory/sessions/",
+	windowSize = 20,
+	sessionId = "",
+) {
 	const dir = join(process.cwd(), conversationsDir);
+
+	if (sessionId) {
+		const filepath = join(dir, `${sessionId}.md`);
+		return loadFile(filepath, windowSize);
+	}
+
+	// Load latest file
 	let latestFile = null;
 	let latestTime = 0;
-
 	try {
 		const files = readdirSync(dir);
 		for (const file of files) {
@@ -32,7 +43,10 @@ export function loadSession(conversationsDir = "memory/conversations/", windowSi
 		return { sessionId: "", conversation: [], metadata: {} };
 	}
 
-	const filepath = join(dir, latestFile);
+	return loadFile(join(dir, latestFile), windowSize);
+}
+
+function loadFile(filepath, windowSize) {
 	const content = readFileSync(filepath, "utf-8");
 	const { frontmatter, content: body } = parseFrontmatter(content);
 
@@ -43,18 +57,16 @@ export function loadSession(conversationsDir = "memory/conversations/", windowSi
 			conversation = parsed;
 		}
 	} catch {
-		// Body isn't JSON — treat as plain text single exchange
 		conversation = [{ role: "system", content: body }];
 	}
 
-	// Apply window
 	const window = Math.max(1, Math.floor(windowSize));
 	if (conversation.length > window) {
 		conversation = conversation.slice(-window);
 	}
 
 	return {
-		sessionId: frontmatter.sessionId || latestFile.replace(/\.md$/, ""),
+		sessionId: frontmatter.threadId || frontmatter.sessionId || filepath.replace(/\.md$/, ""),
 		conversation,
 		metadata: frontmatter,
 	};

@@ -3,12 +3,13 @@ import assert from "node:assert";
 import { buildToolConfig } from "../../src/tools/index.js";
 
 describe("tool registration - integration", () => {
-	let _origPermissions, origEnvVars;
+	let _origPermissions, _origEnvVars;
 
 	before(() => {
 		_origPermissions = process.env.SANDBOX_PERMISSIONS;
-		origEnvVars = {
+		_origEnvVars = {
 			OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+			OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
 			EXA_API_KEY: process.env.EXA_API_KEY,
 			FIRECRAWL_API_KEY: process.env.FIRECRAWL_API_KEY,
 			TAVILY_API_KEY: process.env.TAVILY_API_KEY,
@@ -17,24 +18,24 @@ describe("tool registration - integration", () => {
 			BING_API_KEY: process.env.BING_API_KEY,
 			CUSTOM_SEARCH_URL: process.env.CUSTOM_SEARCH_URL,
 			FAL_API_KEY: process.env.FAL_API_KEY,
-			OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
 		};
 	});
 
 	after(() => {
-		process.env.OPENAI_API_KEY = origEnvVars.OPENAI_API_KEY;
-		process.env.EXA_API_KEY = origEnvVars.EXA_API_KEY;
-		process.env.FIRECRAWL_API_KEY = origEnvVars.FIRECRAWL_API_KEY;
-		process.env.TAVILY_API_KEY = origEnvVars.TAVILY_API_KEY;
-		process.env.PARALLEL_API_KEY = origEnvVars.PARALLEL_API_KEY;
-		process.env.SEARXNG_URL = origEnvVars.SEARXNG_URL;
-		process.env.BING_API_KEY = origEnvVars.BING_API_KEY;
-		process.env.CUSTOM_SEARCH_URL = origEnvVars.CUSTOM_SEARCH_URL;
-		process.env.FAL_API_KEY = origEnvVars.FAL_API_KEY;
-		process.env.OPENROUTER_API_KEY = origEnvVars.OPENROUTER_API_KEY;
+		process.env.OPENAI_API_KEY = _origEnvVars.OPENAI_API_KEY;
+		process.env.OPENROUTER_API_KEY = _origEnvVars.OPENROUTER_API_KEY;
+		process.env.EXA_API_KEY = _origEnvVars.EXA_API_KEY;
+		process.env.FIRECRAWL_API_KEY = _origEnvVars.FIRECRAWL_API_KEY;
+		process.env.TAVILY_API_KEY = _origEnvVars.TAVILY_API_KEY;
+		process.env.PARALLEL_API_KEY = _origEnvVars.PARALLEL_API_KEY;
+		process.env.SEARXNG_URL = _origEnvVars.SEARXNG_URL;
+		process.env.BING_API_KEY = _origEnvVars.BING_API_KEY;
+		process.env.CUSTOM_SEARCH_URL = _origEnvVars.CUSTOM_SEARCH_URL;
+		process.env.FAL_API_KEY = _origEnvVars.FAL_API_KEY;
 	});
 
 	it("registers clarifying (no permissions) andTier 1 tools with permissions", async () => {
+		delete process.env.OPENAI_API_KEY;
 		const tools = await buildToolConfig({ permissions: ["filesystem:read", "filesystem:write"] });
 		const toolNames = tools.map((t) => t.name);
 		assert.ok(toolNames.includes("clarify")); // Always registered
