@@ -223,7 +223,13 @@ Walks the config tree recursively and maps each leaf key to an env var:
 
 **Memory entries:**
 
-Each memory is a standalone Markdown file in `memory/context/` with lowercase snake_case names. Files carry only date metadata in YAML frontmatter, with the memory body as the file content. Memories are loaded at session start and appended to the system prompt so they become part of the core context guiding every agent interaction.
+Each memory is a standalone Markdown file in `memory/context/` with lowercase snake_case names. Files carry only date metadata in YAML frontmatter, with the memory body as the file content. The `memory` tool (documented in [Built-in Tools](#built-in-tools)) provides full CRUD: `create`, `read`, `update`, `delete`, and `list` actions.
+
+**Memory system behavior:**
+
+- At session start, `loadMemories()` reads all `.md` files from `memory/context/`, sorts by `updatedDate` descending (falling back to `createdDate`), and passes them to `formatMemoriesForPrompt()`
+- The formatted output is appended to the system prompt with the prefix "The following are important memories for the user:" — making memories part of the core context that guides every agent interaction
+- When you add, update, or delete a memory, run `:new` to create a new session so the change takes effect immediately in the system prompt
 
 ---
 
