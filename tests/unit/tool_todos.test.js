@@ -2,7 +2,6 @@ import { describe, it, before, after } from "node:test";
 import assert from "node:assert";
 import { mkdirSync, readFileSync, rmSync, existsSync } from "node:fs";
 import { todoImpl } from "../../src/tools/todo.js";
-import { memoryImpl } from "../../src/tools/memory.js";
 import { sessionSearchImpl } from "../../src/tools/sessionSearch.js";
 import { clarifyImpl } from "../../src/tools/clarify.js";
 import { skillsListImpl, skillViewImpl } from "../../src/tools/skills.js";
@@ -155,79 +154,6 @@ describe("tools - todo", () => {
 	it("rejects unknown action", async () => {
 		const result = await todoImpl({ action: "foobar" }, {});
 		assert.ok(result.includes("Unknown action") || result.includes("Error"));
-	});
-});
-
-describe("tools - memory", () => {
-	before(setupTestFiles);
-	after(cleanupTestFiles);
-
-	it("write adds entries to session memory", async () => {
-		const result = await memoryImpl(
-			{ entries: [{ key: "user_pref", value: "dark_mode" }] },
-			{ maxEntries: 100 },
-		);
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.saved, 1);
-		assert.ok(parsed.keys.includes("user_pref"));
-	});
-
-	it("deduplicates by key", async () => {
-		// Write initial entry
-		await memoryImpl({ entries: [{ key: "theme", value: "light" }] }, { maxEntries: 100 });
-		// Overwrite same key
-		const result = await memoryImpl(
-			{ entries: [{ key: "theme", value: "dark" }] },
-			{ maxEntries: 100 },
-		);
-		assert.ok(result.includes("saved"));
-	});
-
-	it("enforces maxEntries limit", async () => {
-		try {
-			const bigEntries = [];
-			for (let i = 0; i < 101; i++) {
-				bigEntries.push({ key: `key_${i}`, value: `value_${i}` });
-			}
-			await memoryImpl({ entries: bigEntries }, { maxEntries: 100 });
-			assert.fail("Should have thrown error");
-		} catch (err) {
-			assert.ok(err.message.includes("exceed"));
-		}
-	});
-
-	it("multiple entries at once", async () => {
-		const result = await memoryImpl(
-			{
-				entries: [
-					{ key: "a", value: 1 },
-					{ key: "b", value: 2 },
-					{ key: "c", value: 3 },
-				],
-			},
-			{ maxEntries: 100 },
-		);
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.saved, 3);
-	});
-
-	it("handles entries with undefined value", async () => {
-		// This tests the entry.key + entry.value !== undefined check
-		const result = await memoryImpl(
-			{ entries: [{ key: "test", value: undefined }] },
-			{ maxEntries: 100 },
-		);
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.saved, 1); // undefined values are still counted
-	});
-
-	it("handles non-string values correctly", async () => {
-		const result = await memoryImpl(
-			{ entries: [{ key: "obj", value: { nested: true } }] },
-			{ maxEntries: 100 },
-		);
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.saved, 1);
 	});
 });
 

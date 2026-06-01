@@ -1,9 +1,9 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import { readFile, writeFile, mkdir, access } from "node:fs/promises";
-import { parseFrontmatter } from "../memory/reader.js";
+import { mkdir, writeFile, readFile, readdir, unlink, access } from "node:fs/promises";
+import { join, basename } from "node:path";
 
-const MEMORY_FILE = "memory/context/session_memory.md";
+const ENTRIES_DIR = "memory/context/";
 const DEFAULT_MAX_ENTRIES = 100;
 
 /**
@@ -11,7 +11,7 @@ const DEFAULT_MAX_ENTRIES = 100;
  * @param {string} filePath - File path to check
  * @returns {Promise<boolean>}
  */
-async function checkPathExists(filePath) {
+async function pathExists(filePath) {
 	try {
 		await access(filePath);
 		return true;
@@ -21,74 +21,162 @@ async function checkPathExists(filePath) {
 }
 
 /**
- * Load current session memory entries from frontmatter.
- * @param {string} [filePath=MEMORY_FILE] - Path to the memory file
- * @returns {Promise<Object<string, string>>} Key-value map of entries
+ * Parse entry content by extracting frontmatter and body text.
+ * @param {string} content - Raw file content
+ * @returns {{ frontmatter: Record<string, string>, body: string }}
  */
-async function loadMemoryEntries(filePath = MEMORY_FILE) {
-	if (!(await checkPathExists(filePath))) {
-		return {};
+function parseEntryContent(content) {
+	const lines = content.split("\n");
+	const fmLines = [];
+	let inFrontmatter = false;
+	let bodyStart = 0;
+
+	for (let i = 0; i < lines.length; i++) {
+		if (lines[i].trim() === "---" && !inFrontmatter) {
+			inFrontmatter = true;
+			continue;
+		}
+		if (lines[i].trim() === "---" && inFrontmatter) {
+			bodyStart = i + 1;
+			break;
+		}
+		if (inFrontmatter) fmLines.push(lines[i]);
 	}
-	const content = await readFile(filePath, "utf-8");
-	const { frontmatter } = parseFrontmatter(content);
-	const entries = frontmatter.entries || [];
-	const map = {};
-	for (const entry of entries) {
-		if (entry.key && entry.value !== undefined) {
-			map[entry.key] = entry.value;
+
+	const frontmatter = {};
+	for (const line of fmLines) {
+		const i = line.indexOf(":");
+		if (i !== -1) {
+			let val = line.slice(i + 1).trim();
+			if (
+				(val.startsWith('"') && val.endsWith('"')) ||
+				(val.startsWith("'") && val.endsWith("'"))
+			) {
+				val = val.slice(1, -1);
+			}
+			frontmatter[line.slice(0, i).trim().toLowerCase()] = val;
 		}
 	}
-	return map;
+
+	return { frontmatter, body: lines.slice(bodyStart).join("\n").trim() };
 }
 
 /**
- * Save memory entries to file in frontmatter markdown format.
- * @param {string} [filePath=MEMORY_FILE] - Path to the memory file
- * @param {Object<string, string>} entries - Key-value entries to save
- * @param {number} [maxEntries=100] - Maximum number of entries allowed
+ * Sanitize a key to lowercase snake_case for use as a filename.
+ * @param {string} key - The raw key string
+ * @returns {string} Sanitized filename stem
+ */
+export function sanitizeKey(key) {
+	const stem = key
+		.replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+		.toLocaleLowerCase()
+		.replace(/\.md$/i, "")
+		.replace(/[^a-z0-9]+/g, "_")
+		.replace(/^_+|_+$/g, "");
+	return stem || "unnamed_entry";
+}
+
+/**
+ * Get the full file path for a given key.
+ * @param {string} key - Entry key
+ * @returns {string} Full path to the entry file
+ */
+function getEntryPath(key) {
+	return join(process.cwd(), ENTRIES_DIR, sanitizeKey(key) + ".md");
+}
+
+/**
+ * Get the list of entry files in the entries directory.
+ * @returns {Promise<string[]>} List of entry filenames
+ */
+async function getEntryFiles() {
+	try {
+		return (await readdir(ENTRIES_DIR)).filter((f) => f.endsWith(".md"));
+	} catch {
+		return [];
+	}
+}
+
+/**
+ * Count the number of entry files in the directory.
+ * @returns {Promise<number>} Number of entry files
+ */
+async function countEntries() {
+	try {
+		return (await readdir(ENTRIES_DIR)).filter((f) => f.endsWith(".md")).length;
+	} catch {
+		return 0;
+	}
+}
+
+/**
+ * Validate the entry count against the maximum limit.
+ * @param {number} maxEntries - Maximum allowed entries
+ * @returns {Promise<void>}
+ * @throws {Error} When limit would be exceeded
+ */
+async function validateMaxEntries(maxEntries) {
+	const count = await countEntries();
+	if (count >= maxEntries) {
+		throw new Error(`Memory entries (${count}) exceed maximum (${maxEntries})`);
+	}
+}
+
+/**
+ * Load a single entry by key.
+ * @param {string} key - Entry key
+ * @returns {Promise<{ found: boolean, value: string, createdDate: string, updatedDate: string } | null>}
+ */
+async function loadEntry(key) {
+	const filePath = getEntryPath(key);
+	try {
+		const content = await readFile(filePath, "utf-8");
+		const { frontmatter, body } = parseEntryContent(content);
+		const created = frontmatter.createddate || new Date().toISOString();
+		return {
+			found: true,
+			value: body,
+			createdDate: created,
+			updatedDate: frontmatter.updateddate || created,
+		};
+	} catch {
+		return null;
+	}
+}
+
+/**
+ * Save a single entry to its file.
+ * @param {string} key - Entry key
+ * @param {string} value - Entry value/body
+ * @param {string} [createdDate] - Optional preserved creation date (omit for new entries)
  * @returns {Promise<void>}
  */
-async function saveMemoryEntries(
-	filePath = MEMORY_FILE,
-	entries,
-	maxEntries = DEFAULT_MAX_ENTRIES,
-) {
-	const keys = Object.keys(entries);
-	if (keys.length > maxEntries) {
-		throw new Error(`Memory entries (${keys.length}) exceed maximum (${maxEntries})`);
-	}
-
-	const entryList = keys.map((key) => ({ key, value: entries[key] }));
-
-	// Build existing body from file
-	let body = "";
-	if (await checkPathExists(filePath)) {
-		const content = await readFile(filePath, "utf-8");
-		const parsed = parseFrontmatter(content);
-		body = parsed.content || "";
-	}
-
-	const fmLines = ["---"];
-	for (const entry of entryList) {
-		if (typeof entry.value === "string" || typeof entry.value === "number") {
-			fmLines.push(`${entry.key}: ${entry.value}`);
-		} else {
-			fmLines.push(`${entry.key}: ${JSON.stringify(entry.value)}`);
-		}
-	}
-	fmLines.push("---");
-
-	const content = [...fmLines, "", body, ""].join("\n");
-
-	const dir = filePath.split("/").slice(0, -1).join("/");
-	if (dir) {
-		await mkdir(dir, { recursive: true });
-	}
-	await writeFile(filePath, content, "utf-8");
+async function saveEntry(key, value, createdDate) {
+	const filePath = getEntryPath(key);
+	const now = new Date().toISOString();
+	const created = createdDate || now;
+	await mkdir(process.cwd() + "/" + ENTRIES_DIR, { recursive: true });
+	await writeFile(
+		filePath,
+		`---\ncreatedDate: "${created}"\nupdatedDate: "${now}"\n---\n\n${value}\n`,
+		"utf-8",
+	);
 }
 
 /**
- * Core memory implementation: load entries, add new ones, deduplicate, save.
+ * Delete a single entry by key.
+ * @param {string} key - Entry key
+ * @returns {Promise<boolean>} Whether the entry was deleted
+ */
+async function deleteEntry(key) {
+	const filePath = getEntryPath(key);
+	if (!(await pathExists(filePath))) return false;
+	await unlink(filePath);
+	return true;
+}
+
+/**
+ * Core memory implementation with create, read, update, delete, and list actions.
  * @param {z.infer<typeof MemorySchema>} input - The tool input
  * @param {object} options - Runtime options
  * @param {number} options.maxEntries - Maximum memory entries (default 100)
@@ -96,40 +184,124 @@ async function saveMemoryEntries(
  */
 export async function memoryImpl(input, options) {
 	const maxEntries = options.maxEntries || DEFAULT_MAX_ENTRIES;
-	const existing = await loadMemoryEntries();
-	const keys = [];
+	const { action } = input;
+	const actions = ["create", "read", "update", "delete", "list"];
 
-	for (const entry of input.entries) {
-		existing[entry.key] = entry.value;
-		keys.push(entry.key);
+	if (!actions.includes(action)) {
+		return JSON.stringify({
+			ok: false,
+			error: `Unknown action: "${action}". Valid actions: ${actions.join(", ")}`,
+		});
 	}
 
-	// Remove duplicates (later values override earlier)
-	const deduped = {};
-	for (const key of keys) {
-		deduped[key] = existing[key];
-	}
+	try {
+		switch (action) {
+			case "create": {
+				if (!input.key || input.value === undefined) {
+					return JSON.stringify({ ok: false, error: "create requires: key and value" });
+				}
+				const cleanedKey = sanitizeKey(input.key);
+				await validateMaxEntries(maxEntries);
+				await saveEntry(cleanedKey, String(input.value));
+				return JSON.stringify({ ok: true, message: `Memory created: "${cleanedKey}"` });
+			}
 
-	await saveMemoryEntries(MEMORY_FILE, deduped, maxEntries);
-	return JSON.stringify({ saved: keys.length, keys });
+			case "read": {
+				if (!input.key) {
+					return JSON.stringify({ ok: false, error: "read requires: key" });
+				}
+				const entry = await loadEntry(input.key);
+				if (!entry || !entry.found) {
+					return JSON.stringify({
+						ok: false,
+						error: `Memory not found: "${sanitizeKey(input.key)}"`,
+					});
+				}
+				return JSON.stringify({
+					ok: true,
+					key: sanitizeKey(input.key),
+					value: entry.value,
+					createdDate: entry.createdDate,
+					updatedDate: entry.updatedDate,
+				});
+			}
+
+			case "update": {
+				if (!input.key || input.value === undefined) {
+					return JSON.stringify({ ok: false, error: "update requires: key and value" });
+				}
+				const cleanedKey = sanitizeKey(input.key);
+				const existing = await loadEntry(cleanedKey);
+				if (!existing || !existing.found) {
+					return JSON.stringify({
+						ok: false,
+						error: `Memory not found: "${cleanedKey}". Use "create" to add it.`,
+					});
+				}
+				await saveEntry(cleanedKey, String(input.value), existing.createdDate);
+				return JSON.stringify({ ok: true, message: `Memory updated: "${cleanedKey}"` });
+			}
+
+			case "delete": {
+				if (!input.key) {
+					return JSON.stringify({ ok: false, error: "delete requires: key" });
+				}
+				const cleanedKey = sanitizeKey(input.key);
+				const deleted = await deleteEntry(cleanedKey);
+				if (!deleted) {
+					return JSON.stringify({ ok: false, error: `Memory not found: "${cleanedKey}"` });
+				}
+				return JSON.stringify({ ok: true, message: `Memory deleted: "${cleanedKey}"` });
+			}
+
+			case "list": {
+				const files = await getEntryFiles();
+				const query = input.query || "";
+				const entries = [];
+
+				for (const file of files) {
+					const content = await readFile(join(ENTRIES_DIR, file), "utf-8");
+					const { frontmatter, body } = parseEntryContent(content);
+					const stem = basename(file, ".md").toLocaleLowerCase();
+					if (query && ![stem, body].join(" ").toLowerCase().includes(query.toLowerCase()))
+						continue;
+					const created = frontmatter.createddate || new Date().toISOString();
+					entries.push({
+						key: stem,
+						value: body,
+						createdDate: created,
+						updatedDate: frontmatter.updateddate || created,
+					});
+				}
+
+				entries.sort((a, b) =>
+					(b.updatedDate || b.createdDate || "").localeCompare(
+						a.updatedDate || a.createdDate || "",
+					),
+				);
+				return JSON.stringify({ ok: true, total: entries.length, entries });
+			}
+		}
+	} catch (err) {
+		return JSON.stringify({ ok: false, error: `Memory error: ${err.message}` });
+	}
 }
 
 /**
- * Memory tool for key-value entry persistence with deduplication.
+ * Memory tool for individual file-based entry persistence.
  */
 export const memory = tool(memoryImpl, {
 	name: "memory",
 	description:
-		"Memory tool for key-value entry storage. Supports writing entries with deduplication by key. Persists to memory/context/session_memory.md with markdown frontmatter format.",
+		"Memory tool for individual key-value entry storage. Each entry is persisted as a separate .md file in memory/context/entries/ with createdDate and updatedDate metadata. Actions: create (new entry), read (get by key), update (modify by key), delete (remove by key), list (all entries, optional query filter).",
 	schema: z.object({
-		entries: z
-			.array(
-				z.object({
-					key: z.string().describe("Entry key (used for deduplication)"),
-					value: z.unknown().describe("Entry value (any type)"),
-				}),
-			)
-			.describe("Key-value entries to save"),
+		action: z.enum(["create", "read", "update", "delete", "list"]).describe("Action to perform"),
+		key: z
+			.string()
+			.optional()
+			.describe("Entry key/identifier (required for create, read, update, delete)"),
+		value: z.unknown().optional().describe("Entry value (required for create, update)"),
+		query: z.string().optional().describe("Search query to filter list results"),
 	}),
 });
 
@@ -138,22 +310,22 @@ export const memory = tool(memoryImpl, {
 /**
  * Create a memory tool with runtime options
  * @param {object} options - Runtime options
- * @returns {object} LangChain Tool instance
+ * @param {number} [options.maxEntries] - Maximum memory entries (default 100)
+ * @returns {object} LangChain tool instance
  */
-export function createMemoryTool(options) {
+export function createMemoryTool(options = {}) {
 	return tool((input) => memoryImpl(input, options), {
 		name: "memory",
 		description:
-			"Memory tool for key-value entry storage. Supports writing entries with deduplication by key. Persists to memory/context/session_memory.md with markdown frontmatter format.",
+			"Memory tool for individual key-value entry storage. Each entry is persisted as a separate .md file in memory/context/entries/ with createdDate and updatedDate metadata. Actions: create, read, update, delete, list.",
 		schema: z.object({
-			entries: z
-				.array(
-					z.object({
-						key: z.string().describe("Entry key (used for deduplication)"),
-						value: z.unknown().describe("Entry value (any type)"),
-					}),
-				)
-				.describe("Key-value entries to save"),
+			action: z.enum(["create", "read", "update", "delete", "list"]).describe("Action to perform"),
+			key: z
+				.string()
+				.optional()
+				.describe("Entry key/identifier (required for create, read, update, delete)"),
+			value: z.unknown().optional().describe("Entry value (required for create, update)"),
+			query: z.string().optional().describe("Search query to filter list results"),
 		}),
 	});
 }

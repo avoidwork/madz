@@ -68,7 +68,7 @@ Bundled LangChain tools gated by sandbox permissions:
 | **Filesystem** | `read_file`, `write_file` (500KB cap), `patch` (9-strategy fuzzy matching + unified diff), `search_files` (ripgrep with native fs fallback) |
 | **Terminal** | `terminal` — shell command execution (foreground/background); `process` — background process management (list, poll, wait, kill, write, pause, resume) |
 | **Task Management** | `todo` — CRUD list persisted to `memory/tools/todo.json` |
-| **Memory** | `memory` — key-value session memory with deduplication |
+| **Memory** | `memory` — persistent memory tool with CRUD (create, read, update, delete, list). Each memory is stored as an individual `.md` file in `memory/context/` with `createdDate` and `updatedDate` metadata. Memories are long-term, core "canon" that shapes your interaction with madz — important personal details, preferences, and context that matter. Loaded into the system prompt at the start of every session. |
 | **Search** | `session_search` — query past conversations by keyword, ID, or browse |
 | **Clarification** | `clarify` — sends clarification questions to the user |
 | **Skills** | `skills_list` — lists discovered skills; `skill_view` — views skill metadata and SKILL.md |
@@ -96,7 +96,11 @@ Built-in tools are registered only when their required permissions are enabled f
 
 ### Memory System
 
-Conversations, tool outputs, errors, and schedules are persisted as timestamped Markdown files with YAML frontmatter. Easy to audit with `git log` and re-load across sessions.
+Memories are stored as individual Markdown files in `memory/context/`. Each file carries `createdDate` and `updatedDate` metadata in YAML frontmatter and the memory content as the body. At the start of every session, all memories are loaded and appended to the system prompt with a header like "The following are important memories for the user:" — so they become part of the core context that guides every interaction.
+
+This means memories are not ephemeral session state; they are persistent, long-term knowledge that accumulates over time. When you add, update, or delete a memory, follow it with `:new` so the current session picks up the change immediately.
+
+**Memory tool actions:** `create` (new memory), `read` (get by key), `update` (modify by key), `delete` (remove by key), `list` (all memories, optional query filter)
 
 ### Sandbox RTE
 
