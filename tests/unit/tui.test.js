@@ -685,7 +685,8 @@ describe("markdownText - parseMarkdown", () => {
 	});
 
 	it("parses plain text", () => {
-		const result = parseMarkdown("just some text").replace(/\u001b\[\d+m/g, "");
+		/* eslint-disable-next-line no-control-regex */
+		const result = parseMarkdown("just some text").replace(/\x1b\[\d+m/g, "");
 		assert.strictEqual(result, "just some text");
 	});
 
