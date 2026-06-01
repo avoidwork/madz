@@ -206,11 +206,7 @@ buildToolConfig({ permissions, allowedPaths, maxReadSize, registry, safety, time
 │   ├── switch toolName:
 │   │   ├── clarify | execute_code: → always create (no perms needed)
 │   │   ├── web_search | web_extract: → if hasAllPerms && hasSearchKey()
-│   │   ├── vision_analyze: → if OPENAI_API_KEY
-│   │   ├── image_generate: → if hasAllPerms && FAL_API_KEY
 │   │   ├── cronjob: → if hasAllPerms
-│   │   ├── text_to_speech: → if OPENAI_API_KEY
-│   │   ├── mixture_of_agents: → if OPENROUTER_API_KEY
 │   │   └── default: → if requiredPerms.length === 0 || hasAllPerms
 │   └── tools.push(TOOL_FACTORIES[toolName](runtimeOptions))
 └── return tools[]
@@ -359,11 +355,7 @@ Permission gates per tool:
 ├── session_search → "filesystem:read"
 ├── skills_list, skill_view → "filesystem:read"
 ├── web_search, web_extract → "network:outbound" + hasSearchKey()
-├── vision_analyze → OPENAI_API_KEY (no perms)
-├── image_generate → "network:outbound" + FAL_API_KEY
 ├── cronjob → "network:outbound"
-├── text_to_speech → OPENAI_API_KEY
-└── mixture_of_agents → OPENROUTER_API_KEY
 ```
 
 ### Search Backend Detection
@@ -690,7 +682,7 @@ index.js
 │     ├── tools/sessionSearch.js → node:fs/promises, memory/reader.js
 │     ├── tools/code.js → node:child_process, node:fs/promises, node:path
 │     ├── tools/filesystem.js → tool decorators + factory funcs
-│     └── tools/... (vision, image, tts, moa, etc.)
+│     └── tools/... (remaining core tools)
 ├── sandbox/pathResolver.js → node:path
 ├── sandbox/urlFilter.js → node:url
 ├── sandbox/runner.js → node:child_process, sandbox/timeoutHandler.js, envInjector.js, capability.js

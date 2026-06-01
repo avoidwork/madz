@@ -11,12 +11,8 @@ import { createSessionSearchTool } from "./sessionSearch.js";
 import { createClarifyTool } from "./clarify.js";
 import { createSkillsListTool, createSkillViewTool } from "./skills.js";
 import { createWebSearchTool, createWebExtractTool } from "./web.js";
-import { createVisionTool } from "./vision.js";
-import { createImageTool } from "./image.js";
 import { createCodeTool } from "./code.js";
 import { createCronTool } from "./cron.js";
-import { createTtsTool } from "./tts.js";
-import { createMoaTool } from "./moa.js";
 
 /**
  * Maps tool names to required permission scopes.
@@ -39,12 +35,8 @@ export const TOOL_PERMISSIONS = {
 	// Tier 2 tools (need env vars in addition to permissions where applicable)
 	web_search: ["network:outbound"],
 	web_extract: ["network:outbound"],
-	vision_analyze: [], // requires OPENAI_API_KEY
-	image_generate: ["network:outbound"], // requires FAL_API_KEY
 	execute_code: [], // sandboxed, no permission needed
 	cronjob: ["network:outbound"],
-	text_to_speech: [], // requires OPENAI_API_KEY
-	mixture_of_agents: [], // requires OPENROUTER_API_KEY
 };
 
 // Factory functions keyed by tool name
@@ -63,12 +55,8 @@ const TOOL_FACTORIES = {
 	skill_view: createSkillViewTool,
 	web_search: createWebSearchTool,
 	web_extract: createWebExtractTool,
-	vision_analyze: createVisionTool,
-	image_generate: createImageTool,
 	execute_code: createCodeTool,
 	cronjob: createCronTool,
-	text_to_speech: createTtsTool,
-	mixture_of_agents: createMoaTool,
 };
 
 /**
@@ -147,24 +135,8 @@ export async function buildToolConfig(options) {
 				continue;
 			}
 
-			case "vision_analyze": {
-				if (!process.env.OPENAI_API_KEY) continue;
-				tools.push(TOOL_FACTORIES[toolName](runtimeOptions));
-				continue;
-			}
-
-			case "image_generate": {
-				if (!hasAllPerms || !process.env.FAL_API_KEY) continue;
-				tools.push(TOOL_FACTORIES[toolName](runtimeOptions));
-				continue;
-			}
-
-			case "cronjob":
-			case "text_to_speech":
-			case "mixture_of_agents": {
-				if (toolName === "cronjob" && !hasAllPerms) continue;
-				if (toolName === "text_to_speech" && !process.env.OPENAI_API_KEY) continue;
-				if (toolName === "mixture_of_agents" && !process.env.OPENROUTER_API_KEY) continue;
+			case "cronjob": {
+				if (!hasAllPerms) continue;
 				tools.push(TOOL_FACTORIES[toolName](runtimeOptions));
 				continue;
 			}
