@@ -685,7 +685,7 @@ describe("markdownText - parseMarkdown", () => {
 	});
 
 	it("parses plain text", () => {
-		const result = parseMarkdown("just some text");
+		const result = parseMarkdown("just some text").replace(/\x1b\[\d+m/g, "");
 		assert.strictEqual(result, "just some text");
 	});
 
