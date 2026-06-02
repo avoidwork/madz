@@ -10,63 +10,53 @@ const PROGRESS_PREFIX = (current, total) => {
 
 export function OnboardingPanel({ onboarding, onComplete, _onExit }) {
 	const [messages, setMessages] = useState([]);
-	const [currentPrompt, setCurrentPrompt] = useState(null);
-	const [done, setDone] = useState(false);
-	const [transitioned, setTransitioned] = useState(false);
+	const [phase, setPhase] = useState(null);
 
 	useEffect(() => {
-		if (done || !onboarding || transitioned) return;
-		if (onboarding.getPhase() === "TRANSCEND") {
-			setTransitioned(true);
-			setDone(true);
+		if (!onboarding) return;
+		const checkPhase = () => {
+			const p = onboarding.getPhase();
+			if (p !== phase) setPhase(p);
+			return p;
+		};
+		const currentPhase = checkPhase();
+		if (currentPhase === "TRANSCEND") {
 			onComplete();
 			return;
 		}
-		if (!onboarding.isStarted()) {
+		if (currentPhase === "INIT" && !onboarding.isStarted()) {
 			onboarding.processResponse("continue");
 		}
-		if (onboarding.getPhase() === "TRANSCEND") {
-			setTransitioned(true);
-			setDone(true);
+		const updatedPhase = checkPhase();
+		if (updatedPhase === "TRANSCEND") {
 			onComplete();
 			return;
 		}
 		const prompt = onboarding.getCurrentPrompt();
 		if (prompt) {
 			const progress = PROGRESS_PREFIX(prompt.current, prompt.total);
-			setMessages([
-				{ role: "system", content: prompt.prompt, _progress: progress, time: getTimestamp() },
-			]);
-			setCurrentPrompt(prompt);
+			setMessages([{ role: "system", content: prompt.prompt, _progress: progress }]);
 		}
-	}, [onboarding, done, transitioned, currentPrompt]);
+	}, [onboarding]);
 
-	if (done || transitioned) return null;
-
-	const children = messages.map((msg, i) => {
-		const progress = msg._progress || "";
-		return React.createElement(
-			Box,
-			{
-				key: "msg-" + i,
-				borderStyle: "round",
-				borderColor: "yellow",
-				growDirection: "down",
-				width: BOX_WIDTH,
-				paddingX: 1,
-			},
-			React.createElement(Text, { color: "yellow" }, (msg.content || "") + (progress || "")),
-		);
-	});
+	if (!phase || phase === "TRANSCEND") return null;
 
 	return React.createElement(
 		Box,
 		{ flexDirection: "column", width: "100%", flexGrow: 1 },
-		children,
+		messages.map((msg, i) =>
+			React.createElement(
+				Box,
+				{
+					key: "msg-" + i,
+					borderStyle: "round",
+					borderColor: "yellow",
+					growDirection: "down",
+					width: BOX_WIDTH,
+					paddingX: 1,
+				},
+				React.createElement(Text, { color: "yellow" }, (msg.content || "") + (msg._progress || "")),
+			),
+		),
 	);
-}
-
-function getTimestamp() {
-	const now = new Date();
-	return String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
 }
