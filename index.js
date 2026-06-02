@@ -21,9 +21,9 @@ const config = loadConfig();
 // Initialize contextual onboarding if profile is missing (with graceful degradation)
 let onboardingInstance = null;
 try {
-	const { hasProfile } = await import("./src/memory/profile.js");
+	const { hasProfile, ATTRIBUTES } = await import("./src/memory/profile.js");
 	if (!hasProfile()) {
-		const { createOnboarding, ATTRIBUTES } = await import("./src/session/onboarding.js");
+		const { createOnboarding } = await import("./src/session/onboarding.js");
 		onboardingInstance = createOnboarding(ATTRIBUTES);
 	}
 } catch {
