@@ -18,6 +18,18 @@ const { default: pkg } = await import(new URL("package.json", import.meta.url).h
 // Initialize subsystems
 const config = loadConfig();
 
+// Initialize contextual onboarding if profile is missing (with graceful degradation)
+let onboardingInstance = null;
+try {
+	const { hasProfile } = await import("./src/memory/profile.js");
+	if (!hasProfile()) {
+		const { createOnboarding, ATTRIBUTES } = await import("./src/session/onboarding.js");
+		onboardingInstance = createOnboarding(ATTRIBUTES);
+	}
+} catch {
+	// Fail gracefully: continue without onboarding if profile detection fails
+}
+
 // Boot telemetry if enabled
 let tracer = null;
 let shutdownFn = null;
@@ -197,6 +209,7 @@ if (isMain) {
 				dispatchProvider,
 				invokeSkill,
 				appInfo,
+				onboarding: onboardingInstance,
 			}),
 			{
 				// Restore terminal with newline when app exits

@@ -7,6 +7,7 @@ import { StatusBar } from "./statusBar.js";
 import { InputPanel } from "./inputPanel.js";
 import { isStreamingMessage } from "./messages.js";
 import { Banner } from "./banner.js";
+import { OnboardingPanel } from "./onboardingPanel.js";
 import { setConfigValue } from "../config/loader.js";
 
 const EXIT_MESSAGE = "\n";
@@ -15,8 +16,16 @@ const EXIT_MESSAGE = "\n";
  * Main App component (Ink). Renders an IRC-style layout:
  * full-height conversation REPL at top, input bar at bottom.
  */
-export default function App({ config, registry, sessionState, dispatchProvider, appInfo }) {
+export default function App({
+	config,
+	registry,
+	sessionState,
+	dispatchProvider,
+	appInfo,
+	onboarding,
+}) {
 	const [showBanner, setShowBanner] = useState(true);
+	const [showOnboarding, setShowOnboarding] = useState(!!onboarding);
 	const [messages, setMessages] = useState([]);
 	const [statusMessage, setStatusMessage] = useState("Ready");
 	const [chatHistory, setChatHistory] = useState([]);
@@ -251,6 +260,60 @@ export default function App({ config, registry, sessionState, dispatchProvider, 
 	};
 
 	/**
+	 * Process onboarding input: forward to onboarding instance and update state.
+	 * @param {string} text - Raw user input
+	 */
+	function processOnboardingInput(text) {
+		if (!onboarding || !showOnboarding) return false;
+		const trimmed = text.trim();
+
+		if (trimmed === "exit") {
+			setShowBanner(true);
+			setShowOnboarding(false);
+			process.exit(0);
+			return true;
+		}
+
+		const result = onboarding.processResponse(trimmed);
+
+		if (result.action === "exit") {
+			setShowBanner(true);
+			setShowOnboarding(false);
+			process.exit(0);
+			return true;
+		}
+
+		if (result.action === "save") {
+			const saved = onboarding.save();
+			if (saved) {
+				addMessage({
+					role: "system",
+					content: "Profile saved. Let's get started!",
+				});
+				setShowBanner(true);
+				setShowOnboarding(false);
+			}
+			return true;
+		}
+
+		// Track user input in chat history for normal responses during onboarding
+		if (trimmed) {
+			setChatHistory((prev) => {
+				const filtered = prev.filter((l) => l.trim());
+				return [...filtered, trimmed];
+			});
+			setHistoryIndex(-1);
+		}
+
+		// If there's a pending prompt, keep showing onboarding
+		if (result.action === "nextPrompt" && onboarding) {
+			return true;
+		}
+
+		return true;
+	}
+
+	/**
 	 * Generate a timestamp string in HH:MM format.
 	 * @returns {string}
 	 */
@@ -269,6 +332,21 @@ export default function App({ config, registry, sessionState, dispatchProvider, 
 	// Single input handler - processes all keystrokes here
 	// InputPanel is now a display-only component (no useInput handler)
 	useInput((input, key) => {
+		// Onboarding phase takes priority
+		if (showOnboarding) {
+			if (key.return && !key.shift) {
+				processOnboardingInput(inputText);
+				setInputText("");
+			} else if (key.escape) {
+				handleQuit();
+			} else if (input && input !== "\r") {
+				setInputText((prev) => prev + input);
+			} else if (key.backspace && inputText.length > 0) {
+				setInputText((prev) => prev.slice(0, -1));
+			}
+			return;
+		}
+
 		// When banner is showing, any key dismisses it
 		if (showBanner) {
 			if (key.escape) {
@@ -317,18 +395,33 @@ export default function App({ config, registry, sessionState, dispatchProvider, 
 	return React.createElement(
 		Box,
 		{ flexDirection: "column", width: "100%", height: rows },
-		showBanner
-			? React.createElement(Banner, { onDismiss: () => setShowBanner(false) })
-			: React.createElement(ConversationPanel, {
-					messages: messages,
-					assistantName: config?.tui?.name || "Assistant",
-				}),
-		!showBanner && React.createElement(StatusBar, statusProps),
+		showOnboarding
+			? React.createElement(OnboardingPanel, {
+					onboarding: onboarding,
+					onComplete: () => {
+						setShowBanner(true);
+						setShowOnboarding(false);
+					},
+					onExit: () => {
+						setShowBanner(true);
+						setShowOnboarding(false);
+					},
+				})
+			: showBanner
+				? React.createElement(Banner, { onDismiss: () => setShowBanner(false) })
+				: React.createElement(ConversationPanel, {
+						messages: messages,
+						assistantName: config?.tui?.name || "Assistant",
+					}),
+		!showBanner && !showOnboarding && React.createElement(StatusBar, statusProps),
 		!showBanner &&
+			!showOnboarding &&
 			React.createElement(InputPanel, {
 				inputText: inputText,
 				cursorChar: config?.tui?.cursorChar ?? "\u2588",
 			}),
-		!showBanner && React.createElement(Text, { key: "exit-newline" }, EXIT_MESSAGE),
+		!showBanner &&
+			!showOnboarding &&
+			React.createElement(Text, { key: "exit-newline" }, EXIT_MESSAGE),
 	);
 }
