@@ -17,57 +17,45 @@ const PROGRESS_PREFIX = (current, total) => {
  */
 export function OnboardingPanel({ onboarding, onComplete, _onExit }) {
 	const [messages, setMessages] = useState([]);
-	const [pendingPrompt, setPendingPrompt] = useState(null);
+	const [currentPrompt, setCurrentPrompt] = useState(null);
 	const [done, setDone] = useState(false);
+	const [transitioned, setTransitioned] = useState(false);
 
-	// Show initial prompt and check for TRANSCEND phase
 	useEffect(() => {
-		if (done || !onboarding) return;
+		if (done || !onboarding || transitioned) return;
 		if (onboarding.getPhase() === "TRANSCEND") {
+			setTransitioned(true);
 			setDone(true);
 			onComplete();
+			return;
 		}
-	}, [onboarding, done, onComplete]);
-
-	// Show ATTRACTOR prompt on mount
-	useEffect(() => {
-		if (!pendingPrompt && !done && onboarding) {
-			const prompt = onboarding.getCurrentPrompt();
-			if (prompt) {
-				setMessages([{ role: "system", content: prompt.prompt, time: getTimestamp() }]);
-				setPendingPrompt(prompt);
-			}
+		const prompt = onboarding.getCurrentPrompt();
+		if (prompt && !currentPrompt) {
+			setMessages([{ role: "system", content: prompt.prompt, time: getTimestamp() }]);
+			setCurrentPrompt(prompt);
 		}
-	}, [pendingPrompt, done, onboarding]);
+	}, [onboarding, done, transitioned, currentPrompt]);
 
-	if (done) return null;
+	if (done || transitioned) return null;
 
-	return React.createElement(
-		Box,
-		{ flexDirection: "column", width: "100%" },
-		messages.map((msg, i) => {
-			if (msg.role === "system") {
-				return React.createElement(Text, { key: "sys-" + i, color: "yellow" }, msg.content);
-			}
-			return React.createElement(Text, { key: "msg-" + i, color: "white" }, msg.content);
-		}),
-		React.createElement(StatusIndicator, { pendingPrompt: pendingPrompt }),
+	const children = messages.map((msg, i) => {
+		if (msg.role === "system") {
+			return React.createElement(Text, { key: "sys-" + i, color: "yellow" }, msg.content);
+		}
+		return React.createElement(Text, { key: "msg-" + i, color: "white" }, msg.content);
+	});
+
+	children.push(
+		React.createElement(
+			Text,
+			{ key: "prompt", color: "gray" },
+			currentPrompt
+				? "> " + currentPrompt.prompt + PROGRESS_PREFIX(currentPrompt.current, currentPrompt.total)
+				: "",
+		),
 	);
-}
 
-/**
- * Status indicator showing current prompt with progress.
- * @param {Object} props
- * @param {Object|null} props.pendingPrompt - Current prompt info
- */
-function StatusIndicator({ pendingPrompt }) {
-	if (!pendingPrompt) return null;
-	const progress = PROGRESS_PREFIX(pendingPrompt.current, pendingPrompt.total);
-	return React.createElement(
-		Text,
-		{ color: "gray" },
-		"> " + pendingPrompt.prompt + (progress || ""),
-	);
+	return React.createElement(Box, { flexDirection: "column", width: "100%" }, children);
 }
 
 /**
