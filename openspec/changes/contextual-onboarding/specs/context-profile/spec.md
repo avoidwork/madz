@@ -40,7 +40,7 @@ When the system detects that no context profile exists for the current user, it 
 
 #### Scenario: System saves profile on flow completion
 - **WHEN** the system has processed all attributes in the COLLECT phase
-- **THEN** the system writes the complete profile to `memory/profile/profile.md` and transitions to the agent loop
+- **THEN** the system writes the complete profile to `memory/context/profile.md` and transitions to the agent loop
 
 ### Requirement: Opt-In Controls at Every Step
 The system MUST make three controls available at every step of the onboarding flow: skip (bypass the current question), cancel (end onboarding with partial data), and exit (terminate the application, only during ATTRACTOR). The system MUST NOT treat a non-empty user response as an attempt to exit.
@@ -96,16 +96,16 @@ The system SHALL load the user's context profile and format it as a structured c
 - **THEN** the context prefix includes `[Context: Profile]\nhobbies: hiking/reading`
 
 #### Scenario: No profile or empty profile adds no context block
-- **WHEN** the profile file does not exist or is empty
+- **WHEN** `memory/context/profile.md` does not exist or is empty
 - **THEN** the system does not add a `[Context: Profile]` block to the LLM prompt
 
 ### Requirement: Profile Persistence
-The system SHALL persist the context profile as a markdown file at `memory/profile/profile.md` using YAML frontmatter for structured fields and the markdown body for free-form notes. The file SHALL be written atomically (write to temp file, then rename) to prevent corruption.
+The system SHALL persist the context profile as a markdown file at `memory/context/profile.md` using YAML frontmatter for structured fields and the markdown body for free-form notes. The file SHALL be written atomically (write to temp file, then rename) to prevent corruption.
 
 #### Scenario: New profile is written on disk
 - **WHEN** onboarding completes with collected data
-- **THEN** `memory/profile/profile.md` is created with YAML frontmatter containing the profile attributes and a timestamp
+- **THEN** `memory/context/profile.md` is created with YAML frontmatter containing the profile attributes and a timestamp
 
 #### Scenario: Existing profile is overwritten on update
 - **WHEN** the user runs onboarding again or edits their profile
-- **THEN** the existing `memory/profile/profile.md` is replaced with the updated data
+- **THEN** the existing `memory/context/profile.md` is replaced with the updated data

@@ -38,7 +38,7 @@
 
 ## 6. Memory system integration
 
-- [ ] 6.1 Ensure `memory/profile/` directory is created if it does not exist (mkdir -p equivalent)
+- [ ] 6.1 Ensure `memory/context/` directory exists when writing `memory/context/profile.md`
 - [ ] 6.2 Add profile files to the memory index in `memory/_index.md`
 - [ ] 6.3 (Optional, follow-up) Add a `:profile` TUI command to view/edit the profile at any time during an active session
 
