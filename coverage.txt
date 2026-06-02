@@ -12,7 +12,7 @@
 ℹ  memory                |        |          |         | 
 ℹ   context.js           |  94.52 |    77.27 |  100.00 | 69-72
 ℹ   loadMemories.js      | 100.00 |   100.00 |  100.00 | 
-ℹ   profile.js           |  98.90 |    91.49 |  100.00 | 48-49
+ℹ   profile.js           |  97.79 |    89.58 |  100.00 | 48-49 112-113
 ℹ   prompts.js           | 100.00 |   100.00 |  100.00 | 
 ℹ   reader.js            |  95.35 |    78.57 |  100.00 | 22-23
 ℹ  provider              |        |          |         | 
@@ -64,6 +64,32 @@
 ℹ   messages.js          | 100.00 |    94.44 |  100.00 | 
 ℹ   panels.js            | 100.00 |   100.00 |  100.00 | 
 ℹ ---------------------------------------------------------------------------------------------------------------------
-ℹ all files              |  96.60 |    89.36 |   84.62 | 
+ℹ all files              |  96.57 |    89.30 |   84.62 | 
 ℹ ---------------------------------------------------------------------------------------------------------------------
 ℹ end of coverage report
+
+✖ failing tests:
+
+test at tests/unit/onboarding.test.js:63:2
+✖ shows ATTRACTOR explanation prompt (2.990489ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(prompt.prompt.includes("personalized"))
+  
+      at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/onboarding.test.js:68:10)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.start (node:internal/test_runner/test:1096:17)
+      at node:internal/test_runner/test:1617:71
+      at node:internal/per_context/primordials:466:82
+      at new Promise (<anonymous>)
+      at new SafePromise (node:internal/per_context/primordials:435:3)
+      at node:internal/per_context/primordials:466:9
+      at Array.map (<anonymous>) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

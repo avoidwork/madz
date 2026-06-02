@@ -26,6 +26,7 @@ export default function App({
 }) {
 	const [showBanner, setShowBanner] = useState(true);
 	const [showOnboarding, setShowOnboarding] = useState(!!onboarding);
+	const [onboardingResponse, setOnboardingResponse] = useState(0);
 	const [messages, setMessages] = useState([]);
 	const [statusMessage, setStatusMessage] = useState("Ready");
 	const [chatHistory, setChatHistory] = useState([]);
@@ -305,6 +306,9 @@ export default function App({
 			setHistoryIndex(-1);
 		}
 
+		// Trigger onboarding panel to refresh with new prompt
+		setOnboardingResponse((prev) => prev + 1);
+
 		// If there's a pending prompt, keep showing onboarding
 		if (result.action === "nextPrompt" && onboarding) {
 			return true;
@@ -398,6 +402,7 @@ export default function App({
 		showOnboarding
 			? React.createElement(OnboardingPanel, {
 					onboarding: onboarding,
+					key: onboardingResponse,
 					onComplete: () => {
 						setShowBanner(true);
 						setShowOnboarding(false);
