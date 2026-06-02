@@ -103,23 +103,23 @@ describe("ATTRACTOR phase", () => {
 });
 
 describe("COLLECT phase", () => {
-	it("prompts for first attribute", () => {
+	it("prompts for first attribute (name)", () => {
 		const ob = create();
 		ob.processResponse("yes");
 		ob.processResponse("ok");
 		const prompt = ob.getCurrentPrompt();
 		assert.strictEqual(prompt.current, 1);
-		assert.strictEqual(prompt.total, 10);
-		assert.strictEqual(prompt.prompt, "When is your date of birth?");
+		assert.strictEqual(prompt.total, ATTRIBUTES.length);
+		assert.strictEqual(prompt.prompt, "What is your name?");
 	});
 
 	it("saves attribute value and advances", () => {
 		const ob = create();
 		ob.processResponse("yes");
 		ob.processResponse("ok");
-		let result = ob.processResponse("1990");
+		let result = ob.processResponse("Alice");
 		assert.strictEqual(result.action, "nextPrompt");
-		assert.deepStrictEqual(ob.getProfileData(), { dob: "1990" });
+		assert.deepStrictEqual(ob.getProfileData(), { name: "Alice" });
 	});
 
 	it("skips current attribute on skip", () => {
@@ -128,33 +128,32 @@ describe("COLLECT phase", () => {
 		ob.processResponse("ok");
 		const r1 = ob.processResponse("skip");
 		assert.strictEqual(r1.action, "nextPrompt");
-		// dob should not be in profileData
+		// name should not be in profileData
 		const data = ob.getProfileData();
-		assert.ok(!data.dob);
+		assert.ok(!data.name);
 	});
 
 	it("cancels and saves partial data", () => {
 		const ob = create();
 		ob.processResponse("yes");
 		ob.processResponse("ok");
-		// Answer first attribute (dob)
-		ob.processResponse("hiking");
+		// Answer first attribute (name)
+		ob.processResponse("Alice");
 		// Cancel second attribute
 		const result = ob.processResponse("cancel");
 		assert.strictEqual(result.action, "save");
 		const data = ob.getProfileData();
-		// The first saved attribute is 'dob', not 'hobbies'
-		assert.strictEqual(data.dob, "hiking");
+		// The first saved attribute is 'name', not 'dob'
+		assert.strictEqual(data.name, "Alice");
 	});
 
 	it("transitions to SAVE after answering all attributes", () => {
 		const ob = create();
 		ob.processResponse("yes");
 		ob.processResponse("ok");
-		// Answer all 10 attributes
-		for (let i = 0; i < 10; i++) {
+		for (let i = 0; i < ATTRIBUTES.length; i++) {
 			const result = ob.processResponse(`answer ${i}`);
-			if (i < 9) {
+			if (i < ATTRIBUTES.length - 1) {
 				assert.strictEqual(result.action, "nextPrompt", `Expected nextPrompt at index ${i}`);
 			} else {
 				assert.strictEqual(result.action, "save", `Expected save at index ${i}`);
@@ -178,7 +177,7 @@ describe("SAVE phase", () => {
 		const ob = create();
 		ob.processResponse("yes");
 		ob.processResponse("ok");
-		for (let i = 0; i < 10; i++) {
+		for (let i = 0; i < ATTRIBUTES.length; i++) {
 			ob.processResponse(`ans${i}`);
 		}
 		assert.strictEqual(ob.getPhase(), PHASES.SAVE);
@@ -190,7 +189,7 @@ describe("save", () => {
 		const ob = create();
 		ob.processResponse("yes");
 		ob.processResponse("ok");
-		for (let i = 0; i < 10; i++) {
+		for (let i = 0; i < ATTRIBUTES.length; i++) {
 			const result = ob.processResponse(`value${i}`);
 			if (result.action === "save") break;
 		}
@@ -215,7 +214,7 @@ describe("isComplete", () => {
 		// Answer all attributes to reach SAVE
 		ob.processResponse("yes");
 		ob.processResponse("ok");
-		for (let i = 0; i < 10; i++) {
+		for (let i = 0; i < ATTRIBUTES.length; i++) {
 			ob.processResponse(`x${i}`);
 		}
 		// save() transitions to TRANSCEND
@@ -229,7 +228,7 @@ describe("getCurrentPrompt", () => {
 		const ob = create();
 		ob.processResponse("yes");
 		ob.processResponse("ok");
-		for (let i = 0; i < 10; i++) {
+		for (let i = 0; i < ATTRIBUTES.length; i++) {
 			ob.processResponse(`x${i}`);
 		}
 		ob.save();

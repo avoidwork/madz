@@ -66,7 +66,7 @@ function loadAndFormatProfile(fullPath, contextDir) {
 		const profilePath = join(fullPath, "..", "..", "memory", "context", "profile.md");
 		const profile = loadProfile(profilePath);
 		if (!profile) return "";
-		return formatProfileContext(profile.frontmatter);
+		return formatProfileContext(profile.data);
 	} catch {
 		return "";
 	}
