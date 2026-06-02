@@ -18,6 +18,18 @@ const { default: pkg } = await import(new URL("package.json", import.meta.url).h
 // Initialize subsystems
 const config = loadConfig();
 
+// Initialize contextual onboarding if profile is missing (with graceful degradation)
+let onboardingInstance = null;
+try {
+	const { hasProfile, ATTRIBUTES } = await import("./src/memory/profile.js");
+	if (!hasProfile()) {
+		const { createOnboarding } = await import("./src/session/onboarding.js");
+		onboardingInstance = createOnboarding(ATTRIBUTES);
+	}
+} catch {
+	// Fail gracefully: continue without onboarding if profile detection fails
+}
+
 // Boot telemetry if enabled
 let tracer = null;
 let shutdownFn = null;
@@ -58,10 +70,6 @@ const sessionState = new SessionStateManager(initialState);
 const { loadSystemPrompt } = await import("./src/memory/prompts.js");
 const systemPrompt = loadSystemPrompt();
 const memoryEntriesDir = config.memory?.entriesDir || "memory/context/";
-const memoryEntries = await loadMemories(memoryEntriesDir);
-const memoryText = formatMemoriesForPrompt(memoryEntries);
-const fullPrompt = memoryText ? `${systemPrompt}\n\n${memoryText}` : systemPrompt;
-
 // Build agent and tool config at startup (once)
 const providerConfig = config.providers[providerName] || {};
 const tools = await buildToolConfig({
@@ -84,11 +92,14 @@ const sessionConfig = { configurable: { thread_id: sessionId } };
 
 async function callProvider(_name, _providerConfig, message, streamingCallback) {
 	const isNewThread = sessionState.getConversation().length === 0;
+	const memoryEntries = await loadMemories(memoryEntriesDir);
+	const memoryText = formatMemoriesForPrompt(memoryEntries);
+	const callPrompt = memoryText ? `${systemPrompt}\n\n${memoryText}` : systemPrompt;
 	const result = await callReactAgent(
 		agent,
 		message,
 		{ ...sessionConfig, configurable: { ...sessionConfig.configurable, isNewThread } },
-		fullPrompt,
+		callPrompt,
 		streamingCallback,
 	);
 	return { provider: providerName, content: result.content, tokens: { input: 0, output: 0 } };
@@ -197,6 +208,7 @@ if (isMain) {
 				dispatchProvider,
 				invokeSkill,
 				appInfo,
+				onboarding: onboardingInstance,
 			}),
 			{
 				// Restore terminal with newline when app exits
