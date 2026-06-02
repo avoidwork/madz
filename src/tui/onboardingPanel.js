@@ -23,6 +23,10 @@ export function OnboardingPanel({ onboarding, onComplete, _onExit }) {
 
 	useEffect(() => {
 		if (done || !onboarding || transitioned) return;
+		// Auto-advance from INIT to ATTRACTOR if not yet started
+		if (!onboarding.isStarted()) {
+			onboarding.processResponse("continue");
+		}
 		if (onboarding.getPhase() === "TRANSCEND") {
 			setTransitioned(true);
 			setDone(true);
