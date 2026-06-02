@@ -32,8 +32,11 @@ export function OnboardingPanel({ onboarding, onComplete, _onExit }) {
 			return;
 		}
 		const prompt = onboarding.getCurrentPrompt();
-		if (prompt && !currentPrompt) {
-			setMessages([{ role: "system", content: prompt.prompt, time: getTimestamp() }]);
+		if (prompt) {
+			const progress = PROGRESS_PREFIX(prompt.current, prompt.total);
+			setMessages([
+				{ role: "system", content: prompt.prompt, _progress: progress, time: getTimestamp() },
+			]);
 			setCurrentPrompt(prompt);
 		}
 	}, [onboarding, done, transitioned, currentPrompt]);
@@ -41,41 +44,20 @@ export function OnboardingPanel({ onboarding, onComplete, _onExit }) {
 	if (done || transitioned) return null;
 
 	const children = messages.map((msg, i) => {
-		if (msg.role === "system") {
-			return React.createElement(
-				Box,
-				{
-					key: "sys-" + i,
-					borderStyle: "round",
-					borderColor: "yellow",
-					growDirection: "down",
-					width: BOX_WIDTH,
-					paddingX: 1,
-				},
-				React.createElement(Text, { color: "yellow" }, msg.content),
-			);
-		}
-		return React.createElement(Text, { key: "msg-" + i, color: "white" }, msg.content);
-	});
-
-	if (currentPrompt) {
-		const progress = PROGRESS_PREFIX(currentPrompt.current, currentPrompt.total);
-		const promptText = progress ? currentPrompt.prompt + " " + progress : currentPrompt.prompt;
-		children.push(
-			React.createElement(
-				Box,
-				{
-					key: "prompt-box",
-					borderStyle: "round",
-					borderColor: "cyan",
-					growDirection: "down",
-					width: Math.min(BOX_WIDTH, promptText.length + 4),
-					paddingX: 1,
-				},
-				React.createElement(Text, { color: "cyan" }, promptText),
-			),
+		const progress = msg._progress || "";
+		return React.createElement(
+			Box,
+			{
+				key: "msg-" + i,
+				borderStyle: "round",
+				borderColor: "yellow",
+				growDirection: "down",
+				width: BOX_WIDTH,
+				paddingX: 1,
+			},
+			React.createElement(Text, { color: "yellow" }, (msg.content || "") + (progress || "")),
 		);
-	}
+	});
 
 	return React.createElement(
 		Box,
