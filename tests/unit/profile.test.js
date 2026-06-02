@@ -37,8 +37,8 @@ beforeEach(setup);
 after(teardown);
 
 describe("ATTRIBUTES schema", () => {
-	it("has exactly 11 attributes", () => {
-		assert.strictEqual(ATTRIBUTES.length, 11);
+	it("has exactly 12 attributes", () => {
+		assert.strictEqual(ATTRIBUTES.length, 12);
 	});
 
 	it("each attribute has key, prompt, and order", () => {
@@ -62,6 +62,7 @@ describe("ATTRIBUTES schema", () => {
 			"favorite books",
 			"favorite tv",
 			"favorite movies",
+			"location",
 			"notes",
 		]);
 	});
