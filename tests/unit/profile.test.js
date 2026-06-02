@@ -58,10 +58,10 @@ describe("ATTRIBUTES schema", () => {
 			"pets",
 			"hobbies",
 			"expertise",
-			"favoriteBands",
-			"favoriteBooks",
-			"favoriteTv",
-			"favoriteMovies",
+			"favorite bands",
+			"favorite books",
+			"favorite tv",
+			"favorite movies",
 			"notes",
 		]);
 	});
@@ -228,10 +228,10 @@ describe("formatProfileContext", () => {
 	});
 
 	it("uses attribute order for formatting", () => {
-		const data = { favoriteMovies: "Inception", name: "Zara", dob: "1995" };
+		const data = { "favorite movies": "Inception", name: "Zara", dob: "1995" };
 		const result = formatProfileContext(data);
 		assert.ok(result.indexOf("name:") < result.indexOf("dob:"));
-		assert.ok(result.indexOf("dob:") < result.indexOf("favoriteMovies:"));
+		assert.ok(result.indexOf("dob:") < result.indexOf("favorite movies:"));
 	});
 });
 
