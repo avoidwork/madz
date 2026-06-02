@@ -188,10 +188,16 @@ Walks the config tree recursively and maps each leaf key to an env var:
 | `filesystem.js` | `read_file` — read files with line-numbered output; `write_file` — write files with 500KB cap; `patch` — fuzzy-match patching with 9 strategies and unified diff output; `search_files` — ripgrep-based search with native `fs` fallback |
 | `terminal.js` | `terminal` — shell command execution (foreground/background); `process_tool` — background process management (list, poll, log, wait, kill, write, pause, resume). Shared `processTracker` `Map` keyed by PID |
 | `todo.js` | `todo` — CRUD task management persisted to `memory/tools/todo.json` |
-| `memory.js` | `memory` — key-value session memory with deduplication, persisted to `memory/context/session_memory.md` |
+| `memory.js` | `memory` — key-value entry storage. Each entry stored as an individual `.md` file with createdDate/updatedDate metadata. Actions: create, read, update, delete, list |
 | `sessionSearch.js` | `session_search` — past conversation search (keyword query, full retrieval by ID, or browse) |
-| `clarify.js` | `clarify` — sends clarification questions to the user. **Zero-permission tool** — always registered |
+| `code.js` | `execute_code` / `code` — sandboxed code execution (python3, javascript, shell) with memory limits via POSIX `setrlimit` and import hooks for Python |
 | `skills.js` | `skills_list` — lists all discovered skills from the registry; `skill_view` — views a single skill's metadata and SKILL.md content |
+| `clarify.js` | `clarify` — sends clarification questions to the user. **Zero-permission tool** — always registered |
+| `vision.js` | `vision_analyze` — image analysis via ChatOpenAI (requires `OPENAI_API_KEY`, no permission gating) |
+| `image.js` | `image_generate` — image generation via fal.ai queue (requires `FAL_API_KEY`, `network:outbound` permission) |
+| `tts.js` | `text_to_speech` — text-to-speech via OpenAI TTS API, saves MP3 to `~/voice-memos/` (requires `OPENAI_API_KEY`, no permission gating) |
+| `moa.js` | `mixture_of_agents` — 4 parallel OpenRouter calls with aggregated analysis (requires `OPENROUTER_API_KEY`, no permission gating) |
+| `cron.js` | `cronjob` — cron job CRUD operations for persistent scheduled tasks (requires `network:outbound` permission) |
 | `common.js` | `validatePath()` — path vs. sandbox allowlist; `validateUrl()` — scheme + hostname allowlist; `fetchWithTimeout()` — HTTP GET with AbortController; `checkFileLimit()` / `parseSizeString()` — size validation |
 
 **Permission gating in `buildToolConfig()`:**
@@ -203,7 +209,11 @@ Walks the config tree recursively and maps each leaf key to an env var:
 | `terminal` | `filesystem:exec` + `process:spawn` |
 | `process` | `process:spawn` |
 | `session_search` | `filesystem:read` |
+| `execute_code` / `code` | *(none — always registered)* |
 | `clarify` | *(none — always registered)* |
+| `vision_analyze` | *(none — requires OPENAI_API_KEY)* |
+| `text_to_speech` | *(none — requires OPENAI_API_KEY)* |
+| `mixture_of_agents` | *(none — requires OPENROUTER_API_KEY)* |
 
 ---
 
@@ -217,9 +227,10 @@ Walks the config tree recursively and maps each leaf key to an env var:
 |------|---------|
 | `writer.js` | `writeMemoryFile()` — writes files named `YYYY-MM-DDTHH-mm-ss---[slug].md` with YAML frontmatter and markdown body |
 | `reader.js` | `parseFrontmatter()` — regex-split YAML frontmatter / markdown body; `readMemoryFile()` — reads and parses a single file |
-| `context.js` | `loadContext()` — scans `memory/context/` for `.md` files, sorts by timestamp (newest first), combines the last N bodies into a single context string |
+| `context.js` | `loadContext()` — scans `memory/context/` for `.md` files, loads user profile via `profile.js`, loads context files sorted by timestamp, combines into a single context string |
 | `retention.js` | `cleanRetainedMemory()` — deletes `.md` files older than N days; `enforceMaxEntries()` — deletes oldest files exceeding the max count |
 | `loadMemories.js` | `loadMemories()` — loads all memory entries sorted by `updatedDate` descending → `createdDate`; `parseEntryFile()` — extracts `{ metadata, memory }` from a single entry; `formatMemoriesForPrompt()` — formats entries as markdown for the system prompt |
+| `profile.js` | `loadProfile()` — reads user profile metadata from `memory/context/profile.md`; `saveProfile()` — sanitizes and writes; `formatProfileContext()` — formats profile for context insertion; `processOnboardingInput()` — attribute validation; `getAttribute()` — individual lookup. `ATTRIBUTES` defines known fields: `attractor`, `expertise`, `tools`, `voice`, `preferences` |
 
 **Memory entries:**
 
@@ -228,7 +239,7 @@ Each memory is a standalone Markdown file in `memory/context/` with lowercase sn
 **Memory system behavior:**
 
 - At session start, `loadMemories()` reads all `.md` files from `memory/context/`, sorts by `updatedDate` descending (falling back to `createdDate`), and passes them to `formatMemoriesForPrompt()`
-- The formatted output is appended to the system prompt with the prefix "The following are important memories for the user:" — making memories part of the core context that guides every agent interaction
+- The formatted output includes the user profile (from `memory/context/profile.md`) and user context files, appended to the system prompt with the prefix "The following are important memories for the user:" — making memories and profile part of the core context that guides every agent interaction
 - When you add, update, or delete a memory, run `:new` to create a new session so the change takes effect immediately in the system prompt
 
 ---
@@ -320,6 +331,8 @@ The `matchesField()` function supports literal values (`30`), ranges (`1-5`), st
 | `loader.js` | `loadSession()` — finds the latest `.md` file in the conversations directory and parses its frontmatter plus JSON body |
 | `saver.js` | `saveSession()` — writes the current conversation state to a `.md` file with metadata |
 | `shutdown.js` | `handleShutdown()` — orchestrates flush/save/cleanup; `registerShutdownHandler()` — listens for SIGTERM/SIGINT |
+| `checkpointer.js` | `createCheckpointer(persistence)` — returns `MemorySaver` (in-memory) when `config` is `null`, or `SQLiteCheckpointer` (persistent) when `config.type` === `"sqlite"` |
+| `onboarding.js` | `Onboarding` state machine — phases: `INIT → ATTRACTOR → COLLECT → SAVE → TRANSCEND` |
 
 **Session state shape:**
 ```javascript
@@ -361,20 +374,22 @@ The `matchesField()` function supports literal values (`30`), ranges (`1-5`), st
 
 | File | Purpose |
 |------|---------|
-| `index.js` | Re-exports all TUI components and utilities |
-| `app.js` | Main React component — 2-panel layout: conversation/skills/memory/settings (left), info sidebar (right), status line at bottom |
+| `index.js` | Partial re-export of TUI components: `App`, `CommandParser`, `PANELS`, `nextPanel`, `prevPanel`, `getPanelOrder`, `getRoleLabel`, `calcVisibleCount`, `getVisibleMessages`, `formatMessage`, `createPanelState`, `InputPanel`, `ConversationPanel`, `SkillsPanel`, `MemoryPanel`, `SettingsPanel`, `Banner` |
+| `app.js` | Main React component — single-column vertical layout: OnboardingPanel / Banner / ConversationPanel, StatusBar, InputPanel, exit-newline Text |
+| `onboardingPanel.js` | `OnboardingPanel` — interactive user profile onboarding flow with state machine, progress display, and input handling |
+| `markdownText.js` | `MarkdownText` — React.memo component that renders markdown via `marked.parse()` with `marked-terminal` terminal styling |
 | `banner.js` | `BANNER_ART` — ASCII ship art; `Banner` — BBS-style startup banner that dismisses on keypress |
 | `statusBar.js` | `StatusBar` — bottom status bar with colored indicator (green/red/yellow) |
 | `panels.js` | `PANELS` constant, `getPanelOrder()`, `nextPanel()`, `prevPanel()` — panel definitions and navigation |
-| `inputPanel.js` | `InputPanel` — text entry with enter-to-send, backspace support, `>` prompt for messages |
-| `conversationPanel.js` | `ConversationPanel` — virtualized message display with scroll (up/down keys) |
-| `skillsPanel.js` | `SkillsPanel` — lists registered skills with keyboard focus navigation and search |
+| `inputPanel.js` | `InputPanel` — text entry with enter-to-send, backspace support, `>` prompt. Uses `Blink` component for cursor animation (no useEffect, no setInterval) |
+| `conversationPanel.js` | `ConversationPanel` — virtualized message display with `ScrollView` from `ink-scroll-view`, scroll via up/down keys, React.memo `areEqual` guard |
+| `skillsPanel.js` | `SkillsPanel` — lists registered skills with keyboard focus navigation |
 | `memoryPanel.js` | `MemoryPanel` — entry list + detail view split |
 | `settingsPanel.js` | `SettingsPanel` — config sections list with selection detail |
 | `commandParser.js` | `CommandParser` class — dispatch table for `:` commands: `quit`, `provider set`, `config set`, `memory open/search`, `schedule list/pause/resume/run-now`, `context add`, `help` |
-| `messages.js` | `getRoleLabel()`, `calcVisibleCount()`, `getVisibleMessages()` (virtualized windowing), `countMessageLines()`, `formatMessage()` |
+| `messages.js` | `getRoleLabel()`, `calcVisibleCount()`, `getVisibleMessages()` (virtualized windowing), `countMessageLines()`, `formatMessage()` — cached `Intl.DateTimeFormat` for time formatting |
 | `hooks.js` | `createPanelState()` — initial state factory; `nextPanel()`, `prevPanel()` |
-| `components.js` | Re-exports all panel components |
+| `components.js` | Re-exports: `InputPanel`, `ConversationPanel`, `Blink`, `SkillsPanel`, `MemoryPanel`, `SettingsPanel`, `Banner`, `MarkdownText` |
 
 **Command system:**
 

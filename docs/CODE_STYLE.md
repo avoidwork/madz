@@ -259,9 +259,8 @@ tests/
 - **Pre-commit hook** runs (in order):
   1. `oxfmt` — format all changed files (line-length 100)
   2. `oxlint` — lint check
-  3. `tsc --noEmit` — type check
-  4. `npm run test` — run tests
-  5. `npm run coverage` — generate `coverage.txt` (100% enforced)
+  3. `npm run test` — run tests
+  4. `npm run coverage` — generate `coverage.txt` (100% enforced)
 
 - **If `coverage.txt` changes** during commit, the commit fails. Fix with:
   ```bash

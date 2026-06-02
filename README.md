@@ -20,6 +20,7 @@
   - [Running](#running)
 - [TUI Navigation](#tui-navigation)
 - [Features](#features)
+  - [Onboarding](#onboarding)
   - [LLM Provider Abstraction](#llm-provider-abstraction)
   - [Agent](#agent)
   - [Built-in Tools](#built-in-tools)
@@ -50,6 +51,10 @@ It speaks with a distinctive voice: calm, precise, a little wry. Whether you nee
 - 💬 **Orchestrates conversations** → Multi-turn LLM chats with context-window management
 
 ## Features
+
+### Onboarding
+
+On first launch, `madz` starts an interactive onboarding flow that collects your profile — attractor (primary interest), expertise areas, dev tools, communication style preferences. This profile is stored as `memory/context/profile.md` and is loaded into the system prompt every session, making madz deeply personalized from the very first message. To re-trigger onboarding, delete `memory/context/profile.md` and restart.
 
 ### LLM Provider Abstraction
 

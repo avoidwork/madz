@@ -23,7 +23,9 @@ Call chains and data flows for all primary code paths in the project, excluding 
 - [Context Loading](#context-loading)
 - [Schedule Manager Lifecycle](#schedule-manager-lifecycle)
 - [Memory Retention Cleanup](#memory-retention-cleanup)
+- [Profile Management](#profile-management)
 - [Shutdown Flow](#shutdown-flow)
+- [Additional Tool Flows](#additional-tool-flows)
 - [File Dependencies](#file-dependencies)
 
 ## Application Startup
@@ -204,13 +206,13 @@ buildToolConfig({ permissions, allowedPaths, maxReadSize, registry, safety, time
 ├── for each [toolName, requiredPerms] in TOOL_PERMISSIONS:
 │   ├── hasAllPerms = requiredPerms.every(perm => enabledSet.has(perm))
 │   ├── switch toolName:
-│   │   ├── clarify | execute_code: → always create (no perms needed)
-│   │   ├── web_search | web_extract: → if hasAllPerms && hasSearchKey()
-│   │   ├── vision_analyze: → if OPENAI_API_KEY
-│   │   ├── image_generate: → if hasAllPerms && FAL_API_KEY
-│   │   ├── cronjob: → if hasAllPerms
-│   │   ├── text_to_speech: → if OPENAI_API_KEY
-│   │   ├── mixture_of_agents: → if OPENROUTER_API_KEY
+│   │   ├── clarify | execute_code | code → always create (no perms needed)
+│   │   ├── web_search | web_extract → if hasAllPerms && hasSearchKey()
+│   │   ├── vision_analyze → if OPENAI_API_KEY
+│   │   ├── image_generate → if hasAllPerms && FAL_API_KEY
+│   │   ├── cronjob → if hasAllPerms
+│   │   ├── text_to_speech | tts → if OPENAI_API_KEY
+│   │   ├── mixture_of_agents → if OPENROUTER_API_KEY
 │   │   └── default: → if requiredPerms.length === 0 || hasAllPerms
 │   └── tools.push(TOOL_FACTORIES[toolName](runtimeOptions))
 └── return tools[]
@@ -308,8 +310,8 @@ createChatModel(config)
     ├── temperature: config.temperature
     ├── maxTokens: config.maxTokens
     ├── apiKey: config.credentials.apiKey
-    ├── streaming: config.streaming
-    └── baseURL: config.base_url
+    ├── streaming: config.streaming !== false
+    └── configuration: { baseURL: config.base_url }
     })
 ```
 
@@ -350,7 +352,8 @@ callReactAgent(agent, message, config, systemPrompt, callback)
 
 ```
 Permission gates per tool:
-├── clarify, execute_code → always (no perms, no env vars)
+├── code → always (no perms, no env vars)
+├── clarify → always (no perms, always registered)
 ├── read_file, write_file, patch, search_files → "filesystem:read" or "filesystem:write"
 ├── terminal → "filesystem:exec", "process:spawn"
 ├── process → "process:spawn"
@@ -363,7 +366,8 @@ Permission gates per tool:
 ├── image_generate → "network:outbound" + FAL_API_KEY
 ├── cronjob → "network:outbound"
 ├── text_to_speech → OPENAI_API_KEY
-└── mixture_of_agents → OPENROUTER_API_KEY
+├── mixture_of_agents → OPENROUTER_API_KEY
+└── tts → OPENAI_API_KEY
 ```
 
 ### Search Backend Detection
@@ -435,8 +439,8 @@ terminal tool:
     │   ├── spawn("sh", ["-c", command], { timeout: 30000 })
     │   ├── child.stdout.on("data") → stdout
     │   ├── child.stderr.on("data") → stderr
-    │   ├── child.on("exit") → { stdout, stderr, exitCode }
-    │   └── "exitCode: {code}\nstdout: {stdout}" or stderr variant
+│   ├── child.on("exit") → { stdout, stderr, exitCode }
+│   └── "exitCode: {code}\nstdout: {stdout}" or "Error: {err.message}" on failure
 
 process tool:
 └── actions on processTracker Map:
@@ -505,6 +509,89 @@ runScheduledSkill(schedule, sandbox, sessionState)
 │       └── handleTimeout(child, { seconds, gracePeriod })
 │           └── timeout → SIGTERM → gracePeriod → SIGKILL → "terminated" | "killed"
 └── return { stdout, stderr, exitCode }
+```
+
+## Additional Tool Flows
+
+### Code Execution
+
+**Entry:** `src/tools/code.js` → `createCodeExecutionTool()`
+
+```
+code tool (execute_code):
+├── validate code language: "python3" | "javascript" | "shell"
+├── write code to temp file in /tmp/madz-code-*.js
+├── create import hook for python3 (sys.path manipulation)
+├── spawn process:
+│   ├── python3 temp.py (for python3)
+│   ├── node temp.js (for javascript)
+│   └── sh -c "code" (for shell)
+├── POSIX setrlimit(RLIMIT_AS) → hard memory limit (memoryLimit MB)
+│   └── import("posix") → setrlimit (Linux only)
+├── timeout: 30 seconds default
+└── return { stdout, stderr, exitCode }
+```
+
+### Mixture of Agents (MoA)
+
+**Entry:** `src/tools/moa.js` → `createMixtureOfAgentsTool()`
+
+```
+mixture_of_agents tool:
+├── validate OPENROUTER_API_KEY exists
+├── for each of 4 agent roles in prompt:
+│   ├── ChatOpenRouter({ model: "openrouter/auto", ... })
+│   ├── agent.invoke({ systemPrompt: role, userPrompt })
+│   └── collect response[response]
+├── aggregateResponses(responses[])
+│   └── format responses with role labels
+│   └── return { combinedAnalysis, individualResponses: [{role, response}] }
+└── maxTokens: 2000
+```
+
+### Text-to-Speech
+
+**Entry:** `src/tools/tts.js` → `createTextToSpeechTool()`
+
+```
+text_to_speech tool:
+├── validate OPENAI_API_KEY exists
+├── ChatOpenAI.tts.create({
+│   ├── model: "tts-1"
+│   ├── input: text
+│   ├── voice: "alloy" | "echo" | "fable" | "onyx" | "nova" | "shimmer"
+│   └── response_format: "mp3" | "wav" | "opus" | "aac" | "flac" | "pcm"
+├── write MP3 bytes to ~/voice-memos/{timestamp}-{slug}.mp3
+└── return { path, status: "complete" }
+```
+
+### Image Generation
+
+**Entry:** `src/tools/image.js` → `createImageGenerationTool()`
+
+```
+image_generate tool:
+├── validate FAL_API_KEY exists
+├── validateUrl(prompt) → blocks empty prompts
+├── fal.queue.submit("fal-ai/klein/fast", { prompt, ...options })
+│   ├── model: "fal-ai/klein/fast" | "fal-ai/air-playground"
+│   ├── image_count: configurable
+│   └── image_size: configurable
+├── wait for queue with poll (pollInterval = 0.5s, polling = 600s)
+├── download image URLs
+└── return { images: [{ url }], status: "complete" | "processing" }
+```
+
+### Clarify
+
+**Entry:** `src/tools/clarify.js` → `createClarifyTool()`
+
+```
+clarify tool (zero-permission, always registered):
+├── readFileSync("memory/context/clarifications.md") → existing questions
+├── append new question with timestamp
+├── writeFileSync("memory/context/clarifications.md")
+└── return { status: "ok", message: "Clarification noted." }
 ```
 
 ## Memory Persistence Flow
@@ -576,7 +663,7 @@ scheduleManager.register(entries = [])
     ├── parsed = parseScheduleEntry(entry)
     │   ├── validate name and cron
     │   ├── validateCron(expression) → 5-6 fields, regex patterns
-    │   └── return { valid, error, parsed: { name, cron, skill, input, contextFile, enabled, paused, lastRun } }
+    │   └── return { valid, error, parsed: { name, cron, skill, input, contextFile, enabled, paused, lastRun, nextRun } }
     ├── if parsed.valid: #scheduleEntry.set(name, parsed)
     └── else: results.push({ name, error })
 └── return results
@@ -646,6 +733,40 @@ enforceMaxEntries("memory/", maxEntries = 1000)
 └── return removed
 ```
 
+## Profile Management
+
+**Entry:** `src/memory/profile.js` → `loadProfile(), saveProfile(), formatProfileContext(), processOnboardingInput(), getAttribute()`
+
+```
+loadProfile()
+├── readFileSync("memory/context/profile.md", "utf-8")
+├── if file exists → parseFrontmatter(content)
+├── else → { ATTRIBUTES, data: {} }
+└── return { data, fullContext: formatProfileContext() }
+
+saveProfile(data)
+├── sanitizeProfileData(data, ATTRIBUTES) → only known attribute keys
+├── writeFileSync("memory/context/profile.md", frontmatter + body)
+└── return sanitized
+
+formatProfileContext(profile)
+└── for each attribute in ATTRIBUTES:
+    └── `${attribute.label}: ${profile.data[attribute.key]}`
+
+processOnboardingInput(key, value)
+└── validate attribute key against ATTRIBUTES → update profile.data
+
+getAttribute(key)
+└── loadProfile().data[key]
+
+ATTRIBUTES (known profile fields):
+├── attractor: string → user's primary interest/focus
+├── expertise: string[] → user knowledge areas
+├── tools: string[] → user's development tools
+├── voice: string → user's preferred communication style
+└── preferences: object → structured user preferences
+```
+
 ## Shutdown Flow
 
 **Entry:** `src/session/shutdown.js` → `handleShutdown()` + `registerShutdownHandler()`
@@ -686,11 +807,18 @@ index.js
 │     ├── tools/terminal.js → @langchain/core, zod, node:child_process
 │     ├── tools/web.js → fetch, node:fs/promises, tools/common.js (filterUrl, validateUrl)
 │     ├── tools/common.js → sandbox/urlFilter.js, sandbox/pathResolver.js, node:fs/promises
-│     ├── tools/memory.js → js-yaml, node:fs/promises
+│     ├── tools/memory.js → js-yaml, node:fs/promises — key-value entry storage. Each entry stored as an individual .md file in context directory with createdDate/updatedDate metadata. Actions: create, read, update, delete, list
 │     ├── tools/sessionSearch.js → node:fs/promises, memory/reader.js
-│     ├── tools/code.js → node:child_process, node:fs/promises, node:path
-│     ├── tools/filesystem.js → tool decorators + factory funcs
-│     └── tools/... (vision, image, tts, moa, etc.)
+│     ├── tools/code.js → node:child_process, node:fs/promises, node:path, posix (setrlimit memory limit)
+│     ├── tools/todo.js → node:fs/promises — CRUD task management in memory/tools/todo.json
+│     ├── tools/clarify.js → node:fs/promises — zero-permission clarification questions
+│     ├── tools/skills.js → registry (list discovered skills, view SKILL.md content)
+│     ├── tools/vision.js → OPENAI_API_KEY — image analysis via ChatOpenAI vision
+│     ├── tools/image.js → FAL_API_KEY — image generation via fal.ai queue
+│     ├── tools/tts.js → OPENAI_API_KEY — text-to-speech via OpenAI TTS API
+│     ├── tools/moa.js → OPENROUTER_API_KEY — mixture-of-agents (4 parallel OpenRouter calls + aggregation)
+│     ├── tools/cron.js → node:fs/promises — cron job CRUD operations
+│     └── tools/...
 ├── sandbox/pathResolver.js → node:path
 ├── sandbox/urlFilter.js → node:url
 ├── sandbox/runner.js → node:child_process, sandbox/timeoutHandler.js, envInjector.js, capability.js
@@ -708,10 +836,12 @@ index.js
 ├── memory/context.js → node:fs, node:path, memory/reader.js
 ├── memory/retention.js → node:fs, node:path
 ├── memory/prompts.js → node:fs
+├── memory/profile.js → node:fs — user profile management: ATTRIBUTES, loadProfile, saveProfile, formatProfileContext, processOnboardingInput
 ├── session/factory.js → node:crypto (randomUUID)
 ├── session/stateManager.js
-├── session/checkpointer.js → @langchain/langgraph
+├── session/checkpointer.js → @langchain/langgraph, @langchain/langgraph-checkpoint-sqlite — createCheckpointer() returns MemorySaver (in-memory) or SQLiteCheckpointer (persistent)
 ├── session/loader.js → fs, path, memory/reader.js
 ├── session/saver.js → fs, path, memory/writer.js
+├── session/onboarding.js → session/stateManager.js — onboarding state machine (INIT → ATTRACTOR → COLLECT → SAVE → TRANSCEND)
 └── telemetry/provider.js → @opentelemetry/sdk-node
 ```

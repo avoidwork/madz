@@ -28,15 +28,35 @@ App({ config, registry, sessionState, dispatchProvider, appInfo })
 ├── useEffect: register process.on("uncaughtException", "unhandledRejection")
 ├── useInput: global key listener (key, input)
 ├── useWindowSize: { rows } for layout height
-└── Render tree:
-    ├── Banner (showBanner === true)
-    ├── ConversationPanel (showBanner === false)
-    ├── StatusBar
-    ├── InputPanel
+└── Render tree (single-column vertical layout):
+    ├── OnboardingPanel (showOnboarding === true)
+    ├── Banner (showBanner === true AND NOT showOnboarding)
+    ├── ConversationPanel (showBanner === false AND NOT showOnboarding)
+    ├── StatusBar (when NOT showBanner AND NOT showOnboarding)
+    ├── InputPanel (when showOnboarding OR NOT showBanner)
     └── Text("exit-newline")
 ```
 
 Mount order: state init → effects (error handlers) → input listener → window size → render.
+
+---
+
+## Banner Content
+
+`src/tui/banner.js` defines `BANNER_ART` — ASCII ship art displayed at startup, plus `COMMAND_GROUPS` — categorized help commands:
+
+```
+BANNER_ART:
+├── ASCII header graphic
+├── APP_NAME + " — your terminal AI companion"
+└── COMMAND_GROUPS listing:
+    ├── Chat commands: (type a message and press Enter)
+    ├── Navigation: arrow keys scroll conversation, Tab cycles panels
+    ├── Command mode: :commands like :quit, :help, :provider
+    └── Exit: press Enter on empty input sends message
+```
+
+Press any key (except Escape) to dismiss and begin using the app. Escape exits immediately.
 
 ---
 
@@ -49,9 +69,10 @@ User presses key (useInput callback, app.js:282)
 ├── key !== escape && showBanner
 │   └── setShowBanner(false)
 │       └── Render re-evaluates:
-│           ├── Banner → ConversationPanel
-│           ├── StatusBar (rendered)
-│           ├── InputPanel (rendered)
+│           ├── OnboardingPanel (if showOnboarding === true)
+│           ├── Banner → ConversationPanel (if showBanner transitions)
+│           ├── StatusBar (NOT showBanner AND NOT showOnboarding)
+│           ├── InputPanel (showOnboarding OR NOT showBanner)
 │           └── Text("exit-newline")
 ```
 
@@ -217,6 +238,8 @@ areEqual(prevProps, nextProps):
 
 **Order:** `conversation` → `skills` → `memory` → `settings` → `conversation` ...
 
+**Note:** `OnboardingPanel` is rendered conditionally (when `showOnboarding === true`) and is NOT part of the tab cycling order. It runs its own internal state machine (INIT → ATTRACTOR → COLLECT → SAVE → TRANSCEND) before transitioning to the main app.
+
 ```
 nextPanel(current):
 └── order = ["conversation","skills","memory","settings"]
@@ -243,14 +266,14 @@ Each panel (except Conversation) has its own internal `useInput` for arrow-key n
 
 ```
 InputPanel({ inputText, blinkTimeout, cursorChar })
-└── <Blink text={inputText} char={cursorChar} ms={blinkTimeout} />
+└── <Blink text={inputText} char={cursorChar} />
     └── static render (no state timer):
         └── <Box flexDirection="row">
             ├── <Text flexGrow="1"> inputText || "" </Text>
             └── <Text bold> cursorChar || "\u2588" </Text>
 ```
 
-No useEffect, no setInterval. Pure display component.
+No useEffect, no setInterval, no `ms` prop on `Blink`. Pure display component.
 
 ---
 
@@ -344,11 +367,12 @@ index.js ──┐
            ├── panels.js ──────── (pure functions)
            ├── hooks.js ───────── (imports from panels.js)
            │
-app.js ─────├── conversationPanel.js ──┐
-           ├── inputPanel.js ──────────┤  All components export
-           ├── statusBar.js ───────────┤  via components.js / index.js
-           ├── banner.js ──────────────┤
-           ├── messages.js ────────────┤
-           ├── markdownText.js ────────┘
+app.js ─────├── onboardingPanel.js (state machine: INIT → ATTRACTOR → COLLECT → SAVE → TRANSCEND)
+           ├── banner.js (BANNER_ART, COMMAND_GROUPS)
+           ├── conversationPanel.js ──┐ (uses ink-scroll-view: ScrollView)
+           ├── inputPanel.js ─────────┤  All components export
+           ├── statusBar.js ──────────┤  via components.js / index.js
+           ├── messages.js ───────────┤
+           └── markdownText.js ────────┘ (uses marked + marked-terminal)
            └── config/loader.js ──── (setConfigValue import)
 ```
