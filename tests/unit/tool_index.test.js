@@ -17,6 +17,7 @@ describe("tools - buildToolConfig", () => {
 			"clarify",
 			"skills_list",
 			"skill_view",
+			"sampling",
 		];
 		for (const tool of expectedTools) {
 			assert.ok(TOOL_PERMISSIONS[tool], `Expected TOOL_PERMISSIONS to have ${tool}`);
@@ -26,6 +27,11 @@ describe("tools - buildToolConfig", () => {
 	it("clarify has zero permission requirement", async () => {
 		const { TOOL_PERMISSIONS } = await import("../../src/tools/index.js");
 		assert.deepStrictEqual(TOOL_PERMISSIONS.clarify, []);
+	});
+
+	it("sampling has zero permission requirement", async () => {
+		const { TOOL_PERMISSIONS } = await import("../../src/tools/index.js");
+		assert.deepStrictEqual(TOOL_PERMISSIONS.sampling, []);
 	});
 
 	it("read_file requires only filesystem:read", async () => {
@@ -70,13 +76,14 @@ describe("tools - buildToolConfig", () => {
 		else delete process.env.FAL_API_KEY;
 	});
 
-	it("returns only clarify and execute_code with empty permissions", async () => {
+	it("returns clarify + execute_code + sampling with empty permissions", async () => {
 		const { buildToolConfig } = await import("../../src/tools/index.js");
 		const tools = await buildToolConfig({ permissions: [], maxReadSize: "1mb" });
 		const toolNames = tools.map((t) => t.name);
-		assert.strictEqual(toolNames.length, 2);
+		assert.strictEqual(toolNames.length, 3);
 		assert.ok(toolNames.includes("clarify"));
 		assert.ok(toolNames.includes("execute_code"));
+		assert.ok(toolNames.includes("sampling"));
 	});
 
 	it("returns clarify + filesystem tools when filesystem:read and filesystem:write enabled", async () => {
@@ -98,6 +105,7 @@ describe("tools - buildToolConfig", () => {
 		assert.ok(toolNames.includes("memory"), "memory should register");
 		assert.ok(toolNames.includes("skills_list"), "skills_list should register");
 		assert.ok(toolNames.includes("skill_view"), "skill_view should register");
+		assert.ok(toolNames.includes("sampling"), "sampling should register (no perms needed)");
 		// terminal requires process:spawn which is not enabled
 		assert.ok(
 			!toolNames.includes("terminal"),
@@ -121,8 +129,9 @@ describe("tools - buildToolConfig", () => {
 		const toolNames = tools.map((t) => t.name);
 		// Tier 1: 12 tools (all register with filesystem+process perms)
 		// Tier 2: execute_code (no perms), cronjob (network:outbound)
+		// Sampling (no perms) always registers
 		// No API keys: web_search/web_extract/vision_analyze/image_generate won't register
-		assert.ok(toolNames.length >= 13, "All tier 1 + tier 2 tools should register");
+		assert.ok(toolNames.length >= 13, "All tier 1 + tier 2 + sampling tools should register");
 		assert.ok(toolNames.includes("terminal"), "terminal should register");
 		assert.ok(toolNames.includes("process"), "process should register");
 		assert.ok(toolNames.includes("execute_code"), "execute_code should register");
@@ -153,8 +162,9 @@ describe("tools - buildToolConfig", () => {
 			maxReadSize: "2mb",
 		});
 		const toolNames = tools.map((t) => t.name);
-		assert.strictEqual(toolNames.length, 2);
+		assert.strictEqual(toolNames.length, 3);
 		assert.ok(toolNames.includes("clarify"));
 		assert.ok(toolNames.includes("execute_code"));
+		assert.ok(toolNames.includes("sampling"));
 	});
 });

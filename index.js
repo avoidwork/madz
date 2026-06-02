@@ -66,6 +66,14 @@ const { sessionId, state: initialState } = createSession({
 });
 const sessionState = new SessionStateManager(initialState);
 
+// Session-init: asynchronously clean up expired ephemeral memories (non-blocking)
+try {
+	const { expireEphemeralMemories } = await import("./src/memory/expireEphemeral.js");
+	queueMicrotask(() => expireEphemeralMemories(config.memory.contextDir).catch(() => {}));
+} catch {
+	// Graceful degradation: session starts even if cleanup import fails
+}
+
 // Load system prompt and append memory entries
 const { loadSystemPrompt } = await import("./src/memory/prompts.js");
 const systemPrompt = loadSystemPrompt();
@@ -82,6 +90,8 @@ const tools = await buildToolConfig({
 	timeout: config.sandbox.timeout,
 	memoryLimit: config.sandbox.memoryLimit,
 	contextDir: config.memory?.contextDir || "memory/context/",
+	ephemeralTtlDays: config.memory?.ephemeral?.ttlDays || 7,
+	ephemeralMaxEntries: config.memory?.ephemeral?.maxEntries || 10,
 });
 const model = createChatModel(providerConfig);
 const { createCheckpointer } = await import("./src/session/checkpointer.js");

@@ -17,6 +17,7 @@ import { createCodeTool } from "./code.js";
 import { createCronTool } from "./cron.js";
 import { createTtsTool } from "./tts.js";
 import { createMoaTool } from "./moa.js";
+import { createSamplingTool } from "./sampling.js";
 
 /**
  * Maps tool names to required permission scopes.
@@ -45,6 +46,7 @@ export const TOOL_PERMISSIONS = {
 	cronjob: ["network:outbound"],
 	text_to_speech: [], // requires OPENAI_API_KEY
 	mixture_of_agents: [], // requires OPENROUTER_API_KEY
+	sampling: [],
 };
 
 // Factory functions keyed by tool name
@@ -69,6 +71,7 @@ const TOOL_FACTORIES = {
 	cronjob: createCronTool,
 	text_to_speech: createTtsTool,
 	mixture_of_agents: createMoaTool,
+	sampling: createSamplingTool,
 };
 
 /**
@@ -102,6 +105,8 @@ function hasSearchKey() {
  * @param {object} [options.timeout] - Code execution timeout config
  * @param {string} [options.memoryLimit] - Code execution memory limit string
  * @param {string} [options.contextDir] - Directory for memory entries
+ * @param {number} [options.ephemeralTtlDays] - TTL for ephemeral memories
+ * @param {number} [options.ephemeralMaxEntries] - Max concurrent ephemeral entries
  * @returns {Promise<object[]>} Array of LangChain Tool instances
  */
 export async function buildToolConfig(options) {
@@ -115,6 +120,8 @@ export async function buildToolConfig(options) {
 		timeout,
 		memoryLimit,
 		contextDir = "memory/context/",
+		ephemeralTtlDays = 7,
+		ephemeralMaxEntries = 10,
 	} = options;
 
 	const enabledSet = new Set(permissions);
@@ -128,6 +135,8 @@ export async function buildToolConfig(options) {
 		timeout,
 		memoryLimit,
 		contextDir,
+		ephemeralTtlDays,
+		ephemeralMaxEntries,
 	};
 
 	for (const [toolName, requiredPerms] of Object.entries(TOOL_PERMISSIONS)) {
@@ -135,7 +144,8 @@ export async function buildToolConfig(options) {
 
 		switch (toolName) {
 			case "clarify":
-			case "execute_code": {
+			case "execute_code":
+			case "sampling": {
 				tools.push(TOOL_FACTORIES[toolName](runtimeOptions));
 				continue;
 			}
