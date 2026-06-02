@@ -414,14 +414,11 @@ export default function App({
 						assistantName: config?.tui?.name || "Assistant",
 					}),
 		!showBanner && !showOnboarding && React.createElement(StatusBar, statusProps),
-		!showBanner &&
-			!showOnboarding &&
+		(showOnboarding || (!showBanner && !showOnboarding)) &&
 			React.createElement(InputPanel, {
 				inputText: inputText,
 				cursorChar: config?.tui?.cursorChar ?? "\u2588",
 			}),
-		!showBanner &&
-			!showOnboarding &&
-			React.createElement(Text, { key: "exit-newline" }, EXIT_MESSAGE),
+		!showOnboarding && React.createElement(Text, { key: "exit-newline" }, EXIT_MESSAGE),
 	);
 }
