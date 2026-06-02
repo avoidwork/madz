@@ -4,11 +4,13 @@
 
 `madz` is a terminal-native AI companion — helpful by design, delivered with precision, quiet intensity, and elegant flair. Drawn from Mads Mikkelsen's most iconic roles, it's an assistant that solves problems with style, remembers your context, safely runs your skills, and automates the mundane so you can focus on what matters.
 
-[![Status: Beta](https://img.shields.io/badge/status-beta-orange.svg)](#)
+Built on LangGraph, OpenTelemetry, and Ink — with persistent memory, sandboxed skill execution, cron scheduling, and a React-powered TUI.
+
+[![Status: Beta](https://img.shields.io/badge/status-beta-orange.svg)](#overview)
 [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD--3--Clause-blue.svg)](LICENSE)
 [![Node.js >= 20](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](https://nodejs.org)
-[![Tests](https://img.shields.io/badge/tests-passing-brightgreen)](tests/)
-[![Coverage](https://img.shields.io/badge/coverage-98.30%25-brightgreen)](coverage.txt)
+[![Tests](https://img.shields.io/badge/tests-passing-brightgreen)](#testing)
+[![Coverage](https://img.shields.io/badge/coverage-98.30%25-brightgreen)](#testing)
 
 ## Table of Contents
 
@@ -18,7 +20,7 @@
   - [Installation](#installation)
   - [Configuration](#configuration)
   - [Running](#running)
-- [TUI Navigation](#tui-navigation)
+  - [TUI Navigation](#tui-navigation)
 - [Features](#features)
   - [Onboarding](#onboarding)
   - [LLM Provider Abstraction](#llm-provider-abstraction)
@@ -49,75 +51,6 @@ It speaks with a distinctive voice: calm, precise, a little wry. Whether you nee
 - 🛠️ **Runs your custom skills** → Safely execute plugins & tools in a sandboxed runtime
 - ⏱️ **Automates your routines** → Declare cron jobs in YAML and run on autopilot
 - 💬 **Orchestrates conversations** → Multi-turn LLM chats with context-window management
-
-## Features
-
-### Onboarding
-
-On first launch, `madz` starts an interactive onboarding flow that collects your profile — attractor (primary interest), expertise areas, dev tools, communication style preferences. This profile is stored as `memory/context/profile.md` and is loaded into the system prompt every session, making madz deeply personalized from the very first message. To re-trigger onboarding, delete `memory/context/profile.md` and restart.
-
-### LLM Provider Abstraction
-
-Configurable provider dispatch with rate limiting and context-window trimming. Supports OpenAI-compatible APIs.
-
-### Agent
-
-Wraps `@langchain/langgraph/prebuilt`'s `createReactAgentGraph` to produce a compiled ReAct agent that interleaves LLM reasoning with tool invocations. `createReactAgent(model, tools)` builds the agent from a provider model and a permission-gated tool array. `callReactAgent(agent, message)` runs the ReAct loop and returns the agent's final response.
-
-### Built-in Tools
-
-Bundled LangChain tools gated by sandbox permissions:
-
-| Category | Tools |
-|----------|-------|
-| **Filesystem** | `read_file`, `write_file` (500KB cap), `patch` (9-strategy fuzzy matching + unified diff), `search_files` (ripgrep with native fs fallback) |
-| **Terminal** | `terminal` — shell command execution (foreground/background); `process` — background process management (list, poll, wait, kill, write, pause, resume) |
-| **Task Management** | `todo` — CRUD list persisted to `memory/tools/todo.json` |
-| **Memory** | `memory` — persistent memory tool with CRUD (create, read, update, delete, list). Each memory is stored as an individual `.md` file in `memory/context/` with `createdDate` and `updatedDate` metadata. Memories are long-term, core "canon" that shapes your interaction with madz — important personal details, preferences, and context that matter. Loaded into the system prompt at the start of every session. |
-| **Search** | `session_search` — query past conversations by keyword, ID, or browse |
-| **Clarification** | `clarify` — sends clarification questions to the user |
-| **Skills** | `skills_list` — lists discovered skills; `skill_view` — views skill metadata and SKILL.md |
-| **Code** | `code` — code execution and analysis |
-| **Web** | `web` — web request utilities |
-| **Media** | `image` — image processing; `vision` — vision/language analysis; `tts` — text-to-speech |
-| **Agents** | `moa` — multi-agent orchestration |
-| **Cron** | `cron` — cron job utilities |
-
-### Skills Registry
-
-Auto-discovers skills from a `skills/` directory structure. Each skill defines input/output schemas via Zod permissions (`filesystem:read`, `network:outbound`, `process:spawn`, etc.) and is executed inside a sandboxed Node.js process.
-
-### Permission Gating
-
-Built-in tools are registered only when their required permissions are enabled for the session. Tools like `clarify` have zero permissions and always register.
-
-| Permission Required | Tools |
-|---------------------|-------|
-| `filesystem:read` | `read_file`, `search_files`, `skills_list`, `skill_view`, `session_search` |
-| `filesystem:write` | `write_file`, `patch`, `todo`, `memory` |
-| `filesystem:exec` + `process:spawn` | `terminal` |
-| `process:spawn` | `process` |
-| *(none)* | `clarify` |
-
-### Memory System
-
-Memories are stored as individual Markdown files in `memory/context/`. Each file carries `createdDate` and `updatedDate` metadata in YAML frontmatter and the memory content as the body. At the start of every session, all memories are loaded and appended to the system prompt with a header like "The following are important memories for the user:" — so they become part of the core context that guides every interaction.
-
-This means memories are not ephemeral session state; they are persistent, long-term knowledge that accumulates over time. When you add, update, or delete a memory, follow it with `:new` so the current session picks up the change immediately.
-
-**Memory tool actions:** `create` (new memory), `read` (get by key), `update` (modify by key), `delete` (remove by key), `list` (all memories, optional query filter)
-
-### Sandbox RTE
-
-Skills run in isolated forked processes with time limits, memory caps, and allowlists for filesystem paths and outbound URLs. Blocked schemes: `file://`, `gopher://`, `dict://`.
-
-### Telemetry
-
-Optional `@opentelemetry/sdk-node` integration. Configurable exporter (console, OTLP HTTP, OTLP gRPC), probability sampling, and automatic redaction of sensitive fields (API keys, auth headers).
-
-### Cron Scheduler
-
-Recurring job definitions in `config.yaml`. Each invocation inherits the current session's memory context and sandbox permissions. Max-concurrency control prevents run overlap.
 
 ## Quick Start
 
@@ -174,7 +107,7 @@ node index.js "What's the CPU load?"
 node index.js "Summarize memory/_index.md" --json
 ```
 
-## TUI Navigation
+### TUI Navigation
 
 | Key       | Action                         |
 |-----------|--------------------------------|
@@ -183,6 +116,75 @@ node index.js "Summarize memory/_index.md" --json
 | `:config set <key> <value>` | Mutate config at runtime |
 | `:skill <name>` | Invoke a discovered skill      |
 | `:schedule pause` / `resume` | Control the cron scheduler |
+
+## Features
+
+### Onboarding
+
+On first launch, `madz` starts an interactive onboarding flow that collects your profile — attractor (primary interest), expertise areas, dev tools, communication style preferences. This profile is stored as `memory/context/profile.md` and is loaded into the system prompt every session, making madz deeply personalized from the very first message. To re-trigger onboarding, delete `memory/context/profile.md` and restart.
+
+### LLM Provider Abstraction
+
+Configurable provider dispatch with rate limiting and context-window trimming. Supports OpenAI-compatible APIs.
+
+### Agent
+
+Wraps `@langchain/langgraph/prebuilt`'s `createReactAgentGraph` to produce a compiled ReAct agent that interleaves LLM reasoning with tool invocations. `createReactAgent(model, tools)` builds the agent from a provider model and a permission-gated tool array. `callReactAgent(agent, message)` runs the ReAct loop and returns the agent's final response.
+
+### Built-in Tools
+
+Bundled LangChain tools gated by sandbox permissions:
+
+| Category | Tools |
+|----------|-------|
+| **Filesystem** | `read_file`, `write_file` (500KB cap), `patch` (9-strategy fuzzy matching + unified diff), `search_files` (ripgrep with native fs fallback) |
+| **Terminal** | `terminal` — shell command execution (foreground/background); `process` — background process management (list, poll, wait, kill, write, pause, resume) |
+| **Task Management** | `todo` — CRUD list persisted to `memory/tools/todo.json` |
+| **Memory** | `memory` — persistent memory tool with CRUD (create, read, update, delete, list). Each memory is stored as an individual `.md` file in `memory/context/` with `createdDate` and `updatedDate` metadata. Memories are long-term, core "canon" that shapes your interaction with madz — important personal details, preferences, and context that matter. Loaded into the system prompt at the start of every session. |
+| **Search** | `session_search` — query past conversations by keyword, ID, or browse |
+| **Clarification** | `clarify` — sends clarification questions to the user |
+| **Skills** | `skills_list` — lists discovered skills; `skill_view` — views skill metadata and SKILL.md |
+| **Code** | `code` — code execution and analysis |
+| **Web** | `web` — outbound HTTP with timeout, URL allowlist filtering, multi-engine search backends |
+| **Media** | `image` — image generation via fal.ai; `vision` — vision/language analysis via OpenAI; `tts` — text-to-speech via OpenAI TTS |
+| **Agents** | `moa` — multi-agent orchestration |
+| **Cron** | `cron` — cron job utilities |
+
+### Skills Registry
+
+Auto-discovers skills from a `skills/` directory structure. Each skill defines input/output schemas via Zod permissions (`filesystem:read`, `network:outbound`, `process:spawn`, etc.) and is executed inside a sandboxed Node.js process.
+
+### Permission Gating
+
+Built-in tools are registered only when their required permissions are enabled for the session. Tools like `clarify` have zero permissions and always register.
+
+| Permission Required | Tools |
+|---------------------|-------|
+| `filesystem:read` | `read_file`, `search_files`, `skills_list`, `skill_view`, `session_search` |
+| `filesystem:write` | `write_file`, `patch`, `todo`, `memory` |
+| `filesystem:exec` + `process:spawn` | `terminal` |
+| `process:spawn` | `process` |
+| *(none)* | `clarify` |
+
+### Memory System
+
+Memories are stored as individual Markdown files in `memory/context/`. Each file carries `createdDate` and `updatedDate` metadata in YAML frontmatter and the memory content as the body. At the start of every session, all memories are loaded and appended to the system prompt with a header like "The following are important memories for the user:" — so they become part of the core context that guides every interaction.
+
+This means memories are not ephemeral session state; they are persistent, long-term knowledge that accumulates over time. When you add, update, or delete a memory, follow it with `:new` so the current session picks up the change immediately.
+
+**Memory tool actions:** `create` (new memory), `read` (get by key), `update` (modify by key), `delete` (remove by key), `list` (all memories, optional query filter)
+
+### Sandbox RTE
+
+Skills run in isolated forked processes with time limits, memory caps, and allowlists for filesystem paths and outbound URLs. Blocked schemes: `file://`, `gopher://`, `dict://`.
+
+### Telemetry
+
+Optional `@opentelemetry/sdk-node` integration. Configurable exporter (console, OTLP HTTP, OTLP gRPC), probability sampling, and automatic redaction of sensitive fields (API keys, auth headers).
+
+### Cron Scheduler
+
+Recurring job definitions in `config.yaml`. Each invocation inherits the current session's memory context and sandbox permissions. Max-concurrency control prevents run overlap.
 
 ## Directory Structure
 
@@ -263,7 +265,7 @@ npm run fix
 npm run lint
 ```
 
-The pre-commit hook runs linting, formatting, type-checking, and tests (targeting 100% code coverage). A commit will fail if any gate does not pass.
+The pre-commit hook runs linting, formatting, and tests (targeting 100% code coverage). A commit will fail if any gate does not pass.
 
 ## Development
 
@@ -285,41 +287,19 @@ npm run coverage     # Generate and verify 100% coverage
 
 Env vars can be used in two ways:
 
-1. **Direct** — set env vars to override config values (listed below).
-2. **Inline** — reference env vars in `config.yaml` using `${VAR_NAME}` syntax.
+1. **Direct** — set env vars to override config values. Env var names follow `UPPER_SNAKE_CASE` of the config key path (e.g., `sandbox.timeout.seconds` → `SANDBOX_SECONDS`). See [Config Reference](#config-reference) for all defaults.
+2. **Inline** — reference env vars in `config.yaml` using `${VAR_NAME}` syntax:
 
-#### OpenAI Provider Options
+```yaml
+providers:
+  openai:
+    credentials:
+      apiKey: "${OPENAI_API_KEY}"
+```
 
-| Variable                  | Config Key                           | Default                     |
-|---------------------------|--------------------------------------|-----------------------------|
-| `OPENAI_API_KEY`          | `providers.openai.credentials.apiKey`         | *(from config.yaml)*        |
-| `OPENAI_BASE_URL`         | `providers.openai.base_url`             | `https://api.openai.com/v1` |
-| `OPENAI_MODEL`            | `providers.openai.model`                | `gpt-4o`                    |
-| `OPENAI_TEMPERATURE`      | `providers.openai.temperature`          | `0.7`                       |
-| `OPENAI_MAX_TOKENS`       | `providers.openai.maxTokens`            | `4096`                      |
-| `OPENAI_REQUESTS_PER_MINUTE` | `providers.openai.rateLimit.requestsPerMinute` | `120`                |
+**Common env vars:** `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `OPENAI_MODEL`, `SANDBOX_SECONDS`, `SANDBOX_MEMORY_LIMIT`, `TUI_NAME`, `PERSISTENCE_MODE`.
 
-#### Sandbox Options
-
-| Variable                   | Config Key                       | Default         |
-|----------------------------|----------------------------------|-----------------|
-| `SANDBOX_SECONDS`          | `sandbox.timeout.seconds`        | `30`            |
-| `SANDBOX_GRACE_PERIOD`     | `sandbox.timeout.gracePeriod`    | `5`             |
-| `SANDBOX_MEMORY_LIMIT`     | `sandbox.memoryLimit`            | `"512m"`        |
-
-#### TUI Options
-
-| Variable                     | Config Key                  | Default           |
-|------------------------------|-----------------------------|-------------------|
-| `TUI_NAME`                   | `tui.name`                  | `madz`            |
-| `TUI_CURSOR_CHAR`            | `tui.cursorChar`            | `█`               |
-
-#### Persistence Options
-
-| Variable                     | Config Key                        | Default                       |
-|------------------------------|-----------------------------------|-------------------------------|
-| `PERSISTENCE_MODE`           | `persistence.mode`                | `memory`                      |
-| `PERSISTENCE_SQLITE_PATH`    | `persistence.sqlite_path`         | `memory/checkpoints.db`       |
+See [Config Reference](#config-reference) for the full list of configuration keys and their defaults.
 
 ## License
 
