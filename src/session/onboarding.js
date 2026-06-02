@@ -17,7 +17,7 @@ export const PHASES = Object.freeze({
 });
 
 const ATTRACTOR_EXPLANATION =
-	"This app can learn about you to give more personalized responses. Would you like to set up a quick profile? You can skip or cancel at any time.";
+	'This app can learn about you to give more personalized responses. Reply to start, "skip" to skip all questions, "cancel" to exit, or "exit" to quit the app completely.';
 
 /**
  * Create a new onboarding state machine instance.
