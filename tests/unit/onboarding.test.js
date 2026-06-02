@@ -1,10 +1,38 @@
-import { describe, it } from "node:test";
+import { describe, it, after, beforeEach } from "node:test";
 import assert from "node:assert";
+import { mkdirSync, rmSync } from "node:fs";
+import { join } from "node:path";
 import { createOnboarding, PHASES } from "../../src/session/onboarding.js";
 import { ATTRIBUTES } from "../../src/memory/profile.js";
 
+const TEST_DIR = "memory/__onboard_test__";
+const FULL_TEST_DIR = join(process.cwd(), TEST_DIR);
+
+function setup() {
+	try {
+		rmSync(FULL_TEST_DIR, { recursive: true, force: true });
+	} catch {
+		// ignore
+	}
+	mkdirSync(FULL_TEST_DIR, { recursive: true });
+}
+
+function teardown() {
+	try {
+		rmSync(FULL_TEST_DIR, { recursive: true, force: true });
+	} catch {
+		// ignore
+	}
+}
+
+beforeEach(setup);
+after(teardown);
+
 function create(options = {}) {
-	return createOnboarding(ATTRIBUTES, options);
+	return createOnboarding(ATTRIBUTES, {
+		profilePath: join(FULL_TEST_DIR, "profile.md"),
+		...options,
+	});
 }
 
 describe("createOnboarding", () => {
@@ -23,8 +51,8 @@ describe("createOnboarding", () => {
 		assert.strictEqual(ob.isStarted(), false);
 	});
 
-	it("uses custom profile path", () => {
-		const ob = create({ profilePath: "custom/path.md" });
+	it("accepts custom profile path override", () => {
+		const ob = create({ profilePath: join(FULL_TEST_DIR, "custom.md") });
 		assert.strictEqual(ob.getPhase(), PHASES.INIT);
 	});
 });
