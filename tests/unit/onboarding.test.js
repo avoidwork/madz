@@ -66,8 +66,8 @@ describe("ATTRACTOR phase", () => {
 		assert.strictEqual(ob.getPhase(), PHASES.ATTRACTOR);
 		const prompt = ob.getCurrentPrompt();
 		assert.ok(prompt.prompt.includes("personalized"));
-		assert.ok(!prompt.current);
-		assert.ok(!prompt.total);
+		assert.strictEqual(prompt.current, 0);
+		assert.ok(prompt.total > 0);
 	});
 
 	it("proceeds to COLLECT on normal input", () => {
