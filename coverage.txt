@@ -36,7 +36,7 @@
 ℹ  session               |        |          |         | 
 ℹ   checkpointer.js      |  82.22 |    87.50 |   50.00 | 22 24 39-43 45
 ℹ   factory.js           | 100.00 |   100.00 |  100.00 | 
-ℹ   onboarding.js        |  96.63 |    95.56 |  100.00 | 158-164
+ℹ   onboarding.js        |  96.65 |    93.48 |  100.00 | 159-165
 ℹ   stateManager.js      | 100.00 |   100.00 |  100.00 | 
 ℹ   window.js            | 100.00 |    91.67 |  100.00 | 
 ℹ  tools                 |        |          |         | 
@@ -64,19 +64,19 @@
 ℹ   messages.js          | 100.00 |    94.44 |  100.00 | 
 ℹ   panels.js            | 100.00 |   100.00 |  100.00 | 
 ℹ ---------------------------------------------------------------------------------------------------------------------
-ℹ all files              |  96.57 |    89.30 |   84.62 | 
+ℹ all files              |  96.57 |    89.23 |   84.62 | 
 ℹ ---------------------------------------------------------------------------------------------------------------------
 ℹ end of coverage report
 
 ✖ failing tests:
 
 test at tests/unit/onboarding.test.js:63:2
-✖ shows ATTRACTOR explanation prompt (2.990489ms)
+✖ shows ATTRACTOR explanation prompt (3.316283ms)
   AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
   
-    assert.ok(prompt.prompt.includes("personalized"))
+    assert.ok(!prompt.total)
   
-      at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/onboarding.test.js:68:10)
+      at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/onboarding.test.js:70:10)
       at Test.runInAsyncScope (node:async_hooks:226:14)
       at Test.run (node:internal/test_runner/test:1201:25)
       at Test.start (node:internal/test_runner/test:1096:17)

@@ -17,7 +17,7 @@ export const PHASES = Object.freeze({
 });
 
 const ATTRACTOR_EXPLANATION =
-	'Welcome! This app learns about you to give better responses. Type any response below to start. Try "yes", "skip", or "cancel".';
+	'This app can learn about you to give more personalized responses. Reply to start, "skip" to skip all questions, "cancel" to exit, or "exit" to quit the app completely.';
 
 /**
  * Create a new onboarding state machine instance.
@@ -76,8 +76,9 @@ export class Onboarding {
 	 * @returns {{ prompt: string, current: number, total: number } | null}
 	 */
 	getCurrentPrompt() {
+		if (!this.#attributes) return null;
 		if (this.#phase === PHASES.ATTRACTOR) {
-			return { prompt: ATTRACTOR_EXPLANATION, current: 0, total: 0 };
+			return { prompt: ATTRACTOR_EXPLANATION, current: 0, total: this.#attributes.length };
 		}
 		if (this.#phase === PHASES.COLLECT) {
 			const attr = getAttribute(this.#index);

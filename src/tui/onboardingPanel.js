@@ -8,7 +8,7 @@ const PROGRESS_PREFIX = (current, total) => {
 	return " (" + current + "/" + total + ")";
 };
 
-export function OnboardingPanel({ onboarding, onComplete, _onExit }) {
+export function OnboardingPanel({ onboarding, onComplete, _onExit, responseId }) {
 	const [messages, setMessages] = useState([]);
 	const [phase, setPhase] = useState(null);
 
@@ -37,7 +37,7 @@ export function OnboardingPanel({ onboarding, onComplete, _onExit }) {
 			const progress = PROGRESS_PREFIX(prompt.current, prompt.total);
 			setMessages([{ role: "system", content: prompt.prompt, _progress: progress }]);
 		}
-	}, [onboarding]);
+	}, [onboarding, responseId]);
 
 	if (!phase || phase === "TRANSCEND") return null;
 

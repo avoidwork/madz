@@ -402,7 +402,7 @@ export default function App({
 		showOnboarding
 			? React.createElement(OnboardingPanel, {
 					onboarding: onboarding,
-					key: onboardingResponse,
+					responseId: onboardingResponse,
 					onComplete: () => {
 						setShowBanner(true);
 						setShowOnboarding(false);
