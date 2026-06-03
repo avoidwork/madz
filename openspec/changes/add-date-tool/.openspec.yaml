@@ -1,0 +1,4 @@
+schema: spec-driven
+name: add-date-tool
+description: Add a 'date' tool so the assistant can easily get the current date as an ISO8601 string
+createdAt: 2026-06-03T00:00:00Z
