@@ -29,18 +29,19 @@ export function renderBlink(text, char, frame) {
 
 /**
  * Input cursor component. Renders a static cursor to avoid periodic re-renders.
+ * When `char` is undefined, renders a zero-width space to hide the cursor.
  * @param {Object} props
  * @param {string} props.text - Input text to render
- * @param {string} props.char - Cursor character
+ * @param {string} [props.char] - Cursor character (undefined hides the cursor)
  * @param {number} [props._testFrame] - Ignored (static cursor, no anim)
  * @returns {React.ReactElement}
  */
-export function Blink({ text = "", char = "\u2588", _testFrame }) {
+export function Blink({ text = "", char, _testFrame }) {
 	return React.createElement(
 		Box,
 		{ flexDirection: "row" },
 		React.createElement(Text, { key: "text", flexGrow: 1 }, text || ""),
-		React.createElement(Text, { key: "cursor", bold: true }, char || "\u2588"),
+		React.createElement(Text, { key: "cursor", bold: true }, char ?? "\u200B"),
 	);
 }
 

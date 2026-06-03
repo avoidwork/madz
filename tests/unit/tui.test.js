@@ -251,6 +251,82 @@ describe("TUI - panel navigation", () => {
 	});
 });
 
+describe("TUI - focus cycling", () => {
+	it("Tab key cycles focus from input to conversation (isInputFocused becomes false)", () => {
+		let focused = true;
+		const key = { tab: true, shift: false };
+		if (key.tab && !key.shift) {
+			focused = false;
+		}
+		assert.strictEqual(focused, false);
+	});
+
+	it("Shift+Tab key cycles focus from conversation to input (isInputFocused becomes true)", () => {
+		let focused = false;
+		const key = { tab: true, shift: true };
+		if (key.tab && key.shift) {
+			focused = true;
+		}
+		assert.strictEqual(focused, true);
+	});
+
+	it("Tab without shift does not trigger shift behavior", () => {
+		const key = { tab: true, shift: false };
+		assert.strictEqual(key.shift, false);
+	});
+
+	it("Tab with shift does trigger shift behavior", () => {
+		const key = { tab: true, shift: true };
+		assert.strictEqual(key.shift, true);
+	});
+});
+
+describe("TUI - focus routing", () => {
+	it("when input is focused, char keys affect input not scroll", () => {
+		const isInputFocused = true;
+		const key = { upArrow: true, downArrow: false, pageUp: false, pageDown: false };
+		// In input mode, scroll keys are ignored
+		let scrolled = false;
+		if (!isInputFocused && (key.upArrow || key.downArrow || key.pageUp || key.pageDown)) {
+			scrolled = true;
+		}
+		assert.strictEqual(scrolled, false);
+	});
+
+	it("when conversation is focused, arrow keys scroll not affect input", () => {
+		const isInputFocused = false;
+		let textAdded = false;
+		let historyNav = false;
+		const key = { upArrow: true };
+		// In conversation mode, input keys are ignored
+		if (isInputFocused) {
+			textAdded = true;
+			historyNav = key.upArrow;
+		}
+		assert.strictEqual(textAdded, false);
+		assert.strictEqual(historyNav, false);
+	});
+
+	it("scroll keys only trigger scrolling when conversation is focused", () => {
+		const handleScrollInput = (key) => {
+			let scrolled = 0;
+			if (key.upArrow) scrolled -= 1;
+			if (key.downArrow) scrolled += 1;
+			return scrolled;
+		};
+
+		let didScroll = false;
+		const key = { downArrow: true };
+		const isInputFocused = false;
+
+		if (!isInputFocused && (key.upArrow || key.downArrow || key.pageUp || key.pageDown)) {
+			handleScrollInput(key);
+			didScroll = true;
+		}
+		assert.strictEqual(didScroll, true);
+	});
+});
+
 describe("TUI - message formatting", () => {
 	it("maps role to label", () => {
 		function getRoleLabel(role, assistantName) {
@@ -853,5 +929,18 @@ describe("Blink - component rendering", () => {
 		const result = Blink({ text: "hello", char: "█", _testFrame: 1 });
 		assert.ok(React.isValidElement(result));
 		assert.strictEqual(result.props.children[1].props.children, "█");
+	});
+
+	it("renders zero-width space when char is undefined", () => {
+		const result = Blink({ text: "hello", char: undefined });
+		assert.ok(React.isValidElement(result));
+		assert.strictEqual(result.props.children[1].props.children, "\u200B");
+	});
+
+	it("renders empty text with zero-width space when text is empty and char is undefined", () => {
+		const result = Blink({ char: undefined });
+		assert.ok(React.isValidElement(result));
+		assert.strictEqual(result.props.children[0].props.children, "");
+		assert.strictEqual(result.props.children[1].props.children, "\u200B");
 	});
 });

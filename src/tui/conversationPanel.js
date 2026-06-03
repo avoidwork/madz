@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from "react";
-import { Box, Text, useInput, useStdout } from "ink";
+import { Box, Text, useStdout } from "ink";
 import { ScrollView } from "ink-scroll-view";
 import { getRoleLabel } from "./messages.js";
 import { MarkdownText } from "./markdownText.js";
@@ -309,17 +309,25 @@ export function executeAutoScroll(scrollRef, messages, previousCount, countRef) 
 
 /**
  * Conversation panel component with ScrollView-based scrolling.
- * Handles keyboard scroll input, terminal resize remeasurement,
+ * Scroll input is routed externally via handleScrollInput call from App.
+ * Handles terminal resize remeasurement
  * and auto-scroll-to-bottom on new messages and streaming overflow.
+ * Props:
+ *   messages       - the conversation message array
+ *   assistantName  - name to display for assistant messages
+ *   onScrollRef    - callback invoked with the scroll ref
  */
-export function ConversationPanel({ messages = [], assistantName = "Assistant" }) {
+export function ConversationPanel({ messages = [], assistantName = "Assistant", onScrollRef }) {
 	const scrollRef = useRef(null);
 	const previousMessageCount = useRef(0);
 	const lastContentHashRef = useRef(0);
 	const { stdout } = useStdout();
 
-	// Handle keyboard scroll input
-	useInput((input, key) => executeScrollInput(scrollRef.current, key));
+	useEffect(() => {
+		if (onScrollRef) {
+			onScrollRef(scrollRef.current);
+		}
+	}, [onScrollRef]);
 
 	// Handle terminal resize by remeasuring content heights
 	useEffect(() => {

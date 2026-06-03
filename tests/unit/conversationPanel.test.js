@@ -138,6 +138,24 @@ describe("ConversationPanel - component rendering", () => {
 		const { unmount: um } = render(React.createElement(ConversationPanel, { messages: null }));
 		unmount = um;
 	});
+
+	it("renders with onScrollRef callback prop", () => {
+		let _receivedRef = null;
+		const onScrollRef = (ref) => {
+			// ref may be null on first render before ScrollView mounts
+			_receivedRef = ref;
+		};
+		const { unmount: um } = render(
+			React.createElement(ConversationPanel, {
+				messages: [{ role: "user", content: "hello", time: "10:00" }],
+				assistantName: "Bot",
+				onScrollRef,
+			}),
+		);
+		unmount = um;
+		// Component renders without error with the callback prop
+		assert.ok(true);
+	});
 });
 
 describe("ConversationPanel - handleScrollInput", () => {

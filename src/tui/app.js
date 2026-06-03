@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Box, Text, useWindowSize } from "ink";
 import { useInput } from "ink";
 import { CommandParser } from "./commandParser.js";
@@ -10,6 +10,7 @@ import { Banner } from "./banner.js";
 import { OnboardingPanel } from "./onboardingPanel.js";
 import { createSession } from "../session/factory.js";
 import { setConfigValue } from "../config/loader.js";
+import { handleScrollInput } from "./conversationPanel.js";
 
 const EXIT_MESSAGE = "\n";
 
@@ -33,6 +34,12 @@ export default function App({
 	const [chatHistory, setChatHistory] = useState([]);
 	const [historyIndex, setHistoryIndex] = useState(-1);
 	const [inputText, setInputText] = useState("");
+	const [isInputFocused, setIsInputFocused] = useState(true);
+	const scrollRef = React.useRef(null);
+
+	const handleScrollRef = useCallback((ref) => {
+		scrollRef.current = ref;
+	}, []);
 
 	const skillList = registry ? registry.list() : [];
 
@@ -71,6 +78,7 @@ export default function App({
 		});
 		setHistoryIndex(-1);
 		setInputText("");
+		setIsInputFocused(true);
 
 		if (parser.isCommand(trimmed)) {
 			await handleCommand(trimmed);
@@ -387,27 +395,40 @@ export default function App({
 		} else {
 			if (key.escape) {
 				handleQuit();
-			} else if (key.return && !key.shift) {
-				handleSubmit(inputText);
-			} else if (key.upArrow && chatHistory.length > 0) {
-				const newIndex =
-					historyIndex === -1 ? chatHistory.length - 1 : Math.max(0, historyIndex - 1);
-				setHistoryIndex(newIndex);
-				setInputText(chatHistory[newIndex]);
-			} else if (key.downArrow) {
-				if (historyIndex === -1) return;
-				const nextIndex = historyIndex + 1;
-				if (nextIndex >= chatHistory.length) {
-					setHistoryIndex(-1);
-					setInputText("");
+			} else if (key.tab) {
+				// Tab cycling: moves focus from input → conversation or back
+				if (key.shift) {
+					setIsInputFocused(true);
 				} else {
-					setHistoryIndex(nextIndex);
-					setInputText(chatHistory[nextIndex]);
+					setIsInputFocused(false);
 				}
-			} else if (key.backspace && inputText.length > 0) {
-				setInputText((prev) => prev.slice(0, -1));
-			} else if (input && input !== "\r") {
-				setInputText((prev) => prev + input);
+			} else if (isInputFocused) {
+				// Input mode: typing, send, history nav, backspace
+				if (key.return && !key.shift) {
+					handleSubmit(inputText);
+				} else if (key.upArrow && chatHistory.length > 0) {
+					const newIndex =
+						historyIndex === -1 ? chatHistory.length - 1 : Math.max(0, historyIndex - 1);
+					setHistoryIndex(newIndex);
+					setInputText(chatHistory[newIndex]);
+				} else if (key.downArrow) {
+					if (historyIndex === -1) return;
+					const nextIndex = historyIndex + 1;
+					if (nextIndex >= chatHistory.length) {
+						setHistoryIndex(-1);
+						setInputText("");
+					} else {
+						setHistoryIndex(nextIndex);
+						setInputText(chatHistory[nextIndex]);
+					}
+				} else if (key.backspace && inputText.length > 0) {
+					setInputText((prev) => prev.slice(0, -1));
+				} else if (input && input !== "\r") {
+					setInputText((prev) => prev + input);
+				}
+			} else if (key.upArrow || key.downArrow || key.pageUp || key.pageDown) {
+				// Conversation mode: scroll keys
+				handleScrollInput(scrollRef.current, key);
 			}
 		}
 	});
@@ -420,6 +441,8 @@ export default function App({
 		statusMessage: statusMessage,
 		appInfo: appInfo,
 	};
+
+	const activeCursorChar = isInputFocused ? (config?.tui?.cursorChar ?? "\u2588") : undefined;
 
 	return React.createElement(
 		Box,
@@ -442,12 +465,14 @@ export default function App({
 				: React.createElement(ConversationPanel, {
 						messages: messages,
 						assistantName: config?.tui?.name || "Assistant",
+						onScrollRef: handleScrollRef,
 					}),
 		!showBanner && !showOnboarding && React.createElement(StatusBar, statusProps),
 		(showOnboarding || (!showBanner && !showOnboarding)) &&
 			React.createElement(InputPanel, {
+				key: isInputFocused ? "input-focused" : "input-hidden",
 				inputText: inputText,
-				cursorChar: config?.tui?.cursorChar ?? "\u2588",
+				cursorChar: activeCursorChar,
 			}),
 		!showOnboarding && React.createElement(Text, { key: "exit-newline" }, EXIT_MESSAGE),
 	);
