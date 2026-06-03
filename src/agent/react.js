@@ -29,7 +29,7 @@ export function createReactAgent(model, tools = [], checkpointer = null) {
  * @param {(event: StreamEvent) => void} [callback] - Optional streaming event callback
  * @returns {{ content: string }} The agent's final text response
  */
-export function callReactAgent(agent, message, config, systemPrompt, callback) {
+export async function callReactAgent(agent, message, config, systemPrompt, callback) {
 	let messages = [new HumanMessage(message)];
 
 	if (systemPrompt) {
@@ -43,7 +43,7 @@ export function callReactAgent(agent, message, config, systemPrompt, callback) {
 		return callReactAgentStreaming(agent, messages, message, config, callback);
 	}
 
-	const result = agent.invoke({ messages, ...config });
+	const result = await agent.invoke({ messages }, config);
 	return extractContent(result, message);
 }
 
