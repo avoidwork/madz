@@ -145,3 +145,84 @@ describe("session - context window enforcement", () => {
 		assert.strictEqual(result.length, 1);
 	});
 });
+
+describe("session - state manager thread ID", () => {
+	it("defaults to provider when no threadId set", () => {
+		const manager = new SessionStateManager({});
+		assert.strictEqual(manager.getThreadId(), "openai");
+	});
+
+	it("defaults to provider for non-default provider", () => {
+		const manager = new SessionStateManager({ provider: "local" });
+		assert.strictEqual(manager.getThreadId(), "local");
+	});
+
+	it("returns explicit threadId when set", () => {
+		const manager = new SessionStateManager({ provider: "openai" });
+		const threadId = "test-thread-uuid";
+		manager.setThreadId(threadId);
+		assert.strictEqual(manager.getThreadId(), threadId);
+	});
+
+	it("updates updatedAt when setting threadId", () => {
+		const manager = new SessionStateManager({ provider: "openai" });
+		const _before = new Date(manager.getState().updatedAt);
+		setTimeout(() => {
+			manager.setThreadId("new-thread");
+			const after = new Date(manager.getState().updatedAt);
+			assert.ok(after >= _before);
+		}, 10);
+	});
+});
+
+describe("session - state manager createNewSession", () => {
+	it("clears the conversation", () => {
+		const manager = new SessionStateManager({});
+		manager.addExchange({ role: "user", content: "hello" });
+		manager.addExchange({ role: "assistant", content: "world" });
+		assert.strictEqual(manager.getConversation().length, 2);
+		manager.createNewSession();
+		assert.strictEqual(manager.getConversation().length, 0);
+	});
+
+	it("clears the skills list", () => {
+		const manager = new SessionStateManager({});
+		manager.registerSkill("fs-read");
+		assert.strictEqual(manager.getSkills().length, 1);
+		manager.createNewSession();
+		assert.strictEqual(manager.getSkills().length, 0);
+	});
+
+	it("generates a new UUID threadId", () => {
+		const manager = new SessionStateManager({});
+		const oldId = manager.getThreadId();
+		const result = manager.createNewSession();
+		assert.notStrictEqual(result.sessionId, oldId);
+		assert.strictEqual(manager.getThreadId(), result.sessionId);
+		assert.ok(
+			/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(result.sessionId),
+		);
+	});
+
+	it("creates session with explicit threadId", () => {
+		const manager = new SessionStateManager({});
+		const customId = "custom-session-uuid";
+		const { sessionId } = manager.createNewSession(customId);
+		assert.strictEqual(sessionId, customId);
+		assert.strictEqual(manager.getThreadId(), customId);
+	});
+
+	it("preserves provider from initial state", () => {
+		const manager = new SessionStateManager({ provider: "local" });
+		manager.createNewSession();
+		assert.strictEqual(manager.getProvider(), "local");
+		assert.strictEqual(manager.getConversation().length, 0);
+	});
+
+	it("updates updatedAt timestamp", () => {
+		const manager = new SessionStateManager({});
+		const _before = manager.getState().updatedAt;
+		const { sessionId } = manager.createNewSession();
+		assert.ok(sessionId.length > 0);
+	});
+});

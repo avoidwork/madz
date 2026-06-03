@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 /**
  * Session state manager that tracks active provider, context window size, and skill context.
  */
@@ -103,5 +105,36 @@ export class SessionStateManager {
 			conversation: [...this.#state.conversation],
 			skills: [...this.#state.skills],
 		};
+	}
+
+	/**
+	 * Get the current thread ID used by the checkpointer.
+	 * @returns {string}
+	 */
+	getThreadId() {
+		return this.#state.threadId || this.#state.provider;
+	}
+
+	/**
+	 * Set the thread ID for the checkpointer.
+	 * @param {string} threadId - The thread ID (e.g., UUID for new sessions)
+	 */
+	setThreadId(threadId) {
+		this.#state.threadId = threadId;
+		this.#state.updatedAt = new Date().toISOString();
+	}
+
+	/**
+	 * Create a completely new session: generate new UUID, clear conversation, reset skills, keep provider.
+	 * @param {string} [newThreadId] - Optional thread ID override
+	 * @returns {{ sessionId: string }}
+	 */
+	createNewSession(newThreadId) {
+		const sessionId = newThreadId || randomUUID();
+		this.setThreadId(sessionId);
+		this.#state.conversation = [];
+		this.#state.skills = [];
+		this.#state.updatedAt = new Date().toISOString();
+		return { sessionId };
 	}
 }

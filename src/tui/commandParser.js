@@ -84,6 +84,10 @@ export class CommandParser {
 			};
 		});
 
+		this.#register("new", (_args, _ctx) => {
+			return { action: "new", message: "New session started." };
+		});
+
 		this.#register("help", (_args, _ctx) => {
 			const cmds = Array.from(this.#dispatch.keys());
 			return {

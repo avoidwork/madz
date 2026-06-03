@@ -197,6 +197,32 @@ describe("command parser", () => {
 			assert.strictEqual(parser.hasCommand("clear"), true);
 		});
 	});
+
+	describe("new command", () => {
+		it("returns new action", () => {
+			const parser = new CommandParser();
+			const result = parser.parse(":new", {});
+			assert.strictEqual(result.action, "new");
+			assert.strictEqual(result.message, "New session started.");
+		});
+
+		it("is recognized via hasCommand", () => {
+			const parser = new CommandParser();
+			assert.strictEqual(parser.hasCommand("new"), true);
+		});
+
+		it("is shown in listCommands", () => {
+			const parser = new CommandParser();
+			const commands = parser.listCommands();
+			assert.ok(commands.includes("new"));
+		});
+
+		it("returns unknown for :new with arguments", () => {
+			const parser = new CommandParser();
+			const result = parser.parse(":new foo bar", {});
+			assert.strictEqual(result.action, "new");
+		});
+	});
 });
 
 describe("TUI - panel navigation", () => {

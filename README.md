@@ -116,6 +116,8 @@ node index.js "Summarize memory/_index.md" --json
 | `:config set <key> <value>` | Mutate config at runtime |
 | `:skill <name>` | Invoke a discovered skill      |
 | `:schedule pause` / `resume` | Control the cron scheduler |
+| `:clear`  | Clear conversation history     |
+| `:new`    | Start a fresh session          |
 
 ## Features
 
