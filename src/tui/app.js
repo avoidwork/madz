@@ -397,6 +397,9 @@ export default function App({
 				handleQuit();
 			} else if (key.tab) {
 				// Tab cycling: moves focus from input → conversation or back
+				process.stderr.write(
+					`[DEBUG] Tab pressed: wasFocused=${isInputFocused} shift=${key.shift}\n`,
+				);
 				if (key.shift) {
 					setIsInputFocused(true);
 				} else {
@@ -443,6 +446,9 @@ export default function App({
 	};
 
 	const activeCursorChar = isInputFocused ? (config?.tui?.cursorChar ?? "\u2588") : undefined;
+	process.stderr.write(
+		`[RENDER] isInputFocused=${isInputFocused} activeCursorChar=${JSON.stringify(activeCursorChar)}\n`,
+	);
 
 	return React.createElement(
 		Box,
