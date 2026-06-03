@@ -8,6 +8,7 @@ import { InputPanel } from "./inputPanel.js";
 import { isStreamingMessage } from "./messages.js";
 import { Banner } from "./banner.js";
 import { OnboardingPanel } from "./onboardingPanel.js";
+import { createSession } from "../session/factory.js";
 import { setConfigValue } from "../config/loader.js";
 
 const EXIT_MESSAGE = "\n";
@@ -98,6 +99,15 @@ export default function App({
 			});
 			if (result.action === "quit") {
 				handleQuit();
+				return;
+			}
+			if (result.action === "new") {
+				handleNewSession();
+				return;
+			}
+			if (result.action === "clear") {
+				setMessages([]);
+				setStatusMessage(result.message || "Conversation cleared.");
 				return;
 			}
 			if (result.action === "unknown") {
@@ -258,6 +268,21 @@ export default function App({
 
 	const handleQuit = () => {
 		process.exit(0);
+	};
+
+	/**
+	 * Start a new session: generate new UUID, clear conversation, reset state.
+	 */
+	const handleNewSession = () => {
+		const newSession = createSession({ provider: sessionState.getProvider() });
+		sessionState.createNewSession(newSession.sessionId);
+		setMessages([]);
+		setChatHistory([]);
+		setStatusMessage("New session started.");
+		addMessage({
+			role: "system",
+			content: `New session started (thread: ${newSession.sessionId.slice(0, 8)}...).`,
+		});
 	};
 
 	/**

@@ -40,8 +40,8 @@ describe("command parser", () => {
 		assert.ok(commands.includes("quit"));
 		assert.ok(commands.includes("provider"));
 		assert.ok(commands.includes("config"));
-		assert.ok(commands.includes("memory"));
 		assert.ok(commands.includes("schedule"));
+		assert.ok(commands.includes("clear"));
 	});
 
 	it("checks if command exists", () => {
@@ -118,31 +118,6 @@ describe("command parser", () => {
 		});
 	});
 
-	describe("memory command", () => {
-		it("opens memory with :memory open", () => {
-			const parser = new CommandParser();
-			const ctx = { _contextList: true };
-			const result = parser.parse(":memory open", ctx);
-			assert.strictEqual(result.action, "memory");
-			assert.strictEqual(result.subAction, "open");
-		});
-
-		it("searches memory with :memory search query", () => {
-			const parser = new CommandParser();
-			const result = parser.parse(":memory search daily", {});
-			assert.strictEqual(result.action, "memory");
-			assert.strictEqual(result.subAction, "search");
-			assert.strictEqual(result.query, "daily");
-		});
-
-		it("returns usage with unknown memory subcommand", () => {
-			const parser = new CommandParser();
-			const result = parser.parse(":memory delete", {});
-			assert.strictEqual(result.action, "memory");
-			assert.ok(result.message.includes("Usage"));
-		});
-	});
-
 	describe("schedule commands", () => {
 		it("lists schedules with :schedule", () => {
 			const parser = new CommandParser();
@@ -198,22 +173,54 @@ describe("command parser", () => {
 			assert.strictEqual(result.action, "help");
 			assert.ok(result.message.includes("Available commands"));
 		});
+
+		it("shows commands dynamically", () => {
+			const parser = new CommandParser();
+			const result = parser.parse(":help", {});
+			const cmds = parser.listCommands();
+			for (const cmd of cmds) {
+				assert.ok(result.message.toLowerCase().includes(cmd));
+			}
+		});
 	});
 
-	describe("context command", () => {
-		it("adds context with :context add text", () => {
+	describe("clear command", () => {
+		it("returns clear action", () => {
 			const parser = new CommandParser();
-			const result = parser.parse(":context add some text", {});
-			assert.strictEqual(result.action, "context");
-			assert.strictEqual(result.subAction, "add");
-			assert.strictEqual(result.value, "some text");
+			const result = parser.parse(":clear", {});
+			assert.strictEqual(result.action, "clear");
+			assert.strictEqual(result.message, "Conversation cleared.");
 		});
 
-		it("returns usage for non-add context subcommand", () => {
+		it("is recognized via hasCommand", () => {
 			const parser = new CommandParser();
-			const result = parser.parse(":context remove", {});
-			assert.strictEqual(result.action, "context");
-			assert.ok(result.message.includes("Usage"));
+			assert.strictEqual(parser.hasCommand("clear"), true);
+		});
+	});
+
+	describe("new command", () => {
+		it("returns new action", () => {
+			const parser = new CommandParser();
+			const result = parser.parse(":new", {});
+			assert.strictEqual(result.action, "new");
+			assert.strictEqual(result.message, "New session started.");
+		});
+
+		it("is recognized via hasCommand", () => {
+			const parser = new CommandParser();
+			assert.strictEqual(parser.hasCommand("new"), true);
+		});
+
+		it("is shown in listCommands", () => {
+			const parser = new CommandParser();
+			const commands = parser.listCommands();
+			assert.ok(commands.includes("new"));
+		});
+
+		it("returns unknown for :new with arguments", () => {
+			const parser = new CommandParser();
+			const result = parser.parse(":new foo bar", {});
+			assert.strictEqual(result.action, "new");
 		});
 	});
 });

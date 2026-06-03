@@ -98,17 +98,18 @@ const { createCheckpointer } = await import("./src/session/checkpointer.js");
 const checkpointer = createCheckpointer(config.persistence);
 const agent = createReactAgent(model, tools, checkpointer);
 
-const sessionConfig = { configurable: { thread_id: sessionId } };
+const sessionConfig = { configurable: { thread_id: sessionState.getThreadId() } };
 
 async function callProvider(_name, _providerConfig, message, streamingCallback) {
 	const isNewThread = sessionState.getConversation().length === 0;
+	const threadId = sessionState.getThreadId();
 	const memoryEntries = await loadMemories(memoryEntriesDir);
 	const memoryText = formatMemoriesForPrompt(memoryEntries);
 	const callPrompt = memoryText ? `${systemPrompt}\n\n${memoryText}` : systemPrompt;
 	const result = await callReactAgent(
 		agent,
 		message,
-		{ ...sessionConfig, configurable: { ...sessionConfig.configurable, isNewThread } },
+		{ ...sessionConfig, configurable: { thread_id: threadId, isNewThread } },
 		callPrompt,
 		streamingCallback,
 	);

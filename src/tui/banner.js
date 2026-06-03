@@ -21,10 +21,9 @@ const COMMAND_GROUPS = [
 		items: [
 			":help - show this list",
 			":provider [set <name>] - list or switch provider",
-			":memory open|search <q> - open or search memory",
 			":schedule [list|pause|resume|run-now]",
 			":config set <path> <value> - update config",
-			":context add <text> - add context",
+			":clear - clear conversation",
 			":quit - exit the app",
 		],
 	},

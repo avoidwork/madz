@@ -1,7 +1,7 @@
 /**
  * Command parser that handles `:command` syntax with a dispatch table.
- * Supports commands like: `:config set`, `:provider set`, `:memory open`,
- * `:schedule list`, `:quit`, etc.
+ * Supports commands like: `:config set`, `:provider set`, `:schedule list`,
+ * `:clear`, `:quit`, etc.
  */
 export class CommandParser {
 	#dispatch = new Map();
@@ -55,20 +55,6 @@ export class CommandParser {
 			return { action: "config", message: "Usage: :config set <path> <value>" };
 		});
 
-		this.#register("memory", (args, ctx) => {
-			if (args[0] === "open") {
-				return {
-					action: "memory",
-					subAction: "open",
-					message: ctx._contextList ? "Opening memory..." : "No memory entries.",
-				};
-			}
-			if (args[0] === "search" && args[1]) {
-				return { action: "memory", subAction: "search", query: args[1] };
-			}
-			return { action: "memory", message: "Usage: :memory open | search <query>" };
-		});
-
 		this.#register("schedule", (args, ctx) => {
 			if (!args[0]) {
 				return { action: "schedule", list: ctx._scheduleList || [] };
@@ -91,17 +77,22 @@ export class CommandParser {
 			return { action: "schedule", message: `Unknown subcommand: ${sub}` };
 		});
 
-		this.#register("context", (args, _ctx) => {
-			if (args[0] === "add") {
-				return { action: "context", subAction: "add", value: args.slice(1).join(" ") };
-			}
-			return { action: "context", message: "Usage: :context add <text>" };
+		this.#register("clear", (_args, _ctx) => {
+			return {
+				action: "clear",
+				message: "Conversation cleared.",
+			};
+		});
+
+		this.#register("new", (_args, _ctx) => {
+			return { action: "new", message: "New session started." };
 		});
 
 		this.#register("help", (_args, _ctx) => {
+			const cmds = Array.from(this.#dispatch.keys());
 			return {
 				action: "help",
-				message: "Available commands: quit, provider, config, memory, schedule, context, help",
+				message: `Available commands: ${cmds.join(", ")}`,
 			};
 		});
 	}
