@@ -100,6 +100,11 @@ export default function App({
 				handleQuit();
 				return;
 			}
+			if (result.action === "clear") {
+				setMessages([]);
+				setStatusMessage(result.message || "Conversation cleared.");
+				return;
+			}
 			if (result.action === "unknown") {
 				setStatusMessage(result.message);
 				return;
