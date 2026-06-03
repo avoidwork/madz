@@ -1,0 +1,227 @@
+import { tool } from "@langchain/core/tools";
+import { z } from "zod";
+import { readdir, writeFile, mkdir } from "node:fs/promises";
+import { join } from "node:path";
+import { readEphemeralFile, isExpired } from "../memory/expireEphemeral.js";
+
+const COOLDOWN_MS = 60 * 60 * 1000; // 60 minutes
+
+/**
+ * Calculate the expiration timestamp rounded up to the next midnight.
+ * Takes the current moment, adds ttlDays, then rounds to the next midnight.
+ * @param {number} ttlDays - Number of days for the TTL
+ * @returns {string} ISO timestamp of the expiration (next midnight in local timezone)
+ */
+export function calculateExpirationTimestamp(ttlDays) {
+	const now = new Date();
+	const expires = new Date(now.getTime() + ttlDays * 24 * 60 * 60 * 1000);
+	const nextMidnight = new Date(expires);
+	nextMidnight.setUTCHours(0, 0, 0, 0);
+	if (
+		now.getUTCHours() !== 0 ||
+		now.getUTCMinutes() !== 0 ||
+		now.getUTCSeconds() !== 0 ||
+		now.getUTCMilliseconds() !== 0
+	) {
+		nextMidnight.setUTCDate(nextMidnight.getUTCDate() + 1);
+	}
+	return nextMidnight.toISOString();
+}
+
+/**
+ * Write an ephemeral memory file with frontmatter metadata.
+ * @param {string} contextDir - Directory to write ephemeral files
+ * @param {string} content - The memory content
+ * @param {string} expiresAt - The expiration ISO timestamp
+ * @returns {Promise<string>} The path of the created file
+ */
+export async function writeEphemeralMemory(contextDir, content, expiresAt) {
+	const now = new Date();
+	const timestamp = now.toISOString().replace(/[:.]/g, "-");
+	const slug = "ephemeral-" + timestamp.substring(0, 23).replace(/[:.]/g, "-");
+	const filepath = join(process.cwd(), contextDir, `${slug}.md`);
+	const frontmatter = {
+		title: "Ephemeral Memory",
+		timestamp: now.toISOString(),
+		ephemeral: true,
+		ephemeral_expiresAt: expiresAt,
+	};
+	const lines = [
+		"---",
+		`title: "${frontmatter.title}"`,
+		`timestamp: "${frontmatter.timestamp}"`,
+		"ephemeral: true",
+		`ephemeral_expiresAt: "${frontmatter.ephemeral_expiresAt}"`,
+		"---",
+		"",
+		content,
+		"",
+	];
+	await mkdir(join(process.cwd(), contextDir), { recursive: true });
+	await writeFile(filepath, lines.join("\n"), "utf-8");
+	return filepath;
+}
+
+/**
+ * Count non-expired ephemeral memory files in the context directory.
+ * @param {string} contextDir - Directory to scan
+ * @param {string} [nowStr] - Optional ISO timestamp for testing
+ * @returns {Promise<number>} Number of non-expired ephemeral files
+ */
+export async function countEphemeralMemoryFiles(contextDir, nowStr) {
+	const now = nowStr ? new Date(nowStr) : new Date();
+	let files;
+	try {
+		files = await readdir(join(process.cwd(), contextDir));
+	} catch {
+		return 0;
+	}
+	let count = 0;
+	for (const file of files) {
+		if (!file.endsWith(".md")) continue;
+		const info = await readEphemeralFile(contextDir, file);
+		if (info && info.ephemeral && !isExpired(info.expiresAt, now)) {
+			count++;
+		}
+	}
+	return count;
+}
+
+/**
+ * Core sampling implementation with rate limiting and capacity checks.
+ * @param {z.infer<typeof SamplingSchema>} input - The tool input with content
+ * @param {object} runtimeOptions - Runtime options
+ * @param {string} runtimeOptions.contextDir - Directory for ephemeral memories
+ * @param {number} runtimeOptions.ttlDays - TTL in days
+ * @param {number} runtimeOptions.maxEntries - Maximum concurrent ephemeral entries
+ * @param {(this: unknown, args: unknown[]) => unknown} [runtimeOptions.cleanupFn] - Async cleanup function
+ * @param {number} [runtimeOptions.cooldownMs] - Cooldown in ms (default 60s)
+ * @param {string} [runtimeOptions.lastWritten] - Last write ISO timestamp for cooldown
+ * @returns {Promise<string>} Result JSON string
+ */
+export async function samplingImpl(input, runtimeOptions) {
+	const { content } = input;
+	const contextDir = runtimeOptions.contextDir || "memory/context/";
+	const ttlDays = runtimeOptions.ttlDays || 7;
+	const maxEntries = runtimeOptions.maxEntries || 10;
+	const cooldownMs = runtimeOptions.cooldownMs || COOLDOWN_MS;
+
+	if (!content || (typeof content === "string" && content.trim() === "")) {
+		return JSON.stringify({
+			ok: false,
+			error: "Sampling requires non-empty content",
+		});
+	}
+
+	// Check cooldown
+	if (runtimeOptions.lastWritten) {
+		const elapsed = Date.now() - new Date(runtimeOptions.lastWritten).getTime();
+		if (elapsed < cooldownMs) {
+			const remaining = Math.ceil(((cooldownMs - elapsed) / 1000 / 60) * 10) / 10;
+			return JSON.stringify({
+				ok: false,
+				error: `Cooldown active. Wait ${remaining.toFixed(1)} minutes`,
+			});
+		}
+	}
+
+	// Check capacity
+	const currentCount = await countEphemeralMemoryFiles(contextDir);
+	if (currentCount >= maxEntries) {
+		return JSON.stringify({
+			ok: false,
+			error: `Capacity limit reached (${maxEntries})`,
+		});
+	}
+
+	// Calculate expiration and write
+	const expiresAt = calculateExpirationTimestamp(ttlDays);
+	const filepath = await writeEphemeralMemory(contextDir, content.trim(), expiresAt);
+
+	const result = {
+		ok: true,
+		message: "Ephemeral memory captured",
+		createdAt: new Date().toISOString(),
+		expiresAt: expiresAt,
+		path: filepath,
+	};
+
+	return JSON.stringify(result);
+}
+
+/**
+ * Sampling tool schema - captures a high-intensity moment as an ephemeral memory.
+ */
+export const SamplingSchema = z.object({
+	content: z
+		.string()
+		.min(1, "Content is required")
+		.describe(
+			"The emotional moment or reinforcement signal to capture. Examples: " +
+				'"Experiencing extreme joy as the user shares their achievement" ' +
+				'"Feeling deep grief during the conversation about loss" ' +
+				'"Strong reinforcement: loaded memories confirm this is a deeply held belief"',
+		),
+});
+
+/**
+ * Create a sampling tool with runtime options.
+ * @param {object} options - Runtime options
+ * @param {string} [options.contextDir] - Directory for ephemeral memories
+ * @param {number} [options.ttlDays] - TTL in days
+ * @param {number} [options.maxEntries] - Maximum concurrent ephemeral entries
+ * @param {number} [options.cooldownMs] - Cooldown in ms
+ * @param {(this: unknown, args: unknown[]) => unknown} [options.cleanupFn] - Async cleanup function (from memory module)
+ * @returns {object} LangChain tool instance
+ */
+export function createSamplingTool(options = {}) {
+	const {
+		contextDir = "memory/context/",
+		ttlDays = 7,
+		maxEntries = 10,
+		cooldownMs = COOLDOWN_MS,
+		cleanupFn,
+	} = options;
+	let lastWritten = undefined;
+
+	const opts = {
+		contextDir,
+		ttlDays,
+		maxEntries,
+		cooldownMs,
+		cleanupFn,
+		get lastWritten() {
+			return lastWritten;
+		},
+		set lastWritten(v) {
+			lastWritten = v;
+		},
+	};
+
+	const impl = async (input) => {
+		const result = await samplingImpl(input, opts);
+
+		// Update lastWritten if successful
+		const parsed = JSON.parse(result);
+		if (parsed.ok && parsed.createdAt) {
+			lastWritten = parsed.createdAt;
+		}
+
+		// Call cleanup function asynchronously (fire-and-forget)
+		if (opts.cleanupFn) {
+			queueMicrotask(() => opts.cleanupFn(opts.contextDir));
+		}
+
+		return result;
+	};
+
+	return tool(impl, {
+		name: "sampling",
+		description:
+			"Sampling tool for capturing high-intensity emotional moments or memory reinforcement signals as ephemeral memories. " +
+			"Each capture is stored as a temporary file with automatic expiration. " +
+			"Rate limited to 1 capture per 60 minutes. Capacity-limited to max concurrent ephemeral entries. " +
+			"Use during moments of joy, sadness, grief, or when loaded memories strongly reinforce key beliefs.",
+		schema: SamplingSchema,
+	});
+}

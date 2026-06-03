@@ -50,6 +50,12 @@ export const MemorySchema = z.object({
 	toolsDir: z.string().default("memory/tools/"),
 	errorsDir: z.string().default("memory/errors/"),
 	schedulesDir: z.string().default("memory/schedules/"),
+	ephemeral: z
+		.object({
+			ttlDays: z.number().int().positive().default(7),
+			maxEntries: z.number().int().positive().default(10),
+		})
+		.default({ ttlDays: 7, maxEntries: 10 }),
 });
 
 // --- Telemetry schemas ---
@@ -137,6 +143,7 @@ export const DEFAULT_CONFIG = {
 		toolsDir: "memory/tools/",
 		errorsDir: "memory/errors/",
 		schedulesDir: "memory/schedules/",
+		ephemeral: { ttlDays: 7, maxEntries: 10 },
 	},
 	telemetry: {
 		enabled: false,
