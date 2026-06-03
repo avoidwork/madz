@@ -397,14 +397,21 @@ export default function App({
 				handleQuit();
 			} else if (key.tab) {
 				// Tab cycling: moves focus from input → conversation or back
-				process.stderr.write(
-					`[DEBUG] Tab pressed: wasFocused=${isInputFocused} shift=${key.shift}\n`,
-				);
 				if (key.shift) {
 					setIsInputFocused(true);
 				} else {
 					setIsInputFocused(false);
 				}
+			} else if (input === "~") {
+				// Fallback for Tab detection (bypasses readline/tab interception)
+				if (key.shift) {
+					setIsInputFocused(true);
+				} else {
+					setIsInputFocused(false);
+				}
+			} else if (input === "`") {
+				// Fallback: backtick cycles input → conversation
+				setIsInputFocused(false);
 			} else if (isInputFocused) {
 				// Input mode: typing, send, history nav, backspace
 				if (key.return && !key.shift) {

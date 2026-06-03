@@ -70,3 +70,47 @@
 ℹ all files              |  96.60 |    89.41 |   84.82 | 
 ℹ ---------------------------------------------------------------------------------------------------------------------
 ℹ end of coverage report
+
+✖ failing tests:
+
+test at tests/unit/tui.test.js:934:2
+✖ renders zero-width space when char is undefined (0.649914ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  '' !== '​'
+  
+      at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/tui.test.js:937:10)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Suite.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '',
+    expected: '​',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/unit/tui.test.js:940:2
+✖ renders empty text with zero-width space when text is empty and char is undefined (0.160993ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  '' !== '​'
+  
+      at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/tui.test.js:944:10)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Suite.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '',
+    expected: '​',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

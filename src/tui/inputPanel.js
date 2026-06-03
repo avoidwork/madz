@@ -41,7 +41,7 @@ export function Blink({ text = "", char, _testFrame }) {
 		Box,
 		{ flexDirection: "row" },
 		React.createElement(Text, { key: "text", flexGrow: 1 }, text || ""),
-		React.createElement(Text, { key: "cursor", bold: true }, char ?? "\u200B"),
+		React.createElement(Text, { key: "cursor", bold: true }, char ?? ""),
 	);
 }
 
