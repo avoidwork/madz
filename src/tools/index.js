@@ -18,6 +18,7 @@ import { createCronTool } from "./cron.js";
 import { createTtsTool } from "./tts.js";
 import { createMoaTool } from "./moa.js";
 import { createSamplingTool } from "./sampling.js";
+import { createDateTool } from "./date.js";
 
 /**
  * Maps tool names to required permission scopes.
@@ -47,6 +48,7 @@ export const TOOL_PERMISSIONS = {
 	text_to_speech: [], // requires OPENAI_API_KEY
 	mixture_of_agents: [], // requires OPENROUTER_API_KEY
 	sampling: [],
+	date: [],
 };
 
 // Factory functions keyed by tool name
@@ -72,6 +74,7 @@ const TOOL_FACTORIES = {
 	text_to_speech: createTtsTool,
 	mixture_of_agents: createMoaTool,
 	sampling: createSamplingTool,
+	date: createDateTool,
 };
 
 /**
@@ -145,7 +148,8 @@ export async function buildToolConfig(options) {
 		switch (toolName) {
 			case "clarify":
 			case "execute_code":
-			case "sampling": {
+			case "sampling":
+			case "date": {
 				tools.push(TOOL_FACTORIES[toolName](runtimeOptions));
 				continue;
 			}

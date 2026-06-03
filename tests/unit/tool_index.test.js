@@ -76,14 +76,15 @@ describe("tools - buildToolConfig", () => {
 		else delete process.env.FAL_API_KEY;
 	});
 
-	it("returns clarify + execute_code + sampling with empty permissions", async () => {
+	it("returns clarify + execute_code + sampling + date with empty permissions", async () => {
 		const { buildToolConfig } = await import("../../src/tools/index.js");
 		const tools = await buildToolConfig({ permissions: [], maxReadSize: "1mb" });
 		const toolNames = tools.map((t) => t.name);
-		assert.strictEqual(toolNames.length, 3);
+		assert.strictEqual(toolNames.length, 4);
 		assert.ok(toolNames.includes("clarify"));
 		assert.ok(toolNames.includes("execute_code"));
 		assert.ok(toolNames.includes("sampling"));
+		assert.ok(toolNames.includes("date"));
 	});
 
 	it("returns clarify + filesystem tools when filesystem:read and filesystem:write enabled", async () => {
@@ -162,9 +163,10 @@ describe("tools - buildToolConfig", () => {
 			maxReadSize: "2mb",
 		});
 		const toolNames = tools.map((t) => t.name);
-		assert.strictEqual(toolNames.length, 3);
+		assert.strictEqual(toolNames.length, 4);
 		assert.ok(toolNames.includes("clarify"));
 		assert.ok(toolNames.includes("execute_code"));
 		assert.ok(toolNames.includes("sampling"));
+		assert.ok(toolNames.includes("date"));
 	});
 });
