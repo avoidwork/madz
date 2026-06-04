@@ -80,6 +80,14 @@ async function getFullConversation(sessionsDir, conversationId) {
 	return `Conversation not found: ${conversationId}`;
 }
 
+/**
+ * Wrap `execFile` in a Promise for async/await usage.
+ * @param {string} cmd - Command to execute
+ * @param {string[]} args - Arguments array
+ * @param {object} opts - execFile options (timeout, encoding)
+ * @returns {Promise<{ stdout: string, stderr: string }>}
+ * @private
+ */
 async function runCmd(cmd, args, opts) {
 	return new Promise((resolve, reject) => {
 		import("node:child_process").then(({ execFile }) => {
