@@ -1,7 +1,5 @@
-import { existsSync } from "node:fs";
+import { writeFile, mkdir, stat } from "node:fs/promises";
 import { join } from "node:path";
-import { mkdirSync } from "node:fs";
-import { writeMemoryFile } from "../memory/writer.js";
 
 /**
  * Save session exchanges to a file named by thread ID.
@@ -9,9 +7,14 @@ import { writeMemoryFile } from "../memory/writer.js";
  * @param {Array} conversation - Conversation exchanges to save
  * @param {string} [threadId] - Thread ID used as filename
  */
-export function saveSession(sessionsDir, conversation, threadId = "") {
+export async function saveSession(sessionsDir, conversation, threadId = "") {
 	const dir = join(process.cwd(), sessionsDir);
-	if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+
+	try {
+		await stat(dir);
+	} catch {
+		await mkdir(dir, { recursive: true });
+	}
 
 	const filename = threadId ? `${threadId}.md` : "unsaved.md";
 	const isoTimestamp = new Date().toISOString();
@@ -25,5 +28,19 @@ export function saveSession(sessionsDir, conversation, threadId = "") {
 		endedAt: isoTimestamp,
 	};
 
-	writeMemoryFile(sessionsDir, filename, metadata, body);
+	const frontmatterLines = [
+		"---",
+		...Object.entries(metadata).map(([k, v]) => {
+			if (v == null) return `${k}:`;
+			if (typeof v === "string") return `${k}: "${v}"`;
+			if (typeof v === "boolean") return `${k}: ${v}`;
+			if (typeof v === "number") return `${k}: ${v}`;
+			return `${k}: ${JSON.stringify(v)}`;
+		}),
+		"---",
+		"",
+	];
+
+	const content = frontmatterLines.join("\n") + body + "\n";
+	await writeFile(join(dir, filename), content);
 }

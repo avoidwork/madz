@@ -133,10 +133,6 @@ export default function App({
 		setStatusMessage("Streaming...");
 		addMessage({ role: "user", content: text });
 
-		if (sessionState) {
-			sessionState.addExchange({ role: "user", content: text });
-		}
-
 		const assistantTime = getTimestamp();
 		setMessages((prev) => [
 			...prev,
@@ -255,6 +251,7 @@ export default function App({
 			});
 
 			if (sessionState) {
+				sessionState.addExchange({ role: "user", content: text });
 				sessionState.addExchange({
 					role: "assistant",
 					content: responseContent,
@@ -265,6 +262,9 @@ export default function App({
 			}
 			setStatusMessage("Received response");
 		} catch (err) {
+			if (sessionState) {
+				sessionState.addExchange({ role: "user", content: text });
+			}
 			if (onSaveSession) {
 				onSaveSession();
 			}
