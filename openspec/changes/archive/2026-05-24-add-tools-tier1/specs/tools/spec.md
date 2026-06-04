@@ -162,7 +162,7 @@ The `memory` tool SHALL write key-value entries to `memory/context/session_memor
 - **THEN** the file is updated and the response returns `{ saved: 1, keys: ["user_pref"] }`
 
 ### Requirement: Session Search Retrieves Past Conversations
-The `session_search` tool SHALL scan `memory/conversations/` for `.json` conversation files, support query-based search returning matching snippets, and support `conversationId` for retrieving full conversation text.
+The `session_search` tool SHALL scan `memory/sessions/` for `.md` conversation files, support query-based search returning matching snippets, and support `conversationId` for retrieving full conversation text.
 
 #### Scenario: Search finds conversations matching a query
 - **WHEN** `session_search` is called with `query: "authentication"` and `limit: 10`

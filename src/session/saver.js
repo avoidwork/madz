@@ -5,12 +5,12 @@ import { writeMemoryFile } from "../memory/writer.js";
 
 /**
  * Save session exchanges to a file named by thread ID.
- * @param {string} conversationsDir - Path to conversations directory
+ * @param {string} sessionsDir - Path to sessions directory
  * @param {Array} conversation - Conversation exchanges to save
  * @param {string} [threadId] - Thread ID used as filename
  */
-export function saveSession(conversationsDir, conversation, threadId = "") {
-	const dir = join(process.cwd(), conversationsDir);
+export function saveSession(sessionsDir, conversation, threadId = "") {
+	const dir = join(process.cwd(), sessionsDir);
 	if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
 
 	const filename = threadId ? `${threadId}.md` : "unsaved.md";
@@ -25,5 +25,5 @@ export function saveSession(conversationsDir, conversation, threadId = "") {
 		endedAt: timestamp,
 	};
 
-	writeMemoryFile(conversationsDir, filename, metadata, body);
+	writeMemoryFile(sessionsDir, filename, metadata, body);
 }
