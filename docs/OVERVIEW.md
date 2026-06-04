@@ -425,7 +425,7 @@ index.js
     │     ├── createReactAgent(model, tools)                    ← Agent
     │     └── callReactAgent(agent, message)                    ← ReAct loop
     ├── sessionState.addExchange({role: "assistant", content})
-    └── writeMemoryFile("memory/conversations", ...)             ← persists to filesystem
+    └── writeMemoryFile("memory/sessions/", ...)             ← persists to filesystem
 
 **Agent tool loop:**
 

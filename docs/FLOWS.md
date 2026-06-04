@@ -64,7 +64,7 @@ index.js (main)
 ├── providerConfig = config.providers[providerName]
 ├── tools = await buildToolConfig({
 │   │   permissions, allowedPaths, maxReadSize, registry,
-│   │   conversationsDir, safety, timeout, memoryLimit,
+│   │   sessionsDir, safety, timeout, memoryLimit,
 │   │   })
 │   └── [see Tool Configuration Building]
 ├── model = createChatModel(providerConfig)
@@ -290,7 +290,7 @@ handleConversation(message)
 ├── sessionState.addExchange({ role: "user", content: message })
 ├── sessionState.addExchange({ role: "assistant", content: response.content })
 ├── writeMemoryFile(
-│   │   "memory/conversations/",
+│   │   "memory/sessions/",
 │   │   `Conversation ${new Date().toISOString()}`,
 │   │   { provider: response.provider, sessionId },
 │   │   JSON.stringify(sessionState.getConversation(), null, 2)
@@ -778,8 +778,8 @@ registerShutdownHandler(cleanupFn)
 └── return () => process.off("SIGTERM", process.off("SIGINT", ...)
 
 # At exit (onExit from ink or SIGTERM):
-saveSession(conversationsDir, conversation)
-├── writeMemoryFile(conversationsDir, "Session", metadata, JSON.stringify(conversation))
+saveSession(sessionsDir, conversation)
+├── writeMemoryFile(sessionsDir, "Session", metadata, JSON.stringify(conversation))
 └── [see Memory Persistence Flow]
 
 cleanRetainedMemory(config.memory.directory, config.memory.retention.days)

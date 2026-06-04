@@ -1,6 +1,6 @@
 ## Why
 
-The current `createReactAgent` in `src/agent/react.js` compiles the ReAct agent without a LangGraph checkpointer, making it completely stateless across invocations. Each call to `callReactAgent` sends only `[SystemMessage?, HumanMessage(message)]` — no message history accumulates. The session `sessionId` exists only for file-based `.md` persistence in `memory/conversations/` and is never passed to the LangGraph graph. This means conversations are inherently single-turn: the agent has no memory of previous exchanges within a session.
+The current `createReactAgent` in `src/agent/react.js` compiles the ReAct agent without a LangGraph checkpointer, making it completely stateless across invocations. Each call to `callReactAgent` sends only `[SystemMessage?, HumanMessage(message)]` — no message history accumulates. The session `sessionId` exists only for file-based `.md` persistence in `memory/sessions/` and is never passed to the LangGraph graph. This means conversations are inherently single-turn: the agent has no memory of previous exchanges within a session.
 
 Adding checkpointer-based persistence enables true multi-turn conversations where the agent retains message history across invocations, and the graph can resume from the last state.
 

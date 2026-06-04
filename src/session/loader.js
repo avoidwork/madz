@@ -4,17 +4,13 @@ import { parseFrontmatter } from "../memory/reader.js";
 
 /**
  * Load a session by ID or the latest session file.
- * @param {string} conversationsDir - Path to conversations directory
+ * @param {string} sessionsDir - Path to sessions directory
  * @param {number} [windowSize=20] - Context window limit for loaded messages
  * @param {string} [sessionId] - Optional session/thread ID to load (fallbacks to latest)
  * @returns {{ sessionId: string, conversation: Array, metadata: Object }}
  */
-export function loadSession(
-	conversationsDir = "memory/sessions/",
-	windowSize = 20,
-	sessionId = "",
-) {
-	const dir = join(process.cwd(), conversationsDir);
+export function loadSession(sessionsDir = "memory/sessions/", windowSize = 20, sessionId = "") {
+	const dir = join(process.cwd(), sessionsDir);
 
 	if (sessionId) {
 		const filepath = join(dir, `${sessionId}.md`);
