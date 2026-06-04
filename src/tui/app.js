@@ -24,6 +24,7 @@ export default function App({
 	dispatchProvider,
 	appInfo,
 	onboarding,
+	onSaveSession,
 }) {
 	const [showBanner, setShowBanner] = useState(true);
 	const [showOnboarding, setShowOnboarding] = useState(!!onboarding);
@@ -250,13 +251,23 @@ export default function App({
 			});
 
 			if (sessionState) {
+				sessionState.addExchange({ role: "user", content: text });
 				sessionState.addExchange({
 					role: "assistant",
 					content: responseContent,
 				});
 			}
+			if (onSaveSession) {
+				onSaveSession();
+			}
 			setStatusMessage("Received response");
 		} catch (err) {
+			if (sessionState) {
+				sessionState.addExchange({ role: "user", content: text });
+			}
+			if (onSaveSession) {
+				onSaveSession();
+			}
 			setMessages((prev) => prev.filter((msg) => !isStreamingMessage(msg)));
 			setStatusMessage("Something went wrong");
 			addMessage({
