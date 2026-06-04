@@ -1,0 +1,38 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "avoidwork"
+    commit-message:
+      prefix: "chore(deps)"
+    # Auto-merge minor and patch updates
+    automerge:
+      type: "auto"
+      interval: "daily"
+    # Group patch updates to reduce PR noise
+    groups:
+      langgraph:
+        patterns:
+          - "@langchain/*"
+      opentelemetry:
+        patterns:
+          - "@opentelemetry/*"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "avoidwork"
+    commit-message:
+      prefix: "chore(actions)"
+    automerge:
+      type: "auto"
+      interval: "daily"
