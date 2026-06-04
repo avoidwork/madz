@@ -154,7 +154,7 @@ describe("tools - todo", () => {
 
 describe("tools - session_search", () => {
 	const testOptions = {
-		conversationsDir: "memory/__test_tools__/conversations/",
+		sessionsDir: "memory/__test_tools__/conversations/",
 	};
 
 	before(setupTestFiles);

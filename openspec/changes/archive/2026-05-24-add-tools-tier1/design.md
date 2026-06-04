@@ -21,7 +21,7 @@ LangChain's `@tool` decorator creates schema-gated tool functions for LangGraph'
 - Create `buildToolConfig()` that registers tools based on `config.sandbox.permissions`
 - Extend sandbox config schema with `permissions` array and `maxReadSize` string
 - File persistence for todos (`memory/tools/todo.json`) and memory entries (`memory/context/session_memory.md`)
-- Session search scans `memory/conversations/` for `.json` conversation files
+- Session search scans `memory/sessions/` for `.md` conversation files
 - Shared utility module `src/tools/common.js`
 - 100% test coverage with unit tests mirroring source structure
 

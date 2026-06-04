@@ -25,21 +25,21 @@ async function exists(path) {
  * full conversation retrieval by ID, or browsing all sessions.
  * @param {z.infer<typeof SessionSearchSchema>} input - The tool input
  * @param {object} options - Runtime options
- * @param {string} options.conversationsDir - Path to conversations directory
+ * @param {string} options.sessionsDir - Path to sessions directory
  * @returns {Promise<string>} Search results or conversation content
  */
 export async function sessionSearchImpl(input, options) {
-	const conversationsDir = join(process.cwd(), options.conversationsDir || "memory/sessions/");
+	const sessionsDir = join(process.cwd(), options.sessionsDir || "memory/sessions/");
 
 	if (input.conversationId) {
-		return getFullConversation(conversationsDir, input.conversationId);
+		return getFullConversation(sessionsDir, input.conversationId);
 	}
 
 	if (input.query) {
-		return searchConversations(conversationsDir, input.query, input.limit || 10);
+		return searchConversations(sessionsDir, input.query, input.limit || 10);
 	}
 
-	return browseConversations(conversationsDir);
+	return browseConversations(sessionsDir);
 }
 
 export const session_search = tool(sessionSearchImpl, {
@@ -55,18 +55,18 @@ export const session_search = tool(sessionSearchImpl, {
 
 /**
  * Get full conversation by ID.
- * @param {string} conversationsDir - Conversations directory
+ * @param {string} sessionsDir - Sessions directory
  * @param {string} conversationId - Session/ID to find
  * @returns {Promise<string>} Full conversation content
  */
-async function getFullConversation(conversationsDir, conversationId) {
-	if (!(await exists(conversationsDir))) {
-		return `No conversations directory found: ${conversationsDir}`;
+async function getFullConversation(sessionsDir, conversationId) {
+	if (!(await exists(sessionsDir))) {
+		return `No conversations directory found: ${sessionsDir}`;
 	}
 
-	const files = (await readdir(conversationsDir)).filter((f) => f.endsWith(".md"));
+	const files = (await readdir(sessionsDir)).filter((f) => f.endsWith(".md"));
 	for (const file of files) {
-		const filepath = join(conversationsDir, file);
+		const filepath = join(sessionsDir, file);
 		const content = await readFile(filepath, "utf-8");
 		const { frontmatter } = parseFrontmatter(content);
 
@@ -81,45 +81,92 @@ async function getFullConversation(conversationsDir, conversationId) {
 }
 
 /**
- * Search conversations by query.
- * @param {string} conversationsDir - Conversations directory
+ * Wrap `execFile` in a Promise for async/await usage.
+ * @param {string} cmd - Command to execute
+ * @param {string[]} args - Arguments array
+ * @param {object} opts - execFile options (timeout, encoding)
+ * @returns {Promise<{ stdout: string, stderr: string }>}
+ * @private
+ */
+async function runCmd(cmd, args, opts) {
+	return new Promise((resolve, reject) => {
+		import("node:child_process").then(({ execFile }) => {
+			execFile(cmd, args, opts, (err, stdout, stderr) => {
+				if (err) reject(err);
+				else resolve({ stdout, stderr });
+			});
+		});
+	});
+}
+
+/**
+ * Search conversations by query using shell grep.
+ * @param {string} sessionsDir - Sessions directory
  * @param {string} query - Search keyword
  * @param {number} limit - Max results
  * @returns {Promise<string>} Search results
  */
-async function searchConversations(conversationsDir, query, limit) {
-	const results = [];
-	const regex = new RegExp(query, "i");
-
-	if (!(await exists(conversationsDir))) {
-		return `No conversations directory found: ${conversationsDir}`;
+async function searchConversations(sessionsDir, query, limit) {
+	if (!(await exists(sessionsDir))) {
+		return `No conversations directory found: ${sessionsDir}`;
 	}
 
-	const files = (await readdir(conversationsDir)).filter((f) => f.endsWith(".md"));
-	for (const file of files) {
-		if (results.length >= limit) break;
+	// grep -rniIn: recursive, fixed-string, case-insensitive, numbered, skip binary
+	let { stdout } = await runCmd("grep", ["-rI", "-niIn", query, sessionsDir], {
+		timeout: 10000,
+		encoding: "utf-8",
+	}).catch((err) => {
+		// exit code 1 = no match (not an error)
+		if (err.code === 1 || err.status === 1) return { stdout: "" };
+		return { stdout: "", stderr: err.message };
+	});
 
-		const filepath = join(conversationsDir, file);
-		const content = await readFile(filepath, "utf-8");
-		const { content: body } = parseFrontmatter(content);
+	const output = stdout.trim();
+	if (!output) {
+		return `No conversations matched query "${query}"`;
+	}
 
-		const lines = body.split("\n");
-		const matchingLines = [];
+	// Parse grep output: "filepath:lineNum:content"
+	const matches = output.split("\n");
+	const byFile = new Map();
+	for (const line of matches) {
+		const idx = line.indexOf(":");
+		const numIdx = idx >= 0 ? line.indexOf(":", idx + 1) : -1;
+		if (idx < 0 || numIdx < 0) continue;
+		const file = line.slice(0, idx);
+		const lineNum = parseInt(line.slice(idx + 1, numIdx), 10);
+		const content = line.slice(numIdx + 1);
+		const arr = byFile.get(file) || [];
+		arr.push({ lineNum, content });
+		byFile.set(file, arr);
+	}
 
-		for (let i = 0; i < lines.length; i++) {
-			if (regex.test(lines[i])) {
-				const start = Math.max(0, i - 2);
-				const end = Math.min(lines.length, i + 3);
-				const context = lines
-					.slice(start, end)
-					.map((l) => `  ${l}`)
-					.join("\n");
-				matchingLines.push(`File: ${file} (line ${i + 1})\n${context}`);
-			}
-		}
+	// For each file, use sed to extract context lines (±2)
+	const results = [];
+	for (const [file, lineMatches] of byFile) {
+		const startLine = Math.max(1, lineMatches[0].lineNum - 2);
+		const endLine = Math.max(lineMatches[lineMatches.length - 1].lineNum + 2, startLine);
+		const { stdout: sedOutput } = await runCmd(
+			"sh",
+			["-c", `sed -n '${startLine},${endLine}p' "$1"`, "_", file],
+			{ timeout: 5000, encoding: "utf-8" },
+		).catch(() => ({ stdout: "" }));
 
-		if (matchingLines.length > 0) {
-			results.push(...matchingLines.slice(0, 3));
+		const sedLines = sedOutput.split("\n");
+		const matchLineSet = new Set(lineMatches.map((m) => m.lineNum));
+		for (const m of lineMatches) {
+			if (results.length >= limit) break;
+
+			const context = sedLines
+				.filter((_, i) => i < sedLines.length - 1) // skip trailing empty
+				.map((l, i) => {
+					const actualLine = startLine + i;
+					if (actualLine === m.lineNum) return `>> ${l}`;
+					if (matchLineSet.has(actualLine)) return `+  ${l}`;
+					return `   ${l}`;
+				})
+				.join("\n");
+			results.push(`File: ${file} (line ${m.lineNum})\n${context}`);
 		}
 	}
 
@@ -132,19 +179,19 @@ async function searchConversations(conversationsDir, query, limit) {
 
 /**
  * Browse and list available conversations.
- * @param {string} conversationsDir - Conversations directory
+ * @param {string} sessionsDir - Sessions directory
  * @returns {Promise<string>} List of conversations with metadata
  */
-async function browseConversations(conversationsDir) {
+async function browseConversations(sessionsDir) {
 	const conversations = [];
 
-	if (!(await exists(conversationsDir))) {
-		return `No conversations directory found: ${conversationsDir}`;
+	if (!(await exists(sessionsDir))) {
+		return `No conversations directory found: ${sessionsDir}`;
 	}
 
-	const files = (await readdir(conversationsDir)).filter((f) => f.endsWith(".md"));
+	const files = (await readdir(sessionsDir)).filter((f) => f.endsWith(".md"));
 	for (const file of files) {
-		const filepath = join(conversationsDir, file);
+		const filepath = join(sessionsDir, file);
 		const fileStat = await stat(filepath);
 		const content = await readFile(filepath, "utf-8");
 		const { frontmatter, content: body } = parseFrontmatter(content);

@@ -103,7 +103,7 @@ function hasSearchKey() {
  * @param {string[]} options.allowedPaths - Sandbox-allowed paths
  * @param {string} options.maxReadSize - Maximum read size string (e.g., "1mb")
  * @param {object} [options.registry] - SkillRegistry instance for skills_list/skill_view
- * @param {string} [options.conversationsDir] - Path to conversations directory
+ * @param {string} [options.sessionsDir] - Path to sessions directory
  * @param {object} [options.safety] - Code sandbox safety config
  * @param {object} [options.timeout] - Code execution timeout config
  * @param {string} [options.memoryLimit] - Code execution memory limit string
@@ -118,7 +118,7 @@ export async function buildToolConfig(options) {
 		allowedPaths = ["memory/", "skills/", "tmp/"],
 		maxReadSize = "1mb",
 		registry,
-		conversationsDir = "memory/sessions/",
+		sessionsDir = "memory/sessions/",
 		safety,
 		timeout,
 		memoryLimit,
@@ -133,7 +133,7 @@ export async function buildToolConfig(options) {
 		allowedPaths,
 		maxReadSize,
 		registry,
-		conversationsDir,
+		sessionsDir,
 		safety,
 		timeout,
 		memoryLimit,

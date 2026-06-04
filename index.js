@@ -85,7 +85,7 @@ const tools = await buildToolConfig({
 	allowedPaths: config.sandbox.paths || ["memory/", "skills/", "tmp/"],
 	maxReadSize: config.sandbox.maxReadSize || "1mb",
 	registry,
-	conversationsDir: "memory/sessions/",
+	sessionsDir: "memory/sessions/",
 	safety: config.sandbox.safety,
 	timeout: config.sandbox.timeout,
 	memoryLimit: config.sandbox.memoryLimit,

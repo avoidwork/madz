@@ -149,7 +149,7 @@ describe("integration - session lifecycle", () => {
 
 describe("integration - memory persistence", () => {
 	it("writes and reads conversation memory", async () => {
-		const writePath = "memory/conversations/test-entry.md";
+		const writePath = "memory/sessions/test-entry.md";
 		// Simulate write
 		const writeResult = writePath;
 

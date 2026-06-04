@@ -1,6 +1,6 @@
 ## Context
 
-The current `createReactAgent` in `src/agent/react.js` compiles a stateless ReAct agent at startup in `index.js:66`. The `dispatchProvider` closure (line 99) delegates to `callReactAgent` which sends `[SystemMessage?, HumanMessage(message)]` per call — no message history flows between invocations. The session `sessionId` (UUID from `src/session/factory.js:10`) is only used for file-based `.md` persistence in `memory/conversations/`.
+The current `createReactAgent` in `src/agent/react.js` compiles a stateless ReAct agent at startup in `index.js:66`. The `dispatchProvider` closure (line 99) delegates to `callReactAgent` which sends `[SystemMessage?, HumanMessage(message)]` per call — no message history flows between invocations. The session `sessionId` (UUID from `src/session/factory.js:10`) is only used for file-based `.md` persistence in `memory/sessions/`.
 
 LangGraph's `createReactAgent` prebuilt accepts a `checkpointer` option that, when compiled, enables thread-based conversation memory. A `thread_id` (from `configurable.thread_id`) associates all checkpoint writes with a conversation. Without it, the checkpointer auto-creates threads.
 
