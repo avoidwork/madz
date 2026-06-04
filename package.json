@@ -45,7 +45,7 @@
     "@opentelemetry/sdk-node": "^0.218.0",
     "ink": "^7.0.5",
     "ink-scroll-view": "^0.3.7",
-    "js-yaml": "^4.1.0",
+    "js-yaml": "^4.2.0",
     "marked": "^9.1.6",
     "marked-terminal": "^7.3.0",
     "posix": "^4.2.0",
