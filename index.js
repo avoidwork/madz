@@ -18,6 +18,10 @@ const { default: pkg } = await import(new URL("package.json", import.meta.url).h
 // Initialize subsystems
 const config = loadConfig();
 
+// Ensure sessions directory exists before any subsystem initialization
+const { ensureSessionsDir } = await import("./src/session/index.js");
+await ensureSessionsDir("memory/sessions/");
+
 // Initialize contextual onboarding if profile is missing (with graceful degradation)
 let onboardingInstance = null;
 try {

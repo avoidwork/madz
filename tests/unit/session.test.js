@@ -1,5 +1,8 @@
-import { describe, it } from "node:test";
+import { describe, it, before, after, afterEach } from "node:test";
 import assert from "node:assert";
+import { existsSync } from "node:fs";
+import { rm, realpath } from "node:fs/promises";
+import { ensureSessionsDir } from "../../src/session/index.js";
 import { createSession } from "../../src/session/factory.js";
 import { SessionStateManager } from "../../src/session/stateManager.js";
 import { enforceContextWindow, trimConversation } from "../../src/session/window.js";
@@ -224,5 +227,42 @@ describe("session - state manager createNewSession", () => {
 		const _before = manager.getState().updatedAt;
 		const { sessionId } = manager.createNewSession();
 		assert.ok(sessionId.length > 0);
+	});
+});
+
+describe("session - ensureSessionsDir", () => {
+	const TEST_DIR = "memory/__test_ensure_sessions_dir__/";
+
+	let absTestDir;
+
+	before(async () => {
+		absTestDir = await realpath(process.cwd());
+		await rm(absTestDir + "/" + TEST_DIR, { recursive: true, force: true });
+	});
+
+	after(async () => {
+		await rm(absTestDir + "/" + TEST_DIR, { recursive: true, force: true });
+	});
+
+	afterEach(async () => {
+		const dir = absTestDir + "/" + TEST_DIR;
+		if (existsSync(dir)) {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("creates directory when missing", async () => {
+		const dirPath = TEST_DIR + "subdir/";
+		assert.ok(!existsSync(absTestDir + "/" + dirPath));
+		await ensureSessionsDir(dirPath);
+		assert.ok(existsSync(absTestDir + "/" + dirPath));
+	});
+
+	it("returns successfully when directory already exists", async () => {
+		const dirPath = TEST_DIR + "subdir2/";
+		await ensureSessionsDir(dirPath);
+		assert.ok(existsSync(absTestDir + "/" + dirPath));
+		await ensureSessionsDir(dirPath);
+		assert.ok(existsSync(absTestDir + "/" + dirPath));
 	});
 });

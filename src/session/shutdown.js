@@ -7,6 +7,7 @@
  * @param {Function} [options.saveSession] - Session save function
  * @param {Function} [options.onShutdown] - Additional cleanup callback
  * @returns {Promise<void>}
+ * @throws {Error} If saveSession throws
  */
 export async function handleShutdown(options = {}) {
 	const { flushTelemetry, saveSession, onShutdown } = options;
@@ -15,15 +16,16 @@ export async function handleShutdown(options = {}) {
 		if (flushTelemetry) {
 			await flushTelemetry();
 		}
-		if (saveSession) {
-			await saveSession();
-		}
-		if (onShutdown) {
-			await onShutdown();
-		}
-	} catch (_err) {
-		// Log but don't throw — shutdown should always complete
-		console.error("Error during shutdown:", err);
+	} catch (err) {
+		// Suppress telemetry flush errors — log but don't throw
+		console.error("Error during telemetry flush:", err);
+	}
+
+	if (saveSession) {
+		await saveSession();
+	}
+	if (onShutdown) {
+		await onShutdown();
 	}
 }
 

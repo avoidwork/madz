@@ -1,4 +1,4 @@
-import { writeFile, mkdir, stat } from "node:fs/promises";
+import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 /**
@@ -6,15 +6,10 @@ import { join } from "node:path";
  * @param {string} sessionsDir - Path to sessions directory
  * @param {Array} conversation - Conversation exchanges to save
  * @param {string} [threadId] - Thread ID used as filename
+ * @throws {Error} If the underlying filesystem operation fails (missing directory, disk full, permissions)
  */
 export async function saveSession(sessionsDir, conversation, threadId = "") {
 	const dir = join(process.cwd(), sessionsDir);
-
-	try {
-		await stat(dir);
-	} catch {
-		await mkdir(dir, { recursive: true });
-	}
 
 	const filename = threadId ? `${threadId}.md` : "unsaved.md";
 	const isoTimestamp = new Date().toISOString();
