@@ -34,7 +34,7 @@
   },
   "devDependencies": {
     "husky": "^9.1.7",
-    "oxfmt": "^0.51.0",
+    "oxfmt": "^0.53.0",
     "oxlint": "^1.66.0"
   },
   "dependencies": {
