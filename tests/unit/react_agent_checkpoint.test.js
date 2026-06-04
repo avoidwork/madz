@@ -29,10 +29,12 @@ describe("createReactAgent with checkpointer", () => {
 describe("callReactAgent with config", () => {
 	it("passes configurable to agent.invoke when config provided", async () => {
 		let capturedInput = null;
+		let capturedConfig = null;
 
 		const agentMock = {
-			invoke: (input) => {
+			invoke: (input, configuration) => {
 				capturedInput = input;
+				capturedConfig = configuration;
 				return {
 					messages: [new AIMessage("response")],
 				};
@@ -41,17 +43,21 @@ describe("callReactAgent with config", () => {
 
 		await callReactAgent(agentMock, "test message", { configurable: { thread_id: "abc-123" } });
 
-		assert.ok(capturedInput.configurable);
-		assert.strictEqual(capturedInput.configurable.thread_id, "abc-123");
+		assert.ok(capturedInput);
 		assert.strictEqual(capturedInput.messages[0].content, "test message");
+		assert.ok(capturedConfig);
+		assert.ok(capturedConfig.configurable);
+		assert.strictEqual(capturedConfig.configurable.thread_id, "abc-123");
 	});
 
 	it("skips system message when isNewThread is false (thread has history)", async () => {
 		let capturedInput = null;
+		let capturedConfig = null;
 
 		const agentMock = {
-			invoke: (input) => {
+			invoke: (input, configuration) => {
 				capturedInput = input;
+				capturedConfig = configuration;
 				return {
 					messages: [new AIMessage("response")],
 				};
@@ -65,10 +71,10 @@ describe("callReactAgent with config", () => {
 			"You are helpful",
 		);
 
-		assert.ok(capturedInput.configurable);
-		assert.strictEqual(capturedInput.configurable.thread_id, "def-456");
-		capturedInput.configurable.isNewThread = false;
-		assert.strictEqual(capturedInput.configurable.isNewThread, false);
+		assert.ok(capturedInput);
+		assert.ok(capturedConfig);
+		assert.strictEqual(capturedConfig.configurable.thread_id, "def-456");
+		assert.strictEqual(capturedConfig.configurable.isNewThread, false);
 		// System prompt is skipped when thread has history (checkpointer carries it)
 		assert.strictEqual(capturedInput.messages.length, 1);
 		assert.ok(capturedInput.messages[0] instanceof HumanMessage);

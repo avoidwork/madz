@@ -202,7 +202,7 @@ if (isMain) {
 		try {
 			const response = await handleConversation(message, chatSessionId);
 
-			console.log(JSON.stringify(response, null, 2));
+			console.log(response.content);
 		} catch (err) {
 			console.error("Error:", err.message);
 			process.exit(1);

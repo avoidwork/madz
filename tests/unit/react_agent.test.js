@@ -64,18 +64,24 @@ describe("callReactAgent", () => {
 	});
 
 	it("invokes agent with config object", async () => {
+		let capturedInput = null;
 		let capturedConfig = null;
 		const agentMock = {
-			invoke: (input) => {
-				capturedConfig = input;
+			invoke: (input, configuration) => {
+				capturedInput = input;
+				capturedConfig = configuration;
 				return { messages: [new AIMessage("response")] };
 			},
 		};
 
 		const config = { configurable: { thread_id: "abc" } };
 		await callReactAgent(agentMock, "hello", config, "system");
+		assert.ok(capturedInput);
+		assert.ok(capturedInput.messages);
+		const humanMsg = capturedInput.messages.find((m) => m.constructor.name === "HumanMessage");
+		assert.ok(humanMsg);
+		assert.strictEqual(humanMsg.content, "hello");
 		assert.ok(capturedConfig);
-		assert.ok(capturedConfig.messages);
 		assert.strictEqual(capturedConfig.configurable.thread_id, "abc");
 	});
 
