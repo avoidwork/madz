@@ -10,11 +10,6 @@ updates:
       - "avoidwork"
     commit-message:
       prefix: "chore(deps)"
-    # Auto-merge minor and patch updates
-    automerge:
-      type: "auto"
-      interval: "daily"
-    # Group patch updates to reduce PR noise
     groups:
       langgraph:
         patterns:
@@ -33,6 +28,3 @@ updates:
       - "avoidwork"
     commit-message:
       prefix: "chore(actions)"
-    automerge:
-      type: "auto"
-      interval: "daily"
