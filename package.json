@@ -46,7 +46,7 @@
     "ink": "^7.0.5",
     "ink-scroll-view": "^0.3.7",
     "js-yaml": "^4.2.0",
-    "marked": "^9.1.6",
+    "marked": "^18.0.4",
     "marked-terminal": "^7.3.0",
     "posix": "^4.2.0",
     "zod": "^4.1.8"
