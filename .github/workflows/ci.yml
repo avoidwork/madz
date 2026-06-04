@@ -12,9 +12,12 @@ on:
       - ".github/workflows/*.yml"
 
 jobs:
-  lint:
-    name: Lint
+  check:
+    name: ${{ matrix.job }}
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        job: [lint, test]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -28,26 +31,5 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run lint and format check
-        run: npm run lint
-
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: "npm"
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run tests
-        run: npm test
-
-
+      - name: Run ${{ matrix.job }}
+        run: npm run ${{ matrix.job }}
