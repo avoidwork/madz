@@ -14,15 +14,15 @@ export function saveSession(sessionsDir, conversation, threadId = "") {
 	if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
 
 	const filename = threadId ? `${threadId}.md` : "unsaved.md";
-	const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+	const isoTimestamp = new Date().toISOString();
 
 	const body = JSON.stringify(conversation, null, 2);
 
 	const metadata = {
 		threadId: threadId || "unsaved",
 		messageCount: Array.isArray(conversation) ? conversation.length : 0,
-		startedAt: conversation[0]?.timestamp || timestamp,
-		endedAt: timestamp,
+		startedAt: conversation[0]?.timestamp || isoTimestamp,
+		endedAt: isoTimestamp,
 	};
 
 	writeMemoryFile(sessionsDir, filename, metadata, body);

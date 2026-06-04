@@ -24,6 +24,7 @@ export default function App({
 	dispatchProvider,
 	appInfo,
 	onboarding,
+	onSaveSession,
 }) {
 	const [showBanner, setShowBanner] = useState(true);
 	const [showOnboarding, setShowOnboarding] = useState(!!onboarding);
@@ -131,6 +132,10 @@ export default function App({
 	const handleChat = async (text) => {
 		setStatusMessage("Streaming...");
 		addMessage({ role: "user", content: text });
+
+		if (sessionState) {
+			sessionState.addExchange({ role: "user", content: text });
+		}
 
 		const assistantTime = getTimestamp();
 		setMessages((prev) => [
@@ -255,8 +260,14 @@ export default function App({
 					content: responseContent,
 				});
 			}
+			if (onSaveSession) {
+				onSaveSession();
+			}
 			setStatusMessage("Received response");
 		} catch (err) {
+			if (onSaveSession) {
+				onSaveSession();
+			}
 			setMessages((prev) => prev.filter((msg) => !isStreamingMessage(msg)));
 			setStatusMessage("Something went wrong");
 			addMessage({

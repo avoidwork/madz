@@ -220,6 +220,8 @@ if (isMain) {
 				invokeSkill,
 				appInfo,
 				onboarding: onboardingInstance,
+				onSaveSession: () =>
+					saveSession("memory/sessions/", sessionState.getConversation(), sessionId),
 			}),
 			{
 				// Restore terminal with newline when app exits
