@@ -22,6 +22,7 @@ export default function App({
 	registry,
 	sessionState,
 	dispatchProvider,
+	scheduleManager,
 	appInfo,
 	onboarding,
 	onSaveSession,
@@ -93,9 +94,15 @@ export default function App({
 						setConfigValue(config, dotPath, valueStr);
 					}
 				},
-				_scheduleList: [],
-				_schedulePause: () => {},
-				_scheduleResume: () => {},
+				_scheduleList: scheduleManager ? scheduleManager.list() : [],
+				_schedulePause: (name) => {
+					scheduleManager?.pause(name);
+					return scheduleManager.list();
+				},
+				_scheduleResume: (name) => {
+					scheduleManager?.resume(name);
+					return scheduleManager.list();
+				},
 				_contextList: false,
 			});
 			if (result.action === "quit") {

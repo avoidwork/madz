@@ -2,6 +2,7 @@ import { parseScheduleEntry } from "./parser.js";
 import { ScheduleQueue } from "./queue.js";
 import { runScheduledSkill } from "./runner.js";
 import { logScheduleResult } from "./logger.js";
+import { matchesCron } from "./matcher.js";
 
 /**
  * Schedule manager that ties together parsing, queueing, and execution.
@@ -46,7 +47,7 @@ export class ScheduleManager {
 		for (const [, entry] of this.#scheduleEntry) {
 			schedules.push({
 				...entry,
-				queued: this.#queue.getLength(),
+				queued: this.#queue.getQueueLength(),
 			});
 		}
 		return schedules;
@@ -72,7 +73,7 @@ export class ScheduleManager {
 	resume(name) {
 		const entry = this.#scheduleEntry.get(name);
 		if (!entry) return false;
-		entry.paused = entry.enabled !== false;
+		entry.paused = false;
 		return true;
 	}
 
@@ -82,7 +83,7 @@ export class ScheduleManager {
 	 * @param {Object} scheduler - The full scheduler instance for sandbox access
 	 * @returns {Promise<Object>} Execution result
 	 */
-	async runNow(name, _scheduler) {
+	async runNow(name, scheduler) {
 		const entry = this.#scheduleEntry.get(name);
 		if (!entry) return { error: `Unknown schedule: ${name}` };
 
@@ -90,11 +91,11 @@ export class ScheduleManager {
 			return { error: `Schedule "${name}" is paused` };
 		}
 
-		const result = await runScheduledSkill(entry, _scheduler.sandbox, _scheduler.state);
+		const result = await runScheduledSkill(entry, scheduler.sandbox, scheduler.state);
 		const endTime = new Date().toISOString();
 
 		if (result && result.exitCode !== undefined) {
-			logScheduleResult({
+			await logScheduleResult({
 				scheduleName: entry.name,
 				cron: entry.cron,
 				startTime: entry.lastRun || endTime,
@@ -111,13 +112,13 @@ export class ScheduleManager {
 
 	/**
 	 * Start the scheduler clock (checks schedules periodically).
+	 * Only valid for inprocess mode — system mode uses external crontab.
 	 * @param {Object} scheduler - The full scheduler instance
 	 * @param {number} [intervalMs=60000] - Check interval in ms
 	 */
 	start(scheduler, intervalMs = 60000) {
 		this.#running = true;
 		this.#tickId = setInterval(() => this.#clockTick(scheduler), intervalMs);
-		// Also run once immediately
 		this.#clockTick(scheduler);
 	}
 
@@ -144,51 +145,28 @@ export class ScheduleManager {
 		for (const [, entry] of this.#scheduleEntry) {
 			if (entry.paused) continue;
 
-			// Basic cron matching (minute-level)
-			if (shouldRun(entry.cron, now)) {
-				this.#queue.enqueue({ ...entry, triggeredAt: now.toISOString() });
-				entry.lastRun = now.toISOString();
+			if (matchesCron(entry.cron, now)) {
+				const dedup = {
+					entryName: entry.name,
+					...entry,
+					triggeredAt: now.toISOString(),
+				};
+				const { queued } = this.#queue.enqueue(dedup);
+				if (queued) {
+					entry.lastRun = now.toISOString();
+				}
 			}
 		}
 	}
 }
 
 /**
- * Simple cron matcher — checks if a schedule should run at the given time.
- * Basic minute-level matching for the cron expression.
+ * Check if a cron expression matches a given date.
  * @param {string} cron - Cron expression
  * @param {Date} now - Current date/time
  * @returns {boolean}
  */
 export function shouldRun(cron, now) {
-	const fields = cron.trim().split(/\s+/);
-	const [minute, hour] = fields.length >= 2 ? [fields[0], fields[1]] : [fields[0], "*"];
-
-	return matchesField(now.getMinutes(), minute) && matchesField(now.getHours(), hour);
+	return matchesCron(cron, now);
 }
-
-/**
- * Check if a numeric value matches a cron field.
- * @param {number} value - The current value (minute/hour/etc.)
- * @param {string} field - Cron field expression
- * @returns {boolean}
- */
-function matchesField(value, field) {
-	if (field === "*") return true;
-	if (/\//.test(field)) {
-		const [start, step] = field.split("/");
-		const stepNum = parseInt(step, 10);
-		const startNum = start === "*" ? 0 : parseInt(start, 10);
-		return value >= startNum && (value - startNum) % stepNum === 0;
-	}
-	if (/-/.test(field)) {
-		const [from, to] = field.split("-").map(Number);
-		return value >= from && value <= to;
-	}
-	/* // unreachable - parseInt never throws */
-	try {
-		return value === parseInt(field, 10);
-	} catch {
-		return false;
-	}
-}
+export { matchesCron } from "./matcher.js";

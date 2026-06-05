@@ -96,6 +96,7 @@ export const ScheduleEntrySchema = z.object({
 
 export const SchedulesSchema = z.object({
 	maxConcurrent: z.number().int().positive().default(1),
+	mode: z.enum(["inprocess", "system"]).default("inprocess"),
 	entries: z.array(ScheduleEntrySchema).default([]),
 });
 
@@ -155,7 +156,7 @@ export const DEFAULT_CONFIG = {
 		sampling: { ratio: 0.1 },
 		redact: { paths: ["credentials.apiKey"] },
 	},
-	schedules: { maxConcurrent: 1, entries: [] },
+	schedules: { maxConcurrent: 1, mode: "inprocess", entries: [] },
 	tui: { name: "madz", cursorChar: "\u2588" },
 	persistence: { mode: "memory", sqlite_path: "memory/checkpoints.db" },
 };

@@ -59,7 +59,7 @@ const { createSession, SessionStateManager, saveSession, handleShutdown, registe
 	await import("./src/session/index.js");
 
 // Initialize scheduler
-const { ScheduleManager } = await import("./src/scheduler/index.js");
+const { ScheduleManager, CronInstaller } = await import("./src/scheduler/index.js");
 const scheduleManager = new ScheduleManager(config.schedules.maxConcurrent);
 scheduleManager.register(config.schedules.entries);
 
@@ -178,6 +178,16 @@ async function invokeSkill(skillName, input = {}) {
 
 // Shutdown handler
 registerShutdownHandler(async () => {
+	scheduleManager.stop();
+
+	if (config.schedules.mode === "system") {
+		try {
+			CronInstaller.uninstall();
+		} catch (_err) {
+			// Graceful degradation: continue shutdown if crontab uninstall fails
+		}
+	}
+
 	await saveSession("memory/sessions/", sessionState.getConversation(), sessionId);
 
 	if (shutdownFn) {
@@ -185,13 +195,25 @@ registerShutdownHandler(async () => {
 	}
 });
 
-// CLI mode detection (if run directly as node index.js)
+// CLI mode detection (if run directly as node.js/index.js)
 const isMain = process.argv[1] === fileURLToPath(import.meta.url);
 if (isMain) {
 	const args = process.argv.slice(2);
-	const mode = args.some((a, i) => a === "--mode" && args[i + 1] === "interactive")
-		? "interactive"
-		: "chat";
+
+	// Handle system mode: install schedules into crontab
+	if (config.schedules.mode === "system" && config.schedules.entries.length > 0) {
+		try {
+			const result = CronInstaller.install(config.schedules.entries);
+			// oxlint-disable no-console
+			console.log(`[scheduler] Installed ${result.installed} schedule(s) into system crontab.`);
+			// oxlint-enable no-console
+		} catch (err) {
+			// oxlint-disable no-console
+			console.error(`[scheduler] Failed to install schedules: ${err.message}`);
+			// oxlint-enable no-console
+		}
+	}
+
 	let chatSessionId = args.reduce((id, a, i) => {
 		if (a === "--session-id" || a === "-s") return args[i + 1] || id;
 		return id;
@@ -206,9 +228,13 @@ if (isMain) {
 		try {
 			const response = await handleConversation(message, chatSessionId);
 
+			// oxlint-disable no-console
 			console.log(response.content);
+			// oxlint-enable no-console
 		} catch (err) {
+			// oxlint-disable no-console
 			console.error("Error:", err.message);
+			// oxlint-enable no-console
 			process.exit(1);
 		}
 	} else {
@@ -221,6 +247,7 @@ if (isMain) {
 				registry,
 				sessionState,
 				dispatchProvider,
+				scheduleManager,
 				invokeSkill,
 				appInfo,
 				onboarding: onboardingInstance,

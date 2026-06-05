@@ -1,6 +1,9 @@
+import { CronExpressionParser } from "cron-parser";
+
 /**
- * Basic cron expression validator.
- * Validates 5-field or 6-field (second) cron syntax.
+ * Validate a cron expression using cron-parser.
+ * Supports standard 5-field (minute hour day-of-month month day-of-week)
+ * and 6-field (second-position) cron syntax.
  * @param {string} expression - The cron expression to validate
  * @returns {{ valid: boolean, error: string }}
  */
@@ -9,26 +12,12 @@ export function validateCron(expression) {
 		return { valid: false, error: "Cron expression is required" };
 	}
 
-	const fields = expression.trim().split(/\s+/);
-	if (fields.length < 5 || fields.length > 6) {
-		return { valid: false, error: `Expected 5-6 fields, got ${fields.length}` };
+	try {
+		CronExpressionParser.parse(expression);
+		return { valid: true, error: "" };
+	} catch (err) {
+		return { valid: false, error: err.message || `Invalid cron expression: "${expression}"` };
 	}
-
-	const minuteRe = /^(\d{1,2}|\*)(\/\d+)?$/;
-	const hourRe = /^(\d{1,2}|\*)(\/\d+)?$/;
-	const dayRe = /^(\d{1,2}|\*(-\d{1,2})?|\*)(\/\d+)?$/;
-	const monthRe = /^(\d{1,2}|\*[/-]\d+|\*)(\/\d+)?$/;
-	const dowRe = /^(\d{1,2}|\*\(-\d+)?\*(\/\d+)?$/;
-
-	const patterns = [minuteRe, hourRe, dayRe, monthRe, dowRe];
-
-	for (let i = 0; i < fields.length - 1; i++) {
-		if (!patterns[i].test(fields[i])) {
-			return { valid: false, error: `Invalid field "${fields[i]}" at position ${i}` };
-		}
-	}
-
-	return { valid: true, error: "" };
 }
 
 /**
