@@ -3,14 +3,9 @@ name: CI
 on:
   pull_request:
     branches: [main]
-    paths:
-      - "*.js"
-      - "src/**/*.js"
-      - "tests/**/*.js"
-      - "package.json"
-      - "package-lock.json"
-      - ".github/workflows/*.yml"
-      - ".github/dependabot.yml"
+    paths-ignore:
+      - "**/*.md"
+      - "openspec/**"
 
 jobs:
   check:
