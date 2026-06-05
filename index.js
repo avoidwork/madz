@@ -251,7 +251,8 @@ if (isMain) {
 			process.exit(1);
 		}
 
-		const { createCliRenderer, createRoot } = await import("@opentui/react");
+		const { createCliRenderer } = await import("@opentui/core");
+		const { createRoot } = await import("@opentui/react");
 		const App = (await import("./src/tui/app.js")).default;
 		const appInfo = { name: config.tui.name, version: pkg.version };
 		const renderer = createCliRenderer({ exitOnCtrlC: true });
