@@ -1,8 +1,9 @@
 ## 1. Setup and Dependency Changes
 
-- [ ] 1.1 Add `@opentui/core` and `@opentui/react` to package.json dependencies
-- [ ] 1.2 Remove `ink`, `ink-scroll-view`, `marked`, `marked-terminal` from package.json dependencies
-- [ ] 1.3 Install new dependencies (`bun install` or `npm install` depending on setup)
+- [ ] 1.1 Install Bun (`corepack prepare bun@latest --activate` or via official installer)
+- [ ] 1.2 Add `@opentui/core` and `@opentui/react` to package.json dependencies
+- [ ] 1.3 Remove `ink`, `ink-scroll-view`, `marked`, `marked-terminal` from package.json dependencies
+- [ ] 1.4 Install new dependencies (`bun install`)
 
 ## 2. Entry Point
 
@@ -10,6 +11,7 @@
 - [ ] 2.2 Add `try/finally { renderer.destroy() }` for cleanup
 - [ ] 2.3 Update start script from `node index.js --mode interactive` to `bun index.js --mode interactive`
 - [ ] 2.4 Update `app.js` imports: replace `React`, `Box`, `Text`, `useWindowSize`, `useInput` from `ink` with `@opentui/react` imports
+- [ ] 2.5 Add Bun availability check at top of `index.js`: verify `process.execPath` contains `bun`, log clear error and exit with code 1 if not found
 
 ## 3. App Component (app.js)
 
@@ -60,8 +62,8 @@
 
 ## 9. Config and Housekeeping
 
-- [ ] 9.1 Note: Confirm `tui.blinkTimeout` is NOT in the current config schema (grep confirmed it's not — only `tui.cursorChar` exists at line 107 of schemas.js)
-- [ ] 9.2 Keep `tui.cursorChar` in config schema and default value at `src/config/schemas.js:107`
+- [ ] 9.1 Remove `tui.blinkTimeout` from config schema at `src/config/schemas.js` if present (grep in design found no current usage — verify schema is clean)
+- [ ] 9.2 Keep `tui.cursorChar` in config schema and default value at `src/config/schemas.js:107` — verify unchanged
 - [ ] 9.3 Ensure `package.json` dependencies section is clean (no stale references)
 - [ ] 9.4 Run `npm run fix` for lint/format compliance
 - [ ] 9.5 Run `npm run lint` to verify no warnings

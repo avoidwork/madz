@@ -17,7 +17,7 @@ The `tui-interface` spec defines behavioral requirements (chat mode, batch mode,
 
 **Non-Goals:**
 - Replacing `posix` dependency (not a TUI concern in current code)
-- Changing config schema behavior beyond cursor blink removal
+- Modifying config schema beyond removing `tui.blinkTimeout`
 - Modifying session factory, memory, scheduler, or other non-TUI subsystems
 - Adding new UI features or panels
 
@@ -74,17 +74,18 @@ Ink's `useInput` passes `(input, key)` where key has boolean props like `key.upA
 
 ## Migration Plan
 
-1. Add `@opentui/core` and `@opentui/react` to `package.json`
-2. Remove `ink`, `ink-scroll-view`, `marked`, `marked-terminal`
-3. Update entry point (`index.js`) — replace `<Application>` with `createCliRenderer()` / `createRoot()`
-4. Update all TUI component files (`app.js`, `conversationPanel.js`, `statusBar.js`, `banner.js`, `skillsPanel.js`, `memoryPanel.js`, `settingsPanel.js`, `onboardingPanel.js`, `inputPanel.js`, `markdownText.js`)
-5. Update tests (`tests/unit/tui.test.js`)
-6. Update config validation to remove `tui.blinkTimeout` (no longer relevant)
-7. Run `npm run fix` for lint/format compliance — note: lint uses Node, format uses oxfmt which is Node-compatible
-8. Run tests for coverage verification
+1. Install Bun (`corepack prepare bun@latest --activate` or via official installer)
+2. Add `@opentui/core` and `@opentui/react` to `package.json`
+3. Remove `ink`, `ink-scroll-view`, `marked`, `marked-terminal`
+4. Update entry point (`index.js`) — replace `<Application>` with `createCliRenderer()` / `createRoot()`, add Bun availability check
+5. Update all TUI component files (`app.js`, `conversationPanel.js`, `statusBar.js`, `banner.js`, `skillsPanel.js`, `memoryPanel.js`, `settingsPanel.js`, `onboardingPanel.js`, `inputPanel.js`, `markdownText.js`)
+6. Remove `tui.blinkTimeout` from config schema (`src/config/schemas.js`) if present
+7. Update tests (`tests/unit/tui.test.js`)
+8. Run `npm run fix` for lint/format compliance — note: lint uses Node, format uses oxfmt which is Node-compatible
+9. Run tests for coverage verification
 
-## Open Questions
+## Resolved Decisions
 
-1. **Config schema:** Should `tui.blinkTimeout` be explicitly removed from the config schema, or just ignored? The current flow uses `tui.cursorChar` and `tui.blinkTimeout` fields — one needs to be explicitly cleaned up.
-2. **Bun installation:** Should the `start` script depend on Bun being installed, or provide a fallback error message if Bun is not available?
-3. **Streaming markdown performance:** The current streaming display updates message content line-by-line via `setMessages` with a cursor character. With the native `<markdown>` component, streaming updates may need to set `streaming={true}` on the component and append to `content` incrementally — the current `committedContent` accumulation logic in `handleChat` would need to feed into the `<markdown>` content rather than directly to message content strings.
+1. **Config schema:** `tui.blinkTimeout` MUST be explicitly removed from the config schema. The `tui.cursorChar` field remains.
+2. **Bun installation:** `index.js` MUST check for Bun availability on startup. If Bun is not installed (e.g., `process.execPath` does not contain `bun`), log a clear error and exit. The project will install Bun via `corepack prepare` or a `.tool-versions` / ` bun-version` file for reproducibility.
+3. **Streaming markdown behavior:** Keep the current `setMessages` pattern for streaming. The message object stores `content` with the accumulated text (including a cursor placeholder character). The `<markdown>` component is rendered from `msg.content` on each render cycle. No special streaming mode needed — OpenTUI's React reconciler will re-render the `<markdown>` with updated content on each React state update, same as the current `marked` approach but without the intermediate ANSI parsing step.

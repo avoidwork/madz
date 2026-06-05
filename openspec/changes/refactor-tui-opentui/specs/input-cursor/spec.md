@@ -24,3 +24,14 @@ The input panel SHALL display the user's current input text followed by a cursor
 #### Scenario: Cursor is visible in empty input
 - **WHEN** the input panel is displayed with no text
 - **THEN** the cursor character still appears (indicating the active input position)
+
+### Requirement: Config schema removes blinkTimeout
+The `tui` configuration section SHALL NOT include a `blinkTimeout` field. The existing `tui.cursorChar` field remains with its default value of `█` (U+2588 FULL BLOCK).
+
+#### Scenario: blinkTimeout is removed from schema
+- **WHEN** the config schema at `src/config/schemas.js` is inspected
+- **THEN** no `blinkTimeout` field exists in the `tui` schema definition
+
+#### Scenario: cursorChar remains with default
+- **WHEN** the config schema is inspected
+- **THEN** `tui.cursorChar` exists with default `"\u2588"`
