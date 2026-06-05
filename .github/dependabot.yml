@@ -1,4 +1,5 @@
 version: 2
+automerge: true
 updates:
   - package-ecosystem: "npm"
     directory: "/"
@@ -17,7 +18,6 @@ updates:
       opentelemetry:
         patterns:
           - "@opentelemetry/*"
-    automerge: true
     versioning-strategy: increase
 
   - package-ecosystem: "github-actions"
@@ -30,4 +30,3 @@ updates:
       - "avoidwork"
     commit-message:
       prefix: "chore(actions)"
-    automerge: true
