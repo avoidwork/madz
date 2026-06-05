@@ -1,5 +1,5 @@
+// statusBar.js - TUI status bar
 import React from "react";
-import { Box, Text } from "ink";
 
 /**
  * Get connection status indicator and color based on status message.
@@ -8,18 +8,22 @@ import { Box, Text } from "ink";
  */
 function getStatusIndicator(status) {
 	if (status.startsWith("Error")) {
-		return { indicator: "\u2716", color: "red" }; // X
+		return { indicator: "\u2716", color: "#FF0000" };
 	}
 	if (status === "Sending..." || status === "Streaming...") {
-		return { indicator: "\u25B6", color: "yellow" }; // >
+		return { indicator: "\u25B6", color: "#FFFF00" };
 	}
-	return { indicator: "\u25CF", color: "green" }; // filled circle
+	return { indicator: "\u25CF", color: "#00FF00" };
 }
 
 /**
  * Bottom status bar.
- * Displays status indicator, status message, and info counts.
- * Input text entry is handled by InputPanel with IRC-style prompt ("> text" / ": text").
+ * @param {object} props
+ * @param {string} props.statusMessage
+ * @param {number} props.skillCount
+ * @param {number} props.messageCount
+ * @param {object} props.appInfo
+ * @returns {JSX.Element}
  */
 export const StatusBar = React.memo(function StatusBar({
 	statusMessage = "",
@@ -29,40 +33,32 @@ export const StatusBar = React.memo(function StatusBar({
 }) {
 	const status = getStatusIndicator(statusMessage);
 
-	return React.createElement(
-		Box,
-		{
-			flexDirection: "row",
-			alignItems: "center",
-			width: "100%",
-			paddingX: 1,
-			backgroundColor: "#404040",
-			justifyContent: "space-between",
-		},
-		React.createElement(
-			Box,
-			{ key: "left", flexDirection: "row", alignItems: "center" },
-			React.createElement(
-				Text,
-				{ key: "status-indicator", color: status.color, bold: true },
-				status.indicator + " ",
-			),
-			React.createElement(Text, { key: "status-msg", dim: true }, " " + statusMessage),
-			React.createElement(Text, { key: "sep" }, " | "),
-			React.createElement(
-				Text,
-				{ key: "info", dim: true },
-				"skills:" + skillCount + " msg:" + messageCount,
-			),
-		),
-		...(appInfo
-			? [
-					React.createElement(
-						Text,
-						{ key: "app-name", color: "white" },
-						appInfo.name + " " + (appInfo.version || ""),
-					),
-				]
-			: []),
+	return (
+		<box
+			flexDirection="row"
+			alignItems="center"
+			width="100%"
+			paddingX={1}
+			backgroundColor="#404040"
+			justifyContent="space-between"
+		>
+			<box key="left" flexDirection="row" alignItems="center">
+				<text key="status-indicator" fg={status.color} bold>
+					{status.indicator + " "}
+				</text>
+				<text key="status-msg" style={{ dim: true }}>
+					{" " + statusMessage}
+				</text>
+				<text key="sep">{" | "}</text>
+				<text key="info" style={{ dim: true }}>
+					{"skills:" + skillCount + " msg:" + messageCount}
+				</text>
+			</box>
+			{appInfo && (
+				<text key="app-name" fg="#FFFFFF">
+					{appInfo.name + " " + (appInfo.version || "")}
+				</text>
+			)}
+		</box>
 	);
 });

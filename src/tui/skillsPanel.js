@@ -1,10 +1,11 @@
+// skillsPanel.js - TUI skills panel
 import React, { useState } from "react";
-import { Box, Text } from "ink";
-import { useInput } from "ink";
+import { useKeyboard } from "@opentui/react";
 
 /**
  * Skills panel that lists registered skills with search.
- * Props: skills - array of skill names
+ * @param {object} props
+ * @param {string[]} props.skills
  */
 export function SkillsPanel({ skills = [] }) {
 	const [searchQuery, _setSearchQuery] = useState("");
@@ -12,31 +13,32 @@ export function SkillsPanel({ skills = [] }) {
 
 	const filteredSkills = skills.filter((s) => s.toLowerCase().includes(searchQuery.toLowerCase()));
 
-	useInput((_, key) => {
-		if (key.up && focusedSkill > 0) {
+	useKeyboard((event) => {
+		const { key } = event;
+		if (key.name === "up" && focusedSkill > 0) {
 			setFocusedSkill((prev) => Math.max(0, prev - 1));
 		}
-		if (key.down && focusedSkill < filteredSkills.length - 1) {
+		if (key.name === "down" && focusedSkill < filteredSkills.length - 1) {
 			setFocusedSkill((prev) => Math.min(filteredSkills.length - 1, prev + 1));
 		}
 	});
 
 	return (
-		<Box flexDirection="column">
-			<Text bold color="cyan">
+		<box flexDirection="column">
+			<text bold fg="#00FFFF">
 				{" "}
 				Skills{" "}
-			</Text>
-			<Text gray> Filter: {searchQuery || "all"}</Text>
+			</text>
+			<text fg="#888888"> Filter: {searchQuery || "all"}</text>
 			{filteredSkills.map((skill, i) => (
-				<Box key={skill} borderColor={focusedSkill === i ? "cyan" : "transparent"}>
-					<Text>
-						{focusedSkill === i ? "▸ " : "  "}
+				<box key={skill} borderColor={focusedSkill === i ? "#00FFFF" : "transparent"}>
+					<text>
+						{focusedSkill === i ? "\u25B8 " : "  "}
 						{skill}
-					</Text>
-				</Box>
+					</text>
+				</box>
 			))}
-			{skills.length === 0 && <Text gray> No skills registered.</Text>}
-		</Box>
+			{skills.length === 0 && <text fg="#888888"> No skills registered.</text>}
+		</box>
 	);
 }

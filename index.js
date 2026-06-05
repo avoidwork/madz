@@ -241,31 +241,41 @@ if (isMain) {
 			process.exit(1);
 		}
 	} else {
-		const { render } = await import("ink");
+		// Verify Bun availability for interactive TUI mode
+		if (!process.execPath.includes("bun")) {
+			// oxlint-disable no-console
+			console.error(
+				"Error: OpenTUI requires Bun to run. Please install Bun via: curl -fsSL https://bun.sh/install | bash",
+			);
+			// oxlint-enable no-console
+			process.exit(1);
+		}
+
+		const { createCliRenderer, createRoot } = await import("@opentui/react");
 		const App = (await import("./src/tui/app.js")).default;
 		const appInfo = { name: config.tui.name, version: pkg.version };
-		render(
-			React.createElement(App, {
-				config,
-				registry,
-				sessionState,
-				dispatchProvider,
-				scheduleManager,
-				invokeSkill,
-				appInfo,
-				onboarding: onboardingInstance,
-				onSaveSession: async () =>
-					await saveSession("memory/sessions/", sessionState.getConversation(), sessionId),
-			}),
-			{
-				// Restore terminal with newline when app exits
-				onExit: async () => {
-					const shutdown = (await import("./src/session/index.js")).handleShutdown;
-					if (shutdown) await shutdown();
-					process.stdout.write("\n");
-				},
-			},
-		);
+		const renderer = createCliRenderer({ exitOnCtrlC: true });
+		try {
+			createRoot(renderer).render(
+				React.createElement(App, {
+					config,
+					registry,
+					sessionState,
+					dispatchProvider,
+					scheduleManager,
+					invokeSkill,
+					appInfo,
+					onboarding: onboardingInstance,
+					onSaveSession: async () =>
+						await saveSession("memory/sessions/", sessionState.getConversation(), sessionId),
+				}),
+			);
+		} finally {
+			const shutdown = (await import("./src/session/index.js")).handleShutdown;
+			if (shutdown) await shutdown();
+			renderer.destroy();
+			process.stdout.write("\n");
+		}
 	}
 }
 

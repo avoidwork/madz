@@ -10,9 +10,9 @@ import {
 	countMessageLines,
 	getToolCallLines,
 } from "../../src/tui/messages.js";
-import { parseMarkdown, MarkdownTextInner } from "../../src/tui/markdownText.js";
+import { MarkdownText } from "../../src/tui/markdownText.js";
+import { InputPanel } from "../../src/tui/inputPanel.js";
 import { TuiSchema, DEFAULT_CONFIG } from "../../src/config/schemas.js";
-import { Blink, getBlinkState, renderBlink } from "../../src/tui/inputPanel.js";
 
 describe("command parser", () => {
 	it("parses :quit command", () => {
@@ -672,77 +672,62 @@ describe("InputPanel - flex grow", () => {
 	});
 });
 
-describe("markdownText - parseMarkdown", () => {
-	it("parses markdown headings", () => {
-		const result = parseMarkdown("# Hello");
-		assert.ok(typeof result === "string");
-		assert.ok(result.length > 0);
-	});
-
-	it("parses markdown with code blocks", () => {
-		const result = parseMarkdown("```js\nconsole.log(1);\n```");
-		assert.ok(typeof result === "string");
-		assert.ok(result.length > 0);
-	});
-
-	it("parses markdown with lists", () => {
-		const result = parseMarkdown("- item 1\n- item 2\n- item 3");
-		assert.ok(typeof result === "string");
-		assert.ok(result.length > 0);
-	});
-
-	it("parses plain text", () => {
-		/* eslint-disable-next-line no-control-regex */
-		const result = parseMarkdown("just some text").replace(/\x1b\[\d+m/g, "");
-		assert.strictEqual(result, "just some text");
-	});
-
-	it("trims trailing whitespace", () => {
-		const result = parseMarkdown("# Hello\n\n");
-		assert.strictEqual(result.endsWith(" "), false);
-		assert.strictEqual(result.endsWith("\n"), false);
-	});
-});
-
 describe("MarkdownText - rendering", () => {
 	it("returns null for null content", () => {
-		const result = MarkdownTextInner({ content: null });
+		const result = MarkdownText({ content: null });
 		assert.strictEqual(result, null);
 	});
 
 	it("returns null for undefined content", () => {
-		const result = MarkdownTextInner({ content: undefined });
+		const result = MarkdownText({ content: undefined });
 		assert.strictEqual(result, null);
 	});
 
 	it("returns null for empty string content", () => {
-		const result = MarkdownTextInner({ content: "" });
+		const result = MarkdownText({ content: "" });
 		assert.strictEqual(result, null);
 	});
 
-	it("renders Text element with normal content", () => {
-		const result = MarkdownTextInner({ content: "# Hello" });
+	it("renders markdown component with normal content", () => {
+		const result = MarkdownText({ content: "# Hello" });
 		assert.ok(React.isValidElement(result));
-		assert.strictEqual(result.type.name, "Text");
-		assert.strictEqual(result.props.color, "white");
-		assert.strictEqual(result.props.wrap, "hard");
-		assert.ok(result.props.children);
-	});
-
-	it("renders with fallback for falsy content", () => {
-		const result = MarkdownTextInner({ content: 0 });
-		assert.ok(React.isValidElement(result));
-		assert.strictEqual(result.type.name, "Text");
-		assert.strictEqual(result.props.color, "white");
+		assert.strictEqual(result.props.content, "# Hello");
 	});
 
 	it("renders content with multiple markdown elements", () => {
 		const content = "# Title\n\nSome paragraph.\n\n- list item";
-		const result = MarkdownTextInner({ content });
+		const result = MarkdownText({ content });
 		assert.ok(React.isValidElement(result));
-		assert.strictEqual(result.type.name, "Text");
-		assert.strictEqual(result.props.color, "white");
-		assert.ok(result.props.children);
+		assert.strictEqual(result.props.content, content);
+	});
+});
+
+describe("InputPanel - component rendering", () => {
+	it("renders text with cursor character", () => {
+		const result = InputPanel({ inputText: "hello", cursorChar: "\u2588" });
+		assert.ok(React.isValidElement(result));
+		assert.strictEqual(result.props.flexDirection, "row");
+		assert.strictEqual(result.props.children.length, 2);
+		assert.strictEqual(result.props.children[1].props.children, "\u2588");
+	});
+
+	it("renders empty text with cursor character", () => {
+		const result = InputPanel({ inputText: "", cursorChar: "\u2588" });
+		assert.ok(React.isValidElement(result));
+		assert.strictEqual(result.props.children[0].props.children, "");
+		assert.strictEqual(result.props.children[1].props.children, "\u2588");
+	});
+
+	it("renders default cursor when not specified", () => {
+		const result = InputPanel({});
+		assert.ok(React.isValidElement(result));
+		assert.strictEqual(result.props.children[1].props.children, "\u2588");
+	});
+
+	it("renders custom cursor character", () => {
+		const result = InputPanel({ cursorChar: "\u258C" });
+		assert.ok(React.isValidElement(result));
+		assert.strictEqual(result.props.children[1].props.children, "\u258C");
 	});
 });
 
@@ -780,78 +765,5 @@ describe("DEFAULT_CONFIG - tui fields", () => {
 		const schemaResult = TuiSchema.safeParse({});
 		assert.strictEqual(schemaResult.success, true);
 		assert.strictEqual(schemaResult.data.cursorChar, DEFAULT_CONFIG.tui.cursorChar);
-	});
-});
-
-describe("Blink - getBlinkState", () => {
-	it("returns true for frame 0 (visible)", () => {
-		assert.strictEqual(getBlinkState(0), true);
-	});
-
-	it("returns false for frame 1 (invisible)", () => {
-		assert.strictEqual(getBlinkState(1), false);
-	});
-
-	it("returns true for frame 2 (visible)", () => {
-		assert.strictEqual(getBlinkState(2), true);
-	});
-
-	it("toggles visibility on odd frames", () => {
-		assert.strictEqual(getBlinkState(3), false);
-		assert.strictEqual(getBlinkState(5), false);
-	});
-
-	it("is visible on even frames", () => {
-		assert.strictEqual(getBlinkState(4), true);
-		assert.strictEqual(getBlinkState(6), true);
-		assert.strictEqual(getBlinkState(10), true);
-	});
-});
-
-describe("Blink - renderBlink", () => {
-	it("renders visible cursor with even frame", () => {
-		const result = renderBlink("hello", "█", 0);
-		assert.ok(React.isValidElement(result));
-		assert.strictEqual(result.props.flexDirection, "row");
-		assert.strictEqual(result.props.children.length, 2);
-		assert.strictEqual(result.props.children[0].key, "text");
-		assert.strictEqual(result.props.children[1].key, "cursor");
-		assert.strictEqual(result.props.children[1].props.children, "█");
-	});
-
-	it("renders invisible cursor with zero-width space", () => {
-		const result = renderBlink("hello", "█", 1);
-		assert.ok(React.isValidElement(result));
-		assert.strictEqual(result.props.children[1].props.children, "\u200B");
-	});
-
-	it("renders text with flexGrow", () => {
-		const result = renderBlink("world", "█", 0);
-		assert.ok(React.isValidElement(result));
-		assert.strictEqual(result.props.children[0].type.name, "Text");
-		assert.strictEqual(result.props.children[0].props.flexGrow, 1);
-	});
-
-	it("renders cursor with bold property", () => {
-		const result = renderBlink("", "▌", 0);
-		assert.ok(React.isValidElement(result));
-		assert.ok(React.isValidElement(result.props.children[1]));
-		assert.strictEqual(result.props.children[1].type.name, "Text");
-		assert.strictEqual(result.props.children[1].props.bold, true);
-	});
-});
-
-describe("Blink - component rendering", () => {
-	it("renders static cursor with even _testFrame", () => {
-		const result = Blink({ text: "hello", char: "█", _testFrame: 0 });
-		assert.ok(React.isValidElement(result));
-		assert.strictEqual(result.props.flexDirection, "row");
-		assert.strictEqual(result.props.children[1].props.children, "█");
-	});
-
-	it("renders static cursor (no zero-width space toggling)", () => {
-		const result = Blink({ text: "hello", char: "█", _testFrame: 1 });
-		assert.ok(React.isValidElement(result));
-		assert.strictEqual(result.props.children[1].props.children, "█");
 	});
 });

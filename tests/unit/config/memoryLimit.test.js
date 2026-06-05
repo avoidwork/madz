@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
-import { parseMemoryLimit, clampMemory } from "../../src/config/schemas.js";
+import { parseMemoryLimit, clampMemory } from "../../../src/config/schemas.js";
 
 describe("parseMemoryLimit", () => {
 	it("parses megabytes string", () => {

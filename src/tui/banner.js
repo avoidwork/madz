@@ -1,5 +1,6 @@
+// banner.js - TUI startup banner
 import React, { useState } from "react";
-import { Box, Text, useInput } from "ink";
+import { useKeyboard } from "@opentui/react";
 
 export const BANNER_ART = `
                     .___
@@ -8,7 +9,6 @@ export const BANNER_ART = `
 |  Y Y  \\/ __ \\_/ /_/ | /    /
 |__|_|  (____  /\\____ |/_____ \\
       \\/     \\/      \\/      \\/
-
 `.split("\n");
 
 const COMMAND_GROUPS = [
@@ -32,20 +32,20 @@ const COMMAND_GROUPS = [
 const SEPARATOR = "─".repeat(70);
 
 /**
- * BBS-style startup banner with ASCII art and command help menu.
- * Fixed top-left alignment. Dismisses on any key press.
- * @param {Object} props
- * @param {() => void} props.onDismiss - callback to dismiss the banner
+ * BBS-style startup banner.
+ * @param {object} props
+ * @param {() => void} props.onDismiss
  */
 export function Banner({ onDismiss }) {
 	const [dismissed, setDismissed] = useState(false);
 
-	useInput((input, key) => {
+	useKeyboard((event) => {
 		if (dismissed) return;
-		if (key.escape) {
+		const { key, input } = event;
+		if (key.name === "escape") {
 			setDismissed(true);
 			onDismiss();
-		} else if (input && input !== "\r" && !key.upArrow && !key.downArrow) {
+		} else if (input && input !== "\r" && key.name !== "up" && key.name !== "down") {
 			setDismissed(true);
 			onDismiss();
 		}
@@ -54,22 +54,24 @@ export function Banner({ onDismiss }) {
 	const lines = BANNER_ART.filter((l) => l.trim());
 	const bodyLines = COMMAND_GROUPS.flatMap((g) => [g.group, ...g.items.map((it) => "  " + it)]);
 
-	const children = lines.map((line, i) =>
-		React.createElement(Text, { key: "art-" + i, color: "cyan" }, line),
-	);
+	const children = lines.map((line, i) => (
+		<text key={"art-" + i} fg="#00FFFF">
+			{line}
+		</text>
+	));
 
 	children.push(
-		React.createElement(
-			Box,
-			{ flexDirection: "column", marginTop: 2 },
-			React.createElement(Text, { color: "white" }, SEPARATOR),
-			...bodyLines.map((line, i) =>
-				React.createElement(Text, { key: "cmd-" + i, color: "white" }, line),
-			),
-			React.createElement(Text, { color: "gray" }, SEPARATOR),
-			React.createElement(Text, { color: "gray" }, "Press any key to continue..."),
-		),
+		<box flexDirection="column" marginTop={2}>
+			<text fg="#FFFFFF">{SEPARATOR}</text>
+			{bodyLines.map((line, i) => (
+				<text key={"cmd-" + i} fg="#FFFFFF">
+					{line}
+				</text>
+			))}
+			<text fg="#888888">{SEPARATOR}</text>
+			<text fg="#888888">{"Press any key to continue..."}</text>
+		</box>,
 	);
 
-	return React.createElement(Box, { flexDirection: "column" }, ...children);
+	return <box flexDirection="column">{children}</box>;
 }

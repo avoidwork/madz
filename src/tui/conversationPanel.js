@@ -1,7 +1,5 @@
-import React, { useRef, useEffect } from "react";
-import { Box, Text, useInput, useStdout } from "ink";
-import { ScrollView } from "ink-scroll-view";
-import { getRoleLabel } from "./messages.js";
+// conversationPanel.js - TUI conversation panel with native sticky scroll
+import React, { useMemo } from "react";
 import { MarkdownText } from "./markdownText.js";
 
 /**
@@ -31,11 +29,11 @@ export function getRoleColors(role) {
 	const cache = getRoleColors._cache || (getRoleColors._cache = new Map());
 	if (!cache.has(role)) {
 		if (role === "user") {
-			cache.set(role, { label: "green", content: "white" });
+			cache.set(role, { label: "#00FF00", content: "#FFFFFF" });
 		} else if (role === "system") {
-			cache.set(role, { label: "yellow", content: "yellow" });
+			cache.set(role, { label: "#FFFF00", content: "#FFFF00" });
 		} else {
-			cache.set(role, { label: "cyan", content: "white" });
+			cache.set(role, { label: "#00FFFF", content: "#FFFFFF" });
 		}
 	}
 	return cache.get(role);
@@ -50,11 +48,11 @@ export function getBubbleStyle(role) {
 	const cache = getBubbleStyle._cache || (getBubbleStyle._cache = new Map());
 	if (!cache.has(role)) {
 		if (role === "user") {
-			cache.set(role, { alignment: "flex-end", border: "green" });
+			cache.set(role, { alignment: "flex-end", border: "#00FF00" });
 		} else if (role === "system") {
-			cache.set(role, { alignment: "flex-start", border: "yellow" });
+			cache.set(role, { alignment: "flex-start", border: "#FFFF00" });
 		} else {
-			cache.set(role, { alignment: "flex-start", border: "cyan" });
+			cache.set(role, { alignment: "flex-start", border: "#00FFFF" });
 		}
 	}
 	return cache.get(role);
@@ -62,133 +60,104 @@ export function getBubbleStyle(role) {
 
 /**
  * Memoized message bubble component.
- * Skips re-render when display-relevant message fields haven't changed.
- * Compares: role, content, time, reasoningContent, streaming,
- * activeToolCall, toolCallDisplay, and timestamp (appInfo).
  * @param {object} props
- * @param {Message} props.msg - The message data object
+ * @param {object} props.msg - The message data object
  * @param {string} props.assistantName - Name to display for assistant
- * @returns {React.ReactElement}
+ * @returns {JSX.Element}
  */
-const MessageBubble = React.memo(
-	function MessageBubble({ msg, assistantName }) {
-		const time = msg.time || formatTime(new Date());
-		const colors = getRoleColors(msg.role);
-		const bubble = getBubbleStyle(msg.role);
+const MessageBubble = React.memo(function MessageBubble({ msg, assistantName }) {
+	const time = msg.time || formatTime(new Date());
+	const colors = getRoleColors(msg.role);
+	const bubble = getBubbleStyle(msg.role);
 
-		const content = msg.content || "";
-		const hasReasoning = msg.role === "assistant" && msg.reasoningContent;
-		const hasActiveToolCall = msg.role === "assistant" && msg.activeToolCall;
-		const hasToolCallDisplay = msg.role === "assistant" && msg.toolCallDisplay;
+	const content = msg.content || "";
+	const hasReasoning = msg.role === "assistant" && msg.reasoningContent;
+	const hasActiveToolCall = msg.role === "assistant" && msg.activeToolCall;
+	const hasToolCallDisplay = msg.role === "assistant" && msg.toolCallDisplay;
 
-		const reasoningEl = hasReasoning
-			? React.createElement(
-					Box,
-					{ flexDirection: "row", marginTop: 1, marginLeft: 2 },
-					React.createElement(
-						Text,
-						{ dim: true, color: "gray" },
-						`(thinking) ` +
-							(msg.reasoningContent || "").slice(0, 200) +
-							(msg.reasoningContent && msg.reasoningContent.length > 200
-								? "\u00b7\u00b7\u00b7"
-								: ""),
-					),
-				)
-			: null;
+	const reasoningEl = hasReasoning ? (
+		<box flexDirection="row" marginTop={1} marginLeft={2}>
+			<text fg="#888888" style={{ dim: true }}>
+				{`(thinking) ` +
+					(msg.reasoningContent || "").slice(0, 200) +
+					(msg.reasoningContent && msg.reasoningContent.length > 200 ? "\u00b7\u00b7\u00b7" : "")}
+			</text>
+		</box>
+	) : null;
 
-		const toolCallEl = hasActiveToolCall
-			? React.createElement(
-					Box,
-					{ flexDirection: "row", marginTop: 1, marginLeft: 2 },
-					React.createElement(
-						Text,
-						{ dim: true, color: "gray" },
-						`- Running: ${msg.activeToolCall.name} \u00b7\u00b7\u00b7`,
-					),
-				)
-			: null;
+	const toolCallEl = hasActiveToolCall ? (
+		<box flexDirection="row" marginTop={1} marginLeft={2}>
+			<text fg="#888888" style={{ dim: true }}>
+				`- Running: ${msg.activeToolCall.name} \u00b7\u00b7\u00b7`
+			</text>
+		</box>
+	) : null;
 
-		const toolDisplayEl = hasToolCallDisplay
-			? React.createElement(
-					Box,
-					{ flexDirection: "column", marginTop: 1, marginLeft: 2 },
-					...msg.toolCallDisplay
-						.split("\n")
-						.map((line, j) =>
-							React.createElement(
-								Text,
-								{ key: "tool-" + j, dim: true, color: "gray" },
-								"  " + line,
-							),
-						),
-				)
-			: null;
+	const toolDisplayEl = hasToolCallDisplay ? (
+		<box flexDirection="column" marginTop={1} marginLeft={2}>
+			{msg.toolCallDisplay.split("\n").map((line, j) => (
+				<text key={"tool-" + j} fg="#888888" style={{ dim: true }}>
+					{"  " + line}
+				</text>
+			))}
+		</box>
+	) : null;
 
-		return React.createElement(
-			Box,
-			{
-				key: "msg-" + msg._index,
-				flexDirection: "row",
-				paddingY: 0,
-				justifyContent: bubble.alignment,
-			},
-			React.createElement(
-				Box,
-				{
-					key: "bubble-" + msg._index,
-					flexDirection: "column",
-					paddingX: 1,
-					borderColor: bubble.border,
-					borderStyle: "round",
-					maxWidth: "90%",
-				},
-				React.createElement(
-					Box,
-					{ flexDirection: "row" },
-					React.createElement(Text, { color: "gray" }, "[" + time + "] "),
-					React.createElement(
-						Text,
-						{ color: colors.label, bold: true },
-						getRoleLabel(msg.role, assistantName) + ": ",
-					),
-				),
-				React.createElement(
-					Box,
-					{ flexDirection: "column" },
-					React.createElement(
-						Box,
-						{ flexDirection: "row" },
-						React.createElement(MarkdownText, { content }),
-					),
-					reasoningEl,
-					toolCallEl,
-					toolDisplayEl,
-				),
-			),
-		);
-	},
-	function areEqual(prevProps, nextProps) {
-		const p = prevProps.msg;
-		const n = nextProps.msg;
-		return (
-			p.role === n.role &&
-			p.content === n.content &&
-			p.time === n.time &&
-			p.reasoningContent === n.reasoningContent &&
-			p.streaming === n.streaming &&
-			p.toolCallDisplay === n.toolCallDisplay &&
-			p.activeToolCall === n.activeToolCall &&
-			p._index === n._index &&
-			prevProps.assistantName === nextProps.assistantName
-		);
-	},
-);
+	return (
+		<box
+			key={"msg-" + msg._index}
+			flexDirection="row"
+			paddingY={0}
+			justifyContent={bubble.alignment}
+		>
+			<box
+				key={"bubble-" + msg._index}
+				flexDirection="column"
+				paddingX={1}
+				borderColor={bubble.border}
+				borderStyle="rounded"
+				maxWidth="90%"
+			>
+				<box flexDirection="row">
+					<text fg="#888888">{"[" + time + "] "}</text>
+					<text fg={colors.label} bold>
+						{getRoleLabel(msg.role, assistantName) + ": "}
+					</text>
+				</box>
+				<box flexDirection="column">
+					<box flexDirection="row">
+						<MarkdownText content={content} />
+					</box>
+					{reasoningEl}
+					{toolCallEl}
+					{toolDisplayEl}
+				</box>
+			</box>
+		</box>
+	);
+});
+
+/**
+ * Get role label for display.
+ * @param {string} role
+ * @param {string} assistantName
+ * @returns {string}
+ */
+function getRoleLabel(role, assistantName) {
+	switch (role) {
+		case "user":
+			return "You";
+		case "assistant":
+			return assistantName || "Assistant";
+		case "system":
+			return "System";
+		default:
+			return role || "Unknown";
+	}
+}
 
 /**
  * Render the conversation message loop for a given messages array.
- * Returns React elements for each message bubble.
- * Uses memoized MessageBubble components to skip re-render of unchanged rows.
  * @param {Array} messages - The messages to render
  * @param {string} assistantName - Name to display for assistant messages
  * @returns {Array} React elements
@@ -201,17 +170,15 @@ export function renderMessages(messages, assistantName) {
 		const rowKey = "msg-" + i;
 
 		children.push(
-			React.createElement(MessageBubble, {
-				key: rowKey,
-				msg: { ...msg, _index: i },
-				assistantName,
-			}),
+			<MessageBubble key={rowKey} msg={{ ...msg, _index: i }} assistantName={assistantName} />,
 		);
 	}
 
 	if (messages.length === 0) {
 		children.push(
-			React.createElement(Text, { key: "empty", gray: true }, " No messages yet. Start chatting!"),
+			<text key="empty" fg="#888888">
+				{" No messages yet. Start chatting!"}
+			</text>,
 		);
 	}
 
@@ -219,151 +186,24 @@ export function renderMessages(messages, assistantName) {
 }
 
 /**
- * Handle keyboard scroll input on a scroll ref.
- * @param {object} scrollRef - The scroll ref with scrollBy/getViewportHeight methods
- * @param {object} key - The key object from ink's useInput with arrow/page navigation keys
- */
-export function handleScrollInput(scrollRef, key) {
-	if (!scrollRef) return;
-	if (key.upArrow) {
-		scrollRef.scrollBy(-1);
-	}
-	if (key.downArrow) {
-		scrollRef.scrollBy(1);
-	}
-	if (key.pageUp) {
-		const height = scrollRef.getViewportHeight() || 1;
-		scrollRef.scrollBy(-height);
-	}
-	if (key.pageDown) {
-		const height = scrollRef.getViewportHeight() || 1;
-		scrollRef.scrollBy(height);
-	}
-}
-
-/**
- * Handle terminal resize by remeasuring content heights.
- * @param {object} scrollRef - The scroll ref with measure method
- */
-export function handleResize(scrollRef) {
-	if (scrollRef) {
-		scrollRef.remeasure();
-	}
-}
-
-/**
- * Auto-scroll to bottom when new messages arrive or streaming content overflows.
- * @param {object} scrollRef - The scroll ref with scroll-to-bottom/height methods
- * @param {Array} messages - The messages array
- * @param {number} previousMessageCount - Previous message count ref value
- * @returns {{ newCount: number, scrolled: boolean }}
- */
-export function handleAutoScroll(scrollRef, messages, previousMessageCount) {
-	if (!scrollRef || messages.length === 0) {
-		return { newCount: previousMessageCount, scrolled: false };
-	}
-	const isNewMessage = messages.length > previousMessageCount;
-	if (isNewMessage) {
-		scrollRef.scrollToBottom();
-		return { newCount: messages.length, scrolled: true };
-	}
-	if (messages[messages.length - 1].streaming === true) {
-		const contentH = scrollRef.getContentHeight();
-		const viewportH = scrollRef.getViewportHeight();
-		if (contentH > viewportH) {
-			scrollRef.scrollToBottom();
-			return { newCount: previousMessageCount, scrolled: true };
-		}
-	}
-	return { newCount: previousMessageCount, scrolled: false };
-}
-
-/**
- * Execute scroll input logic.
- * @param {object} scrollRef - The scroll ref
- * @param {object} key - Key object from ink's useInput
- */
-export function executeScrollInput(scrollRef, key) {
-	handleScrollInput(scrollRef, key);
-}
-
-/**
- * Execute resize logic.
- * @param {object} scrollRef - The scroll ref
- */
-export function executeResize(scrollRef) {
-	handleResize(scrollRef);
-}
-
-/**
- * Execute auto-scroll logic.
- * @param {object} scrollRef - The scroll ref
- * @param {Array} messages - Messages array
- * @param {number} previousCount - Previous message count
- * @param {object} countRef - Ref object with .current property
- */
-export function executeAutoScroll(scrollRef, messages, previousCount, countRef) {
-	const scrollResult = handleAutoScroll(scrollRef, messages, previousCount);
-	countRef.current = scrollResult.newCount;
-}
-
-/**
- * Conversation panel component with ScrollView-based scrolling.
- * Handles keyboard scroll input, terminal resize remeasurement,
- * and auto-scroll-to-bottom on new messages and streaming overflow.
+ * Conversation panel component with native sticky scroll.
+ * Uses OpenTUI ScrollBox for keyboard navigation and auto-scroll.
+ * @param {object} props
+ * @param {Array} props.messages - The messages to display
+ * @param {string} props.assistantName - Name to display for assistant
+ * @returns {JSX.Element}
  */
 export function ConversationPanel({ messages = [], assistantName = "Assistant" }) {
-	const scrollRef = useRef(null);
-	const previousMessageCount = useRef(0);
-	const lastContentHashRef = useRef(0);
-	const { stdout } = useStdout();
-
-	// Handle keyboard scroll input
-	useInput((input, key) => executeScrollInput(scrollRef.current, key));
-
-	// Handle terminal resize by remeasuring content heights
-	useEffect(() => {
-		if (!stdout) return;
-		const resizeHandler = () => executeResize(scrollRef.current);
-		stdout.on("resize", resizeHandler);
-		return () => {
-			stdout.off("resize", resizeHandler);
-		};
-	}, [stdout]);
-
-	// Compute a lightweight content hash to avoid redundant auto-scroll calculations.
-	// Only triggers scroll when message count changes or streaming content overflows.
-	const prevHash = lastContentHashRef.current;
-	lastContentHashRef.current =
-		messages.length +
-		(messages.length > 0 && messages[messages.length - 1].streaming
-			? (messages[messages.length - 1].content || "").length
-			: 0);
-
-	if (prevHash !== lastContentHashRef.current && prevHash > 0) {
-		executeAutoScroll(
-			scrollRef.current,
-			messages,
-			previousMessageCount.current,
-			previousMessageCount,
-		);
-	} else if (messages.length > 0 && messages[messages.length - 1].streaming) {
-		// Streaming overflow: content grew beyond previously tracked hash
-		const contentH = scrollRef.current?.getContentHeight();
-		const viewportH = scrollRef.current?.getViewportHeight();
-		if (contentH && viewportH && contentH > viewportH) {
-			scrollRef.current.scrollToBottom();
-		}
-	}
-
-	const children = React.useMemo(
+	const children = useMemo(
 		() => renderMessages(messages, assistantName),
 		[messages, assistantName],
 	);
 
-	return React.createElement(
-		Box,
-		{ key: "panel", flexDirection: "column", flexGrow: 1 },
-		React.createElement(ScrollView, { ref: scrollRef }, ...children),
+	return (
+		<box key="panel" flexDirection="column" flexGrow={1}>
+			<scrollbox stickyScroll={true} stickyStart="bottom">
+				{children}
+			</scrollbox>
+		</box>
 	);
 }

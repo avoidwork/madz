@@ -1,56 +1,55 @@
-/**
- * Settings panel section for the TUI.
- */
+// settingsPanel.js - TUI settings panel
 import React, { useState } from "react";
-import { Box, Text } from "ink";
-import { useInput } from "ink";
+import { useKeyboard } from "@opentui/react";
 
 /**
  * Settings panel that shows current config sections.
- * Props: configSections - array of section names
+ * @param {object} props
+ * @param {string[]} props.configSections
  */
 export function SettingsPanel({ configSections = [] }) {
 	const [focusIndex, setFocusIndex] = useState(0);
 	const [selectedSection, setSelectedSection] = useState(null);
 
-	useInput((_, key) => {
-		if (key.up && focusIndex > 0) {
+	useKeyboard((event) => {
+		const { key } = event;
+		if (key.name === "up" && focusIndex > 0) {
 			setFocusIndex((prev) => Math.max(0, prev - 1));
 		}
-		if (key.down && focusIndex < configSections.length - 1) {
+		if (key.name === "down" && focusIndex < configSections.length - 1) {
 			setFocusIndex((prev) => Math.min(configSections.length - 1, prev + 1));
 		}
-		if (key.enter) {
+		if (key.name === "return") {
 			setSelectedSection(configSections[focusIndex] || null);
 		}
-		if (key.escape) {
+		if (key.name === "escape") {
 			setSelectedSection(null);
 		}
 	});
 
 	return (
-		<Box flexDirection="row">
-			<Box flexDirection="column" width="45%">
-				<Text bold color="cyan">
+		<box flexDirection="row">
+			<box flexDirection="column" width={45}>
+				<text bold fg="#00FFFF">
 					{" "}
 					Settings{" "}
-				</Text>
+				</text>
 				{configSections.map((section, i) => (
-					<Box key={section} borderColor={focusIndex === i ? "cyan" : "transparent"}>
-						<Text>
-							{focusIndex === i ? "▸ " : "  "}
+					<box key={section} borderColor={focusIndex === i ? "#00FFFF" : "transparent"}>
+						<text>
+							{focusIndex === i ? "\u25B8 " : "  "}
 							{section}
-						</Text>
-					</Box>
+						</text>
+					</box>
 				))}
-			</Box>
+			</box>
 			{selectedSection && (
-				<Box flexDirection="column" width="55%" borderStyle="single" borderColor="gray">
-					<Text bold> {selectedSection} </Text>
-					<Text gray> Edit config values here.</Text>
-					<Text gray> Use :config set &lt;key&gt; &lt;value&gt;.</Text>
-				</Box>
+				<box flexDirection="column" width={55} borderStyle="single" borderColor="#888888">
+					<text bold> {selectedSection} </text>
+					<text fg="#888888"> Edit config values here.</text>
+					<text fg="#888888">{" Use :config set <key> <value>."}</text>
+				</box>
 			)}
-		</Box>
+		</box>
 	);
 }

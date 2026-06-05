@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { Box, Text, useWindowSize } from "ink";
-import { useInput } from "ink";
+import { useState, useEffect } from "react";
+import { useKeyboard, useTerminalDimensions } from "@opentui/react";
 import { CommandParser } from "./commandParser.js";
 import { ConversationPanel } from "./conversationPanel.js";
 import { StatusBar } from "./statusBar.js";
@@ -14,7 +13,7 @@ import { setConfigValue } from "../config/loader.js";
 const EXIT_MESSAGE = "\n";
 
 /**
- * Main App component (Ink). Renders an IRC-style layout:
+ * Main App component (OpenTUI). Renders an IRC-style layout:
  * full-height conversation REPL at top, input bar at bottom.
  */
 export default function App({
@@ -237,9 +236,6 @@ export default function App({
 				},
 			);
 
-			// committedContent is accumulated from streaming text events —
-			// this is the actual AI response. response.content is only the
-			// originalMessage fallback from callReactAgentStreaming.
 			const responseContent = committedContent;
 
 			setMessages((prev) => {
@@ -340,7 +336,6 @@ export default function App({
 			return true;
 		}
 
-		// Track user input in chat history for normal responses during onboarding
 		if (trimmed) {
 			setChatHistory((prev) => {
 				const filtered = prev.filter((l) => l.trim());
@@ -349,10 +344,8 @@ export default function App({
 			setHistoryIndex(-1);
 		}
 
-		// Trigger onboarding panel to refresh with new prompt
 		setOnboardingResponse((prev) => prev + 1);
 
-		// If there's a pending prompt, keep showing onboarding
 		if (result.action === "nextPrompt" && onboarding) {
 			return true;
 		}
@@ -378,41 +371,40 @@ export default function App({
 
 	// Single input handler - processes all keystrokes here
 	// InputPanel is now a display-only component (no useInput handler)
-	useInput((input, key) => {
-		// Onboarding phase takes priority
+	useKeyboard((event) => {
+		const { key, input } = event;
+
 		if (showOnboarding) {
-			if (key.return && !key.shift) {
+			if (key.name === "return" && !key.shift) {
 				processOnboardingInput(inputText);
 				setInputText("");
-			} else if (key.escape) {
+			} else if (key.name === "escape") {
 				handleQuit();
 			} else if (input && input !== "\r") {
 				setInputText((prev) => prev + input);
-			} else if (key.backspace && inputText.length > 0) {
+			} else if (key.name === "backspace" && inputText.length > 0) {
 				setInputText((prev) => prev.slice(0, -1));
 			}
 			return;
 		}
 
-		// When banner is showing, any key dismisses it
 		if (showBanner) {
-			if (key.escape) {
+			if (key.name === "escape") {
 				handleQuit();
 				return;
 			}
 			setShowBanner(false);
-			// After dismissal, fall through to normal input processing
 		} else {
-			if (key.escape) {
+			if (key.name === "escape") {
 				handleQuit();
-			} else if (key.return && !key.shift) {
+			} else if (key.name === "return" && !key.shift) {
 				handleSubmit(inputText);
-			} else if (key.upArrow && chatHistory.length > 0) {
+			} else if (key.name === "up" && chatHistory.length > 0) {
 				const newIndex =
 					historyIndex === -1 ? chatHistory.length - 1 : Math.max(0, historyIndex - 1);
 				setHistoryIndex(newIndex);
 				setInputText(chatHistory[newIndex]);
-			} else if (key.downArrow) {
+			} else if (key.name === "down") {
 				if (historyIndex === -1) return;
 				const nextIndex = historyIndex + 1;
 				if (nextIndex >= chatHistory.length) {
@@ -422,7 +414,7 @@ export default function App({
 					setHistoryIndex(nextIndex);
 					setInputText(chatHistory[nextIndex]);
 				}
-			} else if (key.backspace && inputText.length > 0) {
+			} else if (key.name === "backspace" && inputText.length > 0) {
 				setInputText((prev) => prev.slice(0, -1));
 			} else if (input && input !== "\r") {
 				setInputText((prev) => prev + input);
@@ -430,7 +422,8 @@ export default function App({
 		}
 	});
 
-	const { rows } = useWindowSize();
+	const { dimensions } = useTerminalDimensions();
+	const rows = dimensions?.height || 24;
 
 	const statusProps = {
 		skillCount: skillList.length,
@@ -439,34 +432,31 @@ export default function App({
 		appInfo: appInfo,
 	};
 
-	return React.createElement(
-		Box,
-		{ flexDirection: "column", width: "100%", height: rows },
-		showOnboarding
-			? React.createElement(OnboardingPanel, {
-					onboarding: onboarding,
-					responseId: onboardingResponse,
-					onComplete: () => {
+	return (
+		<box flexDirection="column" width="100%" height={rows}>
+			{showOnboarding ? (
+				<OnboardingPanel
+					onboarding={onboarding}
+					responseId={onboardingResponse}
+					onComplete={() => {
 						setShowBanner(true);
 						setShowOnboarding(false);
-					},
-					onExit: () => {
+					}}
+					onExit={() => {
 						setShowBanner(true);
 						setShowOnboarding(false);
-					},
-				})
-			: showBanner
-				? React.createElement(Banner, { onDismiss: () => setShowBanner(false) })
-				: React.createElement(ConversationPanel, {
-						messages: messages,
-						assistantName: config?.tui?.name || "Assistant",
-					}),
-		!showBanner && !showOnboarding && React.createElement(StatusBar, statusProps),
-		(showOnboarding || (!showBanner && !showOnboarding)) &&
-			React.createElement(InputPanel, {
-				inputText: inputText,
-				cursorChar: config?.tui?.cursorChar ?? "\u2588",
-			}),
-		!showOnboarding && React.createElement(Text, { key: "exit-newline" }, EXIT_MESSAGE),
+					}}
+				/>
+			) : showBanner ? (
+				<Banner onDismiss={() => setShowBanner(false)} />
+			) : (
+				<ConversationPanel messages={messages} assistantName={config?.tui?.name || "Assistant"} />
+			)}
+			{!showBanner && !showOnboarding && <StatusBar {...statusProps} />}
+			{(showOnboarding || (!showBanner && !showOnboarding)) && (
+				<InputPanel inputText={inputText} cursorChar={config?.tui?.cursorChar ?? "\u2588"} />
+			)}
+			<text key="exit-newline">{EXIT_MESSAGE}</text>
+		</box>
 	);
 }

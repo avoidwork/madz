@@ -1,13 +1,20 @@
+// onboardingPanel.js - TUI onboarding panel
 import React, { useState, useEffect } from "react";
-import { Box, Text } from "ink";
 
-const BOX_WIDTH = "60";
+const BOX_WIDTH = 60;
 
 const PROGRESS_PREFIX = (current, total) => {
 	if (!total || total <= 0) return "";
 	return " (" + current + "/" + total + ")";
 };
 
+/**
+ * Onboarding panel for initial user profile setup.
+ * @param {object} props
+ * @param {object} props.onboarding
+ * @param {() => void} props.onComplete
+ * @param {number} props.responseId
+ */
 export function OnboardingPanel({ onboarding, onComplete, _onExit, responseId }) {
 	const [messages, setMessages] = useState([]);
 	const [phase, setPhase] = useState(null);
@@ -41,22 +48,24 @@ export function OnboardingPanel({ onboarding, onComplete, _onExit, responseId })
 
 	if (!phase || phase === "TRANSCEND") return null;
 
-	return React.createElement(
-		Box,
-		{ flexDirection: "column", width: "100%", flexGrow: 1 },
-		messages.map((msg, i) =>
-			React.createElement(
-				Box,
-				{
-					key: "msg-" + i,
-					borderStyle: "round",
-					borderColor: "yellow",
-					growDirection: "down",
-					width: BOX_WIDTH,
-					paddingX: 1,
-				},
-				React.createElement(Text, { color: "yellow" }, (msg.content || "") + (msg._progress || "")),
-			),
-		),
+	const msgEl =
+		messages.length > 0
+			? messages.map((msg, i) => (
+					<box
+						key={"msg-" + i}
+						borderStyle="rounded"
+						borderColor="#FFFF00"
+						width={BOX_WIDTH}
+						paddingX={1}
+					>
+						<text fg="#FFFF00">{(msg.content || "") + (msg._progress || "")}</text>
+					</box>
+				))
+			: null;
+
+	return (
+		<box flexDirection="column" width="100%" flexGrow={1}>
+			{msgEl}
+		</box>
 	);
 }
