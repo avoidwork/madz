@@ -199,6 +199,9 @@ registerShutdownHandler(async () => {
 const isMain = process.argv[1] === fileURLToPath(import.meta.url);
 if (isMain) {
 	const args = process.argv.slice(2);
+	const mode = args.some((a, i) => a === "--mode" && args[i + 1] === "interactive")
+		? "interactive"
+		: "chat";
 
 	// Handle system mode: install schedules into crontab
 	if (config.schedules.mode === "system" && config.schedules.entries.length > 0) {
