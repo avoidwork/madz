@@ -170,9 +170,15 @@ Built-in tools are registered only when their required permissions are enabled f
 
 ### Memory System
 
-Memories are stored as individual Markdown files in `memory/context/`. Each file carries `createdDate` and `updatedDate` metadata in YAML frontmatter and the memory content as the body. At the start of every session, all memories are loaded and appended to the system prompt with a header like "The following are important memories for the user:" — so they become part of the core context that guides every interaction.
+`madz` operates on a dual-layer memory architecture that evolves naturally over time:
 
-This means memories are not ephemeral session state; they are persistent, long-term knowledge that accumulates over time. When you add, update, or delete a memory, follow it with `:new` so the current session picks up the change immediately.
+**Canonical Memories**
+Set explicitly by the user, these form the enduring foundation of the system. Stored as individual Markdown files in `memory/context/`, each carries `createdDate` and `updatedDate` metadata in YAML frontmatter. At the start of every session, canonical memories are loaded and appended to the system prompt, ensuring core context, preferences, and personal details remain consistent across interactions.
+
+**Ephemeral Memories**
+Captured autonomously by the harness during operation, these record patterns, milestones, emotional tones, and recurring themes. Stored temporarily with automatic expiration, they act as a living lens — subtly influencing how `madz` approaches future tasks, adapts its tone, and anticipates needs. They are not hardcoded; they evolve organically as the relationship deepens.
+
+Together, these layers create a system that remembers what matters while naturally adapting to how you work. When you update or delete a canonical memory, follow it with `:new` so the current session reflects the change immediately.
 
 **Memory tool actions:** `create` (new memory), `read` (get by key), `update` (modify by key), `delete` (remove by key), `list` (all memories, optional query filter)
 
