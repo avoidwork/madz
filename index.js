@@ -256,27 +256,20 @@ if (isMain) {
 		const App = (await import("./src/tui/app.js")).default;
 		const appInfo = { name: config.tui.name, version: pkg.version };
 		const renderer = createCliRenderer({ exitOnCtrlC: true });
-		try {
-			createRoot(renderer).render(
-				React.createElement(App, {
-					config,
-					registry,
-					sessionState,
-					dispatchProvider,
-					scheduleManager,
-					invokeSkill,
-					appInfo,
-					onboarding: onboardingInstance,
-					onSaveSession: async () =>
-						await saveSession("memory/sessions/", sessionState.getConversation(), sessionId),
-				}),
-			);
-		} finally {
-			const shutdown = (await import("./src/session/index.js")).handleShutdown;
-			if (shutdown) await shutdown();
-			renderer.destroy();
-			process.stdout.write("\n");
-		}
+		createRoot(renderer).render(
+			React.createElement(App, {
+				config,
+				registry,
+				sessionState,
+				dispatchProvider,
+				scheduleManager,
+				invokeSkill,
+				appInfo,
+				onboarding: onboardingInstance,
+				onSaveSession: async () =>
+					await saveSession("memory/sessions/", sessionState.getConversation(), sessionId),
+			}),
+		);
 	}
 }
 
