@@ -10,6 +10,7 @@ on:
       - "package.json"
       - "package-lock.json"
       - ".github/workflows/*.yml"
+      - ".github/dependabot.yml"
 
 jobs:
   check:
