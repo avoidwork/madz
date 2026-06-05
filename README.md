@@ -186,7 +186,7 @@ Optional `@opentelemetry/sdk-node` integration. Configurable exporter (console, 
 
 ### Cron Scheduler
 
-Recurring job definitions in `config.yaml`. Each invocation inherits the current session's memory context and sandbox permissions. Max-concurrency control prevents run overlap.
+Recurring job definitions in `config.yaml`. Supports both in-process scheduling and delegation to the system crontab (`mode: "system"`). Each invocation inherits the current session's memory context and sandbox permissions. Max-concurrency control prevents run overlap.
 
 ## Directory Structure
 
@@ -246,6 +246,7 @@ Recurring job definitions in `config.yaml`. Each invocation inherits the current
 |                | `sampling.ratio`                   | `0.1`                                     | Trace probability                                 |
 |                | `redact.paths`                     | `["credentials.apiKey", ...]`             | Sensitive field paths for redaction               |
 | `schedules`    | `maxConcurrent`                    | `1`                                       | Max parallel scheduled runs                       |
+|                | `mode`                             | `inprocess`                               | Scheduling backend (`inprocess`, `system`)        |
 | `tui`          | `name`                             | `madz`                                    | TUI identifier in banner                          |
 |                | `cursorChar`                       | `█`                                       | Cursor character                                  |
 | `persistence`  | `mode`                             | `memory`                                  | Storage backend (`memory`, `sqlite`)              |

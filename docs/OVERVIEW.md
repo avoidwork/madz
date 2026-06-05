@@ -305,15 +305,21 @@ Each memory is a standalone Markdown file in `memory/context/` with lowercase sn
 
 | File | Purpose |
 |------|---------|
-| `parser.js` | `validateCron()` — regex-based 5/6-field cron syntax validation; `parseScheduleEntry()` — parses a config entry into a structured object with defaults |
-| `queue.js` | `ScheduleQueue` — FIFO queue with `maxConcurrent` enforcement: `enqueue()`, `dequeue()`, `complete()`, `peek()` |
-| `runner.js` | `runScheduledSkill()` — loads context file if specified, invokes sandbox with skill input and current session permissions |
-| `logger.js` | `logScheduleResult()` — writes execution results to `memory/schedules/` as Markdown |
-| `scheduler.js` | `ScheduleManager` — registers entries, manages the queue, runs `#clockTick` checks every N seconds, plus `pause()`, `resume()`, `runNow()` |
+| `parser.js` | `parseScheduleEntry()` — validates via `cron-parser` library, parses a config entry into a structured object with defaults |
+| `matcher.js` | `matchesCron()` — full 5/6-field cron matching using `cron-parser` with timezone-safe comparison |
+| `cronInstaller.js` | `CronInstaller` — `install()`, `uninstall()`, `list()` — manages schedules via user's system crontab (`crontab -`) |
+| `queue.js` | `ScheduleQueue` — FIFO queue with `maxConcurrent` enforcement: `enqueue()`, `dequeue()`, `complete()`, `hasEntry()`, `getQueueLength()`, `peek()` |
+| `runner.js` | `runScheduledSkill()` — async context file loading, `Promise.race` sandbox timeout, invokes sandbox with skill input and current session permissions |
+| `logger.js` | `logScheduleResult()` — writes execution results to `memory/schedules/` as Markdown with sanitized filenames |
+| `scheduler.js` | `ScheduleManager` — registers entries, manages the queue, computes next run via `cron-parser`, runs `#clockTick` checks every N seconds, plus `pause()`, `resume()`, `runNow()`, `status()` |
 
 **Cron matching in `#clockTick()`:**
 
-The `matchesField()` function supports literal values (`30`), ranges (`1-5`), step expressions (`*/15`), and wildcards (`*`). It checks minute and hour fields against the current time every tick interval (default 60 seconds).
+`cron-parser` is used for all expression evaluation. The `matchesCron()` matcher uses the "next from previous" technique — if the previous occurrence lands on the same minute (or second for a 6-field expression) as the current time, the job triggers. This correctly handles all standard cron fields: minute, hour, day-of-month, month, and day-of-week.
+
+**System Cron Backend:**
+
+The scheduler supports two modes: `inprocess` (default) runs on a timed tick, while `system` delegates to the user's system crontab. In system mode the in-process scheduler never starts; instead `CronInstaller.install()` writes schedule entries into the user's crontab and the system cron daemon handles execution.
 
 ---
 

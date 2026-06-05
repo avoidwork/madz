@@ -1,5 +1,14 @@
-import { writeFileSync, mkdirSync } from "node:fs";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+
+/**
+ * Sanitize a schedule name for safe filesystem use.
+ * @param {string} name - Raw schedule name
+ * @returns {string} Sanitized name
+ */
+function sanitizeName(name) {
+	return (name || "unnamed").replace(/[^a-zA-Z0-9_-]/g, "_");
+}
 
 /**
  * Log a scheduled execution result to memory/schedules/ as markdown.
@@ -12,14 +21,23 @@ import { join } from "node:path";
  * @param {string} result.stdout - Stdout output
  * @param {string} result.stderr - Stderr output
  * @param {string} [outputDir="memory/schedules/"] - Output directory
- * @returns {string} Path to the created file
+ * @returns {Promise<string>} Path to the created file
  */
-export function logScheduleResult(result, outputDir = "memory/schedules/") {
-	mkdirSync(join(process.cwd(), outputDir), { recursive: true });
-	const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+export async function logScheduleResult(result, outputDir = "memory/schedules/") {
 	const { scheduleName, cron, startTime, endTime, exitCode, stdout, stderr } = result;
+	const safeName = sanitizeName(scheduleName);
+	const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
 	const status = exitCode === 0 ? "success" : "failure";
-	const filepath = join(process.cwd(), outputDir, `${timestamp}-${scheduleName}.md`);
+	const filepath = join(process.cwd(), outputDir, `${timestamp}-${safeName}.md`);
+
+	try {
+		await mkdir(join(process.cwd(), outputDir), { recursive: true });
+	} catch (err) {
+		// oxlint-disable no-console
+		console.error(`[scheduler] Failed to create output directory: ${err.message}`);
+		// oxlint-enable no-console
+		return "";
+	}
 
 	const content = [
 		"---",
@@ -39,6 +57,13 @@ export function logScheduleResult(result, outputDir = "memory/schedules/") {
 		"",
 	].join("\n");
 
-	writeFileSync(filepath, content);
+	try {
+		await writeFile(filepath, content);
+	} catch (err) {
+		// oxlint-disable no-console
+		console.error(`[scheduler] Failed to write result log: ${err.message}`);
+		// oxlint-enable no-console
+	}
+
 	return filepath;
 }
