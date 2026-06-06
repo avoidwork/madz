@@ -82,6 +82,7 @@ try {
 
 // Load system prompt and append memory entries
 const { loadSystemPrompt } = await import("./src/memory/prompts.js");
+const { generateSkillCatalogPrompt } = await import("./src/tools/skills.js");
 const systemPrompt = loadSystemPrompt();
 const memoryEntriesDir = config.memory?.entriesDir || "memory/context/";
 // Build agent and tool config at startup (once)
@@ -111,7 +112,9 @@ async function callProvider(_name, _providerConfig, message, streamingCallback) 
 	const threadId = sessionState.getThreadId();
 	const memoryEntries = await loadMemories(memoryEntriesDir);
 	const memoryText = formatMemoriesForPrompt(memoryEntries);
-	const callPrompt = memoryText ? `${systemPrompt}\n\n${memoryText}` : systemPrompt;
+	const catalog = registry.getCatalog();
+	const skillCatalog = generateSkillCatalogPrompt(catalog);
+	const callPrompt = `${systemPrompt}${skillCatalog ? `\n\n${skillCatalog}` : ""}${memoryText ? `\n\n${memoryText}` : ""}`;
 	const result = await callReactAgent(
 		agent,
 		message,
