@@ -33,37 +33,37 @@
 
 ## 5. Update tools/skills.js — remove schema references
 
-- [ ] 5.1 Remove inputSchema and outputSchema from skill_viewImpl output object
-- [ ] 5.2 Add compatibility and metadata fields to skill_view output
-- [ ] 5.3 Update tools/skills.js description to reflect new SKILL.md format
-- [ ] 5.4 Keep skill_view tool but re-purpose it as a legacy access path (still valid for manual inspection)
+- [x] 5.1 Remove inputSchema and outputSchema from skill_viewImpl output object
+- [x] 5.2 Add compatibility and metadata fields to skill_view output
+- [x] 5.3 Update tools/skills.js description to reflect new SKILL.md format
+- [x] 5.4 Keep skill_view tool but re-purpose it as a legacy access path (still valid for manual inspection)
 
 ## 6. Update tools/index.js — remove skills_list from tool permissions
 
-- [ ] 6.1 Remove skills_list from TOOL_PERMISSIONS map
-- [ ] 6.2 Remove skills_list from TOOL_FACTORIES map
-- [ ] 6.3 Remove skill_view from TOOL_PERMISSIONS or keep it (decision: keep for manual TUI use)
+- [x] 6.1 Remove skills_list from TOOL_PERMISSIONS map
+- [x] 6.2 Remove skills_list from TOOL_FACTORIES map
+- [x] 6.3 Remove skill_view from TOOL_PERMISSIONS or keep it (decision: keep for manual TUI use)
 
 ## 7. Replace fork with spawn in sandbox/runner.js
 
-- [ ] 7.1 Create detectInterpreter function that maps file extension to interpreter command
-- [ ] 7.2 Create detectShebang function that reads first line of script
-- [ ] 7.3 Update runSandbox to use child_process.spawn instead of fork
-- [ ] 7.4 Pass --max-old-space-size to Node.js scripts based on memoryLimit config
-- [ ] 7.5 For non-Node.js scripts, set appropriate resource limits or skip memory flag
-- [ ] 7.6 Ensure stdout/stderr collection still works with spawn's Stream data event
+- [x] 7.1 Create detectInterpreter function that maps file extension to interpreter command
+- [x] 7.2 Create detectShebang function that reads first line of script
+- [x] 7.3 Update runSandbox to use child_process.spawn instead of fork
+- [x] 7.4 Pass --max-old-space-size to Node.js scripts based on memoryLimit config
+- [x] 7.5 For non-Node.js scripts, set appropriate resource limits or skip memory flag
+- [x] 7.6 Ensure stdout/stderr collection still works with spawn's Stream data event
 
 ## 8. Update tools/skills.js progressive disclosure support
 
-- [ ] 8.1 Update skills_list tool to call registry.getCatalog() instead of registry.list()
-- [ ] 8.2 Add systemPrompt section generation function that formats catalog for model injection
-- [ ] 8.3 Export generateSkillCatalogPrompt utility for use in system prompt construction
+- [x] 8.1 Update skills_list tool to call registry.getCatalog() instead of registry.list()
+- [x] 8.2 Add systemPrompt section generation function that formats catalog for model injection
+- [x] 8.3 Export generateSkillCatalogPrompt utility for use in system prompt construction
 
 ## 9. Update config defaults
 
-- [ ] 9.1 Add trustProjectSkills config default to sandbox config (boolean, default true)
-- [ ] 9.2 Add scanPaths config default that includes `skills/` and `.agents/skills/` patterns
-- [ ] 9.3 Update ConfigSchema if new config options are needed
+- [x] 9.1 Add trustProjectSkills config default to sandbox config (boolean, default true)
+- [x] 9.2 Add scanPaths config default that includes `skills/` and `.agents/skills/` patterns
+- [x] 9.3 Update ConfigSchema if new config options are needed
 
 ## 10. Update schema validation and tests
 
@@ -75,13 +75,13 @@
 - [x] 10.6 Add unit tests for detectInterpreter by extension and shebang
 - [x] 10.7 Add unit tests for cross-client dir collision handling
 - [x] 10.8 Verify all existing unit tests pass (registry.test.js, sandbox.test.js)
-- [ ] 10.9 Run full test suite with coverage to ensure 100%
+- [x] 10.9 Run full test suite with coverage to ensure 100%
 
 ## 11. Integration verification
 
-- [ ] 11.1 Create a test SKILL.md with full frontmatter and validate end-to-end discovery
-- [ ] 11.2 Verify catalog generation outputs correct name/description/location
-- [ ] 11.3 Verify that spawning a .py script from a skill directory works end-to-end
-- [ ] 11.4 Verify system prompt includes skill catalog correctly
-- [ ] 11.5 Run npm run lint and npm run fix to ensure no linting issues
-- [ ] 11.6 Run npm run coverage to regenerate coverage.txt and verify 100%
+- [x] 11.1 Create a test SKILL.md with full frontmatter and validate end-to-end discovery
+- [x] 11.2 Verify catalog generation outputs correct name/description/location
+- [x] 11.3 Verify that spawning a .py script from a skill directory works end-to-end
+- [x] 11.4 Verify system prompt includes skill catalog correctly
+- [x] 11.5 Run npm run lint and npm run fix to ensure no linting issues
+- [x] 11.6 Run npm run coverage to regenerate coverage.txt and verify 100%
