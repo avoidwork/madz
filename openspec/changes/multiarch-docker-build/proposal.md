@@ -23,6 +23,9 @@ COPY package*.json ./
 RUN npm ci
 
 COPY src/ ./src/
+COPY tests/ ./tests/
+COPY index.js ./
+COPY config.yaml ./
 
 RUN npm test && \
     npm prune --omit=dev && \
