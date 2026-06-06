@@ -19,7 +19,9 @@ RUN npm test && \
 
 FROM node:24-alpine
 
-RUN apk add --no-cache python3 ruby curl bash jq unzip wget ca-certificates git file zip xz lz4 diffutils tree rsync && \
+RUN apk add --no-cache python3 ruby curl bash jq unzip wget ca-certificates git file zip xz lz4 diffutils tree rsync openssh-server && \
+    ssh-keygen -A && \
+    mkdir -p /run/sshd && \
     curl -LsSf https://astral.sh/uv/install.sh | sh && \
     mv /root/.local/bin/uv /usr/local/bin/uv
 
@@ -33,4 +35,6 @@ COPY src/ ./src/
 COPY config.yaml ./
 COPY index.js ./
 
-CMD ["sleep", "infinity"]
+EXPOSE 22
+
+CMD ["/usr/sbin/sshd", "-D"]
