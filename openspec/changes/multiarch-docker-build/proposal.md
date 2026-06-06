@@ -41,13 +41,15 @@ COPY src/ ./src/
 COPY config.yaml ./
 COPY index.js ./
 
-USER node
+RUN apk add --no-cache openssh-server && \
+    ssh-keygen -A && \
+    mkdir -p /run/sshd
 
 EXPOSE 22
 
 ENV NODE_ENV=production
 
-CMD ["node", "index.js"]
+CMD ["/usr/sbin/sshd", "-D"]
 ```
 
 ## Capabilities
