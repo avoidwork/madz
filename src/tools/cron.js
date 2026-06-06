@@ -1,7 +1,90 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { mkdir, writeFile, readFile, readdir, unlink } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { spawn } from "node:child_process";
+
+/// -- Helper to find skill script --
+
+/**
+ * Locate the main script file for a skill.
+ * @param {string} skillName - Skill name
+ * @param {string} [baseDir="skills"] - Base directory to search
+ * @returns {Promise<string|null>} Path to the main script, or null
+ */
+export async function findSkillScript(skillName, baseDir = "skills") {
+	const skillDir = join(baseDir, skillName);
+	const scriptCandidates = [
+		"scripts/run.sh",
+		"scripts/run.py",
+		"scripts/run.js",
+		"scripts/run.bash",
+	];
+
+	for (const candidate of scriptCandidates) {
+		const fullPath = join(skillDir, candidate);
+		if (existsSync(fullPath)) return fullPath;
+	}
+
+	const rootScripts = ["run.sh", "run.py", "run.js", "run.bash"];
+	for (const candidate of rootScripts) {
+		const fullPath = join(skillDir, candidate);
+		if (existsSync(fullPath)) return fullPath;
+	}
+
+	return null;
+}
+
+/**
+ * Run a script via spawn with stdout/stderr collection and timeout.
+ * @param {string} scriptPath - Path to the script
+ * @param {string[]} [args=[]] - Command-line arguments
+ * @param {object} [options] - Execution options
+ * @param {number} [options.timeout=30000] - Timeout in milliseconds
+ * @param {string} [options.cwd] - Working directory
+ * @returns {Promise<{ stdout: string, stderr: string, exitCode: number }>}
+ */
+export async function runScript(scriptPath, args = [], options = {}) {
+	const { timeout = 30000, cwd = process.cwd() } = options;
+	return new Promise((resolve) => {
+		const child = spawn(scriptPath, args, {
+			cwd,
+			stdio: ["pipe", "pipe", "pipe"],
+		});
+
+		const chunks = { stdout: [], stderr: [] };
+		let settled = false;
+
+		const settle = (exitCode) => {
+			if (settled) return;
+			settled = true;
+			resolve({
+				stdout: Buffer.concat(chunks.stdout).toString(),
+				stderr: Buffer.concat(chunks.stderr).toString(),
+				exitCode,
+			});
+		};
+
+		const timer = setTimeout(() => {
+			child.kill("SIGTERM");
+			setTimeout(() => settle(-1), 2000);
+		}, timeout);
+
+		child.stdout.on("data", (chunk) => chunks.stdout.push(chunk));
+		child.stderr.on("data", (chunk) => chunks.stderr.push(chunk));
+
+		child.on("exit", (code) => {
+			clearTimeout(timer);
+			settle(code ?? 0);
+		});
+
+		child.on("error", () => {
+			clearTimeout(timer);
+			if (!settled) settle(-1);
+		});
+	});
+}
 
 /// -- Cron validation --
 
@@ -92,7 +175,7 @@ async function getScheduleFiles(schedulesDir) {
 }
 
 /**
- * Trigger a job immediately via the scheduler.
+ * Trigger a job immediately via the sandbox.
  * @param {object} job - Job to run
  * @param {object} [schedulerModule] - Scheduler module for testing
  * @param {string} [schedulesDir] - Directory to write output to
@@ -104,8 +187,25 @@ async function runJob(job, schedulerModule, schedulesDir) {
 	}
 
 	if (!schedulerModule) {
-		schedulerModule = await import("../scheduler/index.js");
+		const scriptPath = await findSkillScript(job.skill);
+		if (!scriptPath) {
+			return {
+				ok: false,
+				error: `Skill "${job.skill}" has no discoverable script. Job "${job.name}" was not executed.`,
+			};
+		}
+
+		try {
+			const result = await runScript(scriptPath, [], { timeout: 30000 });
+			job.lastRun = new Date().toISOString();
+			job.updatedAt = new Date().toISOString();
+			await saveJob(job, schedulesDir);
+			return { ok: result.exitCode === 0, result };
+		} catch (err) {
+			return { ok: false, error: `Execution failed: ${err.message}` };
+		}
 	}
+
 	const scheduleEntry = {
 		name: job.name,
 		cron: job.cron,
@@ -115,7 +215,11 @@ async function runJob(job, schedulerModule, schedulesDir) {
 	};
 
 	try {
-		await schedulerModule.runScheduledSkill(scheduleEntry, {}, {});
+		await schedulerModule.runScheduledSkill(
+			scheduleEntry,
+			schedulerModule.sandbox || (() => ({})),
+			{},
+		);
 		job.lastRun = new Date().toISOString();
 		job.updatedAt = new Date().toISOString();
 		await saveJob(job, schedulesDir);

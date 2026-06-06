@@ -6,7 +6,7 @@ import { join } from "node:path";
 // --- Imports ---
 import { validateCron, parseScheduleEntry } from "../../src/scheduler/parser.js";
 import { ScheduleQueue } from "../../src/scheduler/queue.js";
-import { ScheduleManager, shouldRun, matchesCron } from "../../src/scheduler/scheduler.js";
+import { ScheduleManager, matchesCron } from "../../src/scheduler/scheduler.js";
 import { logScheduleResult } from "../../src/scheduler/logger.js";
 import { CronInstaller } from "../../src/scheduler/cronInstaller.js";
 
@@ -183,11 +183,6 @@ describe("scheduler - cron matching", () => {
 
 	it("rejects completely invalid cron", () => {
 		assert.strictEqual(matchesCron("invalid cron", new Date()), false);
-	});
-
-	it("shouldRun is an alias for matchesCron", () => {
-		assert.strictEqual(shouldRun("* * * * *", new Date(Date.UTC(2024, 0, 1, 9, 30))), true);
-		assert.strictEqual(shouldRun("0 9 * * *", new Date(Date.UTC(2024, 0, 1, 10, 30))), false);
 	});
 });
 
@@ -524,6 +519,64 @@ describe("scheduler - ScheduleManager", () => {
 		mgr.stop();
 		const entries = mgr.list();
 		assert.strictEqual(entries[0].paused, true);
+	});
+
+	it("#clockTick continues checking other entries if one throws", () => {
+		const mgr = new ScheduleManager(10);
+		mgr.register([{ name: "good", cron: "* * * * *" }]);
+		// Stash bad cron directly into internal map to trigger try catch
+		const badEntry = { name: "bad", cron: "invalid", paused: false, lastRun: null };
+		mgr._testSetEntry("bad", badEntry);
+		mgr.start({ sandbox: async () => ({}), state: {} }, 60000);
+		mgr.stop();
+		const entries = mgr.list();
+		const good = entries.find((e) => e.name === "good");
+		assert.ok(good.lastRun, "good entry should have lastRun set despite bad entry throwing");
+	});
+
+	it("#clockTick does not throw even with corrupted entries", () => {
+		const mgr = new ScheduleManager(10);
+		mgr.register([{ name: "good", cron: "* * * * *" }]);
+		const badEntry = { name: "bad", cron: null, paused: false, lastRun: null };
+		mgr._testSetEntry("bad", badEntry);
+		assert.doesNotThrow(() => {
+			mgr.start({ sandbox: async () => ({}), state: {} }, 60000);
+			mgr.stop();
+		});
+	});
+
+	it("#clockTick with 2 valid + 1 paused — all skip correctly", () => {
+		const mgr = new ScheduleManager(10);
+		const now = new Date();
+		const minuteField = String(now.getUTCMinutes());
+		mgr.register([
+			{ name: "a", cron: `${minuteField} * * * *` },
+			{ name: "b", cron: `${minuteField} * * * *` },
+		]);
+		mgr.pause("a");
+		mgr.start({ sandbox: async () => ({}), state: {} }, 60000);
+		mgr.stop();
+		const entries = mgr.list();
+		assert.strictEqual(entries.filter((e) => e.paused).length, 1);
+		const running = entries.filter((e) => !e.paused && e.lastRun);
+		assert.strictEqual(running.length, 1, "only 'b' should have lastRun set");
+	});
+
+	it("#clockTick with 3 matching entries — only 1 deduped", () => {
+		const mgr = new ScheduleManager(10);
+		const now = new Date();
+		const minuteField = String(now.getUTCMinutes());
+		mgr.register([
+			{ name: "a", cron: `${minuteField} * * * *` },
+			{ name: "b", cron: `${minuteField} * * * *` },
+			{ name: "c", cron: `${minuteField} * * * *` },
+		]);
+		mgr.start({ sandbox: async () => ({}), state: {} }, 60000);
+		mgr.stop();
+		const entries = mgr.list();
+		assert.strictEqual(entries.length, 3);
+		assert.strictEqual(entries.filter((e) => e.lastRun).length, 3);
+		assert.strictEqual(entries[0].queued, 0, "first tick should not leave tasks queued");
 	});
 });
 

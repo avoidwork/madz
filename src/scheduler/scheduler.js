@@ -118,8 +118,8 @@ export class ScheduleManager {
 	 */
 	start(scheduler, intervalMs = 60000) {
 		this.#running = true;
-		this.#tickId = setInterval(() => this.#clockTick(scheduler), intervalMs);
-		this.#clockTick(scheduler);
+		this.#tickId = setInterval(() => this.#clockTick(), intervalMs);
+		this.#clockTick();
 	}
 
 	/**
@@ -135,38 +135,42 @@ export class ScheduleManager {
 	}
 
 	/**
-	 * Clock tick: check schedule expressions and enqueue triggered tasks.
-	 * @param {Object} scheduler - The scheduler instance
+	 * Test helper: set a schedule entry directly on the internal map.
+	 * @param {string} name
+	 * @param {Object} entry
+	 * @returns {void}
 	 */
-	#clockTick(_scheduler) {
+	_testSetEntry(name, entry) {
+		this.#scheduleEntry.set(name, entry);
+	}
+
+	/**
+	 * Clock tick: check schedule expressions and enqueue triggered tasks.
+	 */
+	#clockTick() {
 		if (!this.#running) return;
 
 		const now = new Date();
 		for (const [, entry] of this.#scheduleEntry) {
 			if (entry.paused) continue;
 
-			if (matchesCron(entry.cron, now)) {
-				const dedup = {
-					entryName: entry.name,
-					...entry,
-					triggeredAt: now.toISOString(),
-				};
-				const { queued } = this.#queue.enqueue(dedup);
-				if (queued) {
-					entry.lastRun = now.toISOString();
+			try {
+				if (matchesCron(entry.cron, now)) {
+					const dedup = {
+						entryName: entry.name,
+						...entry,
+						triggeredAt: now.toISOString(),
+					};
+					const { queued } = this.#queue.enqueue(dedup);
+					if (queued) {
+						entry.lastRun = now.toISOString();
+					}
 				}
+			} catch {
+				// Single entry failure doesn't block remaining checks
 			}
 		}
 	}
 }
 
-/**
- * Check if a cron expression matches a given date.
- * @param {string} cron - Cron expression
- * @param {Date} now - Current date/time
- * @returns {boolean}
- */
-export function shouldRun(cron, now) {
-	return matchesCron(cron, now);
-}
 export { matchesCron } from "./matcher.js";
