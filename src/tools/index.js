@@ -9,7 +9,7 @@ import { createTodoTool } from "./todo.js";
 import { createMemoryTool } from "./memory.js";
 import { createSessionSearchTool } from "./sessionSearch.js";
 import { createClarifyTool } from "./clarify.js";
-import { createSkillViewTool } from "./skills.js";
+import { createSkillViewTool, createCreateSkillTool } from "./skills.js";
 import { createWebSearchTool, createWebExtractTool } from "./web.js";
 import { createVisionTool } from "./vision.js";
 import { createImageTool } from "./image.js";
@@ -37,6 +37,7 @@ export const TOOL_PERMISSIONS = {
 	session_search: ["filesystem:read"],
 	clarify: [],
 	skill_view: ["filesystem:read"],
+	create_skill: ["filesystem:write"],
 	// Tier 2 tools (need env vars in addition to permissions where applicable)
 	web_search: ["network:outbound"],
 	web_extract: ["network:outbound"],
@@ -63,6 +64,7 @@ const TOOL_FACTORIES = {
 	session_search: createSessionSearchTool,
 	clarify: createClarifyTool,
 	skill_view: createSkillViewTool,
+	create_skill: createCreateSkillTool,
 	web_search: createWebSearchTool,
 	web_extract: createWebExtractTool,
 	vision_analyze: createVisionTool,
