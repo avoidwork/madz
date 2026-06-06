@@ -1,6 +1,18 @@
 import { readFileSync } from "node:fs";
+import { mkdir } from "node:fs/promises";
+import { join } from "node:path";
 import { discoverSkills } from "./discoverer.js";
 import { validateSkillSchema } from "./validator.js";
+
+/**
+ * Ensure the skills directory exists by creating it if necessary.
+ * @param {string} [skillsDir="skills/"] - Path to the skills directory
+ * @returns {Promise<void>}
+ */
+export async function ensureSkillsDir(skillsDir = "skills/") {
+	const dir = join(process.cwd(), skillsDir);
+	await mkdir(dir, { recursive: true });
+}
 
 /**
  * Skill registry store that maintains a map of registered skills with metadata.

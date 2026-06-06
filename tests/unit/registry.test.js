@@ -345,3 +345,37 @@ describe("new meta fields", () => {
 		assert.strictEqual(result.skip, true);
 	});
 });
+
+describe("ensureSkillsDir", () => {
+	it("creates skills directory when missing", async () => {
+		const { ensureSkillsDir } = await import("../../src/registry/registry.js");
+		const fs = await import("node:fs");
+		const path = await import("node:path");
+		const os = await import("node:os");
+
+		const testDir = path.join(os.tmpdir(), "madz-" + Date.now(), "skills");
+		const parentDir = path.dirname(testDir);
+
+		if (!fs.existsSync(parentDir)) {
+			fs.mkdirSync(parentDir, { recursive: true });
+		}
+
+		ensureSkillsDir(testDir);
+		assert.ok(fs.existsSync(parentDir));
+	});
+
+	it("succeeds when directory already exists", async () => {
+		const { ensureSkillsDir } = await import("../../src/registry/registry.js");
+		const fs = await import("node:fs");
+		const path = await import("node:path");
+		const os = await import("node:os");
+
+		const testDir = path.join(os.tmpdir(), "madz-" + Date.now(), "skills");
+		fs.mkdirSync(testDir, { recursive: true });
+
+		await ensureSkillsDir(testDir);
+		assert.ok(fs.existsSync(testDir));
+
+		fs.rmSync(path.join(os.tmpdir(), "madz-" + Date.now()), { recursive: true, force: true });
+	});
+});
