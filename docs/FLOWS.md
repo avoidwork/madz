@@ -174,9 +174,7 @@ registry.discover(skillsDir = "skills/")
 │       ├── entries = readdirSync(fullDir)
 │       └── for each entry name:
 │           ├── stat → skip if not directory
-│           ├── try skill.yaml → yaml.load()
-│           ├── try skill.json → JSON.parse()
-│           ├── try SKILL.md (fallback → { name, _path })
+│           └── try SKILL.md (YAML frontmatter: name, description, license, compatibility, metadata):
 │           ├── if metadata found:
 │           │   ├── metadata._directory = skillPath
 │           │   └── if scripts/ dir exists: metadata.scripts = scriptsDir
@@ -211,6 +209,7 @@ buildToolConfig({ permissions, allowedPaths, maxReadSize, registry, safety, time
 │   │   ├── vision_analyze → if OPENAI_API_KEY
 │   │   ├── image_generate → if hasAllPerms && FAL_API_KEY
 │   │   ├── cronjob → if hasAllPerms
+│   │   ├── create_skill → if hasAllPerms (filesystem:write)
 │   │   ├── text_to_speech | tts → if OPENAI_API_KEY
 │   │   ├── mixture_of_agents → if OPENROUTER_API_KEY
 │   │   └── default: → if requiredPerms.length === 0 || hasAllPerms
@@ -361,6 +360,7 @@ Permission gates per tool:
 ├── memory → "filesystem:read", "filesystem:write"
 ├── session_search → "filesystem:read"
 ├── skills_list, skill_view → "filesystem:read"
+├── create_skill → "filesystem:write"
 ├── web_search, web_extract → "network:outbound" + hasSearchKey()
 ├── vision_analyze → OPENAI_API_KEY (no perms)
 ├── image_generate → "network:outbound" + FAL_API_KEY
@@ -812,7 +812,7 @@ index.js
 │     ├── tools/code.js → node:child_process, node:fs/promises, node:path, posix (setrlimit memory limit)
 │     ├── tools/todo.js → node:fs/promises — CRUD task management in memory/tools/todo.json
 │     ├── tools/clarify.js → node:fs/promises — zero-permission clarification questions
-│     ├── tools/skills.js → registry (list discovered skills, view SKILL.md content)
+│     ├── tools/skills.js → registry (list discovered skills, view SKILL.md content, create_skill — programmatic skill scaffolding with spec validation)
 │     ├── tools/vision.js → OPENAI_API_KEY — image analysis via ChatOpenAI vision
 │     ├── tools/image.js → FAL_API_KEY — image generation via fal.ai queue
 │     ├── tools/tts.js → OPENAI_API_KEY — text-to-speech via OpenAI TTS API

@@ -191,7 +191,7 @@ Walks the config tree recursively and maps each leaf key to an env var:
 | `memory.js` | `memory` — key-value entry storage. Each entry stored as an individual `.md` file with createdDate/updatedDate metadata. Actions: create, read, update, delete, list |
 | `sessionSearch.js` | `session_search` — past conversation search (keyword query, full retrieval by ID, or browse) |
 | `code.js` | `execute_code` / `code` — sandboxed code execution (python3, javascript, shell) with memory limits via POSIX `setrlimit` and import hooks for Python |
-| `skills.js` | `skills_list` — lists all discovered skills from the registry; `skill_view` — views a single skill's metadata and SKILL.md content |
+| `skills.js` | `skills_list` — lists all discovered skills from the registry; `skill_view` — views a single skill's metadata and SKILL.md content; `create_skill` — creates spec-compliant skill directories with SKILL.md YAML frontmatter (requires `filesystem:write`) |
 | `clarify.js` | `clarify` — sends clarification questions to the user. **Zero-permission tool** — always registered |
 | `vision.js` | `vision_analyze` — image analysis via ChatOpenAI (requires `OPENAI_API_KEY`, no permission gating) |
 | `image.js` | `image_generate` — image generation via fal.ai queue (requires `FAL_API_KEY`, `network:outbound` permission) |
@@ -205,7 +205,7 @@ Walks the config tree recursively and maps each leaf key to an env var:
 | Tool | Required Permissions |
 |------|---------------------|
 | `read_file`, `search_files`, `skills_list`, `skill_view` | `filesystem:read` |
-| `write_file`, `patch`, `todo`, `memory` | `filesystem:write` |
+| `write_file`, `patch`, `todo`, `memory`, `create_skill` | `filesystem:write` |
 | `terminal` | `filesystem:exec` + `process:spawn` |
 | `process` | `process:spawn` |
 | `session_search` | `filesystem:read` |
@@ -253,8 +253,8 @@ Each memory is a standalone Markdown file in `memory/context/` with lowercase sn
 | File | Purpose |
 |------|---------|
 | `types.js` | Zod schemas: `SkillMetadataSchema`, `PermissionSchema` (enum of 6 scopes), `DEFAULT_PERMS = ["filesystem:read", "env:read"]` |
-| `discoverer.js` | `discoverSkills()` — scans `skills/` subdirectories for `skill.yaml` or `skill.json`, loads metadata, attaches `_path` and `_directory` |
-| `validator.js` | `validateSkillSchema()` — validates input/output schemas, then full metadata against `SkillMetadataSchema` |
+| `discoverer.js` | `discoverSkills()` — scans `skills/` subdirectories for `SKILL.md` files, extracts YAML frontmatter (name, description, license, compatibility, metadata), attaches `_path` and `_directory` |
+| `validator.js` | `validateSkillSchema()` — validates name (lowercase alphanumeric + hyphens, 1-64 chars), description (1-1024 chars, non-empty), optional fields (compatibility max 500 chars, metadata string map), then full metadata against `SkillMetadataSchema` |
 | `registry.js` | `SkillRegistry` — Map-based store for skills with `discover`, `register`, `unregister`, `disable`, `enable`, `list`, `get` |
 | `permissions.js` | `resolvePermissions()` — merges `DEFAULT_PERMS` with skill-specific permissions; `hasPermission()` — existence check; `resolveCapabilities()` — maps permission scopes to `{resources, rules}[]` capability objects |
 
