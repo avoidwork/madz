@@ -39,6 +39,8 @@ COPY src/ ./src/
 COPY config.yaml ./
 COPY index.js ./
 
+RUN chown -R madz:madz /app
+
 EXPOSE 22
 
 CMD ["/usr/sbin/sshd", "-D"]
