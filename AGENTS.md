@@ -79,12 +79,13 @@ Node.js-based AI harness application using LangGraph for state machines and Open
 │   │   ├── writer.js
 │   │   ├── context.js
 │   │   └── retention.js
-│   ├── registry/               # Skills registry and lifecycle management
+│   ├── skills/                 # Agent Skills spec discovery, validation & permissions
 │   │   ├── types.js
-│   │   ├── discoverer.js
 │   │   ├── validator.js
 │   │   ├── registry.js
-│   │   └── permissions.js
+│   │   ├── permissions.js
+│   │   ├── discoverer.js
+│   │   └── index.js
 │   ├── sandbox/                # Secure skill execution sandbox
 │   │   ├── runner.js
 │   │   ├── pathResolver.js
@@ -127,13 +128,41 @@ Node.js-based AI harness application using LangGraph for state machines and Open
 │       └── components.js
 ├── tests/
 │   ├── unit/                   # Unit tests mirroring src/ structure
+│   │   ├── checkpointer.test.js
 │   │   ├── config.test.js
+│   │   ├── context.test.js
+│   │   ├── conversationPanel.test.js
+│   │   ├── discoverer.test.js
+│   │   ├── filesystem.test.js
 │   │   ├── memory.test.js
+│   │   ├── onboarding.test.js
+│   │   ├── profile.test.js
+│   │   ├── provider.test.js
+│   │   ├── react_agent.test.js
+│   │   ├── reader.test.js
 │   │   ├── registry.test.js
 │   │   ├── sandbox.test.js
 │   │   ├── scheduler.test.js
 │   │   ├── session.test.js
+│   │   ├── shutdown.test.js
+│   │   ├── skills.test.js
 │   │   ├── telemetry.test.js
+│   │   ├── terminal.test.js
+│   │   ├── tool_index.test.js
+│   │   ├── tool_registration.test.js
+│   │   ├── tools.test.js
+│   │   ├── tools_clarify.test.js
+│   │   ├── tools_code.test.js
+│   │   ├── tools_cron.test.js
+│   │   ├── tools_date.test.js
+│   │   ├── tools_image.test.js
+│   │   ├── tools_memory.test.js
+│   │   ├── tools_moa.test.js
+│   │   ├── tools_sampling.test.js
+│   │   ├── tools_sessionSearch.test.js
+│   │   ├── tools_tts.test.js
+│   │   ├── tools_vision.test.js
+│   │   ├── tools_web.test.js
 │   │   └── tui.test.js
 │   └── integration/            # Integration tests
 │       └── full-flow.test.js

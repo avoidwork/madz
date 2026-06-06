@@ -145,7 +145,7 @@ Bundled LangChain tools gated by sandbox permissions:
 | **Memory** | `memory` — persistent memory tool with CRUD (create, read, update, delete, list). Each memory is stored as an individual `.md` file in `memory/context/` with `createdDate` and `updatedDate` metadata. Memories are long-term, core "canon" that shapes your interaction with madz — important personal details, preferences, and context that matter. Loaded into the system prompt at the start of every session. |
 | **Search** | `session_search` — query past conversations by keyword, ID, or browse |
 | **Clarification** | `clarify` — sends clarification questions to the user |
-| **Skills** | `skills_list` — lists discovered skills; `skill_view` — views skill metadata and SKILL.md |
+| **Skills** | `skills_list` — lists discovered skills; `skill_view` — views skill metadata and SKILL.md; `create_skill` — creates spec-compliant skill directories with SKILL.md frontmatter (requires `filesystem:write`) |
 | **Code** | `code` — code execution and analysis |
 | **Web** | `web` — outbound HTTP with timeout, URL allowlist filtering, multi-engine search backends |
 | **Media** | `image` — image generation via fal.ai; `vision` — vision/language analysis via OpenAI; `tts` — text-to-speech via OpenAI TTS |
@@ -154,7 +154,7 @@ Bundled LangChain tools gated by sandbox permissions:
 
 ### Skills Registry
 
-Auto-discovers skills from a `skills/` directory structure. Each skill defines input/output schemas via Zod permissions (`filesystem:read`, `network:outbound`, `process:spawn`, etc.) and is executed inside a sandboxed Node.js process.
+Auto-discovers Agent Skills spec-compliant skills from a `skills/` directory structure. Each skill directory contains a `SKILL.md` file with YAML frontmatter (`name` required, 1-64 lowercase alphanumeric + hyphens; `description` required, 1-1024 characters; optional `license`, `compatibility`, `metadata`). Supports optional `scripts/` subdirectory containing executable scripts (detected by extension: `.py`, `.sh`, `.js`, `.rb`, `.ts`). The `create_skill` tool lets agents create new skills programmatically — validating spec constraints before writing `SKILL.md` and optionally scaffolding a `scripts/` directory.
 
 ### Permission Gating
 
@@ -163,7 +163,7 @@ Built-in tools are registered only when their required permissions are enabled f
 | Permission Required | Tools |
 |---------------------|-------|
 | `filesystem:read` | `read_file`, `search_files`, `skills_list`, `skill_view`, `session_search` |
-| `filesystem:write` | `write_file`, `patch`, `todo`, `memory` |
+| `filesystem:write` | `write_file`, `patch`, `todo`, `memory`, `create_skill` |
 | `filesystem:exec` + `process:spawn` | `terminal` |
 | `process:spawn` | `process` |
 | *(none)* | `clarify` |
@@ -206,7 +206,7 @@ Recurring job definitions in `config.yaml`. Supports both in-process scheduling 
 │   ├── config/                 # YAML parsing & Zod schema validation
 │   ├── memory/                 # Markdown file persistence
 │   ├── provider/               # LLM model factory (OpenAI)
-│   ├── registry/               # Skill discovery, validation & permissions
+│   ├── skills/                 # Agent Skills spec discovery, validation & permissions
 │   ├── sandbox/                # Process sandboxing & capability enforcement
 │   ├── scheduler/              # Cron-based job runner
 │   ├── session/                # Per-session state & context windows
@@ -287,10 +287,28 @@ npm run coverage     # Generate and verify 100% coverage
 
 ### Extending Skills
 
+Skills follow the [Agent Skills spec](https://agentskills.io/specification). Each skill is a directory under `skills/` containing a `SKILL.md` file with YAML frontmatter.
+
+**Programmatic creation:** Use the `create_skill` tool to create new skills from within agent conversations. The tool validates the name (lowercase alphanumeric + hyphens, 1-64 chars), description (1-1024 chars), and optional fields (`license`, `compatibility`, `metadata`) against spec constraints before writing `SKILL.md`. It can optionally scaffold a `scripts/` subdirectory with a `README.md` placeholder for executable scripts.
+
+**Manual creation:**
+
 1. Create a directory under `skills/your-skill/`.
-2. Add a `skill.yaml` or `skill.json` defining `name`, `version`, `description`, `permissions`, and input/output schemas.
-3. Place executable scripts under `skills/your-skill/scripts/`.
-4. Restart the harness — the registry auto-discovers new skills on boot.
+2. Add a `SKILL.md` file with YAML frontmatter:
+   ```yaml
+   ---
+   name: your-skill
+   description: What this skill does and when to use it.
+   license: Apache-2.0          # optional
+   compatibility: Node.js 20+   # optional, max 500 chars
+   metadata:
+     author: me
+     version: "1.0"             # optional string map
+   ---
+   Step-by-step instructions for the agent...
+   ```
+3. (Optional) Place executable scripts under `skills/your-skill/scripts/`. Supported extensions: `.py` (Python 3), `.sh` (Bash), `.js`/`.mjs` (Node.js), `.rb` (Ruby), `.ts` (Node.js + tsx).
+4. Restart the harness — the skills registry auto-discovers new skills on boot.
 
 ### Environment Variables
 
