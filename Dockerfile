@@ -22,6 +22,10 @@ FROM node:24-alpine
 RUN apk add --no-cache python3 ruby curl bash jq unzip wget ca-certificates git file zip xz lz4 diffutils tree rsync openssh-server && \
     ssh-keygen -A && \
     mkdir -p /run/sshd && \
+    addgroup -S madz && \
+    adduser -S madz -G madz -h /home/madz -s /bin/sh && \
+    passwd -d madz && \
+    sed -i 's/^PermitEmptyPasswords.*/PermitEmptyPasswords yes/' /etc/ssh/sshd_config && \
     curl -LsSf https://astral.sh/uv/install.sh | sh && \
     mv /root/.local/bin/uv /usr/local/bin/uv
 
