@@ -4,7 +4,7 @@ The application lacks containerization support for deployment and local testing.
 
 ## What Changes
 
-- Add `Dockerfile` for building the application image (see example below)
+- Add `Dockerfile` for building the application image (see example below). Runs `npm install` and `npm test` in builder stage.
 - Add `docker-compose.yml` for local development and testing with all dependencies
 - Add npm scripts for single-architecture builds (`docker:build:amd64`, `docker:build:arm64`)
 - Add npm scripts for multi-architecture builds using Docker Buildx (`docker:build:all`, `docker:release:all`)
@@ -20,7 +20,11 @@ WORKDIR /app
 
 COPY package*.json ./
 
-RUN npm ci && \
+RUN npm ci
+
+COPY src/ ./src/
+
+RUN npm test && \
     npm prune --omit=dev && \
     npm cache clean --force
 
