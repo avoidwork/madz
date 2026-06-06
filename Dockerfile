@@ -1,6 +1,6 @@
 FROM node:24-alpine AS builder
 
-RUN apk add --no-cache python3 make g++ bash jq unzip wget ca-certificates git file zip xz lz4 diffutils tree rsync
+RUN apk add --no-cache python3 make g++ bash
 
 WORKDIR /app
 
