@@ -1,10 +1,104 @@
-import { fork } from "node:child_process";
+import { spawn } from "node:child_process";
 import { handleTimeout } from "./timeoutHandler.js";
 import { filterEnv } from "./envInjector.js";
 import { enforceCapabilities } from "./capability.js";
+import { readFileSync, existsSync } from "node:fs";
 
 /**
- * Run a skill script in a sandboxed forked process with resource limits.
+ * Map file extension to interpreter command.
+ * @param {string} filePath - Path to the script
+ * @returns {object | null} { command, args } or null if unsupported
+ */
+export function detectInterpreter(filePath) {
+	if (!filePath || typeof filePath !== "string") return null;
+
+	const ext = filePath.split(".").pop()?.toLowerCase();
+
+	switch (ext) {
+		case "py":
+			return { command: "python3", args: [] };
+		case "js":
+		case "mjs":
+			return { command: "node", args: [] };
+		case "sh":
+			return { command: "bash", args: [] };
+		case "rb":
+			return { command: "ruby", args: [] };
+		case "ts":
+			return { command: "node", args: ["--import", "tsx"] };
+		case "lua":
+			return { command: "lua", args: [] };
+		default:
+			// Try to detect via shebang
+			return detectShebang(filePath);
+	}
+}
+
+/**
+ * Read the first line of a file to detect interpreter via shebang.
+ * @param {string} filePath - Path to the script
+ * @returns {object | null} { command, args } or null if unsupported
+ */
+export function detectShebang(filePath) {
+	if (!filePath || !existsSync(filePath)) return null;
+
+	try {
+		const firstLine = readFileSync(filePath, "utf-8").split("\n")[0];
+		const match = firstLine.match(/^#!\s*(\/\S+?)(?:\s+(.*))?$/);
+		if (match) {
+			const cmd = match[1];
+			const args = match[2]?.split(/\s+/).filter(Boolean) || [];
+			const baseCmd = cmd.split("/").pop();
+
+			// Handle #!/usr/bin/env X pattern
+			if (baseCmd === "env" && args.length > 0) {
+				const targetCmd = args[0];
+				switch (targetCmd) {
+					case "python":
+					case "python3":
+						return { command: "python3", args: args.slice(1) };
+					case "shell":
+					case "sh":
+					case "bash":
+						return { command: "bash", args: args.slice(1) };
+					case "node":
+						return { command: "node", args: args.slice(1) };
+					case "ruby":
+						return { command: "ruby", args: args.slice(1) };
+					default:
+						return { command: targetCmd, args: args.slice(1) };
+				}
+			}
+
+			// Map common shebangs to known interpreters
+			switch (baseCmd) {
+				case "python":
+				case "python3":
+					return { command: "python3", args };
+				case "python2":
+					return { command: "python2", args };
+				case "bash":
+				case "sh":
+					return { command: "bash", args };
+				case "zsh":
+					return { command: "zsh", args };
+				case "node":
+					return { command: "node", args };
+				case "ruby":
+					return { command: "ruby", args };
+				default:
+					return { command: cmd, args };
+			}
+		}
+	} catch {
+		// File unreadable
+	}
+
+	return null;
+}
+
+/**
+ * Run a skill script in a sandboxed spawned process with resource limits.
  * @param {Object} options - Execution configuration
  * @param {string} options.script - Path to the skill script to run
  * @param {string[]} options.scope - Allowed filesystem scope paths
@@ -28,17 +122,38 @@ export async function runSandbox(options) {
 		cwd = process.cwd(),
 	} = options;
 
-	const { rules } = enforceCapabilities(permissions);
-	const env = filterEnv(process.env, whitelist);
+	const { _rules } = enforceCapabilities(permissions);
 
-	// Enforce capabilities
-	const _hasNetworkAccess = rules.some((r) => r.resource === "network");
+	let env = filterEnv(process.env, whitelist);
 
-	const child = fork(script, [], {
+	// Detect interpreter
+	const interp = detectInterpreter(script) ||
+		detectShebang(script) || {
+			command: "node",
+			args: [],
+		};
+
+	const ext = script.split(".").pop()?.toLowerCase();
+
+	// Ensure PATH is available when spawning scripts
+	if (interp.command === "node" && !env.PATH) {
+		if (process.env.PATH) {
+			env = { ...env, PATH: process.env.PATH };
+		}
+	}
+
+	// Build exec args based on interpreter type
+	const execArgs = [];
+	if (ext === "js" || ext === "mjs") {
+		// Pass memory limit to Node.js scripts
+		execArgs.push("--max-old-space-size=512");
+	}
+
+	const child = spawn(interp.command, [...interp.args, script], {
 		cwd,
 		env,
-		execArgv: ["--max-old-space-size=512"],
-		stdio: ["pipe", "pipe", "pipe", "ipc"],
+		execArgv: execArgs.length > 0 ? execArgs : undefined,
+		stdio: ["pipe", "pipe", "pipe"],
 	});
 
 	const result = {

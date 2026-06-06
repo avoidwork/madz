@@ -23,37 +23,42 @@ function cleanupTestFiles() {
 }
 
 function setupMockRegistry() {
-	return {
-		list: () => ["code-review", "file-inspector"],
-		get: (name) => {
-			if (name === "code-review") {
-				return {
-					name: "code-review",
-					metadata: {
-						version: "1.0.0",
-						description: "Reviews code changes",
-						permissions: ["filesystem:read"],
-						inputSchema: {},
-						outputSchema: {},
-						_path: "skills/code-review",
-					},
-				};
-			}
-			if (name === "file-inspector") {
-				return {
-					name: "file-inspector",
-					metadata: {
-						version: "2.0.0",
-						description: "Inspects files",
-						permissions: ["filesystem:read", "filesystem:write"],
-						inputSchema: {},
-						outputSchema: {},
-						_path: "skills/file-inspector",
-					},
-				};
-			}
-			return null;
+	const catalog = [
+		{
+			name: "code-review",
+			description: "Reviews code changes",
+			location: "skills/code-review/SKILL.md",
 		},
+		{
+			name: "file-inspector",
+			description: "Inspects files",
+			location: "skills/file-inspector/SKILL.md",
+		},
+	];
+	const skills = {
+		"code-review": {
+			name: "code-review",
+			metadata: {
+				version: "1.0.0",
+				description: "Reviews code changes",
+				permissions: ["filesystem:read"],
+				_path: "skills/code-review/SKILL.md",
+			},
+		},
+		"file-inspector": {
+			name: "file-inspector",
+			metadata: {
+				version: "2.0.0",
+				description: "Inspects files",
+				permissions: ["filesystem:read", "filesystem:write"],
+				_path: "skills/file-inspector/SKILL.md",
+			},
+		},
+	};
+	return {
+		getCatalog: () => catalog,
+		getSkillBody: (name) => (skills[name] ? `# ${name}\n\nSkill body for ${name}` : null),
+		get: (name) => skills[name] || null,
 	};
 }
 
@@ -226,24 +231,24 @@ describe("tools - skills", () => {
 		assert.ok(result.message);
 	});
 
-	it("list returns skills when registry has skills", async () => {
+	it("list returns skills via catalog when registry has skills", async () => {
 		const registry = setupMockRegistry();
 		const result = await skillsListImpl({}, { registry });
 		assert.strictEqual(result.count, 2);
 		assert.strictEqual(result.skills.length, 2);
 		assert.strictEqual(result.skills[0].name, "code-review");
-		assert.strictEqual(result.skills[0].version, "1.0.0");
+		assert.ok(result.skills[0].description);
+		assert.ok(result.skills[0].location);
 	});
 
-	it("list pushes fallback when registry.get returns null", async () => {
+	it("list returns empty when catalog is missing", async () => {
 		const registry = {
-			list: () => ["missing-skill"],
-			get: () => null,
+			getCatalog: () => [],
 		};
 		const result = await skillsListImpl({}, { registry });
-		assert.strictEqual(result.count, 1);
-		assert.strictEqual(result.skills[0].name, "missing-skill");
-		assert.strictEqual(result.skills[0].version, "unknown");
+		assert.strictEqual(result.count, 0);
+		assert.strictEqual(result.skills.length, 0);
+		assert.ok(result.message);
 	});
 
 	it("view returns skill details", async () => {
@@ -254,7 +259,7 @@ describe("tools - skills", () => {
 		assert.ok(result.description);
 	});
 
-	it("view returns skill_md when SKILL.md is readable", async () => {
+	it("view returns skill_md via getSkillBody when available", async () => {
 		const { writeFileSync } = await import("node:fs");
 		const { join } = await import("node:path");
 		const testSkillDir = join(process.cwd(), "tests", "__skills_test__");
@@ -262,11 +267,11 @@ describe("tools - skills", () => {
 		writeFileSync(join(testSkillDir, "SKILL.md"), "# Test skill\n\nThis is a test.");
 
 		const registry = {
-			list: () => [],
 			get: () => ({
 				name: "test-skill",
-				metadata: { _path: "tests/__skills_test__" },
+				metadata: { _path: join(testSkillDir, "SKILL.md") },
 			}),
+			getSkillBody: () => "# Test skill\n\nThis is a test.",
 		};
 		const result = await skillViewImpl({ name: "test-skill" }, { registry });
 		assert.ok(result.skill_md !== undefined);

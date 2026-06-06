@@ -1,16 +1,6 @@
 import { z } from "zod";
 
 /**
- * Zod schema for skill input/output schema definitions.
- * @type {z.ZodType}
- */
-export const SkillInputSchema = z.object({
-	type: z.string().default("object"),
-	required: z.array(z.string()).default([]),
-	properties: z.record(z.unknown()).default({}),
-});
-
-/**
  * Zod schema for skill permissions (scopes).
  * @type {z.ZodType}
  */
@@ -34,15 +24,17 @@ export const ExecutionContextSchema = z.object({
 });
 
 /**
- * Full skill metadata schema.
+ * Full skill metadata schema matching Agent Skills spec.
  * @type {z.ZodType}
  */
 export const SkillMetadataSchema = z.object({
 	name: z.string().min(1),
 	version: z.string().default("1.0.0"),
 	description: z.string().default(""),
-	inputSchema: SkillInputSchema.default({}),
-	outputSchema: SkillInputSchema.default({}),
+	license: z.string().optional(),
+	compatibility: z.string().max(500).optional(),
+	metadata: z.record(z.string()).optional(),
+	"allowed-tools": z.string().optional(),
 	permissions: z.array(PermissionSchema).default([]),
 	executionContext: ExecutionContextSchema.default({}),
 	disabled: z.boolean().default(false),

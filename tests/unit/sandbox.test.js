@@ -8,6 +8,7 @@ import { filterUrl, isSchemeAllowed } from "../../src/sandbox/urlFilter.js";
 import { injectEnv, filterEnv } from "../../src/sandbox/envInjector.js";
 import { enforceCapabilities } from "../../src/sandbox/capability.js";
 import { runSandbox } from "../../src/sandbox/runner.js";
+import { detectInterpreter } from "../../src/sandbox/runner.js";
 
 describe("sandbox - path resolution", () => {
 	describe("resolvePath", () => {
@@ -135,6 +136,9 @@ describe("sandbox - URL filtering", () => {
 describe("sandbox - env injector", () => {
 	describe("injectEnv", () => {
 		it("selects only whitelisted vars", () => {
+			const origPath = process.env.PATH;
+			const origHome = process.env.HOME;
+			const origSecret = process.env.SECRET;
 			process.env.PATH = "/usr/bin";
 			process.env.HOME = "/home/user";
 			process.env.SECRET = "hidden";
@@ -143,6 +147,14 @@ describe("sandbox - env injector", () => {
 			assert.strictEqual(result.PATH, "/usr/bin");
 			assert.strictEqual(result.HOME, "/home/user");
 			assert.strictEqual(result.SECRET, undefined);
+
+			// Restore original env
+			if (origPath === undefined) delete process.env.PATH;
+			else process.env.PATH = origPath;
+			if (origHome === undefined) delete process.env.HOME;
+			else process.env.HOME = origHome;
+			if (origSecret === undefined) delete process.env.SECRET;
+			else delete process.env.SECRET;
 		});
 
 		it("works with empty whitelist", () => {
@@ -224,10 +236,44 @@ describe("sandbox - capability enforcement", () => {
 	});
 });
 
-// --- Sandbox runner tests: use a real child process ---
+// --- Detect interpreter tests (in sandbox/runner.js too) ---
+
+describe("sandbox - detectInterpreter", () => {
+	it("detects python from .py extension", () => {
+		const result = detectInterpreter("script.py");
+		assert.deepStrictEqual(result, { command: "python3", args: [] });
+	});
+
+	it("detects node from .js extension", () => {
+		const result = detectInterpreter("script.js");
+		assert.deepStrictEqual(result, { command: "node", args: [] });
+	});
+
+	it("detects bash from .sh extension", () => {
+		const result = detectInterpreter("script.sh");
+		assert.deepStrictEqual(result, { command: "bash", args: [] });
+	});
+
+	it("detects ruby from .rb extension", () => {
+		const result = detectInterpreter("script.rb");
+		assert.deepStrictEqual(result, { command: "ruby", args: [] });
+	});
+
+	it("detects typescript from .ts extension", () => {
+		const result = detectInterpreter("script.ts");
+		assert.deepStrictEqual(result, { command: "node", args: ["--import", "tsx"] });
+	});
+
+	it("returns null for unknown extension", () => {
+		const result = detectInterpreter("script.xyz");
+		assert.strictEqual(result, null);
+	});
+});
+
+// --- Sandbox runner tests: use spawn instead of fork ---
 
 function createTestScript(stdout, stderr, exitCode) {
-	const testDir = join(tmpdir(), "madz-sandbox-test-" + Date.now());
+	const testDir = join(tmpdir(), "madz-sandbox-spawn-test-" + Date.now());
 	mkdirSync(testDir, { recursive: true });
 	const scriptPath = join(testDir, "test-script.js");
 	writeFileSync(
@@ -249,7 +295,7 @@ function createTestScript(stdout, stderr, exitCode) {
 	return { scriptPath, cleanup };
 }
 
-describe("sandbox - runner", () => {
+describe("sandbox - runner (spawn)", () => {
 	it("captures stdout, stderr, and exitCode from child process", async () => {
 		const { scriptPath, cleanup } = createTestScript("hello", "oops", 0);
 		try {
@@ -351,32 +397,16 @@ describe("sandbox - runner", () => {
 		}
 	});
 
-	it("returns null exitCode for missing script", async () => {
-		const result = await runSandbox({
-			script: "/nonexistent/script.js",
-			skillName: "test",
-		});
-		// Fork of nonexistent file may resolve via timeout or error
-		assert.ok(typeof result.exitCode === "number" || result.exitCode === null);
-	});
-
-	it("handles error event from child process", async () => {
-		// The child.on("error") only fires when fork() itself fails (not when script is missing —
-		// exit fires first). Use execArgv in the runner to force a fork error by passing
-		// an invalid option that causes fork to emit error synchronously.
-		// We test this indirectly: fork with invalid execArgv won't be reachable
-		// through normal runSandbox usage, so we use a nonexistent file which
-		// at minimum fires exit -> exitCode !== null path.
+	it("handles missing script with spawn", async () => {
 		try {
-			await runSandbox({
-				script: "/nonexistent/path/to/script.js",
-				skillName: "test-error",
+			const result = await runSandbox({
+				script: "/nonexistent/script.js",
+				skillName: "test",
 			});
-			// Nonexistent file resolves via exit(event), not error
-			assert.ok(true);
+			assert.ok(typeof result.exitCode === "number" || result.exitCode === null);
 		} catch (err) {
-			// This path is exercised when fork() emits error before exit
-			assert.ok(err instanceof Error || typeof err === "object");
+			// spawn may reject with ENOENT for nonexistent script
+			assert.ok(err instanceof Error);
 		}
 	});
 });
@@ -387,8 +417,11 @@ describe("handleTimeout", () => {
 	it("returns terminated immediately when child already exited", async () => {
 		const { scriptPath, cleanup } = createTestScript("", "", 0);
 		try {
-			const { fork } = await import("node:child_process");
-			const child = fork(scriptPath, [], { stdio: ["pipe", "pipe", "pipe", "ipc"] });
+			const { spawn } = await import("node:child_process");
+			const child = spawn("node", [scriptPath], {
+				stdio: ["pipe", "pipe", "pipe"],
+				env: { ...process.env, PATH: process.env.PATH },
+			});
 			await new Promise((resolve) => child.on("exit", resolve));
 			const { handleTimeout } = await import("../../src/sandbox/timeoutHandler.js");
 			const result = await handleTimeout(child, { seconds: 0, gracePeriod: 0 });
@@ -412,8 +445,11 @@ describe("handleTimeout", () => {
 				"setTimeout(() => {}, 999999);",
 		);
 		try {
-			const { fork } = await import("node:child_process");
-			const child = fork(scriptPath, [], { stdio: ["pipe", "pipe", "pipe", "ipc"] });
+			const { spawn } = await import("node:child_process");
+			const child = spawn("node", [scriptPath], {
+				stdio: ["pipe", "pipe", "pipe"],
+				env: { ...process.env, PATH: process.env.PATH },
+			});
 			await new Promise((resolve) => setTimeout(resolve, 50));
 			const { handleTimeout } = await import("../../src/sandbox/timeoutHandler.js");
 			const result = await handleTimeout(child, { seconds: 0.05, gracePeriod: 0.5 });
@@ -441,8 +477,11 @@ describe("handleTimeout", () => {
 				"setTimeout(() => {}, 999999);",
 		);
 		try {
-			const { fork } = await import("node:child_process");
-			const child = fork(scriptPath, [], { stdio: ["pipe", "pipe", "pipe", "ipc"] });
+			const { spawn } = await import("node:child_process");
+			const child = spawn("node", [scriptPath], {
+				stdio: ["pipe", "pipe", "pipe"],
+				env: { ...process.env, PATH: process.env.PATH },
+			});
 			await new Promise((resolve) => setTimeout(resolve, 50));
 			const { handleTimeout } = await import("../../src/sandbox/timeoutHandler.js");
 			const result = await handleTimeout(child, { seconds: 0.05, gracePeriod: 0.5 });

@@ -1,34 +1,19 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import { readFile, access } from "node:fs/promises";
-import { join } from "node:path";
 
 /**
- * Check if a file path is accessible.
- * @param {string} filePath - Path to check
- * @returns {Promise<boolean>}
- */
-async function pathExists(filePath) {
-	try {
-		await access(filePath);
-		return true;
-	} catch {
-		return false;
-	}
-}
-
-/**
- * Core logic for listing all discovered skills.
+ * Core logic for listing all discovered skills via catalog (tier 1 progressive disclosure).
  * @param {z.infer<typeof SkillsListSchema>} input - The tool input (empty)
  * @param {object} options - Runtime options
  * @param {object} options.registry - The skill registry instance
- * @returns {object} List of skills with summaries
+ * @returns {object} List of skills with name, description, and location
  */
 export async function skillsListImpl(input, options) {
 	const registry = options?.registry;
-	const skillNames = registry && typeof registry.list === "function" ? registry.list() : [];
+	const catalog =
+		registry && typeof registry.getCatalog === "function" ? registry.getCatalog() : [];
 
-	if (skillNames.length === 0) {
+	if (catalog.length === 0) {
 		return {
 			skills: [],
 			count: 0,
@@ -36,22 +21,14 @@ export async function skillsListImpl(input, options) {
 		};
 	}
 
-	const skills = [];
-	for (const name of skillNames) {
-		const skill = registry && typeof registry.get === "function" ? registry.get(name) : null;
-		if (skill) {
-			skills.push({
-				name: skill.name || name,
-				version: skill.metadata?.version || "1.0.0",
-				description: skill.metadata?.description || "",
-				permissions: skill.metadata?.permissions || [],
-			});
-		} else {
-			skills.push({ name, version: "unknown", description: "", permissions: [] });
-		}
-	}
-
-	return { skills, count: skills.length };
+	return {
+		skills: catalog.map((s) => ({
+			name: s.name,
+			description: s.description,
+			location: s.location,
+		})),
+		count: catalog.length,
+	};
 }
 
 /**
@@ -70,6 +47,7 @@ export const skills_list = tool(skillsListImpl, {
 
 /**
  * Core logic for viewing a single skill's details and SKILL.md content.
+ * Legacy access path for manual TUI inspection.
  * @param {z.infer<typeof SkillViewSchema>} input - The tool input
  * @param {object} options - Runtime options
  * @param {object} options.registry - The skill registry instance
@@ -90,24 +68,21 @@ export async function skillViewImpl(input, options) {
 		name: skill.name || name,
 		version: skill.metadata?.version || "1.0.0",
 		description: skill.metadata?.description || "",
-		inputSchema: skill.metadata?.inputSchema || {},
-		outputSchema: skill.metadata?.outputSchema || {},
+		license: skill.metadata?.license || undefined,
+		compatibility: skill.metadata?.compatibility || undefined,
+		metadata: skill.metadata?.metadata || undefined,
 		permissions: skill.metadata?.permissions || [],
-		scripts: skill.metadata?.scripts || [],
+		scripts: skill.metadata?.scripts || undefined,
 	};
 
-	// Try to read SKILL.md if available
-	try {
-		const skillPath = skill.metadata?._path || "";
-		const skillMdPath = join(process.cwd(), skillPath, "SKILL.md");
-
-		if (await pathExists(skillMdPath)) {
-			const skillMd = await readFile(skillMdPath, "utf-8");
-			result.skill_md = skillMd;
-		}
-	} catch {
+	// Try to read SKILL.md body if available
+	const body =
+		registry && typeof registry.getSkillBody === "function" ? registry.getSkillBody(name) : null;
+	if (body) {
+		result.skill_md = body;
+	} else {
 		// node:coverage ignore next
-		result.skill_md = "SKILL.md not found or unreadable";
+		result.skill_md = "SKILL.md body not accessible";
 	}
 
 	return result;
@@ -123,11 +98,37 @@ export async function skillViewImpl(input, options) {
 export const skill_view = tool(skillViewImpl, {
 	name: "skill_view",
 	description:
-		"View full details for a skill by name. Returns name, version, description, schemas, permissions, scripts, and full SKILL.md content.",
+		"View full details for a skill by name (legacy access path). Returns name, version, description, license, compatibility, metadata, permissions, scripts, and full SKILL.md body. Prefer progressive disclosure via getCatalog for normal usage.",
 	schema: z.object({
 		name: z.string().describe("Name of the skill to view"),
 	}),
 });
+
+// --- Progressive disclosure: system prompt catalog ---
+
+/**
+ * Format the skill catalog as a system prompt section.
+ * Lists all discovered skills with name and description for model-driven relevance matching.
+ * @param {Array<{ name: string, description: string, location: string }>} catalog - The skill catalog
+ * @returns {string} Formatted prompt section
+ */
+export function generateSkillCatalogPrompt(catalog) {
+	if (!catalog || catalog.length === 0) {
+		return "";
+	}
+
+	const lines = ["# Available Skills\n"];
+	for (const skill of catalog) {
+		lines.push(`## ${skill.name}`);
+		if (skill.description) {
+			lines.push(skill.description);
+		}
+		lines.push(`Location: ${skill.location}`);
+		lines.push("");
+	}
+
+	return lines.join("\n");
+}
 
 // --- Factory functions for creating tools with runtime options ---
 
@@ -140,7 +141,7 @@ export function createSkillsListTool(options) {
 	return tool((input) => skillsListImpl(input, options), {
 		name: "skills_list",
 		description:
-			"List all discovered skills with their name, version, description, and permissions. Returns { skills: [...], count: N }.",
+			"List all discovered skills via catalog with name, description, and location. Returns { skills: [...], count: N }. Prefer using the system prompt skill catalog for normal operation.",
 		schema: z.object({}).default({}),
 	});
 }
@@ -154,7 +155,7 @@ export function createSkillViewTool(options) {
 	return tool((input) => skillViewImpl(input, options), {
 		name: "skill_view",
 		description:
-			"View full details for a skill by name. Returns name, version, description, schemas, permissions, scripts, and full SKILL.md content.",
+			"View full details for a skill by name (legacy path). Returns name, version, description, license, compatibility, metadata, permissions, scripts, and SKILL.md body.",
 		schema: z.object({
 			name: z.string().describe("Name of the skill to view"),
 		}),
