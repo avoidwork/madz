@@ -47,7 +47,7 @@ if (config.telemetry.enabled) {
 
 // Initialize skill registry
 const { SkillRegistry, resolvePermissions, ensureSkillsDir } =
-	await import("./src/registry/index.js");
+	await import("./src/skills/index.js");
 const registry = new SkillRegistry();
 await ensureSkillsDir("skills/");
 registry.discover("skills/");

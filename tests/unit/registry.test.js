@@ -348,7 +348,7 @@ describe("new meta fields", () => {
 
 describe("ensureSkillsDir", () => {
 	it("creates skills directory when missing", async () => {
-		const { ensureSkillsDir } = await import("../../src/registry/registry.js");
+		const { ensureSkillsDir } = await import("../../src/skills/registry.js");
 		const fs = await import("node:fs");
 		const path = await import("node:path");
 		const os = await import("node:os");
@@ -365,7 +365,7 @@ describe("ensureSkillsDir", () => {
 	});
 
 	it("succeeds when directory already exists", async () => {
-		const { ensureSkillsDir } = await import("../../src/registry/registry.js");
+		const { ensureSkillsDir } = await import("../../src/skills/registry.js");
 		const fs = await import("node:fs");
 		const path = await import("node:path");
 		const os = await import("node:os");

@@ -8,7 +8,7 @@ import {
 	extractFrontmatter,
 	lenientYamlParse,
 	discoverSkills,
-} from "../../src/registry/discoverer.js";
+} from "../../src/skills/discoverer.js";
 import { detectInterpreter, detectShebang } from "../../src/sandbox/runner.js";
 
 let testDir;
