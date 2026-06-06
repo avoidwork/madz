@@ -1,0 +1,13 @@
+services:
+  madz:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: madz:latest
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./memory:/app/memory
+      - ./skills:/app/skills
+    tty: true
+    stdin_open: true
