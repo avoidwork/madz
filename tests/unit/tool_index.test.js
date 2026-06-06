@@ -15,7 +15,6 @@ describe("tools - buildToolConfig", () => {
 			"memory",
 			"session_search",
 			"clarify",
-			"skills_list",
 			"skill_view",
 			"sampling",
 		];
@@ -104,7 +103,6 @@ describe("tools - buildToolConfig", () => {
 			"todo should register with filesystem:read + filesystem:write",
 		);
 		assert.ok(toolNames.includes("memory"), "memory should register");
-		assert.ok(toolNames.includes("skills_list"), "skills_list should register");
 		assert.ok(toolNames.includes("skill_view"), "skill_view should register");
 		assert.ok(toolNames.includes("sampling"), "sampling should register (no perms needed)");
 		// terminal requires process:spawn which is not enabled
@@ -150,7 +148,6 @@ describe("tools - buildToolConfig", () => {
 		assert.ok(toolNames.includes("read_file"));
 		assert.ok(toolNames.includes("search_files"));
 		assert.ok(toolNames.includes("session_search"));
-		assert.ok(toolNames.includes("skills_list"));
 		assert.ok(toolNames.includes("skill_view"));
 		// write-only tools should NOT register
 		assert.ok(!toolNames.includes("write_file"), "write_file should NOT register with only read");

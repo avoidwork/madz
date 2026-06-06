@@ -40,6 +40,9 @@ export const SandboxScopeSchema = z.object({
 	}),
 	permissions: z.array(z.string()).default([]),
 	maxReadSize: z.string().default("1mb"),
+	// Skill discovery settings
+	skillScanPaths: z.array(z.string()).default(["skills/", ".agents/skills/"]),
+	trustProjectSkills: z.boolean().default(true),
 });
 
 // --- Memory schemas ---
@@ -137,6 +140,8 @@ export const DEFAULT_CONFIG = {
 		env: { allowlist: ["PATH", "HOME", "NODE_ENV"] },
 		permissions: [],
 		maxReadSize: "1mb",
+		skillScanPaths: ["skills/", ".agents/skills/"],
+		trustProjectSkills: true,
 	},
 	memory: {
 		directory: "memory/",
