@@ -702,8 +702,8 @@ scheduleManager.stop()
 ├── if !#running → return
 ├── for each entry in #scheduleEntry:
 │   ├── if entry.paused → skip
-│   └── if shouldRun(entry.cron, now):
-│       │   shouldRun(cron, now):
+	│   └── if matchesCron(entry.cron, now):
+	│       │   matchesCron(cron, now):
 │       │   └── minutes/hours from cron fields → matchesField(value, field):
 │       │       ├── "*" → true
 │       │       ├── */N → start + (value - start) % step === 0

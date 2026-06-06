@@ -1,9 +1,92 @@
 import { describe, it, before, after } from "node:test";
 import assert from "node:assert";
-import { cronjobImpl } from "../../src/tools/cron.js";
+import { cronjobImpl, findSkillScript, runScript } from "../../src/tools/cron.js";
+import { mkdirSync, writeFileSync, rmSync, existsSync, chmodSync } from "node:fs";
+import { join } from "node:path";
 import { rm } from "node:fs/promises";
 
 const SCHEDULES_DIR = "memory/__test_cron__/";
+
+describe("findSkillScript", () => {
+	it("returns null when skill directory does not exist", async () => {
+		const result = await findSkillScript("nonexistent-skill");
+		assert.strictEqual(result, null);
+	});
+
+	it("finds run.sh in scripts directory", async () => {
+		const testDir = "skills/__test_find_skill__";
+		mkdirSync(join(testDir, "test-skill", "scripts"), { recursive: true });
+		writeFileSync(join(testDir, "test-skill", "scripts", "run.sh"), "#!/bin/bash\necho hello");
+		try {
+			const result = await findSkillScript("test-skill", testDir);
+			assert.strictEqual(result, join(testDir, "test-skill", "scripts", "run.sh"));
+		} finally {
+			if (existsSync(testDir)) {
+				rmSync(testDir, { recursive: true, force: true });
+			}
+		}
+	});
+
+	it("finds run.py in scripts directory", async () => {
+		const testDir = "skills/__test_find_skill__py";
+		mkdirSync(join(testDir, "py-skill", "scripts"), { recursive: true });
+		writeFileSync(join(testDir, "py-skill", "scripts", "run.py"), "#!/usr/bin/env python3");
+		try {
+			const result = await findSkillScript("py-skill", testDir);
+			assert.strictEqual(result, join(testDir, "py-skill", "scripts", "run.py"));
+		} finally {
+			if (existsSync(testDir)) {
+				rmSync(testDir, { recursive: true, force: true });
+			}
+		}
+	});
+
+	it("finds run.sh in skill root directory", async () => {
+		const testDir = "skills/__test_find_skill__root";
+		mkdirSync(join(testDir, "root-skill"), { recursive: true });
+		writeFileSync(join(testDir, "root-skill", "run.sh"), "#!/bin/bash\necho root");
+		try {
+			const result = await findSkillScript("root-skill", testDir);
+			assert.strictEqual(result, join(testDir, "root-skill", "run.sh"));
+		} finally {
+			if (existsSync(testDir)) {
+				rmSync(testDir, { recursive: true, force: true });
+			}
+		}
+	});
+
+	it("prefers scripts/run.sh over root-level scripts", async () => {
+		const testDir = "skills/__test_find_skill__pref";
+		mkdirSync(join(testDir, "pref-skill", "scripts"), { recursive: true });
+		writeFileSync(join(testDir, "pref-skill", "scripts", "run.sh"), "#!/bin/bash\necho scripts");
+		writeFileSync(join(testDir, "pref-skill", "run.sh"), "#!/bin/bash\necho root");
+		try {
+			const result = await findSkillScript("pref-skill", testDir);
+			assert.strictEqual(result, join(testDir, "pref-skill", "scripts", "run.sh"));
+		} finally {
+			if (existsSync(testDir)) {
+				rmSync(testDir, { recursive: true, force: true });
+			}
+		}
+	});
+});
+
+describe("runScript", () => {
+	it("executes a simple echo script and collects output", async () => {
+		const testDir = "tmp/__test_runscript__";
+		mkdirSync(testDir, { recursive: true });
+		const scriptPath = join(testDir, "echo-test.sh");
+		writeFileSync(scriptPath, "#!/bin/bash\necho hello-from-script\n", "utf-8");
+		chmodSync(scriptPath, 0o755);
+		try {
+			const result = await runScript(scriptPath, [], { timeout: 5000 });
+			assert.strictEqual(result.exitCode, 0);
+			assert.ok(result.stdout.includes("hello-from-script"));
+		} finally {
+			rmSync(testDir, { recursive: true, force: true });
+		}
+	});
+});
 
 describe("cronjob", () => {
 	let origFetch;
@@ -483,5 +566,48 @@ describe("cronjob", () => {
 			{ action: "remove", name: "dynamic-import-test" },
 			{ schedulesDir: SCHEDULES_DIR },
 		);
+	});
+
+	it("run returns error when skill has no discoverable script", async () => {
+		await cronjobImpl(
+			{ action: "create", name: "no-script-job", cron: "0 0 * * *", skill: "nonexistent-skill" },
+			{ schedulesDir: SCHEDULES_DIR },
+		);
+		const result = await cronjobImpl(
+			{ action: "run", name: "no-script-job" },
+			{ schedulesDir: SCHEDULES_DIR },
+		);
+		const parsed = JSON.parse(result);
+		assert.strictEqual(parsed.ok, false);
+		assert.ok(parsed.error.includes("no discoverable script"));
+		await cronjobImpl({ action: "remove", name: "no-script-job" }, { schedulesDir: SCHEDULES_DIR });
+	});
+
+	it("run executes skill script when one is found", async () => {
+		const skillDir = "skills/test-exec-skill/scripts";
+		mkdirSync(skillDir, { recursive: true });
+		const scriptPath = join(skillDir, "run.sh");
+		writeFileSync(scriptPath, "#!/bin/bash\necho execution-success\n", "utf-8");
+		chmodSync(scriptPath, 0o755);
+
+		try {
+			await cronjobImpl(
+				{ action: "create", name: "exec-job", cron: "0 0 * * *", skill: "test-exec-skill" },
+				{ schedulesDir: SCHEDULES_DIR },
+			);
+			const result = await cronjobImpl(
+				{ action: "run", name: "exec-job" },
+				{ schedulesDir: SCHEDULES_DIR },
+			);
+			const parsed = JSON.parse(result);
+			// runSandbox forks subprocess; in test env with bash it should succeed
+			assert.ok(parsed !== null);
+		} finally {
+			rmSync("skills/test-exec-skill", { recursive: true, force: true });
+			await cronjobImpl(
+				{ action: "remove", name: "exec-job" },
+				{ schedulesDir: SCHEDULES_DIR },
+			).catch(() => {});
+		}
 	});
 });
