@@ -1,6 +1,6 @@
 FROM node:24-alpine AS builder
 
-RUN apk add --no-cache python3 make g++ bash
+RUN apk add --no-cache python3 make g++ bash jq unzip wget ca-certificates git file zip xz lz4 diffutils tree rsync
 
 WORKDIR /app
 
@@ -19,7 +19,7 @@ RUN npm test && \
 
 FROM node:24-alpine
 
-RUN apk add --no-cache python3 ruby curl bash && \
+RUN apk add --no-cache python3 ruby curl bash jq unzip wget ca-certificates git file zip xz lz4 diffutils tree rsync && \
     curl -LsSf https://astral.sh/uv/install.sh | sh && \
     mv /root/.local/bin/uv /usr/local/bin/uv
 
@@ -33,4 +33,4 @@ COPY src/ ./src/
 COPY config.yaml ./
 COPY index.js ./
 
-CMD ["node", "index.js", "--mode", "interactive"]
+CMD ["sleep", "infinity"]
