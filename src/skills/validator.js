@@ -23,14 +23,6 @@ export function validateSkillName(name, dirName) {
 		warnings.push("Skill name must contain only lowercase alphanumeric characters and hyphens");
 	}
 
-	if (name.startsWith("-") || name.endsWith("-")) {
-		warnings.push("Skill name must not start or end with a hyphen");
-	}
-
-	if (/--/.test(name)) {
-		warnings.push("Skill name must not contain consecutive hyphens");
-	}
-
 	if (dirName && name !== dirName) {
 		warnings.push(`Skill name "${name}" does not match parent directory "${dirName}"`);
 	}

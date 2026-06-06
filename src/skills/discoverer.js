@@ -175,9 +175,11 @@ export function discoverSkills(scope = "skills/", options = {}) {
 			if (!name) continue;
 
 			if (seenNames.has(name)) {
-				// Project-level skills override user-level (shadow)
+				const existingPath = seenNames.get(name);
 				const isNewHigherPriority = skill.path.includes(".agents/skills");
 				if (isNewHigherPriority) {
+					// Project-level skills override user-level (shadow)
+					console.warn(`[skills] Skill "${name}" from ${skill.path} shadows ${existingPath}`);
 					seenNames.set(name, skill.path);
 				}
 				continue;

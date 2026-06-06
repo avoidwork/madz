@@ -49,6 +49,7 @@ export class SkillRegistry {
 			}
 
 			if (!valid) {
+				errors.push(`Skill "${skill.metadata.name}" rejected: ${warnings.join("; ")}`);
 				continue;
 			}
 
