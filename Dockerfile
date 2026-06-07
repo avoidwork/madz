@@ -26,6 +26,7 @@ RUN apk add --no-cache python3 ruby curl bash jq unzip wget ca-certificates git 
     chown madz:node /home/madz/.profile && \
     passwd -d madz && \
     sed -i 's/^#*PermitEmptyPasswords.*/PermitEmptyPasswords yes/' /etc/ssh/sshd_config && \
+    printf '%s\n' 'AcceptEnv *' >> /etc/ssh/sshd_config && \
     curl -LsSf https://astral.sh/uv/install.sh | sh && \
     mv /root/.local/bin/uv /usr/local/bin/uv
 
