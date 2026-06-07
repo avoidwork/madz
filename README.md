@@ -127,33 +127,25 @@ node index.js "Summarize memory/_index.md" --json
 
 ### Building
 
-Build the image with multi-architecture support (AMD64/ARM64):
+Build a single-architecture image:
 
 ```bash
-# Configure buildx for multi-arch
-docker buildx create --name multiarch --use
-docker buildx build --platform linux/amd64,linux/arm64 -t madz:latest .
+npm run docker:build
 ```
 
-Or for a single architecture:
+For multi-architecture builds (requires `docker buildx create --name multiarch --use`):
 
 ```bash
-docker build -t madz:latest .
+npm run docker:build:all          # amd64 + arm64
+npm run docker:build:amd64        # amd64 only
+npm run docker:build:arm64        # arm64 only
 ```
 
 ### Running
 
 ```bash
-# With docker-compose (development)
-npm run docker:compose:up        # starts containers in detached mode
-npm run docker:compose:down      # stops and removes containers
-
-# Or manually
-docker run -d --name madz \
-  -p 2222:22 \
-  -v $(pwd)/memory:/app/memory \
-  -v $(pwd)/skills:/app/skills \
-  madz:latest
+npm run docker:compose:up         # starts containers in detached mode
+npm run docker:compose:down       # stops and removes containers
 ```
 
 ### SSH Access
