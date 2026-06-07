@@ -187,7 +187,7 @@ Misc details: The `config.yaml` file is the single source of project configurati
 
 ### 3.1 Language & Tooling
 
-- **Node.js**: 20+ (ECMAScript modules, `package.json` `"type": "module"`)
+- **Node.js**: 24+ (ECMAScript modules, `package.json` `"type": "module"`)
 - **Package manager**: `npm`
 - **Type checking**: N/A (plain JavaScript)
 - **Formatting**: `oxfmt` (line-length 100)

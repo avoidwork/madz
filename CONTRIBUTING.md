@@ -79,7 +79,7 @@ chore: pin dependencies in package.json
 
 ### Code Style
 
-- **Language**: Plain JavaScript (ES modules), Node.js 20+
+- **Language**: Plain JavaScript (ES modules), Node.js 24+
 - **Formatting**: `oxfmt` (2-space indent, line-length 100)
 - **Linting**: `oxlint` (strict config in `.oxlint.json`)
 - **Testing**: `node --test` with `node:assert`
