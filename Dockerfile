@@ -38,6 +38,7 @@ COPY --from=builder /app/package*.json ./
 COPY src/ ./src/
 COPY config.yaml ./
 COPY index.js ./
+COPY prompts/ ./prompts/
 
 RUN chown -R madz:node /app && \
     chmod -R g+rwX /app
