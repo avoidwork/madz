@@ -21,6 +21,10 @@ Built on LangGraph, OpenTelemetry, and Ink — with persistent memory, sandboxed
   - [Configuration](#configuration)
   - [Running](#running)
   - [TUI Navigation](#tui-navigation)
+- [Docker](#docker)
+  - [Building](#building)
+  - [Running](#running)
+  - [SSH Access](#ssh-access)
 - [Features](#features)
   - [Onboarding](#onboarding)
   - [LLM Provider Abstraction](#llm-provider-abstraction)
@@ -118,6 +122,59 @@ node index.js "Summarize memory/_index.md" --json
 | `:schedule pause` / `resume` | Control the cron scheduler |
 | `:clear`  | Clear conversation history     |
 | `:new`    | Start a fresh session          |
+
+## Docker
+
+### Building
+
+Build the image with multi-architecture support (AMD64/ARM64):
+
+```bash
+# Configure buildx for multi-arch
+docker buildx create --name multiarch --use
+docker buildx build --platform linux/amd64,linux/arm64 -t madz:latest .
+```
+
+Or for a single architecture:
+
+```bash
+docker build -t madz:latest .
+```
+
+### Running
+
+```bash
+# With docker-compose (development)
+npm run docker:compose:up        # starts containers in detached mode
+npm run docker:compose:down      # stops and removes containers
+
+# Or manually
+docker run -d --name madz \
+  -p 2222:22 \
+  -v $(pwd)/memory:/app/memory \
+  -v $(pwd)/skills:/app/skills \
+  madz:latest
+```
+
+### SSH Access
+
+The container includes `sshd` listening on port 22 (exposed as port 2222 on the host). The `madz` user has **no password** — connect with:
+
+```bash
+ssh -p 2222 madz@localhost
+```
+
+On first login, the `madz` user automatically `cd`s into `/app` and runs `npm start`. To get an interactive shell, start the app in the background or use:
+
+```bash
+# Run the app in the background
+npm start &
+
+# Or start a fresh shell session
+/bin/sh
+```
+
+Volume mounts (`memory/`, `skills/`) are owned by the `madz` user with group `node` for shared write access.
 
 ## Features
 
