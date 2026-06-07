@@ -13,13 +13,12 @@ sandbox:
   paths:
     - memory/
     - skills/
-    - tmp/
     - src/
-    - ./
+    - /tmp
   timeout:
     seconds: 30
     gracePeriod: 5
-  memoryLimit: 512m
+  memoryLimit: 128mb
   safety:
     urlFilter: true
     pythonImportHook: true
@@ -36,7 +35,7 @@ sandbox:
     - filesystem:exec
     - process:spawn
     - network:outbound
-  maxReadSize: 1mb
+  maxReadSize: 10mb
 memory:
   directory: memory/
   contextDir: memory/context/

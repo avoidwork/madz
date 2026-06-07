@@ -303,15 +303,15 @@ Recurring job definitions in `config.yaml`. Supports both in-process scheduling 
 |                | `openai.temperature`               | `0.7`                                     | Sampling temperature (0–2)                        |
 |                | `openai.maxTokens`                 | `4096`                                    | Max output tokens                                 |
 |                | `openai.rateLimit.requestsPerMinute` | `120`                                   | Rate limit for API calls                          |
-| `sandbox`      | `paths`                            | `["memory/", "skills/", "tmp/"]`          | Allowed filesystem paths                          |
+| `sandbox`      | `paths`                            | `["memory/", "skills/", "src/", "/tmp"]`  | Allowed filesystem paths                          |
 |                | `timeout.seconds`                  | `30`                                      | Max execution time in seconds                     |
 |                | `timeout.gracePeriod`              | `5`                                       | Kill grace period in seconds                      |
-|                | `memoryLimit`                      | `"512m"`                                  | Heap limit (`--max-old-space-size`)               |
+|                | `memoryLimit`                      | `"128mb"`                                  | Heap limit (`--max-old-space-size`)               |
 |                | `safety.urlFilter`                 | `true`                                    | Outbound URL blocking                             |
 |                | `safety.pythonImportHook`          | `true`                                    | Prevent subprocess import                         |
 |                | `env.allowlist`                    | `["PATH", "HOME", "NODE_ENV"]`            | Allowed environment variables                     |
 |                | `permissions`                      | `["filesystem:read", ...]`                | Permission grants                                 |
-|                | `maxReadSize`                      | `"1mb"`                                   | Max file read size                                |
+|                | `maxReadSize`                      | `"10mb"`                                   | Max file read size                                |
 | `memory`       | `directory`                        | `memory/`                                 | Base directory for persistence                    |
 |                | `contextDir`                       | `memory/context/`                         | Context file directory                            |
 |                | `toolsDir`                         | `memory/tools/`                           | Tool metadata directory                           |
