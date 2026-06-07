@@ -22,6 +22,8 @@ RUN apk add --no-cache python3 ruby curl bash jq unzip wget ca-certificates git 
     ssh-keygen -A && \
     mkdir -p /run/sshd && \
     adduser -S -G node -h /home/madz -s /bin/sh madz && \
+    echo -e '#!/bin/sh\ncd /app || exit 1\nexec npm start' > /home/madz/.profile && \
+    chown madz:node /home/madz/.profile && \
     passwd -d madz && \
     sed -i 's/^#*PermitEmptyPasswords.*/PermitEmptyPasswords yes/' /etc/ssh/sshd_config && \
     curl -LsSf https://astral.sh/uv/install.sh | sh && \
