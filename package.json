@@ -36,14 +36,16 @@
     "docker:tag": "docker tag madz:latest $DOCKER_USER/madz:$npm_package_version",
     "docker:push": "docker push $DOCKER_USER/madz:$npm_package_version",
     "docker:release": "npm run docker:build && npm run docker:tag && npm run docker:push && docker tag madz:latest $DOCKER_USER/madz:latest && npm run docker:push",
-"docker:release:all": "docker buildx build --builder multiarch --platform linux/amd64,linux/arm64 -t $DOCKER_USER/madz:$npm_package_version -t $DOCKER_USER/madz:latest --push .",
+    "docker:release:all": "docker buildx build --builder multiarch --platform linux/amd64,linux/arm64 -t $DOCKER_USER/madz:$npm_package_version -t $DOCKER_USER/madz:latest --push .",
     "docker:release:amd64": "docker buildx build --builder multiarch --platform linux/amd64 -t $DOCKER_USER/madz:$npm_package_version-amd64 -t $DOCKER_USER/madz:$npm_package_version -t $DOCKER_USER/madz:latest-amd64 --push .",
     "docker:release:arm64": "docker buildx build --builder multiarch --platform linux/arm64 -t $DOCKER_USER/madz:$npm_package_version-arm64 -t $DOCKER_USER/madz:$npm_package_version -t $DOCKER_USER/madz:latest-arm64 --push .",
     "docker:compose:up": "docker compose up -d",
     "docker:compose:down": "docker compose down",
-    "purge-branches": "git branch | grep -v \"main\" | xargs git branch -D"
+    "purge-branches": "git branch | grep -v \"main\" | xargs git branch -D",
+    "changelog": "auto-changelog -p"
   },
   "devDependencies": {
+    "auto-changelog": "^2.6.0",
     "husky": "^9.1.7",
     "oxfmt": "^0.53.0",
     "oxlint": "^1.68.0"
