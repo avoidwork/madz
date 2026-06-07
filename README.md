@@ -6,6 +6,8 @@
 
 Built on LangGraph, OpenTelemetry, and Ink — with persistent memory, sandboxed skill execution, cron scheduling, and a React-powered TUI.
 
+> **Recommended deployment:** `docker pull avoidwork/madz:latest` — see the [Docker](#docker) section for the full `docker run` command and config options.
+
 [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD--3--Clause-blue.svg)](LICENSE)
 [![Node.js >= 24](https://img.shields.io/badge/node-%3E%3D24-brightgreen)](https://nodejs.org)
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen)](#testing)
@@ -57,6 +59,24 @@ It speaks with a distinctive voice: calm, precise, a little wry. Whether you nee
 
 ## Quick Start
 
+### Docker Quick Start (Recommended)
+
+```bash
+docker pull avoidwork/madz:latest
+docker run -d \
+  --name madz \
+  -p 2222:22 \
+  -v ./memory:/app/memory \
+  -v ./skills:/app/skills \
+  -e OPENAI_API_KEY="your-key" \
+  -e OPENAI_MODEL=gpt-4o \
+  -e OPENAI_BASE_URL=https://api.openai.com/v1 \
+  avoidwork/madz:latest
+ssh -p 2222 madz@localhost
+```
+
+See [Docker](#docker) for the full command with all optional environment variables.
+
 ### Prerequisites
 
 - **Node.js** 24 or later
@@ -73,20 +93,11 @@ npm install
 
 ### Configuration
 
-Copy and edit the provided `config.yaml`. The minimum required change is the provider credentials:
+Copy `config.yaml` and set your LLM provider credentials. Environment variable references (`${VAR_NAME}`) are resolved at load time.
 
-```yaml
-providers:
-  default: openai
-  openai:
-    type: openai
-    base_url: "https://api.openai.com/v1"
-    model: "gpt-4o"
-    credentials:
-      apiKey: "${OPENAI_API_KEY}"
-```
+**Docker** — use the `docker run` command with all required environment variables shown in the [Docker](#docker) section, or provide `config.yaml` via a volume mount.
 
-Environment variable references (`${VAR_NAME}`) are resolved at load time.
+> Full configuration keys, defaults, and environment variable names are documented in [Config Reference](#config-reference).
 
 ### Running
 
@@ -142,9 +153,10 @@ npm run docker:build:arm64        # arm64 only
 
 ### Running
 
-Build a local image first (see [Building](#building)), then run:
+Pull the prebuilt image (or [build locally](#building) for a custom image), then run:
 
 ```bash
+docker pull avoidwork/madz:latest
 docker run -d \
   --name madz \
   -p 2222:22 \
@@ -156,12 +168,6 @@ docker run -d \
   -e OPENAI_MAX_TOKENS=61440 \
   -e SEARXNG_URL=https://your.searxng.lan/search \
   avoidwork/madz:latest
-```
-
-Or pull the prebuilt image directly:
-
-```bash
-docker pull avoidwork/madz:latest
 ```
 
 The example above maps the container SSH port `22` to the host port `2222` to avoid conflicts with any local SSH service. Change the host port as needed (`<host_port>:22`).
@@ -184,7 +190,7 @@ npm start &
 /bin/sh
 ```
 
-Volume mounts (`memory/`, `skills/`) are owned by the `madz` user with group `node` for shared write access..
+Volume mounts (`memory/`, `skills/`) are owned by the `madz` user with group `node` for shared write access.
 
 ## Features
 
