@@ -142,20 +142,39 @@ npm run docker:build:arm64        # arm64 only
 
 ### Running
 
+Build a local image first (see [Building](#building)), then run:
+
 ```bash
-npm run docker:compose:up         # starts containers in detached mode
-npm run docker:compose:down       # stops and removes containers
+docker run -d \
+  --name madz \
+  -p 2222:22 \
+  -v ./memory:/app/memory \
+  -v ./skills:/app/skills \
+  -e OPENAI_API_KEY="abc" \
+  -e OPENAI_MODEL=Qwen/Qwen3.6-35B-A3B-FP8 \
+  -e OPENAI_BASE_URL=http://your.inference.lan:8000/v1 \
+  -e OPENAI_MAX_TOKENS=61440 \
+  -e SEARXNG_URL=https://your.searxng.lan/search \
+  avoidwork/madz:latest
 ```
+
+Or pull the prebuilt image directly:
+
+```bash
+docker pull avoidwork/madz:latest
+```
+
+The example above maps the container SSH port `22` to the host port `2222` to avoid conflicts with any local SSH service. Change the host port as needed (`<host_port>:22`).
 
 ### SSH Access
 
-The container includes `sshd` listening on port 22 (exposed as port 2222 on the host). The `madz` user has **no password** — connect with:
+The container includes `sshd` listening on port `22`. The `madz` user has **no password** — connect with:
 
 ```bash
 ssh -p 2222 madz@localhost
 ```
 
-On first login, the `madz` user automatically `cd`s into `/app` and runs `npm start`. To get an interactive shell, start the app in the background or use:
+Once deployed, the user connects as `madz` (no password) on the remapped port. On first login the `madz` user automatically `cd`s into `/app` and runs `npm start`. To get an interactive shell:
 
 ```bash
 # Run the app in the background
@@ -165,7 +184,7 @@ npm start &
 /bin/sh
 ```
 
-Volume mounts (`memory/`, `skills/`) are owned by the `madz` user with group `node` for shared write access.
+Volume mounts (`memory/`, `skills/`) are owned by the `madz` user with group `node` for shared write access..
 
 ## Features
 
