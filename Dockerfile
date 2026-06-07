@@ -45,4 +45,4 @@ RUN chown -R madz:node /app && \
     chmod -R g+rwX /app
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
-CMD ["/usr/sbin/sshd", "-D"]
+CMD ["sleep", "infinity"]

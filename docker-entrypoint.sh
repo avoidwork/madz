@@ -33,5 +33,8 @@ done > /etc/madz-env.sh
 printf '%s\n' '#!/bin/sh' '[ -f /etc/madz-env.sh ] && . /etc/madz-env.sh' > /etc/profile.d/madz-env.sh
 chmod a+r /etc/profile.d/madz-env.sh
 
-# Run the CMD
+# Start sshd as a background process so it picks up injected env vars
+/usr/sbin/sshd -D &
+
+# Run the CMD (e.g. sleep infinity)
 exec "$@"
