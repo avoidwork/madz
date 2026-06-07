@@ -63,6 +63,8 @@ schedules:
 tui:
   name: madz
   cursorChar: "█"
+agent:
+  recursionLimit: 30
 persistence:
   mode: memory
   sqlite_path: memory/checkpoints.db

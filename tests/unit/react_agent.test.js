@@ -3,6 +3,13 @@ import assert from "node:assert";
 import { AIMessage, AIMessageChunk, HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { callReactAgent, createReactAgent } from "../../src/agent/react.js";
 
+class GraphRecursionError extends Error {
+	constructor(message) {
+		super(message);
+		this.name = "GraphRecursionError";
+	}
+}
+
 describe("callReactAgent", () => {
 	it("invokes agent with correct message format", async () => {
 		const agentMock = {
@@ -510,6 +517,52 @@ describe("callReactAgent", () => {
 			assert.ok(capturedOptions);
 			assert.strictEqual(capturedOptions.configurable.thread_id, "abc");
 			assert.strictEqual(capturedOptions.configurable.isNewThread, false);
+		});
+	});
+
+	describe("recursion limit handling", () => {
+		it("returns graceful message on GraphRecursionError in non-streaming mode", async () => {
+			const agentMock = {
+				invoke: () => {
+					throw new GraphRecursionError("Recursion limit of 25 reached");
+				},
+				streamEvents: () => ({}),
+			};
+
+			const result = await callReactAgent(agentMock, "test message", {}, null);
+			assert.ok(result.content.includes("maximum number of reasoning steps"));
+		});
+
+		it("returns graceful message on GraphRecursionError in streaming mode", async () => {
+			const agentMock = {
+				streamEvents: () => {
+					throw new GraphRecursionError("Recursion limit of 25 reached");
+				},
+				invoke: () => ({ messages: [new AIMessage("fallback")] }),
+			};
+
+			const result = await callReactAgent(agentMock, "test message", {}, null, () => {});
+			assert.ok(result.content.includes("maximum number of reasoning steps"));
+		});
+
+		it("still re-throws non-GraphRecursionError in non-streaming mode", async () => {
+			const agentMock = {
+				invoke: () => {
+					throw new Error("model error");
+				},
+				stream: () => ({}),
+				streamEvents: () => ({}),
+			};
+
+			let err = null;
+			try {
+				await callReactAgent(agentMock, "hi", null, "sys");
+			} catch (e) {
+				err = e;
+			}
+
+			assert.ok(err instanceof Error);
+			assert.strictEqual(err.message, "model error");
 		});
 	});
 });
