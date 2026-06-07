@@ -280,6 +280,12 @@ All configuration is controlled via environment variables in the `docker run` co
 | `TUI_NAME`         | `madz`   | TUI identifier in banner            |
 | `TUI_CURSOR_CHAR`  | `█`      | Cursor character                    |
 
+**Optional — Agent:**
+
+| Variable                 | Default | Description                          |
+|--------------------------|---------|--------------------------------------|
+| `AGENT_RECURSION_LIMIT`  | `30`    | Max graph execution steps per call   |
+
 **Optional — Persistence:**
 
 | Variable              | Default                  | Description                    |
@@ -434,9 +440,10 @@ Recurring job definitions in `config.yaml`. Supports both in-process scheduling 
 |                | `redact.paths`                     | `["credentials.apiKey", ...]`             | Sensitive field paths for redaction               |
 | `schedules`    | `maxConcurrent`                    | `1`                                       | Max parallel scheduled runs                       |
 |                | `mode`                             | `inprocess`                               | Scheduling backend (`inprocess`, `system`)        |
-| `tui`          | `name`                             | `madz`                                    | TUI identifier in banner                          |
-|                | `cursorChar`                       | `█`                                       | Cursor character                                  |
-| `persistence`  | `mode`                             | `memory`                                  | Storage backend (`memory`, `sqlite`)              |
+| `tui`          | `name`                             | `madz`                                  | TUI identifier in banner                          |
+|                | `cursorChar`                       | `█`                                     | Cursor character                                  |
+| `agent`        | `recursionLimit`                   | `30`                                    | Max graph execution steps per agent call          |
+| `persistence`  | `mode`                             | `memory`                                | Storage backend (`memory`, `sqlite`)              |
 |                | `sqlite_path`                      | `memory/checkpoints.db`                   | SQLite checkpointer file path                     |
 
 ## Testing

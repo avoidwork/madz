@@ -1,20 +1,25 @@
 import { createReactAgent as createReactAgentGraph } from "@langchain/langgraph/prebuilt";
 import { HumanMessage, SystemMessage, AIMessage, AIMessageChunk } from "@langchain/core/messages";
 
+const RECURSION_LIMIT_MESSAGE =
+	"I've reached the maximum number of reasoning steps on this thread. Please continue your message and I'll carry on, or start a new conversation if you'd prefer.";
+
 /**
  * Create a ReAct agent from a chat model and optional tools and checkpointer.
  * The agent uses LangGraph under the hood via `@langchain/langgraph/prebuilt`.
  * @param {ChatLanguageModel} model - A chat language model instance (e.g., ChatOpenAI)
  * @param {unknown[]} [tools=[]] - Optional array of LangChain tool definitions
  * @param {import("@langchain/langgraph").BaseCheckpointSaver | null} [checkpointer=null] - Optional LangGraph checkpointer for persistent conversation memory
+ * @param {number} [recursionLimit] - Optional LangGraph recursion limit for the agent graph
  * @returns {ReturnType<typeof createReactAgentGraph>} A compiled ReAct agent
  */
 /* node:coverage ignore next */
-export function createReactAgent(model, tools = [], checkpointer = null) {
+export function createReactAgent(model, tools = [], checkpointer = null, recursionLimit = null) {
 	return createReactAgentGraph({
 		llm: model,
 		tools,
 		...(checkpointer && { checkpointer }),
+		...(recursionLimit !== null && { recursionLimit }),
 	});
 }
 
@@ -43,8 +48,15 @@ export async function callReactAgent(agent, message, config, systemPrompt, callb
 		return callReactAgentStreaming(agent, messages, message, config, callback);
 	}
 
-	const result = await agent.invoke({ messages }, config);
-	return extractContent(result, message);
+	try {
+		const result = await agent.invoke({ messages }, config);
+		return extractContent(result, message);
+	} catch (err) {
+		if (err instanceof Error && err.name === "GraphRecursionError") {
+			return { content: RECURSION_LIMIT_MESSAGE };
+		}
+		throw err;
+	}
 }
 
 /**
@@ -86,101 +98,108 @@ async function callReactAgentStreaming(agent, initMessages, originalMessage, con
 		configurable: config?.configurable,
 	};
 
-	const stream = await agent.streamEvents(
-		{ messages: initMessages },
-		{ version: "v2", ...streamOptions },
-	);
-
 	let toolCallSet = new Set();
 
-	for await (const event of stream) {
-		// Chat model text/reasoning streaming events
-		if (event.event === "on_chat_model_stream") {
-			const chunk = event.data?.chunk;
-			if (!chunk) continue;
+	try {
+		const stream = await agent.streamEvents(
+			{ messages: initMessages },
+			{ version: "v2", ...streamOptions },
+		);
 
-			// Track final text content from chat model stream
-			let textContent = "";
-			if (typeof chunk.content === "string") {
-				textContent = chunk.content;
-			} else if (
-				typeof chunk.content === "object" &&
-				chunk.content !== null &&
-				!Array.isArray(chunk.content) &&
-				chunk.content.text
-			) {
-				textContent = chunk.content.text;
+		for await (const event of stream) {
+			// Chat model text/reasoning streaming events
+			if (event.event === "on_chat_model_stream") {
+				const chunk = event.data?.chunk;
+				if (!chunk) continue;
+
+				// Track final text content from chat model stream
+				let textContent = "";
+				if (typeof chunk.content === "string") {
+					textContent = chunk.content;
+				} else if (
+					typeof chunk.content === "object" &&
+					chunk.content !== null &&
+					!Array.isArray(chunk.content) &&
+					chunk.content.text
+				) {
+					textContent = chunk.content.text;
+				}
+
+				// Emit text content deltas
+				if (Array.isArray(chunk.content)) {
+					for (const block of chunk.content) {
+						if (block.type === "text" && block.text && block.text.length > 0) {
+							textContent = block.text;
+						}
+					}
+				}
+				if (textContent.length > 0) {
+					// For tool-invoking LLM calls, the text might be empty or tool-call-related
+					callback({ type: "text", text: textContent });
+					// Note: the TUI accumulates text in committedContent for the final response,
+					// so we don't need to track it here.
+				}
+
+				// Emit reasoning/thinking content
+				if (chunk.reasoning) {
+					callback({ type: "reasoning", text: chunk.reasoning });
+				}
 			}
 
-			// Emit text content deltas
-			if (Array.isArray(chunk.content)) {
-				for (const block of chunk.content) {
-					if (block.type === "text" && block.text && block.text.length > 0) {
-						textContent = block.text;
+			// Tool execution start
+			if (event.event === "on_tool_start" && event.name === "tool") {
+				const input = event.data?.input || {};
+				const toolCalls = Array.isArray(input.tool_calls) ? input.tool_calls : [];
+				for (const tc of toolCalls) {
+					const key = tc.name + "|" + tc.id;
+					if (!toolCallSet.has(key)) {
+						toolCallSet.add(key);
+						callback({
+							type: "tool_start",
+							toolName: tc.name || input.name || "unknown",
+							toolCallId: tc.id,
+						});
 					}
 				}
 			}
-			if (textContent.length > 0) {
-				// For tool-invoking LLM calls, the text might be empty or tool-call-related
-				callback({ type: "text", text: textContent });
-				// Note: the TUI accumulates text in committedContent for the final response,
-				// so we don't need to track it here.
+
+			// Tool execution end with result
+			if (event.event === "on_tool_end" && event.name === "tool") {
+				const output = event.data?.output || {};
+				const input = event.data?.input || {};
+				const toolCalls = Array.isArray(input.tool_calls) ? input.tool_calls : [];
+				const toolName = input.name || toolCalls[0]?.name || output.tool_calls?.[0]?.name || "tool";
+				const toolCallId = toolCalls[0]?.id || "";
+				const resultData =
+					output.content || toolCalls[0]?.output || output.tool_calls?.[0]?.output || "";
+
+				callback({
+					type: "tool_end",
+					toolName,
+					toolCallId,
+					data: typeof resultData === "string" ? resultData.slice(0, 500) : resultData,
+				});
 			}
 
-			// Emit reasoning/thinking content
-			if (chunk.reasoning) {
-				callback({ type: "reasoning", text: chunk.reasoning });
+			// Tool execution error
+			if (event.event === "on_tool_error" && event.name === "tool") {
+				const input = event.data?.input || {};
+				const toolCalls = Array.isArray(input.tool_calls) ? input.tool_calls : [];
+				const toolName = input.name || toolCalls[0]?.name || "unknown";
+				const toolCallId = toolCalls[0]?.id || "";
+				callback({
+					type: "tool_error",
+					toolName,
+					toolCallId,
+					error: event.data?.error,
+				});
 			}
 		}
-
-		// Tool execution start
-		if (event.event === "on_tool_start" && event.name === "tool") {
-			const input = event.data?.input || {};
-			const toolCalls = Array.isArray(input.tool_calls) ? input.tool_calls : [];
-			for (const tc of toolCalls) {
-				const key = tc.name + "|" + tc.id;
-				if (!toolCallSet.has(key)) {
-					toolCallSet.add(key);
-					callback({
-						type: "tool_start",
-						toolName: tc.name || input.name || "unknown",
-						toolCallId: tc.id,
-					});
-				}
-			}
+	} catch (err) {
+		if (err instanceof Error && err.name === "GraphRecursionError") {
+			return { content: RECURSION_LIMIT_MESSAGE };
 		}
-
-		// Tool execution end with result
-		if (event.event === "on_tool_end" && event.name === "tool") {
-			const output = event.data?.output || {};
-			const input = event.data?.input || {};
-			const toolCalls = Array.isArray(input.tool_calls) ? input.tool_calls : [];
-			const toolName = input.name || toolCalls[0]?.name || output.tool_calls?.[0]?.name || "tool";
-			const toolCallId = toolCalls[0]?.id || "";
-			const resultData =
-				output.content || toolCalls[0]?.output || output.tool_calls?.[0]?.output || "";
-
-			callback({
-				type: "tool_end",
-				toolName,
-				toolCallId,
-				data: typeof resultData === "string" ? resultData.slice(0, 500) : resultData,
-			});
-		}
-
-		// Tool execution error
-		if (event.event === "on_tool_error" && event.name === "tool") {
-			const input = event.data?.input || {};
-			const toolCalls = Array.isArray(input.tool_calls) ? input.tool_calls : [];
-			const toolName = input.name || toolCalls[0]?.name || "unknown";
-			const toolCallId = toolCalls[0]?.id || "";
-			callback({
-				type: "tool_error",
-				toolName,
-				toolCallId,
-				error: event.data?.error,
-			});
-		}
+		throw err;
 	}
 
 	// Emit tool_end for any tool_start that didn't get a corresponding tool_end
