@@ -56,8 +56,8 @@ async function generateWithFal(apiKey, prompt, timeout) {
  * @param {object} _options - Runtime options
  * @returns {Promise<string>} JSON result string
  */
-export async function imageGenerateImpl(input, _options) {
-	const { prompt, falApiKey, timeout } = input;
+export async function imageGenerateImpl(input, options) {
+	const { prompt, timeout } = input;
 
 	if (!prompt || typeof prompt !== "string" || prompt.trim().length === 0) {
 		return JSON.stringify({
@@ -70,7 +70,7 @@ export async function imageGenerateImpl(input, _options) {
 		return JSON.stringify({ ok: false, error: "Prompt must be 1000 characters or fewer" });
 	}
 
-	const apiKey = falApiKey || process.env.FAL_API_KEY;
+	const apiKey = options?.falApiKey;
 	if (!apiKey) {
 		return JSON.stringify({
 			ok: false,
@@ -105,7 +105,7 @@ export const image_generate = tool(imageGenerateImpl, {
 		"Generate an image from a text prompt using FAL.ai (FLUX Klein model). Returns a public image URL. Requires FAL_API_KEY environment variable",
 	schema: z.object({
 		prompt: z.string().min(1).max(1000).describe("Text description of the image to generate"),
-		falApiKey: z.string().optional().describe("FAL.ai API key (falls back to FAL_API_KEY env var)"),
+		falApiKey: z.string().optional().describe("FAL.ai API key"),
 		timeout: z
 			.number()
 			.int()
@@ -130,7 +130,7 @@ export function createImageTool(options) {
 			"Generate an image from a text prompt using FAL.ai (FLUX Klein model). Returns a public image URL.",
 		schema: z.object({
 			prompt: z.string().min(1).max(1000).describe("Text description of the image to generate"),
-			falApiKey: z.string().optional().describe("FAL.ai API key (falls back to FAL_API_KEY)"),
+			falApiKey: z.string().optional().describe("FAL.ai API key"),
 			timeout: z
 				.number()
 				.int()

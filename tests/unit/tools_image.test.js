@@ -34,14 +34,14 @@ describe("image_generate", () => {
 		assert.ok(parsed.error.includes("1000 characters"));
 	});
 
-	it("requires FAL_API_KEY", async () => {
+	it("returns error when falApiKey is not set", async () => {
 		const result = await imageGenerateImpl({ prompt: "a cat" }, {});
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("FAL_API_KEY"));
 	});
 
-	it("accepts falApiKey parameter as override", async () => {
+	it("uses falApiKey from options", async () => {
 		globalThis.fetch = async () => ({
 			ok: true,
 			json: async () => ({
@@ -49,8 +49,8 @@ describe("image_generate", () => {
 			}),
 		});
 		const result = await imageGenerateImpl(
-			{ prompt: "a sunset", falApiKey: "sk-fake-fal-key" },
-			{},
+			{ prompt: "a sunset" },
+			{ falApiKey: "sk-fake-fal-key" },
 		);
 		const parsed = JSON.parse(result);
 		assert.ok(parsed.ok);
@@ -70,7 +70,7 @@ describe("image_generate", () => {
 				json: async () => ({ images: [{ url: "https://fal.ai/result.png" }] }),
 			};
 		};
-		const result = await imageGenerateImpl({ prompt: "a mountain", falApiKey: "sk-test" }, {});
+		const result = await imageGenerateImpl({ prompt: "a mountain" }, { falApiKey: "sk-test" });
 		const parsed = JSON.parse(result);
 		assert.ok(parsed.ok);
 	});
@@ -81,7 +81,7 @@ describe("image_generate", () => {
 			status: 429,
 			text: async () => "Rate limit exceeded",
 		});
-		const result = await imageGenerateImpl({ prompt: "test", falApiKey: "sk-fake-key" }, {});
+		const result = await imageGenerateImpl({ prompt: "test" }, { falApiKey: "sk-fake-key" });
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("FAL.ai"));
@@ -92,7 +92,7 @@ describe("image_generate", () => {
 			ok: true,
 			json: async () => ({ messages: [] }), // no images key
 		});
-		const result = await imageGenerateImpl({ prompt: "test", falApiKey: "sk-fake-key" }, {});
+		const result = await imageGenerateImpl({ prompt: "test" }, { falApiKey: "sk-fake-key" });
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("missing image"));
@@ -102,7 +102,7 @@ describe("image_generate", () => {
 		globalThis.fetch = async () => {
 			throw new Error("Network error");
 		};
-		const result = await imageGenerateImpl({ prompt: "test", falApiKey: "sk-fake-key" }, {});
+		const result = await imageGenerateImpl({ prompt: "test" }, { falApiKey: "sk-fake-key" });
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("Network error"));
