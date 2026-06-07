@@ -8,6 +8,7 @@ This document describes how madz is structured, how subsystems interact, and the
 
 - [System Diagram](#system-diagram)
 - [Entry Point](#entry-point)
+- [Docker](#docker)
 - [Config](#config)
 - [Provider](#provider)
 - [Agent](#agent)
@@ -97,6 +98,42 @@ dispatchProvider │ handleConversation │ invokeSkill
 handleShutdown │ scheduleManager │ setConfigValue
 loadContext │ writeMemoryFile │ readMemoryFile │ cleanRetainedMemory
 ```
+
+---
+
+## Docker
+
+The project includes a multi-stage Dockerfile (`Dockerfile`) that builds a Node.js 24 Alpine container with SSH access. The final image contains the application, `sshd`, Python 3, Ruby, bash, git, jq, wget, and utility tools needed by skill scripts.
+
+**Build stages:**
+
+1. **Builder** — `node:24-alpine` with build tools (`python3`, `make`, `g++`). Installs `node_modules` from `package-lock.json`, runs tests, prunes dev dependencies for a slim production image.
+2. **Runtime** — `node:24-alpine` with SSH server, UV (Python package manager), and common CLI tools. Copies only production artifacts from the builder stage.
+
+**User configuration:**
+
+The container runs as the `madz` user with group `node` (primary group). The user is created with an **empty (disabled) password**, enabling passwordless SSH auth. The `sshd_config` has `PermitEmptyPasswords yes` to allow this.
+
+**Entry point:**
+
+`docker-entrypoint.sh` starts `sshd` and runs `sleep infinity` to keep the container alive. On first login, the `madz` user's `.profile` automatically executes `cd /app && npm start`.
+
+**SSH access:**
+
+The container exposes port 22, mapped to host port 2222 via docker-compose:
+
+```bash
+ssh -p 2222 madz@localhost
+```
+
+**Volume mounts:**
+
+| Mount | Host Path | Purpose |
+|-------|-----------|---------|
+| `/app/memory` | `./memory` | Persistent memory files (conversations, context, tools) |
+| `/app/skills` | `./skills` | Custom skill scripts and SKILL.md files |
+
+Both volumes are owned by `madz:node` with `g+rwX` permissions for shared read/write access.
 
 ---
 

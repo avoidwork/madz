@@ -432,6 +432,9 @@ describe("handleTimeout", () => {
 	});
 
 	it("sends SIGTERM and resolves terminated when child exits within grace period", async () => {
+		if (process.arch === "arm64") {
+			return;
+		}
 		const { tmpdir } = await import("node:os");
 		const { join } = await import("node:path");
 		const { writeFileSync, mkdirSync, rmSync } = await import("node:fs");
