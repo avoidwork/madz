@@ -22,11 +22,11 @@ RUN apk add --no-cache python3 ruby curl bash jq unzip wget ca-certificates git 
     ssh-keygen -A && \
     mkdir -p /run/sshd && \
     adduser -S -G node -h /home/madz -s /bin/sh madz && \
-    printf '%s\n' '#!/bin/sh' 'cd /app || exit 1' 'exec npm start' > /home/madz/.profile && \
+    printf '%s\n' '#!/bin/sh' '[ -f /etc/profile.d/madz-env.sh ] && . /etc/profile.d/madz-env.sh' 'cd /app || exit 1' 'exec npm start' > /home/madz/.profile && \
     chown madz:node /home/madz/.profile && \
     passwd -d madz && \
     sed -i 's/^#*PermitEmptyPasswords.*/PermitEmptyPasswords yes/' /etc/ssh/sshd_config && \
-    printf '%s\n' 'AcceptEnv OPENAI_API_KEY' 'AcceptEnv OPENROUTER_API_KEY' 'AcceptEnv FAL_API_KEY' 'AcceptEnv EXA_API_KEY' 'AcceptEnv BING_API_KEY' 'AcceptEnv CUSTOM_SEARCH_URL' 'AcceptEnv CUSTOM_API_KEY' 'AcceptEnv SEARXNG_URL' >> /etc/ssh/sshd_config && \
+    printf '%s\n' 'AcceptEnv *' >> /etc/ssh/sshd_config && \
     curl -LsSf https://astral.sh/uv/install.sh | sh && \
     mv /root/.local/bin/uv /usr/local/bin/uv
 
