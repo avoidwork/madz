@@ -37,7 +37,7 @@ COPY src/ ./src/
 COPY config.yaml ./
 COPY index.js ./
 
-RUN chown -R madz:madz /app && \
+RUN chown -R madz:node /app && \
     chmod -R g+rwX /app
 
 EXPOSE 22
