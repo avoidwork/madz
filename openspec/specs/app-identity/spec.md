@@ -1,39 +1,16 @@
 ## ADDED Requirements
 
 ### Requirement: App Identity Display
-The system SHALL display the application name and version pinned to the far right edge of the TUI input panel, with the input text filling all available space between the prompt and the identity label.
+The system SHALL display the application version once in the startup banner, positioned below the ASCII art. The version is not displayed persistently anywhere else in the TUI.
 
-#### Scenario: Default app name and version displayed
-- **WHEN** the TUI renders the input panel in interactive mode
-- **THEN** the system displays `> ` followed by the user input text filling available space, then an empty space where the text ended, then `madz` in cyan, then `v1.0.0` in white, pinned to the right edge of the terminal
+#### Scenario: Version displayed in banner on TUI launch
+- **WHEN** the user starts the app in interactive mode (`--mode interactive`)
+- **THEN** the system renders a banner containing ASCII art and the application version string (e.g., `v1.2.3`) displayed below the ASCII art
 
-#### Scenario: Identity pinned right regardless of input length
-- **WHEN** the user types a short input (e.g., `hi`) and a long input (e.g., `this is a very long message that extends far`)
-- **THEN** the identity label remains fixed at the far right edge of the terminal in both cases
+#### Scenario: Banner dismisses on any key press
+- **WHEN** the banner is displayed and the user presses any key
+- **THEN** the system hides the banner and immediately displays the normal chat interface with the conversation panel and input bar, and the version is no longer shown
 
-#### Scenario: Custom app name from config
-- **WHEN** `config.tui.name` is set to a different value (e.g., `"oracle"`)
-- **THEN** the system displays the input text filling space, followed by `<custom-name>` in cyan and `v1.0.0` in white pinned to the right
-
-#### Scenario: Version reflects package.json
-- **WHEN** the application version in `package.json` is updated
-- **THEN** the displayed version matches the `package.json` version
-
-#### Scenario: Short input with space-padded identity
-- **WHEN** the user input is shorter than terminal width
-- **THEN** the remaining space between the input text and the identity label is empty (space-padded)
-
-### Requirement: Input Panel Right-Side Identity
-The application name and version SHALL be rendered as the rightmost elements in the input panel, with flexbox grow allocated to the input text element.
-
-#### Scenario: Right-side positioning with command mode
-- **WHEN** the user is in command mode typing `:quit`
-- **THEN** the system displays `: ` at the left, the input text filling available space, and the identity label pinned to the right
-
-#### Scenario: App name styled cyan, version styled white
-- **WHEN** the identity label is rendered
-- **THEN** the app name is rendered using the `color` prop `"cyan"` and the version is rendered using the `color` prop `"white"`
-
-#### Scenario: Input text uses flex grow
-- **WHEN** the input panel renders its children
-- **THEN** the input Text component has `flex: { grow: 1 }` (or Ink equivalent) to fill remaining space between the prompt and the identity label
+#### Scenario: Version is not displayed persistently
+- **WHEN** the user is actively using the TUI in conversation mode
+- **THEN** the application version is not visible in the status bar, input panel, or any persistent UI element
