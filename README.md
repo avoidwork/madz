@@ -6,11 +6,10 @@
 
 Built on LangGraph, OpenTelemetry, and Ink — with persistent memory, sandboxed skill execution, cron scheduling, and a React-powered TUI.
 
-[![Status: Beta](https://img.shields.io/badge/status-beta-orange.svg)](#overview)
 [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD--3--Clause-blue.svg)](LICENSE)
 [![Node.js >= 24](https://img.shields.io/badge/node-%3E%3D24-brightgreen)](https://nodejs.org)
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen)](#testing)
-[![Coverage](https://img.shields.io/badge/coverage-98.30%25-brightgreen)](#testing)
+[![Coverage](https://img.shields.io/badge/coverage-93.37%25-brightgreen)](#testing)
 
 ## Table of Contents
 
