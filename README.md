@@ -6,8 +6,6 @@
 
 Built on LangGraph, OpenTelemetry, and Ink — with persistent memory, sandboxed skill execution, cron scheduling, and a React-powered TUI.
 
-> **Recommended deployment:** `docker pull avoidwork/madz:latest` — see the [Docker](#docker) section for the full `docker run` command and config options.
-
 [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD--3--Clause-blue.svg)](LICENSE)
 [![Node.js >= 24](https://img.shields.io/badge/node-%3E%3D24-brightgreen)](https://nodejs.org)
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen)](#testing)
@@ -26,6 +24,7 @@ Built on LangGraph, OpenTelemetry, and Ink — with persistent memory, sandboxed
   - [Building](#building)
   - [Running](#running)
   - [SSH Access](#ssh-access)
+  - [Environment Variables](#environment-variables)
 - [Features](#features)
   - [Onboarding](#onboarding)
   - [LLM Provider Abstraction](#llm-provider-abstraction)
@@ -69,13 +68,11 @@ docker run -d \
   -v ./memory:/app/memory \
   -v ./skills:/app/skills \
   -e OPENAI_API_KEY="your-key" \
-  -e OPENAI_MODEL=gpt-4o \
-  -e OPENAI_BASE_URL=https://api.openai.com/v1 \
   avoidwork/madz:latest
 ssh -p 2222 madz@localhost
 ```
 
-See [Docker](#docker) for the full command with all optional environment variables.
+The full `docker run` command with all optional variables is in the [Docker Environment Variables](#environment-variables) section below.
 
 ### Prerequisites
 
@@ -95,9 +92,9 @@ npm install
 
 Copy `config.yaml` and set your LLM provider credentials. Environment variable references (`${VAR_NAME}`) are resolved at load time.
 
-**Docker** — use the `docker run` command with all required environment variables shown in the [Docker](#docker) section, or provide `config.yaml` via a volume mount.
+**Docker** — pass environment variables via `docker run` or provide `config.yaml` via a volume mount. All configurable variables are listed in the [Docker Environment Variables](#environment-variables) section.
 
-> Full configuration keys, defaults, and environment variable names are documented in [Config Reference](#config-reference).
+For the full configuration reference with defaults, see the [Config Reference](#config-reference) table at the end of this document.
 
 ### Running
 
@@ -191,6 +188,118 @@ npm start &
 ```
 
 Volume mounts (`memory/`, `skills/`) are owned by the `madz` user with group `node` for shared write access.
+
+### Environment Variables
+
+All configuration is controlled via environment variables in the `docker run` command. Variable names follow `UPPER_SNAKE_CASE` of the config key path (e.g., `sandbox.timeout.seconds` → `SANDBOX_TIMEOUT_SECONDS`). Container keys like `providers`, `credentials`, `timeout`, and `search` are dropped from the env var name.
+
+**Essential:**
+
+| Variable             | Required | Default                  | Description                     |
+|----------------------|----------|--------------------------|---------------------------------|
+| `OPENAI_API_KEY`     | Yes      | *(empty)*                | LLM provider API key            |
+
+**Optional — Providers:**
+
+| Variable                           | Default          | Description                             |
+|------------------------------------|------------------|-----------------------------------------|
+| `OPENAI_BASE_URL`                  | `https://api.openai.com/v1` | API endpoint URL                      |
+| `OPENAI_MODEL`                     | `gpt-4o`         | Model name                              |
+| `OPENAI_TEMPERATURE`               | `0.7`            | Sampling temperature (0–2)              |
+| `OPENAI_MAX_TOKENS`                | `4096`           | Max output tokens                       |
+| `OPENAI_REQUESTS_PER_MINUTE`       | `60`             | Rate limit for API calls                |
+| `OPENROUTER_API_KEY`               | *(empty)*        | OpenRouter API key                      |
+| `OPENROUTER_MODEL`                 | `openrouter/auto` | OpenRouter model name                  |
+
+**Optional — Tools:**
+
+| Variable               | Default | Description                              |
+|------------------------|---------|------------------------------------------|
+| `FAL_API_KEY`          | *(empty)* | Fal.ai API key (image generation)       |
+| `EXA_API_KEY`          | *(empty)* | Exa search API key                     |
+| `FIRECRAWL_API_KEY`    | *(empty)* | Firecrawl API key                      |
+| `TAVILY_API_KEY`       | *(empty)* | Tavily search API key                  |
+| `PARALLEL_API_KEY`     | *(empty)* | Parallel search API key                |
+| `SEARXNG_URL`          | *(empty)* | SearXNG search instance URL             |
+| `BING_API_KEY`         | *(empty)* | Bing search API key                    |
+| `CUSTOM_SEARCH_URL`    | *(empty)* | Custom search engine URL                 |
+| `CUSTOM_SEARCH_METHOD` | *(empty)* | Custom search HTTP method                 |
+| `CUSTOM_SEARCH_HEADERS` | *(empty)* | Custom search headers (JSON string)    |
+| `CUSTOM_SEARCH_QUERY_KEY` | *(empty)* | Custom search query key              |
+| `CUSTOM_SEARCH_TITLE_FIELD` | *(empty)* | Custom search title field           |
+| `CUSTOM_SEARCH_URL_FIELD` | *(empty)* | Custom search URL field               |
+| `CUSTOM_SEARCH_DESCRIPTION_FIELD` | *(empty)* | Custom search description field |
+
+**Optional — Sandbox:**
+
+| Variable                         | Default                           | Description                            |
+|----------------------------------|-----------------------------------|----------------------------------------|
+| `SANDBOX_PATHS`                  | `memory/, skills/, tmp/`          | Allowed filesystem paths (comma-separated) |
+| `SANDBOX_TIMEOUT_SECONDS`        | `30`                              | Max execution time in seconds            |
+| `SANDBOX_GRACE_PERIOD`           | `5`                               | Kill grace period in seconds             |
+| `SANDBOX_MEMORY_LIMIT`           | `512m`                            | Heap limit (`--max-old-space-size`)     |
+| `SANDBOX_URL_FILTER`             | `true`                            | Outbound URL blocking                 |
+| `SANDBOX_PYTHON_IMPORT_HOOK`     | `true`                            | Prevent subprocess import              |
+| `SANDBOX_ENV_ALLOWLIST`          | `PATH, HOME, NODE_ENV`            | Allowed env vars (comma-separated)      |
+| `SANDBOX_PERMISSIONS`            | *(none)*                          | Permission grants                      |
+| `SANDBOX_MAX_READ_SIZE`          | `1mb`                             | Max file read size                      |
+| `SANDBOX_SKILL_SCAN_PATHS`       | `skills/, .agents/skills/`        | Skill scan paths (comma-separated)       |
+| `SANDBOX_TRUST_PROJECT_SKILLS`   | `true`                            | Trust skills in project root            |
+
+**Optional — Memory:**
+
+| Variable              | Default               | Description                        |
+|-----------------------|-----------------------|------------------------------------|
+| `MEMORY_DIRECTORY`    | `memory/`             | Base directory for persistence     |
+| `MEMORY_CONTEXT_DIR`  | `memory/context/`     | Context file directory             |
+| `MEMORY_TOOLS_DIR`    | `memory/tools/`       | Tool metadata directory            |
+| `MEMORY_ERRORS_DIR`   | `memory/errors/`      | Error log directory                |
+| `MEMORY_SCHEDULES_DIR`| `memory/schedules/`   | Cron result files directory        |
+
+**Optional — Telemetry:**
+
+| Variable                        | Default                    | Description                        |
+|---------------------------------|----------------------------|------------------------------------|
+| `TELEMETRY_ENABLED`             | `false`                    | Enable OpenTelemetry export          |
+| `TELEMETRY_EXPORTER_PROTOCOL`   | `console`                  | Exporter protocol                    |
+| `TELEMETRY_EXPORTER_ENDPOINT`   | `http://localhost:4318`    | OTLP endpoint URL                    |
+| `TELEMETRY_EXPORTER_MAX_SIZE`   | `512`                      | Batch size before flush              |
+| `TELEMETRY_EXPORTER_SCHEDULED_DELAY` | `5000`                | Scheduled flush interval in ms       |
+| `TELEMETRY_SAMPLING_RATIO`      | `0.1`                      | Trace probability                    |
+
+**Optional — Schedules:**
+
+| Variable                  | Default         | Description                        |
+|---------------------------|-----------------|------------------------------------|
+| `SCHEDULES_MAX_CONCURRENT`| `1`             | Max parallel scheduled runs         |
+| `SCHEDULES_MODE`          | `inprocess`     | Scheduling backend                  |
+
+**Optional — TUI:**
+
+| Variable           | Default  | Description                         |
+|--------------------|----------|-------------------------------------|
+| `TUI_NAME`         | `madz`   | TUI identifier in banner            |
+| `TUI_CURSOR_CHAR`  | `█`      | Cursor character                    |
+
+**Optional — Persistence:**
+
+| Variable              | Default                  | Description                    |
+|-----------------------|--------------------------|--------------------------------|
+| `PERSISTENCE_MODE`    | `memory`                 | Storage backend               |
+| `PERSISTENCE_SQLITE_PATH` | `memory/checkpoints.db` | SQLite checkpointer path   |
+
+**Alternative: inline env var references in `config.yaml`:**
+
+Instead of passing env vars to `docker run`, reference them directly in `config.yaml`:
+
+```yaml
+providers:
+  openai:
+    credentials:
+      apiKey: "${OPENAI_API_KEY}"
+```
+
+This is the recommended approach for container deployments — keep secrets out of `docker inspect` output.
 
 ## Features
 
@@ -385,10 +494,10 @@ Skills follow the [Agent Skills spec](https://agentskills.io/specification). Eac
 
 ### Environment Variables
 
-Env vars can be used in two ways:
+`madz` supports two environment variable patterns:
 
-1. **Direct** — set env vars to override config values. Env var names follow `UPPER_SNAKE_CASE` of the config key path (e.g., `sandbox.timeout.seconds` → `SANDBOX_SECONDS`). See [Config Reference](#config-reference) for all defaults.
-2. **Inline** — reference env vars in `config.yaml` using `${VAR_NAME}` syntax:
+1. **Direct override** — set env vars to override `config.yaml` values. Names follow `UPPER_SNAKE_CASE` of the config key path (e.g., `sandbox.timeout.seconds` → `SANDBOX_TIMEOUT_SECONDS`). Docker users: see the [Environment Variables](#environment-variables) section under Docker for the full table.
+2. **Inline reference in `config.yaml`** — use `${VAR_NAME}` syntax in config values:
 
 ```yaml
 providers:
@@ -397,7 +506,7 @@ providers:
       apiKey: "${OPENAI_API_KEY}"
 ```
 
-**Common env vars:** `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `OPENAI_MODEL`, `SANDBOX_SECONDS`, `SANDBOX_MEMORY_LIMIT`, `TUI_NAME`, `PERSISTENCE_MODE`.
+For Docker-specific configuration, see the [Environment Variables](#environment-variables) section under Docker.
 
 See [Config Reference](#config-reference) for the full list of configuration keys and their defaults.
 
