@@ -22,8 +22,7 @@ RUN apk add --no-cache python3 ruby curl bash jq unzip wget ca-certificates git 
     ssh-keygen -A && \
     mkdir -p /run/sshd && \
     adduser -S -G node -h /home/madz -s /bin/sh madz && \
-    printf '%s\n' '#!/bin/sh' '[ -f /etc/profile.d/madz-env.sh ] && . /etc/profile.d/madz-env.sh' 'cd /app || exit 1' 'exec npm start' > /home/madz/.profile && \
-    chown madz:node /home/madz/.profile && \
+    printf '%s\n' '#!/bin/sh' '[ -f /etc/profile.d/madz-env.sh ] && . /etc/profile.d/madz-env.sh' 'if [ -x "/app" ]; then' '    echo "Starting madz..."' '    cd /app && exec npm start' 'fi' > /etc/profile && \
     passwd -d madz && \
     sed -i 's/^#*PermitEmptyPasswords.*/PermitEmptyPasswords yes/' /etc/ssh/sshd_config && \
     printf '%s\n' 'AcceptEnv *' >> /etc/ssh/sshd_config && \
