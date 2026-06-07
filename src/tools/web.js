@@ -199,7 +199,8 @@ async function searchWithCustom(cfg, query, limit) {
  * @returns {string} Engine name or "none" (should never be none as DuckDuckGo always works)
  */
 export function detectSearchBackend(options) {
-	if (options?.searchCustomConfig) return "custom";
+	const custom = options?.searchCustomConfig;
+	if (custom?.url) return "custom";
 	if (options?.searchBingApiKey) return "bing";
 	if (options?.searchSearxngUrl) return "searxng";
 	return "duckduckgo"; // fallback, always available
