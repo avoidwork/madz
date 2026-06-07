@@ -13,8 +13,7 @@ COPY tests/ ./tests/
 COPY index.js ./
 COPY config.yaml ./
 
-RUN npm test && \
-    npm prune --omit=dev && \
+RUN npm prune --omit=dev && \
     npm cache clean --force
 
 FROM node:24-alpine
@@ -41,6 +40,8 @@ COPY index.js ./
 
 RUN chown -R madz:madz /app && \
     chmod -R g+rw /app
+
+USER madz
 
 EXPOSE 22
 
