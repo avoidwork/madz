@@ -434,7 +434,6 @@ export default function App({
 		skillCount: skillList.length,
 		messageCount: messages.length,
 		statusMessage: statusMessage,
-		appInfo: appInfo,
 	};
 
 	return React.createElement(
@@ -454,7 +453,10 @@ export default function App({
 					},
 				})
 			: showBanner
-				? React.createElement(Banner, { onDismiss: () => setShowBanner(false) })
+				? React.createElement(Banner, {
+						onDismiss: () => setShowBanner(false),
+						version: appInfo ? appInfo.version : undefined,
+					})
 				: React.createElement(ConversationPanel, {
 						messages: messages,
 						assistantName: config?.tui?.name || "Assistant",

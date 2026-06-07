@@ -36,8 +36,9 @@ const SEPARATOR = "─".repeat(70);
  * Fixed top-left alignment. Dismisses on any key press.
  * @param {Object} props
  * @param {() => void} props.onDismiss - callback to dismiss the banner
+ * @param {string} [props.version] - optional version string to display below ASCII art
  */
-export function Banner({ onDismiss }) {
+export function Banner({ onDismiss, version }) {
 	const [dismissed, setDismissed] = useState(false);
 
 	useInput((input, key) => {
@@ -57,6 +58,10 @@ export function Banner({ onDismiss }) {
 	const children = lines.map((line, i) =>
 		React.createElement(Text, { key: "art-" + i, color: "cyan" }, line),
 	);
+
+	if (version) {
+		children.push(React.createElement(Text, { key: "version" }, version));
+	}
 
 	children.push(
 		React.createElement(

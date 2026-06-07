@@ -52,11 +52,11 @@ The system SHALL allow users to issue commands via a slash-syntax (`:command`) i
 - **THEN** the system displays the last 50 memory entries in the memory panel
 
 ### Requirement: Startup Banner Display
-The system SHALL display a BBS-style startup banner with ASCII art and a built-in command help menu when the TUI enters interactive mode.
+The system SHALL display a BBS-style startup banner with ASCII art and a built-in command help menu when the TUI enters interactive mode. The banner SHALL also display the application version string below the ASCII art.
 
 #### Scenario: Banner renders on TUI launch
 - **WHEN** the user starts the app in interactive mode (`--mode interactive`)
-- **THEN** the system renders a banner containing ASCII art (project logo) and a grouped list of available commands before showing the conversation panel
+- **THEN** the system renders a banner containing ASCII art (project logo), the application version string below the ASCII art, and a grouped list of available commands before showing the conversation panel
 
 #### Scenario: Banner dismisses on any key press
 - **WHEN** the banner is displayed and the user presses any key
