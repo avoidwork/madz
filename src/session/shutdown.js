@@ -16,9 +16,8 @@ export async function handleShutdown(options = {}) {
 		if (flushTelemetry) {
 			await flushTelemetry();
 		}
-	} catch (err) {
+	} catch (_err) {
 		// Suppress telemetry flush errors — log but don't throw
-		console.error("Error during telemetry flush:", err);
 	}
 
 	if (saveSession) {

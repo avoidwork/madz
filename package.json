@@ -19,6 +19,9 @@
     "type": "git",
     "url": "git+https://github.com/avoidwork/madz.git"
   },
+  "engines": {
+    "node": ">=24"
+  },
   "license": "BSD-3-Clause",
   "author": "Jason Mulligan <jason.mulligan@avoidwork.com>",
   "type": "module",
