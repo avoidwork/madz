@@ -22,16 +22,15 @@ RUN apk add --no-cache python3 ruby curl bash jq unzip wget ca-certificates git 
     ssh-keygen -A && \
     mkdir -p /run/sshd && \
     adduser -S -G node -h /home/madz -s /bin/sh madz && \
-    echo -e '#!/bin/sh\ncd /app || exit 1\nexec npm start' > /home/madz/.profile && \
+    printf '%s\n' '#!/bin/sh' 'cd /app || exit 1' 'exec npm start' > /home/madz/.profile && \
     chown madz:node /home/madz/.profile && \
     passwd -d madz && \
     sed -i 's/^#*PermitEmptyPasswords.*/PermitEmptyPasswords yes/' /etc/ssh/sshd_config && \
+    printf '%s\n' 'AcceptEnv OPENAI_API_KEY' 'AcceptEnv OPENROUTER_API_KEY' 'AcceptEnv FAL_API_KEY' 'AcceptEnv EXA_API_KEY' 'AcceptEnv BING_API_KEY' 'AcceptEnv CUSTOM_SEARCH_URL' 'AcceptEnv CUSTOM_API_KEY' 'AcceptEnv SEARXNG_URL' >> /etc/ssh/sshd_config && \
     curl -LsSf https://astral.sh/uv/install.sh | sh && \
     mv /root/.local/bin/uv /usr/local/bin/uv
 
 WORKDIR /app
-
-ENV NODE_ENV=production
 
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package*.json ./
@@ -39,10 +38,11 @@ COPY src/ ./src/
 COPY config.yaml ./
 COPY index.js ./
 COPY prompts/ ./prompts/
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
 
 RUN chown -R madz:node /app && \
     chmod -R g+rwX /app
 
-EXPOSE 22
-
+ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["/usr/sbin/sshd", "-D"]
