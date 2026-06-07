@@ -175,7 +175,7 @@ export function discoverSkills(scope = "skills/", options = {}) {
 			if (!name) continue;
 
 			if (seenNames.has(name)) {
-				const _existingPath = seenNames.get(name);
+				const existingPath = seenNames.get(name);
 				const isNewHigherPriority = skill.path.includes(".agents/skills");
 				if (isNewHigherPriority) {
 					// Project-level skills override user-level (shadow)

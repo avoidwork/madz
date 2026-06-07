@@ -89,7 +89,7 @@ function aggregateResponses(responses, userMessage) {
  * @param {object} _options - Runtime options
  * @returns {Promise<string>} JSON result string
  */
-export async function mixtureOfAgentsImpl(input, options) {
+export async function mixtureOfAgentsImpl(input, _options) {
 	const { message, models } = input;
 
 	if (!message || typeof message !== "string" || message.trim().length === 0) {
@@ -99,7 +99,7 @@ export async function mixtureOfAgentsImpl(input, options) {
 		});
 	}
 
-	const apiKey = options?.openrouterApiKey;
+	const apiKey = process.env.OPENROUTER_API_KEY;
 	if (!apiKey) {
 		return JSON.stringify({
 			ok: false,

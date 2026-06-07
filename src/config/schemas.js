@@ -6,82 +6,18 @@ export const RateLimitSchema = z.object({
 	requestsPerMinute: z.number().int().positive().default(60),
 });
 
-const OpenAICredentialsSchema = z.object({
+export const CredentialsSchema = z.object({
 	apiKey: z.string().min(1),
 });
 
-const OpenRouterCredentialsSchema = z.object({
-	apiKey: z.string().optional().default(""),
-});
-
-const FalCredentialsSchema = z.object({
-	apiKey: z.string().optional().default(""),
-});
-
-const ExaSearchSchema = z.object({
-	apiKey: z.string().optional().default(""),
-});
-
-const FirecrawlSearchSchema = z.object({
-	apiKey: z.string().optional().default(""),
-});
-
-const TavilySearchSchema = z.object({
-	apiKey: z.string().optional().default(""),
-});
-
-const ParallelSearchSchema = z.object({
-	apiKey: z.string().optional().default(""),
-});
-
-const SearXNGSearchSchema = z.object({
-	url: z.string().optional().default(""),
-});
-
-const BingSearchSchema = z.object({
-	apiKey: z.string().optional().default(""),
-});
-
-const CustomSearchSchema = z.object({
-	url: z.string().optional().default(""),
-	method: z.string().optional().default(""),
-	body: z.string().optional().default(""),
-	headers: z.string().optional().default(""),
-	queryKey: z.string().optional().default(""),
-	titleField: z.string().optional().default(""),
-	urlField: z.string().optional().default(""),
-	descriptionField: z.string().optional().default(""),
-	apiKey: z.string().optional().default(""),
-});
-
-const SearchConfigSchema = z.object({
-	exa: ExaSearchSchema.default({}),
-	firecrawl: FirecrawlSearchSchema.default({}),
-	tavily: TavilySearchSchema.default({}),
-	parallel: ParallelSearchSchema.default({}),
-	searxng: SearXNGSearchSchema.default({}),
-	bing: BingSearchSchema.default({}),
-	custom: CustomSearchSchema.default({}),
-});
-
-const _OpenaiProviderConfigSchema = z.object({
-	type: z.literal("openai").default("openai"),
-	base_url: z.string().url().default("https://api.openai.com/v1"),
+const _ProviderConfigBase = z.object({
+	type: z.enum(["openai"]),
+	base_url: z.string().url(),
 	model: z.string().min(1),
-	credentials: OpenAICredentialsSchema,
+	credentials: CredentialsSchema,
 	temperature: z.number().min(0).max(2).default(0.7),
 	maxTokens: z.number().int().positive().default(4096),
 	rateLimit: RateLimitSchema.default({ requestsPerMinute: 60 }),
-});
-
-const _OpenrouterProviderConfigSchema = z.object({
-	model: z.string().optional().default("openrouter/auto"),
-	credentials: OpenRouterCredentialsSchema,
-});
-
-const _FalProviderConfigSchema = z.object({
-	model: z.string().optional().default("fal-ai/flux"),
-	credentials: FalCredentialsSchema,
 });
 
 export const ProvidersSchema = z.object({}).passthrough();
@@ -186,7 +122,6 @@ export const PersistenceSchema = z.object({
 export const ConfigSchema = z.object({
 	providers: ProvidersSchema,
 	sandbox: SandboxScopeSchema,
-	search: SearchConfigSchema.default({}),
 	memory: MemorySchema,
 	telemetry: TelemetrySchema,
 	schedules: SchedulesSchema,
@@ -197,15 +132,6 @@ export const ConfigSchema = z.object({
 // Default values exported for merging
 export const DEFAULT_CONFIG = {
 	providers: {},
-	search: {
-		exa: {},
-		firecrawl: {},
-		tavily: {},
-		parallel: {},
-		searxng: {},
-		bing: {},
-		custom: {},
-	},
 	sandbox: {
 		paths: ["memory/", "skills/", "tmp/"],
 		timeout: { seconds: 30, gracePeriod: 5 },

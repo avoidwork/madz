@@ -1,119 +1,154 @@
-import { describe, it, before, after } from "node:test";
+import { describe, it, before, after, beforeEach, afterEach } from "node:test";
 import assert from "node:assert";
 import { webSearchImpl, webExtractImpl, detectSearchBackend } from "../../src/tools/web.js";
 
 describe("web_search", () => {
-	let origFetch;
+	let origFetch, origEnv;
 
 	before(() => {
 		origFetch = globalThis.fetch;
+		origEnv = { ...process.env };
 	});
 
 	after(() => {
 		globalThis.fetch = origFetch;
+		Object.assign(process.env, origEnv);
 	});
+
+	afterEach(() => {
+		delete process.env.SEARXNG_URL;
+		delete process.env.BING_API_KEY;
+		delete process.env.CUSTOM_SEARCH_URL;
+	});
+
+	let _saved = {};
+	function setEnv(vars) {
+		_saved = { ...process.env };
+		for (const [k, v] of Object.entries(vars || {})) {
+			if (v === undefined) {
+				delete process.env[k];
+			} else {
+				process.env[k] = v;
+			}
+		}
+	}
 
 	function mockFetch(resp) {
 		globalThis.fetch = async (_url, _opts) => resp;
 	}
 
-	it("uses Bing when searchBingApiKey is set", async () => {
+	it("uses Bing when BING_API_KEY is set", async () => {
+		setEnv({ BING_API_KEY: "sk-bing", SEARXNG_URL: undefined, CUSTOM_SEARCH_URL: undefined });
+		assert.strictEqual(detectSearchBackend(), "bing");
 		mockFetch({
 			ok: true,
 			json: async () => ({
 				webPages: { value: [{ name: "Bing Result", url: "https://bing.com", snippet: "desc" }] },
 			}),
 		});
-		const result = await webSearchImpl({ query: "test" }, { searchBingApiKey: "sk-bing" });
+		const result = await webSearchImpl({ query: "test" });
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, true);
 		assert.strictEqual(parsed.backend, "bing");
 	});
 
-	it("uses SearXNG when searchSearxngUrl is set", async () => {
+	it("uses SearXNG when SEARXNG_URL is set", async () => {
+		setEnv({
+			BING_API_KEY: undefined,
+			SEARXNG_URL: "http://searxng.local",
+			CUSTOM_SEARCH_URL: undefined,
+		});
+		assert.strictEqual(detectSearchBackend(), "searxng");
 		mockFetch({
 			ok: true,
 			json: async () => ({
 				results: [{ title: "SearX", url: "https://searxng.com", content: "desc" }],
 			}),
 		});
-		const result = await webSearchImpl(
-			{ query: "test" },
-			{ searchSearxngUrl: "http://searxng.local" },
-		);
+		const result = await webSearchImpl({ query: "test" });
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, true);
 		assert.strictEqual(parsed.backend, "searxng");
 	});
 
-	it("uses Custom when searchCustomConfig is set", async () => {
+	it("uses Custom when CUSTOM_SEARCH_URL is set", async () => {
+		setEnv({
+			BING_API_KEY: undefined,
+			SEARXNG_URL: undefined,
+			CUSTOM_SEARCH_URL: "http://custom.local/search?q={{query}}",
+			CUSTOM_SEARCH_BODY: '{ "q": "{{query}}" }',
+		});
+		assert.strictEqual(detectSearchBackend(), "custom");
 		mockFetch({
 			ok: true,
 			json: async () => ({ results: [{ title: "Cust", url: "https://c.com", description: "D" }] }),
 		});
-		const result = await webSearchImpl(
-			{ query: "test" },
-			{ searchCustomConfig: { url: "http://custom.local/search?q={{query}}", method: "GET" } },
-		);
+		const result = await webSearchImpl({ query: "test" });
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, true);
 		assert.strictEqual(parsed.backend, "custom");
 	});
 
 	it("falls back to DuckDuckGo when no API/config keys set", async () => {
+		setEnv({
+			BING_API_KEY: undefined,
+			SEARXNG_URL: undefined,
+			CUSTOM_SEARCH_URL: undefined,
+		});
+		assert.strictEqual(detectSearchBackend(), "duckduckgo");
 		mockFetch({
 			ok: true,
 			text: async () =>
 				'<a rel="nofollow" class="result__a" href="https://ddg.com">DDG Result</a><a class="result__snippet" href="https://ddg.com">A snippet</a>',
 		});
-		const result = await webSearchImpl({ query: "test" }, {});
+		const result = await webSearchImpl({ query: "test" });
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, true);
 		assert.strictEqual(parsed.backend, "duckduckgo");
 	});
 
 	it("rejects empty query", async () => {
-		const result = await webSearchImpl({ query: "" }, {});
+		const result = await webSearchImpl({ query: "" });
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("Query is required"));
 	});
 
 	it("caps limit at 100", async () => {
+		setEnv({ CUSTOM_SEARCH_URL: "http://c.com" });
+		assert.strictEqual(detectSearchBackend(), "custom");
 		mockFetch({ ok: true, json: async () => ({ results: [] }) });
-		const result = await webSearchImpl(
-			{ query: "test", limit: 200 },
-			{ searchCustomConfig: { url: "http://c.com" } },
-		);
+		const result = await webSearchImpl({ query: "test", limit: 200 });
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, true);
 	});
 
 	it("handles Bing API error response", async () => {
+		setEnv({ BING_API_KEY: "bad", SEARXNG_URL: undefined, CUSTOM_SEARCH_URL: undefined });
 		mockFetch({ ok: false, status: 401, text: async () => "Invalid API key" });
-		const result = await webSearchImpl({ query: "test" }, { searchBingApiKey: "bad" });
+		const result = await webSearchImpl({ query: "test" });
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("Bing API error"));
 	});
 
 	it("handles SearXNG HTTP error", async () => {
+		setEnv({
+			BING_API_KEY: undefined,
+			SEARXNG_URL: "http://broken.local",
+			CUSTOM_SEARCH_URL: undefined,
+		});
 		mockFetch({ ok: false, status: 503 });
-		const result = await webSearchImpl(
-			{ query: "test" },
-			{ searchSearxngUrl: "http://broken.local" },
-		);
+		const result = await webSearchImpl({ query: "test" });
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("SearXNG"));
 	});
 
 	it("handles Custom search failure", async () => {
+		setEnv({ BING_API_KEY: undefined, SEARXNG_URL: undefined, CUSTOM_SEARCH_URL: "http://broken" });
 		mockFetch({ ok: false, status: 500 });
-		const result = await webSearchImpl(
-			{ query: "test" },
-			{ searchCustomConfig: { url: "http://broken" } },
-		);
+		const result = await webSearchImpl({ query: "test" });
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("Custom") || parsed.error.includes("500"));
@@ -190,22 +225,41 @@ describe("web_extract", () => {
 });
 
 describe("detectSearchBackend", () => {
-	it("returns custom when searchCustomConfig is set", () => {
-		assert.strictEqual(
-			detectSearchBackend({ searchCustomConfig: { url: "http://c.local" } }),
-			"custom",
-		);
+	let origEnv;
+
+	beforeEach(() => {
+		origEnv = { ...process.env };
 	});
 
-	it("returns bing when searchBingApiKey is set", () => {
-		assert.strictEqual(detectSearchBackend({ searchBingApiKey: "sk-bing" }), "bing");
+	afterEach(() => {
+		Object.assign(process.env, origEnv);
 	});
 
-	it("returns searxng when searchSearxngUrl is set", () => {
-		assert.strictEqual(detectSearchBackend({ searchSearxngUrl: "http://s.local" }), "searxng");
+	it("returns custom when CUSTOM_SEARCH_URL is set", () => {
+		process.env.CUSTOM_SEARCH_URL = "http://c.local";
+		delete process.env.BING_API_KEY;
+		delete process.env.SEARXNG_URL;
+		assert.strictEqual(detectSearchBackend(), "custom");
+	});
+
+	it("returns bing when BING_API_KEY is set", () => {
+		process.env.BING_API_KEY = "sk-bing";
+		delete process.env.CUSTOM_SEARCH_URL;
+		delete process.env.SEARXNG_URL;
+		assert.strictEqual(detectSearchBackend(), "bing");
+	});
+
+	it("returns searxng when SEARXNG_URL is set", () => {
+		process.env.SEARXNG_URL = "http://s.local";
+		delete process.env.BING_API_KEY;
+		delete process.env.CUSTOM_SEARCH_URL;
+		assert.strictEqual(detectSearchBackend(), "searxng");
 	});
 
 	it("returns duckduckgo as fallback when no keys set", () => {
-		assert.strictEqual(detectSearchBackend({}), "duckduckgo");
+		delete process.env.CUSTOM_SEARCH_URL;
+		delete process.env.BING_API_KEY;
+		delete process.env.SEARXNG_URL;
+		assert.strictEqual(detectSearchBackend(), "duckduckgo");
 	});
 });

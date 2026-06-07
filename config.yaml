@@ -4,7 +4,7 @@ providers:
     base_url: https://api.openai.com/v1
     model: gpt-4o
     credentials:
-      apiKey:
+      apiKey: ""
     temperature: 0.7
     maxTokens: 4096
     rateLimit:

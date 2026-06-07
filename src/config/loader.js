@@ -54,12 +54,10 @@ function _parseValue(str) {
 export function _resolveEnvRecursively(node, path) {
 	// These container keys should not appear in the env var name
 	const DROPPED_KEYS = [
-		"providers", // e.g. providers.openai.credentials.apiKey → OPENAI_API_KEY
+		"providers", // e.g. providers.openai.apiKey → OPENAI_API_KEY
 		"credentials",
 		"ratelimit",
 		"timeout",
-		"search", // e.g. search.exa.apiKey → EXA_API_KEY
-		"searxng", // e.g. search.searxng.url → URL
 	];
 
 	if (Array.isArray(node)) {

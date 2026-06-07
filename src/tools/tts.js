@@ -63,10 +63,10 @@ async function callTtsApi(apiKey, text, model, voice, speed) {
 /**
  * Convert text to speech using OpenAI TTS API.
  * @param {object} input - Tool input
- * @param {object} options - Runtime options
+ * @param {object} _options - Runtime options
  * @returns {Promise<string>} JSON result string
  */
-export async function textToSpeechImpl(input, options) {
+export async function textToSpeechImpl(input, _options) {
 	const { text, voice = "alloy", model = "tts-1", speed = 1 } = input;
 
 	if (!text || typeof text !== "string" || text.trim().length === 0) {
@@ -83,7 +83,7 @@ export async function textToSpeechImpl(input, options) {
 		});
 	}
 
-	const apiKey = options?.openaiApiKey;
+	const apiKey = process.env.OPENAI_API_KEY;
 	if (!apiKey) {
 		return JSON.stringify({
 			ok: false,

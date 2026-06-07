@@ -38,15 +38,15 @@ export const TOOL_PERMISSIONS = {
 	clarify: [],
 	skill_view: ["filesystem:read"],
 	create_skill: ["filesystem:write"],
-	// Tier 2 tools (need config values in addition to permissions where applicable)
+	// Tier 2 tools (need env vars in addition to permissions where applicable)
 	web_search: ["network:outbound"],
 	web_extract: ["network:outbound"],
-	vision_analyze: [], // requires openaiApiKey
-	image_generate: ["network:outbound"], // requires falApiKey
+	vision_analyze: [], // requires OPENAI_API_KEY
+	image_generate: ["network:outbound"], // requires FAL_API_KEY
 	execute_code: [], // sandboxed, no permission needed
 	cronjob: ["network:outbound"],
-	text_to_speech: [], // requires openaiApiKey
-	mixture_of_agents: [], // requires openrouterApiKey
+	text_to_speech: [], // requires OPENAI_API_KEY
+	mixture_of_agents: [], // requires OPENROUTER_API_KEY
 	sampling: [],
 	date: [],
 };
@@ -78,6 +78,23 @@ const TOOL_FACTORIES = {
 };
 
 /**
+ * Detect which search backend is available.
+ * Checks EXA, Firecrawl, Tavily, Parallel API, SearXNG, Bing, or Custom endpoint.
+ * @returns {boolean} True if at least one search backend is configured
+ */
+function hasSearchKey() {
+	return (
+		process.env.EXA_API_KEY ||
+		process.env.FIRECRAWL_API_KEY ||
+		process.env.TAVILY_API_KEY ||
+		process.env.PARALLEL_API_KEY ||
+		process.env.SEARXNG_URL ||
+		process.env.BING_API_KEY ||
+		process.env.CUSTOM_SEARCH_URL
+	);
+}
+
+/**
  * Build an array of LangChain tools gated by sandbox permissions and API keys.
  * Each tool is created with runtime options captured in a closure, ensuring
  * the impl function receives them as its second argument on every invocation.
@@ -93,9 +110,6 @@ const TOOL_FACTORIES = {
  * @param {string} [options.contextDir] - Directory for memory entries
  * @param {number} [options.ephemeralTtlDays] - TTL for ephemeral memories
  * @param {number} [options.ephemeralMaxEntries] - Max concurrent ephemeral entries
- * @param {object} [options.config] - Resolved config object from loadConfig()
- * @param {object} [options.config.providers] - Provider configs (openai, openrouter, fal)
- * @param {object} [options.config.search] - Search backend configs
  * @returns {Promise<object[]>} Array of LangChain Tool instances
  */
 export async function buildToolConfig(options) {
@@ -111,26 +125,7 @@ export async function buildToolConfig(options) {
 		contextDir = "memory/context/",
 		ephemeralTtlDays = 7,
 		ephemeralMaxEntries = 10,
-		config,
 	} = options;
-
-	// Extract resolved API keys from config fallback
-	const providers = config?.providers || {};
-	const providersOpenAI = providers?.openai || {};
-	const providersOpenRouter = providers?.openrouter || {};
-	const providersFal = providers?.fal || {};
-	const credentials = providersOpenAI?.credentials || {};
-	const openrouterCredentials = providersOpenRouter?.credentials || {};
-	const falCredentials = providersFal?.credentials || {};
-
-	const search = config?.search || {};
-	const searchExa = search?.exa || {};
-	const searchFirecrawl = search?.firecrawl || {};
-	const searchTavily = search?.tavily || {};
-	const searchParallel = search?.parallel || {};
-	const searchSearxng = search?.searxng || {};
-	const searchBing = search?.bing || {};
-	const searchCustom = search?.custom || {};
 
 	const enabledSet = new Set(permissions);
 	const tools = [];
@@ -145,28 +140,6 @@ export async function buildToolConfig(options) {
 		contextDir,
 		ephemeralTtlDays,
 		ephemeralMaxEntries,
-		// Resolved provider API keys from config (env var resolved values)
-		openaiApiKey: credentials?.apiKey,
-		openrouterApiKey: openrouterCredentials?.apiKey,
-		falApiKey: falCredentials?.apiKey,
-		// Resolved search backend configs from config
-		searchExaApiKey: searchExa?.apiKey,
-		searchFirecrawlApiKey: searchFirecrawl?.apiKey,
-		searchTavilyApiKey: searchTavily?.apiKey,
-		searchParallelApiKey: searchParallel?.apiKey,
-		searchSearxngUrl: searchSearxng?.url,
-		searchBingApiKey: searchBing?.apiKey,
-		searchCustomConfig: {
-			url: searchCustom?.url,
-			method: searchCustom?.method,
-			body: searchCustom?.body,
-			headers: searchCustom?.headers,
-			queryKey: searchCustom?.queryKey,
-			titleField: searchCustom?.titleField,
-			urlField: searchCustom?.urlField,
-			descriptionField: searchCustom?.descriptionField,
-			apiKey: searchCustom?.apiKey,
-		},
 	};
 
 	for (const [toolName, requiredPerms] of Object.entries(TOOL_PERMISSIONS)) {
@@ -183,29 +156,19 @@ export async function buildToolConfig(options) {
 
 			case "web_search":
 			case "web_extract": {
-				if (!hasAllPerms) continue;
-				const hasAnySearch =
-					runtimeOptions.searchExaApiKey ||
-					runtimeOptions.searchFirecrawlApiKey ||
-					runtimeOptions.searchTavilyApiKey ||
-					runtimeOptions.searchParallelApiKey ||
-					runtimeOptions.searchSearxngUrl ||
-					runtimeOptions.searchBingApiKey ||
-					(runtimeOptions.searchCustomConfig?.url &&
-						runtimeOptions.searchCustomConfig?.apiKey !== undefined);
-				if (!hasAnySearch) continue;
+				if (!hasAllPerms || !hasSearchKey()) continue;
 				tools.push(TOOL_FACTORIES[toolName](runtimeOptions));
 				continue;
 			}
 
 			case "vision_analyze": {
-				if (!runtimeOptions.openaiApiKey) continue;
+				if (!process.env.OPENAI_API_KEY) continue;
 				tools.push(TOOL_FACTORIES[toolName](runtimeOptions));
 				continue;
 			}
 
 			case "image_generate": {
-				if (!hasAllPerms || !runtimeOptions.falApiKey) continue;
+				if (!hasAllPerms || !process.env.FAL_API_KEY) continue;
 				tools.push(TOOL_FACTORIES[toolName](runtimeOptions));
 				continue;
 			}
@@ -214,8 +177,8 @@ export async function buildToolConfig(options) {
 			case "text_to_speech":
 			case "mixture_of_agents": {
 				if (toolName === "cronjob" && !hasAllPerms) continue;
-				if (toolName === "text_to_speech" && !runtimeOptions.openaiApiKey) continue;
-				if (toolName === "mixture_of_agents" && !runtimeOptions.openrouterApiKey) continue;
+				if (toolName === "text_to_speech" && !process.env.OPENAI_API_KEY) continue;
+				if (toolName === "mixture_of_agents" && !process.env.OPENROUTER_API_KEY) continue;
 				tools.push(TOOL_FACTORIES[toolName](runtimeOptions));
 				continue;
 			}

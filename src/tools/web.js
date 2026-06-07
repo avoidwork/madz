@@ -148,7 +148,7 @@ async function searchWithCustom(cfg, query, limit) {
 	const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
 
 	try {
-		const apiKey = cfg.apiKey || "";
+		const apiKey = cfg.apiKey || process.env.CUSTOM_API_KEY || "";
 		let url = cfg.url || "";
 		url = url
 			.replace(/\{\{query\}\}/g, encodeURIComponent(query))
@@ -198,10 +198,10 @@ async function searchWithCustom(cfg, query, limit) {
  * Priority: Custom (CUSTOM_SEARCH_URL) > Bing (BING_API_KEY) > SearXNG (SEARXNG_URL) > Google > DuckDuckGo.
  * @returns {string} Engine name or "none" (should never be none as DuckDuckGo always works)
  */
-export function detectSearchBackend(options) {
-	if (options?.searchCustomConfig) return "custom";
-	if (options?.searchBingApiKey) return "bing";
-	if (options?.searchSearxngUrl) return "searxng";
+export function detectSearchBackend() {
+	if (process.env.CUSTOM_SEARCH_URL) return "custom";
+	if (process.env.BING_API_KEY) return "bing";
+	if (process.env.SEARXNG_URL) return "searxng";
 	return "duckduckgo"; // fallback, always available
 }
 
@@ -210,10 +210,10 @@ export function detectSearchBackend(options) {
 /**
  * Execute web search using the detected engine.
  * @param {object} input - Tool input
- * @param {object} options - Runtime options
+ * @param {object} _options - Runtime options
  * @returns {Promise<string>} JSON result string
  */
-export async function webSearchImpl(input, options) {
+export async function webSearchImpl(input, _options) {
 	const { query, limit = 5 } = input;
 
 	if (!query || typeof query !== "string" || query.trim().length === 0) {
@@ -221,20 +221,34 @@ export async function webSearchImpl(input, options) {
 	}
 
 	const clampedLimit = Math.min(Math.max(Number(limit) || 5, 1), 100);
-	const backend = detectSearchBackend(options);
+	const backend = detectSearchBackend();
 	let result;
 
 	switch (backend) {
 		case "bing":
-			result = await searchWithBing(options?.searchBingApiKey, query, clampedLimit);
+			result = await searchWithBing(process.env.BING_API_KEY, query, clampedLimit);
 			break;
 		case "searxng":
-			result = await searchWithSearXNG(options?.searchSearxngUrl, query, clampedLimit);
+			result = await searchWithSearXNG(process.env.SEARXNG_URL, query, clampedLimit);
 			break;
-		case "custom": {
-			result = await searchWithCustom(options?.searchCustomConfig, query, clampedLimit);
+		case "custom":
+			result = await searchWithCustom(
+				{
+					url: process.env.CUSTOM_SEARCH_URL,
+					method: process.env.CUSTOM_SEARCH_METHOD,
+					body: process.env.CUSTOM_SEARCH_BODY,
+					headers: process.env.CUSTOM_SEARCH_HEADERS,
+					queryKey:
+						process.env.CUSTOM_SEARCH_QUERY_KEY || process.env.CUSTOM_RESULT_KEY || "results",
+					titleField: process.env.CUSTOM_TITLE_FIELD || "title",
+					urlField: process.env.CUSTOM_URL_FIELD || "url",
+					descriptionField: process.env.CUSTOM_DESCRIPTION_FIELD || "description",
+					apiKey: process.env.CUSTOM_API_KEY,
+				},
+				query,
+				clampedLimit,
+			);
 			break;
-		}
 		case "duckduckgo":
 		default:
 			result = await searchWithDuckDuckGo(query, clampedLimit);
