@@ -32,10 +32,7 @@ export async function logScheduleResult(result, outputDir = "memory/schedules/")
 
 	try {
 		await mkdir(join(process.cwd(), outputDir), { recursive: true });
-	} catch (err) {
-		// oxlint-disable no-console
-		console.error(`[scheduler] Failed to create output directory: ${err.message}`);
-		// oxlint-enable no-console
+	} catch (_err) {
 		return "";
 	}
 
@@ -59,10 +56,8 @@ export async function logScheduleResult(result, outputDir = "memory/schedules/")
 
 	try {
 		await writeFile(filepath, content);
-	} catch (err) {
-		// oxlint-disable no-console
-		console.error(`[scheduler] Failed to write result log: ${err.message}`);
-		// oxlint-enable no-console
+	} catch (_err) {
+		// Suppress write errors — log but don't throw
 	}
 
 	return filepath;

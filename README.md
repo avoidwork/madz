@@ -8,7 +8,7 @@ Built on LangGraph, OpenTelemetry, and Ink — with persistent memory, sandboxed
 
 [![Status: Beta](https://img.shields.io/badge/status-beta-orange.svg)](#overview)
 [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD--3--Clause-blue.svg)](LICENSE)
-[![Node.js >= 20](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](https://nodejs.org)
+[![Node.js >= 24](https://img.shields.io/badge/node-%3E%3D24-brightgreen)](https://nodejs.org)
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen)](#testing)
 [![Coverage](https://img.shields.io/badge/coverage-98.30%25-brightgreen)](#testing)
 
@@ -60,7 +60,7 @@ It speaks with a distinctive voice: calm, precise, a little wry. Whether you nee
 
 ### Prerequisites
 
-- **Node.js** 20 or later
+- **Node.js** 24 or later
 - **npm** (included with Node.js)
 - An LLM provider API key (e.g., `OPENAI_API_KEY`)
 
@@ -349,7 +349,7 @@ Skills follow the [Agent Skills spec](https://agentskills.io/specification). Eac
    name: your-skill
    description: What this skill does and when to use it.
    license: Apache-2.0          # optional
-   compatibility: Node.js 20+   # optional, max 500 chars
+    compatibility: Node.js 24+   # optional, max 500 chars
    metadata:
      author: me
      version: "1.0"             # optional string map

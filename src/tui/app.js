@@ -229,10 +229,8 @@ export default function App({
 								return cloned;
 							});
 						}
-					} catch (cbErr) {
-						// oxlint-disable no-console
-						console.error("[TUI] streaming callback error:", cbErr.message);
-						// oxlint-enable no-console
+					} catch (_cbErr) {
+						// Silently ignore streaming callback errors
 					}
 				},
 			);
