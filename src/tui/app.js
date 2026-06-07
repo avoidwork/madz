@@ -3,7 +3,7 @@ import { Box, Text, useWindowSize } from "ink";
 import { useInput } from "ink";
 import { CommandParser } from "./commandParser.js";
 import { ConversationPanel } from "./conversationPanel.js";
-
+import { StatusBar } from "./statusBar.js";
 import { InputPanel } from "./inputPanel.js";
 import { isStreamingMessage } from "./messages.js";
 import { Banner } from "./banner.js";
