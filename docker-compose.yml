@@ -6,6 +6,8 @@ services:
     image: madz:latest
     environment:
       - NODE_ENV=development
+    ports:
+      - "2222:22"
     volumes:
       - ./memory:/app/memory
       - ./skills:/app/skills
