@@ -25,7 +25,6 @@ export const StatusBar = React.memo(function StatusBar({
 	statusMessage = "",
 	skillCount = 0,
 	messageCount = 0,
-	appInfo,
 }) {
 	const status = getStatusIndicator(statusMessage);
 
@@ -37,7 +36,7 @@ export const StatusBar = React.memo(function StatusBar({
 			width: "100%",
 			paddingX: 1,
 			backgroundColor: "#404040",
-			justifyContent: "space-between",
+			justifyContent: "flex-start",
 		},
 		React.createElement(
 			Box,
@@ -55,14 +54,5 @@ export const StatusBar = React.memo(function StatusBar({
 				"skills:" + skillCount + " msg:" + messageCount,
 			),
 		),
-		...(appInfo
-			? [
-					React.createElement(
-						Text,
-						{ key: "app-name", color: "white" },
-						appInfo.name + " " + (appInfo.version || ""),
-					),
-				]
-			: []),
 	);
 });
