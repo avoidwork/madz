@@ -12,6 +12,7 @@
 ## Table of Contents
 
 - [Overview](#overview)
+- [Coming soon](#coming-soon)
 - [Quick Start](#quick-start)
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
@@ -50,7 +51,11 @@
 - ⏱️ **Automates your routines** → Declare cron jobs in YAML and run on autopilot
 - 💬 **Orchestrates conversations** → Multi-turn LLM chats with context-window management
 
-## Quick Start
+## Coming soon
+
+- Automatic compaction for longer sessions
+- Faster rendering and snappier interactions
+- Session browsing with interactive menu
 
 ### Docker Quick Start (Recommended)
 
