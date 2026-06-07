@@ -59,7 +59,6 @@ export function _resolveEnvRecursively(node, path) {
 		"ratelimit",
 		"timeout",
 		"search", // e.g. search.exa.apiKey → EXA_API_KEY
-		"searxng", // e.g. search.searxng.url → URL
 	];
 
 	if (Array.isArray(node)) {
