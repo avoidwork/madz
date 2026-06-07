@@ -2,14 +2,12 @@
 
 **A personality-driven AI harness channeling Mads Mikkelsen's cinematic soul.**
 
-`madz` is a terminal-native AI companion — helpful by design, delivered with precision, quiet intensity, and elegant flair. Drawn from Mads Mikkelsen's most iconic roles, it's an assistant that solves problems with style, remembers your context, safely runs your skills, and automates the mundane so you can focus on what matters.
-
-Built on LangGraph, OpenTelemetry, and Ink — with persistent memory, sandboxed skill execution, cron scheduling, and a React-powered TUI.
-
 [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD--3--Clause-blue.svg)](LICENSE)
 [![Node.js >= 24](https://img.shields.io/badge/node-%3E%3D24-brightgreen)](https://nodejs.org)
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen)](#testing)
 [![Coverage](https://img.shields.io/badge/coverage-93.37%25-brightgreen)](#testing)
+
+`madz` is a Node.js AI harness that combines a terminal-based UI with structured skill execution and a distinctive personality. Drawn from Mads Mikkelsen's most iconic roles, it speaks with calm, precision, and quiet intensity — solving problems with style, remembering your context, safely running your skills, and automating the mundane. Everything is persisted as version-controllable Markdown files, making it easy to audit with `git log` and re-load across sessions. Built on LangGraph, OpenTelemetry, and Ink — with persistent memory, sandboxed skill execution, cron scheduling, and a React-powered TUI.
 
 ## Table of Contents
 
@@ -45,10 +43,6 @@ Built on LangGraph, OpenTelemetry, and Ink — with persistent memory, sandboxed
 - [License](#license)
 
 ## Overview
-
-`madz` is a Node.js AI harness that combines a terminal-based user interface with structured skill execution. Everything — conversations, tool outputs, and execution logs — is persisted as version-controllable Markdown files, making it easy to audit with `git log` and re-load across sessions.
-
-It speaks with a distinctive voice: calm, precise, a little wry. Whether you need it to debug a script, manage a todo list, or just get something done without the chatter, `madz` delivers.
 
 - 🧠 **Remembers everything** → Persistent memory across sessions
 - 🎭 **Personality with purpose** → Mads Mikkelsen's cinematic soul — quiet intensity, elegant precision
