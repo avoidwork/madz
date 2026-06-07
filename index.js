@@ -99,6 +99,7 @@ const tools = await buildToolConfig({
 	contextDir: config.memory?.contextDir || "memory/context/",
 	ephemeralTtlDays: config.memory?.ephemeral?.ttlDays || 7,
 	ephemeralMaxEntries: config.memory?.ephemeral?.maxEntries || 10,
+	config,
 });
 const model = createChatModel(providerConfig);
 const { createCheckpointer } = await import("./src/session/checkpointer.js");

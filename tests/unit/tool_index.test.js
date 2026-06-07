@@ -52,27 +52,30 @@ describe("tools - buildToolConfig", () => {
 });
 
 describe("tools - buildToolConfig", () => {
-	let _origEnv;
-
 	beforeEach(() => {
-		_origEnv = {
-			OPENAI_API_KEY: process.env.OPENAI_API_KEY,
-			OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
-			FAL_API_KEY: process.env.FAL_API_KEY,
-		};
 		delete process.env.OPENAI_API_KEY;
 		delete process.env.OPENROUTER_API_KEY;
 		delete process.env.FAL_API_KEY;
+		delete process.env.EXA_API_KEY;
+		delete process.env.FIRECRAWL_API_KEY;
+		delete process.env.TAVILY_API_KEY;
+		delete process.env.PARALLEL_API_KEY;
+		delete process.env.SEARXNG_URL;
+		delete process.env.BING_API_KEY;
+		delete process.env.CUSTOM_SEARCH_URL;
 	});
 
 	afterEach(() => {
-		if (_origEnv.OPENAI_API_KEY !== undefined) process.env.OPENAI_API_KEY = _origEnv.OPENAI_API_KEY;
-		else delete process.env.OPENAI_API_KEY;
-		if (_origEnv.OPENROUTER_API_KEY !== undefined)
-			process.env.OPENROUTER_API_KEY = _origEnv.OPENROUTER_API_KEY;
-		else delete process.env.OPENROUTER_API_KEY;
-		if (_origEnv.FAL_API_KEY !== undefined) process.env.FAL_API_KEY = _origEnv.FAL_API_KEY;
-		else delete process.env.FAL_API_KEY;
+		delete process.env.OPENAI_API_KEY;
+		delete process.env.OPENROUTER_API_KEY;
+		delete process.env.FAL_API_KEY;
+		delete process.env.EXA_API_KEY;
+		delete process.env.FIRECRAWL_API_KEY;
+		delete process.env.TAVILY_API_KEY;
+		delete process.env.PARALLEL_API_KEY;
+		delete process.env.SEARXNG_URL;
+		delete process.env.BING_API_KEY;
+		delete process.env.CUSTOM_SEARCH_URL;
 	});
 
 	it("returns clarify + execute_code + sampling + date with empty permissions", async () => {
@@ -129,7 +132,7 @@ describe("tools - buildToolConfig", () => {
 		// Tier 1: 12 tools (all register with filesystem+process perms)
 		// Tier 2: execute_code (no perms), cronjob (network:outbound)
 		// Sampling (no perms) always registers
-		// No API keys: web_search/web_extract/vision_analyze/image_generate won't register
+		// No API keys: web_search/vision_analyze/image_generate won't register
 		assert.ok(toolNames.length >= 13, "All tier 1 + tier 2 + sampling tools should register");
 		assert.ok(toolNames.includes("terminal"), "terminal should register");
 		assert.ok(toolNames.includes("process"), "process should register");

@@ -1,12 +1,24 @@
-import { describe, it, before, after } from "node:test";
+import { describe, it, before, after, beforeEach } from "node:test";
 import assert from "node:assert";
 import { buildToolConfig } from "../../src/tools/index.js";
 
 describe("tool registration - integration", () => {
-	let _origPermissions, _origEnvVars;
+	let _origEnvVars;
+
+	beforeEach(() => {
+		delete process.env.OPENAI_API_KEY;
+		delete process.env.OPENROUTER_API_KEY;
+		delete process.env.FAL_API_KEY;
+		delete process.env.EXA_API_KEY;
+		delete process.env.FIRECRAWL_API_KEY;
+		delete process.env.TAVILY_API_KEY;
+		delete process.env.PARALLEL_API_KEY;
+		delete process.env.SEARXNG_URL;
+		delete process.env.BING_API_KEY;
+		delete process.env.CUSTOM_SEARCH_URL;
+	});
 
 	before(() => {
-		_origPermissions = process.env.SANDBOX_PERMISSIONS;
 		_origEnvVars = {
 			OPENAI_API_KEY: process.env.OPENAI_API_KEY,
 			OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
@@ -33,19 +45,22 @@ describe("tool registration - integration", () => {
 		process.env.CUSTOM_SEARCH_URL = _origEnvVars.CUSTOM_SEARCH_URL;
 		process.env.FAL_API_KEY = _origEnvVars.FAL_API_KEY;
 	});
-
-	it("registers clarifying (no permissions) andTier 1 tools with permissions", async () => {
-		delete process.env.OPENAI_API_KEY;
-		const tools = await buildToolConfig({ permissions: ["filesystem:read", "filesystem:write"] });
+	it("registers clarifying (no permissions) and tier 1 tools with permissions", async () => {
+		const tools = await buildToolConfig({
+			permissions: ["filesystem:read", "filesystem:write"],
+			config: {
+				providers: {},
+				search: {},
+			},
+		});
 		const toolNames = tools.map((t) => t.name);
 		assert.ok(toolNames.includes("clarify")); // Always registered
 		assert.ok(toolNames.includes("read_file"));
 		assert.ok(!toolNames.includes("web_search")); // needs network:outbound
-		assert.ok(!toolNames.includes("vision_analyze")); // needs OPENAI_API_KEY
+		assert.ok(!toolNames.includes("vision_analyze")); // no openai config key, env var cleaned up
 	});
 
 	it("registers web tools when network:outbound and search key set", async () => {
-		process.env.EXA_API_KEY = "sk-test-exa";
 		const tools = await buildToolConfig({
 			permissions: [
 				"network:outbound",
@@ -54,56 +69,59 @@ describe("tool registration - integration", () => {
 				"filesystem:exec",
 				"process:spawn",
 			],
+			config: {
+				providers: { openai: { credentials: { apiKey: "sk-test-openai" } } },
+				search: { exa: { apiKey: "sk-test-exa" } },
+			},
 		});
 		const toolNames = tools.map((t) => t.name);
 		assert.ok(toolNames.includes("web_search"));
 		assert.ok(toolNames.includes("web_extract"));
-		delete process.env.EXA_API_KEY;
 	});
 
-	it("registers web tools when SEARXNG_URL is set", async () => {
-		process.env.SEARXNG_URL = "http://searxng.local";
+	it("registers web tools when searxng is configured", async () => {
 		const tools = await buildToolConfig({
 			permissions: ["network:outbound"],
+			config: {
+				providers: {},
+				search: { searxng: { url: "http://searxng.local" } },
+			},
 		});
 		const toolNames = tools.map((t) => t.name);
 		assert.ok(toolNames.includes("web_search"));
 		assert.ok(toolNames.includes("web_extract"));
-		delete process.env.SEARXNG_URL;
 	});
 
-	it("registers web tools when BING_API_KEY is set", async () => {
-		process.env.BING_API_KEY = "sk-bing";
+	it("registers web tools when bing is configured", async () => {
 		const tools = await buildToolConfig({
 			permissions: ["network:outbound"],
+			config: {
+				providers: {},
+				search: { bing: { apiKey: "sk-bing" } },
+			},
 		});
 		const toolNames = tools.map((t) => t.name);
 		assert.ok(toolNames.includes("web_search"));
 		assert.ok(toolNames.includes("web_extract"));
-		delete process.env.BING_API_KEY;
 	});
 
-	it("registers web tools when CUSTOM_SEARCH_URL is set", async () => {
-		process.env.CUSTOM_SEARCH_URL = "http://custom.local/search";
+	it("registers web tools when custom search is configured", async () => {
 		const tools = await buildToolConfig({
 			permissions: ["network:outbound"],
+			config: {
+				providers: {},
+				search: { custom: { url: "http://custom.local/search", apiKey: "sk-test-custom" } },
+			},
 		});
 		const toolNames = tools.map((t) => t.name);
 		assert.ok(toolNames.includes("web_search"));
 		assert.ok(toolNames.includes("web_extract"));
-		delete process.env.CUSTOM_SEARCH_URL;
 	});
 
 	it("does not register web tools without any search key", async () => {
-		delete process.env.EXA_API_KEY;
-		delete process.env.FIRECRAWL_API_KEY;
-		delete process.env.TAVILY_API_KEY;
-		delete process.env.PARALLEL_API_KEY;
-		delete process.env.SEARXNG_URL;
-		delete process.env.BING_API_KEY;
-		delete process.env.CUSTOM_SEARCH_URL;
 		const tools = await buildToolConfig({
 			permissions: ["network:outbound"],
+			config: { providers: {}, search: {} },
 		});
 		const toolNames = tools.map((t) => t.name);
 		assert.ok(!toolNames.includes("web_search"));
@@ -116,42 +134,46 @@ describe("tool registration - integration", () => {
 		assert.ok(toolNames.includes("execute_code"));
 	});
 
-	it("registers vision_analyze with OPENAI_API_KEY (no permission needed)", async () => {
-		process.env.OPENAI_API_KEY = "sk-test-openai";
-		delete process.env.EXA_API_KEY;
-		delete process.env.FIRECRAWL_API_KEY;
-		delete process.env.TAVILY_API_KEY;
-		delete process.env.PARALLEL_API_KEY;
-		delete process.env.SEARXNG_URL;
-		delete process.env.BING_API_KEY;
-		delete process.env.CUSTOM_SEARCH_URL;
-		const tools = await buildToolConfig({ permissions: [] });
+	it("registers vision_analyze with openai (no permission needed)", async () => {
+		const tools = await buildToolConfig({
+			permissions: [],
+			config: {
+				providers: { openai: { credentials: { apiKey: "sk-test-openai" } } },
+				search: { exa: {} },
+			},
+		});
 		const toolNames = tools.map((t) => t.name);
 		assert.ok(toolNames.includes("vision_analyze"));
-		delete process.env.OPENAI_API_KEY;
 	});
 
-	it("does not register vision_analyze without OPENAI_API_KEY", async () => {
-		delete process.env.OPENAI_API_KEY;
-		const tools = await buildToolConfig({ permissions: [] });
+	it("does not register vision_analyze without openai", async () => {
+		const tools = await buildToolConfig({
+			permissions: [],
+			config: {
+				providers: { openai: {} },
+				search: { exa: {} },
+			},
+		});
 		const toolNames = tools.map((t) => t.name);
 		assert.ok(!toolNames.includes("vision_analyze"));
 	});
 
-	it("registers image_generate with network:outbound and FAL_API_KEY", async () => {
-		process.env.FAL_API_KEY = "sk-fake-fal";
+	it("registers image_generate with network:outbound and fal", async () => {
 		const tools = await buildToolConfig({
 			permissions: ["network:outbound"],
+			config: {
+				providers: { fal: { credentials: { apiKey: "sk-fake-fal" } } },
+				search: { exa: {} },
+			},
 		});
 		const toolNames = tools.map((t) => t.name);
 		assert.ok(toolNames.includes("image_generate"));
-		delete process.env.FAL_API_KEY;
 	});
 
-	it("does not register image_generate without FAL_API_KEY", async () => {
-		delete process.env.FAL_API_KEY;
+	it("does not register image_generate without fal", async () => {
 		const tools = await buildToolConfig({
 			permissions: ["network:outbound"],
+			config: { providers: { fal: {} }, search: { exa: {} } },
 		});
 		const toolNames = tools.map((t) => t.name);
 		assert.ok(!toolNames.includes("image_generate"));
@@ -160,57 +182,65 @@ describe("tool registration - integration", () => {
 	it("registers cronjob with network:outbound", async () => {
 		const tools = await buildToolConfig({
 			permissions: ["network:outbound"],
+			config: { providers: {}, search: { exa: {} } },
 		});
 		const toolNames = tools.map((t) => t.name);
 		assert.ok(toolNames.includes("cronjob"));
 	});
 
 	it("does not register cronjob without network:outbound", async () => {
-		const tools = await buildToolConfig({ permissions: [] });
+		const tools = await buildToolConfig({
+			permissions: [],
+			config: { providers: {}, search: { exa: {} } },
+		});
 		const toolNames = tools.map((t) => t.name);
 		assert.ok(!toolNames.includes("cronjob"));
 	});
 
-	it("registers text_to_speech with OPENAI_API_KEY (no permission needed)", async () => {
-		process.env.OPENAI_API_KEY = "sk-test-openai";
-		delete process.env.EXA_API_KEY;
-		delete process.env.FIRECRAWL_API_KEY;
-		delete process.env.TAVILY_API_KEY;
-		delete process.env.PARALLEL_API_KEY;
-		delete process.env.SEARXNG_URL;
-		delete process.env.BING_API_KEY;
-		delete process.env.CUSTOM_SEARCH_URL;
-		const tools = await buildToolConfig({ permissions: [] });
+	it("registers text_to_speech with openai (no permission needed)", async () => {
+		const tools = await buildToolConfig({
+			permissions: [],
+			config: {
+				providers: { openai: { credentials: { apiKey: "sk-test-openai" } } },
+				search: { exa: {} },
+			},
+		});
 		const toolNames = tools.map((t) => t.name);
 		assert.ok(toolNames.includes("text_to_speech"));
-		delete process.env.OPENAI_API_KEY;
 	});
 
-	it("does not register text_to_speech without OPENAI_API_KEY", async () => {
-		delete process.env.OPENAI_API_KEY;
-		const tools = await buildToolConfig({ permissions: [] });
+	it("does not register text_to_speech without openai", async () => {
+		const tools = await buildToolConfig({
+			permissions: [],
+			config: {
+				providers: { openai: {} },
+				search: { exa: {} },
+			},
+		});
 		const toolNames = tools.map((t) => t.name);
 		assert.ok(!toolNames.includes("text_to_speech"));
 	});
 
-	it("registers mixture_of_agents with OPENROUTER_API_KEY (no permission needed)", async () => {
-		process.env.OPENROUTER_API_KEY = "sk-test-or";
-		delete process.env.EXA_API_KEY;
-		delete process.env.FIRECRAWL_API_KEY;
-		delete process.env.TAVILY_API_KEY;
-		delete process.env.PARALLEL_API_KEY;
-		delete process.env.SEARXNG_URL;
-		delete process.env.BING_API_KEY;
-		delete process.env.CUSTOM_SEARCH_URL;
-		const tools = await buildToolConfig({ permissions: [] });
+	it("registers mixture_of_agents with openrouter (no permission needed)", async () => {
+		const tools = await buildToolConfig({
+			permissions: [],
+			config: {
+				providers: { openrouter: { credentials: { apiKey: "sk-test-or" } } },
+				search: { exa: {} },
+			},
+		});
 		const toolNames = tools.map((t) => t.name);
 		assert.ok(toolNames.includes("mixture_of_agents"));
-		delete process.env.OPENROUTER_API_KEY;
 	});
 
-	it("does not register mixture_of_agents without OPENROUTER_API_KEY", async () => {
-		delete process.env.OPENROUTER_API_KEY;
-		const tools = await buildToolConfig({ permissions: [] });
+	it("does not register mixture_of_agents without openrouter", async () => {
+		const tools = await buildToolConfig({
+			permissions: [],
+			config: {
+				providers: { openrouter: {} },
+				search: { exa: {} },
+			},
+		});
 		const toolNames = tools.map((t) => t.name);
 		assert.ok(!toolNames.includes("mixture_of_agents"));
 	});
