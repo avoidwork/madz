@@ -44,15 +44,15 @@ graph TD
 
     SB -->|"fork()"| SK["scripts/"]
 
-    TM["Memory Files"] -->|loadContext\(\)| A
+    TM["Memory Files"] -->|"loadContext"| A
     TM -->|write/read| FS["filesystem"]
     TM -->|context| SE["Session"]
 
     SE -->|context window| CW["conversation state"]
 
     UI["TUI (Ink)"] -->|user input + commands| I
-    UI -->|dispatchProvider\(\)| A
-    UI -->|invokeSkill\(\)| SB
+    UI -->|"dispatchProvider"| A
+    UI -->|"invokeSkill"| SB
     I <-->|handleConversation / invokeSkill| UI
 
     classDef root fill:#f9a825,color:#fff,stroke:#e65100
