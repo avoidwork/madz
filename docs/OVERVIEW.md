@@ -28,7 +28,7 @@ This document describes how madz is structured, how subsystems interact, and the
 
 ```mermaid
 graph TD
-    C["config.yaml"] -->|loadConfig\(\)| I["index.js"]
+    C["config.yaml"] -->|loadConfig()| I["index.js"]
 
     I --> T["Telemetry"]
     I --> R["Registry"]
@@ -42,7 +42,7 @@ graph TD
 
     S -->|invoke| SB
 
-    SB -->|fork\(\)| SK["scripts/"]
+    SB -->|fork()| SK["scripts/"]
 
     TM["Memory Files"] -->|loadContext\(\)| A
     TM -->|write/read| FS["filesystem"]
