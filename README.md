@@ -81,6 +81,15 @@ The full `docker run` command with all optional variables is in the [Docker Envi
 
 ### Installation
 
+**Global install (recommended):**
+
+```bash
+npm i -g @avoidwork/madz
+madz
+```
+
+**From source:**
+
 ```bash
 git clone https://github.com/avoidwork/madz.git
 cd madz
