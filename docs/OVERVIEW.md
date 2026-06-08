@@ -26,45 +26,44 @@ This document describes how madz is structured, how subsystems interact, and the
 
 ## System Diagram
 
-```
-                    ┌─────────────┐
-                    │  config.yaml│
-                    └──────┬──────┘
-                           │ loadConfig()
-                    ┌──────▼──────┐
-                   ║    index.js  ║
-                    └──┬───┬───┬──┘
-              ┌────────┘   │   └────────┐
-              ▼            ▼            ▼
-       ┌──────────┐ ┌──────────┐ ┌──────────┐
-       │ Telemetry│ │ Registry │ │ Scheduler│
-       └──────────┘    │        └────▲─────┘
-              ┌─────────│─────────────│──────┐
-              │         │             │      │
-              ▼         ▼             │      │
-       ┌────────────┐ ┌────────┐      │      │
-       │  Provider  │ │ Agent  │      │      │
-       └──────┬─────┘ └───┬────┘      │      │
-              │           │tools      │      │
-              │           ▼           │      │
-              ├───► ┌──────────┐      │      │
-              │     │  Sandbox  │◄─────┘      │
-              │     │  Runtime │──► fork()    │
-              │     └──────────┘   scripts/   │
-              │                               │
-              ▼                               ▼
-       ┌───────────┐                  ┌────────────┐
-       │  Memory    │──► filesystem   │  Session    │──► context window
-       │  Files     │                └────────────┘
-       └───────────┘
-            │    ▲
-      write/read    loadContext()
-            │    │
-            ▼    │
-       ┌─────────────────┐
-       │   TUI (Ink)     │◄── user input + commands
-       │  ◄──────────────┘│── dispatchProvider(), invokeSkill()
-       └─────────────────┘
+```mermaid
+graph TD
+    C["config.yaml"] -->|loadConfig\(\)| I["index.js"]
+
+    I --> T["Telemetry"]
+    I --> R["Registry"]
+    I --> S["Scheduler"]
+
+    R --> A["Agent"]
+    R --> R1["Skills"]
+
+    A --> P["Provider"]
+    A -->|tools| SB["Sandbox"]
+
+    S -->|invoke| SB
+
+    SB -->|fork\(\)| SK["scripts/"]
+
+    TM["Memory Files"] -->|loadContext\(\)| A
+    TM -->|write/read| FS["filesystem"]
+    TM -->|context| SE["Session"]
+
+    SE -->|context window| CW["conversation state"]
+
+    UI["TUI (Ink)"] -->|user input + commands| I
+    UI -->|dispatchProvider\(\)| A
+    UI -->|invokeSkill\(\)| SB
+    I <-->|handleConversation / invokeSkill| UI
+
+    classDef root fill:#f9a825,color:#fff,stroke:#e65100
+    classDef core fill:#42a5f5,color:#fff,stroke:#1565c0
+    classDef util fill:#66bb6a,color:#fff,stroke:#2e7d32
+    classDef ext fill:#ab47bc,color:#fff,stroke:#6a1b9a
+
+    class I root
+    class A,P,T,R,S core
+    class TM,SE,SB,SW util
+    class SK,CW,FS ext
 ```
 
 ---
