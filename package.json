@@ -1,6 +1,6 @@
 {
-  "name": "madz",
-  "version": "1.0.1",
+  "name": "@avoidwork/madz",
+  "version": "1.0.3",
   "description": "A personality-driven AI harness channeling Mads Mikkelsen's cinematic soul.",
   "keywords": [
     "cli",
