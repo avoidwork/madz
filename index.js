@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 // oxlint-disable no-console
 
 // Load config
@@ -232,6 +233,7 @@ if (isMain) {
 		if (a === "--session-id" || a === "-s") return args[i + 1] || id;
 		return id;
 	}, "");
+	const jsonOut = args.includes("--json");
 	let message = args.filter((a) => !a.startsWith("--"))[0];
 	if (!message && chatSessionId) {
 		message = "continue";
@@ -243,7 +245,17 @@ if (isMain) {
 			const response = await handleConversation(message, chatSessionId);
 
 			// oxlint-disable no-console
-			console.log(response.content);
+			if (jsonOut) {
+				console.log(
+					JSON.stringify({
+						provider: response.provider,
+						content: response.content,
+						tokens: response.tokens,
+					}),
+				);
+			} else {
+				console.log(response.content);
+			}
 			// oxlint-enable no-console
 		} catch (err) {
 			// oxlint-disable no-console
