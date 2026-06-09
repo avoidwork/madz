@@ -121,18 +121,18 @@ Cloud providers are fully supported via the configuration below if latency or mo
 Config keys map to `UPPER_SNAKE_CASE` environment variables. Container-specific keys (`providers`, `credentials`, `timeout`, `search`) are stripped from the variable name.
 
 || Config Path | Environment Variable | Default |
-||-------------|----------------------|---------|
-|| `providers.openai.credentials.apiKey` | `OPENAI_API_KEY` | *(required)* |
-|| `providers.openai.model` | `OPENAI_MODEL` | `gpt-4o` |
-|| `providers.openai.base_url` | `OPENAI_BASE_URL` | `https://api.openai.com/v1` |
-|| `providers.openai.temperature` | `OPENAI_TEMPERATURE` | `0.7` |
-|| `providers.openai.maxTokens` | `OPENAI_MAX_TOKENS` | `4096` |
-|| `providers.openai.rateLimit.requestsPerMinute` | `OPENAI_REQUESTS_PER_MINUTE` | `120` |
-|| `providers.openrouter.apiKey` | `OPENROUTER_API_KEY` | *(empty)* |
-|| `providers.openrouter.model` | `OPENROUTER_MODEL` | `openrouter/auto` |
-|| `sandbox.timeout.seconds` | `SANDBOX_TIMEOUT_SECONDS` | `30` |
-|| `sandbox.timeout.gracePeriod` | `SANDBOX_GRACE_PERIOD` | `5` |
-|| `sandbox.maxReadSize` | `SANDBOX_MAX_READ_SIZE` | `1mb` |
+|-------------|----------------------|---------|
+| `providers.openai.credentials.apiKey` | `OPENAI_API_KEY` | *(required)* |
+| `providers.openai.model` | `OPENAI_MODEL` | `gpt-4o` |
+| `providers.openai.base_url` | `OPENAI_BASE_URL` | `https://api.openai.com/v1` |
+| `providers.openai.temperature` | `OPENAI_TEMPERATURE` | `0.7` |
+| `providers.openai.maxTokens` | `OPENAI_MAX_TOKENS` | `4096` |
+| `providers.openai.rateLimit.requestsPerMinute` | `OPENAI_REQUESTS_PER_MINUTE` | `120` |
+| `providers.openrouter.apiKey` | `OPENROUTER_API_KEY` | *(empty)* |
+| `providers.openrouter.model` | `OPENROUTER_MODEL` | `openrouter/auto` |
+| `sandbox.timeout.seconds` | `SANDBOX_TIMEOUT_SECONDS` | `30` |
+| `sandbox.timeout.gracePeriod` | `SANDBOX_GRACE_PERIOD` | `5` |
+| `sandbox.maxReadSize` | `SANDBOX_MAX_READ_SIZE` | `1mb` |
 
 ### Inline References (Alternative)
 You can also reference environment variables directly in `config.yaml`:
