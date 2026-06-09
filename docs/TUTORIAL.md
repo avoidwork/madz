@@ -159,7 +159,7 @@ providers:
 
 ### Docker — Connect via SSH
 
-If you deployed with Docker (recommended), connect to the container after the `docker run` command in Phase 2. The container exposes SSH on a host-mapped port (default `2222` to avoid conflicts with your local SSH):
+If you deployed with Docker (recommended), connect to the container using the SSH port you passed to `docker run`. The container's SSH daemon listens on internal port `22`, so you map it to a host port of your choosing (commonly `2222` to avoid conflicts with your local SSH):
 
 ```bash
 ssh -p 2222 madz@localhost
