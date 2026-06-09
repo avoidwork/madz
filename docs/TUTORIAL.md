@@ -127,8 +127,8 @@ Cloud providers are fully supported via the configuration below if latency or mo
 ### Environment Variable Mapping
 Config keys map to `UPPER_SNAKE_CASE` environment variables. Container-specific keys (`providers`, `credentials`, `timeout`, `search`) are stripped from the variable name.
 
-|| Config Path | Environment Variable | Default |
-|-------------|---------------------|---------|
+| Config Path | Environment Variable | Default |
+|-------------|----------------------|---------|
 | `providers.openai.credentials.apiKey` | `OPENAI_API_KEY` | *(required)* |
 | `providers.openai.model` | `OPENAI_MODEL` | `gpt-4o` |
 | `providers.openai.base_url` | `OPENAI_BASE_URL` | `https://api.openai.com/v1` |
@@ -184,7 +184,7 @@ But the relationship doesn't stop there. Over time, `madz` will autonomously cap
 ### TUI Navigation
 Once inside the interactive terminal, use these commands:
 
-|| Command | Action |
+| Command | Action |
 |---------|--------|
 | `↑ / ↓` | Scroll conversation history |
 | `:help` | List available commands |
