@@ -14,9 +14,11 @@ Before we build, we must prepare the ground. Ensure your system meets these requ
 
 - **Docker Desktop** or **Docker Engine** — the recommended deployment method
 - **An LLM Provider** (API key from OpenAI, Ollama, etc.)
-- **Git** (only if you choose to clone the repo or run without Docker)
 
-*Node.js 24+ and npm are required only for local installs without Docker.*
+### Optional
+
+- **Git** — only if you choose to clone the repo or run without Docker
+- **Node.js 24+** and **npm** — only for local installs without Docker
 
 ### Local LLM Options
 `madz` is designed to run entirely offline if you prefer. For a self-hosted, local-first experience, **Ollama** ([https://ollama.com/](https://ollama.com/)) is the most straightforward path. Install it, pull a model (`ollama pull gemma4:12b`), and configure `madz` to talk to it. 
