@@ -15,7 +15,7 @@ madz "Summarize my recent memory files and suggest a next step."
 
 ---
 
-## 📦 Phase 1: Preparation
+## 📦 Preparation
 
 Before installing anything, ensure your system meets these requirements:
 
@@ -32,7 +32,7 @@ Docker packages your application and all its dependencies into a single, isolate
 
 ---
 
-## 🚀 Phase 2: Installation
+## 🚀 Installation
 
 Choose the method that best fits your workflow:
 
@@ -112,7 +112,7 @@ npm start
 
 ---
 
-## ⚙️ Phase 3: Configuration
+## ⚙️ Configuration
 
 `madz` reads its configuration from `config.yaml`. Sensitive values should be injected via environment variables to keep secrets out of version control.
 
@@ -149,7 +149,7 @@ providers:
 
 ---
 
-## 🖥️ Phase 4: Launch & First Interaction
+## 🖥️ Launch & First Interaction
 
 ### Docker — Connect via SSH
 
@@ -188,7 +188,7 @@ But the relationship doesn't stop there. Over time, `madz` will autonomously cap
 
 ---
 
-## 🛠️ Phase 5: Daily Usage
+## 🛠️ Daily Usage
 ### TUI Navigation
 
 Once inside the interactive terminal, use these commands:
@@ -259,7 +259,7 @@ Skills are stored in `skills/` and are version-controllable. Simple skills can b
 
 ---
 
-## ⚙️ Phase 6: Advanced Usage
+## ⚙️ Advanced Usage
 
 ### CLI Mode
 
@@ -291,7 +291,7 @@ node index.js "Summarize memory/_index.md" --json
 
 ---
 
-## 🔧 Phase 7: Troubleshooting
+## 🔧 Troubleshooting
 
 ### Docker-Specific
 | Issue | Solution |
