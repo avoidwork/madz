@@ -86,12 +86,6 @@ docker run -d \
 
 **Volumes vs. Bind Mounts:** Docker supports two persistence methods. *Volumes* are managed by Docker and live in `/var/lib/docker/volumes/`. *Bind mounts* (used here) link directly to a path on your host filesystem. We use bind mounts so you can read, edit, and version-control your memory and skills files directly from your terminal or editor.
 
-**Step 3: Connect to the container**
-```bash
-ssh -p 2222 madz@localhost
-```
-*The `madz` user has no password. On first login, the TUI launches automatically. Press `Ctrl+C` to drop into a shell if needed.*
-
 ### Option B: npm Global Install (System-Wide Access)
 
 Install directly from the registry:
