@@ -18,5 +18,8 @@ chmod a+r /etc/profile.d/madz-env.sh
 # Start sshd as a background process so it picks up injected env vars
 /usr/sbin/sshd -D &
 
+# Start the cron daemon so scheduled jobs execute
+crond -f &
+
 # Run the CMD (e.g. sleep infinity)
 exec "$@"
