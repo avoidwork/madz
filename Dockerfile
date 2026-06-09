@@ -21,8 +21,8 @@ FROM node:24-alpine
 RUN apk update && \
     apk add --no-cache python3 ruby curl bash jq unzip wget ca-certificates git file zip xz lz4 diffutils tree rsync openssh-server cronie && \
     ssh-keygen -A && \
-    mkdir -p /run/sshd /root/.cache /home/madz/.cache && \
     adduser -S -G node -h /home/madz -s /bin/sh madz && \
+    mkdir -p /run/sshd /root/.cache /home/madz/.cache && \
     printf '%s\n' '#!/bin/sh' '[ -f /etc/profile.d/madz-env.sh ] && . /etc/profile.d/madz-env.sh' 'if [ -x "/app" ]; then' '    echo "Starting madz..."' '    cd /app && exec npm start' 'fi' > /etc/profile && \
     passwd -d madz && \
     sed -i 's/^#*PermitEmptyPasswords.*/PermitEmptyPasswords yes/' /etc/ssh/sshd_config && \
