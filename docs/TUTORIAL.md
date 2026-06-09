@@ -8,12 +8,6 @@ A practical guide to deploying, configuring, and running your AI harness. Whethe
 
 Madz is an AI harness designed to learn, adapt, and assist. You can speak to it through a terminal interface, a command-line prompt, or pipe it directly into your scripts. It does not demand ceremony. It demands clarity.
 
-**Quick Test (Post-Installation):**
-```bash
-madz "Summarize my recent memory files and suggest a next step."
-```
-*Ensure the harness is running before executing. Just type, and let the machine work.*
-
 ---
 
 ## 📦 Preparation
