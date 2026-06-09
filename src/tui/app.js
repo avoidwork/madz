@@ -492,9 +492,7 @@ export default function App({
 								key: "conversation-wrapper",
 								flexDirection: "column",
 								flexGrow: 1,
-								borderColor: "gray",
-								borderStyle: "round",
-								paddingX: 1,
+								backgroundColor: "#101010",
 							},
 							React.createElement(ConversationPanel, {
 								messages: messages,
@@ -510,8 +508,7 @@ export default function App({
 						{
 							key: "input-wrapper",
 							flexDirection: "row",
-							borderColor: "gray",
-							borderStyle: "round",
+							backgroundColor: "#101010",
 							paddingX: 1,
 						},
 						React.createElement(InputPanel, {
@@ -519,10 +516,19 @@ export default function App({
 							cursorChar: config?.tui?.cursorChar ?? "\u2588",
 						}),
 					)
-				: React.createElement(InputPanel, {
-						inputText: inputText,
-						cursorChar: config?.tui?.cursorChar ?? "\u2588",
-					})
+				: React.createElement(
+						Box,
+						{
+							key: "input-wrapper",
+							flexDirection: "row",
+							backgroundColor: "#000000",
+							paddingX: 1,
+						},
+						React.createElement(InputPanel, {
+							inputText: inputText,
+							cursorChar: config?.tui?.cursorChar ?? "\u2588",
+						}),
+					)
 			: null,
 		!showOnboarding && React.createElement(Text, { key: "exit-newline" }, EXIT_MESSAGE),
 	);
