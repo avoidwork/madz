@@ -5,6 +5,7 @@ import { CommandParser } from "./commandParser.js";
 import { ConversationPanel } from "./conversationPanel.js";
 import { StatusBar } from "./statusBar.js";
 import { InputPanel } from "./inputPanel.js";
+import { handleTextInput } from "./cursorPanel.js";
 import { isStreamingMessage } from "./messages.js";
 import { Banner } from "./banner.js";
 import { OnboardingPanel } from "./onboardingPanel.js";
@@ -35,6 +36,7 @@ export default function App({
 	const [chatHistory, setChatHistory] = useState([]);
 	const [historyIndex, setHistoryIndex] = useState(-1);
 	const [inputText, setInputText] = useState("");
+	const [cursorPosition, setCursorPosition] = useState(0);
 
 	const skillList = registry ? registry.list() : [];
 
@@ -294,6 +296,7 @@ export default function App({
 		sessionState.createNewSession(newSession.sessionId);
 		setMessages([]);
 		setChatHistory([]);
+		setCursorPosition(0);
 		setStatusMessage("New session started.");
 		addMessage({
 			role: "system",
@@ -400,6 +403,36 @@ export default function App({
 			}
 			setShowBanner(false);
 			// After dismissal, fall through to normal input processing
+			if (key.escape) {
+				handleQuit();
+			} else if (key.upArrow && chatHistory.length > 0) {
+				const newIndex =
+					historyIndex === -1 ? chatHistory.length - 1 : Math.max(0, historyIndex - 1);
+				setHistoryIndex(newIndex);
+				setInputText(chatHistory[newIndex]);
+				setCursorPosition(chatHistory[newIndex].length);
+			} else if (key.downArrow) {
+				if (historyIndex === -1) return;
+				const nextIndex = historyIndex + 1;
+				if (nextIndex >= chatHistory.length) {
+					setHistoryIndex(-1);
+					setInputText("");
+					setCursorPosition(0);
+				} else {
+					setHistoryIndex(nextIndex);
+					setInputText(chatHistory[nextIndex]);
+					setCursorPosition(chatHistory[nextIndex].length);
+				}
+			} else {
+				const { inputText: newText, cursorPosition: newCursor } = handleTextInput(
+					inputText,
+					cursorPosition,
+					key,
+					input,
+				);
+				setInputText(newText);
+				setCursorPosition(newCursor);
+			}
 		} else {
 			if (key.escape) {
 				handleQuit();
@@ -410,20 +443,28 @@ export default function App({
 					historyIndex === -1 ? chatHistory.length - 1 : Math.max(0, historyIndex - 1);
 				setHistoryIndex(newIndex);
 				setInputText(chatHistory[newIndex]);
+				setCursorPosition(chatHistory[newIndex].length);
 			} else if (key.downArrow) {
 				if (historyIndex === -1) return;
 				const nextIndex = historyIndex + 1;
 				if (nextIndex >= chatHistory.length) {
 					setHistoryIndex(-1);
 					setInputText("");
+					setCursorPosition(0);
 				} else {
 					setHistoryIndex(nextIndex);
 					setInputText(chatHistory[nextIndex]);
+					setCursorPosition(chatHistory[nextIndex].length);
 				}
-			} else if (key.backspace && inputText.length > 0) {
-				setInputText((prev) => prev.slice(0, -1));
-			} else if (input && input !== "\r") {
-				setInputText((prev) => prev + input);
+			} else {
+				const { inputText: newText, cursorPosition: newCursor } = handleTextInput(
+					inputText,
+					cursorPosition,
+					key,
+					input,
+				);
+				setInputText(newText);
+				setCursorPosition(newCursor);
 			}
 		}
 	});
@@ -466,6 +507,7 @@ export default function App({
 			React.createElement(InputPanel, {
 				inputText: inputText,
 				cursorChar: config?.tui?.cursorChar ?? "\u2588",
+				cursorPosition,
 			}),
 		!showOnboarding && React.createElement(Text, { key: "exit-newline" }, EXIT_MESSAGE),
 	);
