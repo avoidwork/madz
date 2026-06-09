@@ -13,7 +13,7 @@ Before we build, we must prepare the ground. Ensure your system meets these requ
 ### Core Requirements
 
 - **Docker Desktop** or **Docker Engine** — the recommended deployment method
-- **An LLM Provider API Key** (`OPENAI_API_KEY` or equivalent)
+- **An LLM Provider** (API key from OpenAI, Ollama, etc.)
 - **Git** (only if you choose to clone the repo or run without Docker)
 
 *Node.js 24+ and npm are required only for local installs without Docker.*
