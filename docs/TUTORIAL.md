@@ -263,18 +263,10 @@ Skills are stored in `skills/` and are version-controllable. Simple skills can b
 
 ### CLI Mode
 
-Execute a single prompt and return the result.
+Execute a single prompt and return the result. This mode is used by internal cron jobs and NPM installations.
 
 ```bash
 node index.js "What's the current system load?"
-```
-
-### Pipeline / JSON Output
-
-Pipe results directly into other tools or scripts. The `--json` flag enables structured output for scripting.
-
-```bash
-node index.js "Summarize memory/_index.md" --json
 ```
 
 ### Scheduled Jobs
@@ -288,6 +280,14 @@ madz, schedule the news-email skill to run during the week at 8pm
 ```
 
 `madz` will parse the natural language instruction and create the cron entry for you.
+
+### Pipeline / JSON Output
+
+Pipe results directly into other tools or scripts. The `--json` flag enables structured output for scripting.
+
+```bash
+node index.js "Summarize memory/_index.md" --json
+```
 
 ---
 
