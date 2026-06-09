@@ -140,7 +140,6 @@ Config keys map to `UPPER_SNAKE_CASE` environment variables. Container-specific 
 | `providers.openai.rateLimit.requestsPerMinute` | `OPENAI_REQUESTS_PER_MINUTE` | `120` |
 | `providers.openrouter.apiKey` | `OPENROUTER_API_KEY` | *(empty)* |
 | `providers.openrouter.model` | `OPENROUTER_MODEL` | `openrouter/auto` |
-| `sandbox.paths` | `SANDBOX_PATHS` | `memory/,skills/,tmp/` |
 | `sandbox.timeout.seconds` | `SANDBOX_TIMEOUT_SECONDS` | `30` |
 | `sandbox.timeout.gracePeriod` | `SANDBOX_GRACE_PERIOD` | `5` |
 | `sandbox.maxReadSize` | `SANDBOX_MAX_READ_SIZE` | `1mb` |
@@ -158,8 +157,20 @@ providers:
 
 ## 🖥️ Phase 4: Launch & First Interaction
 
-### Interactive TUI
-Launches the React-powered terminal interface with full conversation history, skill invocation, and runtime config mutability.
+### Docker — Connect via SSH
+
+If you deployed with Docker (recommended), connect to the container after the `docker run` command in Phase 2. The container exposes SSH on a host-mapped port (default `2222` to avoid conflicts with your local SSH):
+
+```bash
+ssh -p 2222 madz@localhost
+```
+
+The `madz` user has no password. On first login the TUI launches automatically. Press `Ctrl+C` to drop into a bare shell if needed. From there you can use the CLI and pipeline modes below.
+
+### Local — Interactive TUI
+
+If you installed locally via npm or cloned the repo, launch the React-powered terminal interface with full conversation history, skill invocation, and runtime config mutability:
+
 ```bash
 npm start
 # or
@@ -167,16 +178,34 @@ node index.js --mode interactive
 ```
 
 ### CLI Mode
+
 Execute a single prompt and return the result.
+
 ```bash
 node index.js "What's the current system load?"
 ```
 
 ### Pipeline / JSON Output
+
 Pipe results directly into other tools or scripts.
+
 ```bash
 node index.js "Summarize memory/_index.md" --json
 ```
+
+### Interactive TUI Commands
+
+Once inside the interactive terminal, use these commands:
+
+| Command | Action |
+|---------|--------|
+| `↑ / ↓` | Scroll conversation history |
+| `:help` | List available commands |
+| `:config set <key> <value>` | Mutate config at runtime |
+| `:skill <name>` | Invoke a discovered skill |
+| `:schedule pause` / `resume` | Control the cron scheduler |
+| `:clear` | Clear current conversation |
+| `:new` | Start a fresh session |
 
 ### First Launch: The Living Profile
 On your very first run, `madz` will detect that no user profile exists and initiate an **interactive onboarding flow**. It will ask a series of targeted questions to build your initial profile (e.g., *"What do you build?"*, *"What tools do you use?"*, *"How direct should I be?"*), establishing a foundation for deep, immediate personalization.
