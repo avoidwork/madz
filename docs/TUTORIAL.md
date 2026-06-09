@@ -1,11 +1,12 @@
 # Getting Started with Madz
 
-A practical guide to deploying, configuring, and running your AI harness. Whether you prefer a containerized environment or a local Node.js installation, this tutorial will walk you through each phase from zero to your first conversation.
+A practical guide to deploying, configuring, and running your AI harness. Whether you prefer the isolation of a container or the directness of a local Node.js installation, this tutorial will walk you through each phase. From zero to your first conversation. With precision.
 
 ---
 
-## 🎯 Quick Start / What is Madz?
-Madz is an AI harness designed to learn, adapt, and assist. You can interact with it via a terminal interface, a command-line prompt, or even pipe it directly into your scripts. 
+## 🎯 What is Madz?
+
+Madz is an AI harness designed to learn, adapt, and assist. You can speak to it through a terminal interface, a command-line prompt, or pipe it directly into your scripts. It does not demand ceremony. It demands clarity.
 
 **Quick Test (Post-Installation):**
 ```bash
@@ -17,7 +18,7 @@ madz "Summarize my recent memory files and suggest a next step."
 
 ## 📦 Preparation
 
-Before installing anything, ensure your system meets these requirements:
+Before we build, we must prepare the ground. Ensure your system meets these requirements:
 
 ### Core Requirements
 - **Node.js 24+** (for local/npm installation)
@@ -26,19 +27,19 @@ Before installing anything, ensure your system meets these requirements:
 - **Git** (if cloning the source repository)
 
 ### What is Docker?
-Docker packages your application and all its dependencies into a single, isolated container. This ensures `madz` runs identically across your machine, a server, or a cloud environment, without conflicting with other software.
+Docker packages your application and all its dependencies into a single, isolated container. It ensures `madz` runs identically across your machine, a server, or a cloud environment. No conflicts. No "it works on my machine."
 
-**If you're new to Docker:** Don't worry. The commands below are straightforward, and I'll explain exactly what each part does.
+**If you're new to Docker:** Do not worry. The commands below are straightforward. I will explain exactly what each part does.
 
 ---
 
 ## 🚀 Installation
 
-Choose the method that best fits your workflow:
+Choose the method that best fits your workflow. There is no wrong choice, only different philosophies.
 
 **📦 Just want to run it? (Minimal Docker Command)**
 ```bash
-docker run -d --name madz -p 2222:22 -v ./memory:/app/memory -v ./skills:/app/skills -e OPENAI_API_KEY="your-key" avoidwork/madz:latest
+docker run -d --name madz -p 2222:22 -v ./memory:/app/memory -v ./skills:/app/skills --env-file .env avoidwork/madz:latest
 ```
 *This pulls the image, sets up basic persistence, and starts the service. For full configuration and bind mount explanations, see below.*
 
@@ -70,17 +71,17 @@ docker run -d \
   --env-file .env \
   avoidwork/madz:latest
 ```
-*Security Note: Avoid passing API keys directly via `-e` flags, as they will persist in your shell history. Instead, create a `.env` file in your project root with your variables (e.g., `OPENAI_API_KEY=sk-...`) and reference it with `--env-file .env`.*
+*Security Note: Avoid passing API keys directly via `-e` flags, as they will persist in your shell history. Instead, create a `.env` file in your project root with your variables (e.g., `OPENAI_API_KEY=sk-...`) and reference it with `--env-file .env`. For quick testing, you can still use `-e OPENAI_API_KEY="your-key"` directly, but remember to switch to `.env` for anything beyond a trial.*
 
 **Flag breakdown:**
-| Flag | Purpose |
-|------|---------|
-| `-d` | Run in detached mode (background) |
-| `--name madz` | Assign a human-readable name to the container |
-| `-p 2222:22` | Map host port `2222` to container SSH port `22` (avoids conflicts with local SSH) |
-| `-v ./memory:/app/memory` | Bind mount host `./memory` into container `/app/memory` for persistence |
-| `-v ./skills:/app/skills` | Bind mount host `./skills` into container `/app/skills` for custom tools |
-| `-e OPENAI_API_KEY=...` | Inject your LLM provider credentials securely |
+|| Flag | Purpose |
+||------|---------|
+|| `-d` | Run in detached mode (background) |
+|| `--name madz` | Assign a human-readable name to the container |
+|| `-p 2222:22` | Map host port `2222` to container SSH port `22` (avoids conflicts with local SSH) |
+|| `-v ./memory:/app/memory` | Bind mount host `./memory` into container `/app/memory` for persistence |
+|| `-v ./skills:/app/skills` | Bind mount host `./skills` into container `/app/skills` for custom tools |
+|| `--env-file .env` | Inject sensitive credentials securely from a local file |
 
 **Volumes vs. Bind Mounts:** Docker supports two persistence methods. *Volumes* are managed by Docker and live in `/var/lib/docker/volumes/`. *Bind mounts* (used here) link directly to a path on your host filesystem. We use bind mounts so you can read, edit, and version-control your memory and skills files directly from your terminal or editor.
 
@@ -112,29 +113,29 @@ npm start
 
 ## ⚙️ Configuration
 
-`madz` reads its configuration from `config.yaml`. Sensitive values should be injected via environment variables to keep secrets out of version control.
+`madz` reads its configuration from `config.yaml`. Sensitive values should be injected via environment variables to keep secrets out of version control. Secrets belong in the dark. Configuration belongs in the light.
 
 ### 🌐 LLM Providers & Sovereignty
-`madz` is architecturally designed for **local AI**. While it supports cloud endpoints, its core philosophy prioritizes **data sovereignty** and **privacy**. By running models locally (e.g., Ollama, LM Studio, vLLM), you keep your conversation history, memory files, and custom skills entirely on your machine. No telemetry, no external data routing, just pure, unfiltered compute.
+`madz` is architecturally designed for **local AI**. While it supports cloud endpoints, its core philosophy prioritizes **data sovereignty** and **privacy**. By running models locally (e.g., Ollama, LM Studio, vLLM), you keep your conversation history, memory files, and custom skills entirely on your machine. No telemetry. No external data routing. Just pure, unfiltered compute.
 
 Cloud providers are fully supported via the configuration below if latency or model availability dictates it, but the architecture assumes local-first by default.
 
 ### Environment Variable Mapping
 Config keys map to `UPPER_SNAKE_CASE` environment variables. Container-specific keys (`providers`, `credentials`, `timeout`, `search`) are stripped from the variable name.
 
-| Config Path | Environment Variable | Default |
-|-------------|----------------------|---------|
-| `providers.openai.credentials.apiKey` | `OPENAI_API_KEY` | *(required)* |
-| `providers.openai.model` | `OPENAI_MODEL` | `gpt-4o` |
-| `providers.openai.base_url` | `OPENAI_BASE_URL` | `https://api.openai.com/v1` |
-| `providers.openai.temperature` | `OPENAI_TEMPERATURE` | `0.7` |
-| `providers.openai.maxTokens` | `OPENAI_MAX_TOKENS` | `4096` |
-| `providers.openai.rateLimit.requestsPerMinute` | `OPENAI_REQUESTS_PER_MINUTE` | `120` |
-| `providers.openrouter.apiKey` | `OPENROUTER_API_KEY` | *(empty)* |
-| `providers.openrouter.model` | `OPENROUTER_MODEL` | `openrouter/auto` |
-| `sandbox.timeout.seconds` | `SANDBOX_TIMEOUT_SECONDS` | `30` |
-| `sandbox.timeout.gracePeriod` | `SANDBOX_GRACE_PERIOD` | `5` |
-| `sandbox.maxReadSize` | `SANDBOX_MAX_READ_SIZE` | `1mb` |
+|| Config Path | Environment Variable | Default |
+||-------------|----------------------|---------|
+|| `providers.openai.credentials.apiKey` | `OPENAI_API_KEY` | *(required)* |
+|| `providers.openai.model` | `OPENAI_MODEL` | `gpt-4o` |
+|| `providers.openai.base_url` | `OPENAI_BASE_URL` | `https://api.openai.com/v1` |
+|| `providers.openai.temperature` | `OPENAI_TEMPERATURE` | `0.7` |
+|| `providers.openai.maxTokens` | `OPENAI_MAX_TOKENS` | `4096` |
+|| `providers.openai.rateLimit.requestsPerMinute` | `OPENAI_REQUESTS_PER_MINUTE` | `120` |
+|| `providers.openrouter.apiKey` | `OPENROUTER_API_KEY` | *(empty)* |
+|| `providers.openrouter.model` | `OPENROUTER_MODEL` | `openrouter/auto` |
+|| `sandbox.timeout.seconds` | `SANDBOX_TIMEOUT_SECONDS` | `30` |
+|| `sandbox.timeout.gracePeriod` | `SANDBOX_GRACE_PERIOD` | `5` |
+|| `sandbox.maxReadSize` | `SANDBOX_MAX_READ_SIZE` | `1mb` |
 
 ### Inline References (Alternative)
 You can also reference environment variables directly in `config.yaml`:
@@ -157,7 +158,7 @@ If you deployed with Docker (recommended), connect to the container using the SS
 ssh -p 2222 madz@localhost
 ```
 
-The `madz` user has no password. On first login the TUI launches automatically. Press `Esc` to exit. When `madz` exits the SSH session will terminate — there is no interactive shell inside the container.
+The `madz` user has no password. On first login the TUI launches automatically. Press `Esc` to exit. When `madz` exits the SSH session will terminate — there is no interactive shell inside the container. The machine does not wait for idle terminals.
 
 ### NPM — Interactive TUI
 
@@ -191,15 +192,15 @@ Over time, `madz` autonomously captures **ephemeral memories** during operation.
 
 Once inside the interactive terminal, use these commands:
 
-| Command | Action |
-|---------|--------|
-| `↑ / ↓` | Scroll conversation history |
-| `:help` | List available commands |
-| `:config set <key> <value>` | Mutate config at runtime |
-| `:skill <name>` | Invoke a discovered skill |
-| `:schedule pause` / `resume` | Control the cron scheduler |
-| `:clear` | Clear current conversation |
-| `:new` | Start a fresh session |
+|| Command | Action |
+||---------|--------|
+|| `↑ / ↓` | Scroll conversation history |
+|| `:help` | List available commands |
+|| `:config set <key> <value>` | Mutate config at runtime |
+|| `:skill <name>` | Invoke a discovered skill |
+|| `:schedule pause` / `resume` | Control the cron scheduler |
+|| `:clear` | Clear current conversation |
+|| `:new` | Start a fresh session |
 
 ### Standalone Execution
 
@@ -226,7 +227,7 @@ Changes to canonical memory require a `:new` command to refresh the current sess
 
 ### Skills
 
-Skills are how you give `madz` new capabilities — a bit like a macro in Excel. You define a set of instructions, and `madz` follows them whenever a task matches. Skills let you package domain expertise, repeatable workflows, and specialized tools that `madz` can discover and invoke on demand.
+Skills are how you give `madz` new capabilities — a bit like a macro in Excel, but with more intention. You define a set of instructions, and `madz` follows them whenever a task matches. Skills let you package domain expertise, repeatable workflows, and specialized tools that `madz` can discover and invoke on demand.
 
 **Creating skills is natural.** Just ask `madz` in everyday language — it will generate the necessary files for you. You can also create them manually in the `skills/` directory.
 
@@ -294,13 +295,14 @@ node index.js "Summarize memory/_index.md" --json
 ## 🔧 Troubleshooting
 
 ### Docker-Specific
-| Issue | Solution |
-|-------|----------|
-| `docker: command not found` | Install Docker Desktop (macOS/Windows) or Docker Engine (Linux). Verify with `docker --version`. |
-| Permission denied on `docker` commands | Add your user to the `docker` group: `sudo usermod -aG docker $USER`, then restart your terminal. |
-| Container exits immediately | Check logs: `docker logs madz`. Missing `OPENAI_API_KEY` or invalid config will cause early exit. |
-| SSH connection refused | Ensure port mapping is correct (`-p 2222:22`). Try `ssh -o StrictHostKeyChecking=no -p 2222 madz@localhost`. |
-| Memory/skills not persisting | Verify volume paths exist on the host before running: `mkdir -p ./memory ./skills`. |
+|| Issue | Solution |
+||-------|----------|
+|| `docker: command not found` | Install Docker Desktop (macOS/Windows) or Docker Engine (Linux). Verify with `docker --version`. |
+|| **Is the container running?** | Check status with `docker ps -a | grep madz`. If it's `Exited`, check logs with `docker logs madz`. |
+|| Permission denied on `docker` commands | Add your user to the `docker` group: `sudo usermod -aG docker $USER`, then restart your terminal. |
+|| Container exits immediately | Check logs: `docker logs madz`. Missing `OPENAI_API_KEY` or invalid config will cause early exit. |
+|| SSH connection refused | Ensure port mapping is correct (`-p 2222:22`). Try `ssh -o StrictHostKeyChecking=no -p 2222 madz@localhost`. |
+|| Memory/skills not persisting | Verify volume paths exist on the host before running: `mkdir -p ./memory ./skills`. |
 
 ### General
 - **TUI not launching?** Ensure `INK` and `React` dependencies are installed (`npm install`).
