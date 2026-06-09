@@ -171,6 +171,12 @@ npm start
 node index.js --mode interactive
 ```
 
+For global npm installs, just run `madz` from anywhere:
+
+```bash
+madz
+```
+
 ### First Launch: The Living Profile
 On your very first run, `madz` will detect that no user profile exists and initiate an **interactive onboarding flow**. It will ask a series of targeted questions to build your initial profile (e.g., *"What do you build?"*, *"What tools do you use?"*, *"How direct should I be?"*), establishing a foundation for deep, immediate personalization.
 
