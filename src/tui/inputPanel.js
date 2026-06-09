@@ -32,15 +32,17 @@ export function renderBlink(text, char, frame) {
  * @param {Object} props
  * @param {string} props.text - Input text to render
  * @param {string} props.char - Cursor character
+ * @param {string} [props.color] - Cursor text color
  * @param {number} [props._testFrame] - Ignored (static cursor, no anim)
  * @returns {React.ReactElement}
  */
-export function Blink({ text = "", char = "\u2588", _testFrame }) {
+export function Blink({ text = "", char = "\u2588", color, _testFrame }) {
+	const textColor = color || "white";
 	return React.createElement(
 		Box,
 		{ flexDirection: "row" },
-		React.createElement(Text, { key: "text", flexGrow: 1 }, text || ""),
-		React.createElement(Text, { key: "cursor", bold: true }, char || "\u2588"),
+		React.createElement(Text, { key: "text", flexGrow: 1, color: textColor }, text || ""),
+		React.createElement(Text, { key: "cursor", bold: true, color: textColor }, char || "\u2588"),
 	);
 }
 
@@ -48,10 +50,14 @@ export function Blink({ text = "", char = "\u2588", _testFrame }) {
  * Display-only input panel with IRC-style prompt and blinking cursor.
  * All input handling (typing, Enter-to-send, history nav, backspace)
  * is handled by App's single useInput hook.
- * Props:
- *   inputText    - current text being typed (for display)
- *   cursorChar   - character to use as cursor indicator
+ * @param {Object} props
+ * @param {string} props.inputText - Current text being typed
+ * @param {string} props.cursorChar - Character to use as cursor indicator
+ * @param {string} [props.cursorColor] - Color for the cursor
  */
-export function InputPanel({ inputText = "", cursorChar = "\u2588" }) {
+export function InputPanel({ inputText = "", cursorChar = "\u2588", cursorColor }) {
+	if (cursorColor) {
+		return React.createElement(Blink, { text: inputText, char: cursorChar, color: cursorColor });
+	}
 	return React.createElement(Blink, { text: inputText, char: cursorChar });
 }
