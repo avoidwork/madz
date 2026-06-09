@@ -159,28 +159,6 @@ providers:
 
 ### Docker — Connect via SSH
 
-**Example: a `pdf-processing` skill**
-
-```
-my-skill/
-├── SKILL.md          # Required: metadata + instructions
-├── scripts/          # Optional: executable code
-├── references/       # Optional: documentation
-└── assets/           # Optional: templates, resources
-```
-
-**Example: a `data-analysis` skill**
-
-Ask `madz` to "extract text and tables from PDF files, and merge multiple PDFs" — `madz` matches the request to the skill description, loads the full instructions, and performs the task.
-
-Skills are stored in `skills/` and are version-controllable. You can create them manually, or ask `madz` to create one for you using the `create_skill` tool.
-
----
-
-## 🖥️ Phase 4: Launch & First Interaction
-
-### Docker — Connect via SSH
-
 If you deployed with Docker (recommended), connect to the container using the SSH port you passed to `docker run`. The container's SSH daemon listens on internal port `22`, so you map it to a host port of your choosing (commonly `2222` to avoid conflicts with your local SSH):
 
 ```bash
@@ -199,48 +177,6 @@ npm start
 node index.js --mode interactive
 ```
 
-### CLI Mode
-
-Execute a single prompt and return the result. This mode is used by internal cron jobs and NPM installations.
-
-```bash
-node index.js "What's the current system load?"
-```
-
-### Scheduled Jobs
-
-`madz` supports cron-based scheduled jobs that run in non-interactive mode. Define entries in `config.yaml` to execute skills or prompts on a schedule — for example, running a skill every hour. Each invocation inherits the current session's memory context and sandbox permissions. Max-concurrency control prevents run overlap.
-
-To schedule a task, simply ask:
-
-```
-madz, schedule the news-email skill to run during the week at 8pm
-```
-
-`madz` will parse the natural language instruction and create the cron entry for you.
-
-### Pipeline / JSON Output
-
-Pipe results directly into other tools or scripts. The `--json` flag enables structured output for scripting.
-
-```bash
-node index.js "Summarize memory/_index.md" --json
-```
-
-### Interactive TUI Commands
-
-Once inside the interactive terminal, use these commands:
-
-| Command | Action |
-|---------|--------|
-| `↑ / ↓` | Scroll conversation history |
-| `:help` | List available commands |
-| `:config set <key> <value>` | Mutate config at runtime |
-| `:skill <name>` | Invoke a discovered skill |
-| `:schedule pause` / `resume` | Control the cron scheduler |
-| `:clear` | Clear current conversation |
-| `:new` | Start a fresh session |
-
 ### First Launch: The Living Profile
 On your very first run, `madz` will detect that no user profile exists and initiate an **interactive onboarding flow**. It will ask a series of targeted questions to build your initial profile (e.g., *"What do you build?"*, *"What tools do you use?"*, *"How direct should I be?"*), establishing a foundation for deep, immediate personalization.
 
@@ -253,8 +189,8 @@ But the relationship doesn't stop there. Over time, `madz` will autonomously cap
 ---
 
 ## 🛠️ Phase 5: Daily Usage
-
 ### TUI Navigation
+
 Once inside the interactive terminal, use these commands:
 
 | Command | Action |
@@ -266,6 +202,20 @@ Once inside the interactive terminal, use these commands:
 | `:schedule pause` / `resume` | Control the cron scheduler |
 | `:clear` | Clear current conversation |
 | `:new` | Start a fresh session |
+
+### Standalone Execution
+
+Execute a single prompt and return the result.
+
+```bash
+node index.js "What's the current system load?"
+```
+
+Pipe results directly into other tools or scripts. The `--json` flag enables structured output for scripting.
+
+```bash
+node index.js "Summarize memory/_index.md" --json
+```
 
 ### Memory System
 `madz` operates on a dual-layer memory architecture:
@@ -309,7 +259,39 @@ Skills are stored in `skills/` and are version-controllable. Simple skills can b
 
 ---
 
-## 🔧 Phase 6: Troubleshooting
+## ⚙️ Phase 6: Advanced Usage
+
+### CLI Mode
+
+Execute a single prompt and return the result.
+
+```bash
+node index.js "What's the current system load?"
+```
+
+### Pipeline / JSON Output
+
+Pipe results directly into other tools or scripts. The `--json` flag enables structured output for scripting.
+
+```bash
+node index.js "Summarize memory/_index.md" --json
+```
+
+### Scheduled Jobs
+
+`madz` supports cron-based scheduled jobs that run in non-interactive mode. Define entries in `config.yaml` to execute skills or prompts on a schedule — for example, running a skill every hour. Each invocation inherits the current session's memory context and sandbox permissions. Max-concurrency control prevents run overlap.
+
+To schedule a task, simply ask:
+
+```
+madz, schedule the news-email skill to run during the week at 8pm
+```
+
+`madz` will parse the natural language instruction and create the cron entry for you.
+
+---
+
+## 🔧 Phase 7: Troubleshooting
 
 ### Docker-Specific
 | Issue | Solution |
@@ -328,7 +310,7 @@ Skills are stored in `skills/` and are version-controllable. Simple skills can b
 
 ---
 
-## 📖 Phase 7: Next Steps
+## 📖 Phase 8: Next Steps
 
 - Review the full [Configuration Reference](./CONFIG_REFERENCE.md) for all available keys and defaults.
 - Explore the [Architecture Overview](./OVERVIEW.md) to understand subsystem interactions.
