@@ -324,7 +324,7 @@ This mode is used by internal cron jobs and NPM installations.
 | Permission denied on `docker` commands | Add your user to the `docker` group: `sudo usermod -aG docker $USER`, then restart your terminal. |
 | Container exits immediately | Check logs: `docker logs madz`. Missing `OPENAI_API_KEY` or invalid config will cause early exit. |
 | SSH connection refused | Ensure port mapping is correct (`-p 2222:22`). Try `ssh -o StrictHostKeyChecking=no -p 2222 madz@localhost`. |
-|| Memory/skills not persisting | Verify volume paths exist on the host before running: `mkdir -p ./memory ./skills`. |
+| Memory/skills not persisting | Use volumes or bind mounts for persistent state. If using bind mounts, verify host directory permissions allow the `madz` user to read and write. |
 
 ### General
 - **TUI not launching?** Ensure `INK` and `React` dependencies are installed (`npm install`).
