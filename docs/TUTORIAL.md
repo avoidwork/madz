@@ -1,12 +1,8 @@
 # Getting Started with Madz
 
-A practical guide to deploying, configuring, and running your AI harness. Whether you prefer the isolation of a container or the directness of a local Node.js installation, this tutorial will walk you through each phase. From zero to your first conversation. With precision.
-
----
-
-## 🎯 What is Madz?
-
 Madz is an AI harness designed to learn, adapt, and assist. You can speak to it through a terminal interface, a command-line prompt, or pipe it directly into your scripts. It does not demand ceremony. It demands clarity.
+
+This guide walks you through deployment, configuration, and daily operation—whether you prefer the isolation of a container or the directness of a local installation. From zero to your first conversation. With precision.
 
 ---
 
