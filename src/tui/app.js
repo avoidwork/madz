@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Box, Text, useWindowSize } from "ink";
 import { useInput } from "ink";
 import { CommandParser } from "./commandParser.js";
@@ -35,6 +35,8 @@ export default function App({
 	const [chatHistory, setChatHistory] = useState([]);
 	const [historyIndex, setHistoryIndex] = useState(-1);
 	const [inputText, setInputText] = useState("");
+	const [inputFocused, setInputFocused] = useState(true);
+	const scrollRef = useRef(null);
 
 	const skillList = registry ? registry.list() : [];
 
@@ -401,29 +403,53 @@ export default function App({
 			setShowBanner(false);
 			// After dismissal, fall through to normal input processing
 		} else {
-			if (key.escape) {
-				handleQuit();
-			} else if (key.return && !key.shift) {
-				handleSubmit(inputText);
-			} else if (key.upArrow && chatHistory.length > 0) {
-				const newIndex =
-					historyIndex === -1 ? chatHistory.length - 1 : Math.max(0, historyIndex - 1);
-				setHistoryIndex(newIndex);
-				setInputText(chatHistory[newIndex]);
-			} else if (key.downArrow) {
-				if (historyIndex === -1) return;
-				const nextIndex = historyIndex + 1;
-				if (nextIndex >= chatHistory.length) {
-					setHistoryIndex(-1);
-					setInputText("");
-				} else {
-					setHistoryIndex(nextIndex);
-					setInputText(chatHistory[nextIndex]);
+			if (key.tab && !key.shift) {
+				setInputFocused(false);
+				return;
+			} else if (key.tab && key.shift) {
+				setInputFocused(true);
+				return;
+			}
+
+			if (inputFocused) {
+				if (key.escape) {
+					handleQuit();
+				} else if (key.return && !key.shift) {
+					handleSubmit(inputText);
+				} else if (key.upArrow && chatHistory.length > 0) {
+					const newIndex =
+						historyIndex === -1 ? chatHistory.length - 1 : Math.max(0, historyIndex - 1);
+					setHistoryIndex(newIndex);
+					setInputText(chatHistory[newIndex]);
+				} else if (key.downArrow) {
+					if (historyIndex === -1) return;
+					const nextIndex = historyIndex + 1;
+					if (nextIndex >= chatHistory.length) {
+						setHistoryIndex(-1);
+						setInputText("");
+					} else {
+						setHistoryIndex(nextIndex);
+						setInputText(chatHistory[nextIndex]);
+					}
+				} else if (key.backspace && inputText.length > 0) {
+					setInputText((prev) => prev.slice(0, -1));
+				} else if (input && input !== "\r") {
+					setInputText((prev) => prev + input);
 				}
-			} else if (key.backspace && inputText.length > 0) {
-				setInputText((prev) => prev.slice(0, -1));
-			} else if (input && input !== "\r") {
-				setInputText((prev) => prev + input);
+			} else {
+				const ref = scrollRef.current;
+				if (ref) {
+					if (key.upArrow) ref.scrollBy(-1);
+					if (key.downArrow) ref.scrollBy(1);
+					if (key.pageUp) {
+						const height = ref.getViewportHeight() || 1;
+						ref.scrollBy(-height);
+					}
+					if (key.pageDown) {
+						const height = ref.getViewportHeight() || 1;
+						ref.scrollBy(height);
+					}
+				}
 			}
 		}
 	});
@@ -457,16 +483,50 @@ export default function App({
 						onDismiss: () => setShowBanner(false),
 						version: appInfo ? appInfo.version : undefined,
 					})
-				: React.createElement(ConversationPanel, {
-						messages: messages,
-						assistantName: config?.tui?.name || "Assistant",
-					}),
+				: inputFocused
+					? React.createElement(ConversationPanel, {
+							messages: messages,
+							assistantName: config?.tui?.name || "Assistant",
+							scrollRef: scrollRef,
+						})
+					: React.createElement(
+							Box,
+							{
+								key: "conversation-wrapper",
+								flexDirection: "column",
+								flexGrow: 1,
+								borderColor: "gray",
+								borderStyle: "round",
+								paddingX: 1,
+							},
+							React.createElement(ConversationPanel, {
+								messages: messages,
+								assistantName: config?.tui?.name || "Assistant",
+								scrollRef: scrollRef,
+							}),
+						),
 		!showBanner && !showOnboarding && React.createElement(StatusBar, statusProps),
-		(showOnboarding || (!showBanner && !showOnboarding)) &&
-			React.createElement(InputPanel, {
-				inputText: inputText,
-				cursorChar: config?.tui?.cursorChar ?? "\u2588",
-			}),
+		showOnboarding || (!showBanner && !showOnboarding)
+			? inputFocused
+				? React.createElement(
+						Box,
+						{
+							key: "input-wrapper",
+							flexDirection: "row",
+							borderColor: "gray",
+							borderStyle: "round",
+							paddingX: 1,
+						},
+						React.createElement(InputPanel, {
+							inputText: inputText,
+							cursorChar: config?.tui?.cursorChar ?? "\u2588",
+						}),
+					)
+				: React.createElement(InputPanel, {
+						inputText: inputText,
+						cursorChar: config?.tui?.cursorChar ?? "\u2588",
+					})
+			: null,
 		!showOnboarding && React.createElement(Text, { key: "exit-newline" }, EXIT_MESSAGE),
 	);
 }
