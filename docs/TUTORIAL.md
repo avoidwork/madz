@@ -226,15 +226,15 @@ Over time, `madz` autonomously captures **ephemeral memories** during operation.
 
 Once inside the interactive terminal, use these commands:
 
-|| Command | Action |
-||---------|--------|
-|| `↑ / ↓` | Scroll conversation history |
-|| `:help` | List available commands |
-|| `:config set <key> <value>` | Mutate config at runtime |
-|| `:skill <name>` | Invoke a discovered skill |
-|| `:schedule pause` / `resume` | Control the cron scheduler |
-|| `:clear` | Clear current conversation |
-|| `:new` | Start a fresh session |
+| Command | Action |
+|---------|--------|
+| `↑ / ↓` | Scroll conversation history |
+| `:help` | List available commands |
+| `:config set <key> <value>` | Mutate config at runtime |
+| `:skill <name>` | Invoke a discovered skill |
+| `:schedule pause` / `resume` | Control the cron scheduler |
+| `:clear` | Clear current conversation |
+| `:new` | Start a fresh session |
 
 ### Standalone Execution
 
