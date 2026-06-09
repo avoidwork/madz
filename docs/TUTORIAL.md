@@ -190,7 +190,7 @@ If you deployed with Docker (recommended), connect to the container using the SS
 ssh -p 2222 madz@localhost
 ```
 
-The `madz` user has no password. On first login the TUI launches automatically. Press `Esc` to exit. When `madz` exits the SSH session will terminate — there is no interactive shell inside the container. The machine does not wait for idle terminals.
+The `madz` user has no password. On login the TUI launches automatically. Press `Esc` to exit. When `madz` exits the SSH session will terminate — there is no interactive shell inside the container. The machine does not wait for idle terminals.
 
 *First command to try: `What's the current system load?`*
 
