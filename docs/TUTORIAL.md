@@ -20,11 +20,6 @@ Before we build, we must prepare the ground. Ensure your system meets these requ
 - **Git** — only if you choose to clone the repo or run without Docker
 - **Node.js 24+** and **npm** — only for local installs without Docker
 
-### Local LLM Options
-`madz` is designed to run entirely offline if you prefer. For a self-hosted, local-first experience, **Ollama** ([https://ollama.com/](https://ollama.com/)) is the most straightforward path. Install it, pull a model (`ollama pull gemma4:12b`), and configure `madz` to talk to it. 
-
-You will need to set `OPENAI_BASE_URL=http://localhost:11434/v1` in your `.env` file or `config.yaml`. For local providers, `OPENAI_API_KEY` is optional—many run without authentication. No telemetry. No external routing. Just your hardware, your data, and your rules.
-
 ### What is Docker?
 Docker packages your application and all its dependencies into a single, isolated container. It ensures `madz` runs identically across your machine, a server, or a cloud environment. No conflicts. No "it works on my machine."
 
@@ -116,6 +111,8 @@ npm start
 
 ### 🌐 LLM Providers & Sovereignty
 `madz` is architecturally designed for **local AI**. While it supports cloud endpoints, its core philosophy prioritizes **data sovereignty** and **privacy**. By running models locally (e.g., Ollama, LM Studio, vLLM), you keep your conversation history, memory files, and custom skills entirely on your machine. No telemetry. No external data routing. Just pure, unfiltered compute.
+
+For a self-hosted, local-first experience, **Ollama** ([https://ollama.com/](https://ollama.com/)) is the most straightforward path. Install it, pull a model (`ollama pull gemma4:12b`), and configure `madz` to talk to it. You will need to set `OPENAI_BASE_URL=http://localhost:11434/v1` in your `.env` file or `config.yaml`. For local providers, `OPENAI_API_KEY` is optional—many run without authentication.
 
 Cloud providers are fully supported via the configuration below if latency or model availability dictates it, but the architecture assumes local-first by default.
 
