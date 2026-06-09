@@ -16,7 +16,7 @@ graph TD
     A --> P["Provider"]
     A -->|"tools"| SB["Sandbox"]
     S -->|"invoke"| SB
-    SB -->|"fork()"| SK["scripts/"]
+    SB -->|"spawn()"| SK["scripts/"]
     TM["Memory Files"] -->|"loadContext"| A
     TM -->|write/read| FS["filesystem"]
     TM -->|context| SE["Session"]
