@@ -403,11 +403,8 @@ export default function App({
 			setShowBanner(false);
 			// After dismissal, fall through to normal input processing
 		} else {
-			if (key.tab && !key.shift) {
-				setInputFocused(false);
-				return;
-			} else if (key.tab && key.shift) {
-				setInputFocused(true);
+			if (input === "\t" || key.tab) {
+				setInputFocused((prev) => !prev);
 				return;
 			}
 
