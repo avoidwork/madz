@@ -327,9 +327,11 @@ This mode is used by internal cron jobs and NPM installations.
 | Memory/skills not persisting | Use volumes or bind mounts for persistent state. If using bind mounts, verify host directory permissions allow the `madz` user to read and write. |
 
 ### General
-- **TUI not launching?** Ensure `INK` and `React` dependencies are installed (`npm install`).
-- **Skill not executing?** Check that the required permissions (`filesystem:read`, `filesystem:write`, etc.) are enabled in `config.yaml` under `sandbox.permissions`.
-- **Session not persisting?** Verify that `memory/` is writable and not mounted as read-only.
-- **Need a fresh shell in Docker?** Run `/bin/sh` after logging in, or start the app in the background with `npm start &`.
+| Issue | Solution |
+|-------|----------|
+| **TUI not launching?** | Ensure `INK` and `React` dependencies are installed (`npm install`). |
+| **Skill not executing?** | Check that the required permissions (`filesystem:read`, `filesystem:write`, etc.) are enabled in `config.yaml` under `sandbox.permissions`. |
+| **Session not persisting?** | Verify that `memory/` is writable and not mounted as read-only. |
+| **Need a fresh shell in Docker?** | Run `/bin/sh` after logging in, or start the app in the background with `npm start &`. |
 
 *Deploy with confidence. The machine waits for no one, but `madz` remembers everything.*
