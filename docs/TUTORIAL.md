@@ -71,14 +71,14 @@ docker run -d \
 *Security Note: Avoid passing API keys directly via `-e` flags, as they will persist in your shell history. Instead, create a `.env` file in your project root with your variables (e.g., `OPENAI_API_KEY=sk-...`) and reference it with `--env-file .env`. For quick testing, you can still use `-e OPENAI_API_KEY="your-key"` directly, but remember to switch to `.env` for anything beyond a trial.*
 
 **Flag breakdown:**
-|| Flag | Purpose |
-||------|---------|
-|| `-d` | Run in detached mode (background) |
-|| `--name madz` | Assign a human-readable name to the container |
-|| `-p 2222:22` | Map host port `2222` to container SSH port `22` (avoids conflicts with local SSH) |
-|| `-v ./memory:/app/memory` | Bind mount host `./memory` into container `/app/memory` for persistence |
-|| `-v ./skills:/app/skills` | Bind mount host `./skills` into container `/app/skills` for custom tools |
-|| `--env-file .env` | Inject sensitive credentials securely from a local file |
+| Flag | Purpose |
+|------|---------|
+| `-d` | Run in detached mode (background) |
+| `--name madz` | Assign a human-readable name to the container |
+| `-p 2222:22` | Map host port `2222` to container SSH port `22` (avoids conflicts with local SSH) |
+| `-v ./memory:/app/memory` | Bind mount host `./memory` into container `/app/memory` for persistence |
+| `-v ./skills:/app/skills` | Bind mount host `./skills` into container `/app/skills` for custom tools |
+| `--env-file .env` | Inject sensitive credentials securely from a local file |
 
 **Volumes vs. Bind Mounts:** Docker supports two persistence methods. *Volumes* are managed by Docker and live in `/var/lib/docker/volumes/`. *Bind mounts* (used here) link directly to a path on your host filesystem. We use bind mounts so you can read, edit, and version-control your memory and skills files directly from your terminal or editor.
 
