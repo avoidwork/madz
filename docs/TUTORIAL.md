@@ -189,6 +189,14 @@ node index.js "What's the current system load?"
 
 `madz` supports cron-based scheduled jobs that run in non-interactive mode. Define entries in `config.yaml` to execute skills or prompts on a schedule — for example, running a skill every hour. Each invocation inherits the current session's memory context and sandbox permissions. Max-concurrency control prevents run overlap.
 
+To schedule a task, simply ask:
+
+```
+madz, schedule the news-email skill to run during the week at 8pm
+```
+
+`madz` will parse the natural language instruction and create the cron entry for you.
+
 ### Pipeline / JSON Output
 
 Pipe results directly into other tools or scripts. The `--json` flag enables structured output for scripting.
