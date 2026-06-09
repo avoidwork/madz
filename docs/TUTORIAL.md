@@ -19,7 +19,7 @@ Before we build, we must prepare the ground. Ensure your system meets these requ
 *Node.js 24+ and npm are required only for local installs without Docker.*
 
 ### Local LLM Options
-`madz` is designed to run entirely offline if you prefer. For a self-hosted, local-first experience, **Ollama** ([https://ollama.com/](https://ollama.com/)) is the most straightforward path. Install it, pull a model (`ollama pull llama3.2`), and configure `madz` to talk to it. 
+`madz` is designed to run entirely offline if you prefer. For a self-hosted, local-first experience, **Ollama** ([https://ollama.com/](https://ollama.com/)) is the most straightforward path. Install it, pull a model (`ollama pull gemma4:12b`), and configure `madz` to talk to it. 
 
 You will need to set `OPENAI_BASE_URL=http://localhost:11434/v1` in your `.env` file or `config.yaml`. For local providers, `OPENAI_API_KEY` is optional—many run without authentication. No telemetry. No external routing. Just your hardware, your data, and your rules.
 
