@@ -230,7 +230,7 @@ Changes to canonical memory require a `:new` command to refresh the current sess
 
 Skills are how you give `madz` new capabilities — a bit like a macro in Excel. You define a set of instructions, and `madz` follows them whenever a task matches. Skills let you package domain expertise, repeatable workflows, and specialized tools that `madz` can discover and invoke on demand.
 
-Each skill is a folder in the `skills/` directory containing a `SKILL.md` file. The file specifies what the skill does and when to use it. `madz` auto-discovers all skills on boot, loading only their names and descriptions initially — full instructions load only when relevant to your request. This is called **progressive disclosure** and keeps context usage minimal.
+Each skill is a folder in the `skills/` directory containing a `SKILL.md` file. The file specifies what the skill does and when to use it. You can ask `madz` in natural language to create skills — it invokes the `create_skill` tool to produce the files for you. `madz` auto-discovers all skills on boot, loading only their names and descriptions initially — full instructions load only when relevant to your request. This is called **progressive disclosure** and keeps context usage minimal.
 
 A skill can also bundle executable scripts, reference documents, templates, and other resources. When `madz` activates a skill, it follows the step-by-step instructions and can run any bundled code.
 
@@ -255,7 +255,7 @@ license: Apache-2.0
 Step-by-step instructions here...
 ```
 
-Skills are stored in `skills/` and are version-controllable. Simple skills can be chained together into pipelines for complex multi-step processing, or composed by asking `madz` to coordinate between them. Create skills manually, or simply ask `madz` in natural language — it will invoke the `create_skill` tool to produce the `SKILL.md` and any needed files for you.
+Skills are stored in `skills/` and are version-controllable. Simple skills can be chained together into pipelines for complex multi-step processing, or composed by asking `madz` to coordinate between them.
 
 ---
 
