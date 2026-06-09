@@ -65,7 +65,25 @@ docker run -d \
   --env-file .env \
   avoidwork/madz:latest
 ```
-*Security Note: Avoid passing API keys directly via `-e` flags, as they will persist in your shell history. Instead, create a `.env` file in your project root with your variables (e.g., `OPENAI_API_KEY=sk-...`) and reference it with `--env-file .env`. For quick testing, you can still use `-e OPENAI_API_KEY="your-key"` directly, but remember to switch to `.env` for anything beyond a trial.*
+*Security Note: Avoid passing API keys directly via `-e` flags, as they will persist in your shell history. Instead, create a `.env` file in your project root with your variables and reference it with `--env-file .env`. For quick testing, you can still use `-e OPENAI_API_KEY="your-key"` directly, but remember to switch to `.env` for anything beyond a trial.*
+
+**Example `.env` files:**
+
+*OpenAI (Cloud):*
+```env
+OPENAI_API_KEY=sk-proj-xxxxxxxxxxxxxxxx
+OPENAI_MODEL=gpt-4o
+OPENAI_BASE_URL=https://api.openai.com/v1
+```
+
+*Ollama (Local):*
+```env
+OPENAI_BASE_URL=http://host.docker.internal:11434/v1
+OPENAI_MODEL=gemma4:12b
+# OPENAI_API_KEY is optional for local providers
+```
+
+*Note for Docker users:* `host.docker.internal` is required so the container can reach the Ollama service running on your host machine. If you're on Linux, you may need to use `--network host` instead.
 
 **Flag breakdown:**
 | Flag | Purpose |
@@ -79,6 +97,8 @@ docker run -d \
 
 **Volumes vs. Bind Mounts:** Docker supports two persistence methods. *Volumes* are managed by Docker and live in `/var/lib/docker/volumes/`. *Bind mounts* (used here) link directly to a path on your host filesystem. We use bind mounts so you can read, edit, and version-control your memory and skills files directly from your terminal or editor.
 
+*Port collision?* If port `2222` is already in use, change the host port in the `-p` flag (e.g., `-p 2223:22`) and update your SSH command accordingly.
+
 ### Option B: npm Global Install (System-Wide Access)
 
 Install directly from the registry:
@@ -91,6 +111,22 @@ Run it from anywhere:
 madz
 ```
 *This installs `madz` globally on your system. Configuration is handled via `~/.config/madz/config.yaml` or environment variables.*
+
+**Example `config.yaml` (NPM/Local Install):**
+```yaml
+providers:
+  openai:
+    credentials:
+      apiKey: "${OPENAI_API_KEY}"
+    model: gpt-4o
+    base_url: https://api.openai.com/v1
+sandbox:
+  permissions:
+    - filesystem:read
+    - filesystem:write
+    - process:spawn
+```
+*Replace `apiKey`, `model`, and `base_url` as needed. For local LLMs, set `base_url` to your local endpoint and omit `apiKey` if your provider doesn't require one.*
 
 ### Option C: Clone Source Repository (Development/Customization)
 
@@ -155,6 +191,8 @@ ssh -p 2222 madz@localhost
 ```
 
 The `madz` user has no password. On first login the TUI launches automatically. Press `Esc` to exit. When `madz` exits the SSH session will terminate — there is no interactive shell inside the container. The machine does not wait for idle terminals.
+
+*First command to try: `What's the current system load?`*
 
 ### NPM — Interactive TUI
 
@@ -258,14 +296,6 @@ Skills are stored in `skills/` and are version-controllable. Simple skills can b
 
 ## ⚙️ Advanced Usage
 
-### CLI Mode
-
-Execute a single prompt and return the result. This mode is used by internal cron jobs and NPM installations.
-
-```bash
-node index.js "What's the current system load?"
-```
-
 ### Scheduled Jobs
 
 `madz` supports cron-based scheduled jobs that run in non-interactive mode. Define entries in `config.yaml` to execute skills or prompts on a schedule — for example, running a skill every hour. Each invocation inherits the current session's memory context and sandbox permissions. Max-concurrency control prevents run overlap.
@@ -278,13 +308,15 @@ madz, schedule the news-email skill to run during the week at 8pm
 
 `madz` will parse the natural language instruction and create the cron entry for you.
 
-### Pipeline / JSON Output
+### Scripting & Automation
 
-Pipe results directly into other tools or scripts. The `--json` flag enables structured output for scripting.
+For headless execution, pipe results directly into other tools or scripts. The `--json` flag enables structured output for automation pipelines.
 
 ```bash
-node index.js "Summarize memory/_index.md" --json
+node index.js "Summarize memory/_index.md" --json | jq '.summary'
 ```
+
+This mode is used by internal cron jobs and NPM installations.
 
 ---
 
