@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { Box, Text, useWindowSize } from "ink";
+import React, { useState, useEffect, useRef } from "react";
+import { Box, useWindowSize } from "ink";
 import { useInput } from "ink";
 import { CommandParser } from "./commandParser.js";
 import { ConversationPanel } from "./conversationPanel.js";
@@ -10,8 +10,6 @@ import { Banner } from "./banner.js";
 import { OnboardingPanel } from "./onboardingPanel.js";
 import { createSession } from "../session/factory.js";
 import { setConfigValue } from "../config/loader.js";
-
-const EXIT_MESSAGE = "\n";
 
 /**
  * Main App component (Ink). Renders an IRC-style layout:
@@ -35,6 +33,8 @@ export default function App({
 	const [chatHistory, setChatHistory] = useState([]);
 	const [historyIndex, setHistoryIndex] = useState(-1);
 	const [inputText, setInputText] = useState("");
+	const [inputFocused, setInputFocused] = useState(true);
+	const scrollRef = useRef(null);
 
 	const skillList = registry ? registry.list() : [];
 
@@ -401,29 +401,54 @@ export default function App({
 			setShowBanner(false);
 			// After dismissal, fall through to normal input processing
 		} else {
-			if (key.escape) {
-				handleQuit();
-			} else if (key.return && !key.shift) {
-				handleSubmit(inputText);
-			} else if (key.upArrow && chatHistory.length > 0) {
-				const newIndex =
-					historyIndex === -1 ? chatHistory.length - 1 : Math.max(0, historyIndex - 1);
-				setHistoryIndex(newIndex);
-				setInputText(chatHistory[newIndex]);
-			} else if (key.downArrow) {
-				if (historyIndex === -1) return;
-				const nextIndex = historyIndex + 1;
-				if (nextIndex >= chatHistory.length) {
-					setHistoryIndex(-1);
-					setInputText("");
-				} else {
-					setHistoryIndex(nextIndex);
-					setInputText(chatHistory[nextIndex]);
+			if (input === "\t" || key.tab) {
+				setInputFocused((prev) => !prev);
+				return;
+			}
+
+			if (inputFocused) {
+				if (key.escape) {
+					handleQuit();
+				} else if (key.return && !key.shift) {
+					handleSubmit(inputText);
+				} else if (key.upArrow && chatHistory.length > 0) {
+					const newIndex =
+						historyIndex === -1 ? chatHistory.length - 1 : Math.max(0, historyIndex - 1);
+					setHistoryIndex(newIndex);
+					setInputText(chatHistory[newIndex]);
+				} else if (key.downArrow) {
+					if (historyIndex === -1) return;
+					const nextIndex = historyIndex + 1;
+					if (nextIndex >= chatHistory.length) {
+						setHistoryIndex(-1);
+						setInputText("");
+					} else {
+						setHistoryIndex(nextIndex);
+						setInputText(chatHistory[nextIndex]);
+					}
+				} else if (key.backspace && inputText.length > 0) {
+					setInputText((prev) => prev.slice(0, -1));
+				} else if (input && input !== "\r") {
+					setInputText((prev) => prev + input);
 				}
-			} else if (key.backspace && inputText.length > 0) {
-				setInputText((prev) => prev.slice(0, -1));
-			} else if (input && input !== "\r") {
-				setInputText((prev) => prev + input);
+			} else {
+				if (key.escape) {
+					handleQuit();
+				} else {
+					const ref = scrollRef.current;
+					if (ref) {
+						if (key.upArrow) ref.scrollBy(-1);
+						if (key.downArrow) ref.scrollBy(1);
+						if (key.pageUp) {
+							const height = ref.getViewportHeight() || 1;
+							ref.scrollBy(-height);
+						}
+						if (key.pageDown) {
+							const height = ref.getViewportHeight() || 1;
+							ref.scrollBy(height);
+						}
+					}
+				}
 			}
 		}
 	});
@@ -457,16 +482,36 @@ export default function App({
 						onDismiss: () => setShowBanner(false),
 						version: appInfo ? appInfo.version : undefined,
 					})
-				: React.createElement(ConversationPanel, {
-						messages: messages,
-						assistantName: config?.tui?.name || "Assistant",
-					}),
+				: React.createElement(
+						Box,
+						{
+							key: "conversation-wrapper",
+							flexDirection: "column",
+							flexGrow: 1,
+							backgroundColor: undefined,
+						},
+						React.createElement(ConversationPanel, {
+							messages: messages,
+							assistantName: config?.tui?.name || "Assistant",
+							scrollRef: scrollRef,
+						}),
+					),
 		!showBanner && !showOnboarding && React.createElement(StatusBar, statusProps),
-		(showOnboarding || (!showBanner && !showOnboarding)) &&
-			React.createElement(InputPanel, {
-				inputText: inputText,
-				cursorChar: config?.tui?.cursorChar ?? "\u2588",
-			}),
-		!showOnboarding && React.createElement(Text, { key: "exit-newline" }, EXIT_MESSAGE),
+		showOnboarding || (!showBanner && !showOnboarding)
+			? React.createElement(
+					Box,
+					{
+						key: "input-wrapper",
+						flexDirection: "row",
+						paddingX: 1,
+						paddingY: 0,
+					},
+					React.createElement(InputPanel, {
+						inputText: inputText,
+						cursorChar: config?.tui?.cursorChar ?? "\u2588",
+						cursorColor: inputFocused ? undefined : "#202020",
+					}),
+				)
+			: null,
 	);
 }

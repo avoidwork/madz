@@ -35,7 +35,7 @@ export const StatusBar = React.memo(function StatusBar({
 			alignItems: "center",
 			width: "100%",
 			paddingX: 1,
-			backgroundColor: "#404040",
+			backgroundColor: "#101010",
 			justifyContent: "flex-start",
 		},
 		React.createElement(
@@ -46,11 +46,11 @@ export const StatusBar = React.memo(function StatusBar({
 				{ key: "status-indicator", color: status.color, bold: true },
 				status.indicator + " ",
 			),
-			React.createElement(Text, { key: "status-msg", dim: true }, " " + statusMessage),
-			React.createElement(Text, { key: "sep" }, " | "),
+			React.createElement(Text, { key: "status-msg", color: "#606060" }, " " + statusMessage),
+			React.createElement(Text, { key: "sep", color: "#606060" }, " | "),
 			React.createElement(
 				Text,
-				{ key: "info", dim: true },
+				{ key: "info", color: "#606060" },
 				"skills:" + skillCount + " msg:" + messageCount,
 			),
 		),
