@@ -7,11 +7,11 @@ A practical guide to deploying, configuring, and running your AI harness. Whethe
 ## 🎯 Quick Start / What is Madz?
 Madz is an AI harness designed to learn, adapt, and assist. You can interact with it via a terminal interface, a command-line prompt, or even pipe it directly into your scripts. 
 
-**Try it immediately after launch:**
+**Quick Test (Post-Installation):**
 ```bash
 madz "Summarize my recent memory files and suggest a next step."
 ```
-*No complex setup required for this command. Just type, and let the machine work.*
+*Ensure the harness is running before executing. Just type, and let the machine work.*
 
 ---
 
@@ -67,12 +67,10 @@ docker run -d \
   -p 2222:22 \
   -v ./memory:/app/memory \
   -v ./skills:/app/skills \
-  -e OPENAI_API_KEY="your-api-key-here" \
-  -e OPENAI_MODEL=gpt-4o \
-  -e OPENAI_BASE_URL=https://api.openai.com/v1 \
-  -e OPENAI_MAX_TOKENS=4096 \
+  --env-file .env \
   avoidwork/madz:latest
 ```
+*Security Note: Avoid passing API keys directly via `-e` flags, as they will persist in your shell history. Instead, create a `.env` file in your project root with your variables (e.g., `OPENAI_API_KEY=sk-...`) and reference it with `--env-file .env`.*
 
 **Flag breakdown:**
 | Flag | Purpose |
@@ -182,7 +180,7 @@ On your very first run, `madz` will detect that no user profile exists and initi
 
 This profile is saved to `memory/context/profile.md` and injected into the system prompt at the start of every session, ensuring consistent, tailored behavior from day one.
 
-But the relationship doesn't stop there. Over time, `madz` will autonomously capture **ephemeral memories** during your interactions—recording patterns, milestones, and nuances. These memories layer on top of your initial profile, continuously refining how `madz` understands you. The result is an organic, evolving personalization that makes every conversation feel increasingly natural, intuitive, and deeply aligned with your workflow.
+Over time, `madz` autonomously captures **ephemeral memories** during operation. These entries log interaction patterns, decision milestones, and stylistic preferences, layering directly onto the base profile. The system prompt is dynamically rebuilt each session, ensuring consistent, context-aware behavior without manual intervention.
 
 *To re-trigger the initial profile setup, simply delete `memory/context/profile.md` and restart.*
 
@@ -248,11 +246,13 @@ my-skill/
 
 ```yaml
 ---
-name: pdf-processing
-description: Extract text and tables from PDF files, fill PDF forms, and merge multiple PDFs. Use when working with PDF documents or when the user mentions PDFs, forms, or document extraction.
-license: Apache-2.0
+name: system-info
+description: Retrieve current system metrics, uptime, and memory usage. Use when the user asks about system health, load, or performance.
+license: MIT
 ---
-Step-by-step instructions here...
+1. Run `uptime` and `free -h`.
+2. Format the output into a concise summary.
+3. Report back to the user.
 ```
 
 Skills are stored in `skills/` and are version-controllable. Simple skills can be chained together into pipelines for complex multi-step processing, or composed by asking `madz` to coordinate between them.
