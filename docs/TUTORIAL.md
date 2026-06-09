@@ -15,7 +15,7 @@ Before we build, we must prepare the ground. Ensure your system meets these requ
 - **Docker Desktop** or **Docker Engine** — the recommended deployment method
 - **An LLM Provider** (API key from OpenAI, Ollama, etc.)
 
-### Optional
+#### Optional
 
 - **Git** — only if you choose to clone the repo or run without Docker
 - **Node.js 24+** and **npm** — only for local installs without Docker
