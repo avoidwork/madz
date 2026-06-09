@@ -165,9 +165,9 @@ If you deployed with Docker (recommended), connect to the container using the SS
 ssh -p 2222 madz@localhost
 ```
 
-The `madz` user has no password. On first login the TUI launches automatically. Press `Ctrl+C` to drop into a bare shell if needed. From there you can use the CLI and pipeline modes below.
+The `madz` user has no password. On first login the TUI launches automatically. Press `Esc` to exit. When `madz` exits the SSH session will terminate — there is no interactive shell inside the container.
 
-### Local — Interactive TUI
+### NPM — Interactive TUI
 
 If you installed locally via npm or cloned the repo, launch the React-powered terminal interface with full conversation history, skill invocation, and runtime config mutability:
 
@@ -179,15 +179,19 @@ node index.js --mode interactive
 
 ### CLI Mode
 
-Execute a single prompt and return the result.
+Execute a single prompt and return the result. This mode is used by internal cron jobs and NPM installations.
 
 ```bash
 node index.js "What's the current system load?"
 ```
 
+### Scheduled Jobs
+
+`madz` supports cron-based scheduled jobs that run in non-interactive mode. Define entries in `config.yaml` to execute skills or prompts on a schedule — for example, running a skill every hour. Each invocation inherits the current session's memory context and sandbox permissions. Max-concurrency control prevents run overlap.
+
 ### Pipeline / JSON Output
 
-Pipe results directly into other tools or scripts.
+Pipe results directly into other tools or scripts. The `--json` flag enables structured output for scripting.
 
 ```bash
 node index.js "Summarize memory/_index.md" --json
