@@ -155,13 +155,9 @@ providers:
 
 ---
 
-## 🧠 Skills
+## 🖥️ Phase 4: Launch & First Interaction
 
-Skills are how you give `madz` new capabilities — a bit like a macro in Excel. You define a set of instructions, and `madz` follows them whenever a task matches. Skills let you package domain expertise, repeatable workflows, and specialized tools that `madz` can discover and invoke on demand.
-
-Each skill is a folder in the `skills/` directory containing a `SKILL.md` file. The file specifies what the skill does and when to use it. `madz` auto-discovers all skills on boot, loading only their names and descriptions initially — full instructions load only when relevant to your request. This is called **progressive disclosure** and keeps context usage minimal.
-
-A skill can also bundle executable scripts, reference documents, templates, and other resources. When `madz` activates a skill, it follows the step-by-step instructions and can run any bundled code.
+### Docker — Connect via SSH
 
 **Example: a `pdf-processing` skill**
 
@@ -280,17 +276,36 @@ Once inside the interactive terminal, use these commands:
 
 Changes to canonical memory require a `:new` command to refresh the current session context.
 
-### Skills Registry
-Custom skills live in the `skills/` directory. Each skill requires a `SKILL.md` with YAML frontmatter. The registry auto-discovers them on boot.
+### Skills
+
+Skills are how you give `madz` new capabilities — a bit like a macro in Excel. You define a set of instructions, and `madz` follows them whenever a task matches. Skills let you package domain expertise, repeatable workflows, and specialized tools that `madz` can discover and invoke on demand.
+
+Each skill is a folder in the `skills/` directory containing a `SKILL.md` file. The file specifies what the skill does and when to use it. `madz` auto-discovers all skills on boot, loading only their names and descriptions initially — full instructions load only when relevant to your request. This is called **progressive disclosure** and keeps context usage minimal.
+
+A skill can also bundle executable scripts, reference documents, templates, and other resources. When `madz` activates a skill, it follows the step-by-step instructions and can run any bundled code.
+
+**Directory structure:**
+
+```
+my-skill/
+├── SKILL.md          # Required: metadata + instructions
+├── scripts/          # Optional: executable code
+├── references/       # Optional: documentation
+└── assets/           # Optional: templates, resources
+```
+
+**Example SKILL.md:**
+
 ```yaml
 ---
-name: my-tool
-description: Performs X when triggered.
-license: MIT
+name: pdf-processing
+description: Extract text and tables from PDF files, fill PDF forms, and merge multiple PDFs. Use when working with PDF documents or when the user mentions PDFs, forms, or document extraction.
+license: Apache-2.0
 ---
 Step-by-step instructions here...
 ```
-*Executable scripts can be placed in `skills/<name>/scripts/` (`.sh`, `.py`, `.js`, `.rb`, `.ts`).*
+
+Skills are stored in `skills/` and are version-controllable. You can create them manually, or ask `madz` to create one for you using the `create_skill` tool.
 
 ---
 
