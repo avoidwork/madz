@@ -230,7 +230,7 @@ Changes to canonical memory require a `:new` command to refresh the current sess
 
 Skills are how you give `madz` new capabilities — a bit like a macro in Excel. You define a set of instructions, and `madz` follows them whenever a task matches. Skills let you package domain expertise, repeatable workflows, and specialized tools that `madz` can discover and invoke on demand.
 
-**Creating skills is natural.** Just ask `madz` in everyday language — it will invoke the `create_skill` tool to generate the right files. You can also create them manually in the `skills/` directory.
+**Creating skills is natural.** Just ask `madz` in everyday language — it will generate the necessary files for you. You can also create them manually in the `skills/` directory.
 
 Each skill is a folder containing a `SKILL.md` file with YAML frontmatter and instructions. When you ask `madz` to perform a related task, it matches your request to the skill description, loads the full instructions, and executes — optionally running any bundled scripts, loading reference documents, or applying templates.
 
