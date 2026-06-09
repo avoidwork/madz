@@ -308,12 +308,4 @@ node index.js "Summarize memory/_index.md" --json
 - **Session not persisting?** Verify that `memory/` is writable and not mounted as read-only.
 - **Need a fresh shell in Docker?** Run `/bin/sh` after logging in, or start the app in the background with `npm start &`.
 
----
-
-## 📖 Phase 8: Next Steps
-
-- Review the full [Configuration Reference](./CONFIG_REFERENCE.md) for all available keys and defaults.
-- Explore the [Architecture Overview](./OVERVIEW.md) to understand subsystem interactions.
-- Check out [CODE_STYLE.md](./CODE_STYLE.md) if you plan to extend or contribute.
-
 *Deploy with confidence. The machine waits for no one, but `madz` remembers everything.*
