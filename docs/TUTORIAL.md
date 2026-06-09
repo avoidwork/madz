@@ -236,20 +236,6 @@ Once inside the interactive terminal, use these commands:
 | `:clear` | Clear current conversation |
 | `:new` | Start a fresh session |
 
-### Standalone Execution
-
-Execute a single prompt and return the result.
-
-```bash
-node index.js "What's the current system load?"
-```
-
-Pipe results directly into other tools or scripts. The `--json` flag enables structured output for scripting.
-
-```bash
-node index.js "Summarize memory/_index.md" --json
-```
-
 ### Memory System
 `madz` operates on a dual-layer memory architecture:
 - **Canonical Memories:** Explicitly set by you. Stored as `.md` files in `memory/context/`. Loaded into every session.
@@ -296,6 +282,14 @@ Skills are stored in `skills/` and are version-controllable. Simple skills can b
 
 ## ⚙️ Advanced Usage
 
+### Standalone Execution
+
+Execute a single prompt and return the result.
+
+```bash
+node index.js "What's the current system load?"
+```
+
 ### Scheduled Jobs
 
 `madz` supports cron-based scheduled jobs that run in non-interactive mode. Define entries in `config.yaml` to execute skills or prompts on a schedule — for example, running a skill every hour. Each invocation inherits the current session's memory context and sandbox permissions. Max-concurrency control prevents run overlap.
@@ -323,13 +317,13 @@ This mode is used by internal cron jobs and NPM installations.
 ## 🔧 Troubleshooting
 
 ### Docker-Specific
-|| Issue | Solution |
-||-------|----------|
-|| `docker: command not found` | Install Docker Desktop (macOS/Windows) or Docker Engine (Linux). Verify with `docker --version`. |
-|| **Is the container running?** | Check status with `docker ps -a | grep madz`. If it's `Exited`, check logs with `docker logs madz`. |
-|| Permission denied on `docker` commands | Add your user to the `docker` group: `sudo usermod -aG docker $USER`, then restart your terminal. |
-|| Container exits immediately | Check logs: `docker logs madz`. Missing `OPENAI_API_KEY` or invalid config will cause early exit. |
-|| SSH connection refused | Ensure port mapping is correct (`-p 2222:22`). Try `ssh -o StrictHostKeyChecking=no -p 2222 madz@localhost`. |
+| Issue | Solution |
+|-------|----------|
+| `docker: command not found` | Install Docker Desktop (macOS/Windows) or Docker Engine (Linux). Verify with `docker --version`. |
+| **Is the container running?** | Check status with `docker ps -a | grep madz`. If it's `Exited`, check logs with `docker logs madz`. |
+| Permission denied on `docker` commands | Add your user to the `docker` group: `sudo usermod -aG docker $USER`, then restart your terminal. |
+| Container exits immediately | Check logs: `docker logs madz`. Missing `OPENAI_API_KEY` or invalid config will cause early exit. |
+| SSH connection refused | Ensure port mapping is correct (`-p 2222:22`). Try `ssh -o StrictHostKeyChecking=no -p 2222 madz@localhost`. |
 || Memory/skills not persisting | Verify volume paths exist on the host before running: `mkdir -p ./memory ./skills`. |
 
 ### General
