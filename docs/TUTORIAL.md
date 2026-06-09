@@ -305,7 +305,7 @@ license: Apache-2.0
 Step-by-step instructions here...
 ```
 
-Skills are stored in `skills/` and are version-controllable. You can create them manually, or ask `madz` to create one for you using the `create_skill` tool.
+Skills are stored in `skills/` and are version-controllable. Simple skills can be chained together into pipelines for complex multi-step processing, or composed by asking `madz` to coordinate between them. You can also create them manually, or ask `madz` to create one for you using the `create_skill` tool.
 
 ---
 
