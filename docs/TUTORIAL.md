@@ -11,10 +11,12 @@ This guide walks you through deployment, configuration, and daily operation—wh
 Before we build, we must prepare the ground. Ensure your system meets these requirements:
 
 ### Core Requirements
-- **Node.js 24+** (for local/npm installation)
-- **Docker Desktop** or **Docker Engine** (for containerized deployment)
+
+- **Docker Desktop** or **Docker Engine** — the recommended deployment method
 - **An LLM Provider API Key** (`OPENAI_API_KEY` or equivalent)
-- **Git** (if cloning the source repository)
+- **Git** (only if you choose to clone the repo or run without Docker)
+
+*Node.js 24+ and npm are required only for local installs without Docker.*
 
 ### What is Docker?
 Docker packages your application and all its dependencies into a single, isolated container. It ensures `madz` runs identically across your machine, a server, or a cloud environment. No conflicts. No "it works on my machine."
