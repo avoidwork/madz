@@ -15,10 +15,9 @@ sandbox:
     - skills/
     - src/
     - tests/
-    - ./
     - /tmp
   timeout:
-    seconds: 30
+    seconds: 600
     gracePeriod: 5
   memoryLimit: 128mb
   safety:
@@ -61,6 +60,7 @@ telemetry:
       - request.headers.x-api-key
 schedules:
   maxConcurrent: 1
+  syncOnInit: true
   entries: []
 tui:
   name: madz

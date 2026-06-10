@@ -1,6 +1,7 @@
 import { describe, it, before, after } from "node:test";
 import assert from "node:assert";
 import { cronjobImpl, findSkillScript, runScript } from "../../src/tools/cron.js";
+import { Cron } from "../../src/scheduler/cron.js";
 import { mkdirSync, writeFileSync, rmSync, existsSync, chmodSync } from "node:fs";
 import { join } from "node:path";
 import { rm } from "node:fs/promises";
@@ -138,6 +139,12 @@ describe("cronjob", () => {
 			} catch {
 				// ignore
 			}
+		}
+		// Ensure the system crontab is clean — strip the entire madz-schedules block
+		try {
+			Cron.uninstall();
+		} catch {
+			// crontab may not be available; ignore
 		}
 		try {
 			await rm(SCHEDULES_DIR, { recursive: true, force: true });
