@@ -1,5 +1,6 @@
 import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert";
+import { execSync } from "node:child_process";
 import { mkdirSync, rmSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { ScheduleManager } from "../../src/scheduler/index.js";
@@ -118,6 +119,12 @@ describe("scheduler - ScheduleManager", () => {
 // --- Cron ---
 
 describe("scheduler - Cron", () => {
+	afterEach(() => {
+		try {
+			execSync("crontab -r 2>/dev/null || true", { stdio: "pipe" });
+		} catch {}
+	});
+
 	it("isAvailable returns an object with available field", () => {
 		const result = Cron.isAvailable();
 		assert.ok(result.hasOwnProperty("available"));
