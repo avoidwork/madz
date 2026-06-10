@@ -12,7 +12,7 @@ The `cronjob` tool saves jobs to `memory/schedules/*.json` — no crontab entrie
 - **Remove** ScheduleManager's clock tick loop (`start()`, `stop()`, `#clockTick()`, `#tickId`) — host crond handles execution timing.
 - **Remove** `src/scheduler/queue.js`, `runner.js`, `logger.js`, `matcher.js`, `parser.js` — only used by the removed loop.
 - Keep ScheduleManager CRUD ops (`register`, `list`, `pause`, `resume`, `runNow`) and `Cron` — they manage jobs independently of the removed loop.
-- Keep config.yaml `schedules` section, TUI `:schedule` commands, `index.js` wiring.
+- Keep TUI `:schedule` commands, `index.js` wiring.
 - Update `src/scheduler/scheduler.js` to remove the loop methods and their imports.
 - Update `src/scheduler/index.js` to remove the deleted module exports.
 

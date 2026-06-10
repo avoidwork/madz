@@ -1,6 +1,6 @@
 ## Context
 
-The `cronjob` tool saves jobs to `memory/schedules/*.json` via CRUD ops (`create`, `update`, `pause`, `resume`, `remove`). The `CronInstaller` class writes all schedules into the system crontab as a block (`# --- BEGIN madz-schedules ---` / `# --- END madz-schedules ---`). Config.yaml schedules are installed at startup via `CronInstaller.install()`. The ScheduleManager class conflates job state management (register, list, pause, resume) with a clock tick loop (`start()`, `stop()`, `#clockTick()`).
+The `cronjob` tool saves jobs to `memory/schedules/*.json` via CRUD ops (`create`, `update`, `pause`, `resume`, `remove`). The `CronInstaller` class writes all schedules into the system crontab as a block (`# --- BEGIN madz-schedules ---` / `# --- END madz-schedules ---`). The ScheduleManager class has a clock tick loop (`start()`, `stop()`, `#clockTick()`) that is being removed — only its CRUD ops (`register`, `list`, `pause`, `resume`) remain.
 
 ## Goals / Non-Goals
 
