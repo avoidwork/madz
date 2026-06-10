@@ -179,7 +179,7 @@ const MessageBubble = React.memo(
 			p.streaming === n.streaming &&
 			p.toolCallDisplay === n.toolCallDisplay &&
 			p.activeToolCall === n.activeToolCall &&
-			p._index   for (let i = 0; i < (messages?.length ?? 0); i++) {=== nextProps.assistantName
+			p._index === nextProps.assistantName
 		);
 	},
 );
@@ -195,7 +195,7 @@ const MessageBubble = React.memo(
 export function renderMessages(messages, assistantName) {
 	const children = [];
 
-	for (let i = 0; i < messages.length; i++) {
+	for (let i = 0; i < (messages?.length ?? 0); i++) {
 		const msg = messages[i];
 		const rowKey = "msg-" + i;
 

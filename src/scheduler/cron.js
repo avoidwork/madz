@@ -1,5 +1,4 @@
 import { execSync } from "node:child_process";
-import { resolve } from "node:path";
 
 // Block delimiters for madz-managed crontab entries
 const BLOCK_START = "# --- BEGIN madz-schedules ---";
@@ -7,7 +6,7 @@ const BLOCK_END = "# --- END madz-schedules ---";
 
 /**
  * Cron manages madz schedule entries in the user's system crontab.
- * Entries are written as: <cron>  <command-prefix>  <name>  # madz-schedule: <name>
+ * Entries are written as: <cron>  <command>  # madz-schedule: <name>
  */
 export const Cron = {
 	/**
@@ -22,19 +21,6 @@ export const Cron = {
 			const msg = err instanceof Error ? err.message : String(err);
 			return { available: false, error: `crontab not available: ${msg}` };
 		}
-	},
-
-	/**
-	 * Get the command prefix for scheduling jobs via system crontab.
-	 * @param {string} [appPath] - Override the entry point path
-	 * @returns {string}
-	 * @private
-	 */
-	_getCommandPrefix(appPath) {
-		const node = resolve(process.execPath);
-		const path = appPath || resolve(process.argv[1] || "index.js");
-		const safe = path.includes(" ") ? '"' + path + '"' : path;
-		return `${node} ${safe} --run-schedule`;
 	},
 
 	/**
@@ -102,7 +88,7 @@ export const Cron = {
 	 * Add a single crontab entry for a schedule job.
 	 * Reads the current crontab, removes the existing madz block,
 	 * appends the new entry, and writes back.
-	 * @param {{ name: string, cron: string }} job - Schedule job to add
+	 * @param {{ name: string, cron: string, command: string }} job - Schedule job to add
 	 * @returns {{ added: boolean, error?: string }}
 	 */
 	add(job) {
@@ -111,12 +97,14 @@ export const Cron = {
 			return { added: false, error: error || "System crontab is not available" };
 		}
 
-		const prefix = this._getCommandPrefix();
+		if (!job.command) {
+			return { added: false, error: "Job requires a 'command' field" };
+		}
+
 		const crontab = this._readCrontab();
 		const { outsideLines, blockLines } = this._splitBlock(crontab);
 
-		const quotedName = JSON.stringify(job.name);
-		const newEntry = `${job.cron}  ${prefix}  ${quotedName}  # madz-schedule: ${job.name}`;
+		const newEntry = `${job.cron}  ${job.command}  # madz-schedule: ${job.name}`;
 
 		// Remove existing entry with same name if present
 		const filtered = blockLines.filter((line) => {
@@ -195,17 +183,15 @@ export const Cron = {
 	/**
 	 * Install or replace the madz-schedules block in the user crontab.
 	 * Paused schedules are excluded. Existing madz block is replaced entirely.
-	 * @param {Array<{ name: string, cron: string, paused?: boolean }>} schedules
-	 * @param {string} [appPath] - Optional override for the app entry path
+	 * @param {Array<{ name: string, cron: string, command: string, paused?: boolean }>} schedules
 	 * @returns {{ installed: number, error?: string }}
 	 */
-	install(schedules, appPath) {
+	install(schedules) {
 		const { available, error } = this.isAvailable();
 		if (!available) {
 			return { installed: 0, error: error || "System crontab is not available" };
 		}
 
-		const prefix = this._getCommandPrefix(appPath);
 		const crontab = this._readCrontab();
 
 		const outsideLines = [];
@@ -225,8 +211,7 @@ export const Cron = {
 		const blockLines = schedules
 			.filter((s) => !s.paused)
 			.map((s) => {
-				const quotedName = JSON.stringify(s.name);
-				return `${s.cron}  ${prefix}  ${quotedName}  # madz-schedule: ${s.name}`;
+				return `${s.cron}  ${s.command}  # madz-schedule: ${s.name}`;
 			});
 
 		while (outsideLines.length > 0 && outsideLines[outsideLines.length - 1].trim() === "") {
@@ -250,10 +235,9 @@ export const Cron = {
 
 	/**
 	 * Remove all madz-schedules entries from the user crontab.
-	 * @param {string} [_appPath] - Unused, kept for API compat
 	 * @returns {number} Number of entries removed
 	 */
-	uninstall(_appPath) {
+	uninstall() {
 		if (!this.isAvailable().available) return 0;
 
 		const crontab = this._readCrontab();
@@ -294,12 +278,10 @@ export const Cron = {
 
 	/**
 	 * List the schedule entries from the current crontab block.
-	 * @param {string} [appPath] - Optional override for the app entry path
-	 * @returns {Array<{ name: string, cron: string }>}
+	 * @returns {Array<{ name: string, cron: string, command: string }>}
 	 */
-	list(appPath) {
+	list() {
 		const crontab = this._readCrontab();
-		const prefix = this._getCommandPrefix(appPath);
 		let inBlock = false;
 		const entries = [];
 
@@ -320,21 +302,18 @@ export const Cron = {
 				name = line.slice(nameCommentIdx + "# madz-schedule: ".length).trim();
 			}
 
-			const cmdIdx = line.indexOf(prefix);
-			if (cmdIdx !== -1) {
-				const after = line.slice(cmdIdx + prefix.length).trim();
-				if (after.startsWith('"') && after.endsWith('"')) {
-					name = after.slice(1, -1);
-				} else if (!name) {
-					name = after.split("\t")[0].split(/\s+/)[0];
-				}
-			}
-
 			const cronEnd = line.indexOf("  ");
 			const cron = cronEnd !== -1 ? line.slice(0, cronEnd).trim() : line.trim();
 
+			const commandStart = cronEnd !== -1 ? cronEnd + 2 : 0;
+			const commandEnd = line.indexOf("  # madz-schedule:");
+			const command =
+				commandEnd !== -1
+					? line.slice(commandStart, commandEnd).trim()
+					: line.slice(commandStart).trim();
+
 			if (cron) {
-				entries.push({ name: name || "unknown", cron });
+				entries.push({ name: name || "unknown", cron, command });
 			}
 		}
 
