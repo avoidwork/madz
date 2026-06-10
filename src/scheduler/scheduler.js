@@ -1,39 +1,31 @@
-import { parseScheduleEntry } from "./parser.js";
-import { ScheduleQueue } from "./queue.js";
-import { runScheduledSkill } from "./runner.js";
-import { logScheduleResult } from "./logger.js";
-import { matchesCron } from "./matcher.js";
+const DEFAULT_TIMEOUT_MS = 60000;
 
 /**
- * Schedule manager that ties together parsing, queueing, and execution.
+ * Schedule manager for CRUD operations on scheduled jobs.
+ * Jobs are stored as JSON files in memory/schedules/ and managed via the cronjob tool.
+ * This class does not include the in-process clock tick loop — crond handles scheduling.
  */
 export class ScheduleManager {
 	#scheduleEntry = new Map();
-	#queue;
-	#running = false;
-	#tickId = null;
 
 	/**
-	 * @param {number} [maxConcurrent=1] - Maximum concurrent schedule runs
+	 * @param {number} [_maxConcurrent=1] - Deprecated, kept for API compat
 	 */
-	constructor(maxConcurrent = 1) {
-		this.#queue = new ScheduleQueue(maxConcurrent);
-	}
+	constructor(_maxConcurrent = 1) {}
 
 	/**
-	 * Parse and register multiple schedule entries from config.
-	 * @param {Array} entries - Raw schedule entries from config.yaml
+	 * Register schedule entries from config-style objects.
+	 * @param {Array} entries - Raw schedule entries
 	 * @returns {Array<{ name: string, error: string }>}
 	 */
 	register(entries = []) {
 		const results = [];
 		for (const entry of entries) {
-			const parsed = parseScheduleEntry(entry);
-			if (parsed.valid) {
-				this.#scheduleEntry.set(parsed.parsed.name, parsed.parsed);
-			} else {
-				results.push({ name: entry.name, error: parsed.error });
+			if (!entry.name || !entry.cron || !entry.skill) {
+				results.push({ name: entry.name, error: "Missing required fields (name, cron, skill)" });
+				continue;
 			}
+			this.#scheduleEntry.set(entry.name, { ...entry, paused: false, lastRun: null });
 		}
 		return results;
 	}
@@ -45,10 +37,7 @@ export class ScheduleManager {
 	list() {
 		const schedules = [];
 		for (const [, entry] of this.#scheduleEntry) {
-			schedules.push({
-				...entry,
-				queued: this.#queue.getQueueLength(),
-			});
+			schedules.push({ ...entry });
 		}
 		return schedules;
 	}
@@ -78,7 +67,7 @@ export class ScheduleManager {
 	}
 
 	/**
-	 * Run a schedule immediately.
+	 * Run a schedule immediately via the sandbox.
 	 * @param {string} name - Schedule name
 	 * @param {Object} scheduler - The full scheduler instance for sandbox access
 	 * @returns {Promise<Object>} Execution result
@@ -91,47 +80,43 @@ export class ScheduleManager {
 			return { error: `Schedule "${name}" is paused` };
 		}
 
-		const result = await runScheduledSkill(entry, scheduler.sandbox, scheduler.state);
-		const endTime = new Date().toISOString();
-
-		if (result && result.exitCode !== undefined) {
-			await logScheduleResult({
-				scheduleName: entry.name,
-				cron: entry.cron,
-				startTime: entry.lastRun || endTime,
-				endTime,
-				exitCode: result.exitCode,
-				stdout: result.stdout || "",
-				stderr: result.stderr || "",
-			});
+		const contextDir = scheduler.state?.contextDir || "memory/context/";
+		const timeoutMs = scheduler.state?.timeoutMs || DEFAULT_TIMEOUT_MS;
+		let contextPrefix = "";
+		if (entry.contextFile) {
+			try {
+				const { readFile } = await import("node:fs/promises");
+				const { existsSync } = await import("node:fs");
+				const { loadContext } = await import("../memory/context.js");
+				if (existsSync(entry.contextFile)) {
+					contextPrefix = await readFile(entry.contextFile, "utf-8");
+				} else {
+					contextPrefix = loadContext(contextDir);
+				}
+			} catch {
+				// Context load failed — continue with empty context
+			}
 		}
 
+		const sandbox = scheduler.sandbox || (() => ({ stdout: "", stderr: "", exitCode: 1 }));
+		const result = await Promise.race([
+			sandbox({
+				skillName: entry.skill,
+				input: entry.input,
+				context: contextPrefix,
+				permissions: scheduler.state?.skills || [],
+			}),
+			new Promise((_, reject) =>
+				setTimeout(
+					() => reject(new Error(`Sandbox execution timed out after ${timeoutMs}ms`)),
+					timeoutMs,
+				),
+			),
+		]);
+
+		const endTime = new Date().toISOString();
 		entry.lastRun = endTime;
 		return result;
-	}
-
-	/**
-	 * Start the scheduler clock (checks schedules periodically).
-	 * Only valid for inprocess mode — system mode uses external crontab.
-	 * @param {Object} scheduler - The full scheduler instance
-	 * @param {number} [intervalMs=60000] - Check interval in ms
-	 */
-	start(scheduler, intervalMs = 60000) {
-		this.#running = true;
-		this.#tickId = setInterval(() => this.#clockTick(), intervalMs);
-		this.#clockTick();
-	}
-
-	/**
-	 * Stop the scheduler clock.
-	 */
-	stop() {
-		this.#running = false;
-		if (this.#tickId) {
-			clearInterval(this.#tickId);
-			this.#tickId = null;
-		}
-		this.#queue.clear();
 	}
 
 	/**
@@ -143,34 +128,4 @@ export class ScheduleManager {
 	_testSetEntry(name, entry) {
 		this.#scheduleEntry.set(name, entry);
 	}
-
-	/**
-	 * Clock tick: check schedule expressions and enqueue triggered tasks.
-	 */
-	#clockTick() {
-		if (!this.#running) return;
-
-		const now = new Date();
-		for (const [, entry] of this.#scheduleEntry) {
-			if (entry.paused) continue;
-
-			try {
-				if (matchesCron(entry.cron, now)) {
-					const dedup = {
-						entryName: entry.name,
-						...entry,
-						triggeredAt: now.toISOString(),
-					};
-					const { queued } = this.#queue.enqueue(dedup);
-					if (queued) {
-						entry.lastRun = now.toISOString();
-					}
-				}
-			} catch {
-				// Single entry failure doesn't block remaining checks
-			}
-		}
-	}
 }
-
-export { matchesCron } from "./matcher.js";

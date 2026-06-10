@@ -4,6 +4,7 @@ import { mkdir, writeFile, readFile, readdir, unlink } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { spawn } from "node:child_process";
+import { Cron } from "../../src/scheduler/cron.js";
 
 /// -- Helper to find skill script --
 
@@ -237,11 +238,13 @@ async function runJob(job, schedulerModule, schedulesDir) {
  * @param {object} [options] - Runtime options
  * @param {string} [options.schedulesDir] - Directory for job persistence (default "memory/schedules/")
  * @param {object} [options.scheduler] - Scheduler module for testing
+ * @param {object} [options.cron] - Cron module for testing
  * @returns {Promise<string>} JSON result string
  */
 export async function cronjobImpl(input, options) {
 	const { action } = input;
 	const schedulesDir = options?.schedulesDir || "memory/schedules/";
+	const cronModule = options?.cron || Cron;
 
 	const actions = ["create", "list", "update", "pause", "resume", "run", "remove"];
 	if (!actions.includes(action)) {
@@ -290,6 +293,15 @@ export async function cronjobImpl(input, options) {
 					updatedAt: now,
 				};
 				await saveJob(job, schedulesDir);
+				const cronResult = cronModule.add({ name: job.name, cron: job.cron });
+				if (cronResult.error) {
+					// Log crontab error but don't fail the create operation
+					// oxlint-disable no-console
+					console.warn(
+						`[cronjob] Failed to register "${job.name}" in crontab: ${cronResult.error}`,
+					);
+					// oxlint-enable no-console
+				}
 				return JSON.stringify({ ok: true, message: `Job "${name}" created`, job });
 			}
 
@@ -390,6 +402,7 @@ export async function cronjobImpl(input, options) {
 				}
 				const filePath = join(schedulesDir, `${removeName}.json`);
 				await unlink(filePath);
+				cronModule.remove(removeName);
 				return JSON.stringify({
 					ok: true,
 					message: `Job "${removeName}" removed`,
