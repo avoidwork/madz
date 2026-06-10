@@ -237,4 +237,21 @@ describe("tools - todo", () => {
 		assert.ok(result.error.includes("read"));
 		assert.ok(result.error.includes("create"));
 	});
+
+	it("enforces maxTodos limit on create", async () => {
+		await todoImpl({ action: "clear" }, getOptions());
+		const maxTodosOptions = { filePath: TEST_FILE, maxTodos: 2 };
+		await todoImpl({ action: "create", key: "first", content: "A" }, maxTodosOptions);
+		await todoImpl({ action: "create", key: "second", content: "B" }, maxTodosOptions);
+		const result = await todoImpl(
+			{ action: "create", key: "third", content: "C" },
+			maxTodosOptions,
+		);
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("max todos"));
+		assert.ok(result.error.includes("2"));
+		// Verify the first two are still there
+		const readResult = await todoImpl({ action: "read" }, maxTodosOptions);
+		assert.strictEqual(readResult.total, 2);
+	});
 });
