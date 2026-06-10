@@ -15,7 +15,7 @@ sandbox:
     - skills/
     - src/
     - tests/
-    - index.js
+    - ./
     - /tmp
   timeout:
     seconds: 30
