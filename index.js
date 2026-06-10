@@ -19,6 +19,30 @@ const { default: pkg } = await import(new URL("package.json", import.meta.url).h
 // Initialize subsystems
 const config = loadConfig();
 
+// Sync crontab from persisted job definitions (runs before any subsystem)
+if (config.schedules.syncOnInit !== false) {
+	try {
+		const { Cron } = await import("./src/scheduler/cron.js");
+		const schedulesDir = config.memory?.schedulesDir || "memory/schedules/";
+		const result = await Cron.sync(schedulesDir);
+		if (result.error) {
+			// oxlint-disable no-console
+			console.warn(`[scheduler] Crontab sync failed: ${result.error}`);
+			// oxlint-enable no-console
+		} else {
+			// oxlint-disable no-console
+			console.log(
+				`[scheduler] Crontab sync complete: +${result.added} added, -${result.removed} removed, ~${result.updated} updated, =${result.skipped} skipped`,
+			);
+			// oxlint-enable no-console
+		}
+	} catch (err) {
+		// oxlint-disable no-console
+		console.warn(`[scheduler] Crontab sync error: ${err.message}`);
+		// oxlint-enable no-console
+	}
+}
+
 // Ensure sessions directory exists before any subsystem initialization
 const { ensureSessionsDir } = await import("./src/session/index.js");
 await ensureSessionsDir("memory/sessions/");

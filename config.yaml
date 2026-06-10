@@ -61,6 +61,7 @@ telemetry:
       - request.headers.x-api-key
 schedules:
   maxConcurrent: 1
+  syncOnInit: true
   entries: []
 tui:
   name: madz
