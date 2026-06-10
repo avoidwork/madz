@@ -1,7 +1,7 @@
 ## 1. Rename CronInstaller to Cron, add CRUD ops
 
 - [ ] 1.1 Create `src/scheduler/cron.js` (or edit in place) with class renamed `Cron`
-- [ ] 1.2 Add `add({ name, cron, ... })` — read crontab, append entry, write back
+- [ ] 1.2 Add `add({ name, cron, command, ... })` — read crontab, append entry with exact command, write back
 - [ ] 1.3 Add `remove(name)` — read crontab, delete entry, write back
 - [ ] 1.4 Make `list()` public API (already exists)
 - [ ] 1.5 Keep `isAvailable()` as-is
@@ -10,7 +10,7 @@
 ## 2. cronjob tool calls Cron CRUD ops
 
 - [ ] 2.1 Import `Cron` in `src/tools/cron.js`
-- [ ] 2.2 In `create` action: after saving JSON, call `Cron.add(job)` with new job data
+- [ ] 2.2 In `create` action: after saving JSON, call `Cron.add(job)` with new job data (including `command`)
 - [ ] 2.3 In `remove` action: after `unlink()` deletes JSON file, call `Cron.remove(jobName)`
 - [ ] 2.4 Wire Cron into the cronjob tool as a runtime option in `index.js`
 
@@ -40,4 +40,4 @@
 
 - [ ] 6.1 Update `tests/unit/scheduler.test.js` — remove tests for `start()`, `stop()`, `#clockTick()`, `matchesCron`, queue integration; add tests for Cron.add() and Cron.remove()
 - [ ] 6.2 Remove `tests/unit/scheduler_runner.test.js`
-- [ ] 6.3 Update `tests/unit/tools_cron.test.js` — verify no scheduler module dependency
+- [ ] 6.3 Update `tests/unit/tools_cron.test.js` — verify no scheduler module dependency, add tests for `command` field handling
