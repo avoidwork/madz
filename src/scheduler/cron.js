@@ -1,5 +1,5 @@
 import { execSync } from "node:child_process";
-import { readdir, readFile, stat } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 // Block delimiters for madz-managed crontab entries
@@ -399,7 +399,13 @@ export const Cron = {
 	async sync(schedulesDir) {
 		const { available, error } = this.isAvailable();
 		if (!available) {
-			return { added: 0, removed: 0, updated: 0, skipped: 0, error: error || "System crontab is not available" };
+			return {
+				added: 0,
+				removed: 0,
+				updated: 0,
+				skipped: 0,
+				error: error || "System crontab is not available",
+			};
 		}
 
 		// Read desired state from disk

@@ -44,7 +44,14 @@ async function cleanupTestDir() {
 }
 
 async function writeTestJob(name, cron, command, enabled = true) {
-	const job = { name, cron, command, enabled, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+	const job = {
+		name,
+		cron,
+		command,
+		enabled,
+		createdAt: new Date().toISOString(),
+		updatedAt: new Date().toISOString(),
+	};
 	writeFileSync(join(TEST_DIR, `${name}.json`), JSON.stringify(job, null, 2));
 }
 
@@ -71,7 +78,11 @@ describe("scheduler - Cron.sync", () => {
 	});
 
 	it("adds a job that exists on disk but not in crontab", async () => {
-		await writeTestJob("sync-test-add", "0 9 * * *", "/app/node_modules/.bin/madz --mode interactive");
+		await writeTestJob(
+			"sync-test-add",
+			"0 9 * * *",
+			"/app/node_modules/.bin/madz --mode interactive",
+		);
 		try {
 			const result = await Cron.sync(TEST_DIR);
 			assert.strictEqual(result.added, 1);
@@ -110,9 +121,17 @@ describe("scheduler - Cron.sync", () => {
 	});
 
 	it("updates a job with differing cron expression", async () => {
-		await writeTestJob("sync-test-cron", "0 9 * * *", "/app/node_modules/.bin/madz --mode interactive");
+		await writeTestJob(
+			"sync-test-cron",
+			"0 9 * * *",
+			"/app/node_modules/.bin/madz --mode interactive",
+		);
 		// Put a different cron in crontab
-		await Cron.add({ name: "sync-test-cron", cron: "30 8 * * *", command: "/app/node_modules/.bin/madz --mode interactive" });
+		await Cron.add({
+			name: "sync-test-cron",
+			cron: "30 8 * * *",
+			command: "/app/node_modules/.bin/madz --mode interactive",
+		});
 		try {
 			const result = await Cron.sync(TEST_DIR);
 			assert.strictEqual(result.added, 0);
@@ -132,7 +151,11 @@ describe("scheduler - Cron.sync", () => {
 	});
 
 	it("updates a job with differing command", async () => {
-		await writeTestJob("sync-test-cmd", "0 9 * * *", "/app/node_modules/.bin/madz --mode interactive");
+		await writeTestJob(
+			"sync-test-cmd",
+			"0 9 * * *",
+			"/app/node_modules/.bin/madz --mode interactive",
+		);
 		await Cron.add({ name: "sync-test-cmd", cron: "0 9 * * *", command: "/bin/echo old-command" });
 		try {
 			const result = await Cron.sync(TEST_DIR);
@@ -152,9 +175,18 @@ describe("scheduler - Cron.sync", () => {
 	});
 
 	it("excludes paused jobs from crontab", async () => {
-		await writeTestJob("sync-test-paused", "0 9 * * *", "/app/node_modules/.bin/madz --mode interactive", false);
+		await writeTestJob(
+			"sync-test-paused",
+			"0 9 * * *",
+			"/app/node_modules/.bin/madz --mode interactive",
+			false,
+		);
 		// Add it to crontab first
-		await Cron.add({ name: "sync-test-paused", cron: "0 9 * * *", command: "/app/node_modules/.bin/madz --mode interactive" });
+		await Cron.add({
+			name: "sync-test-paused",
+			cron: "0 9 * * *",
+			command: "/app/node_modules/.bin/madz --mode interactive",
+		});
 		try {
 			const result = await Cron.sync(TEST_DIR);
 			assert.strictEqual(result.added, 0);
@@ -172,7 +204,11 @@ describe("scheduler - Cron.sync", () => {
 	});
 
 	it("produces identical crontab on repeated calls (idempotent)", async () => {
-		await writeTestJob("sync-test-idem", "0 9 * * *", "/app/node_modules/.bin/madz --mode interactive");
+		await writeTestJob(
+			"sync-test-idem",
+			"0 9 * * *",
+			"/app/node_modules/.bin/madz --mode interactive",
+		);
 		try {
 			const result1 = await Cron.sync(TEST_DIR);
 			assert.strictEqual(result1.added, 1);
@@ -197,12 +233,18 @@ describe("scheduler - Cron.sync", () => {
 		// Manually add a non-madz line to crontab
 		try {
 			execSync('echo "# custom-cron-entry" | crontab -', { stdio: ["pipe", "pipe", "pipe"] });
-			execSync('echo "* * * * * /bin/echo custom" | crontab -', { stdio: ["pipe", "pipe", "pipe"] });
+			execSync('echo "* * * * * /bin/echo custom" | crontab -', {
+				stdio: ["pipe", "pipe", "pipe"],
+			});
 		} catch {
 			// crontab may not be available
 		}
 
-		await writeTestJob("sync-test-outer", "0 9 * * *", "/app/node_modules/.bin/madz --mode interactive");
+		await writeTestJob(
+			"sync-test-outer",
+			"0 9 * * *",
+			"/app/node_modules/.bin/madz --mode interactive",
+		);
 		try {
 			await Cron.sync(TEST_DIR);
 
@@ -238,7 +280,11 @@ describe("scheduler - Cron.sync", () => {
 	});
 
 	it("handles empty crontab", async () => {
-		await writeTestJob("sync-test-empty", "0 9 * * *", "/app/node_modules/.bin/madz --mode interactive");
+		await writeTestJob(
+			"sync-test-empty",
+			"0 9 * * *",
+			"/app/node_modules/.bin/madz --mode interactive",
+		);
 		try {
 			// Clear crontab first
 			try {
@@ -260,7 +306,19 @@ describe("scheduler - Cron.sync", () => {
 	it("handles jobs with no command field (skips them)", async () => {
 		// Write a job without a command field
 		const jobPath = join(TEST_DIR, "sync-test-nocmd.json");
-		writeFileSync(jobPath, JSON.stringify({ name: "sync-test-nocmd", cron: "0 9 * * *", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }, null, 2));
+		writeFileSync(
+			jobPath,
+			JSON.stringify(
+				{
+					name: "sync-test-nocmd",
+					cron: "0 9 * * *",
+					createdAt: new Date().toISOString(),
+					updatedAt: new Date().toISOString(),
+				},
+				null,
+				2,
+			),
+		);
 		try {
 			const result = await Cron.sync(TEST_DIR);
 			assert.strictEqual(result.added, 0);
@@ -282,9 +340,22 @@ describe("scheduler - Cron.sync", () => {
 	});
 
 	it("syncs multiple jobs correctly", async () => {
-		await writeTestJob("sync-multi-1", "0 9 * * *", "/app/node_modules/.bin/madz --mode interactive");
-		await writeTestJob("sync-multi-2", "0 18 * * *", "/app/node_modules/.bin/madz --mode interactive");
-		await writeTestJob("sync-multi-3", "0 12 * * *", "/app/node_modules/.bin/madz --mode interactive", false); // paused
+		await writeTestJob(
+			"sync-multi-1",
+			"0 9 * * *",
+			"/app/node_modules/.bin/madz --mode interactive",
+		);
+		await writeTestJob(
+			"sync-multi-2",
+			"0 18 * * *",
+			"/app/node_modules/.bin/madz --mode interactive",
+		);
+		await writeTestJob(
+			"sync-multi-3",
+			"0 12 * * *",
+			"/app/node_modules/.bin/madz --mode interactive",
+			false,
+		); // paused
 		try {
 			const result = await Cron.sync(TEST_DIR);
 			assert.strictEqual(result.added, 2);

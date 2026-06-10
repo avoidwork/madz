@@ -15,10 +15,9 @@ sandbox:
     - skills/
     - src/
     - tests/
-    - ./
     - /tmp
   timeout:
-    seconds: 30
+    seconds: 600
     gracePeriod: 5
   memoryLimit: 128mb
   safety:
