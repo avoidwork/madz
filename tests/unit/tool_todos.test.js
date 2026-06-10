@@ -1,14 +1,11 @@
 import { describe, it, before, after } from "node:test";
 import assert from "node:assert";
-import { mkdirSync, readFileSync, rmSync, existsSync } from "node:fs";
+import { mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { todoImpl } from "../../src/tools/todo.js";
-import { sessionSearchImpl } from "../../src/tools/sessionSearch.js";
-import { clarifyImpl } from "../../src/tools/clarify.js";
-import { skillsListImpl, skillViewImpl } from "../../src/tools/skills.js";
 
-const TEST_DIR = join(process.cwd(), "memory", "__test_tools__");
-const CLARIFICATION_FILE = "memory/__test_tools__/clarifications.md";
+const TEST_DIR = join(process.cwd(), "memory", "__test_todos__");
+const TEST_FILE = "memory/__test_todos__/todos.json";
 
 function setupTestFiles() {
 	mkdirSync(TEST_DIR, { recursive: true });
@@ -16,50 +13,14 @@ function setupTestFiles() {
 
 function cleanupTestFiles() {
 	try {
-		rmSync(process.cwd() + "/memory/__test_tools__", { recursive: true, force: true });
+		rmSync(TEST_DIR, { recursive: true, force: true });
 	} catch {
 		// ignore
 	}
 }
 
-function setupMockRegistry() {
-	const catalog = [
-		{
-			name: "code-review",
-			description: "Reviews code changes",
-			location: "skills/code-review/SKILL.md",
-		},
-		{
-			name: "file-inspector",
-			description: "Inspects files",
-			location: "skills/file-inspector/SKILL.md",
-		},
-	];
-	const skills = {
-		"code-review": {
-			name: "code-review",
-			metadata: {
-				version: "1.0.0",
-				description: "Reviews code changes",
-				permissions: ["filesystem:read"],
-				_path: "skills/code-review/SKILL.md",
-			},
-		},
-		"file-inspector": {
-			name: "file-inspector",
-			metadata: {
-				version: "2.0.0",
-				description: "Inspects files",
-				permissions: ["filesystem:read", "filesystem:write"],
-				_path: "skills/file-inspector/SKILL.md",
-			},
-		},
-	};
-	return {
-		getCatalog: () => catalog,
-		getSkillBody: (name) => (skills[name] ? `# ${name}\n\nSkill body for ${name}` : null),
-		get: (name) => skills[name] || null,
-	};
+function getOptions() {
+	return { filePath: TEST_FILE };
 }
 
 describe("tools - todo", () => {
@@ -67,223 +28,213 @@ describe("tools - todo", () => {
 	after(cleanupTestFiles);
 
 	it("read returns empty list when no file exists", async () => {
-		const result = await todoImpl({ action: "read" }, {});
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.total, 0);
-		assert.deepStrictEqual(parsed.todos, []);
+		const result = await todoImpl({ action: "read" }, getOptions());
+		assert.deepStrictEqual(result, { ok: true, todos: [], total: 0 });
 	});
 
-	it("create adds items with auto-generated IDs", async () => {
-		// Clear first to ensure clean state
-		await todoImpl({ action: "clear" }, {});
+	it("read returns structured JSON with todos and total", async () => {
+		await todoImpl({ action: "clear" }, getOptions());
+		await todoImpl({ action: "create", key: "test-item", content: "Test content" }, getOptions());
+		const result = await todoImpl({ action: "read" }, getOptions());
+		assert.strictEqual(result.ok, true);
+		assert.strictEqual(result.total, 1);
+		assert.strictEqual(result.todos.length, 1);
+		assert.strictEqual(result.todos[0].key, "test-item");
+		assert.strictEqual(result.todos[0].content, "Test content");
+		assert.strictEqual(result.todos[0].completed, false);
+	});
+
+	it("create adds a todo with the given key", async () => {
+		await todoImpl({ action: "clear" }, getOptions());
 		const result = await todoImpl(
-			{ action: "create", todos: [{ content: "Fix login bug" }, { content: "Write tests" }] },
-			{},
+			{ action: "create", key: "fix-login-bug", content: "Fix the login" },
+			getOptions(),
 		);
-		assert.ok(result.includes("Created 2"));
-		assert.ok(result.includes("IDs"));
+		assert.deepStrictEqual(result, { ok: true, key: "fix-login-bug" });
 
-		// Verify persistence
-		const readResult = await todoImpl({ action: "read" }, {});
-		const parsed = JSON.parse(readResult);
-		assert.strictEqual(parsed.total, 2);
+		const readResult = await todoImpl({ action: "read" }, getOptions());
+		assert.strictEqual(readResult.total, 1);
+		assert.strictEqual(readResult.todos[0].key, "fix-login-bug");
 	});
 
-	it("update modifies an existing todo", async () => {
-		// Use a unique name to avoid conflicts
-		const uid = Date.now();
-		await todoImpl({ action: "create", todos: [{ content: `Update test ${uid}` }] }, {});
-		const result = await todoImpl({ action: "update", id: 1, content: "Updated item" }, {});
-		assert.ok(result.includes("Updated"));
-		// Clean up
-		await todoImpl({ action: "clear" }, {});
+	it("create accepts optional completed field", async () => {
+		await todoImpl({ action: "clear" }, getOptions());
+		const result = await todoImpl(
+			{ action: "create", key: "done-task", content: "Already done", completed: true },
+			getOptions(),
+		);
+		assert.deepStrictEqual(result, { ok: true, key: "done-task" });
+
+		const readResult = await todoImpl({ action: "read" }, getOptions());
+		assert.strictEqual(readResult.todos[0].completed, true);
 	});
 
-	it("update with completed field", async () => {
-		const uid = Date.now();
-		await todoImpl({ action: "create", todos: [{ content: `Complete test ${uid}` }] }, {});
-		const result = await todoImpl({ action: "update", id: 1, completed: true }, {});
-		assert.ok(result.includes("Completed: true") || result.includes("completed: true"));
-		const readResult = await todoImpl({ action: "read" }, {});
-		const parsed = JSON.parse(readResult);
-		assert.strictEqual(parsed.todos[0].completed, true);
-		// Clean up
-		await todoImpl({ action: "clear" }, {});
+	it("create rejects duplicate key", async () => {
+		await todoImpl({ action: "clear" }, getOptions());
+		await todoImpl({ action: "create", key: "dup-key", content: "First" }, getOptions());
+		const result = await todoImpl(
+			{ action: "create", key: "dup-key", content: "Second" },
+			getOptions(),
+		);
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("already exists"));
 	});
 
-	it("update returns not found for missing ID", async () => {
-		const result = await todoImpl({ action: "update", id: 99999, content: "Nope" }, {});
-		assert.ok(result.includes("not found") || result.includes("Error"));
+	it("create requires key and content", async () => {
+		const result = await todoImpl({ action: "create" }, getOptions());
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("create requires"));
+	});
+
+	it("create requires key", async () => {
+		const result = await todoImpl({ action: "create", content: "No key" }, getOptions());
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("create requires"));
+	});
+
+	it("update modifies an existing todo by key", async () => {
+		await todoImpl({ action: "clear" }, getOptions());
+		await todoImpl({ action: "create", key: "update-me", content: "Original" }, getOptions());
+		const result = await todoImpl(
+			{ action: "update", key: "update-me", content: "Updated" },
+			getOptions(),
+		);
+		assert.deepStrictEqual(result, { ok: true, key: "update-me" });
+
+		const readResult = await todoImpl({ action: "read" }, getOptions());
+		assert.strictEqual(readResult.todos[0].content, "Updated");
+	});
+
+	it("update modifies completed field by key", async () => {
+		await todoImpl({ action: "clear" }, getOptions());
+		await todoImpl({ action: "create", key: "complete-me", content: "Task" }, getOptions());
+		const result = await todoImpl(
+			{ action: "update", key: "complete-me", completed: true },
+			getOptions(),
+		);
+		assert.deepStrictEqual(result, { ok: true, key: "complete-me" });
+
+		const readResult = await todoImpl({ action: "read" }, getOptions());
+		assert.strictEqual(readResult.todos[0].completed, true);
+	});
+
+	it("update does not change content when only completed provided", async () => {
+		await todoImpl({ action: "clear" }, getOptions());
+		await todoImpl({ action: "create", key: "partial", content: "Original text" }, getOptions());
+		await todoImpl({ action: "update", key: "partial", completed: true }, getOptions());
+		const readResult = await todoImpl({ action: "read" }, getOptions());
+		assert.strictEqual(readResult.todos[0].content, "Original text");
+	});
+
+	it("update returns not found for missing key", async () => {
+		const result = await todoImpl(
+			{ action: "update", key: "nonexistent", content: "Nope" },
+			getOptions(),
+		);
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("not found"));
+	});
+
+	it("update requires key", async () => {
+		const result = await todoImpl({ action: "update", content: "No key" }, getOptions());
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("update requires"));
 	});
 
 	it("complete marks a todo as done", async () => {
-		await todoImpl({ action: "clear" }, {});
-		await todoImpl({ action: "create", todos: [{ content: "Complete test" }] }, {});
-		const result = await todoImpl({ action: "complete", id: 1 }, {});
-		assert.ok(result.includes("Completed"));
+		await todoImpl({ action: "clear" }, getOptions());
+		await todoImpl({ action: "create", key: "to-complete", content: "Task" }, getOptions());
+		const result = await todoImpl({ action: "complete", key: "to-complete" }, getOptions());
+		assert.deepStrictEqual(result, { ok: true, key: "to-complete" });
+
+		const readResult = await todoImpl({ action: "read" }, getOptions());
+		assert.strictEqual(readResult.todos[0].completed, true);
 	});
 
-	it("complete returns not found for missing ID", async () => {
-		await todoImpl({ action: "clear" }, {});
-		const result = await todoImpl({ action: "complete", id: 99999 }, {});
-		assert.ok(result.includes("not found") || result.includes("Error"));
+	it("complete returns not found for missing key", async () => {
+		const result = await todoImpl({ action: "complete", key: "nonexistent" }, getOptions());
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("not found"));
 	});
 
-	it("create updates existing item by ID", async () => {
-		await todoImpl({ action: "clear" }, {});
-		await todoImpl({ action: "create", todos: [{ id: 1, content: "Original" }] }, {});
-		const result = await todoImpl(
-			{ action: "create", todos: [{ id: 1, content: "Updated via create" }] },
-			{},
+	it("complete requires key", async () => {
+		const result = await todoImpl({ action: "complete" }, getOptions());
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("complete requires"));
+	});
+
+	it("delete removes a todo by key", async () => {
+		await todoImpl({ action: "clear" }, getOptions());
+		await todoImpl({ action: "create", key: "to-delete", content: "Delete me" }, getOptions());
+		const result = await todoImpl({ action: "delete", key: "to-delete" }, getOptions());
+		assert.deepStrictEqual(result, { ok: true, key: "to-delete" });
+
+		const readResult = await todoImpl({ action: "read" }, getOptions());
+		assert.strictEqual(readResult.total, 0);
+	});
+
+	it("delete returns not found for missing key", async () => {
+		const result = await todoImpl({ action: "delete", key: "nonexistent" }, getOptions());
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("not found"));
+	});
+
+	it("delete requires key", async () => {
+		const result = await todoImpl({ action: "delete" }, getOptions());
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("delete requires"));
+	});
+
+	it("list returns all todos", async () => {
+		await todoImpl({ action: "clear" }, getOptions());
+		await todoImpl({ action: "create", key: "item-a", content: "A" }, getOptions());
+		await todoImpl({ action: "create", key: "item-b", content: "B" }, getOptions());
+		const result = await todoImpl({ action: "list" }, getOptions());
+		assert.strictEqual(result.ok, true);
+		assert.strictEqual(result.total, 2);
+	});
+
+	it("list with pending filter returns only incomplete todos", async () => {
+		await todoImpl({ action: "clear" }, getOptions());
+		await todoImpl({ action: "create", key: "pending-item", content: "Pending" }, getOptions());
+		await todoImpl(
+			{ action: "create", key: "done-item", content: "Done", completed: true },
+			getOptions(),
 		);
-		assert.ok(result.includes("Created"));
-		const readResult = await todoImpl({ action: "read" }, {});
-		const parsed = JSON.parse(readResult);
-		assert.strictEqual(parsed.todos[0].content, "Updated via create");
+		const result = await todoImpl({ action: "list", filter: "pending" }, getOptions());
+		assert.strictEqual(result.ok, true);
+		assert.strictEqual(result.total, 1);
+		assert.strictEqual(result.todos[0].key, "pending-item");
+	});
+
+	it("list with completed filter returns only completed todos", async () => {
+		await todoImpl({ action: "clear" }, getOptions());
+		await todoImpl({ action: "create", key: "pending-item", content: "Pending" }, getOptions());
+		await todoImpl(
+			{ action: "create", key: "done-item", content: "Done", completed: true },
+			getOptions(),
+		);
+		const result = await todoImpl({ action: "list", filter: "completed" }, getOptions());
+		assert.strictEqual(result.ok, true);
+		assert.strictEqual(result.total, 1);
+		assert.strictEqual(result.todos[0].key, "done-item");
 	});
 
 	it("clear removes all todos", async () => {
-		await todoImpl({ action: "clear" }, {});
-		const result = await todoImpl({ action: "clear" }, {});
-		assert.ok(result.includes("cleared"));
-		const readResult = await todoImpl({ action: "read" }, {});
-		const parsed = JSON.parse(readResult);
-		assert.strictEqual(parsed.total, 0);
+		await todoImpl({ action: "clear" }, getOptions());
+		await todoImpl({ action: "create", key: "clear-me", content: "Will be cleared" }, getOptions());
+		const result = await todoImpl({ action: "clear" }, getOptions());
+		assert.deepStrictEqual(result, { ok: true });
+
+		const readResult = await todoImpl({ action: "read" }, getOptions());
+		assert.strictEqual(readResult.total, 0);
 	});
 
 	it("rejects unknown action", async () => {
-		const result = await todoImpl({ action: "foobar" }, {});
-		assert.ok(result.includes("Unknown action") || result.includes("Error"));
-	});
-});
-
-describe("tools - session_search", () => {
-	const testOptions = {
-		sessionsDir: "memory/__test_tools__/conversations/",
-	};
-
-	before(setupTestFiles);
-	after(cleanupTestFiles);
-
-	it("browse returns list or empty message when dir empty", async () => {
-		const result = await sessionSearchImpl({ query: "", limit: 10 }, testOptions);
-		assert.ok(typeof result === "string");
-		assert.ok(
-			result.includes("No conversations") || result.includes("not found") || result.includes("["),
-		);
-	});
-
-	it("search with non-matching query", async () => {
-		const result = await sessionSearchImpl({ query: "xyz_not_found_123" }, testOptions);
-		assert.ok(result.includes("No conversations") || result.includes("no matching"));
-	});
-
-	it("unknown conversation id", async () => {
-		const result = await sessionSearchImpl({ conversationId: "non_existent_id" }, testOptions);
-		assert.ok(result.includes("not found") || result.includes("No conversations"));
-	});
-});
-
-describe("tools - clarify", () => {
-	const testOptions = {
-		clarificationsFile: "./memory/__test_tools__/clarifications.md",
-	};
-
-	before(setupTestFiles);
-	after(cleanupTestFiles);
-
-	it("stores open-ended question", async () => {
-		const result = await clarifyImpl({ question: "Should I use TypeScript?" }, testOptions);
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.answered, true);
-		assert.strictEqual(parsed.source, "open_ended");
-		assert.ok(existsSync("./" + CLARIFICATION_FILE));
-	});
-
-	it("stores question with choices", async () => {
-		const result = await clarifyImpl(
-			{ question: "Which framework?", choices: ["React", "Vue", "Svelte"] },
-			testOptions,
-		);
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.source, "choices");
-	});
-
-	it("appends to clarifications file", async () => {
-		const existing = existsSync("./" + CLARIFICATION_FILE)
-			? readFileSync("./" + CLARIFICATION_FILE, "utf-8").split("\n").length
-			: 0;
-		await clarifyImpl({ question: "Test question" }, testOptions);
-		const updated = readFileSync("./" + CLARIFICATION_FILE, "utf-8").split("\n").length;
-		assert.ok(updated >= existing);
-	});
-});
-
-describe("tools - skills", () => {
-	it("list returns empty when registry is null", async () => {
-		const result = await skillsListImpl({}, { registry: null });
-		assert.strictEqual(result.count, 0);
-	});
-
-	it("list returns empty when no skills", async () => {
-		const result = await skillsListImpl({}, { registry: { list: () => [] } });
-		assert.strictEqual(result.count, 0);
-		assert.ok(result.message);
-	});
-
-	it("list returns skills via catalog when registry has skills", async () => {
-		const registry = setupMockRegistry();
-		const result = await skillsListImpl({}, { registry });
-		assert.strictEqual(result.count, 2);
-		assert.strictEqual(result.skills.length, 2);
-		assert.strictEqual(result.skills[0].name, "code-review");
-		assert.ok(result.skills[0].description);
-		assert.ok(result.skills[0].location);
-	});
-
-	it("list returns empty when catalog is missing", async () => {
-		const registry = {
-			getCatalog: () => [],
-		};
-		const result = await skillsListImpl({}, { registry });
-		assert.strictEqual(result.count, 0);
-		assert.strictEqual(result.skills.length, 0);
-		assert.ok(result.message);
-	});
-
-	it("view returns skill details", async () => {
-		const registry = setupMockRegistry();
-		const result = await skillViewImpl({ name: "code-review" }, { registry });
-		assert.strictEqual(result.name, "code-review");
-		assert.strictEqual(result.version, "1.0.0");
-		assert.ok(result.description);
-	});
-
-	it("view returns skill_md via getSkillBody when available", async () => {
-		const { writeFileSync } = await import("node:fs");
-		const { join } = await import("node:path");
-		const testSkillDir = join(process.cwd(), "tests", "__skills_test__");
-		mkdirSync(testSkillDir, { recursive: true });
-		writeFileSync(join(testSkillDir, "SKILL.md"), "# Test skill\n\nThis is a test.");
-
-		const registry = {
-			get: () => ({
-				name: "test-skill",
-				metadata: { _path: join(testSkillDir, "SKILL.md") },
-			}),
-			getSkillBody: () => "# Test skill\n\nThis is a test.",
-		};
-		const result = await skillViewImpl({ name: "test-skill" }, { registry });
-		assert.ok(result.skill_md !== undefined);
-		assert.ok(result.skill_md.includes("Test skill"));
-
-		// Cleanup
-		rmSync(testSkillDir, { recursive: true, force: true });
-	});
-
-	it("view returns error for unknown skill", async () => {
-		const registry = setupMockRegistry();
-		const result = await skillViewImpl({ name: "nonexistent" }, { registry });
-		assert.ok(result.error?.includes("not found") || result.error?.includes("Error"));
+		const result = await todoImpl({ action: "foobar" }, getOptions());
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("Unknown action"));
+		assert.ok(result.error.includes("read"));
+		assert.ok(result.error.includes("create"));
 	});
 });
