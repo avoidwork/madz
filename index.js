@@ -62,9 +62,8 @@ const { createSession, SessionStateManager, saveSession, handleShutdown, registe
 	await import("./src/session/index.js");
 
 // Initialize scheduler
-const { ScheduleManager, CronInstaller } = await import("./src/scheduler/index.js");
-const scheduleManager = new ScheduleManager(config.schedules.maxConcurrent);
-scheduleManager.register(config.schedules.entries);
+const { ScheduleManager } = await import("./src/scheduler/index.js");
+const scheduleManager = new ScheduleManager();
 
 // Create or restore session
 const providerName = Object.keys(config.providers)[0] || "openai";
@@ -190,16 +189,6 @@ async function invokeSkill(skillName, input = {}) {
 
 // Shutdown handler
 registerShutdownHandler(async () => {
-	scheduleManager.stop();
-
-	if (config.schedules.mode === "system") {
-		try {
-			CronInstaller.uninstall();
-		} catch (_err) {
-			// Graceful degradation: continue shutdown if crontab uninstall fails
-		}
-	}
-
 	await saveSession("memory/sessions/", sessionState.getConversation(), sessionId);
 
 	if (shutdownFn) {
@@ -214,20 +203,6 @@ if (isMain) {
 	const mode = args.some((a, i) => a === "--mode" && args[i + 1] === "interactive")
 		? "interactive"
 		: "chat";
-
-	// Handle system mode: install schedules into crontab
-	if (config.schedules.mode === "system" && config.schedules.entries.length > 0) {
-		try {
-			const result = CronInstaller.install(config.schedules.entries);
-			// oxlint-disable no-console
-			console.log(`[scheduler] Installed ${result.installed} schedule(s) into system crontab.`);
-			// oxlint-enable no-console
-		} catch (err) {
-			// oxlint-disable no-console
-			console.error(`[scheduler] Failed to install schedules: ${err.message}`);
-			// oxlint-enable no-console
-		}
-	}
 
 	let chatSessionId = args.reduce((id, a, i) => {
 		if (a === "--session-id" || a === "-s") return args[i + 1] || id;

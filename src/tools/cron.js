@@ -4,6 +4,7 @@ import { mkdir, writeFile, readFile, readdir, unlink } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { spawn } from "node:child_process";
+import { Cron } from "../../src/scheduler/cron.js";
 
 /// -- Helper to find skill script --
 
@@ -237,11 +238,13 @@ async function runJob(job, schedulerModule, schedulesDir) {
  * @param {object} [options] - Runtime options
  * @param {string} [options.schedulesDir] - Directory for job persistence (default "memory/schedules/")
  * @param {object} [options.scheduler] - Scheduler module for testing
+ * @param {object} [options.cron] - Cron module for testing
  * @returns {Promise<string>} JSON result string
  */
 export async function cronjobImpl(input, options) {
 	const { action } = input;
 	const schedulesDir = options?.schedulesDir || "memory/schedules/";
+	const cronModule = options?.cron || Cron;
 
 	const actions = ["create", "list", "update", "pause", "resume", "run", "remove"];
 	if (!actions.includes(action)) {
@@ -259,11 +262,11 @@ export async function cronjobImpl(input, options) {
 			}
 
 			case "create": {
-				const { name, cron, skill, input: jobInput = {} } = input;
-				if (!name || !cron || !skill) {
+				const { name, cron, skill, command, input: jobInput = {} } = input;
+				if (!name || !cron || (!skill && !command)) {
 					return JSON.stringify({
 						ok: false,
-						error: "create requires: name, cron, and skill",
+						error: "create requires: name, cron, and either skill or command",
 					});
 				}
 				if (!isValidCron(cron)) {
@@ -284,12 +287,22 @@ export async function cronjobImpl(input, options) {
 					name,
 					cron,
 					skill,
+					command,
 					input: jobInput,
 					enabled: true,
 					createdAt: now,
 					updatedAt: now,
 				};
 				await saveJob(job, schedulesDir);
+				const cronResult = cronModule.add({ name: job.name, cron: job.cron, command: job.command });
+				if (cronResult.error) {
+					// Log crontab error but don't fail the create operation
+					// oxlint-disable no-console
+					console.warn(
+						`[cronjob] Failed to register "${job.name}" in crontab: ${cronResult.error}`,
+					);
+					// oxlint-enable no-console
+				}
 				return JSON.stringify({ ok: true, message: `Job "${name}" created`, job });
 			}
 
@@ -298,6 +311,7 @@ export async function cronjobImpl(input, options) {
 					name: updateName,
 					cron: updateCron,
 					skill: updateSkill,
+					command: updateCommand,
 					input: updateInput,
 				} = input;
 				if (!updateName) {
@@ -320,11 +334,16 @@ export async function cronjobImpl(input, options) {
 					existing.cron = updateCron;
 				}
 				if (updateSkill) existing.skill = updateSkill;
+				if (updateCommand !== undefined) existing.command = updateCommand;
 				if (updateInput && typeof updateInput === "object") {
 					existing.input = { ...existing.input, ...updateInput };
 				}
 				existing.updatedAt = new Date().toISOString();
 				await saveJob(existing, schedulesDir);
+				// Sync crontab if cron or command changed
+				if (updateCron || updateCommand) {
+					cronModule.add({ name: existing.name, cron: existing.cron, command: existing.command });
+				}
 				return JSON.stringify({ ok: true, message: `Job "${updateName}" updated`, job: existing });
 			}
 
@@ -390,6 +409,7 @@ export async function cronjobImpl(input, options) {
 				}
 				const filePath = join(schedulesDir, `${removeName}.json`);
 				await unlink(filePath);
+				cronModule.remove(removeName);
 				return JSON.stringify({
 					ok: true,
 					message: `Job "${removeName}" removed`,
@@ -422,7 +442,14 @@ export const cronjob = tool(cronjobImpl, {
 			.string()
 			.optional()
 			.describe("Cron expression (5-6 fields, required for create, optional for update)"),
-		skill: z.string().optional().describe("Skill name to trigger (required for create, update)"),
+		skill: z
+			.string()
+			.optional()
+			.describe("Skill name to trigger (required for create if command not provided)"),
+		command: z
+			.string()
+			.optional()
+			.describe("Shell command to execute (required for create if skill not provided)"),
 		input: z.record(z.unknown()).optional().describe("Job input parameters"),
 	}),
 });
@@ -451,7 +478,14 @@ export function createCronTool(options) {
 				.string()
 				.optional()
 				.describe("Cron expression (5-6 fields, required for create, optional for update)"),
-			skill: z.string().optional().describe("Skill name to trigger (required for create, update)"),
+			skill: z
+				.string()
+				.optional()
+				.describe("Skill name to trigger (required for create if command not provided)"),
+			command: z
+				.string()
+				.optional()
+				.describe("Shell command to execute (required for create if skill not provided)"),
 			input: z.record(z.unknown()).optional().describe("Job input parameters"),
 		}),
 	});
