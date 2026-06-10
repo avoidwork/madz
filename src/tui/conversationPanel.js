@@ -179,8 +179,7 @@ const MessageBubble = React.memo(
 			p.streaming === n.streaming &&
 			p.toolCallDisplay === n.toolCallDisplay &&
 			p.activeToolCall === n.activeToolCall &&
-			p._index === n._index &&
-			prevProps.assistantName === nextProps.assistantName
+			p._index   for (let i = 0; i < (messages?.length ?? 0); i++) {=== nextProps.assistantName
 		);
 	},
 );
@@ -341,8 +340,8 @@ export function ConversationPanel({
 	// Only triggers scroll when message count changes or streaming content overflows.
 	const prevHash = lastContentHashRef.current;
 	lastContentHashRef.current =
-		messages.length +
-		(messages.length > 0 && messages[messages.length - 1].streaming
+		(messages?.length ?? 0) +
+		(messages?.length > 0 && messages[messages.length - 1].streaming
 			? (messages[messages.length - 1].content || "").length
 			: 0);
 
@@ -353,7 +352,7 @@ export function ConversationPanel({
 			previousMessageCount.current,
 			previousMessageCount,
 		);
-	} else if (messages.length > 0 && messages[messages.length - 1].streaming) {
+	} else if (messages?.length > 0 && messages[messages.length - 1].streaming) {
 		// Streaming overflow: content grew beyond previously tracked hash
 		const contentH = scrollRef.current?.getContentHeight();
 		const viewportH = scrollRef.current?.getViewportHeight();
