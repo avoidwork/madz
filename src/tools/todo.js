@@ -4,169 +4,243 @@ import { readFile, writeFile, mkdir, access } from "node:fs/promises";
 import { join } from "node:path";
 
 const TODO_FILE = "memory/tools/todo.json";
+const VALID_ACTIONS = ["read", "create", "update", "complete", "delete", "list", "clear"];
 
 /**
  * Load the todo list from file storage.
- * @returns {Promise<{ todos: Array<{ id: number, content: string, completed: boolean }>}>} The todo list
+ * @param {string} filePath - Path to the todo JSON file
+ * @returns {Promise<{ todos: Array<{ key: string, content: string, completed: boolean }>}>} The todo list
  */
-async function loadTodos() {
+async function loadTodos(filePath) {
 	try {
-		await access("./" + TODO_FILE);
+		await access("./" + filePath);
 	} catch {
 		return { todos: [] };
 	}
-	const content = await readFile("./" + TODO_FILE, "utf-8");
+	const content = await readFile("./" + filePath, "utf-8");
 	return JSON.parse(content);
 }
 
 /**
  * Save the todo list to file storage.
- * @param {{ todos: Array<{ id: number, content: string, completed: boolean }> }} data - Todo data
+ * @param {string} filePath - Path to the todo JSON file
+ * @param {{ todos: Array<{ key: string, content: string, completed: boolean }> }} data - Todo data
  * @returns {Promise<void>}
  */
-async function saveTodos(data) {
-	const dir = join("./", TODO_FILE, "..");
+async function saveTodos(filePath, data) {
+	const dir = join("./", filePath, "..");
 	await mkdir(dir, { recursive: true });
-	await writeFile("./" + TODO_FILE, JSON.stringify(data, null, 2), "utf-8");
+	await writeFile("./" + filePath, JSON.stringify(data, null, 2), "utf-8");
 }
 
 /**
- * Core todo logic implementing read, create, update, complete, and clear actions.
- * @param {z.infer<typeof TodoSchema>} input - The tool input
- * @param {object} _options - Runtime options (unused, for API compatibility)
- * @returns {Promise<string>} Result of the operation
+ * Find a todo by its key.
+ * @param {{ todos: Array<{ key: string, content: string, completed: boolean }> }} data - Todo data
+ * @param {string} key - The key to find
+ * @returns {{ found: boolean, todo: { key: string, content: string, completed: boolean } | null }}
  */
-export async function todoImpl(input, _options) {
-	const { action, todos: inputTodos, id, content: inputContent, completed: inputCompleted } = input;
+function findTodoByKey(data, key) {
+	const todo = data.todos.find((t) => t.key === key);
+	return { found: !!todo, todo: todo || null };
+}
+
+/**
+ * Validate that required fields are present in the input.
+ * @param {object} input - The tool input object
+ * @param {string[]} fields - Array of field names that must be present
+ * @returns {{ valid: boolean, error: string | null }}
+ */
+function validateRequired(input, fields) {
+	const missing = fields.filter((f) => input[f] === undefined || input[f] === "");
+	if (missing.length > 0) {
+		return { valid: false, error: `${fields[0]} missing` };
+	}
+	return { valid: true, error: null };
+}
+
+/**
+ * Core todo logic implementing read, create, update, complete, delete, list, and clear actions.
+ * @param {z.infer<typeof TodoSchema>} input - The tool input
+ * @param {object} options - Runtime options
+ * @param {string} [options.filePath] - Path to the todo JSON file (default: "memory/tools/todo.json")
+ * @param {number} [options.maxTodos] - Maximum number of todos allowed
+ * @returns {Promise<object>} Result of the operation as structured JSON
+ */
+export async function todoImpl(input, options) {
+	const filePath = options?.filePath || TODO_FILE;
+	const maxTodos = options?.maxTodos;
+	const { action } = input;
 
 	switch (action) {
 		case "read": {
-			const data = await loadTodos();
-			return JSON.stringify({ todos: data.todos, total: data.todos.length }, null, 0);
+			const data = await loadTodos(filePath);
+			return { ok: true, todos: data.todos, total: data.todos.length };
 		}
 
 		case "create": {
-			const data = await loadTodos();
-			const existingIds = new Set(data.todos.map((t) => t.id));
-			// Find next available ID
-			let nextId = data.todos.length > 0 ? Math.max(...data.todos.map((t) => t.id)) + 1 : 1;
-			const added = [];
-			const inputItems = inputTodos || [];
-
-			for (const item of inputItems) {
-				const existingItem = data.todos.find((t) => t.id === item.id);
-				if (existingItem) {
-					// Update existing item
-					existingItem.content = item.content ?? existingItem.content;
-					existingItem.completed = item.completed ?? existingItem.completed;
-				} else {
-					// Assign auto-generated ID if not provided
-					let id = item.id;
-					if (id === undefined || existingIds.has(id)) {
-						id = nextId;
-						while (existingIds.has(id) || added.some((t) => t.id === id)) id++;
-					}
-					data.todos.push({ id, content: item.content, completed: item.completed || false });
-					existingIds.add(id);
-					added.push({ id, content: item.content });
-				}
+			const validation = validateRequired(input, ["key", "content"]);
+			if (!validation.valid) {
+				return { ok: false, error: `create requires: ${validation.error}` };
 			}
 
-			await saveTodos(data);
-			return `Created ${added.length} todo(s) with IDs: ${added.map((t) => t.id).join(", ")}`;
+			const data = await loadTodos(filePath);
+
+			if (maxTodos && data.todos.length >= maxTodos) {
+				return { ok: false, error: `max todos (${maxTodos}) reached` };
+			}
+
+			const existing = findTodoByKey(data, input.key);
+			if (existing.found) {
+				return { ok: false, error: `key '${input.key}' already exists` };
+			}
+
+			data.todos.push({
+				key: input.key,
+				content: input.content,
+				completed: input.completed || false,
+			});
+
+			await saveTodos(filePath, data);
+			return { ok: true, key: input.key };
 		}
 
 		case "update": {
-			const data = await loadTodos();
-			const todoItem = data.todos.find((t) => t.id === id);
-			if (!todoItem) {
-				return `Todo with ID ${id} not found`;
+			const validation = validateRequired(input, ["key"]);
+			if (!validation.valid) {
+				return { ok: false, error: `update requires: ${validation.error}` };
 			}
-			if (inputContent !== undefined) {
-				todoItem.content = inputContent;
+
+			const data = await loadTodos(filePath);
+			const { found, todo } = findTodoByKey(data, input.key);
+			if (!found) {
+				return { ok: false, error: `Todo with key '${input.key}' not found` };
 			}
-			if (inputCompleted !== undefined) {
-				todoItem.completed = inputCompleted;
+
+			if (input.content !== undefined) {
+				todo.content = input.content;
 			}
-			await saveTodos(data);
-			return `Updated todo ${id}: ${todoItem.content} (completed: ${todoItem.completed})`;
+			if (input.completed !== undefined) {
+				todo.completed = input.completed;
+			}
+
+			await saveTodos(filePath, data);
+			return { ok: true, key: input.key };
 		}
 
 		case "complete": {
-			const data = await loadTodos();
-			const todoItem = data.todos.find((t) => t.id === id);
-			if (!todoItem) {
-				return `Todo with ID ${id} not found`;
+			const validation = validateRequired(input, ["key"]);
+			if (!validation.valid) {
+				return { ok: false, error: `complete requires: ${validation.error}` };
 			}
-			todoItem.completed = true;
-			await saveTodos(data);
-			return `Completed todo ${id}: ${todoItem.content}`;
+
+			const data = await loadTodos(filePath);
+			const { found, todo } = findTodoByKey(data, input.key);
+			if (!found) {
+				return { ok: false, error: `Todo with key '${input.key}' not found` };
+			}
+
+			todo.completed = true;
+			await saveTodos(filePath, data);
+			return { ok: true, key: input.key };
+		}
+
+		case "delete": {
+			const validation = validateRequired(input, ["key"]);
+			if (!validation.valid) {
+				return { ok: false, error: `delete requires: ${validation.error}` };
+			}
+
+			const data = await loadTodos(filePath);
+			const index = data.todos.findIndex((t) => t.key === input.key);
+			if (index === -1) {
+				return { ok: false, error: `Todo with key '${input.key}' not found` };
+			}
+
+			data.todos.splice(index, 1);
+			await saveTodos(filePath, data);
+			return { ok: true, key: input.key };
+		}
+
+		case "list": {
+			const data = await loadTodos(filePath);
+			const filter = input.filter;
+
+			let todos = data.todos;
+			if (filter === "pending") {
+				todos = data.todos.filter((t) => !t.completed);
+			} else if (filter === "completed") {
+				todos = data.todos.filter((t) => t.completed);
+			}
+
+			return { ok: true, todos, total: todos.length };
 		}
 
 		case "clear": {
-			await saveTodos({ todos: [] });
-			return "All todos cleared";
+			await saveTodos(filePath, { todos: [] });
+			return { ok: true };
 		}
 
 		default:
-			return `Error: Unknown action '${action}'. Supported: read, create, update, complete, clear`;
+			return {
+				ok: false,
+				error: `Unknown action: '${action}'. Valid actions: ${VALID_ACTIONS.join(", ")}`,
+			};
 	}
 }
 
 /**
- * Task management tool with read, create, update, complete, and clear actions.
+ * Task management tool with read, create, update, complete, delete, list, and clear actions.
+ * Uses string keys for todo identification and returns structured JSON responses.
  */
 export const todo = tool(todoImpl, {
 	name: "todo",
 	description:
-		"Task management tool. Actions: read (get all todos), create (add todos with auto-generated IDs), update (modify by ID), complete (mark done), clear (remove all). Persists to memory/tools/todo.json.",
+		"Task management tool. Actions: read (get all todos), create (add a todo by key), update (modify by key), complete (mark done by key), delete (remove by key), list (all or filter by pending/completed), clear (remove all). Persists to memory/tools/todo.json.",
 	schema: z.object({
-		action: z.enum(["read", "create", "update", "complete", "clear"]).describe("Action to perform"),
-		id: z.number().int().optional().describe("Todo ID for update/complete actions"),
-		todos: z
-			.array(
-				z.object({
-					id: z.number().int().optional(),
-					content: z.string(),
-					completed: z.boolean().optional(),
-				}),
-			)
+		action: z
+			.enum(["read", "create", "update", "complete", "delete", "list", "clear"])
+			.describe("Action to perform"),
+		key: z
+			.string()
 			.optional()
-			.describe("Todo items for create action"),
-		content: z.string().optional().describe("New content for update action"),
-		completed: z.boolean().optional().describe("Completion status for update action"),
+			.describe("Todo key for create, update, complete, and delete actions"),
+		content: z.string().optional().describe("Content for create or update action"),
+		completed: z.boolean().optional().describe("Completion status for create or update action"),
+		filter: z
+			.enum(["all", "pending", "completed"])
+			.optional()
+			.describe("Filter for list action (all, pending, completed)"),
 	}),
 });
 
 // --- Factory functions for creating tools with runtime options ---
 
 /**
- * Create a todo tool with runtime options
- * @param {object} _options - Runtime options (not used, for API compatibility)
+ * Create a todo tool with runtime options.
+ * @param {object} [options] - Runtime options
+ * @param {string} [options.filePath] - Path to the todo JSON file (default: "memory/tools/todo.json")
+ * @param {number} [options.maxTodos] - Maximum number of todos allowed
  * @returns {object} LangChain Tool instance
  */
-export function createTodoTool(_options) {
-	return tool((input) => todoImpl(input, _options), {
+export function createTodoTool(options = {}) {
+	return tool((input) => todoImpl(input, options), {
 		name: "todo",
 		description:
-			"Task management tool. Actions: read (get all todos), create (add todos with auto-generated IDs), update (modify by ID), complete (mark done), clear (remove all). Persists to memory/tools/todo.json.",
+			"Task management tool. Actions: read (get all todos), create (add a todo by key), update (modify by key), complete (mark done by key), delete (remove by key), list (all or filter by pending/completed), clear (remove all). Persists to memory/tools/todo.json.",
 		schema: z.object({
 			action: z
-				.enum(["read", "create", "update", "complete", "clear"])
+				.enum(["read", "create", "update", "complete", "delete", "list", "clear"])
 				.describe("Action to perform"),
-			id: z.number().int().optional().describe("Todo ID for update/complete actions"),
-			todos: z
-				.array(
-					z.object({
-						id: z.number().int().optional(),
-						content: z.string(),
-						completed: z.boolean().optional(),
-					}),
-				)
+			key: z
+				.string()
 				.optional()
-				.describe("Todo items for create action"),
-			content: z.string().optional().describe("New content for update action"),
-			completed: z.boolean().optional().describe("Completion status for update action"),
+				.describe("Todo key for create, update, complete, and delete actions"),
+			content: z.string().optional().describe("Content for create or update action"),
+			completed: z.boolean().optional().describe("Completion status for create or update action"),
+			filter: z
+				.enum(["all", "pending", "completed"])
+				.optional()
+				.describe("Filter for list action (all, pending, completed)"),
 		}),
 	});
 }
