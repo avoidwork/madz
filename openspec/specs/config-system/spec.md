@@ -38,7 +38,7 @@ The system SHALL load all configuration from `config.yaml` via `src/config/loade
 
 #### Scenario: Configuration is loaded from YAML file
 - **WHEN** the application starts and reads `config.yaml`
-- **THEN** all defined sections (`providers`, `memory`, `session`, `sandbox`, `skills`, `telemetry`, `tui`, `schedules`, `persistence`) are loaded and validated
+- **THEN** all defined sections (`providers`, `memory`, `session`, `sandbox`, `skills`, `telemetry`, `tui`, `persistence`) are loaded and validated
 
 #### Scenario: Persistence defaults apply
 - **WHEN** `config.yaml` has no `persistence` section or `persistence.mode` is absent
