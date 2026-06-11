@@ -179,22 +179,22 @@ describe("tool registration - integration", () => {
 		assert.ok(!toolNames.includes("image_generate"));
 	});
 
-	it("registers cronjob with network:outbound", async () => {
+	it("registers cronJob with network:outbound", async () => {
 		const tools = await buildToolConfig({
 			permissions: ["network:outbound"],
 			config: { providers: {}, search: { exa: {} } },
 		});
 		const toolNames = tools.map((t) => t.name);
-		assert.ok(toolNames.includes("cronjob"));
+		assert.ok(toolNames.includes("cronJob"));
 	});
 
-	it("does not register cronjob without network:outbound", async () => {
+	it("does not register cronJob without network:outbound", async () => {
 		const tools = await buildToolConfig({
 			permissions: [],
 			config: { providers: {}, search: { exa: {} } },
 		});
 		const toolNames = tools.map((t) => t.name);
-		assert.ok(!toolNames.includes("cronjob"));
+		assert.ok(!toolNames.includes("cronJob"));
 	});
 
 	it("registers text_to_speech with openai (no permission needed)", async () => {

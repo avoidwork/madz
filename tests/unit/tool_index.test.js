@@ -130,14 +130,14 @@ describe("tools - buildToolConfig", () => {
 		});
 		const toolNames = tools.map((t) => t.name);
 		// Tier 1: 12 tools (all register with filesystem+process perms)
-		// Tier 2: execute_code (no perms), cronjob (network:outbound)
+		// Tier 2: execute_code (no perms), cronJob (network:outbound)
 		// Sampling (no perms) always registers
 		// No API keys: web_search/vision_analyze/image_generate won't register
 		assert.ok(toolNames.length >= 13, "All tier 1 + tier 2 + sampling tools should register");
 		assert.ok(toolNames.includes("terminal"), "terminal should register");
 		assert.ok(toolNames.includes("process"), "process should register");
 		assert.ok(toolNames.includes("execute_code"), "execute_code should register");
-		assert.ok(toolNames.includes("cronjob"), "cronjob should register");
+		assert.ok(toolNames.includes("cronJob"), "cronJob should register");
 	});
 
 	it("returns only clarify with filesystem:read-only", async () => {

@@ -2,7 +2,7 @@ const DEFAULT_TIMEOUT_MS = 60000;
 
 /**
  * Schedule manager for CRUD operations on scheduled jobs.
- * Jobs are stored as JSON files in memory/schedules/ and managed via the cronjob tool.
+ * Jobs are stored as JSON files in memory/schedules/ and managed via the cronJob tool.
  * This class does not include the in-process clock tick loop — crond handles scheduling.
  */
 export class ScheduleManager {
