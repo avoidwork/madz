@@ -214,12 +214,12 @@ export const todo = tool(todoImpl, {
 			.string()
 			.optional()
 			.transform((val) => (val !== undefined ? stripNonASCII(val) : undefined))
-			.describe("Todo key for create, update, complete, and delete actions"),
+			.describe("Todo key for create, update, complete, and delete actions. MUST use ASCII-only English text."),
 		content: z
 			.string()
 			.optional()
 			.transform((val) => (val !== undefined ? stripNonASCII(val) : undefined))
-			.describe("Content for create or update action"),
+			.describe("Content for create or update action. MUST use ASCII-only English text."),
 		completed: z.boolean().optional().describe("Completion status for create or update action"),
 		filter: z
 			.enum(["all", "pending", "completed"])
@@ -250,12 +250,12 @@ export function createTodoTool(options = {}) {
 				.string()
 				.optional()
 				.transform((val) => (val !== undefined ? stripNonASCII(val) : undefined))
-				.describe("Todo key for create, update, complete, and delete actions"),
+				.describe("Todo key for create, update, complete, and delete actions. MUST use ASCII-only English text."),
 			content: z
 				.string()
 				.optional()
 				.transform((val) => (val !== undefined ? stripNonASCII(val) : undefined))
-				.describe("Content for create or update action"),
+				.describe("Content for create or update action. MUST use ASCII-only English text."),
 			completed: z.boolean().optional().describe("Completion status for create or update action"),
 			filter: z
 				.enum(["all", "pending", "completed"])
