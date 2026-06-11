@@ -4,3 +4,4 @@ export { loadContext } from "./context.js";
 export { cleanRetainedMemory, enforceMaxEntries } from "./retention.js";
 export { loadMemories, formatMemoriesForPrompt, parseEntryFile } from "./loadMemories.js";
 export { expireEphemeralMemories, isExpired, readEphemeralFile } from "./expireEphemeral.js";
+export { gc, isAvailable, initGC, getGcCalls } from "./gc.js";

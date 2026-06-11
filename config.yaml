@@ -43,6 +43,10 @@ memory:
   toolsDir: memory/tools/
   errorsDir: memory/errors/
   schedulesDir: memory/schedules/
+  gc:
+    enabled: true
+    idleTimeoutMs: 300000
+    maxGcPerHour: 4
 telemetry:
   enabled: false
   exporter:

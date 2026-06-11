@@ -10,6 +10,7 @@ import { Banner } from "./banner.js";
 import { OnboardingPanel } from "./onboardingPanel.js";
 import { createSession } from "../session/factory.js";
 import { setConfigValue } from "../config/loader.js";
+import { isAvailable, getGcCalls } from "../memory/gc.js";
 
 /**
  * Main App component (Ink). Renders an IRC-style layout:
@@ -24,6 +25,8 @@ export default function App({
 	appInfo,
 	onboarding,
 	onSaveSession,
+	gcManager,
+	gcTrigger,
 }) {
 	const [showBanner, setShowBanner] = useState(true);
 	const [showOnboarding, setShowOnboarding] = useState(!!onboarding);
@@ -81,6 +84,7 @@ export default function App({
 		if (parser.isCommand(trimmed)) {
 			await handleCommand(trimmed);
 		} else {
+			gcManager?.();
 			await handleChat(trimmed);
 		}
 	};
@@ -108,6 +112,14 @@ export default function App({
 					return scheduleManager.list();
 				},
 				_contextList: false,
+				_gcTrigger: gcTrigger,
+				_gcStatus: gcTrigger
+					? () => ({
+							available: isAvailable(),
+							calls: getGcCalls(),
+							hourCalls: getGcCalls().length,
+						})
+					: null,
 			});
 			if (result.action === "quit") {
 				handleQuit();
@@ -142,6 +154,7 @@ export default function App({
 	 */
 	const handleChat = async (text) => {
 		if (isQuittingRef.current) return;
+		gcManager?.();
 		setStatusMessage("Streaming...");
 		addMessage({ role: "user", content: text });
 
@@ -271,6 +284,7 @@ export default function App({
 			if (onSaveSession) {
 				onSaveSession();
 			}
+			gcManager?.();
 			setStatusMessage("Received response");
 		} catch (err) {
 			if (sessionState) {
@@ -286,6 +300,7 @@ export default function App({
 				content: `I couldn't connect right now - ${err.message}. Try sending your message again?`,
 			});
 		}
+		gcManager?.();
 	};
 
 	const handleQuit = () => {

@@ -1,7 +1,7 @@
 /**
  * Command parser that handles `:command` syntax with a dispatch table.
  * Supports commands like: `:config set`, `:provider set`, `:schedule list`,
- * `:clear`, `:quit`, etc.
+ * `:clear`, `:quit`, `:gc`, etc.
  */
 export class CommandParser {
 	#dispatch = new Map();
@@ -94,6 +94,32 @@ export class CommandParser {
 				action: "help",
 				message: `Available commands: ${cmds.join(", ")}`,
 			};
+		});
+
+		this.#register("gc", (args, ctx) => {
+			if (args[0] === "status") {
+				const gcInfo = ctx._gcStatus ? ctx._gcStatus() : null;
+				if (gcInfo) {
+					return {
+						action: "gc",
+						subAction: "status",
+						available: gcInfo.available,
+						calls: gcInfo.calls || [],
+						hourCalls: gcInfo.hourCalls || 0,
+						message: gcInfo.available
+							? `V8 GC is available (${gcInfo.hourCalls} calls this hour)`
+							: "V8 GC is not available (start with --expose-gc)",
+					};
+				}
+				return { action: "gc", subAction: "status", message: "GC status unavailable" };
+			}
+			const result = ctx._gcTrigger
+				? ctx._gcTrigger()
+				: { triggered: false, reason: "gc not wired" };
+			const msg = result.triggered
+				? `GC triggered (${result.hourCalls} calls this hour)`
+				: `GC ${result.reason || "skipped"}`;
+			return { action: "gc", subAction: "run", ...result, message: msg };
 		});
 	}
 
