@@ -80,7 +80,7 @@
 ✖ failing tests:
 
 test at tests/unit/cron_sync.test.js:80:2
-✖ adds a job that exists on disk but not in crontab (26.172986ms)
+✖ adds a job that exists on disk but not in crontab (26.452355ms)
   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
   
   3 !== 0
