@@ -223,6 +223,26 @@ describe("command parser", () => {
 			assert.strictEqual(result.action, "new");
 		});
 	});
+
+	describe("gc command", () => {
+		it("returns gc action", () => {
+			const parser = new CommandParser();
+			const result = parser.parse(":gc", {});
+			assert.strictEqual(result.action, "gc");
+			assert.strictEqual(result.message, "Garbage collection triggered.");
+		});
+
+		it("is recognized via hasCommand", () => {
+			const parser = new CommandParser();
+			assert.strictEqual(parser.hasCommand("gc"), true);
+		});
+
+		it("is shown in listCommands", () => {
+			const parser = new CommandParser();
+			const commands = parser.listCommands();
+			assert.ok(commands.includes("gc"));
+		});
+	});
 });
 
 describe("TUI - panel navigation", () => {

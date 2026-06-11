@@ -10,6 +10,7 @@ import { Banner } from "./banner.js";
 import { OnboardingPanel } from "./onboardingPanel.js";
 import { createSession } from "../session/factory.js";
 import { setConfigValue } from "../config/loader.js";
+import { gcCollect, trimMessagesInPlace } from "../memory/gc.js";
 
 /**
  * Main App component (Ink). Renders an IRC-style layout:
@@ -36,6 +37,7 @@ export default function App({
 	const [inputFocused, setInputFocused] = useState(true);
 	const scrollRef = useRef(null);
 	const isQuittingRef = useRef(false);
+	const idleTimerRef = useRef(null);
 	const { exit } = useApp();
 	const exitRef = useRef(exit);
 	exitRef.current = exit;
@@ -60,6 +62,26 @@ export default function App({
 			process.off("unhandledRejection", onUnhandled);
 		};
 	}, []);
+
+	// Set up idle timer for periodic GC
+	useEffect(() => {
+		const idleMs = config?.memory?.gc?.idleMs ?? 30000;
+		idleTimerRef.current = setInterval(() => {
+			queueMicrotask(() => {
+				try {
+					gcCollect(config, messages);
+				} catch {
+					// GC should never throw — silently ignore
+				}
+			});
+		}, idleMs);
+		return () => {
+			if (idleTimerRef.current) {
+				clearInterval(idleTimerRef.current);
+				idleTimerRef.current = null;
+			}
+		};
+	}, [config, messages]);
 
 	// Process command or dispatch as normal chat
 	/**
@@ -120,6 +142,12 @@ export default function App({
 			if (result.action === "clear") {
 				setMessages([]);
 				setStatusMessage(result.message || "Conversation cleared.");
+				return;
+			}
+			if (result.action === "gc") {
+				runGc();
+				setStatusMessage(result.message || "Garbage collection complete.");
+				addMessage({ role: "system", content: result.message || "Garbage collection complete." });
 				return;
 			}
 			if (result.action === "unknown") {
@@ -272,6 +300,7 @@ export default function App({
 				onSaveSession();
 			}
 			setStatusMessage("Received response");
+			runGc();
 		} catch (err) {
 			if (sessionState) {
 				sessionState.addExchange({ role: "user", content: text });
@@ -381,6 +410,26 @@ export default function App({
 	const addMessage = (msg) => {
 		const time = getTimestamp();
 		setMessages((prev) => [...prev, { ...msg, time }]);
+	};
+
+	/**
+	 * Run garbage collection on the messages array and memory context.
+	 * Non-blocking — uses queueMicrotask.
+	 */
+	const runGc = () => {
+		queueMicrotask(() => {
+			try {
+				const result = gcCollect(config, messages);
+				if (result.messagesTrimmed) {
+					setMessages((prev) => {
+						const window = config?.memory?.gc?.messageWindow ?? 100;
+						return prev.slice(-window);
+					});
+				}
+			} catch {
+				// GC should never throw — silently ignore
+			}
+		});
 	};
 
 	// Single input handler - processes all keystrokes here

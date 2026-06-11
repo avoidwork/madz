@@ -1,6 +1,7 @@
 import { readdir, readFile, access } from "node:fs/promises";
 import { join, extname, basename } from "node:path";
 import { parseFrontmatter } from "./reader.js";
+import { enforceMaxEntries } from "./retention.js";
 
 /**
  * Check if a file path exists.
@@ -44,10 +45,12 @@ export async function parseEntryFile(filepath) {
 
 /**
  * Load all memory entries from a directory, sorted by date descending.
+ * Optionally enforces a maximum entry count.
  * @param {string} entriesDir - Path to the memory entries directory
+ * @param {number} [maxEntries] - Optional maximum number of entries to retain
  * @returns {Promise<{ key: string, metadata: { createdDate: string, updatedDate?: string }, memory: string }[]>}
  */
-export async function loadMemories(entriesDir = "memory/context/") {
+export async function loadMemories(entriesDir = "memory/context/", maxEntries) {
 	const fullPath = join(process.cwd(), entriesDir);
 
 	if (!(await fileExists(fullPath))) {
@@ -64,6 +67,15 @@ export async function loadMemories(entriesDir = "memory/context/") {
 		const entry = await parseEntryFile(filepath);
 		if (entry !== null) {
 			entries.push({ key, ...entry });
+		}
+	}
+
+	// Enforce max entries limit if configured
+	if (maxEntries !== undefined && maxEntries > 0) {
+		try {
+			enforceMaxEntries(entriesDir, maxEntries);
+		} catch {
+			// Silently ignore — directory may not exist or be unreadable
 		}
 	}
 

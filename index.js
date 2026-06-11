@@ -108,7 +108,7 @@ try {
 const { loadSystemPrompt } = await import("./src/memory/prompts.js");
 const { generateSkillCatalogPrompt } = await import("./src/tools/skills.js");
 const systemPrompt = loadSystemPrompt();
-const memoryEntriesDir = config.memory?.entriesDir || "memory/context/";
+const memoryEntriesDir = config.memory?.contextDir || "memory/context/";
 // Build agent and tool config at startup (once)
 const providerConfig = config.providers[providerName] || {};
 const tools = await buildToolConfig({
@@ -140,7 +140,7 @@ const sessionConfig = { configurable: { thread_id: sessionState.getThreadId() } 
 async function callProvider(_name, _providerConfig, message, streamingCallback) {
 	const isNewThread = sessionState.getConversation().length === 0;
 	const threadId = sessionState.getThreadId();
-	const memoryEntries = await loadMemories(memoryEntriesDir);
+	const memoryEntries = await loadMemories(memoryEntriesDir, config.memory?.gc?.maxContextEntries);
 	const memoryText = formatMemoriesForPrompt(memoryEntries);
 	const catalog = registry.getCatalog();
 	const skillCatalog = generateSkillCatalogPrompt(catalog);

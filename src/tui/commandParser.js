@@ -95,6 +95,10 @@ export class CommandParser {
 				message: `Available commands: ${cmds.join(", ")}`,
 			};
 		});
+
+		this.#register("gc", (_args, _ctx) => {
+			return { action: "gc", message: "Garbage collection triggered." };
+		});
 	}
 
 	#register(name, handler) {

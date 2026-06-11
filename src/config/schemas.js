@@ -109,6 +109,14 @@ export const SandboxScopeSchema = z.object({
 	trustProjectSkills: z.boolean().default(true),
 });
 
+// --- GC schemas ---
+
+export const GcSchema = z.object({
+	messageWindow: z.number().int().positive().default(100),
+	maxContextEntries: z.number().int().positive().default(100),
+	idleMs: z.number().int().positive().default(30000),
+});
+
 // --- Memory schemas ---
 
 export const MemorySchema = z.object({
@@ -123,6 +131,11 @@ export const MemorySchema = z.object({
 			maxEntries: z.number().int().positive().default(10),
 		})
 		.default({ ttlDays: 7, maxEntries: 10 }),
+	gc: GcSchema.default({
+		messageWindow: 100,
+		maxContextEntries: 100,
+		idleMs: 30000,
+	}),
 });
 
 // --- Telemetry schemas ---
