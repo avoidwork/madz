@@ -214,7 +214,9 @@ export const todo = tool(todoImpl, {
 			.string()
 			.optional()
 			.transform((val) => (val !== undefined ? stripNonASCII(val) : undefined))
-			.describe("Todo key for create, update, complete, and delete actions. MUST use ASCII-only English text."),
+			.describe(
+				"Todo key for create, update, complete, and delete actions. MUST use ASCII-only English text.",
+			),
 		content: z
 			.string()
 			.optional()
@@ -250,7 +252,9 @@ export function createTodoTool(options = {}) {
 				.string()
 				.optional()
 				.transform((val) => (val !== undefined ? stripNonASCII(val) : undefined))
-				.describe("Todo key for create, update, complete, and delete actions. MUST use ASCII-only English text."),
+				.describe(
+					"Todo key for create, update, complete, and delete actions. MUST use ASCII-only English text.",
+				),
 			content: z
 				.string()
 				.optional()
