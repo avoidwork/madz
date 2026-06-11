@@ -7,6 +7,16 @@ const TODO_FILE = "memory/tools/todo.json";
 const VALID_ACTIONS = ["read", "create", "update", "complete", "delete", "list", "clear"];
 
 /**
+ * Strip non-ASCII characters from a string.
+ * @param {string} str - The string to strip
+ * @returns {string} The ASCII-only string
+ */
+function stripNonASCII(str) {
+	// eslint-disable-next-line no-control-regex
+	return str.replace(/[^\x00-\x7F]/g, "");
+}
+
+/**
  * Load the todo list from file storage.
  * @param {string} filePath - Path to the todo JSON file
  * @returns {Promise<{ todos: Array<{ key: string, content: string, completed: boolean }>}>} The todo list
@@ -117,7 +127,7 @@ export async function todoImpl(input, options) {
 			}
 
 			if (input.content !== undefined) {
-				todo.content = input.content;
+				todo.content = stripNonASCII(input.content);
 			}
 			if (input.completed !== undefined) {
 				todo.completed = input.completed;
@@ -203,8 +213,13 @@ export const todo = tool(todoImpl, {
 		key: z
 			.string()
 			.optional()
-			.describe("Todo key for create, update, complete, and delete actions"),
-		content: z.string().optional().describe("Content for create or update action"),
+			.transform((val) => (val !== undefined ? stripNonASCII(val) : undefined))
+			.describe("Todo key for create, update, complete, and delete actions. MUST use ASCII-only English text."),
+		content: z
+			.string()
+			.optional()
+			.transform((val) => (val !== undefined ? stripNonASCII(val) : undefined))
+			.describe("Content for create or update action. MUST use ASCII-only English text."),
 		completed: z.boolean().optional().describe("Completion status for create or update action"),
 		filter: z
 			.enum(["all", "pending", "completed"])
@@ -234,8 +249,13 @@ export function createTodoTool(options = {}) {
 			key: z
 				.string()
 				.optional()
-				.describe("Todo key for create, update, complete, and delete actions"),
-			content: z.string().optional().describe("Content for create or update action"),
+				.transform((val) => (val !== undefined ? stripNonASCII(val) : undefined))
+				.describe("Todo key for create, update, complete, and delete actions. MUST use ASCII-only English text."),
+			content: z
+				.string()
+				.optional()
+				.transform((val) => (val !== undefined ? stripNonASCII(val) : undefined))
+				.describe("Content for create or update action. MUST use ASCII-only English text."),
 			completed: z.boolean().optional().describe("Completion status for create or update action"),
 			filter: z
 				.enum(["all", "pending", "completed"])
