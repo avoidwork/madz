@@ -85,7 +85,11 @@ describe("auto-schedule callback", () => {
 
 	it("handles hasProfile() error gracefully (4.5)", () => {
 		const callback = setupAutoSchedule(
-			options({ hasProfile: () => { throw new Error("disk error"); } }),
+			options({
+				hasProfile: () => {
+					throw new Error("disk error");
+				},
+			}),
 		);
 		// Should not throw
 		assert.doesNotThrow(() => callback());
@@ -104,7 +108,10 @@ describe("auto-schedule callback", () => {
 		assert.strictEqual(content.name, "reflection-daily");
 		assert.strictEqual(content.cron, "0 2 * * *");
 		assert.ok(typeof content.command === "string");
-		assert.ok(content.command.includes("node index.js --chat"), "Command should include the chat command");
+		assert.ok(
+			content.command.includes("node index.js --chat"),
+			"Command should include the chat command",
+		);
 		assert.strictEqual(content.enabled, true);
 	});
 

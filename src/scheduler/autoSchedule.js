@@ -83,7 +83,7 @@ export function setupAutoSchedule(options = {}) {
 		let profileExists = false;
 		try {
 			profileExists = hasProfileFn();
-		} catch (err) {
+		} catch (_err) {
 			// Graceful degradation: if detection fails, skip auto-schedule
 			// The job file doesn't exist, so a future first-write will catch it
 			return;
