@@ -46,10 +46,12 @@ class GcManager {
 **Check logic (runs every `intervalMs`):**
 
 1. If gc is disabled → skip
-2. If not idle → skip (TUI is streaming/processing)
-3. If heapUsed / heapTotal < heapThreshold → skip
-4. If heap threshold met → call `global.gc()`
-5. Log: "GC triggered: heap at X%"
+2. If `gcAvailable === false` (no `--expose-gc`) → skip silently
+3. If not idle (`isIdle === false`) → skip (TUI is streaming/processing)
+4. If `now - lastActivityTime < idleTimeoutMs` → skip (not idle long enough; debounce brief pauses)
+5. If heapUsed / heapTotal < heapThreshold → skip
+6. If heap threshold met → call `global.gc()`
+7. Log: "GC triggered: heap at X%"
 
 **Idle detection:**
 - `setIdle(false)` called by TUI when streaming starts
@@ -82,7 +84,7 @@ gc: z.object({
   enabled: z.boolean().default(true),
   intervalMs: z.number().int().positive().default(30000),
   idleTimeoutMs: z.number().int().positive().default(10000),
-  heapThreshold: z.number().min(0).max(1).default(0.8),
+  heapThreshold: z.number().min(0.01).max(0.99).default(0.8),
 }).default({})
 ```
 
@@ -115,3 +117,11 @@ Sensible defaults. Frequent enough to catch memory growth, infrequent enough to 
 ### Why not GC in CLI mode?
 
 CLI is short-lived. GC benefits long-running processes. TUI is the primary long-running mode.
+
+### Why only gate on streaming, not all TUI activity?
+
+The idle check currently gates only on streaming state. Tool execution, skill invocation, and other TUI work are not explicitly guarded. This means GC could pause the event loop during a tool call. The tradeoff is simplicity: tracking all TUI activity would require a more complex busy flag. If tool calls become a concern, the idle check can be expanded to include a general `isBusy` flag.
+
+### Timer lifecycle and cleanup
+
+The GC manager's interval timer must be cleaned up on shutdown to avoid dangling timers calling `setIdle()` on unmounted components. The `stop()` method clears the interval. Callers should invoke `stop()` during shutdown (via `registerShutdownHandler`) or in a React `useEffect` cleanup.

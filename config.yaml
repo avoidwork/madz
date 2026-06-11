@@ -16,6 +16,7 @@ sandbox:
     - src/
     - tests/
     - /tmp
+    - ./
   timeout:
     seconds: 600
     gracePeriod: 5

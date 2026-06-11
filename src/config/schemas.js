@@ -123,6 +123,14 @@ export const MemorySchema = z.object({
 			maxEntries: z.number().int().positive().default(10),
 		})
 		.default({ ttlDays: 7, maxEntries: 10 }),
+	gc: z
+		.object({
+			enabled: z.boolean().default(true),
+			intervalMs: z.number().int().positive().default(30000),
+			idleTimeoutMs: z.number().int().positive().default(10000),
+			heapThreshold: z.number().min(0.01).max(0.99).default(0.8),
+		})
+		.default({}),
 });
 
 // --- Telemetry schemas ---
@@ -242,6 +250,7 @@ export const DEFAULT_CONFIG = {
 		errorsDir: "memory/errors/",
 		schedulesDir: "memory/schedules/",
 		ephemeral: { ttlDays: 7, maxEntries: 10 },
+		gc: { enabled: true, intervalMs: 30000, idleTimeoutMs: 10000, heapThreshold: 0.8 },
 	},
 	telemetry: {
 		enabled: false,

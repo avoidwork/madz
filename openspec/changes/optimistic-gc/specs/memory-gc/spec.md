@@ -16,11 +16,16 @@ When enabled, the system SHALL periodically check heap usage and trigger V8 garb
 - **WHEN** `heapUsed / heapTotal < memory.gc.heapThreshold`
 - **THEN** the system skips GC regardless of idle state
 
+#### Scenario: GC triggers after sustained idle period
+- **WHEN** the TUI has been idle (no active streaming) for at least `memory.gc.idleTimeoutMs`
+- **AND** `heapUsed / heapTotal >= memory.gc.heapThreshold`
+- **THEN** the system calls `global.gc()` and logs the heap usage percentage
+
 ### Requirement: GC Graceful Degradation
 When `--expose-gc` is not available (i.e., `global.gc` is undefined), the system SHALL log a single warning message on first detection and skip all subsequent GC checks silently.
 
 #### Scenario: GC warns when --expose-gc is not enabled
-- **WHEN** the GC manager starts and `global.gc` is undefined
+- **WHEN** the GC manager is constructed and `global.gc` is undefined
 - **THEN** the system logs a warning: `[gc] V8 garbage collection not available (node --expose-gc required)`
 - **AND** the system does not attempt further GC calls
 
