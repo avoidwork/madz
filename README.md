@@ -128,17 +128,17 @@ node index.js "Summarize memory/_index.md" --json
 
 ### TUI Navigation
 
-| Key       | Action                         |
-|-----------|--------------------------------|
-| `↑/↓`     | Scroll conversation history    |
-| `:help`   | Show available commands        |
-| `:config set <key> <value>` | Mutate config at runtime |
-| `:skill <name>` | Invoke a discovered skill      |
-| `:schedule pause` / `resume` | Control the cron scheduler |
-| `:clear`  | Clear conversation history     |
-| `:new`    | Start a fresh session          |
-| `:gc`     | Trigger manual V8 garbage collection |
-| `:gc status` | Show GC availability and call count |
+| Key                          | Action                               |
+| ---------------------------- | ------------------------------------ |
+| `↑/↓`                        | Scroll conversation history          |
+| `:help`                      | Show available commands              |
+| `:config set <key> <value>`  | Mutate config at runtime             |
+| `:skill <name>`              | Invoke a discovered skill            |
+| `:schedule pause` / `resume` | Control the cron scheduler           |
+| `:clear`                     | Clear conversation history           |
+| `:new`                       | Start a fresh session                |
+| `:gc`                        | Trigger manual V8 garbage collection |
+| `:gc status`                 | Show GC availability and call count  |
 
 ## Docker
 
@@ -205,113 +205,107 @@ All configuration is controlled via environment variables in the `docker run` co
 
 **Essential:**
 
-| Variable             | Required | Default                  | Description                     |
-|----------------------|----------|--------------------------|---------------------------------|
-| `OPENAI_API_KEY`     | Yes      | *(empty)*                | LLM provider API key            |
+| Variable         | Required | Default   | Description          |
+| ---------------- | -------- | --------- | -------------------- |
+| `OPENAI_API_KEY` | Yes      | _(empty)_ | LLM provider API key |
 
 **Optional — Providers:**
 
-| Variable                           | Default          | Description                             |
-|------------------------------------|------------------|-----------------------------------------|
-| `OPENAI_BASE_URL`                  | `https://api.openai.com/v1` | API endpoint URL                      |
-| `OPENAI_MODEL`                     | `gpt-4o`         | Model name                              |
-| `OPENAI_TEMPERATURE`               | `0.7`            | Sampling temperature (0–2)              |
-| `OPENAI_MAX_TOKENS`                | `4096`           | Max output tokens                       |
-| `OPENAI_REQUESTS_PER_MINUTE`       | `60`             | Rate limit for API calls                |
-| `OPENROUTER_API_KEY`               | *(empty)*        | OpenRouter API key                      |
-| `OPENROUTER_MODEL`                 | `openrouter/auto` | OpenRouter model name                  |
+| Variable                     | Default                     | Description                |
+| ---------------------------- | --------------------------- | -------------------------- |
+| `OPENAI_BASE_URL`            | `https://api.openai.com/v1` | API endpoint URL           |
+| `OPENAI_MODEL`               | `gpt-4o`                    | Model name                 |
+| `OPENAI_TEMPERATURE`         | `0.7`                       | Sampling temperature (0–2) |
+| `OPENAI_MAX_TOKENS`          | `4096`                      | Max output tokens          |
+| `OPENAI_REQUESTS_PER_MINUTE` | `60`                        | Rate limit for API calls   |
+| `OPENROUTER_API_KEY`         | _(empty)_                   | OpenRouter API key         |
+| `OPENROUTER_MODEL`           | `openrouter/auto`           | OpenRouter model name      |
 
 **Optional — Tools:**
 
-| Variable               | Default | Description                              |
-|------------------------|---------|------------------------------------------|
-| `FAL_API_KEY`          | *(empty)* | Fal.ai API key (image generation)       |
-| `EXA_API_KEY`          | *(empty)* | Exa search API key                     |
-| `FIRECRAWL_API_KEY`    | *(empty)* | Firecrawl API key                      |
-| `TAVILY_API_KEY`       | *(empty)* | Tavily search API key                  |
-| `PARALLEL_API_KEY`     | *(empty)* | Parallel search API key                |
-| `SEARXNG_URL`          | *(empty)* | SearXNG search instance URL             |
-| `BING_API_KEY`         | *(empty)* | Bing search API key                    |
-| `CUSTOM_SEARCH_URL`    | *(empty)* | Custom search engine URL                 |
-| `CUSTOM_SEARCH_METHOD` | *(empty)* | Custom search HTTP method                 |
-| `CUSTOM_SEARCH_HEADERS` | *(empty)* | Custom search headers (JSON string)    |
-| `CUSTOM_SEARCH_QUERY_KEY` | *(empty)* | Custom search query key              |
-| `CUSTOM_SEARCH_TITLE_FIELD` | *(empty)* | Custom search title field           |
-| `CUSTOM_SEARCH_URL_FIELD` | *(empty)* | Custom search URL field               |
-| `CUSTOM_SEARCH_DESCRIPTION_FIELD` | *(empty)* | Custom search description field |
+| Variable                          | Default   | Description                         |
+| --------------------------------- | --------- | ----------------------------------- |
+| `FAL_API_KEY`                     | _(empty)_ | Fal.ai API key (image generation)   |
+| `EXA_API_KEY`                     | _(empty)_ | Exa search API key                  |
+| `FIRECRAWL_API_KEY`               | _(empty)_ | Firecrawl API key                   |
+| `TAVILY_API_KEY`                  | _(empty)_ | Tavily search API key               |
+| `PARALLEL_API_KEY`                | _(empty)_ | Parallel search API key             |
+| `SEARXNG_URL`                     | _(empty)_ | SearXNG search instance URL         |
+| `BING_API_KEY`                    | _(empty)_ | Bing search API key                 |
+| `CUSTOM_SEARCH_URL`               | _(empty)_ | Custom search engine URL            |
+| `CUSTOM_SEARCH_METHOD`            | _(empty)_ | Custom search HTTP method           |
+| `CUSTOM_SEARCH_HEADERS`           | _(empty)_ | Custom search headers (JSON string) |
+| `CUSTOM_SEARCH_QUERY_KEY`         | _(empty)_ | Custom search query key             |
+| `CUSTOM_SEARCH_TITLE_FIELD`       | _(empty)_ | Custom search title field           |
+| `CUSTOM_SEARCH_URL_FIELD`         | _(empty)_ | Custom search URL field             |
+| `CUSTOM_SEARCH_DESCRIPTION_FIELD` | _(empty)_ | Custom search description field     |
 
 **Optional — Sandbox:**
 
-| Variable                         | Default                           | Description                            |
-|----------------------------------|-----------------------------------|----------------------------------------|
-| `SANDBOX_PATHS`                  | `memory/, skills/, tmp/`          | Allowed filesystem paths (comma-separated) |
-| `SANDBOX_TIMEOUT_SECONDS`        | `30`                              | Max execution time in seconds            |
-| `SANDBOX_GRACE_PERIOD`           | `5`                               | Kill grace period in seconds             |
-| `SANDBOX_MEMORY_LIMIT`           | `512m`                            | Heap limit (`--max-old-space-size`)     |
-| `SANDBOX_URL_FILTER`             | `true`                            | Outbound URL blocking                 |
-| `SANDBOX_PYTHON_IMPORT_HOOK`     | `true`                            | Prevent subprocess import              |
-| `SANDBOX_ENV_ALLOWLIST`          | `PATH, HOME, NODE_ENV`            | Allowed env vars (comma-separated)      |
-| `SANDBOX_PERMISSIONS`            | *(none)*                          | Permission grants                      |
-| `SANDBOX_MAX_READ_SIZE`          | `1mb`                             | Max file read size                      |
-| `SANDBOX_SKILL_SCAN_PATHS`       | `skills/, .agents/skills/`        | Skill scan paths (comma-separated)       |
-| `SANDBOX_TRUST_PROJECT_SKILLS`   | `true`                            | Trust skills in project root            |
+| Variable                       | Default                    | Description                                |
+| ------------------------------ | -------------------------- | ------------------------------------------ |
+| `SANDBOX_PATHS`                | `memory/, skills/, tmp/`   | Allowed filesystem paths (comma-separated) |
+| `SANDBOX_TIMEOUT_SECONDS`      | `30`                       | Max execution time in seconds              |
+| `SANDBOX_GRACE_PERIOD`         | `5`                        | Kill grace period in seconds               |
+| `SANDBOX_MEMORY_LIMIT`         | `512m`                     | Heap limit (`--max-old-space-size`)        |
+| `SANDBOX_URL_FILTER`           | `true`                     | Outbound URL blocking                      |
+| `SANDBOX_PYTHON_IMPORT_HOOK`   | `true`                     | Prevent subprocess import                  |
+| `SANDBOX_ENV_ALLOWLIST`        | `PATH, HOME, NODE_ENV`     | Allowed env vars (comma-separated)         |
+| `SANDBOX_PERMISSIONS`          | _(none)_                   | Permission grants                          |
+| `SANDBOX_MAX_READ_SIZE`        | `1mb`                      | Max file read size                         |
+| `SANDBOX_SKILL_SCAN_PATHS`     | `skills/, .agents/skills/` | Skill scan paths (comma-separated)         |
+| `SANDBOX_TRUST_PROJECT_SKILLS` | `true`                     | Trust skills in project root               |
 
 **Optional — Memory:**
 
-| Variable              | Default               | Description                        |
-|-----------------------|-----------------------|------------------------------------|
-| `MEMORY_DIRECTORY`    | `memory/`             | Base directory for persistence     |
-| `MEMORY_CONTEXT_DIR`  | `memory/context/`     | Context file directory             |
-| `MEMORY_TOOLS_DIR`    | `memory/tools/`       | Tool metadata directory            |
-| `MEMORY_ERRORS_DIR`   | `memory/errors/`      | Error log directory                |
-| `MEMORY_SCHEDULES_DIR`| `memory/schedules/`   | Cron result files directory        |
-| `MEMORY_GC_ENABLED`   | `true`                | Enable V8 garbage collection       |
-| `MEMORY_GC_IDLE_TIMEOUT_MS` | `300000`        | Idle timeout before GC (ms)        |
-| `MEMORY_GC_MAX_GC_PER_HOUR` | `4`           | Max GC calls per hour              |
+| Variable                    | Default             | Description                    |
+| --------------------------- | ------------------- | ------------------------------ |
+| `MEMORY_DIRECTORY`          | `memory/`           | Base directory for persistence |
+| `MEMORY_CONTEXT_DIR`        | `memory/context/`   | Context file directory         |
+| `MEMORY_TOOLS_DIR`          | `memory/tools/`     | Tool metadata directory        |
+| `MEMORY_ERRORS_DIR`         | `memory/errors/`    | Error log directory            |
+| `MEMORY_SCHEDULES_DIR`      | `memory/schedules/` | Cron result files directory    |
+| `MEMORY_GC_ENABLED`         | `true`              | Enable V8 garbage collection   |
+| `MEMORY_GC_IDLE_TIMEOUT_MS` | `300000`            | Idle timeout before GC (ms)    |
+| `MEMORY_GC_MAX_GC_PER_HOUR` | `4`                 | Max GC calls per hour          |
 
 **Optional — Telemetry:**
 
-| Variable                        | Default                    | Description                        |
-|---------------------------------|----------------------------|------------------------------------|
-| `TELEMETRY_ENABLED`             | `false`                    | Enable OpenTelemetry export          |
-| `TELEMETRY_EXPORTER_PROTOCOL`   | `console`                  | Exporter protocol                    |
-| `TELEMETRY_EXPORTER_ENDPOINT`   | `http://localhost:4318`    | OTLP endpoint URL                    |
-| `TELEMETRY_EXPORTER_MAX_SIZE`   | `512`                      | Batch size before flush              |
-| `TELEMETRY_EXPORTER_SCHEDULED_DELAY` | `5000`                | Scheduled flush interval in ms       |
-| `TELEMETRY_SAMPLING_RATIO`      | `0.1`                      | Trace probability                    |
+| Variable                             | Default                 | Description                    |
+| ------------------------------------ | ----------------------- | ------------------------------ |
+| `TELEMETRY_ENABLED`                  | `false`                 | Enable OpenTelemetry export    |
+| `TELEMETRY_EXPORTER_PROTOCOL`        | `console`               | Exporter protocol              |
+| `TELEMETRY_EXPORTER_ENDPOINT`        | `http://localhost:4318` | OTLP endpoint URL              |
+| `TELEMETRY_EXPORTER_MAX_SIZE`        | `512`                   | Batch size before flush        |
+| `TELEMETRY_EXPORTER_SCHEDULED_DELAY` | `5000`                  | Scheduled flush interval in ms |
+| `TELEMETRY_SAMPLING_RATIO`           | `0.1`                   | Trace probability              |
 
 **Optional — Schedules:**
 
-| Variable                  | Default         | Description                        |
-|---------------------------|-----------------|------------------------------------|
-| `SCHEDULES_MAX_CONCURRENT`| `1`             | Max parallel scheduled runs         |
-| `SCHEDULES_MODE`          | `inprocess`     | Scheduling backend                  |
+| Variable                   | Default     | Description                 |
+| -------------------------- | ----------- | --------------------------- |
+| `SCHEDULES_MAX_CONCURRENT` | `1`         | Max parallel scheduled runs |
+| `SCHEDULES_MODE`           | `inprocess` | Scheduling backend          |
 
 **Optional — TUI:**
 
-| Variable           | Default  | Description                         |
-|--------------------|----------|-------------------------------------|
-| `TUI_NAME`         | `madz`   | TUI identifier in banner            |
-| `TUI_CURSOR_CHAR`  | `█`      | Cursor character                    |
+| Variable          | Default | Description              |
+| ----------------- | ------- | ------------------------ |
+| `TUI_NAME`        | `madz`  | TUI identifier in banner |
+| `TUI_CURSOR_CHAR` | `█`     | Cursor character         |
 
 **Optional — Agent:**
 
-| Variable                 | Default | Description                          |
-|--------------------------|---------|--------------------------------------|
-| `AGENT_RECURSION_LIMIT`  | `30`    | Max graph execution steps per call   |
+| Variable                | Default | Description                        |
+| ----------------------- | ------- | ---------------------------------- |
+| `AGENT_RECURSION_LIMIT` | `30`    | Max graph execution steps per call |
 
 **Optional — Persistence:**
 
-| Variable              | Default                  | Description                    |
-|-----------------------|--------------------------|--------------------------------|
-| `PERSISTENCE_MODE`    | `memory`                 | Storage backend               |
-| `PERSISTENCE_SQLITE_PATH` | `memory/checkpoints.db` | SQLite checkpointer path   |
-
-**Optional — V8 GC:**
-
-| Variable              | Default                  | Description                    |
-|-----------------------|--------------------------|--------------------------------|
-| `NODE_EXPOSE_GC`      | *(empty)*                | Set to `1` to enable `--expose-gc` in Docker |
+| Variable                  | Default                 | Description              |
+| ------------------------- | ----------------------- | ------------------------ |
+| `PERSISTENCE_MODE`        | `memory`                | Storage backend          |
+| `PERSISTENCE_SQLITE_PATH` | `memory/checkpoints.db` | SQLite checkpointer path |
 
 **Alternative: inline env var references in `config.yaml`:**
 
@@ -344,20 +338,20 @@ Wraps `@langchain/langgraph/prebuilt`'s `createReactAgentGraph` to produce a com
 
 Bundled LangChain tools gated by sandbox permissions:
 
-| Category | Tools |
-|----------|-------|
-| **Filesystem** | `read_file`, `write_file` (500KB cap), `patch` (9-strategy fuzzy matching + unified diff), `search_files` (ripgrep with native fs fallback) |
-| **Terminal** | `terminal` — shell command execution (foreground/background); `process` — background process management (list, poll, wait, kill, write, pause, resume) |
-| **Task Management** | `todo` — CRUD list persisted to `memory/tools/todo.json` |
-| **Memory** | `memory` — persistent memory tool with CRUD (create, read, update, delete, list). Each memory is stored as an individual `.md` file in `memory/context/` with `createdDate` and `updatedDate` metadata. Memories are long-term, core "canon" that shapes your interaction with madz — important personal details, preferences, and context that matter. Loaded into the system prompt at the start of every session. |
-| **Search** | `session_search` — query past conversations by keyword, ID, or browse |
-| **Clarification** | `clarify` — sends clarification questions to the user |
-| **Skills** | `skills_list` — lists discovered skills; `skill_view` — views skill metadata and SKILL.md; `create_skill` — creates spec-compliant skill directories with SKILL.md frontmatter (requires `filesystem:write`) |
-| **Code** | `code` — code execution and analysis |
-| **Web** | `web` — outbound HTTP with timeout, URL allowlist filtering, multi-engine search backends |
-| **Media** | `image` — image generation via fal.ai; `vision` — vision/language analysis via OpenAI; `tts` — text-to-speech via OpenAI TTS |
-| **Agents** | `moa` — multi-agent orchestration |
-| **Cron** | `cron` — cron job utilities |
+| Category            | Tools                                                                                                                                                                                                                                                                                                                                                                                                                |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Filesystem**      | `read_file`, `write_file` (500KB cap), `patch` (9-strategy fuzzy matching + unified diff), `search_files` (ripgrep with native fs fallback)                                                                                                                                                                                                                                                                          |
+| **Terminal**        | `terminal` — shell command execution (foreground/background); `process` — background process management (list, poll, wait, kill, write, pause, resume)                                                                                                                                                                                                                                                               |
+| **Task Management** | `todo` — CRUD list persisted to `memory/tools/todo.json`                                                                                                                                                                                                                                                                                                                                                             |
+| **Memory**          | `memory` — persistent memory tool with CRUD (create, read, update, delete, list). Each memory is stored as an individual `.md` file in `memory/context/` with `createdDate` and `updatedDate` metadata. Memories are long-term, core "canon" that shapes your interaction with madz — important personal details, preferences, and context that matter. Loaded into the system prompt at the start of every session. |
+| **Search**          | `session_search` — query past conversations by keyword, ID, or browse                                                                                                                                                                                                                                                                                                                                                |
+| **Clarification**   | `clarify` — sends clarification questions to the user                                                                                                                                                                                                                                                                                                                                                                |
+| **Skills**          | `skills_list` — lists discovered skills; `skill_view` — views skill metadata and SKILL.md; `create_skill` — creates spec-compliant skill directories with SKILL.md frontmatter (requires `filesystem:write`)                                                                                                                                                                                                         |
+| **Code**            | `code` — code execution and analysis                                                                                                                                                                                                                                                                                                                                                                                 |
+| **Web**             | `web` — outbound HTTP with timeout, URL allowlist filtering, multi-engine search backends                                                                                                                                                                                                                                                                                                                            |
+| **Media**           | `image` — image generation via fal.ai; `vision` — vision/language analysis via OpenAI; `tts` — text-to-speech via OpenAI TTS                                                                                                                                                                                                                                                                                         |
+| **Agents**          | `moa` — multi-agent orchestration                                                                                                                                                                                                                                                                                                                                                                                    |
+| **Cron**            | `cron` — cron job utilities                                                                                                                                                                                                                                                                                                                                                                                          |
 
 ### Skills Registry
 
@@ -367,13 +361,13 @@ Auto-discovers Agent Skills spec-compliant skills from a `skills/` directory str
 
 Built-in tools are registered only when their required permissions are enabled for the session. Tools like `clarify` have zero permissions and always register.
 
-| Permission Required | Tools |
-|---------------------|-------|
-| `filesystem:read` | `read_file`, `search_files`, `skills_list`, `skill_view`, `session_search` |
-| `filesystem:write` | `write_file`, `patch`, `todo`, `memory`, `create_skill` |
-| `filesystem:exec` + `process:spawn` | `terminal` |
-| `process:spawn` | `process` |
-| *(none)* | `clarify` |
+| Permission Required                 | Tools                                                                      |
+| ----------------------------------- | -------------------------------------------------------------------------- |
+| `filesystem:read`                   | `read_file`, `search_files`, `skills_list`, `skill_view`, `session_search` |
+| `filesystem:write`                  | `write_file`, `patch`, `todo`, `memory`, `create_skill`                    |
+| `filesystem:exec` + `process:spawn` | `terminal`                                                                 |
+| `process:spawn`                     | `process`                                                                  |
+| _(none)_                            | `clarify`                                                                  |
 
 ### Memory System
 
@@ -428,46 +422,46 @@ Recurring job definitions in `config.yaml`. Supports both in-process scheduling 
 
 ## Config Reference
 
-| Section        | Key                                | Default                                   | Description                                       |
-|----------------|------------------------------------|-------------------------------------------|---------------------------------------------------|
-| `providers`    | `openai.type`                      | `openai`                                  | LLM provider type                                 |
-|                | `openai.base_url`                  | `https://api.openai.com/v1`               | API endpoint URL                                  |
-|                | `openai.model`                     | `gpt-4o`                                  | Model name                                        |
-|                | `openai.credentials.apiKey`        | *(empty)*                                 | API key for authentication                        |
-|                | `openai.temperature`               | `0.7`                                     | Sampling temperature (0–2)                        |
-|                | `openai.maxTokens`                 | `4096`                                    | Max output tokens                                 |
-|                | `openai.rateLimit.requestsPerMinute` | `120`                                   | Rate limit for API calls                          |
-| `sandbox`      | `paths`                            | `["memory/", "skills/", "src/", "/tmp"]`  | Allowed filesystem paths                          |
-|                | `timeout.seconds`                  | `30`                                      | Max execution time in seconds                     |
-|                | `timeout.gracePeriod`              | `5`                                       | Kill grace period in seconds                      |
-|                | `memoryLimit`                      | `"128mb"`                                  | Heap limit (`--max-old-space-size`)               |
-|                | `safety.urlFilter`                 | `true`                                    | Outbound URL blocking                             |
-|                | `safety.pythonImportHook`          | `true`                                    | Prevent subprocess import                         |
-|                | `env.allowlist`                    | `["PATH", "HOME", "NODE_ENV"]`            | Allowed environment variables                     |
-|                | `permissions`                      | `["filesystem:read", ...]`                | Permission grants                                 |
-|                | `maxReadSize`                      | `"10mb"`                                   | Max file read size                                |
-| `memory`       | `directory`                        | `memory/`                                 | Base directory for persistence                    |
-|                | `contextDir`                       | `memory/context/`                         | Context file directory                            |
-|                | `toolsDir`                         | `memory/tools/`                           | Tool metadata directory                           |
-|                | `errorsDir`                        | `memory/errors/`                          | Error log directory                               |
-|                | `schedulesDir`                     | `memory/schedules/`                       | Cron result files directory                       |
-|                | `gc.enabled`                       | `true`                                    | Enable V8 garbage collection                      |
-|                | `gc.idleTimeoutMs`                 | `300000`                                  | Idle timeout before GC triggers (ms)              |
-|                | `gc.maxGcPerHour`                  | `4`                                       | Max GC calls per hour                             |
-| `telemetry`    | `enabled`                          | `false`                                   | Enable OpenTelemetry export                       |
-|                | `exporter.protocol`                | `console`                                 | Exporter protocol (`console`, `http`, `grpc`)     |
-|                | `exporter.endpoint`                | `http://localhost:4318`                   | OTLP endpoint URL                                 |
-|                | `exporter.batch.maxSize`           | `512`                                     | Batch size before flush                           |
-|                | `exporter.batch.scheduledDelay`    | `5000`                                    | Scheduled flush interval in ms                    |
-|                | `sampling.ratio`                   | `0.1`                                     | Trace probability                                 |
-|                | `redact.paths`                     | `["credentials.apiKey", ...]`             | Sensitive field paths for redaction               |
-| `schedules`    | `maxConcurrent`                    | `1`                                       | Max parallel scheduled runs                       |
-|                | `mode`                             | `inprocess`                               | Scheduling backend (`inprocess`, `system`)        |
-| `tui`          | `name`                             | `madz`                                  | TUI identifier in banner                          |
-|                | `cursorChar`                       | `█`                                     | Cursor character                                  |
-| `agent`        | `recursionLimit`                   | `30`                                    | Max graph execution steps per agent call          |
-| `persistence`  | `mode`                             | `memory`                                | Storage backend (`memory`, `sqlite`)              |
-|                | `sqlite_path`                      | `memory/checkpoints.db`                   | SQLite checkpointer file path                     |
+| Section       | Key                                  | Default                                  | Description                                   |
+| ------------- | ------------------------------------ | ---------------------------------------- | --------------------------------------------- |
+| `providers`   | `openai.type`                        | `openai`                                 | LLM provider type                             |
+|               | `openai.base_url`                    | `https://api.openai.com/v1`              | API endpoint URL                              |
+|               | `openai.model`                       | `gpt-4o`                                 | Model name                                    |
+|               | `openai.credentials.apiKey`          | _(empty)_                                | API key for authentication                    |
+|               | `openai.temperature`                 | `0.7`                                    | Sampling temperature (0–2)                    |
+|               | `openai.maxTokens`                   | `4096`                                   | Max output tokens                             |
+|               | `openai.rateLimit.requestsPerMinute` | `120`                                    | Rate limit for API calls                      |
+| `sandbox`     | `paths`                              | `["memory/", "skills/", "src/", "/tmp"]` | Allowed filesystem paths                      |
+|               | `timeout.seconds`                    | `30`                                     | Max execution time in seconds                 |
+|               | `timeout.gracePeriod`                | `5`                                      | Kill grace period in seconds                  |
+|               | `memoryLimit`                        | `"128mb"`                                | Heap limit (`--max-old-space-size`)           |
+|               | `safety.urlFilter`                   | `true`                                   | Outbound URL blocking                         |
+|               | `safety.pythonImportHook`            | `true`                                   | Prevent subprocess import                     |
+|               | `env.allowlist`                      | `["PATH", "HOME", "NODE_ENV"]`           | Allowed environment variables                 |
+|               | `permissions`                        | `["filesystem:read", ...]`               | Permission grants                             |
+|               | `maxReadSize`                        | `"10mb"`                                 | Max file read size                            |
+| `memory`      | `directory`                          | `memory/`                                | Base directory for persistence                |
+|               | `contextDir`                         | `memory/context/`                        | Context file directory                        |
+|               | `toolsDir`                           | `memory/tools/`                          | Tool metadata directory                       |
+|               | `errorsDir`                          | `memory/errors/`                         | Error log directory                           |
+|               | `schedulesDir`                       | `memory/schedules/`                      | Cron result files directory                   |
+|               | `gc.enabled`                         | `true`                                   | Enable V8 garbage collection                  |
+|               | `gc.idleTimeoutMs`                   | `300000`                                 | Idle timeout before GC triggers (ms)          |
+|               | `gc.maxGcPerHour`                    | `4`                                      | Max GC calls per hour                         |
+| `telemetry`   | `enabled`                            | `false`                                  | Enable OpenTelemetry export                   |
+|               | `exporter.protocol`                  | `console`                                | Exporter protocol (`console`, `http`, `grpc`) |
+|               | `exporter.endpoint`                  | `http://localhost:4318`                  | OTLP endpoint URL                             |
+|               | `exporter.batch.maxSize`             | `512`                                    | Batch size before flush                       |
+|               | `exporter.batch.scheduledDelay`      | `5000`                                   | Scheduled flush interval in ms                |
+|               | `sampling.ratio`                     | `0.1`                                    | Trace probability                             |
+|               | `redact.paths`                       | `["credentials.apiKey", ...]`            | Sensitive field paths for redaction           |
+| `schedules`   | `maxConcurrent`                      | `1`                                      | Max parallel scheduled runs                   |
+|               | `mode`                               | `inprocess`                              | Scheduling backend (`inprocess`, `system`)    |
+| `tui`         | `name`                               | `madz`                                   | TUI identifier in banner                      |
+|               | `cursorChar`                         | `█`                                      | Cursor character                              |
+| `agent`       | `recursionLimit`                     | `30`                                     | Max graph execution steps per agent call      |
+| `persistence` | `mode`                               | `memory`                                 | Storage backend (`memory`, `sqlite`)          |
+|               | `sqlite_path`                        | `memory/checkpoints.db`                  | SQLite checkpointer file path                 |
 
 ## Testing
 
