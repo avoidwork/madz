@@ -82,20 +82,20 @@ export async function loadMemories(entriesDir = "memory/context/") {
 function getMemoryContext(key) {
 	const lowerKey = key.toLowerCase();
 
-	if (lowerKey === 'profile') {
-		return { label: 'USER PROFILE', category: 'reference' };
+	if (lowerKey === "profile") {
+		return { label: "USER PROFILE", category: "reference" };
 	}
-	if (lowerKey === 'clarifications') {
-		return { label: 'USER CLARIFICATIONS', category: 'reference' };
+	if (lowerKey === "clarifications") {
+		return { label: "USER CLARIFICATIONS", category: "reference" };
 	}
-	if (lowerKey === 'reflection') {
-		return { label: 'WORKING REFLECTION', category: 'context' };
+	if (lowerKey === "reflection") {
+		return { label: "WORKING REFLECTION", category: "context" };
 	}
-	if (lowerKey.startsWith('ephemeral-')) {
-		return { label: 'TEMPORAL CAPTURE', category: 'ephemeral' };
+	if (lowerKey.startsWith("ephemeral-")) {
+		return { label: "TEMPORAL CAPTURE", category: "ephemeral" };
 	}
 
-	return { label: key.toUpperCase(), category: 'context' };
+	return { label: key.toUpperCase(), category: "context" };
 }
 
 /**
@@ -112,10 +112,10 @@ export function formatMemoriesForPrompt(entries) {
 			.map((entry) => {
 				const { label } = getMemoryContext(entry.key);
 				const dateHint = entry.metadata.updatedDate
-					? ` (updated: ${entry.metadata.updatedDate.split('T')[0]})`
+					? ` (updated: ${entry.metadata.updatedDate.split("T")[0]})`
 					: entry.metadata.createdDate
-						? ` (created: ${entry.metadata.createdDate.split('T')[0]})`
-						: '';
+						? ` (created: ${entry.metadata.createdDate.split("T")[0]})`
+						: "";
 
 				return `---\n[${label}${dateHint}]\n${entry.memory}\n---`;
 			})
