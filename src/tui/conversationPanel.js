@@ -324,6 +324,9 @@ export function ConversationPanel({
 	assistantName = "Assistant",
 	scrollRef: externalScrollRef,
 }) {
+	// Default to empty array for both null and undefined
+	messages = messages || [];
+
 	const internalScrollRef = useRef(null);
 	const scrollRef = externalScrollRef || internalScrollRef;
 	const previousMessageCount = useRef(0);
