@@ -15,6 +15,7 @@ sandbox:
     - skills/
     - src/
     - tests/
+    - ./
     - /tmp
   timeout:
     seconds: 600
