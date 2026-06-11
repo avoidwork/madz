@@ -9,6 +9,7 @@ const TEST_FILE = "memory/__test_todos__/todos.json";
 
 function setupTestFiles() {
 	mkdirSync(TEST_DIR, { recursive: true });
+	try { rmSync(TEST_FILE, { force: true }); } catch { /* ignore */ }
 }
 
 function cleanupTestFiles() {
