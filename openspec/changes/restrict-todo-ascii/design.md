@@ -5,18 +5,28 @@ The `todo` tool (`src/tools/todo.js`) currently accepts any string for `key` and
 ## Goals / Non-Goals
 
 **Goals:**
-- Enforce ASCII-only (code points 0–127) on `key` and `content` fields
+- Instruct the agent to only use English when writing to `key` and `content` fields (behavioral layer)
+- Enforce ASCII-only (code points 0–127) on `key` and `content` fields (technical safety net)
 - Strip non-ASCII characters silently (no error returned to caller)
 - Add test coverage for Unicode stripping scenarios
 - Maintain backward compatibility — no breaking API changes
 
 **Non-Goals:**
 - Rejecting input with errors (silent strip only)
+- Language detection or translation (the agent instruction handles prevention)
 - Locale/language detection or translation
 - Configurable character sets (always ASCII-only, no toggle)
 - Affecting other tools or fields beyond `key` and `content`
 
 ## Decisions
+
+### 0. Two-layer approach: behavioral + technical
+**Decision**: The solution has two layers — an agent behavioral constraint (primary) and tool-level ASCII stripping (safety net).
+
+**Rationale**: The agent instruction prevents non-English content from being written in the first place. The tool-level stripping catches any slips, ensuring robustness even if the agent instruction is not perfectly followed. This is defense-in-depth.
+
+**Agent instruction**: "When using the `todo` tool, only write English to the `key` and `content` fields."
+**Technical enforcement**: Strip non-ASCII characters silently before storage.
 
 ### 1. Strip, don't reject
 **Decision**: Non-ASCII characters are silently removed rather than returning `{ ok: false, error: "..." }`.

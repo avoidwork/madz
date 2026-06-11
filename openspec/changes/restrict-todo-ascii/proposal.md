@@ -4,6 +4,10 @@ The `todo` tool accepts arbitrary Unicode strings for `key` and `content` fields
 
 ## What Changes
 
+### Agent Behavioral Constraint
+- **Agent SHALL only use English** — The agent SHALL only write English text to the `key` and `content` fields when using the `todo` tool. This is the primary prevention layer; the tool-level stripping below is a safety net.
+
+### Technical Implementation
 - **Add ASCII-only enforcement for `key` field** — The `key` field SHALL only contain ASCII characters (code points 0-127). Non-ASCII characters are stripped before storage.
 - **Add ASCII-only enforcement for `content` field** — The `content` field SHALL only contain ASCII characters. Non-ASCII characters are stripped before storage.
 - **Silent stripping, not rejection** — Invalid characters are silently removed rather than returning an error. This preserves the user experience while enforcing the constraint.

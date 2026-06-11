@@ -1,5 +1,18 @@
 ## ADDED Requirements
 
+### Requirement: Agent SHALL only use English for todo entries
+When using the `todo` tool, the agent SHALL only write English text to the `key` and `content` fields.
+This prevents unexpected multi-language content from appearing in stored todos.
+Non-ASCII characters in the agent's output are silently stripped by the tool as a safety net.
+
+#### Scenario: Agent writes English-only content
+- **WHEN** the agent calls `todo` with `action: "create"`, `key: "fix-login-bug"`, `content: "Fix authentication timeout"`
+- **THEN** the todo is stored with the provided key and content unchanged
+
+#### Scenario: Agent accidentally includes non-English text (safety net)
+- **WHEN** the agent calls `todo` with `action: "create"`, `key: "møde-i morgen"`, `content: "Discuss Q3 roadmap"`
+- **THEN** the tool strips non-ASCII from the key, storing `"m-de-i morgen"`, while content passes through unchanged
+
 ### Requirement: Key field accepts only ASCII characters
 The `key` field SHALL only contain ASCII characters (Unicode code points 0–127).
 Any non-ASCII characters in the provided key are silently stripped before storage.
