@@ -241,7 +241,7 @@ async function runJob(job, schedulerModule, schedulesDir) {
  * @param {object} [options.cron] - Cron module for testing
  * @returns {Promise<string>} JSON result string
  */
-export async function cronjobImpl(input, options) {
+export async function cronJobImpl(input, options) {
 	const { action } = input;
 	const schedulesDir = options?.schedulesDir || "memory/schedules/";
 	const cronModule = options?.cron || Cron;
@@ -299,7 +299,7 @@ export async function cronjobImpl(input, options) {
 					// Log crontab error but don't fail the create operation
 					// oxlint-disable no-console
 					console.warn(
-						`[cronjob] Failed to register "${job.name}" in crontab: ${cronResult.error}`,
+						`[cronJob] Failed to register "${job.name}" in crontab: ${cronResult.error}`,
 					);
 					// oxlint-enable no-console
 				}
@@ -426,8 +426,8 @@ export async function cronjobImpl(input, options) {
  * @param {object} _options - Runtime options
  * @returns {string} JSON result string
  */
-export const cronjob = tool(cronjobImpl, {
-	name: "cronjob",
+export const cronJob = tool(cronJobImpl, {
+	name: "cronJob",
 	description:
 		"Manage scheduled cron jobs persisted to memory/schedules/. Actions: create, list, update, pause, resume, run, remove. Job metadata stored as JSON files. Requires network:outbound permission for run action.",
 	schema: z.object({
@@ -457,13 +457,13 @@ export const cronjob = tool(cronjobImpl, {
 // --- Factory functions for creating tools with runtime options ---
 
 /**
- * Create a cronjob tool with runtime options
+ * Create a cronJob tool with runtime options
  * @param {object} options - Runtime options
  * @returns {object} LangChain Tool instance
  */
 export function createCronTool(options) {
-	return tool((input) => cronjobImpl(input, options), {
-		name: "cronjob",
+	return tool((input) => cronJobImpl(input, options), {
+		name: "cronJob",
 		description:
 			"Manage scheduled cron jobs persisted to memory/schedules/. Actions: create, list, update, pause, resume, run, remove.",
 		schema: z.object({

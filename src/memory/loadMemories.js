@@ -75,6 +75,30 @@ export async function loadMemories(entriesDir = "memory/context/") {
 }
 
 /**
+ * Get a human-readable label for a memory key.
+ * @param {string} key - Memory key
+ * @returns {{ label: string, category: 'reference' | 'context' | 'ephemeral' }}
+ */
+function getMemoryContext(key) {
+	const lowerKey = key.toLowerCase();
+
+	if (lowerKey === 'profile') {
+		return { label: 'USER PROFILE', category: 'reference' };
+	}
+	if (lowerKey === 'clarifications') {
+		return { label: 'USER CLARIFICATIONS', category: 'reference' };
+	}
+	if (lowerKey === 'reflection') {
+		return { label: 'WORKING REFLECTION', category: 'context' };
+	}
+	if (lowerKey.startsWith('ephemeral-')) {
+		return { label: 'TEMPORAL CAPTURE', category: 'ephemeral' };
+	}
+
+	return { label: key.toUpperCase(), category: 'context' };
+}
+
+/**
  * Format memory entries as a markdown string for the system prompt.
  * @param {{ key: string, metadata: { createdDate: string, updatedDate?: string }, memory: string }[]} entries - Memory entries from loadMemories
  * @returns {string} Formatted prompt section
@@ -83,10 +107,17 @@ export function formatMemoriesForPrompt(entries) {
 	if (entries.length === 0) return "";
 
 	return (
-		"The following are important memories for the user:\n\n" +
+		"The following memories are loaded into your context. They are your working knowledge of the user and your shared history. Use them deliberately:\n\n" +
 		entries
 			.map((entry) => {
-				return `=== ${entry.key} ===\n${entry.memory}`;
+				const { label } = getMemoryContext(entry.key);
+				const dateHint = entry.metadata.updatedDate
+					? ` (updated: ${entry.metadata.updatedDate.split('T')[0]})`
+					: entry.metadata.createdDate
+						? ` (created: ${entry.metadata.createdDate.split('T')[0]})`
+						: '';
+
+				return `---\n[${label}${dateHint}]\n${entry.memory}\n---`;
 			})
 			.join("\n\n")
 	);

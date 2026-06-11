@@ -44,7 +44,7 @@ export const TOOL_PERMISSIONS = {
 	vision_analyze: [], // requires openaiApiKey
 	image_generate: ["network:outbound"], // requires falApiKey
 	execute_code: [], // sandboxed, no permission needed
-	cronjob: ["network:outbound"],
+	cronJob: ["network:outbound"],
 	text_to_speech: [], // requires openaiApiKey
 	mixture_of_agents: [], // requires openrouterApiKey
 	sampling: [],
@@ -70,7 +70,7 @@ const TOOL_FACTORIES = {
 	vision_analyze: createVisionTool,
 	image_generate: createImageTool,
 	execute_code: createCodeTool,
-	cronjob: createCronTool,
+	cronJob: createCronTool,
 	text_to_speech: createTtsTool,
 	mixture_of_agents: createMoaTool,
 	sampling: createSamplingTool,
@@ -210,10 +210,10 @@ export async function buildToolConfig(options) {
 				continue;
 			}
 
-			case "cronjob":
+			case "cronJob":
 			case "text_to_speech":
 			case "mixture_of_agents": {
-				if (toolName === "cronjob" && !hasAllPerms) continue;
+				if (toolName === "cronJob" && !hasAllPerms) continue;
 				if (toolName === "text_to_speech" && !runtimeOptions.openaiApiKey) continue;
 				if (toolName === "mixture_of_agents" && !runtimeOptions.openrouterApiKey) continue;
 				tools.push(TOOL_FACTORIES[toolName](runtimeOptions));

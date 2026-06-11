@@ -70,8 +70,8 @@ describe("scheduler - Integration: sync end-to-end", () => {
 		restoreRealCrontab(savedCrontab);
 	});
 
-	it("create a job via cronjob tool, verify job appears in crontab after sync", async () => {
-		// Simulate what the cronjob tool does: write a JSON file
+	it("create a job via cronJob tool, verify job appears in crontab after sync", async () => {
+		// Simulate what the cronJob tool does: write a JSON file
 		await writeTestJob("integration-create", "0 9 * * *", "/app/node_modules/.bin/madz --mode interactive");
 		try {
 			// Clear crontab first
@@ -96,7 +96,7 @@ describe("scheduler - Integration: sync end-to-end", () => {
 		}
 	});
 
-	it("remove a job via cronjob tool, verify job is removed from crontab after sync", async () => {
+	it("remove a job via cronJob tool, verify job is removed from crontab after sync", async () => {
 		// First add a job to crontab
 		await Cron.add({ name: "integration-remove", cron: "0 0 * * *", command: "/bin/echo hello" });
 		try {
@@ -114,7 +114,7 @@ describe("scheduler - Integration: sync end-to-end", () => {
 		}
 	});
 
-	it("update a job's cron expression via cronjob tool, verify updated cron in crontab after sync", async () => {
+	it("update a job's cron expression via cronJob tool, verify updated cron in crontab after sync", async () => {
 		// Simulate creating a job
 		await writeTestJob("integration-update", "0 9 * * *", "/app/node_modules/.bin/madz --mode interactive");
 		// Put a different cron in crontab (simulating old state)

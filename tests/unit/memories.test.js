@@ -195,8 +195,9 @@ describe("formatMemoriesForPrompt", () => {
 			{ key: "test", metadata: { createdDate: "2026-01-01T00:00:00Z" }, memory: "Test value" },
 		];
 		const result = formatMemoriesForPrompt(entries);
-		assert.ok(result.includes("The following are important memories for the user:"));
-		assert.ok(result.includes("=== test ==="));
+		assert.ok(result.includes("The following memories are loaded into your context"));
+		assert.ok(result.includes("---"));
+		assert.ok(result.includes("[TEST (created: 2026-01-01)]"));
 		assert.ok(result.includes("Test value"));
 	});
 
@@ -206,9 +207,9 @@ describe("formatMemoriesForPrompt", () => {
 			{ key: "goals", metadata: { createdDate: "2026-01-01T00:00:00Z" }, memory: "Save for house" },
 		];
 		const result = formatMemoriesForPrompt(entries);
-		assert.ok(result.includes("=== pets ==="));
+		assert.ok(result.includes("[PETS (created: 2026-01-01)]"));
 		assert.ok(result.includes("Cat: Halo"));
-		assert.ok(result.includes("=== goals ==="));
+		assert.ok(result.includes("[GOALS (created: 2026-01-01)]"));
 		assert.ok(result.includes("Save for house"));
 	});
 
@@ -218,6 +219,6 @@ describe("formatMemoriesForPrompt", () => {
 			{ key: "b", metadata: { createdDate: "2026-01-01T00:00:00Z" }, memory: "B" },
 		];
 		const result = formatMemoriesForPrompt(entries);
-		assert.ok(result.includes("\n\n=== b ==="));
+		assert.ok(result.includes("---\n\n---"));
 	});
 });
