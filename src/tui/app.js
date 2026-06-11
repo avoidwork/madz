@@ -35,6 +35,7 @@ export default function App({
 	const [inputText, setInputText] = useState("");
 	const [inputFocused, setInputFocused] = useState(true);
 	const scrollRef = useRef(null);
+	const isQuittingRef = useRef(false);
 	const { exit } = useApp();
 	const exitRef = useRef(exit);
 	exitRef.current = exit;
@@ -140,6 +141,7 @@ export default function App({
 	 * @param {string} text - The user's message text
 	 */
 	const handleChat = async (text) => {
+		if (isQuittingRef.current) return;
 		setStatusMessage("Streaming...");
 		addMessage({ role: "user", content: text });
 
@@ -165,6 +167,7 @@ export default function App({
 				text,
 				sessionState ? sessionState.getProvider() : null,
 				(event) => {
+					if (isQuittingRef.current) return;
 					try {
 						if (event.type === "text") {
 							committedContent = (committedContent || "") + event.text;
@@ -241,6 +244,8 @@ export default function App({
 			// originalMessage fallback from callReactAgentStreaming.
 			const responseContent = committedContent;
 
+			if (isQuittingRef.current) return;
+
 			setMessages((prev) => {
 				const cloned = [...prev];
 				const last = cloned[cloned.length - 1];
@@ -284,7 +289,10 @@ export default function App({
 	};
 
 	const handleQuit = () => {
+		isQuittingRef.current = true;
 		exit();
+		// Force process exit to break pending async streams
+		process.exit(0);
 	};
 
 	/**

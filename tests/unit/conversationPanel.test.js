@@ -376,7 +376,7 @@ describe("ConversationPanel - renderMessages", () => {
 		assert.ok(Array.isArray(result));
 		assert.strictEqual(result.length, 1);
 		assert.ok(React.isValidElement(result[0]));
-		assert.strictEqual(result[0].props.gray, true);
+		assert.strictEqual(result[0].props.color, "gray");
 	});
 
 	it("renders user message with correct alignment", () => {

@@ -372,6 +372,6 @@ export function ConversationPanel({
 	return React.createElement(
 		Box,
 		{ key: "panel", flexDirection: "column", flexGrow: 1 },
-		React.createElement(ScrollView, { ref: scrollRef, key: "scroll" }, ...children),
+		React.createElement(ScrollView, { ref: scrollRef, key: "scroll", focus: false }, ...children),
 	);
 }
