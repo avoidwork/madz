@@ -91,18 +91,6 @@ function getMemoryContext(key) {
 	if (lowerKey === 'reflection') {
 		return { label: 'WORKING REFLECTION', category: 'context' };
 	}
-	if (lowerKey === 'open_spec_whitepaper') {
-		return { label: 'PROJECT CONTEXT', category: 'context' };
-	}
-	if (lowerKey === 'adobe_mongodb_mention') {
-		return { label: 'PROFESSIONAL CONTEXT', category: 'context' };
-	}
-	if (lowerKey === 'halo') {
-		return { label: 'PERSONAL MEMORY', category: 'reference' };
-	}
-	if (lowerKey === 'self_improvement_milestone') {
-		return { label: 'MILESTONE', category: 'context' };
-	}
 	if (lowerKey.startsWith('ephemeral-')) {
 		return { label: 'TEMPORAL CAPTURE', category: 'ephemeral' };
 	}
