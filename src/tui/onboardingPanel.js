@@ -51,7 +51,6 @@ export function OnboardingPanel({ onboarding, onComplete, _onExit, responseId })
 					key: "msg-" + i,
 					borderStyle: "round",
 					borderColor: "yellow",
-					growDirection: "down",
 					width: BOX_WIDTH,
 					paddingX: 1,
 				},

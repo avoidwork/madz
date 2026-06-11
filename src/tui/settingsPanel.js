@@ -9,24 +9,27 @@ import { useInput } from "ink";
  * Settings panel that shows current config sections.
  * Props: configSections - array of section names
  */
-export function SettingsPanel({ configSections = [] }) {
+export function SettingsPanel({ configSections = [], isActive = false }) {
 	const [focusIndex, setFocusIndex] = useState(0);
 	const [selectedSection, setSelectedSection] = useState(null);
 
-	useInput((_, key) => {
-		if (key.up && focusIndex > 0) {
-			setFocusIndex((prev) => Math.max(0, prev - 1));
-		}
-		if (key.down && focusIndex < configSections.length - 1) {
-			setFocusIndex((prev) => Math.min(configSections.length - 1, prev + 1));
-		}
-		if (key.enter) {
-			setSelectedSection(configSections[focusIndex] || null);
-		}
-		if (key.escape) {
-			setSelectedSection(null);
-		}
-	});
+	useInput(
+		(_, key) => {
+			if (key.upArrow && focusIndex > 0) {
+				setFocusIndex((prev) => Math.max(0, prev - 1));
+			}
+			if (key.downArrow && focusIndex < configSections.length - 1) {
+				setFocusIndex((prev) => Math.min(configSections.length - 1, prev + 1));
+			}
+			if (key.return) {
+				setSelectedSection(configSections[focusIndex] || null);
+			}
+			if (key.escape) {
+				setSelectedSection(null);
+			}
+		},
+		{ isActive },
+	);
 
 	return (
 		<Box flexDirection="row">

@@ -6,20 +6,23 @@ import { useInput } from "ink";
  * Skills panel that lists registered skills with search.
  * Props: skills - array of skill names
  */
-export function SkillsPanel({ skills = [] }) {
+export function SkillsPanel({ skills = [], isActive = false }) {
 	const [searchQuery, _setSearchQuery] = useState("");
 	const [focusedSkill, setFocusedSkill] = useState(0);
 
 	const filteredSkills = skills.filter((s) => s.toLowerCase().includes(searchQuery.toLowerCase()));
 
-	useInput((_, key) => {
-		if (key.up && focusedSkill > 0) {
-			setFocusedSkill((prev) => Math.max(0, prev - 1));
-		}
-		if (key.down && focusedSkill < filteredSkills.length - 1) {
-			setFocusedSkill((prev) => Math.min(filteredSkills.length - 1, prev + 1));
-		}
-	});
+	useInput(
+		(_, key) => {
+			if (key.upArrow && focusedSkill > 0) {
+				setFocusedSkill((prev) => Math.max(0, prev - 1));
+			}
+			if (key.downArrow && focusedSkill < filteredSkills.length - 1) {
+				setFocusedSkill((prev) => Math.min(filteredSkills.length - 1, prev + 1));
+			}
+		},
+		{ isActive },
+	);
 
 	return (
 		<Box flexDirection="column">

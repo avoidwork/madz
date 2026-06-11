@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Box, useWindowSize } from "ink";
+import { Box, useWindowSize, useApp } from "ink";
 import { useInput } from "ink";
 import { CommandParser } from "./commandParser.js";
 import { ConversationPanel } from "./conversationPanel.js";
@@ -35,6 +35,9 @@ export default function App({
 	const [inputText, setInputText] = useState("");
 	const [inputFocused, setInputFocused] = useState(true);
 	const scrollRef = useRef(null);
+	const { exit } = useApp();
+	const exitRef = useRef(exit);
+	exitRef.current = exit;
 
 	const skillList = registry ? registry.list() : [];
 
@@ -194,7 +197,6 @@ export default function App({
 								return cloned;
 							});
 						} else if (event.type === "tool_end") {
-							activeToolCall = null;
 							const resultLine = event.data
 								? ` Result: ${JSON.stringify(event.data).slice(0, 200)}`
 								: "";
@@ -213,7 +215,6 @@ export default function App({
 								return cloned;
 							});
 						} else if (event.type === "tool_error") {
-							activeToolCall = null;
 							const errorLine = event.toolName
 								? `- Tool: ${event.toolName} (error: ${event.error})`
 								: `- Tool call failed (${event.toolCallId || "unknown"})`;
@@ -283,7 +284,7 @@ export default function App({
 	};
 
 	const handleQuit = () => {
-		process.exit(0);
+		exit();
 	};
 
 	/**
@@ -312,7 +313,7 @@ export default function App({
 		if (trimmed === "exit") {
 			setShowBanner(true);
 			setShowOnboarding(false);
-			process.exit(0);
+			exitRef.current();
 			return true;
 		}
 
@@ -321,7 +322,7 @@ export default function App({
 		if (result.action === "exit") {
 			setShowBanner(true);
 			setShowOnboarding(false);
-			process.exit(0);
+			exitRef.current();
 			return true;
 		}
 
