@@ -36,6 +36,15 @@ if (config.schedules.syncOnInit !== false) {
 			);
 			// oxlint-enable no-console
 		}
+
+		// Ensure the daily reflection job exists in crontab (covers upgrading users
+		// who have no reflection-daily.json on disk). Cron.add() is idempotent.
+		const cwd = process.cwd();
+		Cron.add({
+			name: "reflection-daily",
+			cron: "0 2 * * *",
+			command: `cd ${cwd} && node index.js --chat "/reflection"`,
+		});
 	} catch (err) {
 		// oxlint-disable no-console
 		console.warn(`[scheduler] Crontab sync error: ${err.message}`);

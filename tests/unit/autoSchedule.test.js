@@ -27,7 +27,7 @@ after(teardown);
 
 function mockCron(addResult = { added: true }) {
 	return {
-		add: (job) => {
+		add: (_job) => {
 			return addResult;
 		},
 	};
