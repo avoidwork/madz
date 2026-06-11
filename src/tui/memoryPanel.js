@@ -6,27 +6,30 @@ import { useInput } from "ink";
  * Memory panel that displays index entries with file viewer.
  * Props: entries - array of { title, path, timestamp }
  */
-export function MemoryPanel({ entries = [] }) {
+export function MemoryPanel({ entries = [], isActive = false }) {
 	const [selectedEntry, setSelectedEntry] = useState(null);
 	const [focusIndex, setFocusIndex] = useState(0);
 
 	const visibleEntries = entries.slice(0, 30);
 
-	useInput((_, key) => {
-		if (key.up && focusIndex > 0) {
-			setFocusIndex((prev) => Math.max(0, prev - 1));
-		}
-		if (key.down && focusIndex < visibleEntries.length - 1) {
-			setFocusIndex((prev) => Math.min(visibleEntries.length - 1, prev + 1));
-		}
-		if (key.space) {
-			const entry = visibleEntries[focusIndex] || visibleEntries[0];
-			if (entry) setSelectedEntry(entry);
-		}
-		if (key.escape) {
-			setSelectedEntry(null);
-		}
-	});
+	useInput(
+		(input, key) => {
+			if (key.upArrow && focusIndex > 0) {
+				setFocusIndex((prev) => Math.max(0, prev - 1));
+			}
+			if (key.downArrow && focusIndex < visibleEntries.length - 1) {
+				setFocusIndex((prev) => Math.min(visibleEntries.length - 1, prev + 1));
+			}
+			if (input === " ") {
+				const entry = visibleEntries[focusIndex] || visibleEntries[0];
+				if (entry) setSelectedEntry(entry);
+			}
+			if (key.escape) {
+				setSelectedEntry(null);
+			}
+		},
+		{ isActive },
+	);
 
 	return (
 		<Box flexDirection="row">

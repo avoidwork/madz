@@ -87,7 +87,7 @@ const MessageBubble = React.memo(
 					{ flexDirection: "row", marginTop: 1, marginLeft: 2 },
 					React.createElement(
 						Text,
-						{ dim: true, color: "gray" },
+						{ dimColor: true, color: "gray" },
 						`(thinking) ` +
 							(msg.reasoningContent || "").slice(0, 200) +
 							(msg.reasoningContent && msg.reasoningContent.length > 200
@@ -103,7 +103,7 @@ const MessageBubble = React.memo(
 					{ flexDirection: "row", marginTop: 1, marginLeft: 2 },
 					React.createElement(
 						Text,
-						{ dim: true, color: "gray" },
+						{ dimColor: true, color: "gray" },
 						`- Running: ${msg.activeToolCall.name} \u00b7\u00b7\u00b7`,
 					),
 				)
@@ -179,7 +179,7 @@ const MessageBubble = React.memo(
 			p.streaming === n.streaming &&
 			p.toolCallDisplay === n.toolCallDisplay &&
 			p.activeToolCall === n.activeToolCall &&
-			p._index === nextProps.assistantName
+			p._index === n._index
 		);
 	},
 );
@@ -210,7 +210,11 @@ export function renderMessages(messages, assistantName) {
 
 	if (messages.length === 0) {
 		children.push(
-			React.createElement(Text, { key: "empty", gray: true }, " No messages yet. Start chatting!"),
+			React.createElement(
+				Text,
+				{ key: "empty", color: "gray" },
+				" No messages yet. Start chatting!",
+			),
 		);
 	}
 
@@ -328,7 +332,6 @@ export function ConversationPanel({
 
 	// Handle terminal resize by remeasuring content heights
 	useEffect(() => {
-		if (!stdout) return;
 		const resizeHandler = () => executeResize(scrollRef.current);
 		stdout.on("resize", resizeHandler);
 		return () => {
@@ -369,6 +372,6 @@ export function ConversationPanel({
 	return React.createElement(
 		Box,
 		{ key: "panel", flexDirection: "column", flexGrow: 1 },
-		React.createElement(ScrollView, { ref: scrollRef, key: "scroll" }, ...children),
+		React.createElement(ScrollView, { ref: scrollRef, key: "scroll", focus: false }, ...children),
 	);
 }

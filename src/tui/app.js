@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Box, useWindowSize } from "ink";
+import { Box, useWindowSize, useApp } from "ink";
 import { useInput } from "ink";
 import { CommandParser } from "./commandParser.js";
 import { ConversationPanel } from "./conversationPanel.js";
@@ -35,6 +35,10 @@ export default function App({
 	const [inputText, setInputText] = useState("");
 	const [inputFocused, setInputFocused] = useState(true);
 	const scrollRef = useRef(null);
+	const isQuittingRef = useRef(false);
+	const { exit } = useApp();
+	const exitRef = useRef(exit);
+	exitRef.current = exit;
 
 	const skillList = registry ? registry.list() : [];
 
@@ -137,6 +141,7 @@ export default function App({
 	 * @param {string} text - The user's message text
 	 */
 	const handleChat = async (text) => {
+		if (isQuittingRef.current) return;
 		setStatusMessage("Streaming...");
 		addMessage({ role: "user", content: text });
 
@@ -162,6 +167,7 @@ export default function App({
 				text,
 				sessionState ? sessionState.getProvider() : null,
 				(event) => {
+					if (isQuittingRef.current) return;
 					try {
 						if (event.type === "text") {
 							committedContent = (committedContent || "") + event.text;
@@ -194,7 +200,6 @@ export default function App({
 								return cloned;
 							});
 						} else if (event.type === "tool_end") {
-							activeToolCall = null;
 							const resultLine = event.data
 								? ` Result: ${JSON.stringify(event.data).slice(0, 200)}`
 								: "";
@@ -213,7 +218,6 @@ export default function App({
 								return cloned;
 							});
 						} else if (event.type === "tool_error") {
-							activeToolCall = null;
 							const errorLine = event.toolName
 								? `- Tool: ${event.toolName} (error: ${event.error})`
 								: `- Tool call failed (${event.toolCallId || "unknown"})`;
@@ -239,6 +243,8 @@ export default function App({
 			// this is the actual AI response. response.content is only the
 			// originalMessage fallback from callReactAgentStreaming.
 			const responseContent = committedContent;
+
+			if (isQuittingRef.current) return;
 
 			setMessages((prev) => {
 				const cloned = [...prev];
@@ -283,6 +289,9 @@ export default function App({
 	};
 
 	const handleQuit = () => {
+		isQuittingRef.current = true;
+		exit();
+		// Force process exit to break pending async streams
 		process.exit(0);
 	};
 
@@ -312,7 +321,7 @@ export default function App({
 		if (trimmed === "exit") {
 			setShowBanner(true);
 			setShowOnboarding(false);
-			process.exit(0);
+			exitRef.current();
 			return true;
 		}
 
@@ -321,7 +330,7 @@ export default function App({
 		if (result.action === "exit") {
 			setShowBanner(true);
 			setShowOnboarding(false);
-			process.exit(0);
+			exitRef.current();
 			return true;
 		}
 
