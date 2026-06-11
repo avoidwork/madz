@@ -122,7 +122,7 @@ export function formatMemoriesForPrompt(entries) {
 		"The following memories are loaded into your context. They are your working knowledge of the user and your shared history. Use them deliberately:\n\n" +
 		entries
 			.map((entry) => {
-				const { label, category } = getMemoryContext(entry.key);
+				const { label } = getMemoryContext(entry.key);
 				const dateHint = entry.metadata.updatedDate
 					? ` (updated: ${entry.metadata.updatedDate.split('T')[0]})`
 					: entry.metadata.createdDate
