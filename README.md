@@ -105,6 +105,15 @@ npm start
 node index.js --mode interactive
 ```
 
+**With V8 garbage collection enabled (production/containerized):**
+
+```bash
+node --expose-gc index.js --mode interactive
+npm start -- --expose-gc
+```
+
+GC is automatically triggered during idle periods and can be manually invoked via the `:gc` TUI command.
+
 **Single prompt (CLI mode):**
 
 ```bash
@@ -128,6 +137,8 @@ node index.js "Summarize memory/_index.md" --json
 | `:schedule pause` / `resume` | Control the cron scheduler |
 | `:clear`  | Clear conversation history     |
 | `:new`    | Start a fresh session          |
+| `:gc`     | Trigger manual V8 garbage collection |
+| `:gc status` | Show GC availability and call count |
 
 ## Docker
 
@@ -254,6 +265,9 @@ All configuration is controlled via environment variables in the `docker run` co
 | `MEMORY_TOOLS_DIR`    | `memory/tools/`       | Tool metadata directory            |
 | `MEMORY_ERRORS_DIR`   | `memory/errors/`      | Error log directory                |
 | `MEMORY_SCHEDULES_DIR`| `memory/schedules/`   | Cron result files directory        |
+| `MEMORY_GC_ENABLED`   | `true`                | Enable V8 garbage collection       |
+| `MEMORY_GC_IDLE_TIMEOUT_MS` | `300000`        | Idle timeout before GC (ms)        |
+| `MEMORY_GC_MAX_GC_PER_HOUR` | `4`           | Max GC calls per hour              |
 
 **Optional — Telemetry:**
 
@@ -292,6 +306,12 @@ All configuration is controlled via environment variables in the `docker run` co
 |-----------------------|--------------------------|--------------------------------|
 | `PERSISTENCE_MODE`    | `memory`                 | Storage backend               |
 | `PERSISTENCE_SQLITE_PATH` | `memory/checkpoints.db` | SQLite checkpointer path   |
+
+**Optional — V8 GC:**
+
+| Variable              | Default                  | Description                    |
+|-----------------------|--------------------------|--------------------------------|
+| `NODE_EXPOSE_GC`      | *(empty)*                | Set to `1` to enable `--expose-gc` in Docker |
 
 **Alternative: inline env var references in `config.yaml`:**
 
@@ -431,6 +451,9 @@ Recurring job definitions in `config.yaml`. Supports both in-process scheduling 
 |                | `toolsDir`                         | `memory/tools/`                           | Tool metadata directory                           |
 |                | `errorsDir`                        | `memory/errors/`                          | Error log directory                               |
 |                | `schedulesDir`                     | `memory/schedules/`                       | Cron result files directory                       |
+|                | `gc.enabled`                       | `true`                                    | Enable V8 garbage collection                      |
+|                | `gc.idleTimeoutMs`                 | `300000`                                  | Idle timeout before GC triggers (ms)              |
+|                | `gc.maxGcPerHour`                  | `4`                                       | Max GC calls per hour                             |
 | `telemetry`    | `enabled`                          | `false`                                   | Enable OpenTelemetry export                       |
 |                | `exporter.protocol`                | `console`                                 | Exporter protocol (`console`, `http`, `grpc`)     |
 |                | `exporter.endpoint`                | `http://localhost:4318`                   | OTLP endpoint URL                                 |

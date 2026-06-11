@@ -81,6 +81,39 @@ registry.discover("skills/");
 const { writeMemoryFile, readMemoryFile, loadContext, loadMemories, formatMemoriesForPrompt } =
 	await import("./src/memory/index.js");
 
+// Initialize GC manager (if enabled)
+let gcManager = null;
+let gcTrace = null;
+let maxGcPerHour = 4;
+try {
+	const { initGC, gc: gcFn, isAvailable } = await import("./src/memory/gc.js");
+	const gcConfig = config.memory?.gc;
+	if (gcConfig?.enabled !== false) {
+		const idleTimeoutMs = gcConfig.idleTimeoutMs ?? 300000;
+		maxGcPerHour = gcConfig.maxGcPerHour ?? 4;
+		gcManager = initGC({
+			idleTimeoutMs,
+			maxGcPerHour,
+			onIdle(result) {
+				// oxlint-disable no-console
+				console.log(
+					`[gc] idle GC ${result.triggered ? "triggered" : "skipped"} (${result.reason || "success"}, ${result.hourCalls} calls/hr)`,
+				);
+				// oxlint-enable no-console
+			},
+		});
+		gcTrace = () => gcFn(maxGcPerHour);
+		const avail = isAvailable();
+		// oxlint-disable no-console
+		console.log(`[gc] V8 GC manager initialized ${avail ? "with" : "without"} --expose-gc`);
+		// oxlint-enable no-console
+	}
+} catch {
+	// oxlint-disable no-console
+	console.warn("[gc] Failed to initialize: graceful degradation");
+	// oxlint-enable no-console
+}
+
 // Initialize session
 const { createSession, SessionStateManager, saveSession, handleShutdown, registerShutdownHandler } =
 	await import("./src/session/index.js");
@@ -215,6 +248,10 @@ async function invokeSkill(skillName, input = {}) {
 registerShutdownHandler(async () => {
 	await saveSession("memory/sessions/", sessionState.getConversation(), sessionId);
 
+	if (gcManager) {
+		gcManager.stop();
+	}
+
 	if (shutdownFn) {
 		await shutdownFn();
 	}
@@ -278,6 +315,8 @@ if (isMain) {
 				onboarding: onboardingInstance,
 				onSaveSession: async () =>
 					await saveSession("memory/sessions/", sessionState.getConversation(), sessionId),
+				gcManager: gcManager ? gcManager.onActivity.bind(gcManager) : null,
+				gcTrigger: gcTrace,
 			}),
 			{
 				// Restore terminal with newline when app exits

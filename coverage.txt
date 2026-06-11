@@ -12,6 +12,7 @@
 ℹ  memory                |        |          |         | 
 ℹ   context.js           |  97.26 |    78.26 |  100.00 | 71-72
 ℹ   expireEphemeral.js   |  94.03 |    73.68 |  100.00 | 21-22 62-63
+ℹ   gc.js                |  99.30 |    96.00 |  100.00 | 53
 ℹ   loadMemories.js      | 100.00 |   100.00 |  100.00 | 
 ℹ   profile.js           |  98.86 |    96.30 |  100.00 | 74-75
 ℹ   prompts.js           | 100.00 |   100.00 |  100.00 | 
@@ -65,7 +66,7 @@
 ℹ   web.js               |  95.57 |    70.83 |   60.00 | 24-25 39-40 43-45 86-88 123-125 189-191 317-318
 ℹ  tui                   |        |          |         | 
 ℹ   banner.js            |  90.00 |   100.00 |   85.71 | 45-52
-ℹ   commandParser.js     | 100.00 |    88.64 |  100.00 | 
+ℹ   commandParser.js     |  98.90 |    82.46 |  100.00 | 114-115
 ℹ   conversationPanel.js |  89.39 |    86.42 |   88.89 | 86-97 102-109 172-183 352-357 363-364
 ℹ   inputPanel.js        |  92.06 |    80.00 |   75.00 | 59-63
 ℹ   markdownText.js      | 100.00 |   100.00 |  100.00 | 
@@ -73,33 +74,14 @@
 ℹ   panels.js            | 100.00 |   100.00 |  100.00 | 
 ℹ   statusBar.js         |  96.55 |    85.71 |  100.00 | 14-15
 ℹ ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-ℹ all files              |  92.56 |    86.20 |   81.48 | 
+ℹ all files              |  92.67 |    86.16 |   82.02 | 
 ℹ ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ℹ end of coverage report
 
 ✖ failing tests:
 
-test at tests/unit/cron_sync.test.js:80:2
-✖ adds a job that exists on disk but not in crontab (28.701324ms)
-  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
-  
-  3 !== 0
-  
-      at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/cron_sync.test.js:89:11)
-      at async Test.run (node:internal/test_runner/test:1208:7)
-      at async Promise.all (index 0)
-      at async Suite.run (node:internal/test_runner/test:1619:7)
-      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
-    generatedMessage: true,
-    code: 'ERR_ASSERTION',
-    actual: 3,
-    expected: 0,
-    operator: 'strictEqual',
-    diff: 'simple'
-  }
-
 test at tests/unit/tool_todos.test.js:30:2
-✖ read returns empty list when no file exists (4.671162ms)
+✖ read returns empty list when no file exists (5.119566ms)
   AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
   + actual - expected
   

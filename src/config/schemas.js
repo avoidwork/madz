@@ -111,6 +111,12 @@ export const SandboxScopeSchema = z.object({
 
 // --- Memory schemas ---
 
+export const MemoryGcSchema = z.object({
+	enabled: z.boolean().default(true),
+	idleTimeoutMs: z.number().int().positive().default(300000),
+	maxGcPerHour: z.number().int().positive().default(4),
+});
+
 export const MemorySchema = z.object({
 	directory: z.string().default("memory/"),
 	contextDir: z.string().default("memory/context/"),
@@ -123,6 +129,7 @@ export const MemorySchema = z.object({
 			maxEntries: z.number().int().positive().default(10),
 		})
 		.default({ ttlDays: 7, maxEntries: 10 }),
+	gc: MemoryGcSchema.default({ enabled: true, idleTimeoutMs: 300000, maxGcPerHour: 4 }),
 });
 
 // --- Telemetry schemas ---
@@ -242,6 +249,7 @@ export const DEFAULT_CONFIG = {
 		errorsDir: "memory/errors/",
 		schedulesDir: "memory/schedules/",
 		ephemeral: { ttlDays: 7, maxEntries: 10 },
+		gc: { enabled: true, idleTimeoutMs: 300000, maxGcPerHour: 4 },
 	},
 	telemetry: {
 		enabled: false,
