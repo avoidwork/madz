@@ -114,10 +114,6 @@ The agent runs: reason → call tool(s) → reason again → answer. Tool array 
 
 - **Ephemeral Memories** — Autonomously captured moments (victories, frustrations, insights) with automatic expiration via `expiresAt` frontmatter field. Cleaned by `expireEphemeralMemories()` on a scheduled basis. These create a living lens that subtly influences tone and awareness over time.
 
-**GC Integration:**
-
-V8 garbage collection is managed by `initGC()` which creates an idle-timer controller. The timer fires `gc()` after `memory.gc.idleTimeoutMs` (default 300000ms / 5 min) of inactivity, respecting `memory.gc.maxGcPerHour` (default 4) via a sliding window. Manually triggerable via the `:gc` TUI command and `:gc status`. GC is available when Node.js is started with `--expose-gc`.
-
 **Daily Reflection Scheduler:**
 
 `src/scheduler/autoSchedule.js` — `setupAutoSchedule()` returns a callback invoked after `saveProfile()` succeeds during onboarding. It automatically installs a `reflection-daily` cron job (`0 2 * * *`) into the system crontab and persists the job definition as `memory/schedules/reflection-daily.json`. The job invokes `node index.js --chat "/reflection"` at 2 AM daily.

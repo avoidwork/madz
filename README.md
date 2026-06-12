@@ -379,9 +379,6 @@ Set explicitly by the user, these form the enduring foundation of the system. St
 **Ephemeral Memories**
 Captured autonomously by the harness during operation, these record patterns, milestones, emotional tones, and recurring themes. Stored temporarily with automatic expiration via `expiresAt` frontmatter, they act as a living lens — subtly influencing how `madz` approaches future tasks, adapts its tone, and anticipates needs. They are not hardcoded; they evolve organically as the relationship deepens. Cleaned automatically by `expireEphemeralMemories()`.
 
-**V8 Garbage Collection**
-When Node.js is started with `--expose-gc`, `madz` manages V8 garbage collection via an idle timer (`memory.gc.idleTimeoutMs`, default 5 min). GC triggers after inactivity, respecting a rate limit (`memory.gc.maxGcPerHour`, default 4). Manually triggerable via the `:gc` TUI command or `:gc status`.
-
 **Daily Reflection**
 On first profile save (onboarding completion), `madz` automatically installs a daily cron job (`0 2 * * *`) that runs `/reflection` via `--chat` mode. The job definition is persisted as `memory/schedules/reflection-daily.json` and registered in the system crontab under the `madz-schedules` block.
 
