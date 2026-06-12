@@ -371,16 +371,16 @@ Built-in tools are registered only when their required permissions are enabled f
 
 ### Memory System
 
-`madz` operates on a dual-layer memory architecture that evolves naturally over time:
+`madz` operates on a triple-layer memory architecture that evolves naturally over time:
 
 **Canonical Memories**
-Set explicitly by the user, these form the enduring foundation of the system. Stored as individual Markdown files in `memory/context/`, each carries `createdDate` and `updatedDate` metadata in YAML frontmatter. At the start of every session, canonical memories are loaded and appended to the system prompt, ensuring core context, preferences, and personal details remain consistent across interactions. Includes profile, clarifications, reflections, and temporal captures.
+Set explicitly by the user, these form the enduring foundation of the system. Stored as individual Markdown files in `memory/context/`, each carries `createdDate` and `updatedDate` metadata in YAML frontmatter. At the start of every session, canonical memories are loaded and appended to the system prompt, ensuring core context, preferences, and personal details remain consistent across interactions. Includes profile, clarifications, and temporal captures.
 
 **Ephemeral Memories**
 Captured autonomously by the harness during operation, these record patterns, milestones, emotional tones, and recurring themes. Stored temporarily with automatic expiration via `expiresAt` frontmatter, they act as a living lens — subtly influencing how `madz` approaches future tasks, adapts its tone, and anticipates needs. They are not hardcoded; they evolve organically as the relationship deepens. Cleaned automatically by `expireEphemeralMemories()`.
 
-**Daily Reflection**
-On first profile save (onboarding completion), `madz` automatically installs a daily cron job (`0 2 * * *`) that runs `/reflection` via `--chat` mode. The job definition is persisted as `memory/schedules/reflection-daily.json` and registered in the system crontab under the `madz-schedules` block.
+**Reflections**
+A daily cron job (`0 2 * * *`) installed automatically on first onboarding completion. Runs `/reflection` via `--chat` mode, generating a narrative reflection summary from recent session history. The job definition is persisted as `memory/schedules/reflection-daily.json` and registered in the system crontab under the `madz-schedules` block. Reflections are stored as canonical memories in `memory/context/` with `createdDate` and `updatedDate` metadata.
 
 Together, these layers create a system that remembers what matters while naturally adapting to how you work. When you update or delete a canonical memory, follow it with `:new` so the current session reflects the change immediately.
 
