@@ -279,8 +279,8 @@ async function invokeSkill(skillName, input = {}) {
 	};
 }
 
-// Shutdown handler
-registerShutdownHandler(async () => {
+// Shared shutdown logic — called on signals and in non-interactive mode
+const runShutdown = async () => {
 	await saveSession("memory/sessions/", sessionState.getConversation(), sessionId);
 
 	if (gcManager) {
@@ -290,7 +290,9 @@ registerShutdownHandler(async () => {
 	if (shutdownFn) {
 		await shutdownFn();
 	}
-});
+};
+
+registerShutdownHandler(runShutdown);
 
 // CLI mode detection (if run directly as node.js/index.js)
 const isMain = process.argv[1] === fileURLToPath(import.meta.url);
@@ -334,6 +336,10 @@ if (isMain) {
 			// oxlint-enable no-console
 			process.exit(1);
 		}
+
+		// Graceful shutdown in non-interactive mode
+		await runShutdown();
+		process.exit(0);
 	} else {
 		const { render } = await import("ink");
 		const App = (await import("./src/tui/app.js")).default;
