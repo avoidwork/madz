@@ -5,7 +5,7 @@ import {
 	createSearchFilesTool,
 } from "./filesystem.js";
 import { createTerminalTool, createProcessTool } from "./terminal.js";
-import { createTodoTool } from "./todo.js";
+import { createQueuedTodoTool } from "./todo.js";
 import { createMemoryTool } from "./memory.js";
 import { createSessionSearchTool } from "./sessionSearch.js";
 import { createClarifyTool } from "./clarify.js";
@@ -59,7 +59,7 @@ const TOOL_FACTORIES = {
 	search_files: createSearchFilesTool,
 	terminal: createTerminalTool,
 	process: createProcessTool,
-	todo: createTodoTool,
+	todo: createQueuedTodoTool,
 	memory: createMemoryTool,
 	session_search: createSessionSearchTool,
 	clarify: createClarifyTool,
