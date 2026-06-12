@@ -66,6 +66,7 @@ docker run -d \
   -p 2222:22 \
   -v ./memory:/app/memory \
   -v ./skills:/app/skills \
+  -v ./logs:/home/madz/.cache/madz/logs \
   -e OPENAI_API_KEY="your-key" \
   avoidwork/madz:latest
 ssh -p 2222 madz@localhost
@@ -169,6 +170,7 @@ docker run -d \
   -p 2222:22 \
   -v ./memory:/app/memory \
   -v ./skills:/app/skills \
+  -v ./logs:/home/madz/.cache/madz/logs \
   -e OPENAI_API_KEY="abc" \
   -e OPENAI_MODEL=Qwen/Qwen3.6-35B-A3B-FP8 \
   -e OPENAI_BASE_URL=http://your.inference.lan:8000/v1 \
