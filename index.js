@@ -37,14 +37,38 @@ if (config.schedules.syncOnInit !== false) {
 			// oxlint-enable no-console
 		}
 
-		// Ensure the daily reflection job exists in crontab (covers upgrading users
+		// Ensure the daily reflection job exists in crontab and persisted (covers upgrading users
 		// who have no reflection-daily.json on disk). Cron.add() is idempotent.
 		const cwd = process.cwd();
-		Cron.add({
+		const jobResult = Cron.add({
 			name: "reflection-daily",
 			cron: "0 2 * * *",
 			command: `cd ${cwd} && node index.js --chat "/reflection"`,
 		});
+		if (jobResult.added || !jobResult.error) {
+			try {
+				const { existsSync, mkdirSync, writeFileSync } = await import("node:fs");
+				const { join } = await import("node:path");
+				const schedulesDir = config.memory?.schedulesDir || "memory/schedules/";
+				const filePath = join(schedulesDir, "reflection-daily.json");
+				if (!existsSync(filePath)) {
+					mkdirSync(schedulesDir, { recursive: true });
+					const jobData = {
+						name: "reflection-daily",
+						cron: "0 2 * * *",
+						command: `cd ${cwd} && node index.js --chat "/reflection"`,
+						enabled: true,
+						createdAt: new Date().toISOString(),
+						updatedAt: new Date().toISOString(),
+					};
+					writeFileSync(filePath, JSON.stringify(jobData, null, 2));
+				}
+			} catch (err) {
+				// oxlint-disable no-console
+				console.warn(`[scheduler] Failed to persist reflection-daily job file: ${err.message}`);
+				// oxlint-enable no-console
+			}
+		}
 	} catch (err) {
 		// oxlint-disable no-console
 		console.warn(`[scheduler] Crontab sync error: ${err.message}`);

@@ -1,9 +1,12 @@
 import { describe, it, after, beforeEach } from "node:test";
 import assert from "node:assert";
-import { rmSync, mkdirSync } from "node:fs";
+import { rmSync, mkdirSync, existsSync, readFileSync, statSync } from "node:fs";
+import { join } from "node:path";
 import { setupAutoSchedule } from "../../src/scheduler/autoSchedule.js";
 
 const TEST_DIR = "memory/__autoschedule_test__";
+const SCHEDULES_DIR = "memory/schedules/";
+const JOB_FILE = join(SCHEDULES_DIR, "reflection-daily.json");
 
 function setup() {
 	try {
@@ -11,10 +14,17 @@ function setup() {
 	} catch {
 		// ignore
 	}
+	try {
+		if (existsSync(JOB_FILE)) {
+			rmSync(JOB_FILE, { force: true });
+		}
+	} catch {
+		// ignore
+	}
 	mkdirSync(TEST_DIR, { recursive: true });
 }
 
-function teardown() {
+function cleanup() {
 	try {
 		rmSync(TEST_DIR, { recursive: true, force: true });
 	} catch {
@@ -23,7 +33,7 @@ function teardown() {
 }
 
 beforeEach(setup);
-after(teardown);
+after(cleanup);
 
 function mockCron(addResult = { added: true }) {
 	return {
@@ -78,6 +88,38 @@ describe("setupAutoSchedule", () => {
 		);
 	});
 
+	it("writes reflection-daily.json to memory/schedules/ (5.1)", () => {
+		const callback = setupAutoSchedule({ Cron: mockCron() });
+		callback();
+
+		assert.ok(existsSync(JOB_FILE), "reflection-daily.json should be written");
+
+		const content = JSON.parse(readFileSync(JOB_FILE, "utf-8"));
+		assert.strictEqual(content.name, "reflection-daily");
+		assert.strictEqual(content.cron, "0 2 * * *");
+		assert.ok(
+			content.command.startsWith("cd ") && content.command.includes("node index.js --chat"),
+		);
+		assert.strictEqual(content.enabled, true);
+		assert.ok(content.createdAt);
+		assert.ok(content.updatedAt);
+	});
+
+	it("skips writing if job file already exists (5.2)", () => {
+		const callback = setupAutoSchedule({ Cron: mockCron() });
+
+		// Call once to create the file
+		callback();
+		assert.ok(existsSync(JOB_FILE));
+		const firstSize = statSync(JOB_FILE).size;
+
+		// Call again — should not overwrite, size should be identical
+		callback();
+		const secondSize = statSync(JOB_FILE).size;
+
+		assert.strictEqual(firstSize, secondSize, "File should not be overwritten on second call");
+	});
+
 	it("handles Cron.add() error gracefully (4.3)", () => {
 		const testCron = {
 			add: () => {
@@ -110,7 +152,6 @@ describe("setupAutoSchedule", () => {
 		};
 		const callback = setupAutoSchedule({ Cron: testCron });
 
-		// Call multiple times — should always attempt to add
 		callback();
 		callback();
 		callback();
