@@ -1,6 +1,5 @@
 node_modules/
 memory/
 skills/
-config.yaml
 !src/memory/
 !src/skills/
