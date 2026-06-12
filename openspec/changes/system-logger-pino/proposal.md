@@ -1,6 +1,6 @@
 ## Why
 
-The codebase uses `console.log`, `console.warn`, and `console.error` across multiple files, including several `// oxlint-disable no-console` pragmas. AGENTS.md mandates using a structured logger and logging at a JSON level. A centralized logger with structured output enables consistent log levels, file-based rotation, and eventual integration with the OpenTelemetry pipeline.
+The codebase uses `console.log` and `console.warn` across 5 files in `src/` and `index.js`, including several `// oxlint-disable no-console` pragmas. AGENTS.md mandates using a structured logger and logging at a JSON level. A centralized logger with structured output enables consistent log levels, file-based rotation, and eventual integration with the OpenTelemetry pipeline.
 
 ## What Changes
 

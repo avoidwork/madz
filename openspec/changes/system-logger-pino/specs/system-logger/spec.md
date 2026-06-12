@@ -45,13 +45,21 @@ The logger SHALL determine the log directory based on the operating system:
 - **WHEN** `process.platform === "win32"`
 - **THEN** the log directory is set to `%LOCALAPPDATA%\madz\logs\`
 
+#### Scenario: Edge case - empty Alpine release file
+- **WHEN** `/etc/alpine-release` exists but is empty
+- **THEN** the log directory falls through to standard Linux path `~/.local/share/madz/logs/`
+
 ### Requirement: Dual file output
 The logger SHALL produce two log files:
 - `madz.log`: captures `info`, `warn`, `debug`, `trace`, `fatal`, and `error` levels
-- `madz_error.log`: captures only `error` level
+- `madz_error.log`: captures only `error` and `fatal` levels
 
 #### Scenario: Error appears in both files
 - **WHEN** `logger.error("something failed")` is called
+- **THEN** the entry appears in both `madz.log` and `madz_error.log`
+
+#### Scenario: Fatal appears in both files
+- **WHEN** `logger.fatal("critical failure")` is called
 - **THEN** the entry appears in both `madz.log` and `madz_error.log`
 
 #### Scenario: Info only in info file
@@ -68,9 +76,13 @@ The logger SHALL create the log directory recursively if it does not exist.
 ### Requirement: Graceful fallback on write errors
 The logger SHALL not crash if the log directory is unwritable.
 
-#### Scenario: Log directory is immutable
-- **WHEN** the log directory is set to an immutable path (e.g., `/root-locked/`)
-- **THEN** the logger initializes without throwing and no log entries are written
+#### Scenario: Log directory is unwritable
+- **WHEN** the log directory is set to an unwritable path (e.g., `/root-locked/`)
+- **THEN** the logger initializes without throwing, falls back to `os.tmpdir()`, and no log entries are written to the original path
+
+#### Scenario: Fallback directory is also unwritable
+- **WHEN** both the primary and fallback directories are unwritable
+- **THEN** the logger initializes without throwing and silently discards all log entries
 
 ### Requirement: Silent mode in tests
 The logger SHALL produce no output when `process.env.NODE_ENV === "test"`.
@@ -78,6 +90,18 @@ The logger SHALL produce no output when `process.env.NODE_ENV === "test"`.
 #### Scenario: Tests run with logger
 - **WHEN** tests import `logger` and call any method
 - **THEN** no log lines are written to any file
+
+### Requirement: Logger flushes on shutdown
+The shutdown handler in `src/session/shutdown.js` SHALL call `logger.flush()` before process exit to ensure all buffered log entries are written.
+
+#### Scenario: Logger flushes during graceful shutdown
+- **WHEN** the application receives a shutdown signal (SIGTERM/SIGINT)
+- **THEN** `logger.flush()` is called before the process exits
+- **AND** all buffered log entries are written to the log files
+
+#### Scenario: Logger flushes during chat mode exit
+- **WHEN** the CLI is invoked with `--chat` and completes
+- **THEN** `logger.flush()` is called before `process.exit(0)`
 
 ### Requirement: No console.* in production code
 All `src/` files SHALL replace `console.log`, `console.warn`, and `console.error` with calls to `logger.info`, `logger.warn`, and `logger.error` respectively.

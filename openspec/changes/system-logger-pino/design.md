@@ -1,6 +1,6 @@
 ## Context
 
-The project currently has ~10 `console.log`, `console.warn`, `console.error`, and `console.info` calls scattered across `index.js` and several `src/` modules. AGENTS.md requires a structured JSON logger and prohibits silent `console.log` in production code. Telemetry (OpenTelemetry) is already wired via `src/telemetry/provider.js`, but it handles tracing/spans — not application-level structured logging.
+The project currently has `console.log` and `console.warn` calls scattered across 5 files in `src/` and `index.js`. AGENTS.md requires a structured JSON logger and prohibits silent `console.log` in production code. Telemetry (OpenTelemetry) is already wired via `src/telemetry/provider.js`, but it handles tracing/spans — not application-level structured logging.
 
 Constraints:
 - Must work on Alpine Linux (Docker), standard Linux, macOS, and Windows.
@@ -26,38 +26,40 @@ Constraints:
 
 ## Decisions
 
-### 1. Use pino with two separate transports (file streams)
-Pino natively supports `destination` streams and multiple transports. Two pino child instances or a primary logger with dual `pino.transport` targets is the cleanest approach.
+### 1. Use pino with `pino.multistream` for dual-file output
 
-**Chosen approach**: Use a single pino instance with two `pino.transport` targets via the `pino-multistream` pattern (pino's built-in `levels` + separate file descriptors). Since pino supports writing multiple destinations natively via separate child loggers, we create:
-- `logger.info.warn.debug.trace.trace` → writes to `madz.log`
-- `logger.error` → writes to `madz_error.log` AND `madz.log`
+Pino's built-in `pino.multistream()` supports writing to multiple destination streams from a single logger instance. We use it to route logs to two files:
 
-Actually simpler: use separate pino instances sharing the same level/serializers configuration:
 ```js
-const baseOpts = { level: 'info', timestamp: pino.stdTimeFunctions.isoTime };
-const logger = pino(pino.multistream([
-  { stream: createFileStream('madz.log'), level: 'info' },
-  { stream: createFileStream('madz_error.log'), level: 'error' },
-]), baseOpts);
+const baseOpts = { level: 'debug', timestamp: pino.stdTimeFunctions.isoTime };
+const logger = pino(
+  pino.multistream([
+    { stream: createFileStream('madz.log'), level: 'info' },
+    { stream: createFileStream('madz_error.log'), level: 'error' },
+  ]),
+  baseOpts,
+);
 ```
 
-Pino's `multistream` is built-in (no extra dependency). This ensures errors appear in both files.
+- `logger.info/warn/debug/trace` → writes to `madz.log` only
+- `logger.error/fatal` → writes to **both** `madz.log` and `madz_error.log`
 
-**Rationale**: Built-in pino feature, zero extra deps, clean separation of concerns.
+**Rationale**: Built-in pino feature (no extra dependency), writes in the main thread (no worker thread overhead), clean separation of concerns.
+
+**Constraint**: The logger's `level` must be set to the lowest level used in any stream (`debug` here), since `multistream` routes based on per-stream `level` thresholds.
 
 ### 2. OS-aware log directory
-- **Alpine/Docker** (detected via `/proc/version` containing "alpine" or `process.platform === 'linux'` + `/etc/alpine-release` exists): `~/.cache/madz/logs/`
+- **Alpine/Docker** (detected via `/etc/alpine-release` existing): `~/.cache/madz/logs/`
 - **Standard Linux**: `~/.local/share/madz/logs/`
 - **macOS**: `~/Library/Logs/madz/`
 - **Windows**: `%LOCALAPPDATA%\madz\logs\`
 
 Detection order:
-1. Check `/etc/alpine-release` exists → Alpine path
+1. Check `/etc/alpine-release` exists (and is non-empty) → Alpine path
 2. Check `process.platform` for macOS / Windows
 3. Default → XDG `~/.local/share/`
 
-After determining the directory, create it with `mkdirSync(dir, { recursive: true })`.
+After determining the directory, create it with `mkdirSync(dir, { recursive: true })`. If the directory is unwritable, fall back to `os.tmpdir()`. If the fallback is also unwritable, silently discard logs.
 
 **Rationale**: XDG spec on Linux, platform-native conventions elsewhere. `/etc/alpine-release` is the most reliable Docker/Alpine detection.
 
@@ -79,22 +81,23 @@ Each function accepts a message string and optional JSON-serializable object for
 **Rationale**: Familiar `logger.info(msg, obj)` API matching pino's interface. Easy drop-in replacement for `console.log(msg)`.
 
 ### 4. Silent mode for tests
-The logger checks `process.env.NODE_ENV === 'test'` and `process.env.OPENCODE_TEST === 'true'` or similar. In test mode, pino's stream is redirected to `/dev/null` equivalent or a pino transport that discards output.
-
-Actually, simpler: pino with `level: 'silent'` when `test` mode is detected.
+The logger checks `process.env.NODE_ENV === 'test'`. In test mode, pino is configured with `level: 'silent'` to suppress all output.
 
 **Rationale**: Prevents log pollution in test output without needing mock wrappers.
 
+### 5. Shutdown flush
+The shutdown handler in `src/session/shutdown.js` SHALL call `await logger.flush()` before process exit. This ensures all buffered log entries are written to disk.
+
+**Rationale**: `pino.multistream` writes in the main thread and does not have automatic flush-on-exit hooks (unlike `pino.transport` worker threads). Without explicit flush, log entries buffered in memory could be lost on SIGTERM/SIGINT or `process.exit()`.
+
+**Safety net**: `logger.fatal()` auto-flushes synchronously, providing a partial safety net for unexpected crashes.
+
 ## Risks / Trade-offs
 
-| Risk | Mitigation |
-|---|---|
-| Log directory not writable (permissions) | Catch `mkdirSync`/write errors silently; fall back to `tmpdir()` |
-| Pino not yet installed | Add in tasks as first step (`npm install pino`) |
-| Log file handles held open across graceful shutdown | Use pino's `onClose` hook or ensure logger is flushed on shutdown signal |
-| Structured logger vs CLI output confusion | `--json` CLI output and TUI rendering remain direct `process.stdout.write`; logger only for log files + stderr |
-
-## Open Questions
-
-1. Should errors write to both `madz.log` AND `madz_error.log`? (Current design: yes.)
-2. Should there be a `level` config option in `config.yaml`? (Not in scope; hardcoded to `info`.)
+|| Risk | Mitigation |
+||---|---|
+|| Log directory not writable (permissions) | Catch `mkdirSync`/write errors silently; fall back to `tmpdir()`, then silently discard if fallback also fails |
+|| Pino not yet installed | Add in tasks as first step (`npm install pino`) |
+|| Log file handles held open across graceful shutdown | Shutdown handler calls `await logger.flush()` before process exit |
+|| Structured logger vs CLI output confusion | `--json` CLI output and TUI rendering remain direct `process.stdout.write`; logger only for log files + stderr |
+|| Multistream interleaving on concurrent writes | Single-process Node.js app — negligible risk. Pino writes are atomic for small entries on Linux. |
