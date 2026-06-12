@@ -40,11 +40,13 @@ export class Onboarding {
 	#profileData;
 	#profilePath;
 	#started;
+	#onSave;
 
 	/**
 	 * Create a new onboarding state machine.
 	 * @param {Array} attributes - Profile attributes
 	 * @param {Object} [options] - Configuration options
+	 * @param {Function} [options.onSave] - Callback invoked after saveProfile() succeeds
 	 */
 	constructor(attributes, options = {}) {
 		this.#attributes = attributes;
@@ -53,6 +55,7 @@ export class Onboarding {
 		this.#profileData = {};
 		this.#profilePath = options.profilePath || "memory/context/profile.md";
 		this.#started = false;
+		this.#onSave = options.onSave || null;
 	}
 
 	/**
@@ -187,6 +190,10 @@ export class Onboarding {
 		}
 		const sanitized = sanitizeProfileData(this.#profileData);
 		saveProfile(sanitized, this.#profilePath);
+		// Invoke the onSave callback if provided (e.g., auto-schedule)
+		if (this.#onSave) {
+			this.#onSave();
+		}
 		this.#phase = PHASES.TRANSCEND;
 		return true;
 	}
