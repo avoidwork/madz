@@ -66,6 +66,7 @@ docker run -d \
   -p 2222:22 \
   -v ./memory:/app/memory \
   -v ./skills:/app/skills \
+  -v ./logs:/home/madz/.cache/madz/logs \
   -e OPENAI_API_KEY="your-key" \
   avoidwork/madz:latest
 ssh -p 2222 madz@localhost
@@ -169,6 +170,7 @@ docker run -d \
   -p 2222:22 \
   -v ./memory:/app/memory \
   -v ./skills:/app/skills \
+  -v ./logs:/home/madz/.cache/madz/logs \
   -e OPENAI_API_KEY="abc" \
   -e OPENAI_MODEL=Qwen/Qwen3.6-35B-A3B-FP8 \
   -e OPENAI_BASE_URL=http://your.inference.lan:8000/v1 \
@@ -410,6 +412,7 @@ On first onboarding completion, `madz` automatically installs a `reflection-dail
 ├── src/
 │   ├── agent/                  # ReAct agent wrapper (LangGraph)
 │   ├── config/                 # YAML parsing & Zod schema validation
+│   ├── logger.js               # Structured logging (pino)
 │   ├── memory/                 # Markdown file persistence
 │   ├── provider/               # LLM model factory (OpenAI)
 │   ├── skills/                 # Agent Skills spec discovery, validation & permissions
@@ -424,6 +427,30 @@ On first onboarding completion, `madz` automatically installs a `reflection-dail
 │   └── integration/            # End-to-end flow tests
 └── memory/                     # Persistent markdown storage
 ```
+
+## Logging
+
+Structured JSON logging via `pino` with OS-aware directory detection. Two log files are produced:
+
+| File                | Level       | Description                       |
+| ------------------- | ----------- | --------------------------------- |
+| `madz.log`          | `info`+     | All info, warn, debug, error, fatal |
+| `madz_error.log`    | `error`/`fatal` | Error-level entries only    |
+
+**Log directory by platform:**
+
+| Platform     | Path                          | Detection                          |
+| ------------ | ----------------------------- | ---------------------------------- |
+| Alpine       | `~/.cache/madz/logs/`         | `/etc/alpine-release` exists       |
+| Linux        | `~/.local/share/madz/logs/`   | Default (XDG)                      |
+| macOS        | `~/Library/Logs/madz/`        | `process.platform === "darwin"`    |
+| Windows      | `%LOCALAPPDATA%\madz\logs\`   | `process.platform === "win32"`     |
+
+The directory is created automatically (`mkdirSync({ recursive: true })`). If the configured directory is unwritable, the logger falls back to `os.tmpdir()/madz/logs/`. If that also fails, logs are silently discarded (no crash).
+
+During test execution (`NODE_ENV=test`), the logger operates in silent mode—no files are written.
+
+Graceful shutdown flushes all buffered log entries to disk before process exit.
 
 ## Config Reference
 

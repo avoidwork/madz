@@ -20,14 +20,6 @@ describe("session - shutdown handler", () => {
 	});
 
 	it("suppresses telemetry flush errors", async () => {
-		// Create a mock console.error to capture output
-		/** @type {string[]} */
-		const errors = [];
-		const originalError = console.error;
-		console.error = (...args) => {
-			errors.push(args.join(" "));
-		};
-
 		// handleShutdown with only flushTelemetry that throws should complete without error
 		const flushTelemetry = () => {
 			throw new Error("flush failed");
@@ -38,13 +30,6 @@ describe("session - shutdown handler", () => {
 				flushTelemetry,
 			}),
 		);
-
-		// Restore console.error
-		console.error = originalError;
-
-		// Should have logged the error
-		assert.ok(errors.length > 0, "should have logged telemetry flush error");
-		assert.ok(errors[0].includes("telemetry"), "error message should mention telemetry");
 	});
 
 	it("calls onSaveShutdown callback if provided", async () => {
