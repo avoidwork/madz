@@ -374,10 +374,16 @@ Built-in tools are registered only when their required permissions are enabled f
 `madz` operates on a dual-layer memory architecture that evolves naturally over time:
 
 **Canonical Memories**
-Set explicitly by the user, these form the enduring foundation of the system. Stored as individual Markdown files in `memory/context/`, each carries `createdDate` and `updatedDate` metadata in YAML frontmatter. At the start of every session, canonical memories are loaded and appended to the system prompt, ensuring core context, preferences, and personal details remain consistent across interactions.
+Set explicitly by the user, these form the enduring foundation of the system. Stored as individual Markdown files in `memory/context/`, each carries `createdDate` and `updatedDate` metadata in YAML frontmatter. At the start of every session, canonical memories are loaded and appended to the system prompt, ensuring core context, preferences, and personal details remain consistent across interactions. Includes profile, clarifications, reflections, and temporal captures.
 
 **Ephemeral Memories**
-Captured autonomously by the harness during operation, these record patterns, milestones, emotional tones, and recurring themes. Stored temporarily with automatic expiration, they act as a living lens — subtly influencing how `madz` approaches future tasks, adapts its tone, and anticipates needs. They are not hardcoded; they evolve organically as the relationship deepens.
+Captured autonomously by the harness during operation, these record patterns, milestones, emotional tones, and recurring themes. Stored temporarily with automatic expiration via `expiresAt` frontmatter, they act as a living lens — subtly influencing how `madz` approaches future tasks, adapts its tone, and anticipates needs. They are not hardcoded; they evolve organically as the relationship deepens. Cleaned automatically by `expireEphemeralMemories()`.
+
+**V8 Garbage Collection**
+When Node.js is started with `--expose-gc`, `madz` manages V8 garbage collection via an idle timer (`memory.gc.idleTimeoutMs`, default 5 min). GC triggers after inactivity, respecting a rate limit (`memory.gc.maxGcPerHour`, default 4). Manually triggerable via the `:gc` TUI command or `:gc status`.
+
+**Daily Reflection**
+On first profile save (onboarding completion), `madz` automatically installs a daily cron job (`0 2 * * *`) that runs `/reflection` via `--chat` mode. The job definition is persisted as `memory/schedules/reflection-daily.json` and registered in the system crontab under the `madz-schedules` block.
 
 Together, these layers create a system that remembers what matters while naturally adapting to how you work. When you update or delete a canonical memory, follow it with `:new` so the current session reflects the change immediately.
 
@@ -394,6 +400,8 @@ Optional `@opentelemetry/sdk-node` integration. Configurable exporter (console, 
 ### Cron Scheduler
 
 Recurring job definitions in `config.yaml`. Supports both in-process scheduling and delegation to the system crontab (`mode: "system"`). Each invocation inherits the current session's memory context and sandbox permissions. Max-concurrency control prevents run overlap.
+
+On first onboarding completion, `madz` automatically installs a `reflection-daily` cron job (`0 2 * * *`) into the system crontab. Job definitions are persisted as JSON in `memory/schedules/` and managed under the `madz-schedules` block.
 
 ## Directory Structure
 

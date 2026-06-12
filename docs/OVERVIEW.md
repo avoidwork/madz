@@ -94,18 +94,33 @@ The agent runs: reason → call tool(s) → reason again → answer. Tool array 
 
 ## Memory
 
-`src/memory/` — persistent Markdown storage with YAML frontmatter.
+`src/memory/` — persistent Markdown storage with YAML frontmatter, dual-layer architecture (canonical + ephemeral), V8 GC management, and automated daily reflection scheduling.
 
 | File | Purpose |
 |------|---------|
-| `writer.js` | `writeMemoryFile()` — writes timestamped `.md` files |
-| `reader.js` | `parseFrontmatter()`, `readMemoryFile()` |
-| `context.js` | `loadContext()` — scans context files, loads profile, returns combined string |
-| `retention.js` | `cleanRetainedMemory()` / `enforceMaxEntries()` — expiry cleanup |
-| `loadMemories.js` | `loadMemories()` — loads entries sorted by `updatedDate` → `formatMemoriesForPrompt()` |
-| `profile.js` | User profile CRUD: `loadProfile()`, `saveProfile()`, onboarding state machine |
+| `writer.js` | `writeMemoryFile()` — writes timestamped `.md` files with YAML frontmatter, auto-slugifies titles |
+| `reader.js` | `parseFrontmatter()` — YAML frontmatter parsing via `js-yaml`; `readMemoryFile()` — loads and parses a single memory file |
+| `context.js` | `loadContext()` — scans context directory for `.md` files, loads profile, returns combined string sorted by `timestamp` frontmatter |
+| `retention.js` | `cleanRetainedMemory()` — removes files older than `retentionDays` (default 90); `enforceMaxEntries()` — caps directory at `maxEntries` (default 1000) by oldest mtime |
+| `loadMemories.js` | `loadMemories()` — loads all entries sorted by `updatedDate` descending; `formatMemoriesForPrompt()` — formats entries with category labels (`USER PROFILE`, `USER CLARIFICATIONS`, `WORKING REFLECTION`, `TEMPORAL CAPTURE`); `parseEntryFile()` — parses a single entry's frontmatter + body |
+| `profile.js` | User profile CRUD: `loadProfile()`, `saveProfile()`, `hasProfile()`, `formatProfileContext()`, `sanitizeProfileData()`. Defines 12 attributes (name, dob, relationship, pets, hobbies, expertise, favorite bands/books/tv/movies, location, notes) with onboarding state machine (`INIT → ATTRACTOR → COLLECT → SAVE → TRANSCEND`) and control pattern matching (`skip`, `cancel`, `exit`) |
+| `expireEphemeral.js` | `expireEphemeralMemories()` — scans context directory, removes `.md` files with `ephemeral: true` + expired `expiresAt`; `isExpired()` — checks `expiresAt` against current time; `readEphemeralFile()` — extracts ephemeral metadata from frontmatter |
+| `gc.js` | V8 garbage collection manager: `gc()` — triggers `global.gc()` with rate limiting (default 4 calls/hour, sliding window); `initGC()` — creates idle-timer controller with `onActivity()` reset and `stop()`; `isAvailable()` — checks `--expose-gc`; `getGcCalls()` / `_resetGcCalls()` — call tracking for testing |
+| `prompts.js` | `loadSystemPrompt()` — loads `prompts/SYSTEM_PROMPT.md`, strips YAML frontmatter if present |
 
-At session start, memories and profile are appended to the system prompt under "The following are important memories for the user:".
+**Dual-Layer Architecture:**
+
+- **Canonical Memories** — Long-term, user-defined context stored as individual `.md` files in `memory/context/`. Each carries `createdDate` and `updatedDate` in YAML frontmatter. Loaded at session start and appended to the system prompt. Includes profile, clarifications, reflections, and temporal captures.
+
+- **Ephemeral Memories** — Autonomously captured moments (victories, frustrations, insights) with automatic expiration via `expiresAt` frontmatter field. Cleaned by `expireEphemeralMemories()` on a scheduled basis. These create a living lens that subtly influences tone and awareness over time.
+
+**GC Integration:**
+
+V8 garbage collection is managed by `initGC()` which creates an idle-timer controller. The timer fires `gc()` after `memory.gc.idleTimeoutMs` (default 300000ms / 5 min) of inactivity, respecting `memory.gc.maxGcPerHour` (default 4) via a sliding window. Manually triggerable via the `:gc` TUI command and `:gc status`. GC is available when Node.js is started with `--expose-gc`.
+
+**Daily Reflection Scheduler:**
+
+`src/scheduler/autoSchedule.js` — `setupAutoSchedule()` returns a callback invoked after `saveProfile()` succeeds during onboarding. It automatically installs a `reflection-daily` cron job (`0 2 * * *`) into the system crontab and persists the job definition as `memory/schedules/reflection-daily.json`. The job invokes `node index.js --chat "/reflection"` at 2 AM daily.
 
 ---
 
