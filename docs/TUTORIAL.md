@@ -165,6 +165,7 @@ Config keys map to `UPPER_SNAKE_CASE` environment variables. Container-specific 
 | `providers.openai.rateLimit.requestsPerMinute` | `OPENAI_REQUESTS_PER_MINUTE` | `120` |
 | `providers.openrouter.apiKey` | `OPENROUTER_API_KEY` | *(empty)* |
 | `providers.openrouter.model` | `OPENROUTER_MODEL` | `openrouter/auto` |
+| `providers.fal.credentials.apiKey` | `FAL_API_KEY` | *(empty)* |
 | `sandbox.timeout.seconds` | `SANDBOX_TIMEOUT_SECONDS` | `30` |
 | `sandbox.timeout.gracePeriod` | `SANDBOX_GRACE_PERIOD` | `5` |
 | `sandbox.maxReadSize` | `SANDBOX_MAX_READ_SIZE` | `1mb` |
@@ -230,18 +231,25 @@ Once inside the interactive terminal, use these commands:
 |---------|--------|
 | `↑ / ↓` | Scroll conversation history |
 | `:help` | List available commands |
-| `:config set <key> <value>` | Mutate config at runtime |
-| `:skill <name>` | Invoke a discovered skill |
-| `:schedule pause` / `resume` | Control the cron scheduler |
+| `:quit` | Exit the application |
+| `:provider set <name>` | Switch LLM provider |
+| `:config set <path> <value>` | Mutate config at runtime |
+| `:schedule list` | List all scheduled jobs |
+| `:schedule pause <name>` | Pause a scheduled job |
+| `:schedule resume <name>` | Resume a paused job |
+| `:schedule run-now <name>` | Run a job immediately |
+| `:gc` | Trigger V8 garbage collection |
+| `:gc status` | Check GC availability and call count |
 | `:clear` | Clear current conversation |
 | `:new` | Start a fresh session |
 
 ### Memory System
-`madz` operates on a dual-layer memory architecture:
-- **Canonical Memories:** Explicitly set by you. Stored as `.md` files in `memory/context/`. Loaded into every session.
-- **Ephemeral Memories:** Captured autonomously during operation. Record patterns, milestones, and tones. Auto-expire over time.
+`madz` operates on a **triple-layer** memory architecture:
+- **Canonical Memories:** Explicitly set by you. Stored as `.md` files in `memory/context/`. Loaded into every session. Includes profile, clarifications, reflections, and temporal captures.
+- **Ephemeral Memories:** Captured autonomously during operation. Record patterns, milestones, and tones. Auto-expire over time via `expiresAt` frontmatter field.
+- **Reflections:** Generated daily by a cron job (`0 2 * * *`) that runs `/reflection` via `--chat` mode. Stored as canonical memories in `memory/context/` with `createdDate` and `updatedDate` metadata. The cron job is auto-installed on first onboarding completion via `setupAutoSchedule()` and persisted as `memory/schedules/reflection-daily.json`.
 
-*This dual-layer architecture is exactly what powers the "ephemeral memories" mentioned during First Launch, allowing Madz to learn, adapt, and refine your experience over time.*
+*This triple-layer architecture powers the autonomous learning loop — canonical memories persist, ephemeral memories capture moments, and reflections synthesize patterns into lasting context.*
 
 Changes to canonical memory require a `:new` command to refresh the current session context.
 
@@ -299,7 +307,7 @@ madz, schedule the news-email skill to run during the week at 8pm
 For headless execution, pipe results directly into other tools or scripts. The `--json` flag enables structured output for automation pipelines.
 
 ```bash
-node index.js "Summarize memory/_index.md" --json | jq '.summary'
+node index.js "Summarize memory/_index.md" --json | jq '.content'
 ```
 
 This mode is used by internal cron jobs and NPM installations.

@@ -11,6 +11,7 @@ import { OnboardingPanel } from "./onboardingPanel.js";
 import { createSession } from "../session/factory.js";
 import { setConfigValue } from "../config/loader.js";
 import { isAvailable, getGcCalls } from "../memory/gc.js";
+import { setTodoStreamingCallback } from "../tools/todoQueue.js";
 
 /**
  * Main App component (Ink). Renders an IRC-style layout:
@@ -174,6 +175,29 @@ export default function App({
 		let committedContent = "";
 		let committedReasoning = "";
 		let lastToolCallDisplay = "";
+		let todoStatusLines = "";
+
+		// Wire the streaming callback into the todo queue so status events
+		// flow through the LangGraph stream to the TUI.
+		setTodoStreamingCallback((event) => {
+			if (event.type === "todo_status") {
+				const statusLine = event.message
+					? `- ${event.message}`
+					: `- Todo: ${event.action} ${event.key || ""}`;
+				todoStatusLines =
+					(todoStatusLines ? todoStatusLines + "\n" : "") + statusLine;
+				setMessages((prev) => {
+					const cloned = [...prev];
+					const last = cloned[cloned.length - 1];
+					if (last.role === "assistant" && last.streaming) {
+						last.toolCallDisplay = lastToolCallDisplay
+							? lastToolCallDisplay + "\n" + todoStatusLines
+							: todoStatusLines;
+					}
+					return cloned;
+				});
+			}
+		});
 
 		try {
 			const _response = await dispatchProvider(
@@ -269,6 +293,11 @@ export default function App({
 					last.activeToolCall = null;
 					if (lastToolCallDisplay) {
 						last.toolCallDisplay = lastToolCallDisplay;
+					}
+					if (todoStatusLines) {
+						last.toolCallDisplay = last.toolCallDisplay
+							? last.toolCallDisplay + "\n" + todoStatusLines
+							: todoStatusLines;
 					}
 				}
 				return cloned;
