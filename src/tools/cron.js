@@ -5,6 +5,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { spawn } from "node:child_process";
 import { Cron } from "../../src/scheduler/cron.js";
+import { logger } from "../logger.js";
 
 /// -- Helper to find skill script --
 
@@ -296,12 +297,7 @@ export async function cronJobImpl(input, options) {
 				await saveJob(job, schedulesDir);
 				const cronResult = cronModule.add({ name: job.name, cron: job.cron, command: job.command });
 				if (cronResult.error) {
-					// Log crontab error but don't fail the create operation
-					// oxlint-disable no-console
-					console.warn(
-						`[cronJob] Failed to register "${job.name}" in crontab: ${cronResult.error}`,
-					);
-					// oxlint-enable no-console
+					logger.warn(`[cronJob] Failed to register "${job.name}" in crontab: ${cronResult.error}`);
 				}
 				return JSON.stringify({ ok: true, message: `Job "${name}" created`, job });
 			}

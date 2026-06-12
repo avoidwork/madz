@@ -1,4 +1,5 @@
-// oxlint-disable no-console
+import { logger } from "../logger.js";
+import { flush } from "../logger.js";
 
 /**
  * Handle graceful session shutdown: flush telemetry, close file handles, save state.
@@ -17,7 +18,7 @@ export async function handleShutdown(options = {}) {
 			await flushTelemetry();
 		}
 	} catch (err) {
-		console.error(`telemetry flush failed: ${err.message}`);
+		logger.error(`telemetry flush failed: ${err.message}`);
 	}
 
 	if (saveSession) {
@@ -34,7 +35,10 @@ export async function handleShutdown(options = {}) {
  * @returns {Function} Cleanup function to remove handlers
  */
 export function registerShutdownHandler(handler) {
-	const wrapped = () => handler();
+	const wrapped = async () => {
+		await handler();
+		await flush();
+	};
 
 	process.on("SIGTERM", wrapped);
 	process.on("SIGINT", wrapped);

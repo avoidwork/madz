@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-// oxlint-disable no-console
 
 // Load config
 import { fileURLToPath } from "node:url";
@@ -26,15 +25,11 @@ if (config.schedules.syncOnInit !== false) {
 		const schedulesDir = config.memory?.schedulesDir || "memory/schedules/";
 		const result = await Cron.sync(schedulesDir);
 		if (result.error) {
-			// oxlint-disable no-console
-			console.warn(`[scheduler] Crontab sync failed: ${result.error}`);
-			// oxlint-enable no-console
+			logger.warn(`[scheduler] Crontab sync failed: ${result.error}`);
 		} else {
-			// oxlint-disable no-console
-			console.log(
+			logger.info(
 				`[scheduler] Crontab sync complete: +${result.added} added, -${result.removed} removed, ~${result.updated} updated, =${result.skipped} skipped`,
 			);
-			// oxlint-enable no-console
 		}
 
 		// Ensure the daily reflection job exists in crontab and persisted (covers upgrading users
@@ -64,15 +59,11 @@ if (config.schedules.syncOnInit !== false) {
 					writeFileSync(filePath, JSON.stringify(jobData, null, 2));
 				}
 			} catch (err) {
-				// oxlint-disable no-console
-				console.warn(`[scheduler] Failed to persist reflection-daily job file: ${err.message}`);
-				// oxlint-enable no-console
+				logger.warn(`[scheduler] Failed to persist reflection-daily job file: ${err.message}`);
 			}
 		}
 	} catch (err) {
-		// oxlint-disable no-console
-		console.warn(`[scheduler] Crontab sync error: ${err.message}`);
-		// oxlint-enable no-console
+		logger.warn(`[scheduler] Crontab sync error: ${err.message}`);
 	}
 }
 
@@ -130,28 +121,23 @@ try {
 			idleTimeoutMs,
 			maxGcPerHour,
 			onIdle(result) {
-				// oxlint-disable no-console
-				console.log(
+				logger.info(
 					`[gc] idle GC ${result.triggered ? "triggered" : "skipped"} (${result.reason || "success"}, ${result.hourCalls} calls/hr)`,
 				);
-				// oxlint-enable no-console
 			},
 		});
 		gcTrace = () => gcFn(maxGcPerHour);
 		const avail = isAvailable();
-		// oxlint-disable no-console
-		console.log(`[gc] V8 GC manager initialized ${avail ? "with" : "without"} --expose-gc`);
-		// oxlint-enable no-console
+		logger.info(`[gc] V8 GC manager initialized ${avail ? "with" : "without"} --expose-gc`);
 	}
 } catch {
-	// oxlint-disable no-console
-	console.warn("[gc] Failed to initialize: graceful degradation");
-	// oxlint-enable no-console
+	logger.warn("[gc] Failed to initialize: graceful degradation");
 }
 
 // Initialize session
 const { createSession, SessionStateManager, saveSession, handleShutdown, registerShutdownHandler } =
 	await import("./src/session/index.js");
+const { flush: flushLogger, logger } = await import("./src/logger.js");
 
 // Initialize scheduler
 const { ScheduleManager } = await import("./src/scheduler/index.js");
@@ -339,6 +325,7 @@ if (isMain) {
 
 		// Graceful shutdown in non-interactive mode
 		await runShutdown();
+		await flushLogger();
 		process.exit(0);
 	} else {
 		const { render } = await import("ink");
@@ -364,6 +351,7 @@ if (isMain) {
 				onExit: async () => {
 					const shutdown = (await import("./src/session/index.js")).handleShutdown;
 					if (shutdown) await shutdown();
+					await flushLogger();
 					process.stdout.write("\n");
 				},
 			},

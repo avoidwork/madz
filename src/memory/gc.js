@@ -1,6 +1,8 @@
 const WARNED_KEY = Symbol.for("madz.gc.warned");
 const gcCalls = [];
 
+import { logger } from "../logger.js";
+
 /**
  * Check whether V8's garbage collector is exposed via global.gc.
  * @returns {boolean} True if --expose-gc flag is active
@@ -39,9 +41,7 @@ export function gc(maxGcPerHour = 4) {
 	if (!isAvailable()) {
 		if (!process[WARNED_KEY]) {
 			process[WARNED_KEY] = true;
-			// oxlint-disable no-console
-			console.warn("[gc] V8 GC not available. Start with --expose-gc flag.");
-			// oxlint-enable noconsole
+			logger.warn("[gc] V8 GC not available. Start with --expose-gc flag.");
 		}
 		return { triggered: false, reason: "gc not available", hourCalls };
 	}

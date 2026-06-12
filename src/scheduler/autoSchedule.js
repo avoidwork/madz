@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { Cron } from "./cron.js";
+import { logger } from "../logger.js";
 
 const JOB_CRON = "0 2 * * *";
 
@@ -94,21 +95,15 @@ export function setupAutoSchedule(options = {}) {
 		try {
 			const result = CronModule.add(job);
 			if (!result.added && result.error) {
-				// oxlint-disable no-console
-				console.warn(`[scheduler] Failed to add reflection-daily cron job: ${result.error}`);
-				// oxlint-enable no-console
+				logger.warn(`[scheduler] Failed to add reflection-daily cron job: ${result.error}`);
 			}
 		} catch (err) {
-			// oxlint-disable no-console
-			console.warn(`[scheduler] Error adding reflection-daily cron job: ${err.message}`);
-			// oxlint-enable no-console
+			logger.warn(`[scheduler] Error adding reflection-daily cron job: ${err.message}`);
 		}
 
 		const persistResult = persistJobFile(job.name, job, cwd);
 		if (!persistResult.written) {
-			// oxlint-disable no-console
-			console.warn(`[scheduler] Failed to persist reflection-daily job file: ${persistResult.error}`);
-			// oxlint-enable no-console
+			logger.warn(`[scheduler] Failed to persist reflection-daily job file: ${persistResult.error}`);
 		}
 	};
 }
