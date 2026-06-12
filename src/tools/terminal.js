@@ -67,6 +67,9 @@ function executeForeground(command) {
 
 		child.on("exit", (code) => {
 			exitCode = code || 0;
+		});
+
+		child.on("close", () => {
 			resolve({ stdout: stdout.trim(), stderr: stderr.trim(), exitCode, running: false });
 		});
 

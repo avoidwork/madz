@@ -30,6 +30,8 @@ RUN apk update && \
     curl -LsSf https://astral.sh/uv/install.sh | sh && \
     mv /root/.local/bin/uv /usr/local/bin/uv
 
+ENV HOME=/home/madz
+
 WORKDIR /app
 
 COPY --from=builder /app/node_modules ./node_modules
@@ -42,9 +44,8 @@ COPY prompts/ ./prompts/
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 
-RUN chown -R madz:node /app && \
-    chmod -R g+rwX /app && \
-    chmod -R g+rwX /home/madz/.cache/madz/logs
+RUN chown -R madz:node /app /home/madz && \
+    chmod -R g+rwX /app /home/madz
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["sleep", "infinity"]
