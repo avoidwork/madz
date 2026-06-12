@@ -11,6 +11,7 @@ providers:
       requestsPerMinute: 120
 sandbox:
   paths:
+    - ./
     - memory/
     - skills/
     - src/
