@@ -44,7 +44,7 @@ RUN chmod +x /docker-entrypoint.sh
 
 RUN chown -R madz:node /app && \
     chmod -R g+rwX /app && \
-    chmod -R g+rwX /home/madz/.cache/madz/logs && \
+    chmod -R g+rwX /home/madz/.cache/madz/logs
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["sleep", "infinity"]
