@@ -68,6 +68,35 @@ Env var resolution maps config paths → `UPPER_SNAKE_CASE` (e.g., `sandbox.time
 
 ---
 
+## Logger
+
+`src/logger.js` — structured JSON logging via `pino` with OS-aware log directories and dual-file output.
+
+| File | Purpose |
+|------|---------|
+| `logger.js` | `getLogDirectory()` — OS path detection; `logger` — structured methods (`info`, `warn`, `error`, `debug`, `fatal`, `silent`); `flush()` — async shutdown flush |
+
+**Log directory by platform:**
+
+| Platform     | Path                          | Detection                          |
+| ------------ | ----------------------------- | ---------------------------------- |
+| Alpine       | `~/.cache/madz/logs/`         | `/etc/alpine-release` exists       |
+| Linux        | `~/.local/share/madz/logs/`   | Default (XDG spec)                 |
+| macOS        | `~/Library/Logs/madz/`        | `process.platform === "darwin"`    |
+| Windows      | `%LOCALAPPDATA%\madz\logs\`   | `process.platform === "win32"`     |
+
+The directory is created automatically (`mkdirSync({ recursive: true })`). If the configured directory is unwritable, the logger falls back to `os.tmpdir()/madz/logs/`. If that fallback also fails, log entries are silently discarded—the process never crashes due to permission errors.
+
+**Dual-file output** via `pino.multistream`:
+- `madz.log` — captures `info`, `warn`, `debug`, `trace`, and all higher severity levels
+- `madz_error.log` — captures only `error` and `fatal`
+
+**Silent mode**: `NODE_ENV=test` sets pino to `level: 'silent'`, preventing any file I/O during test runs.
+
+**Shutdown flush**: Both the graceful shutdown handler (`handleShutdown`) and the global shutdown signal wrapper (`registerShutdownHandler`) call `await logger.flush()` before process exit, ensuring all buffered log entries are written to disk. The flush includes a `setTimeout(50)` safeguard to account for the kernel write-back delay on Node.js 25+.
+
+---
+
 ## Provider
 
 `src/provider/` — LLM provider factory from configuration.
