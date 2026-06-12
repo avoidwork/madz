@@ -373,6 +373,10 @@ app.js ─────├── onboardingPanel.js (state machine: INIT → ATTR
            ├── inputPanel.js ─────────┤  All components export
            ├── statusBar.js ──────────┤  via components.js / index.js
            ├── messages.js ───────────┤
-           └── markdownText.js ────────┘ (uses marked + marked-terminal)
-           └── config/loader.js ──── (setConfigValue import)
+           ├── markdownText.js ────────┘ (uses marked + marked-terminal)
+           ├── components.js ──────── (exports: ConversationPanel, SkillsPanel, MemoryPanel, SettingsPanel)
+           ├── skillsPanel.js ─────── (skill list with search)
+           ├── memoryPanel.js ─────── (memory entries browser)
+           ├── settingsPanel.js ───── (config sections editor)
+           └── hooks.js ───────────── (useWindowSize, useInput helpers)
 ```

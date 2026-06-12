@@ -15,8 +15,8 @@ graph TD
     R --> A["Agent"]
     A --> P["Provider"]
     A -->|"tools"| SB["Sandbox"]
-    S -->|"invoke"| SB
-    SB -->|"spawn()"| SK["scripts/"]
+    S -->|"runNow()"| SB
+    SB -->|"fork()"| SK["scripts/"]
     TM["Memory Files"] -->|"loadContext"| A
     TM -->|write/read| FS["filesystem"]
     TM -->|context| SE["Session"]
@@ -29,8 +29,8 @@ graph TD
     classDef util fill:#66bb6a,color:#fff,stroke:#2e7d32
     classDef ext fill:#ab47bc,color:#fff,stroke:#6a1b9a
     class I root
-    class A,P,T,R,S core
-    class TM,SE,SB util
+    class A,P,T,R core
+    class S,TM,SE,SB util
     class SK,CW,FS ext
 ```
 
@@ -180,18 +180,14 @@ The agent runs: reason → call tool(s) → reason again → answer. Tool array 
 
 ## Scheduler
 
-`src/scheduler/` — cron scheduling with concurrency control and context inheritance.
+`src/scheduler/` — cron job management via system crontab. Scheduling is delegated to the system crontab; there is no in-process clock tick loop.
 
 | File | Purpose |
 |------|---------|
-| `parser.js` | `parseScheduleEntry()` — validates via `cron-parser` |
-| `matcher.js` | `matchesCron()` — timezone-safe 5/6-field matching |
-| `cronInstaller.js` | `CronInstaller` — system crontab management |
-| `queue.js` | `ScheduleQueue` — FIFO with `maxConcurrent` enforcement |
-| `runner.js` | `runScheduledSkill()` — context loading, sandbox timeout, invocation |
-| `scheduler.js` | `ScheduleManager` — registers, manages queue, `#clockTick` loop, `pause`/`resume`/`runNow` |
-
-Two modes: `inprocess` (timed tick, default) and `system` (delegates to system crontab).
+| `scheduler.js` | `ScheduleManager` — simple CRUD class (register, list, pause, resume, runNow). No in-process scheduling. |
+| `cron.js` | `Cron` object with static methods: `isAvailable()`, `add()`, `remove()`. Manages entries in system crontab using `# --- BEGIN madz-schedules ---` / `# --- END madz-schedules ---` block delimiters. |
+| `autoSchedule.js` | `setupAutoSchedule()` — returns callback invoked after `saveProfile()` during onboarding. Installs `reflection-daily` cron job (`0 2 * * *`) into system crontab and persists to `memory/schedules/reflection-daily.json`. |
+| `index.js` | Re-exports `ScheduleManager` and `Cron`. |
 
 ---
 
@@ -284,7 +280,20 @@ index.js
 
 ```
 ScheduleManager.register(config.schedules.entries)
-  └── setInterval(() => #clockTick())
-        ├── matchesCron → queue.enqueue(entry)
-        └── dequeue() → runScheduledSkill() → runSandbox() + logScheduleResult()
+  └── entries stored in #scheduleEntry Map
+
+ScheduleManager.runNow(name, scheduler)
+  ├── entry = #scheduleEntry.get(name)
+  ├── contextPrefix = loadContext(entry.contextFile) or loadContext("memory/context/")
+  └── sandbox({ skillName: entry.skill, input: entry.input, context: contextPrefix })
+```
+
+**Cron system flow:**
+
+```
+Cron.add({ name, cron, command })
+  ├── _readCrontab() → current crontab content
+  ├── if entry exists → { added: false, error }
+  ├── insert `<cron>  <command>  # madz-schedule: <name>` between BEGIN/END markers
+  └── execSync(`crontab -`) → write updated crontab
 ```

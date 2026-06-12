@@ -653,66 +653,84 @@ loadContext("memory/context/", limit)
 
 **Entry:** `src/scheduler/scheduler.js` → `ScheduleManager`
 
+The ScheduleManager is a simple CRUD class. Scheduling is delegated to the system crontab — there is no in-process clock tick loop.
+
 ```
 scheduleManager = new ScheduleManager(maxConcurrent = 1)
-├── #queue = ScheduleQueue(maxConcurrent)
+├── #scheduleEntry = new Map()
 
 scheduleManager.register(entries = [])
 ├── results = []
 └── for each entry in entries:
-    ├── parsed = parseScheduleEntry(entry)
-    │   ├── validate name and cron
-    │   ├── validateCron(expression) → 5-6 fields, regex patterns
-    │   └── return { valid, error, parsed: { name, cron, skill, input, contextFile, enabled, paused, lastRun, nextRun } }
-    ├── if parsed.valid: #scheduleEntry.set(name, parsed)
-    └── else: results.push({ name, error })
+    ├── if !entry.name || !entry.cron || !entry.skill:
+    │   └── results.push({ name: entry.name, error: "Missing required fields" })
+    └── #scheduleEntry.set(entry.name, { ...entry, paused: false, lastRun: null })
 └── return results
 
 scheduleManager.list()
-└── for each entry: { ...entry, queued: #queue.getLength() }
+└── for each entry: { ...entry }
 
 scheduleManager.pause(name) → entry.paused = true
 
-scheduleManager.resume(name) → entry.paused = entry.enabled !== false
+scheduleManager.resume(name) → entry.paused = false
 
 scheduleManager.runNow(name, scheduler)
 ├── entry = #scheduleEntry.get(name)
-├── if !entry → { error: "Unknown" }
-├── if entry.paused → { error: "paused" }
-├── result = await runScheduledSkill(entry, scheduler.sandbox, scheduler.state)
+├── if !entry → { error: "Unknown schedule: ${name}" }
+├── if entry.paused → { error: "Schedule is paused" }
+├── contextPrefix = loadContext(entry.contextFile) or loadContext("memory/context/")
+├── sandbox({ skillName: entry.skill, input: entry.input, context: contextPrefix, permissions })
 │   └── [see Sandbox Skill Execution]
-├── logScheduleResult({ scheduleName, cron, startTime, endTime, exitCode, stdout, stderr })
-│   └── writes markdown file to memory/schedules/
-└── entry.lastRun = endTime; return result
-
-scheduleManager.start(scheduler, intervalMs = 60000)
-├── #running = true
-├── #tickId = setInterval(() => #clockTick(scheduler), intervalMs)
-└── #clockTick(scheduler) -- run once immediately
-
-scheduleManager.stop()
-├── #clockId.clearInterval()
-└── #queue.clear()
+├── entry.lastRun = new Date().toISOString()
+└── return result
 ```
 
-### Clock Tick & Cron Matching
+## Cron System
+
+**Entry:** `src/scheduler/cron.js` → `Cron` object with static methods
+
+The Cron module manages entries in the user's system crontab using `# --- BEGIN madz-schedules ---` / `# --- END madz-schedules ---` block delimiters.
 
 ```
-#clockTick(scheduler)
-├── if !#running → return
-├── for each entry in #scheduleEntry:
-│   ├── if entry.paused → skip
-	│   └── if matchesCron(entry.cron, now):
-	│       │   matchesCron(cron, now):
-│       │   └── minutes/hours from cron fields → matchesField(value, field):
-│       │       ├── "*" → true
-│       │       ├── */N → start + (value - start) % step === 0
-│       │       ├── range (1-5) → value >= from && value <= to
-│       │       └── single value → value === parseInt(field)
-│       └── #queue.enqueue({ ...entry, triggeredAt: now.toISOString() })
-│
-└── #queue.dequeue() → auto-executes tasks up to maxConcurrent
+Cron.isAvailable()
+├── execSync("which crontab") → { available: true }
+└── catch → { available: false, error }
+
+Cron._readCrontab()
+├── execSync("crontab -l 2>&1") → crontab content
+└── if "no crontab" → return ""
+
+Cron.add({ name, cron, command })
+├── current = _readCrontab()
+├── if entry with matching name exists → { added: false, error: "already exists" }
+├── newEntry = `<cron>  <command>  # madz-schedule: <name>`
+├── between BEGIN/END markers → insert newEntry
+├── execSync(`crontab -`) → write updated crontab
+└── return { added: true }
+
+Cron.remove(name)
+├── current = _readCrontab()
+├── filter out entry with matching name
+├── execSync(`crontab -`) → write updated crontab
+└── return { removed: true }
 ```
+
+## Auto Schedule
+
+**Entry:** `src/scheduler/autoSchedule.js` → `setupAutoSchedule()`
+
+Returns a callback invoked after `saveProfile()` succeeds during onboarding.
+
+```
+setupAutoSchedule()
+└── returns autoScheduleCallback()
+    ├── cwd = process.cwd()
+    ├── job = { name: "reflection-daily", cron: "0 2 * * *", command: `cd ${cwd} && node index.js --chat "/reflection"` }
+    ├── Cron.add(job) → adds to system crontab
+    └── persistJobFile(job.name, job, cwd)
+        └── writes `memory/schedules/reflection-daily.json`
+```
+
 
 ## Memory Retention Cleanup
 
@@ -826,11 +844,10 @@ index.js
 ├── registry/discoverer.js → js-yaml, node:fs, node:path
 ├── registry/validator.js → types.js (zod schemas)
 ├── registry/types.js → zod
-├── scheduler/scheduler.js → parser.js, queue.js, runner.js, logger.js
-├── scheduler/parser.js → node:fs, memory/context.js
-├── scheduler/queue.js
-├── scheduler/runner.js → memory/context.js, node:fs
-├── scheduler/logger.js → node:fs, node:path
+├── scheduler/scheduler.js → node:fs/promises — ScheduleManager CRUD class (register, list, pause, resume, runNow)
+├── scheduler/cron.js → node:child_process, node:fs/promises, node:path — Cron object (isAvailable, add, remove)
+├── scheduler/autoSchedule.js → node:fs — setupAutoSchedule() callback for reflection-daily cron
+├── scheduler/index.js → re-exports ScheduleManager and Cron
 ├── memory/writer.js → node:fs, node:path
 ├── memory/reader.js → js-yaml, node:fs
 ├── memory/context.js → node:fs, node:path, memory/reader.js
