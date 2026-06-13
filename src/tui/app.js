@@ -560,6 +560,7 @@ export default function App({
 						paddingY: 0,
 					},
 					React.createElement(InputPanel, {
+						key: inputFocused ? "input-focused" : "input-unfocused",
 						inputText: inputText,
 						cursorChar: config?.tui?.cursorChar ?? "\u2588",
 						cursorColor: inputFocused ? undefined : "#202020",

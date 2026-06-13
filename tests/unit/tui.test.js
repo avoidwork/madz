@@ -725,7 +725,7 @@ describe("MarkdownText - rendering", () => {
 		assert.ok(React.isValidElement(result));
 		assert.strictEqual(result.type.name, "Text");
 		assert.strictEqual(result.props.color, "white");
-		assert.strictEqual(result.props.wrap, "hard");
+		assert.strictEqual(result.props.wrap, undefined);
 		assert.ok(result.props.children);
 	});
 
