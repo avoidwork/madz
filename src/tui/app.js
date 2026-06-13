@@ -11,6 +11,7 @@ import { OnboardingPanel } from "./onboardingPanel.js";
 import { createSession } from "../session/factory.js";
 import { setConfigValue } from "../config/loader.js";
 import { isAvailable, getGcCalls } from "../memory/gc.js";
+import { loadSystemPrompt } from "../memory/prompts.js";
 import { setTodoStreamingCallback } from "../tools/todo_queue.js";
 import { calculateConversationTokens } from "./contextTokens.js";
 
@@ -62,14 +63,28 @@ export default function App({
 		}
 		process.on("uncaughtException", onUncaught);
 		process.on("unhandledRejection", onUnhandled);
-		// Initialize contextSize from the current conversation token count
+		// Initialize contextSize from the current conversation token count + system prompt
 		if (sessionState) {
 			const conversation = sessionState.getConversation();
 			const providerName = sessionState.getProvider();
 			const providerConfig = config?.providers?.[providerName] || {};
 			const modelName = providerConfig.model || "gpt-4o";
 			const encoding = providerConfig.encoding;
-			setContextSize(calculateConversationTokens(conversation, modelName, encoding));
+			
+			// Calculate conversation tokens
+			let totalTokens = calculateConversationTokens(conversation, modelName, encoding);
+			
+			// Add system prompt tokens
+			const systemPrompt = loadSystemPrompt();
+			if (systemPrompt) {
+				totalTokens += calculateConversationTokens(
+					[{ role: "system", content: systemPrompt }],
+					modelName,
+					encoding
+				);
+			}
+			
+			setContextSize(totalTokens);
 		}
 		return () => {
 			process.off("uncaughtException", onUncaught);
@@ -179,7 +194,18 @@ export default function App({
 			const providerConfig = config?.providers?.[providerName] || {};
 			const modelName = providerConfig.model || "gpt-4o";
 			const encoding = providerConfig.encoding;
-			setContextSize(calculateConversationTokens(conversation, modelName, encoding));
+			
+			// Calculate conversation tokens + system prompt
+			let totalTokens = calculateConversationTokens(conversation, modelName, encoding);
+			const systemPrompt = loadSystemPrompt();
+			if (systemPrompt) {
+				totalTokens += calculateConversationTokens(
+					[{ role: "system", content: systemPrompt }],
+					modelName,
+					encoding
+				);
+			}
+			setContextSize(totalTokens);
 		}
 
 		const assistantTime = getTimestamp();
@@ -340,7 +366,18 @@ export default function App({
 				const providerConfig = config?.providers?.[providerName] || {};
 				const modelName = providerConfig.model || "gpt-4o";
 				const encoding = providerConfig.encoding;
-				setContextSize(calculateConversationTokens(conversation, modelName, encoding));
+				
+				// Calculate conversation tokens + system prompt
+				let totalTokens = calculateConversationTokens(conversation, modelName, encoding);
+				const systemPrompt = loadSystemPrompt();
+				if (systemPrompt) {
+					totalTokens += calculateConversationTokens(
+						[{ role: "system", content: systemPrompt }],
+						modelName,
+						encoding
+					);
+				}
+				setContextSize(totalTokens);
 			}
 			if (onSaveSession) {
 				onSaveSession();
