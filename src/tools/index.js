@@ -7,7 +7,7 @@ import {
 import { createTerminalTool, createProcessTool } from "./terminal.js";
 import { createQueuedTodoTool } from "./todo.js";
 import { createMemoryTool } from "./memory.js";
-import { createSessionSearchTool } from "./sessionSearch.js";
+import { createSessionSearchTool } from "./session_search.js";
 import { createClarifyTool } from "./clarify.js";
 import { createSkillViewTool, createCreateSkillTool } from "./skills.js";
 import { createWebSearchTool, createWebExtractTool } from "./web.js";
@@ -19,7 +19,7 @@ import { createTtsTool } from "./tts.js";
 import { createMoaTool } from "./moa.js";
 import { createSamplingTool } from "./sampling.js";
 import { createDateTool } from "./date.js";
-import { createCompactContextTool } from "./compactContext.js";
+import { createCompactContextTool } from "./compact_context.js";
 
 /**
  * Maps tool names to required permission scopes.

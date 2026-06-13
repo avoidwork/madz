@@ -5,7 +5,7 @@ import {
 	extractContextLength,
 	compactConversation,
 	createCompactContextTool,
-} from "../../src/tools/compactContext.js";
+} from "../../src/tools/compact_context.js";
 import { buildToolConfig } from "../../src/tools/index.js";
 
 describe("compactContext - error detection", () => {

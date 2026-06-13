@@ -2,7 +2,7 @@ import { describe, it, before, after } from "node:test";
 import assert from "node:assert";
 import { mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { sessionSearchImpl } from "../../src/tools/sessionSearch.js";
+import { sessionSearchImpl } from "../../src/tools/session_search.js";
 
 const testDir = join(process.cwd(), "memory", "__test_search__");
 const testSubDir = join("memory", "__test_search__", "conv_sub");
