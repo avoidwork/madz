@@ -12,6 +12,7 @@ import { createSession } from "../session/factory.js";
 import { setConfigValue } from "../config/loader.js";
 import { isAvailable, getGcCalls } from "../memory/gc.js";
 import { setTodoStreamingCallback } from "../tools/todo_queue.js";
+import { calculateConversationTokens } from "./contextTokens.js";
 
 /**
  * Main App component (Ink). Renders an IRC-style layout:
@@ -61,6 +62,13 @@ export default function App({
 		}
 		process.on("uncaughtException", onUncaught);
 		process.on("unhandledRejection", onUnhandled);
+		// Initialize contextSize from the current conversation token count
+		if (sessionState) {
+			const conversation = sessionState.getConversation();
+			const providerName = sessionState.getProvider();
+			const modelName = config?.providers?.[providerName]?.model || "gpt-4o";
+			setContextSize(calculateConversationTokens(conversation, modelName));
+		}
 		return () => {
 			process.off("uncaughtException", onUncaught);
 			process.off("unhandledRejection", onUnhandled);
@@ -314,7 +322,10 @@ export default function App({
 					role: "assistant",
 					content: responseContent,
 				});
-				setContextSize(sessionState.getConversation().length);
+				const conversation = sessionState.getConversation();
+				const providerName = sessionState.getProvider();
+				const modelName = config?.providers?.[providerName]?.model || "gpt-4o";
+				setContextSize(calculateConversationTokens(conversation, modelName));
 			}
 			if (onSaveSession) {
 				onSaveSession();
@@ -324,7 +335,10 @@ export default function App({
 		} catch (err) {
 			if (sessionState) {
 				sessionState.addExchange({ role: "user", content: text });
-				setContextSize(sessionState.getConversation().length);
+				const conversation = sessionState.getConversation();
+				const providerName = sessionState.getProvider();
+				const modelName = config?.providers?.[providerName]?.model || "gpt-4o";
+				setContextSize(calculateConversationTokens(conversation, modelName));
 			}
 			if (onSaveSession) {
 				onSaveSession();
