@@ -53,7 +53,6 @@
 
 ## Coming soon
 
-- Automatic compaction for longer sessions
 - Faster rendering and snappier interactions
 - Session browsing with interactive menu
 
@@ -336,6 +335,10 @@ Configurable provider dispatch with rate limiting and context-window trimming. S
 
 Wraps `@langchain/langgraph/prebuilt`'s `createReactAgentGraph` to produce a compiled ReAct agent that interleaves LLM reasoning with tool invocations. `createReactAgent(model, tools)` builds the agent from a provider model and a permission-gated tool array. `callReactAgent(agent, message)` runs the ReAct loop and returns the agent's final response.
 
+### Context Window Management
+
+When conversations grow long enough to exceed the model's maximum context length, `madz` automatically detects the error and triggers a compaction routine. A tiered retention strategy preserves high-fidelity information: the system prompt and the most recent exchanges are kept intact, older exchanges are summarized into concise bullet-point previews, and the oldest messages are dropped entirely. If a single compaction doesn't bring the context within budget, the system retries with progressively tighter limits — up to three iterations. If even the minimal context (system prompt + last user message) exceeds the budget, the user is presented with a clear error message. This happens transparently; the user never needs to start a new session or manually manage context.
+
 ### Built-in Tools
 
 Bundled LangChain tools gated by sandbox permissions:
@@ -354,6 +357,7 @@ Bundled LangChain tools gated by sandbox permissions:
 | **Media**           | `image_generate` — image generation via fal.ai; `vision_analyze` — vision/language analysis via OpenAI; `text_to_speech` — text-to-speech via OpenAI TTS                                                                                                                                                                                                                                                                                         |
 | **Agents**          | `mixture_of_agents` — multi-agent orchestration                                                                                                                                                                                                                                                                                                                                                                                    |
 | **Cron**            | `cronJob` — cron job utilities                                                                                                                                                                                                                                                                                                                                                                                          |
+| **System**          | `compactContext` — automatic conversation context compaction on LLM context-length errors (zero-permission, always registered)                                                                                                                                                                                                                                                                                         |
 
 ### Skills Registry
 
