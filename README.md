@@ -12,7 +12,6 @@
 ## Table of Contents
 
 - [Overview](#overview)
-- [Coming soon](#coming-soon)
 - [Quick Start](#quick-start)
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
@@ -28,6 +27,7 @@
   - [Onboarding](#onboarding)
   - [LLM Provider Abstraction](#llm-provider-abstraction)
   - [Agent](#agent)
+  - [Context Window Management](#context-window-management)
   - [Built-in Tools](#built-in-tools)
   - [Skills Registry](#skills-registry)
   - [Permission Gating](#permission-gating)
@@ -36,11 +36,12 @@
   - [Telemetry](#telemetry)
   - [Cron Scheduler](#cron-scheduler)
 - [Directory Structure](#directory-structure)
+- [Logging](#logging)
 - [Config Reference](#config-reference)
 - [Testing](#testing)
 - [Development](#development)
   - [Extending Skills](#extending-skills)
-  - [Environment Variables](#environment-variables)
+  - [Environment Variables Usage](#environment-variables-usage)
 - [License](#license)
 
 ## Overview
@@ -51,9 +52,8 @@
 - ⏱️ **Automates your routines** → Declare cron jobs in YAML and run on autopilot
 - 💬 **Orchestrates conversations** → Multi-turn LLM chats with context-window management
 
-## Coming soon
+## Quick Start
 
-- Automatic compaction for longer sessions
 - Faster rendering and snappier interactions
 - Session browsing with interactive menu
 
@@ -336,6 +336,10 @@ Configurable provider dispatch with rate limiting and context-window trimming. S
 
 Wraps `@langchain/langgraph/prebuilt`'s `createReactAgentGraph` to produce a compiled ReAct agent that interleaves LLM reasoning with tool invocations. `createReactAgent(model, tools)` builds the agent from a provider model and a permission-gated tool array. `callReactAgent(agent, message)` runs the ReAct loop and returns the agent's final response.
 
+### Context Window Management
+
+When conversations grow long enough to exceed the model's maximum context length, `madz` automatically detects the error and triggers a compaction routine. A tiered retention strategy preserves high-fidelity information: the system prompt and the most recent exchanges are kept intact, older exchanges are summarized into concise bullet-point previews, and the oldest messages are dropped entirely. If a single compaction doesn't bring the context within budget, the system retries with progressively tighter limits — up to three iterations. If even the minimal context (system prompt + last user message) exceeds the budget, the user is presented with a clear error message. This happens transparently; the user never needs to start a new session or manually manage context.
+
 ### Built-in Tools
 
 Bundled LangChain tools gated by sandbox permissions:
@@ -354,6 +358,7 @@ Bundled LangChain tools gated by sandbox permissions:
 | **Media**           | `image_generate` — image generation via fal.ai; `vision_analyze` — vision/language analysis via OpenAI; `text_to_speech` — text-to-speech via OpenAI TTS                                                                                                                                                                                                                                                                                         |
 | **Agents**          | `mixture_of_agents` — multi-agent orchestration                                                                                                                                                                                                                                                                                                                                                                                    |
 | **Cron**            | `cronJob` — cron job utilities                                                                                                                                                                                                                                                                                                                                                                                          |
+| **System**          | `compactContext` — automatic conversation context compaction on LLM context-length errors (zero-permission, always registered)                                                                                                                                                                                                                                                                                         |
 
 ### Skills Registry
 
@@ -552,7 +557,7 @@ Skills follow the [Agent Skills spec](https://agentskills.io/specification). Eac
 3. (Optional) Place executable scripts under `skills/your-skill/scripts/`. Supported extensions: `.py` (Python 3), `.sh` (Bash), `.js`/`.mjs` (Node.js), `.rb` (Ruby), `.ts` (Node.js + tsx).
 4. Restart the harness — the skills registry auto-discovers new skills on boot.
 
-### Environment Variables
+### Environment Variables Usage
 
 `madz` supports two environment variable patterns:
 

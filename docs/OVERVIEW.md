@@ -4,6 +4,26 @@ This document describes how madz is structured, how subsystems interact, and the
 
 ---
 
+## Table of Contents
+
+- [System Diagram](#system-diagram)
+- [Entry Point](#entry-point)
+- [Config](#config)
+- [Logger](#logger)
+- [Provider](#provider)
+- [Agent](#agent)
+- [Memory](#memory)
+- [Registry / Skills](#registry--skills)
+- [Sandbox](#sandbox)
+- [Scheduler](#scheduler)
+- [Session](#session)
+- [Context Window Management](#context-window-management)
+- [Telemetry](#telemetry)
+- [TUI](#tui)
+- [Key Data Flows](#key-data-flows)
+
+---
+
 ## System Diagram
 
 ```mermaid
@@ -215,6 +235,29 @@ The agent runs: reason → call tool(s) → reason again → answer. Tool array 
   updatedAt: ISODate
 }
 ```
+
+---
+
+## Context Window Management
+
+`src/tools/compactContext.js` — automatic conversation context compaction triggered when the LLM returns a 400 error indicating the conversation has exceeded the model's maximum context length.
+
+|| File | Purpose |
+||------|---------|
+|| `compactContext.js` | `createCompactContextTool()` — LangChain tool with tiered retention strategy; `isContextLengthError()` — detects context-length 400 errors via regex; `extractContextLength()` — extracts max context length from error message; `compactConversation()` — rewrites conversation to fit within a token budget |
+
+**How it works:**
+
+1. **Error detection:** `callReactAgent` and `callReactAgentStreaming` catch LLM 400 errors matching patterns like `"maximum context length is X tokens"` or `"(limit: X)"`
+2. **Budget calculation:** `targetTokens = maxContextLength (from error) - maxTokens (from config)`
+3. **Tiered compaction:** The `compactContext` tool rewrites the conversation using three tiers:
+   - **Tier 1 (Always Retain):** System prompt, most recent user message, last 3 assistant responses with tool calls
+   - **Tier 2 (Summarize):** Previous 5-10 exchanges summarized into concise bullet-point previews
+   - **Tier 3 (Drop):** Oldest exchanges beyond the summary window are dropped entirely
+4. **Automatic retry:** After compaction, the system retries the LLM call. If the error persists, it compacts again with a reduced budget, up to 3 iterations
+5. **Fallback:** If even the minimal context (system prompt + last user message) exceeds the budget, a user-facing error is returned: "The conversation is too long. Please start a new session."
+
+The compaction tool is registered with zero permissions (always available) and is accessible both as an automatic recovery mechanism and as a LangChain tool the agent can invoke directly.
 
 ---
 

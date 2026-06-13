@@ -14,6 +14,7 @@ Call chains and data flows for all primary code paths in the project, excluding 
 - [Chat Flow (CLI Chat Mode)](#chat-flow-cli-chat-mode)
 - [Chat Model Creation](#chat-model-creation)
 - [Agent ReAct Streaming](#agent-react-streaming)
+- [Context Compaction](#context-compaction)
 - [Tool Permission Enforcement](#tool-permission-enforcement)
 - [File Tool Execution Flow](#file-tool-execution-flow)
 - [Terminal Tool Execution Flow](#terminal-tool-execution-flow)
@@ -354,9 +355,103 @@ callReactAgent(agent, message, config, systemPrompt, callback)
     └── return { content: originalMessage } -- fallback
 ```
 
-## Tool Permission Enforcement
+**Context length error handling:** Both `callReactAgent` and `callReactAgentStreaming` are wrapped in a retry loop (max 3 iterations). When the LLM returns a 400 error matching context-length patterns (`/maximum\s+context\s+length[^0-9]*?(\d+)\s*tokens?/i` or `/limit[:\s]*(\d+)/i`), the system:
 
-**Entry:** `src/tools/index.js` → `buildToolConfig()`
+1. Extracts the max context length from the error message
+2. Calculates `targetTokens = maxContextLength - maxTokens`
+3. Compacts the conversation via `compactConversation()` using tiered retention
+4. Rebuilds messages from compacted result and retries
+
+If all 3 iterations fail, the user receives: "The conversation is too long. Please start a new session."
+
+---
+
+## Context Compaction
+
+**Entry:** `src/tools/compactContext.js` → `compactConversation()`, `isContextLengthError()`, `extractContextLength()`
+
+The compaction flow runs inside both `callReactAgent` (non-streaming) and `callReactAgentStreaming`. On a context-length 400 error, the system compacts and retries up to 3 times.
+
+### Non-Streaming Path
+
+```
+callReactAgent(agent, message, config, systemPrompt, callback, options)
+├── messages = [SystemMessage(systemPrompt), HumanMessage(message)] (new thread)
+└── while iteration <= maxCompactionIterations:
+    ├── try:
+    │   ├── agent.invoke({ messages }, config)
+    │   └── extractContent(result, message) → { content: string }
+    ├── catch isContextLengthError(err):
+    │   ├── effectiveContextLength = extractContextLength(err.message)
+    │   ├── targetTokens = effectiveContextLength - effectiveMaxTokens
+    │   ├── conversation = messages.filter(!SystemMessage).map({role, content})
+    │   ├── compacted = compactConversation({ systemPrompt, conversation, targetTokens })
+    │   │   └── tiered-retention strategy:
+    │   │       ├── Tier 1: system prompt + last 3 exchanges (full)
+    │   │       ├── Tier 2: previous 10 exchanges (summarized)
+    │   │       └── Tier 3: oldest exchanges dropped
+    │   ├── messages = compacted.compactedMessages.map({role} → SystemMessage/HumanMessage/AIMessage)
+    │   ├── iteration++
+    │   └── if iteration > maxCompactionIterations → { content: "The conversation is too long..." }
+    ├── catch GraphRecursionError → { content: "I've reached the maximum number of reasoning steps..." }
+    └── catch other error → rethrow
+```
+
+### Streaming Path
+
+```
+callReactAgentStreaming(agent, initMessages, originalMessage, config, callback, options)
+├── currentMessages = initMessages
+└── while iteration <= maxCompactionIterations:
+    ├── try:
+    │   ├── agent.streamEvents({ messages: currentMessages }, { version: "v2", ... })
+    │   ├── for await (event of stream):
+    │   │   ├── on_chat_model_stream → callback({ type: "text", text })
+    │   │   ├── on_chat_model_stream (reasoning) → callback({ type: "reasoning", text })
+    │   │   ├── on_tool_start → callback({ type: "tool_start", toolName, toolCallId })
+    │   │   ├── on_tool_end → callback({ type: "tool_end", toolName, toolCallId, data })
+    │   │   └── on_tool_error → callback({ type: "tool_error", toolName, toolCallId, error })
+    │   ├── emit tool_end for remaining toolCallSet
+    │   └── return { content: originalMessage }
+    ├── catch:
+    │   ├── emit tool_end for remaining toolCallSet
+    │   ├── if GraphRecursionError → { content: "I've reached the maximum number of reasoning steps..." }
+    │   ├── if isContextLengthError(err):
+    │   │   ├── effectiveContextLength = extractContextLength(err.message)
+    │   │   ├── targetTokens = effectiveContextLength - effectiveMaxTokens
+    │   │   ├── conversation = currentMessages.filter(!SystemMessage).map({role, content})
+    │   │   ├── compacted = compactConversation({ systemPrompt: "", conversation, targetTokens })
+    │   │   └── currentMessages = compacted.compactedMessages.map({role} → messages)
+    │   │       iteration++
+    │   │       if iteration > maxCompactionIterations → { content: originalMessage }
+    │   │       continue
+    │   └── else → rethrow
+```
+
+### CompactContext Tool
+
+The `compactContext` tool is also registered as a LangChain tool (zero permissions, always available). The agent can invoke it directly:
+
+```
+compactContext({ action: "compact", targetTokens: 50000 })
+├── get conversation from checkpointer (via thread_id)
+├── compactConversation({ systemPrompt, conversation, targetTokens })
+│   └── tiered-retention strategy
+└── return { ok: true, compactedMessages: [...], compactedTokenCount: N, strategy: "tiered-retention" }
+```
+
+### Error Detection Patterns
+
+Two regex patterns detect context-length errors across providers:
+
+| Pattern | Matches |
+|---------|---------|
+| `/maximum\s+context\s+length[^0-9]*?(\d+)\s*tokens?/i` | "maximum context length is 128000 tokens", "maximum context length of 8192 tokens exceeded" |
+| `/limit[:\s]*(\d+)/i` | "(limit: 8192)", "limit: 4096" |
+
+---
+
+## Tool Permission Enforcement
 
 ```
 Permission gates per tool:
@@ -376,6 +471,9 @@ Permission gates per tool:
 ├── cronjob → "network:outbound"
 ├── text_to_speech → OPENAI_API_KEY
 ├── mixture_of_agents → OPENROUTER_API_KEY
+├── sampling → always (no perms)
+├── date → always (no perms)
+├── compactContext → always (no perms, always registered)
 └── tts → OPENAI_API_KEY
 ```
 
@@ -602,6 +700,34 @@ clarify tool (zero-permission, always registered):
 ├── append new question with timestamp
 ├── writeFileSync("memory/context/clarifications.md")
 └── return { status: "ok", message: "Clarification noted." }
+```
+
+### Context Compaction
+
+**Entry:** `src/tools/compactContext.js` → `createCompactContextTool()`
+
+```
+compactContext tool (zero-permission, always registered):
+├── action === "compact" → proceed
+├── get conversation from checkpointer (via thread_id) or options.conversation
+├── compactConversation({ systemPrompt, conversation, targetTokens }):
+│   ├── estimateTokens(text) → ceil(text.length / 4)
+│   ├── Group conversation into exchange pairs (user + assistant)
+│   ├── Tier 1: Keep last N exchanges in full (default 3)
+│   ├── Tier 2: Summarize previous M exchanges (default 10) → [User/Assistant]: preview...
+│   ├── Tier 3: If still over budget → reduce summarize window → keep only last exchange
+│   └── Final fallback: system prompt + last user message only
+└── return { ok, compactedMessages, compactedTokenCount, originalTokenCount, strategy, warning? }
+
+isContextLengthError(err):
+├── err.message matches /maximum\s+context\s+length[^0-9]*?(\d+)\s*tokens?/i → true
+├── err.message matches /limit[:\s]*(\d+)/i → true
+└── else → false
+
+extractContextLength(err.message):
+├── Try pattern 1 → extract digits → parseInt
+├── Fall back to pattern 2 → extract digits → parseInt
+└── else → null
 ```
 
 ## Memory Persistence Flow
@@ -846,6 +972,7 @@ index.js
 │     ├── tools/tts.js → OPENAI_API_KEY — text-to-speech via OpenAI TTS API
 │     ├── tools/moa.js → OPENROUTER_API_KEY — mixture-of-agents (4 parallel OpenRouter calls + aggregation)
 │     ├── tools/cron.js → node:fs/promises — cron job CRUD operations
+│     ├── tools/compactContext.js → @langchain/core, zod — automatic conversation context compaction on LLM 400 errors (tiered retention, retry loop, error detection)
 │     └── tools/...
 ├── sandbox/pathResolver.js → node:path
 ├── sandbox/urlFilter.js → node:url

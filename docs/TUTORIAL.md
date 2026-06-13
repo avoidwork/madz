@@ -6,6 +6,37 @@ This guide walks you through deployment, configuration, and daily operation—wh
 
 ---
 
+## Table of Contents
+
+- [Preparation](#-preparation)
+  - [Core Requirements](#core-requirements)
+    - [Optional](#optional)
+  - [What is Docker?](#what-is-docker)
+- [Installation](#-installation)
+  - [Option A: Docker (Recommended for Isolation)](#option-a-docker-recommended-for-isolation)
+  - [Option B: npm Global Install (System-Wide Access)](#option-b-npm-global-install-system-wide-access)
+  - [Option C: Clone Source Repository (Development/Customization)](#option-c-clone-source-repository-developmentcustomization)
+- [Configuration](#-configuration)
+  - [LLM Providers & Sovereignty](#-llm-providers--sovereignty)
+  - [Environment Variable Mapping](#environment-variable-mapping)
+  - [Inline References (Alternative)](#inline-references-alternative)
+- [Launch & First Interaction](#-launch--first-interaction)
+  - [Docker — Connect via SSH](#docker---connect-via-ssh)
+  - [NPM — Interactive TUI](#npm---interactive-tui)
+  - [First Launch: The Living Profile](#first-launch-the-living-profile)
+- [Daily Usage](#-daily-usage)
+  - [TUI Navigation](#tui-navigation)
+  - [Memory System](#memory-system)
+  - [Skills](#skills)
+- [Advanced Usage](#-advanced-usage)
+  - [Scheduled Jobs](#scheduled-jobs)
+  - [Scripting & Automation](#scripting--automation)
+- [Troubleshooting](#-troubleshooting)
+  - [Docker-Specific](#docker-specific)
+  - [General](#general)
+
+---
+
 ## 📦 Preparation
 
 Before we build, we must prepare the ground. Ensure your system meets these requirements:
