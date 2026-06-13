@@ -5,17 +5,17 @@ describe("tools - buildToolConfig", () => {
 	it("TOOL_PERMISSIONS contains all expected tools", async () => {
 		const { TOOL_PERMISSIONS } = await import("../../src/tools/index.js");
 		const expectedTools = [
-			"read_file",
-			"write_file",
+			"readFile",
+			"writeFile",
 			"patch",
-			"search_files",
+			"searchFiles",
 			"terminal",
 			"process",
 			"todo",
 			"memory",
-			"session_search",
+			"sessionSearch",
 			"clarify",
-			"skill_view",
+			"skillView",
 			"sampling",
 		];
 		for (const tool of expectedTools) {
@@ -35,7 +35,7 @@ describe("tools - buildToolConfig", () => {
 
 	it("read_file requires only filesystem:read", async () => {
 		const { TOOL_PERMISSIONS } = await import("../../src/tools/index.js");
-		assert.deepStrictEqual(TOOL_PERMISSIONS.read_file, ["filesystem:read"]);
+		assert.deepStrictEqual(TOOL_PERMISSIONS.readFile, ["filesystem:read"]);
 	});
 
 	it("terminal requires both filesystem:exec and process:spawn", async () => {
@@ -84,7 +84,7 @@ describe("tools - buildToolConfig", () => {
 		const toolNames = tools.map((t) => t.name);
 		assert.strictEqual(toolNames.length, 5);
 		assert.ok(toolNames.includes("clarify"));
-		assert.ok(toolNames.includes("execute_code"));
+		assert.ok(toolNames.includes("executeCode"));
 		assert.ok(toolNames.includes("sampling"));
 		assert.ok(toolNames.includes("date"));
 		assert.ok(toolNames.includes("compactContext"));
@@ -98,16 +98,16 @@ describe("tools - buildToolConfig", () => {
 		});
 		const toolNames = tools.map((t) => t.name);
 		assert.ok(toolNames.includes("clarify"), "clarify should always register");
-		assert.ok(toolNames.includes("execute_code"), "execute_code should always register");
-		assert.ok(toolNames.includes("read_file"), "read_file should register with filesystem:read");
-		assert.ok(toolNames.includes("write_file"), "write_file should register with filesystem:write");
+		assert.ok(toolNames.includes("executeCode"), "execute_code should always register");
+		assert.ok(toolNames.includes("readFile"), "read_file should register with filesystem:read");
+		assert.ok(toolNames.includes("writeFile"), "write_file should register with filesystem:write");
 		assert.ok(toolNames.includes("patch"), "patch should register with filesystem:write");
 		assert.ok(
 			toolNames.includes("todo"),
 			"todo should register with filesystem:read + filesystem:write",
 		);
 		assert.ok(toolNames.includes("memory"), "memory should register");
-		assert.ok(toolNames.includes("skill_view"), "skill_view should register");
+		assert.ok(toolNames.includes("skillView"), "skill_view should register");
 		assert.ok(toolNames.includes("sampling"), "sampling should register (no perms needed)");
 		// terminal requires process:spawn which is not enabled
 		assert.ok(
@@ -136,8 +136,8 @@ describe("tools - buildToolConfig", () => {
 		// No API keys: web_search/vision_analyze/image_generate won't register
 		assert.ok(toolNames.length >= 13, "All tier 1 + tier 2 + sampling tools should register");
 		assert.ok(toolNames.includes("terminal"), "terminal should register");
-		assert.ok(toolNames.includes("process"), "process should register");
-		assert.ok(toolNames.includes("execute_code"), "execute_code should register");
+		assert.ok(toolNames.includes("processTool"), "process should register");
+		assert.ok(toolNames.includes("executeCode"), "execute_code should register");
 		assert.ok(toolNames.includes("cronJob"), "cronJob should register");
 	});
 
@@ -149,12 +149,12 @@ describe("tools - buildToolConfig", () => {
 		});
 		const toolNames = tools.map((t) => t.name);
 		assert.ok(toolNames.includes("clarify"));
-		assert.ok(toolNames.includes("read_file"));
-		assert.ok(toolNames.includes("search_files"));
-		assert.ok(toolNames.includes("session_search"));
-		assert.ok(toolNames.includes("skill_view"));
+		assert.ok(toolNames.includes("readFile"));
+		assert.ok(toolNames.includes("searchFiles"));
+		assert.ok(toolNames.includes("sessionSearch"));
+		assert.ok(toolNames.includes("skillView"));
 		// write-only tools should NOT register
-		assert.ok(!toolNames.includes("write_file"), "write_file should NOT register with only read");
+		assert.ok(!toolNames.includes("writeFile"), "writeFile should NOT register with only read");
 	});
 
 	it("handles maxReadSize in config", async () => {
@@ -166,7 +166,7 @@ describe("tools - buildToolConfig", () => {
 		const toolNames = tools.map((t) => t.name);
 		assert.strictEqual(toolNames.length, 5);
 		assert.ok(toolNames.includes("clarify"));
-		assert.ok(toolNames.includes("execute_code"));
+		assert.ok(toolNames.includes("executeCode"));
 		assert.ok(toolNames.includes("sampling"));
 		assert.ok(toolNames.includes("date"));
 		assert.ok(toolNames.includes("compactContext"));

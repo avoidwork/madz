@@ -508,7 +508,7 @@ export const search_files = tool(searchFilesImpl, {
  */
 export function createReadFileTool(options) {
 	return tool((input) => readFileImpl(input, options), {
-		name: "read_file",
+		name: "readFile",
 		description:
 			"Read the complete contents of a file from the file system. Supports pagination with offset/limit for large files. Returns lines in LINE_NUM|CONTENT format.",
 		schema: z.object({
@@ -526,7 +526,7 @@ export function createReadFileTool(options) {
  */
 export function createWriteFileTool(options) {
 	return tool((input) => writeFileImpl(input, options), {
-		name: "write_file",
+		name: "writeFile",
 		description:
 			"Write content to a file, creating all parent directories if they don't exist. Validates content size (max 500KB).",
 		schema: z.object({
@@ -561,7 +561,7 @@ export function createPatchTool(options) {
  */
 export function createSearchFilesTool(options) {
 	return tool((input) => searchFilesImpl(input, options), {
-		name: "search_files",
+		name: "searchFiles",
 		description:
 			"Search file contents using ripgrep (primary) or native fs fallback. Searches for a regex pattern in files within the given path. Can search by filename or content.",
 		schema: z.object({

@@ -2,7 +2,7 @@ import { describe, it, before, after } from "node:test";
 import assert from "node:assert";
 import { imageGenerateImpl } from "../../src/tools/image.js";
 
-describe("image_generate", () => {
+describe("imageGenerate", () => {
 	let origFetch;
 
 	before(() => {

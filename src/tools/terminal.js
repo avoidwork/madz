@@ -231,7 +231,7 @@ export async function manageProcessImpl(input, _options) {
 /**
  * Process management tool for background process control.
  */
-export const process_tool = tool(manageProcessImpl, {
+export const processTool = tool(manageProcessImpl, {
 	name: "process",
 	description:
 		"Manage background processes. Actions: list (show all), poll (check status), log (stdout), wait (wait for exit), kill (SIGTERM/SIGKILL), write (send stdin data), pause (SIGSTOP), resume (SIGCONT).",
@@ -280,7 +280,7 @@ export function createTerminalTool(options) {
  */
 export function createProcessTool(options) {
 	return tool((input) => manageProcessImpl(input, options), {
-		name: "process",
+		name: "processTool",
 		description:
 			"Manage background processes. Actions: list (show all), poll (check status), log (stdout), wait (wait for exit), kill (SIGTERM/SIGKILL), write (send stdin data), pause (SIGSTOP), resume (SIGCONT).",
 		schema: z.object({

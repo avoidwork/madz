@@ -9,7 +9,7 @@ import {
 	createSkillViewTool,
 	skillViewImpl,
 	generateSkillCatalogPrompt,
-	create_skill,
+	createSkill,
 } from "../../src/tools/skills.js";
 import { SkillRegistry } from "../../src/skills/registry.js";
 
@@ -34,14 +34,14 @@ function cleanup() {
 
 // --- Tool registration tests ---
 
-describe("create_skill tool registration", () => {
+describe("createSkill tool registration", () => {
 	it("exports createSkillImpl function", async () => {
 		assert.ok(typeof createSkillImpl === "function");
 	});
 
-	it("exports create_skill tool", async () => {
-		assert.ok(typeof create_skill !== "undefined");
-		assert.strictEqual(create_skill.name, "create_skill");
+	it("exports createSkill tool", async () => {
+		assert.ok(typeof createSkill !== "undefined");
+		assert.strictEqual(createSkill.name, "createSkill");
 	});
 
 	it("exports createSkillViewTool factory", async () => {

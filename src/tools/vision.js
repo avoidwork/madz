@@ -159,7 +159,7 @@ export async function visionAnalyzeImpl(input, options) {
  * @returns {string} JSON result string
  */
 export const vision_analyze = tool(visionAnalyzeImpl, {
-	name: "vision_analyze",
+	name: "visionAnalyze",
 	description:
 		"Analyze an image by sending it to a multimodal LLM. Accepts a URL or base64 data URI. The image is fetched, validated (max 4MB), and sent to GPT-4o for description or answering a specific question about the image.",
 	schema: z.object({
@@ -181,7 +181,7 @@ export const vision_analyze = tool(visionAnalyzeImpl, {
  */
 export function createVisionTool(options) {
 	return tool((input) => visionAnalyzeImpl(input, options), {
-		name: "vision_analyze",
+		name: "visionAnalyze",
 		description:
 			"Analyze an image by sending it to a multimodal LLM. Accepts a URL or base64 data URI.",
 		schema: z.object({
