@@ -184,8 +184,7 @@ export default function App({
 				const statusLine = event.message
 					? `- ${event.message}`
 					: `- Todo: ${event.action} ${event.key || ""}`;
-				todoStatusLines =
-					(todoStatusLines ? todoStatusLines + "\n" : "") + statusLine;
+				todoStatusLines = (todoStatusLines ? todoStatusLines + "\n" : "") + statusLine;
 				setMessages((prev) => {
 					const cloned = [...prev];
 					const last = cloned[cloned.length - 1];

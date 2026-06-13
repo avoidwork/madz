@@ -169,4 +169,11 @@ export function createTodoTool(options = {}) {
 }
 
 // Re-export for backward compatibility with tests
-export { todoImpl, loadTodos, saveTodos, findTodoByKey, validateRequired, stripNonASCII } from "./todoLogic.js";
+export {
+	todoImpl,
+	loadTodos,
+	saveTodos,
+	findTodoByKey,
+	validateRequired,
+	stripNonASCII,
+} from "./todoLogic.js";
