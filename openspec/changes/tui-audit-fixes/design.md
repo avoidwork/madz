@@ -1,4 +1,3 @@
-
 ## Decisions
 
 ### 1. Cursor color strategy
@@ -11,7 +10,7 @@
 - Make cursor color configurable per-message — overkill for a CLI.
 
 ### 2. Auto-scroll via useEffect with ref
-**Decision:** Replace the render-phase hash check + `scrollToBottom()` with a `useEffect` that watches `messages` and `scrollRef.current`.
+**Decision:** Replace the render-phase hash check + `scrollToBottom()` with a `useEffect` that watches `messages.length` and `scrollRef.current`.
 
 **Rationale:** Side effects during render violate React's rendering model. A `useEffect` with proper dependencies achieves the same result cleanly.
 
@@ -28,7 +27,7 @@
 - Use `wrap: "wrap"` — redundant since output is already wrapped.
 
 ### 4. Cache parseMarkdown results
-**Decision:** Use `useRef` to cache the parsed markdown result keyed by content hash.
+**Decision:** Use `useRef` to cache the parsed markdown result keyed by content.
 
 **Rationale:** `marked.parse()` is synchronous but non-trivial for long messages. Caching avoids unnecessary work on re-renders.
 
@@ -37,13 +36,40 @@
 - Cache at module level — shared across instances, risky if content differs.
 
 ### 5. Guard scroll methods with interactive check
-**Decision:** Check `stdout.isTTY` before calling scroll methods.
+**Decision:** Check `stdout.isTTY && !process.env.CI` before calling scroll methods, plus null ref check.
 
-**Rationale:** Guarding scroll methods with `isTTY` prevents errors in CI/piped environments.
+**Rationale:** Ink's interactive mode detection uses both `isTTY` and CI detection. Guarding on both prevents errors in CI/piped environments.
 
 **Alternatives considered:**
 - Try/catch around scroll calls — masks real errors.
-- Check `process.env.CI` — doesn't cover all non-TTY scenarios.
+- Check only `process.env.CI` — doesn't cover non-TTY scenarios.
+
+### 6. Strip streaming cursor before markdown parse
+**Decision:** Before passing content to `marked.parse()`, strip the streaming cursor character (`\u2588`) from the end of the content string.
+
+**Rationale:** `marked.parse()` will attempt to parse the cursor character as markdown, potentially producing unexpected ANSI output. Stripping it before parsing ensures clean output while keeping the cursor visible in the UI.
+
+**Alternatives considered:**
+- Pass cursor character through parser and filter it out afterward — more complex, risk of parser errors.
+- Don't parse markdown during streaming — loses formatting for streamed content.
+
+### 7. MessageBubble memo uses stable identifier
+**Decision:** Replace `_index` in `MessageBubble.areEqual` with a content-based hash (e.g., `role + content + time`) as the stable identifier for memo comparison.
+
+**Rationale:** Array indices shift when messages are filtered (error case), causing the memo to incorrectly skip re-renders. A content-based hash is stable across message reordering and filtering.
+
+**Alternatives considered:**
+- Add a `messageId` to each message object — requires changes to message creation, more invasive.
+- Use `content` directly as the key — could cause collisions if two messages have identical content.
+
+### 8. Scroll API verified against ink-scroll-view
+**Decision:** Before calling any scroll method, verify the ref is non-null AND that the method exists on the ref object. Log a warning if a method is missing.
+
+**Rationale:** The spec requires using verified `ink-scroll-view` API methods. Defensive checks prevent runtime errors if the package API changes or if a different scroll implementation is used.
+
+**Alternatives considered:**
+- Trust the ref type — no runtime checks, but silent failures if API changes.
+- Try/catch around all scroll calls — masks real errors, harder to debug.
 
 ## Risks / Trade-offs
 
@@ -56,6 +82,9 @@
 **Risk:** Moving auto-scroll to `useEffect` changes timing — scroll happens after render instead of during.
 **Mitigation:** The visual difference is imperceptible. The scroll will happen on the next paint, which is the correct React pattern.
 
+**Risk:** `marked-terminal` produces ANSI escape codes that may cause layout misalignment in Ink's Yoga engine (which calculates by char count, not visual width).
+**Mitigation:** This is a known limitation of the `marked-terminal` + Ink integration. Acceptable for current use case; can be addressed with a custom renderer if needed.
+
 ## Migration Plan
 
 This is a pure code fix with no API changes, no config changes, and no data migration. The changes are:
@@ -64,8 +93,12 @@ This is a pure code fix with no API changes, no config changes, and no data migr
 3. Move auto-scroll logic to `useEffect` in `ConversationPanel`
 4. Remove `wrap: "hard"` from `MarkdownText`
 5. Add parse caching to `MarkdownText`
-6. Add `isTTY` guard to scroll calls in `ConversationPanel`
+6. Add `isTTY && !CI` guard to scroll calls in `ConversationPanel`
 7. Fix `dim` to `dimColor` in `MessageBubble`
+8. Strip streaming cursor character before markdown parse
+9. Replace `_index` with content hash in `MessageBubble.areEqual`
+10. Add stable `key` prop to `InputPanel` in `app.js`
+11. Add null/method-existence checks before scroll API calls
 
 No rollback needed — if issues arise, revert the commit.
 
