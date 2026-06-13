@@ -1,7 +1,7 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import { createTodoQueue } from "./todoQueue.js";
-import { todoImpl, stripNonASCII } from "./todoLogic.js";
+import { createTodoQueue } from "./todo_queue.js";
+import { todoImpl, stripNonASCII } from "./todo_logic.js";
 
 /**
  * Singleton queue instance — shared across all tool invocations.
@@ -12,7 +12,7 @@ let _queue = null;
 /**
  * Get or create the singleton todo queue.
  * @param {object} [options]
- * @returns {import("./todoQueue.js").TodoQueue}
+ * @returns {import("./todo_queue.js").TodoQueue}
  */
 function getQueue(options = {}) {
 	if (!_queue) {
@@ -45,7 +45,7 @@ export function resetQueue() {
  * @param {object} options - Runtime options
  * @param {string} [options.filePath] - Path to the todo JSON file
  * @param {number} [options.maxTodos] - Maximum number of todos allowed
- * @param {(event: import("./todoQueue.js").TodoQueueEvent) => void} [options.onEvent] - Status event callback
+ * @param {(event: import("./todo_queue.js").TodoQueueEvent) => void} [options.onEvent] - Status event callback
  * @returns {Promise<string>} JSON string result
  */
 export async function queuedTodoImpl(input, options = {}) {
@@ -98,7 +98,7 @@ export const todo = tool(todoImpl, {
  * @param {object} [options] - Runtime options
  * @param {string} [options.filePath] - Path to the todo JSON file (default: "memory/tools/todo.json")
  * @param {number} [options.maxTodos] - Maximum number of todos allowed
- * @param {(event: import("./todoQueue.js").TodoQueueEvent) => void} [options.onEvent] - Status event callback
+ * @param {(event: import("./todo_queue.js").TodoQueueEvent) => void} [options.onEvent] - Status event callback
  * @returns {object} LangChain Tool instance
  */
 export function createQueuedTodoTool(options = {}) {
@@ -176,4 +176,4 @@ export {
 	findTodoByKey,
 	validateRequired,
 	stripNonASCII,
-} from "./todoLogic.js";
+} from "./todo_logic.js";

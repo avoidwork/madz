@@ -121,7 +121,7 @@ class TodoQueue {
 
 			try {
 				// Execute the actual todo logic
-				const { todoImpl } = await import("./todoLogic.js");
+				const { todoImpl } = await import("./todo_logic.js");
 				const result = await todoImpl(input, {
 					filePath: this.filePath,
 					maxTodos: this.maxTodos,

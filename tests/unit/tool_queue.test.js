@@ -3,8 +3,8 @@ import assert from "node:assert";
 import { readFileSync } from "node:fs";
 import { mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { createTodoQueue } from "../../src/tools/todoQueue.js";
-import { setTodoStreamingCallback } from "../../src/tools/todoQueue.js";
+import { createTodoQueue } from "../../src/tools/todo_queue.js";
+import { setTodoStreamingCallback } from "../../src/tools/todo_queue.js";
 import { resetQueue } from "../../src/tools/todo.js";
 
 const TEST_DIR = join(process.cwd(), "memory", "__test_queue__");

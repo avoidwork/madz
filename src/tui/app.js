@@ -11,7 +11,7 @@ import { OnboardingPanel } from "./onboardingPanel.js";
 import { createSession } from "../session/factory.js";
 import { setConfigValue } from "../config/loader.js";
 import { isAvailable, getGcCalls } from "../memory/gc.js";
-import { setTodoStreamingCallback } from "../tools/todoQueue.js";
+import { setTodoStreamingCallback } from "../tools/todo_queue.js";
 
 /**
  * Main App component (Ink). Renders an IRC-style layout:

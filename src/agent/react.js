@@ -4,7 +4,7 @@ import {
 	extractContextLength,
 	isContextLengthError,
 	compactConversation,
-} from "../tools/compactContext.js";
+} from "../tools/compact_context.js";
 
 const RECURSION_LIMIT_MESSAGE =
 	"I've reached the maximum number of reasoning steps on this thread. Please continue your message and I'll carry on, or start a new conversation if you'd prefer.";
