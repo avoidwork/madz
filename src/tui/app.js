@@ -187,8 +187,9 @@ export default function App({
 		addMessage({ role: "user", content: text });
 
 		// Persist user message to session state and recalculate context
+		// NOTE: Don't add to sessionState before dispatchProvider — it needs to see
+		// an empty conversation to correctly set isNewThread=true for the system prompt
 		if (sessionState) {
-			sessionState.addExchange({ role: "user", content: text });
 			const conversation = sessionState.getConversation();
 			const providerName = sessionState.getProvider();
 			const providerConfig = config?.providers?.[providerName] || {};
@@ -334,6 +335,12 @@ export default function App({
 			const responseContent = committedContent;
 
 			if (isQuittingRef.current) return;
+
+			// Now persist user message to session state (after dispatchProvider so
+			// isNewThread is correctly computed for the system prompt)
+			if (sessionState) {
+				sessionState.addExchange({ role: "user", content: text });
+			}
 
 			setMessages((prev) => {
 				const cloned = [...prev];

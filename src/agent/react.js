@@ -67,7 +67,7 @@ export async function callReactAgent(agent, message, config, systemPrompt, callb
 	}
 
 	if (callback) {
-		return callReactAgentStreaming(agent, messages, message, config, callback, options);
+		return callReactAgentStreaming(agent, messages, message, config, callback, options, systemPrompt);
 	}
 
 	let _lastError = null;
@@ -191,6 +191,7 @@ async function callReactAgentStreaming(
 	config,
 	callback,
 	options = {},
+	systemPrompt = "",
 ) {
 	const {
 		maxContextLength,
@@ -361,7 +362,7 @@ async function callReactAgentStreaming(
 					}));
 
 				const compacted = compactConversation({
-					systemPrompt: "",
+					systemPrompt,
 					conversation,
 					targetTokens,
 				});
