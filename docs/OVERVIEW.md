@@ -16,7 +16,7 @@ graph TD
     A --> P["Provider"]
     A -->|"tools"| SB["Sandbox"]
     S -->|"runNow()"| SB
-    SB -->|"fork()"| SK["scripts/"]
+    SB -->|"spawn()"| SK["scripts/"]
     TM["Memory Files"] -->|"loadContext"| A
     TM -->|write/read| FS["filesystem"]
     TM -->|context| SE["Session"]
@@ -165,11 +165,11 @@ The agent runs: reason → call tool(s) → reason again → answer. Tool array 
 
 ## Sandbox
 
-`src/sandbox/` — secure skill execution via forked processes with resource limits.
+`src/sandbox/` — secure skill execution via spawned processes with resource limits.
 
 | File | Purpose |
 |------|---------|
-| `runner.js` | `runSandbox()` — `fork()`, memory limits, capture stdout/stderr, timeout |
+| `runner.js` | `runSandbox()` — `spawn()`, memory limits, capture stdout/stderr, timeout |
 | `pathResolver.js` | `resolvePath()` / `assertPathAllowed()` — sandbox scope enforcement |
 | `urlFilter.js` | `filterUrl()` — blocks `file://`, `gopher://`, `dict://`; hostname allowlist |
 | `envInjector.js` | `injectEnv()` / `filterEnv()` — whitelist env vars |
@@ -272,7 +272,7 @@ index.js
     ├── enforceCapabilities()           ← {rules, resources}
     └── runSandbox({script, permissions, ...input})
           ├── resolvePath() / filterUrl() / filterEnv()
-          ├── child_process.fork()
+          ├── child_process.spawn()
           └── handleTimeout(seconds, grace)     ← SIGTERM → SIGKILL
 ```
 
