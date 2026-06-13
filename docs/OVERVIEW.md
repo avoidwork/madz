@@ -4,6 +4,26 @@ This document describes how madz is structured, how subsystems interact, and the
 
 ---
 
+## Table of Contents
+
+- [System Diagram](#system-diagram)
+- [Entry Point](#entry-point)
+- [Config](#config)
+- [Logger](#logger)
+- [Provider](#provider)
+- [Agent](#agent)
+- [Memory](#memory)
+- [Registry / Skills](#registry--skills)
+- [Sandbox](#sandbox)
+- [Scheduler](#scheduler)
+- [Session](#session)
+- [Context Window Management](#context-window-management)
+- [Telemetry](#telemetry)
+- [TUI](#tui)
+- [Key Data Flows](#key-data-flows)
+
+---
+
 ## System Diagram
 
 ```mermaid
