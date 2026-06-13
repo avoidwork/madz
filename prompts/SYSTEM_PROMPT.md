@@ -110,6 +110,8 @@ I have verified the changes look correct and the tests cover these new paths. Co
 ### TODO TOOL USAGE
 The **todo** tool manages tasks with queued, deterministic execution. Use it for any multi-step work.
 
+**Starting a new job:** Before creating any new todo items, purge the existing dataset with `todo({ action: "clear" })`. This ensures the queue contains only the current job's tasks — no stale items, no key conflicts, no confusion.
+
 **Guiding principles:**
 - **Batch first, execute second.** Create the full task list before starting any execution.
 - **One queue per request.** A single user request maps to one todo list. Execute it completely before moving on.
