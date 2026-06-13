@@ -1,9 +1,41 @@
 import { resolve, sep } from "node:path";
 
 /**
+ * Split allowedPaths into positive rules and negative (exclusion) rules.
+ * Negative rules start with "!".
+ * @param {string[]} allowedPaths
+ * @returns {{ positives: string[], negatives: string[] }}
+ */
+function splitRules(allowedPaths) {
+	const positives = [];
+	const negatives = [];
+	for (const p of allowedPaths) {
+		if (typeof p === "string" && p.startsWith("!")) {
+			negatives.push(p.slice(1));
+		} else {
+			positives.push(p);
+		}
+	}
+	return { positives, negatives };
+}
+
+/**
+ * Check if a resolved path matches a rule (positive or negative).
+ * @param {string} resolvedPath - The resolved absolute path to check
+ * @param {string} rulePath - The rule path (without leading "!")
+ * @returns {boolean}
+ */
+function pathMatches(resolvedPath, rulePath) {
+	const resolvedRule = resolve(rulePath);
+	return resolvedPath === resolvedRule || resolvedPath.startsWith(resolvedRule + sep);
+}
+
+/**
  * Check if a resolved path falls within the allowed sandbox scope.
+ * Negative rules (prefixed with "!") are checked first — if a path matches
+ * any exclusion rule, access is denied regardless of positive rules.
  * @param {string} requestedPath - The absolute file path to check
- * @param {string[]} allowedPaths - List of allowed base paths
+ * @param {string[]} allowedPaths - List of allowed base paths (may include "!exclude/" patterns)
  * @returns {{ allowed: boolean, path: string }}
  */
 export function resolvePath(requestedPath, allowedPaths) {
@@ -12,10 +44,18 @@ export function resolvePath(requestedPath, allowedPaths) {
 	}
 
 	const resolved = resolve(requestedPath);
+	const { positives, negatives } = splitRules(allowedPaths);
 
-	for (const allowedDir of allowedPaths) {
-		const allowedResolved = resolve(allowedDir);
-		if (resolved === allowedResolved || resolved.startsWith(allowedResolved + sep)) {
+	// Check negative rules first — any match denies access
+	for (const neg of negatives) {
+		if (pathMatches(resolved, neg)) {
+			return { allowed: false, path: resolved };
+		}
+	}
+
+	// Check positive rules
+	for (const pos of positives) {
+		if (pathMatches(resolved, pos)) {
 			return { allowed: true, path: resolved };
 		}
 	}

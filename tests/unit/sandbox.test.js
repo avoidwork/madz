@@ -51,6 +51,54 @@ describe("sandbox - path resolution", () => {
 			const result = resolvePath("/home/user/memory/", ["/home/user/memory/"]);
 			assert.strictEqual(result.allowed, true);
 		});
+
+		it("excludes path matching negation rule", () => {
+			const result = resolvePath("node_modules/pkg/index.js", ["./", "!node_modules/"]);
+			assert.strictEqual(result.allowed, false);
+		});
+
+		it("excludes nested path under negated directory", () => {
+			const result = resolvePath("node_modules/@scope/package/src/file.js", ["./", "!node_modules/"]);
+			assert.strictEqual(result.allowed, false);
+		});
+
+		it("allows path that matches positive rule but not negation", () => {
+			const result = resolvePath("src/utils/helper.js", ["./", "!node_modules/"]);
+			assert.strictEqual(result.allowed, true);
+		});
+
+		it("allows path outside negated scope even with broad positive", () => {
+			const result = resolvePath("memory/data.json", ["./", "!node_modules/"]);
+			assert.strictEqual(result.allowed, true);
+		});
+
+		it("handles multiple negation rules", () => {
+			const result = resolvePath("tmp/cache.dat", ["./", "!node_modules/", "!tmp/"]);
+			assert.strictEqual(result.allowed, false);
+		});
+
+		it("allows when no positive rule matches despite negation", () => {
+			const result = resolvePath("/etc/passwd", ["./", "!node_modules/"]);
+			assert.strictEqual(result.allowed, false);
+		});
+
+		it("ignores negation-only config (no positives)", () => {
+			const result = resolvePath("memory/file.txt", ["!node_modules/"]);
+			assert.strictEqual(result.allowed, false);
+		});
+
+		it("handles negation with matching absolute paths", () => {
+			// Both the positive rule and negation resolve relative to CWD
+			// In practice, CWD is the project root, so both paths align
+			const cwd = process.cwd();
+			const result = resolvePath(join(cwd, "node_modules/x.js"), [join(cwd, "/"), "!node_modules/"]);
+			assert.strictEqual(result.allowed, false);
+		});
+
+		it("handles empty negation path string", () => {
+			const result = resolvePath("memory/file.txt", ["./", ""]);
+			assert.strictEqual(result.allowed, true);
+		});
 	});
 
 	describe("assertPathAllowed", () => {

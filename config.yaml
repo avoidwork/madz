@@ -11,11 +11,9 @@ providers:
       requestsPerMinute: 120
 sandbox:
   paths:
-    - memory/
-    - skills/
-    - src/
-    - tests/
-    - /tmp
+    - "./"
+    - "!node_modules/"
+    - "/tmp"
   timeout:
     seconds: 600
     gracePeriod: 5
