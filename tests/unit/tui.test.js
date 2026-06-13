@@ -12,7 +12,7 @@ import {
 } from "../../src/tui/messages.js";
 import { parseMarkdown, MarkdownTextInner } from "../../src/tui/markdownText.js";
 import { TuiSchema, DEFAULT_CONFIG } from "../../src/config/schemas.js";
-import { Blink, getBlinkState, renderBlink } from "../../src/tui/inputPanel.js";
+import { Blink } from "../../src/tui/inputPanel.js";
 
 describe("command parser", () => {
 	it("parses :quit command", () => {
@@ -780,64 +780,6 @@ describe("DEFAULT_CONFIG - tui fields", () => {
 		const schemaResult = TuiSchema.safeParse({});
 		assert.strictEqual(schemaResult.success, true);
 		assert.strictEqual(schemaResult.data.cursorChar, DEFAULT_CONFIG.tui.cursorChar);
-	});
-});
-
-describe("Blink - getBlinkState", () => {
-	it("returns true for frame 0 (visible)", () => {
-		assert.strictEqual(getBlinkState(0), true);
-	});
-
-	it("returns false for frame 1 (invisible)", () => {
-		assert.strictEqual(getBlinkState(1), false);
-	});
-
-	it("returns true for frame 2 (visible)", () => {
-		assert.strictEqual(getBlinkState(2), true);
-	});
-
-	it("toggles visibility on odd frames", () => {
-		assert.strictEqual(getBlinkState(3), false);
-		assert.strictEqual(getBlinkState(5), false);
-	});
-
-	it("is visible on even frames", () => {
-		assert.strictEqual(getBlinkState(4), true);
-		assert.strictEqual(getBlinkState(6), true);
-		assert.strictEqual(getBlinkState(10), true);
-	});
-});
-
-describe("Blink - renderBlink", () => {
-	it("renders visible cursor with even frame", () => {
-		const result = renderBlink("hello", "█", 0);
-		assert.ok(React.isValidElement(result));
-		assert.strictEqual(result.props.flexDirection, "row");
-		assert.strictEqual(result.props.children.length, 2);
-		assert.strictEqual(result.props.children[0].key, "text");
-		assert.strictEqual(result.props.children[1].key, "cursor");
-		assert.strictEqual(result.props.children[1].props.children, "█");
-	});
-
-	it("renders invisible cursor with zero-width space", () => {
-		const result = renderBlink("hello", "█", 1);
-		assert.ok(React.isValidElement(result));
-		assert.strictEqual(result.props.children[1].props.children, "\u200B");
-	});
-
-	it("renders text with flexGrow", () => {
-		const result = renderBlink("world", "█", 0);
-		assert.ok(React.isValidElement(result));
-		assert.strictEqual(result.props.children[0].type.name, "Text");
-		assert.strictEqual(result.props.children[0].props.flexGrow, 1);
-	});
-
-	it("renders cursor with bold property", () => {
-		const result = renderBlink("", "▌", 0);
-		assert.ok(React.isValidElement(result));
-		assert.ok(React.isValidElement(result.props.children[1]));
-		assert.strictEqual(result.props.children[1].type.name, "Text");
-		assert.strictEqual(result.props.children[1].props.bold, true);
 	});
 });
 

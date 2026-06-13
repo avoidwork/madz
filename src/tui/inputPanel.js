@@ -2,47 +2,19 @@ import React from "react";
 import { Box, Text } from "ink";
 
 /**
- * Calculate whether the blinking cursor should be visible for the given frame.
- * @param {number} frame - Animation frame counter
- * @returns {boolean}
- */
-export function getBlinkState(frame) {
-	return frame % 2 === 0;
-}
-
-/**
- * Render blinking cursor UI for a given frame count. Pure function for testability.
- * @param {string} text - Input text to render after prompt
- * @param {string} char - Cursor character to display
- * @param {number} frame - Animation frame count
- * @returns {React.ReactElement}
- */
-export function renderBlink(text, char, frame) {
-	const visible = getBlinkState(frame) && char !== undefined;
-	return React.createElement(
-		Box,
-		{ flexDirection: "row" },
-		React.createElement(Text, { key: "text", flexGrow: 1 }, text || ""),
-		React.createElement(Text, { key: "cursor", bold: true }, visible ? char : "\u200B"),
-	);
-}
-
-/**
  * Input cursor component. Renders a static cursor to avoid periodic re-renders.
  * @param {Object} props
  * @param {string} props.text - Input text to render
  * @param {string} props.char - Cursor character
- * @param {string} [props.color] - Cursor text color
- * @param {number} [props._testFrame] - Ignored (static cursor, no anim)
+ * @param {string} [props.cursorColor] - Cursor text color (defaults to white)
  * @returns {React.ReactElement}
  */
-export function Blink({ text = "", char = "\u2588", color, _testFrame }) {
-	const textColor = color || "white";
+export function Blink({ text = "", char = "\u2588", cursorColor }) {
 	return React.createElement(
 		Box,
 		{ flexDirection: "row" },
-		React.createElement(Text, { key: "text", flexGrow: 1, color: textColor }, text || ""),
-		React.createElement(Text, { key: "cursor", bold: true, color: textColor }, char || "\u2588"),
+		React.createElement(Text, { key: "text", flexGrow: 1, color: "white" }, text || ""),
+		React.createElement(Text, { key: "cursor", bold: true, color: cursorColor || "white" }, char || "\u2588"),
 	);
 }
 
@@ -57,7 +29,7 @@ export function Blink({ text = "", char = "\u2588", color, _testFrame }) {
  */
 export function InputPanel({ inputText = "", cursorChar = "\u2588", cursorColor }) {
 	if (cursorColor) {
-		return React.createElement(Blink, { text: inputText, char: cursorChar, color: cursorColor });
+		return React.createElement(Blink, { text: inputText, char: cursorChar, cursorColor });
 	}
 	return React.createElement(Blink, { text: inputText, char: cursorChar });
 }
