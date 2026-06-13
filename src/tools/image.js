@@ -95,8 +95,7 @@ export async function imageGenerateImpl(input, options) {
 }
 
 /**
- * @param {z.infer<typeof ImageSchema>} input - Tool input
- * @param {object} _options - Runtime options
+ * @param {z.infer<typeof ImageSchema>} input - Tool in		name: "imageGenerate",_options - Runtime options
  * @returns {string} JSON result string
  */
 export const image_generate = tool(imageGenerateImpl, {
@@ -125,7 +124,7 @@ export const image_generate = tool(imageGenerateImpl, {
  */
 export function createImageTool(options) {
 	return tool((input) => imageGenerateImpl(input, options), {
-		name: "image_generate",
+		name: "imageGenerate",
 		description:
 			"Generate an image from a text prompt using FAL.ai (FLUX Klein model). Returns a public image URL.",
 		schema: z.object({

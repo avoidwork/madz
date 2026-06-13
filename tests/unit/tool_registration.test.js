@@ -55,9 +55,9 @@ describe("tool registration - integration", () => {
 		});
 		const toolNames = tools.map((t) => t.name);
 		assert.ok(toolNames.includes("clarify")); // Always registered
-		assert.ok(toolNames.includes("read_file"));
-		assert.ok(!toolNames.includes("web_search")); // needs network:outbound
-		assert.ok(!toolNames.includes("vision_analyze")); // no openai config key, env var cleaned up
+		assert.ok(toolNames.includes("readFile"));
+		assert.ok(!toolNames.includes("webSearch")); // needs network:outbound
+		assert.ok(!toolNames.includes("visionAnalyze")); // no openai config key, env var cleaned up
 	});
 
 	it("registers web tools when network:outbound and search key set", async () => {
@@ -75,8 +75,8 @@ describe("tool registration - integration", () => {
 			},
 		});
 		const toolNames = tools.map((t) => t.name);
-		assert.ok(toolNames.includes("web_search"));
-		assert.ok(toolNames.includes("web_extract"));
+		assert.ok(toolNames.includes("webSearch"));
+		assert.ok(toolNames.includes("webExtract"));
 	});
 
 	it("registers web tools when searxng is configured", async () => {
@@ -88,8 +88,8 @@ describe("tool registration - integration", () => {
 			},
 		});
 		const toolNames = tools.map((t) => t.name);
-		assert.ok(toolNames.includes("web_search"));
-		assert.ok(toolNames.includes("web_extract"));
+		assert.ok(toolNames.includes("webSearch"));
+		assert.ok(toolNames.includes("webExtract"));
 	});
 
 	it("registers web tools when bing is configured", async () => {
@@ -101,8 +101,8 @@ describe("tool registration - integration", () => {
 			},
 		});
 		const toolNames = tools.map((t) => t.name);
-		assert.ok(toolNames.includes("web_search"));
-		assert.ok(toolNames.includes("web_extract"));
+		assert.ok(toolNames.includes("webSearch"));
+		assert.ok(toolNames.includes("webExtract"));
 	});
 
 	it("registers web tools when custom search is configured", async () => {
@@ -114,8 +114,8 @@ describe("tool registration - integration", () => {
 			},
 		});
 		const toolNames = tools.map((t) => t.name);
-		assert.ok(toolNames.includes("web_search"));
-		assert.ok(toolNames.includes("web_extract"));
+		assert.ok(toolNames.includes("webSearch"));
+		assert.ok(toolNames.includes("webExtract"));
 	});
 
 	it("does not register web tools without any search key", async () => {
@@ -124,14 +124,14 @@ describe("tool registration - integration", () => {
 			config: { providers: {}, search: {} },
 		});
 		const toolNames = tools.map((t) => t.name);
-		assert.ok(!toolNames.includes("web_search"));
-		assert.ok(!toolNames.includes("web_extract"));
+		assert.ok(!toolNames.includes("webSearch"));
+		assert.ok(!toolNames.includes("webExtract"));
 	});
 
 	it("registers execute_code without permissions (sandboxed)", async () => {
 		const tools = await buildToolConfig({ permissions: [] });
 		const toolNames = tools.map((t) => t.name);
-		assert.ok(toolNames.includes("execute_code"));
+		assert.ok(toolNames.includes("executeCode"));
 	});
 
 	it("registers vision_analyze with openai (no permission needed)", async () => {
@@ -143,7 +143,7 @@ describe("tool registration - integration", () => {
 			},
 		});
 		const toolNames = tools.map((t) => t.name);
-		assert.ok(toolNames.includes("vision_analyze"));
+		assert.ok(toolNames.includes("visionAnalyze"));
 	});
 
 	it("does not register vision_analyze without openai", async () => {
@@ -155,7 +155,7 @@ describe("tool registration - integration", () => {
 			},
 		});
 		const toolNames = tools.map((t) => t.name);
-		assert.ok(!toolNames.includes("vision_analyze"));
+		assert.ok(!toolNames.includes("visionAnalyze"));
 	});
 
 	it("registers image_generate with network:outbound and fal", async () => {
@@ -167,7 +167,7 @@ describe("tool registration - integration", () => {
 			},
 		});
 		const toolNames = tools.map((t) => t.name);
-		assert.ok(toolNames.includes("image_generate"));
+		assert.ok(toolNames.includes("imageGenerate"));
 	});
 
 	it("does not register image_generate without fal", async () => {
@@ -176,7 +176,7 @@ describe("tool registration - integration", () => {
 			config: { providers: { fal: {} }, search: { exa: {} } },
 		});
 		const toolNames = tools.map((t) => t.name);
-		assert.ok(!toolNames.includes("image_generate"));
+		assert.ok(!toolNames.includes("imageGenerate"));
 	});
 
 	it("registers cronJob with network:outbound", async () => {
@@ -206,7 +206,7 @@ describe("tool registration - integration", () => {
 			},
 		});
 		const toolNames = tools.map((t) => t.name);
-		assert.ok(toolNames.includes("text_to_speech"));
+		assert.ok(toolNames.includes("textToSpeech"));
 	});
 
 	it("does not register text_to_speech without openai", async () => {
@@ -218,7 +218,7 @@ describe("tool registration - integration", () => {
 			},
 		});
 		const toolNames = tools.map((t) => t.name);
-		assert.ok(!toolNames.includes("text_to_speech"));
+		assert.ok(!toolNames.includes("textToSpeech"));
 	});
 
 	it("registers mixture_of_agents with openrouter (no permission needed)", async () => {
@@ -230,7 +230,7 @@ describe("tool registration - integration", () => {
 			},
 		});
 		const toolNames = tools.map((t) => t.name);
-		assert.ok(toolNames.includes("mixture_of_agents"));
+		assert.ok(toolNames.includes("mixtureOfAgents"));
 	});
 
 	it("does not register mixture_of_agents without openrouter", async () => {
@@ -242,6 +242,6 @@ describe("tool registration - integration", () => {
 			},
 		});
 		const toolNames = tools.map((t) => t.name);
-		assert.ok(!toolNames.includes("mixture_of_agents"));
+		assert.ok(!toolNames.includes("mixtureOfAgents"));
 	});
 });

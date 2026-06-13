@@ -133,7 +133,7 @@ export async function textToSpeechImpl(input, options) {
  * @returns {string}
  */
 export const text_to_speech = tool(textToSpeechImpl, {
-	name: "text_to_speech",
+	name: "textToSpeech",
 	description:
 		"Convert text to speech using OpenAI TTS (tts-1). Saves audio as MP3 to ~/voice-memos/[timestamp]_[voice].mp3 and returns a MEDIA: path. Requires OPENAI_API_KEY environment variable.",
 	schema: z.object({
@@ -156,7 +156,7 @@ export const text_to_speech = tool(textToSpeechImpl, {
  */
 export function createTtsTool(options) {
 	return tool((input) => textToSpeechImpl(input, options), {
-		name: "text_to_speech",
+		name: "textToSpeech",
 		description:
 			"Convert text to speech using OpenAI TTS (tts-1). Saves audio as MP3 to ~/voice-memos/.",
 		schema: z.object({

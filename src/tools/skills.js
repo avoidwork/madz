@@ -106,8 +106,8 @@ export async function skillViewImpl(input, options) {
  * @param {object} options.registry - The skill registry instance
  * @returns {object} Skill details and full SKILL.md content
  */
-export const skill_view = tool(skillViewImpl, {
-	name: "skill_view",
+export const skillView = tool(skillViewImpl, {
+	name: "skillView",
 	description:
 		"View full details for a skill by name (legacy access path). Returns name, version, description, license, compatibility, metadata, permissions, scripts, and full SKILL.md body. Prefer progressive disclosure via getCatalog for normal usage.",
 	schema: z.object({
@@ -318,8 +318,8 @@ export async function createSkillImpl(input, options) {
  * @param {object} [options.registry] - The skill registry instance
  * @returns {Promise<{ success: boolean, name: string, paths: string[], registered: boolean, errors?: string[], warnings?: string[] }>}
  */
-export const create_skill = tool(createSkillImpl, {
-	name: "create_skill",
+export const createSkill = tool(createSkillImpl, {
+	name: "createSkill",
 	description:
 		"Create a new Agent Skills spec-compliant skill. Creates the skill directory under skills/, writes SKILL.md with YAML frontmatter, and optionally scaffolds a scripts/ directory. Validates name (lowercase alphanumeric + hyphens, 1-64 chars), description (1-1024 chars), and other spec constraints before writing. Returns { success, name, paths, registered, errors?, warnings? }. Errors prevent creation.",
 	schema: z.object({
@@ -394,7 +394,7 @@ export function generateSkillCatalogPrompt(catalog) {
  */
 export function createSkillsListTool(options) {
 	return tool((input) => skillsListImpl(input, options), {
-		name: "skills_list",
+		name: "skillsList",
 		description:
 			"List all discovered skills via catalog with name, description, and location. Returns { skills: [...], count: N }. Prefer using the system prompt skill catalog for normal operation.",
 		schema: z.object({}).default({}),
@@ -408,7 +408,7 @@ export function createSkillsListTool(options) {
  */
 export function createSkillViewTool(options) {
 	return tool((input) => skillViewImpl(input, options), {
-		name: "skill_view",
+		name: "skillView",
 		description:
 			"View full details for a skill by name (legacy path). Returns name, version, description, license, compatibility, metadata, permissions, scripts, and SKILL.md body.",
 		schema: z.object({
@@ -424,7 +424,7 @@ export function createSkillViewTool(options) {
  */
 export function createCreateSkillTool(options) {
 	return tool((input) => createSkillImpl(input, options), {
-		name: "create_skill",
+		name: "createSkill",
 		description:
 			"Create a new Agent Skills spec-compliant skill. Creates the skill directory, writes SKILL.md with YAML frontmatter, and optionally scaffolds a scripts/ directory. Returns { success, name, paths, registered, errors?, warnings? }. Errors prevent creation.",
 		schema: z.object({

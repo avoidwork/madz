@@ -43,7 +43,7 @@ export async function sessionSearchImpl(input, options) {
 }
 
 export const session_search = tool(sessionSearchImpl, {
-	name: "session_search",
+	name: "sessionSearch",
 	description:
 		"Search past conversations. Use query for keyword search, conversationId for full retrieval, or call without arguments to browse available conversations.",
 	schema: z.object({
@@ -239,7 +239,7 @@ async function browseConversations(sessionsDir) {
  */
 export function createSessionSearchTool(options) {
 	return tool((input) => sessionSearchImpl(input, options), {
-		name: "session_search",
+		name: "sessionSearch",
 		description:
 			"Search past conversations. Use query for keyword search, conversationId for full retrieval, or call without arguments to browse available conversations.",
 		schema: z.object({

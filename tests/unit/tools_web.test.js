@@ -2,7 +2,7 @@ import { describe, it, before, after } from "node:test";
 import assert from "node:assert";
 import { webSearchImpl, webExtractImpl, detectSearchBackend } from "../../src/tools/web.js";
 
-describe("web_search", () => {
+describe("webSearch", () => {
 	let origFetch;
 
 	before(() => {

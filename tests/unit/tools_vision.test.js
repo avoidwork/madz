@@ -1,7 +1,7 @@
 import { describe, it, before, after, mock } from "node:test";
 import assert from "node:assert";
 
-describe("vision_analyze", () => {
+describe("visionAnalyze", () => {
 	let origFetch;
 	let ChatOpenAI;
 

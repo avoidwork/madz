@@ -193,7 +193,7 @@ export async function executeCodeImpl(input, options) {
  * @returns {string} JSON result string
  */
 export const execute_code = tool(executeCodeImpl, {
-	name: "execute_code",
+	name: "executeCode",
 	description:
 		"Execute code in a sandboxed subprocess. Supports python3, javascript (node), and shell. Code is written to a temp file and executed via the appropriate interpreter. Returns stdout, stderr, and exit code. Python execution includes an import hook to block dangerous modules (subprocess, os, socket) unless sandbox.safety.pythonImportHook is false. Enforces configurable memory limit via POSIX setrlimit (address space limit)",
 	schema: z.object({
@@ -214,7 +214,7 @@ export const execute_code = tool(executeCodeImpl, {
  */
 export function createCodeTool(options) {
 	return tool((input) => executeCodeImpl(input, options), {
-		name: "execute_code",
+		name: "executeCode",
 		description:
 			"Execute code in a sandboxed subprocess. Supports python3, javascript (node), and shell. Code is written to a temp file and executed via the appropriate interpreter. Returns stdout, stderr, and exit code.",
 		schema: z.object({

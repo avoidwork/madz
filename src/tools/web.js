@@ -329,8 +329,8 @@ export async function webExtractImpl(input, _options) {
  * @param {object} _options - Runtime options
  * @returns {string} JSON result string
  */
-export const web_search = tool(webSearchImpl, {
-	name: "web_search",
+export const webSearch = tool(webSearchImpl, {
+	name: "webSearch",
 	description:
 		"Search the web. Built-in engines: DuckDuckGo (default), Google, Bing (requires BING_API_KEY), SearXNG (requires SEARXNG_URL), Custom (requires CUSTOM_SEARCH_URL).",
 	schema: z.object({
@@ -371,7 +371,7 @@ export const web_extract = tool(webExtractImpl, {
  */
 export function createWebSearchTool(options) {
 	return tool((input) => webSearchImpl(input, options), {
-		name: "web_search",
+		name: "webSearch",
 		description: "Search the web using DuckDuckGo, Google, Bing, SearXNG, or Custom endpoint.",
 		schema: z.object({
 			query: z.string().min(1).describe("Search query"),
@@ -393,7 +393,7 @@ export function createWebSearchTool(options) {
  */
 export function createWebExtractTool(options) {
 	return tool((input) => webExtractImpl(input, options), {
-		name: "web_extract",
+		name: "webExtract",
 		description: "Extract readable text content from a web page URL.",
 		schema: z.object({
 			url: z.string().url().describe("URL to extract content from"),

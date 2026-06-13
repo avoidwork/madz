@@ -161,7 +161,7 @@ export async function mixtureOfAgentsImpl(input, options) {
  * @returns {string}
  */
 export const mixture_of_agents = tool(mixtureOfAgentsImpl, {
-	name: "mixture_of_agents",
+	name: "mixtureOfAgents",
 	description:
 		"Run a mixture of agents (MoA) with 4 parallel reference calls via OpenRouter followed by aggregation. Uses OpenAI GPT-4o references with different perspectives. WARNING: Each call costs ~$0.02-$0.10+ per call. Requires OPENROUTER_API_KEY environment variable. Each call has a 60 second timeout; partial results are aggregated when some calls fail.",
 	schema: z.object({
@@ -184,7 +184,7 @@ export const mixture_of_agents = tool(mixtureOfAgentsImpl, {
  */
 export function createMoaTool(options) {
 	return tool((input) => mixtureOfAgentsImpl(input, options), {
-		name: "mixture_of_agents",
+		name: "mixtureOfAgents",
 		description: "Run a mixture of agents (MoA) with 4 parallel reference calls via OpenRouter.",
 		schema: z.object({
 			message: z.string().min(1).describe("Question or topic for the agents to analyze"),

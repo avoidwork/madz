@@ -27,27 +27,26 @@ import { createCompactContextTool } from "./compact_context.js";
  * Clarify and execute_code are exempt (always registered) since they require zero permissions.
  */
 export const TOOL_PERMISSIONS = {
-	read_file: ["filesystem:read"],
-	write_file: ["filesystem:write"],
+	readFile: ["filesystem:read"],
+	writeFile: ["filesystem:write"],
 	patch: ["filesystem:write"],
-	search_files: ["filesystem:read"],
+	searchFiles: ["filesystem:read"],
 	terminal: ["filesystem:exec", "process:spawn"],
 	process: ["process:spawn"],
 	todo: ["filesystem:read", "filesystem:write"],
 	memory: ["filesystem:read", "filesystem:write"],
-	session_search: ["filesystem:read"],
+	sessionSearch: ["filesystem:read"],
 	clarify: [],
-	skill_view: ["filesystem:read"],
-	create_skill: ["filesystem:write"],
-	// Tier 2 tools (need config values in addition to permissions where applicable)
-	web_search: ["network:outbound"],
-	web_extract: ["network:outbound"],
-	vision_analyze: [], // requires openaiApiKey
-	image_generate: ["network:outbound"], // requires falApiKey
-	execute_code: [], // sandboxed, no permission needed
+	skillView: ["filesystem:read"],
+	createSkill: ["filesystem:write"],
+	webSearch: ["network:outbound"],
+	webExtract: ["network:outbound"],
+	visionAnalyze: [],
+	imageGenerate: ["network:outbound"],
+	executeCode: [],
 	cronJob: ["network:outbound"],
-	text_to_speech: [], // requires openaiApiKey
-	mixture_of_agents: [], // requires openrouterApiKey
+	textToSpeech: [],
+	mixtureOfAgents: [],
 	sampling: [],
 	date: [],
 	compactContext: [],
@@ -55,26 +54,26 @@ export const TOOL_PERMISSIONS = {
 
 // Factory functions keyed by tool name
 const TOOL_FACTORIES = {
-	read_file: createReadFileTool,
-	write_file: createWriteFileTool,
+	readFile: createReadFileTool,
+	writeFile: createWriteFileTool,
 	patch: createPatchTool,
-	search_files: createSearchFilesTool,
+	searchFiles: createSearchFilesTool,
 	terminal: createTerminalTool,
 	process: createProcessTool,
 	todo: createQueuedTodoTool,
 	memory: createMemoryTool,
-	session_search: createSessionSearchTool,
+	sessionSearch: createSessionSearchTool,
 	clarify: createClarifyTool,
-	skill_view: createSkillViewTool,
-	create_skill: createCreateSkillTool,
-	web_search: createWebSearchTool,
-	web_extract: createWebExtractTool,
-	vision_analyze: createVisionTool,
-	image_generate: createImageTool,
-	execute_code: createCodeTool,
+	skillView: createSkillViewTool,
+	createSkill: createCreateSkillTool,
+	webSearch: createWebSearchTool,
+	webExtract: createWebExtractTool,
+	visionAnalyze: createVisionTool,
+	imageGenerate: createImageTool,
+	executeCode: createCodeTool,
 	cronJob: createCronTool,
-	text_to_speech: createTtsTool,
-	mixture_of_agents: createMoaTool,
+	textToSpeech: createTtsTool,
+	mixtureOfAgents: createMoaTool,
 	sampling: createSamplingTool,
 	date: createDateTool,
 	compactContext: createCompactContextTool,
@@ -180,15 +179,15 @@ export async function buildToolConfig(options) {
 
 		switch (toolName) {
 			case "clarify":
-			case "execute_code":
+			case "executeCode":
 			case "sampling":
 			case "date": {
 				tools.push(TOOL_FACTORIES[toolName](runtimeOptions));
 				continue;
 			}
 
-			case "web_search":
-			case "web_extract": {
+			case "webSearch":
+			case "webExtract": {
 				if (!hasAllPerms) continue;
 				const hasAnySearch =
 					runtimeOptions.searchExaApiKey ||
@@ -204,24 +203,24 @@ export async function buildToolConfig(options) {
 				continue;
 			}
 
-			case "vision_analyze": {
+			case "visionAnalyze": {
 				if (!runtimeOptions.openaiApiKey) continue;
 				tools.push(TOOL_FACTORIES[toolName](runtimeOptions));
 				continue;
 			}
 
-			case "image_generate": {
+			case "imageGenerate": {
 				if (!hasAllPerms || !runtimeOptions.falApiKey) continue;
 				tools.push(TOOL_FACTORIES[toolName](runtimeOptions));
 				continue;
 			}
 
 			case "cronJob":
-			case "text_to_speech":
-			case "mixture_of_agents": {
+			case "textToSpeech":
+			case "mixtureOfAgents": {
 				if (toolName === "cronJob" && !hasAllPerms) continue;
-				if (toolName === "text_to_speech" && !runtimeOptions.openaiApiKey) continue;
-				if (toolName === "mixture_of_agents" && !runtimeOptions.openrouterApiKey) continue;
+				if (toolName === "textToSpeech" && !runtimeOptions.openaiApiKey) continue;
+				if (toolName === "mixtureOfAgents" && !runtimeOptions.openrouterApiKey) continue;
 				tools.push(TOOL_FACTORIES[toolName](runtimeOptions));
 				continue;
 			}
@@ -247,3 +246,4 @@ export async function buildToolConfig(options) {
 
 	return tools;
 }
+

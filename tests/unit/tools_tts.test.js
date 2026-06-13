@@ -1,7 +1,7 @@
 import { describe, it, before, after } from "node:test";
 import assert from "node:assert";
 
-describe("text_to_speech", () => {
+describe("textToSpeech", () => {
 	let origFetch;
 
 	before(() => {

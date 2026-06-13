@@ -439,7 +439,7 @@ describe("callReactAgent", () => {
 				{
 					event: "on_tool_start",
 					name: "tool",
-					data: { input: { tool_calls: [{ name: "web_search", id: "tc1" }] } },
+					data: { input: { tool_calls: [{ name: "webSearch", id: "tc1" }] } },
 				},
 				{
 					event: "on_tool_end",
