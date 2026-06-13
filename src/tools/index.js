@@ -19,6 +19,7 @@ import { createTtsTool } from "./tts.js";
 import { createMoaTool } from "./moa.js";
 import { createSamplingTool } from "./sampling.js";
 import { createDateTool } from "./date.js";
+import { createCompactContextTool } from "./compactContext.js";
 
 /**
  * Maps tool names to required permission scopes.
@@ -49,6 +50,7 @@ export const TOOL_PERMISSIONS = {
 	mixture_of_agents: [], // requires openrouterApiKey
 	sampling: [],
 	date: [],
+	compactContext: [],
 };
 
 // Factory functions keyed by tool name
@@ -75,6 +77,7 @@ const TOOL_FACTORIES = {
 	mixture_of_agents: createMoaTool,
 	sampling: createSamplingTool,
 	date: createDateTool,
+	compactContext: createCompactContextTool,
 };
 
 /**
@@ -96,6 +99,9 @@ const TOOL_FACTORIES = {
  * @param {object} [options.config] - Resolved config object from loadConfig()
  * @param {object} [options.config.providers] - Provider configs (openai, openrouter, fal)
  * @param {object} [options.config.search] - Search backend configs
+ * @param {import("@langchain/langgraph").BaseCheckpointSaver | null} [options.checkpointer] - LangGraph checkpointer for compactContext tool
+ * @param {object} [options.threadConfig] - Thread config for checkpointer access
+ * @param {string} [options.systemPrompt] - System prompt for compaction context
  * @returns {Promise<object[]>} Array of LangChain Tool instances
  */
 export async function buildToolConfig(options) {
@@ -217,6 +223,18 @@ export async function buildToolConfig(options) {
 				if (toolName === "text_to_speech" && !runtimeOptions.openaiApiKey) continue;
 				if (toolName === "mixture_of_agents" && !runtimeOptions.openrouterApiKey) continue;
 				tools.push(TOOL_FACTORIES[toolName](runtimeOptions));
+				continue;
+			}
+
+			case "compactContext": {
+				tools.push(
+					TOOL_FACTORIES[toolName]({
+						...runtimeOptions,
+						checkpointer: options.checkpointer,
+						threadConfig: options.threadConfig,
+						systemPrompt: options.systemPrompt,
+					}),
+				);
 				continue;
 			}
 

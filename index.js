@@ -166,6 +166,11 @@ const systemPrompt = loadSystemPrompt();
 const memoryEntriesDir = config.memory?.entriesDir || "memory/context/";
 // Build agent and tool config at startup (once)
 const providerConfig = config.providers[providerName] || {};
+
+// Create checkpointer before tools so compactContext can access it
+const { createCheckpointer } = await import("./src/session/checkpointer.js");
+const checkpointer = createCheckpointer(config.persistence);
+
 const tools = await buildToolConfig({
 	permissions: config.sandbox.permissions || [],
 	allowedPaths: config.sandbox.paths || ["memory/", "skills/", "tmp/"],
@@ -179,10 +184,9 @@ const tools = await buildToolConfig({
 	ephemeralTtlDays: config.memory?.ephemeral?.ttlDays || 7,
 	ephemeralMaxEntries: config.memory?.ephemeral?.maxEntries || 10,
 	config,
+	checkpointer,
 });
 const model = createChatModel(providerConfig);
-const { createCheckpointer } = await import("./src/session/checkpointer.js");
-const checkpointer = createCheckpointer(config.persistence);
 const agent = createReactAgent(
 	model,
 	tools,
@@ -206,6 +210,10 @@ async function callProvider(_name, _providerConfig, message, streamingCallback) 
 		{ ...sessionConfig, configurable: { thread_id: threadId, isNewThread } },
 		callPrompt,
 		streamingCallback,
+		{
+			maxTokens: providerConfig.maxTokens,
+			checkpointer,
+		},
 	);
 	return { provider: providerName, content: result.content, tokens: { input: 0, output: 0 } };
 }
