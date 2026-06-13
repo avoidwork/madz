@@ -241,6 +241,7 @@ export function ConversationPanel({
 	const internalScrollRef = useRef(null);
 	const scrollRef = externalScrollRef || internalScrollRef;
 	const previousMessageCount = useRef(0);
+	const previousContentHashRef = useRef(0);
 	const { stdout } = useStdout();
 
 	// Handle terminal resize by remeasuring content heights
@@ -256,20 +257,18 @@ export function ConversationPanel({
 		};
 	}, [stdout, scrollRef]);
 
-	// Auto-scroll to bottom when new messages arrive or streaming content overflows.
-	// Guarded by interactive mode detection to prevent issues in non-interactive contexts.
+	// Tracks both message count changes and streaming content growth via a
+	// lightweight content hash so the effect re-evaluates during active streaming.
 	useEffect(() => {
 		if (!scrollRef.current) return;
-		const isInteractive = stdout.isTTY && !process.env.CI;
-		if (!isInteractive) return;
 
 		const lastMsg = messages[messages.length - 1];
-		const contentH = scrollRef.current.getContentHeight();
-		const viewportH = scrollRef.current.getViewportHeight();
+		const streamingContentLen = lastMsg?.streaming ? (lastMsg.content || "").length : 0;
+		const contentHash = messages.length + streamingContentLen;
 
 		const shouldScroll =
 			messages.length > previousMessageCount.current ||
-			(lastMsg?.streaming && contentH && viewportH && contentH > viewportH);
+			(lastMsg?.streaming && contentHash !== previousContentHashRef.current);
 
 		if (shouldScroll) {
 			// Re-measure viewport dimensions.
@@ -281,12 +280,17 @@ export function ConversationPanel({
 			// causing the scroll offset to be miscalculated. Deferring ensures the
 			// measurement phase completes before we calculate the scroll position.
 			const scrollHandle = () => {
-				scrollRef.current.scrollToBottom();
-				previousMessageCount.current = messages.length;
+				if (scrollRef.current) {
+					scrollRef.current.scrollToBottom();
+					previousMessageCount.current = messages.length;
+				}
 			};
-			setTimeout(scrollHandle, 0);
+			const timer = setTimeout(scrollHandle, 0);
+			return () => clearTimeout(timer);
 		}
-	}, [messages.length, stdout.isTTY]);
+
+		previousContentHashRef.current = contentHash;
+	}, [messages, stdout.isTTY]);
 
 	const children = React.useMemo(
 		() => renderMessages(messages, assistantName),
