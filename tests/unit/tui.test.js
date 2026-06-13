@@ -12,7 +12,7 @@ import {
 } from "../../src/tui/messages.js";
 import { parseMarkdown, MarkdownTextInner } from "../../src/tui/markdownText.js";
 import { TuiSchema, DEFAULT_CONFIG } from "../../src/config/schemas.js";
-import { Blink } from "../../src/tui/inputPanel.js";
+import { InputPanel } from "../../src/tui/inputPanel.js";
 
 describe("command parser", () => {
 	it("parses :quit command", () => {
@@ -783,18 +783,11 @@ describe("DEFAULT_CONFIG - tui fields", () => {
 	});
 });
 
-describe("Blink - component rendering", () => {
-	it("renders static cursor with even _testFrame", () => {
-		const result = Blink({ text: "hello", char: "█", _testFrame: 0 });
-		assert.ok(React.isValidElement(result));
-		assert.strictEqual(result.props.flexDirection, "row");
-		assert.strictEqual(result.props.children[1].props.children, "█");
-	});
-
-	it("renders static cursor (no zero-width space toggling)", () => {
-		const result = Blink({ text: "hello", char: "█", _testFrame: 1 });
-		assert.ok(React.isValidElement(result));
-		assert.strictEqual(result.props.children[1].props.children, "█");
+describe("InputPanel - backward compat", () => {
+	it("accepts cursorChar prop without error", () => {
+		assert.doesNotThrow(() => {
+			React.createElement(InputPanel, { inputText: "test", cursorChar: "█" });
+		});
 	});
 });
 

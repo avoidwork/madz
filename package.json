@@ -69,6 +69,7 @@
     "@opentelemetry/sdk-node": "^0.218.0",
     "cron-parser": "^5.5.0",
     "ink": "^7.0.5",
+    "string-width": "^7.0.0",
     "ink-scroll-view": "^0.3.7",
     "js-yaml": "^4.2.0",
     "marked": "^9.1.6",
