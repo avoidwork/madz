@@ -3,6 +3,7 @@ providers:
     type: openai
     base_url: https://api.openai.com/v1
     model: gpt-4o
+    encoding: gpt-4o
     credentials:
       apiKey:
     temperature: 0.7

@@ -66,8 +66,10 @@ export default function App({
 		if (sessionState) {
 			const conversation = sessionState.getConversation();
 			const providerName = sessionState.getProvider();
-			const modelName = config?.providers?.[providerName]?.model || "gpt-4o";
-			setContextSize(calculateConversationTokens(conversation, modelName));
+			const providerConfig = config?.providers?.[providerName] || {};
+			const modelName = providerConfig.model || "gpt-4o";
+			const encoding = providerConfig.encoding;
+			setContextSize(calculateConversationTokens(conversation, modelName, encoding));
 		}
 		return () => {
 			process.off("uncaughtException", onUncaught);
@@ -168,6 +170,17 @@ export default function App({
 		gcManager?.();
 		setStatusMessage("Streaming...");
 		addMessage({ role: "user", content: text });
+
+		// Persist user message to session state and recalculate context
+		if (sessionState) {
+			sessionState.addExchange({ role: "user", content: text });
+			const conversation = sessionState.getConversation();
+			const providerName = sessionState.getProvider();
+			const providerConfig = config?.providers?.[providerName] || {};
+			const modelName = providerConfig.model || "gpt-4o";
+			const encoding = providerConfig.encoding;
+			setContextSize(calculateConversationTokens(conversation, modelName, encoding));
+		}
 
 		const assistantTime = getTimestamp();
 		setMessages((prev) => [
@@ -316,16 +329,18 @@ export default function App({
 				return cloned;
 			});
 
+			// Persist assistant message and recalculate context
 			if (sessionState) {
-				sessionState.addExchange({ role: "user", content: text });
 				sessionState.addExchange({
 					role: "assistant",
 					content: responseContent,
 				});
 				const conversation = sessionState.getConversation();
 				const providerName = sessionState.getProvider();
-				const modelName = config?.providers?.[providerName]?.model || "gpt-4o";
-				setContextSize(calculateConversationTokens(conversation, modelName));
+				const providerConfig = config?.providers?.[providerName] || {};
+				const modelName = providerConfig.model || "gpt-4o";
+				const encoding = providerConfig.encoding;
+				setContextSize(calculateConversationTokens(conversation, modelName, encoding));
 			}
 			if (onSaveSession) {
 				onSaveSession();
@@ -333,13 +348,6 @@ export default function App({
 			gcManager?.();
 			setStatusMessage("Received response");
 		} catch (err) {
-			if (sessionState) {
-				sessionState.addExchange({ role: "user", content: text });
-				const conversation = sessionState.getConversation();
-				const providerName = sessionState.getProvider();
-				const modelName = config?.providers?.[providerName]?.model || "gpt-4o";
-				setContextSize(calculateConversationTokens(conversation, modelName));
-			}
 			if (onSaveSession) {
 				onSaveSession();
 			}
