@@ -575,7 +575,7 @@ describe("callReactAgent", () => {
 		it("retries on context length error and succeeds on second attempt", async () => {
 			let invokeCount = 0;
 			const agentMock = {
-				invoke: (input) => {
+				invoke: (_input) => {
 					invokeCount++;
 					if (invokeCount === 1) {
 						throw createContextLengthError("This model's maximum context length is 128000 tokens");
@@ -606,7 +606,10 @@ describe("callReactAgent", () => {
 				maxCompactionIterations: 3,
 			});
 
-			assert.strictEqual(result.content, "The conversation is too long. Please start a new session.");
+			assert.strictEqual(
+				result.content,
+				"The conversation is too long. Please start a new session.",
+			);
 		});
 
 		it("re-throws non-context-length errors during retry loop", async () => {
@@ -649,7 +652,7 @@ describe("callReactAgent", () => {
 		it("extracts context length from error message automatically", async () => {
 			let invokeCount = 0;
 			const agentMock = {
-				invoke: (input) => {
+				invoke: (_input) => {
 					invokeCount++;
 					if (invokeCount === 1) {
 						throw createContextLengthError("This model's maximum context length is 65536 tokens");
@@ -683,7 +686,10 @@ describe("callReactAgent", () => {
 				maxCompactionIterations: 1,
 			});
 
-			assert.strictEqual(result.content, "The conversation is too long. Please start a new session.");
+			assert.strictEqual(
+				result.content,
+				"The conversation is too long. Please start a new session.",
+			);
 			assert.strictEqual(invokeCount, 2); // initial + 1 retry
 		});
 	});

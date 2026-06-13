@@ -1,13 +1,16 @@
 import { createReactAgent as createReactAgentGraph } from "@langchain/langgraph/prebuilt";
 import { HumanMessage, SystemMessage, AIMessage, AIMessageChunk } from "@langchain/core/messages";
-import { extractContextLength, isContextLengthError, compactConversation } from "../tools/compactContext.js";
+import {
+	extractContextLength,
+	isContextLengthError,
+	compactConversation,
+} from "../tools/compactContext.js";
 
 const RECURSION_LIMIT_MESSAGE =
 	"I've reached the maximum number of reasoning steps on this thread. Please continue your message and I'll carry on, or start a new conversation if you'd prefer.";
 
 const MAX_COMPACTION_ITERATIONS = 3;
-const CONTEXT_TOO_LONG_MESSAGE =
-	"The conversation is too long. Please start a new session.";
+const CONTEXT_TOO_LONG_MESSAGE = "The conversation is too long. Please start a new session.";
 
 /**
  * Create a ReAct agent from a chat model and optional tools and checkpointer.
@@ -99,7 +102,8 @@ export async function callReactAgent(agent, message, config, systemPrompt, callb
 				const conversation = messages
 					.filter((m) => !(m instanceof SystemMessage))
 					.map((m) => ({
-						role: m instanceof HumanMessage ? "user" : m instanceof AIMessage ? "assistant" : "system",
+						role:
+							m instanceof HumanMessage ? "user" : m instanceof AIMessage ? "assistant" : "system",
 						content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
 					}));
 
@@ -180,7 +184,14 @@ function extractContent(result, fallback) {
  * @param {Object} [options] - Additional options (same as callReactAgent)
  * @returns {{ content: string }} The agent's final text response
  */
-async function callReactAgentStreaming(agent, initMessages, originalMessage, config, callback, options = {}) {
+async function callReactAgentStreaming(
+	agent,
+	initMessages,
+	originalMessage,
+	config,
+	callback,
+	options = {},
+) {
 	const {
 		maxContextLength,
 		maxTokens,
@@ -268,7 +279,8 @@ async function callReactAgentStreaming(agent, initMessages, originalMessage, con
 					const output = event.data?.output || {};
 					const input = event.data?.input || {};
 					const toolCalls = Array.isArray(input.tool_calls) ? input.tool_calls : [];
-					const toolName = input.name || toolCalls[0]?.name || output.tool_calls?.[0]?.name || "tool";
+					const toolName =
+						input.name || toolCalls[0]?.name || output.tool_calls?.[0]?.name || "tool";
 					const toolCallId = toolCalls[0]?.id || "";
 					const resultData =
 						output.content || toolCalls[0]?.output || output.tool_calls?.[0]?.output || "";
@@ -333,7 +345,8 @@ async function callReactAgentStreaming(agent, initMessages, originalMessage, con
 				const conversation = currentMessages
 					.filter((m) => !(m instanceof SystemMessage))
 					.map((m) => ({
-						role: m instanceof HumanMessage ? "user" : m instanceof AIMessage ? "assistant" : "system",
+						role:
+							m instanceof HumanMessage ? "user" : m instanceof AIMessage ? "assistant" : "system",
 						content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
 					}));
 

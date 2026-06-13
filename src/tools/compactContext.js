@@ -209,10 +209,14 @@ export function compactConversation({
 		for (const exchange of remainingExchanges) {
 			const summaryParts = [];
 			if (exchange.user) summaryParts.push(summarizeExchange("user", exchange.user.content));
-			if (exchange.assistant) summaryParts.push(summarizeExchange("assistant", exchange.assistant.content));
+			if (exchange.assistant)
+				summaryParts.push(summarizeExchange("assistant", exchange.assistant.content));
 			const summaryText = summaryParts.join("\n");
 			if (summaryText) {
-				reducedCompacted.push({ role: "system", content: `[Conversation Summary]\n${summaryText}` });
+				reducedCompacted.push({
+					role: "system",
+					content: `[Conversation Summary]\n${summaryText}`,
+				});
 				reducedTokens += estimateTokens(summaryText);
 			}
 		}
@@ -315,7 +319,7 @@ export function createCompactContextTool(options = {}) {
 						ok: false,
 						error: `compact requires: targetTokens (positive number)`,
 					});
-			 }
+				}
 
 				// Try to get conversation from checkpointer
 				let conversation = [];
@@ -333,7 +337,12 @@ export function createCompactContextTool(options = {}) {
 								conversation = state.messages
 									.filter((m) => m._getType && m._getType() !== "system")
 									.map((m) => ({
-										role: m._getType() === "human" ? "user" : m._getType() === "ai" ? "assistant" : m._getType(),
+										role:
+											m._getType() === "human"
+												? "user"
+												: m._getType() === "ai"
+													? "assistant"
+													: m._getType(),
 										content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
 									}));
 							}
@@ -350,7 +359,8 @@ export function createCompactContextTool(options = {}) {
 				}
 
 				// Calculate target tokens if not provided
-				const effectiveTarget = targetTokens || (maxContextLength && maxTokens ? maxContextLength - maxTokens : 50000);
+				const effectiveTarget =
+					targetTokens || (maxContextLength && maxTokens ? maxContextLength - maxTokens : 50000);
 
 				// Perform compaction
 				const compactionResult = compactConversation({

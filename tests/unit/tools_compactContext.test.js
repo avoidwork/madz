@@ -104,7 +104,10 @@ describe("compactContext - compactConversation", () => {
 
 		assert.strictEqual(result.ok, true);
 		// Should have system prompt + 3 full exchanges (6 messages)
-		assert.ok(result.compactedMessages.length >= 7, `Expected at least 7 messages, got ${result.compactedMessages.length}`);
+		assert.ok(
+			result.compactedMessages.length >= 7,
+			`Expected at least 7 messages, got ${result.compactedMessages.length}`,
+		);
 	});
 
 	it("summarizes older exchanges (tier 2)", () => {
@@ -112,7 +115,10 @@ describe("compactContext - compactConversation", () => {
 		// Create 15 exchanges
 		for (let i = 0; i < 15; i++) {
 			conversation.push(
-				{ role: "user", content: `User message ${i}: This is a detailed message with context about task ${i}.` },
+				{
+					role: "user",
+					content: `User message ${i}: This is a detailed message with context about task ${i}.`,
+				},
 				{ role: "assistant", content: `Assistant response ${i}: Here's the answer for task ${i}.` },
 			);
 		}
@@ -129,8 +135,13 @@ describe("compactContext - compactConversation", () => {
 		// Should have system prompt + 3 recent full exchanges + 5 summaries
 		assert.ok(result.compactedMessages.length > 1, "Expected some compacted messages");
 		// Check that summaries are present
-		const summaryMessages = result.compactedMessages.filter((m) => m.content && m.content.includes("[Conversation Summary]"));
-		assert.ok(summaryMessages.length >= 5, `Expected at least 5 summaries, got ${summaryMessages.length}`);
+		const summaryMessages = result.compactedMessages.filter(
+			(m) => m.content && m.content.includes("[Conversation Summary]"),
+		);
+		assert.ok(
+			summaryMessages.length >= 5,
+			`Expected at least 5 summaries, got ${summaryMessages.length}`,
+		);
 	});
 
 	it("applies fallback for extreme budget constraints", () => {
@@ -204,7 +215,9 @@ describe("compactContext - compactConversation", () => {
 		assert.strictEqual(result.ok, true);
 		// Should use minimal retention strategy
 		assert.ok(
-			result.strategy === "minimal-retention" || result.strategy === "minimal-over-budget" || result.strategy === "last-message-only",
+			result.strategy === "minimal-retention" ||
+				result.strategy === "minimal-over-budget" ||
+				result.strategy === "last-message-only",
 			`Expected minimal strategy, got: ${result.strategy}`,
 		);
 	});
@@ -219,7 +232,10 @@ describe("compactContext - createCompactContextTool", () => {
 	it("returns a LangChain Tool with description", () => {
 		const toolInstance = createCompactContextTool({});
 		assert.ok(toolInstance.description.length > 10, "Expected a descriptive description");
-		assert.ok(toolInstance.description.toLowerCase().includes("compaction"), "Description should mention compaction");
+		assert.ok(
+			toolInstance.description.toLowerCase().includes("compaction"),
+			"Description should mention compaction",
+		);
 	});
 
 	it("returns a LangChain Tool with a zod schema", () => {
