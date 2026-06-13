@@ -267,16 +267,24 @@ export function ConversationPanel({
 		const contentH = scrollRef.current.getContentHeight();
 		const viewportH = scrollRef.current.getViewportHeight();
 
-		if (messages.length > previousMessageCount.current) {
-			// Re-measure before scrolling to ensure content heights are up to date.
-			// This prevents a race condition where scrollToBottom fires before
-			// the ScrollView has finished measuring newly added children.
+		const shouldScroll =
+			messages.length > previousMessageCount.current ||
+			(lastMsg?.streaming && contentH && viewportH && contentH > viewportH);
+
+		if (shouldScroll) {
+			// Re-measure viewport dimensions.
 			scrollRef.current.remeasure();
-			scrollRef.current.scrollToBottom();
-			previousMessageCount.current = messages.length;
-		} else if (lastMsg?.streaming && contentH && viewportH && contentH > viewportH) {
-			scrollRef.current.remeasure();
-			scrollRef.current.scrollToBottom();
+
+			// Defer scrollToBottom to the next tick.
+			// ink-scroll-view updates its internal contentHeightRef via useLayoutEffect
+			// after render. Calling scrollToBottom synchronously reads stale content height,
+			// causing the scroll offset to be miscalculated. Deferring ensures the
+			// measurement phase completes before we calculate the scroll position.
+			const scrollHandle = () => {
+				scrollRef.current.scrollToBottom();
+				previousMessageCount.current = messages.length;
+			};
+			setTimeout(scrollHandle, 0);
 		}
 	}, [messages.length, stdout.isTTY]);
 
