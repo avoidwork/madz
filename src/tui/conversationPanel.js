@@ -64,7 +64,7 @@ export function getBubbleStyle(role) {
  * Memoized message bubble component.
  * Skips re-render when display-relevant message fields haven't changed.
  * Compares: role, content, time, reasoningContent, streaming,
- * activeToolCall, toolCallDisplay, and timestamp (appInfo).
+ * activeToolCall, toolCallDisplay, and a stable message identifier.
  * @param {object} props
  * @param {Message} props.msg - The message data object
  * @param {string} props.assistantName - Name to display for assistant
@@ -118,7 +118,7 @@ const MessageBubble = React.memo(
 						.map((line, j) =>
 							React.createElement(
 								Text,
-								{ key: "tool-" + j, dim: true, color: "gray" },
+								{ key: "tool-" + j, dimColor: true, color: "gray" },
 								"  " + line,
 							),
 						),
@@ -128,7 +128,7 @@ const MessageBubble = React.memo(
 		return React.createElement(
 			Box,
 			{
-				key: "msg-" + msg._index,
+				key: "msg-" + msg.id,
 				flexDirection: "row",
 				paddingY: 0,
 				justifyContent: bubble.alignment,
@@ -136,7 +136,7 @@ const MessageBubble = React.memo(
 			React.createElement(
 				Box,
 				{
-					key: "bubble-" + msg._index,
+					key: "bubble-" + msg.id,
 					flexDirection: "column",
 					paddingX: 1,
 					borderColor: bubble.border,
@@ -179,7 +179,7 @@ const MessageBubble = React.memo(
 			p.streaming === n.streaming &&
 			p.toolCallDisplay === n.toolCallDisplay &&
 			p.activeToolCall === n.activeToolCall &&
-			p._index === n._index
+			p.id === n.id
 		);
 	},
 );
@@ -202,7 +202,7 @@ export function renderMessages(messages, assistantName) {
 		children.push(
 			React.createElement(MessageBubble, {
 				key: rowKey,
-				msg: { ...msg, _index: i },
+				msg: { ...msg, id: msg.id ?? i },
 				assistantName,
 			}),
 		);
@@ -219,95 +219,6 @@ export function renderMessages(messages, assistantName) {
 	}
 
 	return children;
-}
-
-/**
- * Handle keyboard scroll input on a scroll ref.
- * @param {object} scrollRef - The scroll ref with scrollBy/getViewportHeight methods
- * @param {object} key - The key object from ink's useInput with arrow/page navigation keys
- */
-export function handleScrollInput(scrollRef, key) {
-	if (!scrollRef) return;
-	if (key.upArrow) {
-		scrollRef.scrollBy(-1);
-	}
-	if (key.downArrow) {
-		scrollRef.scrollBy(1);
-	}
-	if (key.pageUp) {
-		const height = scrollRef.getViewportHeight() || 1;
-		scrollRef.scrollBy(-height);
-	}
-	if (key.pageDown) {
-		const height = scrollRef.getViewportHeight() || 1;
-		scrollRef.scrollBy(height);
-	}
-}
-
-/**
- * Handle terminal resize by remeasuring content heights.
- * @param {object} scrollRef - The scroll ref with measure method
- */
-export function handleResize(scrollRef) {
-	if (scrollRef) {
-		scrollRef.remeasure();
-	}
-}
-
-/**
- * Auto-scroll to bottom when new messages arrive or streaming content overflows.
- * @param {object} scrollRef - The scroll ref with scroll-to-bottom/height methods
- * @param {Array} messages - The messages array
- * @param {number} previousMessageCount - Previous message count ref value
- * @returns {{ newCount: number, scrolled: boolean }}
- */
-export function handleAutoScroll(scrollRef, messages, previousMessageCount) {
-	if (!scrollRef || messages.length === 0) {
-		return { newCount: previousMessageCount, scrolled: false };
-	}
-	const isNewMessage = messages.length > previousMessageCount;
-	if (isNewMessage) {
-		scrollRef.scrollToBottom();
-		return { newCount: messages.length, scrolled: true };
-	}
-	if (messages[messages.length - 1].streaming === true) {
-		const contentH = scrollRef.getContentHeight();
-		const viewportH = scrollRef.getViewportHeight();
-		if (contentH > viewportH) {
-			scrollRef.scrollToBottom();
-			return { newCount: previousMessageCount, scrolled: true };
-		}
-	}
-	return { newCount: previousMessageCount, scrolled: false };
-}
-
-/**
- * Execute scroll input logic.
- * @param {object} scrollRef - The scroll ref
- * @param {object} key - Key object from ink's useInput
- */
-export function executeScrollInput(scrollRef, key) {
-	handleScrollInput(scrollRef, key);
-}
-
-/**
- * Execute resize logic.
- * @param {object} scrollRef - The scroll ref
- */
-export function executeResize(scrollRef) {
-	handleResize(scrollRef);
-}
-
-/**
- * Execute auto-scroll logic.
- * @param {object} scrollRef - The scroll ref
- * @param {Array} messages - Messages array
- * @param {number} previousCount - Previous message count
- * @param {object} countRef - Ref object with .current property
- */
-export function executeAutoScroll(scrollRef, messages, previousCount, countRef) {
-	const scrollResult = handleAutoScroll(scrollRef, messages, previousCount);
-	countRef.current = scrollResult.newCount;
 }
 
 /**
@@ -330,42 +241,56 @@ export function ConversationPanel({
 	const internalScrollRef = useRef(null);
 	const scrollRef = externalScrollRef || internalScrollRef;
 	const previousMessageCount = useRef(0);
-	const lastContentHashRef = useRef(0);
+	const previousContentHashRef = useRef(0);
 	const { stdout } = useStdout();
 
 	// Handle terminal resize by remeasuring content heights
 	useEffect(() => {
-		const resizeHandler = () => executeResize(scrollRef.current);
+		const resizeHandler = () => {
+			if (scrollRef.current && stdout.isTTY && !process.env.CI) {
+				scrollRef.current.remeasure();
+			}
+		};
 		stdout.on("resize", resizeHandler);
 		return () => {
 			stdout.off("resize", resizeHandler);
 		};
-	}, [stdout]);
+	}, [stdout, scrollRef]);
 
-	// Compute a lightweight content hash to avoid redundant auto-scroll calculations.
-	// Only triggers scroll when message count changes or streaming content overflows.
-	const prevHash = lastContentHashRef.current;
-	lastContentHashRef.current =
-		(messages?.length ?? 0) +
-		(messages?.length > 0 && messages[messages.length - 1].streaming
-			? (messages[messages.length - 1].content || "").length
-			: 0);
+	// Tracks both message count changes and streaming content growth via a
+	// lightweight content hash so the effect re-evaluates during active streaming.
+	useEffect(() => {
+		if (!scrollRef.current) return;
 
-	if (prevHash !== lastContentHashRef.current && prevHash > 0) {
-		executeAutoScroll(
-			scrollRef.current,
-			messages,
-			previousMessageCount.current,
-			previousMessageCount,
-		);
-	} else if (messages?.length > 0 && messages[messages.length - 1].streaming) {
-		// Streaming overflow: content grew beyond previously tracked hash
-		const contentH = scrollRef.current?.getContentHeight();
-		const viewportH = scrollRef.current?.getViewportHeight();
-		if (contentH && viewportH && contentH > viewportH) {
-			scrollRef.current.scrollToBottom();
+		const lastMsg = messages[messages.length - 1];
+		const streamingContentLen = lastMsg?.streaming ? (lastMsg.content || "").length : 0;
+		const contentHash = messages.length + streamingContentLen;
+
+		const shouldScroll =
+			messages.length > previousMessageCount.current ||
+			(lastMsg?.streaming && contentHash !== previousContentHashRef.current);
+
+		if (shouldScroll) {
+			// Re-measure viewport dimensions.
+			scrollRef.current.remeasure();
+
+			// Defer scrollToBottom to the next tick.
+			// ink-scroll-view updates its internal contentHeightRef via useLayoutEffect
+			// after render. Calling scrollToBottom synchronously reads stale content height,
+			// causing the scroll offset to be miscalculated. Deferring ensures the
+			// measurement phase completes before we calculate the scroll position.
+			const scrollHandle = () => {
+				if (scrollRef.current) {
+					scrollRef.current.scrollToBottom();
+					previousMessageCount.current = messages.length;
+				}
+			};
+			const timer = setTimeout(scrollHandle, 0);
+			return () => clearTimeout(timer);
 		}
-	}
+
+		previousContentHashRef.current = contentHash;
+	}, [messages, stdout.isTTY]);
 
 	const children = React.useMemo(
 		() => renderMessages(messages, assistantName),
