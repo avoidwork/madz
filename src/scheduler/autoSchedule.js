@@ -103,7 +103,9 @@ export function setupAutoSchedule(options = {}) {
 
 		const persistResult = persistJobFile(job.name, job, cwd);
 		if (!persistResult.written) {
-			logger.warn(`[scheduler] Failed to persist reflection-daily job file: ${persistResult.error}`);
+			logger.warn(
+				`[scheduler] Failed to persist reflection-daily job file: ${persistResult.error}`,
+			);
 		}
 	};
 }

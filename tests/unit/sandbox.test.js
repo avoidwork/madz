@@ -58,7 +58,10 @@ describe("sandbox - path resolution", () => {
 		});
 
 		it("excludes nested path under negated directory", () => {
-			const result = resolvePath("node_modules/@scope/package/src/file.js", ["./", "!node_modules/"]);
+			const result = resolvePath("node_modules/@scope/package/src/file.js", [
+				"./",
+				"!node_modules/",
+			]);
 			assert.strictEqual(result.allowed, false);
 		});
 
@@ -91,7 +94,10 @@ describe("sandbox - path resolution", () => {
 			// Both the positive rule and negation resolve relative to CWD
 			// In practice, CWD is the project root, so both paths align
 			const cwd = process.cwd();
-			const result = resolvePath(join(cwd, "node_modules/x.js"), [join(cwd, "/"), "!node_modules/"]);
+			const result = resolvePath(join(cwd, "node_modules/x.js"), [
+				join(cwd, "/"),
+				"!node_modules/",
+			]);
 			assert.strictEqual(result.allowed, false);
 		});
 
