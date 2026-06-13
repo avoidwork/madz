@@ -38,6 +38,8 @@ export default function App({
 	const [historyIndex, setHistoryIndex] = useState(-1);
 	const [inputText, setInputText] = useState("");
 	const [inputFocused, setInputFocused] = useState(true);
+	const [contextSize, setContextSize] = useState(0);
+	const [isCompacting, setIsCompacting] = useState(false);
 	const scrollRef = useRef(null);
 	const isQuittingRef = useRef(false);
 	const { exit } = useApp();
@@ -268,6 +270,10 @@ export default function App({
 								}
 								return cloned;
 							});
+						} else if (event.type === "compaction_start") {
+							setIsCompacting(true);
+						} else if (event.type === "compaction_end") {
+							setIsCompacting(false);
 						}
 					} catch (_cbErr) {
 						// Silently ignore streaming callback errors
@@ -308,6 +314,7 @@ export default function App({
 					role: "assistant",
 					content: responseContent,
 				});
+				setContextSize(sessionState.getConversation().length);
 			}
 			if (onSaveSession) {
 				onSaveSession();
@@ -317,6 +324,7 @@ export default function App({
 		} catch (err) {
 			if (sessionState) {
 				sessionState.addExchange({ role: "user", content: text });
+				setContextSize(sessionState.getConversation().length);
 			}
 			if (onSaveSession) {
 				onSaveSession();
@@ -346,6 +354,7 @@ export default function App({
 		sessionState.createNewSession(newSession.sessionId);
 		setMessages([]);
 		setChatHistory([]);
+		setContextSize(0);
 		setStatusMessage("New session started.");
 		addMessage({
 			role: "system",
@@ -510,7 +519,9 @@ export default function App({
 	const statusProps = {
 		skillCount: skillList.length,
 		messageCount: messages.length,
+		contextSize: contextSize,
 		statusMessage: statusMessage,
+		isCompacting: isCompacting,
 	};
 
 	return React.createElement(

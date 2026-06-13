@@ -207,6 +207,7 @@ async function callReactAgentStreaming(
 	let effectiveContextLength = maxContextLength;
 	let effectiveMaxTokens = maxTokens;
 	let currentMessages = initMessages;
+	let compactionActive = false;
 
 	while (iteration <= maxCompactionIterations) {
 		let toolCallSet = new Set();
@@ -314,7 +315,10 @@ async function callReactAgentStreaming(
 				callback({ type: "tool_end", toolName: name });
 			}
 
-			// Success — return originalMessage as fallback
+			// Success — emit compaction_end if compaction was active, then return
+			if (compactionActive && callback) {
+				callback({ type: "compaction_end" });
+			}
 			return { content: originalMessage };
 		} catch (err) {
 			// Handle recursion limit — always return immediately
@@ -330,6 +334,12 @@ async function callReactAgentStreaming(
 
 			// Check for context length error
 			if (isContextLengthError(err)) {
+				// Emit compaction_start on first detection
+				if (!compactionActive && callback) {
+					compactionActive = true;
+					callback({ type: "compaction_start" });
+				}
+
 				// Extract max context length from error if not already known
 				if (!effectiveContextLength) {
 					effectiveContextLength = extractContextLength(err.message);
@@ -357,6 +367,10 @@ async function callReactAgentStreaming(
 				});
 
 				if (!compacted.ok || compacted.compactedMessages.length === 0) {
+					// Emit compaction_end before early return
+					if (compactionActive && callback) {
+						callback({ type: "compaction_end" });
+					}
 					return { content: originalMessage };
 				}
 
@@ -374,6 +388,10 @@ async function callReactAgentStreaming(
 				_lastError = err;
 
 				if (iteration > maxCompactionIterations) {
+					// Emit compaction_end before early return
+					if (compactionActive && callback) {
+						callback({ type: "compaction_end" });
+					}
 					return { content: originalMessage };
 				}
 
@@ -383,6 +401,11 @@ async function callReactAgentStreaming(
 			// Non-context-length error — rethrow
 			throw err;
 		}
+	}
+
+	// Emit compaction_end when exiting the compaction loop
+	if (compactionActive && callback) {
+		callback({ type: "compaction_end" });
 	}
 
 	return { content: originalMessage };

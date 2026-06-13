@@ -25,8 +25,11 @@ export const StatusBar = React.memo(function StatusBar({
 	statusMessage = "",
 	skillCount = 0,
 	messageCount = 0,
+	contextSize = 0,
+	isCompacting = false,
 }) {
 	const status = getStatusIndicator(statusMessage);
+	const contextColor = isCompacting ? "red" : "#606060";
 
 	return React.createElement(
 		Box,
@@ -53,6 +56,7 @@ export const StatusBar = React.memo(function StatusBar({
 				{ key: "info", color: "#606060" },
 				"skills:" + skillCount + " msg:" + messageCount,
 			),
+			React.createElement(Text, { key: "context", color: contextColor }, " context:" + contextSize),
 		),
 	);
 });
