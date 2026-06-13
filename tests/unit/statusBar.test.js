@@ -22,7 +22,10 @@ describe("formatNumber", () => {
 		const result = formatNumber(1234567);
 		assert.ok(result !== "1234567", "Should format large number");
 		// Should have separators
-		assert.ok(result.includes(",") || result.includes(".") || result.includes(" "), "Should have thousands separator");
+		assert.ok(
+			result.includes(",") || result.includes(".") || result.includes(" "),
+			"Should have thousands separator",
+		);
 	});
 
 	it("handles negative numbers", () => {
