@@ -26,7 +26,8 @@ export class CommandParser {
 		this.#register("config", (args, ctx) => {
 			if (args[0] === "set" && args[1]) {
 				// args = ["set", "<path>", "<value>"]
-				const dotPath = args[1];
+				// Split path on colons and hyphens: "telemetry.enabled:true" → ["telemetry", "enabled", "true"]
+				const dotPath = args[1].split(/[-:]/).join(".");
 				const valueStr = args[2] || undefined;
 				if (ctx._setConfigValue) {
 					ctx._setConfigValue(dotPath, valueStr);
@@ -40,7 +41,8 @@ export class CommandParser {
 			}
 			if (args[0]) {
 				// args = ["<path>", "<value>"] (without "set")
-				const dotPath = args[0];
+				// Split path on colons and hyphens: "telemetry.enabled:true" → ["telemetry", "enabled", "true"]
+				const dotPath = args[0].split(/[-:]/).join(".");
 				const valueStr = args[1] || undefined;
 				if (ctx._setConfigValue) {
 					ctx._setConfigValue(dotPath, valueStr);

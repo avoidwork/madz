@@ -68,6 +68,7 @@ const _OpenaiProviderConfigSchema = z.object({
 	type: z.literal("openai").default("openai"),
 	base_url: z.string().url().default("https://api.openai.com/v1"),
 	model: z.string().min(1),
+	encoding: z.string().optional(),
 	credentials: OpenAICredentialsSchema,
 	temperature: z.number().min(0).max(2).default(0.7),
 	maxTokens: z.number().int().positive().default(4096),

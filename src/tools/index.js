@@ -246,4 +246,3 @@ export async function buildToolConfig(options) {
 
 	return tools;
 }
-

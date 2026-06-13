@@ -17,6 +17,29 @@ function getStatusIndicator(status) {
 }
 
 /**
+ * Format number using Intl.NumberFormat with the user's locale.
+ * @param {number} num - The number to format
+ * @returns {string} Formatted number string
+ */
+export function formatNumber(num) {
+	try {
+		const locale = Intl.DateTimeFormat().resolvedOptions().locale;
+		const formatter = new Intl.NumberFormat(locale, {
+			maximumFractionDigits: 0,
+		});
+		const result = formatter.format(num);
+		// Handle NaN case (non-numeric input)
+		if (result === "NaN" || result === "-NaN") {
+			return String(num);
+		}
+		return result;
+	} catch {
+		// Fallback to simple string conversion if Intl fails
+		return String(num);
+	}
+}
+
+/**
  * Bottom status bar.
  * Displays status indicator, status message, and info counts.
  * Input text entry is handled by InputPanel with IRC-style prompt ("> text" / ": text").
@@ -25,8 +48,11 @@ export const StatusBar = React.memo(function StatusBar({
 	statusMessage = "",
 	skillCount = 0,
 	messageCount = 0,
+	contextSize = 0,
+	isCompacting = false,
 }) {
 	const status = getStatusIndicator(statusMessage);
+	const contextColor = isCompacting ? "red" : "#606060";
 
 	return React.createElement(
 		Box,
@@ -51,8 +77,9 @@ export const StatusBar = React.memo(function StatusBar({
 			React.createElement(
 				Text,
 				{ key: "info", color: "#606060" },
-				"skills:" + skillCount + " msg:" + messageCount,
+				"skills:" + formatNumber(skillCount) + " msg:" + formatNumber(messageCount),
 			),
+			React.createElement(Text, { key: "context", color: contextColor }, " context:" + formatNumber(contextSize)),
 		),
 	);
 });

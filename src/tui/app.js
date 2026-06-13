@@ -11,7 +11,9 @@ import { OnboardingPanel } from "./onboardingPanel.js";
 import { createSession } from "../session/factory.js";
 import { setConfigValue } from "../config/loader.js";
 import { isAvailable, getGcCalls } from "../memory/gc.js";
+import { loadSystemPrompt } from "../memory/prompts.js";
 import { setTodoStreamingCallback } from "../tools/todo_queue.js";
+import { calculateConversationTokens } from "./contextTokens.js";
 
 /**
  * Main App component (Ink). Renders an IRC-style layout:
@@ -38,6 +40,8 @@ export default function App({
 	const [historyIndex, setHistoryIndex] = useState(-1);
 	const [inputText, setInputText] = useState("");
 	const [inputFocused, setInputFocused] = useState(true);
+	const [contextSize, setContextSize] = useState(0);
+	const [isCompacting, setIsCompacting] = useState(false);
 	const scrollRef = useRef(null);
 	const isQuittingRef = useRef(false);
 	const { exit } = useApp();
@@ -59,6 +63,29 @@ export default function App({
 		}
 		process.on("uncaughtException", onUncaught);
 		process.on("unhandledRejection", onUnhandled);
+		// Initialize contextSize from the current conversation token count + system prompt
+		if (sessionState) {
+			const conversation = sessionState.getConversation();
+			const providerName = sessionState.getProvider();
+			const providerConfig = config?.providers?.[providerName] || {};
+			const modelName = providerConfig.model || "gpt-4o";
+			const encoding = providerConfig.encoding;
+			
+			// Calculate conversation tokens
+			let totalTokens = calculateConversationTokens(conversation, modelName, encoding);
+			
+			// Add system prompt tokens
+			const systemPrompt = loadSystemPrompt();
+			if (systemPrompt) {
+				totalTokens += calculateConversationTokens(
+					[{ role: "system", content: systemPrompt }],
+					modelName,
+					encoding
+				);
+			}
+			
+			setContextSize(totalTokens);
+		}
 		return () => {
 			process.off("uncaughtException", onUncaught);
 			process.off("unhandledRejection", onUnhandled);
@@ -158,6 +185,28 @@ export default function App({
 		gcManager?.();
 		setStatusMessage("Streaming...");
 		addMessage({ role: "user", content: text });
+
+		// Persist user message to session state and recalculate context
+		if (sessionState) {
+			sessionState.addExchange({ role: "user", content: text });
+			const conversation = sessionState.getConversation();
+			const providerName = sessionState.getProvider();
+			const providerConfig = config?.providers?.[providerName] || {};
+			const modelName = providerConfig.model || "gpt-4o";
+			const encoding = providerConfig.encoding;
+			
+			// Calculate conversation tokens + system prompt
+			let totalTokens = calculateConversationTokens(conversation, modelName, encoding);
+			const systemPrompt = loadSystemPrompt();
+			if (systemPrompt) {
+				totalTokens += calculateConversationTokens(
+					[{ role: "system", content: systemPrompt }],
+					modelName,
+					encoding
+				);
+			}
+			setContextSize(totalTokens);
+		}
 
 		const assistantTime = getTimestamp();
 		setMessages((prev) => [
@@ -268,6 +317,10 @@ export default function App({
 								}
 								return cloned;
 							});
+						} else if (event.type === "compaction_start") {
+							setIsCompacting(true);
+						} else if (event.type === "compaction_end") {
+							setIsCompacting(false);
 						}
 					} catch (_cbErr) {
 						// Silently ignore streaming callback errors
@@ -302,12 +355,29 @@ export default function App({
 				return cloned;
 			});
 
+			// Persist assistant message and recalculate context
 			if (sessionState) {
-				sessionState.addExchange({ role: "user", content: text });
 				sessionState.addExchange({
 					role: "assistant",
 					content: responseContent,
 				});
+				const conversation = sessionState.getConversation();
+				const providerName = sessionState.getProvider();
+				const providerConfig = config?.providers?.[providerName] || {};
+				const modelName = providerConfig.model || "gpt-4o";
+				const encoding = providerConfig.encoding;
+				
+				// Calculate conversation tokens + system prompt
+				let totalTokens = calculateConversationTokens(conversation, modelName, encoding);
+				const systemPrompt = loadSystemPrompt();
+				if (systemPrompt) {
+					totalTokens += calculateConversationTokens(
+						[{ role: "system", content: systemPrompt }],
+						modelName,
+						encoding
+					);
+				}
+				setContextSize(totalTokens);
 			}
 			if (onSaveSession) {
 				onSaveSession();
@@ -315,9 +385,6 @@ export default function App({
 			gcManager?.();
 			setStatusMessage("Received response");
 		} catch (err) {
-			if (sessionState) {
-				sessionState.addExchange({ role: "user", content: text });
-			}
 			if (onSaveSession) {
 				onSaveSession();
 			}
@@ -346,6 +413,7 @@ export default function App({
 		sessionState.createNewSession(newSession.sessionId);
 		setMessages([]);
 		setChatHistory([]);
+		setContextSize(0);
 		setStatusMessage("New session started.");
 		addMessage({
 			role: "system",
@@ -510,7 +578,9 @@ export default function App({
 	const statusProps = {
 		skillCount: skillList.length,
 		messageCount: messages.length,
+		contextSize: contextSize,
 		statusMessage: statusMessage,
+		isCompacting: isCompacting,
 	};
 
 	return React.createElement(

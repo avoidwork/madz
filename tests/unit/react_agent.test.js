@@ -692,5 +692,102 @@ describe("callReactAgent", () => {
 			);
 			assert.strictEqual(invokeCount, 2); // initial + 1 retry
 		});
+
+		it("emits compaction_start and compaction_end events in streaming mode on first retry", async () => {
+			const agentMock = {
+				streamEvents: () => {
+					throw createContextLengthError("maximum context length of 8192 tokens");
+				},
+				invoke: () => ({ messages: [new AIMessage("fallback")] }),
+			};
+
+			const callbackCalls = [];
+			const callback = (event) => callbackCalls.push(event);
+
+			await callReactAgent(agentMock, "test", {}, null, callback, {
+				maxTokens: 2048,
+				maxCompactionIterations: 3,
+			});
+
+			const compactionStart = callbackCalls.filter((e) => e.type === "compaction_start");
+			const compactionEnd = callbackCalls.filter((e) => e.type === "compaction_end");
+
+			assert.strictEqual(compactionStart.length, 1, "Should emit exactly one compaction_start");
+			assert.strictEqual(compactionEnd.length, 1, "Should emit exactly one compaction_end");
+			assert.ok(
+				compactionStart[0].type === "compaction_start",
+				"compaction_start event type is correct",
+			);
+			assert.ok(compactionEnd[0].type === "compaction_end", "compaction_end event type is correct");
+		});
+
+		it("emits compaction_start only once across multiple retries", async () => {
+			let streamCallCount = 0;
+			const agentMock = {
+				streamEvents: () => {
+					streamCallCount++;
+					if (streamCallCount <= 2) {
+						throw createContextLengthError("maximum context length of 8192 tokens");
+					}
+					// Succeed on third attempt
+					return (async function* () {
+						yield {
+							event: "on_chat_model_stream",
+							data: { chunk: new AIMessageChunk({ content: "success" }) },
+						};
+					})();
+				},
+				invoke: () => ({ messages: [new AIMessage("fallback")] }),
+			};
+
+			const callbackCalls = [];
+			const callback = (event) => callbackCalls.push(event);
+
+			await callReactAgent(agentMock, "test", {}, null, callback, {
+				maxTokens: 2048,
+				maxCompactionIterations: 3,
+			});
+
+			const compactionStart = callbackCalls.filter((e) => e.type === "compaction_start");
+			const compactionEnd = callbackCalls.filter((e) => e.type === "compaction_end");
+
+			assert.strictEqual(
+				compactionStart.length,
+				1,
+				"Should emit exactly one compaction_start across all retries",
+			);
+			assert.strictEqual(compactionEnd.length, 1, "Should emit exactly one compaction_end");
+		});
+
+		it("does not emit compaction events when no context length error occurs", async () => {
+			const events = [
+				{
+					event: "on_chat_model_stream",
+					data: { chunk: new AIMessageChunk({ content: "Hello!" }) },
+				},
+			];
+
+			const agentMock = {
+				streamEvents: () =>
+					(async function* () {
+						for (const evt of events) yield evt;
+					})(),
+				invoke: () => ({ messages: [new AIMessage("fallback")] }),
+			};
+
+			const callbackCalls = [];
+			const callback = (event) => callbackCalls.push(event);
+
+			await callReactAgent(agentMock, "hello", null, null, callback);
+
+			const compactionEvents = callbackCalls.filter(
+				(e) => e.type === "compaction_start" || e.type === "compaction_end",
+			);
+			assert.strictEqual(
+				compactionEvents.length,
+				0,
+				"Should not emit compaction events on success",
+			);
+		});
 	});
 });
