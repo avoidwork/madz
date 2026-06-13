@@ -12,7 +12,6 @@
 ## Table of Contents
 
 - [Overview](#overview)
-- [Coming soon](#coming-soon)
 - [Quick Start](#quick-start)
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
@@ -28,6 +27,7 @@
   - [Onboarding](#onboarding)
   - [LLM Provider Abstraction](#llm-provider-abstraction)
   - [Agent](#agent)
+  - [Context Window Management](#context-window-management)
   - [Built-in Tools](#built-in-tools)
   - [Skills Registry](#skills-registry)
   - [Permission Gating](#permission-gating)
@@ -36,11 +36,12 @@
   - [Telemetry](#telemetry)
   - [Cron Scheduler](#cron-scheduler)
 - [Directory Structure](#directory-structure)
+- [Logging](#logging)
 - [Config Reference](#config-reference)
 - [Testing](#testing)
 - [Development](#development)
   - [Extending Skills](#extending-skills)
-  - [Environment Variables](#environment-variables)
+  - [Environment Variables Usage](#environment-variables-usage)
 - [License](#license)
 
 ## Overview
@@ -51,7 +52,7 @@
 - ⏱️ **Automates your routines** → Declare cron jobs in YAML and run on autopilot
 - 💬 **Orchestrates conversations** → Multi-turn LLM chats with context-window management
 
-## Coming soon
+## Quick Start
 
 - Faster rendering and snappier interactions
 - Session browsing with interactive menu
@@ -556,7 +557,7 @@ Skills follow the [Agent Skills spec](https://agentskills.io/specification). Eac
 3. (Optional) Place executable scripts under `skills/your-skill/scripts/`. Supported extensions: `.py` (Python 3), `.sh` (Bash), `.js`/`.mjs` (Node.js), `.rb` (Ruby), `.ts` (Node.js + tsx).
 4. Restart the harness — the skills registry auto-discovers new skills on boot.
 
-### Environment Variables
+### Environment Variables Usage
 
 `madz` supports two environment variable patterns:
 
