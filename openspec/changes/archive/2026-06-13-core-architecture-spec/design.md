@@ -10,7 +10,7 @@ The spec is derived from the existing `index.js` entry point and the 28 existing
 
 ```
 openspec/specs/app-architecture/spec.md    ← new
-openspec/changes/2026-06-13-core-architecture-spec/
+openspec/changes/core-architecture-spec/
   ├── proposal.md
   ├── specs/app-architecture/spec.md       ← new
   ├── design.md
