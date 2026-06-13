@@ -268,12 +268,17 @@ export function ConversationPanel({
 		const viewportH = scrollRef.current.getViewportHeight();
 
 		if (messages.length > previousMessageCount.current) {
+			// Re-measure before scrolling to ensure content heights are up to date.
+			// This prevents a race condition where scrollToBottom fires before
+			// the ScrollView has finished measuring newly added children.
+			scrollRef.current.remeasure();
 			scrollRef.current.scrollToBottom();
 			previousMessageCount.current = messages.length;
 		} else if (lastMsg?.streaming && contentH && viewportH && contentH > viewportH) {
+			scrollRef.current.remeasure();
 			scrollRef.current.scrollToBottom();
 		}
-	}, [messages.length, scrollRef.current, stdout.isTTY]);
+	}, [messages.length, stdout.isTTY]);
 
 	const children = React.useMemo(
 		() => renderMessages(messages, assistantName),
