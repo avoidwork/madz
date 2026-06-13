@@ -565,4 +565,126 @@ describe("callReactAgent", () => {
 			assert.strictEqual(err.message, "model error");
 		});
 	});
+
+	describe("context length error handling", () => {
+		function createContextLengthError(message) {
+			const err = new Error(message);
+			return err;
+		}
+
+		it("retries on context length error and succeeds on second attempt", async () => {
+			let invokeCount = 0;
+			const agentMock = {
+				invoke: (input) => {
+					invokeCount++;
+					if (invokeCount === 1) {
+						throw createContextLengthError("This model's maximum context length is 128000 tokens");
+					}
+					return { messages: [new AIMessage("success after retry")] };
+				},
+				streamEvents: () => ({}),
+			};
+
+			const result = await callReactAgent(agentMock, "test", {}, "system prompt", null, {
+				maxTokens: 4096,
+			});
+
+			assert.strictEqual(result.content, "success after retry");
+			assert.strictEqual(invokeCount, 2);
+		});
+
+		it("returns context too long message after max iterations", async () => {
+			const agentMock = {
+				invoke: () => {
+					throw createContextLengthError("This model's maximum context length is 128000 tokens");
+				},
+				streamEvents: () => ({}),
+			};
+
+			const result = await callReactAgent(agentMock, "test", {}, "system prompt", null, {
+				maxTokens: 4096,
+				maxCompactionIterations: 3,
+			});
+
+			assert.strictEqual(result.content, "The conversation is too long. Please start a new session.");
+		});
+
+		it("re-throws non-context-length errors during retry loop", async () => {
+			const agentMock = {
+				invoke: () => {
+					throw new Error("rate limit exceeded");
+				},
+				streamEvents: () => ({}),
+			};
+
+			let err = null;
+			try {
+				await callReactAgent(agentMock, "test", {}, "system prompt", null, {
+					maxTokens: 4096,
+				});
+			} catch (e) {
+				err = e;
+			}
+
+			assert.ok(err instanceof Error);
+			assert.strictEqual(err.message, "rate limit exceeded");
+		});
+
+		it("handles context length error in streaming mode", async () => {
+			const agentMock = {
+				streamEvents: () => {
+					throw createContextLengthError("maximum context length of 8192 tokens");
+				},
+				invoke: () => ({ messages: [new AIMessage("fallback")] }),
+			};
+
+			const result = await callReactAgent(agentMock, "test", {}, null, () => {}, {
+				maxTokens: 2048,
+			});
+
+			// After max iterations, returns original message as fallback
+			assert.strictEqual(result.content, "test");
+		});
+
+		it("extracts context length from error message automatically", async () => {
+			let invokeCount = 0;
+			const agentMock = {
+				invoke: (input) => {
+					invokeCount++;
+					if (invokeCount === 1) {
+						throw createContextLengthError("This model's maximum context length is 65536 tokens");
+					}
+					return { messages: [new AIMessage("success")] };
+				},
+				streamEvents: () => ({}),
+			};
+
+			// Don't pass maxContextLength — it should be extracted from error
+			const result = await callReactAgent(agentMock, "test", {}, "system prompt", null, {
+				maxTokens: 4096,
+			});
+
+			assert.strictEqual(result.content, "success");
+			assert.strictEqual(invokeCount, 2);
+		});
+
+		it("respects custom maxCompactionIterations", async () => {
+			let invokeCount = 0;
+			const agentMock = {
+				invoke: () => {
+					invokeCount++;
+					throw createContextLengthError("This model's maximum context length is 128000 tokens");
+				},
+				streamEvents: () => ({}),
+			};
+
+			const result = await callReactAgent(agentMock, "test", {}, "system prompt", null, {
+				maxTokens: 4096,
+				maxCompactionIterations: 1,
+			});
+
+			assert.strictEqual(result.content, "The conversation is too long. Please start a new session.");
+			assert.strictEqual(invokeCount, 2); // initial + 1 retry
+		});
+	});
 });
