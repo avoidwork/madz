@@ -519,7 +519,6 @@ runScheduledSkill(schedule, sandbox, sessionState)
 │           └── timeout → SIGTERM → gracePeriod → SIGKILL → "terminated" | "killed"
 └── return { stdout, stderr, exitCode }
 
-**Note:** The diagram shows \`fork()\` but the actual implementation uses \`child_process.spawn()\`. Forked processes share the same Node.js runtime and can communicate via IPC channels. Spawned processes are fully isolated with separate memory and event loops, which is the actual isolation model used.
 ```
 
 ## Additional Tool Flows

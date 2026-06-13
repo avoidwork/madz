@@ -1,6 +1,6 @@
 /**
  * Handle process timeout by sending SIGTERM, then SIGKILL after grace period.
- * @param {import("node:child_process").ChildProcess} child - The forked child process
+ * @param {import("node:child_process").ChildProcess} child - The spawned child process
  * @param {Object} [options] - Configuration
  * @param {number} [options.seconds=30] - Timeout before SIGTERM
  * @param {number} [options.gracePeriod=5] - Seconds between SIGTERM and SIGKILL
