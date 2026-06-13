@@ -37,18 +37,26 @@ index.js (main)
 ├── import { loadConfig } from "./src/config/loader.js"
 ├── config = loadConfig()
 │   └── [see Config Loading]
+├── if config.schedules.syncOnInit !== false:
+│   ├── Cron.sync(schedulesDir) → reconciles persisted jobs with system crontab
+│   └── Cron.add(reflection-daily) → ensures daily reflection job exists
+├── ensureSessionsDir("memory/sessions/") → creates sessions directory
+├── if !hasProfile():
+│   └── createOnboarding() with autoSchedule callback → [see Onboarding]
 ├── if config.telemetry.enabled:
 │   ├── initTelemetry(config.telemetry)
 │   ├── tracer = getTracer()
 │   └── shutdownFn = shutdownTelemetry
 ├── registry = new SkillRegistry()
+├── ensureSkillsDir("skills/")
 ├── registry.discover("skills/")
 │   └── [see Skill Registry Discovery & Validation]
-├── { writeMemoryFile, readMemoryFile, loadContext, cleanRetainedMemory, enforceMaxEntries }
+├── { writeMemoryFile, readMemoryFile, loadContext, loadMemories, formatMemoriesForPrompt }
 │   └── from "./src/memory/index.js"
+├── initGC({ idleTimeoutMs, maxGcPerHour, onIdle }) → GC idle manager
 ├── { createSession, SessionStateManager, saveSession, handleShutdown, registerShutdownHandler }
 │   └── from "./src/session/index.js"
-├── scheduleManager = new ScheduleManager(config.schedules.maxConcurrent)
+├── scheduleManager = new ScheduleManager()  // maxConcurrent param deprecated
 ├── scheduleManager.register(config.schedules.entries)
 │   └── [see Schedule Manager Lifecycle]
 ├── providerName = Object.keys(config.providers)[0] || "openai"
@@ -65,15 +73,16 @@ index.js (main)
 ├── tools = await buildToolConfig({
 │   │   permissions, allowedPaths, maxReadSize, registry,
 │   │   sessionsDir, safety, timeout, memoryLimit,
+│   │   contextDir, ephemeralTtlDays, ephemeralMaxEntries, config
 │   │   })
 │   └── [see Tool Configuration Building]
 ├── model = createChatModel(providerConfig)
 │   └── [see Chat Model Creation]
 ├── { createCheckpointer } = import("./src/session/checkpointer.js")
 ├── checkpointer = createCheckpointer(config.persistence)
-├── agent = createReactAgent(model, tools, checkpointer)
+├── agent = createReactAgent(model, tools, checkpointer, recursionLimit)
 │   └── [see Chat Flow (CLI Chat Mode)]
-├── sessionConfig = { configurable: { thread_id: sessionId } }
+├── sessionConfig = { configurable: { thread_id: sessionState.getThreadId() } }
 ├── registerShutdownHandler(async () => {
 │   ├── saveSession()
 │   ├── cleanRetainedMemory()
@@ -502,13 +511,15 @@ runScheduledSkill(schedule, sandbox, sessionState)
 │   └── runSandbox(options):
 │       ├── enforceCapabilities(permissions) → rules
 │       ├── filterEnv(process.env, whitelist)
-│       ├── fork(script, [], { cwd, env, execArgv: ["--max-old-space-size=512"], stdio: ["pipe","pipe","pipe","ipc"] })
+│       ├── spawn(script, [], { cwd, env, execArgv: ["--max-old-space-size=512"], stdio: ["pipe","pipe","pipe"] })
 │       ├── child.stdout.on("data") → result.stdout
 │       ├── child.stderr.on("data") → result.stderr
 │       ├── child.on("exit") → resolve code
 │       └── handleTimeout(child, { seconds, gracePeriod })
 │           └── timeout → SIGTERM → gracePeriod → SIGKILL → "terminated" | "killed"
 └── return { stdout, stderr, exitCode }
+
+**Note:** The diagram shows \`fork()\` but the actual implementation uses \`child_process.spawn()\`. Forked processes share the same Node.js runtime and can communicate via IPC channels. Spawned processes are fully isolated with separate memory and event loops, which is the actual isolation model used.
 ```
 
 ## Additional Tool Flows

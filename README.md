@@ -349,11 +349,11 @@ Bundled LangChain tools gated by sandbox permissions:
 | **Search**          | `session_search` — query past conversations by keyword, ID, or browse                                                                                                                                                                                                                                                                                                                                                |
 | **Clarification**   | `clarify` — sends clarification questions to the user                                                                                                                                                                                                                                                                                                                                                                |
 | **Skills**          | `skills_list` — lists discovered skills; `skill_view` — views skill metadata and SKILL.md; `create_skill` — creates spec-compliant skill directories with SKILL.md frontmatter (requires `filesystem:write`)                                                                                                                                                                                                         |
-| **Code**            | `code` — code execution and analysis                                                                                                                                                                                                                                                                                                                                                                                 |
-| **Web**             | `web` — outbound HTTP with timeout, URL allowlist filtering, multi-engine search backends                                                                                                                                                                                                                                                                                                                            |
-| **Media**           | `image` — image generation via fal.ai; `vision` — vision/language analysis via OpenAI; `tts` — text-to-speech via OpenAI TTS                                                                                                                                                                                                                                                                                         |
-| **Agents**          | `moa` — multi-agent orchestration                                                                                                                                                                                                                                                                                                                                                                                    |
-| **Cron**            | `cron` — cron job utilities                                                                                                                                                                                                                                                                                                                                                                                          |
+| **Code**            | `execute_code` — code execution and analysis                                                                                                                                                                                                                                                                                                                                                                                 |
+| **Web**             | `web_search`, `web_extract` — outbound HTTP with timeout, URL allowlist filtering, multi-engine search backends                                                                                                                                                                                                                                                                                                                            |
+| **Media**           | `image_generate` — image generation via fal.ai; `vision_analyze` — vision/language analysis via OpenAI; `text_to_speech` — text-to-speech via OpenAI TTS                                                                                                                                                                                                                                                                                         |
+| **Agents**          | `mixture_of_agents` — multi-agent orchestration                                                                                                                                                                                                                                                                                                                                                                                    |
+| **Cron**            | `cronJob` — cron job utilities                                                                                                                                                                                                                                                                                                                                                                                          |
 
 ### Skills Registry
 
@@ -365,7 +365,7 @@ Built-in tools are registered only when their required permissions are enabled f
 
 | Permission Required                 | Tools                                                                      |
 | ----------------------------------- | -------------------------------------------------------------------------- |
-| `filesystem:read`                   | `read_file`, `search_files`, `skills_list`, `skill_view`, `session_search` |
+| `filesystem:read`                   | `read_file`, `search_files`, `skill_view`, `session_search` |
 | `filesystem:write`                  | `write_file`, `patch`, `todo`, `memory`, `create_skill`                    |
 | `filesystem:exec` + `process:spawn` | `terminal`                                                                 |
 | `process:spawn`                     | `process`                                                                  |
@@ -390,7 +390,7 @@ Together, these layers create a system that remembers what matters while natural
 
 ### Sandbox RTE
 
-Skills run in isolated forked processes with time limits, memory caps, and allowlists for filesystem paths and outbound URLs. Blocked schemes: `file://`, `gopher://`, `dict://`.
+Skills run in isolated spawned child processes with time limits, memory caps, and allowlists for filesystem paths and outbound URLs. Blocked schemes: `file://`, `gopher://`, `dict://`.
 
 ### Telemetry
 
@@ -398,7 +398,7 @@ Optional `@opentelemetry/sdk-node` integration. Configurable exporter (console, 
 
 ### Cron Scheduler
 
-Recurring job definitions in `config.yaml`. Supports both in-process scheduling and delegation to the system crontab (`mode: "system"`). Each invocation inherits the current session's memory context and sandbox permissions. Max-concurrency control prevents run overlap.
+Recurring job definitions in `config.yaml`. Scheduling is delegated to the system crontab — there is no in-process clock tick loop. Each invocation inherits the current session's memory context and sandbox permissions. Max-concurrency control prevents run overlap (currently a no-op, kept for API compatibility).
 
 On first onboarding completion, `madz` automatically installs a `reflection-daily` cron job (`0 2 * * *`) into the system crontab. Job definitions are persisted as JSON in `memory/schedules/` and managed under the `madz-schedules` block.
 
@@ -462,16 +462,18 @@ Graceful shutdown flushes all buffered log entries to disk before process exit.
 |               | `openai.credentials.apiKey`          | _(empty)_                                | API key for authentication                    |
 |               | `openai.temperature`                 | `0.7`                                    | Sampling temperature (0–2)                    |
 |               | `openai.maxTokens`                   | `4096`                                   | Max output tokens                             |
-|               | `openai.rateLimit.requestsPerMinute` | `120`                                    | Rate limit for API calls                      |
+|               | `openai.rateLimit.requestsPerMinute` | `60`                                     | Rate limit for API calls                      |
 | `sandbox`     | `paths`                              | `["memory/", "skills/", "src/", "/tmp"]` | Allowed filesystem paths                      |
 |               | `timeout.seconds`                    | `30`                                     | Max execution time in seconds                 |
 |               | `timeout.gracePeriod`                | `5`                                      | Kill grace period in seconds                  |
-|               | `memoryLimit`                        | `"128mb"`                                | Heap limit (`--max-old-space-size`)           |
+|               | `memoryLimit`                        | `"512m"`                                 | Heap limit (`--max-old-space-size`)           |
 |               | `safety.urlFilter`                   | `true`                                   | Outbound URL blocking                         |
 |               | `safety.pythonImportHook`            | `true`                                   | Prevent subprocess import                     |
 |               | `env.allowlist`                      | `["PATH", "HOME", "NODE_ENV"]`           | Allowed environment variables                 |
 |               | `permissions`                        | `["filesystem:read", ...]`               | Permission grants                             |
-|               | `maxReadSize`                        | `"10mb"`                                 | Max file read size                            |
+|               | `maxReadSize`                        | `"1mb"`                                  | Max file read size                            |
+|               | `skillScanPaths`                     | `["skills/", ".agents/skills/"]`         | Skill discovery paths (comma-separated)       |
+|               | `trustProjectSkills`                 | `true`                                   | Trust skills in project root                  |
 | `memory`      | `directory`                          | `memory/`                                | Base directory for persistence                |
 |               | `contextDir`                         | `memory/context/`                        | Context file directory                        |
 |               | `toolsDir`                           | `memory/tools/`                          | Tool metadata directory                       |
@@ -480,6 +482,8 @@ Graceful shutdown flushes all buffered log entries to disk before process exit.
 |               | `gc.enabled`                         | `true`                                   | Enable V8 garbage collection                  |
 |               | `gc.idleTimeoutMs`                   | `300000`                                 | Idle timeout before GC triggers (ms)          |
 |               | `gc.maxGcPerHour`                    | `4`                                      | Max GC calls per hour                         |
+|               | `ephemeral.ttlDays`                  | `7`                                      | TTL for ephemeral memories in days            |
+|               | `ephemeral.maxEntries`               | `10`                                     | Max concurrent ephemeral entries              |
 | `telemetry`   | `enabled`                            | `false`                                  | Enable OpenTelemetry export                   |
 |               | `exporter.protocol`                  | `console`                                | Exporter protocol (`console`, `http`, `grpc`) |
 |               | `exporter.endpoint`                  | `http://localhost:4318`                  | OTLP endpoint URL                             |
@@ -489,6 +493,7 @@ Graceful shutdown flushes all buffered log entries to disk before process exit.
 |               | `redact.paths`                       | `["credentials.apiKey", ...]`            | Sensitive field paths for redaction           |
 | `schedules`   | `maxConcurrent`                      | `1`                                      | Max parallel scheduled runs                   |
 |               | `mode`                               | `inprocess`                              | Scheduling backend (`inprocess`, `system`)    |
+|               | `syncOnInit`                         | `true`                                   | Sync crontab from persisted job definitions   |
 | `tui`         | `name`                               | `madz`                                   | TUI identifier in banner                      |
 |               | `cursorChar`                         | `█`                                      | Cursor character                              |
 | `agent`       | `recursionLimit`                     | `30`                                     | Max graph execution steps per agent call      |

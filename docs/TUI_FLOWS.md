@@ -24,7 +24,7 @@ Call chains and component interactions for all primary code paths in the termina
 **Entry:** `src/tui/index.js` → `export { default as App } from "./app.js"`
 
 ```
-App({ config, registry, sessionState, dispatchProvider, appInfo })
+App({ config, registry, sessionState, dispatchProvider, scheduleManager, appInfo, onboarding, onSaveSession, gcManager, gcTrigger })
 ├── useEffect: register process.on("uncaughtException", "unhandledRejection")
 ├── useInput: global key listener (key, input)
 ├── useWindowSize: { rows } for layout height
@@ -36,6 +36,8 @@ App({ config, registry, sessionState, dispatchProvider, appInfo })
     ├── InputPanel (when showOnboarding OR NOT showBanner)
     └── Text("exit-newline")
 ```
+
+**Note:** `scheduleManager`, `onboarding`, `onSaveSession`, `gcManager`, and `gcTrigger` are additional props passed from `index.js` but not documented in the original flow diagram.
 
 Mount order: state init → effects (error handlers) → input listener → window size → render.
 
@@ -145,10 +147,13 @@ User enters ":command ...", presses Enter (app.js:294)
 | `:quit`     | —                        | `process.exit(0)`                |
 | `:provider` | `set <name>`             | `sessionState.setProvider(name)` |
 | `:config`   | `set <path> <value>`     | `setConfigValue(config, path, v)`|
-| `:memory`   | `open`, `search <q>`     | Context list / search query      |
 | `:schedule` | `list`, `pause <n>`, `resume <n>`, `run-now <n>` | Schedule actions |
-| `:context`  | `add <text>`             | Add context string               |
+| `:clear`    | —                        | Clear conversation messages      |
+| `:new`      | —                        | Start a fresh session            |
+| `:gc`       | `status`                 | Trigger V8 GC or show status     |
 | `:help`     | —                        | Available commands message       |
+
+**Note:** `:memory` and `:context` commands are not in the CommandParser dispatch table — they are handled elsewhere in the TUI. The actual registered commands are: quit, provider, config, schedule, clear, new, gc, help.
 
 ---
 
