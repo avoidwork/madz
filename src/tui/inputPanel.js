@@ -14,7 +14,7 @@ export function Blink({ text = "", char = "\u2588", cursorColor }) {
 		Box,
 		{ flexDirection: "row" },
 		React.createElement(Text, { key: "text", flexGrow: 1, color: "white" }, text || ""),
-		React.createElement(Text, { key: "cursor", bold: true, color: cursorColor || "white" }, char || "\u2588"),
+		React.createElement(Text, { key: "cursor", bold: true, color: cursorColor || "cyan" }, char || "\u2588"),
 	);
 }
 
