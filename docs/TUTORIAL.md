@@ -83,6 +83,15 @@ OPENAI_MODEL=gemma4:12b
 # OPENAI_API_KEY is optional for local providers
 ```
 
+*Custom model with explicit encoding:*
+```env
+OPENAI_BASE_URL=http://your.inference.lan:8000/v1
+OPENAI_MODEL=Qwen/Qwen3-32B
+OPENAI_ENCODING=qwen2_base
+```
+
+When using a non-OpenAI model, you may need to set `OPENAI_ENCODING` to specify the tiktoken encoder name that matches the model's tokenizer. See the [Encoding Reference](../README.md#encoding-reference) in the README for common mappings.
+
 *Note for Docker users:* `host.docker.internal` is required so the container can reach the Ollama service running on your host machine. If you're on Linux, you may need to use `--network host` instead.
 
 **Flag breakdown:**

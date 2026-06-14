@@ -23,6 +23,7 @@
   - [Running](#running)
   - [SSH Access](#ssh-access)
   - [Environment Variables](#environment-variables)
+  - [Encoding Reference](#encoding-reference)
 - [Features](#features)
   - [Onboarding](#onboarding)
   - [LLM Provider Abstraction](#llm-provider-abstraction)
@@ -173,6 +174,7 @@ docker run -d \
   -v ./logs:/home/madz/.cache/madz/logs \
   -e OPENAI_API_KEY="abc" \
   -e OPENAI_MODEL=Qwen/Qwen3.6-35B-A3B-FP8 \
+  -e OPENAI_ENCODING=qwen2_base \
   -e OPENAI_BASE_URL=http://your.inference.lan:8000/v1 \
   -e OPENAI_MAX_TOKENS=61440 \
   -e SEARXNG_URL=https://your.searxng.lan/search \
@@ -217,6 +219,7 @@ All configuration is controlled via environment variables in the `docker run` co
 | ---------------------------- | --------------------------- | -------------------------- |
 | `OPENAI_BASE_URL`            | `https://api.openai.com/v1` | API endpoint URL           |
 | `OPENAI_MODEL`               | `gpt-4o`                    | Model name                 |
+| `OPENAI_ENCODING`            | _(auto)_                    | Tiktoken encoder name (see [Encoding Reference](#encoding-reference) below) |
 | `OPENAI_TEMPERATURE`         | `0.7`                       | Sampling temperature (0–2) |
 | `OPENAI_MAX_TOKENS`          | `4096`                      | Max output tokens          |
 | `OPENAI_REQUESTS_PER_MINUTE` | `60`                        | Rate limit for API calls   |
@@ -321,6 +324,27 @@ providers:
 ```
 
 This is the recommended approach for container deployments — keep secrets out of `docker inspect` output.
+
+### Encoding Reference
+
+When using a non-OpenAI model (via `OPENAI_BASE_URL`), you may need to specify the tiktoken encoder name that matches the model's tokenizer. The `OPENAI_ENCODING` variable maps to the `encoding` field in the provider config and is used for token counting in the TUI status bar.
+
+| Encoding           | Model Families                                          |
+| ------------------ | ------------------------------------------------------- |
+| `o200k_base`       | GPT-4o, GPT-4.1, GPT-5, o1, o3, o4-mini (and fine-tunes) |
+| `cl100k_base`      | GPT-4, GPT-3.5-Turbo, text-embedding-ada-002, text-embedding-3-small/large |
+| `p50k_base`        | text-davinci-002/003, code-davinci-001/002 (deprecated) |
+| `r50k_base`        | text-davinci-001, text-curie/babbage/ada-001, davinci/curie/babbage/ada (deprecated) |
+| `p50k_edit`        | text-davinci-edit-001, code-davinci-edit-001 (deprecated) |
+| `gpt2`             | GPT-2                                                     |
+
+For local models (Ollama, vLLM, LM Studio), check the model's tokenizer configuration. Common mappings:
+- **Llama 3.x**: `cl100k_base` (most Llama models use a variant of the GPT-4 tokenizer)
+- **Mistral**: `cl100k_base`
+- **Qwen**: `qwen2_base`
+- **Mixtral**: `cl100k_base`
+
+If unsure, omit `OPENAI_ENCODING` — the TUI will fall back to character-count estimation.
 
 ## Features
 
