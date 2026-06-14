@@ -205,46 +205,46 @@ describe("sandbox schema extension", () => {
 });
 
 describe("agent schema defaults", () => {
-	describe("recursionLimit", () => {
-		it("defaults to 1000", () => {
-			const schema = {
-				safeParse(obj) {
-					const agent = obj.agent || {};
-					return {
-						success: true,
-						data: {
-							agent: {
-								recursionLimit: agent.recursionLimit !== undefined ? agent.recursionLimit : 1000,
+		describe("recursionLimit", () => {
+			it("defaults to 1000", () => {
+				const schema = {
+					safeParse(obj) {
+						const agent = obj.agent || {};
+						return {
+							success: true,
+							data: {
+								agent: {
+									recursionLimit: agent.recursionLimit !== undefined ? agent.recursionLimit : 1000,
+								},
 							},
-						},
-					};
-				},
-			};
-			const result = schema.safeParse({});
-			assert.strictEqual(result.success, true);
-			assert.strictEqual(result.data.agent.recursionLimit, 1000);
-		});
+						};
+					},
+				};
+				const result = schema.safeParse({});
+				assert.strictEqual(result.success, true);
+				assert.strictEqual(result.data.agent.recursionLimit, 1000);
+			});
 
-		it("accepts custom recursionLimit value", () => {
-			const schema = {
-				safeParse(obj) {
-					const agent = obj.agent || {};
-					return {
-						success: true,
-						data: {
-							agent: {
-								recursionLimit: agent.recursionLimit !== undefined ? agent.recursionLimit : 1000,
+			it("accepts custom recursionLimit value", () => {
+				const schema = {
+					safeParse(obj) {
+						const agent = obj.agent || {};
+						return {
+							success: true,
+							data: {
+								agent: {
+									recursionLimit: agent.recursionLimit !== undefined ? agent.recursionLimit : 1000,
+								},
 							},
-						},
-					};
-				},
-			};
-			const result = schema.safeParse({ agent: { recursionLimit: 500 } });
-			assert.strictEqual(result.success, true);
-			assert.strictEqual(result.data.agent.recursionLimit, 500);
+						};
+					},
+				};
+				const result = schema.safeParse({ agent: { recursionLimit: 500 } });
+				assert.strictEqual(result.success, true);
+				assert.strictEqual(result.data.agent.recursionLimit, 500);
+			});
 		});
 	});
-});
 
 describe("env var expansion", () => {
 	it("expands ${VAR} pattern", () => {

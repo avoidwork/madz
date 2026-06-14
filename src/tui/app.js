@@ -161,6 +161,7 @@ export default function App({
 						action: "skill",
 						subAction: "load",
 						name: skillName,
+						skillBody: body || "",
 						message: body ? `Skill "${skillName}" loaded.\n${body}` : `Skill "${skillName}" loaded. No instructions found.`,
 					};
 				},
@@ -182,10 +183,196 @@ export default function App({
 				setStatusMessage(result.message);
 				return;
 			}
-			if (result.action !== "help") {
+			if (result.action === "skill" && result.subAction === "load" && result.skillBody) {
+				gcManager?.();
+				setStatusMessage("Streaming...");
+
+				const assistantTime = getTimestamp();
+				setMessages((prev) => [
+					...prev,
+					{
+						role: "assistant",
+						content: "",
+						time: assistantTime,
+						streaming: true,
+						toolCalls: [],
+						toolCallDisplay: "",
+					},
+				]);
+
+				let committedContent = "";
+				let committedReasoning = "";
+				let lastToolCallDisplay = "";
+				let todoStatusLines = "";
+
+				setTodoStreamingCallback((event) => {
+					if (event.type === "todo_status") {
+						const statusLine = event.message
+							? `- ${event.message}`
+							: `- Todo: ${event.action} ${event.key || ""}`;
+						todoStatusLines = (todoStatusLines ? todoStatusLines + "\n" : "") + statusLine;
+						setMessages((prev) => {
+							const cloned = [...prev];
+							const last = cloned[cloned.length - 1];
+							if (last.role === "assistant" && last.streaming) {
+								last.toolCallDisplay = lastToolCallDisplay
+									? lastToolCallDisplay + "\n" + todoStatusLines
+									: todoStatusLines;
+							}
+							return cloned;
+						});
+					}
+				});
+
+				try {
+					await dispatchProvider(
+						result.skillBody,
+						sessionState ? sessionState.getProvider() : null,
+						(event) => {
+							if (isQuittingRef.current) return;
+							try {
+								if (event.type === "text") {
+									committedContent = (committedContent || "") + event.text;
+									setMessages((prev) => {
+										const cloned = [...prev];
+										const last = cloned[cloned.length - 1];
+										if (last.role === "assistant" && last.streaming) {
+											last.content = committedContent + "\u2588";
+										}
+										return cloned;
+									});
+								} else if (event.type === "reasoning") {
+									committedReasoning = (committedReasoning || "") + event.text;
+									setMessages((prev) => {
+										const cloned = [...prev];
+										const last = cloned[cloned.length - 1];
+										if (last.role === "assistant" && last.streaming) {
+											last.reasoningContent = (committedReasoning || "") + "\u2588";
+										}
+										return cloned;
+									});
+								} else if (event.type === "tool_start") {
+									setMessages((prev) => {
+										const cloned = [...prev];
+										const last = cloned[cloned.length - 1];
+										if (last.role === "assistant" && last.streaming) {
+											last.activeToolCall = { name: event.toolName };
+											last.toolCallDisplay = lastToolCallDisplay;
+										}
+										return cloned;
+									});
+								} else if (event.type === "tool_end") {
+									const resultLine = event.data
+										? ` Result: ${JSON.stringify(event.data).slice(0, 200)}`
+										: "";
+									const displayLine = event.toolName
+										? `- Tool: ${event.toolName}${resultLine}`
+										: `- Tool: ${event.toolCallId || "unknown"}${resultLine}`;
+									lastToolCallDisplay =
+										(lastToolCallDisplay ? lastToolCallDisplay + "\n" : "") + displayLine;
+									setMessages((prev) => {
+										const cloned = [...prev];
+										const last = cloned[cloned.length - 1];
+										if (last.role === "assistant" && last.streaming) {
+											last.activeToolCall = null;
+											last.toolCallDisplay = lastToolCallDisplay;
+										}
+										return cloned;
+									});
+								} else if (event.type === "tool_error") {
+									const errorLine = event.toolName
+										? `- Tool: ${event.toolName} (error: ${event.error})`
+										: `- Tool call failed (${event.toolCallId || "unknown"})`;
+									lastToolCallDisplay =
+										(lastToolCallDisplay ? lastToolCallDisplay + "\n" : "") + errorLine;
+									setMessages((prev) => {
+										const cloned = [...prev];
+										const last = cloned[cloned.length - 1];
+										if (last.role === "assistant" && last.streaming) {
+											last.activeToolCall = null;
+											last.toolCallDisplay = lastToolCallDisplay;
+										}
+										return cloned;
+									});
+								} else if (event.type === "compaction_start") {
+									setStatusMessage("Compacting context...");
+									setMessages((prev) => {
+										const cloned = [...prev];
+										const last = cloned[cloned.length - 1];
+										if (last.role === "assistant" && last.streaming) {
+											last.activeToolCall = null;
+											last.toolCallDisplay = lastToolCallDisplay
+												? lastToolCallDisplay + "\nCompacting context..."
+												: "Compacting context...";
+										}
+										return cloned;
+									});
+								} else if (event.type === "compaction_end") {
+									setStatusMessage("Streaming...");
+									setMessages((prev) => {
+										const cloned = [...prev];
+										const last = cloned[cloned.length - 1];
+										if (last.role === "assistant" && last.streaming) {
+											last.activeToolCall = null;
+											last.toolCallDisplay = lastToolCallDisplay;
+										}
+										return cloned;
+									});
+								}
+							} catch (_cbErr) {
+								// Silently ignore streaming callback errors
+							}
+						},
+					);
+
+					const responseContent = committedContent;
+
+					if (isQuittingRef.current) return;
+
+					setMessages((prev) => {
+						const cloned = [...prev];
+						const last = cloned[cloned.length - 1];
+						if (last.role === "assistant" && last.streaming) {
+							last.content = responseContent;
+							last.reasoningContent = committedReasoning || undefined;
+							last.streaming = false;
+							last.activeToolCall = null;
+							if (lastToolCallDisplay) {
+								last.toolCallDisplay = lastToolCallDisplay;
+							}
+							if (todoStatusLines) {
+								last.toolCallDisplay = last.toolCallDisplay
+									? last.toolCallDisplay + "\n" + todoStatusLines
+									: todoStatusLines;
+							}
+						}
+						return cloned;
+					});
+
+					// Persist assistant response to session state
+					if (sessionState) {
+						sessionState.addExchange({
+							role: "assistant",
+							content: responseContent,
+						});
+					}
+
+					setStatusMessage("Done");
+				} catch (err) {
+					setMessages((prev) => {
+						const cloned = [...prev];
+						const last = cloned[cloned.length - 1];
+						if (last.role === "assistant" && last.streaming) {
+							last.streaming = false;
+						}
+						return cloned;
+					});
+					setStatusMessage(`Error: ${err.message}`);
+				}
+			} else if (result.action !== "help" && result.action !== "skill") {
 				setStatusMessage(result.message || result.action + " executed");
 			}
-			if (result.message && result.action !== "provider" && result.action !== "schedule") {
+			if (result.message && result.action !== "provider" && result.action !== "schedule" && result.action !== "skill") {
 				addMessage({ role: "system", content: result.message });
 			}
 		} catch (err) {
