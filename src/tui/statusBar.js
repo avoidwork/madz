@@ -28,15 +28,31 @@ export function formatNumber(num) {
 			maximumFractionDigits: 0,
 		});
 		const result = formatter.format(num);
-		// Handle NaN case (non-numeric input)
 		if (result === "NaN" || result === "-NaN") {
 			return String(num);
 		}
 		return result;
 	} catch {
-		// Fallback to simple string conversion if Intl fails
 		return String(num);
 	}
+}
+
+/**
+ * Format byte count to human-readable string (e.g., "12.2k", "1.4M").
+ * @param {number} bytes - Byte count to format
+ * @returns {string} Human-readable string
+ */
+export function formatSize(bytes) {
+	if (bytes === 0) return "0";
+	if (bytes < 1024) return String(bytes);
+	const units = ["k", "M", "G", "T"];
+	const exp = Math.floor(Math.log(bytes) / Math.log(1024));
+	const value = bytes / Math.pow(1024, exp);
+	const locale = Intl.DateTimeFormat().resolvedOptions().locale;
+	const formatted = value % 1 === 0
+		? new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(Math.round(value))
+		: new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(value);
+	return formatted + units[exp - 1];
 }
 
 /**
@@ -72,14 +88,23 @@ export const StatusBar = React.memo(function StatusBar({
 				{ key: "status-indicator", color: status.color, bold: true },
 				status.indicator + " ",
 			),
-			React.createElement(Text, { key: "status-msg", color: "#606060" }, " " + statusMessage),
-			React.createElement(Text, { key: "sep", color: "#606060" }, " | "),
+			React.createElement(Text, { key: "status-msg", color: "#606060" }, statusMessage),
+			React.createElement(Text, { key: "sep", color: "#606060" }, " |"),
 			React.createElement(
 				Text,
-				{ key: "info", color: "#606060" },
-				"skills:" + formatNumber(skillCount) + " msg:" + formatNumber(messageCount),
+				{ key: "skills", color: "#606060" },
+				" [\u26A1" + formatNumber(skillCount) + "] ",
 			),
-			React.createElement(Text, { key: "context", color: contextColor }, " context:" + formatNumber(contextSize)),
+			React.createElement(
+				Text,
+				{ key: "messages", color: "#606060" },
+				"[\u{1F4AC} " + formatNumber(messageCount) + "] ",
+			),
+			React.createElement(
+				Text,
+				{ key: "context", color: contextColor },
+				"[\u25A4 " + formatSize(contextSize) + "]",
+			),
 		),
 	);
 });
