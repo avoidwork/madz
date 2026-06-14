@@ -35,7 +35,6 @@
   - [Memory System](#memory-system)
   - [Sandbox RTE](#sandbox-rte)
   - [Telemetry](#telemetry)
-  - [Cron Scheduler](#cron-scheduler)
 - [Directory Structure](#directory-structure)
 - [Logging](#logging)
 - [Config Reference](#config-reference)
@@ -424,12 +423,6 @@ Skills run in isolated spawned child processes with time limits, memory caps, an
 ### Telemetry
 
 Optional `@opentelemetry/sdk-node` integration. Configurable exporter (console, OTLP HTTP, OTLP gRPC), probability sampling, and automatic redaction of sensitive fields (API keys, auth headers).
-
-### Cron Scheduler
-
-Recurring job definitions in `config.yaml`. Scheduling is delegated to the system crontab — there is no in-process clock tick loop. Each invocation inherits the current session's memory context and sandbox permissions. Max-concurrency control prevents run overlap (currently a no-op, kept for API compatibility).
-
-On first onboarding completion, `madz` automatically installs a `reflection-daily` cron job (`0 2 * * *`) into the system crontab. Job definitions are persisted as JSON in `memory/schedules/` and managed under the `madz-schedules` block.
 
 ## Directory Structure
 
