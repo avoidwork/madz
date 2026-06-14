@@ -864,8 +864,8 @@ describe("StatusBar - no appInfo rendering", () => {
 		);
 
 		assert.ok(result.includes("Ready"), "status message should appear");
-		assert.ok(result.includes("skills:3"), "skill count should appear");
-		assert.ok(result.includes("msg:10"), "message count should appear");
+		assert.ok(result.includes("[⚡3]"), "skill count should appear");
+		assert.ok(result.includes("[💬 10]"), "message count should appear");
 	});
 
 	it("does not render app name or version", async () => {
