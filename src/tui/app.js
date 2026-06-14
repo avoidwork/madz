@@ -148,6 +148,22 @@ export default function App({
 							hourCalls: getGcCalls().length,
 						})
 					: null,
+				_skillList: skillList,
+				_executeSkill: (skillName, args) => {
+					const skill = registry.get(skillName);
+					if (!skill) {
+						return { action: "skill", subAction: "error", message: `Skill "${skillName}" not found.` };
+					}
+					// Skills are prompt-based instructions for the agent to interpret and execute.
+					// Load the SKILL.md and pass it to the conversation so the agent can use it.
+					const body = registry.getSkillBody(skillName);
+					return {
+						action: "skill",
+						subAction: "load",
+						name: skillName,
+						message: body ? `Skill "${skillName}" loaded.\n${body}` : `Skill "${skillName}" loaded. No instructions found.`,
+					};
+				},
 			});
 			if (result.action === "quit") {
 				handleQuit();
