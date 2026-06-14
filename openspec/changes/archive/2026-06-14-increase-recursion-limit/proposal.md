@@ -14,7 +14,7 @@ The Madz agent frequently "stalls" during complex multi-step tasks, hitting the 
 - None
 
 ### Modified Capabilities
-- `cron-scheduler`: The `agent.recursionLimit` config value is defined within this capability's scope (via `AgentSchema` in `src/config/schemas.js`)
+- `agent`: The `agent.recursionLimit` config value is defined within this capability's scope (via `AgentSchema` in `src/config/schemas.js`)
 
 ## Impact
 
