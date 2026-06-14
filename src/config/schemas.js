@@ -187,6 +187,7 @@ export const TuiSchema = z.object({
 
 export const AgentSchema = z.object({
 	recursionLimit: z.number().int().positive().default(1000),
+	autoContinueLimit: z.number().int().positive().default(1000),
 });
 
 // --- Persistence schemas ---
@@ -263,7 +264,7 @@ export const DEFAULT_CONFIG = {
 		redact: { paths: ["credentials.apiKey"] },
 	},
 	schedules: { maxConcurrent: 1, mode: "inprocess", syncOnInit: true, entries: [] },
-	agent: { recursionLimit: 1000 },
+	agent: { recursionLimit: 1000, autoContinueLimit: 1000 },
 	tui: { name: "madz", cursorChar: "\u2588" },
 	persistence: { mode: "memory", sqlite_path: "memory/checkpoints.db" },
 };

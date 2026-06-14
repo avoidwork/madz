@@ -70,6 +70,7 @@ tui:
   cursorChar: "█"
 agent:
   recursionLimit: 1000
+  autoContinueLimit: 1000
 persistence:
   mode: memory
   sqlite_path: memory/checkpoints.db

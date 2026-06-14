@@ -337,8 +337,9 @@ export default function App({
 					let responseContent = committedContent;
 
 					// Auto-continue if the agent stalled with zero text output
-					// Circuit breaker: max 3 consecutive empty responses to prevent
-					// infinite loops when the model generates thinking but no text
+					// Circuit breaker: configurable limit (default 1000) of consecutive
+					// empty responses to prevent infinite loops when the model generates
+					// thinking but no text
 					if (!responseContent.trim() && !isQuittingRef.current) {
 						// Show tool results so the user knows work happened
 						if (lastToolCallDisplay) {
@@ -352,7 +353,7 @@ export default function App({
 							});
 						}
 
-						if (autoContinueCountRef.current >= 1000) {
+						if (autoContinueCountRef.current >= (config?.agent?.autoContinueLimit ?? 1000)) {
 							// Circuit breaker: model is stuck in thinking-only loop
 							setStatusMessage("Model appears stuck — starting fresh.");
 							setMessages((prev) => {
@@ -366,7 +367,7 @@ export default function App({
 							autoContinueCountRef.current = 0;
 							addMessage({
 								role: "system",
-								content: "I've tried to continue 1000 times with no text output. The model may be stuck in a reasoning loop. Please try a new conversation or rephrase your request.",
+								content: `I've tried to continue ${config?.agent?.autoContinueLimit ?? 1000} times with no text output. The model may be stuck in a reasoning loop. Please try a new conversation or rephrase your request.`,
 							});
 							return;
 						}
@@ -659,8 +660,9 @@ export default function App({
 			let responseContent = committedContent;
 
 			// Auto-continue if the agent stalled with zero text output
-			// Circuit breaker: max 3 consecutive empty responses to prevent
-			// infinite loops when the model generates thinking but no text
+			// Circuit breaker: configurable limit (default 1000) of consecutive
+			// empty responses to prevent infinite loops when the model generates
+			// thinking but no text
 			if (!responseContent.trim() && !isQuittingRef.current) {
 				// Show tool results so the user knows work happened
 				if (lastToolCallDisplay) {
@@ -674,7 +676,7 @@ export default function App({
 					});
 				}
 
-				if (autoContinueCountRef.current >= 1000) {
+				if (autoContinueCountRef.current >= (config?.agent?.autoContinueLimit ?? 1000)) {
 					// Circuit breaker: model is stuck in thinking-only loop
 					setStatusMessage("Model appears stuck — starting fresh.");
 					setMessages((prev) => {
@@ -688,7 +690,7 @@ export default function App({
 					autoContinueCountRef.current = 0;
 					addMessage({
 						role: "system",
-						content: "I've tried to continue 1000 times with no text output. The model may be stuck in a reasoning loop. Please try a new conversation or rephrase your request.",
+						content: `I've tried to continue ${config?.agent?.autoContinueLimit ?? 1000} times with no text output. The model may be stuck in a reasoning loop. Please try a new conversation or rephrase your request.`,
 					});
 					return;
 				}
