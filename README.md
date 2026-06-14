@@ -303,7 +303,7 @@ All configuration is controlled via environment variables in the `docker run` co
 
 | Variable                | Default | Description                        |
 | ----------------------- | ------- | ---------------------------------- |
-| `AGENT_RECURSION_LIMIT` | `30`    | Max graph execution steps per call |
+| `AGENT_RECURSION_LIMIT` | `1000`    | Max graph execution steps per call |
 
 **Optional — Persistence:**
 
