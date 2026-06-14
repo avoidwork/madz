@@ -303,7 +303,7 @@ All configuration is controlled via environment variables in the `docker run` co
 
 | Variable                | Default | Description                        |
 | ----------------------- | ------- | ---------------------------------- |
-| `AGENT_RECURSION_LIMIT` | `30`    | Max graph execution steps per call |
+| `AGENT_RECURSION_LIMIT` | `1000`    | Max graph execution steps per call |
 
 **Optional — Persistence:**
 
@@ -525,7 +525,7 @@ Graceful shutdown flushes all buffered log entries to disk before process exit.
 |               | `syncOnInit`                         | `true`                                   | Sync crontab from persisted job definitions   |
 | `tui`         | `name`                               | `madz`                                   | TUI identifier in banner                      |
 |               | `cursorChar`                         | `█`                                      | Cursor character                              |
-| `agent`       | `recursionLimit`                     | `30`                                     | Max graph execution steps per agent call      |
+| `agent`       | `recursionLimit`                     | `1000`                                   | Max graph execution steps per agent call      |
 | `persistence` | `mode`                               | `memory`                                 | Storage backend (`memory`, `sqlite`)          |
 |               | `sqlite_path`                        | `memory/checkpoints.db`                  | SQLite checkpointer file path                 |
 
