@@ -38,14 +38,14 @@ export function formatNumber(num) {
 }
 
 /**
- * Format byte count to human-readable string (e.g., "12.2k", "1.4M").
- * @param {number} bytes - Byte count to format
- * @returns {string} Human-readable string
+ * Convert a raw number to a human-readable abbreviated form (e.g., "12.2k", "1.4M").
+ * @param {number} num - Number to convert
+ * @returns {string} Human-readable string representation
  */
 export function formatSize(bytes) {
 	if (bytes === 0) return "0";
 	if (bytes < 1024) return String(bytes);
-	const units = ["k", "M", "G", "T"];
+	const units = ["k", "M"];
 	const exp = Math.floor(Math.log(bytes) / Math.log(1024));
 	const value = bytes / Math.pow(1024, exp);
 	const locale = Intl.DateTimeFormat().resolvedOptions().locale;
