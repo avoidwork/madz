@@ -105,6 +105,8 @@ The directory is created automatically (`mkdirSync({ recursive: true })`). If th
 |------|---------|
 | `openai.js` | `createChatModel()` — produces `ChatOpenAI` from `ProviderConfig` |
 
+The provider config includes an optional `encoding` field (mapped from `OPENAI_ENCODING` env var) that specifies the tiktoken encoder name for token counting. This is primarily useful when using non-OpenAI models via `OPENAI_BASE_URL`.
+
 The provider instance is consumed by `Agent` (via `createReactAgent`) or `dispatchProvider()` in `index.js`.
 
 ---
