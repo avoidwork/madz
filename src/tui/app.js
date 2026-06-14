@@ -332,7 +332,92 @@ export default function App({
 						},
 					);
 
-					const responseContent = committedContent;
+					let responseContent = committedContent;
+
+					// Auto-continue if the agent stalled with zero text output
+					if (!responseContent.trim() && !isQuittingRef.current) {
+						// Show tool results so the user knows work happened
+						if (lastToolCallDisplay) {
+							setMessages((prev) => {
+								const cloned = [...prev];
+								const last = cloned[cloned.length - 1];
+								if (last.role === "assistant" && last.streaming) {
+									last.toolCallDisplay = lastToolCallDisplay;
+								}
+								return cloned;
+							});
+						}
+
+						// Send a quiet continuation signal to the agent
+						setStatusMessage("Continuing...");
+						try {
+							await dispatchProvider(
+								"Please continue.",
+								sessionState ? sessionState.getProvider() : null,
+								(event) => {
+									if (isQuittingRef.current) return;
+									try {
+										if (event.type === "text") {
+											responseContent += event.text;
+											setMessages((prev) => {
+												const cloned = [...prev];
+												const last = cloned[cloned.length - 1];
+												if (last.role === "assistant" && last.streaming) {
+													last.content = responseContent + "\u2588";
+												}
+												return cloned;
+											});
+										} else if (event.type === "tool_start") {
+											setMessages((prev) => {
+												const cloned = [...prev];
+												const last = cloned[cloned.length - 1];
+												if (last.role === "assistant" && last.streaming) {
+													last.activeToolCall = { name: event.toolName };
+												}
+												return cloned;
+											});
+										} else if (event.type === "tool_end") {
+											const resultLine = event.data
+												? ` Result: ${JSON.stringify(event.data).slice(0, 200)}`
+												: "";
+											const displayLine = event.toolName
+												? `- Tool: ${event.toolName}${resultLine}`
+												: `- Tool: ${event.toolCallId || "unknown"}${resultLine}`;
+											lastToolCallDisplay =
+												(lastToolCallDisplay ? lastToolCallDisplay + "\n" : "") + displayLine;
+											setMessages((prev) => {
+												const cloned = [...prev];
+												const last = cloned[cloned.length - 1];
+												if (last.role === "assistant" && last.streaming) {
+													last.activeToolCall = null;
+													last.toolCallDisplay = lastToolCallDisplay;
+												}
+												return cloned;
+											});
+										} else if (event.type === "tool_error") {
+											const errorLine = event.toolName
+												? `- Tool: ${event.toolName} (error: ${event.error})`
+												: `- Tool call failed (${event.toolCallId || "unknown"})`;
+											lastToolCallDisplay =
+												(lastToolCallDisplay ? lastToolCallDisplay + "\n" : "") + errorLine;
+											setMessages((prev) => {
+												const cloned = [...prev];
+												const last = cloned[cloned.length - 1];
+												if (last.role === "assistant" && last.streaming) {
+													last.activeToolCall = null;
+													last.toolCallDisplay = lastToolCallDisplay;
+												}
+												return cloned;
+											});
+										}
+									} catch (_cbErr) {}
+								},
+							);
+							setStatusMessage("Done");
+						} catch (contErr) {
+							setStatusMessage(`Error continuing: ${contErr.message}`);
+						}
+					}
 
 					if (isQuittingRef.current) return;
 
@@ -363,8 +448,6 @@ export default function App({
 							content: responseContent,
 						});
 					}
-
-					setStatusMessage("Done");
 				} catch (err) {
 					setMessages((prev) => {
 						const cloned = [...prev];
@@ -544,7 +627,96 @@ export default function App({
 			// committedContent is accumulated from streaming text events —
 			// this is the actual AI response. response.content is only the
 			// originalMessage fallback from callReactAgentStreaming.
-			const responseContent = committedContent;
+			let responseContent = committedContent;
+
+			// Auto-continue if the agent stalled with zero text output
+			if (!responseContent.trim() && !isQuittingRef.current) {
+				// Show tool results so the user knows work happened
+				if (lastToolCallDisplay) {
+					setMessages((prev) => {
+						const cloned = [...prev];
+						const last = cloned[cloned.length - 1];
+						if (last.role === "assistant" && last.streaming) {
+							last.toolCallDisplay = lastToolCallDisplay;
+						}
+						return cloned;
+					});
+				}
+
+				// Send a quiet continuation signal to the agent
+				setStatusMessage("Continuing...");
+				try {
+					await dispatchProvider(
+						"Please continue.",
+						sessionState ? sessionState.getProvider() : null,
+						(event) => {
+							if (isQuittingRef.current) return;
+							try {
+								if (event.type === "text") {
+									responseContent += event.text;
+									setMessages((prev) => {
+										const cloned = [...prev];
+										const last = cloned[cloned.length - 1];
+										if (last.role === "assistant" && last.streaming) {
+											last.content = responseContent + "\u2588";
+										}
+										return cloned;
+									});
+								} else if (event.type === "tool_start") {
+									setMessages((prev) => {
+										const cloned = [...prev];
+										const last = cloned[cloned.length - 1];
+										if (last.role === "assistant" && last.streaming) {
+											last.activeToolCall = { name: event.toolName };
+										}
+										return cloned;
+									});
+								} else if (event.type === "tool_end") {
+									const resultLine = event.data
+										? ` Result: ${JSON.stringify(event.data).slice(0, 200)}`
+										: "";
+									const displayLine = event.toolName
+										? `- Tool: ${event.toolName}${resultLine}`
+										: `- Tool: ${event.toolCallId || "unknown"}${resultLine}`;
+									lastToolCallDisplay =
+										(lastToolCallDisplay ? lastToolCallDisplay + "\n" : "") + displayLine;
+									setMessages((prev) => {
+										const cloned = [...prev];
+										const last = cloned[cloned.length - 1];
+										if (last.role === "assistant" && last.streaming) {
+											last.activeToolCall = null;
+											last.toolCallDisplay = lastToolCallDisplay;
+										}
+										return cloned;
+									});
+								} else if (event.type === "tool_error") {
+									const errorLine = event.toolName
+										? `- Tool: ${event.toolName} (error: ${event.error})`
+										: `- Tool call failed (${event.toolCallId || "unknown"})`;
+									lastToolCallDisplay =
+										(lastToolCallDisplay ? lastToolCallDisplay + "\n" : "") + errorLine;
+									setMessages((prev) => {
+										const cloned = [...prev];
+										const last = cloned[cloned.length - 1];
+										if (last.role === "assistant" && last.streaming) {
+											last.activeToolCall = null;
+											last.toolCallDisplay = lastToolCallDisplay;
+										}
+										return cloned;
+									});
+								} else if (event.type === "compaction_start") {
+									setIsCompacting(true);
+								} else if (event.type === "compaction_end") {
+									setIsCompacting(false);
+								}
+							} catch (_cbErr) {}
+						},
+					);
+					setStatusMessage("Received response");
+				} catch (contErr) {
+					setStatusMessage(`Error continuing: ${contErr.message}`);
+				}
+			}
 
 			if (isQuittingRef.current) return;
 
