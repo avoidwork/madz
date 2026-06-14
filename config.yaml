@@ -71,6 +71,7 @@ tui:
 agent:
   recursionLimit: 1000
   autoContinueLimit: 1000
+  nodeTimeout: 600000
 persistence:
   mode: memory
   sqlite_path: memory/checkpoints.db
