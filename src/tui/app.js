@@ -166,7 +166,9 @@ export default function App({
 				setStatusMessage(result.message);
 				return;
 			}
-			setStatusMessage(result.message || result.action + " executed");
+			if (result.action !== "help") {
+				setStatusMessage(result.message || result.action + " executed");
+			}
 			if (result.message && result.action !== "provider" && result.action !== "schedule") {
 				addMessage({ role: "system", content: result.message });
 			}

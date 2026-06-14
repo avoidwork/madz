@@ -91,7 +91,7 @@ export class CommandParser {
 		});
 
 		this.#register("help", (_args, _ctx) => {
-			const cmds = Array.from(this.#dispatch.keys());
+			const cmds = Array.from(this.#dispatch.keys()).filter((k) => !k.startsWith("_"));
 			let message = `Available commands: /${cmds.join(", /")}`;
 			if (_ctx?._skillList && _ctx._skillList.length > 0) {
 				message += `\nSkills: /${_ctx._skillList.join(", /")} (execute with /skillName [args])`;
