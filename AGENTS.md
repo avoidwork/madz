@@ -300,10 +300,6 @@ When auditing or modifying AGENTS.md (or any file):
 
 If a `.github/PULL_REQUEST_TEMPLATE.md` file exists, it MUST be used when creating PRs. Fill out every section — do not leave any section blank. If a section does not apply, write `N/A` rather than skipping it.
 
-### 5.5 Prompts File Versioning
-
-When a PR modifies files in `./prompts/`, the `version` field in the YAML frontmatter of each affected file MUST be incremented by one from the target branch version (e.g., `1.1` → `1.2`). The version is the source of truth for which prompt iteration the agent is running. Always check the target branch version first, then bump by one in your branch.
-
 ---
 
 ## 6. Operational Rules
