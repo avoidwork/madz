@@ -11,6 +11,18 @@ The system SHALL read recurring task definitions from a `schedules` section in `
 - **WHEN** `config.yaml` contains a schedule with a syntactically invalid cron expression
 - **THEN** the system logs a configuration error and skips the schedule without crashing
 
+### Requirement: Crond starts as a background daemon
+The Docker entrypoint SHALL start the crond daemon without the `-f` (foreground) flag, allowing it to properly daemonize and execute scheduled jobs.
+
+#### Scenario: Entrypoint starts crond correctly
+- **WHEN** the Docker container starts
+- **THEN** `docker-entrypoint.sh` invokes `crond &` (without `-f`)
+- **THEN** crond daemonizes and begins its cron loop
+
+#### Scenario: Scheduled jobs execute
+- **WHEN** crontab entries are present (via the cronJob tool)
+- **THEN** crond picks up the entries and executes them on schedule
+
 ### Requirement: Deterministic Sandbox Execution
 Each scheduled execution SHALL run within the same sandbox isolation guarantees as user-initiated skill invocations, inheriting sandbox parameters, skill permissions, and memory context from the active session.
 
