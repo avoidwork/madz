@@ -44,6 +44,8 @@ export default function App({
 	const [isCompacting, setIsCompacting] = useState(false);
 	const scrollRef = useRef(null);
 	const isQuittingRef = useRef(false);
+	const autoContinueCountRef = useRef(0);
+	const isAutoContinuingRef = useRef(false);
 	const { exit } = useApp();
 	const exitRef = useRef(exit);
 	exitRef.current = exit;
@@ -335,6 +337,8 @@ export default function App({
 					let responseContent = committedContent;
 
 					// Auto-continue if the agent stalled with zero text output
+					// Circuit breaker: max 3 consecutive empty responses to prevent
+					// infinite loops when the model generates thinking but no text
 					if (!responseContent.trim() && !isQuittingRef.current) {
 						// Show tool results so the user knows work happened
 						if (lastToolCallDisplay) {
@@ -348,8 +352,28 @@ export default function App({
 							});
 						}
 
+						if (autoContinueCountRef.current >= 3) {
+							// Circuit breaker: model is stuck in thinking-only loop
+							setStatusMessage("Model appears stuck — starting fresh.");
+							setMessages((prev) => {
+								const cloned = [...prev];
+								const last = cloned[cloned.length - 1];
+								if (last.role === "assistant" && last.streaming) {
+									last.streaming = false;
+								}
+								return cloned;
+							});
+							autoContinueCountRef.current = 0;
+							addMessage({
+								role: "system",
+								content: "I've tried to continue three times with no text output. The model may be stuck in a reasoning loop. Please try a new conversation or rephrase your request.",
+							});
+							return;
+						}
+
 						// Send a quiet continuation signal to the agent
 						setStatusMessage("Continuing...");
+						isAutoContinuingRef.current = true;
 						try {
 							await dispatchProvider(
 								"Please continue.",
@@ -358,15 +382,17 @@ export default function App({
 									if (isQuittingRef.current) return;
 									try {
 										if (event.type === "text") {
-											responseContent += event.text;
+											committedContent = (committedContent || "") + event.text;
 											setMessages((prev) => {
 												const cloned = [...prev];
 												const last = cloned[cloned.length - 1];
 												if (last.role === "assistant" && last.streaming) {
-													last.content = responseContent + "\u2588";
+													last.content = committedContent + "\u2588";
 												}
 												return cloned;
 											});
+											// Reset flag — text arrived, not stuck anymore
+											isAutoContinuingRef.current = false;
 										} else if (event.type === "tool_start") {
 											setMessages((prev) => {
 												const cloned = [...prev];
@@ -416,6 +442,9 @@ export default function App({
 							setStatusMessage("Done");
 						} catch (contErr) {
 							setStatusMessage(`Error continuing: ${contErr.message}`);
+						} finally {
+							isAutoContinuingRef.current = false;
+							autoContinueCountRef.current++;
 						}
 					}
 
@@ -630,6 +659,8 @@ export default function App({
 			let responseContent = committedContent;
 
 			// Auto-continue if the agent stalled with zero text output
+			// Circuit breaker: max 3 consecutive empty responses to prevent
+			// infinite loops when the model generates thinking but no text
 			if (!responseContent.trim() && !isQuittingRef.current) {
 				// Show tool results so the user knows work happened
 				if (lastToolCallDisplay) {
@@ -643,8 +674,28 @@ export default function App({
 					});
 				}
 
+				if (autoContinueCountRef.current >= 3) {
+					// Circuit breaker: model is stuck in thinking-only loop
+					setStatusMessage("Model appears stuck — starting fresh.");
+					setMessages((prev) => {
+						const cloned = [...prev];
+						const last = cloned[cloned.length - 1];
+						if (last.role === "assistant" && last.streaming) {
+							last.streaming = false;
+						}
+						return cloned;
+					});
+					autoContinueCountRef.current = 0;
+					addMessage({
+						role: "system",
+						content: "I've tried to continue three times with no text output. The model may be stuck in a reasoning loop. Please try a new conversation or rephrase your request.",
+					});
+					return;
+				}
+
 				// Send a quiet continuation signal to the agent
 				setStatusMessage("Continuing...");
+				isAutoContinuingRef.current = true;
 				try {
 					await dispatchProvider(
 						"Please continue.",
@@ -653,15 +704,17 @@ export default function App({
 							if (isQuittingRef.current) return;
 							try {
 								if (event.type === "text") {
-									responseContent += event.text;
+									committedContent = (committedContent || "") + event.text;
 									setMessages((prev) => {
 										const cloned = [...prev];
 										const last = cloned[cloned.length - 1];
 										if (last.role === "assistant" && last.streaming) {
-											last.content = responseContent + "\u2588";
+											last.content = committedContent + "\u2588";
 										}
 										return cloned;
 									});
+									// Reset flag — text arrived, not stuck anymore
+									isAutoContinuingRef.current = false;
 								} else if (event.type === "tool_start") {
 									setMessages((prev) => {
 										const cloned = [...prev];
@@ -715,6 +768,9 @@ export default function App({
 					setStatusMessage("Received response");
 				} catch (contErr) {
 					setStatusMessage(`Error continuing: ${contErr.message}`);
+				} finally {
+					isAutoContinuingRef.current = false;
+					autoContinueCountRef.current++;
 				}
 			}
 
