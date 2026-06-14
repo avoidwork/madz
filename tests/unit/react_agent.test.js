@@ -337,7 +337,7 @@ describe("callReactAgent", () => {
 			assert.strictEqual(toolStartCalls.length, 1);
 		});
 
-		it("falls back to original message when no events have text", async () => {
+		it("falls back to recursion limit message when no events have text", async () => {
 			const events = [];
 
 			const agentMock = createMock(events);
@@ -345,7 +345,10 @@ describe("callReactAgent", () => {
 			const callback = (event) => callbackCalls.push(event);
 
 			const result = await callReactAgent(agentMock, "original query", null, null, callback);
-			assert.strictEqual(result.content, "original query");
+			assert.strictEqual(
+				result.content,
+				"I've reached the maximum number of reasoning steps on this thread. Please continue your message and I'll carry on, or start a new conversation if you'd prefer.",
+			);
 		});
 
 		it("includes text content from AIMessage content objects", async () => {
@@ -405,7 +408,10 @@ describe("callReactAgent", () => {
 
 			assert.ok(elapsed < 2000, `Streaming hung for ${elapsed}ms`);
 			assert.ok(result.content);
-			assert.strictEqual(result.content, "query");
+			assert.strictEqual(
+				result.content,
+				"I've reached the maximum number of reasoning steps on this thread. Please continue your message and I'll carry on, or start a new conversation if you'd prefer.",
+			);
 		});
 
 		it("handles reasoning and text from same stream", async () => {
@@ -517,6 +523,41 @@ describe("callReactAgent", () => {
 			assert.ok(capturedOptions);
 			assert.strictEqual(capturedOptions.configurable.thread_id, "abc");
 			assert.strictEqual(capturedOptions.configurable.isNewThread, false);
+		});
+
+		it("returns original message when text content is emitted", async () => {
+			const events = [
+				{
+					event: "on_chat_model_stream",
+					data: { chunk: new AIMessageChunk({ content: "Hello! I can help with that." }) },
+				},
+			];
+
+			const agentMock = createMock(events);
+			const callbackCalls = [];
+			const callback = (event) => callbackCalls.push(event);
+
+			const result = await callReactAgent(agentMock, "hello", null, null, callback);
+			assert.strictEqual(result.content, "hello");
+			assert.ok(callbackCalls.some((e) => e.type === "text"));
+		});
+
+		it("returns recursion limit message when only reasoning is emitted (no text)", async () => {
+			const chunk = new AIMessageChunk({ content: [] });
+			chunk.reasoning = "thinking about this...";
+			const events = [{ event: "on_chat_model_stream", data: { chunk } }];
+
+			const agentMock = createMock(events);
+			const callbackCalls = [];
+			const callback = (event) => callbackCalls.push(event);
+
+			const result = await callReactAgent(agentMock, "hello", null, null, callback);
+			assert.strictEqual(
+				result.content,
+				"I've reached the maximum number of reasoning steps on this thread. Please continue your message and I'll carry on, or start a new conversation if you'd prefer.",
+			);
+			assert.ok(callbackCalls.some((e) => e.type === "reasoning"));
+			assert.ok(!callbackCalls.some((e) => e.type === "text"));
 		});
 	});
 
@@ -645,8 +686,11 @@ describe("callReactAgent", () => {
 				maxTokens: 2048,
 			});
 
-			// After max iterations, returns original message as fallback
-			assert.strictEqual(result.content, "test");
+			// After max iterations with no text emitted, returns recursion limit message
+			assert.strictEqual(
+				result.content,
+				"I've reached the maximum number of reasoning steps on this thread. Please continue your message and I'll carry on, or start a new conversation if you'd prefer.",
+			);
 		});
 
 		it("extracts context length from error message automatically", async () => {
@@ -788,6 +832,38 @@ describe("callReactAgent", () => {
 				0,
 				"Should not emit compaction events on success",
 			);
+		});
+
+		it("returns text content after successful compaction in streaming mode", async () => {
+			let streamCallCount = 0;
+			const agentMock = {
+				streamEvents: () => {
+					streamCallCount++;
+					if (streamCallCount === 1) {
+						throw createContextLengthError("maximum context length of 8192 tokens");
+					}
+					// Succeed on second attempt with text
+					return (async function* () {
+						yield {
+							event: "on_chat_model_stream",
+							data: { chunk: new AIMessageChunk({ content: "Here is the answer." }) },
+						};
+					})();
+				},
+				invoke: () => ({ messages: [new AIMessage("fallback")] }),
+			};
+
+			const callbackCalls = [];
+			const callback = (event) => callbackCalls.push(event);
+
+			const result = await callReactAgent(agentMock, "test", {}, null, callback, {
+				maxTokens: 2048,
+				maxCompactionIterations: 3,
+			});
+
+			// After successful compaction, returns original message (text was emitted)
+			assert.strictEqual(result.content, "test");
+			assert.ok(callbackCalls.some((e) => e.type === "text"));
 		});
 	});
 });

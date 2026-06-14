@@ -148,11 +148,14 @@ describe("callReactAgent streaming with config", () => {
 			},
 		};
 
-		// streaming path returns originalMessage as fallback when no text events
+		// streaming path returns recursion limit message when no text events
 		const result = await callReactAgent(agentMock, "original message", null, null, () => {});
 
-		// Empty stream returns original message as fallback (not a throw)
-		assert.strictEqual(result.content, "original message");
+		// Empty stream returns recursion limit message (not original message)
+		assert.strictEqual(
+			result.content,
+			"I've reached the maximum number of reasoning steps on this thread. Please continue your message and I'll carry on, or start a new conversation if you'd prefer.",
+		);
 	});
 });
 

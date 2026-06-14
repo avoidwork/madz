@@ -69,7 +69,9 @@ tui:
   name: madz
   cursorChar: "█"
 agent:
-  recursionLimit: 30
+  # Maximum reasoning steps per turn. Increase for complex multi-step tasks.
+  # Default: 50 (if not set in config). Remove this key to use LangGraph default (25).
+  recursionLimit: 50
 persistence:
   mode: memory
   sqlite_path: memory/checkpoints.db

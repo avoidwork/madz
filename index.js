@@ -187,12 +187,7 @@ const tools = await buildToolConfig({
 	checkpointer,
 });
 const model = createChatModel(providerConfig);
-const agent = createReactAgent(
-	model,
-	tools,
-	checkpointer,
-	config.agent?.recursionLimit ?? undefined,
-);
+const agent = createReactAgent(model, tools, checkpointer, config.agent?.recursionLimit ?? 50);
 
 const sessionConfig = { configurable: { thread_id: sessionState.getThreadId() } };
 

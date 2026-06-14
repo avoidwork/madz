@@ -209,6 +209,7 @@ async function callReactAgentStreaming(
 	let effectiveMaxTokens = maxTokens;
 	let currentMessages = initMessages;
 	let compactionActive = false;
+	let hasTextContent = false;
 
 	while (iteration <= maxCompactionIterations) {
 		let toolCallSet = new Set();
@@ -247,6 +248,7 @@ async function callReactAgentStreaming(
 						}
 					}
 					if (textContent.length > 0) {
+						hasTextContent = true;
 						// For tool-invoking LLM calls, the text might be empty or tool-call-related
 						callback({ type: "text", text: textContent });
 						// Note: the TUI accumulates text in committedContent for the final response,
@@ -320,7 +322,7 @@ async function callReactAgentStreaming(
 			if (compactionActive && callback) {
 				callback({ type: "compaction_end" });
 			}
-			return { content: originalMessage };
+			return { content: hasTextContent ? originalMessage : RECURSION_LIMIT_MESSAGE };
 		} catch (err) {
 			// Handle recursion limit — always return immediately
 			if (err instanceof Error && err.name === "GraphRecursionError") {
@@ -372,7 +374,7 @@ async function callReactAgentStreaming(
 					if (compactionActive && callback) {
 						callback({ type: "compaction_end" });
 					}
-					return { content: originalMessage };
+					return { content: hasTextContent ? originalMessage : RECURSION_LIMIT_MESSAGE };
 				}
 
 				// Rebuild messages from compacted result
@@ -393,7 +395,7 @@ async function callReactAgentStreaming(
 					if (compactionActive && callback) {
 						callback({ type: "compaction_end" });
 					}
-					return { content: originalMessage };
+					return { content: hasTextContent ? originalMessage : RECURSION_LIMIT_MESSAGE };
 				}
 
 				continue;
