@@ -192,6 +192,7 @@ const agent = createReactAgent(
 	tools,
 	checkpointer,
 	config.agent?.recursionLimit ?? undefined,
+	config.agent?.nodeTimeout ?? 600000,
 );
 
 const sessionConfig = { configurable: { thread_id: sessionState.getThreadId() } };
