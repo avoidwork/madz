@@ -1,7 +1,7 @@
 /**
- * Command parser that handles `:command` syntax with a dispatch table.
- * Supports commands like: `:config set`, `:provider set`, `:schedule list`,
- * `:clear`, `:quit`, `:gc`, etc.
+ * Command parser that handles `/command` syntax with a dispatch table.
+ * Supports commands like: `/config set`, `/provider set`, `/schedule list`,
+ * `/clear`, `/quit`, `/gc`, etc.
  */
 export class CommandParser {
 	#dispatch = new Map();
@@ -54,7 +54,7 @@ export class CommandParser {
 					};
 				}
 			}
-			return { action: "config", message: "Usage: :config set <path> <value>" };
+			return { action: "config", message: "Usage: /config set <path> <value>" };
 		});
 
 		this.#register("schedule", (args, ctx) => {
@@ -92,9 +92,13 @@ export class CommandParser {
 
 		this.#register("help", (_args, _ctx) => {
 			const cmds = Array.from(this.#dispatch.keys());
+			let message = `Available commands: /${cmds.join(", /")}`;
+			if (_ctx?._skillList && _ctx._skillList.length > 0) {
+				message += `\nSkills: /${_ctx._skillList.join(", /")} (execute with /skillName [args])`;
+			}
 			return {
 				action: "help",
-				message: `Available commands: ${cmds.join(", ")}`,
+				message,
 			};
 		});
 
@@ -123,6 +127,13 @@ export class CommandParser {
 				: `GC ${result.reason || "skipped"}`;
 			return { action: "gc", subAction: "run", ...result, message: msg };
 		});
+
+		// Skill execution: /skillName [args]
+		// Registered last so it catches unmatched commands and checks the registry
+		this.#register("_skillFallback", (_args, _ctx) => {
+			// This handler is never called — skill execution is handled in parse()
+			return { action: "skill", subAction: "error", message: "Skill not found" };
+		});
 	}
 
 	#register(name, handler) {
@@ -131,45 +142,60 @@ export class CommandParser {
 
 	/**
 	 * Parse a raw input string and return a command result.
-	 * @param {string} input - The raw input (e.g., ":config set telemetry.enabled true")
+	 * Checks registered commands first, then falls back to skill registry.
+	 * @param {string} input - The raw input (e.g., "/config set telemetry.enabled true")
 	 * @param {Object} context - The execution context with module references
 	 * @returns {Object|null} Parsed command result
 	 */
 	parse(input, context) {
 		if (!input || typeof input !== "string") return null;
 		const trimmed = input.trim();
-		if (!trimmed.startsWith(":")) return null;
+		if (!trimmed.startsWith("/")) return null;
 
 		const parts = trimmed.slice(1).trim().split(/\s+/);
 		const commandName = parts[0];
 		const args = parts.slice(1);
 
+		// 1. Check registered commands first
 		const handler = this.#dispatch.get(commandName);
-		if (!handler) {
+		if (handler) {
+			return handler(args, context);
+		}
+
+		// 2. Fall back to skill execution
+		if (context?._skillList && context._skillList.includes(commandName)) {
+			if (context._executeSkill) {
+				return context._executeSkill(commandName, args);
+			}
 			return {
-				action: "unknown",
-				message: `Unknown command: :${commandName}. Type :help for available commands.`,
+				action: "skill",
+				subAction: "error",
+				message: `Skill "${commandName}" not available in this context.`,
 			};
 		}
 
-		return handler(args, context);
+		// 3. Unknown command
+		return {
+			action: "unknown",
+			message: `Unknown command: /${commandName}. Type /help for available commands.`,
+		};
 	}
 
 	/**
-	 * Check if an input is a command (starts with ":".)
+	 * Check if an input is a command (starts with "/".)
 	 * @param {string} input
 	 * @returns {boolean}
 	 */
 	isCommand(input) {
-		return input && typeof input === "string" && input.trim().startsWith(":");
+		return input && typeof input === "string" && input.trim().startsWith("/");
 	}
 
 	/**
-	 * Get a list of all registered commands.
+	 * Get a list of all registered commands (excludes internal/fallback commands).
 	 * @returns {string[]}
 	 */
 	listCommands() {
-		return Array.from(this.#dispatch.keys());
+		return Array.from(this.#dispatch.keys()).filter((k) => !k.startsWith("_"));
 	}
 
 	/**
