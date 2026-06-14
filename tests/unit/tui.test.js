@@ -15,9 +15,9 @@ import { TuiSchema, DEFAULT_CONFIG } from "../../src/config/schemas.js";
 import { Blink } from "../../src/tui/inputPanel.js";
 
 describe("command parser", () => {
-	it("parses :quit command", () => {
+	it("parses /quit command", () => {
 		const parser = new CommandParser();
-		const result = parser.parse(":quit", {});
+		const result = parser.parse("/quit", {});
 		assert.strictEqual(result.action, "quit");
 		assert.strictEqual(result.value, true);
 	});
@@ -29,8 +29,8 @@ describe("command parser", () => {
 
 	it("detects command syntax", () => {
 		const parser = new CommandParser();
-		assert.strictEqual(parser.isCommand(":quit"), true);
-		assert.strictEqual(parser.isCommand(":config set foo bar"), true);
+		assert.strictEqual(parser.isCommand("/quit"), true);
+		assert.strictEqual(parser.isCommand("/config set foo bar"), true);
 		assert.strictEqual(parser.isCommand("normal message"), false);
 	});
 
@@ -52,7 +52,7 @@ describe("command parser", () => {
 
 	it("reports unknown commands", () => {
 		const parser = new CommandParser();
-		const result = parser.parse(":foo", {});
+		const result = parser.parse("/foo", {});
 		assert.strictEqual(result.action, "unknown");
 		assert.ok(result.message.includes("Unknown command"));
 	});
@@ -61,11 +61,11 @@ describe("command parser", () => {
 		it("shows current provider without args", () => {
 			const parser = new CommandParser();
 			const ctx = { _sessionState: { getProvider: () => "openai", setProvider: () => {} } };
-			const result = parser.parse(":provider", ctx);
+			const result = parser.parse("/provider", ctx);
 			assert.strictEqual(result.action, "provider");
 		});
 
-		it("sets provider with :provider set name", () => {
+		it("sets provider with /provider set name", () => {
 			const parser = new CommandParser();
 			let provider = "openai";
 			const ctx = {
@@ -76,7 +76,7 @@ describe("command parser", () => {
 					},
 				},
 			};
-			const result = parser.parse(":provider set local", ctx);
+			const result = parser.parse("/provider set local", ctx);
 			assert.strictEqual(result.action, "provider");
 			assert.strictEqual(result.subAction, "set");
 			assert.strictEqual(result.value, "local");
@@ -84,17 +84,17 @@ describe("command parser", () => {
 	});
 
 	describe("config command", () => {
-		it("sets config value with :config set path value", () => {
+		it("sets config value with /config set path value", () => {
 			const parser = new CommandParser();
 			const ctx = {
 				_setConfigValue: () => {},
 			};
-			const result = parser.parse(":config set telemetry.enabled true", ctx);
+			const result = parser.parse("/config set telemetry.enabled true", ctx);
 			assert.strictEqual(result.action, "config");
 			assert.strictEqual(result.subAction, "set");
 		});
 
-		it("sets config value with :config path value (no 'set' keyword)", () => {
+		it("sets config value with /config path value (no 'set' keyword)", () => {
 			const parser = new CommandParser();
 			let configPath = null;
 			const ctx = {
@@ -102,7 +102,7 @@ describe("command parser", () => {
 					configPath = p;
 				},
 			};
-			const result = parser.parse(":config telemetry.enabled true", ctx);
+			const result = parser.parse("/config telemetry.enabled true", ctx);
 			assert.strictEqual(result.action, "config");
 			assert.strictEqual(result.subAction, "set");
 			assert.strictEqual(result.path, "telemetry.enabled");
@@ -112,55 +112,55 @@ describe("command parser", () => {
 		it("returns usage message when _setConfigValue is not provided", () => {
 			const parser = new CommandParser();
 			const ctx = {};
-			const result = parser.parse(":config set foo bar", ctx);
+			const result = parser.parse("/config set foo bar", ctx);
 			assert.strictEqual(result.action, "config");
 			assert.ok(result.message.includes("Usage"));
 		});
 	});
 
 	describe("schedule commands", () => {
-		it("lists schedules with :schedule", () => {
+		it("lists schedules with /schedule", () => {
 			const parser = new CommandParser();
 			const ctx = { _scheduleList: [{ name: "daily" }] };
-			const result = parser.parse(":schedule", ctx);
+			const result = parser.parse("/schedule", ctx);
 			assert.strictEqual(result.action, "schedule");
 		});
 
-		it("lists schedules with :schedule list", () => {
+		it("lists schedules with /schedule list", () => {
 			const parser = new CommandParser();
 			const ctx = { _scheduleList: [{ name: "daily" }] };
-			const result = parser.parse(":schedule list", ctx);
+			const result = parser.parse("/schedule list", ctx);
 			assert.strictEqual(result.action, "schedule");
 			assert.strictEqual(result.subAction, "list");
 			assert.deepStrictEqual(result.list, [{ name: "daily" }]);
 		});
 
-		it("pauses schedule with :schedule pause name", () => {
+		it("pauses schedule with /schedule pause name", () => {
 			const parser = new CommandParser();
 			const ctx = { _schedulePause: () => {} };
-			const result = parser.parse(":schedule pause daily", ctx);
+			const result = parser.parse("/schedule pause daily", ctx);
 			assert.strictEqual(result.action, "schedule");
 			assert.strictEqual(result.subAction, "pause");
 		});
 
-		it("resumes schedule with :schedule resume name", () => {
+		it("resumes schedule with /schedule resume name", () => {
 			const parser = new CommandParser();
 			const ctx = { _scheduleResume: () => {} };
-			const result = parser.parse(":schedule resume daily", ctx);
+			const result = parser.parse("/schedule resume daily", ctx);
 			assert.strictEqual(result.action, "schedule");
 			assert.strictEqual(result.subAction, "resume");
 		});
 
-		it("runs schedule immediately with :schedule run-now name", () => {
+		it("runs schedule immediately with /schedule run-now name", () => {
 			const parser = new CommandParser();
-			const result = parser.parse(":schedule run-now daily", {});
+			const result = parser.parse("/schedule run-now daily", {});
 			assert.strictEqual(result.action, "schedule");
 			assert.strictEqual(result.subAction, "run-now");
 		});
 
-		it("returns unknown subcommand message for :schedule foo", () => {
+		it("returns unknown subcommand message for /schedule foo", () => {
 			const parser = new CommandParser();
-			const result = parser.parse(":schedule foo", {});
+			const result = parser.parse("/schedule foo", {});
 			assert.strictEqual(result.action, "schedule");
 			assert.ok(result.message.includes("Unknown subcommand"));
 		});
@@ -169,14 +169,14 @@ describe("command parser", () => {
 	describe("help command", () => {
 		it("shows help message", () => {
 			const parser = new CommandParser();
-			const result = parser.parse(":help", {});
+			const result = parser.parse("/help", {});
 			assert.strictEqual(result.action, "help");
 			assert.ok(result.message.includes("Available commands"));
 		});
 
 		it("shows commands dynamically", () => {
 			const parser = new CommandParser();
-			const result = parser.parse(":help", {});
+			const result = parser.parse("/help", {});
 			const cmds = parser.listCommands();
 			for (const cmd of cmds) {
 				assert.ok(result.message.toLowerCase().includes(cmd));
@@ -187,7 +187,7 @@ describe("command parser", () => {
 	describe("clear command", () => {
 		it("returns clear action", () => {
 			const parser = new CommandParser();
-			const result = parser.parse(":clear", {});
+			const result = parser.parse("/clear", {});
 			assert.strictEqual(result.action, "clear");
 			assert.strictEqual(result.message, "Conversation cleared.");
 		});
@@ -201,7 +201,7 @@ describe("command parser", () => {
 	describe("new command", () => {
 		it("returns new action", () => {
 			const parser = new CommandParser();
-			const result = parser.parse(":new", {});
+			const result = parser.parse("/new", {});
 			assert.strictEqual(result.action, "new");
 			assert.strictEqual(result.message, "New session started.");
 		});
@@ -217,10 +217,68 @@ describe("command parser", () => {
 			assert.ok(commands.includes("new"));
 		});
 
-		it("returns unknown for :new with arguments", () => {
+		it("returns unknown for /new with arguments", () => {
 			const parser = new CommandParser();
-			const result = parser.parse(":new foo bar", {});
+			const result = parser.parse("/new foo bar", {});
 			assert.strictEqual(result.action, "new");
+		});
+	});
+
+	describe("skill execution", () => {
+		it("dispatches to _executeSkill when skill is in _skillList", () => {
+			const parser = new CommandParser();
+			let executedSkill = null;
+			let executedArgs = null;
+			const ctx = {
+				_skillList: ["commit-push", "create-feature"],
+				_executeSkill: (name, args) => {
+					executedSkill = name;
+					executedArgs = args;
+					return { action: "skill", subAction: "executed", skill: name, args };
+				},
+			};
+			const result = parser.parse("/commit-push feature-123", ctx);
+			assert.strictEqual(result.action, "skill");
+			assert.strictEqual(result.subAction, "executed");
+			assert.strictEqual(executedSkill, "commit-push");
+			assert.deepStrictEqual(executedArgs, ["feature-123"]);
+		});
+
+		it("returns error when skill not in _skillList", () => {
+			const parser = new CommandParser();
+			const ctx = { _skillList: ["commit-push"] };
+			const result = parser.parse("/nonexistent-skill", ctx);
+			assert.strictEqual(result.action, "unknown");
+			assert.ok(result.message.includes("Unknown command"));
+		});
+
+		it("returns error when skill found but no _executeSkill", () => {
+			const parser = new CommandParser();
+			const ctx = { _skillList: ["commit-push"] };
+			const result = parser.parse("/commit-push", ctx);
+			assert.strictEqual(result.action, "skill");
+			assert.strictEqual(result.subAction, "error");
+			assert.ok(result.message.includes("not available"));
+		});
+
+		it("registered commands take priority over skills", () => {
+			const parser = new CommandParser();
+			const ctx = {
+				_skillList: ["help"],
+				_executeSkill: () => ({ action: "skill", subAction: "executed" }),
+			};
+			const result = parser.parse("/help", ctx);
+			assert.strictEqual(result.action, "help");
+		});
+
+		it("shows skills in help message", () => {
+			const parser = new CommandParser();
+			const ctx = { _skillList: ["commit-push", "create-feature"] };
+			const result = parser.parse("/help", ctx);
+			assert.strictEqual(result.action, "help");
+			assert.ok(result.message.includes("Skills:"));
+			assert.ok(result.message.includes("commit-push"));
+			assert.ok(result.message.includes("create-feature"));
 		});
 	});
 });
@@ -529,13 +587,13 @@ describe("TUI - streaming message utility", () => {
 });
 
 describe("InputPanel - prompt detection", () => {
-	it("detects command mode with colon prefix", () => {
+	it("detects command mode with slash prefix", () => {
 		function isCommand(text) {
-			return text.startsWith(":");
+			return text.startsWith("/");
 		}
 
-		assert.strictEqual(isCommand(":quit"), true);
-		assert.strictEqual(isCommand(":provider set openai"), true);
+		assert.strictEqual(isCommand("/quit"), true);
+		assert.strictEqual(isCommand("/provider set openai"), true);
 		assert.strictEqual(isCommand("> hello"), false);
 		assert.strictEqual(isCommand("normal text"), false);
 		assert.strictEqual(isCommand(""), false);
@@ -543,20 +601,20 @@ describe("InputPanel - prompt detection", () => {
 
 	it("returns correct prompt character for each mode", () => {
 		function getPrompt(text) {
-			return text.startsWith(":") ? ":" : ">";
+			return text.startsWith("/") ? "/" : ">";
 		}
 
 		assert.strictEqual(getPrompt("> hello"), ">");
-		assert.strictEqual(getPrompt(":quit"), ":");
+		assert.strictEqual(getPrompt("/quit"), "/");
 		assert.strictEqual(getPrompt(""), ">");
 	});
 
 	it("returns correct prompt color for each mode", () => {
 		function getPromptColor(text) {
-			return text.startsWith(":") ? "magenta" : "green";
+			return text.startsWith("/") ? "magenta" : "green";
 		}
 
-		assert.strictEqual(getPromptColor(":quit"), "magenta");
+		assert.strictEqual(getPromptColor("/quit"), "magenta");
 		assert.strictEqual(getPromptColor("normal"), "green");
 		assert.strictEqual(getPromptColor(""), "green");
 	});

@@ -70,6 +70,8 @@ describe("scheduler - Cron.sync", () => {
 	before(async () => {
 		await setupTestDir();
 		savedCrontab = saveRealCrontab();
+		// Clear any leftover madz entries for a clean slate
+		Cron.uninstall();
 	});
 
 	after(async () => {

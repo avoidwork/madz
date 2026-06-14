@@ -249,9 +249,9 @@ describe("gc - V8 garbage collection", () => {
 });
 
 describe("command parser - gc commands", () => {
-	it("parses :gc command and triggers GC", () => {
+	it("parses /gc command and triggers GC", () => {
 		const parser = new CommandParser();
-		const result = parser.parse(":gc", {
+		const result = parser.parse("/gc", {
 			_gcTrigger: () => ({ triggered: true, hourCalls: 1, lastRun: Date.now() }),
 		});
 		assert.strictEqual(result.action, "gc");
@@ -260,9 +260,9 @@ describe("command parser - gc commands", () => {
 		assert.ok(result.message.includes("GC"));
 	});
 
-	it("parses :gc status command", () => {
+	it("parses /gc status command", () => {
 		const parser = new CommandParser();
-		const result = parser.parse(":gc status", {
+		const result = parser.parse("/gc status", {
 			_gcStatus: () => ({ available: true, calls: [], hourCalls: 2 }),
 		});
 		assert.strictEqual(result.action, "gc");
@@ -273,7 +273,7 @@ describe("command parser - gc commands", () => {
 
 	it("returns gc not available status when unavailable", () => {
 		const parser = new CommandParser();
-		const result = parser.parse(":gc status", {
+		const result = parser.parse("/gc status", {
 			_gcStatus: () => ({ available: false, calls: [], hourCalls: 0 }),
 		});
 		assert.strictEqual(result.available, false);
@@ -282,17 +282,17 @@ describe("command parser - gc commands", () => {
 
 	it("returns gc action for unknown gc subcommand", () => {
 		const parser = new CommandParser();
-		const result = parser.parse(":gc invalid", {
+		const result = parser.parse("/gc invalid", {
 			_gcTrigger: () => ({ triggered: false, reason: "rate limited" }),
 		});
 		assert.strictEqual(result.action, "gc");
 		assert.strictEqual(result.subAction, "run");
 	});
 
-	it("isCommand returns true for :gc input", () => {
+	it("isCommand returns true for /gc input", () => {
 		const parser = new CommandParser();
-		assert.strictEqual(parser.isCommand(":gc"), true);
-		assert.strictEqual(parser.isCommand(":gc status"), true);
+		assert.strictEqual(parser.isCommand("/gc"), true);
+		assert.strictEqual(parser.isCommand("/gc status"), true);
 	});
 
 	it("hasCommand returns true for gc", () => {

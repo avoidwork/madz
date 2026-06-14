@@ -19,12 +19,12 @@ const COMMAND_GROUPS = [
 	{
 		group: "Command:",
 		items: [
-			":help - show this list",
-			":provider [set <name>] - list or switch provider",
-			":schedule [list|pause|resume|run-now]",
-			":config set <path> <value> - update config",
-			":clear - clear conversation",
-			":quit - exit the app",
+			"/help - show this list",
+			"/provider [set <name>] - list or switch provider",
+			"/schedule [list|pause|resume|run-now]",
+			"/config set <path> <value> - update config",
+			"/clear - clear conversation",
+			"/quit - exit the app",
 		],
 	},
 ];
