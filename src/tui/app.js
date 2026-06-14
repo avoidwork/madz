@@ -352,7 +352,7 @@ export default function App({
 							});
 						}
 
-						if (autoContinueCountRef.current >= 3) {
+						if (autoContinueCountRef.current >= 1000) {
 							// Circuit breaker: model is stuck in thinking-only loop
 							setStatusMessage("Model appears stuck — starting fresh.");
 							setMessages((prev) => {
@@ -366,7 +366,7 @@ export default function App({
 							autoContinueCountRef.current = 0;
 							addMessage({
 								role: "system",
-								content: "I've tried to continue three times with no text output. The model may be stuck in a reasoning loop. Please try a new conversation or rephrase your request.",
+								content: "I've tried to continue 1000 times with no text output. The model may be stuck in a reasoning loop. Please try a new conversation or rephrase your request.",
 							});
 							return;
 						}
@@ -674,7 +674,7 @@ export default function App({
 					});
 				}
 
-				if (autoContinueCountRef.current >= 3) {
+				if (autoContinueCountRef.current >= 1000) {
 					// Circuit breaker: model is stuck in thinking-only loop
 					setStatusMessage("Model appears stuck — starting fresh.");
 					setMessages((prev) => {
@@ -688,7 +688,7 @@ export default function App({
 					autoContinueCountRef.current = 0;
 					addMessage({
 						role: "system",
-						content: "I've tried to continue three times with no text output. The model may be stuck in a reasoning loop. Please try a new conversation or rephrase your request.",
+						content: "I've tried to continue 1000 times with no text output. The model may be stuck in a reasoning loop. Please try a new conversation or rephrase your request.",
 					});
 					return;
 				}
