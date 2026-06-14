@@ -149,7 +149,7 @@ export default function App({
 						})
 					: null,
 				_skillList: skillList,
-				_executeSkill: (skillName, args) => {
+				_executeSkill: (skillName, _args) => {
 					const skill = registry.get(skillName);
 					if (!skill) {
 						return { action: "skill", subAction: "error", message: `Skill "${skillName}" not found.` };
