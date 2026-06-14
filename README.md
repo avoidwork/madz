@@ -525,7 +525,7 @@ Graceful shutdown flushes all buffered log entries to disk before process exit.
 |               | `syncOnInit`                         | `true`                                   | Sync crontab from persisted job definitions   |
 | `tui`         | `name`                               | `madz`                                   | TUI identifier in banner                      |
 |               | `cursorChar`                         | `█`                                      | Cursor character                              |
-| `agent`       | `recursionLimit`                     | `30`                                     | Max graph execution steps per agent call      |
+| `agent`       | `recursionLimit`                     | `1000`                                   | Max graph execution steps per agent call      |
 | `persistence` | `mode`                               | `memory`                                 | Storage backend (`memory`, `sqlite`)          |
 |               | `sqlite_path`                        | `memory/checkpoints.db`                  | SQLite checkpointer file path                 |
 
