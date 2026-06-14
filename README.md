@@ -174,6 +174,7 @@ docker run -d \
   -v ./logs:/home/madz/.cache/madz/logs \
   -e OPENAI_API_KEY="abc" \
   -e OPENAI_MODEL=Qwen/Qwen3.6-35B-A3B-FP8 \
+  -e OPENAI_ENCODING=qwen2_base \
   -e OPENAI_BASE_URL=http://your.inference.lan:8000/v1 \
   -e OPENAI_MAX_TOKENS=61440 \
   -e SEARXNG_URL=https://your.searxng.lan/search \
@@ -340,7 +341,7 @@ When using a non-OpenAI model (via `OPENAI_BASE_URL`), you may need to specify t
 For local models (Ollama, vLLM, LM Studio), check the model's tokenizer configuration. Common mappings:
 - **Llama 3.x**: `cl100k_base` (most Llama models use a variant of the GPT-4 tokenizer)
 - **Mistral**: `cl100k_base`
-- **Qwen**: `cl100k_base`
+- **Qwen**: `qwen2_base`
 - **Mixtral**: `cl100k_base`
 
 If unsure, omit `OPENAI_ENCODING` — the TUI will fall back to character-count estimation.
