@@ -123,6 +123,9 @@ export default function App({
 	 */
 	const handleCommand = async (trimmed) => {
 		try {
+			// Always show the user's command in the chat display
+			addMessage({ role: "user", content: trimmed });
+
 			const result = parser.parse(trimmed, {
 				_sessionState: sessionState,
 				_setConfigValue: (dotPath, valueStr) => {
@@ -186,6 +189,10 @@ export default function App({
 			if (result.action === "skill" && result.subAction === "load" && result.skillBody) {
 				gcManager?.();
 				setStatusMessage("Streaming...");
+
+				if (sessionState) {
+					sessionState.addExchange({ role: "user", content: trimmed });
+				}
 
 				const assistantTime = getTimestamp();
 				setMessages((prev) => [
