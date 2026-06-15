@@ -54,7 +54,7 @@ export function createReactAgent(model, tools = [], checkpointer = null, recursi
  * @param {number} [options.maxCompactionIterations] - Max compaction retry attempts (default: 3)
  * @returns {{ content: string }} The agent's final text response
  */
-export async function callReactAgent(agent, message, config, systemPrompt, callback, options = {}) {
+export async function callReactAgent(agent, message, config, systemPrompt, callback, options = {}, interruptRef = null) {
 	const {
 		maxContextLength,
 		maxTokens,
@@ -71,7 +71,7 @@ export async function callReactAgent(agent, message, config, systemPrompt, callb
 	}
 
 	if (callback) {
-		return callReactAgentStreaming(agent, messages, message, config, callback, options, systemPrompt);
+		return callReactAgentStreaming(agent, messages, message, config, callback, options, systemPrompt, interruptRef);
 	}
 
 	let _lastError = null;
@@ -196,6 +196,7 @@ async function callReactAgentStreaming(
 	callback,
 	options = {},
 	systemPrompt = "",
+	interruptRef = null,
 ) {
 	const {
 		maxContextLength,
@@ -224,6 +225,11 @@ async function callReactAgentStreaming(
 			);
 
 			for await (const event of stream) {
+				// Check for interrupt signal
+				if (interruptRef && interruptRef.current) {
+					// Break the stream loop on interrupt
+					break;
+				}
 				// Chat model text/reasoning streaming events
 				if (event.event === "on_chat_model_stream") {
 					const chunk = event.data?.chunk;

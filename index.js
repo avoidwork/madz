@@ -197,7 +197,13 @@ const agent = createReactAgent(
 
 const sessionConfig = { configurable: { thread_id: sessionState.getThreadId() } };
 
-async function callProvider(_name, _providerConfig, message, streamingCallback) {
+async function callProvider(
+	_name,
+	_providerConfig,
+	message,
+	streamingCallback,
+	interruptRef = null,
+) {
 	const isNewThread = sessionState.getConversation().length === 0;
 	const threadId = sessionState.getThreadId();
 	const memoryEntries = await loadMemories(memoryEntriesDir);
@@ -215,6 +221,7 @@ async function callProvider(_name, _providerConfig, message, streamingCallback) 
 			maxTokens: providerConfig.maxTokens,
 			checkpointer,
 		},
+		interruptRef,
 	);
 	return { provider: providerName, content: result.content, tokens: { input: 0, output: 0 } };
 }
@@ -249,8 +256,13 @@ async function handleConversation(message, sessionId = "") {
 }
 
 // LLM provider dispatch (for TUI and external callers)
-async function dispatchProvider(message, _sessionState = null, streamingCallback) {
-	return callProvider(null, null, message, streamingCallback);
+async function dispatchProvider(
+	message,
+	_sessionState = null,
+	streamingCallback,
+	interruptRef = null,
+) {
+	return callProvider(null, null, message, streamingCallback, interruptRef);
 }
 
 // Skill invocation through sandbox

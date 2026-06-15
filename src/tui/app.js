@@ -46,6 +46,8 @@ export default function App({
 	const isQuittingRef = useRef(false);
 	const autoContinueCountRef = useRef(0);
 	const isAutoContinuingRef = useRef(false);
+	const isStreamingRef = useRef(false);
+	const interruptRef = useRef(false);
 	const { exit } = useApp();
 	const exitRef = useRef(exit);
 	exitRef.current = exit;
@@ -234,11 +236,13 @@ export default function App({
 				});
 
 				try {
+					isStreamingRef.current = true;
+					interruptRef.current = false;
 					await dispatchProvider(
 						result.skillBody,
 						sessionState ? sessionState.getProvider() : null,
 						(event) => {
-							if (isQuittingRef.current) return;
+							if (isQuittingRef.current || interruptRef.current) return;
 							try {
 								if (event.type === "text") {
 									committedContent = (committedContent || "") + event.text;
@@ -332,6 +336,7 @@ export default function App({
 								// Silently ignore streaming callback errors
 							}
 						},
+						interruptRef,
 					);
 
 					let responseContent = committedContent;
@@ -380,7 +385,7 @@ export default function App({
 								"Please continue.",
 								sessionState ? sessionState.getProvider() : null,
 								(event) => {
-									if (isQuittingRef.current) return;
+									if (isQuittingRef.current || interruptRef.current) return;
 									try {
 										if (event.type === "text") {
 											committedContent = (committedContent || "") + event.text;
@@ -439,6 +444,7 @@ export default function App({
 										}
 									} catch (_cbErr) {}
 								},
+								interruptRef,
 							);
 							setStatusMessage("Done");
 						} catch (contErr) {
@@ -488,6 +494,8 @@ export default function App({
 						return cloned;
 					});
 					setStatusMessage(`Error: ${err.message}`);
+				} finally {
+					isStreamingRef.current = false;
 				}
 			} else if (result.action !== "help" && result.action !== "skill") {
 				setStatusMessage(result.message || result.action + " executed");
@@ -574,11 +582,13 @@ export default function App({
 		});
 
 		try {
+			isStreamingRef.current = true;
+			interruptRef.current = false;
 			const _response = await dispatchProvider(
 				text,
 				sessionState ? sessionState.getProvider() : null,
 				(event) => {
-					if (isQuittingRef.current) return;
+					if (isQuittingRef.current || interruptRef.current) return;
 					try {
 						if (event.type === "text") {
 							committedContent = (committedContent || "") + event.text;
@@ -652,6 +662,7 @@ export default function App({
 						// Silently ignore streaming callback errors
 					}
 				},
+				interruptRef,
 			);
 
 			// committedContent is accumulated from streaming text events —
@@ -703,7 +714,7 @@ export default function App({
 						"Please continue.",
 						sessionState ? sessionState.getProvider() : null,
 						(event) => {
-							if (isQuittingRef.current) return;
+							if (isQuittingRef.current || interruptRef.current) return;
 							try {
 								if (event.type === "text") {
 									committedContent = (committedContent || "") + event.text;
@@ -766,6 +777,7 @@ export default function App({
 								}
 							} catch (_cbErr) {}
 						},
+						interruptRef,
 					);
 					setStatusMessage("Received response");
 				} catch (contErr) {
@@ -843,6 +855,8 @@ export default function App({
 				role: "system",
 				content: `I couldn't connect right now - ${err.message}. Try sending your message again?`,
 			});
+		} finally {
+			isStreamingRef.current = false;
 		}
 		gcManager?.();
 	};
@@ -977,7 +991,13 @@ export default function App({
 
 			if (inputFocused) {
 				if (key.escape) {
-					handleQuit();
+					if (isStreamingRef.current) {
+						// Interrupt the streaming agent instead of quitting
+						interruptRef.current = true;
+						setStatusMessage("Interrupted.");
+					} else {
+						handleQuit();
+					}
 				} else if (key.return && !key.shift) {
 					handleSubmit(inputText);
 				} else if (key.upArrow && chatHistory.length > 0) {
@@ -1002,7 +1022,13 @@ export default function App({
 				}
 			} else {
 				if (key.escape) {
-					handleQuit();
+					if (isStreamingRef.current) {
+						// Interrupt the streaming agent instead of quitting
+						interruptRef.current = true;
+						setStatusMessage("Interrupted.");
+					} else {
+						handleQuit();
+					}
 				} else {
 					const ref = scrollRef.current;
 					if (ref) {
