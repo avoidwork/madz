@@ -54,7 +54,7 @@ BANNER_ART:
 └── COMMAND_GROUPS listing:
     ├── Chat commands: (type a message and press Enter)
     ├── Navigation: arrow keys scroll conversation, Tab cycles panels
-    ├── Command mode: :commands like :quit, :help, :provider
+    ├── Command mode: /commands like /quit, /help, /provider
     └── Exit: press Enter on empty input sends message
 ```
 
@@ -144,16 +144,16 @@ User enters ":command ...", presses Enter (app.js:294)
 
 | Command     | Subcommands              | Effect                           |
 |-------------|--------------------------|----------------------------------|
-| `:quit`     | —                        | `process.exit(0)`                |
-| `:provider` | `set <name>`             | `sessionState.setProvider(name)` |
-| `:config`   | `set <path> <value>`     | `setConfigValue(config, path, v)`|
-| `:schedule` | `list`, `pause <n>`, `resume <n>`, `run-now <n>` | Schedule actions |
-| `:clear`    | —                        | Clear conversation messages      |
-| `:new`      | —                        | Start a fresh session            |
-| `:gc`       | `status`                 | Trigger V8 GC or show status     |
-| `:help`     | —                        | Available commands message       |
+| `/quit`     | —                        | `process.exit(0)`                |
+| `/provider` | `set <name>`             | `sessionState.setProvider(name)` |
+| `/config`   | `set <path> <value>`     | `setConfigValue(config, path, v)`|
+| `/schedule` | `list`, `pause <n>`, `resume <n>`, `run-now <n>` | Schedule actions |
+| `/clear`    | —                        | Clear conversation messages      |
+| `/new`      | —                        | Start a fresh session            |
+| `/gc`       | `status`                 | Trigger V8 GC or show status     |
+| `/help`     | —                        | Available commands message       |
 
-**Note:** `:memory` and `:context` commands are not in the CommandParser dispatch table — they are handled elsewhere in the TUI. The actual registered commands are: quit, provider, config, schedule, clear, new, gc, help.
+**Note:** `/memory` and `/context` commands are not in the CommandParser dispatch table — they are handled elsewhere in the TUI. The actual registered commands are: quit, provider, config, schedule, clear, new, gc, help.
 
 ---
 

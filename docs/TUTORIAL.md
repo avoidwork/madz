@@ -169,9 +169,9 @@ Config keys map to `UPPER_SNAKE_CASE` environment variables. Container-specific 
 | `providers.openai.credentials.apiKey` | `OPENAI_API_KEY` | *(required)* |
 | `providers.openai.model` | `OPENAI_MODEL` | `gpt-4o` |
 | `providers.openai.base_url` | `OPENAI_BASE_URL` | `https://api.openai.com/v1` |
-| `providers.openai.temperature` | `OPENAI_TEMPERATURE` | `0.7` |
+| `providers.openai.temperature` | `OPENAI_TEMPERATURE` | `0.4` |
 | `providers.openai.maxTokens` | `OPENAI_MAX_TOKENS` | `4096` |
-| `providers.openai.rateLimit.requestsPerMinute` | `OPENAI_REQUESTS_PER_MINUTE` | `120` |
+| `providers.openai.rateLimit.requestsPerMinute` | `OPENAI_REQUESTS_PER_MINUTE` | `60` |
 | `providers.openrouter.apiKey` | `OPENROUTER_API_KEY` | *(empty)* |
 | `providers.openrouter.model` | `OPENROUTER_MODEL` | `openrouter/auto` |
 | `providers.fal.credentials.apiKey` | `FAL_API_KEY` | *(empty)* |
@@ -239,18 +239,18 @@ Once inside the interactive terminal, use these commands:
 | Command | Action |
 |---------|--------|
 | `↑ / ↓` | Scroll conversation history |
-| `:help` | List available commands |
-| `:quit` | Exit the application |
-| `:provider set <name>` | Switch LLM provider |
-| `:config set <path> <value>` | Mutate config at runtime |
-| `:schedule list` | List all scheduled jobs |
-| `:schedule pause <name>` | Pause a scheduled job |
-| `:schedule resume <name>` | Resume a paused job |
-| `:schedule run-now <name>` | Run a job immediately |
-| `:gc` | Trigger V8 garbage collection |
-| `:gc status` | Check GC availability and call count |
-| `:clear` | Clear current conversation |
-| `:new` | Start a fresh session |
+| `/help` | List available commands |
+| `/quit` | Exit the application |
+| `/provider set <name>` | Switch LLM provider |
+| `/config set <path> <value>` | Mutate config at runtime |
+| `/schedule list` | List all scheduled jobs |
+| `/schedule pause <name>` | Pause a scheduled job |
+| `/schedule resume <name>` | Resume a paused job |
+| `/schedule run-now <name>` | Run a job immediately |
+| `/gc` | Trigger V8 garbage collection |
+| `/gc status` | Check GC availability and call count |
+| `/clear` | Clear current conversation |
+| `/new` | Start a fresh session |
 
 ### Memory System
 `madz` operates on a **triple-layer** memory architecture:
@@ -260,7 +260,7 @@ Once inside the interactive terminal, use these commands:
 
 *This triple-layer architecture powers the autonomous learning loop — canonical memories persist, ephemeral memories capture moments, and reflections synthesize patterns into lasting context.*
 
-Changes to canonical memory require a `:new` command to refresh the current session context.
+Changes to canonical memory require a `/new` command to refresh the current session context.
 
 ### Skills
 

@@ -114,7 +114,7 @@ node --expose-gc index.js --mode interactive
 npm start -- --expose-gc
 ```
 
-GC is automatically triggered during idle periods and can be manually invoked via the `:gc` TUI command.
+GC is automatically triggered during idle periods and can be manually invoked via the `/gc` TUI command.
 
 **Single prompt (CLI mode):**
 
@@ -133,14 +133,16 @@ node index.js "Summarize memory/_index.md" --json
 | Key                          | Action                               |
 | ---------------------------- | ------------------------------------ |
 | `↑/↓`                        | Scroll conversation history          |
-| `:help`                      | Show available commands              |
-| `:config set <key> <value>`  | Mutate config at runtime             |
-| `:skill <name>`              | Invoke a discovered skill            |
-| `:schedule pause` / `resume` | Control the cron scheduler           |
-| `:clear`                     | Clear conversation history           |
-| `:new`                       | Start a fresh session                |
-| `:gc`                        | Trigger manual V8 garbage collection |
-| `:gc status`                 | Show GC availability and call count  |
+| `/help`                      | Show available commands              |
+| `/quit`                      | Exit the application                   |
+| `/provider set <name>`     | Switch LLM provider                  |
+| `/config set <path> <value>`  | Mutate config at runtime             |
+| `/<skill-name>`              | Invoke a discovered skill            |
+| `/schedule list`, `/schedule pause <name>`, `/schedule resume <name>`, `/schedule run-now <name>` | Control the cron scheduler           |
+| `/clear`                     | Clear conversation history           |
+| `/new`                       | Start a fresh session                |
+| `/gc`                        | Trigger manual V8 garbage collection |
+| `/gc status`                 | Show GC availability and call count  |
 
 ## Docker
 
@@ -220,7 +222,7 @@ All configuration is controlled via environment variables in the `docker run` co
 | `OPENAI_BASE_URL`            | `https://api.openai.com/v1` | API endpoint URL           |
 | `OPENAI_MODEL`               | `gpt-4o`                    | Model name                 |
 | `OPENAI_ENCODING`            | _(auto)_                    | Tiktoken encoder name (see [Encoding Reference](#encoding-reference) below) |
-| `OPENAI_TEMPERATURE`         | `0.7`                       | Sampling temperature (0–2) |
+| `OPENAI_TEMPERATURE`         | `0.4`                       | Sampling temperature (0–2) |
 | `OPENAI_MAX_TOKENS`          | `4096`                      | Max output tokens          |
 | `OPENAI_REQUESTS_PER_MINUTE` | `60`                        | Rate limit for API calls   |
 | `OPENROUTER_API_KEY`         | _(empty)_                   | OpenRouter API key         |
@@ -376,19 +378,20 @@ Bundled LangChain tools gated by sandbox permissions:
 | **Terminal**        | `terminal` — shell command execution (foreground/background); `process` — background process management (list, poll, wait, kill, write, pause, resume)                                                                                                                                                                                                                                                               |
 | **Task Management** | `todo` — CRUD list persisted to `memory/tools/todo.json`                                                                                                                                                                                                                                                                                                                                                             |
 | **Memory**          | `memory` — persistent memory tool with CRUD (create, read, update, delete, list). Each memory is stored as an individual `.md` file in `memory/context/` with `createdDate` and `updatedDate` metadata. Memories are long-term, core "canon" that shapes your interaction with madz — important personal details, preferences, and context that matter. Loaded into the system prompt at the start of every session. |
-| **Search**          | `session_search` — query past conversations by keyword, ID, or browse                                                                                                                                                                                                                                                                                                                                                |
+| **Search**          | `sessionSearch` — query past conversations by keyword, ID, or browse                                                                                                                                                                                                                                                                                                                                                |
 | **Clarification**   | `clarify` — sends clarification questions to the user                                                                                                                                                                                                                                                                                                                                                                |
-| **Skills**          | `skills_list` — lists discovered skills; `skill_view` — views skill metadata and SKILL.md; `create_skill` — creates spec-compliant skill directories with SKILL.md frontmatter (requires `filesystem:write`)                                                                                                                                                                                                         |
-| **Code**            | `execute_code` — code execution and analysis                                                                                                                                                                                                                                                                                                                                                                                 |
-| **Web**             | `web_search`, `web_extract` — outbound HTTP with timeout, URL allowlist filtering, multi-engine search backends                                                                                                                                                                                                                                                                                                                            |
-| **Media**           | `image_generate` — image generation via fal.ai; `vision_analyze` — vision/language analysis via OpenAI; `text_to_speech` — text-to-speech via OpenAI TTS                                                                                                                                                                                                                                                                                         |
-| **Agents**          | `mixture_of_agents` — multi-agent orchestration                                                                                                                                                                                                                                                                                                                                                                                    |
+| **Utility**           | `sampling` — capture emotional moments as ephemeral memories (rate-limited); `date` — return current date/time (zero-permission, always registered)                                                                                                                                                                                                                                                                                         |
+| **Skills**          | `skills_list` — lists discovered skills; `skillView` — views skill metadata and SKILL.md; `createSkill` — creates spec-compliant skill directories with SKILL.md frontmatter (requires `filesystem:write`)                                                                                                                                                                                                         |
+| **Code**            | `executeCode` — code execution and analysis                                                                                                                                                                                                                                                                                                                                                                                 |
+| **Web**             | `webSearch`, `web_extract` — outbound HTTP with timeout, URL allowlist filtering, multi-engine search backends                                                                                                                                                                                                                                                                                                                            |
+| **Media**           | `image_generate` — image generation via fal.ai; `visionAnalyze` — vision/language analysis via OpenAI; `textToSpeech` — text-to-speech via OpenAI TTS                                                                                                                                                                                                                                                                                         |
+| **Agents**          | `mixtureOfAgents` — multi-agent orchestration                                                                                                                                                                                                                                                                                                                                                                                    |
 | **Cron**            | `cronJob` — cron job utilities                                                                                                                                                                                                                                                                                                                                                                                          |
 | **System**          | `compactContext` — automatic conversation context compaction on LLM context-length errors (zero-permission, always registered)                                                                                                                                                                                                                                                                                         |
 
 ### Skills Registry
 
-Auto-discovers Agent Skills spec-compliant skills from a `skills/` directory structure. Each skill directory contains a `SKILL.md` file with YAML frontmatter (`name` required, 1-64 lowercase alphanumeric + hyphens; `description` required, 1-1024 characters; optional `license`, `compatibility`, `metadata`). Supports optional `scripts/` subdirectory containing executable scripts (detected by extension: `.py`, `.sh`, `.js`, `.rb`, `.ts`). The `create_skill` tool lets agents create new skills programmatically — validating spec constraints before writing `SKILL.md` and optionally scaffolding a `scripts/` directory.
+Auto-discovers Agent Skills spec-compliant skills from a `skills/` directory structure. Each skill directory contains a `SKILL.md` file with YAML frontmatter (`name` required, 1-64 lowercase alphanumeric + hyphens; `description` required, 1-1024 characters; optional `license`, `compatibility`, `metadata`). Supports optional `scripts/` subdirectory containing executable scripts (detected by extension: `.py`, `.sh`, `.js`, `.rb`, `.ts`). The `createSkill` tool lets agents create new skills programmatically — validating spec constraints before writing `SKILL.md` and optionally scaffolding a `scripts/` directory.
 
 ### Permission Gating
 
@@ -396,8 +399,8 @@ Built-in tools are registered only when their required permissions are enabled f
 
 | Permission Required                 | Tools                                                                      |
 | ----------------------------------- | -------------------------------------------------------------------------- |
-| `filesystem:read`                   | `read_file`, `search_files`, `skill_view`, `session_search` |
-| `filesystem:write`                  | `write_file`, `patch`, `todo`, `memory`, `create_skill`                    |
+| `filesystem:read`                   | `read_file`, `search_files`, `skillView`, `sessionSearch` |
+| `filesystem:write`                  | `write_file`, `patch`, `todo`, `memory`, `createSkill`                    |
 | `filesystem:exec` + `process:spawn` | `terminal`                                                                 |
 | `process:spawn`                     | `process`                                                                  |
 | _(none)_                            | `clarify`                                                                  |
@@ -415,7 +418,7 @@ Captured autonomously by the harness during operation, these record patterns, mi
 **Reflections**
 A daily cron job (`0 2 * * *`) installed automatically on first onboarding completion. Runs `/reflection` via `--chat` mode, generating a narrative reflection summary from recent session history. The job definition is persisted as `memory/schedules/reflection-daily.json` and registered in the system crontab under the `madz-schedules` block. Reflections are stored as canonical memories in `memory/context/` with `createdDate` and `updatedDate` metadata.
 
-Together, these layers create a system that remembers what matters while naturally adapting to how you work. When you update or delete a canonical memory, follow it with `:new` so the current session reflects the change immediately.
+Together, these layers create a system that remembers what matters while naturally adapting to how you work. When you update or delete a canonical memory, follow it with `/new` so the current session reflects the change immediately.
 
 **Memory tool actions:** `create` (new memory), `read` (get by key), `update` (modify by key), `delete` (remove by key), `list` (all memories, optional query filter)
 
@@ -494,7 +497,7 @@ Graceful shutdown flushes all buffered log entries to disk before process exit.
 |               | `openai.temperature`                 | `0.4`                                    | Sampling temperature (0–2)                    |
 |               | `openai.maxTokens`                   | `4096`                                   | Max output tokens                             |
 |               | `openai.rateLimit.requestsPerMinute` | `60`                                     | Rate limit for API calls                      |
-| `sandbox`     | `paths`                              | `["memory/", "skills/", "src/", "/tmp"]` | Allowed filesystem paths                      |
+| `sandbox`     | `paths`                              | `["memory/", "skills/", "tmp/"]` | Allowed filesystem paths                      |
 |               | `timeout.seconds`                    | `30`                                     | Max execution time in seconds                 |
 |               | `timeout.gracePeriod`                | `5`                                      | Kill grace period in seconds                  |
 |               | `memoryLimit`                        | `"512m"`                                 | Heap limit (`--max-old-space-size`)           |
@@ -564,7 +567,7 @@ npm run coverage     # Generate and verify 100% coverage
 
 Skills follow the [Agent Skills spec](https://agentskills.io/specification). Each skill is a directory under `skills/` containing a `SKILL.md` file with YAML frontmatter.
 
-**Programmatic creation:** Use the `create_skill` tool to create new skills from within agent conversations. The tool validates the name (lowercase alphanumeric + hyphens, 1-64 chars), description (1-1024 chars), and optional fields (`license`, `compatibility`, `metadata`) against spec constraints before writing `SKILL.md`. It can optionally scaffold a `scripts/` subdirectory with a `README.md` placeholder for executable scripts.
+**Programmatic creation:** Use the `createSkill` tool to create new skills from within agent conversations. The tool validates the name (lowercase alphanumeric + hyphens, 1-64 chars), description (1-1024 chars), and optional fields (`license`, `compatibility`, `metadata`) against spec constraints before writing `SKILL.md`. It can optionally scaffold a `scripts/` subdirectory with a `README.md` placeholder for executable scripts.
 
 **Manual creation:**
 
