@@ -790,4 +790,103 @@ describe("callReactAgent", () => {
 			);
 		});
 	});
+
+	describe("abort signal", () => {
+		function createEvents(events) {
+			return (async function* () {
+				for (const evt of events) {
+					yield evt;
+				}
+			})();
+		}
+
+		function createMock(eventList) {
+			return {
+				streamEvents: () => createEvents(eventList),
+				invoke: () => ({ messages: [new AIMessage("fallback")] }),
+			};
+		}
+
+		it("stops streaming when abort signal is triggered", async () => {
+			const events = [
+				{
+					event: "on_chat_model_stream",
+					data: { chunk: new AIMessageChunk({ content: "Hello" }) },
+				},
+				{
+					event: "on_chat_model_stream",
+					data: { chunk: new AIMessageChunk({ content: " World" }) },
+				},
+			];
+
+			const controller = new AbortController();
+			const agentMock = {
+				streamEvents: () => createEvents(events),
+				invoke: () => ({ messages: [new AIMessage("fallback")] }),
+			};
+
+			// Abort after first event
+			setTimeout(() => controller.abort(), 10);
+
+			const callbackCalls = [];
+			const callback = (event) => callbackCalls.push(event);
+
+			const result = await callReactAgent(agentMock, "hello", null, null, callback, {
+				signal: controller.signal,
+			});
+
+			// Should return early with original message
+			assert.strictEqual(result.content, "hello");
+		});
+
+		it("throws if signal is already aborted before starting", async () => {
+			const controller = new AbortController();
+			controller.abort();
+
+			const agentMock = createMock([]);
+
+			let err = null;
+			try {
+				await callReactAgent(agentMock, "hello", null, null, () => {}, {
+					signal: controller.signal,
+				});
+			} catch (e) {
+				err = e;
+			}
+
+			assert.ok(err instanceof Error);
+			assert.strictEqual(err.name, "AbortError");
+		});
+
+		it("emits tool_end for pending tools on abort", async () => {
+			const events = [
+				{
+					event: "on_tool_start",
+					name: "tool",
+					data: { input: { tool_calls: [{ name: "web_search", id: "tc1" }] } },
+				},
+				{
+					event: "on_chat_model_stream",
+					data: { chunk: new AIMessageChunk({ content: "partial" }) },
+				},
+			];
+
+			const controller = new AbortController();
+			const agentMock = {
+				streamEvents: () => createEvents(events),
+				invoke: () => ({ messages: [new AIMessage("fallback")] }),
+			};
+
+			setTimeout(() => controller.abort(), 10);
+
+			const callbackCalls = [];
+			const callback = (event) => callbackCalls.push(event);
+
+			await callReactAgent(agentMock, "hello", null, null, callback, { signal: controller.signal });
+
+			// Should have tool_end for the pending tool
+			const toolEnds = callbackCalls.filter((e) => e.type === "tool_end");
+			assert.ok(toolEnds.length > 0, "Should emit tool_end for pending tools");
+		});
+	});
 });
