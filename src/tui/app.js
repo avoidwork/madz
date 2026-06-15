@@ -108,7 +108,7 @@ export default function App({
 		// Abort any active stream before processing a new message
 		// This prevents forked UX where both streams render to the same destination
 		if (isStreamingRef.current) {
-			handleInterrupt();
+			await handleInterrupt();
 		}
 
 		// Track user input in chat history (non-empty lines only)
@@ -932,8 +932,9 @@ export default function App({
 	/**
 	 * Interrupt the current streaming response. Resets the abort controller
 	 * so the user can interrupt future responses. Does NOT quit the app.
+	 * Returns a promise that resolves once the abort has been processed.
 	 */
-	const handleInterrupt = () => {
+	const handleInterrupt = async () => {
 		if (abortControllerRef.current) {
 			abortControllerRef.current.abort();
 			abortControllerRef.current = null;
@@ -948,6 +949,20 @@ export default function App({
 			return cloned;
 		});
 		setStatusMessage("Interrupted.");
+
+		// Wait for the abort signal to propagate through dispatchProvider
+		// The try/catch in dispatchProvider will handle the AbortError and
+		// clean up — we just need to wait until it's processed.
+		return new Promise((resolve) => {
+			const checkAbort = () => {
+				if (!abortControllerRef.current && !isStreamingRef.current) {
+					resolve();
+				} else {
+					setTimeout(checkAbort, 50);
+				}
+			};
+			checkAbort();
+		});
 	};
 
 	/**
