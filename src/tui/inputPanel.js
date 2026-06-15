@@ -9,12 +9,12 @@ import stringWidth from "string-width";
  * @param {Object} props
  * @param {string} props.inputText - Current text being typed
  * @param {number} props.totalRows - Total number of rows in the Ink output
- * @param {Object} props.lastKeyRef - Ref holding the most recent key pressed (for cursor offset)
+ * @param {string} props.lastKey - The most recent key pressed (for cursor offset)
  */
-export function InputPanel({ inputText = "", totalRows = 0, lastKeyRef = { current: "" } }) {
+export function InputPanel({ inputText = "", totalRows = 0, lastKey = "" }) {
 	const hasText = Boolean(inputText && inputText.trim());
 	const { setCursorPosition } = useCursor();
-        const xOffset = (lastKeyRef.current === "backspace" || lastKeyRef.current === "del") ? 0 : 2;
+	const xOffset = (lastKey === "backspace" || lastKey === "del") ? 0 : 2;
 
 	// Position the real terminal cursor after the prompt + input text
 	useEffect(() => {
@@ -23,7 +23,7 @@ export function InputPanel({ inputText = "", totalRows = 0, lastKeyRef = { curre
 				? { x: stringWidth("> " + inputText) + xOffset, y: totalRows }
 				: undefined,
 		);
-	}, [hasText, inputText, totalRows, setCursorPosition]);
+	}, [hasText, inputText, totalRows, xOffset, setCursorPosition]);
 
 	return React.createElement(
 		Box,
