@@ -831,14 +831,9 @@ describe("callReactAgent", () => {
 			const callbackCalls = [];
 			const callback = (event) => callbackCalls.push(event);
 
-			const result = await callReactAgent(
-				agentMock,
-				"hello",
-				null,
-				null,
-				callback,
-				{ signal: controller.signal },
-			);
+			const result = await callReactAgent(agentMock, "hello", null, null, callback, {
+				signal: controller.signal,
+			});
 
 			// Should return early with original message
 			assert.strictEqual(result.content, "hello");
@@ -852,14 +847,9 @@ describe("callReactAgent", () => {
 
 			let err = null;
 			try {
-				await callReactAgent(
-					agentMock,
-					"hello",
-					null,
-					null,
-					() => {},
-					{ signal: controller.signal },
-				);
+				await callReactAgent(agentMock, "hello", null, null, () => {}, {
+					signal: controller.signal,
+				});
 			} catch (e) {
 				err = e;
 			}
@@ -892,14 +882,7 @@ describe("callReactAgent", () => {
 			const callbackCalls = [];
 			const callback = (event) => callbackCalls.push(event);
 
-			await callReactAgent(
-				agentMock,
-				"hello",
-				null,
-				null,
-				callback,
-				{ signal: controller.signal },
-			);
+			await callReactAgent(agentMock, "hello", null, null, callback, { signal: controller.signal });
 
 			// Should have tool_end for the pending tool
 			const toolEnds = callbackCalls.filter((e) => e.type === "tool_end");
