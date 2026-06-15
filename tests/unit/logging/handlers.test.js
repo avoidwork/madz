@@ -1,4 +1,4 @@
-import { describe, it, mock } from "node:test";
+import { describe, it } from "node:test";
 import assert from "node:assert";
 import { createEventHandlers, wrapCallback, recordToolStart, getToolDuration } from "../../../src/logging/handlers.js";
 
@@ -70,7 +70,7 @@ describe("src/logging/handlers.js", () => {
 	describe("wrapCallback", () => {
 		it("should call both logger and user callback", () => {
 			let userCalled = false;
-			const userCallback = (event) => {
+			const userCallback = () => {
 				userCalled = true;
 			};
 			const wrapped = wrapCallback(userCallback);
