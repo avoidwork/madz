@@ -999,6 +999,7 @@ export default function App({
 	const handleNewSession = () => {
 		const newSession = createSession({ provider: sessionState.getProvider() });
 		sessionState.createNewSession(newSession.sessionId);
+		setIsCompacting(false);
 		setMessages([]);
 		setChatHistory([]);
 		setContextSize(0);
