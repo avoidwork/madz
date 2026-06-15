@@ -105,6 +105,12 @@ export default function App({
 		const trimmed = text.trim();
 		if (!trimmed) return;
 
+		// Abort any active stream before processing a new message
+		// This prevents forked UX where both streams render to the same destination
+		if (isStreamingRef.current) {
+			handleInterrupt();
+		}
+
 		// Track user input in chat history (non-empty lines only)
 		setChatHistory((prev) => {
 			const filtered = prev.filter((line) => line.trim());
