@@ -356,6 +356,7 @@ if (isMain) {
 					await saveSession("memory/sessions/", sessionState.getConversation(), sessionId),
 				gcManager: gcManager ? gcManager.onActivity.bind(gcManager) : null,
 				gcTrigger: gcTrace,
+				checkpointer,
 			}),
 			{
 				// Restore terminal with newline when app exits

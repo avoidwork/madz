@@ -30,6 +30,7 @@ export default function App({
 	onSaveSession,
 	gcManager,
 	gcTrigger,
+	checkpointer,
 }) {
 	const [showBanner, setShowBanner] = useState(true);
 	const [showOnboarding, setShowOnboarding] = useState(!!onboarding);
@@ -499,6 +500,20 @@ export default function App({
 							}
 							return cloned;
 						});
+						// Delete the checkpoint so the next request starts fresh
+						if (checkpointer && sessionState) {
+							try {
+								const threadId = sessionState.getThreadId();
+								const checkpoints = checkpointer.list(null, { configurable: { thread_id: threadId } });
+								for (const checkpoint of checkpoints) {
+									if (checkpoint.metadata?.source === "loop") {
+										checkpointer.delete(threadId, checkpoint.checkpoint_id);
+									}
+								}
+							} catch (_chkErr) {
+								// Checkpointer delete failed — not critical
+							}
+						}
 						setStatusMessage("Interrupted.");
 					} else {
 						setMessages((prev) => {
@@ -875,6 +890,20 @@ export default function App({
 				}
 				// Clear the partial streaming assistant message from UI
 				setMessages((prev) => prev.filter((msg) => !isStreamingMessage(msg)));
+				// Delete the checkpoint so the next request starts fresh
+				if (checkpointer && sessionState) {
+					try {
+						const threadId = sessionState.getThreadId();
+						const checkpoints = checkpointer.list(null, { configurable: { thread_id: threadId } });
+						for (const checkpoint of checkpoints) {
+							if (checkpoint.metadata?.source === "loop") {
+								checkpointer.delete(threadId, checkpoint.checkpoint_id);
+							}
+						}
+					} catch (_chkErr) {
+						// Checkpointer delete failed — not critical
+					}
+				}
 				setStatusMessage("Interrupted.");
 			} else {
 				if (onSaveSession) {
