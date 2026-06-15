@@ -6,7 +6,7 @@ providers:
     encoding: cl100k_base
     credentials:
       apiKey:
-    temperature: 0.7
+    temperature: 0.4
     maxTokens: 4096
     rateLimit:
       requestsPerMinute: 120
@@ -70,6 +70,8 @@ tui:
   cursorChar: "█"
 agent:
   recursionLimit: 1000
+  autoContinueLimit: 1000
+  nodeTimeout: 600000
 persistence:
   mode: memory
   sqlite_path: memory/checkpoints.db

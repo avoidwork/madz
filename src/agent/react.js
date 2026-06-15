@@ -19,16 +19,20 @@ const CONTEXT_TOO_LONG_MESSAGE = "The conversation is too long. Please start a n
  * @param {unknown[]} [tools=[]] - Optional array of LangChain tool definitions
  * @param {import("@langchain/langgraph").BaseCheckpointSaver | null} [checkpointer=null] - Optional LangGraph checkpointer for persistent conversation memory
  * @param {number} [recursionLimit] - Optional LangGraph recursion limit for the agent graph
+ * @param {number} [timeout] - Optional timeout in milliseconds for superstep execution (default: 600000 / 10 minutes)
  * @returns {ReturnType<typeof createReactAgentGraph>} A compiled ReAct agent
  */
 /* node:coverage ignore next */
-export function createReactAgent(model, tools = [], checkpointer = null, recursionLimit = null) {
-	return createReactAgentGraph({
+export function createReactAgent(model, tools = [], checkpointer = null, recursionLimit = null, timeout = 600000) {
+	const agent = createReactAgentGraph({
 		llm: model,
 		tools,
 		...(checkpointer && { checkpointer }),
 		...(recursionLimit !== null && { recursionLimit }),
 	});
+	// Set superstep timeout on the compiled graph to prevent nodes from hanging
+	agent.stepTimeout = timeout;
+	return agent;
 }
 
 /**
