@@ -1,8 +1,24 @@
 import { readFileSync } from "node:fs";
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
+import { logger } from "../logging/config.js";
 import { discoverSkills } from "./discoverer.js";
 import { validateSkillSchema } from "./validator.js";
+
+// ---------------------------------------------------------------------------
+// Section 1: Truncation utility
+// ---------------------------------------------------------------------------
+
+/**
+ * Truncate a string to the specified max length.
+ * @param {string} str - String to truncate
+ * @param {number} [maxLen=500] - Maximum length
+ * @returns {string} Truncated string
+ */
+function truncate(str, maxLen = 500) {
+	if (!str) return "";
+	return str.length > maxLen ? str.slice(0, maxLen) + "..." : str;
+}
 
 /**
  * Ensure the skills directory exists by creating it if necessary.
@@ -93,11 +109,38 @@ export class SkillRegistry {
 
 	/**
 	 * Get a registered skill by name.
+	 * Logs skill_call and skill_success/skill_error events.
 	 * @param {string} name - The skill name
 	 * @returns {Object | null} The skill or null if not found
 	 */
 	get(name) {
-		return this.#skills.get(name) || null;
+		const startTime = Date.now();
+		try {
+			logger.info({
+				type: "skill_call",
+				skillName: name,
+			});
+			const skill = this.#skills.get(name) || null;
+			const duration = Date.now() - startTime;
+			if (skill) {
+				logger.info({
+					type: "skill_success",
+					skillName: name,
+					durationMs: duration,
+				});
+			}
+			return skill;
+		} catch (err) {
+			const duration = Date.now() - startTime;
+			logger.error({
+				type: "skill_error",
+				skillName: name,
+				error: err.message,
+				stack: truncate(err.stack, 500),
+				durationMs: duration,
+			});
+			throw err;
+		}
 	}
 
 	/**

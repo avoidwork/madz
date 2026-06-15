@@ -5,6 +5,8 @@ import {
 	isContextLengthError,
 	compactConversation,
 } from "../tools/compact_context.js";
+import { logger } from "../logging/config.js";
+import { createEventHandlers, wrapCallback } from "../logging/handlers.js";
 
 const RECURSION_LIMIT_MESSAGE =
 	"I've reached the maximum number of reasoning steps on this thread. Please continue your message and I'll carry on, or start a new conversation if you'd prefer.";
@@ -87,7 +89,13 @@ export async function callReactAgent(agent, message, config, systemPrompt, callb
 				...(recursionLimit !== null && { recursionLimit }),
 			};
 			const result = await agent.invoke({ messages }, invokeConfig);
-			return extractContent(result, message);
+			// Log LLM response after successful invoke
+			const content = extractContent(result, message);
+			logger.info({
+				type: "llm_response",
+				content: content.content.slice(0, 200),
+			});
+			return content;
 		} catch (err) {
 			// Handle recursion limit — always return immediately
 			if (err instanceof Error && err.name === "GraphRecursionError") {
@@ -96,6 +104,15 @@ export async function callReactAgent(agent, message, config, systemPrompt, callb
 
 			// Check for context length error
 			if (isContextLengthError(err)) {
+				// Log compaction start on first detection
+				if (iteration === 0) {
+					logger.info({
+						type: "compaction",
+						action: "start",
+						messageCount: messages.length,
+					});
+				}
+
 				// Extract max context length from error if not already known
 				if (!effectiveContextLength) {
 					effectiveContextLength = extractContextLength(err.message);
@@ -123,6 +140,11 @@ export async function callReactAgent(agent, message, config, systemPrompt, callb
 				});
 
 				if (!compacted.ok || compacted.compactedMessages.length === 0) {
+					logger.info({
+						type: "compaction",
+						action: "end",
+						messageCount: messages.length,
+					});
 					return { content: CONTEXT_TOO_LONG_MESSAGE };
 				}
 
@@ -140,13 +162,22 @@ export async function callReactAgent(agent, message, config, systemPrompt, callb
 				_lastError = err;
 
 				if (iteration > maxCompactionIterations) {
+					logger.info({
+						type: "compaction",
+						action: "end",
+						messageCount: messages.length,
+					});
 					return { content: CONTEXT_TOO_LONG_MESSAGE };
 				}
 
 				continue;
 			}
 
-			// Non-context-length error — rethrow
+			// Non-context-length error — log and rethrow
+			logger.error({
+				type: "llm_error",
+				error: err.message,
+			});
 			throw err;
 		}
 	}
@@ -222,6 +253,10 @@ async function callReactAgentStreaming(
 		streamOptions.signal = signal;
 	}
 
+	// Create logging handlers and wrap the callback
+	const handlers = createEventHandlers();
+	const loggedCallback = wrapCallback(callback, handlers);
+
 	let _lastError = null;
 	let iteration = 0;
 	let effectiveContextLength = maxContextLength;
@@ -244,10 +279,10 @@ async function callReactAgentStreaming(
 					// Emit tool_end for any tool_start that didn't get a corresponding tool_end
 					for (const key of toolCallSet) {
 						const [name] = key.split("|");
-						callback({ type: "tool_end", toolName: name });
+						loggedCallback({ type: "tool_end", toolName: name });
 					}
-					if (compactionActive && callback) {
-						callback({ type: "compaction_end" });
+					if (compactionActive && loggedCallback) {
+						loggedCallback({ type: "compaction_end" });
 					}
 					return { content: originalMessage };
 				}
@@ -279,14 +314,14 @@ async function callReactAgentStreaming(
 					}
 					if (textContent.length > 0) {
 						// For tool-invoking LLM calls, the text might be empty or tool-call-related
-						callback({ type: "text", text: textContent });
+						loggedCallback({ type: "text", text: textContent });
 						// Note: the TUI accumulates text in committedContent for the final response,
 						// so we don't need to track it here.
 					}
 
 					// Emit reasoning/thinking content
 					if (chunk.reasoning) {
-						callback({ type: "reasoning", text: chunk.reasoning });
+						loggedCallback({ type: "reasoning", text: chunk.reasoning });
 					}
 				}
 
@@ -298,7 +333,7 @@ async function callReactAgentStreaming(
 						const key = tc.name + "|" + tc.id;
 						if (!toolCallSet.has(key)) {
 							toolCallSet.add(key);
-							callback({
+							loggedCallback({
 								type: "tool_start",
 								toolName: tc.name || input.name || "unknown",
 								toolCallId: tc.id,
@@ -318,7 +353,7 @@ async function callReactAgentStreaming(
 					const resultData =
 						output.content || toolCalls[0]?.output || output.tool_calls?.[0]?.output || "";
 
-					callback({
+					loggedCallback({
 						type: "tool_end",
 						toolName,
 						toolCallId,
@@ -332,7 +367,7 @@ async function callReactAgentStreaming(
 					const toolCalls = Array.isArray(input.tool_calls) ? input.tool_calls : [];
 					const toolName = input.name || toolCalls[0]?.name || "unknown";
 					const toolCallId = toolCalls[0]?.id || "";
-					callback({
+					loggedCallback({
 						type: "tool_error",
 						toolName,
 						toolCallId,
@@ -344,12 +379,12 @@ async function callReactAgentStreaming(
 			// Emit tool_end for any tool_start that didn't get a corresponding tool_end
 			for (const key of toolCallSet) {
 				const [name] = key.split("|");
-				callback({ type: "tool_end", toolName: name });
+				loggedCallback({ type: "tool_end", toolName: name });
 			}
 
 			// Success — emit compaction_end if compaction was active, then return
-			if (compactionActive && callback) {
-				callback({ type: "compaction_end" });
+			if (compactionActive && loggedCallback) {
+				loggedCallback({ type: "compaction_end" });
 			}
 			return { content: originalMessage };
 		} catch (err) {
@@ -361,15 +396,22 @@ async function callReactAgentStreaming(
 			// Emit tool_end for any tool_start that didn't get a corresponding tool_end
 			for (const key of toolCallSet) {
 				const [name] = key.split("|");
-				callback({ type: "tool_end", toolName: name });
+				loggedCallback({ type: "tool_end", toolName: name });
 			}
 
 			// Check for context length error
 			if (isContextLengthError(err)) {
-				// Emit compaction_start on first detection
-				if (!compactionActive && callback) {
+				// Log compaction start on first detection
+				if (!compactionActive) {
 					compactionActive = true;
-					callback({ type: "compaction_start" });
+					logger.info({
+						type: "compaction",
+						action: "start",
+						messageCount: currentMessages.length,
+					});
+					if (loggedCallback) {
+						loggedCallback({ type: "compaction_start" });
+					}
 				}
 
 				// Extract max context length from error if not already known
@@ -399,9 +441,14 @@ async function callReactAgentStreaming(
 				});
 
 				if (!compacted.ok || compacted.compactedMessages.length === 0) {
-					// Emit compaction_end before early return
-					if (compactionActive && callback) {
-						callback({ type: "compaction_end" });
+					// Log compaction end before early return
+					logger.info({
+						type: "compaction",
+						action: "end",
+						messageCount: currentMessages.length,
+					});
+					if (compactionActive && loggedCallback) {
+						loggedCallback({ type: "compaction_end" });
 					}
 					return { content: originalMessage };
 				}
@@ -420,9 +467,14 @@ async function callReactAgentStreaming(
 				_lastError = err;
 
 				if (iteration > maxCompactionIterations) {
-					// Emit compaction_end before early return
-					if (compactionActive && callback) {
-						callback({ type: "compaction_end" });
+					// Log compaction end before early return
+					logger.info({
+						type: "compaction",
+						action: "end",
+						messageCount: currentMessages.length,
+					});
+					if (compactionActive && loggedCallback) {
+						loggedCallback({ type: "compaction_end" });
 					}
 					return { content: originalMessage };
 				}
@@ -430,14 +482,25 @@ async function callReactAgentStreaming(
 				continue;
 			}
 
-			// Non-context-length error — rethrow
+			// Non-context-length error — log and rethrow
+			logger.error({
+				type: "llm_error",
+				error: err.message,
+			});
 			throw err;
 		}
 	}
 
-	// Emit compaction_end when exiting the compaction loop
-	if (compactionActive && callback) {
-		callback({ type: "compaction_end" });
+	// Log compaction end when exiting the compaction loop
+	if (compactionActive) {
+		logger.info({
+			type: "compaction",
+			action: "end",
+			messageCount: currentMessages.length,
+		});
+		if (loggedCallback) {
+			loggedCallback({ type: "compaction_end" });
+		}
 	}
 
 	return { content: originalMessage };

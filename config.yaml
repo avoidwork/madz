@@ -75,3 +75,6 @@ agent:
 persistence:
   mode: memory
   sqlite_path: memory/checkpoints.db
+logging:
+  level: info
+  format: json

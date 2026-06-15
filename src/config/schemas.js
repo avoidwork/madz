@@ -198,6 +198,13 @@ export const PersistenceSchema = z.object({
 	sqlite_path: z.string().default("memory/checkpoints.db"),
 });
 
+// --- Logging schemas ---
+
+export const LoggingSchema = z.object({
+	level: z.enum(["debug", "info", "warn", "error"]).default("info"),
+	format: z.enum(["json", "text"]).default("json"),
+});
+
 // --- Root config ---
 
 export const ConfigSchema = z.object({
@@ -210,6 +217,7 @@ export const ConfigSchema = z.object({
 	tui: TuiSchema,
 	agent: AgentSchema.default({}),
 	persistence: PersistenceSchema,
+	logging: LoggingSchema.default({ level: "info", format: "json" }),
 });
 
 // Default values exported for merging
@@ -268,4 +276,5 @@ export const DEFAULT_CONFIG = {
 	agent: { recursionLimit: 1000, autoContinueLimit: 1000, nodeTimeout: 600000 },
 	tui: { name: "madz", cursorChar: "\u2588" },
 	persistence: { mode: "memory", sqlite_path: "memory/checkpoints.db" },
+	logging: { level: "info", format: "json" },
 };
