@@ -504,11 +504,8 @@ export default function App({
 						if (checkpointer && sessionState) {
 							try {
 								const threadId = sessionState.getThreadId();
-								const checkpoints = checkpointer.list(null, { configurable: { thread_id: threadId } });
-								for (const checkpoint of checkpoints) {
-									if (checkpoint.metadata?.source === "loop") {
-										checkpointer.delete(threadId, checkpoint.checkpoint_id);
-									}
+								if (typeof checkpointer.deleteThread === "function") {
+									checkpointer.deleteThread(threadId);
 								}
 							} catch (_chkErr) {
 								// Checkpointer delete failed — not critical
@@ -894,11 +891,8 @@ export default function App({
 				if (checkpointer && sessionState) {
 					try {
 						const threadId = sessionState.getThreadId();
-						const checkpoints = checkpointer.list(null, { configurable: { thread_id: threadId } });
-						for (const checkpoint of checkpoints) {
-							if (checkpoint.metadata?.source === "loop") {
-								checkpointer.delete(threadId, checkpoint.checkpoint_id);
-							}
+						if (typeof checkpointer.deleteThread === "function") {
+							checkpointer.deleteThread(threadId);
 						}
 					} catch (_chkErr) {
 						// Checkpointer delete failed — not critical
