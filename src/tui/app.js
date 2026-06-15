@@ -41,6 +41,7 @@ export default function App({
 	const [historyIndex, setHistoryIndex] = useState(-1);
 	const [inputText, setInputText] = useState("");
 	const [inputFocused, setInputFocused] = useState(true);
+	const lastKeyRef = useRef("");
 	const [contextSize, setContextSize] = useState(0);
 	const [isCompacting, setIsCompacting] = useState(false);
 	const scrollRef = useRef(null);
@@ -1087,6 +1088,11 @@ export default function App({
 	// InputPanel is now a display-only component (no useInput handler)
 	useInput((input, key) => {
 		// Onboarding phase takes priority
+		// Track the last key for cursor offset in InputPanel
+		if (key.backspace) lastKeyRef.current = "backspace";
+		else if (key.delete) lastKeyRef.current = "del";
+		else if (input && input !== "\r") lastKeyRef.current = "char";
+		else lastKeyRef.current = "";
 		if (showOnboarding) {
 			if (key.return && !key.shift) {
 				processOnboardingInput(inputText);
@@ -1229,6 +1235,7 @@ export default function App({
 						key: inputFocused ? "input-focused" : "input-unfocused",
 						inputText: inputText,
 						totalRows: rows,
+						lastKeyRef: lastKeyRef,
 					}),
 				)
 			: null,
