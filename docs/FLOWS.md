@@ -214,14 +214,14 @@ buildToolConfig({ permissions, allowedPaths, maxReadSize, registry, safety, time
 ├── for each [toolName, requiredPerms] in TOOL_PERMISSIONS:
 │   ├── hasAllPerms = requiredPerms.every(perm => enabledSet.has(perm))
 │   ├── switch toolName:
-│   │   ├── clarify | execute_code | code → always create (no perms needed)
-│   │   ├── web_search | web_extract → if hasAllPerms && hasSearchKey()
-│   │   ├── vision_analyze → if OPENAI_API_KEY
+│   │   ├── clarify | executeCode | code → always create (no perms needed)
+│   │   ├── webSearch | web_extract → if hasAllPerms && hasSearchKey()
+│   │   ├── visionAnalyze → if OPENAI_API_KEY
 │   │   ├── image_generate → if hasAllPerms && FAL_API_KEY
 │   │   ├── cronjob → if hasAllPerms
-│   │   ├── create_skill → if hasAllPerms (filesystem:write)
-│   │   ├── text_to_speech | tts → if OPENAI_API_KEY
-│   │   ├── mixture_of_agents → if OPENROUTER_API_KEY
+│   │   ├── createSkill → if hasAllPerms (filesystem:write)
+│   │   ├── textToSpeech | tts → if OPENAI_API_KEY
+│   │   ├── mixtureOfAgents → if OPENROUTER_API_KEY
 │   │   └── default: → if requiredPerms.length === 0 || hasAllPerms
 │   └── tools.push(TOOL_FACTORIES[toolName](runtimeOptions))
 └── return tools[]
@@ -462,15 +462,15 @@ Permission gates per tool:
 ├── process → "process:spawn"
 ├── todo → "filesystem:read", "filesystem:write"
 ├── memory → "filesystem:read", "filesystem:write"
-├── session_search → "filesystem:read"
-├── skills_list, skill_view → "filesystem:read"
-├── create_skill → "filesystem:write"
-├── web_search, web_extract → "network:outbound" + hasSearchKey()
-├── vision_analyze → OPENAI_API_KEY (no perms)
+├── sessionSearch → "filesystem:read"
+├── skills_list, skillView → "filesystem:read"
+├── createSkill → "filesystem:write"
+├── webSearch, web_extract → "network:outbound" + hasSearchKey()
+├── visionAnalyze → OPENAI_API_KEY (no perms)
 ├── image_generate → "network:outbound" + FAL_API_KEY
 ├── cronjob → "network:outbound"
-├── text_to_speech → OPENAI_API_KEY
-├── mixture_of_agents → OPENROUTER_API_KEY
+├── textToSpeech → OPENAI_API_KEY
+├── mixtureOfAgents → OPENROUTER_API_KEY
 ├── sampling → always (no perms)
 ├── date → always (no perms)
 ├── compactContext → always (no perms, always registered)
@@ -566,14 +566,14 @@ process tool:
 **Entry:** `src/tools/web.js`
 
 ```
-web_search / web_extract:
+webSearch / web_extract:
 ├── validateUrl(url, allowlist)
 │   └── filterUrl(url) → blocks file://, gopher://, dict:// schemes
 ├── fetchWithTimeout(url, timeoutMs = 10000, allowlist)
 │   └── → fetch(url, { signal: AbortController(timeout) }) → response.text()
-└── returns HTML-to-text (web_extract) or multi-engine search results (web_search)
+└── returns HTML-to-text (web_extract) or multi-engine search results (webSearch)
 
-Multi-engine search backends (web_search):
+Multi-engine search backends (webSearch):
 ├── EXA_API_KEY → exa search
 ├── FIRECRAWL_API_KEY → firecrawl scrape
 ├── TAVILY_API_KEY → tavily search
@@ -626,7 +626,7 @@ runScheduledSkill(schedule, sandbox, sessionState)
 **Entry:** `src/tools/code.js` → `createCodeExecutionTool()`
 
 ```
-code tool (execute_code):
+code tool (executeCode):
 ├── validate code language: "python3" | "javascript" | "shell"
 ├── write code to temp file in /tmp/madz-code-*.js
 ├── create import hook for python3 (sys.path manipulation)
@@ -645,7 +645,7 @@ code tool (execute_code):
 **Entry:** `src/tools/moa.js` → `createMixtureOfAgentsTool()`
 
 ```
-mixture_of_agents tool:
+mixtureOfAgents tool:
 ├── validate OPENROUTER_API_KEY exists
 ├── for each of 4 agent roles in prompt:
 │   ├── ChatOpenRouter({ model: "openrouter/auto", ... })
@@ -662,7 +662,7 @@ mixture_of_agents tool:
 **Entry:** `src/tools/tts.js` → `createTextToSpeechTool()`
 
 ```
-text_to_speech tool:
+textToSpeech tool:
 ├── validate OPENAI_API_KEY exists
 ├── ChatOpenAI.tts.create({
 │   ├── model: "tts-1"
@@ -966,7 +966,7 @@ index.js
 │     ├── tools/code.js → node:child_process, node:fs/promises, node:path, posix (setrlimit memory limit)
 │     ├── tools/todo.js → node:fs/promises — CRUD task management in memory/tools/todo.json
 │     ├── tools/clarify.js → node:fs/promises — zero-permission clarification questions
-│     ├── tools/skills.js → registry (list discovered skills, view SKILL.md content, create_skill — programmatic skill scaffolding with spec validation)
+│     ├── tools/skills.js → registry (list discovered skills, view SKILL.md content, createSkill — programmatic skill scaffolding with spec validation)
 │     ├── tools/vision.js → OPENAI_API_KEY — image analysis via ChatOpenAI vision
 │     ├── tools/image.js → FAL_API_KEY — image generation via fal.ai queue
 │     ├── tools/tts.js → OPENAI_API_KEY — text-to-speech via OpenAI TTS API
