@@ -486,15 +486,20 @@ export default function App({
 						});
 					}
 				} catch (err) {
-					setMessages((prev) => {
-						const cloned = [...prev];
-						const last = cloned[cloned.length - 1];
-						if (last.role === "assistant" && last.streaming) {
-							last.streaming = false;
-						}
-						return cloned;
-					});
-					setStatusMessage(`Error: ${err.message}`);
+					// Abort is a normal interruption, not an error
+					if (err.name === "AbortError") {
+						setStatusMessage("Interrupted.");
+					} else {
+						setMessages((prev) => {
+							const cloned = [...prev];
+							const last = cloned[cloned.length - 1];
+							if (last.role === "assistant" && last.streaming) {
+								last.streaming = false;
+							}
+							return cloned;
+						});
+						setStatusMessage(`Error: ${err.message}`);
+					}
 				} finally {
 					// Reset abort controller and streaming flag
 					abortControllerRef.current = null;
@@ -851,15 +856,20 @@ export default function App({
 			gcManager?.();
 			setStatusMessage("Received response");
 		} catch (err) {
-			if (onSaveSession) {
-				onSaveSession();
+			// Abort is a normal interruption, not an error
+			if (err.name === "AbortError") {
+				setStatusMessage("Interrupted.");
+			} else {
+				if (onSaveSession) {
+					onSaveSession();
+				}
+				setMessages((prev) => prev.filter((msg) => !isStreamingMessage(msg)));
+				setStatusMessage("Something went wrong");
+				addMessage({
+					role: "system",
+					content: `I couldn't connect right now - ${err.message}. Try sending your message again?`,
+				});
 			}
-			setMessages((prev) => prev.filter((msg) => !isStreamingMessage(msg)));
-			setStatusMessage("Something went wrong");
-			addMessage({
-				role: "system",
-				content: `I couldn't connect right now - ${err.message}. Try sending your message again?`,
-			});
 		} finally {
 			// Reset abort controller and streaming flag
 			abortControllerRef.current = null;
