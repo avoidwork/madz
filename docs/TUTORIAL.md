@@ -169,9 +169,9 @@ Config keys map to `UPPER_SNAKE_CASE` environment variables. Container-specific 
 | `providers.openai.credentials.apiKey` | `OPENAI_API_KEY` | *(required)* |
 | `providers.openai.model` | `OPENAI_MODEL` | `gpt-4o` |
 | `providers.openai.base_url` | `OPENAI_BASE_URL` | `https://api.openai.com/v1` |
-| `providers.openai.temperature` | `OPENAI_TEMPERATURE` | `0.7` |
+| `providers.openai.temperature` | `OPENAI_TEMPERATURE` | `0.4` |
 | `providers.openai.maxTokens` | `OPENAI_MAX_TOKENS` | `4096` |
-| `providers.openai.rateLimit.requestsPerMinute` | `OPENAI_REQUESTS_PER_MINUTE` | `120` |
+| `providers.openai.rateLimit.requestsPerMinute` | `OPENAI_REQUESTS_PER_MINUTE` | `60` |
 | `providers.openrouter.apiKey` | `OPENROUTER_API_KEY` | *(empty)* |
 | `providers.openrouter.model` | `OPENROUTER_MODEL` | `openrouter/auto` |
 | `providers.fal.credentials.apiKey` | `FAL_API_KEY` | *(empty)* |

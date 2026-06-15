@@ -220,7 +220,7 @@ All configuration is controlled via environment variables in the `docker run` co
 | `OPENAI_BASE_URL`            | `https://api.openai.com/v1` | API endpoint URL           |
 | `OPENAI_MODEL`               | `gpt-4o`                    | Model name                 |
 | `OPENAI_ENCODING`            | _(auto)_                    | Tiktoken encoder name (see [Encoding Reference](#encoding-reference) below) |
-| `OPENAI_TEMPERATURE`         | `0.7`                       | Sampling temperature (0–2) |
+| `OPENAI_TEMPERATURE`         | `0.4`                       | Sampling temperature (0–2) |
 | `OPENAI_MAX_TOKENS`          | `4096`                      | Max output tokens          |
 | `OPENAI_REQUESTS_PER_MINUTE` | `60`                        | Rate limit for API calls   |
 | `OPENROUTER_API_KEY`         | _(empty)_                   | OpenRouter API key         |
@@ -494,7 +494,7 @@ Graceful shutdown flushes all buffered log entries to disk before process exit.
 |               | `openai.temperature`                 | `0.4`                                    | Sampling temperature (0–2)                    |
 |               | `openai.maxTokens`                   | `4096`                                   | Max output tokens                             |
 |               | `openai.rateLimit.requestsPerMinute` | `60`                                     | Rate limit for API calls                      |
-| `sandbox`     | `paths`                              | `["memory/", "skills/", "src/", "/tmp"]` | Allowed filesystem paths                      |
+| `sandbox`     | `paths`                              | `["memory/", "skills/", "tmp/"]` | Allowed filesystem paths                      |
 |               | `timeout.seconds`                    | `30`                                     | Max execution time in seconds                 |
 |               | `timeout.gracePeriod`                | `5`                                      | Kill grace period in seconds                  |
 |               | `memoryLimit`                        | `"512m"`                                 | Heap limit (`--max-old-space-size`)           |
