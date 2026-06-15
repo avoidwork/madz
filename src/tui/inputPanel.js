@@ -13,12 +13,13 @@ import stringWidth from "string-width";
 export function InputPanel({ inputText = "", totalRows = 0 }) {
 	const hasText = Boolean(inputText && inputText.trim());
 	const { setCursorPosition } = useCursor();
+        const xOffset = 2;
 
 	// Position the real terminal cursor after the prompt + input text
 	useEffect(() => {
 		setCursorPosition(
 			hasText
-				? { x: stringWidth("> " + inputText) + 2, y: totalRows }
+				? { x: stringWidth("> " + inputText) + xOffset, y: totalRows }
 				: undefined,
 		);
 	}, [hasText, inputText, totalRows, setCursorPosition]);
