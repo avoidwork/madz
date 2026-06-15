@@ -43,7 +43,8 @@ export default function App({
 	const [contextSize, setContextSize] = useState(0);
 	const [isCompacting, setIsCompacting] = useState(false);
 	const scrollRef = useRef(null);
-	const isQuittingRef = useRef(false);
+	const abortControllerRef = useRef(null);
+	const isStreamingRef = useRef(false);
 	const autoContinueCountRef = useRef(0);
 	const isAutoContinuingRef = useRef(false);
 	const { exit } = useApp();
@@ -214,6 +215,10 @@ export default function App({
 				let lastToolCallDisplay = "";
 				let todoStatusLines = "";
 
+				// Set up abort controller for this stream
+				abortControllerRef.current = new AbortController();
+				isStreamingRef.current = true;
+
 				setTodoStreamingCallback((event) => {
 					if (event.type === "todo_status") {
 						const statusLine = event.message
@@ -238,7 +243,7 @@ export default function App({
 						result.skillBody,
 						sessionState ? sessionState.getProvider() : null,
 						(event) => {
-							if (isQuittingRef.current) return;
+							if (shouldAbort()) return;
 							try {
 								if (event.type === "text") {
 									committedContent = (committedContent || "") + event.text;
@@ -332,7 +337,8 @@ export default function App({
 								// Silently ignore streaming callback errors
 							}
 						},
-					);
+					abortControllerRef.current?.signal,
+				);
 
 					let responseContent = committedContent;
 
@@ -340,7 +346,7 @@ export default function App({
 					// Circuit breaker: configurable limit (default 1000) of consecutive
 					// empty responses to prevent infinite loops when the model generates
 					// thinking but no text
-					if (!responseContent.trim() && !isQuittingRef.current) {
+					if (!responseContent.trim() && !shouldAbort()) {
 						// Show tool results so the user knows work happened
 						if (lastToolCallDisplay) {
 							setMessages((prev) => {
@@ -380,7 +386,7 @@ export default function App({
 								"Please continue.",
 								sessionState ? sessionState.getProvider() : null,
 								(event) => {
-									if (isQuittingRef.current) return;
+									if (shouldAbort()) return;
 									try {
 										if (event.type === "text") {
 											committedContent = (committedContent || "") + event.text;
@@ -439,8 +445,9 @@ export default function App({
 										}
 									} catch (_cbErr) {}
 								},
-							);
-							setStatusMessage("Done");
+							abortControllerRef.current?.signal,
+						);
+						setStatusMessage("Done");
 						} catch (contErr) {
 							setStatusMessage(`Error continuing: ${contErr.message}`);
 						} finally {
@@ -449,7 +456,7 @@ export default function App({
 						}
 					}
 
-					if (isQuittingRef.current) return;
+					if (shouldAbort()) return;
 
 					setMessages((prev) => {
 						const cloned = [...prev];
@@ -488,6 +495,10 @@ export default function App({
 						return cloned;
 					});
 					setStatusMessage(`Error: ${err.message}`);
+				} finally {
+					// Reset abort controller and streaming flag
+					abortControllerRef.current = null;
+					isStreamingRef.current = false;
 				}
 			} else if (result.action !== "help" && result.action !== "skill") {
 				setStatusMessage(result.message || result.action + " executed");
@@ -506,7 +517,7 @@ export default function App({
 	 * @param {string} text - The user's message text
 	 */
 	const handleChat = async (text) => {
-		if (isQuittingRef.current) return;
+		if (shouldAbort()) return;
 		gcManager?.();
 		setStatusMessage("Streaming...");
 		addMessage({ role: "user", content: text });
@@ -552,6 +563,10 @@ export default function App({
 		let lastToolCallDisplay = "";
 		let todoStatusLines = "";
 
+		// Set up abort controller for this stream
+		abortControllerRef.current = new AbortController();
+		isStreamingRef.current = true;
+
 		// Wire the streaming callback into the todo queue so status events
 		// flow through the LangGraph stream to the TUI.
 		setTodoStreamingCallback((event) => {
@@ -578,7 +593,7 @@ export default function App({
 				text,
 				sessionState ? sessionState.getProvider() : null,
 				(event) => {
-					if (isQuittingRef.current) return;
+					if (shouldAbort()) return;
 					try {
 						if (event.type === "text") {
 							committedContent = (committedContent || "") + event.text;
@@ -652,7 +667,8 @@ export default function App({
 						// Silently ignore streaming callback errors
 					}
 				},
-			);
+			abortControllerRef.current?.signal,
+		);
 
 			// committedContent is accumulated from streaming text events —
 			// this is the actual AI response. response.content is only the
@@ -663,7 +679,7 @@ export default function App({
 			// Circuit breaker: configurable limit (default 1000) of consecutive
 			// empty responses to prevent infinite loops when the model generates
 			// thinking but no text
-			if (!responseContent.trim() && !isQuittingRef.current) {
+			if (!responseContent.trim() && !shouldAbort()) {
 				// Show tool results so the user knows work happened
 				if (lastToolCallDisplay) {
 					setMessages((prev) => {
@@ -703,7 +719,7 @@ export default function App({
 						"Please continue.",
 						sessionState ? sessionState.getProvider() : null,
 						(event) => {
-							if (isQuittingRef.current) return;
+							if (shouldAbort()) return;
 							try {
 								if (event.type === "text") {
 									committedContent = (committedContent || "") + event.text;
@@ -766,8 +782,9 @@ export default function App({
 								}
 							} catch (_cbErr) {}
 						},
-					);
-					setStatusMessage("Received response");
+					abortControllerRef.current?.signal,
+				);
+				setStatusMessage("Received response");
 				} catch (contErr) {
 					setStatusMessage(`Error continuing: ${contErr.message}`);
 				} finally {
@@ -776,7 +793,7 @@ export default function App({
 				}
 			}
 
-			if (isQuittingRef.current) return;
+			if (shouldAbort()) return;
 
 			// Now persist user message to session state (after dispatchProvider so
 			// isNewThread is correctly computed for the system prompt)
@@ -843,15 +860,46 @@ export default function App({
 				role: "system",
 				content: `I couldn't connect right now - ${err.message}. Try sending your message again?`,
 			});
+		} finally {
+			// Reset abort controller and streaming flag
+			abortControllerRef.current = null;
+			isStreamingRef.current = false;
 		}
 		gcManager?.();
 	};
 
 	const handleQuit = () => {
-		isQuittingRef.current = true;
 		exit();
-		// Force process exit to break pending async streams
 		process.exit(0);
+	};
+
+	/**
+	 * Interrupt the current streaming response. Resets the abort controller
+	 * so the user can interrupt future responses. Does NOT quit the app.
+	 */
+	const handleInterrupt = () => {
+		if (abortControllerRef.current) {
+			abortControllerRef.current.abort();
+			abortControllerRef.current = null;
+		}
+		isStreamingRef.current = false;
+		setMessages((prev) => {
+			const cloned = [...prev];
+			const last = cloned[cloned.length - 1];
+			if (last?.role === "assistant" && last?.streaming) {
+				last.streaming = false;
+			}
+			return cloned;
+		});
+		setStatusMessage("Interrupted.");
+	};
+
+	/**
+	 * Check if the current stream should be aborted.
+	 */
+	const shouldAbort = () => {
+		if (abortControllerRef.current?.signal?.aborted) return true;
+		return false;
 	};
 
 	/**
@@ -977,7 +1025,11 @@ export default function App({
 
 			if (inputFocused) {
 				if (key.escape) {
-					handleQuit();
+					if (isStreamingRef.current) {
+						handleInterrupt();
+					} else {
+						handleQuit();
+					}
 				} else if (key.return && !key.shift) {
 					handleSubmit(inputText);
 				} else if (key.upArrow && chatHistory.length > 0) {
@@ -1002,7 +1054,11 @@ export default function App({
 				}
 			} else {
 				if (key.escape) {
-					handleQuit();
+					if (isStreamingRef.current) {
+						handleInterrupt();
+					} else {
+						handleQuit();
+					}
 				} else {
 					const ref = scrollRef.current;
 					if (ref) {

@@ -186,6 +186,7 @@ function extractContent(result, fallback) {
  * @param {Object | null} [config] - Optional config with `configurable: { thread_id }`
  * @param {(event: StreamEvent) => void} callback - Event callback function
  * @param {Object} [options] - Additional options (same as callReactAgent)
+ * @param {AbortSignal} [options.signal] - Optional abort signal to interrupt the stream
  * @returns {{ content: string }} The agent's final text response
  */
 async function callReactAgentStreaming(
@@ -201,11 +202,18 @@ async function callReactAgentStreaming(
 		maxContextLength,
 		maxTokens,
 		maxCompactionIterations = MAX_COMPACTION_ITERATIONS,
+		signal,
 	} = options;
 
 	const streamOptions = {
 		configurable: config?.configurable,
 	};
+
+	// If an abort signal is provided, listen for it and break the stream loop
+	if (signal) {
+		signal.throwIfAborted();
+		streamOptions.signal = signal;
+	}
 
 	let _lastError = null;
 	let iteration = 0;
@@ -224,6 +232,18 @@ async function callReactAgentStreaming(
 			);
 
 			for await (const event of stream) {
+				// Check for abort signal on each event
+				if (signal && signal.aborted) {
+					// Emit tool_end for any tool_start that didn't get a corresponding tool_end
+					for (const key of toolCallSet) {
+						const [name] = key.split("|");
+						callback({ type: "tool_end", toolName: name });
+					}
+					if (compactionActive && callback) {
+						callback({ type: "compaction_end" });
+					}
+					return { content: originalMessage };
+				}
 				// Chat model text/reasoning streaming events
 				if (event.event === "on_chat_model_stream") {
 					const chunk = event.data?.chunk;
