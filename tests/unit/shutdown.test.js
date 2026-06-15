@@ -2,6 +2,7 @@
 
 import { describe, it } from "node:test";
 import assert from "node:assert";
+
 import { handleShutdown } from "../../src/session/shutdown.js";
 
 describe("session - shutdown handler", () => {
