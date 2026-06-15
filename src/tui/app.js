@@ -46,6 +46,7 @@ export default function App({
 	const scrollRef = useRef(null);
 	const abortControllerRef = useRef(null);
 	const isStreamingRef = useRef(false);
+	const dispatchPromiseRef = useRef(null);
 	const autoContinueCountRef = useRef(0);
 	const isAutoContinuingRef = useRef(false);
 	const { exit } = useApp();
@@ -104,6 +105,12 @@ export default function App({
 	const handleSubmit = async (text) => {
 		const trimmed = text.trim();
 		if (!trimmed) return;
+
+		// Abort any active stream before processing a new message
+		// This prevents forked UX where both streams render to the same destination
+		if (isStreamingRef.current) {
+			await handleInterrupt();
+		}
 
 		// Track user input in chat history (non-empty lines only)
 		setChatHistory((prev) => {
@@ -240,7 +247,8 @@ export default function App({
 				});
 
 				try {
-					await dispatchProvider(
+					// Capture the dispatch promise so handleInterrupt can await it
+					const dispatchPromise = dispatchProvider(
 						result.skillBody,
 						sessionState ? sessionState.getProvider() : null,
 						(event) => {
@@ -341,6 +349,10 @@ export default function App({
 					abortControllerRef.current?.signal,
 				);
 
+					// Store the promise so handleInterrupt can await it
+					dispatchPromiseRef.current = dispatchPromise;
+					await dispatchPromise;
+
 					let responseContent = committedContent;
 
 					// Auto-continue if the agent stalled with zero text output
@@ -383,7 +395,8 @@ export default function App({
 						setStatusMessage("Continuing...");
 						isAutoContinuingRef.current = true;
 						try {
-							await dispatchProvider(
+							// Capture the dispatch promise so handleInterrupt can await it
+							const continuePromise = dispatchProvider(
 								"Please continue.",
 								sessionState ? sessionState.getProvider() : null,
 								(event) => {
@@ -448,6 +461,9 @@ export default function App({
 								},
 							abortControllerRef.current?.signal,
 						);
+						// Update the ref so handleInterrupt can await this promise too
+						dispatchPromiseRef.current = continuePromise;
+						await continuePromise;
 						setStatusMessage("Done");
 						} catch (contErr) {
 							setStatusMessage(`Error continuing: ${contErr.message}`);
@@ -617,7 +633,8 @@ export default function App({
 		});
 
 		try {
-			const _response = await dispatchProvider(
+			// Capture the dispatch promise so handleInterrupt can await it
+			const dispatchPromise = dispatchProvider(
 				text,
 				sessionState ? sessionState.getProvider() : null,
 				(event) => {
@@ -698,6 +715,10 @@ export default function App({
 			abortControllerRef.current?.signal,
 		);
 
+			// Store the promise so handleInterrupt can await it
+			dispatchPromiseRef.current = dispatchPromise;
+			const _response = await dispatchPromise;
+
 			// committedContent is accumulated from streaming text events —
 			// this is the actual AI response. response.content is only the
 			// originalMessage fallback from callReactAgentStreaming.
@@ -743,7 +764,8 @@ export default function App({
 				setStatusMessage("Continuing...");
 				isAutoContinuingRef.current = true;
 				try {
-					await dispatchProvider(
+					// Capture the dispatch promise so handleInterrupt can await it
+					const continuePromise = dispatchProvider(
 						"Please continue.",
 						sessionState ? sessionState.getProvider() : null,
 						(event) => {
@@ -812,6 +834,9 @@ export default function App({
 						},
 					abortControllerRef.current?.signal,
 				);
+				// Update the ref so handleInterrupt can await this promise too
+				dispatchPromiseRef.current = continuePromise;
+				await continuePromise;
 				setStatusMessage("Received response");
 				} catch (contErr) {
 					setStatusMessage(`Error continuing: ${contErr.message}`);
@@ -926,8 +951,10 @@ export default function App({
 	/**
 	 * Interrupt the current streaming response. Resets the abort controller
 	 * so the user can interrupt future responses. Does NOT quit the app.
+	 * Returns a promise that resolves once dispatchProvider has finished
+	 * processing the abort and completed its cleanup.
 	 */
-	const handleInterrupt = () => {
+	const handleInterrupt = async () => {
 		if (abortControllerRef.current) {
 			abortControllerRef.current.abort();
 			abortControllerRef.current = null;
@@ -942,6 +969,20 @@ export default function App({
 			return cloned;
 		});
 		setStatusMessage("Interrupted.");
+
+		// Wait for the dispatchProvider promise to resolve (it will throw
+		// AbortError and be caught by the try/catch, then run finally).
+		// This ensures the stream is fully dead before we proceed.
+		const dispatchPromise = dispatchPromiseRef.current;
+		dispatchPromiseRef.current = null;
+		if (dispatchPromise) {
+			try {
+				await dispatchPromise;
+			} catch (_err) {
+				// AbortError is expected — dispatchProvider catches and handles it.
+				// We just need to wait for the cleanup to complete.
+			}
+		}
 	};
 
 	/**
