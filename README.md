@@ -134,6 +134,8 @@ node index.js "Summarize memory/_index.md" --json
 | ---------------------------- | ------------------------------------ |
 | `↑/↓`                        | Scroll conversation history          |
 | `/help`                      | Show available commands              |
+| `/quit`                      | Exit the application                   |
+| `/provider set <name>`     | Switch LLM provider                  |
 | `/config set <path> <value>`  | Mutate config at runtime             |
 | `/<skill-name>`              | Invoke a discovered skill            |
 | `/schedule list`, `/schedule pause <name>`, `/schedule resume <name>`, `/schedule run-now <name>` | Control the cron scheduler           |
