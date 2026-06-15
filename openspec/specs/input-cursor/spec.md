@@ -1,58 +1,54 @@
-## ADDED Requirements
+# Input Cursor
 
-### Requirement: Blinking Input Cursor
-The system SHALL render a blinking cursor indicator at the end of the input text in the chat input panel.
+## Requirements
 
-#### Scenario: Cursor appears at end of input text
+### Requirement: Input panel uses real terminal cursor
+The InputPanel component SHALL use Ink's `useCursor` hook to position a real terminal cursor after the typed input text, replacing the previous cosmetic Unicode block character approach.
+
+#### Scenario: Cursor positioned after input text
 - **WHEN** the user types text in the input panel
-- **THEN** a blinking cursor character appears after the last character of the input text
+- **THEN** the terminal cursor appears immediately after the last character of the input text
 
-#### Scenario: Cursor toggles visibility on interval
-- **WHEN** the input panel is displayed with text
-- **THEN** the cursor alternates between visible and invisible at a configurable interval (default 530ms)
+#### Scenario: Cursor handles wide characters correctly
+- **WHEN** the input text contains wide characters (CJK characters, emoji)
+- **THEN** the cursor x-position is calculated using `string-width` to account for multi-byte character column width
 
-#### Scenario: Cursor uses configured character
-- **WHEN** `tui.cursorChar` is set in config
-- **THEN** the cursor displays using that character (default: `█`)
+#### Scenario: Cursor hidden when input is empty
+- **WHEN** the input text is empty
+- **THEN** the terminal cursor is hidden (not visible)
 
-#### Scenario: Cursor is visible when input is empty
-- **WHEN** the input panel is displayed with no text
-- **THEN** the blinking cursor still appears (indicating the active input position)
+#### Scenario: Cursor visible when input has text
+- **WHEN** the user types text in the input panel
+- **THEN** the terminal cursor is visible and positioned after the last character
 
-#### Scenario: Cursor does not appear in banner mode
-- **WHEN** the startup banner is being displayed
-- **THEN** the blinking cursor is not rendered
+### Requirement: Input panel displays prompt prefix
+The InputPanel component SHALL display a `> ` prompt prefix before the typed input text.
 
-### Requirement: Configurable Cursor Character
-The `tui` configuration section SHALL support a `cursorChar` field that specifies the character used for the blinking cursor.
+#### Scenario: Prompt prefix is displayed
+- **WHEN** the input panel renders
+- **THEN** the text `> ` appears before the input text
 
-#### Scenario: Accepts valid cursor character string
-- **WHEN** `tui.cursorChar` is set to a non-empty string in config
-- **THEN** the system uses that character as the cursor display
+#### Scenario: Prompt prefix is always visible
+- **WHEN** the input text is empty
+- **THEN** the `> ` prompt prefix is still displayed
 
-#### Scenario: Accepts unicode block character as default
-- **WHEN** `tui.cursorChar` is not set in config
-- **THEN** the system defaults to `█` (U+2588 FULL BLOCK)
+### Requirement: Blink component removed
+The `Blink` component SHALL be removed from `inputPanel.js` as it is no longer needed with real cursor positioning.
 
-#### Scenario: Rejects non-string cursor character
-- **WHEN** `tui.cursorChar` is set to a non-string value
-- **THEN** schema validation fails
+#### Scenario: No Blink component in inputPanel.js
+- **WHEN** `inputPanel.js` is inspected
+- **THEN** no `Blink` function or component is exported or defined
 
-### Requirement: Configurable Blink Interval
-The `tui` configuration section SHALL support a `blinkTimeout` field specifying the cursor blink interval in milliseconds.
+### Requirement: cursorChar prop removed
+The `cursorChar` prop SHALL be removed from the `InputPanel` component API.
 
-#### Scenario: Accepts valid blink timeout value
-- **WHEN** `tui.blinkTimeout` is set to a positive integer in config
-- **THEN** the system uses that interval for the cursor blink cycle
+#### Scenario: InputPanel accepts no cursorChar prop
+- **WHEN** `InputPanel` is called
+- **THEN** the `cursorChar` prop is not accepted or used
 
-#### Scenario: Accepts default blink timeout
-- **WHEN** `tui.blinkTimeout` is not set in config
-- **THEN** the system defaults to 530 milliseconds per blink cycle
+### Requirement: string-width dependency added
+The `string-width` package SHALL be added to the project's production dependencies for accurate wide-character column width calculation.
 
-#### Scenario: Rejects zero or negative blink timeout
-- **WHEN** `tui.blinkTimeout` is set to zero or a negative value
-- **THEN** schema validation fails
-
-#### Scenario: Rejects non-integer blink timeout
-- **WHEN** `tui.blinkTimeout` is set to a non-integer value (e.g., 3.5)
-- **THEN** schema validation fails
+#### Scenario: string-width is a production dependency
+- **WHEN** `package.json` is inspected
+- **THEN** `string-width` appears in the `dependencies` section
