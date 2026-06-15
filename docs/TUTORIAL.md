@@ -239,18 +239,18 @@ Once inside the interactive terminal, use these commands:
 | Command | Action |
 |---------|--------|
 | `↑ / ↓` | Scroll conversation history |
-| `:help` | List available commands |
-| `:quit` | Exit the application |
-| `:provider set <name>` | Switch LLM provider |
-| `:config set <path> <value>` | Mutate config at runtime |
-| `:schedule list` | List all scheduled jobs |
-| `:schedule pause <name>` | Pause a scheduled job |
-| `:schedule resume <name>` | Resume a paused job |
-| `:schedule run-now <name>` | Run a job immediately |
-| `:gc` | Trigger V8 garbage collection |
-| `:gc status` | Check GC availability and call count |
-| `:clear` | Clear current conversation |
-| `:new` | Start a fresh session |
+| `/help` | List available commands |
+| `/quit` | Exit the application |
+| `/provider set <name>` | Switch LLM provider |
+| `/config set <path> <value>` | Mutate config at runtime |
+| `/schedule list` | List all scheduled jobs |
+| `/schedule pause <name>` | Pause a scheduled job |
+| `/schedule resume <name>` | Resume a paused job |
+| `/schedule run-now <name>` | Run a job immediately |
+| `/gc` | Trigger V8 garbage collection |
+| `/gc status` | Check GC availability and call count |
+| `/clear` | Clear current conversation |
+| `/new` | Start a fresh session |
 
 ### Memory System
 `madz` operates on a **triple-layer** memory architecture:
@@ -260,7 +260,7 @@ Once inside the interactive terminal, use these commands:
 
 *This triple-layer architecture powers the autonomous learning loop — canonical memories persist, ephemeral memories capture moments, and reflections synthesize patterns into lasting context.*
 
-Changes to canonical memory require a `:new` command to refresh the current session context.
+Changes to canonical memory require a `/new` command to refresh the current session context.
 
 ### Skills
 

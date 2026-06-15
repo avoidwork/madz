@@ -114,7 +114,7 @@ node --expose-gc index.js --mode interactive
 npm start -- --expose-gc
 ```
 
-GC is automatically triggered during idle periods and can be manually invoked via the `:gc` TUI command.
+GC is automatically triggered during idle periods and can be manually invoked via the `/gc` TUI command.
 
 **Single prompt (CLI mode):**
 
@@ -133,14 +133,16 @@ node index.js "Summarize memory/_index.md" --json
 | Key                          | Action                               |
 | ---------------------------- | ------------------------------------ |
 | `↑/↓`                        | Scroll conversation history          |
-| `:help`                      | Show available commands              |
-| `:config set <key> <value>`  | Mutate config at runtime             |
-| `:skill <name>`              | Invoke a discovered skill            |
-| `:schedule pause` / `resume` | Control the cron scheduler           |
-| `:clear`                     | Clear conversation history           |
-| `:new`                       | Start a fresh session                |
-| `:gc`                        | Trigger manual V8 garbage collection |
-| `:gc status`                 | Show GC availability and call count  |
+| `/help`                      | Show available commands              |
+| `/quit`                      | Exit the application                   |
+| `/provider set <name>`     | Switch LLM provider                  |
+| `/config set <path> <value>`  | Mutate config at runtime             |
+| `/<skill-name>`              | Invoke a discovered skill            |
+| `/schedule list`, `/schedule pause <name>`, `/schedule resume <name>`, `/schedule run-now <name>` | Control the cron scheduler           |
+| `/clear`                     | Clear conversation history           |
+| `/new`                       | Start a fresh session                |
+| `/gc`                        | Trigger manual V8 garbage collection |
+| `/gc status`                 | Show GC availability and call count  |
 
 ## Docker
 
@@ -416,7 +418,7 @@ Captured autonomously by the harness during operation, these record patterns, mi
 **Reflections**
 A daily cron job (`0 2 * * *`) installed automatically on first onboarding completion. Runs `/reflection` via `--chat` mode, generating a narrative reflection summary from recent session history. The job definition is persisted as `memory/schedules/reflection-daily.json` and registered in the system crontab under the `madz-schedules` block. Reflections are stored as canonical memories in `memory/context/` with `createdDate` and `updatedDate` metadata.
 
-Together, these layers create a system that remembers what matters while naturally adapting to how you work. When you update or delete a canonical memory, follow it with `:new` so the current session reflects the change immediately.
+Together, these layers create a system that remembers what matters while naturally adapting to how you work. When you update or delete a canonical memory, follow it with `/new` so the current session reflects the change immediately.
 
 **Memory tool actions:** `create` (new memory), `read` (get by key), `update` (modify by key), `delete` (remove by key), `list` (all memories, optional query filter)
 
