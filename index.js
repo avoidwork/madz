@@ -215,6 +215,7 @@ async function callProvider(_name, _providerConfig, message, streamingCallback, 
 			maxTokens: providerConfig.maxTokens,
 			checkpointer,
 			signal,
+			recursionLimit: config.agent?.recursionLimit,
 		},
 	);
 	return { provider: providerName, content: result.content, tokens: { input: 0, output: 0 } };
