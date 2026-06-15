@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Box, Text, useCursor } from "ink";
 import stringWidth from "string-width";
 
@@ -12,13 +12,16 @@ import stringWidth from "string-width";
  */
 export function InputPanel({ inputText = "", totalRows = 0 }) {
 	const hasText = Boolean(inputText && inputText.trim());
+	const { setCursorPosition } = useCursor();
 
 	// Position the real terminal cursor after the prompt + input text
-	useCursor(
-		hasText
-			? { x: stringWidth("> " + inputText), y: totalRows - 1 }
-			: undefined,
-	);
+	useEffect(() => {
+		setCursorPosition(
+			hasText
+				? { x: stringWidth("> " + inputText), y: totalRows - 1 }
+				: undefined,
+		);
+	}, [hasText, inputText, totalRows, setCursorPosition]);
 
 	return React.createElement(
 		Box,
