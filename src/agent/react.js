@@ -59,6 +59,7 @@ export async function callReactAgent(agent, message, config, systemPrompt, callb
 		maxContextLength,
 		maxTokens,
 		maxCompactionIterations = MAX_COMPACTION_ITERATIONS,
+		recursionLimit,
 	} = options;
 
 	let messages = [new HumanMessage(message)];
@@ -71,7 +72,7 @@ export async function callReactAgent(agent, message, config, systemPrompt, callb
 	}
 
 	if (callback) {
-		return callReactAgentStreaming(agent, messages, message, config, callback, options, systemPrompt);
+		return callReactAgentStreaming(agent, messages, message, config, callback, options, systemPrompt, recursionLimit);
 	}
 
 	let _lastError = null;
@@ -81,7 +82,11 @@ export async function callReactAgent(agent, message, config, systemPrompt, callb
 
 	while (iteration <= maxCompactionIterations) {
 		try {
-			const result = await agent.invoke({ messages }, config);
+			const invokeConfig = {
+				...config,
+				...(recursionLimit !== null && { recursionLimit }),
+			};
+			const result = await agent.invoke({ messages }, invokeConfig);
 			return extractContent(result, message);
 		} catch (err) {
 			// Handle recursion limit — always return immediately
@@ -197,6 +202,7 @@ async function callReactAgentStreaming(
 	callback,
 	options = {},
 	systemPrompt = "",
+	recursionLimit = null,
 ) {
 	const {
 		maxContextLength,
@@ -207,6 +213,7 @@ async function callReactAgentStreaming(
 
 	const streamOptions = {
 		configurable: config?.configurable,
+		...(recursionLimit !== null && { recursionLimit }),
 	};
 
 	// If an abort signal is provided, listen for it and break the stream loop

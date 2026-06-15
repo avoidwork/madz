@@ -589,7 +589,17 @@ Skills follow the [Agent Skills spec](https://agentskills.io/specification). Eac
 
 `madz` supports two environment variable patterns:
 
-1. **Direct override** — set env vars to override `config.yaml` values. Names follow `UPPER_SNAKE_CASE` of the config key path (e.g., `sandbox.timeout.seconds` → `SANDBOX_TIMEOUT_SECONDS`). Docker users: see the [Environment Variables](#environment-variables) section under Docker for the full table.
+1. **Direct override** — set env vars to override `config.yaml` values. Names follow `UPPER_SNAKE_CASE` of the config key path, with container keys (`providers`, `credentials`, `timeout`, `search`, `ratelimit`) dropped from the name. For example:
+
+   | Config Path                              | Env Var Name          |
+   | ---------------------------------------- | --------------------- |
+   | `providers.openai.credentials.apiKey`    | `OPENAI_API_KEY`      |
+   | `sandbox.timeout.seconds`                | `SANDBOX_SECONDS`     |
+   | `search.exa.apiKey`                      | `EXA_API_KEY`         |
+   | `telemetry.exporter.endpoint`            | `TELEMETRY_EXPORTER_ENDPOINT` |
+
+   Docker users: see the [Environment Variables](#environment-variables) section under Docker for the full table.
+
 2. **Inline reference in `config.yaml`** — use `${VAR_NAME}` syntax in config values:
 
 ```yaml

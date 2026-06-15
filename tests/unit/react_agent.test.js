@@ -889,4 +889,69 @@ describe("callReactAgent", () => {
 			assert.ok(toolEnds.length > 0, "Should emit tool_end for pending tools");
 		});
 	});
+
+	describe("recursion limit threading", () => {
+		it("passes recursionLimit to agent.invoke() in non-streaming mode", async () => {
+			let capturedConfig = null;
+			const agentMock = {
+				invoke: (input, config) => {
+					capturedConfig = config;
+					return { messages: [new AIMessage("ok")] };
+				},
+			};
+
+			await callReactAgent(
+				agentMock,
+				"hello",
+				{ configurable: { thread_id: "test" } },
+				null,
+				null,
+				{ recursionLimit: 500 },
+			);
+
+			assert.strictEqual(capturedConfig.recursionLimit, 500);
+		});
+
+		it("passes recursionLimit to agent.streamEvents() in streaming mode", async () => {
+			let capturedConfig = null;
+			const agentMock = {
+				streamEvents: (input, config) => {
+					capturedConfig = config;
+					return (async function* () {})();
+				},
+			};
+
+			await callReactAgent(
+				agentMock,
+				"hello",
+				{ configurable: { thread_id: "test" } },
+				null,
+				() => {},
+				{ recursionLimit: 750 },
+			);
+
+			assert.strictEqual(capturedConfig.recursionLimit, 750);
+		});
+
+		it("omits recursionLimit when not provided", async () => {
+			let capturedConfig = null;
+			const agentMock = {
+				invoke: (input, config) => {
+					capturedConfig = config;
+					return { messages: [new AIMessage("ok")] };
+				},
+			};
+
+			await callReactAgent(
+				agentMock,
+				"hello",
+				{ configurable: { thread_id: "test" } },
+				null,
+				null,
+				{},
+			);
+
+			assert.strictEqual(capturedConfig.recursionLimit, undefined);
+		});
+	});
 });
