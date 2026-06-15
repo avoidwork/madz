@@ -12,7 +12,7 @@ import {
 } from "../../src/tui/messages.js";
 import { parseMarkdown, MarkdownTextInner } from "../../src/tui/markdownText.js";
 import { TuiSchema, DEFAULT_CONFIG } from "../../src/config/schemas.js";
-import { Blink } from "../../src/tui/inputPanel.js";
+import { InputPanel } from "../../src/tui/inputPanel.js";
 
 describe("command parser", () => {
 	it("parses /quit command", () => {
@@ -804,55 +804,56 @@ describe("MarkdownText - rendering", () => {
 	});
 });
 
-describe("TuiSchema - cursorChar", () => {
-	it("accepts valid cursorChar string", () => {
-		const result = TuiSchema.safeParse({ name: "test", cursorChar: "_" });
-		assert.strictEqual(result.success, true);
-		assert.strictEqual(result.data.cursorChar, "_");
-	});
-
-	it("accepts unicode block character", () => {
-		const result = TuiSchema.safeParse({ name: "test", cursorChar: "\u2588" });
-		assert.strictEqual(result.success, true);
-		assert.strictEqual(result.data.cursorChar, "\u2588");
-	});
-
-	it("rejects non-string cursorChar", () => {
-		const result = TuiSchema.safeParse({ name: "test", cursorChar: 123 });
-		assert.strictEqual(result.success, false);
-	});
-
-	it("defaults cursorChar to block when missing", () => {
+describe("TuiSchema - no cursorChar", () => {
+	it("accepts valid tui config without cursorChar", () => {
 		const result = TuiSchema.safeParse({ name: "test" });
 		assert.strictEqual(result.success, true);
-		assert.strictEqual(result.data.cursorChar, "\u2588");
+		assert.strictEqual(result.data.name, "test");
+		assert.strictEqual(result.data.cursorChar, undefined);
+	});
+
+	it("rejects non-string name", () => {
+		const result = TuiSchema.safeParse({ name: 123 });
+		assert.strictEqual(result.success, false);
 	});
 });
 
 describe("DEFAULT_CONFIG - tui fields", () => {
-	it("includes cursorChar default", () => {
-		assert.strictEqual(DEFAULT_CONFIG.tui.cursorChar, "\u2588");
-	});
-
-	it("matches TuiSchema defaults for cursorChar", () => {
-		const schemaResult = TuiSchema.safeParse({});
-		assert.strictEqual(schemaResult.success, true);
-		assert.strictEqual(schemaResult.data.cursorChar, DEFAULT_CONFIG.tui.cursorChar);
+	it("does not include cursorChar", () => {
+		assert.strictEqual(DEFAULT_CONFIG.tui.cursorChar, undefined);
 	});
 });
 
-describe("Blink - component rendering", () => {
-	it("renders static cursor with even _testFrame", () => {
-		const result = Blink({ text: "hello", char: "█", _testFrame: 0 });
-		assert.ok(React.isValidElement(result));
-		assert.strictEqual(result.props.flexDirection, "row");
-		assert.strictEqual(result.props.children[1].props.children, "█");
+describe("InputPanel - component rendering", () => {
+	it("renders prompt prefix and input text", async () => {
+		const { renderToString } = await import("ink");
+		const result = String(
+			renderToString(
+				React.createElement(InputPanel, {
+					inputText: "hello",
+					totalRows: 24,
+				}),
+			),
+		);
+		assert.ok(result.includes("> "), "should include prompt prefix");
+		assert.ok(result.includes("hello"), "should include input text");
 	});
 
-	it("renders static cursor (no zero-width space toggling)", () => {
-		const result = Blink({ text: "hello", char: "█", _testFrame: 1 });
-		assert.ok(React.isValidElement(result));
-		assert.strictEqual(result.props.children[1].props.children, "█");
+	it("renders prompt prefix when input is empty", async () => {
+		const { renderToString } = await import("ink");
+		const result = String(
+			renderToString(
+				React.createElement(InputPanel, {
+					inputText: "",
+					totalRows: 24,
+				}),
+			),
+		);
+		assert.ok(result.includes(">"), "should include prompt prefix even when empty");
+	});
+
+	it("does not export Blink component", () => {
+		assert.strictEqual(InputPanel.Blink, undefined, "Blink should not be exported");
 	});
 });
 

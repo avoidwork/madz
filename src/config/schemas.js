@@ -180,7 +180,6 @@ export const SchedulesSchema = z.object({
 
 export const TuiSchema = z.object({
 	name: z.string().default("madz"),
-	cursorChar: z.string().default("\u2588"),
 });
 
 // --- Agent schemas ---
@@ -266,6 +265,6 @@ export const DEFAULT_CONFIG = {
 	},
 	schedules: { maxConcurrent: 1, mode: "inprocess", syncOnInit: true, entries: [] },
 	agent: { recursionLimit: 1000, autoContinueLimit: 1000, nodeTimeout: 600000 },
-	tui: { name: "madz", cursorChar: "\u2588" },
+	tui: { name: "madz" },
 	persistence: { mode: "memory", sqlite_path: "memory/checkpoints.db" },
 };

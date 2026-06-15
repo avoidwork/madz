@@ -1228,8 +1228,7 @@ export default function App({
 					React.createElement(InputPanel, {
 						key: inputFocused ? "input-focused" : "input-unfocused",
 						inputText: inputText,
-						cursorChar: config?.tui?.cursorChar ?? "\u2588",
-						cursorColor: inputFocused ? undefined : "#202020",
+						totalRows: rows,
 					}),
 				)
 			: null,

@@ -188,13 +188,11 @@ describe("_resolveEnvRecursively — TUI options", () => {
 
 	it("resolves all TUI env vars", () => {
 		process.env.TUI_NAME = "radz";
-		process.env.TUI_CURSOR_CHAR = "▮";
 		const config = {
-			tui: { name: "madz", cursorChar: "█" },
+			tui: { name: "madz" },
 		};
 		const result = _resolveEnvRecursively(config, []);
 		assert.strictEqual(result.tui.name, "radz");
-		assert.strictEqual(result.tui.cursorChar, "▮");
 	});
 });
 
