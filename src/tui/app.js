@@ -488,6 +488,17 @@ export default function App({
 				} catch (err) {
 					// Abort is a normal interruption, not an error
 					if (err.name === "AbortError") {
+						if (sessionState) {
+							sessionState.popExchange();
+						}
+						setMessages((prev) => {
+							const cloned = [...prev];
+							const last = cloned[cloned.length - 1];
+							if (last.role === "assistant" && last.streaming) {
+								last.streaming = false;
+							}
+							return cloned;
+						});
 						setStatusMessage("Interrupted.");
 					} else {
 						setMessages((prev) => {
@@ -858,6 +869,12 @@ export default function App({
 		} catch (err) {
 			// Abort is a normal interruption, not an error
 			if (err.name === "AbortError") {
+				// Clean up: remove the user message that was added before the aborted stream
+				if (sessionState) {
+					sessionState.popExchange();
+				}
+				// Clear the partial streaming assistant message from UI
+				setMessages((prev) => prev.filter((msg) => !isStreamingMessage(msg)));
 				setStatusMessage("Interrupted.");
 			} else {
 				if (onSaveSession) {

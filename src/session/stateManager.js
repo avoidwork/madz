@@ -60,6 +60,18 @@ export class SessionStateManager {
 	}
 
 	/**
+	 * Remove the last exchange from the conversation (used on abort).
+	 * @returns {{ role: string, content: string, timestamp: string } | undefined}
+	 */
+	popExchange() {
+		const removed = this.#state.conversation.pop();
+		if (removed) {
+			this.#state.updatedAt = new Date().toISOString();
+		}
+		return removed;
+	}
+
+	/**
 	 * Get the active skills list.
 	 * @returns {string[]}
 	 */
