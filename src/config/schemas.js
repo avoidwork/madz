@@ -70,7 +70,7 @@ const _OpenaiProviderConfigSchema = z.object({
 	model: z.string().min(1),
 	encoding: z.string().optional(),
 	credentials: OpenAICredentialsSchema,
-	temperature: z.number().min(0).max(2).default(0.7),
+	temperature: z.number().min(0).max(2).default(0.4),
 	maxTokens: z.number().int().positive().default(4096),
 	rateLimit: RateLimitSchema.default({ requestsPerMinute: 60 }),
 });

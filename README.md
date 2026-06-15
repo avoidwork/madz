@@ -301,9 +301,11 @@ All configuration is controlled via environment variables in the `docker run` co
 
 **Optional — Agent:**
 
-| Variable                | Default | Description                        |
-| ----------------------- | ------- | ---------------------------------- |
-| `AGENT_RECURSION_LIMIT` | `1000`    | Max graph execution steps per call |
+| Variable                        | Default  | Description                                    |
+| ------------------------------- | -------- | ---------------------------------------------- |
+| `AGENT_RECURSION_LIMIT`         | `1000`   | Max graph execution steps per call             |
+| `AGENT_AUTO_CONTINUE_LIMIT`     | `1000`   | Max consecutive auto-continue attempts before circuit breaker triggers |
+| `AGENT_NODE_TIMEOUT`            | `600000` | Superstep timeout in milliseconds (default 10 minutes) |
 
 **Optional — Persistence:**
 
@@ -489,7 +491,7 @@ Graceful shutdown flushes all buffered log entries to disk before process exit.
 |               | `openai.base_url`                    | `https://api.openai.com/v1`              | API endpoint URL                              |
 |               | `openai.model`                       | `gpt-4o`                                 | Model name                                    |
 |               | `openai.credentials.apiKey`          | _(empty)_                                | API key for authentication                    |
-|               | `openai.temperature`                 | `0.7`                                    | Sampling temperature (0–2)                    |
+|               | `openai.temperature`                 | `0.4`                                    | Sampling temperature (0–2)                    |
 |               | `openai.maxTokens`                   | `4096`                                   | Max output tokens                             |
 |               | `openai.rateLimit.requestsPerMinute` | `60`                                     | Rate limit for API calls                      |
 | `sandbox`     | `paths`                              | `["memory/", "skills/", "src/", "/tmp"]` | Allowed filesystem paths                      |
@@ -526,6 +528,8 @@ Graceful shutdown flushes all buffered log entries to disk before process exit.
 | `tui`         | `name`                               | `madz`                                   | TUI identifier in banner                      |
 |               | `cursorChar`                         | `█`                                      | Cursor character                              |
 | `agent`       | `recursionLimit`                     | `1000`                                   | Max graph execution steps per agent call      |
+|               | `autoContinueLimit`                  | `1000`                                   | Max consecutive auto-continue attempts before circuit breaker triggers |
+|               | `nodeTimeout`                        | `600000`                                 | Superstep timeout in milliseconds (default 10 minutes) |
 | `persistence` | `mode`                               | `memory`                                 | Storage backend (`memory`, `sqlite`)          |
 |               | `sqlite_path`                        | `memory/checkpoints.db`                  | SQLite checkpointer file path                 |
 
