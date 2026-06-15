@@ -18,7 +18,7 @@ export function InputPanel({ inputText = "", totalRows = 0 }) {
 	useEffect(() => {
 		setCursorPosition(
 			hasText
-				? { x: stringWidth("> " + inputText), y: totalRows - 1 }
+				? { x: stringWidth("> " + inputText), y: totalRows }
 				: undefined,
 		);
 	}, [hasText, inputText, totalRows, setCursorPosition]);
