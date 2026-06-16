@@ -7,8 +7,8 @@ import {
 	getRoleColors,
 	getBubbleStyle,
 	renderMessages,
-} from "../../src/tui/conversationPanel.js";
-import { getRoleLabel } from "../../src/tui/messages.js";
+} from "../../src/tui/components/ConversationPanel.js";
+import { getRoleLabel } from "../../src/tui/components/messages.js";
 
 describe("ConversationPanel - component rendering", () => {
 	let unmount;

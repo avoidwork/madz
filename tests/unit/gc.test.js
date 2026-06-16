@@ -8,7 +8,7 @@ import {
 	_resetGcCalls,
 	_setGcCalls,
 } from "../../src/memory/gc.js";
-import { CommandParser } from "../../src/tui/commandParser.js";
+import { CommandRegistry } from "../../src/tui/utils/commandParser.js";
 
 describe("gc - V8 garbage collection", () => {
 	beforeEach(() => {
@@ -250,7 +250,7 @@ describe("gc - V8 garbage collection", () => {
 
 describe("command parser - gc commands", () => {
 	it("parses /gc command and triggers GC", () => {
-		const parser = new CommandParser();
+		const parser = new CommandRegistry();
 		const result = parser.parse("/gc", {
 			_gcTrigger: () => ({ triggered: true, hourCalls: 1, lastRun: Date.now() }),
 		});
@@ -261,7 +261,7 @@ describe("command parser - gc commands", () => {
 	});
 
 	it("parses /gc status command", () => {
-		const parser = new CommandParser();
+		const parser = new CommandRegistry();
 		const result = parser.parse("/gc status", {
 			_gcStatus: () => ({ available: true, calls: [], hourCalls: 2 }),
 		});
@@ -272,7 +272,7 @@ describe("command parser - gc commands", () => {
 	});
 
 	it("returns gc not available status when unavailable", () => {
-		const parser = new CommandParser();
+		const parser = new CommandRegistry();
 		const result = parser.parse("/gc status", {
 			_gcStatus: () => ({ available: false, calls: [], hourCalls: 0 }),
 		});
@@ -281,7 +281,7 @@ describe("command parser - gc commands", () => {
 	});
 
 	it("returns gc action for unknown gc subcommand", () => {
-		const parser = new CommandParser();
+		const parser = new CommandRegistry();
 		const result = parser.parse("/gc invalid", {
 			_gcTrigger: () => ({ triggered: false, reason: "rate limited" }),
 		});
@@ -290,18 +290,18 @@ describe("command parser - gc commands", () => {
 	});
 
 	it("isCommand returns true for /gc input", () => {
-		const parser = new CommandParser();
+		const parser = new CommandRegistry();
 		assert.strictEqual(parser.isCommand("/gc"), true);
 		assert.strictEqual(parser.isCommand("/gc status"), true);
 	});
 
 	it("hasCommand returns true for gc", () => {
-		const parser = new CommandParser();
+		const parser = new CommandRegistry();
 		assert.strictEqual(parser.hasCommand("gc"), true);
 	});
 
 	it("listCommands includes gc", () => {
-		const parser = new CommandParser();
+		const parser = new CommandRegistry();
 		const cmds = parser.listCommands();
 		assert.ok(cmds.includes("gc"));
 	});
