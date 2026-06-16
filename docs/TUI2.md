@@ -112,38 +112,33 @@ to complete)
 
 ---
 
-## 4. The Cursor Model
+## 4. The Cursor
 
-The cursor appears when the user is typing and fades when idle. This is managed by `InputPanel` with
-a configurable cursor character and color.
+The cursor is managed by ink's `useCursor` hook, which handles visibility and blinking
+automatically. The TUI passes the configured cursor character and color to the hook.
 
-### The Breathing Cycle
-
-```
-Reading → Typing → Idle → Reading
-  ↓        ↓        ↓        ↓
-Hidden   Visible  Fading   Hidden
-```
-
-| State | Cursor | Trigger |
-|-------|--------|---------|
-| **Reading** | Hidden | Default state. User is consuming output. |
-| **Active** | Visible at input position | User presses any key. |
-| **Idle** | Fading (color transition) | No input for 2 seconds while in Active state. |
-| **Submit** | Visible | User presses Enter. |
-
-### Implementation
+### Configuration
 
 ```jsx
-// InputPanel receives cursorChar and cursorColor as props
-// The cursor is rendered as a Text element with inverse styling
-<Text>{inputText}</Text>
-{cursorVisible && <Text inverse>{cursorChar}</Text>}
+import { useCursor } from 'ink';
+
+const [cursorVisible, setCursorVisible] = useState(true);
+const { Cursor } = useCursor(cursorVisible, { cursorChar: config.tui.cursorChar });
+
+// Toggle visibility based on input focus
+// Input focused → visible
+// Input unfocused → hidden
 ```
 
-**Note:** The implementation uses a color transition (white → dark gray) rather than opacity fading.
-This is more reliable across terminal emulators.
+### Behavior
 
+- **Input focused** — cursor visible at input position
+- **Input unfocused** — cursor hidden
+- **Blinking** — handled by `useCursor` internally
+- **Character/color** — sourced from `config.tui.cursorChar` and `config.tui.cursorColor`
+
+No custom cursor state machine needed. `useCursor` handles the rendering; the TUI only manages
+visibility toggling based on input focus state.
 ---
 
 ## 5. Message Display
