@@ -59,6 +59,7 @@ export function formatSize(bytes) {
  * Bottom status bar.
  * Displays status indicator, status message, and info counts.
  * Input text entry is handled by InputPanel with IRC-style prompt ("> text" / ": text").
+ * Optional toggle indicators show active runtime config states.
  */
 export const StatusBar = React.memo(function StatusBar({
 	statusMessage = "",
@@ -66,9 +67,23 @@ export const StatusBar = React.memo(function StatusBar({
 	messageCount = 0,
 	contextSize = 0,
 	isCompacting = false,
+	toggles,
 }) {
 	const status = getStatusIndicator(statusMessage);
 	const contextColor = isCompacting ? "red" : "#606060";
+
+	// Compute toggle indicators for quick glance visibility
+	let toggleIndicator = "";
+	if (toggles) {
+		const parts = [];
+		if (toggles.timestamps === false) parts.push("ts:0");
+		if (toggles.autoScroll === false) parts.push("scroll:0");
+		if (toggles.timestamps === true) parts.push("ts:1");
+		if (toggles.autoScroll === true) parts.push("scroll:1");
+		if (parts.length > 0) {
+			toggleIndicator = " [" + parts.join(" ") + "]";
+		}
+	}
 
 	return React.createElement(
 		Box,
@@ -105,6 +120,9 @@ export const StatusBar = React.memo(function StatusBar({
 				{ key: "context", color: contextColor },
 				"[\u25A4 " + formatSize(contextSize) + "]",
 			),
+			toggleIndicator
+				? React.createElement(Text, { key: "toggles", color: "#606060" }, toggleIndicator)
+				: null,
 		),
 	);
 });
