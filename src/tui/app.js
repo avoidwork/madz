@@ -503,7 +503,7 @@ export default function App({
 		handleQuit,
 		handleSubmit,
 		inputText: state.inputText,
-		setInputText: (text) => dispatch({ type: "SET_INPUT_TEXT", text }),
+		setInputText: (text) => dispatch({ type: "SET_INPUT_TEXT", text: typeof text === "function" ? text(state.inputText) : text }),
 		inputFocused: state.inputFocused,
 		setInputFocused: (focused) => dispatch({ type: "SET_INPUT_FOCUSED", focused }),
 		chatHistory: state.chatHistory,
