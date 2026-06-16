@@ -1,4 +1,4 @@
-# TUI2: Terminal Interface Blueprint
+# TUI: Terminal Interface Blueprint
 
 *A design document for the new madz terminal interface. Grounded in the existing implementation (Ink
 + `ink-scroll-view` + structured logger), inspired by the best patterns of bitchx IRC client. The
@@ -729,4 +729,5 @@ mental model. It's the implementation scaffolding around it that should be reorg
 
 ---
 
-*Design document. Reflects the current implementation and proposes compatible extensions.*
+*Blueprint for the new madz terminal interface. Grounded in the existing implementation and the
+ink + ink-scroll-view libraries.*
