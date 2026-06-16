@@ -5,7 +5,7 @@
  */
 
 import { useRef, useCallback } from 'react';
-import { setTodoStreamingCallback } from '../tools/todo_queue.js';
+import { setTodoStreamingCallback } from '../../tools/todo_queue.js';
 
 /**
  * Hook that manages streaming state and behavior.
