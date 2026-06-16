@@ -75,7 +75,7 @@ management — no custom virtual scroll logic needed.
 
 ```jsx
 // ConversationPanel wraps ScrollView around message bubbles
-<ScrollView ref={scrollRef} key="scroll" focus={false}>
+<ScrollView ref={scrollRef} key="scroll">
   {messages.map(msg => <MessageBubble key={msg.id} msg={msg} />)}
 </ScrollView>
 ```
@@ -83,62 +83,75 @@ management — no custom virtual scroll logic needed.
 ### Auto-Scroll Behavior
 
 ```
-1. New message arrives → scrollToBottom() (deferred 0ms to allow ink-scroll-view's useLayoutEffect
-to complete)
-2. Streaming content grows → scrollToBottom() (content hash triggers re-evaluation)
+1. New message arrives → scrollToBottom() (deferred via setTimeout 0ms to allow React to commit)
+2. Streaming content grows → scrollToBottom() (React re-render triggers scroll)
 3. User scrolls up → stays where they are (no forced scroll)
 4. Terminal resize → remeasure() called via stdout.on("resize")
 ```
 
 ### Scroll API (via ref)
 
-| Method | Purpose |
+|| Method | Purpose |
 |--------|---------|
-| `scrollToBottom()` | Scroll to the end of content |
-| `scrollBy(delta)` | Scroll by N rows (positive = down, negative = up) |
-| `scrollTo(offset)` | Scroll to absolute position |
-| `remeasure()` | Re-measure viewport dimensions (call on terminal resize) |
-| `getViewportHeight()` | Get visible row count |
-| `getScrollOffset()` | Get current scroll position |
+|| `scrollToBottom()` | Scroll to the end of content |
+|| `scrollBy(delta)` | Scroll by N rows (positive = down, negative = up) |
+|| `scrollTo(offset)` | Scroll to absolute position |
+|| `scrollToTop()` | Scroll to offset 0 |
+|| `remeasure()` | Re-measure viewport dimensions (call on terminal resize) |
+|| `remeasureItem(index)` | Force re-measure of a specific child (useful for dynamic content) |
+|| `getViewportHeight()` | Get visible row count |
+|| `getScrollOffset()` | Get current scroll position |
+|| `getContentHeight()` | Get total content height |
+|| `getBottomOffset()` | Get scroll offset when at bottom |
+|| `getItemHeight(index)` | Get measured height of a specific item |
+|| `getItemPosition(index)` | Get position and height of a specific item |
 
 ### Keyboard Scrolling (when input is unfocused)
 
-| Key | Action |
+|| Key | Action |
 |-----|--------|
-| Up arrow | `scrollBy(-1)` |
-| Down arrow | `scrollBy(1)` |
-| PageUp | `scrollBy(-viewportHeight)` |
-| PageDown | `scrollBy(viewportHeight)` |
+|| Up arrow | `scrollBy(-1)` |
+|| Down arrow | `scrollBy(1)` |
+|| PageUp | `scrollBy(-viewportHeight)` |
+|| PageDown | `scrollBy(viewportHeight)` |
+
+### Controlled Mode
+
+For advanced use cases (e.g., synchronizing multiple views), `ink-scroll-view` provides
+`ControlledScrollView` which accepts a `scrollOffset` prop instead of managing state internally.
 
 ---
 
 ## 4. The Cursor
 
-The cursor is managed by ink's `useCursor` hook, which handles visibility and blinking
-automatically. The TUI passes the configured cursor character and color to the hook.
+The cursor is managed by ink's `useCursor` hook, which provides `setCursorPosition` for
+controlling cursor visibility and position. Passing `undefined` hides the cursor; passing a
+`{x, y}` object shows it at the specified position.
 
 ### Configuration
 
 ```jsx
 import { useCursor } from 'ink';
 
-const [cursorVisible, setCursorVisible] = useState(true);
-const { Cursor } = useCursor(cursorVisible, { cursorChar: config.tui.cursorChar });
+const { setCursorPosition } = useCursor();
 
-// Toggle visibility based on input focus
-// Input focused → visible
-// Input unfocused → hidden
+// Hide cursor when input is unfocused
+setCursorPosition(undefined);
+
+// Show cursor at input position when focused
+setCursorPosition({ x: stringWidth(prompt + text), y: 1 });
 ```
 
 ### Behavior
 
-- **Input focused** — cursor visible at input position
-- **Input unfocused** — cursor hidden
-- **Blinking** — handled by `useCursor` internally
-- **Character/color** — sourced from `config.tui.cursorChar` and `config.tui.cursorColor`
+- **Input focused** — cursor shown at input position via `setCursorPosition({x, y})`
+- **Input unfocused** — cursor hidden via `setCursorPosition(undefined)`
+- **Blinking** — handled by the terminal emulator, not by Ink
+- **Character** — sourced from `config.tui.cursorChar` (set via terminal escape sequences)
 
-No custom cursor state machine needed. `useCursor` handles the rendering; the TUI only manages
-visibility toggling based on input focus state.
+The TUI manages cursor visibility toggling based on input focus state. `useCursor` provides the
+positioning primitive; the TUI decides when to show or hide.
+
 ---
 
 ## 5. Message Display
@@ -451,11 +464,10 @@ the TUI.
 
 ### Ink-Specific Patterns
 
-1. **`useStdout`** — For terminal dimensions and resize events
+1. **`useStdout`** — For terminal resize events (call `remeasure()` on the scroll ref)
 2. **`useInput`** — For keyboard handling (single handler in App component)
-3. **`useWindowSize`** — For terminal height (rows)
-4. **`ScrollView` (ink-scroll-view)** — For scrollable conversation area
-5. **`React.memo`** — For MessageBubble optimization
+3. **`ScrollView` (ink-scroll-view)** — For scrollable conversation area
+4. **`React.memo`** — For MessageBubble optimization
 
 ### Key Patterns
 
