@@ -64,9 +64,10 @@ function tryCreateDirectory(dir) {
 const primaryDir = getLogDirectory();
 let logDir = primaryDir;
 
-// Attempt primary directory; fall back to tmpdir() if unwritable (2.6)
+// Attempt primary directory; fall back to ./memory/logs/ if unwritable (2.6)
+// Using project-relative path instead of /tmp to avoid files being wiped
 if (!tryCreateDirectory(primaryDir)) {
-	const fallbackDir = join(os.tmpdir(), "madz", "logs");
+	const fallbackDir = join(process.cwd(), "memory", "logs");
 	if (tryCreateDirectory(fallbackDir)) {
 		logDir = fallbackDir;
 	}

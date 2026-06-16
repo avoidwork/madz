@@ -1,8 +1,7 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { spawn } from "node:child_process";
-import { mkdtemp, unlink, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdtemp, unlink, rm, writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 
 const LANGUAGE_MAP = {
@@ -108,7 +107,10 @@ export async function executeCodeImpl(input, options) {
 
 	const useImportHook = language === "python3" && safetyConfig.pythonImportHook !== false;
 
-	const tmpRoot = await mkdtemp(join(tmpdir(), "madz-code-"));
+	// Use project-relative tmp/ directory instead of /tmp to avoid files being wiped
+	const tmpDir = join(process.cwd(), "tmp");
+	await mkdir(tmpDir, { recursive: true });
+	const tmpRoot = await mkdtemp(join(tmpDir, "madz-code-"));
 	const filePath = join(tmpRoot, `code${langConfig.ext}`);
 
 	let writeCode = code;
