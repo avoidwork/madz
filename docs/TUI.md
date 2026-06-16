@@ -720,6 +720,272 @@ mental model. It's the implementation scaffolding around it that should be reorg
 
 ---
 
+## 17. Implementation Spec
+
+This section provides the concrete types, interfaces, and patterns needed to implement the TUI.
+
+### 17.1 State Shape
+
+```typescript
+interface TUIState {
+  // Messages
+  messages: Message[];
+  chatHistory: string[];
+  historyIndex: number;
+
+  // Input
+  inputText: string;
+  inputFocused: boolean;
+
+  // Status
+  statusMessage: string;
+  contextSize: number;
+  isCompacting: boolean;
+
+  // Streaming
+  isStreaming: boolean;
+  isAutoContinuing: boolean;
+  autoContinueCount: number;
+
+  // Scroll
+  scrollOffset: number;
+  viewportHeight: number;
+
+  // Config overrides (runtime toggles)
+  toggles: {
+    autoScroll: boolean;
+    timestamps: boolean;
+    commandEcho: boolean;
+    cursorBreathe: boolean;
+    debugOutput: boolean;
+  };
+}
+
+const initialState: TUIState = {
+  messages: [],
+  chatHistory: [],
+  historyIndex: -1,
+  inputText: '',
+  inputFocused: true,
+  statusMessage: 'Ready',
+  contextSize: 0,
+  isCompacting: false,
+  isStreaming: false,
+  isAutoContinuing: false,
+  autoContinueCount: 0,
+  scrollOffset: 0,
+  viewportHeight: 0,
+  toggles: {
+    autoScroll: true,
+    timestamps: true,
+    commandEcho: true,
+    cursorBreathe: true,
+    debugOutput: false,
+  },
+};
+```
+
+### 17.2 Action Types
+
+```typescript
+type TUIAction =
+  // Messages
+  | { type: 'ADD_MESSAGE'; message: Message }
+  | { type: 'UPDATE_MESSAGE'; id: string; updates: Partial<Message> }
+  | { type: 'CLEAR_MESSAGES' }
+  | { type: 'ADD_HISTORY'; text: string }
+  | { type: 'SET_HISTORY_INDEX'; index: number }
+
+  // Input
+  | { type: 'SET_INPUT_TEXT'; text: string }
+  | { type: 'SUBMIT_INPUT' }
+  | { type: 'SET_INPUT_FOCUSED'; focused: boolean }
+
+  // Status
+  | { type: 'SET_STATUS'; message: string }
+  | { type: 'SET_CONTEXT_SIZE'; size: number }
+  | { type: 'SET_COMPACTING'; compacting: boolean }
+
+  // Streaming
+  | { type: 'SET_STREAMING'; streaming: boolean }
+  | { type: 'SET_AUTO_CONTINUING'; autoContinuing: boolean }
+  | { type: 'INCREMENT_AUTO_CONTINUE' }
+  | { type: 'RESET_AUTO_CONTINUE' }
+
+  // Scroll
+  | { type: 'SET_SCROLL_OFFSET'; offset: number }
+  | { type: 'SET_VIEWPORT_HEIGHT'; height: number }
+
+  // Config
+  | { type: 'TOGGLE_CONFIG'; key: keyof TUIState['toggles'] }
+  | { type: 'SET_CONFIG'; updates: Partial<TUIState['toggles']> };
+```
+
+### 17.3 Command Registry Schema
+
+```typescript
+interface Command {
+  name: string;
+  description: string;
+  usage: string;
+  validate: (args: string[]) => boolean | string; // returns error message on failure
+  execute: (
+    args: string[],
+    state: TUIState,
+    dispatch: React.Dispatch<TUIAction>,
+    helpers: CommandHelpers
+  ) => Promise<void> | void;
+}
+
+interface CommandHelpers {
+  dispatchProvider: (message: string, provider: string, streamingCallback: StreamingCallback, signal: AbortSignal) => Promise<void>;
+  sessionState: SessionStateManager;
+  config: Config;
+  scrollRef: React.RefObject<ScrollViewRef>;
+}
+
+// Registration
+const commands: Record<string, Command> = {
+  quit: {
+    name: 'quit',
+    description: 'Disconnect and exit',
+    usage: '/quit',
+    validate: () => true,
+    execute: async () => { /* ... */ },
+  },
+  // ... more commands
+};
+```
+
+### 17.4 Streaming Callback Transformation
+
+```typescript
+type StreamEventType =
+  | 'text'
+  | 'reasoning'
+  | 'tool_start'
+  | 'tool_end'
+  | 'tool_error'
+  | 'compaction_start'
+  | 'compaction_end'
+  | 'todo_status';
+
+interface StreamingCallback {
+  (event: StreamEvent): void;
+}
+
+interface StreamEvent {
+  type: StreamEventType;
+  content?: string;      // for 'text', 'reasoning'
+  toolName?: string;     // for 'tool_start', 'tool_end', 'tool_error'
+  toolArgs?: string;     // for 'tool_end'
+  error?: string;        // for 'tool_error'
+  status?: string;       // for 'todo_status'
+}
+
+// Transformation logic (inside useStreaming hook)
+function handleStreamEvent(event: StreamEvent, state: TUIState): Partial<TUIState> {
+  switch (event.type) {
+    case 'text':
+      return {
+        isStreaming: true,
+        messages: updateLastMessage(state.messages, {
+          content: event.content,
+          streaming: true,
+        }),
+      };
+    case 'reasoning':
+      return {
+        messages: updateLastMessage(state.messages, {
+          reasoningContent: event.content,
+        }),
+      };
+    case 'tool_start':
+      return {
+        messages: updateLastMessage(state.messages, {
+          activeToolCall: { name: event.toolName! },
+        }),
+      };
+    case 'tool_end':
+      return {
+        messages: updateLastMessage(state.messages, {
+          activeToolCall: undefined,
+          toolCallDisplay: event.content,
+        }),
+      };
+    case 'tool_error':
+      return {
+        messages: updateLastMessage(state.messages, {
+          activeToolCall: undefined,
+          toolCallDisplay: event.error,
+        }),
+      };
+    case 'compaction_start':
+      return { isCompacting: true, statusMessage: 'Compacting context...' };
+    case 'compaction_end':
+      return { isCompacting: false, statusMessage: 'Ready' };
+    case 'todo_status':
+      return {
+        messages: updateLastMessage(state.messages, {
+          toolCallDisplay: event.status,
+        }),
+      };
+  }
+}
+```
+
+### 17.5 File Structure
+
+```
+src/tui/
+├── app.js                    # Root component, providers, reducer
+├── state/
+│   ├── reducer.js            # useReducer implementation, all action handlers
+│   ├── types.js              # TUIState, TUIAction, Message interfaces
+│   └── selectors.js          # Derived state (contextSize, statusMessage, etc.)
+├── hooks/
+│   ├── useStreaming.js       # AbortController, event transformation, auto-continue
+│   ├── useScroll.js          # ScrollView ref, resize handling, keyboard scroll
+│   ├── useInput.js           # Keyboard routing (scroll vs history vs input)
+│   └── useCommand.js         # Command parsing + dispatch
+├── components/
+│   ├── ConversationPanel.js  # ScrollView + MessageBubble[]
+│   ├── InputPanel.js         # Text input with cursor
+│   ├── StatusBar.js          # Status indicator, metrics
+│   ├── MessageBubble.js      # Role-colored, markdown-rendered
+│   └── Banner.js             # ASCII art banner
+├── panels/
+│   └── OnboardingPanel.js    # First-run onboarding flow
+├── utils/
+│   ├── commandParser.js      # Command registry, dispatch table
+│   ├── contextTokens.js      # tiktoken token calculation
+│   ├── markdownText.js       # marked + marked-terminal rendering
+│   └── format.js             # Format specifiers, toggle logic
+└── index.js                  # Entry point, render()
+```
+
+### 17.6 Test Strategy
+
+**Unit tests** (`tests/unit/tui/`):
+- `reducer.test.js` — All action types, edge cases (empty state, concurrent updates)
+- `commandParser.test.js` — Command validation, execution, unknown commands
+- `contextTokens.test.js` — tiktoken calculation, character-count fallback
+- `markdownText.test.js` — Markdown rendering, streaming cursor stripping, cache behavior
+- `useStreaming.test.js` — Event transformation, auto-continue circuit breaker, abort handling
+
+**Integration tests** (`tests/integration/tui/`):
+- `full-flow.test.js` — User input → streaming → message display → command execution
+
+**Mocking**:
+- `dispatchProvider` — Mock with resolved promise, configurable streaming events
+- `tiktoken` — Mock with fixed token counts
+- `marked-terminal` — Mock with plain text output
+- `ink-scroll-view` — Mock ScrollViewRef with no-op methods
+
+**Coverage**: 100% on all new files. Existing files maintain current coverage.
+
+---
+
 ## References
 
 ### Libraries
