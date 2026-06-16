@@ -1,21 +1,28 @@
 # TUI2: Terminal Interface Blueprint
 
-*A design document for the new madz terminal interface. Grounded in the existing implementation (Ink + `ink-scroll-view` + structured logger), inspired by the best patterns of bitchx IRC client. The core functionality stays the same — the new TUI renders it better.*
+*A design document for the new madz terminal interface. Grounded in the existing implementation (Ink
++ `ink-scroll-view` + structured logger), inspired by the best patterns of bitchx IRC client. The
+core functionality stays the same — the new TUI renders it better.*
 
 ---
 
 ## 1. Philosophy
 
-The interface is a terminal. Text flows in from the system, text flows out from the user. No panels, no tabs, no switching. One scrollable output area, one input line.
+The interface is a terminal. Text flows in from the system, text flows out from the user. No panels,
+no tabs, no switching. One scrollable output area, one input line.
 
-The IRC layout is borrowed for its elegance: messages accumulate above, input sits at the bottom, scrolling is natural. But the content is code, output, system responses — not conversation.
+The IRC layout is borrowed for its elegance: messages accumulate above, input sits at the bottom,
+scrolling is natural. But the content is code, output, system responses — not conversation.
 
 ### Core Tenets
 
-1. **Input is primary.** The user lives at the input line. The output area is secondary — read when needed, scroll when needed.
+1. **Input is primary.** The user lives at the input line. The output area is secondary — read when
+needed, scroll when needed.
 2. **Output is a log.** System output, code output, agent responses — all flow into the same stream.
-3. **Silence is the default.** The interface should feel like a quiet terminal — alive with output, not noise.
-4. **Batteries included, not scripts required.** Runtime customizations (toggles, formats, filters) ship built-in. No config file editing needed for common changes.
+3. **Silence is the default.** The interface should feel like a quiet terminal — alive with output,
+not noise.
+4. **Batteries included, not scripts required.** Runtime customizations (toggles, formats, filters)
+ship built-in. No config file editing needed for common changes.
 
 ---
 
@@ -46,7 +53,8 @@ App (src/tui/app.js)
 └── InputPanel                  — Text input with cursor display
 ```
 
-No panels, no tabs, no switching. The interface is a single scrollable output area with one input line.
+No panels, no tabs, no switching. The interface is a single scrollable output area with one input
+line.
 
 ### Key Dependencies
 
@@ -60,7 +68,8 @@ No panels, no tabs, no switching. The interface is a single scrollable output ar
 
 ## 3. Scrolling & Viewport
 
-The conversation area uses `ink-scroll-view`'s `ScrollView` component. This handles all viewport management — no custom virtual scroll logic needed.
+The conversation area uses `ink-scroll-view`'s `ScrollView` component. This handles all viewport
+management — no custom virtual scroll logic needed.
 
 ### How It Works
 
@@ -74,7 +83,8 @@ The conversation area uses `ink-scroll-view`'s `ScrollView` component. This hand
 ### Auto-Scroll Behavior
 
 ```
-1. New message arrives → scrollToBottom() (deferred 0ms to allow ink-scroll-view's useLayoutEffect to complete)
+1. New message arrives → scrollToBottom() (deferred 0ms to allow ink-scroll-view's useLayoutEffect
+to complete)
 2. Streaming content grows → scrollToBottom() (content hash triggers re-evaluation)
 3. User scrolls up → stays where they are (no forced scroll)
 4. Terminal resize → remeasure() called via stdout.on("resize")
@@ -104,7 +114,8 @@ The conversation area uses `ink-scroll-view`'s `ScrollView` component. This hand
 
 ## 4. The Cursor Model
 
-The cursor appears when the user is typing and fades when idle. This is managed by `InputPanel` with a configurable cursor character and color.
+The cursor appears when the user is typing and fades when idle. This is managed by `InputPanel` with
+a configurable cursor character and color.
 
 ### The Breathing Cycle
 
@@ -130,13 +141,15 @@ Hidden   Visible  Fading   Hidden
 {cursorVisible && <Text inverse>{cursorChar}</Text>}
 ```
 
-**Note:** The implementation uses a color transition (white → dark gray) rather than opacity fading. This is more reliable across terminal emulators.
+**Note:** The implementation uses a color transition (white → dark gray) rather than opacity fading.
+This is more reliable across terminal emulators.
 
 ---
 
 ## 5. Message Display
 
-Messages are rendered as role-colored bubbles with markdown support, tool call display, and reasoning content.
+Messages are rendered as role-colored bubbles with markdown support, tool call display, and
+reasoning content.
 
 ### Message Structure
 
@@ -181,17 +194,23 @@ interface Message {
 
 ### Memoization
 
-`MessageBubble` uses `React.memo` with a custom `areEqual` function that compares display-relevant fields (role, content, time, reasoningContent, streaming, toolCallDisplay, activeToolCall, id). This prevents unnecessary re-renders of unchanged messages during streaming.
+`MessageBubble` uses `React.memo` with a custom `areEqual` function that compares display-relevant
+fields (role, content, time, reasoningContent, streaming, toolCallDisplay, activeToolCall, id). This
+prevents unnecessary re-renders of unchanged messages during streaming.
 
 ### Markdown Rendering
 
-Assistant messages are rendered through `marked` + `marked-terminal`, which converts markdown to ANSI terminal text. A module-level parse cache (`Map`) avoids reparsing identical content across renders. The streaming cursor character (`█`) is stripped before parsing to avoid parser errors.
+Assistant messages are rendered through `marked` + `marked-terminal`, which converts markdown to
+ANSI terminal text. A module-level parse cache (`Map`) avoids reparsing identical content across
+renders. The streaming cursor character (`█`) is stripped before parsing to avoid parser errors.
 
 ---
 
 ## 6. Runtime Configuration (Bitchx-Inspired)
 
-Bitchx's `/toggle` command was legendary because it made common customizations instant — no config file editing required. The TUI should ship with sensible defaults and built-in features for runtime control.
+Bitchx's `/toggle` command was legendary because it made common customizations instant — no config
+file editing required. The TUI should ship with sensible defaults and built-in features for runtime
+control.
 
 ### Proposed: Toggle Commands
 
@@ -212,7 +231,8 @@ Usage:
 
 ### Proposed: Format Customization
 
-Bitchx's `/fset` allowed users to customize how every message type rendered. The TUI could adopt a similar pattern:
+Bitchx's `/fset` allowed users to customize how every message type rendered. The TUI could adopt a
+similar pattern:
 
 ```
 /format system "[%T] %BSystem%n: %I%t%n"
@@ -226,9 +246,12 @@ Format specifiers:
 - `%B` — bold, `%n` — null color (reset)
 - `%I` — italic, `%R` — red, `%C` — cyan, `%M` — magenta
 
+> **YAGNI:** These format specifiers are speculative. Implement only if there is a clear, demonstrated need. Do not build a full format customization system without evidence that users will use it.
+
 ### Proposed: Message Filtering
 
-Bitchx had a sophisticated message-level system where you could filter what appeared in each window. The TUI could adopt a similar pattern:
+Bitchx had a sophisticated message-level system where you could filter what appeared in each window.
+The TUI could adopt a similar pattern:
 
 ```
 /level debug              → toggle debug messages on/off
@@ -244,20 +267,27 @@ Available levels:
 | `system` | System notifications |
 | `debug` | Debug/internal messages (hidden by default) |
 
+> **YAGNI:** Message-level filtering adds significant complexity (parsing, persistence, UI indicators). Implement only if there is a clear, demonstrated need.
+
 ### Persistence
 
-All runtime configuration should be saved to `~/.madz/tui-config.json` on exit and loaded on startup:
+All runtime configuration should be saved to `~/.madz/tui-config.json` on exit and loaded on
+startup:
 - Toggles
 - Formats
 - Active filters
 
 No config file editing required for common customizations.
 
+**Security:** File should be created with `0600` permissions. Do not store sensitive data (API keys,
+tokens) in this file.
+
 ---
 
 ## 7. Command Parser
 
-Commands are parsed from input when Enter is pressed. The `CommandParser` class handles a dispatch table of registered commands, with fallback to skill execution.
+Commands are parsed from input when Enter is pressed. The `CommandParser` class handles a dispatch
+table of registered commands, with fallback to skill execution.
 
 ### Registered Commands
 
@@ -283,7 +313,8 @@ Unrecognized `/command` patterns that match a registered skill name are executed
 /skillName [args]
 ```
 
-The skill body (from `SKILL.md`) is loaded and streamed to the agent as a prompt, allowing the agent to interpret and execute the skill instructions.
+The skill body (from `SKILL.md`) is loaded and streamed to the agent as a prompt, allowing the agent
+to interpret and execute the skill instructions.
 
 ### Unknown Commands
 
@@ -313,7 +344,8 @@ The skill body (from `SKILL.md`) is loaded and streamed to the agent as a prompt
 
 ### Command History
 
-The up/down arrows scroll through command history when the user is at the bottom of the output (not scrolling the output itself). This is a terminal convention:
+The up/down arrows scroll through command history when the user is at the bottom of the output (not
+scrolling the output itself). This is a terminal convention:
 
 ```
 1. User presses Enter → command executes, output appears, auto-scroll active
@@ -322,7 +354,8 @@ The up/down arrows scroll through command history when the user is at the bottom
 4. User presses Up while scrolled up in output → scrolls output
 ```
 
-**Note:** History is in-memory (`chatHistory` array). The structured logger (`src/logger.js`) handles persistent logging of all interactions.
+**Note:** History is in-memory (`chatHistory` array). The structured logger (`src/logger.js`)
+handles persistent logging of all interactions.
 
 ### Input Lifecycle
 
@@ -388,7 +421,8 @@ This gives the user a quick glance at which runtime features are active.
 
 ```
 1. Error in dispatchProvider → catch block handles it
-2. System message displayed: "I couldn't connect right now - {error}. Try sending your message again?"
+2. System message displayed: "I couldn't connect right now - {error}. Try sending your message
+again?"
 3. Streaming message is cleared from UI
 4. Session is saved (onSaveSession callback)
 ```
@@ -405,7 +439,9 @@ This gives the user a quick glance at which runtime features are active.
 
 ### Output Retention
 
-The conversation is managed by `sessionState` (not the TUI). The TUI renders whatever messages are in its state array. Memory management (compaction, trimming) is handled by the session layer, not the TUI.
+The conversation is managed by `sessionState` (not the TUI). The TUI renders whatever messages are
+in its state array. Memory management (compaction, trimming) is handled by the session layer, not
+the TUI.
 
 ---
 
@@ -449,27 +485,8 @@ abortControllerRef.current.abort();
 
 ### State Management
 
-The current app uses React's built-in state (`useState`, `useRef`) rather than `useReducer`. This is sufficient for the current scale. The state model is:
-
-```typescript
-// App-level state
-const [messages, setMessages] = useState([]);
-const [statusMessage, setStatusMessage] = useState("Ready");
-const [chatHistory, setChatHistory] = useState([]);
-const [historyIndex, setHistoryIndex] = useState(-1);
-const [inputText, setInputText] = useState("");
-const [inputFocused, setInputFocused] = useState(true);
-const [contextSize, setContextSize] = useState(0);
-const [isCompacting, setIsCompacting] = useState(false);
-
-// Refs for async operations
-const scrollRef = useRef(null);
-const abortControllerRef = useRef(null);
-const isStreamingRef = useRef(false);
-const dispatchPromiseRef = useRef(null);
-const autoContinueCountRef = useRef(0);
-const isAutoContinuingRef = useRef(false);
-```
+The current app uses React's built-in state (`useState`, `useRef`) rather than `useReducer`. This is
+sufficient for the current scale. See Section 16 for proposed consolidation.
 
 ---
 
@@ -498,11 +515,16 @@ User Input (Enter)
 
 ### Streaming Callback
 
-The `streamingCallback` is set up in `handleChat()` / `handleCommand()` and passed to `dispatchProvider`. Each event type triggers a `setMessages()` call that clones the messages array and mutates the last (streaming) message in place.
+The `streamingCallback` is set up in `handleChat()` / `handleCommand()` and passed to
+`dispatchProvider`. Each event type triggers a `setMessages()` call that clones the messages array
+and mutates the last (streaming) message in place.
 
 ### Auto-Continue Circuit Breaker
 
-If the agent returns zero text output, the TUI automatically sends a "Please continue." signal. This repeats up to `config.agent.autoContinueLimit` (default 1000) times before triggering a circuit breaker error. The counter resets as soon as any text output arrives. An `isAutoContinuingRef` flag tracks whether the TUI is in auto-continue mode.
+If the agent returns zero text output, the TUI automatically sends a "Please continue." signal. This
+repeats up to `config.agent.autoContinueLimit` (default 1000) times before triggering a circuit
+breaker error. The counter resets as soon as any text output arrives. An `isAutoContinuingRef` flag
+tracks whether the TUI is in auto-continue mode.
 
 ### Abort / Interrupt
 
@@ -511,18 +533,84 @@ The `Escape` key triggers `handleInterrupt()`, which:
 2. Sets `isStreamingRef.current = false`
 3. Clears the streaming cursor from the last message
 4. Awaits the `dispatchPromise` (which throws `AbortError` and is caught by the try/catch)
-5. If interrupted during chat: pops the user message from sessionState, clears the partial assistant message, deletes the checkpointer thread
+5. If interrupted during chat: pops the user message from sessionState, clears the partial assistant
+message, deletes the checkpointer thread
 6. If interrupted during skill: pops the user message, deletes the checkpointer thread
 
 ### Todo Queue Integration
 
-The todo tool queue emits status events (`todo_status`) that flow through the LangGraph stream. The TUI wires into this via `setTodoStreamingCallback()`, which updates `message.toolCallDisplay` with todo status lines alongside tool call results.
+The todo tool queue emits status events (`todo_status`) that flow through the LangGraph stream. The
+TUI wires into this via `setTodoStreamingCallback()`, which updates `message.toolCallDisplay` with
+todo status lines alongside tool call results.
+
+---
+
+## 13. Session & Persistence
+
+### Session Lifecycle
+
+```
+1. index.js creates session via createSession()
+2. SessionStateManager wraps the session state
+3. App receives sessionState as a prop
+4. On user message: sessionState.addExchange({ role: "user", content })
+5. On agent response: sessionState.addExchange({ role: "assistant", content })
+6. onSaveSession callback persists to memory/sessions/
+```
+
+### Context Token Calculation
+
+The TUI calculates conversation tokens using `tiktoken` (with a character-count fallback). Both the
+conversation and the system prompt are counted. The result is displayed in the status bar as a
+human-readable size (e.g., "1.2k").
+
+### GC Integration
+
+When GC is enabled (`config.memory.gc.enabled !== false`), a `gcManager` is initialized in
+`index.js`. The TUI receives `gcManager.onActivity` as a prop, which is called after each message
+exchange to trigger idle GC. The `/gc` command allows manual triggering and status inspection.
+
+---
+
+## 14. Onboarding & Banner
+
+### Banner
+
+A BBS-style ASCII art banner displays on first launch. It shows command help grouped by category
+(Chat, Command). Dismisses on any key press (Escape exits the app).
+
+### Onboarding Panel
+
+When no user profile exists, the onboarding flow activates:
+1. `OnboardingPanel` renders with prompts from the onboarding instance
+2. User responses are processed via `onboarding.processResponse()`
+3. Progress is shown as `(current/total)`
+4. On completion, the banner displays and normal conversation begins
+
+---
+
+## 15. Summary
+
+This blueprint describes the madz terminal interface, grounded in the existing implementation. The
+design is defined by four principles:
+
+1. **Input is primary.** The user lives at the input line. Output is secondary.
+2. **Silence is the default.** The interface should feel like a quiet terminal — alive with output,
+not noise.
+3. **Batteries included.** Runtime customizations (toggles, formats, filters) should ship built-in —
+no config file editing required.
+4. **The terminal is the window.** `ink-scroll-view` handles scrolling, Ink handles rendering, the
+structured logger handles persistence.
+
+The result is an interface that feels like a quiet terminal — present, alive, and ready for work.
+Not a dashboard. Not a tool. A workspace.
 
 ---
 
 ## 16. Architectural Debt & Proposed Improvements
 
-The current implementation works, but several structural decisions compound as the TUI grows. This section documents known debt and proposed improvements for future refactoring.
+The current implementation works, but several structural decisions compound as the TUI grows. This
+section documents known debt and proposed improvements for future refactoring.
 
 ### 16.1 State Management — `useReducer` over `useState`
 
@@ -539,11 +627,14 @@ const [contextSize, setContextSize] = useState(0);
 const [isCompacting, setIsCompacting] = useState(false);
 ```
 
-When a message arrives, you're updating `messages`, `statusMessage`, `contextSize`, and `chatHistory` — all separate calls, all separate renders. Consolidate into a single `useReducer` with a `TUIState` interface. One state tree, one render cycle per meaningful change.
+When a message arrives, you're updating `messages`, `statusMessage`, `contextSize`, and
+`chatHistory` — all separate calls, all separate renders. Consolidate into a single `useReducer`
+with a `TUIState` interface. One state tree, one render cycle per meaningful change.
 
 ### 16.2 Streaming Logic — Extract to Its Own Hook
 
-The streaming callback is set up inline in `handleChat()` / `handleCommand()` and passed through multiple layers. Extract into a `useStreaming()` hook that:
+The streaming callback is set up inline in `handleChat()` / `handleCommand()` and passed through
+multiple layers. Extract into a `useStreaming()` hook that:
 
 - Manages the `AbortController` lifecycle
 - Translates stream events into state transitions
@@ -589,11 +680,16 @@ Not dogma — predictability. When you're looking for streaming logic, you know 
 
 ### 16.4 Remove the Panel System Entirely
 
-The `panels.js`, `skillsPanel.js`, `memoryPanel.js`, `settingsPanel.js` files contradict the blueprint's philosophy ("No panels, no tabs, no switching"). If Jason needs to inspect skills or memory, those are commands (`/skills`, `/memory`) that produce output in the conversation stream — not separate UI surfaces. The TUI should be one thing: a terminal.
+The `panels.js`, `skillsPanel.js`, `memoryPanel.js`, `settingsPanel.js` files contradict the
+blueprint's philosophy ("No panels, no tabs, no switching"). If Jason needs to inspect skills or
+memory, those are commands (`/skills`, `/memory`) that produce output in the conversation stream —
+not separate UI surfaces. The TUI should be one thing: a terminal.
 
 ### 16.5 Command Parser — Event-Driven, Not Switch-Driven
 
-The current `commandParser.js` is a dispatch table. Make it more extensible — a command registry where commands are registered as objects with `validate`, `execute`, and `help` properties. Adding a new command is a registration, not a switch case edit.
+The current `commandParser.js` is a dispatch table. Make it more extensible — a command registry
+where commands are registered as objects with `validate`, `execute`, and `help` properties. Adding a
+new command is a registration, not a switch case edit.
 
 ### 16.6 What to Keep
 
@@ -605,59 +701,8 @@ The current `commandParser.js` is a dispatch table. Make it more extensible — 
 
 ### 16.7 What to Keep the Same
 
-The *philosophy* — input is primary, output is a log, silence is the default. That's the right mental model. It's the implementation scaffolding around it that should be reorganized.
-
----
-
-## 13. Session & Persistence
-
-### Session Lifecycle
-
-```
-1. index.js creates session via createSession()
-2. SessionStateManager wraps the session state
-3. App receives sessionState as a prop
-4. On user message: sessionState.addExchange({ role: "user", content })
-5. On agent response: sessionState.addExchange({ role: "assistant", content })
-6. onSaveSession callback persists to memory/sessions/
-```
-
-### Context Token Calculation
-
-The TUI calculates conversation tokens using `tiktoken` (with a character-count fallback). Both the conversation and the system prompt are counted. The result is displayed in the status bar as a human-readable size (e.g., "1.2k").
-
-### GC Integration
-
-When GC is enabled (`config.memory.gc.enabled !== false`), a `gcManager` is initialized in `index.js`. The TUI receives `gcManager.onActivity` as a prop, which is called after each message exchange to trigger idle GC. The `/gc` command allows manual triggering and status inspection.
-
----
-
-## 14. Onboarding & Banner
-
-### Banner
-
-A BBS-style ASCII art banner displays on first launch. It shows command help grouped by category (Chat, Command). Dismisses on any key press (Escape exits the app).
-
-### Onboarding Panel
-
-When no user profile exists, the onboarding flow activates:
-1. `OnboardingPanel` renders with prompts from the onboarding instance
-2. User responses are processed via `onboarding.processResponse()`
-3. Progress is shown as `(current/total)`
-4. On completion, the banner displays and normal conversation begins
-
----
-
-## 15. Summary
-
-This blueprint describes the madz terminal interface, grounded in the existing implementation. The design is defined by four principles:
-
-1. **Input is primary.** The user lives at the input line. Output is secondary.
-2. **Silence is the default.** The interface should feel like a quiet terminal — alive with output, not noise.
-3. **Batteries included.** Runtime customizations (toggles, formats, filters) should ship built-in — no config file editing required.
-4. **The terminal is the window.** `ink-scroll-view` handles scrolling, Ink handles rendering, the structured logger handles persistence.
-
-The result is an interface that feels like a quiet terminal — present, alive, and ready for work. Not a dashboard. Not a tool. A workspace.
+The *philosophy* — input is primary, output is a log, silence is the default. That's the right
+mental model. It's the implementation scaffolding around it that should be reorganized.
 
 ---
 
