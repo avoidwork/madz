@@ -826,7 +826,7 @@ describe("Blink - component rendering", () => {
 	});
 
 	it("renders with custom cursor character", () => {
-		const result = InputPanel({ text: "world", char: "_" });
+		const result = InputPanel({ inputText: "world", cursorChar: "_" });
 		assert.ok(React.isValidElement(result));
 		const child = Array.isArray(result.props.children)
 			? result.props.children[0]
@@ -835,7 +835,7 @@ describe("Blink - component rendering", () => {
 	});
 
 	it("renders empty text with cursor", () => {
-		const result = InputPanel({ text: "", char: "█" });
+		const result = InputPanel({ inputText: "", cursorChar: "█" });
 		assert.ok(React.isValidElement(result));
 		const child = Array.isArray(result.props.children)
 			? result.props.children[0]
