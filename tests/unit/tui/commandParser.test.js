@@ -184,7 +184,7 @@ describe("CommandRegistry", () => {
 	it("should handle skill fallback when command matches skill name", () => {
 		const ctx = {
 			_skillList: ["git-tag", "commit-push"],
-			_executeSkill: (name, args) => ({ action: "skill", subAction: "load", name, skillBody: "body" }),
+			_executeSkill: (name, _args) => ({ action: "skill", subAction: "load", name, skillBody: "body" }),
 		};
 		const result = registry.parse("/git-tag", ctx);
 		assert.strictEqual(result.action, "skill");

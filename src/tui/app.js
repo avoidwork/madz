@@ -12,7 +12,7 @@ import { InputPanel } from "./components/InputPanel.js";
 import { Banner } from "./components/Banner.js";
 import { OnboardingPanel } from "./panels/OnboardingPanel.js";
 import { tuiReducer, initialState } from "./state/reducer.js";
-import { getStatusMessage, getToggleIndicators, hasStreamingMessage } from "./state/selectors.js";
+import { getStatusMessage } from "./state/selectors.js";
 import { useScroll } from "./hooks/useScroll.js";
 import { useInputRouting } from "./hooks/useInput.js";
 import { useStreaming } from "./hooks/useStreaming.js";
@@ -20,7 +20,6 @@ import { createSession } from "../session/factory.js";
 import { setConfigValue } from "../config/loader.js";
 import { isAvailable, getGcCalls } from "../memory/gc.js";
 import { loadSystemPrompt } from "../memory/prompts.js";
-import { setTodoStreamingCallback } from "../tools/todo_queue.js";
 import { calculateConversationTokens } from "./utils/contextTokens.js";
 import { handleToggleCommand } from "./utils/format.js";
 

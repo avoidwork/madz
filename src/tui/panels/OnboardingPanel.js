@@ -19,7 +19,7 @@ const PROGRESS_PREFIX = (current, total) => {
  * @param {Function} props.onComplete - Called when onboarding completes
  * @param {Function} props.onExit - Called when user exits onboarding
  */
-export function OnboardingPanel({ onboarding, responseId, onComplete, onExit }) {
+export function OnboardingPanel({ onboarding, responseId, onComplete, _onExit }) {
 	const [messages, setMessages] = useState([]);
 	const [phase, setPhase] = useState(null);
 

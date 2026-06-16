@@ -1,7 +1,7 @@
 /**
  * Tests for useStreaming hook — event transformation, auto-continue, abort handling.
  */
-import { describe, it, mock } from "node:test";
+import { describe, it } from "node:test";
 import assert from "node:assert";
 
 describe("useStreaming", () => {

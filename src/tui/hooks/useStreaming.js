@@ -4,7 +4,7 @@
  * and auto-continue circuit breaker.
  */
 
-import { useState, useRef, useCallback } from 'react';
+import { useRef, useCallback } from 'react';
 import { setTodoStreamingCallback } from '../tools/todo_queue.js';
 
 /**

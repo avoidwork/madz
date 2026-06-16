@@ -3,8 +3,6 @@
  * Replaces eight+ independent useState calls with a single reducer.
  */
 
-import { initialState } from './types.js';
-
 /**
  * TUI reducer function.
  * @param {Object} state - Current TUIState

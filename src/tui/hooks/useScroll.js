@@ -9,7 +9,7 @@ import { useRef, useEffect, useCallback } from 'react';
  * @param {Function} dispatch - React dispatch function
  * @returns {Object} Scroll hook return value
  */
-export function useScroll(dispatch) {
+export function useScroll(_dispatch) {
 	const scrollRef = useRef(null);
 
 	/**

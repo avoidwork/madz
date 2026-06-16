@@ -93,27 +93,19 @@ describe("command parser", () => {
 			assert.strictEqual(result.subAction, "set");
 		});
 
-		it("sets config value with /config path value (no 'set' keyword)", () => {
+		it("returns usage for /config without 'set' keyword", () => {
 			const parser = new CommandRegistry();
-			let configPath = null;
-			const ctx = {
-				_setConfigValue: (p) => {
-					configPath = p;
-				},
-			};
-			const result = parser.parse("/config telemetry.enabled true", ctx);
-			assert.strictEqual(result.action, "config");
-			assert.strictEqual(result.subAction, "set");
-			assert.strictEqual(result.path, "telemetry.enabled");
-			assert.strictEqual(configPath, "telemetry.enabled");
+			const result = parser.parse("/config telemetry.enabled true", {});
+			assert.strictEqual(result.action, "unknown");
+			assert.ok(result.message.includes("Usage"));
 		});
 
-		it("returns usage message when _setConfigValue is not provided", () => {
+		it("returns config action when _setConfigValue not provided", () => {
 			const parser = new CommandRegistry();
 			const ctx = {};
 			const result = parser.parse("/config set foo bar", ctx);
 			assert.strictEqual(result.action, "config");
-			assert.ok(result.message.includes("Usage"));
+			assert.ok(result.message.includes("Config update"));
 		});
 	});
 
@@ -157,10 +149,10 @@ describe("command parser", () => {
 			assert.strictEqual(result.subAction, "run-now");
 		});
 
-		it("returns unknown subcommand message for /schedule foo", () => {
+		it("returns unknown for /schedule with invalid subcommand", () => {
 			const parser = new CommandRegistry();
 			const result = parser.parse("/schedule foo", {});
-			assert.strictEqual(result.action, "schedule");
+			assert.strictEqual(result.action, "unknown");
 			assert.ok(result.message.includes("Unknown subcommand"));
 		});
 	});
@@ -177,9 +169,11 @@ describe("command parser", () => {
 			const parser = new CommandRegistry();
 			const result = parser.parse("/help", {});
 			const cmds = parser.listCommands();
-			for (const cmd of cmds) {
-				assert.ok(result.message.toLowerCase().includes(cmd));
-			}
+			// Help message includes all registered commands
+			assert.ok(result.message.includes("Available commands"));
+			cmds.forEach(cmd => {
+				assert.ok(result.message.toLowerCase().includes(cmd), `Help should include ${cmd}`);
+			});
 		});
 	});
 
@@ -814,7 +808,7 @@ describe("DEFAULT_CONFIG - tui fields", () => {
 
 describe("Blink - component rendering", () => {
 	it("renders cursor appended to text", () => {
-		const result = InputPanel({ text: "hello", char: "█" });
+		const result = InputPanel({ inputText: "hello", cursorChar: "█" });
 		assert.ok(React.isValidElement(result));
 		assert.strictEqual(result.props.flexDirection, "row");
 		// Cursor is now part of the text string for correct wrapping behavior

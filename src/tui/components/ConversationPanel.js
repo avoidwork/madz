@@ -1,11 +1,11 @@
 /**
  * ConversationPanel — ScrollView-based message display.
  */
-import React, { useRef, useEffect, useMemo } from "react";
+import React, { useRef, useEffect } from "react";
 import { Box, Text, useStdout } from "ink";
 import { ScrollView } from "ink-scroll-view";
-import { getRoleLabel } from "../messages.js";
-import { MarkdownText } from "../markdownText.js";
+import { getRoleLabel } from "../components/messages.js";
+import { MarkdownText } from "../utils/markdownText.js";
 
 const timeFormatter = new Intl.DateTimeFormat(undefined, {
 	hour: "numeric",

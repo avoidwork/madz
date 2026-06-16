@@ -31,7 +31,7 @@ export class CommandRegistry {
 			description: 'Disconnect and exit',
 			usage: '/quit',
 			validate: () => true,
-			execute: async () => ({ action: 'quit', value: true, message: 'Quitting.' }),
+			execute: () => ({ action: 'quit', value: true, message: 'Quitting.' }),
 		});
 
 		// /clear
@@ -40,7 +40,7 @@ export class CommandRegistry {
 			description: 'Clear conversation',
 			usage: '/clear',
 			validate: () => true,
-			execute: async () => ({ action: 'clear', message: 'Conversation cleared.' }),
+			execute: () => ({ action: 'clear', message: 'Conversation cleared.' }),
 		});
 
 		// /new
@@ -49,7 +49,7 @@ export class CommandRegistry {
 			description: 'Start a new session',
 			usage: '/new',
 			validate: () => true,
-			execute: async () => ({ action: 'new', message: 'New session started.' }),
+			execute: () => ({ action: 'new', message: 'New session started.' }),
 		});
 
 		// /help
@@ -58,7 +58,7 @@ export class CommandRegistry {
 			description: 'Show available commands',
 			usage: '/help',
 			validate: () => true,
-			execute: async (_args, ctx) => {
+			execute: (_args, ctx) => {
 				const cmds = Array.from(this.#commands.keys()).filter((k) => !k.startsWith('_'));
 				let message = `Available commands: /${cmds.join(', /')}`;
 				if (ctx?._skillList && ctx._skillList.length > 0) {
@@ -79,7 +79,7 @@ export class CommandRegistry {
 				}
 				return true;
 			},
-			execute: async (args, ctx) => {
+			execute: (args, ctx) => {
 				const dotPath = args[1]?.split(/[-:]/).join('.');
 				const valueStr = args[2] || undefined;
 				if (ctx?._setConfigValue) {
@@ -96,12 +96,12 @@ export class CommandRegistry {
 			description: 'Switch AI provider',
 			usage: '/provider set <name>',
 			validate: (args) => {
-				if (args[0] !== 'set' || !args[1]) {
+				if (args[0] && args[0] !== 'set') {
 					return 'Usage: /provider set <name>';
 				}
 				return true;
 			},
-			execute: async (args, ctx) => {
+			execute: (args, ctx) => {
 				if (args[0] === 'set' && args[1]) {
 					ctx?._sessionState?.setProvider(args[1]);
 					return { action: 'provider', subAction: 'set', value: args[1] };
@@ -126,7 +126,7 @@ export class CommandRegistry {
 				}
 				return true;
 			},
-			execute: async (args, ctx) => {
+			execute: (args, ctx) => {
 				const sub = args[0];
 				if (!sub) {
 					return { action: 'schedule', list: ctx?._scheduleList || [] };
@@ -160,7 +160,7 @@ export class CommandRegistry {
 				}
 				return true;
 			},
-			execute: async (args, ctx) => {
+			execute: (args, ctx) => {
 				if (args[0] === 'status') {
 					const gcInfo = ctx?._gcStatus?.();
 					if (gcInfo) {
@@ -196,7 +196,7 @@ export class CommandRegistry {
 				}
 				return true;
 			},
-			execute: async (args, ctx) => {
+			execute: (args, ctx) => {
 				const currentToggles = ctx?._toggles || {};
 				const result = ctx?._handleToggle?.(args, currentToggles);
 				if (result?.toggles) {
@@ -212,7 +212,7 @@ export class CommandRegistry {
 			description: 'List available skills',
 			usage: '/skills',
 			validate: () => true,
-			execute: async (_args, ctx) => {
+			execute: (_args) => {
 				const skills = ctx?._skillList || [];
 				if (skills.length === 0) {
 					return { action: 'skills', message: 'No skills registered.' };
@@ -227,7 +227,7 @@ export class CommandRegistry {
 			description: 'Show memory entries',
 			usage: '/memory',
 			validate: () => true,
-			execute: async (_args, ctx) => {
+			execute: (_args) => {
 				// Memory display would be handled by the parent component
 				return { action: 'memory', message: 'Memory command — use /memory open for details' };
 			},
@@ -239,7 +239,7 @@ export class CommandRegistry {
 			description: 'Internal — skill execution fallback',
 			usage: '',
 			validate: () => true,
-			execute: async () => ({ action: 'skill', subAction: 'error', message: 'Skill not found' }),
+			execute: () => ({ action: 'skill', subAction: 'error', message: 'Skill not found' }),
 		});
 	}
 
