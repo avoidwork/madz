@@ -185,6 +185,54 @@ export class CommandRegistry {
 			},
 		});
 
+		// /toggle
+		this.#register({
+			name: 'toggle',
+			description: 'Toggle runtime settings',
+			usage: '/toggle|toggle <key>',
+			validate: (args) => {
+				if (args[0] && !['autoScroll', 'timestamps', 'commandEcho', 'cursorBreathe', 'debugOutput'].includes(args[0])) {
+					return `Unknown toggle: ${args[0]}. Available: autoScroll, timestamps, commandEcho, cursorBreathe, debugOutput`;
+				}
+				return true;
+			},
+			execute: async (args, ctx) => {
+				const currentToggles = ctx?._toggles || {};
+				const result = ctx?._handleToggle?.(args, currentToggles);
+				if (result?.toggles) {
+					ctx._toggles = result.toggles;
+				}
+				return result || { action: 'toggle', message: 'Toggle not available' };
+			},
+		});
+
+		// /skills
+		this.#register({
+			name: 'skills',
+			description: 'List available skills',
+			usage: '/skills',
+			validate: () => true,
+			execute: async (_args, ctx) => {
+				const skills = ctx?._skillList || [];
+				if (skills.length === 0) {
+					return { action: 'skills', message: 'No skills registered.' };
+				}
+				return { action: 'skills', message: `Registered skills: ${skills.join(', ')}` };
+			},
+		});
+
+		// /memory
+		this.#register({
+			name: 'memory',
+			description: 'Show memory entries',
+			usage: '/memory',
+			validate: () => true,
+			execute: async (_args, ctx) => {
+				// Memory display would be handled by the parent component
+				return { action: 'memory', message: 'Memory command — use /memory open for details' };
+			},
+		});
+
 		// Skill fallback (internal)
 		this.#register({
 			name: '_skillFallback',
