@@ -186,8 +186,8 @@ interface Message {
 ### Message Bubble Rendering
 
 ```
-┌─────────────────────────────────────────┐
-│ [14:23] Mads: Here's the code:          │
+┌───────────────────────────────────────────┐
+│ [14:23] Mads: Here's the code:            │
 │                                           │
 │ ```js                                     │
 │ const x = 42;                             │
@@ -197,7 +197,7 @@ interface Message {
 │ - Tool: patch (src/tui/app.js)            │
 │                                           │
 │ (thinking) Analyzing the request...       │
-└─────────────────────────────────────────┘
+└───────────────────────────────────────────┘
 ```
 
 ### Memoization
