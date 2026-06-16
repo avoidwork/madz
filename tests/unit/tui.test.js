@@ -842,17 +842,34 @@ describe("DEFAULT_CONFIG - tui fields", () => {
 });
 
 describe("Blink - component rendering", () => {
-	it("renders static cursor with even _testFrame", () => {
-		const result = Blink({ text: "hello", char: "█", _testFrame: 0 });
+	it("renders cursor appended to text", () => {
+		const result = Blink({ text: "hello", char: "█" });
 		assert.ok(React.isValidElement(result));
 		assert.strictEqual(result.props.flexDirection, "row");
-		assert.strictEqual(result.props.children[1].props.children, "█");
+		// Cursor is now part of the text string for correct wrapping behavior
+		// With a single child, props.children is the element itself (not an array)
+		const child = Array.isArray(result.props.children)
+			? result.props.children[0]
+			: result.props.children;
+		assert.strictEqual(child.props.children, "hello█");
 	});
 
-	it("renders static cursor (no zero-width space toggling)", () => {
-		const result = Blink({ text: "hello", char: "█", _testFrame: 1 });
+	it("renders with custom cursor character", () => {
+		const result = Blink({ text: "world", char: "_" });
 		assert.ok(React.isValidElement(result));
-		assert.strictEqual(result.props.children[1].props.children, "█");
+		const child = Array.isArray(result.props.children)
+			? result.props.children[0]
+			: result.props.children;
+		assert.strictEqual(child.props.children, "world_");
+	});
+
+	it("renders empty text with cursor", () => {
+		const result = Blink({ text: "", char: "█" });
+		assert.ok(React.isValidElement(result));
+		const child = Array.isArray(result.props.children)
+			? result.props.children[0]
+			: result.props.children;
+		assert.strictEqual(child.props.children, "█");
 	});
 });
 

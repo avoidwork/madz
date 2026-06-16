@@ -2,7 +2,9 @@ import React from "react";
 import { Box, Text } from "ink";
 
 /**
- * Input cursor component. Renders a static cursor to avoid periodic re-renders.
+ * Input cursor component. Renders text with an inline cursor character
+ * so that wrapping behaves correctly — the cursor moves with the text
+ * instead of staying pinned to the end of line 1.
  * @param {Object} props
  * @param {string} props.text - Input text to render
  * @param {string} props.char - Cursor character
@@ -10,14 +12,14 @@ import { Box, Text } from "ink";
  * @returns {React.ReactElement}
  */
 export function Blink({ text = "", char = "\u2588", cursorColor }) {
+	const cursorStr = text + char;
 	return React.createElement(
 		Box,
 		{ flexDirection: "row" },
-		React.createElement(Text, { key: "text", flexGrow: 1, color: "white" }, text || ""),
 		React.createElement(
 			Text,
-			{ key: "cursor", bold: true, color: cursorColor || "cyan" },
-			char || "\u2588",
+			{ key: "cursor", color: cursorColor || "white" },
+			cursorStr,
 		),
 	);
 }
