@@ -210,17 +210,32 @@ renders. The streaming cursor character (`█`) is stripped before parsing to av
 
 Bitchx's `/toggle` command was legendary because it made common customizations instant — no config
 file editing required. The TUI should ship with sensible defaults and built-in features for runtime
-control.
+control. All TUI configuration lives in the `tui` section of `config.yaml`.
+
+### TUI Configuration (config.yaml)
+
+```yaml
+tui:
+  name: madz
+  cursorChar: "█"
+  autoScroll: true
+  timestamps: true
+  commandEcho: true
+  cursorBreathe: true
+  debugOutput: false
+```
 
 ### Proposed: Toggle Commands
 
+Toggle commands allow runtime overrides of the `config.yaml` defaults:
+
 | Toggle | Default | Description |
 |--------|---------|-------------|
-| `autoScroll` | `on` | Auto-scroll to bottom on new messages |
-| `timestamps` | `on` | Show timestamps on messages |
-| `commandEcho` | `on` | Echo user commands to output |
-| `cursorBreathe` | `on` | Enable breathing cursor model |
-| `debugOutput` | `off` | Show debug-level messages |
+| `autoScroll` | `true` | Auto-scroll to bottom on new messages |
+| `timestamps` | `true` | Show timestamps on messages |
+| `commandEcho` | `true` | Echo user commands to output |
+| `cursorBreathe` | `true` | Enable breathing cursor model |
+| `debugOutput` | `false` | Show debug-level messages |
 
 Usage:
 ```
@@ -271,16 +286,8 @@ Available levels:
 
 ### Persistence
 
-All runtime configuration should be saved to `~/.madz/tui-config.json` on exit and loaded on
-startup:
-- Toggles
-- Formats
-- Active filters
-
-No config file editing required for common customizations.
-
-**Security:** File should be created with `0600` permissions. Do not store sensitive data (API keys,
-tokens) in this file.
+Runtime toggle overrides are stored in memory only. The `config.yaml` `tui` section is the source of
+truth — changes to it take effect on restart. No separate `tui-config.json` file is needed.
 
 ---
 
