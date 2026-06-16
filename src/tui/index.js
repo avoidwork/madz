@@ -1,13 +1,21 @@
+/**
+ * TUI entry point — re-exports from new directory structure.
+ */
 export { default as App } from "./app.js";
-export { CommandParser } from "./commandParser.js";
-export { PANELS, nextPanel, prevPanel, getPanelOrder } from "./panels.js";
-export { getRoleLabel, calcVisibleCount, getVisibleMessages, formatMessage } from "./messages.js";
-export { createPanelState } from "./hooks.js";
+export { CommandRegistry } from "./utils/commandParser.js";
+export { tuiReducer, initialState } from "./state/reducer.js";
 export {
 	InputPanel,
 	ConversationPanel,
-	SkillsPanel,
-	MemoryPanel,
-	SettingsPanel,
+	StatusBar,
 	Banner,
-} from "./components.js";
+} from "./components/index.js";
+export { OnboardingPanel } from "./panels/OnboardingPanel.js";
+export {
+	getRoleLabel,
+	isStreamingMessage,
+	formatMessage,
+} from "./components/messages.js";
+export { parseMarkdown, MarkdownText } from "./utils/markdownText.js";
+export { calculateConversationTokens } from "./utils/contextTokens.js";
+export { formatNumber, formatSize } from "./components/StatusBar.js";
