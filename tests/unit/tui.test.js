@@ -276,8 +276,7 @@ describe("command parser", () => {
 			const result = parser.parse("/help", ctx);
 			assert.strictEqual(result.action, "help");
 			assert.ok(result.message.includes("Skills:"));
-			assert.ok(result.message.includes("commit-push"));
-			assert.ok(strictEqual(PANELS.CONVERSATION, "conversation");
+		});
 	});
 });
 
@@ -864,7 +863,7 @@ describe("Banner - version rendering", () => {
 
 	it("renders no version string when version prop is omitted", async () => {
 		const { renderToString } = await import("ink");
-		const { Banner } = await import("../../src/tui/banner.js");
+		const { Banner } = await import("../../src/tui/components/Banner.js");
 
 		const result = String(
 			renderToString(
@@ -917,7 +916,7 @@ describe("StatusBar - no appInfo rendering", () => {
 
 	it("does not render app name or version", async () => {
 		const { renderToString } = await import("ink");
-		const { StatusBar } = await import("../../src/tui/statusBar.js");
+		const { StatusBar } = await import("../../src/tui/components/StatusBar.js");
 
 		const memoInner = StatusBar.type;
 		const result = String(

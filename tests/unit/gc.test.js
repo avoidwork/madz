@@ -280,13 +280,11 @@ describe("command parser - gc commands", () => {
 		assert.ok(result.message.includes("not available"));
 	});
 
-	it("returns gc action for unknown gc subcommand", () => {
+	it("returns unknown for invalid gc subcommand", () => {
 		const parser = new CommandRegistry();
-		const result = parser.parse("/gc invalid", {
-			_gcTrigger: () => ({ triggered: false, reason: "rate limited" }),
-		});
-		assert.strictEqual(result.action, "gc");
-		assert.strictEqual(result.subAction, "run");
+		const result = parser.parse("/gc invalid", {});
+		assert.strictEqual(result.action, "unknown");
+		assert.ok(result.message.includes("Usage"));
 	});
 
 	it("isCommand returns true for /gc input", () => {
