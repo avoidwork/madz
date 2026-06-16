@@ -720,4 +720,13 @@ mental model. It's the implementation scaffolding around it that should be reorg
 
 ---
 
+## References
+
+### Libraries
+
+- **[Ink](https://github.com/vadimdemedes/ink)** — React for CLIs. [README](https://raw.githubusercontent.com/vadimdemedes/ink/refs/heads/master/readme.md)
+- **[ink-scroll-view](https://github.com/ByteLandTechnology/ink-scroll-view)** — ScrollView component for Ink. [README](https://raw.githubusercontent.com/ByteLandTechnology/ink-scroll-view/refs/heads/main/README.md)
+
+---
+
 *Design document. Reflects the current implementation and proposes compatible extensions.*
