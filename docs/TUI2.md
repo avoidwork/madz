@@ -50,11 +50,11 @@ No panels, no tabs, no switching. The interface is a single scrollable output ar
 
 ### Key Dependencies
 
-||| Dependency | Role |
-|||------------|------|
-||| `ink` | TUI framework (Box, Text, useInput, useStdout, useWindowSize) |
-||| `ink-scroll-view` | Scrollable viewport (ScrollView, scrollToBottom, scrollBy, remeasure) |
-||| `pino` | Structured logger (dual-file: madz.log + madz_error.log) |
+| Dependency | Role |
+|------------|------|
+| `ink` | TUI framework (Box, Text, useInput, useStdout, useWindowSize) |
+| `ink-scroll-view` | Scrollable viewport (ScrollView, scrollToBottom, scrollBy, remeasure) |
+| `pino` | Structured logger (dual-file: madz.log + madz_error.log) |
 
 ---
 
@@ -82,23 +82,23 @@ The conversation area uses `ink-scroll-view`'s `ScrollView` component. This hand
 
 ### Scroll API (via ref)
 
-||| Method | Purpose |
-|||--------|---------|
-||| `scrollToBottom()` | Scroll to the end of content |
-||| `scrollBy(delta)` | Scroll by N rows (positive = down, negative = up) |
-||| `scrollTo(offset)` | Scroll to absolute position |
-||| `remeasure()` | Re-measure viewport dimensions (call on terminal resize) |
-||| `getViewportHeight()` | Get visible row count |
-||| `getScrollOffset()` | Get current scroll position |
+| Method | Purpose |
+|--------|---------|
+| `scrollToBottom()` | Scroll to the end of content |
+| `scrollBy(delta)` | Scroll by N rows (positive = down, negative = up) |
+| `scrollTo(offset)` | Scroll to absolute position |
+| `remeasure()` | Re-measure viewport dimensions (call on terminal resize) |
+| `getViewportHeight()` | Get visible row count |
+| `getScrollOffset()` | Get current scroll position |
 
 ### Keyboard Scrolling (when input is unfocused)
 
-||| Key | Action |
-|||-----|--------|
-||| Up arrow | `scrollBy(-1)` |
-||| Down arrow | `scrollBy(1)` |
-||| PageUp | `scrollBy(-viewportHeight)` |
-||| PageDown | `scrollBy(viewportHeight)` |
+| Key | Action |
+|-----|--------|
+| Up arrow | `scrollBy(-1)` |
+| Down arrow | `scrollBy(1)` |
+| PageUp | `scrollBy(-viewportHeight)` |
+| PageDown | `scrollBy(viewportHeight)` |
 
 ---
 
@@ -114,12 +114,12 @@ Reading → Typing → Idle → Reading
 Hidden   Visible  Fading   Hidden
 ```
 
-||| State | Cursor | Trigger |
-|||-------|--------|---------|
-||| **Reading** | Hidden | Default state. User is consuming output. |
-||| **Active** | Visible at input position | User presses any key. |
-||| **Idle** | Fading (color transition) | No input for 2 seconds while in Active state. |
-||| **Submit** | Visible | User presses Enter. |
+| State | Cursor | Trigger |
+|-------|--------|---------|
+| **Reading** | Hidden | Default state. User is consuming output. |
+| **Active** | Visible at input position | User presses any key. |
+| **Idle** | Fading (color transition) | No input for 2 seconds while in Active state. |
+| **Submit** | Visible | User presses Enter. |
 
 ### Implementation
 
@@ -156,11 +156,11 @@ interface Message {
 
 ### Role-Based Styling
 
-||| Role | Label Color | Bubble Border | Alignment |
-|||------|------------|---------------|-----------|
-||| **user** | Green | Green | Right |
-||| **system** | Yellow | Yellow | Left |
-||| **assistant** | Cyan | Cyan | Left |
+| Role | Label Color | Bubble Border | Alignment |
+|------|------------|---------------|-----------|
+| **user** | Green | Green | Right |
+| **system** | Yellow | Yellow | Left |
+| **assistant** | Cyan | Cyan | Left |
 
 ### Message Bubble Rendering
 
@@ -195,13 +195,13 @@ Bitchx's `/toggle` command was legendary because it made common customizations i
 
 ### Proposed: Toggle Commands
 
-||| Toggle | Default | Description |
-|||--------|---------|-------------|
-||| `auto_scroll` | `on` | Auto-scroll to bottom on new messages |
-||| `timestamps` | `on` | Show timestamps on messages |
-||| `command_echo` | `on` | Echo user commands to output |
-||| `cursor_breathe` | `on` | Enable breathing cursor model |
-||| `debug_output` | `off` | Show debug-level messages |
+| Toggle | Default | Description |
+|--------|---------|-------------|
+| `auto_scroll` | `on` | Auto-scroll to bottom on new messages |
+| `timestamps` | `on` | Show timestamps on messages |
+| `command_echo` | `on` | Echo user commands to output |
+| `cursor_breathe` | `on` | Enable breathing cursor model |
+| `debug_output` | `off` | Show debug-level messages |
 
 Usage:
 ```
@@ -237,12 +237,12 @@ Bitchx had a sophisticated message-level system where you could filter what appe
 ```
 
 Available levels:
-||| Level | Description |
-|||-------|-------------|
-||| `user` | User messages |
-||| `assistant` | Agent responses |
-||| `system` | System notifications |
-||| `debug` | Debug/internal messages (hidden by default) |
+| Level | Description |
+|-------|-------------|
+| `user` | User messages |
+| `assistant` | Agent responses |
+| `system` | System notifications |
+| `debug` | Debug/internal messages (hidden by default) |
 
 ### Persistence
 
@@ -261,20 +261,20 @@ Commands are parsed from input when Enter is pressed. The `CommandParser` class 
 
 ### Registered Commands
 
-||| Command | Behavior |
-|||---------|----------|
-||| `/quit` | Disconnect and exit |
-||| `/clear` | Clear conversation |
-||| `/new` | Start a new session |
-||| `/help` | Show available commands |
-||| `/config set <path> <value>` | Set a config value |
-||| `/provider set <name>` | Switch AI provider |
-||| `/schedule list` | List scheduled tasks |
-||| `/schedule pause <name>` | Pause a scheduled task |
-||| `/schedule resume <name>` | Resume a scheduled task |
-||| `/schedule run-now <name>` | Run a scheduled task immediately |
-||| `/gc` | Trigger V8 garbage collection |
-||| `/gc status` | Show GC status |
+| Command | Behavior |
+|---------|----------|
+| `/quit` | Disconnect and exit |
+| `/clear` | Clear conversation |
+| `/new` | Start a new session |
+| `/help` | Show available commands |
+| `/config set <path> <value>` | Set a config value |
+| `/provider set <name>` | Switch AI provider |
+| `/schedule list` | List scheduled tasks |
+| `/schedule pause <name>` | Pause a scheduled task |
+| `/schedule resume <name>` | Resume a scheduled task |
+| `/schedule run-now <name>` | Run a scheduled task immediately |
+| `/gc` | Trigger V8 garbage collection |
+| `/gc status` | Show GC status |
 
 ### Skill Execution
 
@@ -298,18 +298,18 @@ The skill body (from `SKILL.md`) is loaded and streamed to the agent as a prompt
 
 ### Keyboard Shortcuts
 
-||| Key | Action | Cursor |
-|||-----|--------|--------|
-||| Any character | Append to input | Visible |
-||| Enter | Submit command | Visible → Hidden (after submit) |
-||| Escape | Interrupt streaming / quit | Hidden |
-||| Tab | Toggle input focus | N/A |
-||| Up arrow (focused) | Scroll through command history | Visible |
-||| Down arrow (focused) | Scroll forward through history | Visible |
-||| Up arrow (unfocused) | Scroll output up | Hidden |
-||| Down arrow (unfocused) | Scroll output down | Hidden |
-||| PageUp (unfocused) | Scroll output up 1 page | Hidden |
-||| PageDown (unfocused) | Scroll output down 1 page | Hidden |
+| Key | Action | Cursor |
+|-----|--------|--------|
+| Any character | Append to input | Visible |
+| Enter | Submit command | Visible → Hidden (after submit) |
+| Escape | Interrupt streaming / quit | Hidden |
+| Tab | Toggle input focus | N/A |
+| Up arrow (focused) | Scroll through command history | Visible |
+| Down arrow (focused) | Scroll forward through history | Visible |
+| Up arrow (unfocused) | Scroll output up | Hidden |
+| Down arrow (unfocused) | Scroll output down | Hidden |
+| PageUp (unfocused) | Scroll output up 1 page | Hidden |
+| PageDown (unfocused) | Scroll output down 1 page | Hidden |
 
 ### Command History
 
@@ -346,13 +346,13 @@ The status bar displays connection status, system metrics, and contextual inform
 [●] Ready  | [⚡12] [💬42] [◣ 1.2k]
 ```
 
-||| Element | Content |
-|||---------|---------|
-||| Status indicator | `●` green (ready), `▶` yellow (streaming), `✖` red (error) |
-||| Status message | Current state ("Ready", "Streaming...", "Compacting context...") |
-||| Skill count | Number of registered skills |
-||| Message count | Total messages in conversation |
-||| Context size | Current conversation token count (human-readable: "1.2k", "15k") |
+| Element | Content |
+|---------|---------|
+| Status indicator | `●` green (ready), `▶` yellow (streaming), `✖` red (error) |
+| Status message | Current state ("Ready", "Streaming...", "Compacting context...") |
+| Skill count | Number of registered skills |
+| Message count | Total messages in conversation |
+| Context size | Current conversation token count (human-readable: "1.2k", "15k") |
 
 ### Proposed Enhancement
 
