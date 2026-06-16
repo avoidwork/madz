@@ -520,6 +520,95 @@ The todo tool queue emits status events (`todo_status`) that flow through the La
 
 ---
 
+## 16. Architectural Debt & Proposed Improvements
+
+The current implementation works, but several structural decisions compound as the TUI grows. This section documents known debt and proposed improvements for future refactoring.
+
+### 16.1 State Management — `useReducer` over `useState`
+
+The current `app.js` has eight independent `useState` calls with no coordination:
+
+```typescript
+const [messages, setMessages] = useState([]);
+const [statusMessage, setStatusMessage] = useState("Ready");
+const [chatHistory, setChatHistory] = useState([]);
+const [historyIndex, setHistoryIndex] = useState(-1);
+const [inputText, setInputText] = useState("");
+const [inputFocused, setInputFocused] = useState(true);
+const [contextSize, setContextSize] = useState(0);
+const [isCompacting, setIsCompacting] = useState(false);
+```
+
+When a message arrives, you're updating `messages`, `statusMessage`, `contextSize`, and `chatHistory` — all separate calls, all separate renders. Consolidate into a single `useReducer` with a `TUIState` interface. One state tree, one render cycle per meaningful change.
+
+### 16.2 Streaming Logic — Extract to Its Own Hook
+
+The streaming callback is set up inline in `handleChat()` / `handleCommand()` and passed through multiple layers. Extract into a `useStreaming()` hook that:
+
+- Manages the `AbortController` lifecycle
+- Translates stream events into state transitions
+- Handles the auto-continue circuit breaker
+- Exposes a clean `streamingState` object to the UI
+
+Separates *how we stream* from *what we stream*.
+
+### 16.3 File Structure — Group by Concern, Not by Component
+
+The current flat 17-file layout works for now but doesn't scale. Proposed structure:
+
+```
+src/tui/
+├── app.js              # Root component, providers
+├── state/
+│   ├── reducer.js      # TUIState + all action types
+│   ├── types.js        # Action type constants
+│   └── selectors.js    # Derived state (contextSize, statusMessage, etc.)
+├── hooks/
+│   ├── useStreaming.js # AbortController, event transformation, auto-continue
+│   ├── useScroll.js    # ScrollView ref, resize handling, keyboard scroll
+│   ├── useInput.js     # Keyboard routing (scroll vs history vs input)
+│   └── useCommand.js   # Command parsing + dispatch
+├── components/
+│   ├── ConversationPanel.js
+│   ├── InputPanel.js
+│   ├── StatusBar.js
+│   ├── MessageBubble.js
+│   └── Banner.js
+├── panels/
+│   ├── OnboardingPanel.js
+│   └── (future panels, if any)
+├── utils/
+│   ├── commandParser.js
+│   ├── contextTokens.js
+│   ├── markdownText.js
+│   └── format.js       # Format specifiers, toggle logic
+└── index.js
+```
+
+Not dogma — predictability. When you're looking for streaming logic, you know exactly where to look.
+
+### 16.4 Remove the Panel System Entirely
+
+The `panels.js`, `skillsPanel.js`, `memoryPanel.js`, `settingsPanel.js` files contradict the blueprint's philosophy ("No panels, no tabs, no switching"). If Jason needs to inspect skills or memory, those are commands (`/skills`, `/memory`) that produce output in the conversation stream — not separate UI surfaces. The TUI should be one thing: a terminal.
+
+### 16.5 Command Parser — Event-Driven, Not Switch-Driven
+
+The current `commandParser.js` is a dispatch table. Make it more extensible — a command registry where commands are registered as objects with `validate`, `execute`, and `help` properties. Adding a new command is a registration, not a switch case edit.
+
+### 16.6 What to Keep
+
+- `ink-scroll-view` for scrolling — works well
+- `React.memo` on MessageBubble — correct optimization
+- The structured logger — dual-file pino is solid
+- The `tiktoken` context token calculation — accurate
+- The overall component hierarchy (App → ConversationPanel + StatusBar + InputPanel) — that part is right
+
+### 16.7 What to Keep the Same
+
+The *philosophy* — input is primary, output is a log, silence is the default. That's the right mental model. It's the implementation scaffolding around it that should be reorganized.
+
+---
+
 ## 13. Session & Persistence
 
 ### Session Lifecycle
