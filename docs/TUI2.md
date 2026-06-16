@@ -197,11 +197,11 @@ Bitchx's `/toggle` command was legendary because it made common customizations i
 
 | Toggle | Default | Description |
 |--------|---------|-------------|
-| `auto_scroll` | `on` | Auto-scroll to bottom on new messages |
+| `autoScroll` | `on` | Auto-scroll to bottom on new messages |
 | `timestamps` | `on` | Show timestamps on messages |
-| `command_echo` | `on` | Echo user commands to output |
-| `cursor_breathe` | `on` | Enable breathing cursor model |
-| `debug_output` | `off` | Show debug-level messages |
+| `commandEcho` | `on` | Echo user commands to output |
+| `cursorBreathe` | `on` | Enable breathing cursor model |
+| `debugOutput` | `off` | Show debug-level messages |
 
 Usage:
 ```
