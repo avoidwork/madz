@@ -182,6 +182,10 @@ interface Message {
 
 `MessageBubble` uses `React.memo` with a custom `areEqual` function that compares display-relevant fields (role, content, time, reasoningContent, streaming, toolCallDisplay, activeToolCall, id). This prevents unnecessary re-renders of unchanged messages during streaming.
 
+### Markdown Rendering
+
+Assistant messages are rendered through `marked` + `marked-terminal`, which converts markdown to ANSI terminal text. A module-level parse cache (`Map`) avoids reparsing identical content across renders. The streaming cursor character (`█`) is stripped before parsing to avoid parser errors.
+
 ---
 
 ## 6. Runtime Configuration (Bitchx-Inspired)
@@ -277,6 +281,8 @@ Unrecognized `/command` patterns that match a registered skill name are executed
 ```
 /skillName [args]
 ```
+
+The skill body (from `SKILL.md`) is loaded and streamed to the agent as a prompt, allowing the agent to interpret and execute the skill instructions.
 
 ### Unknown Commands
 
@@ -464,7 +470,108 @@ const dispatchPromiseRef = useRef(null);
 
 ---
 
-## 12. Summary
+## 12. Streaming Architecture
+
+This section describes how the TUI wires into the AI agent's streaming pipeline.
+
+### Data Flow
+
+```
+User Input (Enter)
+  → App.handleSubmit()
+    → App.handleChat() or App.handleCommand()
+      → dispatchProvider(message, provider, streamingCallback, signal)
+        → callProvider()
+          → callReactAgent(agent, message, sessionConfig, callPrompt, streamingCallback, options)
+            → LangGraph ReactAgent stream
+              → streamingCallback(event) for each event type:
+                  - "text" → append to committedContent, update message.content + █ cursor
+                  - "reasoning" → append to committedReasoning, update message.reasoningContent
+                  - "tool_start" → set message.activeToolCall
+                  - "tool_end" → append to message.toolCallDisplay
+                  - "tool_error" → append error to message.toolCallDisplay
+                  - "compaction_start" / "compaction_end" → toggle isCompacting
+```
+
+### Streaming Callback
+
+The `streamingCallback` is set up in `handleChat()` / `handleCommand()` and passed to `dispatchProvider`. Each event type triggers a `setMessages()` call that clones the messages array and mutates the last (streaming) message in place.
+
+### Auto-Continue Circuit Breaker
+
+If the agent returns zero text output, the TUI automatically sends a "Please continue." signal. This repeats up to `config.agent.autoContinueLimit` (default 1000) times before triggering a circuit breaker error. The counter resets as soon as any text output arrives.
+
+### Abort / Interrupt
+
+The `Escape` key triggers `handleInterrupt()`, which:
+1. Calls `abortControllerRef.current.abort()`
+2. Sets `isStreamingRef.current = false`
+3. Clears the streaming cursor from the last message
+4. Awaits the `dispatchPromise` (which throws `AbortError` and is caught by the try/catch)
+5. If interrupted during chat: pops the user message from sessionState, clears the partial assistant message, deletes the checkpointer thread
+6. If interrupted during skill: pops the user message, deletes the checkpointer thread
+
+### Todo Queue Integration
+
+The todo tool queue emits status events (`todo_status`) that flow through the LangGraph stream. The TUI wires into this via `setTodoStreamingCallback()`, which updates `message.toolCallDisplay` with todo status lines alongside tool call results.
+
+---
+
+## 13. Session & Persistence
+
+### Session Lifecycle
+
+```
+1. index.js creates session via createSession()
+2. SessionStateManager wraps the session state
+3. App receives sessionState as a prop
+4. On user message: sessionState.addExchange({ role: "user", content })
+5. On agent response: sessionState.addExchange({ role: "assistant", content })
+6. onSaveSession callback persists to memory/sessions/
+```
+
+### Context Token Calculation
+
+The TUI calculates conversation tokens using `tiktoken` (with a character-count fallback). Both the conversation and the system prompt are counted. The result is displayed in the status bar as a human-readable size (e.g., "1.2k").
+
+### GC Integration
+
+When GC is enabled (`config.memory.gc.enabled !== false`), a `gcManager` is initialized in `index.js`. The TUI receives `gcManager.onActivity` as a prop, which is called after each message exchange to trigger idle GC. The `/gc` command allows manual triggering and status inspection.
+
+---
+
+## 14. Onboarding & Banner
+
+### Banner
+
+A BBS-style ASCII art banner displays on first launch. It shows command help grouped by category (Chat, Command). Dismisses on any key press (Escape exits the app).
+
+### Onboarding Panel
+
+When no user profile exists, the onboarding flow activates:
+1. `OnboardingPanel` renders with prompts from the onboarding instance
+2. User responses are processed via `onboarding.processResponse()`
+3. Progress is shown as `(current/total)`
+4. On completion, the banner displays and normal conversation begins
+
+---
+
+## 15. Panel Components (Available but Not Active)
+
+The TUI includes four panel components that are defined but not currently wired into the main render path:
+
+| Panel | File | Purpose |
+|-------|------|---------|
+| `ConversationPanel` | `conversationPanel.js` | Active — message display with ScrollView |
+| `SkillsPanel` | `skillsPanel.js` | Lists registered skills with search |
+| `MemoryPanel` | `memoryPanel.js` | Displays memory entries with file viewer |
+| `SettingsPanel` | `settingsPanel.js` | Shows config sections |
+
+These panels use `useInput({ isActive })` for focused keyboard navigation and could be activated via Tab cycling (defined in `panels.js` and `hooks.js`).
+
+---
+
+## 16. Summary
 
 This blueprint describes the madz terminal interface, grounded in the existing implementation. The design is defined by four principles:
 
