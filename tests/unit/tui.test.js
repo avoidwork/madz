@@ -878,7 +878,7 @@ describe("Banner - version rendering", () => {
 
 	it("renders version as plain text with no color prop", async () => {
 		const { renderToString } = await import("ink");
-		const { Banner } = await import("../../src/tui/banner.js");
+		const { Banner } = await import("../../src/tui/components/Banner.js");
 
 		const rendered = renderToString(
 			React.createElement(Banner, {
@@ -937,7 +937,7 @@ describe("StatusBar - no appInfo rendering", () => {
 
 	it("renders error indicator when status starts with Error", async () => {
 		const { renderToString } = await import("ink");
-		const { StatusBar } = await import("../../src/tui/statusBar.js");
+		const { StatusBar } = await import("../../src/tui/components/StatusBar.js");
 
 		const memoInner = StatusBar.type;
 		const result = String(
