@@ -2,7 +2,6 @@ import React from "react";
 import { describe, it } from "node:test";
 import assert from "node:assert";
 import { CommandParser } from "../../src/tui/commandParser.js";
-import { PANELS, nextPanel, prevPanel, getPanelOrder } from "../../src/tui/panels.js";
 import {
 	isStreamingMessage,
 	getRoleLabel,
@@ -283,31 +282,8 @@ describe("command parser", () => {
 	});
 });
 
-describe("TUI - panel navigation", () => {
-	it("has correct panel order", () => {
-		const order = getPanelOrder();
-		assert.deepStrictEqual(order, ["conversation", "skills", "memory", "settings"]);
-	});
-
-	it("cycles to next panel", () => {
-		assert.strictEqual(nextPanel("conversation"), "skills");
-		assert.strictEqual(nextPanel("skills"), "memory");
-		assert.strictEqual(nextPanel("memory"), "settings");
-		assert.strictEqual(nextPanel("settings"), "conversation");
-	});
-
-	it("cycles to prev panel", () => {
-		assert.strictEqual(prevPanel("conversation"), "settings");
-		assert.strictEqual(prevPanel("skills"), "conversation");
-		assert.strictEqual(prevPanel("memory"), "skills");
-		assert.strictEqual(prevPanel("settings"), "memory");
-	});
-
-	it("constants are frozen objects", () => {
-		assert.ok(typeof PANELS === "object");
-		assert.strictEqual(PANELS.CONVERSATION, "conversation");
-	});
-});
+// Panel navigation removed — use /skills and /memory commands instead
+// describe("TUI - panel navigation", ...) — DELETED
 
 describe("TUI - message formatting", () => {
 	it("maps role to label", () => {

@@ -1,11 +1,11 @@
 /**
- * State management hooks for TUI panels.
+ * State management hooks for TUI.
+ * (Panel navigation removed — use /skills and /memory commands instead.)
  */
-
-import { nextPanel as _nextPanel, prevPanel as _prevPanel } from "./panels.js";
 
 /**
  * Panel state for rendering.
+ * Kept for backward compatibility but panel navigation is deprecated.
  */
 export function createPanelState(initialPanel) {
 	return {
@@ -21,22 +21,4 @@ export function createPanelState(initialPanel) {
 		historyIndex: -1,
 		isInputFocused: true,
 	};
-}
-
-/**
- * Cycle to the next panel for tab navigation.
- * @param {string} current
- * @returns {string}
- */
-export function nextPanel(current) {
-	return _nextPanel(current);
-}
-
-/**
- * Cycle to the previous panel for Shift+Tab navigation.
- * @param {string} current
- * @returns {string}
- */
-export function prevPanel(current) {
-	return _prevPanel(current);
 }
