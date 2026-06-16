@@ -32,7 +32,7 @@ ship built-in. No config file editing needed for common changes.
 ┌─────────────────────────────────────────────────────────────┐
 │  [14:23] Mads:  Hello, Jason.                               │
 │  [14:24] System:  Build complete                            │
-│  [14:25] Mads:  Here's the diff...                         │
+│  [14:25] Mads:  Here's the diff...                          │
 │  ... (scrollable conversation) ...                          │
 ├─────────────────────────────────────────────────────────────┤
 │  [●] Ready  | [⚡12] [💬42] [◣ 1.2k]                       │
