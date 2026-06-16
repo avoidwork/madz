@@ -1,6 +1,6 @@
 # TUI2: Terminal Interface Blueprint
 
-*A clean-slate design for a code-first terminal interface using Ink and `useCursor`. IRC-inspired layout, not IRC semantics.*
+*A design document for the madz terminal interface. Grounded in the existing implementation (Ink + `ink-scroll-view` + structured logger), inspired by the best patterns of bitchx IRC client.*
 
 ---
 
@@ -14,8 +14,8 @@ The IRC layout is borrowed for its elegance: messages accumulate above, input si
 
 1. **Input is primary.** The user lives at the input line. The output area is secondary — read when needed, scroll when needed.
 2. **Output is a log.** System output, code output, agent responses — all flow into the same stream.
-3. **The cursor is the only control.** It appears when you're about to act, disappears when you're reading.
-4. **Silence is the default.** The interface should feel like a quiet terminal — alive with output, not noise.
+3. **Silence is the default.** The interface should feel like a quiet terminal — alive with output, not noise.
+4. **Batteries included, not scripts required.** Runtime customizations (toggles, formats, filters) ship built-in. No config file editing needed for common changes.
 
 ---
 
@@ -25,13 +25,12 @@ The IRC layout is borrowed for its elegance: messages accumulate above, input si
 ┌─────────────────────────────────────────────────────────────┐
 │  Header:  [● connected]                                      │
 ├─────────────────────────────────────────────────────────────┤
-│  $ npm run build                                             │
-│  > madz@1.0.0 build                                          │
-│  > tsc --project tsconfig.json                               │
-│  > Compiled successfully in 1.2s                             │
-│  [14:23] System:  Build complete                               │
-│  [14:24] System:  Running tests...                            │
-│  ... (scrollable output history) ...                          │
+│  [14:23] Mads:  Hello, Jason.                                │
+│  [14:24] System:  Build complete                               │
+│  [14:25] Mads:  Here's the diff...                           │
+│  ... (scrollable conversation) ...                             │
+├─────────────────────────────────────────────────────────────┤
+│  [●] Ready  | [⚡12] [💬42] [◣ 1.2k]                          │
 ├─────────────────────────────────────────────────────────────┤
 │  > _                                                         │
 └─────────────────────────────────────────────────────────────┘
@@ -40,39 +39,72 @@ The IRC layout is borrowed for its elegance: messages accumulate above, input si
 ### Component Hierarchy
 
 ```
-App
-├── Layout          — Full terminal dimensions, manages resize
-├── Header          — Connection status only
-├── OutputList      — Virtualized output rendering
-├── InputBar        — Text input with cursor management
-└── StatusLine      — Bottom bar: scroll position, mode indicators
+App (src/tui/app.js)
+├── Banner / OnboardingPanel    — First-run experience
+├── ConversationPanel           — ScrollView-based message display
+│   └── ScrollView (ink-scroll-view)
+│       └── MessageBubble[]     — Role-colored, markdown-rendered
+├── StatusBar                   — Status indicator, skill/message/context counts
+└── InputPanel                  — Text input with cursor display
 ```
 
-### State Model
+### Key Dependencies
 
-```typescript
-interface AppState {
-  // Output management
-  entries: OutputEntry[];       // Mixed: system output, code output, responses
-  scrollOffset: number;         // Lines above the fold
-  autoScroll: boolean;          // True when at bottom
-
-  // Input & cursor
-  input: string;
-  cursorVisible: boolean;
-  cursorRow: number;            // Row within terminal (for useCursor positioning)
-
-  // Connection
-  connected: boolean;
-  lastActivity: number;         // Timestamp of last user input
-}
-```
+| Dependency | Role |
+|------------|------|
+| `ink` | TUI framework (Box, Text, useInput, useStdout, useWindowSize) |
+| `ink-scroll-view` | Scrollable viewport (ScrollView, scrollToBottom, scrollBy, remeasure) |
+| `pino` | Structured logger (dual-file: madz.log + madz_error.log) |
 
 ---
 
-## 3. The Cursor Model
+## 3. Scrolling & Viewport
 
-This is the heart of the design. `useCursor` from Ink gives us precise control over cursor visibility and position. We use it to create a **breathing cursor** — the interface's only interactive element.
+The conversation area uses `ink-scroll-view`'s `ScrollView` component. This handles all viewport management — no custom virtual scroll logic needed.
+
+### How It Works
+
+```jsx
+// ConversationPanel wraps ScrollView around message bubbles
+<ScrollView ref={scrollRef} key="scroll" focus={false}>
+  {messages.map(msg => <MessageBubble key={msg.id} msg={msg} />)}
+</ScrollView>
+```
+
+### Auto-Scroll Behavior
+
+```
+1. New message arrives → scrollToBottom() (deferred 0ms to allow ink-scroll-view's useLayoutEffect to complete)
+2. Streaming content grows → scrollToBottom() (content hash triggers re-evaluation)
+3. User scrolls up → stays where they are (no forced scroll)
+4. Terminal resize → remeasure() called via stdout.on("resize")
+```
+
+### Scroll API (via ref)
+
+| Method | Purpose |
+|--------|---------|
+| `scrollToBottom()` | Scroll to the end of content |
+| `scrollBy(delta)` | Scroll by N rows (positive = down, negative = up) |
+| `scrollTo(offset)` | Scroll to absolute position |
+| `remeasure()` | Re-measure viewport dimensions (call on terminal resize) |
+| `getViewportHeight()` | Get visible row count |
+| `getScrollOffset()` | Get current scroll position |
+
+### Keyboard Scrolling (when input is unfocused)
+
+| Key | Action |
+|-----|--------|
+| Up arrow | `scrollBy(-1)` |
+| Down arrow | `scrollBy(1)` |
+| PageUp | `scrollBy(-viewportHeight)` |
+| PageDown | `scrollBy(viewportHeight)` |
+
+---
+
+## 4. The Cursor Model
+
+The cursor appears when the user is typing and fades when idle. This is managed by `InputPanel` with a configurable cursor character and color.
 
 ### The Breathing Cycle
 
@@ -85,238 +117,177 @@ Hidden   Visible  Fading   Hidden
 | State | Cursor | Trigger |
 |-------|--------|---------|
 | **Reading** | Hidden | Default state. User is consuming output. |
-| **Active** | Visible at input position | User presses any key. Cursor appears at end of input. |
-| **Idle** | Fading (opacity transition) | No input for 2 seconds while in Active state. |
-| **Submit** | Visible | User presses Enter. Cursor stays visible during send. |
-| **Navigate** | Hidden | User presses Up/Down arrows for scroll. |
+| **Active** | Visible at input position | User presses any key. |
+| **Idle** | Fading (color transition) | No input for 2 seconds while in Active state. |
+| **Submit** | Visible | User presses Enter. |
 
-### Implementation Strategy
+### Implementation
 
 ```jsx
-function InputBar() {
-  const { setVisibility } = useCursor({ isVisible: false });
-  const [input, setInput] = useState('');
-  const lastActivity = useRef(Date.now());
-
-  // Show cursor when user starts typing
-  const handleInput = (key) => {
-    setVisibility(true);
-    lastActivity.current = Date.now();
-    setInput(prev => prev + key);
-  };
-
-  // Hide cursor after 2s of idle
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (Date.now() - lastActivity.current > 2000) {
-        setVisibility(false);
-      }
-    }, 500);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Hide cursor on navigation keys
-  const handleKey = (key) => {
-    if (key === 'up' || key === 'down') {
-      setVisibility(false);
-      handleScroll(key);
-      return;
-    }
-    handleInput(key);
-  };
-
-  return (
-    <Box>
-      <Text>
-        {input}
-        {cursorVisible && <Text inverse> </Text>}
-      </Text>
-    </Box>
-  );
-}
+// InputPanel receives cursorChar and cursorColor as props
+// The cursor is rendered as a Text element with inverse styling
+<Text>{inputText}</Text>
+{cursorVisible && <Text inverse>{cursorChar}</Text>}
 ```
 
-### Why This Matters
-
-A visible cursor during reading creates visual noise. The cleanest interface is one where the cursor is only present when you're about to contribute. The breathing model captures this naturally — the cursor is a living thing that appears when needed and rests when not.
+**Note:** The current implementation uses a color transition (white → dark gray) rather than opacity fading. This is more reliable across terminal emulators.
 
 ---
 
-## 4. Virtual Scrolling
+## 5. Message Display
 
-Terminal virtualization is different from browser virtualization. We can't use DOM nodes — we render text rows. The strategy:
+Messages are rendered as role-colored bubbles with markdown support, tool call display, and reasoning content.
 
-### Windowed Rendering
+### Message Structure
 
-```
-Terminal height: 40 lines
-Header: 1 line
-Input: 1 line
-Status: 1 line
-Output area: 37 lines
-
-Visible window: 37 entries
-Buffer above: 10 entries (for smooth scroll back)
-```
-
-### Rendering Pipeline
-
-```
-1. Calculate visible range: [scrollOffset, scrollOffset + visibleRows]
-2. Render only entries in that range
-3. On new output:
-   - If autoScroll is true: append to end, scrollOffset = total - visibleRows
-   - If autoScroll is false: append to end, user sees nothing new until they scroll down
-4. On scroll up: autoScroll = false, user can review output
-5. On scroll to bottom: autoScroll = true, cursor hides
+```typescript
+interface Message {
+  role: "user" | "assistant" | "system";
+  content: string;
+  time: string;              // HH:MM format
+  streaming?: boolean;       // True while content is being streamed
+  reasoningContent?: string; // Agent thinking (shown inline, truncated at 200 chars)
+  activeToolCall?: { name: string };    // Currently running tool
+  toolCallDisplay?: string;              // Completed tool calls (multi-line)
+  id?: string;               // Stable identifier for memoization
+}
 ```
 
-### Scroll Behavior
+### Role-Based Styling
 
-| Action | Effect |
-|--------|--------|
-| New output arrives + at bottom | Auto-scroll, cursor hidden |
-| New output arrives + scrolled up | No scroll, cursor hidden |
-| User scrolls up | Auto-scroll off, cursor hidden |
-| User scrolls to bottom | Auto-scroll on, cursor hidden |
-| User presses Down arrow | Scroll down 1 line, cursor hidden |
-| User presses Up arrow | Scroll up 1 line, cursor hidden |
-| User presses PageDown | Scroll down 1 page, cursor hidden |
-| User presses PageUp | Scroll up 1 page, cursor hidden |
-| User starts typing | Cursor visible, scroll to bottom |
+| Role | Label Color | Bubble Border | Alignment |
+|------|------------|---------------|-----------|
+| **user** | Green | Green | Right |
+| **system** | Yellow | Yellow | Left |
+| **assistant** | Cyan | Cyan | Left |
+
+### Message Bubble Rendering
+
+```
+┌─────────────────────────────────────────┐
+│ [14:23] Mads: Here's the code:          │
+│                                           │
+│ ```js                                     │
+│ const x = 42;                             │
+│ ```                                       │
+│                                           │
+│ - Tool: readFile (src/logger.js)          │
+│ - Tool: patch (src/tui/app.js)            │
+│                                           │
+│ (thinking) Analyzing the request...       │
+└─────────────────────────────────────────┘
+```
+
+### Memoization
+
+`MessageBubble` uses `React.memo` with a custom `areEqual` function that compares display-relevant fields (role, content, time, reasoningContent, streaming, toolCallDisplay, activeToolCall, id). This prevents unnecessary re-renders of unchanged messages during streaming.
 
 ---
 
-## 5. Component Breakdown
+## 6. Runtime Configuration (Bitchx-Inspired)
 
-### 5.1 Layout
+Bitchx's `/toggle` command was legendary because it made common customizations instant — no config file editing required. The TUI should ship with sensible defaults and built-in features for runtime control.
 
-**Responsibility:** Full terminal management, resize handling, overall structure.
+### Proposed: Toggle Commands
 
-```jsx
-function Layout() {
-  const { columns, rows } = useStdout();
-  const [headerHeight] = useState(1);
-  const [inputHeight] = useState(1);
-  const [statusHeight] = useState(1);
-  const outputAreaHeight = rows - headerHeight - inputHeight - statusHeight;
+| Toggle | Default | Description |
+|--------|---------|-------------|
+| `auto_scroll` | `on` | Auto-scroll to bottom on new messages |
+| `timestamps` | `on` | Show timestamps on messages |
+| `command_echo` | `on` | Echo user commands to output |
+| `cursor_breathe` | `on` | Enable breathing cursor model |
+| `debug_output` | `off` | Show debug-level messages |
 
-  return (
-    <Box direction="column" width={columns} height={rows}>
-      <Header />
-      <Box flexGrow={1}>
-        <OutputList height={outputAreaHeight} />
-      </Box>
-      <InputBar />
-      <StatusLine />
-    </Box>
-  );
-}
+Usage:
+```
+/toggle timestamps        → turns timestamps off
+/toggle timestamps        → turns timestamps on (toggle)
+/toggle                   → shows all toggles and their states
 ```
 
-### 5.2 Header
+### Proposed: Format Customization
 
-**Responsibility:** Connection status. Minimal, always visible.
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  ● connected                                                │
-└─────────────────────────────────────────────────────────────┘
-```
-
-| Element | Position | Style |
-|---------|----------|-------|
-| Connection status | Left | Colored dot (green=connected, red=disconnected) |
-
-### 5.3 OutputList
-
-**Responsibility:** Virtualized output rendering, scroll management, auto-scroll logic.
-
-```jsx
-function OutputList({ height }) {
-  const { entries, scrollOffset, autoScroll, setScrollOffset, setAutoScroll } = useApp();
-  const visibleEntries = entries.slice(scrollOffset, scrollOffset + height);
-
-  // Auto-scroll on new output when at bottom
-  useEffect(() => {
-    if (autoScroll) {
-      setScrollOffset(Math.max(0, entries.length - height));
-    }
-  }, [entries.length]);
-
-  return (
-    <Box direction="column" height={height} overflow="hidden">
-      {visibleEntries.map((entry, i) => (
-        <OutputRow key={entry.id} entry={entry} />
-      ))}
-    </Box>
-  );
-}
-```
-
-#### Output Row
-
-Each entry is a terminal row. Entries can be different types:
+Bitchx's `/fset` allowed users to customize how every message type rendered. The TUI could adopt a similar pattern:
 
 ```
-$ npm run build                    ← User command (echoed)
-> madz@1.0.0 build                 ← Command output
-> tsc --project tsconfig.json
-> Compiled successfully in 1.2s
-[14:23] System:  Build complete     ← System message
-[14:24] System:  Running tests...
+/format system "[%T] %BSystem%n: %I%t%n"
+/format error "[%T] %RError%n: %t"
+/format agent "[%T] %CMads%n: %t"
 ```
 
-| Entry Type | Format | Style |
-|------------|--------|-------|
-| **User command** | `$ command` | Bold, no timestamp |
-| **Command output** | `> line` | Default, no timestamp |
-| **System message** | `[HH:MM] System: text` | Dim timestamp, italic body |
-| **Agent response** | `[HH:MM] Mads: text` | Dim timestamp, color-coded nickname |
-| **Error** | `[HH:MM] Error: text` | Dim timestamp, red text |
+Format specifiers:
+- `%T` — timestamp (respects `timestamps` toggle)
+- `%t` — text body
+- `%B` — bold, `%n` — null color (reset)
+- `%I` — italic, `%R` — red, `%C` — cyan, `%M` — magenta
 
-### 5.4 InputBar
+### Proposed: Message Filtering
 
-**Responsibility:** Text input, command parsing, cursor management.
+Bitchx had a sophisticated message-level system where you could filter what appeared in each window. The TUI could adopt a similar pattern:
 
 ```
-> _
+/level debug              → toggle debug messages on/off
+/level                    → show active levels
+/level all                → show all levels and their states
 ```
 
-| Element | Behavior |
-|---------|----------|
-| `>` prompt | Always visible, visual cue before input |
-| Input text | Grows to fill available width |
-| Cursor | Breathing model (see Section 3) |
+Available levels:
+| Level | Description |
+|-------|-------------|
+| `user` | User messages |
+| `assistant` | Agent responses |
+| `system` | System notifications |
+| `debug` | Debug/internal messages (hidden by default) |
 
-#### Command Handling
+### Persistence
 
-Commands are parsed from input when Enter is pressed:
+All runtime configuration should be saved to `~/.madz/tui-config.json` on exit and loaded on startup:
+- Toggles
+- Formats
+- Active filters
+
+No config file editing required for common customizations.
+
+---
+
+## 7. Command Parser
+
+Commands are parsed from input when Enter is pressed. The `CommandParser` class handles a dispatch table of registered commands, with fallback to skill execution.
+
+### Registered Commands
 
 | Command | Behavior |
 |---------|----------|
-| `/clear` | Clear output history |
-| `/help` | Show command reference |
 | `/quit` | Disconnect and exit |
+| `/clear` | Clear conversation |
+| `/new` | Start a new session |
+| `/help` | Show available commands |
+| `/config set <path> <value>` | Set a config value |
+| `/provider set <name>` | Switch AI provider |
+| `/schedule list` | List scheduled tasks |
+| `/schedule pause <name>` | Pause a scheduled task |
+| `/schedule resume <name>` | Resume a scheduled task |
+| `/schedule run-now <name>` | Run a scheduled task immediately |
+| `/gc` | Trigger V8 garbage collection |
+| `/gc status` | Show GC status |
 
-All other input is treated as commands to execute — shell commands, code, system commands. No slash prefix needed.
+### Skill Execution
 
-### 5.5 StatusLine
+Unrecognized `/command` patterns that match a registered skill name are executed as skills:
+```
+/skillName [args]
+```
 
-**Responsibility:** Contextual information, scroll position, mode indicators.
+### Unknown Commands
 
 ```
-───  ↑ 127 lines above  ───  [normal]
+/unknownCommand
+→ "Unknown command: /unknownCommand. Type /help for available commands."
 ```
-
-| Element | Content |
-|---------|---------|
-| Scroll position | Lines above fold (when scrolled up) |
-| Mode indicator | `[normal]`, `[command]`, `[search]` |
 
 ---
 
-## 6. Interaction Model
+## 8. Interaction Model
 
 ### Keyboard Shortcuts
 
@@ -324,15 +295,14 @@ All other input is treated as commands to execute — shell commands, code, syst
 |-----|--------|--------|
 | Any character | Append to input | Visible |
 | Enter | Submit command | Visible → Hidden (after submit) |
-| Escape | Clear input, hide cursor | Hidden |
-| Up arrow | Scroll up | Hidden |
-| Down arrow | Scroll down | Hidden |
-| PageDown | Scroll down 1 page | Hidden |
-| PageUp | Scroll up 1 page | Hidden |
-| Home | Scroll to top | Hidden |
-| End | Scroll to bottom, enable auto-scroll | Hidden |
-| Ctrl+C | Cancel input, hide cursor | Hidden |
-| Tab | Command autocomplete | Visible |
+| Escape | Interrupt streaming / quit | Hidden |
+| Tab | Toggle input focus | N/A |
+| Up arrow (focused) | Scroll through command history | Visible |
+| Down arrow (focused) | Scroll forward through history | Visible |
+| Up arrow (unfocused) | Scroll output up | Hidden |
+| Down arrow (unfocused) | Scroll output down | Hidden |
+| PageUp (unfocused) | Scroll output up 1 page | Hidden |
+| PageDown (unfocused) | Scroll output down 1 page | Hidden |
 
 ### Command History
 
@@ -345,163 +315,90 @@ The up/down arrows scroll through command history when the user is at the bottom
 4. User presses Up while scrolled up in output → scrolls output
 ```
 
+**Note:** History is in-memory (`chatHistory` array). The structured logger (`src/logger.js`) handles persistent logging of all interactions.
+
 ### Input Lifecycle
 
 ```
 1. User presses key → cursor appears, input focused
 2. User types → cursor follows text end
 3. User presses Enter → command executed, output appended, input cleared, cursor fades
-4. 2 seconds idle → cursor hidden
+4. 2 seconds idle → cursor hidden (color transition to dark gray)
 5. User presses key again → cycle repeats
 ```
 
 ---
 
-## 7. Rendering Pipeline
+## 9. Status Bar
 
-### Update Cycle
+The status bar displays connection status, system metrics, and contextual information.
+
+### Current Implementation
 
 ```
-1. State change detected (new output, input change, etc.)
-2. Re-render triggered by Ink
-3. Layout recalculates dimensions
-4. OutputList virtualizes visible window
-5. InputBar renders with cursor state
-6. Terminal updates only changed cells (Ink's diffing)
+[●] Ready  | [⚡12] [💬42] [◣ 1.2k]
 ```
 
-### Performance Considerations
+| Element | Content |
+|---------|---------|
+| Status indicator | `●` green (ready), `▶` yellow (streaming), `✖` red (error) |
+| Status message | Current state ("Ready", "Streaming...", "Compacting context...") |
+| Skill count | Number of registered skills |
+| Message count | Total messages in conversation |
+| Context size | Current conversation token count (human-readable: "1.2k", "15k") |
 
-| Concern | Strategy |
-|---------|----------|
-| Large output history | Virtual scroll — only render visible rows |
-| Frequent re-renders | Ink's diffing engine — only update changed cells |
-| Terminal resize | Recalculate visible window, adjust scrollOffset |
-| High-frequency output | Batch renders — coalesce updates within 50ms |
-| Memory with long sessions | Trim old entries beyond retention limit |
+### Proposed Enhancement
+
+Add toggle/filter indicators to the status bar:
+```
+[●] Ready  | [⚡12] [💬42] [◣ 1.2k]  [ts:1 scroll:1]
+```
+
+This gives the user a quick glance at which runtime features are active.
 
 ---
 
-## 8. Visual Design
-
-### Color Palette
-
-```
-Background:    Terminal default (respects user's theme)
-Text:          Terminal default
-Timestamp:     Dim (#555555 or 240)
-User command:  Bold
-Command output: Default
-System:        Italic, dim
-Error:         Red
-Input:         Inverse (white on dark) when cursor visible
-Header:        Bold, subtle background
-Divider:       ─── characters, dim
-```
-
-### Entry Styling
-
-| Entry Type | Color | Emphasis |
-|------------|-------|----------|
-| User command | Terminal default | Bold |
-| Command output | Terminal default | Normal |
-| System message | Terminal default | Italic |
-| Agent response | Color-coded | Bold nickname |
-| Error | Red | Normal |
-
-### Typography
-
-- **Font:** Terminal default monospace (no overrides)
-- **Timestamp:** Fixed-width, always 6 chars `[HH:MM]`
-- **Command output prefix:** `> ` (2 chars, aligned)
-- **Body:** Wraps to terminal width
-- **User commands:** Prefixed with `$ ` (2 chars)
-
-### Layout Spacing
-
-```
-Terminal width:  N columns
-Header:          1 row, full width
-Output area:     N-3 rows, full width
-Input:           1 row, full width
-Status:          1 row, full width
-
-Output padding:  2 chars left (indent)
-Command prefix:  Variable, padded to align output
-Body start:      After prefix + space
-```
-
----
-
-## 9. Edge Cases & Resilience
+## 10. Edge Cases & Resilience
 
 ### Terminal Resize
 
 ```
-1. Detect resize via useStdout
-2. Recalculate visible window
-3. If previously at bottom: stay at bottom
-4. If scrolled up: preserve scrollOffset
-5. Re-render with new dimensions
+1. Detect resize via stdout.on("resize")
+2. Call scrollRef.current.remeasure() to update viewport dimensions
+3. ink-scroll-view handles re-layout automatically
+```
+
+### Streaming Overflow
+
+```
+1. New message arrives during streaming
+2. Content hash (messageCount + streamingContentLength) triggers re-evaluation
+3. scrollToBottom() is deferred 0ms to allow ink-scroll-view's useLayoutEffect to complete
+4. Previous content hash is tracked to avoid redundant scrolls
 ```
 
 ### Connection Loss
 
 ```
-1. Show red dot in header
-2. Display system message: "* Disconnected"
-3. Attempt reconnection (exponential backoff)
-4. On reconnect: system message "* Reconnected"
-5. Cursor behavior unchanged
+1. Error in dispatchProvider → catch block handles it
+2. System message displayed: "I couldn't connect right now - {error}. Try sending your message again?"
+3. Streaming message is cleared from UI
+4. Session is saved (onSaveSession callback)
 ```
 
-### Multi-line Output
+### Model Stuck in Thinking Loop
 
 ```
-1. Command output longer than terminal width: wrap to multiple rows
-2. Track wrapped row count for accurate scroll calculation
-3. Virtual scroll accounts for wrapped entries
-4. User commands (echoed) are single-line
+1. Auto-continue circuit breaker tracks consecutive empty responses
+2. After config.agent.autoContinueLimit (default 1000) empty responses:
+   - Show error message
+   - Reset counter
+   - User must rephrase or start new session
 ```
 
-### Output Retention Limit
+### Output Retention
 
-```
-1. Retain last 1000 entries
-2. When limit reached: trim oldest entries
-3. If user scrolled up past trim point: show "output truncated" indicator
-```
-
----
-
-## 10. The Cursor: A Deeper Look
-
-The cursor is not just a UI element — it's the interface's personality. It is a quiet promise: *you can type now.* In this design, we make that promise explicit through the breathing model.
-
-### States
-
-```
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│    READING   │────▶│   ACTIVE    │────▶│    IDLE     │
-│  (Hidden)    │◀────│ (Visible)   │◀────│ (Fading)    │
-└─────────────┘     └─────────────┘     └─────────────┘
-       ▲                                      │
-       └────────────── Escape ────────────────┘
-```
-
-### Transition Rules
-
-| From | To | Trigger |
-|------|-----|---------|
-| Reading | Active | Any key press |
-| Active | Idle | 2s no input |
-| Idle | Active | Any key press |
-| Active | Reading | Enter (submit) |
-| Any | Reading | Escape |
-
-### The "Why"
-
-A always-visible cursor creates visual tension — the eye is drawn to it even when it's not needed. A hidden cursor during reading creates a clean canvas. The breathing model gives the interface a sense of presence without demanding attention. It's the difference between a terminal with a blinking cursor and one that waits patiently for input.
+The conversation is managed by `sessionState` (not the TUI). The TUI renders whatever messages are in its state array. Memory management (compaction, trimming) is handled by the session layer, not the TUI.
 
 ---
 
@@ -510,79 +407,74 @@ A always-visible cursor creates visual tension — the eye is drawn to it even w
 ### Ink-Specific Patterns
 
 1. **`useStdout`** — For terminal dimensions and resize events
-2. **`useInput`** — For keyboard handling (replaces custom key listeners)
-3. **`useCursor`** — For cursor visibility control (the star of the show)
-4. **`Box` with `overflow="hidden"`** — For the output list viewport
-5. **`Text` with `wrap="never"`** — For output rows (handle wrapping manually)
+2. **`useInput`** — For keyboard handling (single handler in App component)
+3. **`useWindowSize`** — For terminal height (rows)
+4. **`ScrollView` (ink-scroll-view)** — For scrollable conversation area
+5. **`React.memo`** — For MessageBubble optimization
 
-### Key Ink Patterns
+### Key Patterns
 
 ```jsx
-// Cursor visibility toggle
-const { setVisibility } = useCursor({ isVisible: false });
-setVisibility(true);   // Show
-setVisibility(false);  // Hide
+// Scroll to bottom with deferred timing
+const scrollHandle = () => {
+  if (scrollRef.current) {
+    scrollRef.current.scrollToBottom();
+  }
+};
+const timer = setTimeout(scrollHandle, 0);
 
-// Terminal dimensions
-const { columns, rows } = useStdout();
+// Terminal resize handling
+useEffect(() => {
+  const resizeHandler = () => {
+    if (scrollRef.current && stdout.isTTY && !process.env.CI) {
+      scrollRef.current.remeasure();
+    }
+  };
+  stdout.on("resize", resizeHandler);
+  return () => stdout.off("resize", resizeHandler);
+}, [stdout, scrollRef]);
 
-// Input handling
-useInput((input, key) => {
-  if (key.enter) handleSubmit();
-  if (key.up) handleScroll('up');
-  // ...
-});
+// Abort controller for streaming interruption
+abortControllerRef.current = new AbortController();
+// ...
+abortControllerRef.current.abort();
 ```
 
-### State Management Recommendation
+### State Management
 
-For this scale, React's built-in state is sufficient. Use `useReducer` for complex state transitions (scroll management, cursor lifecycle) and `useState` for simple values (input text, connection state).
-
-Consider a custom hook for the cursor breathing model:
+The current app uses React's built-in state (`useState`, `useRef`) rather than `useReducer`. This is sufficient for the current scale. The state model is:
 
 ```typescript
-function useBreathingCursor() {
-  const { setVisibility } = useCursor({ isVisible: false });
-  const lastActivity = useRef(Date.now());
-  const [visible, setVisible] = useState(false);
+// App-level state
+const [messages, setMessages] = useState([]);
+const [statusMessage, setStatusMessage] = useState("Ready");
+const [chatHistory, setChatHistory] = useState([]);
+const [historyIndex, setHistoryIndex] = useState(-1);
+const [inputText, setInputText] = useState("");
+const [inputFocused, setInputFocused] = useState(true);
+const [contextSize, setContextSize] = useState(0);
+const [isCompacting, setIsCompacting] = useState(false);
 
-  const activate = useCallback(() => {
-    setVisibility(true);
-    setVisible(true);
-    lastActivity.current = Date.now();
-  }, [setVisibility]);
-
-  const deactivate = useCallback(() => {
-    setVisibility(false);
-    setVisible(false);
-  }, [setVisibility]);
-
-  // Auto-deactivate after idle
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (Date.now() - lastActivity.current > 2000) {
-        deactivate();
-      }
-    }, 500);
-    return () => clearInterval(interval);
-  }, [deactivate]);
-
-  return { activate, deactivate, visible };
-}
+// Refs for async operations
+const scrollRef = useRef(null);
+const abortControllerRef = useRef(null);
+const isStreamingRef = useRef(false);
+const dispatchPromiseRef = useRef(null);
 ```
 
 ---
 
 ## 12. Summary
 
-This blueprint describes a code-first TUI built on Ink with `useCursor` at its core. The IRC layout is borrowed — scrollable output above, input at the bottom — but the content is commands, output, and system responses. The design is defined by three principles:
+This blueprint describes the madz terminal interface, grounded in the existing implementation. The design is defined by four principles:
 
 1. **Input is primary.** The user lives at the input line. Output is secondary.
-2. **The cursor breathes.** It appears when you're about to act, disappears when you're reading.
-3. **The terminal is the window.** Virtual scrolling, clean rendering, respect for the user's environment.
+2. **Silence is the default.** The interface should feel like a quiet terminal — alive with output, not noise.
+3. **Batteries included.** Runtime customizations (toggles, formats, filters) should ship built-in — no config file editing required.
+4. **The terminal is the window.** `ink-scroll-view` handles scrolling, Ink handles rendering, the structured logger handles persistence.
 
 The result is an interface that feels like a quiet terminal — present, alive, and ready for work. Not a dashboard. Not a tool. A workspace.
 
 ---
 
-*Blueprint complete. No implementation references — this is a clean slate.*
+*Design document. Reflects the current implementation and proposes compatible extensions.*
