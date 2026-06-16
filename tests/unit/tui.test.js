@@ -171,7 +171,7 @@ describe("command parser", () => {
 			const cmds = parser.listCommands();
 			// Help message includes all registered commands
 			assert.ok(result.message.includes("Available commands"));
-			cmds.forEach(cmd => {
+			cmds.forEach((cmd) => {
 				assert.ok(result.message.toLowerCase().includes(cmd), `Help should include ${cmd}`);
 			});
 		});
