@@ -91,29 +91,29 @@ management — no custom virtual scroll logic needed.
 
 ### Scroll API (via ref)
 
-|| Method | Purpose |
+| Method | Purpose |
 |--------|---------|
-|| `scrollToBottom()` | Scroll to the end of content |
-|| `scrollBy(delta)` | Scroll by N rows (positive = down, negative = up) |
-|| `scrollTo(offset)` | Scroll to absolute position |
-|| `scrollToTop()` | Scroll to offset 0 |
-|| `remeasure()` | Re-measure viewport dimensions (call on terminal resize) |
-|| `remeasureItem(index)` | Force re-measure of a specific child (useful for dynamic content) |
-|| `getViewportHeight()` | Get visible row count |
-|| `getScrollOffset()` | Get current scroll position |
-|| `getContentHeight()` | Get total content height |
-|| `getBottomOffset()` | Get scroll offset when at bottom |
-|| `getItemHeight(index)` | Get measured height of a specific item |
-|| `getItemPosition(index)` | Get position and height of a specific item |
+| `scrollToBottom()` | Scroll to the end of content |
+| `scrollBy(delta)` | Scroll by N rows (positive = down, negative = up) |
+| `scrollTo(offset)` | Scroll to absolute position |
+| `scrollToTop()` | Scroll to offset 0 |
+| `remeasure()` | Re-measure viewport dimensions (call on terminal resize) |
+| `remeasureItem(index)` | Force re-measure of a specific child (useful for dynamic content) |
+| `getViewportHeight()` | Get visible row count |
+| `getScrollOffset()` | Get current scroll position |
+| `getContentHeight()` | Get total content height |
+| `getBottomOffset()` | Get scroll offset when at bottom |
+| `getItemHeight(index)` | Get measured height of a specific item |
+| `getItemPosition(index)` | Get position and height of a specific item |
 
 ### Keyboard Scrolling (when input is unfocused)
 
-|| Key | Action |
+| Key | Action |
 |-----|--------|
-|| Up arrow | `scrollBy(-1)` |
-|| Down arrow | `scrollBy(1)` |
-|| PageUp | `scrollBy(-viewportHeight)` |
-|| PageDown | `scrollBy(viewportHeight)` |
+| Up arrow | `scrollBy(-1)` |
+| Down arrow | `scrollBy(1)` |
+| PageUp | `scrollBy(-viewportHeight)` |
+| PageDown | `scrollBy(viewportHeight)` |
 
 ### Controlled Mode
 
