@@ -2,7 +2,7 @@ import { describe, it, afterEach } from "node:test";
 import assert from "node:assert";
 import React from "react";
 import { render } from "ink";
-import { StatusBar, formatNumber } from "../../src/tui/statusBar.js";
+import { StatusBar, formatNumber } from "../../src/tui/components/StatusBar.js";
 
 describe("formatNumber", () => {
 	it("formats small numbers without separators", () => {

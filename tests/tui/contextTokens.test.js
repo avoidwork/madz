@@ -1,6 +1,6 @@
 import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert";
-import { calculateConversationTokens } from "../../src/tui/contextTokens.js";
+import { calculateConversationTokens } from "../../src/tui/utils/contextTokens.js";
 
 describe("calculateConversationTokens", () => {
 	let originalEnv;

@@ -8,10 +8,10 @@ import {
 	formatMessage,
 	countMessageLines,
 	getToolCallLines,
-} from "../../src/tui/messages.js";
-import { parseMarkdown, MarkdownTextInner } from "../../src/tui/markdownText.js";
+} from "../../src/tui/components/MessageBubble.js";
+import { parseMarkdown, MarkdownTextInner } from "../../src/tui/utils/markdownText.js";
 import { TuiSchema, DEFAULT_CONFIG } from "../../src/config/schemas.js";
-import { Blink } from "../../src/tui/inputPanel.js";
+import { Blink } from "../../src/tui/components/InputPanel.js";
 
 describe("command parser", () => {
 	it("parses /quit command", () => {

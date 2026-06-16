@@ -2,18 +2,18 @@ import React, { useState, useEffect, useRef } from "react";
 import { Box, useWindowSize, useApp } from "ink";
 import { useInput } from "ink";
 import { CommandParser } from "./commandParser.js";
-import { ConversationPanel } from "./conversationPanel.js";
-import { StatusBar } from "./statusBar.js";
-import { InputPanel } from "./inputPanel.js";
-import { isStreamingMessage } from "./messages.js";
-import { Banner } from "./banner.js";
-import { OnboardingPanel } from "./onboardingPanel.js";
+import { ConversationPanel } from "./components/ConversationPanel.js";
+import { StatusBar } from "./components/StatusBar.js";
+import { InputPanel } from "./components/InputPanel.js";
+import { isStreamingMessage } from "./components/MessageBubble.js";
+import { Banner } from "./components/Banner.js";
+import { OnboardingPanel } from "./panels/OnboardingPanel.js";
 import { createSession } from "../session/factory.js";
 import { setConfigValue } from "../config/loader.js";
 import { isAvailable, getGcCalls } from "../memory/gc.js";
 import { loadSystemPrompt } from "../memory/prompts.js";
 import { setTodoStreamingCallback } from "../tools/todo_queue.js";
-import { calculateConversationTokens } from "./contextTokens.js";
+import { calculateConversationTokens } from "./utils/contextTokens.js";
 
 /**
  * Main App component (Ink). Renders an IRC-style layout:

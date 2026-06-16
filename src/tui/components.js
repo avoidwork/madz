@@ -1,5 +1,5 @@
 // Re-export all TUI components (panels removed — use /skills and /memory commands)
-export { ConversationPanel } from "./conversationPanel.js";
-export { InputPanel, Blink } from "./inputPanel.js";
-export { Banner } from "./banner.js";
-export { MarkdownText } from "./markdownText.js";
+export { ConversationPanel } from "./components/ConversationPanel.js";
+export { InputPanel, Blink } from "./components/InputPanel.js";
+export { Banner } from "./components/Banner.js";
+export { MarkdownText } from "./utils/markdownText.js";

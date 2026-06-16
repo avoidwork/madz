@@ -1,8 +1,8 @@
 import React, { useRef, useEffect } from "react";
 import { Box, Text, useStdout } from "ink";
 import { ScrollView } from "ink-scroll-view";
-import { getRoleLabel } from "./messages.js";
-import { MarkdownText } from "./markdownText.js";
+import { getRoleLabel } from "./MessageBubble.js";
+import { MarkdownText } from "../utils/markdownText.js";
 
 /**
  * Cached Intl.DateTimeFormat for system-localized time display.
