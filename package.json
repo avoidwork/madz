@@ -59,14 +59,14 @@
     "auto-changelog": "^2.6.0",
     "husky": "^9.1.7",
     "oxfmt": "^0.55.0",
-    "oxlint": "^1.69.0"
+    "oxlint": "^1.70.0"
   },
   "dependencies": {
     "@langchain/langgraph": "^1.4.2",
     "@langchain/langgraph-checkpoint-sqlite": "^1.0.3",
     "@langchain/openai": "^1.4.7",
     "@opentelemetry/api": "^1.9.0",
-    "@opentelemetry/sdk-node": "^0.218.0",
+    "@opentelemetry/sdk-node": "^0.219.0",
     "cron-parser": "^5.5.0",
     "ink": "^7.0.6",
     "ink-scroll-view": "^0.3.7",
