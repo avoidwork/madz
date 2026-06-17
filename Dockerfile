@@ -19,7 +19,7 @@ RUN npm prune --omit=dev && \
 FROM node:24-alpine
 
 RUN apk update && \
-    apk add --no-cache python3 ruby curl bash jq unzip wget ca-certificates git file zip xz lz4 diffutils tree rsync openssh-server cronie && \
+    apk add --no-cache python3 ruby curl bash jq unzip wget ca-certificates git file zip xz lz4 diffutils tree rsync openssh-server cronie ripgrep && \
     ssh-keygen -A && \
     adduser -S -G node -h /home/madz -s /bin/sh madz && \
     mkdir -p /run/sshd /root/.cache /home/madz/.cache/madz/logs && \
