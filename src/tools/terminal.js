@@ -1,8 +1,63 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { spawn } from "node:child_process";
+import { createOutputAccumulator, sanitizePath } from "./common.js";
 
 const MAX_COMMAND_LENGTH = 4096;
+
+/**
+ * Denylist of dangerous shell commands and patterns.
+ * @type {RegExp[]}
+ */
+const DANGEROUS_COMMAND_PATTERNS = [
+	// Destructive file operations
+	/^rm\s+(-[a-zA-Z]*\s+)*-[rfR]+\s+\/(\s|$)/, // rm -rf /
+	/^rm\s+(-[a-zA-Z]*\s+)*-[rfR]+\s+\.\./, // rm -rf ..
+	/^rm\s+(-[a-zA-Z]*\s+)*-[rfR]+\s+--no-preserve-root/, // rm --no-preserve-root
+	// Disk operations
+	/\b(format|mkfs|mkdosfs|mke2fs|fdisk|dd|wipe|shred)\b/,
+	// Network reconnaissance
+	/\b(nmap|netcat|nc\s+-[a-zA-Z]*[eclp])\b/,
+	// Privilege escalation
+	/\b(sudo\s+rm|sudo\s+chmod|sudo\s+chown)\b/,
+	/\b(LD_PRELOAD|LD_LIBRARY_PATH|LD_AUDIT)\s*=/,
+	// Data exfiltration
+	/\b(curl|wget)\b.*\b(-[a-zA-Z]*F|--form)\b/,
+	// Shell escape
+	/\b(eval|exec|source|\. )\s+[-\/]/,
+	// Device manipulation
+	/\b(mknod|mkfifo)\b/,
+	// Kernel module loading
+	/\b(insmod|modprobe|rmmod)\b/,
+];
+
+/**
+ * Check if a command matches any dangerous pattern.
+ * @param {string} command - The command to check
+ * @returns {string|null} - The matched pattern reason, or null if safe
+ */
+export function checkCommandSandbox(command) {
+	if (typeof command !== "string") return "Invalid command";
+
+	// Block dangerous command chaining for escalation
+	if (/([&|;`$])/.test(command) && /(\b(rm|dd|mkfs|format|sudo|eval|exec)\b)/.test(command)) {
+		return "Dangerous command chaining detected";
+	}
+
+	// Block command substitution that could escalate
+	if (/`[^`]*(rm|dd|mkfs|format|sudo|eval|exec)[^`]*`/.test(command)) {
+		return "Dangerous command substitution detected";
+	}
+
+	// Check denylist patterns
+	for (const pattern of DANGEROUS_COMMAND_PATTERNS) {
+		if (pattern.test(command)) {
+			return `Blocked by security policy: ${pattern.source}`;
+		}
+	}
+
+	return null;
+}
 
 /**
  * Process tracker shared between terminal and process tools.
@@ -46,35 +101,55 @@ export function trackProcess(child, command) {
 
 /**
  * Execute a command in foreground mode.
+ * @param {string} command - The command to execute
+ * @param {number} [timeoutMs=30000] - Timeout in milliseconds
+ * @returns {Promise<{ stdout: string, stderr: string, exitCode: number, error?: string }>}
  */
-function executeForeground(command) {
+function executeForeground(command, timeoutMs = 30000) {
 	return new Promise((resolve) => {
-		let stdout = "";
-		let stderr = "";
+		const stdoutAccum = createOutputAccumulator();
+		const stderrAccum = createOutputAccumulator();
 		let exitCode = -1;
 
+		const controller = new AbortController();
+		const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
 		const child = spawn("sh", ["-c", command], {
-			timeout: 30000,
+			signal: controller.signal,
 		});
 
 		child.stdout.on("data", (data) => {
-			stdout += data.toString();
+			stdoutAccum.push(data.toString());
 		});
 
 		child.stderr.on("data", (data) => {
-			stderr += data.toString();
+			stderrAccum.push(data.toString());
 		});
 
 		child.on("exit", (code) => {
+			clearTimeout(timeoutId);
 			exitCode = code || 0;
 		});
 
 		child.on("close", () => {
-			resolve({ stdout: stdout.trim(), stderr: stderr.trim(), exitCode, running: false });
+			resolve({
+				stdout: stdoutAccum.get().trim(),
+				stderr: stderrAccum.get().trim(),
+				exitCode,
+				running: false,
+			});
 		});
 
 		child.on("error", (err) => {
-			resolve({ stdout, stderr, exitCode: -1, running: false, error: err.message });
+			clearTimeout(timeoutId);
+			const isTimeout = err.name === "AbortError" || err.message.includes("timeout");
+			resolve({
+				stdout: stdoutAccum.get().trim(),
+				stderr: stderrAccum.get().trim(),
+				exitCode: isTimeout ? -1 : -1,
+				running: false,
+				error: isTimeout ? `Command timed out after ${timeoutMs}ms` : err.message,
+			});
 		});
 	}).then((result) =>
 		result.stderr

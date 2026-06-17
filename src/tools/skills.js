@@ -203,7 +203,7 @@ export async function createSkillImpl(input, options) {
 	}
 
 	if (permissions && permissions.length > 0) {
-		skillMetadata.permission = permissions;
+		skillMetadata.permissions = permissions;
 	}
 
 	// Run full spec validation before writing

@@ -1,11 +1,11 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import { mkdir, writeFile, readFile, readdir, unlink } from "node:fs/promises";
-import { existsSync } from "node:fs";
+import { mkdir, writeFile, readFile, readdir, unlink, access } from "node:fs/promises";
 import { join } from "node:path";
 import { spawn } from "node:child_process";
 import { Cron } from "../../src/scheduler/cron.js";
 import { logger } from "../logger.js";
+import { checkCommandSandbox } from "./terminal.js";
 
 /// -- Helper to find skill script --
 
@@ -26,13 +26,23 @@ export async function findSkillScript(skillName, baseDir = "skills") {
 
 	for (const candidate of scriptCandidates) {
 		const fullPath = join(skillDir, candidate);
-		if (existsSync(fullPath)) return fullPath;
+		try {
+			await access(fullPath);
+			return fullPath;
+		} catch {
+			// File doesn't exist, try next candidate
+		}
 	}
 
 	const rootScripts = ["run.sh", "run.py", "run.js", "run.bash"];
 	for (const candidate of rootScripts) {
 		const fullPath = join(skillDir, candidate);
-		if (existsSync(fullPath)) return fullPath;
+		try {
+			await access(fullPath);
+			return fullPath;
+		} catch {
+			// File doesn't exist, try next candidate
+		}
 	}
 
 	return null;
