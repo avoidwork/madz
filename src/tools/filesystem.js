@@ -131,8 +131,9 @@ export async function writeFileImpl(input, options) {
 		return `Error: ${resolved.error}`;
 	}
 
-	if (input.content.length > MAX_CONTENT_SIZE) {
-		return `Error: Content size (${input.content.length} bytes) exceeds maximum allowed size (${MAX_CONTENT_SIZE} bytes).`;
+	const byteSize = Buffer.byteLength(input.content, "utf-8");
+	if (byteSize > MAX_CONTENT_SIZE) {
+		return `Error: Content size (${byteSize} bytes) exceeds maximum allowed size (${MAX_CONTENT_SIZE} bytes).`;
 	}
 
 	const fileDir = dirname(resolved.path);
@@ -178,28 +179,32 @@ export function fuzzyMatch(target, fileContent) {
 	}
 	if (matches.length > 0) return matches;
 
-	// Strategy 3: Trim trailing whitespace
-	const trimmedTarget = target.replace(/[ \t]+$/gm, "");
-	const trimmedContent = fileContent.replace(/[ \t]+$/gm, "");
-	const s3Idx = trimmedContent.indexOf(trimmedTarget);
-	if (s3Idx !== -1)
-		return [
-			{ found: true, start: s3Idx, end: s3Idx + trimmedTarget.length, matched: trimmedTarget },
-		];
+	// Strategy 3: Trim trailing whitespace — skip if target has none
+	if (target !== target.replace(/[ \t]+$/gm, "")) {
+		const trimmedTarget = target.replace(/[ \t]+$/gm, "");
+		const trimmedContent = fileContent.replace(/[ \t]+$/gm, "");
+		const s3Idx = trimmedContent.indexOf(trimmedTarget);
+		if (s3Idx !== -1)
+			return [
+				{ found: true, start: s3Idx, end: s3Idx + trimmedTarget.length, matched: trimmedTarget },
+			];
+	}
 
-	// Strategy 4: Trim leading whitespace
-	const leadTrimmedTarget = target.replace(/^[ \t]+/gm, "");
-	const leadTrimmedContent = fileContent.replace(/^[ \t]+/gm, "");
-	const s4Idx = leadTrimmedContent.indexOf(leadTrimmedTarget);
-	if (s4Idx !== -1)
-		return [
-			{
-				found: true,
-				start: s4Idx,
-				end: s4Idx + leadTrimmedTarget.length,
-				matched: leadTrimmedTarget,
-			},
-		];
+	// Strategy 4: Trim leading whitespace — skip if target has none
+	if (target !== target.replace(/^[ \t]+/gm, "")) {
+		const leadTrimmedTarget = target.replace(/^[ \t]+/gm, "");
+		const leadTrimmedContent = fileContent.replace(/^[ \t]+/gm, "");
+		const s4Idx = leadTrimmedContent.indexOf(leadTrimmedTarget);
+		if (s4Idx !== -1)
+			return [
+				{
+					found: true,
+					start: s4Idx,
+					end: s4Idx + leadTrimmedTarget.length,
+					matched: leadTrimmedTarget,
+				},
+			];
+	}
 
 	// Strategy 5: Collapse whitespace
 	const compactTarget = target.replace(/[ \t]+/g, " ");
@@ -320,7 +325,7 @@ export async function patchImpl(input, options) {
 	if (!results.some((r) => r.found)) {
 		const suggestions = [];
 		const fileLines = content.split("\n");
-		for (let i = 0; i < Math.min(fileLines.length, 20); i++) {
+		for (let i = 0; i < fileLines.length; i++) {
 			const line = fileLines[i];
 			const dist = levenshteinDistance(
 				input.oldStr.trim().toLowerCase(),
@@ -353,23 +358,42 @@ export async function patchImpl(input, options) {
 export async function nativeSearch(pattern, resolvedPath, maxResults) {
 	const results = [];
 	const regex = new RegExp(pattern);
+	const seen = new Set();
+	const MAX_DEPTH = 50;
 
-	async function walk(dir) {
+	function isBinary(buffer) {
+		for (let i = 0; i < Math.min(buffer.length, 8192); i++) {
+			if (buffer[i] === 0) return true;
+		}
+		return false;
+	}
+
+	async function walk(dir, depth = 0) {
+		if (depth > MAX_DEPTH) return;
 		try {
 			const entries = await readdir(dir);
 			for (const entry of entries) {
 				const full = join(dir, entry);
-				const statResult = await stat(full);
-				if (statResult.isDirectory()) {
-					await walk(full);
-				} else if (statResult.isFile()) {
-					const content = await readFile(full, "utf-8");
-					const lines = content.split("\n");
-					for (let i = 0; i < lines.length && results.length < maxResults; i++) {
-						if (regex.test(lines[i])) {
-							results.push(`${full}:${i + 1}: ${lines[i].trim()}`);
+				// Prevent symlink loops
+				if (seen.has(full)) continue;
+				seen.add(full);
+				try {
+					const statResult = await stat(full);
+					if (statResult.isDirectory()) {
+						await walk(full, depth + 1);
+					} else if (statResult.isFile()) {
+						const buffer = await readFile(full);
+						if (isBinary(buffer)) continue;
+						const content = buffer.toString("utf-8");
+						const lines = content.split("\n");
+						for (let i = 0; i < lines.length && results.length < maxResults; i++) {
+							if (regex.test(lines[i])) {
+								results.push(`${full}:${i + 1}: ${lines[i].trim()}`);
+							}
 						}
 					}
+				} catch {
+					// Skip inaccessible entries
 				}
 			}
 		} catch {
