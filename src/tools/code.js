@@ -67,7 +67,12 @@ import types
 
 class RestrictedImporter:
     def find_spec(self, fullname, path, target=None):
-        blocked = {'subprocess', 'os', 'socket', 'pty', 'tty', 'popen2', 'popen3', 'popen4'}
+        blocked = {
+            'subprocess', 'os', 'socket', 'pty', 'tty', 'popen2', 'popen3', 'popen4',
+            'ctypes', 'importlib', 'pickle', 'urllib', 'urllib3', 'requests',
+            'shutil', 'tempfile', 'sys', 'platform', 'pwd', 'grp', 'crypt',
+            'fcntl', 'termios', 'tty', 'readline', 'rlcompleter',
+        }
         module = fullname.split('.')[0]
         if module in blocked:
             raise ImportError(f"Blocked import: {fullname} (use 'pythonImportHook: false' in config to disable)")

@@ -1,20 +1,20 @@
 ## 1. Shared Utilities in common.js
 
-- [ ] 1.1 Create SSRF protection utility `ssrfProtect(url)` in common.js with private/reserved IP blocking for IPv4 and IPv6
-- [ ] 1.2 Create redirect chain validator that blocks redirects to private IPs
-- [ ] 1.3 Create output accumulator utility `createOutputAccumulator()` using chunk array pattern
-- [ ] 1.4 Create input sanitizer `escapeShellInput(input)` for grep/sed injection prevention
-- [ ] 1.5 Create path traversal guard `sanitizePath(path)` with `../` blocking
-- [ ] 1.6 Add development mode SSRF bypass via environment variable
+- [x] 1.1 Create SSRF protection utility `ssrfProtect(url)` in common.js with private/reserved IP blocking for IPv4 and IPv6
+- [x] 1.2 Create redirect chain validator that blocks redirects to private IPs
+- [x] 1.3 Create output accumulator utility `createOutputAccumulator()` using chunk array pattern
+- [x] 1.4 Create input sanitizer `escapeShellInput(input)` for grep/sed injection prevention
+- [x] 1.5 Create path traversal guard `sanitizePath(path)` with `../` blocking
+- [x] 1.6 Add development mode SSRF bypass via environment variable
 - [ ] 1.7 Write unit tests for all shared utilities
 
 ## 2. terminal.js — Timeout and Sandboxing
 
-- [ ] 2.1 Replace ignored `timeout` spawn option with AbortController + signal pattern
-- [ ] 2.2 Implement command denylist sandboxing (block rm -rf, format, dd, mkfs, nmap, etc.)
-- [ ] 2.3 Block dangerous command chaining (&&, ||, ;) for escalation prevention
-- [ ] 2.4 Block environment variable manipulation (LD_PRELOAD, LD_LIBRARY_PATH)
-- [ ] 2.5 Integrate output accumulator for terminal command output
+- [x] 2.1 Replace ignored `timeout` spawn option with AbortController + signal pattern
+- [x] 2.2 Implement command denylist sandboxing (block rm -rf, format, dd, mkfs, nmap, etc.)
+- [x] 2.3 Block dangerous command chaining (&&, ||, ;) for escalation prevention
+- [x] 2.4 Block environment variable manipulation (LD_PRELOAD, LD_LIBRARY_PATH)
+- [x] 2.5 Integrate output accumulator for terminal command output
 - [ ] 2.6 Write unit tests for timeout behavior
 - [ ] 2.7 Write unit tests for command sandboxing denylist
 
