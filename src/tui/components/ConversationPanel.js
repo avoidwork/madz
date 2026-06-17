@@ -6,6 +6,7 @@ import { Box, Text, useStdout } from "ink";
 import { ScrollView } from "ink-scroll-view";
 import { getRoleLabel } from "../components/messages.js";
 import { MarkdownText } from "../utils/markdownText.js";
+import { logger } from "../../logger.js";
 
 const timeFormatter = new Intl.DateTimeFormat(undefined, {
 	hour: "numeric",
@@ -133,7 +134,7 @@ const MessageBubble = React.memo(
 					React.createElement(
 						Box,
 						{ flexDirection: "row" },
-						React.createElement(MarkdownText, { content }),
+						React.createElement(MarkdownText, { content: typeof content === "string" ? content : String(content || "") }),
 					),
 					reasoningEl,
 					toolCallEl,
@@ -159,11 +160,13 @@ const MessageBubble = React.memo(
 );
 
 export function renderMessages(messages, assistantName) {
+	logger.debug("[renderMessages] called, messages.length:", messages?.length, "assistantName:", assistantName);
 	const children = [];
 
 	for (let i = 0; i < (messages?.length ?? 0); i++) {
 		const msg = messages[i];
 		const rowKey = "msg-" + i;
+		logger.debug(`[renderMessages] processing message ${i}:`, msg?.role, msg?.id, msg?.content?.slice(0, 30));
 
 		children.push(
 			React.createElement(MessageBubble, {
@@ -184,6 +187,7 @@ export function renderMessages(messages, assistantName) {
 		);
 	}
 
+	logger.debug("[renderMessages] built children array, length:", children.length);
 	return children;
 }
 
@@ -192,6 +196,7 @@ export function ConversationPanel({
 	assistantName = "Assistant",
 	scrollRef: externalScrollRef,
 }) {
+	logger.debug("[ConversationPanel] render start, messages:", messages?.length, "assistantName:", assistantName);
 	messages = messages || [];
 
 	const internalScrollRef = useRef(null);
@@ -199,6 +204,8 @@ export function ConversationPanel({
 	const previousMessageCount = useRef(0);
 	const previousContentHashRef = useRef(0);
 	const { stdout } = useStdout();
+
+	logger.debug("[ConversationPanel] refs initialized, stdout.isTTY:", stdout?.isTTY, "stdout.rows:", stdout?.rows);
 
 	useEffect(() => {
 		const resizeHandler = () => {
@@ -213,7 +220,11 @@ export function ConversationPanel({
 	}, [stdout, scrollRef]);
 
 	useEffect(() => {
-		if (!scrollRef.current) return;
+		logger.debug("[useEffect:scroll] triggered, messages.length:", messages.length, "stdout.isTTY:", stdout.isTTY);
+		if (!scrollRef.current) {
+			logger.debug("[useEffect:scroll] scrollRef.current is null, skipping");
+			return;
+		}
 
 		const lastMsg = messages[messages.length - 1];
 		const streamingContentLen = lastMsg?.streaming ? (lastMsg.content || "").length : 0;
@@ -223,11 +234,14 @@ export function ConversationPanel({
 			messages.length > previousMessageCount.current ||
 			(lastMsg?.streaming && contentHash !== previousContentHashRef.current);
 
+		logger.debug("[useEffect:scroll] shouldScroll:", shouldScroll, "prevCount:", previousMessageCount.current, "newCount:", messages.length);
+
 		if (shouldScroll) {
 			scrollRef.current.remeasure();
 
 			const scrollHandle = () => {
 				if (scrollRef.current) {
+					logger.debug("[useEffect:scroll] scrolling to bottom");
 					scrollRef.current.scrollToBottom();
 					previousMessageCount.current = messages.length;
 				}
@@ -240,13 +254,17 @@ export function ConversationPanel({
 	}, [messages, stdout.isTTY]);
 
 	const children = React.useMemo(
-		() => renderMessages(messages, assistantName),
+		() => {
+			logger.debug("[useMemo:children] computing children");
+			return renderMessages(messages, assistantName);
+		},
 		[messages, assistantName],
 	);
 
+	logger.debug("[ConversationPanel] returning JSX, children.length:", children.length);
 	return React.createElement(
 		Box,
 		{ key: "panel", flexDirection: "column", flexGrow: 1 },
-		React.createElement(ScrollView, { ref: scrollRef, key: "scroll", focus: false }, ...children),
+		React.createElement(ScrollView, { ref: scrollRef, key: "scroll", focus: false, height: stdout.rows - 1 }, ...children),
 	);
 }
