@@ -126,10 +126,11 @@ export async function callReactAgent(agent, message, config, systemPrompt, callb
 			const result = await agent.invoke({ messages }, invokeConfig);
 			const content = extractContent(result, message);
 
-			// Cache the result on miss
-			if (cacheKey) {
-				getCache().set(cacheKey, content.content);
-			}
+		// Cache the result on miss (only if no tools were used)
+		const hasToolCalls = result.messages?.some(m => m.tool_calls?.length > 0) ?? false;
+		if (cacheKey && !hasToolCalls) {
+			getCache().set(cacheKey, content.content);
+		}
 
 			return content;
 		} catch (err) {
@@ -407,8 +408,8 @@ async function callReactAgentStreaming(
 				callback({ type: "tool_end", toolName: name });
 			}
 
-			// Cache the aggregated response on successful completion
-			if (cacheKey && aggregatedText) {
+			// Cache the aggregated response on successful completion (only if no tools were used)
+			if (cacheKey && aggregatedText && toolCallSet.size === 0) {
 				getCache().set(cacheKey, aggregatedText);
 			}
 

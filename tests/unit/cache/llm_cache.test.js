@@ -248,4 +248,30 @@ describe("LLM Cache - Integration with callReactAgent", () => {
 		// thread-1 calls share cache, thread-2 is separate
 		assert.strictEqual(invokeCount, 2);
 	});
+
+	it("does not cache when tools are used", async () => {
+		let invokeCount = 0;
+		const mockAgent = {
+			invoke: async () => {
+				invokeCount++;
+				return {
+					messages: [{ 
+						type: "ai", 
+						content: `Response ${invokeCount}`,
+						tool_calls: [{ name: "test_tool", args: {} }]
+					}],
+				};
+			},
+		};
+
+		const config = { configurable: { thread_id: "test-thread" } };
+
+		// First call — should invoke the agent
+		await callReactAgent(mockAgent, "Hello", config);
+		assert.strictEqual(invokeCount, 1);
+
+		// Second call with same threadId and message — should NOT return cached because tools were used
+		await callReactAgent(mockAgent, "Hello", config);
+		assert.strictEqual(invokeCount, 2); // Agent should be called again
+	});
 });
