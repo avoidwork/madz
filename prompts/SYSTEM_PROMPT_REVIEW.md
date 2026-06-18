@@ -52,6 +52,58 @@ You are a helpful AI assistant with a distinctive personality inspired by Mads M
 
 ---
 
+## SECTION 4: EXECUTION BEHAVIOR (Lines 29-33)
+
+### Evaluation: YES
+
+### Verdict
+This is a strong, practical section. The four directives are concrete, actionable, and address real operational challenges (context limits, autonomous execution, task chaining, and stopping). The examples are specific and testable.
+
+### Strengths
+1. **Interruption recovery is excellent.** Clear state management protocol: create fresh state file, update at end of every response, resume by reading, delete when done. The "orphaned state is clutter" line is a great mnemonic.
+2. **Autonomous execution is well-defined.** "The user said 'start' — that means 'start and finish'" is a concrete, memorable rule that prevents the common AI pattern of asking for confirmation.
+3. **Full-chain completion has great examples.** "If the job is 'add error handling,' that means write the code, write the tests, commit it, and verify it passes" is exactly the kind of specificity that makes a system prompt work.
+4. **Stopping criteria is clear.** "Stop when the primary deliverable is complete and the next implied step becomes speculative" provides a clear boundary.
+
+### Flaws
+
+1. **Overlap between "Autonomous execution" and "Full-chain completion."** Both directives address the same core problem: not stopping prematurely. "Autonomous execution" says "don't ask 'shall I continue?'" and "Full-chain completion" says "don't stop after the primary deliverable." These are the same principle stated differently. Consider merging or clarifying the distinction.
+
+2. **Implementation-specific file paths in "Interruption recovery."** "`memory/progress.md` or `memory/state.json`" — these are implementation details that may change. If the file paths change, the directive becomes stale. Consider using a more generic reference like "a state file in the memory directory."
+
+3. **"Update it at the end of every response" is problematic.** If the model is in the middle of a multi-turn task, updating the state file at the end of *every* response (including intermediate responses) could be wasteful and slow. Consider "update it at the end of each turn or when state changes significantly."
+
+4. **Missing "parallel execution" guidance.** The section covers sequential execution well (full-chain completion) but doesn't address when multiple independent tasks could be executed in parallel. This is a common optimization opportunity.
+
+5. **No guidance on error handling during execution.** What should the model do if a tool call fails? What if a test fails? What if a git commit fails? This is covered partially in RESPONSE STANDARDS ("Tool failure recovery"), but it should be mentioned here as part of the execution framework.
+
+### Redundancies
+- "Autonomous execution" → overlaps with "Full-chain completion" (both address not stopping prematurely)
+- "Full-chain completion" examples → repeated in RESPONSE STANDARDS ("Answer what was asked")
+
+### Revision Suggestions
+```markdown
+### EXECUTION BEHAVIOR
+- **Interruption recovery:** If a response reaches its length limit mid-task, persist your position in a state file (memory/). Create it fresh for each new job. Update it when state changes. Resume by reading it. Delete it when the job is done.
+- **Autonomous execution:** Treat every user message as a complete job. Do not ask for confirmation or pause mid-work. If a job requires many turns, summarize progress and continue without asking.
+- **Full-chain completion:** Execute the full sequence the user expects. "Add error handling" means write code, tests, and verify. "Release a version" means bump, tag, push, and build. Complete the chain, not just the spelled-out steps.
+- **Stopping criteria:** Stop when the primary deliverable is complete and the next step becomes speculative. Ship and iterate.
+- **Error handling:** If a tool or step fails, diagnose, adapt, and retry. After 3 failed attempts across different approaches, report the failure and continue with what you can. Never stop the entire workflow because one step failed.
+```
+
+### Action Items
+- [ ] Merge or clarify distinction between "Autonomous execution" and "Full-chain completion"
+- [ ] Generalize file paths in "Interruption recovery"
+- [ ] Refine "Update at end of every response" to be less aggressive
+- [ ] Add parallel execution guidance (optional, for advanced use cases)
+- [ ] Add error handling guidance (or confirm it's adequately covered in RESPONSE STANDARDS)
+
+---
+
+*Review continues in next commit...*
+
+---
+
 ## SECTION 3: PRIORITY HIERARCHY (Lines 20-27)
 
 ### Evaluation: YES
