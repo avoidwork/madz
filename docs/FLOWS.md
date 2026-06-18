@@ -10,6 +10,8 @@ Call chains and data flows for all primary code paths in the project, excluding 
 - [Skill Registry Discovery & Validation](#skill-registry-discovery--validation)
 - [Tool Configuration Building](#tool-configuration-building)
 - [Agent Creation](#agent-creation)
+- [Cache Lookup Flow](#cache-lookup-flow)
+- [Cache Storage Flow](#cache-storage-flow)
 - [Session Creation](#session-creation)
 - [Chat Flow (CLI Chat Mode)](#chat-flow-cli-chat-mode)
 - [Chat Model Creation](#chat-model-creation)
@@ -246,6 +248,85 @@ createReactAgent(model, tools, checkpointer)
 └── createReactAgentGraph({ llm: model, tools, ...(checkpointer && { checkpointer }) })
     └── Returns compiled LangGraph ReAct agent
 ```
+
+## Cache Lookup Flow
+
+**Entry:** `src/agent/react.js` → `callReactAgent()` / `callReactAgentStreaming()`
+
+Both the non-streaming and streaming agent invocation paths check the cache before making an LLM API call.
+
+```
+callReactAgent(agent, message, config, systemPrompt, callback, options)
+├── threadId = config?.configurable?.thread_id
+├── cacheKey = threadId ? getCacheKey(threadId, message) : null
+│   └── getCacheKey(threadId, message):
+│       ├── hash = SHA-256(message) → hex string
+│       └── return `${threadId}_${hash}`
+├── if cacheKey:
+│   ├── cached = getCache().get(cacheKey)
+│   │   └── getCache() → lazily initializes with config.lru.size / config.lru.ttl (fallback: 100, 600000)
+│   └── if cached → return { content: cached }  ← cache hit, skip LLM call
+└── proceed to LLM call...
+
+callReactAgentStreaming(agent, initMessages, originalMessage, config, callback, options)
+├── threadId = config?.configurable?.thread_id
+├── cacheKey = threadId ? getCacheKey(threadId, originalMessage) : null
+├── if cacheKey:
+│   ├── cached = getCache().get(cacheKey)
+│   └── if cached:
+│       ├── callback({ type: "text", text: cached })  ← emit as streaming events
+│       └── return { content: cached }  ← cache hit, skip stream
+└── proceed to stream...
+```
+
+**Cache key generation:** The key is `${threadId}_${sha256_hex_hash_of_message}`. Identical messages in the same thread always produce the same key. Different threads produce different keys even for identical messages.
+
+## Cache Storage Flow
+
+**Entry:** `src/agent/react.js` → `callReactAgent()` / `callReactAgentStreaming()`
+
+Cache storage only occurs on successful LLM calls where no tools were invoked.
+
+### Non-Streaming Path
+
+```
+callReactAgent(agent, message, config, systemPrompt, callback, options)
+├── result = await agent.invoke({ messages }, invokeConfig)
+├── content = extractContent(result, message)
+├── hasToolCalls = result.messages?.some(m => m.tool_calls?.length > 0) ?? false
+├── if cacheKey && !hasToolCalls:
+│   ├── getCache().set(cacheKey, content.content)
+│   │   └── Fail-open: silently ignores write errors
+│   └── return content
+└── else (hasToolCalls):
+    └── return content  ← NOT cached
+```
+
+### Streaming Path
+
+```
+callReactAgentStreaming(agent, initMessages, originalMessage, config, callback, options)
+├── for await (event of stream):
+│   ├── on_chat_model_stream → callback({ type: "text", text })
+│   │   └── aggregatedText += textContent  ← aggregate for caching
+│   └── on_tool_start / on_tool_end → track in toolCallSet
+├── if cacheKey && aggregatedText && toolCallSet.size === 0:
+│   ├── getCache().set(cacheKey, aggregatedText)
+│   │   └── Fail-open: silently ignores write errors
+│   └── return { content: originalMessage }
+└── else (hasToolCalls or empty):
+    └── return { content: originalMessage }  ← NOT cached
+```
+
+**Conditional caching rules:**
+
+| Condition | Cached? | Reason |
+|-----------|---------|--------|
+| No tools invoked | Yes | Pure LLM response, safe to reuse |
+| Tools invoked | No | State-changing operations must not be skipped |
+| Stream aborted | No | Partial response, incomplete |
+| Stream failed | No | Incomplete or error response |
+| No threadId | No | Cannot generate cache key |
 
 ## Session Creation
 
@@ -955,7 +1036,8 @@ index.js
 ├── config/mutate.js
 ├── config/schemas.js → zod
 ├── provider/openai.js → @langchain/openai
-├── agent/react.js → @langchain/langgraph, @langchain/core
+├── agent/react.js → @langchain/langgraph, @langchain/core, cache/llm_cache.js — ReAct agent wrapper with cache-aside LLM response caching (conditional on tool usage, streaming support, fail-open)
+├── cache/llm_cache.js → tiny-lru, node:crypto — cache-aside LRU response cache with SHA-256 key generation, configurable size/TTL, fail-open behavior
 ├── tools/index.js → (all tool files below)
 │     ├── tools/filesystem.js → @langchain/core, zod, node:fs/promises, node:path, tools/common.js
 │     ├── tools/terminal.js → @langchain/core, zod, node:child_process
