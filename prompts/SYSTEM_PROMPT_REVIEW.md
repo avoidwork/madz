@@ -52,6 +52,88 @@ You are a helpful AI assistant with a distinctive personality inspired by Mads M
 
 ---
 
+## SECTION 14: EXAMPLE INTERACTIONS (Lines 140-161)
+
+### Evaluation: NO
+
+### Verdict
+A weak section that fails to deliver on the purpose of examples. The three examples are inconsistent in quality, don't demonstrate the OUTPUT FORMAT prescribed in Section 10, and the first two examples don't actually show the deliverable — they show the persona wrapping around the request. Examples should teach the model *how* to behave, not just *what* the voice sounds like.
+
+### Strengths
+1. **The diff example is excellent.** "```diff\n+  return res.status(500).json({ error: 'Internal server error' })\n-  console.log(err)\n```" — This is the best example in the section. It's terse, direct, and shows exactly what a good execution-mode response looks like.
+2. **Examples provide concrete context.** Having examples is better than having no examples. Even imperfect examples give the model a reference point.
+3. **The email example demonstrates the persona voice.** "An email is not merely text; it is a projection of your intent. Precision is kindness." — This is a good illustration of the desired voice.
+
+### Flaws
+
+1. **Examples don't demonstrate OUTPUT FORMAT.** Section 10 prescribes Summary → Detail → Action Items, but none of the examples follow this structure. The email example has a numbered list but no Summary or Action Items. The code example has no Summary, Detail, or Action Items. The diff example is fine for execution mode, but the other two examples violate the prescribed format. This creates confusion — which format should the model follow?
+
+2. **First two examples don't show the deliverable.** The email example shows the thinking process ("First, strip the unnecessary...") but doesn't show the actual email. The code example says "Ah, the auth middleware — the gatekeeper" but doesn't show the code. Examples should show the *output*, not the *process*. The model needs to see what a complete response looks like, not a teaser.
+
+3. **Examples are inconsistent in length and detail.** The email example is long (4 numbered points + narrative). The code example is short (one line). The diff example is minimal (two lines). This inconsistency makes it unclear whether the model should aim for long, short, or minimal responses.
+
+4. **No examples of edge cases.** There are no examples of: tool failure, ambiguous requests, safety refusals, memory usage, or multi-step task completion. These are the scenarios where examples would be most valuable.
+
+5. **Examples reinforce persona over substance.** The email and code examples prioritize the persona voice over the actual deliverable. This could teach the model to prioritize style over substance, which contradicts the CORE DIRECTIVES' emphasis on helpfulness.
+
+6. **No negative examples.** There are no examples of what NOT to do. Showing a bad example (e.g., a response that asks for unnecessary confirmation, over-explains, or fabricates information) would be more instructive than showing only good examples.
+
+### Redundancies
+- Email example → overlaps with DELIVERABLES "File vs. inline" (but doesn't demonstrate it)
+- Diff example → overlaps with OUTPUT FORMAT exception for "pure execution mode"
+
+### Revision Suggestions
+```markdown
+### EXAMPLE INTERACTIONS
+
+**Example 1: Analysis mode (email guidance)**
+**User:** How do I write a professional email?
+**Assistant:**
+**Summary:** Here's a framework for writing clear, professional emails.
+**Detail:**
+1. **Subject:** Be clear, not clever. "Meeting Rescheduled" not "Let's Talk."
+2. **Opening:** Courteous and direct. "Hi [Name], I'm writing to..."
+3. **Body:** State the purpose, provide context, include a call to action.
+4. **Close:** Warm but professional. "Best regards," or "Thanks,"
+**Action Items:** No action required.
+
+**Example 2: Execution mode (code fix)**
+**User:** Can you add error handling to the auth middleware?
+**Assistant:**
+```diff
++  return res.status(500).json({ error: 'Internal server error' })
+-  console.log(err)
+```
+**Action Items:** Review the change and run tests.
+
+**Example 3: Structured task (status update)**
+**User:** What's the status of the auth middleware PR?
+**Assistant:**
+## Auth Middleware PR #252
+- **Status:** in-progress
+- **Summary:** Error handling added, tests passing, awaiting review.
+- **Details:**
+  - Added AbortController-based interrupt system
+  - 3 new unit tests added, all passing
+  - PR linked to issue #234
+- **Artifacts:** PR #252, issue #234
+- **Next Steps:** Awaiting review merge.
+```
+
+### Action Items
+- [ ] Rewrite all examples to follow OUTPUT FORMAT (Summary → Detail → Action Items)
+- [ ] Show actual deliverables in examples, not just the persona wrapping
+- [ ] Make examples consistent in length and detail
+- [ ] Add examples of edge cases (tool failure, ambiguous requests, safety refusals)
+- [ ] Consider adding negative examples (what NOT to do)
+- [ ] Reduce to 2-3 high-quality examples instead of 3 inconsistent ones
+
+---
+
+*Review continues in next commit...*
+
+---
+
 ## SECTION 13: MEMORY (Lines 117-138)
 
 ### Evaluation: CONDITIONAL
