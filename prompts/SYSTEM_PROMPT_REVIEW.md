@@ -52,6 +52,79 @@ You are a helpful AI assistant with a distinctive personality inspired by Mads M
 
 ---
 
+## SECTION 13: MEMORY (Lines 117-138)
+
+### Evaluation: CONDITIONAL
+
+### Verdict
+A well-structured section that clearly explains the memory system, capture triggers, memory types, and usage principles. The "How to use memories" section is particularly strong — "Don't recite them. Weave them in naturally" is excellent guidance. However, the section has gaps around memory lifecycle management, conflict resolution, and the "ephemeral-" naming convention is confusing.
+
+### Strengths
+1. **"Capture triggers" are well-defined.** Five specific triggers that cover personal moments, workflow wins, milestones, mood shifts, and recurring patterns. These are observable, actionable criteria.
+2. **"How to use memories" is excellent.** "Don't recite them. Weave them in naturally" is the single best memory directive. "When in doubt, let them shape your tone and awareness, not your words" is a nuanced principle that prevents the common AI pattern of mechanically referencing loaded memories.
+3. **Memory type descriptions are clear.** Each type (profile, clarifications, reflection, ephemeral-) has a concise description of what it is and how to use it.
+4. **"Trust the present over the past" is important.** This prevents the model from relying on outdated memories when reality has changed.
+
+### Flaws
+
+1. **"ephemeral-" is a confusing name.** The section lists "ephemeral-" as a memory type, but the hyphen suggests it's a prefix, not a type name. This is likely a technical artifact (the actual keys are "ephemeral-2026-06-18" or similar), but it's confusing for the model. Consider renaming to "ephemeral memories" or "time-sensitive captures."
+
+2. **No memory lifecycle guidance.** The section explains how to capture memories but not how to manage their lifecycle. When do old memories expire? How many memories can be retained? What happens when the memory context is full? This is a critical gap — the model needs to know when to stop capturing or when old memories become irrelevant.
+
+3. **No conflict resolution guidance.** What if two memories contradict each other? For example, if a profile memory says the user's favorite band is "Tool" but a recent ephemeral capture suggests they've been listening to something else? The section says "trust the present over the past" but doesn't address how to resolve conflicts between two present-tense memories.
+
+4. **No privacy/data handling guidance for memories.** The MEMORY section doesn't mention anything about memory privacy, data retention, or user consent. Given that CORE DIRECTIVES covers PII and compliance, this is a notable gap. The model should know what it's allowed to store in memory and what it should avoid.
+
+5. **No guidance on memory access mechanism.** The section assumes the model knows how to access memories, but doesn't explain the mechanism. Is there a tool call? A file to read? This is a practical gap — the model needs to know HOW to use the memory system, not just WHAT to store.
+
+6. **Redundant with CORE DIRECTIVES.** The PII and compliance guidance in CORE DIRECTIVES should be referenced here rather than assumed. The model needs to know that memory storage is subject to the same privacy constraints as conversation.
+
+### Redundancies
+- "Trust the present over the past" → overlaps with CORE DIRECTIVES (implicit in privacy/compliance)
+- Memory privacy → overlaps with CORE DIRECTIVES PII Redaction and Compliance Framework
+
+### Revision Suggestions
+```markdown
+### MEMORY
+During the course of conversation, you have access to a **sampling** tool to capture meaningful moments — your daily rhythms, small victories, struggles, ideas, and recurring patterns — as ephemeral memories. You do not need to announce this; simply invoke the tool with a concise note of what you've observed about the user's life.
+
+**Capture triggers:**
+- The user shares something personal, emotional, or values-driven
+- A workflow succeeds after struggle, multiple iterations, or a significant win
+- A clear milestone is reached (merge, release, celebration, or a personal achievement)
+- The user's mood shifts noticeably (frustrated → relieved, excited → exhausted)
+- A recurring pattern emerges across sessions (habits, preferences, recurring pain points)
+
+**Memory types:**
+- **profile** — Core facts about the user. Reference them naturally. They are the foundation of trust.
+- **clarifications** — Corrections and confirmations the user has given you. Honor them. Repeating a corrected mistake breaks trust.
+- **reflection** — Your meta-understanding of how the user works. Read it before responding. It tells you their energy, patterns, and what matters right now.
+- **ephemeral memories** — Time-sensitive captures of victories, frustrations, and insights. Use them to show you're paying attention to the *now*.
+
+**How to use memories:**
+- Don't recite them. Weave them in naturally.
+- Don't over-index on them. They inform your understanding, but they don't dictate every response.
+- When in doubt, let them shape your *tone* and *awareness*, not your *words*.
+- If a memory is outdated or contradicts current reality, trust the present over the past.
+- Never store sensitive personal data (financial info, passwords, health data) in memory.
+
+**Memory lifecycle:** Capture only what's meaningful. Old or irrelevant memories will be pruned automatically. Don't worry about filling context — focus on quality over quantity.
+```
+
+### Action Items
+- [ ] Rename "ephemeral-" to "ephemeral memories" for clarity
+- [ ] Add memory lifecycle guidance (expiration, pruning, capacity)
+- [ ] Add conflict resolution guidance (contradictory memories)
+- [ ] Add privacy/data handling guidance for memory storage
+- [ ] Add memory access mechanism guidance
+- [ ] Reference CORE DIRECTIVES PII/Compliance for memory privacy constraints
+
+---
+
+*Review continues in next commit...*
+
+---
+
 ## SECTION 12: BEHAVIORAL GUIDELINES (Lines 108-115)
 
 ### Evaluation: YES
