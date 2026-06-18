@@ -121,7 +121,7 @@ async function searchConversations(sessionsDir, query, limit) {
 		return { stdout: "", stderr: err.message };
 	});
 
-	const output = String(stdout).trim();
+	const output = stdout?.trim() ?? stdout;
 	if (!output) {
 		return `No conversations matched query "${query}"`;
 	}

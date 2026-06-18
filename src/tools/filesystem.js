@@ -433,7 +433,7 @@ export async function searchFilesImpl(input, options) {
 			resolved.path,
 		].filter(Boolean);
 		const { stdout } = await execFile("rg", rgArgs, { timeout: 10000, encoding: "utf-8" });
-		const output = String(stdout).trim();
+		const output = stdout?.trim() ?? stdout;
 
 		if (!output) {
 			return "No matches found.";
