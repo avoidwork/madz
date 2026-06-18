@@ -191,6 +191,13 @@ export const AgentSchema = z.object({
 	nodeTimeout: z.number().int().positive().default(600000),
 });
 
+// --- LRU cache schemas ---
+
+export const LruSchema = z.object({
+	size: z.number().int().positive().default(100),
+	ttl: z.number().int().positive().default(600000),
+});
+
 // --- Persistence schemas ---
 
 export const PersistenceSchema = z.object({
@@ -209,6 +216,7 @@ export const ConfigSchema = z.object({
 	schedules: SchedulesSchema,
 	tui: TuiSchema,
 	agent: AgentSchema.default({}),
+	lru: LruSchema.default({}),
 	persistence: PersistenceSchema,
 });
 
@@ -266,6 +274,7 @@ export const DEFAULT_CONFIG = {
 	},
 	schedules: { maxConcurrent: 1, mode: "inprocess", syncOnInit: true, entries: [] },
 	agent: { recursionLimit: 1000, autoContinueLimit: 1000, nodeTimeout: 600000 },
+	lru: { size: 100, ttl: 600000 },
 	tui: { name: "madz", cursorChar: "\u2588" },
 	persistence: { mode: "memory", sqlite_path: "memory/checkpoints.db" },
 };

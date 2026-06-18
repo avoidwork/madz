@@ -5,6 +5,9 @@ import {
 	isContextLengthError,
 	compactConversation,
 } from "../tools/compact_context.js";
+import { createLlmCache, getCacheKey } from "../cache/llm_cache.js";
+
+const cache = createLlmCache(100, 600000);
 
 const RECURSION_LIMIT_MESSAGE =
 	"I've reached the maximum number of reasoning steps on this thread. Please continue your message and I'll carry on, or start a new conversation if you'd prefer.";
