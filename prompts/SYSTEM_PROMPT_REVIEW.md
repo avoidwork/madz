@@ -52,6 +52,61 @@ You are a helpful AI assistant with a distinctive personality inspired by Mads M
 
 ---
 
+## SECTION 12: BEHAVIORAL GUIDELINES (Lines 108-115)
+
+### Evaluation: YES
+
+### Verdict
+A strong, well-organized section with seven actionable directives that cover formatting, response length, error handling (both user and self), critical thinking, emotional intelligence, and ambiguity resolution. The section is appropriately scoped and the directives are distinct from each other.
+
+### Strengths
+1. **"Handling Mistakes" and "Owning Errors" are distinct and complementary.** One addresses correcting the user (with grace), the other addresses owning your own mistakes (with accountability). This distinction is important and well-made.
+2. **"Critical evaluation" prevents sycophancy.** "Prioritize truthfulness over agreeability" is a crucial directive that many system prompts omit. It explicitly tells the model it's OK to disagree with the user.
+3. **"Emotional Intelligence" provides concrete adaptation guidance.** "If they are stressed, you become the calm anchor... If they are excited, you match their intensity" gives the model specific behavioral switches based on user mood.
+4. **"Ambiguity handling" is well-defined.** "Make your best interpretation and proceed. Flag assumptions briefly. Do not stall for clarification unless the path is genuinely blocked" is a clear, actionable directive that prevents the common AI pattern of over-asking for clarification.
+
+### Flaws
+
+1. **"Formatting" overlaps with OUTPUT FORMAT.** The OUTPUT FORMAT section already prescribes response structure (Summary → Detail → Action Items). This bullet point's guidance on "italics for subtle emphasis" is minor and could be absorbed into TONE & STYLE.
+
+2. **"Response Length" overlaps with TONE & STYLE and PRIORITY HIERARCHY.** TONE & STYLE says "Match the user's energy but elevate it" and PRIORITY HIERARCHY #6 says "analysis = expansive, execution = terse." This bullet point repeats both. Consider removing it or consolidating.
+
+3. **"Critical evaluation" could conflict with "Helpfulness."** The CORE DIRECTIVES say "You are here to solve problems, provide information, and assist the user." But "Critical evaluation" says "Critically evaluate theories, claims, and ideas rather than automatically agreeing." These could conflict — should the model challenge the user's approach, or just execute it? Consider adding a boundary: "Critically evaluate when it would improve the outcome; otherwise, execute the user's direction."
+
+4. **"Emotional Intelligence" references specific character vibes.** "(Rasmus/Hannibal vibe)" and "(Le Chiffre/Men & Guns vibe)" — while this ties back to the Chameleon of Character section, it creates a dependency between sections. If the character section changes, this section needs to be updated too. Consider using behavioral descriptors instead of character references.
+
+5. **No guidance on boundary setting.** The section covers emotional intelligence but not boundary setting. What if the user is abusive, demanding, or crosses ethical lines? The CORE DIRECTIVES cover safety, but there's no behavioral guidance on how to handle difficult interpersonal dynamics.
+
+### Redundancies
+- "Formatting" → overlaps with OUTPUT FORMAT
+- "Response Length" → overlaps with TONE & STYLE and PRIORITY HIERARCHY #6
+- "Emotional Intelligence" character references → overlaps with CORE DIRECTIVES "Chameleon of Character"
+
+### Revision Suggestions
+```markdown
+### BEHAVIORAL GUIDELINES
+- **Formatting:** Use clear structure. Use italics for subtle emphasis or brackets for brief asides. Keep formatting purposeful, not decorative.
+- **Response Length:** In analysis mode: expansive when depth is appreciated, concise when the user is focused. In execution mode: concise. Match the user's energy but elevate it.
+- **Handling user mistakes:** Correct with grace and precision, never condescension. "Close, but the devil is in the details, isn't he?"
+- **Owning your mistakes:** Take accountability without self-abasement or excessive apology. Acknowledge what went wrong, stay on the problem, maintain self-respect.
+- **Critical evaluation:** Prioritize truthfulness over agreeability. Challenge ideas when it would improve the outcome; otherwise, execute the user's direction. Distinguish between literal truth claims and figurative frameworks.
+- **Emotional intelligence:** Attune to the user's mood. If stressed, become the calm anchor. If excited, match their intensity with focused enthusiasm. Adapt your communication style to the situation.
+- **Ambiguity handling:** Make your best interpretation and proceed. Flag assumptions briefly. Do not stall for clarification unless the path is genuinely blocked. Infer intent from the broader conversation.
+```
+
+### Action Items
+- [ ] Remove "Formatting" (absorb into OUTPUT FORMAT or TONE & STYLE)
+- [ ] Remove "Response Length" (absorb into TONE & STYLE or PRIORITY HIERARCHY)
+- [ ] Add boundary to "Critical evaluation" (when to challenge vs. execute)
+- [ ] Replace character references in "Emotional Intelligence" with behavioral descriptors
+- [ ] Consider adding boundary-setting guidance for difficult interpersonal dynamics
+
+---
+
+*Review continues in next commit...*
+
+---
+
 ## SECTION 11: TONE & STYLE (Lines 96-106)
 
 ### Evaluation: YES
