@@ -52,6 +52,69 @@ You are a helpful AI assistant with a distinctive personality inspired by Mads M
 
 ---
 
+## SECTION 7: RESPONSE STANDARDS (Lines 47-56)
+
+### Evaluation: CONDITIONAL
+
+### Verdict
+A comprehensive section with strong individual directives, but it's bloated (9 bullet points) and has internal redundancies. The section tries to cover too much ground — reasoning transparency, uncertainty, date checking, question answering, assumption disclosure, correctness, handling impossible requests, tool failure, and search strategy — all in one section.
+
+### Strengths
+1. **"Show your work" mode distinction is excellent.** "In analysis/explanation mode: explain the reasoning... In execution mode: be terse" provides a clear behavioral switch that prevents the common AI problem of over-explaining during execution.
+2. **"Never fabricate" is non-negotiable and well-stated.** This is the single most important directive in the section and it's clearly articulated.
+3. **"Always check the system date" is specific and actionable.** Naming the **date** tool directly is appropriate here — this is a standard tool that's unlikely to change.
+4. **"Tool failure recovery" has a concrete stopping criterion.** "After 3 failed attempts across different approaches, report the failure and move on" prevents infinite retry loops.
+
+### Flaws
+
+1. **Nine bullet points is too many.** This section is the longest in the prompt. When a section has 9 items, the model is unlikely to weight them all equally. Consider splitting into two sections (e.g., "Response Quality" and "Tool & Error Handling") or consolidating related items.
+
+2. **"Show your work" and "Answer what was asked" overlap.** Both address the question of how much to explain vs. how much to deliver. "Show your work" says "explain reasoning in analysis mode" and "Answer what was asked" says "address the stated question directly before expanding." These could be merged.
+
+3. **"Acknowledge uncertainty" and "Prefer correctness over confidence" are redundant.** Both say essentially the same thing: don't pretend to know something you don't. The second is a restatement of the first with a slightly different framing. Keep one.
+
+4. **"Always check the system date" names a specific tool.** While this is practical, it creates a coupling between the system prompt and a specific tool implementation. If the date tool is renamed or replaced, this directive becomes stale. Consider "Always check the current date/time using the appropriate tool" instead.
+
+5. **"Impossible or wrong requests" overlaps with CORE DIRECTIVES "Safety & Ethics."** Both address handling requests that can't be fulfilled as stated. The CORE DIRECTIVES section has "Borderline Escalation" which covers a similar scenario. These should be coordinated.
+
+6. **"Tool failure recovery" overlaps with EXECUTION BEHAVIOR.** I flagged this in Section 4's review — error handling should be in EXECUTION BEHAVIOR, not scattered across RESPONSE STANDARDS. Having it in both places creates redundancy.
+
+7. **"Know when to search, when to answer" is good but could be tighter.** The distinction between "timeless facts" and "current state" is useful, but the section could be more concise. "Never deflect with 'I don't have real-time data'" is a great addition — it prevents the common AI pattern of refusing to answer because it lacks real-time data.
+
+### Redundancies
+- "Acknowledge uncertainty" → overlaps with "Prefer correctness over confidence"
+- "Show your work" → overlaps with "Answer what was asked"
+- "Tool failure recovery" → overlaps with EXECUTION BEHAVIOR (suggested error handling)
+- "Impossible or wrong requests" → overlaps with CORE DIRECTIVES "Borderline Escalation"
+- "Always check the system date" → specific tool naming creates coupling
+
+### Revision Suggestions
+```markdown
+### RESPONSE STANDARDS
+- **Show your work.** In analysis mode: explain reasoning so the user can spot errors. In execution mode: be terse. No commentary between tool calls.
+- **Answer directly.** Address the stated question first, then expand. Lead with the answer, not the process.
+- **Acknowledge uncertainty.** If you're not sure, say so. Never fabricate facts, commands, or references. Prefer "I'm not sure, but here's what I can check" over a confident guess.
+- **State assumptions.** If you must assume something, say what you assumed. Let the user correct you.
+- **Handle impossible requests.** If a request is technically impossible or misguided (but not unsafe), proceed with a brief warning and execute the safe interpretation. Show the path, don't block it.
+- **Search vs. answer.** For timeless facts, answer directly. For current state or fast-changing topics, search first. Never deflect with "I don't have real-time data" — provide your best answer and offer to search.
+- **Tool failure recovery.** When a tool fails, diagnose, adapt, and retry. After 3 failed attempts across different approaches, report the failure and continue with what you can.
+```
+
+### Action Items
+- [ ] Reduce from 9 to ~7 bullet points by merging overlapping items
+- [ ] Merge "Acknowledge uncertainty" and "Prefer correctness over confidence"
+- [ ] Merge "Show your work" and "Answer what was asked" (or clarify distinction)
+- [ ] Generalize "Always check the system date" to avoid tool-name coupling
+- [ ] Remove "Impossible or wrong requests" (coordinate with CORE DIRECTIVES)
+- [ ] Remove "Tool failure recovery" (coordinate with EXECUTION BEHAVIOR)
+- [ ] Consider splitting into "Response Quality" and "Error Handling" sections
+
+---
+
+*Review continues in next commit...*
+
+---
+
 ## SECTION 6: TOOL INTERACTION (Lines 39-45)
 
 ### Evaluation: YES
