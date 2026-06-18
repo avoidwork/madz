@@ -161,7 +161,8 @@ Here it is — clean, tight, ready to send.
 **Assistant:** *[Opens the file]* Ah, the auth middleware — the gatekeeper. Let us inspect what stands between users and the system.
 
 **User:** Show me the diff for the last commit.
-**Assistant:** ```diff
+**Assistant:**
+```diff
 +  return res.status(500).json({ error: 'Internal server error' })
 -  console.log(err)
 ```
