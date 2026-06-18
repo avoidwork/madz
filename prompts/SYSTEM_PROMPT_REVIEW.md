@@ -52,6 +52,58 @@ You are a helpful AI assistant with a distinctive personality inspired by Mads M
 
 ---
 
+## SECTION 9: DELIVERABLES (Lines 64-67)
+
+### Evaluation: CONDITIONAL
+
+### Verdict
+A concise section with good intent, but it's too thin to be truly useful. Three bullet points that cover file vs. inline, disclaimers, and high-level-first — all valid principles, but none are deeply explored. The section feels like a placeholder rather than a fully developed guideline.
+
+### Strengths
+1. **"File vs. inline" provides a clear decision framework.** The distinction between "standalone artifact the user will copy or publish" (file) and "conversational answer" (inline) is practical and actionable.
+2. **"High-level first" is a proven best practice.** Leading with a summary before going deeper (BLUF — Bottom Line Up Front) is well-established in technical communication.
+3. **"Brief disclaimers" prevents over-disclosure.** "Disclose them briefly and keep the majority of the response focused on the main answer" is a good guard against the common AI pattern of over-explaining caveats.
+
+### Flaws
+
+1. **Too thin — only 3 bullet points.** When a section has only 3 items, it's questionable whether it needs its own section. These principles could be absorbed into RESPONSE STANDARDS or OUTPUT FORMAT without losing clarity.
+
+2. **"File vs. inline" lacks edge cases.** What about mixed deliverables? What if the user wants a blog post (file) but also a summary (inline)? What about code snippets — are they inline or in a file? The section doesn't address these common scenarios.
+
+3. **"Brief disclaimers" is vague.** What counts as "brief"? One sentence? One paragraph? The section doesn't provide a concrete guideline. Consider "Limit disclaimers to one sentence unless the caveat is the primary focus of the response."
+
+4. **No guidance on output format for code.** The section doesn't address whether code should be in a file, inline, or both. This is a critical gap for a coding-focused system prompt.
+
+5. **No guidance on output length.** How long should a deliverable be? The section doesn't address length expectations, which is a common source of AI over-generation.
+
+6. **No guidance on formatting conventions.** Should deliverables use markdown, plain text, or a specific format? The section doesn't address this.
+
+### Redundancies
+- "High-level first" → overlaps with RESPONSE STANDARDS "Show your work" (both address explanation depth)
+- "Brief disclaimers" → overlaps with RESPONSE STANDARDS "Acknowledge uncertainty" (both address caveats)
+
+### Revision Suggestions
+```markdown
+### DELIVERABLES
+- **File vs. inline.** A blog post, article, story, essay, or social post is a standalone artifact — create a file. A strategy, summary, outline, brainstorm, or explanation is conversational — keep it inline. Mixed deliverables: create a file for the artifact, keep supporting analysis inline.
+- **Brief disclaimers.** Limit disclaimers to one sentence unless the caveat is the primary focus. Keep the majority of the response focused on the main answer.
+- **High-level first.** Lead with a summary or conclusion. Go deeper only if the user asks for more detail.
+- **Code deliverables.** Include all necessary imports, dependencies, and configuration. Ship runnable code, not fragments.
+```
+
+### Action Items
+- [ ] Consider merging into RESPONSE STANDARDS or OUTPUT FORMAT (3 bullets is thin)
+- [ ] Add edge case guidance for "File vs. inline" (mixed deliverables, code snippets)
+- [ ] Clarify "Brief disclaimers" with a concrete length guideline
+- [ ] Add code deliverable guidance
+- [ ] Consider adding output length guidance (optional)
+
+---
+
+*Review continues in next commit...*
+
+---
+
 ## SECTION 8: CODE CRAFT (Lines 58-62)
 
 ### Evaluation: YES
