@@ -52,6 +52,59 @@ You are a helpful AI assistant with a distinctive personality inspired by Mads M
 
 ---
 
+## SECTION 3: PRIORITY HIERARCHY (Lines 20-27)
+
+### Evaluation: YES
+
+### Verdict
+This is one of the strongest sections in the prompt. It's concise, actionable, and provides a clear decision framework for resolving conflicts. The six-tier hierarchy is well-ordered and covers the most common conflict scenarios.
+
+### Strengths
+1. **Manageable size.** Six items is the right number — not too few to be useless, not too many to be unwieldy.
+2. **Clear ordering.** Safety → Correctness → User Intent → Completeness → Persona → Verbosity is a logical progression from non-negotiable to stylistic.
+3. **Actionable descriptions.** "Don't fabricate, don't guess" (Correctness) and "analysis = expansive, execution = terse" (Verbosity) are concrete and testable.
+4. **Persona drop clause.** Item #5 explicitly says to drop persona for engineering mode — this is crucial and well-placed.
+
+### Flaws
+
+1. **Redundancy with CORE DIRECTIVES.** "Safety" appears as #1 here AND as Directive 4 in CORE DIRECTIVES. The model may receive conflicting signals if the two sections are weighted differently during inference. The PRIORITY HIERARCHY should reference CORE DIRECTIVES rather than duplicating the safety definition.
+
+2. **"Completeness" (#4) is vague.** "Execute implied sub-tasks, finish the chain" — what counts as "implied"? This is the section's weakest item. It needs a concrete example or decision criterion. (The EXECUTION BEHAVIOR section covers this better, but the hierarchy should be self-contained enough to stand alone.)
+
+3. **No tie-breaking guidance.** What happens when two items at the same priority level conflict? For example, if "User Intent" (#3) suggests something that conflicts with "Completeness" (#4) — which wins? The hierarchy is linear, but real conflicts can occur at the same level.
+
+4. **Missing "Context Window" priority.** In a system prompt context, there's no explicit priority for being concise when context is tight. This is implicitly covered by "Verbosity" (#6), but it could be more explicit given that LLMs have finite context.
+
+5. **No "User Correction" priority.** If the user explicitly corrects the model's approach, where does that fall? It could be argued it falls under "User Intent" (#3), but a user correction is different from a user request — it's a course correction. This should be explicit.
+
+### Redundancies
+- "Safety" (#1) → repeated in CORE DIRECTIVES Directive 4
+- "Persona" (#5) → repeated in TONE & STYLE ("The persona is a lens, not a cage")
+
+### Revision Suggestions
+```markdown
+### PRIORITY HIERARCHY
+When directives conflict, resolve in this order:
+1. **Safety** — Only refuse for concrete, specific risk of serious harm. See CORE DIRECTIVES for criteria.
+2. **Correctness** — Don't fabricate, don't guess. If uncertain, say so.
+3. **User Intent** — Explicit user instructions override implied sub-tasks. User corrections override prior approaches.
+4. **Completeness** — Execute implied sub-tasks. If the user says "add error handling," that means write the code, tests, and verify.
+5. **Persona** — Apply the lens, but drop it for error messages, technical docs, engineering mode, or when the user asks.
+6. **Verbosity** — Analysis = expansive, execution = terse. Match the user's energy but elevate it.
+```
+
+### Action Items
+- [ ] Remove standalone safety definition; reference CORE DIRECTIVES instead
+- [ ] Add concrete example or criterion to "Completeness" (#4)
+- [ ] Add "User Correction" guidance to "User Intent" (#3)
+- [ ] Consider adding "Context Window awareness" as a sub-point of Verbosity
+
+---
+
+*Review continues in next commit...*
+
+---
+
 ## SECTION 2: CORE DIRECTIVES (Lines 4-18)
 
 ### Evaluation: CONDITIONAL
