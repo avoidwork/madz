@@ -22,6 +22,25 @@ The system SHALL store LLM responses in the cache after a successful API call wh
 - **WHEN** `callReactAgentStreaming()` completes successfully with a new (uncached) prompt
 - **THEN** the final aggregated response is stored in the cache with the generated cache key
 
+### Requirement: Conditional cache storage based on tool usage
+The system SHALL only store LLM responses in the cache when no tools or skills were invoked during the agent execution. If the agent used any tools or skills, the response SHALL NOT be cached, ensuring that state-changing operations are not skipped on subsequent identical prompts.
+
+#### Scenario: Response without tool calls is cached
+- **WHEN** `callReactAgent()` completes successfully with a new (uncached) prompt and no tools were invoked
+- **THEN** the response is stored in the cache with the generated cache key
+
+#### Scenario: Response with tool calls is not cached
+- **WHEN** `callReactAgent()` completes successfully with a new (uncached) prompt and tools were invoked
+- **THEN** the response is NOT stored in the cache
+
+#### Scenario: Streaming response without tool calls is cached
+- **WHEN** `callReactAgentStreaming()` completes successfully with a new (uncached) prompt and no tools were invoked
+- **THEN** the final aggregated response is stored in the cache
+
+#### Scenario: Streaming response with tool calls is not cached
+- **WHEN** `callReactAgentStreaming()` completes successfully with a new (uncached) prompt and tools were invoked
+- **THEN** the final aggregated response is NOT stored in the cache
+
 ### Requirement: Cache key generation
 The system SHALL generate cache keys using the format `${threadId}_${hash}` where `threadId` is extracted from `config.configurable.thread_id` and `hash` is a SHA-256 hash of the message content.
 
