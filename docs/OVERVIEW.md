@@ -13,7 +13,8 @@ graph TD
     I --> R["Registry"]
     I --> S["Scheduler"]
     R --> A["Agent"]
-    A --> P["Provider"]
+    A -->|"cache-aside"| L["Cache"]
+    L --> P["Provider"]
     A -->|"tools"| SB["Sandbox"]
     S -->|"runNow()"| SB
     SB -->|"spawn()"| SK["scripts/"]
@@ -28,8 +29,10 @@ graph TD
     classDef core fill:#42a5f5,color:#fff,stroke:#1565c0
     classDef util fill:#66bb6a,color:#fff,stroke:#2e7d32
     classDef ext fill:#ab47bc,color:#fff,stroke:#6a1b9a
+    classDef cache fill:#26a69a,color:#fff,stroke:#00695c
     class I root
     class A,P,T,R core
+    class L cache
     class S,TM,SE,SB util
     class SK,CW,FS ext
 ```
