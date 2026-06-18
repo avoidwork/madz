@@ -1,4 +1,4 @@
-import lru from "tiny-lru";
+import { lru } from "tiny-lru";
 import { createHash } from "node:crypto";
 
 /**
@@ -33,6 +33,13 @@ export function createLlmCache(size, ttl) {
 				cache.set(key, value);
 			} catch {
 				// Fail-open: silently ignore cache write errors
+			}
+		},
+		clear() {
+			try {
+				cache.clear();
+			} catch {
+				// Fail-open: silently ignore cache clear errors
 			}
 		},
 		_lru: cache,

@@ -1,7 +1,7 @@
-import { describe, it } from "node:test";
+import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert";
 import { AIMessage, AIMessageChunk, HumanMessage, SystemMessage } from "@langchain/core/messages";
-import { callReactAgent, createReactAgent } from "../../src/agent/react.js";
+import { callReactAgent, createReactAgent, clearCache } from "../../src/agent/react.js";
 
 class GraphRecursionError extends Error {
 	constructor(message) {
@@ -11,6 +11,10 @@ class GraphRecursionError extends Error {
 }
 
 describe("callReactAgent", () => {
+	beforeEach(() => {
+		clearCache();
+	});
+
 	it("invokes agent with correct message format", async () => {
 		const agentMock = {
 			invoke: () => {

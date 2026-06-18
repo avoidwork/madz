@@ -9,6 +9,13 @@ import { createLlmCache, getCacheKey } from "../cache/llm_cache.js";
 
 const cache = createLlmCache(100, 600000);
 
+/**
+ * Clear the LLM response cache. Primarily for testing.
+ */
+export function clearCache() {
+	cache.clear();
+}
+
 const RECURSION_LIMIT_MESSAGE =
 	"I've reached the maximum number of reasoning steps on this thread. Please continue your message and I'll carry on, or start a new conversation if you'd prefer.";
 
@@ -78,6 +85,16 @@ export async function callReactAgent(agent, message, config, systemPrompt, callb
 		return callReactAgentStreaming(agent, messages, message, config, callback, options, systemPrompt, recursionLimit);
 	}
 
+	// Cache-aside: check cache before invoking the agent
+	const threadId = config?.configurable?.thread_id;
+	const cacheKey = threadId ? getCacheKey(threadId, message) : null;
+	if (cacheKey) {
+		const cached = cache.get(cacheKey);
+		if (cached) {
+			return { content: cached };
+		}
+	}
+
 	let _lastError = null;
 	let iteration = 0;
 	let effectiveContextLength = maxContextLength;
@@ -90,7 +107,14 @@ export async function callReactAgent(agent, message, config, systemPrompt, callb
 				...(recursionLimit !== null && { recursionLimit }),
 			};
 			const result = await agent.invoke({ messages }, invokeConfig);
-			return extractContent(result, message);
+			const content = extractContent(result, message);
+
+			// Cache the result on miss
+			if (cacheKey) {
+				cache.set(cacheKey, content.content);
+			}
+
+			return content;
 		} catch (err) {
 			// Handle recursion limit — always return immediately
 			if (err instanceof Error && err.name === "GraphRecursionError") {
@@ -225,12 +249,27 @@ async function callReactAgentStreaming(
 		streamOptions.signal = signal;
 	}
 
+	// Cache-aside: extract thread_id and check cache before streaming
+	const threadId = config?.configurable?.thread_id;
+	const cacheKey = threadId ? getCacheKey(threadId, originalMessage) : null;
+	if (cacheKey) {
+		const cached = cache.get(cacheKey);
+		if (cached) {
+			// Emit cached content as text events
+			callback({ type: "text", text: cached });
+			return { content: cached };
+		}
+	}
+
 	let _lastError = null;
 	let iteration = 0;
 	let effectiveContextLength = maxContextLength;
 	let effectiveMaxTokens = maxTokens;
 	let currentMessages = initMessages;
 	let compactionActive = false;
+
+	// Aggregate text chunks for caching (only cache on successful completion)
+	let aggregatedText = "";
 
 	while (iteration <= maxCompactionIterations) {
 		let toolCallSet = new Set();
@@ -244,6 +283,7 @@ async function callReactAgentStreaming(
 			for await (const event of stream) {
 				// Check for abort signal on each event
 				if (signal && signal.aborted) {
+					// Do NOT cache on abort
 					// Emit tool_end for any tool_start that didn't get a corresponding tool_end
 					for (const key of toolCallSet) {
 						const [name] = key.split("|");
@@ -283,8 +323,8 @@ async function callReactAgentStreaming(
 					if (textContent.length > 0) {
 						// For tool-invoking LLM calls, the text might be empty or tool-call-related
 						callback({ type: "text", text: textContent });
-						// Note: the TUI accumulates text in committedContent for the final response,
-						// so we don't need to track it here.
+						// Aggregate text for caching
+						aggregatedText += textContent;
 					}
 
 					// Emit reasoning/thinking content
@@ -348,6 +388,11 @@ async function callReactAgentStreaming(
 			for (const key of toolCallSet) {
 				const [name] = key.split("|");
 				callback({ type: "tool_end", toolName: name });
+			}
+
+			// Cache the aggregated response on successful completion
+			if (cacheKey && aggregatedText) {
+				cache.set(cacheKey, aggregatedText);
 			}
 
 			// Success — emit compaction_end if compaction was active, then return
