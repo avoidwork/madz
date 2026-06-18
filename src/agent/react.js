@@ -6,14 +6,31 @@ import {
 	compactConversation,
 } from "../tools/compact_context.js";
 import { createLlmCache, getCacheKey } from "../cache/llm_cache.js";
+import { loadConfig } from "../config/loader.js";
 
-const cache = createLlmCache(100, 600000);
+/**
+ * Lazily initialize the LLM response cache using configured lru.size and lru.ttl.
+ * Falls back to defaults (100, 600000) if config is unavailable.
+ */
+let _cache = null;
+function getCache() {
+	if (!_cache) {
+		try {
+			const config = loadConfig();
+			_cache = createLlmCache(config.lru.size, config.lru.ttl);
+		} catch {
+			// Config unavailable — fall back to defaults
+			_cache = createLlmCache(100, 600000);
+		}
+	}
+	return _cache;
+}
 
 /**
  * Clear the LLM response cache. Primarily for testing.
  */
 export function clearCache() {
-	cache.clear();
+	getCache().clear();
 }
 
 const RECURSION_LIMIT_MESSAGE =
@@ -89,7 +106,7 @@ export async function callReactAgent(agent, message, config, systemPrompt, callb
 	const threadId = config?.configurable?.thread_id;
 	const cacheKey = threadId ? getCacheKey(threadId, message) : null;
 	if (cacheKey) {
-		const cached = cache.get(cacheKey);
+		const cached = getCache().get(cacheKey);
 		if (cached) {
 			return { content: cached };
 		}
@@ -111,7 +128,7 @@ export async function callReactAgent(agent, message, config, systemPrompt, callb
 
 			// Cache the result on miss
 			if (cacheKey) {
-				cache.set(cacheKey, content.content);
+				getCache().set(cacheKey, content.content);
 			}
 
 			return content;
@@ -253,7 +270,7 @@ async function callReactAgentStreaming(
 	const threadId = config?.configurable?.thread_id;
 	const cacheKey = threadId ? getCacheKey(threadId, originalMessage) : null;
 	if (cacheKey) {
-		const cached = cache.get(cacheKey);
+		const cached = getCache().get(cacheKey);
 		if (cached) {
 			// Emit cached content as text events
 			callback({ type: "text", text: cached });
@@ -392,7 +409,7 @@ async function callReactAgentStreaming(
 
 			// Cache the aggregated response on successful completion
 			if (cacheKey && aggregatedText) {
-				cache.set(cacheKey, aggregatedText);
+				getCache().set(cacheKey, aggregatedText);
 			}
 
 			// Success — emit compaction_end if compaction was active, then return
