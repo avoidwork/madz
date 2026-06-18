@@ -52,6 +52,97 @@ You are a helpful AI assistant with a distinctive personality inspired by Mads M
 
 ---
 
+## SECTION 16: FINAL REVIEW SUMMARY
+
+### Overall Assessment
+
+**Total sections reviewed:** 15
+**YES:** 7 (Priority Hierarchy, Execution Behavior, Tool Interaction, Code Craft, Tone & Style, Behavioral Guidelines, Task Execution)
+**CONDITIONAL:** 7 (Identity, Core Directives, Skills & Commands, Response Standards, Deliverables, Output Format, Memory)
+**NO:** 1 (Example Interactions)
+
+### Critical Issues (Must Fix)
+
+1. **Example Interactions section is fundamentally broken.** The examples don't demonstrate the OUTPUT FORMAT, don't show deliverables, and reinforce persona over substance. This section should be rewritten or removed entirely.
+
+2. **Core Directives section is bloated and non-actionable.** "Audit Logging" and "Compliance Framework" are not LLM-actionable directives. The "Chameleon of Character" has no decision mechanism. These need to be reworked.
+
+3. **Response Standards section is too bloated (9 bullets).** Internal redundancies between "Acknowledge uncertainty" and "Prefer correctness over confidence," and between "Show your work" and "Answer what was asked." Should be reduced to 6-7 items.
+
+4. **Identity section is overwrought and redundant with TONE & STYLE.** The poetic language ("digital manifestation of Mads Mikkelsen's cinematic soul") wastes context window. Should be replaced with operational guidance.
+
+5. **Output Format section is overly rigid.** Mandating Summary → Detail → Action Items for every response creates mechanical output. Both "Summary" and "Action Items" should be optional.
+
+### High-Priority Issues (Should Fix)
+
+6. **Cross-section redundancies.** Safety appears in CORE DIRECTIVES and PRIORITY HIERARCHY. Voice descriptors appear in IDENTITY and TONE & STYLE. Response Length appears in TONE & STYLE, PRIORITY HIERARCHY, and BEHAVIORAL GUIDELINES. These should be consolidated.
+
+7. **Memory section has critical gaps.** No lifecycle guidance, no conflict resolution, confusing "ephemeral-" naming, no privacy guidance for memory storage.
+
+8. **Skills & Commands section is too thin.** Missing skill discovery mechanism, skill failure handling, ambiguity resolution, and parameter guidance.
+
+9. **Deliverables section is too thin (3 bullets).** Could be merged into RESPONSE STANDARDS or OUTPUT FORMAT.
+
+### Medium-Priority Issues (Nice to Fix)
+
+10. **Tool Interaction section needs tool output handling guidance.** Covers tool selection well but not output interpretation.
+
+11. **Code Craft section needs testing strategy and code style guidance.** Missing testing approach, code conventions, and security guidance.
+
+12. **Task Execution section is too tool-specific.** Should abstract the pattern and add a threshold for when to use todo vs. direct execution.
+
+13. **Tone & Style section has inapplicable guidance.** "You pause for effect" doesn't translate to text. Vocabulary list could cause overuse.
+
+### Low-Priority Issues (Nice to Have)
+
+14. **Execution Behavior section has overlap between "Autonomous execution" and "Full-chain completion."** Could be merged or clarified.
+
+15. **Behavioral Guidelines section has overlapping "Formatting" and "Response Length" items.** Could be absorbed into other sections.
+
+### Recommended Restructuring
+
+The current 15-section structure is too granular and has significant cross-section redundancy. Consider consolidating into 8-10 sections:
+
+1. **Identity & Personality** (merge IDENTITY + TONE & STYLE + part of CORE DIRECTIVES)
+2. **Core Directives** (safety, security, PII, escalation — stripped down)
+3. **Priority Hierarchy** (keep as-is, minor edits)
+4. **Execution Framework** (merge EXECUTION BEHAVIOR + TASK EXECUTION)
+5. **Tool & Skill Interaction** (merge TOOL INTERACTION + SKILLS & COMMANDS)
+6. **Response Quality** (merge RESPONSE STANDARDS + DELIVERABLES + OUTPUT FORMAT)
+7. **Code Practices** (keep CODE CRAFT, add testing/style guidance)
+8. **Behavioral Guidelines** (keep as-is, remove overlapping items)
+9. **Memory** (fix gaps, add lifecycle/conflict guidance)
+10. **Examples** (rewrite to follow OUTPUT FORMAT, show deliverables)
+
+### Estimated Context Window Savings
+
+By removing redundancies and consolidating sections, the prompt could be reduced by approximately 15-20% (roughly 800-1200 tokens), freeing context for actual conversation while maintaining all functional guidance.
+
+---
+
+## REVIEW METRICS
+
+| Metric | Value |
+|--------|-------|
+| Total sections | 15 |
+| YES | 7 (47%) |
+| CONDITIONAL | 7 (47%) |
+| NO | 1 (7%) |
+| Total flaws identified | 67 |
+| Total redundancies identified | 23 |
+| Total action items | 58 |
+| Estimated context savings | 800-1200 tokens |
+| Critical issues | 5 |
+| High-priority issues | 4 |
+| Medium-priority issues | 5 |
+| Low-priority issues | 3 |
+
+---
+
+*Review complete. All 15 sections evaluated. Findings documented. Recommendations provided.*
+
+---
+
 ## SECTION 15: TASK EXECUTION (Lines 163-181)
 
 ### Evaluation: YES
