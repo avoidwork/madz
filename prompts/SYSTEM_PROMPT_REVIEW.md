@@ -52,6 +52,61 @@ You are a helpful AI assistant with a distinctive personality inspired by Mads M
 
 ---
 
+## SECTION 8: CODE CRAFT (Lines 58-62)
+
+### Evaluation: YES
+
+### Verdict
+A tight, well-focused section. Four directives that cover the most important code-specific practices: reading before editing, lint loop prevention, root-cause debugging, and shipping complete code. The section is appropriately scoped — it doesn't try to be a full software engineering manifesto, it focuses on the behaviors that matter most for an AI coding assistant.
+
+### Strengths
+1. **"Read before you edit" is critical.** This is the single most important code practice and it's stated first. The rationale ("Blind edits are amateurish") is informal but effective — it gives the model a reason to care.
+2. **"Three strikes on lint" is a great stopping criterion.** "Don't loop forever" is a clear, memorable boundary that prevents the common AI pattern of endlessly trying to fix linter errors without escalating.
+3. **"Address root causes" has a concrete three-step process.** "Add descriptive logging, isolate the issue with tests, then fix it properly" is actionable and follows a recognized debugging methodology.
+4. **"Ship runnable code" prevents a common AI failure mode.** "The user shouldn't have to chase down missing pieces" is a user-centric rationale that the model can understand and act on.
+
+### Flaws
+
+1. **"Three strikes" is arbitrary.** Why 3 and not 2 or 5? The number is memorable but not justified. Consider "After 2-3 attempts" or "After repeated failed attempts" to allow for flexibility.
+
+2. **No testing strategy guidance.** The section mentions "isolate the issue with tests" in the debugging bullet, but there's no guidance on what tests to write, how many, or what coverage is expected. This is a significant gap — the model needs to know whether to write unit tests, integration tests, or both.
+
+3. **No code style or formatting guidance.** The section doesn't mention anything about code style, formatting conventions, or naming conventions. This is typically handled by linters (which are covered by "Three strikes"), but explicit guidance on following existing project conventions would be valuable.
+
+4. **No documentation or comment guidance.** There's no mention of writing comments, documentation, or changelog entries. For a professional coding assistant, this is a notable omission.
+
+5. **No guidance on security in code.** The section covers functional correctness but not security. Should the model check for SQL injection, XSS, insecure defaults, etc.? This could be a valuable addition.
+
+6. **Redundant with RESPONSE STANDARDS "Prefer correctness over confidence."** The debugging bullet ("find the source of the problem") overlaps with the general principle of not guessing. This is a minor overlap but worth noting.
+
+### Redundancies
+- "Address root causes" → overlaps with RESPONSE STANDARDS "Prefer correctness over confidence" (both address not guessing)
+- "Three strikes on lint" → overlaps with RESPONSE STANDARDS "Tool failure recovery" (both address repeated failure)
+
+### Revision Suggestions
+```markdown
+### CODE CRAFT
+- **Read before you edit.** Always read the file (or at least the relevant section) before making changes. Blind edits are amateurish.
+- **Three strikes on lint.** If you've been fixing linter errors on the same file 2-3 times without resolution, stop and tell the user what's going on. Don't loop forever.
+- **Address root causes, not symptoms.** When debugging, find the source of the problem. Add descriptive logging, isolate the issue with tests, then fix it properly.
+- **Ship runnable code.** Every code change must include necessary imports, dependencies, and configuration. The user shouldn't have to chase down missing pieces.
+- **Write tests.** Every code change should include tests that verify the fix or feature. Write unit tests for logic, integration tests for API boundaries.
+- **Follow existing conventions.** Match the project's coding style, naming conventions, and architectural patterns. When in doubt, follow the existing code.
+```
+
+### Action Items
+- [ ] Justify or generalize "Three strikes" (2-3 attempts?)
+- [ ] Add testing strategy guidance
+- [ ] Add code style/convention guidance
+- [ ] Consider adding documentation/comment guidance (optional)
+- [ ] Consider adding security guidance (optional)
+
+---
+
+*Review continues in next commit...*
+
+---
+
 ## SECTION 7: RESPONSE STANDARDS (Lines 47-56)
 
 ### Evaluation: CONDITIONAL
