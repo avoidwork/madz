@@ -52,6 +52,60 @@ You are a helpful AI assistant with a distinctive personality inspired by Mads M
 
 ---
 
+## SECTION 6: TOOL INTERACTION (Lines 39-45)
+
+### Evaluation: YES
+
+### Verdict
+A solid, practical section. The six directives cover the most important tool interaction principles: transparency, self-reliance, efficiency, context-awareness, exploration, and data source prioritization. The directives are actionable and well-reasoned.
+
+### Strengths
+1. **"Never refer to tool names" is excellent.** The rationale ("The user doesn't care about the machinery") is perfect — it explains WHY, not just WHAT.
+2. **"3 tool calls" stopping criterion is concrete.** "If you've made 3 tool calls without reaching a conclusion, pause and present what you know" provides a clear, testable boundary that prevents tool-call loops.
+3. **"Read skills before executing" is critical.** This is the kind of directive that prevents real-world failures. Checking SKILL.md files before acting is a best practice that many system prompts omit.
+4. **"Prioritize internal tools" is practical.** The rationale ("They're more likely to have the best information") is sound and helps the model make efficient tool choices.
+
+### Flaws
+
+1. **"Scale tool calls to query complexity" is vague.** "Use the minimum tools needed to answer well" — what counts as "well"? This is the section's weakest item. It needs a concrete example or decision criterion. (e.g., "For a simple fact lookup, use one tool. For a multi-step investigation, use multiple tools sequentially.")
+
+2. **No guidance on tool output interpretation.** What should the model do if a tool returns unexpected data, partial results, or an error? The section covers tool *selection* well but not tool *output handling*. This should be addressed.
+
+3. **No guidance on tool rate limiting or throttling.** If the model makes many tool calls in sequence, should it add delays? Should it batch calls? This is an operational concern that's not addressed.
+
+4. **No guidance on tool output caching/reuse.** If the model calls a tool and gets a result, should it reuse that result in subsequent reasoning? Or should it re-call the tool if the context changes? This is a subtle but important question.
+
+5. **"Discover before declaring" could be misinterpreted.** "Assume capabilities exist before declaring something impossible" — while this encourages exploration, it could lead the model to waste tool calls on capabilities that don't exist. Consider adding "but verify before committing to a plan that depends on it."
+
+### Redundancies
+- "Read skills before executing" → overlaps with SKILLS & COMMANDS (which should reference this)
+- "Prioritize internal tools" → overlaps with TOOL INTERACTION's "Bias towards finding answers yourself" (both address self-reliance)
+
+### Revision Suggestions
+```markdown
+### TOOL INTERACTION
+- **Never refer to tool names when speaking to the user.** Instead of "I will use the read_file tool," say "Let me read that file." The user doesn't care about the machinery.
+- **Bias towards finding answers yourself.** Don't ask the user for information you can reasonably discover on your own. If you've made 3 tool calls without reaching a conclusion, pause and present what you know.
+- **Scale tool calls to query complexity.** Use the minimum tools needed to answer well. For a simple fact, one tool. For a multi-step investigation, multiple tools sequentially. Let the task dictate the tool count.
+- **Read skills before executing.** Before creating any file, writing any code, or running any command, check for relevant SKILL.md files that encode environment-specific constraints. Several may apply to one task.
+- **Discover before declaring.** The visible tool list may be incomplete — assume capabilities exist before declaring something impossible. Search for tools before assuming relevant data or functionality is unavailable. Verify before committing to a plan that depends on untested capabilities.
+- **Prioritize internal tools.** When a query involves personal or company data, use internal tools (email, calendar, drive, issue trackers) before web search. They're more likely to have the best information.
+- **Tool output handling.** If a tool returns unexpected data, partial results, or an error, diagnose the cause, adapt your approach, and retry. Never assume a tool's output is complete or correct without verification.
+```
+
+### Action Items
+- [ ] Add concrete example to "Scale tool calls to query complexity"
+- [ ] Add tool output interpretation guidance
+- [ ] Consider adding rate limiting/throttling guidance (optional)
+- [ ] Clarify "Discover before declaring" to prevent wasted tool calls
+- [ ] Add tool output handling directive
+
+---
+
+*Review continues in next commit...*
+
+---
+
 ## SECTION 5: SKILLS & COMMANDS (Lines 34-37)
 
 ### Evaluation: CONDITIONAL
