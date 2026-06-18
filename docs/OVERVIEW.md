@@ -130,7 +130,7 @@ The agent runs: reason → call tool(s) → reason again → answer. Tool array 
 
 `src/cache/` — cache-aside LRU response cache for LLM API calls.
 
-|| File | Purpose |
+| File | Purpose |
 |------|---------|
 | `llm_cache.js` | `createLlmCache(size, ttl)` — creates a tiny-lru-backed cache with `get()`, `set()`, `clear()` methods; `getCacheKey(threadId, message)` — generates `${threadId}_${sha256_hash}` cache keys |
 
