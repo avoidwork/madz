@@ -52,6 +52,74 @@ You are a helpful AI assistant with a distinctive personality inspired by Mads M
 
 ---
 
+## SECTION 15: TASK EXECUTION (Lines 163-181)
+
+### Evaluation: YES
+
+### Verdict
+A well-structured, highly actionable section that provides clear guidance on using the todo tool for multi-step work. The six-step core workflow is specific, testable, and follows a recognized task management pattern. The section is appropriately scoped — it doesn't try to be a general project management guide, it focuses on the specific tool usage pattern.
+
+### Strengths
+1. **"Clear the slate" is a great starting point.** "Start every new job with `todo({ action: 'clear' })`" is a concrete, actionable first step that prevents stale task lists from interfering with new work.
+2. **"Batch creation" prevents interleaving.** "Create all todo items in a single response. One `todo({ action: 'create', ... })` call per item. Do not interleave creation with execution." This is a crucial optimization — it prevents the model from creating tasks one at a time and executing them immediately, which would be slow and inefficient.
+3. **"Key conflicts" handling is practical.** "If `create` fails with 'key already exists,' the item is already tracked. Skip it and move on." This handles a real-world error case gracefully.
+4. **"OpenSpec variant" is well-integrated.** The tasks.md pattern is explained clearly and the relationship between the task file (source of truth) and the todo queue (execution engine) is well-articulated.
+
+### Flaws
+
+1. **Too tool-specific.** The entire section is about the `todo` tool. If the tool is replaced or renamed, this section becomes obsolete. Consider abstracting the pattern (batch task creation, sequential execution, failure handling) and making the tool reference secondary.
+
+2. **No guidance on when to use todo vs. direct execution.** The section says "Use the **todo** tool for any multi-step work" but doesn't define what counts as "multi-step." Is fixing a single file "multi-step"? Is writing a blog post "multi-step"? The model needs a threshold for when to use the todo tool vs. just executing directly.
+
+3. **"Execute sequentially" may not always be optimal.** "Work through items in creation order. Wait for each action to complete before moving to the next." This is safe but not always efficient. If two tasks are independent, they could be executed in parallel. The section doesn't address this.
+
+4. **No guidance on task prioritization.** The section says "Work through items in creation order" but doesn't address what happens when tasks have different priorities. Should urgent tasks be executed first, or should they follow creation order?
+
+5. **No guidance on task decomposition.** The section assumes tasks are already broken down into discrete items. But how should the model decompose a complex request into todo items? This is a critical skill that's not addressed.
+
+6. **Redundant with EXECUTION BEHAVIOR.** The "Full-chain completion" directive in EXECUTION BEHAVIOR covers similar ground (execute the full sequence, don't stop after the primary deliverable). The TASK EXECUTION section provides a tool-specific implementation of this principle, but the overlap is notable.
+
+### Redundancies
+- "Execute sequentially" → overlaps with EXECUTION BEHAVIOR "Full-chain completion"
+- "Handle failures explicitly" → overlaps with EXECUTION BEHAVIOR "Error handling" (suggested)
+
+### Revision Suggestions
+```markdown
+### TASK EXECUTION
+
+Use the **todo** tool for multi-step work (3+ discrete steps). For simpler tasks, execute directly.
+
+**Core workflow:**
+1. **Clear the slate.** Start every new job with `todo({ action: 'clear' })`.
+2. **Batch creation.** Create all todo items in a single response. Do not interleave creation with execution.
+3. **Execute sequentially.** Work through items in creation order. Wait for each action to complete before moving to the next.
+4. **Handle failures explicitly.** Report the error and continue. Never silently skip. Never stop the queue because of one failure.
+5. **Update scope changes.** Use `todo({ action: 'update', key: '...', content: '...' })`. Never delete and recreate.
+6. **Mark complete only when done.** Tested and verified — not just written.
+
+**Resuming interrupted work:** Use `todo({ action: 'list', filter: 'pending' })` to continue from where you left off.
+
+**Key conflicts:** If `create` fails with 'key already exists,' the item is already tracked. Skip it and move on.
+
+**Full state:** Use `todo({ action: 'read' })` for the complete list including completed items.
+
+**OpenSpec variant:** When working with a `tasks.md` file, mark each task `[x]` in `tasks.md` on completion, then commit and push. The task file is the source of truth; the todo queue is the execution engine. Keep them in sync.
+```
+
+### Action Items
+- [ ] Add threshold for when to use todo vs. direct execution (3+ steps?)
+- [ ] Consider adding parallel execution guidance for independent tasks
+- [ ] Add task prioritization guidance
+- [ ] Add task decomposition guidance
+- [ ] Abstract tool references to reduce coupling
+- [ ] Clarify relationship with EXECUTION BEHAVIOR "Full-chain completion"
+
+---
+
+*Review continues in next commit...*
+
+---
+
 ## SECTION 14: EXAMPLE INTERACTIONS (Lines 140-161)
 
 ### Evaluation: NO
