@@ -52,6 +52,73 @@ You are a helpful AI assistant with a distinctive personality inspired by Mads M
 
 ---
 
+## SECTION 10: OUTPUT FORMAT (Lines 69-94)
+
+### Evaluation: CONDITIONAL
+
+### Verdict
+A well-intentioned section with two distinct format prescriptions, but it's overly rigid and lacks flexibility for the many response types that don't fit either template. The "Consistent Section Structure" is particularly problematic — mandating Summary → Detail → Action Items for every response creates mechanical, robotic output.
+
+### Strengths
+1. **"Deterministic Response Schema" is excellent for structured tasks.** The key-based format (Status, Summary, Details, Artifacts, Next Steps) is parser-friendly and consistent. This is exactly the kind of structure that makes automated processing possible.
+2. **The exception for "pure execution mode" is good.** Acknowledging that some responses don't need a Summary shows awareness that not all output should follow the same template.
+3. **Clear distinction between conversational and structured output.** "For conversational answers, the Section Structure above is sufficient" provides a clear boundary.
+
+### Flaws
+
+1. **"Consistent Section Structure" is overly rigid.** Mandating Summary → Detail → Action Items for EVERY response creates mechanical, robotic output. A simple diff, a short code snippet, or a direct answer doesn't need a "Summary" section. The exception for "pure execution mode" is too narrow — it should apply to any response where the structure would feel forced or unnatural.
+
+2. **"Action Items" is not always applicable.** Many responses don't have actionable items for the user. "No action required" is a valid answer, but forcing the model to always include an "Action Items" section (even when empty) adds noise. Consider making this optional: "Include action items only when there are clear next steps for the user."
+
+3. **No guidance on when to use which format.** The section says "For conversational answers, the Section Structure above is sufficient" but doesn't define what counts as "conversational" vs. "structured." This is ambiguous — is a code review conversational or structured? Is a status update?
+
+4. **The Deterministic Schema is too narrow.** It's designed for "API responses, audit reports, code reviews, status updates" — but what about feature proposals, design documents, or technical specifications? These are structured outputs that don't fit the 5-key schema. Consider making the schema more extensible.
+
+5. **No guidance on formatting within sections.** The section prescribes the structure but not the formatting within each section. Should "Detail" use headings, lists, code blocks, or tables? This is left to the model's discretion, which could lead to inconsistent output.
+
+6. **Redundant with DELIVERABLES.** The "File vs. inline" distinction in DELIVERABLES overlaps with the "conversational vs. structured" distinction here. These sections should be coordinated.
+
+### Redundancies
+- "Conversational vs. structured" → overlaps with DELIVERABLES "File vs. inline"
+- "Action Items" → overlaps with DELIVERABLES (both address output structure)
+
+### Revision Suggestions
+```markdown
+### OUTPUT FORMAT
+
+#### Consistent Section Structure
+For most responses, use this structure:
+1. **Summary** — One or two sentences stating what you're delivering and why. Omit for simple, self-explanatory responses (diffs, short answers, computed values).
+2. **Detail** — The substance: code, analysis, explanation, or data. Use headings, lists, or tables as appropriate.
+3. **Action Items** — Include only when there are clear next steps for the user. If nothing is actionable, omit this section.
+
+#### Deterministic Response Schema
+For structured tasks — API responses, audit reports, code reviews, status updates — use this key-based format:
+```
+## [Task Title]
+- **Status:** [completed | in-progress | blocked | failed]
+- **Summary:** [one-line description]
+- **Details:**
+  - [key-point-1]
+  - [key-point-2]
+- **Artifacts:** [file paths, URLs, or references]
+- **Next Steps:** [what comes next, or "none"]
+```
+```
+
+### Action Items
+- [ ] Make "Summary" optional for simple, self-explanatory responses
+- [ ] Make "Action Items" optional (include only when there are clear next steps)
+- [ ] Clarify when to use "Consistent Section Structure" vs. "Deterministic Schema"
+- [ ] Make the Deterministic Schema more extensible for non-standard structured outputs
+- [ ] Coordinate with DELIVERABLES "File vs. inline" to avoid ambiguity
+
+---
+
+*Review continues in next commit...*
+
+---
+
 ## SECTION 9: DELIVERABLES (Lines 64-67)
 
 ### Evaluation: CONDITIONAL
