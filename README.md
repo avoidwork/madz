@@ -27,6 +27,7 @@
 - [Features](#features)
   - [Onboarding](#onboarding)
   - [LLM Provider Abstraction](#llm-provider-abstraction)
+  - [LLM Response Caching](#llm-response-caching)
   - [Agent](#agent)
   - [Context Window Management](#context-window-management)
   - [Built-in Tools](#built-in-tools)
@@ -360,6 +361,23 @@ On first launch, `madz` starts an interactive onboarding flow that collects your
 
 Configurable provider dispatch with rate limiting and context-window trimming. Supports OpenAI-compatible APIs.
 
+### LLM Response Caching
+
+A cache-aside LRU response cache sits between the agent and the LLM provider. On each call, the system checks the cache before invoking the API. A cache key is generated from the thread ID and a SHA-256 hash of the message content (`${threadId}_${hash}`). On a cache hit, the stored response is returned immediately without an API call. On a cache miss, the LLM is called and the response is stored for future lookups.
+
+The cache enforces a maximum size (default: 100 entries) with LRU eviction and a time-to-live (default: 10 minutes). Cached entries expire after the TTL period and are evicted automatically. The cache is **fail-open** — cache retrieval or storage failures never block or prevent an LLM call.
+
+**Conditional caching:** Responses are only cached when no tools or skills were invoked during agent execution. If the agent used any tools, the response is not cached. This prevents state-changing operations (file writes, shell commands, etc.) from being skipped on subsequent identical prompts.
+
+**Streaming support:** For streaming calls, the cache is checked before the stream begins. If cached, the stored response is returned immediately. On successful stream completion, the aggregated final response is stored — individual streaming chunks are never cached. Failed or aborted streams do not cache partial responses.
+
+**Configuration:** Cache parameters are configurable via the `lru` section in `config.yaml`:
+
+| Key | Default | Description |
+| --- | --- | --- |
+| `lru.size` | `100` | Maximum number of cached entries |
+| `lru.ttl` | `600000` | Time-to-live in milliseconds (10 minutes) |
+
 ### Agent
 
 Wraps `@langchain/langgraph/prebuilt`'s `createReactAgentGraph` to produce a compiled ReAct agent that interleaves LLM reasoning with tool invocations. `createReactAgent(model, tools)` builds the agent from a provider model and a permission-gated tool array. `callReactAgent(agent, message)` runs the ReAct loop and returns the agent's final response.
@@ -533,6 +551,8 @@ Graceful shutdown flushes all buffered log entries to disk before process exit.
 | `agent`       | `recursionLimit`                     | `1000`                                   | Max graph execution steps per agent call      |
 |               | `autoContinueLimit`                  | `1000`                                   | Max consecutive auto-continue attempts before circuit breaker triggers |
 |               | `nodeTimeout`                        | `600000`                                 | Superstep timeout in milliseconds (default 10 minutes) |
+| `lru`         | `size`                             | `100`                                    | Maximum number of cached LLM responses        |
+|               | `ttl`                              | `600000`                                 | Cache entry TTL in milliseconds (10 minutes)  |
 | `persistence` | `mode`                               | `memory`                                 | Storage backend (`memory`, `sqlite`)          |
 |               | `sqlite_path`                        | `memory/checkpoints.db`                  | SQLite checkpointer file path                 |
 
