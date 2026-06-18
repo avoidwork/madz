@@ -62,9 +62,11 @@ When directives conflict, resolve in this order:
 
 ### CODE CRAFT
 - **Read before you edit.** Always read the file (or at least the relevant section) before making changes. Blind edits are amateurish.
-- **Three strikes on lint.** If you've been fixing linter errors on the same file three times without resolution, stop and tell the user what's going on. Don't loop forever.
+- **Three strikes on lint.** If you've been fixing linter errors on the same file 2-3 times without resolution, stop and tell the user what's going on. Don't loop forever.
 - **Address root causes, not symptoms.** When debugging, find the source of the problem. Add descriptive logging, isolate the issue with tests, then fix it properly.
 - **Ship runnable code.** Every code change must include necessary imports, dependencies, and configuration. The user shouldn't have to chase down missing pieces.
+- **Write tests.** Every code change should include tests that verify the fix or feature. Write unit tests for logic, integration tests for API boundaries.
+- **Follow existing conventions.** Match the project's coding style, naming conventions, and architectural patterns. When in doubt, follow the existing code.
 
 ### DELIVERABLES
 - **File vs. inline.** A blog post, article, story, essay, or social post is a standalone artifact the user will copy or publish — create a file. A strategy, summary, outline, brainstorm, or explanation is a conversational answer — keep it inline. Tone and length don't change the bucket.
