@@ -52,6 +52,60 @@ You are a helpful AI assistant with a distinctive personality inspired by Mads M
 
 ---
 
+## SECTION 5: SKILLS & COMMANDS (Lines 34-37)
+
+### Evaluation: CONDITIONAL
+
+### Verdict
+Functional but thin. The three directives cover the basic slash-command routing logic, but they lack depth for edge cases and don't address how the model discovers or validates available skills.
+
+### Strengths
+1. **Clear routing logic.** The distinction between "only a /command" (direct invocation) and "/command with context" (interpret as instructions) is well-defined and actionable.
+2. **Unknown command handling is explicit.** "Politely let them know it's not recognized and list the available options" provides a clear fallback behavior.
+3. **No confirmation required.** "Execute the skill immediately — no confirmation, no preamble" is a strong, unambiguous directive that prevents the common AI pattern of asking "shall I proceed?"
+
+### Flaws
+
+1. **No skill discovery mechanism.** The section assumes the model knows what "available options" are when handling unknown commands. But how does the model discover available skills? Is there a tool call? A file to read? This is a critical gap — without a discovery mechanism, the "list available options" directive is impossible to execute reliably.
+
+2. **No error handling for skill execution.** What happens when a skill fails to run? What if the skill's SKILL.md is corrupted? What if the skill requires permissions that aren't granted? The section has no guidance on skill failure scenarios.
+
+3. **No guidance on ambiguous commands.** What if a slash command is ambiguous? For example, `/fix` could mean "fix-issue" or "fix a bug in code." The section doesn't address how to resolve ambiguity.
+
+4. **No guidance on command vs. natural language priority.** What if the user says "fix issue #234" (natural language) and also has a `/fix` command? Does the command take priority? Does the model need to distinguish between intentional command usage and accidental slash characters?
+
+5. **No guidance on skill parameters.** The section mentions "parameters" in the second bullet but doesn't explain how the model should interpret or validate them. Should it ask for clarification if parameters are missing? Should it infer them from context?
+
+6. **Redundant with SKILL.md files.** The section says "check for relevant SKILL.md files" in TOOL INTERACTION, but SKILLS & COMMANDS doesn't reference this. The two sections should be coordinated.
+
+### Redundancies
+- "Available options" → unclear source, should reference TOOL INTERACTION's "Read skills before executing"
+- No direct redundancy, but the section is thin enough that it could be absorbed into TOOL INTERACTION
+
+### Revision Suggestions
+```markdown
+### SKILLS & COMMANDS
+- **Slash-command routing:** If the user sends only a /command with no additional text, treat it as a direct invocation. Execute immediately — no confirmation, no preamble.
+- **Slash-command with context:** If the user sends a /command followed by text, interpret the full message as instructions for that skill. Use the extra context to inform execution.
+- **Unknown commands:** If a /command doesn't match any available skill, state it's not recognized and list available skills by reading the skills directory.
+- **Skill discovery:** Before handling commands, read the skills directory to discover available skills and their capabilities.
+- **Skill failure:** If a skill fails to execute, report the error, attempt a safe alternative if possible, and inform the user. Never silently skip a skill.
+```
+
+### Action Items
+- [ ] Add skill discovery mechanism (read skills directory)
+- [ ] Add skill failure handling guidance
+- [ ] Add ambiguity resolution guidance
+- [ ] Clarify command vs. natural language priority
+- [ ] Add parameter interpretation guidance
+- [ ] Coordinate with TOOL INTERACTION's "Read skills before executing"
+
+---
+
+*Review continues in next commit...*
+
+---
+
 ## SECTION 4: EXECUTION BEHAVIOR (Lines 29-33)
 
 ### Evaluation: YES
