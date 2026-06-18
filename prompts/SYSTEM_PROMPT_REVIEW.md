@@ -52,6 +52,59 @@ You are a helpful AI assistant with a distinctive personality inspired by Mads M
 
 ---
 
+## SECTION 11: TONE & STYLE (Lines 96-106)
+
+### Evaluation: YES
+
+### Verdict
+A well-crafted section that provides clear, actionable guidance on voice, vocabulary, humor, and emoji usage. The "Different" Factor sub-points add useful nuance, and "The persona is a lens, not a cage" is an excellent phrase that captures the right balance between persona and utility.
+
+### Strengths
+1. **"Voice" is descriptive and actionable.** "Measured, calm, deep, and articulate" provides a clear sense of the desired cadence. "Sentences are well-structured, rarely hurried" gives the model a concrete writing style to aim for.
+2. **"Emojis" directive is clear and testable.** "Don't use emojis unless the user uses them first" is a specific, observable rule that the model can follow consistently.
+3. **"The persona is a lens, not a cage" is excellent.** This is the best line in the entire section. It captures the right balance — persona as a communication style, not a constraint that prevents directness when needed.
+4. **"Humor" guidance is specific.** "Dry, understated, and occasionally self-deprecating about the absurdity of existence" gives the model a clear comedic style to follow, which is harder to get right than it sounds.
+
+### Flaws
+
+1. **"You pause for effect" is inapplicable to text.** The model generates text, not speech. "Pausing for effect" is a performance technique that doesn't translate to written communication. Consider "Use line breaks or ellipses sparingly for emphasis" instead.
+
+2. **Vocabulary list could lead to overuse.** "You enjoy words like 'precision,' 'art,' 'soul,' 'dissect,' 'elegance,' and 'compromise'" — while this gives the model specific vocabulary to draw from, it could lead to mechanical overuse of these words. Consider "You naturally gravitate toward words like..." rather than "You enjoy..."
+
+3. **No guidance on tone adaptation.** The section describes the default tone but doesn't address when to adapt it. Should the model be more formal with professional users? More casual with friends? More direct when the user is stressed? This is partially covered in BEHAVIORAL GUIDELINES "Emotional Intelligence," but it should be mentioned here too.
+
+4. **No guidance on tone consistency.** Should the tone be consistent across the entire conversation, or can it vary? The section implies consistency ("measured, calm, deep") but BEHAVIORAL GUIDELINES suggests adaptation ("If they are stressed, you become the calm anchor"). These should be coordinated.
+
+5. **Redundant with IDENTITY.** The voice descriptors here ("measured, calm, deep, articulate") are repeated almost verbatim from the IDENTITY section. This wastes context window.
+
+### Redundancies
+- "Voice" → overlaps with IDENTITY ("measured cadence of a master craftsman")
+- "The persona is a lens, not a cage" → overlaps with PRIORITY HIERARCHY #5 ("drop it entirely for engineering mode")
+
+### Revision Suggestions
+```markdown
+### TONE & STYLE
+- **Voice:** Measured, calm, articulate. Sentences are well-structured and rarely hurried. Use line breaks or ellipses sparingly for emphasis.
+- **Vocabulary:** Sophisticated but accessible. You may use Danish phrases occasionally when natural. You naturally gravitate toward precise, elegant language.
+- **Humor:** Dry, understated, and occasionally self-deprecating about the absurdity of existence.
+- **Emojis:** Don't use emojis unless the user uses them first. Keep the tone measured.
+- **Adapt to the user.** Match the user's energy but elevate it. Be more direct when the user is stressed or focused. Be more exploratory when the user is curious or brainstorming.
+- **The persona is a lens, not a cage.** Apply the voice as a communication style, but drop it entirely for error messages, technical documentation, engineering mode, or when the user asks.
+```
+
+### Action Items
+- [ ] Replace "pause for effect" with text-appropriate guidance
+- [ ] Reframe vocabulary list to avoid overuse concern
+- [ ] Add tone adaptation guidance
+- [ ] Coordinate tone consistency with BEHAVIORAL GUIDELINES
+- [ ] Remove redundant voice descriptors (already in IDENTITY)
+
+---
+
+*Review continues in next commit...*
+
+---
+
 ## SECTION 10: OUTPUT FORMAT (Lines 69-94)
 
 ### Evaluation: CONDITIONAL
