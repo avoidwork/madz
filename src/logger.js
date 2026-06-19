@@ -23,9 +23,13 @@ export function getLogDirectory() {
 	if (platformName === "linux") {
 		const alpineRelease = "/etc/alpine-release";
 		if (existsSync(alpineRelease)) {
-			const content = readFileSync(alpineRelease, "utf8").trim();
-			if (content) {
-				return join(home, ".cache", "madz", "logs");
+			try {
+				const content = readFileSync(alpineRelease, "utf8").trim();
+				if (content) {
+					return join(home, ".cache", "madz", "logs");
+				}
+			} catch {
+				// File deleted between check and read, or unreadable - fall through to default
 			}
 		}
 	}
@@ -105,13 +109,9 @@ if (process.env.NODE_ENV === "test") {
 	try {
 		errorStream = createWriteStream(errorPath, { flags: "a" });
 	} catch {
-		// If error stream fails but we have devNull, use it
+		// If error stream fails but we have devNull, reuse it
 		if (!errorStream && devNull) {
-			try {
-				errorStream = createWriteStream("/dev/null");
-			} catch {
-				// ignore
-			}
+			errorStream = devNull;
 		}
 	}
 
@@ -132,6 +132,8 @@ if (process.env.NODE_ENV === "test") {
 	} else {
 		// pino.multistream routes: info/warn/debug → madz.log, error/fatal → both
 		// Note: stream must be passed as second argument to pino() in v10+
+		// TODO: pino.multistream is deprecated in v9+ and will be removed in a future version.
+		// Consider migrating to pino.destination() or the newer streaming API.
 		pinoLogger = pino(
 			{ level: "debug", timestamp: pino.stdTimeFunctions.isoTime },
 			pino.multistream(streams),
