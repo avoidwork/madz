@@ -1,17 +1,17 @@
 ℹ start of coverage report
-ℹ ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ℹ ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ℹ file                   | line % | branch % | funcs % | uncovered lines
-ℹ ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ℹ ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ℹ src                    |        |          |         | 
 ℹ  agent                 |        |          |         | 
-ℹ   react.js             |  96.27 |    86.51 |  100.00 | 111-112 181 198-199 276-279 413-414 478 482 503-504 506-509
+ℹ   react.js             |  95.68 |    86.89 |  100.00 | 22-24 111-112 180 197-198 275-278 412-413 477 481 502-503 505-508
 ℹ  cache                 |        |          |         | 
 ℹ   llm_cache.js         |  87.23 |    66.67 |  100.00 | 28-29 35-36 42-43
 ℹ  config                |        |          |         | 
-ℹ   loader.js            |  76.61 |    73.33 |   54.55 | 65-68 86-88 95 106-121 124-126 142-143 145-146 154-158 168-171
+ℹ   loader.js            |  88.82 |    80.65 |   72.73 | 65-68 86-88 95 113 115 153-157 167-170
 ℹ   mutate.js            |  54.72 |   100.00 |    0.00 | 11-15 25-37 48-53
 ℹ   schemas.js           | 100.00 |   100.00 |  100.00 | 
-ℹ  logger.js             |  75.23 |    40.91 |   72.73 | 26-34 39 41-43 64-65 73-77 100-106 112-116 131 163-164 166-167 184-185 191-192 198-199 202-206 209-213 216
+ℹ  logger.js             |  75.00 |    40.91 |   72.73 | 26-30 35 37-39 60-61 69-73 96-102 108-116 131 161-162 164-165 182-183 189-190 196-197 200-204 207-211 214
 ℹ  memory                |        |          |         | 
 ℹ   context.js           |  97.26 |    78.26 |  100.00 | 71-72
 ℹ   expireEphemeral.js   |  94.03 |    73.68 |  100.00 | 21-22 62-63
@@ -31,7 +31,7 @@
 ℹ   urlFilter.js         | 100.00 |    93.75 |  100.00 | 
 ℹ  scheduler             |        |          |         | 
 ℹ   autoSchedule.js      |  90.99 |    73.33 |  100.00 | 50-52 66-68 106-109
-ℹ   cron.js              |  82.14 |    65.63 |   93.75 | 23-25 45-46 99-100 118 133-135 149-150 162 178-180 192-235 251-253 255-257 268-270 272-274 351 378-379 402-409 481-483
+ℹ   cron.js              |  81.11 |    65.93 |   87.50 | 23-25 45-46 99-100 113-118 133-135 149-150 162 178-180 192-235 251-253 255-257 268-270 272-274 351 378-379 402-409 481-483
 ℹ   index.js             | 100.00 |   100.00 |  100.00 | 
 ℹ   scheduler.js         |  88.55 |    89.66 |   81.82 | 87-99 129-130
 ℹ  session               |        |          |         | 
@@ -81,113 +81,7 @@
 ℹ   messages.js          | 100.00 |    94.44 |  100.00 | 
 ℹ   panels.js            | 100.00 |   100.00 |  100.00 | 
 ℹ   statusBar.js         |  92.73 |    84.21 |  100.00 | 36-37 48-53
-ℹ ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-ℹ all files              |  91.24 |    84.12 |   81.98 | 
-ℹ ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ℹ ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ℹ all files              |  91.35 |    84.31 |   82.14 | 
+ℹ ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ℹ end of coverage report
-
-✖ failing tests:
-
-test at tests/integration/sync_integration.test.js:99:2
-✖ remove a job via cronJob tool, verify job is removed from crontab after sync (41.834336ms)
-  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
-  
-  3 !== 1
-  
-      at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/integration/sync_integration.test.js:106:11)
-      at async Test.run (node:internal/test_runner/test:1208:7)
-      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
-    generatedMessage: true,
-    code: 'ERR_ASSERTION',
-    actual: 3,
-    expected: 1,
-    operator: 'strictEqual',
-    diff: 'simple'
-  }
-
-test at tests/integration/sync_integration.test.js:117:2
-✖ update a job's cron expression via cronJob tool, verify updated cron in crontab after sync (46.254136ms)
-  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
-  
-  0 !== 1
-  
-      at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/integration/sync_integration.test.js:125:11)
-      at async Test.run (node:internal/test_runner/test:1208:7)
-      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
-    generatedMessage: true,
-    code: 'ERR_ASSERTION',
-    actual: 0,
-    expected: 1,
-    operator: 'strictEqual',
-    diff: 'simple'
-  }
-
-test at tests/unit/cron_sync.test.js:82:2
-✖ adds a job that exists on disk but not in crontab (38.592684ms)
-  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
-  
-  1 !== 0
-  
-      at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/cron_sync.test.js:91:11)
-      at async Test.run (node:internal/test_runner/test:1208:7)
-      at async Promise.all (index 0)
-      at async Suite.run (node:internal/test_runner/test:1619:7)
-      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
-    generatedMessage: true,
-    code: 'ERR_ASSERTION',
-    actual: 1,
-    expected: 0,
-    operator: 'strictEqual',
-    diff: 'simple'
-  }
-
-test at tests/unit/cron_sync.test.js:106:2
-✖ removes a job that exists in crontab but not on disk (30.968864ms)
-  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
-  
-  3 !== 1
-  
-      at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/cron_sync.test.js:112:11)
-      at async Test.run (node:internal/test_runner/test:1208:7)
-      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
-    generatedMessage: true,
-    code: 'ERR_ASSERTION',
-    actual: 3,
-    expected: 1,
-    operator: 'strictEqual',
-    diff: 'simple'
-  }
-
-test at tests/unit/cron_sync.test.js:155:2
-✖ updates a job with differing command (45.413043ms)
-  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
-  
-  1 !== 0
-  
-      at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/cron_sync.test.js:164:11)
-      at async Test.run (node:internal/test_runner/test:1208:7)
-      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
-    generatedMessage: true,
-    code: 'ERR_ASSERTION',
-    actual: 1,
-    expected: 0,
-    operator: 'strictEqual',
-    diff: 'simple'
-  }
-
-test at tests/unit/cron_sync.test.js:179:2
-✖ excludes paused jobs from crontab (45.408043ms)
-  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
-  
-  0 !== 1
-  
-      at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/cron_sync.test.js:195:11)
-      at async Test.run (node:internal/test_runner/test:1208:7)
-      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
-    generatedMessage: true,
-    code: 'ERR_ASSERTION',
-    actual: 0,
-    expected: 1,
-    operator: 'strictEqual',
-    diff: 'simple'
-  }

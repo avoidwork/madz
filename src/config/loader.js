@@ -136,8 +136,7 @@ export function loadConfig() {
 	let raw = DEFAULT_CONFIG;
 	if (existsSync(CONFIG_PATH)) {
 		const fileContent = readFileSync(CONFIG_PATH, "utf-8");
-		// Use safeLoad to prevent arbitrary code execution via malicious YAML tags
-		const parsed = yaml.safeLoad(fileContent);
+		const parsed = yaml.load(fileContent);
 		if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
 			raw = deepMerge({}, { ...DEFAULT_CONFIG, ...parsed });
 		}
