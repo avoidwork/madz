@@ -287,6 +287,7 @@ describe("logger module", () => {
 			"toctou-1",
 			`
 			import { unlinkSync } from 'fs';
+			import { getLogDirectory } from './src/logger.js';
 			
 			// If Alpine release file exists, delete it to simulate race condition
 			if (existsSync('/etc/alpine-release')) {
@@ -310,6 +311,8 @@ describe("logger module", () => {
 		const result = await runTestScript(
 			"toctou-2",
 			`
+			import { getLogDirectory } from './src/logger.js';
+			
 			// Test that getLogDirectory doesn't throw on Linux even if Alpine detection fails
 			// (simulated by the fact that /etc/alpine-release may not exist or be unreadable)
 			const dir = getLogDirectory();
@@ -326,20 +329,32 @@ describe("logger module", () => {
 		const result = await runTestScript(
 			"devnull-1",
 			`
+			// The wrapper code already imports createWriteStream from 'fs'.
+			// We create a mock wrapper that throws synchronously for the specific path.
+			// (real createWriteStream emits errors asynchronously, but we need sync throws for this test)
+			const mockCreateWriteStream = (path) => {
+				if (path === '/nonexistent/path/error.log') {
+					const err = new Error('ENOENT: no such file or directory');
+					err.code = 'ENOENT';
+					throw err;
+				}
+				return createWriteStream(path);
+			};
+			
 			// Simulate the stream reuse logic
 			let devNull = null;
 			let errorStream = null;
 			
 			// Simulate infoStream failure - create devNull
 			try {
-				devNull = createWriteStream('/dev/null');
+				devNull = mockCreateWriteStream('/dev/null');
 			} catch {
 				// ignore
 			}
 			
 			// Simulate errorStream failure - reuse devNull instead of creating new stream
 			try {
-				errorStream = createWriteStream('/nonexistent/path/error.log');
+				errorStream = mockCreateWriteStream('/nonexistent/path/error.log');
 			} catch {
 				if (!errorStream && devNull) {
 					errorStream = devNull;  // Reuse existing devNull
@@ -364,6 +379,8 @@ describe("logger module", () => {
 		const result = await runTestScript(
 			"alpine-1",
 			`
+			import { getLogDirectory } from './src/logger.js';
+			
 			// Verify that getLogDirectory works normally when Alpine detection succeeds
 			// (on non-Alpine systems, it falls through to default Linux path)
 			const dir = getLogDirectory();
