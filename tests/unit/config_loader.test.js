@@ -1,6 +1,7 @@
 import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert";
 import { _resolveEnvRecursively } from "../../src/config/loader.js";
+import yaml from "js-yaml";
 
 describe("_resolveEnvRecursively — OpenAI provider", () => {
 	let saved = { ...process.env };
@@ -226,5 +227,47 @@ describe("_resolveEnvRecursively — Persistence options", () => {
 		const result = _resolveEnvRecursively(config, []);
 		assert.strictEqual(result.persistence.mode, "sqlite");
 		assert.strictEqual(result.persistence.sqlite_path, "/data/madz.db");
+	});
+});
+
+describe("YAML safe parsing — security tests", () => {
+	it("rejects malicious YAML tag !!js/function", () => {
+		const maliciousYaml = "value: !!js/function\n  function() { return 'executed'; }";
+		assert.throws(() => yaml.load(maliciousYaml), /YAMLException/);
+	});
+
+	it("rejects !!js/undefined tag", () => {
+		const maliciousYaml = "value: !!js/undefined";
+		assert.throws(() => yaml.load(maliciousYaml), /YAMLException/);
+	});
+
+	it("parses standard YAML types safely", () => {
+		const safeYaml = `
+string: hello
+number: 42
+boolean: true
+array:
+  - item1
+  - item2
+object:
+  key: value
+`;
+		const result = yaml.load(safeYaml);
+		assert.strictEqual(result.string, "hello");
+		assert.strictEqual(result.number, 42);
+		assert.strictEqual(result.boolean, true);
+		assert.deepStrictEqual(result.array, ["item1", "item2"]);
+		assert.deepStrictEqual(result.object, { key: "value" });
+	});
+
+	it("handles empty YAML document", () => {
+		const emptyYaml = "";
+		const result = yaml.load(emptyYaml);
+		assert.strictEqual(result, undefined);
+	});
+
+	it("handles malformed YAML gracefully", () => {
+		const malformedYaml = "key: value\n  invalid indentation: [";
+		assert.throws(() => yaml.load(malformedYaml), Error);
 	});
 });
