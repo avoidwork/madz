@@ -17,7 +17,7 @@ export function parseFrontmatter(content) {
 		const fmStr = match[1] || "";
 		const fmParsed = (() => {
 			try {
-				return yaml.load(fmStr);
+				return yaml.load(fmStr, { schema: yaml.SAFE_SCHEMA });
 			} catch {
 				return {};
 			}

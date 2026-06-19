@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { parseFrontmatter } from "./reader.js";
 import { loadProfile, formatProfileContext } from "./profile.js";
@@ -13,18 +13,18 @@ const PROFILE_FILENAME = "profile.md";
  * @param {number} limit - Maximum number of recent context files to load (excludes profile)
  * @returns {string} Combined context content with profile prefix
  */
-export function loadContext(contextDir = "memory/context/", limit = 10) {
+export async function loadContext(contextDir = "memory/context/", limit = 10) {
 	const fullPath = join(process.cwd(), contextDir);
 	try {
 		// Load profile context block first
 		const profileBlock = loadAndFormatProfile(fullPath, contextDir);
 
 		// Load user-provided context files (excluding profile.md)
-		const files = readdirSync(fullPath).filter((f) => f.endsWith(".md") && f !== PROFILE_FILENAME);
-		const sorted = files
-			.map((filename) => {
+		const files = (await readdir(fullPath)).filter((f) => f.endsWith(".md") && f !== PROFILE_FILENAME);
+		const sorted = await Promise.all(
+			files.map(async (filename) => {
 				const filepath = join(fullPath, filename);
-				const content = readFileSync(filepath, "utf-8");
+				const content = await readFile(filepath, "utf-8");
 				const { frontmatter, content: body } = parseFrontmatter(content);
 				return {
 					filepath,
@@ -32,12 +32,13 @@ export function loadContext(contextDir = "memory/context/", limit = 10) {
 					body,
 					timestamp: frontmatter.timestamp || "",
 				};
-			})
-			.sort((a, b) => {
-				const aTs = a.timestamp instanceof Date ? a.timestamp.toISOString() : a.timestamp;
-				const bTs = b.timestamp instanceof Date ? b.timestamp.toISOString() : b.timestamp;
-				return (bTs || "").localeCompare(aTs || "");
-			});
+			}),
+		);
+		sorted.sort((a, b) => {
+			const aTs = a.timestamp instanceof Date ? a.timestamp.toISOString() : a.timestamp;
+			const bTs = b.timestamp instanceof Date ? b.timestamp.toISOString() : b.timestamp;
+			return (bTs || "").localeCompare(aTs || "");
+		});
 
 		const recent = sorted.slice(0, limit);
 		const contextBlocks = recent

@@ -91,7 +91,7 @@ export class ScheduleManager {
 				if (existsSync(entry.contextFile)) {
 					contextPrefix = await readFile(entry.contextFile, "utf-8");
 				} else {
-					contextPrefix = loadContext(contextDir);
+					contextPrefix = await loadContext(contextDir);
 				}
 			} catch {
 				// Context load failed — continue with empty context

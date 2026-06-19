@@ -59,7 +59,7 @@ export async function loadMemories(entriesDir = "memory/context/") {
 
 	const entries = [];
 	for (const filename of mdFiles) {
-		const key = basename(filename, ".md").toLocaleLowerCase();
+		const key = basename(filename, ".md").toLowerCase();
 		const filepath = join(fullPath, filename);
 		const entry = await parseEntryFile(filepath);
 		if (entry !== null) {

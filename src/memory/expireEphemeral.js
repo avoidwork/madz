@@ -31,7 +31,9 @@ export async function readEphemeralFile(contextDir, filename) {
 export function isExpired(expiresAt, now) {
 	const checkNow = now || new Date();
 	if (!expiresAt) return false;
-	return new Date(expiresAt) < checkNow;
+	const expiresDate = new Date(expiresAt);
+	if (isNaN(expiresDate.getTime())) return true; // Treat invalid dates as expired
+	return expiresDate < checkNow;
 }
 
 /**
