@@ -898,14 +898,11 @@ export default function App({
 				if (sessionState) {
 					sessionState.popExchange();
 				}
-				// Clear the partial streaming assistant message from UI
-				setMessages((prev) => prev.filter((msg) => !isStreamingMessage(msg)));
 				setStatusMessage("Interrupted.");
 			} else {
 				if (onSaveSession) {
 					onSaveSession();
 				}
-				setMessages((prev) => prev.filter((msg) => !isStreamingMessage(msg)));
 				setStatusMessage("Something went wrong");
 				addMessage({
 					role: "system",
@@ -937,14 +934,9 @@ export default function App({
 			abortControllerRef.current = null;
 		}
 		isStreamingRef.current = false;
-		setMessages((prev) => {
-			const cloned = [...prev];
-			const last = cloned[cloned.length - 1];
-			if (last?.role === "assistant" && last?.streaming) {
-				last.streaming = false;
-			}
-			return cloned;
-		});
+		// Don't modify the message array here — the server's 400 response
+		// can corrupt state when we mutate messages during abort. The
+		// AbortError catch block in handleChat/handleCommand cleans up.
 		setStatusMessage("Interrupted.");
 
 		// Wait for the dispatchProvider promise to resolve (it will throw
