@@ -1080,7 +1080,7 @@ export default function App({
 
 	const addMessage = (msg) => {
 		const time = getTimestamp();
-		setMessages((prev) => [...prev, { ...msg, time }]);
+		setMessages((prev) => prev.concat({ ...msg, time }));
 	};
 
 	// Single input handler - processes all keystrokes here

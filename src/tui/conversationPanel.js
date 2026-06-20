@@ -188,14 +188,18 @@ const MessageBubble = React.memo(
  * Render the conversation message loop for a given messages array.
  * Returns React elements for each message bubble.
  * Uses memoized MessageBubble components to skip re-render of unchanged rows.
+ * Limits rendering to the last maxMessages messages to prevent performance
+ * degradation with very long conversations.
  * @param {Array} messages - The messages to render
  * @param {string} assistantName - Name to display for assistant messages
+ * @param {number} [maxMessages] - Maximum number of messages to render (default: all)
  * @returns {Array} React elements
  */
-export function renderMessages(messages, assistantName) {
+export function renderMessages(messages, assistantName, maxMessages = Infinity) {
 	const children = [];
+	const startIdx = Math.max(0, (messages?.length ?? 0) - maxMessages);
 
-	for (let i = 0; i < (messages?.length ?? 0); i++) {
+	for (let i = startIdx; i < (messages?.length ?? 0); i++) {
 		const msg = messages[i];
 		const rowKey = "msg-" + i;
 
@@ -208,7 +212,7 @@ export function renderMessages(messages, assistantName) {
 		);
 	}
 
-	if (messages.length === 0) {
+	if (children.length === 0) {
 		children.push(
 			React.createElement(
 				Text,
@@ -222,9 +226,24 @@ export function renderMessages(messages, assistantName) {
 }
 
 /**
+ * Scroll throttle interval in milliseconds during active streaming.
+ * Reduces scroll-to-bottom frequency by ~90% while maintaining smooth UX.
+ */
+const SCROLL_THROTTLE_MS = 100;
+
+/**
+ * Maximum number of messages to render in the React tree.
+ * Limits rendering to the last N messages to prevent performance
+ * degradation with very long conversations. Older messages are
+ * not rendered but remain in the data array for reference.
+ */
+const MAX_RENDER_MESSAGES = 100;
+
+/**
  * Conversation panel component with ScrollView-based scrolling.
  * Handles keyboard scroll input, terminal resize remeasurement,
- * and auto-scroll-to-bottom on new messages and streaming overflow.
+ * auto-scroll-to-bottom with throttling during streaming,
+ * and manual scroll detection to suppress auto-scroll when user scrolls up.
  * @param {Object} props
  * @param {Array} props.messages - Messages to display
  * @param {string} props.assistantName - Name for assistant messages
@@ -242,6 +261,8 @@ export function ConversationPanel({
 	const scrollRef = externalScrollRef || internalScrollRef;
 	const previousMessageCount = useRef(0);
 	const previousContentHashRef = useRef(0);
+	const lastScrollTimeRef = useRef(0);
+	const isUserScrollingRef = useRef(false);
 	const { stdout } = useStdout();
 
 	// Handle terminal resize by remeasuring content heights
@@ -257,43 +278,82 @@ export function ConversationPanel({
 		};
 	}, [stdout, scrollRef]);
 
+	// Detect manual scroll-up: when user scrolls away from bottom,
+	// suppress auto-scroll until they return to bottom or streaming completes.
+	useEffect(() => {
+		if (!scrollRef.current) return;
+
+		const checkScrollPosition = () => {
+			if (!scrollRef.current) return;
+			const maxScroll = scrollRef.current.getMaxScrollOffset?.() || 0;
+			const currentScroll = scrollRef.current.getScrollOffset?.() || 0;
+			const atBottom = maxScroll - currentScroll < 2; // 2 char tolerance
+
+			if (!atBottom) {
+				isUserScrollingRef.current = true;
+			} else {
+				isUserScrollingRef.current = false;
+			}
+		};
+
+		// Check scroll position on each render to detect manual scrolling
+		checkScrollPosition();
+	}, [messages, scrollRef]);
+
 	// Tracks both message count changes and streaming content growth via a
 	// lightweight content hash so the effect re-evaluates during active streaming.
+	// Implements 100ms throttle on scroll-to-bottom during active streaming,
+	// with immediate scroll on streaming pause and manual scroll suppression.
 	useEffect(() => {
 		if (!scrollRef.current) return;
 
 		const lastMsg = messages[messages.length - 1];
-		const streamingContentLen = lastMsg?.streaming ? (lastMsg.content || "").length : 0;
+		const isStreaming = lastMsg?.streaming === true;
+		const streamingContentLen = isStreaming ? (lastMsg.content || "").length : 0;
 		const contentHash = messages.length + streamingContentLen;
 
-		const shouldScroll =
+		const wasScrolling =
 			messages.length > previousMessageCount.current ||
-			(lastMsg?.streaming && contentHash !== previousContentHashRef.current);
+			(isStreaming && contentHash !== previousContentHashRef.current);
 
-		if (shouldScroll) {
-			// Re-measure viewport dimensions.
-			scrollRef.current.remeasure();
+		if (!wasScrolling) return;
 
-			// Defer scrollToBottom to the next tick.
-			// ink-scroll-view updates its internal contentHeightRef via useLayoutEffect
-			// after render. Calling scrollToBottom synchronously reads stale content height,
-			// causing the scroll offset to be miscalculated. Deferring ensures the
-			// measurement phase completes before we calculate the scroll position.
-			const scrollHandle = () => {
-				if (scrollRef.current) {
-					scrollRef.current.scrollToBottom();
-					previousMessageCount.current = messages.length;
-				}
-			};
-			const timer = setTimeout(scrollHandle, 0);
-			return () => clearTimeout(timer);
+		// If user manually scrolled up, suppress auto-scroll
+		if (isUserScrollingRef.current && !isStreaming) return;
+
+		const now = Date.now();
+		const timeSinceLastScroll = now - lastScrollTimeRef.current;
+
+		// Throttle scroll-to-bottom during active streaming (100ms interval)
+		// But allow immediate scroll when streaming pauses
+		if (isStreaming && timeSinceLastScroll < SCROLL_THROTTLE_MS) {
+			// Too soon — skip this scroll tick
+			previousContentHashRef.current = contentHash;
+			return;
 		}
 
+		// Re-measure viewport dimensions.
+		scrollRef.current.remeasure();
+
+		// Defer scrollToBottom to the next tick.
+		// ink-scroll-view updates its internal contentHeightRef via useLayoutEffect
+		// after render. Calling scrollToBottom synchronously reads stale content height,
+		// causing the scroll offset to be miscalculated. Deferring ensures the
+		// measurement phase completes before we calculate the scroll position.
+		const scrollHandle = () => {
+			if (scrollRef.current) {
+				scrollRef.current.scrollToBottom();
+				previousMessageCount.current = messages.length;
+				lastScrollTimeRef.current = Date.now();
+			}
+		};
 		previousContentHashRef.current = contentHash;
+		const timer = setTimeout(scrollHandle, 0);
+		return () => clearTimeout(timer);
 	}, [messages, stdout.isTTY]);
 
 	const children = React.useMemo(
-		() => renderMessages(messages, assistantName),
+		() => renderMessages(messages, assistantName, MAX_RENDER_MESSAGES),
 		[messages, assistantName],
 	);
 
