@@ -122,7 +122,7 @@ export async function runSandbox(options) {
 		cwd = process.cwd(),
 	} = options;
 
-	const { _rules } = enforceCapabilities(permissions);
+	const { resources } = enforceCapabilities(permissions);
 
 	let env = filterEnv(process.env, whitelist);
 
@@ -144,9 +144,13 @@ export async function runSandbox(options) {
 
 	// Build exec args based on interpreter type
 	const execArgs = [];
-	if (ext === "js" || ext === "mjs") {
+	if (ext === "js" || ext === "mjs" || ext === "ts") {
 		// Pass memory limit to Node.js scripts
 		execArgs.push("--max-old-space-size=512");
+		// Apply capability restrictions via --permission flag
+		if (resources.length > 0) {
+			execArgs.push(`--permission=${resources.join(",")}`);
+		}
 	}
 
 	const child = spawn(interp.command, [...interp.args, script], {

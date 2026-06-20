@@ -349,6 +349,28 @@ function createTestScript(stdout, stderr, exitCode) {
 	return { scriptPath, cleanup };
 }
 
+function createExecArgvScript() {
+	const testDir = join(tmpdir(), "madz-sandbox-exec-argv-test-" + Date.now());
+	mkdirSync(testDir, { recursive: true });
+	const scriptPath = join(testDir, "exec-argv-test.js");
+	writeFileSync(
+		scriptPath,
+		[
+			'"use strict";',
+			`process.stdout.write(JSON.stringify(process.execArgv));`,
+			`process.exit(0);`,
+		].join("\n"),
+	);
+	const cleanup = () => {
+		try {
+			rmSync(testDir, { recursive: true, force: true });
+		} catch {
+			// ignore cleanup errors
+		}
+	};
+	return { scriptPath, cleanup };
+}
+
 describe("sandbox - runner (spawn)", () => {
 	it("captures stdout, stderr, and exitCode from child process", async () => {
 		const { scriptPath, cleanup } = createTestScript("hello", "oops", 0);
@@ -410,7 +432,52 @@ describe("sandbox - runner (spawn)", () => {
 	});
 
 	it("applies permissions via enforceCapabilities", async () => {
-		const { scriptPath, cleanup } = createTestScript("", "", 0);
+		const { scriptPath, cleanup } = createExecArgvScript();
+		try {
+			const result = await runSandbox({
+				script: scriptPath,
+				permissions: ["filesystem:read"],
+				skillName: "test",
+			});
+			const execArgv = JSON.parse(result.stdout);
+			assert.ok(
+				execArgv.includes("--permission=filesystem:read"),
+				"execArgv should include --permission=filesystem:read",
+			);
+		} finally {
+			cleanup();
+		}
+	});
+
+	it("applies multiple permissions via enforceCapabilities", async () => {
+		const { scriptPath, cleanup } = createExecArgvScript();
+		try {
+			const result = await runSandbox({
+				script: scriptPath,
+				permissions: ["filesystem:read", "network:outbound"],
+				skillName: "test",
+			});
+			const execArgv = JSON.parse(result.stdout);
+			assert.ok(
+				execArgv.includes("--permission=filesystem:read,network:outbound"),
+				"execArgv should include --permission=filesystem:read,network:outbound",
+			);
+		} finally {
+			cleanup();
+		}
+	});
+
+	it("does not add --permission flag for non-Node.js scripts", async () => {
+		const testDir = join(tmpdir(), "madz-sandbox-non-node-test-" + Date.now());
+		mkdirSync(testDir, { recursive: true });
+		const scriptPath = join(testDir, "test-script.sh");
+		writeFileSync(
+			scriptPath,
+			[
+				'#!/usr/bin/env bash',
+				'echo "hello"',
+			].join("\n"),
+		);
 		try {
 			const result = await runSandbox({
 				script: scriptPath,
@@ -418,8 +485,13 @@ describe("sandbox - runner (spawn)", () => {
 				skillName: "test",
 			});
 			assert.strictEqual(result.exitCode, 0);
+			assert.strictEqual(result.stdout.trim(), "hello");
 		} finally {
-			cleanup();
+			try {
+				rmSync(testDir, { recursive: true, force: true });
+			} catch {
+				// ignore cleanup errors
+			}
 		}
 	});
 
