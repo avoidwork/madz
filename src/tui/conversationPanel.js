@@ -312,10 +312,9 @@ export function ConversationPanel({
 		const streamingContentLen = isStreaming ? (lastMsg.content || "").length : 0;
 		const contentHash = messages.length + streamingContentLen;
 
-		const wasScrolling = previousMessageCount.current > 0 && (
+		const wasScrolling =
 			messages.length > previousMessageCount.current ||
-			(isStreaming && contentHash !== previousContentHashRef.current)
-		);
+			(isStreaming && contentHash !== previousContentHashRef.current);
 
 		if (!wasScrolling) return;
 
