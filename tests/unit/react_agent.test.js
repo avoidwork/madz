@@ -1,7 +1,19 @@
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert";
-import { AIMessage, AIMessageChunk, HumanMessage, HumanMessageChunk, SystemMessage, ToolMessage } from "@langchain/core/messages";
-import { callReactAgent, createReactAgent, clearCache, getMessageRole } from "../../src/agent/react.js";
+import {
+	AIMessage,
+	AIMessageChunk,
+	HumanMessage,
+	HumanMessageChunk,
+	SystemMessage,
+	ToolMessage,
+} from "@langchain/core/messages";
+import {
+	callReactAgent,
+	createReactAgent,
+	clearCache,
+	getMessageRole,
+} from "../../src/agent/react.js";
 
 class GraphRecursionError extends Error {
 	constructor(message) {
@@ -800,7 +812,7 @@ describe("callReactAgent", () => {
 			return (async function* () {
 				for (const evt of events) {
 					yield evt;
-					await new Promise(resolve => setTimeout(resolve, 0));
+					await new Promise((resolve) => setTimeout(resolve, 0));
 				}
 			})();
 		}
@@ -978,7 +990,10 @@ describe("callReactAgent", () => {
 		});
 
 		it("maps ToolMessage to 'tool'", () => {
-			assert.strictEqual(getMessageRole(new ToolMessage({ content: "result", tool_call_id: "tc1", name: "web" })), "tool");
+			assert.strictEqual(
+				getMessageRole(new ToolMessage({ content: "result", tool_call_id: "tc1", name: "web" })),
+				"tool",
+			);
 		});
 
 		it("maps SystemMessage to 'system'", () => {

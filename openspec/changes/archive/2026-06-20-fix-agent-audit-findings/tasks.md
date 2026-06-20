@@ -25,6 +25,6 @@
 
 ## 6. Verification
 
-- [ ] 6.1 Run npm run test and verify all tests pass
-- [ ] 6.2 Run npm run lint and verify no lint errors
-- [ ] 6.3 Verify application starts without errors
+- [x] 6.1 Run npm run test and verify all tests pass
+- [x] 6.2 Run npm run lint and verify no lint errors
+- [x] 6.3 Verify application starts without errors
