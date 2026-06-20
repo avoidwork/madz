@@ -30,7 +30,6 @@ export default function App({
 	onSaveSession,
 	gcManager,
 	gcTrigger,
-	checkpointer,
 }) {
 	const [showBanner, setShowBanner] = useState(true);
 	const [showOnboarding, setShowOnboarding] = useState(!!onboarding);
