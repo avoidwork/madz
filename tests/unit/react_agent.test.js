@@ -1,7 +1,7 @@
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert";
-import { AIMessage, AIMessageChunk, HumanMessage, SystemMessage } from "@langchain/core/messages";
-import { callReactAgent, createReactAgent, clearCache } from "../../src/agent/react.js";
+import { AIMessage, AIMessageChunk, HumanMessage, HumanMessageChunk, SystemMessage, ToolMessage } from "@langchain/core/messages";
+import { callReactAgent, createReactAgent, clearCache, getMessageRole } from "../../src/agent/react.js";
 
 class GraphRecursionError extends Error {
 	constructor(message) {
@@ -956,6 +956,84 @@ describe("callReactAgent", () => {
 			);
 
 			assert.strictEqual(capturedConfig.recursionLimit, undefined);
+		});
+	});
+
+	describe("getMessageRole", () => {
+		it("maps HumanMessage to 'user'", () => {
+			assert.strictEqual(getMessageRole(new HumanMessage("hi")), "user");
+		});
+
+		it("maps HumanMessageChunk to 'user'", () => {
+			assert.strictEqual(getMessageRole(new HumanMessageChunk("hi")), "user");
+		});
+
+		it("maps AIMessage to 'assistant'", () => {
+			assert.strictEqual(getMessageRole(new AIMessage("hello")), "assistant");
+		});
+
+		it("maps AIMessageChunk to 'assistant'", () => {
+			assert.strictEqual(getMessageRole(new AIMessageChunk("hello")), "assistant");
+		});
+
+		it("maps ToolMessage to 'tool'", () => {
+			assert.strictEqual(getMessageRole(new ToolMessage({ content: "result", tool_call_id: "tc1", name: "web" })), "tool");
+		});
+
+		it("maps SystemMessage to 'system'", () => {
+			assert.strictEqual(getMessageRole(new SystemMessage("sys")), "system");
+		});
+
+		it("falls back to 'system' for unknown message types", () => {
+			const unknownMsg = { content: "unknown", type: "custom" };
+			assert.strictEqual(getMessageRole(unknownMsg), "system");
+		});
+	});
+
+	describe("streaming returns aggregated text", () => {
+		function createEvents(events) {
+			return (async function* () {
+				for (const evt of events) {
+					yield evt;
+				}
+			})();
+		}
+
+		function createMock(eventList) {
+			return {
+				streamEvents: () => createEvents(eventList),
+				invoke: () => ({ messages: [new AIMessage("fallback")] }),
+			};
+		}
+
+		it("returns aggregated text on successful stream completion", async () => {
+			const events = [
+				{
+					event: "on_chat_model_stream",
+					data: { chunk: new AIMessageChunk({ content: "Hello" }) },
+				},
+				{
+					event: "on_chat_model_stream",
+					data: { chunk: new AIMessageChunk({ content: " World" }) },
+				},
+			];
+
+			const agentMock = createMock(events);
+			const callbackCalls = [];
+			const callback = (event) => callbackCalls.push(event);
+
+			const result = await callReactAgent(agentMock, "original query", null, null, callback);
+			assert.strictEqual(result.content, "Hello World");
+		});
+
+		it("falls back to original message when no text events occurred", async () => {
+			const events = [];
+
+			const agentMock = createMock(events);
+			const callback = () => {};
+
+			const result = await callReactAgent(agentMock, "original query", null, null, callback);
+			assert.strictEqual(result.content, "original query");
 		});
 	});
 });
