@@ -10,7 +10,11 @@ import {
 	countMessageLines,
 	getToolCallLines,
 } from "../../src/tui/messages.js";
-import { parseMarkdown, MarkdownTextInner, getParseCacheStats } from "../../src/tui/markdownText.js";
+import {
+	parseMarkdown,
+	MarkdownTextInner,
+	getParseCacheStats,
+} from "../../src/tui/markdownText.js";
 import { renderMessages } from "../../src/tui/conversationPanel.js";
 import { TuiSchema, DEFAULT_CONFIG } from "../../src/config/schemas.js";
 import { Blink } from "../../src/tui/inputPanel.js";
@@ -1089,7 +1093,10 @@ describe("TUI - scroll throttle behavior", () => {
 		maybeScroll(baseTime + 10); // Paused — immediate scroll (no throttle)
 
 		assert.strictEqual(scrollCalls.length, 2, "should allow immediate scroll on pause");
-		assert.ok(scrollCalls[1] - scrollCalls[0] < SCROLL_THROTTLE_MS, "pause scroll bypasses throttle");
+		assert.ok(
+			scrollCalls[1] - scrollCalls[0] < SCROLL_THROTTLE_MS,
+			"pause scroll bypasses throttle",
+		);
 	});
 
 	it("suppresses auto-scroll when user scrolls up and streaming is off", () => {

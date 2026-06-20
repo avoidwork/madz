@@ -348,10 +348,9 @@ export function ConversationPanel({
 				lastScrollTimeRef.current = Date.now();
 			}
 		};
+		previousContentHashRef.current = contentHash;
 		const timer = setTimeout(scrollHandle, 0);
 		return () => clearTimeout(timer);
-
-		previousContentHashRef.current = contentHash;
 	}, [messages, stdout.isTTY]);
 
 	const children = React.useMemo(
