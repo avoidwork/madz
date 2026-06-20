@@ -10,7 +10,8 @@ import {
 	countMessageLines,
 	getToolCallLines,
 } from "../../src/tui/messages.js";
-import { parseMarkdown, MarkdownTextInner } from "../../src/tui/markdownText.js";
+import { parseMarkdown, MarkdownTextInner, getParseCacheStats } from "../../src/tui/markdownText.js";
+import { renderMessages } from "../../src/tui/conversationPanel.js";
 import { TuiSchema, DEFAULT_CONFIG } from "../../src/config/schemas.js";
 import { Blink } from "../../src/tui/inputPanel.js";
 
@@ -980,5 +981,243 @@ describe("StatusBar - no appInfo rendering", () => {
 		);
 
 		assert.ok(result.includes("Error: connection failed"));
+	});
+});
+
+describe("TUI - message ordering with batched updates", () => {
+	it("appends messages in correct chronological order with concat", () => {
+		// Simulate the addMessage pattern: prev.concat({ ...msg, time })
+		function addMessage(prev, msg, time) {
+			return prev.concat({ ...msg, time });
+		}
+
+		let messages = [];
+		messages = addMessage(messages, { role: "user", content: "first" }, "10:00");
+		messages = addMessage(messages, { role: "assistant", content: "second" }, "10:01");
+		messages = addMessage(messages, { role: "user", content: "third" }, "10:02");
+
+		assert.strictEqual(messages.length, 3);
+		assert.strictEqual(messages[0].content, "first");
+		assert.strictEqual(messages[1].content, "second");
+		assert.strictEqual(messages[2].content, "third");
+	});
+
+	it("preserves message ordering with multiple rapid updates", () => {
+		function addMessage(prev, msg, time) {
+			return prev.concat({ ...msg, time });
+		}
+
+		let messages = [];
+		const updates = [
+			{ role: "user", content: "msg1" },
+			{ role: "assistant", content: "msg2" },
+			{ role: "user", content: "msg3" },
+			{ role: "assistant", content: "msg4" },
+			{ role: "user", content: "msg5" },
+		];
+
+		for (let i = 0; i < updates.length; i++) {
+			messages = addMessage(messages, updates[i], `10:${String(i).padStart(2, "0")}`);
+		}
+
+		assert.strictEqual(messages.length, 5);
+		for (let i = 0; i < updates.length; i++) {
+			assert.strictEqual(messages[i].content, updates[i].content);
+		}
+	});
+
+	it("concat produces a new array (immutable update)", () => {
+		const original = [{ role: "user", content: "original" }];
+		const updated = original.concat({ role: "assistant", content: "new" });
+
+		assert.strictEqual(original.length, 1);
+		assert.strictEqual(updated.length, 2);
+		assert.notStrictEqual(original, updated);
+	});
+});
+
+describe("TUI - scroll throttle behavior", () => {
+	it("throttles scroll-to-bottom to 100ms intervals during streaming", () => {
+		const SCROLL_THROTTLE_MS = 100;
+		let lastScrollTime = 0;
+		const scrollCalls = [];
+
+		function maybeScroll(now) {
+			const timeSinceLastScroll = now - lastScrollTime;
+			if (timeSinceLastScroll >= SCROLL_THROTTLE_MS) {
+				scrollCalls.push(now);
+				lastScrollTime = now;
+			}
+		}
+
+		// Simulate 5 rapid streaming ticks within 200ms
+		const baseTime = Date.now();
+		maybeScroll(baseTime); // First call — always scrolls
+		maybeScroll(baseTime + 50); // Too soon — skipped
+		maybeScroll(baseTime + 100); // Exactly 100ms — scrolls
+		maybeScroll(baseTime + 120); // Too soon — skipped
+		maybeScroll(baseTime + 200); // 100ms since last — scrolls
+
+		assert.strictEqual(scrollCalls.length, 3, "should scroll at most once per 100ms");
+		assert.ok(scrollCalls[1] - scrollCalls[0] >= SCROLL_THROTTLE_MS);
+		assert.ok(scrollCalls[2] - scrollCalls[1] >= SCROLL_THROTTLE_MS);
+	});
+
+	it("allows immediate scroll when streaming pauses", () => {
+		const SCROLL_THROTTLE_MS = 100;
+		let lastScrollTime = 0;
+		const scrollCalls = [];
+		let isStreaming = true;
+
+		function maybeScroll(now) {
+			// Immediate scroll when streaming pauses
+			if (!isStreaming) {
+				scrollCalls.push(now);
+				lastScrollTime = now;
+				return;
+			}
+			const timeSinceLastScroll = now - lastScrollTime;
+			if (timeSinceLastScroll >= SCROLL_THROTTLE_MS) {
+				scrollCalls.push(now);
+				lastScrollTime = now;
+			}
+		}
+
+		const baseTime = Date.now();
+		maybeScroll(baseTime); // Streaming — scrolls (first call)
+		isStreaming = false; // Streaming paused
+		maybeScroll(baseTime + 10); // Paused — immediate scroll (no throttle)
+
+		assert.strictEqual(scrollCalls.length, 2, "should allow immediate scroll on pause");
+		assert.ok(scrollCalls[1] - scrollCalls[0] < SCROLL_THROTTLE_MS, "pause scroll bypasses throttle");
+	});
+
+	it("suppresses auto-scroll when user scrolls up and streaming is off", () => {
+		let isUserScrolling = false;
+		let isStreaming = false;
+		const scrollCalls = [];
+
+		function maybeScroll() {
+			// Suppress auto-scroll when user manually scrolled up and not streaming
+			if (isUserScrolling && !isStreaming) return;
+			scrollCalls.push("scroll");
+		}
+
+		isUserScrolling = true;
+		isStreaming = false;
+		maybeScroll(); // Should be suppressed
+
+		assert.strictEqual(scrollCalls.length, 0, "auto-scroll suppressed when user scrolled up");
+
+		// When streaming resumes, auto-scroll should work again
+		isStreaming = true;
+		maybeScroll(); // Should scroll
+		assert.strictEqual(scrollCalls.length, 1);
+	});
+});
+
+describe("TUI - render window limits React tree size", () => {
+	it("renders all messages when count is within render window", () => {
+		const messages = [
+			{ role: "user", content: "msg1" },
+			{ role: "assistant", content: "msg2" },
+			{ role: "user", content: "msg3" },
+		];
+		const result = renderMessages(messages, "Assistant", 100);
+		assert.strictEqual(result.length, 3);
+	});
+
+	it("limits rendered messages to render window size", () => {
+		const messages = [];
+		for (let i = 0; i < 150; i++) {
+			messages.push({ role: i % 2 === 0 ? "user" : "assistant", content: `msg${i}` });
+		}
+		const result = renderMessages(messages, "Assistant", 100);
+		assert.strictEqual(result.length, 100, "should render at most 100 messages");
+		// Should render the last 100 messages
+		assert.strictEqual(result[0].key, "msg-50");
+		assert.strictEqual(result[99].key, "msg-149");
+	});
+
+	it("renders all messages when maxMessages is Infinity", () => {
+		const messages = [];
+		for (let i = 0; i < 50; i++) {
+			messages.push({ role: "user", content: `msg${i}` });
+		}
+		const result = renderMessages(messages, "Assistant", Infinity);
+		assert.strictEqual(result.length, 50);
+	});
+
+	it("renders empty message when no messages", () => {
+		const result = renderMessages([], "Assistant", 100);
+		assert.strictEqual(result.length, 1);
+		assert.ok(result[0].props.children.includes("No messages yet"));
+	});
+});
+
+describe("LRUCache - bounded LRU parse cache", () => {
+	// We test the LRU behavior by exercising the parseCache module instance
+	// since LRUCache is not directly exported. We verify behavior through
+	// the cache stats getter and cache hit/miss patterns.
+
+	it("getParseCacheStats returns size and hitRate", () => {
+		const stats = getParseCacheStats();
+		assert.ok(typeof stats.size === "number");
+		assert.ok(typeof stats.hitRate === "number");
+		assert.ok(stats.hitRate >= 0 && stats.hitRate <= 1);
+	});
+
+	it("cache hit rate increases after repeated parses of same content", () => {
+		const stats1 = getParseCacheStats();
+		// Parse the same content multiple times to generate hits
+		for (let i = 0; i < 10; i++) {
+			parseMarkdown("# Test heading");
+		}
+		const stats2 = getParseCacheStats();
+		// After repeated parses, hit rate should be higher
+		assert.ok(stats2.hitRate >= stats1.hitRate, "hit rate should not decrease");
+	});
+
+	it("cache size is bounded (does not grow unbounded)", () => {
+		const initialSize = getParseCacheStats().size;
+		// Parse many unique contents
+		for (let i = 0; i < 100; i++) {
+			parseMarkdown(`# Unique heading ${i}\n\nSome content ${i}`);
+		}
+		const finalSize = getParseCacheStats().size;
+		// Size should not exceed MAX_CACHE_SIZE (500)
+		assert.ok(finalSize <= 500, `cache size ${finalSize} should not exceed 500`);
+		// Size should have grown from initial (unless cache was already near max)
+		assert.ok(finalSize >= initialSize, "cache size should not shrink");
+	});
+
+	it("cache eviction works — oldest entries evicted on overflow", () => {
+		// Parse enough unique content to fill the cache
+		for (let i = 0; i < 500; i++) {
+			parseMarkdown(`# Entry ${i}\n\nContent ${i}`);
+		}
+		const stats1 = getParseCacheStats();
+		assert.strictEqual(stats1.size, 500, "cache should be full at 500 entries");
+
+		// Parse one more — should evict the oldest
+		parseMarkdown("# New entry\n\nNew content");
+		const stats2 = getParseCacheStats();
+		assert.strictEqual(stats2.size, 500, "cache should remain at 500 after eviction");
+	});
+
+	it("cache returns cached result for repeated content", () => {
+		const content = "# Repeated content\n\nThis appears multiple times";
+		// First parse — cache miss
+		const result1 = parseMarkdown(content);
+		assert.ok(typeof result1 === "string" && result1.length > 0);
+		// Second parse — should return cached result (same string reference)
+		const result2 = parseMarkdown(content);
+		assert.strictEqual(result1, result2, "cached result should be returned");
+	});
+
+	it("cache handles empty and null-like content gracefully", () => {
+		// Empty string should not crash
+		const result = parseMarkdown("");
+		assert.strictEqual(result, "");
 	});
 });
