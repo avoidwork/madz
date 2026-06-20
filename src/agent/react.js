@@ -1,5 +1,5 @@
 import { createReactAgent as createReactAgentGraph } from "@langchain/langgraph/prebuilt";
-import { HumanMessage, SystemMessage, AIMessage, AIMessageChunk } from "@langchain/core/messages";
+import { HumanMessage, HumanMessageChunk, SystemMessage, AIMessage, AIMessageChunk, ToolMessage } from "@langchain/core/messages";
 import {
 	extractContextLength,
 	isContextLengthError,
@@ -7,6 +7,22 @@ import {
 } from "../tools/compact_context.js";
 import { createLlmCache, getCacheKey } from "../cache/llm_cache.js";
 import { loadConfig } from "../config/loader.js";
+
+/**
+ * Map a LangChain message instance to its corresponding conversation role.
+ * Handles all standard message types — HumanMessage, AIMessage, SystemMessage,
+ * ToolMessage, and their chunk variants — falling back to "system" for unknown
+ * types to avoid silent data loss during compaction.
+ * @param {import("@langchain/core/messages").BaseMessage} msg
+ * @returns {string}
+ */
+export function getMessageRole(msg) {
+	if (msg instanceof HumanMessage || msg instanceof HumanMessageChunk) return "user";
+	if (msg instanceof AIMessage || msg instanceof AIMessageChunk) return "assistant";
+	if (msg instanceof ToolMessage) return "tool";
+	if (msg instanceof SystemMessage) return "system";
+	return "system"; // fallback — shouldn't happen with well-formed conversations
+}
 
 /**
  * Lazily initialize the LLM response cache using configured lru.size and lru.ttl.
@@ -156,8 +172,7 @@ export async function callReactAgent(agent, message, config, systemPrompt, callb
 				const conversation = messages
 					.filter((m) => !(m instanceof SystemMessage))
 					.map((m) => ({
-						role:
-							m instanceof HumanMessage ? "user" : m instanceof AIMessage ? "assistant" : "system",
+						role: getMessageRole(m),
 						content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
 					}));
 
@@ -208,9 +223,13 @@ export async function callReactAgent(agent, message, config, systemPrompt, callb
 function extractContent(result, fallback) {
 	const msgsArray = Array.isArray(result.messages) ? result.messages : [];
 
-	const lastAI = [...msgsArray]
-		.reverse()
-		.find((msg) => msg instanceof AIMessage || msg instanceof AIMessageChunk);
+	let lastAI = null;
+	for (let i = msgsArray.length - 1; i >= 0; i--) {
+		if (msgsArray[i] instanceof AIMessage || msgsArray[i] instanceof AIMessageChunk) {
+			lastAI = msgsArray[i];
+			break;
+		}
+	}
 	if (lastAI && lastAI.content) {
 		const content =
 			typeof lastAI.content === "string" ? lastAI.content : JSON.stringify(lastAI.content);
@@ -417,7 +436,7 @@ async function callReactAgentStreaming(
 			if (compactionActive && callback) {
 				callback({ type: "compaction_end" });
 			}
-			return { content: originalMessage };
+			return { content: aggregatedText || originalMessage };
 		} catch (err) {
 			// Handle recursion limit — always return immediately
 			if (err instanceof Error && err.name === "GraphRecursionError") {
@@ -453,8 +472,7 @@ async function callReactAgentStreaming(
 				const conversation = currentMessages
 					.filter((m) => !(m instanceof SystemMessage))
 					.map((m) => ({
-						role:
-							m instanceof HumanMessage ? "user" : m instanceof AIMessage ? "assistant" : "system",
+						role: getMessageRole(m),
 						content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
 					}));
 
@@ -506,5 +524,5 @@ async function callReactAgentStreaming(
 		callback({ type: "compaction_end" });
 	}
 
-	return { content: originalMessage };
+	return { content: aggregatedText || originalMessage };
 }
