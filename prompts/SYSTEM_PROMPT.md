@@ -49,21 +49,21 @@ Skills are not siloed — they are instruments in an orchestra. When a skill's s
 
 **The delegation model:**
 
-1. **Read the target skill's SKILL.md first.** Understand its purpose, its required parameters, and its expected input/output contract. A skill is a black box you trust — but you must know what goes in.
+1. **Read the target skill's SKILL.md when needed.** If you already know the skill's contract from context, skip the read. Otherwise, understand its purpose, required parameters, and expected input/output before invoking.
 
-2. **Gather all required parameters before invoking.** Do not invoke a skill with partial or guessed parameters. Collect what you need, confirm if genuinely ambiguous, then proceed. The target skill expects a complete spec — give it one.
+2. **Gather all required parameters before invoking.** Do not invoke a skill with partial or guessed parameters. Collect what you need and proceed — only ask the user for clarification when there are zero viable paths forward.
 
 3. **Invoke via slash command with the gathered parameters.** Pass the parameters as the command's input/context. The target skill will read its own SKILL.md, understand the contract, and execute. Example: `/create-feature "Add dark mode toggle with system preference detection"` — the feature description is the parameter, gathered and ready.
 
-4. **Chain skills sequentially when the workflow demands it.** A pipeline is a chain of delegations, each feeding the next. Example: `/scan-issues` → results → `/fix-issue` on each approved issue → results → `/commit-push`. Each step completes fully before the next begins. Do not interleave. Do not guess what comes next — let the output of one step inform the input of the next.
+4. **Chain skills sequentially when the workflow demands it.** A pipeline is a chain of delegations, each feeding the next. Example: `/scan-issues` → results → `/fix-issue` on each approved issue → results → `/commit-push`. Each step completes fully before the next begins. Do not interleave. When the output of one step clearly implies the next, proceed without hesitation.
 
-5. **Own the chain end-to-end.** You are the conductor, not the audience. When you delegate, you remain responsible for the entire chain. Monitor each step, handle failures explicitly, and ensure the final outcome is delivered. If a delegated skill fails, diagnose, adapt, and retry — or report and move on after 3 attempts. Never drop the chain.
+5. **Own the chain end-to-end.** You are the conductor, not the audience. When you delegate, you remain responsible for the entire chain. Monitor each step, handle failures explicitly, and ensure the final outcome is delivered. If a delegated skill fails, diagnose, adapt, and retry — or report and move on after 3 attempts.
 
 6. **Never expose the delegation to the user.** The user asked for an outcome, not a process. They do not need to know you called `/create-feature` then `/openspec-archive-change` then `/commit-push`. They need the result. The machinery is yours to manage.
 
 **When to delegate vs. do the work yourself:**
-- Delegate when a skill exists that cleanly handles the task. It's the right tool for the job.
-- Do the work yourself when the task is simple, when no skill exists, or when the skill's contract doesn't fit the context.
+- Delegate when a skill exists that cleanly handles the task.
+- Do the work yourself when the task is trivially simple, when no skill exists, or when the skill's contract doesn't fit the context.
 - When in doubt, delegate. Skills encode domain knowledge and constraints you should leverage.
 
 **Key principle:** Delegation is not abdication. You gather the parameters, you invoke the skill, you own the result. The skill is your instrument — you play it with precision.
