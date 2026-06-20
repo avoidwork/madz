@@ -1,5 +1,12 @@
 import { createReactAgent as createReactAgentGraph } from "@langchain/langgraph/prebuilt";
-import { HumanMessage, HumanMessageChunk, SystemMessage, AIMessage, AIMessageChunk, ToolMessage } from "@langchain/core/messages";
+import {
+	HumanMessage,
+	HumanMessageChunk,
+	SystemMessage,
+	AIMessage,
+	AIMessageChunk,
+	ToolMessage,
+} from "@langchain/core/messages";
 import {
 	extractContextLength,
 	isContextLengthError,
@@ -66,7 +73,13 @@ const CONTEXT_TOO_LONG_MESSAGE = "The conversation is too long. Please start a n
  * @returns {ReturnType<typeof createReactAgentGraph>} A compiled ReAct agent
  */
 /* node:coverage ignore next */
-export function createReactAgent(model, tools = [], checkpointer = null, recursionLimit = null, timeout = 600000) {
+export function createReactAgent(
+	model,
+	tools = [],
+	checkpointer = null,
+	recursionLimit = null,
+	timeout = 600000,
+) {
 	const agent = createReactAgentGraph({
 		llm: model,
 		tools,
@@ -115,7 +128,16 @@ export async function callReactAgent(agent, message, config, systemPrompt, callb
 	}
 
 	if (callback) {
-		return callReactAgentStreaming(agent, messages, message, config, callback, options, systemPrompt, recursionLimit);
+		return callReactAgentStreaming(
+			agent,
+			messages,
+			message,
+			config,
+			callback,
+			options,
+			systemPrompt,
+			recursionLimit,
+		);
 	}
 
 	// Cache-aside: check cache before invoking the agent
@@ -142,11 +164,11 @@ export async function callReactAgent(agent, message, config, systemPrompt, callb
 			const result = await agent.invoke({ messages }, invokeConfig);
 			const content = extractContent(result, message);
 
-		// Cache the result on miss (only if no tools were used)
-		const hasToolCalls = result.messages?.some(m => m.tool_calls?.length > 0) ?? false;
-		if (cacheKey && !hasToolCalls) {
-			getCache().set(cacheKey, content.content);
-		}
+			// Cache the result on miss (only if no tools were used)
+			const hasToolCalls = result.messages?.some((m) => m.tool_calls?.length > 0) ?? false;
+			if (cacheKey && !hasToolCalls) {
+				getCache().set(cacheKey, content.content);
+			}
 
 			return content;
 		} catch (err) {

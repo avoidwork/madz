@@ -471,13 +471,7 @@ describe("sandbox - runner (spawn)", () => {
 		const testDir = join(tmpdir(), "madz-sandbox-non-node-test-" + Date.now());
 		mkdirSync(testDir, { recursive: true });
 		const scriptPath = join(testDir, "test-script.sh");
-		writeFileSync(
-			scriptPath,
-			[
-				'#!/usr/bin/env bash',
-				'echo "hello"',
-			].join("\n"),
-		);
+		writeFileSync(scriptPath, ["#!/usr/bin/env bash", 'echo "hello"'].join("\n"));
 		try {
 			const result = await runSandbox({
 				script: scriptPath,

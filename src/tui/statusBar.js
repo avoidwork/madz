@@ -49,9 +49,10 @@ export function formatSize(bytes) {
 	const exp = Math.floor(Math.log(bytes) / Math.log(1024));
 	const value = bytes / Math.pow(1024, exp);
 	const locale = Intl.DateTimeFormat().resolvedOptions().locale;
-	const formatted = value % 1 === 0
-		? new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(Math.round(value))
-		: new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(value);
+	const formatted =
+		value % 1 === 0
+			? new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(Math.round(value))
+			: new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(value);
 	return formatted + units[exp - 1];
 }
 
