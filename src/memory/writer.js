@@ -4,6 +4,16 @@ import { join } from "node:path";
 const FRONTMATTER_DELIMITER = "---";
 
 /**
+ * Escape a string value for safe inclusion in a YAML double-quoted scalar.
+ * Escapes backslashes first, then double quotes, then newlines.
+ * @param {string} str - The string to escape
+ * @returns {string} The escaped string
+ */
+function escapeYamlString(str) {
+	return str.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n");
+}
+
+/**
  * Write a memory file with YAML frontmatter.
  * Creates a timestamped markdown file in the specified directory.
  * @param {string} directory - The memory directory to write to
@@ -24,11 +34,11 @@ export function writeMemoryFile(directory, title, frontmatter, body = "") {
 
 	const lines = [
 		FRONTMATTER_DELIMITER,
-		`title: "${title}"`,
-		`timestamp: "${timestamp}"`,
+		`title: "${escapeYamlString(title)}"`,
+		`timestamp: "${escapeYamlString(timestamp)}"`,
 		...Object.entries(frontmatter).map(([k, v]) => {
 			if (v == null) return `${k}:`;
-			if (typeof v === "string") return `${k}: "${v}"`;
+			if (typeof v === "string") return `${k}: "${escapeYamlString(v)}"`;
 			if (typeof v === "boolean") return `${k}: ${v}`;
 			if (typeof v === "number") return `${k}: ${v}`;
 			return `${k}: ${JSON.stringify(v)}`;

@@ -87,6 +87,13 @@ describe("frontmatter parsing", () => {
 
 describe("memory file writer logic", () => {
 	/**
+	 * Escape a string value for safe inclusion in a YAML double-quoted scalar.
+	 */
+	function escapeYamlString(str) {
+		return str.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n");
+	}
+
+	/**
 	 * Replicate the core logic of writeMemoryFile without filesystem access.
 	 */
 	function buildMemoryContent(title, frontmatter, body = "") {
@@ -97,11 +104,11 @@ describe("memory file writer logic", () => {
 			.replace(/^-|-$/g, "");
 		const lines = [
 			"---",
-			`title: "${title}"`,
-			`timestamp: "${timestamp}"`,
+			`title: "${escapeYamlString(title)}"`,
+			`timestamp: "${escapeYamlString(timestamp)}"`,
 			...Object.entries(frontmatter).map(([k, v]) => {
 				if (v == null) return `${k}:`;
-				if (typeof v === "string") return `${k}: "${v}"`;
+				if (typeof v === "string") return `${k}: "${escapeYamlString(v)}"`;
 				if (typeof v === "boolean") return `${k}: ${v}`;
 				if (typeof v === "number") return `${k}: ${v}`;
 				return `${k}: ${JSON.stringify(v)}`;
@@ -147,6 +154,26 @@ describe("memory file writer logic", () => {
 	it("handles null frontmatter values", () => {
 		const content = buildMemoryContent("Null", { extra: null });
 		assert.ok(content.includes("extra:"));
+	});
+
+	it("escapes double quotes in title", () => {
+		const content = buildMemoryContent('Title with "quotes"', {});
+		assert.ok(content.includes('title: "Title with \\"quotes\\""'));
+	});
+
+	it("escapes backslashes in title", () => {
+		const content = buildMemoryContent("C:\\path\\to\\file", {});
+		assert.ok(content.includes('title: "C:\\\\path\\\\to\\\\file"'));
+	});
+
+	it("escapes newlines in title", () => {
+		const content = buildMemoryContent("Line1\nLine2", {});
+		assert.ok(content.includes('title: "Line1\\nLine2"'));
+	});
+
+	it("escapes special characters in frontmatter string values", () => {
+		const content = buildMemoryContent("Test", { note: 'He said "hello\\there"' });
+		assert.ok(content.includes('note: "He said \\"hello\\\\there\\""'));
 	});
 
 	describe("memory index search logic", () => {
