@@ -7,6 +7,19 @@ const BLOCK_START = "# --- BEGIN madz-schedules ---";
 const BLOCK_END = "# --- END madz-schedules ---";
 
 /**
+ * Sanitize a command string for safe interpolation into crontab entries.
+ * Strips line-breaking characters that would break crontab format parsing.
+ * Shell special characters ($, `, |, ;) are preserved — they are handled
+ * by the shell at execution time.
+ * @param {string} command - The command string to sanitize
+ * @returns {string} The sanitized command
+ * @private
+ */
+export function sanitizeCrontabCommand(command) {
+	return command.replace(/\r\n|\r|\n/g, "");
+}
+
+/**
  * Cron manages madz schedule entries in the user's system crontab.
  * Entries are written as: <cron>  <command>  # madz-schedule: <name>
  */
@@ -213,7 +226,7 @@ export const Cron = {
 		const blockLines = schedules
 			.filter((s) => !s.paused)
 			.map((s) => {
-				return `${s.cron}  ${s.command}  # madz-schedule: ${s.name}`;
+				return `${s.cron}  ${sanitizeCrontabCommand(s.command)}  # madz-schedule: ${s.name}`;
 			});
 
 		while (outsideLines.length > 0 && outsideLines[outsideLines.length - 1].trim() === "") {
