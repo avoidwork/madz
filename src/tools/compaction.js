@@ -117,7 +117,7 @@ export function createCompactionTool(options = {}) {
 				const { threadID, maxMessages } = input;
 
 				// Build the command string for the compaction script
-				let command = `read ${sessionsDir}${threadID || "latest"} and produce a summarization, with the header: # Compaction, structured as: ${compactionTemplateEscaped}`;
+				let command = `read ${sessionsDir}${threadID}.md and produce a summarization, structured as: ${compactionTemplateEscaped}`;
 
 				if (maxMessages) {
 					command += `\nLimit to ${maxMessages} messages`;
@@ -144,7 +144,7 @@ export function createCompactionTool(options = {}) {
 					.string()
 					.optional()
 					.describe(
-						"Session identifier (defaults to latest session if omitted). The current threadId value is passed here when the tool executes.",
+						"Session identifier. Defaults to the current session's threadId when omitted.",
 					),
 				maxMessages: z
 					.number()
