@@ -5,6 +5,7 @@ import { mkdirSync, rmSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { ScheduleManager } from "../../src/scheduler/index.js";
 import { Cron } from "../../src/scheduler/index.js";
+import { sanitizeCrontabCommand } from "../../src/scheduler/cron.js";
 
 // --- Helpers ---
 
@@ -156,5 +157,49 @@ describe("scheduler - Cron", () => {
 		const result = Cron.remove("test");
 		// Crontab may be available or not; check the result shape
 		assert.ok(result.hasOwnProperty("removed"));
+	});
+});
+
+// --- sanitizeCrontabCommand ---
+
+describe("sanitizeCrontabCommand", () => {
+	it("normal commands pass through unchanged", () => {
+		const result = sanitizeCrontabCommand("node index.js --chat /reflection");
+		assert.strictEqual(result, "node index.js --chat /reflection");
+	});
+
+	it("commands with newlines are sanitized", () => {
+		const result = sanitizeCrontabCommand("echo hello\nworld");
+		assert.strictEqual(result, "echo helloworld");
+	});
+
+	it("commands with carriage returns are sanitized", () => {
+		const result = sanitizeCrontabCommand("echo hello\rworld");
+		assert.strictEqual(result, "echo helloworld");
+	});
+
+	it("commands with CRLF are sanitized", () => {
+		const result = sanitizeCrontabCommand("echo hello\r\nworld");
+		assert.strictEqual(result, "echo helloworld");
+	});
+
+	it("shell special characters are preserved", () => {
+		const result = sanitizeCrontabCommand("echo $HOME && ls | grep test; echo `date`");
+		assert.strictEqual(result, "echo $HOME && ls | grep test; echo `date`");
+	});
+
+	it("empty string returns empty string", () => {
+		const result = sanitizeCrontabCommand("");
+		assert.strictEqual(result, "");
+	});
+
+	it("whitespace-only commands are preserved as-is", () => {
+		const result = sanitizeCrontabCommand("   ");
+		assert.strictEqual(result, "   ");
+	});
+
+	it("multiple line breaks are all stripped", () => {
+		const result = sanitizeCrontabCommand("cmd1\n\n\ncmd2\r\ncmd3");
+		assert.strictEqual(result, "cmd1cmd2cmd3");
 	});
 });
