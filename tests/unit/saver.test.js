@@ -77,5 +77,69 @@ describe("session - saveSession", () => {
 			const fullPath = join(process.cwd(), TEST_DIR, "unsaved.md");
 			assert.ok(existsSync(fullPath), "unsaved.md should exist");
 		});
+
+		it("should escape double quotes in string frontmatter values", async () => {
+			const { saveSession } = await import("../../src/session/saver.js");
+			const conv = [{ role: "user", content: "test" }];
+
+			await saveSession(TEST_DIR, conv, 'thread"with"quotes');
+
+			const fullPath = join(process.cwd(), TEST_DIR, 'thread"with"quotes.md');
+			assert.ok(existsSync(fullPath), "session file should exist");
+
+			const content = await readFile(fullPath, "utf-8");
+			assert.ok(
+				content.includes('threadId: "thread\\"with\\"quotes"'),
+				"double quotes should be escaped in frontmatter",
+			);
+		});
+
+		it("should escape backslashes in string frontmatter values", async () => {
+			const { saveSession } = await import("../../src/session/saver.js");
+			const conv = [{ role: "user", content: "test" }];
+
+			await saveSession(TEST_DIR, conv, "thread\\with\\backslashes");
+
+			const fullPath = join(process.cwd(), TEST_DIR, "thread\\with\\backslashes.md");
+			assert.ok(existsSync(fullPath), "session file should exist");
+
+			const content = await readFile(fullPath, "utf-8");
+			assert.ok(
+				content.includes('threadId: "thread\\\\with\\\\backslashes"'),
+				"backslashes should be escaped in frontmatter",
+			);
+		});
+
+		it("should escape newlines in string frontmatter values", async () => {
+			const { saveSession } = await import("../../src/session/saver.js");
+			const conv = [{ role: "user", content: "test" }];
+
+			await saveSession(TEST_DIR, conv, "thread\nwith\nnewlines");
+
+			const fullPath = join(process.cwd(), TEST_DIR, "thread\nwith\nnewlines.md");
+			assert.ok(existsSync(fullPath), "session file should exist");
+
+			const content = await readFile(fullPath, "utf-8");
+			assert.ok(
+				content.includes('threadId: "thread\\nwith\\nnewlines"'),
+				"newlines should be escaped in frontmatter",
+			);
+		});
+
+		it("should handle normal string values without special characters", async () => {
+			const { saveSession } = await import("../../src/session/saver.js");
+			const conv = [{ role: "user", content: "test" }];
+
+			await saveSession(TEST_DIR, conv, "normal-thread-id");
+
+			const fullPath = join(process.cwd(), TEST_DIR, "normal-thread-id.md");
+			assert.ok(existsSync(fullPath), "session file should exist");
+
+			const content = await readFile(fullPath, "utf-8");
+			assert.ok(
+				content.includes('threadId: "normal-thread-id"'),
+				"normal strings should be wrapped in quotes without escaping",
+			);
+		});
 	});
 });

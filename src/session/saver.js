@@ -2,6 +2,20 @@ import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 /**
+ * Escape a string for safe inclusion in a YAML double-quoted scalar.
+ * Escapes backslashes, double quotes, and newlines in that order
+ * to avoid double-escaping.
+ * @param {string} str - The string to escape
+ * @returns {string} The escaped string
+ */
+function escapeYamlString(str) {
+	return str
+		.replace(/\\/g, "\\\\")
+		.replace(/"/g, '\\"')
+		.replace(/\n/g, "\\n");
+}
+
+/**
  * Save session exchanges to a file named by thread ID.
  * @param {string} sessionsDir - Path to sessions directory
  * @param {Array} conversation - Conversation exchanges to save
@@ -27,7 +41,7 @@ export async function saveSession(sessionsDir, conversation, threadId = "") {
 		"---",
 		...Object.entries(metadata).map(([k, v]) => {
 			if (v == null) return `${k}:`;
-			if (typeof v === "string") return `${k}: "${v}"`;
+			if (typeof v === "string") return `${k}: "${escapeYamlString(v)}"`;
 			if (typeof v === "boolean") return `${k}: ${v}`;
 			if (typeof v === "number") return `${k}: ${v}`;
 			return `${k}: ${JSON.stringify(v)}`;
