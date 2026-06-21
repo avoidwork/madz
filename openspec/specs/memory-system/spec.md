@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Conversation Persistence
-The system SHALL persist every conversation exchange (user input, LLM output, tool results) as a timestamped markdown file in the `memory/` directory.
+The system SHALL persist every conversation exchange (user input, LLM output, tool results) as a timestamped markdown file in the `memory/` directory. YAML frontmatter metadata (timestamp, provider, model, and any additional fields) SHALL be properly escaped to ensure valid YAML output when values contain special characters such as double quotes, backslashes, or newlines.
 
 #### Scenario: System persists a conversation message
 - **WHEN** the user sends a message or the LLM generates a response
@@ -10,6 +10,10 @@ The system SHALL persist every conversation exchange (user input, LLM output, to
 #### Scenario: System reads conversation history from memory
 - **WHEN** the user reopens the TUI after exiting
 - **THEN** the system loads the latest conversation file from `memory/` and displays the history in the conversation panel
+
+#### Scenario: Frontmatter with special characters is valid YAML
+- **WHEN** a title or frontmatter value contains double quotes, backslashes, or newlines
+- **THEN** the generated YAML frontmatter is properly escaped and can be parsed without errors
 
 ### Requirement: Tool Output and Execution Log Storage
 The system SHALL store tool execution results and error logs as separate markdown files in `memory/` with cross-reference links to the parent conversation file.
