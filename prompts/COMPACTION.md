@@ -1,4 +1,4 @@
-# Compaction Prompt
+# Compaction
 
 ## Session Context
 
