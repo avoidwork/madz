@@ -75,6 +75,13 @@ agent:
 lru:
   size: 100
   ttl: 600000
+process:
+  subAgent:
+    timeout: 600000
+    maxConcurrent: 4
+    sessionMode: isolated
+    defaultStrategy: parallel
+    defaultOnError: continue
 persistence:
   mode: memory
   sqlite_path: memory/checkpoints.db

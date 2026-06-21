@@ -21,6 +21,7 @@ import { createSamplingTool } from "./sampling.js";
 import { createDateTool } from "./date.js";
 import { createCompactContextTool } from "./compact_context.js";
 import { createCompactionTool } from "./compaction.js";
+import { createSubAgentTool } from "./subAgent.js";
 
 /**
  * Maps tool names to required permission scopes.
@@ -52,6 +53,7 @@ export const TOOL_PERMISSIONS = {
 	date: [],
 	compactContext: [],
 	compaction: [],
+	subAgent: ["process:spawn"],
 };
 
 // Factory functions keyed by tool name
@@ -80,6 +82,7 @@ const TOOL_FACTORIES = {
 	date: createDateTool,
 	compactContext: createCompactContextTool,
 	compaction: createCompactionTool,
+	subAgent: createSubAgentTool,
 };
 
 /**
