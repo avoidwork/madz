@@ -262,6 +262,8 @@ Once inside the interactive terminal, use these commands:
 
 Changes to canonical memory require a `/new` command to refresh the current session context.
 
+**Context compaction:** When conversations grow too long, `madz` automatically detects context-length errors and triggers a compaction routine. A tiered retention strategy preserves high-fidelity information: the system prompt and recent exchanges are kept intact, older exchanges are summarized, and the oldest messages are dropped. This happens transparently — you never need to start a new session or manually manage context. The `compactContext` tool is always available and can also be invoked directly by the agent.
+
 ### Skills
 
 Skills are how you give `madz` new capabilities — a bit like a macro in Excel, but with more intention. You define a set of instructions, and `madz` follows them whenever a task matches. Skills let you package domain expertise, repeatable workflows, and specialized tools that `madz` can discover and invoke on demand.
@@ -294,6 +296,8 @@ license: MIT
 ```
 
 Skills are stored in `skills/` and are version-controllable. Simple skills can be chained together into pipelines for complex multi-step processing, or composed by asking `madz` to coordinate between them.
+
+**Built-in tools:** Beyond skills, `madz` ships with built-in tools for common tasks. The `subAgent` tool lets the agent spawn child-process agents to execute prompts as independent workers — supporting both single execution and fan-out modes (parallel or sequential) with configurable concurrency, timeout, and error handling. Other built-in tools include filesystem operations, terminal execution, search, memory management, and more.
 
 ---
 

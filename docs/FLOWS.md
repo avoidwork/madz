@@ -664,6 +664,63 @@ Multi-engine search backends (webSearch):
 └── CUSTOM_SEARCH_URL → custom endpoint
 ```
 
+
+## Sub-Agent Tool Execution Flow
+
+**Entry:** `src/tools/subAgent.js` → `createSubAgentTool()`
+
+```
+subAgent tool (zero-permission, always registered):
+├── validate input: delegation (required), context (optional), tasks (optional for fan-out)
+├── if tasks provided (fan-out mode):
+│   ├── for each task in tasks (bounded by maxConcurrent):
+│   │   ├── spawn("sh", ["-c", `node index.js "${escapeShellArg(delegation)}" ||| "${escapeShellArg(context)}"`])
+│   │   ├── trackProcess(child, command) → { pid, child, status: "running", startTime }
+│   │   ├── wait for completion or timeout (resolveTimeout: per-call > env > config)
+│   │   └── parseSubAgentOutput(stdout) → { ok, result, error? }
+│   │       └── Split on "# SubAgent" marker, parse JSON after marker
+│   ├── if strategy === "sequential": wait for each to complete before next
+│   ├── if strategy === "parallel": run up to maxConcurrent simultaneously
+│   └── if onError === "fail-fast": abort remaining on first error
+│   └── if onError === "continue": collect errors, return all results
+├── else (single execution mode):
+│   ├── spawn("sh", ["-c", `node index.js "${escapeShellArg(delegation)}" ||| "${escapeShellArg(context)}"`])
+│   ├── trackProcess(child, command) → { pid, child, status: "running", startTime }
+│   ├── wait for completion or timeout
+│   └── parseSubAgentOutput(stdout) → { ok, result, error? }
+├── if returnParams provided:
+│   └── filter result to only include specified keys
+│   └── fallback to full text if not valid JSON
+└── return { ok, result, error? }
+
+escapeShellArg(arg):
+├── Replace backticks, dollar signs, single quotes, double quotes
+├── Escape newlines, tabs, carriage returns
+└── Wrap in double quotes for safe shell passing
+
+parseSubAgentOutput(stdout):
+├── Split stdout on "# SubAgent" marker
+├── Take content after marker
+├── Try JSON.parse(content)
+├── if valid JSON → { ok: true, result: parsed }
+├── else → { ok: false, error: "Failed to parse sub-agent output" }
+
+resolveTimeout(options):
+├── if options.timeout provided → options.timeout
+├── else if MADZ_SUBAGENT_TIMEOUT env var → parseInt(env)
+├── else → config.process.subAgent.timeout (default 600000)
+```
+
+**Process tracking:** Sub-agents share the `processTracker` Map from `terminal.js` for PID tracking and lifecycle management. Each sub-agent gets a unique PID that can be polled, waited on, or killed via the `process` tool.
+
+**Session isolation modes:**
+
+| Mode | Description |
+|------|-------------|
+| `isolated` | Fresh session, no parent context |
+| `forked` | Forked from parent session with compaction |
+| `shared` | Shared parent session context |
+
 ## Sandbox Skill Execution
 
 **Entry:** `index.js` → `invokeSkill(skillName, input = {})`

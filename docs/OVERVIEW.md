@@ -126,6 +126,40 @@ The agent runs: reason → call tool(s) → reason again → answer. Tool array 
 
 ---
 
+## Sub-Agent
+
+`src/tools/subAgent.js` — spawns child processes (`node index.js "PROMPT"`) to execute prompts as independent sub-agents. Supports single execution and fan-out (parallel/sequential) modes with configurable concurrency, timeout, and error handling.
+
+| File | Purpose |
+|------|---------|
+| `subAgent.js` | `createSubAgentTool()` — LangChain tool with marker-based stdout parsing; `parseSubAgentOutput()` — extracts structured results from sub-agent output; `escapeShellArg()` — handles quotes, backticks, dollar signs, newlines, tabs, carriage returns; `resolveTimeout()` — per-call > env var > config default priority |
+
+**Key features:**
+
+1. **Single execution mode** — Spawn one sub-agent with delegation + context, return structured result
+2. **Fan-out mode** — Parallel/sequential task execution with configurable `maxConcurrent` limit
+3. **Marker-based stdout parsing** — `# SubAgent` marker for result extraction (mirrors compaction tool)
+4. **Response contract** — `{ ok, result, error? }` matching compaction tool pattern
+5. **Process tracking** — Shared `processTracker` from terminal.js for PID tracking and lifecycle management
+6. **Timeout resolution** — Per-call > env var > config default priority
+7. **Parameter extraction** — Optional `returnParams` for JSON result filtering with fallback
+8. **Session isolation modes** — `isolated` (fresh), `forked` (compaction), `shared` (parent)
+9. **Shell escaping** — Handles quotes, backticks, dollar signs, newlines, tabs, carriage returns
+10. **Error handling** — `continue` vs `fail-fast` strategies for fan-out batches
+
+**Configuration:** Sub-agent parameters are set via `config.process.subAgent`:
+
+| Key | Default | Description |
+| --- | --- | --- |
+| `process.subAgent.timeout` | `600000` | Sub-agent process timeout in milliseconds (default 10 minutes) |
+| `process.subAgent.maxConcurrent` | `4` | Max concurrent sub-agent processes |
+| `process.subAgent.sessionMode` | `isolated` | Session isolation mode (`isolated`, `forked`, `shared`) |
+| `process.subAgent.defaultStrategy` | `parallel` | Default fan-out strategy (`parallel`, `sequential`) |
+| `process.subAgent.defaultOnError` | `continue` | Default error handling strategy (`continue`, `fail-fast`) |
+
+---
+
+
 ## Cache
 
 `src/cache/` — cache-aside LRU response cache for LLM API calls.

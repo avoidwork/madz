@@ -310,6 +310,16 @@ All configuration is controlled via environment variables in the `docker run` co
 | `AGENT_AUTO_CONTINUE_LIMIT`     | `1000`   | Max consecutive auto-continue attempts before circuit breaker triggers |
 | `AGENT_NODE_TIMEOUT`            | `600000` | Superstep timeout in milliseconds (default 10 minutes) |
 
+**Optional — Process (Sub-Agent):**
+
+| Variable                              | Default    | Description                                    |
+| ------------------------------------- | ---------- | ---------------------------------------------- |
+| `PROCESS_SUBAGENT_TIMEOUT`            | `600000`   | Sub-agent process timeout in milliseconds      |
+| `PROCESS_SUBAGENT_MAX_CONCURRENT`     | `4`        | Max concurrent sub-agent processes             |
+| `PROCESS_SUBAGENT_SESSION_MODE`       | `isolated` | Session isolation mode (`isolated`, `forked`, `shared`) |
+| `PROCESS_SUBAGENT_DEFAULT_STRATEGY`   | `parallel` | Default fan-out strategy (`parallel`, `sequential`) |
+| `PROCESS_SUBAGENT_DEFAULT_ON_ERROR`   | `continue` | Default error handling strategy (`continue`, `fail-fast`) |
+
 **Optional — Persistence:**
 
 | Variable                  | Default                 | Description              |
@@ -403,7 +413,7 @@ Bundled LangChain tools gated by sandbox permissions:
 | **Code**            | `executeCode` — code execution and analysis                                                                                                                                                                                                                                                                                                                                                                                 |
 | **Web**             | `webSearch`, `web_extract` — outbound HTTP with timeout, URL allowlist filtering, multi-engine search backends                                                                                                                                                                                                                                                                                                                            |
 | **Media**           | `image_generate` — image generation via fal.ai; `visionAnalyze` — vision/language analysis via OpenAI; `textToSpeech` — text-to-speech via OpenAI TTS                                                                                                                                                                                                                                                                                         |
-| **Agents**          | `mixtureOfAgents` — multi-agent orchestration                                                                                                                                                                                                                                                                                                                                                                                    |
+| **Agents**          | `mixtureOfAgents` — multi-agent orchestration; `subAgent` — spawn child-process agents with single execution and fan-out modes                                                                                                                                                                                                                                                                                                                                                                                    |
 | **Cron**            | `cronJob` — cron job utilities                                                                                                                                                                                                                                                                                                                                                                                          |
 | **System**          | `compactContext` — automatic conversation context compaction on LLM context-length errors (zero-permission, always registered)                                                                                                                                                                                                                                                                                         |
 
@@ -553,6 +563,11 @@ Graceful shutdown flushes all buffered log entries to disk before process exit.
 |               | `nodeTimeout`                        | `600000`                                 | Superstep timeout in milliseconds (default 10 minutes) |
 | `lru`         | `size`                             | `100`                                    | Maximum number of cached LLM responses        |
 |               | `ttl`                              | `600000`                                 | Cache entry TTL in milliseconds (10 minutes)  |
+| `process`     | `subAgent.timeout`                 | `600000`                                 | Sub-agent process timeout in milliseconds (default 10 minutes) |
+|               | `subAgent.maxConcurrent`           | `4`                                      | Max concurrent sub-agent processes            |
+|               | `subAgent.sessionMode`             | `isolated`                               | Session isolation mode (`isolated`, `forked`, `shared`) |
+|               | `subAgent.defaultStrategy`         | `parallel`                               | Default fan-out strategy (`parallel`, `sequential`) |
+|               | `subAgent.defaultOnError`          | `continue`                               | Default error handling strategy (`continue`, `fail-fast`) |
 | `persistence` | `mode`                               | `memory`                                 | Storage backend (`memory`, `sqlite`)          |
 |               | `sqlite_path`                        | `memory/checkpoints.db`                  | SQLite checkpointer file path                 |
 
