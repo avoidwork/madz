@@ -58,7 +58,7 @@ export function parseCompactionOutput(stdout) {
  */
 function spawnCompactionProcess(command, sessionsDir) {
 	return new Promise((resolve) => {
-		const indexPath = join(__dirname, "..", "compaction", "index.js");
+		const indexPath = join(process.cwd(), "index.js");
 
 		const child = spawn("node", [indexPath, command, sessionsDir], {
 			timeout: 60000,
