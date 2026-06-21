@@ -20,6 +20,7 @@ import { createMoaTool } from "./moa.js";
 import { createSamplingTool } from "./sampling.js";
 import { createDateTool } from "./date.js";
 import { createCompactContextTool } from "./compact_context.js";
+import { createCompactionTool } from "./compaction.js";
 
 /**
  * Maps tool names to required permission scopes.
@@ -50,6 +51,7 @@ export const TOOL_PERMISSIONS = {
 	sampling: [],
 	date: [],
 	compactContext: [],
+	compaction: [],
 };
 
 // Factory functions keyed by tool name
@@ -77,6 +79,7 @@ const TOOL_FACTORIES = {
 	sampling: createSamplingTool,
 	date: createDateTool,
 	compactContext: createCompactContextTool,
+	compaction: createCompactionTool,
 };
 
 /**
