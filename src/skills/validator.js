@@ -127,9 +127,10 @@ export function validateSkillSchema(skill, dirName) {
 	// Validate entire metadata shape against zod schema
 	const fullResult = SkillMetadataSchema.safeParse(skill);
 	if (!fullResult.success) {
-		warnings.push(
-			`Skill "${skill.name}" metadata validation: ${fullResult.error.errors.map((e) => `${e.path}: ${e.message}`).join("; ")}`,
-		);
+		const errorDetails = fullResult.error?.errors
+			? fullResult.error.errors.map((e) => `${e.path}: ${e.message}`).join("; ")
+			: fullResult.error?.message || "unknown validation error";
+		warnings.push(`Skill "${skill.name}" metadata validation: ${errorDetails}`);
 	}
 
 	return { valid: true, skip: false, errors, warnings };

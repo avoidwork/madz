@@ -1,0 +1,388 @@
+import { tool } from "@langchain/core/tools";
+import { z } from "zod";
+import { spawn } from "node:child_process";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { dirname } from "node:path";
+import { trackProcess } from "./terminal.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const SUBAGENT_MARKER = "# SubAgent";
+const PROMPT_SEPARATOR = " ||| ";
+
+/**
+ * Escape a string for safe shell argument passing.
+ * Handles quotes, backticks, dollar signs, newlines, and other special characters.
+ * @param {string} str - The string to escape
+ * @returns {string} The escaped string
+ */
+function escapeShellArg(str) {
+	return str
+		.replace(/\\/g, "\\\\")
+		.replace(/`/g, "\\`")
+		.replace(/\$/g, "\\$")
+		.replace(/"/g, '\\"')
+		.replace(/\n/g, "\\n")
+		.replace(/\r/g, "\\r")
+		.replace(/\t/g, "\\t");
+}
+
+/**
+ * Split stdout on the subAgent marker and return the content after it.
+ * @param {string} stdout - Raw stdout from the spawned process
+ * @returns {{ ok: boolean, result: string, error?: string }}
+ */
+export function parseSubAgentOutput(stdout) {
+	if (!stdout || typeof stdout !== "string") {
+		return {
+			ok: false,
+			result: "",
+			error: "No output received from sub-agent process",
+		};
+	}
+
+	const parts = stdout.split(SUBAGENT_MARKER);
+	if (parts.length < 2) {
+		return {
+			ok: false,
+			result: "",
+			error: `SubAgent marker "${SUBAGENT_MARKER}" not found in output`,
+		};
+	}
+
+	const result = parts[1].trim();
+
+	if (!result) {
+		return {
+			ok: false,
+			result: "",
+			error: `SubAgent marker found but no result content after it`,
+		};
+	}
+
+	return {
+		ok: true,
+		result: `${SUBAGENT_MARKER}\n\n${result}`,
+	};
+}
+
+/**
+ * Filter a JSON result to only include specified keys.
+ * @param {string} jsonStr - JSON string to filter
+ * @param {string[]} params - Keys to include
+ * @returns {{ ok: boolean, result: string, error?: string }}
+ */
+function filterParams(jsonStr, params) {
+	try {
+		const parsed = JSON.parse(jsonStr);
+		const filtered = {};
+		for (const key of params) {
+			if (key in parsed) {
+				filtered[key] = parsed[key];
+			}
+		}
+		return {
+			ok: true,
+			result: JSON.stringify(filtered, null, 2),
+		};
+	} catch {
+		return {
+			ok: false,
+			result: "",
+			error: `Failed to parse JSON for parameter filtering: ${jsonStr.substring(0, 100)}`,
+		};
+	}
+}
+
+/**
+ * Spawn a single sub-agent process.
+ * @param {string} prompt - The full prompt (context ||| delegation)
+ * @param {string} sessionsDir - Path to sessions directory
+ * @param {number} timeout - Timeout in milliseconds
+ * @returns {Promise<{ ok: boolean, result: string, error?: string }>}
+ */
+function spawnSubAgentProcess(prompt, sessionsDir, timeout) {
+	return new Promise((resolve) => {
+		const indexPath = join(process.cwd(), "index.js");
+		const escapedPrompt = escapeShellArg(prompt);
+
+		const child = spawn("node", [indexPath, `"${escapedPrompt}"`, sessionsDir], {
+			timeout,
+			stdio: ["ignore", "pipe", "pipe"],
+		});
+
+		trackProcess(child, `subAgent: ${prompt.substring(0, 50)}`);
+
+		let stdout = "";
+		let stderr = "";
+
+		child.stdout.on("data", (data) => {
+			stdout += data.toString();
+		});
+
+		child.stderr.on("data", (data) => {
+			stderr += data.toString();
+		});
+
+		child.on("exit", (_code) => {
+			const parsed = parseSubAgentOutput(stdout);
+			if (!parsed.ok) {
+				parsed.error = `${parsed.error}${stderr ? ` | stderr: ${stderr.trim()}` : ""}`;
+			}
+			resolve(parsed);
+		});
+
+		child.on("error", (err) => {
+			resolve({
+				ok: false,
+				result: "",
+				error: `Process spawn error: ${err.message}`,
+			});
+		});
+	});
+}
+
+/**
+ * Execute fan-out tasks with the specified strategy.
+ * @param {Array<{ delegation: string, context: string, id?: string }>} tasks - Tasks to execute
+ * @param {"parallel" | "sequential"} strategy - Execution strategy
+ * @param {number} maxConcurrent - Maximum concurrent processes
+ * @param {"continue" | "fail-fast"} onError - Error handling strategy
+ * @param {string} sessionsDir - Path to sessions directory
+ * @param {number} timeout - Timeout in milliseconds
+ * @returns {Promise<{ ok: boolean, result: string, error?: string }>}
+ */
+async function executeFanOut(tasks, strategy, maxConcurrent, onError, sessionsDir, timeout) {
+	const results = [];
+	let failed = false;
+
+	if (strategy === "sequential") {
+		for (const task of tasks) {
+			if (failed && onError === "fail-fast") break;
+
+			const prompt = `${task.context}${PROMPT_SEPARATOR}${task.delegation}`;
+			const result = await spawnSubAgentProcess(prompt, sessionsDir, timeout);
+
+			if (task.id) {
+				results.push({ id: task.id, ...result });
+			} else {
+				results.push(result);
+			}
+
+			if (!result.ok && onError === "fail-fast") {
+				failed = true;
+			}
+		}
+	} else {
+		// Parallel mode with maxConcurrent semaphore
+		const queue = [...tasks];
+		const active = new Set();
+		const promises = [];
+
+		const runNext = () => {
+			while (active.size < maxConcurrent && queue.length > 0) {
+				const task = queue.shift();
+				const promise = (async () => {
+					const prompt = `${task.context}${PROMPT_SEPARATOR}${task.delegation}`;
+					const result = await spawnSubAgentProcess(prompt, sessionsDir, timeout);
+
+					if (task.id) {
+						results.push({ id: task.id, ...result });
+					} else {
+						results.push(result);
+					}
+
+					active.delete(promise);
+					if (!result.ok && onError === "fail-fast") {
+						failed = true;
+					}
+				})();
+				active.add(promise);
+				promises.push(promise);
+			}
+		};
+
+		runNext();
+		await Promise.all(promises);
+	}
+
+	if (failed && onError === "fail-fast") {
+		return {
+			ok: false,
+			result: JSON.stringify(results.filter((r) => r.ok)),
+			error: "Fan-out failed fast",
+		};
+	}
+
+	return {
+		ok: true,
+		result: JSON.stringify(results, null, 2),
+	};
+}
+
+/**
+ * Resolve timeout with priority: per-call > env var > config default.
+ * @param {number | undefined} perCallTimeout - Per-call timeout parameter
+ * @param {object} config - Resolved config object
+ * @returns {number} Resolved timeout in milliseconds
+ */
+function resolveTimeout(perCallTimeout, config) {
+	if (perCallTimeout !== undefined && perCallTimeout !== null) {
+		return perCallTimeout;
+	}
+
+	const envTimeout = process.env.MADZ_SUBAGENT_TIMEOUT;
+	if (envTimeout !== undefined && envTimeout !== "") {
+		return parseInt(envTimeout, 10);
+	}
+
+	const configTimeout = config?.process?.subAgent?.timeout;
+	if (configTimeout !== undefined && configTimeout !== null) {
+		return configTimeout;
+	}
+
+	return 600000; // Default 10 minutes
+}
+
+/**
+ * Create a subAgent tool with runtime options.
+ * @param {object} options - Runtime options
+ * @param {string} [options.sessionsDir] - Path to sessions directory
+ * @param {object} [options.config] - Resolved config object
+ * @returns {object} LangChain Tool instance
+ */
+export function createSubAgentTool(options = {}) {
+	const { sessionsDir = "./memory/sessions/", config } = options;
+
+	return tool(
+		async (input) => {
+			try {
+				const { delegation, context, tasks, strategy, maxConcurrent, onError, returnParams, timeout } = input;
+
+				// Resolve timeout
+				const resolvedTimeout = resolveTimeout(timeout, config);
+
+				// Fan-out mode
+				if (tasks && Array.isArray(tasks) && tasks.length > 0) {
+					const fanOutStrategy = strategy || config?.process?.subAgent?.defaultStrategy || "parallel";
+					const fanOutMaxConcurrent = maxConcurrent || config?.process?.subAgent?.maxConcurrent || 4;
+					const fanOutOnError = onError || config?.process?.subAgent?.defaultOnError || "continue";
+
+					const result = await executeFanOut(
+						tasks,
+						fanOutStrategy,
+						fanOutMaxConcurrent,
+						fanOutOnError,
+						sessionsDir,
+						resolvedTimeout,
+					);
+
+					// Apply returnParams filtering if specified
+					if (returnParams && returnParams.length > 0 && result.ok) {
+						const filtered = filterParams(result.result, returnParams);
+						if (filtered.ok) {
+							return JSON.stringify({ ok: true, result: filtered.result });
+						}
+					}
+
+					return JSON.stringify(result);
+				}
+
+				// Single execution mode
+				if (!delegation) {
+					return JSON.stringify({
+						ok: false,
+						result: "",
+						error: "Delegation instruction is required",
+					});
+				}
+
+				const prompt = `${context || ""}${PROMPT_SEPARATOR}${delegation}`;
+				const result = await spawnSubAgentProcess(prompt, sessionsDir, resolvedTimeout);
+
+				// Apply returnParams filtering if specified
+				if (returnParams && returnParams.length > 0 && result.ok) {
+					const filtered = filterParams(result.result, returnParams);
+					if (filtered.ok) {
+						return JSON.stringify({ ok: true, result: filtered.result });
+					}
+					// If filtering fails, fall back to full text
+					return JSON.stringify({ ok: true, result: result.result });
+				}
+
+				return JSON.stringify(result);
+			} catch (err) {
+				return JSON.stringify({
+					ok: false,
+					result: "",
+					error: `SubAgent error: ${err.message}`,
+				});
+			}
+		},
+		{
+			name: "subAgent",
+			description:
+				"Spawn child-process agents to execute prompts as independent sub-agents. Supports single execution and fan-out (parallel/sequential) modes with configurable concurrency, timeout, and error handling. Each sub-agent receives a prompt constructed from context and delegation instruction separated by ' ||| '. Returns structured JSON result with ok, result, and optional error fields.",
+			schema: z.object({
+				delegation: z
+					.string()
+					.optional()
+					.describe(
+						"The delegation instruction — what the sub-agent should do. Required for single execution mode. Use 'run <skill-name>' for skill delegation or natural language for instruction delegation.",
+					),
+				context: z
+					.string()
+					.optional()
+					.describe(
+						"Session compaction or context the sub-agent needs to understand the task. Everything before ' ||| ' in the prompt.",
+					),
+				tasks: z
+					.array(
+						z.object({
+							delegation: z.string().describe("The delegation instruction for this task"),
+							context: z.string().describe("Context for this task"),
+							id: z.string().optional().describe("Optional task identifier"),
+						}),
+					)
+					.optional()
+					.describe(
+						"Fan-out mode: array of tasks to execute. When provided, runs in fan-out mode instead of single execution.",
+					),
+				strategy: z
+					.enum(["parallel", "sequential"])
+					.optional()
+					.describe(
+						"Fan-out strategy: 'parallel' runs tasks simultaneously (bounded by maxConcurrent), 'sequential' runs one at a time.",
+					),
+				maxConcurrent: z
+					.number()
+					.int()
+					.positive()
+					.optional()
+					.describe("Maximum number of sub-agents that can run in parallel. Overrides config default."),
+				onError: z
+					.enum(["continue", "fail-fast"])
+					.optional()
+					.describe(
+						"Error handling for fan-out: 'continue' runs remaining tasks if one fails, 'fail-fast' stops on first failure.",
+					),
+				returnParams: z
+					.array(z.string())
+					.optional()
+					.describe(
+						"Optional: filter the sub-agent's JSON result to only include these keys. Falls back to full text if output is not valid JSON.",
+					),
+				timeout: z
+					.number()
+					.int()
+					.positive()
+					.optional()
+					.describe(
+						"Timeout in milliseconds for this sub-agent execution. Overrides MADZ_SUBAGENT_TIMEOUT env var and config default.",
+					),
+			}),
+		},
+	);
+}
