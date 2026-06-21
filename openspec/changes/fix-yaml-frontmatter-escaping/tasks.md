@@ -1,16 +1,14 @@
 ## 1. Implement escapeYamlString helper
 
-- [ ] 1.1 Add escapeYamlString() function to src/memory/writer.js that escapes backslashes (\\ → \\\\), double quotes (" → \\"), and newlines (\\n → \\\\n) in the correct order
-- [ ] 1.2 Apply escapeYamlString() to the title field on line 27 of writeMemoryFile
-- [ ] 1.3 Apply escapeYamlString() to string frontmatter values on line 31 of writeMemoryFile
+- [ ] 1.1 Add escapeYamlString() function to src/session/saver.js that escapes backslashes (\\ → \\\\), double quotes (" → \\"), and newlines (\n → \\n) in the correct order
+- [ ] 1.2 Apply escapeYamlString() to string frontmatter values in the metadata object (lines 28-34)
 
 ## 2. Update tests
 
-- [ ] 2.1 Update the buildMemoryContent test helper in tests/unit/memory.test.js to use the same escapeYamlString logic
-- [ ] 2.2 Add unit test for title containing double quotes
-- [ ] 2.3 Add unit test for title containing backslashes
-- [ ] 2.4 Add unit test for title containing newlines
-- [ ] 2.5 Add unit test for frontmatter string values with special characters
+- [ ] 2.1 Add unit test for string values containing double quotes
+- [ ] 2.2 Add unit test for string values containing backslashes
+- [ ] 2.3 Add unit test for string values containing newlines
+- [ ] 2.4 Add unit test for normal string values (no special characters) to ensure no regression
 
 ## 3. Verify
 

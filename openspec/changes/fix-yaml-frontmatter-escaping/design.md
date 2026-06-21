@@ -1,18 +1,17 @@
 ## Context
 
-The `writeMemoryFile` function in `src/memory/writer.js` generates YAML frontmatter for memory files. String values (title and frontmatter fields) are wrapped in double quotes without escaping special characters. When a string contains double quotes, backslashes, or newlines, the resulting YAML is malformed and cannot be parsed correctly by the memory reader in `src/memory/index.js`.
+The `saveSession` function in `src/session/saver.js` generates YAML frontmatter for session files. String values (threadId, startedAt, endedAt) are wrapped in double quotes without escaping special characters. When a string contains double quotes, backslashes, or newlines, the resulting YAML is malformed and cannot be parsed correctly.
 
 ## Goals / Non-Goals
 
 **Goals:**
 - Add a dedicated `escapeYamlString()` helper that properly escapes backslashes, double quotes, and newlines for YAML double-quoted strings
-- Apply escaping to the title field and all string frontmatter values
-- Update the test helper in `tests/unit/memory.test.js` to mirror the escaping logic
+- Apply escaping to all string frontmatter values in the metadata object
 - Add unit tests covering special character edge cases
 
 **Non-Goals:**
-- Changes to the YAML parsing logic in `src/memory/index.js` (it already handles unescaping via quote stripping)
-- Changes to memory file naming or directory structure
+- Changes to the YAML parsing logic in any consumer of session files
+- Changes to session file naming or directory structure
 - Adding a YAML library dependency
 
 ## Decisions
@@ -21,7 +20,7 @@ The `writeMemoryFile` function in `src/memory/writer.js` generates YAML frontmat
 
 2. **Escape order: backslashes first, then quotes, then newlines** — Backslashes must be escaped first to avoid double-escaping. If we escaped quotes first, the backslashes added by quote escaping would themselves need escaping.
 
-3. **Internal helper, not exported** — The `escapeYamlString()` function is only needed for frontmatter generation within writer.js. Exporting it would expose an implementation detail with no external consumers.
+3. **Internal helper, not exported** — The `escapeYamlString()` function is only needed for frontmatter generation within saver.js. Exporting it would expose an implementation detail with no external consumers.
 
 4. **Double-quoted YAML strings** — The existing code uses double quotes for all string values. We maintain this convention rather than switching to single quotes or block scalars, minimizing the scope of change.
 
