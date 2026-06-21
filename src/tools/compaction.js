@@ -4,11 +4,17 @@ import { spawn } from "node:child_process";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { dirname } from "node:path";
+import { readFileSync } from "node:fs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const COMPACTION_MARKER = "# Compaction";
+
+// Load the compaction prompt template once at module load time
+const compactionTemplatePath = join(process.cwd(), "prompts", "COMPACTION.md");
+const compactionTemplate = readFileSync(compactionTemplatePath, "utf-8").trim();
+const compactionTemplateEscaped = compactionTemplate.replace(/\n/g, "\\n");
 
 /**
  * Split stdout on the compaction marker and return the content after it.
@@ -60,7 +66,7 @@ function spawnCompactionProcess(command, sessionsDir) {
 	return new Promise((resolve) => {
 		const indexPath = join(process.cwd(), "index.js");
 
-		const child = spawn("node", [indexPath, command, sessionsDir], {
+		const child = spawn("node", [indexPath, `"${command}"`, sessionsDir], {
 			timeout: 60000,
 			stdio: ["ignore", "pipe", "pipe"],
 		});
@@ -103,7 +109,7 @@ function spawnCompactionProcess(command, sessionsDir) {
  * @returns {object} LangChain tool instance
  */
 export function createCompactionTool(options = {}) {
-	const { sessionsDir = "memory/sessions/" } = options;
+	const { sessionsDir = "./memory/sessions/" } = options;
 
 	return tool(
 		async (input) => {
@@ -111,7 +117,7 @@ export function createCompactionTool(options = {}) {
 				const { threadID, maxMessages } = input;
 
 				// Build the command string for the compaction script
-				let command = `read ${sessionsDir}${threadID || "latest"} and produce a summarization, with the header: # Compaction, structured as:\n## Session Context\n### Core Decisions\n### Key Design Points\n### Open Questions\n### Next Steps`;
+				let command = `read ${sessionsDir}${threadID || "latest"} and produce a summarization, with the header: # Compaction, structured as: ${compactionTemplateEscaped}`;
 
 				if (maxMessages) {
 					command += `\nLimit to ${maxMessages} messages`;
