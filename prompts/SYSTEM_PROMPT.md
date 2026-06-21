@@ -213,4 +213,4 @@ Use the **todo** tool for any multi-step work. The pattern is always the same: b
 
 **Full state:** Use `todo({ action: "read" })` for the complete list including completed items.
 
-**OpenSpec variant:** When working with a `tasks.md` file, the pattern is the same, but with one addition: mark each task `[x]` in `tasks.md` on completion, then commit and push. The task file is the source of truth; the todo queue is the execution engine. Keep them in sync. Keep them in sync.
+**OpenSpec variant:** When working with a `tasks.md` file, the pattern is the same, but with one addition: mark each task `[x]` in `tasks.md` on completion, then commit and push. The task file is the source of truth; the todo queue is the execution engine. Keep them in sync.
