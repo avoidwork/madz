@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Box, useWindowSize, useApp } from "ink";
 import { useInput } from "ink";
+import { Command } from "@langchain/langgraph";
 import { CommandParser } from "./commandParser.js";
 import { ConversationPanel } from "./conversationPanel.js";
 import { StatusBar } from "./statusBar.js";
@@ -45,6 +46,7 @@ export default function App({
 	const scrollRef = useRef(null);
 	const abortControllerRef = useRef(null);
 	const isStreamingRef = useRef(false);
+	const isResumingRef = useRef(false);
 	const dispatchPromiseRef = useRef(null);
 	const autoContinueCountRef = useRef(0);
 	const isAutoContinuingRef = useRef(false);
@@ -621,9 +623,15 @@ export default function App({
 		});
 
 		try {
+			// If we're resuming after an interruption, send the text as a
+			// Command.resume so the agent picks up where it left off.
+			const dispatchInput = isResumingRef.current
+				? (isResumingRef.current = false, new Command({ resume: text }))
+				: text;
+
 			// Capture the dispatch promise so handleInterrupt can await it
 			const dispatchPromise = dispatchProvider(
-				text,
+				dispatchInput,
 				sessionState ? sessionState.getProvider() : null,
 				(event) => {
 					if (shouldAbort()) return;
@@ -894,6 +902,10 @@ export default function App({
 		} catch (err) {
 			// Abort is a normal interruption, not an error
 			if (err.name === "AbortError") {
+				// Mark that we're resuming — the next user message should
+				// be sent as a Command.resume so the agent picks up where
+				// it left off rather than starting a fresh turn.
+				isResumingRef.current = true;
 				// Clean up: remove the user message that was added before the aborted stream
 				if (sessionState) {
 					sessionState.popExchange();
