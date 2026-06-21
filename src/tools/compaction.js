@@ -138,7 +138,7 @@ export function createCompactionTool(options = {}) {
 		{
 			name: "compaction",
 			description:
-				"Generate a semantic summarization of the current session — distilling conversation history into core decisions, key design points, open questions, and next steps. Unlike compactContext (which is a mechanical context-window reducer), this tool produces a curated, human-readable summary suitable for passing to sub-agents or for session archival.",
+				"Generate a semantic summarization of the current session — distilling conversation history into core decisions, key design points, open questions, and next steps. Unlike compactContext (which is a mechanical context-window reducer), this tool produces a curated, human-readable summary suitable for passing to sub-agents or for session archival. Return the result exactly as generated, without modification or formatting.",
 			schema: z.object({
 				threadID: z
 					.string()
