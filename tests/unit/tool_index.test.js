@@ -78,16 +78,17 @@ describe("tools - buildToolConfig", () => {
 		delete process.env.CUSTOM_SEARCH_URL;
 	});
 
-	it("returns clarify + execute_code + sampling + date + compactContext with empty permissions", async () => {
+	it("returns clarify + execute_code + sampling + date + compactContext + compaction with empty permissions", async () => {
 		const { buildToolConfig } = await import("../../src/tools/index.js");
 		const tools = await buildToolConfig({ permissions: [], maxReadSize: "1mb" });
 		const toolNames = tools.map((t) => t.name);
-		assert.strictEqual(toolNames.length, 5);
+		assert.strictEqual(toolNames.length, 6);
 		assert.ok(toolNames.includes("clarify"));
 		assert.ok(toolNames.includes("executeCode"));
 		assert.ok(toolNames.includes("sampling"));
 		assert.ok(toolNames.includes("date"));
 		assert.ok(toolNames.includes("compactContext"));
+		assert.ok(toolNames.includes("compaction"));
 	});
 
 	it("returns clarify + filesystem tools when filesystem:read and filesystem:write enabled", async () => {
@@ -164,11 +165,12 @@ describe("tools - buildToolConfig", () => {
 			maxReadSize: "2mb",
 		});
 		const toolNames = tools.map((t) => t.name);
-		assert.strictEqual(toolNames.length, 5);
+		assert.strictEqual(toolNames.length, 6);
 		assert.ok(toolNames.includes("clarify"));
 		assert.ok(toolNames.includes("executeCode"));
 		assert.ok(toolNames.includes("sampling"));
 		assert.ok(toolNames.includes("date"));
 		assert.ok(toolNames.includes("compactContext"));
+		assert.ok(toolNames.includes("compaction"));
 	});
 });
