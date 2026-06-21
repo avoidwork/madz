@@ -21,6 +21,7 @@ Call chains and data flows for all primary code paths in the project, excluding 
 - [File Tool Execution Flow](#file-tool-execution-flow)
 - [Terminal Tool Execution Flow](#terminal-tool-execution-flow)
 - [Web Tool Execution Flow](#web-tool-execution-flow)
+- [Sub-Agent Tool Execution Flow](#sub-agent-tool-execution-flow)
 - [Sandbox Skill Execution](#sandbox-skill-execution)
 - [Memory Persistence Flow](#memory-persistence-flow)
 - [Context Loading](#context-loading)
