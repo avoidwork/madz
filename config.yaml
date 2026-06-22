@@ -18,7 +18,6 @@ sandbox:
   skillScanPaths:
     - "system-skills/"
     - "skills/"
-    - ".agents/skills/"
   timeout:
     seconds: 600
     gracePeriod: 5
