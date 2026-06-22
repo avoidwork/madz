@@ -10,7 +10,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const SUBAGENT_MARKER = "# SubAgent";
-const PROMPT_SEPARATOR = " ||| ";
 
 /**
  * Escape a string for safe shell argument passing.
