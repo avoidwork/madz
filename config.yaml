@@ -15,6 +15,9 @@ sandbox:
     - "./"
     - "!node_modules/"
     - "/tmp"
+  skillScanPaths:
+    - "system-skills/"
+    - "skills/"
   timeout:
     seconds: 600
     gracePeriod: 5

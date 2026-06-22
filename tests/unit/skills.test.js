@@ -1,6 +1,6 @@
 import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert";
-import { mkdirSync, rmSync, existsSync, readFileSync } from "node:fs";
+import { mkdirSync, rmSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { chdir } from "node:process";
 import { join } from "node:path";
@@ -11,6 +11,7 @@ import {
 	generateSkillCatalogPrompt,
 	createSkill,
 } from "../../src/tools/skills.js";
+import { findSkillScript } from "../../src/tools/cron.js";
 import { SkillRegistry } from "../../src/skills/registry.js";
 
 let testDir;
@@ -476,5 +477,66 @@ describe("generateSkillCatalogPrompt", () => {
 		assert.ok(result.includes("Process PDFs"));
 		assert.ok(result.includes("Location: /skills/pdf-skill"));
 		assert.ok(result.includes("## search-skill"));
+	});
+});
+
+// --- findSkillScript tests ---
+
+describe("findSkillScript", () => {
+	beforeEach(setup);
+	afterEach(cleanup);
+
+	it("finds script in skills/ directory", async () => {
+		const skillDir = join(testDir, "skills", "test-skill");
+		mkdirSync(skillDir, { recursive: true });
+		const scriptsDir = join(skillDir, "scripts");
+		mkdirSync(scriptsDir, { recursive: true });
+		writeFileSync(join(scriptsDir, "run.sh"), "#!/bin/bash\necho hello");
+
+		const result = await findSkillScript("test-skill", "skills");
+		assert.ok(result.endsWith("skills/test-skill/scripts/run.sh"));
+	});
+
+	it("finds script in system-skills/ before skills/", async () => {
+		const systemDir = join(testDir, "system-skills", "test-skill");
+		mkdirSync(systemDir, { recursive: true });
+		const systemScripts = join(systemDir, "scripts");
+		mkdirSync(systemScripts, { recursive: true });
+		writeFileSync(join(systemScripts, "run.sh"), "#!/bin/bash\necho system");
+
+		const userDir = join(testDir, "skills", "test-skill");
+		mkdirSync(userDir, { recursive: true });
+		const userScripts = join(userDir, "scripts");
+		mkdirSync(userScripts, { recursive: true });
+		writeFileSync(join(userScripts, "run.sh"), "#!/bin/bash\necho user");
+
+		const result = await findSkillScript("test-skill", ["system-skills", "skills"]);
+		assert.ok(result.includes("system-skills"), "Should find system skill first");
+		assert.ok(result.endsWith("system-skills/test-skill/scripts/run.sh"));
+	});
+
+	it("returns null when no script exists", async () => {
+		const result = await findSkillScript("nonexistent-skill", "skills");
+		assert.strictEqual(result, null);
+	});
+
+	it("handles string baseDir (backward compatibility)", async () => {
+		const skillDir = join(testDir, "skills", "legacy-skill");
+		mkdirSync(skillDir, { recursive: true });
+		const scriptsDir = join(skillDir, "scripts");
+		mkdirSync(scriptsDir, { recursive: true });
+		writeFileSync(join(scriptsDir, "run.py"), "#!/usr/bin/env python3\nprint('hello')");
+
+		const result = await findSkillScript("legacy-skill", "skills");
+		assert.ok(result.endsWith("skills/legacy-skill/scripts/run.py"));
+	});
+
+	it("finds root-level script when no scripts/ directory exists", async () => {
+		const skillDir = join(testDir, "system-skills", "root-skill");
+		mkdirSync(skillDir, { recursive: true });
+		writeFileSync(join(skillDir, "run.sh"), "#!/bin/bash\necho root");
+
+		const result = await findSkillScript("root-skill", "system-skills");
+		assert.ok(result.endsWith("system-skills/root-skill/run.sh"));
 	});
 });

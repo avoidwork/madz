@@ -1,6 +1,9 @@
 import { readdirSync, statSync, readFileSync, existsSync } from "node:fs";
 import { join, basename, resolve } from "node:path";
 import yaml from "js-yaml";
+import { loadConfig } from "../config/loader.js";
+
+export const defaultScope = loadConfig().sandbox.skillScanPaths;
 
 // Cross-client directory scope constants
 const SKILL_DIR = "SKILL.md";
@@ -148,15 +151,12 @@ function findSkillFiles(dir) {
 
 /**
  * Discover skills from multiple directory scopes.
- * @param {string|string[]} [scope="skills/"] - Directory or array of directories to scan
+ * @param {string[]} [scope] - Array of directories to scan (defaults to sandbox.skillScanPaths from config)
  * @param {object} [options] - Discovery options
  * @param {boolean} [options.trustProjectSkills=true] - Whether to trust project-level skills
  * @returns {Array<{ path: string, name: string, metadata: Object }>}
  */
-export function discoverSkills(scope = "skills/", options = {}) {
-	if (typeof scope === "string") {
-		scope = [scope];
-	}
+export function discoverSkills(scope = defaultScope, options = {}) {
 
 	const { trustProjectSkills: _trustProjectSkills = true } = options;
 	const allSkills = [];
@@ -175,10 +175,9 @@ export function discoverSkills(scope = "skills/", options = {}) {
 			if (!name) continue;
 
 			if (seenNames.has(name)) {
-				const _existingPath = seenNames.get(name);
-				const isNewHigherPriority = skill.path.includes(".agents/skills");
+				const isNewHigherPriority = skill.path.includes("system-skills/");
 				if (isNewHigherPriority) {
-					// Project-level skills override user-level (shadow)
+					// System skills override user skills (shadow)
 					seenNames.set(name, skill.path);
 				}
 				continue;
