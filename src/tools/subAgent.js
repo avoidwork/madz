@@ -3,6 +3,7 @@ import { z } from "zod";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname } from "node:path";
+import { createWriteStream } from "node:fs";
 import { trackProcess } from "./terminal.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -110,20 +111,28 @@ function spawnSubAgentProcess(prompt, sessionsDir, timeout) {
 			stdio: ["ignore", "pipe", "pipe"],
 		});
 
+		const logPath = `/tmp/sub-agent-${child.pid}.log`;
+		const logStream = createWriteStream(logPath, { flags: "a" });
+
 		trackProcess(child, `subAgent: ${prompt.substring(0, 50)}`);
 
 		let stdout = "";
 		let stderr = "";
 
 		child.stdout.on("data", (data) => {
-			stdout += data.toString();
+			const text = data.toString();
+			stdout += text;
+			logStream.write(text);
 		});
 
 		child.stderr.on("data", (data) => {
-			stderr += data.toString();
+			const text = data.toString();
+			stderr += text;
+			logStream.write(text);
 		});
 
 		child.on("exit", (_code) => {
+			logStream.end();
 			const parsed = parseSubAgentOutput(stdout);
 			if (!parsed.ok) {
 				parsed.error = `${parsed.error}${stderr ? ` | stderr: ${stderr.trim()}` : ""}`;
@@ -132,6 +141,7 @@ function spawnSubAgentProcess(prompt, sessionsDir, timeout) {
 		});
 
 		child.on("error", (err) => {
+			logStream.end();
 			resolve({
 				ok: false,
 				result: "",
