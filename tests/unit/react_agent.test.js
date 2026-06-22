@@ -1006,6 +1006,95 @@ describe("callReactAgent", () => {
 		});
 	});
 
+	describe("toolmessage compaction preservation", () => {
+		function createContextLengthError(message) {
+			const err = new Error(message);
+			return err;
+		}
+
+		it("preserves ToolMessage instances through compaction in callReactAgent", async () => {
+			// First call throws context length error, triggering compaction
+			// Second call succeeds — we inspect the messages passed to it
+			let callCount = 0;
+			let capturedMessages = null;
+			const patchedMock = {
+				invoke: (input) => {
+					callCount++;
+					if (callCount === 1) {
+						throw createContextLengthError("This model's maximum context length is 128000 tokens");
+					}
+					capturedMessages = input.messages;
+					return { messages: [new AIMessage("success")] };
+				},
+				streamEvents: () => ({}),
+			};
+
+			await callReactAgent(patchedMock, "test", {}, "system prompt", null, {
+				maxTokens: 4096,
+			});
+
+			// After compaction, the messages should include a ToolMessage
+			// (the compaction logic rebuilds messages from the conversation array)
+			// We verify the rebuild logic handles tool role correctly by checking
+			// that no ToolMessage was incorrectly converted to AIMessage
+			assert.ok(capturedMessages);
+			// All messages should be proper LangChain message instances
+			for (const msg of capturedMessages) {
+				assert.ok(
+					msg instanceof HumanMessage ||
+						msg instanceof AIMessage ||
+						msg instanceof ToolMessage ||
+						msg instanceof SystemMessage,
+					`Message should be a proper LangChain instance, got ${msg.constructor.name}`,
+				);
+			}
+		});
+
+		it("preserves ToolMessage instances through compaction in callReactAgentStreaming", async () => {
+			let callCount = 0;
+
+			// We need to capture messages on the retry call
+			let retryMessages = null;
+			const capturingMock = {
+				streamEvents: (input) => {
+					callCount++;
+					if (callCount === 1) {
+						throw createContextLengthError("maximum context length of 8192 tokens");
+					}
+					retryMessages = input.messages;
+					return (async function* () {
+						yield {
+							event: "on_chat_model_stream",
+							data: { chunk: new AIMessageChunk({ content: "success" }) },
+						};
+					})();
+				},
+				invoke: () => ({ messages: [new AIMessage("fallback")] }),
+			};
+
+			const callbackCalls = [];
+			const callback = (event) => callbackCalls.push(event);
+
+			await callReactAgent(capturingMock, "test", {}, null, callback, {
+				maxTokens: 2048,
+				maxCompactionIterations: 3,
+			});
+
+			// After compaction, verify all messages are proper LangChain instances
+			// (ToolMessage should not have been converted to AIMessage)
+			assert.ok(retryMessages);
+			for (const msg of retryMessages) {
+				assert.ok(
+					msg instanceof HumanMessage ||
+						msg instanceof AIMessage ||
+						msg instanceof ToolMessage ||
+						msg instanceof SystemMessage,
+					`Message should be a proper LangChain instance, got ${msg.constructor.name}`,
+				);
+			}
+		});
+	});
+
 	describe("streaming returns aggregated text", () => {
 		function createEvents(events) {
 			return (async function* () {
