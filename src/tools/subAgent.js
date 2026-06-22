@@ -104,10 +104,9 @@ function filterParams(jsonStr, params) {
  */
 function spawnSubAgentProcess(prompt, sessionsDir, timeout) {
 	return new Promise((resolve) => {
-		const indexPath = join(process.cwd(), "index.js");
 		const escapedPrompt = escapeShellArg(prompt);
 
-		const child = spawn("node", [indexPath, `"${escapedPrompt}"`, sessionsDir], {
+		const child = spawn("node", ["index.js", `"${escapedPrompt}"`, sessionsDir], {
 			timeout,
 			stdio: ["ignore", "pipe", "pipe"],
 		});
