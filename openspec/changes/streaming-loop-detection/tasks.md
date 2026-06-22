@@ -55,7 +55,7 @@
 
 ## 8. Verification
 
-- [ ] 8.1 Run npm run test — all tests pass
-- [ ] 8.2 Run npm run lint — no lint errors
-- [ ] 8.3 Run npm run coverage — coverage maintained
-- [ ] 8.4 Run npm start — application starts without crashing
+- [x] 8.1 Run npm run test — all tests pass
+- [x] 8.2 Run npm run lint — no lint errors
+- [x] 8.3 Run npm run coverage — coverage maintained
+- [x] 8.4 Run npm start — application starts without crashing
