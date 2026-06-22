@@ -6,7 +6,6 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import {
 	parseSubAgentOutput,
-	escapeShellArg,
 	resolveTimeout,
 	generateSessionId,
 	spawnSubAgentProcess,
@@ -62,46 +61,6 @@ describe("parseSubAgentOutput", () => {
 		assert.strictEqual(result.ok, true);
 		assert.ok(result.result.includes("first"));
 		assert.ok(!result.result.includes("second"));
-	});
-});
-
-describe("escapeShellArg", () => {
-	it("should escape double quotes", () => {
-		assert.strictEqual(escapeShellArg('hello "world"'), 'hello \\"world\\"');
-	});
-
-	it("should escape backticks", () => {
-		assert.strictEqual(escapeShellArg("hello `world`"), "hello \\`world\\`");
-	});
-
-	it("should escape dollar signs", () => {
-		assert.strictEqual(escapeShellArg("hello $world"), "hello \\$world");
-	});
-
-	it("should escape backslashes", () => {
-		assert.strictEqual(escapeShellArg("hello\\world"), "hello\\\\world");
-	});
-
-	it("should escape newlines", () => {
-		assert.strictEqual(escapeShellArg("hello\nworld"), "hello\\nworld");
-	});
-
-	it("should escape carriage returns", () => {
-		assert.strictEqual(escapeShellArg("hello\rworld"), "hello\\rworld");
-	});
-
-	it("should escape tabs", () => {
-		assert.strictEqual(escapeShellArg("hello\tworld"), "hello\\tworld");
-	});
-
-	it("should handle multiple special characters", () => {
-		const input = 'hello "world" $foo `bar` \\test\nnew\rline\ttab';
-		const expected = 'hello \\"world\\" \\$foo \\`bar\\` \\\\test\\nnew\\rline\\ttab';
-		assert.strictEqual(escapeShellArg(input), expected);
-	});
-
-	it("should return unchanged string with no special characters", () => {
-		assert.strictEqual(escapeShellArg("hello world 123"), "hello world 123");
 	});
 });
 

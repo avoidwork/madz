@@ -13,23 +13,6 @@ const __dirname = dirname(__filename);
 const SUBAGENT_MARKER = "# SubAgent";
 
 /**
- * Escape a string for safe shell argument passing.
- * Handles quotes, backticks, dollar signs, newlines, and other special characters.
- * @param {string} str - The string to escape
- * @returns {string} The escaped string
- */
-function escapeShellArg(str) {
-	return str
-		.replace(/\\/g, "\\\\")
-		.replace(/`/g, "\\`")
-		.replace(/\$/g, "\\$")
-		.replace(/"/g, '\\"')
-		.replace(/\n/g, "\\n")
-		.replace(/\r/g, "\\r")
-		.replace(/\t/g, "\\t");
-}
-
-/**
  * Split stdout on the subAgent marker and return the content after it.
  * @param {string} stdout - Raw stdout from the spawned process
  * @returns {{ ok: boolean, result: string, error?: string }}
@@ -123,14 +106,11 @@ function msToSeconds(ms) {
 export function spawnSubAgentProcess(prompt, sessionsDir, timeout) {
 	return new Promise((resolve) => {
 		const sessionId = generateSessionId();
-		const escapedPrompt = escapeShellArg(prompt);
 		const timeoutSeconds = msToSeconds(timeout);
 
 		// Use system timeout command for reliable process termination
 		// timeout sends SIGTERM first, then SIGKILL after --kill-after delay
-		const timeoutCmd = `timeout --kill-after=10 ${timeoutSeconds} node index.js "${escapedPrompt}" "${sessionsDir}"`;
-
-		const child = spawn("sh", ["-c", timeoutCmd], {
+		const child = spawn("timeout", ["--kill-after=10", timeoutSeconds.toString(), "node", "index.js", prompt, sessionsDir], {
 			stdio: ["pipe", "pipe", "pipe"],
 			env: {
 				...process.env,
@@ -163,7 +143,6 @@ export function spawnSubAgentProcess(prompt, sessionsDir, timeout) {
 
 			// Exit code 124 indicates timeout from system timeout command
 			if (code === 124) {
-				logStream.end();
 				resolve({
 					ok: false,
 					result: "",
