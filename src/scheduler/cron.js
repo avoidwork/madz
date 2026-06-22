@@ -51,11 +51,8 @@ export const Cron = {
 					stdio: ["pipe", "pipe", "pipe"],
 				}).trim() || ""
 			);
-		} catch (err) {
-			const msg = err instanceof Error ? err.message || "" : String(err);
-			const stdout = err.stdout || "";
-			if (/no crontab/i.test(msg) || /no crontab/i.test(stdout)) return "";
-			throw new Error(`Failed to read crontab: ${msg}`);
+		} catch (_err) {
+			return "";
 		}
 	},
 
