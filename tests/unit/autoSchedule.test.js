@@ -98,7 +98,8 @@ describe("setupAutoSchedule", () => {
 		assert.strictEqual(content.name, "reflection-daily");
 		assert.strictEqual(content.cron, "0 2 * * *");
 		assert.ok(
-			content.command.startsWith("cd ") && content.command.includes('node index.js "run /reflection"'),
+			content.command.startsWith("cd ") &&
+				content.command.includes('node index.js "run /reflection"'),
 		);
 		assert.strictEqual(content.enabled, true);
 		assert.ok(content.createdAt);
