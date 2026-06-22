@@ -1,0 +1,3 @@
+version: 2024-07-24
+title: Optimistic GC
+summary: V8 garbage collection on idle

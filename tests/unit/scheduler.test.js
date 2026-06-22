@@ -1,7 +1,6 @@
 import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert";
 import { execSync } from "node:child_process";
-import { mock } from "node:test";
 import { mkdirSync, rmSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { ScheduleManager } from "../../src/scheduler/index.js";
