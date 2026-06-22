@@ -7,6 +7,7 @@ import {
 } from "../tools/compact_context.js";
 import { createLlmCache, getCacheKey } from "../cache/llm_cache.js";
 import { loadConfig } from "../config/loader.js";
+import { LoopDetector } from "./loop-detector.js";
 
 /**
  * Map a LangChain message instance to its corresponding conversation role.
@@ -310,6 +311,16 @@ async function callReactAgentStreaming(
 	// Aggregate text chunks for caching (only cache on successful completion)
 	let aggregatedText = "";
 
+	// Initialize loop detector for this stream
+	const loopDetector = new LoopDetector({
+		threshold: 3,
+		windowDuration: 30000,
+		onLoop: () => {
+			// Emit loop_detected event to the callback pipeline
+			callback({ type: "loop_detected" });
+		},
+	});
+
 	while (iteration <= maxCompactionIterations) {
 		let toolCallSet = new Set();
 
@@ -323,6 +334,7 @@ async function callReactAgentStreaming(
 				// Check for abort signal on each event
 				if (signal && signal.aborted) {
 					// Do NOT cache on abort
+					loopDetector.reset();
 					// Emit tool_end for any tool_start that didn't get a corresponding tool_end
 					for (const key of toolCallSet) {
 						const [name] = key.split("|");
@@ -360,7 +372,9 @@ async function callReactAgentStreaming(
 						}
 					}
 					if (textContent.length > 0) {
-						// For tool-invoking LLM calls, the text might be empty or tool-call-related
+						// Process through loop detector before emitting
+						loopDetector.processChunk(textContent);
+						// Emit text content deltas
 						callback({ type: "text", text: textContent });
 						// Aggregate text for caching
 						aggregatedText += textContent;
@@ -433,6 +447,9 @@ async function callReactAgentStreaming(
 			if (cacheKey && aggregatedText && toolCallSet.size === 0) {
 				getCache().set(cacheKey, aggregatedText);
 			}
+
+			// Reset loop detector on successful completion
+			loopDetector.reset();
 
 			// Success — emit compaction_end if compaction was active, then return
 			if (compactionActive && callback) {
