@@ -15,14 +15,16 @@ let nextPid = 1000;
  * Record a background process in the tracker.
  * @param {import("node:child_process").ChildProcess} child - The child process
  * @param {string} command - The command that was executed
+ * @param {string} [sessionId] - Optional session ID for sub-agent correlation
  * @returns {number} The assigned PID
  */
-export function trackProcess(child, command) {
+export function trackProcess(child, command, sessionId) {
 	const pid = nextPid++;
 	processTracker.set(pid, {
 		pid,
 		child,
 		command,
+		sessionId,
 		status: "running",
 		startTime: Date.now(),
 	});

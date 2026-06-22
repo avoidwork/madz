@@ -4,7 +4,7 @@ import { readdir, readFile, stat, unlink } from "node:fs/promises";
 import { join } from "node:path";
 
 const LOG_DIR = "/tmp";
-const LOG_PATTERN = /^sub-agent-(\d+)\.log$/;
+const LOG_PATTERN = /^sub-agent-[a-zA-Z0-9-]+\.log$/;
 
 /**
  * Check if a process is still running.
@@ -22,25 +22,35 @@ function isProcessRunning(pid) {
 
 /**
  * List all subAgent log files.
- * @returns {Promise<Array<{ pid: number, file: string, size: number, modified: string, running: boolean }>>}
+ * @param {string} [sessionId] - Optional session ID to filter by
+ * @returns {Promise<Array<{ pid: number, sessionId: string, file: string, size: number, modified: string, running: boolean }>>}
  */
-async function listLogs() {
+async function listLogs(sessionId) {
 	const files = await readdir(LOG_DIR);
 	const logs = [];
 
 	for (const file of files) {
 		const match = file.match(LOG_PATTERN);
 		if (match) {
-			const pid = parseInt(match[1], 10);
+			const id = match[1];
 			const filePath = join(LOG_DIR, file);
 			const stats = await stat(filePath);
 
+			// If sessionId filter is provided, only include matching logs
+			if (sessionId && id !== sessionId) {
+				continue;
+			}
+
+			// Try to parse as numeric PID for backward compatibility
+			const pid = /^\d+$/.test(id) ? parseInt(id, 10) : null;
+
 			logs.push({
 				pid,
+				sessionId: id,
 				file,
 				size: stats.size,
 				modified: stats.mtime.toISOString(),
-				running: isProcessRunning(pid),
+				running: pid !== null && isProcessRunning(pid),
 			});
 		}
 	}
@@ -50,13 +60,19 @@ async function listLogs() {
 
 /**
  * Read a subAgent log file.
- * @param {number} pid - Process ID of the log to read
- * @returns {Promise<{ pid: number, content: string }>}
+ * @param {number|string} id - Process ID or session ID of the log to read
+ * @returns {Promise<{ pid: number, sessionId: string, content: string }>}
  */
-async function readLog(pid) {
-	const filePath = join(LOG_DIR, `sub-agent-${pid}.log`);
+async function readLog(id) {
+	const filePath = join(LOG_DIR, `sub-agent-${id}.log`);
 	const content = await readFile(filePath, "utf-8");
-	return { pid, content };
+	// Try to parse as numeric PID for backward compatibility
+	const pid = /^\d+$/.test(String(id)) ? parseInt(String(id), 10) : null;
+	return {
+		pid,
+		sessionId: String(id),
+		content,
+	};
 }
 
 /**
@@ -94,22 +110,24 @@ export function createSubAgentLogTool() {
 	return tool(
 		async (input) => {
 			try {
-				const { action, pid, maxAgeHours } = input;
+				const { action, pid, sessionId, maxAgeHours } = input;
 
 				switch (action) {
 					case "list": {
-						const logs = await listLogs();
+						const logs = await listLogs(sessionId);
 						return JSON.stringify({ ok: true, logs });
 					}
 
 					case "read": {
-						if (pid === undefined || pid === null) {
+						if (pid === undefined && sessionId === undefined) {
 							return JSON.stringify({
 								ok: false,
-								error: "PID is required for 'read' action",
+								error: "PID or sessionId is required for 'read' action",
 							});
 						}
-						const result = await readLog(pid);
+						// sessionId takes precedence, fall back to pid for backward compatibility
+						const id = sessionId !== undefined ? sessionId : pid;
+						const result = await readLog(id);
 						return JSON.stringify({ ok: true, ...result });
 					}
 
@@ -140,14 +158,18 @@ export function createSubAgentLogTool() {
 				action: z
 					.enum(["list", "read", "cleanup"])
 					.describe(
-						"Action to perform: 'list' shows all subAgent logs, 'read' reads a specific log by PID, 'cleanup' removes old logs",
+						"Action to perform: 'list' shows all subAgent logs, 'read' reads a specific log by PID or sessionId, 'cleanup' removes old logs",
 					),
 				pid: z
 					.number()
 					.int()
 					.positive()
 					.optional()
-					.describe("Process ID (required for 'read' action)"),
+					.describe("Process ID (required for 'read' action if sessionId not provided)"),
+				sessionId: z
+					.string()
+					.optional()
+					.describe("Session ID (alternative to pid for 'read' action, or filter for 'list' action)"),
 				maxAgeHours: z
 					.number()
 					.int()

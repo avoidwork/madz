@@ -1,6 +1,7 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { spawn } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { dirname } from "node:path";
 import { createWriteStream } from "node:fs";
@@ -96,25 +97,38 @@ function filterParams(jsonStr, params) {
 }
 
 /**
+ * Generate a unique session ID for sub-agent correlation.
+ * @returns {string} UUID v4 string
+ */
+export function generateSessionId() {
+	return randomUUID();
+}
+
+/**
  * Spawn a single sub-agent process.
  * @param {string} prompt - The full prompt (context ||| delegation)
  * @param {string} sessionsDir - Path to sessions directory
  * @param {number} timeout - Timeout in milliseconds
- * @returns {Promise<{ ok: boolean, result: string, error?: string }>}
+ * @returns {Promise<{ ok: boolean, result: string, error?: string, sessionId?: string }>}
  */
-function spawnSubAgentProcess(prompt, sessionsDir, timeout) {
+export function spawnSubAgentProcess(prompt, sessionsDir, timeout) {
 	return new Promise((resolve) => {
+		const sessionId = generateSessionId();
 		const escapedPrompt = escapeShellArg(prompt);
 
 		const child = spawn("node", ["index.js", `"${escapedPrompt}"`, sessionsDir], {
 			timeout,
 			stdio: ["pipe", "pipe", "pipe"],
+			env: {
+				...process.env,
+				MADZ_SESSION_ID: sessionId,
+			},
 		});
 
-		const logPath = `/tmp/sub-agent-${child.pid}.log`;
+		const logPath = `/tmp/sub-agent-${sessionId}.log`;
 		const logStream = createWriteStream(logPath, { flags: "a" });
 
-		trackProcess(child, `subAgent: ${prompt.substring(0, 50)}`);
+		trackProcess(child, `subAgent: ${prompt.substring(0, 50)}`, sessionId);
 
 		let stdout = "";
 		let stderr = "";
@@ -137,7 +151,7 @@ function spawnSubAgentProcess(prompt, sessionsDir, timeout) {
 			if (!parsed.ok) {
 				parsed.error = `${parsed.error}${stderr ? ` | stderr: ${stderr.trim()}` : ""}`;
 			}
-			resolve(parsed);
+			resolve({ ...parsed, sessionId });
 		});
 
 		child.on("error", (err) => {
@@ -146,6 +160,7 @@ function spawnSubAgentProcess(prompt, sessionsDir, timeout) {
 				ok: false,
 				result: "",
 				error: `Process spawn error: ${err.message}`,
+				sessionId,
 			});
 		});
 	});
