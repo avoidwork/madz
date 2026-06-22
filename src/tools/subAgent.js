@@ -108,7 +108,7 @@ function spawnSubAgentProcess(prompt, sessionsDir, timeout) {
 
 		const child = spawn("node", ["index.js", `"${escapedPrompt}"`, sessionsDir], {
 			timeout,
-			stdio: ["ignore", "pipe", "pipe"],
+			stdio: ["pipe", "pipe", "pipe"],
 		});
 
 		const logPath = `/tmp/sub-agent-${child.pid}.log`;
