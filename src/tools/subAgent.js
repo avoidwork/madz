@@ -299,7 +299,7 @@ export function createSubAgentTool(options = {}) {
 					});
 				}
 
-				const prompt = `${context || ""}${PROMPT_SEPARATOR}${delegation}`;
+				const prompt = context ? `${context}\n\n${delegation}` : delegation;
 				const result = await spawnSubAgentProcess(prompt, sessionsDir, resolvedTimeout);
 
 				// Apply returnParams filtering if specified
