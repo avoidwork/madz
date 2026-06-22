@@ -80,9 +80,32 @@ export function createReactAgent(model, tools = [], checkpointer = null, recursi
 }
 
 /**
+ * Create a default stdout callback for non-TUI invocations.
+ * Writes text chunks to stdout and loop_detected events to stderr.
+ * Non-text events (tool_start, tool_end, reasoning, compaction) are silently ignored.
+ * @returns {(event: StreamEvent) => void}
+ */
+export function createStdoutCallback() {
+	return (event) => {
+		switch (event.type) {
+			case "text":
+				process.stdout.write(event.text);
+				break;
+			case "loop_detected":
+				process.stderr.write("[loop detected] Agent may be in a repetitive loop\n");
+				break;
+			// Other event types are TUI-specific — silently ignored in non-TUI mode
+		}
+	};
+}
+
+/**
  * Invoke a ReAct agent with a single user message and return the final response.
  * On the first call (new thread) the system prompt is prepended. On subsequent
  * calls the checkpointer already carries the system message, so it is skipped.
+ *
+ * Always uses the streaming pipeline. When no user-provided callback is supplied,
+ * a default stdout callback is used for real-time output and loop detection.
  *
  * Automatically handles LLM context length errors by compacting the conversation
  * and retrying up to MAX_COMPACTION_ITERATIONS times.
@@ -91,7 +114,7 @@ export function createReactAgent(model, tools = [], checkpointer = null, recursi
  * @param {string} message - The user message string
  * @param {Object} config - Config object with `configurable: { thread_id }`
  * @param {string} [systemPrompt] - Optional system prompt (prepended only on new threads)
- * @param {(event: StreamEvent) => void} [callback] - Optional streaming event callback
+ * @param {(event: StreamEvent) => void} [callback] - Optional streaming event callback (TUI mode)
  * @param {Object} [options] - Additional options
  * @param {number} [options.maxContextLength] - Model's max context length (from error detection)
  * @param {number} [options.maxTokens] - Max output tokens from config
@@ -115,106 +138,9 @@ export async function callReactAgent(agent, message, config, systemPrompt, callb
 		}
 	}
 
-	if (callback) {
-		return callReactAgentStreaming(agent, messages, message, config, callback, options, systemPrompt, recursionLimit);
-	}
-
-	// Cache-aside: check cache before invoking the agent
-	const threadId = config?.configurable?.thread_id;
-	const cacheKey = threadId ? getCacheKey(threadId, message) : null;
-	if (cacheKey) {
-		const cached = getCache().get(cacheKey);
-		if (cached) {
-			return { content: cached };
-		}
-	}
-
-	let _lastError = null;
-	let iteration = 0;
-	let effectiveContextLength = maxContextLength;
-	let effectiveMaxTokens = maxTokens;
-
-	while (iteration <= maxCompactionIterations) {
-		try {
-			const invokeConfig = {
-				...config,
-				...(recursionLimit !== null && { recursionLimit }),
-			};
-			const result = await agent.invoke({ messages }, invokeConfig);
-			const content = extractContent(result, message);
-
-		// Cache the result on miss (only if no tools were used)
-		const hasToolCalls = result.messages?.some(m => m.tool_calls?.length > 0) ?? false;
-		if (cacheKey && !hasToolCalls) {
-			getCache().set(cacheKey, content.content);
-		}
-
-			return content;
-		} catch (err) {
-			// Handle recursion limit — always return immediately
-			if (err instanceof Error && err.name === "GraphRecursionError") {
-				return { content: RECURSION_LIMIT_MESSAGE };
-			}
-
-			// Check for context length error
-			if (isContextLengthError(err)) {
-				// Extract max context length from error if not already known
-				if (!effectiveContextLength) {
-					effectiveContextLength = extractContextLength(err.message);
-				}
-
-				// Calculate target tokens
-				const targetTokens =
-					effectiveContextLength && effectiveMaxTokens
-						? effectiveContextLength - effectiveMaxTokens
-						: 50000;
-
-				// Compact the messages (strip system message, keep conversation)
-				const conversation = messages
-					.filter((m) => !(m instanceof SystemMessage))
-					.map((m) => ({
-						role: getMessageRole(m),
-						content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
-					}));
-
-				const compacted = compactConversation({
-					systemPrompt: systemPrompt || "",
-					conversation,
-					targetTokens,
-				});
-
-				if (!compacted.ok || compacted.compactedMessages.length === 0) {
-					return { content: CONTEXT_TOO_LONG_MESSAGE };
-				}
-
-				// Rebuild messages from compacted result
-				messages = compacted.compactedMessages.map((m) => {
-					if (m.role === "system") {
-						return new SystemMessage(m.content);
-					} else if (m.role === "user") {
-						return new HumanMessage(m.content);
-					} else if (m.role === "tool") {
-						return new ToolMessage(m.content);
-					}
-					return new AIMessage(m.content);
-				});
-
-				iteration++;
-				_lastError = err;
-
-				if (iteration > maxCompactionIterations) {
-					return { content: CONTEXT_TOO_LONG_MESSAGE };
-				}
-
-				continue;
-			}
-
-			// Non-context-length error — rethrow
-			throw err;
-		}
-	}
-
-	return { content: CONTEXT_TOO_LONG_MESSAGE };
+	// Always use streaming — use user-provided callback (TUI) or default stdout callback (non-TUI)
+	const effectiveCallback = callback || createStdoutCallback();
+	return callReactAgentStreaming(agent, messages, message, config, effectiveCallback, options, systemPrompt, recursionLimit);
 }
 
 /**

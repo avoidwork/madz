@@ -11,6 +11,7 @@ import {
 import {
 	callReactAgent,
 	createReactAgent,
+	createStdoutCallback,
 	clearCache,
 	getMessageRole,
 } from "../../src/agent/react.js";
@@ -485,7 +486,7 @@ describe("callReactAgent", () => {
 			assert.ok(types.includes("reasoning"));
 		});
 
-		it("does not call callback when no streaming callback provided", async () => {
+		it("uses default stdout callback when no callback provided", async () => {
 			const events = [
 				{
 					event: "on_chat_model_stream",
@@ -495,8 +496,8 @@ describe("callReactAgent", () => {
 
 			const agentMock = createMock(events);
 			const result = await callReactAgent(agentMock, "hi", null, null, null);
-			// With no callback, agent.invoke() is used which returns fallback
-			assert.strictEqual(result.content, "fallback");
+			// With no callback, default stdout callback is used — streaming still works
+			assert.strictEqual(result.content, "response");
 		});
 
 		it("handles AIMessage with complex content object", async () => {
@@ -1139,6 +1140,162 @@ describe("callReactAgent", () => {
 
 			const result = await callReactAgent(agentMock, "original query", null, null, callback);
 			assert.strictEqual(result.content, "original query");
+		});
+	});
+
+	describe("createStdoutCallback", () => {
+		let stdoutWrite;
+		let stderrWrite;
+		let stdoutChunks;
+		let stderrChunks;
+
+		beforeEach(() => {
+			stdoutChunks = [];
+			stderrChunks = [];
+			stdoutWrite = process.stdout.write;
+			stderrWrite = process.stderr.write;
+			process.stdout.write = (chunk) => {
+				stdoutChunks.push(chunk);
+				return true;
+			};
+			process.stderr.write = (chunk) => {
+				stderrChunks.push(chunk);
+				return true;
+			};
+		});
+
+		afterEach(() => {
+			process.stdout.write = stdoutWrite;
+			process.stderr.write = stderrWrite;
+		});
+
+		it("writes text chunks to stdout without extra newlines", () => {
+			const callback = createStdoutCallback();
+			callback({ type: "text", text: "Hello World" });
+			assert.strictEqual(stdoutChunks.length, 1);
+			assert.strictEqual(stdoutChunks[0], "Hello World");
+			assert.strictEqual(stderrChunks.length, 0);
+		});
+
+		it("writes multiple text chunks separately", () => {
+			const callback = createStdoutCallback();
+			callback({ type: "text", text: "Hello" });
+			callback({ type: "text", text: " World" });
+			assert.strictEqual(stdoutChunks.length, 2);
+			assert.strictEqual(stdoutChunks[0], "Hello");
+			assert.strictEqual(stdoutChunks[1], " World");
+		});
+
+		it("writes loop_detected events to stderr", () => {
+			const callback = createStdoutCallback();
+			callback({ type: "loop_detected" });
+			assert.strictEqual(stdoutChunks.length, 0);
+			assert.strictEqual(stderrChunks.length, 1);
+			assert.ok(stderrChunks[0].includes("[loop detected]"));
+		});
+
+		it("ignores tool_start events", () => {
+			const callback = createStdoutCallback();
+			callback({ type: "tool_start", toolName: "web_search", toolCallId: "tc1" });
+			assert.strictEqual(stdoutChunks.length, 0);
+			assert.strictEqual(stderrChunks.length, 0);
+		});
+
+		it("ignores tool_end events", () => {
+			const callback = createStdoutCallback();
+			callback({ type: "tool_end", toolName: "web_search", toolCallId: "tc1" });
+			assert.strictEqual(stdoutChunks.length, 0);
+			assert.strictEqual(stderrChunks.length, 0);
+		});
+
+		it("ignores reasoning events", () => {
+			const callback = createStdoutCallback();
+			callback({ type: "reasoning", text: "thinking..." });
+			assert.strictEqual(stdoutChunks.length, 0);
+			assert.strictEqual(stderrChunks.length, 0);
+		});
+
+		it("ignores compaction_start events", () => {
+			const callback = createStdoutCallback();
+			callback({ type: "compaction_start" });
+			assert.strictEqual(stdoutChunks.length, 0);
+			assert.strictEqual(stderrChunks.length, 0);
+		});
+
+		it("ignores compaction_end events", () => {
+			const callback = createStdoutCallback();
+			callback({ type: "compaction_end" });
+			assert.strictEqual(stdoutChunks.length, 0);
+			assert.strictEqual(stderrChunks.length, 0);
+		});
+
+		it("handles mixed events correctly", () => {
+			const callback = createStdoutCallback();
+			callback({ type: "text", text: "Let me" });
+			callback({ type: "tool_start", toolName: "search", toolCallId: "tc1" });
+			callback({ type: "tool_end", toolName: "search", toolCallId: "tc1" });
+			callback({ type: "text", text: " search." });
+			callback({ type: "loop_detected" });
+
+			assert.strictEqual(stdoutChunks.length, 2);
+			assert.strictEqual(stdoutChunks[0], "Let me");
+			assert.strictEqual(stdoutChunks[1], " search.");
+			assert.strictEqual(stderrChunks.length, 1);
+			assert.ok(stderrChunks[0].includes("[loop detected]"));
+		});
+	});
+
+	describe("non-TUI streaming mode", () => {
+		function createEvents(events) {
+			return (async function* () {
+				for (const evt of events) {
+					yield evt;
+				}
+			})();
+		}
+
+		function createMock(eventList) {
+			return {
+				streamEvents: () => createEvents(eventList),
+				invoke: () => ({ messages: [new AIMessage("fallback")] }),
+			};
+		}
+
+		it("uses streaming pipeline when no callback provided", async () => {
+			let streamEventsCalled = false;
+			const agentMock = {
+				streamEvents: () => {
+					streamEventsCalled = true;
+					return createEvents([
+						{
+							event: "on_chat_model_stream",
+							data: { chunk: new AIMessageChunk({ content: "streamed response" }) },
+						},
+					]);
+				},
+				invoke: () => ({ messages: [new AIMessage("should not be called")] }),
+			};
+
+			const result = await callReactAgent(agentMock, "hello", null, null, null);
+			assert.ok(streamEventsCalled, "streamEvents should be called");
+			assert.strictEqual(result.content, "streamed response");
+		});
+
+		it("user-provided callback takes precedence over default", async () => {
+			let callbackType = null;
+			const customCallback = (event) => {
+				callbackType = event.type;
+			};
+
+			const agentMock = createMock([
+				{
+					event: "on_chat_model_stream",
+					data: { chunk: new AIMessageChunk({ content: "response" }) },
+				},
+			]);
+
+			await callReactAgent(agentMock, "hello", null, null, customCallback);
+			assert.strictEqual(callbackType, "text", "Custom callback should receive events");
 		});
 	});
 });
