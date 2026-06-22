@@ -192,6 +192,8 @@ export async function callReactAgent(agent, message, config, systemPrompt, callb
 						return new SystemMessage(m.content);
 					} else if (m.role === "user") {
 						return new HumanMessage(m.content);
+					} else if (m.role === "tool") {
+						return new ToolMessage(m.content);
 					}
 					return new AIMessage(m.content);
 				});
@@ -496,6 +498,8 @@ async function callReactAgentStreaming(
 						return new SystemMessage(m.content);
 					} else if (m.role === "user") {
 						return new HumanMessage(m.content);
+					} else if (m.role === "tool") {
+						return new ToolMessage(m.content);
 					}
 					return new AIMessage(m.content);
 				});
