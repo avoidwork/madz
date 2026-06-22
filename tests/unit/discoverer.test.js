@@ -280,6 +280,68 @@ describe("discoverSkills", () => {
 		assert.strictEqual(skills.length, 1);
 		assert.strictEqual(skills[0].metadata.description, "Agent skill");
 	});
+
+	it("discovers skills from system-skills/ directory", () => {
+		const systemDir = join(testDir, "system-skills");
+		const systemSkillDir = join(systemDir, "system-skill");
+		mkdirSync(systemSkillDir, { recursive: true });
+		writeFileSync(
+			join(systemSkillDir, "SKILL.md"),
+			"---\nname: system-skill\ndescription: A system skill\n---\n\nSystem body",
+		);
+
+		const skills = discoverSkills([systemDir]);
+		assert.strictEqual(skills.length, 1);
+		assert.strictEqual(skills[0].name, "system-skill");
+		assert.strictEqual(skills[0].metadata.description, "A system skill");
+	});
+
+	it("handles system-skills/ shadowing user skills/", () => {
+		const systemDir = join(testDir, "system-skills");
+		const shadowDir = join(systemDir, "shadow-skill");
+		mkdirSync(shadowDir, { recursive: true });
+		writeFileSync(
+			join(shadowDir, "SKILL.md"),
+			"---\nname: shadow-skill\ndescription: System version\n---\n\nSystem body",
+		);
+
+		const userDir = join(testDir, "skills");
+		const userSkillDir = join(userDir, "shadow-skill");
+		mkdirSync(userSkillDir, { recursive: true });
+		writeFileSync(
+			join(userSkillDir, "SKILL.md"),
+			"---\nname: shadow-skill\ndescription: User version\n---\n\nUser body",
+		);
+
+		const skills = discoverSkills([systemDir, userDir]);
+		// System skill should shadow user skill (first scope wins)
+		assert.strictEqual(skills.length, 1);
+		assert.strictEqual(skills[0].metadata.description, "System version");
+		assert.ok(skills[0].path.includes("system-skills"));
+	});
+
+	it("discovers both system and user skills when no collision", () => {
+		const systemDir = join(testDir, "system-skills");
+		const systemSkillDir = join(systemDir, "sys-only");
+		mkdirSync(systemSkillDir, { recursive: true });
+		writeFileSync(
+			join(systemSkillDir, "SKILL.md"),
+			"---\nname: sys-only\ndescription: System only\n---\n\nSystem body",
+		);
+
+		const userDir = join(testDir, "skills");
+		const userSkillDir = join(userDir, "user-only");
+		mkdirSync(userSkillDir, { recursive: true });
+		writeFileSync(
+			join(userSkillDir, "SKILL.md"),
+			"---\nname: user-only\ndescription: User only\n---\n\nUser body",
+		);
+
+		const skills = discoverSkills([systemDir, userDir]);
+		assert.strictEqual(skills.length, 2);
+		const names = skills.map((s) => s.name).sort();
+		assert.deepStrictEqual(names, ["sys-only", "user-only"]);
+	});
 });
 
 // --- Detect interpreter tests ---

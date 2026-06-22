@@ -11,12 +11,16 @@ import { logger } from "../logger.js";
 
 /**
  * Locate the main script file for a skill.
+ * System skills (system-skills/) are searched first and shadow user skills (skills/).
  * @param {string} skillName - Skill name
- * @param {string} [baseDir="skills"] - Base directory to search
+ * @param {string|string[]} [baseDir=["system-skills", "skills"]] - Base directory or array of directories to search
  * @returns {Promise<string|null>} Path to the main script, or null
  */
-export async function findSkillScript(skillName, baseDir = "skills") {
-	const skillDir = join(baseDir, skillName);
+export async function findSkillScript(skillName, baseDir = ["system-skills", "skills"]) {
+	if (typeof baseDir === "string") {
+		baseDir = [baseDir];
+	}
+
 	const scriptCandidates = [
 		"scripts/run.sh",
 		"scripts/run.py",
@@ -24,15 +28,20 @@ export async function findSkillScript(skillName, baseDir = "skills") {
 		"scripts/run.bash",
 	];
 
-	for (const candidate of scriptCandidates) {
-		const fullPath = join(skillDir, candidate);
-		if (existsSync(fullPath)) return fullPath;
-	}
-
 	const rootScripts = ["run.sh", "run.py", "run.js", "run.bash"];
-	for (const candidate of rootScripts) {
-		const fullPath = join(skillDir, candidate);
-		if (existsSync(fullPath)) return fullPath;
+
+	for (const dir of baseDir) {
+		const skillDir = join(dir, skillName);
+
+		for (const candidate of scriptCandidates) {
+			const fullPath = join(skillDir, candidate);
+			if (existsSync(fullPath)) return fullPath;
+		}
+
+		for (const candidate of rootScripts) {
+			const fullPath = join(skillDir, candidate);
+			if (existsSync(fullPath)) return fullPath;
+		}
 	}
 
 	return null;

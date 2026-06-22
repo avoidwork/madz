@@ -25,12 +25,13 @@ export class SkillRegistry {
 
 	/**
 	 * Discover and register all skills from configured scopes.
-	 * @param {string|string[]} [scope="skills/"] - Directory or array of directories to scan
+	 * System skills (system-skills/) are scanned first and shadow user skills (skills/).
+	 * @param {string|string[]} [scope=["system-skills/", "skills/"]] - Directory or array of directories to scan
 	 * @param {object} [options] - Discovery options
 	 * @param {boolean} [options.trustProjectSkills=true] - Trust project-level skills
 	 * @returns {Array<{ name: string, errors: string[], warnings: string[] }>} Registration results
 	 */
-	discover(scope = "skills/", options = {}) {
+	discover(scope = ["system-skills/", "skills/"], options = {}) {
 		if (typeof scope === "string") {
 			scope = [scope];
 		}
