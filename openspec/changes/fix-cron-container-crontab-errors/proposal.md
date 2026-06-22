@@ -1,26 +1,26 @@
 ## Why
 
-Cron jobs managed by madz fail to run inside containers because `_readCrontab()` in `src/scheduler/cron.js` throws on any error from `crontab -l` that doesn't match the "no crontab" message. In container environments, `crontab -l` may fail for reasons other than an empty crontab — permission denied, binary not found, Alpine Linux quirks, or missing user crontab support. When this happens, the sync operation throws, the catch block logs a warning, and the crontab is never written. Result: crond runs but has zero entries.
+Cron jobs fail to run inside Docker containers because `_readCrontab()` in `src/scheduler/cron.js` throws on any `crontab -l` error that doesn't match the "no crontab" string. When the error is thrown, the sync operation's catch block logs a warning but never writes the crontab entries, leaving crond with zero scheduled tasks. This renders the scheduler completely non-functional in containerized deployments.
 
 ## What Changes
 
-- Modify `_readCrontab()` in `src/scheduler/cron.js` to return `""` for ALL errors from `crontab -l`, not just "no crontab" errors
-- In container contexts, madz is the sole crontab manager — external entries don't exist and don't need to be preserved
-- When `_readCrontab()` returns `""`, sync treats the crontab as empty and writes the full madz block from desired state
-- Add unit tests covering error scenarios (permission denied, binary not found, container environment failures)
+- Modify `_readCrontab()` in `src/scheduler/cron.js` to return `""` for any error from `crontab -l`, not just the "no crontab" case
+- Add a debug-level log in the catch block to record the error for troubleshooting
+- Update tests to cover the new error-handling behavior, including cases where `crontab -l` fails with non-"no crontab" errors
+- The sync operation in `src/scheduler/index.js` will treat `""` as "no existing madz block" and write the crontab from scratch
 
 ## Capabilities
 
 ### New Capabilities
-<!-- None — this is an internal fix, no new user-facing capabilities -->
+<!-- None — this is a bug fix, not a new capability -->
 
 ### Modified Capabilities
-- `cron-scheduler`: `_readCrontab()` now returns empty string for all `crontab -l` errors instead of throwing, enabling correct operation in container environments where the crontab is managed entirely by madz
+- `cron-scheduler`: `_readCrontab()` now returns `""` on any `crontab -l` error instead of throwing, making the scheduler resilient to container environment issues (missing binary, permission denied, etc.)
 
 ## Impact
 
-- **Affected code**: `src/scheduler/cron.js` — `_readCrontab()` method (lines 46-57), `sync()` method (lines 409-496)
-- **Affected methods**: `add()`, `remove()`, `install()`, `uninstall()`, `list()`, `sync()` — all call `_readCrontab()` and must handle empty crontab correctly
-- **No API changes**: The public interface of `Cron` remains unchanged
-- **No breaking changes**: Existing callers already handle empty string input from `_readCrontab()`
-- **Test coverage**: Existing tests must pass; new tests added for error scenarios
+- **Affected code:** `src/scheduler/cron.js` (`_readCrontab()` function), `src/scheduler/index.js` (sync operation)
+- **Affected configs:** `Dockerfile` (crontab binary availability), `docker-entrypoint.sh` (container crontab setup)
+- **Tests:** `tests/unit/` — scheduler tests need updates to cover new error-handling behavior
+- **No API changes** — this is an internal fix with no external surface area impact
+- **No breaking changes** — returning `""` on error is functionally equivalent to the "no crontab" case that was already handled

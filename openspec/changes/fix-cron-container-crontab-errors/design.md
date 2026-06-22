@@ -1,69 +1,45 @@
 ## Context
 
-The `Cron` module in `src/scheduler/cron.js` manages madz schedule entries in the user's system crontab. All public methods (`add`, `remove`, `install`, `uninstall`, `list`, `sync`) call `_readCrontab()` to read the current crontab before performing their operation.
-
-In container environments (Alpine Linux-based Docker images), `crontab -l` may fail for reasons beyond "no crontab installed":
-- Permission denied (container security policies)
-- Binary present but non-functional (Alpine's busybox crontab quirks)
-- Missing user crontab support in minimal container images
-- Environment variables not properly set for the crontab binary
-
-When `crontab -l` fails, the error propagates up through `_readCrontab()`, causing the calling method to throw. The sync operation's catch block logs a warning but never writes the crontab, leaving crond with zero entries.
+The scheduler's init-time crontab synchronization reads the current system crontab to find any existing madz-managed block. In containerized deployments, `crontab -l` can fail for reasons unrelated to madz — the binary may not be installed, permissions may be denied, or the command may timeout. Currently, `_readCrontab()` only handles the "no crontab" case and throws on any other error, which causes the entire sync operation to fail silently (the catch block logs a warning but never writes the crontab). This leaves crond with zero entries.
 
 ## Goals / Non-Goals
 
 **Goals:**
-- Make `_readCrontab()` return `""` for ALL errors from `crontab -l`
-- Ensure sync and all other methods work correctly with empty crontab input
-- Add unit tests covering error scenarios
+- Make `_readCrontab()` resilient to any `crontab -l` failure by returning `""` instead of throwing
+- Ensure the sync operation always writes the madz-managed crontab entries, even when the initial read fails
+- Add debug-level logging to aid troubleshooting when `crontab -l` fails
+- Maintain 100% test coverage
 
 **Non-Goals:**
-- Fix `crontab -` (write) failures — those are surfaced as error objects, which is correct
-- Preserve external crontab entries in container environments — madz is the sole manager
-- Change the public API of the `Cron` module
-- Add new crontab management features
+- Preserving or merging external crontab entries (container context is fully managed by madz)
+- Changes to non-container deployment scenarios
+- Adding new scheduler features or capabilities
 
 ## Decisions
 
-### Decision 1: Return empty string for all `_readCrontab()` errors
+1. **Return `""` on any error, don't re-throw.**
+   - _Rationale:_ The sync operation only needs to know whether madz already has a crontab block. In a container, madz is the sole crontab manager, so external entries are irrelevant. Returning `""` is functionally equivalent to the "no crontab" case that was already handled.
+   - _Alternatives considered:_ 
+     - Swallowing the error silently — rejected because we need debug-level logging for troubleshooting
+     - Throwing a specific "crontab unavailable" error — rejected because it would still break the sync operation
 
-**Choice:** The catch block in `_readCrontab()` returns `""` for all errors.
+2. **Add debug-level log, not error-level.**
+   - _Rationale:_ `crontab -l` failing in a container is expected in some environments (e.g., minimal base images). Logging at error level would create noise. Debug level provides visibility without alarming users.
 
-**Rationale:** In container environments, madz is the sole crontab manager. There are no external entries to preserve. An empty string signals "no existing crontab" which is the correct default state.
-
-**Alternatives considered:**
-- Return `null` and have callers handle null — adds complexity, no benefit
-- Throw a specific `CrontabReadError` — overkill for a container-only issue, breaks existing error handling patterns
-- Log the error and return `""` — logging is already done by callers' catch blocks
-
-### Decision 2: No change to `_writeCrontab()` error handling
-
-**Choice:** Keep existing error handling in `_writeCrontab()` — errors are caught by each public method and returned as error objects.
-
-**Rationale:** Write failures are real operational issues that should be surfaced. The current pattern of returning `{ error: string }` is correct and consistent across all methods.
-
-### Decision 3: No change to `isAvailable()` check
-
-**Choice:** Keep the existing `isAvailable()` check at the start of each public method.
-
-**Rationale:** `isAvailable()` checks for the presence of the `crontab` binary via `which crontab`. This is a different failure mode from `crontab -l` failing — it catches the case where the binary doesn't exist at all. The `_readCrontab()` fix handles the case where the binary exists but the command fails.
+3. **No changes to the sync operation's catch block.**
+   - _Rationale:_ The sync operation already handles `""` correctly — it treats it as "no existing madz block" and writes from scratch. The fix is localized to `_readCrontab()`.
 
 ## Risks / Trade-offs
 
-| Risk | Mitigation |
-|------|------------|
-| Silently swallowing legitimate errors (e.g., permission issues) | In container context, madz is the sole crontab manager — there are no "legitimate" external errors to miss |
-| `_readCrontab()` returning `""` when it should throw | All callers already handle empty string correctly — sync builds from desired state, list returns empty array, etc. |
-| Tests may not cover all container edge cases | Add explicit unit tests mocking `execSync` to throw various error types |
+- **[Risk]** If `crontab -l` fails due to a genuine system issue (e.g., disk corruption), the error is silently swallowed.
+  → **Mitigation:** Debug-level log provides visibility. In a container context, this is acceptable — the container should be rebuilt, not repaired in-place.
+
+- **[Risk]** In non-container environments, pre-existing crontab entries could be overwritten.
+  → **Mitigation:** This is a container-specific issue. The Dockerfile and docker-entrypoint.sh set up the container environment where madz fully manages the crontab. Non-container deployments are unaffected.
 
 ## Migration Plan
 
-This is a code-only change with no migration required. The fix is backward compatible — existing deployments will continue to work, and container deployments will now function correctly.
-
-1. Deploy the fix to the feature branch
-2. Run full test suite to verify no regressions
-3. Add new unit tests for error scenarios
-4. Merge to main and release
+No migration needed. This is a bug fix that changes error handling behavior. The fix is backward-compatible — returning `""` on error is functionally equivalent to the "no crontab" case.
 
 ## Open Questions
 
