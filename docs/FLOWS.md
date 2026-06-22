@@ -29,6 +29,7 @@ Call chains and data flows for all primary code paths in the project, excluding 
 - [Memory Retention Cleanup](#memory-retention-cleanup)
 - [Profile Management](#profile-management)
 - [Shutdown Flow](#shutdown-flow)
+- [Sub-Agent Log Tool Flow](#sub-agent-log-tool-flow)
 - [Additional Tool Flows](#additional-tool-flows)
 - [File Dependencies](#file-dependencies)
 
@@ -758,6 +759,43 @@ runScheduledSkill(schedule, sandbox, sessionState)
 
 ```
 
+## Sub-Agent Log Tool Flow
+
+**Entry:** `src/tools/subAgentLog.js` → `createSubAgentLogTool()`
+
+```
+subAgentLog tool (zero-permission, always registered):
+├── validate input: action (required), pid (optional), maxAgeHours (optional)
+├── switch action:
+│   ├── "list":
+│   │   ├── readdir("/tmp") → filter files matching "sub-agent-{pid}.log"
+│   │   ├── for each log file:
+│   │   │   ├── stat(filePath) → size, mtime
+│   │   │   ├── isProcessRunning(pid) → process.kill(pid, 0)
+│   │   │   └── { pid, file, size, modified, running }
+│   │   └── sort by modified (descending) → return { ok: true, logs }
+│   ├── "read":
+│   │   ├── if pid missing → { ok: false, error: "PID is required" }
+│   │   ├── readFile("/tmp/sub-agent-{pid}.log") → content
+│   │   └── return { ok: true, pid, content }
+│   └── "cleanup":
+│       ├── readdir("/tmp") → filter "sub-agent-{pid}.log"
+│       ├── for each file:
+│       │   ├── stat(filePath) → mtimeMs
+│       │   ├── if age > maxAgeHours * 60 * 60 * 1000 → unlinkSync
+│       │   └── removed++
+│       └── return { ok: true, removed }
+└── default → { ok: false, error: "Unknown action" }
+
+isProcessRunning(pid):
+├── process.kill(pid, 0) → true (signal 0 checks existence)
+└── catch → false
+```
+
+**Log file pattern:** `sub-agent-{pid}.log` stored in `/tmp`. Files are automatically cleaned up by the `cleanup` action based on age threshold.
+
+---
+
 ## Additional Tool Flows
 
 ### Code Execution
@@ -1113,6 +1151,7 @@ index.js
 │     ├── tools/moa.js → OPENROUTER_API_KEY — mixture-of-agents (4 parallel OpenRouter calls + aggregation)
 │     ├── tools/cron.js → node:fs/promises — cron job CRUD operations
 │     ├── tools/compactContext.js → @langchain/core, zod — automatic conversation context compaction on LLM 400 errors (tiered retention, retry loop, error detection)
+│     ├── tools/subAgentLog.js → node:fs/promises, node:path — subAgent log management (list, read, cleanup); zero-permission, always registered
 │     └── tools/...
 ├── sandbox/pathResolver.js → node:path
 ├── sandbox/urlFilter.js → node:url
