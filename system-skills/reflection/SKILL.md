@@ -1,14 +1,9 @@
 ---
 name: reflection
 description: Generate a narrative reflection summary from recent session history to capture mood, energy, and interaction quality.
-license: MIT
-permissions:
-  - filesystem:read
-  - filesystem:write
 metadata:
-  author: mad
+  author: madz
   version: "1.0"
-  generatedBy: "1.3.1"
 ---
 
 Generate a concise, narrative reflection summary from recent session history and write it to `memory/context/reflection.md`.
