@@ -162,7 +162,7 @@ async function executeFanOut(tasks, strategy, maxConcurrent, onError, sessionsDi
 		for (const task of tasks) {
 			if (failed && onError === "fail-fast") break;
 
-			const prompt = task.delegation;
+			const prompt = task.context ? `${task.context}\n\n${task.delegation}` : task.delegation;
 			const result = await spawnSubAgentProcess(prompt, sessionsDir, timeout);
 
 			if (task.id) {
@@ -299,7 +299,7 @@ export function createSubAgentTool(options = {}) {
 					});
 				}
 
-				const prompt = delegation;
+				const prompt = context ? `${context}\n\n${delegation}` : delegation;
 				const result = await spawnSubAgentProcess(prompt, sessionsDir, resolvedTimeout);
 
 				// Apply returnParams filtering if specified
