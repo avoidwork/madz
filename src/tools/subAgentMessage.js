@@ -8,12 +8,12 @@ import { processTracker } from "./terminal.js";
  * @returns {Promise<string>} Result of the write operation
  */
 export async function subAgentMessageImpl(input) {
-	const { pid, message } = input;
+	const { pid, sessionId, message } = input;
 
-	if (pid === undefined || pid === null) {
+	if (pid === undefined && sessionId === undefined) {
 		return JSON.stringify({
 			ok: false,
-			error: "PID is required",
+			error: "PID or sessionId is required",
 		});
 	}
 
@@ -24,11 +24,25 @@ export async function subAgentMessageImpl(input) {
 		});
 	}
 
-	const entry = processTracker.get(pid);
+	// Look up by sessionId first, fall back to pid for backward compatibility
+	let entry = null;
+	if (sessionId !== undefined) {
+		for (const [, e] of processTracker) {
+			if (e.sessionId === sessionId) {
+				entry = e;
+				break;
+			}
+		}
+	}
+	if (!entry && pid !== undefined) {
+		entry = processTracker.get(pid);
+	}
+
 	if (!entry) {
+		const id = sessionId !== undefined ? sessionId : pid;
 		return JSON.stringify({
 			ok: false,
-			error: `Process ${pid} not found in tracker`,
+			error: `Process ${id} not found in tracker`,
 		});
 	}
 
@@ -43,13 +57,14 @@ export async function subAgentMessageImpl(input) {
 		entry.child.stdin.write(message + "\n");
 		return JSON.stringify({
 			ok: true,
-			pid,
+			pid: entry.pid,
+			sessionId: entry.sessionId,
 			messageSent: true,
 		});
 	} catch (err) {
 		return JSON.stringify({
 			ok: false,
-			error: `Failed to write to process ${pid}: ${err.message}`,
+			error: `Failed to write to process ${entry.pid}: ${err.message}`,
 		});
 	}
 }
@@ -68,7 +83,12 @@ export function createSubAgentMessageTool() {
 				.number()
 				.int()
 				.positive()
-				.describe("Process ID of the subAgent to send the message to"),
+				.optional()
+				.describe("Process ID of the subAgent to send the message to (required if sessionId not provided)"),
+			sessionId: z
+				.string()
+				.optional()
+				.describe("Session ID of the subAgent to send the message to (alternative to pid)"),
 			message: z
 				.string()
 				.describe("Message to send to the subAgent process stdin"),

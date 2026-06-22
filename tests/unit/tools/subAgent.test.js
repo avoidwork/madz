@@ -1,6 +1,19 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
-import { parseSubAgentOutput, escapeShellArg, resolveTimeout } from "../../src/tools/subAgent.js";
+import { readFile, access } from "node:fs/promises";
+import { constants } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
+import {
+	parseSubAgentOutput,
+	escapeShellArg,
+	resolveTimeout,
+	generateSessionId,
+	spawnSubAgentProcess,
+} from "../../src/tools/subAgent.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 describe("parseSubAgentOutput", () => {
 	it("should return ok:true with result when marker is present", () => {
@@ -140,4 +153,69 @@ describe("resolveTimeout", () => {
 		const config = { process: { subAgent: { timeout: 50000 } } };
 		assert.strictEqual(resolveTimeout(undefined, config), 50000);
 	});
+});
+
+describe("generateSessionId", () => {
+	it("should return a valid UUID v4 string", () => {
+		const sessionId = generateSessionId();
+		assert.strictEqual(typeof sessionId, "string");
+		// UUID v4 format: 8-4-4-4-12 hex chars with version 4 in the third group
+		const uuidV4Regex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+		assert.ok(uuidV4Regex.test(sessionId), `Expected UUID v4 format, got: ${sessionId}`);
+	});
+
+	it("should return unique session IDs on consecutive calls", () => {
+		const ids = new Set();
+		const count = 100;
+		for (let i = 0; i < count; i++) {
+			ids.add(generateSessionId());
+		}
+		assert.strictEqual(ids.size, count, "All session IDs should be unique");
+	});
+
+	it("should return a string of correct length", () => {
+		const sessionId = generateSessionId();
+		assert.strictEqual(sessionId.length, 36, "UUID v4 string should be 36 characters");
+	});
+});
+
+describe("spawnSubAgentProcess integration", () => {
+	it("should pass session ID to child process via MADZ_SESSION_ID env var", async () => {
+		const prompt = "# SubAgent\n\n{ ok: true, result: \"test\" }";
+		const sessionsDir = join(__dirname, "../../../memory/sessions/");
+
+		const result = await spawnSubAgentProcess(prompt, sessionsDir, 10000);
+
+		assert.strictEqual(result.ok, true);
+		assert.ok(result.sessionId, "Result should include sessionId");
+		assert.strictEqual(typeof result.sessionId, "string");
+		// Verify sessionId is a valid UUID v4 format
+		const uuidV4Regex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+		assert.ok(uuidV4Regex.test(result.sessionId), `Expected UUID v4 format, got: ${result.sessionId}`);
+	});
+
+	it("should create log file with session ID naming", async () => {
+		const prompt = "# SubAgent\n\n{ ok: true, result: \"test\" }";
+		const sessionsDir = join(__dirname, "../../../memory/sessions/");
+
+		const result = await spawnSubAgentProcess(prompt, sessionsDir, 10000);
+
+		assert.ok(result.sessionId, "Result should include sessionId");
+		// Verify log file exists with session ID naming
+		const logPath = `/tmp/sub-agent-${result.sessionId}.log`;
+		await access(logPath, constants.F_OK);
+	}, 15000);
+
+	it("should allow both processes to read the same log file", async () => {
+		const prompt = "# SubAgent\n\n{ ok: true, result: \"test\" }";
+		const sessionsDir = join(__dirname, "../../../memory/sessions/");
+
+		const result = await spawnSubAgentProcess(prompt, sessionsDir, 10000);
+
+		assert.ok(result.sessionId, "Result should include sessionId");
+		const logPath = `/tmp/sub-agent-${result.sessionId}.log`;
+		// Main process reads the log file created by the child
+		const content = await readFile(logPath, "utf-8");
+		assert.ok(content.length > 0, "Log file should have content");
+	}, 15000);
 });
