@@ -23,6 +23,7 @@ import { createCompactContextTool } from "./compact_context.js";
 import { createCompactionTool } from "./compaction.js";
 import { createSubAgentTool } from "./subAgent.js";
 import { createSubAgentLogTool } from "./subAgentLog.js";
+import { createSubAgentMessageTool } from "./subAgentMessage.js";
 
 /**
  * Maps tool names to required permission scopes.
@@ -86,6 +87,7 @@ const TOOL_FACTORIES = {
 	compaction: createCompactionTool,
 	subAgent: createSubAgentTool,
 	subAgentLog: createSubAgentLogTool,
+	subAgentMessage: createSubAgentMessageTool,
 };
 
 /**

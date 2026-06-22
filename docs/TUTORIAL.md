@@ -297,7 +297,7 @@ license: MIT
 
 Skills are stored in `skills/` and are version-controllable. Simple skills can be chained together into pipelines for complex multi-step processing, or composed by asking `madz` to coordinate between them.
 
-**Built-in tools:** Beyond skills, `madz` ships with built-in tools for common tasks. The `subAgent` tool lets the agent spawn child-process agents to execute prompts as independent workers — supporting both single execution and fan-out modes (parallel or sequential) with configurable concurrency, timeout, and error handling. The `subAgentLog` tool manages and reads subAgent log files (list, read, cleanup). Other built-in tools include filesystem operations, terminal execution, search, memory management, and more.
+**Built-in tools:** Beyond skills, `madz` ships with built-in tools for common tasks. The `subAgent` tool lets the agent spawn child-process agents to execute prompts as independent workers — supporting both single execution and fan-out modes (parallel or sequential) with configurable concurrency, timeout, and error handling. The `subAgentLog` tool manages and reads subAgent log files (list, read, cleanup). The `subAgentMessage` tool sends messages to running subAgent processes via stdin. Other built-in tools include filesystem operations, terminal execution, search, memory management, and more.
 
 ---
 
