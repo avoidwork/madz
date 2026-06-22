@@ -51,7 +51,7 @@ export const Cron = {
 					stdio: ["pipe", "pipe", "pipe"],
 				}).trim() || ""
 			);
-		} catch (err) {
+		} catch (_err) {
 			return "";
 		}
 	},
