@@ -1,7 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
 import { callReactAgent, createReactAgent } from "../../src/agent/react.js";
-import { AIMessage, HumanMessage } from "@langchain/core/messages";
 
 describe("createReactAgent with checkpointer", () => {
 	it("passes checkpointer to langgraph createReactAgent when provided", async () => {
@@ -26,97 +25,7 @@ describe("createReactAgent with checkpointer", () => {
 	});
 });
 
-describe("callReactAgent with config", () => {
-	it("passes configurable to agent.invoke when config provided", async () => {
-		let capturedInput = null;
-		let capturedConfig = null;
 
-		const agentMock = {
-			invoke: (input, configuration) => {
-				capturedInput = input;
-				capturedConfig = configuration;
-				return {
-					messages: [new AIMessage("response")],
-				};
-			},
-		};
-
-		await callReactAgent(agentMock, "test message", { configurable: { thread_id: "abc-123" } });
-
-		assert.ok(capturedInput);
-		assert.strictEqual(capturedInput.messages[0].content, "test message");
-		assert.ok(capturedConfig);
-		assert.ok(capturedConfig.configurable);
-		assert.strictEqual(capturedConfig.configurable.thread_id, "abc-123");
-	});
-
-	it("skips system message when isNewThread is false (thread has history)", async () => {
-		let capturedInput = null;
-		let capturedConfig = null;
-
-		const agentMock = {
-			invoke: (input, configuration) => {
-				capturedInput = input;
-				capturedConfig = configuration;
-				return {
-					messages: [new AIMessage("response")],
-				};
-			},
-		};
-
-		await callReactAgent(
-			agentMock,
-			"test message",
-			{ configurable: { thread_id: "def-456", isNewThread: false } },
-			"You are helpful",
-		);
-
-		assert.ok(capturedInput);
-		assert.ok(capturedConfig);
-		assert.strictEqual(capturedConfig.configurable.thread_id, "def-456");
-		assert.strictEqual(capturedConfig.configurable.isNewThread, false);
-		// System prompt is skipped when thread has history (checkpointer carries it)
-		assert.strictEqual(capturedInput.messages.length, 1);
-		assert.ok(capturedInput.messages[0] instanceof HumanMessage);
-		assert.strictEqual(capturedInput.messages[0].content, "test message");
-	});
-
-	it("invokes agent with null config", async () => {
-		let capturedInput = null;
-
-		const agentMock = {
-			invoke: (input) => {
-				capturedInput = input;
-				return {
-					messages: [new AIMessage("response")],
-				};
-			},
-		};
-
-		await callReactAgent(agentMock, "hello", null);
-
-		assert.strictEqual(capturedInput.configurable, undefined);
-	});
-
-	it("invokes agent without system prompt", async () => {
-		let capturedInput = null;
-
-		const agentMock = {
-			invoke: (input) => {
-				capturedInput = input;
-				return {
-					messages: [new AIMessage("response")],
-				};
-			},
-		};
-
-		await callReactAgent(agentMock, "hello", null);
-
-		assert.strictEqual(capturedInput.messages.length, 1);
-		assert.ok(capturedInput.messages[0] instanceof HumanMessage);
-		assert.strictEqual(capturedInput.messages[0].content, "hello");
-	});
-});
 
 describe("callReactAgent streaming with config", () => {
 	it("passes configurable to streamEvents when config provided", async () => {
@@ -156,22 +65,4 @@ describe("callReactAgent streaming with config", () => {
 	});
 });
 
-describe("callReactAgent error propagation", () => {
-	it("re-throws checkpointer errors from agent.invoke", async () => {
-		const agentMock = {
-			invoke: () => {
-				throw new Error("checkpoint save failed: disk full");
-			},
-		};
 
-		let caughtError = null;
-		try {
-			await callReactAgent(agentMock, "test", { configurable: { thread_id: "abc" } });
-		} catch (err) {
-			caughtError = err;
-		}
-
-		assert.ok(caughtError instanceof Error);
-		assert.strictEqual(caughtError.message, "checkpoint save failed: disk full");
-	});
-});

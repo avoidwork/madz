@@ -1,21 +1,21 @@
 ## 1. Implement stdout callback
 
-- [ ] 1.1 Create `createStdoutCallback()` function in `src/agent/react.js` that returns a callback writing text chunks to stdout and loop_detected to stderr
-- [ ] 1.2 Ensure non-text events (tool_start, tool_end, reasoning, compaction) are silently ignored by the stdout callback
+- [x] 1.1 Create `createStdoutCallback()` function in `src/agent/react.js` that returns a callback writing text chunks to stdout and loop_detected to stderr
+- [x] 1.2 Ensure non-text events (tool_start, tool_end, reasoning, compaction) are silently ignored by the stdout callback
 
 ## 2. Modify callReactAgent to always stream
 
-- [ ] 2.1 Update `callReactAgent()` to always pass a callback to `callReactAgentStreaming()` — use user-provided callback or default stdout callback
-- [ ] 2.2 Remove the non-streaming `agent.invoke()` code path from `callReactAgent()`
-- [ ] 2.3 Verify the function still returns `{ content: string }` for API compatibility
+- [x] 2.1 Update `callReactAgent()` to always pass a callback to `callReactAgentStreaming()` — use user-provided callback or default stdout callback
+- [x] 2.2 Remove the non-streaming `agent.invoke()` code path from `callReactAgent()`
+- [x] 2.3 Verify the function still returns `{ content: string }` for API compatibility
 
 ## 3. Write unit tests
 
-- [ ] 3.1 Test `createStdoutCallback()` writes text chunks to stdout without extra newlines
-- [ ] 3.2 Test `createStdoutCallback()` writes loop_detected events to stderr
-- [ ] 3.3 Test `createStdoutCallback()` ignores non-text events (tool_start, tool_end, reasoning, compaction)
-- [ ] 3.4 Test `callReactAgent()` without callback uses streaming and returns correct content
-- [ ] 3.5 Test `callReactAgent()` with user-provided callback uses the provided callback (TUI mode preserved)
+- [x] 3.1 Test `createStdoutCallback()` writes text chunks to stdout without extra newlines
+- [x] 3.2 Test `createStdoutCallback()` writes loop_detected events to stderr
+- [x] 3.3 Test `createStdoutCallback()` ignores non-text events (tool_start, tool_end, reasoning, compaction)
+- [x] 3.4 Test `callReactAgent()` without callback uses streaming and returns correct content
+- [x] 3.5 Test `callReactAgent()` with user-provided callback uses the provided callback (TUI mode preserved)
 
 ## 4. Verify and commit
 
