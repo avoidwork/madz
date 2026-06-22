@@ -30,6 +30,7 @@ Call chains and data flows for all primary code paths in the project, excluding 
 - [Profile Management](#profile-management)
 - [Shutdown Flow](#shutdown-flow)
 - [Sub-Agent Log Tool Flow](#sub-agent-log-tool-flow)
+- [Sub-Agent Message Tool Flow](#sub-agent-message-tool-flow)
 - [Additional Tool Flows](#additional-tool-flows)
 - [File Dependencies](#file-dependencies)
 
@@ -793,6 +794,27 @@ isProcessRunning(pid):
 ```
 
 **Log file pattern:** `sub-agent-{pid}.log` stored in `/tmp`. Files are automatically cleaned up by the `cleanup` action based on age threshold.
+
+---
+
+## Sub-Agent Message Tool Flow
+
+**Entry:** `src/tools/subAgentMessage.js` → `createSubAgentMessageTool()`
+
+```
+subAgentMessage tool (requires process:spawn permission):
+├── validate input: pid (required), message (required)
+├── if pid missing → { ok: false, error: "PID is required" }
+├── if message missing → { ok: false, error: "Message is required" }
+├── lookup processTracker.get(pid):
+│   ├── if not found → { ok: false, error: "Process {pid} not found in tracker" }
+│   └── if status is "exited" or "error" → { ok: false, error: "Process {pid} is not running" }
+├── entry.child.stdin.write(message + "\\n")
+│   └── Append newline to message before writing
+└── return { ok: true, pid, messageSent: true }
+```
+
+**Prerequisites:** The target subAgent process must be spawned with `stdio: ["pipe", "pipe", "pipe"]` (stdin exposed). The subAgent tool was updated to expose stdin for this to work.
 
 ---
 

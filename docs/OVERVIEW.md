@@ -180,6 +180,26 @@ The agent runs: reason → call tool(s) → reason again → answer. Tool array 
 ---
 
 
+## Sub-Agent Message
+
+`src/tools/subAgentMessage.js` — sends messages to running subAgent processes via stdin. Requires the target process to be tracked (spawned via subAgent tool) and have stdin exposed.
+
+|| File | Purpose |
+||------|---------|
+|| `subAgentMessage.js` | `createSubAgentMessageTool()` — LangChain tool with `process:spawn` permission; `subAgentMessageImpl(input)` — looks up PID in `processTracker`, validates process is running, writes message to stdin |
+
+**Key features:**
+
+1. **Process lookup** — Validates PID exists in `processTracker`
+2. **Status check** — Ensures process is still running before writing
+3. **Stdin write** — Appends newline to message before writing to stdin
+4. **Error handling** — Clear error messages for missing PID, missing message, process not found, or process not running
+
+**Prerequisites:** The target subAgent process must be spawned with `stdio: ["pipe", "pipe", "pipe"]` (stdin exposed). The subAgent tool was updated to expose stdin for this to work.
+
+---
+
+
 ## Cache
 
 `src/cache/` — cache-aside LRU response cache for LLM API calls.
