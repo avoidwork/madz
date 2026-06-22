@@ -1,3 +1,7 @@
+## Purpose
+
+Allow the crontab sync to proceed in container environments where `crontab -l` may fail with errors other than "no crontab" (e.g., binary not found, permission denied). The system treats any read error as "no existing crontab" and writes the madz-managed block unconditionally.
+
 ## MODIFIED Requirements
 
 ### Requirement: Init-time Crontab Synchronization
