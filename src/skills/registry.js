@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import { discoverSkills } from "./discoverer.js";
+import { discoverSkills, defaultScope } from "./discoverer.js";
 import { validateSkillSchema } from "./validator.js";
 
 /**
@@ -26,12 +26,12 @@ export class SkillRegistry {
 	/**
 	 * Discover and register all skills from configured scopes.
 	 * System skills (system-skills/) are scanned first and shadow user skills (skills/).
-	 * @param {string[]} [scope=["system-skills/", "skills/"]] - Array of directories to scan
+	 * @param {string[]} [scope] - Array of directories to scan (defaults to sandbox.skillScanPaths from config)
 	 * @param {object} [options] - Discovery options
 	 * @param {boolean} [options.trustProjectSkills=true] - Trust project-level skills
 	 * @returns {Array<{ name: string, errors: string[], warnings: string[] }>} Registration results
 	 */
-	discover(scope = ["system-skills/", "skills/"], options = {}) {
+	discover(scope = defaultScope, options = {}) {
 		const discovered = discoverSkills(scope, options);
 		const results = [];
 

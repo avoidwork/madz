@@ -1,6 +1,9 @@
 import { readdirSync, statSync, readFileSync, existsSync } from "node:fs";
 import { join, basename, resolve } from "node:path";
 import yaml from "js-yaml";
+import { loadConfig } from "../config/loader.js";
+
+export const defaultScope = loadConfig().sandbox.skillScanPaths;
 
 // Cross-client directory scope constants
 const SKILL_DIR = "SKILL.md";
@@ -148,12 +151,12 @@ function findSkillFiles(dir) {
 
 /**
  * Discover skills from multiple directory scopes.
- * @param {string[]} [scope=["system-skills/", "skills/"]] - Array of directories to scan
+ * @param {string[]} [scope] - Array of directories to scan (defaults to sandbox.skillScanPaths from config)
  * @param {object} [options] - Discovery options
  * @param {boolean} [options.trustProjectSkills=true] - Whether to trust project-level skills
  * @returns {Array<{ path: string, name: string, metadata: Object }>}
  */
-export function discoverSkills(scope = ["system-skills/", "skills/"], options = {}) {
+export function discoverSkills(scope = defaultScope, options = {}) {
 
 	const { trustProjectSkills: _trustProjectSkills = true } = options;
 	const allSkills = [];
