@@ -164,9 +164,9 @@ The agent runs: reason → call tool(s) → reason again → answer. Tool array 
 
 `src/tools/subAgentLog.js` — manages and reads subAgent log files stored in `/tmp`. Supports listing all active logs with PID and running status, reading a specific log by PID, and cleaning up old logs beyond a configurable age threshold.
 
-|| File | Purpose |
-||------|---------|
-|| `subAgentLog.js` | `createSubAgentLogTool()` — LangChain tool with zero permissions (always registered); `listLogs()` — scans `/tmp` for `sub-agent-{pid}.log` files, returns sorted array with PID, file, size, modified time, and running status; `readLog(pid)` — reads a specific log file by PID; `cleanupLogs(maxAgeHours)` — removes logs older than the configured age threshold (default: 24 hours); `isProcessRunning(pid)` — checks if a PID is still active via `process.kill(pid, 0)` |
+| File | Purpose |
+|------|---------|
+| `subAgentLog.js` | `createSubAgentLogTool()` — LangChain tool with zero permissions (always registered); `listLogs()` — scans `/tmp` for `sub-agent-{pid}.log` files, returns sorted array with PID, file, size, modified time, and running status; `readLog(pid)` — reads a specific log file by PID; `cleanupLogs(maxAgeHours)` — removes logs older than the configured age threshold (default: 24 hours); `isProcessRunning(pid)` — checks if a PID is still active via `process.kill(pid, 0)` |
 
 **Key features:**
 
@@ -301,9 +301,9 @@ The agent runs: reason → call tool(s) → reason again → answer. Tool array 
 
 `src/tools/compactContext.js` — automatic conversation context compaction triggered when the LLM returns a 400 error indicating the conversation has exceeded the model's maximum context length.
 
-|| File | Purpose |
-||------|---------|
-|| `compactContext.js` | `createCompactContextTool()` — LangChain tool with tiered retention strategy; `isContextLengthError()` — detects context-length 400 errors via regex; `extractContextLength()` — extracts max context length from error message; `compactConversation()` — rewrites conversation to fit within a token budget |
+| File | Purpose |
+|------|---------|
+| `compactContext.js` | `createCompactContextTool()` — LangChain tool with tiered retention strategy; `isContextLengthError()` — detects context-length 400 errors via regex; `extractContextLength()` — extracts max context length from error message; `compactConversation()` — rewrites conversation to fit within a token budget |
 
 **How it works:**
 
