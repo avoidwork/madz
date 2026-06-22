@@ -13,23 +13,6 @@ const __dirname = dirname(__filename);
 const SUBAGENT_MARKER = "# SubAgent";
 
 /**
- * Escape a string for safe shell argument passing.
- * Handles quotes, backticks, dollar signs, newlines, and other special characters.
- * @param {string} str - The string to escape
- * @returns {string} The escaped string
- */
-function escapeShellArg(str) {
-	return str
-		.replace(/\\/g, "\\\\")
-		.replace(/`/g, "\\`")
-		.replace(/\$/g, "\\$")
-		.replace(/"/g, '\\"')
-		.replace(/\n/g, "\\n")
-		.replace(/\r/g, "\\r")
-		.replace(/\t/g, "\\t");
-}
-
-/**
  * Split stdout on the subAgent marker and return the content after it.
  * @param {string} stdout - Raw stdout from the spawned process
  * @returns {{ ok: boolean, result: string, error?: string }}
@@ -105,7 +88,16 @@ export function generateSessionId() {
 }
 
 /**
- * Spawn a single sub-agent process.
+ * Convert milliseconds to seconds (rounded up).
+ * @param {number} ms - Timeout in milliseconds
+ * @returns {number} Timeout in seconds
+ */
+function msToSeconds(ms) {
+	return Math.ceil(ms / 1000);
+}
+
+/**
+ * Spawn a single sub-agent process using system timeout command.
  * @param {string} prompt - The full prompt (context ||| delegation)
  * @param {string} sessionsDir - Path to sessions directory
  * @param {number} timeout - Timeout in milliseconds
@@ -114,10 +106,11 @@ export function generateSessionId() {
 export function spawnSubAgentProcess(prompt, sessionsDir, timeout) {
 	return new Promise((resolve) => {
 		const sessionId = generateSessionId();
-		const escapedPrompt = escapeShellArg(prompt);
+		const timeoutSeconds = msToSeconds(timeout);
 
-		const child = spawn("node", ["index.js", `"${escapedPrompt}"`, sessionsDir], {
-			timeout,
+		// Use system timeout command for reliable process termination
+		// timeout sends SIGTERM first, then SIGKILL after --kill-after delay
+		const child = spawn("timeout", ["--kill-after=10", timeoutSeconds.toString(), "node", "index.js", prompt, sessionsDir], {
 			stdio: ["pipe", "pipe", "pipe"],
 			env: {
 				...process.env,
@@ -145,8 +138,20 @@ export function spawnSubAgentProcess(prompt, sessionsDir, timeout) {
 			logStream.write(text);
 		});
 
-		child.on("exit", (_code) => {
+		child.on("exit", (code) => {
 			logStream.end();
+
+			// Exit code 124 indicates timeout from system timeout command
+			if (code === 124) {
+				resolve({
+					ok: false,
+					result: "",
+					error: `Sub-agent timed out after ${timeout}ms`,
+					sessionId,
+				});
+				return;
+			}
+
 			const parsed = parseSubAgentOutput(stdout);
 			if (!parsed.ok) {
 				parsed.error = `${parsed.error}${stderr ? ` | stderr: ${stderr.trim()}` : ""}`;
