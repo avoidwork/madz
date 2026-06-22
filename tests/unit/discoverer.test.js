@@ -115,7 +115,7 @@ describe("discoverSkills", () => {
 			"---\nname: my-skill\ndescription: A test skill\n---\n\nContent",
 		);
 
-		const skills = discoverSkills(".");
+		const skills = discoverSkills(["."]);
 		assert.strictEqual(skills.length, 1);
 		assert.strictEqual(skills[0].name, "my-skill");
 		assert.strictEqual(skills[0].metadata.name, "my-skill");
@@ -128,7 +128,7 @@ describe("discoverSkills", () => {
 		mkdirSync(skillDir, { recursive: true });
 		writeFileSync(join(skillDir, "SKILL.md"), "# No frontmatter here");
 
-		const skills = discoverSkills(".");
+		const skills = discoverSkills(["."]);
 		assert.strictEqual(skills.length, 0);
 	});
 
@@ -140,7 +140,7 @@ describe("discoverSkills", () => {
 			"---\nname: empty-desc-skill\ndescription: ''\n---\n\nBody",
 		);
 
-		const skills = discoverSkills(".");
+		const skills = discoverSkills(["."]);
 		assert.strictEqual(skills.length, 0);
 	});
 
@@ -152,7 +152,7 @@ describe("discoverSkills", () => {
 			"---\nname: hidden-skill\ndescription: Hidden\n---\n\nBody",
 		);
 
-		const skills = discoverSkills(".");
+		const skills = discoverSkills(["."]);
 		assert.strictEqual(skills.length, 0);
 	});
 
@@ -164,7 +164,7 @@ describe("discoverSkills", () => {
 			"---\nname: node-skill\ndescription: In node_modules\n---\n\nBody",
 		);
 
-		const skills = discoverSkills(".");
+		const skills = discoverSkills(["."]);
 		assert.strictEqual(skills.length, 0);
 	});
 
@@ -177,7 +177,7 @@ describe("discoverSkills", () => {
 			"---\nname: scripts-skill\ndescription: Has scripts\n---\n\nBody",
 		);
 
-		const skills = discoverSkills(".");
+		const skills = discoverSkills(["."]);
 		assert.strictEqual(skills.length, 1);
 		assert.ok(skills[0].metadata.scripts.endsWith("scripts"));
 	});
@@ -191,14 +191,14 @@ describe("discoverSkills", () => {
 		writeFileSync(join(skill1, "SKILL.md"), "---\nname: skill-a\ndescription: Skill A\n---\n\nA");
 		writeFileSync(join(skill2, "SKILL.md"), "---\nname: skill-b\ndescription: Skill B\n---\n\nB");
 
-		const skills = discoverSkills(".");
+		const skills = discoverSkills(["."]);
 		assert.strictEqual(skills.length, 2);
 		const names = skills.map((s) => s.name).sort();
 		assert.deepStrictEqual(names, ["skill-a", "skill-b"]);
 	});
 
 	it("returns empty array for non-existent directory", () => {
-		const skills = discoverSkills("/nonexistent/path");
+		const skills = discoverSkills(["/nonexistent/path"]);
 		assert.strictEqual(skills.length, 0);
 	});
 
@@ -231,7 +231,7 @@ describe("discoverSkills", () => {
 			"---\nname: collision-skill\ndescription: Second\n---\n\nBody",
 		);
 
-		const skills = discoverSkills(".");
+		const skills = discoverSkills(["."]);
 		// Should only have one (the first directory alphabetically found)
 		// "collision-alias" sorts before "collision-skill", so that one is found first
 		assert.strictEqual(skills.length, 1);
@@ -243,7 +243,7 @@ describe("discoverSkills", () => {
 		mkdirSync(skillDir, { recursive: true });
 		writeFileSync(join(skillDir, "SKILL.md"), "---\ndescription: No name\n---\n\nBody");
 
-		const skills = discoverSkills(".");
+		const skills = discoverSkills(["."]);
 		assert.strictEqual(skills.length, 0);
 	});
 
@@ -252,7 +252,7 @@ describe("discoverSkills", () => {
 		mkdirSync(skillDir, { recursive: true });
 		writeFileSync(join(skillDir, "SKILL.md"), "---\nname: 123\ndescription: Numeric\n---\n\nBody");
 
-		const skills = discoverSkills(".");
+		const skills = discoverSkills(["."]);
 		// YAML parses "name: 123" as a number, but we cast it to string for validation
 		assert.strictEqual(skills.length, 1);
 		assert.strictEqual(skills[0].metadata.name, "123");

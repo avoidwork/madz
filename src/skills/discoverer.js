@@ -148,15 +148,12 @@ function findSkillFiles(dir) {
 
 /**
  * Discover skills from multiple directory scopes.
- * @param {string|string[]} [scope="skills/"] - Directory or array of directories to scan
+ * @param {string[]} [scope=["system-skills/", "skills/"]] - Array of directories to scan
  * @param {object} [options] - Discovery options
  * @param {boolean} [options.trustProjectSkills=true] - Whether to trust project-level skills
  * @returns {Array<{ path: string, name: string, metadata: Object }>}
  */
-export function discoverSkills(scope = "skills/", options = {}) {
-	if (typeof scope === "string") {
-		scope = [scope];
-	}
+export function discoverSkills(scope = ["system-skills/", "skills/"], options = {}) {
 
 	const { trustProjectSkills: _trustProjectSkills = true } = options;
 	const allSkills = [];
@@ -175,10 +172,9 @@ export function discoverSkills(scope = "skills/", options = {}) {
 			if (!name) continue;
 
 			if (seenNames.has(name)) {
-				const _existingPath = seenNames.get(name);
-				const isNewHigherPriority = skill.path.includes(".agents/skills");
+				const isNewHigherPriority = skill.path.includes("system-skills/");
 				if (isNewHigherPriority) {
-					// Project-level skills override user-level (shadow)
+					// System skills override user skills (shadow)
 					seenNames.set(name, skill.path);
 				}
 				continue;
