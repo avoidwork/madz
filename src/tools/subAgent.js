@@ -10,7 +10,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const SUBAGENT_MARKER = "# SubAgent";
-const PROMPT_SEPARATOR = " ||| ";
 
 /**
  * Escape a string for safe shell argument passing.
@@ -162,7 +161,7 @@ async function executeFanOut(tasks, strategy, maxConcurrent, onError, sessionsDi
 		for (const task of tasks) {
 			if (failed && onError === "fail-fast") break;
 
-			const prompt = `${task.context}${PROMPT_SEPARATOR}${task.delegation}`;
+			const prompt = task.context ? `${task.context}\n\n${task.delegation}` : task.delegation;
 			const result = await spawnSubAgentProcess(prompt, sessionsDir, timeout);
 
 			if (task.id) {
@@ -185,7 +184,7 @@ async function executeFanOut(tasks, strategy, maxConcurrent, onError, sessionsDi
 			while (active.size < maxConcurrent && queue.length > 0) {
 				const task = queue.shift();
 				const promise = (async () => {
-					const prompt = `${task.context}${PROMPT_SEPARATOR}${task.delegation}`;
+					const prompt = task.context ? `${task.context}\n\n${task.delegation}` : task.delegation;
 					const result = await spawnSubAgentProcess(prompt, sessionsDir, timeout);
 
 					if (task.id) {
@@ -299,7 +298,7 @@ export function createSubAgentTool(options = {}) {
 					});
 				}
 
-				const prompt = `${context || ""}${PROMPT_SEPARATOR}${delegation}`;
+				const prompt = context ? `${context}\n\n${delegation}` : delegation;
 				const result = await spawnSubAgentProcess(prompt, sessionsDir, resolvedTimeout);
 
 				// Apply returnParams filtering if specified
