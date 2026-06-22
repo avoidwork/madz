@@ -1,14 +1,14 @@
 ## 1. Implementation (Already Complete)
 
 - [x] 1.1 Add `msToSeconds()` helper to convert milliseconds to seconds with `Math.ceil()`
-- [x] 1.2 Replace Node.js `spawn()` timeout option with `timeout --kill-after=10` command wrapper
+- [x] 1.2 Replace Node.js `spawn()` timeout option with direct `spawn("timeout", ["--kill-after=10", ...])` call
 - [x] 1.3 Add exit code 124 detection in `spawnSubAgentProcess()` exit handler
 - [x] 1.4 Apply timeout wrapper to both single execution and fan-out modes (parallel/sequential)
-- [x] 1.5 Ensure shell argument escaping via `escapeShellArg()` for all user inputs
+- [x] 1.5 Pass all arguments as array elements to `spawn("timeout", [...])` — no shell escaping needed
 
 ## 2. Testing
 
-- [x] 2.1 Update existing integration tests to account for `timeout` command wrapper (process hierarchy changes)
+- [x] 2.1 Update existing integration tests to account for direct `spawn("timeout", [...])` call (process hierarchy changes)
 - [x] 2.2 Add test for exit code 124 timeout detection — verify `ok: false` and error message format
 - [x] 2.3 Add test for `msToSeconds()` conversion — verify `Math.ceil()` behavior for edge cases (e.g., 1500ms → 2s, 2000ms → 2s)
 - [x] 2.4 Add test for `--kill-after=10` flag presence in spawned command

@@ -52,8 +52,15 @@ if (code === 124) {
 }
 ```
 
-### Decision 4: Wrap in `sh -c` for command composition
-**Rationale:** The `timeout` command needs to wrap the entire `node index.js ...` command. Using `spawn("sh", ["-c", timeoutCmd])` allows shell command composition while maintaining proper argument escaping via `escapeShellArg()`.
+### Decision 4: Spawn `timeout` directly with array arguments
+**Rationale:** The `timeout` command is spawned directly as a process with arguments passed as an array. This eliminates the need for shell command composition (`sh -c`) and shell argument escaping (`escapeShellArg()`). Arguments are passed safely as array elements, avoiding shell injection concerns entirely.
+
+**Implementation:**
+```js
+spawn("timeout", ["--kill-after=10", timeoutSeconds.toString(), "node", "index.js", prompt, sessionsDir], { ... })
+```
+
+**Trade-off:** Slightly less flexible than shell composition (no shell built-ins available), but this is not needed — the `timeout` command handles all required functionality directly.
 
 ## Risks / Trade-offs
 
@@ -62,11 +69,11 @@ if (code === 124) {
 | `timeout` command not available on all systems | GNU coreutils is standard on Linux; macOS users can install via `brew install coreutils`. Document requirement. |
 | Exit code 124 could conflict with actual process exit code 124 | Extremely unlikely — Node.js processes rarely exit with code 124. If needed, we could use a different signal or check stderr. |
 | `--kill-after=10` adds up to 10s delay after timeout | This is intentional — gives processes time to clean up after SIGTERM. Total worst-case: timeout + 10s. Acceptable for reliability. |
-| Shell escaping complexity increases | Already handled by existing `escapeShellArg()` function. No new escaping logic needed. |
+| Shell escaping complexity | Eliminated entirely — array-based argument passing bypasses shell interpretation |
 
 ## Migration Plan
 
-1. **Deploy:** Replace `spawn()` timeout with `timeout` command wrapper in `subAgent.js`
+1. **Deploy:** Replace `spawn()` timeout with direct `spawn("timeout", [...])` in `subAgent.js`
 2. **Test:** Update integration tests to verify timeout behavior and exit code 124 detection
 3. **Verify:** Run full test suite, check for orphaned processes after timeout
 4. **Rollback:** Revert to previous `spawn()` timeout if issues arise (simple git revert)

@@ -32,13 +32,13 @@ The subAgent tool SHALL detect exit code 124 from the `timeout` command and map 
 - **THEN** the stdout is parsed using `parseSubAgentOutput()`
 - **AND** the result follows the normal success/failure path
 
-### Requirement: Shell argument escaping MUST prevent injection
-The subAgent tool SHALL escape all user-provided arguments before passing them to the shell via `timeout --kill-after=10`.
+### Requirement: Arguments MUST be passed safely via array-based spawning
+The subAgent tool SHALL pass all arguments to the `timeout` command as an array, eliminating the need for shell escaping. Arguments are passed directly to `spawn("timeout", [...])` without shell interpolation.
 
-#### Scenario: Special characters in delegation are escaped
+#### Scenario: Special characters in delegation are safe
 - **WHEN** the delegation string contains quotes, backticks, dollar signs, or newlines
-- **THEN** each special character is escaped via `escapeShellArg()`
-- **AND** the escaped string is safely passed to `sh -c`
+- **THEN** the argument is passed as a separate array element to `spawn("timeout", [...])`
+- **AND** no shell escaping is required — array arguments bypass shell interpretation entirely
 
 #### Scenario: Empty or null output is handled
 - **WHEN** the sub-agent produces no output or null output
