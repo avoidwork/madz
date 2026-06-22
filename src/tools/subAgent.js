@@ -162,7 +162,7 @@ async function executeFanOut(tasks, strategy, maxConcurrent, onError, sessionsDi
 		for (const task of tasks) {
 			if (failed && onError === "fail-fast") break;
 
-			const prompt = `${task.context}${PROMPT_SEPARATOR}${task.delegation}`;
+			const prompt = task.context ? `${task.context}\n\n${task.delegation}` : task.delegation;
 			const result = await spawnSubAgentProcess(prompt, sessionsDir, timeout);
 
 			if (task.id) {
@@ -185,7 +185,7 @@ async function executeFanOut(tasks, strategy, maxConcurrent, onError, sessionsDi
 			while (active.size < maxConcurrent && queue.length > 0) {
 				const task = queue.shift();
 				const promise = (async () => {
-					const prompt = `${task.context}${PROMPT_SEPARATOR}${task.delegation}`;
+					const prompt = task.context ? `${task.context}\n\n${task.delegation}` : task.delegation;
 					const result = await spawnSubAgentProcess(prompt, sessionsDir, timeout);
 
 					if (task.id) {
