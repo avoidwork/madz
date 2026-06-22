@@ -160,6 +160,26 @@ The agent runs: reason → call tool(s) → reason again → answer. Tool array 
 ---
 
 
+## Sub-Agent Log
+
+`src/tools/subAgentLog.js` — manages and reads subAgent log files stored in `/tmp`. Supports listing all active logs with PID and running status, reading a specific log by PID, and cleaning up old logs beyond a configurable age threshold.
+
+|| File | Purpose |
+||------|---------|
+|| `subAgentLog.js` | `createSubAgentLogTool()` — LangChain tool with zero permissions (always registered); `listLogs()` — scans `/tmp` for `sub-agent-{pid}.log` files, returns sorted array with PID, file, size, modified time, and running status; `readLog(pid)` — reads a specific log file by PID; `cleanupLogs(maxAgeHours)` — removes logs older than the configured age threshold (default: 24 hours); `isProcessRunning(pid)` — checks if a PID is still active via `process.kill(pid, 0)` |
+
+**Key features:**
+
+1. **Log discovery** — Scans `/tmp` for files matching `sub-agent-{pid}.log` pattern
+2. **Process status** — Reports whether each sub-agent process is still running
+3. **Age-based cleanup** — Removes logs older than a configurable threshold (default: 24 hours)
+4. **Zero permissions** — Always registered, no sandbox permissions required
+
+**Configuration:** Log directory is hardcoded to `/tmp`. Age threshold is configurable via the `maxAgeHours` parameter (default: 24).
+
+---
+
+
 ## Cache
 
 `src/cache/` — cache-aside LRU response cache for LLM API calls.
