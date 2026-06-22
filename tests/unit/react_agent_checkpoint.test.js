@@ -25,8 +25,6 @@ describe("createReactAgent with checkpointer", () => {
 	});
 });
 
-
-
 describe("callReactAgent streaming with config", () => {
 	it("passes configurable to streamEvents when config provided", async () => {
 		let capturedStreamOptions = null;
@@ -64,5 +62,3 @@ describe("callReactAgent streaming with config", () => {
 		assert.strictEqual(result.content, "original message");
 	});
 });
-
-

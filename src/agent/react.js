@@ -54,7 +54,6 @@ const RECURSION_LIMIT_MESSAGE =
 	"I've reached the maximum number of reasoning steps on this thread. Please continue your message and I'll carry on, or start a new conversation if you'd prefer.";
 
 const MAX_COMPACTION_ITERATIONS = 3;
-const CONTEXT_TOO_LONG_MESSAGE = "The conversation is too long. Please start a new session.";
 
 /**
  * Create a ReAct agent from a chat model and optional tools and checkpointer.
@@ -123,9 +122,6 @@ export function createStdoutCallback() {
  */
 export async function callReactAgent(agent, message, config, systemPrompt, callback, options = {}) {
 	const {
-		maxContextLength,
-		maxTokens,
-		maxCompactionIterations = MAX_COMPACTION_ITERATIONS,
 		recursionLimit,
 	} = options;
 
@@ -141,34 +137,6 @@ export async function callReactAgent(agent, message, config, systemPrompt, callb
 	// Always use streaming — use user-provided callback (TUI) or default stdout callback (non-TUI)
 	const effectiveCallback = callback || createStdoutCallback();
 	return callReactAgentStreaming(agent, messages, message, config, effectiveCallback, options, systemPrompt, recursionLimit);
-}
-
-/**
- * Extract response content from an agent invoke result.
- * @param {Object} result - Agent invoke result with `messages` field
- * @param {string} fallback - Fallback content when no AI message found
- * @returns {{ content: string }}
- */
-function extractContent(result, fallback) {
-	const msgsArray = Array.isArray(result.messages) ? result.messages : [];
-
-	let lastAI = null;
-	for (let i = msgsArray.length - 1; i >= 0; i--) {
-		if (msgsArray[i] instanceof AIMessage || msgsArray[i] instanceof AIMessageChunk) {
-			lastAI = msgsArray[i];
-			break;
-		}
-	}
-	if (lastAI && lastAI.content) {
-		const content =
-			typeof lastAI.content === "string" ? lastAI.content : JSON.stringify(lastAI.content);
-		const trimmed = content.trim();
-		if (trimmed && trimmed !== "[]" && trimmed !== "{}") {
-			return { content: trimmed };
-		}
-	}
-
-	return { content: fallback };
 }
 
 /**
