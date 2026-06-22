@@ -340,6 +340,16 @@ export default function App({
 										}
 										return cloned;
 									});
+								} else if (event.type === "loop_detected") {
+									// Silent loop nudge — non-disruptive, agent-facing only
+									setMessages((prev) => {
+										const cloned = [...prev];
+										const last = cloned[cloned.length - 1];
+										if (last.role === "assistant" && last.streaming) {
+											last.toolCallDisplay = (lastToolCallDisplay ? lastToolCallDisplay + "\n" : "") + "You're looping.";
+										}
+										return cloned;
+									});
 								}
 							} catch (_cbErr) {
 								// Silently ignore streaming callback errors
