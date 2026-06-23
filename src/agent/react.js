@@ -138,16 +138,6 @@ export async function callReactAgent(agent, message, config, systemPrompt, callb
 		recursionLimit,
 	} = options;
 
-	// Load turn hash config once at the public API boundary
-	try {
-		const agentConfig = loadConfig()?.agent ?? {};
-		options.turnHashWindow = options.turnHashWindow ?? agentConfig.turnHashWindow ?? 20;
-		options.turnBufferMax = options.turnBufferMax ?? agentConfig.turnBufferMax ?? 64;
-	} catch {
-		options.turnHashWindow = options.turnHashWindow ?? 20;
-		options.turnBufferMax = options.turnBufferMax ?? 64;
-	}
-
 	let messages = [new HumanMessage(message)];
 
 	if (systemPrompt) {

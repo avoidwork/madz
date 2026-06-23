@@ -216,6 +216,8 @@ async function callProvider(_name, _providerConfig, message, streamingCallback, 
 			checkpointer,
 			signal,
 			recursionLimit: config.agent?.recursionLimit,
+			turnHashWindow: config.agent?.turnHashWindow,
+			turnBufferMax: config.agent?.turnBufferMax,
 		},
 	);
 	return { provider: providerName, content: result.content, tokens: { input: 0, output: 0 } };
