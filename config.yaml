@@ -76,7 +76,7 @@ agent:
   autoContinueLimit: 1000
   nodeTimeout: 600000
   turnHashWindow: 20
-  turnBufferMax: 128
+  turnBufferMax: 64
 lru:
   size: 100
   ttl: 600000
