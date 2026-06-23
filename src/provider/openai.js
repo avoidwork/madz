@@ -1,16 +1,23 @@
 import { ChatOpenAI } from "@langchain/openai";
 
 /**
- * Configuration for creating an OpenAI-compatible chat model.
- * @typedef {Object} ProviderConfig
- * @property {string} base_url - The base URL of the OpenAI-compatible API
- * @property {string} model - The model name (e.g., "gpt-4o", "llama3.1")
- * @property {Object} credentials - Authentication credentials
- * @property {string} credentials.apiKey - The API key for authentication
- * @property {number} [temperature] - Sampling temperature (0-2)
- * @property {number} [maxTokens] - Maximum output tokens
- * @property {boolean} [streaming] - Enable streaming token output
+ * Parse and validate subAgent temperature from environment variable.
+ * @param {string} envValue - The MADZ_SUBAGENT_TEMPERATURE env var value
+ * @param {number} providerDefault - The provider's default temperature
+ * @returns {number} Validated temperature value
  */
+function parseSubAgentTemperature(envValue, providerDefault) {
+	if (envValue === undefined || envValue === "") {
+		return providerDefault;
+	}
+
+	const parsed = parseFloat(envValue);
+	if (isNaN(parsed) || parsed < 0 || parsed > 2) {
+		return providerDefault;
+	}
+
+	return parsed;
+}
 
 /**
  * Create a ChatOpenAI model instance from provider configuration.
@@ -19,9 +26,15 @@ import { ChatOpenAI } from "@langchain/openai";
  * @returns {ChatOpenAI} A configured ChatOpenAI instance
  */
 export function createChatModel(config) {
+	// Check for subAgent temperature override from spawned process env var
+	const subAgentTemp = parseSubAgentTemperature(
+		process.env.MADZ_SUBAGENT_TEMPERATURE,
+		config.temperature,
+	);
+
 	return new ChatOpenAI({
 		model: config.model,
-		temperature: config.temperature,
+		temperature: subAgentTemp,
 		maxTokens: config.maxTokens,
 		apiKey: config.credentials.apiKey,
 		streaming: config.streaming !== false,

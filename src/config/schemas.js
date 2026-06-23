@@ -205,6 +205,25 @@ export const PersistenceSchema = z.object({
 	sqlite_path: z.string().default("memory/checkpoints.db"),
 });
 
+// --- Process / subAgent schemas ---
+
+export const SubAgentSchema = z.object({
+	timeout: z.number().int().positive().default(600000),
+	maxConcurrent: z.number().int().positive().default(4),
+	sessionMode: z.enum(["isolated", "shared"]).default("isolated"),
+	defaultStrategy: z.enum(["parallel", "sequential"]).default("parallel"),
+	defaultOnError: z.enum(["continue", "fail-fast"]).default("continue"),
+	temperature: z.number().min(0).max(2).default(0.7),
+	skills: z
+		.array(
+			z.object({
+				name: z.string().min(1),
+				temperature: z.number().min(0).max(2).optional(),
+			}),
+		)
+		.default([]),
+});
+
 // --- Root config ---
 
 export const ConfigSchema = z.object({
@@ -218,6 +237,7 @@ export const ConfigSchema = z.object({
 	agent: AgentSchema.default({}),
 	lru: LruSchema.default({}),
 	persistence: PersistenceSchema,
+	process: z.object({ subAgent: SubAgentSchema.default({}) }).default({}),
 });
 
 // Default values exported for merging

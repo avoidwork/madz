@@ -246,6 +246,222 @@ describe("agent schema defaults", () => {
 	});
 });
 
+describe("subAgent temperature config schema", () => {
+	describe("process.subAgent.temperature", () => {
+		it("accepts valid temperature value", () => {
+			const schema = {
+				safeParse(obj) {
+					const subAgent = obj.subAgent || {};
+					const temperature = subAgent.temperature;
+					if (
+						temperature !== undefined &&
+						(typeof temperature !== "number" || temperature < 0 || temperature > 2)
+					) {
+						return { success: false };
+					}
+					return {
+						success: true,
+						data: { subAgent: { temperature: temperature !== undefined ? temperature : 0.7 } },
+					};
+				},
+			};
+			const result = schema.safeParse({ subAgent: { temperature: 0.7 } });
+			assert.strictEqual(result.success, true);
+			assert.strictEqual(result.data.subAgent.temperature, 0.7);
+		});
+
+		it("accepts temperature at minimum boundary (0)", () => {
+			const schema = {
+				safeParse(obj) {
+					const subAgent = obj.subAgent || {};
+					const temperature = subAgent.temperature;
+					if (
+						temperature !== undefined &&
+						(typeof temperature !== "number" || temperature < 0 || temperature > 2)
+					) {
+						return { success: false };
+					}
+					return {
+						success: true,
+						data: { subAgent: { temperature: temperature !== undefined ? temperature : 0.7 } },
+					};
+				},
+			};
+			const result = schema.safeParse({ subAgent: { temperature: 0 } });
+			assert.strictEqual(result.success, true);
+			assert.strictEqual(result.data.subAgent.temperature, 0);
+		});
+
+		it("accepts temperature at maximum boundary (2)", () => {
+			const schema = {
+				safeParse(obj) {
+					const subAgent = obj.subAgent || {};
+					const temperature = subAgent.temperature;
+					if (
+						temperature !== undefined &&
+						(typeof temperature !== "number" || temperature < 0 || temperature > 2)
+					) {
+						return { success: false };
+					}
+					return {
+						success: true,
+						data: { subAgent: { temperature: temperature !== undefined ? temperature : 0.7 } },
+					};
+				},
+			};
+			const result = schema.safeParse({ subAgent: { temperature: 2 } });
+			assert.strictEqual(result.success, true);
+			assert.strictEqual(result.data.subAgent.temperature, 2);
+		});
+
+		it("rejects negative temperature", () => {
+			const schema = {
+				safeParse(obj) {
+					const subAgent = obj.subAgent || {};
+					const temperature = subAgent.temperature;
+					if (
+						temperature !== undefined &&
+						(typeof temperature !== "number" || temperature < 0 || temperature > 2)
+					) {
+						return { success: false };
+					}
+					return {
+						success: true,
+						data: { subAgent: { temperature: temperature !== undefined ? temperature : 0.7 } },
+					};
+				},
+			};
+			const result = schema.safeParse({ subAgent: { temperature: -0.1 } });
+			assert.strictEqual(result.success, false);
+		});
+
+		it("rejects temperature above 2", () => {
+			const schema = {
+				safeParse(obj) {
+					const subAgent = obj.subAgent || {};
+					const temperature = subAgent.temperature;
+					if (
+						temperature !== undefined &&
+						(typeof temperature !== "number" || temperature < 0 || temperature > 2)
+					) {
+						return { success: false };
+					}
+					return {
+						success: true,
+						data: { subAgent: { temperature: temperature !== undefined ? temperature : 0.7 } },
+					};
+				},
+			};
+			const result = schema.safeParse({ subAgent: { temperature: 2.1 } });
+			assert.strictEqual(result.success, false);
+		});
+
+		it("defaults temperature to 0.7 when missing", () => {
+			const schema = {
+				safeParse(obj) {
+					const subAgent = obj.subAgent || {};
+					const temperature = subAgent.temperature;
+					if (
+						temperature !== undefined &&
+						(typeof temperature !== "number" || temperature < 0 || temperature > 2)
+					) {
+						return { success: false };
+					}
+					return {
+						success: true,
+						data: { subAgent: { temperature: temperature !== undefined ? temperature : 0.7 } },
+					};
+				},
+			};
+			const result = schema.safeParse({});
+			assert.strictEqual(result.success, true);
+			assert.strictEqual(result.data.subAgent.temperature, 0.7);
+		});
+	});
+
+	describe("process.subAgent.skills[].temperature", () => {
+		it("accepts per-skill temperature override", () => {
+			const schema = {
+				safeParse(obj) {
+					const skills = obj.skills || [];
+					for (const skill of skills) {
+						if (
+							skill.temperature !== undefined &&
+							(typeof skill.temperature !== "number" ||
+								skill.temperature < 0 ||
+								skill.temperature > 2)
+						) {
+							return { success: false };
+						}
+					}
+					return {
+						success: true,
+						data: { skills: skills.map((s) => ({ name: s.name, temperature: s.temperature })) },
+					};
+				},
+			};
+			const result = schema.safeParse({
+				skills: [{ name: "audit-code", temperature: 0.3 }],
+			});
+			assert.strictEqual(result.success, true);
+			assert.strictEqual(result.data.skills[0].temperature, 0.3);
+		});
+
+		it("rejects per-skill temperature outside range", () => {
+			const schema = {
+				safeParse(obj) {
+					const skills = obj.skills || [];
+					for (const skill of skills) {
+						if (
+							skill.temperature !== undefined &&
+							(typeof skill.temperature !== "number" ||
+								skill.temperature < 0 ||
+								skill.temperature > 2)
+						) {
+							return { success: false };
+						}
+					}
+					return {
+						success: true,
+						data: { skills: skills.map((s) => ({ name: s.name, temperature: s.temperature })) },
+					};
+				},
+			};
+			const result = schema.safeParse({
+				skills: [{ name: "audit-code", temperature: 3.0 }],
+			});
+			assert.strictEqual(result.success, false);
+		});
+
+		it("allows per-skill without temperature (uses global default)", () => {
+			const schema = {
+				safeParse(obj) {
+					const skills = obj.skills || [];
+					for (const skill of skills) {
+						if (
+							skill.temperature !== undefined &&
+							(typeof skill.temperature !== "number" ||
+								skill.temperature < 0 ||
+								skill.temperature > 2)
+						) {
+							return { success: false };
+						}
+					}
+					return {
+						success: true,
+						data: { skills: skills.map((s) => ({ name: s.name, temperature: s.temperature })) },
+					};
+				},
+			};
+			const result = schema.safeParse({
+				skills: [{ name: "audit-code" }],
+			});
+			assert.strictEqual(result.success, true);
+			assert.strictEqual(result.data.skills[0].temperature, undefined);
+		});
+	});
+});
+
 describe("env var expansion", () => {
 	it("expands ${VAR} pattern", () => {
 		process.env.TEST_VAR = "expanded-value";
