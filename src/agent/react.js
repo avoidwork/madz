@@ -149,7 +149,7 @@ export async function callReactAgent(agent, message, config, systemPrompt, callb
 
 	// Always use streaming — use user-provided callback (TUI) or default stdout callback (non-TUI)
 	// null explicitly means "no callback" — undefined falls through to default stdout
-	const effectiveCallback = callback !== undefined ? callback : createStdoutCallback();
+	const effectiveCallback = callback !== undefined && callback !== null ? callback : createStdoutCallback();
 	return callReactAgentStreaming(agent, messages, message, config, effectiveCallback, options, systemPrompt, recursionLimit);
 }
 
@@ -253,7 +253,6 @@ async function callReactAgentStreaming(
 				// Check for abort signal on each event
 				if (signal && signal.aborted) {
 					// Do NOT cache on abort
-					loopDetector.reset();
 					turnHashes = new Set();
 					turnHashDetected = false;
 					// Emit tool_end for any tool_start that didn't get a corresponding tool_end
