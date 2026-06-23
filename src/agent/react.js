@@ -228,10 +228,17 @@ async function callReactAgentStreaming(
 			return 20;
 		}
 	})();
+	const turnBufferMax = (() => {
+		try {
+			const config = loadConfig();
+			return config.agent?.turnBufferMax ?? 128;
+		} catch {
+			return 128;
+		}
+	})();
 	let turnHashes = []; // Sliding window of recent turn hashes
 	let turnHashDetected = false; // Flag to avoid spamming loop_detected
 	let turnTextBuffer = ""; // Accumulate text per turn
-	const TURN_BUFFER_MAX = 4096; // Cap buffer size to detect mid-turn repeats
 
 	while (iteration <= maxCompactionIterations) {
 		let toolCallSet = new Set();
@@ -290,7 +297,7 @@ async function callReactAgentStreaming(
 						turnTextBuffer += textContent;
 
 						// If buffer exceeds cap, hash it as a turn boundary and reset
-						if (turnTextBuffer.length > TURN_BUFFER_MAX) {
+						if (turnTextBuffer.length > turnBufferMax) {
 							const turnHash = hashTurn(turnTextBuffer.trim());
 							if (turnHashes.includes(turnHash)) {
 								if (!turnHashDetected) {
