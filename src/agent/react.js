@@ -56,6 +56,21 @@ const RECURSION_LIMIT_MESSAGE =
 const MAX_COMPACTION_ITERATIONS = 3;
 
 /**
+ * Simple hash for turn detection — non-cryptographic, fast.
+ * @param {string} str
+ * @returns {string}
+ */
+function hashTurn(str) {
+	let hash = 0;
+	for (let i = 0; i < str.length; i++) {
+		const char = str.charCodeAt(i);
+		hash = ((hash << 5) - hash) + char;
+		hash |= 0; // Convert to 32-bit integer
+	}
+	return hash.toString(36);
+}
+
+/**
  * Create a ReAct agent from a chat model and optional tools and checkpointer.
  * The agent uses LangGraph under the hood via `@langchain/langgraph/prebuilt`.
  * @param {ChatLanguageModel} model - A chat language model instance (e.g., ChatOpenAI)
@@ -215,6 +230,18 @@ async function callReactAgentStreaming(
 		},
 	});
 
+	// Turn hash tracker — detects if the model repeats the same output
+	const turnHashWindow = (() => {
+		try {
+			const config = loadConfig();
+			return config.agent?.turnHashWindow ?? 20;
+		} catch {
+			return 20;
+		}
+	})();
+	let turnHashes = []; // Sliding window of recent turn hashes
+	let turnHashDetected = false; // Flag to avoid spamming loop_detected
+
 	while (iteration <= maxCompactionIterations) {
 		let toolCallSet = new Set();
 
@@ -229,6 +256,8 @@ async function callReactAgentStreaming(
 				if (signal && signal.aborted) {
 					// Do NOT cache on abort
 					loopDetector.reset();
+					turnHashes = [];
+					turnHashDetected = false;
 					// Emit tool_end for any tool_start that didn't get a corresponding tool_end
 					for (const key of toolCallSet) {
 						const [name] = key.split("|");
@@ -268,6 +297,22 @@ async function callReactAgentStreaming(
 					if (textContent.length > 0) {
 						// Process through loop detector before emitting
 						loopDetector.processChunk(textContent);
+
+						// Turn hash tracking — detect if model repeats the same output
+						const turnHash = hashTurn(textContent.trim());
+						if (turnHashes.includes(turnHash)) {
+							if (!turnHashDetected) {
+								turnHashDetected = true;
+								callback({ type: "loop_detected" });
+							}
+						} else {
+							turnHashes.push(turnHash);
+							if (turnHashes.length > turnHashWindow) {
+								turnHashes.shift();
+							}
+							turnHashDetected = false;
+						}
+
 						// Emit text content deltas
 						callback({ type: "text", text: textContent });
 						// Aggregate text for caching
@@ -344,6 +389,8 @@ async function callReactAgentStreaming(
 
 			// Reset loop detector on successful completion
 			loopDetector.reset();
+			turnHashes = [];
+			turnHashDetected = false;
 
 			// Success — emit compaction_end if compaction was active, then return
 			if (compactionActive && callback) {
