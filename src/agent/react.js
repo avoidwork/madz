@@ -423,8 +423,7 @@ async function callReactAgentStreaming(
 				turnTextBuffer = "";
 			}
 
-			// Reset turn hash tracker on successful completion
-			turnHashes = new Set();
+			// Reset per-turn flag; keep hash window persistent across turns
 			turnHashDetected = false;
 
 			// Success — emit compaction_end if compaction was active, then return
