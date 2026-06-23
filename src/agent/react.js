@@ -138,6 +138,16 @@ export async function callReactAgent(agent, message, config, systemPrompt, callb
 		recursionLimit,
 	} = options;
 
+	// Load turn hash config once at the public API boundary
+	try {
+		const agentConfig = loadConfig()?.agent ?? {};
+		options.turnHashWindow = options.turnHashWindow ?? agentConfig.turnHashWindow ?? 20;
+		options.turnBufferMax = options.turnBufferMax ?? agentConfig.turnBufferMax ?? 64;
+	} catch {
+		options.turnHashWindow = options.turnHashWindow ?? 20;
+		options.turnBufferMax = options.turnBufferMax ?? 64;
+	}
+
 	let messages = [new HumanMessage(message)];
 
 	if (systemPrompt) {
@@ -220,22 +230,8 @@ async function callReactAgentStreaming(
 	let aggregatedText = "";
 
 	// Turn hash tracker — detects if the model repeats the same output
-	const turnHashWindow = (() => {
-		try {
-			const config = loadConfig();
-			return config.agent?.turnHashWindow ?? 20;
-		} catch {
-			return 20;
-		}
-	})();
-	const turnBufferMax = (() => {
-		try {
-			const config = loadConfig();
-			return config.agent?.turnBufferMax ?? 64;
-		} catch {
-			return 128;
-		}
-	})();
+	const turnHashWindow = options.turnHashWindow ?? 20;
+	const turnBufferMax = options.turnBufferMax ?? 64;
 	let turnHashes = new Set(); // Sliding window of recent turn hashes
 	let turnHashDetected = false; // Flag to avoid spamming loop_detected
 	let turnTextBuffer = ""; // Accumulate text per turn
