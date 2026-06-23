@@ -148,7 +148,8 @@ export async function callReactAgent(agent, message, config, systemPrompt, callb
 	}
 
 	// Always use streaming — use user-provided callback (TUI) or default stdout callback (non-TUI)
-	const effectiveCallback = callback || createStdoutCallback();
+	// null explicitly means "no callback" — undefined falls through to default stdout
+	const effectiveCallback = callback !== undefined ? callback : createStdoutCallback();
 	return callReactAgentStreaming(agent, messages, message, config, effectiveCallback, options, systemPrompt, recursionLimit);
 }
 
