@@ -302,6 +302,8 @@ async function callReactAgentStreaming(
 								if (!turnHashDetected) {
 									turnHashDetected = true;
 									callback({ type: "loop_detected" });
+									// Clear the window — model needs a fresh slate
+									turnHashes.clear();
 								}
 							} else {
 								turnHashes.add(turnHash);
@@ -367,6 +369,8 @@ async function callReactAgentStreaming(
 							if (!turnHashDetected) {
 								turnHashDetected = true;
 								callback({ type: "loop_detected" });
+								// Clear the window — model needs a fresh slate
+								turnHashes.clear();
 							}
 						} else {
 							turnHashes.add(turnHash);
@@ -412,6 +416,8 @@ async function callReactAgentStreaming(
 					if (!turnHashDetected) {
 						turnHashDetected = true;
 						callback({ type: "loop_detected" });
+						// Clear the window — model needs a fresh slate
+						turnHashes.clear();
 					}
 				} else {
 					turnHashes.add(turnHash);
@@ -521,4 +527,8 @@ async function callReactAgentStreaming(
 	}
 
 	return { content: aggregatedText || originalMessage };
+}
+}
+;
+}
 }
