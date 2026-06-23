@@ -371,7 +371,7 @@ async function callReactAgentStreaming(
 							}
 						} else {
 							turnHashes.add(turnHash);
-							if (turnHashes.length > turnHashWindow) {
+							if (turnHashes.size > turnHashWindow) {
 								turnHashes.delete(turnHashes.keys().next().value);
 							}
 							turnHashDetected = false;
@@ -416,7 +416,7 @@ async function callReactAgentStreaming(
 					}
 				} else {
 					turnHashes.add(turnHash);
-					if (turnHashes.length > turnHashWindow) {
+					if (turnHashes.size > turnHashWindow) {
 						turnHashes.delete(turnHashes.keys().next().value);
 					}
 					turnHashDetected = false;
