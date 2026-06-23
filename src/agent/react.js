@@ -7,8 +7,6 @@ import {
 } from "../tools/compact_context.js";
 import { createLlmCache, getCacheKey } from "../cache/llm_cache.js";
 import { loadConfig } from "../config/loader.js";
-import { LoopDetector } from "./loop-detector.js";
-
 /**
  * Map a LangChain message instance to its corresponding conversation role.
  * Handles all standard message types — HumanMessage, AIMessage, SystemMessage,
@@ -54,6 +52,21 @@ const RECURSION_LIMIT_MESSAGE =
 	"I've reached the maximum number of reasoning steps on this thread. Please continue your message and I'll carry on, or start a new conversation if you'd prefer.";
 
 const MAX_COMPACTION_ITERATIONS = 3;
+
+/**
+ * Simple hash for turn detection — non-cryptographic, fast.
+ * @param {string} str
+ * @returns {string}
+ */
+function hashTurn(str) {
+	let hash = 0;
+	for (let i = 0; i < str.length; i++) {
+		const char = str.charCodeAt(i);
+		hash = ((hash << 5) - hash) + char;
+		hash |= 0; // Convert to 32-bit integer
+	}
+	return hash.toString(36);
+}
 
 /**
  * Create a ReAct agent from a chat model and optional tools and checkpointer.
@@ -135,7 +148,8 @@ export async function callReactAgent(agent, message, config, systemPrompt, callb
 	}
 
 	// Always use streaming — use user-provided callback (TUI) or default stdout callback (non-TUI)
-	const effectiveCallback = callback || createStdoutCallback();
+	// null explicitly means "no callback" — undefined falls through to default stdout
+	const effectiveCallback = callback !== undefined && callback !== null ? callback : createStdoutCallback();
 	return callReactAgentStreaming(agent, messages, message, config, effectiveCallback, options, systemPrompt, recursionLimit);
 }
 
@@ -205,15 +219,35 @@ async function callReactAgentStreaming(
 	// Aggregate text chunks for caching (only cache on successful completion)
 	let aggregatedText = "";
 
-	// Initialize loop detector for this stream
-	const loopDetector = new LoopDetector({
-		threshold: 3,
-		windowDuration: 30000,
-		onLoop: () => {
-			// Emit loop_detected event to the callback pipeline
-			callback({ type: "loop_detected" });
-		},
-	});
+	// Turn hash tracker — detects if the model repeats the same output
+	const turnHashWindow = options.turnHashWindow ?? 20;
+	const turnBufferMax = options.turnBufferMax ?? 64;
+	let turnHashes = new Set(); // Sliding window of recent turn hashes
+	let turnHashDetected = false; // Flag to avoid spamming loop_detected
+	let turnTextBuffer = ""; // Accumulate text per turn
+
+	/**
+	 * Check a turn hash against the sliding window.
+	 * Adds the hash to the window, evicts the oldest if full,
+	 * and emits loop_detected if a duplicate is found.
+	 * @param {string} hash - The turn hash to check
+	 */
+	function checkTurnHash(hash) {
+		if (turnHashes.has(hash)) {
+			if (!turnHashDetected) {
+				turnHashDetected = true;
+				callback({ type: "loop_detected" });
+				// Clear the window — model needs a fresh slate
+				turnHashes.clear();
+			}
+		} else {
+			turnHashes.add(hash);
+			if (turnHashes.size > turnHashWindow) {
+				turnHashes.delete(turnHashes.keys().next().value);
+			}
+			turnHashDetected = false;
+		}
+	}
 
 	while (iteration <= maxCompactionIterations) {
 		let toolCallSet = new Set();
@@ -228,7 +262,8 @@ async function callReactAgentStreaming(
 				// Check for abort signal on each event
 				if (signal && signal.aborted) {
 					// Do NOT cache on abort
-					loopDetector.reset();
+					turnHashes = new Set();
+					turnHashDetected = false;
 					// Emit tool_end for any tool_start that didn't get a corresponding tool_end
 					for (const key of toolCallSet) {
 						const [name] = key.split("|");
@@ -266,8 +301,16 @@ async function callReactAgentStreaming(
 						}
 					}
 					if (textContent.length > 0) {
-						// Process through loop detector before emitting
-						loopDetector.processChunk(textContent);
+						// Accumulate text for turn-level hashing
+						turnTextBuffer += textContent;
+
+						// If buffer exceeds cap, hash it as a turn boundary and reset
+						if (turnTextBuffer.length > turnBufferMax) {
+							const turnHash = hashTurn(turnTextBuffer.trim());
+							checkTurnHash(turnHash);
+							turnTextBuffer = "";
+						}
+
 						// Emit text content deltas
 						callback({ type: "text", text: textContent });
 						// Aggregate text for caching
@@ -314,6 +357,13 @@ async function callReactAgentStreaming(
 						toolCallId,
 						data: typeof resultData === "string" ? resultData.slice(0, 500) : resultData,
 					});
+
+					// End of turn — hash accumulated text and reset buffer
+					if (turnTextBuffer.trim().length > 0) {
+						const turnHash = hashTurn(turnTextBuffer.trim());
+						checkTurnHash(turnHash);
+						turnTextBuffer = "";
+					}
 				}
 
 				// Tool execution error
@@ -342,8 +392,15 @@ async function callReactAgentStreaming(
 				getCache().set(cacheKey, aggregatedText);
 			}
 
-			// Reset loop detector on successful completion
-			loopDetector.reset();
+			// Hash remaining buffer before reset
+			if (turnTextBuffer.trim().length > 0) {
+				const turnHash = hashTurn(turnTextBuffer.trim());
+				checkTurnHash(turnHash);
+				turnTextBuffer = "";
+			}
+
+			// Reset per-turn flag; keep hash window persistent across turns
+			turnHashDetected = false;
 
 			// Success — emit compaction_end if compaction was active, then return
 			if (compactionActive && callback) {
