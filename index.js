@@ -216,6 +216,8 @@ async function callProvider(_name, _providerConfig, message, streamingCallback, 
 			checkpointer,
 			signal,
 			recursionLimit: config.agent?.recursionLimit,
+			turnHashWindow: config.agent?.turnHashWindow,
+			turnBufferMax: config.agent?.turnBufferMax,
 		},
 	);
 	return { provider: providerName, content: result.content, tokens: { input: 0, output: 0 } };
@@ -301,10 +303,9 @@ if (isMain) {
 		: "chat";
 
 	let chatSessionId = args.reduce((id, a, i) => {
-		if (a === "--session-id" || a === "-s") return args[i + 1] || id;
+		if (a === "-s") return args[i + 1] || id;
 		return id;
 	}, "");
-	const jsonOut = args.includes("--json");
 	let message = args.filter((a) => !a.startsWith("--"))[0];
 	if (!message && chatSessionId) {
 		message = "continue";
@@ -313,25 +314,9 @@ if (isMain) {
 
 	if (mode === "chat") {
 		try {
-			const response = await handleConversation(message, chatSessionId);
-
-			// oxlint-disable no-console
-			if (jsonOut) {
-				console.log(
-					JSON.stringify({
-						provider: response.provider,
-						content: response.content,
-						tokens: response.tokens,
-					}),
-				);
-			} else {
-				console.log(response.content);
-			}
-			// oxlint-enable no-console
-		} catch (err) {
-			// oxlint-disable no-console
-			console.error("Error:", err.message);
-			// oxlint-enable no-console
+			await handleConversation(message, chatSessionId);
+			process.stdout.write("\n");
+		} catch (_) {
 			process.exit(1);
 		}
 

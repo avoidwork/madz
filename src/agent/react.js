@@ -7,8 +7,6 @@ import {
 } from "../tools/compact_context.js";
 import { createLlmCache, getCacheKey } from "../cache/llm_cache.js";
 import { loadConfig } from "../config/loader.js";
-import { LoopDetector } from "./loop-detector.js";
-
 /**
  * Map a LangChain message instance to its corresponding conversation role.
  * Handles all standard message types — HumanMessage, AIMessage, SystemMessage,
@@ -54,7 +52,21 @@ const RECURSION_LIMIT_MESSAGE =
 	"I've reached the maximum number of reasoning steps on this thread. Please continue your message and I'll carry on, or start a new conversation if you'd prefer.";
 
 const MAX_COMPACTION_ITERATIONS = 3;
-const CONTEXT_TOO_LONG_MESSAGE = "The conversation is too long. Please start a new session.";
+
+/**
+ * Simple hash for turn detection — non-cryptographic, fast.
+ * @param {string} str
+ * @returns {string}
+ */
+function hashTurn(str) {
+	let hash = 0;
+	for (let i = 0; i < str.length; i++) {
+		const char = str.charCodeAt(i);
+		hash = ((hash << 5) - hash) + char;
+		hash |= 0; // Convert to 32-bit integer
+	}
+	return hash.toString(36);
+}
 
 /**
  * Create a ReAct agent from a chat model and optional tools and checkpointer.
@@ -80,9 +92,32 @@ export function createReactAgent(model, tools = [], checkpointer = null, recursi
 }
 
 /**
+ * Create a default stdout callback for non-TUI invocations.
+ * Writes text chunks to stdout and loop_detected events to stderr.
+ * Non-text events (tool_start, tool_end, reasoning, compaction) are silently ignored.
+ * @returns {(event: StreamEvent) => void}
+ */
+export function createStdoutCallback() {
+	return (event) => {
+		switch (event.type) {
+			case "text":
+				process.stdout.write(event.text);
+				break;
+			case "loop_detected":
+				process.stderr.write("[loop detected] Agent may be in a repetitive loop\n");
+				break;
+			// Other event types are TUI-specific — silently ignored in non-TUI mode
+		}
+	};
+}
+
+/**
  * Invoke a ReAct agent with a single user message and return the final response.
  * On the first call (new thread) the system prompt is prepended. On subsequent
  * calls the checkpointer already carries the system message, so it is skipped.
+ *
+ * Always uses the streaming pipeline. When no user-provided callback is supplied,
+ * a default stdout callback is used for real-time output and loop detection.
  *
  * Automatically handles LLM context length errors by compacting the conversation
  * and retrying up to MAX_COMPACTION_ITERATIONS times.
@@ -91,7 +126,7 @@ export function createReactAgent(model, tools = [], checkpointer = null, recursi
  * @param {string} message - The user message string
  * @param {Object} config - Config object with `configurable: { thread_id }`
  * @param {string} [systemPrompt] - Optional system prompt (prepended only on new threads)
- * @param {(event: StreamEvent) => void} [callback] - Optional streaming event callback
+ * @param {(event: StreamEvent) => void} [callback] - Optional streaming event callback (TUI mode)
  * @param {Object} [options] - Additional options
  * @param {number} [options.maxContextLength] - Model's max context length (from error detection)
  * @param {number} [options.maxTokens] - Max output tokens from config
@@ -100,9 +135,6 @@ export function createReactAgent(model, tools = [], checkpointer = null, recursi
  */
 export async function callReactAgent(agent, message, config, systemPrompt, callback, options = {}) {
 	const {
-		maxContextLength,
-		maxTokens,
-		maxCompactionIterations = MAX_COMPACTION_ITERATIONS,
 		recursionLimit,
 	} = options;
 
@@ -115,134 +147,10 @@ export async function callReactAgent(agent, message, config, systemPrompt, callb
 		}
 	}
 
-	if (callback) {
-		return callReactAgentStreaming(agent, messages, message, config, callback, options, systemPrompt, recursionLimit);
-	}
-
-	// Cache-aside: check cache before invoking the agent
-	const threadId = config?.configurable?.thread_id;
-	const cacheKey = threadId ? getCacheKey(threadId, message) : null;
-	if (cacheKey) {
-		const cached = getCache().get(cacheKey);
-		if (cached) {
-			return { content: cached };
-		}
-	}
-
-	let _lastError = null;
-	let iteration = 0;
-	let effectiveContextLength = maxContextLength;
-	let effectiveMaxTokens = maxTokens;
-
-	while (iteration <= maxCompactionIterations) {
-		try {
-			const invokeConfig = {
-				...config,
-				...(recursionLimit !== null && { recursionLimit }),
-			};
-			const result = await agent.invoke({ messages }, invokeConfig);
-			const content = extractContent(result, message);
-
-		// Cache the result on miss (only if no tools were used)
-		const hasToolCalls = result.messages?.some(m => m.tool_calls?.length > 0) ?? false;
-		if (cacheKey && !hasToolCalls) {
-			getCache().set(cacheKey, content.content);
-		}
-
-			return content;
-		} catch (err) {
-			// Handle recursion limit — always return immediately
-			if (err instanceof Error && err.name === "GraphRecursionError") {
-				return { content: RECURSION_LIMIT_MESSAGE };
-			}
-
-			// Check for context length error
-			if (isContextLengthError(err)) {
-				// Extract max context length from error if not already known
-				if (!effectiveContextLength) {
-					effectiveContextLength = extractContextLength(err.message);
-				}
-
-				// Calculate target tokens
-				const targetTokens =
-					effectiveContextLength && effectiveMaxTokens
-						? effectiveContextLength - effectiveMaxTokens
-						: 50000;
-
-				// Compact the messages (strip system message, keep conversation)
-				const conversation = messages
-					.filter((m) => !(m instanceof SystemMessage))
-					.map((m) => ({
-						role: getMessageRole(m),
-						content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
-					}));
-
-				const compacted = compactConversation({
-					systemPrompt: systemPrompt || "",
-					conversation,
-					targetTokens,
-				});
-
-				if (!compacted.ok || compacted.compactedMessages.length === 0) {
-					return { content: CONTEXT_TOO_LONG_MESSAGE };
-				}
-
-				// Rebuild messages from compacted result
-				messages = compacted.compactedMessages.map((m) => {
-					if (m.role === "system") {
-						return new SystemMessage(m.content);
-					} else if (m.role === "user") {
-						return new HumanMessage(m.content);
-					} else if (m.role === "tool") {
-						return new ToolMessage(m.content);
-					}
-					return new AIMessage(m.content);
-				});
-
-				iteration++;
-				_lastError = err;
-
-				if (iteration > maxCompactionIterations) {
-					return { content: CONTEXT_TOO_LONG_MESSAGE };
-				}
-
-				continue;
-			}
-
-			// Non-context-length error — rethrow
-			throw err;
-		}
-	}
-
-	return { content: CONTEXT_TOO_LONG_MESSAGE };
-}
-
-/**
- * Extract response content from an agent invoke result.
- * @param {Object} result - Agent invoke result with `messages` field
- * @param {string} fallback - Fallback content when no AI message found
- * @returns {{ content: string }}
- */
-function extractContent(result, fallback) {
-	const msgsArray = Array.isArray(result.messages) ? result.messages : [];
-
-	let lastAI = null;
-	for (let i = msgsArray.length - 1; i >= 0; i--) {
-		if (msgsArray[i] instanceof AIMessage || msgsArray[i] instanceof AIMessageChunk) {
-			lastAI = msgsArray[i];
-			break;
-		}
-	}
-	if (lastAI && lastAI.content) {
-		const content =
-			typeof lastAI.content === "string" ? lastAI.content : JSON.stringify(lastAI.content);
-		const trimmed = content.trim();
-		if (trimmed && trimmed !== "[]" && trimmed !== "{}") {
-			return { content: trimmed };
-		}
-	}
-
-	return { content: fallback };
+	// Always use streaming — use user-provided callback (TUI) or default stdout callback (non-TUI)
+	// null explicitly means "no callback" — undefined falls through to default stdout
+	const effectiveCallback = callback !== undefined && callback !== null ? callback : createStdoutCallback();
+	return callReactAgentStreaming(agent, messages, message, config, effectiveCallback, options, systemPrompt, recursionLimit);
 }
 
 /**
@@ -311,15 +219,35 @@ async function callReactAgentStreaming(
 	// Aggregate text chunks for caching (only cache on successful completion)
 	let aggregatedText = "";
 
-	// Initialize loop detector for this stream
-	const loopDetector = new LoopDetector({
-		threshold: 3,
-		windowDuration: 30000,
-		onLoop: () => {
-			// Emit loop_detected event to the callback pipeline
-			callback({ type: "loop_detected" });
-		},
-	});
+	// Turn hash tracker — detects if the model repeats the same output
+	const turnHashWindow = options.turnHashWindow ?? 20;
+	const turnBufferMax = options.turnBufferMax ?? 64;
+	let turnHashes = new Set(); // Sliding window of recent turn hashes
+	let turnHashDetected = false; // Flag to avoid spamming loop_detected
+	let turnTextBuffer = ""; // Accumulate text per turn
+
+	/**
+	 * Check a turn hash against the sliding window.
+	 * Adds the hash to the window, evicts the oldest if full,
+	 * and emits loop_detected if a duplicate is found.
+	 * @param {string} hash - The turn hash to check
+	 */
+	function checkTurnHash(hash) {
+		if (turnHashes.has(hash)) {
+			if (!turnHashDetected) {
+				turnHashDetected = true;
+				callback({ type: "loop_detected" });
+				// Clear the window — model needs a fresh slate
+				turnHashes.clear();
+			}
+		} else {
+			turnHashes.add(hash);
+			if (turnHashes.size > turnHashWindow) {
+				turnHashes.delete(turnHashes.keys().next().value);
+			}
+			turnHashDetected = false;
+		}
+	}
 
 	while (iteration <= maxCompactionIterations) {
 		let toolCallSet = new Set();
@@ -334,7 +262,8 @@ async function callReactAgentStreaming(
 				// Check for abort signal on each event
 				if (signal && signal.aborted) {
 					// Do NOT cache on abort
-					loopDetector.reset();
+					turnHashes = new Set();
+					turnHashDetected = false;
 					// Emit tool_end for any tool_start that didn't get a corresponding tool_end
 					for (const key of toolCallSet) {
 						const [name] = key.split("|");
@@ -372,8 +301,16 @@ async function callReactAgentStreaming(
 						}
 					}
 					if (textContent.length > 0) {
-						// Process through loop detector before emitting
-						loopDetector.processChunk(textContent);
+						// Accumulate text for turn-level hashing
+						turnTextBuffer += textContent;
+
+						// If buffer exceeds cap, hash it as a turn boundary and reset
+						if (turnTextBuffer.length > turnBufferMax) {
+							const turnHash = hashTurn(turnTextBuffer.trim());
+							checkTurnHash(turnHash);
+							turnTextBuffer = "";
+						}
+
 						// Emit text content deltas
 						callback({ type: "text", text: textContent });
 						// Aggregate text for caching
@@ -420,6 +357,13 @@ async function callReactAgentStreaming(
 						toolCallId,
 						data: typeof resultData === "string" ? resultData.slice(0, 500) : resultData,
 					});
+
+					// End of turn — hash accumulated text and reset buffer
+					if (turnTextBuffer.trim().length > 0) {
+						const turnHash = hashTurn(turnTextBuffer.trim());
+						checkTurnHash(turnHash);
+						turnTextBuffer = "";
+					}
 				}
 
 				// Tool execution error
@@ -448,8 +392,15 @@ async function callReactAgentStreaming(
 				getCache().set(cacheKey, aggregatedText);
 			}
 
-			// Reset loop detector on successful completion
-			loopDetector.reset();
+			// Hash remaining buffer before reset
+			if (turnTextBuffer.trim().length > 0) {
+				const turnHash = hashTurn(turnTextBuffer.trim());
+				checkTurnHash(turnHash);
+				turnTextBuffer = "";
+			}
+
+			// Reset per-turn flag; keep hash window persistent across turns
+			turnHashDetected = false;
 
 			// Success — emit compaction_end if compaction was active, then return
 			if (compactionActive && callback) {
