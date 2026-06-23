@@ -7,8 +7,6 @@ import {
 } from "../tools/compact_context.js";
 import { createLlmCache, getCacheKey } from "../cache/llm_cache.js";
 import { loadConfig } from "../config/loader.js";
-import { LoopDetector } from "./loop-detector.js";
-
 /**
  * Map a LangChain message instance to its corresponding conversation role.
  * Handles all standard message types — HumanMessage, AIMessage, SystemMessage,
@@ -220,16 +218,6 @@ async function callReactAgentStreaming(
 	// Aggregate text chunks for caching (only cache on successful completion)
 	let aggregatedText = "";
 
-	// Initialize loop detector for this stream
-	const loopDetector = new LoopDetector({
-		threshold: 3,
-		windowDuration: 30000,
-		onLoop: () => {
-			// Emit loop_detected event to the callback pipeline
-			callback({ type: "loop_detected" });
-		},
-	});
-
 	// Turn hash tracker — detects if the model repeats the same output
 	const turnHashWindow = (() => {
 		try {
@@ -295,9 +283,6 @@ async function callReactAgentStreaming(
 						}
 					}
 					if (textContent.length > 0) {
-						// Process through loop detector before emitting
-						loopDetector.processChunk(textContent);
-
 						// Turn hash tracking — detect if model repeats the same output
 						const turnHash = hashTurn(textContent.trim());
 						if (turnHashes.includes(turnHash)) {
@@ -387,8 +372,7 @@ async function callReactAgentStreaming(
 				getCache().set(cacheKey, aggregatedText);
 			}
 
-			// Reset loop detector on successful completion
-			loopDetector.reset();
+			// Reset turn hash tracker on successful completion
 			turnHashes = [];
 			turnHashDetected = false;
 
