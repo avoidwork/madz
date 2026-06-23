@@ -1,4 +1,4 @@
-import { describe, it, beforeEach } from "node:test";
+import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert";
 import {
 	AIMessage,
@@ -11,6 +11,7 @@ import {
 import {
 	callReactAgent,
 	createReactAgent,
+	createStdoutCallback,
 	clearCache,
 	getMessageRole,
 } from "../../src/agent/react.js";
@@ -27,23 +28,6 @@ describe("callReactAgent", () => {
 		clearCache();
 	});
 
-	it("invokes agent with correct message format", async () => {
-		const agentMock = {
-			invoke: () => {
-				return {
-					messages: [
-						new SystemMessage("system"),
-						new HumanMessage("user content"),
-						new AIMessage("response"),
-					],
-				};
-			},
-		};
-
-		const result = await callReactAgent(agentMock, "hello", {}, "system");
-		assert.deepStrictEqual(result, { content: "response" });
-	});
-
 	it("prepends system message on new thread (default)", async () => {
 		let _capturedMessages = null;
 		const agentMock = {
@@ -52,7 +36,7 @@ describe("callReactAgent", () => {
 				return { messages: [new AIMessage("ok")] };
 			},
 			stream: () => ({}),
-			streamEvents: () => ({}),
+			streamEvents: () => (async function* () {})(),
 		};
 
 		await callReactAgent(
@@ -73,7 +57,7 @@ describe("callReactAgent", () => {
 				return { messages: [new AIMessage("ok")] };
 			},
 			stream: () => ({}),
-			streamEvents: () => ({}),
+			streamEvents: () => (async function* () {})(),
 		};
 
 		await callReactAgent(
@@ -86,101 +70,12 @@ describe("callReactAgent", () => {
 		assert.ok(true);
 	});
 
-	it("invokes agent with config object", async () => {
-		let capturedInput = null;
-		let capturedConfig = null;
-		const agentMock = {
-			invoke: (input, configuration) => {
-				capturedInput = input;
-				capturedConfig = configuration;
-				return { messages: [new AIMessage("response")] };
-			},
-		};
-
-		const config = { configurable: { thread_id: "abc" } };
-		await callReactAgent(agentMock, "hello", config, "system");
-		assert.ok(capturedInput);
-		assert.ok(capturedInput.messages);
-		const humanMsg = capturedInput.messages.find((m) => m.constructor.name === "HumanMessage");
-		assert.ok(humanMsg);
-		assert.strictEqual(humanMsg.content, "hello");
-		assert.ok(capturedConfig);
-		assert.strictEqual(capturedConfig.configurable.thread_id, "abc");
-	});
-
-	it("returns { content } with last message content", async () => {
-		const agentMock = {
-			invoke: () => ({
-				messages: [new HumanMessage("hi"), new AIMessage("got it")],
-			}),
-		};
-
-		const result = await callReactAgent(agentMock, "hi", null, null);
-		assert.deepStrictEqual(result, { content: "got it" });
-	});
-
-	it("handles multi-turn agent responses", async () => {
-		const agentMock = {
-			invoke: () => ({
-				messages: [
-					new HumanMessage("hi"),
-					new AIMessage("Hello!"),
-					new HumanMessage("bye"),
-					new AIMessage("Goodbye!"),
-				],
-			}),
-		};
-
-		const result = await callReactAgent(agentMock, "hi", null, null);
-		assert.strictEqual(result.content, "Goodbye!");
-	});
-
-	it("re-throws errors from agent.invoke", async () => {
-		const agentMock = {
-			invoke: () => {
-				throw new Error("model error");
-			},
-			stream: () => ({}),
-			streamEvents: () => ({}),
-		};
-
-		let err = null;
-		try {
-			await callReactAgent(agentMock, "hi", null, "sys");
-		} catch (e) {
-			err = e;
-		}
-
-		assert.ok(err instanceof Error);
-		assert.strictEqual(err.message, "model error");
-	});
-
-	it("scans for last AIMessage ignoring tool calls", async () => {
-		const toolCallAIMessage = new AIMessage({
-			content: "",
-			tool_calls: [{ name: "web", args: {} }],
-		});
-		const textAIMessage = new AIMessage({ content: "final text" });
-		const toolCallAIMessage2 = new AIMessage({
-			content: "",
-			tool_calls: [{ name: "search", args: {} }],
-		});
-
-		const agentMock = {
-			invoke: () => ({
-				messages: [new HumanMessage("hi"), toolCallAIMessage, toolCallAIMessage2, textAIMessage],
-			}),
-		};
-
-		const result = await callReactAgent(agentMock, "hi", null, null);
-		assert.strictEqual(result.content, "final text");
-	});
-
 	it("falls back to input message when no AI content found", async () => {
 		const agentMock = {
 			invoke: () => ({
 				messages: [new HumanMessage("original query")],
 			}),
+			streamEvents: () => (async function* () {})(),
 		};
 
 		const result = await callReactAgent(agentMock, "original query", null, null);
@@ -193,6 +88,7 @@ describe("callReactAgent", () => {
 			invoke: () => ({
 				messages: [new HumanMessage("query"), msgWithoutContent],
 			}),
+			streamEvents: () => (async function* () {})(),
 		};
 
 		const result = await callReactAgent(agentMock, "query", null, null);
@@ -485,7 +381,7 @@ describe("callReactAgent", () => {
 			assert.ok(types.includes("reasoning"));
 		});
 
-		it("does not call callback when no streaming callback provided", async () => {
+		it("uses default stdout callback when no callback provided", async () => {
 			const events = [
 				{
 					event: "on_chat_model_stream",
@@ -495,8 +391,8 @@ describe("callReactAgent", () => {
 
 			const agentMock = createMock(events);
 			const result = await callReactAgent(agentMock, "hi", null, null, null);
-			// With no callback, agent.invoke() is used which returns fallback
-			assert.strictEqual(result.content, "fallback");
+			// With no callback, default stdout callback is used — streaming still works
+			assert.strictEqual(result.content, "response");
 		});
 
 		it("handles AIMessage with complex content object", async () => {
@@ -537,18 +433,6 @@ describe("callReactAgent", () => {
 	});
 
 	describe("recursion limit handling", () => {
-		it("returns graceful message on GraphRecursionError in non-streaming mode", async () => {
-			const agentMock = {
-				invoke: () => {
-					throw new GraphRecursionError("Recursion limit of 25 reached");
-				},
-				streamEvents: () => ({}),
-			};
-
-			const result = await callReactAgent(agentMock, "test message", {}, null);
-			assert.ok(result.content.includes("maximum number of reasoning steps"));
-		});
-
 		it("returns graceful message on GraphRecursionError in streaming mode", async () => {
 			const agentMock = {
 				streamEvents: () => {
@@ -560,26 +444,6 @@ describe("callReactAgent", () => {
 			const result = await callReactAgent(agentMock, "test message", {}, null, () => {});
 			assert.ok(result.content.includes("maximum number of reasoning steps"));
 		});
-
-		it("still re-throws non-GraphRecursionError in non-streaming mode", async () => {
-			const agentMock = {
-				invoke: () => {
-					throw new Error("model error");
-				},
-				stream: () => ({}),
-				streamEvents: () => ({}),
-			};
-
-			let err = null;
-			try {
-				await callReactAgent(agentMock, "hi", null, "sys");
-			} catch (e) {
-				err = e;
-			}
-
-			assert.ok(err instanceof Error);
-			assert.strictEqual(err.message, "model error");
-		});
 	});
 
 	describe("context length error handling", () => {
@@ -587,67 +451,6 @@ describe("callReactAgent", () => {
 			const err = new Error(message);
 			return err;
 		}
-
-		it("retries on context length error and succeeds on second attempt", async () => {
-			let invokeCount = 0;
-			const agentMock = {
-				invoke: (_input) => {
-					invokeCount++;
-					if (invokeCount === 1) {
-						throw createContextLengthError("This model's maximum context length is 128000 tokens");
-					}
-					return { messages: [new AIMessage("success after retry")] };
-				},
-				streamEvents: () => ({}),
-			};
-
-			const result = await callReactAgent(agentMock, "test", {}, "system prompt", null, {
-				maxTokens: 4096,
-			});
-
-			assert.strictEqual(result.content, "success after retry");
-			assert.strictEqual(invokeCount, 2);
-		});
-
-		it("returns context too long message after max iterations", async () => {
-			const agentMock = {
-				invoke: () => {
-					throw createContextLengthError("This model's maximum context length is 128000 tokens");
-				},
-				streamEvents: () => ({}),
-			};
-
-			const result = await callReactAgent(agentMock, "test", {}, "system prompt", null, {
-				maxTokens: 4096,
-				maxCompactionIterations: 3,
-			});
-
-			assert.strictEqual(
-				result.content,
-				"The conversation is too long. Please start a new session.",
-			);
-		});
-
-		it("re-throws non-context-length errors during retry loop", async () => {
-			const agentMock = {
-				invoke: () => {
-					throw new Error("rate limit exceeded");
-				},
-				streamEvents: () => ({}),
-			};
-
-			let err = null;
-			try {
-				await callReactAgent(agentMock, "test", {}, "system prompt", null, {
-					maxTokens: 4096,
-				});
-			} catch (e) {
-				err = e;
-			}
-
-			assert.ok(err instanceof Error);
-			assert.strictEqual(err.message, "rate limit exceeded");
-		});
 
 		it("handles context length error in streaming mode", async () => {
 			const agentMock = {
@@ -663,50 +466,6 @@ describe("callReactAgent", () => {
 
 			// After max iterations, returns original message as fallback
 			assert.strictEqual(result.content, "test");
-		});
-
-		it("extracts context length from error message automatically", async () => {
-			let invokeCount = 0;
-			const agentMock = {
-				invoke: (_input) => {
-					invokeCount++;
-					if (invokeCount === 1) {
-						throw createContextLengthError("This model's maximum context length is 65536 tokens");
-					}
-					return { messages: [new AIMessage("success")] };
-				},
-				streamEvents: () => ({}),
-			};
-
-			// Don't pass maxContextLength — it should be extracted from error
-			const result = await callReactAgent(agentMock, "test", {}, "system prompt", null, {
-				maxTokens: 4096,
-			});
-
-			assert.strictEqual(result.content, "success");
-			assert.strictEqual(invokeCount, 2);
-		});
-
-		it("respects custom maxCompactionIterations", async () => {
-			let invokeCount = 0;
-			const agentMock = {
-				invoke: () => {
-					invokeCount++;
-					throw createContextLengthError("This model's maximum context length is 128000 tokens");
-				},
-				streamEvents: () => ({}),
-			};
-
-			const result = await callReactAgent(agentMock, "test", {}, "system prompt", null, {
-				maxTokens: 4096,
-				maxCompactionIterations: 1,
-			});
-
-			assert.strictEqual(
-				result.content,
-				"The conversation is too long. Please start a new session.",
-			);
-			assert.strictEqual(invokeCount, 2); // initial + 1 retry
 		});
 
 		it("emits compaction_start and compaction_end events in streaming mode on first retry", async () => {
@@ -908,27 +667,6 @@ describe("callReactAgent", () => {
 	});
 
 	describe("recursion limit threading", () => {
-		it("passes recursionLimit to agent.invoke() in non-streaming mode", async () => {
-			let capturedConfig = null;
-			const agentMock = {
-				invoke: (input, config) => {
-					capturedConfig = config;
-					return { messages: [new AIMessage("ok")] };
-				},
-			};
-
-			await callReactAgent(
-				agentMock,
-				"hello",
-				{ configurable: { thread_id: "test" } },
-				null,
-				null,
-				{ recursionLimit: 500 },
-			);
-
-			assert.strictEqual(capturedConfig.recursionLimit, 500);
-		});
-
 		it("passes recursionLimit to agent.streamEvents() in streaming mode", async () => {
 			let capturedConfig = null;
 			const agentMock = {
@@ -948,27 +686,6 @@ describe("callReactAgent", () => {
 			);
 
 			assert.strictEqual(capturedConfig.recursionLimit, 750);
-		});
-
-		it("omits recursionLimit when not provided", async () => {
-			let capturedConfig = null;
-			const agentMock = {
-				invoke: (input, config) => {
-					capturedConfig = config;
-					return { messages: [new AIMessage("ok")] };
-				},
-			};
-
-			await callReactAgent(
-				agentMock,
-				"hello",
-				{ configurable: { thread_id: "test" } },
-				null,
-				null,
-				{},
-			);
-
-			assert.strictEqual(capturedConfig.recursionLimit, undefined);
 		});
 	});
 
@@ -1011,44 +728,6 @@ describe("callReactAgent", () => {
 			const err = new Error(message);
 			return err;
 		}
-
-		it("preserves ToolMessage instances through compaction in callReactAgent", async () => {
-			// First call throws context length error, triggering compaction
-			// Second call succeeds — we inspect the messages passed to it
-			let callCount = 0;
-			let capturedMessages = null;
-			const patchedMock = {
-				invoke: (input) => {
-					callCount++;
-					if (callCount === 1) {
-						throw createContextLengthError("This model's maximum context length is 128000 tokens");
-					}
-					capturedMessages = input.messages;
-					return { messages: [new AIMessage("success")] };
-				},
-				streamEvents: () => ({}),
-			};
-
-			await callReactAgent(patchedMock, "test", {}, "system prompt", null, {
-				maxTokens: 4096,
-			});
-
-			// After compaction, the messages should include a ToolMessage
-			// (the compaction logic rebuilds messages from the conversation array)
-			// We verify the rebuild logic handles tool role correctly by checking
-			// that no ToolMessage was incorrectly converted to AIMessage
-			assert.ok(capturedMessages);
-			// All messages should be proper LangChain message instances
-			for (const msg of capturedMessages) {
-				assert.ok(
-					msg instanceof HumanMessage ||
-						msg instanceof AIMessage ||
-						msg instanceof ToolMessage ||
-						msg instanceof SystemMessage,
-					`Message should be a proper LangChain instance, got ${msg.constructor.name}`,
-				);
-			}
-		});
 
 		it("preserves ToolMessage instances through compaction in callReactAgentStreaming", async () => {
 			let callCount = 0;
@@ -1139,6 +818,162 @@ describe("callReactAgent", () => {
 
 			const result = await callReactAgent(agentMock, "original query", null, null, callback);
 			assert.strictEqual(result.content, "original query");
+		});
+	});
+
+	describe("createStdoutCallback", () => {
+		let stdoutWrite;
+		let stderrWrite;
+		let stdoutChunks;
+		let stderrChunks;
+
+		beforeEach(() => {
+			stdoutChunks = [];
+			stderrChunks = [];
+			stdoutWrite = process.stdout.write;
+			stderrWrite = process.stderr.write;
+			process.stdout.write = (chunk) => {
+				stdoutChunks.push(chunk);
+				return true;
+			};
+			process.stderr.write = (chunk) => {
+				stderrChunks.push(chunk);
+				return true;
+			};
+		});
+
+		afterEach(() => {
+			process.stdout.write = stdoutWrite;
+			process.stderr.write = stderrWrite;
+		});
+
+		it("writes text chunks to stdout without extra newlines", () => {
+			const callback = createStdoutCallback();
+			callback({ type: "text", text: "Hello World" });
+			assert.strictEqual(stdoutChunks.length, 1);
+			assert.strictEqual(stdoutChunks[0], "Hello World");
+			assert.strictEqual(stderrChunks.length, 0);
+		});
+
+		it("writes multiple text chunks separately", () => {
+			const callback = createStdoutCallback();
+			callback({ type: "text", text: "Hello" });
+			callback({ type: "text", text: " World" });
+			assert.strictEqual(stdoutChunks.length, 2);
+			assert.strictEqual(stdoutChunks[0], "Hello");
+			assert.strictEqual(stdoutChunks[1], " World");
+		});
+
+		it("writes loop_detected events to stderr", () => {
+			const callback = createStdoutCallback();
+			callback({ type: "loop_detected" });
+			assert.strictEqual(stdoutChunks.length, 0);
+			assert.strictEqual(stderrChunks.length, 1);
+			assert.ok(stderrChunks[0].includes("[loop detected]"));
+		});
+
+		it("ignores tool_start events", () => {
+			const callback = createStdoutCallback();
+			callback({ type: "tool_start", toolName: "web_search", toolCallId: "tc1" });
+			assert.strictEqual(stdoutChunks.length, 0);
+			assert.strictEqual(stderrChunks.length, 0);
+		});
+
+		it("ignores tool_end events", () => {
+			const callback = createStdoutCallback();
+			callback({ type: "tool_end", toolName: "web_search", toolCallId: "tc1" });
+			assert.strictEqual(stdoutChunks.length, 0);
+			assert.strictEqual(stderrChunks.length, 0);
+		});
+
+		it("ignores reasoning events", () => {
+			const callback = createStdoutCallback();
+			callback({ type: "reasoning", text: "thinking..." });
+			assert.strictEqual(stdoutChunks.length, 0);
+			assert.strictEqual(stderrChunks.length, 0);
+		});
+
+		it("ignores compaction_start events", () => {
+			const callback = createStdoutCallback();
+			callback({ type: "compaction_start" });
+			assert.strictEqual(stdoutChunks.length, 0);
+			assert.strictEqual(stderrChunks.length, 0);
+		});
+
+		it("ignores compaction_end events", () => {
+			const callback = createStdoutCallback();
+			callback({ type: "compaction_end" });
+			assert.strictEqual(stdoutChunks.length, 0);
+			assert.strictEqual(stderrChunks.length, 0);
+		});
+
+		it("handles mixed events correctly", () => {
+			const callback = createStdoutCallback();
+			callback({ type: "text", text: "Let me" });
+			callback({ type: "tool_start", toolName: "search", toolCallId: "tc1" });
+			callback({ type: "tool_end", toolName: "search", toolCallId: "tc1" });
+			callback({ type: "text", text: " search." });
+			callback({ type: "loop_detected" });
+
+			assert.strictEqual(stdoutChunks.length, 2);
+			assert.strictEqual(stdoutChunks[0], "Let me");
+			assert.strictEqual(stdoutChunks[1], " search.");
+			assert.strictEqual(stderrChunks.length, 1);
+			assert.ok(stderrChunks[0].includes("[loop detected]"));
+		});
+	});
+
+	describe("non-TUI streaming mode", () => {
+		function createEvents(events) {
+			return (async function* () {
+				for (const evt of events) {
+					yield evt;
+				}
+			})();
+		}
+
+		function createMock(eventList) {
+			return {
+				streamEvents: () => createEvents(eventList),
+				invoke: () => ({ messages: [new AIMessage("fallback")] }),
+			};
+		}
+
+		it("uses streaming pipeline when no callback provided", async () => {
+			let streamEventsCalled = false;
+			const agentMock = {
+				streamEvents: () => {
+					streamEventsCalled = true;
+					return createEvents([
+						{
+							event: "on_chat_model_stream",
+							data: { chunk: new AIMessageChunk({ content: "streamed response" }) },
+						},
+					]);
+				},
+				invoke: () => ({ messages: [new AIMessage("should not be called")] }),
+			};
+
+			const result = await callReactAgent(agentMock, "hello", null, null, null);
+			assert.ok(streamEventsCalled, "streamEvents should be called");
+			assert.strictEqual(result.content, "streamed response");
+		});
+
+		it("user-provided callback takes precedence over default", async () => {
+			let callbackType = null;
+			const customCallback = (event) => {
+				callbackType = event.type;
+			};
+
+			const agentMock = createMock([
+				{
+					event: "on_chat_model_stream",
+					data: { chunk: new AIMessageChunk({ content: "response" }) },
+				},
+			]);
+
+			await callReactAgent(agentMock, "hello", null, null, customCallback);
+			assert.strictEqual(callbackType, "text", "Custom callback should receive events");
 		});
 	});
 });
