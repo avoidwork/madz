@@ -231,7 +231,7 @@ async function callReactAgentStreaming(
 	const turnBufferMax = (() => {
 		try {
 			const config = loadConfig();
-			return config.agent?.turnBufferMax ?? 128;
+			return config.agent?.turnBufferMax ?? 64;
 		} catch {
 			return 128;
 		}
