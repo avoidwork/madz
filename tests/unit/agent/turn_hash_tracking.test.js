@@ -1,6 +1,6 @@
-import { describe, it, beforeEach, afterEach } from "node:test";
+import { describe, it } from "node:test";
 import assert from "node:assert";
-import { createReactAgent, callReactAgentStreaming } from "../../src/agent/react.js";
+import { callReactAgentStreaming } from "../../src/agent/react.js";
 
 // Mock config loader to return controlled values
 const originalImport = globalThis.import;
