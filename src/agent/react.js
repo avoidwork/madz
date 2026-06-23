@@ -236,7 +236,7 @@ async function callReactAgentStreaming(
 			return 128;
 		}
 	})();
-	let turnHashes = []; // Sliding window of recent turn hashes
+	let turnHashes = new Set(); // Sliding window of recent turn hashes
 	let turnHashDetected = false; // Flag to avoid spamming loop_detected
 	let turnTextBuffer = ""; // Accumulate text per turn
 
@@ -254,7 +254,7 @@ async function callReactAgentStreaming(
 				if (signal && signal.aborted) {
 					// Do NOT cache on abort
 					loopDetector.reset();
-					turnHashes = [];
+					turnHashes = new Set();
 					turnHashDetected = false;
 					// Emit tool_end for any tool_start that didn't get a corresponding tool_end
 					for (const key of toolCallSet) {
@@ -299,15 +299,15 @@ async function callReactAgentStreaming(
 						// If buffer exceeds cap, hash it as a turn boundary and reset
 						if (turnTextBuffer.length > turnBufferMax) {
 							const turnHash = hashTurn(turnTextBuffer.trim());
-							if (turnHashes.includes(turnHash)) {
+							if (turnHashes.has(turnHash)) {
 								if (!turnHashDetected) {
 									turnHashDetected = true;
 									callback({ type: "loop_detected" });
 								}
 							} else {
-								turnHashes.push(turnHash);
-								if (turnHashes.length > turnHashWindow) {
-									turnHashes.shift();
+								turnHashes.add(turnHash);
+								if (turnHashes.size > turnHashWindow) {
+									turnHashes.delete(turnHashes.keys().next().value);
 								}
 								turnHashDetected = false;
 							}
@@ -364,15 +364,15 @@ async function callReactAgentStreaming(
 					// End of turn — hash accumulated text and reset buffer
 					if (turnTextBuffer.trim().length > 0) {
 						const turnHash = hashTurn(turnTextBuffer.trim());
-						if (turnHashes.includes(turnHash)) {
+						if (turnHashes.has(turnHash)) {
 							if (!turnHashDetected) {
 								turnHashDetected = true;
 								callback({ type: "loop_detected" });
 							}
 						} else {
-							turnHashes.push(turnHash);
+							turnHashes.add(turnHash);
 							if (turnHashes.length > turnHashWindow) {
-								turnHashes.shift();
+								turnHashes.delete(turnHashes.keys().next().value);
 							}
 							turnHashDetected = false;
 						}
@@ -409,15 +409,15 @@ async function callReactAgentStreaming(
 			// Hash remaining buffer before reset
 			if (turnTextBuffer.trim().length > 0) {
 				const turnHash = hashTurn(turnTextBuffer.trim());
-				if (turnHashes.includes(turnHash)) {
+				if (turnHashes.has(turnHash)) {
 					if (!turnHashDetected) {
 						turnHashDetected = true;
 						callback({ type: "loop_detected" });
 					}
 				} else {
-					turnHashes.push(turnHash);
+					turnHashes.add(turnHash);
 					if (turnHashes.length > turnHashWindow) {
-						turnHashes.shift();
+						turnHashes.delete(turnHashes.keys().next().value);
 					}
 					turnHashDetected = false;
 				}
@@ -425,7 +425,7 @@ async function callReactAgentStreaming(
 			}
 
 			// Reset turn hash tracker on successful completion
-			turnHashes = [];
+			turnHashes = new Set();
 			turnHashDetected = false;
 
 			// Success — emit compaction_end if compaction was active, then return

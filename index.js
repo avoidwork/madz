@@ -301,7 +301,7 @@ if (isMain) {
 		: "chat";
 
 	let chatSessionId = args.reduce((id, a, i) => {
-		if (a === "--session-id" || a === "-s") return args[i + 1] || id;
+		if (a === "-s") return args[i + 1] || id;
 		return id;
 	}, "");
 	let message = args.filter((a) => !a.startsWith("--"))[0];
@@ -314,7 +314,7 @@ if (isMain) {
 		try {
 			await handleConversation(message, chatSessionId);
 			process.stdout.write("\n");
-		} catch (err) {
+		} catch (_) {
 			process.exit(1);
 		}
 
