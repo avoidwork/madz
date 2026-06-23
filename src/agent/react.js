@@ -240,6 +240,29 @@ async function callReactAgentStreaming(
 	let turnHashDetected = false; // Flag to avoid spamming loop_detected
 	let turnTextBuffer = ""; // Accumulate text per turn
 
+	/**
+	 * Check a turn hash against the sliding window.
+	 * Adds the hash to the window, evicts the oldest if full,
+	 * and emits loop_detected if a duplicate is found.
+	 * @param {string} hash - The turn hash to check
+	 */
+	function checkTurnHash(hash) {
+		if (turnHashes.has(hash)) {
+			if (!turnHashDetected) {
+				turnHashDetected = true;
+				callback({ type: "loop_detected" });
+				// Clear the window — model needs a fresh slate
+				turnHashes.clear();
+			}
+		} else {
+			turnHashes.add(hash);
+			if (turnHashes.size > turnHashWindow) {
+				turnHashes.delete(turnHashes.keys().next().value);
+			}
+			turnHashDetected = false;
+		}
+	}
+
 	while (iteration <= maxCompactionIterations) {
 		let toolCallSet = new Set();
 
@@ -298,20 +321,7 @@ async function callReactAgentStreaming(
 						// If buffer exceeds cap, hash it as a turn boundary and reset
 						if (turnTextBuffer.length > turnBufferMax) {
 							const turnHash = hashTurn(turnTextBuffer.trim());
-							if (turnHashes.has(turnHash)) {
-								if (!turnHashDetected) {
-									turnHashDetected = true;
-									callback({ type: "loop_detected" });
-									// Clear the window — model needs a fresh slate
-									turnHashes.clear();
-								}
-							} else {
-								turnHashes.add(turnHash);
-								if (turnHashes.size > turnHashWindow) {
-									turnHashes.delete(turnHashes.keys().next().value);
-								}
-								turnHashDetected = false;
-							}
+							checkTurnHash(turnHash);
 							turnTextBuffer = "";
 						}
 
@@ -365,20 +375,7 @@ async function callReactAgentStreaming(
 					// End of turn — hash accumulated text and reset buffer
 					if (turnTextBuffer.trim().length > 0) {
 						const turnHash = hashTurn(turnTextBuffer.trim());
-						if (turnHashes.has(turnHash)) {
-							if (!turnHashDetected) {
-								turnHashDetected = true;
-								callback({ type: "loop_detected" });
-								// Clear the window — model needs a fresh slate
-								turnHashes.clear();
-							}
-						} else {
-							turnHashes.add(turnHash);
-							if (turnHashes.size > turnHashWindow) {
-								turnHashes.delete(turnHashes.keys().next().value);
-							}
-							turnHashDetected = false;
-						}
+						checkTurnHash(turnHash);
 						turnTextBuffer = "";
 					}
 				}
@@ -412,20 +409,7 @@ async function callReactAgentStreaming(
 			// Hash remaining buffer before reset
 			if (turnTextBuffer.trim().length > 0) {
 				const turnHash = hashTurn(turnTextBuffer.trim());
-				if (turnHashes.has(turnHash)) {
-					if (!turnHashDetected) {
-						turnHashDetected = true;
-						callback({ type: "loop_detected" });
-						// Clear the window — model needs a fresh slate
-						turnHashes.clear();
-					}
-				} else {
-					turnHashes.add(turnHash);
-					if (turnHashes.size > turnHashWindow) {
-						turnHashes.delete(turnHashes.keys().next().value);
-					}
-					turnHashDetected = false;
-				}
+				checkTurnHash(turnHash);
 				turnTextBuffer = "";
 			}
 
@@ -527,8 +511,4 @@ async function callReactAgentStreaming(
 	}
 
 	return { content: aggregatedText || originalMessage };
-}
-}
-;
-}
 }
