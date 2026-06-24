@@ -710,8 +710,7 @@ parseSubAgentOutput(stdout):
 
 resolveTimeout(options):
 ├── if options.timeout provided → options.timeout
-├── else if MADZ_SUBAGENT_TIMEOUT env var → parseInt(env)
-├── else → config.process.subAgent.timeout (default 600000)
+└── else → config.process.subAgent.timeout (default 600000)
 ```
 
 **Process tracking:** Sub-agents share the `processTracker` Map from `terminal.js` for PID tracking and lifecycle management. Each sub-agent gets a unique PID that can be polled, waited on, or killed via the `process` tool.
