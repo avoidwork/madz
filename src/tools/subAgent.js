@@ -101,10 +101,9 @@ function msToSeconds(ms) {
  * @param {string} prompt - The full prompt (context ||| delegation)
  * @param {string} sessionsDir - Path to sessions directory
  * @param {number} timeout - Timeout in milliseconds
- * @param {object} [temperatureConfig] - Temperature configuration { value: number, configured: boolean }
  * @returns {Promise<{ ok: boolean, result: string, error?: string, sessionId?: string }>}
  */
-export function spawnSubAgentProcess(prompt, sessionsDir, timeout, temperatureConfig) {
+export function spawnSubAgentProcess(prompt, sessionsDir, timeout) {
 	return new Promise((resolve) => {
 		const sessionId = generateSessionId();
 		const timeoutSeconds = msToSeconds(timeout);
@@ -113,10 +112,7 @@ export function spawnSubAgentProcess(prompt, sessionsDir, timeout, temperatureCo
 		// timeout sends SIGTERM first, then SIGKILL after --kill-after delay
 		const child = spawn("timeout", ["--kill-after=10", timeoutSeconds.toString(), "node", "index.js", prompt, sessionsDir], {
 			stdio: ["pipe", "pipe", "pipe"],
-env: {
-				...process.env,
-				...(temperatureConfig?.configured ? { MADZ_SUBAGENT_TEMPERATURE: String(temperatureConfig.value) } : {}),
-			},
+			env: process.env,
 		});
 
 		const logPath = `/tmp/sub-agent-${sessionId}.log`;
@@ -180,10 +176,9 @@ env: {
  * @param {"continue" | "fail-fast"} onError - Error handling strategy
  * @param {string} sessionsDir - Path to sessions directory
  * @param {number} timeout - Timeout in milliseconds
- * @param {object} [temperatureConfig] - Temperature configuration { value: number, configured: boolean }
  * @returns {Promise<{ ok: boolean, result: string, error?: string }>}
  */
-async function executeFanOut(tasks, strategy, maxConcurrent, onError, sessionsDir, timeout, temperatureConfig) {
+async function executeFanOut(tasks, strategy, maxConcurrent, onError, sessionsDir, timeout) {
 	const results = [];
 	let failed = false;
 
@@ -192,7 +187,7 @@ async function executeFanOut(tasks, strategy, maxConcurrent, onError, sessionsDi
 			if (failed && onError === "fail-fast") break;
 
 			const prompt = task.context ? `${task.context}\n\n${task.delegation}` : task.delegation;
-			const result = await spawnSubAgentProcess(prompt, sessionsDir, timeout, temperatureConfig);
+			const result = await spawnSubAgentProcess(prompt, sessionsDir, timeout);
 
 			if (task.id) {
 				results.push({ id: task.id, ...result });
@@ -215,7 +210,7 @@ async function executeFanOut(tasks, strategy, maxConcurrent, onError, sessionsDi
 				const task = queue.shift();
 				const promise = (async () => {
 					const prompt = task.context ? `${task.context}\n\n${task.delegation}` : task.delegation;
-					const result = await spawnSubAgentProcess(prompt, sessionsDir, timeout, temperatureConfig);
+					const result = await spawnSubAgentProcess(prompt, sessionsDir, timeout);
 
 					if (task.id) {
 						results.push({ id: task.id, ...result });
@@ -271,39 +266,6 @@ function resolveTimeout(perCallTimeout, config) {
 }
 
 /**
- * Resolve temperature with priority: per-call > per-skill config > global config > provider default.
- * Returns { value: number, configured: boolean } where configured indicates if temperature
- * was explicitly set (true) or using provider default (false).
- * @param {number | undefined} perCallTemperature - Per-call temperature parameter
- * @param {string} skillName - Name of the skill being executed (for per-skill lookup)
- * @param {object} config - Resolved config object
- * @returns {{ value: number, configured: boolean }} Resolved temperature and whether it was explicitly configured
- */
-function resolveTemperature(perCallTemperature, skillName, config) {
-	// Per-call override
-	if (perCallTemperature !== undefined && perCallTemperature !== null) {
-		return { value: perCallTemperature, configured: true };
-	}
-
-	// Per-skill config
-	if (skillName && config?.process?.subAgent?.skills) {
-		const skillConfig = config.process.subAgent.skills.find((s) => s.name === skillName);
-		if (skillConfig?.temperature !== undefined) {
-			return { value: skillConfig.temperature, configured: true };
-		}
-	}
-
-	// Global config
-	const globalTemp = config?.process?.subAgent?.temperature;
-	if (globalTemp !== undefined && globalTemp !== null) {
-		return { value: globalTemp, configured: true };
-	}
-
-	// Provider default — not explicitly configured
-	return { value: undefined, configured: false };
-}
-
-/**
  * Create a subAgent tool with runtime options.
  * @param {object} options - Runtime options
  * @param {string} [options.sessionsDir] - Path to sessions directory
@@ -316,13 +278,10 @@ export function createSubAgentTool(options = {}) {
 	return tool(
 		async (input) => {
 			try {
-				const { delegation, context, tasks, strategy, maxConcurrent, onError, returnParams, timeout, temperature } = input;
+				const { delegation, context, tasks, strategy, maxConcurrent, onError, returnParams, timeout } = input;
 
 				// Resolve timeout
 				const resolvedTimeout = resolveTimeout(timeout, config);
-
-				// Resolve temperature: per-call > per-skill > global > provider default
-				const resolvedTemperature = resolveTemperature(temperature, undefined, config);
 
 				// Fan-out mode
 				if (tasks && Array.isArray(tasks) && tasks.length > 0) {
@@ -337,7 +296,6 @@ export function createSubAgentTool(options = {}) {
 						fanOutOnError,
 						sessionsDir,
 						resolvedTimeout,
-						resolvedTemperature,
 					);
 
 					// Apply returnParams filtering if specified
@@ -361,7 +319,7 @@ export function createSubAgentTool(options = {}) {
 				}
 
 				const prompt = context ? `${context}\n\n${delegation}` : delegation;
-				const result = await spawnSubAgentProcess(prompt, sessionsDir, resolvedTimeout, resolvedTemperature);
+				const result = await spawnSubAgentProcess(prompt, sessionsDir, resolvedTimeout);
 
 				// Apply returnParams filtering if specified
 				if (returnParams && returnParams.length > 0 && result.ok) {
@@ -442,14 +400,6 @@ export function createSubAgentTool(options = {}) {
 					.optional()
 					.describe(
 						"Timeout in milliseconds for this sub-agent execution. Overrides config default.",
-					),
-				temperature: z
-					.number()
-					.min(0)
-					.max(2)
-					.optional()
-					.describe(
-						"Temperature for this sub-agent execution (0-2, OpenAI spec). Overrides per-skill, global config, and provider default.",
 					),
 			}),
 		},
