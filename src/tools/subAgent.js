@@ -112,10 +112,7 @@ export function spawnSubAgentProcess(prompt, sessionsDir, timeout) {
 		// timeout sends SIGTERM first, then SIGKILL after --kill-after delay
 		const child = spawn("timeout", ["--kill-after=10", timeoutSeconds.toString(), "node", "index.js", prompt, sessionsDir], {
 			stdio: ["pipe", "pipe", "pipe"],
-			env: {
-				...process.env,
-				MADZ_SESSION_ID: sessionId,
-			},
+			env: process.env,
 		});
 
 		const logPath = `/tmp/sub-agent-${sessionId}.log`;
@@ -250,7 +247,7 @@ async function executeFanOut(tasks, strategy, maxConcurrent, onError, sessionsDi
 }
 
 /**
- * Resolve timeout with priority: per-call > env var > config default.
+ * Resolve timeout with priority: per-call > config default.
  * @param {number | undefined} perCallTimeout - Per-call timeout parameter
  * @param {object} config - Resolved config object
  * @returns {number} Resolved timeout in milliseconds
@@ -258,11 +255,6 @@ async function executeFanOut(tasks, strategy, maxConcurrent, onError, sessionsDi
 function resolveTimeout(perCallTimeout, config) {
 	if (perCallTimeout !== undefined && perCallTimeout !== null) {
 		return perCallTimeout;
-	}
-
-	const envTimeout = process.env.MADZ_SUBAGENT_TIMEOUT;
-	if (envTimeout !== undefined && envTimeout !== "") {
-		return parseInt(envTimeout, 10);
 	}
 
 	const configTimeout = config?.process?.subAgent?.timeout;
@@ -407,7 +399,7 @@ export function createSubAgentTool(options = {}) {
 					.positive()
 					.optional()
 					.describe(
-						"Timeout in milliseconds for this sub-agent execution. Overrides MADZ_SUBAGENT_TIMEOUT env var and config default.",
+						"Timeout in milliseconds for this sub-agent execution. Overrides config default.",
 					),
 			}),
 		},

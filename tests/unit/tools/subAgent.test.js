@@ -74,21 +74,6 @@ describe("resolveTimeout", () => {
 		assert.strictEqual(resolveTimeout(30000, config), 30000);
 	});
 
-	it("should use env var when per-call is not provided", () => {
-		const original = process.env.MADZ_SUBAGENT_TIMEOUT;
-		process.env.MADZ_SUBAGENT_TIMEOUT = "45000";
-		assert.strictEqual(resolveTimeout(undefined, {}), 45000);
-		process.env.MADZ_SUBAGENT_TIMEOUT = original;
-	});
-
-	it("should use env var over config default", () => {
-		const original = process.env.MADZ_SUBAGENT_TIMEOUT;
-		process.env.MADZ_SUBAGENT_TIMEOUT = "45000";
-		const config = { process: { subAgent: { timeout: 600000 } } };
-		assert.strictEqual(resolveTimeout(undefined, config), 45000);
-		process.env.MADZ_SUBAGENT_TIMEOUT = original;
-	});
-
 	it("should use config default when no per-call or env var", () => {
 		const config = { process: { subAgent: { timeout: 120000 } } };
 		assert.strictEqual(resolveTimeout(undefined, config), 120000);
@@ -164,20 +149,6 @@ describe("msToSeconds", () => {
 });
 
 describe("spawnSubAgentProcess integration", () => {
-	it("should pass session ID to child process via MADZ_SESSION_ID env var", async () => {
-		const prompt = "# SubAgent\n\n{ ok: true, result: \"test\" }";
-		const sessionsDir = join(__dirname, "../../../memory/sessions/");
-
-		const result = await spawnSubAgentProcess(prompt, sessionsDir, 10000);
-
-		assert.strictEqual(result.ok, true);
-		assert.ok(result.sessionId, "Result should include sessionId");
-		assert.strictEqual(typeof result.sessionId, "string");
-		// Verify sessionId is a valid UUID v4 format
-		const uuidV4Regex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-		assert.ok(uuidV4Regex.test(result.sessionId), `Expected UUID v4 format, got: ${result.sessionId}`);
-	});
-
 	it("should create log file with session ID naming", async () => {
 		const prompt = "# SubAgent\n\n{ ok: true, result: \"test\" }";
 		const sessionsDir = join(__dirname, "../../../memory/sessions/");
