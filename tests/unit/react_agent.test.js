@@ -634,6 +634,48 @@ describe("callReactAgent", () => {
 			assert.strictEqual(err.name, "AbortError");
 		});
 
+		it("throws AbortError with descriptive message when signal is already aborted", async () => {
+			const controller = new AbortController();
+			controller.abort();
+
+			const agentMock = createMock([]);
+
+			let err = null;
+			try {
+				await callReactAgent(agentMock, "hello", null, null, () => {}, {
+					signal: controller.signal,
+				});
+			} catch (e) {
+				err = e;
+			}
+
+			assert.ok(err instanceof Error);
+			assert.strictEqual(err.name, "AbortError");
+			assert.ok(
+				err.message.toLowerCase().includes("interrupt"),
+				"error message should indicate interruption",
+			);
+		});
+
+		it("does not throw when signal is not aborted", async () => {
+			const controller = new AbortController();
+			// Signal is NOT aborted
+
+			const agentMock = createMock([]);
+
+			let err = null;
+			try {
+				await callReactAgent(agentMock, "hello", null, null, () => {}, {
+					signal: controller.signal,
+				});
+			} catch (e) {
+				err = e;
+			}
+
+			// Should not throw AbortError — empty stream returns original message
+			assert.notStrictEqual(err?.name, "AbortError");
+		});
+
 		it("emits tool_end for pending tools on abort", async () => {
 			const events = [
 				{

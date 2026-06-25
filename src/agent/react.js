@@ -191,6 +191,15 @@ async function callReactAgentStreaming(
 		...(recursionLimit !== null && { recursionLimit }),
 	};
 
+	// Early abort check — if the signal is already aborted when entering,
+	// throw a named AbortError immediately. This ensures the TUI catch block
+	// recognizes the error as a clean interruption regardless of environment.
+	if (signal?.aborted) {
+		const abortError = new Error("Stream interrupted before start");
+		abortError.name = "AbortError";
+		throw abortError;
+	}
+
 	// If an abort signal is provided, listen for it and break the stream loop
 	if (signal) {
 		signal.throwIfAborted();

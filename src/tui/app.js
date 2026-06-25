@@ -48,6 +48,7 @@ export default function App({
 	const dispatchPromiseRef = useRef(null);
 	const autoContinueCountRef = useRef(0);
 	const isAutoContinuingRef = useRef(false);
+	const isIntentionalAbortRef = useRef(false);
 	const { exit } = useApp();
 	const exitRef = useRef(exit);
 	exitRef.current = exit;
@@ -902,16 +903,20 @@ export default function App({
 			gcManager?.();
 			setStatusMessage("Received response");
 		} catch (err) {
-			// Abort is a normal interruption, not an error
-			if (err.name === "AbortError") {
-				// Clean up: remove the assistant's tool-call message (if any) and the user message.
-				// The assistant's tool-call message is removed first to prevent orphaned tool_calls
-				// from corrupting the conversation history sent to the LLM API on resume.
+			// Intentional abort from handleInterrupt() — clean interruption, not an error
+			if (isIntentionalAbortRef.current) {
 				if (sessionState) {
 					sessionState.removeLastAssistantToolCallMessage();
 					sessionState.popExchange();
 				}
-				// Clear the partial streaming assistant message from UI
+				setMessages((prev) => prev.filter((msg) => !isStreamingMessage(msg)));
+				setStatusMessage("Interrupted.");
+			} else if (err.name === "AbortError") {
+				// Abort is a normal interruption, not an error
+				if (sessionState) {
+					sessionState.removeLastAssistantToolCallMessage();
+					sessionState.popExchange();
+				}
 				setMessages((prev) => prev.filter((msg) => !isStreamingMessage(msg)));
 				setStatusMessage("Interrupted.");
 			} else {
@@ -926,9 +931,10 @@ export default function App({
 				});
 			}
 		} finally {
-			// Reset abort controller and streaming flag
+			// Reset abort controller, streaming flag, and intentional abort signal
 			abortControllerRef.current = null;
 			isStreamingRef.current = false;
+			isIntentionalAbortRef.current = false;
 		}
 		gcManager?.();
 	};
@@ -945,6 +951,9 @@ export default function App({
 	 * processing the abort and completed its cleanup.
 	 */
 	const handleInterrupt = async () => {
+		// Signal to handleChat() that this is an intentional interruption
+		// so it doesn't display an error message regardless of error type
+		isIntentionalAbortRef.current = true;
 		if (abortControllerRef.current) {
 			abortControllerRef.current.abort();
 			abortControllerRef.current = null;
