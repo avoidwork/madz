@@ -49,10 +49,7 @@ describe("gh-client - instantiation", () => {
 	});
 
 	it("throws TypeError when token is empty string", () => {
-		assert.throws(
-			() => createGhClient({ owner: "test", repo: "test", token: "" }),
-			TypeError,
-		);
+		assert.throws(() => createGhClient({ owner: "test", repo: "test", token: "" }), TypeError);
 	});
 
 	it("creates client successfully with valid config", () => {
@@ -246,7 +243,10 @@ describe("gh-client - PR CRUD", () => {
 		mockSuccessResponse({ merged: true });
 		const result = await client.mergePR(10, { merge_method: "squash" });
 		assert.strictEqual(result.error, null);
-		assert.strictEqual(mockFetch.lastUrl, "https://api.github.com/repos/avoidwork/madz/pulls/10/merge");
+		assert.strictEqual(
+			mockFetch.lastUrl,
+			"https://api.github.com/repos/avoidwork/madz/pulls/10/merge",
+		);
 		assert.strictEqual(mockFetch.lastOptions.method, "PUT");
 		const body = JSON.parse(mockFetch.lastOptions.body);
 		assert.strictEqual(body.merge_method, "squash");
@@ -263,7 +263,10 @@ describe("gh-client - comments", () => {
 		mockSuccessResponse({ id: 1, body: "LGTM" });
 		const result = await client.createComment(42, { body: "LGTM" });
 		assert.strictEqual(result.error, null);
-		assert.strictEqual(mockFetch.lastUrl, "https://api.github.com/repos/avoidwork/madz/issues/42/comments");
+		assert.strictEqual(
+			mockFetch.lastUrl,
+			"https://api.github.com/repos/avoidwork/madz/issues/42/comments",
+		);
 		assert.strictEqual(mockFetch.lastOptions.method, "POST");
 		const body = JSON.parse(mockFetch.lastOptions.body);
 		assert.strictEqual(body.body, "LGTM");
