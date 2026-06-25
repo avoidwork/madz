@@ -72,6 +72,38 @@ export class SessionStateManager {
 	}
 
 	/**
+	 * Remove the last assistant message with tool_calls from the conversation.
+	 * Used during interrupt cleanup to remove orphaned tool-call messages.
+	 * This method is idempotent — safe to call when no matching message exists.
+	 * @returns {{ role: string, content: string, timestamp: string } | undefined} The removed message, or undefined if no matching message was found.
+	 */
+	removeLastAssistantToolCallMessage() {
+		const lastMessage = this.#state.conversation[this.#state.conversation.length - 1];
+		if (
+			lastMessage &&
+			lastMessage.role === "assistant" &&
+			this.#hasToolCalls(lastMessage)
+		) {
+			const removed = this.#state.conversation.pop();
+			this.#state.updatedAt = new Date().toISOString();
+			return removed;
+		}
+		return undefined;
+	}
+
+	/**
+	 * Check if a message contains tool calls.
+	 * @param {{ role: string, content: string | object }} message - The message to check.
+	 * @returns {boolean} True if the message has tool_calls.
+	 */
+	#hasToolCalls(message) {
+		if (typeof message.content === "object" && message.content !== null) {
+			return Array.isArray(message.content.tool_calls) && message.content.tool_calls.length > 0;
+		}
+		return false;
+	}
+
+	/**
 	 * Get the active skills list.
 	 * @returns {string[]}
 	 */
