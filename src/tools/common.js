@@ -30,13 +30,14 @@ export function validateUrl(url, allowlist = []) {
 }
 
 /**
- * Perform an HTTP GET request with configurable timeout and URL validation.
+ * Perform an HTTP request with configurable timeout and URL validation.
  * @param {string} url - The URL to fetch
  * @param {number} [timeoutMs=5000] - Timeout in milliseconds
  * @param {string[]} [allowlist=[]] - Optional URL host allowlist
- * @returns {Promise<{ ok: boolean, body?: string, error?: string }>}
+ * @param {object} [options] - Optional fetch options (method, headers, body)
+ * @returns {Promise<{ ok: boolean, body?: string, error?: string, headers?: Headers }>}
  */
-export async function fetchWithTimeout(url, timeoutMs = 5000, allowlist = []) {
+export async function fetchWithTimeout(url, timeoutMs = 5000, allowlist = [], options = {}) {
 	const validation = validateUrl(url, allowlist);
 	if (!validation.allowed) {
 		return { ok: false, error: validation.reason };
@@ -46,13 +47,18 @@ export async function fetchWithTimeout(url, timeoutMs = 5000, allowlist = []) {
 	const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
 	try {
-		const response = await fetch(url, { signal: controller.signal });
+		const fetchOptions = {
+			signal: controller.signal,
+			...options,
+		};
+		const response = await fetch(url, fetchOptions);
 		clearTimeout(timeoutId);
 		const body = await response.text();
 		return {
 			ok: response.ok,
 			body: response.ok ? body : undefined,
 			error: response.ok ? undefined : `HTTP ${response.status}`,
+			headers: response.headers,
 		};
 	} catch (err) {
 		clearTimeout(timeoutId);
