@@ -904,8 +904,11 @@ export default function App({
 		} catch (err) {
 			// Abort is a normal interruption, not an error
 			if (err.name === "AbortError") {
-				// Clean up: remove the user message that was added before the aborted stream
+				// Clean up: remove the assistant's tool-call message (if any) and the user message.
+				// The assistant's tool-call message is removed first to prevent orphaned tool_calls
+				// from corrupting the conversation history sent to the LLM API on resume.
 				if (sessionState) {
+					sessionState.removeLastAssistantToolCallMessage();
 					sessionState.popExchange();
 				}
 				// Clear the partial streaming assistant message from UI
@@ -947,6 +950,15 @@ export default function App({
 			abortControllerRef.current = null;
 		}
 		isStreamingRef.current = false;
+
+		// Clean up the assistant's tool-call message from session state.
+		// This removes any orphaned AIMessage with tool_calls that was never
+		// completed, preventing corrupted conversation history from being sent
+		// to the LLM API on resume.
+		if (sessionState) {
+			sessionState.removeLastAssistantToolCallMessage();
+		}
+
 		setMessages((prev) => {
 			const cloned = [...prev];
 			const last = cloned[cloned.length - 1];

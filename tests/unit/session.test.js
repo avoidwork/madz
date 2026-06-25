@@ -86,6 +86,85 @@ describe("session - state manager", () => {
 		assert.ok(Array.isArray(state.conversation));
 		assert.ok(Array.isArray(state.skills));
 	});
+
+	it("removes last assistant message with tool_calls", () => {
+		const manager = new SessionStateManager({});
+		manager.addExchange({ role: "user", content: "hello" });
+		manager.addExchange({
+			role: "assistant",
+			content: { tool_calls: [{ id: "call_1", function: { name: "test" } }] },
+		});
+		const result = manager.removeLastAssistantToolCallMessage();
+		assert.ok(result);
+		assert.strictEqual(result.role, "assistant");
+		assert.strictEqual(manager.getConversation().length, 1);
+		assert.strictEqual(manager.getConversation()[0].role, "user");
+	});
+
+	it("does not remove assistant message without tool_calls", () => {
+		const manager = new SessionStateManager({});
+		manager.addExchange({ role: "user", content: "hello" });
+		manager.addExchange({ role: "assistant", content: "just text" });
+		const result = manager.removeLastAssistantToolCallMessage();
+		assert.strictEqual(result, undefined);
+		assert.strictEqual(manager.getConversation().length, 2);
+	});
+
+	it("returns undefined when no assistant message exists", () => {
+		const manager = new SessionStateManager({});
+		manager.addExchange({ role: "user", content: "hello" });
+		const result = manager.removeLastAssistantToolCallMessage();
+		assert.strictEqual(result, undefined);
+		assert.strictEqual(manager.getConversation().length, 1);
+	});
+
+	it("returns undefined and is safe on empty conversation", () => {
+		const manager = new SessionStateManager({});
+		const result = manager.removeLastAssistantToolCallMessage();
+		assert.strictEqual(result, undefined);
+		assert.strictEqual(manager.getConversation().length, 0);
+	});
+
+	it("does not remove assistant message with empty tool_calls array", () => {
+		const manager = new SessionStateManager({});
+		manager.addExchange({ role: "user", content: "hello" });
+		manager.addExchange({ role: "assistant", content: { tool_calls: [] } });
+		const result = manager.removeLastAssistantToolCallMessage();
+		assert.strictEqual(result, undefined);
+		assert.strictEqual(manager.getConversation().length, 2);
+	});
+
+	it("full interrupt cleanup: removes assistant tool-call message then user message", () => {
+		const manager = new SessionStateManager({});
+		manager.addExchange({ role: "user", content: "run search" });
+		manager.addExchange({
+			role: "assistant",
+			content: { tool_calls: [{ id: "call_1", function: { name: "search" } }] },
+		});
+
+		// Simulate handleInterrupt() cleanup: remove assistant tool-call message first
+		manager.removeLastAssistantToolCallMessage();
+		// Then pop the user message
+		manager.popExchange();
+
+		assert.strictEqual(manager.getConversation().length, 0);
+	});
+
+	it("full interrupt cleanup: handles text response (no tool_calls)", () => {
+		const manager = new SessionStateManager({});
+		manager.addExchange({ role: "user", content: "hello" });
+		manager.addExchange({ role: "assistant", content: "hi there" });
+
+		// Simulate handleInterrupt() cleanup: remove assistant tool-call message (no-op)
+		// then pop the last message (assistant text response)
+		manager.removeLastAssistantToolCallMessage();
+		manager.popExchange();
+
+		// After cleanup: user message remains (assistant text response was the last message)
+		assert.strictEqual(manager.getConversation().length, 1);
+		assert.strictEqual(manager.getConversation()[0].role, "user");
+		assert.strictEqual(manager.getConversation()[0].content, "hello");
+	});
 });
 
 describe("session - context window enforcement", () => {
