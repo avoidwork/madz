@@ -7,6 +7,7 @@ import {
 } from "../tools/compact_context.js";
 import { createLlmCache, getCacheKey } from "../cache/llm_cache.js";
 import { loadConfig } from "../config/loader.js";
+import { logger } from "../logger.js";
 /**
  * Map a LangChain message instance to its corresponding conversation role.
  * Handles all standard message types — HumanMessage, AIMessage, SystemMessage,
@@ -145,6 +146,16 @@ export async function callReactAgent(agent, message, config, systemPrompt, callb
 		if (isNewThread) {
 			messages.unshift(new SystemMessage(systemPrompt));
 		}
+	}
+
+	// Safety net: ensure system message is first in the array.
+	// This prevents "System message must be at the beginning" errors
+	// that can occur when conversation state is corrupted (e.g., after interruption).
+	const systemMsgIndex = messages.findIndex((m) => m._getType?.() === "system" || m.constructor?.name === "SystemMessage");
+	if (systemMsgIndex > 0) {
+		const [systemMsg] = messages.splice(systemMsgIndex, 1);
+		messages.unshift(systemMsg);
+		logger.warn({ systemMsgIndex }, "System message was not first in conversation array, reordered to position 0");
 	}
 
 	// Always use streaming — use user-provided callback (TUI) or default stdout callback (non-TUI)

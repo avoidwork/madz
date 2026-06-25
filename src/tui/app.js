@@ -48,6 +48,7 @@ export default function App({
 	const dispatchPromiseRef = useRef(null);
 	const autoContinueCountRef = useRef(0);
 	const isAutoContinuingRef = useRef(false);
+	const isInterruptingRef = useRef(false);
 	const { exit } = useApp();
 	const exitRef = useRef(exit);
 	exitRef.current = exit;
@@ -911,6 +912,14 @@ export default function App({
 				// Clear the partial streaming assistant message from UI
 				setMessages((prev) => prev.filter((msg) => !isStreamingMessage(msg)));
 				setStatusMessage("Interrupted.");
+			} else if (isInterruptingRef.current) {
+				// Error occurred during active interruption — handle gracefully
+				// rather than displaying as an unrecoverable error
+				if (onSaveSession) {
+					onSaveSession();
+				}
+				setMessages((prev) => prev.filter((msg) => !isStreamingMessage(msg)));
+				setStatusMessage("Interrupted.");
 			} else {
 				if (onSaveSession) {
 					onSaveSession();
@@ -957,6 +966,10 @@ export default function App({
 		});
 		setStatusMessage("Interrupted.");
 
+		// Signal that interruption is in progress — errors during this window
+		// are handled gracefully rather than displayed as unrecoverable errors.
+		isInterruptingRef.current = true;
+
 		// Wait for the dispatchProvider promise to resolve (it will throw
 		// AbortError and be caught by the try/catch, then run finally).
 		// This ensures the stream is fully dead before we proceed.
@@ -970,6 +983,22 @@ export default function App({
 				// We just need to wait for the cleanup to complete.
 			}
 		}
+
+		// Reset conversation state to ensure system message is first,
+		// then clear the interruption flag.
+		if (sessionState) {
+			const conversation = sessionState.getConversation();
+			const systemMessage = conversation.find((msg) => msg.role === "system");
+			if (systemMessage) {
+				const systemIndex = conversation.indexOf(systemMessage);
+				if (systemIndex !== 0) {
+					conversation.splice(systemIndex, 1);
+					conversation.unshift(systemMessage);
+				}
+			}
+		}
+
+		isInterruptingRef.current = false;
 	};
 
 	/**
