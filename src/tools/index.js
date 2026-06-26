@@ -24,6 +24,7 @@ import { createCompactionTool } from "./compaction.js";
 import { createSubAgentTool } from "./subAgent.js";
 import { createSubAgentLogTool } from "./subAgentLog.js";
 import { createSubAgentMessageTool } from "./subAgentMessage.js";
+import { createScanAgentsTool } from "./scanAgents.js";
 
 /**
  * Maps tool names to required permission scopes.
@@ -57,6 +58,7 @@ export const TOOL_PERMISSIONS = {
 	compaction: [],
 	subAgent: ["process:spawn"],
 	subAgentLog: ["process:spawn"],
+	scanAgents: [],
 };
 
 // Factory functions keyed by tool name
@@ -88,6 +90,7 @@ const TOOL_FACTORIES = {
 	subAgent: createSubAgentTool,
 	subAgentLog: createSubAgentLogTool,
 	subAgentMessage: createSubAgentMessageTool,
+	scanAgents: createScanAgentsTool,
 };
 
 /**
@@ -192,7 +195,8 @@ export async function buildToolConfig(options) {
 			case "clarify":
 			case "executeCode":
 			case "sampling":
-			case "date": {
+			case "date":
+			case "scanAgents": {
 				tools.push(TOOL_FACTORIES[toolName](runtimeOptions));
 				continue;
 			}
