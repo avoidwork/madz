@@ -41,6 +41,7 @@ export async function loadAgents(cwd = process.cwd(), maxReadSize) {
 	return (
 		"## Workspace Rules\n\n" +
 		"The following rules are loaded from the workspace `AGENTS.md`. They define project-specific conventions and constraints. Follow them strictly:\n\n" +
+		"---\n\n" +
 		content.trim()
 	);
 }
