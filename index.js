@@ -173,7 +173,7 @@ const checkpointer = createCheckpointer(config.persistence);
 
 const tools = await buildToolConfig({
 	permissions: config.sandbox.permissions || [],
-	allowedPaths: config.sandbox.paths || ["memory/", "skills/", "tmp/"],
+	allowedPaths: config.sandbox.paths,
 	maxReadSize: config.sandbox.maxReadSize || "1mb",
 	registry,
 	sessionsDir: "memory/sessions/",

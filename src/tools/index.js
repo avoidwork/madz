@@ -120,7 +120,7 @@ const TOOL_FACTORIES = {
 export async function buildToolConfig(options) {
 	const {
 		permissions = [],
-		allowedPaths = ["memory/", "skills/", "tmp/"],
+		allowedPaths = [],
 		maxReadSize = "1mb",
 		registry,
 		sessionsDir = "memory/sessions/",
