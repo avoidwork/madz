@@ -1,15 +1,14 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import { access, readFile } from "node:fs/promises";
-import { join } from "node:path";
-import { validatePath, checkFileLimit } from "./common.js";
+import { validatePath } from "./common.js";
+import { loadAgents } from "../workspace/loadAgents.js";
 
 const ScanAgentsSchema = z.object({
 	path: z.string().optional().describe("Path to scan for AGENTS.md (defaults to current working directory)"),
 });
 
 /**
- * Core scanAgents logic: check for AGENTS.md at the specified path and return contents.
+ * Core scanAgents logic: delegate to loadAgents with validated path.
  * @param {z.infer<typeof ScanAgentsSchema>} input - The tool input
  * @param {object} options - Runtime options (allowedPaths, maxReadSize)
  * @returns {Promise<string>} File contents or empty string
@@ -21,26 +20,7 @@ export async function scanAgentsImpl(input, options) {
 		return `Error: ${resolved.error}`;
 	}
 
-	const agentsPath = join(resolved.path, "AGENTS.md");
-
-	try {
-		await access(agentsPath);
-	} catch {
-		// File not found — return empty string silently
-		return "";
-	}
-
-	const limitCheck = await checkFileLimit(agentsPath, options.maxReadSize);
-	if (!limitCheck.ok) {
-		return limitCheck.error;
-	}
-
-	try {
-		const content = await readFile(agentsPath, "utf-8");
-		return content;
-	} catch (err) {
-		return `Error: ${err.message}`;
-	}
+	return await loadAgents(resolved.path, options.maxReadSize);
 }
 
 /**

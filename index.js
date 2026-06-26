@@ -108,6 +108,9 @@ registry.discover();
 const { writeMemoryFile, readMemoryFile, loadContext, loadMemories, formatMemoriesForPrompt } =
 	await import("./src/memory/index.js");
 
+// Initialize workspace rules loader
+const { loadAgents } = await import("./src/workspace/loadAgents.js");
+
 // Initialize GC manager (if enabled)
 let gcManager = null;
 let gcTrace = null;
@@ -202,9 +205,10 @@ async function callProvider(_name, _providerConfig, message, streamingCallback, 
 	const threadId = sessionState.getThreadId();
 	const memoryEntries = await loadMemories(memoryEntriesDir);
 	const memoryText = formatMemoriesForPrompt(memoryEntries);
+	const agentsText = await loadAgents();
 	const catalog = registry.getCatalog();
 	const skillCatalog = generateSkillCatalogPrompt(catalog);
-	const callPrompt = `${systemPrompt}${skillCatalog ? `\n\n${skillCatalog}` : ""}${memoryText ? `\n\n${memoryText}` : ""}`;
+	const callPrompt = `${systemPrompt}${agentsText ? `\n\n${agentsText}` : ""}${skillCatalog ? `\n\n${skillCatalog}` : ""}${memoryText ? `\n\n${memoryText}` : ""}`;
 	const result = await callReactAgent(
 		agent,
 		message,
