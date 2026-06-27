@@ -106,7 +106,7 @@ function msToSeconds(ms) {
  * @param {string} cwd - Working directory for the sub-agent
  * @returns {Promise<{ ok: boolean, result: string, error?: string, sessionId?: string }>}
  */
-export function spawnSubAgentProcess(prompt, timeout, cwd) {
+export function spawnSubAgentProcess(prompt, timeout, activeCwd = cwd) {
 	return new Promise((resolve) => {
 		const sessionId = generateSessionId();
 		const timeoutSeconds = msToSeconds(timeout);
