@@ -11,7 +11,7 @@ import { loadConfig } from "../config/loader.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const cwd = loadConfig().cwd;
+const defaultCwd = loadConfig().cwd;
 
 const SUBAGENT_MARKER = "# SubAgent";
 
@@ -103,10 +103,10 @@ function msToSeconds(ms) {
  * Spawn a single sub-agent process using system timeout command.
  * @param {string} prompt - The full prompt (context ||| delegation)
  * @param {number} timeout - Timeout in milliseconds
- * @param {string} cwd - Working directory for the sub-agent
+ * @param {string} targetCwd - Working directory for the sub-agent
  * @returns {Promise<{ ok: boolean, result: string, error?: string, sessionId?: string }>}
  */
-export function spawnSubAgentProcess(prompt, timeout, activeCwd = cwd) {
+export function spawnSubAgentProcess(prompt, timeout, targetCwd = defaultCwd) {
 	return new Promise((resolve) => {
 		const sessionId = generateSessionId();
 		const timeoutSeconds = msToSeconds(timeout);
@@ -120,7 +120,7 @@ export function spawnSubAgentProcess(prompt, timeout, activeCwd = cwd) {
 				timeoutSeconds.toString(),
 				"node",
 				"index.js",
-				`--cwd=${activeCwd}`,
+				`--cwd=${targetCwd}`,
 				`"${prompt}"`,
 			],
 			{
@@ -189,10 +189,10 @@ export function spawnSubAgentProcess(prompt, timeout, activeCwd = cwd) {
  * @param {number} maxConcurrent - Maximum concurrent processes
  * @param {"continue" | "fail-fast"} onError - Error handling strategy
  * @param {number} timeout - Timeout in milliseconds
- * @param {string} cwd - Working directory for the sub-agent
+ * @param {string} targetCwd - Working directory for the sub-agent
  * @returns {Promise<{ ok: boolean, result: string, error?: string }>}
  */
-async function executeFanOut(tasks, strategy, maxConcurrent, onError, timeout, cwd) {
+async function executeFanOut(tasks, strategy, maxConcurrent, onError, timeout, targetCwd) {
 	const results = [];
 	let failed = false;
 
@@ -201,7 +201,7 @@ async function executeFanOut(tasks, strategy, maxConcurrent, onError, timeout, c
 			if (failed && onError === "fail-fast") break;
 
 			const prompt = task.context ? `${task.context}\n\n${task.delegation}` : task.delegation;
-			const result = await spawnSubAgentProcess(prompt, timeout, cwd);
+			const result = await spawnSubAgentProcess(prompt, timeout, targetCwd);
 
 			if (task.id) {
 				results.push({ id: task.id, ...result });
@@ -224,7 +224,7 @@ async function executeFanOut(tasks, strategy, maxConcurrent, onError, timeout, c
 				const task = queue.shift();
 				const promise = (async () => {
 					const prompt = task.context ? `${task.context}\n\n${task.delegation}` : task.delegation;
-					const result = await spawnSubAgentProcess(prompt, timeout, cwd);
+					const result = await spawnSubAgentProcess(prompt, timeout, targetCwd);
 
 					if (task.id) {
 						results.push({ id: task.id, ...result });
@@ -300,7 +300,7 @@ export function createSubAgentTool(options = {}) {
 					onError,
 					returnParams,
 					timeout,
-					cwd: subAgentCwd = cwd,
+					cwd: targetCwd = defaultCwd,
 				} = input;
 
 				// Resolve timeout
@@ -320,7 +320,7 @@ export function createSubAgentTool(options = {}) {
 						fanOutMaxConcurrent,
 						fanOutOnError,
 						resolvedTimeout,
-						subAgentCwd,
+						targetCwd,
 					);
 
 					// Apply returnParams filtering if specified
@@ -344,7 +344,7 @@ export function createSubAgentTool(options = {}) {
 				}
 
 				const prompt = context ? `${context}\n\n${delegation}` : delegation;
-				const result = await spawnSubAgentProcess(prompt, resolvedTimeout, subAgentCwd);
+				const result = await spawnSubAgentProcess(prompt, resolvedTimeout, targetCwd);
 
 				// Apply returnParams filtering if specified
 				if (returnParams && returnParams.length > 0 && result.ok) {
