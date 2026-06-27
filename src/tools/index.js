@@ -195,7 +195,10 @@ export async function buildToolConfig(options) {
 		const hasAllPerms = requiredPerms.every((perm) => enabledSet.has(perm));
 
 		// Sub-agents don't get subAgent tools (prevent infinite recursion)
-		if (subAgent && (toolName === "subAgent" || toolName === "subAgentLog" || toolName === "subAgentMessage")) {
+		if (
+			subAgent &&
+			(toolName === "subAgent" || toolName === "subAgentLog" || toolName === "subAgentMessage")
+		) {
 			continue;
 		}
 
