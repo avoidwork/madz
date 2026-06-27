@@ -345,11 +345,12 @@ All configuration is controlled via environment variables in the `docker run` co
 
 | Variable                              | Default    | Description                                    |
 | ------------------------------------- | ---------- | ---------------------------------------------- |
-| `PROCESS_SUBAGENT_TIMEOUT`            | `600000`   | Sub-agent process timeout in milliseconds      |
-| `PROCESS_SUBAGENT_MAX_CONCURRENT`     | `4`        | Max concurrent sub-agent processes             |
-| `PROCESS_SUBAGENT_SESSION_MODE`       | `isolated` | Session isolation mode (`isolated`, `forked`, `shared`) |
-| `PROCESS_SUBAGENT_DEFAULT_STRATEGY`   | `parallel` | Default fan-out strategy (`parallel`, `sequential`) |
-| `PROCESS_SUBAGENT_DEFAULT_ON_ERROR`   | `continue` | Default error handling strategy (`continue`, `fail-fast`) |
+| `SUB_AGENT_TIMEOUT`               | `600000`   | Sub-agent process timeout in milliseconds      |
+| `SUB_AGENT_MAX_CONCURRENT`        | `4`        | Max concurrent sub-agent processes             |
+| `SUB_AGENT_SESSION_MODE`          | `isolated` | Session isolation mode (`isolated`, `forked`, `shared`) |
+| `SUB_AGENT_DEFAULT_STRATEGY`      | `parallel` | Default fan-out strategy (`parallel`, `sequential`) |
+| `SUB_AGENT_DEFAULT_ON_ERROR`      | `continue` | Default error handling strategy (`continue`, `fail-fast`) |
+| `SUB_AGENT_TEMPERATURE`           | `0.7`      | Sampling temperature (0–2) for sub-agent LLM calls |
 
 **Optional — Persistence:**
 
@@ -659,7 +660,7 @@ Skills follow the [Agent Skills spec](https://agentskills.io/specification). Eac
 
 `madz` supports two environment variable patterns:
 
-1. **Direct override** — set env vars to override `config.yaml` values. Names follow `UPPER_SNAKE_CASE` of the config key path, with container keys (`providers`, `credentials`, `timeout`, `search`, `ratelimit`) dropped from the name. For example:
+1. **Direct override** — set env vars to override `config.yaml` values. Names follow `UPPER_SNAKE_CASE` of the config key path, with container keys (`providers`, `credentials`, `timeout`, `search`, `ratelimit`, `process`) dropped from the name. For example:
 
    | Config Path                              | Env Var Name          |
    | ---------------------------------------- | --------------------- |
@@ -688,3 +689,4 @@ See [Config Reference](#config-reference) for the full list of configuration key
 Licensed under the [BSD-3-Clause](LICENSE) License.
 
 Copyright (c) 2026 Jason Mulligan.
+on Mulligan.
