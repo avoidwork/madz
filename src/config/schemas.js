@@ -301,7 +301,16 @@ export const DEFAULT_CONFIG = {
 	lru: { size: 100, ttl: 600000 },
 	tui: { name: "madz", cursorChar: "\u2588" },
 	persistence: { mode: "memory", sqlite_path: "memory/checkpoints.db" },
-	process: { subAgent: { timeout: 600000, maxConcurrent: 4, sessionMode: "isolated", defaultStrategy: "parallel", defaultOnError: "continue", temperature: 0.7 } },
+	process: {
+		subAgent: {
+			timeout: 600000,
+			maxConcurrent: 4,
+			sessionMode: "isolated",
+			defaultStrategy: "parallel",
+			defaultOnError: "continue",
+			temperature: 0.7,
+		},
+	},
 	cwd: "",
 	subAgent: false,
 };
