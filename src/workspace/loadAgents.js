@@ -2,6 +2,8 @@ import { readFile, access } from "node:fs/promises";
 import { join } from "node:path";
 import { checkFileLimit } from "../tools/common.js";
 
+const cliCwd = process.argv.find((arg) => arg.startsWith("--cwd="))?.split("=")[1];
+
 /**
  * Check if a file path exists.
  * @param {string} filepath - File path to check
@@ -18,12 +20,13 @@ async function fileExists(filepath) {
 
 /**
  * Load AGENTS.md from the current working directory and format it for the system prompt.
- * @param {string} [cwd=process.cwd()] - Working directory to read AGENTS.md from
+ * @param {string} [cwd] - Working directory to read AGENTS.md from. Defaults to --cwd CLI arg or process.cwd().
  * @param {string} [maxReadSize] - Maximum file size to read (e.g., "1mb")
  * @returns {Promise<string>} Formatted prompt section, or empty string if file not found
  */
-export async function loadAgents(cwd = process.cwd(), maxReadSize) {
-	const agentsPath = join(cwd, "AGENTS.md");
+export async function loadAgents(cwd, maxReadSize) {
+	const resolvedCwd = cwd || cliCwd || process.cwd();
+	const agentsPath = join(resolvedCwd, "AGENTS.md");
 
 	if (!(await fileExists(agentsPath))) {
 		return "";

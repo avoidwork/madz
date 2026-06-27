@@ -345,6 +345,11 @@ export function createSubAgentTool(options = {}) {
 			description:
 				"Spawn child-process agents to execute prompts as independent sub-agents. Supports single execution and fan-out (parallel/sequential) modes with configurable concurrency, timeout, and error handling. Each sub-agent receives a prompt constructed from context and delegation instruction separated by ' ||| '. Returns structured JSON result with ok, result, and optional error fields.",
 			schema: z.object({
+				cwd: z
+					.string()
+					.describe(
+						"Working directory for the sub-agent process. All file operations and relative paths will be resolved from this directory.",
+					),
 				delegation: z
 					.string()
 					.optional()
