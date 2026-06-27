@@ -1,6 +1,9 @@
 import { readdir, unlink, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { parseFrontmatter } from "./reader.js";
+import { loadConfig } from "../config/loader.js";
+
+const cwd = loadConfig().cwd;
 
 /**
  * Read an ephemeral memory file and extract frontmatter metadata.
@@ -10,7 +13,7 @@ import { parseFrontmatter } from "./reader.js";
  */
 export async function readEphemeralFile(contextDir, filename) {
 	try {
-		const filepath = join(process.cwd(), contextDir, filename);
+		const filepath = join(cwd, contextDir, filename);
 		const content = await readFile(filepath, "utf-8");
 		const { frontmatter } = parseFrontmatter(content);
 		return {
@@ -45,7 +48,7 @@ export async function expireEphemeralMemories(contextDir, nowStr) {
 	const checkNow = nowStr ? new Date(nowStr) : new Date();
 	let files;
 	try {
-		files = await readdir(join(process.cwd(), contextDir));
+		files = await readdir(join(cwd, contextDir));
 	} catch {
 		return 0;
 	}
@@ -54,7 +57,7 @@ export async function expireEphemeralMemories(contextDir, nowStr) {
 		if (!file.endsWith(".md")) continue;
 		const info = await readEphemeralFile(contextDir, file);
 		if (info && info.ephemeral && isExpired(info.expiresAt, checkNow)) {
-			const filepath = join(process.cwd(), contextDir, file);
+			const filepath = join(cwd, contextDir, file);
 			try {
 				await unlink(filepath);
 				removed++;

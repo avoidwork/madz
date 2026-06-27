@@ -142,7 +142,10 @@ export function loadConfig() {
 		}
 	}
 	const resolved = _resolveEnvRecursively(raw, []);
-	return validateConfig(resolved);
+	const config = validateConfig(resolved);
+	// Capture the original working directory before any chdir happens
+	config.cwd = process.cwd();
+	return config;
 }
 
 /**

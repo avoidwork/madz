@@ -17,6 +17,7 @@
   - [Installation](#installation)
   - [Configuration](#configuration)
   - [Running](#running)
+  - [CLI Arguments](#cli-arguments)
   - [TUI Navigation](#tui-navigation)
 - [Docker](#docker)
   - [Building](#building)
@@ -127,6 +128,36 @@ node index.js "What's the CPU load?"
 
 ```bash
 node index.js "Summarize memory/_index.md" --json
+```
+
+### CLI Arguments
+
+All CLI arguments are parsed via [yargs](https://yargs.js.org/).
+
+| Argument              | Alias | Type     | Description                              |
+| --------------------- | ----- | -------- | ---------------------------------------- |
+| `--cwd`               | `-c`  | `string` | Working directory to use                 |
+| `--mode`              | `-m`  | `string` | CLI mode: `"chat"` or `"interactive"`    |
+| `--session`           | `-s`  | `string` | Session ID to restore                    |
+| `message` (positional) | —    | `string` | Message to send (default: `"Hello"`)     |
+
+**Examples:**
+
+```bash
+# Interactive TUI
+node index.js --mode interactive
+
+# Chat mode with a message
+node index.js "What's the CPU load?"
+
+# Chat mode with session restore
+node index.js --session abc123
+
+# Chat mode with custom working directory
+node index.js --cwd /path/to/project "Run diagnostics"
+
+# Interactive TUI with session restore
+node index.js --mode interactive --session abc123
 ```
 
 ### TUI Navigation

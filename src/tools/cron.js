@@ -57,7 +57,7 @@ export async function findSkillScript(skillName, baseDir = ["system-skills", "sk
  * @returns {Promise<{ stdout: string, stderr: string, exitCode: number }>}
  */
 export async function runScript(scriptPath, args = [], options = {}) {
-	const { timeout = 30000, cwd = process.cwd() } = options;
+	const { timeout = 30000, cwd: scriptCwd = cwd } = options;
 	return new Promise((resolve) => {
 		const child = spawn(scriptPath, args, {
 			cwd,
@@ -492,6 +492,10 @@ export function createCronTool(options) {
 				.optional()
 				.describe("Shell command to execute (required for create if skill not provided)"),
 			input: z.record(z.unknown()).optional().describe("Job input parameters"),
+		}),
+	});
+}
+z.record(z.unknown()).optional().describe("Job input parameters"),
 		}),
 	});
 }

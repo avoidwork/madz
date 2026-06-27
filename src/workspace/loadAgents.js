@@ -20,12 +20,12 @@ async function fileExists(filepath) {
 
 /**
  * Load AGENTS.md from the current working directory and format it for the system prompt.
- * @param {string} [cwd] - Working directory to read AGENTS.md from. Defaults to --cwd CLI arg or process.cwd().
+ * @param {string} [targetCwd] - Working directory to read AGENTS.md from. Defaults to config.cwd.
  * @param {string} [maxReadSize] - Maximum file size to read (e.g., "1mb")
  * @returns {Promise<string>} Formatted prompt section, or empty string if file not found
  */
-export async function loadAgents(cwd, maxReadSize) {
-	const resolvedCwd = cwd || cliCwd || process.cwd();
+export async function loadAgents(targetCwd, maxReadSize) {
+	const resolvedCwd = targetCwd || cwd;
 	const agentsPath = join(resolvedCwd, "AGENTS.md");
 
 	if (!(await fileExists(agentsPath))) {
@@ -45,6 +45,9 @@ export async function loadAgents(cwd, maxReadSize) {
 		"## Workspace Rules\n\n" +
 		"The following rules are loaded from the workspace `AGENTS.md`. They define project-specific conventions and constraints. Follow them strictly:\n\n" +
 		"---\n\n" +
+		content.trim()
+	);
+}		"---\n\n" +
 		content.trim()
 	);
 }

@@ -23,7 +23,7 @@ function escapeYamlString(str) {
  * @throws {Error} If the underlying filesystem operation fails (missing directory, disk full, permissions)
  */
 export async function saveSession(sessionsDir, conversation, threadId = "") {
-	const dir = join(process.cwd(), sessionsDir);
+	const dir = join(cwd, sessionsDir);
 
 	const filename = threadId ? `${threadId}.md` : "unsaved.md";
 	const isoTimestamp = new Date().toISOString();
@@ -51,5 +51,8 @@ export async function saveSession(sessionsDir, conversation, threadId = "") {
 	];
 
 	const content = frontmatterLines.join("\n") + body + "\n";
+	await writeFile(join(dir, filename), content);
+}
+ontmatterLines.join("\n") + body + "\n";
 	await writeFile(join(dir, filename), content);
 }

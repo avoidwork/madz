@@ -119,7 +119,7 @@ export async function runSandbox(options) {
 		whitelist = [],
 		timeout = 30,
 		_args = {},
-		cwd = process.cwd(),
+		cwd = cwd,
 	} = options;
 
 	const { _rules } = enforceCapabilities(permissions);
@@ -185,6 +185,13 @@ export async function runSandbox(options) {
 			const status = await handleTimeout(child, { seconds: timeout, gracePeriod: 5 });
 			if (status === "killed" || (status === "terminated" && child.exitCode !== 0)) {
 				// Timeout or error — already resolved via exit handler
+			}
+		})();
+	});
+
+	return result;
+}
+imeout or error — already resolved via exit handler
 			}
 		})();
 	});

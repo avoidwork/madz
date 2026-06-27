@@ -1,14 +1,35 @@
 #!/usr/bin/env node
 
-// Parse --cwd CLI argument via yargs
+// Load config first — before any other ./src imports — so config.cwd is set
+// before process.chdir() potentially changes the working directory.
+import { loadConfig } from "./src/config/loader.js";
+const config = loadConfig();
+
+// Parse CLI arguments via yargs
 import yargs from "yargs";
 const { hideBin } = yargs;
-const parsed = yargs(hideBin(process.argv)).option("cwd", {
-	alias: "c",
-	type: "string",
-	description: "Working directory to use",
-}).argv;
+const parsed = yargs(hideBin(process.argv))
+	.option("cwd", {
+		alias: "c",
+		type: "string",
+		description: "Working directory to use",
+	})
+	.option("mode", {
+		alias: "m",
+		type: "string",
+		description: "CLI mode: 'chat' or 'interactive'",
+	})
+	.option("session", {
+		type: "string",
+		description: "Session ID to restore",
+	})
+	.positional("message", {
+		type: "string",
+		description: "Message to send",
+	})
+	.argv;
 
+// Change to the configured working directory before any other imports
 if (parsed.cwd) {
 	process.chdir(parsed.cwd);
 }
@@ -19,7 +40,7 @@ import { loadSession } from "./src/session/loader.js";
 
 import React from "react";
 
-const { loadConfig, setConfigValue } = await import("./src/config/loader.js");
+const { setConfigValue } = await import("./src/config/loader.js");
 const { createChatModel } = await import("./src/provider/openai.js");
 const { createReactAgent, callReactAgent } = await import("./src/agent/react.js");
 const { buildToolConfig } = await import("./src/tools/index.js");
@@ -30,8 +51,6 @@ const { default: pkg } = await import(new URL("package.json", import.meta.url).h
 });
 
 // Initialize subsystems
-const config = loadConfig();
-
 // Sync crontab from persisted job definitions (runs before any subsystem)
 if (config.schedules.syncOnInit !== false) {
 	try {
@@ -48,7 +67,7 @@ if (config.schedules.syncOnInit !== false) {
 
 		// Ensure the daily reflection job exists in crontab and persisted (covers upgrading users
 		// who have no reflection-daily.json on disk). Cron.add() is idempotent.
-		const cwd = process.cwd();
+		const cwd = config.cwd;
 		const jobResult = Cron.add({
 			name: "reflection-daily",
 			cron: "0 2 * * *",
@@ -83,7 +102,7 @@ if (config.schedules.syncOnInit !== false) {
 
 // Ensure sessions directory exists before any subsystem initialization
 const { ensureSessionsDir } = await import("./src/session/index.js");
-await ensureSessionsDir("memory/sessions/");
+await ensureSessionsDir(config.cwd + "/" + "memory/sessions/");
 
 // Initialize contextual onboarding if profile is missing (with graceful degradation)
 let onboardingInstance = null;
@@ -114,7 +133,7 @@ if (config.telemetry.enabled) {
 const { SkillRegistry, resolvePermissions, ensureSkillsDir } =
 	await import("./src/skills/index.js");
 const registry = new SkillRegistry();
-await ensureSkillsDir("skills/");
+await ensureSkillsDir(config.cwd + "/" + "skills/");
 registry.discover();
 
 // Initialize memory system
@@ -170,7 +189,7 @@ const sessionState = new SessionStateManager(initialState);
 // Session-init: asynchronously clean up expired ephemeral memories (non-blocking)
 try {
 	const { expireEphemeralMemories } = await import("./src/memory/expireEphemeral.js");
-	queueMicrotask(() => expireEphemeralMemories(config.memory.contextDir).catch(() => {}));
+	queueMicrotask(() => expireEphemeralMemories(config.cwd + "/" + config.memory.contextDir).catch(() => {}));
 } catch {
 	// Graceful degradation: session starts even if cleanup import fails
 }
@@ -178,8 +197,8 @@ try {
 // Load system prompt and append memory entries
 const { loadSystemPrompt } = await import("./src/memory/prompts.js");
 const { generateSkillCatalogPrompt } = await import("./src/tools/skills.js");
-const systemPrompt = loadSystemPrompt();
-const memoryEntriesDir = config.memory?.entriesDir || "memory/context/";
+const systemPrompt = loadSystemPrompt(config.cwd);
+const memoryEntriesDir = config.cwd + "/" + (config.memory?.entriesDir || "memory/context/");
 // Build agent and tool config at startup (once)
 const providerConfig = config.providers[providerName] || {};
 
@@ -192,11 +211,11 @@ const tools = await buildToolConfig({
 	allowedPaths: config.sandbox.paths,
 	maxReadSize: config.sandbox.maxReadSize || "1mb",
 	registry,
-	sessionsDir: "memory/sessions/",
+	sessionsDir: config.cwd + "/" + "memory/sessions/",
 	safety: config.sandbox.safety,
 	timeout: config.sandbox.timeout,
 	memoryLimit: config.sandbox.memoryLimit,
-	contextDir: config.memory?.contextDir || "memory/context/",
+	contextDir: config.cwd + "/" + (config.memory?.contextDir || "memory/context/"),
 	ephemeralTtlDays: config.memory?.ephemeral?.ttlDays || 7,
 	ephemeralMaxEntries: config.memory?.ephemeral?.maxEntries || 10,
 	config,
@@ -244,7 +263,7 @@ async function callProvider(_name, _providerConfig, message, streamingCallback, 
 async function handleConversation(message, sessionId = "") {
 	// Restore existing session if requested
 	if (sessionId) {
-		const { conversation } = await loadSession("memory/sessions/", 20);
+		const { conversation } = await loadSession(config.cwd + "/" + "memory/sessions/", 20);
 		if (conversation && conversation.length > 0) {
 			conversation.forEach((msg) => sessionState.addExchange(msg));
 		}
@@ -257,7 +276,7 @@ async function handleConversation(message, sessionId = "") {
 
 	// Persist to memory
 	writeMemoryFile(
-		"memory/sessions/",
+		config.cwd + "/" + "memory/sessions/",
 		`Conversation ${new Date().toISOString()}`,
 		{
 			provider: response.provider,
@@ -298,7 +317,7 @@ async function invokeSkill(skillName, input = {}) {
 
 // Shared shutdown logic — called on signals and in non-interactive mode
 const runShutdown = async () => {
-	await saveSession("memory/sessions/", sessionState.getConversation(), sessionId);
+	await saveSession(config.cwd + "/" + "memory/sessions/", sessionState.getConversation(), sessionId);
 
 	if (gcManager) {
 		gcManager.stop();
@@ -314,16 +333,9 @@ registerShutdownHandler(runShutdown);
 // CLI mode detection (if run directly as node.js/index.js)
 const isMain = process.argv[1] === fileURLToPath(import.meta.url);
 if (isMain) {
-	const args = process.argv.slice(2);
-	const mode = args.some((a, i) => a === "--mode" && args[i + 1] === "interactive")
-		? "interactive"
-		: "chat";
-
-	let chatSessionId = args.reduce((id, a, i) => {
-		if (a === "-s") return args[i + 1] || id;
-		return id;
-	}, "");
-	let message = args.filter((a) => !a.startsWith("--"))[0];
+	const mode = parsed.mode === "interactive" ? "interactive" : "chat";
+	const chatSessionId = parsed.session || "";
+	let message = parsed.message;
 	if (!message && chatSessionId) {
 		message = "continue";
 	}
@@ -356,7 +368,7 @@ if (isMain) {
 				appInfo,
 				onboarding: onboardingInstance,
 				onSaveSession: async () =>
-					await saveSession("memory/sessions/", sessionState.getConversation(), sessionId),
+					await saveSession(config.cwd + "/" + "memory/sessions/", sessionState.getConversation(), sessionId),
 				gcManager: gcManager ? gcManager.onActivity.bind(gcManager) : null,
 				gcTrigger: gcTrace,
 				checkpointer,

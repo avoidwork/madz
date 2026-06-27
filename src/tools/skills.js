@@ -220,7 +220,7 @@ export async function createSkillImpl(input, options) {
 	}
 
 	// Create the skill directory
-	const skillPath = join(process.cwd(), skillsDir, name);
+	const skillPath = join(cwd, skillsDir, name);
 	const skillMdPath = join(skillPath, "SKILL.md");
 	let createdPaths = [skillPath, skillMdPath];
 
@@ -463,6 +463,11 @@ export function createCreateSkillTool(options) {
 				.boolean()
 				.optional()
 				.default(false)
+				.describe("Create a scripts/ directory with a README.md placeholder"),
+		}),
+	});
+}
+e)
 				.describe("Create a scripts/ directory with a README.md placeholder"),
 		}),
 	});

@@ -10,7 +10,7 @@ import { validateSkillSchema } from "./validator.js";
  * @returns {Promise<void>}
  */
 export async function ensureSkillsDir(skillsDir = "skills/") {
-	const dir = join(process.cwd(), skillsDir);
+	const dir = join(cwd, skillsDir);
 	await mkdir(dir, { recursive: true });
 }
 
@@ -221,6 +221,15 @@ export class SkillRegistry {
 	getErrors() {
 		return this.#errors;
 	}
+
+	/**
+	 * Count of registered skills.
+	 */
+	get size() {
+		return this.#skills.size;
+	}
+}
+
 
 	/**
 	 * Count of registered skills.

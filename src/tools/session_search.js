@@ -29,7 +29,7 @@ async function exists(path) {
  * @returns {Promise<string>} Search results or conversation content
  */
 export async function sessionSearchImpl(input, options) {
-	const sessionsDir = join(process.cwd(), options.sessionsDir || "memory/sessions/");
+	const sessionsDir = join(cwd, options.sessionsDir || "memory/sessions/");
 
 	if (input.conversationId) {
 		return getFullConversation(sessionsDir, input.conversationId);
@@ -246,6 +246,10 @@ export function createSessionSearchTool(options) {
 			query: z.string().optional().describe("Search query to find matching conversations"),
 			conversationId: z.string().optional().describe("Get full conversation by ID"),
 			limit: z.number().int().positive().default(10).describe("Maximum number of search results"),
+		}),
+	});
+}
+().int().positive().default(10).describe("Maximum number of search results"),
 		}),
 	});
 }

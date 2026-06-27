@@ -14,7 +14,7 @@ const PROFILE_FILENAME = "profile.md";
  * @returns {string} Combined context content with profile prefix
  */
 export function loadContext(contextDir = "memory/context/", limit = 10) {
-	const fullPath = join(process.cwd(), contextDir);
+	const fullPath = join(cwd, contextDir);
 	try {
 		// Load profile context block first
 		const profileBlock = loadAndFormatProfile(fullPath, contextDir);
@@ -66,6 +66,12 @@ function loadAndFormatProfile(fullPath, _contextDir) {
 		const profilePath = join(fullPath, "..", "..", "memory", "context", "profile.md");
 		const profile = loadProfile(profilePath);
 		if (!profile) return "";
+		return formatProfileContext(profile.data);
+	} catch {
+		return "";
+	}
+}
+file) return "";
 		return formatProfileContext(profile.data);
 	} catch {
 		return "";

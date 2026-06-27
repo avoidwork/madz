@@ -7,7 +7,7 @@ import { join } from "node:path";
  * @returns {Promise<void>}
  */
 export async function ensureSessionsDir(sessionsDir) {
-	const dir = join(process.cwd(), sessionsDir);
+	const dir = join(cwd, sessionsDir);
 	await mkdir(dir, { recursive: true });
 }
 
@@ -17,4 +17,6 @@ export { enforceContextWindow, trimConversation } from "./window.js";
 export { loadSession } from "./loader.js";
 export { saveSession } from "./saver.js";
 export { handleShutdown, registerShutdownHandler } from "./shutdown.js";
+export { createCheckpointer } from "./checkpointer.js";
+ownHandler } from "./shutdown.js";
 export { createCheckpointer } from "./checkpointer.js";

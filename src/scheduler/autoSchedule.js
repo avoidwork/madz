@@ -2,6 +2,9 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { Cron } from "./cron.js";
 import { logger } from "../logger.js";
+import { loadConfig } from "../config/loader.js";
+
+const cwd = loadConfig().cwd;
 
 const JOB_CRON = "0 2 * * *";
 
@@ -89,7 +92,6 @@ export function setupAutoSchedule(options = {}) {
 	 * @returns {void}
 	 */
 	return function autoScheduleCallback() {
-		const cwd = process.cwd();
 		const job = createJobDefinition(cwd);
 
 		try {

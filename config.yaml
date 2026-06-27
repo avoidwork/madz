@@ -90,3 +90,4 @@ process:
 persistence:
   mode: memory
   sqlite_path: memory/checkpoints.db
+cwd: ""

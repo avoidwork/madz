@@ -3,6 +3,9 @@ import { z } from "zod";
 import { readdir, writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { readEphemeralFile, isExpired } from "../memory/expireEphemeral.js";
+import { loadConfig } from "../config/loader.js";
+
+const cwd = loadConfig().cwd;
 
 const COOLDOWN_MS = 60 * 60 * 1000; // 60 minutes
 
@@ -39,7 +42,7 @@ export async function writeEphemeralMemory(contextDir, content, expiresAt) {
 	const now = new Date();
 	const timestamp = now.toISOString().replace(/[:.]/g, "-");
 	const slug = "ephemeral-" + timestamp.substring(0, 23).replace(/[:.]/g, "-");
-	const filepath = join(process.cwd(), contextDir, `${slug}.md`);
+	const filepath = join(cwd, contextDir, `${slug}.md`);
 	const frontmatter = {
 		title: "Ephemeral Memory",
 		timestamp: now.toISOString(),
@@ -57,7 +60,7 @@ export async function writeEphemeralMemory(contextDir, content, expiresAt) {
 		content,
 		"",
 	];
-	await mkdir(join(process.cwd(), contextDir), { recursive: true });
+	await mkdir(join(cwd, contextDir), { recursive: true });
 	await writeFile(filepath, lines.join("\n"), "utf-8");
 	return filepath;
 }
@@ -72,7 +75,7 @@ export async function countEphemeralMemoryFiles(contextDir, nowStr) {
 	const now = nowStr ? new Date(nowStr) : new Date();
 	let files;
 	try {
-		files = await readdir(join(process.cwd(), contextDir));
+		files = await readdir(join(cwd, contextDir));
 	} catch {
 		return 0;
 	}
