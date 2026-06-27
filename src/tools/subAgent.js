@@ -344,7 +344,7 @@ export function createSubAgentTool(options = {}) {
 				}
 
 				const prompt = context ? `${context}\n\n${delegation}` : delegation;
-				const result = await spawnSubAgentProcess(prompt, resolvedTimeout, cwd);
+				const result = await spawnSubAgentProcess(prompt, resolvedTimeout, subAgentCwd);
 
 				// Apply returnParams filtering if specified
 				if (returnParams && returnParams.length > 0 && result.ok) {
