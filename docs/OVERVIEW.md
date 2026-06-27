@@ -128,36 +128,53 @@ The agent runs: reason → call tool(s) → reason again → answer. Tool array 
 
 ## Sub-Agent
 
-`src/tools/subAgent.js` — spawns child processes (`node index.js "PROMPT"`) to execute prompts as independent sub-agents. Supports single execution and fan-out (parallel/sequential) modes with configurable concurrency, timeout, and error handling.
+`src/tools/subAgent.js` — spawns child processes (`node index.js --sub-agent --cwd=... --message="..."`) to execute prompts as independent sub-agents. Supports single execution and fan-out (parallel/sequential) modes with configurable concurrency, timeout, and error handling.
 
-| File | Purpose |
-|------|---------|
-| `subAgent.js` | `createSubAgentTool()` — LangChain tool with marker-based stdout parsing; `parseSubAgentOutput()` — extracts structured results from sub-agent output; `escapeShellArg()` — handles quotes, backticks, dollar signs, newlines, tabs, carriage returns; `resolveTimeout()` — per-call > env var > config default priority |
+|| File | Purpose |
+||------|---------|
+|| `subAgent.js` | `createSubAgentTool()` — LangChain tool with marker-based stdout parsing; `parseSubAgentOutput()` — extracts structured results from sub-agent output; `escapeShellArg()` — handles quotes, backticks, dollar signs, newlines, tabs, carriage returns; `resolveTimeout()` — per-call > env var > config default priority; `spawnSubAgentProcess()` — spawns `node index.js --sub-agent --cwd=... --message="..."`, captures OS-level PID |
 
 **Key features:**
 
 1. **Single execution mode** — Spawn one sub-agent with delegation + context, return structured result
 2. **Fan-out mode** — Parallel/sequential task execution with configurable `maxConcurrent` limit
 3. **Marker-based stdout parsing** — `# SubAgent` marker for result extraction (mirrors compaction tool)
-4. **Response contract** — `{ ok, result, error? }` matching compaction tool pattern
+4. **Response contract** — `{ ok, result, error?, pid? }` matching compaction tool pattern
 5. **Process tracking** — Shared `processTracker` from terminal.js for PID tracking and lifecycle management
 6. **Timeout resolution** — Per-call > env var > config default priority
 7. **Parameter extraction** — Optional `returnParams` for JSON result filtering with fallback
-8. **Session isolation modes** — `isolated` (fresh), `forked` (compaction), `shared` (parent)
+8. **Working directory** — `cwd` parameter passed to sub-agent process; all file operations resolved from this directory
 9. **Shell escaping** — Handles quotes, backticks, dollar signs, newlines, tabs, carriage returns
 10. **Error handling** — `continue` vs `fail-fast` strategies for fan-out batches
+11. **OS-level PID tracking** — Captures the actual child process PID from `spawn()` for correlation with tracked processes
 
 **Configuration:** Sub-agent parameters are set via `config.process.subAgent`:
 
-| Key | Default | Description |
-| --- | --- | --- |
-| `process.subAgent.timeout` | `600000` | Sub-agent process timeout in milliseconds (default 10 minutes) |
-| `process.subAgent.maxConcurrent` | `4` | Max concurrent sub-agent processes |
-| `process.subAgent.sessionMode` | `isolated` | Session isolation mode (`isolated`, `forked`, `shared`) |
-| `process.subAgent.defaultStrategy` | `parallel` | Default fan-out strategy (`parallel`, `sequential`) |
-| `process.subAgent.defaultOnError` | `continue` | Default error handling strategy (`continue`, `fail-fast`) |
+|| Key | Default | Description |
+|| --- | --- | --- |
+|| `process.subAgent.timeout` | `600000` | Sub-agent process timeout in milliseconds (default 10 minutes) |
+|| `process.subAgent.maxConcurrent` | `4` | Max concurrent sub-agent processes |
+|| `process.subAgent.sessionMode` | `isolated` | Session isolation mode (`isolated`, `forked`, `shared`) |
+|| `process.subAgent.defaultStrategy` | `parallel` | Default fan-out strategy (`parallel`, `sequential`) |
+|| `process.subAgent.defaultOnError` | `continue` | Default error handling strategy (`continue`, `fail-fast`) |
 
 ---
+
+
+## Scan Agents
+
+`src/tools/scanAgents.js` — scans for `AGENTS.md` files in a target directory. Delegates to `loadAgents()` from `src/workspace/loadAgents.js` with path validation.
+
+|| File | Purpose |
+||------|---------|
+|| `scanAgents.js` | `createScanAgentsTool()` — LangChain tool with `filesystem:read` permission; `scanAgentsImpl()` — validates path, delegates to `loadAgents()`; `ScanAgentsSchema` — zod schema with optional `path` parameter |
+
+**Key features:**
+
+1. **Path validation** — Validates target path against sandbox allowed paths
+2. **Configurable path** — Defaults to `config.cwd` if no path specified
+3. **File size limit** — Respects `maxReadSize` configuration
+4. **Workspace rules** — Returns formatted workspace rules section for system prompt injection
 
 
 ## Sub-Agent Log
