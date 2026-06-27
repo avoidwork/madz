@@ -24,7 +24,7 @@ export function createChatModel(config) {
 	let temperature = config.temperature;
 
 	// Allow spawned subAgent processes to override temperature via env var
-	const envTemperature = process.env.SUBAGENT_TEMPERATURE;
+	const envTemperature = process.env.SUB_AGENT_TEMPERATURE;
 	if (envTemperature !== undefined && envTemperature !== "") {
 		const parsed = Number(envTemperature);
 		if (!isNaN(parsed) && parsed >= 0 && parsed <= 2) {

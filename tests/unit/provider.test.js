@@ -6,15 +6,15 @@ describe("createChatModel", () => {
 	let savedEnv = {};
 
 	beforeEach(() => {
-		savedEnv = { SUBAGENT_TEMPERATURE: process.env.SUBAGENT_TEMPERATURE };
-		delete process.env.SUBAGENT_TEMPERATURE;
+		savedEnv = { SUB_AGENT_TEMPERATURE: process.env.SUB_AGENT_TEMPERATURE };
+		delete process.env.SUB_AGENT_TEMPERATURE;
 	});
 
 	afterEach(() => {
-		if (savedEnv.SUBAGENT_TEMPERATURE !== undefined) {
-			process.env.SUBAGENT_TEMPERATURE = savedEnv.SUBAGENT_TEMPERATURE;
+		if (savedEnv.SUB_AGENT_TEMPERATURE !== undefined) {
+			process.env.SUB_AGENT_TEMPERATURE = savedEnv.SUB_AGENT_TEMPERATURE;
 		} else {
-			delete process.env.SUBAGENT_TEMPERATURE;
+			delete process.env.SUB_AGENT_TEMPERATURE;
 		}
 	});
 	it("returns a ChatOpenAI instance", () => {
@@ -110,8 +110,8 @@ describe("createChatModel", () => {
 		assert.strictEqual(model.streaming, false);
 	});
 
-	it("overrides temperature via SUBAGENT_TEMPERATURE env var", () => {
-		process.env.SUBAGENT_TEMPERATURE = "0.3";
+	it("overrides temperature via SUB_AGENT_TEMPERATURE env var", () => {
+		process.env.SUB_AGENT_TEMPERATURE = "0.3";
 		const config = {
 			model: "gpt-4",
 			temperature: 0.7,
@@ -124,8 +124,8 @@ describe("createChatModel", () => {
 		assert.strictEqual(model.temperature, 0.3);
 	});
 
-	it("ignores invalid SUBAGENT_TEMPERATURE env var", () => {
-		process.env.SUBAGENT_TEMPERATURE = "invalid";
+	it("ignores invalid SUB_AGENT_TEMPERATURE env var", () => {
+		process.env.SUB_AGENT_TEMPERATURE = "invalid";
 		const config = {
 			model: "gpt-4",
 			temperature: 0.7,
@@ -138,8 +138,8 @@ describe("createChatModel", () => {
 		assert.strictEqual(model.temperature, 0.7);
 	});
 
-	it("ignores out-of-range SUBAGENT_TEMPERATURE env var", () => {
-		process.env.SUBAGENT_TEMPERATURE = "5";
+	it("ignores out-of-range SUB_AGENT_TEMPERATURE env var", () => {
+		process.env.SUB_AGENT_TEMPERATURE = "5";
 		const config = {
 			model: "gpt-4",
 			temperature: 0.7,
@@ -152,8 +152,8 @@ describe("createChatModel", () => {
 		assert.strictEqual(model.temperature, 0.7);
 	});
 
-	it("ignores empty SUBAGENT_TEMPERATURE env var", () => {
-		process.env.SUBAGENT_TEMPERATURE = "";
+	it("ignores empty SUB_AGENT_TEMPERATURE env var", () => {
+		process.env.SUB_AGENT_TEMPERATURE = "";
 		const config = {
 			model: "gpt-4",
 			temperature: 0.7,
