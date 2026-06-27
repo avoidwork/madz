@@ -87,6 +87,7 @@ process:
     sessionMode: isolated
     defaultStrategy: parallel
     defaultOnError: continue
+    temperature: 0.7
 persistence:
   mode: memory
   sqlite_path: memory/checkpoints.db

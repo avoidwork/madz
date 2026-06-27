@@ -1,8 +1,22 @@
-import { describe, it } from "node:test";
+import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert";
 import { createChatModel } from "../../src/provider/openai.js";
 
 describe("createChatModel", () => {
+	let savedEnv = {};
+
+	beforeEach(() => {
+		savedEnv = { MADZ_SUBAGENT_TEMPERATURE: process.env.MADZ_SUBAGENT_TEMPERATURE };
+		delete process.env.MADZ_SUBAGENT_TEMPERATURE;
+	});
+
+	afterEach(() => {
+		if (savedEnv.MADZ_SUBAGENT_TEMPERATURE !== undefined) {
+			process.env.MADZ_SUBAGENT_TEMPERATURE = savedEnv.MADZ_SUBAGENT_TEMPERATURE;
+		} else {
+			delete process.env.MADZ_SUBAGENT_TEMPERATURE;
+		}
+	});
 	it("returns a ChatOpenAI instance", () => {
 		const config = {
 			model: "gpt-4o",
@@ -94,5 +108,61 @@ describe("createChatModel", () => {
 
 		const model = createChatModel(config);
 		assert.strictEqual(model.streaming, false);
+	});
+
+	it("overrides temperature via MADZ_SUBAGENT_TEMPERATURE env var", () => {
+		process.env.MADZ_SUBAGENT_TEMPERATURE = "0.3";
+		const config = {
+			model: "gpt-4",
+			temperature: 0.7,
+			maxTokens: 1024,
+			credentials: { apiKey: "sk-test" },
+			base_url: "https://api.openai.com/v1",
+		};
+
+		const model = createChatModel(config);
+		assert.strictEqual(model.temperature, 0.3);
+	});
+
+	it("ignores invalid MADZ_SUBAGENT_TEMPERATURE env var", () => {
+		process.env.MADZ_SUBAGENT_TEMPERATURE = "invalid";
+		const config = {
+			model: "gpt-4",
+			temperature: 0.7,
+			maxTokens: 1024,
+			credentials: { apiKey: "sk-test" },
+			base_url: "https://api.openai.com/v1",
+		};
+
+		const model = createChatModel(config);
+		assert.strictEqual(model.temperature, 0.7);
+	});
+
+	it("ignores out-of-range MADZ_SUBAGENT_TEMPERATURE env var", () => {
+		process.env.MADZ_SUBAGENT_TEMPERATURE = "5";
+		const config = {
+			model: "gpt-4",
+			temperature: 0.7,
+			maxTokens: 1024,
+			credentials: { apiKey: "sk-test" },
+			base_url: "https://api.openai.com/v1",
+		};
+
+		const model = createChatModel(config);
+		assert.strictEqual(model.temperature, 0.7);
+	});
+
+	it("ignores empty MADZ_SUBAGENT_TEMPERATURE env var", () => {
+		process.env.MADZ_SUBAGENT_TEMPERATURE = "";
+		const config = {
+			model: "gpt-4",
+			temperature: 0.7,
+			maxTokens: 1024,
+			credentials: { apiKey: "sk-test" },
+			base_url: "https://api.openai.com/v1",
+		};
+
+		const model = createChatModel(config);
+		assert.strictEqual(model.temperature, 0.7);
 	});
 });
