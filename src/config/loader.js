@@ -139,6 +139,9 @@ let cachedConfig = null;
  */
 export function loadConfig(subAgent = false) {
 	if (cachedConfig) {
+                if (subAgent) {
+                   cachedConfig.subAgent = true;
+                }
 		return cachedConfig;
 	}
 
