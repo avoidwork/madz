@@ -90,8 +90,6 @@ export function generateSessionId() {
 	return randomUUID();
 }
 
-
-
 /**
  * Spawn a single sub-agent process.
  * @param {string} prompt - The full prompt (context + delegation, newline-separated)
@@ -105,12 +103,7 @@ export function spawnSubAgentProcess(prompt, timeout, targetCwd = defaultCwd) {
 
 		const child = spawn(
 			"node",
-			[
-				"index.js",
-				"--sub-agent=true",
-				`--cwd=${targetCwd}`,
-				`--message="${prompt}"`,
-			],
+			["index.js", "--sub-agent=true", `--cwd=${targetCwd}`, `--message="${prompt}"`],
 			{
 				stdio: ["pipe", "pipe", "pipe"],
 				env: process.env,
