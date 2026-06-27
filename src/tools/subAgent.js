@@ -104,7 +104,7 @@ function msToSeconds(ms) {
  * @param {string} prompt - The full prompt (context ||| delegation)
  * @param {number} timeout - Timeout in milliseconds (reserved for future use)
  * @param {string} targetCwd - Working directory for the sub-agent
- * @returns {Promise<{ ok: boolean, result: string, error?: string, sessionId?: string }>}
+ * @returns {Promise<{ ok: boolean, result: string, error?: string, sessionId?: string, pid?: number }>}
  */
 export function spawnSubAgentProcess(prompt, timeout, targetCwd = defaultCwd) {
 	return new Promise((resolve) => {
@@ -123,6 +123,11 @@ export function spawnSubAgentProcess(prompt, timeout, targetCwd = defaultCwd) {
 				env: process.env,
 			},
 		);
+
+		// Capture the OS-level PID immediately upon spawn — this is the
+		// actual process identifier returned by the child_process.spawn()
+		// call, distinct from the internal tracker PID.
+		const pid = child.pid;
 
 		const logPath = `/tmp/sub-agent-${sessionId}.log`;
 		const logStream = createWriteStream(logPath, { flags: "a" });
@@ -151,7 +156,9 @@ export function spawnSubAgentProcess(prompt, timeout, targetCwd = defaultCwd) {
 			if (!parsed.ok) {
 				parsed.error = `${parsed.error}${stderr ? ` | stderr: ${stderr.trim()}` : ""}`;
 			}
-			resolve({ ...parsed, sessionId });
+			// Attach the captured PID to the return object so callers
+			// can correlate the result with the tracked process.
+			resolve({ ...parsed, sessionId, pid });
 		});
 
 		child.on("error", (err) => {
@@ -161,6 +168,7 @@ export function spawnSubAgentProcess(prompt, timeout, targetCwd = defaultCwd) {
 				result: "",
 				error: `Process spawn error: ${err.message}`,
 				sessionId,
+				pid,
 			});
 		});
 	});
