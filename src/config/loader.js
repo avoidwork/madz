@@ -155,6 +155,7 @@ export function loadConfig(subAgent = false) {
 	// Capture the original working directory before any chdir happens
 	config.cwd = process.cwd();
 	config.subAgent = subAgent;
+	config.sandbox.paths.push(config.cwd);
 	cachedConfig = config;
 	return config;
 }
