@@ -689,4 +689,3 @@ See [Config Reference](#config-reference) for the full list of configuration key
 Licensed under the [BSD-3-Clause](LICENSE) License.
 
 Copyright (c) 2026 Jason Mulligan.
-on Mulligan.
