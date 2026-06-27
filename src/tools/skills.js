@@ -13,7 +13,7 @@ import { ensureSkillsDir } from "../skills/registry.js";
 import { PermissionSchema } from "../skills/types.js";
 import { loadConfig } from "../config/loader.js";
 
-const cwd = loadConfig().cwd;
+export let cwd = loadConfig().cwd;
 
 /**
  * Core logic for listing all discovered skills via catalog (tier 1 progressive disclosure).
