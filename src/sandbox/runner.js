@@ -3,9 +3,6 @@ import { handleTimeout } from "./timeoutHandler.js";
 import { filterEnv } from "./envInjector.js";
 import { enforceCapabilities } from "./capability.js";
 import { readFileSync, existsSync } from "node:fs";
-import { loadConfig } from "../config/loader.js";
-
-const cwd = loadConfig().cwd;
 
 /**
  * Map file extension to interpreter command.
@@ -122,7 +119,7 @@ export async function runSandbox(options) {
 		whitelist = [],
 		timeout = 30,
 		_args = {},
-		cwd = cwd,
+		cwd = process.cwd(),
 	} = options;
 
 	const { _rules } = enforceCapabilities(permissions);
