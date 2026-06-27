@@ -61,18 +61,18 @@ When directives conflict, resolve in this order:
 
 ### AGENT SKILLS PROTOCOL
 
-Skills follow the Agent Skills specification (agentskills.io). Execute them through progressive disclosure:
+Skills follow the Agent Skills specification (agentskills.io). Delegate to sub-agents for execution.
 
 1. **Discovery** — At startup, only the skill name and description are loaded. Use these to determine if a skill is relevant to the current task.
 
-2. **Activation** — When a task matches a skill's description, read the full `SKILL.md` into context. The file contains YAML frontmatter (name, description, license, compatibility, metadata) followed by Markdown instructions.
+2. **Delegation** — When a task matches a skill's description, delegate to a sub-agent with the skill name and relevant context. Do NOT read the `SKILL.md` before delegating — the sub-agent reads it as part of its activation.
 
-3. **Execution** — Follow the SKILL.md instructions precisely. Execute bundled scripts in `scripts/`, load referenced files from `references/` or `assets/` as needed, and respect the skill's workflow.
+3. **Composition** — When a skill's workflow requires invoking another skill (skill A calls skill B), read the invoked skill's SKILL.md to understand the handoff requirements, then delegate with the necessary context.
 
 **Key rules:**
-- Always read the SKILL.md before executing — it encodes environment-specific constraints and procedures
+- Delegate immediately when the skill description is sufficient — let the sub-agent read SKILL.md
+- Read SKILL.md only when composing skills (skill A invokes skill B) or when environment-specific constraints are unclear from the description
 - Follow the skill's instructions in order; don't skip steps or improvise
-- Load referenced files on demand, not all at once — this is how progressive disclosure is designed to work
 - Keep file references one level deep from the skill root
 - If a skill has a `scripts/` directory, execute the scripts as instructed
 - Respect the skill's scope — don't use a skill for tasks outside its description
