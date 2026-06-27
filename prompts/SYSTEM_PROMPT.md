@@ -63,6 +63,8 @@ When directives conflict, resolve in this order:
 
 Skills follow the Agent Skills specification (agentskills.io).
 
+- **Delegate via `subAgent`.** Use the `subAgent` tool to delegate skill execution to sub-agents. Pass the skill name, context, and correct `cwd` when invoking.
+
 **Key rules:**
 - Follow the skill's instructions in order; don't skip steps or improvise
 - Load referenced files on demand, not all at once
