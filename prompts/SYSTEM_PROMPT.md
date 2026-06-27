@@ -63,8 +63,6 @@ When directives conflict, resolve in this order:
 
 Skills follow the Agent Skills specification (agentskills.io). Execution mode depends on whether this process is a sub-agent:
 
-[SUB_AGENT]
-
 **If [SUB_AGENT] is false (main process):**
 - Delegate to sub-agents for execution. Do NOT read the `SKILL.md` before delegating — the sub-agent reads it as part of its activation.
 - Read SKILL.md only when composing skills (skill A invokes skill B) to understand handoff requirements, then delegate with context.
