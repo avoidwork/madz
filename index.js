@@ -208,7 +208,7 @@ async function callProvider(_name, _providerConfig, message, streamingCallback, 
 	const agentsText = await loadAgents();
 	const catalog = registry.getCatalog();
 	const skillCatalog = generateSkillCatalogPrompt(catalog);
-	const callPrompt = `${systemPrompt}${agentsText ? `\n\n${agentsText}` : ""}${skillCatalog ? `\n\n${skillCatalog}` : ""}${memoryText ? `\n\n${memoryText}` : ""}`;
+	const callPrompt = `${systemPrompt}${skillCatalog ? `\n\n${skillCatalog}` : ""}${memoryText ? `\n\n${memoryText}` : ""}${agentsText ? `\n\n${agentsText}` : ""}`;
 	const result = await callReactAgent(
 		agent,
 		message,
