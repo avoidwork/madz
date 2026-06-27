@@ -3,9 +3,6 @@ import { handleTimeout } from "./timeoutHandler.js";
 import { filterEnv } from "./envInjector.js";
 import { enforceCapabilities } from "./capability.js";
 import { readFileSync, existsSync } from "node:fs";
-import { loadConfig } from "../config/loader.js";
-
-const cwd = loadConfig().cwd;
 
 /**
  * Map file extension to interpreter command.
