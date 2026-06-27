@@ -1,5 +1,18 @@
 #!/usr/bin/env node
 
+// Parse --cwd CLI argument via yargs
+import yargs from "yargs";
+const { hideBin } = yargs;
+const parsed = yargs(hideBin(process.argv)).option("cwd", {
+	alias: "c",
+	type: "string",
+	description: "Working directory to use",
+}).argv;
+
+if (parsed.cwd) {
+	process.chdir(parsed.cwd);
+}
+
 // Load config
 import { fileURLToPath } from "node:url";
 import { loadSession } from "./src/session/loader.js";
