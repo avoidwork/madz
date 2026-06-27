@@ -175,4 +175,54 @@ describe("tools - buildToolConfig", () => {
 		assert.ok(toolNames.includes("compaction"));
 		assert.ok(toolNames.includes("scanAgents"));
 	});
+
+	it("excludes subAgent tools when subAgent=true", async () => {
+		const { buildToolConfig } = await import("../../src/tools/index.js");
+		const tools = await buildToolConfig({
+			permissions: ["process:spawn"],
+			maxReadSize: "1mb",
+			subAgent: true,
+		});
+		const toolNames = tools.map((t) => t.name);
+		assert.ok(!toolNames.includes("subAgent"), "subAgent should NOT register when subAgent=true");
+		assert.ok(
+			!toolNames.includes("subAgentLog"),
+			"subAgentLog should NOT register when subAgent=true",
+		);
+		assert.ok(
+			!toolNames.includes("subAgentMessage"),
+			"subAgentMessage should NOT register when subAgent=true",
+		);
+	});
+
+	it("includes subAgent tools when subAgent=false (default)", async () => {
+		const { buildToolConfig } = await import("../../src/tools/index.js");
+		const tools = await buildToolConfig({
+			permissions: ["process:spawn"],
+			maxReadSize: "1mb",
+			subAgent: false,
+		});
+		const toolNames = tools.map((t) => t.name);
+		assert.ok(toolNames.includes("subAgent"), "subAgent should register when subAgent=false");
+		assert.ok(toolNames.includes("subAgentLog"), "subAgentLog should register when subAgent=false");
+		assert.ok(
+			toolNames.includes("subAgentMessage"),
+			"subAgentMessage should register when subAgent=false",
+		);
+	});
+
+	it("includes subAgent tools when subAgent option not provided", async () => {
+		const { buildToolConfig } = await import("../../src/tools/index.js");
+		const tools = await buildToolConfig({
+			permissions: ["process:spawn"],
+			maxReadSize: "1mb",
+		});
+		const toolNames = tools.map((t) => t.name);
+		assert.ok(toolNames.includes("subAgent"), "subAgent should register when subAgent not provided");
+		assert.ok(toolNames.includes("subAgentLog"), "subAgentLog should register when subAgent not provided");
+		assert.ok(
+			toolNames.includes("subAgentMessage"),
+			"subAgentMessage should register when subAgent not provided",
+		);
+	});
 });

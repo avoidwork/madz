@@ -225,6 +225,7 @@ const tools = await buildToolConfig({
 	ephemeralMaxEntries: config.memory?.ephemeral?.maxEntries || 10,
 	config,
 	checkpointer,
+	subAgent: config.subAgent,
 });
 const model = createChatModel(providerConfig);
 const agent = createReactAgent(
