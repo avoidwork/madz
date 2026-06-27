@@ -6,7 +6,7 @@ const cwd = loadConfig().cwd;
 
 /**
  * Load the system prompt from prompts/SYSTEM_PROMPT.md.
- * Replaces [SUB_AGENT] placeholder with the subAgent value.
+ * Replaces [PROCESS_IDENTITY] placeholder with the appropriate process identity.
  * @param {string} [baseDir=cwd] - Base directory for loading the prompt file
  * @param {boolean} [subAgent=false] - Whether running as a sub-agent
  * @returns {string} System prompt text, or empty string if file not found
@@ -21,7 +21,10 @@ export function loadSystemPrompt(baseDir = cwd, subAgent = false) {
 				content = content.substring(closeIdx + 3).replace(/^\n+/, "");
 			}
 		}
-		return content.replace(/\[SUB_AGENT\]/g, String(subAgent));
+		const processIdentity = subAgent
+			? "Sub-agent executor. Read the `SKILL.md` and execute directly. Do NOT delegate further."
+			: "Main orchestrator. Delegate skill execution to sub-agents. Do NOT read `SKILL.md` files — sub-agents read them on activation.";
+		return content.replace(/\[PROCESS_IDENTITY\]/g, processIdentity);
 	} catch {
 		return "";
 	}
