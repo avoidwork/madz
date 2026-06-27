@@ -90,14 +90,7 @@ export function generateSessionId() {
 	return randomUUID();
 }
 
-/**
- * Convert milliseconds to seconds (rounded up).
- * @param {number} ms - Timeout in milliseconds
- * @returns {number} Timeout in seconds
- */
-function msToSeconds(ms) {
-	return Math.ceil(ms / 1000);
-}
+
 
 /**
  * Spawn a single sub-agent process.
@@ -149,7 +142,7 @@ export function spawnSubAgentProcess(prompt, timeout, targetCwd = defaultCwd) {
 			logStream.write(text);
 		});
 
-		child.on("exit", (code) => {
+		child.on("exit", () => {
 			logStream.end();
 
 			const parsed = parseSubAgentOutput(stdout);

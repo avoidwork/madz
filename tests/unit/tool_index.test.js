@@ -218,8 +218,14 @@ describe("tools - buildToolConfig", () => {
 			maxReadSize: "1mb",
 		});
 		const toolNames = tools.map((t) => t.name);
-		assert.ok(toolNames.includes("subAgent"), "subAgent should register when subAgent not provided");
-		assert.ok(toolNames.includes("subAgentLog"), "subAgentLog should register when subAgent not provided");
+		assert.ok(
+			toolNames.includes("subAgent"),
+			"subAgent should register when subAgent not provided",
+		);
+		assert.ok(
+			toolNames.includes("subAgentLog"),
+			"subAgentLog should register when subAgent not provided",
+		);
 		assert.ok(
 			toolNames.includes("subAgentMessage"),
 			"subAgentMessage should register when subAgent not provided",
