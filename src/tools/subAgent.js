@@ -120,7 +120,7 @@ export function spawnSubAgentProcess(prompt, timeout, cwd) {
 				timeoutSeconds.toString(),
 				"node",
 				"index.js",
-				`--cwd=${cwd}`,
+				`--cwd=${activeCwd}`,
 				`"${prompt}"`,
 			],
 			{
@@ -432,6 +432,12 @@ export function createSubAgentTool(options = {}) {
 					.optional()
 					.describe(
 						"Timeout in milliseconds for this sub-agent execution. Overrides config default.",
+					),
+			}),
+		},
+	);
+}
+ config default.",
 					),
 			}),
 		},
