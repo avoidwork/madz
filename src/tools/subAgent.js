@@ -373,6 +373,7 @@ export function createSubAgentTool(options = {}) {
 			schema: z.object({
 				cwd: z
 					.string()
+					.optional()
 					.describe(
 						"Working directory for the sub-agent process. All file operations and relative paths will be resolved from this directory.",
 					),
