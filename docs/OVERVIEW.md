@@ -130,9 +130,9 @@ The agent runs: reason → call tool(s) → reason again → answer. Tool array 
 
 `src/tools/subAgent.js` — spawns child processes (`node index.js --sub-agent --cwd=... --message="..."`) to execute prompts as independent sub-agents. Supports single execution and fan-out (parallel/sequential) modes with configurable concurrency, timeout, and error handling.
 
-|| File | Purpose |
-||------|---------|
-|| `subAgent.js` | `createSubAgentTool()` — LangChain tool with marker-based stdout parsing; `parseSubAgentOutput()` — extracts structured results from sub-agent output; `escapeShellArg()` — handles quotes, backticks, dollar signs, newlines, tabs, carriage returns; `resolveTimeout()` — per-call > env var > config default priority; `spawnSubAgentProcess()` — spawns `node index.js --sub-agent --cwd=... --message="..."`, captures OS-level PID |
+| File | Purpose |
+|------|---------|
+| `subAgent.js` | `createSubAgentTool()` — LangChain tool with marker-based stdout parsing; `parseSubAgentOutput()` — extracts structured results from sub-agent output; `escapeShellArg()` — handles quotes, backticks, dollar signs, newlines, tabs, carriage returns; `resolveTimeout()` — per-call > env var > config default priority; `spawnSubAgentProcess()` — spawns `node index.js --sub-agent --cwd=... --message="..."`, captures OS-level PID |
 
 **Key features:**
 
@@ -150,13 +150,13 @@ The agent runs: reason → call tool(s) → reason again → answer. Tool array 
 
 **Configuration:** Sub-agent parameters are set via `config.process.subAgent`:
 
-|| Key | Default | Description |
-|| --- | --- | --- |
-|| `process.subAgent.timeout` | `600000` | Sub-agent process timeout in milliseconds (default 10 minutes) |
-|| `process.subAgent.maxConcurrent` | `4` | Max concurrent sub-agent processes |
-|| `process.subAgent.sessionMode` | `isolated` | Session isolation mode (`isolated`, `forked`, `shared`) |
-|| `process.subAgent.defaultStrategy` | `parallel` | Default fan-out strategy (`parallel`, `sequential`) |
-|| `process.subAgent.defaultOnError` | `continue` | Default error handling strategy (`continue`, `fail-fast`) |
+| Key | Default | Description |
+| --- | --- | --- |
+| `process.subAgent.timeout` | `600000` | Sub-agent process timeout in milliseconds (default 10 minutes) |
+| `process.subAgent.maxConcurrent` | `4` | Max concurrent sub-agent processes |
+| `process.subAgent.sessionMode` | `isolated` | Session isolation mode (`isolated`, `forked`, `shared`) |
+| `process.subAgent.defaultStrategy` | `parallel` | Default fan-out strategy (`parallel`, `sequential`) |
+| `process.subAgent.defaultOnError` | `continue` | Default error handling strategy (`continue`, `fail-fast`) |
 
 ---
 
@@ -165,9 +165,9 @@ The agent runs: reason → call tool(s) → reason again → answer. Tool array 
 
 `src/tools/scanAgents.js` — scans for `AGENTS.md` files in a target directory. Delegates to `loadAgents()` from `src/workspace/loadAgents.js` with path validation.
 
-|| File | Purpose |
-||------|---------|
-|| `scanAgents.js` | `createScanAgentsTool()` — LangChain tool with `filesystem:read` permission; `scanAgentsImpl()` — validates path, delegates to `loadAgents()`; `ScanAgentsSchema` — zod schema with optional `path` parameter |
+| File | Purpose |
+|------|---------|
+| `scanAgents.js` | `createScanAgentsTool()` — LangChain tool with `filesystem:read` permission; `scanAgentsImpl()` — validates path, delegates to `loadAgents()`; `ScanAgentsSchema` — zod schema with optional `path` parameter |
 
 **Key features:**
 
@@ -201,9 +201,9 @@ The agent runs: reason → call tool(s) → reason again → answer. Tool array 
 
 `src/tools/subAgentMessage.js` — sends messages to running subAgent processes via stdin. Requires the target process to be tracked (spawned via subAgent tool) and have stdin exposed.
 
-|| File | Purpose |
-||------|---------|
-|| `subAgentMessage.js` | `createSubAgentMessageTool()` — LangChain tool with `process:spawn` permission; `subAgentMessageImpl(input)` — looks up PID in `processTracker`, validates process is running, writes message to stdin |
+| File | Purpose |
+|------|---------|
+| `subAgentMessage.js` | `createSubAgentMessageTool()` — LangChain tool with `process:spawn` permission; `subAgentMessageImpl(input)` — looks up PID in `processTracker`, validates process is running, writes message to stdin |
 
 **Key features:**
 
