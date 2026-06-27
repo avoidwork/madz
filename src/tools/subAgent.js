@@ -6,9 +6,12 @@ import { fileURLToPath } from "node:url";
 import { dirname } from "node:path";
 import { createWriteStream } from "node:fs";
 import { trackProcess } from "./terminal.js";
+import { loadConfig } from "../config/loader.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+const defaultCwd = loadConfig().cwd;
 
 const SUBAGENT_MARKER = "# SubAgent";
 
@@ -87,33 +90,37 @@ export function generateSessionId() {
 	return randomUUID();
 }
 
-/**
- * Convert milliseconds to seconds (rounded up).
- * @param {number} ms - Timeout in milliseconds
- * @returns {number} Timeout in seconds
- */
-function msToSeconds(ms) {
-	return Math.ceil(ms / 1000);
-}
+
 
 /**
- * Spawn a single sub-agent process using system timeout command.
- * @param {string} prompt - The full prompt (context ||| delegation)
- * @param {string} sessionsDir - Path to sessions directory
- * @param {number} timeout - Timeout in milliseconds
- * @returns {Promise<{ ok: boolean, result: string, error?: string, sessionId?: string }>}
+ * Spawn a single sub-agent process.
+ * @param {string} prompt - The full prompt (context + delegation, newline-separated)
+ * @param {number} timeout - Timeout in milliseconds (reserved for future use)
+ * @param {string} targetCwd - Working directory for the sub-agent
+ * @returns {Promise<{ ok: boolean, result: string, error?: string, sessionId?: string, pid?: number }>}
  */
-export function spawnSubAgentProcess(prompt, sessionsDir, timeout) {
+export function spawnSubAgentProcess(prompt, timeout, targetCwd = defaultCwd) {
 	return new Promise((resolve) => {
 		const sessionId = generateSessionId();
-		const timeoutSeconds = msToSeconds(timeout);
 
-		// Use system timeout command for reliable process termination
-		// timeout sends SIGTERM first, then SIGKILL after --kill-after delay
-		const child = spawn("timeout", ["--kill-after=10", timeoutSeconds.toString(), "node", "index.js", prompt, sessionsDir], {
-			stdio: ["pipe", "pipe", "pipe"],
-			env: process.env,
-		});
+		const child = spawn(
+			"node",
+			[
+				"index.js",
+				"--sub-agent=true",
+				`--cwd=${targetCwd}`,
+				`--message="${prompt}"`,
+			],
+			{
+				stdio: ["pipe", "pipe", "pipe"],
+				env: process.env,
+			},
+		);
+
+		// Capture the OS-level PID immediately upon spawn — this is the
+		// actual process identifier returned by the child_process.spawn()
+		// call, distinct from the internal tracker PID.
+		const pid = child.pid;
 
 		const logPath = `/tmp/sub-agent-${sessionId}.log`;
 		const logStream = createWriteStream(logPath, { flags: "a" });
@@ -135,25 +142,16 @@ export function spawnSubAgentProcess(prompt, sessionsDir, timeout) {
 			logStream.write(text);
 		});
 
-		child.on("exit", (code) => {
+		child.on("exit", () => {
 			logStream.end();
-
-			// Exit code 124 indicates timeout from system timeout command
-			if (code === 124) {
-				resolve({
-					ok: false,
-					result: "",
-					error: `Sub-agent timed out after ${timeout}ms`,
-					sessionId,
-				});
-				return;
-			}
 
 			const parsed = parseSubAgentOutput(stdout);
 			if (!parsed.ok) {
 				parsed.error = `${parsed.error}${stderr ? ` | stderr: ${stderr.trim()}` : ""}`;
 			}
-			resolve({ ...parsed, sessionId });
+			// Attach the captured PID to the return object so callers
+			// can correlate the result with the tracked process.
+			resolve({ ...parsed, sessionId, pid });
 		});
 
 		child.on("error", (err) => {
@@ -163,6 +161,7 @@ export function spawnSubAgentProcess(prompt, sessionsDir, timeout) {
 				result: "",
 				error: `Process spawn error: ${err.message}`,
 				sessionId,
+				pid,
 			});
 		});
 	});
@@ -174,11 +173,11 @@ export function spawnSubAgentProcess(prompt, sessionsDir, timeout) {
  * @param {"parallel" | "sequential"} strategy - Execution strategy
  * @param {number} maxConcurrent - Maximum concurrent processes
  * @param {"continue" | "fail-fast"} onError - Error handling strategy
- * @param {string} sessionsDir - Path to sessions directory
  * @param {number} timeout - Timeout in milliseconds
+ * @param {string} targetCwd - Working directory for the sub-agent
  * @returns {Promise<{ ok: boolean, result: string, error?: string }>}
  */
-async function executeFanOut(tasks, strategy, maxConcurrent, onError, sessionsDir, timeout) {
+async function executeFanOut(tasks, strategy, maxConcurrent, onError, timeout, targetCwd) {
 	const results = [];
 	let failed = false;
 
@@ -187,7 +186,7 @@ async function executeFanOut(tasks, strategy, maxConcurrent, onError, sessionsDi
 			if (failed && onError === "fail-fast") break;
 
 			const prompt = task.context ? `${task.context}\n\n${task.delegation}` : task.delegation;
-			const result = await spawnSubAgentProcess(prompt, sessionsDir, timeout);
+			const result = await spawnSubAgentProcess(prompt, timeout, targetCwd);
 
 			if (task.id) {
 				results.push({ id: task.id, ...result });
@@ -210,7 +209,7 @@ async function executeFanOut(tasks, strategy, maxConcurrent, onError, sessionsDi
 				const task = queue.shift();
 				const promise = (async () => {
 					const prompt = task.context ? `${task.context}\n\n${task.delegation}` : task.delegation;
-					const result = await spawnSubAgentProcess(prompt, sessionsDir, timeout);
+					const result = await spawnSubAgentProcess(prompt, timeout, targetCwd);
 
 					if (task.id) {
 						results.push({ id: task.id, ...result });
@@ -268,25 +267,36 @@ function resolveTimeout(perCallTimeout, config) {
 /**
  * Create a subAgent tool with runtime options.
  * @param {object} options - Runtime options
- * @param {string} [options.sessionsDir] - Path to sessions directory
  * @param {object} [options.config] - Resolved config object
  * @returns {object} LangChain Tool instance
  */
 export function createSubAgentTool(options = {}) {
-	const { sessionsDir = "./memory/sessions/", config } = options;
+	const { config } = options;
 
 	return tool(
 		async (input) => {
 			try {
-				const { delegation, context, tasks, strategy, maxConcurrent, onError, returnParams, timeout } = input;
+				const {
+					delegation,
+					context,
+					tasks,
+					strategy,
+					maxConcurrent,
+					onError,
+					returnParams,
+					timeout,
+					cwd: targetCwd = defaultCwd,
+				} = input;
 
 				// Resolve timeout
 				const resolvedTimeout = resolveTimeout(timeout, config);
 
 				// Fan-out mode
 				if (tasks && Array.isArray(tasks) && tasks.length > 0) {
-					const fanOutStrategy = strategy || config?.process?.subAgent?.defaultStrategy || "parallel";
-					const fanOutMaxConcurrent = maxConcurrent || config?.process?.subAgent?.maxConcurrent || 4;
+					const fanOutStrategy =
+						strategy || config?.process?.subAgent?.defaultStrategy || "parallel";
+					const fanOutMaxConcurrent =
+						maxConcurrent || config?.process?.subAgent?.maxConcurrent || 4;
 					const fanOutOnError = onError || config?.process?.subAgent?.defaultOnError || "continue";
 
 					const result = await executeFanOut(
@@ -294,8 +304,8 @@ export function createSubAgentTool(options = {}) {
 						fanOutStrategy,
 						fanOutMaxConcurrent,
 						fanOutOnError,
-						sessionsDir,
 						resolvedTimeout,
+						targetCwd,
 					);
 
 					// Apply returnParams filtering if specified
@@ -319,7 +329,7 @@ export function createSubAgentTool(options = {}) {
 				}
 
 				const prompt = context ? `${context}\n\n${delegation}` : delegation;
-				const result = await spawnSubAgentProcess(prompt, sessionsDir, resolvedTimeout);
+				const result = await spawnSubAgentProcess(prompt, resolvedTimeout, targetCwd);
 
 				// Apply returnParams filtering if specified
 				if (returnParams && returnParams.length > 0 && result.ok) {
@@ -345,6 +355,12 @@ export function createSubAgentTool(options = {}) {
 			description:
 				"Spawn child-process agents to execute prompts as independent sub-agents. Supports single execution and fan-out (parallel/sequential) modes with configurable concurrency, timeout, and error handling. Each sub-agent receives a prompt constructed from context and delegation instruction separated by ' ||| '. Returns structured JSON result with ok, result, and optional error fields.",
 			schema: z.object({
+				cwd: z
+					.string()
+					.optional()
+					.describe(
+						"Working directory for the sub-agent process. All file operations and relative paths will be resolved from this directory.",
+					),
 				delegation: z
 					.string()
 					.optional()
@@ -355,7 +371,7 @@ export function createSubAgentTool(options = {}) {
 					.string()
 					.optional()
 					.describe(
-						"Session compaction or context the sub-agent needs to understand the task. Everything before ' ||| ' in the prompt.",
+						"Session compaction or context the sub-agent needs to understand the task. Prepended to the delegation instruction with a newline separator.",
 					),
 				tasks: z
 					.array(
@@ -380,7 +396,9 @@ export function createSubAgentTool(options = {}) {
 					.int()
 					.positive()
 					.optional()
-					.describe("Maximum number of sub-agents that can run in parallel. Overrides config default."),
+					.describe(
+						"Maximum number of sub-agents that can run in parallel. Overrides config default.",
+					),
 				onError: z
 					.enum(["continue", "fail-fast"])
 					.optional()

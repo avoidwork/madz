@@ -1,6 +1,9 @@
 import { readdir, readFile, access } from "node:fs/promises";
 import { join, extname, basename } from "node:path";
 import { parseFrontmatter } from "./reader.js";
+import { loadConfig } from "../config/loader.js";
+
+const cwd = loadConfig().cwd;
 
 /**
  * Check if a file path exists.
@@ -48,7 +51,7 @@ export async function parseEntryFile(filepath) {
  * @returns {Promise<{ key: string, metadata: { createdDate: string, updatedDate?: string }, memory: string }[]>}
  */
 export async function loadMemories(entriesDir = "memory/context/") {
-	const fullPath = join(process.cwd(), entriesDir);
+	const fullPath = join(cwd, entriesDir);
 
 	if (!(await fileExists(fullPath))) {
 		return [];

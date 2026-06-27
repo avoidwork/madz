@@ -125,14 +125,23 @@ function validateConfig(raw) {
 	return ConfigSchema.parse(raw);
 }
 
+// Module-level cache for loadConfig
+let cachedConfig = null;
+
 /**
  * Load, parse, validate, merge defaults, and return.
  * Resolves env vars by mapping each config path segment to an
  * environment variable name: providers.openai.credentials.apiKey
  * resolves to OPENAI_API_KEY.
+ * Cached after first call — subsequent calls return the same object.
+ * @param {boolean} [subAgent=false] - Whether running as a sub-agent
  * @returns {z.infer<typeof ConfigSchema>}
  */
-export function loadConfig() {
+export function loadConfig(subAgent = false) {
+	if (cachedConfig) {
+		return cachedConfig;
+	}
+
 	let raw = DEFAULT_CONFIG;
 	if (existsSync(CONFIG_PATH)) {
 		const fileContent = readFileSync(CONFIG_PATH, "utf-8");
@@ -142,7 +151,15 @@ export function loadConfig() {
 		}
 	}
 	const resolved = _resolveEnvRecursively(raw, []);
-	return validateConfig(resolved);
+	const config = validateConfig(resolved);
+	// Capture the original working directory before any chdir happens
+	config.cwd = process.cwd();
+	config.subAgent = subAgent;
+	if (subAgent) {
+		config.sandbox.paths.push(config.cwd);
+	}
+	cachedConfig = config;
+	return config;
 }
 
 /**

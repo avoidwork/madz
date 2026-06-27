@@ -1,6 +1,9 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { parseFrontmatter } from "../memory/reader.js";
+import { loadConfig } from "../config/loader.js";
+
+const cwd = loadConfig().cwd;
 
 /**
  * Load a session by ID or the latest session file.
@@ -10,7 +13,7 @@ import { parseFrontmatter } from "../memory/reader.js";
  * @returns {{ sessionId: string, conversation: Array, metadata: Object }}
  */
 export function loadSession(sessionsDir = "memory/sessions/", windowSize = 20, sessionId = "") {
-	const dir = join(process.cwd(), sessionsDir);
+	const dir = join(cwd, sessionsDir);
 
 	if (sessionId) {
 		const filepath = join(dir, `${sessionId}.md`);

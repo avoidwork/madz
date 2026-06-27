@@ -13,9 +13,7 @@ export function calculateConversationTokens(conversation, modelName, encoding) {
 
 	// Resolve encoder: env var takes priority, then config, then derive from model name.
 	const encoderName =
-		process.env.OPENAI_ENCODING ||
-		encoding ||
-		(modelName ? modelName.split(":")[0] : "gpt-4o");
+		process.env.OPENAI_ENCODING || encoding || (modelName ? modelName.split(":")[0] : "gpt-4o");
 
 	let tiktoken;
 	try {

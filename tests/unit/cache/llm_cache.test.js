@@ -255,11 +255,13 @@ describe("LLM Cache - Integration with callReactAgent", () => {
 			invoke: async () => {
 				invokeCount++;
 				return {
-					messages: [{ 
-						type: "ai", 
-						content: `Response ${invokeCount}`,
-						tool_calls: [{ name: "test_tool", args: {} }]
-					}],
+					messages: [
+						{
+							type: "ai",
+							content: `Response ${invokeCount}`,
+							tool_calls: [{ name: "test_tool", args: {} }],
+						},
+					],
 				};
 			},
 		};

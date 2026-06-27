@@ -4,6 +4,15 @@ import yaml from "js-yaml";
 import { loadConfig } from "../config/loader.js";
 
 export const defaultScope = loadConfig().sandbox.skillScanPaths;
+export let cwd = loadConfig().cwd;
+
+/**
+ * Set the working directory for skill discovery.
+ * @param {string} newCwd - The new working directory
+ */
+export function setCwd(newCwd) {
+	cwd = newCwd;
+}
 
 // Cross-client directory scope constants
 const SKILL_DIR = "SKILL.md";
@@ -157,13 +166,12 @@ function findSkillFiles(dir) {
  * @returns {Array<{ path: string, name: string, metadata: Object }>}
  */
 export function discoverSkills(scope = defaultScope, options = {}) {
-
 	const { trustProjectSkills: _trustProjectSkills = true } = options;
 	const allSkills = [];
 	const seenNames = new Map();
 
 	for (const scopePath of scope) {
-		const fullScope = resolve(scopePath);
+		const fullScope = resolve(cwd, scopePath);
 		if (!existsSync(fullScope)) {
 			continue;
 		}

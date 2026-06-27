@@ -11,6 +11,21 @@ import {
 } from "../skills/validator.js";
 import { ensureSkillsDir } from "../skills/registry.js";
 import { PermissionSchema } from "../skills/types.js";
+import { loadConfig } from "../config/loader.js";
+
+export let cwd = loadConfig().cwd;
+
+/**
+ * Set the working directory. Used by tests to override cwd.
+ * Returns the previous cwd value.
+ * @param {string} newCwd - The new working directory
+ * @returns {string} The previous cwd value
+ */
+export function setCwd(newCwd) {
+	const prev = cwd;
+	cwd = newCwd;
+	return prev;
+}
 
 /**
  * Core logic for listing all discovered skills via catalog (tier 1 progressive disclosure).
@@ -220,7 +235,7 @@ export async function createSkillImpl(input, options) {
 	}
 
 	// Create the skill directory
-	const skillPath = join(process.cwd(), skillsDir, name);
+	const skillPath = join(cwd, skillsDir, name);
 	const skillMdPath = join(skillPath, "SKILL.md");
 	let createdPaths = [skillPath, skillMdPath];
 

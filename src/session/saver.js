@@ -1,5 +1,8 @@
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { loadConfig } from "../config/loader.js";
+
+const cwd = loadConfig().cwd;
 
 /**
  * Escape a string for safe inclusion in a YAML double-quoted scalar.
@@ -9,10 +12,7 @@ import { join } from "node:path";
  * @returns {string} The escaped string
  */
 function escapeYamlString(str) {
-	return str
-		.replace(/\\/g, "\\\\")
-		.replace(/"/g, '\\"')
-		.replace(/\n/g, "\\n");
+	return str.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n");
 }
 
 /**
@@ -23,7 +23,7 @@ function escapeYamlString(str) {
  * @throws {Error} If the underlying filesystem operation fails (missing directory, disk full, permissions)
  */
 export async function saveSession(sessionsDir, conversation, threadId = "") {
-	const dir = join(process.cwd(), sessionsDir);
+	const dir = join(cwd, sessionsDir);
 
 	const filename = threadId ? `${threadId}.md` : "unsaved.md";
 	const isoTimestamp = new Date().toISOString();

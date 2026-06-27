@@ -24,6 +24,7 @@ import { createCompactionTool } from "./compaction.js";
 import { createSubAgentTool } from "./subAgent.js";
 import { createSubAgentLogTool } from "./subAgentLog.js";
 import { createSubAgentMessageTool } from "./subAgentMessage.js";
+import { createScanAgentsTool } from "./scanAgents.js";
 
 /**
  * Maps tool names to required permission scopes.
@@ -57,6 +58,8 @@ export const TOOL_PERMISSIONS = {
 	compaction: [],
 	subAgent: ["process:spawn"],
 	subAgentLog: ["process:spawn"],
+	subAgentMessage: ["process:spawn"],
+	scanAgents: [],
 };
 
 // Factory functions keyed by tool name
@@ -88,6 +91,7 @@ const TOOL_FACTORIES = {
 	subAgent: createSubAgentTool,
 	subAgentLog: createSubAgentLogTool,
 	subAgentMessage: createSubAgentMessageTool,
+	scanAgents: createScanAgentsTool,
 };
 
 /**
@@ -112,12 +116,13 @@ const TOOL_FACTORIES = {
  * @param {import("@langchain/langgraph").BaseCheckpointSaver | null} [options.checkpointer] - LangGraph checkpointer for compactContext tool
  * @param {object} [options.threadConfig] - Thread config for checkpointer access
  * @param {string} [options.systemPrompt] - System prompt for compaction context
+ * @param {boolean} [options.subAgent=false] - Whether running as a sub-agent (excludes subAgent tools)
  * @returns {Promise<object[]>} Array of LangChain Tool instances
  */
 export async function buildToolConfig(options) {
 	const {
 		permissions = [],
-		allowedPaths = ["memory/", "skills/", "tmp/"],
+		allowedPaths = [],
 		maxReadSize = "1mb",
 		registry,
 		sessionsDir = "memory/sessions/",
@@ -128,6 +133,7 @@ export async function buildToolConfig(options) {
 		ephemeralTtlDays = 7,
 		ephemeralMaxEntries = 10,
 		config,
+		subAgent = false,
 	} = options;
 
 	// Extract resolved API keys from config fallback
@@ -188,11 +194,17 @@ export async function buildToolConfig(options) {
 	for (const [toolName, requiredPerms] of Object.entries(TOOL_PERMISSIONS)) {
 		const hasAllPerms = requiredPerms.every((perm) => enabledSet.has(perm));
 
+		// Sub-agents don't get subAgent tools (prevent infinite recursion)
+		if (subAgent && (toolName === "subAgent" || toolName === "subAgentLog" || toolName === "subAgentMessage")) {
+			continue;
+		}
+
 		switch (toolName) {
 			case "clarify":
 			case "executeCode":
 			case "sampling":
-			case "date": {
+			case "date":
+			case "scanAgents": {
 				tools.push(TOOL_FACTORIES[toolName](runtimeOptions));
 				continue;
 			}

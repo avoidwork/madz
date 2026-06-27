@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { dirname } from "node:path";
 import { readFileSync } from "node:fs";
+import { loadConfig } from "../config/loader.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -12,7 +13,8 @@ const __dirname = dirname(__filename);
 const COMPACTION_MARKER = "# Compaction";
 
 // Load the compaction prompt template once at module load time
-const compactionTemplatePath = join(process.cwd(), "prompts", "COMPACTION.md");
+const cwd = loadConfig().cwd;
+const compactionTemplatePath = join(cwd, "prompts", "COMPACTION.md");
 const compactionTemplate = readFileSync(compactionTemplatePath, "utf-8").trim();
 const compactionTemplateEscaped = compactionTemplate.replace(/\n/g, "\\n");
 
@@ -64,7 +66,7 @@ export function parseCompactionOutput(stdout) {
  */
 function spawnCompactionProcess(command, sessionsDir) {
 	return new Promise((resolve) => {
-		const indexPath = join(process.cwd(), "index.js");
+		const indexPath = join(cwd, "index.js");
 
 		const child = spawn("node", [indexPath, `"${command}"`, sessionsDir], {
 			timeout: 60000,
@@ -143,9 +145,7 @@ export function createCompactionTool(options = {}) {
 				threadID: z
 					.string()
 					.optional()
-					.describe(
-						"Session identifier. Defaults to the current session's threadId when omitted.",
-					),
+					.describe("Session identifier. Defaults to the current session's threadId when omitted."),
 				maxMessages: z
 					.number()
 					.int()

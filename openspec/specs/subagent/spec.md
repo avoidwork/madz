@@ -1,7 +1,7 @@
 # subagent Specification
-
 ## Purpose
-TBD - created by archiving change subagent-tool. Update Purpose after archive.
+
+The subAgent tool enables the main agent to spawn child processes for independent task execution. It supports single execution and fan-out (parallel/sequential) modes, requires explicit cwd for process isolation, tracks OS-level PIDs for lifecycle management, and excludes itself from sub-agent tool sets to prevent recursion. This is the core delegation infrastructure that evolved from the original scanAgents tool discovery..
 ## Requirements
 ### Requirement: Sub-agent tool spawns child processes
 The subAgent tool SHALL spawn `node index.js "PROMPT" sessionsDir` as an independent child process, inheriting the parent's environment variables while maintaining session isolation.
@@ -173,4 +173,30 @@ The subAgent tool SHALL pass only necessary environment variables to child proce
 #### Scenario: No dead env vars passed to child
 - **WHEN** a sub-agent is spawned
 - **THEN** the child process environment does not include MADZ_SESSION_ID
+
+### Requirement: Working directory enforcement
+The subAgent tool SHALL require a `cwd` parameter that specifies the working directory for the sub-agent process. All file operations and relative paths within the sub-agent SHALL be resolved from this directory.
+
+#### Scenario: cwd is required
+- **WHEN** subAgent is called without a cwd parameter
+- **THEN** the tool returns a validation error indicating cwd is required
+
+#### Scenario: cwd is used for process execution
+- **WHEN** subAgent is called with cwd set to a valid directory path
+- **THEN** the sub-agent process operates within that directory context
+
+### Requirement: CLI cwd argument
+The application SHALL parse the `--cwd` CLI argument and pass it to `loadAgents()`, overriding the default `process.cwd()` fallback.
+
+#### Scenario: --cwd argument is parsed
+- **WHEN** the application is started with `--cwd=PATH`
+- **THEN** loadAgents resolves AGENTS.md from the specified path
+
+#### Scenario: --cwd overrides default
+- **WHEN** `--cwd` is provided and no explicit cwd parameter is passed to loadAgents
+- **THEN** the CLI argument takes precedence over process.cwd()
+
+#### Scenario: Explicit cwd parameter overrides CLI
+- **WHEN** an explicit cwd parameter is passed to loadAgents
+- **THEN** the explicit parameter takes precedence over the --cwd CLI argument
 

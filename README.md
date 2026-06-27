@@ -17,6 +17,7 @@
   - [Installation](#installation)
   - [Configuration](#configuration)
   - [Running](#running)
+  - [CLI Arguments](#cli-arguments)
   - [TUI Navigation](#tui-navigation)
 - [Docker](#docker)
   - [Building](#building)
@@ -127,6 +128,36 @@ node index.js "What's the CPU load?"
 
 ```bash
 node index.js "Summarize memory/_index.md" --json
+```
+
+### CLI Arguments
+
+All CLI arguments are parsed via [yargs](https://yargs.js.org/).
+
+| Argument              | Alias | Type     | Description                              |
+| --------------------- | ----- | -------- | ---------------------------------------- |
+| `--cwd`               | `-c`  | `string` | Working directory to use                 |
+| `--mode`              | `-m`  | `string` | CLI mode: `"chat"` or `"interactive"`    |
+| `--session`           | `-s`  | `string` | Session ID to restore                    |
+| `message` (positional) | —    | `string` | Message to send (default: `"Hello"`)     |
+
+**Examples:**
+
+```bash
+# Interactive TUI
+node index.js --mode interactive
+
+# Chat mode with a message
+node index.js "What's the CPU load?"
+
+# Chat mode with session restore
+node index.js --session abc123
+
+# Chat mode with custom working directory
+node index.js --cwd /path/to/project "Run diagnostics"
+
+# Interactive TUI with session restore
+node index.js --mode interactive --session abc123
 ```
 
 ### TUI Navigation
@@ -394,7 +425,7 @@ Wraps `@langchain/langgraph/prebuilt`'s `createReactAgentGraph` to produce a com
 
 ### Context Window Management
 
-When conversations grow long enough to exceed the model's maximum context length, `madz` automatically detects the error and triggers a compaction routine. A tiered retention strategy preserves high-fidelity information: the system prompt and the most recent exchanges are kept intact, older exchanges are summarized into concise bullet-point previews, and the oldest messages are dropped entirely. If a single compaction doesn't bring the context within budget, the system retries with progressively tighter limits — up to three iterations. If even the minimal context (system prompt + last user message) exceeds the budget, the user is presented with a clear error message. This happens transparently; the user never needs to start a new session or manually manage context.
+When conversations grow long enough to exceed the model's maximum context length, `madz` automatically detects the error and triggers a compaction routine. A tiered retention strategy preserves high-fidelity information: the system prompt and the most recent exchanges are kept intact, older exchanges are summarized into concise bullet-point previews, and the oldest messages are dropped entirely. If a single compaction doesn't bring the context within budget, the system retries with progressively tighter limits — up to three iterations. If eve`subAgentMessage` — send messages to running subAgent processes via stdin; `scanAgents` — scan for `AGENTS.md` workspace rules files in a target directory                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |t, the user is presented with a clear error message. This happens transparently; the user never needs to start a new session or manually manage context.
 
 ### Built-in Tools
 
@@ -483,6 +514,7 @@ On first onboarding completion, `madz` automatically installs a `reflection-dail
 │   ├── session/                # Per-session state & context windows
 │   ├── telemetry/              # OpenTelemetry tracing & redaction
 │   ├── tools/                  # Built-in LangChain tools
+│   ├── workspace/              # Workspace rules discovery (AGENTS.md)
 │   └── tui/                    # Ink React terminal UI
 ├── tests/
 │   ├── unit/                   # Unit tests per module

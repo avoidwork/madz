@@ -674,27 +674,27 @@ Multi-engine search backends (webSearch):
 
 ```
 subAgent tool (zero-permission, always registered):
-├── validate input: delegation (required), context (optional), tasks (optional for fan-out)
+├── validate input: delegation (required), context (optional), tasks (optional for fan-out), cwd (optional)
 ├── if tasks provided (fan-out mode):
 │   ├── for each task in tasks (bounded by maxConcurrent):
-│   │   ├── spawn("sh", ["-c", `node index.js "${escapeShellArg(delegation)}" ||| "${escapeShellArg(context)}"`])
+│   │   ├── spawn("node", ["index.js", "--sub-agent=true", `--cwd=${targetCwd}`, `--message="${prompt}"`])
 │   │   ├── trackProcess(child, command) → { pid, child, status: "running", startTime }
 │   │   ├── wait for completion or timeout (resolveTimeout: per-call > env > config)
-│   │   └── parseSubAgentOutput(stdout) → { ok, result, error? }
+│   │   └── parseSubAgentOutput(stdout) → { ok, result, error?, pid? }
 │   │       └── Split on "# SubAgent" marker, parse JSON after marker
 │   ├── if strategy === "sequential": wait for each to complete before next
 │   ├── if strategy === "parallel": run up to maxConcurrent simultaneously
 │   └── if onError === "fail-fast": abort remaining on first error
 │   └── if onError === "continue": collect errors, return all results
 ├── else (single execution mode):
-│   ├── spawn("sh", ["-c", `node index.js "${escapeShellArg(delegation)}" ||| "${escapeShellArg(context)}"`])
+│   ├── spawn("node", ["index.js", "--sub-agent=true", `--cwd=${targetCwd}`, `--message="${prompt}"`])
 │   ├── trackProcess(child, command) → { pid, child, status: "running", startTime }
 │   ├── wait for completion or timeout
-│   └── parseSubAgentOutput(stdout) → { ok, result, error? }
+│   └── parseSubAgentOutput(stdout) → { ok, result, error?, pid? }
 ├── if returnParams provided:
 │   └── filter result to only include specified keys
 │   └── fallback to full text if not valid JSON
-└── return { ok, result, error? }
+└── return { ok, result, error?, pid? }
 
 escapeShellArg(arg):
 ├── Replace backticks, dollar signs, single quotes, double quotes
@@ -722,6 +722,36 @@ resolveTimeout(options):
 | `isolated` | Fresh session, no parent context |
 | `forked` | Forked from parent session with compaction |
 | `shared` | Shared parent session context |
+
+---
+
+## Scan Agents Tool Flow
+
+**Entry:** `src/tools/scanAgents.js` → `createScanAgentsTool()`
+
+```
+scanAgents tool (requires filesystem:read permission):
+├── validate input: path (optional, defaults to config.cwd)
+├── validatePath(input.path, allowedPaths)
+│   └── resolvePath(file, dirs) → { allowed: true/false, path }
+│       └── resolves → checks if resolved.startsWith(allowed + "/")
+├── loadAgents(resolved.path, maxReadSize)
+│   ├── join(resolved.path, "AGENTS.md") → agentsPath
+│   ├── access(agentsPath) → if not exists → return ""
+│   ├── checkFileLimit(agentsPath, maxReadSize) → if exceeds → return error
+│   └── readFile(agentsPath, "utf-8") → content
+│       └── return "## Workspace Rules\n\n" + content.trim()
+└── return formatted workspace rules section
+```
+
+**Key features:**
+- Path validation against sandbox allowed paths
+- Configurable scan path (defaults to `config.cwd`)
+- File size limit enforcement via `maxReadSize`
+- Returns formatted workspace rules section for system prompt injection
+- Returns empty string silently if no `AGENTS.md` found
+
+---
 
 ## Sandbox Skill Execution
 

@@ -79,11 +79,7 @@ export class SessionStateManager {
 	 */
 	removeLastAssistantToolCallMessage() {
 		const lastMessage = this.#state.conversation[this.#state.conversation.length - 1];
-		if (
-			lastMessage &&
-			lastMessage.role === "assistant" &&
-			this.#hasToolCalls(lastMessage)
-		) {
+		if (lastMessage && lastMessage.role === "assistant" && this.#hasToolCalls(lastMessage)) {
 			const removed = this.#state.conversation.pop();
 			this.#state.updatedAt = new Date().toISOString();
 			return removed;

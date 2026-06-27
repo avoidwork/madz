@@ -2,6 +2,9 @@ import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { mkdir, writeFile, readFile, readdir, unlink, access } from "node:fs/promises";
 import { join, basename } from "node:path";
+import { loadConfig } from "../config/loader.js";
+
+const cwd = loadConfig().cwd;
 
 const DEFAULT_MAX_ENTRIES = 100;
 
@@ -81,7 +84,7 @@ export function sanitizeKey(key) {
  * @returns {string} Full path to the entry file
  */
 function getEntryPath(key, contextDir) {
-	return join(process.cwd(), contextDir, sanitizeKey(key) + ".md");
+	return join(cwd, contextDir, sanitizeKey(key) + ".md");
 }
 
 /**
@@ -154,7 +157,7 @@ async function saveEntry(key, value, createdDate, contextDir) {
 	const filePath = getEntryPath(key, contextDir);
 	const now = new Date().toISOString();
 	const created = createdDate || now;
-	await mkdir(process.cwd() + "/" + contextDir, { recursive: true });
+	await mkdir(cwd + "/" + contextDir, { recursive: true });
 	await writeFile(
 		filePath,
 		`---\ncreatedDate: "${created}"\nupdatedDate: "${now}"\n---\n\n${value}\n`,

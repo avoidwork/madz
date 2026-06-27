@@ -90,7 +90,7 @@ export const ProvidersSchema = z.object({}).passthrough();
 // --- Sandbox schemas ---
 
 export const SandboxScopeSchema = z.object({
-	paths: z.array(z.string()).default(["memory/", "skills/", "tmp/"]),
+	paths: z.array(z.string()).default(["./", "!node_modules/", "/tmp"]),
 	timeout: z.object({
 		seconds: z.number().int().min(0).default(30),
 		gracePeriod: z.number().int().positive().default(5),
@@ -218,6 +218,8 @@ export const ConfigSchema = z.object({
 	agent: AgentSchema.default({}),
 	lru: LruSchema.default({}),
 	persistence: PersistenceSchema,
+	cwd: z.string().default(""),
+	subAgent: z.boolean().default(false),
 });
 
 // Default values exported for merging
@@ -243,7 +245,7 @@ export const DEFAULT_CONFIG = {
 		},
 	},
 	sandbox: {
-		paths: ["memory/", "skills/", "tmp/"],
+		paths: ["./", "!node_modules/", "/tmp"],
 		timeout: { seconds: 30, gracePeriod: 5 },
 		memoryLimit: "512m",
 		safety: { urlFilter: true, pythonImportHook: true },
@@ -277,4 +279,6 @@ export const DEFAULT_CONFIG = {
 	lru: { size: 100, ttl: 600000 },
 	tui: { name: "madz", cursorChar: "\u2588" },
 	persistence: { mode: "memory", sqlite_path: "memory/checkpoints.db" },
+	cwd: "",
+	subAgent: false,
 };

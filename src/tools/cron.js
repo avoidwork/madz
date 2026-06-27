@@ -6,6 +6,9 @@ import { join } from "node:path";
 import { spawn } from "node:child_process";
 import { Cron } from "../../src/scheduler/cron.js";
 import { logger } from "../logger.js";
+import { loadConfig } from "../config/loader.js";
+
+const cwd = loadConfig().cwd;
 
 /// -- Helper to find skill script --
 
@@ -57,10 +60,10 @@ export async function findSkillScript(skillName, baseDir = ["system-skills", "sk
  * @returns {Promise<{ stdout: string, stderr: string, exitCode: number }>}
  */
 export async function runScript(scriptPath, args = [], options = {}) {
-	const { timeout = 30000, cwd = process.cwd() } = options;
+	const { timeout = 30000, cwd: scriptCwd = cwd } = options;
 	return new Promise((resolve) => {
 		const child = spawn(scriptPath, args, {
-			cwd,
+			cwd: scriptCwd,
 			stdio: ["pipe", "pipe", "pipe"],
 		});
 

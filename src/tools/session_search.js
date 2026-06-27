@@ -3,7 +3,9 @@ import { z } from "zod";
 import { readdir, readFile, access, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { parseFrontmatter } from "../memory/reader.js";
+import { loadConfig } from "../config/loader.js";
 
+const cwd = loadConfig().cwd;
 const FS = Object.freeze({ MODE_RDONLY: 0 });
 
 /**
@@ -29,7 +31,7 @@ async function exists(path) {
  * @returns {Promise<string>} Search results or conversation content
  */
 export async function sessionSearchImpl(input, options) {
-	const sessionsDir = join(process.cwd(), options.sessionsDir || "memory/sessions/");
+	const sessionsDir = join(cwd, options.sessionsDir || "memory/sessions/");
 
 	if (input.conversationId) {
 		return getFullConversation(sessionsDir, input.conversationId);

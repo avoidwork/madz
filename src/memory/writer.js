@@ -1,5 +1,6 @@
 import { writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
+import { loadConfig } from "../config/loader.js";
 
 const FRONTMATTER_DELIMITER = "---";
 
@@ -15,14 +16,17 @@ function escapeYamlString(str) {
 
 /**
  * Write a memory file with YAML frontmatter.
- * Creates a timestamped markdown file in the specified directory.
- * @param {string} directory - The memory directory to write to
+ * Creates a timestamped markdown file in the specified directory,
+ * resolved relative to config.cwd.
+ * @param {string} subdirectory - The subdirectory relative to config.cwd
  * @param {string} title - A short title for the entry
  * @param {Object} frontmatter - YAML frontmatter metadata
  * @param {string} body - The markdown body content
  * @returns {string} The path of the created file
  */
-export function writeMemoryFile(directory, title, frontmatter, body = "") {
+export function writeMemoryFile(subdirectory, title, frontmatter, body = "") {
+	const config = loadConfig();
+	const directory = join(config.cwd, subdirectory);
 	mkdirSync(directory, { recursive: true });
 	const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
 	const slug = title
