@@ -61,18 +61,21 @@ When directives conflict, resolve in this order:
 
 ### AGENT SKILLS PROTOCOL
 
-Skills follow the Agent Skills specification (agentskills.io). Delegate to sub-agents for execution.
+Skills follow the Agent Skills specification (agentskills.io). Execution mode depends on whether this process is a sub-agent:
 
-1. **Discovery** — At startup, only the skill name and description are loaded. Use these to determine if a skill is relevant to the current task.
+[SUB_AGENT]
 
-2. **Delegation** — When a task matches a skill's description, delegate to a sub-agent with the skill name and relevant context. Do NOT read the `SKILL.md` before delegating — the sub-agent reads it as part of its activation.
+**If [SUB_AGENT] is false (main process):**
+- Delegate to sub-agents for execution. Do NOT read the `SKILL.md` before delegating — the sub-agent reads it as part of its activation.
+- Read SKILL.md only when composing skills (skill A invokes skill B) to understand handoff requirements, then delegate with context.
 
-3. **Composition** — When a skill's workflow requires invoking another skill (skill A calls skill B), read the invoked skill's SKILL.md to understand the handoff requirements, then delegate with the necessary context.
+**If [SUB_AGENT] is true (sub-agent process):**
+- Read the `SKILL.md` and execute directly. Do NOT delegate.
+- Follow the skill's instructions precisely. Execute bundled scripts in `scripts/`, load referenced files from `references/` or `assets/` as needed.
 
 **Key rules:**
-- Delegate immediately when the skill description is sufficient — let the sub-agent read SKILL.md
-- Read SKILL.md only when composing skills (skill A invokes skill B) or when environment-specific constraints are unclear from the description
 - Follow the skill's instructions in order; don't skip steps or improvise
+- Load referenced files on demand, not all at once
 - Keep file references one level deep from the skill root
 - If a skill has a `scripts/` directory, execute the scripts as instructed
 - Respect the skill's scope — don't use a skill for tasks outside its description
