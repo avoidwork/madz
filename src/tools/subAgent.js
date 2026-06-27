@@ -104,7 +104,7 @@ export function spawnSubAgentProcess(prompt, timeout, targetCwd = defaultCwd, te
 
 		const childEnv = { ...process.env };
 		if (temperature !== undefined && temperature !== null) {
-			childEnv.MADZ_SUBAGENT_TEMPERATURE = String(temperature);
+			childEnv.SUBAGENT_TEMPERATURE = String(temperature);
 		}
 
 		const child = spawn(
@@ -273,7 +273,7 @@ function resolveTemperature(perCallTemperature, config) {
 	}
 
 	// Env var override (set by spawned process)
-	const envTemperature = process.env.MADZ_SUBAGENT_TEMPERATURE;
+	const envTemperature = process.env.SUBAGENT_TEMPERATURE;
 	if (envTemperature !== undefined && envTemperature !== "") {
 		const parsed = Number(envTemperature);
 		if (!isNaN(parsed) && parsed >= 0 && parsed <= 2) {
