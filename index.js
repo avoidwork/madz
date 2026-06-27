@@ -1,11 +1,6 @@
 #!/usr/bin/env node
 
-// Load config first — before any other ./src imports — so config.cwd is set
-// before process.chdir() potentially changes the working directory.
-import { loadConfig } from "./src/config/loader.js";
-const config = loadConfig();
-
-// Parse CLI arguments via yargs
+// Parse CLI arguments via yargs first — before loading config
 import yargs from "yargs";
 const parsed = yargs(process.argv.slice(2))
 	.option("cwd", {
@@ -22,10 +17,20 @@ const parsed = yargs(process.argv.slice(2))
 		type: "string",
 		description: "Session ID to restore",
 	})
+	.option("sub-agent", {
+		type: "boolean",
+		default: false,
+		description: "Run as a sub-agent",
+	})
 	.positional("message", {
 		type: "string",
 		description: "Message to send",
 	}).argv;
+
+// Load config first — before any other ./src imports — so config.cwd is set
+// before process.chdir() potentially changes the working directory.
+import { loadConfig } from "./src/config/loader.js";
+const config = loadConfig(parsed["sub-agent"]);
 
 // Change to the configured working directory before any other imports
 if (parsed.cwd) {

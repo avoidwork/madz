@@ -219,6 +219,7 @@ export const ConfigSchema = z.object({
 	lru: LruSchema.default({}),
 	persistence: PersistenceSchema,
 	cwd: z.string().default(""),
+	subAgent: z.boolean().default(false),
 });
 
 // Default values exported for merging
@@ -279,4 +280,5 @@ export const DEFAULT_CONFIG = {
 	tui: { name: "madz", cursorChar: "\u2588" },
 	persistence: { mode: "memory", sqlite_path: "memory/checkpoints.db" },
 	cwd: "",
+	subAgent: false,
 };

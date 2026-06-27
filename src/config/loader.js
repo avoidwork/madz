@@ -130,9 +130,10 @@ function validateConfig(raw) {
  * Resolves env vars by mapping each config path segment to an
  * environment variable name: providers.openai.credentials.apiKey
  * resolves to OPENAI_API_KEY.
+ * @param {boolean} [subAgent=false] - Whether running as a sub-agent
  * @returns {z.infer<typeof ConfigSchema>}
  */
-export function loadConfig() {
+export function loadConfig(subAgent = false) {
 	let raw = DEFAULT_CONFIG;
 	if (existsSync(CONFIG_PATH)) {
 		const fileContent = readFileSync(CONFIG_PATH, "utf-8");
@@ -145,6 +146,7 @@ export function loadConfig() {
 	const config = validateConfig(resolved);
 	// Capture the original working directory before any chdir happens
 	config.cwd = process.cwd();
+	config.subAgent = subAgent;
 	return config;
 }
 
