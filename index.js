@@ -202,7 +202,7 @@ try {
 // Load system prompt and append memory entries
 const { loadSystemPrompt } = await import("./src/memory/prompts.js");
 const { generateSkillCatalogPrompt } = await import("./src/tools/skills.js");
-const systemPrompt = loadSystemPrompt(process.cwd());
+const systemPrompt = loadSystemPrompt(process.cwd(), config.subAgent);
 const memoryEntriesDir = config.cwd + "/" + (config.memory?.entriesDir || "memory/context/");
 // Build agent and tool config at startup (once)
 const providerConfig = config.providers[providerName] || {};
