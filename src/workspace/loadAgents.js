@@ -1,9 +1,8 @@
 import { readFile, access } from "node:fs/promises";
 import { join } from "node:path";
 import { checkFileLimit } from "../tools/common.js";
-import { loadConfig } from "../config/loader.js";
 
-const cwd = loadConfig().cwd;
+const cwd = process.cwd();
 
 /**
  * Check if a file path exists.
