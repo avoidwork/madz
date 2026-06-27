@@ -1,8 +1,10 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { loadConfig } from "../config/loader.js";
 import { parseFrontmatter } from "./reader.js";
 import { loadProfile, formatProfileContext } from "./profile.js";
 
+const cwd = loadConfig().cwd;
 const PROFILE_FILENAME = "profile.md";
 
 /**
