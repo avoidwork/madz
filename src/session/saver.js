@@ -1,5 +1,8 @@
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { loadConfig } from "../config/loader.js";
+
+const cwd = loadConfig().cwd;
 
 /**
  * Escape a string for safe inclusion in a YAML double-quoted scalar.

@@ -3,7 +3,9 @@ import { z } from "zod";
 import { readdir, readFile, access, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { parseFrontmatter } from "../memory/reader.js";
+import { loadConfig } from "../config/loader.js";
 
+const cwd = loadConfig().cwd;
 const FS = Object.freeze({ MODE_RDONLY: 0 });
 
 /**
