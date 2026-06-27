@@ -174,3 +174,29 @@ The subAgent tool SHALL pass only necessary environment variables to child proce
 - **WHEN** a sub-agent is spawned
 - **THEN** the child process environment does not include MADZ_SESSION_ID
 
+### Requirement: Working directory enforcement
+The subAgent tool SHALL require a `cwd` parameter that specifies the working directory for the sub-agent process. All file operations and relative paths within the sub-agent SHALL be resolved from this directory.
+
+#### Scenario: cwd is required
+- **WHEN** subAgent is called without a cwd parameter
+- **THEN** the tool returns a validation error indicating cwd is required
+
+#### Scenario: cwd is used for process execution
+- **WHEN** subAgent is called with cwd set to a valid directory path
+- **THEN** the sub-agent process operates within that directory context
+
+### Requirement: CLI cwd argument
+The application SHALL parse the `--cwd` CLI argument and pass it to `loadAgents()`, overriding the default `process.cwd()` fallback.
+
+#### Scenario: --cwd argument is parsed
+- **WHEN** the application is started with `--cwd=PATH`
+- **THEN** loadAgents resolves AGENTS.md from the specified path
+
+#### Scenario: --cwd overrides default
+- **WHEN** `--cwd` is provided and no explicit cwd parameter is passed to loadAgents
+- **THEN** the CLI argument takes precedence over process.cwd()
+
+#### Scenario: Explicit cwd parameter overrides CLI
+- **WHEN** an explicit cwd parameter is passed to loadAgents
+- **THEN** the explicit parameter takes precedence over the --cwd CLI argument
+
