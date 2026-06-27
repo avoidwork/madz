@@ -10,18 +10,23 @@ import {
 	skillViewImpl,
 	generateSkillCatalogPrompt,
 	createSkill,
+	cwd,
+	setCwd,
 } from "../../src/tools/skills.js";
 import { findSkillScript } from "../../src/tools/cron.js";
 import { SkillRegistry } from "../../src/skills/registry.js";
 
 let testDir;
 let originalCwd;
+let originalSkillsCwd;
 
 function setup() {
 	originalCwd = process.cwd();
+	originalSkillsCwd = cwd;
 	testDir = join(tmpdir(), "madz-create-skill-test-" + Date.now());
 	mkdirSync(testDir, { recursive: true });
 	chdir(testDir);
+	setCwd(testDir);
 }
 
 function cleanup() {
@@ -30,6 +35,9 @@ function cleanup() {
 	}
 	if (originalCwd) {
 		chdir(originalCwd);
+	}
+	if (originalSkillsCwd !== undefined) {
+		setCwd(originalSkillsCwd);
 	}
 }
 

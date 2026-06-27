@@ -16,6 +16,14 @@ import { loadConfig } from "../config/loader.js";
 export let cwd = loadConfig().cwd;
 
 /**
+ * Set the working directory. Used by tests to override cwd.
+ * @param {string} newCwd - The new working directory
+ */
+export function setCwd(newCwd) {
+	cwd = newCwd;
+}
+
+/**
  * Core logic for listing all discovered skills via catalog (tier 1 progressive disclosure).
  * @param {z.infer<typeof SkillsListSchema>} input - The tool input (empty)
  * @param {object} options - Runtime options
