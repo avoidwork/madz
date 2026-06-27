@@ -94,7 +94,7 @@ export function generateSessionId() {
 
 /**
  * Spawn a single sub-agent process.
- * @param {string} prompt - The full prompt (context ||| delegation)
+ * @param {string} prompt - The full prompt (context + delegation, newline-separated)
  * @param {number} timeout - Timeout in milliseconds (reserved for future use)
  * @param {string} targetCwd - Working directory for the sub-agent
  * @returns {Promise<{ ok: boolean, result: string, error?: string, sessionId?: string, pid?: number }>}
@@ -371,7 +371,7 @@ export function createSubAgentTool(options = {}) {
 					.string()
 					.optional()
 					.describe(
-						"Session compaction or context the sub-agent needs to understand the task. Everything before ' ||| ' in the prompt.",
+						"Session compaction or context the sub-agent needs to understand the task. Prepended to the delegation instruction with a newline separator.",
 					),
 				tasks: z
 					.array(
