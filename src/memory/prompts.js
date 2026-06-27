@@ -5,14 +5,15 @@ import { loadConfig } from "../config/loader.js";
 const cwd = loadConfig().cwd;
 
 /**
- * Load the system prompt from prompts/SYSTEM_PROMPT.md.
+ * Load the system prompt from prompts/SYSTEM_PROMPT.md or prompts/SUB_AGENT.md.
  * @param {string} [baseDir=cwd] - Base directory for loading the prompt file
  * @param {boolean} [subAgent=false] - Whether running as a sub-agent
  * @returns {string} System prompt text, or empty string if file not found
  */
 export function loadSystemPrompt(baseDir = cwd, subAgent = false) {
 	try {
-		const path = join(baseDir, "prompts", "SYSTEM_PROMPT.md");
+		const filename = subAgent ? "SUB_AGENT.md" : "SYSTEM_PROMPT.md";
+		const path = join(baseDir, "prompts", filename);
 		let content = readFileSync(path, "utf-8");
 		if (content.startsWith("---")) {
 			const closeIdx = content.indexOf("---", 3);
