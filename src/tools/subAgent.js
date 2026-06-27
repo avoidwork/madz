@@ -437,9 +437,3 @@ export function createSubAgentTool(options = {}) {
 		},
 	);
 }
- config default.",
-					),
-			}),
-		},
-	);
-}
