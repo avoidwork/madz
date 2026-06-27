@@ -120,6 +120,7 @@ export function spawnSubAgentProcess(prompt, timeout, targetCwd = defaultCwd) {
 				timeoutSeconds.toString(),
 				"node",
 				"index.js",
+				"--sub-agent=true",
 				`--cwd=${targetCwd}`,
 				`"${prompt}"`,
 			],
