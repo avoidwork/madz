@@ -1,7 +1,7 @@
 # scan-agents Specification
-
 ## Purpose
-TBD - created by archiving change scan-agents-tool. Update Purpose after archive.
+
+The scanAgents tool enables agents to discover and load AGENTS.md files from a specified path or the current working directory. It returns file contents when found, an empty string when not found, and uses existing path validation infrastructure for safety. This is the foundational discovery mechanism that enabled the broader subAgent delegation infrastructure..
 ## Requirements
 ### Requirement: Tool discovers AGENTS.md in specified path
 The scanAgents tool SHALL accept an optional `path` parameter and check for the existence of an `AGENTS.md` file at that location. If no path is provided, the tool SHALL use the current working directory (`process.cwd()`) as the default.

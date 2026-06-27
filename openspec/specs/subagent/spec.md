@@ -1,7 +1,7 @@
 # subagent Specification
-
 ## Purpose
-TBD - created by archiving change subagent-tool. Update Purpose after archive.
+
+The subAgent tool enables the main agent to spawn child processes for independent task execution. It supports single execution and fan-out (parallel/sequential) modes, requires explicit cwd for process isolation, tracks OS-level PIDs for lifecycle management, and excludes itself from sub-agent tool sets to prevent recursion. This is the core delegation infrastructure that evolved from the original scanAgents tool discovery..
 ## Requirements
 ### Requirement: Sub-agent tool spawns child processes
 The subAgent tool SHALL spawn `node index.js "PROMPT" sessionsDir` as an independent child process, inheriting the parent's environment variables while maintaining session isolation.
