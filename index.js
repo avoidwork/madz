@@ -33,6 +33,9 @@ const parsed = yargs(process.argv.slice(2))
 import { loadConfig } from "./src/config/loader.js";
 const config = loadConfig(parsed["sub-agent"]);
 
+console.log(JSON.stringify(config, null, 2));
+process.exit(0);
+
 // Change to the configured working directory before any other imports
 if (parsed.cwd) {
 	process.chdir(parsed.cwd);
