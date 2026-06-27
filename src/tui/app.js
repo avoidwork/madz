@@ -74,20 +74,20 @@ export default function App({
 			const providerConfig = config?.providers?.[providerName] || {};
 			const modelName = providerConfig.model || "gpt-4o";
 			const encoding = providerConfig.encoding;
-			
+
 			// Calculate conversation tokens
 			let totalTokens = calculateConversationTokens(conversation, modelName, encoding);
-			
+
 			// Add system prompt tokens
 			const systemPrompt = loadSystemPrompt();
 			if (systemPrompt) {
 				totalTokens += calculateConversationTokens(
 					[{ role: "system", content: systemPrompt }],
 					modelName,
-					encoding
+					encoding,
 				);
 			}
-			
+
 			setContextSize(totalTokens);
 		}
 		return () => {
@@ -165,7 +165,11 @@ export default function App({
 				_executeSkill: (skillName, _args) => {
 					const skill = registry.get(skillName);
 					if (!skill) {
-						return { action: "skill", subAction: "error", message: `Skill "${skillName}" not found.` };
+						return {
+							action: "skill",
+							subAction: "error",
+							message: `Skill "${skillName}" not found.`,
+						};
 					}
 					// Skills are prompt-based instructions for the agent to interpret and execute.
 					// Load the SKILL.md and pass it to the conversation so the agent can use it.
@@ -175,7 +179,9 @@ export default function App({
 						subAction: "load",
 						name: skillName,
 						skillBody: body || "",
-						message: body ? `Skill "${skillName}" loaded.\n${body}` : `Skill "${skillName}" loaded. No instructions found.`,
+						message: body
+							? `Skill "${skillName}" loaded.\n${body}`
+							: `Skill "${skillName}" loaded. No instructions found.`,
 					};
 				},
 			});
@@ -346,7 +352,8 @@ export default function App({
 										const cloned = [...prev];
 										const last = cloned[cloned.length - 1];
 										if (last.role === "assistant" && last.streaming) {
-											last.toolCallDisplay = (lastToolCallDisplay ? lastToolCallDisplay + "\n" : "") + "You're looping.";
+											last.toolCallDisplay =
+												(lastToolCallDisplay ? lastToolCallDisplay + "\n" : "") + "You're looping.";
 										}
 										return cloned;
 									});
@@ -355,8 +362,8 @@ export default function App({
 								// Silently ignore streaming callback errors
 							}
 						},
-					abortControllerRef.current?.signal,
-				);
+						abortControllerRef.current?.signal,
+					);
 
 					// Store the promise so handleInterrupt can await it
 					dispatchPromiseRef.current = dispatchPromise;
@@ -468,12 +475,12 @@ export default function App({
 										}
 									} catch (_cbErr) {}
 								},
-							abortControllerRef.current?.signal,
-						);
-						// Update the ref so handleInterrupt can await this promise too
-						dispatchPromiseRef.current = continuePromise;
-						await continuePromise;
-						setStatusMessage("Done");
+								abortControllerRef.current?.signal,
+							);
+							// Update the ref so handleInterrupt can await this promise too
+							dispatchPromiseRef.current = continuePromise;
+							await continuePromise;
+							setStatusMessage("Done");
 						} catch (contErr) {
 							setStatusMessage(`Error continuing: ${contErr.message}`);
 						} finally {
@@ -545,7 +552,12 @@ export default function App({
 			} else if (result.action !== "help" && result.action !== "skill") {
 				setStatusMessage(result.message || result.action + " executed");
 			}
-			if (result.message && result.action !== "provider" && result.action !== "schedule" && result.action !== "skill") {
+			if (
+				result.message &&
+				result.action !== "provider" &&
+				result.action !== "schedule" &&
+				result.action !== "skill"
+			) {
 				addMessage({ role: "system", content: result.message });
 			}
 		} catch (err) {
@@ -573,7 +585,7 @@ export default function App({
 			const providerConfig = config?.providers?.[providerName] || {};
 			const modelName = providerConfig.model || "gpt-4o";
 			const encoding = providerConfig.encoding;
-			
+
 			// Calculate conversation tokens + system prompt
 			let totalTokens = calculateConversationTokens(conversation, modelName, encoding);
 			const systemPrompt = loadSystemPrompt();
@@ -581,7 +593,7 @@ export default function App({
 				totalTokens += calculateConversationTokens(
 					[{ role: "system", content: systemPrompt }],
 					modelName,
-					encoding
+					encoding,
 				);
 			}
 			setContextSize(totalTokens);
@@ -710,8 +722,8 @@ export default function App({
 						// Silently ignore streaming callback errors
 					}
 				},
-			abortControllerRef.current?.signal,
-		);
+				abortControllerRef.current?.signal,
+			);
 
 			// Store the promise so handleInterrupt can await it
 			dispatchPromiseRef.current = dispatchPromise;
@@ -830,12 +842,12 @@ export default function App({
 								}
 							} catch (_cbErr) {}
 						},
-					abortControllerRef.current?.signal,
-				);
-				// Update the ref so handleInterrupt can await this promise too
-				dispatchPromiseRef.current = continuePromise;
-				await continuePromise;
-				setStatusMessage("Received response");
+						abortControllerRef.current?.signal,
+					);
+					// Update the ref so handleInterrupt can await this promise too
+					dispatchPromiseRef.current = continuePromise;
+					await continuePromise;
+					setStatusMessage("Received response");
 				} catch (contErr) {
 					setStatusMessage(`Error continuing: ${contErr.message}`);
 				} finally {
@@ -883,7 +895,7 @@ export default function App({
 				const providerConfig = config?.providers?.[providerName] || {};
 				const modelName = providerConfig.model || "gpt-4o";
 				const encoding = providerConfig.encoding;
-				
+
 				// Calculate conversation tokens + system prompt
 				let totalTokens = calculateConversationTokens(conversation, modelName, encoding);
 				const systemPrompt = loadSystemPrompt();
@@ -891,7 +903,7 @@ export default function App({
 					totalTokens += calculateConversationTokens(
 						[{ role: "system", content: systemPrompt }],
 						modelName,
-						encoding
+						encoding,
 					);
 				}
 				setContextSize(totalTokens);

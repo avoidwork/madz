@@ -60,7 +60,7 @@ export async function runScript(scriptPath, args = [], options = {}) {
 	const { timeout = 30000, cwd: scriptCwd = cwd } = options;
 	return new Promise((resolve) => {
 		const child = spawn(scriptPath, args, {
-			cwd,
+			cwd: scriptCwd,
 			stdio: ["pipe", "pipe", "pipe"],
 		});
 
@@ -492,10 +492,6 @@ export function createCronTool(options) {
 				.optional()
 				.describe("Shell command to execute (required for create if skill not provided)"),
 			input: z.record(z.unknown()).optional().describe("Job input parameters"),
-		}),
-	});
-}
-z.record(z.unknown()).optional().describe("Job input parameters"),
 		}),
 	});
 }

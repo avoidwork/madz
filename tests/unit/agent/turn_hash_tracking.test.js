@@ -411,7 +411,17 @@ describe("Turn Hash Tracking — abort handling", () => {
 		// Abort after a short delay
 		setTimeout(() => controller.abort(), 10);
 
-		await callReactAgentStreaming(mockAgent, [], "test", config, callback, {}, "", null, controller.signal);
+		await callReactAgentStreaming(
+			mockAgent,
+			[],
+			"test",
+			config,
+			callback,
+			{},
+			"",
+			null,
+			controller.signal,
+		);
 		assert.strictEqual(loopDetectedCount, 0, "No loop should be detected on abort");
 	});
 });

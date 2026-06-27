@@ -249,7 +249,3 @@ export function createSessionSearchTool(options) {
 		}),
 	});
 }
-().int().positive().default(10).describe("Maximum number of search results"),
-		}),
-	});
-}

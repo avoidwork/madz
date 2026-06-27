@@ -145,9 +145,7 @@ export function createCompactionTool(options = {}) {
 				threadID: z
 					.string()
 					.optional()
-					.describe(
-						"Session identifier. Defaults to the current session's threadId when omitted.",
-					),
+					.describe("Session identifier. Defaults to the current session's threadId when omitted."),
 				maxMessages: z
 					.number()
 					.int()

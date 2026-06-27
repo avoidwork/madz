@@ -18,5 +18,3 @@ export { loadSession } from "./loader.js";
 export { saveSession } from "./saver.js";
 export { handleShutdown, registerShutdownHandler } from "./shutdown.js";
 export { createCheckpointer } from "./checkpointer.js";
-ownHandler } from "./shutdown.js";
-export { createCheckpointer } from "./checkpointer.js";

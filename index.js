@@ -26,8 +26,7 @@ const parsed = yargs(hideBin(process.argv))
 	.positional("message", {
 		type: "string",
 		description: "Message to send",
-	})
-	.argv;
+	}).argv;
 
 // Change to the configured working directory before any other imports
 if (parsed.cwd) {
@@ -189,7 +188,9 @@ const sessionState = new SessionStateManager(initialState);
 // Session-init: asynchronously clean up expired ephemeral memories (non-blocking)
 try {
 	const { expireEphemeralMemories } = await import("./src/memory/expireEphemeral.js");
-	queueMicrotask(() => expireEphemeralMemories(config.cwd + "/" + config.memory.contextDir).catch(() => {}));
+	queueMicrotask(() =>
+		expireEphemeralMemories(config.cwd + "/" + config.memory.contextDir).catch(() => {}),
+	);
 } catch {
 	// Graceful degradation: session starts even if cleanup import fails
 }
@@ -317,7 +318,11 @@ async function invokeSkill(skillName, input = {}) {
 
 // Shared shutdown logic — called on signals and in non-interactive mode
 const runShutdown = async () => {
-	await saveSession(config.cwd + "/" + "memory/sessions/", sessionState.getConversation(), sessionId);
+	await saveSession(
+		config.cwd + "/" + "memory/sessions/",
+		sessionState.getConversation(),
+		sessionId,
+	);
 
 	if (gcManager) {
 		gcManager.stop();
@@ -368,7 +373,11 @@ if (isMain) {
 				appInfo,
 				onboarding: onboardingInstance,
 				onSaveSession: async () =>
-					await saveSession(config.cwd + "/" + "memory/sessions/", sessionState.getConversation(), sessionId),
+					await saveSession(
+						config.cwd + "/" + "memory/sessions/",
+						sessionState.getConversation(),
+						sessionId,
+					),
 				gcManager: gcManager ? gcManager.onActivity.bind(gcManager) : null,
 				gcTrigger: gcTrace,
 				checkpointer,

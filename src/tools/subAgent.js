@@ -110,10 +110,21 @@ export function spawnSubAgentProcess(prompt, timeout, cwd) {
 
 		// Use system timeout command for reliable process termination
 		// timeout sends SIGTERM first, then SIGKILL after --kill-after delay
-		const child = spawn("timeout", ["--kill-after=10", timeoutSeconds.toString(), "node", "index.js", `--cwd=${cwd}`, `"${prompt}"`], {
-			stdio: ["pipe", "pipe", "pipe"],
-			env: process.env,
-		});
+		const child = spawn(
+			"timeout",
+			[
+				"--kill-after=10",
+				timeoutSeconds.toString(),
+				"node",
+				"index.js",
+				`--cwd=${cwd}`,
+				`"${prompt}"`,
+			],
+			{
+				stdio: ["pipe", "pipe", "pipe"],
+				env: process.env,
+			},
+		);
 
 		const logPath = `/tmp/sub-agent-${sessionId}.log`;
 		const logStream = createWriteStream(logPath, { flags: "a" });
@@ -277,15 +288,27 @@ export function createSubAgentTool(options = {}) {
 	return tool(
 		async (input) => {
 			try {
-				const { delegation, context, tasks, strategy, maxConcurrent, onError, returnParams, timeout, cwd: subAgentCwd = cwd } = input;
+				const {
+					delegation,
+					context,
+					tasks,
+					strategy,
+					maxConcurrent,
+					onError,
+					returnParams,
+					timeout,
+					cwd: subAgentCwd = cwd,
+				} = input;
 
 				// Resolve timeout
 				const resolvedTimeout = resolveTimeout(timeout, config);
 
 				// Fan-out mode
 				if (tasks && Array.isArray(tasks) && tasks.length > 0) {
-					const fanOutStrategy = strategy || config?.process?.subAgent?.defaultStrategy || "parallel";
-					const fanOutMaxConcurrent = maxConcurrent || config?.process?.subAgent?.maxConcurrent || 4;
+					const fanOutStrategy =
+						strategy || config?.process?.subAgent?.defaultStrategy || "parallel";
+					const fanOutMaxConcurrent =
+						maxConcurrent || config?.process?.subAgent?.maxConcurrent || 4;
 					const fanOutOnError = onError || config?.process?.subAgent?.defaultOnError || "continue";
 
 					const result = await executeFanOut(
@@ -294,7 +317,7 @@ export function createSubAgentTool(options = {}) {
 						fanOutMaxConcurrent,
 						fanOutOnError,
 						resolvedTimeout,
-						cwd,
+						subAgentCwd,
 					);
 
 					// Apply returnParams filtering if specified
@@ -384,7 +407,9 @@ export function createSubAgentTool(options = {}) {
 					.int()
 					.positive()
 					.optional()
-					.describe("Maximum number of sub-agents that can run in parallel. Overrides config default."),
+					.describe(
+						"Maximum number of sub-agents that can run in parallel. Overrides config default.",
+					),
 				onError: z
 					.enum(["continue", "fail-fast"])
 					.optional()
@@ -404,11 +429,6 @@ export function createSubAgentTool(options = {}) {
 					.optional()
 					.describe(
 						"Timeout in milliseconds for this sub-agent execution. Overrides config default.",
-					),
-			}),
-		},
-	);
-}his sub-agent execution. Overrides config default.",
 					),
 			}),
 		},

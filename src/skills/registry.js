@@ -229,12 +229,3 @@ export class SkillRegistry {
 		return this.#skills.size;
 	}
 }
-
-
-	/**
-	 * Count of registered skills.
-	 */
-	get size() {
-		return this.#skills.size;
-	}
-}

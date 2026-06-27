@@ -467,8 +467,3 @@ export function createCreateSkillTool(options) {
 		}),
 	});
 }
-e)
-				.describe("Create a scripts/ directory with a README.md placeholder"),
-		}),
-	});
-}

@@ -1,8 +1,9 @@
 import { readFile, access } from "node:fs/promises";
 import { join } from "node:path";
 import { checkFileLimit } from "../tools/common.js";
+import { loadConfig } from "../config/loader.js";
 
-const cliCwd = process.argv.find((arg) => arg.startsWith("--cwd="))?.split("=")[1];
+const cwd = loadConfig().cwd;
 
 /**
  * Check if a file path exists.
@@ -45,9 +46,6 @@ export async function loadAgents(targetCwd, maxReadSize) {
 		"## Workspace Rules\n\n" +
 		"The following rules are loaded from the workspace `AGENTS.md`. They define project-specific conventions and constraints. Follow them strictly:\n\n" +
 		"---\n\n" +
-		content.trim()
-	);
-}		"---\n\n" +
 		content.trim()
 	);
 }

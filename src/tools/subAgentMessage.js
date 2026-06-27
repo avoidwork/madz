@@ -84,14 +84,14 @@ export function createSubAgentMessageTool() {
 				.int()
 				.positive()
 				.optional()
-				.describe("Process ID of the subAgent to send the message to (required if sessionId not provided)"),
+				.describe(
+					"Process ID of the subAgent to send the message to (required if sessionId not provided)",
+				),
 			sessionId: z
 				.string()
 				.optional()
 				.describe("Session ID of the subAgent to send the message to (alternative to pid)"),
-			message: z
-				.string()
-				.describe("Message to send to the subAgent process stdin"),
+			message: z.string().describe("Message to send to the subAgent process stdin"),
 		}),
 	});
 }

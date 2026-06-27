@@ -1,5 +1,12 @@
 import { createReactAgent as createReactAgentGraph } from "@langchain/langgraph/prebuilt";
-import { HumanMessage, HumanMessageChunk, SystemMessage, AIMessage, AIMessageChunk, ToolMessage } from "@langchain/core/messages";
+import {
+	HumanMessage,
+	HumanMessageChunk,
+	SystemMessage,
+	AIMessage,
+	AIMessageChunk,
+	ToolMessage,
+} from "@langchain/core/messages";
 import {
 	extractContextLength,
 	isContextLengthError,
@@ -62,7 +69,7 @@ function hashTurn(str) {
 	let hash = 0;
 	for (let i = 0; i < str.length; i++) {
 		const char = str.charCodeAt(i);
-		hash = ((hash << 5) - hash) + char;
+		hash = (hash << 5) - hash + char;
 		hash |= 0; // Convert to 32-bit integer
 	}
 	return hash.toString(36);
@@ -79,7 +86,13 @@ function hashTurn(str) {
  * @returns {ReturnType<typeof createReactAgentGraph>} A compiled ReAct agent
  */
 /* node:coverage ignore next */
-export function createReactAgent(model, tools = [], checkpointer = null, recursionLimit = null, timeout = 600000) {
+export function createReactAgent(
+	model,
+	tools = [],
+	checkpointer = null,
+	recursionLimit = null,
+	timeout = 600000,
+) {
 	const agent = createReactAgentGraph({
 		llm: model,
 		tools,
@@ -134,9 +147,7 @@ export function createStdoutCallback() {
  * @returns {{ content: string }} The agent's final text response
  */
 export async function callReactAgent(agent, message, config, systemPrompt, callback, options = {}) {
-	const {
-		recursionLimit,
-	} = options;
+	const { recursionLimit } = options;
 
 	let messages = [new HumanMessage(message)];
 
@@ -149,8 +160,18 @@ export async function callReactAgent(agent, message, config, systemPrompt, callb
 
 	// Always use streaming — use user-provided callback (TUI) or default stdout callback (non-TUI)
 	// null explicitly means "no callback" — undefined falls through to default stdout
-	const effectiveCallback = callback !== undefined && callback !== null ? callback : createStdoutCallback();
-	return callReactAgentStreaming(agent, messages, message, config, effectiveCallback, options, systemPrompt, recursionLimit);
+	const effectiveCallback =
+		callback !== undefined && callback !== null ? callback : createStdoutCallback();
+	return callReactAgentStreaming(
+		agent,
+		messages,
+		message,
+		config,
+		effectiveCallback,
+		options,
+		systemPrompt,
+		recursionLimit,
+	);
 }
 
 /**

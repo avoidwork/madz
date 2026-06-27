@@ -150,7 +150,7 @@ describe("msToSeconds", () => {
 
 describe("spawnSubAgentProcess integration", () => {
 	it("should create log file with session ID naming", async () => {
-		const prompt = "# SubAgent\n\n{ ok: true, result: \"test\" }";
+		const prompt = '# SubAgent\n\n{ ok: true, result: "test" }';
 
 		const result = await spawnSubAgentProcess(prompt, 10000, process.cwd());
 
@@ -161,7 +161,7 @@ describe("spawnSubAgentProcess integration", () => {
 	}, 15000);
 
 	it("should allow both processes to read the same log file", async () => {
-		const prompt = "# SubAgent\n\n{ ok: true, result: \"test\" }";
+		const prompt = '# SubAgent\n\n{ ok: true, result: "test" }';
 
 		const result = await spawnSubAgentProcess(prompt, 10000, process.cwd());
 
@@ -175,7 +175,7 @@ describe("spawnSubAgentProcess integration", () => {
 	it("should timeout and return exit code 124 error for long-running processes", async () => {
 		// Create a prompt that will cause the child to sleep longer than the timeout
 		// The child process will hang, and the timeout command should kill it
-		const prompt = "# SubAgent\n\n{ ok: true, result: \"test\" }";
+		const prompt = '# SubAgent\n\n{ ok: true, result: "test" }';
 		const sessionsDir = join(__dirname, "../../../memory/sessions/");
 
 		// Use a very short timeout (500ms) to trigger timeout quickly
@@ -183,15 +183,21 @@ describe("spawnSubAgentProcess integration", () => {
 
 		// Should have timed out with exit code 124
 		assert.strictEqual(result.ok, false, "Should have timed out");
-		assert.ok(result.error.includes("timed out"), `Error should mention timeout, got: ${result.error}`);
-		assert.ok(result.error.includes("500ms"), `Error should include timeout value, got: ${result.error}`);
+		assert.ok(
+			result.error.includes("timed out"),
+			`Error should mention timeout, got: ${result.error}`,
+		);
+		assert.ok(
+			result.error.includes("500ms"),
+			`Error should include timeout value, got: ${result.error}`,
+		);
 		assert.ok(result.sessionId, "Result should include sessionId");
 	}, 10000);
 
 	it("should include --kill-after=10 in timeout command for SIGKILL escalation", async () => {
 		// This test verifies the timeout command structure by checking that
 		// a process that hangs is eventually killed (not just left orphaned)
-		const prompt = "# SubAgent\n\n{ ok: true, result: \"test\" }";
+		const prompt = '# SubAgent\n\n{ ok: true, result: "test" }';
 		const sessionsDir = join(__dirname, "../../../memory/sessions/");
 
 		const result = await spawnSubAgentProcess(prompt, sessionsDir, 500, process.cwd());

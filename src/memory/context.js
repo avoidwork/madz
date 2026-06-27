@@ -71,9 +71,3 @@ function loadAndFormatProfile(fullPath, _contextDir) {
 		return "";
 	}
 }
-file) return "";
-		return formatProfileContext(profile.data);
-	} catch {
-		return "";
-	}
-}

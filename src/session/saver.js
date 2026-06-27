@@ -9,10 +9,7 @@ import { join } from "node:path";
  * @returns {string} The escaped string
  */
 function escapeYamlString(str) {
-	return str
-		.replace(/\\/g, "\\\\")
-		.replace(/"/g, '\\"')
-		.replace(/\n/g, "\\n");
+	return str.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n");
 }
 
 /**
@@ -51,8 +48,5 @@ export async function saveSession(sessionsDir, conversation, threadId = "") {
 	];
 
 	const content = frontmatterLines.join("\n") + body + "\n";
-	await writeFile(join(dir, filename), content);
-}
-ontmatterLines.join("\n") + body + "\n";
 	await writeFile(join(dir, filename), content);
 }

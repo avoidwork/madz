@@ -169,7 +169,9 @@ export function createSubAgentLogTool() {
 				sessionId: z
 					.string()
 					.optional()
-					.describe("Session ID (alternative to pid for 'read' action, or filter for 'list' action)"),
+					.describe(
+						"Session ID (alternative to pid for 'read' action, or filter for 'list' action)",
+					),
 				maxAgeHours: z
 					.number()
 					.int()

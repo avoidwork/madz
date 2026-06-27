@@ -67,8 +67,3 @@ function loadFile(filepath, windowSize) {
 		metadata: frontmatter,
 	};
 }
-sessionId || filepath.replace(/\.md$/, ""),
-		conversation,
-		metadata: frontmatter,
-	};
-}

@@ -191,10 +191,3 @@ export async function runSandbox(options) {
 
 	return result;
 }
-imeout or error — already resolved via exit handler
-			}
-		})();
-	});
-
-	return result;
-}
