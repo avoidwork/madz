@@ -116,7 +116,7 @@ export function spawnSubAgentProcess(prompt, timeout, targetCwd = defaultCwd) {
 				"index.js",
 				"--sub-agent=true",
 				`--cwd=${targetCwd}`,
-				`"${prompt}"`,
+				`--message="${prompt}"`,
 			],
 			{
 				stdio: ["pipe", "pipe", "pipe"],
