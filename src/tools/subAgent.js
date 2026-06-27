@@ -99,19 +99,18 @@ function msToSeconds(ms) {
 /**
  * Spawn a single sub-agent process using system timeout command.
  * @param {string} prompt - The full prompt (context ||| delegation)
- * @param {string} sessionsDir - Path to sessions directory
  * @param {number} timeout - Timeout in milliseconds
  * @param {string} cwd - Working directory for the sub-agent
  * @returns {Promise<{ ok: boolean, result: string, error?: string, sessionId?: string }>}
  */
-export function spawnSubAgentProcess(prompt, sessionsDir, timeout, cwd) {
+export function spawnSubAgentProcess(prompt, timeout, cwd) {
 	return new Promise((resolve) => {
 		const sessionId = generateSessionId();
 		const timeoutSeconds = msToSeconds(timeout);
 
 		// Use system timeout command for reliable process termination
 		// timeout sends SIGTERM first, then SIGKILL after --kill-after delay
-		const child = spawn("timeout", ["--kill-after=10", timeoutSeconds.toString(), "node", "index.js", `--cwd=${cwd}`, `"${prompt}"`, sessionsDir], {
+		const child = spawn("timeout", ["--kill-after=10", timeoutSeconds.toString(), "node", "index.js", `--cwd=${cwd}`, `"${prompt}"`], {
 			stdio: ["pipe", "pipe", "pipe"],
 			env: process.env,
 		});
@@ -175,12 +174,11 @@ export function spawnSubAgentProcess(prompt, sessionsDir, timeout, cwd) {
  * @param {"parallel" | "sequential"} strategy - Execution strategy
  * @param {number} maxConcurrent - Maximum concurrent processes
  * @param {"continue" | "fail-fast"} onError - Error handling strategy
- * @param {string} sessionsDir - Path to sessions directory
  * @param {number} timeout - Timeout in milliseconds
  * @param {string} cwd - Working directory for the sub-agent
  * @returns {Promise<{ ok: boolean, result: string, error?: string }>}
  */
-async function executeFanOut(tasks, strategy, maxConcurrent, onError, sessionsDir, timeout, cwd) {
+async function executeFanOut(tasks, strategy, maxConcurrent, onError, timeout, cwd) {
 	const results = [];
 	let failed = false;
 
@@ -189,7 +187,7 @@ async function executeFanOut(tasks, strategy, maxConcurrent, onError, sessionsDi
 			if (failed && onError === "fail-fast") break;
 
 			const prompt = task.context ? `${task.context}\n\n${task.delegation}` : task.delegation;
-			const result = await spawnSubAgentProcess(prompt, sessionsDir, timeout, cwd);
+			const result = await spawnSubAgentProcess(prompt, timeout, cwd);
 
 			if (task.id) {
 				results.push({ id: task.id, ...result });
@@ -212,7 +210,7 @@ async function executeFanOut(tasks, strategy, maxConcurrent, onError, sessionsDi
 				const task = queue.shift();
 				const promise = (async () => {
 					const prompt = task.context ? `${task.context}\n\n${task.delegation}` : task.delegation;
-					const result = await spawnSubAgentProcess(prompt, sessionsDir, timeout, cwd);
+					const result = await spawnSubAgentProcess(prompt, timeout, cwd);
 
 					if (task.id) {
 						results.push({ id: task.id, ...result });
@@ -270,12 +268,11 @@ function resolveTimeout(perCallTimeout, config) {
 /**
  * Create a subAgent tool with runtime options.
  * @param {object} options - Runtime options
- * @param {string} [options.sessionsDir] - Path to sessions directory
  * @param {object} [options.config] - Resolved config object
  * @returns {object} LangChain Tool instance
  */
 export function createSubAgentTool(options = {}) {
-	const { sessionsDir = "./memory/sessions/", config } = options;
+	const { config } = options;
 
 	return tool(
 		async (input) => {
@@ -296,7 +293,6 @@ export function createSubAgentTool(options = {}) {
 						fanOutStrategy,
 						fanOutMaxConcurrent,
 						fanOutOnError,
-						sessionsDir,
 						resolvedTimeout,
 						cwd,
 					);
@@ -322,7 +318,7 @@ export function createSubAgentTool(options = {}) {
 				}
 
 				const prompt = context ? `${context}\n\n${delegation}` : delegation;
-				const result = await spawnSubAgentProcess(prompt, sessionsDir, resolvedTimeout, cwd);
+				const result = await spawnSubAgentProcess(prompt, resolvedTimeout, cwd);
 
 				// Apply returnParams filtering if specified
 				if (returnParams && returnParams.length > 0 && result.ok) {

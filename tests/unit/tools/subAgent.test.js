@@ -151,9 +151,8 @@ describe("msToSeconds", () => {
 describe("spawnSubAgentProcess integration", () => {
 	it("should create log file with session ID naming", async () => {
 		const prompt = "# SubAgent\n\n{ ok: true, result: \"test\" }";
-		const sessionsDir = join(__dirname, "../../../memory/sessions/");
 
-		const result = await spawnSubAgentProcess(prompt, sessionsDir, 10000, process.cwd());
+		const result = await spawnSubAgentProcess(prompt, 10000, process.cwd());
 
 		assert.ok(result.sessionId, "Result should include sessionId");
 		// Verify log file exists with session ID naming
@@ -163,9 +162,8 @@ describe("spawnSubAgentProcess integration", () => {
 
 	it("should allow both processes to read the same log file", async () => {
 		const prompt = "# SubAgent\n\n{ ok: true, result: \"test\" }";
-		const sessionsDir = join(__dirname, "../../../memory/sessions/");
 
-		const result = await spawnSubAgentProcess(prompt, sessionsDir, 10000, process.cwd());
+		const result = await spawnSubAgentProcess(prompt, 10000, process.cwd());
 
 		assert.ok(result.sessionId, "Result should include sessionId");
 		const logPath = `/tmp/sub-agent-${result.sessionId}.log`;
