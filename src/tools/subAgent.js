@@ -100,25 +100,19 @@ function msToSeconds(ms) {
 }
 
 /**
- * Spawn a single sub-agent process using system timeout command.
+ * Spawn a single sub-agent process.
  * @param {string} prompt - The full prompt (context ||| delegation)
- * @param {number} timeout - Timeout in milliseconds
+ * @param {number} timeout - Timeout in milliseconds (reserved for future use)
  * @param {string} targetCwd - Working directory for the sub-agent
  * @returns {Promise<{ ok: boolean, result: string, error?: string, sessionId?: string }>}
  */
 export function spawnSubAgentProcess(prompt, timeout, targetCwd = defaultCwd) {
 	return new Promise((resolve) => {
 		const sessionId = generateSessionId();
-		const timeoutSeconds = msToSeconds(timeout);
 
-		// Use system timeout command for reliable process termination
-		// timeout sends SIGTERM first, then SIGKILL after --kill-after delay
 		const child = spawn(
-			"timeout",
+			"node",
 			[
-				"--kill-after=10",
-				timeoutSeconds.toString(),
-				"node",
 				"index.js",
 				"--sub-agent=true",
 				`--cwd=${targetCwd}`,
@@ -152,17 +146,6 @@ export function spawnSubAgentProcess(prompt, timeout, targetCwd = defaultCwd) {
 
 		child.on("exit", (code) => {
 			logStream.end();
-
-			// Exit code 124 indicates timeout from system timeout command
-			if (code === 124) {
-				resolve({
-					ok: false,
-					result: "",
-					error: `Sub-agent timed out after ${timeout}ms`,
-					sessionId,
-				});
-				return;
-			}
 
 			const parsed = parseSubAgentOutput(stdout);
 			if (!parsed.ok) {
