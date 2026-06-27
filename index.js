@@ -20,6 +20,7 @@ const parsed = yargs(process.argv.slice(2))
 	.option("sub-agent", {
 		type: "boolean",
 		default: false,
+		coerce: (val) => val === "true" || val === true,
 		description: "Run as a sub-agent",
 	})
 	.positional("message", {
