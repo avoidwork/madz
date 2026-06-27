@@ -8,6 +8,7 @@ import {
 	extractFrontmatter,
 	lenientYamlParse,
 	discoverSkills,
+	setCwd,
 } from "../../src/skills/discoverer.js";
 import { detectInterpreter, detectShebang } from "../../src/sandbox/runner.js";
 
@@ -19,6 +20,7 @@ function setup() {
 	testDir = join(tmpdir(), "madz-disc-test-" + Date.now());
 	mkdirSync(testDir, { recursive: true });
 	chdir(testDir);
+	setCwd(testDir);
 }
 
 function cleanup() {
@@ -27,6 +29,7 @@ function cleanup() {
 	}
 	if (originalCwd) {
 		chdir(originalCwd);
+		setCwd(originalCwd);
 	}
 }
 
