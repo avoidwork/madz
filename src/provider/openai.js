@@ -15,7 +15,7 @@ import { ChatOpenAI } from "@langchain/openai";
 /**
  * Create a ChatOpenAI model instance from provider configuration.
  * This is a thin model client factory — it does NOT contain graph or agent logic.
- * In spawned subAgent processes, the SUBAGENT_TEMPERATURE env var overrides
+ * In spawned subAgent processes, the SUB_AGENT_TEMPERATURE env var overrides
  * the config temperature.
  * @param {ProviderConfig} config - Provider configuration object
  * @returns {ChatOpenAI} A configured ChatOpenAI instance

@@ -104,7 +104,7 @@ export function spawnSubAgentProcess(prompt, timeout, targetCwd = defaultCwd, te
 
 		const childEnv = { ...process.env };
 		if (temperature !== undefined && temperature !== null) {
-			childEnv.SUBAGENT_TEMPERATURE = String(temperature);
+			childEnv.SUB_AGENT_TEMPERATURE = String(temperature);
 		}
 
 		const child = spawn(
