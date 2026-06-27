@@ -153,7 +153,7 @@ describe("spawnSubAgentProcess integration", () => {
 		const prompt = "# SubAgent\n\n{ ok: true, result: \"test\" }";
 		const sessionsDir = join(__dirname, "../../../memory/sessions/");
 
-		const result = await spawnSubAgentProcess(prompt, sessionsDir, 10000);
+		const result = await spawnSubAgentProcess(prompt, sessionsDir, 10000, process.cwd());
 
 		assert.ok(result.sessionId, "Result should include sessionId");
 		// Verify log file exists with session ID naming
@@ -165,7 +165,7 @@ describe("spawnSubAgentProcess integration", () => {
 		const prompt = "# SubAgent\n\n{ ok: true, result: \"test\" }";
 		const sessionsDir = join(__dirname, "../../../memory/sessions/");
 
-		const result = await spawnSubAgentProcess(prompt, sessionsDir, 10000);
+		const result = await spawnSubAgentProcess(prompt, sessionsDir, 10000, process.cwd());
 
 		assert.ok(result.sessionId, "Result should include sessionId");
 		const logPath = `/tmp/sub-agent-${result.sessionId}.log`;
@@ -181,7 +181,7 @@ describe("spawnSubAgentProcess integration", () => {
 		const sessionsDir = join(__dirname, "../../../memory/sessions/");
 
 		// Use a very short timeout (500ms) to trigger timeout quickly
-		const result = await spawnSubAgentProcess(prompt, sessionsDir, 500);
+		const result = await spawnSubAgentProcess(prompt, sessionsDir, 500, process.cwd());
 
 		// Should have timed out with exit code 124
 		assert.strictEqual(result.ok, false, "Should have timed out");
@@ -196,7 +196,7 @@ describe("spawnSubAgentProcess integration", () => {
 		const prompt = "# SubAgent\n\n{ ok: true, result: \"test\" }";
 		const sessionsDir = join(__dirname, "../../../memory/sessions/");
 
-		const result = await spawnSubAgentProcess(prompt, sessionsDir, 500);
+		const result = await spawnSubAgentProcess(prompt, sessionsDir, 500, process.cwd());
 
 		// The process should have been killed (not left running)
 		assert.strictEqual(result.ok, false, "Process should have been terminated");

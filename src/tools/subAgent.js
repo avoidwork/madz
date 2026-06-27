@@ -280,7 +280,7 @@ export function createSubAgentTool(options = {}) {
 	return tool(
 		async (input) => {
 			try {
-				const { delegation, context, tasks, strategy, maxConcurrent, onError, returnParams, timeout, cwd } = input;
+				const { delegation, context, tasks, strategy, maxConcurrent, onError, returnParams, timeout, cwd = process.cwd() } = input;
 
 				// Resolve timeout
 				const resolvedTimeout = resolveTimeout(timeout, config);
@@ -322,7 +322,7 @@ export function createSubAgentTool(options = {}) {
 				}
 
 				const prompt = context ? `${context}\n\n${delegation}` : delegation;
-				const result = await spawnSubAgentProcess(prompt, sessionsDir, resolvedTimeout);
+				const result = await spawnSubAgentProcess(prompt, sessionsDir, resolvedTimeout, cwd);
 
 				// Apply returnParams filtering if specified
 				if (returnParams && returnParams.length > 0 && result.ok) {
