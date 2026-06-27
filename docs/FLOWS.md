@@ -127,7 +127,7 @@ loadConfig()
 │       └── Recursively merges object properties from source → target
 ├── resolved = _resolveEnvRecursively(raw, [])
 │   └── Walks config tree; for each leaf:
-│       ├── DROPPED_KEYS = ["providers", "credentials"]
+│       ├── DROPPED_KEYS = ["providers", "credentials", "process"]
 │       ├── envKey = pathSegments (minus dropped) → UPPER_SNAKE_CASE → join("_")
 │       ├── envValue = process.env[envKey]
 │       └── if envValue exists:

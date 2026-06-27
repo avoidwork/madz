@@ -59,6 +59,7 @@ export function _resolveEnvRecursively(node, path) {
 		"ratelimit",
 		"timeout",
 		"search", // e.g. search.exa.apiKey → EXA_API_KEY
+		"process",
 	];
 
 	if (Array.isArray(node)) {

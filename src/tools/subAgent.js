@@ -95,18 +95,24 @@ export function generateSessionId() {
  * @param {string} prompt - The full prompt (context + delegation, newline-separated)
  * @param {number} timeout - Timeout in milliseconds (reserved for future use)
  * @param {string} targetCwd - Working directory for the sub-agent
+ * @param {number | undefined} temperature - Temperature for the sub-agent (optional)
  * @returns {Promise<{ ok: boolean, result: string, error?: string, sessionId?: string, pid?: number }>}
  */
-export function spawnSubAgentProcess(prompt, timeout, targetCwd = defaultCwd) {
+export function spawnSubAgentProcess(prompt, timeout, targetCwd = defaultCwd, temperature) {
 	return new Promise((resolve) => {
 		const sessionId = generateSessionId();
+
+		const childEnv = { ...process.env };
+		if (temperature !== undefined && temperature !== null) {
+			childEnv.SUB_AGENT_TEMPERATURE = String(temperature);
+		}
 
 		const child = spawn(
 			"node",
 			["index.js", "--sub-agent=true", `--cwd=${targetCwd}`, `--message="${prompt}"`],
 			{
 				stdio: ["pipe", "pipe", "pipe"],
-				env: process.env,
+				env: childEnv,
 			},
 		);
 
@@ -168,11 +174,8 @@ export function spawnSubAgentProcess(prompt, timeout, targetCwd = defaultCwd) {
  * @param {"continue" | "fail-fast"} onError - Error handling strategy
  * @param {number} timeout - Timeout in milliseconds
  * @param {string} targetCwd - Working directory for the sub-agent
- * @returns {Promise<{ ok: boolean, result: string, error?: string }>}
- */
-async function executeFanOut(tasks, strategy, maxConcurrent, onError, timeout, targetCwd) {
-	const results = [];
-	let failed = false;
+ * @returns {Promise<{ ok: boolean, result: string, error?: const prompt = task.context ? `${task.context}\n\n${task.delegation}` : task.delegation;
+				const result = await spawnSubAgentProcess(prompt, timeout, targetCwd, temperature);e;
 
 	if (strategy === "sequential") {
 		for (const task of tasks) {
@@ -202,7 +205,7 @@ async function executeFanOut(tasks, strategy, maxConcurrent, onError, timeout, t
 				const task = queue.shift();
 				const promise = (async () => {
 					const prompt = task.context ? `${task.context}\n\n${task.delegation}` : task.delegation;
-					const result = await spawnSubAgentProcess(prompt, timeout, targetCwd);
+					const result = await spawnSubAgentProcess(prompt, timeout, targetCwd, temperature);
 
 					if (task.id) {
 						results.push({ id: task.id, ...result });
@@ -258,6 +261,36 @@ function resolveTimeout(perCallTimeout, config) {
 }
 
 /**
+ * Resolve temperature with priority: per-call > env var > config default.
+ * @param {number | undefined} perCallTemperature - Per-call temperature parameter
+ * @param {object} config - Resolved config object
+ * @returns {number | undefined} Resolved temperature, or undefined if not set
+ */
+function resolveTemperature(perCallTemperature, config) {
+	// Per-call override
+	if (perCallTemperature !== undefined && perCallTemperature !== null) {
+		return perCallTemperature;
+	}
+
+	// Env var override (set by spawned process)
+	const envTemperature = process.env.SUB_AGENT_TEMPERATURE;
+	if (envTemperature !== undefined && envTemperature !== "") {
+		const parsed = Number(envTemperature);
+		if (!isNaN(parsed) && parsed >= 0 && parsed <= 2) {
+			return parsed;
+		}
+	}
+
+	// Config default
+	const configTemperature = config?.process?.subAgent?.temperature;
+	if (configTemperature !== undefined && configTemperature !== null) {
+		return configTemperature;
+	}
+
+	return undefined; // Let provider use its own default
+}
+
+/**
  * Create a subAgent tool with runtime options.
  * @param {object} options - Runtime options
  * @param {object} [options.config] - Resolved config object
@@ -278,11 +311,15 @@ export function createSubAgentTool(options = {}) {
 					onError,
 					returnParams,
 					timeout,
+					temperature,
 					cwd: targetCwd = defaultCwd,
 				} = input;
 
 				// Resolve timeout
 				const resolvedTimeout = resolveTimeout(timeout, config);
+
+				// Resolve temperature
+				const resolvedTemperature = resolveTemperature(temperature, config);
 
 				// Fan-out mode
 				if (tasks && Array.isArray(tasks) && tasks.length > 0) {
@@ -299,6 +336,7 @@ export function createSubAgentTool(options = {}) {
 						fanOutOnError,
 						resolvedTimeout,
 						targetCwd,
+						resolvedTemperature,
 					);
 
 					// Apply returnParams filtering if specified
@@ -322,7 +360,12 @@ export function createSubAgentTool(options = {}) {
 				}
 
 				const prompt = context ? `${context}\n\n${delegation}` : delegation;
-				const result = await spawnSubAgentProcess(prompt, resolvedTimeout, targetCwd);
+				const result = await spawnSubAgentProcess(
+					prompt,
+					resolvedTimeout,
+					targetCwd,
+					resolvedTemperature,
+				);
 
 				// Apply returnParams filtering if specified
 				if (returnParams && returnParams.length > 0 && result.ok) {
@@ -411,6 +454,14 @@ export function createSubAgentTool(options = {}) {
 					.optional()
 					.describe(
 						"Timeout in milliseconds for this sub-agent execution. Overrides config default.",
+					),
+				temperature: z
+					.number()
+					.min(0)
+					.max(2)
+					.optional()
+					.describe(
+						"Sampling temperature (0-2) for this sub-agent execution. Overrides config default. Follows OpenAI API specification.",
 					),
 			}),
 		},

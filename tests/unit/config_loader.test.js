@@ -228,3 +228,57 @@ describe("_resolveEnvRecursively — Persistence options", () => {
 		assert.strictEqual(result.persistence.sqlite_path, "/data/madz.db");
 	});
 });
+
+describe("_resolveEnvRecursively — SubAgent temperature config", () => {
+	let saved = { ...process.env };
+
+	beforeEach(() => {
+		saved = { ...process.env };
+		const keys = Object.keys(process.env);
+		for (const key of keys) {
+			delete process.env[key];
+		}
+	});
+
+	afterEach(() => {
+		const keys = Object.keys(process.env);
+		for (const key of keys) {
+			delete process.env[key];
+		}
+		Object.assign(process.env, saved);
+	});
+
+	it("preserves subAgent temperature from config", () => {
+		const config = { process: { subAgent: { temperature: 0.5 } } };
+		const result = _resolveEnvRecursively(config, []);
+		assert.strictEqual(result.process.subAgent.temperature, 0.5);
+	});
+
+	it("preserves subAgent temperature when set in config", () => {
+		const config = { process: { subAgent: { temperature: 0.7 } } };
+		const result = _resolveEnvRecursively(config, []);
+		assert.strictEqual(result.process.subAgent.temperature, 0.7);
+	});
+
+	it("preserves all subAgent config fields", () => {
+		const config = {
+			process: {
+				subAgent: {
+					timeout: 300000,
+					maxConcurrent: 2,
+					sessionMode: "shared",
+					defaultStrategy: "sequential",
+					defaultOnError: "fail-fast",
+					temperature: 0.9,
+				},
+			},
+		};
+		const result = _resolveEnvRecursively(config, []);
+		assert.strictEqual(result.process.subAgent.timeout, 300000);
+		assert.strictEqual(result.process.subAgent.maxConcurrent, 2);
+		assert.strictEqual(result.process.subAgent.sessionMode, "shared");
+		assert.strictEqual(result.process.subAgent.defaultStrategy, "sequential");
+		assert.strictEqual(result.process.subAgent.defaultOnError, "fail-fast");
+		assert.strictEqual(result.process.subAgent.temperature, 0.9);
+	});
+});
