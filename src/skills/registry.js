@@ -3,6 +3,9 @@ import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { discoverSkills, defaultScope } from "./discoverer.js";
 import { validateSkillSchema } from "./validator.js";
+import { loadConfig } from "../config/loader.js";
+
+const cwd = loadConfig().cwd;
 
 /**
  * Ensure the skills directory exists by creating it if necessary.

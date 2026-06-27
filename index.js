@@ -7,8 +7,7 @@ const config = loadConfig();
 
 // Parse CLI arguments via yargs
 import yargs from "yargs";
-const { hideBin } = yargs;
-const parsed = yargs(hideBin(process.argv))
+const parsed = yargs(process.argv.slice(2))
 	.option("cwd", {
 		alias: "c",
 		type: "string",
