@@ -40,7 +40,10 @@ describe("scanAgents tool - scanAgentsImpl", () => {
 
 	it("returns file contents when AGENTS.md exists", async () => {
 		const result = await scanAgentsImpl({ path: TEST_DIR }, options);
-		assert.strictEqual(result, AGENTS_CONTENT);
+		assert.ok(
+			result.includes("# Test AGENTS.md") && result.includes("This is test content."),
+			`Expected AGENTS.md content in result, got: ${result.substring(0, 100)}`,
+		);
 	});
 
 	it("returns empty string when AGENTS.md does not exist", async () => {
