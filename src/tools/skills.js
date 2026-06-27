@@ -13,7 +13,7 @@ import { ensureSkillsDir } from "../skills/registry.js";
 import { PermissionSchema } from "../skills/types.js";
 import { loadConfig } from "../config/loader.js";
 
-export let cwd = loadConfig().cwd;
+const cwd = loadConfig().cwd;
 
 /**
  * Set the working directory. Used by tests to override cwd.

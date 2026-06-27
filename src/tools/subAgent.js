@@ -11,7 +11,7 @@ import { loadConfig } from "../config/loader.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-export let cwd = loadConfig().cwd;
+const cwd = loadConfig().cwd;
 
 const SUBAGENT_MARKER = "# SubAgent";
 

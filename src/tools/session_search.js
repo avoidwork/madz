@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { parseFrontmatter } from "../memory/reader.js";
 import { loadConfig } from "../config/loader.js";
 
-export let cwd = loadConfig().cwd;
+const cwd = loadConfig().cwd;
 const FS = Object.freeze({ MODE_RDONLY: 0 });
 
 /**

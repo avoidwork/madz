@@ -8,7 +8,7 @@ import { Cron } from "../../src/scheduler/cron.js";
 import { logger } from "../logger.js";
 import { loadConfig } from "../config/loader.js";
 
-export let cwd = loadConfig().cwd;
+const cwd = loadConfig().cwd;
 
 /// -- Helper to find skill script --
 
