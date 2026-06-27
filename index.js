@@ -282,7 +282,7 @@ async function handleConversation(message, sessionId = "") {
 
 	// Persist to memory
 	writeMemoryFile(
-		config.cwd + "/" + "memory/sessions/",
+		"memory/sessions/",
 		`Conversation ${new Date().toISOString()}`,
 		{
 			provider: response.provider,
