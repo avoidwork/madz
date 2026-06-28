@@ -90,8 +90,8 @@ export function createReactAgent(
 	model,
 	tools = [],
 	checkpointer = null,
-	recursionLimit = null,
-	timeout = 600000,
+	_recursionLimit = null,
+	_timeout = 600000,
 ) {
 	const agent = createReactAgentGraph({
 		llm: model,
