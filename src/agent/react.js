@@ -35,7 +35,7 @@ export function getMessageRole(msg) {
  * Falls back to defaults (100, 600000) if config is unavailable.
  */
 let _cache = null;
-function getCache() {
+function _getCache() {
 	if (!_cache) {
 		try {
 			const config = loadConfig();
@@ -52,8 +52,18 @@ function getCache() {
  * Clear the LLM response cache. Primarily for testing.
  */
 export function clearCache() {
-	getCache().clear();
+	_getCache().clear();
 }
+
+/**
+ * Return the LLM response cache instance. Primarily for testing.
+ * @returns {Object} Cache instance with get, set, and clear methods
+ */
+export function getCache() {
+	return _getCache();
+}
+
+
 
 const RECURSION_LIMIT_MESSAGE =
 	"I've reached the maximum number of reasoning steps on this thread. Please continue your message and I'll carry on, or start a new conversation if you'd prefer.";

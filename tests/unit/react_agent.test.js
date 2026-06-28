@@ -13,8 +13,10 @@ import {
 	createReactAgent,
 	createStdoutCallback,
 	clearCache,
+	getCache,
 	getMessageRole,
 } from "../../src/agent/react.js";
+import { getCacheKey } from "../../src/cache/llm_cache.js";
 
 class GraphRecursionError extends Error {
 	constructor(message) {
@@ -691,25 +693,21 @@ describe("callReactAgent", () => {
 
 	describe("cache hit path", () => {
 		it("returns cached content without calling streamEvents on cache hit", async () => {
+			let streamEventsCalled = false;
 			const agentMock = {
-				streamEvents: () => (async function* () {})(),
+				streamEvents: () => {
+					streamEventsCalled = true;
+					return (async function* () {})();
+				},
 				invoke: () => ({ messages: [new AIMessage("fallback")] }),
 			};
 
 			const callbackCalls = [];
 			const callback = (event) => callbackCalls.push(event);
 
-			// First call to populate cache
-			await callReactAgent(
-				agentMock,
-				"hello",
-				{ configurable: { thread_id: "test-thread" } },
-				null,
-				callback,
-			);
-
-			// Clear callback calls
-			callbackCalls.length = 0;
+			// Seed the cache directly to test the cache hit path
+			const cacheKey = getCacheKey("test-thread", "hello");
+			getCache().set(cacheKey, "hello");
 
 			// Second call with same thread_id and message should hit cache
 			const result = await callReactAgent(
@@ -724,6 +722,8 @@ describe("callReactAgent", () => {
 			assert.strictEqual(result.content, "hello");
 			// Should have emitted text event from cache
 			assert.ok(callbackCalls.some((e) => e.type === "text"));
+			// Should NOT have called streamEvents (cache hit)
+			assert.strictEqual(streamEventsCalled, false);
 		});
 	});
 
