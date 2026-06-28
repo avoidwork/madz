@@ -97,10 +97,7 @@ export function createReactAgent(
 		llm: model,
 		tools,
 		...(checkpointer && { checkpointer }),
-		...(recursionLimit !== null && { recursionLimit }),
 	});
-	// Set superstep timeout on the compiled graph to prevent nodes from hanging
-	agent.stepTimeout = timeout;
 	return agent;
 }
 
@@ -144,6 +141,8 @@ export function createStdoutCallback() {
  * @param {number} [options.maxContextLength] - Model's max context length (from error detection)
  * @param {number} [options.maxTokens] - Max output tokens from config
  * @param {number} [options.maxCompactionIterations] - Max compaction retry attempts (default: 3)
+ * @param {number} [options.turnHashWindow] - Size of the sliding window for turn-level loop detection (default: 20)
+ * @param {number} [options.turnBufferMax] - Maximum text buffer size per turn before hashing (default: 64)
  * @returns {{ content: string }} The agent's final text response
  */
 export async function callReactAgent(agent, message, config, systemPrompt, callback, options = {}) {

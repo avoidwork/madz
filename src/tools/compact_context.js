@@ -4,10 +4,10 @@ import { z } from "zod";
 /**
  * Regex patterns to detect context length errors across providers.
  * Pattern 1: Standard format - "maximum context length is/of X tokens"
- * Pattern 2: Limit format - "(limit: X)" or "limit: X"
+ * Pattern 2: Context limit format - requires "context" before "limit" to avoid false positives on rate limit errors
  */
 const CONTEXT_LENGTH_PATTERN_1 = /maximum\s+context\s+length[^0-9]*?(\d+)\s*tokens?/i;
-const CONTEXT_LENGTH_PATTERN_2 = /limit[:\s]*(\d+)/i;
+const CONTEXT_LENGTH_PATTERN_2 = /context.*limit[:\s]*(\d+)/i;
 
 /**
  * Extract the maximum context length from an error message.
