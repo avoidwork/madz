@@ -689,6 +689,77 @@ describe("callReactAgent", () => {
 		});
 	});
 
+	describe("cache hit path", () => {
+		it("returns cached content without calling streamEvents on cache hit", async () => {
+			const agentMock = {
+				streamEvents: () => (async function* () {})(),
+				invoke: () => ({ messages: [new AIMessage("fallback")] }),
+			};
+
+			const callbackCalls = [];
+			const callback = (event) => callbackCalls.push(event);
+
+			// First call to populate cache
+			await callReactAgent(
+				agentMock,
+				"hello",
+				{ configurable: { thread_id: "test-thread" } },
+				null,
+				callback,
+			);
+
+			// Clear callback calls
+			callbackCalls.length = 0;
+
+			// Second call with same thread_id and message should hit cache
+			const result = await callReactAgent(
+				agentMock,
+				"hello",
+				{ configurable: { thread_id: "test-thread" } },
+				null,
+				callback,
+			);
+
+			// Should return cached content
+			assert.strictEqual(result.content, "hello");
+			// Should have emitted text event from cache
+			assert.ok(callbackCalls.some((e) => e.type === "text"));
+		});
+	});
+
+	describe("streamEvents version parameter", () => {
+		it("passes version v2 to streamEvents", async () => {
+			let capturedVersion = null;
+			const agentMock = {
+				streamEvents: (input, options) => {
+					capturedVersion = options?.version;
+					return (async function* () {})();
+				},
+				invoke: () => ({ messages: [new AIMessage("fallback")] }),
+			};
+
+			await callReactAgent(
+				agentMock,
+				"hello",
+				{ configurable: { thread_id: "test" } },
+				null,
+				() => {},
+			);
+
+			assert.strictEqual(capturedVersion, "v2");
+		});
+	});
+
+	describe("createReactAgent", () => {
+		it("does not set stepTimeout on the compiled agent", () => {
+			const model = {};
+			const agent = createReactAgent(model);
+
+			// stepTimeout should not be set — it was dead code removed in #463
+			assert.strictEqual(agent.stepTimeout, undefined);
+		});
+	});
+
 	describe("getMessageRole", () => {
 		it("maps HumanMessage to 'user'", () => {
 			assert.strictEqual(getMessageRole(new HumanMessage("hi")), "user");

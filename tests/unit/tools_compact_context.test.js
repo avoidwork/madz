@@ -34,6 +34,16 @@ describe("compactContext - error detection", () => {
 		assert.strictEqual(isContextLengthError(err), false);
 	});
 
+	it("does not match rate limit errors with numeric codes", () => {
+		const err = new Error("rate limit: 429");
+		assert.strictEqual(isContextLengthError(err), false);
+	});
+
+	it("does not match rate limit errors with descriptive messages", () => {
+		const err = new Error("rate limit exceeded: 100 requests per minute");
+		assert.strictEqual(isContextLengthError(err), false);
+	});
+
 	it("handles null/undefined input gracefully", () => {
 		assert.strictEqual(isContextLengthError(null), false);
 		assert.strictEqual(isContextLengthError(undefined), false);
