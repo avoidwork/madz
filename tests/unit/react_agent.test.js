@@ -750,6 +750,30 @@ describe("callReactAgent", () => {
 		});
 	});
 
+	describe("streamEvents recursionLimit", () => {
+		it("passes recursionLimit to streamEvents options", async () => {
+			let capturedOptions = null;
+			const agentMock = {
+				streamEvents: (input, options) => {
+					capturedOptions = options;
+					return (async function* () {})();
+				},
+				invoke: () => ({ messages: [new AIMessage("fallback")] }),
+			};
+
+			await callReactAgent(
+				agentMock,
+				"hello",
+				{ configurable: { thread_id: "test" } },
+				null,
+				() => {},
+				{ recursionLimit: 25 },
+			);
+
+			assert.strictEqual(capturedOptions.recursionLimit, 25);
+		});
+	});
+
 	describe("createReactAgent", () => {
 		it("does not set stepTimeout on the compiled agent", () => {
 			const model = {};
