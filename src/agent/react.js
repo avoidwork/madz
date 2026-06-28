@@ -35,7 +35,7 @@ export function getMessageRole(msg) {
  * Falls back to defaults (100, 600000) if config is unavailable.
  */
 let _cache = null;
-function getCache() {
+function _getCache() {
 	if (!_cache) {
 		try {
 			const config = loadConfig();
@@ -52,8 +52,18 @@ function getCache() {
  * Clear the LLM response cache. Primarily for testing.
  */
 export function clearCache() {
-	getCache().clear();
+	_getCache().clear();
 }
+
+/**
+ * Return the LLM response cache instance. Primarily for testing.
+ * @returns {Object} Cache instance with get, set, and clear methods
+ */
+export function getCache() {
+	return _getCache();
+}
+
+
 
 const RECURSION_LIMIT_MESSAGE =
 	"I've reached the maximum number of reasoning steps on this thread. Please continue your message and I'll carry on, or start a new conversation if you'd prefer.";
@@ -90,17 +100,14 @@ export function createReactAgent(
 	model,
 	tools = [],
 	checkpointer = null,
-	recursionLimit = null,
-	timeout = 600000,
+	_recursionLimit = null,
+	_timeout = 600000,
 ) {
 	const agent = createReactAgentGraph({
 		llm: model,
 		tools,
 		...(checkpointer && { checkpointer }),
-		...(recursionLimit !== null && { recursionLimit }),
 	});
-	// Set superstep timeout on the compiled graph to prevent nodes from hanging
-	agent.stepTimeout = timeout;
 	return agent;
 }
 
@@ -144,6 +151,8 @@ export function createStdoutCallback() {
  * @param {number} [options.maxContextLength] - Model's max context length (from error detection)
  * @param {number} [options.maxTokens] - Max output tokens from config
  * @param {number} [options.maxCompactionIterations] - Max compaction retry attempts (default: 3)
+ * @param {number} [options.turnHashWindow] - Size of the sliding window for turn-level loop detection (default: 20)
+ * @param {number} [options.turnBufferMax] - Maximum text buffer size per turn before hashing (default: 64)
  * @returns {{ content: string }} The agent's final text response
  */
 export async function callReactAgent(agent, message, config, systemPrompt, callback, options = {}) {

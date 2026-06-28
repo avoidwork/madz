@@ -4,7 +4,7 @@
 TBD - created by archiving change automatic-context-compaction. Update Purpose after archive.
 ## Requirements
 ### Requirement: System detects LLM context length errors
-The system SHALL detect when the LLM returns a 400 error indicating the conversation has exceeded the model's maximum context length. Error detection SHALL use a flexible regex pattern that matches common error message formats across providers.
+The system SHALL detect when the LLM returns a 400 error indicating the conversation has exceeded the model's maximum context length. Error detection SHALL use a regex pattern that requires "context" to appear in the error message before matching "limit", preventing false positives on rate limit or other "limit" errors. The pattern SHALL match common error message formats such as "This model's maximum context length is 128000 tokens" and "maximum context length exceeded (limit: 8192)".
 
 #### Scenario: Detect OpenAI-style context length error
 - **WHEN** the LLM returns an error with message "This model's maximum context length is 128000 tokens"

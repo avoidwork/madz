@@ -13,8 +13,10 @@ import {
 	createReactAgent,
 	createStdoutCallback,
 	clearCache,
+	getCache,
 	getMessageRole,
 } from "../../src/agent/react.js";
+import { getCacheKey } from "../../src/cache/llm_cache.js";
 
 class GraphRecursionError extends Error {
 	constructor(message) {
@@ -686,6 +688,99 @@ describe("callReactAgent", () => {
 			);
 
 			assert.strictEqual(capturedConfig.recursionLimit, 750);
+		});
+	});
+
+	describe("cache hit path", () => {
+		it("returns cached content without calling streamEvents on cache hit", async () => {
+			let streamEventsCalled = false;
+			const agentMock = {
+				streamEvents: () => {
+					streamEventsCalled = true;
+					return (async function* () {})();
+				},
+				invoke: () => ({ messages: [new AIMessage("fallback")] }),
+			};
+
+			const callbackCalls = [];
+			const callback = (event) => callbackCalls.push(event);
+
+			// Seed the cache directly to test the cache hit path
+			const cacheKey = getCacheKey("test-thread", "hello");
+			getCache().set(cacheKey, "hello");
+
+			// Second call with same thread_id and message should hit cache
+			const result = await callReactAgent(
+				agentMock,
+				"hello",
+				{ configurable: { thread_id: "test-thread" } },
+				null,
+				callback,
+			);
+
+			// Should return cached content
+			assert.strictEqual(result.content, "hello");
+			// Should have emitted text event from cache
+			assert.ok(callbackCalls.some((e) => e.type === "text"));
+			// Should NOT have called streamEvents (cache hit)
+			assert.strictEqual(streamEventsCalled, false);
+		});
+	});
+
+	describe("streamEvents version parameter", () => {
+		it("passes version v2 to streamEvents", async () => {
+			let capturedVersion = null;
+			const agentMock = {
+				streamEvents: (input, options) => {
+					capturedVersion = options?.version;
+					return (async function* () {})();
+				},
+				invoke: () => ({ messages: [new AIMessage("fallback")] }),
+			};
+
+			await callReactAgent(
+				agentMock,
+				"hello",
+				{ configurable: { thread_id: "test" } },
+				null,
+				() => {},
+			);
+
+			assert.strictEqual(capturedVersion, "v2");
+		});
+	});
+
+	describe("streamEvents recursionLimit", () => {
+		it("passes recursionLimit to streamEvents options", async () => {
+			let capturedOptions = null;
+			const agentMock = {
+				streamEvents: (input, options) => {
+					capturedOptions = options;
+					return (async function* () {})();
+				},
+				invoke: () => ({ messages: [new AIMessage("fallback")] }),
+			};
+
+			await callReactAgent(
+				agentMock,
+				"hello",
+				{ configurable: { thread_id: "test" } },
+				null,
+				() => {},
+				{ recursionLimit: 25 },
+			);
+
+			assert.strictEqual(capturedOptions.recursionLimit, 25);
+		});
+	});
+
+	describe("createReactAgent", () => {
+		it("does not set stepTimeout on the compiled agent", () => {
+			const model = {};
+			const agent = createReactAgent(model);
+
+			// stepTimeout should not be set — it was dead code removed in #463
+			assert.strictEqual(agent.stepTimeout, undefined);
 		});
 	});
 
