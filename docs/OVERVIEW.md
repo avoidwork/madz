@@ -371,11 +371,11 @@ flowchart TD
     Auto -->|"installs cron"| Cron
     Auto -->|"persists to"| Sched["memory/schedules/reflection-daily.json"]
 
-    style A fill:#37474f,color:#fff
     style C fill:#37474f,color:#fff
-    style P fill:#37474f,color:#fff
     style E fill:#37474f,color:#fff
-    style & fill:#37474f,color:#fff
+    style R fill:#37474f,color:#fff
+    style SP fill:#37474f,color:#fff
+    style GC fill:#37474f,color:#fff
 ```
 
 `src/scheduler/autoSchedule.js` — `setupAutoSchedule()` returns a callback invoked after `saveProfile()` succeeds during onboarding. It automatically installs a `reflection-daily` cron job (`0 2 * * *`) into the system crontab and persists the job definition as `memory/schedules/reflection-daily.json`. The job invokes `node index.js --chat "/reflection"` at 2 AM daily.
@@ -483,10 +483,10 @@ flowchart TD
     O --> L
     N -->|No| P[Return Error: Conversation too long]
 
-    style & fill:#37474f,color:#fff
-    style & fill:#37474f,color:#fff
-    style & fill:#37474f,color:#fff
-    style & fill:#37474f,color:#fff
+    style A fill:#37474f,color:#fff
+    style C fill:#37474f,color:#fff
+    style P fill:#37474f,color:#fff
+    style E fill:#37474f,color:#fff
 ```
 
 1. **Error detection:** `callReactAgent` and `callReactAgentStreaming` catch LLM 400 errors matching patterns like `"maximum context length is X tokens"` or `"(limit: X)"`
