@@ -144,8 +144,8 @@ flowchart TD
     F -->|No| H[DEFAULT_METADATA\nintent=other, domain=general, complexity=moderate]
     G --> I[rewritePrompt]
     H --> I
-    I --> J[Load ./prompts/REWRITE_\{INTENT\}.md]
-    J --> K[Replace \{userPrompt\}, \{intent\}, \{domain\}, \{complexity\}]
+    I --> J[Load intent-specific template from ./prompts/]
+    J --> K[Replace userPrompt, intent, domain, complexity]
     K --> L[LLM: rewrite prompt]
     L --> M{Success?}
     M -->|Yes| N[Rewritten Prompt]
