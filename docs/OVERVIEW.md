@@ -127,7 +127,72 @@ The provider instance is consumed by `Agent` (via `createReactAgent`) or `dispat
 
 The agent runs: reason → call tool(s) → reason again → answer. Tool array built by `buildToolConfig()` gates definitions on sandbox permissions.
 
-**Prompt Rewrite Pipeline:** When `config.agent.promptRewrite.enabled` is `true`, user prompts are classified (intent, domain, complexity) and rewritten into optimized format before reaching the agent graph. External templates in `./prompts/REWRITE_{INTENT}.md` are loaded based on classification intent, with fallback to defaults on failure. Disabled by default.
+---
+
+## Prompt Rewrite Pipeline
+
+`src/agent/promptPipeline/` — A two-stage LLM pre-processing pipeline that classifies and rewrites user prompts before they reach the agent graph. Disabled by default (`config.agent.promptRewrite.enabled: false`).
+
+```mermaid
+flowchart TD
+    A[User Input] --> B{Pipeline Enabled?}
+    B -->|No| C[Pass through unchanged]
+    B -->|Yes| D[classifyPrompt]
+    D --> E[LLM: classify intent/domain/complexity]
+    E --> F{Valid JSON + Valid Categories?}
+    F -->|Yes| G[Classification Metadata]
+    F -->|No| H[DEFAULT_METADATA\nintent=other, domain=general, complexity=moderate]
+    G --> I[rewritePrompt]
+    H --> I
+    I --> J[Load ./prompts/REWRITE_{INTENT}.md]
+    J --> K[Replace {{userPrompt}}, {{intent}}, {{domain}}, {{complexity}}]
+    K --> L[LLM: rewrite prompt]
+    L --> M{Success?}
+    M -->|Yes| N[Rewritten Prompt]
+    M -->|No| O[Original User Input]
+    C --> P[HumanMessage]
+    N --> P
+    O --> P
+    P --> Q[Agent Graph]
+
+    style A fill:#e1f5fe
+    style P fill:#fff3e0
+    style Q fill:#e8f5e9
+    style H fill:#ffebee
+    style O fill:#ffebee
+```
+
+**Pipeline stages:**
+
+| Stage | Function | Input | Output |
+|-------|----------|-------|--------|
+| **Classify** | `classifyPrompt(model, userPrompt)` | Raw prompt string | `{ intent, domain, complexity }` metadata |
+| **Rewrite** | `rewritePrompt(model, userPrompt, metadata)` | Raw prompt + metadata | Optimized prompt string |
+| **Orchestrate** | `processPrompt(model, userPrompt)` | Raw prompt string | `{ rewrittenPrompt, metadata }` |
+
+**External templates:** Intent-specific rewrite templates are loaded from `./prompts/REWRITE_{INTENT}.md`:
+
+| Intent | Template File |
+|--------|---------------|
+| `question` | `./prompts/REWRITE_QUESTION.md` |
+| `task` | `./prompts/REWRITE_TASK.md` |
+| `creative` | `./prompts/REWRITE_CREATIVE.md` |
+| `analysis` | `./prompts/REWRITE_ANALYSIS.md` |
+| `other` (default) | `./prompts/REWRITE_OTHER.md` |
+
+Templates use `{{placeholder}}` syntax for `userPrompt`, `intent`, `domain`, and `complexity`. Unknown intents fall back to `REWRITE_OTHER.md`. If external files are missing, an inline default template is used.
+
+**Error handling:** The pipeline is fail-safe — classification failures return default metadata, rewriting failures return the original message, and any unhandled errors fall back to the original message. The agent graph always receives a `HumanMessage` with the same structure.
+
+**Configuration:**
+
+| Config Path | Default | Description |
+|-------------|---------|-------------|
+| `agent.promptRewrite.enabled` | `false` | Enable the prompt classification and rewriting pipeline |
+
+| Env Var | Default | Description |
+|---------|---------|-------------|
+| `AGENT_PROMPT_REWRITE_ENABLED` | `false` | Enable the prompt classification and rewriting pipeline |
 
 ---
 
