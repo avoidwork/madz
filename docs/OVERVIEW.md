@@ -435,6 +435,34 @@ flowchart TD
 
 **How it works:**
 
+```mermaid
+flowchart TD
+    A[LLM Call] --> B{400 Error?}
+    B -->|No| C[Return Response]
+    B -->|Yes| D{Context Length Error?}
+    D -->|No| E[Re-throw Error]
+    D -->|Yes| F[Extract maxContextLength]
+    F --> G[Calculate targetTokens]
+    G --> H[Tiered Compaction]
+    H --> I[Tier 1: Always Retain]
+    H --> J[Tier 2: Summarize]
+    H --> K[Tier 3: Drop]
+    I --> L[Retry LLM Call]
+    J --> L
+    K --> L
+    L --> M{Success?}
+    M -->|Yes| C
+    M -->|No| N{Iterations < 3?}
+    N -->|Yes| O[Compact with Reduced Budget]
+    O --> L
+    N -->|No| P[Return Error: Conversation too long]
+
+    style A fill:#e3f2fd
+    style C fill:#e8f5e9
+    style P fill:#ffebee
+    style E fill:#ffebee
+```
+
 1. **Error detection:** `callReactAgent` and `callReactAgentStreaming` catch LLM 400 errors matching patterns like `"maximum context length is X tokens"` or `"(limit: X)"`
 2. **Budget calculation:** `targetTokens = maxContextLength (from error) - maxTokens (from config)`
 3. **Tiered compaction:** The `compactContext` tool rewrites the conversation using three tiers:
