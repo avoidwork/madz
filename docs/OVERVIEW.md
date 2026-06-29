@@ -154,12 +154,6 @@ flowchart TD
     N --> P
     O --> P
     P --> Q[Agent Graph]
-
-    style A fill:#e1f5fe
-    style P fill:#fff3e0
-    style Q fill:#e8f5e9
-    style H fill:#ffebee
-    style O fill:#ffebee
 ```
 
 **Pipeline stages:**
