@@ -2,7 +2,11 @@ import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { access, readFile, writeFile, mkdir, readdir, stat } from "node:fs/promises";
 import { dirname, basename, join } from "node:path";
+import { promisify } from "node:util";
+import { execFile } from "node:child_process";
 import { validatePath, checkFileLimit } from "./common.js";
+
+const execFileAsync = promisify(execFile);
 
 const MAX_CONTENT_SIZE = 500 * 1024; // 500KB for write operations
 
@@ -422,7 +426,6 @@ export async function searchFilesImpl(input, options) {
 	}
 
 	try {
-		const { execFile } = await import("node:child_process");
 		const limit = input.maxResults || 20;
 		const rgArgs = [
 			"--line-number",
@@ -432,7 +435,7 @@ export async function searchFilesImpl(input, options) {
 			input.pattern,
 			resolved.path,
 		].filter(Boolean);
-		const { stdout } = await execFile("rg", rgArgs, { timeout: 10000, encoding: "utf-8" });
+		const { stdout } = await execFileAsync("rg", rgArgs, { timeout: 10000, encoding: "utf-8" });
 		const output = (stdout ?? "").trim();
 
 		if (!output) {
