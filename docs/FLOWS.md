@@ -252,6 +252,59 @@ createReactAgent(model, tools, checkpointer)
     └── Returns compiled LangGraph ReAct agent
 ```
 
+## Prompt Rewrite Pipeline Flow
+
+**Entry:** `src/agent/react.js` → `callReactAgent()` → `src/agent/promptPipeline/index.js`
+
+When `config.agent.promptRewrite.enabled` is `true`, user prompts are classified and rewritten before reaching the agent graph. The pipeline is disabled by default and has no effect on existing behavior.
+
+```
+callReactAgent(agent, message, config, systemPrompt, callback, options)
+├── if config?.agent?.promptRewrite?.enabled && agent?._model:
+│   ├── processPrompt(agent._model, message)
+│   │   ├── classifyPrompt(model, message)
+│   │   │   ├── createClassificationPrompt(message) → LLM prompt
+│   │   │   ├── model.invoke(prompt) → LLM call
+│   │   │   ├── Parse JSON from response (handles markdown code blocks)
+│   │   │   ├── Validate metadata (intent, domain, complexity)
+│   │   │   └── On failure → return DEFAULT_METADATA { intent: "other", domain: "general", complexity: "moderate" }
+│   │   ├── rewritePrompt(model, message, metadata)
+│   │   │   ├── loadRewritingTemplate(metadata.intent) → load ./prompts/REWRITE_{INTENT}.md
+│   │   │   ├── Replace placeholders: {{userPrompt}}, {{intent}}, {{domain}}, {{complexity}}
+│   │   │   ├── model.invoke(prompt) → LLM call
+│   │   │   └── On failure → return original message
+│   │   └── return { rewrittenPrompt, metadata }
+│   └── processedMessage = rewrittenPrompt
+└── else:
+    └── processedMessage = message  ← raw input passes through unchanged
+
+new HumanMessage(processedMessage)  ← same format regardless of pipeline state
+```
+
+**External templates:** Intent-specific rewrite templates are loaded from `./prompts/REWRITE_{INTENT}.md` files:
+
+| Intent | Template File |
+|--------|---------------|
+| `question` | `./prompts/REWRITE_QUESTION.md` |
+| `task` | `./prompts/REWRITE_TASK.md` |
+| `creative` | `./prompts/REWRITE_CREATIVE.md` |
+| `analysis` | `./prompts/REWRITE_ANALYSIS.md` |
+| `other` (default) | `./prompts/REWRITE_OTHER.md` |
+
+Templates use `{{placeholder}}` syntax for `userPrompt`, `intent`, `domain`, and `complexity`. Unknown intents fall back to `REWRITE_OTHER.md`. If external files are missing, an inline default template is used.
+
+**Error handling:** The pipeline is fail-safe — classification failures return default metadata, rewriting failures return the original message, and any unhandled errors fall back to the original message. The agent graph always receives a `HumanMessage` with the same structure.
+
+**Configuration:**
+
+| Config Path | Default | Description |
+|-------------|---------|-------------|
+| `agent.promptRewrite.enabled` | `false` | Enable the prompt classification and rewriting pipeline |
+
+| Env Var | Default | Description |
+|---------|---------|-------------|
+| `AGENT_PROMPT_REWRITE_ENABLED` | `false` | Enable the prompt classification and rewriting pipeline |
+
 ## Cache Lookup Flow
 
 **Entry:** `src/agent/react.js` → `callReactAgent()` / `callReactAgentStreaming()`

@@ -121,8 +121,13 @@ The provider instance is consumed by `Agent` (via `createReactAgent`) or `dispat
 | File | Purpose |
 |------|---------|
 | `react.js` | `createReactAgent()` — compiles `createReactAgentGraph`; `callReactAgent()` — runs loop, returns response |
+| `promptPipeline/index.js` | `classifyPrompt()` — LLM-based intent/domain/complexity classification; `rewritePrompt()` — intent-aware prompt optimization; `processPrompt()` — orchestrator |
+| `promptPipeline/categories.js` | Category enums (`INTENT_CATEGORIES`, `DOMAIN_CATEGORIES`, `COMPLEXITY_CATEGORIES`), validation functions, `DEFAULT_METADATA` |
+| `promptPipeline/prompts.js` | Classification prompt template; loads intent-specific rewrite templates from `./prompts/REWRITE_{INTENT}.md` |
 
 The agent runs: reason → call tool(s) → reason again → answer. Tool array built by `buildToolConfig()` gates definitions on sandbox permissions.
+
+**Prompt Rewrite Pipeline:** When `config.agent.promptRewrite.enabled` is `true`, user prompts are classified (intent, domain, complexity) and rewritten into optimized format before reaching the agent graph. External templates in `./prompts/REWRITE_{INTENT}.md` are loaded based on classification intent, with fallback to defaults on failure. Disabled by default.
 
 ---
 
