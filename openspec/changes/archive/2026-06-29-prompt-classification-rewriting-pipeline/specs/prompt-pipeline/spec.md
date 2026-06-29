@@ -53,7 +53,7 @@ The system SHALL gate the entire pipeline behind a config flag `agent.promptRewr
 - **THEN** the pipeline is disabled and raw user input passes through unchanged to the agent graph
 
 #### Scenario: Pipeline enabled via config
-- **WHEN** `agent.promptRewrite.enabled` is set to `true` in config
+- **WHEN** `agent.promptRewrite` is set to `true` in config
 - **THEN** the pipeline executes for all user messages, performing classification and rewriting before passing to the agent graph
 
 #### Scenario: Pipeline disabled does not affect agent flow

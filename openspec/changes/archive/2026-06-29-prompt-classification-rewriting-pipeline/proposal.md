@@ -7,7 +7,7 @@ User prompts vary widely in quality, structure, and clarity. A classification + 
 - Add a prompt classification module that analyzes user prompts and assigns metadata: intent (question, task, creative, analysis, other), domain (coding, writing, analysis, general, other), and complexity (simple, moderate, complex)
 - Add a prompt rewriting module that takes the original prompt plus classification metadata and rewrites it into a structured, optimized format
 - Integrate the pipeline into `callReactAgent()` before `HumanMessage` construction
-- Gate the entire pipeline behind a config flag (`agent.promptRewrite.enabled`) so it can be toggled on/off without code changes
+- Gate the entire pipeline behind a config flag (`agent.promptRewrite`) so it can be toggled on/off without code changes
 - Add configuration schema support for pipeline settings
 
 ## Capabilities

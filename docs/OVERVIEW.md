@@ -144,7 +144,7 @@ The agent runs: reason → call tool(s) → reason again → answer. Tool array 
 
 #### Prompt Rewrite Pipeline
 
-`src/agent/promptPipeline/` — A two-stage LLM pre-processing pipeline that classifies and rewrites user prompts before they reach the agent graph. Disabled by default (`config.agent.promptRewrite.enabled: false`).
+`src/agent/promptPipeline/` — A two-stage LLM pre-processing pipeline that classifies and rewrites user prompts before they reach the agent graph. Disabled by default (`config.agent.promptRewrite: false`).
 
 ```mermaid
 flowchart TD

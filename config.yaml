@@ -77,8 +77,7 @@ agent:
   nodeTimeout: 600000
   turnHashWindow: 20
   turnBufferMax: 64
-  promptRewrite:
-    enabled: true
+  promptRewrite: false
 lru:
   size: 100
   ttl: 600000

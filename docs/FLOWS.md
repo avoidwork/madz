@@ -256,11 +256,11 @@ createReactAgent(model, tools, checkpointer)
 
 **Entry:** `src/agent/react.js` → `callReactAgent()` → `src/agent/promptPipeline/index.js`
 
-When `config.agent.promptRewrite.enabled` is `true`, user prompts are classified and rewritten before reaching the agent graph. The pipeline is disabled by default and has no effect on existing behavior.
+When `config.agent.promptRewrite` is `true`, user prompts are classified and rewritten before reaching the agent graph. The pipeline is disabled by default and has no effect on existing behavior.
 
 ```
 callReactAgent(agent, message, config, systemPrompt, callback, options)
-├── if config?.agent?.promptRewrite?.enabled && agent?._model:
+├── if config?.agent?.promptRewrite && agent?._model:
 │   ├── processPrompt(agent._model, message)
 │   │   ├── classifyPrompt(model, message)
 │   │   │   ├── createClassificationPrompt(message) → LLM prompt
@@ -299,11 +299,11 @@ Templates use `{{placeholder}}` syntax for `userPrompt`, `intent`, `domain`, and
 
 | Config Path | Default | Description |
 |-------------|---------|-------------|
-| `agent.promptRewrite.enabled` | `false` | Enable the prompt classification and rewriting pipeline |
+| `agent.promptRewrite` | `false` | Enable the prompt classification and rewriting pipeline |
 
 | Env Var | Default | Description |
 |---------|---------|-------------|
-| `AGENT_PROMPT_REWRITE_ENABLED` | `false` | Enable the prompt classification and rewriting pipeline |
+| `AGENT_PROMPT_REWRITE` | `false` | Enable the prompt classification and rewriting pipeline |
 
 ## Cache Lookup Flow
 

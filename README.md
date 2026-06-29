@@ -594,7 +594,7 @@ Graceful shutdown flushes all buffered log entries to disk before process exit.
 | `agent`       | `recursionLimit`                     | `1000`                                   | Max graph execution steps per agent call      |
 |               | `autoContinueLimit`                  | `1000`                                   | Max consecutive auto-continue attempts before circuit breaker triggers |
 |               | `nodeTimeout`                        | `600000`                                 | Superstep timeout in milliseconds (default 10 minutes) |
-|               | `promptRewrite.enabled`              | `false`                                  | Enable prompt classification and rewriting pipeline |
+|               | `promptRewrite`                      | `false`                                  | Enable prompt classification and rewriting pipeline |
 | `lru`         | `size`                             | `100`                                    | Maximum number of cached LLM responses        |
 |               | `ttl`                              | `600000`                                 | Cache entry TTL in milliseconds (10 minutes)  |
 | `process`     | `subAgent.timeout`                 | `600000`                                 | Sub-agent process timeout in milliseconds (default 10 minutes) |

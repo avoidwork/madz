@@ -10,7 +10,7 @@ The existing architecture uses LangGraph for state machines, with the agent grap
 - Classify user prompts into intent, domain, and complexity metadata
 - Rewrite prompts into optimized, structured format using classification results
 - Integrate pipeline into `callReactAgent()` before `HumanMessage` construction
-- Make the pipeline toggleable via config (`agent.promptRewrite.enabled`)
+- Make the pipeline toggleable via config (`agent.promptRewrite`)
 - Ensure failures fall back to safe defaults without blocking the agent flow
 
 **Non-Goals:**

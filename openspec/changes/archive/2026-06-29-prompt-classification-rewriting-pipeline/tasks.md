@@ -37,7 +37,7 @@
 ## 6. Integrate pipeline into agent flow
 
 - [ ] 6.1 Modify `callReactAgent()` in `src/agent/react.js` to import and call `processPrompt()` before `HumanMessage` construction
-- [ ] 6.2 Gate pipeline execution behind `config.agent.promptRewrite.enabled` check
+- [ ] 6.2 Gate pipeline execution behind `config.agent.promptRewrite` check
 - [ ] 6.3 When pipeline is disabled, pass raw input through unchanged (no behavioral change)
 - [ ] 6.4 Ensure the agent graph receives the same `HumanMessage` format regardless of pipeline state
 
