@@ -450,6 +450,4 @@ The compaction tool is registered with zero permissions (always available) and i
 
 ---
 
----
-
-This document provides a high-level view of madz's architecture. This is a work in progress, and will likely change.ely change.
+This document provides a high-level view of madz's architecture. This is a work in progress, and will likely change.
