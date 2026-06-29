@@ -87,6 +87,51 @@ The provider instance is consumed by `Agent` (via `createReactAgent`) or `dispat
 
 ---
 
+### Cache
+
+`src/cache/` — cache-aside LRU response cache for LLM API calls.
+
+|| File | Purpose |
+||------|---------|
+|| `llm_cache.js` | `createLlmCache(size, ttl)` — creates a tiny-lru-backed cache with `get()`, `set()`, `clear()` methods; `getCacheKey(threadId, message)` — generates `${threadId}_${sha256_hash}` cache keys |
+
+**How it works:**
+
+```mermaid
+flowchart TD
+    A[LLM Call Request] --> B{Cache Hit?}
+    B -->|Yes| C[Return Cached Response]
+    B -->|No| D[Call LLM]
+    D --> E[LLM Response]
+    E --> F{Tools Invoked?}
+    F -->|No| G[Store in Cache]
+    F -->|Yes| H[Skip Caching]
+    G --> I[Return Response]
+    H --> I
+    C --> I
+
+    subgraph Eviction
+        J[Max Size Reached?] -->|Yes| K[LRU Evict Oldest]
+        L[TTL Expired?] -->|Yes| M[Remove Entry]
+    end
+
+    G --> Eviction
+
+    style A fill:#37474f,color:#fff
+    style C fill:#37474f,color:#fff
+    style I fill:#37474f,color:#fff
+    style K fill:#37474f,color:#fff
+    style M fill:#37474f,color:#fff
+```
+
+1. **Cache-aside pattern:** Before every LLM call (both streaming and non-streaming), the system checks the cache using a key derived from the thread ID and SHA-256 hash of the message content. On a hit, the cached response is returned immediately without an API call. On a miss, the LLM is called and the response is stored.
+2. **Conditional caching:** Responses are only cached when no tools or skills were invoked during agent execution. This prevents state-changing operations from being skipped on subsequent identical prompts.
+3. **Streaming support:** For streaming calls, the cache is checked before the stream begins. On successful completion, the aggregated final response is stored — individual chunks are never cached. Failed or aborted streams do not cache partial responses.
+4. **Eviction:** The cache enforces a maximum size (default: 100 entries) with LRU eviction. Entries expire after the configured TTL (default: 600000ms / 10 minutes).
+5. **Fail-open:** Cache retrieval or storage failures never block or prevent an LLM call.
+
+---
+
 ### Agent
 
 `src/agent/` — ReAct agent wrapper around LangGraph's prebuilt builder.
