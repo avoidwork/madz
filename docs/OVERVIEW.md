@@ -61,11 +61,11 @@ graph TD
 
 `src/config/` — YAML config with Zod validation, recursive env var resolution, runtime mutation.
 
-|| File | Purpose |
-||------|---------|
-|| `schemas.js` | Zod schemas: `ConfigSchema`, `ProvidersSchema`, `SandboxScopeSchema`, etc. |
-|| `loader.js` | Loads `config.yaml`, merges defaults, resolves env vars, validates |
-|| `mutate.js` | `parseValue()`, `assignPath()`, `applyDotPathMutation()` — dot-path mutation with Zod validation |
+| File | Purpose |
+|------|---------|
+| `schemas.js` | Zod schemas: `ConfigSchema`, `ProvidersSchema`, `SandboxScopeSchema`, etc. |
+| `loader.js` | Loads `config.yaml`, merges defaults, resolves env vars, validates |
+| `mutate.js` | `parseValue()`, `assignPath()`, `applyDotPathMutation()` — dot-path mutation with Zod validation |
 
 Env var resolution maps config paths → `UPPER_SNAKE_CASE` (e.g., `sandbox.timeout.seconds` → `SANDBOX_TIMEOUT_SECONDS`). `'providers'`/`'credentials'`/`'process'` containers are dropped from the name path. String env values auto-parsed to booleans/numbers. Legacy `${VAR_NAME}` interpolation supported as fallback.
 
@@ -77,9 +77,9 @@ Env var resolution maps config paths → `UPPER_SNAKE_CASE` (e.g., `sandbox.time
 
 `src/provider/` — LLM provider factory from configuration.
 
-|| File | Purpose |
-||------|---------|
-|| `openai.js` | `createChatModel()` — produces `ChatOpenAI` from `ProviderConfig` |
+| File | Purpose |
+|------|---------|
+| `openai.js` | `createChatModel()` — produces `ChatOpenAI` from `ProviderConfig` |
 
 The provider config includes an optional `encoding` field (mapped from `OPENAI_ENCODING` env var) that specifies the tiktoken encoder name for token counting. This is primarily useful when using non-OpenAI models via `OPENAI_BASE_URL`.
 
@@ -91,9 +91,9 @@ The provider instance is consumed by `Agent` (via `createReactAgent`) or `dispat
 
 `src/cache/` — cache-aside LRU response cache for LLM API calls.
 
-|| File | Purpose |
-||------|---------|
-|| `llm_cache.js` | `createLlmCache(size, ttl)` — creates a tiny-lru-backed cache with `get()`, `set()`, `clear()` methods; `getCacheKey(threadId, message)` — generates `${threadId}_${sha256_hash}` cache keys |
+| File | Purpose |
+|------|---------|
+| `llm_cache.js` | `createLlmCache(size, ttl)` — creates a tiny-lru-backed cache with `get()`, `set()`, `clear()` methods; `getCacheKey(threadId, message)` — generates `${threadId}_${sha256_hash}` cache keys |
 
 **How it works:**
 
@@ -136,9 +136,9 @@ flowchart TD
 
 `src/agent/` — ReAct agent wrapper around LangGraph's prebuilt builder.
 
-|| File | Purpose |
-||------|---------|
-|| `react.js` | `createReactAgent()` — compiles `createReactAgentGraph`; `callReactAgent()` — runs loop, returns response |
+| File | Purpose |
+|------|---------|
+| `react.js` | `createReactAgent()` — compiles `createReactAgentGraph`; `callReactAgent()` — runs loop, returns response |
 
 The agent runs: reason → call tool(s) → reason again → answer. Tool array built by `buildToolConfig()` gates definitions on sandbox permissions.
 
@@ -177,21 +177,21 @@ flowchart TD
 
 **Pipeline stages:**
 
-|| Stage | Function | Input | Output |
-||-------|----------|-------|--------|
-|| **Classify** | `classifyPrompt(model, userPrompt)` | Raw prompt string | `{ intent, domain, complexity }` metadata |
-|| **Rewrite** | `rewritePrompt(model, userPrompt, metadata)` | Raw prompt + metadata | Optimized prompt string |
-|| **Orchestrate** | `processPrompt(model, userPrompt)` | Raw prompt string | `{ rewrittenPrompt, metadata }` |
+| Stage | Function | Input | Output |
+|-------|----------|-------|--------|
+| **Classify** | `classifyPrompt(model, userPrompt)` | Raw prompt string | `{ intent, domain, complexity }` metadata |
+| **Rewrite** | `rewritePrompt(model, userPrompt, metadata)` | Raw prompt + metadata | Optimized prompt string |
+| **Orchestrate** | `processPrompt(model, userPrompt)` | Raw prompt string | `{ rewrittenPrompt, metadata }` |
 
 **External templates:** Intent-specific rewrite templates are loaded from `./prompts/REWRITE_{INTENT}.md`:
 
-|| Intent | Template File |
-||--------|---------------|
-|| `question` | `./prompts/REWRITE_QUESTION.md` |
-|| `task` | `./prompts/REWRITE_TASK.md` |
-|| `creative` | `./prompts/REWRITE_CREATIVE.md` |
-|| `analysis` | `./prompts/REWRITE_ANALYSIS.md` |
-|| `other` (default) | `./prompts/REWRITE_OTHER.md` |
+| Intent | Template File |
+|--------|---------------|
+| `question` | `./prompts/REWRITE_QUESTION.md` |
+| `task` | `./prompts/REWRITE_TASK.md` |
+| `creative` | `./prompts/REWRITE_CREATIVE.md` |
+| `analysis` | `./prompts/REWRITE_ANALYSIS.md` |
+| `other` (default) | `./prompts/REWRITE_OTHER.md` |
 
 Templates use `{{placeholder}}` syntax for `userPrompt`, `intent`, `domain`, and `complexity`. Unknown intents fall back to `REWRITE_OTHER.md`. If external files are missing, an inline default template is used.
 
@@ -203,14 +203,14 @@ Templates use `{{placeholder}}` syntax for `userPrompt`, `intent`, `domain`, and
 
 `src/memory/` — persistent Markdown storage with YAML frontmatter, triple-layer architecture (canonical + ephemeral + reflection), and automated daily reflection scheduling.
 
-|| File | Purpose |
-||------|---------|
-|| `writer.js` | `writeMemoryFile()` — writes timestamped `.md` files with YAML frontmatter |
-|| `reader.js` | `parseFrontmatter()` — YAML frontmatter parsing; `readMemoryFile()` — loads a single memory file |
-|| `context.js` | `loadContext()` — scans context directory, loads profile, returns combined string |
-|| `profile.js` | User profile CRUD with onboarding state machine (`INIT → ATTRACTOR → COLLECT → SAVE → TRANSCEND`) |
-|| `expireEphemeral.js` | `expireEphemeralMemories()` — removes expired ephemeral entries |
-|| `gc.js` | V8 garbage collection manager with rate limiting |
+| File | Purpose |
+|------|---------|
+| `writer.js` | `writeMemoryFile()` — writes timestamped `.md` files with YAML frontmatter |
+| `reader.js` | `parseFrontmatter()` — YAML frontmatter parsing; `readMemoryFile()` — loads a single memory file |
+| `context.js` | `loadContext()` — scans context directory, loads profile, returns combined string |
+| `profile.js` | User profile CRUD with onboarding state machine (`INIT → ATTRACTOR → COLLECT → SAVE → TRANSCEND`) |
+| `expireEphemeral.js` | `expireEphemeralMemories()` — removes expired ephemeral entries |
+| `gc.js` | V8 garbage collection manager with rate limiting |
 
 **Triple-Layer Architecture:**
 
@@ -252,13 +252,13 @@ flowchart TD
 
 `src/registry/` — skill discovery, validation, and permission management.
 
-|| File | Purpose |
-||------|---------|
-|| `types.js` | `SkillMetadataSchema`, `PermissionSchema` (6 scopes), `DEFAULT_PERMS` |
-|| `discoverer.js` | `discoverSkills()` — scans for `SKILL.md`, extracts frontmatter |
-|| `validator.js` | `validateSkillSchema()` — name (1-64 chars), description, optional fields |
-|| `registry.js` | `SkillRegistry` — Map-based `discover`, `get`, `list`, `enable`, `disable` |
-|| `permissions.js` | `resolvePermissions()` — merge defaults with skill-specific perms; `resolveCapabilities()` → `{resources, rules}[]` |
+| File | Purpose |
+|------|---------|
+| `types.js` | `SkillMetadataSchema`, `PermissionSchema` (6 scopes), `DEFAULT_PERMS` |
+| `discoverer.js` | `discoverSkills()` — scans for `SKILL.md`, extracts frontmatter |
+| `validator.js` | `validateSkillSchema()` — name (1-64 chars), description, optional fields |
+| `registry.js` | `SkillRegistry` — Map-based `discover`, `get`, `list`, `enable`, `disable` |
+| `permissions.js` | `resolvePermissions()` — merge defaults with skill-specific perms; `resolveCapabilities()` → `{resources, rules}[]` |
 
 ---
 
@@ -266,14 +266,14 @@ flowchart TD
 
 `src/sandbox/` — secure skill execution via spawned processes with resource limits.
 
-|| File | Purpose |
-||------|---------|
-|| `runner.js` | `runSandbox()` — `spawn()`, memory limits, capture stdout/stderr, timeout |
-|| `pathResolver.js` | `resolvePath()` / `assertPathAllowed()` — sandbox scope enforcement |
-|| `urlFilter.js` | `filterUrl()` — blocks `file://`, `gopher://`, `dict://`; hostname allowlist |
-|| `envInjector.js` | `injectEnv()` / `filterEnv()` — whitelist env vars |
-|| `capability.js` | `enforceCapabilities()` — permissions → `{resources, rules}[]` |
-|| `timeoutHandler.js` | `handleTimeout()` — SIGTERM → SIGKILL after grace period |
+| File | Purpose |
+|------|---------|
+| `runner.js` | `runSandbox()` — `spawn()`, memory limits, capture stdout/stderr, timeout |
+| `pathResolver.js` | `resolvePath()` / `assertPathAllowed()` — sandbox scope enforcement |
+| `urlFilter.js` | `filterUrl()` — blocks `file://`, `gopher://`, `dict://`; hostname allowlist |
+| `envInjector.js` | `injectEnv()` / `filterEnv()` — whitelist env vars |
+| `capability.js` | `enforceCapabilities()` — permissions → `{resources, rules}[]` |
+| `timeoutHandler.js` | `handleTimeout()` — SIGTERM → SIGKILL after grace period |
 
 ---
 
@@ -281,12 +281,12 @@ flowchart TD
 
 `src/scheduler/` — cron job management via system crontab. Scheduling is delegated to the system crontab; there is no in-process clock tick loop.
 
-|| File | Purpose |
-||------|---------|
-|| `scheduler.js` | `ScheduleManager` — simple CRUD class (register, list, pause, resume, runNow). No in-process scheduling. |
-|| `cron.js` | `Cron` object with static methods: `isAvailable()`, `add()`, `remove()`. Manages entries in system crontab using `# --- BEGIN madz-schedules ---` / `# --- END madz-schedules ---` block delimiters. |
-|| `autoSchedule.js` | `setupAutoSchedule()` — returns callback invoked after `saveProfile()` during onboarding. Installs `reflection-daily` cron job (`0 2 * * *`) into system crontab and persists to `memory/schedules/reflection-daily.json`. |
-|| `index.js` | Re-exports `ScheduleManager` and `Cron`. |
+| File | Purpose |
+|------|---------|
+| `scheduler.js` | `ScheduleManager` — simple CRUD class (register, list, pause, resume, runNow). No in-process scheduling. |
+| `cron.js` | `Cron` object with static methods: `isAvailable()`, `add()`, `remove()`. Manages entries in system crontab using `# --- BEGIN madz-schedules ---` / `# --- END madz-schedules ---` block delimiters. |
+| `autoSchedule.js` | `setupAutoSchedule()` — returns callback invoked after `saveProfile()` during onboarding. Installs `reflection-daily` cron job (`0 2 * * *`) into system crontab and persists to `memory/schedules/reflection-daily.json`. |
+| `index.js` | Re-exports `ScheduleManager` and `Cron`. |
 
 ---
 
@@ -294,15 +294,15 @@ flowchart TD
 
 `src/session/` — per-session state with context window trimming and persistence.
 
-|| File | Purpose |
-||------|---------|
-|| `factory.js` | `createSession()` — `{sessionId: UUID, state: {...}}` |
-|| `stateManager.js` | `SessionStateManager` — `addExchange()`, `setContextWindow()`, `getState()` |
-|| `window.js` | `enforceContextWindow()` — trims oldest exchanges |
-|| `loader.js` / `saver.js` | `loadSession()` / `saveSession()` — persists `.md` per session |
-|| `shutdown.js` | `handleShutdown()` — orchestrates flush/save/cleanup |
-|| `checkpointer.js` | `createCheckpointer()` — `MemorySaver` or `SQLiteCheckpointer` |
-|| `onboarding.js` | State machine: `INIT → ATTRACTOR → COLLECT → SAVE → TRANSCEND` |
+| File | Purpose |
+|------|---------|
+| `factory.js` | `createSession()` — `{sessionId: UUID, state: {...}}` |
+| `stateManager.js` | `SessionStateManager` — `addExchange()`, `setContextWindow()`, `getState()` |
+| `window.js` | `enforceContextWindow()` — trims oldest exchanges |
+| `loader.js` / `saver.js` | `loadSession()` / `saveSession()` — persists `.md` per session |
+| `shutdown.js` | `handleShutdown()` — orchestrates flush/save/cleanup |
+| `checkpointer.js` | `createCheckpointer()` — `MemorySaver` or `SQLiteCheckpointer` |
+| `onboarding.js` | State machine: `INIT → ATTRACTOR → COLLECT → SAVE → TRANSCEND` |
 
 ```javascript
 {
@@ -321,15 +321,15 @@ flowchart TD
 
 `src/telemetry/` — OpenTelemetry tracing and redaction.
 
-|| File | Purpose |
-||------|---------|
-|| `provider.js` | `initTelemetry()` — `NodeSDK` with HTTP/gRPC or console exporter |
-|| `redaction.js` | `createRedactionMiddleware()` — recursive path redaction (e.g., `"credentials.apiKey"`) |
-|| `llmInstrumenter.js` | `instrumentLlmCall()` — ML span attributes |
-|| `skillInstrumenter.js` | `instrumentSkillExecution()` — skill span attributes |
-|| `metrics.js` | Token counter and duration histogram |
-|| `sampler.js` | Probability-based span sampling |
-|| `flusher.js` | Pending span queue for shutdown safety |
+| File | Purpose |
+|------|---------|
+| `provider.js` | `initTelemetry()` — `NodeSDK` with HTTP/gRPC or console exporter |
+| `redaction.js` | `createRedactionMiddleware()` — recursive path redaction (e.g., `"credentials.apiKey"`) |
+| `llmInstrumenter.js` | `instrumentLlmCall()` — ML span attributes |
+| `skillInstrumenter.js` | `instrumentSkillExecution()` — skill span attributes |
+| `metrics.js` | Token counter and duration histogram |
+| `sampler.js` | Probability-based span sampling |
+| `flusher.js` | Pending span queue for shutdown safety |
 
 ---
 
@@ -337,14 +337,14 @@ flowchart TD
 
 `src/tui/` — terminal UI built with Ink (React-based).
 
-|| File | Purpose |
-||------|---------|
-|| `app.js` | Main layout: Banner / ConversationPanel, StatusBar, InputPanel |
-|| `commandParser.js` | `CommandParser` class — dispatches `:` commands |
-|| `conversationPanel.js` | Virtualized message display via `ink-scroll-view` |
-|| `inputPanel.js` | Text entry with `Blink` cursor animation |
-|| `markdownText.js` | Renders markdown via `marked.parse()` + `marked-terminal` |
-|| `banner.js` / `statusBar.js` / `panels.js` | Startup banner, status indicator, panel definitions |
+| File | Purpose |
+|------|---------|
+| `app.js` | Main layout: Banner / ConversationPanel, StatusBar, InputPanel |
+| `commandParser.js` | `CommandParser` class — dispatches `:` commands |
+| `conversationPanel.js` | Virtualized message display via `ink-scroll-view` |
+| `inputPanel.js` | Text entry with `Blink` cursor animation |
+| `markdownText.js` | Renders markdown via `marked.parse()` + `marked-terminal` |
+| `banner.js` / `statusBar.js` / `panels.js` | Startup banner, status indicator, panel definitions |
 
 ---
 
@@ -354,9 +354,9 @@ flowchart TD
 
 `src/tools/subAgent.js` — spawns child processes (`node index.js --sub-agent --cwd=... --message="..."`) to execute prompts as independent sub-agents. Supports single execution and fan-out (parallel/sequential) modes with configurable concurrency, timeout, and error handling.
 
-|| File | Purpose |
-||------|---------|
-|| `subAgent.js` | `createSubAgentTool()` — LangChain tool with marker-based stdout parsing; `parseSubAgentOutput()` — extracts structured results; `spawnSubAgentProcess()` — spawns child process, captures OS-level PID |
+| File | Purpose |
+|------|---------|
+| `subAgent.js` | `createSubAgentTool()` — LangChain tool with marker-based stdout parsing; `parseSubAgentOutput()` — extracts structured results; `spawnSubAgentProcess()` — spawns child process, captures OS-level PID |
 
 **Key architectural points:**
 
@@ -368,17 +368,17 @@ flowchart TD
 
 `src/tools/subAgentLog.js` — manages and reads subAgent log files stored in `/tmp`. Supports listing all active logs with PID and running status, reading a specific log by PID, and cleaning up old logs beyond a configurable age threshold.
 
-|| File | Purpose |
-||------|---------|
-|| `subAgentLog.js` | `createSubAgentLogTool()` — zero permissions (always registered); `listLogs()` — scans `/tmp` for `sub-agent-{pid}.log` files; `readLog(pid)` — reads a specific log; `cleanupLogs(maxAgeHours)` — removes logs older than threshold |
+| File | Purpose |
+|------|---------|
+| `subAgentLog.js` | `createSubAgentLogTool()` — zero permissions (always registered); `listLogs()` — scans `/tmp` for `sub-agent-{pid}.log` files; `readLog(pid)` — reads a specific log; `cleanupLogs(maxAgeHours)` — removes logs older than threshold |
 
 #### Sub-Agent Message
 
 `src/tools/subAgentMessage.js` — sends messages to running subAgent processes via stdin. Requires the target process to be tracked (spawned via subAgent tool) and have stdin exposed.
 
-|| File | Purpose |
-||------|---------|
-|| `subAgentMessage.js` | `createSubAgentMessageTool()` — `process:spawn` permission; `subAgentMessageImpl(input)` — looks up PID in `processTracker`, validates process is running, writes message to stdin |
+| File | Purpose |
+|------|---------|
+| `subAgentMessage.js` | `createSubAgentMessageTool()` — `process:spawn` permission; `subAgentMessageImpl(input)` — looks up PID in `processTracker`, validates process is running, writes message to stdin |
 
 ---
 
@@ -386,9 +386,9 @@ flowchart TD
 
 `src/tools/scanAgents.js` — scans for `AGENTS.md` files in a target directory. Delegates to `loadAgents()` from `src/workspace/loadAgents.js` with path validation.
 
-|| File | Purpose |
-||------|---------|
-|| `scanAgents.js` | `createScanAgentsTool()` — LangChain tool with `filesystem:read` permission; `scanAgentsImpl()` — validates path, delegates to `loadAgents()`; `ScanAgentsSchema` — zod schema with optional `path` parameter |
+| File | Purpose |
+|------|---------|
+| `scanAgents.js` | `createScanAgentsTool()` — LangChain tool with `filesystem:read` permission; `scanAgentsImpl()` — validates path, delegates to `loadAgents()`; `ScanAgentsSchema` — zod schema with optional `path` parameter |
 
 **Key features:**
 
@@ -403,9 +403,9 @@ flowchart TD
 
 `src/tools/compactContext.js` — automatic conversation context compaction triggered when the LLM returns a 400 error indicating the conversation has exceeded the model's maximum context length.
 
-|| File | Purpose |
-||------|---------|
-|| `compactContext.js` | `createCompactContextTool()` — LangChain tool with tiered retention strategy; `isContextLengthError()` — detects context-length 400 errors via regex; `extractContextLength()` — extracts max context length from error message; `compactConversation()` — rewrites conversation to fit within a token budget |
+| File | Purpose |
+|------|---------|
+| `compactContext.js` | `createCompactContextTool()` — LangChain tool with tiered retention strategy; `isContextLengthError()` — detects context-length 400 errors via regex; `extractContextLength()` — extracts max context length from error message; `compactConversation()` — rewrites conversation to fit within a token budget |
 
 **How it works:**
 
