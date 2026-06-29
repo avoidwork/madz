@@ -352,6 +352,32 @@ flowchart TD
 
 - **Reflections** — Generated daily by a cron job (`0 2 * * *`) that runs `/reflection` via `--chat` mode. Reflections are stored as canonical memories in `memory/context/` with `createdDate` and `updatedDate` metadata. The cron job is auto-installed on first onboarding completion, persisted as `memory/schedules/reflection-daily.json`, and registered in the system crontab under the `madz-schedules` block.
 
+```mermaid
+flowchart TD
+    subgraph Layers["Triple-Layer Architecture"]
+        C[Canonical Memories]
+        E[Ephemeral Memories]
+        R[Reflections]
+    end
+
+    C -->|"loaded at session start"| SP[System Prompt]
+    E -->|"auto-expire via expiresAt"| GC[expireEphemeralMemories]
+    R -->|"stored as canonical"| C
+
+    Cron["Cron 0 2 * * *"] -->|"runs /reflection"| Ref["/reflection --chat"]
+    Ref -->|"generates"| R
+
+    Onboard["Onboarding"] -->|"saveProfile() triggers"| Auto["setupAutoSchedule"]
+    Auto -->|"installs cron"| Cron
+    Auto -->|"persists to"| Sched["memory/schedules/reflection-daily.json"]
+
+    style C fill:#e3f2fd
+    style E fill:#fff3e0
+    style R fill:#e8f5e9
+    style SP fill:#f3e5f5
+    style GC fill:#ffebee
+```
+
 `src/scheduler/autoSchedule.js` — `setupAutoSchedule()` returns a callback invoked after `saveProfile()` succeeds during onboarding. It automatically installs a `reflection-daily` cron job (`0 2 * * *`) into the system crontab and persists the job definition as `memory/schedules/reflection-daily.json`. The job invokes `node index.js --chat "/reflection"` at 2 AM daily.
 
 ---
