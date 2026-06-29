@@ -1,16 +1,16 @@
 ## 1. Setup module structure
 
-- [ ] 1.1 Create `src/agent/promptPipeline/` directory with `index.js`, `prompts.js`, and `categories.js` files
-- [ ] 1.2 Define category enums in `categories.js`: intent (question, task, creative, analysis, other), domain (coding, writing, analysis, general, other), complexity (simple, moderate, complex)
-- [ ] 1.3 Add validation functions for category values in `categories.js`
+- [x] 1.1 Create `src/agent/promptPipeline/` directory with `index.js`, `prompts.js`, and `categories.js` files
+- [x] 1.2 Define category enums in `categories.js`: intent (question, task, creative, analysis, other), domain (coding, writing, analysis, general, other), complexity (simple, moderate, complex)
+- [x] 1.3 Add validation functions for category values in `categories.js`
 
 ## 2. Implement prompt classification module
 
-- [ ] 2.1 Create `classifyPrompt()` function in `index.js` that takes a raw prompt string and returns classification metadata
-- [ ] 2.2 Create classification prompt template in `prompts.js` that instructs the LLM to output intent, domain, and complexity
-- [ ] 2.3 Integrate LLM call within `classifyPrompt()` using existing LLM infrastructure
-- [ ] 2.4 Add error handling: return default metadata (intent="other", domain="general", complexity="moderate") on LLM failure
-- [ ] 2.5 Add JSDoc comments with `@param` and `@returns` for `classifyPrompt()`
+- [x] 2.1 Create `classifyPrompt()` function in `index.js` that takes a raw prompt string and returns classification metadata
+- [x] 2.2 Create classification prompt template in `prompts.js` that instructs the LLM to output intent, domain, and complexity
+- [x] 2.3 Integrate LLM call within `classifyPrompt()` using existing LLM infrastructure
+- [x] 2.4 Add error handling: return default metadata (intent="other", domain="general", complexity="moderate") on LLM failure
+- [x] 2.5 Add JSDoc comments with `@param` and `@returns` for `classifyPrompt()`
 
 ## 3. Implement prompt rewriting module
 
@@ -29,10 +29,10 @@
 
 ## 5. Add configuration support
 
-- [ ] 5.1 Add `agent.promptRewrite.enabled` config flag (default: false) to config schema in `src/config/schemas.js`
-- [ ] 5.2 Update config loader in `src/config/loader.js` to accept and pass through new pipeline settings
-- [ ] 5.3 Add optional config keys for custom prompt templates (with fallback to defaults in `prompts.js`)
-- [ ] 5.4 Ensure config changes are validated and backward compatible
+- [x] 5.1 Add `agent.promptRewrite.enabled` config flag (default: false) to config schema in `src/config/schemas.js`
+- [x] 5.2 Update config loader in `src/config/loader.js` to accept and pass through new pipeline settings (handled via deepMerge + schema defaults)
+- [ ] 5.3 Add optional config keys for custom prompt templates (with fallback to defaults in `prompts.js`) — deferred per design doc
+- [x] 5.4 Ensure config changes are validated and backward compatible
 
 ## 6. Integrate pipeline into agent flow
 
