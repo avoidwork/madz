@@ -16,10 +16,7 @@ import { createLlmCache, getCacheKey } from "../cache/llm_cache.js";
 import { loadConfig } from "../config/loader.js";
 import { processPrompt } from "./promptPipeline/index.js";
 import { logger } from "../logger.js";
-import { logger } from "../logger.js";
-import { logger } from "../logger.js";
-import { logger } from "../logger.js";
-import { logger } from "../logger.js";
+
 /**
  * Map a LangChain message instance to its corresponding conversation role.
  * Handles all standard message types — HumanMessage, AIMessage, SystemMessage,
@@ -158,14 +155,17 @@ export function createStdoutCallback() {
  * @param {number} [options.maxCompactionIterations] - Max compaction retry attempts (default: 3)
  * @param {number} [options.turnHashWindow] - Size of the sliding window for turn-level loop detection (default: 20)
  * @param {number} [options.turnBufferMax] - Maximum text buffer size per turn before hashing (default: 64)
+ * @param {boolean} [options.promptRewrite] - Whether to apply prompt rewriting pipeline
  * @returns {{ content: string }} The agent's final text response
  */
 export async function callReactAgent(agent, message, config, systemPrompt, callback, options = {}) {
-	const { recursionLimit } = options;
+	const { recursionLimit, promptRewrite } = options;
 
 	// Apply prompt classification and rewriting pipeline if enabled
 	let processedMessage = message;
-	if (config?.agent?.promptRewrite?.enabled && agent?._model) {
+	logger.info("callReactAgent: promptPipeline?");
+
+	if (promptRewrite && agent?._model) {
 		try {
 			const { rewrittenPrompt } = await processPrompt(agent._model, message);
 			processedMessage = rewrittenPrompt;
