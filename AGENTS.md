@@ -308,7 +308,7 @@ Session learnings — critical gotchas that affect how code must be written and 
 
 ### 6.1 Coverage
 
-The pre-commit hook enforces **100% code coverage**. Every new function or class needs test coverage. No exceptions.
+The pre-commit hook enforces **maintained code coverage**. Every new function or class needs test coverage.
 
 ```bash
 npm run coverage
@@ -390,5 +390,5 @@ The `README.md` may show a more up-to-date project structure (e.g., additional m
 - [ ] `oxlint` and `oxfmt` pass via pre-commit hooks.
 - [ ] No hardcoded secrets or credentials introduced.
 - [ ] Environment variable configuration used (no config file logic).
-- [ ] 100% code coverage maintained (pre-commit will enforce this).
+- [ ] Code coverage maintained (pre-commit will enforce this).
 - [ ] Threat model considerations addressed in PR description.
