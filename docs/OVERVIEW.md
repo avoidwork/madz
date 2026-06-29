@@ -291,6 +291,33 @@ Templates use `{{placeholder}}` syntax for `userPrompt`, `intent`, `domain`, and
 
 **How it works:**
 
+```mermaid
+flowchart TD
+    A[LLM Call Request] --> B{Cache Hit?}
+    B -->|Yes| C[Return Cached Response]
+    B -->|No| D[Call LLM]
+    D --> E[LLM Response]
+    E --> F{Tools Invoked?}
+    F -->|No| G[Store in Cache]
+    F -->|Yes| H[Skip Caching]
+    G --> I[Return Response]
+    H --> I
+    C --> I
+
+    subgraph Eviction
+        J[Max Size Reached?] -->|Yes| K[LRU Evict Oldest]
+        L[TTL Expired?] -->|Yes| M[Remove Entry]
+    end
+
+    G --> Eviction
+
+    style A fill:#e3f2fd
+    style C fill:#e8f5e9
+    style I fill:#fff3e0
+    style K fill:#ffebee
+    style M fill:#ffebee
+```
+
 1. **Cache-aside pattern:** Before every LLM call (both streaming and non-streaming), the system checks the cache using a key derived from the thread ID and SHA-256 hash of the message content. On a hit, the cached response is returned immediately without an API call. On a miss, the LLM is called and the response is stored.
 2. **Conditional caching:** Responses are only cached when no tools or skills were invoked during agent execution. This prevents state-changing operations from being skipped on subsequent identical prompts.
 3. **Streaming support:** For streaming calls, the cache is checked before the stream begins. On successful completion, the aggregated final response is stored — individual chunks are never cached. Failed or aborted streams do not cache partial responses.
