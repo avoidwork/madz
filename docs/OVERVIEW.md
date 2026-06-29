@@ -455,7 +455,7 @@ The compaction tool is registered with zero permissions (always available) and i
 **Conversation flow:**
 
 ```mermaid
-flowchart LR
+flowchart TD
     UI["TUI / CLI"] -->|"message"| IC["index.js\nhandleConversation()"]
     IC -->|"trim"| CW["enforceContextWindow()"]
     CW -->|"prepend"| LC["loadContext()"]
@@ -464,9 +464,9 @@ flowchart LR
     AG -->|"persist"| WM["writeMemoryFile()"]
     WM --> FS["filesystem"]
 
-    style UI fill:#e3f2fd
-    style AG fill:#e8f5e9
-    style FS fill:#fff3e0
+    style UI fill:#37474f,color:#fff
+    style AG fill:#37474f,color:#fff
+    style FS fill:#37474f,color:#fff
 ```
 
 **Skill invocation:**
