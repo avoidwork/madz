@@ -15,6 +15,11 @@ import {
 import { createLlmCache, getCacheKey } from "../cache/llm_cache.js";
 import { loadConfig } from "../config/loader.js";
 import { processPrompt } from "./promptPipeline/index.js";
+import { logger } from "../logger.js";
+import { logger } from "../logger.js";
+import { logger } from "../logger.js";
+import { logger } from "../logger.js";
+import { logger } from "../logger.js";
 /**
  * Map a LangChain message instance to its corresponding conversation role.
  * Handles all standard message types — HumanMessage, AIMessage, SystemMessage,
@@ -164,8 +169,8 @@ export async function callReactAgent(agent, message, config, systemPrompt, callb
 		try {
 			const { rewrittenPrompt } = await processPrompt(agent._model, message);
 			processedMessage = rewrittenPrompt;
-		} catch {
-			// Pipeline error — fall back to original message
+		} catch (err) {
+			logger.error({ error: err.message }, "promptPipeline: error, falling back to original message");
 			processedMessage = message;
 		}
 	}
