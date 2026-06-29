@@ -14,6 +14,7 @@ import {
 } from "../tools/compact_context.js";
 import { createLlmCache, getCacheKey } from "../cache/llm_cache.js";
 import { loadConfig } from "../config/loader.js";
+import { processPrompt } from "./promptPipeline/index.js";
 /**
  * Map a LangChain message instance to its corresponding conversation role.
  * Handles all standard message types — HumanMessage, AIMessage, SystemMessage,
@@ -63,8 +64,6 @@ export function getCache() {
 	return _getCache();
 }
 
-
-
 const RECURSION_LIMIT_MESSAGE =
 	"I've reached the maximum number of reasoning steps on this thread. Please continue your message and I'll carry on, or start a new conversation if you'd prefer.";
 
@@ -108,6 +107,7 @@ export function createReactAgent(
 		tools,
 		...(checkpointer && { checkpointer }),
 	});
+	agent._model = model;
 	return agent;
 }
 
@@ -158,7 +158,19 @@ export function createStdoutCallback() {
 export async function callReactAgent(agent, message, config, systemPrompt, callback, options = {}) {
 	const { recursionLimit } = options;
 
-	let messages = [new HumanMessage(message)];
+	// Apply prompt classification and rewriting pipeline if enabled
+	let processedMessage = message;
+	if (config?.agent?.promptRewrite?.enabled && agent?._model) {
+		try {
+			const { rewrittenPrompt } = await processPrompt(agent._model, message);
+			processedMessage = rewrittenPrompt;
+		} catch {
+			// Pipeline error — fall back to original message
+			processedMessage = message;
+		}
+	}
+
+	let messages = [new HumanMessage(processedMessage)];
 
 	if (systemPrompt) {
 		const isNewThread = config?.configurable?.isNewThread ?? true;
