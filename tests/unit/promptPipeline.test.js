@@ -238,6 +238,94 @@ describe("promptPipeline/prompts", () => {
 			});
 			ok(prompt.includes('""'));
 		});
+
+		it("should load intent-specific template for question intent", () => {
+			const prompt = createRewritingPrompt("test", {
+				intent: "question",
+				domain: "general",
+				complexity: "simple",
+			});
+			ok(
+				prompt.includes("QUESTION intent") ||
+					prompt.includes("question intent") ||
+					prompt.includes("What is"),
+			);
+		});
+
+		it("should load intent-specific template for task intent", () => {
+			const prompt = createRewritingPrompt("test", {
+				intent: "task",
+				domain: "coding",
+				complexity: "simple",
+			});
+			ok(
+				prompt.includes("TASK intent") ||
+					prompt.includes("task intent") ||
+					prompt.includes("Fix the code issue"),
+			);
+		});
+
+		it("should load intent-specific template for creative intent", () => {
+			const prompt = createRewritingPrompt("test", {
+				intent: "creative",
+				domain: "writing",
+				complexity: "moderate",
+			});
+			ok(
+				prompt.includes("CREATIVE intent") ||
+					prompt.includes("creative intent") ||
+					prompt.includes("creative short story"),
+			);
+		});
+
+		it("should load intent-specific template for analysis intent", () => {
+			const prompt = createRewritingPrompt("test", {
+				intent: "analysis",
+				domain: "coding",
+				complexity: "moderate",
+			});
+			ok(
+				prompt.includes("ANALYSIS intent") ||
+					prompt.includes("analysis intent") ||
+					prompt.includes("Analyze the provided code"),
+			);
+		});
+
+		it("should load intent-specific template for other intent", () => {
+			const prompt = createRewritingPrompt("test", {
+				intent: "other",
+				domain: "general",
+				complexity: "simple",
+			});
+			ok(
+				prompt.includes("OTHER intent") ||
+					prompt.includes("other intent") ||
+					prompt.includes("Provide assistance"),
+			);
+		});
+
+		it("should replace placeholders with metadata values", () => {
+			const prompt = createRewritingPrompt("my prompt", {
+				intent: "task",
+				domain: "coding",
+				complexity: "complex",
+			});
+			ok(prompt.includes("my prompt"));
+			ok(prompt.includes("task"));
+			ok(prompt.includes("coding"));
+			ok(prompt.includes("complex"));
+		});
+
+		it("should handle unknown intent by falling back to other template", () => {
+			const prompt = createRewritingPrompt("test", {
+				intent: "unknown_intent",
+				domain: "general",
+				complexity: "simple",
+			});
+			// Should still return a valid prompt (fallback to other template)
+			ok(typeof prompt === "string");
+			ok(prompt.length > 0);
+		});
 	});
 });
 

@@ -31,7 +31,7 @@
 
 - [x] 5.1 Add `agent.promptRewrite.enabled` config flag (default: false) to config schema in `src/config/schemas.js`
 - [x] 5.2 Update config loader in `src/config/loader.js` to accept and pass through new pipeline settings (handled via deepMerge + schema defaults)
-- [ ] 5.3 Add optional config keys for custom prompt templates (with fallback to defaults in `prompts.js`) — deferred per design doc
+- [x] 5.3 Add optional config keys for custom prompt templates (with fallback to defaults in `prompts.js`) — implemented as external files in `./prompts/` loaded by intent
 - [x] 5.4 Ensure config changes are validated and backward compatible
 
 ## 6. Integrate pipeline into agent flow
