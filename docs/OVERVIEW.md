@@ -504,16 +504,16 @@ flowchart TD
 **Cron system flow:**
 
 ```mermaid
-flowchart LR
+flowchart TD
     CA["Cron.add({ name, cron, command })"] -->|"read"| RC["_readCrontab()"]
     RC -->|"check exists"| CE["entry exists?"]
     CE -->|"yes"| RE["{ added: false, error }"]
     CE -->|"no"| IM["insert between BEGIN/END markers"]
     IM -->|"write"| WC["execSync(crontab -)"]
 
-    style CA fill:#e3f2fd
-    style WC fill:#e8f5e9
-    style RE fill:#ffebee
+    style CA fill:#37474f,color:#fff
+    style WC fill:#37474f,color:#fff
+    style RE fill:#37474f,color:#fff
 ```
 
 ---
