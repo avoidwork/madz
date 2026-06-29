@@ -472,7 +472,7 @@ flowchart TD
 **Skill invocation:**
 
 ```mermaid
-flowchart LR
+flowchart TD
     UI["TUI / CLI"] -->|"invokeSkill"| IS["index.js\ninvokeSkill()"]
     IS -->|"lookup"| RG["registry.get(name)"]
     RG -->|"merge"| RP["resolvePermissions(metadata)"]
@@ -482,23 +482,23 @@ flowchart LR
     RS -->|"spawn child process"| SP["child_process.spawn()"]
     SP -->|"SIGTERM → SIGKILL"| TH["handleTimeout()"]
 
-    style UI fill:#e3f2fd
-    style SB fill:#e8f5e9
-    style TH fill:#ffebee
+    style UI fill:#37474f,color:#fff
+    style SB fill:#37474f,color:#fff
+    style TH fill:#37474f,color:#fff
 ```
 
 **Scheduler flow:**
 
 ```mermaid
-flowchart LR
+flowchart TD
     SM["ScheduleManager"] -->|"register"| SE["entries stored in #scheduleEntry Map"]
     SM -->|"runNow(name)"| GE["get entry"]
     GE -->|"load context"| LC["loadContext(entry.contextFile)"]
     LC -->|"fallback"| LC2["loadContext('memory/context/')"]
     LC2 -->|"sandbox"| SB["sandbox({ skillName, input, context })"]
 
-    style SM fill:#e3f2fd
-    style SB fill:#e8f5e9
+    style SM fill:#37474f,color:#fff
+    style SB fill:#37474f,color:#fff
 ```
 
 **Cron system flow:**
@@ -518,4 +518,4 @@ flowchart LR
 
 ---
 
-This document provides a high-level view of madz's architecture. This is a work in progress, and will likely change.
+This document provides a high-level view of madz's architecture. This is a work in progress, and will likely change.ely change.
