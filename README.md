@@ -5,7 +5,6 @@
 [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD--3--Clause-blue.svg)](LICENSE)
 [![Node.js >= 24](https://img.shields.io/badge/node-%3E%3D24-brightgreen)](https://nodejs.org)
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen)](#testing)
-[![Coverage](https://img.shields.io/badge/coverage-93.37%25-brightgreen)](#testing)
 
 `madz` is a Node.js AI harness that combines a terminal-based UI with structured skill execution and a distinctive personality. Drawn from Mads Mikkelsen's most iconic roles, it speaks with calm, precision, and quiet intensity — solving problems with style, remembering your context, safely running your skills, and automating the mundane. Everything is persisted as version-controllable Markdown files, making it easy to audit with `git log` and re-load across sessions. Built on LangGraph, OpenTelemetry, and Ink — with persistent memory, sandboxed skill execution, cron scheduling, and a React-powered TUI.
 
@@ -620,7 +619,7 @@ npm run fix
 npm run lint
 ```
 
-The pre-commit hook runs linting, formatting, and tests (targeting 100% code coverage). A commit will fail if any gate does not pass.
+The pre-commit hook runs linting, formatting, and tests (targeting maintained code coverage). A commit will fail if any gate does not pass.
 
 ## Development
 
@@ -628,7 +627,7 @@ The pre-commit hook runs linting, formatting, and tests (targeting 100% code cov
 npm install
 npm run fix          # Format and lint-fix all files
 npm run test         # Verify changes
-npm run coverage     # Generate and verify 100% coverage
+npm run coverage     # Generate and verify coverage
 ```
 
 ### Extending Skills

@@ -18,11 +18,11 @@ Describe the tests you wrote/run and their coverage. Use "N/A" if not applicable
 
 ## Coverage
 
-- [ ] 100% line coverage maintained
+- [ ] Line coverage maintained
 
 ## Checklist
 
 - [ ] `npm run lint` passes
-- [ ] Tests pass with 100% line coverage
+- [ ] Tests pass with maintained line coverage
 - [ ] No forbidden patterns used
 - [ ] Conventional Commit style applied
