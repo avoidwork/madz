@@ -63,14 +63,14 @@ Do not include any explanation or additional text — only the JSON object.`;
  * @returns {string} The template content with placeholders
  */
 function loadRewritingTemplate(intent) {
-	const intentLower = (intent || "other").toLowerCase();
-	const templatePath = join(PROMPTS_DIR, `rewrite-${intentLower}.md`);
+	const intentUpper = (intent || "other").toUpperCase();
+	const templatePath = join(PROMPTS_DIR, `REWRITE_${intentUpper}.md`);
 
 	try {
 		return readFileSync(templatePath, "utf-8");
 	} catch {
 		// Fall back to default template if intent-specific file not found
-		const defaultPath = join(PROMPTS_DIR, "rewrite-other.md");
+		const defaultPath = join(PROMPTS_DIR, "REWRITE_OTHER.md");
 		try {
 			return readFileSync(defaultPath, "utf-8");
 		} catch {
