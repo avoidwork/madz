@@ -311,11 +311,11 @@ flowchart TD
 
     G --> Eviction
 
-    style A fill:#e3f2fd
-    style C fill:#e8f5e9
-    style I fill:#fff3e0
-    style K fill:#ffebee
-    style M fill:#ffebee
+    style A fill:#37474f,color:#fff
+    style C fill:#37474f,color:#fff
+    style I fill:#37474f,color:#fff
+    style K fill:#37474f,color:#fff
+    style M fill:#37474f,color:#fff
 ```
 
 1. **Cache-aside pattern:** Before every LLM call (both streaming and non-streaming), the system checks the cache using a key derived from the thread ID and SHA-256 hash of the message content. On a hit, the cached response is returned immediately without an API call. On a miss, the LLM is called and the response is stored.
@@ -371,11 +371,11 @@ flowchart TD
     Auto -->|"installs cron"| Cron
     Auto -->|"persists to"| Sched["memory/schedules/reflection-daily.json"]
 
-    style C fill:#e3f2fd
-    style E fill:#fff3e0
-    style R fill:#e8f5e9
-    style SP fill:#f3e5f5
-    style GC fill:#ffebee
+    style A fill:#37474f,color:#fff
+    style C fill:#37474f,color:#fff
+    style P fill:#37474f,color:#fff
+    style E fill:#37474f,color:#fff
+    style & fill:#37474f,color:#fff
 ```
 
 `src/scheduler/autoSchedule.js` — `setupAutoSchedule()` returns a callback invoked after `saveProfile()` succeeds during onboarding. It automatically installs a `reflection-daily` cron job (`0 2 * * *`) into the system crontab and persists the job definition as `memory/schedules/reflection-daily.json`. The job invokes `node index.js --chat "/reflection"` at 2 AM daily.
@@ -483,10 +483,10 @@ flowchart TD
     O --> L
     N -->|No| P[Return Error: Conversation too long]
 
-    style A fill:#e3f2fd
-    style C fill:#e8f5e9
-    style P fill:#ffebee
-    style E fill:#ffebee
+    style & fill:#37474f,color:#fff
+    style & fill:#37474f,color:#fff
+    style & fill:#37474f,color:#fff
+    style & fill:#37474f,color:#fff
 ```
 
 1. **Error detection:** `callReactAgent` and `callReactAgentStreaming` catch LLM 400 errors matching patterns like `"maximum context length is X tokens"` or `"(limit: X)"`
@@ -581,3 +581,4 @@ Cron.add({ name, cron, command })
   ├── insert `<cron>  <command>  # madz-schedule: <name>` between BEGIN/END markers
   └── execSync(`crontab -`) → write updated crontab
 ```
+`
