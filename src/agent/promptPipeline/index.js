@@ -1,5 +1,6 @@
 import { DEFAULT_METADATA, isValidMetadata } from "./categories.js";
 import { createClassificationPrompt, createRewritingPrompt } from "./prompts.js";
+import { logger } from "../../logger.js";
 
 /**
  * Classify a user prompt into structured metadata (intent, domain, complexity).
@@ -80,11 +81,15 @@ export async function rewritePrompt(model, userPrompt, metadata) {
  * @returns {Promise<{ rewrittenPrompt: string; metadata: { intent: string; domain: string; complexity: string } }>} The rewritten prompt and classification metadata
  */
 export async function processPrompt(model, userPrompt) {
+	logger.info({ userPrompt }, "promptPipeline: start");
+
 	// Stage 1: Classify
 	const metadata = await classifyPrompt(model, userPrompt);
+	logger.info({ metadata }, "promptPipeline: classified");
 
 	// Stage 2: Rewrite (using classification metadata, even if it's default)
 	const rewrittenPrompt = await rewritePrompt(model, userPrompt, metadata);
+	logger.info({ rewrittenPrompt }, "promptPipeline: rewritten");
 
 	return {
 		rewrittenPrompt,
