@@ -518,4 +518,4 @@ flowchart LR
 
 ---
 
-This document provides a high-level view of madz's architecture. For detailed flow diagrams and step-by-step execution paths, see [FLOWS.md](./FLOWS.md).
+This document provides a high-level view of madz's architecture. This is a work in progress, and will likely change.
