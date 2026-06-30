@@ -258,6 +258,7 @@ async function callReactAgentStreaming(
 
 	// Loop nudge settings — injected into conversation when loop is detected
 	let nudgeCount = 0;
+	let nudgePending = false; // Set when a nudge should be injected on next iteration
 	let nudgeMsg = "You are in a repetitive loop. Try a different approach.";
 	let nudgeLimit = 5;
 	try {
@@ -279,10 +280,11 @@ async function callReactAgentStreaming(
 			if (!turnHashDetected) {
 				turnHashDetected = true;
 				callback({ type: "loop_detected" });
-				// Inject nudge message into conversation if under limit
+				// Set pending nudge if under limit — actual injection happens
+				// after the stream breaks, ensuring the agent sees it next turn
 				if (nudgeCount < nudgeLimit) {
-					currentMessages.push(new HumanMessage(nudgeMsg));
 					nudgeCount++;
+					nudgePending = true;
 				}
 				// Clear the window — model needs a fresh slate
 				turnHashes.clear();
@@ -306,6 +308,10 @@ async function callReactAgentStreaming(
 			);
 
 			for await (const event of stream) {
+				// Check for loop nudge — break to inject before next iteration
+				if (nudgePending) {
+					break;
+				}
 				// Check for abort signal on each event
 				if (signal && signal.aborted) {
 					// Do NOT cache on abort
@@ -426,6 +432,12 @@ async function callReactAgentStreaming(
 						error: event.data?.error,
 					});
 				}
+			}
+
+			// Inject nudge into conversation if pending — ensures agent sees it next turn
+			if (nudgePending) {
+				currentMessages.push(new HumanMessage(nudgeMsg));
+				nudgePending = false;
 			}
 
 			// Emit tool_end for any tool_start that didn't get a corresponding tool_end

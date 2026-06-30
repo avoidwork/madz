@@ -30,310 +30,265 @@ function createTurn(text) {
 	];
 }
 
-describe("Loop Nudge — default nudge message", () => {
-	it("injects default nudge message when config is unavailable", async () => {
-		let loopDetectedCount = 0;
-
-		// Mock config loader to throw (simulating unavailable config)
-		const originalImport = globalThis.import;
-		globalThis.import = async (specifier) => {
-			if (specifier.includes("./src/config/loader.js")) {
-				return {
-					loadConfig: () => {
-						throw new Error("Config unavailable");
-					},
-				};
-			}
-			return originalImport(specifier);
-		};
-
-		try {
-			const mockAgent = createMockAgent([
-				...createTurn("Hello world"),
-				...createTurn("Hello world"), // Loop detected
-			]);
-
-			const config = { configurable: { thread_id: "test-thread" } };
-			const callback = (event) => {
-				if (event.type === "loop_detected") loopDetectedCount++;
-			};
-
-			await callReactAgentStreaming(mockAgent, [], "test", config, callback);
-
-			assert.strictEqual(loopDetectedCount, 1, "Should detect one loop");
-		} finally {
-			globalThis.import = originalImport;
+// Helper to mock config loader
+function mockConfig(config) {
+	const originalImport = globalThis.import;
+	globalThis.import = async (specifier) => {
+		if (specifier.includes("./src/config/loader.js")) {
+			return { loadConfig: () => config };
 		}
-	});
-});
+		return originalImport(specifier);
+	};
+	return () => { globalThis.import = originalImport; };
+}
 
-describe("Loop Nudge — configured nudge message", () => {
-	it("injects configured nudge message when loop is detected", async () => {
-		let loopDetectedCount = 0;
-
-		const originalImport = globalThis.import;
-		globalThis.import = async (specifier) => {
-			if (specifier.includes("./src/config/loader.js")) {
-				return {
-					loadConfig: () => ({
-						agent: {
-							turnHashWindow: 3,
-							turnBufferMax: 20,
-							loopMsg: "Custom loop nudge message",
-							loopLimit: 5,
-						},
-					}),
-				};
-			}
-			return originalImport(specifier);
-		};
+describe("Loop Nudge — stream breaks on loop detection", () => {
+	it("breaks stream and injects nudge into messages on next iteration", async () => {
+		const restore = mockConfig({
+			agent: {
+				turnHashWindow: 3,
+				turnBufferMax: 20,
+				loopMsg: "You are looping!",
+				loopLimit: 5,
+			},
+		});
 
 		try {
+			let streamCallCount = 0;
+			const capturedMessages = [];
+
 			const mockAgent = createMockAgent([
 				...createTurn("AAA"),
-				...createTurn("AAA"), // Loop detected
+				...createTurn("AAA"), // Loop detected — should break stream
 			]);
 
-			const config = { configurable: { thread_id: "test-thread" } };
-			const callback = (event) => {
-				if (event.type === "loop_detected") loopDetectedCount++;
-			};
-
-			await callReactAgentStreaming(mockAgent, [], "test", config, callback);
-
-			assert.strictEqual(loopDetectedCount, 1, "Should detect one loop");
-		} finally {
-			globalThis.import = originalImport;
-		}
-	});
-});
-
-describe("Loop Nudge — nudge injection on loop detection", () => {
-	it("injects nudge when loop is detected and limit not reached", async () => {
-		let loopDetectedCount = 0;
-		let nudgeInjected = false;
-
-		const originalImport = globalThis.import;
-		globalThis.import = async (specifier) => {
-			if (specifier.includes("./src/config/loader.js")) {
-				return {
-					loadConfig: () => ({
-						agent: {
-							turnHashWindow: 3,
-							turnBufferMax: 20,
-							loopMsg: "You are looping!",
-							loopLimit: 5,
-						},
-					}),
-				};
-			}
-			return originalImport(specifier);
-		};
-
-		try {
-			const mockAgent = createMockAgent([
-				...createTurn("AAA"),
-				...createTurn("AAA"), // Loop detected — should inject nudge
-			]);
-
-			const config = { configurable: { thread_id: "test-thread" } };
-			const callback = (event) => {
-				if (event.type === "loop_detected") {
-					loopDetectedCount++;
-					nudgeInjected = true;
-				}
-			};
-
-			await callReactAgentStreaming(mockAgent, [], "test", config, callback);
-
-			assert.strictEqual(loopDetectedCount, 1, "Should detect one loop");
-			assert.ok(nudgeInjected, "Nudge should be injected on loop detection");
-		} finally {
-			globalThis.import = originalImport;
-		}
-	});
-
-	it("does not inject nudge when limit is reached", async () => {
-		let loopDetectedCount = 0;
-		let nudgeCount = 0;
-
-		const originalImport = globalThis.import;
-		globalThis.import = async (specifier) => {
-			if (specifier.includes("./src/config/loader.js")) {
-				return {
-					loadConfig: () => ({
-						agent: {
-							turnHashWindow: 3,
-							turnBufferMax: 20,
-							loopMsg: "You are looping!",
-							loopLimit: 2,
-						},
-					}),
-				};
-			}
-			return originalImport(specifier);
-		};
-
-		try {
-			const mockAgent = createMockAgent([
-				...createTurn("AAA"),
-				...createTurn("AAA"), // Loop detected — nudge 1
-				...createTurn("AAA"), // Loop detected — nudge 2
-				...createTurn("AAA"), // Loop detected — should NOT inject (limit reached)
-			]);
-
-			const config = { configurable: { thread_id: "test-thread" } };
-			const callback = (event) => {
-				if (event.type === "loop_detected") {
-					loopDetectedCount++;
-					nudgeCount++;
-				}
-			};
-
-			await callReactAgentStreaming(mockAgent, [], "test", config, callback);
-
-			assert.strictEqual(loopDetectedCount, 3, "Should detect three loops");
-			assert.strictEqual(nudgeCount, 2, "Should only inject 2 nudges (limit reached)");
-		} finally {
-			globalThis.import = originalImport;
-		}
-	});
-});
-
-describe("Loop Nudge — nudge message type", () => {
-	it("injects nudge as HumanMessage (user type)", async () => {
-		let loopDetectedCount = 0;
-
-		const originalImport = globalThis.import;
-		globalThis.import = async (specifier) => {
-			if (specifier.includes("./src/config/loader.js")) {
-				return {
-					loadConfig: () => ({
-						agent: {
-							turnHashWindow: 3,
-							turnBufferMax: 20,
-							loopMsg: "You are looping!",
-							loopLimit: 5,
-						},
-					}),
-				};
-			}
-			return originalImport(specifier);
-		};
-
-		try {
-			const mockAgent = createMockAgent([
-				...createTurn("AAA"),
-				...createTurn("AAA"), // Loop detected
-			]);
-
-			const config = { configurable: { thread_id: "test-thread" } };
-			const callback = (event) => {
-				if (event.type === "loop_detected") loopDetectedCount++;
-			};
-
-			// Capture messages by wrapping the mock agent
+			// Wrap streamEvents to capture messages passed and control iteration
 			const originalStreamEvents = mockAgent.streamEvents;
 			mockAgent.streamEvents = async function* (...args) {
-				// The nudge is injected into currentMessages during streaming
-				// We can't directly capture it, but we can verify the behavior
-				yield* originalStreamEvents.call(this, ...args);
+				streamCallCount++;
+				capturedMessages.push(JSON.parse(JSON.stringify(args[0]?.messages || [])));
+
+				// On first call, yield events to trigger loop detection
+				// On second call (after nudge injected), yield a normal completion
+				if (streamCallCount === 1) {
+					yield* originalStreamEvents.call(this, ...args);
+				} else {
+					// Second iteration: yield a normal completion event
+					yield {
+						event: "on_chat_model_stream",
+						name: "tool",
+						data: { chunk: { content: "recovered" } },
+					};
+					yield {
+						event: "on_tool_end",
+						name: "tool",
+						data: { output: { content: "done" } },
+					};
+				}
 			};
 
-			await callReactAgentStreaming(mockAgent, [], "test", config, callback);
+			const config = { configurable: { thread_id: "test-thread" } };
+			let loopDetectedCount = 0;
+			const callback = (event) => {
+				if (event.type === "loop_detected") loopDetectedCount++;
+			};
+
+			await callReactAgentStreaming(mockAgent, [], "test", config, callback, {
+				turnHashWindow: 3,
+				turnBufferMax: 20,
+			});
 
 			assert.strictEqual(loopDetectedCount, 1, "Should detect one loop");
+			assert.strictEqual(streamCallCount, 2, "Stream should restart after nudge injection");
+
+			// Verify nudge was injected into messages on second call
+			const secondCallMessages = capturedMessages[1];
+			const nudgeFound = secondCallMessages.some(
+				(m) => m.content === "You are looping!"
+			);
+			assert.ok(nudgeFound, "Nudge should be in messages on second stream call");
 		} finally {
-			globalThis.import = originalImport;
+			restore();
 		}
 	});
 });
 
-describe("Loop Nudge — nudge count reset", () => {
-	it("resets nudge count on new call to callReactAgentStreaming", async () => {
-		let loopDetectedCount = 0;
-
-		const originalImport = globalThis.import;
-		globalThis.import = async (specifier) => {
-			if (specifier.includes("./src/config/loader.js")) {
-				return {
-					loadConfig: () => ({
-						agent: {
-							turnHashWindow: 3,
-							turnBufferMax: 20,
-							loopMsg: "You are looping!",
-							loopLimit: 1,
-						},
-					}),
-				};
-			}
-			return originalImport(specifier);
-		};
+describe("Loop Nudge — respects limit", () => {
+	it("stops injecting nudges after limit reached", async () => {
+		const restore = mockConfig({
+			agent: {
+				turnHashWindow: 3,
+				turnBufferMax: 20,
+				loopMsg: "You are looping!",
+				loopLimit: 2,
+			},
+		});
 
 		try {
+			let streamCallCount = 0;
+			const nudgeInMessages = [];
+
 			const mockAgent = createMockAgent([
 				...createTurn("AAA"),
-				...createTurn("AAA"), // Loop detected — nudge 1
+				...createTurn("AAA"),
 			]);
 
+			const originalStreamEvents = mockAgent.streamEvents;
+			mockAgent.streamEvents = async function* (...args) {
+				streamCallCount++;
+				const msgs = args[0]?.messages || [];
+				nudgeInMessages.push(msgs.filter((m) => m.content === "You are looping!").length);
+
+				if (streamCallCount <= 2) {
+					yield* originalStreamEvents.call(this, ...args);
+				} else {
+					yield {
+						event: "on_chat_model_stream",
+						name: "tool",
+						data: { chunk: { content: "done" } },
+					};
+					yield {
+						event: "on_tool_end",
+						name: "tool",
+						data: { output: { content: "done" } },
+					};
+				}
+			};
+
 			const config = { configurable: { thread_id: "test-thread" } };
+			let loopDetectedCount = 0;
 			const callback = (event) => {
 				if (event.type === "loop_detected") loopDetectedCount++;
 			};
+
+			await callReactAgentStreaming(mockAgent, [], "test", config, callback, {
+				turnHashWindow: 3,
+				turnBufferMax: 20,
+			});
+
+			// 2 nudges injected (limit is 2), then no more
+			assert.strictEqual(nudgeInMessages.filter((c) => c > 0).length, 2, "Should inject exactly 2 nudges");
+		} finally {
+			restore();
+		}
+	});
+});
+
+describe("Loop Nudge — uses configured message", () => {
+	it("injects custom nudge message when configured", async () => {
+		const restore = mockConfig({
+			agent: {
+				turnHashWindow: 3,
+				turnBufferMax: 20,
+				loopMsg: "Custom nudge: stop looping",
+				loopLimit: 5,
+			},
+		});
+
+		try {
+			let streamCallCount = 0;
+			const capturedMessages = [];
+
+			const mockAgent = createMockAgent([
+				...createTurn("AAA"),
+				...createTurn("AAA"),
+			]);
+
+			const originalStreamEvents = mockAgent.streamEvents;
+			mockAgent.streamEvents = async function* (...args) {
+				streamCallCount++;
+				capturedMessages.push(args[0]?.messages || []);
+
+				if (streamCallCount === 1) {
+					yield* originalStreamEvents.call(this, ...args);
+				} else {
+					yield {
+						event: "on_chat_model_stream",
+						name: "tool",
+						data: { chunk: { content: "done" } },
+					};
+					yield {
+						event: "on_tool_end",
+						name: "tool",
+						data: { output: { content: "done" } },
+					};
+				}
+			};
+
+			const config = { configurable: { thread_id: "test-thread" } };
+			await callReactAgentStreaming(mockAgent, [], "test", config, () => {}, {
+				turnHashWindow: 3,
+				turnBufferMax: 20,
+			});
+
+			const secondCallMessages = capturedMessages[1];
+			const customNudgeFound = secondCallMessages.some(
+				(m) => m.content === "Custom nudge: stop looping"
+			);
+			assert.ok(customNudgeFound, "Should inject custom nudge message");
+		} finally {
+			restore();
+		}
+	});
+});
+
+describe("Loop Nudge — resets on new call", () => {
+	it("nudge count resets between separate calls to callReactAgentStreaming", async () => {
+		const restore = mockConfig({
+			agent: {
+				turnHashWindow: 3,
+				turnBufferMax: 20,
+				loopMsg: "You are looping!",
+				loopLimit: 1,
+			},
+		});
+
+		try {
+			let streamCallCount = 0;
+
+			const mockAgent = createMockAgent([
+				...createTurn("AAA"),
+				...createTurn("AAA"),
+			]);
+
+			const originalStreamEvents = mockAgent.streamEvents;
+			mockAgent.streamEvents = async function* (...args) {
+				streamCallCount++;
+				if (streamCallCount <= 2) {
+					yield* originalStreamEvents.call(this, ...args);
+				} else {
+					yield {
+						event: "on_chat_model_stream",
+						name: "tool",
+						data: { chunk: { content: "done" } },
+					};
+					yield {
+						event: "on_tool_end",
+						name: "tool",
+						data: { output: { content: "done" } },
+					};
+				}
+			};
+
+			const config = { configurable: { thread_id: "test-thread" } };
+			const callback = () => {};
 
 			// First call — should inject 1 nudge
-			await callReactAgentStreaming(mockAgent, [], "test", config, callback);
-			assert.strictEqual(loopDetectedCount, 1, "Should detect one loop in first call");
+			await callReactAgentStreaming(mockAgent, [], "test", config, callback, {
+				turnHashWindow: 3,
+				turnBufferMax: 20,
+			});
 
-			// Second call — nudge count should be reset, so nudge should be injected again
-			loopDetectedCount = 0;
-			await callReactAgentStreaming(mockAgent, [], "test", config, callback);
-			assert.strictEqual(loopDetectedCount, 1, "Should detect one loop in second call (count reset)");
+			// Second call — nudge count resets (new function invocation), so nudge injected again
+			await callReactAgentStreaming(mockAgent, [], "test", config, callback, {
+				turnHashWindow: 3,
+				turnBufferMax: 20,
+			});
+
+			// 2 stream calls per invocation × 2 invocations = 4 total
+			assert.strictEqual(streamCallCount, 4, "Should have 4 stream calls (2 per invocation)");
 		} finally {
-			globalThis.import = originalImport;
-		}
-	});
-});
-
-describe("Loop Nudge — nudge does not count as agent turn", () => {
-	it("nudge injection does not trigger additional loop detection", async () => {
-		let loopDetectedCount = 0;
-
-		const originalImport = globalThis.import;
-		globalThis.import = async (specifier) => {
-			if (specifier.includes("./src/config/loader.js")) {
-				return {
-					loadConfig: () => ({
-						agent: {
-							turnHashWindow: 3,
-							turnBufferMax: 20,
-							loopMsg: "You are looping!",
-							loopLimit: 5,
-						},
-					}),
-				};
-			}
-			return originalImport(specifier);
-		};
-
-		try {
-			const mockAgent = createMockAgent([
-				...createTurn("AAA"),
-				...createTurn("AAA"), // Loop detected — nudge injected
-				// The nudge is injected as a HumanMessage, not as an AI turn
-				// So it should not trigger additional loop detection
-			]);
-
-			const config = { configurable: { thread_id: "test-thread" } };
-			const callback = (event) => {
-				if (event.type === "loop_detected") loopDetectedCount++;
-			};
-
-			await callReactAgentStreaming(mockAgent, [], "test", config, callback);
-
-			assert.strictEqual(loopDetectedCount, 1, "Should detect exactly one loop");
-		} finally {
-			globalThis.import = originalImport;
+			restore();
 		}
 	});
 });
