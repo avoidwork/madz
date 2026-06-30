@@ -174,8 +174,11 @@ export function spawnSubAgentProcess(prompt, timeout, targetCwd = defaultCwd, te
  * @param {"continue" | "fail-fast"} onError - Error handling strategy
  * @param {number} timeout - Timeout in milliseconds
  * @param {string} targetCwd - Working directory for the sub-agent
- * @returns {Promise<{ ok: boolean, result: string, error?: const prompt = task.context ? `${task.context}\n\n${task.delegation}` : task.delegation;
-				const result = await spawnSubAgentProcess(prompt, timeout, targetCwd, temperature);e;
+ * @returns {Promise<{ ok: boolean, result: string, error?: string }>}
+ */
+async function executeFanOut(tasks, strategy, maxConcurrent, onError, timeout, targetCwd) {
+	const results = [];
+	let failed = false;
 
 	if (strategy === "sequential") {
 		for (const task of tasks) {
