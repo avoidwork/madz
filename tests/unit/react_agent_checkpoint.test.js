@@ -6,7 +6,10 @@ describe("createReactAgent with checkpointer", () => {
 	it("passes checkpointer to langgraph createReactAgent when provided", async () => {
 		// We can't directly test the prebuilt, so we verify the call succeeds
 		// with a mock checkpointer that doesn't interfere
-		const fakeModel = { lc_kwargs: { model: "test" } };
+		const fakeModel = {
+			lc_kwargs: { model: "test" },
+			bindTools: () => fakeModel,
+		};
 		const fakeCheckpoint = {
 			put: () => {},
 			put_writes: () => {},
@@ -19,7 +22,10 @@ describe("createReactAgent with checkpointer", () => {
 	});
 
 	it("works without checkpointer", async () => {
-		const fakeModel = { lc_kwargs: { model: "test" } };
+		const fakeModel = {
+			lc_kwargs: { model: "test" },
+			bindTools: () => fakeModel,
+		};
 		const agent = createReactAgent(fakeModel);
 		assert.ok(agent);
 	});

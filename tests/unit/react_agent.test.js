@@ -98,13 +98,13 @@ describe("callReactAgent", () => {
 	});
 
 	it("passes model and empty tools to langgraph createReactAgent", async () => {
-		const model = {};
+		const model = { bindTools: () => model };
 		const result = createReactAgent(model);
 		assert.ok(result);
 	});
 
 	it("passes tools array to langgraph createReactAgent", async () => {
-		const model = {};
+		const model = { bindTools: () => model };
 		const tools = [{ name: "test" }];
 		const result = createReactAgent(model, tools);
 		assert.ok(result);
@@ -776,7 +776,7 @@ describe("callReactAgent", () => {
 
 	describe("createReactAgent", () => {
 		it("does not set stepTimeout on the compiled agent", () => {
-			const model = {};
+			const model = { bindTools: () => model };
 			const agent = createReactAgent(model);
 
 			// stepTimeout should not be set — it was dead code removed in #463

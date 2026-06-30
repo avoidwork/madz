@@ -133,8 +133,8 @@ const AgentState = Annotation.Root({
  * @returns {Promise<{ messages: import("@langchain/core/messages").BaseMessage[] }>}
  */
 async function agentNode(state) {
-	const { messages, llm, tools } = state;
-	const response = await llm.bindTools(tools).invoke(messages);
+	const { messages, llm } = state;
+	const response = await llm.invoke(messages);
 	return { messages: [response] };
 }
 
@@ -212,8 +212,11 @@ function buildGraph(model, tools, toolExecutor, config, checkpointer = null) {
 	const loopLimit = agentConfig.loopLimit ?? 5;
 	const turnHashWindow = agentConfig.turnHashWindow ?? 20;
 
+	// Bind tools once — avoids allocating a new bound LLM on every node execution
+	const boundLlm = model.bindTools(tools);
+
 	const graph = new StateGraph(AgentState)
-		.addNode("agent", (state) => agentNode({ ...state, llm: model, tools }))
+		.addNode("agent", (state) => agentNode({ ...state, llm: boundLlm }))
 		.addNode("tool_executor", (state) => toolExecutorNode({ ...state, toolExecutor }))
 		.addNode("loop_detector", (state) =>
 			loopDetectorNode({
