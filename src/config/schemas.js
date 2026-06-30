@@ -65,7 +65,6 @@ const SearchConfigSchema = z.object({
 });
 
 const _OpenaiProviderConfigSchema = z.object({
-	type: z.literal("openai").default("openai"),
 	base_url: z.string().url().default("https://api.openai.com/v1"),
 	model: z.string().min(1),
 	encoding: z.string().optional(),
@@ -85,7 +84,9 @@ const _FalProviderConfigSchema = z.object({
 	credentials: FalCredentialsSchema,
 });
 
-export const ProvidersSchema = z.object({}).passthrough();
+export const ProvidersSchema = z.object({
+	type: z.enum(["openai"]).default("openai"),
+}).passthrough();
 
 // --- Sandbox schemas ---
 
