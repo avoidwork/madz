@@ -1,4 +1,8 @@
-import { createReactAgent as createReactAgentGraph } from "@langchain/langgraph/prebuilt";
+import {
+	StateGraph,
+	Command,
+	Annotation,
+} from "@langchain/langgraph";
 import {
 	HumanMessage,
 	HumanMessageChunk,
@@ -7,6 +11,7 @@ import {
 	AIMessageChunk,
 	ToolMessage,
 } from "@langchain/core/messages";
+import { ToolExecutor } from "@langchain/langgraph/prebuilt";
 import {
 	extractContextLength,
 	isContextLengthError,
@@ -14,6 +19,7 @@ import {
 } from "../tools/compact_context.js";
 import { createLlmCache, getCacheKey } from "../cache/llm_cache.js";
 import { loadConfig } from "../config/loader.js";
+
 /**
  * Map a LangChain message instance to its corresponding conversation role.
  * Handles all standard message types — HumanMessage, AIMessage, SystemMessage,
@@ -63,8 +69,6 @@ export function getCache() {
 	return _getCache();
 }
 
-
-
 const RECURSION_LIMIT_MESSAGE =
 	"I've reached the maximum number of reasoning steps on this thread. Please continue your message and I'll carry on, or start a new conversation if you'd prefer.";
 
@@ -85,15 +89,174 @@ function hashTurn(str) {
 	return hash.toString(36);
 }
 
+// --- Agent State Schema ---
+
 /**
- * Create a ReAct agent from a chat model and optional tools and checkpointer.
- * The agent uses LangGraph under the hood via `@langchain/langgraph/prebuilt`.
- * @param {ChatLanguageModel} model - A chat language model instance (e.g., ChatOpenAI)
+ * State schema for the custom ReAct agent graph.
+ * @type {Annotation.Root}
+ */
+const AgentState = Annotation.Root({
+	/**
+	 * Conversation messages.
+	 * @type {import("@langchain/core/messages").BaseMessage[]}
+	 */
+	messages: Annotation({
+		reducer: (x, y) => x.concat(y),
+		default: () => [],
+	}),
+	/**
+	 * Sliding window of recent turn hashes for loop detection.
+	 * @type {Set<string>}
+	 */
+	turnHashes: Annotation({
+		reducer: (_x, y) => y,
+		default: () => new Set(),
+	}),
+	/**
+	 * Count of nudge messages injected.
+	 * @type {number}
+	 */
+	nudgeCount: Annotation({
+		reducer: (_x, y) => y,
+		default: () => 0,
+	}),
+});
+
+// --- Graph Nodes ---
+
+/**
+ * Agent node — calls the LLM with tools bound.
+ * Returns the AIMessage response. The graph's conditional edge
+ * routes to tool_executor if tool calls are present, or to
+ * loop_detector if not.
+ * @param {Record<string, unknown>} state - The current graph state
+ * @returns {Promise<{ messages: import("@langchain/core/messages").BaseMessage[] }>}
+ */
+async function agentNode(state) {
+	const { messages, llm, tools } = state;
+	const response = await llm.bindTools(tools).invoke(messages);
+	return { messages: [response] };
+}
+
+/**
+ * Tool executor node — executes tool calls from the last AIMessage.
+ * Returns the ToolMessages. The graph routes back to agentNode
+ * after execution.
+ * @param {Record<string, unknown>} state - The current graph state
+ * @returns {Promise<{ messages: import("@langchain/core/messages").BaseMessage[] }>}
+ */
+async function toolExecutorNode(state) {
+	const { messages, toolExecutor } = state;
+	const lastAIMessage = [...messages].reverse().find(
+		(m) => m instanceof AIMessage,
+	);
+	if (!lastAIMessage?.tool_calls) {
+		return { messages: [] };
+	}
+
+	const results = await toolExecutor.invoke(lastAIMessage.tool_calls);
+	return { messages: results };
+}
+
+/**
+ * Loop detector node — checks turn hashes and returns a Command
+ * to inject a nudge message if a loop is detected.
+ * @param {Record<string, unknown>} state - The current graph state
+ * @returns {Promise<Command | { messages: never[] }>}
+ */
+async function loopDetectorNode(state) {
+	const { messages, turnHashes, nudgeCount, loopMsg, loopLimit, turnHashWindow } = state;
+
+	const lastMessage = messages[messages.length - 1];
+	if (!lastMessage?.content) {
+		return { messages: [] };
+	}
+
+	const hash = hashTurn(String(lastMessage.content));
+	const hashes = new Set(turnHashes);
+
+	if (hashes.has(hash) && nudgeCount < loopLimit) {
+		// Loop detected — return Command to actively interrupt and inject nudge
+		return new Command({
+			update: {
+				messages: [new HumanMessage(loopMsg)],
+				nudgeCount: nudgeCount + 1,
+			},
+			goto: "agent",
+		});
+	}
+
+	// No loop or limit reached — update hash window
+	hashes.add(hash);
+	if (hashes.size > turnHashWindow) {
+		hashes.delete(hashes.keys().next().value);
+	}
+
+	return { messages: [], turnHashes: hashes };
+}
+
+// --- Graph Builder ---
+
+/**
+ * Build the custom ReAct agent graph with Command-based loop detection.
+ * @param {import("@langchain/core").BaseLanguageModel} model - The LLM
+ * @param {unknown[]} tools - Array of LangChain tools
+ * @param {import("@langchain/langgraph").ToolExecutor} toolExecutor - Tool executor
+ * @param {Object} config - Agent config with loop detection settings
+ * @param {import("@langchain/langgraph").BaseCheckpointSaver | null} [checkpointer=null] - Optional checkpointer
+ * @returns {import("@langchain/langgraph").CompiledGraph}
+ */
+function buildGraph(model, tools, toolExecutor, config, checkpointer = null) {
+	const agentConfig = config.agent || {};
+	const loopMsg = agentConfig.loopMsg ?? "You are in a repetitive loop. Try a different approach.";
+	const loopLimit = agentConfig.loopLimit ?? 5;
+	const turnHashWindow = agentConfig.turnHashWindow ?? 20;
+
+	const graph = new StateGraph(AgentState)
+		.addNode("agent", (state) => agentNode({ ...state, llm: model, tools }))
+		.addNode("tool_executor", (state) => toolExecutorNode({ ...state, toolExecutor }))
+		.addNode("loop_detector", (state) =>
+			loopDetectorNode({
+				...state,
+				loopMsg,
+				loopLimit,
+				turnHashWindow,
+			}),
+		)
+		.addEdge("__start__", "agent")
+		.addConditionalEdges(
+			"agent",
+			(state) => {
+				const lastAIMessage = [...state.messages].reverse().find(
+					(m) => m instanceof AIMessage,
+				);
+				return lastAIMessage?.tool_calls?.length > 0
+					? "tool_executor"
+					: "loop_detector";
+			},
+			{
+				tool_executor: "tool_executor",
+				loop_detector: "loop_detector",
+			},
+		)
+		.addEdge("tool_executor", "agent")
+		.addEdge("loop_detector", "__end__");
+
+	return graph.compile({ checkpointer });
+}
+
+// --- Public API ---
+
+/**
+ * Create a ReAct agent with Command-based loop detection.
+ * Uses a custom StateGraph instead of the prebuilt agent, enabling
+ * active interruption via LangGraph Command when a loop is detected.
+ * @param {import("@langchain/core").BaseLanguageModel} model - A chat language model instance
  * @param {unknown[]} [tools=[]] - Optional array of LangChain tool definitions
- * @param {import("@langchain/langgraph").BaseCheckpointSaver | null} [checkpointer=null] - Optional LangGraph checkpointer for persistent conversation memory
- * @param {number} [recursionLimit] - Optional LangGraph recursion limit for the agent graph
- * @param {number} [timeout] - Optional timeout in milliseconds for superstep execution (default: 600000 / 10 minutes)
- * @returns {ReturnType<typeof createReactAgentGraph>} A compiled ReAct agent
+ * @param {import("@langchain/langgraph").BaseCheckpointSaver | null} [checkpointer=null] - Optional checkpointer
+ * @param {number} [recursionLimit] - Optional LangGraph recursion limit
+ * @param {number} [timeout] - Optional timeout in milliseconds (default: 600000)
+ * @returns {import("@langchain/langgraph").CompiledGraph} A compiled ReAct agent graph
  */
 /* node:coverage ignore next */
 export function createReactAgent(
@@ -103,12 +266,11 @@ export function createReactAgent(
 	_recursionLimit = null,
 	_timeout = 600000,
 ) {
-	const agent = createReactAgentGraph({
-		llm: model,
-		tools,
-		...(checkpointer && { checkpointer }),
-	});
-	return agent;
+	// Build the custom graph with optional checkpointer
+	const toolExecutor = new ToolExecutor({ tools });
+	const graph = buildGraph(model, tools, toolExecutor, { agent: {} }, checkpointer);
+
+	return graph;
 }
 
 /**
@@ -142,7 +304,7 @@ export function createStdoutCallback() {
  * Automatically handles LLM context length errors by compacting the conversation
  * and retrying up to MAX_COMPACTION_ITERATIONS times.
  *
- * @param {ReturnType<typeof createReactAgentGraph>} agent - A compiled ReAct agent
+ * @param {import("@langchain/langgraph").CompiledGraph} agent - A compiled ReAct agent graph
  * @param {string} message - The user message string
  * @param {Object} config - Config object with `configurable: { thread_id }`
  * @param {string} [systemPrompt] - Optional system prompt (prepended only on new threads)
@@ -190,7 +352,7 @@ export async function callReactAgent(agent, message, config, systemPrompt, callb
  * Automatically handles LLM context length errors by compacting the conversation
  * and retrying up to MAX_COMPACTION_ITERATIONS times.
  *
- * @param {ReturnType<typeof createReactAgentGraph>} agent - A compiled ReAct agent
+ * @param {import("@langchain/langgraph").CompiledGraph} agent - A compiled ReAct agent graph
  * @param {import("@langchain/core/messages").BaseMessage[]} initMessages - Initial messages
  * @param {string} originalMessage - Original user message (fallback)
  * @param {Object | null} [config] - Optional config with `configurable: { thread_id }`
@@ -249,55 +411,6 @@ async function callReactAgentStreaming(
 	// Aggregate text chunks for caching (only cache on successful completion)
 	let aggregatedText = "";
 
-	// Turn hash tracker — detects if the model repeats the same output
-	const turnHashWindow = options.turnHashWindow ?? 20;
-	const turnBufferMax = options.turnBufferMax ?? 64;
-	let turnHashes = new Set(); // Sliding window of recent turn hashes
-	let turnHashDetected = false; // Flag to avoid spamming loop_detected
-	let turnTextBuffer = ""; // Accumulate text per turn
-
-	// Loop nudge settings — injected into conversation when loop is detected
-	let nudgeCount = 0;
-	let nudgePending = false; // Set when a nudge should be injected on next iteration
-	let nudgeMsg = "You are in a repetitive loop. Try a different approach.";
-	let nudgeLimit = 5;
-	try {
-		const config = loadConfig();
-		nudgeMsg = config.agent.loopMsg;
-		nudgeLimit = config.agent.loopLimit;
-	} catch {
-		// Config unavailable — use defaults
-	}
-
-	/**
-	 * Check a turn hash against the sliding window.
-	 * Adds the hash to the window, evicts the oldest if full,
-	 * and emits loop_detected if a duplicate is found.
-	 * @param {string} hash - The turn hash to check
-	 */
-	function checkTurnHash(hash) {
-		if (turnHashes.has(hash)) {
-			if (!turnHashDetected) {
-				turnHashDetected = true;
-				callback({ type: "loop_detected" });
-				// Set pending nudge if under limit — actual injection happens
-				// after the stream breaks, ensuring the agent sees it next turn
-				if (nudgeCount < nudgeLimit) {
-					nudgeCount++;
-					nudgePending = true;
-				}
-				// Clear the window — model needs a fresh slate
-				turnHashes.clear();
-			}
-		} else {
-			turnHashes.add(hash);
-			if (turnHashes.size > turnHashWindow) {
-				turnHashes.delete(turnHashes.keys().next().value);
-			}
-			turnHashDetected = false;
-		}
-	}
-
 	while (iteration <= maxCompactionIterations) {
 		let toolCallSet = new Set();
 
@@ -308,15 +421,9 @@ async function callReactAgentStreaming(
 			);
 
 			for await (const event of stream) {
-				// Check for loop nudge — break to inject before next iteration
-				if (nudgePending) {
-					break;
-				}
 				// Check for abort signal on each event
 				if (signal && signal.aborted) {
 					// Do NOT cache on abort
-					turnHashes = new Set();
-					turnHashDetected = false;
 					// Emit tool_end for any tool_start that didn't get a corresponding tool_end
 					for (const key of toolCallSet) {
 						const [name] = key.split("|");
@@ -354,16 +461,6 @@ async function callReactAgentStreaming(
 						}
 					}
 					if (textContent.length > 0) {
-						// Accumulate text for turn-level hashing
-						turnTextBuffer += textContent;
-
-						// If buffer exceeds cap, hash it as a turn boundary and reset
-						if (turnTextBuffer.length > turnBufferMax) {
-							const turnHash = hashTurn(turnTextBuffer.trim());
-							checkTurnHash(turnHash);
-							turnTextBuffer = "";
-						}
-
 						// Emit text content deltas
 						callback({ type: "text", text: textContent });
 						// Aggregate text for caching
@@ -410,13 +507,6 @@ async function callReactAgentStreaming(
 						toolCallId,
 						data: typeof resultData === "string" ? resultData.slice(0, 500) : resultData,
 					});
-
-					// End of turn — hash accumulated text and reset buffer
-					if (turnTextBuffer.trim().length > 0) {
-						const turnHash = hashTurn(turnTextBuffer.trim());
-						checkTurnHash(turnHash);
-						turnTextBuffer = "";
-					}
 				}
 
 				// Tool execution error
@@ -434,12 +524,6 @@ async function callReactAgentStreaming(
 				}
 			}
 
-			// Inject nudge into conversation if pending — ensures agent sees it next turn
-			if (nudgePending) {
-				currentMessages.push(new HumanMessage(nudgeMsg));
-				nudgePending = false;
-			}
-
 			// Emit tool_end for any tool_start that didn't get a corresponding tool_end
 			for (const key of toolCallSet) {
 				const [name] = key.split("|");
@@ -450,16 +534,6 @@ async function callReactAgentStreaming(
 			if (cacheKey && aggregatedText && toolCallSet.size === 0) {
 				getCache().set(cacheKey, aggregatedText);
 			}
-
-			// Hash remaining buffer before reset
-			if (turnTextBuffer.trim().length > 0) {
-				const turnHash = hashTurn(turnTextBuffer.trim());
-				checkTurnHash(turnHash);
-				turnTextBuffer = "";
-			}
-
-			// Reset per-turn flag; keep hash window persistent across turns
-			turnHashDetected = false;
 
 			// Success — emit compaction_end if compaction was active, then return
 			if (compactionActive && callback) {
