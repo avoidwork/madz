@@ -88,12 +88,8 @@ describe("Loop Nudge — stream breaks on loop detection", () => {
 			};
 
 			const config = { configurable: { thread_id: "test-thread" } };
-			let loopDetectedCount = 0;
-			const callback = (event) => {
-				if (event.type === "loop_detected") loopDetectedCount++;
-			};
 
-			await callReactAgentStreaming(mockAgent, [], "test", config, callback, {
+			await callReactAgentStreaming(mockAgent, [], "test", config, () => {}, {
 				turnHashWindow: 3,
 				turnBufferMax: 20,
 			});
@@ -156,12 +152,8 @@ describe("Loop Nudge — respects limit", () => {
 			};
 
 			const config = { configurable: { thread_id: "test-thread" } };
-			let loopDetectedCount = 0;
-			const callback = (event) => {
-				if (event.type === "loop_detected") loopDetectedCount++;
-			};
 
-			await callReactAgentStreaming(mockAgent, [], "test", config, callback, {
+			await callReactAgentStreaming(mockAgent, [], "test", config, () => {}, {
 				turnHashWindow: 3,
 				turnBufferMax: 20,
 			});
