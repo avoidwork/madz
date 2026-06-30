@@ -189,6 +189,8 @@ export const AgentSchema = z.object({
 	recursionLimit: z.number().int().positive().default(1000),
 	autoContinueLimit: z.number().int().positive().default(1000),
 	nodeTimeout: z.number().int().positive().default(600000),
+	loopMsg: z.string().optional().default("You are in a repetitive loop. Try a different approach."),
+	loopLimit: z.number().int().positive().default(5),
 });
 
 // --- LRU cache schemas ---
@@ -297,7 +299,7 @@ export const DEFAULT_CONFIG = {
 		redact: { paths: ["credentials.apiKey"] },
 	},
 	schedules: { maxConcurrent: 1, mode: "inprocess", syncOnInit: true, entries: [] },
-	agent: { recursionLimit: 1000, autoContinueLimit: 1000, nodeTimeout: 600000 },
+	agent: { recursionLimit: 1000, autoContinueLimit: 1000, nodeTimeout: 600000, loopMsg: "You are in a repetitive loop. Try a different approach.", loopLimit: 5 },
 	lru: { size: 100, ttl: 600000 },
 	tui: { name: "madz", cursorChar: "\u2588" },
 	persistence: { mode: "memory", sqlite_path: "memory/checkpoints.db" },

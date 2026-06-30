@@ -256,6 +256,18 @@ async function callReactAgentStreaming(
 	let turnHashDetected = false; // Flag to avoid spamming loop_detected
 	let turnTextBuffer = ""; // Accumulate text per turn
 
+	// Loop nudge settings — injected into conversation when loop is detected
+	let nudgeCount = 0;
+	let nudgeMsg = "You are in a repetitive loop. Try a different approach.";
+	let nudgeLimit = 5;
+	try {
+		const config = loadConfig();
+		nudgeMsg = config.agent.loopMsg;
+		nudgeLimit = config.agent.loopLimit;
+	} catch {
+		// Config unavailable — use defaults
+	}
+
 	/**
 	 * Check a turn hash against the sliding window.
 	 * Adds the hash to the window, evicts the oldest if full,
@@ -267,6 +279,11 @@ async function callReactAgentStreaming(
 			if (!turnHashDetected) {
 				turnHashDetected = true;
 				callback({ type: "loop_detected" });
+				// Inject nudge message into conversation if under limit
+				if (nudgeCount < nudgeLimit) {
+					currentMessages.push(new HumanMessage(nudgeMsg));
+					nudgeCount++;
+				}
 				// Clear the window — model needs a fresh slate
 				turnHashes.clear();
 			}

@@ -77,6 +77,10 @@ agent:
   nodeTimeout: 600000
   turnHashWindow: 20
   turnBufferMax: 64
+  # Nudge message injected when loop is detected (env: AGENT_LOOP_MSG)
+  loopMsg: "You are in a repetitive loop. Try a different approach."
+  # Maximum number of nudge messages to inject (env: AGENT_LOOP_LIMIT)
+  loopLimit: 5
 lru:
   size: 100
   ttl: 600000
