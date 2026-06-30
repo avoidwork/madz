@@ -60,20 +60,24 @@ The system SHALL detect a loop when any sentence appears more than 3 times withi
 - **WHEN** multiple different sentences each appear 2 times within the window
 - **THEN** the system does NOT emit a loop_detected event (no single sentence exceeds threshold)
 
-### Requirement: Silent Loop Nudge
-The system SHALL inject a silent "You're looping." nudge into the streaming pipeline when a loop is detected, following the existing RECURSION_LIMIT_MESSAGE pattern.
+### Requirement: Loop Nudge via Stream Interruption
+The system SHALL break the current agent stream, inject a "You're looping." nudge into the conversation context, and restart the agent — ensuring the agent receives and responds to the feedback.
 
-#### Scenario: Nudge is emitted as special event
+#### Scenario: Stream is broken on loop detection
 - **WHEN** a loop is detected (sentence appears >3 times in window)
-- **THEN** the system emits a `{ type: 'loop_detected' }` event into the streaming callback pipeline
+- **THEN** the system interrupts the current streaming response and sets a `nudgePending` flag
 
-#### Scenario: Nudge is silent and non-disruptive
-- **WHEN** a loop_detected event is received by the TUI
-- **THEN** the nudge is displayed silently without interrupting the stream or confusing the user
+#### Scenario: Nudge is injected into conversation context
+- **WHEN** the stream is interrupted
+- **THEN** the nudge message is added to the conversation history before the next agent iteration
 
-#### Scenario: Nudge follows existing pattern
-- **WHEN** the loop nudge is injected
-- **THEN** it uses the same message handling pattern as RECURSION_LIMIT_MESSAGE in react.js
+#### Scenario: Agent restarts with nudge visibility
+- **WHEN** the stream is broken and nudge is injected
+- **THEN** the agent restarts and receives the nudge as part of its conversation context, allowing it to respond to the feedback
+
+#### Scenario: Nudge is not a silent mid-stream injection
+- **WHEN** a loop is detected
+- **THEN** the nudge is NOT pushed mid-stream (which the agent would never see) — it is injected into conversation context after stream break
 
 ### Requirement: Per-Stream Sampler State
 The system SHALL maintain sentence sampler state per-stream, resetting the sliding window and buffer when a stream ends or is aborted.
