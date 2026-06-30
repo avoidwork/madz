@@ -85,7 +85,7 @@ const _FalProviderConfigSchema = z.object({
 });
 
 export const ProvidersSchema = z.object({
-	type: z.enum(["openai", "openrouter", "fal"]).default("openai"),
+	type: z.enum(["openai"]).default("openai"),
 }).passthrough();
 
 // --- Sandbox schemas ---
