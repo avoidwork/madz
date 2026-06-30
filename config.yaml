@@ -1,6 +1,6 @@
 providers:
-  type: openai
   openai:
+    type: openai
     base_url: https://api.openai.com/v1
     model: gpt-4o
     encoding: cl100k_base
