@@ -101,18 +101,11 @@ export async function invokeAgent(
 	orchestrator,
 	message,
 	config,
-	systemPrompt,
+	_systemPrompt,
 	callback,
 	options = {},
 ) {
 	let messages = [new HumanMessage(message)];
-
-	if (systemPrompt) {
-		const isNewThread = config?.configurable?.isNewThread ?? true;
-		if (isNewThread) {
-			messages.unshift(new SystemMessage(systemPrompt));
-		}
-	}
 
 	return streamAgent(
 		orchestrator,
@@ -121,7 +114,7 @@ export async function invokeAgent(
 		config,
 		callback,
 		options,
-		systemPrompt,
+		"",
 		options.recursionLimit,
 	);
 }
