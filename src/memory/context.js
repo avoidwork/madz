@@ -99,9 +99,9 @@ export function loadContext(contextDir = "memory/context/", limit = 10) {
  * @param {string} contextDir - Relative context directory path
  * @returns {string} Formatted profile context block or empty string
  */
-function loadAndFormatProfile(fullPath, _contextDir) {
+function loadAndFormatProfile(fullPath, contextDir) {
 	try {
-		const profilePath = join(fullPath, "..", "..", "memory", "context", "profile.md");
+		const profilePath = join(cwd, contextDir, PROFILE_FILENAME);
 		const profile = loadProfile(profilePath);
 		if (!profile) return "";
 		return formatProfileContext(profile.data);
