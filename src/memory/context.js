@@ -1,111 +1,129 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { readdir, readFile, access } from "node:fs/promises";
+import { join, extname, basename } from "node:path";
 import { loadConfig } from "../config/loader.js";
 import { parseFrontmatter } from "./reader.js";
-import { loadProfile, formatProfileContext } from "./profile.js";
 
 const cwd = loadConfig().cwd;
-const PROFILE_FILENAME = "profile.md";
 
 /**
- * Read recent context files and return their content as a combined string,
- * including the context profile if present. The profile block is prepended
- * first, followed by user-provided context files sorted by timestamp,
- * then ephemeral memories (if any) sorted newest first.
- * @param {string} contextDir - Path to the context directory
- * @param {number} limit - Maximum number of recent context files to load (excludes profile and ephemeral)
- * @returns {string} Combined context content with profile prefix
+ * Check if a file path exists.
+ * @param {string} filepath - File path to check
+ * @returns {Promise<boolean>}
  */
-export function loadContext(contextDir = "memory/context/", limit = 10) {
-	const fullPath = join(cwd, contextDir);
+async function fileExists(filepath) {
 	try {
-		// Load profile context block first
-		const profileBlock = loadAndFormatProfile(fullPath, contextDir);
-
-		// Load all .md files (excluding profile.md)
-		const allFiles = readdirSync(fullPath).filter((f) => f.endsWith(".md") && f !== PROFILE_FILENAME);
-
-		// Separate ephemeral and persistent files
-		const persistentFiles = allFiles.filter((f) => !f.startsWith("ephemeral"));
-		const ephemeralFiles = allFiles.filter((f) => f.startsWith("ephemeral"));
-
-		// Process persistent files sorted by timestamp (newest first)
-		const persistentEntries = persistentFiles
-			.map((filename) => {
-				const filepath = join(fullPath, filename);
-				const content = readFileSync(filepath, "utf-8");
-				const { frontmatter, content: body } = parseFrontmatter(content);
-				return {
-					filepath,
-					frontmatter,
-					body,
-					timestamp: frontmatter.timestamp || "",
-				};
-			})
-			.sort((a, b) => {
-				const aTs = a.timestamp instanceof Date ? a.timestamp.toISOString() : a.timestamp;
-				const bTs = b.timestamp instanceof Date ? b.timestamp.toISOString() : b.timestamp;
-				return (bTs || "").localeCompare(aTs || "");
-			});
-
-		const recent = persistentEntries.slice(0, limit);
-		const contextBlocks = recent
-			.map((entry) => {
-				const title = entry.frontmatter.title || entry.filepath;
-				return `\n[Context: ${title}]\n${entry.body.trim()}`;
-			})
-			.join("\n");
-
-		// Load ephemeral memories last (newest first, limited)
-		const ephemeralLimit = loadConfig().memory.ephemeralLimit;
-		const ephemeralEntries = ephemeralFiles
-			.map((filename) => {
-				const filepath = join(fullPath, filename);
-				const content = readFileSync(filepath, "utf-8");
-				const { frontmatter, content: body } = parseFrontmatter(content);
-				return {
-					filepath,
-					frontmatter,
-					body,
-					timestamp: frontmatter.timestamp || "",
-				};
-			})
-			.sort((a, b) => {
-				const aTs = a.timestamp instanceof Date ? a.timestamp.toISOString() : a.timestamp;
-				const bTs = b.timestamp instanceof Date ? b.timestamp.toISOString() : b.timestamp;
-				return (bTs || "").localeCompare(aTs || "");
-			});
-
-		const recentEphemeral = ephemeralEntries.slice(0, ephemeralLimit);
-		const ephemeralBlocks = recentEphemeral
-			.map((entry) => {
-				const title = entry.frontmatter.title || entry.filepath;
-				return `\n[Ephemeral: ${title}]\n${entry.body.trim()}`;
-			})
-			.join("\n");
-
-		if (!profileBlock && !contextBlocks && !ephemeralBlocks) return "";
-		const result =
-			(profileBlock ? profileBlock + "\n" : "") + contextBlocks + ephemeralBlocks;
-		return result;
+		await access(filepath);
+		return true;
 	} catch {
-		return "";
+		return false;
 	}
 }
 
 /**
- * Load the context profile and format it for LLM prompts.
- * @param {string} fullPath - Full path to the context directory
- * @param {string} contextDir - Relative context directory path
- * @returns {string} Formatted profile context block or empty string
+ * Parse a single memory entry file into structured metadata and body.
+ * @param {string} filepath - Full path to the .md file
+ * @returns {Promise<{ metadata: { createdDate: string, updatedDate?: string }, memory: string } | null>}
  */
-function loadAndFormatProfile(fullPath, contextDir) {
-	try {
-		const profilePath = join(cwd, contextDir, PROFILE_FILENAME);
-		const profile = loadProfile(profilePath);
-		if (!profile) return "";
-		return formatProfileContext(profile.data);
-	} catch {
-		return "";
+async function parseEntryFile(filepath) {
+	if (!(await fileExists(filepath))) {
+		return null;
 	}
+
+	const content = await readFile(filepath, "utf-8");
+	const { frontmatter, content: body } = parseFrontmatter(content);
+
+	const metadata = {
+		createdDate: frontmatter.createdDate || new Date().toISOString(),
+	};
+	if (frontmatter.updatedDate) {
+		metadata.updatedDate = frontmatter.updatedDate;
+	}
+
+	return {
+		metadata,
+		memory: body.trim(),
+	};
 }
+
+/**
+ * Get a human-readable label for a memory key.
+ * @param {string} key - Memory key
+ * @returns {{ label: string, category: 'reference' | 'context' | 'ephemeral' }}
+ */
+function getMemoryContext(key) {
+	const lowerKey = key.toLowerCase();
+
+	if (lowerKey === "profile") {
+		return { label: "USER PROFILE", category: "reference" };
+	}
+	if (lowerKey === "clarifications") {
+		return { label: "USER CLARIFICATIONS", category: "reference" };
+	}
+	if (lowerKey === "reflection") {
+		return { label: "WORKING REFLECTION", category: "context" };
+	}
+	if (lowerKey.startsWith("ephemeral-")) {
+		return { label: "TEMPORAL CAPTURE", category: "ephemeral" };
+	}
+
+	return { label: key.toUpperCase(), category: "context" };
+}
+
+/**
+ * Format memory entries as a markdown string for the system prompt.
+ * @param {{ key: string, metadata: { createdDate: string, updatedDate?: string }, memory: string }[]} entries - Memory entries from loadContext
+ * @returns {string} Formatted prompt section
+ */
+function formatMemoriesForPrompt(entries) {
+	if (entries.length === 0) return "";
+
+	return (
+		"The following memories are loaded into your context. They are your working knowledge of the user and your shared history. Use them deliberately:\n\n" +
+		entries
+			.map((entry) => {
+				const { label } = getMemoryContext(entry.key);
+				const dateHint = entry.metadata.updatedDate
+					? ` (updated: ${entry.metadata.updatedDate.split("T")[0]})`
+					: entry.metadata.createdDate
+						? ` (created: ${entry.metadata.createdDate.split("T")[0]})`
+						: "";
+
+				return `---\n[${label}${dateHint}]\n${entry.memory}\n---`;
+			})
+			.join("\n\n")
+	);
+}
+
+/**
+ * Load all memory entries from a directory, sorted by date descending.
+ * @param {string} entriesDir - Path to the memory entries directory
+ * @returns {Promise<{ key: string, metadata: { createdDate: string, updatedDate?: string }, memory: string }[]>}
+ */
+export async function loadContext(entriesDir = "memory/context/") {
+	const fullPath = join(cwd, entriesDir);
+
+	if (!(await fileExists(fullPath))) {
+		return [];
+	}
+
+	const files = await readdir(fullPath);
+	const mdFiles = files.filter((f) => extname(f).toLowerCase() === ".md");
+
+	const entries = [];
+	for (const filename of mdFiles) {
+		const key = basename(filename, ".md").toLocaleLowerCase();
+		const filepath = join(fullPath, filename);
+		const entry = await parseEntryFile(filepath);
+		if (entry !== null) {
+			entries.push({ key, ...entry });
+		}
+	}
+
+	return entries.sort((a, b) => {
+		const aDate = a.metadata.updatedDate || a.metadata.createdDate;
+		const bDate = b.metadata.updatedDate || b.metadata.createdDate;
+		return bDate.localeCompare(aDate);
+	});
+}
+
+export { formatMemoriesForPrompt, parseEntryFile, getMemoryContext };

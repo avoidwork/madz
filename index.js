@@ -140,7 +140,7 @@ await ensureSkillsDir(config.cwd + "/" + "skills/");
 registry.discover();
 
 // Initialize memory system
-const { writeMemoryFile, readMemoryFile, loadContext, loadMemories, formatMemoriesForPrompt } =
+const { writeMemoryFile, readMemoryFile, loadContext, formatMemoriesForPrompt } =
 	await import("./src/memory/index.js");
 
 // Initialize workspace rules loader
@@ -241,7 +241,7 @@ const sessionConfig = { configurable: { thread_id: sessionState.getThreadId() } 
 async function callProvider(_name, _providerConfig, message, streamingCallback, signal) {
 	const isNewThread = sessionState.getConversation().length === 0;
 	const threadId = sessionState.getThreadId();
-	const memoryEntries = await loadMemories(memoryEntriesDir);
+	const memoryEntries = await loadContext(memoryEntriesDir);
 	const memoryText = formatMemoriesForPrompt(memoryEntries);
 	const agentsText = await loadAgents();
 	const catalog = registry.getCatalog();
@@ -434,6 +434,5 @@ export {
 	loadContext,
 	writeMemoryFile,
 	readMemoryFile,
-	loadMemories,
 	formatMemoriesForPrompt,
 };

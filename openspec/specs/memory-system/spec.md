@@ -1,5 +1,7 @@
-## ADDED Requirements
+## Purpose
 
+Defines the memory system's capabilities for persisting conversations, storing tool outputs, managing user-provided context, indexing memory entries, and enforcing retention policies.
+## Requirements
 ### Requirement: Conversation Persistence
 The system SHALL persist every conversation exchange (user input, LLM output, tool results) as a timestamped markdown file in the `memory/` directory. YAML frontmatter metadata (timestamp, provider, model, and any additional fields) SHALL be properly escaped to ensure valid YAML output when values contain special characters such as double quotes, backslashes, or newlines.
 
@@ -27,15 +29,19 @@ The system SHALL store tool execution results and error logs as separate markdow
 - **THEN** the error (stack trace reduced) is written to `memory/errors/` as a markdown file
 
 ### Requirement: User-Provided Context Storage
-The system SHALL allow users to write free-form context notes to `memory/` which are appended to the LLM context window at the start of each interaction.
+The system SHALL allow users to write free-form context notes to `memory/` which are appended to the LLM context window at the start of each interaction. The system SHALL use a single consolidated `loadContext` function to load all memory files (profile.md, ephemeral memories, and context files) in a unified pipeline, returning structured entries for prompt formatting.
 
-#### Scenario: User adds a context note
-- **WHEN** the user writes a context note via the TUI (`:context add <text>`)
-- **THEN** a markdown file is created in `memory/context/` and appended to the conversation context prefix
-
-#### Scenario: System loads context before interaction
+#### Scenario: System loads all memory files via consolidated function
 - **WHEN** a new conversation message is sent
-- **THEN** the system reads all recent context files from `memory/context/` and prepends them to the LLM prompt
+- **THEN** the system calls `loadContext()` which loads profile.md, ephemeral memories, and context files in a single pipeline and returns structured entries
+
+#### Scenario: Consolidated loader preserves structured entry format
+- **WHEN** `loadContext()` is called
+- **THEN** it returns an array of structured entries `{key, metadata, memory}` suitable for prompt formatting
+
+#### Scenario: Memory files are sorted by recency
+- **WHEN** `loadContext()` loads memory files
+- **THEN** entries are sorted by date with the most recent first
 
 ### Requirement: Memory Indexing
 The system SHALL maintain an index file (`memory/_index.md`) with YAML frontmatter that records the path, title, and timestamp of persisted memory entries for fast retrieval.
@@ -54,3 +60,4 @@ The system SHALL enforce a configurable retention policy that automatically purg
 #### Scenario: Old memory files are purged
 - **WHEN** a memory file exceeds the configured `retention.days` from `config.yaml`
 - **THEN** the system removes the file during the next maintenance cycle
+
