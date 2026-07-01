@@ -47,12 +47,17 @@ export function createDeepAgentsOrchestrator(
 		maxReadSize: config.sandbox?.maxReadSize || "1mb",
 	});
 
+	// Resolve permission paths to absolute paths for deepagents middleware
+	const resolvedPermissions = allowedPaths.map((p) => ({
+		paths: [join(config.cwd, p)],
+	}));
+
 	// Build middleware array
 	const middleware = [
 		// Filesystem middleware — replaces readFile, writeFile, patch, searchFiles
 		createFilesystemMiddleware({
 			backend: fileBackend,
-			permissions: [{ paths: allowedPaths }],
+			permissions: resolvedPermissions,
 		}),
 		// Memory middleware — replaces memory tool
 		createMemoryMiddleware({
