@@ -92,7 +92,7 @@ export function createDeepAgentsOrchestrator(
  * @param {Object} orchestrator - A Deep Agents orchestrator instance
  * @param {string} message - The user message
  * @param {Object} config - Config with `configurable: { thread_id }`
- * @param {string} [systemPrompt] - System prompt (prepended on new threads)
+ * @param {string} [systemPrompt] - System prompt (handled by agent instance)
  * @param {(event: StreamEvent) => void} [callback] - Streaming event callback
  * @param {Object} [options] - Additional options
  * @returns {{ content: string }} Final response
@@ -106,6 +106,13 @@ export async function invokeAgent(
 	options = {},
 ) {
 	let messages = [new HumanMessage(message)];
+
+	if (systemPrompt) {
+		const isNewThread = config?.configurable?.isNewThread ?? true;
+		if (isNewThread) {
+			messages.unshift(new SystemMessage(systemPrompt));
+		}
+	}
 
 	return streamAgent(
 		orchestrator,
@@ -149,6 +156,7 @@ async function streamAgent(
 		streamOptions.signal = signal;
 	}
 
+	// Cache-aside
 	const threadId = config?.configurable?.thread_id;
 	const cacheKey = threadId ? getCacheKey(threadId, originalMessage) : null;
 	if (cacheKey) {
@@ -160,7 +168,15 @@ async function streamAgent(
 	}
 
 	let iteration = 0;
-	letconst stream = await orchestrator.stream(
+	let effectiveContextLength = maxContextLength;
+	let effectiveMaxTokens = maxTokens;
+	let currentMessages = initMessages;
+	let compactionActive = false;
+	let aggregatedText = "";
+
+	while (iteration <= maxCompactionIterations) {
+		try {
+			const stream = await orchestrator.stream(
 				{ messages: currentMessages },
 				{ streamMode: ["updates", "messages"], subgraphs: true, ...streamOptions },
 			);
@@ -209,34 +225,19 @@ async function streamAgent(
 						}
 					}
 				}
-			} "on_tool_error") {
-					callback({
-						type: "tool_error",
-						toolName: chunk?.name || "unknown",
-						error: chunk?.error || chunk?.message,
-					});
-				}
-
-				// Reasoning
-				if (chunk?.type === "reasoning" || chunk?.reasoning) {
-					const text = typeof chunk === "string" ? chunk : chunk.reasoning;
-					if (text) callback({ type: "reasoning", text });
-				}
-
-				// Loop detection
-				if (chunk?.type === "loop_detected" || chunk?.loop_detected) {
-					callback({ type: "loop_detected" });
-				}
 			}
 
+			// Cache the aggregated response on successful completion
 			if (cacheKey && aggregatedText) getCache().set(cacheKey, aggregatedText);
 			if (compactionActive && callback) callback({ type: "compaction_end" });
 			return { content: aggregatedText || originalMessage };
 		} catch (err) {
+			// Handle recursion limit
 			if (err instanceof Error && err.name === "GraphRecursionError") {
 				return { content: RECURSION_LIMIT_MESSAGE };
 			}
 
+			// Check for context length error
 			if (isContextLengthError(err)) {
 				if (!compactionActive && callback) {
 					compactionActive = true;
