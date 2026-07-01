@@ -1,6 +1,10 @@
 import { createDeepAgent } from "deepagents";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
-import { extractContextLength, isContextLengthError, compactConversation } from "../tools/compact_context.js";
+import {
+	extractContextLength,
+	isContextLengthError,
+	compactConversation,
+} from "../tools/compact_context.js";
 import { createLlmCache, getCacheKey } from "../cache/llm_cache.js";
 import { loadConfig } from "../config/loader.js";
 import { readFileSync } from "node:fs";
@@ -49,7 +53,12 @@ function loadSubAgentPrompt(baseDir) {
  * @param {import("@langchain/langgraph").BaseCheckpointSaver | null} [checkpointer=null] - Optional checkpointer
  * @returns {Object} Deep Agents orchestrator instance
  */
-export function createDeepAgentsOrchestrator(model, tools = [], systemPrompt = "", checkpointer = null) {
+export function createDeepAgentsOrchestrator(
+	model,
+	tools = [],
+	systemPrompt = "",
+	checkpointer = null,
+) {
 	const subAgentPrompt = loadSubAgentPrompt();
 
 	return createDeepAgent({
@@ -88,9 +97,14 @@ export function createDeepAgentsOrchestrator(model, tools = [], systemPrompt = "
  * @param {Object} [options] - Additional options
  * @returns {{ content: string }} Final response
  */
-export async function invokeAgent(orchestrator, message, config, systemPrompt, callback, options = {}) {
-	const { signal, maxContextLength, maxTokens, recursionLimit } = options;
-
+export async function invokeAgent(
+	orchestrator,
+	message,
+	config,
+	systemPrompt,
+	callback,
+	options = {},
+) {
 	let messages = [new HumanMessage(message)];
 
 	if (systemPrompt) {
@@ -100,7 +114,16 @@ export async function invokeAgent(orchestrator, message, config, systemPrompt, c
 		}
 	}
 
-	return streamAgent(orchestrator, messages, message, config, callback, options, systemPrompt, recursionLimit);
+	return streamAgent(
+		orchestrator,
+		messages,
+		message,
+		config,
+		callback,
+		options,
+		systemPrompt,
+		options.recursionLimit,
+	);
 }
 
 /**
@@ -116,7 +139,12 @@ async function streamAgent(
 	systemPrompt = "",
 	recursionLimit = null,
 ) {
-	const { maxContextLength, maxTokens, maxCompactionIterations = MAX_COMPACTION_ITERATIONS, signal } = options;
+	const {
+		maxContextLength,
+		maxTokens,
+		maxCompactionIterations = MAX_COMPACTION_ITERATIONS,
+		signal,
+	} = options;
 
 	const streamOptions = {
 		...(recursionLimit !== null && { recursionLimit }),
@@ -151,7 +179,7 @@ async function streamAgent(
 				{ streamMode: "updates", subgraphs: true, ...streamOptions },
 			);
 
-			for await (const [namespace, chunk] of stream) {
+			for await (const [, chunk] of stream) {
 				if (signal && signal.aborted) {
 					if (compactionActive && callback) callback({ type: "compaction_end" });
 					return { content: originalMessage };
@@ -170,7 +198,8 @@ async function streamAgent(
 				if (chunk?.type === "message" || chunk?.message) {
 					const msg = chunk.message || chunk;
 					if (msg?.content) {
-						const text = typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content);
+						const text =
+							typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content);
 						if (text) {
 							callback({ type: "text", text });
 							aggregatedText += text;
@@ -236,7 +265,14 @@ async function streamAgent(
 				const conversation = currentMessages
 					.filter((m) => !(m instanceof SystemMessage))
 					.map((m) => ({
-						role: m._getType() === "system" ? "system" : m._getType() === "human" ? "user" : m._getType() === "ai" ? "assistant" : "tool",
+						role:
+							m._getType() === "system"
+								? "system"
+								: m._getType() === "human"
+									? "user"
+									: m._getType() === "ai"
+										? "assistant"
+										: "tool",
 						content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
 					}));
 

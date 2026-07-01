@@ -98,5 +98,4 @@ describe("loadSystemPrompt", () => {
 		const result = loadSystemPrompt("__nonexistent_dir_xyz__");
 		assert.strictEqual(result, "");
 	});
-
-	});
+});
