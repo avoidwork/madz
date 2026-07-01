@@ -45,7 +45,7 @@ import React from "react";
 
 const { setConfigValue } = await import("./src/config/loader.js");
 const { createChatModel } = await import("./src/provider/openai.js");
-const { createDeepAgentsOrchestrator, invokeAgent } = await import("./src/agent/deepAgents.js");
+const { createDeepAgentsOrchestrator } = await import("./src/agent/deepAgents.js");
 const { buildToolConfig } = await import("./src/tools/index.js");
 const { logger } = await import("./src/logger.js");
 
@@ -237,19 +237,48 @@ async function callProvider(_name, _providerConfig, message, streamingCallback, 
 	const catalog = registry.getCatalog();
 	const skillCatalog = generateSkillCatalogPrompt(catalog);
 	const callPrompt = `${systemPrompt}${skillCatalog ? `\n\n---\n\n${skillCatalog}` : ""}${agentsText ? `\n\n---\n\n${agentsText}` : ""}`;
-	const result = await invokeAgent(
-		agent,
-		message,
-		{ ...sessionConfig, configurable: { thread_id: threadId, isNewThread } },
-		callPrompt,
-		streamingCallback,
-		{
-			maxTokens: providerConfig.maxTokens,
-			signal,
-			recursionLimit: config.agent?.recursionLimit,
-		},
-	);
-	return { provider: providerName, content: result.content, tokens: { input: 0, output: 0 } };
+
+	const config = {
+		...sessionConfig,
+		configurable: { thread_id: threadId, isNewThread },
+	};
+
+	const options = {
+		maxTokens: providerConfig.maxTokens,
+		signal,
+		recursionLimit: config.agent?.recursionLimit,
+	};
+
+	let collectedContent = "";
+	const input = {
+		messages: [
+			{ role: "system", content: callPrompt },
+			{ role: "user", content: message },
+		],
+	};
+
+	try {
+		for await (const [namespace, chunk] of await agent.stream(input, {
+			...config,
+			...options,
+			streamMode: "messages",
+			subgraphs: true,
+		})) {
+			const [message] = chunk;
+			const text = message?.text ?? "";
+
+			if (text) {
+				collectedContent += text;
+				if (streamingCallback) {
+					streamingCallback(text);
+				}
+			}
+		}
+	} catch (err) {
+		throw err;
+	}
+
+	return { provider: providerName, content: collectedContent, tokens: { input: 0, output: 0 } };
 }
 
 // Conversation handler
