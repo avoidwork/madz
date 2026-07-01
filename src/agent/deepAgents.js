@@ -147,6 +147,7 @@ async function streamAgent(
 	} = options;
 
 	const streamOptions = {
+		configurable: config?.configurable,
 		...(recursionLimit !== null && { recursionLimit }),
 	};
 
