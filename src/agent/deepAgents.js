@@ -80,7 +80,6 @@ export function createDeepAgentsOrchestrator(
 		model,
 		systemPrompt,
 		tools,
-		middleware,
 		subagents: [
 			{
 				name: "coding-agent",
