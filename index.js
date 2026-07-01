@@ -252,30 +252,24 @@ async function callProvider(_name, _providerConfig, message, streamingCallback, 
 
 	let collectedContent = "";
 	const input = {
-		messages: [
-			{ role: "user", content: message },
-		],
+		messages: [{ role: "user", content: message }],
 	};
 
-	try {
-		for await (const [namespace, chunk] of await agent.stream(input, {
-			...config,
-			...options,
-			streamMode: "messages",
-			subgraphs: true,
-		})) {
-			const [message] = chunk;
-			const text = message?.text ?? "";
+	for await (const [_namespace, chunk] of await agent.stream(input, {
+		...config,
+		...options,
+		streamMode: "messages",
+		subgraphs: true,
+	})) {
+		const [message] = chunk;
+		const text = message?.text ?? "";
 
-			if (text) {
-				collectedContent += text;
-				if (streamingCallback) {
-					streamingCallback({ type: "text", text });
-				}
+		if (text) {
+			collectedContent += text;
+			if (streamingCallback) {
+				streamingCallback({ type: "text", text });
 			}
 		}
-	} catch (err) {
-		throw err;
 	}
 
 	return { provider: providerName, content: collectedContent, tokens: { input: 0, output: 0 } };

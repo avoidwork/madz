@@ -102,7 +102,10 @@ describe("tools - buildToolConfig", () => {
 			toolNames.includes("todo"),
 			"todo should register with filesystem:read + filesystem:write",
 		);
-		assert.ok(toolNames.includes("sessionSearch"), "sessionSearch should register with filesystem:read");
+		assert.ok(
+			toolNames.includes("sessionSearch"),
+			"sessionSearch should register with filesystem:read",
+		);
 		assert.ok(toolNames.includes("sampling"), "sampling should register (no perms needed)");
 		// terminal requires process:spawn which is not enabled
 		assert.ok(
