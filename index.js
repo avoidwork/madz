@@ -270,7 +270,7 @@ async function callProvider(_name, _providerConfig, message, streamingCallback, 
 			if (text) {
 				collectedContent += text;
 				if (streamingCallback) {
-					streamingCallback(text);
+					streamingCallback({ type: "text", text });
 				}
 			}
 		}
