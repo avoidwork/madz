@@ -127,6 +127,96 @@ describe("loadContext", () => {
 		assert.ok(result.includes("No Timestamp"));
 		assert.ok(result.includes("With Timestamp"));
 	});
+
+	it("filters out ephemeral files from main processing", () => {
+		writeFileSync(
+			join(fullTestDir, "persistent.md"),
+			"---\ntitle: Persistent\ntimestamp: 2024-01-03\n---\nPersistent content",
+		);
+		writeFileSync(
+			join(fullTestDir, "ephemeral-note.md"),
+			"---\ntitle: Ephemeral Note\ntimestamp: 2024-01-04\n---\nEphemeral content",
+		);
+
+		const result = loadContext(testDir, 10);
+		assert.ok(result.includes("[Context: Persistent]"));
+		assert.ok(result.includes("Persistent content"));
+		// Ephemeral files should not appear as [Context:] entries
+		assert.ok(!result.includes("[Context: Ephemeral Note]"));
+	});
+
+	it("loads ephemeral files last with correct sort order", () => {
+		writeFileSync(
+			join(fullTestDir, "persistent.md"),
+			"---\ntitle: Persistent\ntimestamp: 2024-01-01\n---\nPersistent content",
+		);
+		writeFileSync(
+			join(fullTestDir, "ephemeral-old.md"),
+			"---\ntitle: Ephemeral Old\ntimestamp: 2024-01-01\n---\nOld ephemeral",
+		);
+		writeFileSync(
+			join(fullTestDir, "ephemeral-new.md"),
+			"---\ntitle: Ephemeral New\ntimestamp: 2024-01-03\n---\nNew ephemeral",
+		);
+
+		const result = loadContext(testDir, 10);
+		// Persistent should appear as [Context:]
+		assert.ok(result.includes("[Context: Persistent]"));
+		// Ephemeral should appear as [Ephemeral:]
+		assert.ok(result.includes("[Ephemeral: Ephemeral New]"));
+		assert.ok(result.includes("[Ephemeral: Ephemeral Old]"));
+		// Ephemeral New (newer) should come before Ephemeral Old
+		const newIdx = result.indexOf("Ephemeral New");
+		const oldIdx = result.indexOf("Ephemeral Old");
+		assert.ok(newIdx < oldIdx, "Newer ephemeral should come before older ephemeral");
+		// Persistent should come before ephemeral
+		const persistentIdx = result.indexOf("Persistent");
+		assert.ok(persistentIdx < newIdx, "Persistent context should come before ephemeral");
+	});
+
+	it("respects ephemeral limit", () => {
+		writeFileSync(
+			join(fullTestDir, "persistent.md"),
+			"---\ntitle: Persistent\ntimestamp: 2024-01-01\n---\nPersistent content",
+		);
+		// Create more ephemeral files than the default limit (5)
+		for (let i = 1; i <= 7; i++) {
+			writeFileSync(
+				join(fullTestDir, `ephemeral-${i}.md`),
+				`---\ntitle: Ephemeral ${i}\ntimestamp: 2024-01-0${i}\n---\nEphemeral ${i} content`,
+			);
+		}
+
+		const result = loadContext(testDir, 10);
+		// Should only include up to 5 ephemeral files (default limit)
+		let count = 0;
+		for (let i = 1; i <= 7; i++) {
+			if (result.includes(`Ephemeral ${i}`)) count++;
+		}
+		assert.strictEqual(count, 5, "Should only load 5 ephemeral files by default");
+	});
+
+	it("handles missing profile.md gracefully", () => {
+		writeFileSync(
+			join(fullTestDir, "note.md"),
+			"---\ntitle: Note\ntimestamp: 2024-01-01\n---\nNote content",
+		);
+
+		const result = loadContext(testDir, 10);
+		assert.ok(result.includes("[Context: Note]"));
+		assert.ok(result.includes("Note content"));
+	});
+
+	it("handles no ephemeral files gracefully", () => {
+		writeFileSync(
+			join(fullTestDir, "note.md"),
+			"---\ntitle: Note\ntimestamp: 2024-01-01\n---\nNote content",
+		);
+
+		const result = loadContext(testDir, 10);
+		assert.ok(result.includes("[Context: Note]"));
+		assert.ok(!result.includes("[Ephemeral:"));
+	});
 });
 
 describe("parseFrontmatter in context", () => {
