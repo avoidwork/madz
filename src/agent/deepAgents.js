@@ -46,7 +46,7 @@ function loadSubAgentPrompt(baseDir) {
 }
 
 /**
- * Create a Deep Agents orchestrator with coding and utility sub-agents.
+ * Create a Deep Agents orchestrator with a coding sub-agent.
  * @param {object} model - A chat language model instance
  * @param {unknown[]} tools - Array of LangChain tool definitions
  * @param {string} systemPrompt - The main system prompt
@@ -73,14 +73,6 @@ export function createDeepAgentsOrchestrator(
 				systemPrompt: subAgentPrompt
 					? `${subAgentPrompt}\n\nYou are the coding specialist sub-agent. Focus on code-related tasks.`
 					: "You are a coding specialist. Handle all code-related tasks.",
-			},
-			{
-				name: "utility-agent",
-				description:
-					"General-purpose agent for research, file search, multi-step tasks, skill execution, and non-code work.",
-				systemPrompt: subAgentPrompt
-					? `${subAgentPrompt}\n\nYou are the general-purpose utility sub-agent. Handle research, file search, multi-step tasks, and general assistance.`
-					: "You are a general-purpose utility agent. Handle research, file search, multi-step tasks, and general assistance.",
 			},
 		],
 		...(checkpointer && { checkpointer }),
@@ -174,7 +166,7 @@ async function streamAgent(
 				{ streamMode: ["updates", "messages"], subgraphs: true, ...streamOptions },
 			);
 
-			for await (const [namespace, mode, data] of stream) {
+			for await (const [, mode, data] of stream) {
 				if (signal && signal.aborted) {
 					if (compactionActive && callback) callback({ type: "compaction_end" });
 					return { content: originalMessage };
@@ -183,7 +175,9 @@ async function streamAgent(
 				// Messages mode — text chunks
 				if (mode === "messages") {
 					for (const msg of data) {
-						const text = msg?.text || (typeof msg?.content === "string" ? msg.content : JSON.stringify(msg.content));
+						const text =
+							msg?.text ||
+							(typeof msg?.content === "string" ? msg.content : JSON.stringify(msg.content));
 						if (text) {
 							callback({ type: "text", text });
 							aggregatedText += text;
