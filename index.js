@@ -225,7 +225,7 @@ const tools = await buildToolConfig({
 	checkpointer,
 });
 const model = createChatModel(providerConfig);
-const agent = createDeepAgentsOrchestrator(model, tools, "", checkpointer);
+const agent = createDeepAgentsOrchestrator(model, tools, systemPrompt, checkpointer);
 
 const sessionConfig = { configurable: { thread_id: sessionState.getThreadId() } };
 

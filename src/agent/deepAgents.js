@@ -107,13 +107,6 @@ export async function invokeAgent(
 ) {
 	let messages = [new HumanMessage(message)];
 
-	if (systemPrompt) {
-		const isNewThread = config?.configurable?.isNewThread ?? true;
-		if (isNewThread) {
-			messages.unshift(new SystemMessage(systemPrompt));
-		}
-	}
-
 	return streamAgent(
 		orchestrator,
 		messages,
