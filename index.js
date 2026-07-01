@@ -140,8 +140,7 @@ await ensureSkillsDir(config.cwd + "/" + "skills/");
 registry.discover();
 
 // Initialize memory system
-const { writeMemoryFile, readMemoryFile, loadContext, loadMemories, formatMemoriesForPrompt } =
-	await import("./src/memory/index.js");
+const { writeMemoryFile, readMemoryFile, loadContext } = await import("./src/memory/index.js");
 
 // Initialize workspace rules loader
 const { loadAgents } = await import("./src/workspace/loadAgents.js");
@@ -203,7 +202,6 @@ try {
 const { loadSystemPrompt } = await import("./src/memory/prompts.js");
 const { generateSkillCatalogPrompt } = await import("./src/tools/skills.js");
 const systemPrompt = loadSystemPrompt(process.cwd(), config.subAgent);
-const memoryEntriesDir = config.cwd + "/" + (config.memory?.entriesDir || "memory/context/");
 // Build agent and tool config at startup (once)
 const providerConfig = config.providers[providerName] || {};
 
@@ -241,12 +239,11 @@ const sessionConfig = { configurable: { thread_id: sessionState.getThreadId() } 
 async function callProvider(_name, _providerConfig, message, streamingCallback, signal) {
 	const isNewThread = sessionState.getConversation().length === 0;
 	const threadId = sessionState.getThreadId();
-	const memoryEntries = await loadMemories(memoryEntriesDir);
-	const memoryText = formatMemoriesForPrompt(memoryEntries);
+
 	const agentsText = await loadAgents();
 	const catalog = registry.getCatalog();
 	const skillCatalog = generateSkillCatalogPrompt(catalog);
-	const callPrompt = `${systemPrompt}${skillCatalog ? `\n\n${skillCatalog}` : ""}${memoryText ? `\n\n${memoryText}` : ""}${agentsText ? `\n\n${agentsText}` : ""}`;
+	const callPrompt = `${systemPrompt}${skillCatalog ? `\n\n${skillCatalog}` : ""}${agentsText ? `\n\n${agentsText}` : ""}`;
 	const result = await callReactAgent(
 		agent,
 		message,
@@ -434,6 +431,4 @@ export {
 	loadContext,
 	writeMemoryFile,
 	readMemoryFile,
-	loadMemories,
-	formatMemoriesForPrompt,
 };

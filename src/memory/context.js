@@ -23,7 +23,9 @@ export function loadContext(contextDir = "memory/context/", limit = 10) {
 		const profileBlock = loadAndFormatProfile(fullPath, contextDir);
 
 		// Load all .md files (excluding profile.md)
-		const allFiles = readdirSync(fullPath).filter((f) => f.endsWith(".md") && f !== PROFILE_FILENAME);
+		const allFiles = readdirSync(fullPath).filter(
+			(f) => f.endsWith(".md") && f !== PROFILE_FILENAME,
+		);
 
 		// Separate ephemeral and persistent files
 		const persistentFiles = allFiles.filter((f) => !f.startsWith("ephemeral"));
@@ -85,8 +87,7 @@ export function loadContext(contextDir = "memory/context/", limit = 10) {
 			.join("\n");
 
 		if (!profileBlock && !contextBlocks && !ephemeralBlocks) return "";
-		const result =
-			(profileBlock ? profileBlock + "\n" : "") + contextBlocks + ephemeralBlocks;
+		const result = (profileBlock ? profileBlock + "\n" : "") + contextBlocks + ephemeralBlocks;
 		return result;
 	} catch {
 		return "";
