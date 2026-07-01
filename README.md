@@ -410,7 +410,7 @@ The cache enforces a maximum size (default: 100 entries) with LRU eviction and a
 
 ### Agent
 
-Uses the [Deep Agents](https://github.com/avoidwork/deepagents) library to orchestrate a primary agent with specialized sub-agents. The orchestrator routes tasks automatically — a `coding-agent` handles code-related work (file editing, debugging, implementation, code review) and a `utility-agent` handles research, file search, multi-step tasks, and general assistance. The system prompt delegates every task to the orchestrator, which manages routing, state, and observability natively.
+Uses the [Deep Agents](https://github.com/avoidwork/deepagents) library to orchestrate a primary agent with specialized agents. The orchestrator routes tasks automatically — a `coding-agent` handles code-related work (file editing, debugging, implementation, code review) and a `utility-agent` handles research, file search, multi-step tasks, and general assistance. The system prompt delegates every task to the orchestrator, which manages routing, state, and observability natively.
 
 ### Context Window Management
 
@@ -584,11 +584,6 @@ Graceful shutdown flushes all buffered log entries to disk before process exit.
 |               | `nodeTimeout`                        | `600000`                                 | Superstep timeout in milliseconds (default 10 minutes) |
 | `lru`         | `size`                             | `100`                                    | Maximum number of cached LLM responses        |
 |               | `ttl`                              | `600000`                                 | Cache entry TTL in milliseconds (10 minutes)  |
-| `process`     | `subAgent.timeout`                 | `600000`                                 | Sub-agent process timeout in milliseconds (default 10 minutes) |
-|               | `subAgent.maxConcurrent`           | `4`                                      | Max concurrent sub-agent processes            |
-|               | `subAgent.sessionMode`             | `isolated`                               | Session isolation mode (`isolated`, `forked`, `shared`) |
-|               | `subAgent.defaultStrategy`         | `parallel`                               | Default fan-out strategy (`parallel`, `sequential`) |
-|               | `subAgent.defaultOnError`          | `continue`                               | Default error handling strategy (`continue`, `fail-fast`) |
 | `persistence` | `mode`                               | `memory`                                 | Storage backend (`memory`, `sqlite`)          |
 |               | `sqlite_path`                        | `memory/checkpoints.db`                  | SQLite checkpointer file path                 |
 

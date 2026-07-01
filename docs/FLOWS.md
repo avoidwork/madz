@@ -666,7 +666,7 @@ Multi-engine search backends (webSearch):
 ```
 
 
-## Sub-Agent Tool Execution Flow
+## Deep Agents Orchestration Flow
 ## Deep Agents Orchestration Flow
 
 **Entry:** `src/agent/deepAgents.js` → `createDeepAgentsOrchestrator()`
@@ -687,7 +687,7 @@ Deep Agents orchestrator (native multi-agent architecture):
 └── orchestrator manages routing, state, and observability natively
 
 No process spawning, no marker-based parsing, no manual fan-out coordination.
-The deepagents library handles sub-agent lifecycle, state management, and streaming internally.
+The deepagents library handles agent lifecycle, state management, and streaming internally.
 ```
 
 **Entry:** `src/tools/scanAgents.js` → `createScanAgentsTool()`
@@ -752,7 +752,7 @@ runScheduledSkill(schedule, sandbox, sessionState)
 
 ```
 
-## Sub-Agent Log Tool Flow
+## Deep Agents Log Management
 
 
 ### Code Execution
