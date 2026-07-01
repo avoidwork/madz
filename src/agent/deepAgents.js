@@ -52,7 +52,7 @@ export function createDeepAgentsOrchestrator(
 		// Filesystem middleware — replaces readFile, writeFile, patch, searchFiles
 		createFilesystemMiddleware({
 			backend: fileBackend,
-			permissions: allowedPaths,
+			permissions: [{ paths: allowedPaths }],
 		}),
 		// Memory middleware — replaces memory tool
 		createMemoryMiddleware({
