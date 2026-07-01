@@ -20,7 +20,7 @@ When the user wants to improve a prompt before sending it to an LLM. The user pr
 
 1. Read the user's prompt from the delegation context
 2. Rewrite it for an LLM — clear intent, specific constraints, appropriate context
-3. Output only the rewritten prompt to stdout. No preamble, no explanation, no markdown formatting. Just the rewritten prompt.
+3. Output only the rewritten prompt to stdout. No preamble, no explanation. Just the rewritten prompt.
 
 **Delegation Example:**
 `rewrite this for the LLM: <USER_PROMPT>`
