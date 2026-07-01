@@ -340,17 +340,6 @@ All configuration is controlled via environment variables in the `docker run` co
 | `AGENT_AUTO_CONTINUE_LIMIT`     | `1000`   | Max consecutive auto-continue attempts before circuit breaker triggers |
 | `AGENT_NODE_TIMEOUT`            | `600000` | Superstep timeout in milliseconds (default 10 minutes) |
 
-**Optional — Process (Sub-Agent):**
-
-| Variable                              | Default    | Description                                    |
-| ------------------------------------- | ---------- | ---------------------------------------------- |
-| `SUB_AGENT_TIMEOUT`               | `600000`   | Sub-agent process timeout in milliseconds      |
-| `SUB_AGENT_MAX_CONCURRENT`        | `4`        | Max concurrent sub-agent processes             |
-| `SUB_AGENT_SESSION_MODE`          | `isolated` | Session isolation mode (`isolated`, `forked`, `shared`) |
-| `SUB_AGENT_DEFAULT_STRATEGY`      | `parallel` | Default fan-out strategy (`parallel`, `sequential`) |
-| `SUB_AGENT_DEFAULT_ON_ERROR`      | `continue` | Default error handling strategy (`continue`, `fail-fast`) |
-| `SUB_AGENT_TEMPERATURE`           | `0.7`      | Sampling temperature (0–2) for sub-agent LLM calls |
-
 **Optional — Persistence:**
 
 | Variable                  | Default                 | Description              |
@@ -421,11 +410,11 @@ The cache enforces a maximum size (default: 100 entries) with LRU eviction and a
 
 ### Agent
 
-Wraps `@langchain/langgraph/prebuilt`'s `createReactAgentGraph` to produce a compiled ReAct agent that interleaves LLM reasoning with tool invocations. `createReactAgent(model, tools)` builds the agent from a provider model and a permission-gated tool array. `callReactAgent(agent, message)` runs the ReAct loop and returns the agent's final response.
+Uses the [Deep Agents](https://github.com/avoidwork/deepagents) library to orchestrate a primary agent with specialized sub-agents. The orchestrator routes tasks automatically — a `coding-agent` handles code-related work (file editing, debugging, implementation, code review) and a `utility-agent` handles research, file search, multi-step tasks, and general assistance. The system prompt delegates every task to the orchestrator, which manages routing, state, and observability natively.
 
 ### Context Window Management
 
-When conversations grow long enough to exceed the model's maximum context length, `madz` automatically detects the error and triggers a compaction routine. A tiered retention strategy preserves high-fidelity information: the system prompt and the most recent exchanges are kept intact, older exchanges are summarized into concise bullet-point previews, and the oldest messages are dropped entirely. If a single compaction doesn't bring the context within budget, the system retries with progressively tighter limits — up to three iterations. If eve`subAgentMessage` — send messages to running subAgent processes via stdin; `scanAgents` — scan for `AGENTS.md` workspace rules files in a target directory                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |t, the user is presented with a clear error message. This happens transparently; the user never needs to start a new session or manually manage context.
+When conversations grow long enough to exceed the model's maximum context length, `madz` automatically detects the error and triggers a compaction routine. A tiered retention strategy preserves high-fidelity information: the system prompt and the most recent exchanges are kept intact, older exchanges are summarized into concise bullet-point previews, and the oldest messages are d| **Agents**          | `mixtureOfAgents` — multi-agent orchestration; `subAgent` — spawn child-process agents with single execution and fan-out modes; `subAgentLog` — manage and read subAgent log files (list, read, cleanup); `subAgentMessage` — send messages to running subAgent processes via stdin; `scanAgents` — scan for `AGENTS.md` workspace rules files in a target directory                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | files in a target directory                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |t, the user is presented with a clear error message. This happens transparently; the user never needs to start a new session or manually manage context.
 
 ### Built-in Tools
 
@@ -503,7 +492,7 @@ On first onboarding completion, `madz` automatically installs a `reflection-dail
 ├── config.yaml                 # Centralized configuration
 ├── .husky/                     # Git hooks (lint, fmt, tests)
 ├── src/
-│   ├── agent/                  # ReAct agent wrapper (LangGraph)
+│   ├── agent/                  # Deep Agents orchestrator (coding-agent, utility-agent)
 │   ├── config/                 # YAML parsing & Zod schema validation
 │   ├── logger.js               # Structured logging (pino)
 │   ├── memory/                 # Markdown file persistence

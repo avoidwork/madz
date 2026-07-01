@@ -21,7 +21,7 @@ Call chains and data flows for all primary code paths in the project, excluding 
 - [File Tool Execution Flow](#file-tool-execution-flow)
 - [Terminal Tool Execution Flow](#terminal-tool-execution-flow)
 - [Web Tool Execution Flow](#web-tool-execution-flow)
-- [Sub-Agent Tool Execution Flow](#sub-agent-tool-execution-flow)
+- [Deep Agents Orchestration Flow](#deep-agents-orchestration-flow)
 - [Sandbox Skill Execution](#sandbox-skill-execution)
 - [Memory Persistence Flow](#memory-persistence-flow)
 - [Context Loading](#context-loading)
@@ -29,8 +29,6 @@ Call chains and data flows for all primary code paths in the project, excluding 
 - [Memory Retention Cleanup](#memory-retention-cleanup)
 - [Profile Management](#profile-management)
 - [Shutdown Flow](#shutdown-flow)
-- [Sub-Agent Log Tool Flow](#sub-agent-log-tool-flow)
-- [Sub-Agent Message Tool Flow](#sub-agent-message-tool-flow)
 - [Additional Tool Flows](#additional-tool-flows)
 - [File Dependencies](#file-dependencies)
 
@@ -669,63 +667,28 @@ Multi-engine search backends (webSearch):
 
 
 ## Sub-Agent Tool Execution Flow
+## Deep Agents Orchestration Flow
 
-**Entry:** `src/tools/subAgent.js` → `createSubAgentTool()`
+**Entry:** `src/agent/deepAgents.js` → `createDeepAgentsOrchestrator()`
 
 ```
-subAgent tool (zero-permission, always registered):
-├── validate input: delegation (required), context (optional), tasks (optional for fan-out), cwd (optional)
-├── if tasks provided (fan-out mode):
-│   ├── for each task in tasks (bounded by maxConcurrent):
-│   │   ├── spawn("node", ["index.js", "--sub-agent=true", `--cwd=${targetCwd}`, `--message="${prompt}"`])
-│   │   ├── trackProcess(child, command) → { pid, child, status: "running", startTime }
-│   │   ├── wait for completion or timeout (resolveTimeout: per-call > env > config)
-│   │   └── parseSubAgentOutput(stdout) → { ok, result, error?, pid? }
-│   │       └── Split on "# SubAgent" marker, parse JSON after marker
-│   ├── if strategy === "sequential": wait for each to complete before next
-│   ├── if strategy === "parallel": run up to maxConcurrent simultaneously
-│   └── if onError === "fail-fast": abort remaining on first error
-│   └── if onError === "continue": collect errors, return all results
-├── else (single execution mode):
-│   ├── spawn("node", ["index.js", "--sub-agent=true", `--cwd=${targetCwd}`, `--message="${prompt}"`])
-│   ├── trackProcess(child, command) → { pid, child, status: "running", startTime }
-│   ├── wait for completion or timeout
-│   └── parseSubAgentOutput(stdout) → { ok, result, error?, pid? }
-├── if returnParams provided:
-│   └── filter result to only include specified keys
-│   └── fallback to full text if not valid JSON
-└── return { ok, result, error?, pid? }
+Deep Agents orchestrator (native multi-agent architecture):
+├── createDeepAgent({ model, systemPrompt, tools, middleware, subagents, checkpointer })
+│   ├── middleware: filesystem, memory, skills, summarization
+│   ├── subagents:
+│   │   ├── coding-agent: code editing, debugging, implementation, code review
+│   │   └── utility-agent: research, file search, multi-step tasks, general assistance
+│   └── orchestrator routes tasks automatically based on task nature
+├── agent.stream(input, { streamMode: "messages", subgraphs: true })
+│   ├── for each chunk:
+│   │   ├── extract text content
+│   │   └── streamingCallback({ type: "text", text })
+│   └── returns { provider, content, tokens }
+└── orchestrator manages routing, state, and observability natively
 
-escapeShellArg(arg):
-├── Replace backticks, dollar signs, single quotes, double quotes
-├── Escape newlines, tabs, carriage returns
-└── Wrap in double quotes for safe shell passing
-
-parseSubAgentOutput(stdout):
-├── Split stdout on "# SubAgent" marker
-├── Take content after marker
-├── Try JSON.parse(content)
-├── if valid JSON → { ok: true, result: parsed }
-├── else → { ok: false, error: "Failed to parse sub-agent output" }
-
-resolveTimeout(options):
-├── if options.timeout provided → options.timeout
-└── else → config.process.subAgent.timeout (default 600000)
+No process spawning, no marker-based parsing, no manual fan-out coordination.
+The deepagents library handles sub-agent lifecycle, state management, and streaming internally.
 ```
-
-**Process tracking:** Sub-agents share the `processTracker` Map from `terminal.js` for PID tracking and lifecycle management. Each sub-agent gets a unique PID that can be polled, waited on, or killed via the `process` tool.
-
-**Session isolation modes:**
-
-| Mode | Description |
-|------|-------------|
-| `isolated` | Fresh session, no parent context |
-| `forked` | Forked from parent session with compaction |
-| `shared` | Shared parent session context |
-
----
-
-## Scan Agents Tool Flow
 
 **Entry:** `src/tools/scanAgents.js` → `createScanAgentsTool()`
 
@@ -791,63 +754,6 @@ runScheduledSkill(schedule, sandbox, sessionState)
 
 ## Sub-Agent Log Tool Flow
 
-**Entry:** `src/tools/subAgentLog.js` → `createSubAgentLogTool()`
-
-```
-subAgentLog tool (zero-permission, always registered):
-├── validate input: action (required), pid (optional), maxAgeHours (optional)
-├── switch action:
-│   ├── "list":
-│   │   ├── readdir("/tmp") → filter files matching "sub-agent-{pid}.log"
-│   │   ├── for each log file:
-│   │   │   ├── stat(filePath) → size, mtime
-│   │   │   ├── isProcessRunning(pid) → process.kill(pid, 0)
-│   │   │   └── { pid, file, size, modified, running }
-│   │   └── sort by modified (descending) → return { ok: true, logs }
-│   ├── "read":
-│   │   ├── if pid missing → { ok: false, error: "PID is required" }
-│   │   ├── readFile("/tmp/sub-agent-{pid}.log") → content
-│   │   └── return { ok: true, pid, content }
-│   └── "cleanup":
-│       ├── readdir("/tmp") → filter "sub-agent-{pid}.log"
-│       ├── for each file:
-│       │   ├── stat(filePath) → mtimeMs
-│       │   ├── if age > maxAgeHours * 60 * 60 * 1000 → unlinkSync
-│       │   └── removed++
-│       └── return { ok: true, removed }
-└── default → { ok: false, error: "Unknown action" }
-
-isProcessRunning(pid):
-├── process.kill(pid, 0) → true (signal 0 checks existence)
-└── catch → false
-```
-
-**Log file pattern:** `sub-agent-{pid}.log` stored in `/tmp`. Files are automatically cleaned up by the `cleanup` action based on age threshold.
-
----
-
-## Sub-Agent Message Tool Flow
-
-**Entry:** `src/tools/subAgentMessage.js` → `createSubAgentMessageTool()`
-
-```
-subAgentMessage tool (requires process:spawn permission):
-├── validate input: pid (required), message (required)
-├── if pid missing → { ok: false, error: "PID is required" }
-├── if message missing → { ok: false, error: "Message is required" }
-├── lookup processTracker.get(pid):
-│   ├── if not found → { ok: false, error: "Process {pid} not found in tracker" }
-│   └── if status is "exited" or "error" → { ok: false, error: "Process {pid} is not running" }
-├── entry.child.stdin.write(message + "\\n")
-│   └── Append newline to message before writing
-└── return { ok: true, pid, messageSent: true }
-```
-
-**Prerequisites:** The target subAgent process must be spawned with `stdio: ["pipe", "pipe", "pipe"]` (stdin exposed). The subAgent tool was updated to expose stdin for this to work.
-
----
-
-## Additional Tool Flows
 
 ### Code Execution
 

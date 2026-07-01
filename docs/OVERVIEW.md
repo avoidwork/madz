@@ -126,38 +126,15 @@ The agent runs: reason → call tool(s) → reason again → answer. Tool array 
 
 ---
 
-## Sub-Agent
+## Deep Agents
 
-`src/tools/subAgent.js` — spawns child processes (`node index.js --sub-agent --cwd=... --message="..."`) to execute prompts as independent sub-agents. Supports single execution and fan-out (parallel/sequential) modes with configurable concurrency, timeout, and error handling.
+`src/agent/deepAgents.js` — Deep Agents orchestrator with specialized sub-agents. Creates a `coding-agent` for code-related tasks and a `utility-agent` for research, file search, and general assistance. Uses middleware for filesystem, memory, skills, and summarization capabilities.
 
 | File | Purpose |
-|------|---------|
-| `subAgent.js` | `createSubAgentTool()` — LangChain tool with marker-based stdout parsing; `parseSubAgentOutput()` — extracts structured results from sub-agent output; `escapeShellArg()` — handles quotes, backticks, dollar signs, newlines, tabs, carriage returns; `resolveTimeout()` — per-call > env var > config default priority; `spawnSubAgentProcess()` — spawns `node index.js --sub-agent --cwd=... --message="..."`, captures OS-level PID |
+|------|---------|  
+| `deepAgents.js` | `createDeepAgentsOrchestrator()` — creates the Deep Agents orchestrator with coding and utility sub-agents; `loadSubAgentPrompt()` — loads per-project `prompts/SUB_AGENT.md` for sub-agent instructions |
 
-**Key features:**
-
-1. **Single execution mode** — Spawn one sub-agent with delegation + context, return structured result
-2. **Fan-out mode** — Parallel/sequential task execution with configurable `maxConcurrent` limit
-3. **Marker-based stdout parsing** — `# SubAgent` marker for result extraction (mirrors compaction tool)
-4. **Response contract** — `{ ok, result, error?, pid? }` matching compaction tool pattern
-5. **Process tracking** — Shared `processTracker` from terminal.js for PID tracking and lifecycle management
-6. **Timeout resolution** — Per-call > env var > config default priority
-7. **Parameter extraction** — Optional `returnParams` for JSON result filtering with fallback
-8. **Working directory** — `cwd` parameter passed to sub-agent process; all file operations resolved from this directory
-9. **Shell escaping** — Handles quotes, backticks, dollar signs, newlines, tabs, carriage returns
-10. **Error handling** — `continue` vs `fail-fast` strategies for fan-out batches
-11. **OS-level PID tracking** — Captures the actual child process PID from `spawn()` for correlation with tracked processes
-
-**Configuration:** Sub-agent parameters are set via `config.process.subAgent`:
-
-| Key | Default | Description |
-| --- | --- | --- |
-| `process.subAgent.timeout` | `600000` | Sub-agent process timeout in milliseconds (default 10 minutes) |
-| `process.subAgent.maxConcurrent` | `4` | Max concurrent sub-agent processes |
-| `process.subAgent.sessionMode` | `isolated` | Session isolation mode (`isolated`, `forked`, `shared`) |
-| `process.subAgent.defaultStrategy` | `parallel` | Default fan-out strategy (`parallel`, `sequential`) |
-| `process.subAgent.defaultOnError` | `continue` | Default error handling strategy (`continue`, `fail-fast`) |
-
+The orchestrator routes tasks automatically — the system prompt delegates every task to the orchestrator, which manages routing, state, and observability natively.
 ---
 
 
@@ -177,42 +154,7 @@ The agent runs: reason → call tool(s) → reason again → answer. Tool array 
 4. **Workspace rules** — Returns formatted workspace rules section for system prompt injection
 
 
-## Sub-Agent Log
-
-`src/tools/subAgentLog.js` — manages and reads subAgent log files stored in `/tmp`. Supports listing all active logs with PID and running status, reading a specific log by PID, and cleaning up old logs beyond a configurable age threshold.
-
-| File | Purpose |
-|------|---------|
-| `subAgentLog.js` | `createSubAgentLogTool()` — LangChain tool with zero permissions (always registered); `listLogs()` — scans `/tmp` for `sub-agent-{pid}.log` files, returns sorted array with PID, file, size, modified time, and running status; `readLog(pid)` — reads a specific log file by PID; `cleanupLogs(maxAgeHours)` — removes logs older than the configured age threshold (default: 24 hours); `isProcessRunning(pid)` — checks if a PID is still active via `process.kill(pid, 0)` |
-
-**Key features:**
-
-1. **Log discovery** — Scans `/tmp` for files matching `sub-agent-{pid}.log` pattern
-2. **Process status** — Reports whether each sub-agent process is still running
-3. **Age-based cleanup** — Removes logs older than a configurable threshold (default: 24 hours)
-4. **Zero permissions** — Always registered, no sandbox permissions required
-
-**Configuration:** Log directory is hardcoded to `/tmp`. Age threshold is configurable via the `maxAgeHours` parameter (default: 24).
-
 ---
-
-
-## Sub-Agent Message
-
-`src/tools/subAgentMessage.js` — sends messages to running subAgent processes via stdin. Requires the target process to be tracked (spawned via subAgent tool) and have stdin exposed.
-
-| File | Purpose |
-|------|---------|
-| `subAgentMessage.js` | `createSubAgentMessageTool()` — LangChain tool with `process:spawn` permission; `subAgentMessageImpl(input)` — looks up PID in `processTracker`, validates process is running, writes message to stdin |
-
-**Key features:**
-
-1. **Process lookup** — Validates PID exists in `processTracker`
-2. **Status check** — Ensures process is still running before writing
-3. **Stdin write** — Appends newline to message before writing to stdin
-4. **Error handling** — Clear error messages for missing PID, missing message, process not found, or process not running
-
-**Prerequisites:** The target subAgent process must be spawned with `stdio: ["pipe", "pipe", "pipe"]` (stdin exposed). The subAgent tool was updated to expose stdin for this to work.
 
 ---
 
