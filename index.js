@@ -224,19 +224,20 @@ const tools = await buildToolConfig({
 	config,
 	checkpointer,
 });
+
+const agentsText = await loadAgents();
+const catalog = registry.getCatalog();
+const skillCatalog = generateSkillCatalogPrompt(catalog);
+const callPrompt = `${systemPrompt}${skillCatalog ? `\n\n---\n\n${skillCatalog}` : ""}${agentsText ? `\n\n---\n\n${agentsText}` : ""}`;
+
 const model = createChatModel(providerConfig);
-const agent = createDeepAgentsOrchestrator(model, tools, systemPrompt, checkpointer);
+const agent = createDeepAgentsOrchestrator(model, tools, callPrompt, checkpointer);
 
 const sessionConfig = { configurable: { thread_id: sessionState.getThreadId() } };
 
 async function callProvider(_name, _providerConfig, message, streamingCallback, signal) {
 	const isNewThread = sessionState.getConversation().length === 0;
 	const threadId = sessionState.getThreadId();
-
-	const agentsText = await loadAgents();
-	const catalog = registry.getCatalog();
-	const skillCatalog = generateSkillCatalogPrompt(catalog);
-	const callPrompt = `${systemPrompt}${skillCatalog ? `\n\n---\n\n${skillCatalog}` : ""}${agentsText ? `\n\n---\n\n${agentsText}` : ""}`;
 
 	const config = {
 		...sessionConfig,
@@ -252,7 +253,6 @@ async function callProvider(_name, _providerConfig, message, streamingCallback, 
 	let collectedContent = "";
 	const input = {
 		messages: [
-			{ role: "system", content: callPrompt },
 			{ role: "user", content: message },
 		],
 	};
