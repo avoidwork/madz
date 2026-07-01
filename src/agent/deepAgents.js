@@ -48,9 +48,11 @@ export function createDeepAgentsOrchestrator(
 	});
 
 	// Resolve permission paths to absolute paths for deepagents middleware
-	const resolvedPermissions = allowedPaths.map((p) => ({
-		paths: [join(config.cwd, p)],
-	}));
+	const resolvedPermissions = allowedPaths
+		.filter((p) => !p.startsWith("!"))
+		.map((p) => ({
+			paths: [join(config.cwd, p)],
+		}));
 
 	// Build middleware array
 	const middleware = [
