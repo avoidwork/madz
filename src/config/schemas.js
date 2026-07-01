@@ -124,6 +124,7 @@ export const MemorySchema = z.object({
 	toolsDir: z.string().default("memory/tools/"),
 	errorsDir: z.string().default("memory/errors/"),
 	schedulesDir: z.string().default("memory/schedules/"),
+	ephemeralLimit: z.number().int().positive().default(5),
 	ephemeral: z
 		.object({
 			ttlDays: z.number().int().positive().default(7),
@@ -283,6 +284,7 @@ export const DEFAULT_CONFIG = {
 		toolsDir: "memory/tools/",
 		errorsDir: "memory/errors/",
 		schedulesDir: "memory/schedules/",
+		ephemeralLimit: 5,
 		ephemeral: { ttlDays: 7, maxEntries: 10 },
 		gc: { enabled: true, idleTimeoutMs: 300000, maxGcPerHour: 4 },
 	},
