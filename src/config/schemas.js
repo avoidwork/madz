@@ -206,27 +206,6 @@ export const PersistenceSchema = z.object({
 	sqlite_path: z.string().default("memory/checkpoints.db"),
 });
 
-// --- SubAgent schemas ---
-
-/**
- * Schema for subAgent configuration under process.subAgent.
- * @type {z.ZodType<{ timeout: number; maxConcurrent: number; sessionMode: string; defaultStrategy: string; defaultOnError: string; temperature: number }>}
- */
-export const SubAgentConfigSchema = z.object({
-	/** Timeout in milliseconds for subAgent execution */
-	timeout: z.number().int().positive().default(600000),
-	/** Maximum number of concurrent subAgents */
-	maxConcurrent: z.number().int().positive().default(4),
-	/** Session mode: 'isolated' or 'shared' */
-	sessionMode: z.enum(["isolated", "shared"]).default("isolated"),
-	/** Default fan-out strategy: 'parallel' or 'sequential' */
-	defaultStrategy: z.enum(["parallel", "sequential"]).default("parallel"),
-	/** Default error handling: 'continue' or 'fail-fast' */
-	defaultOnError: z.enum(["continue", "fail-fast"]).default("continue"),
-	/** Sampling temperature (0-2), follows OpenAI API specification */
-	temperature: z.number().min(0).max(2).default(0.7),
-});
-
 // --- Root config ---
 
 export const ConfigSchema = z.object({
@@ -240,9 +219,7 @@ export const ConfigSchema = z.object({
 	agent: AgentSchema.default({}),
 	lru: LruSchema.default({}),
 	persistence: PersistenceSchema,
-	process: z.object({ subAgent: SubAgentConfigSchema.default({}) }).default({ subAgent: {} }),
 	cwd: z.string().default(""),
-	subAgent: z.boolean().default(false),
 });
 
 // Default values exported for merging
@@ -303,16 +280,5 @@ export const DEFAULT_CONFIG = {
 	lru: { size: 100, ttl: 600000 },
 	tui: { name: "madz", cursorChar: "\u2588" },
 	persistence: { mode: "memory", sqlite_path: "memory/checkpoints.db" },
-	process: {
-		subAgent: {
-			timeout: 600000,
-			maxConcurrent: 4,
-			sessionMode: "isolated",
-			defaultStrategy: "parallel",
-			defaultOnError: "continue",
-			temperature: 0.7,
-		},
-	},
 	cwd: "",
-	subAgent: false,
 };

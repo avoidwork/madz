@@ -30,7 +30,7 @@ const parsed = yargs(process.argv.slice(2))
 // Load config first — before any other ./src imports — so config.cwd is set
 // before process.chdir() potentially changes the working directory.
 import { loadConfig } from "./src/config/loader.js";
-const config = loadConfig(parsed["sub-agent"]);
+const config = loadConfig();
 
 // Change to the configured working directory before any other imports
 if (parsed.cwd) {
@@ -45,7 +45,7 @@ import React from "react";
 
 const { setConfigValue } = await import("./src/config/loader.js");
 const { createChatModel } = await import("./src/provider/openai.js");
-const { createReactAgent, callReactAgent } = await import("./src/agent/react.js");
+const { createDeepAgentsOrchestrator, invokeAgent } = await import("./src/agent/deepAgents.js");
 const { buildToolConfig } = await import("./src/tools/index.js");
 const { logger } = await import("./src/logger.js");
 
@@ -201,7 +201,7 @@ try {
 // Load system prompt and append memory entries
 const { loadSystemPrompt } = await import("./src/memory/prompts.js");
 const { generateSkillCatalogPrompt } = await import("./src/tools/skills.js");
-const systemPrompt = loadSystemPrompt(process.cwd(), config.subAgent);
+const systemPrompt = loadSystemPrompt(process.cwd());
 // Build agent and tool config at startup (once)
 const providerConfig = config.providers[providerName] || {};
 
@@ -223,15 +223,13 @@ const tools = await buildToolConfig({
 	ephemeralMaxEntries: config.memory?.ephemeral?.maxEntries || 10,
 	config,
 	checkpointer,
-	subAgent: config.subAgent,
 });
 const model = createChatModel(providerConfig);
-const agent = createReactAgent(
+const agent = createDeepAgentsOrchestrator(
 	model,
 	tools,
+	"",
 	checkpointer,
-	config.agent?.recursionLimit ?? undefined,
-	config.agent?.nodeTimeout ?? 600000,
 );
 
 const sessionConfig = { configurable: { thread_id: sessionState.getThreadId() } };
@@ -244,7 +242,7 @@ async function callProvider(_name, _providerConfig, message, streamingCallback, 
 	const catalog = registry.getCatalog();
 	const skillCatalog = generateSkillCatalogPrompt(catalog);
 	const callPrompt = `${systemPrompt}${skillCatalog ? `\n\n---\n\n${skillCatalog}` : ""}${agentsText ? `\n\n---\n\n${agentsText}` : ""}`;
-	const result = await callReactAgent(
+	const result = await invokeAgent(
 		agent,
 		message,
 		{ ...sessionConfig, configurable: { thread_id: threadId, isNewThread } },
@@ -252,11 +250,8 @@ async function callProvider(_name, _providerConfig, message, streamingCallback, 
 		streamingCallback,
 		{
 			maxTokens: providerConfig.maxTokens,
-			checkpointer,
 			signal,
 			recursionLimit: config.agent?.recursionLimit,
-			turnHashWindow: config.agent?.turnHashWindow,
-			turnBufferMax: config.agent?.turnBufferMax,
 		},
 	);
 	return { provider: providerName, content: result.content, tokens: { input: 0, output: 0 } };
