@@ -1,6 +1,6 @@
 ---
 name: rewrite-prompt
-description: Takes a user prompt and rewrites it clearly and effectively for an LLM. Simple, direct.
+description: Takes a user prompt and rewrites it clearly and effectively for an LLM. Simple, direct. Context: the raw user prompt to rewrite.
 license: MIT
 compatibility: No external dependencies
 metadata:
@@ -21,9 +21,6 @@ When the user wants to improve a prompt before sending it to an LLM. The user pr
 1. Read the user's prompt from the delegation context
 2. Rewrite it for an LLM — clear intent, specific constraints, appropriate context
 3. Output only the rewritten prompt to stdout. No preamble, no explanation. Just the rewritten prompt.
-
-**Delegation Example:**
-`rewrite this for the LLM: <USER_PROMPT>`
 
 ## Guidelines for rewriting
 
