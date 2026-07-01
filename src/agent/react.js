@@ -63,8 +63,6 @@ export function getCache() {
 	return _getCache();
 }
 
-
-
 const RECURSION_LIMIT_MESSAGE =
 	"I've reached the maximum number of reasoning steps on this thread. Please continue your message and I'll carry on, or start a new conversation if you'd prefer.";
 

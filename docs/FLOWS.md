@@ -57,7 +57,7 @@ index.js (main)
 ├── ensureSkillsDir("skills/")
 ├── registry.discover("skills/")
 │   └── [see Skill Registry Discovery & Validation]
-├── { writeMemoryFile, readMemoryFile, loadContext, loadMemories, formatMemoriesForPrompt }
+├── { writeMemoryFile, readMemoryFile, loadContext }
 │   └── from "./src/memory/index.js"
 ├── initGC({ idleTimeoutMs, maxGcPerHour, onIdle }) → GC idle manager
 ├── { createSession, SessionStateManager, saveSession, handleShutdown, registerShutdownHandler }
