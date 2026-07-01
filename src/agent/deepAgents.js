@@ -160,60 +160,56 @@ async function streamAgent(
 	}
 
 	let iteration = 0;
-	let effectiveContextLength = maxContextLength;
-	let effectiveMaxTokens = maxTokens;
-	let currentMessages = initMessages;
-	let compactionActive = false;
-	let aggregatedText = "";
-
-	while (iteration <= maxCompactionIterations) {
-		try {
-			const stream = await orchestrator.stream(
+	letconst stream = await orchestrator.stream(
 				{ messages: currentMessages },
-				{ streamMode: "updates", subgraphs: true, ...streamOptions },
+				{ streamMode: ["updates", "messages"], subgraphs: true, ...streamOptions },
 			);
 
-			for await (const [, chunk] of stream) {
+			for await (const [namespace, mode, data] of stream) {
 				if (signal && signal.aborted) {
 					if (compactionActive && callback) callback({ type: "compaction_end" });
 					return { content: originalMessage };
 				}
 
-				// Text from model
-				if (chunk?.type === "text" || typeof chunk?.text === "string") {
-					const text = typeof chunk === "string" ? chunk : chunk.text;
-					if (text) {
-						callback({ type: "text", text });
-						aggregatedText += text;
-					}
-				}
-
-				// Message chunks
-				if (chunk?.type === "message" || chunk?.message) {
-					const msg = chunk.message || chunk;
-					if (msg?.content) {
-						const text =
-							typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content);
+				// Messages mode — text chunks
+				if (mode === "messages") {
+					for (const msg of data) {
+						const text = msg?.text || (typeof msg?.content === "string" ? msg.content : JSON.stringify(msg.content));
 						if (text) {
 							callback({ type: "text", text });
 							aggregatedText += text;
 						}
+						if (msg?.reasoning) {
+							callback({ type: "reasoning", text: msg.reasoning });
+						}
 					}
 				}
 
-				// Tool events
-				if (chunk?.type === "tool_start" || chunk?.event === "on_tool_start") {
-					callback({ type: "tool_start", toolName: chunk?.name || "unknown" });
+				// Updates mode — tool events and status
+				if (mode === "updates") {
+					for (const nodeName of Object.keys(data)) {
+						const update = data[nodeName];
+						if (update?.event === "on_tool_start") {
+							callback({ type: "tool_start", toolName: update?.name || "unknown" });
+						}
+						if (update?.event === "on_tool_end") {
+							const output = update?.output || update?.result;
+							callback({
+								type: "tool_end",
+								toolName: update?.name || "unknown",
+								data: typeof output === "string" ? output.slice(0, 500) : output,
+							});
+						}
+						if (update?.event === "on_tool_error") {
+							callback({
+								type: "tool_error",
+								toolName: update?.name || "unknown",
+								error: update?.error || update?.message,
+							});
+						}
+					}
 				}
-				if (chunk?.type === "tool_end" || chunk?.event === "on_tool_end") {
-					const output = chunk?.output || chunk?.result;
-					callback({
-						type: "tool_end",
-						toolName: chunk?.name || "unknown",
-						data: typeof output === "string" ? output.slice(0, 500) : output,
-					});
-				}
-				if (chunk?.type === "tool_error" || chunk?.event === "on_tool_error") {
+			} "on_tool_error") {
 					callback({
 						type: "tool_error",
 						toolName: chunk?.name || "unknown",
