@@ -1,15 +1,7 @@
-import {
-	createReadFileTool,
-	createWriteFileTool,
-	createPatchTool,
-	createSearchFilesTool,
-} from "./filesystem.js";
 import { createTerminalTool, createProcessTool } from "./terminal.js";
 import { createQueuedTodoTool } from "./todo.js";
-import { createMemoryTool } from "./memory.js";
 import { createSessionSearchTool } from "./session_search.js";
 import { createClarifyTool } from "./clarify.js";
-import { createSkillViewTool, createCreateSkillTool } from "./skills.js";
 import { createWebSearchTool, createWebExtractTool } from "./web.js";
 import { createVisionTool } from "./vision.js";
 import { createImageTool } from "./image.js";
@@ -19,8 +11,6 @@ import { createTtsTool } from "./tts.js";
 import { createMoaTool } from "./moa.js";
 import { createSamplingTool } from "./sampling.js";
 import { createDateTool } from "./date.js";
-import { createCompactContextTool } from "./compact_context.js";
-import { createCompactionTool } from "./compaction.js";
 import { createScanAgentsTool } from "./scanAgents.js";
 
 /**
@@ -29,18 +19,11 @@ import { createScanAgentsTool } from "./scanAgents.js";
  * Clarify and execute_code are exempt (always registered) since they require zero permissions.
  */
 export const TOOL_PERMISSIONS = {
-	readFile: ["filesystem:read"],
-	writeFile: ["filesystem:write"],
-	patch: ["filesystem:write"],
-	searchFiles: ["filesystem:read"],
 	terminal: ["filesystem:exec", "process:spawn"],
 	process: ["process:spawn"],
 	todo: ["filesystem:read", "filesystem:write"],
-	memory: ["filesystem:read", "filesystem:write"],
 	sessionSearch: ["filesystem:read"],
 	clarify: [],
-	skillView: ["filesystem:read"],
-	createSkill: ["filesystem:write"],
 	webSearch: ["network:outbound"],
 	webExtract: ["network:outbound"],
 	visionAnalyze: [],
@@ -51,25 +34,16 @@ export const TOOL_PERMISSIONS = {
 	mixtureOfAgents: [],
 	sampling: [],
 	date: [],
-	compactContext: [],
-	compaction: [],
 	scanAgents: [],
 };
 
 // Factory functions keyed by tool name
 const TOOL_FACTORIES = {
-	readFile: createReadFileTool,
-	writeFile: createWriteFileTool,
-	patch: createPatchTool,
-	searchFiles: createSearchFilesTool,
 	terminal: createTerminalTool,
 	process: createProcessTool,
 	todo: createQueuedTodoTool,
-	memory: createMemoryTool,
 	sessionSearch: createSessionSearchTool,
 	clarify: createClarifyTool,
-	skillView: createSkillViewTool,
-	createSkill: createCreateSkillTool,
 	webSearch: createWebSearchTool,
 	webExtract: createWebExtractTool,
 	visionAnalyze: createVisionTool,
@@ -80,8 +54,6 @@ const TOOL_FACTORIES = {
 	mixtureOfAgents: createMoaTool,
 	sampling: createSamplingTool,
 	date: createDateTool,
-	compactContext: createCompactContextTool,
-	compaction: createCompactionTool,
 	scanAgents: createScanAgentsTool,
 };
 

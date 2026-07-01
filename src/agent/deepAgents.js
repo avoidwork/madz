@@ -1,40 +1,16 @@
 import { createDeepAgent } from "deepagents";
-import { HumanMessage, SystemMessage } from "@langchain/core/messages";
-import {
-	extractContextLength,
-	isContextLengthError,
-	compactConversation,
-} from "../tools/compact_context.js";
-import { createLlmCache, getCacheKey } from "../cache/llm_cache.js";
+import { createFilesystemMiddleware } from "deepagents";
+import { createMemoryMiddleware } from "deepagents";
+import { createSkillsMiddleware } from "deepagents";
+import { createSummarizationMiddleware } from "deepagents";
+import { HumanMessage } from "@langchain/core/messages";
 import { loadConfig } from "../config/loader.js";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-
-let _cache = null;
-function _getCache() {
-	if (!_cache) {
-		try {
-			const config = loadConfig();
-			_cache = createLlmCache(config.lru.size, config.lru.ttl);
-		} catch {
-			_cache = createLlmCache(100, 600000);
-		}
-	}
-	return _cache;
-}
-
-export function clearCache() {
-	_getCache().clear();
-}
-
-export function getCache() {
-	return _getCache();
-}
+import { FileBackend } from "./fileBackend.js";
 
 const RECURSION_LIMIT_MESSAGE =
 	"I've reached the maximum number of reasoning steps on this thread. Please continue your message and I'll carry on, or start a new conversation if you'd prefer.";
-
-const MAX_COMPACTION_ITERATIONS = 3;
 
 function loadSubAgentPrompt(baseDir) {
 	try {
@@ -46,9 +22,10 @@ function loadSubAgentPrompt(baseDir) {
 }
 
 /**
- * Create a Deep Agents orchestrator with a coding sub-agent.
+ * Create a Deep Agents orchestrator with coding and utility sub-agents.
+ * Uses deepagents middleware for filesystem, memory, skills, and summarization.
  * @param {object} model - A chat language model instance
- * @param {unknown[]} tools - Array of LangChain tool definitions
+ * @param {unknown[]} tools - Array of LangChain tool definitions (non-overlapping tools)
  * @param {string} systemPrompt - The main system prompt
  * @param {import("@langchain/langgraph").BaseCheckpointSaver | null} [checkpointer=null] - Optional checkpointer
  * @returns {Object} Deep Agents orchestrator instance
@@ -60,11 +37,43 @@ export function createDeepAgentsOrchestrator(
 	checkpointer = null,
 ) {
 	const subAgentPrompt = loadSubAgentPrompt();
+	const config = loadConfig();
+	const memoryDir = join(config.cwd, config.memory?.contextDir || "memory/context/");
+	const allowedPaths = config.sandbox?.paths || ["./"];
+
+	// Create file-based backend for deepagents middleware
+	const fileBackend = new FileBackend(memoryDir, {
+		allowedPaths: allowedPaths.map((p) => join(config.cwd, p)),
+		maxReadSize: config.sandbox?.maxReadSize || "1mb",
+	});
+
+	// Build middleware array
+	const middleware = [
+		// Filesystem middleware — replaces readFile, writeFile, patch, searchFiles
+		createFilesystemMiddleware({
+			backend: fileBackend,
+			permissions: allowedPaths,
+		}),
+		// Memory middleware — replaces memory tool
+		createMemoryMiddleware({
+			backend: fileBackend,
+			sources: [memoryDir],
+		}),
+		// Skills middleware — replaces skillView, createSkill
+		createSkillsMiddleware({
+			backend: fileBackend,
+		}),
+		// Summarization middleware — replaces compactContext, compaction
+		createSummarizationMiddleware({
+			backend: fileBackend,
+		}),
+	];
 
 	return createDeepAgent({
 		model,
 		systemPrompt,
 		tools,
+		middleware,
 		subagents: [
 			{
 				name: "coding-agent",
@@ -73,6 +82,14 @@ export function createDeepAgentsOrchestrator(
 				systemPrompt: subAgentPrompt
 					? `${subAgentPrompt}\n\nYou are the coding specialist sub-agent. Focus on code-related tasks.`
 					: "You are a coding specialist. Handle all code-related tasks.",
+			},
+			{
+				name: "utility-agent",
+				description:
+					"General-purpose agent for research, file search, multi-step tasks, skill execution, and non-code work.",
+				systemPrompt: subAgentPrompt
+					? `${subAgentPrompt}\n\nYou are the general-purpose utility sub-agent. Handle research, file search, multi-step tasks, and general assistance.`
+					: "You are a general-purpose utility agent. Handle research, file search, multi-step tasks, and general assistance.",
 			},
 		],
 		...(checkpointer && { checkpointer }),
@@ -124,12 +141,7 @@ async function streamAgent(
 	systemPrompt = "",
 	recursionLimit = null,
 ) {
-	const {
-		maxContextLength,
-		maxTokens,
-		maxCompactionIterations = MAX_COMPACTION_ITERATIONS,
-		signal,
-	} = options;
+	const { signal } = options;
 
 	const streamOptions = {
 		configurable: config?.configurable,
@@ -141,20 +153,7 @@ async function streamAgent(
 		streamOptions.signal = signal;
 	}
 
-	// Cache-aside
-	const threadId = config?.configurable?.thread_id;
-	const cacheKey = threadId ? getCacheKey(threadId, originalMessage) : null;
-	if (cacheKey) {
-		const cached = getCache().get(cacheKey);
-		if (cached) {
-			callback({ type: "text", text: cached });
-			return { content: cached };
-		}
-	}
-
 	let iteration = 0;
-	let effectiveContextLength = maxContextLength;
-	let effectiveMaxTokens = maxTokens;
 	let currentMessages = initMessages;
 	let compactionActive = false;
 	let aggregatedText = "";
@@ -175,9 +174,7 @@ async function streamAgent(
 				// Messages mode — text chunks
 				if (mode === "messages") {
 					for (const msg of data) {
-						const text =
-							msg?.text ||
-							(typeof msg?.content === "string" ? msg.content : JSON.stringify(msg.content));
+						const text = msg?.text || (typeof msg?.content === "string" ? msg.content : JSON.stringify(msg.content));
 						if (text) {
 							callback({ type: "text", text });
 							aggregatedText += text;
@@ -214,8 +211,6 @@ async function streamAgent(
 				}
 			}
 
-			// Cache the aggregated response on successful completion
-			if (cacheKey && aggregatedText) getCache().set(cacheKey, aggregatedText);
 			if (compactionActive && callback) callback({ type: "compaction_end" });
 			return { content: aggregatedText || originalMessage };
 		} catch (err) {
@@ -225,55 +220,19 @@ async function streamAgent(
 			}
 
 			// Check for context length error
-			if (isContextLengthError(err)) {
+			if (err.message?.includes("context length") || err.message?.includes("maximum context")) {
 				if (!compactionActive && callback) {
 					compactionActive = true;
 					callback({ type: "compaction_start" });
 				}
 
 				if (!effectiveContextLength) {
-					effectiveContextLength = extractContextLength(err.message);
+					const match = err.message.match(/(\d+)/);
+					effectiveContextLength = match ? parseInt(match[1], 10) : undefined;
 				}
 
-				const targetTokens =
-					effectiveContextLength && effectiveMaxTokens
-						? effectiveContextLength - effectiveMaxTokens
-						: 50000;
-
-				const conversation = currentMessages
-					.filter((m) => !(m instanceof SystemMessage))
-					.map((m) => ({
-						role:
-							m._getType() === "system"
-								? "system"
-								: m._getType() === "human"
-									? "user"
-									: m._getType() === "ai"
-										? "assistant"
-										: "tool",
-						content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
-					}));
-
-				const compacted = compactConversation({ systemPrompt, conversation, targetTokens });
-
-				if (!compacted.ok || compacted.compactedMessages.length === 0) {
-					if (compactionActive && callback) callback({ type: "compaction_end" });
-					return { content: originalMessage };
-				}
-
-				currentMessages = compacted.compactedMessages.map((m) => {
-					if (m.role === "system") return new SystemMessage(m.content);
-					if (m.role === "user") return new HumanMessage(m.content);
-					return new SystemMessage(m.content);
-				});
-
-				iteration++;
-
-				if (iteration > maxCompactionIterations) {
-					if (compactionActive && callback) callback({ type: "compaction_end" });
-					return { content: originalMessage };
-				}
-				continue;
+				if (compactionActive && callback) callback({ type: "compaction_end" });
+				return { content: originalMessage };
 			}
 
 			throw err;
