@@ -17,11 +17,6 @@ const parsed = yargs(process.argv.slice(2))
 		type: "string",
 		description: "Session ID to restore",
 	})
-	.option("sub-agent", {
-		type: "boolean",
-		default: false,
-		description: "Run as a sub-agent",
-	})
 	.positional("message", {
 		type: "string",
 		description: "Message to send",
@@ -353,8 +348,7 @@ registerShutdownHandler(runShutdown);
 // CLI mode detection (if run directly as node.js/index.js)
 const isMain = process.argv[1] === fileURLToPath(import.meta.url);
 if (isMain) {
-	const isSubAgent = parsed["sub-agent"] === true;
-	const mode = isSubAgent ? "sub-agent" : parsed.mode === "interactive" ? "interactive" : "chat";
+	const mode = parsed.mode === "interactive" ? "interactive" : "chat";
 	const chatSessionId = parsed.session || "";
 	let message = parsed.message;
 	if (!message && chatSessionId) {
@@ -362,24 +356,7 @@ if (isMain) {
 	}
 	message = message || "Hello";
 
-	if (mode === "sub-agent") {
-		try {
-			const response = await handleConversation(message, chatSessionId);
-			const marker = "# SubAgent";
-			const output = `${marker}\n\n${response.content}`;
-			process.stdout.write(output);
-		} catch (err) {
-			const marker = "# SubAgent";
-			const errorOutput = `${marker}\n\n{"ok":false,"result":"","error":"${err.message}"}`;
-			process.stderr.write(errorOutput);
-			process.exit(1);
-		}
-
-		// Graceful shutdown in non-interactive mode
-		await runShutdown();
-		await flushLogger();
-		process.exit(0);
-	} else if (mode === "chat") {
+	if (mode === "chat") {
 		try {
 			await handleConversation(message, chatSessionId);
 			process.stdout.write("\n");

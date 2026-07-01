@@ -1108,7 +1108,7 @@ index.js
 │     ├── tools/moa.js → OPENROUTER_API_KEY — mixture-of-agents (4 parallel OpenRouter calls + aggregation)
 │     ├── tools/cron.js → node:fs/promises — cron job CRUD operations
 │     ├── tools/compactContext.js → @langchain/core, zod — automatic conversation context compaction on LLM 400 errors (tiered retention, retry loop, error detection)
-│     ├── tools/subAgentLog.js → node:fs/promises, node:path — subAgent log management (list, read, cleanup); zero-permission, always registered
+│     └── tools/...
 │     └── tools/...
 ├── sandbox/pathResolver.js → node:path
 ├── sandbox/urlFilter.js → node:url
