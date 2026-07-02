@@ -42,6 +42,7 @@ export default function App({
 	const [inputFocused, setInputFocused] = useState(true);
 	const [contextSize, setContextSize] = useState(0);
 	const [isCompacting, setIsCompacting] = useState(false);
+	const [messages, setMessages] = useState([]);
 	const scrollRef = useRef(null);
 	const abortControllerRef = useRef(null);
 	const isStreamingRef = useRef(false);
@@ -102,12 +103,7 @@ export default function App({
 	const [renderTick, setRenderTick] = useState(0);
 	useEffect(() => {
 		const id = setInterval(() => {
-			// Auto-scroll to bottom during active streaming — the ref holds the
-			// source of truth; check the last message for streaming state.
-			const last = messagesRef.current[messagesRef.current.length - 1];
-			if (last?.streaming && scrollRef.current?.scrollToBottom) {
-				scrollRef.current.scrollToBottom();
-			}
+			setMessages(messagesRef.current);
 			setRenderTick((t) => t + 1);
 		}, 1000 / 30);
 		return () => clearInterval(id);
@@ -937,7 +933,7 @@ export default function App({
 						},
 						React.createElement(ConversationPanel, {
 							key: renderTick,
-							messages: messagesRef.current,
+							messages: messages,
 							assistantName: config?.tui?.name || "Assistant",
 							scrollRef: scrollRef,
 						}),
