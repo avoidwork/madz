@@ -6,7 +6,7 @@ import { loadConfig } from "../config/loader.js";
  * @param {string} [cwd] - Working directory (defaults to process.cwd())
  * @returns {LocalShellBackend}
  */
-export function createShellBackend(cwd) {
+export function createShellBackend(_cwd) {
 	const config = loadConfig();
 	return new LocalShellBackend({
 		rootDir: "/",
