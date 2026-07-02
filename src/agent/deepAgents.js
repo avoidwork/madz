@@ -2,6 +2,7 @@ import { createDeepAgent, CompositeBackend, createSubAgent, createFilesystemMidd
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { InMemoryStore } from "@langchain/langgraph-checkpoint";
+import { loadConfig } from "../config/loader.js";
 import { createCoreBackend } from "./coreBackend.js";
 import { createContextBackend } from "./contextBackend.js";
 import { createSubAgentsBackend } from "./subAgentsBackend.js";
@@ -31,9 +32,12 @@ export function createDeepAgentsOrchestrator(
 	checkpointer = null,
 ) {
 	const codeAgentPrompt = loadCodeAgentPrompt();
+	const config = loadConfig();
 	const coreBackend = createCoreBackend();
 	const contextBackend = createContextBackend();
 	const subAgentsBackend = createSubAgentsBackend();
+
+	const contextRoute = "/" + config.memory.contextDir.replace(/^\.?\//, "");
 
 	const codingSubAgent = createSubAgent({
 		name: "coding-agent",
@@ -54,7 +58,7 @@ export function createDeepAgentsOrchestrator(
 		systemPrompt,
 		store: new InMemoryStore(),
 		backend: new CompositeBackend(coreBackend, {
-			"/memory/context/": contextBackend,
+			[contextRoute]: contextBackend,
 		}),
 		subagents: [codingSubAgent],
 		...(checkpointer && { checkpointer }),
