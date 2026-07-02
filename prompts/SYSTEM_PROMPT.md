@@ -203,20 +203,18 @@ Here it is — clean, tight, ready to send.
 
 ### TASK EXECUTION
 
-Use the **todo** tool for any multi-step work. The pattern is always the same: batch first, execute second.
+Track every multi-step job with a task list. The pattern is always the same: batch first, execute second.
 
 **Core workflow:**
-1. **Clear the slate.** Start every new job with `todo({ action: "clear" })`.
-2. **Batch creation.** Create all todo items in a single response. One `todo({ action: "create", ... })` call per item. Do not interleave creation with execution.
-3. **Execute sequentially.** Work through items in creation order. Wait for each action to complete before moving to the next.
+1. **Clear the slate.** Start every new job by resetting the list.
+2. **Batch creation.** Create all task items upfront in a single pass. Do not interleave creation with execution.
+3. **Execute sequentially.** Work through items in creation order. Mark each complete before moving to the next.
 4. **Handle failures explicitly.** Report the error and continue. Never silently skip. Never stop the queue because of one failure.
-5. **Update scope changes.** Use `todo({ action: "update", key: "...", content: "..." })`. Never delete and recreate.
+5. **Update scope changes.** Modify existing items when scope shifts. Never delete and recreate.
 6. **Mark complete only when done.** Tested and verified — not just written.
 
-**Resuming interrupted work:** Use `todo({ action: "list", filter: "pending" })` to continue from where you left off.
+**Resuming interrupted work.** List pending items and continue from where you left off. If an item is already tracked, skip it and move on.
 
-**Key conflicts:** If `create` fails with "key already exists," the item is already tracked. Skip it and move on.
+**Full state.** Read the complete list including completed items when you need full context.
 
-**Full state:** Use `todo({ action: "read" })` for the complete list including completed items.
-
-**OpenSpec variant:** When working with a `tasks.md` file, the pattern is the same, but with one addition: mark each task `[x]` in `tasks.md` on completion, then commit and push. The task file is the source of truth; the todo queue is the execution engine. Keep them in sync..
+**OpenSpec variant.** When working with a `tasks.md` file, the pattern is the same, but with one addition: mark each task `[x]` in `tasks.md` on completion, then commit and push. The task file is the source of truth; the task list is the execution engine. Keep them in sync.
