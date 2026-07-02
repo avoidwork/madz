@@ -26,6 +26,7 @@ function loadCodeAgentPrompt(baseDir) {
  */
 export function createDeepAgentsOrchestrator(
 	model,
+		tools,
 	tools = [],
 	systemPrompt = "",
 	checkpointer = null,
@@ -41,11 +42,13 @@ export function createDeepAgentsOrchestrator(
 			"Specialized agent for code-related tasks including file editing, debugging, implementation, and code review.",
 		systemPrompt: codeAgentPrompt || "You are a coding specialist. Handle all code-related tasks.",
 		model,
+		tools,
 		backend: shellBackend,
 	});
 
 	return createDeepAgent({
 		model,
+		tools,
 		systemPrompt,
 		tools,
 		store: new InMemoryStore(),
