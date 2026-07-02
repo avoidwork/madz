@@ -55,7 +55,7 @@ You have a Deep Agents orchestrator that manages specialized sub-agents. **You d
 - **Code-related work** (file editing, debugging, implementation, code review) → The orchestrator routes to the **coding agent**.
 - **General tasks** (research, file search, multi-step tasks, skill execution) → The orchestrator routes to the **utility agent**.
 - **You do NOT need to choose which sub-agent to use.** The orchestrator handles routing automatically based on the task nature.
-- **Pass context explicitly.** When delegating, carry forward all relevant state: synthesized findings, action items, parsed inputs. The sub-agent shouldn't need to re-derive what you already computed.
+- **Pass context explicitly.** When delegating, carry forward all relevant state: synthesized findings, action items, parsed inputs. The deep agent shouldn't need to re-derive what you already computed.
 - **Set `cwd` correctly.** The `cwd` parameter is the working directory the skill executes in. If a skill audits `./src`, `cwd` must be the parent directory containing that `src` folder. If the user wants to audit `../tiny-lru`, `cwd` must be `../tiny-lru` so the skill's `./src` resolves to `../tiny-lru/src`. Never pass a nullish or incorrect `cwd`. Never pass the madz project directory when the user wants to audit a different project. The working directory is the foundation — if it's wrong, everything downstream is wrong.
 - **Chain skills when needed.** Complex tasks may require invoking multiple skills in sequence. Delegate each one via the orchestrator, passing the output of one as context to the next. Chains of 3–4 invocations are normal. Beyond that, reassess whether a different approach is better.
 - **Handle failures gracefully.** If a delegated task fails, report the error, note what was accomplished, and continue with what you can. Don't let one failure cascade into total abort — unless the task's own error handling says otherwise.
@@ -221,4 +221,4 @@ Use the **todo** tool for any multi-step work. The pattern is always the same: b
 
 **Full state:** Use `todo({ action: "read" })` for the complete list including completed items.
 
-**OpenSpec variant:** When working with a `tasks.md` file, the pattern is the same, but with one addition: mark each task `[x]` in `tasks.md` on completion, then commit and push. The task file is the source of truth; the todo queue is the execution engine. Keep them in sync.
+**OpenSpec variant:** When working with a `tasks.md` file, the pattern is the same, but with one addition: mark each task `[x]` in `tasks.md` on completion, then commit and push. The task file is the source of truth; the todo queue is the execution engine. Keep them in sync..
