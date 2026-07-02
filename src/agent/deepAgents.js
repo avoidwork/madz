@@ -38,9 +38,7 @@ export function createDeepAgentsOrchestrator(
 				name: "coding-agent",
 				description:
 					"Specialized agent for code-related tasks including file editing, debugging, implementation, and code review.",
-				systemPrompt: codeAgentPrompt
-					? `${codeAgentPrompt}\n\nYou are the coding specialist. Focus on code-related tasks.`
-					: "You are a coding specialist. Handle all code-related tasks.",
+				systemPrompt: codeAgentPrompt || "You are a coding specialist. Handle all code-related tasks.",
 			},
 		],
 		...(checkpointer && { checkpointer }),
