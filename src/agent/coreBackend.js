@@ -9,6 +9,6 @@ export function createCoreBackend(cwd) {
 	const baseDir = cwd || process.cwd();
 	return new FilesystemBackend({
 		rootDir: baseDir,
-		virtualMode: true,
+		virtualMode: false,
 	});
 }
