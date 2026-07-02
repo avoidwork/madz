@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useCallback } from "react";
 import { Box, Text, useStdout } from "ink";
 import { ScrollView } from "ink-scroll-view";
 import { getRoleLabel } from "./messages.js";
@@ -263,6 +263,7 @@ export function ConversationPanel({
 	const previousContentHashRef = useRef(0);
 	const lastScrollTimeRef = useRef(0);
 	const isUserScrollingRef = useRef(false);
+	const previousContentHeightRef = useRef(0);
 	const { stdout } = useStdout();
 
 	// Handle terminal resize by remeasuring content heights
@@ -300,57 +301,46 @@ export function ConversationPanel({
 		checkScrollPosition();
 	}, [messages, scrollRef]);
 
-	// Tracks both message count changes and streaming content growth via a
-	// lightweight content hash so the effect re-evaluates during active streaming.
-	// Implements 100ms throttle on scroll-to-bottom during active streaming,
-	// with immediate scroll on streaming pause and manual scroll suppression.
-	useEffect(() => {
-		if (!scrollRef.current) return;
+	const handleContentHeightChange = useCallback(
+		(newHeight) => {
+			if (!scrollRef.current) return;
 
-		const lastMsg = messages[messages.length - 1];
-		const isStreaming = lastMsg?.streaming === true;
-		const streamingContentLen = isStreaming ? (lastMsg.content || "").length : 0;
-		const contentHash = messages.length + streamingContentLen;
-
-		const wasScrolling =
-			messages.length > previousMessageCount.current ||
-			(isStreaming && contentHash !== previousContentHashRef.current);
-
-		if (!wasScrolling) return;
-
-		// If user manually scrolled up, suppress auto-scroll
-		if (isUserScrollingRef.current && !isStreaming) return;
-
-		const now = Date.now();
-		const timeSinceLastScroll = now - lastScrollTimeRef.current;
-
-		// Throttle scroll-to-bottom during active streaming (100ms interval)
-		// But allow immediate scroll when streaming pauses
-		if (isStreaming && timeSinceLastScroll < SCROLL_THROTTLE_MS) {
-			// Too soon — skip this scroll tick
-			previousContentHashRef.current = contentHash;
-			return;
-		}
-
-		// Re-measure viewport dimensions.
-		scrollRef.current.remeasure();
-
-		// Defer scrollToBottom to the next tick.
-		// ink-scroll-view updates its internal contentHeightRef via useLayoutEffect
-		// after render. Calling scrollToBottom synchronously reads stale content height,
-		// causing the scroll offset to be miscalculated. Deferring ensures the
-		// measurement phase completes before we calculate the scroll position.
-		const scrollHandle = () => {
-			if (scrollRef.current) {
-				scrollRef.current.scrollToBottom();
-				previousMessageCount.current = messages.length;
-				lastScrollTimeRef.current = Date.now();
+			// If content shrank, reset — no scrolling needed
+			if (newHeight <= previousContentHeightRef.current) {
+				previousContentHeightRef.current = newHeight;
+				return;
 			}
-		};
-		previousContentHashRef.current = contentHash;
-		const timer = setTimeout(scrollHandle, 0);
-		return () => clearTimeout(timer);
-	}, [messages, stdout.isTTY]);
+
+			// If user manually scrolled up, suppress auto-scroll
+			if (isUserScrollingRef.current) return;
+
+			const now = Date.now();
+			const timeSinceLastScroll = now - lastScrollTimeRef.current;
+
+			// Throttle scroll-to-bottom to 100ms interval
+			if (timeSinceLastScroll < SCROLL_THROTTLE_MS) {
+				return;
+			}
+
+			// Re-measure viewport dimensions.
+			scrollRef.current.remeasure();
+
+			// Defer scrollToBottom to the next tick.
+			// ink-scroll-view updates its internal contentHeightRef via useLayoutEffect
+			// after render. Calling scrollToBottom synchronously reads stale content height,
+			// causing the scroll offset to be miscalculated. Deferring ensures the
+			// measurement phase completes before we calculate the scroll position.
+			const scrollHandle = () => {
+				if (scrollRef.current) {
+					scrollRef.current.scrollToBottom();
+					lastScrollTimeRef.current = Date.now();
+				}
+			};
+			const timer = setTimeout(scrollHandle, 0);
+			return () => clearTimeout(timer);
+		},
+		[scrollRef],
+	);
 
 	const children = React.useMemo(
 		() => renderMessages(messages, assistantName, MAX_RENDER_MESSAGES),
@@ -360,6 +350,6 @@ export function ConversationPanel({
 	return React.createElement(
 		Box,
 		{ key: "panel", flexDirection: "column", flexGrow: 1 },
-		React.createElement(ScrollView, { ref: scrollRef, key: "scroll", focus: false }, ...children),
+		React.createElement(ScrollView, { ref: scrollRef, key: "scroll", focus: false, onContentHeightChange: handleContentHeightChange }, ...children),
 	);
 }
