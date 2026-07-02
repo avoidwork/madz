@@ -32,7 +32,7 @@ function loadCodeAgentPrompt(baseDir) {
  * @param {import("@langchain/langgraph").BaseCheckpointSaver | null} [checkpointer=null] - Optional checkpointer
  * @returns {Object} Deep Agents orchestrator instance
  */
-export function createDeepAgentsOrchestrator(checkpointer = null) {
+export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	const config = loadConfig();
 	const systemPrompt = loadSystemPrompt();
 	const codeAgentPrompt = loadCodeAgentPrompt();
@@ -49,7 +49,7 @@ export function createDeepAgentsOrchestrator(checkpointer = null) {
 	const model = createChatModel(providerConfig);
 
 	// Build tools from config
-	const tools = buildToolConfig({
+	const tools = await buildToolConfig({
 		permissions: config.sandbox.permissions || [],
 		allowedPaths: config.sandbox.paths,
 		maxReadSize: config.sandbox.maxReadSize || "1mb",

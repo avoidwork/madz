@@ -181,7 +181,7 @@ try {
 const { createCheckpointer } = await import("./src/session/checkpointer.js");
 const checkpointer = createCheckpointer(config.persistence);
 
-const agent = createDeepAgentsOrchestrator(checkpointer);
+const agent = await createDeepAgentsOrchestrator(checkpointer);
 
 const sessionConfig = { configurable: { thread_id: sessionState.getThreadId() } };
 
