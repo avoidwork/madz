@@ -1,4 +1,4 @@
-import { createDeepAgent, CompositeBackend, createSubAgent } from "deepagents";
+import { createDeepAgent, CompositeBackend, createSubAgent, createFilesystemMiddleware } from "deepagents";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { InMemoryStore } from "@langchain/langgraph-checkpoint";
@@ -42,14 +42,15 @@ export function createDeepAgentsOrchestrator(
 		systemPrompt: codeAgentPrompt || "You are a coding specialist. Handle all code-related tasks.",
 		model,
 		tools,
-		backend: shellBackend,
+		middleware: [
+			createFilesystemMiddleware({ backend: coreBackend }),
+		],
 	});
 
 	return createDeepAgent({
 		model,
 		tools,
 		systemPrompt,
-		tools,
 		store: new InMemoryStore(),
 		backend: new CompositeBackend(coreBackend, {
 			"/memory/context/": contextBackend,
