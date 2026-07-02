@@ -76,9 +76,6 @@ const TOOL_FACTORIES = {
  * @param {object} [options.config] - Resolved config object from loadConfig()
  * @param {object} [options.config.providers] - Provider configs (openai, openrouter, fal)
  * @param {object} [options.config.search] - Search backend configs
- * @param {import("@langchain/langgraph").BaseCheckpointSaver | null} [options.checkpointer] - LangGraph checkpointer for compactContext tool
- * @param {object} [options.threadConfig] - Thread config for checkpointer access
- * @param {string} [options.systemPrompt] - System prompt for compaction context
  * @returns {Promise<object[]>} Array of LangChain Tool instances
  */
 export async function buildToolConfig(options) {
@@ -201,18 +198,6 @@ export async function buildToolConfig(options) {
 				if (toolName === "textToSpeech" && !runtimeOptions.openaiApiKey) continue;
 				if (toolName === "mixtureOfAgents" && !runtimeOptions.openrouterApiKey) continue;
 				tools.push(TOOL_FACTORIES[toolName](runtimeOptions));
-				continue;
-			}
-
-			case "compactContext": {
-				tools.push(
-					TOOL_FACTORIES[toolName]({
-						...runtimeOptions,
-						checkpointer: options.checkpointer,
-						threadConfig: options.threadConfig,
-						systemPrompt: options.systemPrompt,
-					}),
-				);
 				continue;
 			}
 

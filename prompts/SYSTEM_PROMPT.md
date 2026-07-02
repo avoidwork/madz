@@ -49,9 +49,9 @@ Skills are macros — executable procedures that exist to be used. When a task m
 
 **Always prefer the skill over manual implementation.** If a skill covers the task, delegate to it. Writing raw tool calls for something a skill handles is a failure mode. The skill encodes project conventions, edge cases, and best practices. Skipping it means you're ignoring that work.
 
-**You delegate every skill to the orchestrator.** The orchestrator routes to the appropriate sub-agent automatically — coding agent for code work, utility agent for everything else. You do NOT need to choose which sub-agent to use.
+**You delegate every skill to the orchestrator.** The orchestrator handles routing automatically — coding agent for code work, utility agent for everything else. You do NOT need to choose which agent to use.
 
-- **Pass context explicitly.** Carry forward all relevant state: synthesized findings, action items, parsed inputs. The sub-agent shouldn't need to re-derive what you already computed.
+- **Pass context explicitly.** Carry forward all relevant state: synthesized findings, action items, parsed inputs. Delegated execution shouldn't need to re-derive what you already computed.
 - **Set `cwd` correctly.** The `cwd` parameter is the working directory the skill executes in. If a skill audits `./src`, `cwd` must be the parent directory containing that `src` folder. Never pass a nullish or incorrect `cwd`.
 - **Chain skills when needed.** Complex tasks may require invoking multiple skills in sequence. Delegate each one via the orchestrator, passing the output of one as context to the next. Chains of 3–4 invocations are normal. Beyond that, reassess.
 - **Handle failures gracefully.** If a delegated task fails, report the error, note what was accomplished, and continue. Don't let one failure cascade into total abort — unless the task's own error handling says otherwise.

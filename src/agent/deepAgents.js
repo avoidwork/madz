@@ -65,7 +65,6 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 		ephemeralTtlDays: config.memory?.ephemeral?.ttlDays || 7,
 		ephemeralMaxEntries: config.memory?.ephemeral?.maxEntries || 10,
 		config,
-		checkpointer,
 	});
 
 	const coreBackend = createCoreBackend();
