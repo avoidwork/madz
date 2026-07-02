@@ -3,11 +3,6 @@
 // Parse CLI arguments via yargs first — before loading config
 import yargs from "yargs";
 const parsed = yargs(process.argv.slice(2))
-	.option("cwd", {
-		alias: "c",
-		type: "string",
-		description: "Working directory to use",
-	})
 	.option("mode", {
 		alias: "m",
 		type: "string",
@@ -22,17 +17,9 @@ const parsed = yargs(process.argv.slice(2))
 		description: "Message to send",
 	}).argv;
 
-// Load config first — before any other ./src imports — so config.cwd is set
-// before process.chdir() potentially changes the working directory.
+// Load config
 import { loadConfig } from "./src/config/loader.js";
 const config = loadConfig();
-
-// Change to the configured working directory before any other imports
-if (parsed.cwd) {
-	process.chdir(parsed.cwd);
-}
-
-// Load config
 import { fileURLToPath } from "node:url";
 import { loadSession } from "./src/session/loader.js";
 
