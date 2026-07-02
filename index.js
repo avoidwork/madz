@@ -26,9 +26,7 @@ import { loadSession } from "./src/session/loader.js";
 import React from "react";
 
 const { setConfigValue } = await import("./src/config/loader.js");
-const { createChatModel } = await import("./src/provider/openai.js");
 const { createDeepAgentsOrchestrator } = await import("./src/agent/deepAgents.js");
-const { buildToolConfig } = await import("./src/tools/index.js");
 const { logger } = await import("./src/logger.js");
 
 const { default: pkg } = await import(new URL("package.json", import.meta.url).href, {
