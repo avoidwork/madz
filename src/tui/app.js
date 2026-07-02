@@ -34,7 +34,7 @@ export default function App({
 	const [showBanner, setShowBanner] = useState(true);
 	const [showOnboarding, setShowOnboarding] = useState(!!onboarding);
 	const [onboardingResponse, setOnboardingResponse] = useState(0);
-	const [messages, setMessages] = useState([]);
+	const messagesRef = useRef([]);
 	const [statusMessage, setStatusMessage] = useState("Ready");
 	const [chatHistory, setChatHistory] = useState([]);
 	const [historyIndex, setHistoryIndex] = useState(-1);
@@ -94,6 +94,17 @@ export default function App({
 			process.off("uncaughtException", onUncaught);
 			process.off("unhandledRejection", onUnhandled);
 		};
+	}, []);
+
+	// Debounce re-renders to ~30fps — batch all message mutations into a single
+	// render per frame. The ref holds the source of truth; the interval reads it
+	// and triggers a re-render at a fixed rate.
+	const [, setRenderTick] = useState(0);
+	useEffect(() => {
+		const id = setInterval(() => {
+			setRenderTick((t) => t + 1);
+		}, 1000 / 30);
+		return () => clearInterval(id);
 	}, []);
 
 	// Process command or dispatch as normal chat
@@ -194,7 +205,7 @@ export default function App({
 				return;
 			}
 			if (result.action === "clear") {
-				setMessages([]);
+				messagesRef.current = [];
 				setStatusMessage(result.message || "Conversation cleared.");
 				return;
 			}
@@ -211,17 +222,14 @@ export default function App({
 				}
 
 				const assistantTime = getTimestamp();
-				setMessages((prev) => [
-					...prev,
-					{
-						role: "assistant",
-						content: "",
-						time: assistantTime,
-						streaming: true,
-						toolCalls: [],
-						toolCallDisplay: "",
-					},
-				]);
+				messagesRef.current.push({
+					role: "assistant",
+					content: "",
+					time: assistantTime,
+					streaming: true,
+					toolCalls: [],
+					toolCallDisplay: "",
+				});
 
 				let committedContentRef = { current: "" };
 				let committedReasoning = "";
@@ -238,16 +246,14 @@ export default function App({
 							? `- ${event.message}`
 							: `- Todo: ${event.action} ${event.key || ""}`;
 						todoStatusLines = (todoStatusLines ? todoStatusLines + "\n" : "") + statusLine;
-						setMessages((prev) => {
-							const cloned = [...prev];
+							const cloned = [...messagesRef.current];
 							const last = cloned[cloned.length - 1];
 							if (last.role === "assistant" && last.streaming) {
 								last.toolCallDisplay = lastToolCallDisplay
 									? lastToolCallDisplay + "\n" + todoStatusLines
 									: todoStatusLines;
 							}
-							return cloned;
-						});
+							messagesRef.current = cloned;
 					}
 				});
 
@@ -273,27 +279,23 @@ export default function App({
 					if (!responseContent.trim() && !shouldAbort()) {
 						// Show tool results so the user knows work happened
 						if (lastToolCallDisplay) {
-							setMessages((prev) => {
-								const cloned = [...prev];
-								const last = cloned[cloned.length - 1];
-								if (last.role === "assistant" && last.streaming) {
-									last.toolCallDisplay = lastToolCallDisplay;
-								}
-								return cloned;
-							});
+							const cloned = [...messagesRef.current];
+							const last = cloned[cloned.length - 1];
+							if (last.role === "assistant" && last.streaming) {
+								last.toolCallDisplay = lastToolCallDisplay;
+							}
+							messagesRef.current = cloned;
 						}
 
 						if (autoContinueCountRef.current >= (config?.agent?.autoContinueLimit ?? 1000)) {
 							// Circuit breaker: model is stuck in thinking-only loop
 							setStatusMessage("Model appears stuck — starting fresh.");
-							setMessages((prev) => {
-								const cloned = [...prev];
-								const last = cloned[cloned.length - 1];
-								if (last.role === "assistant" && last.streaming) {
-									last.streaming = false;
-								}
-								return cloned;
-							});
+							const cloned = [...messagesRef.current];
+							const last = cloned[cloned.length - 1];
+							if (last.role === "assistant" && last.streaming) {
+								last.streaming = false;
+							}
+							messagesRef.current = cloned;
 							autoContinueCountRef.current = 0;
 							addMessage({
 								role: "system",
@@ -345,24 +347,20 @@ export default function App({
 						if (sessionState) {
 							sessionState.popExchange();
 						}
-						setMessages((prev) => {
-							const cloned = [...prev];
-							const last = cloned[cloned.length - 1];
-							if (last.role === "assistant" && last.streaming) {
-								last.streaming = false;
-							}
-							return cloned;
-						});
+						const cloned = [...messagesRef.current];
+						const last = cloned[cloned.length - 1];
+						if (last.role === "assistant" && last.streaming) {
+							last.streaming = false;
+						}
+						messagesRef.current = cloned;
 						setStatusMessage("Interrupted.");
 					} else {
-						setMessages((prev) => {
-							const cloned = [...prev];
-							const last = cloned[cloned.length - 1];
-							if (last.role === "assistant" && last.streaming) {
-								last.streaming = false;
-							}
-							return cloned;
-						});
+						const cloned2 = [...messagesRef.current];
+						const last2 = cloned2[cloned2.length - 1];
+						if (last2.role === "assistant" && last2.streaming) {
+							last2.streaming = false;
+						}
+						messagesRef.current = cloned2;
 						setStatusMessage(`Error: ${err.message}`);
 					}
 				} finally {
@@ -421,17 +419,14 @@ export default function App({
 		}
 
 		const assistantTime = getTimestamp();
-		setMessages((prev) => [
-			...prev,
-			{
-				role: "assistant",
-				content: "",
-				time: assistantTime,
-				streaming: true,
-				toolCalls: [],
-				toolCallDisplay: "",
-			},
-		]);
+		messagesRef.current.push({
+			role: "assistant",
+			content: "",
+			time: assistantTime,
+			streaming: true,
+			toolCalls: [],
+			toolCallDisplay: "",
+		});
 
 		let committedContentRef = { current: "" };
 		let committedReasoning = "";
@@ -450,16 +445,14 @@ export default function App({
 					? `- ${event.message}`
 					: `- Todo: ${event.action} ${event.key || ""}`;
 				todoStatusLines = (todoStatusLines ? todoStatusLines + "\n" : "") + statusLine;
-				setMessages((prev) => {
-					const cloned = [...prev];
-					const last = cloned[cloned.length - 1];
-					if (last.role === "assistant" && last.streaming) {
-						last.toolCallDisplay = lastToolCallDisplay
-							? lastToolCallDisplay + "\n" + todoStatusLines
-							: todoStatusLines;
-					}
-					return cloned;
-				});
+				const cloned = [...messagesRef.current];
+				const last = cloned[cloned.length - 1];
+				if (last.role === "assistant" && last.streaming) {
+					last.toolCallDisplay = lastToolCallDisplay
+						? lastToolCallDisplay + "\n" + todoStatusLines
+						: todoStatusLines;
+				}
+				messagesRef.current = cloned;
 			}
 		});
 
@@ -488,27 +481,23 @@ export default function App({
 			if (!responseContent.trim() && !shouldAbort()) {
 				// Show tool results so the user knows work happened
 				if (lastToolCallDisplay) {
-					setMessages((prev) => {
-						const cloned = [...prev];
-						const last = cloned[cloned.length - 1];
-						if (last.role === "assistant" && last.streaming) {
-							last.toolCallDisplay = lastToolCallDisplay;
-						}
-						return cloned;
-					});
+					const cloned = [...messagesRef.current];
+					const last = cloned[cloned.length - 1];
+					if (last.role === "assistant" && last.streaming) {
+						last.toolCallDisplay = lastToolCallDisplay;
+					}
+					messagesRef.current = cloned;
 				}
 
 				if (autoContinueCountRef.current >= (config?.agent?.autoContinueLimit ?? 1000)) {
 					// Circuit breaker: model is stuck in thinking-only loop
 					setStatusMessage("Model appears stuck — starting fresh.");
-					setMessages((prev) => {
-						const cloned = [...prev];
-						const last = cloned[cloned.length - 1];
-						if (last.role === "assistant" && last.streaming) {
-							last.streaming = false;
-						}
-						return cloned;
-					});
+					const cloned = [...messagesRef.current];
+					const last = cloned[cloned.length - 1];
+					if (last.role === "assistant" && last.streaming) {
+						last.streaming = false;
+					}
+					messagesRef.current = cloned;
 					autoContinueCountRef.current = 0;
 					addMessage({
 						role: "system",
@@ -593,13 +582,13 @@ export default function App({
 					sessionState.popExchange();
 				}
 				// Clear the partial streaming assistant message from UI
-				setMessages((prev) => prev.filter((msg) => !isStreamingMessage(msg)));
+				messagesRef.current = messagesRef.current.filter((msg) => !isStreamingMessage(msg));
 				setStatusMessage("Interrupted.");
 			} else {
 				if (onSaveSession) {
 					onSaveSession();
 				}
-				setMessages((prev) => prev.filter((msg) => !isStreamingMessage(msg)));
+				messagesRef.current = messagesRef.current.filter((msg) => !isStreamingMessage(msg));
 				setStatusMessage("Something went wrong");
 				addMessage({
 					role: "system",
@@ -640,14 +629,12 @@ export default function App({
 			sessionState.removeLastAssistantToolCallMessage();
 		}
 
-		setMessages((prev) => {
-			const cloned = [...prev];
-			const last = cloned[cloned.length - 1];
-			if (last?.role === "assistant" && last?.streaming) {
-				last.streaming = false;
-			}
-			return cloned;
-		});
+		const cloned = [...messagesRef.current];
+		const last = cloned[cloned.length - 1];
+		if (last?.role === "assistant" && last?.streaming) {
+			last.streaming = false;
+		}
+		messagesRef.current = cloned;
 		setStatusMessage("Interrupted.");
 
 		// Wait for the dispatchProvider promise to resolve (it will throw
@@ -680,7 +667,7 @@ export default function App({
 		const newSession = createSession({ provider: sessionState.getProvider() });
 		sessionState.createNewSession(newSession.sessionId);
 		setIsCompacting(false);
-		setMessages([]);
+		messagesRef.current = [];
 		setChatHistory([]);
 		setContextSize(0);
 		setStatusMessage("New session started.");
@@ -760,7 +747,7 @@ export default function App({
 
 	const addMessage = (msg) => {
 		const time = getTimestamp();
-		setMessages((prev) => prev.concat({ ...msg, time }));
+		messagesRef.current.push({ ...msg, time });
 	};
 
 	/**
@@ -775,14 +762,12 @@ export default function App({
 			try {
 				if (event.type === "message") {
 					committedContentRef.current = (committedContentRef.current || "") + event.text;
-					setMessages((prev) => {
-						const cloned = [...prev];
-						const last = cloned[cloned.length - 1];
-						if (last.role === "assistant" && last.streaming) {
-							last.content = committedContentRef.current + "\u2588";
-						}
-						return cloned;
-					});
+					const cloned = [...messagesRef.current];
+					const last = cloned[cloned.length - 1];
+					if (last.role === "assistant" && last.streaming) {
+						last.content = committedContentRef.current + "\u2588";
+					}
+					messagesRef.current = cloned;
 					if (onTextReceived) onTextReceived();
 				}
 			} catch (_cbErr) {
@@ -799,25 +784,23 @@ export default function App({
 	 * @param {string} todoStatusLines - Todo status lines
 	 */
 	const finalizeStreaming = (responseContent, committedReasoning, lastToolCallDisplay, todoStatusLines) => {
-		setMessages((prev) => {
-			const cloned = [...prev];
-			const last = cloned[cloned.length - 1];
-			if (last.role === "assistant" && last.streaming) {
-				last.content = responseContent;
-				last.reasoningContent = committedReasoning || undefined;
-				last.streaming = false;
-				last.activeToolCall = null;
-				if (lastToolCallDisplay) {
-					last.toolCallDisplay = lastToolCallDisplay;
-				}
-				if (todoStatusLines) {
-					last.toolCallDisplay = last.toolCallDisplay
-						? last.toolCallDisplay + "\n" + todoStatusLines
-						: todoStatusLines;
-				}
+		const cloned = [...messagesRef.current];
+		const last = cloned[cloned.length - 1];
+		if (last.role === "assistant" && last.streaming) {
+			last.content = responseContent;
+			last.reasoningContent = committedReasoning || undefined;
+			last.streaming = false;
+			last.activeToolCall = null;
+			if (lastToolCallDisplay) {
+				last.toolCallDisplay = lastToolCallDisplay;
 			}
-			return cloned;
-		});
+			if (todoStatusLines) {
+				last.toolCallDisplay = last.toolCallDisplay
+					? last.toolCallDisplay + "\n" + todoStatusLines
+					: todoStatusLines;
+			}
+		}
+		messagesRef.current = cloned;
 	};
 
 	// Single input handler - processes all keystrokes here
@@ -911,7 +894,7 @@ export default function App({
 
 	const statusProps = {
 		skillCount: skillList.length,
-		messageCount: messages.length,
+		messageCount: messagesRef.current.length,
 		contextSize: contextSize,
 		statusMessage: statusMessage,
 		isCompacting: isCompacting,
@@ -947,7 +930,7 @@ export default function App({
 							backgroundColor: undefined,
 						},
 						React.createElement(ConversationPanel, {
-							messages: messages,
+							messages: messagesRef.current,
 							assistantName: config?.tui?.name || "Assistant",
 							scrollRef: scrollRef,
 						}),
