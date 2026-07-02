@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { InMemoryStore } from "@langchain/langgraph-checkpoint";
 import { loadConfig } from "../config/loader.js";
 import { loadSystemPrompt } from "../memory/prompts.js";
+import { SkillRegistry } from "../skills/registry.js";
 import { createCoreBackend } from "./coreBackend.js";
 import { createContextBackend } from "./contextBackend.js";
 import { createSubAgentsBackend } from "./subAgentsBackend.js";
@@ -34,6 +35,12 @@ export function createDeepAgentsOrchestrator(
 	const codeAgentPrompt = loadCodeAgentPrompt();
 	const config = loadConfig();
 	const agentsPath = join(config.cwd, "AGENTS.md");
+
+	// Discover skills from configured scopes
+	const skillRegistry = new SkillRegistry();
+	skillRegistry.discover();
+	const skillPaths = skillRegistry.getSkillPaths();
+
 	const coreBackend = createCoreBackend();
 	const contextBackend = createContextBackend();
 	const subAgentsBackend = createSubAgentsBackend();
@@ -63,6 +70,7 @@ export function createDeepAgentsOrchestrator(
 		}),
 		subagents: [codingSubAgent],
 		...(agentsPath && { memory: [agentsPath] }),
+		...(skillPaths.length > 0 && { skills: skillPaths }),
 		...(checkpointer && { checkpointer }),
 	});
 }
