@@ -1,6 +1,8 @@
-import { createDeepAgent } from "deepagents";
+import { createDeepAgent, CompositeBackend } from "deepagents";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { createCoreBackend } from "./coreBackend.js";
+import { createContextBackend } from "./contextBackend.js";
 
 function loadCodeAgentPrompt(baseDir) {
 	try {
@@ -27,12 +29,16 @@ export function createDeepAgentsOrchestrator(
 	checkpointer = null,
 ) {
 	const codeAgentPrompt = loadCodeAgentPrompt();
+	const coreBackend = createCoreBackend();
+	const contextBackend = createContextBackend();
 
 	return createDeepAgent({
 		model,
 		systemPrompt,
 		tools,
-		middleware: [],
+		backend: new CompositeBackend(coreBackend, {
+			"/memory/context/": contextBackend,
+		}),
 		subagents: [
 			{
 				name: "coding-agent",
