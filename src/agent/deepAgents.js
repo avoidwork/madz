@@ -26,7 +26,6 @@ function loadCodeAgentPrompt(baseDir) {
  */
 export function createDeepAgentsOrchestrator(
 	model,
-		tools,
 	tools = [],
 	systemPrompt = "",
 	checkpointer = null,
