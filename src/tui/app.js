@@ -223,7 +223,7 @@ export default function App({
 					},
 				]);
 
-				let committedContent = "";
+				let committedContentRef = { current: "" };
 				let committedReasoning = "";
 				let lastToolCallDisplay = "";
 				let todoStatusLines = "";
@@ -256,24 +256,7 @@ export default function App({
 					const dispatchPromise = dispatchProvider(
 						result.skillBody,
 						sessionState ? sessionState.getProvider() : null,
-						(event) => {
-							if (shouldAbort()) return;
-							try {
-								if (event.type === "message") {
-									committedContent = (committedContent || "") + event.text;
-									setMessages((prev) => {
-										const cloned = [...prev];
-										const last = cloned[cloned.length - 1];
-										if (last.role === "assistant" && last.streaming) {
-											last.content = committedContent + "\u2588";
-										}
-										return cloned;
-									});
-								}
-							} catch (_cbErr) {
-								// Silently ignore streaming callback errors
-							}
-						},
+						createStreamingHandler(committedContentRef),
 						abortControllerRef.current?.signal,
 					);
 
@@ -281,7 +264,7 @@ export default function App({
 					dispatchPromiseRef.current = dispatchPromise;
 					await dispatchPromise;
 
-					let responseContent = committedContent;
+					let responseContent = committedContentRef.current;
 
 					// Auto-continue if the agent stalled with zero text output
 					// Circuit breaker: configurable limit (default 1000) of consecutive
@@ -327,24 +310,10 @@ export default function App({
 							const continuePromise = dispatchProvider(
 								"Please continue.",
 								sessionState ? sessionState.getProvider() : null,
-								(event) => {
-									if (shouldAbort()) return;
-									try {
-										if (event.type === "message") {
-											committedContent = (committedContent || "") + event.text;
-											setMessages((prev) => {
-												const cloned = [...prev];
-												const last = cloned[cloned.length - 1];
-												if (last.role === "assistant" && last.streaming) {
-													last.content = committedContent + "\u2588";
-												}
-												return cloned;
-											});
-											// Reset flag — text arrived, not stuck anymore
-											isAutoContinuingRef.current = false;
-										}
-									} catch (_cbErr) {}
-								},
+								createStreamingHandler(committedContentRef, () => {
+									// Reset flag — text arrived, not stuck anymore
+									isAutoContinuingRef.current = false;
+								}),
 								abortControllerRef.current?.signal,
 							);
 							// Update the ref so handleInterrupt can await this promise too
@@ -361,25 +330,7 @@ export default function App({
 
 					if (shouldAbort()) return;
 
-					setMessages((prev) => {
-						const cloned = [...prev];
-						const last = cloned[cloned.length - 1];
-						if (last.role === "assistant" && last.streaming) {
-							last.content = responseContent;
-							last.reasoningContent = committedReasoning || undefined;
-							last.streaming = false;
-							last.activeToolCall = null;
-							if (lastToolCallDisplay) {
-								last.toolCallDisplay = lastToolCallDisplay;
-							}
-							if (todoStatusLines) {
-								last.toolCallDisplay = last.toolCallDisplay
-									? last.toolCallDisplay + "\n" + todoStatusLines
-									: todoStatusLines;
-							}
-						}
-						return cloned;
-					});
+					finalizeStreaming(responseContent, committedReasoning, lastToolCallDisplay, todoStatusLines);
 
 					// Persist assistant response to session state
 					if (sessionState) {
@@ -482,7 +433,7 @@ export default function App({
 			},
 		]);
 
-		let committedContent = "";
+		let committedContentRef = { current: "" };
 		let committedReasoning = "";
 		let lastToolCallDisplay = "";
 		let todoStatusLines = "";
@@ -517,24 +468,7 @@ export default function App({
 			const dispatchPromise = dispatchProvider(
 				text,
 				sessionState ? sessionState.getProvider() : null,
-				(event) => {
-					if (shouldAbort()) return;
-					try {
-						if (event.type === "message") {
-							committedContent = (committedContent || "") + event.text;
-							setMessages((prev) => {
-								const cloned = [...prev];
-								const last = cloned[cloned.length - 1];
-								if (last.role === "assistant" && last.streaming) {
-									last.content = committedContent + "\u2588";
-								}
-								return cloned;
-							});
-						}
-					} catch (_cbErr) {
-						// Silently ignore streaming callback errors
-					}
-				},
+				createStreamingHandler(committedContentRef),
 				abortControllerRef.current?.signal,
 			);
 
@@ -542,10 +476,10 @@ export default function App({
 			dispatchPromiseRef.current = dispatchPromise;
 			const _response = await dispatchPromise;
 
-			// committedContent is accumulated from streaming text events —
+			// committedContentRef.current is accumulated from streaming text events —
 			// this is the actual AI response. response.content is only the
 			// originalMessage fallback from callReactAgentStreaming.
-			let responseContent = committedContent;
+			let responseContent = committedContentRef.current;
 
 			// Auto-continue if the agent stalled with zero text output
 			// Circuit breaker: configurable limit (default 1000) of consecutive
@@ -591,24 +525,10 @@ export default function App({
 					const continuePromise = dispatchProvider(
 						"Please continue.",
 						sessionState ? sessionState.getProvider() : null,
-						(event) => {
-							if (shouldAbort()) return;
-							try {
-								if (event.type === "message") {
-									committedContent = (committedContent || "") + event.text;
-									setMessages((prev) => {
-										const cloned = [...prev];
-										const last = cloned[cloned.length - 1];
-										if (last.role === "assistant" && last.streaming) {
-											last.content = committedContent + "\u2588";
-										}
-										return cloned;
-									});
-									// Reset flag — text arrived, not stuck anymore
-									isAutoContinuingRef.current = false;
-								}
-							} catch (_cbErr) {}
-						},
+						createStreamingHandler(committedContentRef, () => {
+							// Reset flag — text arrived, not stuck anymore
+							isAutoContinuingRef.current = false;
+						}),
 						abortControllerRef.current?.signal,
 					);
 					// Update the ref so handleInterrupt can await this promise too
@@ -631,25 +551,7 @@ export default function App({
 				sessionState.addExchange({ role: "user", content: text });
 			}
 
-			setMessages((prev) => {
-				const cloned = [...prev];
-				const last = cloned[cloned.length - 1];
-				if (last.role === "assistant" && last.streaming) {
-					last.content = responseContent;
-					last.reasoningContent = committedReasoning || undefined;
-					last.streaming = false;
-					last.activeToolCall = null;
-					if (lastToolCallDisplay) {
-						last.toolCallDisplay = lastToolCallDisplay;
-					}
-					if (todoStatusLines) {
-						last.toolCallDisplay = last.toolCallDisplay
-							? last.toolCallDisplay + "\n" + todoStatusLines
-							: todoStatusLines;
-					}
-				}
-				return cloned;
-			});
+			finalizeStreaming(responseContent, committedReasoning, lastToolCallDisplay, todoStatusLines);
 
 			// Persist assistant message and recalculate context
 			if (sessionState) {
@@ -859,6 +761,63 @@ export default function App({
 	const addMessage = (msg) => {
 		const time = getTimestamp();
 		setMessages((prev) => prev.concat({ ...msg, time }));
+	};
+
+	/**
+	 * Streaming event handler — single handler for all dispatch streams.
+	 * @param {Object} committedContentRef - Ref holding accumulated text
+	 * @param {Function} [onTextReceived] - Optional callback when text arrives
+	 * @returns {Function} Event callback for dispatchProvider
+	 */
+	const createStreamingHandler = (committedContentRef, onTextReceived) => {
+		return (event) => {
+			if (shouldAbort()) return;
+			try {
+				if (event.type === "message") {
+					committedContentRef.current = (committedContentRef.current || "") + event.text;
+					setMessages((prev) => {
+						const cloned = [...prev];
+						const last = cloned[cloned.length - 1];
+						if (last.role === "assistant" && last.streaming) {
+							last.content = committedContentRef.current + "\u2588";
+						}
+						return cloned;
+					});
+					if (onTextReceived) onTextReceived();
+				}
+			} catch (_cbErr) {
+				// Silently ignore streaming callback errors
+			}
+		};
+	};
+
+	/**
+	 * Finalize streaming message — strips cursor, sets final state.
+	 * @param {string} responseContent - Final accumulated text
+	 * @param {string} committedReasoning - Accumulated reasoning content
+	 * @param {string} lastToolCallDisplay - Tool call display text
+	 * @param {string} todoStatusLines - Todo status lines
+	 */
+	const finalizeStreaming = (responseContent, committedReasoning, lastToolCallDisplay, todoStatusLines) => {
+		setMessages((prev) => {
+			const cloned = [...prev];
+			const last = cloned[cloned.length - 1];
+			if (last.role === "assistant" && last.streaming) {
+				last.content = responseContent;
+				last.reasoningContent = committedReasoning || undefined;
+				last.streaming = false;
+				last.activeToolCall = null;
+				if (lastToolCallDisplay) {
+					last.toolCallDisplay = lastToolCallDisplay;
+				}
+				if (todoStatusLines) {
+					last.toolCallDisplay = last.toolCallDisplay
+						? last.toolCallDisplay + "\n" + todoStatusLines
+						: todoStatusLines;
+				}
+			}
+			return cloned;
+		});
 	};
 
 	// Single input handler - processes all keystrokes here
