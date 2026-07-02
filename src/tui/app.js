@@ -99,7 +99,7 @@ export default function App({
 	// Debounce re-renders to ~30fps — batch all message mutations into a single
 	// render per frame. The ref holds the source of truth; the interval reads it
 	// and triggers a re-render at a fixed rate.
-	const [, setRenderTick] = useState(0);
+	const [renderTick, setRenderTick] = useState(0);
 	useEffect(() => {
 		const id = setInterval(() => {
 			setRenderTick((t) => t + 1);
@@ -930,6 +930,7 @@ export default function App({
 							backgroundColor: undefined,
 						},
 						React.createElement(ConversationPanel, {
+							key: renderTick,
 							messages: messagesRef.current,
 							assistantName: config?.tui?.name || "Assistant",
 							scrollRef: scrollRef,
