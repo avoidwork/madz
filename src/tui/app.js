@@ -102,6 +102,12 @@ export default function App({
 	const [renderTick, setRenderTick] = useState(0);
 	useEffect(() => {
 		const id = setInterval(() => {
+			// Auto-scroll to bottom during active streaming — the ref holds the
+			// source of truth; check the last message for streaming state.
+			const last = messagesRef.current[messagesRef.current.length - 1];
+			if (last?.streaming && scrollRef.current?.scrollToBottom) {
+				scrollRef.current.scrollToBottom();
+			}
 			setRenderTick((t) => t + 1);
 		}, 1000 / 30);
 		return () => clearInterval(id);
@@ -768,7 +774,6 @@ export default function App({
 						last.content = committedContentRef.current + "\u2588";
 					}
 					messagesRef.current = cloned;
-					setMessages(cloned);
 					if (onTextReceived) onTextReceived();
 				}
 			} catch (_cbErr) {
@@ -802,7 +807,6 @@ export default function App({
 			}
 		}
 		messagesRef.current = cloned;
-		setMessages(cloned);
 	};
 
 	// Single input handler - processes all keystrokes here
