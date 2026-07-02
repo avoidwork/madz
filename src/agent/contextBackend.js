@@ -1,5 +1,6 @@
 import { FilesystemBackend } from "deepagents";
 import { join } from "node:path";
+import { loadConfig } from "../config/loader.js";
 
 /**
  * Create a FilesystemBackend for the memory context directory.
@@ -8,7 +9,8 @@ import { join } from "node:path";
  */
 export function createContextBackend(cwd) {
 	const baseDir = cwd || process.cwd();
-	const contextDir = join(baseDir, "memory", "context");
+	const config = loadConfig();
+	const contextDir = join(baseDir, config.memory.contextDir);
 	return new FilesystemBackend({
 		rootDir: contextDir,
 		virtualMode: true,
