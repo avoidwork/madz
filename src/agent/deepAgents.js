@@ -1,4 +1,10 @@
-import { createDeepAgent, CompositeBackend, createSubAgent, createFilesystemMiddleware, createMemoryMiddleware } from "deepagents";
+import {
+	createDeepAgent,
+	CompositeBackend,
+	createSubAgent,
+	createFilesystemMiddleware,
+	createMemoryMiddleware,
+} from "deepagents";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { InMemoryStore } from "@langchain/langgraph-checkpoint";
@@ -26,11 +32,7 @@ function loadCodeAgentPrompt(baseDir) {
  * @param {import("@langchain/langgraph").BaseCheckpointSaver | null} [checkpointer=null] - Optional checkpointer
  * @returns {Object} Deep Agents orchestrator instance
  */
-export function createDeepAgentsOrchestrator(
-	model,
-	tools = [],
-	checkpointer = null,
-) {
+export function createDeepAgentsOrchestrator(model, tools = [], checkpointer = null) {
 	const systemPrompt = loadSystemPrompt();
 	const codeAgentPrompt = loadCodeAgentPrompt();
 	const config = loadConfig();

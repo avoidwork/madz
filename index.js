@@ -124,8 +124,6 @@ registry.discover();
 // Initialize memory system
 const { writeMemoryFile, readMemoryFile, loadContext } = await import("./src/memory/index.js");
 
-
-
 // Initialize GC manager (if enabled)
 let gcManager = null;
 let gcTrace = null;
