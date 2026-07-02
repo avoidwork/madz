@@ -98,17 +98,4 @@ describe("loadSystemPrompt", () => {
 		const result = loadSystemPrompt("__nonexistent_dir_xyz__");
 		assert.strictEqual(result, "");
 	});
-
-	it("loads SUB_AGENT.md when subAgent is true", async () => {
-		mkdirSync(join(fullTestDir, "prompts"), { recursive: true });
-		writeFileSync(
-			join(fullTestDir, "prompts", "SUB_AGENT.md"),
-			"# Sub Agent Prompt\n\nYou are a sub-agent.",
-		);
-
-		const { loadSystemPrompt } = await import("../../src/memory/prompts.js");
-		const result = loadSystemPrompt(fullTestDir, true);
-		assert.ok(result.includes("# Sub Agent Prompt"));
-		assert.ok(result.includes("You are a sub-agent."));
-	});
 });

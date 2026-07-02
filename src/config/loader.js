@@ -135,14 +135,10 @@ let cachedConfig = null;
  * environment variable name: providers.openai.credentials.apiKey
  * resolves to OPENAI_API_KEY.
  * Cached after first call — subsequent calls return the same object.
- * @param {boolean} [subAgent=false] - Whether running as a sub-agent
  * @returns {z.infer<typeof ConfigSchema>}
  */
-export function loadConfig(subAgent = false) {
+export function loadConfig() {
 	if (cachedConfig) {
-		if (subAgent) {
-			cachedConfig.subAgent = true;
-		}
 		return cachedConfig;
 	}
 
@@ -158,10 +154,6 @@ export function loadConfig(subAgent = false) {
 	const config = validateConfig(resolved);
 	// Capture the original working directory before any chdir happens
 	config.cwd = process.cwd();
-	config.subAgent = subAgent;
-	if (subAgent) {
-		config.sandbox.paths.push(config.cwd);
-	}
 	cachedConfig = config;
 	return config;
 }

@@ -231,4 +231,18 @@ export class SkillRegistry {
 	get size() {
 		return this.#skills.size;
 	}
+
+	/**
+	 * Get all registered skill directory paths (each containing SKILL.md).
+	 * @returns {string[]} Array of skill directory paths
+	 */
+	getSkillPaths() {
+		const paths = [];
+		for (const [_name, entry] of this.#skills) {
+			if (entry.path) {
+				paths.push(entry.path);
+			}
+		}
+		return paths;
+	}
 }

@@ -135,7 +135,6 @@ All CLI arguments are parsed via [yargs](https://yargs.js.org/).
 
 | Argument              | Alias | Type     | Description                              |
 | --------------------- | ----- | -------- | ---------------------------------------- |
-| `--cwd`               | `-c`  | `string` | Working directory to use                 |
 | `--mode`              | `-m`  | `string` | CLI mode: `"chat"` or `"interactive"`    |
 | `--session`           | `-s`  | `string` | Session ID to restore                    |
 | `message` (positional) | —    | `string` | Message to send (default: `"Hello"`)     |
@@ -151,9 +150,6 @@ node index.js "What's the CPU load?"
 
 # Chat mode with session restore
 node index.js --session abc123
-
-# Chat mode with custom working directory
-node index.js --cwd /path/to/project "Run diagnostics"
 
 # Interactive TUI with session restore
 node index.js --mode interactive --session abc123
@@ -340,17 +336,6 @@ All configuration is controlled via environment variables in the `docker run` co
 | `AGENT_AUTO_CONTINUE_LIMIT`     | `1000`   | Max consecutive auto-continue attempts before circuit breaker triggers |
 | `AGENT_NODE_TIMEOUT`            | `600000` | Superstep timeout in milliseconds (default 10 minutes) |
 
-**Optional — Process (Sub-Agent):**
-
-| Variable                              | Default    | Description                                    |
-| ------------------------------------- | ---------- | ---------------------------------------------- |
-| `SUB_AGENT_TIMEOUT`               | `600000`   | Sub-agent process timeout in milliseconds      |
-| `SUB_AGENT_MAX_CONCURRENT`        | `4`        | Max concurrent sub-agent processes             |
-| `SUB_AGENT_SESSION_MODE`          | `isolated` | Session isolation mode (`isolated`, `forked`, `shared`) |
-| `SUB_AGENT_DEFAULT_STRATEGY`      | `parallel` | Default fan-out strategy (`parallel`, `sequential`) |
-| `SUB_AGENT_DEFAULT_ON_ERROR`      | `continue` | Default error handling strategy (`continue`, `fail-fast`) |
-| `SUB_AGENT_TEMPERATURE`           | `0.7`      | Sampling temperature (0–2) for sub-agent LLM calls |
-
 **Optional — Persistence:**
 
 | Variable                  | Default                 | Description              |
@@ -421,32 +406,38 @@ The cache enforces a maximum size (default: 100 entries) with LRU eviction and a
 
 ### Agent
 
-Wraps `@langchain/langgraph/prebuilt`'s `createReactAgentGraph` to produce a compiled ReAct agent that interleaves LLM reasoning with tool invocations. `createReactAgent(model, tools)` builds the agent from a provider model and a permission-gated tool array. `callReactAgent(agent, message)` runs the ReAct loop and returns the agent's final response.
+Uses the [Deep Agents](https://github.com/avoidwork/deepagents) library to orchestrate a primary agent with a specialized coding agent. The orchestrator routes tasks automatically — a `coding-agent` handles code-related work (file editing, debugging, implementation, code review). The system prompt delegates every task to the orchestrator, which manages routing, state, and observability natively.
 
 ### Context Window Management
 
-When conversations grow long enough to exceed the model's maximum context length, `madz` automatically detects the error and triggers a compaction routine. A tiered retention strategy preserves high-fidelity information: the system prompt and the most recent exchanges are kept intact, older exchanges are summarized into concise bullet-point previews, and the oldest messages are dropped entirely. If a single compaction doesn't bring the context within budget, the system retries with progressively tighter limits — up to three iterations. If eve`subAgentMessage` — send messages to running subAgent processes via stdin; `scanAgents` — scan for `AGENTS.md` workspace rules files in a target directory                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |t, the user is presented with a clear error message. This happens transparently; the user never needs to start a new session or manually manage context.
+When conversations grow long enough to exceed the model's maximum context length, `madz` automatically detects the error and triggers a compaction routine. A tiered retention strategy preserves high-fidelity information: the system prompt and the most recent exchanges are kept intact, older exchanges are summarized into concise bullet-point previews, and the oldest messages are d| **Agents**          | `mixtureOfAgents` — multi-agent orchestration; `scanAgents` — scan for `AGENTS.md` workspace rules files in a target directory |t, the user is presented with a clear error message. This happens transparently; the user never needs to start a new session or manually manage context.
 
 ### Built-in Tools
+Some tools are provided by the [Deep Agents](https://github.com/avoidwork/deepagents) library as middleware wired into the orchestrator — always available. Others are built-in LangChain tools gated by sandbox permissions.
 
-Bundled LangChain tools gated by sandbox permissions:
+**Deep Agents middleware:**
 
-| Category            | Tools                                                                                                                                                                                                                                                                                                                                                                                                                |
-| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Filesystem**      | `read_file`, `write_file` (500KB cap), `patch` (9-strategy fuzzy matching + unified diff), `search_files` (ripgrep with native fs fallback)                                                                                                                                                                                                                                                                          |
-| **Terminal**        | `terminal` — shell command execution (foreground/background); `process` — background process management (list, poll, wait, kill, write, pause, resume)                                                                                                                                                                                                                                                               |
-| **Task Management** | `todo` — CRUD list persisted to `memory/tools/todo.json`                                                                                                                                                                                                                                                                                                                                                             |
-| **Memory**          | `memory` — persistent memory tool with CRUD (create, read, update, delete, list). Each memory is stored as an individual `.md` file in `memory/context/` with `createdDate` and `updatedDate` metadata. Memories are long-term, core "canon" that shapes your interaction with madz — important personal details, preferences, and context that matter. Loaded into the system prompt at the start of every session. |
-| **Search**          | `sessionSearch` — query past conversations by keyword, ID, or browse                                                                                                                                                                                                                                                                                                                                                |
-| **Clarification**   | `clarify` — sends clarification questions to the user                                                                                                                                                                                                                                                                                                                                                                |
-| **Utility**           | `sampling` — capture emotional moments as ephemeral memories (rate-limited); `date` — return current date/time (zero-permission, always registered)                                                                                                                                                                                                                                                                                         |
-| **Skills**          | `skills_list` — lists discovered skills; `skillView` — views skill metadata and SKILL.md; `createSkill` — creates spec-compliant skill directories with SKILL.md frontmatter (requires `filesystem:write`)                                                                                                                                                                                                         |
-| **Code**            | `executeCode` — code execution and analysis                                                                                                                                                                                                                                                                                                                                                                                 |
-| **Web**             | `webSearch`, `web_extract` — outbound HTTP with timeout, URL allowlist filtering, multi-engine search backends                                                                                                                                                                                                                                                                                                                            |
-| **Media**           | `image_generate` — image generation via fal.ai; `visionAnalyze` — vision/language analysis via OpenAI; `textToSpeech` — text-to-speech via OpenAI TTS                                                                                                                                                                                                                                                                                         |
-| **Agents**          | `mixtureOfAgents` — multi-agent orchestration; `subAgent` — spawn child-process agents with single execution and fan-out modes; `subAgentLog` — manage and read subAgent log files (list, read, cleanup); `subAgentMessage` — send messages to running subAgent processes via stdin                                                                                                                                                                                                                                                                                                                                                                                    |
-| **Cron**            | `cronJob` — cron job utilities                                                                                                                                                                                                                                                                                                                                                                                          |
-| **System**          | `compactContext` — automatic conversation context compaction on LLM context-length errors (zero-permission, always registered)                                                                                                                                                                                                                                                                                         |
+| Capability | Tools |
+| ---------- | ----- |
+| **Filesystem** | `read_file`, `write_file` (500KB cap), `patch` (9-strategy fuzzy matching + unified diff), `search_files` (ripgrep with native fs fallback) |
+| **Memory** | `memory` — persistent memory tool with CRUD (create, read, update, delete, list). Each memory is stored as an individual `.md` file in `memory/context/` with `createdDate` and `updatedDate` metadata. |
+| **Skills** | `skills_list` — lists discovered skills; `skillView` — views skill metadata and SKILL.md; `createSkill` — creates spec-compliant skill directories with SKILL.md frontmatter (requires `filesystem:write`) |
+| **Summarization** | `compactContext`, `compaction` — automatic conversation context compaction |
+
+**Built-in LangChain tools:**
+
+| Category | Tools |
+| -------- | ----- |
+| **Terminal** | `terminal` — shell command execution (foreground/background); `process` — background process management (list, poll, wait, kill, write, pause, resume) |
+| **Task Management** | `todo` — CRUD list persisted to `memory/tools/todo.json` |
+| **Search** | `sessionSearch` — query past conversations by keyword, ID, or browse |
+| **Clarification** | `clarify` — sends clarification questions to the user |
+| **Utility** | `sampling` — capture emotional moments as ephemeral memories (rate-limited); `date` — return current date/time (zero-permission, always registered) |
+| **Code** | `executeCode` — code execution and analysis |
+| **Web** | `webSearch`, `web_extract` — outbound HTTP with timeout, URL allowlist filtering, multi-engine search backends |
+| **Media** | `image_generate` — image generation via fal.ai; `visionAnalyze` — vision/language analysis via OpenAI; `textToSpeech` — text-to-speech via OpenAI TTS |
+| **Agents** | `mixtureOfAgents` — multi-agent orchestration; `scanAgents` — scan for `AGENTS.md` workspace rules files in a target directory |
+| **Cron** | `cronJob` — cron job utilities |
 
 ### Skills Registry
 
@@ -503,7 +494,7 @@ On first onboarding completion, `madz` automatically installs a `reflection-dail
 ├── config.yaml                 # Centralized configuration
 ├── .husky/                     # Git hooks (lint, fmt, tests)
 ├── src/
-│   ├── agent/                  # ReAct agent wrapper (LangGraph)
+│   ├── agent/                  # Deep Agents orchestrator (coding-agent)
 │   ├── config/                 # YAML parsing & Zod schema validation
 │   ├── logger.js               # Structured logging (pino)
 │   ├── memory/                 # Markdown file persistence
@@ -595,11 +586,6 @@ Graceful shutdown flushes all buffered log entries to disk before process exit.
 |               | `nodeTimeout`                        | `600000`                                 | Superstep timeout in milliseconds (default 10 minutes) |
 | `lru`         | `size`                             | `100`                                    | Maximum number of cached LLM responses        |
 |               | `ttl`                              | `600000`                                 | Cache entry TTL in milliseconds (10 minutes)  |
-| `process`     | `subAgent.timeout`                 | `600000`                                 | Sub-agent process timeout in milliseconds (default 10 minutes) |
-|               | `subAgent.maxConcurrent`           | `4`                                      | Max concurrent sub-agent processes            |
-|               | `subAgent.sessionMode`             | `isolated`                               | Session isolation mode (`isolated`, `forked`, `shared`) |
-|               | `subAgent.defaultStrategy`         | `parallel`                               | Default fan-out strategy (`parallel`, `sequential`) |
-|               | `subAgent.defaultOnError`          | `continue`                               | Default error handling strategy (`continue`, `fail-fast`) |
 | `persistence` | `mode`                               | `memory`                                 | Storage backend (`memory`, `sqlite`)          |
 |               | `sqlite_path`                        | `memory/checkpoints.db`                  | SQLite checkpointer file path                 |
 

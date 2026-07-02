@@ -3,11 +3,6 @@
 // Parse CLI arguments via yargs first — before loading config
 import yargs from "yargs";
 const parsed = yargs(process.argv.slice(2))
-	.option("cwd", {
-		alias: "c",
-		type: "string",
-		description: "Working directory to use",
-	})
 	.option("mode", {
 		alias: "m",
 		type: "string",
@@ -17,36 +12,21 @@ const parsed = yargs(process.argv.slice(2))
 		type: "string",
 		description: "Session ID to restore",
 	})
-	.option("sub-agent", {
-		type: "boolean",
-		default: false,
-		description: "Run as a sub-agent",
-	})
 	.positional("message", {
 		type: "string",
 		description: "Message to send",
 	}).argv;
 
-// Load config first — before any other ./src imports — so config.cwd is set
-// before process.chdir() potentially changes the working directory.
-import { loadConfig } from "./src/config/loader.js";
-const config = loadConfig(parsed["sub-agent"]);
-
-// Change to the configured working directory before any other imports
-if (parsed.cwd) {
-	process.chdir(parsed.cwd);
-}
-
 // Load config
+import { loadConfig } from "./src/config/loader.js";
+const config = loadConfig();
 import { fileURLToPath } from "node:url";
 import { loadSession } from "./src/session/loader.js";
 
 import React from "react";
 
 const { setConfigValue } = await import("./src/config/loader.js");
-const { createChatModel } = await import("./src/provider/openai.js");
-const { createReactAgent, callReactAgent } = await import("./src/agent/react.js");
-const { buildToolConfig } = await import("./src/tools/index.js");
+const { createDeepAgentsOrchestrator } = await import("./src/agent/deepAgents.js");
 const { logger } = await import("./src/logger.js");
 
 const { default: pkg } = await import(new URL("package.json", import.meta.url).href, {
@@ -142,9 +122,6 @@ registry.discover();
 // Initialize memory system
 const { writeMemoryFile, readMemoryFile, loadContext } = await import("./src/memory/index.js");
 
-// Initialize workspace rules loader
-const { loadAgents } = await import("./src/workspace/loadAgents.js");
-
 // Initialize GC manager (if enabled)
 let gcManager = null;
 let gcTrace = null;
@@ -198,41 +175,14 @@ try {
 	// Graceful degradation: session starts even if cleanup import fails
 }
 
-// Load system prompt and append memory entries
-const { loadSystemPrompt } = await import("./src/memory/prompts.js");
-const { generateSkillCatalogPrompt } = await import("./src/tools/skills.js");
-const systemPrompt = loadSystemPrompt(process.cwd(), config.subAgent);
-// Build agent and tool config at startup (once)
-const providerConfig = config.providers[providerName] || {};
-
 // Create checkpointer before tools so compactContext can access it
 const { createCheckpointer } = await import("./src/session/checkpointer.js");
 const checkpointer = createCheckpointer(config.persistence);
 
-const tools = await buildToolConfig({
-	permissions: config.sandbox.permissions || [],
-	allowedPaths: config.sandbox.paths,
-	maxReadSize: config.sandbox.maxReadSize || "1mb",
-	registry,
-	sessionsDir: config.cwd + "/" + "memory/sessions/",
-	safety: config.sandbox.safety,
-	timeout: config.sandbox.timeout,
-	memoryLimit: config.sandbox.memoryLimit,
-	contextDir: config.cwd + "/" + (config.memory?.contextDir || "memory/context/"),
-	ephemeralTtlDays: config.memory?.ephemeral?.ttlDays || 7,
-	ephemeralMaxEntries: config.memory?.ephemeral?.maxEntries || 10,
-	config,
-	checkpointer,
-	subAgent: config.subAgent,
-});
-const model = createChatModel(providerConfig);
-const agent = createReactAgent(
-	model,
-	tools,
-	checkpointer,
-	config.agent?.recursionLimit ?? undefined,
-	config.agent?.nodeTimeout ?? 600000,
-);
+// Provider config for TUI
+const providerConfig = config.providers[providerName] || {};
+
+const agent = await createDeepAgentsOrchestrator(checkpointer);
 
 const sessionConfig = { configurable: { thread_id: sessionState.getThreadId() } };
 
@@ -240,26 +190,40 @@ async function callProvider(_name, _providerConfig, message, streamingCallback, 
 	const isNewThread = sessionState.getConversation().length === 0;
 	const threadId = sessionState.getThreadId();
 
-	const agentsText = await loadAgents();
-	const catalog = registry.getCatalog();
-	const skillCatalog = generateSkillCatalogPrompt(catalog);
-	const callPrompt = `${systemPrompt}${skillCatalog ? `\n\n---\n\n${skillCatalog}` : ""}${agentsText ? `\n\n---\n\n${agentsText}` : ""}`;
-	const result = await callReactAgent(
-		agent,
-		message,
-		{ ...sessionConfig, configurable: { thread_id: threadId, isNewThread } },
-		callPrompt,
-		streamingCallback,
-		{
-			maxTokens: providerConfig.maxTokens,
-			checkpointer,
-			signal,
-			recursionLimit: config.agent?.recursionLimit,
-			turnHashWindow: config.agent?.turnHashWindow,
-			turnBufferMax: config.agent?.turnBufferMax,
-		},
-	);
-	return { provider: providerName, content: result.content, tokens: { input: 0, output: 0 } };
+	const config = {
+		...sessionConfig,
+		configurable: { thread_id: threadId, isNewThread },
+	};
+
+	const options = {
+		maxTokens: providerConfig.maxTokens,
+		signal,
+		recursionLimit: config.agent?.recursionLimit,
+	};
+
+	let collectedContent = "";
+	const input = {
+		messages: [{ role: "user", content: message }],
+	};
+
+	for await (const [_namespace, chunk] of await agent.stream(input, {
+		...config,
+		...options,
+		streamMode: "messages",
+		subgraphs: true,
+	})) {
+		const [message] = chunk;
+		const text = message?.text ?? "";
+
+		if (text) {
+			collectedContent += text;
+			if (streamingCallback) {
+				streamingCallback({ type: "message", text });
+			}
+		}
+	}
+
+	return { provider: providerName, content: collectedContent, tokens: { input: 0, output: 0 } };
 }
 
 // Conversation handler
@@ -340,8 +304,7 @@ registerShutdownHandler(runShutdown);
 // CLI mode detection (if run directly as node.js/index.js)
 const isMain = process.argv[1] === fileURLToPath(import.meta.url);
 if (isMain) {
-	const isSubAgent = parsed["sub-agent"] === true;
-	const mode = isSubAgent ? "sub-agent" : parsed.mode === "interactive" ? "interactive" : "chat";
+	const mode = parsed.mode === "interactive" ? "interactive" : "chat";
 	const chatSessionId = parsed.session || "";
 	let message = parsed.message;
 	if (!message && chatSessionId) {
@@ -349,24 +312,7 @@ if (isMain) {
 	}
 	message = message || "Hello";
 
-	if (mode === "sub-agent") {
-		try {
-			const response = await handleConversation(message, chatSessionId);
-			const marker = "# SubAgent";
-			const output = `${marker}\n\n${response.content}`;
-			process.stdout.write(output);
-		} catch (err) {
-			const marker = "# SubAgent";
-			const errorOutput = `${marker}\n\n{"ok":false,"result":"","error":"${err.message}"}`;
-			process.stderr.write(errorOutput);
-			process.exit(1);
-		}
-
-		// Graceful shutdown in non-interactive mode
-		await runShutdown();
-		await flushLogger();
-		process.exit(0);
-	} else if (mode === "chat") {
+	if (mode === "chat") {
 		try {
 			await handleConversation(message, chatSessionId);
 			process.stdout.write("\n");

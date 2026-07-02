@@ -21,7 +21,7 @@ Call chains and data flows for all primary code paths in the project, excluding 
 - [File Tool Execution Flow](#file-tool-execution-flow)
 - [Terminal Tool Execution Flow](#terminal-tool-execution-flow)
 - [Web Tool Execution Flow](#web-tool-execution-flow)
-- [Sub-Agent Tool Execution Flow](#sub-agent-tool-execution-flow)
+- [Deep Agents Orchestration Flow](#deep-agents-orchestration-flow)
 - [Sandbox Skill Execution](#sandbox-skill-execution)
 - [Memory Persistence Flow](#memory-persistence-flow)
 - [Context Loading](#context-loading)
@@ -29,8 +29,6 @@ Call chains and data flows for all primary code paths in the project, excluding 
 - [Memory Retention Cleanup](#memory-retention-cleanup)
 - [Profile Management](#profile-management)
 - [Shutdown Flow](#shutdown-flow)
-- [Sub-Agent Log Tool Flow](#sub-agent-log-tool-flow)
-- [Sub-Agent Message Tool Flow](#sub-agent-message-tool-flow)
 - [Additional Tool Flows](#additional-tool-flows)
 - [File Dependencies](#file-dependencies)
 
@@ -408,46 +406,6 @@ createChatModel(config)
     })
 ```
 
-## Agent ReAct Streaming
-
-**Entry:** `src/agent/react.js` → `callReactAgent(..., streamingCallback)`
-
-```
-callReactAgent(agent, message, config, systemPrompt, callback)
-├── messages = [HumanMessage(message)]
-├── if systemPrompt && isNewThread → messages = [SystemMessage(systemPrompt), ...messages]
-└── callReactAgentStreaming(agent, messages, message, config, callback)
-    ├── stream = await agent.streamEvents(
-    │   │   { messages },
-    │   │   { version: "v2", configurable: config.configurable }
-    │   │   )
-    │   └── v2 event stream protocol
-    ├── for await (event of stream):
-    │   ├── event.event === "on_chat_model_stream":
-    │   │   ├── textContent = chunk.content (string or block.text)
-    │   │   └── callback({ type: "text", text: textContent })
-    │   ├── chunk.reasoning:
-    │   │   └── callback({ type: "reasoning", text: chunk.reasoning })
-    │   ├── event.event === "on_tool_start" && name === "tool":
-    │   │   └── for each tc in input.tool_calls:
-    │   │       └── if not duplicate → callback({ type: "tool_start", toolName, toolCallId })
-    │   ├── event.event === "on_tool_end" && name === "tool":
-    │   │   └── callback({ type: "tool_end", toolName, toolCallId, data: result.slice(0,500) })
-    │   └── event.event === "on_tool_error" && name === "tool":
-    │       └── callback({ type: "tool_error", toolName, toolCallId, error })
-    ├── for each remaining key in toolCallSet → callback({ type: "tool_end", toolName })
-    └── return { content: originalMessage } -- fallback
-```
-
-**Context length error handling:** Both `callReactAgent` and `callReactAgentStreaming` are wrapped in a retry loop (max 3 iterations). When the LLM returns a 400 error matching context-length patterns (`/maximum\s+context\s+length[^0-9]*?(\d+)\s*tokens?/i` or `/limit[:\s]*(\d+)/i`), the system:
-
-1. Extracts the max context length from the error message
-2. Calculates `targetTokens = maxContextLength - maxTokens`
-3. Compacts the conversation via `compactConversation()` using tiered retention
-4. Rebuilds messages from compacted result and retries
-
-If all 3 iterations fail, the user receives: "The conversation is too long. Please start a new session."
-
 ---
 
 ## Context Compaction
@@ -668,64 +626,28 @@ Multi-engine search backends (webSearch):
 ```
 
 
-## Sub-Agent Tool Execution Flow
+## Deep Agents Orchestration Flow
+## Deep Agents Orchestration Flow
 
-**Entry:** `src/tools/subAgent.js` → `createSubAgentTool()`
+**Entry:** `src/agent/deepAgents.js` → `createDeepAgentsOrchestrator()`
 
 ```
-subAgent tool (zero-permission, always registered):
-├── validate input: delegation (required), context (optional), tasks (optional for fan-out), cwd (optional)
-├── if tasks provided (fan-out mode):
-│   ├── for each task in tasks (bounded by maxConcurrent):
-│   │   ├── spawn("node", ["index.js", "--sub-agent=true", `--cwd=${targetCwd}`, `--message="${prompt}"`])
-│   │   ├── trackProcess(child, command) → { pid, child, status: "running", startTime }
-│   │   ├── wait for completion or timeout (resolveTimeout: per-call > env > config)
-│   │   └── parseSubAgentOutput(stdout) → { ok, result, error?, pid? }
-│   │       └── Split on "# SubAgent" marker, parse JSON after marker
-│   ├── if strategy === "sequential": wait for each to complete before next
-│   ├── if strategy === "parallel": run up to maxConcurrent simultaneously
-│   └── if onError === "fail-fast": abort remaining on first error
-│   └── if onError === "continue": collect errors, return all results
-├── else (single execution mode):
-│   ├── spawn("node", ["index.js", "--sub-agent=true", `--cwd=${targetCwd}`, `--message="${prompt}"`])
-│   ├── trackProcess(child, command) → { pid, child, status: "running", startTime }
-│   ├── wait for completion or timeout
-│   └── parseSubAgentOutput(stdout) → { ok, result, error?, pid? }
-├── if returnParams provided:
-│   └── filter result to only include specified keys
-│   └── fallback to full text if not valid JSON
-└── return { ok, result, error?, pid? }
+Deep Agents orchestrator (native multi-agent architecture):
+├── createDeepAgent({ model, systemPrompt, tools, middleware, subagents, checkpointer })
+│   ├── middleware: filesystem, memory, skills, summarization
+│   ├── subagents:
+│   │   ├── coding-agent: code editing, debugging, implementation, code review
+│   └── orchestrator routes tasks automatically based on task nature
+├── agent.stream(input, { streamMode: "messages", subgraphs: true })
+│   ├── for each chunk:
+│   │   ├── extract text content
+│   │   └── streamingCallback({ type: "text", text })
+│   └── returns { provider, content, tokens }
+└── orchestrator manages routing, state, and observability natively
 
-escapeShellArg(arg):
-├── Replace backticks, dollar signs, single quotes, double quotes
-├── Escape newlines, tabs, carriage returns
-└── Wrap in double quotes for safe shell passing
-
-parseSubAgentOutput(stdout):
-├── Split stdout on "# SubAgent" marker
-├── Take content after marker
-├── Try JSON.parse(content)
-├── if valid JSON → { ok: true, result: parsed }
-├── else → { ok: false, error: "Failed to parse sub-agent output" }
-
-resolveTimeout(options):
-├── if options.timeout provided → options.timeout
-└── else → config.process.subAgent.timeout (default 600000)
+No process spawning, no marker-based parsing, no manual fan-out coordination.
+The deepagents library handles agent lifecycle, state management, and streaming internally.
 ```
-
-**Process tracking:** Sub-agents share the `processTracker` Map from `terminal.js` for PID tracking and lifecycle management. Each sub-agent gets a unique PID that can be polled, waited on, or killed via the `process` tool.
-
-**Session isolation modes:**
-
-| Mode | Description |
-|------|-------------|
-| `isolated` | Fresh session, no parent context |
-| `forked` | Forked from parent session with compaction |
-| `shared` | Shared parent session context |
-
----
-
-## Scan Agents Tool Flow
 
 **Entry:** `src/tools/scanAgents.js` → `createScanAgentsTool()`
 
@@ -789,65 +711,8 @@ runScheduledSkill(schedule, sandbox, sessionState)
 
 ```
 
-## Sub-Agent Log Tool Flow
+## Deep Agents Log Management
 
-**Entry:** `src/tools/subAgentLog.js` → `createSubAgentLogTool()`
-
-```
-subAgentLog tool (zero-permission, always registered):
-├── validate input: action (required), pid (optional), maxAgeHours (optional)
-├── switch action:
-│   ├── "list":
-│   │   ├── readdir("/tmp") → filter files matching "sub-agent-{pid}.log"
-│   │   ├── for each log file:
-│   │   │   ├── stat(filePath) → size, mtime
-│   │   │   ├── isProcessRunning(pid) → process.kill(pid, 0)
-│   │   │   └── { pid, file, size, modified, running }
-│   │   └── sort by modified (descending) → return { ok: true, logs }
-│   ├── "read":
-│   │   ├── if pid missing → { ok: false, error: "PID is required" }
-│   │   ├── readFile("/tmp/sub-agent-{pid}.log") → content
-│   │   └── return { ok: true, pid, content }
-│   └── "cleanup":
-│       ├── readdir("/tmp") → filter "sub-agent-{pid}.log"
-│       ├── for each file:
-│       │   ├── stat(filePath) → mtimeMs
-│       │   ├── if age > maxAgeHours * 60 * 60 * 1000 → unlinkSync
-│       │   └── removed++
-│       └── return { ok: true, removed }
-└── default → { ok: false, error: "Unknown action" }
-
-isProcessRunning(pid):
-├── process.kill(pid, 0) → true (signal 0 checks existence)
-└── catch → false
-```
-
-**Log file pattern:** `sub-agent-{pid}.log` stored in `/tmp`. Files are automatically cleaned up by the `cleanup` action based on age threshold.
-
----
-
-## Sub-Agent Message Tool Flow
-
-**Entry:** `src/tools/subAgentMessage.js` → `createSubAgentMessageTool()`
-
-```
-subAgentMessage tool (requires process:spawn permission):
-├── validate input: pid (required), message (required)
-├── if pid missing → { ok: false, error: "PID is required" }
-├── if message missing → { ok: false, error: "Message is required" }
-├── lookup processTracker.get(pid):
-│   ├── if not found → { ok: false, error: "Process {pid} not found in tracker" }
-│   └── if status is "exited" or "error" → { ok: false, error: "Process {pid} is not running" }
-├── entry.child.stdin.write(message + "\\n")
-│   └── Append newline to message before writing
-└── return { ok: true, pid, messageSent: true }
-```
-
-**Prerequisites:** The target subAgent process must be spawned with `stdio: ["pipe", "pipe", "pipe"]` (stdin exposed). The subAgent tool was updated to expose stdin for this to work.
-
----
-
-## Additional Tool Flows
 
 ### Code Execution
 
@@ -1202,7 +1067,7 @@ index.js
 │     ├── tools/moa.js → OPENROUTER_API_KEY — mixture-of-agents (4 parallel OpenRouter calls + aggregation)
 │     ├── tools/cron.js → node:fs/promises — cron job CRUD operations
 │     ├── tools/compactContext.js → @langchain/core, zod — automatic conversation context compaction on LLM 400 errors (tiered retention, retry loop, error detection)
-│     ├── tools/subAgentLog.js → node:fs/promises, node:path — subAgent log management (list, read, cleanup); zero-permission, always registered
+│     └── tools/...
 │     └── tools/...
 ├── sandbox/pathResolver.js → node:path
 ├── sandbox/urlFilter.js → node:url
@@ -1227,5 +1092,39 @@ index.js
 ├── session/loader.js → fs, path, memory/reader.js
 ├── session/saver.js → fs, path, memory/writer.js
 ├── session/onboarding.js → session/stateManager.js — onboarding state machine (INIT → ATTRACTOR → COLLECT → SAVE → TRANSCEND)
+└── telemetry/provider.js → @opentelemetry/sdk-node
+```
+I TTS API
+│     ├── tools/moa.js → OPENROUTER_API_KEY — mixture-of-agents (4 parallel OpenRouter calls + aggregation)
+│     ├── tools/cron.js → node:fs/promises — cron job CRUD operations
+│     ├── tools/compactContext.js → @langchain/core, zod — automatic conversation context compaction on LLM 400 errors (tiered retention, retry loop, error detection)
+│     └── tools/...
+│     └── tools/...
+├── sandbox/pathResolver.js → node:path
+├── sandbox/urlFilter.js → node:url
+├── sandbox/runner.js → node:child_process, sandbox/timeoutHandler.js, envInjector.js, capability.js
+├── registry/registry.js → discoverer.js, validator.js
+├── registry/discoverer.js → js-yaml, node:fs, node:path
+├── registry/validator.js → types.js (zod schemas)
+├── registry/types.js → zod
+├── scheduler/scheduler.js → node:fs/promises — ScheduleManager CRUD class (register, list, pause, resume, runNow)
+├── scheduler/cron.js → node:child_process, node:fs/promises, node:path — Cron object (isAvailable, add, remove)
+├── scheduler/autoSchedule.js → node:fs — setupAutoSchedule() callback for reflection-daily cron
+├── scheduler/index.js → re-exports ScheduleManager and Cron
+├── memory/writer.js → node:fs, node:path
+├── memory/reader.js → js-yaml, node:fs
+├── memory/context.js → node:fs, node:path, memory/reader.js
+├── memory/retention.js → node:fs, node:path
+├── memory/prompts.js → node:fs
+├── memory/profile.js → node:fs — user profile management: ATTRIBUTES, loadProfile, saveProfile, formatProfileContext, processOnboardingInput
+├── session/factory.js → node:crypto (randomUUID)
+├── session/stateManager.js
+├── session/checkpointer.js → @langchain/langgraph, @langchain/langgraph-checkpoint-sqlite — createCheckpointer() returns MemorySaver (in-memory) or SQLiteCheckpointer (persistent)
+├── session/loader.js → fs, path, memory/reader.js
+├── session/saver.js → fs, path, memory/writer.js
+├── session/onboarding.js → session/stateManager.js — onboarding state machine (INIT → ATTRACTOR → COLLECT → SAVE → TRANSCEND)
+└── telemetry/provider.js → @opentelemetry/sdk-node
+```
+ → SAVE → TRANSCEND)
 └── telemetry/provider.js → @opentelemetry/sdk-node
 ```

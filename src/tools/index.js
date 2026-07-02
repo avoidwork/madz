@@ -1,15 +1,7 @@
-import {
-	createReadFileTool,
-	createWriteFileTool,
-	createPatchTool,
-	createSearchFilesTool,
-} from "./filesystem.js";
 import { createTerminalTool, createProcessTool } from "./terminal.js";
 import { createQueuedTodoTool } from "./todo.js";
-import { createMemoryTool } from "./memory.js";
 import { createSessionSearchTool } from "./session_search.js";
 import { createClarifyTool } from "./clarify.js";
-import { createSkillViewTool, createCreateSkillTool } from "./skills.js";
 import { createWebSearchTool, createWebExtractTool } from "./web.js";
 import { createVisionTool } from "./vision.js";
 import { createImageTool } from "./image.js";
@@ -19,11 +11,6 @@ import { createTtsTool } from "./tts.js";
 import { createMoaTool } from "./moa.js";
 import { createSamplingTool } from "./sampling.js";
 import { createDateTool } from "./date.js";
-import { createCompactContextTool } from "./compact_context.js";
-import { createCompactionTool } from "./compaction.js";
-import { createSubAgentTool } from "./subAgent.js";
-import { createSubAgentLogTool } from "./subAgentLog.js";
-import { createSubAgentMessageTool } from "./subAgentMessage.js";
 import { createScanAgentsTool } from "./scanAgents.js";
 
 /**
@@ -32,18 +19,11 @@ import { createScanAgentsTool } from "./scanAgents.js";
  * Clarify and execute_code are exempt (always registered) since they require zero permissions.
  */
 export const TOOL_PERMISSIONS = {
-	readFile: ["filesystem:read"],
-	writeFile: ["filesystem:write"],
-	patch: ["filesystem:write"],
-	searchFiles: ["filesystem:read"],
 	terminal: ["filesystem:exec", "process:spawn"],
 	process: ["process:spawn"],
 	todo: ["filesystem:read", "filesystem:write"],
-	memory: ["filesystem:read", "filesystem:write"],
 	sessionSearch: ["filesystem:read"],
 	clarify: [],
-	skillView: ["filesystem:read"],
-	createSkill: ["filesystem:write"],
 	webSearch: ["network:outbound"],
 	webExtract: ["network:outbound"],
 	visionAnalyze: [],
@@ -54,28 +34,16 @@ export const TOOL_PERMISSIONS = {
 	mixtureOfAgents: [],
 	sampling: [],
 	date: [],
-	compactContext: [],
-	compaction: [],
-	subAgent: ["process:spawn"],
-	subAgentLog: ["process:spawn"],
-	subAgentMessage: ["process:spawn"],
 	scanAgents: [],
 };
 
 // Factory functions keyed by tool name
 const TOOL_FACTORIES = {
-	readFile: createReadFileTool,
-	writeFile: createWriteFileTool,
-	patch: createPatchTool,
-	searchFiles: createSearchFilesTool,
 	terminal: createTerminalTool,
 	process: createProcessTool,
 	todo: createQueuedTodoTool,
-	memory: createMemoryTool,
 	sessionSearch: createSessionSearchTool,
 	clarify: createClarifyTool,
-	skillView: createSkillViewTool,
-	createSkill: createCreateSkillTool,
 	webSearch: createWebSearchTool,
 	webExtract: createWebExtractTool,
 	visionAnalyze: createVisionTool,
@@ -86,11 +54,6 @@ const TOOL_FACTORIES = {
 	mixtureOfAgents: createMoaTool,
 	sampling: createSamplingTool,
 	date: createDateTool,
-	compactContext: createCompactContextTool,
-	compaction: createCompactionTool,
-	subAgent: createSubAgentTool,
-	subAgentLog: createSubAgentLogTool,
-	subAgentMessage: createSubAgentMessageTool,
 	scanAgents: createScanAgentsTool,
 };
 
@@ -113,10 +76,6 @@ const TOOL_FACTORIES = {
  * @param {object} [options.config] - Resolved config object from loadConfig()
  * @param {object} [options.config.providers] - Provider configs (openai, openrouter, fal)
  * @param {object} [options.config.search] - Search backend configs
- * @param {import("@langchain/langgraph").BaseCheckpointSaver | null} [options.checkpointer] - LangGraph checkpointer for compactContext tool
- * @param {object} [options.threadConfig] - Thread config for checkpointer access
- * @param {string} [options.systemPrompt] - System prompt for compaction context
- * @param {boolean} [options.subAgent=false] - Whether running as a sub-agent (excludes subAgent tools)
  * @returns {Promise<object[]>} Array of LangChain Tool instances
  */
 export async function buildToolConfig(options) {
@@ -133,7 +92,6 @@ export async function buildToolConfig(options) {
 		ephemeralTtlDays = 7,
 		ephemeralMaxEntries = 10,
 		config,
-		subAgent = false,
 	} = options;
 
 	// Extract resolved API keys from config fallback
@@ -194,14 +152,6 @@ export async function buildToolConfig(options) {
 	for (const [toolName, requiredPerms] of Object.entries(TOOL_PERMISSIONS)) {
 		const hasAllPerms = requiredPerms.every((perm) => enabledSet.has(perm));
 
-		// Sub-agents don't get subAgent tools (prevent infinite recursion)
-		if (
-			subAgent &&
-			(toolName === "subAgent" || toolName === "subAgentLog" || toolName === "subAgentMessage")
-		) {
-			continue;
-		}
-
 		switch (toolName) {
 			case "clarify":
 			case "executeCode":
@@ -248,18 +198,6 @@ export async function buildToolConfig(options) {
 				if (toolName === "textToSpeech" && !runtimeOptions.openaiApiKey) continue;
 				if (toolName === "mixtureOfAgents" && !runtimeOptions.openrouterApiKey) continue;
 				tools.push(TOOL_FACTORIES[toolName](runtimeOptions));
-				continue;
-			}
-
-			case "compactContext": {
-				tools.push(
-					TOOL_FACTORIES[toolName]({
-						...runtimeOptions,
-						checkpointer: options.checkpointer,
-						threadConfig: options.threadConfig,
-						systemPrompt: options.systemPrompt,
-					}),
-				);
 				continue;
 			}
 

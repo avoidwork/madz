@@ -1,7 +1,9 @@
 import { readFileSync, writeFileSync, existsSync, renameSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
+import { loadConfig } from "../config/loader.js";
 
-const PROFILE_DIR = "memory/context/";
+const config = loadConfig();
+const PROFILE_DIR = join(config.cwd, config.memory.contextDir);
 const PROFILE_FILE = "profile.md";
 const PROFILE_PATH = join(PROFILE_DIR, PROFILE_FILE);
 
