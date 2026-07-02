@@ -8,10 +8,10 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { FileBackend } from "./fileBackend.js";
 
-function loadSubAgentPrompt(baseDir) {
+function loadCodeAgentPrompt(baseDir) {
 	try {
 		const dir = baseDir || process.cwd();
-		return readFileSync(join(dir, "prompts", "SUB_AGENT.md"), "utf-8");
+		return readFileSync(join(dir, "prompts", "CODE_AGENT.md"), "utf-8");
 	} catch {
 		return "";
 	}
@@ -32,7 +32,7 @@ export function createDeepAgentsOrchestrator(
 	systemPrompt = "",
 	checkpointer = null,
 ) {
-	const subAgentPrompt = loadSubAgentPrompt();
+	const codeAgentPrompt = loadCodeAgentPrompt();
 	const config = loadConfig();
 	const memoryDir = join(config.cwd, config.memory?.contextDir || "memory/context/");
 	const allowedPaths = config.sandbox?.paths || ["./"];
@@ -82,16 +82,16 @@ export function createDeepAgentsOrchestrator(
 				name: "coding-agent",
 				description:
 					"Specialized agent for code-related tasks including file editing, debugging, implementation, and code review.",
-				systemPrompt: subAgentPrompt
-					? `${subAgentPrompt}\n\nYou are the coding specialist sub-agent. Focus on code-related tasks.`
+				systemPrompt: codeAgentPrompt
+					? `${codeAgentPrompt}\n\nYou are the coding specialist. Focus on code-related tasks.`
 					: "You are a coding specialist. Handle all code-related tasks.",
 			},
 			{
 				name: "utility-agent",
 				description:
 					"General-purpose agent for research, file search, multi-step tasks, skill execution, and non-code work.",
-				systemPrompt: subAgentPrompt
-					? `${subAgentPrompt}\n\nYou are the general-purpose utility sub-agent. Handle research, file search, multi-step tasks, and general assistance.`
+				systemPrompt: codeAgentPrompt
+					? `${codeAgentPrompt}\n\nYou are the general-purpose utility agent. Handle research, file search, multi-step tasks, and general assistance.`
 					: "You are a general-purpose utility agent. Handle research, file search, multi-step tasks, and general assistance.",
 			},
 		],
