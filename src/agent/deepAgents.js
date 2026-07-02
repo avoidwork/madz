@@ -84,7 +84,7 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 		middleware: [
 			todoListMiddleware(),
 			createFilesystemMiddleware({ backend: coreBackend }),
-			createSummarizationMiddleware({ backend: coreBackend }),
+			createSummarizationMiddleware({ backend: subAgentsBackend }),
 			createPatchToolCallsMiddleware(),
 			createMemoryMiddleware({ backend: subAgentsBackend }),
 		],
