@@ -128,7 +128,7 @@ The agent runs: reason → call tool(s) → reason again → answer. Tool array 
 
 ## Deep Agents
 
-`src/agent/deepAgents.js` — Deep Agents orchestrator with specialized agents. Creates a `coding-agent` for code-related tasks and a `utility-agent` for research, file search, and general assistance. Uses middleware for filesystem, memory, skills, and summarization capabilities.
+`src/agent/deepAgents.js` — Deep Agents orchestrator with a specialized coding agent. Uses middleware for filesystem, memory, skills, and summarization capabilities.
 
 | File | Purpose |
 |------|---------|  

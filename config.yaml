@@ -79,9 +79,6 @@ agent:
     codingAgent:
       description: "Specialized agent for code-related tasks including file editing, debugging, and implementation."
       temperature: 0.3
-    utilityAgent:
-      description: "General-purpose agent for research, file search, and multi-step tasks."
-      temperature: 0.5
 lru:
   size: 100
   ttl: 600000

@@ -677,7 +677,6 @@ Deep Agents orchestrator (native multi-agent architecture):
 │   ├── middleware: filesystem, memory, skills, summarization
 │   ├── subagents:
 │   │   ├── coding-agent: code editing, debugging, implementation, code review
-│   │   └── utility-agent: research, file search, multi-step tasks, general assistance
 │   └── orchestrator routes tasks automatically based on task nature
 ├── agent.stream(input, { streamMode: "messages", subgraphs: true })
 │   ├── for each chunk:

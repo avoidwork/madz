@@ -86,14 +86,6 @@ export function createDeepAgentsOrchestrator(
 					? `${codeAgentPrompt}\n\nYou are the coding specialist. Focus on code-related tasks.`
 					: "You are a coding specialist. Handle all code-related tasks.",
 			},
-			{
-				name: "utility-agent",
-				description:
-					"General-purpose agent for research, file search, multi-step tasks, skill execution, and non-code work.",
-				systemPrompt: codeAgentPrompt
-					? `${codeAgentPrompt}\n\nYou are the general-purpose utility agent. Handle research, file search, multi-step tasks, and general assistance.`
-					: "You are a general-purpose utility agent. Handle research, file search, multi-step tasks, and general assistance.",
-			},
 		],
 		...(checkpointer && { checkpointer }),
 	});

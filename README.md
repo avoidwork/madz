@@ -410,7 +410,7 @@ The cache enforces a maximum size (default: 100 entries) with LRU eviction and a
 
 ### Agent
 
-Uses the [Deep Agents](https://github.com/avoidwork/deepagents) library to orchestrate a primary agent with specialized agents. The orchestrator routes tasks automatically — a `coding-agent` handles code-related work (file editing, debugging, implementation, code review) and a `utility-agent` handles research, file search, multi-step tasks, and general assistance. The system prompt delegates every task to the orchestrator, which manages routing, state, and observability natively.
+Uses the [Deep Agents](https://github.com/avoidwork/deepagents) library to orchestrate a primary agent with a specialized coding agent. The orchestrator routes tasks automatically — a `coding-agent` handles code-related work (file editing, debugging, implementation, code review). The system prompt delegates every task to the orchestrator, which manages routing, state, and observability natively.
 
 ### Context Window Management
 
@@ -501,8 +501,7 @@ On first onboarding completion, `madz` automatically installs a `reflection-dail
 ├── openspec/                   # OpenSpec change management (changes/, specs/, config.yaml)
 ├── prompts/                    # System prompts (SYSTEM_PROMPT.md, SUB_AGENT.md, COMPACTION.md)
 ├── src/
-│   ├── agent/                  # Deep Agents orchestrator (coding-agent, utility-agent)
-│   ├── cache/                  # LLM response cache (LRU)
+│   ├── agent/                  # Deep Agents orchestrator (coding-agent)
 │   ├── config/                 # YAML parsing & Zod schema validation
 │   ├── logger.js               # Structured logging (pino)
 │   ├── memory/                 # Markdown file persistence
