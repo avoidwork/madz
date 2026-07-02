@@ -182,7 +182,6 @@ const { createCheckpointer } = await import("./src/session/checkpointer.js");
 const checkpointer = createCheckpointer(config.persistence);
 
 // Provider config for TUI
-const providerName = Object.keys(config.providers)[0] || "openai";
 const providerConfig = config.providers[providerName] || {};
 
 const agent = await createDeepAgentsOrchestrator(checkpointer);
