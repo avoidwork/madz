@@ -768,6 +768,7 @@ export default function App({
 						last.content = committedContentRef.current + "\u2588";
 					}
 					messagesRef.current = cloned;
+					setMessages(cloned);
 					if (onTextReceived) onTextReceived();
 				}
 			} catch (_cbErr) {
@@ -801,6 +802,7 @@ export default function App({
 			}
 		}
 		messagesRef.current = cloned;
+		setMessages(cloned);
 	};
 
 	// Single input handler - processes all keystrokes here
