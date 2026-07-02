@@ -4,7 +4,6 @@ import { join } from "node:path";
 import { InMemoryStore } from "@langchain/langgraph-checkpoint";
 import { createCoreBackend } from "./coreBackend.js";
 import { createContextBackend } from "./contextBackend.js";
-import { createShellBackend } from "./shellBackend.js";
 
 function loadCodeAgentPrompt(baseDir) {
 	try {
@@ -33,7 +32,6 @@ export function createDeepAgentsOrchestrator(
 	const codeAgentPrompt = loadCodeAgentPrompt();
 	const coreBackend = createCoreBackend();
 	const contextBackend = createContextBackend();
-	const shellBackend = createShellBackend();
 
 	const codingSubAgent = createSubAgent({
 		name: "coding-agent",
