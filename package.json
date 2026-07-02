@@ -71,7 +71,7 @@
     "cron-parser": "^5.6.1",
     "ink": "^7.1.0",
     "ink-scroll-view": "^0.3.7",
-    "js-yaml": "^4.2.0",
+    "js-yaml": "^5.2.1",
     "marked": "^9.1.6",
     "marked-terminal": "^7.3.0",
     "pino": "^10.3.1",
