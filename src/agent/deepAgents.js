@@ -1,9 +1,10 @@
-import { createDeepAgent, CompositeBackend, createSubAgent, createFilesystemMiddleware } from "deepagents";
+import { createDeepAgent, CompositeBackend, createSubAgent, createFilesystemMiddleware, createMemoryMiddleware } from "deepagents";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { InMemoryStore } from "@langchain/langgraph-checkpoint";
 import { createCoreBackend } from "./coreBackend.js";
 import { createContextBackend } from "./contextBackend.js";
+import { createSubAgentsBackend } from "./subAgentsBackend.js";
 
 function loadCodeAgentPrompt(baseDir) {
 	try {
@@ -32,6 +33,7 @@ export function createDeepAgentsOrchestrator(
 	const codeAgentPrompt = loadCodeAgentPrompt();
 	const coreBackend = createCoreBackend();
 	const contextBackend = createContextBackend();
+	const subAgentsBackend = createSubAgentsBackend();
 
 	const codingSubAgent = createSubAgent({
 		name: "coding-agent",
@@ -42,6 +44,7 @@ export function createDeepAgentsOrchestrator(
 		tools,
 		middleware: [
 			createFilesystemMiddleware({ backend: coreBackend }),
+			createMemoryMiddleware({ backend: subAgentsBackend }),
 		],
 	});
 
