@@ -42,7 +42,7 @@ sandbox:
 memory:
   directory: memory/
   contextDir: memory/context/
-  subAgentsDir: memory/sub-agents
+  subAgentsDir: memory/sub-agents/
   errorsDir: memory/errors/
   schedulesDir: memory/schedules/
   gc:
