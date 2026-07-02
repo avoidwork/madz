@@ -269,7 +269,7 @@ export default function App({
 										}
 										return cloned;
 									});
-								
+								}
 							} catch (_cbErr) {
 								// Silently ignore streaming callback errors
 							}
