@@ -21,7 +21,6 @@ const parsed = yargs(process.argv.slice(2))
 import { loadConfig } from "./src/config/loader.js";
 const config = loadConfig();
 import { fileURLToPath } from "node:url";
-import { join } from "node:path";
 import { loadSession } from "./src/session/loader.js";
 
 import React from "react";
@@ -204,9 +203,7 @@ const tools = await buildToolConfig({
 });
 
 const model = createChatModel(providerConfig);
-const agent = createDeepAgentsOrchestrator(model, tools, checkpointer, [
-	join(config.cwd, "AGENTS.md"),
-]);
+const agent = createDeepAgentsOrchestrator(model, tools, checkpointer);
 
 const sessionConfig = { configurable: { thread_id: sessionState.getThreadId() } };
 

@@ -23,18 +23,17 @@ function loadCodeAgentPrompt(baseDir) {
  * @param {object} model - A chat language model instance
  * @param {unknown[]} tools - Array of LangChain tool definitions (non-overlapping tools)
  * @param {import("@langchain/langgraph").BaseCheckpointSaver | null} [checkpointer=null] - Optional checkpointer
- * @param {string[]} [memoryPaths=[]] - Array of AGENTS.md file paths to load into memory
  * @returns {Object} Deep Agents orchestrator instance
  */
 export function createDeepAgentsOrchestrator(
 	model,
 	tools = [],
 	checkpointer = null,
-	memoryPaths = [],
 ) {
 	const systemPrompt = loadSystemPrompt();
 	const codeAgentPrompt = loadCodeAgentPrompt();
 	const config = loadConfig();
+	const agentsPath = join(config.cwd, "AGENTS.md");
 	const coreBackend = createCoreBackend();
 	const contextBackend = createContextBackend();
 	const subAgentsBackend = createSubAgentsBackend();
@@ -63,7 +62,7 @@ export function createDeepAgentsOrchestrator(
 			[contextRoute]: contextBackend,
 		}),
 		subagents: [codingSubAgent],
-		...(memoryPaths.length > 0 && { memory: memoryPaths }),
+		...(agentsPath && { memory: [agentsPath] }),
 		...(checkpointer && { checkpointer }),
 	});
 }
