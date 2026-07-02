@@ -269,95 +269,7 @@ export default function App({
 										}
 										return cloned;
 									});
-								} else if (event.type === "reasoning") {
-									committedReasoning = (committedReasoning || "") + event.text;
-									setMessages((prev) => {
-										const cloned = [...prev];
-										const last = cloned[cloned.length - 1];
-										if (last.role === "assistant" && last.streaming) {
-											last.reasoningContent = (committedReasoning || "") + "\u2588";
-										}
-										return cloned;
-									});
-								} else if (event.type === "tool_start") {
-									setMessages((prev) => {
-										const cloned = [...prev];
-										const last = cloned[cloned.length - 1];
-										if (last.role === "assistant" && last.streaming) {
-											last.activeToolCall = { name: event.toolName };
-											last.toolCallDisplay = lastToolCallDisplay;
-										}
-										return cloned;
-									});
-								} else if (event.type === "tool_end") {
-									const resultLine = event.data
-										? ` Result: ${JSON.stringify(event.data).slice(0, 200)}`
-										: "";
-									const displayLine = event.toolName
-										? `- Tool: ${event.toolName}${resultLine}`
-										: `- Tool: ${event.toolCallId || "unknown"}${resultLine}`;
-									lastToolCallDisplay =
-										(lastToolCallDisplay ? lastToolCallDisplay + "\n" : "") + displayLine;
-									setMessages((prev) => {
-										const cloned = [...prev];
-										const last = cloned[cloned.length - 1];
-										if (last.role === "assistant" && last.streaming) {
-											last.activeToolCall = null;
-											last.toolCallDisplay = lastToolCallDisplay;
-										}
-										return cloned;
-									});
-								} else if (event.type === "tool_error") {
-									const errorLine = event.toolName
-										? `- Tool: ${event.toolName} (error: ${event.error})`
-										: `- Tool call failed (${event.toolCallId || "unknown"})`;
-									lastToolCallDisplay =
-										(lastToolCallDisplay ? lastToolCallDisplay + "\n" : "") + errorLine;
-									setMessages((prev) => {
-										const cloned = [...prev];
-										const last = cloned[cloned.length - 1];
-										if (last.role === "assistant" && last.streaming) {
-											last.activeToolCall = null;
-											last.toolCallDisplay = lastToolCallDisplay;
-										}
-										return cloned;
-									});
-								} else if (event.type === "compaction_start") {
-									setStatusMessage("Compacting context...");
-									setMessages((prev) => {
-										const cloned = [...prev];
-										const last = cloned[cloned.length - 1];
-										if (last.role === "assistant" && last.streaming) {
-											last.activeToolCall = null;
-											last.toolCallDisplay = lastToolCallDisplay
-												? lastToolCallDisplay + "\nCompacting context..."
-												: "Compacting context...";
-										}
-										return cloned;
-									});
-								} else if (event.type === "compaction_end") {
-									setStatusMessage("Streaming...");
-									setMessages((prev) => {
-										const cloned = [...prev];
-										const last = cloned[cloned.length - 1];
-										if (last.role === "assistant" && last.streaming) {
-											last.activeToolCall = null;
-											last.toolCallDisplay = lastToolCallDisplay;
-										}
-										return cloned;
-									});
-								} else if (event.type === "loop_detected") {
-									// Silent loop nudge — non-disruptive, agent-facing only
-									setMessages((prev) => {
-										const cloned = [...prev];
-										const last = cloned[cloned.length - 1];
-										if (last.role === "assistant" && last.streaming) {
-											last.toolCallDisplay =
-												(lastToolCallDisplay ? lastToolCallDisplay + "\n" : "") + "You're looping.";
-										}
-										return cloned;
-									});
-								}
+								
 							} catch (_cbErr) {
 								// Silently ignore streaming callback errors
 							}
@@ -430,48 +342,6 @@ export default function App({
 											});
 											// Reset flag — text arrived, not stuck anymore
 											isAutoContinuingRef.current = false;
-										} else if (event.type === "tool_start") {
-											setMessages((prev) => {
-												const cloned = [...prev];
-												const last = cloned[cloned.length - 1];
-												if (last.role === "assistant" && last.streaming) {
-													last.activeToolCall = { name: event.toolName };
-												}
-												return cloned;
-											});
-										} else if (event.type === "tool_end") {
-											const resultLine = event.data
-												? ` Result: ${JSON.stringify(event.data).slice(0, 200)}`
-												: "";
-											const displayLine = event.toolName
-												? `- Tool: ${event.toolName}${resultLine}`
-												: `- Tool: ${event.toolCallId || "unknown"}${resultLine}`;
-											lastToolCallDisplay =
-												(lastToolCallDisplay ? lastToolCallDisplay + "\n" : "") + displayLine;
-											setMessages((prev) => {
-												const cloned = [...prev];
-												const last = cloned[cloned.length - 1];
-												if (last.role === "assistant" && last.streaming) {
-													last.activeToolCall = null;
-													last.toolCallDisplay = lastToolCallDisplay;
-												}
-												return cloned;
-											});
-										} else if (event.type === "tool_error") {
-											const errorLine = event.toolName
-												? `- Tool: ${event.toolName} (error: ${event.error})`
-												: `- Tool call failed (${event.toolCallId || "unknown"})`;
-											lastToolCallDisplay =
-												(lastToolCallDisplay ? lastToolCallDisplay + "\n" : "") + errorLine;
-											setMessages((prev) => {
-												const cloned = [...prev];
-												const last = cloned[cloned.length - 1];
-												if (last.role === "assistant" && last.streaming) {
-													last.activeToolCall = null;
-													last.toolCallDisplay = lastToolCallDisplay;
-												}
-												return cloned;
-											});
 										}
 									} catch (_cbErr) {}
 								},
@@ -660,63 +530,6 @@ export default function App({
 								}
 								return cloned;
 							});
-						} else if (event.type === "reasoning") {
-							committedReasoning = (committedReasoning || "") + event.text;
-							setMessages((prev) => {
-								const cloned = [...prev];
-								const last = cloned[cloned.length - 1];
-								if (last.role === "assistant" && last.streaming) {
-									last.reasoningContent = (committedReasoning || "") + "\u2588";
-								}
-								return cloned;
-							});
-						} else if (event.type === "tool_start") {
-							setMessages((prev) => {
-								const cloned = [...prev];
-								const last = cloned[cloned.length - 1];
-								if (last.role === "assistant" && last.streaming) {
-									last.activeToolCall = { name: event.toolName };
-									last.toolCallDisplay = lastToolCallDisplay;
-								}
-								return cloned;
-							});
-						} else if (event.type === "tool_end") {
-							const resultLine = event.data
-								? ` Result: ${JSON.stringify(event.data).slice(0, 200)}`
-								: "";
-							const displayLine = event.toolName
-								? `- Tool: ${event.toolName}${resultLine}`
-								: `- Tool: ${event.toolCallId || "unknown"}${resultLine}`;
-							lastToolCallDisplay =
-								(lastToolCallDisplay ? lastToolCallDisplay + "\n" : "") + displayLine;
-							setMessages((prev) => {
-								const cloned = [...prev];
-								const last = cloned[cloned.length - 1];
-								if (last.role === "assistant" && last.streaming) {
-									last.activeToolCall = null;
-									last.toolCallDisplay = lastToolCallDisplay;
-								}
-								return cloned;
-							});
-						} else if (event.type === "tool_error") {
-							const errorLine = event.toolName
-								? `- Tool: ${event.toolName} (error: ${event.error})`
-								: `- Tool call failed (${event.toolCallId || "unknown"})`;
-							lastToolCallDisplay =
-								(lastToolCallDisplay ? lastToolCallDisplay + "\n" : "") + errorLine;
-							setMessages((prev) => {
-								const cloned = [...prev];
-								const last = cloned[cloned.length - 1];
-								if (last.role === "assistant" && last.streaming) {
-									last.activeToolCall = null;
-									last.toolCallDisplay = lastToolCallDisplay;
-								}
-								return cloned;
-							});
-						} else if (event.type === "compaction_start") {
-							setIsCompacting(true);
-						} else if (event.type === "compaction_end") {
-							setIsCompacting(false);
 						}
 					} catch (_cbErr) {
 						// Silently ignore streaming callback errors
@@ -793,52 +606,6 @@ export default function App({
 									});
 									// Reset flag — text arrived, not stuck anymore
 									isAutoContinuingRef.current = false;
-								} else if (event.type === "tool_start") {
-									setMessages((prev) => {
-										const cloned = [...prev];
-										const last = cloned[cloned.length - 1];
-										if (last.role === "assistant" && last.streaming) {
-											last.activeToolCall = { name: event.toolName };
-										}
-										return cloned;
-									});
-								} else if (event.type === "tool_end") {
-									const resultLine = event.data
-										? ` Result: ${JSON.stringify(event.data).slice(0, 200)}`
-										: "";
-									const displayLine = event.toolName
-										? `- Tool: ${event.toolName}${resultLine}`
-										: `- Tool: ${event.toolCallId || "unknown"}${resultLine}`;
-									lastToolCallDisplay =
-										(lastToolCallDisplay ? lastToolCallDisplay + "\n" : "") + displayLine;
-									setMessages((prev) => {
-										const cloned = [...prev];
-										const last = cloned[cloned.length - 1];
-										if (last.role === "assistant" && last.streaming) {
-											last.activeToolCall = null;
-											last.toolCallDisplay = lastToolCallDisplay;
-										}
-										return cloned;
-									});
-								} else if (event.type === "tool_error") {
-									const errorLine = event.toolName
-										? `- Tool: ${event.toolName} (error: ${event.error})`
-										: `- Tool call failed (${event.toolCallId || "unknown"})`;
-									lastToolCallDisplay =
-										(lastToolCallDisplay ? lastToolCallDisplay + "\n" : "") + errorLine;
-									setMessages((prev) => {
-										const cloned = [...prev];
-										const last = cloned[cloned.length - 1];
-										if (last.role === "assistant" && last.streaming) {
-											last.activeToolCall = null;
-											last.toolCallDisplay = lastToolCallDisplay;
-										}
-										return cloned;
-									});
-								} else if (event.type === "compaction_start") {
-									setIsCompacting(true);
-								} else if (event.type === "compaction_end") {
-									setIsCompacting(false);
 								}
 							} catch (_cbErr) {}
 						},
