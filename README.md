@@ -417,7 +417,7 @@ Uses the [Deep Agents](https://github.com/avoidwork/deepagents) library to orche
 When conversations grow long enough to exceed the model's maximum context length, `madz` automatically detects the error and triggers a compaction routine. A tiered retention strategy preserves high-fidelity information: the system prompt and the most recent exchanges are kept intact, older exchanges are summarized into concise bullet-point previews, and the oldest messages are d| **Agents**          | `mixtureOfAgents` — multi-agent orchestration; `scanAgents` — scan for `AGENTS.md` workspace rules files in a target directory |t, the user is presented with a clear error message. This happens transparently; the user never needs to start a new session or manually manage context.
 
 ### Built-in Tools
-Some tools are provided by the [Deep Agents](https://github.com/avoidwork/deepagents) library as middleware wired into the orchestrator — always available. Others are built-in Madz tools gated by sandbox permissions.
+Some tools are provided by the [Deep Agents](https://github.com/avoidwork/deepagents) library as middleware wired into the orchestrator — always available. Others are built-in LangChain tools gated by sandbox permissions.
 
 **Deep Agents middleware:**
 
@@ -428,7 +428,7 @@ Some tools are provided by the [Deep Agents](https://github.com/avoidwork/deepag
 | **Skills** | `skills_list` — lists discovered skills; `skillView` — views skill metadata and SKILL.md; `createSkill` — creates spec-compliant skill directories with SKILL.md frontmatter (requires `filesystem:write`) |
 | **Summarization** | `compactContext`, `compaction` — automatic conversation context compaction |
 
-**Madz tools:**
+**Built-in LangChain tools:**
 
 | Category | Tools |
 | -------- | ----- |
@@ -497,29 +497,24 @@ On first onboarding completion, `madz` automatically installs a `reflection-dail
 ├── index.js                    # Application entry point
 ├── config.yaml                 # Centralized configuration
 ├── .husky/                     # Git hooks (lint, fmt, tests)
-├── docs/                       # Project documentation
-├── openspec/                   # OpenSpec change management (changes/, specs/, config.yaml)
-├── prompts/                    # System prompts (SYSTEM_PROMPT.md, SUB_AGENT.md, COMPACTION.md)
 ├── src/
 │   ├── agent/                  # Deep Agents orchestrator (coding-agent)
 │   ├── config/                 # YAML parsing & Zod schema validation
 │   ├── logger.js               # Structured logging (pino)
 │   ├── memory/                 # Markdown file persistence
 │   ├── provider/               # LLM model factory (OpenAI)
+│   ├── skills/                 # Agent Skills spec discovery, validation & permissions
 │   ├── sandbox/                # Process sandboxing & capability enforcement
 │   ├── scheduler/              # Cron-based job runner
 │   ├── session/                # Per-session state & context windows
-│   ├── skills/                 # Agent Skills spec discovery, validation & permissions
 │   ├── telemetry/              # OpenTelemetry tracing & redaction
-│   ├── tools/                  # Built-in Madz tools
+│   ├── tools/                  # Built-in LangChain tools
 │   ├── workspace/              # Workspace rules discovery (AGENTS.md)
 │   └── tui/                    # Ink React terminal UI
-├── system-skills/              # System-level skills (e.g., reflection)
 ├── tests/
 │   ├── unit/                   # Unit tests per module
 │   └── integration/            # End-to-end flow tests
 └── memory/                     # Persistent markdown storage
-```
 ```
 
 ## Logging
