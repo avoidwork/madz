@@ -58,7 +58,7 @@ export function createDeepAgentsOrchestrator(checkpointer = null) {
 		safety: config.sandbox.safety,
 		timeout: config.sandbox.timeout,
 		memoryLimit: config.sandbox.memoryLimit,
-		contextDir: config.cwd + "/" + (config.memory?.contextDir || "memory/context/"),
+		contextDir: join(config.cwd, config.memory.contextDir),
 		ephemeralTtlDays: config.memory?.ephemeral?.ttlDays || 7,
 		ephemeralMaxEntries: config.memory?.ephemeral?.maxEntries || 10,
 		config,
