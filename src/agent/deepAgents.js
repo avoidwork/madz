@@ -1,8 +1,6 @@
 import { createDeepAgent } from "deepagents";
-import { createFilesystemMiddleware } from "deepagents";
 import { createMemoryMiddleware } from "deepagents";
 import { createSkillsMiddleware } from "deepagents";
-import { createSummarizationMiddleware } from "deepagents";
 import { loadConfig } from "../config/loader.js";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -53,23 +51,23 @@ export function createDeepAgentsOrchestrator(
 	// Build middleware array
 	const middleware = [
 		// Filesystem middleware — replaces readFile, writeFile, patch, searchFiles
-		createFilesystemMiddleware({
-			backend: fileBackend,
-			permissions: resolvedPermissions,
-		}),
+		//createFilesystemMiddleware({
+		//	backend: fileBackend,
+		//	permissions: resolvedPermissions,
+		//}),
 		// Memory middleware — replaces memory tool
-		createMemoryMiddleware({
-			backend: fileBackend,
-			sources: [memoryDir],
-		}),
+		//createMemoryMiddleware({
+		//	backend: fileBackend,
+		//	sources: [memoryDir],
+		//}),
 		// Skills middleware — replaces skillView, createSkill
-		createSkillsMiddleware({
-			backend: fileBackend,
-		}),
+	//	createSkillsMiddleware({
+		//	backend: fileBackend,
+		//}),
 		// Summarization middleware — replaces compactContext, compaction
-		createSummarizationMiddleware({
-			backend: fileBackend,
-		}),
+		//createSummarizationMiddleware({
+		//	backend: fileBackend,
+		//}),
 	];
 
 	return createDeepAgent({
