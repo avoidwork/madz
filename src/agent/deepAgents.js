@@ -40,6 +40,7 @@ export function createDeepAgentsOrchestrator(
 		description:
 			"Specialized agent for code-related tasks including file editing, debugging, implementation, and code review.",
 		systemPrompt: codeAgentPrompt || "You are a coding specialist. Handle all code-related tasks.",
+		model,
 		backend: shellBackend,
 	});
 
