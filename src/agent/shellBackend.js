@@ -8,9 +8,8 @@ import { loadConfig } from "../config/loader.js";
  */
 export function createShellBackend(cwd) {
 	const config = loadConfig();
-	const baseDir = cwd || process.cwd();
 	return new LocalShellBackend({
-		rootDir: baseDir,
+		rootDir: "/",
 		inheritEnv: true,
 		timeout: config.sandbox?.timeout?.seconds ?? 120,
 	});
