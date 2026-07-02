@@ -21,6 +21,7 @@ const parsed = yargs(process.argv.slice(2))
 import { loadConfig } from "./src/config/loader.js";
 const config = loadConfig();
 import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 import { loadSession } from "./src/session/loader.js";
 
 import React from "react";
@@ -124,8 +125,7 @@ registry.discover();
 // Initialize memory system
 const { writeMemoryFile, readMemoryFile, loadContext } = await import("./src/memory/index.js");
 
-// Initialize workspace rules loader
-const { loadAgents } = await import("./src/workspace/loadAgents.js");
+
 
 // Initialize GC manager (if enabled)
 let gcManager = null;
@@ -180,10 +180,6 @@ try {
 	// Graceful degradation: session starts even if cleanup import fails
 }
 
-// Load system prompt and append memory entries
-const { loadSystemPrompt } = await import("./src/memory/prompts.js");
-const { generateSkillCatalogPrompt } = await import("./src/tools/skills.js");
-const systemPrompt = loadSystemPrompt(process.cwd());
 // Build agent and tool config at startup (once)
 const providerConfig = config.providers[providerName] || {};
 
@@ -207,13 +203,10 @@ const tools = await buildToolConfig({
 	checkpointer,
 });
 
-const agentsText = await loadAgents();
-const catalog = registry.getCatalog();
-const skillCatalog = generateSkillCatalogPrompt(catalog);
-const callPrompt = `${systemPrompt}${skillCatalog ? `\n\n---\n\n${skillCatalog}` : ""}${agentsText ? `\n\n---\n\n${agentsText}` : ""}`;
-
 const model = createChatModel(providerConfig);
-const agent = createDeepAgentsOrchestrator(model, tools, callPrompt, checkpointer);
+const agent = createDeepAgentsOrchestrator(model, tools, checkpointer, [
+	join(config.cwd, "AGENTS.md"),
+]);
 
 const sessionConfig = { configurable: { thread_id: sessionState.getThreadId() } };
 

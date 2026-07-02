@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { InMemoryStore } from "@langchain/langgraph-checkpoint";
 import { loadConfig } from "../config/loader.js";
+import { loadSystemPrompt } from "../memory/prompts.js";
 import { createCoreBackend } from "./coreBackend.js";
 import { createContextBackend } from "./contextBackend.js";
 import { createSubAgentsBackend } from "./subAgentsBackend.js";
@@ -21,16 +22,17 @@ function loadCodeAgentPrompt(baseDir) {
  * Uses deepagents middleware for filesystem, memory, skills, and summarization.
  * @param {object} model - A chat language model instance
  * @param {unknown[]} tools - Array of LangChain tool definitions (non-overlapping tools)
- * @param {string} systemPrompt - The main system prompt
  * @param {import("@langchain/langgraph").BaseCheckpointSaver | null} [checkpointer=null] - Optional checkpointer
+ * @param {string[]} [memoryPaths=[]] - Array of AGENTS.md file paths to load into memory
  * @returns {Object} Deep Agents orchestrator instance
  */
 export function createDeepAgentsOrchestrator(
 	model,
 	tools = [],
-	systemPrompt = "",
 	checkpointer = null,
+	memoryPaths = [],
 ) {
+	const systemPrompt = loadSystemPrompt();
 	const codeAgentPrompt = loadCodeAgentPrompt();
 	const config = loadConfig();
 	const coreBackend = createCoreBackend();
@@ -61,6 +63,7 @@ export function createDeepAgentsOrchestrator(
 			[contextRoute]: contextBackend,
 		}),
 		subagents: [codingSubAgent],
+		...(memoryPaths.length > 0 && { memory: memoryPaths }),
 		...(checkpointer && { checkpointer }),
 	});
 }
