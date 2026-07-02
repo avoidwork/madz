@@ -11,6 +11,8 @@ import { InMemoryStore } from "@langchain/langgraph-checkpoint";
 import { loadConfig } from "../config/loader.js";
 import { loadSystemPrompt } from "../memory/prompts.js";
 import { SkillRegistry } from "../skills/registry.js";
+import { createChatModel } from "../provider/openai.js";
+import { buildToolConfig } from "../tools/index.js";
 import { createCoreBackend } from "./coreBackend.js";
 import { createContextBackend } from "./contextBackend.js";
 import { createSubAgentsBackend } from "./subAgentsBackend.js";
@@ -27,21 +29,41 @@ function loadCodeAgentPrompt(baseDir) {
 /**
  * Create a Deep Agents orchestrator with coding and utility sub-agents.
  * Uses deepagents middleware for filesystem, memory, skills, and summarization.
- * @param {object} model - A chat language model instance
- * @param {unknown[]} tools - Array of LangChain tool definitions (non-overlapping tools)
  * @param {import("@langchain/langgraph").BaseCheckpointSaver | null} [checkpointer=null] - Optional checkpointer
  * @returns {Object} Deep Agents orchestrator instance
  */
-export function createDeepAgentsOrchestrator(model, tools = [], checkpointer = null) {
+export function createDeepAgentsOrchestrator(checkpointer = null) {
+	const config = loadConfig();
 	const systemPrompt = loadSystemPrompt();
 	const codeAgentPrompt = loadCodeAgentPrompt();
-	const config = loadConfig();
 	const agentsPath = join(config.cwd, "AGENTS.md");
 
 	// Discover skills from configured scopes
 	const skillRegistry = new SkillRegistry();
 	skillRegistry.discover();
 	const skillPaths = skillRegistry.getSkillPaths();
+
+	// Create model from config
+	const providerName = Object.keys(config.providers)[0] || "openai";
+	const providerConfig = config.providers[providerName] || {};
+	const model = createChatModel(providerConfig);
+
+	// Build tools from config
+	const tools = buildToolConfig({
+		permissions: config.sandbox.permissions || [],
+		allowedPaths: config.sandbox.paths,
+		maxReadSize: config.sandbox.maxReadSize || "1mb",
+		registry: skillRegistry,
+		sessionsDir: config.cwd + "/" + "memory/sessions/",
+		safety: config.sandbox.safety,
+		timeout: config.sandbox.timeout,
+		memoryLimit: config.sandbox.memoryLimit,
+		contextDir: config.cwd + "/" + (config.memory?.contextDir || "memory/context/"),
+		ephemeralTtlDays: config.memory?.ephemeral?.ttlDays || 7,
+		ephemeralMaxEntries: config.memory?.ephemeral?.maxEntries || 10,
+		config,
+		checkpointer,
+	});
 
 	const coreBackend = createCoreBackend();
 	const contextBackend = createContextBackend();

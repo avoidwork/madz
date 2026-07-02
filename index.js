@@ -177,31 +177,11 @@ try {
 	// Graceful degradation: session starts even if cleanup import fails
 }
 
-// Build agent and tool config at startup (once)
-const providerConfig = config.providers[providerName] || {};
-
 // Create checkpointer before tools so compactContext can access it
 const { createCheckpointer } = await import("./src/session/checkpointer.js");
 const checkpointer = createCheckpointer(config.persistence);
 
-const tools = await buildToolConfig({
-	permissions: config.sandbox.permissions || [],
-	allowedPaths: config.sandbox.paths,
-	maxReadSize: config.sandbox.maxReadSize || "1mb",
-	registry,
-	sessionsDir: config.cwd + "/" + "memory/sessions/",
-	safety: config.sandbox.safety,
-	timeout: config.sandbox.timeout,
-	memoryLimit: config.sandbox.memoryLimit,
-	contextDir: config.cwd + "/" + (config.memory?.contextDir || "memory/context/"),
-	ephemeralTtlDays: config.memory?.ephemeral?.ttlDays || 7,
-	ephemeralMaxEntries: config.memory?.ephemeral?.maxEntries || 10,
-	config,
-	checkpointer,
-});
-
-const model = createChatModel(providerConfig);
-const agent = createDeepAgentsOrchestrator(model, tools, checkpointer);
+const agent = createDeepAgentsOrchestrator(checkpointer);
 
 const sessionConfig = { configurable: { thread_id: sessionState.getThreadId() } };
 
