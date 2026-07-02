@@ -1,9 +1,10 @@
-import { createDeepAgent, CompositeBackend } from "deepagents";
+import { createDeepAgent, CompositeBackend, createSubAgent } from "deepagents";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { InMemoryStore } from "@langchain/langgraph-checkpoint";
 import { createCoreBackend } from "./coreBackend.js";
 import { createContextBackend } from "./contextBackend.js";
+import { createShellBackend } from "./shellBackend.js";
 
 function loadCodeAgentPrompt(baseDir) {
 	try {
@@ -32,6 +33,15 @@ export function createDeepAgentsOrchestrator(
 	const codeAgentPrompt = loadCodeAgentPrompt();
 	const coreBackend = createCoreBackend();
 	const contextBackend = createContextBackend();
+	const shellBackend = createShellBackend();
+
+	const codingSubAgent = createSubAgent({
+		name: "coding-agent",
+		description:
+			"Specialized agent for code-related tasks including file editing, debugging, implementation, and code review.",
+		systemPrompt: codeAgentPrompt || "You are a coding specialist. Handle all code-related tasks.",
+		backend: shellBackend,
+	});
 
 	return createDeepAgent({
 		model,
@@ -41,14 +51,7 @@ export function createDeepAgentsOrchestrator(
 		backend: new CompositeBackend(coreBackend, {
 			"/memory/context/": contextBackend,
 		}),
-		subagents: [
-			{
-				name: "coding-agent",
-				description:
-					"Specialized agent for code-related tasks including file editing, debugging, implementation, and code review.",
-				systemPrompt: codeAgentPrompt || "You are a coding specialist. Handle all code-related tasks.",
-			},
-		],
+		subagents: [codingSubAgent],
 		...(checkpointer && { checkpointer }),
 	});
 }
