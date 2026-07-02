@@ -259,7 +259,7 @@ export default function App({
 						(event) => {
 							if (shouldAbort()) return;
 							try {
-								if (event.type === "text") {
+								if (event.type === "message") {
 									committedContent = (committedContent || "") + event.text;
 									setMessages((prev) => {
 										const cloned = [...prev];
@@ -330,7 +330,7 @@ export default function App({
 								(event) => {
 									if (shouldAbort()) return;
 									try {
-										if (event.type === "text") {
+										if (event.type === "message") {
 											committedContent = (committedContent || "") + event.text;
 											setMessages((prev) => {
 												const cloned = [...prev];
@@ -520,7 +520,7 @@ export default function App({
 				(event) => {
 					if (shouldAbort()) return;
 					try {
-						if (event.type === "text") {
+						if (event.type === "message") {
 							committedContent = (committedContent || "") + event.text;
 							setMessages((prev) => {
 								const cloned = [...prev];
@@ -594,7 +594,7 @@ export default function App({
 						(event) => {
 							if (shouldAbort()) return;
 							try {
-								if (event.type === "text") {
+								if (event.type === "message") {
 									committedContent = (committedContent || "") + event.text;
 									setMessages((prev) => {
 										const cloned = [...prev];
