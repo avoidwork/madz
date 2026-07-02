@@ -121,7 +121,6 @@ export const MemoryGcSchema = z.object({
 export const MemorySchema = z.object({
 	directory: z.string().default("memory/"),
 	contextDir: z.string().default("memory/context/"),
-	toolsDir: z.string().default("memory/tools/"),
 	subAgentsDir: z.string().default("memory/sub-agents/"),
 	errorsDir: z.string().default("memory/errors/"),
 	schedulesDir: z.string().default("memory/schedules/"),
@@ -259,7 +258,6 @@ export const DEFAULT_CONFIG = {
 	memory: {
 		directory: "memory/",
 		contextDir: "memory/context/",
-		toolsDir: "memory/tools/",
 		subAgentsDir: "memory/sub-agents/",
 		errorsDir: "memory/errors/",
 		schedulesDir: "memory/schedules/",
