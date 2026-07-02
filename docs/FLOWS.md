@@ -406,46 +406,6 @@ createChatModel(config)
     })
 ```
 
-## Agent ReAct Streaming
-
-**Entry:** `src/agent/react.js` → `callReactAgent(..., streamingCallback)`
-
-```
-callReactAgent(agent, message, config, systemPrompt, callback)
-├── messages = [HumanMessage(message)]
-├── if systemPrompt && isNewThread → messages = [SystemMessage(systemPrompt), ...messages]
-└── callReactAgentStreaming(agent, messages, message, config, callback)
-    ├── stream = await agent.streamEvents(
-    │   │   { messages },
-    │   │   { version: "v2", configurable: config.configurable }
-    │   │   )
-    │   └── v2 event stream protocol
-    ├── for await (event of stream):
-    │   ├── event.event === "on_chat_model_stream":
-    │   │   ├── textContent = chunk.content (string or block.text)
-    │   │   └── callback({ type: "text", text: textContent })
-    │   ├── chunk.reasoning:
-    │   │   └── callback({ type: "reasoning", text: chunk.reasoning })
-    │   ├── event.event === "on_tool_start" && name === "tool":
-    │   │   └── for each tc in input.tool_calls:
-    │   │       └── if not duplicate → callback({ type: "tool_start", toolName, toolCallId })
-    │   ├── event.event === "on_tool_end" && name === "tool":
-    │   │   └── callback({ type: "tool_end", toolName, toolCallId, data: result.slice(0,500) })
-    │   └── event.event === "on_tool_error" && name === "tool":
-    │       └── callback({ type: "tool_error", toolName, toolCallId, error })
-    ├── for each remaining key in toolCallSet → callback({ type: "tool_end", toolName })
-    └── return { content: originalMessage } -- fallback
-```
-
-**Context length error handling:** Both `callReactAgent` and `callReactAgentStreaming` are wrapped in a retry loop (max 3 iterations). When the LLM returns a 400 error matching context-length patterns (`/maximum\s+context\s+length[^0-9]*?(\d+)\s*tokens?/i` or `/limit[:\s]*(\d+)/i`), the system:
-
-1. Extracts the max context length from the error message
-2. Calculates `targetTokens = maxContextLength - maxTokens`
-3. Compacts the conversation via `compactConversation()` using tiered retention
-4. Rebuilds messages from compacted result and retries
-
-If all 3 iterations fail, the user receives: "The conversation is too long. Please start a new session."
-
 ---
 
 ## Context Compaction
@@ -1132,5 +1092,39 @@ index.js
 ├── session/loader.js → fs, path, memory/reader.js
 ├── session/saver.js → fs, path, memory/writer.js
 ├── session/onboarding.js → session/stateManager.js — onboarding state machine (INIT → ATTRACTOR → COLLECT → SAVE → TRANSCEND)
+└── telemetry/provider.js → @opentelemetry/sdk-node
+```
+I TTS API
+│     ├── tools/moa.js → OPENROUTER_API_KEY — mixture-of-agents (4 parallel OpenRouter calls + aggregation)
+│     ├── tools/cron.js → node:fs/promises — cron job CRUD operations
+│     ├── tools/compactContext.js → @langchain/core, zod — automatic conversation context compaction on LLM 400 errors (tiered retention, retry loop, error detection)
+│     └── tools/...
+│     └── tools/...
+├── sandbox/pathResolver.js → node:path
+├── sandbox/urlFilter.js → node:url
+├── sandbox/runner.js → node:child_process, sandbox/timeoutHandler.js, envInjector.js, capability.js
+├── registry/registry.js → discoverer.js, validator.js
+├── registry/discoverer.js → js-yaml, node:fs, node:path
+├── registry/validator.js → types.js (zod schemas)
+├── registry/types.js → zod
+├── scheduler/scheduler.js → node:fs/promises — ScheduleManager CRUD class (register, list, pause, resume, runNow)
+├── scheduler/cron.js → node:child_process, node:fs/promises, node:path — Cron object (isAvailable, add, remove)
+├── scheduler/autoSchedule.js → node:fs — setupAutoSchedule() callback for reflection-daily cron
+├── scheduler/index.js → re-exports ScheduleManager and Cron
+├── memory/writer.js → node:fs, node:path
+├── memory/reader.js → js-yaml, node:fs
+├── memory/context.js → node:fs, node:path, memory/reader.js
+├── memory/retention.js → node:fs, node:path
+├── memory/prompts.js → node:fs
+├── memory/profile.js → node:fs — user profile management: ATTRIBUTES, loadProfile, saveProfile, formatProfileContext, processOnboardingInput
+├── session/factory.js → node:crypto (randomUUID)
+├── session/stateManager.js
+├── session/checkpointer.js → @langchain/langgraph, @langchain/langgraph-checkpoint-sqlite — createCheckpointer() returns MemorySaver (in-memory) or SQLiteCheckpointer (persistent)
+├── session/loader.js → fs, path, memory/reader.js
+├── session/saver.js → fs, path, memory/writer.js
+├── session/onboarding.js → session/stateManager.js — onboarding state machine (INIT → ATTRACTOR → COLLECT → SAVE → TRANSCEND)
+└── telemetry/provider.js → @opentelemetry/sdk-node
+```
+ → SAVE → TRANSCEND)
 └── telemetry/provider.js → @opentelemetry/sdk-node
 ```
