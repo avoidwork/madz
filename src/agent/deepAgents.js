@@ -1,6 +1,7 @@
 import { createDeepAgent, CompositeBackend } from "deepagents";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { InMemoryStore } from "@langchain/langgraph-checkpoint";
 import { createCoreBackend } from "./coreBackend.js";
 import { createContextBackend } from "./contextBackend.js";
 
@@ -36,6 +37,7 @@ export function createDeepAgentsOrchestrator(
 		model,
 		systemPrompt,
 		tools,
+		store: new InMemoryStore(),
 		backend: new CompositeBackend(coreBackend, {
 			"/memory/context/": contextBackend,
 		}),
