@@ -4,7 +4,10 @@ import {
 	createSubAgent,
 	createFilesystemMiddleware,
 	createMemoryMiddleware,
+	createSummarizationMiddleware,
+	createPatchToolCallsMiddleware,
 } from "deepagents";
+import { todoListMiddleware } from "langchain";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { InMemoryStore } from "@langchain/langgraph-checkpoint";
@@ -79,7 +82,10 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 		model,
 		tools,
 		middleware: [
+			todoListMiddleware(),
 			createFilesystemMiddleware({ backend: coreBackend }),
+			createSummarizationMiddleware({ backend: coreBackend }),
+			createPatchToolCallsMiddleware(),
 			createMemoryMiddleware({ backend: subAgentsBackend }),
 		],
 	});
