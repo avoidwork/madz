@@ -45,7 +45,7 @@ memory:
   subAgentsDir: memory/sub-agents/
   errorsDir: memory/errors/
   schedulesDir: memory/schedules/
-  sessionDir: memory/sessions/
+  sessionsDir: memory/sessions/
   gc:
     enabled: true
     idleTimeoutMs: 300000
