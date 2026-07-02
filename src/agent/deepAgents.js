@@ -1,10 +1,6 @@
 import { createDeepAgent } from "deepagents";
-import { createMemoryMiddleware } from "deepagents";
-import { createSkillsMiddleware } from "deepagents";
-import { loadConfig } from "../config/loader.js";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { FileBackend } from "./fileBackend.js";
 
 function loadCodeAgentPrompt(baseDir) {
 	try {
@@ -31,50 +27,12 @@ export function createDeepAgentsOrchestrator(
 	checkpointer = null,
 ) {
 	const codeAgentPrompt = loadCodeAgentPrompt();
-	const config = loadConfig();
-	const memoryDir = join(config.cwd, config.memory?.contextDir || "memory/context/");
-	const allowedPaths = config.sandbox?.paths || ["./"];
-
-	// Create file-based backend for deepagents middleware
-	const fileBackend = new FileBackend(memoryDir, {
-		allowedPaths: allowedPaths.map((p) => join(config.cwd, p)),
-		maxReadSize: config.sandbox?.maxReadSize || "1mb",
-	});
-
-	// Resolve permission paths to absolute paths for deepagents middleware
-	const resolvedPermissions = allowedPaths
-		.filter((p) => !p.startsWith("!"))
-		.map((p) => ({
-			paths: [join(config.cwd, p)],
-		}));
-
-	// Build middleware array
-	const middleware = [
-		// Filesystem middleware — replaces readFile, writeFile, patch, searchFiles
-		//createFilesystemMiddleware({
-		//	backend: fileBackend,
-		//	permissions: resolvedPermissions,
-		//}),
-		// Memory middleware — replaces memory tool
-		//createMemoryMiddleware({
-		//	backend: fileBackend,
-		//	sources: [memoryDir],
-		//}),
-		// Skills middleware — replaces skillView, createSkill
-	//	createSkillsMiddleware({
-		//	backend: fileBackend,
-		//}),
-		// Summarization middleware — replaces compactContext, compaction
-		//createSummarizationMiddleware({
-		//	backend: fileBackend,
-		//}),
-	];
 
 	return createDeepAgent({
 		model,
 		systemPrompt,
 		tools,
-		middleware,
+		middleware: [],
 		subagents: [
 			{
 				name: "coding-agent",
