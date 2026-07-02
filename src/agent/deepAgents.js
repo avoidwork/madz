@@ -54,7 +54,7 @@ export function createDeepAgentsOrchestrator(checkpointer = null) {
 		allowedPaths: config.sandbox.paths,
 		maxReadSize: config.sandbox.maxReadSize || "1mb",
 		registry: skillRegistry,
-		sessionsDir: config.cwd + "/" + "memory/sessions/",
+		sessionsDir: join(config.cwd, config.memory.sessionDir),
 		safety: config.sandbox.safety,
 		timeout: config.sandbox.timeout,
 		memoryLimit: config.sandbox.memoryLimit,
