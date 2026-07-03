@@ -330,7 +330,12 @@ export default function App({
 
 					if (shouldAbort()) return;
 
-					finalizeStreaming(responseContent, committedReasoning, lastToolCallDisplay, todoStatusLines);
+					finalizeStreaming(
+						responseContent,
+						committedReasoning,
+						lastToolCallDisplay,
+						todoStatusLines,
+					);
 
 					// Persist assistant response to session state
 					if (sessionState) {
@@ -798,7 +803,12 @@ export default function App({
 	 * @param {string} lastToolCallDisplay - Tool call display text
 	 * @param {string} todoStatusLines - Todo status lines
 	 */
-	const finalizeStreaming = (responseContent, committedReasoning, lastToolCallDisplay, todoStatusLines) => {
+	const finalizeStreaming = (
+		responseContent,
+		committedReasoning,
+		lastToolCallDisplay,
+		todoStatusLines,
+	) => {
 		setMessages((prev) => {
 			const cloned = [...prev];
 			const last = cloned[cloned.length - 1];
