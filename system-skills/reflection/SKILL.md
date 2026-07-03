@@ -4,6 +4,7 @@ description: Generate a narrative reflection summary from recent session history
 metadata:
   author: madz
   version: "1.0"
+  agent: orchestrator
 ---
 
 Generate a concise, narrative reflection summary from recent session history and write it to `memory/context/reflection.md`.
