@@ -327,6 +327,79 @@ This mode is used by internal cron jobs and NPM installations.
 
 ---
 
+## 🤖 Automating Coding Tasks with the Task Tool
+
+`madz` can delegate complex, multi-step coding tasks to specialized subagents through the `task` tool. Instead of you orchestrating each step manually — checking git status, running lint, editing files, committing — you describe the outcome you want and a subagent handles the execution. The machine does not wait for idle terminals; it waits for clear instructions.
+
+### Available Agent Types
+
+Two agent types are available, each with a distinct scope:
+
+- **`general-purpose`** — Research, file searches, multi-step tasks that span multiple domains. Has access to all tools. Use this when the task is exploratory, involves gathering information, or doesn't fit neatly into a single specialty.
+
+- **`coding-agent`** — Specialized for code-related work: file editing, debugging, implementation, code review, and git operations. This agent understands project conventions, follows linting standards, and respects commit message formatting rules. Use this when the task touches source code, tests, or version control.
+
+### Concrete Examples
+
+**Example 1: Commit and Push**
+
+```
+task coding-agent: commit and push to this branch, we have an open pr
+```
+
+The coding-agent checks git status, stages changed files, crafts a descriptive commit message following the project's conventional commit format, and pushes to the remote branch. It will not push without explicit approval — see the notes below.
+
+**Example 2: Run Lint, Fix Errors, Commit, and Push**
+
+```
+task coding-agent: run lint, fix any errors, then commit and push
+```
+
+The coding-agent runs the project's lint command, identifies each issue, applies fixes to the relevant files, re-runs lint to verify all issues are resolved, and then proceeds to commit and push. If a fix is ambiguous or risky, the agent will pause and ask for guidance rather than guessing.
+
+**Example 3: Update a PR**
+
+```
+task coding-agent: update PR #123 with the latest changes from this branch
+```
+
+The coding-agent can interact with GitHub pull requests — updating PR descriptions, adding review comments, requesting changes, or merging. It reads the current branch state, diffs against the target branch, and composes meaningful descriptions from the actual code changes.
+
+**Example 4: Create an Issue**
+
+```
+task coding-agent: create an issue for memory leak in session manager
+```
+
+The coding-agent can create GitHub issues with proper titles, descriptions, labels, and categorization. It will search the codebase for relevant context, reference related files, and suggest labels based on the project's issue taxonomy.
+
+**Example 5: Debug a Failing Test**
+
+```
+task coding-agent: debug the failing test in tests/unit/skills.test.js and fix it
+```
+
+The coding-agent runs the specified test, analyzes the failure output, traces the root cause through the relevant source files, and applies a fix. It re-runs the test to confirm the fix resolves the issue and does not introduce regressions in related tests.
+
+### Best Practices
+
+- **Be specific in your delegation.** Clear, unambiguous instructions produce better results. "Fix the lint errors" is good; "run eslint on src/ and fix all errors without changing the public API" is better.
+- **The coding-agent operates in the project's CWD by default.** All file paths and commands are resolved relative to the working directory.
+- **It follows project conventions.** The agent reads `AGENTS.md` rules, respects the project's commit message format, and adheres to linting and formatting standards.
+- **For git operations, it respects branch protection.** It will not force-push or bypass protected branches.
+- **Complex tasks benefit from step-by-step instructions.** If a task has multiple phases, describe them in order and the agent will execute sequentially.
+
+### Important Notes
+
+- The coding-agent **never rebases** without explicit agreement.
+- It **never pushes** without explicit user approval.
+- It **never changes branches** without permission.
+- It follows the project's **conventional commit format** for all commits.
+
+These guardrails exist so you can delegate with confidence. The agent is a collaborator, not an autonomous actor. It acts, but it does not overreach.
+
+---
+
 ## 🔧 Troubleshooting
 
 ### Docker-Specific
