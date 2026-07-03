@@ -12,17 +12,20 @@ graph TD
     I --> T["Telemetry"]
     I --> R["Registry"]
     I --> S["Scheduler"]
-    R --> A["Agent"]
-    A -->|"cache-aside"| L["Cache"]
-    L --> P["Provider"]
-    A -->|"tools"| SB["Sandbox"]
-    S -->|"runNow()"| SB
+    I --> DA["Deep Agents\nOrchestrator"]
+    DA -->|"orchestrator + shared"| OT["Orchestrator Tools"]
+    DA -->|"subagent + shared"| ST["Subagent Tools"]
+    DA -->|"model"| P["Provider"]
+    DA -->|"core FS"| CB["Core Backend\nFilesystemBackend"]
+    DA -->|"context FS"| CTB["Context Backend\nFilesystemBackend"]
+    DA -->|"delegate"| SA["Coding Subagent"]
+    SA -->|"execution"| ST
+    S -->|"runNow()"| SB["Sandbox"]
     SB -->|"spawn()"| SK["scripts/"]
-    TM["Memory Files"] -->|"loadContext"| A
-    TM -->|write/read| FS["filesystem"]
-    TM -->|context| SE["Session"]
+    TM["Memory Files"] -->|"context"| SE["Session"]
     SE -->|context window| CW["conversation state"]
-    UI["TUI (Ink)"] -->|"dispatchProvider"| A
+    TM -->|write/read| FS["filesystem"]
+    UI["TUI (Ink)"] -->|"handleConversation"| DA
     UI -->|"invokeSkill"| SB
     I <-->|handleConversation / invokeSkill| UI
     classDef root fill:#f9a825,color:#fff,stroke:#e65100
@@ -30,9 +33,10 @@ graph TD
     classDef util fill:#66bb6a,color:#fff,stroke:#2e7d32
     classDef ext fill:#ab47bc,color:#fff,stroke:#6a1b9a
     classDef cache fill:#26a69a,color:#fff,stroke:#00695c
+    classDef agent fill:#7e57c2,color:#fff,stroke:#4527a0
     class I root
-    class A,P,T,R core
-    class L cache
+    class DA,P,T,R core
+    class DA,SA agent
     class S,TM,SE,SB util
     class SK,CW,FS ext
 ```
