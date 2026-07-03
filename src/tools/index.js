@@ -66,7 +66,7 @@ const TOOL_FACTORIES = {
 export const TOOL_CLASSIFICATIONS = {
 	terminal: "shared", // Both: terminal access for orchestrator and subagents
 	process: "shared", // Both: process management for orchestrator and subagents
-	todo: "shared", // Both: task management for orchestrator and subagents
+	todo: "", // Disabled: task management tool removed from registry
 	sessionSearch: "orchestrator", // Coordination: orchestrator searches past sessions for context
 	clarify: "shared", // Both: may need to clarify with user
 	webSearch: "shared", // Both: may need to search the web
