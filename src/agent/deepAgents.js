@@ -26,7 +26,7 @@ function filterSkillPaths(skillPaths, registry, agentFilter) {
 	const filterSet = new Set(agentFilter);
 	return skillPaths.filter((path) => {
 		const parts = path.split("/");
-		const skillName = parts[parts.length - 2] || path;
+		const skillName = parts[parts.length - 1] || path;
 		const skill = registry.get(skillName);
 		const agent = skill?.metadata?.agent || "orchestrator";
 		return filterSet.has(agent);
