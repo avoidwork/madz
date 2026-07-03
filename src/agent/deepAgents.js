@@ -25,7 +25,8 @@ function filterSkillPaths(skillPaths, registry, agentFilter) {
 	}
 	const filterSet = new Set(agentFilter);
 	return skillPaths.filter((path) => {
-		const skillName = path.split("/").pop()?.replace(".md", "") || path;
+		const parts = path.split("/");
+		const skillName = parts[parts.length - 2] || path;
 		const skill = registry.get(skillName);
 		const agent = skill?.metadata?.agent || "orchestrator";
 		return filterSet.has(agent);
@@ -98,10 +99,8 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 
 	// Filter skill paths by agent metadata field (agentskills.io spec)
 	const orchestratorSkills = filterSkillPaths(skillPaths, skillRegistry, ["orchestrator", "shared"]);
-	logger.info(
-		`Orchestrator skills (${orchestratorSkills.length}):`,
-		orchestratorSkills.map((p) => p.split("/").pop()?.replace(".md", "")).join(", "),
-	);
+	const orchestratorNames = orchestratorSkills.map((p) => p.replace(/\/$/, "").split("/").pop());
+	logger.info(`Orchestrator names: ${JSON.stringify(orchestratorNames)}`);
 	// Note: subagents receive all skills (skillPaths) — add to createSubAgent when API supports it
 
 	return createDeepAgent({
