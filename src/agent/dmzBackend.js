@@ -1,13 +1,13 @@
 import { FilesystemBackend } from "deepagents";
 
 /**
- * Create a FilesystemBackend with unrestricted root access.
- * Used for context directory operations where sandboxing is not required.
+ * Create a FilesystemBackend sandboxed to /tmp.
+ * Used as a fallback backend for operations that don't fit other routes.
  * @returns {FilesystemBackend}
  */
 export function createDmzBackend() {
 	return new FilesystemBackend({
-		rootDir: '/',
+		rootDir: '/tmp',
 		virtualMode: false,
 	});
 }
