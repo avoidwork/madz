@@ -2,7 +2,6 @@ import {
 	createDeepAgent,
 	CompositeBackend,
 	createSubAgent,
-	createSubAgentMiddleware,
 	createFilesystemMiddleware,
 	createMemoryMiddleware,
 	createSummarizationMiddleware,
