@@ -10,6 +10,7 @@ import { buildToolConfig } from "../tools/index.js";
 import { createCoreBackend } from "./coreBackend.js";
 import { createContextBackend } from "./contextBackend.js";
 import { createDmzBackend } from "./dmzBackend.js";
+import { logger } from "../logger.js";
 /**
  * Filter skill paths by the 'agent' metadata field from each skill's frontmatter.
  * Skills without an 'agent' metadata field default to "orchestrator".
@@ -97,6 +98,10 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 
 	// Filter skill paths by agent metadata field (agentskills.io spec)
 	const orchestratorSkills = filterSkillPaths(skillPaths, skillRegistry, ["orchestrator", "shared"]);
+	logger.info(
+		`Orchestrator skills (${orchestratorSkills.length}):`,
+		orchestratorSkills.map((p) => p.split("/").pop()?.replace(".md", "")).join(", "),
+	);
 	// Note: subagents receive all skills (skillPaths) — add to createSubAgent when API supports it
 
 	return createDeepAgent({
