@@ -130,14 +130,7 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 					"Specialized agent for code-related tasks including file editing, debugging, implementation, and code review.",
 				systemPrompt: codeAgentPrompt || "You are a coding specialist. Handle all code-related tasks.",
 				model,
-				tools: subagentTools,
-				middleware: [
-					todoListMiddleware(),
-					createFilesystemMiddleware({ backend: coreBackend }),
-					createSummarizationMiddleware({ backend: subAgentsBackend }),
-					createPatchToolCallsMiddleware(),
-					createMemoryMiddleware({ backend: subAgentsBackend }),
-				],
+				tools: subagentTools
 			},
 		],
 		...(agentsPath && { memory: [agentsPath] }),
