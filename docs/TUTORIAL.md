@@ -337,14 +337,14 @@ Two agent types are available, each with a distinct scope:
 
 - **`general-purpose`** — Research, file searches, multi-step tasks that span multiple domains. Has access to all tools. Use this when the task is exploratory, involves gathering information, or doesn't fit neatly into a single specialty.
 
-- **`coding-agent`** — Specialized for code-related work: file editing, debugging, implementation, code review, and git operations. This agent understands project conventions, follows linting standards, and respects commit message formatting rules. Use this when the task touches source code, tests, or version control.
+- **`coding`** — Specialized for code-related work: file editing, debugging, implementation, code review, and git operations. This agent understands project conventions, follows linting standards, and respects commit message formatting rules. Use this when the task touches source code, tests, or version control.
 
 ### Concrete Examples
 
 **Example 1: Commit and Push**
 
 ```
-task coding-agent: commit and push to this branch, we have an open pr
+task coding: commit and push to this branch, we have an open pr
 ```
 
 The coding-agent checks git status, stages changed files, crafts a descriptive commit message following the project's conventional commit format, and pushes to the remote branch. It will not push without explicit approval — see the notes below.
@@ -352,7 +352,7 @@ The coding-agent checks git status, stages changed files, crafts a descriptive c
 **Example 2: Run Lint, Fix Errors, Commit, and Push**
 
 ```
-task coding-agent: run lint, fix any errors, then commit and push
+task coding: run lint, fix any errors, then commit and push
 ```
 
 The coding-agent runs the project's lint command, identifies each issue, applies fixes to the relevant files, re-runs lint to verify all issues are resolved, and then proceeds to commit and push. If a fix is ambiguous or risky, the agent will pause and ask for guidance rather than guessing.
@@ -360,7 +360,7 @@ The coding-agent runs the project's lint command, identifies each issue, applies
 **Example 3: Update a PR**
 
 ```
-task coding-agent: update PR #123 with the latest changes from this branch
+task coding: update PR #123 with the latest changes from this branch
 ```
 
 The coding-agent can interact with GitHub pull requests — updating PR descriptions, adding review comments, requesting changes, or merging. It reads the current branch state, diffs against the target branch, and composes meaningful descriptions from the actual code changes.
@@ -368,7 +368,7 @@ The coding-agent can interact with GitHub pull requests — updating PR descript
 **Example 4: Create an Issue**
 
 ```
-task coding-agent: create an issue for memory leak in session manager
+task coding: create an issue for memory leak in session manager
 ```
 
 The coding-agent can create GitHub issues with proper titles, descriptions, labels, and categorization. It will search the codebase for relevant context, reference related files, and suggest labels based on the project's issue taxonomy.
@@ -376,7 +376,7 @@ The coding-agent can create GitHub issues with proper titles, descriptions, labe
 **Example 5: Debug a Failing Test**
 
 ```
-task coding-agent: debug the failing test in tests/unit/skills.test.js and fix it
+task coding: debug the failing test in tests/unit/skills.test.js and fix it
 ```
 
 The coding-agent runs the specified test, analyzes the failure output, traces the root cause through the relevant source files, and applies a fix. It re-runs the test to confirm the fix resolves the issue and does not introduce regressions in related tests.
