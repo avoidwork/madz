@@ -4,9 +4,9 @@ import { FilesystemBackend } from "deepagents";
  * Create a FilesystemBackend sandboxed to the current working directory.
  * @returns {FilesystemBackend}
  */
-export function createCoreBackend() {
+export function createDmzBackend() {
 	return new FilesystemBackend({
-		rootDir: process.cwd(),
-		virtualMode: true,
+		rootDir: '/',
+		virtualMode: false,
 	});
 }
