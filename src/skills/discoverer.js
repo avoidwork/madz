@@ -58,7 +58,12 @@ export function extractFrontmatter(content) {
 			metadata = lenientYamlParse(metadataStr);
 		}
 		if (metadata && typeof metadata === "object") {
-			frontmatter = { ...frontmatter, ...metadata };
+			// Flatten the metadata: wrapper if present — the agent field should be
+			// at the top level of the merged frontmatter, not nested under metadata.
+			const payload = metadata.metadata && typeof metadata.metadata === "object"
+				? metadata.metadata
+				: metadata;
+			frontmatter = { ...frontmatter, ...payload };
 		}
 	}
 
