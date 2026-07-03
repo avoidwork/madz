@@ -36,10 +36,10 @@ function filterSkillPaths(skillPaths, classificationFilter) {
 	});
 }
 
-function loadCodeAgentPrompt(baseDir) {
+function loadCodingAgentPrompt(baseDir) {
 	try {
 		const dir = baseDir || process.cwd();
-		return readFileSync(join(dir, "prompts", "CODE_AGENT.md"), "utf-8");
+		return readFileSync(join(dir, "prompts", "CODING.md"), "utf-8");
 	} catch {
 		return "";
 	}
@@ -54,7 +54,7 @@ function loadCodeAgentPrompt(baseDir) {
 export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	const config = loadConfig();
 	const systemPrompt = loadSystemPrompt();
-	const codeAgentPrompt = loadCodeAgentPrompt();
+	const codingAgentPrompt = loadCodingAgentPrompt();
 	const agentsPath = join(config.cwd, "AGENTS.md");
 
 	// Discover skills from configured scopes
@@ -114,10 +114,10 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 		}),
 		subagents: [
 			{
-				name: "coding-agent",
+				name: "coding",
 				description:
 					"Specialized agent for code-related tasks including file editing, debugging, implementation, and code review.",
-				systemPrompt: codeAgentPrompt || "You are a coding specialist. Handle all code-related tasks.",
+				systemPrompt: codingAgentPrompt || "You are a coding specialist. Handle all code-related tasks.",
 				model,
 				tools: subagentTools
 			},
