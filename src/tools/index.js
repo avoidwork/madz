@@ -58,6 +58,31 @@ const TOOL_FACTORIES = {
 };
 
 /**
+ * Maps tool names to their agent type classification.
+ * - `orchestrator`: Tools the orchestrator uses for coordination (delegation, routing, synthesis)
+ * - `subagent`: Tools subagents use for execution (code editing, terminal, file operations)
+ * - `shared`: Tools both orchestrator and subagents may need
+ */
+export const TOOL_CLASSIFICATIONS = {
+	terminal: "subagent", // Execution: terminal access for subagents
+	process: "subagent", // Execution: process management for subagents
+	todo: "subagent", // Execution: task management for subagents
+	sessionSearch: "orchestrator", // Coordination: orchestrator searches past sessions for context
+	clarify: "shared", // Both: may need to clarify with user
+	webSearch: "shared", // Both: may need to search the web
+	webExtract: "shared", // Both: may need to extract web content
+	visionAnalyze: "shared", // Both: may need to analyze images
+	imageGenerate: "subagent", // Execution: image generation for subagents
+	executeCode: "subagent", // Execution: code execution for subagents
+	cronJob: "subagent", // Execution: scheduling for subagents
+	textToSpeech: "subagent", // Execution: TTS for subagents
+	mixtureOfAgents: "orchestrator", // Coordination: MOA for orchestrator decision-making
+	sampling: "orchestrator", // Coordination: memory sampling for orchestrator
+	date: "shared", // Both: may need date/time info
+	scanAgents: "orchestrator", // Coordination: scanning for AGENTS.md files
+};
+
+/**
  * Build an array of LangChain tools gated by sandbox permissions and API keys.
  * Each tool is created with runtime options captured in a closure, ensuring
  * the impl function receives them as its second argument on every invocation.
@@ -73,6 +98,7 @@ const TOOL_FACTORIES = {
  * @param {string} [options.contextDir] - Directory for memory entries
  * @param {number} [options.ephemeralTtlDays] - TTL for ephemeral memories
  * @param {number} [options.ephemeralMaxEntries] - Max concurrent ephemeral entries
+ * @param {string[]} [options.classificationFilter] - Filter tools by classification (e.g., ['orchestrator', 'shared']). When omitted, all tools are included.
  * @param {object} [options.config] - Resolved config object from loadConfig()
  * @param {object} [options.config.providers] - Provider configs (openai, openrouter, fal)
  * @param {object} [options.config.search] - Search backend configs
@@ -91,6 +117,7 @@ export async function buildToolConfig(options) {
 		contextDir = "memory/context/",
 		ephemeralTtlDays = 7,
 		ephemeralMaxEntries = 10,
+		classificationFilter,
 		config,
 	} = options;
 
@@ -206,6 +233,19 @@ export async function buildToolConfig(options) {
 				tools.push(TOOL_FACTORIES[toolName](runtimeOptions));
 			}
 		}
+	}
+
+	// Filter by classification if a filter is provided
+	if (classificationFilter && classificationFilter.length > 0) {
+		const filterSet = new Set(classificationFilter);
+		const filteredTools = [];
+		for (const tool of tools) {
+			const classification = TOOL_CLASSIFICATIONS[tool.name];
+			if (classification && filterSet.has(classification)) {
+				filteredTools.push(tool);
+			}
+		}
+		return filteredTools;
 	}
 
 	return tools;

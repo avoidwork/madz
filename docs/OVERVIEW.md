@@ -135,6 +135,8 @@ The agent runs: reason → call tool(s) → reason again → answer. Tool array 
 | `deepAgents.js` | `createDeepAgentsOrchestrator()` — creates the Deep Agents orchestrator with coding and utility agents; loads per-project agent prompt configuration |
 
 The orchestrator routes tasks automatically — the system prompt delegates every task to the orchestrator, which manages routing, state, and observability natively.
+
+**Tool Classification:** Tools and skills are classified by agent type (`orchestrator`, `subagent`, or `shared`) in `src/tools/index.js`. The orchestrator receives only `orchestrator`-classified and `shared` tools/skills, while the coding subagent receives `subagent`-classified and `shared` tools/skills. This ensures each agent has only the capabilities it needs for its role. The classification is applied via `buildToolConfig()`'s `classificationFilter` parameter and `filterSkillPaths()` helper function.
 ---
 
 
