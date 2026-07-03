@@ -9,6 +9,7 @@ import { createChatModel } from "../provider/openai.js";
 import { buildToolConfig } from "../tools/index.js";
 import { createCoreBackend } from "./coreBackend.js";
 import { createContextBackend } from "./contextBackend.js";
+import { createDmzBackend } from "./dmzBackend.js";
 // Skill classification map — classifies each skill by agent type.
 // Skills are discovered dynamically; this map provides the classification
 // for filtering. Initially, all skills are classified as "subagent" since
@@ -96,8 +97,8 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	});
 
 	const coreBackend = createCoreBackend();
+	const dmzBackend = createDmzBackend();
 	const contextBackend = createContextBackend();
-
 	const contextRoute = "/" + config.memory.contextDir.replace(/^\.?\//, "");
 
 	// Filter skill paths by agent type
@@ -111,6 +112,7 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 		store: new InMemoryStore(),
 		backend: new CompositeBackend(coreBackend, {
 			[contextRoute]: contextBackend,
+			"/": dmzBackend,
 		}),
 		subagents: [
 			{

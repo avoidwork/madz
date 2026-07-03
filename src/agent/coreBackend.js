@@ -1,13 +1,12 @@
 import { FilesystemBackend } from "deepagents";
 
 /**
- * Create a FilesystemBackend rooted at the filesystem root.
+ * Create a FilesystemBackend sandboxed to the current working directory.
  * @returns {FilesystemBackend}
  */
 export function createCoreBackend() {
-	const baseDir = '/';
 	return new FilesystemBackend({
-		rootDir: baseDir,
-		virtualMode: false,
+		rootDir: process.cwd(),
+		virtualMode: true,
 	});
 }
