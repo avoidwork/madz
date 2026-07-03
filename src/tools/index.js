@@ -64,7 +64,7 @@ const TOOL_FACTORIES = {
  * - `shared`: Tools both orchestrator and subagents may need
  */
 export const TOOL_CLASSIFICATIONS = {
-	terminal: "orchestrator", // Execution: terminal access for orchestrator
+	terminal: "shared", // Both: terminal access for orchestrator and subagents
 	process: "shared", // Both: process management for orchestrator and subagents
 	todo: "shared", // Both: task management for orchestrator and subagents
 	sessionSearch: "orchestrator", // Coordination: orchestrator searches past sessions for context
