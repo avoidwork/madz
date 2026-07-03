@@ -142,7 +142,6 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 			[contextRoute]: contextBackend,
 		}),
 		subagents: [codingSubAgent],
-		middleware: [createSubAgentMiddleware({ subagents: [codingSubAgent] })],
 		...(agentsPath && { memory: [agentsPath] }),
 		...(orchestratorSkills.length > 0 && { skills: orchestratorSkills }),
 		...(checkpointer && { checkpointer }),
