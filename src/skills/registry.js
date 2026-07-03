@@ -65,10 +65,10 @@ export class SkillRegistry {
 
 			// Store the SKILL.md body path for progressive disclosure
 			if (skill.metadata._path) {
-				this.#bodyPaths.set(skill.metadata.name, skill.metadata._path);
+				this.#bodyPaths.set(skill.name, skill.metadata._path);
 			}
 
-			this.#skills.set(skill.metadata.name, entry);
+			this.#skills.set(skill.name, entry);
 			results.push({ name: skill.metadata.name, errors: [], warnings });
 		}
 

@@ -44,11 +44,25 @@ export function extractFrontmatter(content) {
 		frontmatter = lenientYamlParse(yamlStr);
 	}
 
-	if (frontmatter && typeof frontmatter === "object") {
-		return { frontmatter, body };
+	if (!frontmatter || typeof frontmatter !== "object") {
+		return { frontmatter: null, body: content.trim() };
 	}
 
-	return { frontmatter: null, body: content.trim() };
+	// Merge metadata block if present (second YAML block between 2nd and 3rd ---)
+	if (parts.length >= 4 && parts[2].trim()) {
+		const metadataStr = parts[2].trim();
+		let metadata;
+		try {
+			metadata = yaml.load(metadataStr);
+		} catch {
+			metadata = lenientYamlParse(metadataStr);
+		}
+		if (metadata && typeof metadata === "object") {
+			frontmatter = { ...frontmatter, ...metadata };
+		}
+	}
+
+	return { frontmatter, body };
 }
 
 /**
