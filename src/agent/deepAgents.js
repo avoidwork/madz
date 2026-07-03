@@ -10,30 +10,24 @@ import { buildToolConfig } from "../tools/index.js";
 import { createCoreBackend } from "./coreBackend.js";
 import { createContextBackend } from "./contextBackend.js";
 import { createDmzBackend } from "./dmzBackend.js";
-// Skill classification map — classifies each skill by agent type.
-// Skills are discovered dynamically; this map provides the classification
-// for filtering. Initially, all skills are classified as "subagent" since
-// the orchestrator's role is coordination, not execution.
-const SKILL_CLASSIFICATIONS = {
-	// All skills are subagent-only by default.
-	// Add entries here to classify skills as "orchestrator" or "shared".
-};
-
 /**
- * Filter skill paths by classification.
+ * Filter skill paths by the 'agent' metadata field from each skill's frontmatter.
+ * Skills without an 'agent' metadata field default to "orchestrator".
  * @param {string[]} skillPaths - All discovered skill paths
- * @param {string[]} classificationFilter - Classes to include (e.g., ['orchestrator', 'shared'])
+ * @param {SkillRegistry} registry - The skill registry with metadata
+ * @param {string[]} agentFilter - Agent types to include (e.g., ['orchestrator', 'shared'])
  * @returns {string[]} Filtered skill paths
  */
-function filterSkillPaths(skillPaths, classificationFilter) {
-	if (!classificationFilter || classificationFilter.length === 0) {
+function filterSkillPaths(skillPaths, registry, agentFilter) {
+	if (!agentFilter || agentFilter.length === 0) {
 		return skillPaths;
 	}
-	const filterSet = new Set(classificationFilter);
+	const filterSet = new Set(agentFilter);
 	return skillPaths.filter((path) => {
 		const skillName = path.split("/").pop()?.replace(".md", "") || path;
-		const classification = SKILL_CLASSIFICATIONS[skillName] || "subagent";
-		return filterSet.has(classification);
+		const skill = registry.get(skillName);
+		const agent = skill?.metadata?.agent || "orchestrator";
+		return filterSet.has(agent);
 	});
 }
 
@@ -101,8 +95,8 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	const contextBackend = createContextBackend();
 	const contextRoute = "/" + config.memory.contextDir.replace(/^\.?\//, "");
 
-	// Filter skill paths by agent type
-	const orchestratorSkills = filterSkillPaths(skillPaths, ["orchestrator", "shared"]);
+	// Filter skill paths by agent metadata field (agentskills.io spec)
+	const orchestratorSkills = filterSkillPaths(skillPaths, skillRegistry, ["orchestrator", "shared"]);
 	// Note: subagents receive all skills (skillPaths) — add to createSubAgent when API supports it
 
 	return createDeepAgent({
