@@ -1,12 +1,4 @@
-import {
-	createDeepAgent,
-	CompositeBackend,
-	createFilesystemMiddleware,
-	createMemoryMiddleware,
-	createSummarizationMiddleware,
-	createPatchToolCallsMiddleware,
-} from "deepagents";
-import { todoListMiddleware } from "langchain";
+import { createDeepAgent, CompositeBackend } from "deepagents";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { InMemoryStore } from "@langchain/langgraph-checkpoint";
@@ -17,8 +9,6 @@ import { createChatModel } from "../provider/openai.js";
 import { buildToolConfig } from "../tools/index.js";
 import { createCoreBackend } from "./coreBackend.js";
 import { createContextBackend } from "./contextBackend.js";
-import { createSubAgentsBackend } from "./subAgentsBackend.js";
-
 // Skill classification map — classifies each skill by agent type.
 // Skills are discovered dynamically; this map provides the classification
 // for filtering. Initially, all skills are classified as "subagent" since
@@ -107,7 +97,6 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 
 	const coreBackend = createCoreBackend();
 	const contextBackend = createContextBackend();
-	const subAgentsBackend = createSubAgentsBackend();
 
 	const contextRoute = "/" + config.memory.contextDir.replace(/^\.?\//, "");
 
