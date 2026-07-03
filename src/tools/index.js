@@ -72,9 +72,9 @@ export const TOOL_CLASSIFICATIONS = {
 	webSearch: "shared", // Both: may need to search the web
 	webExtract: "shared", // Both: may need to extract web content
 	visionAnalyze: "orchestrator", // Coordination: orchestrator analyzes images
-	imageGenerate: "subagent", // Execution: image generation for subagents
+	imageGenerate: "orchestrator", // Coordination: image generation for orchestrator
 	executeCode: "subagent", // Execution: code execution for subagents
-	cronJob: "subagent", // Execution: scheduling for subagents
+	cronJob: "orchestrator", // Coordination: scheduling for orchestrator
 	textToSpeech: "subagent", // Execution: TTS for subagents
 	mixtureOfAgents: "orchestrator", // Coordination: MOA for orchestrator decision-making
 	sampling: "orchestrator", // Coordination: memory sampling for orchestrator
