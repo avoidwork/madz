@@ -1,7 +1,8 @@
 import { FilesystemBackend } from "deepagents";
 
 /**
- * Create a FilesystemBackend sandboxed to the current working directory.
+ * Create a FilesystemBackend with unrestricted root access.
+ * Used for context directory operations where sandboxing is not required.
  * @returns {FilesystemBackend}
  */
 export function createDmzBackend() {
