@@ -1,7 +1,6 @@
 import {
 	createDeepAgent,
 	CompositeBackend,
-	createSubAgent,
 	createFilesystemMiddleware,
 	createMemoryMiddleware,
 	createSummarizationMiddleware,
@@ -116,22 +115,6 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	const orchestratorSkills = filterSkillPaths(skillPaths, ["orchestrator", "shared"]);
 	// Note: subagents receive all skills (skillPaths) — add to createSubAgent when API supports it
 
-	const codingSubAgent = createSubAgent({
-		name: "coding-agent",
-		description:
-			"Specialized agent for code-related tasks including file editing, debugging, implementation, and code review.",
-		systemPrompt: codeAgentPrompt || "You are a coding specialist. Handle all code-related tasks.",
-		model,
-		tools: subagentTools,
-		middleware: [
-			todoListMiddleware(),
-			createFilesystemMiddleware({ backend: coreBackend }),
-			createSummarizationMiddleware({ backend: subAgentsBackend }),
-			createPatchToolCallsMiddleware(),
-			createMemoryMiddleware({ backend: subAgentsBackend }),
-		],
-	});
-
 	return createDeepAgent({
 		model,
 		tools: orchestratorTools,
@@ -140,7 +123,23 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 		backend: new CompositeBackend(coreBackend, {
 			[contextRoute]: contextBackend,
 		}),
-		subagents: [codingSubAgent],
+		subagents: [
+			{
+				name: "coding-agent",
+				description:
+					"Specialized agent for code-related tasks including file editing, debugging, implementation, and code review.",
+				systemPrompt: codeAgentPrompt || "You are a coding specialist. Handle all code-related tasks.",
+				model,
+				tools: subagentTools,
+				middleware: [
+					todoListMiddleware(),
+					createFilesystemMiddleware({ backend: coreBackend }),
+					createSummarizationMiddleware({ backend: subAgentsBackend }),
+					createPatchToolCallsMiddleware(),
+					createMemoryMiddleware({ backend: subAgentsBackend }),
+				],
+			},
+		],
 		...(agentsPath && { memory: [agentsPath] }),
 		...(orchestratorSkills.length > 0 && { skills: orchestratorSkills }),
 		...(checkpointer && { checkpointer }),
