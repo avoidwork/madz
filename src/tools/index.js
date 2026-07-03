@@ -75,7 +75,7 @@ export const TOOL_CLASSIFICATIONS = {
 	imageGenerate: "orchestrator", // Coordination: image generation for orchestrator
 	executeCode: "subagent", // Execution: code execution for subagents
 	cronJob: "orchestrator", // Coordination: scheduling for orchestrator
-	textToSpeech: "subagent", // Execution: TTS for subagents
+	textToSpeech: "orchestrator", // Coordination: TTS for orchestrator
 	mixtureOfAgents: "orchestrator", // Coordination: MOA for orchestrator decision-making
 	sampling: "orchestrator", // Coordination: memory sampling for orchestrator
 	date: "shared", // Both: may need date/time info
