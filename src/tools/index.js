@@ -64,14 +64,14 @@ const TOOL_FACTORIES = {
  * - `shared`: Tools both orchestrator and subagents may need
  */
 export const TOOL_CLASSIFICATIONS = {
-	terminal: "subagent", // Execution: terminal access for subagents
-	process: "subagent", // Execution: process management for subagents
-	todo: "subagent", // Execution: task management for subagents
+	terminal: "orchestrator", // Execution: terminal access for orchestrator
+	process: "shared", // Both: process management for orchestrator and subagents
+	todo: "shared", // Both: task management for orchestrator and subagents
 	sessionSearch: "orchestrator", // Coordination: orchestrator searches past sessions for context
 	clarify: "shared", // Both: may need to clarify with user
 	webSearch: "shared", // Both: may need to search the web
 	webExtract: "shared", // Both: may need to extract web content
-	visionAnalyze: "shared", // Both: may need to analyze images
+	visionAnalyze: "orchestrator", // Coordination: orchestrator analyzes images
 	imageGenerate: "subagent", // Execution: image generation for subagents
 	executeCode: "subagent", // Execution: code execution for subagents
 	cronJob: "subagent", // Execution: scheduling for subagents
