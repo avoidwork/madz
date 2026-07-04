@@ -31,7 +31,7 @@ export const TOOL_PERMISSIONS = {
 	executeCode: ["filesystem:exec", "process:spawn"],
 	imageGenerate: ["network:outbound"],
 	memory: ["filesystem:read", "filesystem:write"],
-	mixtureOfAgents: [],
+	mixtureOfAgents: ["network:outbound"],
 	patch: ["filesystem:read", "filesystem:write"],
 	process: ["process:spawn"],
 	readFile: ["filesystem:read"],
