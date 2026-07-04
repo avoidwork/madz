@@ -1,9 +1,10 @@
 ---
-name: reflection
-description: Generate a narrative reflection summary from recent session history to capture mood, energy, and interaction quality.
+name: "reflection"
+description: "Generate a narrative reflection summary from recent session history to capture mood, energy, and interaction quality."
 metadata:
-  author: madz
+  author: "madz"
   version: "1.0"
+  agent: "orchestrator"
 ---
 
 Generate a concise, narrative reflection summary from recent session history and write it to `memory/context/reflection.md`.

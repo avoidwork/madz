@@ -10,32 +10,6 @@ import { buildToolConfig } from "../tools/index.js";
 import { createCoreBackend } from "./coreBackend.js";
 import { createContextBackend } from "./contextBackend.js";
 import { createDmzBackend } from "./dmzBackend.js";
-// Skill classification map — classifies each skill by agent type.
-// Skills are discovered dynamically; this map provides the classification
-// for filtering. Initially, all skills are classified as "subagent" since
-// the orchestrator's role is coordination, not execution.
-const SKILL_CLASSIFICATIONS = {
-	// All skills are subagent-only by default.
-	// Add entries here to classify skills as "orchestrator" or "shared".
-};
-
-/**
- * Filter skill paths by classification.
- * @param {string[]} skillPaths - All discovered skill paths
- * @param {string[]} classificationFilter - Classes to include (e.g., ['orchestrator', 'shared'])
- * @returns {string[]} Filtered skill paths
- */
-function filterSkillPaths(skillPaths, classificationFilter) {
-	if (!classificationFilter || classificationFilter.length === 0) {
-		return skillPaths;
-	}
-	const filterSet = new Set(classificationFilter);
-	return skillPaths.filter((path) => {
-		const skillName = path.split("/").pop()?.replace(".md", "") || path;
-		const classification = SKILL_CLASSIFICATIONS[skillName] || "subagent";
-		return filterSet.has(classification);
-	});
-}
 
 function loadCodingAgentPrompt(baseDir) {
 	try {
@@ -101,9 +75,7 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	const contextBackend = createContextBackend();
 	const contextRoute = "/" + config.memory.contextDir.replace(/^\.?\//, "");
 
-	// Filter skill paths by agent type
-	const orchestratorSkills = filterSkillPaths(skillPaths, ["orchestrator", "shared"]);
-	// Note: subagents receive all skills (skillPaths) — add to createSubAgent when API supports it
+	// All discovered skills are available to the orchestrator
 
 	return createDeepAgent({
 		model,
@@ -125,7 +97,7 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 			},
 		],
 		...(agentsPath && { memory: [agentsPath] }),
-		...(orchestratorSkills.length > 0 && { skills: orchestratorSkills }),
+		...(skillPaths.length > 0 && { skills: skillPaths }),
 		...(checkpointer && { checkpointer }),
 	});
 }

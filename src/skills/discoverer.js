@@ -44,11 +44,30 @@ export function extractFrontmatter(content) {
 		frontmatter = lenientYamlParse(yamlStr);
 	}
 
-	if (frontmatter && typeof frontmatter === "object") {
-		return { frontmatter, body };
+	if (!frontmatter || typeof frontmatter !== "object") {
+		return { frontmatter: null, body: content.trim() };
 	}
 
-	return { frontmatter: null, body: content.trim() };
+	// Merge metadata block if present (second YAML block between 2nd and 3rd ---)
+	if (parts.length >= 3 && parts[2].trim()) {
+		const metadataStr = parts[2].trim();
+		let metadata;
+		try {
+			metadata = yaml.load(metadataStr);
+		} catch {
+			metadata = lenientYamlParse(metadataStr);
+		}
+		if (metadata && typeof metadata === "object") {
+			// Flatten the metadata: wrapper if present — the agent field should be
+			// at the top level of the merged frontmatter, not nested under metadata.
+			const payload = metadata.metadata && typeof metadata.metadata === "object"
+				? metadata.metadata
+				: metadata;
+			frontmatter = { ...frontmatter, ...payload };
+		}
+	}
+
+	return { frontmatter, body };
 }
 
 /**
