@@ -1,17 +1,21 @@
-import { createShellTool, createProcessTool } from "./shell.js";
-import { createQueuedTodoTool } from "./todo.js";
-import { createSessionSearchTool } from "./session_search.js";
 import { createClarifyTool } from "./clarify.js";
-import { createWebSearchTool, createWebExtractTool } from "./web.js";
-import { createVisionTool } from "./vision.js";
-import { createImageTool } from "./image.js";
 import { createCodeTool } from "./code.js";
+import { createCompactContextTool } from "./compact_context.js";
 import { createCronTool } from "./cron.js";
-import { createTtsTool } from "./tts.js";
+import { createDateTool } from "./date.js";
+import { createPatchTool, createReadFileTool, createSearchFilesTool, createWriteFileTool } from "./filesystem.js";
+import { createImageTool } from "./image.js";
+import { createMemoryTool } from "./memory.js";
 import { createMoaTool } from "./moa.js";
 import { createSamplingTool } from "./sampling.js";
-import { createDateTool } from "./date.js";
 import { createScanAgentsTool } from "./scanAgents.js";
+import { createSessionSearchTool } from "./session_search.js";
+import { createShellTool, createProcessTool } from "./shell.js";
+import { createCreateSkillTool, createSkillViewTool, createSkillsListTool } from "./skills.js";
+import { createQueuedTodoTool } from "./todo.js";
+import { createTtsTool } from "./tts.js";
+import { createVisionTool } from "./vision.js";
+import { createWebSearchTool, createWebExtractTool } from "./web.js";
 
 /**
  * Maps tool names to required permission scopes.
@@ -19,42 +23,60 @@ import { createScanAgentsTool } from "./scanAgents.js";
  * Clarify and execute_code are exempt (always registered) since they require zero permissions.
  */
 export const TOOL_PERMISSIONS = {
-	shell: ["filesystem:exec", "process:spawn"],
-	process: ["process:spawn"],
-	todo: ["filesystem:read", "filesystem:write"],
-	sessionSearch: ["filesystem:read"],
 	clarify: [],
-	webSearch: ["network:outbound"],
-	webExtract: ["network:outbound"],
-	visionAnalyze: [],
-	imageGenerate: ["network:outbound"],
-	executeCode: [],
+	compactContext: ["filesystem:read"],
 	cronJob: ["network:outbound"],
-	textToSpeech: [],
-	mixtureOfAgents: [],
-	sampling: [],
+	createSkill: ["filesystem:write"],
 	date: [],
+	executeCode: [],
+	imageGenerate: ["network:outbound"],
+	memory: ["filesystem:read", "filesystem:write"],
+	mixtureOfAgents: [],
+	patch: ["filesystem:read", "filesystem:write"],
+	process: ["process:spawn"],
+	readFile: ["filesystem:read"],
+	sampling: [],
 	scanAgents: [],
+	searchFiles: ["filesystem:read"],
+	sessionSearch: ["filesystem:read"],
+	shell: ["filesystem:exec", "process:spawn"],
+	skillView: ["filesystem:read"],
+	skillsList: ["filesystem:read"],
+	textToSpeech: [],
+	todo: ["filesystem:read", "filesystem:write"],
+	visionAnalyze: [],
+	webExtract: ["network:outbound"],
+	webSearch: ["network:outbound"],
+	writeFile: ["filesystem:write"],
 };
 
 // Factory functions keyed by tool name
 const TOOL_FACTORIES = {
-	shell: createShellTool,
-	process: createProcessTool,
-	todo: createQueuedTodoTool,
-	sessionSearch: createSessionSearchTool,
 	clarify: createClarifyTool,
-	webSearch: createWebSearchTool,
-	webExtract: createWebExtractTool,
-	visionAnalyze: createVisionTool,
-	imageGenerate: createImageTool,
-	executeCode: createCodeTool,
+	compactContext: createCompactContextTool,
 	cronJob: createCronTool,
-	textToSpeech: createTtsTool,
-	mixtureOfAgents: createMoaTool,
-	sampling: createSamplingTool,
+	createSkill: createCreateSkillTool,
 	date: createDateTool,
+	executeCode: createCodeTool,
+	imageGenerate: createImageTool,
+	memory: createMemoryTool,
+	mixtureOfAgents: createMoaTool,
+	patch: createPatchTool,
+	process: createProcessTool,
+	readFile: createReadFileTool,
+	sampling: createSamplingTool,
 	scanAgents: createScanAgentsTool,
+	searchFiles: createSearchFilesTool,
+	sessionSearch: createSessionSearchTool,
+	shell: createShellTool,
+	skillView: createSkillViewTool,
+	skillsList: createSkillsListTool,
+	textToSpeech: createTtsTool,
+	todo: createQueuedTodoTool,
+	visionAnalyze: createVisionTool,
+	webExtract: createWebExtractTool,
+	webSearch: createWebSearchTool,
+	writeFile: createWriteFileTool,
 };
 
 /**
@@ -64,22 +86,31 @@ const TOOL_FACTORIES = {
  * - `shared`: Tools both orchestrator and subagents may need
  */
 export const TOOL_CLASSIFICATIONS = {
-	shell: "shared", // Both: shell access for orchestrator and subagents
-	process: "shared", // Both: process management for orchestrator and subagents
-	todo: "", // Disabled: task management tool removed from registry
-	sessionSearch: "orchestrator", // Coordination: orchestrator searches past sessions for context
 	clarify: "shared", // Both: may need to clarify with user
-	webSearch: "shared", // Both: may need to search the web
-	webExtract: "shared", // Both: may need to extract web content
-	visionAnalyze: "orchestrator", // Coordination: orchestrator analyzes images
-	imageGenerate: "orchestrator", // Coordination: image generation for orchestrator
-	executeCode: "subagent", // Execution: code execution for subagents
+	compactContext: "orchestrator", // Coordination: context compaction for orchestrator
 	cronJob: "orchestrator", // Coordination: scheduling for orchestrator
-	textToSpeech: "orchestrator", // Coordination: TTS for orchestrator
-	mixtureOfAgents: "orchestrator", // Coordination: MOA for orchestrator decision-making
-	sampling: "orchestrator", // Coordination: memory sampling for orchestrator
+	createSkill: "subagent", // Execution: skill creation for subagents
 	date: "shared", // Both: may need date/time info
+	executeCode: "subagent", // Execution: code execution for subagents
+	imageGenerate: "orchestrator", // Coordination: image generation for orchestrator
+	memory: "subagent", // Execution: memory operations for subagents
+	mixtureOfAgents: "orchestrator", // Coordination: MOA for orchestrator decision-making
+	patch: "subagent", // Execution: file patching for subagents
+	process: "shared", // Both: process management for orchestrator and subagents
+	readFile: "subagent", // Execution: file reading for subagents
+	sampling: "orchestrator", // Coordination: memory sampling for orchestrator
 	scanAgents: "orchestrator", // Coordination: scanning for AGENTS.md files
+	searchFiles: "subagent", // Execution: file searching for subagents
+	sessionSearch: "orchestrator", // Coordination: orchestrator searches past sessions for context
+	shell: "shared", // Both: shell access for orchestrator and subagents
+	skillView: "orchestrator", // Coordination: skill inspection for orchestrator
+	skillsList: "orchestrator", // Coordination: skill listing for orchestrator
+	textToSpeech: "orchestrator", // Coordination: TTS for orchestrator
+	todo: "", // Disabled: task management tool removed from registry
+	visionAnalyze: "orchestrator", // Coordination: orchestrator analyzes images
+	webExtract: "shared", // Both: may need to extract web content
+	webSearch: "shared", // Both: may need to search the web
+	writeFile: "subagent", // Execution: file writing for subagents
 };
 
 /**
