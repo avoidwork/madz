@@ -436,7 +436,7 @@ All built-in tools are defined in `src/tools/` and registered as LangChain tools
 | `sessionSearch` | Search past conversations by keyword query, full retrieval by conversation ID, or browse all sessions. |
 | `shell` | Execute shell commands (foreground/background). Max command length 4096 chars. |
 | `skillView` | View full details for a skill by name — metadata, permissions, scripts, and full SKILL.md body. |
-| `skills_list` | List all discovered skills with name, description, and location from the registry catalog. |
+| `skillsList` | List all discovered skills with name, description, and location from the registry catalog. |
 | `textToSpeech` | Convert text to speech via OpenAI TTS (tts-1/tts-1-hd). Saves MP3 to `~/voice-memos/`. |
 | `todo` | CRUD task list persisted to `memory/tools/todo.json`. Actions: read, create, update, complete, delete, list, clear. |
 | `visionAnalyze` | Analyze images via OpenAI multimodal LLM. Accepts URL or base64 data URI. |
