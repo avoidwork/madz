@@ -35,7 +35,7 @@ export const TOOL_PERMISSIONS = {
 	patch: ["filesystem:read", "filesystem:write"],
 	process: ["process:spawn"],
 	readFile: ["filesystem:read"],
-	sampling: [],
+	sampling: ["filesystem:write"],
 	scanAgents: ["filesystem:read"],
 	searchFiles: ["filesystem:read"],
 	sessionSearch: ["filesystem:read"],
