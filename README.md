@@ -450,7 +450,7 @@ Built-in tools are registered only when their required permissions are enabled f
 | Permission Required                 | Tools                                                                      |
 | ----------------------------------- | -------------------------------------------------------------------------- |
 | `filesystem:read`                   | `read_file`, `search_files`, `skillView`, `sessionSearch` |
-| `filesystem:write`                  | `write_file`, `patch`, `todo`, `memory`, `createSkill`                    |
+| `filesystem:write`                  | `writeFile`, `patch`, `todo`, `memory`, `createSkill`                    |
 | `filesystem:exec` + `process:spawn` | `shell`                                                                    |
 | `process:spawn`                     | `process`                                                                  |
 | _(none)_                            | `clarify`                                                                  |

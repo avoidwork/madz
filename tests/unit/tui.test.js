@@ -427,10 +427,10 @@ describe("TUI - countMessageLines", () => {
 
 describe("TUI - getToolCallLines", () => {
 	it("splits tool call display by newlines", () => {
-		const lines = getToolCallLines("- Tool: search\n- Tool: read_file");
+		const lines = getToolCallLines("- Tool: search\n- Tool: readFile");
 		assert.strictEqual(lines.length, 2);
 		assert.strictEqual(lines[0], "- Tool: search");
-		assert.strictEqual(lines[1], "- Tool: read_file");
+		assert.strictEqual(lines[1], "- Tool: readFile");
 	});
 
 	it("returns empty array for falsy input", () => {
@@ -577,8 +577,8 @@ describe("TUI - streaming message utility", () => {
 	it("formats tool call display lines with newlines", () => {
 		const toolCalls = [
 			"- Tool: search Result: 3 files",
-			"- Tool: read_file Result: file contents",
-			"- Tool: write_file (error: permission denied)",
+			"- Tool: readFile Result: file contents",
+			"- Tool: writeFile (error: permission denied)",
 		];
 
 		const display = toolCalls.join("\n");
@@ -586,8 +586,8 @@ describe("TUI - streaming message utility", () => {
 
 		assert.strictEqual(lines.length, 3);
 		assert.strictEqual(lines[0], "- Tool: search Result: 3 files");
-		assert.strictEqual(lines[1], "- Tool: read_file Result: file contents");
-		assert.strictEqual(lines[2], "- Tool: write_file (error: permission denied)");
+		assert.strictEqual(lines[1], "- Tool: readFile Result: file contents");
+		assert.strictEqual(lines[2], "- Tool: writeFile (error: permission denied)");
 	});
 });
 

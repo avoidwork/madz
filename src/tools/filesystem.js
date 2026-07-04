@@ -506,8 +506,8 @@ export const patch = tool(patchImpl, {
  * @param {object} options - Runtime options
  * @returns {Promise<string>}
  */
-export const search_files = tool(searchFilesImpl, {
-	name: "search_files",
+export const searchFiles = tool(searchFilesImpl, {
+	name: "searchFiles",
 	description:
 		"Search file contents using ripgrep (primary) or native fs fallback. Searches for a regex pattern in files within the given path. Can search by filename or content.",
 	schema: z.object({
