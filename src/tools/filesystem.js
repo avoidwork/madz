@@ -1,6 +1,6 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import { access, readFile, writeFile, mkdir, readdir, stat } from "node:fs/promises";
+import { access, readFile as readFileNode, writeFile as writeFileNode, mkdir, readdir, stat } from "node:fs/promises";
 import { dirname, basename, join } from "node:path";
 import { promisify } from "node:util";
 import { execFile } from "node:child_process";
@@ -386,7 +386,7 @@ export async function nativeSearch(pattern, resolvedPath, maxResults) {
 					if (statResult.isDirectory()) {
 						await walk(full, depth + 1);
 					} else if (statResult.isFile()) {
-						const buffer = await readFile(full);
+						const buffer = await readFileNode(full);
 						if (isBinary(buffer)) continue;
 						const content = buffer.toString("utf-8");
 						const lines = content.split("\n");
@@ -606,4 +606,6 @@ export function createSearchFilesTool(options) {
 				.describe("Maximum number of results to return"),
 		}),
 	});
+}
+;
 }
