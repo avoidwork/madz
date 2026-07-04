@@ -36,7 +36,7 @@ export const TOOL_PERMISSIONS = {
 	process: ["process:spawn"],
 	readFile: ["filesystem:read"],
 	sampling: [],
-	scanAgents: [],
+	scanAgents: ["filesystem:read"],
 	searchFiles: ["filesystem:read"],
 	sessionSearch: ["filesystem:read"],
 	shell: ["filesystem:exec", "process:spawn"],
