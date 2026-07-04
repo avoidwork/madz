@@ -23,7 +23,7 @@ import { createWebSearchTool, createWebExtractTool } from "./web.js";
  * Clarify and execute_code are exempt (always registered) since they require zero permissions.
  */
 export const TOOL_PERMISSIONS = {
-	clarify: [],
+	clarify: ["filesystem:read", "filesystem:write"],
 	compactContext: ["filesystem:read"],
 	cronJob: ["network:outbound"],
 	createSkill: ["filesystem:write"],
