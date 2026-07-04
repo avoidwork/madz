@@ -1,11 +1,11 @@
 import { describe, it, afterEach } from "node:test";
 import assert from "node:assert";
 import {
-	executeTerminalImpl,
+	executeShellImpl,
 	manageProcessImpl,
 	processTracker,
 	trackProcess,
-} from "../../src/tools/terminal.js";
+} from "../../src/tools/shell.js";
 import { spawn } from "node:child_process";
 
 let spawned = [];
@@ -48,10 +48,10 @@ async function waitForExit(child) {
 	});
 }
 
-describe("tools - terminal", () => {
+describe("tools - shell", () => {
 	describe("foreground execution", () => {
 		it("executes echo command", async () => {
-			const result = await executeTerminalImpl(
+			const result = await executeShellImpl(
 				{ command: "echo hello", background: false },
 				{ allowedPaths: ["/"], maxReadSize: "1mb" },
 			);
@@ -60,7 +60,7 @@ describe("tools - terminal", () => {
 		});
 
 		it("executes ls command", async () => {
-			const result = await executeTerminalImpl(
+			const result = await executeShellImpl(
 				{ command: "ls", background: false },
 				{ allowedPaths: ["/"], maxReadSize: "1mb" },
 			);
@@ -71,7 +71,7 @@ describe("tools - terminal", () => {
 	describe("command length enforcement", () => {
 		it("rejects command exceeding max length", async () => {
 			const longCommand = "x".repeat(4097);
-			const result = await executeTerminalImpl(
+			const result = await executeShellImpl(
 				{ command: longCommand, background: false },
 				{ allowedPaths: ["/"], maxReadSize: "1mb" },
 			);
@@ -398,7 +398,7 @@ describe("tools - process management", () => {
 
 	describe("foreground stderr capture", () => {
 		it("captures stderr in output", async () => {
-			const result = await executeTerminalImpl(
+			const result = await executeShellImpl(
 				{ command: "sh -c 'echo error >&2'", background: false },
 				{ allowedPaths: ["/"], maxReadSize: "1mb" },
 			);
@@ -408,7 +408,7 @@ describe("tools - process management", () => {
 		});
 
 		it("returns error message when child errors", async () => {
-			const result = await executeTerminalImpl(
+			const result = await executeShellImpl(
 				{ command: "sh -c 'exit 1' && invalid_nonexistent_binary", background: false },
 				{ allowedPaths: ["/"], maxReadSize: "1mb" },
 			);
@@ -418,7 +418,7 @@ describe("tools - process management", () => {
 
 	describe("background execution", () => {
 		it("starts process in background mode", async () => {
-			const result = await executeTerminalImpl(
+			const result = await executeShellImpl(
 				{ command: "sleep 0.5", background: true },
 				{ allowedPaths: ["/"] },
 			);

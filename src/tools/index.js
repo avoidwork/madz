@@ -1,4 +1,4 @@
-import { createTerminalTool, createProcessTool } from "./terminal.js";
+import { createShellTool, createProcessTool } from "./shell.js";
 import { createQueuedTodoTool } from "./todo.js";
 import { createSessionSearchTool } from "./session_search.js";
 import { createClarifyTool } from "./clarify.js";
@@ -19,7 +19,7 @@ import { createScanAgentsTool } from "./scanAgents.js";
  * Clarify and execute_code are exempt (always registered) since they require zero permissions.
  */
 export const TOOL_PERMISSIONS = {
-	terminal: ["filesystem:exec", "process:spawn"],
+	shell: ["filesystem:exec", "process:spawn"],
 	process: ["process:spawn"],
 	todo: ["filesystem:read", "filesystem:write"],
 	sessionSearch: ["filesystem:read"],
@@ -39,7 +39,7 @@ export const TOOL_PERMISSIONS = {
 
 // Factory functions keyed by tool name
 const TOOL_FACTORIES = {
-	terminal: createTerminalTool,
+	shell: createShellTool,
 	process: createProcessTool,
 	todo: createQueuedTodoTool,
 	sessionSearch: createSessionSearchTool,
@@ -64,7 +64,7 @@ const TOOL_FACTORIES = {
  * - `shared`: Tools both orchestrator and subagents may need
  */
 export const TOOL_CLASSIFICATIONS = {
-	terminal: "shared", // Both: terminal access for orchestrator and subagents
+	shell: "shared", // Both: shell access for orchestrator and subagents
 	process: "shared", // Both: process management for orchestrator and subagents
 	todo: "", // Disabled: task management tool removed from registry
 	sessionSearch: "orchestrator", // Coordination: orchestrator searches past sessions for context

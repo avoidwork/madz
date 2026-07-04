@@ -5,7 +5,7 @@ import { spawn } from "node:child_process";
 const MAX_COMMAND_LENGTH = 4096;
 
 /**
- * Process tracker shared between terminal and process tools.
+ * Process tracker shared between shell and process tools.
  * Maps process IDs to process entry objects.
  */
 export const processTracker = new Map();
@@ -109,14 +109,14 @@ function executeBackground(command) {
 }
 
 /**
- * Execute a shell command via terminal tool.
+ * Execute a shell command via shell tool.
  * @param {z.infer<typeof TerminalSchema>} input
  * @param {object} options - Runtime options
  * @param {string[]} options.allowedPaths - Sandbox allowed directories
  * @param {string} options.maxReadSize - Max read size string
  * @returns {Promise<string>} Command execution result
  */
-export async function executeTerminalImpl(input, options) {
+export async function executeShellImpl(input, options) {
 	if (input.command.length > MAX_COMMAND_LENGTH) {
 		return `Error: Command length (${input.command.length} chars) exceeds maximum (${MAX_COMMAND_LENGTH} chars).`;
 	}
@@ -128,10 +128,10 @@ export async function executeTerminalImpl(input, options) {
 }
 
 /**
- * Terminal tool for executing shell commands.
+ * Shell tool for executing shell commands.
  */
-export const terminal = tool(executeTerminalImpl, {
-	name: "terminal",
+export const shell = tool(executeShellImpl, {
+	name: "shell",
 	description:
 		"Execute a shell command via sh -c. Supports foreground (blocking) and background (detached) modes. Max command length is 4096 characters.",
 	schema: z.object({
@@ -256,13 +256,13 @@ export const processTool = tool(manageProcessImpl, {
 // --- Factory functions for creating tools with runtime options ---
 
 /**
- * Create a terminal tool with runtime options
+ * Create a shell tool with runtime options
  * @param {object} options - Runtime options
  * @returns {object} LangChain Tool instance
  */
-export function createTerminalTool(options) {
-	return tool((input) => executeTerminalImpl(input, options), {
-		name: "terminal",
+export function createShellTool(options) {
+	return tool((input) => executeShellImpl(input, options), {
+		name: "shell",
 		description:
 			"Execute a shell command via sh -c. Supports foreground (blocking) and background (detached) modes. Max command length is 4096 characters.",
 		schema: z.object({

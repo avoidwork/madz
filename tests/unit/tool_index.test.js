@@ -5,7 +5,7 @@ describe("tools - buildToolConfig", () => {
 	it("TOOL_PERMISSIONS contains all expected tools", async () => {
 		const { TOOL_PERMISSIONS } = await import("../../src/tools/index.js");
 		const expectedTools = [
-			"terminal",
+			"shell",
 			"process",
 			"todo",
 			"sessionSearch",
@@ -39,7 +39,7 @@ describe("tools - buildToolConfig", () => {
 
 	it("terminal requires both filesystem:exec and process:spawn", async () => {
 		const { TOOL_PERMISSIONS } = await import("../../src/tools/index.js");
-		assert.deepStrictEqual(TOOL_PERMISSIONS.terminal, ["filesystem:exec", "process:spawn"]);
+		assert.deepStrictEqual(TOOL_PERMISSIONS.shell, ["filesystem:exec", "process:spawn"]);
 	});
 
 	it("all tools have permission arrays", async () => {
@@ -107,10 +107,10 @@ describe("tools - buildToolConfig", () => {
 			"sessionSearch should register with filesystem:read",
 		);
 		assert.ok(toolNames.includes("sampling"), "sampling should register (no perms needed)");
-		// terminal requires process:spawn which is not enabled
+		// shell requires process:spawn which is not enabled
 		assert.ok(
-			!toolNames.includes("terminal"),
-			"terminal should NOT register without process:spawn",
+			!toolNames.includes("shell"),
+			"shell should NOT register without process:spawn",
 		);
 		assert.ok(!toolNames.includes("process"), "process should NOT register without process:spawn");
 	});
@@ -132,7 +132,7 @@ describe("tools - buildToolConfig", () => {
 		// Tier 2: executeCode, cronJob, sampling, date (no perms or network:outbound)
 		// No API keys: webSearch/webExtract/visionAnalyze/imageGenerate/textToSpeech/mixtureOfAgents won't register
 		assert.ok(toolNames.length >= 10, "All tier 1 + tier 2 tools should register");
-		assert.ok(toolNames.includes("terminal"), "terminal should register");
+		assert.ok(toolNames.includes("shell"), "shell should register");
 		assert.ok(toolNames.includes("process"), "process should register");
 		assert.ok(toolNames.includes("executeCode"), "execute_code should register");
 		assert.ok(toolNames.includes("cronJob"), "cronJob should register");
