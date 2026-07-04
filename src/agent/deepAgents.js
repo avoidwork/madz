@@ -58,17 +58,8 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 		config,
 	};
 
-	// Orchestrator receives coordination tools only (orchestrator + shared classifications)
-	const orchestratorTools = await buildToolConfig({
-		...buildOptions,
-		classificationFilter: ["orchestrator", "shared"],
-	});
-
-	// Coding subagent receives execution tools (subagent + shared classifications)
-	const subagentTools = await buildToolConfig({
-		...buildOptions,
-		classificationFilter: ["subagent", "shared"],
-	});
+	// Build all tools without filtering — pass everything to orchestrator and subagent
+	const allTools = await buildToolConfig(buildOptions);
 
 	const coreBackend = createCoreBackend();
 	const dmzBackend = createDmzBackend();
@@ -79,7 +70,7 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 
 	return createDeepAgent({
 		model,
-		tools: orchestratorTools,
+		tools: allTools,
 		systemPrompt,
 		store: new InMemoryStore(),
 		backend: new CompositeBackend(coreBackend, {
@@ -93,7 +84,7 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 					"Specialized agent for code-related tasks including file editing, debugging, implementation, and code review.",
 				systemPrompt: codingAgentPrompt || "You are a coding specialist. Handle all code-related tasks.",
 				model,
-				tools: subagentTools
+				tools: allTools
 			},
 		],
 		...(agentsPath && { memory: [agentsPath] }),
