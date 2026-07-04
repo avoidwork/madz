@@ -80,40 +80,6 @@ const TOOL_FACTORIES = {
 };
 
 /**
- * Maps tool names to their agent type classification.
- * - `orchestrator`: Tools the orchestrator uses for coordination (delegation, routing, synthesis)
- * - `subagent`: Tools subagents use for execution (code editing, terminal, file operations)
- * - `shared`: Tools both orchestrator and subagents may need
- */
-export const TOOL_CLASSIFICATIONS = {
-	clarify: "shared", // Both: may need to clarify with user
-	compactContext: "orchestrator", // Coordination: context compaction for orchestrator
-	cronJob: "orchestrator", // Coordination: scheduling for orchestrator
-	createSkill: "subagent", // Execution: skill creation for subagents
-	date: "shared", // Both: may need date/time info
-	executeCode: "subagent", // Execution: code execution for subagents
-	imageGenerate: "orchestrator", // Coordination: image generation for orchestrator
-	memory: "subagent", // Execution: memory operations for subagents
-	mixtureOfAgents: "orchestrator", // Coordination: MOA for orchestrator decision-making
-	patch: "subagent", // Execution: file patching for subagents
-	process: "shared", // Both: process management for orchestrator and subagents
-	readFile: "subagent", // Execution: file reading for subagents
-	sampling: "orchestrator", // Coordination: memory sampling for orchestrator
-	scanAgents: "orchestrator", // Coordination: scanning for AGENTS.md files
-	searchFiles: "subagent", // Execution: file searching for subagents
-	sessionSearch: "orchestrator", // Coordination: orchestrator searches past sessions for context
-	shell: "shared", // Both: shell access for orchestrator and subagents
-	skillView: "orchestrator", // Coordination: skill inspection for orchestrator
-	skillsList: "orchestrator", // Coordination: skill listing for orchestrator
-	textToSpeech: "orchestrator", // Coordination: TTS for orchestrator
-	todo: "", // Disabled: task management tool removed from registry
-	visionAnalyze: "orchestrator", // Coordination: orchestrator analyzes images
-	webExtract: "shared", // Both: may need to extract web content
-	webSearch: "shared", // Both: may need to search the web
-	writeFile: "subagent", // Execution: file writing for subagents
-};
-
-/**
  * Build an array of LangChain tools gated by sandbox permissions and API keys.
  * Each tool is created with runtime options captured in a closure, ensuring
  * the impl function receives them as its second argument on every invocation.
@@ -129,7 +95,6 @@ export const TOOL_CLASSIFICATIONS = {
  * @param {string} [options.contextDir] - Directory for memory entries
  * @param {number} [options.ephemeralTtlDays] - TTL for ephemeral memories
  * @param {number} [options.ephemeralMaxEntries] - Max concurrent ephemeral entries
- * @param {string[]} [options.classificationFilter] - Filter tools by classification (e.g., ['orchestrator', 'shared']). When omitted, all tools are included.
  * @param {object} [options.config] - Resolved config object from loadConfig()
  * @param {object} [options.config.providers] - Provider configs (openai, openrouter, fal)
  * @param {object} [options.config.search] - Search backend configs
@@ -148,7 +113,6 @@ export async function buildToolConfig(options) {
 		contextDir = "memory/context/",
 		ephemeralTtlDays = 7,
 		ephemeralMaxEntries = 10,
-		classificationFilter,
 		config,
 	} = options;
 
@@ -264,19 +228,6 @@ export async function buildToolConfig(options) {
 				tools.push(TOOL_FACTORIES[toolName](runtimeOptions));
 			}
 		}
-	}
-
-	// Filter by classification if a filter is provided
-	if (classificationFilter && classificationFilter.length > 0) {
-		const filterSet = new Set(classificationFilter);
-		const filteredTools = [];
-		for (const tool of tools) {
-			const classification = TOOL_CLASSIFICATIONS[tool.name];
-			if (classification && filterSet.has(classification)) {
-				filteredTools.push(tool);
-			}
-		}
-		return filteredTools;
 	}
 
 	return tools;
