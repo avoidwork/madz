@@ -19,7 +19,7 @@ Call chains and data flows for all primary code paths in the project, excluding 
 - [Context Compaction](#context-compaction)
 - [Tool Permission Enforcement](#tool-permission-enforcement)
 - [File Tool Execution Flow](#file-tool-execution-flow)
-- [Terminal Tool Execution Flow](#terminal-tool-execution-flow)
+- [Shell Tool Execution Flow](#shell-tool-execution-flow)
 - [Web Tool Execution Flow](#web-tool-execution-flow)
 - [Deep Agents Orchestration Flow](#deep-agents-orchestration-flow)
 - [Sandbox Skill Execution](#sandbox-skill-execution)
@@ -500,7 +500,7 @@ Permission gates per tool:
 ├── code → always (no perms, no env vars)
 ├── clarify → always (no perms, always registered)
 ├── read_file, write_file, patch, search_files → "filesystem:read" or "filesystem:write"
-├── terminal → "filesystem:exec", "process:spawn"
+├── shell → "filesystem:exec", "process:spawn"
 ├── process → "process:spawn"
 ├── todo → "filesystem:read", "filesystem:write"
 ├── memory → "filesystem:read", "filesystem:write"
@@ -568,12 +568,12 @@ search_files:
     └── walk() → readdir → stat → readFile → regex test line by line
 ```
 
-## Terminal Tool Execution Flow
+## Shell Tool Execution Flow
 
-**Entry:** `src/tools/terminal.js`
+**Entry:** `src/tools/shell.js`
 
 ```
-terminal tool:
+shell tool:
 ├── if command.length > MAX_COMMAND_LENGTH (4096) → error
 ├── if background:
 │   ├── executeBackground(command):
@@ -1052,7 +1052,7 @@ index.js
 ├── cache/llm_cache.js → tiny-lru, node:crypto — cache-aside LRU response cache with SHA-256 key generation, configurable size/TTL, fail-open behavior
 ├── tools/index.js → (all tool files below)
 │     ├── tools/filesystem.js → @langchain/core, zod, node:fs/promises, node:path, tools/common.js
-│     ├── tools/terminal.js → @langchain/core, zod, node:child_process
+│     ├── tools/shell.js → @langchain/core, zod, node:child_process
 │     ├── tools/web.js → fetch, node:fs/promises, tools/common.js (filterUrl, validateUrl)
 │     ├── tools/common.js → sandbox/urlFilter.js, sandbox/pathResolver.js, node:fs/promises
 │     ├── tools/memory.js → js-yaml, node:fs/promises — key-value entry storage. Each entry stored as an individual .md file in context directory with createdDate/updatedDate metadata. Actions: create, read, update, delete, list
