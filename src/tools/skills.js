@@ -64,8 +64,8 @@ export async function skillsListImpl(input, options) {
  * @param {object} options.registry - The skill registry instance
  * @returns {object} List of skills with summaries
  */
-export const skills_list = tool(skillsListImpl, {
-	name: "skills_list",
+export const skillsList = tool(skillsListImpl, {
+	name: "skillsList",
 	description:
 		"List all discovered skills with their name, version, description, and permissions. Returns { skills: [...], count: N }.",
 	schema: z.object({}).default({}),

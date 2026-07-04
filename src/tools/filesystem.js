@@ -475,8 +475,8 @@ export const read_file = tool(readFileImpl, {
  * @param {object} options - Runtime options
  * @returns {Promise<string>}
  */
-export const write_file = tool(writeFileImpl, {
-	name: "write_file",
+export const writeFile = tool(writeFileImpl, {
+	name: "writeFile",
 	description:
 		"Write content to a file, creating all parent directories if they don't exist. Validates content size (max 500KB).",
 	schema: z.object({
