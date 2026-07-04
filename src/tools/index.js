@@ -28,7 +28,7 @@ export const TOOL_PERMISSIONS = {
 	cronJob: ["network:outbound"],
 	createSkill: ["filesystem:write"],
 	date: [],
-	executeCode: [],
+	executeCode: ["filesystem:exec", "process:spawn"],
 	imageGenerate: ["network:outbound"],
 	memory: ["filesystem:read", "filesystem:write"],
 	mixtureOfAgents: [],
