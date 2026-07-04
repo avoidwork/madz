@@ -28,7 +28,7 @@ function filterSkillPaths(skillPaths, registry, agentFilter) {
 		const parts = path.split("/");
 		const skillName = parts[parts.length - 1] || path;
 		const skill = registry.get(skillName);
-		const agent = skill?.metadata?.agent || "orchestrator";
+		const agent = skill?.metadata?.metadata?.agent || "orchestrator";
 		return filterSet.has(agent);
 	});
 }

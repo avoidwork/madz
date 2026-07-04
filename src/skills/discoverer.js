@@ -49,7 +49,7 @@ export function extractFrontmatter(content) {
 	}
 
 	// Merge metadata block if present (second YAML block between 2nd and 3rd ---)
-	if (parts.length >= 4 && parts[2].trim()) {
+	if (parts.length >= 3 && parts[2].trim()) {
 		const metadataStr = parts[2].trim();
 		let metadata;
 		try {
