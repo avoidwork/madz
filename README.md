@@ -418,31 +418,31 @@ All built-in tools are defined in `src/tools/` and registered as LangChain tools
 
 | Tool | Description |
 | ---- | ----------- |
-| `shell` | Execute shell commands (foreground/background). Max command length 4096 chars. |
-| `process` | Manage background processes — list, poll, wait, kill, write, pause, resume. |
-| `todo` | CRUD task list persisted to `memory/tools/todo.json`. Actions: read, create, update, complete, delete, list, clear. |
-| `sessionSearch` | Search past conversations by keyword query, full retrieval by conversation ID, or browse all sessions. |
 | `clarify` | Send clarification questions to the user with optional numbered choices. Zero permissions — always registered. |
-| `webSearch` | Search the web via DuckDuckGo, Google, Bing, SearXNG, or Custom endpoints. |
-| `webExtract` | Extract readable text content from a web page URL. Supports summarization for large pages. |
-| `read_file` | Read file contents with optional pagination (`offset`/`limit`). Returns `LINE_NUM|CONTENT` format. |
-| `write_file` | Write content to a file, creating parent directories as needed. 500KB content cap. |
-| `patch` | Apply a patch using 9 fuzzy matching strategies (exact, whitespace, case-insensitive, etc.). Returns unified diff. |
-| `search_files` | Search file contents with ripgrep (native fs fallback). Supports filename and content patterns. |
-| `memory` | Persistent key-value memory with CRUD actions (create, read, update, delete, list). Each entry stored as `.md` in `memory/context/` with `createdDate`/`updatedDate` metadata. |
-| `skills_list` | List all discovered skills with name, description, and location from the registry catalog. |
-| `skillView` | View full details for a skill by name — metadata, permissions, scripts, and full SKILL.md body. |
-| `createSkill` | Create a spec-compliant skill directory with SKILL.md YAML frontmatter. Optionally scaffolds a `scripts/` directory. |
 | `compactContext` | Reduce conversation context when LLM context length is exceeded. Tiered retention: retain recent, summarize older, drop oldest. |
-| `executeCode` | Execute code in a sandboxed subprocess. Supports `python3`, `javascript` (node), and `shell`. |
-| `visionAnalyze` | Analyze images via OpenAI multimodal LLM. Accepts URL or base64 data URI. |
-| `imageGenerate` | Generate images via FAL.ai flux/klein API. |
-| `textToSpeech` | Convert text to speech via OpenAI TTS (tts-1/tts-1-hd). Saves MP3 to `~/voice-memos/`. |
-| `mixtureOfAgents` | Multi-agent orchestration via OpenRouter. Calls 4 reference prompts (factual, practical, creative, cautious) and synthesizes a consensus response. |
-| `scanAgents` | Scan for `AGENTS.md` workspace rules files in a target directory. Returns file contents or empty string. |
 | `cronJob` | Manage scheduled cron jobs — create, list, update, pause, resume, run, remove. Persisted to `memory/schedules/`. |
-| `sampling` | Capture emotional moments as ephemeral memories. Rate-limited to 1 per 60 minutes. Stored with `expiresAt` frontmatter. |
+| `createSkill` | Create a spec-compliant skill directory with SKILL.md YAML frontmatter. Optionally scaffolds a `scripts/` directory. |
 | `date` | Return current date/time in ISO 8601 UTC or human-readable format. Zero permissions — always registered. |
+| `executeCode` | Execute code in a sandboxed subprocess. Supports `python3`, `javascript` (node), and `shell`. |
+| `imageGenerate` | Generate images via FAL.ai flux/klein API. |
+| `memory` | Persistent key-value memory with CRUD actions (create, read, update, delete, list). Each entry stored as `.md` in `memory/context/` with `createdDate`/`updatedDate` metadata. |
+| `mixtureOfAgents` | Multi-agent orchestration via OpenRouter. Calls 4 reference prompts (factual, practical, creative, cautious) and synthesizes a consensus response. |
+| `patch` | Apply a patch using 9 fuzzy matching strategies (exact, whitespace, case-insensitive, etc.). Returns unified diff. |
+| `process` | Manage background processes — list, poll, wait, kill, write, pause, resume. |
+| `read_file` | Read file contents with optional pagination (`offset`/`limit`). Returns `LINE_NUM|CONTENT` format. |
+| `sampling` | Capture emotional moments as ephemeral memories. Rate-limited to 1 per 60 minutes. Stored with `expiresAt` frontmatter. |
+| `scanAgents` | Scan for `AGENTS.md` workspace rules files in a target directory. Returns file contents or empty string. |
+| `search_files` | Search file contents with ripgrep (native fs fallback). Supports filename and content patterns. |
+| `sessionSearch` | Search past conversations by keyword query, full retrieval by conversation ID, or browse all sessions. |
+| `shell` | Execute shell commands (foreground/background). Max command length 4096 chars. |
+| `skillView` | View full details for a skill by name — metadata, permissions, scripts, and full SKILL.md body. |
+| `skills_list` | List all discovered skills with name, description, and location from the registry catalog. |
+| `textToSpeech` | Convert text to speech via OpenAI TTS (tts-1/tts-1-hd). Saves MP3 to `~/voice-memos/`. |
+| `todo` | CRUD task list persisted to `memory/tools/todo.json`. Actions: read, create, update, complete, delete, list, clear. |
+| `visionAnalyze` | Analyze images via OpenAI multimodal LLM. Accepts URL or base64 data URI. |
+| `webExtract` | Extract readable text content from a web page URL. Supports summarization for large pages. |
+| `webSearch` | Search the web via DuckDuckGo, Google, Bing, SearXNG, or Custom endpoints. |
+| `write_file` | Write content to a file, creating parent directories as needed. 500KB content cap. |
 
 ### Skills Registry
 
