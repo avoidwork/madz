@@ -346,7 +346,7 @@ export async function patchImpl(input, options) {
 
 	const match = results.find((r) => r.found);
 	content = content.slice(0, match.start) + input.newStr + content.slice(match.end);
-	await writeFile(resolved.path, content, "utf-8");
+	await writeFileNode(resolved.path, content, "utf-8");
 
 	const diff = generateUnifiedDiff(input.oldStr, input.newStr);
 	return `Patch applied successfully.\nChanges: 1\n${diff}`;
@@ -606,6 +606,4 @@ export function createSearchFilesTool(options) {
 				.describe("Maximum number of results to return"),
 		}),
 	});
-}
-;
 }
