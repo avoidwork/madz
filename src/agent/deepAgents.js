@@ -82,9 +82,10 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 				name: "coding",
 				description:
 					"Specialized agent for code-related tasks including file editing, debugging, implementation, and code review.",
-				systemPrompt: codingAgentPrompt || "You are a coding specialist. Handle all code-related tasks.",
+				systemPrompt:
+					codingAgentPrompt || "You are a coding specialist. Handle all code-related tasks.",
 				model,
-				tools: allTools
+				tools: allTools,
 			},
 		],
 		...(agentsPath && { memory: [agentsPath] }),

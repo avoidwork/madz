@@ -7,7 +7,7 @@ import { FilesystemBackend } from "deepagents";
  */
 export function createDmzBackend() {
 	return new FilesystemBackend({
-		rootDir: '/tmp',
+		rootDir: "/tmp",
 		virtualMode: false,
 	});
 }

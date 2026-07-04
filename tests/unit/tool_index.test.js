@@ -108,10 +108,7 @@ describe("tools - buildToolConfig", () => {
 		);
 		assert.ok(toolNames.includes("sampling"), "sampling should register (no perms needed)");
 		// shell requires process:spawn which is not enabled
-		assert.ok(
-			!toolNames.includes("shell"),
-			"shell should NOT register without process:spawn",
-		);
+		assert.ok(!toolNames.includes("shell"), "shell should NOT register without process:spawn");
 		assert.ok(!toolNames.includes("process"), "process should NOT register without process:spawn");
 	});
 
