@@ -428,7 +428,7 @@ Some tools are provided by the [Deep Agents](https://github.com/avoidwork/deepag
 
 | Category | Tools |
 | -------- | ----- |
-| **Terminal** | `terminal` — shell command execution (foreground/background); `process` — background process management (list, poll, wait, kill, write, pause, resume) |
+| **Shell** | `shell` — shell command execution (foreground/background); `process` — background process management (list, poll, wait, kill, write, pause, resume) |
 | **Task Management** | `todo` — CRUD list persisted to `memory/tools/todo.json` |
 | **Search** | `sessionSearch` — query past conversations by keyword, ID, or browse |
 | **Clarification** | `clarify` — sends clarification questions to the user |
@@ -451,7 +451,7 @@ Built-in tools are registered only when their required permissions are enabled f
 | ----------------------------------- | -------------------------------------------------------------------------- |
 | `filesystem:read`                   | `read_file`, `search_files`, `skillView`, `sessionSearch` |
 | `filesystem:write`                  | `write_file`, `patch`, `todo`, `memory`, `createSkill`                    |
-| `filesystem:exec` + `process:spawn` | `terminal`                                                                 |
+| `filesystem:exec` + `process:spawn` | `shell`                                                                    |
 | `process:spawn`                     | `process`                                                                  |
 | _(none)_                            | `clarify`                                                                  |
 
