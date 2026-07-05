@@ -429,7 +429,7 @@ All built-in tools are defined in `src/tools/` and registered as LangChain tools
 | `mixtureOfAgents` | Multi-agent orchestration via OpenRouter. Calls 4 reference prompts (factual, practical, creative, cautious) and synthesizes a consensus response. |
 | `patch` | Apply a patch using 9 fuzzy matching strategies (exact, whitespace, case-insensitive, etc.). Returns unified diff. |
 | `process` | Manage background processes — list, poll, wait, kill, write, pause, resume. |
-| `read_file` | Read file contents with optional pagination (`offset`/`limit`). Returns `LINE_NUM|CONTENT` format. |
+| `readFile` | Read file contents with optional pagination (`offset`/`limit`). Returns `LINE_NUM|CONTENT` format. |
 | `sampling` | Capture emotional moments as ephemeral memories. Rate-limited to 1 per 60 minutes. Stored with `expiresAt` frontmatter. |
 | `scanAgents` | Scan for `AGENTS.md` workspace rules files in a target directory. Returns file contents or empty string. |
 | `search_files` | Search file contents with ripgrep (native fs fallback). Supports filename and content patterns. |
@@ -450,15 +450,16 @@ Auto-discovers Agent Skills spec-compliant skills from a `skills/` directory str
 
 ### Permission Gating
 
-Built-in tools are registered only when their required permissions are enabled for the session. Tools like `clarify` have zero permissions and always register.
+Built-in tools are registered only when their required permissions are enabled for the session. Tools like `date` have zero permissions and always register.
 
 | Permission Required                 | Tools                                                                      |
 | ----------------------------------- | -------------------------------------------------------------------------- |
-| `filesystem:read`                   | `readFile`, `searchFiles`, `skillView`, `sessionSearch` |
-| `filesystem:write`                  | `writeFile`, `patch`, `todo`, `memory`, `createSkill`                    |
-| `filesystem:exec` + `process:spawn` | `shell`                                                                    |
+| `filesystem:read`                   | `compactContext`, `readFile`, `searchFiles`, `scanAgents`, `sessionSearch`, `skillView`, `skillsList` |
+| `filesystem:write`                  | `clarify`, `createSkill`, `memory`, `patch`, `sampling`, `todo`, `writeFile` |
+| `filesystem:exec` + `process:spawn` | `executeCode`, `shell`                                                     |
+| `network:outbound`                  | `cronJob`, `imageGenerate`, `mixtureOfAgents`, `webExtract`, `webSearch`   |
 | `process:spawn`                     | `process`                                                                  |
-| _(none)_                            | `clarify`                                                                  |
+| _(none)_                            | `date`, `textToSpeech`, `visionAnalyze`                                    |
 
 ### Memory System
 
