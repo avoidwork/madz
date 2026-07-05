@@ -103,7 +103,7 @@ export async function imageGenerateImpl(input, options = {}) {
  * @returns {string} JSON result string
  */
 export const imageGenerate = tool(imageGenerateImpl, {
-	name: "image_generate",
+	name: "imageGenerate",
 	description:
 		"Generate an image from a text prompt using FAL.ai (FLUX Klein model). Returns a public image URL. Requires FAL_API_KEY environment variable",
 	schema: z.object({
