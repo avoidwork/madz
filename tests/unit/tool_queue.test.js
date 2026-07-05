@@ -208,5 +208,3 @@ describe("TodoQueue", () => {
 		assert.strictEqual(data.todos.length, 0);
 	});
 });
-
-

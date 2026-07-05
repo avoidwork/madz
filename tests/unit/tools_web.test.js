@@ -24,7 +24,10 @@ describe("webSearch", () => {
 				webPages: { value: [{ name: "Bing Result", url: "https://bing.com", snippet: "desc" }] },
 			}),
 		});
-		const result = await webSearchImpl({ query: "test" }, { search: { bing: { apiKey: "sk-bing" } } });
+		const result = await webSearchImpl(
+			{ query: "test" },
+			{ search: { bing: { apiKey: "sk-bing" } } },
+		);
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, true);
 		assert.strictEqual(parsed.backend, "bing");
@@ -37,7 +40,10 @@ describe("webSearch", () => {
 				results: [{ title: "SearX", url: "https://searxng.com", content: "desc" }],
 			}),
 		});
-		const result = await webSearchImpl({ query: "test" }, { search: { searxng: { url: "http://searxng.local" } } });
+		const result = await webSearchImpl(
+			{ query: "test" },
+			{ search: { searxng: { url: "http://searxng.local" } } },
+		);
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, true);
 		assert.strictEqual(parsed.backend, "searxng");
@@ -48,7 +54,10 @@ describe("webSearch", () => {
 			ok: true,
 			json: async () => ({ results: [{ title: "Cust", url: "https://c.com", description: "D" }] }),
 		});
-		const result = await webSearchImpl({ query: "test" }, { search: { custom: { url: "http://custom.local/search?q={{query}}", method: "GET" } } });
+		const result = await webSearchImpl(
+			{ query: "test" },
+			{ search: { custom: { url: "http://custom.local/search?q={{query}}", method: "GET" } } },
+		);
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, true);
 		assert.strictEqual(parsed.backend, "custom");
@@ -75,7 +84,10 @@ describe("webSearch", () => {
 
 	it("caps limit at 100", async () => {
 		mockFetch({ ok: true, json: async () => ({ results: [] }) });
-		const result = await webSearchImpl({ query: "test", limit: 200 }, { search: { custom: { url: "http://c.com" } } });
+		const result = await webSearchImpl(
+			{ query: "test", limit: 200 },
+			{ search: { custom: { url: "http://c.com" } } },
+		);
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, true);
 	});
@@ -90,7 +102,10 @@ describe("webSearch", () => {
 
 	it("handles SearXNG HTTP error", async () => {
 		mockFetch({ ok: false, status: 503 });
-		const result = await webSearchImpl({ query: "test" }, { search: { searxng: { url: "http://broken.local" } } });
+		const result = await webSearchImpl(
+			{ query: "test" },
+			{ search: { searxng: { url: "http://broken.local" } } },
+		);
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("SearXNG"));
@@ -98,7 +113,10 @@ describe("webSearch", () => {
 
 	it("handles Custom search failure", async () => {
 		mockFetch({ ok: false, status: 500 });
-		const result = await webSearchImpl({ query: "test" }, { search: { custom: { url: "http://broken" } } });
+		const result = await webSearchImpl(
+			{ query: "test" },
+			{ search: { custom: { url: "http://broken" } } },
+		);
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("Custom") || parsed.error.includes("500"));
@@ -176,7 +194,10 @@ describe("web_extract", () => {
 
 describe("detectSearchBackend", () => {
 	it("returns custom when searchCustomConfig is set", async () => {
-		assert.strictEqual(detectSearchBackend({ search: { custom: { url: "http://c.local" } } }), "custom");
+		assert.strictEqual(
+			detectSearchBackend({ search: { custom: { url: "http://c.local" } } }),
+			"custom",
+		);
 	});
 
 	it("returns bing when searchBingApiKey is set", async () => {
@@ -184,7 +205,10 @@ describe("detectSearchBackend", () => {
 	});
 
 	it("returns searxng when searchSearxngUrl is set", async () => {
-		assert.strictEqual(detectSearchBackend({ search: { searxng: { url: "http://s.local" } } }), "searxng");
+		assert.strictEqual(
+			detectSearchBackend({ search: { searxng: { url: "http://s.local" } } }),
+			"searxng",
+		);
 	});
 
 	it("returns duckduckgo as fallback when no keys set", async () => {

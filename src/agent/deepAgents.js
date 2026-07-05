@@ -62,7 +62,10 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 
 	// Build all tools without filtering — pass everything to orchestrator and subagent
 	const tools = await buildToolConfig(buildOptions);
-	logger.info({ tools: tools.map((t) => ({ name: t.name, type: typeof t, lc: t?.lc })) }, `Tools: ${tools.length}`);
+	logger.info(
+		{ tools: tools.map((t) => ({ name: t.name, type: typeof t, lc: t?.lc })) },
+		`Tools: ${tools.length}`,
+	);
 
 	const coreBackend = createCoreBackend();
 	const dmzBackend = createDmzBackend();
