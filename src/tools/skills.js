@@ -9,11 +9,15 @@ import {
 	validateOptionalFields,
 	validateSkillSchema,
 } from "../skills/validator.js";
-import { ensureSkillsDir } from "../skills/registry.js";
+import { ensureSkillsDir, SkillRegistry } from "../skills/registry.js";
 import { PermissionSchema } from "../skills/types.js";
 import { loadConfig } from "../config/loader.js";
 
 export let cwd = loadConfig().cwd;
+
+// Discover skills from configured scopes
+const skillRegistry = new SkillRegistry();
+skillRegistry.discover();
 
 /**
  * Set the working directory. Used by tests to override cwd.
@@ -32,9 +36,8 @@ export function setCwd(newCwd) {
  * @param {z.infer<typeof SkillsListSchema>} input - The tool input (empty)
  * @returns {object} List of skills with name, description, and location
  */
-export async function skillsListImpl(_input) {
-	const config = loadConfig();
-	const registry = config.registry;
+export async function skillsListImpl(input, options) {
+	const registry = options?.registry ?? skillRegistry;
 	const catalog =
 		registry && typeof registry.getCatalog === "function" ? registry.getCatalog() : [];
 
