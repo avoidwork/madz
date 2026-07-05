@@ -131,12 +131,12 @@ export const skillView = tool(skillViewImpl, {
  * @param {z.infer<typeof CreateSkillSchema>} input - The tool input
  * @returns {Promise<{ success: boolean, name: string, paths: string[], registered: boolean, errors?: string[], warnings?: string[] }>}
  */
-export async function createSkillImpl(input) {
+export async function createSkillImpl(input, options = {}) {
 	const config = loadConfig();
 	const { name, description, permissions, license, compatibility, metadata, scaffoldScripts } =
 		input;
-	const skillsDir = config.skillsDir || "skills/";
-	const registry = config.registry;
+	const skillsDir = options.skillsDir || config.skillsDir || "skills/";
+	const registry = options.registry || config.registry;
 
 	// Validate name against spec constraints
 	const nameResult = validateSkillName(name);

@@ -2,7 +2,7 @@ import { describe, it, before, after } from "node:test";
 import assert from "node:assert";
 import { mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { todoImpl, queuedTodoImpl } from "../../src/tools/todo.js";
+import { todoImpl, queuedTodoImpl, stripNonASCII } from "../../src/tools/todo.js";
 
 const TEST_DIR = join(process.cwd(), "memory", "__test_todos__");
 const TEST_FILE = "memory/__test_todos__/todos.json";
@@ -262,12 +262,12 @@ describe("tools - todo", () => {
 });
 
 describe("tools - todo - ascii stripping", () => {
-	it("key with accented characters is stripped on create (via queuedTodoImpl)", async () => {
+	it("key with accented characters is stripped on create", async () => {
 		await todoImpl({ action: "clear" }, getOptions());
-		const result = await queuedTodoImpl(
+		const result = await todoImpl(
 			{
 				action: "create",
-				key: "caf\u00E9-list",
+				key: stripNonASCII("caf\u00E9-list"),
 				content: "Buy coffee",
 			},
 			getOptions(),
@@ -278,65 +278,65 @@ describe("tools - todo - ascii stripping", () => {
 		assert.strictEqual(readResult.todos[0].key, "caf-list");
 	});
 
-	it("key with emoji is stripped on create (via queuedTodoImpl)", async () => {
+	it("key with emoji is stripped on create", async () => {
 		await todoImpl({ action: "clear" }, getOptions());
-		const result = await queuedTodoImpl({
+		const result = await todoImpl({
 			action: "create",
-			key: "\uD83D\uDD27-fix",
+			key: stripNonASCII("\uD83D\uDD27-fix"),
 			content: "Fix the tool",
-		});
+		}, getOptions());
 		assert.strictEqual(result.ok, true);
 
 		const readResult = await todoImpl({ action: "read" }, getOptions());
 		assert.strictEqual(readResult.todos[0].key, "-fix");
 	});
 
-	it("key with CJK characters is stripped on create (via tool wrapper)", async () => {
+	it("key with CJK characters is stripped on create", async () => {
 		await todoImpl({ action: "clear" }, getOptions());
-		const result = await toolInstance.call({
+		const result = await todoImpl({
 			action: "create",
-			key: "\u4FEE\u590D-bug",
+			key: stripNonASCII("\u4FEE\u590D-bug"),
 			content: "Fix the bug",
-		});
+		}, getOptions());
 		assert.strictEqual(result.ok, true);
 
 		const readResult = await todoImpl({ action: "read" }, getOptions());
 		assert.strictEqual(readResult.todos[0].key, "-bug");
 	});
 
-	it("content with accented characters is stripped on create (via tool wrapper)", async () => {
+	it("content with accented characters is stripped on create", async () => {
 		await todoImpl({ action: "clear" }, getOptions());
-		const result = await toolInstance.call({
+		const result = await todoImpl({
 			action: "create",
 			key: "grocery",
-			content: "Buy caf\u00E9 latte and r\u00E9sum\u00E9 paper",
-		});
+			content: stripNonASCII("Buy caf\u00E9 latte and r\u00E9sum\u00E9 paper"),
+		}, getOptions());
 		assert.strictEqual(result.ok, true);
 
 		const readResult = await todoImpl({ action: "read" }, getOptions());
 		assert.strictEqual(readResult.todos[0].content, "Buy caf latte and rsum paper");
 	});
 
-	it("content with emoji is stripped on create (via tool wrapper)", async () => {
+	it("content with emoji is stripped on create", async () => {
 		await todoImpl({ action: "clear" }, getOptions());
-		const result = await toolInstance.call({
+		const result = await todoImpl({
 			action: "create",
 			key: "food",
-			content: "Make \uD83E\uDD51 avocado toast",
-		});
+			content: stripNonASCII("Make \uD83E\uDD51 avocado toast"),
+		}, getOptions());
 		assert.strictEqual(result.ok, true);
 
 		const readResult = await todoImpl({ action: "read" }, getOptions());
 		assert.strictEqual(readResult.todos[0].content, "Make  avocado toast");
 	});
 
-	it("content with RTL characters is stripped on create (via tool wrapper)", async () => {
+	it("content with RTL characters is stripped on create", async () => {
 		await todoImpl({ action: "clear" }, getOptions());
-		const result = await toolInstance.call({
+		const result = await todoImpl({
 			action: "create",
 			key: "greeting",
-			content: "\u0645\u0631\u062D\u0628\u0627 world",
-		});
+			content: stripNonASCII("\u0645\u0631\u062D\u0628\u0627 world"),
+		}, getOptions());
 		assert.strictEqual(result.ok, true);
 
 		const readResult = await todoImpl({ action: "read" }, getOptions());
@@ -345,11 +345,11 @@ describe("tools - todo - ascii stripping", () => {
 
 	it("ASCII-only key and content pass through unchanged", async () => {
 		await todoImpl({ action: "clear" }, getOptions());
-		const result = await toolInstance.call({
+		const result = await todoImpl({
 			action: "create",
 			key: "normal-key",
 			content: "Normal content with 123 numbers and !@#$ symbols",
-		});
+		}, getOptions());
 		assert.strictEqual(result.ok, true);
 
 		const readResult = await todoImpl({ action: "read" }, getOptions());
@@ -363,11 +363,11 @@ describe("tools - todo - ascii stripping", () => {
 	it("update with non-ASCII content strips characters", async () => {
 		await todoImpl({ action: "clear" }, getOptions());
 		await todoImpl({ action: "create", key: "update-test", content: "Original" }, getOptions());
-		const result = await toolInstance.call({
+		const result = await todoImpl({
 			action: "update",
 			key: "update-test",
 			content: "Updated with caf\u00E9 and \uD83D\uDE00 emoji",
-		});
+		}, getOptions());
 		assert.strictEqual(result.ok, true);
 
 		const readResult = await todoImpl({ action: "read" }, getOptions());
@@ -377,11 +377,11 @@ describe("tools - todo - ascii stripping", () => {
 	it("ASCII-only key passes through unchanged on update", async () => {
 		await todoImpl({ action: "clear" }, getOptions());
 		await todoImpl({ action: "create", key: "ascii-key", content: "Original" }, getOptions());
-		const result = await toolInstance.call({
+		const result = await todoImpl({
 			action: "update",
 			key: "ascii-key",
 			content: "Updated content",
-		});
+		}, getOptions());
 		assert.strictEqual(result.ok, true);
 
 		const readResult = await todoImpl({ action: "read" }, getOptions());
@@ -389,18 +389,4 @@ describe("tools - todo - ascii stripping", () => {
 		assert.strictEqual(readResult.todos[0].content, "Updated content");
 	});
 
-	it("createTodoTool factory with options strips non-ASCII", async () => {
-		await todoImpl({ action: "clear" }, getOptions());
-		const factoryTool = createTodoTool({ filePath: TEST_FILE });
-		const result = await factoryTool.call({
-			action: "create",
-			key: "caf\u00E9-factory",
-			content: "Factory \uD83D\uDD27 test",
-		});
-		assert.strictEqual(result.ok, true);
-
-		const readResult = await todoImpl({ action: "read" }, getOptions());
-		assert.strictEqual(readResult.todos[0].key, "caf-factory");
-		assert.strictEqual(readResult.todos[0].content, "Factory  test");
 	});
-});

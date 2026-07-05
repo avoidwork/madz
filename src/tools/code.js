@@ -83,13 +83,13 @@ sys.meta_path.insert(0, RestrictedImporter())
  * @param {object} input - Tool input
  * @returns {Promise<string>} JSON result string
  */
-export async function executeCodeImpl(input) {
+export async function executeCodeImpl(input, options = {}) {
 	const { code, language = "python3", _timeout, _interpreter } = input;
 	const config = loadConfig();
-	const sandbox = config.sandbox || {};
-	const safetyConfig = sandbox.safety ?? {};
-	const timeoutConfig = sandbox.timeout ?? {};
-	const memoryLimitStr = sandbox.memoryLimit;
+	const sandbox = options.sandbox ?? config.sandbox || {};
+	const safetyConfig = options.safety ?? sandbox.safety ?? {};
+	const timeoutConfig = options.timeout ?? sandbox.timeout ?? {};
+	const memoryLimitStr = options.memoryLimit ?? sandbox.memoryLimit;
 
 	const defaultTimeout = (timeoutConfig.seconds ?? 30) || 30;
 	const timeout = _timeout ?? (defaultTimeout === 0 ? 300 : defaultTimeout);
