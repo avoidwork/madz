@@ -93,16 +93,23 @@ export async function countEphemeralMemoryFiles(contextDir, nowStr) {
 /**
  * Core sampling implementation with rate limiting and capacity checks.
  * @param {z.infer<typeof SamplingSchema>} input - The tool input with content
+ * @param {object} [options] - Runtime options for test injection
+ * @param {string} [options.contextDir] - Context directory (overrides config)
+ * @param {number} [options.ttlDays] - TTL in days (overrides default 7)
+ * @param {number} [options.maxEntries] - Max ephemeral entries (overrides default 10)
+ * @param {number} [options.cooldownMs] - Cooldown in ms (overrides default 60min)
+ * @param {string} [options.lastWritten] - ISO timestamp of last write (overrides module state)
  * @returns {Promise<string>} Result JSON string
  */
-export async function samplingImpl(input) {
+export async function samplingImpl(input, options = {}) {
 	const { content } = input;
 	const config = loadConfig();
 	const memory = config.memory || {};
-	const contextDir = memory.contextDir || "memory/context/";
-	const ttlDays = 7;
-	const maxEntries = 10;
-	const cooldownMs = COOLDOWN_MS;
+	const contextDir = options.contextDir || memory.contextDir || "memory/context/";
+	const ttlDays = options.ttlDays ?? 7;
+	const maxEntries = options.maxEntries ?? 10;
+	const cooldownMs = options.cooldownMs ?? COOLDOWN_MS;
+	const lastWritten = options.lastWritten;
 
 	if (!content || (typeof content === "string" && content.trim() === "")) {
 		return JSON.stringify({
@@ -112,8 +119,8 @@ export async function samplingImpl(input) {
 	}
 
 	// Check cooldown
-	if (runtimeOptions.lastWritten) {
-		const elapsed = Date.now() - new Date(runtimeOptions.lastWritten).getTime();
+	if (lastWritten) {
+		const elapsed = Date.now() - new Date(lastWritten).getTime();
 		if (elapsed < cooldownMs) {
 			const remaining = Math.ceil(((cooldownMs - elapsed) / 1000 / 60) * 10) / 10;
 			return JSON.stringify({

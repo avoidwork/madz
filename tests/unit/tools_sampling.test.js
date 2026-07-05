@@ -210,8 +210,7 @@ describe("samplingImpl", () => {
 	});
 
 	it("writes an ephemeral file on success", async () => {
-		const opts = { contextDir: TEST_DIR, ttlDays: 7, maxEntries: 10 };
-		const result = JSON.parse(await samplingImpl({ content: "joy" }, opts));
+		const result = JSON.parse(await samplingImpl({ content: "joy" }, { contextDir: TEST_DIR, ttlDays: 7, maxEntries: 10 }));
 		assert.strictEqual(result.ok, true);
 		assert.strictEqual(result.message, "Ephemeral memory captured");
 		assert.ok(result.expiresAt, "should include expiresAt");
@@ -223,26 +222,24 @@ describe("samplingImpl", () => {
 	});
 
 	it("rejects within cooldown period", async () => {
-		const opts = {
-			contextDir: TEST_DIR,
-			cooldownMs: 3600000,
-			lastWritten: new Date().toISOString(),
-			maxEntries: 10,
-		};
-		const result = JSON.parse(await samplingImpl({ content: "test" }, opts));
+		const result = JSON.parse(
+			await samplingImpl(
+				{ content: "test" },
+				{ contextDir: TEST_DIR, cooldownMs: 3600000, lastWritten: new Date().toISOString(), maxEntries: 10 },
+			),
+		);
 		assert.strictEqual(result.ok, false);
 		assert.ok(result.error.includes("Cooldown active"));
 	});
 
 	it("succeeds after cooldown expires", async () => {
 		const past = new Date(Date.now() - 4200 * 1000).toISOString();
-		const opts = {
-			contextDir: TEST_DIR,
-			cooldownMs: 3600000,
-			lastWritten: past,
-			maxEntries: 10,
-		};
-		const result = JSON.parse(await samplingImpl({ content: "test" }, opts));
+		const result = JSON.parse(
+			await samplingImpl(
+				{ content: "test" },
+				{ contextDir: TEST_DIR, cooldownMs: 3600000, lastWritten: past, maxEntries: 10 },
+			),
+		);
 		assert.strictEqual(result.ok, true);
 	});
 
@@ -257,8 +254,7 @@ describe("samplingImpl", () => {
 				"2026-06-01T00:00:00.000Z",
 			);
 		}
-		const opts = { contextDir: TEST_DIR, maxEntries: max };
-		const result = JSON.parse(await samplingImpl({ content: "test" }, opts));
+		const result = JSON.parse(await samplingImpl({ content: "test" }, { contextDir: TEST_DIR, maxEntries: max }));
 		assert.strictEqual(result.ok, false);
 		assert.ok(result.error.includes("Capacity limit"));
 	});
@@ -270,8 +266,7 @@ describe("samplingImpl", () => {
 			expiredPath,
 			'---\ntitle: "Expired"\ntimestamp: "2026-05-01T00:00:00.000Z"\nephemeral: true\nephemeral_expiresAt: "2026-05-01T00:00:00.000Z"\n---\n\nold content\n',
 		);
-		const opts = { contextDir: TEST_DIR, maxEntries: 1 };
-		const result = JSON.parse(await samplingImpl({ content: "test" }, opts));
+		const result = JSON.parse(await samplingImpl({ content: "test" }, { contextDir: TEST_DIR, maxEntries: 1 }));
 		assert.strictEqual(result.ok, true);
 	});
 });
@@ -290,36 +285,5 @@ describe("SamplingSchema", () => {
 	it("rejects non-string content", () => {
 		const result = SamplingSchema.safeParse({ content: 42 });
 		assert.strictEqual(result.success, false);
-	});
-});
-
-describe("createSamplingTool", () => {
-	it("returns a tool with correct name", async () => {
-		const { createSamplingTool } = await import("../../src/tools/sampling.js");
-		const tool = createSamplingTool({ contextDir: TEST_DIR });
-		assert.strictEqual(tool.name, "sampling");
-		assert.ok(tool.description.includes("ephemeral"));
-		assert.ok(tool.description.includes("emotional"));
-	});
-
-	it("uses runtime options", async () => {
-		const { createSamplingTool } = await import("../../src/tools/sampling.js");
-		const tool = createSamplingTool({
-			contextDir: TEST_DIR,
-			ttlDays: 14,
-			maxEntries: 5,
-			cooldownMs: 300000,
-		});
-		assert.strictEqual(tool.name, "sampling");
-	});
-});
-
-describe("createSamplingTool internals", () => {
-	it("getter/setter lastWritten work", async () => {
-		const { createSamplingTool } = await import("../../src/tools/sampling.js");
-		const tool = createSamplingTool({ contextDir: TEST_DIR });
-		// Access via tool.runtimeOptions if exposed, otherwise use createSamplingTool directly
-		// The test verifies the tool is created without error
-		assert.strictEqual(tool.name, "sampling");
 	});
 });

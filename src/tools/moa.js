@@ -87,9 +87,11 @@ function aggregateResponses(responses, userMessage) {
 /**
  * Execute mixture of agents: 4 parallel OpenRouter calls + 1 aggregation.
  * @param {object} input - Tool input
+ * @param {object} [options] - Runtime options for test injection
+ * @param {string} [options.openrouterApiKey] - OpenRouter API key (overrides config)
  * @returns {Promise<string>} JSON result string
  */
-export async function mixtureOfAgentsImpl(input) {
+export async function mixtureOfAgentsImpl(input, options = {}) {
 	const { message, models } = input;
 
 	if (!message || typeof message !== "string" || message.trim().length === 0) {
@@ -103,7 +105,7 @@ export async function mixtureOfAgentsImpl(input) {
 	const providers = config.providers || {};
 	const providersOpenRouter = providers?.openrouter || {};
 	const openrouterCredentials = providersOpenRouter?.credentials || {};
-	const apiKey = openrouterCredentials?.apiKey;
+	const apiKey = options.openrouterApiKey || openrouterCredentials?.apiKey;
 	if (!apiKey) {
 		return JSON.stringify({
 			ok: false,

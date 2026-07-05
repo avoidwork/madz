@@ -19,7 +19,7 @@ describe("webSearch", () => {
 		globalThis.fetch = async (_url, _opts) => resp;
 	}
 
-	function mockConfig(searchConfig) {
+	async function mockConfig(searchConfig) {
 		configMock?.restore();
 		configMock = mock.method(
 			await import("../../src/config/loader.js"),
@@ -207,12 +207,12 @@ describe("web_extract", () => {
 describe("detectSearchBackend", () => {
 	let configMock;
 
-	afterEach(() => {
+	after(() => {
 		configMock?.restore();
 	});
 
-	it("returns custom when searchCustomConfig is set", () => {
-		configMock = mock.method(
+	it("returns custom when searchCustomConfig is set", async () => {
+		configMock = mock.property(
 			await import("../../src/config/loader.js"),
 			"loadConfig",
 			() => ({
@@ -223,8 +223,8 @@ describe("detectSearchBackend", () => {
 		assert.strictEqual(detectSearchBackend(), "custom");
 	});
 
-	it("returns bing when searchBingApiKey is set", () => {
-		configMock = mock.method(
+	it("returns bing when searchBingApiKey is set", async () => {
+		configMock = mock.property(
 			await import("../../src/config/loader.js"),
 			"loadConfig",
 			() => ({
@@ -235,8 +235,8 @@ describe("detectSearchBackend", () => {
 		assert.strictEqual(detectSearchBackend(), "bing");
 	});
 
-	it("returns searxng when searchSearxngUrl is set", () => {
-		configMock = mock.method(
+	it("returns searxng when searchSearxngUrl is set", async () => {
+		configMock = mock.property(
 			await import("../../src/config/loader.js"),
 			"loadConfig",
 			() => ({
@@ -247,8 +247,8 @@ describe("detectSearchBackend", () => {
 		assert.strictEqual(detectSearchBackend(), "searxng");
 	});
 
-	it("returns duckduckgo as fallback when no keys set", () => {
-		configMock = mock.method(
+	it("returns duckduckgo as fallback when no keys set", async () => {
+		configMock = mock.property(
 			await import("../../src/config/loader.js"),
 			"loadConfig",
 			() => ({

@@ -54,9 +54,11 @@ async function generateWithFal(apiKey, prompt, timeout) {
 /**
  * Generate an image via the configured image API.
  * @param {object} input - Tool input
+ * @param {object} [options] - Runtime options for test injection
+ * @param {string} [options.falApiKey] - FAL.ai API key (overrides config)
  * @returns {Promise<string>} JSON result string
  */
-export async function imageGenerateImpl(input) {
+export async function imageGenerateImpl(input, options = {}) {
 	const { prompt, timeout } = input;
 
 	if (!prompt || typeof prompt !== "string" || prompt.trim().length === 0) {
@@ -74,7 +76,7 @@ export async function imageGenerateImpl(input) {
 	const providers = config.providers || {};
 	const providersFal = providers?.fal || {};
 	const falCredentials = providersFal?.credentials || {};
-	const apiKey = falCredentials?.apiKey;
+	const apiKey = options.falApiKey ?? config.providers?.fal?.credentials?.apiKey;
 	if (!apiKey) {
 		return JSON.stringify({
 			ok: false,

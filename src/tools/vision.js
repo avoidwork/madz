@@ -74,9 +74,11 @@ async function fetchImageFromUrl(url) {
 /**
  * Analyze an image by sending it to the configured multimodal LLM.
  * @param {object} input - Tool input with url or dataUri
+ * @param {object} [options] - Runtime options for test injection
+ * @param {string} [options.openaiApiKey] - OpenAI API key (overrides config)
  * @returns {Promise<string>} JSON result string
  */
-export async function visionAnalyzeImpl(input) {
+export async function visionAnalyzeImpl(input, options = {}) {
 	const { url, dataUri, prompt: _prompt } = input;
 
 	if (!url && !dataUri) {
@@ -87,7 +89,7 @@ export async function visionAnalyzeImpl(input) {
 	const providers = config.providers || {};
 	const providersOpenAI = providers?.openai || {};
 	const credentials = providersOpenAI?.credentials || {};
-	const apiKey = credentials?.apiKey;
+	const apiKey = options.openaiApiKey || credentials?.apiKey;
 	if (!apiKey) {
 		return JSON.stringify({
 			ok: false,

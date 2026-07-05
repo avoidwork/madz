@@ -64,9 +64,11 @@ async function callTtsApi(apiKey, text, model, voice, speed) {
 /**
  * Convert text to speech using OpenAI TTS API.
  * @param {object} input - Tool input
+ * @param {object} [options] - Runtime options for test injection
+ * @param {string} [options.openaiApiKey] - OpenAI API key (overrides config)
  * @returns {Promise<string>} JSON result string
  */
-export async function textToSpeechImpl(input) {
+export async function textToSpeechImpl(input, options = {}) {
 	const { text, voice = "alloy", model = "tts-1", speed = 1 } = input;
 
 	if (!text || typeof text !== "string" || text.trim().length === 0) {
@@ -87,7 +89,7 @@ export async function textToSpeechImpl(input) {
 	const providers = config.providers || {};
 	const providersOpenAI = providers?.openai || {};
 	const credentials = providersOpenAI?.credentials || {};
-	const apiKey = credentials?.apiKey;
+	const apiKey = options.openaiApiKey || credentials?.apiKey;
 	if (!apiKey) {
 		return JSON.stringify({
 			ok: false,

@@ -2,7 +2,7 @@ import { describe, it, before, after } from "node:test";
 import assert from "node:assert";
 import { mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { todoImpl, createTodoTool } from "../../src/tools/todo.js";
+import { todoImpl, queuedTodoImpl } from "../../src/tools/todo.js";
 
 const TEST_DIR = join(process.cwd(), "memory", "__test_todos__");
 const TEST_FILE = "memory/__test_todos__/todos.json";
@@ -262,24 +262,23 @@ describe("tools - todo", () => {
 });
 
 describe("tools - todo - ascii stripping", () => {
-	const toolInstance = createTodoTool({ filePath: TEST_FILE });
 
-	it("key with accented characters is stripped on create (via tool wrapper)", async () => {
+	it("key with accented characters is stripped on create (via queuedTodoImpl)", async () => {
 		await todoImpl({ action: "clear" }, getOptions());
-		const result = await toolInstance.call({
+		const result = await queuedTodoImpl({
 			action: "create",
 			key: "caf\u00E9-list",
 			content: "Buy coffee",
-		});
+		}, getOptions());
 		assert.strictEqual(result.ok, true);
 
 		const readResult = await todoImpl({ action: "read" }, getOptions());
 		assert.strictEqual(readResult.todos[0].key, "caf-list");
 	});
 
-	it("key with emoji is stripped on create (via tool wrapper)", async () => {
+	it("key with emoji is stripped on create (via queuedTodoImpl)", async () => {
 		await todoImpl({ action: "clear" }, getOptions());
-		const result = await toolInstance.call({
+		const result = await queuedTodoImpl({
 			action: "create",
 			key: "\uD83D\uDD27-fix",
 			content: "Fix the tool",

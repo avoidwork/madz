@@ -27,11 +27,16 @@ async function exists(path) {
  * Search past conversations. Supports query keyword search,
  * full conversation retrieval by ID, or browsing all sessions.
  * @param {z.infer<typeof SessionSearchSchema>} input - The tool input
+ * @param {object} [options] - Runtime options for test injection
+ * @param {string} [options.cwd] - Working directory (overrides config)
+ * @param {string} [options.sessionsDir] - Sessions subdirectory (overrides config)
  * @returns {Promise<string>} Search results or conversation content
  */
-export async function sessionSearchImpl(input) {
+export async function sessionSearchImpl(input, options = {}) {
+	const config = loadConfig();
+	const cwd = options.cwd || config.cwd;
 	const memory = config.memory || {};
-	const sessionsDir = join(cwd, memory.sessionsDir || "memory/sessions/");
+	const sessionsDir = join(cwd, options.sessionsDir || memory.sessionsDir || "memory/sessions/");
 
 	if (input.conversationId) {
 		return getFullConversation(sessionsDir, input.conversationId);
