@@ -114,6 +114,7 @@ export async function buildToolConfig(options) {
 		ephemeralTtlDays = 7,
 		ephemeralMaxEntries = 10,
 		config,
+		checkpointer,
 	} = options;
 
 	// Extract resolved API keys from config fallback
@@ -179,6 +180,12 @@ export async function buildToolConfig(options) {
 			case "executeCode":
 			case "sampling": {
 				tools.push(TOOL_FACTORIES[toolName]);
+				continue;
+			}
+
+			case "compactContext": {
+				if (!hasAllPerms) continue;
+				tools.push(createCompactContextTool({ checkpointer }));
 				continue;
 			}
 

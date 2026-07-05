@@ -57,11 +57,12 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 		ephemeralTtlDays: config.memory?.ephemeral?.ttlDays || 7,
 		ephemeralMaxEntries: config.memory?.ephemeral?.maxEntries || 10,
 		config,
+		checkpointer,
 	};
 
 	// Build all tools without filtering — pass everything to orchestrator and subagent
 	const tools = await buildToolConfig(buildOptions);
-	logger.info({ tools }, `Tools: ${tools.length}`);
+	logger.info({ tools: tools.map((t) => ({ name: t.name, type: typeof t, lc: t?.lc })) }, `Tools: ${tools.length}`);
 
 	const coreBackend = createCoreBackend();
 	const dmzBackend = createDmzBackend();
