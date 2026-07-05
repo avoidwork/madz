@@ -3,7 +3,7 @@ import { createCodeTool } from "./code.js";
 import { createCompactContextTool } from "./compact_context.js";
 import { createCronTool } from "./cron.js";
 import { createDateTool } from "./date.js";
-import { createPatchTool, createReadFileTool, createSearchFilesTool, createWriteFileTool } from "./filesystem.js";
+import { patch, readFile, searchFiles, writeFile } from "./filesystem.js";
 import { createImageTool } from "./image.js";
 import { createMemoryTool } from "./memory.js";
 import { createMoaTool } from "./moa.js";
@@ -50,7 +50,7 @@ export const TOOL_PERMISSIONS = {
 	writeFile: ["filesystem:write"],
 };
 
-// Factory functions keyed by tool name
+// Tool instances keyed by tool name
 const TOOL_FACTORIES = {
 	clarify: createClarifyTool,
 	compactContext: createCompactContextTool,
@@ -61,12 +61,12 @@ const TOOL_FACTORIES = {
 	imageGenerate: createImageTool,
 	memory: createMemoryTool,
 	mixtureOfAgents: createMoaTool,
-	patch: createPatchTool,
+	patch,
 	process: createProcessTool,
-	readFile: createReadFileTool,
+	readFile,
 	sampling: createSamplingTool,
 	scanAgents: createScanAgentsTool,
-	searchFiles: createSearchFilesTool,
+	searchFiles,
 	sessionSearch: createSessionSearchTool,
 	shell: createShellTool,
 	skillView: createSkillViewTool,
@@ -76,7 +76,7 @@ const TOOL_FACTORIES = {
 	visionAnalyze: createVisionTool,
 	webExtract: createWebExtractTool,
 	webSearch: createWebSearchTool,
-	writeFile: createWriteFileTool,
+	writeFile,
 };
 
 /**
@@ -181,6 +181,15 @@ export async function buildToolConfig(options) {
 			case "date":
 			case "scanAgents": {
 				tools.push(TOOL_FACTORIES[toolName](runtimeOptions));
+				continue;
+			}
+
+			case "readFile":
+			case "writeFile":
+			case "patch":
+			case "searchFiles": {
+				if (!hasAllPerms) continue;
+				tools.push(TOOL_FACTORIES[toolName]);
 				continue;
 			}
 
