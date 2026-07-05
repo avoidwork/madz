@@ -1,21 +1,21 @@
-import { createClarifyTool } from "./clarify.js";
-import { createCodeTool } from "./code.js";
+import { clarify } from "./clarify.js";
+import { executeCode } from "./code.js";
 import { createCompactContextTool } from "./compact_context.js";
 import { cronJob } from "./cron.js";
 import { date } from "./date.js";
 import { patch, readFile, searchFiles, writeFile } from "./filesystem.js";
 import { scanAgents } from "./scanAgents.js";
-import { createImageTool } from "./image.js";
-import { createMemoryTool } from "./memory.js";
-import { createMoaTool } from "./moa.js";
-import { createSamplingTool } from "./sampling.js";
-import { createSessionSearchTool } from "./session_search.js";
-import { createShellTool, createProcessTool } from "./shell.js";
-import { createCreateSkillTool, createSkillViewTool, createSkillsListTool } from "./skills.js";
-import { createQueuedTodoTool } from "./todo.js";
-import { createTtsTool } from "./tts.js";
-import { createVisionTool } from "./vision.js";
-import { createWebSearchTool, createWebExtractTool } from "./web.js";
+import { imageGenerate } from "./image.js";
+import { memory } from "./memory.js";
+import { mixtureOfAgents } from "./moa.js";
+import { sampling } from "./sampling.js";
+import { sessionSearch } from "./session_search.js";
+import { shell, processTool } from "./shell.js";
+import { createSkill, skillView, skillsList } from "./skills.js";
+import { todo } from "./todo.js";
+import { textToSpeech } from "./tts.js";
+import { visionAnalyze } from "./vision.js";
+import { webSearch, webExtract } from "./web.js";
 
 /**
  * Maps tool names to required permission scopes.
@@ -52,30 +52,30 @@ export const TOOL_PERMISSIONS = {
 
 // Tool instances keyed by tool name
 const TOOL_FACTORIES = {
-	clarify: createClarifyTool,
+	clarify,
 	compactContext: createCompactContextTool,
 	cronJob,
-	createSkill: createCreateSkillTool,
+	createSkill,
 	date,
-	executeCode: createCodeTool,
-	imageGenerate: createImageTool,
-	memory: createMemoryTool,
-	mixtureOfAgents: createMoaTool,
+	executeCode,
+	imageGenerate,
+	memory,
+	mixtureOfAgents,
 	patch,
-	process: createProcessTool,
+	process: processTool,
 	readFile,
-	sampling: createSamplingTool,
+	sampling,
 	scanAgents,
 	searchFiles,
-	sessionSearch: createSessionSearchTool,
-	shell: createShellTool,
-	skillView: createSkillViewTool,
-	skillsList: createSkillsListTool,
-	textToSpeech: createTtsTool,
-	todo: createQueuedTodoTool,
-	visionAnalyze: createVisionTool,
-	webExtract: createWebExtractTool,
-	webSearch: createWebSearchTool,
+	sessionSearch,
+	shell,
+	skillView,
+	skillsList,
+	textToSpeech,
+	todo,
+	visionAnalyze,
+	webExtract,
+	webSearch,
 	writeFile,
 };
 
@@ -178,7 +178,7 @@ export async function buildToolConfig(options) {
 			case "clarify":
 			case "executeCode":
 			case "sampling": {
-				tools.push(TOOL_FACTORIES[toolName](runtimeOptions));
+				tools.push(TOOL_FACTORIES[toolName]);
 				continue;
 			}
 
@@ -207,19 +207,19 @@ export async function buildToolConfig(options) {
 					(runtimeOptions.searchCustomConfig?.url &&
 						runtimeOptions.searchCustomConfig?.apiKey !== undefined);
 				if (!hasAnySearch) continue;
-				tools.push(TOOL_FACTORIES[toolName](runtimeOptions));
+				tools.push(TOOL_FACTORIES[toolName]);
 				continue;
 			}
 
 			case "visionAnalyze": {
 				if (!runtimeOptions.openaiApiKey) continue;
-				tools.push(TOOL_FACTORIES[toolName](runtimeOptions));
+				tools.push(TOOL_FACTORIES[toolName]);
 				continue;
 			}
 
 			case "imageGenerate": {
 				if (!hasAllPerms || !runtimeOptions.falApiKey) continue;
-				tools.push(TOOL_FACTORIES[toolName](runtimeOptions));
+				tools.push(TOOL_FACTORIES[toolName]);
 				continue;
 			}
 
@@ -227,13 +227,13 @@ export async function buildToolConfig(options) {
 			case "mixtureOfAgents": {
 				if (toolName === "textToSpeech" && !runtimeOptions.openaiApiKey) continue;
 				if (toolName === "mixtureOfAgents" && !runtimeOptions.openrouterApiKey) continue;
-				tools.push(TOOL_FACTORIES[toolName](runtimeOptions));
+				tools.push(TOOL_FACTORIES[toolName]);
 				continue;
 			}
 
 			default: {
 				if (requiredPerms.length > 0 && !hasAllPerms) continue;
-				tools.push(TOOL_FACTORIES[toolName](runtimeOptions));
+				tools.push(TOOL_FACTORIES[toolName]);
 			}
 		}
 	}

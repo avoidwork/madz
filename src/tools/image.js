@@ -1,5 +1,6 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
+import { loadConfig } from "../config/loader.js";
 
 const DEFAULT_TIMEOUT = 30000;
 
@@ -53,10 +54,9 @@ async function generateWithFal(apiKey, prompt, timeout) {
 /**
  * Generate an image via the configured image API.
  * @param {object} input - Tool input
- * @param {object} _options - Runtime options
  * @returns {Promise<string>} JSON result string
  */
-export async function imageGenerateImpl(input, options) {
+export async function imageGenerateImpl(input) {
 	const { prompt, timeout } = input;
 
 	if (!prompt || typeof prompt !== "string" || prompt.trim().length === 0) {
@@ -70,7 +70,11 @@ export async function imageGenerateImpl(input, options) {
 		return JSON.stringify({ ok: false, error: "Prompt must be 1000 characters or fewer" });
 	}
 
-	const apiKey = options?.falApiKey;
+	const config = loadConfig();
+	const providers = config.providers || {};
+	const providersFal = providers?.fal || {};
+	const falCredentials = providersFal?.credentials || {};
+	const apiKey = falCredentials?.apiKey;
 	if (!apiKey) {
 		return JSON.stringify({
 			ok: false,
@@ -99,7 +103,7 @@ export async function imageGenerateImpl(input, options) {
  * @param {object} _options - Runtime options
  * @returns {string} JSON result string
  */
-export const image_generate = tool(imageGenerateImpl, {
+export const imageGenerate = tool(imageGenerateImpl, {
 	name: "image_generate",
 	description:
 		"Generate an image from a text prompt using FAL.ai (FLUX Klein model). Returns a public image URL. Requires FAL_API_KEY environment variable",

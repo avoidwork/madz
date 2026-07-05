@@ -1,6 +1,7 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { spawn } from "node:child_process";
+import { loadConfig } from "../config/loader.js";
 
 const MAX_COMMAND_LENGTH = 4096;
 
@@ -111,20 +112,22 @@ function executeBackground(command) {
 /**
  * Execute a shell command via shell tool.
  * @param {z.infer<typeof TerminalSchema>} input
- * @param {object} options - Runtime options
- * @param {string[]} options.allowedPaths - Sandbox allowed directories
- * @param {string} options.maxReadSize - Max read size string
  * @returns {Promise<string>} Command execution result
  */
-export async function executeShellImpl(input, options) {
+export async function executeShellImpl(input) {
 	if (input.command.length > MAX_COMMAND_LENGTH) {
 		return `Error: Command length (${input.command.length} chars) exceeds maximum (${MAX_COMMAND_LENGTH} chars).`;
 	}
 
+	const config = loadConfig();
+	const sandbox = config.sandbox || {};
+	const allowedPaths = sandbox.paths || [];
+	const maxReadSize = sandbox.maxReadSize || "1mb";
+
 	if (input.background) {
-		return executeBackground(input.command, options.allowedPaths);
+		return executeBackground(input.command, allowedPaths);
 	}
-	return executeForeground(input.command, options.allowedPaths, options.maxReadSize);
+	return executeForeground(input.command, allowedPaths, maxReadSize);
 }
 
 /**
@@ -146,12 +149,9 @@ export const shell = tool(executeShellImpl, {
 /**
  * Manage background processes via process tool.
  * @param {z.infer<typeof ProcessSchema>} input
- * @param {object} options - Runtime options
- * @param {string[]} options.allowedPaths - Sandbox allowed directories
- * @param {string} options.maxReadSize - Max read size string
  * @returns {Promise<string>} Process management result
  */
-export async function manageProcessImpl(input, _options) {
+export async function manageProcessImpl(input) {
 	const { action } = input;
 
 	if (action === "list") {

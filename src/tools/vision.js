@@ -1,6 +1,7 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { ChatOpenAI } from "@langchain/openai";
+import { loadConfig } from "../config/loader.js";
 
 const MAX_IMAGE_SIZE = 4 * 1024 * 1024; // 4MB
 
@@ -73,17 +74,20 @@ async function fetchImageFromUrl(url) {
 /**
  * Analyze an image by sending it to the configured multimodal LLM.
  * @param {object} input - Tool input with url or dataUri
- * @param {object} options - Runtime options
  * @returns {Promise<string>} JSON result string
  */
-export async function visionAnalyzeImpl(input, options) {
+export async function visionAnalyzeImpl(input) {
 	const { url, dataUri, prompt: _prompt } = input;
 
 	if (!url && !dataUri) {
 		return JSON.stringify({ ok: false, error: "Either url or dataUri is required" });
 	}
 
-	const apiKey = options?.openaiApiKey;
+	const config = loadConfig();
+	const providers = config.providers || {};
+	const providersOpenAI = providers?.openai || {};
+	const credentials = providersOpenAI?.credentials || {};
+	const apiKey = credentials?.apiKey;
 	if (!apiKey) {
 		return JSON.stringify({
 			ok: false,
@@ -158,7 +162,7 @@ export async function visionAnalyzeImpl(input, options) {
  * @param {object} _options - Runtime options
  * @returns {string} JSON result string
  */
-export const vision_analyze = tool(visionAnalyzeImpl, {
+export const visionAnalyze = tool(visionAnalyzeImpl, {
 	name: "visionAnalyze",
 	description:
 		"Analyze an image by sending it to a multimodal LLM. Accepts a URL or base64 data URI. The image is fetched, validated (max 4MB), and sent to GPT-4o for description or answering a specific question about the image.",

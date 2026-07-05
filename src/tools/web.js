@@ -1,6 +1,7 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { filterUrl } from "../sandbox/urlFilter.js";
+import { loadConfig } from "../config/loader.js";
 
 const FETCH_TIMEOUT = 10000;
 
@@ -198,11 +199,13 @@ async function searchWithCustom(cfg, query, limit) {
  * Priority: Custom (CUSTOM_SEARCH_URL) > Bing (BING_API_KEY) > SearXNG (SEARXNG_URL) > Google > DuckDuckGo.
  * @returns {string} Engine name or "none" (should never be none as DuckDuckGo always works)
  */
-export function detectSearchBackend(options) {
-	const custom = options?.searchCustomConfig;
+export function detectSearchBackend() {
+	const config = loadConfig();
+	const search = config.search || {};
+	const custom = search.custom || {};
 	if (custom?.url) return "custom";
-	if (options?.searchBingApiKey) return "bing";
-	if (options?.searchSearxngUrl) return "searxng";
+	if (search?.bing?.apiKey) return "bing";
+	if (search?.searxng?.url) return "searxng";
 	return "duckduckgo"; // fallback, always available
 }
 
@@ -211,10 +214,9 @@ export function detectSearchBackend(options) {
 /**
  * Execute web search using the detected engine.
  * @param {object} input - Tool input
- * @param {object} options - Runtime options
  * @returns {Promise<string>} JSON result string
  */
-export async function webSearchImpl(input, options) {
+export async function webSearchImpl(input) {
 	const { query, limit = 5 } = input;
 
 	if (!query || typeof query !== "string" || query.trim().length === 0) {
@@ -222,18 +224,23 @@ export async function webSearchImpl(input, options) {
 	}
 
 	const clampedLimit = Math.min(Math.max(Number(limit) || 5, 1), 100);
-	const backend = detectSearchBackend(options);
+	const backend = detectSearchBackend();
+	const config = loadConfig();
+	const search = config.search || {};
+	const bing = search?.bing || {};
+	const searxng = search?.searxng || {};
+	const custom = search?.custom || {};
 	let result;
 
 	switch (backend) {
 		case "bing":
-			result = await searchWithBing(options?.searchBingApiKey, query, clampedLimit);
+			result = await searchWithBing(bing.apiKey, query, clampedLimit);
 			break;
 		case "searxng":
-			result = await searchWithSearXNG(options?.searchSearxngUrl, query, clampedLimit);
+			result = await searchWithSearXNG(searxng.url, query, clampedLimit);
 			break;
 		case "custom": {
-			result = await searchWithCustom(options?.searchCustomConfig, query, clampedLimit);
+			result = await searchWithCustom(custom, query, clampedLimit);
 			break;
 		}
 		case "duckduckgo":
@@ -253,10 +260,9 @@ export async function webSearchImpl(input, options) {
 /**
  * Extract content from a URL.
  * @param {object} input - Tool input with URL
- * @param {object} _options - Runtime options
  * @returns {Promise<string>} JSON result string
  */
-export async function webExtractImpl(input, _options) {
+export async function webExtractImpl(input) {
 	const { url, summarizeLarge = false } = input;
 
 	if (!url || typeof url !== "string") {
@@ -326,7 +332,6 @@ export async function webExtractImpl(input, _options) {
 
 /**
  * @param {z.infer<typeof WebSearchSchema>} input - Tool input with query
- * @param {object} _options - Runtime options
  * @returns {string} JSON result string
  */
 export const webSearch = tool(webSearchImpl, {
@@ -350,7 +355,7 @@ export const webSearch = tool(webSearchImpl, {
  * @param {object} _options - Runtime options
  * @returns {string} JSON result string
  */
-export const web_extract = tool(webExtractImpl, {
+export const webExtract = tool(webExtractImpl, {
 	name: "web_extract",
 	description: "Extract readable text content from a web page URL.",
 	schema: z.object({

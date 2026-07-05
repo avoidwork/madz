@@ -93,21 +93,16 @@ export async function countEphemeralMemoryFiles(contextDir, nowStr) {
 /**
  * Core sampling implementation with rate limiting and capacity checks.
  * @param {z.infer<typeof SamplingSchema>} input - The tool input with content
- * @param {object} runtimeOptions - Runtime options
- * @param {string} runtimeOptions.contextDir - Directory for ephemeral memories
- * @param {number} runtimeOptions.ttlDays - TTL in days
- * @param {number} runtimeOptions.maxEntries - Maximum concurrent ephemeral entries
- * @param {(this: unknown, args: unknown[]) => unknown} [runtimeOptions.cleanupFn] - Async cleanup function
- * @param {number} [runtimeOptions.cooldownMs] - Cooldown in ms (default 60s)
- * @param {string} [runtimeOptions.lastWritten] - Last write ISO timestamp for cooldown
  * @returns {Promise<string>} Result JSON string
  */
-export async function samplingImpl(input, runtimeOptions) {
+export async function samplingImpl(input) {
 	const { content } = input;
-	const contextDir = runtimeOptions.contextDir || "memory/context/";
-	const ttlDays = runtimeOptions.ttlDays || 7;
-	const maxEntries = runtimeOptions.maxEntries || 10;
-	const cooldownMs = runtimeOptions.cooldownMs || COOLDOWN_MS;
+	const config = loadConfig();
+	const memory = config.memory || {};
+	const contextDir = memory.contextDir || "memory/context/";
+	const ttlDays = 7;
+	const maxEntries = 10;
+	const cooldownMs = COOLDOWN_MS;
 
 	if (!content || (typeof content === "string" && content.trim() === "")) {
 		return JSON.stringify({
@@ -167,30 +162,19 @@ export const SamplingSchema = z.object({
 		),
 });
 
-let lastWritten = undefined;
+let _lastWritten = undefined;
 
 /**
  * Sampling tool singleton — captures a high-intensity moment as an ephemeral memory.
  * Rate limited to 1 capture per 60 minutes. Capacity-limited to max concurrent ephemeral entries.
  */
 export const sampling = tool(async (input) => {
-	const result = await samplingImpl(input, {
-		contextDir: "memory/context/",
-		ttlDays: 7,
-		maxEntries: 10,
-		cooldownMs: COOLDOWN_MS,
-		get lastWritten() {
-			return lastWritten;
-		},
-		set lastWritten(v) {
-			lastWritten = v;
-		},
-	});
+	const result = await samplingImpl(input);
 
-	// Update lastWritten if successful
+	// Update _lastWritten if successful
 	const parsed = JSON.parse(result);
 	if (parsed.ok && parsed.createdAt) {
-		lastWritten = parsed.createdAt;
+		_lastWritten = parsed.createdAt;
 	}
 
 	return result;

@@ -11,15 +11,14 @@ let _queue = null;
 
 /**
  * Get or create the singleton todo queue.
- * @param {object} [options]
  * @returns {import("./todo_queue.js").TodoQueue}
  */
-function getQueue(options = {}) {
+function getQueue() {
 	if (!_queue) {
 		_queue = createTodoQueue({
-			filePath: options.filePath || "memory/tools/todo.json",
-			maxTodos: options.maxTodos,
-			onEvent: options.onEvent || (() => {}),
+			filePath: "memory/tools/todo.json",
+			maxTodos: undefined,
+			onEvent: () => {},
 		});
 	}
 	return _queue;
@@ -42,14 +41,10 @@ export function resetQueue() {
  * renders status updates (queued → processing → completed/failed) inline.
  *
  * @param {z.infer<typeof TodoSchema>} input - The tool input
- * @param {object} options - Runtime options
- * @param {string} [options.filePath] - Path to the todo JSON file
- * @param {number} [options.maxTodos] - Maximum number of todos allowed
- * @param {(event: import("./todo_queue.js").TodoQueueEvent) => void} [options.onEvent] - Status event callback
  * @returns {Promise<string>} JSON string result
  */
-export async function queuedTodoImpl(input, options = {}) {
-	const queue = getQueue(options);
+export async function queuedTodoImpl(input) {
+	const queue = getQueue();
 	const result = await queue.enqueue(input);
 	return JSON.stringify(result);
 }

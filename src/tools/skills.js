@@ -30,12 +30,11 @@ export function setCwd(newCwd) {
 /**
  * Core logic for listing all discovered skills via catalog (tier 1 progressive disclosure).
  * @param {z.infer<typeof SkillsListSchema>} input - The tool input (empty)
- * @param {object} options - Runtime options
- * @param {object} options.registry - The skill registry instance
  * @returns {object} List of skills with name, description, and location
  */
-export async function skillsListImpl(input, options) {
-	const registry = options?.registry;
+export async function skillsListImpl(_input) {
+	const config = loadConfig();
+	const registry = config.registry;
 	const catalog =
 		registry && typeof registry.getCatalog === "function" ? registry.getCatalog() : [];
 
@@ -60,11 +59,9 @@ export async function skillsListImpl(input, options) {
 /**
  * Skills list tool that wraps skill core logic.
  * @param {z.infer<typeof SkillsListSchema>} input - The tool input (empty)
- * @param {object} options - Runtime options
- * @param {object} options.registry - The skill registry instance
  * @returns {object} List of skills with summaries
  */
-export const skillsList = tool((input) => skillsListImpl(input, { skillsDir: "skills/" }), {
+export const skillsList = tool(skillsListImpl, {
 	name: "skillsList",
 	description:
 		"List all discovered skills with their name, version, description, and permissions. Returns { skills: [...], count: N }.",
@@ -75,12 +72,11 @@ export const skillsList = tool((input) => skillsListImpl(input, { skillsDir: "sk
  * Core logic for viewing a single skill's details and SKILL.md content.
  * Legacy access path for manual TUI inspection.
  * @param {z.infer<typeof SkillViewSchema>} input - The tool input
- * @param {object} options - Runtime options
- * @param {object} options.registry - The skill registry instance
  * @returns {object} Skill details and full SKILL.md content
  */
-export async function skillViewImpl(input, options) {
-	const registry = options?.registry;
+export async function skillViewImpl(input) {
+	const config = loadConfig();
+	const registry = config.registry;
 	const name = input.name;
 	const skill = registry && typeof registry.get === "function" ? registry.get(name) : null;
 
@@ -117,11 +113,9 @@ export async function skillViewImpl(input, options) {
 /**
  * Skill view tool that wraps skill core logic.
  * @param {z.infer<typeof SkillViewSchema>} input - The tool input
- * @param {object} options - Runtime options
- * @param {object} options.registry - The skill registry instance
  * @returns {object} Skill details and full SKILL.md content
  */
-export const skillView = tool((input) => skillViewImpl(input, { skillsDir: "skills/" }), {
+export const skillView = tool(skillViewImpl, {
 	name: "skillView",
 	description:
 		"View full details for a skill by name (legacy access path). Returns name, version, description, license, compatibility, metadata, permissions, scripts, and full SKILL.md body. Prefer progressive disclosure via getCatalog for normal usage.",
@@ -135,15 +129,14 @@ export const skillView = tool((input) => skillViewImpl(input, { skillsDir: "skil
  * Validates metadata against Agent Skills spec, creates directory structure,
  * writes SKILL.md with YAML frontmatter, optionally scaffolds scripts/.
  * @param {z.infer<typeof CreateSkillSchema>} input - The tool input
- * @param {object} options - Runtime options
- * @param {string} options.skillsDir - Path to the skills directory
- * @param {object} [options.registry] - The skill registry instance
  * @returns {Promise<{ success: boolean, name: string, paths: string[], registered: boolean, errors?: string[], warnings?: string[] }>}
  */
-export async function createSkillImpl(input, options) {
+export async function createSkillImpl(input) {
+	const config = loadConfig();
 	const { name, description, permissions, license, compatibility, metadata, scaffoldScripts } =
 		input;
-	const { skillsDir = "skills/", registry } = options || {};
+	const skillsDir = config.skillsDir || "skills/";
+	const registry = config.registry;
 
 	// Validate name against spec constraints
 	const nameResult = validateSkillName(name);
@@ -328,12 +321,9 @@ export async function createSkillImpl(input, options) {
  * Creates a spec-compliant skill directory, writes SKILL.md with YAML frontmatter,
  * and optionally scaffolds a scripts/ directory.
  * @param {z.infer<typeof CreateSkillSchema>} input - The tool input
- * @param {object} options - Runtime options
- * @param {string} options.skillsDir - Path to the skills directory
- * @param {object} [options.registry] - The skill registry instance
  * @returns {Promise<{ success: boolean, name: string, paths: string[], registered: boolean, errors?: string[], warnings?: string[] }>}
  */
-export const createSkill = tool((input) => createSkillImpl(input, { skillsDir: "skills/" }), {
+export const createSkill = tool(createSkillImpl, {
 	name: "createSkill",
 	description:
 		"Create a new Agent Skills spec-compliant skill. Creates the skill directory under skills/, writes SKILL.md with YAML frontmatter, and optionally scaffolds a scripts/ directory. Validates name (lowercase alphanumeric + hyphens, 1-64 chars), description (1-1024 chars), and other spec constraints before writing. Returns { success, name, paths, registered, errors?, warnings? }. Errors prevent creation.",

@@ -6,6 +6,7 @@ import { parseFrontmatter } from "../memory/reader.js";
 import { loadConfig } from "../config/loader.js";
 
 const config = loadConfig();
+export let cwd = config.cwd;
 const FS = Object.freeze({ MODE_RDONLY: 0 });
 
 /**
@@ -26,12 +27,11 @@ async function exists(path) {
  * Search past conversations. Supports query keyword search,
  * full conversation retrieval by ID, or browsing all sessions.
  * @param {z.infer<typeof SessionSearchSchema>} input - The tool input
- * @param {object} options - Runtime options
- * @param {string} options.sessionsDir - Path to sessions directory
  * @returns {Promise<string>} Search results or conversation content
  */
-export async function sessionSearchImpl(input, options) {
-	const sessionsDir = join(cwd, options.sessionsDir || "memory/sessions/");
+export async function sessionSearchImpl(input) {
+	const memory = config.memory || {};
+	const sessionsDir = join(cwd, memory.sessionsDir || "memory/sessions/");
 
 	if (input.conversationId) {
 		return getFullConversation(sessionsDir, input.conversationId);
@@ -44,7 +44,7 @@ export async function sessionSearchImpl(input, options) {
 	return browseConversations(sessionsDir);
 }
 
-export const session_search = tool((input) => sessionSearchImpl(input, { sessionsDir: config.memory.sessionsDir }), {
+export const sessionSearch = tool(sessionSearchImpl, {
 	name: "sessionSearch",
 	description:
 		"Search past conversations. Use query for keyword search, conversationId for full retrieval, or call without arguments to browse available conversations.",

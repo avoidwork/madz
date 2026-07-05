@@ -1,5 +1,6 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
+import { loadConfig } from "../config/loader.js";
 
 const NUM_REFERENCES = 4;
 const CALL_TIMEOUT_MS = 60000; // 60 seconds per call
@@ -86,10 +87,9 @@ function aggregateResponses(responses, userMessage) {
 /**
  * Execute mixture of agents: 4 parallel OpenRouter calls + 1 aggregation.
  * @param {object} input - Tool input
- * @param {object} _options - Runtime options
  * @returns {Promise<string>} JSON result string
  */
-export async function mixtureOfAgentsImpl(input, options) {
+export async function mixtureOfAgentsImpl(input) {
 	const { message, models } = input;
 
 	if (!message || typeof message !== "string" || message.trim().length === 0) {
@@ -99,7 +99,11 @@ export async function mixtureOfAgentsImpl(input, options) {
 		});
 	}
 
-	const apiKey = options?.openrouterApiKey;
+	const config = loadConfig();
+	const providers = config.providers || {};
+	const providersOpenRouter = providers?.openrouter || {};
+	const openrouterCredentials = providersOpenRouter?.credentials || {};
+	const apiKey = openrouterCredentials?.apiKey;
 	if (!apiKey) {
 		return JSON.stringify({
 			ok: false,
@@ -160,7 +164,7 @@ export async function mixtureOfAgentsImpl(input, options) {
  * @param {object} _options - Runtime options
  * @returns {string}
  */
-export const mixture_of_agents = tool(mixtureOfAgentsImpl, {
+export const mixtureOfAgents = tool(mixtureOfAgentsImpl, {
 	name: "mixtureOfAgents",
 	description:
 		"Run a mixture of agents (MoA) with 4 parallel reference calls via OpenRouter followed by aggregation. Uses OpenAI GPT-4o references with different perspectives. WARNING: Each call costs ~$0.02-$0.10+ per call. Requires OPENROUTER_API_KEY environment variable. Each call has a 60 second timeout; partial results are aggregated when some calls fail.",
