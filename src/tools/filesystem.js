@@ -459,8 +459,8 @@ export async function searchFilesImpl(input, options) {
  * @param {object} options - Runtime options
  * @returns {Promise<string>}
  */
-export const read_file = tool(readFileImpl, {
-	name: "read_file",
+export const readFile = tool(readFileImpl, {
+	name: "readFile",
 	description:
 		"Read the complete contents of a file from the file system. Supports pagination with offset/limit for large files. Returns lines in LINE_NUM|CONTENT format.",
 	schema: z.object({
