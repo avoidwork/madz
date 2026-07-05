@@ -27,14 +27,14 @@ describe("tools - buildToolConfig", () => {
 		}
 	});
 
-	it("clarify has zero permission requirement", async () => {
+	it("clarify has filesystem:read and filesystem:write permissions", async () => {
 		const { TOOL_PERMISSIONS } = await import("../../src/tools/index.js");
-		assert.deepStrictEqual(TOOL_PERMISSIONS.clarify, []);
+		assert.deepStrictEqual(TOOL_PERMISSIONS.clarify, ["filesystem:read", "filesystem:write"]);
 	});
 
-	it("sampling has zero permission requirement", async () => {
+	it("sampling has filesystem:write permission", async () => {
 		const { TOOL_PERMISSIONS } = await import("../../src/tools/index.js");
-		assert.deepStrictEqual(TOOL_PERMISSIONS.sampling, []);
+		assert.deepStrictEqual(TOOL_PERMISSIONS.sampling, ["filesystem:write"]);
 	});
 
 	it("terminal requires both filesystem:exec and process:spawn", async () => {

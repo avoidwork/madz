@@ -147,7 +147,7 @@ export async function writeFileImpl(input, options) {
 		await mkdir(fileDir, { recursive: true });
 	}
 
-	await writeFile(resolved.path, input.content, "utf-8");
+	await writeFileNode(resolved.path, input.content, "utf-8");
 	return `Successfully wrote ${input.content.length} bytes to ${input.path}`;
 }
 
@@ -323,7 +323,7 @@ export async function patchImpl(input, options) {
 		return `Error: ${resolved.error}`;
 	}
 
-	let content = await readFile(resolved.path, "utf-8");
+	let content = await readFileNode(resolved.path, "utf-8");
 	const results = fuzzyMatch(input.oldStr, content);
 
 	if (!results.some((r) => r.found)) {
