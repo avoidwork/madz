@@ -105,7 +105,7 @@ export async function readFileImpl(input, options) {
 
 	let content;
 	try {
-		content = await readFile(resolved.path, "utf-8");
+		content = await readFileNode(resolved.path, "utf-8");
 	} catch (err) {
 		if (err.code === "ENOENT") {
 			const suggestion = await suggestSimilarFile(resolved.path, options.allowedPaths);
