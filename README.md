@@ -432,7 +432,7 @@ All built-in tools are defined in `src/tools/` and registered as LangChain tools
 | `readFile` | Read file contents with optional pagination (`offset`/`limit`). Returns `LINE_NUM|CONTENT` format. |
 | `sampling` | Capture emotional moments as ephemeral memories. Rate-limited to 1 per 60 minutes. Stored with `expiresAt` frontmatter. |
 | `scanAgents` | Scan for `AGENTS.md` workspace rules files in a target directory. Returns file contents or empty string. |
-| `search_files` | Search file contents with ripgrep (native fs fallback). Supports filename and content patterns. |
+| `searchFiles` | Search file contents with ripgrep (native fs fallback). Supports filename and content patterns. |
 | `sessionSearch` | Search past conversations by keyword query, full retrieval by conversation ID, or browse all sessions. |
 | `shell` | Execute shell commands (foreground/background). Max command length 4096 chars. |
 | `skillView` | View full details for a skill by name — metadata, permissions, scripts, and full SKILL.md body. |
@@ -442,7 +442,7 @@ All built-in tools are defined in `src/tools/` and registered as LangChain tools
 | `visionAnalyze` | Analyze images via OpenAI multimodal LLM. Accepts URL or base64 data URI. |
 | `webExtract` | Extract readable text content from a web page URL. Supports summarization for large pages. |
 | `webSearch` | Search the web via DuckDuckGo, Google, Bing, SearXNG, or Custom endpoints. |
-| `write_file` | Write content to a file, creating parent directories as needed. 500KB content cap. |
+| `writeFile` | Write content to a file, creating parent directories as needed. 500KB content cap. |
 
 ### Skills Registry
 
