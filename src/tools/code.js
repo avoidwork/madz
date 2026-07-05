@@ -86,7 +86,7 @@ sys.meta_path.insert(0, RestrictedImporter())
 export async function executeCodeImpl(input, options = {}) {
 	const { code, language = "python3", _timeout, _interpreter } = input;
 	const config = loadConfig();
-	const sandbox = options.sandbox ?? config.sandbox || {};
+	const sandbox = (options.sandbox ?? config.sandbox) || {};
 	const safetyConfig = options.safety ?? sandbox.safety ?? {};
 	const timeoutConfig = options.timeout ?? sandbox.timeout ?? {};
 	const memoryLimitStr = options.memoryLimit ?? sandbox.memoryLimit;
