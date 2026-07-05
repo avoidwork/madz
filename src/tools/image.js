@@ -95,7 +95,8 @@ export async function imageGenerateImpl(input, options) {
 }
 
 /**
- * @param {z.infer<typeof ImageSchema>} input - Tool in		name: "imageGenerate",_options - Runtime options
+ * @param {z.infer<typeof ImageSchema>} input - Tool input
+ * @param {object} _options - Runtime options
  * @returns {string} JSON result string
  */
 export const image_generate = tool(imageGenerateImpl, {
@@ -114,29 +115,3 @@ export const image_generate = tool(imageGenerateImpl, {
 			.describe("Request timeout in ms (default: 30000)"),
 	}),
 });
-
-// --- Factory functions for creating tools with runtime options ---
-
-/**
- * Create an image_generate tool with runtime options
- * @param {object} options - Runtime options
- * @returns {object} LangChain Tool instance
- */
-export function createImageTool(options) {
-	return tool((input) => imageGenerateImpl(input, options), {
-		name: "imageGenerate",
-		description:
-			"Generate an image from a text prompt using FAL.ai (FLUX Klein model). Returns a public image URL.",
-		schema: z.object({
-			prompt: z.string().min(1).max(1000).describe("Text description of the image to generate"),
-			falApiKey: z.string().optional().describe("FAL.ai API key"),
-			timeout: z
-				.number()
-				.int()
-				.min(5000)
-				.max(60000)
-				.optional()
-				.describe("Request timeout in ms (default: 30000)"),
-		}),
-	});
-}

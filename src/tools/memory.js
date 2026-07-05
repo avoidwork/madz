@@ -293,7 +293,7 @@ export async function memoryImpl(input, options) {
 /**
  * Memory tool for individual file-based entry persistence.
  */
-export const memory = tool(memoryImpl, {
+export const memory = tool((input) => memoryImpl(input, { maxEntries: config.memory.maxEntries || 100, contextDir: config.memory.contextDir }), {
 	name: "memory",
 	description:
 		"Memory tool for individual key-value entry storage. Each entry is persisted as a separate .md file in memory/context/entries/ with createdDate and updatedDate metadata. Actions: create (new entry), read (get by key), update (modify by key), delete (remove by key), list (all entries, optional query filter).",
@@ -307,28 +307,3 @@ export const memory = tool(memoryImpl, {
 		query: z.string().optional().describe("Search query to filter list results"),
 	}),
 });
-
-// --- Factory functions for creating tools with runtime options ---
-
-/**
- * Create a memory tool with runtime options
- * @param {object} options - Runtime options
- * @param {number} [options.maxEntries] - Maximum memory entries (default 100)
- * @returns {object} LangChain tool instance
- */
-export function createMemoryTool(options = {}) {
-	return tool((input) => memoryImpl(input, options), {
-		name: "memory",
-		description:
-			"Memory tool for individual key-value entry storage. Each entry is persisted as a separate .md file in memory/context/entries/ with createdDate and updatedDate metadata. Actions: create, read, update, delete, list.",
-		schema: z.object({
-			action: z.enum(["create", "read", "update", "delete", "list"]).describe("Action to perform"),
-			key: z
-				.string()
-				.optional()
-				.describe("Entry key/identifier (required for create, read, update, delete)"),
-			value: z.unknown().optional().describe("Entry value (required for create, update)"),
-			query: z.string().optional().describe("Search query to filter list results"),
-		}),
-	});
-}

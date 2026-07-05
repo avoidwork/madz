@@ -64,7 +64,7 @@ export async function skillsListImpl(input, options) {
  * @param {object} options.registry - The skill registry instance
  * @returns {object} List of skills with summaries
  */
-export const skillsList = tool(skillsListImpl, {
+export const skillsList = tool((input) => skillsListImpl(input, { skillsDir: "skills/" }), {
 	name: "skillsList",
 	description:
 		"List all discovered skills with their name, version, description, and permissions. Returns { skills: [...], count: N }.",
@@ -121,7 +121,7 @@ export async function skillViewImpl(input, options) {
  * @param {object} options.registry - The skill registry instance
  * @returns {object} Skill details and full SKILL.md content
  */
-export const skillView = tool(skillViewImpl, {
+export const skillView = tool((input) => skillViewImpl(input, { skillsDir: "skills/" }), {
 	name: "skillView",
 	description:
 		"View full details for a skill by name (legacy access path). Returns name, version, description, license, compatibility, metadata, permissions, scripts, and full SKILL.md body. Prefer progressive disclosure via getCatalog for normal usage.",
@@ -333,7 +333,7 @@ export async function createSkillImpl(input, options) {
  * @param {object} [options.registry] - The skill registry instance
  * @returns {Promise<{ success: boolean, name: string, paths: string[], registered: boolean, errors?: string[], warnings?: string[] }>}
  */
-export const createSkill = tool(createSkillImpl, {
+export const createSkill = tool((input) => createSkillImpl(input, { skillsDir: "skills/" }), {
 	name: "createSkill",
 	description:
 		"Create a new Agent Skills spec-compliant skill. Creates the skill directory under skills/, writes SKILL.md with YAML frontmatter, and optionally scaffolds a scripts/ directory. Validates name (lowercase alphanumeric + hyphens, 1-64 chars), description (1-1024 chars), and other spec constraints before writing. Returns { success, name, paths, registered, errors?, warnings? }. Errors prevent creation.",
@@ -400,85 +400,4 @@ export function generateSkillCatalogPrompt(catalog) {
 	return lines.join("\n");
 }
 
-// --- Factory functions for creating tools with runtime options ---
 
-/**
- * Create a skills_list tool with runtime options
- * @param {object} options - Runtime options
- * @returns {object} LangChain Tool instance
- */
-export function createSkillsListTool(options) {
-	return tool((input) => skillsListImpl(input, options), {
-		name: "skillsList",
-		description:
-			"List all discovered skills via catalog with name, description, and location. Returns { skills: [...], count: N }. Prefer using the system prompt skill catalog for normal operation.",
-		schema: z.object({}).default({}),
-	});
-}
-
-/**
- * Create a skill_view tool with runtime options
- * @param {object} options - Runtime options
- * @returns {object} LangChain Tool instance
- */
-export function createSkillViewTool(options) {
-	return tool((input) => skillViewImpl(input, options), {
-		name: "skillView",
-		description:
-			"View full details for a skill by name (legacy path). Returns name, version, description, license, compatibility, metadata, permissions, scripts, and SKILL.md body.",
-		schema: z.object({
-			name: z.string().describe("Name of the skill to view"),
-		}),
-	});
-}
-
-/**
- * Create a create_skill tool with runtime options
- * @param {object} options - Runtime options
- * @returns {object} LangChain Tool instance
- */
-export function createCreateSkillTool(options) {
-	return tool((input) => createSkillImpl(input, options), {
-		name: "createSkill",
-		description:
-			"Create a new Agent Skills spec-compliant skill. Creates the skill directory, writes SKILL.md with YAML frontmatter, and optionally scaffolds a scripts/ directory. Returns { success, name, paths, registered, errors?, warnings? }. Errors prevent creation.",
-		schema: z.object({
-			name: z
-				.string()
-				.min(1)
-				.max(64)
-				.describe("Skill name (lowercase alphanumeric + hyphens, 1-64 characters)"),
-			description: z
-				.string()
-				.min(1)
-				.max(1024)
-				.describe("What the skill does and when to use it (1-1024 characters)"),
-			permissions: z
-				.array(PermissionSchema)
-				.optional()
-				.describe(
-					"Permission scopes for sandbox execution: filesystem:read, filesystem:write, filesystem:exec, network:outbound, process:spawn, env:read",
-				),
-			license: z
-				.string()
-				.optional()
-				.describe("Open-source license for the skill (e.g., Apache-2.0)"),
-			compatibility: z
-				.string()
-				.max(500)
-				.optional()
-				.describe(
-					"Environment requirements (intended product, system packages, network access). Max 500 characters.",
-				),
-			metadata: z
-				.record(z.string())
-				.optional()
-				.describe("Arbitrary key-value metadata (string to string map)"),
-			scaffoldScripts: z
-				.boolean()
-				.optional()
-				.default(false)
-				.describe("Create a scripts/ directory with a README.md placeholder"),
-		}),
-	});
-}

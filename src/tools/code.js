@@ -204,25 +204,3 @@ export const execute_code = tool(executeCodeImpl, {
 			.describe("Programming language"),
 	}),
 });
-
-// --- Factory functions for creating tools with runtime options ---
-
-/**
- * Create an execute_code tool with runtime options
- * @param {object} options - Runtime options (safety, timeout, memoryLimit)
- * @returns {object} LangChain Tool instance
- */
-export function createCodeTool(options) {
-	return tool((input) => executeCodeImpl(input, options), {
-		name: "executeCode",
-		description:
-			"Execute code in a sandboxed subprocess. Supports python3, javascript (node), and shell. Code is written to a temp file and executed via the appropriate interpreter. Returns stdout, stderr, and exit code.",
-		schema: z.object({
-			code: z.string().min(1).describe("Code to execute"),
-			language: z
-				.enum(["python3", "javascript", "shell"])
-				.default("python3")
-				.describe("Programming language"),
-		}),
-	});
-}

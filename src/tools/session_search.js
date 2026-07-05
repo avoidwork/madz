@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { parseFrontmatter } from "../memory/reader.js";
 import { loadConfig } from "../config/loader.js";
 
-const cwd = loadConfig().cwd;
+const config = loadConfig();
 const FS = Object.freeze({ MODE_RDONLY: 0 });
 
 /**
@@ -44,7 +44,7 @@ export async function sessionSearchImpl(input, options) {
 	return browseConversations(sessionsDir);
 }
 
-export const session_search = tool(sessionSearchImpl, {
+export const session_search = tool((input) => sessionSearchImpl(input, { sessionsDir: config.memory.sessionsDir }), {
 	name: "sessionSearch",
 	description:
 		"Search past conversations. Use query for keyword search, conversationId for full retrieval, or call without arguments to browse available conversations.",
@@ -232,22 +232,4 @@ async function browseConversations(sessionsDir) {
 	);
 }
 
-// --- Factory functions for creating tools with runtime options ---
 
-/**
- * Create a session_search tool with runtime options
- * @param {object} options - Runtime options
- * @returns {object} LangChain Tool instance
- */
-export function createSessionSearchTool(options) {
-	return tool((input) => sessionSearchImpl(input, options), {
-		name: "sessionSearch",
-		description:
-			"Search past conversations. Use query for keyword search, conversationId for full retrieval, or call without arguments to browse available conversations.",
-		schema: z.object({
-			query: z.string().optional().describe("Search query to find matching conversations"),
-			conversationId: z.string().optional().describe("Get full conversation by ID"),
-			limit: z.number().int().positive().default(10).describe("Maximum number of search results"),
-		}),
-	});
-}

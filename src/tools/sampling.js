@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { readEphemeralFile, isExpired } from "../memory/expireEphemeral.js";
 import { loadConfig } from "../config/loader.js";
 
-const cwd = loadConfig().cwd;
+const config = loadConfig();
 
 const COOLDOWN_MS = 60 * 60 * 1000; // 60 minutes
 
@@ -42,7 +42,7 @@ export async function writeEphemeralMemory(contextDir, content, expiresAt) {
 	const now = new Date();
 	const timestamp = now.toISOString().replace(/[:.]/g, "-");
 	const slug = "ephemeral-" + timestamp.substring(0, 23).replace(/[:.]/g, "-");
-	const filepath = join(cwd, contextDir, `${slug}.md`);
+	const filepath = join(config.cwd, contextDir, `${slug}.md`);
 	const frontmatter = {
 		title: "Ephemeral Memory",
 		timestamp: now.toISOString(),
@@ -60,7 +60,7 @@ export async function writeEphemeralMemory(contextDir, content, expiresAt) {
 		content,
 		"",
 	];
-	await mkdir(join(cwd, contextDir), { recursive: true });
+	await mkdir(join(config.cwd, contextDir), { recursive: true });
 	await writeFile(filepath, lines.join("\n"), "utf-8");
 	return filepath;
 }
@@ -75,7 +75,7 @@ export async function countEphemeralMemoryFiles(contextDir, nowStr) {
 	const now = nowStr ? new Date(nowStr) : new Date();
 	let files;
 	try {
-		files = await readdir(join(cwd, contextDir));
+		files = await readdir(join(config.cwd, contextDir));
 	} catch {
 		return 0;
 	}
@@ -167,64 +167,39 @@ export const SamplingSchema = z.object({
 		),
 });
 
-/**
- * Create a sampling tool with runtime options.
- * @param {object} options - Runtime options
- * @param {string} [options.contextDir] - Directory for ephemeral memories
- * @param {number} [options.ttlDays] - TTL in days
- * @param {number} [options.maxEntries] - Maximum concurrent ephemeral entries
- * @param {number} [options.cooldownMs] - Cooldown in ms
- * @param {(this: unknown, args: unknown[]) => unknown} [options.cleanupFn] - Async cleanup function (from memory module)
- * @returns {object} LangChain tool instance
- */
-export function createSamplingTool(options = {}) {
-	const {
-		contextDir = "memory/context/",
-		ttlDays = 7,
-		maxEntries = 10,
-		cooldownMs = COOLDOWN_MS,
-		cleanupFn,
-	} = options;
-	let lastWritten = undefined;
+let lastWritten = undefined;
 
-	const opts = {
-		contextDir,
-		ttlDays,
-		maxEntries,
-		cooldownMs,
-		cleanupFn,
+/**
+ * Sampling tool singleton — captures a high-intensity moment as an ephemeral memory.
+ * Rate limited to 1 capture per 60 minutes. Capacity-limited to max concurrent ephemeral entries.
+ */
+export const sampling = tool(async (input) => {
+	const result = await samplingImpl(input, {
+		contextDir: "memory/context/",
+		ttlDays: 7,
+		maxEntries: 10,
+		cooldownMs: COOLDOWN_MS,
 		get lastWritten() {
 			return lastWritten;
 		},
 		set lastWritten(v) {
 			lastWritten = v;
 		},
-	};
-
-	const impl = async (input) => {
-		const result = await samplingImpl(input, opts);
-
-		// Update lastWritten if successful
-		const parsed = JSON.parse(result);
-		if (parsed.ok && parsed.createdAt) {
-			lastWritten = parsed.createdAt;
-		}
-
-		// Call cleanup function asynchronously (fire-and-forget)
-		if (opts.cleanupFn) {
-			queueMicrotask(() => opts.cleanupFn(opts.contextDir));
-		}
-
-		return result;
-	};
-
-	return tool(impl, {
-		name: "sampling",
-		description:
-			"Sampling tool for capturing high-intensity emotional moments or memory reinforcement signals as ephemeral memories. " +
-			"Each capture is stored as a temporary file with automatic expiration. " +
-			"Rate limited to 1 capture per 60 minutes. Capacity-limited to max concurrent ephemeral entries. " +
-			"Use during moments of joy, sadness, grief, or when loaded memories strongly reinforce key beliefs.",
-		schema: SamplingSchema,
 	});
-}
+
+	// Update lastWritten if successful
+	const parsed = JSON.parse(result);
+	if (parsed.ok && parsed.createdAt) {
+		lastWritten = parsed.createdAt;
+	}
+
+	return result;
+}, {
+	name: "sampling",
+	description:
+		"Sampling tool for capturing high-intensity emotional moments or memory reinforcement signals as ephemeral memories. " +
+		"Each capture is stored as a temporary file with automatic expiration. " +
+		"Rate limited to 1 capture per 60 minutes. Capacity-limited to max concurrent ephemeral entries. " +
+		"Use during moments of joy, sadness, grief, or when loaded memories strongly reinforce key beliefs.",
+	schema: SamplingSchema,
+});

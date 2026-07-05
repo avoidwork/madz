@@ -223,10 +223,8 @@ export async function buildToolConfig(options) {
 				continue;
 			}
 
-			case "cronJob":
 			case "textToSpeech":
 			case "mixtureOfAgents": {
-				if (toolName === "cronJob" && !hasAllPerms) continue;
 				if (toolName === "textToSpeech" && !runtimeOptions.openaiApiKey) continue;
 				if (toolName === "mixtureOfAgents" && !runtimeOptions.openrouterApiKey) continue;
 				tools.push(TOOL_FACTORIES[toolName](runtimeOptions));
