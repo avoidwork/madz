@@ -358,7 +358,7 @@ export const webSearch = tool(webSearchImpl, {
  * @returns {string} JSON result string
  */
 export const webExtract = tool(webExtractImpl, {
-	name: "web_extract",
+	name: "webExtract",
 	description: "Extract readable text content from a web page URL.",
 	schema: z.object({
 		url: z.string().url().describe("URL to extract content from"),
