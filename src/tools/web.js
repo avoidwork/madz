@@ -3,6 +3,8 @@ import { z } from "zod";
 import { filterUrl } from "../sandbox/urlFilter.js";
 import { loadConfig } from "../config/loader.js";
 
+const config = loadConfig();
+
 const FETCH_TIMEOUT = 10000;
 
 /// -- DuckDuckGo (HTML scrape) --
@@ -197,11 +199,11 @@ async function searchWithCustom(cfg, query, limit) {
 /**
  * Detect which search engine is configured.
  * Priority: Custom (CUSTOM_SEARCH_URL) > Bing (BING_API_KEY) > SearXNG (SEARXNG_URL) > Google > DuckDuckGo.
+ * @param {object} [options] - Config object (defaults to module-level config)
  * @returns {string} Engine name or "none" (should never be none as DuckDuckGo always works)
  */
-export function detectSearchBackend() {
-	const config = loadConfig();
-	const search = config.search || {};
+export function detectSearchBackend(options = config) {
+	const search = options.search || {};
 	const custom = search.custom || {};
 	if (custom?.url) return "custom";
 	if (search?.bing?.apiKey) return "bing";
@@ -214,9 +216,10 @@ export function detectSearchBackend() {
 /**
  * Execute web search using the detected engine.
  * @param {object} input - Tool input
+ * @param {object} [options] - Config object (defaults to module-level config)
  * @returns {Promise<string>} JSON result string
  */
-export async function webSearchImpl(input) {
+export async function webSearchImpl(input, options = config) {
 	const { query, limit = 5 } = input;
 
 	if (!query || typeof query !== "string" || query.trim().length === 0) {
@@ -224,9 +227,8 @@ export async function webSearchImpl(input) {
 	}
 
 	const clampedLimit = Math.min(Math.max(Number(limit) || 5, 1), 100);
-	const backend = detectSearchBackend();
-	const config = loadConfig();
-	const search = config.search || {};
+	const search = options.search || {};
+	const backend = detectSearchBackend(options);
 	const bing = search?.bing || {};
 	const searxng = search?.searxng || {};
 	const custom = search?.custom || {};
