@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
-import { createDateTool, dateImpl } from "../../src/tools/date.js";
+import { date, dateImpl } from "../../src/tools/date.js";
 import { buildToolConfig } from "../../src/tools/index.js";
 
 describe("date tool - dateImpl", () => {
@@ -35,20 +35,17 @@ describe("date tool - dateImpl", () => {
 	});
 });
 
-describe("date tool - createDateTool", () => {
-	it("returns a LangChain Tool with correct name", () => {
-		const toolInstance = createDateTool({});
-		assert.strictEqual(toolInstance.name, "date");
+describe("date tool - singleton export", () => {
+	it("exports a LangChain Tool with correct name", () => {
+		assert.strictEqual(date.name, "date");
 	});
 
-	it("returns a LangChain Tool with description", () => {
-		const toolInstance = createDateTool({});
-		assert.ok(toolInstance.description.length > 10, "Expected a descriptive description");
+	it("exports a LangChain Tool with description", () => {
+		assert.ok(date.description.length > 10, "Expected a descriptive description");
 	});
 
-	it("returns a LangChain Tool with a zod schema", () => {
-		const toolInstance = createDateTool({});
-		assert.ok(toolInstance.schema, "Expected a schema to be defined");
+	it("exports a LangChain Tool with a zod schema", () => {
+		assert.ok(date.schema, "Expected a schema to be defined");
 	});
 });
 

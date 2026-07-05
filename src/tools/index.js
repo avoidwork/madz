@@ -1,14 +1,14 @@
 import { createClarifyTool } from "./clarify.js";
 import { createCodeTool } from "./code.js";
 import { createCompactContextTool } from "./compact_context.js";
-import { createCronTool } from "./cron.js";
-import { createDateTool } from "./date.js";
+import { cronJob } from "./cron.js";
+import { date } from "./date.js";
 import { patch, readFile, searchFiles, writeFile } from "./filesystem.js";
+import { scanAgents } from "./scanAgents.js";
 import { createImageTool } from "./image.js";
 import { createMemoryTool } from "./memory.js";
 import { createMoaTool } from "./moa.js";
 import { createSamplingTool } from "./sampling.js";
-import { createScanAgentsTool } from "./scanAgents.js";
 import { createSessionSearchTool } from "./session_search.js";
 import { createShellTool, createProcessTool } from "./shell.js";
 import { createCreateSkillTool, createSkillViewTool, createSkillsListTool } from "./skills.js";
@@ -54,9 +54,9 @@ export const TOOL_PERMISSIONS = {
 const TOOL_FACTORIES = {
 	clarify: createClarifyTool,
 	compactContext: createCompactContextTool,
-	cronJob: createCronTool,
+	cronJob,
 	createSkill: createCreateSkillTool,
-	date: createDateTool,
+	date,
 	executeCode: createCodeTool,
 	imageGenerate: createImageTool,
 	memory: createMemoryTool,
@@ -65,7 +65,7 @@ const TOOL_FACTORIES = {
 	process: createProcessTool,
 	readFile,
 	sampling: createSamplingTool,
-	scanAgents: createScanAgentsTool,
+	scanAgents,
 	searchFiles,
 	sessionSearch: createSessionSearchTool,
 	shell: createShellTool,
@@ -177,9 +177,7 @@ export async function buildToolConfig(options) {
 		switch (toolName) {
 			case "clarify":
 			case "executeCode":
-			case "sampling":
-			case "date":
-			case "scanAgents": {
+			case "sampling": {
 				tools.push(TOOL_FACTORIES[toolName](runtimeOptions));
 				continue;
 			}
@@ -187,7 +185,10 @@ export async function buildToolConfig(options) {
 			case "readFile":
 			case "writeFile":
 			case "patch":
-			case "searchFiles": {
+			case "searchFiles":
+			case "scanAgents":
+			case "date":
+			case "cronJob": {
 				if (!hasAllPerms) continue;
 				tools.push(TOOL_FACTORIES[toolName]);
 				continue;

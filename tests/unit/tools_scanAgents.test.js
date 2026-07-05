@@ -3,7 +3,7 @@ import assert from "node:assert";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { writeFile, rm, mkdir } from "node:fs/promises";
-import { scanAgentsImpl, createScanAgentsTool } from "../../src/tools/scanAgents.js";
+import { scanAgentsImpl, scanAgents } from "../../src/tools/scanAgents.js";
 import { buildToolConfig } from "../../src/tools/index.js";
 
 // Test fixtures
@@ -79,7 +79,7 @@ describe("scanAgents tool - scanAgentsImpl", () => {
 	it("uses process.cwd() when no path is provided", async () => {
 		// This test verifies the default path behavior
 		// We can't easily test process.cwd() without mocking, so we verify the schema accepts no path
-		const schema = createScanAgentsTool({}).schema;
+		const schema = scanAgents.schema;
 		const parsed = schema.parse({});
 		assert.ok(
 			!parsed.path || typeof parsed.path === "undefined",
@@ -88,26 +88,9 @@ describe("scanAgents tool - scanAgentsImpl", () => {
 	});
 });
 
-describe("scanAgents tool - createScanAgentsTool", () => {
-	it("returns a LangChain Tool with correct name", () => {
-		const toolInstance = createScanAgentsTool({});
-		assert.strictEqual(toolInstance.name, "scanAgents");
-	});
-
-	it("returns a LangChain Tool with description", () => {
-		const toolInstance = createScanAgentsTool({});
-		assert.ok(toolInstance.description.length > 10, "Expected a descriptive description");
-	});
-
-	it("returns a LangChain Tool with a zod schema", () => {
-		const toolInstance = createScanAgentsTool({});
-		assert.ok(toolInstance.schema, "Expected a schema to be defined");
-	});
-});
-
 describe("scanAgents tool - buildToolConfig", () => {
-	it("registers scanAgents tool without permissions", async () => {
-		const tools = await buildToolConfig({ permissions: [] });
+	it("registers scanAgents tool with filesystem:read permission", async () => {
+		const tools = await buildToolConfig({ permissions: ["filesystem:read"] });
 		const toolNames = tools.map((t) => t.name);
 		assert.ok(
 			toolNames.includes("scanAgents"),
