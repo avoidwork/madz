@@ -262,14 +262,16 @@ describe("tools - todo", () => {
 });
 
 describe("tools - todo - ascii stripping", () => {
-
 	it("key with accented characters is stripped on create (via queuedTodoImpl)", async () => {
 		await todoImpl({ action: "clear" }, getOptions());
-		const result = await queuedTodoImpl({
-			action: "create",
-			key: "caf\u00E9-list",
-			content: "Buy coffee",
-		}, getOptions());
+		const result = await queuedTodoImpl(
+			{
+				action: "create",
+				key: "caf\u00E9-list",
+				content: "Buy coffee",
+			},
+			getOptions(),
+		);
 		assert.strictEqual(result.ok, true);
 
 		const readResult = await todoImpl({ action: "read" }, getOptions());

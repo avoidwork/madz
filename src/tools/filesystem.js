@@ -1,6 +1,13 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import { access, readFile as readFileNode, writeFile as writeFileNode, mkdir, readdir, stat } from "node:fs/promises";
+import {
+	access,
+	readFile as readFileNode,
+	writeFile as writeFileNode,
+	mkdir,
+	readdir,
+	stat,
+} from "node:fs/promises";
 import { dirname, basename, join } from "node:path";
 import { promisify } from "node:util";
 import { execFile } from "node:child_process";
@@ -461,66 +468,86 @@ export async function searchFilesImpl(input, options) {
  * @param {z.infer<typeof ReadFileSchema>} input
  * @returns {Promise<string>}
  */
-export const readFile = tool((input) => readFileImpl(input, { allowedPaths: config.sandbox.paths, maxReadSize: config.sandbox.maxReadSize }), {
-	name: "readFile",
-	description:
-		"Read the complete contents of a file from the file system. Supports pagination with offset/limit for large files. Returns lines in LINE_NUM|CONTENT format.",
-	schema: z.object({
-		path: z.string().describe("Path to the file to read"),
-		offset: z.number().int().min(0).optional().describe("Zero-based line offset to start from"),
-		limit: z.number().int().min(1).optional().describe("Maximum number of lines to read"),
-	}),
-});
+export const readFile = tool(
+	(input) =>
+		readFileImpl(input, {
+			allowedPaths: config.sandbox.paths,
+			maxReadSize: config.sandbox.maxReadSize,
+		}),
+	{
+		name: "readFile",
+		description:
+			"Read the complete contents of a file from the file system. Supports pagination with offset/limit for large files. Returns lines in LINE_NUM|CONTENT format.",
+		schema: z.object({
+			path: z.string().describe("Path to the file to read"),
+			offset: z.number().int().min(0).optional().describe("Zero-based line offset to start from"),
+			limit: z.number().int().min(1).optional().describe("Maximum number of lines to read"),
+		}),
+	},
+);
 
 /**
  * @param {z.infer<typeof WriteFileSchema>} input
  * @returns {Promise<string>}
  */
-export const writeFile = tool((input) => writeFileImpl(input, { allowedPaths: config.sandbox.paths }), {
-	name: "writeFile",
-	description:
-		"Write content to a file, creating all parent directories if they don't exist. Validates content size (max 500KB).",
-	schema: z.object({
-		path: z.string().describe("Path to the file to write"),
-		content: z.string().describe("Content to write to the file"),
-	}),
-});
+export const writeFile = tool(
+	(input) => writeFileImpl(input, { allowedPaths: config.sandbox.paths }),
+	{
+		name: "writeFile",
+		description:
+			"Write content to a file, creating all parent directories if they don't exist. Validates content size (max 500KB).",
+		schema: z.object({
+			path: z.string().describe("Path to the file to write"),
+			content: z.string().describe("Content to write to the file"),
+		}),
+	},
+);
 
 /**
  * @param {z.infer<typeof PatchSchema>} input
  * @returns {Promise<string>}
  */
-export const patch = tool((input) => patchImpl(input, { allowedPaths: config.sandbox.paths, maxReadSize: config.sandbox.maxReadSize }), {
-	name: "patch",
-	description:
-		"Apply a patch to a file using fuzzy pattern matching. Attempts up to 9 strategies (exact, whitespace trimming, case-insensitive, etc.) to find the oldStr. Returns a unified diff.",
-	schema: z.object({
-		path: z.string().describe("Path to the file to patch"),
-		oldStr: z.string().describe("Text to find and replace"),
-		newStr: z.string().describe("Replacement text"),
-	}),
-});
+export const patch = tool(
+	(input) =>
+		patchImpl(input, {
+			allowedPaths: config.sandbox.paths,
+			maxReadSize: config.sandbox.maxReadSize,
+		}),
+	{
+		name: "patch",
+		description:
+			"Apply a patch to a file using fuzzy pattern matching. Attempts up to 9 strategies (exact, whitespace trimming, case-insensitive, etc.) to find the oldStr. Returns a unified diff.",
+		schema: z.object({
+			path: z.string().describe("Path to the file to patch"),
+			oldStr: z.string().describe("Text to find and replace"),
+			newStr: z.string().describe("Replacement text"),
+		}),
+	},
+);
 
 /**
  * @param {z.infer<typeof SearchFilesSchema>} input
  * @returns {Promise<string>}
  */
-export const searchFiles = tool((input) => searchFilesImpl(input, { allowedPaths: config.sandbox.paths }), {
-	name: "searchFiles",
-	description:
-		"Search file contents using ripgrep (primary) or native fs fallback. Searches for a regex pattern in files within the given path. Can search by filename or content.",
-	schema: z.object({
-		path: z.string().describe("Path to directory or file to search within"),
-		pattern: z.string().describe("Regex pattern to search for"),
-		target: z
-			.enum(["content", "filename", "both"])
-			.default("content")
-			.describe("What to search: file content, filenames, or both"),
-		maxResults: z
-			.number()
-			.int()
-			.positive()
-			.default(20)
-			.describe("Maximum number of results to return"),
-	}),
-});
+export const searchFiles = tool(
+	(input) => searchFilesImpl(input, { allowedPaths: config.sandbox.paths }),
+	{
+		name: "searchFiles",
+		description:
+			"Search file contents using ripgrep (primary) or native fs fallback. Searches for a regex pattern in files within the given path. Can search by filename or content.",
+		schema: z.object({
+			path: z.string().describe("Path to directory or file to search within"),
+			pattern: z.string().describe("Regex pattern to search for"),
+			target: z
+				.enum(["content", "filename", "both"])
+				.default("content")
+				.describe("What to search: file content, filenames, or both"),
+			maxResults: z
+				.number()
+				.int()
+				.positive()
+				.default(20)
+				.describe("Maximum number of results to return"),
+		}),
+	},
+);

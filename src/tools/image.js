@@ -73,9 +73,6 @@ export async function imageGenerateImpl(input, options = {}) {
 	}
 
 	const config = loadConfig();
-	const providers = config.providers || {};
-	const providersFal = providers?.fal || {};
-	const falCredentials = providersFal?.credentials || {};
 	const apiKey = options.falApiKey ?? config.providers?.fal?.credentials?.apiKey;
 	if (!apiKey) {
 		return JSON.stringify({

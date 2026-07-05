@@ -210,7 +210,9 @@ describe("samplingImpl", () => {
 	});
 
 	it("writes an ephemeral file on success", async () => {
-		const result = JSON.parse(await samplingImpl({ content: "joy" }, { contextDir: TEST_DIR, ttlDays: 7, maxEntries: 10 }));
+		const result = JSON.parse(
+			await samplingImpl({ content: "joy" }, { contextDir: TEST_DIR, ttlDays: 7, maxEntries: 10 }),
+		);
 		assert.strictEqual(result.ok, true);
 		assert.strictEqual(result.message, "Ephemeral memory captured");
 		assert.ok(result.expiresAt, "should include expiresAt");
@@ -225,7 +227,12 @@ describe("samplingImpl", () => {
 		const result = JSON.parse(
 			await samplingImpl(
 				{ content: "test" },
-				{ contextDir: TEST_DIR, cooldownMs: 3600000, lastWritten: new Date().toISOString(), maxEntries: 10 },
+				{
+					contextDir: TEST_DIR,
+					cooldownMs: 3600000,
+					lastWritten: new Date().toISOString(),
+					maxEntries: 10,
+				},
 			),
 		);
 		assert.strictEqual(result.ok, false);
@@ -254,7 +261,9 @@ describe("samplingImpl", () => {
 				"2026-06-01T00:00:00.000Z",
 			);
 		}
-		const result = JSON.parse(await samplingImpl({ content: "test" }, { contextDir: TEST_DIR, maxEntries: max }));
+		const result = JSON.parse(
+			await samplingImpl({ content: "test" }, { contextDir: TEST_DIR, maxEntries: max }),
+		);
 		assert.strictEqual(result.ok, false);
 		assert.ok(result.error.includes("Capacity limit"));
 	});
@@ -266,7 +275,9 @@ describe("samplingImpl", () => {
 			expiredPath,
 			'---\ntitle: "Expired"\ntimestamp: "2026-05-01T00:00:00.000Z"\nephemeral: true\nephemeral_expiresAt: "2026-05-01T00:00:00.000Z"\n---\n\nold content\n',
 		);
-		const result = JSON.parse(await samplingImpl({ content: "test" }, { contextDir: TEST_DIR, maxEntries: 1 }));
+		const result = JSON.parse(
+			await samplingImpl({ content: "test" }, { contextDir: TEST_DIR, maxEntries: 1 }),
+		);
 		assert.strictEqual(result.ok, true);
 	});
 });

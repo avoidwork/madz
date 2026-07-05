@@ -175,22 +175,25 @@ let _lastWritten = undefined;
  * Sampling tool singleton — captures a high-intensity moment as an ephemeral memory.
  * Rate limited to 1 capture per 60 minutes. Capacity-limited to max concurrent ephemeral entries.
  */
-export const sampling = tool(async (input) => {
-	const result = await samplingImpl(input);
+export const sampling = tool(
+	async (input) => {
+		const result = await samplingImpl(input);
 
-	// Update _lastWritten if successful
-	const parsed = JSON.parse(result);
-	if (parsed.ok && parsed.createdAt) {
-		_lastWritten = parsed.createdAt;
-	}
+		// Update _lastWritten if successful
+		const parsed = JSON.parse(result);
+		if (parsed.ok && parsed.createdAt) {
+			_lastWritten = parsed.createdAt;
+		}
 
-	return result;
-}, {
-	name: "sampling",
-	description:
-		"Sampling tool for capturing high-intensity emotional moments or memory reinforcement signals as ephemeral memories. " +
-		"Each capture is stored as a temporary file with automatic expiration. " +
-		"Rate limited to 1 capture per 60 minutes. Capacity-limited to max concurrent ephemeral entries. " +
-		"Use during moments of joy, sadness, grief, or when loaded memories strongly reinforce key beliefs.",
-	schema: SamplingSchema,
-});
+		return result;
+	},
+	{
+		name: "sampling",
+		description:
+			"Sampling tool for capturing high-intensity emotional moments or memory reinforcement signals as ephemeral memories. " +
+			"Each capture is stored as a temporary file with automatic expiration. " +
+			"Rate limited to 1 capture per 60 minutes. Capacity-limited to max concurrent ephemeral entries. " +
+			"Use during moments of joy, sadness, grief, or when loaded memories strongly reinforce key beliefs.",
+		schema: SamplingSchema,
+	},
+);

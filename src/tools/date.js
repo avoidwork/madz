@@ -25,5 +25,3 @@ export const date = tool(dateImpl, {
 		"Return the current date and time. Defaults to ISO 8601 UTC format; use format='human' for human-readable output.",
 	schema: DateSchema,
 });
-
-

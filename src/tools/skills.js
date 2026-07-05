@@ -389,5 +389,3 @@ export function generateSkillCatalogPrompt(catalog) {
 
 	return lines.join("\n");
 }
-
-

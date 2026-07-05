@@ -21,14 +21,10 @@ describe("webSearch", () => {
 
 	async function mockConfig(searchConfig) {
 		configMock?.restore();
-		configMock = mock.method(
-			await import("../../src/config/loader.js"),
-			"loadConfig",
-			() => ({
-				search: searchConfig || {},
-				providers: {},
-			}),
-		);
+		configMock = mock.method(await import("../../src/config/loader.js"), "loadConfig", () => ({
+			search: searchConfig || {},
+			providers: {},
+		}));
 	}
 
 	it("uses Bing when searchBingApiKey is set", async () => {
@@ -212,50 +208,34 @@ describe("detectSearchBackend", () => {
 	});
 
 	it("returns custom when searchCustomConfig is set", async () => {
-		configMock = mock.property(
-			await import("../../src/config/loader.js"),
-			"loadConfig",
-			() => ({
-				search: { custom: { url: "http://c.local" } },
-				providers: {},
-			}),
-		);
+		configMock = mock.property(await import("../../src/config/loader.js"), "loadConfig", () => ({
+			search: { custom: { url: "http://c.local" } },
+			providers: {},
+		}));
 		assert.strictEqual(detectSearchBackend(), "custom");
 	});
 
 	it("returns bing when searchBingApiKey is set", async () => {
-		configMock = mock.property(
-			await import("../../src/config/loader.js"),
-			"loadConfig",
-			() => ({
-				search: { bing: { apiKey: "sk-bing" } },
-				providers: {},
-			}),
-		);
+		configMock = mock.property(await import("../../src/config/loader.js"), "loadConfig", () => ({
+			search: { bing: { apiKey: "sk-bing" } },
+			providers: {},
+		}));
 		assert.strictEqual(detectSearchBackend(), "bing");
 	});
 
 	it("returns searxng when searchSearxngUrl is set", async () => {
-		configMock = mock.property(
-			await import("../../src/config/loader.js"),
-			"loadConfig",
-			() => ({
-				search: { searxng: { url: "http://s.local" } },
-				providers: {},
-			}),
-		);
+		configMock = mock.property(await import("../../src/config/loader.js"), "loadConfig", () => ({
+			search: { searxng: { url: "http://s.local" } },
+			providers: {},
+		}));
 		assert.strictEqual(detectSearchBackend(), "searxng");
 	});
 
 	it("returns duckduckgo as fallback when no keys set", async () => {
-		configMock = mock.property(
-			await import("../../src/config/loader.js"),
-			"loadConfig",
-			() => ({
-				search: {},
-				providers: {},
-			}),
-		);
+		configMock = mock.property(await import("../../src/config/loader.js"), "loadConfig", () => ({
+			search: {},
+			providers: {},
+		}));
 		assert.strictEqual(detectSearchBackend(), "duckduckgo");
 	});
 });

@@ -42,7 +42,10 @@ describe("visionAnalyze", () => {
 
 	it("rejects invalid dataUri", async () => {
 		globalThis.fetch = origFetch;
-		const result = await visionAnalyzeImpl({ dataUri: "not-a-valid-uri" }, { openaiApiKey: "sk-test" });
+		const result = await visionAnalyzeImpl(
+			{ dataUri: "not-a-valid-uri" },
+			{ openaiApiKey: "sk-test" },
+		);
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("Invalid data URI"));
@@ -57,7 +60,10 @@ describe("visionAnalyze", () => {
 					type: "image/png",
 				}),
 		});
-		const result = await visionAnalyzeImpl({ url: "https://example.com/large.png" }, { openaiApiKey: "sk-test-key" });
+		const result = await visionAnalyzeImpl(
+			{ url: "https://example.com/large.png" },
+			{ openaiApiKey: "sk-test-key" },
+		);
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("exceeds") || parsed.error.includes("limit"));
@@ -66,7 +72,10 @@ describe("visionAnalyze", () => {
 
 	it("estimates size from base64 for dataUri and rejects oversized", async () => {
 		const bigBase64 = "a".repeat(5 * 1024 * 1024 * 2);
-		const result = await visionAnalyzeImpl({ dataUri: `data:image/png;base64,${bigBase64}` }, { openaiApiKey: "sk-test-key" });
+		const result = await visionAnalyzeImpl(
+			{ dataUri: `data:image/png;base64,${bigBase64}` },
+			{ openaiApiKey: "sk-test-key" },
+		);
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		globalThis.fetch = origFetch;
@@ -78,7 +87,10 @@ describe("visionAnalyze", () => {
 			status: 404,
 			statusText: "Not Found",
 		});
-		const result = await visionAnalyzeImpl({ url: "https://example.com/missing.png" }, { openaiApiKey: "sk-test-key" });
+		const result = await visionAnalyzeImpl(
+			{ url: "https://example.com/missing.png" },
+			{ openaiApiKey: "sk-test-key" },
+		);
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("HTTP 404"));
@@ -89,7 +101,10 @@ describe("visionAnalyze", () => {
 		globalThis.fetch = async () => {
 			throw new Error("Network unreachable");
 		};
-		const result = await visionAnalyzeImpl({ url: "https://example.com/img.jpg" }, { openaiApiKey: "sk-test-key" });
+		const result = await visionAnalyzeImpl(
+			{ url: "https://example.com/img.jpg" },
+			{ openaiApiKey: "sk-test-key" },
+		);
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("Image fetch failed"));
@@ -141,7 +156,10 @@ describe("visionAnalyze", () => {
 		const originalInvoke = ChatOpenAI.prototype.invoke;
 		mock.method(ChatOpenAI.prototype, "invoke", () => Promise.resolve(fakeResponse));
 
-		const result = await visionAnalyzeImpl({ url: "https://example.com/img.png" }, { openaiApiKey: "sk-test-key" });
+		const result = await visionAnalyzeImpl(
+			{ url: "https://example.com/img.png" },
+			{ openaiApiKey: "sk-test-key" },
+		);
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, true);
 		assert.strictEqual(parsed.source, "https://example.com/img.png");
@@ -159,7 +177,10 @@ describe("visionAnalyze", () => {
 		const originalInvoke = ChatOpenAI.prototype.invoke;
 		mock.method(ChatOpenAI.prototype, "invoke", () => Promise.resolve(fakeResponse));
 
-		const result = await visionAnalyzeImpl({ dataUri: `data:image/png;base64,${smallBase64}` }, { openaiApiKey: "sk-test-key" });
+		const result = await visionAnalyzeImpl(
+			{ dataUri: `data:image/png;base64,${smallBase64}` },
+			{ openaiApiKey: "sk-test-key" },
+		);
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, true);
 		assert.strictEqual(parsed.analysis, "A black cat on a windowsill.");
@@ -176,7 +197,10 @@ describe("visionAnalyze", () => {
 			Promise.reject(new Error("API rate limited")),
 		);
 
-		const result = await visionAnalyzeImpl({ dataUri: `data:image/png;base64,${smallBase64}` }, { openaiApiKey: "sk-test-key" });
+		const result = await visionAnalyzeImpl(
+			{ dataUri: `data:image/png;base64,${smallBase64}` },
+			{ openaiApiKey: "sk-test-key" },
+		);
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("LLM analysis failed"));

@@ -434,32 +434,33 @@ export async function cronJobImpl(input, options) {
  * @param {object} _options - Runtime options
  * @returns {string} JSON result string
  */
-export const cronJob = tool((input) => cronJobImpl(input, { schedulesDir: config.memory.schedulesDir }), {
-	name: "cronJob",
-	description:
-		"Manage scheduled cron jobs persisted to memory/schedules/. Actions: create, list, update, pause, resume, run, remove. Job metadata stored as JSON files. Requires network:outbound permission for run action.",
-	schema: z.object({
-		action: z
-			.enum(["create", "list", "update", "pause", "resume", "run", "remove"])
-			.describe("Action to perform"),
-		name: z
-			.string()
-			.optional()
-			.describe("Job name (required for create, update, pause, resume, run, remove)"),
-		cron: z
-			.string()
-			.optional()
-			.describe("Cron expression (5-6 fields, required for create, optional for update)"),
-		skill: z
-			.string()
-			.optional()
-			.describe("Skill name to trigger (required for create if command not provided)"),
-		command: z
-			.string()
-			.optional()
-			.describe("Shell command to execute (required for create if skill not provided)"),
-		input: z.record(z.unknown()).optional().describe("Job input parameters"),
-	}),
-});
-
-
+export const cronJob = tool(
+	(input) => cronJobImpl(input, { schedulesDir: config.memory.schedulesDir }),
+	{
+		name: "cronJob",
+		description:
+			"Manage scheduled cron jobs persisted to memory/schedules/. Actions: create, list, update, pause, resume, run, remove. Job metadata stored as JSON files. Requires network:outbound permission for run action.",
+		schema: z.object({
+			action: z
+				.enum(["create", "list", "update", "pause", "resume", "run", "remove"])
+				.describe("Action to perform"),
+			name: z
+				.string()
+				.optional()
+				.describe("Job name (required for create, update, pause, resume, run, remove)"),
+			cron: z
+				.string()
+				.optional()
+				.describe("Cron expression (5-6 fields, required for create, optional for update)"),
+			skill: z
+				.string()
+				.optional()
+				.describe("Skill name to trigger (required for create if command not provided)"),
+			command: z
+				.string()
+				.optional()
+				.describe("Shell command to execute (required for create if skill not provided)"),
+			input: z.record(z.unknown()).optional().describe("Job input parameters"),
+		}),
+	},
+);

@@ -48,7 +48,9 @@ describe("mixture_of_agents", () => {
 				}),
 			};
 		};
-		const result = JSON.parse(await mixtureOfAgentsImpl({ message: "What is AI?" }, { openrouterApiKey: "sk-test-or" }));
+		const result = JSON.parse(
+			await mixtureOfAgentsImpl({ message: "What is AI?" }, { openrouterApiKey: "sk-test-or" }),
+		);
 		assert.ok(result.ok);
 		assert.strictEqual(result.agentsUsed, 4);
 		assert.ok(result.aggregation);
@@ -74,7 +76,9 @@ describe("mixture_of_agents", () => {
 				text: async () => "Internal error",
 			};
 		};
-		const result = JSON.parse(await mixtureOfAgentsImpl({ message: "test message" }, { openrouterApiKey: "sk-test-or" }));
+		const result = JSON.parse(
+			await mixtureOfAgentsImpl({ message: "test message" }, { openrouterApiKey: "sk-test-or" }),
+		);
 		assert.ok(result.ok);
 		assert.ok(result.agreement === false);
 		assert.strictEqual(result.agentsUsed, 2);
@@ -89,7 +93,9 @@ describe("mixture_of_agents", () => {
 			status: 503,
 			text: async () => "Service unavailable",
 		});
-		const result = JSON.parse(await mixtureOfAgentsImpl({ message: "test" }, { openrouterApiKey: "sk-test-or" }));
+		const result = JSON.parse(
+			await mixtureOfAgentsImpl({ message: "test" }, { openrouterApiKey: "sk-test-or" }),
+		);
 		assert.strictEqual(result.ok, false);
 		assert.ok(result.error.includes("All 4 model calls failed"));
 		globalThis.fetch = origFetch;
@@ -97,7 +103,10 @@ describe("mixture_of_agents", () => {
 
 	it("rejects too few models", async () => {
 		const result = JSON.parse(
-			await mixtureOfAgentsImpl({ message: "test", models: ["model1", "model2"] }, { openrouterApiKey: "sk-test-or" }),
+			await mixtureOfAgentsImpl(
+				{ message: "test", models: ["model1", "model2"] },
+				{ openrouterApiKey: "sk-test-or" },
+			),
 		);
 		assert.strictEqual(result.ok, false);
 		assert.ok(result.error.includes("At least 4 models"));
@@ -107,7 +116,9 @@ describe("mixture_of_agents", () => {
 		globalThis.fetch = async () => {
 			throw new Error("Network unreachable");
 		};
-		const result = JSON.parse(await mixtureOfAgentsImpl({ message: "test" }, { openrouterApiKey: "sk-test-or" }));
+		const result = JSON.parse(
+			await mixtureOfAgentsImpl({ message: "test" }, { openrouterApiKey: "sk-test-or" }),
+		);
 		assert.strictEqual(result.ok, false);
 		assert.ok(result.error.includes("All 4 model calls failed"));
 		globalThis.fetch = origFetch;
@@ -127,7 +138,9 @@ describe("mixture_of_agents", () => {
 			}
 			throw new Error("Network error");
 		};
-		const result = JSON.parse(await mixtureOfAgentsImpl({ message: "test" }, { openrouterApiKey: "sk-test-or" }));
+		const result = JSON.parse(
+			await mixtureOfAgentsImpl({ message: "test" }, { openrouterApiKey: "sk-test-or" }),
+		);
 		assert.ok(result.ok);
 		assert.strictEqual(result.agentsUsed, 1);
 		assert.strictEqual(result.agentsFailed, 3);
