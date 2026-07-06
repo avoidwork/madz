@@ -55,7 +55,6 @@ export default function App({
 	exitRef.current = exit;
 
 	const skillList = registry ? registry.list() : [];
-	const RENDER_THROTTLE = 5;
 
 	const parser = new CommandParser();
 
