@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Box, useWindowSize, useApp } from "ink";
 import { useInput } from "ink";
 import { CommandParser } from "./commandParser.js";
@@ -35,7 +35,7 @@ export default function App({
 	const [showOnboarding, setShowOnboarding] = useState(!!onboarding);
 	const [onboardingResponse, setOnboardingResponse] = useState(0);
 	const messagesRef = useRef([]);
-	const [, forceRender] = useState(0);
+	const [renderCount, forceRender] = useState(0);
 	const [statusMessage, setStatusMessage] = useState("Ready");
 	const [chatHistory, setChatHistory] = useState([]);
 	const [historyIndex, setHistoryIndex] = useState(-1);
@@ -778,7 +778,7 @@ export default function App({
 				// Silently ignore streaming callback errors
 			}
 		};
-	}, [onTextReceived]);
+	}, []);
 
 	/**
 	 * Finalize streaming message — strips cursor, sets final state.
@@ -939,6 +939,7 @@ export default function App({
 							backgroundColor: undefined,
 						},
 						React.createElement(ConversationPanel, {
+							key: renderCount,
 							messages: messagesRef.current,
 							assistantName: config?.tui?.name || "Assistant",
 							scrollRef: scrollRef,
