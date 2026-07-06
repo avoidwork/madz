@@ -14,6 +14,7 @@ import { isAvailable, getGcCalls } from "../memory/gc.js";
 import { loadSystemPrompt } from "../memory/prompts.js";
 import { setTodoStreamingCallback } from "../tools/todo_queue.js";
 import { calculateConversationTokens } from "./contextTokens.js";
+import { randomUUID } from "node:crypto";
 
 /**
  * Main App component (Ink). Renders an IRC-style layout:
@@ -43,7 +44,6 @@ export default function App({
 	const [inputFocused, setInputFocused] = useState(true);
 	const [contextSize, setContextSize] = useState(0);
 	const [isCompacting, setIsCompacting] = useState(false);
-	const scrollRef = useRef(null);
 	const abortControllerRef = useRef(null);
 	const isStreamingRef = useRef(false);
 	const dispatchPromiseRef = useRef(null);
@@ -220,6 +220,7 @@ export default function App({
 					streaming: true,
 					toolCalls: [],
 					toolCallDisplay: "",
+					id: randomUUID(),
 				});
 				forceRender((n) => n + 1);
 
@@ -421,6 +422,7 @@ export default function App({
 			streaming: true,
 			toolCalls: [],
 			toolCallDisplay: "",
+			id: randomUUID(),
 		});
 		forceRender((n) => n + 1);
 
@@ -744,7 +746,7 @@ export default function App({
 
 	const addMessage = (msg) => {
 		const time = getTimestamp();
-		messagesRef.current.push({ ...msg, time });
+		messagesRef.current.push({ ...msg, time, id: randomUUID() });
 		forceRender((n) => n + 1);
 	};
 
@@ -933,10 +935,8 @@ export default function App({
 							backgroundColor: undefined,
 						},
 						React.createElement(ConversationPanel, {
-							key: renderCount,
 							messages: messagesRef.current,
 							assistantName: config?.tui?.name || "Assistant",
-							scrollRef: scrollRef,
 						}),
 					),
 		!showBanner && !showOnboarding && React.createElement(StatusBar, statusProps),
