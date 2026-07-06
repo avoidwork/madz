@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef, useEffect } from "react";
 import { Box, Text } from "ink";
 import { ScrollView } from "ink-scroll-view";
 import { getRoleLabel } from "./messages.js";
@@ -244,6 +244,16 @@ const MAX_RENDER_MESSAGES = 100;
 export function ConversationPanel({ messages = [], assistantName = "Assistant" }) {
 	messages = messages || [];
 
+	const scrollRef = useRef(null);
+
+	// Anchor to bottom on new content — keeps streaming view at the latest messages
+	// while still allowing the user to scroll up and read history freely.
+	useEffect(() => {
+		if (scrollRef.current && messages.length > 0) {
+			scrollRef.current.scrollToBottom();
+		}
+	}, [messages]);
+
 	const children = React.useMemo(
 		() => renderMessages(messages, assistantName, MAX_RENDER_MESSAGES),
 		[messages, assistantName],
@@ -252,6 +262,6 @@ export function ConversationPanel({ messages = [], assistantName = "Assistant" }
 	return React.createElement(
 		Box,
 		{ key: "panel", flexDirection: "column", flexGrow: 1 },
-		React.createElement(ScrollView, { key: "scroll", focus: false }, ...children),
+		React.createElement(ScrollView, { ref: scrollRef, key: "scroll", focus: false, height: "100%" }, ...children),
 	);
 }
