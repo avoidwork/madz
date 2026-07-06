@@ -236,7 +236,11 @@ async function handleConversation(message, sessionId = "") {
 		}
 	}
 
-	const response = await callProvider(null, null, message);
+	const response = await callProvider(null, null, message, (chunk) => {
+		if (chunk.type === "message" && chunk.text) {
+			process.stdout.write(chunk.text);
+		}
+	});
 
 	sessionState.addExchange({ role: "user", content: message });
 	sessionState.addExchange({ role: "assistant", content: response.content });
