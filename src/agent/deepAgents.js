@@ -53,11 +53,6 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 				//"FilesystemMiddleware",
 				"SummarizationMiddleware",
 			],
-			excludedTools: [
-				"write_file",
-				"edit_file",
-				"execute"
-			],
 		}),
 	);
 
