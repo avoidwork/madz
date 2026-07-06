@@ -1,4 +1,4 @@
-import { createDeepAgent, CompositeBackend } from "deepagents";
+import { createDeepAgent, CompositeBackend, createHarnessProfile, registerHarnessProfile } from "deepagents";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { InMemoryStore } from "@langchain/langgraph-checkpoint";
@@ -42,6 +42,24 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	const providerName = Object.keys(config.providers)[0] || "openai";
 	const providerConfig = config.providers[providerName] || {};
 	const model = createChatModel(providerConfig);
+
+	// Register harness profile for subagents using config-derived model identifier
+	const modelIdentifier = `${providerName}:${providerConfig.model}`;
+	registerHarnessProfile(
+		modelIdentifier,
+		createHarnessProfile({
+			excludedMiddleware: [
+				"TodoListMiddleware",
+				//"FilesystemMiddleware",
+				"SummarizationMiddleware",
+			],
+			excludedTools: [
+				"write_file",
+				"edit_file",
+				"execute"
+			],
+		}),
+	);
 
 	// Build tools from config — separate sets for orchestrator and subagent
 	const buildOptions = {
