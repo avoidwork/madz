@@ -67,7 +67,7 @@
     "@langchain/langgraph-checkpoint-sqlite": "^1.0.3",
     "@langchain/openai": "^1.5.3",
     "@opentelemetry/api": "^1.9.0",
-    "@opentelemetry/sdk-node": "^0.219.0",
+    "@opentelemetry/sdk-node": "^0.220.0",
     "cron-parser": "^5.6.1",
     "ink": "^7.1.0",
     "ink-scroll-view": "^0.3.7",
