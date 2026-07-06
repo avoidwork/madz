@@ -935,7 +935,7 @@ export default function App({
 							backgroundColor: undefined,
 						},
 						React.createElement(ConversationPanel, {
-							messages: messagesRef.current,
+							messages: [...messagesRef.current],
 							assistantName: config?.tui?.name || "Assistant",
 						}),
 					),
