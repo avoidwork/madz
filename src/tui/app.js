@@ -49,7 +49,6 @@ export default function App({
 	const dispatchPromiseRef = useRef(null);
 	const autoContinueCountRef = useRef(0);
 	const isAutoContinuingRef = useRef(false);
-	const renderTickRef = useRef(0);
 	const { exit } = useApp();
 	const exitRef = useRef(exit);
 	exitRef.current = exit;
@@ -766,11 +765,7 @@ export default function App({
 					if (last.role === "assistant" && last.streaming) {
 						last.content = committedContentRef.current + "\u2588";
 					}
-					// Throttle: only forceRender every N ticks during streaming
-					renderTickRef.current++;
-					if (renderTickRef.current % RENDER_THROTTLE === 0) {
-						forceRender((n) => n + 1);
-					}
+					forceRender((n) => n + 1);
 					if (onTextReceived) onTextReceived();
 				}
 			} catch (_cbErr) {
@@ -958,6 +953,12 @@ export default function App({
 						key: inputFocused ? "input-focused" : "input-unfocused",
 						inputText: inputText,
 						cursorChar: config?.tui?.cursorChar ?? "\u2588",
+						cursorColor: inputFocused ? undefined : "#202020",
+					}),
+				)
+			: null,
+	);
+}r: config?.tui?.cursorChar ?? "\u2588",
 						cursorColor: inputFocused ? undefined : "#202020",
 					}),
 				)
