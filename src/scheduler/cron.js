@@ -20,6 +20,19 @@ export function sanitizeCrontabCommand(command) {
 }
 
 /**
+ * Prepare a command for crontab entry.
+ * Replaces bare `node` with absolute path and adds output redirection.
+ * @param {string} command - The command string to prepare
+ * @returns {string} The prepared command
+ * @private
+ */
+function prepareCrontabCommand(command) {
+	const sanitized = sanitizeCrontabCommand(command);
+	const withAbsolutePath = sanitized.replace(/\bnode\b/g, "/usr/local/bin/node");
+	return `${withAbsolutePath} >> /var/log/cron-madz.log 2>&1`;
+}
+
+/**
  * Cron manages madz schedule entries in the user's system crontab.
  * Entries are written as: <cron>  <command>  # madz-schedule: <name>
  */
@@ -116,7 +129,7 @@ export const Cron = {
 		const crontab = this._readCrontab();
 		const { outsideLines, blockLines } = this._splitBlock(crontab);
 
-		const newEntry = `${job.cron}  ${job.command}  # madz-schedule: ${job.name}`;
+		const newEntry = `${job.cron}  ${prepareCrontabCommand(job.command)}  # madz-schedule: ${job.name}`;
 
 		// Remove existing entry with same name if present
 		const filtered = blockLines.filter((line) => {
@@ -223,7 +236,7 @@ export const Cron = {
 		const blockLines = schedules
 			.filter((s) => !s.paused)
 			.map((s) => {
-				return `${s.cron}  ${sanitizeCrontabCommand(s.command)}  # madz-schedule: ${s.name}`;
+				return `${s.cron}  ${prepareCrontabCommand(s.command)}  # madz-schedule: ${s.name}`;
 			});
 
 		while (outsideLines.length > 0 && outsideLines[outsideLines.length - 1].trim() === "") {
@@ -422,7 +435,7 @@ export const Cron = {
 		const jobs = await this._readJobsFromDisk(schedulesDir);
 		const desiredEntries = jobs
 			.filter((j) => j.enabled)
-			.map((j) => `${j.cron}  ${j.command}  # madz-schedule: ${j.name}`);
+			.map((j) => `${j.cron}  ${prepareCrontabCommand(j.command)}  # madz-schedule: ${j.name}`);
 
 		// Parse current crontab block entries
 		const crontab = this._readCrontab();
