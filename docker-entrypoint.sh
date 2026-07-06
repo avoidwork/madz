@@ -19,7 +19,7 @@ chmod a+r /etc/profile.d/madz-env.sh
 /usr/sbin/sshd -D &
 
 # Start the cron daemon so scheduled jobs execute
-crond &
+crond -p -P -s &
 
 # Run the CMD (e.g. sleep infinity)
 exec "$@"
