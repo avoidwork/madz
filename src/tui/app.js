@@ -49,11 +49,13 @@ export default function App({
 	const dispatchPromiseRef = useRef(null);
 	const autoContinueCountRef = useRef(0);
 	const isAutoContinuingRef = useRef(false);
+	const renderTickRef = useRef(0);
 	const { exit } = useApp();
 	const exitRef = useRef(exit);
 	exitRef.current = exit;
 
 	const skillList = registry ? registry.list() : [];
+	const RENDER_THROTTLE = 5;
 
 	const parser = new CommandParser();
 
@@ -754,7 +756,7 @@ export default function App({
 	 * @param {Function} [onTextReceived] - Optional callback when text arrives
 	 * @returns {Function} Event callback for dispatchProvider
 	 */
-	const createStreamingHandler = (committedContentRef, onTextReceived) => {
+	const createStreamingHandler = useCallback((committedContentRef, onTextReceived) => {
 		return (event) => {
 			if (shouldAbort()) return;
 			try {
@@ -765,13 +767,18 @@ export default function App({
 					if (last.role === "assistant" && last.streaming) {
 						last.content = committedContentRef.current + "\u2588";
 					}
+					// Throttle: only forceRender every N ticks during streaming
+					renderTickRef.current++;
+					if (renderTickRef.current % RENDER_THROTTLE === 0) {
+						forceRender((n) => n + 1);
+					}
 					if (onTextReceived) onTextReceived();
 				}
 			} catch (_cbErr) {
 				// Silently ignore streaming callback errors
 			}
 		};
-	};
+	}, [onTextReceived]);
 
 	/**
 	 * Finalize streaming message — strips cursor, sets final state.
