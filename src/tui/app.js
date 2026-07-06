@@ -958,10 +958,4 @@ export default function App({
 				)
 			: null,
 	);
-}r: config?.tui?.cursorChar ?? "\u2588",
-						cursorColor: inputFocused ? undefined : "#202020",
-					}),
-				)
-			: null,
-	);
 }
