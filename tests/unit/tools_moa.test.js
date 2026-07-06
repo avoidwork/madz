@@ -1,5 +1,6 @@
 import { describe, it, before, after } from "node:test";
 import assert from "node:assert";
+import { mixtureOfAgentsImpl } from "../../src/tools/moa.js";
 
 describe("mixture_of_agents", () => {
 	let origFetch;
@@ -13,31 +14,27 @@ describe("mixture_of_agents", () => {
 	});
 
 	it("requires message", async () => {
-		const { mixtureOfAgentsImpl } = await import("../../src/tools/moa.js");
-		const result = await mixtureOfAgentsImpl({}, {});
+		const result = await mixtureOfAgentsImpl({});
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("Message is required"));
 	});
 
 	it("rejects empty message", async () => {
-		const { mixtureOfAgentsImpl } = await import("../../src/tools/moa.js");
-		const result = await mixtureOfAgentsImpl({ message: "" }, {});
+		const result = await mixtureOfAgentsImpl({ message: "" });
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("Message is required"));
 	});
 
 	it("requires openrouterApiKey in options", async () => {
-		const { mixtureOfAgentsImpl } = await import("../../src/tools/moa.js");
-		const result = await mixtureOfAgentsImpl({ message: "What is AI?" }, {});
+		const result = await mixtureOfAgentsImpl({ message: "What is AI?" });
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("OPENROUTER_API_KEY"));
 	});
 
 	it("calls OpenRouter with default models", async () => {
-		const { mixtureOfAgentsImpl } = await import("../../src/tools/moa.js");
 		globalThis.fetch = async (url, opts) => {
 			assert.ok(url.includes("openrouter.ai"));
 			assert.ok(url.includes("/chat/completions"));
@@ -51,11 +48,9 @@ describe("mixture_of_agents", () => {
 				}),
 			};
 		};
-		const responsePromise = mixtureOfAgentsImpl(
-			{ message: "What is AI?" },
-			{ openrouterApiKey: "sk-test-or" },
+		const result = JSON.parse(
+			await mixtureOfAgentsImpl({ message: "What is AI?" }, { openrouterApiKey: "sk-test-or" }),
 		);
-		const result = JSON.parse(await responsePromise);
 		assert.ok(result.ok);
 		assert.strictEqual(result.agentsUsed, 4);
 		assert.ok(result.aggregation);
@@ -64,7 +59,6 @@ describe("mixture_of_agents", () => {
 	});
 
 	it("aggregates partial results when some calls fail", async () => {
-		const { mixtureOfAgentsImpl } = await import("../../src/tools/moa.js");
 		let callCount = 0;
 		globalThis.fetch = async () => {
 			callCount++;
@@ -94,7 +88,6 @@ describe("mixture_of_agents", () => {
 	});
 
 	it("returns error when all agent calls fail", async () => {
-		const { mixtureOfAgentsImpl } = await import("../../src/tools/moa.js");
 		globalThis.fetch = async () => ({
 			ok: false,
 			status: 503,
@@ -109,7 +102,6 @@ describe("mixture_of_agents", () => {
 	});
 
 	it("rejects too few models", async () => {
-		const { mixtureOfAgentsImpl } = await import("../../src/tools/moa.js");
 		const result = JSON.parse(
 			await mixtureOfAgentsImpl(
 				{ message: "test", models: ["model1", "model2"] },
@@ -121,7 +113,6 @@ describe("mixture_of_agents", () => {
 	});
 
 	it("handles OpenRouter network error", async () => {
-		const { mixtureOfAgentsImpl } = await import("../../src/tools/moa.js");
 		globalThis.fetch = async () => {
 			throw new Error("Network unreachable");
 		};
@@ -134,7 +125,6 @@ describe("mixture_of_agents", () => {
 	});
 
 	it("handles partial network errors", async () => {
-		const { mixtureOfAgentsImpl } = await import("../../src/tools/moa.js");
 		let callCount = 0;
 		globalThis.fetch = async () => {
 			callCount++;

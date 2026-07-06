@@ -1,40 +1,46 @@
 import { describe, it, before, after, mock } from "node:test";
 import assert from "node:assert";
+import { visionAnalyzeImpl } from "../../src/tools/vision.js";
 
 describe("visionAnalyze", () => {
 	let origFetch;
 	let ChatOpenAI;
+	let savedOpenAiKey;
 
 	before(async () => {
 		origFetch = globalThis.fetch;
+		savedOpenAiKey = process.env.OPENAI_API_KEY;
+		delete process.env.OPENAI_API_KEY;
 		const openaiMod = await import("@langchain/openai");
 		ChatOpenAI = openaiMod.ChatOpenAI;
 	});
 
 	after(() => {
 		globalThis.fetch = origFetch;
+		if (savedOpenAiKey !== undefined) {
+			process.env.OPENAI_API_KEY = savedOpenAiKey;
+		} else {
+			delete process.env.OPENAI_API_KEY;
+		}
 	});
 
 	it("requires url or dataUri", async () => {
-		const { visionAnalyzeImpl } = await import("../../src/tools/vision.js");
 		globalThis.fetch = origFetch;
-		const result = await visionAnalyzeImpl({}, {});
+		const result = await visionAnalyzeImpl({});
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("url or dataUri"));
 	});
 
 	it("returns error when openaiApiKey is not set", async () => {
-		const { visionAnalyzeImpl } = await import("../../src/tools/vision.js");
 		globalThis.fetch = origFetch;
-		const result = await visionAnalyzeImpl({ url: "https://example.com/img.jpg" }, {});
+		const result = await visionAnalyzeImpl({ url: "https://example.com/img.jpg" });
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("OPENAI_API_KEY"));
 	});
 
 	it("rejects invalid dataUri", async () => {
-		const { visionAnalyzeImpl } = await import("../../src/tools/vision.js");
 		globalThis.fetch = origFetch;
 		const result = await visionAnalyzeImpl(
 			{ dataUri: "not-a-valid-uri" },
@@ -46,7 +52,6 @@ describe("visionAnalyze", () => {
 	});
 
 	it("rejects oversized image from URL", async () => {
-		const { visionAnalyzeImpl } = await import("../../src/tools/vision.js");
 		globalThis.fetch = async () => ({
 			ok: true,
 			blob: () =>
@@ -66,7 +71,6 @@ describe("visionAnalyze", () => {
 	});
 
 	it("estimates size from base64 for dataUri and rejects oversized", async () => {
-		const { visionAnalyzeImpl } = await import("../../src/tools/vision.js");
 		const bigBase64 = "a".repeat(5 * 1024 * 1024 * 2);
 		const result = await visionAnalyzeImpl(
 			{ dataUri: `data:image/png;base64,${bigBase64}` },
@@ -78,7 +82,6 @@ describe("visionAnalyze", () => {
 	});
 
 	it("returns error when image fetch fails with HTTP error", async () => {
-		const { visionAnalyzeImpl } = await import("../../src/tools/vision.js");
 		globalThis.fetch = async () => ({
 			ok: false,
 			status: 404,
@@ -95,7 +98,6 @@ describe("visionAnalyze", () => {
 	});
 
 	it("returns error when image fetch throws network error", async () => {
-		const { visionAnalyzeImpl } = await import("../../src/tools/vision.js");
 		globalThis.fetch = async () => {
 			throw new Error("Network unreachable");
 		};
@@ -138,7 +140,6 @@ describe("visionAnalyze", () => {
 	});
 
 	it("fetches image from URL and returns analysis result", async () => {
-		const { visionAnalyzeImpl } = await import("../../src/tools/vision.js");
 		const imageBytes = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
 		globalThis.fetch = async () => ({
 			ok: true,
@@ -168,7 +169,6 @@ describe("visionAnalyze", () => {
 	});
 
 	it("uses dataUri and returns analysis result with mocked LLM", async () => {
-		const { visionAnalyzeImpl } = await import("../../src/tools/vision.js");
 		const smallBase64 = btoa("fake image binary");
 
 		const fakeResponse = {
@@ -190,7 +190,6 @@ describe("visionAnalyze", () => {
 	});
 
 	it("returns error when LLM analysis fails", async () => {
-		const { visionAnalyzeImpl } = await import("../../src/tools/vision.js");
 		const smallBase64 = btoa("fake image binary");
 		const originalInvoke = ChatOpenAI.prototype.invoke;
 

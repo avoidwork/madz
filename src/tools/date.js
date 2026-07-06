@@ -25,17 +25,3 @@ export const date = tool(dateImpl, {
 		"Return the current date and time. Defaults to ISO 8601 UTC format; use format='human' for human-readable output.",
 	schema: DateSchema,
 });
-
-/**
- * Create a date tool with runtime options (unused, kept for consistency).
- * @param {object} _options - Runtime options
- * @returns {object} LangChain Tool instance
- */
-export function createDateTool(_options) {
-	return tool(dateImpl, {
-		name: "date",
-		description:
-			"Return the current date and time. Defaults to ISO 8601 UTC format; use format='human' for human-readable output.",
-		schema: DateSchema,
-	});
-}

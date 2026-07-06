@@ -321,7 +321,7 @@ describe("new meta fields", () => {
 		const result = validateSkillSchema({
 			name: "tools-skill",
 			description: "Has allowed tools",
-			"allowed-tools": "read_file write_file",
+			"allowed-tools": "readFile writeFile",
 		});
 		assert.strictEqual(result.valid, true);
 	});

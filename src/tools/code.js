@@ -4,6 +4,7 @@ import { spawn } from "node:child_process";
 import { mkdtemp, unlink, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { loadConfig } from "../config/loader.js";
 
 const LANGUAGE_MAP = {
 	python3: { ext: ".py", interpreter: "python3" },
@@ -80,14 +81,15 @@ sys.meta_path.insert(0, RestrictedImporter())
 /**
  * Execute code in a sandboxed subprocess.
  * @param {object} input - Tool input
- * @param {object} options - Runtime options with timeout, memoryLimit, and safety config
  * @returns {Promise<string>} JSON result string
  */
-export async function executeCodeImpl(input, options) {
+export async function executeCodeImpl(input, options = {}) {
 	const { code, language = "python3", _timeout, _interpreter } = input;
-	const safetyConfig = options?.safety ?? {};
-	const timeoutConfig = options?.timeout ?? {};
-	const memoryLimitStr = options?.memoryLimit;
+	const config = loadConfig();
+	const sandbox = (options.sandbox ?? config.sandbox) || {};
+	const safetyConfig = options.safety ?? sandbox.safety ?? {};
+	const timeoutConfig = options.timeout ?? sandbox.timeout ?? {};
+	const memoryLimitStr = options.memoryLimit ?? sandbox.memoryLimit;
 
 	const defaultTimeout = (timeoutConfig.seconds ?? 30) || 30;
 	const timeout = _timeout ?? (defaultTimeout === 0 ? 300 : defaultTimeout);
@@ -192,7 +194,7 @@ export async function executeCodeImpl(input, options) {
  * @param {object} _options - Runtime options
  * @returns {string} JSON result string
  */
-export const execute_code = tool(executeCodeImpl, {
+export const executeCode = tool(executeCodeImpl, {
 	name: "executeCode",
 	description:
 		"Execute code in a sandboxed subprocess. Supports python3, javascript (node), and shell. Code is written to a temp file and executed via the appropriate interpreter. Returns stdout, stderr, and exit code. Python execution includes an import hook to block dangerous modules (subprocess, os, socket) unless sandbox.safety.pythonImportHook is false. Enforces configurable memory limit via POSIX setrlimit (address space limit)",
@@ -204,25 +206,3 @@ export const execute_code = tool(executeCodeImpl, {
 			.describe("Programming language"),
 	}),
 });
-
-// --- Factory functions for creating tools with runtime options ---
-
-/**
- * Create an execute_code tool with runtime options
- * @param {object} options - Runtime options (safety, timeout, memoryLimit)
- * @returns {object} LangChain Tool instance
- */
-export function createCodeTool(options) {
-	return tool((input) => executeCodeImpl(input, options), {
-		name: "executeCode",
-		description:
-			"Execute code in a sandboxed subprocess. Supports python3, javascript (node), and shell. Code is written to a temp file and executed via the appropriate interpreter. Returns stdout, stderr, and exit code.",
-		schema: z.object({
-			code: z.string().min(1).describe("Code to execute"),
-			language: z
-				.enum(["python3", "javascript", "shell"])
-				.default("python3")
-				.describe("Programming language"),
-		}),
-	});
-}

@@ -1,6 +1,7 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { spawn } from "node:child_process";
+import { loadConfig } from "../config/loader.js";
 
 const MAX_COMMAND_LENGTH = 4096;
 
@@ -111,20 +112,22 @@ function executeBackground(command) {
 /**
  * Execute a shell command via shell tool.
  * @param {z.infer<typeof TerminalSchema>} input
- * @param {object} options - Runtime options
- * @param {string[]} options.allowedPaths - Sandbox allowed directories
- * @param {string} options.maxReadSize - Max read size string
  * @returns {Promise<string>} Command execution result
  */
-export async function executeShellImpl(input, options) {
+export async function executeShellImpl(input) {
 	if (input.command.length > MAX_COMMAND_LENGTH) {
 		return `Error: Command length (${input.command.length} chars) exceeds maximum (${MAX_COMMAND_LENGTH} chars).`;
 	}
 
+	const config = loadConfig();
+	const sandbox = config.sandbox || {};
+	const allowedPaths = sandbox.paths || [];
+	const maxReadSize = sandbox.maxReadSize || "1mb";
+
 	if (input.background) {
-		return executeBackground(input.command, options.allowedPaths);
+		return executeBackground(input.command, allowedPaths);
 	}
-	return executeForeground(input.command, options.allowedPaths, options.maxReadSize);
+	return executeForeground(input.command, allowedPaths, maxReadSize);
 }
 
 /**
@@ -146,12 +149,9 @@ export const shell = tool(executeShellImpl, {
 /**
  * Manage background processes via process tool.
  * @param {z.infer<typeof ProcessSchema>} input
- * @param {object} options - Runtime options
- * @param {string[]} options.allowedPaths - Sandbox allowed directories
- * @param {string} options.maxReadSize - Max read size string
  * @returns {Promise<string>} Process management result
  */
-export async function manageProcessImpl(input, _options) {
+export async function manageProcessImpl(input) {
 	const { action } = input;
 
 	if (action === "list") {
@@ -252,52 +252,3 @@ export const processTool = tool(manageProcessImpl, {
 			.describe("Data to write to process stdin (required for 'write' action)"),
 	}),
 });
-
-// --- Factory functions for creating tools with runtime options ---
-
-/**
- * Create a shell tool with runtime options
- * @param {object} options - Runtime options
- * @returns {object} LangChain Tool instance
- */
-export function createShellTool(options) {
-	return tool((input) => executeShellImpl(input, options), {
-		name: "shell",
-		description:
-			"Execute a shell command via sh -c. Supports foreground (blocking) and background (detached) modes. Max command length is 4096 characters.",
-		schema: z.object({
-			command: z.string().describe("Shell command to execute via sh -c"),
-			background: z
-				.boolean()
-				.default(false)
-				.describe("Run in background mode (returns immediately with PID)"),
-		}),
-	});
-}
-
-/**
- * Create a process tool with runtime options
- * @param {object} options - Runtime options
- * @returns {object} LangChain Tool instance
- */
-export function createProcessTool(options) {
-	return tool((input) => manageProcessImpl(input, options), {
-		name: "process",
-		description:
-			"Manage background processes. Actions: list (show all), poll (check status), log (stdout), wait (wait for exit), kill (SIGTERM/SIGKILL), write (send stdin data), pause (SIGSTOP), resume (SIGCONT).",
-		schema: z.object({
-			action: z
-				.enum(["list", "poll", "log", "wait", "kill", "write", "pause", "resume"])
-				.describe("Action to perform on the process"),
-			processId: z
-				.number()
-				.int()
-				.optional()
-				.describe("PID of the process to manage (required for all actions except 'list')"),
-			data: z
-				.string()
-				.optional()
-				.describe("Data to write to process stdin (required for 'write' action)"),
-		}),
-	});
-}

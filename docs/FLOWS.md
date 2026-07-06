@@ -534,7 +534,7 @@ hasSearchKey()
 **Entry:** `src/tools/filesystem.js`
 
 ```
-read_file:
+readFile:
 ├── validatePath(input.path, allowedPaths)
 │   └── resolvePath(file, dirs) → { allowed: true/false, path }
 │       └── resolves → checks if resolved.startsWith(allowed + "/")

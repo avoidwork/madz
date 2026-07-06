@@ -30,15 +30,11 @@ export async function scanAgentsImpl(input, options) {
 }
 
 /**
- * Create a scanAgents tool with runtime options.
- * @param {object} options - Runtime options (allowedPaths, maxReadSize)
- * @returns {object} LangChain Tool instance
+ * scanAgents tool — singleton export.
  */
-export function createScanAgentsTool(_options) {
-	return tool(scanAgentsImpl, {
-		name: "scanAgents",
-		description:
-			"Scan for AGENTS.md in the current working directory or a specified path. If found, returns the file contents. If not found, returns an empty string silently.",
-		schema: ScanAgentsSchema,
-	});
-}
+export const scanAgents = tool(scanAgentsImpl, {
+	name: "scanAgents",
+	description:
+		"Scan for AGENTS.md in the current working directory or a specified path. If found, returns the file contents. If not found, returns an empty string silently.",
+	schema: ScanAgentsSchema,
+});

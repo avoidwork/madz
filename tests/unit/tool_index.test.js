@@ -27,14 +27,14 @@ describe("tools - buildToolConfig", () => {
 		}
 	});
 
-	it("clarify has zero permission requirement", async () => {
+	it("clarify has filesystem:read and filesystem:write permissions", async () => {
 		const { TOOL_PERMISSIONS } = await import("../../src/tools/index.js");
-		assert.deepStrictEqual(TOOL_PERMISSIONS.clarify, []);
+		assert.deepStrictEqual(TOOL_PERMISSIONS.clarify, ["filesystem:read", "filesystem:write"]);
 	});
 
-	it("sampling has zero permission requirement", async () => {
+	it("sampling has filesystem:write permission", async () => {
 		const { TOOL_PERMISSIONS } = await import("../../src/tools/index.js");
-		assert.deepStrictEqual(TOOL_PERMISSIONS.sampling, []);
+		assert.deepStrictEqual(TOOL_PERMISSIONS.sampling, ["filesystem:write"]);
 	});
 
 	it("terminal requires both filesystem:exec and process:spawn", async () => {
@@ -77,16 +77,20 @@ describe("tools - buildToolConfig", () => {
 		delete process.env.CUSTOM_SEARCH_URL;
 	});
 
-	it("returns clarify + executeCode + sampling + date + scanAgents with empty permissions", async () => {
+	it("returns clarify + executeCode + sampling + date + scanAgents with filesystem:read", async () => {
 		const { buildToolConfig } = await import("../../src/tools/index.js");
-		const tools = await buildToolConfig({ permissions: [], maxReadSize: "1mb" });
+		const tools = await buildToolConfig({ permissions: ["filesystem:read"], maxReadSize: "1mb" });
 		const toolNames = tools.map((t) => t.name);
-		assert.strictEqual(toolNames.length, 5);
+		// filesystem:read enables: clarify, executeCode, sampling (always), date, scanAgents,
+		// readFile, searchFiles, sessionSearch, skillView, skillsList, compactContext
 		assert.ok(toolNames.includes("clarify"));
 		assert.ok(toolNames.includes("executeCode"));
 		assert.ok(toolNames.includes("sampling"));
 		assert.ok(toolNames.includes("date"));
 		assert.ok(toolNames.includes("scanAgents"));
+		assert.ok(toolNames.includes("readFile"));
+		assert.ok(toolNames.includes("searchFiles"));
+		assert.ok(toolNames.includes("sessionSearch"));
 	});
 
 	it("returns clarify + filesystem tools when filesystem:read and filesystem:write enabled", async () => {
@@ -151,15 +155,20 @@ describe("tools - buildToolConfig", () => {
 	it("handles maxReadSize in config", async () => {
 		const { buildToolConfig } = await import("../../src/tools/index.js");
 		const tools = await buildToolConfig({
-			permissions: [],
+			permissions: ["filesystem:read"],
 			maxReadSize: "2mb",
 		});
 		const toolNames = tools.map((t) => t.name);
-		assert.strictEqual(toolNames.length, 5);
+		// filesystem:read enables: clarify, executeCode, sampling (always), date, scanAgents,
+		// readFile, searchFiles, sessionSearch, skillView, skillsList, compactContext
+		assert.strictEqual(toolNames.length, 11);
 		assert.ok(toolNames.includes("clarify"));
 		assert.ok(toolNames.includes("executeCode"));
 		assert.ok(toolNames.includes("sampling"));
 		assert.ok(toolNames.includes("date"));
 		assert.ok(toolNames.includes("scanAgents"));
+		assert.ok(toolNames.includes("readFile"));
+		assert.ok(toolNames.includes("searchFiles"));
+		assert.ok(toolNames.includes("sessionSearch"));
 	});
 });

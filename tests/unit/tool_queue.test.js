@@ -208,33 +208,3 @@ describe("TodoQueue", () => {
 		assert.strictEqual(data.todos.length, 0);
 	});
 });
-
-describe("createQueuedTodoTool", () => {
-	beforeEach(() => {
-		setupTestFiles();
-		resetQueue();
-		setTodoStreamingCallback(null);
-	});
-
-	it("returns a tool with correct schema", async () => {
-		const { createQueuedTodoTool } = await import("../../src/tools/todo.js");
-		const tool = createQueuedTodoTool({ filePath: TEST_FILE });
-
-		assert.strictEqual(tool.name, "todo");
-		assert.ok(tool.description.includes("queued"));
-		assert.ok(tool.schema);
-	});
-
-	it("executes via the queue", async () => {
-		const { queuedTodoImpl } = await import("../../src/tools/todo.js");
-
-		const result = await queuedTodoImpl(
-			{ action: "create", key: "tool-test", content: "Via tool" },
-			{ filePath: TEST_FILE },
-		);
-
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.ok, true);
-		assert.strictEqual(parsed.key, "tool-test");
-	});
-});

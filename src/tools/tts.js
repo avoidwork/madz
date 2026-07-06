@@ -3,6 +3,7 @@ import { z } from "zod";
 import { writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { homedir } from "node:os";
+import { loadConfig } from "../config/loader.js";
 
 const TTS_MODELS = ["tts-1", "tts-1-hd"];
 const TTS_VOICES = [
@@ -63,10 +64,11 @@ async function callTtsApi(apiKey, text, model, voice, speed) {
 /**
  * Convert text to speech using OpenAI TTS API.
  * @param {object} input - Tool input
- * @param {object} options - Runtime options
+ * @param {object} [options] - Runtime options for test injection
+ * @param {string} [options.openaiApiKey] - OpenAI API key (overrides config)
  * @returns {Promise<string>} JSON result string
  */
-export async function textToSpeechImpl(input, options) {
+export async function textToSpeechImpl(input, options = {}) {
 	const { text, voice = "alloy", model = "tts-1", speed = 1 } = input;
 
 	if (!text || typeof text !== "string" || text.trim().length === 0) {
@@ -83,7 +85,11 @@ export async function textToSpeechImpl(input, options) {
 		});
 	}
 
-	const apiKey = options?.openaiApiKey;
+	const config = loadConfig();
+	const providers = config.providers || {};
+	const providersOpenAI = providers?.openai || {};
+	const credentials = providersOpenAI?.credentials || {};
+	const apiKey = options.openaiApiKey || credentials?.apiKey;
 	if (!apiKey) {
 		return JSON.stringify({
 			ok: false,
@@ -132,7 +138,7 @@ export async function textToSpeechImpl(input, options) {
  * @param {object} _options - Runtime options
  * @returns {string}
  */
-export const text_to_speech = tool(textToSpeechImpl, {
+export const textToSpeech = tool(textToSpeechImpl, {
 	name: "textToSpeech",
 	description:
 		"Convert text to speech using OpenAI TTS (tts-1). Saves audio as MP3 to ~/voice-memos/[timestamp]_[voice].mp3 and returns a MEDIA: path. Requires OPENAI_API_KEY environment variable.",
@@ -146,38 +152,3 @@ export const text_to_speech = tool(textToSpeechImpl, {
 		speed: z.number().min(0.25).max(4).default(1).describe("Speaking speed (0.25-4.0)"),
 	}),
 });
-
-// --- Factory functions for creating tools with runtime options ---
-
-/**
- * Create a text_to_speech tool with runtime options
- * @param {object} options - Runtime options
- * @returns {object} LangChain Tool instance
- */
-export function createTtsTool(options) {
-	return tool((input) => textToSpeechImpl(input, options), {
-		name: "textToSpeech",
-		description:
-			"Convert text to speech using OpenAI TTS (tts-1). Saves audio as MP3 to ~/voice-memos/.",
-		schema: z.object({
-			text: z.string().min(1).max(4096).describe("Text to convert to speech"),
-			voice: z
-				.enum([
-					"alloy",
-					"ash",
-					"ballad",
-					"coral",
-					"echo",
-					"fable",
-					"onyx",
-					"nova",
-					"sage",
-					"shimmer",
-				])
-				.default("alloy")
-				.describe("Voice to use for speech synthesis"),
-			model: z.enum(["tts-1", "tts-1-hd"]).default("tts-1").describe("TTS model"),
-			speed: z.number().min(0.25).max(4).default(1).describe("Speaking speed (0.25-4.0)"),
-		}),
-	});
-}

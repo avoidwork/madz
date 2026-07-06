@@ -1,6 +1,7 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { ChatOpenAI } from "@langchain/openai";
+import { loadConfig } from "../config/loader.js";
 
 const MAX_IMAGE_SIZE = 4 * 1024 * 1024; // 4MB
 
@@ -73,17 +74,22 @@ async function fetchImageFromUrl(url) {
 /**
  * Analyze an image by sending it to the configured multimodal LLM.
  * @param {object} input - Tool input with url or dataUri
- * @param {object} options - Runtime options
+ * @param {object} [options] - Runtime options for test injection
+ * @param {string} [options.openaiApiKey] - OpenAI API key (overrides config)
  * @returns {Promise<string>} JSON result string
  */
-export async function visionAnalyzeImpl(input, options) {
+export async function visionAnalyzeImpl(input, options = {}) {
 	const { url, dataUri, prompt: _prompt } = input;
 
 	if (!url && !dataUri) {
 		return JSON.stringify({ ok: false, error: "Either url or dataUri is required" });
 	}
 
-	const apiKey = options?.openaiApiKey;
+	const config = loadConfig();
+	const providers = config.providers || {};
+	const providersOpenAI = providers?.openai || {};
+	const credentials = providersOpenAI?.credentials || {};
+	const apiKey = options.openaiApiKey || credentials?.apiKey;
 	if (!apiKey) {
 		return JSON.stringify({
 			ok: false,
@@ -158,7 +164,7 @@ export async function visionAnalyzeImpl(input, options) {
  * @param {object} _options - Runtime options
  * @returns {string} JSON result string
  */
-export const vision_analyze = tool(visionAnalyzeImpl, {
+export const visionAnalyze = tool(visionAnalyzeImpl, {
 	name: "visionAnalyze",
 	description:
 		"Analyze an image by sending it to a multimodal LLM. Accepts a URL or base64 data URI. The image is fetched, validated (max 4MB), and sent to GPT-4o for description or answering a specific question about the image.",
@@ -171,26 +177,3 @@ export const vision_analyze = tool(visionAnalyzeImpl, {
 			.describe("Question or instruction about the image (default: describe the image)"),
 	}),
 });
-
-// --- Factory functions for creating tools with runtime options ---
-
-/**
- * Create a vision_analyze tool with runtime options
- * @param {object} options - Runtime options
- * @returns {object} LangChain Tool instance
- */
-export function createVisionTool(options) {
-	return tool((input) => visionAnalyzeImpl(input, options), {
-		name: "visionAnalyze",
-		description:
-			"Analyze an image by sending it to a multimodal LLM. Accepts a URL or base64 data URI.",
-		schema: z.object({
-			url: z.string().url().optional().describe("URL of the image to analyze"),
-			dataUri: z.string().optional().describe("Base64 data URI (data:image/png;base64,...)"),
-			prompt: z
-				.string()
-				.optional()
-				.describe("Question or instruction about the image (default: describe the image)"),
-		}),
-	});
-}

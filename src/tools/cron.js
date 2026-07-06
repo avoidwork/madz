@@ -8,7 +8,7 @@ import { Cron } from "../../src/scheduler/cron.js";
 import { logger } from "../logger.js";
 import { loadConfig } from "../config/loader.js";
 
-const cwd = loadConfig().cwd;
+const config = loadConfig();
 
 /// -- Helper to find skill script --
 
@@ -60,7 +60,7 @@ export async function findSkillScript(skillName, baseDir = ["system-skills", "sk
  * @returns {Promise<{ stdout: string, stderr: string, exitCode: number }>}
  */
 export async function runScript(scriptPath, args = [], options = {}) {
-	const { timeout = 30000, cwd: scriptCwd = cwd } = options;
+	const { timeout = 30000, cwd: scriptCwd = config.cwd } = options;
 	return new Promise((resolve) => {
 		const child = spawn(scriptPath, args, {
 			cwd: scriptCwd,
@@ -434,46 +434,12 @@ export async function cronJobImpl(input, options) {
  * @param {object} _options - Runtime options
  * @returns {string} JSON result string
  */
-export const cronJob = tool(cronJobImpl, {
-	name: "cronJob",
-	description:
-		"Manage scheduled cron jobs persisted to memory/schedules/. Actions: create, list, update, pause, resume, run, remove. Job metadata stored as JSON files. Requires network:outbound permission for run action.",
-	schema: z.object({
-		action: z
-			.enum(["create", "list", "update", "pause", "resume", "run", "remove"])
-			.describe("Action to perform"),
-		name: z
-			.string()
-			.optional()
-			.describe("Job name (required for create, update, pause, resume, run, remove)"),
-		cron: z
-			.string()
-			.optional()
-			.describe("Cron expression (5-6 fields, required for create, optional for update)"),
-		skill: z
-			.string()
-			.optional()
-			.describe("Skill name to trigger (required for create if command not provided)"),
-		command: z
-			.string()
-			.optional()
-			.describe("Shell command to execute (required for create if skill not provided)"),
-		input: z.record(z.unknown()).optional().describe("Job input parameters"),
-	}),
-});
-
-// --- Factory functions for creating tools with runtime options ---
-
-/**
- * Create a cronJob tool with runtime options
- * @param {object} options - Runtime options
- * @returns {object} LangChain Tool instance
- */
-export function createCronTool(options) {
-	return tool((input) => cronJobImpl(input, options), {
+export const cronJob = tool(
+	(input) => cronJobImpl(input, { schedulesDir: config.memory.schedulesDir }),
+	{
 		name: "cronJob",
 		description:
-			"Manage scheduled cron jobs persisted to memory/schedules/. Actions: create, list, update, pause, resume, run, remove.",
+			"Manage scheduled cron jobs persisted to memory/schedules/. Actions: create, list, update, pause, resume, run, remove. Job metadata stored as JSON files. Requires network:outbound permission for run action.",
 		schema: z.object({
 			action: z
 				.enum(["create", "list", "update", "pause", "resume", "run", "remove"])
@@ -496,5 +462,5 @@ export function createCronTool(options) {
 				.describe("Shell command to execute (required for create if skill not provided)"),
 			input: z.record(z.unknown()).optional().describe("Job input parameters"),
 		}),
-	});
-}
+	},
+);

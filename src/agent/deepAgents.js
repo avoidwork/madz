@@ -1,4 +1,4 @@
-import { createDeepAgent, CompositeBackend } from "deepagents";
+import { createDeepAgent, CompositeBackend, createHarnessProfile, registerHarnessProfile } from "deepagents";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { InMemoryStore } from "@langchain/langgraph-checkpoint";
@@ -10,6 +10,7 @@ import { buildToolConfig } from "../tools/index.js";
 import { createCoreBackend } from "./coreBackend.js";
 import { createContextBackend } from "./contextBackend.js";
 import { createDmzBackend } from "./dmzBackend.js";
+import { logger } from "../logger.js";
 
 function loadCodingAgentPrompt(baseDir) {
 	try {
@@ -42,6 +43,19 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	const providerConfig = config.providers[providerName] || {};
 	const model = createChatModel(providerConfig);
 
+	// Register harness profile for subagents using config-derived model identifier
+	const modelIdentifier = `${providerName}:${providerConfig.model}`;
+	registerHarnessProfile(
+		modelIdentifier,
+		createHarnessProfile({
+			excludedMiddleware: [
+				"TodoListMiddleware",
+				//"FilesystemMiddleware",
+				"SummarizationMiddleware",
+			],
+		}),
+	);
+
 	// Build tools from config — separate sets for orchestrator and subagent
 	const buildOptions = {
 		permissions: config.sandbox.permissions || [],
@@ -56,10 +70,15 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 		ephemeralTtlDays: config.memory?.ephemeral?.ttlDays || 7,
 		ephemeralMaxEntries: config.memory?.ephemeral?.maxEntries || 10,
 		config,
+		checkpointer,
 	};
 
 	// Build all tools without filtering — pass everything to orchestrator and subagent
-	const allTools = await buildToolConfig(buildOptions);
+	const tools = await buildToolConfig(buildOptions);
+	logger.info(
+		{ tools: tools.map((t) => ({ name: t.name, type: typeof t, lc: t?.lc })) },
+		`Tools: ${tools.length}`,
+	);
 
 	const coreBackend = createCoreBackend();
 	const dmzBackend = createDmzBackend();
@@ -70,7 +89,7 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 
 	return createDeepAgent({
 		model,
-		tools: allTools,
+		tools,
 		systemPrompt,
 		store: new InMemoryStore(),
 		backend: new CompositeBackend(coreBackend, {
@@ -85,7 +104,7 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 				systemPrompt:
 					codingAgentPrompt || "You are a coding specialist. Handle all code-related tasks.",
 				model,
-				tools: allTools,
+				tools,
 			},
 		],
 		...(agentsPath && { memory: [agentsPath] }),

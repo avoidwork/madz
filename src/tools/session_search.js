@@ -5,7 +5,8 @@ import { join } from "node:path";
 import { parseFrontmatter } from "../memory/reader.js";
 import { loadConfig } from "../config/loader.js";
 
-const cwd = loadConfig().cwd;
+const config = loadConfig();
+export let cwd = config.cwd;
 const FS = Object.freeze({ MODE_RDONLY: 0 });
 
 /**
@@ -26,12 +27,16 @@ async function exists(path) {
  * Search past conversations. Supports query keyword search,
  * full conversation retrieval by ID, or browsing all sessions.
  * @param {z.infer<typeof SessionSearchSchema>} input - The tool input
- * @param {object} options - Runtime options
- * @param {string} options.sessionsDir - Path to sessions directory
+ * @param {object} [options] - Runtime options for test injection
+ * @param {string} [options.cwd] - Working directory (overrides config)
+ * @param {string} [options.sessionsDir] - Sessions subdirectory (overrides config)
  * @returns {Promise<string>} Search results or conversation content
  */
-export async function sessionSearchImpl(input, options) {
-	const sessionsDir = join(cwd, options.sessionsDir || "memory/sessions/");
+export async function sessionSearchImpl(input, options = {}) {
+	const config = loadConfig();
+	const cwd = options.cwd || config.cwd;
+	const memory = config.memory || {};
+	const sessionsDir = join(cwd, options.sessionsDir || memory.sessionsDir || "memory/sessions/");
 
 	if (input.conversationId) {
 		return getFullConversation(sessionsDir, input.conversationId);
@@ -44,7 +49,7 @@ export async function sessionSearchImpl(input, options) {
 	return browseConversations(sessionsDir);
 }
 
-export const session_search = tool(sessionSearchImpl, {
+export const sessionSearch = tool(sessionSearchImpl, {
 	name: "sessionSearch",
 	description:
 		"Search past conversations. Use query for keyword search, conversationId for full retrieval, or call without arguments to browse available conversations.",
@@ -230,24 +235,4 @@ async function browseConversations(sessionsDir) {
 		null,
 		0,
 	);
-}
-
-// --- Factory functions for creating tools with runtime options ---
-
-/**
- * Create a session_search tool with runtime options
- * @param {object} options - Runtime options
- * @returns {object} LangChain Tool instance
- */
-export function createSessionSearchTool(options) {
-	return tool((input) => sessionSearchImpl(input, options), {
-		name: "sessionSearch",
-		description:
-			"Search past conversations. Use query for keyword search, conversationId for full retrieval, or call without arguments to browse available conversations.",
-		schema: z.object({
-			query: z.string().optional().describe("Search query to find matching conversations"),
-			conversationId: z.string().optional().describe("Get full conversation by ID"),
-			limit: z.number().int().positive().default(10).describe("Maximum number of search results"),
-		}),
-	});
 }

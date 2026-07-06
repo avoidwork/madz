@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { readEphemeralFile, isExpired } from "../memory/expireEphemeral.js";
 import { loadConfig } from "../config/loader.js";
 
-const cwd = loadConfig().cwd;
+const config = loadConfig();
 
 const COOLDOWN_MS = 60 * 60 * 1000; // 60 minutes
 
@@ -42,7 +42,7 @@ export async function writeEphemeralMemory(contextDir, content, expiresAt) {
 	const now = new Date();
 	const timestamp = now.toISOString().replace(/[:.]/g, "-");
 	const slug = "ephemeral-" + timestamp.substring(0, 23).replace(/[:.]/g, "-");
-	const filepath = join(cwd, contextDir, `${slug}.md`);
+	const filepath = join(config.cwd, contextDir, `${slug}.md`);
 	const frontmatter = {
 		title: "Ephemeral Memory",
 		timestamp: now.toISOString(),
@@ -60,7 +60,7 @@ export async function writeEphemeralMemory(contextDir, content, expiresAt) {
 		content,
 		"",
 	];
-	await mkdir(join(cwd, contextDir), { recursive: true });
+	await mkdir(join(config.cwd, contextDir), { recursive: true });
 	await writeFile(filepath, lines.join("\n"), "utf-8");
 	return filepath;
 }
@@ -75,7 +75,7 @@ export async function countEphemeralMemoryFiles(contextDir, nowStr) {
 	const now = nowStr ? new Date(nowStr) : new Date();
 	let files;
 	try {
-		files = await readdir(join(cwd, contextDir));
+		files = await readdir(join(config.cwd, contextDir));
 	} catch {
 		return 0;
 	}
@@ -93,21 +93,23 @@ export async function countEphemeralMemoryFiles(contextDir, nowStr) {
 /**
  * Core sampling implementation with rate limiting and capacity checks.
  * @param {z.infer<typeof SamplingSchema>} input - The tool input with content
- * @param {object} runtimeOptions - Runtime options
- * @param {string} runtimeOptions.contextDir - Directory for ephemeral memories
- * @param {number} runtimeOptions.ttlDays - TTL in days
- * @param {number} runtimeOptions.maxEntries - Maximum concurrent ephemeral entries
- * @param {(this: unknown, args: unknown[]) => unknown} [runtimeOptions.cleanupFn] - Async cleanup function
- * @param {number} [runtimeOptions.cooldownMs] - Cooldown in ms (default 60s)
- * @param {string} [runtimeOptions.lastWritten] - Last write ISO timestamp for cooldown
+ * @param {object} [options] - Runtime options for test injection
+ * @param {string} [options.contextDir] - Context directory (overrides config)
+ * @param {number} [options.ttlDays] - TTL in days (overrides default 7)
+ * @param {number} [options.maxEntries] - Max ephemeral entries (overrides default 10)
+ * @param {number} [options.cooldownMs] - Cooldown in ms (overrides default 60min)
+ * @param {string} [options.lastWritten] - ISO timestamp of last write (overrides module state)
  * @returns {Promise<string>} Result JSON string
  */
-export async function samplingImpl(input, runtimeOptions) {
+export async function samplingImpl(input, options = {}) {
 	const { content } = input;
-	const contextDir = runtimeOptions.contextDir || "memory/context/";
-	const ttlDays = runtimeOptions.ttlDays || 7;
-	const maxEntries = runtimeOptions.maxEntries || 10;
-	const cooldownMs = runtimeOptions.cooldownMs || COOLDOWN_MS;
+	const config = loadConfig();
+	const memory = config.memory || {};
+	const contextDir = options.contextDir || memory.contextDir || "memory/context/";
+	const ttlDays = options.ttlDays ?? 7;
+	const maxEntries = options.maxEntries ?? 10;
+	const cooldownMs = options.cooldownMs ?? COOLDOWN_MS;
+	const lastWritten = options.lastWritten;
 
 	if (!content || (typeof content === "string" && content.trim() === "")) {
 		return JSON.stringify({
@@ -117,8 +119,8 @@ export async function samplingImpl(input, runtimeOptions) {
 	}
 
 	// Check cooldown
-	if (runtimeOptions.lastWritten) {
-		const elapsed = Date.now() - new Date(runtimeOptions.lastWritten).getTime();
+	if (lastWritten) {
+		const elapsed = Date.now() - new Date(lastWritten).getTime();
 		if (elapsed < cooldownMs) {
 			const remaining = Math.ceil(((cooldownMs - elapsed) / 1000 / 60) * 10) / 10;
 			return JSON.stringify({
@@ -167,58 +169,25 @@ export const SamplingSchema = z.object({
 		),
 });
 
+let _lastWritten = undefined;
+
 /**
- * Create a sampling tool with runtime options.
- * @param {object} options - Runtime options
- * @param {string} [options.contextDir] - Directory for ephemeral memories
- * @param {number} [options.ttlDays] - TTL in days
- * @param {number} [options.maxEntries] - Maximum concurrent ephemeral entries
- * @param {number} [options.cooldownMs] - Cooldown in ms
- * @param {(this: unknown, args: unknown[]) => unknown} [options.cleanupFn] - Async cleanup function (from memory module)
- * @returns {object} LangChain tool instance
+ * Sampling tool singleton — captures a high-intensity moment as an ephemeral memory.
+ * Rate limited to 1 capture per 60 minutes. Capacity-limited to max concurrent ephemeral entries.
  */
-export function createSamplingTool(options = {}) {
-	const {
-		contextDir = "memory/context/",
-		ttlDays = 7,
-		maxEntries = 10,
-		cooldownMs = COOLDOWN_MS,
-		cleanupFn,
-	} = options;
-	let lastWritten = undefined;
+export const sampling = tool(
+	async (input) => {
+		const result = await samplingImpl(input);
 
-	const opts = {
-		contextDir,
-		ttlDays,
-		maxEntries,
-		cooldownMs,
-		cleanupFn,
-		get lastWritten() {
-			return lastWritten;
-		},
-		set lastWritten(v) {
-			lastWritten = v;
-		},
-	};
-
-	const impl = async (input) => {
-		const result = await samplingImpl(input, opts);
-
-		// Update lastWritten if successful
+		// Update _lastWritten if successful
 		const parsed = JSON.parse(result);
 		if (parsed.ok && parsed.createdAt) {
-			lastWritten = parsed.createdAt;
-		}
-
-		// Call cleanup function asynchronously (fire-and-forget)
-		if (opts.cleanupFn) {
-			queueMicrotask(() => opts.cleanupFn(opts.contextDir));
+			_lastWritten = parsed.createdAt;
 		}
 
 		return result;
-	};
-
-	return tool(impl, {
+	},
+	{
 		name: "sampling",
 		description:
 			"Sampling tool for capturing high-intensity emotional moments or memory reinforcement signals as ephemeral memories. " +
@@ -226,5 +195,5 @@ export function createSamplingTool(options = {}) {
 			"Rate limited to 1 capture per 60 minutes. Capacity-limited to max concurrent ephemeral entries. " +
 			"Use during moments of joy, sadness, grief, or when loaded memories strongly reinforce key beliefs.",
 		schema: SamplingSchema,
-	});
-}
+	},
+);

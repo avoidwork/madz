@@ -1,17 +1,21 @@
-import { createShellTool, createProcessTool } from "./shell.js";
-import { createQueuedTodoTool } from "./todo.js";
-import { createSessionSearchTool } from "./session_search.js";
-import { createClarifyTool } from "./clarify.js";
-import { createWebSearchTool, createWebExtractTool } from "./web.js";
-import { createVisionTool } from "./vision.js";
-import { createImageTool } from "./image.js";
-import { createCodeTool } from "./code.js";
-import { createCronTool } from "./cron.js";
-import { createTtsTool } from "./tts.js";
-import { createMoaTool } from "./moa.js";
-import { createSamplingTool } from "./sampling.js";
-import { createDateTool } from "./date.js";
-import { createScanAgentsTool } from "./scanAgents.js";
+import { clarify } from "./clarify.js";
+import { executeCode } from "./code.js";
+import { createCompactContextTool } from "./compact_context.js";
+import { cronJob } from "./cron.js";
+import { date } from "./date.js";
+import { patch, readFile, searchFiles, writeFile } from "./filesystem.js";
+import { scanAgents } from "./scanAgents.js";
+import { imageGenerate } from "./image.js";
+import { memory } from "./memory.js";
+import { mixtureOfAgents } from "./moa.js";
+import { sampling } from "./sampling.js";
+import { sessionSearch } from "./session_search.js";
+import { shell, processTool } from "./shell.js";
+import { createSkill, skillView, skillsList } from "./skills.js";
+import { todo } from "./todo.js";
+import { textToSpeech } from "./tts.js";
+import { visionAnalyze } from "./vision.js";
+import { webSearch, webExtract } from "./web.js";
 
 /**
  * Maps tool names to required permission scopes.
@@ -19,67 +23,60 @@ import { createScanAgentsTool } from "./scanAgents.js";
  * Clarify and execute_code are exempt (always registered) since they require zero permissions.
  */
 export const TOOL_PERMISSIONS = {
-	shell: ["filesystem:exec", "process:spawn"],
-	process: ["process:spawn"],
-	todo: ["filesystem:read", "filesystem:write"],
-	sessionSearch: ["filesystem:read"],
-	clarify: [],
-	webSearch: ["network:outbound"],
-	webExtract: ["network:outbound"],
-	visionAnalyze: [],
-	imageGenerate: ["network:outbound"],
-	executeCode: [],
+	clarify: ["filesystem:read", "filesystem:write"],
+	compactContext: ["filesystem:read"],
 	cronJob: ["network:outbound"],
-	textToSpeech: [],
-	mixtureOfAgents: [],
-	sampling: [],
+	createSkill: ["filesystem:write"],
 	date: [],
-	scanAgents: [],
+	executeCode: ["filesystem:exec", "process:spawn"],
+	imageGenerate: ["network:outbound"],
+	memory: ["filesystem:read", "filesystem:write"],
+	mixtureOfAgents: ["network:outbound"],
+	patch: ["filesystem:read", "filesystem:write"],
+	process: ["process:spawn"],
+	readFile: ["filesystem:read"],
+	sampling: ["filesystem:write"],
+	scanAgents: ["filesystem:read"],
+	searchFiles: ["filesystem:read"],
+	sessionSearch: ["filesystem:read"],
+	shell: ["filesystem:exec", "process:spawn"],
+	skillView: ["filesystem:read"],
+	skillsList: ["filesystem:read"],
+	textToSpeech: [],
+	todo: ["filesystem:read", "filesystem:write"],
+	visionAnalyze: [],
+	webExtract: ["network:outbound"],
+	webSearch: ["network:outbound"],
+	writeFile: ["filesystem:write"],
 };
 
-// Factory functions keyed by tool name
+// Tool instances keyed by tool name
 const TOOL_FACTORIES = {
-	shell: createShellTool,
-	process: createProcessTool,
-	todo: createQueuedTodoTool,
-	sessionSearch: createSessionSearchTool,
-	clarify: createClarifyTool,
-	webSearch: createWebSearchTool,
-	webExtract: createWebExtractTool,
-	visionAnalyze: createVisionTool,
-	imageGenerate: createImageTool,
-	executeCode: createCodeTool,
-	cronJob: createCronTool,
-	textToSpeech: createTtsTool,
-	mixtureOfAgents: createMoaTool,
-	sampling: createSamplingTool,
-	date: createDateTool,
-	scanAgents: createScanAgentsTool,
-};
-
-/**
- * Maps tool names to their agent type classification.
- * - `orchestrator`: Tools the orchestrator uses for coordination (delegation, routing, synthesis)
- * - `subagent`: Tools subagents use for execution (code editing, terminal, file operations)
- * - `shared`: Tools both orchestrator and subagents may need
- */
-export const TOOL_CLASSIFICATIONS = {
-	shell: "shared", // Both: shell access for orchestrator and subagents
-	process: "shared", // Both: process management for orchestrator and subagents
-	todo: "", // Disabled: task management tool removed from registry
-	sessionSearch: "orchestrator", // Coordination: orchestrator searches past sessions for context
-	clarify: "shared", // Both: may need to clarify with user
-	webSearch: "shared", // Both: may need to search the web
-	webExtract: "shared", // Both: may need to extract web content
-	visionAnalyze: "orchestrator", // Coordination: orchestrator analyzes images
-	imageGenerate: "orchestrator", // Coordination: image generation for orchestrator
-	executeCode: "subagent", // Execution: code execution for subagents
-	cronJob: "orchestrator", // Coordination: scheduling for orchestrator
-	textToSpeech: "orchestrator", // Coordination: TTS for orchestrator
-	mixtureOfAgents: "orchestrator", // Coordination: MOA for orchestrator decision-making
-	sampling: "orchestrator", // Coordination: memory sampling for orchestrator
-	date: "shared", // Both: may need date/time info
-	scanAgents: "orchestrator", // Coordination: scanning for AGENTS.md files
+	clarify,
+	compactContext: createCompactContextTool,
+	cronJob,
+	createSkill,
+	date,
+	executeCode,
+	imageGenerate,
+	memory,
+	mixtureOfAgents,
+	patch,
+	process: processTool,
+	readFile,
+	sampling,
+	scanAgents,
+	searchFiles,
+	sessionSearch,
+	shell,
+	skillView,
+	skillsList,
+	textToSpeech,
+	todo,
+	visionAnalyze,
+	webExtract,
+	webSearch,
+	writeFile,
 };
 
 /**
@@ -98,7 +95,6 @@ export const TOOL_CLASSIFICATIONS = {
  * @param {string} [options.contextDir] - Directory for memory entries
  * @param {number} [options.ephemeralTtlDays] - TTL for ephemeral memories
  * @param {number} [options.ephemeralMaxEntries] - Max concurrent ephemeral entries
- * @param {string[]} [options.classificationFilter] - Filter tools by classification (e.g., ['orchestrator', 'shared']). When omitted, all tools are included.
  * @param {object} [options.config] - Resolved config object from loadConfig()
  * @param {object} [options.config.providers] - Provider configs (openai, openrouter, fal)
  * @param {object} [options.config.search] - Search backend configs
@@ -117,8 +113,8 @@ export async function buildToolConfig(options) {
 		contextDir = "memory/context/",
 		ephemeralTtlDays = 7,
 		ephemeralMaxEntries = 10,
-		classificationFilter,
 		config,
+		checkpointer,
 	} = options;
 
 	// Extract resolved API keys from config fallback
@@ -182,10 +178,26 @@ export async function buildToolConfig(options) {
 		switch (toolName) {
 			case "clarify":
 			case "executeCode":
-			case "sampling":
+			case "sampling": {
+				tools.push(TOOL_FACTORIES[toolName]);
+				continue;
+			}
+
+			case "compactContext": {
+				if (!hasAllPerms) continue;
+				tools.push(createCompactContextTool({ checkpointer }));
+				continue;
+			}
+
+			case "readFile":
+			case "writeFile":
+			case "patch":
+			case "searchFiles":
+			case "scanAgents":
 			case "date":
-			case "scanAgents": {
-				tools.push(TOOL_FACTORIES[toolName](runtimeOptions));
+			case "cronJob": {
+				if (!hasAllPerms) continue;
+				tools.push(TOOL_FACTORIES[toolName]);
 				continue;
 			}
 
@@ -202,50 +214,35 @@ export async function buildToolConfig(options) {
 					(runtimeOptions.searchCustomConfig?.url &&
 						runtimeOptions.searchCustomConfig?.apiKey !== undefined);
 				if (!hasAnySearch) continue;
-				tools.push(TOOL_FACTORIES[toolName](runtimeOptions));
+				tools.push(TOOL_FACTORIES[toolName]);
 				continue;
 			}
 
 			case "visionAnalyze": {
 				if (!runtimeOptions.openaiApiKey) continue;
-				tools.push(TOOL_FACTORIES[toolName](runtimeOptions));
+				tools.push(TOOL_FACTORIES[toolName]);
 				continue;
 			}
 
 			case "imageGenerate": {
 				if (!hasAllPerms || !runtimeOptions.falApiKey) continue;
-				tools.push(TOOL_FACTORIES[toolName](runtimeOptions));
+				tools.push(TOOL_FACTORIES[toolName]);
 				continue;
 			}
 
-			case "cronJob":
 			case "textToSpeech":
 			case "mixtureOfAgents": {
-				if (toolName === "cronJob" && !hasAllPerms) continue;
 				if (toolName === "textToSpeech" && !runtimeOptions.openaiApiKey) continue;
 				if (toolName === "mixtureOfAgents" && !runtimeOptions.openrouterApiKey) continue;
-				tools.push(TOOL_FACTORIES[toolName](runtimeOptions));
+				tools.push(TOOL_FACTORIES[toolName]);
 				continue;
 			}
 
 			default: {
 				if (requiredPerms.length > 0 && !hasAllPerms) continue;
-				tools.push(TOOL_FACTORIES[toolName](runtimeOptions));
+				tools.push(TOOL_FACTORIES[toolName]);
 			}
 		}
-	}
-
-	// Filter by classification if a filter is provided
-	if (classificationFilter && classificationFilter.length > 0) {
-		const filterSet = new Set(classificationFilter);
-		const filteredTools = [];
-		for (const tool of tools) {
-			const classification = TOOL_CLASSIFICATIONS[tool.name];
-			if (classification && filterSet.has(classification)) {
-				filteredTools.push(tool);
-			}
-		}
-		return filteredTools;
 	}
 
 	return tools;

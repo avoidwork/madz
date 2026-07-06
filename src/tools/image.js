@@ -1,5 +1,6 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
+import { loadConfig } from "../config/loader.js";
 
 const DEFAULT_TIMEOUT = 30000;
 
@@ -53,10 +54,11 @@ async function generateWithFal(apiKey, prompt, timeout) {
 /**
  * Generate an image via the configured image API.
  * @param {object} input - Tool input
- * @param {object} _options - Runtime options
+ * @param {object} [options] - Runtime options for test injection
+ * @param {string} [options.falApiKey] - FAL.ai API key (overrides config)
  * @returns {Promise<string>} JSON result string
  */
-export async function imageGenerateImpl(input, options) {
+export async function imageGenerateImpl(input, options = {}) {
 	const { prompt, timeout } = input;
 
 	if (!prompt || typeof prompt !== "string" || prompt.trim().length === 0) {
@@ -70,7 +72,8 @@ export async function imageGenerateImpl(input, options) {
 		return JSON.stringify({ ok: false, error: "Prompt must be 1000 characters or fewer" });
 	}
 
-	const apiKey = options?.falApiKey;
+	const config = loadConfig();
+	const apiKey = options.falApiKey ?? config.providers?.fal?.credentials?.apiKey;
 	if (!apiKey) {
 		return JSON.stringify({
 			ok: false,
@@ -95,11 +98,12 @@ export async function imageGenerateImpl(input, options) {
 }
 
 /**
- * @param {z.infer<typeof ImageSchema>} input - Tool in		name: "imageGenerate",_options - Runtime options
+ * @param {z.infer<typeof ImageSchema>} input - Tool input
+ * @param {object} _options - Runtime options
  * @returns {string} JSON result string
  */
-export const image_generate = tool(imageGenerateImpl, {
-	name: "image_generate",
+export const imageGenerate = tool(imageGenerateImpl, {
+	name: "imageGenerate",
 	description:
 		"Generate an image from a text prompt using FAL.ai (FLUX Klein model). Returns a public image URL. Requires FAL_API_KEY environment variable",
 	schema: z.object({
@@ -114,29 +118,3 @@ export const image_generate = tool(imageGenerateImpl, {
 			.describe("Request timeout in ms (default: 30000)"),
 	}),
 });
-
-// --- Factory functions for creating tools with runtime options ---
-
-/**
- * Create an image_generate tool with runtime options
- * @param {object} options - Runtime options
- * @returns {object} LangChain Tool instance
- */
-export function createImageTool(options) {
-	return tool((input) => imageGenerateImpl(input, options), {
-		name: "imageGenerate",
-		description:
-			"Generate an image from a text prompt using FAL.ai (FLUX Klein model). Returns a public image URL.",
-		schema: z.object({
-			prompt: z.string().min(1).max(1000).describe("Text description of the image to generate"),
-			falApiKey: z.string().optional().describe("FAL.ai API key"),
-			timeout: z
-				.number()
-				.int()
-				.min(5000)
-				.max(60000)
-				.optional()
-				.describe("Request timeout in ms (default: 30000)"),
-		}),
-	});
-}

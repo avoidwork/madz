@@ -413,31 +413,36 @@ Uses the [Deep Agents](https://github.com/avoidwork/deepagents) library to orche
 When conversations grow long enough to exceed the model's maximum context length, `madz` automatically detects the error and triggers a compaction routine. A tiered retention strategy preserves high-fidelity information: the system prompt and the most recent exchanges are kept intact, older exchanges are summarized into concise bullet-point previews, and the oldest messages are d| **Agents**          | `mixtureOfAgents` — multi-agent orchestration; `scanAgents` — scan for `AGENTS.md` workspace rules files in a target directory |t, the user is presented with a clear error message. This happens transparently; the user never needs to start a new session or manually manage context.
 
 ### Built-in Tools
-Some tools are provided by the [Deep Agents](https://github.com/avoidwork/deepagents) library as middleware wired into the orchestrator — always available. Others are built-in LangChain tools gated by sandbox permissions.
 
-**Deep Agents middleware:**
+All built-in tools are defined in `src/tools/` and registered as LangChain tools, gated by sandbox permissions.
 
-| Capability | Tools |
-| ---------- | ----- |
-| **Filesystem** | `read_file`, `write_file` (500KB cap), `patch` (9-strategy fuzzy matching + unified diff), `search_files` (ripgrep with native fs fallback) |
-| **Memory** | `memory` — persistent memory tool with CRUD (create, read, update, delete, list). Each memory is stored as an individual `.md` file in `memory/context/` with `createdDate` and `updatedDate` metadata. |
-| **Skills** | `skills_list` — lists discovered skills; `skillView` — views skill metadata and SKILL.md; `createSkill` — creates spec-compliant skill directories with SKILL.md frontmatter (requires `filesystem:write`) |
-| **Summarization** | `compactContext`, `compaction` — automatic conversation context compaction |
-
-**Built-in LangChain tools:**
-
-| Category | Tools |
-| -------- | ----- |
-| **Shell** | `shell` — shell command execution (foreground/background); `process` — background process management (list, poll, wait, kill, write, pause, resume) |
-| **Task Management** | `todo` — CRUD list persisted to `memory/tools/todo.json` |
-| **Search** | `sessionSearch` — query past conversations by keyword, ID, or browse |
-| **Clarification** | `clarify` — sends clarification questions to the user |
-| **Utility** | `sampling` — capture emotional moments as ephemeral memories (rate-limited); `date` — return current date/time (zero-permission, always registered) |
-| **Code** | `executeCode` — code execution and analysis |
-| **Web** | `webSearch`, `web_extract` — outbound HTTP with timeout, URL allowlist filtering, multi-engine search backends |
-| **Media** | `image_generate` — image generation via fal.ai; `visionAnalyze` — vision/language analysis via OpenAI; `textToSpeech` — text-to-speech via OpenAI TTS |
-| **Agents** | `mixtureOfAgents` — multi-agent orchestration; `scanAgents` — scan for `AGENTS.md` workspace rules files in a target directory |
-| **Cron** | `cronJob` — cron job utilities |
+| Tool | Description |
+| ---- | ----------- |
+| `clarify` | Send clarification questions to the user with optional numbered choices. Zero permissions — always registered. |
+| `compactContext` | Reduce conversation context when LLM context length is exceeded. Tiered retention: retain recent, summarize older, drop oldest. |
+| `cronJob` | Manage scheduled cron jobs — create, list, update, pause, resume, run, remove. Persisted to `memory/schedules/`. |
+| `createSkill` | Create a spec-compliant skill directory with SKILL.md YAML frontmatter. Optionally scaffolds a `scripts/` directory. |
+| `date` | Return current date/time in ISO 8601 UTC or human-readable format. Zero permissions — always registered. |
+| `executeCode` | Execute code in a sandboxed subprocess. Supports `python3`, `javascript` (node), and `shell`. |
+| `imageGenerate` | Generate images via FAL.ai flux/klein API. |
+| `memory` | Persistent key-value memory with CRUD actions (create, read, update, delete, list). Each entry stored as `.md` in `memory/context/` with `createdDate`/`updatedDate` metadata. |
+| `mixtureOfAgents` | Multi-agent orchestration via OpenRouter. Calls 4 reference prompts (factual, practical, creative, cautious) and synthesizes a consensus response. |
+| `patch` | Apply a patch using 9 fuzzy matching strategies (exact, whitespace, case-insensitive, etc.). Returns unified diff. |
+| `process` | Manage background processes — list, poll, wait, kill, write, pause, resume. |
+| `readFile` | Read file contents with optional pagination (`offset`/`limit`). Returns `LINE_NUM|CONTENT` format. |
+| `sampling` | Capture emotional moments as ephemeral memories. Rate-limited to 1 per 60 minutes. Stored with `expiresAt` frontmatter. |
+| `scanAgents` | Scan for `AGENTS.md` workspace rules files in a target directory. Returns file contents or empty string. |
+| `searchFiles` | Search file contents with ripgrep (native fs fallback). Supports filename and content patterns. |
+| `sessionSearch` | Search past conversations by keyword query, full retrieval by conversation ID, or browse all sessions. |
+| `shell` | Execute shell commands (foreground/background). Max command length 4096 chars. |
+| `skillView` | View full details for a skill by name — metadata, permissions, scripts, and full SKILL.md body. |
+| `skillsList` | List all discovered skills with name, description, and location from the registry catalog. |
+| `textToSpeech` | Convert text to speech via OpenAI TTS (tts-1/tts-1-hd). Saves MP3 to `~/voice-memos/`. |
+| `todo` | CRUD task list persisted to `memory/tools/todo.json`. Actions: read, create, update, complete, delete, list, clear. |
+| `visionAnalyze` | Analyze images via OpenAI multimodal LLM. Accepts URL or base64 data URI. |
+| `webExtract` | Extract readable text content from a web page URL. Supports summarization for large pages. |
+| `webSearch` | Search the web via DuckDuckGo, Google, Bing, SearXNG, or Custom endpoints. |
+| `writeFile` | Write content to a file, creating parent directories as needed. 500KB content cap. |
 
 ### Skills Registry
 
@@ -445,15 +450,16 @@ Auto-discovers Agent Skills spec-compliant skills from a `skills/` directory str
 
 ### Permission Gating
 
-Built-in tools are registered only when their required permissions are enabled for the session. Tools like `clarify` have zero permissions and always register.
+Built-in tools are registered only when their required permissions are enabled for the session. Tools like `date` have zero permissions and always register.
 
 | Permission Required                 | Tools                                                                      |
 | ----------------------------------- | -------------------------------------------------------------------------- |
-| `filesystem:read`                   | `read_file`, `search_files`, `skillView`, `sessionSearch` |
-| `filesystem:write`                  | `write_file`, `patch`, `todo`, `memory`, `createSkill`                    |
-| `filesystem:exec` + `process:spawn` | `shell`                                                                    |
+| `filesystem:read`                   | `compactContext`, `readFile`, `searchFiles`, `scanAgents`, `sessionSearch`, `skillView`, `skillsList` |
+| `filesystem:write`                  | `clarify`, `createSkill`, `memory`, `patch`, `sampling`, `todo`, `writeFile` |
+| `filesystem:exec` + `process:spawn` | `executeCode`, `shell`                                                     |
+| `network:outbound`                  | `cronJob`, `imageGenerate`, `mixtureOfAgents`, `webExtract`, `webSearch`   |
 | `process:spawn`                     | `process`                                                                  |
-| _(none)_                            | `clarify`                                                                  |
+| _(none)_                            | `date`, `textToSpeech`, `visionAnalyze`                                    |
 
 ### Memory System
 

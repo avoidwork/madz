@@ -89,7 +89,7 @@ describe("execute_code", () => {
 	it("times out long-running code", async () => {
 		const result = await executeCodeImpl(
 			{ code: "import time; time.sleep(100)", language: "python3" },
-			{ safety: { pythonImportHook: false } },
+			{ safety: { pythonImportHook: false }, timeout: { seconds: 5 } },
 		);
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);

@@ -9,11 +9,15 @@ import {
 	validateOptionalFields,
 	validateSkillSchema,
 } from "../skills/validator.js";
-import { ensureSkillsDir } from "../skills/registry.js";
+import { ensureSkillsDir, SkillRegistry } from "../skills/registry.js";
 import { PermissionSchema } from "../skills/types.js";
 import { loadConfig } from "../config/loader.js";
 
 export let cwd = loadConfig().cwd;
+
+// Discover skills from configured scopes
+const skillRegistry = new SkillRegistry();
+skillRegistry.discover();
 
 /**
  * Set the working directory. Used by tests to override cwd.
@@ -30,12 +34,10 @@ export function setCwd(newCwd) {
 /**
  * Core logic for listing all discovered skills via catalog (tier 1 progressive disclosure).
  * @param {z.infer<typeof SkillsListSchema>} input - The tool input (empty)
- * @param {object} options - Runtime options
- * @param {object} options.registry - The skill registry instance
  * @returns {object} List of skills with name, description, and location
  */
 export async function skillsListImpl(input, options) {
-	const registry = options?.registry;
+	const registry = options?.registry ?? skillRegistry;
 	const catalog =
 		registry && typeof registry.getCatalog === "function" ? registry.getCatalog() : [];
 
@@ -60,12 +62,10 @@ export async function skillsListImpl(input, options) {
 /**
  * Skills list tool that wraps skill core logic.
  * @param {z.infer<typeof SkillsListSchema>} input - The tool input (empty)
- * @param {object} options - Runtime options
- * @param {object} options.registry - The skill registry instance
  * @returns {object} List of skills with summaries
  */
-export const skills_list = tool(skillsListImpl, {
-	name: "skills_list",
+export const skillsList = tool(skillsListImpl, {
+	name: "skillsList",
 	description:
 		"List all discovered skills with their name, version, description, and permissions. Returns { skills: [...], count: N }.",
 	schema: z.object({}).default({}),
@@ -75,12 +75,11 @@ export const skills_list = tool(skillsListImpl, {
  * Core logic for viewing a single skill's details and SKILL.md content.
  * Legacy access path for manual TUI inspection.
  * @param {z.infer<typeof SkillViewSchema>} input - The tool input
- * @param {object} options - Runtime options
- * @param {object} options.registry - The skill registry instance
  * @returns {object} Skill details and full SKILL.md content
  */
-export async function skillViewImpl(input, options) {
-	const registry = options?.registry;
+export async function skillViewImpl(input) {
+	const config = loadConfig();
+	const registry = config.registry;
 	const name = input.name;
 	const skill = registry && typeof registry.get === "function" ? registry.get(name) : null;
 
@@ -117,8 +116,6 @@ export async function skillViewImpl(input, options) {
 /**
  * Skill view tool that wraps skill core logic.
  * @param {z.infer<typeof SkillViewSchema>} input - The tool input
- * @param {object} options - Runtime options
- * @param {object} options.registry - The skill registry instance
  * @returns {object} Skill details and full SKILL.md content
  */
 export const skillView = tool(skillViewImpl, {
@@ -135,15 +132,14 @@ export const skillView = tool(skillViewImpl, {
  * Validates metadata against Agent Skills spec, creates directory structure,
  * writes SKILL.md with YAML frontmatter, optionally scaffolds scripts/.
  * @param {z.infer<typeof CreateSkillSchema>} input - The tool input
- * @param {object} options - Runtime options
- * @param {string} options.skillsDir - Path to the skills directory
- * @param {object} [options.registry] - The skill registry instance
  * @returns {Promise<{ success: boolean, name: string, paths: string[], registered: boolean, errors?: string[], warnings?: string[] }>}
  */
-export async function createSkillImpl(input, options) {
+export async function createSkillImpl(input, options = {}) {
+	const config = loadConfig();
 	const { name, description, permissions, license, compatibility, metadata, scaffoldScripts } =
 		input;
-	const { skillsDir = "skills/", registry } = options || {};
+	const skillsDir = options.skillsDir || config.skillsDir || "skills/";
+	const registry = options.registry || config.registry;
 
 	// Validate name against spec constraints
 	const nameResult = validateSkillName(name);
@@ -328,9 +324,6 @@ export async function createSkillImpl(input, options) {
  * Creates a spec-compliant skill directory, writes SKILL.md with YAML frontmatter,
  * and optionally scaffolds a scripts/ directory.
  * @param {z.infer<typeof CreateSkillSchema>} input - The tool input
- * @param {object} options - Runtime options
- * @param {string} options.skillsDir - Path to the skills directory
- * @param {object} [options.registry] - The skill registry instance
  * @returns {Promise<{ success: boolean, name: string, paths: string[], registered: boolean, errors?: string[], warnings?: string[] }>}
  */
 export const createSkill = tool(createSkillImpl, {
@@ -398,87 +391,4 @@ export function generateSkillCatalogPrompt(catalog) {
 	}
 
 	return lines.join("\n");
-}
-
-// --- Factory functions for creating tools with runtime options ---
-
-/**
- * Create a skills_list tool with runtime options
- * @param {object} options - Runtime options
- * @returns {object} LangChain Tool instance
- */
-export function createSkillsListTool(options) {
-	return tool((input) => skillsListImpl(input, options), {
-		name: "skillsList",
-		description:
-			"List all discovered skills via catalog with name, description, and location. Returns { skills: [...], count: N }. Prefer using the system prompt skill catalog for normal operation.",
-		schema: z.object({}).default({}),
-	});
-}
-
-/**
- * Create a skill_view tool with runtime options
- * @param {object} options - Runtime options
- * @returns {object} LangChain Tool instance
- */
-export function createSkillViewTool(options) {
-	return tool((input) => skillViewImpl(input, options), {
-		name: "skillView",
-		description:
-			"View full details for a skill by name (legacy path). Returns name, version, description, license, compatibility, metadata, permissions, scripts, and SKILL.md body.",
-		schema: z.object({
-			name: z.string().describe("Name of the skill to view"),
-		}),
-	});
-}
-
-/**
- * Create a create_skill tool with runtime options
- * @param {object} options - Runtime options
- * @returns {object} LangChain Tool instance
- */
-export function createCreateSkillTool(options) {
-	return tool((input) => createSkillImpl(input, options), {
-		name: "createSkill",
-		description:
-			"Create a new Agent Skills spec-compliant skill. Creates the skill directory, writes SKILL.md with YAML frontmatter, and optionally scaffolds a scripts/ directory. Returns { success, name, paths, registered, errors?, warnings? }. Errors prevent creation.",
-		schema: z.object({
-			name: z
-				.string()
-				.min(1)
-				.max(64)
-				.describe("Skill name (lowercase alphanumeric + hyphens, 1-64 characters)"),
-			description: z
-				.string()
-				.min(1)
-				.max(1024)
-				.describe("What the skill does and when to use it (1-1024 characters)"),
-			permissions: z
-				.array(PermissionSchema)
-				.optional()
-				.describe(
-					"Permission scopes for sandbox execution: filesystem:read, filesystem:write, filesystem:exec, network:outbound, process:spawn, env:read",
-				),
-			license: z
-				.string()
-				.optional()
-				.describe("Open-source license for the skill (e.g., Apache-2.0)"),
-			compatibility: z
-				.string()
-				.max(500)
-				.optional()
-				.describe(
-					"Environment requirements (intended product, system packages, network access). Max 500 characters.",
-				),
-			metadata: z
-				.record(z.string())
-				.optional()
-				.describe("Arbitrary key-value metadata (string to string map)"),
-			scaffoldScripts: z
-				.boolean()
-				.optional()
-				.default(false)
-				.describe("Create a scripts/ directory with a README.md placeholder"),
-		}),
-	});
 }
