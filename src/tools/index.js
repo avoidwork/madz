@@ -3,7 +3,6 @@ import { executeCode } from "./code.js";
 import { createCompactContextTool } from "./compact_context.js";
 import { cronJob } from "./cron.js";
 import { date } from "./date.js";
-import { patch, readFile, searchFiles, writeFile } from "./filesystem.js";
 import { scanAgents } from "./scanAgents.js";
 import { imageGenerate } from "./image.js";
 import { memory } from "./memory.js";
@@ -12,7 +11,6 @@ import { sampling } from "./sampling.js";
 import { sessionSearch } from "./session_search.js";
 import { shell, processTool } from "./shell.js";
 import { createSkill, skillView, skillsList } from "./skills.js";
-import { todo } from "./todo.js";
 import { textToSpeech } from "./tts.js";
 import { visionAnalyze } from "./vision.js";
 import { webSearch, webExtract } from "./web.js";
@@ -32,26 +30,21 @@ export const TOOL_PERMISSIONS = {
 	imageGenerate: ["network:outbound"],
 	memory: ["filesystem:read", "filesystem:write"],
 	mixtureOfAgents: ["network:outbound"],
-	patch: ["filesystem:read", "filesystem:write"],
 	process: ["process:spawn"],
-	readFile: ["filesystem:read"],
 	sampling: ["filesystem:write"],
 	scanAgents: ["filesystem:read"],
-	searchFiles: ["filesystem:read"],
 	sessionSearch: ["filesystem:read"],
 	shell: ["filesystem:exec", "process:spawn"],
 	skillView: ["filesystem:read"],
 	skillsList: ["filesystem:read"],
 	textToSpeech: [],
-	todo: ["filesystem:read", "filesystem:write"],
 	visionAnalyze: [],
 	webExtract: ["network:outbound"],
 	webSearch: ["network:outbound"],
-	writeFile: ["filesystem:write"],
 };
 
 // Tool instances keyed by tool name
-const TOOL_FACTORIES = {
+const TOOLS = {
 	clarify,
 	compactContext: createCompactContextTool,
 	cronJob,
@@ -61,22 +54,17 @@ const TOOL_FACTORIES = {
 	imageGenerate,
 	memory,
 	mixtureOfAgents,
-	patch,
 	process: processTool,
-	readFile,
 	sampling,
 	scanAgents,
-	searchFiles,
 	sessionSearch,
 	shell,
 	skillView,
 	skillsList,
 	textToSpeech,
-	todo,
 	visionAnalyze,
 	webExtract,
 	webSearch,
-	writeFile,
 };
 
 /**
@@ -179,7 +167,7 @@ export async function buildToolConfig(options) {
 			case "clarify":
 			case "executeCode":
 			case "sampling": {
-				tools.push(TOOL_FACTORIES[toolName]);
+				tools.push(TOOLS[toolName]);
 				continue;
 			}
 
@@ -197,7 +185,7 @@ export async function buildToolConfig(options) {
 			case "date":
 			case "cronJob": {
 				if (!hasAllPerms) continue;
-				tools.push(TOOL_FACTORIES[toolName]);
+				tools.push(TOOLS[toolName]);
 				continue;
 			}
 
@@ -214,19 +202,19 @@ export async function buildToolConfig(options) {
 					(runtimeOptions.searchCustomConfig?.url &&
 						runtimeOptions.searchCustomConfig?.apiKey !== undefined);
 				if (!hasAnySearch) continue;
-				tools.push(TOOL_FACTORIES[toolName]);
+				tools.push(TOOLS[toolName]);
 				continue;
 			}
 
 			case "visionAnalyze": {
 				if (!runtimeOptions.openaiApiKey) continue;
-				tools.push(TOOL_FACTORIES[toolName]);
+				tools.push(TOOLS[toolName]);
 				continue;
 			}
 
 			case "imageGenerate": {
 				if (!hasAllPerms || !runtimeOptions.falApiKey) continue;
-				tools.push(TOOL_FACTORIES[toolName]);
+				tools.push(TOOLS[toolName]);
 				continue;
 			}
 
@@ -234,13 +222,13 @@ export async function buildToolConfig(options) {
 			case "mixtureOfAgents": {
 				if (toolName === "textToSpeech" && !runtimeOptions.openaiApiKey) continue;
 				if (toolName === "mixtureOfAgents" && !runtimeOptions.openrouterApiKey) continue;
-				tools.push(TOOL_FACTORIES[toolName]);
+				tools.push(TOOLS[toolName]);
 				continue;
 			}
 
 			default: {
 				if (requiredPerms.length > 0 && !hasAllPerms) continue;
-				tools.push(TOOL_FACTORIES[toolName]);
+				tools.push(TOOLS[toolName]);
 			}
 		}
 	}

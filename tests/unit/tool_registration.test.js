@@ -55,7 +55,7 @@ describe("tool registration - integration", () => {
 		});
 		const toolNames = tools.map((t) => t.name);
 		assert.ok(toolNames.includes("clarify")); // Always registered
-		assert.ok(toolNames.includes("todo")); // filesystem:read + filesystem:write
+		assert.ok(toolNames.includes("memory")); // filesystem:read + filesystem:write
 		assert.ok(!toolNames.includes("webSearch")); // needs network:outbound
 		assert.ok(!toolNames.includes("visionAnalyze")); // no openai config key, env var cleaned up
 	});

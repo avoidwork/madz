@@ -427,22 +427,19 @@ All built-in tools are defined in `src/tools/` and registered as LangChain tools
 | `imageGenerate` | Generate images via FAL.ai flux/klein API. |
 | `memory` | Persistent key-value memory with CRUD actions (create, read, update, delete, list). Each entry stored as `.md` in `memory/context/` with `createdDate`/`updatedDate` metadata. |
 | `mixtureOfAgents` | Multi-agent orchestration via OpenRouter. Calls 4 reference prompts (factual, practical, creative, cautious) and synthesizes a consensus response. |
-| `patch` | Apply a patch using 9 fuzzy matching strategies (exact, whitespace, case-insensitive, etc.). Returns unified diff. |
 | `process` | Manage background processes — list, poll, wait, kill, write, pause, resume. |
-| `readFile` | Read file contents with optional pagination (`offset`/`limit`). Returns `LINE_NUM|CONTENT` format. |
 | `sampling` | Capture emotional moments as ephemeral memories. Rate-limited to 1 per 60 minutes. Stored with `expiresAt` frontmatter. |
 | `scanAgents` | Scan for `AGENTS.md` workspace rules files in a target directory. Returns file contents or empty string. |
-| `searchFiles` | Search file contents with ripgrep (native fs fallback). Supports filename and content patterns. |
 | `sessionSearch` | Search past conversations by keyword query, full retrieval by conversation ID, or browse all sessions. |
 | `shell` | Execute shell commands (foreground/background). Max command length 4096 chars. |
 | `skillView` | View full details for a skill by name — metadata, permissions, scripts, and full SKILL.md body. |
 | `skillsList` | List all discovered skills with name, description, and location from the registry catalog. |
 | `textToSpeech` | Convert text to speech via OpenAI TTS (tts-1/tts-1-hd). Saves MP3 to `~/voice-memos/`. |
-| `todo` | CRUD task list persisted to `memory/tools/todo.json`. Actions: read, create, update, complete, delete, list, clear. |
 | `visionAnalyze` | Analyze images via OpenAI multimodal LLM. Accepts URL or base64 data URI. |
 | `webExtract` | Extract readable text content from a web page URL. Supports summarization for large pages. |
 | `webSearch` | Search the web via DuckDuckGo, Google, Bing, SearXNG, or Custom endpoints. |
-| `writeFile` | Write content to a file, creating parent directories as needed. 500KB content cap. |
+
+**Deep Agents tools:** Core filesystem operations (`readFile`, `writeFile`, `patch`, `searchFiles`) and task management (`todo`) are provided by [deepagentsjs](https://github.com/langchain-ai/deepagentsjs) and are not listed as madz-built-in tools.
 
 ### Skills Registry
 
@@ -454,8 +451,8 @@ Built-in tools are registered only when their required permissions are enabled f
 
 | Permission Required                 | Tools                                                                      |
 | ----------------------------------- | -------------------------------------------------------------------------- |
-| `filesystem:read`                   | `compactContext`, `readFile`, `searchFiles`, `scanAgents`, `sessionSearch`, `skillView`, `skillsList` |
-| `filesystem:write`                  | `clarify`, `createSkill`, `memory`, `patch`, `sampling`, `todo`, `writeFile` |
+| `filesystem:read`                   | `compactContext`, `scanAgents`, `sessionSearch`, `skillView`, `skillsList` |
+| `filesystem:write`                  | `clarify`, `createSkill`, `memory`, `sampling`                             |
 | `filesystem:exec` + `process:spawn` | `executeCode`, `shell`                                                     |
 | `network:outbound`                  | `cronJob`, `imageGenerate`, `mixtureOfAgents`, `webExtract`, `webSearch`   |
 | `process:spawn`                     | `process`                                                                  |
