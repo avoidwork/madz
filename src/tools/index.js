@@ -3,7 +3,6 @@ import { executeCode } from "./code.js";
 import { createCompactContextTool } from "./compact_context.js";
 import { cronJob } from "./cron.js";
 import { date } from "./date.js";
-import { patch, readFile, searchFiles, writeFile } from "./filesystem.js";
 import { scanAgents } from "./scanAgents.js";
 import { imageGenerate } from "./image.js";
 import { memory } from "./memory.js";
@@ -31,12 +30,9 @@ export const TOOL_PERMISSIONS = {
 	imageGenerate: ["network:outbound"],
 	memory: ["filesystem:read", "filesystem:write"],
 	mixtureOfAgents: ["network:outbound"],
-	patch: ["filesystem:read", "filesystem:write"],
 	process: ["process:spawn"],
-	readFile: ["filesystem:read"],
 	sampling: ["filesystem:write"],
 	scanAgents: ["filesystem:read"],
-	searchFiles: ["filesystem:read"],
 	sessionSearch: ["filesystem:read"],
 	shell: ["filesystem:exec", "process:spawn"],
 	skillView: ["filesystem:read"],
@@ -45,7 +41,6 @@ export const TOOL_PERMISSIONS = {
 	visionAnalyze: [],
 	webExtract: ["network:outbound"],
 	webSearch: ["network:outbound"],
-	writeFile: ["filesystem:write"],
 };
 
 // Tool instances keyed by tool name
@@ -59,12 +54,9 @@ const TOOL_FACTORIES = {
 	imageGenerate,
 	memory,
 	mixtureOfAgents,
-	patch,
 	process: processTool,
-	readFile,
 	sampling,
 	scanAgents,
-	searchFiles,
 	sessionSearch,
 	shell,
 	skillView,
@@ -73,7 +65,6 @@ const TOOL_FACTORIES = {
 	visionAnalyze,
 	webExtract,
 	webSearch,
-	writeFile,
 };
 
 /**
