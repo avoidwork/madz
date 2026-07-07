@@ -11,7 +11,7 @@
 
 import React, { useState, useImperativeHandle, forwardRef, memo } from "react";
 import { Box, Text } from "ink";
-import { getRoleLabel, formatMessage, isStreamingMessage, countMessageLines, getToolCallLines } from "./messages.js";
+import { getRoleLabel } from "./messages.js";
 import { getRoleColors, getBubbleStyle, formatTime } from "./conversationPanel.js";
 import { MarkdownText } from "./markdownText.js";
 
