@@ -7,7 +7,6 @@ describe("tools - buildToolConfig", () => {
 		const expectedTools = [
 			"shell",
 			"process",
-			"todo",
 			"sessionSearch",
 			"clarify",
 			"webSearch",
@@ -21,6 +20,11 @@ describe("tools - buildToolConfig", () => {
 			"sampling",
 			"date",
 			"scanAgents",
+			"compactContext",
+			"createSkill",
+			"memory",
+			"skillView",
+			"skillsList",
 		];
 		for (const tool of expectedTools) {
 			assert.ok(TOOL_PERMISSIONS[tool], `Expected TOOL_PERMISSIONS to have ${tool}`);
@@ -81,16 +85,17 @@ describe("tools - buildToolConfig", () => {
 		const { buildToolConfig } = await import("../../src/tools/index.js");
 		const tools = await buildToolConfig({ permissions: ["filesystem:read"], maxReadSize: "1mb" });
 		const toolNames = tools.map((t) => t.name);
-		// filesystem:read enables: clarify, executeCode, sampling (always), date, scanAgents,
-		// readFile, searchFiles, sessionSearch, skillView, skillsList, compactContext
+		// filesystem:read enables: clarify, executeCode, sampling (always), compactContext, scanAgents,
+		// sessionSearch, skillView, skillsList, date
 		assert.ok(toolNames.includes("clarify"));
 		assert.ok(toolNames.includes("executeCode"));
 		assert.ok(toolNames.includes("sampling"));
 		assert.ok(toolNames.includes("date"));
 		assert.ok(toolNames.includes("scanAgents"));
-		assert.ok(toolNames.includes("readFile"));
-		assert.ok(toolNames.includes("searchFiles"));
 		assert.ok(toolNames.includes("sessionSearch"));
+		assert.ok(toolNames.includes("skillView"));
+		assert.ok(toolNames.includes("skillsList"));
+		assert.ok(toolNames.includes("compactContext"));
 	});
 
 	it("returns clarify + filesystem tools when filesystem:read and filesystem:write enabled", async () => {
@@ -103,8 +108,8 @@ describe("tools - buildToolConfig", () => {
 		assert.ok(toolNames.includes("clarify"), "clarify should always register");
 		assert.ok(toolNames.includes("executeCode"), "execute_code should always register");
 		assert.ok(
-			toolNames.includes("todo"),
-			"todo should register with filesystem:read + filesystem:write",
+			toolNames.includes("memory"),
+			"memory should register with filesystem:read + filesystem:write",
 		);
 		assert.ok(
 			toolNames.includes("sessionSearch"),
@@ -149,7 +154,7 @@ describe("tools - buildToolConfig", () => {
 		assert.ok(toolNames.includes("clarify"));
 		assert.ok(toolNames.includes("sessionSearch"));
 		// tools requiring write permissions should NOT register
-		assert.ok(!toolNames.includes("todo"), "todo should NOT register with only read");
+		assert.ok(!toolNames.includes("memory"), "memory should NOT register with only read");
 	});
 
 	it("handles maxReadSize in config", async () => {
@@ -159,16 +164,14 @@ describe("tools - buildToolConfig", () => {
 			maxReadSize: "2mb",
 		});
 		const toolNames = tools.map((t) => t.name);
-		// filesystem:read enables: clarify, executeCode, sampling (always), date, scanAgents,
-		// readFile, searchFiles, sessionSearch, skillView, skillsList, compactContext
-		assert.strictEqual(toolNames.length, 11);
+		// filesystem:read enables: clarify, executeCode, sampling (always), compactContext, scanAgents,
+		// sessionSearch, skillView, skillsList, date
+		assert.strictEqual(toolNames.length, 9);
 		assert.ok(toolNames.includes("clarify"));
 		assert.ok(toolNames.includes("executeCode"));
 		assert.ok(toolNames.includes("sampling"));
 		assert.ok(toolNames.includes("date"));
 		assert.ok(toolNames.includes("scanAgents"));
-		assert.ok(toolNames.includes("readFile"));
-		assert.ok(toolNames.includes("searchFiles"));
 		assert.ok(toolNames.includes("sessionSearch"));
 	});
 });
