@@ -33,7 +33,6 @@ export default function App({
 	const [showBanner, setShowBanner] = useState(true);
 	const [showOnboarding, setShowOnboarding] = useState(!!onboarding);
 	const [onboardingResponse, setOnboardingResponse] = useState(0);
-	const [messages, setMessages] = useState([]);
 	const [statusMessage, setStatusMessage] = useState("Ready");
 	const [chatHistory, setChatHistory] = useState([]);
 	const [historyIndex, setHistoryIndex] = useState(-1);
@@ -41,12 +40,13 @@ export default function App({
 	const [inputFocused, setInputFocused] = useState(true);
 	const [contextSize, setContextSize] = useState(0);
 	const [isCompacting, setIsCompacting] = useState(false);
-	const scrollRef = useRef(null);
 	const abortControllerRef = useRef(null);
 	const isStreamingRef = useRef(false);
 	const dispatchPromiseRef = useRef(null);
 	const autoContinueCountRef = useRef(0);
 	const isAutoContinuingRef = useRef(false);
+	const messageListRef = useRef(null);
+	const lastStreamingBubbleIdRef = useRef(null);
 	const { exit } = useApp();
 	const exitRef = useRef(exit);
 	exitRef.current = exit;
@@ -193,7 +193,7 @@ export default function App({
 				return;
 			}
 			if (result.action === "clear") {
-				setMessages([]);
+				messageListRef.current?.clear();
 				setStatusMessage(result.message || "Conversation cleared.");
 				return;
 			}
@@ -210,17 +210,14 @@ export default function App({
 				}
 
 				const assistantTime = getTimestamp();
-				setMessages((prev) => [
-					...prev,
-					{
-						role: "assistant",
-						content: "",
-						time: assistantTime,
-						streaming: true,
-						toolCalls: [],
-						toolCallDisplay: "",
-					},
-				]);
+				const bubbleId = messageListRef.current?.addMessage("assistant", "", {
+					time: assistantTime,
+					assistantName: config?.tui?.name || "Assistant",
+					streaming: true,
+				});
+				if (bubbleId) {
+					lastStreamingBubbleIdRef.current = bubbleId;
+				}
 
 				let committedContentRef = { current: "" };
 				let committedReasoning = "";
@@ -254,27 +251,17 @@ export default function App({
 					if (!responseContent.trim() && !shouldAbort()) {
 						// Show tool results so the user knows work happened
 						if (lastToolCallDisplay) {
-							setMessages((prev) => {
-								const cloned = [...prev];
-								const last = cloned[cloned.length - 1];
-								if (last.role === "assistant" && last.streaming) {
-									last.toolCallDisplay = lastToolCallDisplay;
-								}
-								return cloned;
-							});
+							if (lastStreamingBubbleIdRef.current) {
+								messageListRef.current?.updateMessage(lastStreamingBubbleIdRef.current, { toolCallDisplay: lastToolCallDisplay });
+							}
 						}
 
 						if (autoContinueCountRef.current >= (config?.agent?.autoContinueLimit ?? 1000)) {
 							// Circuit breaker: model is stuck in thinking-only loop
 							setStatusMessage("Model appears stuck — starting fresh.");
-							setMessages((prev) => {
-								const cloned = [...prev];
-								const last = cloned[cloned.length - 1];
-								if (last.role === "assistant" && last.streaming) {
-									last.streaming = false;
-								}
-								return cloned;
-							});
+							if (lastStreamingBubbleIdRef.current) {
+								messageListRef.current?.updateMessage(lastStreamingBubbleIdRef.current, { streaming: false });
+							}
 							autoContinueCountRef.current = 0;
 							addMessage({
 								role: "system",
@@ -331,24 +318,14 @@ export default function App({
 						if (sessionState) {
 							sessionState.popExchange();
 						}
-						setMessages((prev) => {
-							const cloned = [...prev];
-							const last = cloned[cloned.length - 1];
-							if (last.role === "assistant" && last.streaming) {
-								last.streaming = false;
-							}
-							return cloned;
-						});
+						if (lastStreamingBubbleIdRef.current) {
+							messageListRef.current?.updateMessage(lastStreamingBubbleIdRef.current, { streaming: false });
+						}
 						setStatusMessage("Interrupted.");
 					} else {
-						setMessages((prev) => {
-							const cloned = [...prev];
-							const last = cloned[cloned.length - 1];
-							if (last.role === "assistant" && last.streaming) {
-								last.streaming = false;
-							}
-							return cloned;
-						});
+						if (lastStreamingBubbleIdRef.current) {
+							messageListRef.current?.updateMessage(lastStreamingBubbleIdRef.current, { streaming: false });
+						}
 						setStatusMessage(`Error: ${err.message}`);
 					}
 				} finally {
@@ -407,17 +384,14 @@ export default function App({
 		}
 
 		const assistantTime = getTimestamp();
-		setMessages((prev) => [
-			...prev,
-			{
-				role: "assistant",
-				content: "",
-				time: assistantTime,
-				streaming: true,
-				toolCalls: [],
-				toolCallDisplay: "",
-			},
-		]);
+		const bubbleId = messageListRef.current?.addMessage("assistant", "", {
+			time: assistantTime,
+			assistantName: config?.tui?.name || "Assistant",
+			streaming: true,
+		});
+		if (bubbleId) {
+			lastStreamingBubbleIdRef.current = bubbleId;
+		}
 
 		let committedContentRef = { current: "" };
 		let committedReasoning = "";
@@ -453,27 +427,17 @@ export default function App({
 			if (!responseContent.trim() && !shouldAbort()) {
 				// Show tool results so the user knows work happened
 				if (lastToolCallDisplay) {
-					setMessages((prev) => {
-						const cloned = [...prev];
-						const last = cloned[cloned.length - 1];
-						if (last.role === "assistant" && last.streaming) {
-							last.toolCallDisplay = lastToolCallDisplay;
-						}
-						return cloned;
-					});
+					if (lastStreamingBubbleIdRef.current) {
+						messageListRef.current?.updateMessage(lastStreamingBubbleIdRef.current, { toolCallDisplay: lastToolCallDisplay });
+					}
 				}
 
 				if (autoContinueCountRef.current >= (config?.agent?.autoContinueLimit ?? 1000)) {
 					// Circuit breaker: model is stuck in thinking-only loop
 					setStatusMessage("Model appears stuck — starting fresh.");
-					setMessages((prev) => {
-						const cloned = [...prev];
-						const last = cloned[cloned.length - 1];
-						if (last.role === "assistant" && last.streaming) {
-							last.streaming = false;
-						}
-						return cloned;
-					});
+					if (lastStreamingBubbleIdRef.current) {
+						messageListRef.current?.updateMessage(lastStreamingBubbleIdRef.current, { streaming: false });
+					}
 					autoContinueCountRef.current = 0;
 					addMessage({
 						role: "system",
@@ -725,7 +689,10 @@ export default function App({
 
 	const addMessage = (msg) => {
 		const time = getTimestamp();
-		setMessages((prev) => prev.concat({ ...msg, time }));
+		messageListRef.current?.addMessage(msg.role, msg.content, {
+			time,
+			assistantName: config?.tui?.name || "Assistant",
+		});
 	};
 
 	/**
