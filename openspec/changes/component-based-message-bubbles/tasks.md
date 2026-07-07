@@ -5,7 +5,7 @@
 - [x] 1.3 Implement useImperativeHandle to expose update() method
 - [x] 1.4 Implement update() method that accepts content, streaming, toolCallDisplay, and reasoningContent parameters
 - [x] 1.5 Implement render logic: role label, formatted content, streaming indicator, tool call display
-- [ ] 1.6 Reuse utility functions from src/tui/messages.js (getRoleLabel, formatMessage, isStreamingMessage, countMessageLines, getToolCallLines)
+- [x] 1.6 Reuse utility functions from src/tui/messages.js (getRoleLabel, formatMessage, isStreamingMessage, countMessageLines, getToolCallLines)
 - [x] 1.7 Add memoized rendering with React.memo to only re-render when own state changes
 - [x] 1.8 Assign stable ID via randomUUID at component creation
 
