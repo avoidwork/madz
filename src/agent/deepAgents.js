@@ -1,4 +1,4 @@
-import { createDeepAgent, CompositeBackend, createHarnessProfile, registerHarnessProfile } from "deepagents";
+import { createDeepAgent, CompositeBackend } from "deepagents";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { InMemoryStore } from "@langchain/langgraph-checkpoint";
