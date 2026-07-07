@@ -44,7 +44,7 @@ export const TOOL_PERMISSIONS = {
 };
 
 // Tool instances keyed by tool name
-const TOOL_FACTORIES = {
+const TOOLS = {
 	clarify,
 	compactContext: createCompactContextTool,
 	cronJob,
@@ -167,7 +167,7 @@ export async function buildToolConfig(options) {
 			case "clarify":
 			case "executeCode":
 			case "sampling": {
-				tools.push(TOOL_FACTORIES[toolName]);
+				tools.push(TOOLS[toolName]);
 				continue;
 			}
 
@@ -185,7 +185,7 @@ export async function buildToolConfig(options) {
 			case "date":
 			case "cronJob": {
 				if (!hasAllPerms) continue;
-				tools.push(TOOL_FACTORIES[toolName]);
+				tools.push(TOOLS[toolName]);
 				continue;
 			}
 
@@ -202,19 +202,19 @@ export async function buildToolConfig(options) {
 					(runtimeOptions.searchCustomConfig?.url &&
 						runtimeOptions.searchCustomConfig?.apiKey !== undefined);
 				if (!hasAnySearch) continue;
-				tools.push(TOOL_FACTORIES[toolName]);
+				tools.push(TOOLS[toolName]);
 				continue;
 			}
 
 			case "visionAnalyze": {
 				if (!runtimeOptions.openaiApiKey) continue;
-				tools.push(TOOL_FACTORIES[toolName]);
+				tools.push(TOOLS[toolName]);
 				continue;
 			}
 
 			case "imageGenerate": {
 				if (!hasAllPerms || !runtimeOptions.falApiKey) continue;
-				tools.push(TOOL_FACTORIES[toolName]);
+				tools.push(TOOLS[toolName]);
 				continue;
 			}
 
@@ -222,13 +222,13 @@ export async function buildToolConfig(options) {
 			case "mixtureOfAgents": {
 				if (toolName === "textToSpeech" && !runtimeOptions.openaiApiKey) continue;
 				if (toolName === "mixtureOfAgents" && !runtimeOptions.openrouterApiKey) continue;
-				tools.push(TOOL_FACTORIES[toolName]);
+				tools.push(TOOLS[toolName]);
 				continue;
 			}
 
 			default: {
 				if (requiredPerms.length > 0 && !hasAllPerms) continue;
-				tools.push(TOOL_FACTORIES[toolName]);
+				tools.push(TOOLS[toolName]);
 			}
 		}
 	}
