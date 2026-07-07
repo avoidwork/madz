@@ -12,7 +12,6 @@ import { createSession } from "../session/factory.js";
 import { setConfigValue } from "../config/loader.js";
 import { isAvailable, getGcCalls } from "../memory/gc.js";
 import { loadSystemPrompt } from "../memory/prompts.js";
-import { setTodoStreamingCallback } from "../tools/todo_queue.js";
 import { calculateConversationTokens } from "./contextTokens.js";
 
 /**
@@ -228,28 +227,10 @@ export default function App({
 				let lastToolCallDisplay = "";
 				let todoStatusLines = "";
 
+
 				// Set up abort controller for this stream
 				abortControllerRef.current = new AbortController();
 				isStreamingRef.current = true;
-
-				setTodoStreamingCallback((event) => {
-					if (event.type === "todo_status") {
-						const statusLine = event.message
-							? `- ${event.message}`
-							: `- Todo: ${event.action} ${event.key || ""}`;
-						todoStatusLines = (todoStatusLines ? todoStatusLines + "\n" : "") + statusLine;
-						setMessages((prev) => {
-							const cloned = [...prev];
-							const last = cloned[cloned.length - 1];
-							if (last.role === "assistant" && last.streaming) {
-								last.toolCallDisplay = lastToolCallDisplay
-									? lastToolCallDisplay + "\n" + todoStatusLines
-									: todoStatusLines;
-							}
-							return cloned;
-						});
-					}
-				});
 
 				try {
 					// Capture the dispatch promise so handleInterrupt can await it
@@ -446,27 +427,6 @@ export default function App({
 		// Set up abort controller for this stream
 		abortControllerRef.current = new AbortController();
 		isStreamingRef.current = true;
-
-		// Wire the streaming callback into the todo queue so status events
-		// flow through the LangGraph stream to the TUI.
-		setTodoStreamingCallback((event) => {
-			if (event.type === "todo_status") {
-				const statusLine = event.message
-					? `- ${event.message}`
-					: `- Todo: ${event.action} ${event.key || ""}`;
-				todoStatusLines = (todoStatusLines ? todoStatusLines + "\n" : "") + statusLine;
-				setMessages((prev) => {
-					const cloned = [...prev];
-					const last = cloned[cloned.length - 1];
-					if (last.role === "assistant" && last.streaming) {
-						last.toolCallDisplay = lastToolCallDisplay
-							? lastToolCallDisplay + "\n" + todoStatusLines
-							: todoStatusLines;
-					}
-					return cloned;
-				});
-			}
-		});
 
 		try {
 			// Capture the dispatch promise so handleInterrupt can await it
