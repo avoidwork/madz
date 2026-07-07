@@ -12,7 +12,6 @@ import { sampling } from "./sampling.js";
 import { sessionSearch } from "./session_search.js";
 import { shell, processTool } from "./shell.js";
 import { createSkill, skillView, skillsList } from "./skills.js";
-import { todo } from "./todo.js";
 import { textToSpeech } from "./tts.js";
 import { visionAnalyze } from "./vision.js";
 import { webSearch, webExtract } from "./web.js";
@@ -43,7 +42,6 @@ export const TOOL_PERMISSIONS = {
 	skillView: ["filesystem:read"],
 	skillsList: ["filesystem:read"],
 	textToSpeech: [],
-	todo: ["filesystem:read", "filesystem:write"],
 	visionAnalyze: [],
 	webExtract: ["network:outbound"],
 	webSearch: ["network:outbound"],
@@ -72,7 +70,6 @@ const TOOL_FACTORIES = {
 	skillView,
 	skillsList,
 	textToSpeech,
-	todo,
 	visionAnalyze,
 	webExtract,
 	webSearch,

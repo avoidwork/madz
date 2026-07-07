@@ -44,7 +44,7 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	const model = createChatModel(providerConfig);
 
 	// Register harness profile for subagents using config-derived model identifier
-	const modelIdentifier = `${providerName}:${providerConfig.model}`;
+	/** const modelIdentifier = `${providerName}:${providerConfig.model}`;
 	registerHarnessProfile(
 		modelIdentifier,
 		createHarnessProfile({
@@ -53,8 +53,9 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 				//"FilesystemMiddleware",
 				"SummarizationMiddleware",
 			],
+			excludedTools: ["write_todos"],
 		}),
-	);
+	); **/
 
 	// Build tools from config — separate sets for orchestrator and subagent
 	const buildOptions = {
