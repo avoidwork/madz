@@ -6,6 +6,7 @@
  * @module messageList
  */
 
+import { randomUUID } from "node:crypto";
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Box } from "ink";
 import { ScrollView } from "ink-scroll-view";
@@ -71,7 +72,7 @@ export function MessageList({ scrollRef: externalScrollRef }) {
 	 * @returns {string} The ID of the newly created bubble
 	 */
 	const addMessage = useCallback((role, content, options = {}) => {
-		const id = "bubble-" + Date.now() + "-" + Math.random().toString(36).substr(2, 9);
+		const id = randomUUID();
 		const newBubble = {
 			id,
 			role,
