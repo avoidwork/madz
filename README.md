@@ -439,7 +439,7 @@ All built-in tools are defined in `src/tools/` and registered as LangChain tools
 | `webExtract` | Extract readable text content from a web page URL. Supports summarization for large pages. |
 | `webSearch` | Search the web via DuckDuckGo, Google, Bing, SearXNG, or Custom endpoints. |
 
-**Deep Agents tools:** Core filesystem operations (`readFile`, `writeFile`, `patch`, `searchFiles`) and task management (`todo`) are provided by the [Deep Agents](https://github.com/avoidwork/deepagents) middleware layer and are not listed as madz-built-in tools.
+**Deep Agents tools:** Core filesystem operations (`readFile`, `writeFile`, `patch`, `searchFiles`) and task management (`todo`) are provided by [deepagentsjs](https://github.com/langchain-ai/deepagentsjs) and are not listed as madz-built-in tools.
 
 ### Skills Registry
 
