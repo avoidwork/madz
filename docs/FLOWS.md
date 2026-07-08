@@ -1,6 +1,6 @@
 # Code Flows
 
-Call chains and data flows for all primary code paths in the project, excluding the TUI (see [TUI_FLOWS.md](./TUI_FLOWS.md)).
+Call chains and data flows for all primary code paths in the project.
 
 ## Table of Contents
 
@@ -30,6 +30,7 @@ Call chains and data flows for all primary code paths in the project, excluding 
 - [Profile Management](#profile-management)
 - [Shutdown Flow](#shutdown-flow)
 - [Additional Tool Flows](#additional-tool-flows)
+- [Terminal User Interface (TUI)](#terminal-user-interface-tui)
 - [File Dependencies](#file-dependencies)
 
 ## Application Startup
@@ -1038,6 +1039,163 @@ enforceMaxEntries(config.memory.directory, config.memory.retention.maxEntries)
 shutdownTelemetry()
 └── [see Telemetry Initialization]
 ```
+
+---
+
+## Terminal User Interface (TUI)
+
+**Entry:** `src/tui/app.js` → renders `<ConversationPanel>` within the Ink-based TUI shell.
+
+The TUI message rendering pipeline is split across four modules: `conversationPanel` (wrapper + helpers), `messageList` (list management + scrolling), `messageBubble` (individual message rendering), and `messages` (utility functions).
+
+### ConversationPanel
+
+```
+ConversationPanel({ scrollRef, height, messages })
+├── Thin wrapper around MessageList
+│   ├── Does NOT contain message data, scroll logic, or refs
+│   └── Delegates all rendering to MessageList
+├── Exports:
+│   ├── formatTime(date) → "HH:MM"
+│   ├── getRoleColors(role) → { label, content } color scheme
+│   │   ├── user → { label: "green", content: "white" }
+│   │   ├── assistant → { label: "cyan", content: "white" }
+│   │   └── system → { label: "yellow", content: "yellow" }
+│   ├── getBubbleStyle(role) → { alignment, border }
+│   │   ├── user → { alignment: "flex-end", border: "green" }
+│   │   ├── assistant → { alignment: "flex-start", border: "cyan" }
+│   │   └── system → { alignment: "flex-start", border: "yellow" }
+│   └── renderMessages(messages, assistantName, maxMessages)
+│       ├── Returns empty state if no messages
+│       ├── Slices to last maxMessages (if provided)
+│       └── Maps each message → MessageBubble with:
+│           ├── role, content, time, streaming, reasoningContent, activeToolCall, toolCallDisplay
+│           └── key: "msg-" + globalIdx
+└── Renders: <MessageList scrollRef height messages />
+```
+
+### MessageList
+
+```
+MessageList({ scrollRef, height, messages }, ref)
+├── State:
+│   ├── bubbles: MessageBubble[] — internal bubble state synced from messages prop
+│   ├── internalScrollRef / externalScrollRef — scroll target
+│   ├── isUserScrollingRef — tracks manual scroll-up to suppress auto-scroll
+│   ├── bubbleRefs — Map<id, bubbleRef> for imperative updates
+│   └── prevMessageCountRef — change detection for useEffect
+├── Sync bubbles from messages prop:
+│   ├── useEffect on [messages?.length]
+│   ├── Skip if count unchanged (change detection)
+│   ├── Map messages → bubble objects:
+│   │   ├── id: `msg-${idx}`
+│   │   ├── role, content, assistantName, time
+│   │   ├── streaming, reasoningContent, activeToolCall, toolCallDisplay
+│   │   └── time fallback: "HH:MM" from toLocaleTimeString
+│   └── setBubbles(newBubbles)
+├── Imperative methods (exposed via useImperativeHandle):
+│   ├── addMessage(role, content, options) → id
+│   │   ├── Creates new bubble with randomUUID()
+│   │   ├── Appends to bubbles state
+│   │   └── Returns bubble ID
+│   ├── updateMessage(id, updates)
+│   │   ├── Calls bubbleRef.update(updates) on the target bubble
+│   │   └── Also updates bubble data in state for rendering consistency
+│   └── clear() → sets bubbles to [], clears bubbleRefs
+├── Auto-scroll to bottom:
+│   ├── Detects new content via bubbles length change or streaming content hash
+│   ├── Respects isUserScrollingRef — suppresses auto-scroll when user scrolled up
+│   ├── Throttles scroll-to-bottom during active streaming (100ms interval)
+│   ├── Uses setTimeout(scrollHandle, 0) for deferred scroll
+│   └── Resets previousMessageCount and lastScrollTime on scroll
+├── User scroll detection:
+│   ├── Checks scrollRef.current.getScrollOffset() vs getMaxScrollOffset()
+│   ├── If not at bottom (tolerance: 2 chars) → sets isUserScrollingRef = true
+│   ├── Clears flag when user returns to bottom or streaming completes
+├── Resize handling:
+│   ├── Listens for process "resize" events
+│   ├── Calls scrollRef.current.remeasure() on resize
+│   └── Skips in CI environment
+├── Windowing:
+│   ├── MAX_RENDER_MESSAGES = 100
+│   ├── Only renders last N bubbles: bubbles.slice(Math.max(0, bubbles.length - 100))
+│   └── Prevents React tree degradation in long conversations
+└── Renders: <ScrollView><MessageBubble>[]</ScrollView>
+```
+
+### MessageBubble
+
+```
+MessageBubble({ role, content: initialContent, assistantName, time: initialTime }, ref)
+├── State (each bubble manages its own):
+│   ├── content — message text
+│   ├── streaming — boolean, shows cursor during streaming
+│   ├── toolCallDisplay — formatted tool call output
+│   ├── reasoningContent — assistant thinking/thought content
+│   ├── activeToolCall — {name: string} for currently running tool
+│   └── time — timestamp string (HH:MM)
+├── Imperative update() via useImperativeHandle:
+│   ├── Called by streaming handlers during message streaming
+│   ├── Accepts partial updates: { content, streaming, toolCallDisplay, reasoningContent, activeToolCall }
+│   └── Only updates provided fields (undefined fields are ignored)
+├── Rendering:
+│   ├── Outer Box: flexDirection "row", justifyContent based on bubble.alignment
+│   │   ├── user → flex-end (right-aligned)
+│   │   └── assistant/system → flex-start (left-aligned)
+│   ├── Inner Box: borderStyle "round", borderColor based on role, maxWidth "90%"
+│   │   ├── Header: [time] RoleLabel: (gray timestamp, bold role label)
+│   │   ├── Content: MarkdownText component with content + streaming cursor (█)
+│   │   ├── Reasoning (assistant only): "(thinking) ..." truncated at 200 chars
+│   │   ├── Active tool call: "- Running: {toolName} ..."
+│   │   └── Tool call display: formatted output with indentation
+│   └── Wrapped in memo() for performance
+└── Exports: default memo(MessageBubble)
+```
+
+### Messages Utility Module
+
+```
+messages.js utilities:
+├── getRoleLabel(role, assistantName) → display label
+│   ├── user → "You"
+│   ├── assistant → assistantName || "Assistant"
+│   └── system → "System"
+├── formatMessage(message, assistantName) → "Label (timestamp)\ncontent"
+├── isStreamingMessage(message) → message.streaming === true
+├── countMessageLines(messages, lineWidth) → total line count for scroll height
+│   ├── 2 lines per message (label + content start)
+│   ├── content lines = ceil(contentLength / lineWidth)
+│   └── +1 separator line per message
+└── getToolCallLines(toolCallDisplay) → split("\n") array
+```
+
+### Data Flow: Streaming Message Update
+
+```
+Streaming event (on_chat_model_stream)
+├── callback({ type: "text", text }) → app.js state update
+├── state.conversation updated with streaming message
+├── ConversationPanel receives new messages prop
+├── MessageList detects messages?.length change
+├── setBubbles(newBubbles) → triggers re-render
+├── MessageBubble receives updated content prop
+├── OR: updateMessage(id, { content: newText, streaming: true })
+│   └── bubbleRef.update({ content, streaming }) → direct state update
+└── Bubble re-renders with new content + streaming cursor (█)
+```
+
+### Scroll Behavior Summary
+
+| Scenario | Auto-scroll? | Reason |
+|----------|-------------|--------|
+| New message arrives (not streaming) | Yes | User is assumed to want to see new content |
+| Streaming in progress | Yes (throttled to 100ms) | Smooth cursor progression |
+| User scrolled up during streaming | No | User is reading, don't interrupt |
+| User scrolled up, streaming completes | No | User has opted out of auto-scroll |
+| User returns to bottom | Yes | User wants to follow conversation |
+| Resize event | No scroll, remeasure only | Layout changed, need to recalculate heights |
+
+---
 
 ## File Dependencies
 
