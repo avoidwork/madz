@@ -46,10 +46,16 @@ export const MessageList = forwardRef(function MessageList({ scrollRef: external
 	const { stdout } = React.useContext(React.createContext({}));
 	const prevMessageCountRef = useRef(0);
 
+	logger.info({ hasMessages: !!messages, messageCount: messages?.length }, "[MessageList] component rendered");
+
 	// Sync internal bubbles when messages length changes
 	useEffect(() => {
+		logger.info({ messageCount: messages?.length, prevCount: prevMessageCountRef.current }, "[MessageList] useEffect fired");
 		const currentCount = messages?.length ?? 0;
-		if (currentCount === prevMessageCountRef.current) return;
+		if (currentCount === prevMessageCountRef.current) {
+			logger.info("[MessageList] count unchanged, returning");
+			return;
+		}
 		prevMessageCountRef.current = currentCount;
 
 		logger.info({ messageCount: currentCount }, "[MessageList] messages length changed");
@@ -70,7 +76,7 @@ export const MessageList = forwardRef(function MessageList({ scrollRef: external
 		}));
 		setBubbles(newBubbles);
 		logger.info({ bubbleCount: newBubbles.length }, "[MessageList] bubbles set");
-	}, [messages]);
+	}, [messages?.length]);
 
 	// We need access to stdout for resize handling — get it from the Ink context
 	// Since we can't directly import useStdout here without breaking the module,
