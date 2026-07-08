@@ -231,25 +231,6 @@ export const MessageList = forwardRef(function MessageList({ scrollRef: external
 			),
 		),
 	);
-}
-
-// Attach imperative methods to the component for ref access
-MessageList.prototype.addMessage = function (role, content, options) {
-	if (this.current) {
-		return this.current.addMessage(role, content, options);
-	}
-};
-
-MessageList.prototype.updateMessage = function (id, updates) {
-	if (this.current) {
-		this.current.updateMessage(id, updates);
-	}
-};
-
-MessageList.prototype.clear = function () {
-	if (this.current) {
-		this.current.clear();
-	}
-};
+});
 
 export default MessageList;
