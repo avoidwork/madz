@@ -63,19 +63,28 @@ export const MessageList = forwardRef(function MessageList({ scrollRef: external
 			setBubbles([]);
 			return;
 		}
-		const newBubbles = messages.map((msg, idx) => ({
-			id: `msg-${idx}`,
-			role: msg.role,
-			content: msg.content || "",
-			assistantName: msg.assistantName || "Assistant",
-			time: msg.time || new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-			streaming: msg.streaming,
-			reasoningContent: msg.reasoningContent,
-			activeToolCall: msg.activeToolCall,
-			toolCallDisplay: msg.toolCallDisplay,
-		}));
-		setBubbles(newBubbles);
-		logger.info({ bubbleCount: newBubbles.length }, "[MessageList] bubbles set");
+		setBubbles((prev) => {
+			// If the bubbles state already has the correct number of bubbles,
+			// don't replace them — imperative addMessage/updateMessage calls
+			// created bubbles with stable IDs that must survive this sync.
+			if (prev.length === currentCount) {
+				logger.info({ bubbleCount: prev.length }, "[MessageList] count matches, preserving existing bubbles");
+				return prev;
+			}
+			const newBubbles = messages.map((msg, idx) => ({
+				id: `msg-${idx}`,
+				role: msg.role,
+				content: msg.content || "",
+				assistantName: msg.assistantName || "Assistant",
+				time: msg.time || new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+				streaming: msg.streaming,
+				reasoningContent: msg.reasoningContent,
+				activeToolCall: msg.activeToolCall,
+				toolCallDisplay: msg.toolCallDisplay,
+			}));
+			setBubbles(newBubbles);
+			logger.info({ bubbleCount: newBubbles.length }, "[MessageList] bubbles set");
+		});
 	}, [messages?.length]);
 
 	// We need access to stdout for resize handling — get it from the Ink context
