@@ -82,8 +82,8 @@ export const MessageList = forwardRef(function MessageList({ scrollRef: external
 				activeToolCall: msg.activeToolCall,
 				toolCallDisplay: msg.toolCallDisplay,
 			}));
-			setBubbles(newBubbles);
 			logger.info({ bubbleCount: newBubbles.length }, "[MessageList] bubbles set");
+			return newBubbles;
 		});
 	}, [messages?.length]);
 
