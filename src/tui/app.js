@@ -528,13 +528,17 @@ export default function App({
 					sessionState.popExchange();
 				}
 				// Clear the partial streaming assistant message from UI
-				setMessages((prev) => prev.filter((msg) => !isStreamingMessage(msg)));
+				if (lastStreamingBubbleIdRef.current) {
+					messageListRef.current?.updateMessage(lastStreamingBubbleIdRef.current, { streaming: false });
+				}
 				setStatusMessage("Interrupted.");
 			} else {
 				if (onSaveSession) {
 					onSaveSession();
 				}
-				setMessages((prev) => prev.filter((msg) => !isStreamingMessage(msg)));
+				if (lastStreamingBubbleIdRef.current) {
+					messageListRef.current?.updateMessage(lastStreamingBubbleIdRef.current, { streaming: false });
+				}
 				setStatusMessage("Something went wrong");
 				addMessage({
 					role: "system",
@@ -575,14 +579,9 @@ export default function App({
 			sessionState.removeLastAssistantToolCallMessage();
 		}
 
-		setMessages((prev) => {
-			const cloned = [...prev];
-			const last = cloned[cloned.length - 1];
-			if (last?.role === "assistant" && last?.streaming) {
-				last.streaming = false;
-			}
-			return cloned;
-		});
+		if (lastStreamingBubbleIdRef.current) {
+			messageListRef.current?.updateMessage(lastStreamingBubbleIdRef.current, { streaming: false });
+		}
 		setStatusMessage("Interrupted.");
 
 		// Wait for the dispatchProvider promise to resolve (it will throw
@@ -615,7 +614,7 @@ export default function App({
 		const newSession = createSession({ provider: sessionState.getProvider() });
 		sessionState.createNewSession(newSession.sessionId);
 		setIsCompacting(false);
-		setMessages([]);
+		messageListRef.current?.clear();
 		setChatHistory([]);
 		setContextSize(0);
 		setStatusMessage("New session started.");
@@ -713,14 +712,12 @@ export default function App({
 			try {
 				if (event.type === "message") {
 					committedContentRef.current = (committedContentRef.current || "") + event.text;
-					setMessages((prev) => {
-						const cloned = [...prev];
-						const last = cloned[cloned.length - 1];
-						if (last.role === "assistant" && last.streaming) {
-							last.content = committedContentRef.current + "\u2588";
-						}
-						return cloned;
-					});
+					if (lastStreamingBubbleIdRef.current) {
+						messageListRef.current?.updateMessage(lastStreamingBubbleIdRef.current, {
+							content: committedContentRef.current + "\u2588",
+							streaming: true,
+						});
+					}
 					if (onTextReceived) onTextReceived();
 				}
 			} catch (_cbErr) {
@@ -742,25 +739,26 @@ export default function App({
 		lastToolCallDisplay,
 		todoStatusLines,
 	) => {
-		setMessages((prev) => {
-			const cloned = [...prev];
-			const last = cloned[cloned.length - 1];
-			if (last.role === "assistant" && last.streaming) {
-				last.content = responseContent;
-				last.reasoningContent = committedReasoning || undefined;
-				last.streaming = false;
-				last.activeToolCall = null;
-				if (lastToolCallDisplay) {
-					last.toolCallDisplay = lastToolCallDisplay;
-				}
-				if (todoStatusLines) {
-					last.toolCallDisplay = last.toolCallDisplay
-						? last.toolCallDisplay + "\n" + todoStatusLines
-						: todoStatusLines;
-				}
+		if (lastStreamingBubbleIdRef.current) {
+			const updates = {
+				content: responseContent,
+				streaming: false,
+				activeToolCall: null,
+			};
+			if (committedReasoning) {
+				updates.reasoningContent = committedReasoning;
 			}
-			return cloned;
-		});
+			if (lastToolCallDisplay) {
+				updates.toolCallDisplay = lastToolCallDisplay;
+			}
+			if (todoStatusLines) {
+				const existing = updates.toolCallDisplay || "";
+				updates.toolCallDisplay = existing
+					? existing + "\n" + todoStatusLines
+					: todoStatusLines;
+			}
+			messageListRef.current?.updateMessage(lastStreamingBubbleIdRef.current, updates);
+		}
 	};
 
 	// Single input handler - processes all keystrokes here
