@@ -13,6 +13,7 @@ import { setConfigValue } from "../config/loader.js";
 import { isAvailable, getGcCalls } from "../memory/gc.js";
 import { loadSystemPrompt } from "../memory/prompts.js";
 import { calculateConversationTokens } from "./contextTokens.js";
+import { logger } from "../logger.js";
 
 /**
  * Main App component (Ink). Renders an IRC-style layout:
@@ -46,6 +47,7 @@ export default function App({
 	const autoContinueCountRef = useRef(0);
 	const isAutoContinuingRef = useRef(false);
 	const messageListRef = useRef(null);
+	const scrollRef = useRef(null);
 	const lastStreamingBubbleIdRef = useRef(null);
 	const { exit } = useApp();
 	const exitRef = useRef(exit);
@@ -403,6 +405,10 @@ export default function App({
 		isStreamingRef.current = true;
 
 		try {
+			// Persist user message to sessionState so it appears in the conversation
+			if (sessionState) {
+				sessionState.addExchange({ role: "user", content: text });
+			}
 			// Capture the dispatch promise so handleInterrupt can await it
 			const dispatchPromise = dispatchProvider(
 				text,
@@ -846,6 +852,13 @@ export default function App({
 
 	const { rows } = useWindowSize();
 
+	const messages = sessionState ? sessionState.getConversation() : [];
+
+	// Calculate conversation panel height: total rows minus status bar and input panel
+	const conversationHeight = showBanner || showOnboarding ? rows : Math.max(1, rows - 2);
+
+	logger.info({ showBanner, showOnboarding, rows, conversationHeight, messageCount: messages?.length }, "[App] render");
+
 	const statusProps = {
 		skillCount: skillList.length,
 		messageCount: messages.length,
@@ -887,6 +900,7 @@ export default function App({
 							messages: messages,
 							assistantName: config?.tui?.name || "Assistant",
 							scrollRef: scrollRef,
+							height: conversationHeight,
 						}),
 					),
 		!showBanner && !showOnboarding && React.createElement(StatusBar, statusProps),

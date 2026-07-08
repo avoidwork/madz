@@ -10,6 +10,7 @@ import React from "react";
 import { Box } from "ink";
 import { MessageList } from "./messageList.js";
 import MessageBubble from "./messageBubble.js";
+import { logger } from "../logger.js";
 
 /**
  * ConversationPanel component — a thin wrapper that renders MessageList.
@@ -18,11 +19,12 @@ import MessageBubble from "./messageBubble.js";
  * @param {Object} props
  * @param {React.Ref} [props.scrollRef] - Optional scroll ref passed from parent
  */
-export function ConversationPanel({ scrollRef: externalScrollRef }) {
+export function ConversationPanel({ scrollRef: externalScrollRef, height, messages }) {
+	logger.info({ height, messageCount: messages?.length }, "[ConversationPanel] render");
 	return React.createElement(
 		Box,
 		{ key: "panel", flexDirection: "column", flexGrow: 1 },
-		React.createElement(MessageList, { scrollRef: externalScrollRef }),
+		React.createElement(MessageList, { scrollRef: externalScrollRef, height, messages }),
 	);
 }
 

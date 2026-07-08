@@ -7,10 +7,11 @@
  */
 
 import { randomUUID } from "node:crypto";
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback, useImperativeHandle, forwardRef } from "react";
 import { Box } from "ink";
 import { ScrollView } from "ink-scroll-view";
 import MessageBubble from "./messageBubble.js";
+import { logger } from "../logger.js";
 
 /**
  * Maximum number of messages to render in the React tree.
@@ -33,7 +34,7 @@ const SCROLL_THROTTLE_MS = 100;
  * @param {Object} props
  * @param {React.Ref} [props.scrollRef] - Optional external scroll ref passed from parent
  */
-export function MessageList({ scrollRef: externalScrollRef }) {
+export const MessageList = forwardRef(function MessageList({ scrollRef: externalScrollRef, height, messages }, ref) {
 	const [bubbles, setBubbles] = useState([]);
 	const internalScrollRef = useRef(null);
 	const scrollRef = externalScrollRef || internalScrollRef;
@@ -43,6 +44,25 @@ export function MessageList({ scrollRef: externalScrollRef }) {
 	const isUserScrollingRef = useRef(false);
 	const bubbleRefs = useRef({});
 	const { stdout } = React.useContext(React.createContext({}));
+
+	// Sync internal bubbles when messages prop changes (from conversation)
+	useEffect(() => {
+		logger.info(`[MessageList] messages prop changed, length: ${messages?.length}`);
+		if (!messages || messages.length === 0) return;
+		const newBubbles = messages.map((msg, idx) => ({
+			id: `msg-${idx}`,
+			role: msg.role,
+			content: msg.content || "",
+			assistantName: msg.assistantName || "Assistant",
+			time: msg.time || new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+			streaming: msg.streaming,
+			reasoningContent: msg.reasoningContent,
+			activeToolCall: msg.activeToolCall,
+			toolCallDisplay: msg.toolCallDisplay,
+		}));
+		setBubbles(newBubbles);
+		logger.info({ bubbleCount: newBubbles.length }, "[MessageList] bubbles set");
+	}, [messages]);
 
 	// We need access to stdout for resize handling — get it from the Ink context
 	// Since we can't directly import useStdout here without breaking the module,
@@ -121,14 +141,11 @@ export function MessageList({ scrollRef: externalScrollRef }) {
 	}, []);
 
 	// Expose imperative methods via ref
-	const listRef = useRef(null);
-	useEffect(() => {
-		if (listRef.current) {
-			listRef.current.addMessage = addMessage;
-			listRef.current.updateMessage = updateMessage;
-			listRef.current.clear = clear;
-		}
-	}, [addMessage, updateMessage, clear]);
+	useImperativeHandle(ref, () => ({
+		addMessage,
+		updateMessage,
+		clear,
+	}), [addMessage, updateMessage, clear]);
 
 	// Detect manual scroll-up: when user scrolls away from bottom,
 	// suppress auto-scroll until they return to bottom or streaming completes.
@@ -199,7 +216,7 @@ export function MessageList({ scrollRef: externalScrollRef }) {
 		{ key: "message-list", flexDirection: "column", flexGrow: 1 },
 		React.createElement(
 			ScrollView,
-			{ ref: scrollRef, key: "scroll", focus: false },
+			{ ref: scrollRef, key: "scroll", focus: false, height: height || 1 },
 			visibleBubbles.map((bubble) =>
 				React.createElement(MessageBubble, {
 					key: bubble.id,
