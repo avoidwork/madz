@@ -44,11 +44,19 @@ export const MessageList = forwardRef(function MessageList({ scrollRef: external
 	const isUserScrollingRef = useRef(false);
 	const bubbleRefs = useRef({});
 	const { stdout } = React.useContext(React.createContext({}));
+	const prevMessageCountRef = useRef(0);
 
-	// Sync internal bubbles when messages prop changes (from conversation)
+	// Sync internal bubbles when messages length changes
 	useEffect(() => {
-		logger.info(`[MessageList] messages prop changed, length: ${messages?.length}`);
-		if (!messages || messages.length === 0) return;
+		const currentCount = messages?.length ?? 0;
+		if (currentCount === prevMessageCountRef.current) return;
+		prevMessageCountRef.current = currentCount;
+
+		logger.info({ messageCount: currentCount }, "[MessageList] messages length changed");
+		if (currentCount === 0) {
+			setBubbles([]);
+			return;
+		}
 		const newBubbles = messages.map((msg, idx) => ({
 			id: `msg-${idx}`,
 			role: msg.role,
