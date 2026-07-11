@@ -5,7 +5,6 @@ import { CommandParser } from "./commandParser.js";
 import { ConversationPanel } from "./conversationPanel.js";
 import { StatusBar } from "./statusBar.js";
 import { InputPanel } from "./inputPanel.js";
-import { isStreamingMessage } from "./messages.js";
 import { Banner } from "./banner.js";
 import { OnboardingPanel } from "./onboardingPanel.js";
 import { createSession } from "../session/factory.js";
