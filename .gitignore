@@ -1,6 +1,7 @@
-node_modules/
-memory/
-skills/
-tmp/
-!src/memory/
-!src/skills/
+node_modules
+memory
+skills
+skills
+tmp
+!src/memory
+!src/skills
