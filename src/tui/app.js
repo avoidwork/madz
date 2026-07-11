@@ -358,6 +358,8 @@ export default function App({
 	const handleChat = async (text) => {
 		if (shouldAbort()) return;
 		gcManager?.();
+
+		// Batch state updates to minimize re-renders during the handshake window
 		setStatusMessage("Streaming...");
 		addMessage({ role: "user", content: text });
 
