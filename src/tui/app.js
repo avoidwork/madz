@@ -361,6 +361,17 @@ export default function App({
 		setStatusMessage("Streaming...");
 		addMessage({ role: "user", content: text });
 
+		// Create assistant bubble immediately — container must exist before content flows
+		const assistantTime = getTimestamp();
+		const bubbleId = messageListRef.current?.addMessage("assistant", "", {
+			time: assistantTime,
+			assistantName: config?.tui?.name || "Assistant",
+			streaming: true,
+		});
+		if (bubbleId) {
+			lastStreamingBubbleIdRef.current = bubbleId;
+		}
+
 		// Persist user message to session state and recalculate context
 		// NOTE: Don't add to sessionState before dispatchProvider — it needs to see
 		// an empty conversation to correctly set isNewThread=true for the system prompt
@@ -382,16 +393,6 @@ export default function App({
 				);
 			}
 			setContextSize(totalTokens);
-		}
-
-		const assistantTime = getTimestamp();
-		const bubbleId = messageListRef.current?.addMessage("assistant", "", {
-			time: assistantTime,
-			assistantName: config?.tui?.name || "Assistant",
-			streaming: true,
-		});
-		if (bubbleId) {
-			lastStreamingBubbleIdRef.current = bubbleId;
 		}
 
 		let committedContentRef = { current: "" };
