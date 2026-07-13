@@ -62,7 +62,7 @@
     "oxlint": "^1.73.0"
   },
   "dependencies": {
-    "deepagents": "^1.10.5",
+    "deepagents": "^1.10.8",
     "@langchain/langgraph": "^1.4.7",
     "@langchain/langgraph-checkpoint-sqlite": "^1.0.3",
     "@langchain/openai": "^1.5.5",
