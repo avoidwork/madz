@@ -1,7 +1,25 @@
-import React, { useRef, useEffect, forwardRef } from "react";
+import React, { useRef, useEffect, useState, forwardRef } from "react";
 import { Box, Text, useStdout } from "ink";
 import { ScrollView } from "ink-scroll-view";
-import { MessageBubble } from "./messageBubble.js";
+import { MessageBubble, PubSubContext } from "./messageBubble.js";
+
+/**
+ * Pub/Sub wrapper component for MessageList children.
+ * Supplies subscribe/unsubscribe/publish methods from MessageList via context.
+ * @param {Object} props
+ * @param {Function} props.subscribe - Subscribe to a topic
+ * @param {Function} props.unsubscribe - Unsubscribe from a topic
+ * @param {Function} props.publish - Publish to a topic
+ * @param {Array} props.children
+ * @returns {React.ReactElement}
+ */
+export function PubSubProvider({ subscribe, unsubscribe, publish, children }) {
+	return React.createElement(
+		PubSubContext.Provider,
+		{ value: { subscribe, unsubscribe, publish } },
+		...children,
+	);
+}
 
 /**
  * Scroll throttle interval in ms during active streaming.
@@ -20,6 +38,9 @@ let _messageIdCounter = 0;
  * Manages an array of MessageBubble component instances.
  * Provides imperative API: addMessage, updateMessage, clear.
  * Owns ScrollView rendering with scroll management.
+ * Uses pub/sub to notify individual bubbles of streaming updates
+ * without requiring parent re-renders.
+ *
  * @param {Object} props
  * @param {Array} [props.messages] - Initial messages array for session restore
  * @param {string} [props.assistantName] - Name to display for assistant messages
@@ -40,8 +61,42 @@ export const MessageList = forwardRef(function MessageList(
 	const lastContentLenRef = useRef(0);
 	const lastScrollTimeRef = useRef(0);
 	const isUserScrollingRef = useRef(false);
-	const forceRenderKeyRef = useRef(0);
 	const { stdout } = useStdout();
+
+	// Pub/sub topics map — each topic key maps to an array of pending update listeners
+	const topicsRef = useRef(new Map());
+
+	// Subscribe to a specific topic
+	const subscribe = (topic, callback) => {
+		const callbacks = topicsRef.current.get(topic);
+		if (callbacks) {
+			if (!callbacks.includes(callback)) callbacks.push(callback);
+		} else {
+			topicsRef.current.set(topic, [callback]);
+		}
+	};
+
+	// Unsubscribe from a specific topic
+	const unsubscribe = (topic, callback) => {
+		const callbacks = topicsRef.current.get(topic);
+		if (callbacks) {
+			const idx = callbacks.indexOf(callback);
+			if (idx !== -1) callbacks.splice(idx, 1);
+		}
+	};
+
+	// Publish a message to all listeners of a topic
+	const publish = (topic, data) => {
+		const callbacks = topicsRef.current.get(topic);
+		if (callbacks) {
+			for (const cb of callbacks) cb(data);
+		}
+	};
+
+	// Trigger a re-render of the MessageList tree (needed for add/remove/clear)
+	// eslint-disable-next-line no-unused-vars, no-shadow
+	const [renderTick, setRenderTick] = useState(0);
+	const triggerRender = () => setRenderTick((n) => n + 1);
 
 	// --- Imperative API: exposed via ref ---
 	const imperativeApiRef = useRef(null);
@@ -60,6 +115,7 @@ export const MessageList = forwardRef(function MessageList(
 		 */
 		addMessage(role, content, options = {}) {
 			const id = (++_messageIdCounter).toString();
+
 			dataRef.current.set(id, {
 				id,
 				role,
@@ -70,14 +126,16 @@ export const MessageList = forwardRef(function MessageList(
 				toolCallDisplay: options.toolCallDisplay,
 				streaming: options.streaming || false,
 			});
+
 			idsRef.current.push(id);
 			idToIdxRef.current.set(id, idsRef.current.length - 1);
-			forceRenderKeyRef.current += 1;
+			triggerRender();
 			return id;
 		},
 
 		/**
 		 * Update an existing message by its ID.
+		 * Uses pub/sub to notify the specific bubble without re-rendering the parent.
 		 * @param {string} id - Message ID
 		 * @param {Object} updates - Partial state updates to merge
 		 */
@@ -91,7 +149,9 @@ export const MessageList = forwardRef(function MessageList(
 			}
 
 			idsRef.current[idx] = id;
-			forceRenderKeyRef.current += 1;
+
+			// Notify the bubble via pub/sub — this triggers re-render of just that bubble
+			publish(`msg-${id}`, dataRef.current.get(id));
 		},
 
 		/**
@@ -111,7 +171,7 @@ export const MessageList = forwardRef(function MessageList(
 			idToIdxRef.current = new Map();
 			dataRef.current = new Map();
 			lastMsgCountRef.current = 0;
-			forceRenderKeyRef.current += 1;
+			triggerRender();
 		},
 
 		/**
@@ -122,8 +182,10 @@ export const MessageList = forwardRef(function MessageList(
 			idsRef.current = [];
 			idToIdxRef.current = new Map();
 			dataRef.current = new Map();
+
 			for (const m of msgs) {
 				const id = (++_messageIdCounter).toString();
+
 				dataRef.current.set(id, {
 					id,
 					role: m.role,
@@ -134,10 +196,12 @@ export const MessageList = forwardRef(function MessageList(
 					toolCallDisplay: m.toolCallDisplay,
 					streaming: m.streaming || false,
 				});
+
 				idsRef.current.push(id);
 				idToIdxRef.current.set(id, idsRef.current.length - 1);
 			}
-			forceRenderKeyRef.current += 1;
+
+			triggerRender();
 		},
 
 		/**
@@ -166,7 +230,7 @@ export const MessageList = forwardRef(function MessageList(
 				ids: idsRef.current,
 				idToIdx: idToIdxRef.current,
 				data: dataRef.current,
-				forceRenderKey: forceRenderKeyRef.current,
+				topicKeys: [...topicsRef.current.keys()],
 				scrollRef: scrollRef,
 			};
 		},
@@ -180,7 +244,6 @@ export const MessageList = forwardRef(function MessageList(
 			idToIdxRef.current = new Map();
 			dataRef.current = new Map();
 			lastMsgCountRef.current = 0;
-			forceRenderKeyRef.current = 0;
 		},
 	};
 
@@ -263,7 +326,6 @@ export const MessageList = forwardRef(function MessageList(
 
 		const scrollHandle = () => {
 			if (scrollRef.current && idsRef.current.length) {
-				forceRenderKeyRef.current = Date.now();
 				scrollRef.current.scrollToBottom();
 				lastMsgCountRef.current = idsRef.current.length;
 				lastScrollTimeRef.current = Date.now();
@@ -275,13 +337,14 @@ export const MessageList = forwardRef(function MessageList(
 	}, [scrollRef]);
 
 	// Render the last MAX_RENDER_MESSAGES as MessageBubble elements.
+	// Each bubble subscribes to its own pub/sub topic for streaming updates.
 	const renderData = idsRef.current.slice(-MAX_RENDER_MESSAGES);
 
 	const children = renderData.map((id) => {
 		const data = dataRef.current.get(id);
 		if (!data) return null;
 		return React.createElement(MessageBubble, {
-			key: `${id}-${forceRenderKeyRef.current}`,
+			key: id,
 			role: data.role,
 			content: data.content,
 			time: data.time,
@@ -290,6 +353,7 @@ export const MessageList = forwardRef(function MessageList(
 			toolCallDisplay: data.toolCallDisplay,
 			streaming: data.streaming,
 			assistantName,
+			topic: `msg-${id}`,
 		});
 	});
 
@@ -304,8 +368,12 @@ export const MessageList = forwardRef(function MessageList(
 	}
 
 	return React.createElement(
-		Box,
-		{ key: "panel", flexDirection: "column", flexGrow: 1 },
-		React.createElement(ScrollView, { ref: scrollRef, key: "scroll", focus: false }, ...children),
+		PubSubProvider,
+		{ subscribe, unsubscribe, publish },
+		React.createElement(
+			Box,
+			{ key: "panel", flexDirection: "column", flexGrow: 1 },
+			React.createElement(ScrollView, { ref: scrollRef, key: "scroll", focus: false }, ...children),
+		),
 	);
 });
