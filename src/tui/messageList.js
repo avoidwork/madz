@@ -153,6 +153,7 @@ export const MessageList = forwardRef(function MessageList(
 
 			// Notify the bubble via pub/sub — this triggers re-render of just that bubble
 			publish(`msg-${id}`, dataRef.current.get(id));
+			triggerRender();
 		},
 
 		/**
@@ -335,7 +336,7 @@ export const MessageList = forwardRef(function MessageList(
 		lastContentLenRef.current = contentHash;
 		const timer = setTimeout(scrollHandle, 0);
 		return () => clearTimeout(timer);
-	}, [scrollRef]);
+	}, [scrollRef, renderTick]);
 
 	// Render the last MAX_RENDER_MESSAGES as MessageBubble elements.
 	// Each bubble subscribes to its own pub/sub topic for streaming updates.
