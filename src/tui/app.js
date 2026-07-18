@@ -5,7 +5,6 @@ import { CommandParser } from "./commandParser.js";
 import { ConversationPanel } from "./conversationPanel.js";
 import { StatusBar } from "./statusBar.js";
 import { InputPanel } from "./inputPanel.js";
-import { isStreamingMessage } from "./messages.js";
 import { Banner } from "./banner.js";
 import { OnboardingPanel } from "./onboardingPanel.js";
 import { createSession } from "../session/factory.js";
@@ -33,7 +32,6 @@ export default function App({
 	const [showBanner, setShowBanner] = useState(true);
 	const [showOnboarding, setShowOnboarding] = useState(!!onboarding);
 	const [onboardingResponse, setOnboardingResponse] = useState(0);
-	const [messages, setMessages] = useState([]);
 	const [statusMessage, setStatusMessage] = useState("Ready");
 	const [chatHistory, setChatHistory] = useState([]);
 	const [historyIndex, setHistoryIndex] = useState(-1);
@@ -41,12 +39,13 @@ export default function App({
 	const [inputFocused, setInputFocused] = useState(true);
 	const [contextSize, setContextSize] = useState(0);
 	const [isCompacting, setIsCompacting] = useState(false);
-	const scrollRef = useRef(null);
+	const messageListRef = useRef(null);
 	const abortControllerRef = useRef(null);
 	const isStreamingRef = useRef(false);
 	const dispatchPromiseRef = useRef(null);
 	const autoContinueCountRef = useRef(0);
 	const isAutoContinuingRef = useRef(false);
+	const streamingMsgIdRef = useRef(null);
 	const { exit } = useApp();
 	const exitRef = useRef(exit);
 	exitRef.current = exit;
@@ -193,7 +192,7 @@ export default function App({
 				return;
 			}
 			if (result.action === "clear") {
-				setMessages([]);
+				messageListRef.current?.clear();
 				setStatusMessage(result.message || "Conversation cleared.");
 				return;
 			}
@@ -210,23 +209,15 @@ export default function App({
 				}
 
 				const assistantTime = getTimestamp();
-				setMessages((prev) => [
-					...prev,
-					{
-						role: "assistant",
-						content: "",
-						time: assistantTime,
-						streaming: true,
-						toolCalls: [],
-						toolCallDisplay: "",
-					},
-				]);
+				streamingMsgIdRef.current = messageListRef.current.addMessage("assistant", "", {
+					time: assistantTime,
+					streaming: true,
+				});
 
 				let committedContentRef = { current: "" };
 				let committedReasoning = "";
 				let lastToolCallDisplay = "";
 				let todoStatusLines = "";
-
 
 				// Set up abort controller for this stream
 				abortControllerRef.current = new AbortController();
@@ -254,26 +245,16 @@ export default function App({
 					if (!responseContent.trim() && !shouldAbort()) {
 						// Show tool results so the user knows work happened
 						if (lastToolCallDisplay) {
-							setMessages((prev) => {
-								const cloned = [...prev];
-								const last = cloned[cloned.length - 1];
-								if (last.role === "assistant" && last.streaming) {
-									last.toolCallDisplay = lastToolCallDisplay;
-								}
-								return cloned;
+							messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
+								toolCallDisplay: lastToolCallDisplay,
 							});
 						}
 
 						if (autoContinueCountRef.current >= (config?.agent?.autoContinueLimit ?? 1000)) {
 							// Circuit breaker: model is stuck in thinking-only loop
 							setStatusMessage("Model appears stuck — starting fresh.");
-							setMessages((prev) => {
-								const cloned = [...prev];
-								const last = cloned[cloned.length - 1];
-								if (last.role === "assistant" && last.streaming) {
-									last.streaming = false;
-								}
-								return cloned;
+							messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
+								streaming: false,
 							});
 							autoContinueCountRef.current = 0;
 							addMessage({
@@ -331,23 +312,13 @@ export default function App({
 						if (sessionState) {
 							sessionState.popExchange();
 						}
-						setMessages((prev) => {
-							const cloned = [...prev];
-							const last = cloned[cloned.length - 1];
-							if (last.role === "assistant" && last.streaming) {
-								last.streaming = false;
-							}
-							return cloned;
+						messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
+							streaming: false,
 						});
 						setStatusMessage("Interrupted.");
 					} else {
-						setMessages((prev) => {
-							const cloned = [...prev];
-							const last = cloned[cloned.length - 1];
-							if (last.role === "assistant" && last.streaming) {
-								last.streaming = false;
-							}
-							return cloned;
+						messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
+							streaming: false,
 						});
 						setStatusMessage(`Error: ${err.message}`);
 					}
@@ -407,17 +378,10 @@ export default function App({
 		}
 
 		const assistantTime = getTimestamp();
-		setMessages((prev) => [
-			...prev,
-			{
-				role: "assistant",
-				content: "",
-				time: assistantTime,
-				streaming: true,
-				toolCalls: [],
-				toolCallDisplay: "",
-			},
-		]);
+		streamingMsgIdRef.current = messageListRef.current.addMessage("assistant", "", {
+			time: assistantTime,
+			streaming: true,
+		});
 
 		let committedContentRef = { current: "" };
 		let committedReasoning = "";
@@ -453,26 +417,16 @@ export default function App({
 			if (!responseContent.trim() && !shouldAbort()) {
 				// Show tool results so the user knows work happened
 				if (lastToolCallDisplay) {
-					setMessages((prev) => {
-						const cloned = [...prev];
-						const last = cloned[cloned.length - 1];
-						if (last.role === "assistant" && last.streaming) {
-							last.toolCallDisplay = lastToolCallDisplay;
-						}
-						return cloned;
+					messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
+						toolCallDisplay: lastToolCallDisplay,
 					});
 				}
 
 				if (autoContinueCountRef.current >= (config?.agent?.autoContinueLimit ?? 1000)) {
 					// Circuit breaker: model is stuck in thinking-only loop
 					setStatusMessage("Model appears stuck — starting fresh.");
-					setMessages((prev) => {
-						const cloned = [...prev];
-						const last = cloned[cloned.length - 1];
-						if (last.role === "assistant" && last.streaming) {
-							last.streaming = false;
-						}
-						return cloned;
+					messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
+						streaming: false,
 					});
 					autoContinueCountRef.current = 0;
 					addMessage({
@@ -557,14 +511,12 @@ export default function App({
 					sessionState.removeLastAssistantToolCallMessage();
 					sessionState.popExchange();
 				}
-				// Clear the partial streaming assistant message from UI
-				setMessages((prev) => prev.filter((msg) => !isStreamingMessage(msg)));
 				setStatusMessage("Interrupted.");
 			} else {
 				if (onSaveSession) {
 					onSaveSession();
 				}
-				setMessages((prev) => prev.filter((msg) => !isStreamingMessage(msg)));
+				messageListRef.current?.clear();
 				setStatusMessage("Something went wrong");
 				addMessage({
 					role: "system",
@@ -605,13 +557,8 @@ export default function App({
 			sessionState.removeLastAssistantToolCallMessage();
 		}
 
-		setMessages((prev) => {
-			const cloned = [...prev];
-			const last = cloned[cloned.length - 1];
-			if (last?.role === "assistant" && last?.streaming) {
-				last.streaming = false;
-			}
-			return cloned;
+		messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
+			streaming: false,
 		});
 		setStatusMessage("Interrupted.");
 
@@ -645,7 +592,7 @@ export default function App({
 		const newSession = createSession({ provider: sessionState.getProvider() });
 		sessionState.createNewSession(newSession.sessionId);
 		setIsCompacting(false);
-		setMessages([]);
+		messageListRef.current?.clear();
 		setChatHistory([]);
 		setContextSize(0);
 		setStatusMessage("New session started.");
@@ -725,7 +672,7 @@ export default function App({
 
 	const addMessage = (msg) => {
 		const time = getTimestamp();
-		setMessages((prev) => prev.concat({ ...msg, time }));
+		messageListRef.current?.addMessage(msg.role, msg.content, { time });
 	};
 
 	/**
@@ -740,13 +687,9 @@ export default function App({
 			try {
 				if (event.type === "message") {
 					committedContentRef.current = (committedContentRef.current || "") + event.text;
-					setMessages((prev) => {
-						const cloned = [...prev];
-						const last = cloned[cloned.length - 1];
-						if (last.role === "assistant" && last.streaming) {
-							last.content = committedContentRef.current + "\u2588";
-						}
-						return cloned;
+					messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
+						content: committedContentRef.current + (config?.tui?.cursorChar || "\u2588"),
+						streaming: true,
 					});
 					if (onTextReceived) onTextReceived();
 				}
@@ -769,25 +712,26 @@ export default function App({
 		lastToolCallDisplay,
 		todoStatusLines,
 	) => {
-		setMessages((prev) => {
-			const cloned = [...prev];
-			const last = cloned[cloned.length - 1];
-			if (last.role === "assistant" && last.streaming) {
-				last.content = responseContent;
-				last.reasoningContent = committedReasoning || undefined;
-				last.streaming = false;
-				last.activeToolCall = null;
-				if (lastToolCallDisplay) {
-					last.toolCallDisplay = lastToolCallDisplay;
-				}
-				if (todoStatusLines) {
-					last.toolCallDisplay = last.toolCallDisplay
-						? last.toolCallDisplay + "\n" + todoStatusLines
-						: todoStatusLines;
-				}
+		const updates = {
+			content: responseContent,
+			reasoningContent: committedReasoning || undefined,
+			streaming: false,
+			activeToolCall: null,
+		};
+		if (lastToolCallDisplay) {
+			updates.toolCallDisplay = lastToolCallDisplay;
+		}
+		if (todoStatusLines) {
+			const prevTool = messageListRef.current?.getMessageData(
+				streamingMsgIdRef.current,
+			)?.toolCallDisplay;
+			if (prevTool) {
+				updates.toolCallDisplay = prevTool + "\n" + todoStatusLines;
+			} else {
+				updates.toolCallDisplay = todoStatusLines;
 			}
-			return cloned;
-		});
+		}
+		messageListRef.current?.updateMessage(streamingMsgIdRef.current, updates);
 	};
 
 	// Single input handler - processes all keystrokes here
@@ -859,17 +803,17 @@ export default function App({
 						handleQuit();
 					}
 				} else {
-					const ref = scrollRef.current;
-					if (ref) {
-						if (key.upArrow) ref.scrollBy(-1);
-						if (key.downArrow) ref.scrollBy(1);
+					const ref = messageListRef.current?.getScrollRef();
+					if (ref && ref.current) {
+						if (key.upArrow) ref.current.scrollBy(-1);
+						if (key.downArrow) ref.current.scrollBy(1);
 						if (key.pageUp) {
-							const height = ref.getViewportHeight() || 1;
-							ref.scrollBy(-height);
+							const height = ref.current.getViewportHeight() || 1;
+							ref.current.scrollBy(-height);
 						}
 						if (key.pageDown) {
-							const height = ref.getViewportHeight() || 1;
-							ref.scrollBy(height);
+							const height = ref.current.getViewportHeight() || 1;
+							ref.current.scrollBy(height);
 						}
 					}
 				}
@@ -881,7 +825,7 @@ export default function App({
 
 	const statusProps = {
 		skillCount: skillList.length,
-		messageCount: messages.length,
+		messageCount: messageListRef.current?.getMessageCount() || 0,
 		contextSize: contextSize,
 		statusMessage: statusMessage,
 		isCompacting: isCompacting,
@@ -917,9 +861,8 @@ export default function App({
 							backgroundColor: undefined,
 						},
 						React.createElement(ConversationPanel, {
-							messages: messages,
 							assistantName: config?.tui?.name || "Assistant",
-							scrollRef: scrollRef,
+							messageListRef,
 						}),
 					),
 		!showBanner && !showOnboarding && React.createElement(StatusBar, statusProps),

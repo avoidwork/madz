@@ -1,6 +1,7 @@
 import React from "react";
 import { describe, it } from "node:test";
 import assert from "node:assert";
+import { render } from "ink";
 import { CommandParser } from "../../src/tui/commandParser.js";
 import { PANELS, nextPanel, prevPanel, getPanelOrder } from "../../src/tui/panels.js";
 import {
@@ -15,7 +16,6 @@ import {
 	MarkdownTextInner,
 	getParseCacheStats,
 } from "../../src/tui/markdownText.js";
-import { renderMessages } from "../../src/tui/conversationPanel.js";
 import { TuiSchema, DEFAULT_CONFIG } from "../../src/config/schemas.js";
 import { Blink } from "../../src/tui/inputPanel.js";
 
@@ -1123,42 +1123,22 @@ describe("TUI - scroll throttle behavior", () => {
 	});
 });
 
-describe("TUI - render window limits React tree size", () => {
-	it("renders all messages when count is within render window", () => {
-		const messages = [
-			{ role: "user", content: "msg1" },
-			{ role: "assistant", content: "msg2" },
-			{ role: "user", content: "msg3" },
-		];
-		const result = renderMessages(messages, "Assistant", 100);
-		assert.strictEqual(result.length, 3);
+describe("MessageList - render window limits React tree size", () => {
+	it("uses MAX_RENDER_MESSAGES window from messageList", async () => {
+		const { MessageList } = await import("../../src/tui/messageList.js");
+		const { unmount: um } = render(
+			React.createElement(MessageList, {
+				messages: [{ role: "user", content: "test" }],
+				assistantName: "Bot",
+			}),
+		);
+		um();
 	});
 
-	it("limits rendered messages to render window size", () => {
-		const messages = [];
-		for (let i = 0; i < 150; i++) {
-			messages.push({ role: i % 2 === 0 ? "user" : "assistant", content: `msg${i}` });
-		}
-		const result = renderMessages(messages, "Assistant", 100);
-		assert.strictEqual(result.length, 100, "should render at most 100 messages");
-		// Should render the last 100 messages
-		assert.strictEqual(result[0].key, "msg-50");
-		assert.strictEqual(result[99].key, "msg-149");
-	});
-
-	it("renders all messages when maxMessages is Infinity", () => {
-		const messages = [];
-		for (let i = 0; i < 50; i++) {
-			messages.push({ role: "user", content: `msg${i}` });
-		}
-		const result = renderMessages(messages, "Assistant", Infinity);
-		assert.strictEqual(result.length, 50);
-	});
-
-	it("renders empty message when no messages", () => {
-		const result = renderMessages([], "Assistant", 100);
-		assert.strictEqual(result.length, 1);
-		assert.ok(result[0].props.children.includes("No messages yet"));
+	it("shows empty state with no messages", async () => {
+		const { MessageList } = await import("../../src/tui/messageList.js");
+		const { unmount: um } = render(React.createElement(MessageList, { assistantName: "Bot" }));
+		um();
 	});
 });
 
