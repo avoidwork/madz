@@ -203,7 +203,7 @@ async function searchWithCustom(cfg, query, limit) {
  * @returns {string} Engine name or "none" (should never be none as DuckDuckGo always works)
  */
 export function detectSearchBackend(options = config) {
-	const search = options.search || {};
+	const search = options?.search || config.search || {};
 	const custom = search.custom || {};
 	if (custom?.url) return "custom";
 	if (search?.bing?.apiKey) return "bing";
@@ -227,7 +227,7 @@ export async function webSearchImpl(input, options = config) {
 	}
 
 	const clampedLimit = Math.min(Math.max(Number(limit) || 5, 1), 100);
-	const search = options.search || {};
+	const search = options?.search || config.search || {};
 	const backend = detectSearchBackend(options);
 	const bing = search?.bing || {};
 	const searxng = search?.searxng || {};
