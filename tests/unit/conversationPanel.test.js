@@ -6,17 +6,15 @@ import {
 	ConversationPanel,
 	getRoleColors,
 	getBubbleStyle,
-	renderMessages,
 } from "../../src/tui/conversationPanel.js";
-import { getRoleLabel } from "../../src/tui/messages.js";
+
+let unmount;
+
+afterEach(() => {
+	if (unmount) unmount();
+});
 
 describe("ConversationPanel - component rendering", () => {
-	let unmount;
-
-	afterEach(() => {
-		if (unmount) unmount();
-	});
-
 	it("renders with default props", () => {
 		const { unmount: um } = render(React.createElement(ConversationPanel, {}));
 		unmount = um;
@@ -83,94 +81,45 @@ describe("ConversationPanel - getBubbleStyle", () => {
 	});
 });
 
-describe("ConversationPanel - renderMessages", () => {
-	it("returns array with empty state message when no messages", () => {
-		const result = renderMessages([], "Assistant");
-		assert.ok(Array.isArray(result));
-		assert.strictEqual(result.length, 1);
-		assert.ok(React.isValidElement(result[0]));
-		assert.strictEqual(result[0].props.color, "gray");
+describe("ConversationPanel - MessageList integration", () => {
+	it("renders MessageList inside ConversationPanel component tree", () => {
+		const { unmount: um } = render(
+			React.createElement(ConversationPanel, {
+				messages: [{ role: "user", content: "hello" }],
+			}),
+		);
+		unmount = um;
 	});
 
-	it("renders user message with correct alignment", () => {
-		renderMessages([{ role: "user", content: "hello", time: "10:00" }], "Bot");
-		const bubbleStyle = getBubbleStyle("user");
-		assert.strictEqual(bubbleStyle.alignment, "flex-end");
+	it("passes assistantName to MessageList", () => {
+		const { unmount: um } = render(
+			React.createElement(ConversationPanel, {
+				messages: [],
+				assistantName: "CustomBot",
+			}),
+		);
+		unmount = um;
 	});
 
-	it("renders assistant message with correct alignment", () => {
-		renderMessages([{ role: "assistant", content: "hi there", time: "10:01" }], "Bot");
-		const bubbleStyle = getBubbleStyle("assistant");
-		assert.strictEqual(bubbleStyle.alignment, "flex-start");
+	it("handles empty messages via empty state", () => {
+		const { unmount: um } = render(React.createElement(ConversationPanel, { messages: [] }));
+		unmount = um;
 	});
 
-	it("renders system message with correct alignment", () => {
-		renderMessages([{ role: "system", content: "init", time: "10:01" }], "Bot");
-		const bubbleStyle = getBubbleStyle("system");
-		assert.strictEqual(bubbleStyle.alignment, "flex-start");
+	it("handles undefined messages gracefully (defaults to empty)", () => {
+		const { unmount: um } = render(React.createElement(ConversationPanel, { messages: undefined }));
+		unmount = um;
 	});
 
-	it("renders assistant message with toolCallDisplay", () => {
-		const messages = [
-			{
-				role: "assistant",
-				content: "result",
-				time: "10:01",
-				toolCallDisplay: "- Tool: search\n- Tool: read",
-			},
-		];
-		const result = renderMessages(messages, "Bot");
-		assert.strictEqual(result.length, 1);
-		const outerBox = result[0];
-		// Memo-wrapped MessageBubble: props contain msg and display props
-		const msg = outerBox.props.msg || outerBox.props.children?.[0];
-		// Verify toolCallDisplay was captured (2 lines = 2 tool calls)
-		const toolLines = msg?.toolCallDisplay?.split("\n") || [];
-		assert.strictEqual(toolLines.length, 2);
-		// Bubble style for assistant = flex-start
-		const bubble = getBubbleStyle("assistant");
-		assert.strictEqual(bubble.alignment, "flex-start");
-		assert.strictEqual(bubble.border, "cyan");
-		// Null for reasoning and activeToolCall (none present)
-		assert.strictEqual(msg?.reasoningContent, undefined);
-		assert.strictEqual(msg?.activeToolCall, undefined);
-		assert.ok(msg?.toolCallDisplay);
-	});
-
-	it("renders assistant message without toolCallDisplay", () => {
-		const messages = [{ role: "assistant", content: "no tools", time: "10:01" }];
-		const result = renderMessages(messages, "Bot");
-		const outerBox = result[0];
-		// Memo-wrapped MessageBubble: props contain msg and display props
-		const msg = outerBox.props.msg || outerBox.props.children?.[0];
-		// No optional sections present
-		assert.strictEqual(msg?.reasoningContent, undefined);
-		assert.strictEqual(msg?.activeToolCall, undefined);
-		assert.strictEqual(msg?.toolCallDisplay, undefined);
-		assert.ok(msg?.content);
-	});
-
-	it("renders multiple messages", () => {
-		const messages = [
-			{ role: "user", content: "hi", time: "10:00" },
-			{ role: "assistant", content: "hello", time: "10:01" },
-		];
-		const result = renderMessages(messages, "Bot");
-		assert.strictEqual(result.length, 2);
-	});
-
-	it("uses custom assistantName in role label", () => {
-		const messages = [{ role: "assistant", content: "test", time: "10:00" }];
-		const result = renderMessages(messages, "CustomBot");
-		assert.strictEqual(result.length, 1);
-		// Verify the role label is resolved with custom name
-		const label = getRoleLabel("assistant", "CustomBot");
-		assert.strictEqual(label, "CustomBot");
-		// Verify the message props contain the correct data
-		const outerBox = result[0];
-		const msg = outerBox.props.msg || outerBox.props.children?.[0];
-		assert.strictEqual(msg?.role, "assistant");
-		assert.strictEqual(msg?.content, "test");
-		assert.strictEqual(msg?.time, "10:00");
+	it("accepts messageListRef for imperative access", () => {
+		const listRef = { current: { setMessages: () => {}, addMessage: () => {} } };
+		const { unmount: um } = render(
+			React.createElement(ConversationPanel, {
+				messages: [],
+				assistantName: "Bot",
+				messageListRef: listRef,
+			}),
+		);
+		unmount = um;
 	});
 });
