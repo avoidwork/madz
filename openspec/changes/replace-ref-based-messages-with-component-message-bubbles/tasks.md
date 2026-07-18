@@ -8,8 +8,8 @@ The implementation diverges from the original plan in one key area: instead of M
   - Note: Uses plain functional component (no `forwardRef` or `useImperativeHandle`). Streaming updates flow via pub/sub topic subscriptions instead of callback refs.
 - [x] 1.2 Implement internal state for content accumulation, streaming, reasoning, tool calls
   - Note: Uses `useState([])` for chunk accumulation with deduplication. Pub/sub triggers re-renders instead of a separate `streamingId` counter.
-- [ ] 1.3 Implement bubble-level update via pub/sub topic subscription (see architecture note)
-  - Note: Replaces the original `useImperativeHandle` + `update(partialState)` plan with a pub/sub topic system. Each bubble subscribes to `msg-{id}` and appends chunks on publish.
+- [x] 1.3 Implement bubble-level update via pub/sub topic subscription (see architecture note)
+  - Note: Replaces the original `useImperativeHandle` + `update(partialState)` plan with a pub/sub topic system. Each bubble subscribes to `msg-{id}` and appends chunks on publish. Verified working via message.test.js pubsub tests.
 - [x] 1.4 Implement rendering: time label, role label (using getRoleLabel from messages.js), role-colored label, content in MarkdownText
 - [x] 1.5 Implement reasoning content rendering (collapsed, muted, max 200 chars) when role is "assistant"
 - [x] 1.6 Implement active tool call indicator when activeToolCall is present
@@ -47,8 +47,8 @@ The implementation diverges from the original plan in one key area: instead of M
 - [x] 4.2 Passes `messages`, `assistantName`, `scrollRef`, and `messageListRef` props to MessageList
 - [x] 4.3 Scroll ref exposed via `getScrollRef()` on the MessageList ref handle
   - Note: No prop-based ref forwarding. MessageList manages its own internal ref.
-- [ ] 4.4 Remove legacy code (old MessageBubble, renderMessages) from conversationPanel.js
-  - Note: The component itself is under 20 lines, but the file still contains the old MessageBubble component, renderMessages, and utility functions (269 total lines). Task 4.5 kept these as exports, but the old MessageBubble + renderMessages can now be removed since they are no longer used.
+- [x] 4.4 Remove legacy code (old MessageBubble, renderMessages) from conversationPanel.js
+  - Note: The component itself is under 20 lines. Legacy MessageBubble, renderMessages, and unused imports were removed in a follow-up commit.
 - [x] 4.5 Kept `formatTime`, `getRoleColors`, `getBubbleStyle` as named exports
 - [x] 4.6 Mounts with empty messages, shows "No messages yet" placeholder (via MessageList)
 - [x] 4.7 ConversationPanel's useEffect on mount calls `panelRef.current.setMessages(messages)` for session restore
@@ -76,7 +76,7 @@ The implementation diverges from the original plan in one key area: instead of M
 ## 6. Session/Config Edge Cases
 
 - [x] 6.1 Scroll ref accessible from App.js keyboard navigation via `getScrollRef()` — no prop forwarding needed
-- [ ] 6.2 Cursor character config should be used from `config.tui.cursorChar` instead of hardcoded `\u2588`
+- [x] 6.2 Cursor character config uses `config.tui.cursorChar` (both streaming and input panel)
   - Note: The streaming cursor character `"\u2588"` is hardcoded in App.js streaming handlers. The `MarkdownText` component strips it before parsing, so markdown rendering is unaffected.
 - [x] 6.3 Initial session restore works: ConversationPanel's useEffect calls `panelRef.current.setMessages(messages)` on mount
 - [x] 6.4 `messageCount` uses `messageListRef.current?.getMessageCount() || 0`

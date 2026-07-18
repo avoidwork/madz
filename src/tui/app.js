@@ -690,7 +690,7 @@ export default function App({
 				if (event.type === "message") {
 					committedContentRef.current = (committedContentRef.current || "") + event.text;
 					messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
-						content: committedContentRef.current + "\u2588",
+						content: committedContentRef.current + (config?.tui?.cursorChar || "\u2588"),
 						streaming: true,
 					});
 					if (onTextReceived) onTextReceived();
