@@ -14,10 +14,11 @@ import { MessageBubble, PubSubContext } from "./messageBubble.js";
  * @returns {React.ReactElement}
  */
 export function PubSubProvider({ subscribe, unsubscribe, publish, children }) {
+	const list = React.Children.toArray(children);
 	return React.createElement(
 		PubSubContext.Provider,
 		{ value: { subscribe, unsubscribe, publish } },
-		...children,
+		...list,
 	);
 }
 
