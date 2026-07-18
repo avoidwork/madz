@@ -89,7 +89,7 @@ The implementation diverges from the original plan in one key area: instead of M
 - [x] 7.3 Create `PubSubProvider` component in messageList.js that wraps children with context provider and maintains Map of topic listeners
 - [x] 7.4 Each MessageBubble subscribes to its topic on mount via useEffect, unsubscribes on unmount
 - [x] 7.5 Chunks are deduplicated before append: `if (prev.length > 0 && prev[prev.length - 1] === newContent) return prev`
-- [ ] 7.6 Document pub/sub API for testing (see task 7.x below)
+- [x] 7.6 Document pub/sub API for testing (see task 7.x below) — JSDoc with test patterns added to createPubSub()
 
 ## 8. Tests
 

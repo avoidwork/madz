@@ -6,6 +6,24 @@ import { getRoleColors, getBubbleStyle, formatTime } from "./conversationPanel.j
 
 /**
  * Creates a pub/sub topic manager for component-to-component communication.
+ *
+ * **Test Pattern**: Create an instance to wire up bubbles independently
+ * of React, publish to a topic `msg-{id}` and read back the data that
+ * bubbles would receive during streaming.
+ *
+ * ```js
+ * import { createPubSub } from "./messageBubble.js";
+ *
+ * const { subscribe, publish, unsubscribe } = createPubSub();
+ * let receivedChunks = [];
+ * const stop = subscribe("msg-5", (data) => {
+ *   receivedChunks.push(data?.content ?? "");
+ * });
+ * publish("msg-5", { content: "Hello world" });
+ * // receivedChunks is now ["Hello world"]
+ * stop(); // removes subscription
+ * ```
+ *
  * @returns {{subscribe: Function, unsubscribe: Function, publish: Function, getSubscribers: Function}}
  */
 export function createPubSub() {
