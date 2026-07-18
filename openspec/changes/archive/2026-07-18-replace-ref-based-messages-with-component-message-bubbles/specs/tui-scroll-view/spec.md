@@ -1,3 +1,5 @@
+<!-- Reconciled 2026-07-18: headers changed to "MessageList" in main spec -->
+
 ## MODIFIED Requirements
 
 ### Requirement: Conversation panel uses ScrollView for rendering messages

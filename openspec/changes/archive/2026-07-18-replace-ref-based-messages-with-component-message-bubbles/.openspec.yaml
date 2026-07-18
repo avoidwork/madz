@@ -1,2 +1,8 @@
 schema: spec-driven
 created: 2026-07-18
+reconciled: 2026-07-18
+notes: |
+  Delta specs were archived without auto-sync on 2026-07-18 due to header mismatches in the
+  MODIFIED operations (delta used "Conversation panel" but main had different wording).
+  Reconciliation committed separately: all delta requirements were applied to main specs
+  with corrected header names matching the actual codebase (MessageList, not ConversationPanel).
