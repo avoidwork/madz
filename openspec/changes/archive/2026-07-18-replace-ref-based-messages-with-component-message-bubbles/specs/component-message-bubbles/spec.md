@@ -32,7 +32,7 @@ The MessageBubble component SHALL maintain internal state for chunk accumulation
 - **THEN** it renders each line of tool call display output below the main content
 
 ### Requirement: MessageUpdate via Pub/Sub Topic System
-When `updateMessage(id, updates)` is called on MessageList, it publishes the updates to a unique pub/sub topic keyed by message ID. Each MessageBubble subscribes to its own topic (`msg-{id}`) on mount and unsubscribes on unmount. This eliminates the need for the parent to hold refs to individual bubbles.
+When `updateMessage(id, updates)` is called on MessageList, it SHALL publish the updates to a unique pub/sub topic keyed by message ID. Each MessageBubble subscribes to its own topic (`msg-{id}`) on mount and unsubscribes on unmount. This eliminates the need for the parent to hold refs to individual bubbles.
 
 #### Scenario: Pub/sub topic creation on message add
 - **WHEN** `addMessage("user", text)` is called
@@ -133,7 +133,7 @@ The ConversationPanel SHALL be a thin wrapper around MessageList, responsible on
 - **WHEN** ConversationPanel mounts with no messages or an empty array
 - **THEN** MessageList renders "No messages yet. Start chatting!"
 
-## MODIFIED Requirements
+## ADDED Requirements (negative requirements)
 
 ### Requirement: No ref callback pattern for bubble updates
 The MessageList component SHALL NOT maintain a Map of bubble refs or call imperative methods on child components. All message updates flow through the pub/sub topic system.
