@@ -29,48 +29,55 @@ The `ink-scroll-view` library (already in use) provides virtualized scrolling, m
 
 ## Decisions
 
-### Decision 1: Imperative Update via Forwarded Ref
-Use `React.forwardRef` on `MessageBubble` to expose an `update(partialState)` method. `MessageList` stores refs in a `Map<string, RefObject>`. When `MessageList.updateMessage(id, updates)` is called, it looks up the ref and calls its update method.
+### Decision 1: Message Update via Pub/Sub Topics (Replaces Ref Callbacks)
+Use a pub/sub topic system for streaming updates to individual bubbles. Each bubble subscribes to a unique topic (`msg-{id}`) on mount. When `MessageList.updateMessage(id, updates)` is called, it publishes to that topic. The subscribed bubble receives the update and appends to its local chunks state, triggering a re-render.
 
-**Rationale:** Ink supports `React.forwardRef` (it's a React feature). This gives the same imperative control that the previous approach had with `messagesRef` mutations, but through React's component model instead of a plain mutable array.
+**Rationale:** The original plan used `React.forwardRef` + `useImperativeHandle` to expose an `update()` method on each bubble, with MessageList holding a `Map<string, RefObject>` of bubble refs. During implementation, a pub/sub architecture was adopted instead because:
 
-**Alternatives considered:**
-- **Context provider:** Pass a central update function via React Context. Adds overhead for a simple parent→child pattern. Refs are more direct.
-- **State-driven updates:** Keep all state in `MessageList`, pass down props. This works for simple cases but makes streaming updates (cursor character cycling) harder because every prop change re-renders the entire list of bubbles.
-- **Event emitter:** Use a simple pub/sub. Adds a dependency and indirection. Refs are standard React.
-
-### Decision 2: Internal streamingId Counter in MessageBubble
-Each `MessageBubble` tracks a `streamingId` state counter. Streaming updates increment this counter (e.g., every tick of the cursor animation or every streaming character). This ensures Ink re-renders the component even when content hasn't changed visually.
-
-**Rationale:** Ink may batch renders. If the content string is identical, Ink might skip re-render. The counter acts as a "bump" to force updates. This is the same pattern some Ink apps use for cursor animation.
+1. **Simpler architecture:** No need for ref Map management, forwardRef on every bubble, or useImperativeHandle boilerplate. MessageList only needs to maintain its own data store and topic registry.
+2. **No child refs in parent:** MessageList doesn't need to track bubble instances at all. Bubbles self-register their subscriptions.
+3. **Natural 1-to-N support:** If a bubble were ever to have multiple subscribers, pub/sub handles it trivially. Ref callback updates would need manual iteration.
+4. **Test isolation:** Pub/sub topics can be verified independently of React rendering (see tests section).
+5. **Decouples lifecycle:** Bubble unmount automatically unsubscribes. No need for cleanup of stale refs when messages are cleared or windowed.
 
 **Alternatives considered:**
-- **useEffect dependency:** Use a separate `key` prop on the component. Changes the component identity on every render, losing scroll position and DOM refs. Not compatible with ink-scroll-view which needs stable children IDs.
-- **CSS animation:** Cursor blinking via CSS. Ink supports limited CSS. The `\u2588` character is fine, but we need a reliable way to force re-render for smooth cursor.
+- **forwardRef + useImperativeHandle:** The original plan. More React-idiomatic for imperative child methods but requires ref tracking in parent, adds boilerplate, and tightly couples MessageList to bubble implementation details.
+- **Context provider:** Pass a central update function via React Context. Adds overhead for a simple message→bubble pattern. Topics are more targeted.
+- **Direct state in MessageList:** Keep all state in MessageList, pass props down to bubbles. Works for simple cases but makes streaming updates (cursor character cycling) require full list re-renders.
+
+### Decision 2: Chunk Accumulation with Deduplication
+Each `MessageBubble` tracks a `chunks` state (`useState([])`). Streaming updates arrive as string chunks via pub/sub. Each chunk is appended to the array (with deduplication: `if (prev[prev.length-1] === chunk) return prev`). The content rendered is `chunks.join('')`.
+
+**Rationale:** Chunk-based accumulation avoids string concatenation on every render tick. Deduplication prevents duplicate chars when the same content is published multiple times (handles race conditions in streaming handlers). Joining a small array is cheap.
+
+**Alternatives considered:**
+- **streamingId counter:** Track a separate counter state to force re-renders when content hasn't changed. Works but adds a useless state variable. Chunk append naturally triggers re-render while also carrying payload.
+- **useEffect dependency:** Use a separate `key` prop. Changes component identity, losing scroll position. Not compatible with ink-scroll-view.
 
 ### Decision 3: MessageList Owns ScrollView and Scroll Logic
-All scroll management (throttle, resize, manual scroll detection, keyboard scroll) moves from `ConversationPanel` to `MessageList`. `ConversationPanel` becomes a 10-line wrapper.
+All scroll management (throttle, resize, manual scroll detection, keyboard scroll) moves from `ConversationPanel` to `MessageList`. `MessageList` exposes an internal scroll ref via `getScrollRef()`, which App.js uses for keyboard navigation.
 
-**Rationale:** The ScrollView is part of `MessageList`'s visual output. Having MessageList own scroll behavior keeps the component self-contained. ConversationPanel can forward the ScrollView ref to App.js for keyboard navigation via a `scrollRef` prop or method.
+**Rationale:** The ScrollView is part of `MessageList`'s visual output. Having MessageList own scroll behavior keeps the component self-contained. App.js accesses the ScrollView ref through the imperative handle (`messageListRef.current?.getScrollRef()`) rather than prop-based forwarding, which simplifies the ConversationPanel's prop interface.
 
 **Alternatives considered:**
-- **Keep scroll in ConversationPanel:** Would require passing MessageList ref to ConversationPanel for scroll-to-bottom. More indirection.
+- **Prop-based scrollRef forwarding:** Pass `scrollRef` as a prop from App.js → ConversationPanel → MessageList. More explicit but requires threading through an extra layer.
+- **Keep scroll in ConversationPanel:** Would require passing MessageList ref to ConversationPanel for scroll-to-bottom. More indirection and tighter coupling.
 
 ### Decision 4: Keep messages useState in App.js as Sync Boundary
 The `messages` state in App.js is not removed. It stays as the source of truth for session persistence and is synced into MessageList via an `initialize(msgs)` call when a session loads.
 
-**Rationale:** MessageList needs to know what messages to display on session restore. The App.js → MessageList interface is: initial state via prop, subsequent updates via imperative methods. This hybrid approach is simpler than making MessageList the sole source of truth and dealing with session state synchronization complexity.
+**Rationale:** MessageList needs to know what messages to display on session restore. The App.js → MessageList interface is: initial state via `setMessages()` on mount, subsequent updates via imperative methods. This hybrid approach is simpler than making MessageList the sole source of truth and dealing with session state synchronization complexity.
 
 ## Risks / Trade-offs
 
-1. **[Risk: Ink forwardRef compatibility]** Ink might not properly forward refs on functional components.
-   → [Mitigation: Test with a simple forwarded-ref component first. If it fails, fall back to a callback ref pattern or a MessageContext pattern.]
+1. **[Risk: Pub/sub overhead]** Topics are created per message and stored in a Map. For long conversations with 100+ messages, this is 100 topic arrays in memory.
+   → [Mitigation: Topics are lightweight (just event lists). Bubbles unsubscribe on unmount. For 100 visible messages this is negligible.]
 
 2. **[Risk: Scroll regression]** The scroll behavior (throttle, manual-detection) is non-trivial. Moving it could introduce regressions.
-   → [Mitigation: Port the scroll code verbatim from ConversationPanel.js (lines 260-353), only changing the ref targets. Test with the existing `tests/unit/tui/conversationPanel.test.js` as reference.]
+   → [Mitigation: Port the scroll code verbatim from ConversationPanel.js, only changing the ref targets. Use the same throttling and content-hash patterns.]
 
 3. **[Risk: Bubble ID stability]** Message IDs must be stable across renders for `updateMessage` to find the right bubble.
-   → [Mitigation: Use a monotonic counter (assigned at add time) rather than random IDs. Map ID → ref, not ref → ID.]
+   → [Mitigation: Use a monotonic counter (assigned at add time) rather than random IDs. Map ID → data, not ref → ID.]
 
 ## Migration Plan
 
@@ -86,3 +93,4 @@ The `messages` state in App.js is not removed. It stays as the source of truth f
 1. Should the cursor character be sourced globally (context) or per-component (prop from MessageList from app props)?
 2. Is a monotonic counter sufficient for bubble IDs, or should we use `crypto.randomUUID()` for uniqueness across session loads? (Answer for now: monotonic counter is simpler and sufficient within a session.)
 3. How should `MessageBubble` handle empty content during streaming (just a blinking cursor)?
+4. Should the legacy `MessageBubble` and `renderMessages` in `conversationPanel.js` be removed after this change, or kept as utilities? (Decision: kept as exports for backward compatibility, but they are unused.)

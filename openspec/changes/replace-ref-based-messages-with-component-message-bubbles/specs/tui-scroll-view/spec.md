@@ -9,7 +9,7 @@ The MessageList component SHALL render messages inside a `ScrollView` component 
 
 #### Scenario: Messages receive unique keys
 - **WHEN** the ScrollView renders its children
-- **THEN** each message element has a unique `key` prop (derived from message ID or index)
+- **THEN** each message element has a unique `key` prop (derived from message ID)
 
 ### Requirement: app.js no longer manages scroll state directly via setMessages
 The `app.js` component SHALL NOT update messages via array cloning and mutation (`setMessages(prev => { const cloned = [...prev]; ... })`). Instead, app.js calls imperative methods on the MessageList ref for all message updates.
@@ -21,3 +21,14 @@ The `app.js` component SHALL NOT update messages via array cloning and mutation 
 #### Scenario: ConversationPanel receives simplified props
 - **WHEN** `app.js` renders ConversationPanel
 - **THEN** it passes an initial `messages` array or `initialize` callback and `assistantName`, and uses a ref (`messageListRef`) for imperative updates
+
+### Requirement: Scroll ref accessed via getScrollRef (no prop forwarding)
+The `app.js` component SHALL access the ScrollView ref for keyboard navigation via `messageListRef.current?.getScrollRef()` rather than through a forwarded `scrollRef` prop. This simplifies the prop interface through ConversationPanel.
+
+#### Scenario: Keyboard navigation accesses scroll ref
+- **WHEN** a keyboard scroll event occurs (arrow keys, page up/down)
+- **THEN** app.js calls `messageListRef.current?.getScrollRef()` to obtain the ScrollView ref and invokes `scrollBy()` on it
+
+#### Scenario: No scrollRef prop in component chain
+- **WHEN** the component tree is inspected for scrollRef prop propagation
+- **THEN** scrollRef is NOT passed as a prop from App.js → ConversationPanel → MessageList; instead it is stored internally in MessageList
