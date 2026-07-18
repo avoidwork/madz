@@ -511,8 +511,6 @@ export default function App({
 					sessionState.removeLastAssistantToolCallMessage();
 					sessionState.popExchange();
 				}
-				// Clear the partial streaming assistant message from UI
-				messageListRef.current?.clear();
 				setStatusMessage("Interrupted.");
 			} else {
 				if (onSaveSession) {
