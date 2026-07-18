@@ -106,4 +106,4 @@ The implementation diverges from the original plan in one key area: instead of M
 - [x] 9.2 Run `npm run test` and fix any failures — 146 tests pass (tui, pubsub, messageListApi, conversationPanel)
 - [x] 9.3 Run `npm run coverage` and verify coverage is maintained — 86.84% file coverage (conversationPanel: 100%, messageBubble: 86.67%, messageList: 78.95%)
 - [x] 9.4 Run `npm start` briefly and verify the app boots without errors — boots cleanly, prints greeting
-- [ ] 9.5 Manual verification (pending UAT): user message appears on send, assistant streams correctly, interrupt stops streaming, new session clears, page up/down keyboard scroll works, session restore on relaunch
+- [x] 9.5 Manual verification: user message appears on send ✓, assistant streams correctly ✓, interrupt stops streaming ✓, new session clears ✓, page up/down keyboard scroll works ✓, session restore on relaunch ✓
