@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useContext } from "react";
 import { Box, Text } from "ink";
+import Spinner from "ink-spinner";
 import { MarkdownText } from "./markdownText.js";
 import { getRoleLabel } from "./messages.js";
 import { getRoleColors, getBubbleStyle, formatTime } from "./conversationPanel.js";
@@ -195,6 +196,8 @@ export function MessageBubble({
 			)
 		: null;
 
+	const pendingState = role === "assistant" && chunks.length === 0 && !content;
+
 	return React.createElement(
 		Box,
 		{
@@ -228,7 +231,14 @@ export function MessageBubble({
 			React.createElement(
 				Box,
 				{ flexDirection: "row" },
-				React.createElement(MarkdownText, { content: text }),
+				pendingState
+					? React.createElement(
+							Text,
+							{ color: "cyan" },
+							React.createElement(Spinner, { type: "dots2" }),
+							" thinking",
+						)
+					: React.createElement(MarkdownText, { content: text }),
 			),
 			reasoningEl,
 			toolCallEl,
