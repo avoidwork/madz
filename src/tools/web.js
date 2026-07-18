@@ -227,7 +227,7 @@ export async function webSearchImpl(input, options = config) {
 	}
 
 	const clampedLimit = Math.min(Math.max(Number(limit) || 5, 1), 100);
-	const search = options.search || {};
+	const search = options?.search || config.search || {};
 	const backend = detectSearchBackend(options);
 	const bing = search?.bing || {};
 	const searxng = search?.searxng || {};
