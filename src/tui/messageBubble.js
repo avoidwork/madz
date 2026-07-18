@@ -236,7 +236,7 @@ export function MessageBubble({
 							Text,
 							{ color: "cyan" },
 							React.createElement(Spinner, { type: "dots2" }),
-							" Thinking",
+							" thinking",
 						)
 					: React.createElement(MarkdownText, { content: text }),
 			),
