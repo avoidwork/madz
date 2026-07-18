@@ -31,7 +31,6 @@ export const MessageList = forwardRef(function MessageList(
 	{ messages: _messages = [], assistantName = "Assistant", scrollRef: externalScrollRef },
 	forwardRef,
 ) {
-	messages = _messages || [];
 	const internalRef = useRef(null);
 	const scrollRef = externalScrollRef || internalRef;
 	const idsRef = useRef([]);
