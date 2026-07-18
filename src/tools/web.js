@@ -203,7 +203,7 @@ async function searchWithCustom(cfg, query, limit) {
  * @returns {string} Engine name or "none" (should never be none as DuckDuckGo always works)
  */
 export function detectSearchBackend(options = config) {
-	const search = options.search || {};
+	const search = options?.search || config.search || {};
 	const custom = search.custom || {};
 	if (custom?.url) return "custom";
 	if (search?.bing?.apiKey) return "bing";
