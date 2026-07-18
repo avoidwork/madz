@@ -2,6 +2,12 @@ import React from "react";
 import { describe, it, afterEach } from "node:test";
 import assert from "node:assert";
 import { render } from "ink";
+
+// Legacy note: renderMessages was removed in favor of the component-based MessageList.
+// The functions below (getRoleColors, getBubbleStyle) are still exported from
+// conversationPanel.js for backward compatibility but are consumed via the
+// MessageList component architecture.
+
 import {
 	ConversationPanel,
 	getRoleColors,
