@@ -82,9 +82,15 @@ describe("Agent Definitions", () => {
 		it("coding agent should include code editing rules", () => {
 			const coding = ALL_AGENTS.find((a) => a.name === "coding");
 			ok(coding, "Should find coding agent");
-			ok(coding.systemPrompt.includes("Read before writing"), "Should include read-before-write rule");
+			ok(
+				coding.systemPrompt.includes("Read before writing"),
+				"Should include read-before-write rule",
+			);
 			ok(coding.systemPrompt.includes("Ship complete code"), "Should include ship-complete rule");
-			ok(coding.systemPrompt.includes("Respect project conventions"), "Should include conventions rule");
+			ok(
+				coding.systemPrompt.includes("Respect project conventions"),
+				"Should include conventions rule",
+			);
 			ok(coding.systemPrompt.includes("No dead code"), "Should include no-dead-code rule");
 		});
 
