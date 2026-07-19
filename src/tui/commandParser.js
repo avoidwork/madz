@@ -12,6 +12,10 @@ export class CommandParser {
 			return { action: "quit", value: true, message: "Quitting." };
 		});
 
+		this.#register("exit", (_args, _ctx) => {
+			return { action: "quit", value: true, message: "Quitting." };
+		});
+
 		this.#register("provider", (args, ctx) => {
 			if (args[0] === "set" && args[1]) {
 				ctx._sessionState.setProvider(args[1]);
