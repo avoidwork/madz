@@ -39,20 +39,25 @@ function getAgentClassifications(agentName) {
 
 /**
  * Create subagent definitions with filtered tools.
- * @param {Object} buildOptions - Build options for tool creation
+ * @param {Object[]} allTools - Array of built tool instances
  * @param {Object} model - Chat model instance
  * @returns {Object[]} Array of subagent definitions
  */
-function createSubagentDefinitions(buildOptions, model) {
+function createSubagentDefinitions(allTools, model) {
 	const allAgents = getAllAgents();
 
 	return allAgents.map((agentDef) => {
 		const classifications = getAgentClassifications(agentDef.name);
 		const filteredToolNames = getToolsForAgentTypes(classifications, TOOLS);
+		// Map tool names back to actual tool instances — SubAgent.specs
+		// require StructuredTool[], not string names.
+		const filteredTools = filteredToolNames
+			.map((name) => allTools.find((t) => t.name === name))
+			.filter(Boolean);
 		return {
 			...agentDef,
 			model,
-			tools: filteredToolNames,
+			tools: filteredTools,
 		};
 	});
 }
@@ -130,19 +135,7 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	const contextRoute = "/" + config.memory.contextDir.replace(/^\.?\//, "");
 
 	// Create subagent definitions with filtered tools
-	const subagentDefinitions = createSubagentDefinitions(buildOptions, model);
-
-	// Build filtered tool sets for each agent type
-	const agentToolSets = {};
-	for (const agentDef of subagentDefinitions) {
-		const classifications = getAgentClassifications(agentDef.name);
-		const filteredToolNames = getToolsForAgentTypes(classifications, TOOLS);
-		agentToolSets[agentDef.name] = filteredToolNames;
-		logger.info(
-			{ agent: agentDef.name, tools: filteredToolNames },
-			`Agent "${agentDef.name}" has ${filteredToolNames.length} tools`,
-		);
-	}
+	const subagentDefinitions = createSubagentDefinitions(allTools, model);
 
 	// All discovered skills are available to the orchestrator
 
