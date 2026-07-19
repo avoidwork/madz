@@ -38,12 +38,13 @@ function getAgentClassifications(agentName) {
 }
 
 /**
- * Create subagent definitions with filtered tools.
+ * Create subagent definitions with filtered tools and agent-specific skills.
  * @param {Object[]} allTools - Array of built tool instances
  * @param {Object} model - Chat model instance
+ * @param {SkillRegistry} skillRegistry - Skill registry instance
  * @returns {Object[]} Array of subagent definitions
  */
-function createSubagentDefinitions(allTools, model) {
+function createSubagentDefinitions(allTools, model, skillRegistry) {
 	const allAgents = getAllAgents();
 
 	return allAgents.map((agentDef) => {
@@ -54,11 +55,22 @@ function createSubagentDefinitions(allTools, model) {
 		const filteredTools = filteredToolNames
 			.map((name) => allTools.find((t) => t.name === name))
 			.filter(Boolean);
-		return {
+
+		// Get skills specific to this agent (metadata.agent === agentName)
+		const agentSkills = skillRegistry.getSkillPathsForAgent(agentDef.name);
+
+		const definition = {
 			...agentDef,
 			model,
 			tools: filteredTools,
 		};
+
+		// Attach skills array only if this agent has coding-specific skills
+		if (agentSkills.length > 0) {
+			definition.skills = agentSkills;
+		}
+
+		return definition;
 	});
 }
 
@@ -134,8 +146,8 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	const contextBackend = createContextBackend();
 	const contextRoute = "/" + config.memory.contextDir.replace(/^\.?\//, "");
 
-	// Create subagent definitions with filtered tools
-	const subagentDefinitions = createSubagentDefinitions(allTools, model);
+	// Create subagent definitions with filtered tools and agent-specific skills
+	const subagentDefinitions = createSubagentDefinitions(allTools, model, skillRegistry);
 
 	// All discovered skills are available to the orchestrator
 

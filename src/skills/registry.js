@@ -245,4 +245,20 @@ export class SkillRegistry {
 		}
 		return paths;
 	}
+
+	/**
+	 * Get skill directory paths filtered by agent name.
+	 * Skills with metadata.agent matching the agentName are included.
+	 * @param {string} agentName - Agent name to filter by
+	 * @returns {string[]} Array of matching skill directory paths
+	 */
+	getSkillPathsForAgent(agentName) {
+		const paths = [];
+		for (const [_name, entry] of this.#skills) {
+			if (entry.path && entry.metadata?.agent === agentName) {
+				paths.push(entry.path);
+			}
+		}
+		return paths;
+	}
 }
