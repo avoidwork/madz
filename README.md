@@ -429,6 +429,7 @@ Uses the [Deep Agents](https://github.com/avoidwork/deepagents) library to orche
 | Agent | Purpose | Tool Access |
 | ----- | ------- | ----------- |
 | `code-review` | Structured code reviews covering bugs, security, style, performance | `readFile`, `grep`, `glob`, `executeCode` |
+| `coding` | Code implementation with read-before-write discipline, complete shipping, convention adherence, and dead-code elimination | `shell`, `write`, `compactContext`, `executeCode`, `process`, `scanAgents`, `skillView`, `skillsList`, `visionAnalyze` |
 | `debug` | Error tracing, reproduction, and fix proposals | `readFile`, `grep`, `glob`, `executeCode`, `shell` |
 | `documentation` | Documentation updates, API docs generation, changelog maintenance | `readFile`, `writeFile`, `grep`, `glob` |
 | `performance` | Performance benchmarking, bottleneck identification, optimization suggestions | `readFile`, `executeCode`, `grep`, `shell` |
