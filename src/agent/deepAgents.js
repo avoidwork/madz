@@ -6,10 +6,12 @@ import { loadConfig } from "../config/loader.js";
 import { loadSystemPrompt } from "../memory/prompts.js";
 import { SkillRegistry } from "../skills/registry.js";
 import { createChatModel } from "../provider/openai.js";
-import { buildToolConfig } from "../tools/index.js";
+import { buildToolConfig, getToolsForAgentTypes, TOOL_CLASSIFICATIONS, TOOLS } from "../tools/index.js";
 import { createCoreBackend } from "./coreBackend.js";
 import { createContextBackend } from "./contextBackend.js";
 import { createDmzBackend } from "./dmzBackend.js";
+import { AgentRegistry } from "./agentRegistry.js";
+import { getAllAgents } from "./agents/index.js";
 import { logger } from "../logger.js";
 
 function loadCodingAgentPrompt(baseDir) {
@@ -19,6 +21,46 @@ function loadCodingAgentPrompt(baseDir) {
 	} catch {
 		return "";
 	}
+}
+
+/**
+ * Get tool classifications for an agent by name.
+ * Maps agent names to their required tool classifications.
+ * @param {string} agentName - Agent name
+ * @returns {string[]} Array of tool classifications
+ */
+function getAgentClassifications(agentName) {
+	const classificationMap = {
+		search: ["webSearch", "webExtract", "grep", "glob", "sessionSearch"],
+		debug: ["readFile", "grep", "glob", "executeCode", "shell"],
+		"code-review": ["readFile", "grep", "glob", "executeCode"],
+		research: ["webSearch", "webExtract", "grep", "glob", "sessionSearch"],
+		testing: ["readFile", "grep", "glob", "executeCode", "shell"],
+		documentation: ["readFile", "writeFile", "grep", "glob"],
+		"security-audit": ["readFile", "grep", "glob", "shell"],
+		performance: ["readFile", "executeCode", "grep", "shell"],
+	};
+	return classificationMap[agentName] || [];
+}
+
+/**
+ * Create subagent definitions with filtered tools.
+ * @param {Object} buildOptions - Build options for tool creation
+ * @param {Object} model - Chat model instance
+ * @returns {Object[]} Array of subagent definitions
+ */
+function createSubagentDefinitions(buildOptions, model) {
+	const allAgents = getAllAgents();
+
+	return allAgents.map((agentDef) => {
+		const classifications = getAgentClassifications(agentDef.name);
+		const filteredToolNames = getToolsForAgentTypes(classifications, TOOLS);
+		return {
+			...agentDef,
+			model,
+			tools: filteredToolNames,
+		};
+	});
 }
 
 /**
@@ -86,6 +128,21 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	const contextBackend = createContextBackend();
 	const contextRoute = "/" + config.memory.contextDir.replace(/^\.?\//, "");
 
+	// Create subagent definitions with filtered tools
+	const subagentDefinitions = createSubagentDefinitions(buildOptions, model);
+
+	// Build filtered tool sets for each agent type
+	const agentToolSets = {};
+	for (const agentDef of subagentDefinitions) {
+		const classifications = getAgentClassifications(agentDef.name);
+		const filteredToolNames = getToolsForAgentTypes(classifications, TOOLS);
+		agentToolSets[agentDef.name] = filteredToolNames;
+		logger.info(
+			{ agent: agentDef.name, tools: filteredToolNames },
+			`Agent "${agentDef.name}" has ${filteredToolNames.length} tools`,
+		);
+	}
+
 	// All discovered skills are available to the orchestrator
 
 	return createDeepAgent({
@@ -97,17 +154,7 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 			[contextRoute]: contextBackend,
 			"/": dmzBackend,
 		}),
-		subagents: [
-			{
-				name: "coding",
-				description:
-					"Specialized agent for code-related tasks including file editing, debugging, implementation, and code review.",
-				systemPrompt:
-					codingAgentPrompt || "You are a coding specialist. Handle all code-related tasks.",
-				model,
-				tools,
-			},
-		],
+		subagents: subagentDefinitions,
 		...(agentsPath && { memory: [agentsPath] }),
 		...(skillPaths.length > 0 && { skills: skillPaths }),
 		...(checkpointer && { checkpointer }),
