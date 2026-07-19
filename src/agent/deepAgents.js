@@ -5,7 +5,7 @@ import { loadConfig } from "../config/loader.js";
 import { loadSystemPrompt } from "../memory/prompts.js";
 import { SkillRegistry } from "../skills/registry.js";
 import { createChatModel } from "../provider/openai.js";
-import { buildToolConfig, getToolsForAgentTypes, TOOLS } from "../tools/index.js";
+import { buildToolConfig, getToolsForAgentTypes, ORCHESTRATOR_TOOLS, TOOLS } from "../tools/index.js";
 import { createCoreBackend } from "./coreBackend.js";
 import { createContextBackend } from "./contextBackend.js";
 import { createDmzBackend } from "./dmzBackend.js";
@@ -87,7 +87,7 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 		}),
 	); **/
 
-	// Build tools from config — separate sets for orchestrator and subagent
+	// Build tools from config — filter to orchestrator-only tools
 	const buildOptions = {
 		permissions: config.sandbox.permissions || [],
 		allowedPaths: config.sandbox.paths,
@@ -104,11 +104,19 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 		checkpointer,
 	};
 
-	// Build all tools without filtering — pass everything to orchestrator and subagent
-	const tools = await buildToolConfig(buildOptions);
+	// Build all tools, then filter to orchestrator-only set
+	const allTools = await buildToolConfig(buildOptions);
 	logger.info(
-		{ tools: tools.map((t) => ({ name: t.name, type: typeof t, lc: t?.lc })) },
-		`Tools: ${tools.length}`,
+		{ tools: allTools.map((t) => ({ name: t.name, type: typeof t, lc: t?.lc })) },
+		`All tools: ${allTools.length}`,
+	);
+
+	// Filter to orchestrator tools only — domain-specific tools go to subagents
+	const orchestratorToolNames = new Set(ORCHESTRATOR_TOOLS);
+	const orchestratorTools = allTools.filter((t) => orchestratorToolNames.has(t.name));
+	logger.info(
+		{ tools: orchestratorToolNames.size },
+		`Orchestrator tools: ${orchestratorToolNames.size}`,
 	);
 
 	const coreBackend = createCoreBackend();
@@ -135,7 +143,7 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 
 	return createDeepAgent({
 		model,
-		tools,
+		tools: orchestratorTools,
 		systemPrompt,
 		store: new InMemoryStore(),
 		backend: new CompositeBackend(coreBackend, {

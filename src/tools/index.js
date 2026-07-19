@@ -85,6 +85,25 @@ export function getToolsForAgentTypes(agentTypes, tools) {
 	});
 }
 
+/**
+ * Tools available to the orchestrator.
+ * These are general-purpose tools for communication, context management, and lookup.
+ * Domain-specific tools are delegated to subagents.
+ * @type {string[]}
+ */
+export const ORCHESTRATOR_TOOLS = [
+	"clarify",
+	"compactContext",
+	"date",
+	"memory",
+	"sessionSearch",
+	"webSearch",
+	"webExtract",
+	"skillView",
+	"skillsList",
+	"scanAgents",
+];
+
 // Tool instances keyed by tool name
 export const TOOLS = {
 	clarify,
