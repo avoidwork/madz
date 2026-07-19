@@ -27,6 +27,13 @@ describe("command parser", () => {
 		assert.strictEqual(result.value, true);
 	});
 
+	it("parses /exit command as alias for /quit", () => {
+		const parser = new CommandParser();
+		const result = parser.parse("/exit", {});
+		assert.strictEqual(result.action, "quit");
+		assert.strictEqual(result.value, true);
+	});
+
 	it("returns null for non-command input", () => {
 		const parser = new CommandParser();
 		assert.strictEqual(parser.parse("hello world", {}), null);
@@ -43,6 +50,7 @@ describe("command parser", () => {
 		const parser = new CommandParser();
 		const commands = parser.listCommands();
 		assert.ok(commands.includes("quit"));
+		assert.ok(commands.includes("exit"));
 		assert.ok(commands.includes("provider"));
 		assert.ok(commands.includes("config"));
 		assert.ok(commands.includes("schedule"));

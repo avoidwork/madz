@@ -24,7 +24,7 @@ const COMMAND_GROUPS = [
 			"/schedule [list|pause|resume|run-now]",
 			"/config set <path> <value> - update config",
 			"/clear - clear conversation",
-			"/quit - exit the app",
+			"/quit or /exit - exit the app",
 		],
 	},
 ];
