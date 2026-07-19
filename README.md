@@ -56,10 +56,9 @@
 
 ## Quick Start
 
-- Faster rendering and snappier interactions
-- Session browsing with interactive menu
-
 ### Docker Quick Start (Recommended)
+
+`madz` is designed to run in a containerized environment. This provides persistent memory, sandboxed skill execution, and SSH access out of the box.
 
 ```bash
 docker pull avoidwork/madz:latest
@@ -78,11 +77,14 @@ The full `docker run` command with all optional variables is in the [Docker Envi
 
 ### Prerequisites
 
-- **Node.js** 24 or later
+- **Docker** (for the recommended containerized experience)
+- **Node.js** 24 or later (optional — for local development only)
 - **npm** (included with Node.js)
 - An LLM provider API key (e.g., `OPENAI_API_KEY`)
 
-### Installation
+### Installation (Local Development)
+
+For local development or when you prefer not to use Docker:
 
 ```bash
 git clone https://github.com/avoidwork/madz.git
@@ -100,7 +102,21 @@ For the full configuration reference with defaults, see the [Config Reference](#
 
 ### Running
 
-**Interactive TUI:**
+**Docker (recommended):**
+
+```bash
+docker run -d \
+  --name madz \
+  -p 2222:22 \
+  -v ./memory:/app/memory \
+  -v ./skills:/app/skills \
+  -v ./logs:/home/madz/.cache/madz/logs \
+  -e OPENAI_API_KEY="your-key" \
+  avoidwork/madz:latest
+ssh -p 2222 madz@localhost
+```
+
+**Interactive TUI (local):**
 
 ```bash
 npm start
