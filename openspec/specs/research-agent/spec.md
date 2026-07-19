@@ -1,7 +1,7 @@
 # research-agent Specification
 
 ## Purpose
-TBD - created by archiving change create-subagent-definitions-deepagents. Update Purpose after archive.
+Specialized agent for multi-step research with source tracking and comprehensive reports. Performs web and codebase research with source validation and citation tracking.
 ## Requirements
 ### Requirement: Research Agent Definition
 The system SHALL provide a Research agent definition for multi-step research tasks.

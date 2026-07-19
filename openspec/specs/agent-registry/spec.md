@@ -1,7 +1,7 @@
 # agent-registry Specification
 
 ## Purpose
-TBD - created by archiving change create-subagent-definitions-deepagents. Update Purpose after archive.
+Provides a registry pattern for managing subagent definitions with add, get, list, validate, and clear operations. Enables centralized agent lifecycle management.
 ## Requirements
 ### Requirement: Agent Registry
 The system SHALL provide an agent registry that stores and manages subagent definitions.

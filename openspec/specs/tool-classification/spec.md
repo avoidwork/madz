@@ -1,7 +1,7 @@
 # tool-classification Specification
 
 ## Purpose
-TBD - created by archiving change classify-assign-tools-skills-orchestrator-subagents. Update Purpose after archive.
+Categorizes tools by agent type to enable tool filtering per subagent. Reduces context window usage by only passing relevant tools to each agent.
 ## Requirements
 ### Requirement: Tools SHALL be classified by agent type
 Each tool in `src/tools/index.js` SHALL have a classification indicating which agent type(s) may use it. Classifications are: `orchestrator`, `subagent`, or `shared`.

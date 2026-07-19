@@ -1,7 +1,7 @@
 # search-agent Specification
 
 ## Purpose
-TBD - created by archiving change create-subagent-definitions-deepagents. Update Purpose after archive.
+Specialized agent for multi-source search (web, docs, codebase) with synthesis into structured summaries. Performs web search, content extraction, and session search.
 ## Requirements
 ### Requirement: Search Agent Definition
 The system SHALL provide a Search agent definition with multi-source search capabilities.

@@ -1,7 +1,7 @@
 # debug-agent Specification
 
 ## Purpose
-TBD - created by archiving change create-subagent-definitions-deepagents. Update Purpose after archive.
+Specialized agent for error tracing, reproduction, and fix proposals. Analyzes errors, traces through code, and generates fix proposals with confidence levels.
 ## Requirements
 ### Requirement: Debug Agent Definition
 The system SHALL provide a Debug agent definition for error tracing and fix proposals.

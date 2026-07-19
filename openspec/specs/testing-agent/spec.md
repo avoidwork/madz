@@ -1,7 +1,7 @@
 # testing-agent Specification
 
 ## Purpose
-TBD - created by archiving change create-subagent-definitions-deepagents. Update Purpose after archive.
+Specialized agent for test generation, gap analysis, and coverage improvements. Generates tests following project conventions and identifies untested code paths.
 ## Requirements
 ### Requirement: Testing Agent Definition
 The system SHALL provide a Testing agent definition for test generation and gap analysis.

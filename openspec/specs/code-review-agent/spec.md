@@ -1,7 +1,7 @@
 # code-review-agent Specification
 
 ## Purpose
-TBD - created by archiving change create-subagent-definitions-deepagents. Update Purpose after archive.
+Specialized agent for structured code reviews covering bugs, security, style, and performance. Produces severity-rated findings with file locations and suggestions.
 ## Requirements
 ### Requirement: Code Review Agent Definition
 The system SHALL provide a Code Review agent definition for structured code reviews.

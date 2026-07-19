@@ -1,7 +1,7 @@
 # performance-agent Specification
 
 ## Purpose
-TBD - created by archiving change create-subagent-definitions-deepagents. Update Purpose after archive.
+Specialized agent for performance benchmarking, bottleneck identification, and optimization suggestions. Provides measurable benchmarks and specific optimization recommendations.
 ## Requirements
 ### Requirement: Performance Agent Definition
 The system SHALL provide a Performance agent definition for performance benchmarking and optimization.

@@ -1,7 +1,7 @@
 # documentation-agent Specification
 
 ## Purpose
-TBD - created by archiving change create-subagent-definitions-deepagents. Update Purpose after archive.
+Specialized agent for documentation updates, API docs generation, and changelog maintenance. Follows project documentation conventions and style.
 ## Requirements
 ### Requirement: Documentation Agent Definition
 The system SHALL provide a Documentation agent definition for documentation updates and generation.

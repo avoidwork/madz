@@ -1,7 +1,7 @@
 # security-audit-agent Specification
 
 ## Purpose
-TBD - created by archiving change create-subagent-definitions-deepagents. Update Purpose after archive.
+Specialized agent for security scanning, dependency auditing, and vulnerability detection. Identifies security anti-patterns and provides actionable remediation steps.
 ## Requirements
 ### Requirement: Security Audit Agent Definition
 The system SHALL provide a Security Audit agent definition for security scanning and vulnerability detection.

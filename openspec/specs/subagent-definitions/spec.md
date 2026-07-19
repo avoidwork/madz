@@ -1,7 +1,7 @@
 # subagent-definitions Specification
 
 ## Purpose
-TBD - created by archiving change create-subagent-definitions-deepagents. Update Purpose after archive.
+Framework for defining specialized subagents with focused tool access and system prompts. Enables the deepagents library to route tasks to domain-specific agents.
 ## Requirements
 ### Requirement: Subagent Definition Framework
 The system SHALL provide a framework for defining specialized subagents with focused tool access and system prompts.
