@@ -5,7 +5,12 @@ import { loadConfig } from "../config/loader.js";
 import { loadSystemPrompt } from "../memory/prompts.js";
 import { SkillRegistry } from "../skills/registry.js";
 import { createChatModel } from "../provider/openai.js";
-import { buildToolConfig, getToolsForAgentTypes, ORCHESTRATOR_TOOLS, TOOLS } from "../tools/index.js";
+import {
+	buildToolConfig,
+	getToolsForAgentTypes,
+	ORCHESTRATOR_TOOLS,
+	TOOLS,
+} from "../tools/index.js";
 import { createCoreBackend } from "./coreBackend.js";
 import { createContextBackend } from "./contextBackend.js";
 import { createDmzBackend } from "./dmzBackend.js";

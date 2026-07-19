@@ -49,14 +49,41 @@ export const TOOL_PERMISSIONS = {
  * @type {Record<string, string[]>}
  */
 export const TOOL_CLASSIFICATIONS = {
-	clarify: ["search", "debug", "code-review", "research", "testing", "documentation", "security-audit", "performance"],
+	clarify: [
+		"search",
+		"debug",
+		"code-review",
+		"research",
+		"testing",
+		"documentation",
+		"security-audit",
+		"performance",
+	],
 	compactContext: ["debug", "code-review", "research"],
 	cronJob: ["security-audit", "performance"],
 	createSkill: ["documentation"],
-	date: ["search", "debug", "code-review", "research", "testing", "documentation", "security-audit", "performance"],
+	date: [
+		"search",
+		"debug",
+		"code-review",
+		"research",
+		"testing",
+		"documentation",
+		"security-audit",
+		"performance",
+	],
 	executeCode: ["debug", "code-review", "testing", "performance"],
 	imageGenerate: ["documentation"],
-	memory: ["search", "debug", "code-review", "research", "testing", "documentation", "security-audit", "performance"],
+	memory: [
+		"search",
+		"debug",
+		"code-review",
+		"research",
+		"testing",
+		"documentation",
+		"security-audit",
+		"performance",
+	],
 	mixtureOfAgents: ["research"],
 	process: ["debug", "performance"],
 	sampling: ["documentation"],
@@ -102,6 +129,9 @@ export const ORCHESTRATOR_TOOLS = [
 	"skillView",
 	"skillsList",
 	"scanAgents",
+	"shell",
+	"sampling",
+	"createSkill",
 ];
 
 // Tool instances keyed by tool name

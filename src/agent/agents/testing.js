@@ -25,7 +25,6 @@ function loadTestingPrompt(baseDir) {
  */
 export const testingAgent = {
 	name: "testing",
-	description:
-		"Specialized agent for test generation, gap analysis, and coverage improvements.",
+	description: "Specialized agent for test generation, gap analysis, and coverage improvements.",
 	systemPrompt: loadTestingPrompt(),
 };
