@@ -1,4 +1,4 @@
-## ADDED Requirements
+## Requirements
 
 ### Requirement: Interactive Chat Mode
 The system SHALL provide an interactive conversational mode where users can type messages, receive LLM responses, and view conversation history in a scrollable terminal buffer.
