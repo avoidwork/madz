@@ -27,6 +27,33 @@ describe("command parser", () => {
 		assert.strictEqual(result.value, true);
 	});
 
+	it("parses /exit command as alias for /quit", () => {
+		const parser = new CommandParser();
+		const result = parser.parse("/exit", {});
+		assert.strictEqual(result.action, "quit");
+		assert.strictEqual(result.value, true);
+		assert.strictEqual(result.message, "Quitting.");
+	});
+
+	it("treats /exit and /quit identically", () => {
+		const parser = new CommandParser();
+		const quitResult = parser.parse("/quit", {});
+		const exitResult = parser.parse("/exit", {});
+		assert.deepStrictEqual(quitResult, exitResult);
+	});
+
+	it("lists /exit alongside /quit", () => {
+		const parser = new CommandParser();
+		const commands = parser.listCommands();
+		assert.ok(commands.includes("quit"));
+		assert.ok(commands.includes("exit"));
+	});
+
+	it("has /exit command via hasCommand", () => {
+		const parser = new CommandParser();
+		assert.strictEqual(parser.hasCommand("exit"), true);
+	});
+
 	it("returns null for non-command input", () => {
 		const parser = new CommandParser();
 		assert.strictEqual(parser.parse("hello world", {}), null);
