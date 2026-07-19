@@ -412,14 +412,14 @@ Uses the [Deep Agents](https://github.com/avoidwork/deepagents) library to orche
 
 | Agent | Purpose | Tool Access |
 | ----- | ------- | ----------- |
-| `search` | Multi-source search (web, docs, codebase) with synthesis | `webSearch`, `webExtract`, `grep`, `glob`, `sessionSearch` |
-| `debug` | Error tracing, reproduction, and fix proposals | `readFile`, `grep`, `glob`, `executeCode`, `shell` |
 | `code-review` | Structured code reviews covering bugs, security, style, performance | `readFile`, `grep`, `glob`, `executeCode` |
-| `research` | Multi-step research with source tracking and comprehensive reports | `webSearch`, `webExtract`, `grep`, `glob`, `sessionSearch` |
-| `testing` | Test generation, gap analysis, and coverage improvements | `readFile`, `grep`, `glob`, `executeCode`, `shell` |
+| `debug` | Error tracing, reproduction, and fix proposals | `readFile`, `grep`, `glob`, `executeCode`, `shell` |
 | `documentation` | Documentation updates, API docs generation, changelog maintenance | `readFile`, `writeFile`, `grep`, `glob` |
-| `security-audit` | Security scanning, dependency auditing, vulnerability detection | `readFile`, `grep`, `glob`, `shell` |
 | `performance` | Performance benchmarking, bottleneck identification, optimization suggestions | `readFile`, `executeCode`, `grep`, `shell` |
+| `research` | Multi-step research with source tracking and comprehensive reports | `webSearch`, `webExtract`, `grep`, `glob`, `sessionSearch` |
+| `search` | Multi-source search (web, docs, codebase) with synthesis | `webSearch`, `webExtract`, `grep`, `glob`, `sessionSearch` |
+| `security-audit` | Security scanning, dependency auditing, vulnerability detection | `readFile`, `grep`, `glob`, `shell` |
+| `testing` | Test generation, gap analysis, and coverage improvements | `readFile`, `grep`, `glob`, `executeCode`, `shell` |
 
 Each agent definition lives in `src/agent/agents/` with its own file. The `AgentRegistry` class (`src/agent/agentRegistry.js`) manages registration, validation, and lookup. Tool access is gated by `TOOL_CLASSIFICATIONS` in `src/tools/index.js` — each tool declares which agent types it serves, and the orchestrator filters tools per agent at runtime.
 
