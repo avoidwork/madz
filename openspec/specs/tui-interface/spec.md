@@ -1,3 +1,7 @@
+## Purpose
+
+Define the TUI interface capabilities including interactive chat, batch execution, pipeline output, keyboard navigation, command entry, and the startup banner.
+
 ## Requirements
 
 ### Requirement: Interactive Chat Mode
