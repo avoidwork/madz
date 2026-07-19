@@ -9,6 +9,7 @@ import { getToolsForAgentTypes, TOOL_CLASSIFICATIONS } from "../../src/tools/ind
 
 const ALL_AGENTS = getAllAgents();
 const EXPECTED_AGENT_NAMES = [
+	"coding",
 	"search",
 	"debug",
 	"code-review",
@@ -21,8 +22,8 @@ const EXPECTED_AGENT_NAMES = [
 
 describe("Agent Definitions", () => {
 	describe("getAllAgents", () => {
-		it("should return all 8 agent definitions", () => {
-			strictEqual(ALL_AGENTS.length, 8, "Should have exactly 8 agents");
+		it("should return all 9 agent definitions", () => {
+			strictEqual(ALL_AGENTS.length, 9, "Should have exactly 9 agents");
 		});
 
 		it("should include all expected agent names", () => {
@@ -76,6 +77,15 @@ describe("Agent Definitions", () => {
 			ok(debug.systemPrompt.includes("Analysis"), "Should include Analysis section");
 			ok(debug.systemPrompt.includes("Proposed Fix"), "Should include Proposed Fix section");
 			ok(debug.systemPrompt.includes("Confidence"), "Should include Confidence section");
+		});
+
+		it("coding agent should include code editing rules", () => {
+			const coding = ALL_AGENTS.find((a) => a.name === "coding");
+			ok(coding, "Should find coding agent");
+			ok(coding.systemPrompt.includes("Read before writing"), "Should include read-before-write rule");
+			ok(coding.systemPrompt.includes("Ship complete code"), "Should include ship-complete rule");
+			ok(coding.systemPrompt.includes("Respect project conventions"), "Should include conventions rule");
+			ok(coding.systemPrompt.includes("No dead code"), "Should include no-dead-code rule");
 		});
 
 		it("code-review agent should include severity-rated findings", () => {

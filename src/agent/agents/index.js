@@ -2,6 +2,7 @@
  * Agent definitions index - exports all subagent definitions.
  */
 
+import { codingAgent } from "./coding.js";
 import { searchAgent } from "./search.js";
 import { debugAgent } from "./debug.js";
 import { codeReviewAgent } from "./code-review.js";
@@ -12,6 +13,7 @@ import { securityAuditAgent } from "./security-audit.js";
 import { performanceAgent } from "./performance.js";
 
 export {
+	codingAgent,
 	searchAgent,
 	debugAgent,
 	codeReviewAgent,
@@ -28,6 +30,7 @@ export {
  */
 export function getAllAgents() {
 	return [
+		codingAgent,
 		searchAgent,
 		debugAgent,
 		codeReviewAgent,
