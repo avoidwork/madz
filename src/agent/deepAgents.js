@@ -1,27 +1,16 @@
 import { createDeepAgent, CompositeBackend } from "deepagents";
-import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { InMemoryStore } from "@langchain/langgraph-checkpoint";
 import { loadConfig } from "../config/loader.js";
 import { loadSystemPrompt } from "../memory/prompts.js";
 import { SkillRegistry } from "../skills/registry.js";
 import { createChatModel } from "../provider/openai.js";
-import { buildToolConfig, getToolsForAgentTypes, TOOL_CLASSIFICATIONS, TOOLS } from "../tools/index.js";
+import { buildToolConfig, TOOLS } from "../tools/index.js";
 import { createCoreBackend } from "./coreBackend.js";
 import { createContextBackend } from "./contextBackend.js";
 import { createDmzBackend } from "./dmzBackend.js";
-import { AgentRegistry } from "./agentRegistry.js";
 import { getAllAgents } from "./agents/index.js";
 import { logger } from "../logger.js";
-
-function loadCodingAgentPrompt(baseDir) {
-	try {
-		const dir = baseDir || process.cwd();
-		return readFileSync(join(dir, "prompts", "CODING.md"), "utf-8");
-	} catch {
-		return "";
-	}
-}
 
 /**
  * Get tool classifications for an agent by name.
@@ -72,7 +61,6 @@ function createSubagentDefinitions(buildOptions, model) {
 export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	const config = loadConfig();
 	const systemPrompt = loadSystemPrompt();
-	const codingAgentPrompt = loadCodingAgentPrompt();
 	const agentsPath = join(config.cwd, "AGENTS.md");
 
 	// Discover skills from configured scopes

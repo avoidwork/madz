@@ -86,7 +86,7 @@ export function getToolsForAgentTypes(agentTypes, tools) {
 }
 
 // Tool instances keyed by tool name
-const TOOLS = {
+export const TOOLS = {
 	clarify,
 	compactContext: createCompactContextTool,
 	cronJob,

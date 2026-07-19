@@ -2,14 +2,25 @@
  * Agent definitions index - exports all subagent definitions.
  */
 
-export { searchAgent } from "./search.js";
-export { debugAgent } from "./debug.js";
-export { codeReviewAgent } from "./code-review.js";
-export { researchAgent } from "./research.js";
-export { testingAgent } from "./testing.js";
-export { documentationAgent } from "./documentation.js";
-export { securityAuditAgent } from "./security-audit.js";
-export { performanceAgent } from "./performance.js";
+import { searchAgent } from "./search.js";
+import { debugAgent } from "./debug.js";
+import { codeReviewAgent } from "./code-review.js";
+import { researchAgent } from "./research.js";
+import { testingAgent } from "./testing.js";
+import { documentationAgent } from "./documentation.js";
+import { securityAuditAgent } from "./security-audit.js";
+import { performanceAgent } from "./performance.js";
+
+export {
+	searchAgent,
+	debugAgent,
+	codeReviewAgent,
+	researchAgent,
+	testingAgent,
+	documentationAgent,
+	securityAuditAgent,
+	performanceAgent,
+};
 
 /**
  * Get all agent definitions.

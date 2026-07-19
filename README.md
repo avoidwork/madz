@@ -406,7 +406,24 @@ The cache enforces a maximum size (default: 100 entries) with LRU eviction and a
 
 ### Agent
 
-Uses the [Deep Agents](https://github.com/avoidwork/deepagents) library to orchestrate a primary agent with a specialized coding agent. The orchestrator routes tasks automatically — a `coding-agent` handles code-related work (file editing, debugging, implementation, code review). The system prompt delegates every task to the orchestrator, which manages routing, state, and observability natively.
+Uses the [Deep Agents](https://github.com/avoidwork/deepagents) library to orchestrate a primary agent with a family of specialized subagents. The orchestrator routes tasks automatically — each subagent has a focused system prompt and a curated tool set matched to its domain.
+
+**Built-in subagents:**
+
+| Agent | Purpose | Tool Access |
+| ----- | ------- | ----------- |
+| `search` | Multi-source search (web, docs, codebase) with synthesis | `webSearch`, `webExtract`, `grep`, `glob`, `sessionSearch` |
+| `debug` | Error tracing, reproduction, and fix proposals | `readFile`, `grep`, `glob`, `executeCode`, `shell` |
+| `code-review` | Structured code reviews covering bugs, security, style, performance | `readFile`, `grep`, `glob`, `executeCode` |
+| `research` | Multi-step research with source tracking and comprehensive reports | `webSearch`, `webExtract`, `grep`, `glob`, `sessionSearch` |
+| `testing` | Test generation, gap analysis, and coverage improvements | `readFile`, `grep`, `glob`, `executeCode`, `shell` |
+| `documentation` | Documentation updates, API docs generation, changelog maintenance | `readFile`, `writeFile`, `grep`, `glob` |
+| `security-audit` | Security scanning, dependency auditing, vulnerability detection | `readFile`, `grep`, `glob`, `shell` |
+| `performance` | Performance benchmarking, bottleneck identification, optimization suggestions | `readFile`, `executeCode`, `grep`, `shell` |
+
+Each agent definition lives in `src/agent/agents/` with its own file. The `AgentRegistry` class (`src/agent/agentRegistry.js`) manages registration, validation, and lookup. Tool access is gated by `TOOL_CLASSIFICATIONS` in `src/tools/index.js` — each tool declares which agent types it serves, and the orchestrator filters tools per agent at runtime.
+
+The orchestrator also manages three filesystem backends via the deepagents `CompositeBackend`: the core working directory, the memory context directory, and a DMZ (`/tmp`) for operations that don't fit other routes.
 
 ### Context Window Management
 
