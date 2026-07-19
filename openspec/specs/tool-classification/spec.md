@@ -1,7 +1,7 @@
 # tool-classification Specification
 
 ## Purpose
-TBD - created by archiving change classify-assign-tools-skills-orchestrator-subagents. Update Purpose after archive.
+Categorizes tools by agent type to enable tool filtering per subagent. Reduces context window usage by only passing relevant tools to each agent.
 ## Requirements
 ### Requirement: Tools SHALL be classified by agent type
 Each tool in `src/tools/index.js` SHALL have a classification indicating which agent type(s) may use it. Classifications are: `orchestrator`, `subagent`, or `shared`.
@@ -60,4 +60,30 @@ When a new tool is added to `src/tools/index.js`, its classification SHALL be do
 #### Scenario: New tool requires classification
 - **WHEN** a new tool is added to `TOOL_FACTORIES`
 - **THEN** a corresponding entry MUST be added to `TOOL_CLASSIFICATIONS` with a clear rationale
+
+### Requirement: Tool Classification
+The system SHALL categorize tools by agent type using `TOOL_CLASSIFICATIONS` in `src/tools/index.js`.
+
+#### Scenario: Tools are classified by type
+- **WHEN** tools are registered in the system
+- **THEN** each tool is assigned to one or more agent type classifications
+
+#### Scenario: Tool classification is queryable
+- **WHEN** the system queries for tools by agent type
+- **THEN** it returns only tools matching the specified classification
+
+#### Scenario: Tools can have multiple classifications
+- **WHEN** a tool is relevant to multiple agent types
+- **THEN** the tool is assigned to all relevant classifications
+
+### Requirement: Tool Filtering
+The system SHALL filter tools based on agent type when invoking a subagent.
+
+#### Scenario: Subagent receives filtered tools
+- **WHEN** a subagent is invoked with a specific agent type
+- **THEN** only tools matching that agent's classification are available
+
+#### Scenario: Main thread receives all tools
+- **WHEN** the main thread invokes a tool
+- **THEN** all tools are available (no filtering)
 

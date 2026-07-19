@@ -43,8 +43,69 @@ export const TOOL_PERMISSIONS = {
 	webSearch: ["network:outbound"],
 };
 
+/**
+ * Maps tool names to agent type classifications.
+ * Each tool can be classified for one or more agent types.
+ * @type {Record<string, string[]>}
+ */
+export const TOOL_CLASSIFICATIONS = {
+	clarify: ["search", "debug", "code-review", "research", "testing", "documentation", "security-audit", "performance"],
+	compactContext: ["debug", "code-review", "research"],
+	cronJob: ["security-audit", "performance"],
+	createSkill: ["documentation"],
+	date: ["search", "debug", "code-review", "research", "testing", "documentation", "security-audit", "performance"],
+	executeCode: ["debug", "code-review", "testing", "performance"],
+	imageGenerate: ["documentation"],
+	memory: ["search", "debug", "code-review", "research", "testing", "documentation", "security-audit", "performance"],
+	mixtureOfAgents: ["research"],
+	process: ["debug", "performance"],
+	sampling: ["documentation"],
+	scanAgents: ["security-audit", "code-review"],
+	sessionSearch: ["search", "research"],
+	shell: ["debug", "code-review", "testing", "security-audit", "performance"],
+	skillView: ["search", "research", "code-review"],
+	skillsList: ["search", "research", "code-review"],
+	textToSpeech: ["documentation"],
+	visionAnalyze: ["code-review", "testing"],
+	webExtract: ["search", "research"],
+	webSearch: ["search", "research"],
+};
+
+/**
+ * Get tools filtered by agent type classification.
+ * @param {string[]} agentTypes - Array of agent type classifications (e.g., ["search", "debug"])
+ * @param {object} tools - The full tools object from TOOLS
+ * @returns {string[]} Array of tool names matching the agent types
+ */
+export function getToolsForAgentTypes(agentTypes, tools) {
+	const toolNames = Object.keys(tools);
+	return toolNames.filter((toolName) => {
+		const classifications = TOOL_CLASSIFICATIONS[toolName] || [];
+		return agentTypes.some((type) => classifications.includes(type));
+	});
+}
+
+/**
+ * Tools available to the orchestrator.
+ * These are general-purpose tools for communication, context management, and lookup.
+ * Domain-specific tools are delegated to subagents.
+ * @type {string[]}
+ */
+export const ORCHESTRATOR_TOOLS = [
+	"clarify",
+	"compactContext",
+	"date",
+	"memory",
+	"sessionSearch",
+	"webSearch",
+	"webExtract",
+	"skillView",
+	"skillsList",
+	"scanAgents",
+];
+
 // Tool instances keyed by tool name
-const TOOLS = {
+export const TOOLS = {
 	clarify,
 	compactContext: createCompactContextTool,
 	cronJob,
