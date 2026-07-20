@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, forwardRef } from "react";
 import { Box, Text, useStdout } from "ink";
-import { ScrollView } from "ink-scroll-view";
+import { ControlledScrollView } from "ink-scroll-view";
 import { MessageBubble, PubSubContext } from "./messageBubble.js";
 
 /**
@@ -59,9 +59,9 @@ export const MessageList = forwardRef(function MessageList(
 	const idToIdxRef = useRef(new Map());
 	const dataRef = useRef(new Map());
 	const lastMsgCountRef = useRef(0);
-	const lastContentLenRef = useRef(0);
 	const lastScrollTimeRef = useRef(0);
 	const isUserScrollingRef = useRef(false);
+	const [scrollOffset, setScrollOffset] = useState(0);
 	const { stdout } = useStdout();
 
 	// Pub/sub topics map — each topic key maps to an array of pending update listeners
@@ -151,9 +151,13 @@ export const MessageList = forwardRef(function MessageList(
 
 			idsRef.current[idx] = id;
 
-			// Notify the bubble via pub/sub — this triggers re-render of just that bubble
+			// Notify the bubble via pub/sub — this triggers re-render of just that bubble.
+			// Also trigger a parent re-render when content changed (streaming), so the
+			// scroll effect can detect the change and scroll to bottom.
 			publish(`msg-${id}`, dataRef.current.get(id));
-			triggerRender();
+			if (updates.content !== undefined) {
+				triggerRender();
+			}
 		},
 
 		/**
@@ -245,7 +249,9 @@ export const MessageList = forwardRef(function MessageList(
 			idsRef.current = [];
 			idToIdxRef.current = new Map();
 			dataRef.current = new Map();
+			topicsRef.current = new Map();
 			lastMsgCountRef.current = 0;
+			_messageIdCounter = 0;
 		},
 	};
 
@@ -281,7 +287,7 @@ export const MessageList = forwardRef(function MessageList(
 
 		const checkScrollPosition = () => {
 			if (!scrollRef.current) return;
-			const maxScroll = scrollRef.current.getMaxScrollOffset?.() || 0;
+			const maxScroll = scrollRef.current.getBottomOffset?.() ?? 0;
 			const currentScroll = scrollRef.current.getScrollOffset?.() || 0;
 			const atBottom = maxScroll - currentScroll < 2;
 
@@ -293,54 +299,49 @@ export const MessageList = forwardRef(function MessageList(
 		};
 
 		checkScrollPosition();
-	}, [lastMsgCountRef.current, scrollRef]);
+	}, [scrollRef]);
 
-	// Scroll-to-bottom with throttle during active streaming.
-	useEffect(() => {
+	// Scroll-to-bottom via onContentHeightChange callback.
+	// When content height grows and user is at bottom (or streaming), scroll to follow.
+	const handleContentHeightChange = (height, previousHeight) => {
 		if (!scrollRef.current) return;
 
-		if (lastScrollTimeRef.current === undefined) {
-			lastScrollTimeRef.current = Date.now();
-		}
+		// Guard: only react to actual growth, not initial render or shrink
+		if (height <= previousHeight) return;
 
 		const lastId = idsRef.current[idsRef.current.length - 1];
 		const lastData = lastId ? dataRef.current.get(lastId) : null;
 		const isStreaming = lastData?.streaming ?? false;
-		const contentLen = lastData?.content?.length || 0;
-		const contentHash = idsRef.current.length + contentLen;
 
-		const wasScrolling =
-			idsRef.current.length > lastMsgCountRef.current || contentHash !== lastContentLenRef.current;
-
-		if (!wasScrolling) return;
-
+		// If user has manually scrolled away and nothing is streaming, don't auto-scroll
 		if (isUserScrollingRef.current && !isStreaming) return;
 
+		// Throttle during streaming to avoid excessive updates
 		const now = Date.now();
 		const timeSinceLastScroll = now - lastScrollTimeRef.current;
+		if (isStreaming && timeSinceLastScroll < SCROLL_THROTTLE_MS) return;
 
-		if (isStreaming && timeSinceLastScroll < SCROLL_THROTTLE_MS) {
-			lastContentLenRef.current = contentHash;
-			return;
+		// Re-measure the last item first to ensure accurate height
+		const lastIdx = idsRef.current.length - 1;
+		if (lastIdx >= 0) {
+			scrollRef.current.remeasureItem(lastIdx);
 		}
 
-		scrollRef.current.remeasure();
-
-		const scrollHandle = () => {
-			if (scrollRef.current && idsRef.current.length) {
-				scrollRef.current.scrollToBottom();
-				lastMsgCountRef.current = idsRef.current.length;
-				lastScrollTimeRef.current = Date.now();
-			}
-		};
-		lastContentLenRef.current = contentHash;
-		const timer = setTimeout(scrollHandle, 0);
-		return () => clearTimeout(timer);
-	}, [scrollRef, renderTick]);
+		// Update scroll offset to bottom
+		setScrollOffset(scrollRef.current.getBottomOffset?.() || 0);
+		lastMsgCountRef.current = idsRef.current.length;
+		lastScrollTimeRef.current = Date.now();
+	};
 
 	// Render the last MAX_RENDER_MESSAGES as MessageBubble elements.
 	// Each bubble subscribes to its own pub/sub topic for streaming updates.
 	const renderData = idsRef.current.slice(-MAX_RENDER_MESSAGES);
+
+	// Prune pub/sub topics for messages that fell off the render slice.
+	const prunedIds = idsRef.current.slice(0, -MAX_RENDER_MESSAGES);
+	for (const id of prunedIds) {
+		topicsRef.current.delete(`msg-${id}`);
+	}
 
 	const children = renderData.map((id) => {
 		const data = dataRef.current.get(id);
@@ -375,7 +376,13 @@ export const MessageList = forwardRef(function MessageList(
 		React.createElement(
 			Box,
 			{ key: "panel", flexDirection: "column", flexGrow: 1 },
-			React.createElement(ScrollView, { ref: scrollRef, key: "scroll", focus: false }, ...children),
+			React.createElement(ControlledScrollView, {
+			ref: scrollRef,
+			key: "scroll",
+			focus: false,
+			scrollOffset,
+			onContentHeightChange: handleContentHeightChange,
+		}, ...children),
 		),
 	);
 });
