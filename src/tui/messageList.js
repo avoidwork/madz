@@ -227,6 +227,15 @@ export const MessageList = forwardRef(function MessageList(
 		},
 
 		/**
+		 * Scroll by a delta (positive = down, negative = up).
+		 * @param {number} delta - Number of rows to scroll
+		 */
+		scrollBy(delta) {
+			const newOffset = Math.max(0, scrollOffset - delta);
+			setScrollOffset(newOffset);
+		},
+
+		/**
 		 * Get internal state (test/debug).
 		 * @returns {Object}
 		 * @internal

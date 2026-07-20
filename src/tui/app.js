@@ -803,19 +803,10 @@ export default function App({
 						handleQuit();
 					}
 				} else {
-					const ref = messageListRef.current?.getScrollRef();
-					if (ref && ref.current) {
-						if (key.upArrow) ref.current.scrollBy(-1);
-						if (key.downArrow) ref.current.scrollBy(1);
-						if (key.pageUp) {
-							const height = ref.current.getViewportHeight() || 1;
-							ref.current.scrollBy(-height);
-						}
-						if (key.pageDown) {
-							const height = ref.current.getViewportHeight() || 1;
-							ref.current.scrollBy(height);
-						}
-					}
+					if (key.upArrow) messageListRef.current?.scrollBy(-1);
+					if (key.downArrow) messageListRef.current?.scrollBy(1);
+					if (key.pageUp) messageListRef.current?.scrollBy(-(messageListRef.current?.getScrollRef()?.current?.getViewportHeight?.() || 1));
+					if (key.pageDown) messageListRef.current?.scrollBy(messageListRef.current?.getScrollRef()?.current?.getViewportHeight?.() || 1);
 				}
 			}
 		}
