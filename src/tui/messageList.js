@@ -151,7 +151,13 @@ export const MessageList = forwardRef(function MessageList(
 
 			idsRef.current[idx] = id;
 
-			// Notify the bubble via pub/sub — this triggers re-render of just that bubble
+			// Notify the bubble via pub/sub — this triggers re-render of just that bubble.
+			// Also trigger a parent re-render when content changed (streaming), so the
+			// scroll effect can detect the change and scroll to bottom.
+			const hasContentChange = updates.content !== undefined;
+			if (hasContentChange) {
+				triggerRender();
+			}
 			publish(`msg-${id}`, dataRef.current.get(id));
 		},
 
