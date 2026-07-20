@@ -62,7 +62,7 @@ export const MessageList = forwardRef(function MessageList(
 	const lastContentLenRef = useRef(0);
 	const lastScrollTimeRef = useRef(0);
 	const isUserScrollingRef = useRef(false);
-	const scrollOffsetRef = useRef(0);
+	const [scrollOffset, setScrollOffset] = useState(0);
 	const contentHeightRef = useRef(0);
 	const { stdout } = useStdout();
 
@@ -331,7 +331,7 @@ export const MessageList = forwardRef(function MessageList(
 		}
 
 		// Update scroll offset to bottom
-		scrollOffsetRef.current = scrollRef.current.getBottomOffset?.() || 0;
+		setScrollOffset(scrollRef.current.getBottomOffset?.() || 0);
 		lastMsgCountRef.current = idsRef.current.length;
 		lastScrollTimeRef.current = Date.now();
 	};
@@ -379,7 +379,13 @@ export const MessageList = forwardRef(function MessageList(
 		React.createElement(
 			Box,
 			{ key: "panel", flexDirection: "column", flexGrow: 1 },
-			React.createElement(ScrollView, { ref: scrollRef, key: "scroll", focus: false }, ...children),
+			React.createElement(ControlledScrollView, {
+			ref: scrollRef,
+			key: "scroll",
+			focus: false,
+			scrollOffset: scrollOffsetRef.current,
+			onContentHeightChange: handleContentHeightChange,
+		}, ...children),
 		),
 	);
 });
