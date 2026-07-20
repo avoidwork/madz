@@ -281,7 +281,7 @@ export const MessageList = forwardRef(function MessageList(
 
 		const checkScrollPosition = () => {
 			if (!scrollRef.current) return;
-			const maxScroll = scrollRef.current.getMaxScrollOffset?.() || 0;
+			const maxScroll = scrollRef.current.getBottomOffset?.() ?? 0;
 			const currentScroll = scrollRef.current.getScrollOffset?.() || 0;
 			const atBottom = maxScroll - currentScroll < 2;
 
