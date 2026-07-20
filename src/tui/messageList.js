@@ -383,7 +383,7 @@ export const MessageList = forwardRef(function MessageList(
 			ref: scrollRef,
 			key: "scroll",
 			focus: false,
-			scrollOffset: scrollOffsetRef.current,
+			scrollOffset,
 			onContentHeightChange: handleContentHeightChange,
 		}, ...children),
 		),
