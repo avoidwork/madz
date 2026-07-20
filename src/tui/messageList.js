@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, forwardRef } from "react";
 import { Box, Text, useStdout } from "ink";
-import { ScrollView } from "ink-scroll-view";
+import { ControlledScrollView } from "ink-scroll-view";
 import { MessageBubble, PubSubContext } from "./messageBubble.js";
 
 /**
@@ -62,6 +62,8 @@ export const MessageList = forwardRef(function MessageList(
 	const lastContentLenRef = useRef(0);
 	const lastScrollTimeRef = useRef(0);
 	const isUserScrollingRef = useRef(false);
+	const scrollOffsetRef = useRef(0);
+	const contentHeightRef = useRef(0);
 	const { stdout } = useStdout();
 
 	// Pub/sub topics map — each topic key maps to an array of pending update listeners
@@ -302,52 +304,37 @@ export const MessageList = forwardRef(function MessageList(
 		checkScrollPosition();
 	}, [scrollRef]);
 
-	// Scroll-to-bottom with throttle during active streaming.
-	useEffect(() => {
+	// Scroll-to-bottom via onContentHeightChange callback.
+	// When content height grows and user is at bottom (or streaming), scroll to follow.
+	const handleContentHeightChange = (height, previousHeight) => {
 		if (!scrollRef.current) return;
 
-		if (lastScrollTimeRef.current === undefined) {
-			lastScrollTimeRef.current = Date.now();
-		}
+		// Guard: only react to actual growth, not initial render or shrink
+		if (height <= previousHeight) return;
 
 		const lastId = idsRef.current[idsRef.current.length - 1];
 		const lastData = lastId ? dataRef.current.get(lastId) : null;
 		const isStreaming = lastData?.streaming ?? false;
-		const contentLen = lastData?.content?.length || 0;
-		const contentHash = `${idsRef.current.length}:${contentLen}`;
 
-		const wasScrolling =
-			idsRef.current.length > lastMsgCountRef.current || contentHash !== lastContentLenRef.current;
-
-		if (!wasScrolling) return;
-
+		// If user has manually scrolled away and nothing is streaming, don't auto-scroll
 		if (isUserScrollingRef.current && !isStreaming) return;
 
+		// Throttle during streaming to avoid excessive updates
 		const now = Date.now();
 		const timeSinceLastScroll = now - lastScrollTimeRef.current;
+		if (isStreaming && timeSinceLastScroll < SCROLL_THROTTLE_MS) return;
 
-		if (isStreaming && timeSinceLastScroll < SCROLL_THROTTLE_MS) {
-			lastContentLenRef.current = contentHash;
-			return;
-		}
-
-		// Re-measure only the last item (the one that changed) instead of all children.
+		// Re-measure the last item first to ensure accurate height
 		const lastIdx = idsRef.current.length - 1;
 		if (lastIdx >= 0) {
 			scrollRef.current.remeasureItem(lastIdx);
 		}
 
-		const scrollHandle = () => {
-			if (scrollRef.current && idsRef.current.length) {
-				scrollRef.current.scrollToBottom();
-				lastMsgCountRef.current = idsRef.current.length;
-				lastScrollTimeRef.current = Date.now();
-			}
-		};
-		lastContentLenRef.current = contentHash;
-		const timer = setTimeout(scrollHandle, 0);
-		return () => clearTimeout(timer);
-	}, [scrollRef, renderTick]);
+		// Update scroll offset to bottom
+		scrollOffsetRef.current = scrollRef.current.getBottomOffset?.() || 0;
+		lastMsgCountRef.current = idsRef.current.length;
+		lastScrollTimeRef.current = Date.now();
+	};
 
 	// Render the last MAX_RENDER_MESSAGES as MessageBubble elements.
 	// Each bubble subscribes to its own pub/sub topic for streaming updates.
