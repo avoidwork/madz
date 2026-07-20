@@ -153,7 +153,6 @@ export const MessageList = forwardRef(function MessageList(
 
 			// Notify the bubble via pub/sub — this triggers re-render of just that bubble
 			publish(`msg-${id}`, dataRef.current.get(id));
-			triggerRender();
 		},
 
 		/**
@@ -245,7 +244,9 @@ export const MessageList = forwardRef(function MessageList(
 			idsRef.current = [];
 			idToIdxRef.current = new Map();
 			dataRef.current = new Map();
+			topicsRef.current = new Map();
 			lastMsgCountRef.current = 0;
+			_messageIdCounter = 0;
 		},
 	};
 
@@ -293,7 +294,7 @@ export const MessageList = forwardRef(function MessageList(
 		};
 
 		checkScrollPosition();
-	}, [lastMsgCountRef.current, scrollRef]);
+	}, [scrollRef]);
 
 	// Scroll-to-bottom with throttle during active streaming.
 	useEffect(() => {
@@ -307,7 +308,7 @@ export const MessageList = forwardRef(function MessageList(
 		const lastData = lastId ? dataRef.current.get(lastId) : null;
 		const isStreaming = lastData?.streaming ?? false;
 		const contentLen = lastData?.content?.length || 0;
-		const contentHash = idsRef.current.length + contentLen;
+		const contentHash = `${idsRef.current.length}:${contentLen}`;
 
 		const wasScrolling =
 			idsRef.current.length > lastMsgCountRef.current || contentHash !== lastContentLenRef.current;
@@ -324,7 +325,11 @@ export const MessageList = forwardRef(function MessageList(
 			return;
 		}
 
-		scrollRef.current.remeasure();
+		// Re-measure only the last item (the one that changed) instead of all children.
+		const lastIdx = idsRef.current.length - 1;
+		if (lastIdx >= 0) {
+			scrollRef.current.remeasureItem(lastIdx);
+		}
 
 		const scrollHandle = () => {
 			if (scrollRef.current && idsRef.current.length) {
@@ -341,6 +346,12 @@ export const MessageList = forwardRef(function MessageList(
 	// Render the last MAX_RENDER_MESSAGES as MessageBubble elements.
 	// Each bubble subscribes to its own pub/sub topic for streaming updates.
 	const renderData = idsRef.current.slice(-MAX_RENDER_MESSAGES);
+
+	// Prune pub/sub topics for messages that fell off the render slice.
+	const prunedIds = idsRef.current.slice(0, -MAX_RENDER_MESSAGES);
+	for (const id of prunedIds) {
+		topicsRef.current.delete(`msg-${id}`);
+	}
 
 	const children = renderData.map((id) => {
 		const data = dataRef.current.get(id);

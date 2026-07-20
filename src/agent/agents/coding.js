@@ -25,7 +25,6 @@ function loadCodingPrompt(baseDir) {
  */
 export const codingAgent = {
 	name: "coding",
-	description:
-		"Specialized agent for code editing, debugging, testing, and implementation tasks.",
+	description: "Specialized agent for code editing, debugging, testing, and implementation tasks.",
 	systemPrompt: loadCodingPrompt(),
 };
