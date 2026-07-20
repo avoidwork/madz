@@ -231,9 +231,7 @@ export const MessageList = forwardRef(function MessageList(
 		 * @param {number} delta - Number of rows to scroll
 		 */
 		scrollBy(delta) {
-			if (!scrollRef.current) return;
-			const currentOffset = scrollRef.current.getScrollOffset?.() || 0;
-			const newOffset = Math.max(0, currentOffset - delta);
+			const newOffset = Math.max(0, scrollOffset - delta);
 			setScrollOffset(newOffset);
 		},
 
