@@ -59,11 +59,9 @@ export const MessageList = forwardRef(function MessageList(
 	const idToIdxRef = useRef(new Map());
 	const dataRef = useRef(new Map());
 	const lastMsgCountRef = useRef(0);
-	const lastContentLenRef = useRef(0);
 	const lastScrollTimeRef = useRef(0);
 	const isUserScrollingRef = useRef(false);
 	const [scrollOffset, setScrollOffset] = useState(0);
-	const contentHeightRef = useRef(0);
 	const { stdout } = useStdout();
 
 	// Pub/sub topics map — each topic key maps to an array of pending update listeners
