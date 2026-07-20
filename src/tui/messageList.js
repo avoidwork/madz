@@ -231,7 +231,7 @@ export const MessageList = forwardRef(function MessageList(
 		 * @param {number} delta - Number of rows to scroll
 		 */
 		scrollBy(delta) {
-			setScrollOffset(prev => Math.max(0, prev - delta));
+			setScrollOffset(prev => Math.max(0, prev + delta));
 		},
 
 		/**
