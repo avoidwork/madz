@@ -270,15 +270,16 @@ Each panel (except Conversation) has its own internal `useInput` for arrow-key n
 ## Input Panel
 
 ```
-InputPanel({ inputText, blinkTimeout, cursorChar })
-└── <Blink text={inputText} char={cursorChar} />
-    └── static render (no state timer):
-        └── <Box flexDirection="row">
-            ├── <Text flexGrow="1"> inputText || "" </Text>
-            └── <Text bold> cursorChar || "\u2588" </Text>
+InputPanel({ value, onChange, onSubmit, onFocus, onBlur, focus })
+└── <TextInput value={value} onChange={onChange} onSubmit={onSubmit} focus={focus} />
+    └── ink-text-input component:
+        ├── handles keystroke accumulation
+        ├── cursor navigation (arrow keys)
+        ├── selection, Ctrl+W, Ctrl+U
+        └── Enter → onSubmit(value)
 ```
 
-No useEffect, no setInterval, no `ms` prop on `Blink`. Pure display component.
+Input state is owned by the component via controlled `value`/`onChange` props. App receives callbacks for submission and focus changes.
 
 ---
 
