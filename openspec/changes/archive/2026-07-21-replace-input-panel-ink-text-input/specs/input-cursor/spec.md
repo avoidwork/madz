@@ -1,7 +1,5 @@
-## Purpose
+## MODIFIED Requirements
 
-Define the input cursor rendering and configuration capabilities for the TUI input panel.
-## Requirements
 ### Requirement: Blinking Input Cursor
 The system SHALL render a cursor indicator at the end of the input text in the chat input panel, delegated to the `ink-text-input` component. The cursor SHALL blink at a configurable interval and use a configurable character.
 
@@ -58,4 +56,3 @@ The `tui` configuration section SHALL support a `blinkTimeout` field specifying 
 #### Scenario: Rejects non-integer blink timeout
 - **WHEN** `tui.blinkTimeout` is set to a non-integer value (e.g., 3.5)
 - **THEN** schema validation fails
-

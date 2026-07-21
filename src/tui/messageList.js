@@ -231,7 +231,7 @@ export const MessageList = forwardRef(function MessageList(
 		 * @param {number} delta - Number of rows to scroll
 		 */
 		scrollBy(delta) {
-			setScrollOffset(prev => Math.max(0, prev + delta));
+			setScrollOffset((prev) => Math.max(0, prev + delta));
 		},
 
 		/**
@@ -384,13 +384,17 @@ export const MessageList = forwardRef(function MessageList(
 		React.createElement(
 			Box,
 			{ key: "panel", flexDirection: "column", flexGrow: 1 },
-			React.createElement(ControlledScrollView, {
-			ref: scrollRef,
-			key: "scroll",
-			focus: false,
-			scrollOffset,
-			onContentHeightChange: handleContentHeightChange,
-		}, ...children),
+			React.createElement(
+				ControlledScrollView,
+				{
+					ref: scrollRef,
+					key: "scroll",
+					focus: false,
+					scrollOffset,
+					onContentHeightChange: handleContentHeightChange,
+				},
+				...children,
+			),
 		),
 	);
 });

@@ -330,7 +330,7 @@ The compaction tool is registered with zero permissions (always available) and i
 | `app.js` | Main layout: Banner / ConversationPanel, StatusBar, InputPanel |
 | `commandParser.js` | `CommandParser` class — dispatches `:` commands |
 | `conversationPanel.js` | Virtualized message display via `ink-scroll-view` |
-| `inputPanel.js` | Text entry with `Blink` cursor animation |
+| `inputPanel.js` | Text entry via `ink-text-input` component |
 | `markdownText.js` | Renders markdown via `marked.parse()` + `marked-terminal` |
 | `banner.js` / `statusBar.js` / `panels.js` | Startup banner, status indicator, panel definitions |
 
