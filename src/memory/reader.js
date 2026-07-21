@@ -1,5 +1,5 @@
 import { readFileSync, existsSync } from "node:fs";
-const yaml = await import("js-yaml");
+import { load } from "js-yaml";
 
 /**
  * Parse YAML frontmatter from a markdown file.
@@ -17,13 +17,22 @@ export function parseFrontmatter(content) {
 		const fmStr = match[1] || "";
 		const fmParsed = (() => {
 			try {
-				return yaml.load(fmStr);
+				return load(fmStr);
 			} catch {
 				return {};
 			}
 		})();
 		frontmatter = fmParsed && typeof fmParsed === "object" ? fmParsed : {};
 		body = match[2] || "";
+
+		// js-yaml 5.x no longer auto-converts date strings to Date objects
+		// Manually convert the 'timestamp' field back to a Date instance
+		if (typeof frontmatter.timestamp === "string" && /^\d{4}-\d{2}-\d{2}/.test(frontmatter.timestamp)) {
+			const date = new Date(frontmatter.timestamp);
+			if (!Number.isNaN(date.getTime())) {
+				frontmatter.timestamp = date;
+			}
+		}
 	}
 
 	return { frontmatter, content: body.trim() };

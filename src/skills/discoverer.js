@@ -1,6 +1,6 @@
 import { readdirSync, statSync, readFileSync, existsSync } from "node:fs";
 import { join, basename, resolve } from "node:path";
-import yaml from "js-yaml";
+import { load } from "js-yaml";
 import { loadConfig } from "../config/loader.js";
 
 export const defaultScope = loadConfig().sandbox.skillScanPaths;
@@ -38,7 +38,7 @@ export function extractFrontmatter(content) {
 
 	let frontmatter;
 	try {
-		frontmatter = yaml.load(yamlStr);
+		frontmatter = load(yamlStr);
 	} catch {
 		// Fallback to lenient parsing
 		frontmatter = lenientYamlParse(yamlStr);
@@ -90,7 +90,7 @@ export function lenientYamlParse(yamlStr) {
 			},
 		);
 		try {
-			return yaml.load(fixed);
+			return load(fixed);
 		} catch {
 			return null;
 		}
