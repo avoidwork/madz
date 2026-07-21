@@ -6,7 +6,7 @@ import { ConfigSchema, DEFAULT_CONFIG } from "./schemas.js";
 import { applyDotPathMutation } from "./mutate.js";
 
 const _require = createRequire(import.meta.url);
-const yaml = await import("js-yaml");
+import { load, dump } from "js-yaml";
 
 const PROJECT_ROOT = dirname(fileURLToPath(import.meta.url));
 const CONFIG_PATH = join(PROJECT_ROOT, "../../config.yaml");
@@ -145,7 +145,7 @@ export function loadConfig() {
 	let raw = DEFAULT_CONFIG;
 	if (existsSync(CONFIG_PATH)) {
 		const fileContent = readFileSync(CONFIG_PATH, "utf-8");
-		const parsed = yaml.load(fileContent);
+		const parsed = load(fileContent);
 		if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
 			raw = deepMerge({}, { ...DEFAULT_CONFIG, ...parsed });
 		}
@@ -165,7 +165,7 @@ export function loadConfig() {
 export function saveConfig(config) {
 	const dir = dirname(CONFIG_PATH);
 	if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-	const yamlContent = yaml.dump(config);
+	const yamlContent = dump(config);
 	writeFileSync(CONFIG_PATH, yamlContent);
 }
 

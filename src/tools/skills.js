@@ -1,6 +1,6 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import yaml from "js-yaml";
+import { dump } from "js-yaml";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
@@ -254,7 +254,7 @@ export async function createSkillImpl(input, options = {}) {
 	if (skillMetadata.compatibility) frontmatter.compatibility = skillMetadata.compatibility;
 	if (skillMetadata.metadata) frontmatter.metadata = skillMetadata.metadata;
 
-	const frontmatterYaml = yaml.dump(frontmatter, {
+	const frontmatterYaml = dump(frontmatter, {
 		indentRows: 2,
 		stringType: "double",
 		forceQuotes: false,
