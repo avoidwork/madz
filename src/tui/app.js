@@ -735,7 +735,8 @@ export default function App({
 	};
 
 	// Single input handler - processes all keystrokes here
-	// InputPanel is now a display-only component (no useInput handler)
+	// InputPanel now uses ink-text-input for text entry (handles typing, cursor nav, etc.)
+	// This hook only handles: Tab (focus toggle), Escape (interrupt/quit), history nav, message list nav
 	useInput((input, key) => {
 		// Onboarding phase takes priority
 		if (showOnboarding) {
@@ -773,14 +774,14 @@ export default function App({
 					} else {
 						handleQuit();
 					}
-				} else if (key.return && !key.shift) {
-					handleSubmit(inputText);
 				} else if (key.upArrow && chatHistory.length > 0) {
+					// History navigation — ink-text-input doesn't handle this
 					const newIndex =
 						historyIndex === -1 ? chatHistory.length - 1 : Math.max(0, historyIndex - 1);
 					setHistoryIndex(newIndex);
 					setInputText(chatHistory[newIndex]);
 				} else if (key.downArrow) {
+					// History navigation — ink-text-input doesn't handle this
 					if (historyIndex === -1) return;
 					const nextIndex = historyIndex + 1;
 					if (nextIndex >= chatHistory.length) {
@@ -790,10 +791,6 @@ export default function App({
 						setHistoryIndex(nextIndex);
 						setInputText(chatHistory[nextIndex]);
 					}
-				} else if (key.backspace && inputText.length > 0) {
-					setInputText((prev) => prev.slice(0, -1));
-				} else if (input && input !== "\r") {
-					setInputText((prev) => prev + input);
 				}
 			} else {
 				if (key.escape) {
@@ -805,8 +802,14 @@ export default function App({
 				} else {
 					if (key.upArrow) messageListRef.current?.scrollBy(-1);
 					if (key.downArrow) messageListRef.current?.scrollBy(1);
-					if (key.pageUp) messageListRef.current?.scrollBy(-(messageListRef.current?.getScrollRef()?.current?.getViewportHeight?.() || 1));
-					if (key.pageDown) messageListRef.current?.scrollBy(messageListRef.current?.getScrollRef()?.current?.getViewportHeight?.() || 1);
+					if (key.pageUp)
+						messageListRef.current?.scrollBy(
+							-(messageListRef.current?.getScrollRef()?.current?.getViewportHeight?.() || 1),
+						);
+					if (key.pageDown)
+						messageListRef.current?.scrollBy(
+							messageListRef.current?.getScrollRef()?.current?.getViewportHeight?.() || 1,
+						);
 				}
 			}
 		}
@@ -868,9 +871,12 @@ export default function App({
 					},
 					React.createElement(InputPanel, {
 						key: inputFocused ? "input-focused" : "input-unfocused",
-						inputText: inputText,
-						cursorChar: config?.tui?.cursorChar ?? "\u2588",
-						cursorColor: inputFocused ? undefined : "#202020",
+						value: inputText,
+						onChange: setInputText,
+						onSubmit: handleSubmit,
+						onFocus: () => setInputFocused(true),
+						onBlur: () => setInputFocused(false),
+						focus: inputFocused,
 					}),
 				)
 			: null,

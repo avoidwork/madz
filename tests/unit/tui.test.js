@@ -17,7 +17,7 @@ import {
 	getParseCacheStats,
 } from "../../src/tui/markdownText.js";
 import { TuiSchema, DEFAULT_CONFIG } from "../../src/config/schemas.js";
-import { Blink } from "../../src/tui/inputPanel.js";
+import { InputPanel } from "../../src/tui/inputPanel.js";
 
 describe("command parser", () => {
 	it("parses /quit command", () => {
@@ -873,35 +873,46 @@ describe("DEFAULT_CONFIG - tui fields", () => {
 	});
 });
 
-describe("Blink - component rendering", () => {
-	it("renders cursor appended to text", () => {
-		const result = Blink({ text: "hello", char: "█" });
+describe("InputPanel - component rendering", () => {
+	it("renders as a TextInput element", () => {
+		const result = InputPanel({
+			value: "hello",
+			onChange: () => {},
+			onSubmit: () => {},
+			focus: true,
+		});
 		assert.ok(React.isValidElement(result));
-		assert.strictEqual(result.props.flexDirection, "row");
-		// Cursor is now part of the text string for correct wrapping behavior
-		// With a single child, props.children is the element itself (not an array)
-		const child = Array.isArray(result.props.children)
-			? result.props.children[0]
-			: result.props.children;
-		assert.strictEqual(child.props.children, "hello█");
+		assert.strictEqual(result.props.value, "hello");
+		assert.strictEqual(result.props.showCursor, true);
 	});
 
-	it("renders with custom cursor character", () => {
-		const result = Blink({ text: "world", char: "_" });
-		assert.ok(React.isValidElement(result));
-		const child = Array.isArray(result.props.children)
-			? result.props.children[0]
-			: result.props.children;
-		assert.strictEqual(child.props.children, "world_");
+	it("passes onChange callback", () => {
+		const onChange = () => {};
+		const result = InputPanel({ value: "", onChange, onSubmit: () => {} });
+		assert.strictEqual(result.props.onChange, onChange);
 	});
 
-	it("renders empty text with cursor", () => {
-		const result = Blink({ text: "", char: "█" });
-		assert.ok(React.isValidElement(result));
-		const child = Array.isArray(result.props.children)
-			? result.props.children[0]
-			: result.props.children;
-		assert.strictEqual(child.props.children, "█");
+	it("passes onSubmit callback", () => {
+		const onSubmit = () => {};
+		const result = InputPanel({ value: "", onChange: () => {}, onSubmit });
+		assert.strictEqual(result.props.onSubmit, onSubmit);
+	});
+
+	it("respects focus prop", () => {
+		const resultFocused = InputPanel({
+			value: "",
+			onChange: () => {},
+			onSubmit: () => {},
+			focus: true,
+		});
+		assert.strictEqual(resultFocused.props.focus, true);
+		const resultUnfocused = InputPanel({
+			value: "",
+			onChange: () => {},
+			onSubmit: () => {},
+			focus: false,
+		});
+		assert.strictEqual(resultUnfocused.props.focus, false);
 	});
 });
 
