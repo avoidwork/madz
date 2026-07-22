@@ -111,6 +111,7 @@ export const MessageList = forwardRef(function MessageList(
 		 * @param {string} [options.reasoningContent] - Thinking content
 		 * @param {Object} [options.activeToolCall] - {name: string}
 		 * @param {string} [options.toolCallDisplay] - Tool call display text
+		 * @param {Array<Object>} [options.events] - Raw stream events
 		 * @param {boolean} [options.streaming] - Streaming flag
 		 * @returns {string} The assigned message ID
 		 */
@@ -125,6 +126,7 @@ export const MessageList = forwardRef(function MessageList(
 				reasoningContent: options.reasoningContent,
 				activeToolCall: options.activeToolCall,
 				toolCallDisplay: options.toolCallDisplay,
+				events: options.events,
 				streaming: options.streaming || false,
 			});
 
@@ -182,7 +184,7 @@ export const MessageList = forwardRef(function MessageList(
 
 		/**
 		 * Initialize the list from a messages data array.
-		 * @param {Array<{role: string, content: string, time?: string, reasoningContent?: string, activeToolCall?: Object, toolCallDisplay?: string}>} msgs
+		 * @param {Array<{role: string, content: string, time?: string, reasoningContent?: string, activeToolCall?: Object, toolCallDisplay?: string, events?: Array<Object>}>} msgs
 		 */
 		setMessages(msgs) {
 			idsRef.current = [];
@@ -200,6 +202,7 @@ export const MessageList = forwardRef(function MessageList(
 					reasoningContent: m.reasoningContent,
 					activeToolCall: m.activeToolCall,
 					toolCallDisplay: m.toolCallDisplay,
+					events: m.events,
 					streaming: m.streaming || false,
 				});
 
@@ -362,6 +365,7 @@ export const MessageList = forwardRef(function MessageList(
 			reasoningContent: data.reasoningContent,
 			activeToolCall: data.activeToolCall,
 			toolCallDisplay: data.toolCallDisplay,
+			events: data.events,
 			streaming: data.streaming,
 			assistantName,
 			topic: `msg-${id}`,

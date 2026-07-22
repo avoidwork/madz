@@ -5,6 +5,7 @@
  * @property {string} [reasoningContent] - Thinking/thought content for assistant messages
  * @property {Object} [activeToolCall] - {name: string} for assistant when a tool is running
  * @property {string} [toolCallDisplay] - Tool call result strings for assistant messages
+ * @property {Array<Object>} [events] - Raw stream events for this message
  * @property {string} [time] - Timestamp
  * @property {boolean} [streaming] - Whether currently streaming
  */

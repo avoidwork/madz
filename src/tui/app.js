@@ -228,7 +228,11 @@ export default function App({
 					const dispatchPromise = dispatchProvider(
 						result.skillBody,
 						sessionState ? sessionState.getProvider() : null,
-						createStreamingHandler(committedContentRef),
+						createStreamingHandler(
+							committedContentRef,
+							{ current: "" },
+							{ current: "" },
+						),
 						abortControllerRef.current?.signal,
 					);
 
@@ -397,7 +401,11 @@ export default function App({
 			const dispatchPromise = dispatchProvider(
 				text,
 				sessionState ? sessionState.getProvider() : null,
-				createStreamingHandler(committedContentRef),
+				createStreamingHandler(
+					committedContentRef,
+					{ current: "" },
+					{ current: "" },
+				),
 				abortControllerRef.current?.signal,
 			);
 
@@ -444,10 +452,15 @@ export default function App({
 					const continuePromise = dispatchProvider(
 						"Please continue.",
 						sessionState ? sessionState.getProvider() : null,
-						createStreamingHandler(committedContentRef, () => {
-							// Reset flag — text arrived, not stuck anymore
-							isAutoContinuingRef.current = false;
-						}),
+						createStreamingHandler(
+							committedContentRef,
+							{ current: "" },
+							{ current: "" },
+							() => {
+								// Reset flag — text arrived, not stuck anymore
+								isAutoContinuingRef.current = false;
+							},
+						),
 						abortControllerRef.current?.signal,
 					);
 					// Update the ref so handleInterrupt can await this promise too
@@ -677,14 +690,30 @@ export default function App({
 
 	/**
 	 * Streaming event handler — single handler for all dispatch streams.
+	 * Captures all event types, accumulates content/reasoning, and handles structured events.
 	 * @param {Object} committedContentRef - Ref holding accumulated text
+	 * @param {Object} [committedReasoningRef] - Ref holding accumulated reasoning
+	 * @param {Object} [lastToolCallDisplayRef] - Ref holding accumulated tool call display
 	 * @param {Function} [onTextReceived] - Optional callback when text arrives
 	 * @returns {Function} Event callback for dispatchProvider
 	 */
-	const createStreamingHandler = (committedContentRef, onTextReceived) => {
+	const createStreamingHandler = (
+		committedContentRef,
+		committedReasoningRef,
+		lastToolCallDisplayRef,
+		onTextReceived,
+	) => {
 		return (event) => {
 			if (shouldAbort()) return;
 			try {
+				// Capture all events on the message
+				const currentEvents = messageListRef.current?.getMessageData(
+					streamingMsgIdRef.current,
+				)?.events || [];
+				messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
+					events: [...currentEvents, event],
+				});
+
 				if (event.type === "message") {
 					committedContentRef.current = (committedContentRef.current || "") + event.text;
 					messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
@@ -692,6 +721,60 @@ export default function App({
 						streaming: true,
 					});
 					if (onTextReceived) onTextReceived();
+				}
+
+				// Handle on_chat_model_stream — accumulate content and reasoning
+				if (event.type === "on_chat_model_stream") {
+					if (event.data?.chunk?.content) {
+						committedContentRef.current =
+							(committedContentRef.current || "") + event.data.chunk.content;
+						messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
+							content:
+								committedContentRef.current +
+								(config?.tui?.cursorChar || "\u2588"),
+							streaming: true,
+						});
+					}
+					if (event.data?.chunk?.reasoning) {
+						committedReasoningRef.current =
+							(committedReasoningRef.current || "") + event.data.chunk.reasoning;
+					}
+				}
+
+				// Handle on_tool_start — set activeToolCall
+				if (event.type === "on_tool_start") {
+					messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
+						activeToolCall: {
+							name: event.name,
+							input: event.data?.input,
+							status: "running",
+						},
+					});
+				}
+
+				// Handle on_tool_end — clear activeToolCall, set toolCallDisplay
+				if (event.type === "on_tool_end") {
+					messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
+						activeToolCall: null,
+					});
+					if (event.data?.output) {
+						lastToolCallDisplayRef.current =
+							(lastToolCallDisplayRef.current || "") + event.data.output;
+						messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
+							toolCallDisplay: lastToolCallDisplayRef.current,
+						});
+					}
+				}
+
+				// Handle on_tool_error — set activeToolCall with error
+				if (event.type === "on_tool_error") {
+					messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
+						activeToolCall: {
+							name: event.name,
+							error: event.data?.error,
+							status: "error",
+						},
+					});
 				}
 			} catch (_cbErr) {
 				// Silently ignore streaming callback errors
