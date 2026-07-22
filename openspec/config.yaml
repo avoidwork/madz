@@ -3,18 +3,69 @@ schema: spec-driven
 # Project context (optional)
 # This is shown to AI when creating artifacts.
 # Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+
+context: |
+  ## Tech Stack
+  - **Runtime**: Node.js 24+ (ESM, `"type": "module"`)
+  - **Package Manager**: npm
+  - **Agent Framework**: LangGraph (`@langchain/langgraph`) + DeepAgents (`deepagents`)
+  - **LLM Provider**: OpenAI (`@langchain/openai`) — gpt-4o, cl100k_base encoding
+  - **TUI**: Ink (React-based terminal UI) with ink-scroll-view, ink-spinner, ink-text-input
+  - **Logging**: Pino (structured JSON)
+  - **Validation**: Zod v4
+  - **CLI**: yargs
+  - **Config**: js-yaml (config.yaml as single source of truth)
+  - **Markdown**: marked + marked-terminal
+  - **Token Counting**: tiktoken
+  - **Caching**: tiny-lru (LRU cache with TTL)
+  - **Scheduling**: cron-parser + custom cron scheduler
+  - **Shell**: posix (shell command execution)
+  - **Observability**: OpenTelemetry SDK (`@opentelemetry/sdk-node`)
+  - **Checkpoints**: `@langchain/langgraph-checkpoint-sqlite`
+  - **Linting/Formatting**: oxlint (strict) + oxfmt (100 char line length)
+  - **Testing**: `node --test` (built-in), coverage via `--experimental-test-coverage`
+  - **Git Hooks**: Husky (pre-commit runs lint + format + tests + coverage)
+  - **Docker**: Multi-arch build (amd64, arm64) via buildx
+
+  ## Architecture
+  - **Entry**: `index.js` — CLI entry, parses args, loads config, initializes subsystems
+  - **Agent Orchestration**: DeepAgents orchestrator (`src/agent/deepAgents.js`) replaces the old LangGraph ReAct agent. Routes tasks to specialized sub-agents (coding, code-review, debug, documentation, performance, research, search, security-audit, testing) via `src/agent/agents/`.
+  - **Tools**: Registered in `src/tools/index.js` with permission tiers and factory pattern. Tools are plain async functions with zod input schemas.
+  - **Memory**: Context loading, retention, profile, reader/writer, ephemeral GC (`src/memory/`). Memory files stored in `memory/` directory with subdirectories for context, errors, schedules, sessions, and sub-agent state.
+  - **TUI**: Ink-based terminal UI (`src/tui/`) with conversation panel, message bubbles, input panel, skills panel, memory panel, settings panel, status bar, banner, onboarding, command parser, and streaming callbacks.
+  - **Sandbox**: Secure skill execution with path resolution, URL filtering, env injection, capability enforcement, timeout handling (`src/sandbox/`).
+  - **Scheduler**: Cron-based task scheduling with sync-on-init, auto-scheduling (`src/scheduler/`).
+  - **Session**: Session state management with factory, state manager, window, loader, saver, shutdown (`src/session/`).
+  - **Telemetry**: OpenTelemetry provider, LLM instrumenter, skill instrumenter, metrics, sampler, flusher, redaction (`src/telemetry/`).
+  - **Config**: `config.yaml` loaded by `src/config/loader.js`. All subsystems wire into the entry point.
+  - **Provider**: LLM provider abstraction (`src/provider/`) with OpenAI implementation.
+  - **Skills**: Agent Skills spec discovery, validation, permissions, registry (`src/skills/`).
+  - **Workspace**: File workspace utilities (`src/workspace/`).
+  - **Prompts**: Sub-agent system prompts in `prompts/` (SYSTEM_PROMPT.md, CODING.md, CODE_REVIEW.md, DEBUG.md, DOCUMENTATION.md, PERFORMANCE.md, RESEARCH.md, SEARCH.md, SECURITY_AUDIT.md, TESTING.md).
+
+  ## Conventions
+  - **Indentation**: 2 spaces, no tabs. Max line length: 100 characters.
+  - **Naming**: `camelCase` for functions/variables, `UPPER_SNAKE_CASE` for constants, `#` prefix for private fields.
+  - **JSDoc**: Required on all public functions and classes with `@param` and `@returns`.
+  - **Error Handling**: Domain-specific error classes extending `Error`. Catch at boundaries, never swallow silently.
+  - **Async**: `async/await` consistently. No blocking I/O in async contexts. Timeouts on external calls.
+  - **Git**: Conventional Commits. Feature branches (`feat/`, `fix/`, `docs/`). PRs target `main`. Never rebase without explicit approval. Never force push.
+  - **Security**: OWASP Top 10. Auth middleware on all routes. Parameterized queries. Zod validation. No hardcoded secrets.
+  - **Testing**: Each public function/class needs at least one test. Tests mirror `src/` structure in `tests/unit/`. Mock external services.
+
+  ## Domain
+  - **madz** is a personality-driven AI harness — a CLI-based assistant that channels Mads Mikkelsen's cinematic persona.
+  - It uses LangGraph state machines for agent workflows and DeepAgents for sub-agent delegation.
+  - OpenTelemetry provides observability. Memory system provides persistent context across sessions.
+  - The TUI provides an interactive terminal experience with streaming responses, skill panels, and memory browsing.
 
 # Per-artifact rules (optional)
 # Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+rules:
+  proposal:
+    - Keep proposals under 500 words
+    - Always include a "Non-goals" section
+  tasks:
+    - Break tasks into chunks of max 2 hours
+  design:
+    - Include architecture diagrams when changes affect multiple subsystems
