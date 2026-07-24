@@ -233,32 +233,44 @@ export class SkillRegistry {
 	}
 
 	/**
-	 * Get all registered skill directory paths (each containing SKILL.md).
-	 * @returns {string[]} Array of skill directory paths
+	 * Get all registered skill directory paths relative to the project root.
+	 * @returns {string[]} Array of relative skill directory paths
 	 */
 	getSkillPaths() {
 		const paths = [];
 		for (const [_name, entry] of this.#skills) {
 			if (entry.path) {
-				paths.push(entry.path);
+				paths.push(this.#relativePath(entry.path));
 			}
 		}
 		return paths;
 	}
 
 	/**
-	 * Get skill directory paths filtered by agent name.
+	 * Get skill directory paths filtered by agent name, relative to the project root.
 	 * Skills with metadata.agent matching the agentName are included.
 	 * @param {string} agentName - Agent name to filter by
-	 * @returns {string[]} Array of matching skill directory paths
+	 * @returns {string[]} Array of matching relative skill directory paths
 	 */
 	getSkillPathsForAgent(agentName) {
 		const paths = [];
 		for (const [_name, entry] of this.#skills) {
 			if (entry.path && entry.metadata?.agent === agentName) {
-				paths.push(entry.path);
+				paths.push(this.#relativePath(entry.path));
 			}
 		}
 		return paths;
+	}
+
+	/**
+	 * Convert an absolute path to a relative path from the project root.
+	 * @param {string} absolutePath - Absolute path to convert
+	 * @returns {string} Relative path
+	 */
+	#relativePath(absolutePath) {
+		if (absolutePath.startsWith(cwd)) {
+			return "/" + absolutePath.slice(cwd.length + 1);
+		}
+		return absolutePath;
 	}
 }
