@@ -1,6 +1,7 @@
 import { execSync } from "node:child_process";
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { getLogDirectory } from "../logger.js";
 
 // Block delimiters for madz-managed crontab entries
 const BLOCK_START = "# --- BEGIN madz-schedules ---";
@@ -29,7 +30,9 @@ export function sanitizeCrontabCommand(command) {
 function prepareCrontabCommand(command) {
 	const sanitized = sanitizeCrontabCommand(command);
 	const withAbsolutePath = sanitized.replace(/\bnode\b/g, "/usr/local/bin/node");
-	return `${withAbsolutePath} >> /var/log/cron-madz.log 2>&1`;
+	const logDir = getLogDirectory();
+	const logPath = join(logDir, "madz_cron.log");
+	return `${withAbsolutePath} >> ${logPath} 2>&1`;
 }
 
 /**
