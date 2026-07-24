@@ -1,6 +1,6 @@
 import { FilesystemBackend } from "deepagents";
 import { join } from "node:path";
-import { loadConfig } from "../config/loader.js";
+import { loadConfig } from "../../config/loader.js";
 
 /**
  * Create a FilesystemBackend for the memory context directory.
