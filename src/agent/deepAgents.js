@@ -11,9 +11,9 @@ import {
 	ORCHESTRATOR_TOOLS,
 	TOOLS,
 } from "../tools/index.js";
-import { createCoreBackend } from "./coreBackend.js";
-import { createContextBackend } from "./contextBackend.js";
-import { createDmzBackend } from "./dmzBackend.js";
+import { createCoreBackend } from "./backends/coreBackend.js";
+import { createContextBackend } from "./backends/contextBackend.js";
+import { createDmzBackend } from "./backends/dmzBackend.js";
 import { getAllAgents } from "./agents/index.js";
 import { logger } from "../logger.js";
 
