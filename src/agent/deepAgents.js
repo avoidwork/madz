@@ -75,6 +75,40 @@ function createSubagentDefinitions(allTools, model, skillRegistry) {
 }
 
 /**
+ * Build a skills-to-agent mapping string for the orchestrator system prompt.
+ * Each line maps an agent name to its skills (by name + description).
+ * @param {SkillRegistry} skillRegistry - Registered skills
+ * @returns {string} Formatted skills mapping section
+ */
+function buildSkillsMapping(skillRegistry) {
+	const catalog = skillRegistry.getCatalog();
+	if (catalog.length === 0) return "";
+
+	// Group skills by agent
+	const skillsByAgent = new Map();
+	for (const skill of catalog) {
+		const agent = skill.metadata?.agent || "orchestrator";
+		if (!skillsByAgent.has(agent)) {
+			skillsByAgent.set(agent, []);
+		}
+		skillsByAgent.get(agent).push(skill);
+	}
+
+	const lines = ["\n### SKILL ASSIGNMENTS\n"];
+	lines.push("Skills are assigned to specific agents. Route skill-based tasks to the correct agent:\n");
+
+	for (const [agent, skills] of skillsByAgent) {
+		if (agent === "orchestrator") continue; // skip orchestrator skills
+		lines.push(`- **${agent}**: `);
+		for (const skill of skills) {
+			lines.push(`  - \`${skill.name}\` — ${skill.description}\n`);
+		}
+	}
+
+	return lines.join("");
+}
+
+/**
  * Create a Deep Agents orchestrator with coding and utility sub-agents.
  * Uses deepagents middleware for filesystem, memory, skills, and summarization.
  * @param {import("@langchain/langgraph").BaseCheckpointSaver | null} [checkpointer=null] - Optional checkpointer
@@ -82,13 +116,19 @@ function createSubagentDefinitions(allTools, model, skillRegistry) {
  */
 export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	const config = loadConfig();
-	const systemPrompt = loadSystemPrompt();
+	let systemPrompt = loadSystemPrompt();
 	const agentsPath = join(config.cwd, "AGENTS.md");
 
 	// Discover skills from configured scopes
 	const skillRegistry = new SkillRegistry();
 	skillRegistry.discover();
 	const skillPaths = skillRegistry.getSkillPaths();
+
+	// Inject skills-to-agent mapping into the orchestrator system prompt
+	const skillsMapping = buildSkillsMapping(skillRegistry);
+	if (skillsMapping) {
+		systemPrompt = systemPrompt + skillsMapping;
+	}
 
 	// Create model from config
 	const providerName = Object.keys(config.providers)[0] || "openai";
