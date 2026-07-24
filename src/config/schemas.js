@@ -175,6 +175,7 @@ export const SchedulesSchema = z.object({
 	maxConcurrent: z.number().int().positive().default(1),
 	mode: z.enum(["inprocess", "system"]).default("inprocess"),
 	syncOnInit: z.boolean().default(true),
+	logPath: z.string().optional(),
 	entries: z.array(ScheduleEntrySchema).default([]),
 });
 
@@ -277,7 +278,7 @@ export const DEFAULT_CONFIG = {
 		sampling: { ratio: 0.1 },
 		redact: { paths: ["credentials.apiKey"] },
 	},
-	schedules: { maxConcurrent: 1, mode: "inprocess", syncOnInit: true, entries: [] },
+	schedules: { maxConcurrent: 1, mode: "inprocess", syncOnInit: true, logPath: undefined, entries: [] },
 	agent: { recursionLimit: 1000, autoContinueLimit: 1000, nodeTimeout: 600000 },
 	lru: { size: 100, ttl: 600000 },
 	tui: { name: "madz", cursorChar: "\u2588" },
