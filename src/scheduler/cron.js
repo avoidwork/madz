@@ -1,10 +1,14 @@
 import { execSync } from "node:child_process";
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { getLogDirectory } from "../logger.js";
 
 // Block delimiters for madz-managed crontab entries
 const BLOCK_START = "# --- BEGIN madz-schedules ---";
 const BLOCK_END = "# --- END madz-schedules ---";
+
+/** @type {string|undefined} */
+let _logPath = undefined;
 
 /**
  * Sanitize a command string for safe interpolation into crontab entries.
@@ -13,7 +17,6 @@ const BLOCK_END = "# --- END madz-schedules ---";
  * by the shell at execution time.
  * @param {string} command - The command string to sanitize
  * @returns {string} The sanitized command
- * @private
  */
 export function sanitizeCrontabCommand(command) {
 	return command.replace(/\r\n|\r|\n/g, "");
@@ -23,13 +26,14 @@ export function sanitizeCrontabCommand(command) {
  * Prepare a command for crontab entry.
  * Replaces bare `node` with absolute path and adds output redirection.
  * @param {string} command - The command string to prepare
+ * @param {string} [logPath] - Optional log file path for output redirection
  * @returns {string} The prepared command
- * @private
  */
-function prepareCrontabCommand(command) {
+export function prepareCrontabCommand(command, logPath) {
 	const sanitized = sanitizeCrontabCommand(command);
 	const withAbsolutePath = sanitized.replace(/\bnode\b/g, "/usr/local/bin/node");
-	return `${withAbsolutePath} >> /var/log/cron-madz.log 2>&1`;
+	const logFile = logPath || join(getLogDirectory(), "madz_cron.log");
+	return `${withAbsolutePath} >> ${logFile} 2>&1`;
 }
 
 /**
@@ -37,6 +41,14 @@ function prepareCrontabCommand(command) {
  * Entries are written as: <cron>  <command>  # madz-schedule: <name>
  */
 export const Cron = {
+	/**
+	 * Set the log file path for crontab output redirection.
+	 * @param {string} logPath - Absolute path to the log file
+	 */
+	setLogPath(logPath) {
+		_logPath = logPath;
+	},
+
 	/**
 	 * Check if the system crontab binary is available.
 	 * @returns {{ available: boolean, error?: string }}
@@ -54,7 +66,6 @@ export const Cron = {
 	/**
 	 * Read the current user crontab.
 	 * @returns {string} Crontab content (may be empty)
-	 * @private
 	 */
 	_readCrontab() {
 		try {
@@ -71,7 +82,6 @@ export const Cron = {
 
 	/**
 	 * @param {string} content
-	 * @private
 	 */
 	_writeCrontab(content) {
 		// Ensure content ends with newline; empty content gets a newline to avoid crontab errors
@@ -83,7 +93,6 @@ export const Cron = {
 	 * Extract madz-managed block lines and outside lines from crontab content.
 	 * @param {string} crontab - Raw crontab content
 	 * @returns {{ outsideLines: string[], blockLines: string[] }}
-	 * @private
 	 */
 	_splitBlock(crontab) {
 		const outsideLines = [];
@@ -129,7 +138,7 @@ export const Cron = {
 		const crontab = this._readCrontab();
 		const { outsideLines, blockLines } = this._splitBlock(crontab);
 
-		const newEntry = `${job.cron}  ${prepareCrontabCommand(job.command)}  # madz-schedule: ${job.name}`;
+		const newEntry = `${job.cron}  ${prepareCrontabCommand(job.command, _logPath)}  # madz-schedule: ${job.name}`;
 
 		// Remove existing entry with same name if present
 		const filtered = blockLines.filter((line) => {
@@ -236,7 +245,7 @@ export const Cron = {
 		const blockLines = schedules
 			.filter((s) => !s.paused)
 			.map((s) => {
-				return `${s.cron}  ${prepareCrontabCommand(s.command)}  # madz-schedule: ${s.name}`;
+				return `${s.cron}  ${prepareCrontabCommand(s.command, _logPath)}  # madz-schedule: ${s.name}`;
 			});
 
 		while (outsideLines.length > 0 && outsideLines[outsideLines.length - 1].trim() === "") {
@@ -349,7 +358,6 @@ export const Cron = {
 	 * Parse a crontab entry line into its components.
 	 * @param {string} line - Crontab entry line
 	 * @returns {{ name: string, cron: string, command: string } | null}
-	 * @private
 	 */
 	_parseEntry(line) {
 		let name = null;
@@ -378,7 +386,6 @@ export const Cron = {
 	 * Read all job definitions from the schedules directory.
 	 * @param {string} schedulesDir - Path to the schedules directory
 	 * @returns {Promise<Array<{ name: string, cron: string, command: string, enabled: boolean }>>}
-	 * @private
 	 */
 	async _readJobsFromDisk(schedulesDir) {
 		const jobs = [];
@@ -435,7 +442,7 @@ export const Cron = {
 		const jobs = await this._readJobsFromDisk(schedulesDir);
 		const desiredEntries = jobs
 			.filter((j) => j.enabled)
-			.map((j) => `${j.cron}  ${prepareCrontabCommand(j.command)}  # madz-schedule: ${j.name}`);
+			.map((j) => `${j.cron}  ${prepareCrontabCommand(j.command, _logPath)}  # madz-schedule: ${j.name}`);
 
 		// Parse current crontab block entries
 		const crontab = this._readCrontab();

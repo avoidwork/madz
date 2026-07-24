@@ -38,6 +38,9 @@ const { default: pkg } = await import(new URL("package.json", import.meta.url).h
 if (config.schedules.syncOnInit !== false) {
 	try {
 		const { Cron } = await import("./src/scheduler/cron.js");
+		if (config.schedules.logPath) {
+			Cron.setLogPath(config.schedules.logPath);
+		}
 		const schedulesDir = config.memory?.schedulesDir || "memory/schedules/";
 		const result = await Cron.sync(schedulesDir);
 		if (result.error) {
