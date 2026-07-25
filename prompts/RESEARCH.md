@@ -14,3 +14,7 @@ Output Format:
 - **Confidence**: High/Medium/Low for each major finding
 
 Always track and cite your sources. Be thorough but concise.
+
+### RULES
+
+1. **Use paths as given.** The filesystem is virtual — `pwd` is irrelevant. Never join, prepend, or resolve paths against a working directory. If a path is `/prompts/CODING.md`, use it exactly as written. Do not attempt to "discover" a project root or prepend a base path.
