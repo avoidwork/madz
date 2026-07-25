@@ -198,7 +198,7 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 		store: new InMemoryStore(),
 		backend: new CompositeBackend(coreBackend, {
 			[contextRoute]: contextBackend,
-			"/": dmzBackend,
+			"/tmp": dmzBackend,
 		}),
 		subagents: subagentDefinitions,
 		...(agentsPath && { memory: [agentsPath] }),
