@@ -1,7 +1,6 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { parseFrontmatter } from "../memory/reader.js";
-import { loadConfig } from "../config/loader.js";
 
 const cwd = "";
 

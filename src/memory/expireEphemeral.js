@@ -1,7 +1,6 @@
 import { readdir, unlink, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { parseFrontmatter } from "./reader.js";
-import { loadConfig } from "../config/loader.js";
 
 const cwd = "";
 

@@ -1,6 +1,5 @@
 import { readdirSync, statSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
-import { loadConfig } from "../config/loader.js";
 
 const cwd = "";
 

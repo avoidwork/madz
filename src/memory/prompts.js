@@ -1,6 +1,5 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { loadConfig } from "../config/loader.js";
 import { loadContext } from "./context.js";
 
 const cwd = "";

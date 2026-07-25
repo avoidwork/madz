@@ -2,7 +2,6 @@ import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { validatePath } from "./common.js";
 import { loadAgents } from "../workspace/loadAgents.js";
-import { loadConfig } from "../config/loader.js";
 
 const cwd = "";
 

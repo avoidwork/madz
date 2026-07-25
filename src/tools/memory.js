@@ -2,7 +2,6 @@ import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { mkdir, writeFile, readFile, readdir, unlink, access } from "node:fs/promises";
 import { join, basename } from "node:path";
-import { loadConfig } from "../config/loader.js";
 
 const cwd = "";
 
@@ -117,7 +116,7 @@ async function countEntries(contextDir) {
  * @returns {Promise<void>}
  * @throws {Error} When limit would be exceeded
  */
-async function validateMaxEntries(maxEntries, contextDir, cwdParam = cwd) {
+async function validateMaxEntries(maxEntries, contextDir) {
 	const count = await countEntries(contextDir);
 	if (count >= maxEntries) {
 		throw new Error(`Memory entries (${count}) exceed maximum (${maxEntries})`);

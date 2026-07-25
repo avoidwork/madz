@@ -1,5 +1,5 @@
 import { readdirSync, statSync, readFileSync, existsSync } from "node:fs";
-import { join, basename, resolve } from "node:path";
+import { join, basename } from "node:path";
 import { load } from "js-yaml";
 import { loadConfig } from "../config/loader.js";
 
