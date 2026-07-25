@@ -10,8 +10,8 @@ const cwd = "";
  * @param {number} retentionDays - Maximum age in days
  * @returns {number} Number of files removed
  */
-export function cleanRetainedMemory(directory, retentionDays = 90) {
-	const fullPath = join(cwd, directory);
+export function cleanRetainedMemory(directory, retentionDays = 90, cwdParam = cwd) {
+	const fullPath = join(cwdParam, directory);
 	const cutoff = Date.now() - retentionDays * 24 * 60 * 60 * 1000;
 	let removed = 0;
 
@@ -39,8 +39,8 @@ export function cleanRetainedMemory(directory, retentionDays = 90) {
  * @param {number} maxEntries - Maximum number of files to keep
  * @returns {number} Number of files removed
  */
-export function enforceMaxEntries(directory, maxEntries = 1000) {
-	const fullPath = join(cwd, directory);
+export function enforceMaxEntries(directory, maxEntries = 1000, cwdParam = cwd) {
+	const fullPath = join(cwdParam, directory);
 	let removed = 0;
 
 	try {

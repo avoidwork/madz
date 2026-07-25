@@ -78,7 +78,7 @@ describe("setupAutoSchedule", () => {
 				return { added: true };
 			},
 		};
-		const callback = setupAutoSchedule({ Cron: testCron });
+		const callback = setupAutoSchedule({ Cron: testCron, cwd: process.cwd() });
 		callback();
 
 		const expectedCwd = process.cwd();

@@ -12,8 +12,8 @@ const cwd = "";
  * @param {string} [skillsDir="skills/"] - Path to the skills directory
  * @returns {Promise<void>}
  */
-export async function ensureSkillsDir(skillsDir = "skills/") {
-	const dir = join(cwd, skillsDir);
+export async function ensureSkillsDir(skillsDir = "skills/", cwdParam = cwd) {
+	const dir = join(cwdParam, skillsDir);
 	await mkdir(dir, { recursive: true });
 }
 

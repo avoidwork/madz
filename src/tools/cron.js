@@ -69,7 +69,7 @@ export async function findSkillScript(skillName, baseDir = ["system-skills", "sk
  * @returns {Promise<{ stdout: string, stderr: string, exitCode: number }>}
  */
 export async function runScript(scriptPath, args = [], options = {}) {
-	const { timeout = 30000, cwd: scriptCwd = config.cwd } = options;
+	const { timeout = 30000, cwd: scriptCwd = options.cwd || config.cwd } = options;
 	return new Promise((resolve) => {
 		const child = spawn(scriptPath, args, {
 			cwd: scriptCwd,

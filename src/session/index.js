@@ -9,8 +9,8 @@ const cwd = "";
  * @param {string} sessionsDir - Path to sessions directory
  * @returns {Promise<void>}
  */
-export async function ensureSessionsDir(sessionsDir) {
-	const dir = join(cwd, sessionsDir);
+export async function ensureSessionsDir(sessionsDir, cwdParam = cwd) {
+	const dir = join(cwdParam, sessionsDir);
 	await mkdir(dir, { recursive: true });
 }
 

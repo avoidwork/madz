@@ -140,6 +140,7 @@ export async function createSkillImpl(input, options = {}) {
 		input;
 	const skillsDir = options.skillsDir || config.skillsDir || "skills/";
 	const registry = options.registry || config.registry;
+	const cwdParam = options.cwd || cwd;
 
 	// Validate name against spec constraints
 	const nameResult = validateSkillName(name);
@@ -231,7 +232,7 @@ export async function createSkillImpl(input, options = {}) {
 	}
 
 	// Create the skill directory
-	const skillPath = join(cwd, skillsDir, name);
+	const skillPath = join(cwdParam, skillsDir, name);
 	const skillMdPath = join(skillPath, "SKILL.md");
 	let createdPaths = [skillPath, skillMdPath];
 

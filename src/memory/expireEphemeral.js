@@ -11,9 +11,9 @@ const cwd = "";
  * @param {string} filename - The filename
  * @returns {Promise<{ ephemeral: boolean, expiresAt: string } | null>} Parsed metadata or null if unreadable
  */
-export async function readEphemeralFile(contextDir, filename) {
+export async function readEphemeralFile(contextDir, filename, cwdParam = cwd) {
 	try {
-		const filepath = join(cwd, contextDir, filename);
+		const filepath = join(cwdParam, contextDir, filename);
 		const content = await readFile(filepath, "utf-8");
 		const { frontmatter } = parseFrontmatter(content);
 		return {
@@ -44,11 +44,11 @@ export function isExpired(expiresAt, now) {
  * @param {string} [nowStr] - Optional ISO timestamp for deterministic testing
  * @returns {Promise<number>} Number of files removed
  */
-export async function expireEphemeralMemories(contextDir, nowStr) {
+export async function expireEphemeralMemories(contextDir, nowStr, cwdParam = cwd) {
 	const checkNow = nowStr ? new Date(nowStr) : new Date();
 	let files;
 	try {
-		files = await readdir(join(cwd, contextDir));
+		files = await readdir(join(cwdParam, contextDir));
 	} catch {
 		return 0;
 	}
@@ -57,7 +57,7 @@ export async function expireEphemeralMemories(contextDir, nowStr) {
 		if (!file.endsWith(".md")) continue;
 		const info = await readEphemeralFile(contextDir, file);
 		if (info && info.ephemeral && isExpired(info.expiresAt, checkNow)) {
-			const filepath = join(cwd, contextDir, file);
+			const filepath = join(cwdParam, contextDir, file);
 			try {
 				await unlink(filepath);
 				removed++;

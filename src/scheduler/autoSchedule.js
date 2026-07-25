@@ -85,6 +85,7 @@ function persistJobFile(jobName, job, cwd) {
  * @returns {Function} Callback to invoke after saveProfile() succeeds
  */
 export function setupAutoSchedule(options = {}) {
+	const cwdParam = options.cwd || cwd;
 	const CronModule = options.Cron || Cron;
 
 	/**
@@ -92,7 +93,7 @@ export function setupAutoSchedule(options = {}) {
 	 * @returns {void}
 	 */
 	return function autoScheduleCallback() {
-		const job = createJobDefinition(cwd);
+		const job = createJobDefinition(cwdParam);
 
 		try {
 			const result = CronModule.add(job);

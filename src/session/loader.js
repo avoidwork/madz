@@ -12,8 +12,8 @@ const cwd = "";
  * @param {string} [sessionId] - Optional session/thread ID to load (fallbacks to latest)
  * @returns {{ sessionId: string, conversation: Array, metadata: Object }}
  */
-export function loadSession(sessionsDir = "memory/sessions/", windowSize = 20, sessionId = "") {
-	const dir = join(cwd, sessionsDir);
+export function loadSession(sessionsDir = "memory/sessions/", windowSize = 20, sessionId = "", cwdParam = cwd) {
+	const dir = join(cwdParam, sessionsDir);
 
 	if (sessionId) {
 		const filepath = join(dir, `${sessionId}.md`);

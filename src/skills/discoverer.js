@@ -184,6 +184,7 @@ function findSkillFiles(dir) {
  * @returns {Array<{ path: string, name: string, metadata: Object }>}
  */
 export function discoverSkills(scope = defaultScope, options = {}) {
+	const cwdParam = options.cwd || cwd;
 	const { trustProjectSkills: _trustProjectSkills = true } = options;
 	const allSkills = [];
 	const seenNames = new Map();

@@ -83,8 +83,8 @@ export function sanitizeKey(key) {
  * @param {string} key - Entry key
  * @returns {string} Full path to the entry file
  */
-function getEntryPath(key, contextDir) {
-	return join(cwd, contextDir, sanitizeKey(key) + ".md");
+function getEntryPath(key, contextDir, cwdParam = cwd) {
+	return join(cwdParam, contextDir, sanitizeKey(key) + ".md");
 }
 
 /**
@@ -117,7 +117,7 @@ async function countEntries(contextDir) {
  * @returns {Promise<void>}
  * @throws {Error} When limit would be exceeded
  */
-async function validateMaxEntries(maxEntries, contextDir) {
+async function validateMaxEntries(maxEntries, contextDir, cwdParam = cwd) {
 	const count = await countEntries(contextDir);
 	if (count >= maxEntries) {
 		throw new Error(`Memory entries (${count}) exceed maximum (${maxEntries})`);
@@ -129,8 +129,8 @@ async function validateMaxEntries(maxEntries, contextDir) {
  * @param {string} key - Entry key
  * @returns {Promise<{ found: boolean, value: string, createdDate: string, updatedDate: string } | null>}
  */
-async function loadEntry(key, contextDir) {
-	const filePath = getEntryPath(key, contextDir);
+async function loadEntry(key, contextDir, cwdParam = cwd) {
+	const filePath = getEntryPath(key, contextDir, cwdParam);
 	try {
 		const content = await readFile(filePath, "utf-8");
 		const { frontmatter, body } = parseEntryContent(content);
@@ -153,11 +153,11 @@ async function loadEntry(key, contextDir) {
  * @param {string} [createdDate] - Optional preserved creation date (omit for new entries)
  * @returns {Promise<void>}
  */
-async function saveEntry(key, value, createdDate, contextDir) {
-	const filePath = getEntryPath(key, contextDir);
+async function saveEntry(key, value, createdDate, contextDir, cwdParam = cwd) {
+	const filePath = getEntryPath(key, contextDir, cwdParam);
 	const now = new Date().toISOString();
 	const created = createdDate || now;
-	await mkdir(cwd + "/" + contextDir, { recursive: true });
+	await mkdir(join(cwdParam, contextDir), { recursive: true });
 	await writeFile(
 		filePath,
 		`---\ncreatedDate: "${created}"\nupdatedDate: "${now}"\n---\n\n${value}\n`,
@@ -170,8 +170,8 @@ async function saveEntry(key, value, createdDate, contextDir) {
  * @param {string} key - Entry key
  * @returns {Promise<boolean>} Whether the entry was deleted
  */
-async function deleteEntry(key, contextDir) {
-	const filePath = getEntryPath(key, contextDir);
+async function deleteEntry(key, contextDir, cwdParam = cwd) {
+	const filePath = getEntryPath(key, contextDir, cwdParam);
 	if (!(await pathExists(filePath))) return false;
 	await unlink(filePath);
 	return true;
@@ -204,8 +204,8 @@ export async function memoryImpl(input, options) {
 					return JSON.stringify({ ok: false, error: "create requires: key and value" });
 				}
 				const cleanedKey = sanitizeKey(input.key);
-				await validateMaxEntries(maxEntries, contextDir);
-				await saveEntry(cleanedKey, String(input.value), undefined, contextDir);
+				await validateMaxEntries(maxEntries, contextDir, cwd);
+				await saveEntry(cleanedKey, String(input.value), undefined, contextDir, cwd);
 				return JSON.stringify({ ok: true, message: `Memory created: "${cleanedKey}"` });
 			}
 
@@ -213,7 +213,7 @@ export async function memoryImpl(input, options) {
 				if (!input.key) {
 					return JSON.stringify({ ok: false, error: "read requires: key" });
 				}
-				const entry = await loadEntry(input.key, contextDir);
+				const entry = await loadEntry(input.key, contextDir, cwd);
 				if (!entry || !entry.found) {
 					return JSON.stringify({
 						ok: false,
@@ -234,14 +234,14 @@ export async function memoryImpl(input, options) {
 					return JSON.stringify({ ok: false, error: "update requires: key and value" });
 				}
 				const cleanedKey = sanitizeKey(input.key);
-				const existing = await loadEntry(cleanedKey, contextDir);
+				const existing = await loadEntry(cleanedKey, contextDir, cwd);
 				if (!existing || !existing.found) {
 					return JSON.stringify({
 						ok: false,
 						error: `Memory not found: "${cleanedKey}". Use "create" to add it.`,
 					});
 				}
-				await saveEntry(cleanedKey, String(input.value), existing.createdDate, contextDir);
+				await saveEntry(cleanedKey, String(input.value), existing.createdDate, contextDir, cwd);
 				return JSON.stringify({ ok: true, message: `Memory updated: "${cleanedKey}"` });
 			}
 
@@ -250,7 +250,7 @@ export async function memoryImpl(input, options) {
 					return JSON.stringify({ ok: false, error: "delete requires: key" });
 				}
 				const cleanedKey = sanitizeKey(input.key);
-				const deleted = await deleteEntry(cleanedKey, contextDir);
+				const deleted = await deleteEntry(cleanedKey, contextDir, cwd);
 				if (!deleted) {
 					return JSON.stringify({ ok: false, error: `Memory not found: "${cleanedKey}"` });
 				}
