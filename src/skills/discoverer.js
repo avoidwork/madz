@@ -190,7 +190,7 @@ export function discoverSkills(scope = defaultScope, options = {}) {
 	const seenNames = new Map();
 
 	for (const scopePath of scope) {
-		const fullScope = join(cwdParam, scopePath);
+		const fullScope = scopePath.startsWith("/") ? scopePath : join(cwdParam, scopePath);
 		if (!existsSync(fullScope)) {
 			continue;
 		}
