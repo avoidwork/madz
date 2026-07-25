@@ -5,7 +5,7 @@ import { discoverSkills, defaultScope } from "./discoverer.js";
 import { validateSkillSchema } from "./validator.js";
 import { loadConfig } from "../config/loader.js";
 
-const cwd = loadConfig().cwd;
+const cwd = "";
 
 /**
  * Ensure the skills directory exists by creating it if necessary.

@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { loadConfig } from "../config/loader.js";
 import { loadContext } from "./context.js";
 
-const cwd = loadConfig().cwd;
+const cwd = "";
 
 /**
  * Load the system prompt from prompts/SYSTEM_PROMPT.md,

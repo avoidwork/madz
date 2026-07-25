@@ -4,7 +4,7 @@ import { validatePath } from "./common.js";
 import { loadAgents } from "../workspace/loadAgents.js";
 import { loadConfig } from "../config/loader.js";
 
-const cwd = loadConfig().cwd;
+const cwd = "";
 
 const ScanAgentsSchema = z.object({
 	path: z

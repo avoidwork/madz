@@ -2,7 +2,7 @@ import { readdirSync, statSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 import { loadConfig } from "../config/loader.js";
 
-const cwd = loadConfig().cwd;
+const cwd = "";
 
 /**
  * Remove memory files older than the retention policy allows.

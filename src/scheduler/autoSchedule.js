@@ -4,7 +4,7 @@ import { Cron } from "./cron.js";
 import { logger } from "../logger.js";
 import { loadConfig } from "../config/loader.js";
 
-const cwd = loadConfig().cwd;
+const cwd = "";
 
 const JOB_CRON = "0 2 * * *";
 

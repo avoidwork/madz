@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { parseFrontmatter } from "./reader.js";
 import { loadConfig } from "../config/loader.js";
 
-const cwd = loadConfig().cwd;
+const cwd = "";
 
 /**
  * Read an ephemeral memory file and extract frontmatter metadata.

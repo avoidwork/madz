@@ -4,7 +4,7 @@ import { load } from "js-yaml";
 import { loadConfig } from "../config/loader.js";
 
 export const defaultScope = loadConfig().sandbox.skillScanPaths;
-export let cwd = loadConfig().cwd;
+export let cwd = "";
 
 /**
  * Set the working directory for skill discovery.
