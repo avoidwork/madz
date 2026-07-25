@@ -78,6 +78,7 @@ export class SkillRegistry {
 
 	/**
 	 * Rebuild the catalog from validated skills.
+	 * Sorted by location (system-skills last), then by name within each location.
 	 */
 	#rebuildCatalog() {
 		this.#catalog = [];
@@ -88,6 +89,25 @@ export class SkillRegistry {
 				location: entry.metadata?._path || entry.path,
 			});
 		}
+
+		// Sort: by location first (system-skills last), then by name
+		this.#catalog.sort((a, b) => {
+			const aIsSystem = a.location.includes("system-skills");
+			const bIsSystem = b.location.includes("system-skills");
+
+			// system-skills always comes last
+			if (aIsSystem && !bIsSystem) return 1;
+			if (!aIsSystem && bIsSystem) return -1;
+			if (aIsSystem && bIsSystem) return 0; // both system, preserve order
+
+			// Same location group — sort by name
+			if (a.location === b.location) {
+				return a.name.localeCompare(b.name);
+			}
+
+			// Different locations — sort by location path
+			return a.location.localeCompare(b.location);
+		});
 	}
 
 	/**
