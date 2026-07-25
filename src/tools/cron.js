@@ -1,7 +1,6 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import { mkdir, writeFile, readFile, readdir, unlink } from "node:fs/promises";
-import { existsSync } from "node:fs";
+import { access, constants, mkdir, writeFile, readFile, readdir, unlink } from "node:fs/promises";
 import { join } from "node:path";
 import { spawn } from "node:child_process";
 import { Cron } from "../../src/scheduler/cron.js";
@@ -38,12 +37,22 @@ export async function findSkillScript(skillName, baseDir = ["system-skills", "sk
 
 		for (const candidate of scriptCandidates) {
 			const fullPath = join(skillDir, candidate);
-			if (existsSync(fullPath)) return fullPath;
+			try {
+				await access(fullPath, constants.F_OK);
+				return fullPath;
+			} catch {
+				// File doesn't exist, continue
+			}
 		}
 
 		for (const candidate of rootScripts) {
 			const fullPath = join(skillDir, candidate);
-			if (existsSync(fullPath)) return fullPath;
+			try {
+				await access(fullPath, constants.F_OK);
+				return fullPath;
+			} catch {
+				// File doesn't exist, continue
+			}
 		}
 	}
 

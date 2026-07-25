@@ -85,12 +85,12 @@ export class ScheduleManager {
 		let contextPrefix = "";
 		if (entry.contextFile) {
 			try {
-				const { readFile } = await import("node:fs/promises");
-				const { existsSync } = await import("node:fs");
+				const { readFile, access, constants } = await import("node:fs/promises");
 				const { loadContext } = await import("../memory/context.js");
-				if (existsSync(entry.contextFile)) {
+				try {
+					await access(entry.contextFile, constants.F_OK);
 					contextPrefix = await readFile(entry.contextFile, "utf-8");
-				} else {
+				} catch {
 					contextPrefix = loadContext(contextDir);
 				}
 			} catch {

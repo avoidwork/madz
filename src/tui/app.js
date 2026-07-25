@@ -776,8 +776,8 @@ export default function App({
 						},
 					});
 				}
-			} catch (_cbErr) {
-				// Silently ignore streaming callback errors
+			} catch (cbErr) {
+				logger.debug(`[streaming] callback error: ${cbErr.message}`);
 			}
 		};
 	};
