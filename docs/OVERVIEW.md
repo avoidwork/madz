@@ -16,8 +16,10 @@ graph TD
     DA -->|"orchestrator + shared"| OT["Orchestrator Tools"]
     DA -->|"subagent + shared"| ST["Subagent Tools"]
     DA -->|"model"| P["Provider"]
-    DA -->|"core FS"| CB["Core Backend\nFilesystemBackend"]
-    DA -->|"context FS"| CTB["Context Backend\nFilesystemBackend"]
+    DA -->|"backend"| CB["CompositeBackend"]
+    CB -->|"default"| CFB["Core Backend\nFilesystemBackend\n(rootDir: process.cwd())"]
+    CB -->|"/memory/context/"| CTB["Context Backend\nFilesystemBackend\n(rootDir: memory/context/)"]
+    CB -->|"/tmp"| DB["DMZ Backend\nFilesystemBackend\n(rootDir: /tmp)"]
     DA -->|"delegate"| SA["Coding Subagent"]
     SA -->|"execution"| ST
     S -->|"runNow()"| SB["Sandbox"]
@@ -34,11 +36,13 @@ graph TD
     classDef ext fill:#ab47bc,color:#fff,stroke:#6a1b9a
     classDef cache fill:#26a69a,color:#fff,stroke:#00695c
     classDef agent fill:#7e57c2,color:#fff,stroke:#4527a0
+    classDef backend fill:#26a69a,color:#fff,stroke:#00695c
     class I root
     class DA,P,T,R core
     class DA,SA agent
     class S,TM,SE,SB util
     class SK,CW,FS ext
+    class CB,CFB,CTB,DB backend
 ```
 
 ---
@@ -141,8 +145,56 @@ The agent runs: reason → call tool(s) → reason again → answer. Tool array 
 The orchestrator routes tasks automatically — the system prompt delegates every task to the orchestrator, which manages routing, state, and observability natively.
 
 **Tool Classification:** Tools and skills are classified by agent type (`orchestrator`, `subagent`, or `shared`) in `src/tools/index.js`. The orchestrator receives only `orchestrator`-classified and `shared` tools/skills, while the coding subagent receives `subagent`-classified and `shared` tools/skills. This ensures each agent has only the capabilities it needs for its role. The classification is applied via `buildToolConfig()`'s `classificationFilter` parameter and `filterSkillPaths()` helper function.
+
 ---
 
+## Backends
+
+`src/agent/backends/` — Virtual filesystem backends powered by the `deepagents` library's `CompositeBackend` and `FilesystemBackend`. The application root is `'/'` — all file paths are virtual paths under this root, resolved relative to the process working directory.
+
+| File | Purpose |
+|------|---------|
+| `coreBackend.js` | `createCoreBackend()` — `FilesystemBackend` with `rootDir: process.cwd()`, `virtualMode: true` |
+| `contextBackend.js` | `createContextBackend(cwd)` — `FilesystemBackend` with `rootDir: memory/context/`, `virtualMode: true` |
+| `dmzBackend.js` | `createDmzBackend()` — `FilesystemBackend` with `rootDir: /tmp`, `virtualMode: true` |
+
+**CompositeBackend Routing:**
+
+The orchestrator receives a `CompositeBackend` that routes file operations to different backends based on path prefix:
+
+```
+CompositeBackend(
+  defaultBackend: coreBackend,    // Falls back to process.cwd()
+  routes: {
+    "/memory/context/": contextBackend,  // Memory context files
+    "/tmp": dmzBackend                     // Temporary operations
+  }
+)
+```
+
+**Routing algorithm:**
+1. Routes are sorted by prefix length (longest match first)
+2. Incoming paths are matched against route prefixes
+3. Matching prefix is stripped, operation delegated to that backend
+4. Unmatched paths fall through to the default backend (core)
+
+**Virtual Mode:**
+
+All `FilesystemBackend` instances use `virtualMode: true`. This means:
+- Incoming paths are treated as virtual absolute paths (starting with `/`)
+- The leading `/` is stripped, then resolved relative to `rootDir`
+- All results return virtual paths (with leading `/`)
+- Path traversal is validated — resolved paths must stay within `rootDir`
+
+**Application Root (`'/'`):**
+
+The `'/'` root is the application's working directory from the agent's perspective. When the agent reads `/package.json`, it resolves to `<cwd>/package.json`. When it writes `/src/tools/index.js`, it resolves to `<cwd>/src/tools/index.js`. The virtual filesystem creates a clean, consistent namespace where `/` always means "the application root."
+
+**Security:**
+
+`FilesystemBackend` uses `O_NOFOLLOW` flag when available to prevent symlink following. In virtual mode, parent directories are also validated on delete operations. The `allPathsScopedToRoutes` function enforces that filesystem permissions with execution-capable backends are scoped to `CompositeBackend` route prefixes, preventing shell commands from bypassing path-based permission rules.
+
+---
 
 ## Scan Agents
 

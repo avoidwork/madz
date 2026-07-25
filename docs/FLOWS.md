@@ -627,17 +627,23 @@ Multi-engine search backends (webSearch):
 
 
 ## Deep Agents Orchestration Flow
-## Deep Agents Orchestration Flow
 
 **Entry:** `src/agent/deepAgents.js` → `createDeepAgentsOrchestrator()`
 
 ```
 Deep Agents orchestrator (native multi-agent architecture):
-├── createDeepAgent({ model, systemPrompt, tools, middleware, subagents, checkpointer })
+├── createDeepAgent({ model, systemPrompt, tools, middleware, subagents, checkpointer, backend })
+│   ├── backend: CompositeBackend(coreBackend, {
+│   │   │   "/memory/context/": contextBackend,
+│   │   │   "/tmp": dmzBackend
+│   │   │ })
+│   │   ├── coreBackend: FilesystemBackend({ rootDir: process.cwd(), virtualMode: true })
+│   │   ├── contextBackend: FilesystemBackend({ rootDir: memory/context/, virtualMode: true })
+│   │   └── dmzBackend: FilesystemBackend({ rootDir: /tmp, virtualMode: true })
 │   ├── middleware: filesystem, memory, skills, summarization
 │   ├── subagents:
 │   │   ├── coding-agent: code editing, debugging, implementation, code review
-│   └── orchestrator routes tasks automatically based on task nature
+│   │   └── orchestrator routes tasks automatically based on task nature
 ├── agent.stream(input, { streamMode: "messages", subgraphs: true })
 │   ├── for each chunk:
 │   │   ├── extract text content
@@ -648,6 +654,107 @@ Deep Agents orchestrator (native multi-agent architecture):
 No process spawning, no marker-based parsing, no manual fan-out coordination.
 The deepagents library handles agent lifecycle, state management, and streaming internally.
 ```
+
+## Backend Routing Flow
+
+**Entry:** `src/agent/backends/coreBackend.js`, `contextBackend.js`, `dmzBackend.js` → `CompositeBackend`
+
+The `CompositeBackend` routes file operations to different backends based on path prefix matching.
+
+```
+CompositeBackend routing:
+├── Constructor:
+│   ├── defaultBackend: coreBackend (process.cwd(), virtualMode: true)
+│   └── routes: {
+│       │   "/memory/context/": contextBackend,
+│       │   "/tmp": dmzBackend
+│       └── }
+│
+├── Route matching (longest prefix first):
+│   ├── "/memory/context/profile.md" → contextBackend (stripped: "/profile.md")
+│   ├── "/tmp/sessions/abc.md" → dmzBackend (stripped: "/sessions/abc.md")
+│   └── "/package.json" → coreBackend (default, no route match)
+│
+├── FilesystemBackend virtualMode:
+│   ├── Incoming path: "/src/tools/index.js"
+│   ├── Strip leading "/": "src/tools/index.js"
+│   ├── Resolve relative to rootDir: path.resolve(rootDir, "src/tools/index.js")
+│   ├── Validate: resolved.startsWith(rootDir + "/")
+│   └── Return virtual path: "/src/tools/index.js"
+│
+└── ls("/") special case:
+    ├── Returns files from default backend at "/"
+    ├── Route prefixes as directory entries (is_dir: true)
+    └── Sorted together by path
+```
+
+**Virtual Path Convention:**
+
+All file paths in the agent's view are virtual paths starting with `/`. The `/` root maps to the application's working directory. When the agent reads `/package.json`, it resolves to `<cwd>/package.json`. When it writes `/src/tools/index.js`, it resolves to `<cwd>/src/tools/index.js`.
+
+**Security:**
+
+```
+allPathsScopedToRoutes(permissions, backend):
+├── if !CompositeBackend.isInstance(backend) → false
+├── prefixes = backend.routePrefixes
+├── if prefixes.length === 0 → false
+└── permissions.every(rule =>
+    rule.paths.every(path =>
+        prefixes.some(prefix =>
+            path.startsWith(prefix.endsWith("/") ? prefix : `${prefix}/`)
+        )
+    )
+  )
+```
+
+This prevents shell commands from bypassing path-based permission rules when using CompositeBackend.
+
+---
+
+## File Tool Execution Flow
+
+**Entry:** `src/tools/code.js` (read_file, write_file, patch, search_files)
+
+```
+read_file:
+├── validatePath(input.path, allowedPaths)
+│   └── resolvePath(file, dirs) → { allowed: true/false, path }
+│       └── In virtualMode: path.resolve(rootDir, key.substring(1))
+│           └── Validates: resolved.startsWith(rootDir + "/")
+├── checkFileLimit(resolved.path, maxReadSize)
+│   └── access(file) → stat(file) → compare size vs maxReadBytes
+│       └── parseSizeString("1mb") → 1048576
+├── readFile(resolved.path, "utf-8")
+├── if ENOENT → suggestSimilarFile(path) → Levenshtein distance ≤ 2
+└── lines.map((line, i) => `${i+1}|${line}`).join("\n")
+
+write_file:
+├── validatePath(input.path, allowedPaths)
+├── if input.content.length > MAX_CONTENT_SIZE (500KB) → error
+├── mkdir(dirname(resolved.path), recursive)
+└── writeFile(resolved.path, content, "utf-8")
+
+patch:
+├── validatePath(input.path, allowedPaths)
+├── readFile(resolved.path) → content
+├── fuzzyMatch(input.oldStr, content)
+│   └── 9 strategies: exact, line-exact, trim-trailing/leading, collapse-whitespace,
+│       case-insensitive, normalize-newlines, normalize-tabs, loose-substring
+├── if no match → suggest Levenshtein line matches
+└── content = content.slice(0,match.start) + input.newStr + content.slice(match.end)
+    → writeFile → return with unified diff
+
+search_files:
+├── validatePath(input.path, allowedPaths)
+├── execFile("rg", ["--line-number", "--no-heading", "-n", pattern, resolved.path], timeout: 10s)
+└── if ENOENT (no ripgrep) → nativeSearch(pattern, resolved.path, maxResults)
+    └── walk() → readdir → stat → readFile → regex test line by line
+```
+
+---
+
+## Deep Agents Orchestration Flow
 
 **Entry:** `src/tools/scanAgents.js` → `createScanAgentsTool()`
 
