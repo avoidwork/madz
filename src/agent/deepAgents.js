@@ -189,10 +189,10 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	const coreBackend = createCoreBackend();
 	const contextBackend = createContextBackend();
 	const contextRoute = "/" + config.memory.contextDir.replace(/^\.?\//, "");
-	const srcBackend = createSrcBackend();
 	const promptsBackend = createPromptsBackend();
-	const tmpBackend = createTmpBackend();
-	const workspaceBackend = createWorkspaceBackend();
+	const tmpBackend = await createTmpBackend();
+	const srcBackend = await createSrcBackend();
+	const workspaceBackend = await createWorkspaceBackend();
 
 	// Create subagent definitions with filtered tools and agent-specific skills
 	const subagentDefinitions = createSubagentDefinitions(allTools, model, skillRegistry);

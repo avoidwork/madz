@@ -6,11 +6,11 @@ const SRC_TIMEOUT = 60;
 /**
  * Create a LocalShellBackend sandboxed to the src/ directory, enabling
  * shell commands (npm, node, linters, etc.) within a scoped prefix.
- * @returns {LocalShellBackend}
+ * @returns {Promise<LocalShellBackend>}
  */
-export function createSrcBackend() {
+export async function createSrcBackend() {
 	const srcDir = join(process.cwd(), "src/");
-	return new LocalShellBackend({
+	return LocalShellBackend.create({
 		rootDir: srcDir,
 		virtualMode: true,
 		inheritEnv: true,

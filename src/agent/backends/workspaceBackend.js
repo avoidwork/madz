@@ -6,11 +6,11 @@ const WORKSPACE_TIMEOUT = 60;
 /**
  * Create a LocalShellBackend sandboxed to the workspace/ directory, enabling
  * shell commands (npm, node, linters, etc.) within a scoped prefix.
- * @returns {LocalShellBackend}
+ * @returns {Promise<LocalShellBackend>}
  */
-export function createWorkspaceBackend() {
+export async function createWorkspaceBackend() {
 	const workspaceDir = join(process.cwd(), "workspace/");
-	return new LocalShellBackend({
+	return LocalShellBackend.create({
 		rootDir: workspaceDir,
 		virtualMode: true,
 		inheritEnv: true,
