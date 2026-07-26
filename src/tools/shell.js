@@ -1,7 +1,6 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { spawn } from "node:child_process";
-import { loadConfig } from "../config/loader.js";
 
 const MAX_COMMAND_LENGTH = 4096;
 
@@ -131,7 +130,7 @@ export async function executeShellImpl(input) {
  * Internal shell tool (kept for executeCode shell language support).
  * @private
  */
-const shell = tool(executeShellImpl, {
+const _shell = tool(executeShellImpl, {
 	name: "shell",
 	description:
 		"Execute a shell command via sh -c. Supports foreground (blocking) and background (detached) modes. Max command length is 4096 characters.",
