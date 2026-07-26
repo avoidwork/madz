@@ -3,13 +3,11 @@ import { join } from "node:path";
 
 /**
  * Create a FilesystemBackend sandboxed to the prompts/ directory.
- * @param {string} [cwd] - Working directory (defaults to process.cwd())
  * @returns {FilesystemBackend}
  */
-export function createPromptsBackend(cwd) {
-	const baseDir = cwd || process.cwd();
+export function createPromptsBackend() {
 	return new FilesystemBackend({
-		rootDir: join(baseDir, "prompts/"),
+		rootDir: join(process.cwd(), "prompts/"),
 		virtualMode: true,
 	});
 }
