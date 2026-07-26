@@ -241,6 +241,7 @@ Once inside the interactive terminal, use these commands:
 | `↑ / ↓` | Scroll conversation history |
 | `/help` | List available commands |
 | `/quit` | Exit the application |
+| `/exit` | Exit the application |
 | `/provider set <name>` | Switch LLM provider |
 | `/config set <path> <value>` | Mutate config at runtime |
 | `/schedule list` | List all scheduled jobs |
@@ -298,6 +299,21 @@ license: MIT
 Skills are stored in `skills/` and are version-controllable. Simple skills can be chained together into pipelines for complex multi-step processing, or composed by asking `madz` to coordinate between them.
 
 **Built-in tools:** Beyond skills, `madz` ships with built-in tools for common tasks. The Deep Agents orchestrator (`deepAgents` library) handles multi-agent routing natively — a coding-agent for code work. The `scanAgents` tool scans for `AGENTS.md` workspace rules files. Other built-in tools include filesystem operations, shell execution, search, memory management, and more.
+
+### Virtual Filesystem
+
+All file operations use a virtual filesystem where `/` is the application root. When you see a path like `/package.json` or `/src/tools/index.js`, the leading `/` is a virtual path that resolves relative to the application's working directory.
+
+The orchestrator uses a `CompositeBackend` that routes file operations to different backends based on path prefix:
+
+| Virtual Path | Backend | Actual Resolution |
+|-------------|---------|-------------------|
+| `/package.json` | Core Backend | `<cwd>/package.json` |
+| `/src/tools/index.js` | Core Backend | `<cwd>/src/tools/index.js` |
+| `/memory/context/profile.md` | Context Backend | `<cwd>/memory/context/profile.md` |
+| `/tmp/sessions/abc.md` | DMZ Backend | `<tmp>/sessions/abc.md` |
+
+This creates a clean, consistent namespace where the agent always sees `/` as the root, regardless of where the application is actually running. Path traversal is validated — resolved paths must stay within their backend's `rootDir`.
 
 ---
 

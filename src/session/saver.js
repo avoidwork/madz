@@ -1,8 +1,7 @@
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { loadConfig } from "../config/loader.js";
 
-const cwd = loadConfig().cwd;
+const cwd = "";
 
 /**
  * Escape a string for safe inclusion in a YAML double-quoted scalar.
@@ -22,8 +21,8 @@ function escapeYamlString(str) {
  * @param {string} [threadId] - Thread ID used as filename
  * @throws {Error} If the underlying filesystem operation fails (missing directory, disk full, permissions)
  */
-export async function saveSession(sessionsDir, conversation, threadId = "") {
-	const dir = join(cwd, sessionsDir);
+export async function saveSession(sessionsDir, conversation, threadId = "", cwdParam = cwd) {
+	const dir = join(cwdParam, sessionsDir);
 
 	const filename = threadId ? `${threadId}.md` : "unsaved.md";
 	const isoTimestamp = new Date().toISOString();

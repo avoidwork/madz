@@ -1,16 +1,15 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import { loadConfig } from "../config/loader.js";
 
-const cwd = loadConfig().cwd;
+const cwd = "";
 
 /**
  * Ensure the sessions directory exists by creating it if necessary.
  * @param {string} sessionsDir - Path to sessions directory
  * @returns {Promise<void>}
  */
-export async function ensureSessionsDir(sessionsDir) {
-	const dir = join(cwd, sessionsDir);
+export async function ensureSessionsDir(sessionsDir, cwdParam = cwd) {
+	const dir = join(cwdParam, sessionsDir);
 	await mkdir(dir, { recursive: true });
 }
 

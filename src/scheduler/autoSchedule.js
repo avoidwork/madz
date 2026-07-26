@@ -2,9 +2,8 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { Cron } from "./cron.js";
 import { logger } from "../logger.js";
-import { loadConfig } from "../config/loader.js";
 
-const cwd = loadConfig().cwd;
+const cwd = "";
 
 const JOB_CRON = "0 2 * * *";
 
@@ -85,6 +84,7 @@ function persistJobFile(jobName, job, cwd) {
  * @returns {Function} Callback to invoke after saveProfile() succeeds
  */
 export function setupAutoSchedule(options = {}) {
+	const cwdParam = options.cwd || cwd;
 	const CronModule = options.Cron || Cron;
 
 	/**
@@ -92,7 +92,7 @@ export function setupAutoSchedule(options = {}) {
 	 * @returns {void}
 	 */
 	return function autoScheduleCallback() {
-		const job = createJobDefinition(cwd);
+		const job = createJobDefinition(cwdParam);
 
 		try {
 			const result = CronModule.add(job);

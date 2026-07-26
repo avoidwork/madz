@@ -3,17 +3,16 @@ import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { discoverSkills, defaultScope } from "./discoverer.js";
 import { validateSkillSchema } from "./validator.js";
-import { loadConfig } from "../config/loader.js";
 
-const cwd = loadConfig().cwd;
+const cwd = "";
 
 /**
  * Ensure the skills directory exists by creating it if necessary.
  * @param {string} [skillsDir="skills/"] - Path to the skills directory
  * @returns {Promise<void>}
  */
-export async function ensureSkillsDir(skillsDir = "skills/") {
-	const dir = join(cwd, skillsDir);
+export async function ensureSkillsDir(skillsDir = "skills/", cwdParam = cwd) {
+	const dir = join(cwdParam, skillsDir);
 	await mkdir(dir, { recursive: true });
 }
 
@@ -79,6 +78,7 @@ export class SkillRegistry {
 
 	/**
 	 * Rebuild the catalog from validated skills.
+	 * Sorted by location (system-skills last), then by name within each location.
 	 */
 	#rebuildCatalog() {
 		this.#catalog = [];
@@ -89,6 +89,25 @@ export class SkillRegistry {
 				location: entry.metadata?._path || entry.path,
 			});
 		}
+
+		// Sort: by location first (system-skills last), then by name
+		this.#catalog.sort((a, b) => {
+			const aIsSystem = a.location.includes("system-skills");
+			const bIsSystem = b.location.includes("system-skills");
+
+			// system-skills always comes last
+			if (aIsSystem && !bIsSystem) return 1;
+			if (!aIsSystem && bIsSystem) return -1;
+			if (aIsSystem && bIsSystem) return 0; // both system, preserve order
+
+			// Same location group — sort by name
+			if (a.location === b.location) {
+				return a.name.localeCompare(b.name);
+			}
+
+			// Different locations — sort by location path
+			return a.location.localeCompare(b.location);
+		});
 	}
 
 	/**

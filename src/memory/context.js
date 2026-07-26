@@ -4,7 +4,7 @@ import { loadConfig } from "../config/loader.js";
 import { parseFrontmatter } from "./reader.js";
 import { loadProfile, formatProfileContext } from "./profile.js";
 
-const cwd = loadConfig().cwd;
+const cwd = "";
 const PROFILE_FILENAME = "profile.md";
 
 /**
@@ -16,8 +16,8 @@ const PROFILE_FILENAME = "profile.md";
  * @param {number} limit - Maximum number of recent context files to load (excludes profile and ephemeral)
  * @returns {string} Combined context content with profile prefix
  */
-export function loadContext(contextDir = "memory/context/", limit = 10) {
-	const fullPath = join(cwd, contextDir);
+export function loadContext(contextDir = "memory/context/", limit = 10, cwdParam = cwd) {
+	const fullPath = join(cwdParam, contextDir);
 	try {
 		// Load profile context block first
 		const profileBlock = loadAndFormatProfile(fullPath, contextDir);
@@ -100,9 +100,9 @@ export function loadContext(contextDir = "memory/context/", limit = 10) {
  * @param {string} contextDir - Relative context directory path
  * @returns {string} Formatted profile context block or empty string
  */
-function loadAndFormatProfile(fullPath, contextDir) {
+function loadAndFormatProfile(fullPath, contextDir, cwdParam = cwd) {
 	try {
-		const profilePath = join(cwd, contextDir, PROFILE_FILENAME);
+		const profilePath = join(cwdParam, contextDir, PROFILE_FILENAME);
 		const profile = loadProfile(profilePath);
 		if (!profile) return "";
 		return formatProfileContext(profile.data);

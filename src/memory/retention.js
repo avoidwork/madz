@@ -1,8 +1,7 @@
 import { readdirSync, statSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
-import { loadConfig } from "../config/loader.js";
 
-const cwd = loadConfig().cwd;
+const cwd = "";
 
 /**
  * Remove memory files older than the retention policy allows.
@@ -10,8 +9,8 @@ const cwd = loadConfig().cwd;
  * @param {number} retentionDays - Maximum age in days
  * @returns {number} Number of files removed
  */
-export function cleanRetainedMemory(directory, retentionDays = 90) {
-	const fullPath = join(cwd, directory);
+export function cleanRetainedMemory(directory, retentionDays = 90, cwdParam = cwd) {
+	const fullPath = join(cwdParam, directory);
 	const cutoff = Date.now() - retentionDays * 24 * 60 * 60 * 1000;
 	let removed = 0;
 
@@ -39,8 +38,8 @@ export function cleanRetainedMemory(directory, retentionDays = 90) {
  * @param {number} maxEntries - Maximum number of files to keep
  * @returns {number} Number of files removed
  */
-export function enforceMaxEntries(directory, maxEntries = 1000) {
-	const fullPath = join(cwd, directory);
+export function enforceMaxEntries(directory, maxEntries = 1000, cwdParam = cwd) {
+	const fullPath = join(cwdParam, directory);
 	let removed = 0;
 
 	try {
