@@ -57,6 +57,7 @@ function executeForeground(command) {
 		let exitCode = -1;
 
 		const child = spawn("sh", ["-c", command], {
+			cwd: process.cwd(),
 			timeout: 30000,
 		});
 
@@ -94,6 +95,7 @@ function executeForeground(command) {
 function executeBackground(command) {
 	try {
 		const child = spawn("sh", ["-c", command], {
+			cwd: process.cwd(),
 			detached: true,
 			stdio: ["ignore", "ignore", "ignore"],
 		});
