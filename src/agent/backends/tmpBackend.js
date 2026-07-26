@@ -1,16 +1,19 @@
-import { FilesystemBackend } from "deepagents";
+import { LocalShellBackend } from "deepagents";
 import { join } from "node:path";
-import fs from "node:fs/promises";
+
+const TMP_TIMEOUT = 60;
 
 /**
- * Create a FilesystemBackend sandboxed to the tmp/ directory.
- * @returns {FilesystemBackend}
+ * Create a LocalShellBackend sandboxed to the tmp/ directory for use as
+ * a scratch workspace — agents write and execute shell scripts here.
+ * @returns {Promise<LocalShellBackend>}
  */
 export async function createTmpBackend() {
 	const tmpDir = join(process.cwd(), "tmp/");
-	await fs.mkdir(tmpDir, { recursive: true });
-	return new FilesystemBackend({
+	return LocalShellBackend.create({
 		rootDir: tmpDir,
 		virtualMode: true,
+		inheritEnv: true,
+		timeout: TMP_TIMEOUT,
 	});
 }
