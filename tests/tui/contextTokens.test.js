@@ -103,7 +103,11 @@ describe("calculateConversationTokens", () => {
 			{ role: "user", content: "What is the capital of France?" },
 			{ role: "assistant", content: "The capital of France is Paris." },
 			{ role: "user", content: "Can you tell me more about Paris?" },
-			{ role: "assistant", content: "Paris is the most populous city in France, known for the Eiffel Tower, the Louvre Museum, and many other attractions." },
+			{
+				role: "assistant",
+				content:
+					"Paris is the most populous city in France, known for the Eiffel Tower, the Louvre Museum, and many other attractions.",
+			},
 		];
 		const result = calculateConversationTokens(conversation, "gpt-4o");
 		assert.ok(result > 10, "Longer conversation should have more tokens");

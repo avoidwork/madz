@@ -2,7 +2,7 @@ import { MemorySaver } from "@langchain/langgraph";
 
 /**
  * Create a LangGraph checkpointer instance based on persistence config.
- * @param {Object} [persistenceConfig] - Persistence configuration from config.yaml
+ * @param {Object} [persistenceConfig] - Persistence configuration from config
  * @param {"memory"|"sqlite"|"null"} [persistenceConfig.mode="memory"] - Persistence mode
  * @param {string} [persistenceConfig.sqlite_path="memory/checkpoints.db"] - SQLite DB file path
  * @returns {import("@langchain/langgraph").BaseCheckpointSaver | null} A checkpointer instance, or null if mode is not supported

@@ -27,7 +27,10 @@ export function parseFrontmatter(content) {
 
 		// js-yaml 5.x no longer auto-converts date strings to Date objects
 		// Manually convert the 'timestamp' field back to a Date instance
-		if (typeof frontmatter.timestamp === "string" && /^\d{4}-\d{2}-\d{2}/.test(frontmatter.timestamp)) {
+		if (
+			typeof frontmatter.timestamp === "string" &&
+			/^\d{4}-\d{2}-\d{2}/.test(frontmatter.timestamp)
+		) {
 			const date = new Date(frontmatter.timestamp);
 			if (!Number.isNaN(date.getTime())) {
 				frontmatter.timestamp = date;

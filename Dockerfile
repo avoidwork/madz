@@ -10,8 +10,6 @@ RUN npm ci
 
 COPY src/ ./src/
 COPY tests/ ./tests/
-COPY index.js ./
-COPY config.yaml ./
 
 RUN npm prune --omit=dev && \
     npm cache clean --force
@@ -23,7 +21,7 @@ RUN apk update && \
     ssh-keygen -A && \
     adduser -S -G node -h /home/madz -s /bin/sh madz && \
     mkdir -p /run/sshd /root/.cache /home/madz/.cache/madz/logs && \
-    printf '%s\n' '#!/bin/sh' '[ -f /etc/profile.d/madz-env.sh ] && . /etc/profile.d/madz-env.sh' 'if [ -x "/app" ]; then' '    echo "Starting madz..."' '    cd /app && exec node --expose-gc index.js --mode interactive' 'fi' > /etc/profile && \
+    printf '%s\n' '#!/bin/sh' '[ -f /etc/profile.d/madz-env.sh ] && . /etc/profile.d/madz-env.sh' 'if [ -x "/app" ]; then' '    echo "Starting madz..."' '    cd /app && exec node --expose-gc src/index.js --mode interactive' 'fi' > /etc/profile && \
     passwd -d madz && \
     sed -i 's/^#*PermitEmptyPasswords.*/PermitEmptyPasswords yes/' /etc/ssh/sshd_config && \
     printf '%s\n' 'AcceptEnv *' >> /etc/ssh/sshd_config && \
@@ -38,8 +36,6 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package*.json ./
 COPY LICENSE ./
 COPY src/ ./src/
-COPY config.yaml ./
-COPY index.js ./
 COPY prompts/ ./prompts/
 COPY system-skills/ ./system-skills/
 COPY docker-entrypoint.sh /docker-entrypoint.sh

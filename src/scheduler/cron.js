@@ -442,7 +442,10 @@ export const Cron = {
 		const jobs = await this._readJobsFromDisk(schedulesDir);
 		const desiredEntries = jobs
 			.filter((j) => j.enabled)
-			.map((j) => `${j.cron}  ${prepareCrontabCommand(j.command, _logPath)}  # madz-schedule: ${j.name}`);
+			.map(
+				(j) =>
+					`${j.cron}  ${prepareCrontabCommand(j.command, _logPath)}  # madz-schedule: ${j.name}`,
+			);
 
 		// Parse current crontab block entries
 		const crontab = this._readCrontab();

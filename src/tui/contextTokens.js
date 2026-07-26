@@ -3,7 +3,7 @@
  * @param {Array} conversation - Array of {role, content} messages
  * @param {string} modelName - The model name (e.g., "gpt-4o", "llama3.1")
  * @param {string} [encoding] - Optional explicit tiktoken encoder name.
- *   Resolved in order: env var → config.yaml → derived from model name.
+ *   Resolved in order: env var → config → derived from model name.
  * @returns {number} Total token count
  */
 export function calculateConversationTokens(conversation, modelName, encoding) {
