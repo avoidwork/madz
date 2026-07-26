@@ -18,16 +18,16 @@ const parsed = yargs(process.argv.slice(2))
 	}).argv;
 
 // Load config
-import { loadConfig } from "./src/config/loader.js";
+import { loadConfig } from "./config/loader.js";
 const config = loadConfig();
 import { fileURLToPath } from "node:url";
-import { loadSession } from "./src/session/loader.js";
+import { loadSession } from "./session/loader.js";
 
 import React from "react";
 
-const { setConfigValue } = await import("./src/config/loader.js");
-const { createDeepAgentsOrchestrator } = await import("./src/agent/deepAgents.js");
-const { logger } = await import("./src/logger.js");
+const { setConfigValue } = await import("./config/loader.js");
+const { createDeepAgentsOrchestrator } = await import("./agent/deepAgents.js");
+const { logger } = await import("./logger.js");
 
 const { default: pkg } = await import(new URL("package.json", import.meta.url).href, {
 	with: { type: "json" },
@@ -37,7 +37,7 @@ const { default: pkg } = await import(new URL("package.json", import.meta.url).h
 // Sync crontab from persisted job definitions (runs before any subsystem)
 if (config.schedules.syncOnInit !== false) {
 	try {
-		const { Cron } = await import("./src/scheduler/cron.js");
+		const { Cron } = await import("./scheduler/cron.js");
 		if (config.schedules.logPath) {
 			Cron.setLogPath(config.schedules.logPath);
 		}
@@ -87,16 +87,16 @@ if (config.schedules.syncOnInit !== false) {
 }
 
 // Ensure sessions directory exists before any subsystem initialization
-const { ensureSessionsDir } = await import("./src/session/index.js");
+const { ensureSessionsDir } = await import("./session/index.js");
 await ensureSessionsDir(config.cwd + "/" + "memory/sessions/");
 
 // Initialize contextual onboarding if profile is missing (with graceful degradation)
 let onboardingInstance = null;
 try {
-	const { hasProfile, ATTRIBUTES } = await import("./src/memory/profile.js");
+	const { hasProfile, ATTRIBUTES } = await import("./memory/profile.js");
 	if (!hasProfile()) {
-		const { createOnboarding } = await import("./src/session/onboarding.js");
-		const { setupAutoSchedule } = await import("./src/scheduler/autoSchedule.js");
+		const { createOnboarding } = await import("./session/onboarding.js");
+		const { setupAutoSchedule } = await import("./scheduler/autoSchedule.js");
 		const autoSchedule = setupAutoSchedule();
 		onboardingInstance = createOnboarding(ATTRIBUTES, { onSave: autoSchedule });
 	}
@@ -109,7 +109,7 @@ let tracer = null;
 let shutdownFn = null;
 if (config.telemetry.enabled) {
 	const { initTelemetry, getTracer, shutdownTelemetry } =
-		await import("./src/telemetry/provider.js");
+		await import("./telemetry/provider.js");
 	await initTelemetry(config.telemetry);
 	tracer = getTracer();
 	shutdownFn = shutdownTelemetry;
@@ -117,20 +117,20 @@ if (config.telemetry.enabled) {
 
 // Initialize skill registry
 const { SkillRegistry, resolvePermissions, ensureSkillsDir } =
-	await import("./src/skills/index.js");
+	await import("./skills/index.js");
 const registry = new SkillRegistry();
 await ensureSkillsDir(config.cwd + "/" + "skills/");
 registry.discover();
 
 // Initialize memory system
-const { writeMemoryFile, readMemoryFile, loadContext } = await import("./src/memory/index.js");
+const { writeMemoryFile, readMemoryFile, loadContext } = await import("./memory/index.js");
 
 // Initialize GC manager (if enabled)
 let gcManager = null;
 let gcTrace = null;
 let maxGcPerHour = 4;
 try {
-	const { initGC, gc: gcFn, isAvailable } = await import("./src/memory/gc.js");
+	const { initGC, gc: gcFn, isAvailable } = await import("./memory/gc.js");
 	const gcConfig = config.memory?.gc;
 	if (gcConfig?.enabled !== false) {
 		const idleTimeoutMs = gcConfig.idleTimeoutMs ?? 300000;
@@ -154,11 +154,11 @@ try {
 
 // Initialize session
 const { createSession, SessionStateManager, saveSession, handleShutdown, registerShutdownHandler } =
-	await import("./src/session/index.js");
-const { flush: flushLogger } = await import("./src/logger.js");
+	await import("./session/index.js");
+const { flush: flushLogger } = await import("./logger.js");
 
 // Initialize scheduler
-const { ScheduleManager } = await import("./src/scheduler/index.js");
+const { ScheduleManager } = await import("./scheduler/index.js");
 const scheduleManager = new ScheduleManager();
 
 // Create or restore session
@@ -170,7 +170,7 @@ const sessionState = new SessionStateManager(initialState);
 
 // Session-init: asynchronously clean up expired ephemeral memories (non-blocking)
 try {
-	const { expireEphemeralMemories } = await import("./src/memory/expireEphemeral.js");
+	const { expireEphemeralMemories } = await import("./memory/expireEphemeral.js");
 	queueMicrotask(() =>
 		expireEphemeralMemories(config.cwd + "/" + config.memory.contextDir).catch(() => {}),
 	);
@@ -333,7 +333,7 @@ if (isMain) {
 		process.exit(0);
 	} else {
 		const { render } = await import("ink");
-		const App = (await import("./src/tui/app.js")).default;
+		const App = (await import("./tui/app.js")).default;
 		const appInfo = { name: config.tui.name, version: pkg.version };
 		render(
 			React.createElement(App, {
@@ -358,7 +358,7 @@ if (isMain) {
 			{
 				// Restore terminal with newline when app exits
 				onExit: async () => {
-					const shutdown = (await import("./src/session/index.js")).handleShutdown;
+					const shutdown = (await import("./session/index.js")).handleShutdown;
 					if (shutdown) await shutdown();
 					await flushLogger();
 					process.stdout.write("\n");
