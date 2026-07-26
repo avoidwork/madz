@@ -13,7 +13,6 @@ import {
 } from "../tools/index.js";
 import { createCoreBackend } from "./backends/coreBackend.js";
 import { createContextBackend } from "./backends/contextBackend.js";
-import { createDmzBackend } from "./backends/dmzBackend.js";
 import { getAllAgents } from "./agents/index.js";
 import { logger } from "../logger.js";
 
@@ -182,7 +181,6 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	);
 
 	const coreBackend = createCoreBackend();
-	const dmzBackend = createDmzBackend();
 	const contextBackend = createContextBackend();
 	const contextRoute = "/" + config.memory.contextDir.replace(/^\.?\//, "");
 
@@ -198,7 +196,6 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 		store: new InMemoryStore(),
 		backend: new CompositeBackend(coreBackend, {
 			[contextRoute]: contextBackend,
-			"/tmp": dmzBackend,
 		}),
 		subagents: subagentDefinitions,
 		...(agentsPath && { memory: [agentsPath] }),

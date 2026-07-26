@@ -13,10 +13,8 @@ providers:
 sandbox:
   paths:
     - "./"
-    - "!node_modules/"
     - "/tmp"
   skillScanPaths:
-    - "system-skills/"
     - "skills/"
   timeout:
     seconds: 600
