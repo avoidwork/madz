@@ -29,7 +29,7 @@ const { setConfigValue } = await import("./config/loader.js");
 const { createDeepAgentsOrchestrator } = await import("./agent/deepAgents.js");
 const { logger } = await import("./logger.js");
 
-const { default: pkg } = await import(new URL("package.json", import.meta.url).href, {
+const { default: pkg } = await import(new URL("../package.json", import.meta.url).href, {
 	with: { type: "json" },
 });
 
