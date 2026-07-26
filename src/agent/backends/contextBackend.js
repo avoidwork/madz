@@ -4,13 +4,11 @@ import { loadConfig } from "../../config/loader.js";
 
 /**
  * Create a FilesystemBackend for the memory context directory.
- * @param {string} [cwd] - Working directory (defaults to process.cwd())
  * @returns {FilesystemBackend}
  */
-export function createContextBackend(cwd) {
-	const baseDir = cwd || process.cwd();
+export function createContextBackend() {
 	const config = loadConfig();
-	const contextDir = join(baseDir, config.memory.contextDir);
+	const contextDir = join(process.cwd(), config.memory.contextDir);
 	return new FilesystemBackend({
 		rootDir: contextDir,
 		virtualMode: true,
