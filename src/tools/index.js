@@ -9,7 +9,7 @@ import { memory } from "./memory.js";
 import { mixtureOfAgents } from "./moa.js";
 import { sampling } from "./sampling.js";
 import { sessionSearch } from "./session_search.js";
-import { shell, processTool } from "./shell.js";
+import { processTool } from "./shell.js";
 import { createSkill, skillView, skillsList } from "./skills.js";
 import { textToSpeech } from "./tts.js";
 import { visionAnalyze } from "./vision.js";
@@ -34,7 +34,6 @@ export const TOOL_PERMISSIONS = {
 	sampling: ["filesystem:write"],
 	scanAgents: ["filesystem:read"],
 	sessionSearch: ["filesystem:read"],
-	shell: ["filesystem:exec", "process:spawn"],
 	skillView: ["filesystem:read"],
 	skillsList: ["filesystem:read"],
 	textToSpeech: [],
@@ -92,7 +91,6 @@ export const TOOL_CLASSIFICATIONS = {
 	sampling: ["documentation"],
 	scanAgents: ["security-audit", "code-review", "coding"],
 	sessionSearch: ["search", "research"],
-	shell: ["debug", "code-review", "testing", "security-audit", "performance", "coding"],
 	skillView: ["search", "research", "code-review", "coding"],
 	skillsList: ["search", "research", "code-review", "coding"],
 	textToSpeech: ["documentation"],
@@ -132,7 +130,6 @@ export const ORCHESTRATOR_TOOLS = [
 	"skillView",
 	"skillsList",
 	"scanAgents",
-	"shell",
 	"sampling",
 	"createSkill",
 ];
@@ -152,7 +149,6 @@ export const TOOLS = {
 	sampling,
 	scanAgents,
 	sessionSearch,
-	shell,
 	skillView,
 	skillsList,
 	textToSpeech,
