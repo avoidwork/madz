@@ -635,11 +635,11 @@ Deep Agents orchestrator (native multi-agent architecture):
 ├── createDeepAgent({ model, systemPrompt, tools, middleware, subagents, checkpointer, backend })
 │   ├── backend: CompositeBackend(coreBackend, {
 │   │   │   "/memory/context/": contextBackend,
-│   │   │   "/tmp": dmzBackend
+│   │   │   "/app/tmp": dmzBackend
 │   │   │ })
 │   │   ├── coreBackend: FilesystemBackend({ rootDir: process.cwd(), virtualMode: true })
 │   │   ├── contextBackend: FilesystemBackend({ rootDir: memory/context/, virtualMode: true })
-│   │   └── dmzBackend: FilesystemBackend({ rootDir: /tmp, virtualMode: true })
+│   │   └── dmzBackend: FilesystemBackend({ rootDir: /app/tmp, virtualMode: true })
 │   ├── middleware: filesystem, memory, skills, summarization
 │   ├── subagents:
 │   │   ├── coding-agent: code editing, debugging, implementation, code review
@@ -667,12 +667,12 @@ CompositeBackend routing:
 │   ├── defaultBackend: coreBackend (process.cwd(), virtualMode: true)
 │   └── routes: {
 │       │   "/memory/context/": contextBackend,
-│       │   "/tmp": dmzBackend
+│       │   "/app/tmp": dmzBackend
 │       └── }
 │
 ├── Route matching (longest prefix first):
 │   ├── "/memory/context/profile.md" → contextBackend (stripped: "/profile.md")
-│   ├── "/tmp/sessions/abc.md" → dmzBackend (stripped: "/sessions/abc.md")
+│   ├── "/app/tmp/sessions/abc.md" → dmzBackend (stripped: "/sessions/abc.md")
 │   └── "/package.json" → coreBackend (default, no route match)
 │
 ├── FilesystemBackend virtualMode:
@@ -828,7 +828,7 @@ runScheduledSkill(schedule, sandbox, sessionState)
 ```
 code tool (executeCode):
 ├── validate code language: "python3" | "javascript" | "shell"
-├── write code to temp file in /tmp/madz-code-*.js
+├── write code to temp file in /app/tmp/madz-code-*.js
 ├── create import hook for python3 (sys.path manipulation)
 ├── spawn process:
 │   ├── python3 temp.py (for python3)

@@ -311,7 +311,7 @@ The orchestrator uses a `CompositeBackend` that routes file operations to differ
 | `/package.json` | Core Backend | `<cwd>/package.json` |
 | `/src/tools/index.js` | Core Backend | `<cwd>/src/tools/index.js` |
 | `/memory/context/profile.md` | Context Backend | `<cwd>/memory/context/profile.md` |
-| `/tmp/sessions/abc.md` | DMZ Backend | `<tmp>/sessions/abc.md` |
+| `/app/tmp/sessions/abc.md` | DMZ Backend | `/app/tmp/sessions/abc.md` |
 
 This creates a clean, consistent namespace where the agent always sees `/` as the root, regardless of where the application is actually running. Path traversal is validated — resolved paths must stay within their backend's `rootDir`.
 

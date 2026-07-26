@@ -19,7 +19,7 @@ graph TD
     DA -->|"backend"| CB["CompositeBackend"]
     CB -->|"default"| CFB["Core Backend\nFilesystemBackend\n(rootDir: process.cwd())"]
     CB -->|"/memory/context/"| CTB["Context Backend\nFilesystemBackend\n(rootDir: memory/context/)"]
-    CB -->|"/tmp"| DB["DMZ Backend\nFilesystemBackend\n(rootDir: /tmp)"]
+    CB -->|"/app/tmp"| DB["DMZ Backend\nFilesystemBackend\n(rootDir: /app/tmp)"]
     DA -->|"delegate"| SA["Coding Subagent"]
     SA -->|"execution"| ST
     S -->|"runNow()"| SB["Sandbox"]
@@ -156,7 +156,7 @@ The orchestrator routes tasks automatically — the system prompt delegates ever
 |------|---------|
 | `coreBackend.js` | `createCoreBackend()` — `FilesystemBackend` with `rootDir: process.cwd()`, `virtualMode: true` |
 | `contextBackend.js` | `createContextBackend(cwd)` — `FilesystemBackend` with `rootDir: memory/context/`, `virtualMode: true` |
-| `dmzBackend.js` | `createDmzBackend()` — `FilesystemBackend` with `rootDir: /tmp`, `virtualMode: true` |
+| `dmzBackend.js` | `createDmzBackend()` — `FilesystemBackend` with `rootDir: /app/tmp`, `virtualMode: true` |
 
 **CompositeBackend Routing:**
 
@@ -167,7 +167,7 @@ CompositeBackend(
   defaultBackend: coreBackend,    // Falls back to process.cwd()
   routes: {
     "/memory/context/": contextBackend,  // Memory context files
-    "/tmp": dmzBackend                     // Temporary operations
+    "/app/tmp": dmzBackend                     // Temporary operations
   }
 )
 ```

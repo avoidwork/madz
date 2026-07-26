@@ -67,6 +67,7 @@ docker run -d \
   -p 2222:22 \
   -v ./memory:/app/memory \
   -v ./skills:/app/skills \
+  -v ./tmp:/app/tmp \
   -v ./logs:/home/madz/.cache/madz/logs \
   -e OPENAI_API_KEY="your-key" \
   avoidwork/madz:latest
@@ -110,6 +111,7 @@ docker run -d \
   -p 2222:22 \
   -v ./memory:/app/memory \
   -v ./skills:/app/skills \
+  -v ./tmp:/app/tmp \
   -v ./logs:/home/madz/.cache/madz/logs \
   -e OPENAI_API_KEY="your-key" \
   avoidwork/madz:latest
@@ -216,6 +218,7 @@ docker run -d \
   -p 2222:22 \
   -v ./memory:/app/memory \
   -v ./skills:/app/skills \
+  -v ./tmp:/app/tmp \
   -v ./logs:/home/madz/.cache/madz/logs \
   -e OPENAI_API_KEY="abc" \
   -e OPENAI_MODEL=Qwen/Qwen3.6-35B-A3B-FP8 \
@@ -440,7 +443,7 @@ Uses the [Deep Agents](https://github.com/avoidwork/deepagents) library to orche
 
 Each agent definition lives in `src/agent/agents/` with its own file. The `AgentRegistry` class (`src/agent/agentRegistry.js`) manages registration, validation, and lookup. Tool access is gated by `TOOL_CLASSIFICATIONS` in `src/tools/index.js` — each tool declares which agent types it serves, and the orchestrator filters tools per agent at runtime.
 
-The orchestrator also manages three filesystem backends via the deepagents `CompositeBackend`: the core working directory, the memory context directory, and a DMZ (`/tmp`) for operations that don't fit other routes.
+The orchestrator also manages three filesystem backends via the deepagents `CompositeBackend`: the core working directory, the memory context directory, and a DMZ (`/app/tmp`) for operations that don't fit other routes. Mount a volume at `/app/tmp` in Docker to ensure reliable temporary file operations.
 
 ### Context Window Management
 
