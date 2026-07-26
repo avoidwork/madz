@@ -241,6 +241,7 @@ Once inside the interactive terminal, use these commands:
 | `↑ / ↓` | Scroll conversation history |
 | `/help` | List available commands |
 | `/quit` | Exit the application |
+| `/exit` | Exit the application |
 | `/provider set <name>` | Switch LLM provider |
 | `/config set <path> <value>` | Mutate config at runtime |
 | `/schedule list` | List all scheduled jobs |

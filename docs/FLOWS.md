@@ -1201,37 +1201,3 @@ index.js
 ├── session/onboarding.js → session/stateManager.js — onboarding state machine (INIT → ATTRACTOR → COLLECT → SAVE → TRANSCEND)
 └── telemetry/provider.js → @opentelemetry/sdk-node
 ```
-I TTS API
-│     ├── tools/moa.js → OPENROUTER_API_KEY — mixture-of-agents (4 parallel OpenRouter calls + aggregation)
-│     ├── tools/cron.js → node:fs/promises — cron job CRUD operations
-│     ├── tools/compactContext.js → @langchain/core, zod — automatic conversation context compaction on LLM 400 errors (tiered retention, retry loop, error detection)
-│     └── tools/...
-│     └── tools/...
-├── sandbox/pathResolver.js → node:path
-├── sandbox/urlFilter.js → node:url
-├── sandbox/runner.js → node:child_process, sandbox/timeoutHandler.js, envInjector.js, capability.js
-├── registry/registry.js → discoverer.js, validator.js
-├── registry/discoverer.js → js-yaml, node:fs, node:path
-├── registry/validator.js → types.js (zod schemas)
-├── registry/types.js → zod
-├── scheduler/scheduler.js → node:fs/promises — ScheduleManager CRUD class (register, list, pause, resume, runNow)
-├── scheduler/cron.js → node:child_process, node:fs/promises, node:path — Cron object (isAvailable, add, remove)
-├── scheduler/autoSchedule.js → node:fs — setupAutoSchedule() callback for reflection-daily cron
-├── scheduler/index.js → re-exports ScheduleManager and Cron
-├── memory/writer.js → node:fs, node:path
-├── memory/reader.js → js-yaml, node:fs
-├── memory/context.js → node:fs, node:path, memory/reader.js
-├── memory/retention.js → node:fs, node:path
-├── memory/prompts.js → node:fs
-├── memory/profile.js → node:fs — user profile management: ATTRIBUTES, loadProfile, saveProfile, formatProfileContext, processOnboardingInput
-├── session/factory.js → node:crypto (randomUUID)
-├── session/stateManager.js
-├── session/checkpointer.js → @langchain/langgraph, @langchain/langgraph-checkpoint-sqlite — createCheckpointer() returns MemorySaver (in-memory) or SQLiteCheckpointer (persistent)
-├── session/loader.js → fs, path, memory/reader.js
-├── session/saver.js → fs, path, memory/writer.js
-├── session/onboarding.js → session/stateManager.js — onboarding state machine (INIT → ATTRACTOR → COLLECT → SAVE → TRANSCEND)
-└── telemetry/provider.js → @opentelemetry/sdk-node
-```
- → SAVE → TRANSCEND)
-└── telemetry/provider.js → @opentelemetry/sdk-node
-```
