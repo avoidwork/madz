@@ -443,7 +443,7 @@ Uses the [Deep Agents](https://github.com/avoidwork/deepagents) library to orche
 
 Each agent definition lives in `src/agent/agents/` with its own file. The `AgentRegistry` class (`src/agent/agentRegistry.js`) manages registration, validation, and lookup. Tool access is gated by `TOOL_CLASSIFICATIONS` in `src/tools/index.js` — each tool declares which agent types it serves, and the orchestrator filters tools per agent at runtime.
 
-The orchestrator also manages three filesystem backends via the deepagents `CompositeBackend`: the core working directory, the memory context directory, and a DMZ (`/app/tmp`) for operations that don't fit other routes. Mount a volume at `/app/tmp` in Docker to ensure reliable temporary file operations.
+The orchestrator also manages two filesystem backends via the deepagents `CompositeBackend`: the core working directory and the memory context directory.
 
 ### Context Window Management
 
