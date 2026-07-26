@@ -180,15 +180,15 @@ The `task` tool spawns ephemeral subagents with isolated context windows. Use th
 
 **Available agent types:**
 - `code-review` — Structured code reviews covering bugs, security, style, and performance. Tools: `read_file`, `grep`, `glob`
-- `coding` — Code implementation, refactoring, and shell-based task execution. Tools: `read_file`, `write_file`, `edit_file`, `grep`, `glob`, `shell`
-- `debug` — Error tracing, reproduction, and fix proposals with dedicated context. Tools: `read_file`, `grep`, `glob`, `shell`
+- `coding` — Code implementation, refactoring, and shell-based task execution. Tools: `read_file`, `write_file`, `edit_file`, `grep`, `glob`
+- `debug` — Error tracing, reproduction, and fix proposals with dedicated context. Tools: `read_file`, `grep`, `glob`
 - `documentation` — Documentation updates, API docs generation, and changelog maintenance. Tools: `read_file`, `write_file`, `edit_file`, `grep`, `glob`
 - `general-purpose` — Anything that doesn't fit another category. Full tool access.
-- `performance` — Performance benchmarking, bottleneck identification, and optimization suggestions. Tools: `read_file`, `grep`, `glob`, `shell`
+- `performance` — Performance benchmarking, bottleneck identification, and optimization suggestions. Tools: `read_file`, `grep`, `glob`, `executeCode`
 - `research` — Multi-step research with source tracking and comprehensive reports. Tools: `webSearch`, `webExtract`, `read_file`, `grep`, `glob`, `sessionSearch`
 - `search` — Multi-source searches (web, codebase, session) with synthesis into structured summaries. Tools: `webSearch`, `webExtract`, `grep`, `glob`, `sessionSearch`
 - `security-audit` — Security scanning, dependency auditing, and vulnerability detection. Tools: `read_file`, `grep`, `glob`
-- `testing` — Test generation, gap analysis, and coverage improvements. Tools: `read_file`, `grep`, `glob`, `shell`
+- `testing` — Test generation, gap analysis, and coverage improvements. Tools: `read_file`, `grep`, `glob`, `executeCode`
 
 **When to use:**
 - Parallel work (e.g., audit three directories simultaneously)

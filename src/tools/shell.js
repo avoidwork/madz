@@ -1,12 +1,11 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { spawn } from "node:child_process";
-import { loadConfig } from "../config/loader.js";
 
 const MAX_COMMAND_LENGTH = 4096;
 
 /**
- * Process tracker shared between shell and process tools.
+ * Process tracker for background processes.
  * Maps process IDs to process entry objects.
  */
 export const processTracker = new Map();
@@ -112,8 +111,8 @@ function executeBackground(command) {
 }
 
 /**
- * Execute a shell command via shell tool.
- * @param {z.infer<typeof TerminalSchema>} input
+ * Execute a shell command (internal helper for tests).
+ * @param {object} input - Shell input with command and background flag
  * @returns {Promise<string>} Command execution result
  */
 export async function executeShellImpl(input) {
@@ -121,21 +120,17 @@ export async function executeShellImpl(input) {
 		return `Error: Command length (${input.command.length} chars) exceeds maximum (${MAX_COMMAND_LENGTH} chars).`;
 	}
 
-	const config = loadConfig();
-	const sandbox = config.sandbox || {};
-	const allowedPaths = sandbox.paths || [];
-	const maxReadSize = sandbox.maxReadSize || "1mb";
-
 	if (input.background) {
-		return executeBackground(input.command, allowedPaths);
+		return executeBackground(input.command);
 	}
-	return executeForeground(input.command, allowedPaths, maxReadSize);
+	return executeForeground(input.command);
 }
 
 /**
- * Shell tool for executing shell commands.
+ * Internal shell tool (kept for executeCode shell language support).
+ * @private
  */
-export const shell = tool(executeShellImpl, {
+const _shell = tool(executeShellImpl, {
 	name: "shell",
 	description:
 		"Execute a shell command via sh -c. Supports foreground (blocking) and background (detached) modes. Max command length is 4096 characters.",
