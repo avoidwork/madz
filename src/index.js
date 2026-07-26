@@ -179,7 +179,7 @@ try {
 }
 
 // Create checkpointer before tools so compactContext can access it
-const { createCheckpointer } = await import("./src/session/checkpointer.js");
+const { createCheckpointer } = await import("./session/checkpointer.js");
 const checkpointer = createCheckpointer(config.persistence);
 
 // Provider config for TUI
