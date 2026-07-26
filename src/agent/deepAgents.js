@@ -94,7 +94,9 @@ function buildSkillsMapping(skillRegistry) {
 	}
 
 	const lines = ["\n### SKILL ASSIGNMENTS\n"];
-	lines.push("Skills are assigned to specific agents. Route skill-based tasks to the correct agent:\n");
+	lines.push(
+		"Skills are assigned to specific agents. Route skill-based tasks to the correct agent:\n",
+	);
 
 	for (const [agent, skills] of skillsByAgent) {
 		if (agent === "orchestrator") continue; // skip orchestrator skills

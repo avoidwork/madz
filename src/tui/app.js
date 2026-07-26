@@ -228,11 +228,7 @@ export default function App({
 					const dispatchPromise = dispatchProvider(
 						result.skillBody,
 						sessionState ? sessionState.getProvider() : null,
-						createStreamingHandler(
-							committedContentRef,
-							{ current: "" },
-							{ current: "" },
-						),
+						createStreamingHandler(committedContentRef, { current: "" }, { current: "" }),
 						abortControllerRef.current?.signal,
 					);
 
@@ -401,11 +397,7 @@ export default function App({
 			const dispatchPromise = dispatchProvider(
 				text,
 				sessionState ? sessionState.getProvider() : null,
-				createStreamingHandler(
-					committedContentRef,
-					{ current: "" },
-					{ current: "" },
-				),
+				createStreamingHandler(committedContentRef, { current: "" }, { current: "" }),
 				abortControllerRef.current?.signal,
 			);
 
@@ -452,15 +444,10 @@ export default function App({
 					const continuePromise = dispatchProvider(
 						"Please continue.",
 						sessionState ? sessionState.getProvider() : null,
-						createStreamingHandler(
-							committedContentRef,
-							{ current: "" },
-							{ current: "" },
-							() => {
-								// Reset flag — text arrived, not stuck anymore
-								isAutoContinuingRef.current = false;
-							},
-						),
+						createStreamingHandler(committedContentRef, { current: "" }, { current: "" }, () => {
+							// Reset flag — text arrived, not stuck anymore
+							isAutoContinuingRef.current = false;
+						}),
 						abortControllerRef.current?.signal,
 					);
 					// Update the ref so handleInterrupt can await this promise too
@@ -707,9 +694,8 @@ export default function App({
 			if (shouldAbort()) return;
 			try {
 				// Capture all events on the message
-				const currentEvents = messageListRef.current?.getMessageData(
-					streamingMsgIdRef.current,
-				)?.events || [];
+				const currentEvents =
+					messageListRef.current?.getMessageData(streamingMsgIdRef.current)?.events || [];
 				messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
 					events: [...currentEvents, event],
 				});
@@ -729,9 +715,7 @@ export default function App({
 						committedContentRef.current =
 							(committedContentRef.current || "") + event.data.chunk.content;
 						messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
-							content:
-								committedContentRef.current +
-								(config?.tui?.cursorChar || "\u2588"),
+							content: committedContentRef.current + (config?.tui?.cursorChar || "\u2588"),
 							streaming: true,
 						});
 					}

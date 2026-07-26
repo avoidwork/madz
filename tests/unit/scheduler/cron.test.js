@@ -1,7 +1,11 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
 import { join } from "node:path";
-import { Cron, sanitizeCrontabCommand, prepareCrontabCommand } from "../../../src/scheduler/cron.js";
+import {
+	Cron,
+	sanitizeCrontabCommand,
+	prepareCrontabCommand,
+} from "../../../src/scheduler/cron.js";
 import { getLogDirectory } from "../../../src/logger.js";
 
 describe("cron - sanitizeCrontabCommand", () => {
