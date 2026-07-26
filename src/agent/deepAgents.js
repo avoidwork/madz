@@ -13,6 +13,10 @@ import {
 } from "../tools/index.js";
 import { createCoreBackend } from "./backends/coreBackend.js";
 import { createContextBackend } from "./backends/contextBackend.js";
+import { createSrcBackend } from "./backends/srcBackend.js";
+import { createPromptsBackend } from "./backends/promptsBackend.js";
+import { createTmpBackend } from "./backends/tmpBackend.js";
+import { createWorkspaceBackend } from "./backends/workspaceBackend.js";
 import { getAllAgents } from "./agents/index.js";
 import { logger } from "../logger.js";
 
@@ -185,6 +189,10 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	const coreBackend = createCoreBackend();
 	const contextBackend = createContextBackend();
 	const contextRoute = "/" + config.memory.contextDir.replace(/^\.?\//, "");
+	const promptsBackend = createPromptsBackend();
+	const tmpBackend = await createTmpBackend();
+	const srcBackend = await createSrcBackend();
+	const workspaceBackend = await createWorkspaceBackend();
 
 	// Create subagent definitions with filtered tools and agent-specific skills
 	const subagentDefinitions = createSubagentDefinitions(allTools, model, skillRegistry);
@@ -198,6 +206,10 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 		store: new InMemoryStore(),
 		backend: new CompositeBackend(coreBackend, {
 			[contextRoute]: contextBackend,
+			"/src": srcBackend,
+			"/prompts": promptsBackend,
+			"/tmp": tmpBackend,
+			"/workspace": workspaceBackend,
 		}),
 		subagents: subagentDefinitions,
 		...(agentsPath && { memory: [agentsPath] }),
