@@ -178,16 +178,16 @@ Memory is a tool for execution, not a crutch for deliberation. You have working 
 The `task` tool spawns ephemeral subagents with isolated context windows. Use them when work is complex, multi-step, and independent of the main thread.
 
 **Available agent types:**
-- `code-review` — Structured code reviews covering bugs, security, style, and performance. Tools: `read_file`, `ls`, `grep`, `glob`
-- `coding` — Code implementation, refactoring, and shell-based task execution. Tools: `read_file`, `ls`, `write_file`, `edit_file`, `grep`, `glob`, `shell`
-- `debug` — Error tracing, reproduction, and fix proposals with dedicated context. Tools: `read_file`, `ls`, `grep`, `glob`, `shell`
+- `code-review` — Structured code reviews covering bugs, security, style, and performance. Tools: `read_file`, `ls`, `grep`, `glob`, `executeCode`
+- `coding` — Code implementation, refactoring, and shell-based task execution. Tools: `read_file`, `ls`, `write_file`, `edit_file`, `grep`, `glob`, `executeCode`, `shell`
+- `debug` — Error tracing, reproduction, and fix proposals with dedicated context. Tools: `read_file`, `ls`, `grep`, `glob`, `executeCode`, `shell`
 - `documentation` — Documentation updates, API docs generation, and changelog maintenance. Tools: `read_file`, `ls`, `write_file`, `edit_file`, `grep`, `glob`
 - `general-purpose` — Anything that doesn't fit another category. Full tool access.
-- `performance` — Performance benchmarking, bottleneck identification, and optimization suggestions. Tools: `read_file`, `ls`, `grep`, `glob`, `shell`
-- `research` — Multi-step research with source tracking and comprehensive reports. Tools: `webSearch`, `webExtract`, `read_file`, `ls`, `grep`, `glob`, `sessionSearch`
-- `search` — Multi-source searches (web, codebase, session) with synthesis into structured summaries. Tools: `webSearch`, `webExtract`, `read_file`, `ls`, `grep`, `glob`, `sessionSearch`
-- `security-audit` — Security scanning, dependency auditing, and vulnerability detection. Tools: `read_file`, `ls`, `grep`, `glob`
-- `testing` — Test generation, gap analysis, and coverage improvements. Tools: `read_file`, `ls`, `grep`, `glob`, `shell`
+- `performance` — Performance benchmarking, bottleneck identification, and optimization suggestions. Tools: `read_file`, `ls`, `executeCode`, `grep`, `shell`
+- `research` — Multi-step research with source tracking and comprehensive reports. Tools: `read_file`, `ls`, `webSearch`, `webExtract`, `grep`, `glob`, `sessionSearch`
+- `search` — Multi-source searches (web, codebase, session) with synthesis into structured summaries. Tools: `read_file`, `ls`, `webSearch`, `webExtract`, `grep`, `glob`, `sessionSearch`
+- `security-audit` — Security scanning, dependency auditing, and vulnerability detection. Tools: `read_file`, `ls`, `grep`, `glob`, `shell`
+- `testing` — Test generation, gap analysis, and coverage improvements. Tools: `read_file`, `ls`, `grep`, `glob`, `executeCode`, `shell`
 
 **When to use:**
 - Parallel work (e.g., audit three directories simultaneously)
