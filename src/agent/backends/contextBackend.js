@@ -13,6 +13,6 @@ export function createContextBackend(cwd) {
 	const contextDir = join(baseDir, config.memory.contextDir);
 	return new FilesystemBackend({
 		rootDir: contextDir,
-		virtualMode: true,
+		virtualMode: false,
 	});
 }
