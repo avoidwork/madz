@@ -1,10 +1,10 @@
 import { readdirSync, statSync, readFileSync, existsSync } from "node:fs";
-import { join, basename } from "node:path";
+import { join, basename, resolve } from "node:path";
 import { load } from "js-yaml";
 import { loadConfig } from "../config/loader.js";
 
 export const defaultScope = loadConfig().sandbox.skillScanPaths;
-export let cwd = "";
+export let cwd = loadConfig().cwd;
 
 /**
  * Set the working directory for skill discovery.
@@ -190,7 +190,7 @@ export function discoverSkills(scope = defaultScope, options = {}) {
 	const seenNames = new Map();
 
 	for (const scopePath of scope) {
-		const fullScope = scopePath.startsWith("/") ? scopePath : join(cwdParam, scopePath);
+		const fullScope = resolve(cwdParam, scopePath);
 		if (!existsSync(fullScope)) {
 			continue;
 		}

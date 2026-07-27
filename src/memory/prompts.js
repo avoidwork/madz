@@ -1,8 +1,9 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { loadContext } from "./context.js";
+import { loadConfig } from "../config/loader.js";
 
-const cwd = "";
+const cwd = loadConfig().cwd;
 
 /**
  * Load the system prompt from prompts/SYSTEM_PROMPT.md,

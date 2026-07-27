@@ -1,7 +1,8 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
+import { loadConfig } from "../config/loader.js";
 
-const cwd = "";
+const cwd = loadConfig().cwd;
 
 /**
  * Ensure the sessions directory exists by creating it if necessary.

@@ -13,7 +13,7 @@ import { ensureSkillsDir, SkillRegistry } from "../skills/registry.js";
 import { PermissionSchema } from "../skills/types.js";
 import { loadConfig } from "../config/loader.js";
 
-export let cwd = "";
+export let cwd = loadConfig().cwd;
 
 // Discover skills from configured scopes
 const skillRegistry = new SkillRegistry();
