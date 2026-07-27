@@ -7,6 +7,6 @@ import { FilesystemBackend } from "deepagents";
 export function createCoreBackend() {
 	return new FilesystemBackend({
 		rootDir: process.cwd(),
-		virtualMode: true,
+		virtualMode: false,
 	});
 }
