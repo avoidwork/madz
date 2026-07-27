@@ -13,10 +13,6 @@ import {
 } from "../tools/index.js";
 import { createCoreBackend } from "./backends/coreBackend.js";
 import { createContextBackend } from "./backends/contextBackend.js";
-import { createSrcBackend } from "./backends/srcBackend.js";
-import { createPromptsBackend } from "./backends/promptsBackend.js";
-import { createTmpBackend } from "./backends/tmpBackend.js";
-import { createWorkspaceBackend } from "./backends/workspaceBackend.js";
 import { getAllAgents } from "./agents/index.js";
 import { logger } from "../logger.js";
 
@@ -29,13 +25,13 @@ import { logger } from "../logger.js";
 function getAgentClassifications(agentName) {
 	const classificationMap = {
 		search: ["webSearch", "webExtract", "grep", "glob", "sessionSearch"],
-		debug: ["readFile", "grep", "glob", "executeCode"],
+		debug: ["readFile", "grep", "glob", "executeCode", "shell"],
 		"code-review": ["readFile", "grep", "glob", "executeCode"],
 		research: ["webSearch", "webExtract", "grep", "glob", "sessionSearch"],
-		testing: ["readFile", "grep", "glob", "executeCode"],
+		testing: ["readFile", "grep", "glob", "executeCode", "shell"],
 		documentation: ["readFile", "writeFile", "grep", "glob"],
-		"security-audit": ["readFile", "grep", "glob"],
-		performance: ["readFile", "executeCode", "grep"],
+		"security-audit": ["readFile", "grep", "glob", "shell"],
+		performance: ["readFile", "executeCode", "grep", "shell"],
 	};
 	return classificationMap[agentName] || [];
 }
@@ -189,10 +185,6 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	const coreBackend = createCoreBackend();
 	const contextBackend = createContextBackend();
 	const contextRoute = "/" + config.memory.contextDir.replace(/^\.?\//, "");
-	const promptsBackend = createPromptsBackend();
-	const tmpBackend = await createTmpBackend();
-	const srcBackend = await createSrcBackend();
-	const workspaceBackend = await createWorkspaceBackend();
 
 	// Create subagent definitions with filtered tools and agent-specific skills
 	const subagentDefinitions = createSubagentDefinitions(allTools, model, skillRegistry);
@@ -206,10 +198,6 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 		store: new InMemoryStore(),
 		backend: new CompositeBackend(coreBackend, {
 			[contextRoute]: contextBackend,
-			"/src": srcBackend,
-			"/prompts": promptsBackend,
-			"/tmp": tmpBackend,
-			"/workspace": workspaceBackend,
 		}),
 		subagents: subagentDefinitions,
 		...(agentsPath && { memory: [agentsPath] }),

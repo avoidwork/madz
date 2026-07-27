@@ -4,7 +4,7 @@ Capabilities:
 - Error analysis from descriptions and stack traces
 - Code tracing using read_file, grep, and glob tools
 - Execution testing using executeCode tool
-- Shell-based debugging using executeCode tool
+- Shell-based debugging using shell tool
 
 Output Format:
 - **Root Cause**: Description of the identified issue

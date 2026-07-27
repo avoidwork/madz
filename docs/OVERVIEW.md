@@ -19,10 +19,6 @@ graph TD
     DA -->|"backend"| CB["CompositeBackend"]
     CB -->|"default"| CFB["Core Backend\nFilesystemBackend\n(rootDir: process.cwd())"]
     CB -->|"/memory/context/"| CTB["Context Backend\nFilesystemBackend\n(rootDir: memory/context/)"]
-    CB -->|"/src"| SRB["Src Backend\nLocalShellBackend\n(rootDir: src/, shell)"]
-    CB -->|"/workspace"| WSB["Workspace Backend\nLocalShellBackend\n(rootDir: workspace/, shell)"]
-    CB -->|"/tmp"| TMB["Tmp Backend\nLocalShellBackend\n(rootDir: tmp/, shell)"]
-    CB -->|"/prompts"| PSB["Prompts Backend\nFilesystemBackend\n(rootDir: prompts/)"]
     DA -->|"delegate"| SA["Coding Subagent"]
     SA -->|"execution"| ST
     S -->|"runNow()"| SB["Sandbox"]
@@ -45,7 +41,7 @@ graph TD
     class DA,SA agent
     class S,TM,SE,SB util
     class SK,CW,FS ext
-    class CB,CFB,CTB,SRB,WSB,TMB,PSB backend
+    class CB,CFB,CTB,DB backend
 ```
 
 ---
@@ -153,18 +149,12 @@ The orchestrator routes tasks automatically — the system prompt delegates ever
 
 ## Backends
 
-`src/agent/backends/` — Virtual filesystem backends powered by the `deepagents` library's `CompositeBackend` and `FilesystemBackend`/`LocalShellBackend`. The application root is `'/'` — all file paths are virtual paths under this root, resolved relative to the process working directory.
+`src/agent/backends/` — Virtual filesystem backends powered by the `deepagents` library's `CompositeBackend` and `FilesystemBackend`. The application root is `'/'` — all file paths are virtual paths under this root, resolved relative to the process working directory.
 
 | File | Purpose |
 |------|---------|
 | `coreBackend.js` | `createCoreBackend()` — `FilesystemBackend` with `rootDir: process.cwd()`, `virtualMode: true` |
-| `contextBackend.js` | `createContextBackend()` — `FilesystemBackend` with `rootDir: memory/context/`, `virtualMode: true` |
-| `srcBackend.js` | `createSrcBackend()` — `LocalShellBackend` with `rootDir: src/`, `virtualMode: true`, `inheritEnv: true`, `timeout: 60` |
-| `workspaceBackend.js` | `createWorkspaceBackend()` — `LocalShellBackend` with `rootDir: workspace/`, `virtualMode: true`, `inheritEnv: true`, `timeout: 60` |
-| `tmpBackend.js` | `createTmpBackend()` — `LocalShellBackend` with `rootDir: tmp/`, `virtualMode: true`, `inheritEnv: true`, `timeout: 60` |
-| `promptsBackend.js` | `createPromptsBackend()` — `FilesystemBackend` with `rootDir: prompts/`, `virtualMode: true` |
-
-`LocalShellBackend` extends `FilesystemBackend` with shell execution (`execute()` for running commands like `npm test`, `node script.js`, etc.). `FilesystemBackend` provides read/write without shell capability. Each backend is initialized synchronously (`FilesystemBackend`) or asynchronously via `LocalShellBackend.create()` which ensures the `rootDir` exists on disk before use.
+| `contextBackend.js` | `createContextBackend(cwd)` — `FilesystemBackend` with `rootDir: memory/context/`, `virtualMode: true` |
 
 **CompositeBackend Routing:**
 
@@ -174,11 +164,7 @@ The orchestrator receives a `CompositeBackend` that routes file operations to di
 CompositeBackend(
   defaultBackend: coreBackend,    // Falls back to process.cwd()
   routes: {
-    "/memory/context/": contextBackend,   // Memory context files
-    "/src": srcBackend,                   // Source code (with shell)
-    "/workspace": workspaceBackend,       // Workspace output (with shell)
-    "/tmp": tmpBackend,                   // Scratch space (with shell)
-    "/prompts": promptsBackend            // Prompt files (read/write)
+    "/memory/context/": contextBackend  // Memory context files
   }
 )
 ```
@@ -191,7 +177,7 @@ CompositeBackend(
 
 **Virtual Mode:**
 
-All backends use `virtualMode: true`. This means:
+All `FilesystemBackend` instances use `virtualMode: true`. This means:
 - Incoming paths are treated as virtual absolute paths (starting with `/`)
 - The leading `/` is stripped, then resolved relative to `rootDir`
 - All results return virtual paths (with leading `/`)
@@ -203,7 +189,7 @@ The `'/'` root is the application's working directory from the agent's perspecti
 
 **Security:**
 
-`FilesystemBackend` uses `O_NOFOLLOW` flag when available to prevent symlink following. In virtual mode, parent directories are also validated on delete operations. All backends with `rootDir` scoping enforce that the resolved filesystem path stays within their configured `rootDir` boundary — preventing cross-backend file access.
+`FilesystemBackend` uses `O_NOFOLLOW` flag when available to prevent symlink following. In virtual mode, parent directories are also validated on delete operations. The `allPathsScopedToRoutes` function enforces that filesystem permissions with execution-capable backends are scoped to `CompositeBackend` route prefixes, preventing shell commands from bypassing path-based permission rules.
 
 ---
 
