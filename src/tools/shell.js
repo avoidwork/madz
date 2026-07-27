@@ -127,10 +127,9 @@ export async function executeShellImpl(input) {
 }
 
 /**
- * Internal shell tool (kept for executeCode shell language support).
- * @private
+ * Shell tool for executing shell commands.
  */
-const _shell = tool(executeShellImpl, {
+export const shell = tool(executeShellImpl, {
 	name: "shell",
 	description:
 		"Execute a shell command via sh -c. Supports foreground (blocking) and background (detached) modes. Max command length is 4096 characters.",

@@ -9,7 +9,7 @@ import { memory } from "./memory.js";
 import { mixtureOfAgents } from "./moa.js";
 import { sampling } from "./sampling.js";
 import { sessionSearch } from "./session_search.js";
-import { processTool } from "./shell.js";
+import { processTool, shell } from "./shell.js";
 import { createSkill, skillView, skillsList } from "./skills.js";
 import { textToSpeech } from "./tts.js";
 import { visionAnalyze } from "./vision.js";
@@ -26,8 +26,9 @@ export const TOOL_PERMISSIONS = {
 	cronJob: ["network:outbound"],
 	createSkill: ["filesystem:write"],
 	date: [],
-	executeCode: ["filesystem:exec", "process:spawn"],
-	imageGenerate: ["network:outbound"],
+		executeCode: ["filesystem:exec", "process:spawn"],
+		shell: ["process:spawn"],
+		imageGenerate: ["network:outbound"],
 	memory: ["filesystem:read", "filesystem:write"],
 	mixtureOfAgents: ["network:outbound"],
 	process: ["process:spawn"],
@@ -88,6 +89,7 @@ export const TOOL_CLASSIFICATIONS = {
 	],
 	mixtureOfAgents: ["research"],
 	process: ["debug", "performance", "coding"],
+	shell: ["debug", "performance", "coding"],
 	sampling: ["documentation"],
 	scanAgents: ["security-audit", "code-review", "coding"],
 	sessionSearch: ["search", "research"],
@@ -145,8 +147,9 @@ export const TOOLS = {
 	imageGenerate,
 	memory,
 	mixtureOfAgents,
-	process: processTool,
-	sampling,
+		process: processTool,
+		shell,
+		sampling,
 	scanAgents,
 	sessionSearch,
 	skillView,
@@ -273,7 +276,8 @@ export async function buildToolConfig(options) {
 			case "searchFiles":
 			case "scanAgents":
 			case "date":
-			case "cronJob": {
+			case "cronJob":
+			case "shell": {
 				if (!hasAllPerms) continue;
 				tools.push(TOOLS[toolName]);
 				continue;
