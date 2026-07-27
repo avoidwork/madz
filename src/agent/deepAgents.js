@@ -24,10 +24,10 @@ import { logger } from "../logger.js";
  */
 function getAgentClassifications(agentName) {
 	const classificationMap = {
-		search: ["webSearch", "webExtract", "grep", "glob", "sessionSearch"],
+		search: ["read_file", "ls", "webSearch", "webExtract", "grep", "glob", "sessionSearch"],
 		debug: ["read_file", "ls", "grep", "glob", "executeCode", "shell"],
 		"code-review": ["read_file", "ls", "grep", "glob", "executeCode"],
-		research: ["webSearch", "webExtract", "grep", "glob", "sessionSearch"],
+		research: ["read_file", "ls", "webSearch", "webExtract", "grep", "glob", "sessionSearch"],
 		testing: ["read_file", "ls", "grep", "glob", "executeCode", "shell"],
 		documentation: ["read_file", "ls", "write_file", "edit_file", "grep", "glob"],
 		"security-audit": ["read_file", "ls", "grep", "glob", "shell"],
