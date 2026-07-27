@@ -113,6 +113,7 @@ export const PubSubContext = React.createContext({ subscribe: () => {}, unsubscr
  * @param {string} [props.reasoningContent] - Thinking/thought content
  * @param {Object} [props.activeToolCall] - {name: string} for running tool
  * @param {string} [props.toolCallDisplay] - Tool call result display text
+ * @param {Array<Object>} [props.events] - Raw stream events { type, name, data, tags, metadata }
 
  * @returns {React.ReactElement}
  */
@@ -125,6 +126,7 @@ export function MessageBubble({
 	reasoningContent,
 	activeToolCall,
 	toolCallDisplay,
+	events,
 }) {
 	const [chunks, setChunks] = useState([]);
 	const { subscribe, unsubscribe } = useContext(PubSubContext);
@@ -196,6 +198,26 @@ export function MessageBubble({
 			)
 		: null;
 
+	const hasEvents = events && events.length > 0;
+	const eventsEl = hasEvents
+		? React.createElement(
+				Box,
+				{ flexDirection: "column", marginTop: 1, marginLeft: 2 },
+				React.createElement(
+					Text,
+					{ dimColor: true, color: "gray" },
+					`  Events (${events.length}):`,
+				),
+				...events.map((evt, i) =>
+					React.createElement(
+						Text,
+						{ key: `evt-${i}`, color: "gray" },
+						`    - ${evt.type}${evt.name ? ` (${evt.name})` : ""}`,
+					),
+				),
+			)
+		: null;
+
 	const pendingState = role === "assistant" && chunks.length === 0 && !content;
 
 	return React.createElement(
@@ -243,6 +265,7 @@ export function MessageBubble({
 			reasoningEl,
 			toolCallEl,
 			toolDisplayEl,
+			eventsEl,
 		),
 	);
 }
