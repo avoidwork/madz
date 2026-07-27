@@ -36,6 +36,7 @@ function getAgentClassifications(agentName) {
 		documentation: ["readFile", "writeFile", "grep", "glob"],
 		"security-audit": ["readFile", "grep", "glob"],
 		performance: ["readFile", "executeCode", "grep"],
+		coding: ["readFile", "grep", "glob", "executeCode", "writeFile"],
 	};
 	return classificationMap[agentName] || [];
 }
