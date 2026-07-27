@@ -29,14 +29,14 @@ import { logger } from "../logger.js";
 function getAgentClassifications(agentName) {
 	const classificationMap = {
 		search: ["webSearch", "webExtract", "grep", "glob", "sessionSearch"],
-		debug: ["read_file", "grep", "glob", "executeCode"],
-		"code-review": ["read_file", "grep", "glob", "executeCode"],
-		research: ["webSearch", "webExtract", "grep", "glob", "sessionSearch"],
-		testing: ["read_file", "grep", "glob", "executeCode"],
-		documentation: ["read_file", "write_file", "edit_file", "grep", "glob"],
-		"security-audit": ["read_file", "grep", "glob"],
-		performance: ["read_file", "executeCode", "grep"],
-		coding: ["read_file", "grep", "glob", "executeCode", "write_file", "edit_file"],
+		debug: ["ls", "read_file", "grep", "glob", "executeCode"],
+		"code-review": ["ls", "read_file", "grep", "glob", "executeCode"],
+		research: ["ls", "webSearch", "webExtract", "grep", "glob", "sessionSearch"],
+		testing: ["ls", "read_file", "grep", "glob", "executeCode"],
+		documentation: ["ls", "read_file", "write_file", "edit_file", "grep", "glob"],
+		"security-audit": ["ls", "read_file", "grep", "glob"],
+		performance: ["ls", "read_file", "executeCode", "grep"],
+		coding: ["ls", "read_file", "grep", "glob", "executeCode", "write_file", "edit_file"],
 	};
 	return classificationMap[agentName] || [];
 }
