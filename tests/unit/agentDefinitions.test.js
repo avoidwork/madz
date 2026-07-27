@@ -201,10 +201,10 @@ describe("Agent Definitions", () => {
 			ok(search.systemPrompt.includes("webExtract"), "Search agent should reference webExtract");
 		});
 
-		it("debug agent should have executeCode and grep", () => {
+		it("debug agent should have executeCode and shell", () => {
 			const debug = ALL_AGENTS.find((a) => a.name === "debug");
 			ok(debug.systemPrompt.includes("executeCode"), "Debug agent should reference executeCode");
-			ok(debug.systemPrompt.includes("grep"), "Debug agent should reference grep");
+			ok(debug.systemPrompt.includes("shell"), "Debug agent should reference shell");
 		});
 
 		it("code-review agent should have grep", () => {
@@ -251,6 +251,7 @@ describe("Agent Definitions", () => {
 				glob: {},
 				sessionSearch: {},
 				executeCode: {},
+				shell: {},
 			});
 			ok(Array.isArray(tools), "Should return an array");
 			ok(tools.length > 0, "Should have at least one tool");
