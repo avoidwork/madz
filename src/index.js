@@ -207,19 +207,37 @@ async function callProvider(_name, _providerConfig, message, streamingCallback, 
 		messages: [{ role: "user", content: message }],
 	};
 
-	for await (const [_namespace, chunk] of await agent.stream(input, {
+	for await (const event of await agent.stream(input, {
 		...config,
 		...options,
-		streamMode: "messages",
+		streamMode: "events",
 		subgraphs: true,
 	})) {
-		const [message] = chunk;
-		const text = message?.text ?? "";
+		// Transform LangChain event format to match streamingCallback expectations
+		// LangChain uses `event.event` but the callback expects `event.type`
+		const transformedEvent = {
+			type: event.event,
+			name: event.name,
+			data: event.data,
+			metadata: event.metadata,
+		};
 
-		if (text) {
-			collectedContent += text;
-			if (streamingCallback) {
-				streamingCallback({ type: "message", text });
+		// Forward the transformed event to the streaming callback
+		if (streamingCallback) {
+			streamingCallback(transformedEvent);
+		}
+
+		// Accumulate text content from message events
+		if (event.event === "on_chat_model_stream" && event.data?.chunk?.content) {
+			collectedContent += event.data.chunk.content;
+		}
+		if (event.event === "message" && event.data?.content) {
+			const text =
+				typeof event.data.content === "string"
+					? event.data.content
+					: (event.data.content?.text ?? "");
+			if (text) {
+				collectedContent += text;
 			}
 		}
 	}
