@@ -212,15 +212,16 @@ export function MessageBubble({
 				React.createElement(
 					Box,
 					{ flexDirection: "column" },
-					...events.map((evt, i) =>
+					...Object.entries(
+						events.reduce((acc, evt) => {
+							acc[evt.type] = (acc[evt.type] || 0) + 1;
+							return acc;
+						}, {})
+					).map(([type, count]) =>
 						React.createElement(
 							Text,
-							{ key: `evt-${i}`, color: "gray" },
-							`    - ${evt.type}${evt.name ? ` (${evt.name})` : ""}${
-								evt.data
-									? ` — ${typeof evt.data === "string" ? evt.data.slice(0, 100) : JSON.stringify(evt.data).slice(0, 100)}`
-									: ""
-							}`,
+							{ key: `evt-${type}`, color: "gray" },
+							`    - ${type} [${count}]`,
 						),
 					),
 				),
