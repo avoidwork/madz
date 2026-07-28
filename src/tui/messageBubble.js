@@ -206,13 +206,16 @@ export function MessageBubble({
 				Box,
 				{ flexDirection: "row", marginTop: 1, marginLeft: 2 },
 				React.createElement(
-					Text,
+					Box,
 					{
-						dimColor: true,
-						color: "gray",
+						cursorHidden: true,
 						onClick: () => setEventsCollapsed((prev) => !prev),
 					},
-					`  Events (${events.length}): [${eventsCollapsed ? "+" : "-"}] `,
+					React.createElement(
+						Text,
+						{ dimColor: true, color: "gray" },
+						`  Events (${events.length}): [${eventsCollapsed ? "+" : "-"}] `,
+					),
 				),
 				!eventsCollapsed
 					? React.createElement(
