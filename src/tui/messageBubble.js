@@ -199,41 +199,31 @@ export function MessageBubble({
 		: null;
 
 	const hasEvents = events && events.length > 0;
-	const [eventsCollapsed, setEventsCollapsed] = useState(true);
 
 	const eventsEl = hasEvents
 		? React.createElement(
 				Box,
 				{ flexDirection: "row", marginTop: 1, marginLeft: 2 },
 				React.createElement(
+					Text,
+					{ dimColor: true, color: "gray" },
+					`  Events (${events.length}):`,
+				),
+				React.createElement(
 					Box,
-					{
-						cursorHidden: true,
-						onClick: () => setEventsCollapsed((prev) => !prev),
-					},
-					React.createElement(
-						Text,
-						{ dimColor: true, color: "gray" },
-						`  Events (${events.length}): [${eventsCollapsed ? "+" : "-"}] `,
+					{ flexDirection: "column" },
+					...events.map((evt, i) =>
+						React.createElement(
+							Text,
+							{ key: `evt-${i}`, color: "gray" },
+							`    - ${evt.type}${evt.name ? ` (${evt.name})` : ""}${
+								evt.data
+									? ` — ${typeof evt.data === "string" ? evt.data.slice(0, 100) : JSON.stringify(evt.data).slice(0, 100)}`
+									: ""
+							}`,
+						),
 					),
 				),
-				!eventsCollapsed
-					? React.createElement(
-							Box,
-							{ flexDirection: "column" },
-							...events.map((evt, i) =>
-								React.createElement(
-									Text,
-									{ key: `evt-${i}`, color: "gray" },
-									`    - ${evt.type}${evt.name ? ` (${evt.name})` : ""}${
-										evt.data
-											? ` — ${typeof evt.data === "string" ? evt.data.slice(0, 100) : JSON.stringify(evt.data).slice(0, 100)}`
-											: ""
-									}`,
-								),
-							),
-						)
-					: null,
 			)
 		: null;
 
