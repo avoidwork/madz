@@ -126,9 +126,10 @@ export function MessageBubble({
 	reasoningContent,
 	activeToolCall,
 	toolCallDisplay,
-	events,
+	events: eventsProp,
 }) {
 	const [chunks, setChunks] = useState([]);
+	const [streamEvents, setStreamEvents] = useState(eventsProp || []);
 	const { subscribe, unsubscribe } = useContext(PubSubContext);
 
 	// Subscribe to pub/sub updates — each update appends a chunk, triggering
@@ -137,12 +138,22 @@ export function MessageBubble({
 		if (!topic) return;
 
 		const handleUpdate = (data) => {
-			setChunks((prev) => {
-				const newContent = data?.content ?? "";
-				// Skip appends when content hasn't changed (avoids duplicate renders)
-				if (prev.length > 0 && prev[prev.length - 1] === newContent) return prev;
-				return [...prev, newContent];
-			});
+			console.log("[MessageBubble] handleUpdate called with:", Object.keys(data || {}));
+			// Handle content updates (streaming text chunks)
+			if (data?.content !== undefined) {
+				setChunks((prev) => {
+					const newContent = data.content;
+					// Skip appends when content hasn't changed (avoids duplicate renders)
+					if (prev.length > 0 && prev[prev.length - 1] === newContent) return prev;
+					return [...prev, newContent];
+				});
+			}
+
+			// Handle events updates (stream events array)
+			if (data?.events !== undefined) {
+				console.log("[MessageBubble] Received events:", data.events.length);
+				setStreamEvents(data.events);
+			}
 		};
 
 		subscribe(topic, handleUpdate);
@@ -220,7 +231,7 @@ export function MessageBubble({
 		return mapping[rawType] || rawType.replace(/^on_/, "").replace(/_/g, " ");
 	}
 
-	const hasEvents = events && events.length > 0;
+	const hasEvents = streamEvents && streamEvents.length > 0;
 
 	const eventsEl = hasEvents
 		? React.createElement(
@@ -229,13 +240,13 @@ export function MessageBubble({
 				React.createElement(
 					Text,
 					{ dimColor: true, color: "gray" },
-					`  Events (${events.length}):`,
+					`  Events (${streamEvents.length}):`,
 				),
 				React.createElement(
 					Box,
 					{ flexDirection: "column" },
 					...Object.entries(
-						events.reduce((acc, evt) => {
+						streamEvents.reduce((acc, evt) => {
 							const label = normalizeEventType(evt.type);
 							acc[label] = (acc[label] || 0) + 1;
 							return acc;

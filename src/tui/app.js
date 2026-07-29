@@ -693,12 +693,14 @@ export default function App({
 		return (event) => {
 			if (shouldAbort()) return;
 			try {
+				console.log("[StreamingHandler] Received event:", event.type, event.name);
 				// Capture all events on the message
 				const currentEvents =
 					messageListRef.current?.getMessageData(streamingMsgIdRef.current)?.events || [];
 				messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
 					events: [...currentEvents, event],
 				});
+				console.log("[StreamingHandler] Updated message with events, total:", currentEvents.length + 1);
 
 				if (event.type === "message") {
 					committedContentRef.current = (committedContentRef.current || "") + event.text;
