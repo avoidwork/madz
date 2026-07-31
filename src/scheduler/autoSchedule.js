@@ -28,7 +28,7 @@ function createJobDefinition(cwd) {
 	return {
 		name: "reflection-daily",
 		cron: JOB_CRON,
-		command: `cd ${cwd} && timeout 300 node index.js --message run /reflection`,
+		command: `cd ${cwd} && timeout 300 node src/index.js --message run /reflection`,
 	};
 }
 
@@ -59,7 +59,7 @@ function persistJobFile(jobName, job, cwd) {
 		const jobData = Object.freeze({
 			name: job.name,
 			cron: job.cron,
-			command: `cd ${cwd} && timeout 300 node index.js --message run /reflection`,
+			command: `cd ${cwd} && timeout 300 node src/index.js --message run /reflection`,
 			enabled: true,
 			createdAt: new Date().toISOString(),
 			updatedAt: new Date().toISOString(),
