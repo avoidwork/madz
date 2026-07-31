@@ -57,7 +57,7 @@ if (config.schedules.syncOnInit !== false) {
 		const jobResult = Cron.add({
 			name: "reflection-daily",
 			cron: "0 2 * * *",
-			command: `cd ${cwd} && node index.js --message run /reflection`,
+			command: `cd ${cwd} && node index.js --message "Run the reflection skill"`,
 		});
 		if (jobResult.added || !jobResult.error) {
 			try {
@@ -70,7 +70,7 @@ if (config.schedules.syncOnInit !== false) {
 					const jobData = {
 						name: "reflection-daily",
 						cron: "0 2 * * *",
-						command: `cd ${cwd} && node index.js --message run /reflection`,
+						command: `cd ${cwd} && node index.js --message "Run the reflection skill"`,
 						enabled: true,
 						createdAt: new Date().toISOString(),
 						updatedAt: new Date().toISOString(),

@@ -65,7 +65,7 @@ describe("setupAutoSchedule", () => {
 		assert.strictEqual(capturedJob.cron, "0 2 * * *");
 		assert.ok(typeof capturedJob.command === "string");
 		assert.ok(
-			capturedJob.command.includes("node src/index.js --message run /reflection"),
+			capturedJob.command.includes('node src/index.js --message "Run the reflection skill"'),
 			"Command should include the --message /reflection command",
 		);
 	});
@@ -99,7 +99,7 @@ describe("setupAutoSchedule", () => {
 		assert.strictEqual(content.cron, "0 2 * * *");
 		assert.ok(
 			content.command.startsWith("cd ") &&
-				content.command.includes("node src/index.js --message run /reflection"),
+				content.command.includes('node src/index.js --message "Run the reflection skill"'),
 		);
 		assert.strictEqual(content.enabled, true);
 		assert.ok(content.createdAt);
