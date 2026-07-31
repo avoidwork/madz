@@ -4,11 +4,12 @@ import { Cron } from "./cron.js";
 import { logger } from "../logger.js";
 import { loadConfig } from "../config/loader.js";
 
-const cwd = loadConfig().cwd;
+const config = loadConfig();
+const cwd = config.cwd;
 
 const JOB_CRON = "0 2 * * *";
 
-const SCHEDULES_DIR = "memory/schedules/";
+const SCHEDULES_DIR = config.memory?.schedulesDir || "memory/schedules/";
 
 /**
  * Job definition shape for the daily reflection cron job.
@@ -27,7 +28,7 @@ function createJobDefinition(cwd) {
 	return {
 		name: "reflection-daily",
 		cron: JOB_CRON,
-		command: `cd ${cwd} && timeout 300 node index.js "run /reflection"`,
+		command: `cd ${cwd} && timeout 300 node src/index.js --message run /reflection`,
 	};
 }
 
@@ -58,7 +59,7 @@ function persistJobFile(jobName, job, cwd) {
 		const jobData = Object.freeze({
 			name: job.name,
 			cron: job.cron,
-			command: `cd ${cwd} && timeout 300 node index.js "run /reflection"`,
+			command: `cd ${cwd} && timeout 300 node src/index.js --message run /reflection`,
 			enabled: true,
 			createdAt: new Date().toISOString(),
 			updatedAt: new Date().toISOString(),
