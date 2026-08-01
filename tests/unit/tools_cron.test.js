@@ -1,7 +1,6 @@
 import { describe, it, before, after } from "node:test";
 import assert from "node:assert";
 import { cronJobImpl, findSkillScript, runScript } from "../../src/tools/cron.js";
-import { Cron } from "../../src/scheduler/cron.js";
 import { mkdirSync, writeFileSync, rmSync, existsSync, chmodSync } from "node:fs";
 import { join } from "node:path";
 import { rm } from "node:fs/promises";
@@ -199,10 +198,7 @@ describe("cronJob", () => {
 	});
 
 	it("create requires name, cron, skill", async () => {
-		const result = await cronJobImpl(
-			{ action: "create", name: "test" },
-			opts(),
-		);
+		const result = await cronJobImpl({ action: "create", name: "test" }, opts());
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("requires"));
@@ -251,20 +247,14 @@ describe("cronJob", () => {
 	});
 
 	it("pauses a job", async () => {
-		const result = await cronJobImpl(
-			{ action: "pause", name: "daily-report" },
-			opts(),
-		);
+		const result = await cronJobImpl({ action: "pause", name: "daily-report" }, opts());
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, true);
 		assert.strictEqual(parsed.job.enabled, false);
 	});
 
 	it("resumes a paused job", async () => {
-		const result = await cronJobImpl(
-			{ action: "resume", name: "daily-report" },
-			opts(),
-		);
+		const result = await cronJobImpl({ action: "resume", name: "daily-report" }, opts());
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, true);
 		assert.strictEqual(parsed.job.enabled, true);
@@ -276,56 +266,38 @@ describe("cronJob", () => {
 			opts(),
 		);
 		assert.strictEqual(JSON.parse(result).ok, true);
-		const removeResult = await cronJobImpl(
-			{ action: "remove", name: "to-remove" },
-			opts(),
-		);
+		const removeResult = await cronJobImpl({ action: "remove", name: "to-remove" }, opts());
 		const parsed = JSON.parse(removeResult);
 		assert.strictEqual(parsed.ok, true);
 	});
 
 	it("rejects update for non-existent job", async () => {
-		const result = await cronJobImpl(
-			{ action: "update", name: "nonexistent" },
-			opts(),
-		);
+		const result = await cronJobImpl({ action: "update", name: "nonexistent" }, opts());
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("not found"));
 	});
 
 	it("rejects remove for non-existent job", async () => {
-		const result = await cronJobImpl(
-			{ action: "remove", name: "nonexistent" },
-			opts(),
-		);
+		const result = await cronJobImpl({ action: "remove", name: "nonexistent" }, opts());
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 	});
 
 	it("rejects pause for non-existent job", async () => {
-		const result = await cronJobImpl(
-			{ action: "pause", name: "nonexistent" },
-			opts(),
-		);
+		const result = await cronJobImpl({ action: "pause", name: "nonexistent" }, opts());
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 	});
 
 	it("rejects resume for non-existent job", async () => {
-		const result = await cronJobImpl(
-			{ action: "resume", name: "nonexistent" },
-			opts(),
-		);
+		const result = await cronJobImpl({ action: "resume", name: "nonexistent" }, opts());
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 	});
 
 	it("rejects run for non-existent job", async () => {
-		const result = await cronJobImpl(
-			{ action: "run", name: "nonexistent" },
-			opts(),
-		);
+		const result = await cronJobImpl({ action: "run", name: "nonexistent" }, opts());
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("not found"));
@@ -492,10 +464,7 @@ describe("cronJob", () => {
 			opts(),
 		);
 		await cronJobImpl({ action: "pause", name: "paused-job" }, opts());
-		const result = await cronJobImpl(
-			{ action: "run", name: "paused-job" },
-			opts(),
-		);
+		const result = await cronJobImpl({ action: "run", name: "paused-job" }, opts());
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("paused"));
@@ -541,16 +510,10 @@ describe("cronJob", () => {
 			},
 			opts(),
 		);
-		const result = await cronJobImpl(
-			{ action: "run", name: "dynamic-import-test" },
-			opts(),
-		);
+		const result = await cronJobImpl({ action: "run", name: "dynamic-import-test" }, opts());
 		const parsed = JSON.parse(result);
 		assert.ok(parsed.ok !== undefined);
-		await cronJobImpl(
-			{ action: "remove", name: "dynamic-import-test" },
-			opts(),
-		);
+		await cronJobImpl({ action: "remove", name: "dynamic-import-test" }, opts());
 	});
 
 	it("run returns error when skill has no discoverable script", async () => {
@@ -563,10 +526,7 @@ describe("cronJob", () => {
 			},
 			opts(),
 		);
-		const result = await cronJobImpl(
-			{ action: "run", name: "no-script-job" },
-			opts(),
-		);
+		const result = await cronJobImpl({ action: "run", name: "no-script-job" }, opts());
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("no discoverable script"));
@@ -590,18 +550,12 @@ describe("cronJob", () => {
 				},
 				opts(),
 			);
-			const result = await cronJobImpl(
-				{ action: "run", name: "exec-job" },
-				opts(),
-			);
+			const result = await cronJobImpl({ action: "run", name: "exec-job" }, opts());
 			const parsed = JSON.parse(result);
 			assert.ok(parsed !== null);
 		} finally {
 			rmSync("skills/test-exec-skill", { recursive: true, force: true });
-			await cronJobImpl(
-				{ action: "remove", name: "exec-job" },
-				opts(),
-			).catch(() => {});
+			await cronJobImpl({ action: "remove", name: "exec-job" }, opts()).catch(() => {});
 		}
 	});
 });
