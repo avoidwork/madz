@@ -77,14 +77,16 @@ try {
 let tracer = null;
 let shutdownFn = null;
 if (config.telemetry.enabled) {
-	const { initTelemetry, getTracer, shutdownTelemetry } = await import("./src/telemetry/provider.js");
+	const { initTelemetry, getTracer, shutdownTelemetry } =
+		await import("./src/telemetry/provider.js");
 	await initTelemetry(config.telemetry);
 	tracer = getTracer();
 	shutdownFn = shutdownTelemetry;
 }
 
 // Initialize skill registry
-const { SkillRegistry, resolvePermissions, ensureSkillsDir } = await import("./src/skills/index.js");
+const { SkillRegistry, resolvePermissions, ensureSkillsDir } =
+	await import("./src/skills/index.js");
 const registry = new SkillRegistry();
 await ensureSkillsDir(config.cwd + "/" + "skills/");
 registry.discover();
