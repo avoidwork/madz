@@ -1,7 +1,7 @@
 import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert";
 import { exec } from "node:child_process";
-import { Cron, sanitizeCrontabCommand, prepareCrontabCommand, setExecOverride } from "../../../src/scheduler/cron.js";
+import { Cron, setExecOverride } from "../../../src/scheduler/cron.js";
 
 // --- Mock crontab state ---
 let mockCrontabContent = "";
@@ -190,7 +190,8 @@ describe("cron - Cron.install", () => {
 	it("replaces existing madz block", async () => {
 		global.exec = mockExec;
 		// Pre-populate with old entries
-		mockCrontabContent = "# --- BEGIN madz-schedules ---\nold entry\n# --- END madz-schedules ---\n";
+		mockCrontabContent =
+			"# --- BEGIN madz-schedules ---\nold entry\n# --- END madz-schedules ---\n";
 		const schedules = [{ name: "new", cron: "* * * * *", command: "echo new" }];
 		const result = await Cron.install(schedules);
 		assert.strictEqual(result.installed, 1);

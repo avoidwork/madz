@@ -1,10 +1,6 @@
-import { exec as execCallback } from "node:child_process";
-import { promisify } from "node:util";
 import { mkdir, writeFile } from "node:fs/promises";
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
-
-const exec = promisify(execCallback);
 
 // Block delimiters for madz-managed crontab entries
 const BLOCK_START = "# --- BEGIN madz-schedules ---";
@@ -89,10 +85,10 @@ export const Cron = {
 	async _readCrontab() {
 		try {
 			return (
-				await executeCommand("crontab -l 2>&1", {
+				(await executeCommand("crontab -l 2>&1", {
 					encoding: "utf-8",
 					stdio: ["pipe", "pipe", "pipe"],
-				}) || ""
+				})) || ""
 			).trim();
 		} catch (_err) {
 			return "";
