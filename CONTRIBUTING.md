@@ -105,7 +105,7 @@ chore: pin dependencies in package.json
 
 ### Architecture Notes
 
-- `config.yaml` + `src/config/loader.js` is the single source of truth for configuration
+- `config.yaml` at the project root + `src/config/loader.js` is the single source of truth for configuration
 - All subsystems wire into `index.js` via `src/` modules
 - Each public function or class needs test coverage
 - Test files mirror source: `src/memory/reader.js` → `tests/unit/memory.test.js`

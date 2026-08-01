@@ -35,7 +35,9 @@ WORKDIR /app
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package*.json ./
 COPY LICENSE ./
+COPY index.js ./
 COPY src/ ./src/
+COPY config.yaml ./
 COPY prompts/ ./prompts/
 COPY system-skills/ ./system-skills/
 COPY docker-entrypoint.sh /docker-entrypoint.sh

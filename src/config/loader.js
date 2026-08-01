@@ -9,7 +9,7 @@ const _require = createRequire(import.meta.url);
 import { load, dump } from "js-yaml";
 
 const PROJECT_ROOT = dirname(fileURLToPath(import.meta.url));
-const CONFIG_PATH = join(PROJECT_ROOT, "../config.yaml");
+const CONFIG_PATH = join(PROJECT_ROOT, "../../config.yaml");
 
 /// -- Convert camelCase or kebab-case to SNAKE_CASE ---
 
