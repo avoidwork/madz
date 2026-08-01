@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { Cron } from "./cron.js";
 import { logger } from "../logger.js";
@@ -45,7 +45,14 @@ function persistJobFile(jobName, job, cwd) {
 	const filePath = join(schedulesDir, `${jobName}.json`);
 
 	if (existsSync(filePath)) {
-		return { written: true };
+		try {
+			const existing = JSON.parse(readFileSync(filePath, "utf8"));
+			if (existing.command === job.command) {
+				return { written: true };
+			}
+		} catch {
+			/* malformed JSON — fall through to overwrite */
+		}
 	}
 
 	try {
