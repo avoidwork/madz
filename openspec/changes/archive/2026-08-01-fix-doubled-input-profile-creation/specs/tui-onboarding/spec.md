@@ -1,4 +1,4 @@
-## MODIFIED Requirements
+## ADDED Requirements
 
 ### Requirement: Onboarding input handling delegates to ink-text-input
 The system SHALL delegate all character entry, cursor navigation, and backspace during profile creation to `ink-text-input` within `InputPanel`. The `useInput` hook SHALL only handle Enter (submit) and Escape (quit) during onboarding, and SHALL NOT manually append keystrokes to input state.

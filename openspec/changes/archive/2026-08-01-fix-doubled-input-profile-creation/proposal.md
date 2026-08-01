@@ -12,8 +12,8 @@ During profile creation in the TUI onboarding flow, user input text is duplicate
 ### New Capabilities
 <!-- None — this is a bug fix, no new capabilities -->
 
-### Modified Capabilities
-- `tui-onboarding`: Fix input handling during profile creation to prevent keystroke duplication. The onboarding input flow should delegate all character entry to `ink-text-input` and only intercept Enter/Escape.
+### New Capabilities
+- `tui-onboarding`: Define the onboarding input handling contract — all character entry during profile creation must be delegated to `ink-text-input`, with the `useInput` hook only intercepting Enter (submit) and Escape (quit).
 
 ## Impact
 
