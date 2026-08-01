@@ -43,9 +43,7 @@ COPY system-skills/ ./system-skills/
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 
-RUN mkdir -p /home/madz/.cache/madz/logs && \
-    touch /home/madz/.cache/madz/logs/madz_cron.log && \
-    chown -R madz:node /app /home/madz && \
+RUN chown -R madz:node /app /home/madz && \
     chmod -R g+rwX /app /home/madz
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
