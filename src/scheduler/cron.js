@@ -10,7 +10,7 @@ const BLOCK_END = "# --- END madz-schedules ---";
 const REFLECTION_JOB = {
 	name: "reflection-daily",
 	cron: "0 2 * * *",
-	command: "cd /app && node index.js --message \"Run the reflection skill\"",
+	command: 'cd /app && node index.js --message "Run the reflection skill"',
 	enabled: true,
 };
 
