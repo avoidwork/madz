@@ -1,5 +1,5 @@
 import { execSync } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdir, writeFile } from "node:fs/promises";
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 
@@ -391,22 +391,22 @@ export const Cron = {
 	 * Ensure the reflection-daily job file exists on disk.
 	 * Creates it with default values if missing (idempotent).
 	 * @param {string} schedulesDir - Path to the schedules directory
-	 * @returns {void}
+	 * @returns {Promise<void>}
 	 */
-	_ensureReflectionJob(schedulesDir) {
+	async _ensureReflectionJob(schedulesDir) {
 		const filePath = join(schedulesDir, `${REFLECTION_JOB.name}.json`);
 		try {
-			readdir(schedulesDir);
+			await readdir(schedulesDir);
 		} catch {
 			try {
-				mkdirSync(schedulesDir, { recursive: true });
+				await mkdir(schedulesDir, { recursive: true });
 			} catch {
 				// Directory creation failed — sync will handle gracefully
 				return;
 			}
 		}
 		try {
-			readFile(filePath, "utf-8");
+			await readFile(filePath, "utf-8");
 		} catch {
 			// File doesn't exist — create it
 			const jobData = Object.freeze({
@@ -417,7 +417,7 @@ export const Cron = {
 				createdAt: new Date().toISOString(),
 				updatedAt: new Date().toISOString(),
 			});
-			writeFileSync(filePath, JSON.stringify(jobData, null, 2));
+			await writeFile(filePath, JSON.stringify(jobData, null, 2));
 		}
 	},
 
@@ -478,7 +478,7 @@ export const Cron = {
 		}
 
 		// Ensure reflection-daily job file exists on disk before reading
-		this._ensureReflectionJob(schedulesDir);
+		await this._ensureReflectionJob(schedulesDir);
 
 		// Read desired state from disk
 		const jobs = await this._readJobsFromDisk(schedulesDir);
