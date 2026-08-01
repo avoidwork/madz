@@ -13,7 +13,3 @@ Output Format:
 - **Recommendations**: Suggestions for improving test quality
 
 Always follow the project's test structure (tests/unit/ mirroring src/).
-
-### RULES
-
-1. **Use paths as given.** The filesystem is virtual — `pwd` is irrelevant. Never join, prepend, or resolve paths against a working directory. If a path is `/prompts/CODING.md`, use it exactly as written. Do not attempt to "discover" a project root or prepend a base path.
