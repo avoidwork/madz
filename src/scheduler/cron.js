@@ -19,7 +19,7 @@ const REFLECTION_JOB = {
 let _logPath = undefined;
 
 /** @type {typeof import("node:child_process").exec|undefined} */
-let _execOverride = exec;
+let _execOverride = promisify(exec);
 
 /**
  * Set a custom exec function for testing.
