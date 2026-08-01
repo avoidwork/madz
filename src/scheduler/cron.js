@@ -1,7 +1,10 @@
-import { exec } from "node:child_process";
+import { exec as execCallback } from "node:child_process";
+import { promisify } from "node:util";
 import { mkdir, writeFile } from "node:fs/promises";
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
+
+const exec = promisify(execCallback);
 
 // Block delimiters for madz-managed crontab entries
 const BLOCK_START = "# --- BEGIN madz-schedules ---";
@@ -17,6 +20,17 @@ const REFLECTION_JOB = {
 
 /** @type {string|undefined} */
 let _logPath = undefined;
+
+/** @type {typeof import("node:child_process").exec|undefined} */
+let _execOverride = undefined;
+
+/**
+ * Set a custom exec function for testing.
+ * @param {typeof import("node:child_process").exec} fn - Custom exec implementation
+ */
+export function setExecOverride(fn) {
+	_execOverride = fn;
+}
 
 /**
  * Sanitize a command string for safe interpolation into crontab entries.
@@ -60,7 +74,7 @@ export const Cron = {
 	 */
 	async isAvailable() {
 		try {
-			await exec("which crontab", { stdio: ["pipe", "pipe", "pipe"] });
+			await executeCommand("which crontab", { stdio: ["pipe", "pipe", "pipe"] });
 			return { available: true };
 		} catch (err) {
 			const msg = err instanceof Error ? err.message : String(err);
@@ -75,7 +89,7 @@ export const Cron = {
 	async _readCrontab() {
 		try {
 			return (
-				await exec("crontab -l 2>&1", {
+				await executeCommand("crontab -l 2>&1", {
 					encoding: "utf-8",
 					stdio: ["pipe", "pipe", "pipe"],
 				}) || ""
@@ -91,7 +105,7 @@ export const Cron = {
 	async _writeCrontab(content) {
 		// Ensure content ends with newline; empty content gets a newline to avoid crontab errors
 		const safeContent = content.endsWith("\n") ? content : content + "\n";
-		await exec("crontab -", { input: safeContent, stdio: ["pipe", "pipe", "pipe"] });
+		await executeCommand("crontab -", { input: safeContent, stdio: ["pipe", "pipe", "pipe"] });
 	},
 
 	/**

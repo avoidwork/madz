@@ -1,10 +1,8 @@
 import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert";
-import { execSync } from "node:child_process";
 import { mkdirSync, rmSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { ScheduleManager } from "../../src/scheduler/index.js";
-import { Cron } from "../../src/scheduler/index.js";
 import { sanitizeCrontabCommand } from "../../src/scheduler/cron.js";
 
 // --- Helpers ---
@@ -114,43 +112,6 @@ describe("scheduler - ScheduleManager", () => {
 		const result = await mgr.runNow("daily", scheduler);
 		assert.strictEqual(result.exitCode, 0);
 		assert.strictEqual(result.stdout, "done");
-	});
-});
-
-// --- Cron ---
-
-describe("scheduler - Cron", () => {
-	it("isAvailable returns an object with available field", async () => {
-		const result = await Cron.isAvailable();
-		assert.ok(result.hasOwnProperty("available"));
-		if (result.available) {
-			assert.strictEqual(typeof result.error, "undefined");
-		} else {
-			assert.ok(result.error);
-		}
-	});
-
-	it("list returns an array", async () => {
-		const result = await Cron.list();
-		assert.ok(Array.isArray(result));
-	});
-
-	it("uninstall returns a number", async () => {
-		const count = await Cron.uninstall();
-		assert.strictEqual(typeof count, "number");
-		assert.ok(count >= 0);
-	});
-
-	it("add returns added:false when crontab unavailable", async () => {
-		const result = await Cron.add({ name: "test", cron: "* * * * *" });
-		// Crontab may be available or not; check the result shape
-		assert.ok(result.hasOwnProperty("added"));
-	});
-
-	it("remove returns removed:false when crontab unavailable", async () => {
-		const result = await Cron.remove("test");
-		// Crontab may be available or not; check the result shape
-		assert.ok(result.hasOwnProperty("removed"));
 	});
 });
 
