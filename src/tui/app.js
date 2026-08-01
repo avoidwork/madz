@@ -812,10 +812,6 @@ export default function App({
 				setInputText("");
 			} else if (key.escape) {
 				handleQuit();
-			} else if (input && input !== "\r") {
-				setInputText((prev) => prev + input);
-			} else if (key.backspace && inputText.length > 0) {
-				setInputText((prev) => prev.slice(0, -1));
 			}
 			return;
 		}
