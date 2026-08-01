@@ -1,3 +1,4 @@
+import { exec } from "node:child_process/promises";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
@@ -17,7 +18,7 @@ const REFLECTION_JOB = {
 let _logPath = undefined;
 
 /** @type {typeof import("node:child_process").exec|undefined} */
-let _execOverride = undefined;
+let _execOverride = exec;
 
 /**
  * Set a custom exec function for testing.
@@ -69,7 +70,7 @@ export const Cron = {
 	 */
 	async isAvailable() {
 		try {
-			await executeCommand("which crontab", { stdio: ["pipe", "pipe", "pipe"] });
+			await _execOverride("which crontab", { stdio: ["pipe", "pipe", "pipe"] });
 			return { available: true };
 		} catch (err) {
 			const msg = err instanceof Error ? err.message : String(err);
@@ -84,7 +85,7 @@ export const Cron = {
 	async _readCrontab() {
 		try {
 			return (
-				(await executeCommand("crontab -l 2>&1", {
+				(await _execOverride("crontab -l 2>&1", {
 					encoding: "utf-8",
 					stdio: ["pipe", "pipe", "pipe"],
 				})) || ""
@@ -100,7 +101,7 @@ export const Cron = {
 	async _writeCrontab(content) {
 		// Ensure content ends with newline; empty content gets a newline to avoid crontab errors
 		const safeContent = content.endsWith("\n") ? content : content + "\n";
-		await executeCommand("crontab -", { input: safeContent, stdio: ["pipe", "pipe", "pipe"] });
+		await _execOverride("crontab -", { input: safeContent, stdio: ["pipe", "pipe", "pipe"] });
 	},
 
 	/**
