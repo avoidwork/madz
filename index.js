@@ -65,9 +65,7 @@ try {
 	const { hasProfile, ATTRIBUTES } = await import("./src/memory/profile.js");
 	if (!hasProfile()) {
 		const { createOnboarding } = await import("./src/session/onboarding.js");
-		const { setupAutoSchedule } = await import("./src/scheduler/autoSchedule.js");
-		const autoSchedule = setupAutoSchedule();
-		onboardingInstance = createOnboarding(ATTRIBUTES, { onSave: autoSchedule });
+		onboardingInstance = createOnboarding(ATTRIBUTES, { onSave: () => {} });
 	}
 } catch {
 	// Fail gracefully: continue without onboarding if profile detection fails
