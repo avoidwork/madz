@@ -1,5 +1,6 @@
-import { execSync } from "node:child_process";
-import { mkdirSync, readdir, readFile, writeFileSync } from "node:fs";
+import { exec } from "node:child_process";
+import { promisify } from "node:util";
+import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 // Block delimiters for madz-managed crontab entries
@@ -10,12 +11,23 @@ const BLOCK_END = "# --- END madz-schedules ---";
 const REFLECTION_JOB = {
 	name: "reflection-daily",
 	cron: "0 2 * * *",
-	command: 'cd /app && node index.js --message "Run the reflection skill"',
+	command: `cd ${process.cwd()} && node index.js --message "Run the reflection skill"`,
 	enabled: true,
 };
 
 /** @type {string|undefined} */
 let _logPath = undefined;
+
+/** @type {typeof import("node:child_process").exec|undefined} */
+let _execOverride = promisify(exec);
+
+/**
+ * Set a custom exec function for testing.
+ * @param {typeof import("node:child_process").exec} fn - Custom exec implementation
+ */
+export function setExecOverride(fn) {
+	_execOverride = fn;
+}
 
 /**
  * Sanitize a command string for safe interpolation into crontab entries.
@@ -55,11 +67,11 @@ export const Cron = {
 
 	/**
 	 * Check if the system crontab binary is available.
-	 * @returns {{ available: boolean, error?: string }}
+	 * @returns {Promise<{ available: boolean, error?: string }>}
 	 */
-	isAvailable() {
+	async isAvailable() {
 		try {
-			execSync("which crontab", { stdio: ["pipe", "pipe", "pipe"] });
+			await _execOverride("which crontab", { stdio: ["pipe", "pipe", "pipe"] });
 			return { available: true };
 		} catch (err) {
 			const msg = err instanceof Error ? err.message : String(err);
@@ -69,16 +81,16 @@ export const Cron = {
 
 	/**
 	 * Read the current user crontab.
-	 * @returns {string} Crontab content (may be empty)
+	 * @returns {Promise<string>} Crontab content (may be empty)
 	 */
-	_readCrontab() {
+	async _readCrontab() {
 		try {
 			return (
-				execSync("crontab -l 2>&1", {
+				(await _execOverride("crontab -l 2>&1", {
 					encoding: "utf-8",
 					stdio: ["pipe", "pipe", "pipe"],
-				}).trim() || ""
-			);
+				})) || ""
+			).trim();
 		} catch (_err) {
 			return "";
 		}
@@ -87,10 +99,10 @@ export const Cron = {
 	/**
 	 * @param {string} content
 	 */
-	_writeCrontab(content) {
+	async _writeCrontab(content) {
 		// Ensure content ends with newline; empty content gets a newline to avoid crontab errors
 		const safeContent = content.endsWith("\n") ? content : content + "\n";
-		execSync("crontab -", { input: safeContent, stdio: ["pipe", "pipe", "pipe"] });
+		await _execOverride("crontab -", { input: safeContent, stdio: ["pipe", "pipe", "pipe"] });
 	},
 
 	/**
@@ -127,10 +139,10 @@ export const Cron = {
 	 * Reads the current crontab, removes the existing madz block,
 	 * appends the new entry, and writes back.
 	 * @param {{ name: string, cron: string, command: string }} job - Schedule job to add
-	 * @returns {{ added: boolean, error?: string }}
+	 * @returns {Promise<{ added: boolean, error?: string }>}
 	 */
-	add(job) {
-		const { available, error } = this.isAvailable();
+	async add(job) {
+		const { available, error } = await this.isAvailable();
 		if (!available) {
 			return { added: false, error: error || "System crontab is not available" };
 		}
@@ -139,7 +151,7 @@ export const Cron = {
 			return { added: false, error: "Job requires a 'command' field" };
 		}
 
-		const crontab = this._readCrontab();
+		const crontab = await this._readCrontab();
 		const { outsideLines, blockLines } = this._splitBlock(crontab);
 
 		const newEntry = `${job.cron}  ${prepareCrontabCommand(job.command, _logPath)}  # madz-schedule: ${job.name}`;
@@ -164,7 +176,7 @@ export const Cron = {
 		outsideLines.push(BLOCK_END);
 
 		try {
-			this._writeCrontab(outsideLines.join("\n"));
+			await this._writeCrontab(outsideLines.join("\n"));
 		} catch (err) {
 			const msg = err instanceof Error ? err.message : String(err);
 			return { added: false, error: `Failed to write crontab: ${msg}` };
@@ -178,14 +190,14 @@ export const Cron = {
 	 * Reads the current crontab, removes the madz block,
 	 * writes back everything except the named entry.
 	 * @param {string} name - Schedule job name
-	 * @returns {{ removed: boolean, error?: string }}
+	 * @returns {Promise<{ removed: boolean, error?: string }>}
 	 */
-	remove(name) {
-		if (!this.isAvailable().available) {
+	async remove(name) {
+		if (!(await this.isAvailable()).available) {
 			return { removed: false, error: "System crontab is not available" };
 		}
 
-		const crontab = this._readCrontab();
+		const crontab = await this._readCrontab();
 		const { outsideLines, blockLines } = this._splitBlock(crontab);
 
 		// Remove the entry with matching name
@@ -209,7 +221,7 @@ export const Cron = {
 		}
 
 		try {
-			this._writeCrontab(outsideLines.join("\n"));
+			await this._writeCrontab(outsideLines.join("\n"));
 		} catch (err) {
 			const msg = err instanceof Error ? err.message : String(err);
 			return { removed: false, error: `Failed to write crontab: ${msg}` };
@@ -222,15 +234,15 @@ export const Cron = {
 	 * Install or replace the madz-schedules block in the user crontab.
 	 * Paused schedules are excluded. Existing madz block is replaced entirely.
 	 * @param {Array<{ name: string, cron: string, command: string, paused?: boolean }>} schedules
-	 * @returns {{ installed: number, error?: string }}
+	 * @returns {Promise<{ installed: number, error?: string }>}
 	 */
-	install(schedules) {
-		const { available, error } = this.isAvailable();
+	async install(schedules) {
+		const { available, error } = await this.isAvailable();
 		if (!available) {
 			return { installed: 0, error: error || "System crontab is not available" };
 		}
 
-		const crontab = this._readCrontab();
+		const crontab = await this._readCrontab();
 
 		const outsideLines = [];
 		let inBlock = false;
@@ -262,7 +274,7 @@ export const Cron = {
 		}
 
 		try {
-			this._writeCrontab(outsideLines.join("\n"));
+			await this._writeCrontab(outsideLines.join("\n"));
 		} catch (err) {
 			const msg = err instanceof Error ? err.message : String(err);
 			return { installed: 0, error: `Failed to write crontab: ${msg}` };
@@ -273,12 +285,12 @@ export const Cron = {
 
 	/**
 	 * Remove all madz-schedules entries from the user crontab.
-	 * @returns {number} Number of entries removed
+	 * @returns {Promise<number>} Number of entries removed
 	 */
-	uninstall() {
-		if (!this.isAvailable().available) return 0;
+	async uninstall() {
+		if (!(await this.isAvailable()).available) return 0;
 
-		const crontab = this._readCrontab();
+		const crontab = await this._readCrontab();
 		let inBlock = false;
 
 		const outsideLines = [];
@@ -294,7 +306,7 @@ export const Cron = {
 			if (!inBlock) outsideLines.push(line);
 		}
 
-		this._writeCrontab(outsideLines.join("\n"));
+		await this._writeCrontab(outsideLines.join("\n"));
 
 		// Count entries removed from the block
 		let realRemoved = 0;
@@ -316,10 +328,10 @@ export const Cron = {
 
 	/**
 	 * List the schedule entries from the current crontab block.
-	 * @returns {Array<{ name: string, cron: string, command: string }>}
+	 * @returns {Promise<Array<{ name: string, cron: string, command: string }>>}
 	 */
-	list() {
-		const crontab = this._readCrontab();
+	async list() {
+		const crontab = await this._readCrontab();
 		let inBlock = false;
 		const entries = [];
 
@@ -390,22 +402,22 @@ export const Cron = {
 	 * Ensure the reflection-daily job file exists on disk.
 	 * Creates it with default values if missing (idempotent).
 	 * @param {string} schedulesDir - Path to the schedules directory
-	 * @returns {void}
+	 * @returns {Promise<void>}
 	 */
-	_ensureReflectionJob(schedulesDir) {
+	async _ensureReflectionJob(schedulesDir) {
 		const filePath = join(schedulesDir, `${REFLECTION_JOB.name}.json`);
 		try {
-			readdir(schedulesDir);
+			await readdir(schedulesDir);
 		} catch {
 			try {
-				mkdirSync(schedulesDir, { recursive: true });
+				await mkdir(schedulesDir, { recursive: true });
 			} catch {
 				// Directory creation failed — sync will handle gracefully
 				return;
 			}
 		}
 		try {
-			readFile(filePath, "utf-8");
+			await readFile(filePath, "utf-8");
 		} catch {
 			// File doesn't exist — create it
 			const jobData = Object.freeze({
@@ -416,7 +428,7 @@ export const Cron = {
 				createdAt: new Date().toISOString(),
 				updatedAt: new Date().toISOString(),
 			});
-			writeFileSync(filePath, JSON.stringify(jobData, null, 2));
+			await writeFile(filePath, JSON.stringify(jobData, null, 2));
 		}
 	},
 
@@ -465,7 +477,7 @@ export const Cron = {
 	 * @returns {Promise<{ added: number, removed: number, updated: number, skipped: number, error?: string }>}
 	 */
 	async sync(schedulesDir) {
-		const { available, error } = this.isAvailable();
+		const { available, error } = await this.isAvailable();
 		if (!available) {
 			return {
 				added: 0,
@@ -477,7 +489,7 @@ export const Cron = {
 		}
 
 		// Ensure reflection-daily job file exists on disk before reading
-		this._ensureReflectionJob(schedulesDir);
+		await this._ensureReflectionJob(schedulesDir);
 
 		// Read desired state from disk
 		const jobs = await this._readJobsFromDisk(schedulesDir);
@@ -489,7 +501,7 @@ export const Cron = {
 			);
 
 		// Parse current crontab block entries
-		const crontab = this._readCrontab();
+		const crontab = await this._readCrontab();
 		const { outsideLines, blockLines } = this._splitBlock(crontab);
 
 		const currentEntries = [];

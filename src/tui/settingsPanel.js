@@ -2,8 +2,7 @@
  * Settings panel section for the TUI.
  */
 import React, { useState } from "react";
-import { Box, Text } from "ink";
-import { useInput } from "ink";
+import { Box, Text, useInput } from "ink";
 
 /**
  * Settings panel that shows current config sections.

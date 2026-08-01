@@ -1,12 +1,48 @@
 import { describe, it, before, after } from "node:test";
 import assert from "node:assert";
 import { cronJobImpl, findSkillScript, runScript } from "../../src/tools/cron.js";
-import { Cron } from "../../src/scheduler/cron.js";
 import { mkdirSync, writeFileSync, rmSync, existsSync, chmodSync } from "node:fs";
 import { join } from "node:path";
 import { rm } from "node:fs/promises";
 
 const SCHEDULES_DIR = "memory/__test_cron__/";
+
+// Mock cron module — prevents tests from hitting real system crontab via exec
+const mockCron = {
+	async add() {
+		return { added: true };
+	},
+	async remove() {
+		return { removed: true };
+	},
+	async install() {
+		return { installed: 0 };
+	},
+	async uninstall() {
+		return 0;
+	},
+	async isAvailable() {
+		return { available: true };
+	},
+	async _readCrontab() {
+		return "";
+	},
+	async _writeCrontab() {
+		return undefined;
+	},
+	_splitBlock() {
+		return { outsideLines: [], blockLines: [] };
+	},
+};
+
+/**
+ * Build options with mock cron injected.
+ * @param {object} opts
+ * @returns {object}
+ */
+function opts(opts = {}) {
+	return { schedulesDir: SCHEDULES_DIR, cron: mockCron, ...opts };
+}
 
 describe("findSkillScript", () => {
 	it("returns null when skill directory does not exist", async () => {
@@ -110,7 +146,7 @@ describe("cronJob", () => {
 		];
 		for (const name of cleanupNames) {
 			try {
-				await cronJobImpl({ action: "remove", name }, { schedulesDir: SCHEDULES_DIR });
+				await cronJobImpl({ action: "remove", name }, opts());
 			} catch {
 				// ignore not-found errors
 			}
@@ -135,16 +171,10 @@ describe("cronJob", () => {
 		];
 		for (const name of cleanupNames) {
 			try {
-				await cronJobImpl({ action: "remove", name }, { schedulesDir: SCHEDULES_DIR });
+				await cronJobImpl({ action: "remove", name }, opts());
 			} catch {
 				// ignore
 			}
-		}
-		// Ensure the system crontab is clean — strip the entire madz-schedules block
-		try {
-			Cron.uninstall();
-		} catch {
-			// crontab may not be available; ignore
 		}
 		try {
 			await rm(SCHEDULES_DIR, { recursive: true, force: true });
@@ -154,24 +184,21 @@ describe("cronJob", () => {
 	});
 
 	it("requires action", async () => {
-		const result = await cronJobImpl({}, { schedulesDir: SCHEDULES_DIR });
+		const result = await cronJobImpl({}, opts());
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("Unknown action"));
 	});
 
 	it("rejects unknown action", async () => {
-		const result = await cronJobImpl({ action: "delete" }, { schedulesDir: SCHEDULES_DIR });
+		const result = await cronJobImpl({ action: "delete" }, opts());
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("Unknown action"));
 	});
 
 	it("create requires name, cron, skill", async () => {
-		const result = await cronJobImpl(
-			{ action: "create", name: "test" },
-			{ schedulesDir: SCHEDULES_DIR },
-		);
+		const result = await cronJobImpl({ action: "create", name: "test" }, opts());
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("requires"));
@@ -180,7 +207,7 @@ describe("cronJob", () => {
 	it("create validates cron expression", async () => {
 		const result = await cronJobImpl(
 			{ action: "create", name: "test", cron: "not-valid", skill: "test-skill" },
-			{ schedulesDir: SCHEDULES_DIR },
+			opts(),
 		);
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
@@ -190,7 +217,7 @@ describe("cronJob", () => {
 	it("creates a job and persists it", async () => {
 		const result = await cronJobImpl(
 			{ action: "create", name: "daily-report", cron: "0 9 * * *", skill: "report-gen" },
-			{ schedulesDir: SCHEDULES_DIR },
+			opts(),
 		);
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, true);
@@ -201,7 +228,7 @@ describe("cronJob", () => {
 	});
 
 	it("list returns created jobs", async () => {
-		const result = await cronJobImpl({ action: "list" }, { schedulesDir: SCHEDULES_DIR });
+		const result = await cronJobImpl({ action: "list" }, opts());
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, true);
 		assert.ok(parsed.jobs);
@@ -212,7 +239,7 @@ describe("cronJob", () => {
 	it("updates an existing job", async () => {
 		const result = await cronJobImpl(
 			{ action: "update", name: "daily-report", skill: "weekly-report" },
-			{ schedulesDir: SCHEDULES_DIR },
+			opts(),
 		);
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, true);
@@ -220,20 +247,14 @@ describe("cronJob", () => {
 	});
 
 	it("pauses a job", async () => {
-		const result = await cronJobImpl(
-			{ action: "pause", name: "daily-report" },
-			{ schedulesDir: SCHEDULES_DIR },
-		);
+		const result = await cronJobImpl({ action: "pause", name: "daily-report" }, opts());
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, true);
 		assert.strictEqual(parsed.job.enabled, false);
 	});
 
 	it("resumes a paused job", async () => {
-		const result = await cronJobImpl(
-			{ action: "resume", name: "daily-report" },
-			{ schedulesDir: SCHEDULES_DIR },
-		);
+		const result = await cronJobImpl({ action: "resume", name: "daily-report" }, opts());
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, true);
 		assert.strictEqual(parsed.job.enabled, true);
@@ -242,59 +263,41 @@ describe("cronJob", () => {
 	it("removes a job", async () => {
 		const result = await cronJobImpl(
 			{ action: "create", name: "to-remove", cron: "0 0 * * *", skill: "test" },
-			{ schedulesDir: SCHEDULES_DIR },
+			opts(),
 		);
 		assert.strictEqual(JSON.parse(result).ok, true);
-		const removeResult = await cronJobImpl(
-			{ action: "remove", name: "to-remove" },
-			{ schedulesDir: SCHEDULES_DIR },
-		);
+		const removeResult = await cronJobImpl({ action: "remove", name: "to-remove" }, opts());
 		const parsed = JSON.parse(removeResult);
 		assert.strictEqual(parsed.ok, true);
 	});
 
 	it("rejects update for non-existent job", async () => {
-		const result = await cronJobImpl(
-			{ action: "update", name: "nonexistent" },
-			{ schedulesDir: SCHEDULES_DIR },
-		);
+		const result = await cronJobImpl({ action: "update", name: "nonexistent" }, opts());
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("not found"));
 	});
 
 	it("rejects remove for non-existent job", async () => {
-		const result = await cronJobImpl(
-			{ action: "remove", name: "nonexistent" },
-			{ schedulesDir: SCHEDULES_DIR },
-		);
+		const result = await cronJobImpl({ action: "remove", name: "nonexistent" }, opts());
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 	});
 
 	it("rejects pause for non-existent job", async () => {
-		const result = await cronJobImpl(
-			{ action: "pause", name: "nonexistent" },
-			{ schedulesDir: SCHEDULES_DIR },
-		);
+		const result = await cronJobImpl({ action: "pause", name: "nonexistent" }, opts());
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 	});
 
 	it("rejects resume for non-existent job", async () => {
-		const result = await cronJobImpl(
-			{ action: "resume", name: "nonexistent" },
-			{ schedulesDir: SCHEDULES_DIR },
-		);
+		const result = await cronJobImpl({ action: "resume", name: "nonexistent" }, opts());
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 	});
 
 	it("rejects run for non-existent job", async () => {
-		const result = await cronJobImpl(
-			{ action: "run", name: "nonexistent" },
-			{ schedulesDir: SCHEDULES_DIR },
-		);
+		const result = await cronJobImpl({ action: "run", name: "nonexistent" }, opts());
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("not found"));
@@ -305,7 +308,7 @@ describe("cronJob", () => {
 			JSON.parse(
 				await cronJobImpl(
 					{ action: "create", name: "t1", cron: "*/15 * * * *", skill: "s" },
-					{ schedulesDir: SCHEDULES_DIR },
+					opts(),
 				),
 			).ok,
 			true,
@@ -315,7 +318,7 @@ describe("cronJob", () => {
 			JSON.parse(
 				await cronJobImpl(
 					{ action: "create", name: "t2", cron: "0-30/5 * * * *", skill: "s" },
-					{ schedulesDir: SCHEDULES_DIR },
+					opts(),
 				),
 			).ok,
 			true,
@@ -325,7 +328,7 @@ describe("cronJob", () => {
 			JSON.parse(
 				await cronJobImpl(
 					{ action: "create", name: "t3", cron: "0,30 * * * *", skill: "s" },
-					{ schedulesDir: SCHEDULES_DIR },
+					opts(),
 				),
 			).ok,
 			true,
@@ -335,13 +338,13 @@ describe("cronJob", () => {
 	it("creates duplicate job and rejects", async () => {
 		const createResult = await cronJobImpl(
 			{ action: "create", name: "dup-job", cron: "0 0 * * *", skill: "test" },
-			{ schedulesDir: SCHEDULES_DIR },
+			opts(),
 		);
 		assert.strictEqual(JSON.parse(createResult).ok, true);
 		// Now try to create again
 		const dupResult = await cronJobImpl(
 			{ action: "create", name: "dup-job", cron: "0 0 * * *", skill: "test" },
-			{ schedulesDir: SCHEDULES_DIR },
+			opts(),
 		);
 		assert.strictEqual(JSON.parse(dupResult).ok, false);
 		assert.ok(JSON.parse(dupResult).error.includes("already exists"));
@@ -350,16 +353,16 @@ describe("cronJob", () => {
 	it("rejects update with invalid cron expression", async () => {
 		await cronJobImpl(
 			{ action: "create", name: "bad-cron", cron: "0 0 * * *", skill: "test" },
-			{ schedulesDir: SCHEDULES_DIR },
+			opts(),
 		);
 		const result = await cronJobImpl(
 			{ action: "update", name: "bad-cron", cron: "invalid cron" },
-			{ schedulesDir: SCHEDULES_DIR },
+			opts(),
 		);
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("Invalid cron") || parsed.error.includes("Invalid"));
-		await cronJobImpl({ action: "remove", name: "bad-cron" }, { schedulesDir: SCHEDULES_DIR });
+		await cronJobImpl({ action: "remove", name: "bad-cron" }, opts());
 	});
 
 	it("updates only selected fields", async () => {
@@ -371,49 +374,49 @@ describe("cronJob", () => {
 				skill: "skill-a",
 				input: { a: 1 },
 			},
-			{ schedulesDir: SCHEDULES_DIR },
+			opts(),
 		);
 		const result = await cronJobImpl(
 			{ action: "update", name: "partial", skill: "skill-b" },
-			{ schedulesDir: SCHEDULES_DIR },
+			opts(),
 		);
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, true);
 		assert.strictEqual(parsed.job.skill, "skill-b");
 		assert.ok(parsed.job.input);
-		await cronJobImpl({ action: "remove", name: "partial" }, { schedulesDir: SCHEDULES_DIR });
+		await cronJobImpl({ action: "remove", name: "partial" }, opts());
 	});
 
 	it("rejects update without name", async () => {
-		const result = await cronJobImpl({ action: "update" }, { schedulesDir: SCHEDULES_DIR });
+		const result = await cronJobImpl({ action: "update" }, opts());
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("requires"));
 	});
 
 	it("rejects resume without name", async () => {
-		const result = await cronJobImpl({ action: "resume" }, { schedulesDir: SCHEDULES_DIR });
+		const result = await cronJobImpl({ action: "resume" }, opts());
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("requires"));
 	});
 
 	it("rejects pause without name", async () => {
-		const result = await cronJobImpl({ action: "pause" }, { schedulesDir: SCHEDULES_DIR });
+		const result = await cronJobImpl({ action: "pause" }, opts());
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("requires"));
 	});
 
 	it("rejects remove without name", async () => {
-		const result = await cronJobImpl({ action: "remove" }, { schedulesDir: SCHEDULES_DIR });
+		const result = await cronJobImpl({ action: "remove" }, opts());
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("requires"));
 	});
 
 	it("rejects run without name", async () => {
-		const result = await cronJobImpl({ action: "run" }, { schedulesDir: SCHEDULES_DIR });
+		const result = await cronJobImpl({ action: "run" }, opts());
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("requires"));
@@ -422,16 +425,16 @@ describe("cronJob", () => {
 	it("update with valid cron expression", async () => {
 		await cronJobImpl(
 			{ action: "create", name: "cron-updated", cron: "0 0 * * *", skill: "skill-a" },
-			{ schedulesDir: SCHEDULES_DIR },
+			opts(),
 		);
 		const result = await cronJobImpl(
 			{ action: "update", name: "cron-updated", cron: "30 6 * * *" },
-			{ schedulesDir: SCHEDULES_DIR },
+			opts(),
 		);
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, true);
 		assert.strictEqual(parsed.job.cron, "30 6 * * *");
-		await cronJobImpl({ action: "remove", name: "cron-updated" }, { schedulesDir: SCHEDULES_DIR });
+		await cronJobImpl({ action: "remove", name: "cron-updated" }, opts());
 	});
 
 	it("update merges input fields", async () => {
@@ -443,32 +446,29 @@ describe("cronJob", () => {
 				skill: "skill-a",
 				input: { a: 1, b: 2 },
 			},
-			{ schedulesDir: SCHEDULES_DIR },
+			opts(),
 		);
 		const result = await cronJobImpl(
 			{ action: "update", name: "input-merged", input: { c: 3 } },
-			{ schedulesDir: SCHEDULES_DIR },
+			opts(),
 		);
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, true);
 		assert.deepStrictEqual(parsed.job.input, { a: 1, b: 2, c: 3 });
-		await cronJobImpl({ action: "remove", name: "input-merged" }, { schedulesDir: SCHEDULES_DIR });
+		await cronJobImpl({ action: "remove", name: "input-merged" }, opts());
 	});
 
 	it("run succeeds for paused job (returns ok: false with message)", async () => {
 		await cronJobImpl(
 			{ action: "create", name: "paused-job", cron: "0 0 * * *", skill: "test-skill" },
-			{ schedulesDir: SCHEDULES_DIR },
+			opts(),
 		);
-		await cronJobImpl({ action: "pause", name: "paused-job" }, { schedulesDir: SCHEDULES_DIR });
-		const result = await cronJobImpl(
-			{ action: "run", name: "paused-job" },
-			{ schedulesDir: SCHEDULES_DIR },
-		);
+		await cronJobImpl({ action: "pause", name: "paused-job" }, opts());
+		const result = await cronJobImpl({ action: "run", name: "paused-job" }, opts());
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("paused"));
-		await cronJobImpl({ action: "remove", name: "paused-job" }, { schedulesDir: SCHEDULES_DIR });
+		await cronJobImpl({ action: "remove", name: "paused-job" }, opts());
 	});
 
 	it("getScheduleFiles returns empty when directory does not exist", async () => {
@@ -477,7 +477,7 @@ describe("cronJob", () => {
 		} catch {
 			// ignore
 		}
-		const result = await cronJobImpl({ action: "list" }, { schedulesDir: SCHEDULES_DIR });
+		const result = await cronJobImpl({ action: "list" }, opts());
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, true);
 		assert.deepStrictEqual(parsed.jobs, []);
@@ -486,18 +486,18 @@ describe("cronJob", () => {
 	it("catch block handles unexpected serialize errors", async () => {
 		await cronJobImpl(
 			{ action: "create", name: "catch-test", cron: "0 0 * * *", skill: "skill-a" },
-			{ schedulesDir: SCHEDULES_DIR },
+			opts(),
 		);
 		const circular = {};
 		circular.self = circular;
 		const result = await cronJobImpl(
 			{ action: "update", name: "catch-test", input: circular },
-			{ schedulesDir: SCHEDULES_DIR },
+			opts(),
 		);
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("Cron job error"));
-		await cronJobImpl({ action: "remove", name: "catch-test" }, { schedulesDir: SCHEDULES_DIR });
+		await cronJobImpl({ action: "remove", name: "catch-test" }, opts());
 	});
 
 	it("run without scheduler option uses dynamic import path", async () => {
@@ -508,18 +508,12 @@ describe("cronJob", () => {
 				cron: "0 0 * * *",
 				skill: "test-skill",
 			},
-			{ schedulesDir: SCHEDULES_DIR },
+			opts(),
 		);
-		const result = await cronJobImpl(
-			{ action: "run", name: "dynamic-import-test" },
-			{ schedulesDir: SCHEDULES_DIR },
-		);
+		const result = await cronJobImpl({ action: "run", name: "dynamic-import-test" }, opts());
 		const parsed = JSON.parse(result);
 		assert.ok(parsed.ok !== undefined);
-		await cronJobImpl(
-			{ action: "remove", name: "dynamic-import-test" },
-			{ schedulesDir: SCHEDULES_DIR },
-		);
+		await cronJobImpl({ action: "remove", name: "dynamic-import-test" }, opts());
 	});
 
 	it("run returns error when skill has no discoverable script", async () => {
@@ -530,16 +524,13 @@ describe("cronJob", () => {
 				cron: "0 0 * * *",
 				skill: "nonexistent-skill",
 			},
-			{ schedulesDir: SCHEDULES_DIR },
+			opts(),
 		);
-		const result = await cronJobImpl(
-			{ action: "run", name: "no-script-job" },
-			{ schedulesDir: SCHEDULES_DIR },
-		);
+		const result = await cronJobImpl({ action: "run", name: "no-script-job" }, opts());
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("no discoverable script"));
-		await cronJobImpl({ action: "remove", name: "no-script-job" }, { schedulesDir: SCHEDULES_DIR });
+		await cronJobImpl({ action: "remove", name: "no-script-job" }, opts());
 	});
 
 	it("run executes skill script when one is found", async () => {
@@ -557,20 +548,14 @@ describe("cronJob", () => {
 					cron: "0 0 * * *",
 					skill: "test-exec-skill",
 				},
-				{ schedulesDir: SCHEDULES_DIR },
+				opts(),
 			);
-			const result = await cronJobImpl(
-				{ action: "run", name: "exec-job" },
-				{ schedulesDir: SCHEDULES_DIR },
-			);
+			const result = await cronJobImpl({ action: "run", name: "exec-job" }, opts());
 			const parsed = JSON.parse(result);
 			assert.ok(parsed !== null);
 		} finally {
 			rmSync("skills/test-exec-skill", { recursive: true, force: true });
-			await cronJobImpl(
-				{ action: "remove", name: "exec-job" },
-				{ schedulesDir: SCHEDULES_DIR },
-			).catch(() => {});
+			await cronJobImpl({ action: "remove", name: "exec-job" }, opts()).catch(() => {});
 		}
 	});
 });

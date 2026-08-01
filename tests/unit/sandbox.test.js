@@ -7,8 +7,7 @@ import { resolvePath, assertPathAllowed } from "../../src/sandbox/pathResolver.j
 import { filterUrl, isSchemeAllowed } from "../../src/sandbox/urlFilter.js";
 import { injectEnv, filterEnv } from "../../src/sandbox/envInjector.js";
 import { enforceCapabilities } from "../../src/sandbox/capability.js";
-import { runSandbox } from "../../src/sandbox/runner.js";
-import { detectInterpreter } from "../../src/sandbox/runner.js";
+import { detectInterpreter, runSandbox } from "../../src/sandbox/runner.js";
 
 describe("sandbox - path resolution", () => {
 	describe("resolvePath", () => {
