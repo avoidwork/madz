@@ -1,5 +1,6 @@
 import { execSync } from "node:child_process";
-import { mkdirSync, readdir, readFile, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 // Block delimiters for madz-managed crontab entries
@@ -10,7 +11,7 @@ const BLOCK_END = "# --- END madz-schedules ---";
 const REFLECTION_JOB = {
 	name: "reflection-daily",
 	cron: "0 2 * * *",
-	command: 'cd /app && node index.js --message "Run the reflection skill"',
+	command: `cd ${process.cwd()} && node index.js --message "Run the reflection skill"`,
 	enabled: true,
 };
 
