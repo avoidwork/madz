@@ -193,7 +193,7 @@ describe("integration - scheduler execution", () => {
 	it("enforces concurrent execution limits", async () => {
 		const maxConcurrent = 1;
 		let concurrent = 0;
-		const scheduleTasks = [
+		const _scheduleTasks = [
 			{ name: "A", cron: "0 9 * * *", skill: "x" },
 			{ name: "B", cron: "0 9 * * *", skill: "y" },
 		];

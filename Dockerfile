@@ -35,15 +35,15 @@ WORKDIR /app
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package*.json ./
 COPY LICENSE ./
+COPY index.js ./
 COPY src/ ./src/
+COPY config.yaml ./
 COPY prompts/ ./prompts/
 COPY system-skills/ ./system-skills/
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 
-RUN mkdir -p /home/madz/.cache/madz/logs && \
-    touch /home/madz/.cache/madz/logs/madz_cron.log && \
-    chown -R madz:node /app /home/madz && \
+RUN chown -R madz:node /app /home/madz && \
     chmod -R g+rwX /app /home/madz
 
 ENTRYPOINT ["/docker-entrypoint.sh"]

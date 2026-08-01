@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { Cron } from "./cron.js";
 import { logger } from "../logger.js";
@@ -28,7 +28,7 @@ function createJobDefinition(cwd) {
 	return {
 		name: "reflection-daily",
 		cron: JOB_CRON,
-		command: `cd ${cwd} && timeout 300 node src/index.js --message "Run the reflection skill"`,
+		command: `cd ${cwd} && node index.js --message "Run the reflection skill"`,
 	};
 }
 
@@ -45,7 +45,14 @@ function persistJobFile(jobName, job, cwd) {
 	const filePath = join(schedulesDir, `${jobName}.json`);
 
 	if (existsSync(filePath)) {
-		return { written: true };
+		try {
+			const existing = JSON.parse(readFileSync(filePath, "utf8"));
+			if (existing.command === job.command) {
+				return { written: true };
+			}
+		} catch {
+			/* malformed JSON — fall through to overwrite */
+		}
 	}
 
 	try {
@@ -59,7 +66,7 @@ function persistJobFile(jobName, job, cwd) {
 		const jobData = Object.freeze({
 			name: job.name,
 			cron: job.cron,
-			command: `cd ${cwd} && timeout 300 node src/index.js --message "Run the reflection skill"`,
+			command: `cd ${cwd} && node index.js --message "Run the reflection skill"`,
 			enabled: true,
 			createdAt: new Date().toISOString(),
 			updatedAt: new Date().toISOString(),

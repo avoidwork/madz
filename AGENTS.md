@@ -170,7 +170,7 @@ Node.js-based AI harness application using LangGraph for state machines and Open
     └── schedules/              # Scheduled job output files
 ```
 
-Misc details: The `config.yaml` file is the single source of project configuration, loaded by `src/config/loader.js`. All subsystems wire into the entry point `index.js`.
+Misc details: The `config.yaml` file is the single source of project configuration, loaded by `src/config/loader.js`. All subsystems wire into the entry point `index.js` at the project root.
 
 ### 2.1 Quick Commands
 
