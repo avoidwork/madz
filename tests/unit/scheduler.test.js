@@ -120,14 +120,8 @@ describe("scheduler - ScheduleManager", () => {
 // --- Cron ---
 
 describe("scheduler - Cron", () => {
-	afterEach(() => {
-		try {
-			execSync("crontab -r 2>/dev/null || true", { stdio: "pipe" });
-		} catch {}
-	});
-
-	it("isAvailable returns an object with available field", () => {
-		const result = Cron.isAvailable();
+	it("isAvailable returns an object with available field", async () => {
+		const result = await Cron.isAvailable();
 		assert.ok(result.hasOwnProperty("available"));
 		if (result.available) {
 			assert.strictEqual(typeof result.error, "undefined");
@@ -136,25 +130,25 @@ describe("scheduler - Cron", () => {
 		}
 	});
 
-	it("list returns an array", () => {
-		const result = Cron.list();
+	it("list returns an array", async () => {
+		const result = await Cron.list();
 		assert.ok(Array.isArray(result));
 	});
 
-	it("uninstall returns a number", () => {
-		const count = Cron.uninstall();
+	it("uninstall returns a number", async () => {
+		const count = await Cron.uninstall();
 		assert.strictEqual(typeof count, "number");
 		assert.ok(count >= 0);
 	});
 
-	it("add returns added:false when crontab unavailable", () => {
-		const result = Cron.add({ name: "test", cron: "* * * * *" });
+	it("add returns added:false when crontab unavailable", async () => {
+		const result = await Cron.add({ name: "test", cron: "* * * * *" });
 		// Crontab may be available or not; check the result shape
 		assert.ok(result.hasOwnProperty("added"));
 	});
 
-	it("remove returns removed:false when crontab unavailable", () => {
-		const result = Cron.remove("test");
+	it("remove returns removed:false when crontab unavailable", async () => {
+		const result = await Cron.remove("test");
 		// Crontab may be available or not; check the result shape
 		assert.ok(result.hasOwnProperty("removed"));
 	});

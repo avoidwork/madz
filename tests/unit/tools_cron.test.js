@@ -142,7 +142,7 @@ describe("cronJob", () => {
 		}
 		// Ensure the system crontab is clean — strip the entire madz-schedules block
 		try {
-			Cron.uninstall();
+			await Cron.uninstall();
 		} catch {
 			// crontab may not be available; ignore
 		}

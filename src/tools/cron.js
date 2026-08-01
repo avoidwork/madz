@@ -316,7 +316,7 @@ export async function cronJobImpl(input, options) {
 					updatedAt: now,
 				};
 				await saveJob(job, schedulesDir);
-				const cronResult = cronModule.add({ name: job.name, cron: job.cron, command: job.command });
+				const cronResult = await cronModule.add({ name: job.name, cron: job.cron, command: job.command });
 				if (cronResult.error) {
 					logger.warn(`[cronJob] Failed to register "${job.name}" in crontab: ${cronResult.error}`);
 				}
@@ -359,7 +359,7 @@ export async function cronJobImpl(input, options) {
 				await saveJob(existing, schedulesDir);
 				// Sync crontab if cron or command changed
 				if (updateCron || updateCommand) {
-					cronModule.add({ name: existing.name, cron: existing.cron, command: existing.command });
+					await cronModule.add({ name: existing.name, cron: existing.cron, command: existing.command });
 				}
 				return JSON.stringify({ ok: true, message: `Job "${updateName}" updated`, job: existing });
 			}
@@ -426,7 +426,7 @@ export async function cronJobImpl(input, options) {
 				}
 				const filePath = join(schedulesDir, `${removeName}.json`);
 				await unlink(filePath);
-				cronModule.remove(removeName);
+				await cronModule.remove(removeName);
 				return JSON.stringify({
 					ok: true,
 					message: `Job "${removeName}" removed`,
