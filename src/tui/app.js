@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Box, useWindowSize, useApp } from "ink";
-import { useInput } from "ink";
+import { Box, useApp, useInput, useWindowSize } from "ink";
 import { CommandParser } from "./commandParser.js";
 import { ConversationPanel } from "./conversationPanel.js";
 import { StatusBar } from "./statusBar.js";

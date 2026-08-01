@@ -1,6 +1,5 @@
 import React, { useState } from "react";
-import { Box, Text } from "ink";
-import { useInput } from "ink";
+import { Box, Text, useInput } from "ink";
 
 /**
  * Memory panel that displays index entries with file viewer.
