@@ -1,37 +1,33 @@
 import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert";
-import { exec } from "node:child_process";
 import { Cron, setExecOverride } from "../../../src/scheduler/cron.js";
 
 // --- Mock crontab state ---
 let mockCrontabContent = "";
 let mockExecCalls = [];
 
-// Mock exec to intercept crontab commands
-function mockExec(command, options, callback) {
+// Mock exec that works with promisified exec (returns a Promise)
+function mockExec(command, options) {
 	mockExecCalls.push({ command, options });
 
 	// Intercept crontab commands
 	if (command.includes("crontab -l")) {
-		return callback(null, mockCrontabContent, "");
+		return Promise.resolve(mockCrontabContent || "");
 	}
 
 	if (command.includes("crontab -")) {
 		// Read from stdin (the content to install)
-		let stdin = "";
-		if (options && options.input) {
-			stdin = options.input;
-		}
+		const stdin = options?.input || "";
 		mockCrontabContent = stdin;
-		return callback(null, "", "");
+		return Promise.resolve("");
 	}
 
 	if (command.includes("which crontab")) {
-		return callback(null, "/usr/bin/crontab", "");
+		return Promise.resolve("/usr/bin/crontab");
 	}
 
-	// Fall through to real exec for other commands
-	return exec(command, options, callback);
+	// Reject unknown commands to prevent hanging
+	return Promise.reject(new Error(`Unexpected command: ${command}`));
 }
 
 describe("cron - Cron.isAvailable", () => {
@@ -73,11 +69,11 @@ describe("cron - Cron.add", () => {
 	});
 
 	afterEach(() => {
-		global.exec = originalExec;
+		setExecOverride(undefined);
 	});
 
 	it("adds a new entry to empty crontab", async () => {
-		global.exec = mockExec;
+		setExecOverride(mockExec);
 		const result = await Cron.add({ name: "test", cron: "* * * * *", command: "echo test" });
 		assert.strictEqual(result.added, true);
 		assert.ok(mockCrontabContent.includes("# --- BEGIN madz-schedules ---"));
@@ -85,7 +81,7 @@ describe("cron - Cron.add", () => {
 	});
 
 	it("replaces existing entry with same name", async () => {
-		global.exec = mockExec;
+		setExecOverride(mockExec);
 		// First add
 		await Cron.add({ name: "test", cron: "* * * * *", command: "echo first" });
 		// Second add with different cron
@@ -101,9 +97,9 @@ describe("cron - Cron.add", () => {
 			if (cmd.includes("which crontab")) {
 				return Promise.reject(new Error("not found"));
 			}
-			return originalExec(cmd);
+			return mockExec(cmd);
 		};
-		global.exec = failingExec;
+		setExecOverride(failingExec);
 		const result = await Cron.add({ name: "test", cron: "* * * * *", command: "echo test" });
 		assert.strictEqual(result.added, false);
 		assert.ok(result.error);
