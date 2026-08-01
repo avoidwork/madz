@@ -50,37 +50,6 @@ if (config.schedules.syncOnInit !== false) {
 				`[scheduler] Crontab sync complete: +${result.added} added, -${result.removed} removed, ~${result.updated} updated, =${result.skipped} skipped`,
 			);
 		}
-
-		// Ensure the daily reflection job exists in crontab and persisted (covers upgrading users
-		// who have no reflection-daily.json on disk). Cron.add() is idempotent.
-		const cwd = config.cwd;
-		const jobResult = Cron.add({
-			name: "reflection-daily",
-			cron: "0 2 * * *",
-			command: `cd ${cwd} && node index.js --message "Run the reflection skill"`,
-		});
-		if (jobResult.added || !jobResult.error) {
-			try {
-				const { existsSync, mkdirSync, writeFileSync } = await import("node:fs");
-				const { join } = await import("node:path");
-				const schedulesDir = config.memory?.schedulesDir || "memory/schedules/";
-				const filePath = join(schedulesDir, "reflection-daily.json");
-				if (!existsSync(filePath)) {
-					mkdirSync(schedulesDir, { recursive: true });
-					const jobData = {
-						name: "reflection-daily",
-						cron: "0 2 * * *",
-						command: `cd ${cwd} && node index.js --message "Run the reflection skill"`,
-						enabled: true,
-						createdAt: new Date().toISOString(),
-						updatedAt: new Date().toISOString(),
-					};
-					writeFileSync(filePath, JSON.stringify(jobData, null, 2));
-				}
-			} catch (err) {
-				logger.warn(`[scheduler] Failed to persist reflection-daily job file: ${err.message}`);
-			}
-		}
 	} catch (err) {
 		logger.warn(`[scheduler] Crontab sync error: ${err.message}`);
 	}
