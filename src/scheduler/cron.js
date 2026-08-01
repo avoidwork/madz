@@ -1,10 +1,18 @@
 import { execSync } from "node:child_process";
-import { readdir, readFile } from "node:fs/promises";
+import { mkdirSync, readdir, readFile, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 // Block delimiters for madz-managed crontab entries
 const BLOCK_START = "# --- BEGIN madz-schedules ---";
 const BLOCK_END = "# --- END madz-schedules ---";
+
+// Default reflection-daily job definition
+const REFLECTION_JOB = {
+	name: "reflection-daily",
+	cron: "0 2 * * *",
+	command: 'cd /app && node index.js --message "Run the reflection skill"',
+	enabled: true,
+};
 
 /** @type {string|undefined} */
 let _logPath = undefined;
@@ -379,6 +387,40 @@ export const Cron = {
 	},
 
 	/**
+	 * Ensure the reflection-daily job file exists on disk.
+	 * Creates it with default values if missing (idempotent).
+	 * @param {string} schedulesDir - Path to the schedules directory
+	 * @returns {void}
+	 */
+	_ensureReflectionJob(schedulesDir) {
+		const filePath = join(schedulesDir, `${REFLECTION_JOB.name}.json`);
+		try {
+			readdir(schedulesDir);
+		} catch {
+			try {
+				mkdirSync(schedulesDir, { recursive: true });
+			} catch {
+				// Directory creation failed — sync will handle gracefully
+				return;
+			}
+		}
+		try {
+			readFile(filePath, "utf-8");
+		} catch {
+			// File doesn't exist — create it
+			const jobData = Object.freeze({
+				name: REFLECTION_JOB.name,
+				cron: REFLECTION_JOB.cron,
+				command: REFLECTION_JOB.command,
+				enabled: REFLECTION_JOB.enabled,
+				createdAt: new Date().toISOString(),
+				updatedAt: new Date().toISOString(),
+			});
+			writeFileSync(filePath, JSON.stringify(jobData, null, 2));
+		}
+	},
+
+	/**
 	 * Read all job definitions from the schedules directory.
 	 * @param {string} schedulesDir - Path to the schedules directory
 	 * @returns {Promise<Array<{ name: string, cron: string, command: string, enabled: boolean }>>}
@@ -433,6 +475,9 @@ export const Cron = {
 				error: error || "System crontab is not available",
 			};
 		}
+
+		// Ensure reflection-daily job file exists on disk before reading
+		this._ensureReflectionJob(schedulesDir);
 
 		// Read desired state from disk
 		const jobs = await this._readJobsFromDisk(schedulesDir);
