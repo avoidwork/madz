@@ -146,7 +146,7 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 				"TodoListMiddleware",
 				"SummarizationMiddleware",
 			],
-			excludedTools: ["write_todos", "execute"],
+			excludedTools: ["execute"],
 		}),
 	);
 
