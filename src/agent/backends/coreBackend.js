@@ -1,11 +1,11 @@
-import { FilesystemBackend } from "deepagents";
+import { LocalShellBackend } from "deepagents";
 
 /**
- * Create a FilesystemBackend sandboxed to the current working directory.
- * @returns {FilesystemBackend}
+ * Create a LocalShellBackend sandboxed to the current working directory.
+ * @returns {LocalShellBackend}
  */
 export function createCoreBackend() {
-	return new FilesystemBackend({
+	return new LocalShellBackend({
 		rootDir: process.cwd(),
 		virtualMode: false,
 	});
