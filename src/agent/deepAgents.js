@@ -1,4 +1,9 @@
-import { createDeepAgent, CompositeBackend, registerHarnessProfile, createHarnessProfile } from "deepagents";
+import {
+	createDeepAgent,
+	CompositeBackend,
+	registerHarnessProfile,
+	createHarnessProfile,
+} from "deepagents";
 import { join } from "node:path";
 import { InMemoryStore } from "@langchain/langgraph-checkpoint";
 import { loadConfig } from "../config/loader.js";
