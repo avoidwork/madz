@@ -18,7 +18,7 @@ import { webSearch, webExtract } from "./web.js";
 /**
  * Maps tool names to required permission scopes.
  * A tool registers only when ALL its required permissions are in the enabled set.
- * Clarify and execute_code are exempt (always registered) since they require zero permissions.
+ * Clarify, execute_code, sampling, and shell are exempt (always registered).
  */
 export const TOOL_PERMISSIONS = {
 	clarify: ["filesystem:read", "filesystem:write"],
@@ -260,7 +260,8 @@ export async function buildToolConfig(options) {
 		switch (toolName) {
 			case "clarify":
 			case "executeCode":
-			case "sampling": {
+			case "sampling":
+			case "shell": {
 				tools.push(TOOLS[toolName]);
 				continue;
 			}
