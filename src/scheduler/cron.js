@@ -1,5 +1,4 @@
 import { exec } from "node:child_process";
-import { promisify } from "node:util";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
@@ -18,8 +17,28 @@ const REFLECTION_JOB = {
 /** @type {string|undefined} */
 let _logPath = undefined;
 
+/**
+ * Execute a shell command with optional stdin input.
+ * @param {string} cmd - Shell command to execute
+ * @param {object} [opts={}] - Options
+ * @param {string} [opts.input] - Data to write to stdin
+ * @returns {Promise<{stdout: string, stderr: string}>} Command output
+ */
+function runExec(cmd, opts = {}) {
+	return new Promise((resolve, reject) => {
+		const child = exec(cmd, opts, (err, stdout, stderr) => {
+			if (err) reject(err);
+			else resolve({ stdout, stderr });
+		});
+		if (opts.input) {
+			child.stdin.write(opts.input);
+		}
+		child.stdin.end();
+	});
+}
+
 /** @type {typeof import("node:child_process").exec|undefined} */
-let _execOverride = promisify(exec);
+let _execOverride = runExec;
 
 /**
  * Set a custom exec function for testing.
@@ -562,7 +581,7 @@ export const Cron = {
 		}
 
 		try {
-			this._writeCrontab(outsideLines.join("\n"));
+			await this._writeCrontab(outsideLines.join("\n"));
 		} catch (err) {
 			const msg = err instanceof Error ? err.message : String(err);
 			return { added, removed, updated, skipped, error: `Failed to write crontab: ${msg}` };

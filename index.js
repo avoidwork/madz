@@ -126,7 +126,8 @@ const { flush: flushLogger } = await import("./src/logger.js");
 
 // Initialize scheduler
 const { ScheduleManager } = await import("./src/scheduler/index.js");
-const scheduleManager = new ScheduleManager();
+const schedulesDir = config.memory?.schedulesDir || "memory/schedules/";
+const scheduleManager = await ScheduleManager.loadFromDisk(config.cwd + "/" + schedulesDir);
 
 // Create or restore session
 const providerName = Object.keys(config.providers)[0] || "openai";
