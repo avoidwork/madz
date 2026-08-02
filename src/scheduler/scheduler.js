@@ -185,7 +185,23 @@ export class ScheduleManager {
 			});
 		}
 
-		const contextPrefix = "";
+		const contextDir = scheduler.state?.contextDir || "memory/context/";
+		let contextPrefix = "";
+		if (entry.contextFile) {
+			try {
+				const { readFile, access, constants } = await import("node:fs/promises");
+				const { loadContext } = await import("../memory/context.js");
+				try {
+					await access(entry.contextFile, constants.F_OK);
+					contextPrefix = await readFile(entry.contextFile, "utf-8");
+				} catch {
+					contextPrefix = loadContext(contextDir);
+				}
+			} catch {
+				// Context load failed — continue with empty context
+			}
+		}
+
 		const sandbox = scheduler.sandbox || (() => ({ stdout: "", stderr: "", exitCode: 1 }));
 		const result = await Promise.race([
 			sandbox({
