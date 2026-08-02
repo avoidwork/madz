@@ -142,10 +142,6 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	registerHarnessProfile(
 		modelIdentifier,
 		createHarnessProfile({
-			excludedMiddleware: [
-				"TodoListMiddleware",
-				"SummarizationMiddleware",
-			],
 			excludedTools: ["execute"],
 		}),
 	);
