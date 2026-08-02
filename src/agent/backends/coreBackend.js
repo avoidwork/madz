@@ -8,5 +8,6 @@ export function createCoreBackend() {
 	return new LocalShellBackend({
 		rootDir: process.cwd(),
 		virtualMode: false,
+		inheritEnv: true,
 	});
 }
