@@ -31,8 +31,9 @@ function runExec(cmd, opts = {}) {
 			else resolve({ stdout, stderr });
 		});
 		if (opts.input) {
-			child.stdin.end(opts.input);
+			child.stdin.write(opts.input);
 		}
+		child.stdin.end();
 	});
 }
 
