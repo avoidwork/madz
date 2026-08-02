@@ -12,18 +12,18 @@ function mockExec(command, options) {
 
 	// Intercept crontab commands
 	if (command.includes("crontab -l")) {
-		return Promise.resolve(mockCrontabContent || "");
+		return Promise.resolve({ stdout: mockCrontabContent || "", stderr: "" });
 	}
 
 	if (command.includes("crontab -")) {
 		// Read from stdin (the content to install)
 		const stdin = options?.input || "";
 		mockCrontabContent = stdin;
-		return Promise.resolve("");
+		return Promise.resolve({ stdout: "", stderr: "" });
 	}
 
 	if (command.includes("which crontab")) {
-		return Promise.resolve("/usr/bin/crontab");
+		return Promise.resolve({ stdout: "/usr/bin/crontab", stderr: "" });
 	}
 
 	// Reject unknown commands to prevent hanging
