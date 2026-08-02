@@ -562,7 +562,7 @@ export const Cron = {
 		}
 
 		try {
-			this._writeCrontab(outsideLines.join("\n"));
+			await this._writeCrontab(outsideLines.join("\n"));
 		} catch (err) {
 			const msg = err instanceof Error ? err.message : String(err);
 			return { added, removed, updated, skipped, error: `Failed to write crontab: ${msg}` };
