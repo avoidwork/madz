@@ -104,7 +104,7 @@ export const Cron = {
 	 */
 	async _readCrontab() {
 		try {
-			const { stdout, stderr } = await _execOverride("crontab -l 2>&1", {
+			const { stdout } = await _execOverride("crontab -l 2>&1", {
 				encoding: "utf-8",
 				stdio: ["pipe", "pipe", "pipe"],
 			});
