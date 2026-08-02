@@ -17,6 +17,13 @@ const REFLECTION_JOB = {
 /** @type {string|undefined} */
 let _logPath = undefined;
 
+/**
+ * Execute a shell command with optional stdin input.
+ * @param {string} cmd - Shell command to execute
+ * @param {object} [opts={}] - Options
+ * @param {string} [opts.input] - Data to write to stdin
+ * @returns {Promise<{stdout: string, stderr: string}>} Command output
+ */
 function runExec(cmd, opts = {}) {
 	return new Promise((resolve, reject) => {
 		const child = exec(cmd, opts, (err, stdout, stderr) => {
