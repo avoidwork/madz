@@ -60,123 +60,111 @@ describe("Agent Definitions", () => {
 		});
 	});
 
-	describe("Output format validation", () => {
-		it("search agent should include structured output format", () => {
-			const search = ALL_AGENTS.find((a) => a.name === "search");
-			ok(search, "Should find search agent");
-			ok(search.systemPrompt.includes("Summary"), "Should include Summary section");
-			ok(search.systemPrompt.includes("Key Findings"), "Should include Key Findings section");
-			ok(search.systemPrompt.includes("Sources"), "Should include Sources section");
-			ok(search.systemPrompt.includes("Confidence"), "Should include Confidence section");
+	describe("Unified output format", () => {
+		it("should use Status/Summary/Details/Artifacts/Next Steps for all agents", () => {
+			for (const agent of ALL_AGENTS) {
+				ok(agent.systemPrompt.includes("Status"), `${agent.name} should reference Status`);
+				ok(agent.systemPrompt.includes("Summary"), `${agent.name} should reference Summary`);
+				ok(agent.systemPrompt.includes("Details"), `${agent.name} should reference Details`);
+				ok(agent.systemPrompt.includes("Artifacts"), `${agent.name} should reference Artifacts`);
+				ok(agent.systemPrompt.includes("Next Steps"), `${agent.name} should reference Next Steps`);
+			}
 		});
 
-		it("debug agent should include error analysis format", () => {
-			const debug = ALL_AGENTS.find((a) => a.name === "debug");
-			ok(debug, "Should find debug agent");
-			ok(debug.systemPrompt.includes("Root Cause"), "Should include Root Cause section");
-			ok(debug.systemPrompt.includes("Analysis"), "Should include Analysis section");
-			ok(debug.systemPrompt.includes("Proposed Fix"), "Should include Proposed Fix section");
-			ok(debug.systemPrompt.includes("Confidence"), "Should include Confidence section");
+		it("should have ROLE section for all agents", () => {
+			for (const agent of ALL_AGENTS) {
+				ok(agent.systemPrompt.includes("### ROLE"), `${agent.name} should have ROLE section`);
+			}
 		});
 
-		it("coding agent should include code editing rules", () => {
-			const coding = ALL_AGENTS.find((a) => a.name === "coding");
-			ok(coding, "Should find coding agent");
-			ok(
-				coding.systemPrompt.includes("Read before writing"),
-				"Should include read-before-write rule",
-			);
-			ok(coding.systemPrompt.includes("Ship complete code"), "Should include ship-complete rule");
-			ok(
-				coding.systemPrompt.includes("Respect project conventions"),
-				"Should include conventions rule",
-			);
-			ok(coding.systemPrompt.includes("No dead code"), "Should include no-dead-code rule");
+		it("should have PERSONALITY section for all agents", () => {
+			for (const agent of ALL_AGENTS) {
+				ok(
+					agent.systemPrompt.includes("### PERSONALITY"),
+					`${agent.name} should have PERSONALITY section`,
+				);
+			}
 		});
 
-		it("code-review agent should include severity-rated findings", () => {
-			const review = ALL_AGENTS.find((a) => a.name === "code-review");
-			ok(review, "Should find code-review agent");
-			ok(review.systemPrompt.includes("Critical Issues"), "Should include Critical Issues section");
-			ok(review.systemPrompt.includes("High Priority"), "Should include High Priority section");
-			ok(review.systemPrompt.includes("Medium Priority"), "Should include Medium Priority section");
-			ok(review.systemPrompt.includes("Low Priority"), "Should include Low Priority section");
+		it("should have CAPABILITIES section for all agents", () => {
+			for (const agent of ALL_AGENTS) {
+				ok(
+					agent.systemPrompt.includes("### CAPABILITIES"),
+					`${agent.name} should have CAPABILITIES section`,
+				);
+			}
 		});
 
-		it("research agent should include comprehensive report format", () => {
-			const research = ALL_AGENTS.find((a) => a.name === "research");
-			ok(research, "Should find research agent");
-			ok(
-				research.systemPrompt.includes("Executive Summary"),
-				"Should include Executive Summary section",
-			);
-			ok(
-				research.systemPrompt.includes("Detailed Findings"),
-				"Should include Detailed Findings section",
-			);
-			ok(research.systemPrompt.includes("Sources"), "Should include Sources section");
-			ok(
-				research.systemPrompt.includes("Recommendations"),
-				"Should include Recommendations section",
-			);
+		it("should have RULES section for all agents", () => {
+			for (const agent of ALL_AGENTS) {
+				ok(agent.systemPrompt.includes("### RULES"), `${agent.name} should have RULES section`);
+			}
 		});
 
-		it("testing agent should include test generation format", () => {
-			const testing = ALL_AGENTS.find((a) => a.name === "testing");
-			ok(testing, "Should find testing agent");
-			ok(
-				testing.systemPrompt.includes("Coverage Analysis"),
-				"Should include Coverage Analysis section",
-			);
-			ok(
-				testing.systemPrompt.includes("Generated Tests"),
-				"Should include Generated Tests section",
-			);
-			ok(testing.systemPrompt.includes("Coverage Gaps"), "Should include Coverage Gaps section");
+		it("should have SAFETY section for all agents", () => {
+			for (const agent of ALL_AGENTS) {
+				ok(agent.systemPrompt.includes("### SAFETY"), `${agent.name} should have SAFETY section`);
+			}
 		});
 
-		it("documentation agent should include documentation update format", () => {
-			const doc = ALL_AGENTS.find((a) => a.name === "documentation");
-			ok(doc, "Should find documentation agent");
-			ok(doc.systemPrompt.includes("Changes Made"), "Should include Changes Made section");
-			ok(
-				doc.systemPrompt.includes("Generated Content"),
-				"Should include Generated Content section",
-			);
-			ok(
-				doc.systemPrompt.includes("Consistency Notes"),
-				"Should include Consistency Notes section",
-			);
+		it("should have NOTE section for all agents", () => {
+			for (const agent of ALL_AGENTS) {
+				ok(agent.systemPrompt.includes("### NOTE"), `${agent.name} should have NOTE section`);
+			}
 		});
 
-		it("security-audit agent should include vulnerability report format", () => {
-			const security = ALL_AGENTS.find((a) => a.name === "security-audit");
-			ok(security, "Should find security-audit agent");
+		it("should have domain-specific personality content", () => {
+			// Coding agent references engineering/mathematical elegance
 			ok(
-				security.systemPrompt.includes("Critical Vulnerabilities"),
-				"Should include Critical Vulnerabilities section",
+				ALL_AGENTS[0].systemPrompt.includes("Le Chiffre"),
+				"Coding agent should reference Le Chiffre",
 			);
-			ok(security.systemPrompt.includes("High Priority"), "Should include High Priority section");
+
+			// Debug agent references forensic analysis
+			ok(ALL_AGENTS[2].systemPrompt.includes("Hannibal"), "Debug agent should reference Hannibal");
+
+			// Code-review agent references patience/observation
+			ok(ALL_AGENTS[3].systemPrompt.includes("Lucas"), "Code-review agent should reference Lucas");
+
+			// Research agent references curiosity/exploration
+			ok(ALL_AGENTS[4].systemPrompt.includes("Martin"), "Research agent should reference Martin");
+
+			// Testing agent references engineers/protectors
+			ok(ALL_AGENTS[5].systemPrompt.includes("Galen"), "Testing agent should reference Galen");
+
+			// Performance agent references efficiency/silence
 			ok(
-				security.systemPrompt.includes("Remediation Steps"),
-				"Should include Remediation Steps section",
+				ALL_AGENTS[8].systemPrompt.includes("One-Eye"),
+				"Performance agent should reference One-Eye",
+			);
+
+			// Security agent references patterns/vigilance
+			ok(
+				ALL_AGENTS[7].systemPrompt.includes("Kaecilius"),
+				"Security agent should reference Kaecilius",
+			);
+
+			// Search agent references decisiveness/directness
+			ok(ALL_AGENTS[1].systemPrompt.includes("Claus"), "Search agent should reference Claus");
+		});
+
+		it("should suppress persona for code/diff output (coding agent)", () => {
+			const coding = ALL_AGENTS[0];
+			ok(
+				coding.systemPrompt.includes("suppress"),
+				"Coding agent should have persona suppression note",
+			);
+			ok(
+				coding.systemPrompt.includes("code") || coding.systemPrompt.includes("diff"),
+				"Coding agent should suppress persona for code output",
 			);
 		});
 
-		it("performance agent should include benchmark format", () => {
-			const perf = ALL_AGENTS.find((a) => a.name === "performance");
-			ok(perf, "Should find performance agent");
+		it("should suppress persona for structured data output (debug agent)", () => {
+			const debug = ALL_AGENTS[2];
 			ok(
-				perf.systemPrompt.includes("Benchmark Results"),
-				"Should include Benchmark Results section",
-			);
-			ok(
-				perf.systemPrompt.includes("Identified Bottlenecks"),
-				"Should include Identified Bottlenecks section",
-			);
-			ok(
-				perf.systemPrompt.includes("Optimization Recommendations"),
-				"Should include Optimization Recommendations section",
+				debug.systemPrompt.includes("suppress") || debug.systemPrompt.includes("diffs"),
+				"Debug agent should suppress persona for structured output",
 			);
 		});
 	});
@@ -195,45 +183,71 @@ describe("Agent Definitions", () => {
 			deepStrictEqual(tools, []);
 		});
 
-		it("search agent should have webSearch and webExtract", () => {
+		it("search agent should reference correct tools (webSearch, webExtract, sessionSearch)", () => {
 			const search = ALL_AGENTS.find((a) => a.name === "search");
 			ok(search.systemPrompt.includes("webSearch"), "Search agent should reference webSearch");
 			ok(search.systemPrompt.includes("webExtract"), "Search agent should reference webExtract");
+			ok(
+				search.systemPrompt.includes("sessionSearch"),
+				"Search agent should reference sessionSearch",
+			);
 		});
 
-		it("debug agent should have executeCode and shell", () => {
+		it("debug agent should reference correct tools (executeCode, shell)", () => {
 			const debug = ALL_AGENTS.find((a) => a.name === "debug");
 			ok(debug.systemPrompt.includes("executeCode"), "Debug agent should reference executeCode");
 			ok(debug.systemPrompt.includes("shell"), "Debug agent should reference shell");
 		});
 
-		it("code-review agent should have grep", () => {
+		it("code-review agent should reference correct tools (scanAgents, skillView)", () => {
 			const review = ALL_AGENTS.find((a) => a.name === "code-review");
-			ok(review.systemPrompt.includes("grep"), "Code review agent should reference grep");
-		});
-
-		it("documentation agent should reference documentation tools", () => {
-			const doc = ALL_AGENTS.find((a) => a.name === "documentation");
 			ok(
-				doc.systemPrompt.includes("README") || doc.systemPrompt.includes("API"),
-				"Documentation agent should reference documentation concepts",
+				review.systemPrompt.includes("scanAgents"),
+				"Code review agent should reference scanAgents",
 			);
+			ok(review.systemPrompt.includes("skillView"), "Code review agent should reference skillView");
 		});
 
-		it("security-audit agent should reference security concepts", () => {
-			const security = ALL_AGENTS.find((a) => a.name === "security-audit");
+		it("testing agent should reference correct tools (executeCode, shell)", () => {
+			const testing = ALL_AGENTS.find((a) => a.name === "testing");
 			ok(
-				security.systemPrompt.includes("security") || security.systemPrompt.includes("vulnerab"),
-				"Security agent should reference security concepts",
+				testing.systemPrompt.includes("executeCode"),
+				"Testing agent should reference executeCode",
 			);
+			ok(testing.systemPrompt.includes("shell"), "Testing agent should reference shell");
 		});
 
-		it("performance agent should have executeCode", () => {
+		it("performance agent should reference correct tools (executeCode, cronJob)", () => {
 			const perf = ALL_AGENTS.find((a) => a.name === "performance");
 			ok(
 				perf.systemPrompt.includes("executeCode"),
 				"Performance agent should reference executeCode",
 			);
+			ok(perf.systemPrompt.includes("cronJob"), "Performance agent should reference cronJob");
+		});
+
+		it("security-audit agent should reference security-focused tools (scanAgents, cronJob)", () => {
+			const security = ALL_AGENTS.find((a) => a.name === "security-audit");
+			ok(
+				security.systemPrompt.includes("scanAgents"),
+				"Security agent should reference scanAgents",
+			);
+			ok(security.systemPrompt.includes("cronJob"), "Security agent should reference cronJob");
+		});
+
+		it("documentation agent should reference doc tools (imageGenerate, textToSpeech)", () => {
+			const doc = ALL_AGENTS.find((a) => a.name === "documentation");
+			ok(doc.systemPrompt.includes("imageGenerate"), "Doc agent should reference imageGenerate");
+			ok(doc.systemPrompt.includes("textToSpeech"), "Doc agent should reference textToSpeech");
+		});
+
+		it("coding agent should reference correct tools (visionAnalyze, scanAgents)", () => {
+			const coding = ALL_AGENTS.find((a) => a.name === "coding");
+			ok(
+				coding.systemPrompt.includes("visionAnalyze"),
+				"Coding agent should reference visionAnalyze",
+			);
+			ok(coding.systemPrompt.includes("scanAgents"), "Coding agent should reference scanAgents");
 		});
 	});
 
