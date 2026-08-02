@@ -18,23 +18,13 @@ import { logger } from "../logger.js";
 
 /**
  * Get tool classifications for an agent by name.
- * Maps agent names to their required tool classifications.
+ * Each agent name is its own classification key — the agent type
+ * maps directly to TOOL_CLASSIFICATIONS entries.
  * @param {string} agentName - Agent name
- * @returns {string[]} Array of tool classifications
+ * @returns {string[]} Array of tool classifications (single element)
  */
 function getAgentClassifications(agentName) {
-	const classificationMap = {
-		search: ["read_file", "ls", "webSearch", "webExtract", "grep", "glob", "sessionSearch"],
-		debug: ["read_file", "ls", "grep", "glob", "executeCode", "shell"],
-		"code-review": ["read_file", "ls", "grep", "glob", "executeCode"],
-		research: ["read_file", "ls", "webSearch", "webExtract", "grep", "glob", "sessionSearch"],
-		testing: ["read_file", "ls", "grep", "glob", "executeCode", "shell"],
-		documentation: ["read_file", "ls", "write_file", "edit_file", "grep", "glob"],
-		"security-audit": ["read_file", "ls", "grep", "glob", "shell"],
-		performance: ["read_file", "ls", "executeCode", "grep", "shell"],
-		coding: ["read_file", "ls", "write_file", "edit_file", "grep", "glob", "executeCode", "shell"],
-	};
-	return classificationMap[agentName] || [];
+	return [agentName];
 }
 
 /**
