@@ -1,5 +1,4 @@
 import { exec } from "node:child_process";
-import { promisify } from "node:util";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
@@ -18,8 +17,20 @@ const REFLECTION_JOB = {
 /** @type {string|undefined} */
 let _logPath = undefined;
 
+function runExec(cmd, opts = {}) {
+	return new Promise((resolve, reject) => {
+		const child = exec(cmd, opts, (err, stdout, stderr) => {
+			if (err) reject(err);
+			else resolve({ stdout, stderr });
+		});
+		if (opts.input) {
+			child.stdin.end(opts.input);
+		}
+	});
+}
+
 /** @type {typeof import("node:child_process").exec|undefined} */
-let _execOverride = promisify(exec);
+let _execOverride = runExec;
 
 /**
  * Set a custom exec function for testing.
