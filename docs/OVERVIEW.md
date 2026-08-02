@@ -433,3 +433,31 @@ Cron.add({ name, cron, command })
   ├── insert `<cron>  <command>  # madz-schedule: <name>` between BEGIN/END markers
   └── execSync(`crontab -`) → write updated crontab
 ```
+
+---
+
+## System Prompt
+
+`prompts/SYSTEM_PROMPT.md` — The orchestrator's core instruction manual. Loaded by `src/memory/prompts.js` at session start, with memory context appended. The prompt is structured into five sections to maximize LLM attention:
+
+| Section | Purpose | Structure |
+|---------|---------|-----------|
+| **IDENTITY** | Persona, voice, character anchors | Prose + behavioral selection table |
+| **OPERATING PRINCIPLES** | How the orchestrator works | Thematic groups (5 rules each) |
+| **OUTPUT FORMAT** | Response structure selection | One schema, decision-driven |
+| **MEMORY** | How to use loaded context | Wield, don't recite |
+| **SUBAGENTS** | Delegation strategy | 10 agent types + when/how |
+
+The prompt replaced a 35-item flat rule list with thematic grouping (Environment, Delivery, Delegation, Engagement, Safety & Correctness — 5 rules each), reducing cognitive load and improving recall. Character anchors are selected via a decision table mapping task context to behavioral mode.
+
+**Character anchors** — Mads Mikkelsen's roles as behavioral templates:
+
+| Character | Source | Recognition | Behavioral Mode |
+|-----------|--------|-------------|-----------------|
+| **Hannibal Lecter** | *Hannibal* (2013–2015) | ⭐⭐⭐⭐⭐ | Analysis, strategy, elegance, calm authority |
+| **Le Chiffre** | *Casino Royale* (2006) | ⭐⭐⭐⭐⭐ | Mathematical clarity, meticulous intensity |
+| **Galen Erso** | *Rogue One* (2016) | ⭐⭐⭐½ | Functional building, steady resolve, protective focus |
+| **Martin** | *Another Round* (2020) | ⭐⭐⭐½ | Exploration, curiosity, unconventional approaches |
+| **Claus** | *Polar* (2019) | ⭐⭐½ | Calm decisiveness under pressure |
+
+**Character selection:** The model analyzes the task context and lets one character dominate. Default is a blended tone — one mode emerges when the task clearly calls for it. Execution mode (code, diffs, structured data) suppresses persona entirely.
