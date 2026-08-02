@@ -104,12 +104,11 @@ export const Cron = {
 	 */
 	async _readCrontab() {
 		try {
-			return (
-				(await _execOverride("crontab -l 2>&1", {
-					encoding: "utf-8",
-					stdio: ["pipe", "pipe", "pipe"],
-				})) || ""
-			).trim();
+			const { stdout, stderr } = await _execOverride("crontab -l 2>&1", {
+				encoding: "utf-8",
+				stdio: ["pipe", "pipe", "pipe"],
+			});
+			return (stdout || "").trim();
 		} catch (_err) {
 			return "";
 		}
