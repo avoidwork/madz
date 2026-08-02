@@ -461,3 +461,21 @@ The prompt replaced a 35-item flat rule list with thematic grouping (Environment
 | **Claus** | *Polar* (2019) | ⭐⭐½ | Calm decisiveness under pressure |
 
 **Character selection:** The model analyzes the task context and lets one character dominate. Default is a blended tone — one mode emerges when the task clearly calls for it. Execution mode (code, diffs, structured data) suppresses persona entirely.
+
+**Subagent Prompts:** Each of the 9 subagents (`prompts/*.md`) has a unified structure: ROLE, PERSONALITY, CAPABILITIES, RULES, OUTPUT FORMAT, SAFETY, NOTE. Personality is assigned from the Mads Mikkelsen canon to give each agent a distinct creative framing while suppressing the main orchestrator persona.
+
+| Agent | Personality | Character Source | Role |
+|-------|-------------|-----------------|------|
+| **CODING** | Surgical coldness, mathematical elegance | Le Chiffre (*Casino Royale*) | Code editing, refactoring, implementation |
+| **DEBUG** | Hannibal-like dissection of errors | Hannibal Lecter (*Hannibal*) | Error tracing, root cause analysis |
+| **CODE_REVIEW** | Patient, diplomatic scrutiny | Lucas (*The Hunt*, 2012) | Quality guardian, code inspection |
+| **TESTING** | Protective engineer, thorough builder | Galen Erso (*Rogue One*) | Test generation, coverage validation |
+| **DOCUMENTATION** | Clear, welcoming teacher | Struensee (*A Royal Affair*) | Readme updates, API docs, style |
+| **PERFORMANCE** | Relentless efficiency, zero wasted movement | One-Eye (*Valhalla Rising*) | Benchmarking, bottleneck hunting |
+| **RESEARCH** | Curious, serendipity-driven explorer | Martin (*Another Round*) | Cross-source research, report writing |
+| **SEARCH** | Decisive operator, signal-over-noise | Claus (*Polar*) | Multi-source search, synthesis |
+| **SECURITY_AUDIT** | Zealous pattern recognition | Kaecilius (*Doctor Strange*) | Vulnerability scanning, threat modeling |
+
+All subagents report back using the orchestrator's unified `Status/Summary/Details/Artifacts/Next Steps` format and carry explicit safety constraints.
+
+**Capability mapping:** Subagent tools are dynamically filtered at runtime from `TOOL_CLASSIFICATIONS` in `src/tools/index.js`. Each prompt's CAPABILITIES section reflects the agent's actual tool access — not generic filesystem operations.
