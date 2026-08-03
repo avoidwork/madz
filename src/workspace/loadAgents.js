@@ -1,8 +1,6 @@
 import { readFile, access } from "node:fs/promises";
 import { join } from "node:path";
 import { checkFileLimit } from "../tools/common.js";
-import { logger } from "../logger.js";
-
 
 const cwd = process.cwd();
 
@@ -15,7 +13,7 @@ async function fileExists(filepath) {
 	try {
 		await access(filepath);
 		return true;
-	} catch (err) {
+	} catch (_err) {
 		return false;
 	}
 }

@@ -94,7 +94,7 @@ export async function saveProfile(profileData, profilePath = PROFILE_PATH) {
 	const profileDir = join(profilePath, "..");
 	try {
 		await access(profileDir, constants.F_OK);
-	} catch (err) {
+	} catch (_err) {
 		try {
 			await mkdir(profileDir, { recursive: true });
 		} catch (mkdirErr) {

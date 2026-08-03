@@ -18,7 +18,7 @@ export function calculateConversationTokens(conversation, modelName, encoding) {
 	let tiktoken;
 	try {
 		tiktoken = require("tiktoken");
-	} catch (err) {
+	} catch (_err) {
 		// tiktoken not available — estimate based on character count
 		// Rough heuristic: ~4 characters per token for English text
 		return estimateTokensFromCharacters(conversation);
@@ -37,7 +37,7 @@ export function calculateConversationTokens(conversation, modelName, encoding) {
 
 		enc.free();
 		return totalTokens;
-	} catch (err) {
+	} catch (_err) {
 		// encoding_for_model failed — estimate based on character count
 		return estimateTokensFromCharacters(conversation);
 	}

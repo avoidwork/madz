@@ -5,7 +5,6 @@ import { enforceCapabilities } from "./capability.js";
 import { readFile, access, constants } from "node:fs/promises";
 import { logger } from "../logger.js";
 
-
 /**
  * Map file extension to interpreter command.
  * @param {string} filePath - Path to the script
@@ -45,7 +44,7 @@ export async function detectShebang(filePath) {
 	if (!filePath) return null;
 	try {
 		await access(filePath, constants.F_OK);
-	} catch (err) {
+	} catch (_err) {
 		return null;
 	}
 
@@ -99,8 +98,8 @@ export async function detectShebang(filePath) {
 			}
 		}
 	} catch (err) {
-	logger.debug(`[runner] Error: ${err.message}`);
-}
+		logger.debug(`[runner] Error: ${err.message}`);
+	}
 
 	return null;
 }

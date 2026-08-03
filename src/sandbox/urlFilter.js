@@ -31,7 +31,7 @@ export function filterUrl(url, allowlist = []) {
 		}
 
 		return { allowed: true, reason: "" };
-	} catch (err) {
+	} catch (_err) {
 		return { allowed: false, reason: "Invalid URL format" };
 	}
 }
@@ -46,7 +46,7 @@ export function isSchemeAllowed(url) {
 	try {
 		const scheme = new URL(url).protocol.toLowerCase();
 		return !BLOCKED_SCHEMES.has(scheme);
-	} catch (err) {
+	} catch (_err) {
 		return false;
 	}
 }

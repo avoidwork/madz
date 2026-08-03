@@ -1,7 +1,5 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import { logger } from "../logger.js";
-
 
 /**
  * Regex patterns to detect context length errors across providers.
@@ -349,7 +347,7 @@ export function createCompactContextTool(options = {}) {
 									}));
 							}
 						}
-					} catch (err) {
+					} catch (_err) {
 						// Checkpointer access failed — fall back to empty conversation
 						conversation = [];
 					}

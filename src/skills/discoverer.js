@@ -4,7 +4,6 @@ import { load } from "js-yaml";
 import { loadConfig } from "../config/loader.js";
 import { logger } from "../logger.js";
 
-
 export const defaultScope = loadConfig().sandbox.skillScanPaths;
 export let cwd = loadConfig().cwd;
 
@@ -41,7 +40,7 @@ export function extractFrontmatter(content) {
 	let frontmatter;
 	try {
 		frontmatter = load(yamlStr);
-	} catch (err) {
+	} catch (_err) {
 		// Fallback to lenient parsing
 		frontmatter = lenientYamlParse(yamlStr);
 	}
@@ -56,7 +55,7 @@ export function extractFrontmatter(content) {
 		let metadata;
 		try {
 			metadata = yaml.load(metadataStr);
-		} catch (err) {
+		} catch (_err) {
 			metadata = lenientYamlParse(metadataStr);
 		}
 		if (metadata && typeof metadata === "object") {
@@ -80,7 +79,7 @@ export function extractFrontmatter(content) {
 export function lenientYamlParse(yamlStr) {
 	try {
 		return yaml.load(yamlStr);
-	} catch (err) {
+	} catch (_err) {
 		// Try quoting line values that contain unquoted colons (e.g., "description: Use when: the user asks")
 		const fixed = yamlStr.replace(
 			/^(\s*[\w-]+:\s*)(?!["'])(.*:.*)(\s*)$/gm,
@@ -93,7 +92,7 @@ export function lenientYamlParse(yamlStr) {
 		);
 		try {
 			return load(fixed);
-		} catch (err) {
+		} catch (_err) {
 			return null;
 		}
 	}
@@ -166,8 +165,8 @@ async function findSkillFiles(dir) {
 							metadata.scripts = skillScripts;
 						}
 					} catch (err) {
-					logger.debug(`[discoverer] Error: ${err.message}`);
-				}
+						logger.debug(`[discoverer] Error: ${err.message}`);
+					}
 
 					skills.push({
 						path: fullPath,
@@ -175,13 +174,13 @@ async function findSkillFiles(dir) {
 						metadata,
 					});
 				} catch (err) {
-				logger.debug(`[discoverer] Error: ${err.message}`);
-			}
+					logger.debug(`[discoverer] Error: ${err.message}`);
+				}
 			}
 		}
 	} catch (err) {
-	logger.debug(`[discoverer] Error: ${err.message}`);
-}
+		logger.debug(`[discoverer] Error: ${err.message}`);
+	}
 
 	return skills;
 }
@@ -203,7 +202,7 @@ export async function discoverSkills(scope = defaultScope, options = {}) {
 		const fullScope = resolve(cwdParam, scopePath);
 		try {
 			await access(fullScope, constants.F_OK);
-		} catch (err) {
+		} catch (_err) {
 			continue;
 		}
 

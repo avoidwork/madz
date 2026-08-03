@@ -2,8 +2,6 @@ import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { filterUrl } from "../sandbox/urlFilter.js";
 import { loadConfig } from "../config/loader.js";
-import { logger } from "../logger.js";
-
 
 const config = loadConfig();
 
@@ -44,7 +42,7 @@ async function searchWithDuckDuckGo(query, limit) {
 			return { ok: false, error: "DuckDuckGo returned no results" };
 		}
 		return { ok: true, results };
-	} catch (err) {
+	} catch (_err) {
 		clearTimeout(timeoutId);
 		return { ok: false, error: "DuckDuckGo search failed" };
 	}
@@ -87,7 +85,7 @@ async function searchWithBing(apiKey, query, limit) {
 				description: r.snippet || "",
 			})),
 		};
-	} catch (err) {
+	} catch (_err) {
 		clearTimeout(timeoutId);
 		return { ok: false, error: "Bing search failed" };
 	}
@@ -124,7 +122,7 @@ async function searchWithSearXNG(searxngUrl, query, limit) {
 				description: r.content?.slice(0, 500) || "",
 			})),
 		};
-	} catch (err) {
+	} catch (_err) {
 		clearTimeout(timeoutId);
 		return { ok: false, error: "SearXNG search failed" };
 	}
@@ -190,7 +188,7 @@ async function searchWithCustom(cfg, query, limit) {
 				description: r[cfg.descriptionField] || "",
 			})),
 		};
-	} catch (err) {
+	} catch (_err) {
 		clearTimeout(timeoutId);
 		return { ok: false, error: "Custom search failed" };
 	}
@@ -326,7 +324,7 @@ export async function webExtractImpl(input) {
 		}
 
 		return JSON.stringify({ ok: true, url, contentLength: clean.length, content: clean });
-	} catch (err) {
+	} catch (_err) {
 		clearTimeout(timeoutId);
 		return JSON.stringify({ ok: false, error: "Fetch failed" });
 	}

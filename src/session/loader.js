@@ -2,8 +2,6 @@ import { readdir, readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { parseFrontmatter } from "../memory/reader.js";
 import { loadConfig } from "../config/loader.js";
-import { logger } from "../logger.js";
-
 
 const cwd = loadConfig().cwd;
 
@@ -40,7 +38,7 @@ export async function loadSession(
 				latestFile = file;
 			}
 		}
-	} catch (err) {
+	} catch (_err) {
 		// Directory doesn't exist — return empty
 		return { sessionId: "", conversation: [], metadata: {} };
 	}
@@ -62,7 +60,7 @@ async function loadFile(filepath, windowSize) {
 		if (Array.isArray(parsed)) {
 			conversation = parsed;
 		}
-	} catch (err) {
+	} catch (_err) {
 		conversation = [{ role: "system", content: body }];
 	}
 

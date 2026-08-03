@@ -128,8 +128,8 @@ export async function executeCodeImpl(input, options = {}) {
 			const { setrlimit } = await import("posix");
 			setrlimit("as", { soft: memLimit, hard: memLimit });
 		} catch (err) {
-		logger.debug(`[code] Error: ${err.message}`);
-	}
+			logger.debug(`[code] Error: ${err.message}`);
+		}
 	}
 
 	const controller = new AbortController();

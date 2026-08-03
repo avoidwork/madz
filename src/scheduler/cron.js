@@ -3,7 +3,6 @@ import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { logger } from "../logger.js";
 
-
 // Block delimiters for madz-managed crontab entries
 const BLOCK_START = "# --- BEGIN madz-schedules ---";
 const BLOCK_END = "# --- END madz-schedules ---";
@@ -428,11 +427,11 @@ export const Cron = {
 		const filePath = join(schedulesDir, `${REFLECTION_JOB.name}.json`);
 		try {
 			await readdir(schedulesDir);
-		} catch (err) {
+		} catch (_err) {
 			try {
 				await mkdir(schedulesDir, { recursive: true });
-			} catch (err) {
-				logger.debug(`[cron] Directory creation failed: ${err.message}`);
+			} catch (mkdirErr) {
+				logger.debug(`[cron] Directory creation failed: ${mkdirErr.message}`);
 				return;
 			}
 		}
@@ -479,8 +478,8 @@ export const Cron = {
 				}
 			}
 		} catch (err) {
-		logger.debug(`[cron] Error: ${err.message}`);
-	}
+			logger.debug(`[cron] Error: ${err.message}`);
+		}
 		return jobs;
 	},
 

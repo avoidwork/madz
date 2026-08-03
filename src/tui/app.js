@@ -607,7 +607,7 @@ export default function App({
 	 * Process onboarding input: forward to onboarding instance and update state.
 	 * @param {string} text - Raw user input
 	 */
-	function processOnboardingInput(text) {
+	async function processOnboardingInput(text) {
 		if (!onboarding || !showOnboarding) return false;
 		const trimmed = text.trim();
 

@@ -4,8 +4,6 @@ import { readdir, writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { readEphemeralFile, isExpired } from "../memory/expireEphemeral.js";
 import { loadConfig } from "../config/loader.js";
-import { logger } from "../logger.js";
-
 
 const config = loadConfig();
 
@@ -78,7 +76,7 @@ export async function countEphemeralMemoryFiles(contextDir, nowStr) {
 	let files;
 	try {
 		files = await readdir(join(config.cwd, contextDir));
-	} catch (err) {
+	} catch (_err) {
 		return 0;
 	}
 	let count = 0;

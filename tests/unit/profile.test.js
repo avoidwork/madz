@@ -1,7 +1,7 @@
 import { describe, it, after, beforeEach } from "node:test";
 import assert from "node:assert";
 import { writeFileSync, rmSync, mkdirSync } from "node:fs";
-import { readFile, access, constants } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
 	ATTRIBUTES,

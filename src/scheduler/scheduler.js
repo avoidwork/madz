@@ -195,7 +195,7 @@ export class ScheduleManager {
 				try {
 					await access(entry.contextFile, constants.F_OK);
 					contextPrefix = await readFile(entry.contextFile, "utf-8");
-				} catch (err) {
+				} catch (_err) {
 					contextPrefix = await loadContext(contextDir);
 				}
 			} catch (err) {

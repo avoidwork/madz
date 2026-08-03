@@ -1,11 +1,8 @@
-import { readFile } from "node:fs/promises";
-import { mkdir } from "node:fs/promises";
+import { readFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { discoverSkills, defaultScope } from "./discoverer.js";
 import { validateSkillSchema } from "./validator.js";
 import { loadConfig } from "../config/loader.js";
-import { logger } from "../logger.js";
-
 
 const cwd = loadConfig().cwd;
 
@@ -160,7 +157,7 @@ export class SkillRegistry {
 		}
 		try {
 			return await readFile(bodyPath, "utf-8");
-		} catch (err) {
+		} catch (_err) {
 			return null;
 		}
 	}
