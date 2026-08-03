@@ -1,6 +1,8 @@
 import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert";
-import { Cron, setExecOverride } from "../../../src/scheduler/cron.js";
+import { Cron, setExecOverride, writeEnvCron, prepareCrontabCommand } from "../../../src/scheduler/cron.js";
+import { mkdirSync, writeFileSync, rmSync, readFileSync, statSync } from "node:fs";
+import { join } from "node:path";
 
 // --- Mock crontab state ---
 let mockCrontabContent = "";
@@ -357,3 +359,95 @@ describe("cron - Cron.sync", () => {
 		rmSync(join(process.cwd(), testDir), { recursive: true, force: true });
 	});
 });
+
+describe("cron - writeEnvCron", () => {
+		beforeEach(() => {
+			// Set up test env vars
+			process.env.OPENAI_API_KEY = "test-key-123";
+			process.env.OPENAI_BASE_URL = "http://localhost:8000/v1";
+			process.env.NODE_OPTIONS = "--max-old-space-size=6144";
+			process.env.TZ = "America/Toronto";
+		});
+
+		afterEach(() => {
+			// Clean up test env vars and temp files
+			delete process.env.OPENAI_API_KEY;
+			delete process.env.OPENAI_BASE_URL;
+			delete process.env.NODE_OPTIONS;
+			delete process.env.TZ;
+			try {
+				rmSync(join(process.cwd(), ".env.cron"), { force: true });
+			} catch (_err) {
+				// ignore
+			}
+		});
+
+		it("writes .env.cron with whitelisted variables", async () => {
+			const result = await writeEnvCron(process.cwd());
+			assert.strictEqual(result.written, true);
+			const content = readFileSync(join(process.cwd(), ".env.cron"), "utf-8");
+			assert.ok(content.includes("export OPENAI_API_KEY="));
+			assert.ok(content.includes("export OPENAI_BASE_URL="));
+			assert.ok(content.includes("export NODE_OPTIONS="));
+			assert.ok(content.includes("export TZ="));
+		});
+
+		it("writes file with 0600 permissions", async () => {
+			await writeEnvCron(process.cwd());
+			const stats = statSync(join(process.cwd(), ".env.cron"));
+			const mode = stats.mode & 0o777;
+			assert.strictEqual(mode, 0o600);
+		});
+
+		it("returns written:false when no whitelisted vars exist", async () => {
+			delete process.env.OPENAI_API_KEY;
+			delete process.env.OPENAI_BASE_URL;
+			delete process.env.NODE_OPTIONS;
+			delete process.env.TZ;
+			const result = await writeEnvCron(process.cwd());
+			assert.strictEqual(result.written, false);
+		});
+
+		it("escapes single quotes in values", async () => {
+			process.env.OPENAI_API_KEY = "test'value";
+			await writeEnvCron(process.cwd());
+			const content = readFileSync(join(process.cwd(), ".env.cron"), "utf-8");
+			assert.ok(content.includes("test'\\''value"));
+		});
+
+		it("is idempotent — overwrites on second call", async () => {
+			await writeEnvCron(process.cwd());
+			await writeEnvCron(process.cwd());
+			const content = readFileSync(join(process.cwd(), ".env.cron"), "utf-8");
+			// Should only have one set of exports, not duplicated
+			const keyCount = (content.match(/OPENAI_API_KEY/g) || []).length;
+			assert.strictEqual(keyCount, 1);
+		});
+	});
+
+describe("cron - prepareCrontabCommand", () => {
+		it("prepends env sourcing prefix", () => {
+			const result = prepareCrontabCommand("echo test");
+			assert.ok(result.startsWith(". /"));
+			assert.ok(result.includes(".env.cron"));
+			assert.ok(result.endsWith("&& echo test"));
+		});
+
+		it("prepends env sourcing to all commands", () => {
+			const result = prepareCrontabCommand("cd /app && node index.js");
+			assert.ok(result.startsWith(". /"));
+			assert.ok(result.includes("&& cd /app && node index.js"));
+		});
+
+		it("strips newlines from commands", () => {
+			const result = prepareCrontabCommand("echo hello\nworld");
+			assert.ok(!result.includes("\n"));
+			assert.ok(!result.includes("\r"));
+		});
+
+		it("handles empty command", () => {
+			const result = prepareCrontabCommand("");
+			assert.ok(result.startsWith(". /"));
+			assert.ok(result.includes("&& "));
+		});
+	});
