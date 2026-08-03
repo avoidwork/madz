@@ -1,7 +1,9 @@
-import { readdirSync, statSync, readFileSync, existsSync } from "node:fs";
+import { readdir, stat, readFile, access, constants } from "node:fs/promises";
 import { join, basename, resolve } from "node:path";
 import { load } from "js-yaml";
 import { loadConfig } from "../config/loader.js";
+import { logger } from "../logger.js";
+
 
 export const defaultScope = loadConfig().sandbox.skillScanPaths;
 export let cwd = loadConfig().cwd;
@@ -39,7 +41,7 @@ export function extractFrontmatter(content) {
 	let frontmatter;
 	try {
 		frontmatter = load(yamlStr);
-	} catch {
+	} catch (err) {
 		// Fallback to lenient parsing
 		frontmatter = lenientYamlParse(yamlStr);
 	}
@@ -54,7 +56,7 @@ export function extractFrontmatter(content) {
 		let metadata;
 		try {
 			metadata = yaml.load(metadataStr);
-		} catch {
+		} catch (err) {
 			metadata = lenientYamlParse(metadataStr);
 		}
 		if (metadata && typeof metadata === "object") {
@@ -78,7 +80,7 @@ export function extractFrontmatter(content) {
 export function lenientYamlParse(yamlStr) {
 	try {
 		return yaml.load(yamlStr);
-	} catch {
+	} catch (err) {
 		// Try quoting line values that contain unquoted colons (e.g., "description: Use when: the user asks")
 		const fixed = yamlStr.replace(
 			/^(\s*[\w-]+:\s*)(?!["'])(.*:.*)(\s*)$/gm,
@@ -91,7 +93,7 @@ export function lenientYamlParse(yamlStr) {
 		);
 		try {
 			return load(fixed);
-		} catch {
+		} catch (err) {
 			return null;
 		}
 	}
@@ -113,21 +115,22 @@ function shouldSkip(name) {
 /**
  * Recursively scan a directory for SKILL.md files.
  * @param {string} dir - The directory to scan
- * @returns {string[]} Array of paths to SKILL.md files
+ * @returns {Promise<string[]>} Array of paths to SKILL.md files
  */
-function findSkillFiles(dir) {
+async function findSkillFiles(dir) {
 	const skills = [];
 
 	try {
-		const entries = readdirSync(dir);
+		const entries = await readdir(dir);
 		for (const entry of entries) {
 			if (shouldSkip(entry)) continue;
 			const fullPath = join(dir, entry);
-			const st = statSync(fullPath);
+			const st = await stat(fullPath);
 			if (st.isDirectory()) {
 				const skillMdPath = join(fullPath, SKILL_DIR);
-				if (existsSync(skillMdPath)) {
-					const frontmatter = extractFrontmatter(readFileSync(skillMdPath, "utf-8"));
+				try {
+					await access(skillMdPath, constants.F_OK);
+					const frontmatter = extractFrontmatter(await readFile(skillMdPath, "utf-8"));
 
 					// Skip skills that lack valid frontmatter or required metadata
 					if (!frontmatter.frontmatter) {
@@ -157,21 +160,28 @@ function findSkillFiles(dir) {
 
 					// Check for skill-specific scripts directory
 					const skillScripts = join(fullPath, "scripts");
-					if (existsSync(skillScripts) && statSync(skillScripts).isDirectory()) {
-						metadata.scripts = skillScripts;
-					}
+					try {
+						const scriptsStat = await stat(skillScripts);
+						if (scriptsStat.isDirectory()) {
+							metadata.scripts = skillScripts;
+						}
+					} catch (err) {
+					logger.debug(`[discoverer] Error: ${err.message}`);
+				}
 
 					skills.push({
 						path: fullPath,
 						name: basename(fullPath),
 						metadata,
 					});
-				}
+				} catch (err) {
+				logger.debug(`[discoverer] Error: ${err.message}`);
+			}
 			}
 		}
-	} catch {
-		// Directory doesn't exist or can't be read
-	}
+	} catch (err) {
+	logger.debug(`[discoverer] Error: ${err.message}`);
+}
 
 	return skills;
 }
@@ -181,9 +191,9 @@ function findSkillFiles(dir) {
  * @param {string[]} [scope] - Array of directories to scan (defaults to sandbox.skillScanPaths from config)
  * @param {object} [options] - Discovery options
  * @param {boolean} [options.trustProjectSkills=true] - Whether to trust project-level skills
- * @returns {Array<{ path: string, name: string, metadata: Object }>}
+ * @returns {Promise<Array<{ path: string, name: string, metadata: Object }>>}
  */
-export function discoverSkills(scope = defaultScope, options = {}) {
+export async function discoverSkills(scope = defaultScope, options = {}) {
 	const cwdParam = options.cwd || cwd;
 	const { trustProjectSkills: _trustProjectSkills = true } = options;
 	const allSkills = [];
@@ -191,11 +201,13 @@ export function discoverSkills(scope = defaultScope, options = {}) {
 
 	for (const scopePath of scope) {
 		const fullScope = resolve(cwdParam, scopePath);
-		if (!existsSync(fullScope)) {
+		try {
+			await access(fullScope, constants.F_OK);
+		} catch (err) {
 			continue;
 		}
 
-		const skills = findSkillFiles(fullScope);
+		const skills = await findSkillFiles(fullScope);
 
 		for (const skill of skills) {
 			const name = skill.metadata.name || skill.name;

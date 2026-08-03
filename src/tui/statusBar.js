@@ -1,5 +1,7 @@
 import React from "react";
 import { Box, Text } from "ink";
+import { logger } from "../logger.js";
+
 
 /**
  * Get connection status indicator and color based on status message.
@@ -32,7 +34,7 @@ export function formatNumber(num) {
 			return String(num);
 		}
 		return result;
-	} catch {
+	} catch (err) {
 		return String(num);
 	}
 }

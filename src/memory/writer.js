@@ -1,4 +1,4 @@
-import { writeFileSync, mkdirSync } from "node:fs";
+import { writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { loadConfig } from "../config/loader.js";
 
@@ -22,12 +22,12 @@ function escapeYamlString(str) {
  * @param {string} title - A short title for the entry
  * @param {Object} frontmatter - YAML frontmatter metadata
  * @param {string} body - The markdown body content
- * @returns {string} The path of the created file
+ * @returns {Promise<string>} The path of the created file
  */
-export function writeMemoryFile(subdirectory, title, frontmatter, body = "") {
+export async function writeMemoryFile(subdirectory, title, frontmatter, body = "") {
 	const config = loadConfig();
 	const directory = join(config.cwd, subdirectory);
-	mkdirSync(directory, { recursive: true });
+	await mkdir(directory, { recursive: true });
 	const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
 	const slug = title
 		.toLowerCase()
@@ -54,6 +54,6 @@ export function writeMemoryFile(subdirectory, title, frontmatter, body = "") {
 	];
 
 	const content = lines.join("\n");
-	writeFileSync(filepath, content);
+	await writeFile(filepath, content);
 	return filepath;
 }

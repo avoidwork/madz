@@ -3,6 +3,8 @@ import { z } from "zod";
 import { mkdir, writeFile, readFile, readdir, unlink, access } from "node:fs/promises";
 import { join, basename } from "node:path";
 import { loadConfig } from "../config/loader.js";
+import { logger } from "../logger.js";
+
 
 const cwd = loadConfig().cwd;
 
@@ -17,7 +19,7 @@ async function pathExists(filePath) {
 	try {
 		await access(filePath);
 		return true;
-	} catch {
+	} catch (err) {
 		return false;
 	}
 }
@@ -94,7 +96,7 @@ function getEntryPath(key, contextDir, cwdParam = cwd) {
 async function getEntryFiles(contextDir) {
 	try {
 		return (await readdir(contextDir)).filter((f) => f.endsWith(".md"));
-	} catch {
+	} catch (err) {
 		return [];
 	}
 }
@@ -106,7 +108,7 @@ async function getEntryFiles(contextDir) {
 async function countEntries(contextDir) {
 	try {
 		return (await readdir(contextDir)).filter((f) => f.endsWith(".md")).length;
-	} catch {
+	} catch (err) {
 		return 0;
 	}
 }
@@ -141,7 +143,7 @@ async function loadEntry(key, contextDir, cwdParam = cwd) {
 			createdDate: created,
 			updatedDate: frontmatter.updateddate || created,
 		};
-	} catch {
+	} catch (err) {
 		return null;
 	}
 }

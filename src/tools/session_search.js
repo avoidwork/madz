@@ -4,6 +4,8 @@ import { readdir, readFile, access, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { parseFrontmatter } from "../memory/reader.js";
 import { loadConfig } from "../config/loader.js";
+import { logger } from "../logger.js";
+
 
 const config = loadConfig();
 export let cwd = config.cwd;
@@ -18,7 +20,7 @@ async function exists(path) {
 	try {
 		await access(path, FS.MODE_RDONLY);
 		return true;
-	} catch {
+	} catch (err) {
 		return false;
 	}
 }
@@ -209,7 +211,7 @@ async function browseConversations(sessionsDir) {
 			if (Array.isArray(parsed) && parsed.length > 0) {
 				preview = parsed[0].content?.toString().slice(0, 100) || "Empty";
 			}
-		} catch {
+		} catch (err) {
 			preview = body.slice(0, 100).replace(/\n/g, " ");
 		}
 

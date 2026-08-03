@@ -40,9 +40,9 @@ export async function findSkillScript(skillName, baseDir = ["system-skills", "sk
 			try {
 				await access(fullPath, constants.F_OK);
 				return fullPath;
-			} catch {
-				// File doesn't exist, continue
-			}
+			} catch (err) {
+			logger.debug(`[cron] Error: ${err.message}`);
+		}
 		}
 
 		for (const candidate of rootScripts) {
@@ -50,9 +50,9 @@ export async function findSkillScript(skillName, baseDir = ["system-skills", "sk
 			try {
 				await access(fullPath, constants.F_OK);
 				return fullPath;
-			} catch {
-				// File doesn't exist, continue
-			}
+			} catch (err) {
+			logger.debug(`[cron] Error: ${err.message}`);
+		}
 		}
 	}
 
@@ -149,7 +149,7 @@ async function loadJob(name, schedulesDir) {
 	try {
 		const content = await readFile(filePath, "utf-8");
 		return JSON.parse(content);
-	} catch {
+	} catch (err) {
 		return null;
 	}
 }
@@ -192,7 +192,7 @@ async function getScheduleFiles(schedulesDir) {
 	try {
 		const files = await readdir(schedulesDir);
 		return files.filter((f) => f.endsWith(".json"));
-	} catch {
+	} catch (err) {
 		return [];
 	}
 }

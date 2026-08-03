@@ -2,14 +2,16 @@ import { spawn } from "node:child_process";
 import { handleTimeout } from "./timeoutHandler.js";
 import { filterEnv } from "./envInjector.js";
 import { enforceCapabilities } from "./capability.js";
-import { readFileSync, existsSync } from "node:fs";
+import { readFile, access, constants } from "node:fs/promises";
+import { logger } from "../logger.js";
+
 
 /**
  * Map file extension to interpreter command.
  * @param {string} filePath - Path to the script
- * @returns {object | null} { command, args } or null if unsupported
+ * @returns {Promise<object | null>} { command, args } or null if unsupported
  */
-export function detectInterpreter(filePath) {
+export async function detectInterpreter(filePath) {
 	if (!filePath || typeof filePath !== "string") return null;
 
 	const ext = filePath.split(".").pop()?.toLowerCase();
@@ -30,20 +32,26 @@ export function detectInterpreter(filePath) {
 			return { command: "lua", args: [] };
 		default:
 			// Try to detect via shebang
-			return detectShebang(filePath);
+			return await detectShebang(filePath);
 	}
 }
 
 /**
  * Read the first line of a file to detect interpreter via shebang.
  * @param {string} filePath - Path to the script
- * @returns {object | null} { command, args } or null if unsupported
+ * @returns {Promise<object | null>} { command, args } or null if unsupported
  */
-export function detectShebang(filePath) {
-	if (!filePath || !existsSync(filePath)) return null;
+export async function detectShebang(filePath) {
+	if (!filePath) return null;
+	try {
+		await access(filePath, constants.F_OK);
+	} catch (err) {
+		return null;
+	}
 
 	try {
-		const firstLine = readFileSync(filePath, "utf-8").split("\n")[0];
+		const content = await readFile(filePath, "utf-8");
+		const firstLine = content.split("\n")[0];
 		const match = firstLine.match(/^#!\s*(\/\S+?)(?:\s+(.*))?$/);
 		if (match) {
 			const cmd = match[1];
@@ -90,9 +98,9 @@ export function detectShebang(filePath) {
 					return { command: cmd, args };
 			}
 		}
-	} catch {
-		// File unreadable
-	}
+	} catch (err) {
+	logger.debug(`[runner] Error: ${err.message}`);
+}
 
 	return null;
 }
@@ -127,11 +135,13 @@ export async function runSandbox(options) {
 	let env = filterEnv(process.env, whitelist);
 
 	// Detect interpreter
-	const interp = detectInterpreter(script) ||
-		detectShebang(script) || {
-			command: "node",
-			args: [],
-		};
+	let interp = await detectInterpreter(script);
+	if (!interp) {
+		interp = await detectShebang(script);
+	}
+	if (!interp) {
+		interp = { command: "node", args: [] };
+	}
 
 	const ext = script.split(".").pop()?.toLowerCase();
 

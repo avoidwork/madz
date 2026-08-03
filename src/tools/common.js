@@ -1,6 +1,8 @@
 import { filterUrl } from "../sandbox/urlFilter.js";
 import { resolvePath } from "../sandbox/pathResolver.js";
 import { stat as statAsync, access } from "node:fs/promises";
+import { logger } from "../logger.js";
+
 
 /**
  * Validate a file path against the sandbox allowlist.
@@ -71,7 +73,7 @@ export async function fetchWithTimeout(url, timeoutMs = 5000, allowlist = []) {
 export async function checkFileLimit(filePath, maxReadSize) {
 	try {
 		await access(filePath);
-	} catch {
+	} catch (err) {
 		return { ok: false, error: `File not found: ${filePath}` };
 	}
 

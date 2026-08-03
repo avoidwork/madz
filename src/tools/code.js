@@ -65,6 +65,8 @@ function getImportHookCode() {
 	return `
 import sys
 import types
+import { logger } from "../logger.js";
+
 
 class RestrictedImporter:
     def find_spec(self, fullname, path, target=None):
@@ -125,9 +127,9 @@ export async function executeCodeImpl(input, options = {}) {
 		try {
 			const { setrlimit } = await import("posix");
 			setrlimit("as", { soft: memLimit, hard: memLimit });
-		} catch {
-			// setrlimit not available
-		}
+		} catch (err) {
+		logger.debug(`[code] Error: ${err.message}`);
+	}
 	}
 
 	const controller = new AbortController();

@@ -1,6 +1,7 @@
-import { readFileSync, writeFileSync, existsSync, renameSync, mkdirSync } from "node:fs";
+import { readFile, writeFile, rename, mkdir, access, constants } from "node:fs/promises";
 import { join } from "node:path";
 import { loadConfig } from "../config/loader.js";
+import { logger } from "../logger.js";
 
 const config = loadConfig();
 const PROFILE_DIR = join(config.cwd, config.memory.contextDir);
@@ -59,12 +60,17 @@ function parseProfileBody(body) {
 /**
  * Load the user's context profile from the markdown body.
  * @param {string} [profilePath] - Optional path override (default: memory/context/profile.md)
- * @returns {{ data: Object, body: string } | null} The parsed profile or null if not found
+ * @returns {Promise<{ data: Object, body: string } | null>} The parsed profile or null if not found
  */
-export function loadProfile(profilePath = PROFILE_PATH) {
-	if (!existsSync(profilePath)) return null;
+export async function loadProfile(profilePath = PROFILE_PATH) {
 	try {
-		const content = readFileSync(profilePath, "utf-8");
+		await access(profilePath, constants.F_OK);
+	} catch (err) {
+		logger.debug(`[profile] Failed to access profile: ${err.message}`);
+		return null;
+	}
+	try {
+		const content = await readFile(profilePath, "utf-8");
 		const body = content.trim();
 		if (!body) return null;
 		const data = parseProfileBody(body);
@@ -72,7 +78,8 @@ export function loadProfile(profilePath = PROFILE_PATH) {
 		const hasProfile = attrKeys.some((k) => Object.prototype.hasOwnProperty.call(data, k));
 		if (!hasProfile) return null;
 		return { data, body };
-	} catch {
+	} catch (err) {
+		logger.debug(`[profile] Failed to read profile: ${err.message}`);
 		return null;
 	}
 }
@@ -81,25 +88,38 @@ export function loadProfile(profilePath = PROFILE_PATH) {
  * Save the user's context profile atomically to the markdown body.
  * @param {Object} profileData - Profile object with attribute keys
  * @param {string} [profilePath] - Optional path override
+ * @returns {Promise<void>}
  */
-export function saveProfile(profileData, profilePath = PROFILE_PATH) {
+export async function saveProfile(profileData, profilePath = PROFILE_PATH) {
 	const profileDir = join(profilePath, "..");
-	if (!existsSync(profileDir)) {
-		mkdirSync(profileDir, { recursive: true });
+	try {
+		await access(profileDir, constants.F_OK);
+	} catch (err) {
+		try {
+			await mkdir(profileDir, { recursive: true });
+		} catch (mkdirErr) {
+			logger.debug(`[profile] Failed to create profile dir: ${mkdirErr.message}`);
+		}
 	}
 	const content = buildProfileContent(profileData);
 	const tmpPath = profilePath + ".tmp";
-	writeFileSync(tmpPath, content, "utf-8");
-	renameSync(tmpPath, profilePath);
+	await writeFile(tmpPath, content, "utf-8");
+	await rename(tmpPath, profilePath);
 }
 
 /**
  * Check whether a context profile exists on disk.
  * @param {string} [profilePath] - Optional path override
- * @returns {boolean}
+ * @returns {Promise<boolean>}
  */
-export function hasProfile(profilePath = PROFILE_PATH) {
-	return existsSync(profilePath);
+export async function hasProfile(profilePath = PROFILE_PATH) {
+	try {
+		await access(profilePath, constants.F_OK);
+		return true;
+	} catch (err) {
+		logger.debug(`[profile] Profile not found: ${err.message}`);
+		return false;
+	}
 }
 
 /**

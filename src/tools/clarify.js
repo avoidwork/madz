@@ -1,6 +1,8 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { writeFile, mkdir, readFile, access } from "node:fs/promises";
+import { logger } from "../logger.js";
+
 
 /**
  * Check if a file path is accessible.
@@ -11,7 +13,7 @@ async function pathExists(filePath) {
 	try {
 		await access(filePath);
 		return true;
-	} catch {
+	} catch (err) {
 		return false;
 	}
 }
