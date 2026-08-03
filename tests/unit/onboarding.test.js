@@ -213,7 +213,7 @@ describe("SAVE phase", () => {
 });
 
 describe("save", () => {
-	it("persists profile data and transitions to TRANSCEND", () => {
+	it("persists profile data and transitions to TRANSCEND", async () => {
 		const ob = create();
 		ob.processResponse("yes");
 		ob.processResponse("ok");
@@ -225,9 +225,9 @@ describe("save", () => {
 		assert.ok(Object.keys(data).length > 0);
 	});
 
-	it("returns false when not in SAVE phase", () => {
+	it("returns false when not in SAVE phase", async () => {
 		const ob = create();
-		assert.strictEqual(ob.save(), false);
+		assert.strictEqual(await ob.save(), false);
 	});
 });
 
@@ -237,7 +237,7 @@ describe("isComplete", () => {
 		assert.strictEqual(ob.isComplete(), false);
 	});
 
-	it("is true after save", () => {
+	it("is true after save", async () => {
 		const ob = create();
 		// Answer all attributes to reach SAVE
 		ob.processResponse("yes");
@@ -246,20 +246,20 @@ describe("isComplete", () => {
 			ob.processResponse(`x${i}`);
 		}
 		// save() transitions to TRANSCEND
-		ob.save();
+		await ob.save();
 		assert.strictEqual(ob.isComplete(), true);
 	});
 });
 
 describe("getCurrentPrompt", () => {
-	it("returns null in TRANSCEND phase", () => {
+	it("returns null in TRANSCEND phase", async () => {
 		const ob = create();
 		ob.processResponse("yes");
 		ob.processResponse("ok");
 		for (let i = 0; i < ATTRIBUTES.length; i++) {
 			ob.processResponse(`x${i}`);
 		}
-		ob.save();
+		await ob.save();
 		assert.strictEqual(ob.getCurrentPrompt(), null);
 	});
 });

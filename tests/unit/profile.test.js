@@ -166,10 +166,10 @@ describe("saveProfile", () => {
 		assert.ok(!content.includes("cat"));
 	});
 
-	it("is readable by loadProfile", () => {
+	it("is readable by loadProfile", async () => {
 		const fp = join(FULL_TEST_DIR, "roundtrip.md");
-		saveProfile({ name: "Eve", hobbies: "coding", notes: "likes coffee" }, fp);
-		const loaded = loadProfile(fp);
+		await saveProfile({ name: "Eve", hobbies: "coding", notes: "likes coffee" }, fp);
+		const loaded = await loadProfile(fp);
 		assert.ok(loaded);
 		assert.strictEqual(loaded.data.name, "Eve");
 		assert.strictEqual(loaded.data.hobbies, "coding");
@@ -178,15 +178,15 @@ describe("saveProfile", () => {
 });
 
 describe("hasProfile", () => {
-	it("returns true when profile file exists", () => {
+	it("returns true when profile file exists", async () => {
 		const fp = join(FULL_TEST_DIR, "exists.md");
-		saveProfile({ name: "x" }, fp);
-		assert.strictEqual(hasProfile(fp), true);
+		await saveProfile({ name: "x" }, fp);
+		assert.strictEqual(await hasProfile(fp), true);
 	});
 
-	it("returns false when profile file does not exist", () => {
+	it("returns false when profile file does not exist", async () => {
 		const fp = join(FULL_TEST_DIR, "nope.md");
-		assert.strictEqual(hasProfile(fp), false);
+		assert.strictEqual(await hasProfile(fp), false);
 	});
 });
 

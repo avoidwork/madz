@@ -103,17 +103,17 @@ describe("loadContext", () => {
 		}
 	});
 
-	it("trims body content of each context entry", () => {
+	it("trims body content of each context entry", async () => {
 		writeFileSync(
 			join(fullTestDir, "trimmed.md"),
 			"---\ntitle: Trimmed\ntimestamp: 2024-01-01\n---\n  some text with spaces  \n",
 		);
 
-		const result = loadContext(testDir, 10);
+		const result = await loadContext(testDir, 10);
 		assert.ok(result.includes("some text with spaces"));
 	});
 
-	it("handles files without timestamp (falls back to empty string sort)", () => {
+	it("handles files without timestamp (falls back to empty string sort)", async () => {
 		writeFileSync(
 			join(fullTestDir, "no-ts.md"),
 			"---\ntitle: No Timestamp\n---\nNo timestamp body",
@@ -123,12 +123,12 @@ describe("loadContext", () => {
 			"---\ntitle: With Timestamp\ntimestamp: 2024-01-01\n---\nHas timestamp body",
 		);
 
-		const result = loadContext(testDir, 10);
+		const result = await loadContext(testDir, 10);
 		assert.ok(result.includes("No Timestamp"));
 		assert.ok(result.includes("With Timestamp"));
 	});
 
-	it("filters out ephemeral files from main processing", () => {
+	it("filters out ephemeral files from main processing", async () => {
 		writeFileSync(
 			join(fullTestDir, "persistent.md"),
 			"---\ntitle: Persistent\ntimestamp: 2024-01-03\n---\nPersistent content",
@@ -138,14 +138,14 @@ describe("loadContext", () => {
 			"---\ntitle: Ephemeral Note\ntimestamp: 2024-01-04\n---\nEphemeral content",
 		);
 
-		const result = loadContext(testDir, 10);
+		const result = await loadContext(testDir, 10);
 		assert.ok(result.includes("[Context: Persistent]"));
 		assert.ok(result.includes("Persistent content"));
 		// Ephemeral files should not appear as [Context:] entries
 		assert.ok(!result.includes("[Context: Ephemeral Note]"));
 	});
 
-	it("loads ephemeral files last with correct sort order", () => {
+	it("loads ephemeral files last with correct sort order", async () => {
 		writeFileSync(
 			join(fullTestDir, "persistent.md"),
 			"---\ntitle: Persistent\ntimestamp: 2024-01-01\n---\nPersistent content",
@@ -159,7 +159,7 @@ describe("loadContext", () => {
 			"---\ntitle: Ephemeral New\ntimestamp: 2024-01-03\n---\nNew ephemeral",
 		);
 
-		const result = loadContext(testDir, 10);
+		const result = await loadContext(testDir, 10);
 		// Persistent should appear as [Context:]
 		assert.ok(result.includes("[Context: Persistent]"));
 		// Ephemeral should appear as [Ephemeral:]
@@ -174,7 +174,7 @@ describe("loadContext", () => {
 		assert.ok(persistentIdx < newIdx, "Persistent context should come before ephemeral");
 	});
 
-	it("respects ephemeral limit", () => {
+	it("respects ephemeral limit", async () => {
 		writeFileSync(
 			join(fullTestDir, "persistent.md"),
 			"---\ntitle: Persistent\ntimestamp: 2024-01-01\n---\nPersistent content",
@@ -187,7 +187,7 @@ describe("loadContext", () => {
 			);
 		}
 
-		const result = loadContext(testDir, 10);
+		const result = await loadContext(testDir, 10);
 		// Should only include up to 5 ephemeral files (default limit)
 		let count = 0;
 		for (let i = 1; i <= 7; i++) {
@@ -196,24 +196,24 @@ describe("loadContext", () => {
 		assert.strictEqual(count, 5, "Should only load 5 ephemeral files by default");
 	});
 
-	it("handles missing profile.md gracefully", () => {
+	it("handles missing profile.md gracefully", async () => {
 		writeFileSync(
 			join(fullTestDir, "note.md"),
 			"---\ntitle: Note\ntimestamp: 2024-01-01\n---\nNote content",
 		);
 
-		const result = loadContext(testDir, 10);
+		const result = await loadContext(testDir, 10);
 		assert.ok(result.includes("[Context: Note]"));
 		assert.ok(result.includes("Note content"));
 	});
 
-	it("handles no ephemeral files gracefully", () => {
+	it("handles no ephemeral files gracefully", async () => {
 		writeFileSync(
 			join(fullTestDir, "note.md"),
 			"---\ntitle: Note\ntimestamp: 2024-01-01\n---\nNote content",
 		);
 
-		const result = loadContext(testDir, 10);
+		const result = await loadContext(testDir, 10);
 		assert.ok(result.includes("[Context: Note]"));
 		assert.ok(!result.includes("[Ephemeral:"));
 	});
