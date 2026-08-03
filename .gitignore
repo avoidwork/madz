@@ -4,3 +4,5 @@ skills
 tmp
 !src/memory
 !src/skills
+.env
+.env.cron
