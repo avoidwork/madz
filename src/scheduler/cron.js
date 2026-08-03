@@ -1,6 +1,7 @@
 import { exec } from "node:child_process";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { logger } from "../logger.js";
 
 // Block delimiters for madz-managed crontab entries
 const BLOCK_START = "# --- BEGIN madz-schedules ---";
@@ -426,18 +427,18 @@ export const Cron = {
 		const filePath = join(schedulesDir, `${REFLECTION_JOB.name}.json`);
 		try {
 			await readdir(schedulesDir);
-		} catch {
+		} catch (_err) {
 			try {
 				await mkdir(schedulesDir, { recursive: true });
-			} catch {
-				// Directory creation failed — sync will handle gracefully
+			} catch (mkdirErr) {
+				logger.debug(`[cron] Directory creation failed: ${mkdirErr.message}`);
 				return;
 			}
 		}
 		try {
 			await readFile(filePath, "utf-8");
-		} catch {
-			// File doesn't exist — create it
+		} catch (err) {
+			logger.debug(`[cron] File not found, creating: ${err.message}`);
 			const jobData = Object.freeze({
 				name: REFLECTION_JOB.name,
 				cron: REFLECTION_JOB.cron,
@@ -472,12 +473,12 @@ export const Cron = {
 							enabled: job.enabled !== false,
 						});
 					}
-				} catch {
-					// Skip unreadable or malformed JSON files
+				} catch (err) {
+					logger.debug(`[cron] Skipping unreadable file: ${err.message}`);
 				}
 			}
-		} catch {
-			// Directory doesn't exist or can't be read — return empty
+		} catch (err) {
+			logger.debug(`[cron] Error: ${err.message}`);
 		}
 		return jobs;
 	},

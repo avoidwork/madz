@@ -11,7 +11,7 @@ async function pathExists(filePath) {
 	try {
 		await access(filePath);
 		return true;
-	} catch {
+	} catch (_err) {
 		return false;
 	}
 }

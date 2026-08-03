@@ -76,16 +76,16 @@ export default function App({
 			let totalTokens = calculateConversationTokens(conversation, modelName, encoding);
 
 			// Add system prompt tokens
-			const systemPrompt = loadSystemPrompt();
-			if (systemPrompt) {
-				totalTokens += calculateConversationTokens(
-					[{ role: "system", content: systemPrompt }],
-					modelName,
-					encoding,
-				);
-			}
-
-			setContextSize(totalTokens);
+			loadSystemPrompt().then((systemPrompt) => {
+				if (systemPrompt) {
+					totalTokens += calculateConversationTokens(
+						[{ role: "system", content: systemPrompt }],
+						modelName,
+						encoding,
+					);
+				}
+				setContextSize(totalTokens);
+			});
 		}
 		return () => {
 			process.off("uncaughtException", onUncaught);
@@ -159,7 +159,7 @@ export default function App({
 						})
 					: null,
 				_skillList: skillList,
-				_executeSkill: (skillName, _args) => {
+				_executeSkill: async (skillName, _args) => {
 					const skill = registry.get(skillName);
 					if (!skill) {
 						return {
@@ -170,7 +170,7 @@ export default function App({
 					}
 					// Skills are prompt-based instructions for the agent to interpret and execute.
 					// Load the SKILL.md and pass it to the conversation so the agent can use it.
-					const body = registry.getSkillBody(skillName);
+					const body = await registry.getSkillBody(skillName);
 					return {
 						action: "skill",
 						subAction: "load",
@@ -365,15 +365,16 @@ export default function App({
 
 			// Calculate conversation tokens + system prompt
 			let totalTokens = calculateConversationTokens(conversation, modelName, encoding);
-			const systemPrompt = loadSystemPrompt();
-			if (systemPrompt) {
-				totalTokens += calculateConversationTokens(
-					[{ role: "system", content: systemPrompt }],
-					modelName,
-					encoding,
-				);
-			}
-			setContextSize(totalTokens);
+			loadSystemPrompt().then((systemPrompt) => {
+				if (systemPrompt) {
+					totalTokens += calculateConversationTokens(
+						[{ role: "system", content: systemPrompt }],
+						modelName,
+						encoding,
+					);
+				}
+				setContextSize(totalTokens);
+			});
 		}
 
 		const assistantTime = getTimestamp();
@@ -485,15 +486,16 @@ export default function App({
 
 				// Calculate conversation tokens + system prompt
 				let totalTokens = calculateConversationTokens(conversation, modelName, encoding);
-				const systemPrompt = loadSystemPrompt();
-				if (systemPrompt) {
-					totalTokens += calculateConversationTokens(
-						[{ role: "system", content: systemPrompt }],
-						modelName,
-						encoding,
-					);
-				}
-				setContextSize(totalTokens);
+				loadSystemPrompt().then((systemPrompt) => {
+					if (systemPrompt) {
+						totalTokens += calculateConversationTokens(
+							[{ role: "system", content: systemPrompt }],
+							modelName,
+							encoding,
+						);
+					}
+					setContextSize(totalTokens);
+				});
 			}
 			if (onSaveSession) {
 				onSaveSession();
@@ -605,7 +607,7 @@ export default function App({
 	 * Process onboarding input: forward to onboarding instance and update state.
 	 * @param {string} text - Raw user input
 	 */
-	function processOnboardingInput(text) {
+	async function processOnboardingInput(text) {
 		if (!onboarding || !showOnboarding) return false;
 		const trimmed = text.trim();
 
@@ -626,7 +628,7 @@ export default function App({
 		}
 
 		if (result.action === "save") {
-			const saved = onboarding.save();
+			const saved = await onboarding.save();
 			if (saved) {
 				addMessage({
 					role: "system",

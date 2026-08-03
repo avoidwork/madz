@@ -182,14 +182,14 @@ export class Onboarding {
 
 	/**
 	 * Execute the SAVE phase: persist profile data to disk.
-	 * @returns {boolean} Whether save succeeded
+	 * @returns {Promise<boolean>} Whether save succeeded
 	 */
-	save() {
+	async save() {
 		if (this.#phase !== PHASES.SAVE) {
 			return false;
 		}
 		const sanitized = sanitizeProfileData(this.#profileData);
-		saveProfile(sanitized, this.#profilePath);
+		await saveProfile(sanitized, this.#profilePath);
 		// Invoke the onSave callback if provided (e.g., auto-schedule)
 		if (this.#onSave) {
 			this.#onSave();

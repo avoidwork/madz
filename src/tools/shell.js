@@ -2,6 +2,7 @@ import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { spawn } from "node:child_process";
 import { loadConfig } from "../config/loader.js";
+import { logger } from "../logger.js";
 
 const MAX_COMMAND_LENGTH = 4096;
 
@@ -193,8 +194,8 @@ export async function manageProcessImpl(input) {
 					if (entry.child.exitCode === null) {
 						try {
 							entry.child.kill("SIGKILL");
-						} catch {
-							// Process may have already exited
+						} catch (err) {
+							logger.debug(`[shell] Error: ${err.message}`);
 						}
 					}
 				}, 5000);

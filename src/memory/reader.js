@@ -1,5 +1,6 @@
-import { readFileSync, existsSync } from "node:fs";
+import { readFile, access, constants } from "node:fs/promises";
 import { load } from "js-yaml";
+import { logger } from "../logger.js";
 
 /**
  * Parse YAML frontmatter from a markdown file.
@@ -18,7 +19,8 @@ export function parseFrontmatter(content) {
 		const fmParsed = (() => {
 			try {
 				return load(fmStr);
-			} catch {
+			} catch (err) {
+				logger.debug(`[reader] YAML parse failed: ${err.message}`);
 				return {};
 			}
 		})();
@@ -45,11 +47,16 @@ export function parseFrontmatter(content) {
  * Load and parse a memory markdown file.
  * Returns { frontmatter, content, path }.
  * @param {string} filepath - Full path to the markdown file
- * @returns {{ frontmatter: Object, content: string, path: string } | null}
+ * @returns {Promise<{ frontmatter: Object, content: string, path: string } | null>}
  */
-export function readMemoryFile(filepath) {
-	if (!existsSync(filepath)) return null;
-	const content = readFileSync(filepath, "utf-8");
+export async function readMemoryFile(filepath) {
+	try {
+		await access(filepath, constants.F_OK);
+	} catch (err) {
+		logger.debug(`[reader] File not found: ${err.message}`);
+		return null;
+	}
+	const content = await readFile(filepath, "utf-8");
 	const { frontmatter, content: body } = parseFrontmatter(content);
 	return { frontmatter, content: body, path: filepath };
 }

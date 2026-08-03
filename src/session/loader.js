@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readdir, readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { parseFrontmatter } from "../memory/reader.js";
 import { loadConfig } from "../config/loader.js";
@@ -10,9 +10,9 @@ const cwd = loadConfig().cwd;
  * @param {string} sessionsDir - Path to sessions directory
  * @param {number} [windowSize=20] - Context window limit for loaded messages
  * @param {string} [sessionId] - Optional session/thread ID to load (fallbacks to latest)
- * @returns {{ sessionId: string, conversation: Array, metadata: Object }}
+ * @returns {Promise<{ sessionId: string, conversation: Array, metadata: Object }>}
  */
-export function loadSession(
+export async function loadSession(
 	sessionsDir = "memory/sessions/",
 	windowSize = 20,
 	sessionId = "",
@@ -29,16 +29,16 @@ export function loadSession(
 	let latestFile = null;
 	let latestTime = 0;
 	try {
-		const files = readdirSync(dir);
+		const files = await readdir(dir);
 		for (const file of files) {
 			if (!file.endsWith(".md")) continue;
-			const stat = statSync(join(dir, file));
-			if (stat.mtimeMs > latestTime) {
-				latestTime = stat.mtimeMs;
+			const st = await stat(join(dir, file));
+			if (st.mtimeMs > latestTime) {
+				latestTime = st.mtimeMs;
 				latestFile = file;
 			}
 		}
-	} catch {
+	} catch (_err) {
 		// Directory doesn't exist — return empty
 		return { sessionId: "", conversation: [], metadata: {} };
 	}
@@ -50,8 +50,8 @@ export function loadSession(
 	return loadFile(join(dir, latestFile), windowSize);
 }
 
-function loadFile(filepath, windowSize) {
-	const content = readFileSync(filepath, "utf-8");
+async function loadFile(filepath, windowSize) {
+	const content = await readFile(filepath, "utf-8");
 	const { frontmatter, content: body } = parseFrontmatter(content);
 
 	let conversation = [];
@@ -60,7 +60,7 @@ function loadFile(filepath, windowSize) {
 		if (Array.isArray(parsed)) {
 			conversation = parsed;
 		}
-	} catch {
+	} catch (_err) {
 		conversation = [{ role: "system", content: body }];
 	}
 

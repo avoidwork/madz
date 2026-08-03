@@ -76,7 +76,7 @@ export async function countEphemeralMemoryFiles(contextDir, nowStr) {
 	let files;
 	try {
 		files = await readdir(join(config.cwd, contextDir));
-	} catch {
+	} catch (_err) {
 		return 0;
 	}
 	let count = 0;

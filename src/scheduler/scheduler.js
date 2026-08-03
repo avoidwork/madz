@@ -1,5 +1,6 @@
 import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
+import { logger } from "../logger.js";
 
 const DEFAULT_TIMEOUT_MS = 60000;
 
@@ -62,12 +63,12 @@ export class ScheduleManager {
 					}
 
 					entries.push(entry);
-				} catch {
-					// Skip malformed JSON files
+				} catch (err) {
+					logger.debug(`[scheduler] Skipping malformed schedule file: ${err.message}`);
 				}
 			}
-		} catch {
-			// Directory doesn't exist — return empty manager
+		} catch (err) {
+			logger.debug(`[scheduler] Schedules directory not found: ${err.message}`);
 		}
 
 		return new ScheduleManager(undefined, entries);
@@ -194,11 +195,11 @@ export class ScheduleManager {
 				try {
 					await access(entry.contextFile, constants.F_OK);
 					contextPrefix = await readFile(entry.contextFile, "utf-8");
-				} catch {
-					contextPrefix = loadContext(contextDir);
+				} catch (_err) {
+					contextPrefix = await loadContext(contextDir);
 				}
-			} catch {
-				// Context load failed — continue with empty context
+			} catch (err) {
+				logger.debug(`[scheduler] Context load failed: ${err.message}`);
 			}
 		}
 

@@ -2,19 +2,21 @@
  * Testing agent definition for test generation and gap analysis.
  */
 
-import { readFileSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { logger } from "../../logger.js";
 
 /**
  * Load the testing agent system prompt from disk.
  * @param {string} [baseDir] - Base directory (defaults to process.cwd())
- * @returns {string} System prompt text
+ * @returns {Promise<string>} System prompt text
  */
-function loadTestingPrompt(baseDir) {
+async function loadTestingPrompt(baseDir) {
 	try {
 		const dir = baseDir || process.cwd();
-		return readFileSync(join(dir, "prompts", "TESTING.md"), "utf-8");
-	} catch {
+		return await readFile(join(dir, "prompts", "TESTING.md"), "utf-8");
+	} catch (err) {
+		logger.debug(`[testing] Failed to load prompt: ${err.message}`);
 		return "";
 	}
 }
@@ -26,5 +28,9 @@ function loadTestingPrompt(baseDir) {
 export const testingAgent = {
 	name: "testing",
 	description: "Specialized agent for test generation, gap analysis, and coverage improvements.",
-	systemPrompt: loadTestingPrompt(),
+	systemPrompt: "",
 };
+
+loadTestingPrompt().then((prompt) => {
+	testingAgent.systemPrompt = prompt;
+});

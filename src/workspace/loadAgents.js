@@ -13,7 +13,7 @@ async function fileExists(filepath) {
 	try {
 		await access(filepath);
 		return true;
-	} catch {
+	} catch (_err) {
 		return false;
 	}
 }

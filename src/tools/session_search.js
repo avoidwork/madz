@@ -18,7 +18,7 @@ async function exists(path) {
 	try {
 		await access(path, FS.MODE_RDONLY);
 		return true;
-	} catch {
+	} catch (_err) {
 		return false;
 	}
 }
@@ -209,7 +209,7 @@ async function browseConversations(sessionsDir) {
 			if (Array.isArray(parsed) && parsed.length > 0) {
 				preview = parsed[0].content?.toString().slice(0, 100) || "Empty";
 			}
-		} catch {
+		} catch (_err) {
 			preview = body.slice(0, 100).replace(/\n/g, " ");
 		}
 

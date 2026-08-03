@@ -35,7 +35,7 @@ describe("loadContext", () => {
 	});
 	after(teardown);
 
-	it("returns combined context from markdown files sorted by timestamp descending", () => {
+	it("returns combined context from markdown files sorted by timestamp descending", async () => {
 		writeFileSync(
 			join(fullTestDir, "note1.md"),
 			"---\ntitle: First Note\ntimestamp: 2024-01-01\n---\nContent of first note",
@@ -49,7 +49,7 @@ describe("loadContext", () => {
 			"---\ntitle: Third Note\ntimestamp: 2024-01-02\n---\nContent of third note",
 		);
 
-		const result = loadContext(testDir, 3);
+		const result = await loadContext(testDir, 3);
 		assert.ok(result.includes("[Context: Second Note]"));
 		assert.ok(result.includes("Content of second note"));
 		assert.ok(result.includes("[Context: Third Note]"));
@@ -63,57 +63,57 @@ describe("loadContext", () => {
 		assert.ok(thirdIdx < firstIdx, "Third Note should come before First Note");
 	});
 
-	it("respects the limit parameter", () => {
+	it("respects the limit parameter", async () => {
 		writeFileSync(join(fullTestDir, "a.md"), "---\ntitle: A\ntimestamp: 2024-01-01\n---\nAAA");
 		writeFileSync(join(fullTestDir, "b.md"), "---\ntitle: B\ntimestamp: 2024-01-02\n---\nBBB");
 		writeFileSync(join(fullTestDir, "c.md"), "---\ntitle: C\ntimestamp: 2024-01-03\n---\nCCC");
 
-		const result = loadContext(testDir, 2);
+		const result = await loadContext(testDir, 2);
 		assert.ok(result.includes("[Context: B]"));
 		assert.ok(result.includes("[Context: C]"));
 		assert.ok(!result.includes("[Context: A]"), "A should be excluded with limit 2");
 	});
 
-	it("filters out non-.md files", () => {
+	it("filters out non-.md files", async () => {
 		writeFileSync(
 			join(fullTestDir, "valid.md"),
 			"---\ntitle: Valid\ntimestamp: 2024-01-01\n---\nValid content",
 		);
 		writeFileSync(join(fullTestDir, "invalid.txt"), "this is not markdown");
 
-		const result = loadContext(testDir, 10);
+		const result = await loadContext(testDir, 10);
 		assert.ok(result.includes("[Context: Valid]"));
 		assert.ok(!result.includes("[Context: invalid.txt]"));
 		assert.ok(!result.includes("this is not markdown"));
 	});
 
-	it("returns empty string for non-existent directory", () => {
-		const result = loadContext("__nonexistent_dir_xyz__", 10);
+	it("returns empty string for non-existent directory", async () => {
+		const result = await loadContext("__nonexistent_dir_xyz__", 10);
 		assert.strictEqual(result, "");
 	});
 
-	it("returns empty string for empty directory", () => {
+	it("returns empty string for empty directory", async () => {
 		const emptyDir = "__empty_ctx_test__";
 		mkdirSync(join(process.cwd(), emptyDir), { recursive: true });
 		try {
-			const result = loadContext(emptyDir, 10);
+			const result = await loadContext(emptyDir, 10);
 			assert.strictEqual(result, "");
 		} finally {
 			rmSync(join(process.cwd(), emptyDir), { recursive: true, force: true });
 		}
 	});
 
-	it("trims body content of each context entry", () => {
+	it("trims body content of each context entry", async () => {
 		writeFileSync(
 			join(fullTestDir, "trimmed.md"),
 			"---\ntitle: Trimmed\ntimestamp: 2024-01-01\n---\n  some text with spaces  \n",
 		);
 
-		const result = loadContext(testDir, 10);
+		const result = await loadContext(testDir, 10);
 		assert.ok(result.includes("some text with spaces"));
 	});
 
-	it("handles files without timestamp (falls back to empty string sort)", () => {
+	it("handles files without timestamp (falls back to empty string sort)", async () => {
 		writeFileSync(
 			join(fullTestDir, "no-ts.md"),
 			"---\ntitle: No Timestamp\n---\nNo timestamp body",
@@ -123,12 +123,12 @@ describe("loadContext", () => {
 			"---\ntitle: With Timestamp\ntimestamp: 2024-01-01\n---\nHas timestamp body",
 		);
 
-		const result = loadContext(testDir, 10);
+		const result = await loadContext(testDir, 10);
 		assert.ok(result.includes("No Timestamp"));
 		assert.ok(result.includes("With Timestamp"));
 	});
 
-	it("filters out ephemeral files from main processing", () => {
+	it("filters out ephemeral files from main processing", async () => {
 		writeFileSync(
 			join(fullTestDir, "persistent.md"),
 			"---\ntitle: Persistent\ntimestamp: 2024-01-03\n---\nPersistent content",
@@ -138,14 +138,14 @@ describe("loadContext", () => {
 			"---\ntitle: Ephemeral Note\ntimestamp: 2024-01-04\n---\nEphemeral content",
 		);
 
-		const result = loadContext(testDir, 10);
+		const result = await loadContext(testDir, 10);
 		assert.ok(result.includes("[Context: Persistent]"));
 		assert.ok(result.includes("Persistent content"));
 		// Ephemeral files should not appear as [Context:] entries
 		assert.ok(!result.includes("[Context: Ephemeral Note]"));
 	});
 
-	it("loads ephemeral files last with correct sort order", () => {
+	it("loads ephemeral files last with correct sort order", async () => {
 		writeFileSync(
 			join(fullTestDir, "persistent.md"),
 			"---\ntitle: Persistent\ntimestamp: 2024-01-01\n---\nPersistent content",
@@ -159,7 +159,7 @@ describe("loadContext", () => {
 			"---\ntitle: Ephemeral New\ntimestamp: 2024-01-03\n---\nNew ephemeral",
 		);
 
-		const result = loadContext(testDir, 10);
+		const result = await loadContext(testDir, 10);
 		// Persistent should appear as [Context:]
 		assert.ok(result.includes("[Context: Persistent]"));
 		// Ephemeral should appear as [Ephemeral:]
@@ -174,7 +174,7 @@ describe("loadContext", () => {
 		assert.ok(persistentIdx < newIdx, "Persistent context should come before ephemeral");
 	});
 
-	it("respects ephemeral limit", () => {
+	it("respects ephemeral limit", async () => {
 		writeFileSync(
 			join(fullTestDir, "persistent.md"),
 			"---\ntitle: Persistent\ntimestamp: 2024-01-01\n---\nPersistent content",
@@ -187,7 +187,7 @@ describe("loadContext", () => {
 			);
 		}
 
-		const result = loadContext(testDir, 10);
+		const result = await loadContext(testDir, 10);
 		// Should only include up to 5 ephemeral files (default limit)
 		let count = 0;
 		for (let i = 1; i <= 7; i++) {
@@ -196,24 +196,24 @@ describe("loadContext", () => {
 		assert.strictEqual(count, 5, "Should only load 5 ephemeral files by default");
 	});
 
-	it("handles missing profile.md gracefully", () => {
+	it("handles missing profile.md gracefully", async () => {
 		writeFileSync(
 			join(fullTestDir, "note.md"),
 			"---\ntitle: Note\ntimestamp: 2024-01-01\n---\nNote content",
 		);
 
-		const result = loadContext(testDir, 10);
+		const result = await loadContext(testDir, 10);
 		assert.ok(result.includes("[Context: Note]"));
 		assert.ok(result.includes("Note content"));
 	});
 
-	it("handles no ephemeral files gracefully", () => {
+	it("handles no ephemeral files gracefully", async () => {
 		writeFileSync(
 			join(fullTestDir, "note.md"),
 			"---\ntitle: Note\ntimestamp: 2024-01-01\n---\nNote content",
 		);
 
-		const result = loadContext(testDir, 10);
+		const result = await loadContext(testDir, 10);
 		assert.ok(result.includes("[Context: Note]"));
 		assert.ok(!result.includes("[Ephemeral:"));
 	});

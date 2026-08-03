@@ -5,6 +5,7 @@ import { mkdtemp, unlink, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { loadConfig } from "../config/loader.js";
+import { logger } from "../logger.js";
 
 const LANGUAGE_MAP = {
 	python3: { ext: ".py", interpreter: "python3" },
@@ -66,6 +67,7 @@ function getImportHookCode() {
 import sys
 import types
 
+
 class RestrictedImporter:
     def find_spec(self, fullname, path, target=None):
         blocked = {'subprocess', 'os', 'socket', 'pty', 'tty', 'popen2', 'popen3', 'popen4'}
@@ -125,8 +127,8 @@ export async function executeCodeImpl(input, options = {}) {
 		try {
 			const { setrlimit } = await import("posix");
 			setrlimit("as", { soft: memLimit, hard: memLimit });
-		} catch {
-			// setrlimit not available
+		} catch (err) {
+			logger.debug(`[code] Error: ${err.message}`);
 		}
 	}
 

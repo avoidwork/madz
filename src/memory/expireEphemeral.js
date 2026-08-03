@@ -2,6 +2,7 @@ import { readdir, unlink, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { parseFrontmatter } from "./reader.js";
 import { loadConfig } from "../config/loader.js";
+import { logger } from "../logger.js";
 
 const cwd = loadConfig().cwd;
 
@@ -20,7 +21,8 @@ export async function readEphemeralFile(contextDir, filename, cwdParam = cwd) {
 			ephemeral: frontmatter.ephemeral === true,
 			expiresAt: frontmatter.ephemeral_expiresAt || "",
 		};
-	} catch {
+	} catch (err) {
+		logger.debug(`[expireEphemeral] Failed to read ephemeral file: ${err.message}`);
 		return null;
 	}
 }
@@ -49,7 +51,8 @@ export async function expireEphemeralMemories(contextDir, nowStr, cwdParam = cwd
 	let files;
 	try {
 		files = await readdir(join(cwdParam, contextDir));
-	} catch {
+	} catch (err) {
+		logger.debug(`[expireEphemeral] Failed to read directory: ${err.message}`);
 		return 0;
 	}
 	let removed = 0;
@@ -61,8 +64,8 @@ export async function expireEphemeralMemories(contextDir, nowStr, cwdParam = cwd
 			try {
 				await unlink(filepath);
 				removed++;
-			} catch {
-				// Ignore deletion errors
+			} catch (unlinkErr) {
+				logger.debug(`[expireEphemeral] Failed to delete file: ${unlinkErr.message}`);
 			}
 		}
 	}

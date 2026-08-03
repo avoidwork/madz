@@ -17,7 +17,7 @@ async function pathExists(filePath) {
 	try {
 		await access(filePath);
 		return true;
-	} catch {
+	} catch (_err) {
 		return false;
 	}
 }
@@ -94,7 +94,7 @@ function getEntryPath(key, contextDir, cwdParam = cwd) {
 async function getEntryFiles(contextDir) {
 	try {
 		return (await readdir(contextDir)).filter((f) => f.endsWith(".md"));
-	} catch {
+	} catch (_err) {
 		return [];
 	}
 }
@@ -106,7 +106,7 @@ async function getEntryFiles(contextDir) {
 async function countEntries(contextDir) {
 	try {
 		return (await readdir(contextDir)).filter((f) => f.endsWith(".md")).length;
-	} catch {
+	} catch (_err) {
 		return 0;
 	}
 }
@@ -141,7 +141,7 @@ async function loadEntry(key, contextDir, cwdParam = cwd) {
 			createdDate: created,
 			updatedDate: frontmatter.updateddate || created,
 		};
-	} catch {
+	} catch (_err) {
 		return null;
 	}
 }

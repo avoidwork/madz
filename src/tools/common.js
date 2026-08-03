@@ -71,7 +71,7 @@ export async function fetchWithTimeout(url, timeoutMs = 5000, allowlist = []) {
 export async function checkFileLimit(filePath, maxReadSize) {
 	try {
 		await access(filePath);
-	} catch {
+	} catch (_err) {
 		return { ok: false, error: `File not found: ${filePath}` };
 	}
 

@@ -1,6 +1,7 @@
-import { readdirSync, statSync, unlinkSync } from "node:fs";
+import { readdir, stat, unlink } from "node:fs/promises";
 import { join } from "node:path";
 import { loadConfig } from "../config/loader.js";
+import { logger } from "../logger.js";
 
 const cwd = loadConfig().cwd;
 
@@ -8,26 +9,26 @@ const cwd = loadConfig().cwd;
  * Remove memory files older than the retention policy allows.
  * @param {string} directory - The memory directory to clean
  * @param {number} retentionDays - Maximum age in days
- * @returns {number} Number of files removed
+ * @returns {Promise<number>} Number of files removed
  */
-export function cleanRetainedMemory(directory, retentionDays = 90, cwdParam = cwd) {
+export async function cleanRetainedMemory(directory, retentionDays = 90, cwdParam = cwd) {
 	const fullPath = join(cwdParam, directory);
 	const cutoff = Date.now() - retentionDays * 24 * 60 * 60 * 1000;
 	let removed = 0;
 
 	try {
-		const files = readdirSync(fullPath);
+		const files = await readdir(fullPath);
 		for (const filename of files) {
 			if (!filename.endsWith(".md")) continue;
 			const filepath = join(fullPath, filename);
-			const stat = statSync(filepath);
-			if (stat.mtimeMs < cutoff) {
-				unlinkSync(filepath);
+			const st = await stat(filepath);
+			if (st.mtimeMs < cutoff) {
+				await unlink(filepath);
 				removed++;
 			}
 		}
-	} catch {
-		// Directory doesn't exist or can't be read — skip silently
+	} catch (err) {
+		logger.debug(`[retention] Failed to read directory: ${err.message}`);
 	}
 
 	return removed;
@@ -37,31 +38,33 @@ export function cleanRetainedMemory(directory, retentionDays = 90, cwdParam = cw
  * Enforce maximum entry count across a memory directory.
  * @param {string} directory - The memory directory to clean
  * @param {number} maxEntries - Maximum number of files to keep
- * @returns {number} Number of files removed
+ * @returns {Promise<number>} Number of files removed
  */
-export function enforceMaxEntries(directory, maxEntries = 1000, cwdParam = cwd) {
+export async function enforceMaxEntries(directory, maxEntries = 1000, cwdParam = cwd) {
 	const fullPath = join(cwdParam, directory);
 	let removed = 0;
 
 	try {
-		const files = readdirSync(fullPath)
+		const files = await readdir(fullPath);
+		const entries = files
 			.filter((f) => f.endsWith(".md"))
-			.map((filename) => {
+			.map(async (filename) => {
 				const filepath = join(fullPath, filename);
-				const mtime = statSync(filepath).mtimeMs;
-				return { filepath, mtime };
-			})
-			.sort((a, b) => a.mtime - b.mtime);
+				const st = await stat(filepath);
+				return { filepath, mtime: st.mtimeMs };
+			});
+		const resolved = await Promise.all(entries);
+		resolved.sort((a, b) => a.mtime - b.mtime);
 
-		if (files.length > maxEntries) {
-			const excess = files.length - maxEntries;
+		if (resolved.length > maxEntries) {
+			const excess = resolved.length - maxEntries;
 			for (let i = 0; i < excess; i++) {
-				unlinkSync(files[i].filepath);
+				await unlink(resolved[i].filepath);
 				removed++;
 			}
 		}
-	} catch {
-		// Directory doesn't exist — skip silently
+	} catch (err) {
+		logger.debug(`[retention] Failed to read directory: ${err.message}`);
 	}
 
 	return removed;

@@ -1,7 +1,8 @@
-import { readFileSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { loadContext } from "./context.js";
 import { loadConfig } from "../config/loader.js";
+import { logger } from "../logger.js";
 
 const cwd = loadConfig().cwd;
 
@@ -9,12 +10,12 @@ const cwd = loadConfig().cwd;
  * Load the system prompt from prompts/SYSTEM_PROMPT.md,
  * appending the current memory context to the end.
  * @param {string} [baseDir=cwd] - Base directory for loading the prompt file
- * @returns {string} System prompt text with appended context, or empty string if file not found
+ * @returns {Promise<string>} System prompt text with appended context, or empty string if file not found
  */
-export function loadSystemPrompt(baseDir = cwd) {
+export async function loadSystemPrompt(baseDir = cwd) {
 	try {
 		const path = join(baseDir, "prompts", "SYSTEM_PROMPT.md");
-		let content = readFileSync(path, "utf-8");
+		let content = await readFile(path, "utf-8");
 		if (content.startsWith("---")) {
 			const closeIdx = content.indexOf("---", 3);
 			if (closeIdx !== -1) {
@@ -22,12 +23,13 @@ export function loadSystemPrompt(baseDir = cwd) {
 			}
 		}
 		// Append memory context to the system prompt
-		const context = loadContext();
+		const context = await loadContext();
 		if (context) {
 			content = content + "\n\n---\n\n" + context;
 		}
 		return content;
-	} catch {
+	} catch (err) {
+		logger.debug(`[prompts] Failed to load system prompt: ${err.message}`);
 		return "";
 	}
 }

@@ -32,7 +32,7 @@ export function formatNumber(num) {
 			return String(num);
 		}
 		return result;
-	} catch {
+	} catch (_err) {
 		return String(num);
 	}
 }

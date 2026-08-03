@@ -1,5 +1,4 @@
-import { readFileSync } from "node:fs";
-import { mkdir } from "node:fs/promises";
+import { readFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { discoverSkills, defaultScope } from "./discoverer.js";
 import { validateSkillSchema } from "./validator.js";
@@ -32,10 +31,10 @@ export class SkillRegistry {
 	 * @param {string[]} [scope] - Array of directories to scan (defaults to sandbox.skillScanPaths from config)
 	 * @param {object} [options] - Discovery options
 	 * @param {boolean} [options.trustProjectSkills=true] - Trust project-level skills
-	 * @returns {Array<{ name: string, errors: string[], warnings: string[] }>} Registration results
+	 * @returns {Promise<Array<{ name: string, errors: string[], warnings: string[] }>>} Registration results
 	 */
-	discover(scope = defaultScope, options = {}) {
-		const discovered = discoverSkills(scope, options);
+	async discover(scope = defaultScope, options = {}) {
+		const discovered = await discoverSkills(scope, options);
 		const results = [];
 
 		for (const skill of discovered) {
@@ -149,16 +148,16 @@ export class SkillRegistry {
 	/**
 	 * Read and return the full SKILL.md body for a skill (tier 2 progressive disclosure).
 	 * @param {string} name - The skill name
-	 * @returns {string | null} The full SKILL.md content, or null if not found
+	 * @returns {Promise<string | null>} The full SKILL.md content, or null if not found
 	 */
-	getSkillBody(name) {
+	async getSkillBody(name) {
 		const bodyPath = this.#bodyPaths.get(name);
 		if (!bodyPath) {
 			return null;
 		}
 		try {
-			return readFileSync(bodyPath, "utf-8");
-		} catch {
+			return await readFile(bodyPath, "utf-8");
+		} catch (_err) {
 			return null;
 		}
 	}

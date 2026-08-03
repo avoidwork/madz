@@ -360,7 +360,7 @@ describe("ensureSkillsDir", () => {
 			fs.mkdirSync(parentDir, { recursive: true });
 		}
 
-		ensureSkillsDir(testDir);
+		await ensureSkillsDir(testDir);
 		assert.ok(fs.existsSync(parentDir));
 	});
 

@@ -123,7 +123,7 @@ function buildSkillsMapping(skillRegistry) {
  */
 export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	const config = loadConfig();
-	let systemPrompt = loadSystemPrompt();
+	let systemPrompt = await loadSystemPrompt();
 	const agentsPath = join(config.cwd, "AGENTS.md");
 
 	// Discover skills from configured scopes

@@ -347,7 +347,7 @@ export function createCompactContextTool(options = {}) {
 									}));
 							}
 						}
-					} catch {
+					} catch (_err) {
 						// Checkpointer access failed — fall back to empty conversation
 						conversation = [];
 					}
