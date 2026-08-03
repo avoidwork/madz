@@ -35,7 +35,7 @@ describe("loadContext", () => {
 	});
 	after(teardown);
 
-	it("returns combined context from markdown files sorted by timestamp descending", () => {
+	it("returns combined context from markdown files sorted by timestamp descending", async () => {
 		writeFileSync(
 			join(fullTestDir, "note1.md"),
 			"---\ntitle: First Note\ntimestamp: 2024-01-01\n---\nContent of first note",
@@ -49,7 +49,7 @@ describe("loadContext", () => {
 			"---\ntitle: Third Note\ntimestamp: 2024-01-02\n---\nContent of third note",
 		);
 
-		const result = loadContext(testDir, 3);
+		const result = await loadContext(testDir, 3);
 		assert.ok(result.includes("[Context: Second Note]"));
 		assert.ok(result.includes("Content of second note"));
 		assert.ok(result.includes("[Context: Third Note]"));
@@ -63,40 +63,40 @@ describe("loadContext", () => {
 		assert.ok(thirdIdx < firstIdx, "Third Note should come before First Note");
 	});
 
-	it("respects the limit parameter", () => {
+	it("respects the limit parameter", async () => {
 		writeFileSync(join(fullTestDir, "a.md"), "---\ntitle: A\ntimestamp: 2024-01-01\n---\nAAA");
 		writeFileSync(join(fullTestDir, "b.md"), "---\ntitle: B\ntimestamp: 2024-01-02\n---\nBBB");
 		writeFileSync(join(fullTestDir, "c.md"), "---\ntitle: C\ntimestamp: 2024-01-03\n---\nCCC");
 
-		const result = loadContext(testDir, 2);
+		const result = await loadContext(testDir, 2);
 		assert.ok(result.includes("[Context: B]"));
 		assert.ok(result.includes("[Context: C]"));
 		assert.ok(!result.includes("[Context: A]"), "A should be excluded with limit 2");
 	});
 
-	it("filters out non-.md files", () => {
+	it("filters out non-.md files", async () => {
 		writeFileSync(
 			join(fullTestDir, "valid.md"),
 			"---\ntitle: Valid\ntimestamp: 2024-01-01\n---\nValid content",
 		);
 		writeFileSync(join(fullTestDir, "invalid.txt"), "this is not markdown");
 
-		const result = loadContext(testDir, 10);
+		const result = await loadContext(testDir, 10);
 		assert.ok(result.includes("[Context: Valid]"));
 		assert.ok(!result.includes("[Context: invalid.txt]"));
 		assert.ok(!result.includes("this is not markdown"));
 	});
 
-	it("returns empty string for non-existent directory", () => {
-		const result = loadContext("__nonexistent_dir_xyz__", 10);
+	it("returns empty string for non-existent directory", async () => {
+		const result = await loadContext("__nonexistent_dir_xyz__", 10);
 		assert.strictEqual(result, "");
 	});
 
-	it("returns empty string for empty directory", () => {
+	it("returns empty string for empty directory", async () => {
 		const emptyDir = "__empty_ctx_test__";
 		mkdirSync(join(process.cwd(), emptyDir), { recursive: true });
 		try {
-			const result = loadContext(emptyDir, 10);
+			const result = await loadContext(emptyDir, 10);
 			assert.strictEqual(result, "");
 		} finally {
 			rmSync(join(process.cwd(), emptyDir), { recursive: true, force: true });

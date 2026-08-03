@@ -65,20 +65,20 @@ describe("reader", () => {
 			assert.strictEqual(result, null);
 		});
 
-		it("returns parsed data for existing file with frontmatter", () => {
+		it("returns parsed data for existing file with frontmatter", async () => {
 			const filePath = join(testDir, "test.md");
 			writeFileSync(filePath, "---\ntitle: Test File\n---\n\nThis is the body content.");
-			const result = readMemoryFile(filePath);
+			const result = await readMemoryFile(filePath);
 			assert.ok(result);
 			assert.strictEqual(result.frontmatter.title, "Test File");
 			assert.strictEqual(result.content, "This is the body content.");
 			assert.strictEqual(result.path, filePath);
 		});
 
-		it("returns parsed data for file without frontmatter", () => {
+		it("returns parsed data for file without frontmatter", async () => {
 			const filePath = join(testDir, "plain.md");
 			writeFileSync(filePath, "Just plain content without frontmatter.");
-			const result = readMemoryFile(filePath);
+			const result = await readMemoryFile(filePath);
 			assert.ok(result);
 			assert.deepStrictEqual(result.frontmatter, {});
 			assert.strictEqual(result.content, "Just plain content without frontmatter.");

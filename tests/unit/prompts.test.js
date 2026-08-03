@@ -41,7 +41,7 @@ describe("loadSystemPrompt", () => {
 		);
 
 		const { loadSystemPrompt } = await import("../../src/memory/prompts.js");
-		const result = loadSystemPrompt(fullTestDir);
+		const result = await loadSystemPrompt(fullTestDir);
 		assert.ok(result.includes("# System Prompt"));
 		assert.ok(result.includes("You are a helpful assistant."));
 	});
@@ -53,7 +53,7 @@ describe("loadSystemPrompt", () => {
 		);
 
 		const { loadSystemPrompt } = await import("../../src/memory/prompts.js");
-		const result = loadSystemPrompt(fullTestDir);
+		const result = await loadSystemPrompt(fullTestDir);
 		assert.ok(!result.startsWith("---"));
 		assert.ok(result.includes("You are a helpful assistant."));
 	});
@@ -70,7 +70,7 @@ describe("loadSystemPrompt", () => {
 		);
 
 		const { loadSystemPrompt } = await import("../../src/memory/prompts.js");
-		const result = loadSystemPrompt(fullTestDir);
+		const result = await loadSystemPrompt(fullTestDir);
 		assert.ok(result.includes("# System Prompt"));
 		assert.ok(result.includes("You are a helpful assistant."));
 		// loadContext reads from cwd/memory/context/ by default, not from baseDir
@@ -87,7 +87,7 @@ describe("loadSystemPrompt", () => {
 		mkdirSync(join(fullTestDir, "memory", "context"), { recursive: true });
 
 		const { loadSystemPrompt } = await import("../../src/memory/prompts.js");
-		const result = loadSystemPrompt(fullTestDir);
+		const result = await loadSystemPrompt(fullTestDir);
 		// Should return prompt content without crashing
 		assert.ok(result.includes("# System Prompt"));
 		assert.ok(result.includes("You are a helpful assistant."));
@@ -95,7 +95,7 @@ describe("loadSystemPrompt", () => {
 
 	it("returns empty string when SYSTEM_PROMPT.md does not exist", async () => {
 		const { loadSystemPrompt } = await import("../../src/memory/prompts.js");
-		const result = loadSystemPrompt("__nonexistent_dir_xyz__");
+		const result = await loadSystemPrompt("__nonexistent_dir_xyz__");
 		assert.strictEqual(result, "");
 	});
 });

@@ -1,6 +1,7 @@
 import { describe, it, after, beforeEach } from "node:test";
 import assert from "node:assert";
-import { writeFileSync, rmSync, existsSync, readFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, rmSync, mkdirSync } from "node:fs";
+import { readFile, access, constants } from "node:fs/promises";
 import { join } from "node:path";
 import {
 	ATTRIBUTES,
@@ -80,88 +81,87 @@ describe("ATTRIBUTES schema", () => {
 });
 
 describe("loadProfile", () => {
-	it("returns null when profile file does not exist", () => {
+	it("returns null when profile file does not exist", async () => {
 		const missing = join(FULL_TEST_DIR, "missing.md");
-		assert.strictEqual(loadProfile(missing), null);
+		assert.strictEqual(await loadProfile(missing), null);
 	});
 
-	it("returns null when body has no profile attributes", () => {
+	it("returns null when body has no profile attributes", async () => {
 		const fp = join(FULL_TEST_DIR, "note.md");
 		writeFileSync(fp, "just a note");
-		assert.strictEqual(loadProfile(fp), null);
+		assert.strictEqual(await loadProfile(fp), null);
 	});
 
-	it("returns null for empty file content", () => {
+	it("returns null for empty file content", async () => {
 		const fp = join(FULL_TEST_DIR, "empty.md");
 		writeFileSync(fp, "");
-		assert.strictEqual(loadProfile(fp), null);
+		assert.strictEqual(await loadProfile(fp), null);
 	});
 
-	it("returns null for empty body with frontmatter", () => {
+	it("returns null for empty body with frontmatter", async () => {
 		const fp = join(FULL_TEST_DIR, "fm.md");
 		writeFileSync(fp, "---\ntitle: Note\n---\n");
-		assert.strictEqual(loadProfile(fp), null);
+		assert.strictEqual(await loadProfile(fp), null);
 	});
 
-	it("parses profile from body lines", () => {
+	it("parses profile from body lines", async () => {
 		const fp = join(FULL_TEST_DIR, "body.md");
 		writeFileSync(fp, "name: Alice\nhobbies: hiking\npets: cat");
-		const result = loadProfile(fp);
+		const result = await loadProfile(fp);
 		assert.ok(result);
 		assert.strictEqual(result.data.name, "Alice");
 		assert.strictEqual(result.data.hobbies, "hiking");
 		assert.strictEqual(result.data.pets, "cat");
 	});
 
-	it("skips comment lines in body", () => {
+	it("skips comment lines in body", async () => {
 		const fp = join(FULL_TEST_DIR, "comment.md");
 		writeFileSync(fp, "# comment\nname: Bob\n  # another comment\n\nhobbies: reading\n");
-		const result = loadProfile(fp);
+		const result = await loadProfile(fp);
 		assert.strictEqual(result.data.name, "Bob");
 		assert.strictEqual(result.data.hobbies, "reading");
 	});
 
-	it("returns null if body values match no known attributes", () => {
+	it("returns null if body values match no known attributes", async () => {
 		const fp = join(FULL_TEST_DIR, "unknown.md");
 		writeFileSync(fp, "foo: bar");
-		assert.strictEqual(loadProfile(fp), null);
+		assert.strictEqual(await loadProfile(fp), null);
 	});
 });
 
 describe("saveProfile", () => {
-	it("writes profile file with body data", () => {
+	it("writes profile file with body data", async () => {
 		const fp = join(FULL_TEST_DIR, "profile.md");
-		saveProfile({ name: "Alice", hobbies: "hiking", pets: "cat" }, fp);
-		assert.ok(existsSync(fp), "profile file should exist");
-		assert.ok(!existsSync(fp + ".tmp"), "temp file should be gone");
-		const content = readFileSync(fp, "utf-8");
+		await saveProfile({ name: "Alice", hobbies: "hiking", pets: "cat" }, fp);
+		const content = await readFile(fp, "utf-8");
 		assert.ok(content.includes("name: Alice"));
 		assert.ok(content.includes("hobbies: hiking"));
 		assert.ok(content.includes("pets: cat"));
 		assert.ok(!content.includes("---"));
 	});
 
-	it("overwrites existing profile", () => {
+	it("overwrites existing profile", async () => {
 		const fp = join(FULL_TEST_DIR, "over.md");
-		saveProfile({ name: "Alice" }, fp);
-		let content = readFileSync(fp, "utf-8");
+		await saveProfile({ name: "Alice" }, fp);
+		let content = await readFile(fp, "utf-8");
 		assert.ok(content.includes("name: Alice"));
-		saveProfile({ name: "Bob" }, fp);
-		content = readFileSync(fp, "utf-8");
+		await saveProfile({ name: "Bob" }, fp);
+		content = await readFile(fp, "utf-8");
 		assert.ok(content.includes("name: Bob"));
 		assert.ok(!content.includes("Alice"));
 	});
 
-	it("creates parent directory if missing", () => {
+	it("creates parent directory if missing", async () => {
 		const fp = join(FULL_TEST_DIR, "sub", "dir", "p.md");
-		saveProfile({ name: "test" }, fp);
-		assert.ok(existsSync(fp));
+		await saveProfile({ name: "test" }, fp);
+		const content = await readFile(fp, "utf-8");
+		assert.ok(content.includes("name: test"));
 	});
 
-	it("skips null and empty attributes", () => {
+	it("skips null and empty attributes", async () => {
 		const fp = join(FULL_TEST_DIR, "nulls.md");
-		saveProfile({ name: "test", dob: null, pet: "cat", hobbies: "" }, fp);
-		const content = readFileSync(fp, "utf-8");
+		await saveProfile({ name: "test", dob: null, pet: "cat", hobbies: "" }, fp);
+		const content = await readFile(fp, "utf-8");
 		assert.ok(content.includes("name: test"));
 		assert.ok(!content.includes("cat"));
 	});

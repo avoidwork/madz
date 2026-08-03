@@ -5,6 +5,7 @@ import { mkdtemp, unlink, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { loadConfig } from "../config/loader.js";
+import { logger } from "../logger.js";
 
 const LANGUAGE_MAP = {
 	python3: { ext: ".py", interpreter: "python3" },
@@ -65,7 +66,6 @@ function getImportHookCode() {
 	return `
 import sys
 import types
-import { logger } from "../logger.js";
 
 
 class RestrictedImporter:

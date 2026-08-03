@@ -292,33 +292,33 @@ describe("sandbox - capability enforcement", () => {
 // --- Detect interpreter tests (in sandbox/runner.js too) ---
 
 describe("sandbox - detectInterpreter", () => {
-	it("detects python from .py extension", () => {
-		const result = detectInterpreter("script.py");
+	it("detects python from .py extension", async () => {
+		const result = await detectInterpreter("script.py");
 		assert.deepStrictEqual(result, { command: "python3", args: [] });
 	});
 
-	it("detects node from .js extension", () => {
-		const result = detectInterpreter("script.js");
+	it("detects node from .js extension", async () => {
+		const result = await detectInterpreter("script.js");
 		assert.deepStrictEqual(result, { command: "node", args: [] });
 	});
 
-	it("detects bash from .sh extension", () => {
-		const result = detectInterpreter("script.sh");
+	it("detects bash from .sh extension", async () => {
+		const result = await detectInterpreter("script.sh");
 		assert.deepStrictEqual(result, { command: "bash", args: [] });
 	});
 
-	it("detects ruby from .rb extension", () => {
-		const result = detectInterpreter("script.rb");
+	it("detects ruby from .rb extension", async () => {
+		const result = await detectInterpreter("script.rb");
 		assert.deepStrictEqual(result, { command: "ruby", args: [] });
 	});
 
-	it("detects typescript from .ts extension", () => {
-		const result = detectInterpreter("script.ts");
+	it("detects typescript from .ts extension", async () => {
+		const result = await detectInterpreter("script.ts");
 		assert.deepStrictEqual(result, { command: "node", args: ["--import", "tsx"] });
 	});
 
-	it("returns null for unknown extension", () => {
-		const result = detectInterpreter("script.xyz");
+	it("returns null for unknown extension", async () => {
+		const result = await detectInterpreter("script.xyz");
 		assert.strictEqual(result, null);
 	});
 });
