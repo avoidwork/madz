@@ -1,6 +1,13 @@
 import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert";
-import { Cron, setExecOverride } from "../../../src/scheduler/cron.js";
+import {
+	Cron,
+	setExecOverride,
+	writeEnvCron,
+	prepareCrontabCommand,
+} from "../../../src/scheduler/cron.js";
+import { rmSync, readFileSync, statSync } from "node:fs";
+import { join } from "node:path";
 
 // --- Mock crontab state ---
 let mockCrontabContent = "";
@@ -355,5 +362,95 @@ describe("cron - Cron.sync", () => {
 		// Cleanup
 		const { rmSync } = await import("node:fs");
 		rmSync(join(process.cwd(), testDir), { recursive: true, force: true });
+	});
+});
+
+describe("cron - writeEnvCron", () => {
+	beforeEach(() => {
+		// Set up test env vars
+		process.env.TEST_VAR_A = "value-a";
+		process.env.TEST_VAR_B = "value-b";
+	});
+
+	afterEach(() => {
+		// Clean up test env vars and temp files
+		delete process.env.TEST_VAR_A;
+		delete process.env.TEST_VAR_B;
+		try {
+			rmSync(join(process.cwd(), ".env.cron"), { force: true });
+		} catch (_err) {
+			// ignore
+		}
+	});
+
+	it("writes .env.cron with all env variables", async () => {
+		const result = await writeEnvCron(process.cwd());
+		assert.strictEqual(result.written, true);
+		const content = readFileSync(join(process.cwd(), ".env.cron"), "utf-8");
+		assert.ok(content.includes("export TEST_VAR_A="));
+		assert.ok(content.includes("export TEST_VAR_B="));
+	});
+
+	it("writes file with 0600 permissions", async () => {
+		await writeEnvCron(process.cwd());
+		const stats = statSync(join(process.cwd(), ".env.cron"));
+		const mode = stats.mode & 0o777;
+		assert.strictEqual(mode, 0o600);
+	});
+
+	it("returns written:false when process.env is empty", async () => {
+		// Save original env
+		const saved = { ...process.env };
+		// Clear env
+		for (const key of Object.keys(process.env)) {
+			delete process.env[key];
+		}
+		const result = await writeEnvCron(process.cwd());
+		assert.strictEqual(result.written, false);
+		// Restore original env
+		Object.assign(process.env, saved);
+	});
+
+	it("escapes single quotes in values", async () => {
+		process.env.TEST_VAR_A = "test'value";
+		await writeEnvCron(process.cwd());
+		const content = readFileSync(join(process.cwd(), ".env.cron"), "utf-8");
+		assert.ok(content.includes("test'\\''value"));
+	});
+
+	it("is idempotent — overwrites on second call", async () => {
+		await writeEnvCron(process.cwd());
+		await writeEnvCron(process.cwd());
+		const content = readFileSync(join(process.cwd(), ".env.cron"), "utf-8");
+		// Should only have one set of exports, not duplicated
+		const keyCount = (content.match(/TEST_VAR_A/g) || []).length;
+		assert.strictEqual(keyCount, 1);
+	});
+});
+
+describe("cron - prepareCrontabCommand", () => {
+	it("prepends env sourcing prefix", () => {
+		const result = prepareCrontabCommand("echo test");
+		assert.ok(result.startsWith(". /"));
+		assert.ok(result.includes(".env.cron"));
+		assert.ok(result.endsWith("&& echo test"));
+	});
+
+	it("prepends env sourcing to all commands", () => {
+		const result = prepareCrontabCommand("cd /app && node index.js");
+		assert.ok(result.startsWith(". /"));
+		assert.ok(result.includes("&& cd /app && node index.js"));
+	});
+
+	it("strips newlines from commands", () => {
+		const result = prepareCrontabCommand("echo hello\nworld");
+		assert.ok(!result.includes("\n"));
+		assert.ok(!result.includes("\r"));
+	});
+
+	it("handles empty command", () => {
+		const result = prepareCrontabCommand("");
+		assert.ok(result.startsWith(". /"));
+		assert.ok(result.includes("&& "));
 	});
 });

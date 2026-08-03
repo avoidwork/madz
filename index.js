@@ -34,6 +34,14 @@ const { default: pkg } = await import(new URL("./package.json", import.meta.url)
 });
 
 // Initialize subsystems
+// Write .env.cron before any subsystem that may use cron
+try {
+	const { writeEnvCron } = await import("./src/scheduler/cron.js");
+	await writeEnvCron(process.cwd());
+} catch (err) {
+	logger.warn(`[cron] Failed to write .env.cron: ${err.message}`);
+}
+
 // Sync crontab from persisted job definitions (runs before any subsystem)
 if (config.schedules.syncOnInit !== false) {
 	try {

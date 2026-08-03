@@ -19,6 +19,40 @@ const REFLECTION_JOB = {
 let _logPath = undefined;
 
 /**
+ * Write the .env.cron file with all environment variables from process.env.
+ * Called on startup so cron jobs can source it for required variables.
+ * Idempotent — safe to call multiple times.
+ * @param {string} cwd - The current working directory path
+ * @returns {Promise<{ written: boolean, error?: string }>}
+ */
+export async function writeEnvCron(cwd) {
+	const envPath = join(cwd, ".env.cron");
+	const lines = [];
+
+	for (const [key, value] of Object.entries(process.env)) {
+		if (value !== undefined) {
+			// Escape single quotes and wrap in single quotes for shell safety
+			const escaped = value.replace(/'/g, "'\\''");
+			lines.push(`export ${key}='${escaped}'`);
+		}
+	}
+
+	if (lines.length === 0) {
+		return { written: false };
+	}
+
+	try {
+		await writeFile(envPath, lines.join("\n") + "\n", { mode: 0o600 });
+		logger.debug(`[cron] Wrote .env.cron with ${lines.length} variables`);
+		return { written: true };
+	} catch (err) {
+		const msg = err instanceof Error ? err.message : String(err);
+		logger.warn(`[cron] Failed to write .env.cron: ${msg}`);
+		return { written: false, error: msg };
+	}
+}
+
+/**
  * Execute a shell command with optional stdin input.
  * @param {string} cmd - Shell command to execute
  * @param {object} [opts={}] - Options
@@ -63,13 +97,15 @@ export function sanitizeCrontabCommand(command) {
 
 /**
  * Prepare a command for crontab entry.
- * Replaces bare `node` with absolute path and adds output redirection.
+ * Prepends `. /{cwd}/.env.cron 2>/dev/null || true && ` so cron jobs
+ * source the env file before executing. Strips line-breaking characters.
  * @param {string} command - The command string to prepare
  * @param {string} [logPath] - Optional log file path for output redirection
  * @returns {string} The prepared command
  */
 export function prepareCrontabCommand(command) {
-	return sanitizeCrontabCommand(command);
+	const sanitized = sanitizeCrontabCommand(command);
+	return `. ${join(process.cwd(), ".env.cron")} 2>/dev/null || true && ${sanitized}`;
 }
 
 /**
