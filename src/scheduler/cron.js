@@ -19,26 +19,7 @@ const REFLECTION_JOB = {
 let _logPath = undefined;
 
 /**
- * Whitelisted environment variable names to include in .env.cron.
- * Only explicitly allowed variables are written — no full env dump.
- * @type {readonly string[]}
- */
-const ENV_WHITELIST = Object.freeze([
-	"OPENAI_API_KEY",
-	"OPENAI_BASE_URL",
-	"NODE_OPTIONS",
-	"TZ",
-	"PATH",
-	"HOME",
-	"SHELL",
-	"LANG",
-	"LC_ALL",
-	"MADZ_CONFIG_PATH",
-	"MADZ_SESSION_ID",
-]);
-
-/**
- * Write the .env.cron file with whitelisted environment variables.
+ * Write the .env.cron file with all environment variables from process.env.
  * Called on startup so cron jobs can source it for required variables.
  * Idempotent — safe to call multiple times.
  * @param {string} cwd - The current working directory path
@@ -48,8 +29,7 @@ export async function writeEnvCron(cwd) {
 	const envPath = join(cwd, ".env.cron");
 	const lines = [];
 
-	for (const key of ENV_WHITELIST) {
-		const value = process.env[key];
+	for (const [key, value] of Object.entries(process.env)) {
 		if (value !== undefined) {
 			// Escape single quotes and wrap in single quotes for shell safety
 			const escaped = value.replace(/'/g, "'\\''");

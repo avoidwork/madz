@@ -368,18 +368,14 @@ describe("cron - Cron.sync", () => {
 describe("cron - writeEnvCron", () => {
 	beforeEach(() => {
 		// Set up test env vars
-		process.env.OPENAI_API_KEY = "test-key-123";
-		process.env.OPENAI_BASE_URL = "http://localhost:8000/v1";
-		process.env.NODE_OPTIONS = "--max-old-space-size=6144";
-		process.env.TZ = "America/Toronto";
+		process.env.TEST_VAR_A = "value-a";
+		process.env.TEST_VAR_B = "value-b";
 	});
 
 	afterEach(() => {
 		// Clean up test env vars and temp files
-		delete process.env.OPENAI_API_KEY;
-		delete process.env.OPENAI_BASE_URL;
-		delete process.env.NODE_OPTIONS;
-		delete process.env.TZ;
+		delete process.env.TEST_VAR_A;
+		delete process.env.TEST_VAR_B;
 		try {
 			rmSync(join(process.cwd(), ".env.cron"), { force: true });
 		} catch (_err) {
@@ -387,14 +383,12 @@ describe("cron - writeEnvCron", () => {
 		}
 	});
 
-	it("writes .env.cron with whitelisted variables", async () => {
+	it("writes .env.cron with all env variables", async () => {
 		const result = await writeEnvCron(process.cwd());
 		assert.strictEqual(result.written, true);
 		const content = readFileSync(join(process.cwd(), ".env.cron"), "utf-8");
-		assert.ok(content.includes("export OPENAI_API_KEY="));
-		assert.ok(content.includes("export OPENAI_BASE_URL="));
-		assert.ok(content.includes("export NODE_OPTIONS="));
-		assert.ok(content.includes("export TZ="));
+		assert.ok(content.includes("export TEST_VAR_A="));
+		assert.ok(content.includes("export TEST_VAR_B="));
 	});
 
 	it("writes file with 0600 permissions", async () => {
@@ -404,17 +398,21 @@ describe("cron - writeEnvCron", () => {
 		assert.strictEqual(mode, 0o600);
 	});
 
-	it("returns written:false when no whitelisted vars exist", async () => {
-		delete process.env.OPENAI_API_KEY;
-		delete process.env.OPENAI_BASE_URL;
-		delete process.env.NODE_OPTIONS;
-		delete process.env.TZ;
+	it("returns written:false when process.env is empty", async () => {
+		// Save original env
+		const saved = { ...process.env };
+		// Clear env
+		for (const key of Object.keys(process.env)) {
+			delete process.env[key];
+		}
 		const result = await writeEnvCron(process.cwd());
 		assert.strictEqual(result.written, false);
+		// Restore original env
+		Object.assign(process.env, saved);
 	});
 
 	it("escapes single quotes in values", async () => {
-		process.env.OPENAI_API_KEY = "test'value";
+		process.env.TEST_VAR_A = "test'value";
 		await writeEnvCron(process.cwd());
 		const content = readFileSync(join(process.cwd(), ".env.cron"), "utf-8");
 		assert.ok(content.includes("test'\\''value"));
@@ -425,7 +423,7 @@ describe("cron - writeEnvCron", () => {
 		await writeEnvCron(process.cwd());
 		const content = readFileSync(join(process.cwd(), ".env.cron"), "utf-8");
 		// Should only have one set of exports, not duplicated
-		const keyCount = (content.match(/OPENAI_API_KEY/g) || []).length;
+		const keyCount = (content.match(/TEST_VAR_A/g) || []).length;
 		assert.strictEqual(keyCount, 1);
 	});
 });
