@@ -161,7 +161,11 @@ export const MessageList = forwardRef(function MessageList(
 			// Also trigger a parent re-render when content changed (streaming), so the
 			// scroll effect can detect the change and scroll to bottom.
 			publish(`msg-${id}`, dataRef.current.get(id));
-			if (updates.content !== undefined) {
+			if (
+				updates.content !== undefined ||
+				updates.toolCallCount !== undefined ||
+				updates.turnDurationMs !== undefined
+			) {
 				triggerRender();
 			}
 		},

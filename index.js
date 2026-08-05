@@ -181,28 +181,64 @@ async function callProvider(_name, _providerConfig, message, streamingCallback, 
 	};
 
 	let collectedContent = "";
+	let toolCallCount = 0;
 	const input = {
 		messages: [{ role: "user", content: message }],
 	};
 
-	for await (const [_namespace, chunk] of await agent.stream(input, {
+	for await (const event of agent.streamEvents(input, {
 		...config,
 		...options,
-		streamMode: "messages",
+		version: "v2",
 		subgraphs: true,
 	})) {
-		const [message] = chunk;
-		const text = message?.text ?? "";
+		// Transform LangChain streamEvents format to match streamingCallback expectations
+		const transformedEvent = {
+			type: event.event,
+			name: event.name,
+			data: event.data,
+			metadata: event.metadata,
+		};
 
-		if (text) {
-			collectedContent += text;
-			if (streamingCallback) {
-				streamingCallback({ type: "message", text });
+		// Forward the transformed event to the streaming callback
+		if (streamingCallback) {
+			streamingCallback(transformedEvent);
+		}
+
+		// Count tool calls
+		if (event.event === "on_tool_start") {
+			toolCallCount++;
+		}
+
+		// Accumulate text content from message events
+		if (event.event === "on_chat_model_stream" && event.data?.chunk) {
+			const chunk = event.data.chunk;
+			// streamEvents v2 chunks are AIMessageChunk objects — content is direct
+			const content = chunk.content ?? "";
+			if (content) {
+				collectedContent += content;
 			}
+		}
+		if (event.event === "message" && event.data?.content) {
+			const text =
+				typeof event.data.content === "string"
+					? event.data.content
+					: (event.data.content?.text ?? "");
+			if (text) {
+				collectedContent += text;
+			}
+		}
+		if (event.event === "on_chat_model_end" && event.data?.output?.kwargs?.content) {
+			collectedContent += event.data.output.kwargs.content;
 		}
 	}
 
-	return { provider: providerName, content: collectedContent, tokens: { input: 0, output: 0 } };
+	return {
+		provider: providerName,
+		content: collectedContent,
+		tokens: { input: 0, output: 0 },
+		toolCallCount,
+	};
 }
 
 // Conversation handler

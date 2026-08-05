@@ -83,7 +83,13 @@ describe("messageList - tool call count and turn duration", () => {
 	 * Returns the formatted string if stats should be shown, null otherwise.
 	 */
 	function simulateTurnStats(role, toolCallCount, turnDurationMs) {
-		if (role !== "assistant" || !toolCallCount || toolCallCount <= 0 || !turnDurationMs || turnDurationMs <= 0) {
+		if (
+			role !== "assistant" ||
+			!toolCallCount ||
+			toolCallCount <= 0 ||
+			!turnDurationMs ||
+			turnDurationMs <= 0
+		) {
 			return null;
 		}
 		return `🔧 ${toolCallCount} tool${toolCallCount > 1 ? "s" : ""} · ⏱ ${Math.round(turnDurationMs / 100) / 10}s`;

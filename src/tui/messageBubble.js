@@ -113,6 +113,7 @@ export const PubSubContext = React.createContext({ subscribe: () => {}, unsubscr
  * @param {string} [props.reasoningContent] - Thinking/thought content
  * @param {Object} [props.activeToolCall] - {name: string} for running tool
  * @param {string} [props.toolCallDisplay] - Tool call result display text
+ * @param {Array<Object>} [props.events] - Raw stream events { type, name, data, tags, metadata }
  * @param {number} [props.toolCallCount] - Number of tools called during this turn
  * @param {number} [props.turnDurationMs] - Duration of the turn in milliseconds
  *
@@ -127,6 +128,7 @@ export function MessageBubble({
 	reasoningContent,
 	activeToolCall,
 	toolCallDisplay,
+	events,
 	toolCallCount,
 	turnDurationMs,
 }) {
@@ -200,6 +202,59 @@ export function MessageBubble({
 			)
 		: null;
 
+	/**
+	 * Normalize LangChain stream event types to human-readable labels.
+	 * @param {string} rawType - Raw event type (e.g., "on_tool_start")
+	 * @returns {string} Human-readable label (e.g., "tool")
+	 */
+	function normalizeEventType(rawType) {
+		const mapping = {
+			on_chat_model_start: "model",
+			on_chat_model_end: "model",
+			on_chat_model_stream: "model",
+			on_tool_start: "tool",
+			on_tool_end: "tool",
+			on_agent_action: "agent",
+			on_chain_start: "chain",
+			on_chain_end: "chain",
+			on_retriever_start: "retriever",
+			on_retriever_end: "retriever",
+			on_custom_event: "custom",
+		};
+		return mapping[rawType] || rawType.replace(/^on_/, "").replace(/_/g, " ");
+	}
+
+	const hasEvents = events && events.length > 0;
+
+	const eventsEl = hasEvents
+		? React.createElement(
+				Box,
+				{ flexDirection: "row", marginTop: 1, marginLeft: 2 },
+				React.createElement(
+					Text,
+					{ dimColor: true, color: "gray" },
+					`  Events (${events.length}):`,
+				),
+				React.createElement(
+					Box,
+					{ flexDirection: "column" },
+					...Object.entries(
+						events.reduce((acc, evt) => {
+							const label = normalizeEventType(evt.type);
+							acc[label] = (acc[label] || 0) + 1;
+							return acc;
+						}, {}),
+					).map(([type, count]) =>
+						React.createElement(
+							Text,
+							{ key: `evt-${type}`, color: "gray" },
+							`    - ${type} [${count}]`,
+						),
+					),
+				),
+			)
+		: null;
+
 	const hasTurnStats = role === "assistant" && toolCallCount > 0 && turnDurationMs > 0;
 	const turnStatsEl = hasTurnStats
 		? React.createElement(
@@ -260,6 +315,7 @@ export function MessageBubble({
 			reasoningEl,
 			toolCallEl,
 			toolDisplayEl,
+			eventsEl,
 			turnStatsEl,
 		),
 	);

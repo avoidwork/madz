@@ -477,7 +477,13 @@ export default function App({
 				sessionState.addExchange({ role: "user", content: text });
 			}
 
-			finalizeStreaming(responseContent, committedReasoning, lastToolCallDisplay, todoStatusLines, toolCallCount);
+			finalizeStreaming(
+				responseContent,
+				committedReasoning,
+				lastToolCallDisplay,
+				todoStatusLines,
+				toolCallCount,
+			);
 
 			// Persist assistant message and recalculate context
 			if (sessionState) {
@@ -709,65 +715,65 @@ export default function App({
 				});
 
 				if (event.type === "message") {
-					committedContentRef.current = (committedContentRef.current || "") + event.text;
-					messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
-						content: committedContentRef.current + (config?.tui?.cursorChar || "\u2588"),
-						streaming: true,
-					});
-					if (onTextReceived) onTextReceived();
+					// streamMode "events" carries content in data.content, not data.text
+					const msgText =
+						event.data?.content && typeof event.data.content === "string"
+							? event.data.content
+							: (event.data?.content?.text ?? event.text ?? "");
+					if (msgText) {
+						committedContentRef.current = (committedContentRef.current || "") + msgText;
+						messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
+							content: committedContentRef.current + (config?.tui?.cursorChar || "\u2588"),
+							streaming: true,
+						});
+						if (onTextReceived) onTextReceived();
+					}
 				}
 
 				// Handle on_chat_model_stream — accumulate content and reasoning
 				if (event.type === "on_chat_model_stream") {
-					if (event.data?.chunk?.content) {
-						committedContentRef.current =
-							(committedContentRef.current || "") + event.data.chunk.content;
+					// deepagents streamEvents v2 chunks are AIMessageChunk objects
+					const chunk = event.data?.chunk;
+					const content = chunk?.content ?? "";
+					if (content) {
+						committedContentRef.current = (committedContentRef.current || "") + content;
 						messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
 							content: committedContentRef.current + (config?.tui?.cursorChar || "\u2588"),
 							streaming: true,
 						});
 					}
-					if (event.data?.chunk?.reasoning) {
-						committedReasoningRef.current =
-							(committedReasoningRef.current || "") + event.data.chunk.reasoning;
+					// Count tool calls from tool_call_chunks (streaming) and tool_calls (final)
+					if (chunk?.tool_call_chunks?.length) {
+						toolCallCount += chunk.tool_call_chunks.length;
+						for (const tc of chunk.tool_call_chunks) {
+							messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
+								activeToolCall: {
+									name: tc.name,
+									status: "running",
+								},
+							});
+						}
+					}
+					if (chunk?.tool_calls?.length) {
+						toolCallCount += chunk.tool_calls.length;
+					}
+					if (chunk?.reasoning) {
+						committedReasoningRef.current = (committedReasoningRef.current || "") + chunk.reasoning;
 					}
 				}
 
-				// Handle on_tool_start — set activeToolCall
-				if (event.type === "on_tool_start") {
-					toolCallCount++;
-					messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
-						activeToolCall: {
-							name: event.name,
-							input: event.data?.input,
-							status: "running",
-						},
-					});
-				}
-
-				// Handle on_tool_end — clear activeToolCall, set toolCallDisplay
-				if (event.type === "on_tool_end") {
-					messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
-						activeToolCall: null,
-					});
-					if (event.data?.output) {
+				// Handle on_chat_model_end — finalize tool call display
+				if (event.type === "on_chat_model_end") {
+					const output = event.data?.output;
+					if (output?.kwargs?.tool_calls?.length) {
 						lastToolCallDisplayRef.current =
-							(lastToolCallDisplayRef.current || "") + event.data.output;
+							(lastToolCallDisplayRef.current || "") +
+							output.kwargs.tool_calls.map((tc) => `[${tc.name}]`).join(" ");
 						messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
 							toolCallDisplay: lastToolCallDisplayRef.current,
+							activeToolCall: null,
 						});
 					}
-				}
-
-				// Handle on_tool_error — set activeToolCall with error
-				if (event.type === "on_tool_error") {
-					messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
-						activeToolCall: {
-							name: event.name,
-							error: event.data?.error,
-							status: "error",
-						},
-					});
 				}
 			} catch (cbErr) {
 				logger.debug(`[streaming] callback error: ${cbErr.message}`);
