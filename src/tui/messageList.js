@@ -113,6 +113,7 @@ export const MessageList = forwardRef(function MessageList(
 		 * @param {string} [options.toolCallDisplay] - Tool call display text
 		 * @param {Array<Object>} [options.events] - Raw stream events
 		 * @param {boolean} [options.streaming] - Streaming flag
+		 * @param {number} [options.startTime] - Epoch ms start time for duration calc
 		 * @returns {string} The assigned message ID
 		 */
 		addMessage(role, content, options = {}) {
@@ -128,6 +129,9 @@ export const MessageList = forwardRef(function MessageList(
 				toolCallDisplay: options.toolCallDisplay,
 				events: options.events,
 				streaming: options.streaming || false,
+				startTime: options.startTime,
+				toolCallCount: options.toolCallCount,
+				turnDurationMs: options.turnDurationMs,
 			});
 
 			idsRef.current.push(id);
@@ -184,7 +188,7 @@ export const MessageList = forwardRef(function MessageList(
 
 		/**
 		 * Initialize the list from a messages data array.
-		 * @param {Array<{role: string, content: string, time?: string, reasoningContent?: string, activeToolCall?: Object, toolCallDisplay?: string, events?: Array<Object>}>} msgs
+		 * @param {Array<{role: string, content: string, time?: string, reasoningContent?: string, activeToolCall?: Object, toolCallDisplay?: string, events?: Array<Object>, startTime?: number, toolCallCount?: number, turnDurationMs?: number}>} msgs
 		 */
 		setMessages(msgs) {
 			idsRef.current = [];
@@ -204,6 +208,9 @@ export const MessageList = forwardRef(function MessageList(
 					toolCallDisplay: m.toolCallDisplay,
 					events: m.events,
 					streaming: m.streaming || false,
+					startTime: m.startTime,
+					toolCallCount: m.toolCallCount,
+					turnDurationMs: m.turnDurationMs,
 				});
 
 				idsRef.current.push(id);
@@ -369,6 +376,8 @@ export const MessageList = forwardRef(function MessageList(
 			streaming: data.streaming,
 			assistantName,
 			topic: `msg-${id}`,
+			toolCallCount: data.toolCallCount,
+			turnDurationMs: data.turnDurationMs,
 		});
 	});
 

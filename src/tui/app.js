@@ -208,14 +208,17 @@ export default function App({
 				}
 
 				const assistantTime = getTimestamp();
+				const assistantStartTime = Date.now();
 				streamingMsgIdRef.current = messageListRef.current.addMessage("assistant", "", {
 					time: assistantTime,
+					startTime: assistantStartTime,
 					streaming: true,
 				});
 
 				let committedContentRef = { current: "" };
 				let committedReasoning = "";
 				let lastToolCallDisplay = "";
+				let toolCallCount = 0;
 				let todoStatusLines = "";
 
 				// Set up abort controller for this stream
@@ -296,6 +299,7 @@ export default function App({
 						committedReasoning,
 						lastToolCallDisplay,
 						todoStatusLines,
+						toolCallCount,
 					);
 
 					// Persist assistant response to session state
@@ -378,14 +382,17 @@ export default function App({
 		}
 
 		const assistantTime = getTimestamp();
+		const assistantStartTime = Date.now();
 		streamingMsgIdRef.current = messageListRef.current.addMessage("assistant", "", {
 			time: assistantTime,
+			startTime: assistantStartTime,
 			streaming: true,
 		});
 
 		let committedContentRef = { current: "" };
 		let committedReasoning = "";
 		let lastToolCallDisplay = "";
+		let toolCallCount = 0;
 		let todoStatusLines = "";
 
 		// Set up abort controller for this stream
@@ -470,7 +477,7 @@ export default function App({
 				sessionState.addExchange({ role: "user", content: text });
 			}
 
-			finalizeStreaming(responseContent, committedReasoning, lastToolCallDisplay, todoStatusLines);
+			finalizeStreaming(responseContent, committedReasoning, lastToolCallDisplay, todoStatusLines, toolCallCount);
 
 			// Persist assistant message and recalculate context
 			if (sessionState) {
@@ -728,6 +735,7 @@ export default function App({
 
 				// Handle on_tool_start — set activeToolCall
 				if (event.type === "on_tool_start") {
+					toolCallCount++;
 					messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
 						activeToolCall: {
 							name: event.name,
@@ -773,13 +781,19 @@ export default function App({
 	 * @param {string} committedReasoning - Accumulated reasoning content
 	 * @param {string} lastToolCallDisplay - Tool call display text
 	 * @param {string} todoStatusLines - Todo status lines
+	 * @param {number} [toolCallCount] - Number of tool calls made during the turn
 	 */
 	const finalizeStreaming = (
 		responseContent,
 		committedReasoning,
 		lastToolCallDisplay,
 		todoStatusLines,
+		toolCallCount,
 	) => {
+		const msgData = messageListRef.current?.getMessageData(streamingMsgIdRef.current);
+		const startTime = msgData?.startTime;
+		const durationMs = startTime ? Date.now() - startTime : 0;
+
 		const updates = {
 			content: responseContent,
 			reasoningContent: committedReasoning || undefined,
@@ -798,6 +812,12 @@ export default function App({
 			} else {
 				updates.toolCallDisplay = todoStatusLines;
 			}
+		}
+		if (toolCallCount > 0) {
+			updates.toolCallCount = toolCallCount;
+		}
+		if (durationMs > 0) {
+			updates.turnDurationMs = durationMs;
 		}
 		messageListRef.current?.updateMessage(streamingMsgIdRef.current, updates);
 	};

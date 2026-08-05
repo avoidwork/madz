@@ -113,7 +113,9 @@ export const PubSubContext = React.createContext({ subscribe: () => {}, unsubscr
  * @param {string} [props.reasoningContent] - Thinking/thought content
  * @param {Object} [props.activeToolCall] - {name: string} for running tool
  * @param {string} [props.toolCallDisplay] - Tool call result display text
-
+ * @param {number} [props.toolCallCount] - Number of tools called during this turn
+ * @param {number} [props.turnDurationMs] - Duration of the turn in milliseconds
+ *
  * @returns {React.ReactElement}
  */
 export function MessageBubble({
@@ -125,6 +127,8 @@ export function MessageBubble({
 	reasoningContent,
 	activeToolCall,
 	toolCallDisplay,
+	toolCallCount,
+	turnDurationMs,
 }) {
 	const [chunks, setChunks] = useState([]);
 	const { subscribe, unsubscribe } = useContext(PubSubContext);
@@ -196,6 +200,19 @@ export function MessageBubble({
 			)
 		: null;
 
+	const hasTurnStats = role === "assistant" && toolCallCount > 0 && turnDurationMs > 0;
+	const turnStatsEl = hasTurnStats
+		? React.createElement(
+				Box,
+				{ flexDirection: "row", marginTop: 1, marginLeft: 2 },
+				React.createElement(
+					Text,
+					{ dimColor: true, color: "gray" },
+					`🔧 ${toolCallCount} tool${toolCallCount > 1 ? "s" : ""} · ⏱ ${Math.round(turnDurationMs / 100) / 10}s`,
+				),
+			)
+		: null;
+
 	const pendingState = role === "assistant" && chunks.length === 0 && !content;
 
 	return React.createElement(
@@ -243,6 +260,7 @@ export function MessageBubble({
 			reasoningEl,
 			toolCallEl,
 			toolDisplayEl,
+			turnStatsEl,
 		),
 	);
 }
