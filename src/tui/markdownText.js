@@ -123,14 +123,8 @@ const POINT_REGEX = "(?:" + [BULLET_POINT_REGEX, NUMBERED_POINT_REGEX].join("|")
 
 function fixNestedLists(body, indent) {
 	const regex = new RegExp(
-		"(\\S(?: |  )?)" +
-			"((?:" +
-			indent +
-			")+)" +
-			"(" +
-			POINT_REGEX +
-			"(?:.*)+)$",
-		"gm"
+		"(\\S(?: |  )?)" + "((?:" + indent + ")+)" + "(" + POINT_REGEX + "(?:.*)+)$",
+		"gm",
 	);
 	return body.replace(regex, "$1\n" + indent + "$2$3");
 }
@@ -198,9 +192,7 @@ function generateTableRow(text, escape) {
 	const data = [];
 	lines.forEach((line) => {
 		if (!line) return;
-		const parsed = line
-			.replace(/\*[|]+/g, "")
-			.split(/\^[*]+\|[*^]/);
+		const parsed = line.replace(/\*[|]+/g, "").split(/\^[*]+\|[*^]/);
 		data.push(parsed.splice(0, parsed.length - 1));
 	});
 	return data;
@@ -244,9 +236,7 @@ class TerminalRenderer extends Renderer {
 		super();
 		this.o = { ...defaultOptions, ...options };
 		this.tab =
-			typeof this.o.tab === "number"
-				? " ".repeat(this.o.tab)
-				: " ".repeat(this.o.tab.length || 4);
+			typeof this.o.tab === "number" ? " ".repeat(this.o.tab) : " ".repeat(this.o.tab.length || 4);
 		this.emoji = this.o.emoji ? insertEmojis : (t) => t;
 		this.unescape = this.o.unescape ? unescapeEntities : (t) => t;
 		this.transform = (t) => undoColon(this.unescape(this.emoji(t)));
@@ -370,18 +360,14 @@ class TerminalRenderer extends Renderer {
 		if (item.task) {
 			const checkbox = this.checkbox({ checked: !!item.checked });
 			if (item.loose) {
-				if (
-					item.tokens.length > 0 &&
-					item.tokens[0].type === "paragraph"
-				) {
+				if (item.tokens.length > 0 && item.tokens[0].type === "paragraph") {
 					item.tokens[0].text = checkbox + " " + item.tokens[0].text;
 					if (
 						item.tokens[0].tokens &&
 						item.tokens[0].tokens.length > 0 &&
 						item.tokens[0].tokens[0].type === "text"
 					) {
-						item.tokens[0].tokens[0].text =
-							checkbox + " " + item.tokens[0].tokens[0].text;
+						item.tokens[0].tokens[0].text = checkbox + " " + item.tokens[0].tokens[0].text;
 					}
 				} else {
 					item.tokens.unshift({
@@ -425,11 +411,7 @@ class TerminalRenderer extends Renderer {
 		}
 
 		const table = new Table(
-			Object.assign(
-				{},
-				{ head: generateTableRow(header)[0] },
-				this.o.tableOptions
-			)
+			Object.assign({}, { head: generateTableRow(header)[0] }, this.o.tableOptions),
 		);
 
 		generateTableRow(body, this.transform).forEach((row) => {
@@ -609,10 +591,7 @@ export function MarkdownTextInner({ content }) {
 		return null;
 	}
 
-	const cleanContent = (content || "").replace(
-		new RegExp(STREAMING_CURSOR, "g"),
-		""
-	);
+	const cleanContent = (content || "").replace(new RegExp(STREAMING_CURSOR, "g"), "");
 
 	const parsed = parseMarkdown(cleanContent);
 	return React.createElement(Text, { color: "white" }, parsed);
