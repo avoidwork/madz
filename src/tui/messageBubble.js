@@ -116,7 +116,7 @@ export const PubSubContext = React.createContext({ subscribe: () => {}, unsubscr
 
  * @returns {React.ReactElement}
  */
-export function MessageBubble({
+export function MessageBubbleInner({
 	role,
 	content,
 	topic,
@@ -246,5 +246,12 @@ export function MessageBubble({
 		),
 	);
 }
+
+/**
+ * Memo-wrapped MessageBubble for rendering in the component tree.
+ * Prevents re-renders when props haven't changed (content via streaming
+ * is handled by pub/sub, not prop updates).
+ */
+export const MessageBubble = React.memo(MessageBubbleInner);
 
 export default MessageBubble;
