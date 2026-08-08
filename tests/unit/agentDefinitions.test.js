@@ -209,9 +209,8 @@ describe("Agent Definitions", () => {
 			);
 		});
 
-		it("debug agent should reference correct tools (executeCode, shell)", () => {
+		it("debug agent should reference correct tools (shell)", () => {
 			const debug = ALL_AGENTS.find((a) => a.name === "debug");
-			ok(debug.systemPrompt.includes("executeCode"), "Debug agent should reference executeCode");
 			ok(debug.systemPrompt.includes("shell"), "Debug agent should reference shell");
 		});
 
@@ -224,21 +223,13 @@ describe("Agent Definitions", () => {
 			ok(review.systemPrompt.includes("skillView"), "Code review agent should reference skillView");
 		});
 
-		it("testing agent should reference correct tools (executeCode, shell)", () => {
+		it("testing agent should reference correct tools (shell)", () => {
 			const testing = ALL_AGENTS.find((a) => a.name === "testing");
-			ok(
-				testing.systemPrompt.includes("executeCode"),
-				"Testing agent should reference executeCode",
-			);
 			ok(testing.systemPrompt.includes("shell"), "Testing agent should reference shell");
 		});
 
-		it("performance agent should reference correct tools (executeCode, cronJob)", () => {
+		it("performance agent should reference correct tools (cronJob)", () => {
 			const perf = ALL_AGENTS.find((a) => a.name === "performance");
-			ok(
-				perf.systemPrompt.includes("executeCode"),
-				"Performance agent should reference executeCode",
-			);
 			ok(perf.systemPrompt.includes("cronJob"), "Performance agent should reference cronJob");
 		});
 

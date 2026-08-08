@@ -13,7 +13,6 @@ describe("tools - buildToolConfig", () => {
 			"webExtract",
 			"visionAnalyze",
 			"imageGenerate",
-			"executeCode",
 			"cronJob",
 			"textToSpeech",
 			"mixtureOfAgents",
@@ -81,14 +80,13 @@ describe("tools - buildToolConfig", () => {
 		delete process.env.CUSTOM_SEARCH_URL;
 	});
 
-	it("returns clarify + executeCode + sampling + shell + date + scanAgents with filesystem:read", async () => {
+	it("returns clarify + sampling + shell + date + scanAgents with filesystem:read", async () => {
 		const { buildToolConfig } = await import("../../src/tools/index.js");
 		const tools = await buildToolConfig({ permissions: ["filesystem:read"], maxReadSize: "1mb" });
 		const toolNames = tools.map((t) => t.name);
-		// filesystem:read enables: clarify, executeCode, sampling, shell (always), compactContext, scanAgents,
+		// filesystem:read enables: clarify, sampling, shell (always), compactContext, scanAgents,
 		// sessionSearch, skillView, skillsList, date
 		assert.ok(toolNames.includes("clarify"));
-		assert.ok(toolNames.includes("executeCode"));
 		assert.ok(toolNames.includes("sampling"));
 		assert.ok(toolNames.includes("shell"));
 		assert.ok(toolNames.includes("date"));
@@ -107,7 +105,6 @@ describe("tools - buildToolConfig", () => {
 		});
 		const toolNames = tools.map((t) => t.name);
 		assert.ok(toolNames.includes("clarify"), "clarify should always register");
-		assert.ok(toolNames.includes("executeCode"), "execute_code should always register");
 		assert.ok(
 			toolNames.includes("memory"),
 			"memory should register with filesystem:read + filesystem:write",
@@ -135,13 +132,12 @@ describe("tools - buildToolConfig", () => {
 			maxReadSize: "1mb",
 		});
 		const toolNames = tools.map((t) => t.name);
-		// Tier 1: 6 tools (terminal, process, todo, sessionSearch, clarify, scanAgents)
-		// Tier 2: executeCode, cronJob, sampling, date (no perms or network:outbound)
+		// Tier 1: 6 tools (terminal, process, sessionSearch, clarify, scanAgents)
+		// Tier 2: cronJob, sampling, date (no perms or network:outbound)
 		// No API keys: webSearch/webExtract/visionAnalyze/imageGenerate/textToSpeech/mixtureOfAgents won't register
-		assert.ok(toolNames.length >= 10, "All tier 1 + tier 2 tools should register");
+		assert.ok(toolNames.length >= 9, "All tier 1 + tier 2 tools should register");
 		assert.ok(toolNames.includes("shell"), "shell should register");
 		assert.ok(toolNames.includes("process"), "process should register");
-		assert.ok(toolNames.includes("executeCode"), "execute_code should register");
 		assert.ok(toolNames.includes("cronJob"), "cronJob should register");
 	});
 
@@ -165,11 +161,10 @@ describe("tools - buildToolConfig", () => {
 			maxReadSize: "2mb",
 		});
 		const toolNames = tools.map((t) => t.name);
-		// filesystem:read enables: clarify, executeCode, sampling, shell (always), compactContext, scanAgents,
+		// filesystem:read enables: clarify, sampling, shell (always), compactContext, scanAgents,
 		// sessionSearch, skillView, skillsList, date
-		assert.strictEqual(toolNames.length, 10);
+		assert.strictEqual(toolNames.length, 9);
 		assert.ok(toolNames.includes("clarify"));
-		assert.ok(toolNames.includes("executeCode"));
 		assert.ok(toolNames.includes("sampling"));
 		assert.ok(toolNames.includes("date"));
 		assert.ok(toolNames.includes("scanAgents"));

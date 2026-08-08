@@ -431,15 +431,15 @@ Uses the [Deep Agents](https://github.com/avoidwork/deepagents) library to orche
 
 | Agent | Purpose | Tool Access |
 | ----- | ------- | ----------- |
-| `code-review` | Structured code reviews covering bugs, security, style, performance | `readFile`, `grep`, `glob`, `executeCode` |
-| `coding` | Code implementation with read-before-write discipline, complete shipping, convention adherence, and dead-code elimination | `shell`, `write`, `compactContext`, `executeCode`, `process`, `scanAgents`, `skillView`, `skillsList`, `visionAnalyze` |
-| `debug` | Error tracing, reproduction, and fix proposals | `readFile`, `grep`, `glob`, `executeCode`, `shell` |
+| `code-review` | Structured code reviews covering bugs, security, style, performance | `readFile`, `grep`, `glob` |
+| `coding` | Code implementation with read-before-write discipline, complete shipping, convention adherence, and dead-code elimination | `shell`, `write`, `compactContext`, `process`, `scanAgents`, `skillView`, `skillsList`, `visionAnalyze` |
+| `debug` | Error tracing, reproduction, and fix proposals | `readFile`, `grep`, `glob`, `shell` |
 | `documentation` | Documentation updates, API docs generation, changelog maintenance | `readFile`, `writeFile`, `grep`, `glob` |
-| `performance` | Performance benchmarking, bottleneck identification, optimization suggestions | `readFile`, `executeCode`, `grep`, `shell` |
+| `performance` | Performance benchmarking, bottleneck identification, optimization suggestions | `readFile`, `grep`, `shell` |
 | `research` | Multi-step research with source tracking and comprehensive reports | `webSearch`, `webExtract`, `grep`, `glob`, `sessionSearch` |
 | `search` | Multi-source search (web, docs, codebase) with synthesis | `webSearch`, `webExtract`, `grep`, `glob`, `sessionSearch` |
 | `security-audit` | Security scanning, dependency auditing, vulnerability detection | `readFile`, `grep`, `glob`, `shell` |
-| `testing` | Test generation, gap analysis, and coverage improvements | `readFile`, `grep`, `glob`, `executeCode`, `shell` |
+| `testing` | Test generation, gap analysis, and coverage improvements | `readFile`, `grep`, `glob`, `shell` |
 
 Each agent definition lives in `src/agent/agents/` with its own file. The `AgentRegistry` class (`src/agent/agentRegistry.js`) manages registration, validation, and lookup. Tool access is gated by `TOOL_CLASSIFICATIONS` in `src/tools/index.js` — each tool declares which agent types it serves, and the orchestrator filters tools per agent at runtime.
 
@@ -460,7 +460,6 @@ All built-in tools are defined in `src/tools/` and registered as LangChain tools
 | `cronJob` | Manage scheduled cron jobs — create, list, update, pause, resume, run, remove. Persisted to `memory/schedules/`. |
 | `createSkill` | Create a spec-compliant skill directory with SKILL.md YAML frontmatter. Optionally scaffolds a `scripts/` directory. |
 | `date` | Return current date/time in ISO 8601 UTC or human-readable format. Zero permissions — always registered. |
-| `executeCode` | Execute code in a sandboxed subprocess. Supports `python3`, `javascript` (node), and `shell`. |
 | `imageGenerate` | Generate images via FAL.ai flux/klein API. |
 | `memory` | Persistent key-value memory with CRUD actions (create, read, update, delete, list). Each entry stored as `.md` in `memory/context/` with `createdDate`/`updatedDate` metadata. |
 | `mixtureOfAgents` | Multi-agent orchestration via OpenRouter. Calls 4 reference prompts (factual, practical, creative, cautious) and synthesizes a consensus response. |
@@ -490,7 +489,7 @@ Built-in tools are registered only when their required permissions are enabled f
 | ----------------------------------- | -------------------------------------------------------------------------- |
 | `filesystem:read`                   | `compactContext`, `scanAgents`, `sessionSearch`, `skillView`, `skillsList` |
 | `filesystem:write`                  | `clarify`, `createSkill`, `memory`, `sampling`                             |
-| `filesystem:exec` + `process:spawn` | `executeCode`, `shell`                                                     |
+| `filesystem:exec` + `process:spawn` | `shell`                                                    |
 | `network:outbound`                  | `cronJob`, `imageGenerate`, `mixtureOfAgents`, `webExtract`, `webSearch`   |
 | `process:spawn`                     | `process`                                                                  |
 | _(none)_                            | `date`, `textToSpeech`, `visionAnalyze`                                    |
