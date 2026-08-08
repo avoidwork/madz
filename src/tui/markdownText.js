@@ -185,14 +185,21 @@ function insertEmojis(text) {
 }
 
 // --- Utility: Table row generation ---
-function generateTableRow(text, escape) {
+/**
+ * Parse a table row string into cell arrays.
+ * Used by the TerminalRenderer to convert internal table markup into cli-table3 rows.
+ * @param {string} text - Raw table row text with delimiter markers
+ * @param {Function} [escape] - Optional escape function for cell content
+ * @returns {Array<Array<string>>} Array of cell arrays (one per row)
+ */
+export function generateTableRow(text, escape) {
 	if (!text) return [];
 	escape = escape || ((t) => t);
 	const lines = escape(text).split("\n");
 	const data = [];
 	lines.forEach((line) => {
 		if (!line) return;
-		const parsed = line.replace(/\*[|]+/g, "").split(/\^[*]+\|[|]+[*^]/);
+		const parsed = line.replace(/\*[|]\*[|]\*[|]/g, "").split(/\^\*\|\|\*\^/);
 		data.push(parsed.splice(0, parsed.length - 1));
 	});
 	return data;
