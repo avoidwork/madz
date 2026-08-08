@@ -58,6 +58,7 @@ export const MessageList = forwardRef(function MessageList(
 	const idsRef = useRef([]);
 	const idToIdxRef = useRef(new Map());
 	const dataRef = useRef(new Map());
+	const contentRef = useRef(new Map());
 	const lastMsgCountRef = useRef(0);
 	const lastScrollTimeRef = useRef(0);
 	const isUserScrollingRef = useRef(false);
@@ -117,11 +118,17 @@ export const MessageList = forwardRef(function MessageList(
 		 */
 		addMessage(role, content, options = {}) {
 			const id = (++_messageIdCounter).toString();
+			const stableContent = content || "";
+
+			// Store content in a separate ref for reference stability —
+			// the same string reference persists across updates so React.memo
+			// can skip re-renders when content hasn't actually changed.
+			contentRef.current.set(id, stableContent);
 
 			dataRef.current.set(id, {
 				id,
 				role,
-				content: content || "",
+				content: stableContent,
 				time: options.time,
 				reasoningContent: options.reasoningContent,
 				activeToolCall: options.activeToolCall,
@@ -153,13 +160,20 @@ export const MessageList = forwardRef(function MessageList(
 
 			idsRef.current[idx] = id;
 
-			// Notify the bubble via pub/sub — this triggers re-render of just that bubble.
-			// Also trigger a parent re-render when content changed (streaming), so the
-			// scroll effect can detect the change and scroll to bottom.
-			publish(`msg-${id}`, dataRef.current.get(id));
+			// Update content ref for reference stability — only replace if
+			// content actually changed (same string, same reference).
 			if (updates.content !== undefined) {
-				triggerRender();
+				const stableContent = updates.content || "";
+				const prevContent = contentRef.current.get(id);
+				if (prevContent !== stableContent) {
+					contentRef.current.set(id, stableContent);
+				}
 			}
+
+			// Notify the bubble via pub/sub — this triggers re-render of just that bubble.
+			// Streaming content updates do NOT trigger a parent re-render; the scroll
+			// effect (onContentHeightChange) detects content growth and scrolls to bottom.
+			publish(`msg-${id}`, dataRef.current.get(id));
 		},
 
 		/**
@@ -178,6 +192,7 @@ export const MessageList = forwardRef(function MessageList(
 			idsRef.current = [];
 			idToIdxRef.current = new Map();
 			dataRef.current = new Map();
+			contentRef.current = new Map();
 			lastMsgCountRef.current = 0;
 			triggerRender();
 		},
@@ -190,14 +205,18 @@ export const MessageList = forwardRef(function MessageList(
 			idsRef.current = [];
 			idToIdxRef.current = new Map();
 			dataRef.current = new Map();
+			contentRef.current = new Map();
 
 			for (const m of msgs) {
 				const id = (++_messageIdCounter).toString();
+				const stableContent = m.content || "";
+
+				contentRef.current.set(id, stableContent);
 
 				dataRef.current.set(id, {
 					id,
 					role: m.role,
-					content: m.content || "",
+					content: stableContent,
 					time: m.time,
 					reasoningContent: m.reasoningContent,
 					activeToolCall: m.activeToolCall,
@@ -346,6 +365,11 @@ export const MessageList = forwardRef(function MessageList(
 
 	// Render the last MAX_RENDER_MESSAGES as MessageBubble elements.
 	// Each bubble subscribes to its own pub/sub topic for streaming updates.
+	// Children array is stabilized in a ref — only rebuilt when message count
+	// changes (new message added, pruned, or cleared). This lets Ink's diffing
+	// reuse existing elements and only update the one bubble that changed.
+	const childrenRef = useRef(null);
+
 	const renderData = idsRef.current.slice(-MAX_RENDER_MESSAGES);
 
 	// Prune pub/sub topics for messages that fell off the render slice.
@@ -354,33 +378,44 @@ export const MessageList = forwardRef(function MessageList(
 		topicsRef.current.delete(`msg-${id}`);
 	}
 
-	const children = renderData.map((id) => {
-		const data = dataRef.current.get(id);
-		if (!data) return null;
-		return React.createElement(MessageBubble, {
-			key: id,
-			role: data.role,
-			content: data.content,
-			time: data.time,
-			reasoningContent: data.reasoningContent,
-			activeToolCall: data.activeToolCall,
-			toolCallDisplay: data.toolCallDisplay,
-			events: data.events,
-			streaming: data.streaming,
-			assistantName,
-			topic: `msg-${id}`,
+	// Rebuild children only when message count changes.
+	const currentCount = renderData.length;
+	if (childrenRef.current === null || childrenRef.current._count !== currentCount) {
+		const newChildren = renderData.map((id) => {
+			const data = dataRef.current.get(id);
+			if (!data) return null;
+			// Use stable content reference from contentRef for React.memo to work
+			const stableContent = contentRef.current.get(id) || data.content;
+			return React.createElement(MessageBubble, {
+				key: id,
+				role: data.role,
+				content: stableContent,
+				time: data.time,
+				reasoningContent: data.reasoningContent,
+				activeToolCall: data.activeToolCall,
+				toolCallDisplay: data.toolCallDisplay,
+				events: data.events,
+				streaming: data.streaming,
+				assistantName,
+				topic: `msg-${id}`,
+			});
 		});
-	});
 
-	if (children.length === 0) {
-		children.push(
-			React.createElement(
-				Text,
-				{ key: "empty", color: "gray" },
-				" No messages yet. Start chatting!",
-			),
-		);
+		if (newChildren.length === 0) {
+			newChildren.push(
+				React.createElement(
+					Text,
+					{ key: "empty", color: "gray" },
+					" No messages yet. Start chatting!",
+				),
+			);
+		}
+
+		newChildren._count = currentCount;
+		childrenRef.current = newChildren;
 	}
+
+	const children = childrenRef.current;
 
 	return React.createElement(
 		PubSubProvider,

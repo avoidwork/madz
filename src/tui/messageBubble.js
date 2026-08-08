@@ -116,7 +116,7 @@ export const PubSubContext = React.createContext({ subscribe: () => {}, unsubscr
 
  * @returns {React.ReactElement}
  */
-export function MessageBubble({
+export function MessageBubbleInner({
 	role,
 	content,
 	topic,
@@ -154,7 +154,9 @@ export function MessageBubble({
 	const colors = getRoleColors(role);
 	const bubble = getBubbleStyle(role);
 
-	const hasReasoning = role === "assistant" && reasoningContent;
+	// Hide reasoning once streaming has started — the response content
+	// is now flowing in and the thinking block is stale.
+	const hasReasoning = role === "assistant" && reasoningContent && chunks.length === 0;
 	const hasActiveToolCall = role === "assistant" && activeToolCall;
 	const hasToolCallDisplay = role === "assistant" && toolCallDisplay;
 
@@ -246,5 +248,12 @@ export function MessageBubble({
 		),
 	);
 }
+
+/**
+ * Memo-wrapped MessageBubble for rendering in the component tree.
+ * Prevents re-renders when props haven't changed (content via streaming
+ * is handled by pub/sub, not prop updates).
+ */
+export const MessageBubble = React.memo(MessageBubbleInner);
 
 export default MessageBubble;
