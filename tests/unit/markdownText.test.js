@@ -4,7 +4,11 @@ import { generateTableRow, parseMarkdown } from "../../src/tui/markdownText.js";
 
 // Helper: strip ANSI escape codes for comparison
 function stripAnsi(str) {
-	return str.replace(/\x1b\[[\d;]*m/g, "").replace(/\x1b\]8;;[^\x07]*\x07/g, "");
+	const ESCAPE = "\u001b";
+	const BELL = "\u0007";
+	return str
+		.replace(new RegExp(ESCAPE + "\\[[\\d;]*m", "g"), "")
+		.replace(new RegExp(ESCAPE + "\\]8;;[^" + BELL + "]*" + BELL, "g"), "");
 }
 
 describe("generateTableRow - table cell parsing", () => {
