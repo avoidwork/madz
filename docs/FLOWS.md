@@ -217,7 +217,7 @@ buildToolConfig({ permissions, allowedPaths, maxReadSize, registry, safety, time
 ├── for each [toolName, requiredPerms] in TOOL_PERMISSIONS:
 │   ├── hasAllPerms = requiredPerms.every(perm => enabledSet.has(perm))
 │   ├── switch toolName:
-│   │   ├── clarify | executeCode | code → always create (no perms needed)
+│   │   ├── clarify | code → always create (no perms needed)
 │   │   ├── webSearch | web_extract → if hasAllPerms && hasSearchKey()
 │   │   ├── visionAnalyze → if OPENAI_API_KEY
 │   │   ├── image_generate → if hasAllPerms && FAL_API_KEY
@@ -816,25 +816,6 @@ runScheduledSkill(schedule, sandbox, sessionState)
 
 ## Deep Agents Log Management
 
-
-### Code Execution
-
-**Entry:** `src/tools/code.js` → `createCodeExecutionTool()`
-
-```
-code tool (executeCode):
-├── validate code language: "python3" | "javascript" | "shell"
-├── write code to temp file in /app/tmp/madz-code-*.js
-├── create import hook for python3 (sys.path manipulation)
-├── spawn process:
-│   ├── python3 temp.py (for python3)
-│   ├── node temp.js (for javascript)
-│   └── sh -c "code" (for shell)
-├── POSIX setrlimit(RLIMIT_AS) → hard memory limit (memoryLimit MB)
-│   └── import("posix") → setrlimit (Linux only)
-├── timeout: 30 seconds default
-└── return { stdout, stderr, exitCode }
-```
 
 ### Mixture of Agents (MoA)
 

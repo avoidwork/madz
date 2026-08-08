@@ -1,5 +1,4 @@
 import { clarify } from "./clarify.js";
-import { executeCode } from "./code.js";
 import { createCompactContextTool } from "./compact_context.js";
 import { cronJob } from "./cron.js";
 import { date } from "./date.js";
@@ -18,7 +17,7 @@ import { webSearch, webExtract } from "./web.js";
 /**
  * Maps tool names to required permission scopes.
  * A tool registers only when ALL its required permissions are in the enabled set.
- * Clarify, execute_code, sampling, and shell are exempt (always registered).
+ * Clarify, sampling, and shell are exempt (always registered).
  */
 export const TOOL_PERMISSIONS = {
 	clarify: ["filesystem:read", "filesystem:write"],
@@ -26,7 +25,6 @@ export const TOOL_PERMISSIONS = {
 	cronJob: ["network:outbound"],
 	createSkill: ["filesystem:write"],
 	date: [],
-	executeCode: ["filesystem:exec", "process:spawn"],
 	imageGenerate: ["network:outbound"],
 	memory: ["filesystem:read", "filesystem:write"],
 	mixtureOfAgents: ["network:outbound"],
@@ -74,7 +72,6 @@ export const TOOL_CLASSIFICATIONS = {
 		"performance",
 		"coding",
 	],
-	executeCode: ["debug", "code-review", "testing", "performance", "coding"],
 	imageGenerate: ["documentation"],
 	memory: [
 		"search",
@@ -144,7 +141,6 @@ export const TOOLS = {
 	cronJob,
 	createSkill,
 	date,
-	executeCode,
 	imageGenerate,
 	memory,
 	mixtureOfAgents,
@@ -259,7 +255,6 @@ export async function buildToolConfig(options) {
 
 		switch (toolName) {
 			case "clarify":
-			case "executeCode":
 			case "sampling":
 			case "shell": {
 				tools.push(TOOLS[toolName]);

@@ -128,12 +128,6 @@ describe("tool registration - integration", () => {
 		assert.ok(!toolNames.includes("webExtract"));
 	});
 
-	it("registers execute_code without permissions (sandboxed)", async () => {
-		const tools = await buildToolConfig({ permissions: [] });
-		const toolNames = tools.map((t) => t.name);
-		assert.ok(toolNames.includes("executeCode"));
-	});
-
 	it("registers vision_analyze with openai (no permission needed)", async () => {
 		const tools = await buildToolConfig({
 			permissions: [],
