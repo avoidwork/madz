@@ -10,7 +10,8 @@ import Table from "cli-table3";
 
 // --- Utility: ANSI-aware text length ---
 // node:coverage ignore next — ANSI escape matching for reflow
-const ANSI_REGEXP = /\x1b\[[\d;]*m/g;
+const ESCAPE = "\u001b";
+const ANSI_REGEXP = new RegExp(ESCAPE + "\\[[\\d;]*m", "g");
 function textLength(str) {
 	return str.replace(ANSI_REGEXP, "").length;
 }
@@ -45,7 +46,7 @@ function reflowText(text, width, gfm) {
 	const reflowed = [];
 
 	sections.forEach((section) => {
-		const fragments = section.split(/\x1b\[[\d;]*m/g);
+		const fragments = section.split(new RegExp(ESCAPE + "\\[[\\d;]*m", "g"));
 		let column = 0;
 		let currentLine = "";
 		let lastWasEscapeChar = false;
@@ -69,8 +70,8 @@ function reflowText(text, width, gfm) {
 			const words = fragment.split(/[ \t\n]+/);
 
 			for (let i = 0; i < words.length; i++) {
-				const word = words[i];
-				const addSpace = column != 0;
+				let word = words[i];
+				let addSpace = column != 0;
 				if (lastWasEscapeChar) addSpace = false;
 
 				if (column + word.length + addSpace > width) {
@@ -198,8 +199,8 @@ function generateTableRow(text, escape) {
 	lines.forEach((line) => {
 		if (!line) return;
 		const parsed = line
-			.replace(/\*[\|]+/g, "")
-			.split(/\^[\*]+\|[\*^]/);
+			.replace(/\*[|]+/g, "")
+			.split(/\^[*]+\|[*^]/);
 		data.push(parsed.splice(0, parsed.length - 1));
 	});
 	return data;
@@ -255,7 +256,7 @@ class TerminalRenderer extends Renderer {
 		let text = this.parser.parseInline(tokens);
 		let processed = this.transform(text);
 		const prefix = this.o.showSectionPrefix
-			? new Array(depth + 1).join("#") + " "
+			? Array.from({ length: depth + 1 }).join("#") + " "
 			: "";
 		processed = prefix + processed;
 
@@ -449,7 +450,7 @@ class TerminalRenderer extends Renderer {
 
 	hr() {
 		const width = this.o.reflowText ? this.o.width : process.stdout.columns;
-		const line = new Array(width + 1).join("-");
+		const line = Array.from({ length: width + 1 }).join("-");
 		return this.o.hr(line) + "\n\n";
 	}
 
