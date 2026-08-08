@@ -126,3 +126,36 @@ The `task` tool spawns ephemeral subagents with isolated context windows. Use th
 - Work that needs intermediate results from the main thread
 - Tasks where the orchestrator must see reasoning steps
 - Trivial operations that don't justify context isolation
+
+### TOOL SCHEMA VALIDATION & CACHING
+
+Tool schemas are resolved once at session start and cached in session state. Use this cached list for all tool calls within the session.
+
+#### Resolution at Session Start
+
+At session start, fetch the complete tool list with schemas from the tool registry. Store the resolved tool list in session state so it persists across turns.
+
+If the tool registry is unavailable at session start, proceed with currently bound tools and log a warning. Do not let a registry failure block the session.
+
+#### Pre-Call Validation
+
+Before invoking any tool, verify:
+
+1. **Tool exists** — The tool name is present in the cached schema list.
+2. **Parameters match** — Required fields are present and types are correct per the tool's schema.
+
+If validation fails:
+- **Tool missing:** Clarify with the user rather than attempting a call that will fail.
+- **Parameter mismatch:** Report the specific issue (missing required fields, incorrect types) and ask the user to correct.
+
+If validation passes, proceed to the tool call. LangChain's runtime validation remains the final layer — this pre-check catches issues earlier.
+
+#### Cache Invalidation
+
+Tools do not change mid-session. The cached schema list is valid for the entire session duration. No re-fetching is needed between turns.
+
+#### Edge Cases
+
+- **Tool removed between sessions:** Caught by pre-call validation on the next session start when schemas are re-resolved.
+- **Tool renamed between sessions:** Caught by pre-call validation on the next session start.
+- **Schema changed between sessions:** Caught by pre-call validation on the next session start.
