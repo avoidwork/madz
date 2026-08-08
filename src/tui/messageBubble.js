@@ -154,7 +154,9 @@ export function MessageBubbleInner({
 	const colors = getRoleColors(role);
 	const bubble = getBubbleStyle(role);
 
-	const hasReasoning = role === "assistant" && reasoningContent;
+	// Hide reasoning once streaming has started — the response content
+	// is now flowing in and the thinking block is stale.
+	const hasReasoning = role === "assistant" && reasoningContent && chunks.length === 0;
 	const hasActiveToolCall = role === "assistant" && activeToolCall;
 	const hasToolCallDisplay = role === "assistant" && toolCallDisplay;
 
