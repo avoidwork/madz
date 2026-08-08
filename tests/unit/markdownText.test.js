@@ -19,8 +19,7 @@ describe("generateTableRow - table cell parsing", () => {
 	});
 
 	it("parses multiple rows", () => {
-		const text =
-			"*|*|*|Name^*||*^Age^*||*^*|*|*|\n*|*|*|Alice^*||*^30^*||*^*|*|*|";
+		const text = "*|*|*|Name^*||*^Age^*||*^*|*|*|\n*|*|*|Alice^*||*^30^*||*^*|*|*|";
 		const result = generateTableRow(text);
 		assert.deepStrictEqual(result, [
 			["Name", "Age"],
@@ -92,8 +91,7 @@ describe("parseMarkdown - table rendering", () => {
 	});
 
 	it("renders a table with three columns", () => {
-		const markdown =
-			"| Name | Age | City |\n|------|-----|------|\n| Alice | 30 | Ottawa |";
+		const markdown = "| Name | Age | City |\n|------|-----|------|\n| Alice | 30 | Ottawa |";
 		const result = parseMarkdown(markdown);
 		assert.ok(typeof result === "string");
 		assert.ok(result.length > 0);
@@ -103,8 +101,7 @@ describe("parseMarkdown - table rendering", () => {
 	});
 
 	it("renders a table with multiple rows", () => {
-		const markdown =
-			"| Name | Age |\n|------|-----|\n| Alice | 30 |\n| Bob | 25 |\n| Carol | 35 |";
+		const markdown = "| Name | Age |\n|------|-----|\n| Alice | 30 |\n| Bob | 25 |\n| Carol | 35 |";
 		const result = parseMarkdown(markdown);
 		assert.ok(typeof result === "string");
 		assert.ok(result.includes("Alice"));
@@ -113,8 +110,7 @@ describe("parseMarkdown - table rendering", () => {
 	});
 
 	it("renders a table with special characters", () => {
-		const markdown =
-			"| Item | Value |\n|------|-------|\n| Score | 100% |\n| Note | Good! |";
+		const markdown = "| Item | Value |\n|------|-------|\n| Score | 100% |\n| Note | Good! |";
 		const result = parseMarkdown(markdown);
 		assert.ok(typeof result === "string");
 		assert.ok(result.includes("100%"));
@@ -129,8 +125,7 @@ describe("parseMarkdown - table rendering", () => {
 	});
 
 	it("renders a table followed by text", () => {
-		const markdown =
-			"| Name | Age |\n|------|-----|\n| Alice | 30 |\n\nSome text after.";
+		const markdown = "| Name | Age |\n|------|-----|\n| Alice | 30 |\n\nSome text after.";
 		const result = parseMarkdown(markdown);
 		assert.ok(typeof result === "string");
 		assert.ok(result.includes("Alice"));
