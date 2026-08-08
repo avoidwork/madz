@@ -94,8 +94,8 @@ export const TOOL_CLASSIFICATIONS = {
 	skillsList: ["search", "research", "code-review", "coding"],
 	textToSpeech: ["documentation"],
 	visionAnalyze: ["code-review", "testing", "coding"],
-	webExtract: ["search", "research"],
-	webSearch: ["search", "research"],
+	webExtract: ["search", "research", "coding"],
+	webSearch: ["search", "research", "coding"],
 };
 
 /**
