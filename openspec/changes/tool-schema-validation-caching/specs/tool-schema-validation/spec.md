@@ -3,7 +3,7 @@
 ## Purpose
 Define the requirements for tool schema resolution, caching, pre-call validation, and graceful mismatch handling in the orchestrator's system prompt.
 
-## Requirements
+## ADDED Requirements
 
 ### Requirement: Tool schema resolution at session start
 The orchestrator SHALL fetch the complete tool list with schemas from the tool registry at session start.
