@@ -192,7 +192,7 @@ function generateTableRow(text, escape) {
 	const data = [];
 	lines.forEach((line) => {
 		if (!line) return;
-		const parsed = line.replace(/\*[|]+/g, "").split(/\^[*]+\|[*^]/);
+		const parsed = line.replace(/\*[|]+/g, "").split(/\^[*]+\|[|]+[*^]/);
 		data.push(parsed.splice(0, parsed.length - 1));
 	});
 	return data;
