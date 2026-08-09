@@ -1,10 +1,11 @@
 import { readFile, mkdir } from "node:fs/promises";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 import { discoverSkills, defaultScope } from "./discoverer.js";
 import { validateSkillSchema } from "./validator.js";
 import { loadConfig } from "../config/loader.js";
 
-const cwd = loadConfig().cwd;
+const config = loadConfig();
+const cwd = config.cwd || process.cwd();
 
 /**
  * Ensure the skills directory exists by creating it if necessary.
@@ -287,9 +288,6 @@ export class SkillRegistry {
 	 * @returns {string} Relative path
 	 */
 	#relativePath(absolutePath) {
-		if (absolutePath.startsWith(cwd)) {
-			return "/" + absolutePath.slice(cwd.length + 1);
-		}
-		return absolutePath;
+		return relative(cwd, absolutePath);
 	}
 }
