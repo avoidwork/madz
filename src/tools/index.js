@@ -123,6 +123,7 @@ export const ORCHESTRATOR_TOOLS = [
 	"compactContext",
 	"date",
 	"memory",
+	"process",
 	"sessionSearch",
 	"webSearch",
 	"webExtract",

@@ -4,6 +4,7 @@ import {
 	registerHarnessProfile,
 	createHarnessProfile,
 } from "deepagents";
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { InMemoryStore } from "@langchain/langgraph-checkpoint";
 import { loadConfig } from "../config/loader.js";
@@ -137,6 +138,15 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 		systemPrompt = systemPrompt + skillsMapping;
 	}
 
+	// Load AGENTS.md directly into the system prompt to avoid deepagents'
+	// MemoryMiddleware injecting its own hardcoded memory guidelines.
+	try {
+		const agentsContent = await readFile(agentsPath, "utf-8");
+		systemPrompt = systemPrompt + "\n\n---\n\n" + agentsContent;
+	} catch {
+		logger.debug(`[deepAgents] Failed to load AGENTS.md: ${agentsPath}`);
+	}
+
 	// Create model from config
 	const providerName = Object.keys(config.providers)[0] || "openai";
 	const providerConfig = config.providers[providerName] || {};
@@ -201,7 +211,6 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 			[contextRoute]: contextBackend,
 		}),
 		subagents: subagentDefinitions,
-		...(agentsPath && { memory: [agentsPath] }),
 		...(skillPaths.length > 0 && { skills: skillPaths }),
 		...(checkpointer && { checkpointer }),
 	});
