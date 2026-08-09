@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, forwardRef } from "react";
 import { Box, Text, useStdout } from "ink";
-import { ControlledScrollView } from "ink-scroll-view";
+import { ScrollView } from "ink-scroll-view";
 import { MessageBubble, PubSubContext } from "./messageBubble.js";
 
 /**
@@ -313,27 +313,23 @@ export const MessageList = forwardRef(function MessageList(
 	// the ref-only approach never refreshed after mount.
 
 	// Scroll-to-bottom via onContentHeightChange callback.
-	// When content height grows and user is at bottom (or streaming), scroll to follow.
-	// Uses the imperative scrollToBottom() API — simpler and more reliable than
-	// manually computing scroll offsets (getScrollOffset isn't exposed by ControlledScrollView).
+	// Fires whenever the children array changes (new message added),
+	// which triggers ControlledScrollView to re-measure content height.
+	// Always scrolls to bottom — user/system messages and assistant messages alike.
 	const handleContentHeightChange = (height, previousHeight) => {
 		if (!scrollRef.current) return;
 
 		// Guard: only react to actual growth, not initial render or shrink
 		if (height <= previousHeight) return;
 
-		const lastId = idsRef.current[idsRef.current.length - 1];
-		const lastData = lastId ? dataRef.current.get(lastId) : null;
-		const isStreaming = lastData?.streaming ?? false;
-
-		// If user has manually scrolled away and nothing is streaming, don't auto-scroll
+		// Always scroll to bottom when content grows (new message added).
+		// onContentHeightChange only fires on children array changes,
+		// not during pub/sub streaming updates, so no risk of unwanted scrolling.
 		const maxScroll = scrollRef.current.getBottomOffset?.() ?? 0;
 		const currentScroll = scrollRef.current.getScrollOffset?.() || 0;
-		const atBottom = maxScroll - currentScroll < 2;
-		if (!atBottom && !isStreaming) return;
-
-		// Use the imperative API — it handles dedup internally
-		scrollRef.current.scrollToBottom?.();
+		if (currentScroll !== maxScroll) {
+			setScrollOffset(maxScroll);
+		}
 		lastMsgCountRef.current = idsRef.current.length;
 	};
 
