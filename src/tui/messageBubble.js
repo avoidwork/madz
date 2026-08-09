@@ -148,6 +148,9 @@ export function MessageBubbleInner({
 		return () => unsubscribe(topic, handleUpdate);
 	}, [topic, subscribe, unsubscribe]);
 
+	// Display the latest chunk (or initial content if no chunks yet)
+	const text = chunks.at(-1) || content || "";
+
 	// Trigger scroll-to-bottom when streaming content grows.
 	// This bypasses the ScrollView's onContentHeightChange which doesn't
 	// fire reliably when bubbles update via pub/sub (no parent re-render).
@@ -162,9 +165,6 @@ export function MessageBubbleInner({
 		}
 		prevContentLengthRef.current = text.length;
 	}, [text, streaming, publish, topic]);
-
-	// Display the latest chunk (or initial content if no chunks yet)
-	const text = chunks.at(-1) || content || "";
 
 	const ts = time || formatTime(new Date());
 	const colors = getRoleColors(role);
