@@ -234,7 +234,7 @@ export function MessageBubbleInner({
 				paddingX: 1,
 				paddingY: 1,
 				width: "100%",
-				gap: 0,
+				gap: 1,
 				...(role === "system"
 					? { borderStyle: "round", borderColor: "orange" }
 					: role === "user"
