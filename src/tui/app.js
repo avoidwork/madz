@@ -803,9 +803,13 @@ export default function App({
 		messageListRef.current?.updateMessage(streamingMsgIdRef.current, updates);
 	};
 
-	// Single input handler - processes all keystrokes here
-	// InputPanel now uses ink-text-input for text entry (handles typing, cursor nav, etc.)
-	// This hook only handles: Tab (focus toggle), Escape (interrupt/quit), history nav, message list nav
+	// Single input handler - focus-aware key event routing
+	// InputPanel uses ink-text-input for text entry (handles typing, cursor nav, etc.)
+	// Global keys (Tab, Escape) always handled at app level regardless of focus.
+	// When inputBar is focused: only intercept Tab and Escape; all other keys pass through
+	//   to child components (message list auto-scroll, etc.)
+	// When message list is focused: intercept up/down/pageUp/pageDown for navigation;
+	//   Escape for global quit/interrupt; all other keys pass through
 	useInput((input, key) => {
 		// Onboarding phase takes priority
 		if (showOnboarding) {
@@ -826,57 +830,60 @@ export default function App({
 			}
 			setShowBanner(false);
 			// After dismissal, fall through to normal input processing
-		} else {
-			if (input === "\t" || key.tab) {
-				setInputFocused((prev) => !prev);
-				return;
-			}
+		}
 
-			if (inputFocused) {
-				if (key.escape) {
-					if (isStreamingRef.current) {
-						handleInterrupt();
-					} else {
-						handleQuit();
-					}
-				} else if (key.upArrow && chatHistory.length > 0) {
-					// History navigation — ink-text-input doesn't handle this
-					const newIndex =
-						historyIndex === -1 ? chatHistory.length - 1 : Math.max(0, historyIndex - 1);
-					setHistoryIndex(newIndex);
-					setInputText(chatHistory[newIndex]);
-				} else if (key.downArrow) {
-					// History navigation — ink-text-input doesn't handle this
-					if (historyIndex === -1) return;
-					const nextIndex = historyIndex + 1;
-					if (nextIndex >= chatHistory.length) {
-						setHistoryIndex(-1);
-						setInputText("");
-					} else {
-						setHistoryIndex(nextIndex);
-						setInputText(chatHistory[nextIndex]);
-					}
-				}
+		// Global keys always handled at app level, regardless of focus state
+		if (input === "\t" || key.tab) {
+			setInputFocused((prev) => !prev);
+			return;
+		}
+
+		if (key.escape) {
+			if (isStreamingRef.current) {
+				handleInterrupt();
 			} else {
-				if (key.escape) {
-					if (isStreamingRef.current) {
-						handleInterrupt();
-					} else {
-						handleQuit();
-					}
+				handleQuit();
+			}
+			return;
+		}
+
+		// Focus-aware key routing
+		if (inputFocused) {
+			// InputBar focused: only history navigation is app-level concern.
+			// All other keys (up/down/pageUp/pageDown, etc.) pass through to
+			// child components — enabling message list auto-scroll during streaming.
+			if (key.upArrow && chatHistory.length > 0) {
+				// History navigation — ink-text-input doesn't handle this
+				const newIndex =
+					historyIndex === -1 ? chatHistory.length - 1 : Math.max(0, historyIndex - 1);
+				setHistoryIndex(newIndex);
+				setInputText(chatHistory[newIndex]);
+			} else if (key.downArrow) {
+				// History navigation — ink-text-input doesn't handle this
+				if (historyIndex === -1) return;
+				const nextIndex = historyIndex + 1;
+				if (nextIndex >= chatHistory.length) {
+					setHistoryIndex(-1);
+					setInputText("");
 				} else {
-					if (key.upArrow) messageListRef.current?.scrollBy(-1);
-					if (key.downArrow) messageListRef.current?.scrollBy(1);
-					if (key.pageUp)
-						messageListRef.current?.scrollBy(
-							-(messageListRef.current?.getScrollRef()?.current?.getViewportHeight?.() || 1),
-						);
-					if (key.pageDown)
-						messageListRef.current?.scrollBy(
-							messageListRef.current?.getScrollRef()?.current?.getViewportHeight?.() || 1,
-						);
+					setHistoryIndex(nextIndex);
+					setInputText(chatHistory[nextIndex]);
 				}
 			}
+			// All other keys fall through — return nothing so Ink lets them bubble
+		} else {
+			// Message list focused: intercept navigation keys for manual scroll.
+			// All other keys pass through to child components.
+			if (key.upArrow) messageListRef.current?.scrollBy(-1);
+			if (key.downArrow) messageListRef.current?.scrollBy(1);
+			if (key.pageUp)
+				messageListRef.current?.scrollBy(
+					-(messageListRef.current?.getScrollRef()?.current?.getViewportHeight?.() || 1),
+				);
+			if (key.pageDown)
+				messageListRef.current?.scrollBy(
+					messageListRef.current?.getScrollRef()?.current?.getViewportHeight?.() || 1,
+				);
 		}
 	});
 
