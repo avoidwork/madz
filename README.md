@@ -432,7 +432,7 @@ Uses the [Deep Agents](https://github.com/avoidwork/deepagents) library to orche
 | Agent | Purpose | Tool Access |
 | ----- | ------- | ----------- |
 | `code-review` | Structured code reviews covering bugs, security, style, performance | `readFile`, `grep`, `glob` |
-| `coding` | Code implementation with read-before-write discipline, complete shipping, convention adherence, and dead-code elimination | `shell`, `write`, `compactContext`, `process`, `scanAgents`, `skillView`, `skillsList`, `visionAnalyze` |
+| `coding` | Code implementation with read-before-write discipline, complete shipping, convention adherence, and dead-code elimination | `shell`, `write`, `compactContext`, `process`, `scanAgents`, `visionAnalyze` |
 | `debug` | Error tracing, reproduction, and fix proposals | `readFile`, `grep`, `glob`, `shell` |
 | `documentation` | Documentation updates, API docs generation, changelog maintenance | `readFile`, `writeFile`, `grep`, `glob` |
 | `performance` | Performance benchmarking, bottleneck identification, optimization suggestions | `readFile`, `grep`, `shell` |
@@ -468,8 +468,6 @@ All built-in tools are defined in `src/tools/` and registered as LangChain tools
 | `scanAgents` | Scan for `AGENTS.md` workspace rules files in a target directory. Returns file contents or empty string. |
 | `sessionSearch` | Search past conversations by keyword query, full retrieval by conversation ID, or browse all sessions. |
 | `shell` | Execute shell commands (foreground/background). Max command length 4096 chars. |
-| `skillView` | View full details for a skill by name — metadata, permissions, scripts, and full SKILL.md body. |
-| `skillsList` | List all discovered skills with name, description, and location from the registry catalog. |
 | `textToSpeech` | Convert text to speech via OpenAI TTS (tts-1/tts-1-hd). Saves MP3 to `~/voice-memos/`. |
 | `visionAnalyze` | Analyze images via OpenAI multimodal LLM. Accepts URL or base64 data URI. |
 | `webExtract` | Extract readable text content from a web page URL. Supports summarization for large pages. |
@@ -487,7 +485,7 @@ Built-in tools are registered only when their required permissions are enabled f
 
 | Permission Required                 | Tools                                                                      |
 | ----------------------------------- | -------------------------------------------------------------------------- |
-| `filesystem:read`                   | `compactContext`, `scanAgents`, `sessionSearch`, `skillView`, `skillsList` |
+| `filesystem:read`                   | `compactContext`, `scanAgents`, `sessionSearch` |
 | `filesystem:write`                  | `clarify`, `createSkill`, `memory`, `sampling`                             |
 | `filesystem:exec` + `process:spawn` | `shell`                                                    |
 | `network:outbound`                  | `cronJob`, `imageGenerate`, `mixtureOfAgents`, `webExtract`, `webSearch`   |
@@ -707,6 +705,13 @@ providers:
 For Docker-specific configuration, see the [Environment Variables](#environment-variables) section under Docker.
 
 See [Config Reference](#config-reference) for the full list of configuration keys and their defaults.
+
+## License
+
+Licensed under the [BSD-3-Clause](LICENSE) License.
+
+Copyright (c) 2026 Jason Mulligan.
+[Config Reference](#config-reference) for the full list of configuration keys and their defaults.
 
 ## License
 

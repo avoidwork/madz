@@ -505,7 +505,6 @@ Permission gates per tool:
 ├── todo → "filesystem:read", "filesystem:write"
 ├── memory → "filesystem:read", "filesystem:write"
 ├── sessionSearch → "filesystem:read"
-├── skills_list, skillView → "filesystem:read"
 ├── createSkill → "filesystem:write"
 ├── webSearch, web_extract → "network:outbound" + hasSearchKey()
 ├── visionAnalyze → OPENAI_API_KEY (no perms)
