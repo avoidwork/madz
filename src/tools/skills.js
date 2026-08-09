@@ -9,15 +9,11 @@ import {
 	validateOptionalFields,
 	validateSkillSchema,
 } from "../skills/validator.js";
-import { ensureSkillsDir, SkillRegistry } from "../skills/registry.js";
+import { ensureSkillsDir } from "../skills/registry.js";
 import { PermissionSchema } from "../skills/types.js";
 import { loadConfig } from "../config/loader.js";
 
 export let cwd = loadConfig().cwd;
-
-// Discover skills from configured scopes
-const skillRegistry = new SkillRegistry();
-await skillRegistry.discover();
 
 /**
  * Set the working directory. Used by tests to override cwd.
@@ -37,9 +33,15 @@ export function setCwd(newCwd) {
  * @returns {object} List of skills with name, description, and location
  */
 export async function skillsListImpl(input, options) {
-	const registry = options?.registry ?? skillRegistry;
-	const catalog =
-		registry && typeof registry.getCatalog === "function" ? registry.getCatalog() : [];
+	const registry = options?.registry;
+	if (!registry || typeof registry.getCatalog !== "function") {
+		return {
+			skills: [],
+			count: 0,
+			message: "No skill registry provided.",
+		};
+	}
+	const catalog = registry.getCatalog();
 
 	if (catalog.length === 0) {
 		return {
