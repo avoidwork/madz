@@ -1,5 +1,6 @@
 import React from "react";
 import { Box, Text } from "ink";
+import Spinner from "ink-spinner";
 
 /**
  * Get connection status indicator and color based on status message.
@@ -11,7 +12,7 @@ function getStatusIndicator(status) {
 		return { indicator: "\u2716", color: "red" }; // X
 	}
 	if (status === "Sending..." || status === "Streaming...") {
-		return { indicator: "\u25B6", color: "yellow" }; // >
+		return { indicator: "\u25B6", color: "#606060", stripDots: true }; // >
 	}
 	return { indicator: "\u25CF", color: "green" }; // filled circle
 }
@@ -71,6 +72,11 @@ export const StatusBar = React.memo(function StatusBar({
 	const status = getStatusIndicator(statusMessage);
 	const contextColor = isCompacting ? "red" : "#606060";
 
+	// Strip trailing "..." and render a spinner for active states
+	const displayMessage = status.stripDots
+		? statusMessage.replace(/\.\.\.$/, "")
+		: statusMessage;
+
 	return React.createElement(
 		Box,
 		{
@@ -84,12 +90,9 @@ export const StatusBar = React.memo(function StatusBar({
 		React.createElement(
 			Box,
 			{ key: "left", flexDirection: "row", alignItems: "center" },
-			React.createElement(
-				Text,
-				{ key: "status-indicator", color: status.color, bold: true },
-				status.indicator + " ",
-			),
-			React.createElement(Text, { key: "status-msg", color: "#606060" }, statusMessage),
+			status.stripDots
+				? React.createElement(Spinner, { type: "point", color: "cyan" })
+				: React.createElement(Text, { color: "#606060" }, statusMessage),
 			React.createElement(Text, { key: "sep", color: "#606060" }, " |"),
 			React.createElement(
 				Text,
