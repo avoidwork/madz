@@ -14,7 +14,7 @@ function getStatusIndicator(status) {
 	if (status === "Sending..." || status === "Streaming...") {
 		return { indicator: "\u25B6", color: "#606060", stripDots: true }; // >
 	}
-	return { indicator: "\u25CF", color: "green" }; // filled circle
+	return { indicator: "\u25CF", color: "cyan" }; // filled circle
 }
 
 /**
@@ -72,11 +72,6 @@ export const StatusBar = React.memo(function StatusBar({
 	const status = getStatusIndicator(statusMessage);
 	const contextColor = isCompacting ? "red" : "#606060";
 
-	// Strip trailing "..." and render a spinner for active states
-	const displayMessage = status.stripDots
-		? statusMessage.replace(/\.\.\.$/, "")
-		: statusMessage;
-
 	return React.createElement(
 		Box,
 		{
@@ -91,8 +86,8 @@ export const StatusBar = React.memo(function StatusBar({
 			Box,
 			{ key: "left", flexDirection: "row", alignItems: "center" },
 			status.stripDots
-				? React.createElement(Spinner, { type: "point", color: "cyan" })
-				: React.createElement(Text, { color: "#606060" }, statusMessage),
+				? React.createElement(Text, { color: "cyan" }, React.createElement(Spinner, { type: "point" }))
+				: React.createElement(Text, { color: "#606060" }, "∙∙∙"),
 			React.createElement(Text, { key: "sep", color: "#606060" }, " |"),
 			React.createElement(
 				Text,
