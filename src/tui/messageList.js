@@ -23,11 +23,6 @@ export function PubSubProvider({ subscribe, unsubscribe, publish, children }) {
 }
 
 /**
- * Scroll throttle interval in ms during active streaming.
- */
-const SCROLL_THROTTLE_MS = 100;
-
-/**
  * Maximum number of messages to render in the React tree.
  */
 const MAX_RENDER_MESSAGES = 100;
@@ -338,15 +333,13 @@ export const MessageList = forwardRef(function MessageList(
 		// If user has manually scrolled away and nothing is streaming, don't auto-scroll
 		if (!atBottom && !isStreaming) return;
 
-		// Throttle during streaming to avoid excessive updates
-		const now = Date.now();
-		const timeSinceLastScroll = now - lastScrollTimeRef.current;
-		if (isStreaming && timeSinceLastScroll < SCROLL_THROTTLE_MS) return;
-
-		// Update scroll offset to bottom
-		setScrollOffset(maxScroll);
+		// Update scroll offset to bottom — only if it actually changed.
+		// This prevents redundant updates without dropping real ones (fixes Issue 7).
+		if (currentScroll !== maxScroll) {
+			setScrollOffset(maxScroll);
+			lastScrollTimeRef.current = Date.now();
+		}
 		lastMsgCountRef.current = idsRef.current.length;
-		lastScrollTimeRef.current = Date.now();
 	};
 
 	// Render the last MAX_RENDER_MESSAGES as MessageBubble elements.
@@ -419,7 +412,6 @@ export const MessageList = forwardRef(function MessageList(
 				{
 					ref: scrollRef,
 					key: "scroll",
-					focus: false,
 					scrollOffset,
 					onContentHeightChange: handleContentHeightChange,
 					onScroll: handleScroll,
