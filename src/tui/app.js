@@ -518,7 +518,6 @@ export default function App({
 				if (onSaveSession) {
 					onSaveSession();
 				}
-				messageListRef.current?.clear();
 				setStatusMessage("Something went wrong");
 				addMessage({
 					role: "system",
