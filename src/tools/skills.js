@@ -17,7 +17,7 @@ export let cwd = loadConfig().cwd;
 
 // Discover skills from configured scopes
 const skillRegistry = new SkillRegistry();
-skillRegistry.discover();
+await skillRegistry.discover();
 
 /**
  * Set the working directory. Used by tests to override cwd.
