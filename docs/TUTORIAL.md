@@ -108,20 +108,18 @@ When using a non-OpenAI model, you may need to set `OPENAI_ENCODING` to specify 
 
 *Port collision?* If port `2222` is already in use, change the host port in the `-p` flag (e.g., `-p 2223:22`) and update your SSH command accordingly.
 
-### Option B: npm Global Install (System-Wide Access)
+### Option B: Clone Source Repository (Development/Customization)
 
-Install directly from the registry:
+For modifying the harness or contributing:
 ```bash
-npm install -g @avoidwork/madz
+git clone https://github.com/avoidwork/madz.git
+cd madz
+npm install
+npm start
 ```
+*This gives you full control over the codebase. Use this if you plan to extend skills, tweak the TUI, or debug subsystems.*
 
-Run it from anywhere:
-```bash
-madz
-```
-*This installs `madz` globally on your system. Configuration is handled via `~/.config/madz/config.yaml` or environment variables.*
-
-**Example `config.yaml` (NPM/Local Install):**
+**Example `config.yaml` (Local Install):**
 ```yaml
 providers:
   openai:
@@ -136,17 +134,6 @@ sandbox:
     - process:spawn
 ```
 *Replace `apiKey`, `model`, and `base_url` as needed. For local LLMs, set `base_url` to your local endpoint and omit `apiKey` if your provider doesn't require one.*
-
-### Option C: Clone Source Repository (Development/Customization)
-
-For modifying the harness or contributing:
-```bash
-git clone https://github.com/avoidwork/madz.git
-cd madz
-npm install
-npm start
-```
-*This gives you full control over the codebase. Use this if you plan to extend skills, tweak the TUI, or debug subsystems.*
 
 ---
 
