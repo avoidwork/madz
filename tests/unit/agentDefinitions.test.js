@@ -214,13 +214,12 @@ describe("Agent Definitions", () => {
 			ok(debug.systemPrompt.includes("shell"), "Debug agent should reference shell");
 		});
 
-		it("code-review agent should reference correct tools (scanAgents, skillView)", () => {
+		it("code-review agent should reference correct tools (scanAgents)", () => {
 			const review = ALL_AGENTS.find((a) => a.name === "code-review");
 			ok(
 				review.systemPrompt.includes("scanAgents"),
 				"Code review agent should reference scanAgents",
 			);
-			ok(review.systemPrompt.includes("skillView"), "Code review agent should reference skillView");
 		});
 
 		it("testing agent should reference correct tools (shell)", () => {

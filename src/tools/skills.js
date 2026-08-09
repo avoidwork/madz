@@ -13,7 +13,7 @@ import { ensureSkillsDir } from "../skills/registry.js";
 import { PermissionSchema } from "../skills/types.js";
 import { loadConfig } from "../config/loader.js";
 
-export let cwd = loadConfig().cwd;
+export let cwd = process.cwd();
 
 /**
  * Set the working directory. Used by tests to override cwd.
@@ -26,108 +26,6 @@ export function setCwd(newCwd) {
 	cwd = newCwd;
 	return prev;
 }
-
-/**
- * Core logic for listing all discovered skills via catalog (tier 1 progressive disclosure).
- * @param {z.infer<typeof SkillsListSchema>} input - The tool input (empty)
- * @returns {object} List of skills with name, description, and location
- */
-export async function skillsListImpl(input, options) {
-	const registry = options?.registry;
-	if (!registry || typeof registry.getCatalog !== "function") {
-		return {
-			skills: [],
-			count: 0,
-			message: "No skill registry provided.",
-		};
-	}
-	const catalog = registry.getCatalog();
-
-	if (catalog.length === 0) {
-		return {
-			skills: [],
-			count: 0,
-			message: "No skills discovered. Run discovery to find available skills.",
-		};
-	}
-
-	return {
-		skills: catalog.map((s) => ({
-			name: s.name,
-			description: s.description,
-			location: s.location,
-		})),
-		count: catalog.length,
-	};
-}
-
-/**
- * Skills list tool that wraps skill core logic.
- * @param {z.infer<typeof SkillsListSchema>} input - The tool input (empty)
- * @returns {object} List of skills with summaries
- */
-export const skillsList = tool(skillsListImpl, {
-	name: "skillsList",
-	description:
-		"List all discovered skills with their name, version, description, and permissions. Returns { skills: [...], count: N }.",
-	schema: z.object({}).default({}),
-});
-
-/**
- * Core logic for viewing a single skill's details and SKILL.md content.
- * Legacy access path for manual TUI inspection.
- * @param {z.infer<typeof SkillViewSchema>} input - The tool input
- * @returns {object} Skill details and full SKILL.md content
- */
-export async function skillViewImpl(input) {
-	const config = loadConfig();
-	const registry = config.registry;
-	const name = input.name;
-	const skill = registry && typeof registry.get === "function" ? registry.get(name) : null;
-
-	if (!skill) {
-		return {
-			error: `Skill '${name}' was not found in the registry. Run discovery to find available skills.`,
-		};
-	}
-
-	const result = {
-		name: skill.name || name,
-		version: skill.metadata?.version || "1.0.0",
-		description: skill.metadata?.description || "",
-		license: skill.metadata?.license || undefined,
-		compatibility: skill.metadata?.compatibility || undefined,
-		metadata: skill.metadata?.metadata || undefined,
-		permissions: skill.metadata?.permissions || [],
-		scripts: skill.metadata?.scripts || undefined,
-	};
-
-	// Try to read SKILL.md body if available
-	const body =
-		registry && typeof registry.getSkillBody === "function" ? registry.getSkillBody(name) : null;
-	if (body) {
-		result.skill_md = body;
-	} else {
-		// node:coverage ignore next
-		result.skill_md = "SKILL.md body not accessible";
-	}
-
-	return result;
-}
-
-/**
- * Skill view tool that wraps skill core logic.
- * @param {z.infer<typeof SkillViewSchema>} input - The tool input
- * @returns {object} Skill details and full SKILL.md content
- */
-export const skillView = tool(skillViewImpl, {
-	name: "skillView",
-	description:
-		"View full details for a skill by name (legacy access path). Returns name, version, description, license, compatibility, metadata, permissions, scripts, and full SKILL.md body. Prefer progressive disclosure via getCatalog for normal usage.",
-	schema: z.object({
-		name: z.string().describe("Name of the skill to view"),
-	}),
-});
 
 /**
  * Core logic for creating a spec-compliant skill directory with SKILL.md.
