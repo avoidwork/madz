@@ -129,7 +129,7 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 
 	// Discover skills from configured scopes
 	const skillRegistry = new SkillRegistry();
-	skillRegistry.discover();
+	await skillRegistry.discover();
 	const skillPaths = skillRegistry.getSkillPaths();
 
 	// Inject skills-to-agent mapping into the orchestrator system prompt
