@@ -966,7 +966,7 @@ describe("Banner - version rendering", () => {
 });
 
 describe("StatusBar - no appInfo rendering", () => {
-	it("renders status indicator, status message, and info counts", async () => {
+	it("renders dots and info counts", async () => {
 		const { renderToString } = await import("ink");
 		const { StatusBar } = await import("../../src/tui/statusBar.js");
 
@@ -981,7 +981,7 @@ describe("StatusBar - no appInfo rendering", () => {
 			),
 		);
 
-		assert.ok(result.includes("Ready"), "status message should appear");
+		assert.ok(result.includes("∙∙∙"), "idle dots should appear");
 		assert.ok(result.includes("[⚡3]"), "skill count should appear");
 		assert.ok(result.includes("[💬 10]"), "message count should appear");
 	});
@@ -1007,7 +1007,7 @@ describe("StatusBar - no appInfo rendering", () => {
 		);
 	});
 
-	it("renders error indicator when status starts with Error", async () => {
+	it("renders spinner when streaming", async () => {
 		const { renderToString } = await import("ink");
 		const { StatusBar } = await import("../../src/tui/statusBar.js");
 
@@ -1015,14 +1015,15 @@ describe("StatusBar - no appInfo rendering", () => {
 		const result = String(
 			renderToString(
 				React.createElement(memoInner, {
-					statusMessage: "Error: connection failed",
+					statusMessage: "Streaming...",
 					skillCount: 0,
 					messageCount: 0,
 				}),
 			),
 		);
 
-		assert.ok(result.includes("Error: connection failed"));
+		assert.ok(result.includes("Streaming...") === false, "status message text should not appear");
+		assert.ok(result.includes("[⚡0]"), "skill count should appear");
 	});
 });
 
