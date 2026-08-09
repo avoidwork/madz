@@ -3,7 +3,7 @@ name: "reflection"
 description: "Generate a narrative reflection summary from recent session history to capture mood, energy, and interaction quality."
 metadata:
   author: "madz"
-  version: "1.0"
+  version: "1.1"
   agent: "orchestrator"
 ---
 
