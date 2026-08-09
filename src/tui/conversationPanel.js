@@ -48,7 +48,7 @@ export function getBubbleStyle(role) {
 	const cache = getBubbleStyle._cache || (getBubbleStyle._cache = new Map());
 	if (!cache.has(role)) {
 		if (role === "user") {
-			cache.set(role, { alignment: "flex-end", border: "green" });
+			cache.set(role, { alignment: "flex-start", border: "green" });
 		} else if (role === "system") {
 			cache.set(role, { alignment: "flex-start", border: "yellow" });
 		} else {

@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, forwardRef } from "react";
 import { Box, Text, useStdout } from "ink";
-import { ControlledScrollView } from "ink-scroll-view";
+import { ScrollView } from "ink-scroll-view";
 import { MessageBubble, PubSubContext } from "./messageBubble.js";
 
 /**
@@ -21,11 +21,6 @@ export function PubSubProvider({ subscribe, unsubscribe, publish, children }) {
 		...list,
 	);
 }
-
-/**
- * Scroll throttle interval in ms during active streaming.
- */
-const SCROLL_THROTTLE_MS = 100;
 
 /**
  * Maximum number of messages to render in the React tree.
@@ -60,8 +55,6 @@ export const MessageList = forwardRef(function MessageList(
 	const dataRef = useRef(new Map());
 	const contentRef = useRef(new Map());
 	const lastMsgCountRef = useRef(0);
-	const lastScrollTimeRef = useRef(0);
-	const isUserScrollingRef = useRef(false);
 	const [scrollOffset, setScrollOffset] = useState(0);
 	const { stdout } = useStdout();
 
@@ -272,6 +265,15 @@ export const MessageList = forwardRef(function MessageList(
 		},
 
 		/**
+		 * Force a re-render of the MessageList tree.
+		 * Used by streaming handlers to trigger ScrollView re-measurement.
+		 * @internal
+		 */
+		_triggerRender() {
+			triggerRender();
+		},
+
+		/**
 		 * Reset refs (test isolation).
 		 * @internal
 		 */
@@ -297,6 +299,9 @@ export const MessageList = forwardRef(function MessageList(
 		};
 	}, [forwardRef]);
 
+	// No-op: scroll-to-bottom is handled exclusively via onContentHeightChange.
+	// Pub/sub "scroll-to-bottom" removed — dual scroll paths caused race conditions.
+
 	// Handle terminal resize by remeasuring content heights.
 	useEffect(() => {
 		const resizeHandler = () => {
@@ -312,55 +317,16 @@ export const MessageList = forwardRef(function MessageList(
 
 	// Detect manual scroll-up: when user scrolls away from bottom,
 	// suppress auto-scroll until they return to bottom or streaming completes.
-	useEffect(() => {
-		if (!scrollRef.current) return;
+	// Checked inline in handleContentHeightChange — not via useEffect, because
+	// the ref-only approach never refreshed after mount.
 
-		const checkScrollPosition = () => {
-			if (!scrollRef.current) return;
-			const maxScroll = scrollRef.current.getBottomOffset?.() ?? 0;
-			const currentScroll = scrollRef.current.getScrollOffset?.() || 0;
-			const atBottom = maxScroll - currentScroll < 2;
-
-			if (!atBottom) {
-				isUserScrollingRef.current = true;
-			} else {
-				isUserScrollingRef.current = false;
-			}
-		};
-
-		checkScrollPosition();
-	}, [scrollRef]);
-
-	// Scroll-to-bottom via onContentHeightChange callback.
-	// When content height grows and user is at bottom (or streaming), scroll to follow.
+	// Scroll-to-bottom whenever content height changes (new message added).
+	// Fires on children array changes — covers user, system, and assistant messages.
+	// Uses the imperative scrollToBottom() API exposed by ScrollView.
 	const handleContentHeightChange = (height, previousHeight) => {
-		if (!scrollRef.current) return;
-
-		// Guard: only react to actual growth, not initial render or shrink
-		if (height <= previousHeight) return;
-
-		const lastId = idsRef.current[idsRef.current.length - 1];
-		const lastData = lastId ? dataRef.current.get(lastId) : null;
-		const isStreaming = lastData?.streaming ?? false;
-
-		// If user has manually scrolled away and nothing is streaming, don't auto-scroll
-		if (isUserScrollingRef.current && !isStreaming) return;
-
-		// Throttle during streaming to avoid excessive updates
-		const now = Date.now();
-		const timeSinceLastScroll = now - lastScrollTimeRef.current;
-		if (isStreaming && timeSinceLastScroll < SCROLL_THROTTLE_MS) return;
-
-		// Re-measure the last item first to ensure accurate height
-		const lastIdx = idsRef.current.length - 1;
-		if (lastIdx >= 0) {
-			scrollRef.current.remeasureItem(lastIdx);
-		}
-
-		// Update scroll offset to bottom
-		setScrollOffset(scrollRef.current.getBottomOffset?.() || 0);
+		if (!scrollRef.current || height <= previousHeight) return;
+		scrollRef.current.scrollToBottom?.();
 		lastMsgCountRef.current = idsRef.current.length;
-		lastScrollTimeRef.current = Date.now();
 	};
 
 	// Render the last MAX_RENDER_MESSAGES as MessageBubble elements.
@@ -417,6 +383,11 @@ export const MessageList = forwardRef(function MessageList(
 
 	const children = childrenRef.current;
 
+	// Sync scroll offset back from ScrollView (e.g., keyboard nav).
+	const handleScroll = (offset) => {
+		setScrollOffset(offset);
+	};
+
 	return React.createElement(
 		PubSubProvider,
 		{ subscribe, unsubscribe, publish },
@@ -424,13 +395,14 @@ export const MessageList = forwardRef(function MessageList(
 			Box,
 			{ key: "panel", flexDirection: "column", flexGrow: 1 },
 			React.createElement(
-				ControlledScrollView,
+				ScrollView,
 				{
 					ref: scrollRef,
 					key: "scroll",
-					focus: false,
+					grow: 1,
 					scrollOffset,
 					onContentHeightChange: handleContentHeightChange,
+					onScroll: handleScroll,
 				},
 				...children,
 			),

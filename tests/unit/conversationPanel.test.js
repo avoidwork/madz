@@ -71,8 +71,8 @@ describe("ConversationPanel - getRoleColors", () => {
 });
 
 describe("ConversationPanel - getBubbleStyle", () => {
-	it("returns flex-end alignment with green border for user", async () => {
-		assert.deepStrictEqual(getBubbleStyle("user"), { alignment: "flex-end", border: "green" });
+	it("returns flex-start alignment with green border for user", async () => {
+		assert.deepStrictEqual(getBubbleStyle("user"), { alignment: "flex-start", border: "green" });
 	});
 
 	it("returns flex-start alignment with yellow border for system", async () => {

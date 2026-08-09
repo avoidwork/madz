@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useRef } from "react";
 import { Box, Text } from "ink";
 import Spinner from "ink-spinner";
 import { MarkdownText } from "./markdownText.js";
@@ -125,9 +125,10 @@ export function MessageBubbleInner({
 	reasoningContent,
 	activeToolCall,
 	toolCallDisplay,
+	streaming,
 }) {
 	const [chunks, setChunks] = useState([]);
-	const { subscribe, unsubscribe } = useContext(PubSubContext);
+	const { subscribe, unsubscribe, publish } = useContext(PubSubContext);
 
 	// Subscribe to pub/sub updates — each update appends a chunk, triggering
 	// re-render of just this bubble without re-rendering the parent.
@@ -149,6 +150,21 @@ export function MessageBubbleInner({
 
 	// Display the latest chunk (or initial content if no chunks yet)
 	const text = chunks.at(-1) || content || "";
+
+	// Trigger scroll-to-bottom when streaming content grows.
+	// This bypasses the ScrollView's onContentHeightChange which doesn't
+	// fire reliably when bubbles update via pub/sub (no parent re-render).
+	const prevContentLengthRef = useRef(0);
+	useEffect(() => {
+		if (!streaming) {
+			prevContentLengthRef.current = text.length;
+			return;
+		}
+		if (text.length > prevContentLengthRef.current) {
+			publish("scroll-to-bottom", { id: topic });
+		}
+		prevContentLengthRef.current = text.length;
+	}, [text, streaming, publish, topic]);
 
 	const ts = time || formatTime(new Date());
 	const colors = getRoleColors(role);
@@ -206,6 +222,7 @@ export function MessageBubbleInner({
 			key: `bubble-${role}`,
 			flexDirection: "row",
 			paddingY: 0,
+			paddingBottom: 1,
 			justifyContent: bubble.alignment,
 			gap: 0,
 		},
@@ -215,10 +232,13 @@ export function MessageBubbleInner({
 				key: `bubble-inner-${role}`,
 				flexDirection: "column",
 				paddingX: 1,
-				borderColor: bubble.border,
-				borderStyle: "round",
 				maxWidth: "90%",
 				gap: 0,
+				...(role === "system"
+					? { borderStyle: "round", borderColor: "orange" }
+					: role === "user"
+						? { borderStyle: "round", borderColor: "green" }
+						: {}),
 			},
 			React.createElement(
 				Box,
