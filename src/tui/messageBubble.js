@@ -233,6 +233,7 @@ export function MessageBubbleInner({
 				paddingX: 1,
 				maxWidth: "90%",
 				gap: 0,
+				...(role === "system" ? { borderStyle: "round", borderColor: "orange" } : {}),
 			},
 			React.createElement(
 				Box,
