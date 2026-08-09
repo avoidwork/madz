@@ -407,6 +407,7 @@ export const MessageList = forwardRef(function MessageList(
 				{
 					ref: scrollRef,
 					key: "scroll",
+					grow: 1,
 					scrollOffset,
 					onContentHeightChange: handleContentHeightChange,
 					onScroll: handleScroll,
