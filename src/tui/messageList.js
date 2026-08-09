@@ -314,6 +314,8 @@ export const MessageList = forwardRef(function MessageList(
 
 	// Scroll-to-bottom via onContentHeightChange callback.
 	// When content height grows and user is at bottom (or streaming), scroll to follow.
+	// Uses the imperative scrollToBottom() API — simpler and more reliable than
+	// manually computing scroll offsets (getScrollOffset isn't exposed by ControlledScrollView).
 	const handleContentHeightChange = (height, previousHeight) => {
 		if (!scrollRef.current) return;
 
@@ -324,21 +326,14 @@ export const MessageList = forwardRef(function MessageList(
 		const lastData = lastId ? dataRef.current.get(lastId) : null;
 		const isStreaming = lastData?.streaming ?? false;
 
-		// Check scroll position inline — the old isUserScrollingRef was stale
-		// because the useEffect only ran on mount.
+		// If user has manually scrolled away and nothing is streaming, don't auto-scroll
 		const maxScroll = scrollRef.current.getBottomOffset?.() ?? 0;
 		const currentScroll = scrollRef.current.getScrollOffset?.() || 0;
 		const atBottom = maxScroll - currentScroll < 2;
-
-		// If user has manually scrolled away and nothing is streaming, don't auto-scroll
 		if (!atBottom && !isStreaming) return;
 
-		// Update scroll offset to bottom — only if it actually changed.
-		// This prevents redundant updates without dropping real ones (fixes Issue 7).
-		if (currentScroll !== maxScroll) {
-			setScrollOffset(maxScroll);
-			lastScrollTimeRef.current = Date.now();
-		}
+		// Use the imperative API — it handles dedup internally
+		scrollRef.current.scrollToBottom?.();
 		lastMsgCountRef.current = idsRef.current.length;
 	};
 
