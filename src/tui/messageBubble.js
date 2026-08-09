@@ -232,12 +232,12 @@ export function MessageBubbleInner({
 				key: `bubble-inner-${role}`,
 				flexDirection: "column",
 				paddingX: 1,
-				maxWidth: "90%",
+				width: "100%",
 				gap: 0,
 				...(role === "system"
 					? { borderStyle: "round", borderColor: "orange" }
 					: role === "user"
-						? { borderStyle: "round", borderColor: "green" }
+						? { backgroundColor: "#1a1a1a" }
 						: {}),
 			},
 			React.createElement(
