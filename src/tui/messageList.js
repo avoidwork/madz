@@ -297,6 +297,20 @@ export const MessageList = forwardRef(function MessageList(
 		};
 	}, [forwardRef]);
 
+	// Subscribe to scroll-to-bottom requests from streaming bubbles.
+	// When a bubble detects content growth during streaming, it publishes
+	// to this topic and we handle the actual scroll here.
+	useEffect(() => {
+		const handleScrollToBottom = () => {
+			if (!scrollRef.current) return;
+			const bottomOffset = scrollRef.current.getBottomOffset?.() ?? 0;
+			setScrollOffset(bottomOffset);
+			lastScrollTimeRef.current = Date.now();
+		};
+		subscribe("scroll-to-bottom", handleScrollToBottom);
+		return () => unsubscribe("scroll-to-bottom", handleScrollToBottom);
+	}, [subscribe, unsubscribe, scrollRef]);
+
 	// Handle terminal resize by remeasuring content heights.
 	useEffect(() => {
 		const resizeHandler = () => {

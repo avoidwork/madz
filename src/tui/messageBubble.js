@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useRef } from "react";
 import { Box, Text } from "ink";
 import Spinner from "ink-spinner";
 import { MarkdownText } from "./markdownText.js";
@@ -125,9 +125,10 @@ export function MessageBubbleInner({
 	reasoningContent,
 	activeToolCall,
 	toolCallDisplay,
+	streaming,
 }) {
 	const [chunks, setChunks] = useState([]);
-	const { subscribe, unsubscribe } = useContext(PubSubContext);
+	const { subscribe, unsubscribe, publish } = useContext(PubSubContext);
 
 	// Subscribe to pub/sub updates — each update appends a chunk, triggering
 	// re-render of just this bubble without re-rendering the parent.
@@ -146,6 +147,21 @@ export function MessageBubbleInner({
 		subscribe(topic, handleUpdate);
 		return () => unsubscribe(topic, handleUpdate);
 	}, [topic, subscribe, unsubscribe]);
+
+	// Trigger scroll-to-bottom when streaming content grows.
+	// This bypasses the ScrollView's onContentHeightChange which doesn't
+	// fire reliably when bubbles update via pub/sub (no parent re-render).
+	const prevContentLengthRef = useRef(0);
+	useEffect(() => {
+		if (!streaming) {
+			prevContentLengthRef.current = text.length;
+			return;
+		}
+		if (text.length > prevContentLengthRef.current) {
+			publish("scroll-to-bottom", { id: topic });
+		}
+		prevContentLengthRef.current = text.length;
+	}, [text, streaming, publish, topic]);
 
 	// Display the latest chunk (or initial content if no chunks yet)
 	const text = chunks.at(-1) || content || "";
