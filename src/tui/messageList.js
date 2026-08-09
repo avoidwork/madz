@@ -55,7 +55,6 @@ export const MessageList = forwardRef(function MessageList(
 	const dataRef = useRef(new Map());
 	const contentRef = useRef(new Map());
 	const lastMsgCountRef = useRef(0);
-	const lastScrollTimeRef = useRef(0);
 	const [scrollOffset, setScrollOffset] = useState(0);
 	const { stdout } = useStdout();
 
