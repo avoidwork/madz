@@ -95,7 +95,7 @@ const { SkillRegistry, resolvePermissions, ensureSkillsDir } =
 	await import("./src/skills/index.js");
 const registry = new SkillRegistry();
 await ensureSkillsDir(config.cwd + "/" + "skills/");
-registry.discover();
+await registry.discover();
 
 // Initialize memory system
 const { writeMemoryFile, readMemoryFile, loadContext } = await import("./src/memory/index.js");
