@@ -78,7 +78,7 @@ export const StatusBar = React.memo(function StatusBar({
 			alignItems: "center",
 			width: "100%",
 			paddingX: 1,
-			backgroundColor: "#101010",
+			backgroundColor: "#0d0d0d",
 			justifyContent: "flex-start",
 		},
 		React.createElement(
