@@ -312,24 +312,12 @@ export const MessageList = forwardRef(function MessageList(
 	// Checked inline in handleContentHeightChange — not via useEffect, because
 	// the ref-only approach never refreshed after mount.
 
-	// Scroll-to-bottom via onContentHeightChange callback.
-	// Fires whenever the children array changes (new message added),
-	// which triggers ControlledScrollView to re-measure content height.
-	// Always scrolls to bottom — user/system messages and assistant messages alike.
+	// Scroll-to-bottom whenever content height changes (new message added).
+	// Fires on children array changes — covers user, system, and assistant messages.
+	// Uses the imperative scrollToBottom() API exposed by ScrollView.
 	const handleContentHeightChange = (height, previousHeight) => {
-		if (!scrollRef.current) return;
-
-		// Guard: only react to actual growth, not initial render or shrink
-		if (height <= previousHeight) return;
-
-		// Always scroll to bottom when content grows (new message added).
-		// onContentHeightChange only fires on children array changes,
-		// not during pub/sub streaming updates, so no risk of unwanted scrolling.
-		const maxScroll = scrollRef.current.getBottomOffset?.() ?? 0;
-		const currentScroll = scrollRef.current.getScrollOffset?.() || 0;
-		if (currentScroll !== maxScroll) {
-			setScrollOffset(maxScroll);
-		}
+		if (!scrollRef.current || height <= previousHeight) return;
+		scrollRef.current.scrollToBottom?.();
 		lastMsgCountRef.current = idsRef.current.length;
 	};
 
