@@ -399,7 +399,7 @@ export const MessageList = forwardRef(function MessageList(
 			Box,
 			{ key: "panel", flexDirection: "column", flexGrow: 1 },
 			React.createElement(
-				ControlledScrollView,
+				ScrollView,
 				{
 					ref: scrollRef,
 					key: "scroll",
