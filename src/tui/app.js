@@ -708,7 +708,7 @@ export default function App({
 						content: committedContentRef.current + (config?.tui?.cursorChar || "\u2588"),
 						streaming: true,
 					});
-					messageListRef.current?.getScrollRef()?.current?.scrollToBottom?.();
+					messageListRef.current?._triggerRender();
 					if (onTextReceived) onTextReceived();
 				}
 
@@ -721,7 +721,7 @@ export default function App({
 							content: committedContentRef.current + (config?.tui?.cursorChar || "\u2588"),
 							streaming: true,
 						});
-						messageListRef.current?.getScrollRef()?.current?.scrollToBottom?.();
+						messageListRef.current?._triggerRender();
 					}
 					if (event.data?.chunk?.reasoning) {
 						committedReasoningRef.current =

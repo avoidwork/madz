@@ -265,6 +265,15 @@ export const MessageList = forwardRef(function MessageList(
 		},
 
 		/**
+		 * Force a re-render of the MessageList tree.
+		 * Used by streaming handlers to trigger ScrollView re-measurement.
+		 * @internal
+		 */
+		_triggerRender() {
+			triggerRender();
+		},
+
+		/**
 		 * Reset refs (test isolation).
 		 * @internal
 		 */
