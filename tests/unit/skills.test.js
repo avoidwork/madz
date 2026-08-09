@@ -6,7 +6,6 @@ import { chdir } from "node:process";
 import { join } from "node:path";
 import {
 	createSkillImpl,
-	skillViewImpl,
 	generateSkillCatalogPrompt,
 	createSkill,
 	cwd,
@@ -50,10 +49,6 @@ describe("createSkill tool registration", () => {
 	it("exports createSkill tool", async () => {
 		assert.ok(typeof createSkill !== "undefined");
 		assert.strictEqual(createSkill.name, "createSkill");
-	});
-
-	it("exports skillViewImpl function", async () => {
-		assert.ok(typeof skillViewImpl === "function");
 	});
 });
 

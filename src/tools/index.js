@@ -9,7 +9,7 @@ import { mixtureOfAgents } from "./moa.js";
 import { sampling } from "./sampling.js";
 import { sessionSearch } from "./session_search.js";
 import { shell, processTool } from "./shell.js";
-import { createSkill, skillView, skillsList } from "./skills.js";
+import { createSkill } from "./skills.js";
 import { textToSpeech } from "./tts.js";
 import { visionAnalyze } from "./vision.js";
 import { webSearch, webExtract } from "./web.js";
@@ -33,8 +33,6 @@ export const TOOL_PERMISSIONS = {
 	scanAgents: ["filesystem:read"],
 	sessionSearch: ["filesystem:read"],
 	shell: ["filesystem:exec", "process:spawn"],
-	skillView: ["filesystem:read"],
-	skillsList: ["filesystem:read"],
 	textToSpeech: [],
 	visionAnalyze: [],
 	webExtract: ["network:outbound"],
@@ -90,8 +88,6 @@ export const TOOL_CLASSIFICATIONS = {
 	scanAgents: ["security-audit", "code-review", "coding"],
 	sessionSearch: ["search", "research"],
 	shell: ["debug", "code-review", "testing", "security-audit", "performance", "coding"],
-	skillView: ["search", "research", "code-review", "coding"],
-	skillsList: ["search", "research", "code-review", "coding"],
 	textToSpeech: ["documentation"],
 	visionAnalyze: ["code-review", "testing", "coding"],
 	webExtract: ["search", "research", "coding"],
@@ -127,8 +123,6 @@ export const ORCHESTRATOR_TOOLS = [
 	"sessionSearch",
 	"webSearch",
 	"webExtract",
-	"skillView",
-	"skillsList",
 	"scanAgents",
 	"shell",
 	"sampling",
@@ -150,8 +144,6 @@ export const TOOLS = {
 	scanAgents,
 	sessionSearch,
 	shell,
-	skillView,
-	skillsList,
 	textToSpeech,
 	visionAnalyze,
 	webExtract,
@@ -166,7 +158,7 @@ export const TOOLS = {
  * @param {string[]} options.permissions - Enabled sandbox permissions from config
  * @param {string[]} options.allowedPaths - Sandbox-allowed paths
  * @param {string} options.maxReadSize - Maximum read size string (e.g., "1mb")
- * @param {object} [options.registry] - SkillRegistry instance for skills_list/skill_view
+ * @param {object} [options.registry] - SkillRegistry instance for skill creation
  * @param {string} [options.sessionsDir] - Path to sessions directory
  * @param {object} [options.safety] - Code sandbox safety config
  * @param {object} [options.timeout] - Code execution timeout config

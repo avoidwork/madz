@@ -22,8 +22,6 @@ describe("tools - buildToolConfig", () => {
 			"compactContext",
 			"createSkill",
 			"memory",
-			"skillView",
-			"skillsList",
 		];
 		for (const tool of expectedTools) {
 			assert.ok(TOOL_PERMISSIONS[tool], `Expected TOOL_PERMISSIONS to have ${tool}`);
@@ -85,15 +83,13 @@ describe("tools - buildToolConfig", () => {
 		const tools = await buildToolConfig({ permissions: ["filesystem:read"], maxReadSize: "1mb" });
 		const toolNames = tools.map((t) => t.name);
 		// filesystem:read enables: clarify, sampling, shell (always), compactContext, scanAgents,
-		// sessionSearch, skillView, skillsList, date
+		// sessionSearch, date
 		assert.ok(toolNames.includes("clarify"));
 		assert.ok(toolNames.includes("sampling"));
 		assert.ok(toolNames.includes("shell"));
 		assert.ok(toolNames.includes("date"));
 		assert.ok(toolNames.includes("scanAgents"));
 		assert.ok(toolNames.includes("sessionSearch"));
-		assert.ok(toolNames.includes("skillView"));
-		assert.ok(toolNames.includes("skillsList"));
 		assert.ok(toolNames.includes("compactContext"));
 	});
 
@@ -162,8 +158,8 @@ describe("tools - buildToolConfig", () => {
 		});
 		const toolNames = tools.map((t) => t.name);
 		// filesystem:read enables: clarify, sampling, shell (always), compactContext, scanAgents,
-		// sessionSearch, skillView, skillsList, date
-		assert.strictEqual(toolNames.length, 9);
+		// sessionSearch, date
+		assert.strictEqual(toolNames.length, 7);
 		assert.ok(toolNames.includes("clarify"));
 		assert.ok(toolNames.includes("sampling"));
 		assert.ok(toolNames.includes("date"));
