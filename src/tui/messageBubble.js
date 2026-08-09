@@ -260,7 +260,10 @@ export function MessageBubbleInner({
 							React.createElement(Spinner, { type: "dots2" }),
 							" thinking",
 						)
-					: React.createElement(MarkdownText, { content: text }),
+					: React.createElement(MarkdownText, {
+							content: text,
+							color: role === "system" ? "orange" : undefined,
+						}),
 			),
 			reasoningEl,
 			toolCallEl,
