@@ -237,7 +237,7 @@ export function MessageBubbleInner({
 				...(role === "system"
 					? { borderStyle: "round", borderColor: "orange" }
 					: role === "user"
-						? { backgroundColor: "#1a1a1a" }
+						? { backgroundColor: "#0d0d0d" }
 						: {}),
 			},
 			React.createElement(
