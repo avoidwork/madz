@@ -232,7 +232,7 @@ export function MessageBubbleInner({
 				key: `bubble-inner-${role}`,
 				flexDirection: "column",
 				paddingX: 1,
-				paddingY: 0,
+				paddingY: 1,
 				width: "100%",
 				gap: 1,
 				...(role === "system"
