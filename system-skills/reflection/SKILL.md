@@ -15,15 +15,11 @@ Generate a concise, narrative reflection summary from recent session history and
 
    Run:
    ```bash
-   ls -t memory/sessions/*.md 2>/dev/null | head -25
+   find . -maxdepth 1 -type f -mtime -8 -printf "%T+\t%p\n" | grep -v "scan-issues" | grep -v "reflection skill" | sort -r | head -50
    ```
    Read only the files returned. Each session file has YAML frontmatter with (at minimum) a `startedAt` field (ISO 8601 timestamp).
 
-2. **Filter by 7-day window**
-
-   Parse the `startedAt` frontmatter from each of the 25 files. Keep only sessions where `startedAt` is within the last 7 days from the current time. Exclude any files that lack a valid `startedAt` field.
-
-3. **Generate the narrative summary**
+2. **Generate the narrative summary**
 
    Read each session's JSON messages (the body after frontmatter). For each session, produce a brief paragraph that captures:
    - The mood, energy, or emotional tone the user brought to the conversation
@@ -34,7 +30,7 @@ Generate a concise, narrative reflection summary from recent session history and
 
    Keep the output in the range of 200-400 words. Prioritize recent sessions: give more detail to the newest ones, summarize older ones sparingly.
 
-4. **Write `memory/context/reflection.md`**
+3. **Write `memory/context/reflection.md`**
 
    Write the result as a Markdown file with frontmatter:
 
@@ -47,7 +43,7 @@ Generate a concise, narrative reflection summary from recent session history and
 
    Follow the frontmatter with the narrative body. Always write the file, even if there is nothing to report.
 
-5. **Ensure size constraints**
+4. **Ensure size constraints**
 
    The total file size (frontmatter + body) MUST NOT exceed 5 kB (~1.2k tokens). If the generated summary would exceed this limit, trim oldest sessions first until the file fits. Never write a file larger than 5 kB.
 
