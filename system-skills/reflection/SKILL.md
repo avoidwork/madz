@@ -15,13 +15,13 @@ Generate a concise, narrative reflection summary from recent session history and
 
    Run:
    ```bash
-   ls -t memory/sessions/*.md 2>/dev/null | head -10
+   ls -t memory/sessions/*.md 2>/dev/null | head -25
    ```
    Read only the files returned. Each session file has YAML frontmatter with (at minimum) a `startedAt` field (ISO 8601 timestamp).
 
 2. **Filter by 7-day window**
 
-   Parse the `startedAt` frontmatter from each of the 10 files. Keep only sessions where `startedAt` is within the last 7 days from the current time. Exclude any files that lack a valid `startedAt` field.
+   Parse the `startedAt` frontmatter from each of the 25 files. Keep only sessions where `startedAt` is within the last 7 days from the current time. Exclude any files that lack a valid `startedAt` field.
 
 3. **Generate the narrative summary**
 
