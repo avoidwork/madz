@@ -1,7 +1,7 @@
 import { readdir, stat, unlink } from "node:fs/promises";
 import { join } from "node:path";
 import { loadConfig } from "../config/loader.js";
-import { logger } from "../logger.js";
+import { logger } from "../shared/logger.js";
 
 const cwd = loadConfig().cwd;
 

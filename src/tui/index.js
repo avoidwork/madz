@@ -3,11 +3,10 @@ export { CommandParser } from "./commandParser.js";
 export { PANELS, nextPanel, prevPanel, getPanelOrder } from "./panels.js";
 export { getRoleLabel, calcVisibleCount, getVisibleMessages, formatMessage } from "./messages.js";
 export { createPanelState } from "./hooks.js";
-export {
-	InputPanel,
-	ConversationPanel,
-	SkillsPanel,
-	MemoryPanel,
-	SettingsPanel,
-	Banner,
-} from "./components.js";
+export { ConversationPanel } from "./conversationPanel.js";
+export { InputPanel } from "./inputPanel.js";
+export { SkillsPanel } from "./skillsPanel.js";
+export { MemoryPanel } from "./memoryPanel.js";
+export { SettingsPanel } from "./settingsPanel.js";
+export { Banner } from "./banner.js";
+export { MarkdownText } from "./markdownText.js";

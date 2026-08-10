@@ -19,8 +19,8 @@ import {
 } from "../tools/index.js";
 import { createCoreBackend } from "./backends/coreBackend.js";
 import { createContextBackend } from "./backends/contextBackend.js";
-import { getAllAgents } from "./agents/index.js";
-import { logger } from "../logger.js";
+import { getAllAgents } from "./definitions/index.js";
+import { logger } from "../shared/logger.js";
 
 /**
  * Get tool classifications for an agent by name.

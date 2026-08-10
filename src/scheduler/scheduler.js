@@ -1,6 +1,6 @@
 import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
-import { logger } from "../logger.js";
+import { logger } from "../shared/logger.js";
 
 const DEFAULT_TIMEOUT_MS = 60000;
 

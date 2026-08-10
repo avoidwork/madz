@@ -4,7 +4,7 @@
 
 import { describe, it, before } from "node:test";
 import { strictEqual, ok, deepStrictEqual } from "node:assert";
-import { getAllAgents } from "../../src/agent/agents/index.js";
+import { getAllAgents } from "../../src/agent/definitions/index.js";
 import { getToolsForAgentTypes, TOOL_CLASSIFICATIONS } from "../../src/tools/index.js";
 
 // Wait for async prompt loading at module init

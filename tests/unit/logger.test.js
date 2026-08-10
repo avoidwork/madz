@@ -83,7 +83,7 @@ describe("logger module", () => {
 		const result = await runTestScript(
 			"export-1",
 			`
-			import { getLogDirectory } from './src/logger.js';
+			import { getLogDirectory } from './src/shared/logger.js';
 			result.getLogDir = getLogDirectory();
 		`,
 		);
@@ -96,7 +96,7 @@ describe("logger module", () => {
 		const result = await runTestScript(
 			"export-2",
 			`
-			import { logger } from './src/logger.js';
+			import { logger } from './src/shared/logger.js';
 			const methods = ['info', 'warn', 'error', 'debug', 'fatal', 'silent'];
 			result.allMethods = methods.every(m => typeof logger[m] === 'function');
 		`,
@@ -109,7 +109,7 @@ describe("logger module", () => {
 		const result = await runTestScript(
 			"flush-1",
 			`
-			import { flush } from './src/logger.js';
+			import { flush } from './src/shared/logger.js';
 			await flush();
 			result.flushOk = true;
 		`,
@@ -258,7 +258,7 @@ describe("logger module", () => {
 		const result = await runTestScript(
 			"silent-1",
 			`
-			import { logger } from './src/logger.js';
+			import { logger } from './src/shared/logger.js';
 			logger.info('silent_test');
 			logger.error('silent_test');
 			result.silentOK = true;
@@ -273,7 +273,7 @@ describe("logger module", () => {
 		const result = await runTestScript(
 			"flush-2",
 			`
-			import { flush } from './src/logger.js';
+			import { flush } from './src/shared/logger.js';
 			await flush();
 			result.flushDone = true;
 		`,
@@ -287,7 +287,7 @@ describe("logger module", () => {
 			"toctou-1",
 			`
 			import { unlinkSync } from 'fs';
-			import { getLogDirectory } from './src/logger.js';
+			import { getLogDirectory } from './src/shared/logger.js';
 			
 			// If Alpine release file exists, delete it to simulate race condition
 			if (existsSync('/etc/alpine-release')) {
@@ -311,7 +311,7 @@ describe("logger module", () => {
 		const result = await runTestScript(
 			"toctou-2",
 			`
-			import { getLogDirectory } from './src/logger.js';
+			import { getLogDirectory } from './src/shared/logger.js';
 			
 			// Test that getLogDirectory doesn't throw on Linux even if Alpine detection fails
 			// (simulated by the fact that /etc/alpine-release may not exist or be unreadable)
@@ -379,7 +379,7 @@ describe("logger module", () => {
 		const result = await runTestScript(
 			"alpine-1",
 			`
-			import { getLogDirectory } from './src/logger.js';
+			import { getLogDirectory } from './src/shared/logger.js';
 			
 			// Verify that getLogDirectory works normally when Alpine detection succeeds
 			// (on non-Alpine systems, it falls through to default Linux path)

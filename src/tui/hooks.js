@@ -2,10 +2,10 @@
  * State management hooks for TUI panels.
  */
 
-import { nextPanel as _nextPanel, prevPanel as _prevPanel } from "./panels.js";
-
 /**
  * Panel state for rendering.
+ * @param {string} [initialPanel]
+ * @returns {{ activePanel: string, inputText: string, messages: string[], skills: string[], memoryEntries: string[], configSections: string[], scrollOffset: number, visibleCount: number, history: string[], historyIndex: number, isInputFocused: boolean }}
  */
 export function createPanelState(initialPanel) {
 	return {
@@ -21,22 +21,4 @@ export function createPanelState(initialPanel) {
 		historyIndex: -1,
 		isInputFocused: true,
 	};
-}
-
-/**
- * Cycle to the next panel for tab navigation.
- * @param {string} current
- * @returns {string}
- */
-export function nextPanel(current) {
-	return _nextPanel(current);
-}
-
-/**
- * Cycle to the previous panel for Shift+Tab navigation.
- * @param {string} current
- * @returns {string}
- */
-export function prevPanel(current) {
-	return _prevPanel(current);
 }

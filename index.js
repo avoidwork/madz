@@ -27,7 +27,7 @@ import React from "react";
 
 const { setConfigValue } = await import("./src/config/loader.js");
 const { createDeepAgentsOrchestrator } = await import("./src/agent/deepAgents.js");
-const { logger } = await import("./src/logger.js");
+const { logger } = await import("./src/shared/logger.js");
 
 const { default: pkg } = await import(new URL("./package.json", import.meta.url).href, {
 	with: { type: "json" },
@@ -130,7 +130,7 @@ try {
 // Initialize session
 const { createSession, SessionStateManager, saveSession, handleShutdown, registerShutdownHandler } =
 	await import("./src/session/index.js");
-const { flush: flushLogger } = await import("./src/logger.js");
+const { flush: flushLogger } = await import("./src/shared/logger.js");
 
 // Initialize scheduler
 const { ScheduleManager } = await import("./src/scheduler/index.js");

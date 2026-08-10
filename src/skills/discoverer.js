@@ -2,7 +2,7 @@ import { readdir, stat, readFile, access, constants } from "node:fs/promises";
 import { join, basename, resolve } from "node:path";
 import { load } from "js-yaml";
 import { loadConfig } from "../config/loader.js";
-import { logger } from "../logger.js";
+import { logger } from "../shared/logger.js";
 
 export const defaultScope = loadConfig().sandbox.skillScanPaths;
 export let cwd = loadConfig().cwd;

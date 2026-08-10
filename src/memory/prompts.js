@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { loadContext } from "./context.js";
 import { loadConfig } from "../config/loader.js";
-import { logger } from "../logger.js";
+import { logger } from "../shared/logger.js";
 
 const cwd = loadConfig().cwd;
 

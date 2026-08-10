@@ -1,4 +1,4 @@
-import { flush, logger } from "../logger.js";
+import { flush, logger } from "../shared/logger.js";
 
 /**
  * Handle graceful session shutdown: flush telemetry, close file handles, save state.

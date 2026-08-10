@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { loadConfig } from "../config/loader.js";
 import { parseFrontmatter } from "./reader.js";
 import { loadProfile, formatProfileContext } from "./profile.js";
-import { logger } from "../logger.js";
+import { logger } from "../shared/logger.js";
 
 const cwd = loadConfig().cwd;
 const PROFILE_FILENAME = "profile.md";

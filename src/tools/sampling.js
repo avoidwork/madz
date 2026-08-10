@@ -2,7 +2,7 @@ import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { readdir, writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import { readEphemeralFile, isExpired } from "../memory/expireEphemeral.js";
+import { readEphemeralFile, isExpired } from "../memory/expireEphemeralMemories.js";
 import { loadConfig } from "../config/loader.js";
 
 const config = loadConfig();

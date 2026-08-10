@@ -11,7 +11,7 @@ import { setConfigValue } from "../config/loader.js";
 import { isAvailable, getGcCalls } from "../memory/gc.js";
 import { loadSystemPrompt } from "../memory/prompts.js";
 import { calculateConversationTokens } from "./contextTokens.js";
-import { logger } from "../logger.js";
+import { logger } from "../shared/logger.js";
 
 /**
  * Main App component (Ink). Renders an IRC-style layout:
