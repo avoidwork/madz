@@ -17,11 +17,23 @@ Generate a concise, narrative reflection summary from recent session history and
    ```bash
    find memory/sessions -type f -mtime -7 ! -exec grep -q -E "Run scan-issues skill|Run reflection skill" {} \; -printf "%T@ %p\n" | sort -rn | cut -d' ' -f2- | head -50
    ```
-   Read only the files returned. Each session file has YAML frontmatter with (at minimum) a `startedAt` field (ISO 8601 timestamp).
+   Each session file has YAML frontmatter with (at minimum) a `startedAt` field (ISO 8601 timestamp).
 
-2. **Generate the narrative summary**
+2. **Extract user messages**
 
-   Read each session's JSON messages (the body after frontmatter). For each session, produce a brief paragraph that captures:
+   For each discovered session file, extract only the user messages and write them to `tmp/reflection_messages.md`:
+   ```bash
+   jq -r '.[] | select(.role == "user") | select(.content != "") | .content' memory/sessions/<file>.md
+   ```
+   Separate each session's messages with a delimiter so they can be identified later:
+   ```bash
+   echo "---SESSION_BOUNDARY---"
+   ```
+   Append all output to `tmp/reflection_messages.md`.
+
+3. **Generate the narrative summary**
+
+   Read `tmp/reflection_messages.md`. For each session block (delimited by `---SESSION_BOUNDARY---`), produce a brief paragraph that captures:
    - The mood, energy, or emotional tone the user brought to the conversation
    - The nature of the interaction (e.g., playful, focused, exploratory, frustrated, collaborative)
    - High-level context about what was being worked on (but NOT technical details, code, or step-by-step procedures)
@@ -30,7 +42,7 @@ Generate a concise, narrative reflection summary from recent session history and
 
    Keep the output in the range of 200-400 words. Prioritize recent sessions: give more detail to the newest ones, summarize older ones sparingly.
 
-3. **Write `memory/context/reflection.md`**
+4. **Write `memory/context/reflection.md`**
 
    Write the result as a Markdown file with frontmatter:
 
@@ -43,7 +55,7 @@ Generate a concise, narrative reflection summary from recent session history and
 
    Follow the frontmatter with the narrative body. Always write the file, even if there is nothing to report.
 
-4. **Ensure size constraints**
+5. **Ensure size constraints**
 
    The total file size (frontmatter + body) MUST NOT exceed 5 kB (~1.2k tokens). If the generated summary would exceed this limit, trim oldest sessions first until the file fits. Never write a file larger than 5 kB.
 
