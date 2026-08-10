@@ -15,7 +15,7 @@ Generate a concise, narrative reflection summary from recent session history and
 
    Run:
    ```bash
-   find memory/sessions -type f -mtime -7 ! -exec grep -qE "Run the scan-issues skill|Run the reflection skill" {} ; -printf "%T@ %p\n" | sort -rn | cut -d' ' -f2- | head -50
+   find memory/sessions -type f -mtime -7 ! -exec grep -qE "Run /scan-issues|Run /reflection" {} ; -printf "%T@ %p\n" | sort -rn | cut -d' ' -f2- | head -50
    ```
    Each session file has YAML frontmatter with (at minimum) a `startedAt` field (ISO 8601 timestamp).
 
