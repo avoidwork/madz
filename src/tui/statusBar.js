@@ -77,7 +77,7 @@ export const StatusBar = React.memo(function StatusBar({
 						React.createElement(Spinner, { type: "point" }),
 					)
 				: React.createElement(Text, { color: "#606060" }, "∙∙∙"),
-			React.createElement(Text, { key: "sep", color: "#606060" }, " |"),
+
 			React.createElement(
 				Text,
 				{ key: "skills", color: "#606060" },
