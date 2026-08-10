@@ -3,7 +3,7 @@ import { handleTimeout } from "./timeoutHandler.js";
 import { filterEnv } from "./envInjector.js";
 import { enforceCapabilities } from "./capability.js";
 import { readFile, access, constants } from "node:fs/promises";
-import { logger } from "../logger.js";
+import { logger } from "../shared/logger.js";
 
 /**
  * Map file extension to interpreter command.

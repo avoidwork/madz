@@ -1,4 +1,4 @@
-import { ConfigSchema } from "./schemas.js";
+import { ConfigSchema } from "./config.js";
 
 const MAX_PATH_DEPTH = 5;
 

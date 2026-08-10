@@ -2,10 +2,13 @@ import { describe, it, afterEach } from "node:test";
 import assert from "node:assert";
 import {
 	executeShellImpl,
+	shell,
+} from "../../src/tools/shell.js";
+import {
 	manageProcessImpl,
 	processTracker,
 	trackProcess,
-} from "../../src/tools/shell.js";
+} from "../../src/tools/process.js";
 import { spawn } from "node:child_process";
 
 let spawned = [];

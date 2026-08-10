@@ -1,7 +1,7 @@
 const WARNED_KEY = Symbol.for("madz.gc.warned");
 const gcCalls = [];
 
-import { logger } from "../logger.js";
+import { logger } from "../shared/logger.js";
 
 /**
  * Check whether V8's garbage collector is exposed via global.gc.

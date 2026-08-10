@@ -1,6 +1,6 @@
 import { readFile, access, constants } from "node:fs/promises";
 import { load } from "js-yaml";
-import { logger } from "../logger.js";
+import { logger } from "../shared/logger.js";
 
 /**
  * Parse YAML frontmatter from a markdown file.

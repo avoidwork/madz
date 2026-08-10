@@ -30,6 +30,6 @@
 
 ## 5. Verify and test
 
-- [ ] 5.1 Run `npm test` to verify all tests pass
-- [ ] 5.2 Run `npm start` with timeout to verify application starts
-- [ ] 5.3 Verify all 9 agents are still accessible via `getAllAgents()`
+- [x] 5.1 Run `npm test` to verify all tests pass
+- [x] 5.2 Run `npm start` with timeout to verify application starts
+- [x] 5.3 Verify all 9 agents are still accessible via `getAllAgents()`

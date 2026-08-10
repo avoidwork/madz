@@ -2,7 +2,7 @@ import { readdir, unlink, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { parseFrontmatter } from "./reader.js";
 import { loadConfig } from "../config/loader.js";
-import { logger } from "../logger.js";
+import { logger } from "../shared/logger.js";
 
 const cwd = loadConfig().cwd;
 
@@ -52,7 +52,7 @@ export async function expireEphemeralMemories(contextDir, nowStr, cwdParam = cwd
 	try {
 		files = await readdir(join(cwdParam, contextDir));
 	} catch (err) {
-		logger.debug(`[expireEphemeral] Failed to read directory: ${err.message}`);
+		logger.debug(`[expireEphemeralMemories] Failed to read directory: ${err.message}`);
 		return 0;
 	}
 	let removed = 0;

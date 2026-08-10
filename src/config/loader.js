@@ -2,8 +2,8 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { createRequire } from "node:module";
-import { ConfigSchema, DEFAULT_CONFIG } from "./schemas.js";
-import { applyDotPathMutation } from "./mutate.js";
+import { ConfigSchema, DEFAULT_CONFIG } from "./config.js";
+import { applyDotPathMutation } from "./patch.js";
 
 const _require = createRequire(import.meta.url);
 import { load, dump } from "js-yaml";

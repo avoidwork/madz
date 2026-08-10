@@ -16,7 +16,7 @@ import {
 	MarkdownTextInner,
 	getParseCacheStats,
 } from "../../src/tui/markdownText.js";
-import { TuiSchema, DEFAULT_CONFIG } from "../../src/config/schemas.js";
+import { TuiSchema, DEFAULT_CONFIG } from "../../src/config/config.js";
 import { InputPanel } from "../../src/tui/inputPanel.js";
 
 describe("command parser", () => {

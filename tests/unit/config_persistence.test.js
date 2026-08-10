@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
-import { PersistenceSchema, DEFAULT_CONFIG } from "../../src/config/schemas.js";
+import { PersistenceSchema, DEFAULT_CONFIG } from "../../src/config/config.js";
 
 describe("PersistenceSchema", () => {
 	it("validates memory mode", () => {

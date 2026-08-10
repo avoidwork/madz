@@ -2,7 +2,7 @@ import { describe, it, after, beforeEach } from "node:test";
 import assert from "node:assert";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { expireEphemeralMemories } from "../../src/memory/expireEphemeral.js";
+import { expireEphemeralMemories } from "../../src/memory/expireEphemeralMemories.js";
 
 const TEST_DIR = "memory/__test_expire_ephemeral__/";
 const CWD = join(process.cwd(), TEST_DIR);

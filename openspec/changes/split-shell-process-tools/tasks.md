@@ -27,5 +27,5 @@
 
 ## 6. Test
 
-- [ ] 6.1 Run `npm test` to verify all tests pass
-- [ ] 6.2 Run `npm start` with timeout to verify application starts
+- [x] 6.1 Run `npm test` to verify all tests pass
+- [x] 6.2 Run `npm start` with timeout to verify application starts

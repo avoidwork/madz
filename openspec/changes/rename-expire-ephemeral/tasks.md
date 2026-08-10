@@ -14,5 +14,5 @@
 
 ## 4. Test
 
-- [ ] 4.1 Run `npm test` to verify all tests pass
-- [ ] 4.2 Run `npm start` with timeout to verify application starts
+- [x] 4.1 Run `npm test` to verify all tests pass
+- [x] 4.2 Run `npm start` with timeout to verify application starts
