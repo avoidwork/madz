@@ -2,8 +2,7 @@ import { describe, it, before, after, afterEach } from "node:test";
 import assert from "node:assert";
 import { existsSync } from "node:fs";
 import { rm, realpath } from "node:fs/promises";
-import { ensureSessionsDir } from "../../src/session/factory.js";
-import { createSession } from "../../src/session/factory.js";
+import { ensureSessionsDir, createSession } from "../../src/session/factory.js";
 import { SessionStateManager } from "../../src/session/stateManager.js";
 import { enforceContextWindow, trimConversation } from "../../src/session/window.js";
 
