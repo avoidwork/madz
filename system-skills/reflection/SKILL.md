@@ -3,7 +3,7 @@ name: "reflection"
 description: "Generate a narrative reflection summary from recent session history to capture mood, energy, and interaction quality."
 metadata:
   author: "madz"
-  version: "1.0"
+  version: "1.1"
   agent: "orchestrator"
 ---
 
@@ -13,28 +13,37 @@ Generate a concise, narrative reflection summary from recent session history and
 
 1. **Discover session files**
 
-   Read all `.md` files from `memory/sessions/`. Each session file has YAML frontmatter with (at minimum) a `startedAt` field (ISO 8601 timestamp). Also note `endedAt`, `threadId`, and `messageCount` fields.
+   Run:
+   ```bash
+   find memory/sessions -type f -mtime -7 ! -exec grep -qE "Run the scan-issues skill|Run the reflection skill" {} \; -printf "%T@ %p\n" | sort -rn | cut -d' ' -f2- | head -50
+   ```
+   Each session file has YAML frontmatter with (at minimum) a `startedAt` field (ISO 8601 timestamp).
 
-2. **Filter by 7-day window**
+2. **Extract user messages**
 
-   Parse the `startedAt` frontmatter from each session. Keep only sessions where `startedAt` is within the last 7 days from the current time. Exclude any session files that lack a valid `startedAt` field.
+   For each discovered session file, extract only the user messages and write them to `tmp/reflection_messages.md`:
+   ```bash
+   awk -v RS='---' 'NR==3' memory/sessions/<file>.md | jq -r '[.[] | select(.role == "user") | select(.content != "")] | select(length > 2) | .[] | .content'
+   ```
+   This filters to user messages first, then checks the count — sessions with 2 or fewer user messages produce no output and are effectively skipped.
+   Separate each session's messages with a delimiter so they can be identified later:
+   ```bash
+   echo "---SESSION_BOUNDARY---"
+   ```
+   Append all output to `tmp/reflection_messages.md`.
 
-3. **Sort by recency**
+3. **Generate the narrative summary**
 
-   Sort the filtered sessions by `startedAt` in descending order so the most recent session appears first.
-
-4. **Generate the narrative summary**
-
-   Read each session's JSON messages (the body after frontmatter). For each session, produce a brief paragraph that captures:
+   Read `tmp/reflection_messages.md`. For each session block (delimited by `---SESSION_BOUNDARY---`), produce a brief paragraph that captures:
    - The mood, energy, or emotional tone the user brought to the conversation
    - The nature of the interaction (e.g., playful, focused, exploratory, frustrated, collaborative)
    - High-level context about what was being worked on (but NOT technical details, code, or step-by-step procedures)
 
-   Combine all paragraphs into a single flowing narrative. Connect sessions chronologically so the reader can follow how the relationship evolved over the past week.
+   Combine all paragraphs into a single flowing narrative. Connect sessions in reverse-chronological order (newest first) so the reader can follow how the relationship evolved over the past week.
 
    Keep the output in the range of 200-400 words. Prioritize recent sessions: give more detail to the newest ones, summarize older ones sparingly.
 
-5. **Write `memory/context/reflection.md`**
+4. **Write `memory/context/reflection.md`**
 
    Write the result as a Markdown file with frontmatter:
 
@@ -47,9 +56,9 @@ Generate a concise, narrative reflection summary from recent session history and
 
    Follow the frontmatter with the narrative body. Always write the file, even if there is nothing to report.
 
-6. **Ensure size constraints**
+5. **Ensure size constraints**
 
-   The total file size (frontmatter + body) MUST NOT exceed 5 kB (approximately 20k tokens). If the generated summary would exceed this limit, trim oldest sessions first until the file fits. Never write a file larger than 5 kB.
+   The total file size (frontmatter + body) MUST NOT exceed 5 kB (~1.2k tokens). If the generated summary would exceed this limit, trim oldest sessions first until the file fits. Never write a file larger than 5 kB.
 
 ## Edge Cases
 
