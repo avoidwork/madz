@@ -23,8 +23,9 @@ Generate a concise, narrative reflection summary from recent session history and
 
    For each discovered session file, extract only the user messages and write them to `tmp/reflection_messages.md`:
    ```bash
-   awk -v RS='---' 'NR==3' memory/sessions/<file>.md | jq -r '.[] | select(.role == "user") | select(.content != "") | .content'
+   awk -v RS='---' 'NR==3' memory/sessions/<file>.md | jq -r '[.[] | select(.role == "user") | select(.content != "")] | select(length > 2) | .[] | .content'
    ```
+   This filters to user messages first, then checks the count — sessions with 2 or fewer user messages produce no output and are effectively skipped.
    Separate each session's messages with a delimiter so they can be identified later:
    ```bash
    echo "---SESSION_BOUNDARY---"
