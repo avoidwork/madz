@@ -481,5 +481,3 @@ export const cronJob = tool(
 		}),
 	},
 );
-},
-);
