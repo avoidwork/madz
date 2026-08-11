@@ -213,7 +213,7 @@ export async function discoverSkills(scope = defaultScope, options = {}) {
 			if (!name) continue;
 
 			if (seenNames.has(name)) {
-				const isNewHigherPriority = skill.path.includes("system-skills/");
+				const isNewHigherPriority = skill.path.includes(".skills/");
 				if (isNewHigherPriority) {
 					// System skills override user skills (shadow)
 					seenNames.set(name, skill.path);

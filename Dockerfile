@@ -39,7 +39,7 @@ COPY index.js ./
 COPY src/ ./src/
 COPY config.yaml ./
 COPY prompts/ ./prompts/
-COPY system-skills/ ./system-skills/
+COPY .skills/ ./.skills/
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 

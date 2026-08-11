@@ -16,7 +16,7 @@ sandbox:
     - "/tmp"
   skillScanPaths:
     - "skills/"
-    - "system-skills/"
+    - ".skills/"
   timeout:
     seconds: 600
     gracePeriod: 5

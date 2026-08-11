@@ -284,8 +284,8 @@ describe("discoverSkills", () => {
 		assert.strictEqual(skills[0].metadata.description, "Agent skill");
 	});
 
-	it("discovers skills from system-skills/ directory", async () => {
-		const systemDir = join(testDir, "system-skills");
+	it("discovers skills from .skills/ directory", async () => {
+		const systemDir = join(testDir, ".skills");
 		const systemSkillDir = join(systemDir, "system-skill");
 		mkdirSync(systemSkillDir, { recursive: true });
 		writeFileSync(
@@ -299,8 +299,8 @@ describe("discoverSkills", () => {
 		assert.strictEqual(skills[0].metadata.description, "A system skill");
 	});
 
-	it("handles system-skills/ shadowing user skills/", async () => {
-		const systemDir = join(testDir, "system-skills");
+	it("handles .skills/ shadowing user skills/", async () => {
+		const systemDir = join(testDir, ".skills");
 		const shadowDir = join(systemDir, "shadow-skill");
 		mkdirSync(shadowDir, { recursive: true });
 		writeFileSync(
@@ -320,11 +320,11 @@ describe("discoverSkills", () => {
 		// System skill should shadow user skill (first scope wins)
 		assert.strictEqual(skills.length, 1);
 		assert.strictEqual(skills[0].metadata.description, "System version");
-		assert.ok(skills[0].path.includes("system-skills"));
+		assert.ok(skills[0].path.includes(".skills"));
 	});
 
 	it("discovers both system and user skills when no collision", async () => {
-		const systemDir = join(testDir, "system-skills");
+		const systemDir = join(testDir, ".skills");
 		const systemSkillDir = join(systemDir, "sys-only");
 		mkdirSync(systemSkillDir, { recursive: true });
 		writeFileSync(
