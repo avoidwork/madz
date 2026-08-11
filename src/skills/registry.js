@@ -28,7 +28,7 @@ export class SkillRegistry {
 
 	/**
 	 * Discover and register all skills from configured scopes.
-	 * System skills (system-skills/) are scanned first and shadow user skills (skills/).
+	 * System skills (.skills/) are scanned first and shadow user skills (skills/).
 	 * @param {string[]} [scope] - Array of directories to scan (defaults to sandbox.skillScanPaths from config)
 	 * @param {object} [options] - Discovery options
 	 * @param {boolean} [options.trustProjectSkills=true] - Trust project-level skills
@@ -79,7 +79,7 @@ export class SkillRegistry {
 
 	/**
 	 * Rebuild the catalog from validated skills.
-	 * Sorted by location (system-skills last), then by name within each location.
+	 * Sorted by location (.skills last), then by name within each location.
 	 */
 	#rebuildCatalog() {
 		this.#catalog = [];
@@ -91,12 +91,12 @@ export class SkillRegistry {
 			});
 		}
 
-		// Sort: by location first (system-skills last), then by name
+		// Sort: by location first (.skills last), then by name
 		this.#catalog.sort((a, b) => {
-			const aIsSystem = a.location.includes("system-skills");
-			const bIsSystem = b.location.includes("system-skills");
+			const aIsSystem = a.location.includes(".skills");
+			const bIsSystem = b.location.includes(".skills");
 
-			// system-skills always comes last
+			// .skills always comes last
 			if (aIsSystem && !bIsSystem) return 1;
 			if (!aIsSystem && bIsSystem) return -1;
 			if (aIsSystem && bIsSystem) return 0; // both system, preserve order

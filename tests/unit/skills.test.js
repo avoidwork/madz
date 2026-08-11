@@ -495,8 +495,8 @@ describe("findSkillScript", () => {
 		assert.ok(result.endsWith("skills/test-skill/scripts/run.sh"));
 	});
 
-	it("finds script in system-skills/ before skills/", async () => {
-		const systemDir = join(testDir, "system-skills", "test-skill");
+	it("finds script in .skills/ before skills/", async () => {
+		const systemDir = join(testDir, ".skills", "test-skill");
 		mkdirSync(systemDir, { recursive: true });
 		const systemScripts = join(systemDir, "scripts");
 		mkdirSync(systemScripts, { recursive: true });
@@ -508,9 +508,9 @@ describe("findSkillScript", () => {
 		mkdirSync(userScripts, { recursive: true });
 		writeFileSync(join(userScripts, "run.sh"), "#!/bin/bash\necho user");
 
-		const result = await findSkillScript("test-skill", ["system-skills", "skills"]);
-		assert.ok(result.includes("system-skills"), "Should find system skill first");
-		assert.ok(result.endsWith("system-skills/test-skill/scripts/run.sh"));
+		const result = await findSkillScript("test-skill", [".skills", "skills"]);
+		assert.ok(result.includes(".skills"), "Should find system skill first");
+		assert.ok(result.endsWith(".skills/test-skill/scripts/run.sh"));
 	});
 
 	it("returns null when no script exists", async () => {
@@ -530,11 +530,11 @@ describe("findSkillScript", () => {
 	});
 
 	it("finds root-level script when no scripts/ directory exists", async () => {
-		const skillDir = join(testDir, "system-skills", "root-skill");
+		const skillDir = join(testDir, ".skills", "root-skill");
 		mkdirSync(skillDir, { recursive: true });
 		writeFileSync(join(skillDir, "run.sh"), "#!/bin/bash\necho root");
 
-		const result = await findSkillScript("root-skill", "system-skills");
-		assert.ok(result.endsWith("system-skills/root-skill/run.sh"));
+		const result = await findSkillScript("root-skill", ".skills");
+		assert.ok(result.endsWith(".skills/root-skill/run.sh"));
 	});
 });

@@ -17,6 +17,6 @@ export const SandboxScopeSchema = z.object({
 	permissions: z.array(z.string()).default([]),
 	maxReadSize: z.string().default("1mb"),
 	// Skill discovery settings
-	skillScanPaths: z.array(z.string()).default(["system-skills/", "skills/"]),
+	skillScanPaths: z.array(z.string()).default([".skills/", "skills/"]),
 	trustProjectSkills: z.boolean().default(true),
 });

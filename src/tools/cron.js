@@ -13,12 +13,12 @@ const config = loadConfig();
 
 /**
  * Locate the main script file for a skill.
- * System skills (system-skills/) are searched first and shadow user skills (skills/).
+ * System skills (.skills/) are searched first and shadow user skills (skills/).
  * @param {string} skillName - Skill name
- * @param {string|string[]} [baseDir=["system-skills", "skills"]] - Base directory or array of directories to search
+ * @param {string|string[]} [baseDir=[".skills", "skills"]] - Base directory or array of directories to search
  * @returns {Promise<string|null>} Path to the main script, or null
  */
-export async function findSkillScript(skillName, baseDir = ["system-skills", "skills"]) {
+export async function findSkillScript(skillName, baseDir = [".skills", "skills"]) {
 	if (typeof baseDir === "string") {
 		baseDir = [baseDir];
 	}
@@ -480,4 +480,6 @@ export const cronJob = tool(
 			input: z.record(z.unknown()).optional().describe("Job input parameters"),
 		}),
 	},
+);
+},
 );
