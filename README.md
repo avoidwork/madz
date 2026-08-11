@@ -594,7 +594,7 @@ Graceful shutdown flushes all buffered log entries to disk before process exit.
 |               | `env.allowlist`                      | `["PATH", "HOME", "NODE_ENV"]`           | Allowed environment variables                 |
 |               | `permissions`                        | `["filesystem:read", ...]`               | Permission grants                             |
 |               | `maxReadSize`                        | `"1mb"`                                  | Max file read size                            |
-|               | `skillScanPaths`                     | `["skills/", ".agents/skills/"]`         | Skill discovery paths (comma-separated)       |
+|               | `skillScanPaths`                     | `["skills/", ".skills/"]`         | Skill discovery paths (comma-separated)       |
 |               | `trustProjectSkills`                 | `true`                                   | Trust skills in project root                  |
 | `memory`      | `directory`                          | `memory/`                                | Base directory for persistence                |
 |               | `contextDir`                         | `memory/context/`                        | Context file directory                        |
