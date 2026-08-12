@@ -1,7 +1,6 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { readFile } from "node:fs/promises";
-import { join } from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
@@ -129,7 +128,10 @@ export async function reflectionImpl(input, options) {
 		return JSON.stringify([]);
 	}
 
-	const lines = output.stdout.trim().split("\n").filter((l) => l.length > 0);
+	const lines = output.stdout
+		.trim()
+		.split("\n")
+		.filter((l) => l.length > 0);
 	if (lines.length === 0) return JSON.stringify([]);
 
 	// Sort by mtime descending (newest first), take top N
