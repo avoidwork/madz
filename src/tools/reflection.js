@@ -50,7 +50,17 @@ function parseSessionFile(content) {
 	try {
 		messages = JSON.parse(body);
 	} catch {
-		throw new Error("Invalid JSON body");
+		// Try to extract a JSON array from the body if the full parse fails
+		const arrayMatch = body.match(/\[[\s\S]*\]/);
+		if (arrayMatch) {
+			try {
+				messages = JSON.parse(arrayMatch[0]);
+			} catch {
+				throw new Error("Invalid JSON body");
+			}
+		} else {
+			throw new Error("Invalid JSON body");
+		}
 	}
 
 	return { frontmatter, messages, rawBody: body };
