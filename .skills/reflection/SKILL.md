@@ -13,13 +13,9 @@ Generate a concise, narrative reflection summary from recent session history and
 
 1. **Discover and filter sessions using the `reflectionSessions` tool**
 
-   Call the `reflectionSessions` tool with the ignore pattern and a 7-day window:
-   ```
-   reflectionSessions({
-     ignorePatterns: ["Run the * skill"],
-     windowDays: 7
-   })
-   ```
+   Call the `reflectionSessions` tool with these parameters:
+   - `ignorePatterns`: `["Run the * skill"]`
+   - `windowDays`: `7`
 
    The tool returns a JSON array of session objects, each containing:
    - `sessionId` — unique identifier
