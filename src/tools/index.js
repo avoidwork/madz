@@ -124,6 +124,7 @@ export const ORCHESTRATOR_TOOLS = [
 	"date",
 	"memory",
 	"process",
+	"reflectionSessions",
 	"sessionSearch",
 	"webSearch",
 	"webExtract",
