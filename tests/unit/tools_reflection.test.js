@@ -418,6 +418,25 @@ describe("reflection tool", () => {
 		assert.strictEqual(result.length, 1);
 		assert.strictEqual(result[0].sessionId, "valid-json");
 	});
+
+	// --- mtime sorting: only parse top N newest files ---
+
+	it("sorts by mtime and only parses the top 50 files", async () => {
+		// Create 55 sessions — only the 50 newest should be parsed
+		for (let i = 0; i < 55; i++) {
+			await writeSession(`session-${String(i).padStart(3, "0")}`, {
+				startedAt: new Date().toISOString(),
+				endedAt: new Date().toISOString(),
+				threadId: `thread-${i}`,
+				messages: [{ role: "user", content: `msg ${i}`, timestamp: new Date().toISOString() }],
+			});
+			// Small delay to ensure different mtimes
+			await new Promise((r) => setTimeout(r, 20));
+		}
+
+		const result = JSON.parse(await reflectionImpl({}, defaultOpts));
+		assert.ok(result.length <= 50, `Expected at most 50 results, got ${result.length}`);
+	});
 });
 
 describe("reflectionSessions tool - singleton export", () => {

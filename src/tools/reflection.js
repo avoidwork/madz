@@ -1,9 +1,10 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import { readFile, readdir } from "node:fs/promises";
+import { readFile, readdir, lstat } from "node:fs/promises";
 import { join } from "node:path";
 
 const DEFAULT_WINDOW_DAYS = 7;
+const DEFAULT_MAX_RESULTS = 50;
 
 /**
  * Parse YAML frontmatter and JSON body from a session file.
@@ -93,6 +94,8 @@ function matchesIgnorePatterns(content, patterns) {
 
 /**
  * Core reflection tool logic: read sessions, filter, extract user messages.
+ * Sorts files by mtime (newest first) and parses only the top N to avoid
+ * scanning every session file in the directory.
  * @param {z.infer<typeof ReflectionSchema>} input - The tool input
  * @param {object} options - Runtime options
  * @param {string} [options.sessionsDir] - Path to sessions directory
@@ -112,11 +115,24 @@ export async function reflectionImpl(input, options) {
 		return JSON.stringify([]);
 	}
 
+	// Filter to .md files and stat them for mtime sorting (newest first)
+	const mdFiles = files.filter((f) => f.endsWith(".md"));
+	if (mdFiles.length === 0) return JSON.stringify([]);
+
+	const stats = await Promise.all(
+		mdFiles.map(async (file) => {
+			const stat = await lstat(join(sessionsDir, file));
+			return { file, mtime: stat.mtimeMs };
+		}),
+	);
+
+	// Sort by mtime descending (newest first), take top N
+	stats.sort((a, b) => b.mtime - a.mtime);
+	const toParse = stats.slice(0, DEFAULT_MAX_RESULTS);
+
 	const results = [];
 
-	for (const file of files) {
-		if (!file.endsWith(".md")) continue;
-
+	for (const { file } of toParse) {
 		let content;
 		try {
 			content = await readFile(join(sessionsDir, file), "utf-8");
