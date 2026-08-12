@@ -67,6 +67,7 @@
     "@opentelemetry/sdk-node": "^0.221.0",
     "ansi-escapes": "^7.3.0",
     "ansi-regex": "^6.2.2",
+    "adm-zip": "^0.5.16",
     "chalk": "^6.0.0",
     "cli-highlight": "^2.1.11",
     "cli-table3": "^0.6.5",
@@ -80,9 +81,11 @@
     "marked": "^18.0.9",
     "node-emoji": "^2.2.0",
     "pino": "^10.3.1",
+    "pdf-parse": "^2.0.0",
     "supports-hyperlinks": "^4.5.0",
     "tiktoken": "^1.0.22",
     "yargs": "^18.1.0",
+    "xml2js": "^0.6.2",
     "zod": "^4.4.3"
   }
 }
