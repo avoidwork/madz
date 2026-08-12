@@ -1,10 +1,13 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import { readFile, readdir, lstat } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 
 const DEFAULT_WINDOW_DAYS = 7;
 const DEFAULT_MAX_RESULTS = 50;
+const execFileAsync = promisify(execFile);
 
 /**
  * Parse YAML frontmatter and JSON body from a session file.
@@ -94,8 +97,8 @@ function matchesIgnorePatterns(content, patterns) {
 
 /**
  * Core reflection tool logic: read sessions, filter, extract user messages.
- * Sorts files by mtime (newest first) and parses only the top N to avoid
- * scanning every session file in the directory.
+ * Uses `find` to sort files by mtime (newest first) and returns only the
+ * top N to avoid scanning every session file in the directory.
  * @param {z.infer<typeof ReflectionSchema>} input - The tool input
  * @param {object} options - Runtime options
  * @param {string} [options.sessionsDir] - Path to sessions directory
@@ -108,34 +111,41 @@ export async function reflectionImpl(input, options) {
 	const cutoff = new Date();
 	cutoff.setDate(cutoff.getDate() - windowDays);
 
-	let files;
+	// Use find to sort files by mtime (newest first), limit to top N
+	let output;
 	try {
-		files = await readdir(sessionsDir);
+		output = await execFileAsync("find", [
+			sessionsDir,
+			"-maxdepth",
+			"1",
+			"-type",
+			"f",
+			"-name",
+			"*.md",
+			"-printf",
+			"%T@ %p\n",
+		]);
 	} catch {
 		return JSON.stringify([]);
 	}
 
-	// Filter to .md files and stat them for mtime sorting (newest first)
-	const mdFiles = files.filter((f) => f.endsWith(".md"));
-	if (mdFiles.length === 0) return JSON.stringify([]);
-
-	const stats = await Promise.all(
-		mdFiles.map(async (file) => {
-			const stat = await lstat(join(sessionsDir, file));
-			return { file, mtime: stat.mtimeMs };
-		}),
-	);
+	const lines = output.stdout.trim().split("\n").filter((l) => l.length > 0);
+	if (lines.length === 0) return JSON.stringify([]);
 
 	// Sort by mtime descending (newest first), take top N
-	stats.sort((a, b) => b.mtime - a.mtime);
-	const toParse = stats.slice(0, DEFAULT_MAX_RESULTS);
+	lines.sort((a, b) => parseFloat(b.split(" ")[0]) - parseFloat(a.split(" ")[0]));
+	const toParse = lines.slice(0, DEFAULT_MAX_RESULTS).map((line) => {
+		// Format: "<mtime> <path>" — split on first space only
+		const firstSpace = line.indexOf(" ");
+		return firstSpace === -1 ? line : line.slice(firstSpace + 1);
+	});
 
 	const results = [];
 
-	for (const { file } of toParse) {
+	for (const filePath of toParse) {
 		let content;
 		try {
-			content = await readFile(join(sessionsDir, file), "utf-8");
+			content = await readFile(filePath, "utf-8");
 		} catch {
 			continue;
 		}
@@ -148,6 +158,9 @@ export async function reflectionImpl(input, options) {
 		}
 
 		const { frontmatter, messages, rawBody } = parsed;
+
+		// Extract filename from full path for sessionId fallback
+		const fileName = filePath.split("/").pop();
 
 		// Parse startedAt from frontmatter
 		const startedAtStr = frontmatter.startedat;
@@ -174,7 +187,7 @@ export async function reflectionImpl(input, options) {
 			}));
 
 		results.push({
-			sessionId: frontmatter.threadid || file.replace(".md", ""),
+			sessionId: frontmatter.threadid || fileName.replace(".md", ""),
 			startedAt: startedAtStr,
 			userMessages,
 		});
