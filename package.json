@@ -60,6 +60,7 @@
     "oxlint": "^1.77.0"
   },
   "dependencies": {
+    "tiny-lru": "^13.0.0",
     "@langchain/langgraph": "^1.4.9",
     "@langchain/langgraph-checkpoint-sqlite": "^1.0.3",
     "@langchain/openai": "^1.5.6",
