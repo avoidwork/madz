@@ -6,3 +6,4 @@ tmp
 !src/skills
 .env
 .env.cron
+.worktrees/
