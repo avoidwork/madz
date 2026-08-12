@@ -7,6 +7,7 @@ import * as emoji from "node-emoji";
 import ansiEscapes from "ansi-escapes";
 import supportsHyperlinks from "supports-hyperlinks";
 import Table from "cli-table3";
+import { lru } from "tiny-lru";
 
 // --- Utility: ANSI-aware text length ---
 // node:coverage ignore next — ANSI escape matching for reflow
@@ -477,95 +478,7 @@ setOptions({ renderer: terminalRenderer });
 const STREAMING_CURSOR = "\u2588";
 const MAX_CACHE_SIZE = 500;
 
-class LRUCache {
-	/**
-	 * @param {number} maxSize
-	 */
-	constructor(maxSize = MAX_CACHE_SIZE) {
-		this.maxSize = maxSize;
-		this.cache = new Map();
-		this.hits = 0;
-		this.misses = 0;
-	}
-
-	/**
-	 * Get a value from the cache. Updates LRU order.
-	 * @param {string} key
-	 * @returns {unknown}
-	 */
-	get(key) {
-		if (!this.cache.has(key)) {
-			this.misses++;
-			return undefined;
-		}
-		this.hits++;
-		const value = this.cache.get(key);
-		this.cache.delete(key);
-		this.cache.set(key, value);
-		return value;
-	}
-
-	/**
-	 * Set a value in the cache. Evicts LRU entry if full.
-	 * @param {string} key
-	 * @param {unknown} value
-	 */
-	set(key, value) {
-		if (this.cache.has(key)) {
-			this.cache.delete(key);
-		} else if (this.cache.size >= this.maxSize) {
-			const lruKey = this.cache.keys().next().value;
-			this.cache.delete(lruKey);
-		}
-		this.cache.set(key, value);
-	}
-
-	/**
-	 * Delete a value from the cache.
-	 * @param {string} key
-	 * @returns {boolean}
-	 */
-	delete(key) {
-		return this.cache.delete(key);
-	}
-
-	/**
-	 * Check if a key exists in the cache.
-	 * @param {string} key
-	 * @returns {boolean}
-	 */
-	has(key) {
-		return this.cache.has(key);
-	}
-
-	/**
-	 * Current number of entries in the cache.
-	 * @returns {number}
-	 */
-	get size() {
-		return this.cache.size;
-	}
-
-	/**
-	 * Cache hit rate (0-1). Returns 0 if no requests made.
-	 * @returns {number}
-	 */
-	get hitRate() {
-		const total = this.hits + this.misses;
-		return total === 0 ? 0 : this.hits / total;
-	}
-
-	/**
-	 * Clear all entries from the cache.
-	 */
-	clear() {
-		this.cache.clear();
-		this.hits = 0;
-		this.misses = 0;
-	}
-}
-
-const parseCache = new LRUCache(MAX_CACHE_SIZE);
+const parseCache = lru(MAX_CACHE_SIZE);
 
 // --- Public API (preserved) ---
 
@@ -609,9 +522,11 @@ export function MarkdownTextInner({ content }) {
  * @returns {{ size: number, hitRate: number }}
  */
 export function getParseCacheStats() {
+	const stats = parseCache.stats();
+	const total = stats.hits + stats.misses;
 	return {
 		size: parseCache.size,
-		hitRate: parseCache.hitRate,
+		hitRate: total === 0 ? 0 : stats.hits / total,
 	};
 }
 
