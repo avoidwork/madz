@@ -3,7 +3,7 @@ name: "reflection"
 description: "Generate a narrative reflection summary from recent session history to capture mood, energy, and interaction quality."
 metadata:
   author: "madz"
-  version: "1.1"
+  version: "1.2"
   agent: "orchestrator"
 ---
 
@@ -11,30 +11,26 @@ Generate a concise, narrative reflection summary from recent session history and
 
 ## Steps
 
-1. **Discover session files**
+1. **Discover and filter sessions using the reflection tool**
 
-   Run:
-   ```bash
-   find memory/sessions -type f -mtime -7 ! -exec grep -qE "Run the scan-issues skill|Run the reflection skill" {} \; -printf "%T@ %p\n" | sort -rn | cut -d' ' -f2- | head -50
+   Call the `reflection` tool with the ignore patterns and a 7-day window:
    ```
-   Each session file has YAML frontmatter with (at minimum) a `startedAt` field (ISO 8601 timestamp).
-
-2. **Extract user messages**
-
-   For each discovered session file, extract only the user messages and write them to `tmp/reflection_messages.md`:
-   ```bash
-   awk -v RS='---' 'NR==3' memory/sessions/<file>.md | jq -r '[.[] | select(.role == "user") | select(.content != "")] | select(length > 2) | .[] | .content'
+   reflection({
+     ignorePatterns: ["Run the scan-issues skill", "Run the reflection skill"],
+     windowDays: 7
+   })
    ```
-   This filters to user messages first, then checks the count — sessions with 2 or fewer user messages produce no output and are effectively skipped.
-   Separate each session's messages with a delimiter so they can be identified later:
-   ```bash
-   echo "---SESSION_BOUNDARY---"
-   ```
-   Append all output to `tmp/reflection_messages.md`.
 
-3. **Generate the narrative summary**
+   The tool returns a JSON array of session objects, each containing:
+   - `sessionId` — unique identifier
+   - `startedAt` — ISO 8601 timestamp
+   - `userMessages` — array of `{content, timestamp}` objects
 
-   Read `tmp/reflection_messages.md`. For each session block (delimited by `---SESSION_BOUNDARY---`), produce a brief paragraph that captures:
+   Sessions are already filtered by date window and ignore patterns. Parse the JSON response.
+
+2. **Generate the narrative summary**
+
+   For each session in the returned array, produce a brief paragraph that captures:
    - The mood, energy, or emotional tone the user brought to the conversation
    - The nature of the interaction (e.g., playful, focused, exploratory, frustrated, collaborative)
    - High-level context about what was being worked on (but NOT technical details, code, or step-by-step procedures)
@@ -43,7 +39,7 @@ Generate a concise, narrative reflection summary from recent session history and
 
    Keep the output in the range of 200-400 words. Prioritize recent sessions: give more detail to the newest ones, summarize older ones sparingly.
 
-4. **Write `memory/context/reflection.md`**
+3. **Write `memory/context/reflection.md`**
 
    Write the result as a Markdown file with frontmatter:
 
@@ -56,7 +52,7 @@ Generate a concise, narrative reflection summary from recent session history and
 
    Follow the frontmatter with the narrative body. Always write the file, even if there is nothing to report.
 
-5. **Ensure size constraints**
+4. **Ensure size constraints**
 
    The total file size (frontmatter + body) MUST NOT exceed 5 kB (~1.2k tokens). If the generated summary would exceed this limit, trim oldest sessions first until the file fits. Never write a file larger than 5 kB.
 
@@ -64,7 +60,7 @@ Generate a concise, narrative reflection summary from recent session history and
 
 - **No sessions in the 7-day window**: Write `reflection.md` with only frontmatter. No body content. No placeholder text.
 - **Empty sessions directory**: Same as above — write frontmatter only.
-- **Session with no valid `startedAt`**: Skip that file entirely. Do not error.
+- **Session with no valid `startedAt`**: The tool already skips these; no action needed.
 - **Only one valid session**: Write a single-paragraph summary.
 
 ## Guardrails
