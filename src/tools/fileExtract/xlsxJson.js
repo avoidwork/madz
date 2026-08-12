@@ -38,7 +38,7 @@ export function xlsxToJson(zipContent) {
 			const rows = parseSheetRows(sheetXml);
 			result[sheetName] = rows;
 		}
-	} catch {
+	} catch (_err) {
 		// Silently skip on parse error
 	}
 

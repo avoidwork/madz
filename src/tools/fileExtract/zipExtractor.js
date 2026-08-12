@@ -57,8 +57,11 @@ export async function getZipFileNames(filePath) {
 	try {
 		const zip = new AdmZip(filePath);
 		return zip.getEntries().map((entry) => entry.entryName);
-	} catch (_err) {
-		return [];
+	} catch (err) {
+		if (err.message && err.message.toLowerCase().includes("password")) {
+			throw new ZipExtractionError("Archive is password-protected", "password-protected");
+		}
+		throw new ZipExtractionError(`Failed to read ZIP: ${err.message}`, "extraction-failed");
 	}
 }
 

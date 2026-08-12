@@ -4,8 +4,6 @@
  * @module fileExtract/pdfParser
  */
 
-import { PDFParse } from "pdf-parse";
-
 /**
  * Error thrown when PDF extraction fails.
  */
@@ -32,11 +30,10 @@ export async function pdfToMarkdown(buffer) {
 	}
 
 	try {
-		const parser = new PDFParse({ verbosity: 0 });
-		const result = await parser.getText();
+		const { default: pdfParse } = await import("pdf-parse");
+		const result = await pdfParse(buffer);
 
 		if (!result.text || !result.text.trim()) {
-			await parser.destroy();
 			throw new PdfExtractionError("No extractable text found in PDF", "no-text");
 		}
 
@@ -47,7 +44,6 @@ export async function pdfToMarkdown(buffer) {
 			.filter((p) => p.length > 0);
 
 		const markdown = paragraphs.join("\n\n");
-		await parser.destroy();
 		return markdown;
 	} catch (err) {
 		if (err instanceof PdfExtractionError) throw err;

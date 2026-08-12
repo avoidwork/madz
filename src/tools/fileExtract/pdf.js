@@ -46,6 +46,13 @@ export async function pdfExtract(input) {
 		markdown = await pdfToMarkdown(buffer);
 	} catch (err) {
 		if (err instanceof PdfExtractionError) {
+			if (err.reason === "no-text") {
+				return JSON.stringify({
+					ok: true,
+					format: "markdown",
+					content: "",
+				});
+			}
 			return JSON.stringify({
 				ok: false,
 				error: err.message,

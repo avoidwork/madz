@@ -43,7 +43,7 @@ export function xlsxToMarkdown(zipContent) {
 				markdown += "\n\n";
 			}
 		}
-	} catch {
+	} catch (_err) {
 		// Silently skip on parse error
 	}
 
@@ -92,6 +92,32 @@ function parseSheetContent(sheetXml) {
 		if (!sheetData) return null;
 
 		const rowArray = Array.isArray(sheetData) ? sheetData : [sheetData];
+
+		// First pass: collect merged cell ranges
+		const mergedCells = parsed?.sheet?.[0]?.mergeCells?.mergeCell;
+		const mergedMap = new Map();
+		if (mergedCells) {
+			const mergedArray = Array.isArray(mergedCells) ? mergedCells : [mergedCells];
+			for (const mc of mergedArray) {
+				const ref = mc?.$?.ref || mc?.ref;
+				if (!ref) continue;
+				const match = ref.match(/^([A-Z]+)(\d+):([A-Z]+)(\d+)$/);
+				if (!match) continue;
+				const [, col1, row1, col2, row2] = match;
+				const startCol = colToNum(col1);
+				const startRow = parseInt(row1, 10);
+				const endCol = colToNum(col2);
+				const endRow = parseInt(row2, 10);
+				for (let r = startRow; r <= endRow; r++) {
+					for (let c = startCol; c <= endCol; c++) {
+						if (r !== startRow || c !== startCol) {
+							mergedMap.set(`${r},${c}`, true);
+						}
+					}
+				}
+			}
+		}
+
 		const rows = [];
 
 		for (const row of rowArray) {
@@ -106,10 +132,34 @@ function parseSheetContent(sheetXml) {
 			rows.push(rowData);
 		}
 
+		// Second pass: fill merged cell positions with empty strings
+		for (const [key] of mergedMap) {
+			const [rowIdx, colIdx] = key.split(",").map(Number);
+			if (rowIdx <= rows.length) {
+				while (rows[rowIdx - 1].length <= colIdx - 1) {
+					rows[rowIdx - 1].push("");
+				}
+				rows[rowIdx - 1][colIdx - 1] = "";
+			}
+		}
+
 		return { rows };
 	} catch {
 		return null;
 	}
+}
+
+/**
+ * Convert Excel column letters to number (A=1, B=2, ..., Z=26, AA=27).
+ * @param {string} col - Column letters
+ * @returns {number}
+ */
+function colToNum(col) {
+	let num = 0;
+	for (let i = 0; i < col.length; i++) {
+		num = num * 26 + (col.charCodeAt(i) - 64);
+	}
+	return num;
 }
 
 /**

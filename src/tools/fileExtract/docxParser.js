@@ -34,7 +34,7 @@ export function docxToMarkdown(documentXml) {
 		for (const para of paragraphs) {
 			const textContent = extractParagraphText(para);
 			const headingLevel = getHeadingLevel(para);
-			const isListItem = isListItem(para);
+			const isListItem = _isListItem(para);
 
 			if (headingLevel > 0) {
 				// Close any open list
@@ -47,7 +47,7 @@ export function docxToMarkdown(documentXml) {
 			} else if (isListItem) {
 				if (!inList) {
 					inList = true;
-					listType = "ul";
+					_listType = "ul";
 				}
 				markdown += `- ${textContent}\n`;
 			} else if (textContent.trim()) {
@@ -59,8 +59,8 @@ export function docxToMarkdown(documentXml) {
 				markdown += `${textContent}\n\n`;
 			}
 		}
-	} catch {
-		// If XML parsing fails, return raw text
+	} catch (_err) {
+		// If XML parsing fails, return raw text as fallback
 		const textMatch = documentXml.match(/>([^<]+)</g);
 		if (textMatch) {
 			markdown = textMatch
@@ -74,21 +74,43 @@ export function docxToMarkdown(documentXml) {
 }
 
 /**
- * Extract all text content from a paragraph element.
+ * Extract all text content from a paragraph element with inline formatting.
  * @param {object} para - Parsed paragraph XML object
- * @returns {string} Text content
+ * @returns {string} Text content with markdown formatting
  */
 function extractParagraphText(para) {
 	const runs = para["w:r"] || [];
 	let text = "";
+	let bold = false;
+	let italic = false;
+	let code = false;
 
 	for (const run of runs) {
+		const rPr = run["w:rPr"];
 		const tElements = run["w:t"];
 		const texts = Array.isArray(tElements) ? tElements : tElements ? [tElements] : [];
+
+		// Check formatting properties
+		if (rPr) {
+			if (rPr["w:b"] || rPr["w:b"] === "") bold = true;
+			if (rPr["w:i"] || rPr["w:i"] === "") italic = true;
+			if (rPr["w:u"]) code = true;
+		}
+
 		for (const t of texts) {
 			const content = t._ || t;
 			if (content) {
-				text += content;
+				if (bold && italic) {
+					text += `**_${content}___`;
+				} else if (bold) {
+					text += `**${content}**`;
+				} else if (italic) {
+					text += `_${content}_`;
+				} else if (code) {
+					text += `\`${content}\``;
+				} else {
+					text += content;
+				}
 			}
 		}
 	}
@@ -184,8 +206,8 @@ export function extractDocxTables(documentXml) {
 				markdown += "\n";
 			}
 		}
-	} catch {
-		// Silently skip table extraction on parse errors
+	} catch (_err) {
+		// Silently skip table extraction on parse error
 	}
 
 	return markdown;

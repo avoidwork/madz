@@ -83,15 +83,15 @@ export function pptxToMarkdown(zipContent) {
 							}
 						}
 					}
-				} catch {
+				} catch (_err) {
 					// Skip notes on parse error
 				}
 			}
 
 			if (!titleFound) {
-				markdown = markdown.replace(`---\n\n`, `---\n\n`);
+				markdown = markdown.replace(`---\n\n`, `---\n\n## Slide ${slideIndex}\n\n`);
 			}
-		} catch {
+		} catch (_err) {
 			markdown += `## Slide ${slideIndex} (parse error)\n\n`;
 		}
 	}
