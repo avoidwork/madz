@@ -265,6 +265,63 @@ describe("reflection tool", () => {
 		assert.strictEqual(result.length, 2);
 	});
 
+	// --- wildcard ignore patterns ---
+
+	it("supports * wildcard in ignore patterns", async () => {
+		await writeSession("wildcard-ignored", {
+			startedAt: new Date().toISOString(),
+			endedAt: new Date().toISOString(),
+			threadId: "wildcard-ignored",
+			messages: [
+				{ role: "user", content: "Run the scan-issues skill", timestamp: new Date().toISOString() },
+			],
+		});
+
+		await writeSession("wildcard-ignored-2", {
+			startedAt: new Date().toISOString(),
+			endedAt: new Date().toISOString(),
+			threadId: "wildcard-ignored-2",
+			messages: [
+				{ role: "user", content: "Run the reflection skill", timestamp: new Date().toISOString() },
+			],
+		});
+
+		await writeSession("wildcard-kept", {
+			startedAt: new Date().toISOString(),
+			endedAt: new Date().toISOString(),
+			threadId: "wildcard-kept",
+			messages: [
+				{ role: "user", content: "Normal conversation", timestamp: new Date().toISOString() },
+			],
+		});
+
+		const result = JSON.parse(
+			await reflectionImpl({ ignorePatterns: ["Run the * skill"] }, defaultOpts),
+		);
+		assert.strictEqual(result.length, 1);
+		assert.strictEqual(result[0].sessionId, "wildcard-kept");
+	});
+
+	it("supports * wildcard matching any characters", async () => {
+		await writeSession("star-match", {
+			startedAt: new Date().toISOString(),
+			endedAt: new Date().toISOString(),
+			threadId: "star-match",
+			messages: [{ role: "user", content: "foo bar baz", timestamp: new Date().toISOString() }],
+		});
+
+		await writeSession("star-no-match", {
+			startedAt: new Date().toISOString(),
+			endedAt: new Date().toISOString(),
+			threadId: "star-no-match",
+			messages: [{ role: "user", content: "foo baz", timestamp: new Date().toISOString() }],
+		});
+
+		const result = JSON.parse(await reflectionImpl({ ignorePatterns: ["foo * baz"] }, defaultOpts));
+		assert.strictEqual(result.length, 1);
+		assert.strictEqual(result[0].sessionId, "star-no-match");
+	});
+
 	// --- 3.6: extract only user messages ---
 
 	it("extracts only user messages", async () => {

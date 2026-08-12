@@ -13,10 +13,10 @@ Generate a concise, narrative reflection summary from recent session history and
 
 1. **Discover and filter sessions using the reflection tool**
 
-   Call the `reflection` tool with the ignore patterns and a 7-day window:
+   Call the `reflection` tool with the ignore pattern and a 7-day window:
    ```
    reflection({
-     ignorePatterns: ["Run the scan-issues skill", "Run the reflection skill"],
+     ignorePatterns: ["Run the * skill"],
      windowDays: 7
    })
    ```

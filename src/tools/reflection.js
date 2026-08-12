@@ -57,15 +57,28 @@ function parseSessionFile(content) {
 }
 
 /**
- * Check if content matches any of the ignore patterns.
+ * Convert a wildcard pattern (using * as glob wildcard) to a RegExp.
+ * @param {string} pattern - Pattern with * as wildcard
+ * @returns {RegExp}
+ */
+function patternToRegExp(pattern) {
+	const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+	const regexStr = escaped.replace(/\\\*/g, ".*");
+	return new RegExp(regexStr, "i");
+}
+
+/**
+ * Check if content matches any of the ignore patterns (supports * wildcards).
  * @param {string} content - Content to check (frontmatter + body)
- * @param {string[]} patterns - Patterns to match against
+ * @param {string[]} patterns - Patterns to match against (supports * wildcard)
  * @returns {boolean}
  */
 function matchesIgnorePatterns(content, patterns) {
 	if (!patterns || patterns.length === 0) return false;
-	const lowerContent = content.toLowerCase();
-	return patterns.some((pattern) => lowerContent.includes(pattern.toLowerCase()));
+	return patterns.some((pattern) => {
+		const regex = patternToRegExp(pattern);
+		return regex.test(content);
+	});
 }
 
 /**
@@ -162,7 +175,7 @@ export const reflection = tool(
 				.array(z.string())
 				.optional()
 				.describe(
-					"Patterns to exclude sessions containing. If a session's content (frontmatter or body) contains any of these, the session is excluded.",
+					"Patterns to exclude sessions containing. Supports * as a wildcard (e.g., 'Run the * skill'). If a session's content (frontmatter or body) matches any pattern, the session is excluded.",
 				),
 			windowDays: z
 				.number()
