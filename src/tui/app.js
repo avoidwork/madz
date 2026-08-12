@@ -589,7 +589,11 @@ export default function App({
 	/**
 	 * Start a new session: generate new UUID, clear conversation, reset state.
 	 */
-	const handleNewSession = () => {
+	const handleNewSession = async () => {
+		// Persist the current session before wiping state
+		if (onSaveSession) {
+			await onSaveSession();
+		}
 		const newSession = createSession({ provider: sessionState.getProvider() });
 		sessionState.createNewSession(newSession.sessionId);
 		setIsCompacting(false);
