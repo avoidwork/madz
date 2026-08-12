@@ -419,10 +419,10 @@ describe("reflection tool", () => {
 		assert.strictEqual(result[0].sessionId, "valid-json");
 	});
 
-	// --- mtime sorting: only parse top N newest files ---
+	// --- mtime sorting: process all sessions within the window ---
 
-	it("sorts by mtime and only parses the top 50 files", async () => {
-		// Create 55 sessions — only the 50 newest should be parsed
+	it("sorts by mtime and parses all files within the window", async () => {
+		// Create 55 sessions — all should be parsed since they're within the window
 		for (let i = 0; i < 55; i++) {
 			await writeSession(`session-${String(i).padStart(3, "0")}`, {
 				startedAt: new Date().toISOString(),
@@ -435,7 +435,7 @@ describe("reflection tool", () => {
 		}
 
 		const result = JSON.parse(await reflectionImpl({}, defaultOpts));
-		assert.ok(result.length <= 50, `Expected at most 50 results, got ${result.length}`);
+		assert.ok(result.length >= 55, `Expected at least 55 results, got ${result.length}`);
 	});
 });
 
