@@ -57,7 +57,7 @@ export async function getZipFileNames(filePath) {
 	try {
 		const zip = new AdmZip(filePath);
 		return zip.getEntries().map((entry) => entry.entryName);
-	} catch (err) {
+	} catch (_err) {
 		return [];
 	}
 }
@@ -104,7 +104,10 @@ export async function extractZipFile(filePath, internalPath) {
 		return entry.getData().toString("utf-8");
 	} catch (err) {
 		if (err instanceof ZipExtractionError) throw err;
-		throw new ZipExtractionError(`Failed to extract file from ZIP: ${err.message}`, "extraction-failed");
+		throw new ZipExtractionError(
+			`Failed to extract file from ZIP: ${err.message}`,
+			"extraction-failed",
+		);
 	}
 }
 
@@ -141,10 +144,7 @@ export async function extractZipGlob(filePath, pattern) {
  * @returns {RegExp}
  */
 function patternToRegex(pattern) {
-	const escaped = pattern
-		.replace(/\./g, "\\.")
-		.replace(/\*/g, ".*")
-		.replace(/\?/g, ".");
+	const escaped = pattern.replace(/\./g, "\\.").replace(/\*/g, ".*").replace(/\?/g, ".");
 	return new RegExp(`^${escaped}$`);
 }
 

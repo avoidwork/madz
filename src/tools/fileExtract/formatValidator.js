@@ -30,7 +30,13 @@ export const ZIP_XML_FORMATS = new Set(["docx", "pptx", "xlsx", "odt", "ods", "o
  */
 export const INTERNAL_XML_PATHS = {
 	docx: ["word/document.xml", "word/styles.xml", "word/numbering.xml"],
-	pptx: ["ppt/slides/slide*.xml", "ppt/slideLayouts/slideLayout*.xml", "ppt/slideMasters/slideMaster*.xml", "ppt/presentation.xml", "ppt/presentationNotesSlides/notesSlide*.xml"],
+	pptx: [
+		"ppt/slides/slide*.xml",
+		"ppt/slideLayouts/slideLayout*.xml",
+		"ppt/slideMasters/slideMaster*.xml",
+		"ppt/presentation.xml",
+		"ppt/presentationNotesSlides/notesSlide*.xml",
+	],
 	xlsx: ["xl/workbook.xml", "xl/worksheets/sheet*.xml", "xl/sharedStrings.xml"],
 	odt: ["content.xml", "styles.xml"],
 	ods: ["content.xml", "styles.xml"],

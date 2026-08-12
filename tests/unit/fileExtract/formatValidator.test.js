@@ -5,7 +5,10 @@
 
 import { describe, it } from "node:test";
 import assert from "node:assert";
-import { validateFormat, SUPPORTED_FORMATS } from "../../../src/tools/fileExtract/formatValidator.js";
+import {
+	validateFormat,
+	SUPPORTED_FORMATS,
+} from "../../../src/tools/fileExtract/formatValidator.js";
 
 describe("fileExtract/formatValidator", () => {
 	describe("SUPPORTED_FORMATS", () => {

@@ -17,7 +17,11 @@ import { validateFormat } from "./formatValidator.js";
  */
 export const xlsxSchema = z.object({
 	filePath: z.string().describe("Absolute path to the .xlsx file"),
-	format: z.enum(["markdown", "json"]).optional().default("markdown").describe("Output format: 'markdown' for tables, 'json' for structured data"),
+	format: z
+		.enum(["markdown", "json"])
+		.optional()
+		.default("markdown")
+		.describe("Output format: 'markdown' for tables, 'json' for structured data"),
 });
 
 /**
@@ -37,9 +41,8 @@ export async function xlsxExtract(input) {
 	}
 
 	// Read file
-	let buffer;
 	try {
-		buffer = await readFile(filePath);
+		await readFile(filePath);
 	} catch (err) {
 		return JSON.stringify({ ok: false, error: `Failed to read file: ${err.message}` });
 	}
@@ -75,6 +78,7 @@ export async function xlsxExtract(input) {
  */
 export const xlsxTool = tool(xlsxExtract, {
 	name: "xlsx",
-	description: "Extract content from an Excel (.xlsx) file. Supports markdown table output (default) or JSON output. Returns sheet data as tables or structured JSON objects.",
+	description:
+		"Extract content from an Excel (.xlsx) file. Supports markdown table output (default) or JSON output. Returns sheet data as tables or structured JSON objects.",
 	schema: xlsxSchema,
 });

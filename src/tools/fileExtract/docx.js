@@ -9,7 +9,7 @@ import { tool } from "@langchain/core/tools";
 import { readFile } from "node:fs/promises";
 import { extractZipXml } from "./zipExtractor.js";
 import { docxToMarkdown, extractDocxTables } from "./docxParser.js";
-import { validateFormat, getExtension } from "./formatValidator.js";
+import { validateFormat } from "./formatValidator.js";
 
 /**
  * Input schema for the docx tool.
@@ -34,9 +34,8 @@ export async function docxExtract(input) {
 	}
 
 	// Read file
-	let buffer;
 	try {
-		buffer = await readFile(filePath);
+		await readFile(filePath);
 	} catch (err) {
 		return JSON.stringify({ ok: false, error: `Failed to read file: ${err.message}` });
 	}
@@ -71,6 +70,7 @@ export async function docxExtract(input) {
  */
 export const docxTool = tool(docxExtract, {
 	name: "docx",
-	description: "Extract content from a Microsoft Word (.docx) file to markdown. Accepts a file path and returns structured markdown with headings, paragraphs, lists, and tables.",
+	description:
+		"Extract content from a Microsoft Word (.docx) file to markdown. Accepts a file path and returns structured markdown with headings, paragraphs, lists, and tables.",
 	schema: docxSchema,
 });

@@ -34,9 +34,8 @@ export async function pptxExtract(input) {
 	}
 
 	// Read file
-	let buffer;
 	try {
-		buffer = await readFile(filePath);
+		await readFile(filePath);
 	} catch (err) {
 		return JSON.stringify({ ok: false, error: `Failed to read file: ${err.message}` });
 	}
@@ -64,6 +63,7 @@ export async function pptxExtract(input) {
  */
 export const pptxTool = tool(pptxExtract, {
 	name: "pptx",
-	description: "Extract content from a PowerPoint (.pptx) file to markdown. Returns slide titles, bullet points, and speaker notes.",
+	description:
+		"Extract content from a PowerPoint (.pptx) file to markdown. Returns slide titles, bullet points, and speaker notes.",
 	schema: pptxSchema,
 });

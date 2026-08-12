@@ -4,8 +4,6 @@
  * @module fileExtract/docxParser
  */
 
-import { extractZipXml } from "./zipExtractor.js";
-import { ZipExtractionError } from "./zipExtractor.js";
 import { parseStringPromise } from "xml2js";
 
 /**
@@ -20,7 +18,7 @@ export function docxToMarkdown(documentXml) {
 
 	let markdown = "";
 	let inList = false;
-	let listType = null;
+	let _listType = null;
 
 	try {
 		const parsed = parseStringPromise(documentXml, {
@@ -43,7 +41,7 @@ export function docxToMarkdown(documentXml) {
 				if (inList) {
 					markdown += "\n";
 					inList = false;
-					listType = null;
+					_listType = null;
 				}
 				markdown += `${"#".repeat(headingLevel)} ${textContent}\n\n`;
 			} else if (isListItem) {
@@ -56,7 +54,7 @@ export function docxToMarkdown(documentXml) {
 				if (inList) {
 					markdown += "\n";
 					inList = false;
-					listType = null;
+					_listType = null;
 				}
 				markdown += `${textContent}\n\n`;
 			}
@@ -65,7 +63,10 @@ export function docxToMarkdown(documentXml) {
 		// If XML parsing fails, return raw text
 		const textMatch = documentXml.match(/>([^<]+)</g);
 		if (textMatch) {
-			markdown = textMatch.map((m) => m.replace(/^>|</g, "")).join(" ").trim();
+			markdown = textMatch
+				.map((m) => m.replace(/^>|</g, ""))
+				.join(" ")
+				.trim();
 		}
 	}
 
@@ -126,7 +127,7 @@ function getHeadingLevel(para) {
  * @param {object} para - Parsed paragraph XML object
  * @returns {boolean}
  */
-function isListItem(para) {
+function _isListItem(para) {
 	const pPr = para["w:pPr"];
 	if (!pPr) return false;
 

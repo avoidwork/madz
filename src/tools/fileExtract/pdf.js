@@ -67,6 +67,7 @@ export async function pdfExtract(input) {
  */
 export const pdfTool = tool(pdfExtract, {
 	name: "pdf",
-	description: "Extract text content from a PDF file to markdown. Handles multi-page documents, Unicode characters, and special characters. Returns an error for scanned/image-only PDFs.",
+	description:
+		"Extract text content from a PDF file to markdown. Handles multi-page documents, Unicode characters, and special characters. Returns an error for scanned/image-only PDFs.",
 	schema: pdfSchema,
 });

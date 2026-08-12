@@ -4,7 +4,6 @@
  * @module fileExtract/xlsxJson
  */
 
-import { extractZipXml } from "./zipExtractor.js";
 import { parseStringPromise } from "xml2js";
 
 /**
@@ -53,9 +52,7 @@ export function xlsxToJson(zipContent) {
  * @returns {string | null}
  */
 function findSheetXml(zipContent, sheetId) {
-	const patterns = [
-		`xl/worksheets/sheet${sheetId}.xml`,
-	];
+	const patterns = [`xl/worksheets/sheet${sheetId}.xml`];
 
 	for (const pattern of patterns) {
 		if (zipContent.has(pattern)) {

@@ -4,7 +4,6 @@
  * @module fileExtract/pptxParser
  */
 
-import { extractZipXml } from "./zipExtractor.js";
 import { parseStringPromise } from "xml2js";
 
 /**
@@ -71,7 +70,9 @@ export function pptxToMarkdown(zipContent) {
 						mergeAttrs: true,
 						explicitArray: false,
 					});
-					const notesBody = notesParsed?.p?.notesSlide?.[0]?.["p:spTree"] || notesParsed?.p?.notesSlide?.["p:spTree"];
+					const notesBody =
+						notesParsed?.p?.notesSlide?.[0]?.["p:spTree"] ||
+						notesParsed?.p?.notesSlide?.["p:spTree"];
 					if (notesBody) {
 						const notesShapes = notesBody["p:sp"] || [];
 						const notesArray = Array.isArray(notesShapes) ? notesShapes : [notesShapes];

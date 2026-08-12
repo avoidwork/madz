@@ -4,7 +4,6 @@
  * @module fileExtract/xlsxParser
  */
 
-import { extractZipXml } from "./zipExtractor.js";
 import { parseStringPromise } from "xml2js";
 
 /**
@@ -59,10 +58,7 @@ export function xlsxToMarkdown(zipContent) {
  */
 function findSheetXml(zipContent, sheetId) {
 	// Try common patterns
-	const patterns = [
-		`xl/worksheets/sheet${sheetId}.xml`,
-		`xl/worksheets/sheet${sheetId}.xml`,
-	];
+	const patterns = [`xl/worksheets/sheet${sheetId}.xml`, `xl/worksheets/sheet${sheetId}.xml`];
 
 	for (const pattern of patterns) {
 		if (zipContent.has(pattern)) {
@@ -132,7 +128,7 @@ function getCellValue(cell) {
 	if (t === "inlineStr") {
 		const is = cell?.is;
 		if (is) {
-			const tEl = is?.t || is?.["t"];
+			const tEl = is?.t;
 			return tEl || "";
 		}
 	}

@@ -5,7 +5,11 @@
 
 import { describe, it } from "node:test";
 import assert from "node:assert";
-import { extractZipXml, getZipFileNames, validateZip } from "../../../src/tools/fileExtract/zipExtractor.js";
+import {
+	extractZipXml,
+	getZipFileNames,
+	validateZip,
+} from "../../../src/tools/fileExtract/zipExtractor.js";
 
 describe("fileExtract/zipExtractor", () => {
 	describe("validateZip", () => {
