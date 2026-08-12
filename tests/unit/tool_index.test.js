@@ -158,13 +158,13 @@ describe("tools - buildToolConfig", () => {
 		});
 		const toolNames = tools.map((t) => t.name);
 		// filesystem:read enables: clarify, sampling, shell (always), compactContext, scanAgents,
-		// sessionSearch, date, reflection
+		// sessionSearch, date, reflectionSessions
 		assert.strictEqual(toolNames.length, 8);
 		assert.ok(toolNames.includes("clarify"));
 		assert.ok(toolNames.includes("sampling"));
 		assert.ok(toolNames.includes("date"));
 		assert.ok(toolNames.includes("scanAgents"));
 		assert.ok(toolNames.includes("sessionSearch"));
-		assert.ok(toolNames.includes("reflection"));
+		assert.ok(toolNames.includes("reflectionSessions"));
 	});
 });

@@ -158,16 +158,16 @@ export async function reflectionImpl(input, options) {
 }
 
 /**
- * Reflection tool: reads session files, filters by date window and ignore patterns,
+ * ReflectionSessions tool: reads session files, filters by date window and ignore patterns,
  * extracts user messages, returns structured JSON data.
  */
-export const reflection = tool(
+export const reflectionSessions = tool(
 	(input) =>
 		reflectionImpl(input, {
 			sessionsDir: "memory/sessions/",
 		}),
 	{
-		name: "reflection",
+		name: "reflectionSessions",
 		description:
 			"Read session files, filter by date window and ignore patterns, extract user messages, return structured data.",
 		schema: z.object({

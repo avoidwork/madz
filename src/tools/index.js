@@ -14,7 +14,7 @@ import { createSkill } from "./skills.js";
 import { textToSpeech } from "./tts.js";
 import { visionAnalyze } from "./vision.js";
 import { webSearch, webExtract } from "./web.js";
-import { reflection } from "./reflection.js";
+import { reflectionSessions } from "./reflection.js";
 
 /**
  * Maps tool names to required permission scopes.
@@ -39,7 +39,7 @@ export const TOOL_PERMISSIONS = {
 	visionAnalyze: [],
 	webExtract: ["network:outbound"],
 	webSearch: ["network:outbound"],
-	reflection: ["filesystem:read"],
+	reflectionSessions: ["filesystem:read"],
 };
 
 /**
@@ -95,7 +95,7 @@ export const TOOL_CLASSIFICATIONS = {
 	visionAnalyze: ["code-review", "testing", "coding"],
 	webExtract: ["search", "research", "coding"],
 	webSearch: ["search", "research", "coding"],
-	reflection: ["orchestrator"],
+	reflectionSessions: ["orchestrator"],
 };
 
 /**
@@ -152,7 +152,7 @@ export const TOOLS = {
 	visionAnalyze,
 	webExtract,
 	webSearch,
-	reflection,
+	reflectionSessions,
 };
 
 /**

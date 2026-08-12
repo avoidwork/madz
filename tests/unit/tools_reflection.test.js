@@ -420,41 +420,41 @@ describe("reflection tool", () => {
 	});
 });
 
-describe("reflection tool - singleton export", () => {
+describe("reflectionSessions tool - singleton export", () => {
 	it("exports a LangChain Tool with correct name", async () => {
-		const { reflection } = await import("../../src/tools/reflection.js");
-		assert.strictEqual(reflection.name, "reflection");
+		const { reflectionSessions } = await import("../../src/tools/reflection.js");
+		assert.strictEqual(reflectionSessions.name, "reflectionSessions");
 	});
 
 	it("exports a LangChain Tool with description", async () => {
-		const { reflection } = await import("../../src/tools/reflection.js");
-		assert.ok(reflection.description.length > 10, "Expected a descriptive description");
+		const { reflectionSessions } = await import("../../src/tools/reflection.js");
+		assert.ok(reflectionSessions.description.length > 10, "Expected a descriptive description");
 	});
 
 	it("exports a LangChain Tool with a zod schema", async () => {
-		const { reflection } = await import("../../src/tools/reflection.js");
-		assert.ok(reflection.schema, "Expected a schema to be defined");
+		const { reflectionSessions } = await import("../../src/tools/reflection.js");
+		assert.ok(reflectionSessions.schema, "Expected a schema to be defined");
 	});
 });
 
-describe("reflection tool - buildToolConfig", () => {
-	it("registers reflection tool with filesystem:read permission", async () => {
+describe("reflectionSessions tool - buildToolConfig", () => {
+	it("registers reflectionSessions tool with filesystem:read permission", async () => {
 		const { buildToolConfig } = await import("../../src/tools/index.js");
 		const tools = await buildToolConfig({ permissions: ["filesystem:read"] });
 		const toolNames = tools.map((t) => t.name);
 		assert.ok(
-			toolNames.includes("reflection"),
-			`Expected 'reflection' tool to be registered, got: ${toolNames.join(", ")}`,
+			toolNames.includes("reflectionSessions"),
+			`Expected 'reflectionSessions' tool to be registered, got: ${toolNames.join(", ")}`,
 		);
 	});
 
-	it("does not register reflection tool without filesystem:read permission", async () => {
+	it("does not register reflectionSessions tool without filesystem:read permission", async () => {
 		const { buildToolConfig } = await import("../../src/tools/index.js");
 		const tools = await buildToolConfig({ permissions: [] });
 		const toolNames = tools.map((t) => t.name);
 		assert.ok(
-			!toolNames.includes("reflection"),
-			`Expected 'reflection' tool NOT to be registered, got: ${toolNames.join(", ")}`,
+			!toolNames.includes("reflectionSessions"),
+			`Expected 'reflectionSessions' tool NOT to be registered, got: ${toolNames.join(", ")}`,
 		);
 	});
 });
