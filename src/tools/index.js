@@ -14,6 +14,10 @@ import { createSkill } from "./skills.js";
 import { textToSpeech } from "./tts.js";
 import { visionAnalyze } from "./vision.js";
 import { webSearch, webExtract } from "./web.js";
+import { docxTool } from "./fileExtract/docx.js";
+import { pptxTool } from "./fileExtract/pptx.js";
+import { xlsxTool } from "./fileExtract/xlsx.js";
+import { pdfTool } from "./fileExtract/pdf.js";
 import { reflectionSessions } from "./reflection.js";
 
 /**
@@ -39,6 +43,10 @@ export const TOOL_PERMISSIONS = {
 	visionAnalyze: [],
 	webExtract: ["network:outbound"],
 	webSearch: ["network:outbound"],
+	docx: ["filesystem:read"],
+	pptx: ["filesystem:read"],
+	xlsx: ["filesystem:read"],
+	pdf: ["filesystem:read"],
 	reflectionSessions: ["filesystem:read"],
 };
 
@@ -95,6 +103,10 @@ export const TOOL_CLASSIFICATIONS = {
 	visionAnalyze: ["code-review", "testing", "coding"],
 	webExtract: ["search", "research", "coding"],
 	webSearch: ["search", "research", "coding"],
+	docx: ["search", "research", "coding", "documentation", "debug"],
+	pptx: ["search", "research", "coding", "documentation", "debug"],
+	xlsx: ["search", "research", "coding", "documentation", "debug"],
+	pdf: ["search", "research", "coding", "documentation", "debug"],
 	reflectionSessions: ["orchestrator"],
 };
 
@@ -153,6 +165,10 @@ export const TOOLS = {
 	visionAnalyze,
 	webExtract,
 	webSearch,
+	docx: docxTool,
+	pptx: pptxTool,
+	xlsx: xlsxTool,
+	pdf: pdfTool,
 	reflectionSessions,
 };
 
