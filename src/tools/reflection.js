@@ -5,7 +5,6 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
 const DEFAULT_WINDOW_DAYS = 7;
-const DEFAULT_MAX_RESULTS = 50;
 const execFileAsync = promisify(execFile);
 
 /**
@@ -96,8 +95,7 @@ function matchesIgnorePatterns(content, patterns) {
 
 /**
  * Core reflection tool logic: read sessions, filter, extract user messages.
- * Uses `find` to sort files by mtime (newest first) and returns only the
- * top N to avoid scanning every session file in the directory.
+ * Processes every session within the date window to find signal — no arbitrary cap.
  * @param {z.infer<typeof ReflectionSchema>} input - The tool input
  * @param {object} options - Runtime options
  * @param {string} [options.sessionsDir] - Path to sessions directory
@@ -110,7 +108,7 @@ export async function reflectionImpl(input, options) {
 	const cutoff = new Date();
 	cutoff.setDate(cutoff.getDate() - windowDays);
 
-	// Use find to sort files by mtime (newest first), limit to top N
+	// Use find to sort files by mtime (newest first), process all within window
 	let output;
 	try {
 		output = await execFileAsync("find", [
@@ -134,9 +132,9 @@ export async function reflectionImpl(input, options) {
 		.filter((l) => l.length > 0);
 	if (lines.length === 0) return JSON.stringify([]);
 
-	// Sort by mtime descending (newest first), take top N
+	// Sort by mtime descending (newest first)
 	lines.sort((a, b) => parseFloat(b.split(" ")[0]) - parseFloat(a.split(" ")[0]));
-	const toParse = lines.slice(0, DEFAULT_MAX_RESULTS).map((line) => {
+	const toParse = lines.map((line) => {
 		// Format: "<mtime> <path>" — split on first space only
 		const firstSpace = line.indexOf(" ");
 		return firstSpace === -1 ? line : line.slice(firstSpace + 1);
