@@ -84,3 +84,13 @@ export function filterFiles(files, query, maxResults = 500) {
 
 	return scored;
 }
+
+/**
+ * Fuzzy match files against a query — convenience wrapper around filterFiles.
+ * @param {string[]} files - Array of file paths
+ * @param {string} query - Search query
+ * @returns {string[]} Filtered file paths
+ */
+export function fuzzyMatch(files, query) {
+	return filterFiles(files, query);
+}

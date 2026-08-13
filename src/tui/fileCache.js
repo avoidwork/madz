@@ -2,7 +2,7 @@
  * File list cache for TUI file path autocomplete.
  * Uses tiny-lru for TTL-based caching of scanned file lists.
  */
-import LRU from "tiny-lru";
+import { lru } from "tiny-lru";
 
 /**
  * FileCache class — caches file lists with configurable TTL.
@@ -16,7 +16,7 @@ export class FileCache {
 	 */
 	constructor({ ttl = 30000, max = 10 } = {}) {
 		this.ttl = ttl;
-		this.lru = LRU({ ttl, max });
+		this.lru = lru({ ttl, max });
 		this.warmPromise = null;
 	}
 

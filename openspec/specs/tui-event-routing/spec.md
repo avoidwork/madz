@@ -1,5 +1,8 @@
-## ADDED Requirements
+## Purpose
 
+Define how keyboard events are routed to the focused TUI panel, including focus toggling and global key handling.
+
+## Requirements
 ### Requirement: Key events route to focused panel
 The TUI SHALL route key events to the currently focused panel, allowing that panel to handle its own keyboard interactions.
 
