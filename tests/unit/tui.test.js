@@ -886,10 +886,15 @@ describe("InputPanel - component rendering", () => {
 		assert.strictEqual(result.props.showCursor, true);
 	});
 
-	it("passes onChange callback", () => {
-		const onChange = () => {};
+	it("calls onChange callback with updated value", () => {
+		let receivedValue = null;
+		const onChange = (val) => {
+			receivedValue = val;
+		};
 		const result = InputPanel({ value: "", onChange, onSubmit: () => {} });
-		assert.strictEqual(result.props.onChange, onChange);
+		// onChange is wrapped to add @ detection — verify it still calls the original
+		result.props.onChange("hello");
+		assert.strictEqual(receivedValue, "hello");
 	});
 
 	it("passes onSubmit callback", () => {
