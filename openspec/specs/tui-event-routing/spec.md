@@ -1,7 +1,6 @@
 ## Purpose
 
 Define how keyboard events are routed to the focused TUI panel, including focus toggling and global key handling.
-
 ## Requirements
 ### Requirement: Key events route to focused panel
 The TUI SHALL route key events to the currently focused panel, allowing that panel to handle its own keyboard interactions.
@@ -30,7 +29,7 @@ The TUI SHALL use Tab to toggle focus between the inputBar and the message list.
 - **THEN** focus moves to the inputBar component
 
 ### Requirement: Escape handles global actions
-The TUI SHALL use Escape at the app level to perform global actions (quit or interrupt).
+The TUI SHALL use Escape at the app level to perform global actions (quit or interrupt). However, when the file autocomplete overlay is active, Escape SHALL dismiss the overlay instead of performing the global action.
 
 #### Scenario: Escape from inputBar interrupts streaming
 - **WHEN** the inputBar is focused and the user presses Escape during streaming
@@ -39,3 +38,8 @@ The TUI SHALL use Escape at the app level to perform global actions (quit or int
 #### Scenario: Escape from message list quits app
 - **WHEN** the message list is focused and the user presses Escape
 - **THEN** the TUI app quits
+
+#### Scenario: Escape dismisses autocomplete overlay
+- **WHEN** the file autocomplete overlay is active and the user presses Escape
+- **THEN** the overlay is dismissed and the input panel retains focus without triggering the global action
+

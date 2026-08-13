@@ -1,4 +1,4 @@
-## ADDED Requirements
+## MODIFIED Requirements
 
 ### Requirement: @-triggered autocomplete activation
 The system SHALL display a file path autocomplete overlay when the user types the `@` character in the TUI input panel. The overlay SHALL appear above the input bar and SHALL be dismissible.
