@@ -30,15 +30,15 @@ import { logger } from "../shared/logger.js";
  */
 function getAgentClassifications(agentName) {
 	const classificationMap = {
-		search: ["read_file", "ls", "webSearch", "webExtract", "grep", "glob", "sessionSearch"],
-		debug: ["read_file", "ls", "grep", "glob", "shell"],
-		"code-review": ["read_file", "ls", "grep", "glob"],
-		research: ["read_file", "ls", "webSearch", "webExtract", "grep", "glob", "sessionSearch"],
-		testing: ["read_file", "ls", "grep", "glob", "shell"],
-		documentation: ["read_file", "ls", "write_file", "edit_file", "grep", "glob"],
-		"security-audit": ["read_file", "ls", "grep", "glob", "shell"],
-		performance: ["read_file", "ls", "grep", "shell"],
-		coding: ["read_file", "ls", "write_file", "edit_file", "grep", "glob", "shell"],
+		search: ["read_file", "ls", "webSearch", "webExtract", "glob", "sessionSearch"],
+		debug: ["read_file", "ls", "glob", "shell"],
+		"code-review": ["read_file", "ls", "glob"],
+		research: ["read_file", "ls", "webSearch", "webExtract", "glob", "sessionSearch"],
+		testing: ["read_file", "ls", "glob", "shell"],
+		documentation: ["read_file", "ls", "write_file", "edit_file", "glob"],
+		"security-audit": ["read_file", "ls", "glob", "shell"],
+		performance: ["read_file", "ls", "shell"],
+		coding: ["read_file", "ls", "write_file", "edit_file", "glob", "shell"],
 	};
 	return classificationMap[agentName] || [];
 }
@@ -157,7 +157,7 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	registerHarnessProfile(
 		modelIdentifier,
 		createHarnessProfile({
-			excludedTools: ["execute"],
+			excludedTools: ["execute", "grep"],
 		}),
 	);
 
