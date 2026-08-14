@@ -6,10 +6,6 @@ import { StatusBar } from "./statusBar.js";
 import { InputPanel } from "./inputPanel.js";
 import { Banner } from "./banner.js";
 import { OnboardingPanel } from "./onboardingPanel.js";
-import { AutocompletePanel } from "./autocompletePanel.js";
-import { scanProjectRoot } from "./fileScanner.js";
-import { FileCache } from "./fileCache.js";
-import { filterFiles, fuzzyMatch } from "./fileFilter.js";
 import { createSession } from "../session/factory.js";
 import { setConfigValue } from "../config/loader.js";
 import { isAvailable, getGcCalls } from "../memory/gc.js";
@@ -53,16 +49,6 @@ export default function App({
 	const { exit } = useApp();
 	const exitRef = useRef(exit);
 	exitRef.current = exit;
-
-	// Autocomplete state
-	const [showAutocomplete, setShowAutocomplete] = useState(false);
-	const [autocompleteTriggerPos, setAutocompleteTriggerPos] = useState(-1);
-	const [selectedFileIndex, setSelectedFileIndex] = useState(0);
-	const [filteredFiles, setFilteredFiles] = useState([]);
-	const [autocompleteQuery, setAutocompleteQuery] = useState("");
-	const [isScanning, setIsScanning] = useState(false);
-	const fileCacheRef = useRef(null);
-	const allFilesRef = useRef([]);
 
 	const skillList = registry ? registry.list() : [];
 
@@ -694,109 +680,6 @@ export default function App({
 		messageListRef.current?.addMessage(msg.role, msg.content, { time });
 	};
 
-	// --- Autocomplete handlers ---
-	/**
-	 * Get or warm the file cache.
-	 * @returns {Promise<string[]>}
-	 */
-	const getFiles = async () => {
-		if (!fileCacheRef.current) {
-			fileCacheRef.current = new FileCache({
-				ttl: config?.tui?.fileCacheTtl ?? 30000,
-			});
-		}
-		const maxEntries = config?.tui?.maxAutocompleteEntries ?? 500;
-		const blacklist = config?.tui?.autocompleteBlacklist ?? [
-			"node_modules",
-			".git",
-			"dist",
-			"build",
-		];
-		return fileCacheRef.current.getOrWarm(async () => {
-			const files = await scanProjectRoot();
-			const filtered = filterFiles(files, blacklist, maxEntries);
-			allFilesRef.current = filtered;
-			return filtered;
-		});
-	};
-
-	/**
-	 * Handle @ trigger from input panel.
-	 */
-	const handleAutocompleteTrigger = async () => {
-		const cursorPos = inputText.length;
-		setAutocompleteTriggerPos(cursorPos);
-		setShowAutocomplete(true);
-		setSelectedFileIndex(0);
-		setAutocompleteQuery("");
-		setFilteredFiles([]);
-		setIsScanning(true);
-		try {
-			const files = await getFiles();
-			setFilteredFiles(files);
-			setIsScanning(false);
-		} catch (err) {
-			logger.debug(`[autocomplete] scan error: ${err.message}`);
-			setIsScanning(false);
-		}
-	};
-
-	/**
-	 * Filter files based on query text.
-	 * @param {string} query
-	 */
-	const handleAutocompleteFilter = (query) => {
-		setAutocompleteQuery(query);
-		if (!query || allFilesRef.current.length === 0) {
-			setFilteredFiles(allFilesRef.current);
-			return;
-		}
-		const matches = fuzzyMatch(allFilesRef.current, query);
-		setFilteredFiles(matches);
-		setSelectedFileIndex(0);
-	};
-
-	/**
-	 * Select a file from the autocomplete list.
-	 * @param {string} filePath
-	 */
-	const handleAutocompleteSelect = (filePath) => {
-		// Insert the file path at the cursor position
-		const before = inputText.slice(0, autocompleteTriggerPos);
-		const after = inputText.slice(autocompleteTriggerPos);
-		const newText = before + filePath + " " + after;
-		setInputText(newText);
-		setShowAutocomplete(false);
-		setAutocompleteTriggerPos(-1);
-		setAutocompleteQuery("");
-		setFilteredFiles([]);
-	};
-
-	/**
-	 * Dismiss the autocomplete overlay.
-	 */
-	const handleAutocompleteDismiss = () => {
-		setShowAutocomplete(false);
-		setAutocompleteTriggerPos(-1);
-		setAutocompleteQuery("");
-		setFilteredFiles([]);
-	};
-
-	/**
-	 * Navigate the autocomplete file list with arrow keys.
-	 * @param {number} direction - -1 for up, 1 for down
-	 */
-	const handleAutocompleteNav = (direction) => {
-		if (filteredFiles.length === 0) return;
-		const maxIdx = filteredFiles.length - 1;
-		setSelectedFileIndex((prev) => {
-			const next = prev + direction;
-			if (next < 0) return maxIdx;
-			if (next > maxIdx) return 0;
-			return next;
-		});
-	};
-
 	/**
 	 * Streaming event handler — single handler for all dispatch streams.
 	 * Captures all event types, accumulates content/reasoning, and handles structured events.
@@ -961,34 +844,12 @@ export default function App({
 		}
 
 		if (key.escape) {
-			if (showAutocomplete) {
-				handleAutocompleteDismiss();
-				return;
-			}
 			if (isStreamingRef.current) {
 				handleInterrupt();
 			} else {
 				handleQuit();
 			}
 			return;
-		}
-
-		// Autocomplete overlay takes priority over message list navigation
-		if (showAutocomplete) {
-			if (key.upArrow) {
-				handleAutocompleteNav(-1);
-				return;
-			}
-			if (key.downArrow) {
-				handleAutocompleteNav(1);
-				return;
-			}
-			if (key.return && !key.shift) {
-				if (filteredFiles[selectedFileIndex]) {
-					handleAutocompleteSelect(filteredFiles[selectedFileIndex]);
-				}
-				return;
-			}
 		}
 
 		// Focus-aware key routing
@@ -1074,16 +935,6 @@ export default function App({
 							assistantName: config?.tui?.name || "Assistant",
 							messageListRef,
 						}),
-						showAutocomplete &&
-							React.createElement(AutocompletePanel, {
-								files: filteredFiles,
-								selectedIndex: selectedFileIndex,
-								query: autocompleteQuery,
-								isScanning: isScanning,
-								maxViewport: config?.tui?.autocompleteMaxViewport ?? 15,
-								onSelect: handleAutocompleteSelect,
-								onDismiss: handleAutocompleteDismiss,
-							}),
 					),
 		!showBanner && !showOnboarding && React.createElement(StatusBar, statusProps),
 		showOnboarding || (!showBanner && !showOnboarding)
@@ -1098,14 +949,7 @@ export default function App({
 					React.createElement(InputPanel, {
 						key: inputFocused ? "input-focused" : "input-unfocused",
 						value: inputText,
-						onChange: (val) => {
-							setInputText(val);
-							if (showAutocomplete) {
-								handleAutocompleteFilter(val.slice(autocompleteTriggerPos + 1));
-							}
-						},
-						onCursorChange: () => {},
-						onTrigger: showAutocomplete ? undefined : handleAutocompleteTrigger,
+						onChange: setInputText,
 						onSubmit: handleSubmit,
 						onFocus: () => setInputFocused(true),
 						onBlur: () => setInputFocused(false),
