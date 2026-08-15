@@ -1,15 +1,15 @@
 ## 1. Add fast-glob dependency
 
-- [ ] 1.1 Add fast-glob to package.json dependencies
-- [ ] 1.2 Run npm install to update lockfile
+- [x] 1.1 Add fast-glob to package.json dependencies
+- [x] 1.2 Run npm install to update lockfile
 
 ## 2. Create autocomplete utility module
 
-- [ ] 2.1 Create src/tui/autocomplete.js with glob search function
-- [ ] 2.2 Implement debounced file search using fast-glob with 150ms delay
-- [ ] 2.3 Implement file filtering to exclude node_modules and .git directories
-- [ ] 2.4 Limit results to top 5 matches
-- [ ] 2.5 Export search function for use by InputPanel
+- [x] 2.1 Create src/tui/autocomplete.js with glob search function
+- [x] 2.2 Implement debounced file search using fast-glob with 150ms delay
+- [x] 2.3 Implement file filtering to exclude node_modules and .git directories
+- [x] 2.4 Limit results to top 5 matches
+- [x] 2.5 Export search function for use by InputPanel
 
 ## 3. Extend InputPanel with autocomplete mode
 
