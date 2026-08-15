@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Box, useApp, useInput, useWindowSize } from "ink";
 import { CommandParser } from "./commandParser.js";
 import { ConversationPanel } from "./conversationPanel.js";
@@ -6,6 +6,7 @@ import { StatusBar } from "./statusBar.js";
 import { InputPanel } from "./inputPanel.js";
 import { Banner } from "./banner.js";
 import { OnboardingPanel } from "./onboardingPanel.js";
+import { AutoCompleteDropdown } from "./AutoCompleteDropdown.js";
 import { createSession } from "../session/factory.js";
 import { setConfigValue } from "../config/loader.js";
 import { isAvailable, getGcCalls } from "../memory/gc.js";
@@ -39,6 +40,11 @@ export default function App({
 	const [inputFocused, setInputFocused] = useState(true);
 	const [contextSize, setContextSize] = useState(0);
 	const [isCompacting, setIsCompacting] = useState(false);
+	// Autocomplete state
+	const [inAutocomplete, setInAutocomplete] = useState(false);
+	const [autocompleteQuery, setAutocompleteQuery] = useState("");
+	const [autocompleteMatches, setAutocompleteMatches] = useState([]);
+	const [autocompleteSelectedIndex, setAutocompleteSelectedIndex] = useState(0);
 	const messageListRef = useRef(null);
 	const abortControllerRef = useRef(null);
 	const isStreamingRef = useRef(false);
@@ -124,6 +130,39 @@ export default function App({
 			await handleChat(trimmed);
 		}
 	};
+
+	/**
+	 * Handle autocomplete file selection.
+	 * @param {string} fullPath - The selected file path
+	 * @param {string[]} _results - Search results (unused, for future use)
+	 */
+	const handleAutocompleteSelect = useCallback((fullPath, _results) => {
+		if (fullPath) {
+			setInputText(fullPath);
+			setInAutocomplete(false);
+			setAutocompleteQuery("");
+			setAutocompleteMatches([]);
+			setAutocompleteSelectedIndex(0);
+		}
+	}, []);
+
+	/**
+	 * Handle autocomplete search results from InputPanel.
+	 * @param {string[]} results - The search results to display
+	 */
+	const handleAutocompleteResults = useCallback((results) => {
+		setAutocompleteMatches(results);
+	}, []);
+
+	/**
+	 * Handle autocomplete dismiss (Esc key).
+	 */
+	const handleAutocompleteDismiss = useCallback(() => {
+		setInAutocomplete(false);
+		setAutocompleteQuery("");
+		setAutocompleteMatches([]);
+		setAutocompleteSelectedIndex(0);
+	}, []);
 
 	/**
 	 * Handle IRC-style command parsing with dispatch table.
@@ -954,7 +993,19 @@ export default function App({
 						onFocus: () => setInputFocused(true),
 						onBlur: () => setInputFocused(false),
 						focus: inputFocused,
+						inAutocomplete,
+						autocompleteQuery,
+						autocompleteMatches,
+						autocompleteSelectedIndex,
+						onAutocompleteSelect: handleAutocompleteSelect,
+						onAutocompleteResults: handleAutocompleteResults,
 					}),
+					inAutocomplete &&
+						React.createElement(AutoCompleteDropdown, {
+							matches: autocompleteMatches,
+							selectedIndex: autocompleteSelectedIndex,
+							onDismiss: handleAutocompleteDismiss,
+						}),
 				)
 			: null,
 	);

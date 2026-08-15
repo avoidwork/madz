@@ -21,7 +21,7 @@ export async function searchFiles(prefix) {
 		});
 
 		return matches.slice(0, 5);
-	} catch (err) {
+	} catch {
 		// Silently return empty on search failure — don't crash the TUI
 		return [];
 	}

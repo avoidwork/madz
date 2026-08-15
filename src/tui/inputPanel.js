@@ -1,5 +1,6 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import TextInput from "ink-text-input";
+import { useInput } from "ink";
 import { searchFiles } from "./autocomplete.js";
 
 /**
@@ -18,6 +19,7 @@ import { searchFiles } from "./autocomplete.js";
  * @param {string[]} [props.autocompleteMatches] - List of matching file paths
  * @param {number} [props.autocompleteSelectedIndex] - Currently selected index in matches
  * @param {(value: string) => void} [props.onAutocompleteSelect] - Callback when a file is selected
+ * @param {(results: string[]) => void} [props.onAutocompleteResults] - Callback when search results are available
  * @returns {React.ReactElement}
  */
 export function InputPanel({
@@ -59,6 +61,34 @@ export function InputPanel({
 		setSelectedIndex(autocompleteSelectedIndex);
 	}
 
+	// Debounced search when query changes in autocomplete mode
+	const searchTimerRef = React.useRef(null);
+
+	useEffect(() => {
+		if (!isAutocompleteMode || !query) {
+			return;
+		}
+
+		// Clear existing timer
+		if (searchTimerRef.current) {
+			clearTimeout(searchTimerRef.current);
+		}
+
+		// Debounce: wait 150ms before searching
+		searchTimerRef.current = setTimeout(async () => {
+			const results = await searchFiles(query);
+			setSelectedIndex(0);
+			// Notify parent of search results
+			onAutocompleteResults?.(results);
+		}, 150);
+
+		return () => {
+			if (searchTimerRef.current) {
+				clearTimeout(searchTimerRef.current);
+			}
+		};
+	}, [isAutocompleteMode, query]);
+
 	// Detect @ trigger and enter autocomplete mode
 	const handleValueChange = useCallback(
 		(newValue) => {
@@ -89,56 +119,49 @@ export function InputPanel({
 		[isAutocompleteMode, onChange],
 	);
 
-	// Handle keyboard input in autocomplete mode
-	const handleAutocompleteKey = useCallback(
-		(key) => {
-			if (!isAutocompleteMode) return false;
+	// Handle keyboard input in autocomplete mode via useInput
+	useInput(
+		useCallback(
+			(key) => {
+				if (!isAutocompleteMode) return false;
 
-			if (key.name === "up") {
-				setSelectedIndex((prev) =>
-					prev <= 0 ? autocompleteMatches.length - 1 : prev - 1,
-				);
-				return true;
-			}
+				if (key.name === "up") {
+					setSelectedIndex((prev) => (prev <= 0 ? autocompleteMatches.length - 1 : prev - 1));
+					return true;
+				}
 
-			if (key.name === "down") {
-				setSelectedIndex((prev) =>
-					prev >= autocompleteMatches.length - 1 ? 0 : prev + 1,
-				);
-				return true;
-			}
+				if (key.name === "down") {
+					setSelectedIndex((prev) => (prev >= autocompleteMatches.length - 1 ? 0 : prev + 1));
+					return true;
+				}
 
-			if (key.name === "enter") {
-				if (autocompleteMatches.length > 0 && onAutocompleteSelect) {
-					const selectedPath = autocompleteMatches[selectedIndex];
-					const atIndex = internalValue.lastIndexOf("@");
-					const beforeAt = internalValue.slice(0, atIndex);
-					const fullPath = beforeAt + selectedPath;
-					setInternalValue(fullPath);
+				if (key.name === "enter") {
+					if (autocompleteMatches.length > 0 && onAutocompleteSelect) {
+						const selectedPath = autocompleteMatches[selectedIndex];
+						const atIndex = internalValue.lastIndexOf("@");
+						const beforeAt = internalValue.slice(0, atIndex);
+						const fullPath = beforeAt + selectedPath;
+						setInternalValue(fullPath);
+						setIsAutocompleteMode(false);
+						setQuery("");
+						setSelectedIndex(0);
+						onAutocompleteSelect(fullPath);
+					}
+					return true;
+				}
+
+				if (key.name === "escape") {
 					setIsAutocompleteMode(false);
 					setQuery("");
 					setSelectedIndex(0);
-					onAutocompleteSelect(fullPath);
+					return true;
 				}
-				return true;
-			}
 
-			if (key.name === "escape") {
-				setIsAutocompleteMode(false);
-				setQuery("");
-				setSelectedIndex(0);
-				return true;
-			}
-
-			return false;
-		},
-		[
-			isAutocompleteMode,
-			autocompleteMatches,
-			selectedIndex,
-			internalValue,
-			onAutocompleteSelect,
-		],
+				return false;
+			},
+			[isAutocompleteMode, autocompleteMatches, selectedIndex, internalValue, onAutocompleteSelect],
+		),
+		{ enableSubstitute: true },
 	);
 
 	// Wrap the TextInput's onSubmit to handle autocomplete selection first
@@ -166,20 +189,13 @@ export function InputPanel({
 		onAutocompleteSelect,
 	]);
 
-	// Use a ref to intercept key presses for autocomplete
-	const textInputRef = React.useRef(null);
-
-	return React.createElement(
-		TextInput,
-		{
-			value: internalValue,
-			onChange: handleValueChange,
-			onSubmit: handleOnSubmit,
-			onFocus,
-			onBlur,
-			focus,
-			showCursor: true,
-			ref: textInputRef,
-		},
-	);
+	return React.createElement(TextInput, {
+		value: internalValue,
+		onChange: handleValueChange,
+		onSubmit: handleOnSubmit,
+		onFocus,
+		onBlur,
+		focus,
+		showCursor: true,
+	});
 }
