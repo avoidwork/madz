@@ -69,6 +69,7 @@
     "ansi-escapes": "^7.3.0",
     "ansi-regex": "^6.2.2",
     "adm-zip": "^0.5.16",
+    "fast-glob": "^3.3.3",
     "chalk": "^6.0.0",
     "cli-highlight": "^2.1.11",
     "cli-table3": "^0.6.5",
