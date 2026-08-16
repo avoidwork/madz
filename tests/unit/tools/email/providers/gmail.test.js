@@ -17,11 +17,7 @@ describe("GmailProvider — happy paths", () => {
 			setCredentials: () => {},
 		};
 
-		mockOAuth2 = mock.method(
-			origGoogle.auth,
-			"OAuth2",
-			() => mockOAuth2Instance,
-		);
+		mockOAuth2 = mock.method(origGoogle.auth, "OAuth2", () => mockOAuth2Instance);
 
 		const mockGmailInstance = {
 			users: {

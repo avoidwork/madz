@@ -527,7 +527,12 @@ describe("ImapProvider — happy paths", () => {
 				{ attributes: { uid: "d-3" } },
 			]),
 			getAttributes: mock.method(async (uid) => ({
-				headers: { subject: `Draft ${uid}`, from: "user@example.com", to: "r@example.com", date: "2024-01-01" },
+				headers: {
+					subject: `Draft ${uid}`,
+					from: "user@example.com",
+					to: "r@example.com",
+					date: "2024-01-01",
+				},
 				body: `Body ${uid}`,
 			})),
 			closeBox: mock.method(async () => {}),
@@ -895,7 +900,7 @@ describe("ImapProvider — happy paths", () => {
 		const mockConnection = {
 			openBox: mock.method(async () => {}),
 			search: mock.method(async () => [{ attributes: { uid: "uid-normalize" } }]),
-			getAttributes: mock.method(async (uid) => ({
+			getAttributes: mock.method(async (_uid) => ({
 				headers: {
 					subject: "Normalize Test",
 					from: "from@example.com",

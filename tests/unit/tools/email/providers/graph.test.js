@@ -1,4 +1,4 @@
-import { test, describe, before, after, mock } from "node:test";
+import { test, describe, before, after } from "node:test";
 import assert from "node:assert";
 import { GraphProvider } from "../../../../../src/tools/email/providers/graph.js";
 
@@ -14,7 +14,7 @@ describe("GraphProvider — happy paths", () => {
 	});
 
 	test("read() should return messages from Graph API", async () => {
-		globalThis.fetch = async (url, opts) => {
+		globalThis.fetch = async (url) => {
 			if (url.includes("/token")) {
 				return {
 					ok: true,
@@ -60,7 +60,7 @@ describe("GraphProvider — happy paths", () => {
 
 	test("read() should include $filter in URL when filters provided", async () => {
 		const fetchCalls = [];
-		globalThis.fetch = async (url, opts) => {
+		globalThis.fetch = async (url) => {
 			fetchCalls.push(url);
 			if (url.includes("/token")) {
 				return { ok: true, json: async () => ({ access_token: "fake-token" }) };
@@ -199,7 +199,10 @@ describe("GraphProvider — happy paths", () => {
 		assert.strictEqual(sentBody.message.attachments.length, 1);
 		assert.strictEqual(sentBody.message.attachments[0].name, "report.pdf");
 		assert.strictEqual(sentBody.message.attachments[0].contentType, "application/pdf");
-		assert.strictEqual(sentBody.message.attachments[0]["@odata.type"], "#microsoft.graph.fileAttachment");
+		assert.strictEqual(
+			sentBody.message.attachments[0]["@odata.type"],
+			"#microsoft.graph.fileAttachment",
+		);
 	});
 
 	test("send() should handle HTML body type", async () => {
@@ -234,7 +237,7 @@ describe("GraphProvider — happy paths", () => {
 
 	test("search() should query messages with $q parameter", async () => {
 		const fetchCalls = [];
-		globalThis.fetch = async (url, opts) => {
+		globalThis.fetch = async (url) => {
 			fetchCalls.push(url);
 			if (url.includes("/token")) {
 				return { ok: true, json: async () => ({ access_token: "fake-token" }) };
@@ -297,7 +300,7 @@ describe("GraphProvider — happy paths", () => {
 	});
 
 	test("listDrafts() should return list of drafts", async () => {
-		globalThis.fetch = async (url, opts) => {
+		globalThis.fetch = async (url) => {
 			if (url.includes("/token")) {
 				return { ok: true, json: async () => ({ access_token: "fake-token" }) };
 			}
@@ -376,7 +379,7 @@ describe("GraphProvider — happy paths", () => {
 
 	test("deleteDraft() should DELETE a draft", async () => {
 		let deleteUrl = null;
-		globalThis.fetch = async (url, opts) => {
+		globalThis.fetch = async (url) => {
 			if (url.includes("/token")) {
 				return { ok: true, json: async () => ({ access_token: "fake-token" }) };
 			}
@@ -619,7 +622,7 @@ describe("GraphProvider — happy paths", () => {
 	});
 
 	test("normalizeMessage() should handle Graph message format", async () => {
-		globalThis.fetch = async (url, opts) => {
+		globalThis.fetch = async (url) => {
 			if (url.includes("/token")) {
 				return { ok: true, json: async () => ({ access_token: "fake-token" }) };
 			}
@@ -662,7 +665,7 @@ describe("GraphProvider — happy paths", () => {
 	});
 
 	test("read() should handle empty message list", async () => {
-		globalThis.fetch = async (url, opts) => {
+		globalThis.fetch = async (url) => {
 			if (url.includes("/token")) {
 				return { ok: true, json: async () => ({ access_token: "fake-token" }) };
 			}
@@ -685,7 +688,7 @@ describe("GraphProvider — happy paths", () => {
 
 	test("read() should use custom folder", async () => {
 		const fetchCalls = [];
-		globalThis.fetch = async (url, opts) => {
+		globalThis.fetch = async (url) => {
 			fetchCalls.push(url);
 			if (url.includes("/token")) {
 				return { ok: true, json: async () => ({ access_token: "fake-token" }) };
@@ -707,7 +710,7 @@ describe("GraphProvider — happy paths", () => {
 	});
 
 	test("Graph API error should return structured error", async () => {
-		globalThis.fetch = async (url, opts) => {
+		globalThis.fetch = async (url) => {
 			if (url.includes("/token")) {
 				return { ok: true, json: async () => ({ access_token: "fake-token" }) };
 			}
@@ -732,7 +735,7 @@ describe("GraphProvider — happy paths", () => {
 	});
 
 	test("token refresh failure should propagate error", async () => {
-		globalThis.fetch = async (url, opts) => {
+		globalThis.fetch = async (url) => {
 			if (url.includes("/token")) {
 				return {
 					ok: false,
@@ -762,7 +765,7 @@ describe("GraphProvider — happy paths", () => {
 
 	test("GraphProvider should use custom userId", async () => {
 		const fetchCalls = [];
-		globalThis.fetch = async (url, opts) => {
+		globalThis.fetch = async (url) => {
 			fetchCalls.push(url);
 			if (url.includes("/token")) {
 				return { ok: true, json: async () => ({ access_token: "fake-token" }) };
