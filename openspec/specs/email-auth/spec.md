@@ -4,11 +4,11 @@
 TBD - created by archiving change email-integration. Update Purpose after archive.
 ## Requirements
 ### Requirement: OAuth2 credential storage
-The system SHALL store OAuth2 access and refresh tokens in the memory system with encryption at rest.
+The system SHALL store OAuth2 access and refresh tokens in the provider config with encryption at rest using AES-256-GCM.
 
 #### Scenario: Store OAuth2 credentials securely
 - **WHEN** OAuth2 tokens are obtained from a provider
-- **THEN** they are encrypted and stored in the memory system under a provider-specific key
+- **THEN** they are encrypted and stored in the provider config under a provider-specific key
 
 #### Scenario: Retrieve OAuth2 credentials
 - **WHEN** a provider needs its tokens
@@ -20,14 +20,14 @@ The system SHALL store OAuth2 access and refresh tokens in the memory system wit
 
 #### Scenario: Clear OAuth2 credentials on logout
 - **WHEN** the provider is disconnected or credentials are invalidated
-- **THEN** the system removes the stored tokens from the memory system
+- **THEN** the system removes the stored tokens from the provider config
 
 ### Requirement: IMAP credential storage
-The system SHALL store IMAP credentials (host, port, username, password) in the memory system with encryption at rest.
+The system SHALL store IMAP credentials (host, port, username, password) in the provider config with encryption at rest using AES-256-GCM.
 
 #### Scenario: Store IMAP credentials securely
 - **WHEN** IMAP credentials are configured
-- **THEN** they are encrypted and stored in the memory system under a provider-specific key
+- **THEN** they are encrypted and stored in the provider config under a provider-specific key
 
 #### Scenario: Retrieve IMAP credentials
 - **WHEN** the IMAP provider needs credentials
@@ -36,17 +36,18 @@ The system SHALL store IMAP credentials (host, port, username, password) in the 
 #### Scenario: Never log IMAP credentials
 - **WHEN** any operation involving IMAP credentials
 - **THEN** credentials are never written to logs, error messages, or telemetry data
+- **AND** error messages are sanitized to strip passwords, tokens, and other sensitive data
 
 ### Requirement: Credential validation at startup
-The system SHALL validate email provider credentials during application startup.
+The system SHALL validate email provider credentials during application startup by checking config structure and required fields.
 
 #### Scenario: Validate Gmail OAuth2 credentials on startup
 - **WHEN** the application starts with Gmail provider configured
-- **THEN** it validates the OAuth2 credentials by making a test API request
+- **THEN** it validates the OAuth2 config structure and required fields (clientId, clientSecret, refreshToken)
 
 #### Scenario: Validate IMAP credentials on startup
 - **WHEN** the application starts with IMAP provider configured
-- **THEN** it validates the credentials by attempting an IMAP connection
+- **THEN** it validates the config structure and required fields (host, user, password)
 
 #### Scenario: Graceful degradation when credentials are invalid
 - **WHEN** the application starts with invalid email credentials
@@ -70,4 +71,15 @@ The system SHALL define Zod validation schemas for email provider configurations
 #### Scenario: Reject incomplete provider config
 - **WHEN** a provider config is missing required fields
 - **THEN** the schema validation fails with a descriptive error listing missing fields
+
+### Requirement: Error message sanitization
+The system SHALL sanitize all error messages to prevent credential leakage.
+
+#### Scenario: Sanitize OAuth error messages
+- **WHEN** an OAuth2 error occurs (Gmail or Graph provider)
+- **THEN** error messages are sanitized to strip client IDs, access tokens, refresh tokens, and client secrets
+
+#### Scenario: Sanitize IMAP error messages
+- **WHEN** an IMAP operation fails
+- **THEN** error messages are sanitized to strip passwords and other credentials
 

@@ -15,7 +15,7 @@ The system SHALL provide an `email.read` tool that fetches messages from configu
 - **THEN** system returns only messages where the sender address matches alice@example.com
 
 #### Scenario: Filter by date range
-- **WHEN** user calls email.read with folder="inbox" and dateAfter="2024-01-01" and dateBefore="2024-06-01"
+- **WHEN** user calls email.read with folder="inbox" and dateFrom="2024-01-01" and dateTo="2024-06-01"
 - **THEN** system returns only messages received within the specified date range
 
 #### Scenario: Filter by subject keyword
