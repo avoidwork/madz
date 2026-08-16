@@ -59,6 +59,23 @@ export class ImapProvider extends EmailProvider {
 	}
 
 	/**
+	 * Sanitize error messages to prevent credential leakage.
+	 * Strips passwords, host info, and other sensitive data from error strings.
+	 * @param {string} message - Raw error message
+	 * @returns {string} Sanitized message
+	 */
+	#sanitizeError(message) {
+		if (!message) return "An error occurred";
+		return message
+			.replace(/password=[^&\s]*/g, "password=[REDACTED]")
+			.replace(/pass=[^&\s]*/g, "pass=[REDACTED]")
+			.replace(/Bearer [^"'\s]*/g, "Bearer [REDACTED]")
+			.replace(/client_secret=[^&\s]*/g, "client_secret=[REDACTED]")
+			.replace(/access_token=[^&\s]*/g, "access_token=[REDACTED]")
+			.replace(/refresh_token=[^&\s]*/g, "refresh_token=[REDACTED]");
+	}
+
+	/**
 	 * Execute an async operation with timeout.
 	 * @param {Function} fn - Async function to execute
 	 * @returns {Promise<*>}
@@ -116,7 +133,7 @@ export class ImapProvider extends EmailProvider {
 			const result = await this.#withTimeout(async () => transport.sendMail(mailOptions));
 			return { ok: true, messageId: result.messageId };
 		} catch (err) {
-			return { ok: false, error: `IMAP send failed: ${err.message}` };
+			return { ok: false, error: `IMAP send failed: ${this.#sanitizeError(err.message)}` };
 		}
 	}
 
@@ -151,12 +168,14 @@ export class ImapProvider extends EmailProvider {
 
 			const messages = await connection.search(searchCriteria, { recent: false });
 
+			// Use UID-based pagination to avoid fetching all messages
 			const result = [];
-			for (const msg of messages.slice(0, limit)) {
-				const data = await connection.getAttributes(msg.attributes.uid, {
-					fetchHeaders: true,
-				});
-				result.push(this.#normalizeMessage(data, msg.attributes.uid));
+			const uids = messages.slice(0, limit).map((m) => m.attributes.uid);
+			if (uids.length > 0) {
+				const dataArray = await connection.getAttributes(uids, { fetchHeaders: true });
+				for (let i = 0; i < uids.length; i++) {
+					result.push(this.#normalizeMessage(dataArray[i], uids[i]));
+				}
 			}
 
 			await connection.closeBox(folder);
@@ -164,7 +183,7 @@ export class ImapProvider extends EmailProvider {
 
 			return { ok: true, messages: result };
 		} catch (err) {
-			return { ok: false, error: `IMAP read failed: ${err.message}` };
+			return { ok: false, error: `IMAP read failed: ${this.#sanitizeError(err.message)}` };
 		}
 	}
 
@@ -185,25 +204,28 @@ export class ImapProvider extends EmailProvider {
 				},
 			});
 
-			await connection.openBox(params.folder || "INBOX");
+			const folder = params.folder || "INBOX";
+			await connection.openBox(folder);
 
 			const searchCriteria = [["TEXT", params.query]];
 			const messages = await connection.search(searchCriteria, { recent: false });
 
+			// Use UID-based pagination to avoid fetching all messages
 			const result = [];
-			for (const msg of messages.slice(0, params.limit || 20)) {
-				const data = await connection.getAttributes(msg.attributes.uid, {
-					fetchHeaders: true,
-				});
-				result.push(this.#normalizeMessage(data, msg.attributes.uid));
+			const uids = messages.slice(0, params.limit || 20).map((m) => m.attributes.uid);
+			if (uids.length > 0) {
+				const dataArray = await connection.getAttributes(uids, { fetchHeaders: true });
+				for (let i = 0; i < uids.length; i++) {
+					result.push(this.#normalizeMessage(dataArray[i], uids[i]));
+				}
 			}
 
-			await connection.closeBox(params.folder || "INBOX");
+			await connection.closeBox(folder);
 			await connection.disconnect();
 
 			return { ok: true, messages: result };
 		} catch (err) {
-			return { ok: false, error: `IMAP search failed: ${err.message}` };
+			return { ok: false, error: `IMAP search failed: ${this.#sanitizeError(err.message)}` };
 		}
 	}
 
@@ -234,13 +256,15 @@ export class ImapProvider extends EmailProvider {
 			rfc822 += `Content-Type: ${params.bodyType === "html" ? "text/html" : "text/plain"}; charset="UTF-8"\r\n\r\n`;
 			rfc822 += params.body;
 
-			await connection.addMessage("DRAFTS", rfc822);
+			await connection.openBox("DRAFTS");
+			const result = await connection.addMessage("DRAFTS", rfc822);
 			await connection.closeBox("DRAFTS");
 			await connection.disconnect();
 
-			return { ok: true, draftId: "draft-" + Date.now() };
+			// Use the actual IMAP UID as the draft ID
+			return { ok: true, draftId: String(result.uid) };
 		} catch (err) {
-			return { ok: false, error: `IMAP saveDraft failed: ${err.message}` };
+			return { ok: false, error: `IMAP saveDraft failed: ${this.#sanitizeError(err.message)}` };
 		}
 	}
 
@@ -265,12 +289,14 @@ export class ImapProvider extends EmailProvider {
 
 			const messages = await connection.search(["ALL"], { recent: false });
 
+			// Use UID-based pagination to avoid fetching all messages
 			const result = [];
-			for (const msg of messages.slice(0, params.limit || 20)) {
-				const data = await connection.getAttributes(msg.attributes.uid, {
-					fetchHeaders: true,
-				});
-				result.push(this.#normalizeMessage(data, msg.attributes.uid));
+			const uids = messages.slice(0, params.limit || 20).map((m) => m.attributes.uid);
+			if (uids.length > 0) {
+				const dataArray = await connection.getAttributes(uids, { fetchHeaders: true });
+				for (let i = 0; i < uids.length; i++) {
+					result.push(this.#normalizeMessage(dataArray[i], uids[i]));
+				}
 			}
 
 			await connection.closeBox("DRAFTS");
@@ -278,7 +304,7 @@ export class ImapProvider extends EmailProvider {
 
 			return { ok: true, drafts: result };
 		} catch (err) {
-			return { ok: false, error: `IMAP listDrafts failed: ${err.message}` };
+			return { ok: false, error: `IMAP listDrafts failed: ${this.#sanitizeError(err.message)}` };
 		}
 	}
 
@@ -343,7 +369,8 @@ export class ImapProvider extends EmailProvider {
 				},
 			});
 
-			await connection.openBox("INBOX");
+			const folder = params.folder || "INBOX";
+			await connection.openBox(folder);
 
 			const messageIds = Array.isArray(params.messageIds) ? params.messageIds : [params.messageIds];
 
@@ -365,17 +392,17 @@ export class ImapProvider extends EmailProvider {
 					await connection.setFlags({ uid: messageIds }, [`\\${params.label}`], { remove: true });
 					break;
 				default:
-					await connection.closeBox("INBOX");
+					await connection.closeBox(folder);
 					await connection.disconnect();
 					return { ok: false, error: `Unknown organize action: ${params.action}` };
 			}
 
-			await connection.closeBox("INBOX");
+			await connection.closeBox(folder);
 			await connection.disconnect();
 
 			return { ok: true };
 		} catch (err) {
-			return { ok: false, error: `IMAP organize failed: ${err.message}` };
+			return { ok: false, error: `IMAP organize failed: ${this.#sanitizeError(err.message)}` };
 		}
 	}
 

@@ -12,6 +12,11 @@ export class GmailProvider extends EmailProvider {
 	#gmail;
 
 	/**
+	 * @type {import('googleapis').google.auth.OAuth2}
+	 */
+	#oauth2;
+
+	/**
 	 * @type {string}
 	 */
 	#userId;
@@ -39,23 +44,42 @@ export class GmailProvider extends EmailProvider {
 	constructor(config) {
 		super({ ...config, type: "gmail" });
 
-		const oauth2Client = new google.auth.OAuth2({
+		this.#oauth2 = new google.auth.OAuth2({
 			clientId: config.clientId,
 			clientSecret: config.clientSecret,
 			redirectUri: "http://localhost",
 		});
 
 		if (config.refreshToken) {
-			oauth2Client.setCredentials({ refresh_token: config.refreshToken });
+			this.#oauth2.setCredentials({ refresh_token: config.refreshToken });
 		}
 		if (config.accessToken) {
-			oauth2Client.setCredentials({ access_token: config.accessToken });
+			this.#oauth2.setCredentials({ access_token: config.accessToken });
 		}
 
-		this.#gmail = google.gmail({ version: "v1", auth: oauth2Client });
+		this.#gmail = google.gmail({ version: "v1", auth: this.#oauth2 });
 		this.#userId = config.userId || "me";
 		this.#fromAddress =
 			config.fromAddress || (typeof config.userId === "string" ? config.userId : "");
+	}
+
+	/**
+	 * Refresh the OAuth2 access token using the stored refresh token.
+	 * Updates the cached credentials and returns the new access token.
+	 * @returns {Promise<string>} New access token
+	 */
+	async #refreshAccessToken() {
+		if (!this.#oauth2.credentials.refresh_token) {
+			throw new Error("No refresh token available for Gmail provider");
+		}
+
+		try {
+			const { credentials } = await this.#oauth2.refreshAccessToken();
+			this.#oauth2.setCredentials(credentials);
+			return credentials.access_token;
+		} catch (err) {
+			throw new Error(`Gmail token refresh failed: ${err.message}`);
+		}
 	}
 
 	/**
@@ -80,7 +104,24 @@ export class GmailProvider extends EmailProvider {
 	}
 
 	/**
-	 * Execute a Gmail API call with timeout.
+	 * Sanitize error messages to prevent credential leakage.
+	 * Strips client IDs, tokens, and other sensitive data from error strings.
+	 * @param {string} message - Raw error message
+	 * @returns {string} Sanitized message
+	 */
+	#sanitizeError(message) {
+		if (!message) return "An error occurred";
+		return message
+			.replace(/client_id=[^&\s]*/g, "client_id=[REDACTED]")
+			.replace(/access_token=[^&\s]*/g, "access_token=[REDACTED]")
+			.replace(/refresh_token=[^&\s]*/g, "refresh_token=[REDACTED]")
+			.replace(/client_secret=[^&\s]*/g, "client_secret=[REDACTED]")
+			.replace(/Bearer [^"'\s]*/g, "Bearer [REDACTED]")
+			.replace(/apiKey=[^&\s]*/g, "apiKey=[REDACTED]");
+	}
+
+	/**
+	 * Execute a Gmail API call with timeout and automatic token refresh on 401.
 	 * @param {Function} fn - Async function to execute
 	 * @returns {Promise<*>}
 	 */
@@ -94,6 +135,18 @@ export class GmailProvider extends EmailProvider {
 
 		try {
 			return await fn({ signal: controller.signal });
+		} catch (err) {
+			// On 401, try refreshing the token and retry once
+			if (err.code === "ERR_OAUTH_TOKEN" || err.message.includes("401")) {
+				try {
+					await this.#refreshAccessToken();
+					// Retry the operation with a fresh token
+					return await fn({ signal: controller.signal });
+				} catch (retryErr) {
+					throw new Error(`Gmail token refresh failed: ${retryErr.message}`);
+				}
+			}
+			throw err;
 		} finally {
 			clearTimeout(timeoutId);
 			this.#currentAbort = null;
@@ -120,7 +173,7 @@ export class GmailProvider extends EmailProvider {
 				messageId: response.data?.id || response.data?.message?.id,
 			};
 		} catch (err) {
-			return { ok: false, error: `Gmail send failed: ${err.message}` };
+			return { ok: false, error: `Gmail send failed: ${this.#sanitizeError(err.message)}` };
 		}
 	}
 
@@ -166,7 +219,7 @@ export class GmailProvider extends EmailProvider {
 
 			return { ok: true, messages: result };
 		} catch (err) {
-			return { ok: false, error: `Gmail read failed: ${err.message}` };
+			return { ok: false, error: `Gmail read failed: ${this.#sanitizeError(err.message)}` };
 		}
 	}
 
@@ -200,7 +253,7 @@ export class GmailProvider extends EmailProvider {
 
 			return { ok: true, messages: result };
 		} catch (err) {
-			return { ok: false, error: `Gmail search failed: ${err.message}` };
+			return { ok: false, error: `Gmail search failed: ${this.#sanitizeError(err.message)}` };
 		}
 	}
 
@@ -221,7 +274,7 @@ export class GmailProvider extends EmailProvider {
 			);
 			return { ok: true, draftId: response.data.id };
 		} catch (err) {
-			return { ok: false, error: `Gmail saveDraft failed: ${err.message}` };
+			return { ok: false, error: `Gmail saveDraft failed: ${this.#sanitizeError(err.message)}` };
 		}
 	}
 
@@ -253,7 +306,7 @@ export class GmailProvider extends EmailProvider {
 
 			return { ok: true, drafts: result };
 		} catch (err) {
-			return { ok: false, error: `Gmail listDrafts failed: ${err.message}` };
+			return { ok: false, error: `Gmail listDrafts failed: ${this.#sanitizeError(err.message)}` };
 		}
 	}
 
@@ -276,7 +329,7 @@ export class GmailProvider extends EmailProvider {
 			);
 			return { ok: true, draftId };
 		} catch (err) {
-			return { ok: false, error: `Gmail updateDraft failed: ${err.message}` };
+			return { ok: false, error: `Gmail updateDraft failed: ${this.#sanitizeError(err.message)}` };
 		}
 	}
 
@@ -294,7 +347,7 @@ export class GmailProvider extends EmailProvider {
 			);
 			return { ok: true };
 		} catch (err) {
-			return { ok: false, error: `Gmail deleteDraft failed: ${err.message}` };
+			return { ok: false, error: `Gmail deleteDraft failed: ${this.#sanitizeError(err.message)}` };
 		}
 	}
 
@@ -375,7 +428,7 @@ export class GmailProvider extends EmailProvider {
 
 			return { ok: true };
 		} catch (err) {
-			return { ok: false, error: `Gmail organize failed: ${err.message}` };
+			return { ok: false, error: `Gmail organize failed: ${this.#sanitizeError(err.message)}` };
 		}
 	}
 

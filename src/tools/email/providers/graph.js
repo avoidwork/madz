@@ -77,7 +77,23 @@ export class GraphProvider extends EmailProvider {
 	}
 
 	/**
-	 * Execute a fetch with timeout.
+	 * Sanitize error messages to prevent credential leakage.
+	 * Strips client IDs, tokens, and other sensitive data from error strings.
+	 * @param {string} message - Raw error message
+	 * @returns {string} Sanitized message
+	 */
+	#sanitizeError(message) {
+		if (!message) return "An error occurred";
+		return message
+			.replace(/client_id=[^&\s]*/g, "client_id=[REDACTED]")
+			.replace(/client_secret=[^&\s]*/g, "client_secret=[REDACTED]")
+			.replace(/access_token=[^&\s]*/g, "access_token=[REDACTED]")
+			.replace(/refresh_token=[^&\s]*/g, "refresh_token=[REDACTED]")
+			.replace(/Bearer [^"'\s]*/g, "Bearer [REDACTED]");
+	}
+
+	/**
+	 * Execute a fetch with timeout and automatic token refresh on 401.
 	 * @param {string} url
 	 * @param {object} options
 	 * @returns {Promise<Response>}
@@ -92,6 +108,27 @@ export class GraphProvider extends EmailProvider {
 
 		try {
 			const response = await fetch(url, { ...options, signal: controller.signal });
+
+			// On 401, try refreshing the token and retry once
+			if (!response.ok && response.status === 401) {
+				try {
+					await this.#refreshAccessToken();
+					// Rebuild the request with the new token
+					const newHeaders = { ...options.headers };
+					if (newHeaders.Authorization) {
+						newHeaders.Authorization = `Bearer ${this.#accessToken}`;
+					}
+					const retryResponse = await fetch(url, {
+						...options,
+						signal: controller.signal,
+						headers: newHeaders,
+					});
+					return retryResponse;
+				} catch {
+					// Token refresh failed — return the original 401 response
+				}
+			}
+
 			return response;
 		} finally {
 			clearTimeout(timeoutId);
@@ -108,6 +145,39 @@ export class GraphProvider extends EmailProvider {
 			return this.#accessToken;
 		}
 
+		if (!this.#credentials.refreshToken) {
+			throw new Error("No refresh token available for Graph provider");
+		}
+
+		const response = await this.#fetchWithTimeout(
+			`https://login.microsoftonline.com/${this.#credentials.tenantId}/oauth2/v2.0/token`,
+			{
+				method: "POST",
+				headers: { "Content-Type": "application/x-www-form-urlencoded" },
+				body: new URLSearchParams({
+					client_id: this.#credentials.clientId,
+					client_secret: this.#credentials.clientSecret,
+					refresh_token: this.#credentials.refreshToken,
+					grant_type: "refresh_token",
+					scope: "https://graph.microsoft.com/.default",
+				}),
+			},
+		);
+
+		if (!response.ok) {
+			throw new Error(`Graph token refresh failed: ${response.status}`);
+		}
+
+		const data = await response.json();
+		this.#accessToken = data.access_token;
+		return this.#accessToken;
+	}
+
+	/**
+	 * Refresh the OAuth2 access token.
+	 * @returns {Promise<string>} New access token
+	 */
+	async #refreshAccessToken() {
 		if (!this.#credentials.refreshToken) {
 			throw new Error("No refresh token available for Graph provider");
 		}
@@ -194,7 +264,7 @@ export class GraphProvider extends EmailProvider {
 			const data = await response.json();
 			return { ok: true, messageId: data?.id };
 		} catch (err) {
-			return { ok: false, error: `Graph send failed: ${err.message}` };
+			return { ok: false, error: `Graph send failed: ${this.#sanitizeError(err.message)}` };
 		}
 	}
 
@@ -210,9 +280,18 @@ export class GraphProvider extends EmailProvider {
 			let url = `https://graph.microsoft.com/v1.0/users/${this.#userId}/${folder}/messages?$top=${limit}&$select=id,subject,from,toRecipients,body,receivedDateTime,bodyPreview`;
 
 			const filtersList = [];
-			if (filters.sender) filtersList.push(`from/emailAddress/address eq '${filters.sender}'`);
-			if (filters.subject) filtersList.push(`contains(subject, '${filters.subject}')`);
-			if (filters.keyword) filtersList.push(`contains(body/content, '${filters.keyword}')`);
+			if (filters.sender) {
+				const escapedSender = filters.sender.replace(/'/g, "''");
+				filtersList.push(`from/emailAddress/address eq '${escapedSender}'`);
+			}
+			if (filters.subject) {
+				const escapedSubject = filters.subject.replace(/'/g, "''");
+				filtersList.push(`contains(subject, '${escapedSubject}')`);
+			}
+			if (filters.keyword) {
+				const escapedKeyword = filters.keyword.replace(/'/g, "''");
+				filtersList.push(`contains(body/content, '${escapedKeyword}')`);
+			}
 			if (filters.dateFrom) filtersList.push(`receivedDateTime ge ${filters.dateFrom}`);
 			if (filters.dateTo) filtersList.push(`receivedDateTime le ${filters.dateTo}`);
 
@@ -455,7 +534,7 @@ export class GraphProvider extends EmailProvider {
 									Authorization: `Bearer ${token}`,
 									"Content-Type": "application/json",
 								},
-								body: JSON.stringify({ destinationId: "deletedmessages" }),
+								body: JSON.stringify({ destinationId: "deleteditems" }),
 							},
 						);
 					}

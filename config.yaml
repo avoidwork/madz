@@ -18,12 +18,6 @@ email:
     refreshToken:
     accessToken:
     refreshTokenUrl:
-    tenantId:
-    host:
-    port:
-    secure:
-    user:
-    password:
   defaultFolder: INBOX
   maxAttachments: 10
   maxAttachmentSize: 25mb
