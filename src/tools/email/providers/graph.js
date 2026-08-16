@@ -21,6 +21,11 @@ export class GraphProvider extends EmailProvider {
 	#accessToken = null;
 
 	/**
+	 * @type {AbortController|null}
+	 */
+	#currentAbort = null;
+
+	/**
 	 * @param {object} config - Graph provider configuration
 	 * @param {string} config.clientId - OAuth2 client ID
 	 * @param {string} config.clientSecret - OAuth2 client secret
@@ -47,6 +52,54 @@ export class GraphProvider extends EmailProvider {
 	}
 
 	/**
+	 * Validate provider configuration.
+	 * @returns {{ valid: boolean, errors?: string[] }}
+	 */
+	validateConfig() {
+		const errors = [];
+		if (!this.#credentials.clientId) errors.push("clientId is required");
+		if (!this.#credentials.clientSecret) errors.push("clientSecret is required");
+		if (!this.#credentials.tenantId) errors.push("tenantId is required");
+		if (!this.#credentials.refreshToken && !this.#accessToken) {
+			errors.push("refreshToken or accessToken is required");
+		}
+		return { valid: errors.length === 0, errors };
+	}
+
+	/**
+	 * Cancel any in-flight request.
+	 */
+	cancel() {
+		if (this.#currentAbort) {
+			this.#currentAbort.abort();
+			this.#currentAbort = null;
+		}
+	}
+
+	/**
+	 * Execute a fetch with timeout.
+	 * @param {string} url
+	 * @param {object} options
+	 * @returns {Promise<Response>}
+	 */
+	async #fetchWithTimeout(url, options) {
+		if (this.#currentAbort) {
+			this.#currentAbort.abort();
+		}
+		const controller = new AbortController();
+		this.#currentAbort = controller;
+		const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
+
+		try {
+			const response = await fetch(url, { ...options, signal: controller.signal });
+			return response;
+		} finally {
+			clearTimeout(timeoutId);
+			this.#currentAbort = null;
+		}
+	}
+
+	/**
 	 * Get or refresh an access token.
 	 * @returns {Promise<string>}
 	 */
@@ -59,7 +112,7 @@ export class GraphProvider extends EmailProvider {
 			throw new Error("No refresh token available for Graph provider");
 		}
 
-		const response = await fetch(
+		const response = await this.#fetchWithTimeout(
 			`https://login.microsoftonline.com/${this.#credentials.tenantId}/oauth2/v2.0/token`,
 			{
 				method: "POST",
@@ -97,7 +150,7 @@ export class GraphProvider extends EmailProvider {
 					contentType: params.bodyType === "html" ? "HTML" : "Text",
 					content: params.body,
 				},
-				toRecipients: params.to.map((addr) => ({ emailAddress: { address: addr } })),
+				toRecipients: params.to?.map((addr) => ({ emailAddress: { address: addr } })) || [],
 			};
 
 			if (params.cc && params.cc.length > 0) {
@@ -121,7 +174,7 @@ export class GraphProvider extends EmailProvider {
 				}));
 			}
 
-			const response = await fetch(
+			const response = await this.#fetchWithTimeout(
 				`https://graph.microsoft.com/v1.0/users/${this.#userId}/sendMail`,
 				{
 					method: "POST",
@@ -152,7 +205,7 @@ export class GraphProvider extends EmailProvider {
 	async read(params = {}) {
 		try {
 			const token = await this.#getAccessToken();
-			const { folder = "inbox", limit = 20, ...filters } = params;
+			const { folder = "INBOX", limit = 20, ...filters } = params;
 
 			let url = `https://graph.microsoft.com/v1.0/users/${this.#userId}/${folder}/messages?$top=${limit}&$select=id,subject,from,toRecipients,body,receivedDateTime,bodyPreview`;
 
@@ -167,7 +220,7 @@ export class GraphProvider extends EmailProvider {
 				url += `&$filter=${filtersList.join(" and ")}`;
 			}
 
-			const response = await fetch(url, {
+			const response = await this.#fetchWithTimeout(url, {
 				headers: { Authorization: `Bearer ${token}` },
 			});
 
@@ -193,7 +246,7 @@ export class GraphProvider extends EmailProvider {
 		try {
 			const token = await this.#getAccessToken();
 
-			const response = await fetch(
+			const response = await this.#fetchWithTimeout(
 				`https://graph.microsoft.com/v1.0/users/${this.#userId}/messages?$q=${encodeURIComponent(params.query)}&$top=${params.limit || 20}&$select=id,subject,from,toRecipients,body,receivedDateTime`,
 				{
 					headers: { Authorization: `Bearer ${token}` },
@@ -228,10 +281,10 @@ export class GraphProvider extends EmailProvider {
 					contentType: params.bodyType === "html" ? "HTML" : "Text",
 					content: params.body,
 				},
-				toRecipients: params.to.map((addr) => ({ emailAddress: { address: addr } })),
+				toRecipients: params.to?.map((addr) => ({ emailAddress: { address: addr } })) || [],
 			};
 
-			const response = await fetch(
+			const response = await this.#fetchWithTimeout(
 				`https://graph.microsoft.com/v1.0/users/${this.#userId}/messages/drafts`,
 				{
 					method: "POST",
@@ -262,7 +315,7 @@ export class GraphProvider extends EmailProvider {
 		try {
 			const token = await this.#getAccessToken();
 
-			const response = await fetch(
+			const response = await this.#fetchWithTimeout(
 				`https://graph.microsoft.com/v1.0/users/${this.#userId}/messages/drafts?$top=${params.limit || 20}&$select=id,subject,from,body,receivedDateTime`,
 				{
 					headers: { Authorization: `Bearer ${token}` },
@@ -298,10 +351,10 @@ export class GraphProvider extends EmailProvider {
 					contentType: params.bodyType === "html" ? "HTML" : "Text",
 					content: params.body,
 				},
-				toRecipients: params.to?.map((addr) => ({ emailAddress: { address: addr } })),
+				toRecipients: params.to?.map((addr) => ({ emailAddress: { address: addr } })) || [],
 			};
 
-			const response = await fetch(
+			const response = await this.#fetchWithTimeout(
 				`https://graph.microsoft.com/v1.0/users/${this.#userId}/messages/drafts/${draftId}`,
 				{
 					method: "PATCH",
@@ -331,7 +384,7 @@ export class GraphProvider extends EmailProvider {
 		try {
 			const token = await this.#getAccessToken();
 
-			const response = await fetch(
+			const response = await this.#fetchWithTimeout(
 				`https://graph.microsoft.com/v1.0/users/${this.#userId}/messages/drafts/${draftId}`,
 				{
 					method: "DELETE",
@@ -362,33 +415,39 @@ export class GraphProvider extends EmailProvider {
 				case "markRead": {
 					// Graph doesn't have a direct "mark read" — set flag to clean
 					for (const id of messageIds) {
-						await fetch(`https://graph.microsoft.com/v1.0/users/${this.#userId}/messages/${id}`, {
-							method: "PATCH",
-							headers: {
-								Authorization: `Bearer ${token}`,
-								"Content-Type": "application/json",
+						await this.#fetchWithTimeout(
+							`https://graph.microsoft.com/v1.0/users/${this.#userId}/messages/${id}`,
+							{
+								method: "PATCH",
+								headers: {
+									Authorization: `Bearer ${token}`,
+									"Content-Type": "application/json",
+								},
+								body: JSON.stringify({ Flag: { flagStatus: "clean" } }),
 							},
-							body: JSON.stringify({ Flag: { flagStatus: "clean" } }),
-						});
+						);
 					}
 					break;
 				}
 				case "markUnread": {
 					for (const id of messageIds) {
-						await fetch(`https://graph.microsoft.com/v1.0/users/${this.#userId}/messages/${id}`, {
-							method: "PATCH",
-							headers: {
-								Authorization: `Bearer ${token}`,
-								"Content-Type": "application/json",
+						await this.#fetchWithTimeout(
+							`https://graph.microsoft.com/v1.0/users/${this.#userId}/messages/${id}`,
+							{
+								method: "PATCH",
+								headers: {
+									Authorization: `Bearer ${token}`,
+									"Content-Type": "application/json",
+								},
+								body: JSON.stringify({ Flag: { flagStatus: "flagged" } }),
 							},
-							body: JSON.stringify({ Flag: { flagStatus: "flagged" } }),
-						});
+						);
 					}
 					break;
 				}
 				case "archive": {
 					for (const id of messageIds) {
-						await fetch(
+						await this.#fetchWithTimeout(
 							`https://graph.microsoft.com/v1.0/users/${this.#userId}/messages/${id}/move`,
 							{
 								method: "POST",
@@ -405,29 +464,33 @@ export class GraphProvider extends EmailProvider {
 				case "addLabel": {
 					// Graph uses categories for labels
 					for (const id of messageIds) {
-						await fetch(`https://graph.microsoft.com/v1.0/users/${this.#userId}/messages/${id}`, {
-							method: "PATCH",
-							headers: {
-								Authorization: `Bearer ${token}`,
-								"Content-Type": "application/json",
+						await this.#fetchWithTimeout(
+							`https://graph.microsoft.com/v1.0/users/${this.#userId}/messages/${id}`,
+							{
+								method: "PATCH",
+								headers: {
+									Authorization: `Bearer ${token}`,
+									"Content-Type": "application/json",
+								},
+								body: JSON.stringify({ categories: [params.label] }),
 							},
-							body: JSON.stringify({ categories: [...(params.categories || []), params.label] }),
-						});
+						);
 					}
 					break;
 				}
 				case "removeLabel": {
 					for (const id of messageIds) {
-						await fetch(`https://graph.microsoft.com/v1.0/users/${this.#userId}/messages/${id}`, {
-							method: "PATCH",
-							headers: {
-								Authorization: `Bearer ${token}`,
-								"Content-Type": "application/json",
+						await this.#fetchWithTimeout(
+							`https://graph.microsoft.com/v1.0/users/${this.#userId}/messages/${id}`,
+							{
+								method: "PATCH",
+								headers: {
+									Authorization: `Bearer ${token}`,
+									"Content-Type": "application/json",
+								},
+								body: JSON.stringify({ categories: [] }),
 							},
-							body: JSON.stringify({
-								categories: (params.categories || []).filter((l) => l !== params.label),
-							}),
-						});
+						);
 					}
 					break;
 				}

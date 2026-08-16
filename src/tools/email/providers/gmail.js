@@ -17,12 +17,23 @@ export class GmailProvider extends EmailProvider {
 	#userId;
 
 	/**
+	 * @type {string}
+	 */
+	#fromAddress;
+
+	/**
+	 * @type {AbortController|null}
+	 */
+	#currentAbort = null;
+
+	/**
 	 * @param {object} config - Gmail provider configuration
 	 * @param {string} config.clientId - OAuth2 client ID
 	 * @param {string} config.clientSecret - OAuth2 client secret
 	 * @param {string} config.refreshToken - OAuth2 refresh token
 	 * @param {string} [config.accessToken] - Current access token (optional)
 	 * @param {string} [config.userId] - Gmail user ID (default: "me")
+	 * @param {string} [config.fromAddress] - From email address (default: derived from userId)
 	 * @param {string} [config.name] - Provider name
 	 */
 	constructor(config) {
@@ -43,6 +54,50 @@ export class GmailProvider extends EmailProvider {
 
 		this.#gmail = google.gmail({ version: "v1", auth: oauth2Client });
 		this.#userId = config.userId || "me";
+		this.#fromAddress =
+			config.fromAddress || (typeof config.userId === "string" ? config.userId : "");
+	}
+
+	/**
+	 * Validate provider configuration.
+	 * @returns {{ valid: boolean, errors?: string[] }}
+	 */
+	validateConfig() {
+		const errors = [];
+		if (!this.#userId) errors.push("userId is required");
+		if (!this.#fromAddress) errors.push("fromAddress or userId is required");
+		return { valid: errors.length === 0, errors };
+	}
+
+	/**
+	 * Cancel any in-flight request.
+	 */
+	cancel() {
+		if (this.#currentAbort) {
+			this.#currentAbort.abort();
+			this.#currentAbort = null;
+		}
+	}
+
+	/**
+	 * Execute a Gmail API call with timeout.
+	 * @param {Function} fn - Async function to execute
+	 * @returns {Promise<*>}
+	 */
+	async #withTimeout(fn) {
+		if (this.#currentAbort) {
+			this.#currentAbort.abort();
+		}
+		const controller = new AbortController();
+		this.#currentAbort = controller;
+		const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
+
+		try {
+			return await fn({ signal: controller.signal });
+		} finally {
+			clearTimeout(timeoutId);
+			this.#currentAbort = null;
+		}
 	}
 
 	/**
@@ -51,13 +106,15 @@ export class GmailProvider extends EmailProvider {
 	 */
 	async send(params) {
 		try {
-			const message = this.#buildRawMessage(params);
-			const response = await this.#gmail.users.messages.send({
-				userId: this.#userId,
-				resource: {
-					raw: message,
-				},
-			});
+			const message = this.#buildRawMessage({ ...params, from: params.from || this.#fromAddress });
+			const response = await this.#withTimeout(async () =>
+				this.#gmail.users.messages.send({
+					userId: this.#userId,
+					resource: {
+						raw: message,
+					},
+				}),
+			);
 			return {
 				ok: true,
 				messageId: response.data?.id || response.data?.message?.id,
@@ -84,22 +141,26 @@ export class GmailProvider extends EmailProvider {
 			if (filters.dateTo) query += `before:${filters.dateTo} `;
 			if (filters.label) query += `label:${filters.label} `;
 
-			const response = await this.#gmail.users.messages.list({
-				userId: this.#userId,
-				labelIds,
-				maxResults: limit,
-				q: query.trim() || undefined,
-			});
+			const response = await this.#withTimeout(async () =>
+				this.#gmail.users.messages.list({
+					userId: this.#userId,
+					labelIds,
+					maxResults: limit,
+					q: query.trim() || undefined,
+				}),
+			);
 
 			const messages = response.data.messages || [];
 			const result = [];
 
 			for (const msg of messages) {
-				const detail = await this.#gmail.users.messages.get({
-					userId: this.#userId,
-					id: msg.id,
-					format: "full",
-				});
+				const detail = await this.#withTimeout(async () =>
+					this.#gmail.users.messages.get({
+						userId: this.#userId,
+						id: msg.id,
+						format: "full",
+					}),
+				);
 				result.push(this.#normalizeMessage(detail.data));
 			}
 
@@ -115,21 +176,25 @@ export class GmailProvider extends EmailProvider {
 	 */
 	async search(params) {
 		try {
-			const response = await this.#gmail.users.messages.list({
-				userId: this.#userId,
-				q: params.query,
-				maxResults: params.limit || 20,
-			});
+			const response = await this.#withTimeout(async () =>
+				this.#gmail.users.messages.list({
+					userId: this.#userId,
+					q: params.query,
+					maxResults: params.limit || 20,
+				}),
+			);
 
 			const messages = response.data.messages || [];
 			const result = [];
 
 			for (const msg of messages) {
-				const detail = await this.#gmail.users.messages.get({
-					userId: this.#userId,
-					id: msg.id,
-					format: "full",
-				});
+				const detail = await this.#withTimeout(async () =>
+					this.#gmail.users.messages.get({
+						userId: this.#userId,
+						id: msg.id,
+						format: "full",
+					}),
+				);
 				result.push(this.#normalizeMessage(detail.data));
 			}
 
@@ -145,13 +210,15 @@ export class GmailProvider extends EmailProvider {
 	 */
 	async saveDraft(params) {
 		try {
-			const message = this.#buildRawMessage(params);
-			const response = await this.#gmail.users.drafts.create({
-				userId: this.#userId,
-				resource: {
-					message: { raw: message },
-				},
-			});
+			const message = this.#buildRawMessage({ ...params, from: params.from || this.#fromAddress });
+			const response = await this.#withTimeout(async () =>
+				this.#gmail.users.drafts.create({
+					userId: this.#userId,
+					resource: {
+						message: { raw: message },
+					},
+				}),
+			);
 			return { ok: true, draftId: response.data.id };
 		} catch (err) {
 			return { ok: false, error: `Gmail saveDraft failed: ${err.message}` };
@@ -164,19 +231,23 @@ export class GmailProvider extends EmailProvider {
 	 */
 	async listDrafts(params = {}) {
 		try {
-			const response = await this.#gmail.users.drafts.list({
-				userId: this.#userId,
-				maxResults: params.limit || 20,
-			});
+			const response = await this.#withTimeout(async () =>
+				this.#gmail.users.drafts.list({
+					userId: this.#userId,
+					maxResults: params.limit || 20,
+				}),
+			);
 
 			const drafts = response.data.drafts || [];
 			const result = [];
 
 			for (const draft of drafts) {
-				const detail = await this.#gmail.users.drafts.get({
-					userId: this.#userId,
-					id: draft.id,
-				});
+				const detail = await this.#withTimeout(async () =>
+					this.#gmail.users.drafts.get({
+						userId: this.#userId,
+						id: draft.id,
+					}),
+				);
 				result.push({ id: draft.id, ...this.#normalizeMessage(detail.data.message) });
 			}
 
@@ -193,14 +264,16 @@ export class GmailProvider extends EmailProvider {
 	 */
 	async updateDraft(draftId, params) {
 		try {
-			const message = this.#buildRawMessage(params);
-			await this.#gmail.users.drafts.update({
-				userId: this.#userId,
-				id: draftId,
-				resource: {
-					message: { raw: message },
-				},
-			});
+			const message = this.#buildRawMessage({ ...params, from: params.from || this.#fromAddress });
+			await this.#withTimeout(async () =>
+				this.#gmail.users.drafts.update({
+					userId: this.#userId,
+					id: draftId,
+					resource: {
+						message: { raw: message },
+					},
+				}),
+			);
 			return { ok: true, draftId };
 		} catch (err) {
 			return { ok: false, error: `Gmail updateDraft failed: ${err.message}` };
@@ -213,10 +286,12 @@ export class GmailProvider extends EmailProvider {
 	 */
 	async deleteDraft(draftId) {
 		try {
-			await this.#gmail.users.drafts.delete({
-				userId: this.#userId,
-				id: draftId,
-			});
+			await this.#withTimeout(async () =>
+				this.#gmail.users.drafts.delete({
+					userId: this.#userId,
+					id: draftId,
+				}),
+			);
 			return { ok: true };
 		} catch (err) {
 			return { ok: false, error: `Gmail deleteDraft failed: ${err.message}` };
@@ -239,11 +314,13 @@ export class GmailProvider extends EmailProvider {
 						addLabelIds: params.action === "markUnread" ? ["UNREAD"] : [],
 					};
 					for (const id of messageIds) {
-						await this.#gmail.users.messages.modify({
-							userId: this.#userId,
-							id,
-							resource: modifyRequest,
-						});
+						await this.#withTimeout(async () =>
+							this.#gmail.users.messages.modify({
+								userId: this.#userId,
+								id,
+								resource: modifyRequest,
+							}),
+						);
 					}
 					break;
 				}
@@ -254,36 +331,41 @@ export class GmailProvider extends EmailProvider {
 							"CATEGORY_UPDATES",
 							"CATEGORY_SOCIAL",
 							"CATEGORY_PROMOTIONS",
-							"CATEGORY_UPDATES",
 							"CATEGORY_FORUMS",
 						],
 					};
 					for (const id of messageIds) {
-						await this.#gmail.users.messages.modify({
-							userId: this.#userId,
-							id,
-							resource: modifyRequest,
-						});
+						await this.#withTimeout(async () =>
+							this.#gmail.users.messages.modify({
+								userId: this.#userId,
+								id,
+								resource: modifyRequest,
+							}),
+						);
 					}
 					break;
 				}
 				case "addLabel": {
 					for (const id of messageIds) {
-						await this.#gmail.users.messages.modify({
-							userId: this.#userId,
-							id,
-							resource: { addLabelIds: [params.label] },
-						});
+						await this.#withTimeout(async () =>
+							this.#gmail.users.messages.modify({
+								userId: this.#userId,
+								id,
+								resource: { addLabelIds: [params.label] },
+							}),
+						);
 					}
 					break;
 				}
 				case "removeLabel": {
 					for (const id of messageIds) {
-						await this.#gmail.users.messages.modify({
-							userId: this.#userId,
-							id,
-							resource: { removeLabelIds: [params.label] },
-						});
+						await this.#withTimeout(async () =>
+							this.#gmail.users.messages.modify({
+								userId: this.#userId,
+								id,
+								resource: { removeLabelIds: [params.label] },
+							}),
+						);
 					}
 					break;
 				}
@@ -304,8 +386,9 @@ export class GmailProvider extends EmailProvider {
 	 */
 	#buildRawMessage(params) {
 		const { to, subject, body, bodyType = "text", cc = [], bcc = [], attachments = [] } = params;
+		const from = params.from || this.#fromAddress;
 
-		let mime = `From: madz\r\nTo: ${to.join(", ")}\r\n`;
+		let mime = `From: ${from}\r\nTo: ${to.join(", ")}\r\n`;
 		if (cc.length) mime += `Cc: ${cc.join(", ")}\r\n`;
 		if (bcc.length) mime += `Bcc: ${bcc.join(", ")}\r\n`;
 		mime += `Subject: ${subject}\r\n`;
@@ -332,7 +415,8 @@ export class GmailProvider extends EmailProvider {
 			mime += `${body}\r\n`;
 		}
 
-		return Buffer.from(mime).toString("base64").replace(/\+/g, "-").replace(/\//g, "_");
+		// Standard base64 — Gmail API expects standard, not URL-safe encoding
+		return Buffer.from(mime).toString("base64");
 	}
 
 	/**

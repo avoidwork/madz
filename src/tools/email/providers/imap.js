@@ -12,6 +12,11 @@ export class ImapProvider extends EmailProvider {
 	#config;
 
 	/**
+	 * @type {AbortController|null}
+	 */
+	#currentAbort = null;
+
+	/**
 	 * @param {object} config - IMAP provider configuration
 	 * @param {string} config.host - IMAP/SMTP host
 	 * @param {number} [config.port] - IMAP/SMTP port
@@ -29,6 +34,49 @@ export class ImapProvider extends EmailProvider {
 			password: config.password,
 			secure: config.secure ?? true,
 		};
+	}
+
+	/**
+	 * Validate provider configuration.
+	 * @returns {{ valid: boolean, errors?: string[] }}
+	 */
+	validateConfig() {
+		const errors = [];
+		if (!this.#config.host) errors.push("host is required");
+		if (!this.#config.user) errors.push("user is required");
+		if (!this.#config.password) errors.push("password is required");
+		return { valid: errors.length === 0, errors };
+	}
+
+	/**
+	 * Cancel any in-flight request.
+	 */
+	cancel() {
+		if (this.#currentAbort) {
+			this.#currentAbort.abort();
+			this.#currentAbort = null;
+		}
+	}
+
+	/**
+	 * Execute an async operation with timeout.
+	 * @param {Function} fn - Async function to execute
+	 * @returns {Promise<*>}
+	 */
+	async #withTimeout(fn) {
+		if (this.#currentAbort) {
+			this.#currentAbort.abort();
+		}
+		const controller = new AbortController();
+		this.#currentAbort = controller;
+		const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
+
+		try {
+			return await fn({ signal: controller.signal });
+		} finally {
+			clearTimeout(timeoutId);
+			this.#currentAbort = null;
+		}
 	}
 
 	/**
@@ -65,7 +113,7 @@ export class ImapProvider extends EmailProvider {
 				}));
 			}
 
-			const result = await transport.sendMail(mailOptions);
+			const result = await this.#withTimeout(async () => transport.sendMail(mailOptions));
 			return { ok: true, messageId: result.messageId };
 		} catch (err) {
 			return { ok: false, error: `IMAP send failed: ${err.message}` };
@@ -137,7 +185,7 @@ export class ImapProvider extends EmailProvider {
 				},
 			});
 
-			await connection.openBox("INBOX");
+			await connection.openBox(params.folder || "INBOX");
 
 			const searchCriteria = [["TEXT", params.query]];
 			const messages = await connection.search(searchCriteria, { recent: false });
@@ -150,7 +198,7 @@ export class ImapProvider extends EmailProvider {
 				result.push(this.#normalizeMessage(data, msg.attributes.uid));
 			}
 
-			await connection.closeBox("INBOX");
+			await connection.closeBox(params.folder || "INBOX");
 			await connection.disconnect();
 
 			return { ok: true, messages: result };
@@ -165,26 +213,32 @@ export class ImapProvider extends EmailProvider {
 	 */
 	async saveDraft(params) {
 		try {
-			const transport = createTransport({
+			const { default: ImapSimple } = await import("imap-simple");
+			const connection = await ImapSimple.connect({
 				host: this.#config.host,
-				port: this.#config.port || 587,
-				secure: false,
+				port: this.#config.port,
+				secure: this.#config.secure,
 				auth: {
 					user: this.#config.user,
 					pass: this.#config.password,
 				},
 			});
 
-			const mailOptions = {
-				from: this.#config.user,
-				to: params.to.join(", "),
-				subject: params.subject,
-				text: params.bodyType === "html" ? undefined : params.body,
-				html: params.bodyType === "html" ? params.body : undefined,
-			};
+			// Build RFC 822 message
+			const from = params.from || this.#config.user;
+			let rfc822 = `From: ${from}\r\nTo: ${params.to.join(", ")}\r\n`;
+			if (params.cc?.length) rfc822 += `Cc: ${params.cc.join(", ")}\r\n`;
+			if (params.bcc?.length) rfc822 += `Bcc: ${params.bcc.join(", ")}\r\n`;
+			rfc822 += `Subject: ${params.subject}\r\n`;
+			rfc822 += `Date: ${new Date().toUTCString()}\r\n`;
+			rfc822 += `Content-Type: ${params.bodyType === "html" ? "text/html" : "text/plain"}; charset="UTF-8"\r\n\r\n`;
+			rfc822 += params.body;
 
-			const result = await transport.sendMail({ ...mailOptions, envelope: { to: [] } });
-			return { ok: true, draftId: result.messageId };
+			await connection.addMessage("DRAFTS", rfc822);
+			await connection.closeBox("DRAFTS");
+			await connection.disconnect();
+
+			return { ok: true, draftId: "draft-" + Date.now() };
 		} catch (err) {
 			return { ok: false, error: `IMAP saveDraft failed: ${err.message}` };
 		}
@@ -235,26 +289,9 @@ export class ImapProvider extends EmailProvider {
 	 */
 	async updateDraft(draftId, params) {
 		try {
-			const transport = createTransport({
-				host: this.#config.host,
-				port: this.#config.port || 587,
-				secure: false,
-				auth: {
-					user: this.#config.user,
-					pass: this.#config.password,
-				},
-			});
-
-			const mailOptions = {
-				from: this.#config.user,
-				to: params.to?.join(", "),
-				subject: params.subject,
-				text: params.bodyType === "html" ? undefined : params.body,
-				html: params.bodyType === "html" ? params.body : undefined,
-			};
-
-			await transport.sendMail({ ...mailOptions, envelope: { to: [] } });
-			return { ok: true, draftId };
+			// IMAP doesn't support updating drafts in place — delete and recreate
+			await this.deleteDraft(draftId);
+			return this.saveDraft(params);
 		} catch (err) {
 			return { ok: false, error: `IMAP updateDraft failed: ${err.message}` };
 		}
@@ -278,7 +315,8 @@ export class ImapProvider extends EmailProvider {
 			});
 
 			await connection.openBox("DRAFTS");
-			await connection.expunge({ uid: draftId });
+			await connection.setFlags({ uid: [draftId] }, ["\\Deleted"]);
+			await connection.expunge();
 			await connection.closeBox("DRAFTS");
 			await connection.disconnect();
 

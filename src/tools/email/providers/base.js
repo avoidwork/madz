@@ -14,11 +14,17 @@ export class EmailProvider {
 	type;
 
 	/**
+	 * @type {number}
+	 */
+	timeoutMs;
+
+	/**
 	 * @param {object} config - Provider configuration
 	 */
 	constructor(config) {
 		this.name = config.name || "unnamed";
 		this.type = config.type || "unknown";
+		this.timeoutMs = config.timeoutMs || 30000; // 30s default
 	}
 
 	/**
