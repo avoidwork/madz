@@ -84,3 +84,46 @@ const _FalProviderConfigSchema = z.object({
 });
 
 export const ProvidersSchema = z.object({}).passthrough();
+
+// --- Email Provider Config Schemas ---
+
+export const GmailProviderSchema = z.object({
+	type: z.literal("gmail").default("gmail"),
+	clientId: z.string().optional().default(""),
+	clientSecret: z.string().optional().default(""),
+	refreshToken: z.string().optional().default(""),
+	accessToken: z.string().optional().default(""),
+	refreshTokenUrl: z.string().optional().default("https://oauth2.googleapis.com/token"),
+});
+
+export const GraphProviderSchema = z.object({
+	type: z.literal("graph").default("graph"),
+	tenantId: z.string().optional().default(""),
+	clientId: z.string().optional().default(""),
+	clientSecret: z.string().optional().default(""),
+	accessToken: z.string().optional().default(""),
+	refreshToken: z.string().optional().default(""),
+	refreshTokenUrl: z.string().optional().default("https://login.microsoftonline.com/{tenantId}/oauth2/v2.0/token"),
+});
+
+export const ImapProviderSchema = z.object({
+	type: z.literal("imap").default("imap"),
+	host: z.string().default("imap.gmail.com"),
+	port: z.number().int().positive().default(993),
+	secure: z.boolean().default(true),
+	user: z.string().min(1),
+	password: z.string().min(1),
+});
+
+export const EmailProviderSchema = z.discriminatedUnion("type", [
+	GmailProviderSchema,
+	GraphProviderSchema,
+	ImapProviderSchema,
+]);
+
+export const EmailConfigSchema = z.object({
+	provider: EmailProviderSchema,
+	defaultFolder: z.string().optional().default("INBOX"),
+	maxAttachments: z.number().int().positive().default(10),
+	maxAttachmentSize: z.string().optional().default("25mb"),
+});

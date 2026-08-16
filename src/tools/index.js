@@ -19,6 +19,16 @@ import { pptxTool } from "./fileExtract/pptx.js";
 import { xlsxTool } from "./fileExtract/xlsx.js";
 import { pdfTool } from "./fileExtract/pdf.js";
 import { reflectionSessions } from "./reflection.js";
+import {
+	emailRead,
+	emailSend,
+	emailDraftSave,
+	emailDraftList,
+	emailDraftUpdate,
+	emailDraftDelete,
+	emailOrganize,
+	emailSearch,
+} from "./email/tools.js";
 
 /**
  * Maps tool names to required permission scopes.
@@ -48,6 +58,14 @@ export const TOOL_PERMISSIONS = {
 	xlsx: ["filesystem:read"],
 	pdf: ["filesystem:read"],
 	reflectionSessions: ["filesystem:read"],
+	emailRead: ["network:outbound"],
+	emailSend: ["network:outbound"],
+	emailDraftSave: ["network:outbound"],
+	emailDraftList: ["network:outbound"],
+	emailDraftUpdate: ["network:outbound"],
+	emailDraftDelete: ["network:outbound"],
+	emailOrganize: ["network:outbound"],
+	emailSearch: ["network:outbound"],
 };
 
 /**
@@ -108,6 +126,14 @@ export const TOOL_CLASSIFICATIONS = {
 	xlsx: ["search", "research", "coding", "documentation", "debug"],
 	pdf: ["search", "research", "coding", "documentation", "debug"],
 	reflectionSessions: ["orchestrator"],
+	emailRead: ["search", "research", "coding", "documentation"],
+	emailSend: ["documentation", "coding"],
+	emailDraftSave: ["documentation", "coding"],
+	emailDraftList: ["search", "research"],
+	emailDraftUpdate: ["documentation", "coding"],
+	emailDraftDelete: ["debug", "coding"],
+	emailOrganize: ["debug", "coding"],
+	emailSearch: ["search", "research", "coding"],
 };
 
 /**
@@ -170,6 +196,14 @@ export const TOOLS = {
 	xlsx: xlsxTool,
 	pdf: pdfTool,
 	reflectionSessions,
+	emailRead,
+	emailSend,
+	emailDraftSave,
+	emailDraftList,
+	emailDraftUpdate,
+	emailDraftDelete,
+	emailOrganize,
+	emailSearch,
 };
 
 /**
