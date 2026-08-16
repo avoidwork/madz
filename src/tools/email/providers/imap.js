@@ -27,7 +27,7 @@ export class ImapProvider extends EmailProvider {
 			port: config.port || (config.secure ? 993 : 143),
 			user: config.user,
 			password: config.password,
-			secure: config.secure || false,
+			secure: config.secure ?? true,
 		};
 	}
 
