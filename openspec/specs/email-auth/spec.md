@@ -4,23 +4,23 @@
 TBD - created by archiving change email-integration. Update Purpose after archive.
 ## Requirements
 ### Requirement: OAuth2 credential storage
-The system SHALL store OAuth2 access and refresh tokens in the provider config with encryption at rest using AES-256-GCM.
+The system SHALL store OAuth2 access and refresh tokens in environment variables only — never in config files or on disk.
 
 #### Scenario: Store OAuth2 credentials securely
 - **WHEN** OAuth2 tokens are obtained from a provider
-- **THEN** they are encrypted and stored in the provider config under a provider-specific key
+- **THEN** they are loaded from environment variables (EMAIL_GMAIL_REFRESH_TOKEN, EMAIL_GRAPH_REFRESH_TOKEN)
 
 #### Scenario: Retrieve OAuth2 credentials
 - **WHEN** a provider needs its tokens
-- **THEN** the system decrypts and returns the stored tokens
+- **THEN** the system reads them from environment variables
 
 #### Scenario: Rotate OAuth2 credentials
 - **WHEN** a new refresh token is obtained during token refresh
-- **THEN** the system updates the stored credentials atomically
+- **THEN** the system updates the environment variable or provider instance
 
 #### Scenario: Clear OAuth2 credentials on logout
 - **WHEN** the provider is disconnected or credentials are invalidated
-- **THEN** the system removes the stored tokens from the provider config
+- **THEN** the system clears the environment variable or provider instance
 
 ### Requirement: IMAP credential storage
 The system SHALL store IMAP credentials (host, port, username, password) in the provider config with encryption at rest using AES-256-GCM.
