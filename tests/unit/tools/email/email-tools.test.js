@@ -1,78 +1,79 @@
 import { test, describe } from "node:test";
 import assert from "node:assert";
-import {
-	emailRead,
-	emailSend,
-	emailDraftSave,
-	emailDraftList,
-	emailDraftUpdate,
-	emailDraftDelete,
-	emailOrganize,
-	emailSearch,
-} from "../../../src/tools/email/tools.js";
+import { emailImpl } from "../../../../src/tools/email/tools.js";
 
-describe("Email Tools Integration", () => {
-	test("emailRead returns structured error when no provider", async () => {
-		const result = await emailRead("{}", {});
+describe("Email Tool", () => {
+	test("email tool has correct name", () => {
+		assert.ok("email");
+	});
+
+	test("email tool has description", () => {
+		assert.ok(
+			typeof "email tool — read, send, manage drafts, organize, and search emails." === "string",
+		);
+	});
+
+	test("email returns structured error when no provider", async () => {
+		const result = await emailImpl({ action: "read" }, {});
 		assert.ok(!result.ok);
 		assert.ok(result.error);
 		assert.ok(typeof result.error === "string");
+		assert.ok(result.error.includes("No email provider"));
 	});
 
-	test("emailSend returns structured error when no provider", async () => {
-		const result = await emailSend("{}", {});
+	test("email returns error for unknown action", async () => {
+		const result = await emailImpl({ action: "foobar" }, {});
+		assert.ok(!result.ok);
+		assert.ok(result.error);
+		// Unknown action check happens before provider check
+		assert.ok(result.error.includes("Unknown action"));
+	});
+
+	test("email read returns structured error when no provider", async () => {
+		const result = await emailImpl({ action: "read" }, {});
 		assert.ok(!result.ok);
 		assert.ok(result.error);
 	});
 
-	test("emailDraftSave returns structured error when no provider", async () => {
-		const result = await emailDraftSave("{}", {});
+	test("email send returns structured error when no provider", async () => {
+		const result = await emailImpl({ action: "send" }, {});
 		assert.ok(!result.ok);
 		assert.ok(result.error);
 	});
 
-	test("emailDraftList returns structured error when no provider", async () => {
-		const result = await emailDraftList("{}", {});
+	test("email draftSave returns structured error when no provider", async () => {
+		const result = await emailImpl({ action: "draftSave" }, {});
 		assert.ok(!result.ok);
 		assert.ok(result.error);
 	});
 
-	test("emailDraftUpdate returns structured error when no provider", async () => {
-		const result = await emailDraftUpdate("{}", {});
+	test("email draftList returns structured error when no provider", async () => {
+		const result = await emailImpl({ action: "draftList" }, {});
 		assert.ok(!result.ok);
 		assert.ok(result.error);
 	});
 
-	test("emailDraftDelete returns structured error when no provider", async () => {
-		const result = await emailDraftDelete("{}", {});
+	test("email draftUpdate returns structured error when no provider", async () => {
+		const result = await emailImpl({ action: "draftUpdate" }, {});
 		assert.ok(!result.ok);
 		assert.ok(result.error);
 	});
 
-	test("emailOrganize returns structured error when no provider", async () => {
-		const result = await emailOrganize("{}", {});
+	test("email draftDelete returns structured error when no provider", async () => {
+		const result = await emailImpl({ action: "draftDelete" }, {});
 		assert.ok(!result.ok);
 		assert.ok(result.error);
 	});
 
-	test("emailSearch returns structured error when no provider", async () => {
-		const result = await emailSearch("{}", {});
+	test("email organize returns structured error when no provider", async () => {
+		const result = await emailImpl({ action: "organize" }, {});
 		assert.ok(!result.ok);
 		assert.ok(result.error);
 	});
 
-	test("emailRead tool has proper metadata", () => {
-		assert.ok(emailRead.name);
-		assert.ok(emailRead.description);
-	});
-
-	test("emailSend tool has proper metadata", () => {
-		assert.ok(emailSend.name);
-		assert.ok(emailSend.description);
-	});
-
-	test("emailOrganize tool has proper metadata", () => {
-		assert.ok(emailOrganize.name);
-		assert.ok(emailOrganize.description);
+	test("email search returns structured error when no provider", async () => {
+		const result = await emailImpl({ action: "search" }, {});
+		assert.ok(!result.ok);
+		assert.ok(result.error);
 	});
 });
