@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ProvidersSchema, SearchConfigSchema } from "./schemas/providers.js";
+import { ProvidersSchema, SearchConfigSchema, EmailConfigSchema } from "./schemas/providers.js";
 import { SandboxScopeSchema } from "./schemas/sandbox.js";
 import { MemorySchema } from "./schemas/memory.js";
 import { TelemetrySchema } from "./schemas/telemetry.js";
@@ -13,6 +13,7 @@ import { PersistenceSchema } from "./schemas/persistence.js";
 export {
 	ProvidersSchema,
 	SearchConfigSchema,
+	EmailConfigSchema,
 	SandboxScopeSchema,
 	MemorySchema,
 	TelemetrySchema,
@@ -27,6 +28,7 @@ export {
 
 export const ConfigSchema = z.object({
 	providers: ProvidersSchema,
+	email: EmailConfigSchema.default({}),
 	sandbox: SandboxScopeSchema,
 	search: SearchConfigSchema.default({}),
 	memory: MemorySchema,
@@ -42,6 +44,12 @@ export const ConfigSchema = z.object({
 // Default values exported for merging
 export const DEFAULT_CONFIG = {
 	providers: {},
+	email: {
+		provider: { type: "gmail" },
+		defaultFolder: "INBOX",
+		maxAttachments: 10,
+		maxAttachmentSize: "25mb",
+	},
 	search: {
 		exa: { apiKey: "" },
 		firecrawl: { apiKey: "" },

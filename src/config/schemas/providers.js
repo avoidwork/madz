@@ -89,33 +89,33 @@ export const ProvidersSchema = z.object({}).passthrough();
 
 export const GmailProviderSchema = z.object({
 	type: z.literal("gmail").default("gmail"),
-	clientId: z.string().optional().default(""),
-	clientSecret: z.string().optional().default(""),
-	refreshToken: z.string().optional().default(""),
-	accessToken: z.string().optional().default(""),
-	refreshTokenUrl: z.string().optional().default("https://oauth2.googleapis.com/token"),
+	clientId: z.string().nullable().default(""),
+	clientSecret: z.string().nullable().default(""),
+	refreshToken: z.string().nullable().default(""),
+	accessToken: z.string().nullable().default(""),
+	refreshTokenUrl: z.string().nullable().default("https://oauth2.googleapis.com/token"),
 });
 
 export const GraphProviderSchema = z.object({
 	type: z.literal("graph").default("graph"),
-	tenantId: z.string().optional().default(""),
-	clientId: z.string().optional().default(""),
-	clientSecret: z.string().optional().default(""),
-	accessToken: z.string().optional().default(""),
-	refreshToken: z.string().optional().default(""),
+	tenantId: z.string().nullable().default(""),
+	clientId: z.string().nullable().default(""),
+	clientSecret: z.string().nullable().default(""),
+	accessToken: z.string().nullable().default(""),
+	refreshToken: z.string().nullable().default(""),
 	refreshTokenUrl: z
 		.string()
-		.optional()
+		.nullable()
 		.default("https://login.microsoftonline.com/{tenantId}/oauth2/v2.0/token"),
 });
 
 export const ImapProviderSchema = z.object({
 	type: z.literal("imap").default("imap"),
-	host: z.string().default("imap.gmail.com"),
+	host: z.string().nullable().default("imap.gmail.com"),
 	port: z.number().int().positive().default(993),
-	secure: z.boolean().default(true),
-	user: z.string().min(1),
-	password: z.string().min(1),
+	secure: z.boolean().nullable().default(true),
+	user: z.string().nullable().default(""),
+	password: z.string().nullable().default(""),
 });
 
 export const EmailProviderSchema = z.discriminatedUnion("type", [
@@ -126,7 +126,7 @@ export const EmailProviderSchema = z.discriminatedUnion("type", [
 
 export const EmailConfigSchema = z.object({
 	provider: EmailProviderSchema,
-	defaultFolder: z.string().optional().default("INBOX"),
+	defaultFolder: z.string().nullable().default("INBOX"),
 	maxAttachments: z.number().int().positive().default(10),
-	maxAttachmentSize: z.string().optional().default("25mb"),
+	maxAttachmentSize: z.string().nullable().default("25mb"),
 });

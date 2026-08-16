@@ -10,6 +10,23 @@ providers:
     maxTokens: 4096
     rateLimit:
       requestsPerMinute: 120
+email:
+  provider:
+    type: gmail
+    clientId:
+    clientSecret:
+    refreshToken:
+    accessToken:
+    refreshTokenUrl:
+    tenantId:
+    host:
+    port:
+    secure:
+    user:
+    password:
+  defaultFolder: INBOX
+  maxAttachments: 10
+  maxAttachmentSize: 25mb
 sandbox:
   paths:
     - "./"
@@ -31,6 +48,21 @@ sandbox:
       - NODE_ENV
       - OPENAI_API_KEY
       - AUTH_API_KEY
+      - EMAIL_PROVIDER_TYPE
+      - EMAIL_PROVIDER_CLIENT_ID
+      - EMAIL_PROVIDER_CLIENT_SECRET
+      - EMAIL_PROVIDER_REFRESH_TOKEN
+      - EMAIL_PROVIDER_ACCESS_TOKEN
+      - EMAIL_PROVIDER_REFRESH_TOKEN_URL
+      - EMAIL_PROVIDER_TENANT_ID
+      - EMAIL_PROVIDER_HOST
+      - EMAIL_PROVIDER_PORT
+      - EMAIL_PROVIDER_SECURE
+      - EMAIL_PROVIDER_USER
+      - EMAIL_PROVIDER_PASSWORD
+      - EMAIL_DEFAULT_FOLDER
+      - EMAIL_MAX_ATTACHMENTS
+      - EMAIL_MAX_ATTACHMENT_SIZE
   permissions:
     - filesystem:read
     - filesystem:write
