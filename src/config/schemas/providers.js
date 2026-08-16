@@ -87,42 +87,23 @@ export const ProvidersSchema = z.object({}).passthrough();
 
 // --- Email Provider Config Schemas ---
 
-export const GmailProviderSchema = z
-	.object({
-		type: z.literal("gmail").default("gmail"),
-		clientId: z.string().nullable().default(""),
-		clientSecret: z.string().nullable().default(""),
-		refreshToken: z.string().nullable().default(""),
-		accessToken: z.string().nullable().default(""),
-		refreshTokenUrl: z.string().nullable().default("https://oauth2.googleapis.com/token"),
-	})
-	.passthrough();
+export const GmailProviderSchema = z.object({
+	type: z.literal("gmail").default("gmail"),
+	userId: z.string().nullable().default("me"),
+	fromAddress: z.string().nullable().default(""),
+});
 
-export const GraphProviderSchema = z
-	.object({
-		type: z.literal("graph").default("graph"),
-		tenantId: z.string().nullable().default(""),
-		clientId: z.string().nullable().default(""),
-		clientSecret: z.string().nullable().default(""),
-		accessToken: z.string().nullable().default(""),
-		refreshToken: z.string().nullable().default(""),
-		refreshTokenUrl: z
-			.string()
-			.nullable()
-			.default("https://login.microsoftonline.com/{tenantId}/oauth2/v2.0/token"),
-	})
-	.passthrough();
+export const GraphProviderSchema = z.object({
+	type: z.literal("graph").default("graph"),
+	userId: z.string().nullable().default("me"),
+});
 
-export const ImapProviderSchema = z
-	.object({
-		type: z.literal("imap").default("imap"),
-		host: z.string().nullable().default("imap.gmail.com"),
-		port: z.number().int().positive().default(993),
-		secure: z.boolean().nullable().default(true),
-		user: z.string().nullable().default(""),
-		password: z.string().nullable().default(""),
-	})
-	.passthrough();
+export const ImapProviderSchema = z.object({
+	type: z.literal("imap").default("imap"),
+	host: z.string().nullable().default("imap.gmail.com"),
+	port: z.number().int().positive().default(993),
+	secure: z.boolean().nullable().default(true),
+});
 
 export const EmailProviderSchema = z.discriminatedUnion("type", [
 	GmailProviderSchema,

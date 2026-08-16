@@ -13,11 +13,7 @@ providers:
 email:
   provider:
     type: gmail
-    clientId:
-    clientSecret:
-    refreshToken:
-    accessToken:
-    refreshTokenUrl:
+    userId: me
   defaultFolder: INBOX
   maxAttachments: 10
   maxAttachmentSize: 25mb

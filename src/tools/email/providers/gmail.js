@@ -33,10 +33,6 @@ export class GmailProvider extends EmailProvider {
 
 	/**
 	 * @param {object} config - Gmail provider configuration
-	 * @param {string} config.clientId - OAuth2 client ID
-	 * @param {string} config.clientSecret - OAuth2 client secret
-	 * @param {string} config.refreshToken - OAuth2 refresh token
-	 * @param {string} [config.accessToken] - Current access token (optional)
 	 * @param {string} [config.userId] - Gmail user ID (default: "me")
 	 * @param {string} [config.fromAddress] - From email address (default: derived from userId)
 	 * @param {string} [config.name] - Provider name
@@ -44,17 +40,29 @@ export class GmailProvider extends EmailProvider {
 	constructor(config) {
 		super({ ...config, type: "gmail" });
 
+		// Credentials from env vars only — never from config
+		const clientId = process.env.EMAIL_GMAIL_CLIENT_ID;
+		const clientSecret = process.env.EMAIL_GMAIL_CLIENT_SECRET;
+		const refreshToken = process.env.EMAIL_GMAIL_REFRESH_TOKEN;
+		const accessToken = process.env.EMAIL_GMAIL_ACCESS_TOKEN;
+
+		if (!clientId || !clientSecret || !refreshToken) {
+			throw new Error(
+				"Gmail provider requires EMAIL_GMAIL_CLIENT_ID, EMAIL_GMAIL_CLIENT_SECRET, and EMAIL_GMAIL_REFRESH_TOKEN env vars",
+			);
+		}
+
 		this.#oauth2 = new google.auth.OAuth2({
-			clientId: config.clientId,
-			clientSecret: config.clientSecret,
+			clientId,
+			clientSecret,
 			redirectUri: "http://localhost",
 		});
 
-		if (config.refreshToken) {
-			this.#oauth2.setCredentials({ refresh_token: config.refreshToken });
+		if (refreshToken) {
+			this.#oauth2.setCredentials({ refresh_token: refreshToken });
 		}
-		if (config.accessToken) {
-			this.#oauth2.setCredentials({ access_token: config.accessToken });
+		if (accessToken) {
+			this.#oauth2.setCredentials({ access_token: accessToken });
 		}
 
 		this.#gmail = google.gmail({ version: "v1", auth: this.#oauth2 });
@@ -83,13 +91,16 @@ export class GmailProvider extends EmailProvider {
 	}
 
 	/**
-	 * Validate provider configuration.
+	 * Validate provider configuration by checking required env vars.
 	 * @returns {{ valid: boolean, errors?: string[] }}
 	 */
 	validateConfig() {
 		const errors = [];
-		if (!this.#userId) errors.push("userId is required");
-		if (!this.#fromAddress) errors.push("fromAddress or userId is required");
+		if (!process.env.EMAIL_GMAIL_CLIENT_ID) errors.push("EMAIL_GMAIL_CLIENT_ID is required");
+		if (!process.env.EMAIL_GMAIL_CLIENT_SECRET)
+			errors.push("EMAIL_GMAIL_CLIENT_SECRET is required");
+		if (!process.env.EMAIL_GMAIL_REFRESH_TOKEN)
+			errors.push("EMAIL_GMAIL_REFRESH_TOKEN is required");
 		return { valid: errors.length === 0, errors };
 	}
 

@@ -27,42 +27,50 @@ export class GraphProvider extends EmailProvider {
 
 	/**
 	 * @param {object} config - Graph provider configuration
-	 * @param {string} config.clientId - OAuth2 client ID
-	 * @param {string} config.clientSecret - OAuth2 client secret
-	 * @param {string} config.refreshToken - OAuth2 refresh token
-	 * @param {string} config.tenantId - Azure AD tenant ID
-	 * @param {string} [config.accessToken] - Current access token (optional)
 	 * @param {string} [config.userId] - User email (default: "me")
 	 * @param {string} [config.name] - Provider name
 	 */
 	constructor(config) {
 		super({ ...config, type: "graph" });
 
+		// Credentials from env vars only — never from config
+		const clientId = process.env.EMAIL_GRAPH_CLIENT_ID;
+		const clientSecret = process.env.EMAIL_GRAPH_CLIENT_SECRET;
+		const refreshToken = process.env.EMAIL_GRAPH_REFRESH_TOKEN;
+		const accessToken = process.env.EMAIL_GRAPH_ACCESS_TOKEN;
+		const tenantId = process.env.EMAIL_GRAPH_TENANT_ID;
+
+		if (!clientId || !clientSecret || !refreshToken || !tenantId) {
+			throw new Error(
+				"Graph provider requires EMAIL_GRAPH_CLIENT_ID, EMAIL_GRAPH_CLIENT_SECRET, EMAIL_GRAPH_REFRESH_TOKEN, and EMAIL_GRAPH_TENANT_ID env vars",
+			);
+		}
+
 		this.#userId = config.userId || "me";
 		this.#credentials = {
-			clientId: config.clientId,
-			clientSecret: config.clientSecret,
-			refreshToken: config.refreshToken,
-			tenantId: config.tenantId,
+			clientId,
+			clientSecret,
+			refreshToken,
+			tenantId,
 		};
 
-		if (config.accessToken) {
-			this.#accessToken = config.accessToken;
+		if (accessToken) {
+			this.#accessToken = accessToken;
 		}
 	}
 
 	/**
-	 * Validate provider configuration.
+	 * Validate provider configuration by checking required env vars.
 	 * @returns {{ valid: boolean, errors?: string[] }}
 	 */
 	validateConfig() {
 		const errors = [];
-		if (!this.#credentials.clientId) errors.push("clientId is required");
-		if (!this.#credentials.clientSecret) errors.push("clientSecret is required");
-		if (!this.#credentials.tenantId) errors.push("tenantId is required");
-		if (!this.#credentials.refreshToken && !this.#accessToken) {
-			errors.push("refreshToken or accessToken is required");
-		}
+		if (!process.env.EMAIL_GRAPH_CLIENT_ID) errors.push("EMAIL_GRAPH_CLIENT_ID is required");
+		if (!process.env.EMAIL_GRAPH_CLIENT_SECRET)
+			errors.push("EMAIL_GRAPH_CLIENT_SECRET is required");
+		if (!process.env.EMAIL_GRAPH_REFRESH_TOKEN)
+			errors.push("EMAIL_GRAPH_REFRESH_TOKEN is required");
+		if (!process.env.EMAIL_GRAPH_TENANT_ID) errors.push("EMAIL_GRAPH_TENANT_ID is required");
 		return { valid: errors.length === 0, errors };
 	}
 

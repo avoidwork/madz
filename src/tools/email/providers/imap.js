@@ -18,33 +18,42 @@ export class ImapProvider extends EmailProvider {
 
 	/**
 	 * @param {object} config - IMAP provider configuration
-	 * @param {string} config.host - IMAP/SMTP host
+	 * @param {string} [config.host] - IMAP/SMTP host (default: from env or imap.gmail.com)
 	 * @param {number} [config.port] - IMAP/SMTP port
-	 * @param {string} config.user - Email username
-	 * @param {string} config.password - Email password or app password
 	 * @param {boolean} [config.secure] - Use SSL/TLS
 	 * @param {string} [config.name] - Provider name
 	 */
 	constructor(config) {
 		super({ ...config, type: "imap" });
+
+		// Credentials from env vars only — never from config
+		const host = config.host || process.env.EMAIL_IMAP_HOST || "imap.gmail.com";
+		const port = config.port || parseInt(process.env.EMAIL_IMAP_PORT || "993", 10);
+		const user = process.env.EMAIL_IMAP_USER;
+		const password = process.env.EMAIL_IMAP_PASSWORD;
+		const secure = config.secure ?? process.env.EMAIL_IMAP_SECURE !== "false";
+
+		if (!user || !password) {
+			throw new Error("IMAP provider requires EMAIL_IMAP_USER and EMAIL_IMAP_PASSWORD env vars");
+		}
+
 		this.#config = {
-			host: config.host,
-			port: config.port || (config.secure ? 993 : 143),
-			user: config.user,
-			password: config.password,
-			secure: config.secure ?? true,
+			host,
+			port,
+			user,
+			password,
+			secure,
 		};
 	}
 
 	/**
-	 * Validate provider configuration.
+	 * Validate provider configuration by checking required env vars.
 	 * @returns {{ valid: boolean, errors?: string[] }}
 	 */
 	validateConfig() {
 		const errors = [];
-		if (!this.#config.host) errors.push("host is required");
-		if (!this.#config.user) errors.push("user is required");
-		if (!this.#config.password) errors.push("password is required");
+		if (!process.env.EMAIL_IMAP_USER) errors.push("EMAIL_IMAP_USER is required");
+		if (!process.env.EMAIL_IMAP_PASSWORD) errors.push("EMAIL_IMAP_PASSWORD is required");
 		return { valid: errors.length === 0, errors };
 	}
 

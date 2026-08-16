@@ -45,7 +45,7 @@ export function getActiveProvider(config) {
 }
 
 /**
- * Validate email provider configuration.
+ * Validate email provider configuration by checking required env vars.
  * @param {object} config - Provider configuration
  * @returns {{ valid: boolean, errors?: string[] }}
  */
@@ -59,20 +59,23 @@ export function validateProviderConfig(config) {
 
 	switch (config.type) {
 		case "gmail":
-			if (!config.clientId) errors.push("Gmail: clientId is required");
-			if (!config.clientSecret) errors.push("Gmail: clientSecret is required");
-			if (!config.refreshToken) errors.push("Gmail: refreshToken is required");
+			if (!process.env.EMAIL_GMAIL_CLIENT_ID) errors.push("EMAIL_GMAIL_CLIENT_ID is required");
+			if (!process.env.EMAIL_GMAIL_CLIENT_SECRET)
+				errors.push("EMAIL_GMAIL_CLIENT_SECRET is required");
+			if (!process.env.EMAIL_GMAIL_REFRESH_TOKEN)
+				errors.push("EMAIL_GMAIL_REFRESH_TOKEN is required");
 			break;
 		case "graph":
-			if (!config.clientId) errors.push("Graph: clientId is required");
-			if (!config.clientSecret) errors.push("Graph: clientSecret is required");
-			if (!config.tenantId) errors.push("Graph: tenantId is required");
-			if (!config.refreshToken) errors.push("Graph: refreshToken is required");
+			if (!process.env.EMAIL_GRAPH_CLIENT_ID) errors.push("EMAIL_GRAPH_CLIENT_ID is required");
+			if (!process.env.EMAIL_GRAPH_CLIENT_SECRET)
+				errors.push("EMAIL_GRAPH_CLIENT_SECRET is required");
+			if (!process.env.EMAIL_GRAPH_REFRESH_TOKEN)
+				errors.push("EMAIL_GRAPH_REFRESH_TOKEN is required");
+			if (!process.env.EMAIL_GRAPH_TENANT_ID) errors.push("EMAIL_GRAPH_TENANT_ID is required");
 			break;
 		case "imap":
-			if (!config.host) errors.push("IMAP: host is required");
-			if (!config.user) errors.push("IMAP: user is required");
-			if (!config.password) errors.push("IMAP: password is required");
+			if (!process.env.EMAIL_IMAP_USER) errors.push("EMAIL_IMAP_USER is required");
+			if (!process.env.EMAIL_IMAP_PASSWORD) errors.push("EMAIL_IMAP_PASSWORD is required");
 			break;
 		default:
 			errors.push(`Unknown provider type: ${config.type}`);
