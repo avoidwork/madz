@@ -33,7 +33,7 @@ export class EmailProvider {
 	 * @param {Array<{filename: string, content: string, contentType?: string}>} [params.attachments] - Attachments
 	 * @returns {Promise<{ ok: boolean, messageId?: string, error?: string }>}
 	 */
-	async send(params) {
+	async send(_params) {
 		throw new Error(`send() not implemented for ${this.type} provider`);
 	}
 
@@ -50,7 +50,7 @@ export class EmailProvider {
 	 * @param {string} [params.label] - Filter by label
 	 * @returns {Promise<{ ok: boolean, messages?: object[], error?: string }>}
 	 */
-	async read(params = {}) {
+	async read(_params = {}) {
 		throw new Error(`read() not implemented for ${this.type} provider`);
 	}
 
@@ -61,7 +61,7 @@ export class EmailProvider {
 	 * @param {number} [params.limit=20] - Max results
 	 * @returns {Promise<{ ok: boolean, messages?: object[], error?: string }>}
 	 */
-	async search(params) {
+	async search(_params) {
 		throw new Error(`search() not implemented for ${this.type} provider`);
 	}
 
@@ -74,7 +74,7 @@ export class EmailProvider {
 	 * @param {string} [params.bodyType="text"] - "text" or "html"
 	 * @returns {Promise<{ ok: boolean, draftId?: string, error?: string }>}
 	 */
-	async saveDraft(params) {
+	async saveDraft(_params) {
 		throw new Error(`saveDraft() not implemented for ${this.type} provider`);
 	}
 
@@ -84,7 +84,7 @@ export class EmailProvider {
 	 * @param {number} [params.limit=20] - Max drafts
 	 * @returns {Promise<{ ok: boolean, drafts?: object[], error?: string }>}
 	 */
-	async listDrafts(params = {}) {
+	async listDrafts(_params = {}) {
 		throw new Error(`listDrafts() not implemented for ${this.type} provider`);
 	}
 
@@ -97,7 +97,7 @@ export class EmailProvider {
 	 * @param {string} [params.body] - Draft body
 	 * @returns {Promise<{ ok: boolean, draftId?: string, error?: string }>}
 	 */
-	async updateDraft(draftId, params) {
+	async updateDraft(_draftId, _params) {
 		throw new Error(`updateDraft() not implemented for ${this.type} provider`);
 	}
 
@@ -106,7 +106,7 @@ export class EmailProvider {
 	 * @param {string} draftId - Draft identifier
 	 * @returns {Promise<{ ok: boolean, error?: string }>}
 	 */
-	async deleteDraft(draftId) {
+	async deleteDraft(_draftId) {
 		throw new Error(`deleteDraft() not implemented for ${this.type} provider`);
 	}
 
@@ -118,7 +118,7 @@ export class EmailProvider {
 	 * @param {string} [params.label] - Label name (for addLabel/removeLabel)
 	 * @returns {Promise<{ ok: boolean, error?: string }>}
 	 */
-	async organize(params) {
+	async organize(_params) {
 		throw new Error(`organize() not implemented for ${this.type} provider`);
 	}
 

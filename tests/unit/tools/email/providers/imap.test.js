@@ -24,13 +24,21 @@ describe("ImapProvider", () => {
 
 	test("send() should return { ok: false } when nodemailer is not installed", async () => {
 		const provider = new ImapProvider({ user: "user", password: "pass" });
-		const result = await provider.send({ to: ["test@example.com"], subject: "Test", body: "Hello" });
+		const result = await provider.send({
+			to: ["test@example.com"],
+			subject: "Test",
+			body: "Hello",
+		});
 		assert.strictEqual(result.ok, false);
 	});
 
 	test("saveDraft() should return { ok: false } when imap-simple is not installed", async () => {
 		const provider = new ImapProvider({ user: "user", password: "pass" });
-		const result = await provider.saveDraft({ to: ["test@example.com"], subject: "Test", body: "Hello" });
+		const result = await provider.saveDraft({
+			to: ["test@example.com"],
+			subject: "Test",
+			body: "Hello",
+		});
 		assert.strictEqual(result.ok, false);
 	});
 

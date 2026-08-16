@@ -1,6 +1,15 @@
 import { test, describe } from "node:test";
 import assert from "node:assert";
-import { emailRead, emailSend, emailDraftSave, emailDraftList, emailDraftUpdate, emailDraftDelete, emailOrganize, emailSearch } from "../../../src/tools/email/tools.js";
+import {
+	emailRead,
+	emailSend,
+	emailDraftSave,
+	emailDraftList,
+	emailDraftUpdate,
+	emailDraftDelete,
+	emailOrganize,
+	emailSearch,
+} from "../../../src/tools/email/tools.js";
 
 describe("Email Tools", () => {
 	test("emailRead should have a valid name", () => {

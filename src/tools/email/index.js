@@ -1,14 +1,13 @@
 import { GmailProvider } from "./providers/gmail.js";
 import { GraphProvider } from "./providers/graph.js";
 import { ImapProvider } from "./providers/imap.js";
-import { EmailProvider } from "./providers/base.js";
 
 /**
  * Email provider factory.
  * Selects the appropriate provider based on configuration.
  * @param {object} config - Provider configuration
  * @param {string} config.type - Provider type: "gmail", "graph", or "imap"
- * @returns {EmailProvider}
+ * @returns {import("./providers/base.js").default}
  */
 export function createEmailProvider(config) {
 	if (!config || !config.type) {

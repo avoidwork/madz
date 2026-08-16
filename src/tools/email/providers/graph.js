@@ -71,7 +71,7 @@ export class GraphProvider extends EmailProvider {
 					grant_type: "refresh_token",
 					scope: "https://graph.microsoft.com/.default",
 				}),
-			}
+			},
 		);
 
 		if (!response.ok) {
@@ -130,7 +130,7 @@ export class GraphProvider extends EmailProvider {
 						"Content-Type": "application/json",
 					},
 					body: JSON.stringify({ message, saveToSentItems: true }),
-				}
+				},
 			);
 
 			if (!response.ok) {
@@ -197,7 +197,7 @@ export class GraphProvider extends EmailProvider {
 				`https://graph.microsoft.com/v1.0/users/${this.#userId}/messages?$q=${encodeURIComponent(params.query)}&$top=${params.limit || 20}&$select=id,subject,from,toRecipients,body,receivedDateTime`,
 				{
 					headers: { Authorization: `Bearer ${token}` },
-				}
+				},
 			);
 
 			if (!response.ok) {
@@ -240,7 +240,7 @@ export class GraphProvider extends EmailProvider {
 						"Content-Type": "application/json",
 					},
 					body: JSON.stringify(message),
-				}
+				},
 			);
 
 			if (!response.ok) {
@@ -266,7 +266,7 @@ export class GraphProvider extends EmailProvider {
 				`https://graph.microsoft.com/v1.0/users/${this.#userId}/messages/drafts?$top=${params.limit || 20}&$select=id,subject,from,body,receivedDateTime`,
 				{
 					headers: { Authorization: `Bearer ${token}` },
-				}
+				},
 			);
 
 			if (!response.ok) {
@@ -310,7 +310,7 @@ export class GraphProvider extends EmailProvider {
 						"Content-Type": "application/json",
 					},
 					body: JSON.stringify(message),
-				}
+				},
 			);
 
 			if (!response.ok) {
@@ -336,7 +336,7 @@ export class GraphProvider extends EmailProvider {
 				{
 					method: "DELETE",
 					headers: { Authorization: `Bearer ${token}` },
-				}
+				},
 			);
 
 			if (!response.ok) {
@@ -362,33 +362,27 @@ export class GraphProvider extends EmailProvider {
 				case "markRead": {
 					// Graph doesn't have a direct "mark read" — set flag to clean
 					for (const id of messageIds) {
-						await fetch(
-							`https://graph.microsoft.com/v1.0/users/${this.#userId}/messages/${id}`,
-							{
-								method: "PATCH",
-								headers: {
-									Authorization: `Bearer ${token}`,
-									"Content-Type": "application/json",
-								},
-								body: JSON.stringify({ Flag: { flagStatus: "clean" } }),
-							}
-						);
+						await fetch(`https://graph.microsoft.com/v1.0/users/${this.#userId}/messages/${id}`, {
+							method: "PATCH",
+							headers: {
+								Authorization: `Bearer ${token}`,
+								"Content-Type": "application/json",
+							},
+							body: JSON.stringify({ Flag: { flagStatus: "clean" } }),
+						});
 					}
 					break;
 				}
 				case "markUnread": {
 					for (const id of messageIds) {
-						await fetch(
-							`https://graph.microsoft.com/v1.0/users/${this.#userId}/messages/${id}`,
-							{
-								method: "PATCH",
-								headers: {
-									Authorization: `Bearer ${token}`,
-									"Content-Type": "application/json",
-								},
-								body: JSON.stringify({ Flag: { flagStatus: "flagged" } }),
-							}
-						);
+						await fetch(`https://graph.microsoft.com/v1.0/users/${this.#userId}/messages/${id}`, {
+							method: "PATCH",
+							headers: {
+								Authorization: `Bearer ${token}`,
+								"Content-Type": "application/json",
+							},
+							body: JSON.stringify({ Flag: { flagStatus: "flagged" } }),
+						});
 					}
 					break;
 				}
@@ -403,7 +397,7 @@ export class GraphProvider extends EmailProvider {
 									"Content-Type": "application/json",
 								},
 								body: JSON.stringify({ destinationId: "deletedmessages" }),
-							}
+							},
 						);
 					}
 					break;
@@ -411,35 +405,29 @@ export class GraphProvider extends EmailProvider {
 				case "addLabel": {
 					// Graph uses categories for labels
 					for (const id of messageIds) {
-						await fetch(
-							`https://graph.microsoft.com/v1.0/users/${this.#userId}/messages/${id}`,
-							{
-								method: "PATCH",
-								headers: {
-									Authorization: `Bearer ${token}`,
-									"Content-Type": "application/json",
-								},
-								body: JSON.stringify({ categories: [...(params.categories || []), params.label] }),
-							}
-						);
+						await fetch(`https://graph.microsoft.com/v1.0/users/${this.#userId}/messages/${id}`, {
+							method: "PATCH",
+							headers: {
+								Authorization: `Bearer ${token}`,
+								"Content-Type": "application/json",
+							},
+							body: JSON.stringify({ categories: [...(params.categories || []), params.label] }),
+						});
 					}
 					break;
 				}
 				case "removeLabel": {
 					for (const id of messageIds) {
-						await fetch(
-							`https://graph.microsoft.com/v1.0/users/${this.#userId}/messages/${id}`,
-							{
-								method: "PATCH",
-								headers: {
-									Authorization: `Bearer ${token}`,
-									"Content-Type": "application/json",
-								},
-								body: JSON.stringify({
-									categories: (params.categories || []).filter((l) => l !== params.label),
-								}),
-							}
-						);
+						await fetch(`https://graph.microsoft.com/v1.0/users/${this.#userId}/messages/${id}`, {
+							method: "PATCH",
+							headers: {
+								Authorization: `Bearer ${token}`,
+								"Content-Type": "application/json",
+							},
+							body: JSON.stringify({
+								categories: (params.categories || []).filter((l) => l !== params.label),
+							}),
+						});
 					}
 					break;
 				}

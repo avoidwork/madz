@@ -103,7 +103,10 @@ export const GraphProviderSchema = z.object({
 	clientSecret: z.string().optional().default(""),
 	accessToken: z.string().optional().default(""),
 	refreshToken: z.string().optional().default(""),
-	refreshTokenUrl: z.string().optional().default("https://login.microsoftonline.com/{tenantId}/oauth2/v2.0/token"),
+	refreshTokenUrl: z
+		.string()
+		.optional()
+		.default("https://login.microsoftonline.com/{tenantId}/oauth2/v2.0/token"),
 });
 
 export const ImapProviderSchema = z.object({

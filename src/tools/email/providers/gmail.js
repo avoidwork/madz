@@ -248,7 +248,16 @@ export class GmailProvider extends EmailProvider {
 					break;
 				}
 				case "archive": {
-					const modifyRequest = { removeLabelIds: ["INBOX", "CATEGORY_UPDATES", "CATEGORY_SOCIAL", "CATEGORY_PROMOTIONS", "CATEGORY_UPDATES", "CATEGORY_FORUMS"] };
+					const modifyRequest = {
+						removeLabelIds: [
+							"INBOX",
+							"CATEGORY_UPDATES",
+							"CATEGORY_SOCIAL",
+							"CATEGORY_PROMOTIONS",
+							"CATEGORY_UPDATES",
+							"CATEGORY_FORUMS",
+						],
+					};
 					for (const id of messageIds) {
 						await this.#gmail.users.messages.modify({
 							userId: this.#userId,
@@ -347,15 +356,24 @@ export class GmailProvider extends EmailProvider {
 		if (payload.parts) {
 			for (const part of payload.parts) {
 				if (part.mimeType === "text/plain" && part.body?.data) {
-					body = Buffer.from(part.body.data.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf-8");
+					body = Buffer.from(
+						part.body.data.replace(/-/g, "+").replace(/_/g, "/"),
+						"base64",
+					).toString("utf-8");
 					break;
 				}
 				if (part.mimeType === "text/html" && part.body?.data && !body) {
-					body = Buffer.from(part.body.data.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf-8");
+					body = Buffer.from(
+						part.body.data.replace(/-/g, "+").replace(/_/g, "/"),
+						"base64",
+					).toString("utf-8");
 				}
 			}
 		} else if (payload.body?.data) {
-			body = Buffer.from(payload.body.data.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf-8");
+			body = Buffer.from(
+				payload.body.data.replace(/-/g, "+").replace(/_/g, "/"),
+				"base64",
+			).toString("utf-8");
 		}
 
 		return {

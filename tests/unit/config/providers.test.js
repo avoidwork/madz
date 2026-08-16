@@ -94,17 +94,31 @@ describe("Email Provider Config Schemas", () => {
 
 	describe("EmailProviderSchema (discriminated union)", () => {
 		test("should accept Gmail provider", () => {
-			const result = EmailProviderSchema.safeParse({ type: "gmail", clientId: "id", clientSecret: "secret", refreshToken: "token" });
+			const result = EmailProviderSchema.safeParse({
+				type: "gmail",
+				clientId: "id",
+				clientSecret: "secret",
+				refreshToken: "token",
+			});
 			assert.strictEqual(result.success, true);
 		});
 
 		test("should accept Graph provider", () => {
-			const result = EmailProviderSchema.safeParse({ type: "graph", clientId: "id", clientSecret: "secret", refreshToken: "token" });
+			const result = EmailProviderSchema.safeParse({
+				type: "graph",
+				clientId: "id",
+				clientSecret: "secret",
+				refreshToken: "token",
+			});
 			assert.strictEqual(result.success, true);
 		});
 
 		test("should accept IMAP provider", () => {
-			const result = EmailProviderSchema.safeParse({ type: "imap", user: "user", password: "pass" });
+			const result = EmailProviderSchema.safeParse({
+				type: "imap",
+				user: "user",
+				password: "pass",
+			});
 			assert.strictEqual(result.success, true);
 		});
 
