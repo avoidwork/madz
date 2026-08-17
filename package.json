@@ -73,7 +73,7 @@
     "cli-highlight": "^2.1.11",
     "cli-table3": "^0.6.5",
     "cron-parser": "^5.7.0",
-    "deepagents": "^1.12.2",
+    "deepagents": "^1.12.4",
     "googleapis": "^174.0.1",
     "imap-simple": "^5.1.0",
     "ink": "^7.1.1",
