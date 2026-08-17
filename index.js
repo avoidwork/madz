@@ -323,8 +323,20 @@ if (isMain) {
 			{
 				// Restore terminal with newline when app exits
 				onExit: async () => {
-					const shutdown = (await import("./src/session/index.js")).handleShutdown;
-					if (shutdown) await shutdown();
+					const { handleShutdown } = await import("./src/session/index.js");
+					if (handleShutdown)
+						await handleShutdown({
+							saveSession: () =>
+								saveSession(
+									config.cwd + "/memory/sessions/",
+									sessionState.getConversation(),
+									sessionId,
+								),
+							onShutdown: async () => {
+								if (gcManager) gcManager.stop();
+								if (shutdownFn) await shutdownFn();
+							},
+						});
 					await flushLogger();
 					process.stdout.write("\n");
 				},
