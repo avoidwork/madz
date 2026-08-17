@@ -17,6 +17,7 @@ import {
 	ORCHESTRATOR_TOOLS,
 	TOOLS,
 } from "../tools/index.js";
+import { createEmailProvider, validateProviderConfig } from "../tools/email/index.js";
 import { createCoreBackend } from "./backends/coreBackend.js";
 import { createContextBackend } from "./backends/contextBackend.js";
 import { getAllAgents } from "./definitions/index.js";
@@ -151,6 +152,33 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	const providerName = Object.keys(config.providers)[0] || "openai";
 	const providerConfig = config.providers[providerName] || {};
 	const model = createChatModel(providerConfig);
+
+	// Validate email provider config at startup (non-blocking)
+	if (config.email?.provider?.type) {
+		const validation = validateProviderConfig(config.email.provider);
+		if (!validation.valid) {
+			logger.warn(
+				{ errors: validation.errors },
+				`[email] Provider config validation failed: ${validation.errors.join("; ")}`,
+			);
+		} else {
+			// Attempt to create the provider to catch runtime errors early
+			try {
+				const provider = createEmailProvider(config.email.provider);
+				const configValidation = provider.validateConfig();
+				if (!configValidation.valid) {
+					logger.warn(
+						{ errors: configValidation.errors },
+						`[email] Provider instance validation failed: ${configValidation.errors.join("; ")}`,
+					);
+				} else {
+					logger.info(`[email] Provider "${config.email.provider.type}" validated successfully`);
+				}
+			} catch (err) {
+				logger.warn(`[email] Provider creation failed: ${err.message}`);
+			}
+		}
+	}
 
 	// Register harness profile for subagents using config-derived model identifier
 	const modelIdentifier = `${providerName}:${providerConfig.model}`;

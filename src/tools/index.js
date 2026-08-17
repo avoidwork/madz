@@ -19,6 +19,7 @@ import { pptxTool } from "./fileExtract/pptx.js";
 import { xlsxTool } from "./fileExtract/xlsx.js";
 import { pdfTool } from "./fileExtract/pdf.js";
 import { reflectionSessions } from "./reflection.js";
+import { email } from "./email/tools.js";
 
 /**
  * Maps tool names to required permission scopes.
@@ -48,6 +49,7 @@ export const TOOL_PERMISSIONS = {
 	xlsx: ["filesystem:read"],
 	pdf: ["filesystem:read"],
 	reflectionSessions: ["filesystem:read"],
+	email: ["network:outbound"],
 };
 
 /**
@@ -108,6 +110,7 @@ export const TOOL_CLASSIFICATIONS = {
 	xlsx: ["search", "research", "coding", "documentation", "debug"],
 	pdf: ["search", "research", "coding", "documentation", "debug"],
 	reflectionSessions: ["orchestrator"],
+	email: ["search", "research", "coding", "documentation", "debug"],
 };
 
 /**
@@ -170,6 +173,7 @@ export const TOOLS = {
 	xlsx: xlsxTool,
 	pdf: pdfTool,
 	reflectionSessions,
+	email,
 };
 
 /**

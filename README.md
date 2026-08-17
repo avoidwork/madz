@@ -293,6 +293,27 @@ All configuration is controlled via environment variables in the `docker run` co
 | `CUSTOM_SEARCH_URL_FIELD`         | _(empty)_ | Custom search URL field             |
 | `CUSTOM_SEARCH_DESCRIPTION_FIELD` | _(empty)_ | Custom search description field     |
 
+**Optional — Email:**
+
+| Variable                              | Default   | Description                         |
+| ------------------------------------- | --------- | ----------------------------------- |
+| `EMAIL_GMAIL_CLIENT_ID`               | _(empty)_ | Gmail OAuth2 client ID              |
+| `EMAIL_GMAIL_CLIENT_SECRET`           | _(empty)_ | Gmail OAuth2 client secret          |
+| `EMAIL_GMAIL_REFRESH_TOKEN`           | _(empty)_ | Gmail OAuth2 refresh token          |
+| `EMAIL_GMAIL_ACCESS_TOKEN`            | _(empty)_ | Gmail OAuth2 access token (optional) |
+| `EMAIL_GRAPH_CLIENT_ID`               | _(empty)_ | MS Graph OAuth2 client ID           |
+| `EMAIL_GRAPH_CLIENT_SECRET`           | _(empty)_ | MS Graph OAuth2 client secret       |
+| `EMAIL_GRAPH_REFRESH_TOKEN`           | _(empty)_ | MS Graph OAuth2 refresh token       |
+| `EMAIL_GRAPH_TENANT_ID`               | _(empty)_ | MS Graph Azure AD tenant ID         |
+| `EMAIL_GRAPH_ACCESS_TOKEN`            | _(empty)_ | MS Graph OAuth2 access token (optional) |
+| `EMAIL_IMAP_HOST`                     | `imap.gmail.com` | IMAP server hostname            |
+| `EMAIL_IMAP_PORT`                     | `993`     | IMAP server port                  |
+| `EMAIL_IMAP_USER`                     | _(empty)_ | IMAP username                     |
+| `EMAIL_IMAP_PASSWORD`                 | _(empty)_ | IMAP password / app password        |
+| `EMAIL_IMAP_SECURE`                   | `true`    | Use SSL/TLS for IMAP connection     |
+| `EMAIL_SMTP_HOST`                     | _(same as IMAP)_ | SMTP server hostname for sending |
+| `EMAIL_SMTP_PORT`                     | `587`     | SMTP server port (STARTTLS)       |
+
 **Optional — Sandbox:**
 
 | Variable                       | Default                    | Description                                |
@@ -472,6 +493,7 @@ All built-in tools are defined in `src/tools/` and registered as LangChain tools
 | `visionAnalyze` | Analyze images via OpenAI multimodal LLM. Accepts URL or base64 data URI. |
 | `webExtract` | Extract readable text content from a web page URL. Supports summarization for large pages. |
 | `webSearch` | Search the web via DuckDuckGo, Google, Bing, SearXNG, or Custom endpoints. |
+| `email` | Read, send, manage drafts, organize, and search emails. Actions: `read`, `send`, `draftSave`, `draftList`, `draftUpdate`, `draftDelete`, `organize`, `search`. Requires email provider credentials via environment variables. |
 
 **Deep Agents tools:** Core filesystem operations (`readFile`, `writeFile`, `patch`, `searchFiles`) and task management (`todo`) are provided by [deepagentsjs](https://github.com/langchain-ai/deepagentsjs) and are not listed as madz-built-in tools.
 

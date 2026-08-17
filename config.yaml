@@ -10,6 +10,13 @@ providers:
     maxTokens: 4096
     rateLimit:
       requestsPerMinute: 120
+email:
+  provider:
+    type: gmail
+    userId: me
+  defaultFolder: INBOX
+  maxAttachments: 10
+  maxAttachmentSize: 25mb
 sandbox:
   paths:
     - "./"
@@ -31,6 +38,16 @@ sandbox:
       - NODE_ENV
       - OPENAI_API_KEY
       - AUTH_API_KEY
+      - EMAIL_IMAP_HOST
+      - EMAIL_IMAP_PORT
+      - EMAIL_IMAP_SECURE
+      - EMAIL_IMAP_USER
+      - EMAIL_IMAP_PASSWORD
+      - EMAIL_SMTP_HOST
+      - EMAIL_SMTP_PORT
+      - EMAIL_DEFAULT_FOLDER
+      - EMAIL_MAX_ATTACHMENTS
+      - EMAIL_MAX_ATTACHMENT_SIZE
   permissions:
     - filesystem:read
     - filesystem:write

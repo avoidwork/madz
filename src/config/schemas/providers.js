@@ -84,3 +84,38 @@ const _FalProviderConfigSchema = z.object({
 });
 
 export const ProvidersSchema = z.object({}).passthrough();
+
+// --- Email Provider Config Schemas ---
+
+export const GmailProviderSchema = z.object({
+	type: z.literal("gmail").default("gmail"),
+	userId: z.string().nullable().default("me"),
+	fromAddress: z.string().nullable().default(""),
+});
+
+export const GraphProviderSchema = z.object({
+	type: z.literal("graph").default("graph"),
+	userId: z.string().nullable().default("me"),
+});
+
+export const ImapProviderSchema = z.object({
+	type: z.literal("imap").default("imap"),
+	imapHost: z.string().nullable().default("imap.gmail.com"),
+	imapPort: z.number().int().positive().default(993),
+	imapSecure: z.boolean().nullable().default(true),
+	smtpHost: z.string().nullable().default(""),
+	smtpPort: z.number().int().positive().default(587),
+});
+
+export const EmailProviderSchema = z.discriminatedUnion("type", [
+	GmailProviderSchema,
+	GraphProviderSchema,
+	ImapProviderSchema,
+]);
+
+export const EmailConfigSchema = z.object({
+	provider: EmailProviderSchema,
+	defaultFolder: z.string().nullable().default("INBOX"),
+	maxAttachments: z.number().int().positive().default(10),
+	maxAttachmentSize: z.string().nullable().default("25mb"),
+});
