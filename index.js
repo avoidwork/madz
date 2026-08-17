@@ -264,7 +264,7 @@ async function invokeSkill(skillName, input = {}) {
 // Shared shutdown logic — called on signals and in non-interactive mode
 const runShutdown = async () => {
 	await saveSession(
-		config.cwd + "/" + "memory/sessions/",
+		"memory/sessions/",
 		sessionState.getConversation(),
 		sessionState.getThreadId(),
 	);
@@ -366,4 +366,6 @@ export {
 	setConfigValue,
 	loadContext,
 	readMemoryFile,
+};
+,
 };
