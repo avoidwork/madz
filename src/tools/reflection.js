@@ -107,6 +107,7 @@ export async function reflectionImpl(input, options) {
 
 	const cutoff = new Date();
 	cutoff.setDate(cutoff.getDate() - windowDays);
+	cutoff.setHours(0, 0, 0, 0);
 
 	// Use find to sort files by mtime (newest first), process all within window
 	let output;
