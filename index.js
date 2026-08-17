@@ -98,7 +98,7 @@ await ensureSkillsDir(config.cwd + "/" + "skills/");
 await registry.discover();
 
 // Initialize memory system
-const { writeMemoryFile, readMemoryFile, loadContext } = await import("./src/memory/index.js");
+const { readMemoryFile, loadContext } = await import("./src/memory/index.js");
 
 // Initialize GC manager (if enabled)
 let gcManager = null;
@@ -224,17 +224,6 @@ async function handleConversation(message, sessionId = "") {
 	sessionState.addExchange({ role: "user", content: message });
 	sessionState.addExchange({ role: "assistant", content: response.content });
 
-	// Persist to memory
-	writeMemoryFile(
-		"memory/sessions/",
-		`Conversation ${new Date().toISOString()}`,
-		{
-			provider: response.provider,
-			sessionId,
-		},
-		JSON.stringify(sessionState.getConversation(), null, 2),
-	);
-
 	return response;
 }
 
@@ -358,6 +347,5 @@ export {
 	scheduleManager,
 	setConfigValue,
 	loadContext,
-	writeMemoryFile,
 	readMemoryFile,
 };
