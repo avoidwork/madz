@@ -18,31 +18,39 @@ export class ImapProvider extends EmailProvider {
 
 	/**
 	 * @param {object} config - IMAP provider configuration
-	 * @param {string} [config.host] - IMAP/SMTP host (default: from env or imap.gmail.com)
-	 * @param {number} [config.port] - IMAP/SMTP port
-	 * @param {boolean} [config.secure] - Use SSL/TLS
+	 * @param {string} [config.imapHost] - IMAP host (default: from env or imap.gmail.com)
+	 * @param {number} [config.imapPort] - IMAP port
+	 * @param {boolean} [config.imapSecure] - Use SSL/TLS for IMAP
+	 * @param {string} [config.smtpHost] - SMTP host (default: from env or same as IMAP host)
+	 * @param {number} [config.smtpPort] - SMTP port
 	 * @param {string} [config.name] - Provider name
 	 */
 	constructor(config) {
 		super({ ...config, type: "imap" });
 
 		// Credentials from env vars only — never from config
-		const host = config.host || process.env.EMAIL_IMAP_HOST || "imap.gmail.com";
-		const port = config.port || parseInt(process.env.EMAIL_IMAP_PORT || "993", 10);
+		const imapHost = config.imapHost || process.env.EMAIL_IMAP_HOST || "imap.gmail.com";
+		const imapPort = config.imapPort || parseInt(process.env.EMAIL_IMAP_PORT || "993", 10);
+		const imapSecure = config.imapSecure ?? process.env.EMAIL_IMAP_SECURE !== "false";
+		const smtpHost = config.smtpHost || process.env.EMAIL_SMTP_HOST || imapHost;
+		const smtpPort = config.smtpPort || parseInt(process.env.EMAIL_SMTP_PORT || "587", 10);
 		const user = process.env.EMAIL_IMAP_USER;
 		const password = process.env.EMAIL_IMAP_PASSWORD;
-		const secure = config.secure ?? process.env.EMAIL_IMAP_SECURE !== "false";
 
 		if (!user || !password) {
-			throw new Error("IMAP provider requires EMAIL_IMAP_USER and EMAIL_IMAP_PASSWORD env vars");
+			throw new Error(
+				"IMAP provider requires EMAIL_IMAP_USER and EMAIL_IMAP_PASSWORD env vars",
+			);
 		}
 
 		this.#config = {
-			host,
-			port,
+			imapHost,
+			imapPort,
+			imapSecure,
+			smtpHost,
+			smtpPort,
 			user,
 			password,
-			secure,
 		};
 	}
 
@@ -112,8 +120,8 @@ export class ImapProvider extends EmailProvider {
 	async send(params) {
 		try {
 			const transport = createTransport({
-				host: this.#config.host,
-				port: this.#config.port || 587,
+				host: this.#config.smtpHost,
+				port: this.#config.smtpPort,
 				secure: false,
 				auth: {
 					user: this.#config.user,
@@ -156,9 +164,9 @@ export class ImapProvider extends EmailProvider {
 
 			const { default: ImapSimple } = await import("imap-simple");
 			const imapConfig = {
-				host: this.#config.host,
-				port: this.#config.port,
-				secure: this.#config.secure,
+				host: this.#config.imapHost,
+				port: this.#config.imapPort,
+				secure: this.#config.imapSecure,
 				auth: {
 					user: this.#config.user,
 					pass: this.#config.password,
@@ -204,9 +212,9 @@ export class ImapProvider extends EmailProvider {
 		try {
 			const { default: ImapSimple } = await import("imap-simple");
 			const connection = await ImapSimple.connect({
-				host: this.#config.host,
-				port: this.#config.port,
-				secure: this.#config.secure,
+				host: this.#config.imapHost,
+				port: this.#config.imapPort,
+				secure: this.#config.imapSecure,
 				auth: {
 					user: this.#config.user,
 					pass: this.#config.password,
@@ -246,9 +254,9 @@ export class ImapProvider extends EmailProvider {
 		try {
 			const { default: ImapSimple } = await import("imap-simple");
 			const connection = await ImapSimple.connect({
-				host: this.#config.host,
-				port: this.#config.port,
-				secure: this.#config.secure,
+				host: this.#config.imapHost,
+				port: this.#config.imapPort,
+				secure: this.#config.imapSecure,
 				auth: {
 					user: this.#config.user,
 					pass: this.#config.password,
@@ -285,9 +293,9 @@ export class ImapProvider extends EmailProvider {
 		try {
 			const { default: ImapSimple } = await import("imap-simple");
 			const connection = await ImapSimple.connect({
-				host: this.#config.host,
-				port: this.#config.port,
-				secure: this.#config.secure,
+				host: this.#config.imapHost,
+				port: this.#config.imapPort,
+				secure: this.#config.imapSecure,
 				auth: {
 					user: this.#config.user,
 					pass: this.#config.password,
@@ -340,9 +348,9 @@ export class ImapProvider extends EmailProvider {
 		try {
 			const { default: ImapSimple } = await import("imap-simple");
 			const connection = await ImapSimple.connect({
-				host: this.#config.host,
-				port: this.#config.port,
-				secure: this.#config.secure,
+				host: this.#config.imapHost,
+				port: this.#config.imapPort,
+				secure: this.#config.imapSecure,
 				auth: {
 					user: this.#config.user,
 					pass: this.#config.password,
@@ -369,9 +377,9 @@ export class ImapProvider extends EmailProvider {
 		try {
 			const { default: ImapSimple } = await import("imap-simple");
 			const connection = await ImapSimple.connect({
-				host: this.#config.host,
-				port: this.#config.port,
-				secure: this.#config.secure,
+				host: this.#config.imapHost,
+				port: this.#config.imapPort,
+				secure: this.#config.imapSecure,
 				auth: {
 					user: this.#config.user,
 					pass: this.#config.password,

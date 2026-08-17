@@ -311,6 +311,8 @@ All configuration is controlled via environment variables in the `docker run` co
 | `EMAIL_IMAP_USER`                     | _(empty)_ | IMAP username                     |
 | `EMAIL_IMAP_PASSWORD`                 | _(empty)_ | IMAP password / app password        |
 | `EMAIL_IMAP_SECURE`                   | `true`    | Use SSL/TLS for IMAP connection     |
+| `EMAIL_SMTP_HOST`                     | _(same as IMAP)_ | SMTP server hostname for sending |
+| `EMAIL_SMTP_PORT`                     | `587`     | SMTP server port (STARTTLS)       |
 
 **Optional — Sandbox:**
 

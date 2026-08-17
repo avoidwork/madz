@@ -100,9 +100,11 @@ export const GraphProviderSchema = z.object({
 
 export const ImapProviderSchema = z.object({
 	type: z.literal("imap").default("imap"),
-	host: z.string().nullable().default("imap.gmail.com"),
-	port: z.number().int().positive().default(993),
-	secure: z.boolean().nullable().default(true),
+	imapHost: z.string().nullable().default("imap.gmail.com"),
+	imapPort: z.number().int().positive().default(993),
+	imapSecure: z.boolean().nullable().default(true),
+	smtpHost: z.string().nullable().default(""),
+	smtpPort: z.number().int().positive().default(587),
 });
 
 export const EmailProviderSchema = z.discriminatedUnion("type", [
