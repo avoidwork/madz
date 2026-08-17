@@ -367,5 +367,3 @@ export {
 	loadContext,
 	readMemoryFile,
 };
-,
-};
