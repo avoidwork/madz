@@ -38,9 +38,7 @@ export class ImapProvider extends EmailProvider {
 		const password = process.env.EMAIL_IMAP_PASSWORD;
 
 		if (!user || !password) {
-			throw new Error(
-				"IMAP provider requires EMAIL_IMAP_USER and EMAIL_IMAP_PASSWORD env vars",
-			);
+			throw new Error("IMAP provider requires EMAIL_IMAP_USER and EMAIL_IMAP_PASSWORD env vars");
 		}
 
 		this.#config = {
