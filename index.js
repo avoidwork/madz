@@ -139,7 +139,7 @@ const scheduleManager = await ScheduleManager.loadFromDisk(config.cwd + "/" + sc
 
 // Create or restore session
 const providerName = Object.keys(config.providers)[0] || "openai";
-const { sessionId, state: initialState } = createSession({
+const { state: initialState } = createSession({
 	provider: providerName,
 });
 const sessionState = new SessionStateManager(initialState);
@@ -355,7 +355,6 @@ if (isMain) {
 // Export for testing and TUI integration
 export {
 	config,
-	sessionId,
 	sessionState,
 	registry,
 	tracer,
