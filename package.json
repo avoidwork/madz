@@ -68,7 +68,7 @@
     "@opentelemetry/sdk-node": "^0.221.0",
     "adm-zip": "^0.5.16",
     "ansi-escapes": "^7.3.0",
-    "ansi-regex": "^6.2.2",
+    "ansi-regex": "^6.3.0",
     "chalk": "^6.0.0",
     "cli-highlight": "^2.1.11",
     "cli-table3": "^0.6.5",
