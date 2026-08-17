@@ -224,6 +224,13 @@ async function handleConversation(message, sessionId = "") {
 	sessionState.addExchange({ role: "user", content: message });
 	sessionState.addExchange({ role: "assistant", content: response.content });
 
+	// Persist session after each exchange
+	await saveSession(
+		config.cwd + "/" + "memory/sessions/",
+		sessionState.getConversation(),
+		sessionId,
+	);
+
 	return response;
 }
 
