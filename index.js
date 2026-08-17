@@ -228,7 +228,7 @@ async function handleConversation(message, sessionId = "") {
 	await saveSession(
 		config.cwd + "/" + "memory/sessions/",
 		sessionState.getConversation(),
-		sessionId,
+		sessionState.getThreadId(),
 	);
 
 	return response;
@@ -266,7 +266,7 @@ const runShutdown = async () => {
 	await saveSession(
 		config.cwd + "/" + "memory/sessions/",
 		sessionState.getConversation(),
-		sessionId,
+		sessionState.getThreadId(),
 	);
 
 	if (gcManager) {
@@ -321,7 +321,7 @@ if (isMain) {
 					await saveSession(
 						config.cwd + "/" + "memory/sessions/",
 						sessionState.getConversation(),
-						sessionId,
+						sessionState.getThreadId(),
 					),
 				gcManager: gcManager ? gcManager.onActivity.bind(gcManager) : null,
 				gcTrigger: gcTrace,
@@ -337,7 +337,7 @@ if (isMain) {
 								saveSession(
 									config.cwd + "/memory/sessions/",
 									sessionState.getConversation(),
-									sessionId,
+									sessionState.getThreadId(),
 								),
 							onShutdown: async () => {
 								if (gcManager) gcManager.stop();
