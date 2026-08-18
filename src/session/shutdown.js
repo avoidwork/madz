@@ -5,12 +5,13 @@ import { flush, logger } from "../shared/logger.js";
  * @param {Object} options - Shutdown configuration
  * @param {Function} [options.flushTelemetry] - Telemetry flush function
  * @param {Function} [options.saveSession] - Session save function
+ * @param {Array} [options.saveSessionArgs] - Arguments to pass to saveSession (sessionsDir, conversation, threadId, cwdParam)
  * @param {Function} [options.onShutdown] - Additional cleanup callback
  * @returns {Promise<void>}
  * @throws {Error} If saveSession throws
  */
 export async function handleShutdown(options = {}) {
-	const { flushTelemetry, saveSession, onShutdown } = options;
+	const { flushTelemetry, saveSession, saveSessionArgs, onShutdown } = options;
 
 	try {
 		if (flushTelemetry) {
@@ -21,7 +22,7 @@ export async function handleShutdown(options = {}) {
 	}
 
 	if (saveSession) {
-		await saveSession();
+		await saveSession(...(saveSessionArgs || []));
 	}
 	if (onShutdown) {
 		await onShutdown();
