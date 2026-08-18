@@ -11,13 +11,15 @@ const cwd = loadConfig().cwd;
  * @returns {{ sessionId: string, state: Object }}
  */
 export function createSession(config = {}) {
+	const sessionId = randomUUID();
 	return {
-		sessionId: randomUUID(),
+		sessionId,
 		state: {
 			provider: config.provider || "openai",
 			conversation: [],
 			contextWindow: config.contextWindow || 20,
 			skills: config.skills || [],
+			threadId: sessionId,
 		},
 		createdAt: new Date().toISOString(),
 		updatedAt: new Date().toISOString(),
