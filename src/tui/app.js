@@ -532,7 +532,10 @@ export default function App({
 		gcManager?.();
 	};
 
-	const handleQuit = () => {
+	const handleQuit = async () => {
+		if (onSaveSession) {
+			await onSaveSession();
+		}
 		exit();
 		process.exit(0);
 	};
