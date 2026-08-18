@@ -225,11 +225,7 @@ async function handleConversation(message, sessionId = "") {
 	sessionState.addExchange({ role: "assistant", content: response.content });
 
 	// Persist session after each exchange
-	saveSession(
-		config.cwd + "/" + "memory/sessions/",
-		sessionState.getConversation(),
-		sessionState.getThreadId(),
-	);
+	saveSession("memory/sessions/", sessionState.getConversation(), sessionState.getThreadId());
 
 	return response;
 }
@@ -263,11 +259,7 @@ async function invokeSkill(skillName, input = {}) {
 
 // Shared shutdown logic — called on signals and in non-interactive mode
 const runShutdown = async () => {
-	saveSession(
-		"memory/sessions/",
-		sessionState.getConversation(),
-		sessionState.getThreadId(),
-	);
+	saveSession("memory/sessions/", sessionState.getConversation(), sessionState.getThreadId());
 
 	if (gcManager) {
 		gcManager.stop();
@@ -319,7 +311,7 @@ if (isMain) {
 				onboarding: onboardingInstance,
 				onSaveSession: () =>
 					saveSession(
-						config.cwd + "/" + "memory/sessions/",
+						"memory/sessions/",
 						sessionState.getConversation(),
 						sessionState.getThreadId(),
 					),
@@ -335,7 +327,7 @@ if (isMain) {
 						await handleShutdown({
 							saveSession: () =>
 								saveSession(
-									config.cwd + "/memory/sessions/",
+									"memory/sessions/",
 									sessionState.getConversation(),
 									sessionState.getThreadId(),
 								),

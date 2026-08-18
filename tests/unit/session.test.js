@@ -1,7 +1,7 @@
 import { describe, it, before, after, afterEach } from "node:test";
 import assert from "node:assert";
 import { existsSync, readFileSync } from "node:fs";
-import { rm, realpath, writeFile } from "node:fs/promises";
+import { rm, realpath } from "node:fs/promises";
 import { ensureSessionsDir, createSession } from "../../src/session/factory.js";
 import { SessionStateManager } from "../../src/session/stateManager.js";
 import { enforceContextWindow, trimConversation } from "../../src/session/window.js";
@@ -572,9 +572,7 @@ describe("session - saveSession", () => {
 			{
 				role: "assistant",
 				content: {
-					tool_calls: [
-						{ id: "call_1", function: { name: "shell", arguments: '{"cmd":"ls"}' } },
-					],
+					tool_calls: [{ id: "call_1", function: { name: "shell", arguments: '{"cmd":"ls"}' } }],
 				},
 			},
 		];
