@@ -62,20 +62,23 @@ describe("reflection tool", () => {
 	// --- 3.2: read sessions from memory directory ---
 
 	it("reads sessions from memory directory", async () => {
+		const now = new Date();
+		const recent = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
+		const iso = recent.toISOString();
 		await writeSession("session-001", {
-			startedAt: "2026-08-10T10:00:00.000Z",
-			endedAt: "2026-08-10T11:00:00.000Z",
+			startedAt: iso,
+			endedAt: iso,
 			threadId: "thread-001",
 			messages: [
-				{ role: "user", content: "Hello", timestamp: "2026-08-10T10:00:00.000Z" },
-				{ role: "assistant", content: "Hi there!", timestamp: "2026-08-10T10:00:01.000Z" },
+				{ role: "user", content: "Hello", timestamp: iso },
+				{ role: "assistant", content: "Hi there!", timestamp: iso },
 			],
 		});
 
 		const result = JSON.parse(await reflectionImpl({}, defaultOpts));
 		assert.strictEqual(result.length, 1);
 		assert.strictEqual(result[0].sessionId, "thread-001");
-		assert.strictEqual(result[0].startedAt, "2026-08-10T10:00:00.000Z");
+		assert.strictEqual(result[0].startedAt, iso);
 		assert.strictEqual(result[0].userMessages.length, 1);
 		assert.strictEqual(result[0].userMessages[0].content, "Hello");
 	});
@@ -361,17 +364,20 @@ describe("reflection tool", () => {
 	// --- 3.7: return structured data format ---
 
 	it("returns structured session data with all required fields", async () => {
+		const recent = new Date(new Date().getTime() - 2 * 24 * 60 * 60 * 1000);
+		const iso = recent.toISOString();
 		await writeSession("structured-test", {
-			startedAt: "2026-08-10T10:00:00.000Z",
-			endedAt: "2026-08-10T11:00:00.000Z",
+			startedAt: iso,
+			endedAt: iso,
 			threadId: "thread-structured",
-			messages: [{ role: "user", content: "Test", timestamp: "2026-08-10T10:00:00.000Z" }],
+			messages: [{ role: "user", content: "Test", timestamp: iso }],
 		});
 
 		const result = JSON.parse(await reflectionImpl({}, defaultOpts));
 		assert.strictEqual(result.length, 1);
 		assert.ok(result[0].sessionId);
-		assert.strictEqual(result[0].startedAt, "2026-08-10T10:00:00.000Z");
+		assert.strictEqual(result[0].sessionId, "thread-structured");
+		assert.strictEqual(result[0].startedAt, iso);
 		assert.ok(Array.isArray(result[0].userMessages));
 		assert.strictEqual(result[0].userMessages[0].content, "Test");
 		assert.ok(result[0].userMessages[0].timestamp);
