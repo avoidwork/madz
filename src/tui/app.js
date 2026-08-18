@@ -534,6 +534,7 @@ export default function App({
 
 	const handleQuit = () => {
 		exit();
+		process.exit(0);
 	};
 
 	/**
