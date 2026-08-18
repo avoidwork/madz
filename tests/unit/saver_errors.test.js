@@ -15,15 +15,15 @@ describe("session - saveSession error propagation", () => {
 			mkdirSync(fullDir, { recursive: true });
 
 			// Save a session file first to verify the dir exists
-			await saveSession(testDir, [{ role: "user", content: "hi" }], "existing");
+			saveSession(testDir, [{ role: "user", content: "hi" }], "existing");
 
 			// Remove the directory — now writeFile will fail
 			rmSync(fullDir, { recursive: true, force: true });
 			assert.ok(!existsSync(fullDir), "directory should be deleted");
 
 			// This should throw because writeFile cannot write to a missing directory
-			await assert.rejects(
-				saveSession(testDir, [{ role: "user", content: "test" }], "err-thread"),
+			assert.throws(
+				() => saveSession(testDir, [{ role: "user", content: "test" }], "err-thread"),
 				/ENOENT|EACCES|EIO/,
 				"saveSession should propagate unhandled writeFile errors",
 			);
