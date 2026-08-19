@@ -67,7 +67,7 @@ export class MsGraphProvider extends CalendarProviderBase {
 	 * @returns {Promise<{ ok: boolean, events?: object[], error?: string }>}
 	 */
 	async readEvents(params) {
-		return this.#executeWithRetry(async () => {
+		return this._executeWithRetry(async () => {
 			const user = params.delegatedUser || "me";
 			const response = await this.#client
 				.api(`/users/${user}/calendarview`)
@@ -104,7 +104,7 @@ export class MsGraphProvider extends CalendarProviderBase {
 	 * @returns {Promise<{ ok: boolean, eventId?: string, error?: string }>}
 	 */
 	async createEvent(params) {
-		return this.#executeWithRetry(async () => {
+		return this._executeWithRetry(async () => {
 			const user = params.delegatedUser || "me";
 			const event = {
 				subject: params.title,
@@ -116,13 +116,13 @@ export class MsGraphProvider extends CalendarProviderBase {
 					emailAddress: { address: email },
 					type: "required",
 				})),
-				reminders: { overrides: params.reminders?.map((r) => ({ method: r.method, minutes: r.minutes })) },
+				reminders: {
+					overrides: params.reminders?.map((r) => ({ method: r.method, minutes: r.minutes })),
+				},
 				showAs: params.visibility === "private" ? "busy" : "free",
 			};
 
-			const response = await this.#client
-				.api(`/users/${user}/events`)
-				.post(event);
+			const response = await this.#client.api(`/users/${user}/events`).post(event);
 
 			return { ok: true, eventId: response.id };
 		});
@@ -134,19 +134,24 @@ export class MsGraphProvider extends CalendarProviderBase {
 	 * @returns {Promise<{ ok: boolean, error?: string }>}
 	 */
 	async updateEvent(params) {
-		return this.#executeWithRetry(async () => {
+		return this._executeWithRetry(async () => {
 			const user = params.delegatedUser || "me";
 			const updates = {};
 			if (params.title) updates.subject = params.title;
 			if (params.description) updates.body = { contentType: "HTML", content: params.description };
 			if (params.location) updates.location = { displayName: params.location };
-			if (params.start) updates.start = { dateTime: params.start, timeZone: params.timezone || "UTC" };
+			if (params.start)
+				updates.start = { dateTime: params.start, timeZone: params.timezone || "UTC" };
 			if (params.end) updates.end = { dateTime: params.end, timeZone: params.timezone || "UTC" };
-			if (params.attendees) updates.attendees = params.attendees.map((email) => ({
-				emailAddress: { address: email },
-				type: "required",
-			}));
-			if (params.reminders) updates.reminders = { overrides: params.reminders.map((r) => ({ method: r.method, minutes: r.minutes })) };
+			if (params.attendees)
+				updates.attendees = params.attendees.map((email) => ({
+					emailAddress: { address: email },
+					type: "required",
+				}));
+			if (params.reminders)
+				updates.reminders = {
+					overrides: params.reminders.map((r) => ({ method: r.method, minutes: r.minutes })),
+				};
 
 			await this.#client.api(`/users/${user}/events/${params.eventId}`).patch(updates);
 			return { ok: true };
@@ -159,7 +164,7 @@ export class MsGraphProvider extends CalendarProviderBase {
 	 * @returns {Promise<{ ok: boolean, error?: string }>}
 	 */
 	async deleteEvent(params) {
-		return this.#executeWithRetry(async () => {
+		return this._executeWithRetry(async () => {
 			const user = params.delegatedUser || "me";
 			await this.#client.api(`/users/${user}/events/${params.eventId}`).delete();
 			return { ok: true };
@@ -172,18 +177,16 @@ export class MsGraphProvider extends CalendarProviderBase {
 	 * @returns {Promise<{ ok: boolean, slots?: object[], error?: string }>}
 	 */
 	async findAvailability(params) {
-		return this.#executeWithRetry(async () => {
+		return this._executeWithRetry(async () => {
 			const user = params.delegatedUser || "me";
-			const response = await this.#client
-				.api("/users/me/calendar/views/getFreeBusys")
-				.post({
-					schedules: [{ id: user, name: user }],
-					timeConstraint: {
-						timeZone: params.timezone || "UTC",
-						timeSlots: { start: params.startDate, end: params.endDate },
-					},
-					requestedDuration: `PT${params.duration}M`,
-				});
+			const response = await this.#client.api("/users/me/calendar/views/getFreeBusys").post({
+				schedules: [{ id: user, name: user }],
+				timeConstraint: {
+					timeZone: params.timezone || "UTC",
+					timeSlots: { start: params.startDate, end: params.endDate },
+				},
+				requestedDuration: `PT${params.duration}M`,
+			});
 
 			const busyIntervals = [];
 			for (const availability of response.value || []) {
@@ -208,12 +211,13 @@ export class MsGraphProvider extends CalendarProviderBase {
 	 * @returns {Promise<{ ok: boolean, summary?: string, error?: string }>}
 	 */
 	async generateSummary(params) {
-		return this.#executeWithRetry(async () => {
+		return this._executeWithRetry(async () => {
 			const user = params.delegatedUser || "me";
 			const response = await this.#client
 				.api(`/users/${user}/calendarview`)
 				.query({
-					startdatetime: params.startDate || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+					startdatetime:
+						params.startDate || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
 					enddatetime: params.endDate || new Date().toISOString(),
 					$top: 50,
 					$orderby: "start/dateTime",

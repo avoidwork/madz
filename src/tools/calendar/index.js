@@ -1,6 +1,5 @@
 import { tool } from "@langchain/core/tools";
-import { z } from "zod";
-import { getActiveCalendarProvider } from "./providers/base.js";
+import { getActiveCalendarProvider } from "./providers/factory.js";
 import { CalendarToolSchema } from "./schemas.js";
 import { CalendarProviderBase } from "./providers/base.js";
 
@@ -19,14 +18,7 @@ export const findFreeSlots = CalendarProviderBase.findFreeSlots.bind(CalendarPro
 export async function calendarImpl(input, options) {
 	const { action } = input;
 
-	const validActions = [
-		"read",
-		"create",
-		"update",
-		"delete",
-		"availability",
-		"summary",
-	];
+	const validActions = ["read", "create", "update", "delete", "availability", "summary"];
 
 	if (!validActions.includes(action)) {
 		return {
@@ -39,7 +31,8 @@ export async function calendarImpl(input, options) {
 	if (!provider) {
 		return {
 			ok: false,
-			error: "No calendar provider configured. Set up calendar credentials via environment variables.",
+			error:
+				"No calendar provider configured. Set up calendar credentials via environment variables.",
 		};
 	}
 

@@ -42,10 +42,7 @@ export const CalendarEventSchema = z.object({
 	end: z.string().describe("Event end time (ISO 8601 or parseable date string)"),
 	location: z.string().optional().describe("Event location"),
 	description: z.string().optional().describe("Event description"),
-	attendees: z
-		.array(z.string().email())
-		.optional()
-		.describe("List of attendee email addresses"),
+	attendees: z.array(z.string().email()).optional().describe("List of attendee email addresses"),
 	reminders: z
 		.array(
 			z.object({
@@ -55,7 +52,10 @@ export const CalendarEventSchema = z.object({
 		)
 		.optional()
 		.describe("Reminders as [method, minutes] pairs"),
-	visibility: z.enum(["default", "public", "private", "confidential"]).optional().default("default"),
+	visibility: z
+		.enum(["default", "public", "private", "confidential"])
+		.optional()
+		.default("default"),
 });
 
 /**
@@ -64,7 +64,10 @@ export const CalendarEventSchema = z.object({
 export const ReadEventSchema = z.object({
 	action: z.literal("read"),
 	startDate: z.string().describe("Start of date range (ISO 8601)"),
-	endDate: z.string().describe("End of date range (ISO 8601)"),
+	endDate: z
+		.string()
+		.optional()
+		.describe("End of date range (ISO 8601, defaults to 7 days from startDate)"),
 	calendarId: z.string().optional().default("primary").describe("Calendar ID (default: primary)"),
 	attendee: z.string().email().optional().describe("Filter by attendee email"),
 	keyword: z.string().optional().describe("Filter by keyword in title/description"),
@@ -82,10 +85,7 @@ export const CreateEventSchema = z.object({
 	end: z.string().describe("Event end time (ISO 8601 or parseable date string)"),
 	location: z.string().optional().describe("Event location"),
 	description: z.string().optional().describe("Event description"),
-	attendees: z
-		.array(z.string().email())
-		.optional()
-		.describe("List of attendee email addresses"),
+	attendees: z.array(z.string().email()).optional().describe("List of attendee email addresses"),
 	reminders: z
 		.array(
 			z.object({
@@ -95,7 +95,10 @@ export const CreateEventSchema = z.object({
 		)
 		.optional()
 		.describe("Reminders as [method, minutes] pairs"),
-	visibility: z.enum(["default", "public", "private", "confidential"]).optional().default("default"),
+	visibility: z
+		.enum(["default", "public", "private", "confidential"])
+		.optional()
+		.default("default"),
 	timezone: IanaTimezoneSchema.optional().describe("IANA timezone for event times"),
 });
 
@@ -123,7 +126,10 @@ export const UpdateEventSchema = z.object({
 		)
 		.optional()
 		.describe("New reminders"),
-	visibility: z.enum(["default", "public", "private", "confidential"]).optional().describe("New visibility"),
+	visibility: z
+		.enum(["default", "public", "private", "confidential"])
+		.optional()
+		.describe("New visibility"),
 });
 
 /**
@@ -140,12 +146,11 @@ export const DeleteEventSchema = z.object({
 export const AvailabilitySchema = z.object({
 	action: z.literal("availability"),
 	startDate: z.string().describe("Start of search range (ISO 8601)"),
-	endDate: z.string().describe("End of search range (ISO 8601)"),
-	duration: z
-		.number()
-		.int()
-		.positive()
-		.describe("Desired slot duration in minutes"),
+	endDate: z
+		.string()
+		.optional()
+		.describe("End of search range (ISO 8601, defaults to 7 days from startDate)"),
+	duration: z.number().int().positive().describe("Desired slot duration in minutes"),
 	calendarId: z.string().optional().default("primary").describe("Calendar ID (default: primary)"),
 	timezone: IanaTimezoneSchema.optional().describe("IANA timezone for output"),
 });

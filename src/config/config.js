@@ -1,5 +1,10 @@
 import { z } from "zod";
-import { ProvidersSchema, SearchConfigSchema, EmailConfigSchema, CalendarConfigSchema } from "./schemas/providers.js";
+import {
+	ProvidersSchema,
+	SearchConfigSchema,
+	EmailConfigSchema,
+	CalendarConfigSchema,
+} from "./schemas/providers.js";
 import { SandboxScopeSchema } from "./schemas/sandbox.js";
 import { MemorySchema } from "./schemas/memory.js";
 import { TelemetrySchema } from "./schemas/telemetry.js";

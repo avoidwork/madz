@@ -1,7 +1,3 @@
-import { GoogleCalendarProvider } from "./google.js";
-import { MsGraphProvider } from "./msgraph.js";
-import { loadConfig } from "../../../config/loader.js";
-
 /**
  * Base calendar provider interface.
  * All provider implementations MUST extend this class.
@@ -69,7 +65,7 @@ export class CalendarProviderBase {
 	 * @param {number} [retries=3] - Max retry attempts
 	 * @returns {Promise<*>} API response
 	 */
-	async #executeWithRetry(fn, retries = 3) {
+	async _executeWithRetry(fn, retries = 3) {
 		for (let attempt = 1; attempt <= retries; attempt++) {
 			try {
 				this.#enforceRateLimit();
@@ -112,7 +108,7 @@ export class CalendarProviderBase {
 	 * @param {object} params - Read parameters
 	 * @returns {Promise<{ ok: boolean, events?: object[], error?: string }>}
 	 */
-	async readEvents(params) {
+	async readEvents(_params) {
 		throw new Error("Not implemented");
 	}
 
@@ -121,7 +117,7 @@ export class CalendarProviderBase {
 	 * @param {object} params - Create parameters
 	 * @returns {Promise<{ ok: boolean, eventId?: string, error?: string }>}
 	 */
-	async createEvent(params) {
+	async createEvent(_params) {
 		throw new Error("Not implemented");
 	}
 
@@ -130,7 +126,7 @@ export class CalendarProviderBase {
 	 * @param {object} params - Update parameters
 	 * @returns {Promise<{ ok: boolean, error?: string }>}
 	 */
-	async updateEvent(params) {
+	async updateEvent(_params) {
 		throw new Error("Not implemented");
 	}
 
@@ -139,7 +135,7 @@ export class CalendarProviderBase {
 	 * @param {object} params - Delete parameters
 	 * @returns {Promise<{ ok: boolean, error?: string }>}
 	 */
-	async deleteEvent(params) {
+	async deleteEvent(_params) {
 		throw new Error("Not implemented");
 	}
 
@@ -148,7 +144,7 @@ export class CalendarProviderBase {
 	 * @param {object} params - Availability parameters
 	 * @returns {Promise<{ ok: boolean, slots?: object[], error?: string }>}
 	 */
-	async findAvailability(params) {
+	async findAvailability(_params) {
 		throw new Error("Not implemented");
 	}
 
@@ -157,7 +153,7 @@ export class CalendarProviderBase {
 	 * @param {object} params - Summary parameters
 	 * @returns {Promise<{ ok: boolean, summary?: string, error?: string }>}
 	 */
-	async generateSummary(params) {
+	async generateSummary(_params) {
 		throw new Error("Not implemented");
 	}
 
@@ -183,76 +179,51 @@ export class CalendarProviderBase {
 
 	/**
 	 * Find free time slots using busy interval sweep.
-	 * @param {string[]} range - [start, end] ISO 8601 timestamps
-	 * @param {number[]} durations - Desired slot durations in minutes
-	 * @param {string[][]} busy - Busy intervals as [[start, end], ...]
+	 * @param {string} rangeStart - Start of search range (ISO 8601)
+	 * @param {string} rangeEnd - End of search range (ISO 8601)
+	 * @param {number} duration - Desired slot duration in minutes
+	 * @param {string[][]|object[]} busy - Busy intervals as [[start, end], ...] or [{start, end}, ...]
 	 * @returns {object[]} Free slots with start/end ISO 8601 strings
 	 */
-	static findFreeSlots(range, durations, busy) {
-		const [rangeStart, rangeEnd] = range.map((t) => new Date(t).getTime());
-		const sortedBusy = busy
-			.map(([s, e]) => ({ start: new Date(s).getTime(), end: new Date(e).getTime() }))
+	static findFreeSlots(rangeStart, rangeEnd, duration, busy) {
+		const rangeStartMs = new Date(rangeStart).getTime();
+		const rangeEndMs = new Date(rangeEnd).getTime();
+		const sortedBusy = (busy || [])
+			.map((b) => ({
+				start: new Date(b[0] || b.start).getTime(),
+				end: new Date(b[1] || b.end).getTime(),
+			}))
 			.sort((a, b) => a.start - b.start);
 
 		const freeSlots = [];
-		let current = rangeStart;
+		let current = rangeStartMs;
 
-		for (const busy of sortedBusy) {
-			if (busy.start > rangeEnd) break;
-			if (busy.start > current) {
-				const gap = busy.start - current;
-				for (const dur of durations) {
-					if (gap >= dur * 60 * 1000) {
-						freeSlots.push({
-							start: new Date(current).toISOString(),
-							end: new Date(current + dur * 60 * 1000).toISOString(),
-							duration: dur,
-						});
-					}
-				}
-			}
-			if (busy.end > current) current = busy.end;
-		}
-
-		if (current < rangeEnd) {
-			const gap = rangeEnd - current;
-			for (const dur of durations) {
-				if (gap >= dur * 60 * 1000) {
+		for (const b of sortedBusy) {
+			if (b.start > rangeEndMs) break;
+			if (b.start > current) {
+				const gap = b.start - current;
+				if (gap >= duration * 60 * 1000) {
 					freeSlots.push({
 						start: new Date(current).toISOString(),
-						end: new Date(current + dur * 60 * 1000).toISOString(),
-						duration: dur,
+						end: new Date(current + duration * 60 * 1000).toISOString(),
+						duration,
 					});
 				}
+			}
+			if (b.end > current) current = b.end;
+		}
+
+		if (current < rangeEndMs) {
+			const gap = rangeEndMs - current;
+			if (gap >= duration * 60 * 1000) {
+				freeSlots.push({
+					start: new Date(current).toISOString(),
+					end: new Date(current + duration * 60 * 1000).toISOString(),
+					duration,
+				});
 			}
 		}
 
 		return freeSlots;
 	}
-}
-
-/**
- * Get the active calendar provider instance.
- * @param {object} [config] - Optional config override
- * @returns {CalendarProviderBase|null} Active provider or null
- */
-export function getActiveCalendarProvider(config) {
-	const cfg = config || loadConfig();
-	const calendarConfig = cfg.calendar;
-
-	if (!calendarConfig) {
-		return null;
-	}
-
-	const activeType = calendarConfig.active || "google";
-
-	if (activeType === "google") {
-		return new GoogleCalendarProvider(calendarConfig.google);
-	}
-
-	if (activeType === "msgraph") {
-		return new MsGraphProvider(calendarConfig.msgraph);
-	}
-
-	return null;
 }

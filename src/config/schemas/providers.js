@@ -122,7 +122,7 @@ export const EmailConfigSchema = z.object({
 
 // --- Calendar Provider Config Schemas ---
 
-const GoogleCalendarCredentialsSchema = z.object({
+const _GoogleCalendarCredentialsSchema = z.object({
 	apiKey: z.string().optional().default(""),
 	serviceAccountKey: z.string().optional().default(""),
 	serviceAccountEmail: z.string().optional().default(""),
@@ -138,7 +138,7 @@ const GoogleCalendarConfigSchema = z.object({
 	rateLimit: RateLimitSchema.default({ requestsPerMinute: 60 }),
 });
 
-const MsGraphCredentialsSchema = z.object({
+const _MsGraphCredentialsSchema = z.object({
 	tenantId: z.string().optional().default(""),
 	clientId: z.string().optional().default(""),
 	clientSecret: z.string().optional().default(""),

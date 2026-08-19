@@ -54,7 +54,9 @@ export class GoogleCalendarProvider extends CalendarProviderBase {
 	validateCredentials() {
 		const errors = [];
 		if (!this.#calendar) {
-			errors.push("No Google Calendar credentials configured (apiKey or serviceAccountKey required)");
+			errors.push(
+				"No Google Calendar credentials configured (apiKey or serviceAccountKey required)",
+			);
 		}
 		return { valid: errors.length === 0, errors };
 	}
@@ -65,7 +67,7 @@ export class GoogleCalendarProvider extends CalendarProviderBase {
 	 * @returns {Promise<{ ok: boolean, events?: object[], error?: string }>}
 	 */
 	async readEvents(params) {
-		return this.#executeWithRetry(async () => {
+		return this._executeWithRetry(async () => {
 			const calendarId = params.calendarId || "primary";
 			const response = await this.#calendar.events.list({
 				calendarId,
@@ -101,7 +103,7 @@ export class GoogleCalendarProvider extends CalendarProviderBase {
 	 * @returns {Promise<{ ok: boolean, eventId?: string, error?: string }>}
 	 */
 	async createEvent(params) {
-		return this.#executeWithRetry(async () => {
+		return this._executeWithRetry(async () => {
 			const calendarId = params.calendarId || "primary";
 			const event = {
 				summary: params.title,
@@ -113,7 +115,7 @@ export class GoogleCalendarProvider extends CalendarProviderBase {
 				reminders: params.reminders
 					? {
 							overrides: params.reminders.map((r) => ({ method: r.method, minutes: r.minutes })),
-					  }
+						}
 					: undefined,
 				visibility: params.visibility,
 			};
@@ -134,15 +136,19 @@ export class GoogleCalendarProvider extends CalendarProviderBase {
 	 * @returns {Promise<{ ok: boolean, error?: string }>}
 	 */
 	async updateEvent(params) {
-		return this.#executeWithRetry(async () => {
+		return this._executeWithRetry(async () => {
 			const updates = {};
 			if (params.title) updates.summary = params.title;
 			if (params.description) updates.description = params.description;
 			if (params.location) updates.location = params.location;
-			if (params.start) updates.start = { dateTime: params.start, timeZone: params.timezone || "UTC" };
+			if (params.start)
+				updates.start = { dateTime: params.start, timeZone: params.timezone || "UTC" };
 			if (params.end) updates.end = { dateTime: params.end, timeZone: params.timezone || "UTC" };
 			if (params.attendees) updates.attendees = params.attendees.map((email) => ({ email }));
-			if (params.reminders) updates.reminders = { overrides: params.reminders.map((r) => ({ method: r.method, minutes: r.minutes })) };
+			if (params.reminders)
+				updates.reminders = {
+					overrides: params.reminders.map((r) => ({ method: r.method, minutes: r.minutes })),
+				};
 			if (params.visibility) updates.visibility = params.visibility;
 
 			await this.#calendar.events.update({
@@ -162,7 +168,7 @@ export class GoogleCalendarProvider extends CalendarProviderBase {
 	 * @returns {Promise<{ ok: boolean, error?: string }>}
 	 */
 	async deleteEvent(params) {
-		return this.#executeWithRetry(async () => {
+		return this._executeWithRetry(async () => {
 			await this.#calendar.events.delete({
 				calendarId: params.calendarId || "primary",
 				eventId: params.eventId,
@@ -177,7 +183,7 @@ export class GoogleCalendarProvider extends CalendarProviderBase {
 	 * @returns {Promise<{ ok: boolean, slots?: object[], error?: string }>}
 	 */
 	async findAvailability(params) {
-		return this.#executeWithRetry(async () => {
+		return this._executeWithRetry(async () => {
 			const calendarId = params.calendarId || "primary";
 			const response = await this.#calendar.freebusy.query({
 				resource: {
@@ -206,7 +212,7 @@ export class GoogleCalendarProvider extends CalendarProviderBase {
 	 * @returns {Promise<{ ok: boolean, summary?: string, error?: string }>}
 	 */
 	async generateSummary(params) {
-		return this.#executeWithRetry(async () => {
+		return this._executeWithRetry(async () => {
 			const calendarId = params.calendarId || "primary";
 			const response = await this.#calendar.events.list({
 				calendarId,
