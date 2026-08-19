@@ -163,15 +163,14 @@ const providerConfig = config.providers[providerName] || {};
 
 const agent = await createDeepAgentsOrchestrator(checkpointer);
 
-const sessionConfig = { configurable: { thread_id: sessionState.getThreadId() } };
+const sessionConfig = { configurable: { thread_id: sessionState.getSessionId() } };
 
 async function callProvider(_name, _providerConfig, message, streamingCallback, signal) {
 	const isNewThread = sessionState.getConversation().length === 0;
-	const threadId = sessionState.getThreadId();
 
 	const config = {
 		...sessionConfig,
-		configurable: { thread_id: threadId, isNewThread },
+		configurable: { thread_id: sessionState.getSessionId(), isNewThread },
 	};
 
 	const options = {
@@ -225,7 +224,11 @@ async function handleConversation(message, sessionId = "") {
 	sessionState.addExchange({ role: "assistant", content: response.content });
 
 	// Persist session after each exchange
-	await saveSession("memory/sessions/", sessionState.getConversation(), sessionState.getThreadId());
+	await saveSession(
+		"memory/sessions/",
+		sessionState.getConversation(),
+		sessionState.getSessionId(),
+	);
 
 	return response;
 }
@@ -311,7 +314,7 @@ if (isMain) {
 					saveSession(
 						"memory/sessions/",
 						sessionState.getConversation(),
-						sessionState.getThreadId(),
+						sessionState.getSessionId(),
 					).catch(() => {}),
 				gcManager: gcManager ? gcManager.onActivity.bind(gcManager) : null,
 				gcTrigger: gcTrace,

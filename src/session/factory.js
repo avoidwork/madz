@@ -19,7 +19,7 @@ export function createSession(config = {}) {
 			conversation: [],
 			contextWindow: config.contextWindow || 20,
 			skills: config.skills || [],
-			threadId: sessionId,
+			sessionId,
 		},
 		createdAt: new Date().toISOString(),
 		updatedAt: new Date().toISOString(),

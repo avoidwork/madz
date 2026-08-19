@@ -229,28 +229,28 @@ describe("session - context window enforcement", () => {
 });
 
 describe("session - state manager thread ID", () => {
-	it("defaults to provider when no threadId set", () => {
+	it("defaults to provider when no sessionId set", () => {
 		const manager = new SessionStateManager({});
-		assert.strictEqual(manager.getThreadId(), "openai");
+		assert.strictEqual(manager.getSessionId(), "openai");
 	});
 
 	it("defaults to provider for non-default provider", () => {
 		const manager = new SessionStateManager({ provider: "local" });
-		assert.strictEqual(manager.getThreadId(), "local");
+		assert.strictEqual(manager.getSessionId(), "local");
 	});
 
-	it("returns explicit threadId when set", () => {
+	it("returns explicit sessionId when set", () => {
 		const manager = new SessionStateManager({ provider: "openai" });
-		const threadId = "test-thread-uuid";
-		manager.setThreadId(threadId);
-		assert.strictEqual(manager.getThreadId(), threadId);
+		const sessionId = "test-thread-uuid";
+		manager.setSessionId(sessionId);
+		assert.strictEqual(manager.getSessionId(), sessionId);
 	});
 
-	it("updates updatedAt when setting threadId", () => {
+	it("updates updatedAt when setting sessionId", () => {
 		const manager = new SessionStateManager({ provider: "openai" });
 		const _before = new Date(manager.getState().updatedAt);
 		setTimeout(() => {
-			manager.setThreadId("new-thread");
+			manager.setSessionId("new-session");
 			const after = new Date(manager.getState().updatedAt);
 			assert.ok(after >= _before);
 		}, 10);
@@ -277,10 +277,10 @@ describe("session - state manager createNewSession", () => {
 
 	it("generates a new UUID threadId", () => {
 		const manager = new SessionStateManager({});
-		const oldId = manager.getThreadId();
+		const oldId = manager.getSessionId();
 		const result = manager.createNewSession();
 		assert.notStrictEqual(result.sessionId, oldId);
-		assert.strictEqual(manager.getThreadId(), result.sessionId);
+		assert.strictEqual(manager.getSessionId(), result.sessionId);
 		assert.ok(
 			/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(result.sessionId),
 		);
@@ -291,7 +291,7 @@ describe("session - state manager createNewSession", () => {
 		const customId = "custom-session-uuid";
 		const { sessionId } = manager.createNewSession(customId);
 		assert.strictEqual(sessionId, customId);
-		assert.strictEqual(manager.getThreadId(), customId);
+		assert.strictEqual(manager.getSessionId(), customId);
 	});
 
 	it("preserves provider from initial state", () => {
