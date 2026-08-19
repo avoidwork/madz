@@ -66,7 +66,7 @@
     "@microsoft/microsoft-graph-client": "^3.0.7",
     "@opentelemetry/api": "^1.9.1",
     "@opentelemetry/sdk-node": "^0.221.0",
-    "adm-zip": "^0.5.16",
+    "adm-zip": "^0.6.0",
     "ansi-escapes": "^7.3.0",
     "ansi-regex": "^6.2.2",
     "chalk": "^6.0.0",
