@@ -60,6 +60,7 @@ export function _resolveEnvRecursively(node, path) {
 		"timeout",
 		"search", // e.g. search.exa.apiKey → EXA_API_KEY
 		"process",
+		"calendar", // e.g. calendar.google.apiKey → GOOGLE_CALENDAR_API_KEY
 	];
 
 	if (Array.isArray(node)) {
