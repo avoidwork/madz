@@ -139,7 +139,7 @@ const scheduleManager = await ScheduleManager.loadFromDisk(config.cwd + "/" + sc
 
 // Create or restore session
 const providerName = Object.keys(config.providers)[0] || "openai";
-const { sessionId, state: initialState } = createSession({
+const { state: initialState } = createSession({
 	provider: providerName,
 });
 const sessionState = new SessionStateManager(initialState);
@@ -163,15 +163,14 @@ const providerConfig = config.providers[providerName] || {};
 
 const agent = await createDeepAgentsOrchestrator(checkpointer);
 
-const sessionConfig = { configurable: { thread_id: sessionState.getThreadId() } };
+const sessionConfig = { configurable: { thread_id: sessionState.getSessionId() } };
 
 async function callProvider(_name, _providerConfig, message, streamingCallback, signal) {
 	const isNewThread = sessionState.getConversation().length === 0;
-	const threadId = sessionState.getThreadId();
 
 	const config = {
 		...sessionConfig,
-		configurable: { thread_id: threadId, isNewThread },
+		configurable: { thread_id: sessionState.getSessionId(), isNewThread },
 	};
 
 	const options = {
@@ -224,6 +223,13 @@ async function handleConversation(message, sessionId = "") {
 	sessionState.addExchange({ role: "user", content: message });
 	sessionState.addExchange({ role: "assistant", content: response.content });
 
+	// Persist session after each exchange
+	await saveSession(
+		"memory/sessions/",
+		sessionState.getConversation(),
+		sessionState.getSessionId(),
+	);
+
 	return response;
 }
 
@@ -256,12 +262,6 @@ async function invokeSkill(skillName, input = {}) {
 
 // Shared shutdown logic — called on signals and in non-interactive mode
 const runShutdown = async () => {
-	await saveSession(
-		config.cwd + "/" + "memory/sessions/",
-		sessionState.getConversation(),
-		sessionId,
-	);
-
 	if (gcManager) {
 		gcManager.stop();
 	}
@@ -310,12 +310,12 @@ if (isMain) {
 				invokeSkill,
 				appInfo,
 				onboarding: onboardingInstance,
-				onSaveSession: async () =>
-					await saveSession(
-						config.cwd + "/" + "memory/sessions/",
+				onSaveSession: () =>
+					saveSession(
+						"memory/sessions/",
 						sessionState.getConversation(),
-						sessionId,
-					),
+						sessionState.getSessionId(),
+					).catch(() => {}),
 				gcManager: gcManager ? gcManager.onActivity.bind(gcManager) : null,
 				gcTrigger: gcTrace,
 				checkpointer,
@@ -323,10 +323,17 @@ if (isMain) {
 			{
 				// Restore terminal with newline when app exits
 				onExit: async () => {
-					const shutdown = (await import("./src/session/index.js")).handleShutdown;
-					if (shutdown) await shutdown();
+					const { handleShutdown } = await import("./src/session/index.js");
+					if (handleShutdown)
+						await handleShutdown({
+							onShutdown: async () => {
+								if (gcManager) gcManager.stop();
+								if (shutdownFn) await shutdownFn();
+							},
+						});
 					await flushLogger();
 					process.stdout.write("\n");
+					process.exit(0);
 				},
 			},
 		);
@@ -336,7 +343,6 @@ if (isMain) {
 // Export for testing and TUI integration
 export {
 	config,
-	sessionId,
 	sessionState,
 	registry,
 	tracer,

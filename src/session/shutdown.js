@@ -1,16 +1,15 @@
 import { flush, logger } from "../shared/logger.js";
 
 /**
- * Handle graceful session shutdown: flush telemetry, close file handles, save state.
- * @param {Object} options - Shutdown configuration
+ * Handle graceful session shutdown: flush telemetry, close file handles.
+ * saveSession is no longer needed here — handleConversation saves after every exchange.
+ * @param {Object} [options] - Shutdown configuration
  * @param {Function} [options.flushTelemetry] - Telemetry flush function
- * @param {Function} [options.saveSession] - Session save function
  * @param {Function} [options.onShutdown] - Additional cleanup callback
  * @returns {Promise<void>}
- * @throws {Error} If saveSession throws
  */
 export async function handleShutdown(options = {}) {
-	const { flushTelemetry, saveSession, onShutdown } = options;
+	const { flushTelemetry, onShutdown } = options;
 
 	try {
 		if (flushTelemetry) {
@@ -20,9 +19,6 @@ export async function handleShutdown(options = {}) {
 		logger.error(`telemetry flush failed: ${err.message}`);
 	}
 
-	if (saveSession) {
-		await saveSession();
-	}
 	if (onShutdown) {
 		await onShutdown();
 	}

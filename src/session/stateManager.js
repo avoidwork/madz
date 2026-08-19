@@ -148,30 +148,30 @@ export class SessionStateManager {
 	}
 
 	/**
-	 * Get the current thread ID used by the checkpointer.
+	 * Get the current session ID used by the checkpointer.
 	 * @returns {string}
 	 */
-	getThreadId() {
-		return this.#state.threadId || this.#state.provider;
+	getSessionId() {
+		return this.#state.sessionId || this.#state.provider;
 	}
 
 	/**
-	 * Set the thread ID for the checkpointer.
-	 * @param {string} threadId - The thread ID (e.g., UUID for new sessions)
+	 * Set the session ID for the checkpointer.
+	 * @param {string} sessionId - The session ID (e.g., UUID for new sessions)
 	 */
-	setThreadId(threadId) {
-		this.#state.threadId = threadId;
+	setSessionId(sessionId) {
+		this.#state.sessionId = sessionId;
 		this.#state.updatedAt = new Date().toISOString();
 	}
 
 	/**
 	 * Create a completely new session: generate new UUID, clear conversation, reset skills, keep provider.
-	 * @param {string} [newThreadId] - Optional thread ID override
+	 * @param {string} [newSessionId] - Optional session ID override
 	 * @returns {{ sessionId: string }}
 	 */
-	createNewSession(newThreadId) {
-		const sessionId = newThreadId || randomUUID();
-		this.setThreadId(sessionId);
+	createNewSession(newSessionId) {
+		const sessionId = newSessionId || randomUUID();
+		this.setSessionId(sessionId);
 		this.#state.conversation = [];
 		this.#state.skills = [];
 		this.#state.updatedAt = new Date().toISOString();
