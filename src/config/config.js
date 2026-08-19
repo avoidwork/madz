@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ProvidersSchema, SearchConfigSchema, EmailConfigSchema } from "./schemas/providers.js";
+import { ProvidersSchema, SearchConfigSchema, EmailConfigSchema, CalendarConfigSchema } from "./schemas/providers.js";
 import { SandboxScopeSchema } from "./schemas/sandbox.js";
 import { MemorySchema } from "./schemas/memory.js";
 import { TelemetrySchema } from "./schemas/telemetry.js";
@@ -29,6 +29,7 @@ export {
 export const ConfigSchema = z.object({
 	providers: ProvidersSchema,
 	email: EmailConfigSchema.default({}),
+	calendar: CalendarConfigSchema.default({}),
 	sandbox: SandboxScopeSchema,
 	search: SearchConfigSchema.default({}),
 	memory: MemorySchema,
@@ -49,6 +50,11 @@ export const DEFAULT_CONFIG = {
 		defaultFolder: "INBOX",
 		maxAttachments: 10,
 		maxAttachmentSize: "25mb",
+	},
+	calendar: {
+		active: "google",
+		google: { type: "google" },
+		msgraph: { type: "msgraph" },
 	},
 	search: {
 		exa: { apiKey: "" },
