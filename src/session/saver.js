@@ -1,4 +1,4 @@
-import { writeFileSync } from "node:fs";
+import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { loadConfig } from "../config/loader.js";
 
@@ -17,13 +17,12 @@ function escapeYamlString(str) {
 
 /**
  * Save session exchanges to a file named by thread ID.
- * Synchronous — required because exit handlers cannot be async.
  * @param {string} sessionsDir - Path to sessions directory
  * @param {Array} conversation - Conversation exchanges to save
  * @param {string} [threadId] - Thread ID used as filename
  * @throws {Error} If the underlying filesystem operation fails (missing directory, disk full, permissions)
  */
-export function saveSession(sessionsDir, conversation, threadId = "", cwdParam = cwd) {
+export async function saveSession(sessionsDir, conversation, threadId = "", cwdParam = cwd) {
 	const dir = join(cwdParam, sessionsDir);
 
 	const filename = threadId ? `${threadId}.md` : "unsaved.md";
@@ -52,5 +51,5 @@ export function saveSession(sessionsDir, conversation, threadId = "", cwdParam =
 	];
 
 	const content = frontmatterLines.join("\n") + body + "\n";
-	writeFileSync(join(dir, filename), content);
+	await writeFile(join(dir, filename), content);
 }
