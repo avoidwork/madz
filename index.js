@@ -259,8 +259,6 @@ async function invokeSkill(skillName, input = {}) {
 
 // Shared shutdown logic — called on signals and in non-interactive mode
 const runShutdown = async () => {
-	await saveSession("memory/sessions/", sessionState.getConversation(), sessionState.getThreadId());
-
 	if (gcManager) {
 		gcManager.stop();
 	}
@@ -323,15 +321,8 @@ if (isMain) {
 				// Restore terminal with newline when app exits
 				onExit: async () => {
 					const { handleShutdown } = await import("./src/session/index.js");
-					const saveSessionArgs = [
-						"memory/sessions/",
-						sessionState.getConversation(),
-						sessionState.getThreadId(),
-					];
 					if (handleShutdown)
 						await handleShutdown({
-							saveSession,
-							saveSessionArgs,
 							onShutdown: async () => {
 								if (gcManager) gcManager.stop();
 								if (shutdownFn) await shutdownFn();
