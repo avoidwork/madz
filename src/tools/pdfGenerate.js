@@ -2,6 +2,7 @@
  * PDF generation and manipulation tools.
  * Uses puppeteer for HTML/markdown-to-PDF generation and pdf-lib for manipulation.
  * @module tools/pdfGenerate
+ * @see {@link https://marked.js.org/} marked — markdown-to-HTML conversion
  */
 
 import { tool } from "@langchain/core/tools";
@@ -213,10 +214,21 @@ export async function generatePdfFromHtml(input) {
 
 	const { default: puppeteer } = await import("puppeteer");
 
-	const browser = await puppeteer.launch({
+	// Respect PUPPETEER_SKIP_CHROMIUM_DOWNLOAD — use system-installed Chromium
+	const launchOpts = {
 		headless: "new",
 		args: ["--no-sandbox", "--disable-setuid-sandbox"],
-	});
+	};
+
+	if (process.env.PUPPETEER_SKIP_CHROMIUM_DOWNLOAD) {
+		if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+			launchOpts.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+		}
+		// Puppeteer's browser discovery finds system-installed Chromium
+	}
+	// Otherwise puppeteer bundles and downloads Chromium as usual
+
+	const browser = await puppeteer.launch(launchOpts);
 
 	try {
 		const page = await browser.newPage();
@@ -720,14 +732,85 @@ export async function addAnnotations(input) {
 	return JSON.stringify(result);
 }
 
-// --- Tool Definitions ---
+// --- Unified Tool ---
 
 /**
- * Schema for generatePdfFromHtml.
+ * Valid actions for the unified pdf tool.
+ * @type {string[]}
  */
-export const generatePdfFromHtmlSchema = z.object({
-	html: z.string().describe("HTML string to convert to PDF"),
-	filePath: z.string().describe("Output file path for the generated PDF"),
+export const PDF_ACTIONS = [
+	"generateHtml",
+	"generateMarkdown",
+	"merge",
+	"split",
+	"watermark",
+	"signature",
+	"annotate",
+];
+
+/**
+ * Unified PDF tool that dispatches on action.
+ * Actions: generateHtml, generateMarkdown, merge, split, watermark, signature, annotate
+ * @param {object} input - Tool input with action and action-specific fields
+ * @param {string} input.action - Action to perform
+ * @param {object} [input.options] - Action-specific options
+ * @returns {Promise<string>} JSON result string
+ */
+export async function pdfGenerate(input) {
+	const { action, ...actionInput } = input;
+
+	if (!action || !PDF_ACTIONS.includes(action)) {
+		return JSON.stringify({
+			ok: false,
+			error: `Invalid action: ${action}. Must be one of: ${PDF_ACTIONS.join(", ")}`,
+		});
+	}
+
+	switch (action) {
+		case "generateHtml":
+			return generatePdfFromHtml(actionInput);
+		case "generateMarkdown":
+			return generatePdfFromMarkdown(actionInput);
+		case "merge":
+			// Normalize field name: mergePdfs expects base64, not base64Output
+			return mergePdfs({ ...actionInput, base64: actionInput.base64Output });
+		case "split":
+			// Normalize field name: splitPdf expects base64, not base64Output
+			return splitPdf({ ...actionInput, base64: actionInput.base64Output });
+		case "watermark":
+			return addWatermark(actionInput);
+		case "signature":
+			return embedSignature(actionInput);
+		case "annotate":
+			return addAnnotations(actionInput);
+		default:
+			return JSON.stringify({
+				ok: false,
+				error: `Unknown action: ${action}`,
+			});
+	}
+}
+
+/**
+ * Schema for the unified pdf tool.
+ */
+export const pdfGenerateSchema = z.object({
+	action: z
+		.enum(PDF_ACTIONS)
+		.describe(
+			"Action to perform: generateHtml, generateMarkdown, merge, split, watermark, signature, annotate",
+		),
+	html: z.string().optional().describe("HTML string (required for generateHtml action)"),
+	markdown: z.string().optional().describe("Markdown string (required for generateMarkdown action)"),
+	filePath: z.string().optional().describe("Source or output file path depending on action"),
+	filePaths: z.array(z.string()).optional().describe("Array of PDF file paths (required for merge action)"),
+	outputPath: z.string().optional().describe("Output file path"),
+	outputPattern: z.string().optional().describe("Output path pattern with %d placeholder (for split action)"),
+	pageRange: z
+		.string()
+		.optional()
+		.describe('Page range (e.g., "1-3" or "1,3,5") or "all" (required for split action)'),
+	css: z.string().optional().describe("Custom CSS styles (for generateMarkdown action)"),
 	options: z
 		.object({
 			format: z.string().optional().describe("Paper format (a4, letter, legal, etc.)"),
@@ -745,109 +828,37 @@ export const generatePdfFromHtmlSchema = z.object({
 			footerTemplate: z.string().optional().describe("HTML template for footer"),
 		})
 		.optional()
-		.describe("Optional page configuration"),
-});
-
-/**
- * Schema for generatePdfFromMarkdown.
- */
-export const generatePdfFromMarkdownSchema = z.object({
-	markdown: z.string().describe("Markdown string to convert to PDF"),
-	filePath: z.string().describe("Output file path for the generated PDF"),
-	css: z.string().optional().describe("Optional custom CSS styles"),
-	options: z
-		.object({
-			format: z.string().optional(),
-			margin: z
-				.object({
-					top: z.number().optional(),
-					bottom: z.number().optional(),
-					left: z.number().optional(),
-					right: z.number().optional(),
-				})
-				.optional(),
-			orientation: z.enum(["portrait", "landscape"]).optional(),
-		})
-		.optional(),
-});
-
-/**
- * Schema for mergePdfs.
- */
-export const mergePdfsSchema = z.object({
-	filePaths: z.array(z.string()).describe("Array of PDF file paths to merge"),
-	outputPath: z.string().describe("Output file path for the merged PDF"),
-	base64: z.boolean().optional().describe("Return result as base64 instead of writing to file"),
-});
-
-/**
- * Schema for splitPdf.
- */
-export const splitPdfSchema = z.object({
-	filePath: z.string().describe("Source PDF file path"),
-	pageRange: z
-		.string()
-		.describe('Page range (e.g., "1-3" or "1,3,5") or "all" for individual pages'),
-	outputPattern: z.string().optional().describe('Output path pattern (e.g., "output_%d.pdf")'),
-	base64: z.boolean().optional().describe("Return results as base64 array"),
-});
-
-/**
- * Schema for addWatermark.
- */
-export const addWatermarkSchema = z.object({
-	filePath: z.string().optional().describe("Source PDF file path"),
+		.describe("Page options (for generateHtml/generateMarkdown actions)"),
 	base64: z.string().optional().describe("Source PDF as base64"),
-	text: z.string().optional().describe("Watermark text"),
-	imagePath: z.string().optional().describe("Path to watermark image"),
-	imageBase64: z.string().optional().describe("Base64 watermark image"),
-	opacity: z.number().min(0).max(1).optional().default(DEFAULT_WATERMARK_OPACITY),
-	rotation: z.number().optional().default(DEFAULT_WATERMARK_ROTATION),
+	base64Output: z.boolean().optional().describe("Return result as base64"),
+	text: z.string().optional().describe("Text content (watermark, signature, or annotation)"),
+	imagePath: z.string().optional().describe("Path to image file"),
+	imageBase64: z.string().optional().describe("Base64 image content"),
+	opacity: z.number().min(0).max(1).optional().describe("Watermark opacity (0-1)"),
+	rotation: z.number().optional().describe("Watermark rotation in degrees"),
 	position: z
 		.enum(["center", "top-left", "top-right", "bottom-left", "bottom-right"])
 		.optional()
-		.default("center"),
+		.describe("Watermark position"),
 	pages: z.array(z.number()).optional().describe("Specific pages to watermark (1-indexed)"),
-	outputPath: z.string().optional().describe("Output file path"),
-	base64Output: z.boolean().optional().describe("Return result as base64"),
-});
-
-/**
- * Schema for embedSignature.
- */
-export const embedSignatureSchema = z.object({
-	filePath: z.string().optional().describe("Source PDF file path"),
-	base64: z.string().optional().describe("Source PDF as base64"),
-	text: z.string().optional().describe("Text signature"),
-	imagePath: z.string().optional().describe("Path to signature image"),
-	imageBase64: z.string().optional().describe("Base64 signature image"),
-	page: z.number().min(1).describe("Page number (1-indexed)"),
-	x: z.number().describe("X position"),
-	y: z.number().describe("Y position"),
-	width: z.number().optional().default(150),
-	height: z.number().optional().default(50),
+	page: z.number().optional().describe("Page number (1-indexed, for signature/annotate)"),
+	x: z.number().optional().describe("X position (for signature/annotate)"),
+	y: z.number().optional().describe("Y position (for signature/annotate)"),
+	width: z.number().optional().describe("Width (for signature)"),
+	height: z.number().optional().describe("Height (for signature)"),
 	fontOptions: z
 		.object({
 			name: z.string().optional(),
 			size: z.number().optional(),
 			color: z.string().optional(),
 		})
-		.optional(),
-	outputPath: z.string().optional(),
-	base64Output: z.boolean().optional(),
-});
-
-/**
- * Schema for addAnnotations.
- */
-export const addAnnotationsSchema = z.object({
-	filePath: z.string().optional().describe("Source PDF file path"),
-	base64: z.string().optional().describe("Source PDF as base64"),
+		.optional()
+		.describe("Font options for text signature"),
 	annotations: z
 		.array(
 			z.object({
 				type: z.enum(["note", "highlight", "stamp"]),
-				page: z.number().min(1),
+				page: z.number(),
 				position: z.object({
 					x: z.number(),
 					y: z.number(),
@@ -858,93 +869,16 @@ export const addAnnotationsSchema = z.object({
 				color: z.string().optional(),
 			}),
 		)
-		.describe("Array of annotation definitions"),
-	outputPath: z.string().optional(),
-	base64Output: z.boolean().optional(),
+		.optional()
+		.describe("Array of annotations (for annotate action)"),
 });
 
-// --- Tool Instances ---
-
 /**
- * LangChain Tool instance for generatePdfFromHtml.
+ * LangChain Tool instance for unified PDF generation/manipulation.
  */
-export const generatePdfFromHtmlTool = tool(generatePdfFromHtml, {
-	name: "generatePdfFromHtml",
+export const pdfGenerateTool = tool(pdfGenerate, {
+	name: "pdfGenerate",
 	description:
-		"Generate a PDF file from an HTML string using headless Chromium. Supports custom page options (format, margin, orientation) and headers/footers.",
-	schema: generatePdfFromHtmlSchema,
+		"Generate PDFs from HTML or markdown, or manipulate existing PDFs (merge, split, watermark, signature, annotate). Use action to specify the operation.",
+	schema: pdfGenerateSchema,
 });
-
-/**
- * LangChain Tool instance for generatePdfFromMarkdown.
- */
-export const generatePdfFromMarkdownTool = tool(generatePdfFromMarkdown, {
-	name: "generatePdfFromMarkdown",
-	description:
-		"Generate a PDF file from a markdown string by rendering it to HTML first. Supports custom CSS styles and page options.",
-	schema: generatePdfFromMarkdownSchema,
-});
-
-/**
- * LangChain Tool instance for mergePdfs.
- */
-export const mergePdfsTool = tool(mergePdfs, {
-	name: "mergePdfs",
-	description:
-		"Merge multiple PDF files into a single PDF file. Accepts file paths or base64-encoded content.",
-	schema: mergePdfsSchema,
-});
-
-/**
- * LangChain Tool instance for splitPdf.
- */
-export const splitPdfTool = tool(splitPdf, {
-	name: "splitPdf",
-	description:
-		"Split a PDF file into multiple PDFs by page range or individual pages. Supports page ranges like '1-3' or '1,3,5'.",
-	schema: splitPdfSchema,
-});
-
-/**
- * LangChain Tool instance for addWatermark.
- */
-export const addWatermarkTool = tool(addWatermark, {
-	name: "addWatermark",
-	description:
-		"Add a text or image watermark to one or all pages of a PDF. Supports opacity, rotation, and positioning options.",
-	schema: addWatermarkSchema,
-});
-
-/**
- * LangChain Tool instance for embedSignature.
- */
-export const embedSignatureTool = tool(embedSignature, {
-	name: "embedSignature",
-	description:
-		"Embed a signature (image or text) into a PDF at a specified location. Supports custom font options for text signatures.",
-	schema: embedSignatureSchema,
-});
-
-/**
- * LangChain Tool instance for addAnnotations.
- */
-export const addAnnotationsTool = tool(addAnnotations, {
-	name: "addAnnotations",
-	description:
-		"Add annotations (highlights, notes, stamps) to specific pages and locations in a PDF.",
-	schema: addAnnotationsSchema,
-});
-
-/**
- * All PDF generation/manipulation tools.
- * @type {object}
- */
-export const pdfGenerateTools = {
-	generatePdfFromHtml: generatePdfFromHtmlTool,
-	generatePdfFromMarkdown: generatePdfFromMarkdownTool,
-	mergePdfs: mergePdfsTool,
-	splitPdf: splitPdfTool,
-	addWatermark: addWatermarkTool,
-	embedSignature: embedSignatureTool,
-	addAnnotations: addAnnotationsTool,
-};
