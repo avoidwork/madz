@@ -8,7 +8,6 @@ import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { readFile, writeFile, stat } from "node:fs/promises";
 import { marked } from "marked";
-import puppeteer from "puppeteer";
 import { PDFDocument, rgb, StandardFonts, degrees } from "pdf-lib";
 
 // --- Constants ---
@@ -211,6 +210,8 @@ export async function generatePdfFromHtml(input) {
 	if (!filePath || typeof filePath !== "string") {
 		return JSON.stringify({ ok: false, error: "Output filePath is required" });
 	}
+
+	const { default: puppeteer } = await import("puppeteer");
 
 	const browser = await puppeteer.launch({
 		headless: "new",
