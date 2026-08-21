@@ -1,8 +1,10 @@
 # streaming-interruption Specification
 
 ## Purpose
-TBD - created by archiving change graceful-streaming-interruption. Update Purpose after archive.
-## Requirements
+Define the behavior for interrupting streaming and non-streaming operations in the Madz TUI, including visual feedback and session state preservation.
+
+## MODIFIED Requirements
+
 ### Requirement: Intentional streaming interruptions SHALL not display error messages to the user
 
 When a user sends a new message while the agent is streaming a response, the system SHALL handle the interruption gracefully by displaying a clean "Interrupted." status message instead of an error message.
@@ -46,6 +48,8 @@ When `callReactAgentStreaming()` is entered with an already-aborted signal, the 
 - **THEN** the function SHALL check `signal.aborted` at the start of each iteration
 - **THEN** the function SHALL clean up any pending tool calls and return early
 
+## ADDED Requirements
+
 ### Requirement: Non-streaming operations SHALL be interruptible via ESC
 
 When the user presses ESC during a non-streaming operation (file write, search, query), the system SHALL cancel the operation and return to the main prompt.
@@ -79,4 +83,3 @@ When any operation is interrupted (streaming or non-streaming), the system SHALL
 - **WHEN** visual feedback is displayed after an interrupt
 - **THEN** the feedback SHALL be visible for approximately 2 seconds
 - **THEN** the feedback SHALL fade out or be replaced by the next status message
-

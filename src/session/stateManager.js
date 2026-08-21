@@ -177,4 +177,30 @@ export class SessionStateManager {
 		this.#state.updatedAt = new Date().toISOString();
 		return { sessionId };
 	}
+
+	/**
+	 * Interrupt the current operation: preserve session state, clean orphaned messages.
+	 * This method does NOT clear conversation history or session ID — it only
+	 * removes orphaned/intermediate state from interrupted operations.
+	 * @returns {boolean} True if cleanup was performed, false if nothing to clean.
+	 */
+	interrupt() {
+		let cleaned = false;
+
+		// Remove orphaned tool-call messages (incomplete assistant messages)
+		const orphanedToolCall = this.removeLastAssistantToolCallMessage();
+		if (orphanedToolCall) {
+			cleaned = true;
+		}
+
+		// Remove the last exchange if it's an incomplete user message
+		// (e.g., user pressed ESC before the message was fully processed)
+		const lastExchange = this.#state.conversation[this.#state.conversation.length - 1];
+		if (lastExchange && lastExchange.role === "user") {
+			this.popExchange();
+			cleaned = true;
+		}
+
+		return cleaned;
+	}
 }
