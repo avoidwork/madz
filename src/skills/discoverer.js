@@ -155,17 +155,12 @@ async function findSkillFiles(dir) {
 						continue;
 					}
 
-					// Extract metadata.agent from frontmatter to top-level metadata.agent
-					if (metadata.metadata?.agent) {
-						metadata.agent = metadata.metadata.agent;
-					}
-
-					// Inject agent from config if not present in frontmatter
-					if (!metadata.agent) {
+					// Inject agent from config if not present in frontmatter metadata
+					if (!metadata.metadata?.agent) {
 						const config = loadConfig();
 						const agent = getAgentForSkill(basename(fullPath), config);
 						if (agent) {
-							metadata.agent = agent;
+							metadata.metadata = { ...metadata.metadata, agent };
 						}
 					}
 

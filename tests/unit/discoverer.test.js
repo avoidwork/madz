@@ -456,7 +456,7 @@ describe("agent injection from config", () => {
 
 			const skills = await discoverSkills([testDir]);
 			assert.strictEqual(skills.length, 1);
-			assert.strictEqual(skills[0].metadata.agent, "coding");
+			assert.strictEqual(skills[0].metadata.metadata.agent, "coding");
 		} finally {
 			cleanup();
 		}
@@ -474,7 +474,7 @@ describe("agent injection from config", () => {
 
 			const skills = await discoverSkills([testDir]);
 			assert.strictEqual(skills.length, 1);
-			assert.strictEqual(skills[0].metadata.agent, "research");
+			assert.strictEqual(skills[0].metadata.metadata.agent, "research");
 		} finally {
 			cleanup();
 		}
