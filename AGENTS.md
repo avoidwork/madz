@@ -106,6 +106,12 @@ Node.js-based AI harness application using LangGraph for state machines and Open
 │   │   ├── loader.js
 │   │   ├── saver.js
 │   │   └── shutdown.js
+│   ├── spreadsheet/            # Spreadsheet computation and analysis
+│   │   ├── csv.js
+│   │   ├── formulaParser.js
+│   │   ├── pivot.js
+│   │   ├── spreadsheet.js
+│   │   └── stats.js
 │   ├── telemetry/              # OpenTelemetry observability
 │   │   ├── provider.js
 │   │   ├── redaction.js

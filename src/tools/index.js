@@ -20,6 +20,7 @@ import { xlsxTool } from "./fileExtract/xlsx.js";
 import { pdfTool } from "./fileExtract/pdf.js";
 import { reflectionSessions } from "./reflection.js";
 import { email } from "./email/tools.js";
+import { spreadsheet } from "./spreadsheet/spreadsheet.js";
 import { calendar } from "./calendar/index.js";
 import { pdfGenerateTool } from "./pdfGenerate.js";
 
@@ -52,6 +53,7 @@ export const TOOL_PERMISSIONS = {
 	pdf: ["filesystem:read"],
 	reflectionSessions: ["filesystem:read"],
 	email: ["network:outbound"],
+	spreadsheet: ["filesystem:read", "filesystem:write"],
 	calendar: ["network:outbound"],
 	pdfGenerate: ["filesystem:read", "filesystem:write", "network:outbound"],
 };
@@ -115,6 +117,7 @@ export const TOOL_CLASSIFICATIONS = {
 	pdf: ["search", "research", "coding", "documentation", "debug"],
 	reflectionSessions: ["orchestrator"],
 	email: ["search", "research", "coding", "documentation", "debug"],
+	spreadsheet: ["search", "research", "coding", "documentation", "debug"],
 	calendar: ["search", "research", "coding", "documentation", "debug", "performance"],
 	pdfGenerate: ["search", "research", "coding", "documentation", "debug"],
 };
@@ -180,6 +183,7 @@ export const TOOLS = {
 	pdf: pdfTool,
 	reflectionSessions,
 	email,
+	spreadsheet,
 	calendar,
 	pdfGenerate: pdfGenerateTool,
 };
