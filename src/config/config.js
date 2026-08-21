@@ -13,6 +13,7 @@ import { TuiSchema } from "./schemas/tui.js";
 import { AgentSchema } from "./schemas/agent.js";
 import { LruSchema } from "./schemas/lru.js";
 import { PersistenceSchema } from "./schemas/persistence.js";
+import { SkillAgentMapSchema } from "./schemas/skillAgentMap.js";
 
 // Re-export individual schemas for backward compatibility
 export {
@@ -27,6 +28,7 @@ export {
 	AgentSchema,
 	LruSchema,
 	PersistenceSchema,
+	SkillAgentMapSchema,
 };
 
 // --- Root config ---
@@ -44,6 +46,7 @@ export const ConfigSchema = z.object({
 	agent: AgentSchema.default({}),
 	lru: LruSchema.default({}),
 	persistence: PersistenceSchema,
+	skillAgentMap: SkillAgentMapSchema,
 	cwd: z.string().default(""),
 });
 
@@ -123,5 +126,10 @@ export const DEFAULT_CONFIG = {
 	lru: { size: 100, ttl: 600000 },
 	tui: { name: "madz", cursorChar: "\u2588" },
 	persistence: { mode: "memory", sqlite_path: "memory/checkpoints.db" },
+	skillAgentMap: [
+		{ pattern: "^openspec-", agent: "coding" },
+		{ pattern: "^audit-", agent: "security-audit" },
+		{ pattern: ".*", agent: "general-purpose" },
+	],
 	cwd: "",
 };

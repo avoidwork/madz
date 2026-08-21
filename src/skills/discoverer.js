@@ -3,6 +3,7 @@ import { join, basename, resolve } from "node:path";
 import { load } from "js-yaml";
 import { loadConfig } from "../config/loader.js";
 import { logger } from "../shared/logger.js";
+import { getAgentForSkill } from "./agentMapper.js";
 
 export const defaultScope = loadConfig().sandbox.skillScanPaths;
 export let cwd = loadConfig().cwd;
@@ -152,6 +153,20 @@ async function findSkillFiles(dir) {
 						metadata.description.trim().length === 0
 					) {
 						continue;
+					}
+
+					// Extract metadata.agent from frontmatter to top-level metadata.agent
+					if (metadata.metadata?.agent) {
+						metadata.agent = metadata.metadata.agent;
+					}
+
+					// Inject agent from config if not present in frontmatter
+					if (!metadata.agent) {
+						const config = loadConfig();
+						const agent = getAgentForSkill(basename(fullPath), config);
+						if (agent) {
+							metadata.agent = agent;
+						}
 					}
 
 					metadata._path = skillMdPath;

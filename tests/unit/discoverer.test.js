@@ -440,3 +440,43 @@ describe("detectShebang", () => {
 		assert.strictEqual(result, null);
 	});
 });
+
+// --- Agent injection tests ---
+
+describe("agent injection from config", () => {
+	it("injects agent from skillAgentMap config when metadata.agent is missing", async () => {
+		setup();
+		try {
+			const skillDir = join(testDir, "openspec-test");
+			mkdirSync(skillDir, { recursive: true });
+			writeFileSync(
+				join(skillDir, "SKILL.md"),
+				"---\nname: openspec-test\ndescription: A test openspec skill\n---\n\nBody",
+			);
+
+			const skills = await discoverSkills([testDir]);
+			assert.strictEqual(skills.length, 1);
+			assert.strictEqual(skills[0].metadata.agent, "coding");
+		} finally {
+			cleanup();
+		}
+	});
+
+	it("preserves frontmatter metadata.agent over config", async () => {
+		setup();
+		try {
+			const skillDir = join(testDir, "research-skill");
+			mkdirSync(skillDir, { recursive: true });
+			writeFileSync(
+				join(skillDir, "SKILL.md"),
+				"---\nname: research-skill\ndescription: A research skill\nmetadata:\n  agent: research\n---\n\nBody",
+			);
+
+			const skills = await discoverSkills([testDir]);
+			assert.strictEqual(skills.length, 1);
+			assert.strictEqual(skills[0].metadata.agent, "research");
+		} finally {
+			cleanup();
+		}
+	});
+});

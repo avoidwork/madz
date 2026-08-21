@@ -39,7 +39,7 @@ Follow the [OWASP Top 10](https://owasp.org/www-project-top-10/) for every piece
 ### 1.3 Git Operations
 
 - **Never rebase under any circumstance without explicit agreement from the user.** Never assume your decision is correct.
-- **Never push to any branch without explicit user approval.** Git changes (checkout, reset, revert, amend) are local operations — do not auto-push. Always ask "Push to remote?" before running `git push`.
+- **Never amend a commit.** Use additional commits instead.
 - Never force push.
 
 ### 1.4 Core Principles
@@ -290,20 +290,6 @@ chore: pin all dependencies in package.json
 - Never commit directly to `main`. Always create a feature branch first, then open a PR targeting `main`.
 
 ### 5.2.1 Agent Workflow
-
-When auditing or modifying AGENTS.md (or any file):
-1. Create a feature branch: `git checkout -b docs/<short-desc>` (or `feat/`, `fix/`).
-2. Make changes and commit on the feature branch.
-3. Push the feature branch and open a PR with `gh pr create --base main`.
-4. Never commit or push directly to `main` or `master`.
-
-### 5.3 Code Review
-
-- All changes require at least one other reviewer (automated checks are mandatory but not sufficient).
-- No merging without passing CI (lint → test).
-- PR descriptions must reference related items from design documents.
-
-### 5.4 Pull Request Templates
 
 When auditing or modifying AGENTS.md (or any file):
 1. Create a feature branch: `git checkout -b docs/<short-desc>` (or `feat/`, `fix/`).
