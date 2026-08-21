@@ -16,7 +16,7 @@ import {
 	MarkdownTextInner,
 	getParseCacheStats,
 } from "../../src/tui/markdownText.js";
-import { TuiSchema, DEFAULT_CONFIG } from "../../src/config/config.js";
+import { TuiSchema } from "../../src/config/config.js";
 import { InputPanel } from "../../src/tui/inputPanel.js";
 
 describe("command parser", () => {
@@ -861,15 +861,17 @@ describe("TuiSchema - cursorChar", () => {
 	});
 });
 
-describe("DEFAULT_CONFIG - tui fields", () => {
+describe("TuiSchema defaults", () => {
+	const defaults = TuiSchema.parse({});
+
 	it("includes cursorChar default", () => {
-		assert.strictEqual(DEFAULT_CONFIG.tui.cursorChar, "\u2588");
+		assert.strictEqual(defaults.cursorChar, "\u2588");
 	});
 
 	it("matches TuiSchema defaults for cursorChar", () => {
 		const schemaResult = TuiSchema.safeParse({});
 		assert.strictEqual(schemaResult.success, true);
-		assert.strictEqual(schemaResult.data.cursorChar, DEFAULT_CONFIG.tui.cursorChar);
+		assert.strictEqual(schemaResult.data.cursorChar, defaults.cursorChar);
 	});
 });
 

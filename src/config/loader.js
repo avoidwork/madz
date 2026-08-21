@@ -2,7 +2,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { createRequire } from "node:module";
-import { ConfigSchema, DEFAULT_CONFIG } from "./config.js";
+import { ConfigSchema } from "./config.js";
 import { applyDotPathMutation } from "./patch.js";
 
 const _require = createRequire(import.meta.url);
@@ -149,12 +149,12 @@ export function loadConfig() {
 		return cachedConfig;
 	}
 
-	let raw = DEFAULT_CONFIG;
+	let raw = ConfigSchema.parse({});
 	if (existsSync(CONFIG_PATH)) {
 		const fileContent = readFileSync(CONFIG_PATH, "utf-8");
 		const parsed = load(fileContent);
 		if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-			raw = deepMerge({}, { ...DEFAULT_CONFIG, ...parsed });
+			raw = deepMerge({}, { ...ConfigSchema.parse({}), ...parsed });
 		}
 	}
 	const resolved = _resolveEnvRecursively(raw, []);

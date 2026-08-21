@@ -564,7 +564,7 @@ describe("Calendar Tool Integration", () => {
 // --- Config Tests ---
 
 import { loadConfig } from "../../../src/config/loader.js";
-import { ConfigSchema, DEFAULT_CONFIG } from "../../../src/config/config.js";
+import { ConfigSchema } from "../../../src/config/config.js";
 
 describe("Calendar Config", () => {
 	it("should load config with calendar defaults", () => {
@@ -574,7 +574,8 @@ describe("Calendar Config", () => {
 	});
 
 	it("should have calendar in config schema", () => {
-		const result = ConfigSchema.safeParse(DEFAULT_CONFIG);
+		const defaults = ConfigSchema.parse({});
+		const result = ConfigSchema.safeParse(defaults);
 		assert.strictEqual(result.success, true);
 		assert.ok(result.data.calendar);
 	});

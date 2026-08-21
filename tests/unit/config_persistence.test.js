@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
-import { PersistenceSchema, DEFAULT_CONFIG } from "../../src/config/config.js";
+import { PersistenceSchema } from "../../src/config/config.js";
 
 describe("PersistenceSchema", () => {
 	it("validates memory mode", () => {
@@ -47,12 +47,14 @@ describe("PersistenceSchema", () => {
 	});
 });
 
-describe("DEFAULT_CONFIG.persistence", () => {
+describe("PersistenceSchema defaults", () => {
+	const defaults = PersistenceSchema.parse({});
+
 	it("has memory mode in defaults", () => {
-		assert.strictEqual(DEFAULT_CONFIG.persistence.mode, "memory");
+		assert.strictEqual(defaults.mode, "memory");
 	});
 
 	it("has default sqlite_path", () => {
-		assert.strictEqual(DEFAULT_CONFIG.persistence.sqlite_path, "memory/checkpoints.db");
+		assert.strictEqual(defaults.sqlite_path, "memory/checkpoints.db");
 	});
 });

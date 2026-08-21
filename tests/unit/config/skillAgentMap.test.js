@@ -1,22 +1,22 @@
 import { describe, it, beforeEach, afterEach } from "node:test";
 import { strictEqual, throws } from "node:assert";
-import { ConfigSchema, DEFAULT_CONFIG } from "../../../src/config/config.js";
+import { ConfigSchema } from "../../../src/config/config.js";
 import { _resolveEnvRecursively } from "../../../src/config/loader.js";
 
 describe("SkillAgentMap config", () => {
+	const defaults = ConfigSchema.parse({});
+
 	it("should have default skillAgentMap entries", () => {
-		strictEqual(DEFAULT_CONFIG.skillAgentMap.length, 3);
-		strictEqual(DEFAULT_CONFIG.skillAgentMap[0].pattern, "^openspec-");
-		strictEqual(DEFAULT_CONFIG.skillAgentMap[0].agent, "coding");
-		strictEqual(DEFAULT_CONFIG.skillAgentMap[1].pattern, "^audit-");
-		strictEqual(DEFAULT_CONFIG.skillAgentMap[1].agent, "security-audit");
-		strictEqual(DEFAULT_CONFIG.skillAgentMap[2].pattern, ".*");
-		strictEqual(DEFAULT_CONFIG.skillAgentMap[2].agent, "general-purpose");
+		strictEqual(defaults.skillAgentMap.length, 2);
+		strictEqual(defaults.skillAgentMap[0].pattern, "^openspec-");
+		strictEqual(defaults.skillAgentMap[0].agent, "coding");
+		strictEqual(defaults.skillAgentMap[1].pattern, "^audit-");
+		strictEqual(defaults.skillAgentMap[1].agent, "security-audit");
 	});
 
 	it("should validate valid skillAgentMap config", () => {
 		const config = ConfigSchema.parse({
-			...DEFAULT_CONFIG,
+			...defaults,
 			skillAgentMap: [
 				{ pattern: "^test-", agent: "coding" },
 				{ pattern: ".*", agent: "general-purpose" },
@@ -28,7 +28,7 @@ describe("SkillAgentMap config", () => {
 	it("should reject invalid pattern type", () => {
 		throws(() => {
 			ConfigSchema.parse({
-				...DEFAULT_CONFIG,
+				...defaults,
 				skillAgentMap: [{ pattern: 123, agent: "coding" }],
 			});
 		});
@@ -37,7 +37,7 @@ describe("SkillAgentMap config", () => {
 	it("should reject missing agent field", () => {
 		throws(() => {
 			ConfigSchema.parse({
-				...DEFAULT_CONFIG,
+				...defaults,
 				skillAgentMap: [{ pattern: "^test-" }],
 			});
 		});
@@ -45,7 +45,7 @@ describe("SkillAgentMap config", () => {
 
 	it("should accept empty array", () => {
 		const config = ConfigSchema.parse({
-			...DEFAULT_CONFIG,
+			...defaults,
 			skillAgentMap: [],
 		});
 		strictEqual(config.skillAgentMap.length, 0);
@@ -54,6 +54,7 @@ describe("SkillAgentMap config", () => {
 
 describe("SkillAgentMap env var resolution", () => {
 	let savedEnv;
+	const defaults = ConfigSchema.parse({});
 
 	beforeEach(() => {
 		savedEnv = { ...process.env };
@@ -67,7 +68,7 @@ describe("SkillAgentMap env var resolution", () => {
 		process.env.SKILL_AGENT_MAP_0_PATTERN = "env-pattern";
 		process.env.SKILL_AGENT_MAP_0_AGENT = "env-agent";
 		const rawConfig = {
-			...DEFAULT_CONFIG,
+			...defaults,
 			skillAgentMap: [{ pattern: "^openspec-", agent: "coding" }],
 		};
 		const resolved = _resolveEnvRecursively(rawConfig, []);
@@ -80,7 +81,7 @@ describe("SkillAgentMap env var resolution", () => {
 		process.env.SKILL_AGENT_MAP_1_PATTERN = "audit-env";
 		process.env.SKILL_AGENT_MAP_1_AGENT = "security-audit-env";
 		const rawConfig = {
-			...DEFAULT_CONFIG,
+			...defaults,
 			skillAgentMap: [
 				{ pattern: "^openspec-", agent: "coding" },
 				{ pattern: "^audit-", agent: "security-audit" },
@@ -95,7 +96,7 @@ describe("SkillAgentMap env var resolution", () => {
 	it("leaves config value when env var is not set", () => {
 		delete process.env.SKILL_AGENT_MAP_0_PATTERN;
 		const rawConfig = {
-			...DEFAULT_CONFIG,
+			...defaults,
 			skillAgentMap: [{ pattern: "^test-", agent: "coding" }],
 		};
 		const resolved = _resolveEnvRecursively(rawConfig, []);
@@ -108,7 +109,7 @@ describe("SkillAgentMap env var resolution", () => {
 		process.env.SKILL_AGENT_MAP_1_PATTERN = "second";
 		process.env.SKILL_AGENT_MAP_2_PATTERN = "third";
 		const rawConfig = {
-			...DEFAULT_CONFIG,
+			...defaults,
 			skillAgentMap: [
 				{ pattern: "a", agent: "x" },
 				{ pattern: "b", agent: "y" },

@@ -105,6 +105,4 @@ skillAgentMap:
     agent: coding
   - pattern: "^audit-"
     agent: security-audit
-  - pattern: ".*"
-    agent: general-purpose
 cwd: ""
