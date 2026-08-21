@@ -20,15 +20,7 @@ import { xlsxTool } from "./fileExtract/xlsx.js";
 import { pdfTool } from "./fileExtract/pdf.js";
 import { reflectionSessions } from "./reflection.js";
 import { email } from "./email/tools.js";
-import {
-	spreadsheetCompute,
-	spreadsheetGenerate,
-	spreadsheetAnalyze,
-	spreadsheetCsvImport,
-	spreadsheetCsvExport,
-	spreadsheetModify,
-	spreadsheetExport,
-} from "./spreadsheet/spreadsheet.js";
+import { spreadsheet } from "./spreadsheet/spreadsheet.js";
 import { calendar } from "./calendar/index.js";
 import { pdfGenerateTool } from "./pdfGenerate.js";
 
@@ -61,13 +53,7 @@ export const TOOL_PERMISSIONS = {
 	pdf: ["filesystem:read"],
 	reflectionSessions: ["filesystem:read"],
 	email: ["network:outbound"],
-	spreadsheetCompute: ["filesystem:read", "filesystem:write"],
-	spreadsheetGenerate: ["filesystem:write"],
-	spreadsheetAnalyze: ["filesystem:read"],
-	spreadsheetCsvImport: ["filesystem:read"],
-	spreadsheetCsvExport: ["filesystem:write"],
-	spreadsheetModify: ["filesystem:read", "filesystem:write"],
-	spreadsheetExport: ["filesystem:read", "filesystem:write"],
+	spreadsheet: ["filesystem:read", "filesystem:write"],
 	calendar: ["network:outbound"],
 	pdfGenerate: ["filesystem:read", "filesystem:write", "network:outbound"],
 };
@@ -131,13 +117,7 @@ export const TOOL_CLASSIFICATIONS = {
 	pdf: ["search", "research", "coding", "documentation", "debug"],
 	reflectionSessions: ["orchestrator"],
 	email: ["search", "research", "coding", "documentation", "debug"],
-	spreadsheetCompute: ["search", "research", "coding", "documentation", "debug"],
-	spreadsheetGenerate: ["search", "research", "coding", "documentation", "debug"],
-	spreadsheetAnalyze: ["search", "research", "coding", "documentation", "debug"],
-	spreadsheetCsvImport: ["search", "research", "coding", "documentation", "debug"],
-	spreadsheetCsvExport: ["search", "research", "coding", "documentation", "debug"],
-	spreadsheetModify: ["search", "research", "coding", "documentation", "debug"],
-	spreadsheetExport: ["search", "research", "coding", "documentation", "debug"],
+	spreadsheet: ["search", "research", "coding", "documentation", "debug"],
 	calendar: ["search", "research", "coding", "documentation", "debug", "performance"],
 	pdfGenerate: ["search", "research", "coding", "documentation", "debug"],
 };
@@ -203,13 +183,7 @@ export const TOOLS = {
 	pdf: pdfTool,
 	reflectionSessions,
 	email,
-	spreadsheetCompute,
-	spreadsheetGenerate,
-	spreadsheetAnalyze,
-	spreadsheetCsvImport,
-	spreadsheetCsvExport,
-	spreadsheetModify,
-	spreadsheetExport,
+	spreadsheet,
 	calendar,
 	pdfGenerate: pdfGenerateTool,
 };

@@ -11,33 +11,32 @@ import * as stats from "./stats.js";
 import * as csv from "./csv.js";
 import * as pivot from "./pivot.js";
 
-// ─── Input Schemas ────────────────────────────────────────────────────────────────
+// ─── Input Schema ────────────────────────────────────────────────────────────────
 
-const ComputeSchema = z.object({
-	data: z.array(z.record(z.unknown())).describe("Array of objects representing rows of data"),
+const SpreadsheetSchema = z.object({
+	action: z.enum([
+		"compute",
+		"generate",
+		"analyze",
+		"csvImport",
+		"csvExport",
+		"modify",
+		"export",
+	]),
+	// compute
+	data: z.array(z.record(z.unknown())).optional().describe("Array of objects representing rows of data"),
 	operations: z
 		.array(
 			z.object({
-				type: z.enum([
-					"sum",
-					"average",
-					"count",
-					"min",
-					"max",
-					"formula",
-					"median",
-					"stddev",
-					"variance",
-				]),
+				type: z.enum(["sum", "average", "count", "min", "max", "formula", "median", "stddev", "variance"]),
 				field: z.string().optional().describe("Field name to operate on (not needed for count)"),
 				formula: z.string().optional().describe("Formula expression (for formula type)"),
 				alias: z.string().optional().describe("Output field name for the result"),
 			}),
 		)
+		.optional()
 		.describe("List of operations to perform on the data"),
-});
-
-const GenerateSchema = z.object({
+	// generate
 	sheets: z
 		.array(
 			z.object({
@@ -46,69 +45,39 @@ const GenerateSchema = z.object({
 					.array(
 						z.object({
 							values: z.array(z.unknown()).describe("Cell values for each row"),
-							formulas: z
-								.record(z.string())
-								.optional()
-								.describe("Cell formulas keyed by column index"),
+							formulas: z.record(z.string()).optional().describe("Cell formulas keyed by column index"),
 							formatting: z.record(z.unknown()).optional().describe("Cell formatting options"),
 						}),
 					)
 					.describe("Sheet data as array of rows"),
 			}),
 		)
+		.optional()
 		.describe("Sheet definitions with rows, formulas, and formatting"),
-	outputPath: z.string().describe("Output file path (.xlsx)"),
-});
-
-const AnalyzeSchema = z.object({
-	data: z.array(z.record(z.unknown())).describe("Array of objects representing rows of data"),
-	operations: z
+	outputPath: z.string().optional().describe("Output file path"),
+	// csvImport
+	content: z.string().optional().describe("CSV content as string"),
+	// csv options
+	delimiter: z.string().optional().describe("Field delimiter (default: ',')"),
+	quote: z.string().optional().describe("Quote character (default: '\"')"),
+	trim: z.boolean().optional().describe("Trim whitespace (default: true)"),
+	header: z.boolean().optional().describe("Include header row (default: true)"),
+	// analyze
+	analysisOperations: z
 		.array(
 			z.object({
 				type: z.enum(["pivot", "filter", "groupBy", "stats", "percentile"]),
 				config: z.record(z.unknown()).describe("Operation-specific configuration"),
 			}),
 		)
+		.optional()
 		.describe("Analysis operations to perform"),
-});
-
-const CsvImportSchema = z.object({
-	content: z.string().describe("CSV content as string"),
-	options: z
-		.object({
-			delimiter: z.string().optional().describe("Field delimiter (default: ',')"),
-			quote: z.string().optional().describe("Quote character (default: '\"')"),
-			trim: z.boolean().optional().describe("Trim whitespace (default: true)"),
-		})
-		.optional()
-		.describe("CSV parsing options"),
-});
-
-const CsvExportSchema = z.object({
-	data: z.array(z.record(z.unknown())).describe("Array of objects to export"),
-	options: z
-		.object({
-			delimiter: z.string().optional().describe("Field delimiter (default: ',')"),
-			quote: z.string().optional().describe("Quote character (default: '\"')"),
-			header: z.boolean().optional().describe("Include header row (default: true)"),
-		})
-		.optional()
-		.describe("CSV output options"),
-});
-
-const ModifySchema = z.object({
-	inputPath: z.string().describe("Input XLSX file path"),
-	operations: z
+	// modify
+	inputPath: z.string().optional().describe("Input XLSX file path"),
+	modifyOperations: z
 		.array(
 			z.object({
-				type: z.enum([
-					"addCell",
-					"modifyCell",
-					"deleteCell",
-					"addSheet",
-					"deleteSheet",
-					"renameSheet",
-				]),
+				type: z.enum(["addCell", "modifyCell", "deleteCell", "addSheet", "deleteSheet", "renameSheet"]),
 				sheetName: z.string().describe("Target sheet name"),
 				cellRef: z.string().optional().describe("Cell reference (e.g., 'A1', 'B3')"),
 				value: z.unknown().optional().describe("New value"),
@@ -116,26 +85,49 @@ const ModifySchema = z.object({
 				newName: z.string().optional().describe("New sheet name (for rename)"),
 			}),
 		)
+		.optional()
 		.describe("Modification operations to apply"),
-	outputPath: z.string().describe("Output file path"),
-});
-
-const ExportSchema = z.object({
-	data: z.array(z.record(z.unknown())).describe("Array of objects representing rows"),
-	format: z.enum(["xlsx", "csv", "json"]).describe("Output format"),
-	outputPath: z.string().describe("Output file path"),
-	options: z.record(z.unknown()).optional().describe("Format-specific options"),
+	// export
+	format: z.enum(["xlsx", "csv", "json"]).optional().describe("Output format"),
 });
 
 // ─── Implementation ─────────────────────────────────────────────────────────────────
 
 /**
+ * Spreadsheet computation tool.
+ * @param {z.infer<typeof SpreadsheetSchema>} input - Tool input
+ * @returns {Promise<Object>} Operation result
+ */
+export async function spreadsheetImpl(input) {
+	const { action } = SpreadsheetSchema.parse(input);
+
+	switch (action) {
+		case "compute":
+			return compute(input);
+		case "generate":
+			return generate(input);
+		case "analyze":
+			return analyze(input);
+		case "csvImport":
+			return csvImport(input);
+		case "csvExport":
+			return csvExport(input);
+		case "modify":
+			return modify(input);
+		case "export":
+			return exportData(input);
+		default:
+			throw new Error(`Unknown action: ${action}`);
+	}
+}
+
+/**
  * Run computations on structured data.
- * @param {z.infer<typeof ComputeSchema>} input - Tool input
+ * @param {object} input - Tool input
  * @returns {Object} Computed results
  */
-export async function compute(input) {
-	const { data, operations } = ComputeSchema.parse(input);
+async function compute(input) {
+	const { data, operations } = SpreadsheetSchema.parse(input);
 
 	if (!data || data.length === 0) {
 		throw new Error("compute() requires non-empty data");
@@ -173,7 +165,6 @@ export async function compute(input) {
 			case "formula": {
 				if (!op.formula) throw new Error("formula operation requires a formula string");
 				const parsed = parseFormula(op.formula);
-				// Build context from first row
 				const context = {};
 				const headers = Object.keys(data[0]);
 				headers.forEach((h, i) => {
@@ -214,11 +205,11 @@ export async function compute(input) {
 
 /**
  * Generate a new XLSX file with formulas, formatting, and multiple sheets.
- * @param {z.infer<typeof GenerateSchema>} input - Tool input
+ * @param {object} input - Tool input
  * @returns {Object} Generation result
  */
-export async function generate(input) {
-	const { sheets, outputPath } = GenerateSchema.parse(input);
+async function generate(input) {
+	const { sheets, outputPath } = SpreadsheetSchema.parse(input);
 
 	if (!sheets || sheets.length === 0) {
 		throw new Error("generate() requires at least one sheet");
@@ -230,7 +221,6 @@ export async function generate(input) {
 			const rows = sheet.rows.map((row) => {
 				const cells = {};
 				row.values.forEach((value, i) => {
-					// Use column letter + row number
 					const colLetter = String.fromCharCode(65 + (i % 26));
 					const rowNumber = Math.floor(i / 26) + 1;
 					cells[`${colLetter}${rowNumber}`] = { value, formula: row.formulas?.[i] };
@@ -251,11 +241,11 @@ export async function generate(input) {
 
 /**
  * Perform analysis operations on data.
- * @param {z.infer<typeof AnalyzeSchema>} input - Tool input
+ * @param {object} input - Tool input
  * @returns {Object} Analysis results
  */
-export async function analyze(input) {
-	const { data, operations } = AnalyzeSchema.parse(input);
+async function analyze(input) {
+	const { data, analysisOperations } = SpreadsheetSchema.parse(input);
 
 	if (!data || data.length === 0) {
 		throw new Error("analyze() requires non-empty data");
@@ -263,7 +253,7 @@ export async function analyze(input) {
 
 	const results = [];
 
-	for (const op of operations) {
+	for (const op of analysisOperations) {
 		switch (op.type) {
 			case "pivot": {
 				const result = pivot.pivot(data, op.config);
@@ -312,33 +302,33 @@ export async function analyze(input) {
 
 /**
  * Import CSV content.
- * @param {z.infer<typeof CsvImportSchema>} input - Tool input
+ * @param {object} input - Tool input
  * @returns {Object} Imported data
  */
-export async function csvImport(input) {
-	const { content, options } = CsvImportSchema.parse(input);
-	const data = csv.csvImport(content, options);
+async function csvImport(input) {
+	const { content, delimiter, quote, trim } = SpreadsheetSchema.parse(input);
+	const data = csv.csvImport(content, { delimiter, quote, trim });
 	return { records: data.length, data };
 }
 
 /**
  * Export data to CSV.
- * @param {z.infer<typeof CsvExportSchema>} input - Tool input
+ * @param {object} input - Tool input
  * @returns {Object} CSV string
  */
-export async function csvExport(input) {
-	const { data, options } = CsvExportSchema.parse(input);
-	const csvString = csv.csvExport(data, options);
+async function csvExport(input) {
+	const { data, delimiter, quote, header } = SpreadsheetSchema.parse(input);
+	const csvString = csv.csvExport(data, { delimiter, quote, header });
 	return { csv: csvString };
 }
 
 /**
  * Modify an existing XLSX file.
- * @param {z.infer<typeof ModifySchema>} input - Tool input
+ * @param {object} input - Tool input
  * @returns {Object} Modification result
  */
-export async function modify(input) {
-	const { inputPath, operations, outputPath } = ModifySchema.parse(input);
+async function modify(input) {
+	const { inputPath, modifyOperations, outputPath } = SpreadsheetSchema.parse(input);
 
 	// Validate input file exists
 	const fs = await import("node:fs");
@@ -353,7 +343,7 @@ export async function modify(input) {
 
 	const results = [];
 
-	for (const op of operations) {
+	for (const op of modifyOperations) {
 		const sheet = workbook.getWorksheet(op.sheetName);
 		if (!sheet) {
 			results.push({
@@ -450,11 +440,11 @@ export async function modify(input) {
 
 /**
  * Unified export endpoint.
- * @param {z.infer<typeof ExportSchema>} input - Tool input
+ * @param {object} input - Tool input
  * @returns {Object} Export result
  */
-export async function exportData(input) {
-	const { data, format, outputPath, options } = ExportSchema.parse(input);
+async function exportData(input) {
+	const { data, format, outputPath } = SpreadsheetSchema.parse(input);
 
 	if (!data || data.length === 0) {
 		throw new Error("export() requires non-empty data");
@@ -466,7 +456,7 @@ export async function exportData(input) {
 			return { format: "json", output: json, outputPath };
 		}
 		case "csv": {
-			const csvString = csv.csvExport(data, options);
+			const csvString = csv.csvExport(data);
 			return { format: "csv", output: csvString, outputPath };
 		}
 		case "xlsx": {
@@ -501,83 +491,12 @@ export async function exportData(input) {
 
 /**
  * Spreadsheet computation tool.
- * @param {z.infer<typeof ComputeSchema>} input - Tool input
- * @returns {Promise<Object>} Computed results
+ * @param {z.infer<typeof SpreadsheetSchema>} input - Tool input
+ * @returns {Promise<Object>} Operation result
  */
-export const spreadsheetCompute = tool(compute, {
-	name: "spreadsheetCompute",
+export const spreadsheet = tool(spreadsheetImpl, {
+	name: "spreadsheet",
 	description:
-		"Run computations on structured data. Supports sum, average, count, min, max, formula, median, stddev, and variance operations.",
-	schema: ComputeSchema,
-});
-
-/**
- * Spreadsheet generation tool.
- * @param {z.infer<typeof GenerateSchema>} input - Tool input
- * @returns {Promise<Object>} Generation result
- */
-export const spreadsheetGenerate = tool(generate, {
-	name: "spreadsheetGenerate",
-	description:
-		"Create new XLSX files with formulas, formatting, and multiple sheets. Define sheets with rows, cell formulas, and formatting options.",
-	schema: GenerateSchema,
-});
-
-/**
- * Spreadsheet analysis tool.
- * @param {z.infer<typeof AnalyzeSchema>} input - Tool input
- * @returns {Promise<Object>} Analysis results
- */
-export const spreadsheetAnalyze = tool(analyze, {
-	name: "spreadsheetAnalyze",
-	description:
-		"Perform data analysis: pivot tables, filtering, groupBy, statistics, and percentile calculations on structured data.",
-	schema: AnalyzeSchema,
-});
-
-/**
- * CSV import tool.
- * @param {z.infer<typeof CsvImportSchema>} input - Tool input
- * @returns {Promise<Object>} Imported records
- */
-export const spreadsheetCsvImport = tool(csvImport, {
-	name: "spreadsheetCsvImport",
-	description:
-		"Import CSV content into structured data. Supports configurable delimiters, quoting, and encoding options.",
-	schema: CsvImportSchema,
-});
-
-/**
- * CSV export tool.
- * @param {z.infer<typeof CsvExportSchema>} input - Tool input
- * @returns {Promise<Object>} CSV string output
- */
-export const spreadsheetCsvExport = tool(csvExport, {
-	name: "spreadsheetCsvExport",
-	description:
-		"Export structured data to CSV format. Supports configurable delimiters, quoting, and header options.",
-	schema: CsvExportSchema,
-});
-
-/**
- * Spreadsheet modification tool.
- * @param {z.infer<typeof ModifySchema>} input - Tool input
- * @returns {Promise<Object>} Modification result
- */
-export const spreadsheetModify = tool(modify, {
-	name: "spreadsheetModify",
-	description: "Modify an existing XLSX file: add/modify/delete cells, add/delete/rename sheets.",
-	schema: ModifySchema,
-});
-
-/**
- * Unified export tool.
- * @param {z.infer<typeof ExportSchema>} input - Tool input
- * @returns {Promise<Object>} Export result
- */
-export const spreadsheetExport = tool(exportData, {
-	name: "spreadsheetExport",
-	description:
-		"Export structured data to XLSX, CSV, or JSON format. Unified endpoint for all export operations.",
-	schema: ExportSchema,
+		"Spreadsheet computation and analysis. Actions: compute (sum, average, count, min, max, formula, median, stddev, variance), generate (create XLSX with formulas), analyze (pivot tables, filtering, groupBy, stats, percentile), csvImport, csvExport, modify (add/modify/delete cells and sheets), export (XLSX, CSV, JSON).",
+	schema: SpreadsheetSchema,
 });

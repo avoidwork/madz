@@ -496,13 +496,7 @@ All built-in tools are defined in `src/tools/` and registered as LangChain tools
 | `email` | Read, send, manage drafts, organize, and search emails. Actions: `read`, `send`, `draftSave`, `draftList`, `draftUpdate`, `draftDelete`, `organize`, `search`. Requires email provider credentials via environment variables. |
 | `pdfGenerate` | Generate PDFs from HTML or markdown, or manipulate existing PDFs (merge, split, watermark, signature, annotate). Use action to specify the operation. |
 | `calendar` | Read, create, and manage calendar events via Google Calendar API. |
-| `spreadsheetCompute` | Run computations on structured data (sum, average, count, min, max, formula, median, stddev, variance). |
-| `spreadsheetGenerate` | Create new XLSX files with formulas, formatting, and multiple sheets. |
-| `spreadsheetAnalyze` | Perform data analysis: pivot tables, filtering, groupBy, statistics, and percentile calculations. |
-| `spreadsheetCsvImport` | Import CSV content into structured data with configurable delimiters, quoting, and encoding. |
-| `spreadsheetCsvExport` | Export structured data to CSV format with configurable delimiters, quoting, and headers. |
-| `spreadsheetModify` | Modify an existing XLSX file: add/modify/delete cells, add/delete/rename sheets. |
-| `spreadsheetExport` | Export structured data to XLSX, CSV, or JSON format. Unified endpoint for all export operations. |
+| `spreadsheet` | Spreadsheet computation and analysis. Actions: compute (sum, average, count, min, max, formula, median, stddev, variance), generate (create XLSX with formulas), analyze (pivot tables, filtering, groupBy, stats, percentile), csvImport, csvExport, modify (add/modify/delete cells and sheets), export (XLSX, CSV, JSON). |
 
 **Deep Agents tools:** Core filesystem operations (`readFile`, `writeFile`, `patch`, `searchFiles`) and task management (`todo`) are provided by [deepagentsjs](https://github.com/langchain-ai/deepagentsjs) and are not listed as madz-built-in tools.
 
@@ -523,9 +517,7 @@ Built-in tools are registered only when their required permissions are enabled f
 | `process:spawn`                     | `process`                                                                  |
 | _(none)_                            | `date`, `textToSpeech`, `visionAnalyze`                                    |
 | `filesystem:read` + `filesystem:write` + `network:outbound` | `pdfGenerate` |
-| `filesystem:read` + `filesystem:write` | `spreadsheetCompute`, `spreadsheetModify`, `spreadsheetExport` |
-| `filesystem:write` | `spreadsheetGenerate` |
-| `filesystem:read` | `spreadsheetAnalyze`, `spreadsheetCsvImport` |
+| `filesystem:read` + `filesystem:write` | `spreadsheet` |
 
 ### Memory System
 
