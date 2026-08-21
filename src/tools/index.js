@@ -29,6 +29,8 @@ import {
 	spreadsheetModify,
 	spreadsheetExport,
 } from "./spreadsheet/spreadsheet.js";
+import { calendar } from "./calendar/index.js";
+import { pdfGenerateTool } from "./pdfGenerate.js";
 
 /**
  * Maps tool names to required permission scopes.
@@ -66,6 +68,8 @@ export const TOOL_PERMISSIONS = {
 	spreadsheetCsvExport: ["filesystem:write"],
 	spreadsheetModify: ["filesystem:read", "filesystem:write"],
 	spreadsheetExport: ["filesystem:read", "filesystem:write"],
+	calendar: ["network:outbound"],
+	pdfGenerate: ["filesystem:read", "filesystem:write", "network:outbound"],
 };
 
 /**
@@ -134,6 +138,8 @@ export const TOOL_CLASSIFICATIONS = {
 	spreadsheetCsvExport: ["search", "research", "coding", "documentation", "debug"],
 	spreadsheetModify: ["search", "research", "coding", "documentation", "debug"],
 	spreadsheetExport: ["search", "research", "coding", "documentation", "debug"],
+	calendar: ["search", "research", "coding", "documentation", "debug", "performance"],
+	pdfGenerate: ["search", "research", "coding", "documentation", "debug"],
 };
 
 /**
@@ -204,6 +210,8 @@ export const TOOLS = {
 	spreadsheetCsvExport,
 	spreadsheetModify,
 	spreadsheetExport,
+	calendar,
+	pdfGenerate: pdfGenerateTool,
 };
 
 /**

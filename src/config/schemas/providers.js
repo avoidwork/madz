@@ -119,3 +119,48 @@ export const EmailConfigSchema = z.object({
 	maxAttachments: z.number().int().positive().default(10),
 	maxAttachmentSize: z.string().nullable().default("25mb"),
 });
+
+// --- Calendar Provider Config Schemas ---
+
+const _GoogleCalendarCredentialsSchema = z.object({
+	apiKey: z.string().optional().default(""),
+	serviceAccountKey: z.string().optional().default(""),
+	serviceAccountEmail: z.string().optional().default(""),
+	impersonateEmail: z.string().email().optional().default(""),
+});
+
+const GoogleCalendarConfigSchema = z.object({
+	type: z.literal("google").default("google"),
+	apiKey: z.string().optional().default(""),
+	serviceAccountKey: z.string().optional().default(""),
+	serviceAccountEmail: z.string().optional().default(""),
+	impersonateEmail: z.string().email().optional().default(""),
+	rateLimit: RateLimitSchema.default({ requestsPerMinute: 60 }),
+});
+
+const _MsGraphCredentialsSchema = z.object({
+	tenantId: z.string().optional().default(""),
+	clientId: z.string().optional().default(""),
+	clientSecret: z.string().optional().default(""),
+	delegatedUser: z.string().optional().default(""),
+});
+
+const MsGraphConfigSchema = z.object({
+	type: z.literal("msgraph").default("msgraph"),
+	tenantId: z.string().optional().default(""),
+	clientId: z.string().optional().default(""),
+	clientSecret: z.string().optional().default(""),
+	delegatedUser: z.string().optional().default(""),
+	rateLimit: RateLimitSchema.default({ requestsPerMinute: 60 }),
+});
+
+export const CalendarProviderSchema = z.discriminatedUnion("type", [
+	GoogleCalendarConfigSchema,
+	MsGraphConfigSchema,
+]);
+
+export const CalendarConfigSchema = z.object({
+	active: z.enum(["google", "msgraph"]).default("google"),
+	google: GoogleCalendarConfigSchema.default({}),
+	msgraph: MsGraphConfigSchema.default({}),
+});

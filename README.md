@@ -494,6 +494,8 @@ All built-in tools are defined in `src/tools/` and registered as LangChain tools
 | `webExtract` | Extract readable text content from a web page URL. Supports summarization for large pages. |
 | `webSearch` | Search the web via DuckDuckGo, Google, Bing, SearXNG, or Custom endpoints. |
 | `email` | Read, send, manage drafts, organize, and search emails. Actions: `read`, `send`, `draftSave`, `draftList`, `draftUpdate`, `draftDelete`, `organize`, `search`. Requires email provider credentials via environment variables. |
+| `pdfGenerate` | Generate PDFs from HTML or markdown, or manipulate existing PDFs (merge, split, watermark, signature, annotate). Use action to specify the operation. |
+| `calendar` | Read, create, and manage calendar events via Google Calendar API. |
 
 **Deep Agents tools:** Core filesystem operations (`readFile`, `writeFile`, `patch`, `searchFiles`) and task management (`todo`) are provided by [deepagentsjs](https://github.com/langchain-ai/deepagentsjs) and are not listed as madz-built-in tools.
 
@@ -510,9 +512,10 @@ Built-in tools are registered only when their required permissions are enabled f
 | `filesystem:read`                   | `compactContext`, `scanAgents`, `sessionSearch` |
 | `filesystem:write`                  | `clarify`, `createSkill`, `memory`, `sampling`                             |
 | `filesystem:exec` + `process:spawn` | `shell`                                                    |
-| `network:outbound`                  | `cronJob`, `imageGenerate`, `mixtureOfAgents`, `webExtract`, `webSearch`   |
+| `network:outbound`                  | `cronJob`, `imageGenerate`, `mixtureOfAgents`, `webExtract`, `webSearch`, `email`, `calendar`   |
 | `process:spawn`                     | `process`                                                                  |
 | _(none)_                            | `date`, `textToSpeech`, `visionAnalyze`                                    |
+| `filesystem:read` + `filesystem:write` + `network:outbound` | `pdfGenerate` |
 
 ### Memory System
 
