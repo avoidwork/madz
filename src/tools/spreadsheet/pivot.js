@@ -11,30 +11,30 @@
  * @throws {Error} If data is empty or keys are invalid
  */
 export function groupBy(data, keys) {
-  if (!data || !Array.isArray(data) || data.length === 0) {
-    throw new Error("groupBy() requires a non-empty array of objects");
-  }
+	if (!data || !Array.isArray(data) || data.length === 0) {
+		throw new Error("groupBy() requires a non-empty array of objects");
+	}
 
-  const keyList = Array.isArray(keys) ? keys : [keys];
+	const keyList = Array.isArray(keys) ? keys : [keys];
 
-  // Validate all keys exist in at least some items
-  for (const key of keyList) {
-    if (typeof key !== "string") {
-      throw new Error(`groupBy() key must be a string, got ${typeof key}`);
-    }
-  }
+	// Validate all keys exist in at least some items
+	for (const key of keyList) {
+		if (typeof key !== "string") {
+			throw new Error(`groupBy() key must be a string, got ${typeof key}`);
+		}
+	}
 
-  const groups = new Map();
+	const groups = new Map();
 
-  for (const item of data) {
-    const groupKey = keyList.map((k) => item[k] ?? "").join(" | ");
-    if (!groups.has(groupKey)) {
-      groups.set(groupKey, []);
-    }
-    groups.get(groupKey).push(item);
-  }
+	for (const item of data) {
+		const groupKey = keyList.map((k) => item[k] ?? "").join(" | ");
+		if (!groups.has(groupKey)) {
+			groups.set(groupKey, []);
+		}
+		groups.get(groupKey).push(item);
+	}
 
-  return [...groups.entries()].map(([key, items]) => ({ key, items }));
+	return [...groups.entries()].map(([key, items]) => ({ key, items }));
 }
 
 /**
@@ -49,53 +49,53 @@ export function groupBy(data, keys) {
  * @throws {Error} If data is empty or config is invalid
  */
 export function pivot(data, config) {
-  if (!data || !Array.isArray(data) || data.length === 0) {
-    throw new Error("pivot() requires a non-empty array of objects");
-  }
-  if (!config || !config.keys || !config.value || !config.aggregate) {
-    throw new Error("pivot() requires keys, value, and aggregate in config");
-  }
+	if (!data || !Array.isArray(data) || data.length === 0) {
+		throw new Error("pivot() requires a non-empty array of objects");
+	}
+	if (!config || !config.keys || !config.value || !config.aggregate) {
+		throw new Error("pivot() requires keys, value, and aggregate in config");
+	}
 
-  const { keys, value, aggregate, label } = config;
-  const keyList = Array.isArray(keys) ? keys : [keys];
-  const aggLabel = label || `${aggregate}(${value})`;
+	const { keys, value, aggregate, label } = config;
+	const keyList = Array.isArray(keys) ? keys : [keys];
+	const aggLabel = label || `${aggregate}(${value})`;
 
-  // Validate aggregate function
-  const validAggregates = ["sum", "count", "avg", "min", "max"];
-  if (!validAggregates.includes(aggregate)) {
-    throw new Error(`pivot() aggregate must be one of: ${validAggregates.join(", ")}`);
-  }
+	// Validate aggregate function
+	const validAggregates = ["sum", "count", "avg", "min", "max"];
+	if (!validAggregates.includes(aggregate)) {
+		throw new Error(`pivot() aggregate must be one of: ${validAggregates.join(", ")}`);
+	}
 
-  // Group data
-  const groups = groupBy(data, keyList);
+	// Group data
+	const groups = groupBy(data, keyList);
 
-  // Compute aggregations
-  return groups.map((group) => {
-    const row = {};
+	// Compute aggregations
+	return groups.map((group) => {
+		const row = {};
 
-    // Add key columns
-    if (keyList.length === 1) {
-      row[keyList[0]] = group.key;
-    } else {
-      keyList.forEach((k, i) => {
-        row[k] = group.key.split(" | ")[i];
-      });
-    }
+		// Add key columns
+		if (keyList.length === 1) {
+			row[keyList[0]] = group.key;
+		} else {
+			keyList.forEach((k, i) => {
+				row[k] = group.key.split(" | ")[i];
+			});
+		}
 
-    // Compute aggregation
-    const values = group.items
-      .map((item) => {
-        const v = item[value];
-        if (v === null || v === undefined) return NaN;
-        const n = Number(v);
-        return isNaN(n) ? NaN : n;
-      })
-      .filter((v) => !isNaN(v));
+		// Compute aggregation
+		const values = group.items
+			.map((item) => {
+				const v = item[value];
+				if (v === null || v === undefined) return NaN;
+				const n = Number(v);
+				return isNaN(n) ? NaN : n;
+			})
+			.filter((v) => !isNaN(v));
 
-    row[aggLabel] = computeAggregate(values, aggregate);
+		row[aggLabel] = computeAggregate(values, aggregate);
 
-    return row;
-  });
+		return row;
+	});
 }
 
 /**
@@ -105,22 +105,22 @@ export function pivot(data, config) {
  * @returns {number} Aggregated result
  */
 function computeAggregate(values, aggregate) {
-  if (values.length === 0) return 0;
+	if (values.length === 0) return 0;
 
-  switch (aggregate) {
-    case "sum":
-      return values.reduce((sum, v) => sum + v, 0);
-    case "count":
-      return values.length;
-    case "avg":
-      return values.reduce((sum, v) => sum + v, 0) / values.length;
-    case "min":
-      return Math.min(...values);
-    case "max":
-      return Math.max(...values);
-    default:
-      return 0;
-  }
+	switch (aggregate) {
+		case "sum":
+			return values.reduce((sum, v) => sum + v, 0);
+		case "count":
+			return values.length;
+		case "avg":
+			return values.reduce((sum, v) => sum + v, 0) / values.length;
+		case "min":
+			return Math.min(...values);
+		case "max":
+			return Math.max(...values);
+		default:
+			return 0;
+	}
 }
 
 /**
@@ -133,42 +133,42 @@ function computeAggregate(values, aggregate) {
  * @throws {Error} If parameters are invalid
  */
 export function filter(data, field, operator, value) {
-  if (!data || !Array.isArray(data) || data.length === 0) {
-    throw new Error("filter() requires a non-empty array of objects");
-  }
-  if (!field || !operator) {
-    throw new Error("filter() requires field and operator");
-  }
+	if (!data || !Array.isArray(data) || data.length === 0) {
+		throw new Error("filter() requires a non-empty array of objects");
+	}
+	if (!field || !operator) {
+		throw new Error("filter() requires field and operator");
+	}
 
-  const validOperators = ["eq", "neq", "gt", "gte", "lt", "lte", "contains", "in"];
-  if (!validOperators.includes(operator)) {
-    throw new Error(`filter() operator must be one of: ${validOperators.join(", ")}`);
-  }
+	const validOperators = ["eq", "neq", "gt", "gte", "lt", "lte", "contains", "in"];
+	if (!validOperators.includes(operator)) {
+		throw new Error(`filter() operator must be one of: ${validOperators.join(", ")}`);
+	}
 
-  return data.filter((item) => {
-    const fieldValue = item[field];
+	return data.filter((item) => {
+		const fieldValue = item[field];
 
-    switch (operator) {
-      case "eq":
-        return fieldValue == value; // eslint-disable-line eqeqeq
-      case "neq":
-        return fieldValue != value; // eslint-disable-line eqeqeq
-      case "gt":
-        return Number(fieldValue) > Number(value);
-      case "gte":
-        return Number(fieldValue) >= Number(value);
-      case "lt":
-        return Number(fieldValue) < Number(value);
-      case "lte":
-        return Number(fieldValue) <= Number(value);
-      case "contains":
-        return String(fieldValue).includes(String(value));
-      case "in":
-        return Array.isArray(value) && value.includes(fieldValue);
-      default:
-        return false;
-    }
-  });
+		switch (operator) {
+			case "eq":
+				return fieldValue == value; // eslint-disable-line eqeqeq
+			case "neq":
+				return fieldValue != value; // eslint-disable-line eqeqeq
+			case "gt":
+				return Number(fieldValue) > Number(value);
+			case "gte":
+				return Number(fieldValue) >= Number(value);
+			case "lt":
+				return Number(fieldValue) < Number(value);
+			case "lte":
+				return Number(fieldValue) <= Number(value);
+			case "contains":
+				return String(fieldValue).includes(String(value));
+			case "in":
+				return Array.isArray(value) && value.includes(fieldValue);
+			default:
+				return false;
+		}
+	});
 }
 
 /**
@@ -182,43 +182,43 @@ export function filter(data, field, operator, value) {
  * @returns {Object[]} Pivot table with row keys and column values
  */
 export function pivotMulti(data, config) {
-  if (!data || !Array.isArray(data) || data.length === 0) {
-    throw new Error("pivotMulti() requires a non-empty array of objects");
-  }
-  if (!config || !config.rowKey || !config.colKey || !config.value || !config.aggregate) {
-    throw new Error("pivotMulti() requires rowKey, colKey, value, and aggregate");
-  }
+	if (!data || !Array.isArray(data) || data.length === 0) {
+		throw new Error("pivotMulti() requires a non-empty array of objects");
+	}
+	if (!config || !config.rowKey || !config.colKey || !config.value || !config.aggregate) {
+		throw new Error("pivotMulti() requires rowKey, colKey, value, and aggregate");
+	}
 
-  const { rowKey, colKey, value, aggregate } = config;
+	const { rowKey, colKey, value, aggregate } = config;
 
-  // Collect all column keys
-  const colKeys = [...new Set(data.map((item) => item[colKey] ?? "Unknown"))];
+	// Collect all column keys
+	const colKeys = [...new Set(data.map((item) => item[colKey] ?? "Unknown"))];
 
-  // Group by row key, then by column key
-  const rowGroups = new Map();
-  for (const item of data) {
-    const rowK = item[rowKey] ?? "Unknown";
-    const colK = item[colKey] ?? "Unknown";
-    if (!rowGroups.has(rowK)) {
-      rowGroups.set(rowK, new Map());
-    }
-    const colMap = rowGroups.get(rowK);
-    if (!colMap.has(colK)) {
-      colMap.set(colK, []);
-    }
-    colMap.get(colK).push(item[value]);
-  }
+	// Group by row key, then by column key
+	const rowGroups = new Map();
+	for (const item of data) {
+		const rowK = item[rowKey] ?? "Unknown";
+		const colK = item[colKey] ?? "Unknown";
+		if (!rowGroups.has(rowK)) {
+			rowGroups.set(rowK, new Map());
+		}
+		const colMap = rowGroups.get(rowK);
+		if (!colMap.has(colK)) {
+			colMap.set(colK, []);
+		}
+		colMap.get(colK).push(item[value]);
+	}
 
-  // Build result
-  const result = [];
-  for (const [rowK, colMap] of rowGroups) {
-    const row = { [rowKey]: rowK };
-    for (const colK of colKeys) {
-      const values = colMap.get(colK) || [];
-      row[colK] = computeAggregate(values, aggregate);
-    }
-    result.push(row);
-  }
+	// Build result
+	const result = [];
+	for (const [rowK, colMap] of rowGroups) {
+		const row = { [rowKey]: rowK };
+		for (const colK of colKeys) {
+			const values = colMap.get(colK) || [];
+			row[colK] = computeAggregate(values, aggregate);
+		}
+		result.push(row);
+	}
 
-  return result;
+	return result;
 }

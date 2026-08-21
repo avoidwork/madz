@@ -21,51 +21,50 @@ import { stringify } from "csv-stringify/sync";
  * @throws {Error} If CSV is empty or cannot be parsed
  */
 export function csvImport(csv, options = {}) {
-  if (!csv || typeof csv !== "string" || csv.trim().length === 0) {
-    throw new Error("csvImport() requires a non-empty CSV string");
-  }
+	if (!csv || typeof csv !== "string" || csv.trim().length === 0) {
+		throw new Error("csvImport() requires a non-empty CSV string");
+	}
 
-  const {
-    delimiter = ",",
-    quote = '"',
-    escape = '"',
-    trim = true,
-    skip_empty_lines = false,
-    columns = true,
-    encoding = "utf-8",
-  } = options;
+	const {
+		delimiter = ",",
+		quote = '"',
+		escape = '"',
+		trim = true,
+		skip_empty_lines = false,
+		columns = true,
+	} = options;
 
-  try {
-    const records = parse(csv, {
-      delimiter,
-      quote,
-      escape,
-      trim,
-      skip_empty_lines,
-      columns,
-      cast: (value) => {
-        // Try to convert numeric strings to numbers
-        if (typeof value === "string") {
-          const trimmed = value.trim();
-          if (trimmed === "") return value;
-          const num = Number(trimmed);
-          if (!isNaN(num) && isFinite(num)) return num;
-          // Try boolean
-          if (trimmed.toLowerCase() === "true") return true;
-          if (trimmed.toLowerCase() === "false") return false;
-        }
-        return value;
-      },
-    });
+	try {
+		const records = parse(csv, {
+			delimiter,
+			quote,
+			escape,
+			trim,
+			skip_empty_lines,
+			columns,
+			cast: (value) => {
+				// Try to convert numeric strings to numbers
+				if (typeof value === "string") {
+					const trimmed = value.trim();
+					if (trimmed === "") return value;
+					const num = Number(trimmed);
+					if (!isNaN(num) && isFinite(num)) return num;
+					// Try boolean
+					if (trimmed.toLowerCase() === "true") return true;
+					if (trimmed.toLowerCase() === "false") return false;
+				}
+				return value;
+			},
+		});
 
-    if (records.length === 0) {
-      throw new Error("csvImport() produced no records");
-    }
+		if (records.length === 0) {
+			throw new Error("csvImport() produced no records");
+		}
 
-    return records;
-  } catch (err) {
-    throw new Error(`csvImport() failed: ${err.message}`);
-  }
+		return records;
+	} catch (err) {
+		throw new Error(`csvImport() failed: ${err.message}`);
+	}
 }
 
 /**
@@ -82,42 +81,42 @@ export function csvImport(csv, options = {}) {
  * @throws {Error} If data is empty or not an array
  */
 export function csvExport(data, options = {}) {
-  if (!data || !Array.isArray(data) || data.length === 0) {
-    throw new Error("csvExport() requires a non-empty array of objects");
-  }
+	if (!data || !Array.isArray(data) || data.length === 0) {
+		throw new Error("csvExport() requires a non-empty array of objects");
+	}
 
-  const {
-    delimiter = ",",
-    quote = '"',
-    escape = '"',
-    header = true,
-    columns,
-    record_delimiter = "\n",
-  } = options;
+	const {
+		delimiter = ",",
+		quote = '"',
+		escape = '"',
+		header = true,
+		columns,
+		record_delimiter = "\n",
+	} = options;
 
-  try {
-    const output = stringify(data, {
-      delimiter,
-      quote,
-      escape,
-      header,
-      columns,
-      record_delimiter,
-      cast: {
-        boolean: (value) => String(value),
-        date: (value) => {
-          if (value instanceof Date) return value.toISOString();
-          return String(value);
-        },
-        object: (value) => JSON.stringify(value),
-        number: (value) => String(value),
-      },
-    });
+	try {
+		const output = stringify(data, {
+			delimiter,
+			quote,
+			escape,
+			header,
+			columns,
+			record_delimiter,
+			cast: {
+				boolean: (value) => String(value),
+				date: (value) => {
+					if (value instanceof Date) return value.toISOString();
+					return String(value);
+				},
+				object: (value) => JSON.stringify(value),
+				number: (value) => String(value),
+			},
+		});
 
-    return output;
-  } catch (err) {
-    throw new Error(`csvExport() failed: ${err.message}`);
-  }
+		return output;
+	} catch (err) {
+		throw new Error(`csvExport() failed: ${err.message}`);
+	}
 }
 
 /**
@@ -127,8 +126,8 @@ export function csvExport(data, options = {}) {
  * @returns {string} JSON string
  */
 export function csvToJson(csv, options = {}) {
-  const records = csvImport(csv, options);
-  return JSON.stringify(records, null, 2);
+	const records = csvImport(csv, options);
+	return JSON.stringify(records, null, 2);
 }
 
 /**
@@ -138,11 +137,11 @@ export function csvToJson(csv, options = {}) {
  * @returns {string} CSV string
  */
 export function jsonToCsv(json, options = {}) {
-  const data = JSON.parse(json);
-  if (!Array.isArray(data)) {
-    throw new Error("jsonToCsv() requires a JSON array of objects");
-  }
-  return csvExport(data, options);
+	const data = JSON.parse(json);
+	if (!Array.isArray(data)) {
+		throw new Error("jsonToCsv() requires a JSON array of objects");
+	}
+	return csvExport(data, options);
 }
 
 /**
@@ -153,19 +152,19 @@ export function jsonToCsv(json, options = {}) {
  * @returns {*[][]} 2D array of values
  */
 export function toXlsxFormat(data, columns) {
-  if (!data || !Array.isArray(data) || data.length === 0) {
-    throw new Error("toXlsxFormat() requires a non-empty array of objects");
-  }
+	if (!data || !Array.isArray(data) || data.length === 0) {
+		throw new Error("toXlsxFormat() requires a non-empty array of objects");
+	}
 
-  const cols = columns || Object.keys(data[0]);
+	const cols = columns || Object.keys(data[0]);
 
-  // Header row
-  const rows = [cols.map((col) => col)];
+	// Header row
+	const rows = [cols.map((col) => col)];
 
-  // Data rows
-  for (const item of data) {
-    rows.push(cols.map((col) => item[col] ?? ""));
-  }
+	// Data rows
+	for (const item of data) {
+		rows.push(cols.map((col) => item[col] ?? ""));
+	}
 
-  return rows;
+	return rows;
 }
