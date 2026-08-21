@@ -46,6 +46,7 @@ export default function App({
 	const autoContinueCountRef = useRef(0);
 	const isAutoContinuingRef = useRef(false);
 	const streamingMsgIdRef = useRef(null);
+	const lastInterruptTimeRef = useRef(0);
 	const { exit } = useApp();
 	const exitRef = useRef(exit);
 	exitRef.current = exit;
@@ -542,26 +543,47 @@ export default function App({
 	 * so the user can interrupt future responses. Does NOT quit the app.
 	 * Returns a promise that resolves once dispatchProvider has finished
 	 * processing the abort and completed its cleanup.
+	 * Handles both streaming and non-streaming interrupt scenarios.
 	 */
 	const handleInterrupt = async () => {
+		// Abort any active stream
 		if (abortControllerRef.current) {
 			abortControllerRef.current.abort();
 			abortControllerRef.current = null;
 		}
 		isStreamingRef.current = false;
 
-		// Clean up the assistant's tool-call message from session state.
-		// This removes any orphaned AIMessage with tool_calls that was never
-		// completed, preventing corrupted conversation history from being sent
-		// to the LLM API on resume.
+		// Clear input buffer
+		setInputValue("");
+
+		// Set interrupted state for visual feedback
+		setInterrupted(true);
+
+		// Clean up session state if needed
+		// Remove orphaned tool-call messages and partial assistant messages
 		if (sessionState) {
 			sessionState.removeLastAssistantToolCallMessage();
+			sessionState.popExchange();
 		}
 
-		messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
-			streaming: false,
-		});
+		// Reset abort controller and streaming flags
+		abortControllerRef.current = new AbortController();
+		isStreamingRef.current = false;
+
+		// Update message list if there's a streaming message
+		if (streamingMsgIdRef.current) {
+			messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
+				streaming: false,
+			});
+		}
+
+		// Set status message for visual feedback
 		setStatusMessage("Interrupted.");
+
+		// Clear interrupted flag after brief delay (for visual feedback)
+		setTimeout(() => {
+			setInterrupted(false);
+		}, 2000);
 
 		// Wait for the dispatchProvider promise to resolve (it will throw
 		// AbortError and be caught by the try/catch, then run finally).
@@ -844,11 +866,14 @@ export default function App({
 		}
 
 		if (key.escape) {
-			if (isStreamingRef.current) {
-				handleInterrupt();
-			} else {
-				handleQuit();
+			// Debounce: ignore ESC presses within 500ms of the last interrupt
+			const now = Date.now();
+			if (now - lastInterruptTimeRef.current < 500) {
+				return;
 			}
+			// Onboarding and banner ESC behavior is already handled above — fall through to interrupt
+			handleInterrupt();
+			lastInterruptTimeRef.current = now;
 			return;
 		}
 

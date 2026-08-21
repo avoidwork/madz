@@ -606,3 +606,71 @@ describe("session - saveSession", () => {
 		assert.strictEqual(parsed[0].content, true);
 	});
 });
+
+describe("session - state manager interrupt", () => {
+	it("returns false when conversation is empty", () => {
+		const manager = new SessionStateManager({});
+		const result = manager.interrupt();
+		assert.strictEqual(result, false);
+	});
+
+	it("removes orphaned tool-call message and user message", () => {
+		const manager = new SessionStateManager({});
+		manager.addExchange({ role: "user", content: "run search" });
+		manager.addExchange({
+			role: "assistant",
+			content: { tool_calls: [{ id: "call_1", function: { name: "search" } }] },
+		});
+		const result = manager.interrupt();
+		assert.strictEqual(result, true);
+		assert.strictEqual(manager.getConversation().length, 0);
+	});
+
+	it("preserves earlier conversation when interrupting orphaned tool-call", () => {
+		const manager = new SessionStateManager({});
+		manager.addExchange({ role: "user", content: "first message" });
+		manager.addExchange({ role: "assistant", content: "first response" });
+		manager.addExchange({ role: "user", content: "second message" });
+		manager.addExchange({
+			role: "assistant",
+			content: { tool_calls: [{ id: "call_1", function: { name: "search" } }] },
+		});
+		const result = manager.interrupt();
+		assert.strictEqual(result, true);
+		assert.strictEqual(manager.getConversation().length, 2);
+		assert.strictEqual(manager.getConversation()[0].content, "first message");
+		assert.strictEqual(manager.getConversation()[1].content, "first response");
+	});
+
+	it("preserves session ID after interrupt", () => {
+		const manager = new SessionStateManager({});
+		manager.setSessionId("test-session-id");
+		manager.addExchange({ role: "user", content: "hello" });
+		manager.interrupt();
+		assert.strictEqual(manager.getSessionId(), "test-session-id");
+	});
+
+	it("is idempotent - safe to call multiple times", () => {
+		const manager = new SessionStateManager({});
+		manager.addExchange({ role: "user", content: "hello" });
+		manager.addExchange({
+			role: "assistant",
+			content: { tool_calls: [{ id: "call_1", function: { name: "search" } }] },
+		});
+		manager.interrupt();
+		const result2 = manager.interrupt();
+		assert.strictEqual(result2, false);
+		assert.strictEqual(manager.getConversation().length, 0);
+	});
+
+	it("handles assistant message with empty tool_calls array", () => {
+		const manager = new SessionStateManager({});
+		manager.addExchange({ role: "user", content: "hello" });
+		manager.addExchange({ role: "assistant", content: { tool_calls: [] } });
+		const result = manager.interrupt();
+		// removeLastAssistantToolCallMessage returns undefined (empty tool_calls)
+		// Last message is assistant (not user), so no cleanup needed
+		assert.strictEqual(result, false);
+		assert.strictEqual(manager.getConversation().length, 2);
+	});
+});
