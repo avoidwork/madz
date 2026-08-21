@@ -54,9 +54,7 @@ describe("pdfGenerate", () => {
 
 	describe("action validation", () => {
 		it("rejects invalid action", async () => {
-			const result = JSON.parse(
-				await pdfGenerate({ action: "invalidAction" }),
-			);
+			const result = JSON.parse(await pdfGenerate({ action: "invalidAction" }));
 			assert.strictEqual(result.ok, false);
 			assert.ok(result.error.includes("Invalid action"));
 		});
@@ -81,9 +79,7 @@ describe("pdfGenerate", () => {
 		});
 
 		it("requires filePath", async () => {
-			const result = JSON.parse(
-				await pdfGenerate({ action: "generateHtml", html: "<p>test</p>" }),
-			);
+			const result = JSON.parse(await pdfGenerate({ action: "generateHtml", html: "<p>test</p>" }));
 			assert.strictEqual(result.ok, false);
 			assert.ok(result.error.includes("filePath is required"));
 		});
@@ -278,9 +274,7 @@ describe("pdfGenerate", () => {
 
 	describe("split", () => {
 		it("requires filePath", async () => {
-			const result = JSON.parse(
-				await pdfGenerate({ action: "split", pageRange: "1" }),
-			);
+			const result = JSON.parse(await pdfGenerate({ action: "split", pageRange: "1" }));
 			assert.strictEqual(result.ok, false);
 			assert.ok(result.error.includes("filePath is required"));
 		});
@@ -405,9 +399,7 @@ describe("pdfGenerate", () => {
 
 	describe("watermark", () => {
 		it("requires filePath or base64", async () => {
-			const result = JSON.parse(
-				await pdfGenerate({ action: "watermark", text: "WATERMARK" }),
-			);
+			const result = JSON.parse(await pdfGenerate({ action: "watermark", text: "WATERMARK" }));
 			assert.strictEqual(result.ok, false);
 			assert.ok(result.error.includes("filePath or base64"));
 		});

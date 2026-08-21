@@ -801,11 +801,20 @@ export const pdfGenerateSchema = z.object({
 			"Action to perform: generateHtml, generateMarkdown, merge, split, watermark, signature, annotate",
 		),
 	html: z.string().optional().describe("HTML string (required for generateHtml action)"),
-	markdown: z.string().optional().describe("Markdown string (required for generateMarkdown action)"),
+	markdown: z
+		.string()
+		.optional()
+		.describe("Markdown string (required for generateMarkdown action)"),
 	filePath: z.string().optional().describe("Source or output file path depending on action"),
-	filePaths: z.array(z.string()).optional().describe("Array of PDF file paths (required for merge action)"),
+	filePaths: z
+		.array(z.string())
+		.optional()
+		.describe("Array of PDF file paths (required for merge action)"),
 	outputPath: z.string().optional().describe("Output file path"),
-	outputPattern: z.string().optional().describe("Output path pattern with %d placeholder (for split action)"),
+	outputPattern: z
+		.string()
+		.optional()
+		.describe("Output path pattern with %d placeholder (for split action)"),
 	pageRange: z
 		.string()
 		.optional()
