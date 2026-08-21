@@ -101,10 +101,7 @@ describe("spreadsheet", () => {
 				sheets: [
 					{
 						name: "Sheet1",
-						rows: [
-							{ values: [1, 2] },
-							{ values: [3, 4] },
-						],
+						rows: [{ values: [1, 2] }, { values: [3, 4] }],
 					},
 				],
 				outputPath: "/tmp/test.xlsx",
@@ -241,9 +238,7 @@ describe("spreadsheet", () => {
 			const result = await spreadsheet({
 				action: "modify",
 				inputPath: tmpPath,
-				modifyOperations: [
-					{ type: "modifyCell", sheetName: "Sheet1", cellRef: "A1", value: 42 },
-				],
+				modifyOperations: [{ type: "modifyCell", sheetName: "Sheet1", cellRef: "A1", value: 42 }],
 				outputPath: "/tmp/modify-out.xlsx",
 			});
 			assert.strictEqual(result.status, "modified");

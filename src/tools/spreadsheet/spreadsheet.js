@@ -14,21 +14,26 @@ import * as pivot from "./pivot.js";
 // ─── Input Schema ────────────────────────────────────────────────────────────────
 
 const SpreadsheetSchema = z.object({
-	action: z.enum([
-		"compute",
-		"generate",
-		"analyze",
-		"csvImport",
-		"csvExport",
-		"modify",
-		"export",
-	]),
+	action: z.enum(["compute", "generate", "analyze", "csvImport", "csvExport", "modify", "export"]),
 	// compute
-	data: z.array(z.record(z.unknown())).optional().describe("Array of objects representing rows of data"),
+	data: z
+		.array(z.record(z.unknown()))
+		.optional()
+		.describe("Array of objects representing rows of data"),
 	operations: z
 		.array(
 			z.object({
-				type: z.enum(["sum", "average", "count", "min", "max", "formula", "median", "stddev", "variance"]),
+				type: z.enum([
+					"sum",
+					"average",
+					"count",
+					"min",
+					"max",
+					"formula",
+					"median",
+					"stddev",
+					"variance",
+				]),
 				field: z.string().optional().describe("Field name to operate on (not needed for count)"),
 				formula: z.string().optional().describe("Formula expression (for formula type)"),
 				alias: z.string().optional().describe("Output field name for the result"),
@@ -45,7 +50,10 @@ const SpreadsheetSchema = z.object({
 					.array(
 						z.object({
 							values: z.array(z.unknown()).describe("Cell values for each row"),
-							formulas: z.record(z.string()).optional().describe("Cell formulas keyed by column index"),
+							formulas: z
+								.record(z.string())
+								.optional()
+								.describe("Cell formulas keyed by column index"),
 							formatting: z.record(z.unknown()).optional().describe("Cell formatting options"),
 						}),
 					)
@@ -77,7 +85,14 @@ const SpreadsheetSchema = z.object({
 	modifyOperations: z
 		.array(
 			z.object({
-				type: z.enum(["addCell", "modifyCell", "deleteCell", "addSheet", "deleteSheet", "renameSheet"]),
+				type: z.enum([
+					"addCell",
+					"modifyCell",
+					"deleteCell",
+					"addSheet",
+					"deleteSheet",
+					"renameSheet",
+				]),
 				sheetName: z.string().describe("Target sheet name"),
 				cellRef: z.string().optional().describe("Cell reference (e.g., 'A1', 'B3')"),
 				value: z.unknown().optional().describe("New value"),
