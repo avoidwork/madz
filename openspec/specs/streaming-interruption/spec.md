@@ -34,7 +34,7 @@ The system SHALL use an explicit intent signal to distinguish intentional interr
 
 ### Requirement: The streaming function SHALL throw a named AbortError when the signal is already aborted
 
-When `callReactAgentStreaming()` is entered with an already-aborted signal, it SHALL throw an error with `name === "AbortError"` to provide a consistent error type for downstream handlers.
+When `callReactAgentStreaming()` is entered with an already-aborted signal, the system SHALL throw an error with `name === "AbortError"` to provide a consistent error type for downstream handlers.
 
 #### Scenario: Early abort check throws named AbortError
 - **WHEN** `callReactAgentStreaming()` is called with an already-aborted signal
@@ -45,4 +45,38 @@ When `callReactAgentStreaming()` is entered with an already-aborted signal, it S
 - **WHEN** the abort signal is triggered during streaming (after stream initialization)
 - **THEN** the function SHALL check `signal.aborted` at the start of each iteration
 - **THEN** the function SHALL clean up any pending tool calls and return early
+
+### Requirement: Non-streaming operations SHALL be interruptible via ESC
+
+When the user presses ESC during a non-streaming operation (file write, search, query), the system SHALL cancel the operation and return to the main prompt.
+
+#### Scenario: ESC interrupts file write operation
+- **WHEN** the agent is writing a file and the user presses ESC
+- **THEN** the system SHALL cancel the file write operation
+- **THEN** the system SHALL clean up any partial writes or temporary files
+- **THEN** the system SHALL display "[interrupted]" status
+- **THEN** the system SHALL return to the main prompt
+
+#### Scenario: ESC interrupts search/query operation
+- **WHEN** the agent is performing a search or query and the user presses ESC
+- **THEN** the system SHALL cancel the search/query operation
+- **THEN** the system SHALL display "[interrupted]" status
+- **THEN** the system SHALL return to the main prompt
+
+### Requirement: Visual feedback SHALL be provided on all interrupts
+
+When any operation is interrupted (streaming or non-streaming), the system SHALL display visual feedback to confirm the interrupt was received.
+
+#### Scenario: Visual feedback on streaming interrupt
+- **WHEN** a streaming operation is interrupted
+- **THEN** the system SHALL display "Interrupted." in the status area
+
+#### Scenario: Visual feedback on non-streaming interrupt
+- **WHEN** a non-streaming operation is interrupted
+- **THEN** the system SHALL display "[interrupted]" or "[cancelled]" in the status area
+
+#### Scenario: Visual feedback duration
+- **WHEN** visual feedback is displayed after an interrupt
+- **THEN** the feedback SHALL be visible for approximately 2 seconds
+- **THEN** the feedback SHALL fade out or be replaced by the next status message
 

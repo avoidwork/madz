@@ -3,7 +3,7 @@
 ## Purpose
 Define the ESC key behavior for interrupting/skipping operations in the Madz TUI, with exceptions for onboarding and panel contexts.
 
-## Requirements
+## ADDED Requirements
 
 ### Requirement: ESC SHALL interrupt the current operation instead of exiting the application
 

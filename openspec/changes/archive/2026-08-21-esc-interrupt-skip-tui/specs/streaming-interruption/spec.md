@@ -3,7 +3,7 @@
 ## Purpose
 Define the behavior for interrupting streaming and non-streaming operations in the Madz TUI, including visual feedback and session state preservation.
 
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Intentional streaming interruptions SHALL not display error messages to the user
 
@@ -36,7 +36,7 @@ The system SHALL use an explicit intent signal to distinguish intentional interr
 
 ### Requirement: The streaming function SHALL throw a named AbortError when the signal is already aborted
 
-When `callReactAgentStreaming()` is entered with an already-aborted signal, it SHALL throw an error with `name === "AbortError"` to provide a consistent error type for downstream handlers.
+When `callReactAgentStreaming()` is entered with an already-aborted signal, the system SHALL throw an error with `name === "AbortError"` to provide a consistent error type for downstream handlers.
 
 #### Scenario: Early abort check throws named AbortError
 - **WHEN** `callReactAgentStreaming()` is called with an already-aborted signal
@@ -47,6 +47,8 @@ When `callReactAgentStreaming()` is entered with an already-aborted signal, it S
 - **WHEN** the abort signal is triggered during streaming (after stream initialization)
 - **THEN** the function SHALL check `signal.aborted` at the start of each iteration
 - **THEN** the function SHALL clean up any pending tool calls and return early
+
+## ADDED Requirements
 
 ### Requirement: Non-streaming operations SHALL be interruptible via ESC
 
