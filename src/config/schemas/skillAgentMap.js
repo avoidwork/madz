@@ -14,6 +14,4 @@ export const SkillAgentMapEntrySchema = z.object({
  * Array of pattern-to-agent mappings. First match wins.
  * @returns {z.ZodArray} Zod schema for skillAgentMap array
  */
-export const SkillAgentMapSchema = z
-	.array(SkillAgentMapEntrySchema)
-	.default([]);
+export const SkillAgentMapSchema = z.array(SkillAgentMapEntrySchema).default([]);

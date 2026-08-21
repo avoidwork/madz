@@ -77,6 +77,12 @@ export function _resolveEnvRecursively(node, path) {
 				continue;
 			}
 
+			// Handle nested arrays — recurse into each element
+			if (Array.isArray(value)) {
+				result[key] = _resolveEnvRecursively(value, child);
+				continue;
+			}
+
 			// Drop 'providers', 'credentials', 'rateLimit', and 'timeout' container keys; keep section names
 			const envPath = child.filter((p) => !DROPPED_KEYS.includes(p.toLowerCase()));
 			const envKey = envPath.map(_toUpperSnake).join("_");

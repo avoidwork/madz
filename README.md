@@ -652,6 +652,17 @@ Graceful shutdown flushes all buffered log entries to disk before process exit.
 |               | `ttl`                              | `600000`                                 | Cache entry TTL in milliseconds (10 minutes)  |
 | `persistence` | `mode`                               | `memory`                                 | Storage backend (`memory`, `sqlite`)          |
 |               | `sqlite_path`                        | `memory/checkpoints.db`                  | SQLite checkpointer file path                 |
+| `skillAgentMap` | `[].pattern`                       | _(none)_                                 | Regex pattern to match skill names            |
+|               | `[].agent`                           | _(none)_                                 | Agent name to assign when pattern matches     |
+
+**Optional — Environment Variable Overrides:**
+
+| Variable                        | Default   | Description                         |
+| ------------------------------- | --------- | ----------------------------------- |
+| `SKILL_AGENT_MAP_0_PATTERN`     | _(none)_  | First skill-to-agent pattern        |
+| `SKILL_AGENT_MAP_0_AGENT`       | _(none)_  | First skill-to-agent mapping        |
+| `SKILL_AGENT_MAP_1_PATTERN`     | _(none)_  | Second skill-to-agent pattern       |
+| `SKILL_AGENT_MAP_1_AGENT`       | _(none)_  | Second skill-to-agent mapping       |
 
 ## Testing
 
