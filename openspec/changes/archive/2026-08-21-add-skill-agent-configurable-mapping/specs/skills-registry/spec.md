@@ -1,3 +1,11 @@
+## Purpose
+
+Extend skill discovery to inject `metadata.agent` from config patterns when not present in frontmatter, ensuring openspec-* and other external skills are properly routed to sub-agents.
+
+## Purpose
+
+Extend skill discovery to inject `metadata.agent` from config patterns when not present in frontmatter, ensuring openspec-* and other external skills are properly routed to sub-agents.
+
 ## MODIFIED Requirements
 
 ### Requirement: SKILL.md Frontmatter Discovery

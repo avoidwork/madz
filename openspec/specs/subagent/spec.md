@@ -4,7 +4,7 @@
 The subAgent tool enables the main agent to spawn child processes for independent task execution. It supports single execution and fan-out (parallel/sequential) modes, requires explicit cwd for process isolation, tracks OS-level PIDs for lifecycle management, and excludes itself from sub-agent tool sets to prevent recursion. This is the core delegation infrastructure that evolved from the original scanAgents tool discovery..
 ## Requirements
 ### Requirement: Sub-agent tool spawns child processes
-The subAgent tool SHALL spawn `node index.js "PROMPT" sessionsDir` as an independent child process, inheriting the parent's environment variables while maintaining session isolation.
+The subAgent tool SHALL spawn `node index.js "PROMPT" sessionsDir` as an independent child process, inheriting the parent's environment variables while maintaining session isolation. Skills assigned to sub-agents via `metadata.agent` (either from frontmatter or `skillAgentMap` config) SHALL be loaded and passed to the sub-agent's context.
 
 #### Scenario: Single execution spawns process
 - **WHEN** user calls subAgent with a delegation instruction and context
@@ -13,6 +13,10 @@ The subAgent tool SHALL spawn `node index.js "PROMPT" sessionsDir` as an indepen
 #### Scenario: Process inherits environment
 - **WHEN** a sub-agent is spawned
 - **THEN** it inherits the parent process's environment variables (API keys, config paths)
+
+#### Scenario: Sub-agent receives skills with injected metadata.agent
+- **WHEN** a skill is assigned to a sub-agent via `skillAgentMap` config pattern
+- **THEN** the skill's `metadata.agent` is injected before routing and the sub-agent receives the skill in its context
 
 ### Requirement: Prompt construction with separator
 The subAgent tool SHALL construct the sub-agent prompt by combining context and delegation instruction, separated by `|||`. The sub-agent recognizes this separator and treats everything after it as the delegation instruction.

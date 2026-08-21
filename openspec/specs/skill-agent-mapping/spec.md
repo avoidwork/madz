@@ -1,5 +1,8 @@
-## ADDED Requirements
+# skill-agent-mapping Specification
 
+## Purpose
+TBD - created by archiving change add-skill-agent-configurable-mapping. Update Purpose after archive.
+## Requirements
 ### Requirement: Configurable skill-to-agent mapping via config.yaml
 
 The system SHALL support a `skillAgentMap` section in `config.yaml` that maps skill name patterns to agent types using regex matching.
@@ -56,8 +59,3 @@ The system SHALL validate the `skillAgentMap` config section using Zod schema.
 - **WHEN** `skillAgentMap` is not present in config or is an empty array
 - **THEN** config loading succeeds and no fallback mapping is applied
 
-## REMOVED Requirements
-
-### Requirement: Skills without metadata.agent default to orchestrator
-**Reason**: Replaced by configurable skillAgentMap with sensible defaults
-**Migration**: Add `skillAgentMap` entries to config.yaml for any skills that previously defaulted to orchestrator but should go elsewhere
