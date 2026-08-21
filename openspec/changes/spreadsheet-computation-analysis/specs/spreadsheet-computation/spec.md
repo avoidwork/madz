@@ -1,9 +1,12 @@
 # spreadsheet-computation Specification
 
-## Purpose
-Define the requirements for the spreadsheet computation and analysis tool — running calculations, generating spreadsheets with formulas, data analysis (pivot, filter, aggregate), and CSV import/export.
+## Why
+The existing XLSX tools are read-only extraction. Users need active spreadsheet manipulation — running calculations, generating spreadsheets with formulas, performing data analysis, and CSV import/export.
 
-## Requirements
+## What Changes
+Add a new spreadsheet computation and analysis tool with formula evaluation, statistical operations, CSV import/export, pivot tables, and XLSX generation/modification capabilities.
+
+## ADDED Requirements
 
 ### Requirement: Safe formula evaluation
 The system SHALL evaluate spreadsheet formulas using a recursive descent parser without using `eval()`, `new Function()`, or any dynamic code execution.
