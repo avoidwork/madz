@@ -1,41 +1,67 @@
 # Tasks: Spreadsheet Computation and Analysis
 
-## Task 1: Add dependencies
+## 1. Setup
 
-Add `exceljs`, `csv-parse`, and `csv-stringify` to package.json dependencies. Run `npm install`.
+- [ ] 1.1 Add dependencies (exceljs, csv-parse, csv-stringify) to package.json and run npm install
+- [ ] 1.2 Create directory structure: src/tools/spreadsheet/ and tests/unit/tools/spreadsheet/
 
-## Task 2: Create formula parser
+## 2. Formula Parser
 
-Implement `src/tools/spreadsheet/formulaParser.js` with a recursive descent parser for spreadsheet formulas. Handle basic arithmetic, cell references, built-in functions (SUM, AVERAGE, COUNT, MIN, MAX, ROUND, IF, ABS, SQRT), cell ranges, string literals, and booleans. No eval() usage.
+- [ ] 2.1 Implement recursive descent parser for spreadsheet formulas (src/tools/spreadsheet/formulaParser.js)
+- [ ] 2.2 Add support for arithmetic operators, cell references, cell ranges, and string literals
+- [ ] 2.3 Implement built-in functions: SUM, AVERAGE, COUNT, MIN, MAX, ROUND, IF, ABS, SQRT
+- [ ] 2.4 Add error handling for division by zero, circular references, and invalid formulas
 
-## Task 3: Create statistical operations
+## 3. Statistical Operations
 
-Implement `src/tools/spreadsheet/stats.js` with mean, median, mode, stdDev, variance, and percentile functions.
+- [ ] 3.1 Implement mean, median, mode, stddev, variance, and percentile functions (src/tools/spreadsheet/stats.js)
+- [ ] 3.2 Handle null/undefined values in statistical calculations
+- [ ] 3.3 Add date range grouping (month, quarter, year) for time-series data
 
-## Task 4: Create CSV import/export
+## 4. CSV Import/Export
 
-Implement `src/tools/spreadsheet/csv.js` using csv-parse and csv-stringify. Support configurable delimiters, encodings, and quoting options.
+- [ ] 4.1 Implement csvImport() with configurable delimiter, quote char, and encoding (src/tools/spreadsheet/csv.js)
+- [ ] 4.2 Implement csvExport() with configurable options (header row, delimiter, quoting)
+- [ ] 4.3 Support CSV↔JSON↔XLSX format conversion
+- [ ] 4.4 Handle escaped characters and multiline fields
 
-## Task 5: Create pivot table logic
+## 5. Pivot Table Logic
 
-Implement `src/tools/spreadsheet/pivot.js` using lodash groupBy for aggregation. Support sum, count, avg, min, max aggregation methods.
+- [ ] 5.1 Implement pivot table generation with configurable keys and aggregations (src/tools/spreadsheet/pivot.js)
+- [ ] 5.2 Support aggregation methods: sum, count, avg, min, max
+- [ ] 5.3 Implement filter operations with condition expressions
+- [ ] 5.4 Handle large datasets (10,000+ rows) with memory-efficient processing
 
-## Task 6: Create main spreadsheet tool
+## 6. Main Spreadsheet Tool
 
-Implement `src/tools/spreadsheet/spreadsheet.js` with six function groups: compute(), generate(), analyze(), csvImport(), csvExport(), modify(), and export(). Each with zod input schemas.
+- [ ] 6.1 Implement compute() function — run calculations on structured data (src/tools/spreadsheet/spreadsheet.js)
+- [ ] 6.2 Implement generate() function — create new XLSX files with formulas and formatting
+- [ ] 6.3 Implement analyze() function — pivot tables, filtering, statistical operations
+- [ ] 6.4 Implement modify() function — open existing XLSX, apply transformations, save back
+- [ ] 6.5 Implement export() function — unified export endpoint (XLSX, CSV, JSON)
+- [ ] 6.6 Add zod input schemas for all public functions
+- [ ] 6.7 Add JSDoc comments with @param and @returns on all public APIs
 
-## Task 7: Register tool in index.js
+## 7. Tool Registration
 
-Add the spreadsheet tool to `src/tools/index.js` with TOOL_PERMISSIONS (filesystem:read, filesystem:write) and TOOL_CLASSIFICATIONS.
+- [ ] 7.1 Register spreadsheet tool in src/tools/index.js with TOOL_PERMISSIONS (filesystem:read, filesystem:write)
+- [ ] 7.2 Add TOOL_CLASSIFICATION (feature)
+- [ ] 7.3 Wire tool into deepAgents tool configuration
 
-## Task 8: Write unit tests
+## 8. Unit Tests
 
-Write unit tests in `tests/unit/tools/spreadsheet/` covering formula parser, stats, CSV, pivot, and the main spreadsheet tool.
+- [ ] 8.1 Write tests for formula parser (formulaParser.test.js)
+- [ ] 8.2 Write tests for statistical operations (stats.test.js)
+- [ ] 8.3 Write tests for CSV import/export (csv.test.js)
+- [ ] 8.4 Write tests for pivot table logic (pivot.test.js)
+- [ ] 8.5 Write tests for main spreadsheet tool (spreadsheet.test.js)
 
-## Task 9: Write integration tests
+## 9. Integration Tests
 
-Write integration tests for full tool workflow (input → compute → output).
+- [ ] 9.1 Write integration test for full tool workflow (input → compute → output)
+- [ ] 9.2 Write integration test for spreadsheet generation with formula preservation
 
-## Task 10: Update AGENTS.md
+## 10. Documentation
 
-Add the spreadsheet tool to the project layout in AGENTS.md section 2.0.
+- [ ] 10.1 Update AGENTS.md section 2.0 with spreadsheet tool in project layout
+- [ ] 10.2 Add spreadsheet tool to README.md tools section
