@@ -47,6 +47,7 @@ Follow the [OWASP Top 10](https://owasp.org/www-project-top-10/) for every piece
 - **DRY**: Extract repeated logic into functions, classes, or utilities. Centralize configuration in `config.js`. Reuse SSE envelope formatter, error handler, and auth middleware across modules. No copy-paste code blocks greater than three lines.
 - **KISS**: Prefer simple, readable code over clever solutions. If a solution requires more than three levels of indentation or a helper function with more than 10 lines, reconsider it.
 - **YAGNI**: Do NOT build features, abstractions, or configurations not required by the current spec. No generic "future-proof" wrappers. Ad-hoc solutions are acceptable as long as they serve a present requirement.
+- **No Unneeded Refactoring**: Do not refactor working code for style, naming, or structure unless it directly addresses a bug, improves performance, or is required by the current spec. Refactoring without a clear purpose wastes time and introduces risk.
 - **Single Responsibility**: Each module, class, and function must have one reason to change.
 - **Open/Closed**: Extend via composition — not by modifying existing logic.
 - **Dependency Inversion**: Depend on abstractions (interfaces / DI containers) for external services.
@@ -289,6 +290,20 @@ chore: pin all dependencies in package.json
 - Never commit directly to `main`. Always create a feature branch first, then open a PR targeting `main`.
 
 ### 5.2.1 Agent Workflow
+
+When auditing or modifying AGENTS.md (or any file):
+1. Create a feature branch: `git checkout -b docs/<short-desc>` (or `feat/`, `fix/`).
+2. Make changes and commit on the feature branch.
+3. Push the feature branch and open a PR with `gh pr create --base main`.
+4. Never commit or push directly to `main` or `master`.
+
+### 5.3 Code Review
+
+- All changes require at least one other reviewer (automated checks are mandatory but not sufficient).
+- No merging without passing CI (lint → test).
+- PR descriptions must reference related items from design documents.
+
+### 5.4 Pull Request Templates
 
 When auditing or modifying AGENTS.md (or any file):
 1. Create a feature branch: `git checkout -b docs/<short-desc>` (or `feat/`, `fix/`).
