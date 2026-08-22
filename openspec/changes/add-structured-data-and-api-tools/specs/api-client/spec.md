@@ -62,6 +62,25 @@ The system SHALL validate all outbound URLs against an allowlist.
 - **WHEN** a URL with dict:// scheme is provided
 - **THEN** the system rejects the request with an error
 
+#### Scenario: Block internal IP addresses
+- **WHEN** a URL resolves to an internal IP (127.0.0.1, 0.0.0.0, 169.254.169.254)
+- **THEN** the system rejects the request with an error unless explicitly allowed
+
+#### Scenario: Block sensitive header exposure
+- **WHEN** a response includes Set-Cookie or WWW-Authenticate headers
+- **THEN** the system strips these headers from the returned response
+
+### Requirement: Client-side rate limiting
+The system SHALL implement client-side rate limiting to avoid triggering provider blocks.
+
+#### Scenario: Default rate limit
+- **WHEN** more than 10 requests per second are made
+- **THEN** the system queues excess requests and processes them at the allowed rate
+
+#### Scenario: Custom rate limit
+- **WHEN** a custom rate limit of 5 requests/second is specified
+- **THEN** the system enforces the custom limit
+
 ### Requirement: Timeout support
 The system SHALL support configurable request timeouts.
 
