@@ -53,7 +53,6 @@ export const StatusBar = React.memo(function StatusBar({
 	messageCount = 0,
 	contextSize = 0,
 	isCompacting = false,
-	interrupted = false,
 }) {
 	const contextColor = isCompacting ? "red" : "#606060";
 	const isStreaming = statusMessage === "Sending..." || statusMessage === "Streaming...";
@@ -94,9 +93,6 @@ export const StatusBar = React.memo(function StatusBar({
 				{ key: "context", color: contextColor },
 				"[\u25A4 " + formatSize(contextSize) + "]",
 			),
-			interrupted
-				? React.createElement(Text, { key: "interrupted", color: "yellow" }, " [INTERRUPTED]")
-				: null,
 		),
 	);
 });
