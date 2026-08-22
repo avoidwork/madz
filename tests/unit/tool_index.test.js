@@ -5,7 +5,6 @@ describe("tools - buildToolConfig", () => {
 	it("TOOL_PERMISSIONS contains all expected tools", async () => {
 		const { TOOL_PERMISSIONS } = await import("../../src/tools/index.js");
 		const expectedTools = [
-			"shell",
 			"process",
 			"sessionSearch",
 			"clarify",
@@ -38,9 +37,9 @@ describe("tools - buildToolConfig", () => {
 		assert.deepStrictEqual(TOOL_PERMISSIONS.sampling, ["filesystem:write"]);
 	});
 
-	it("terminal requires both filesystem:exec and process:spawn", async () => {
+	it("process requires both filesystem:exec and process:spawn", async () => {
 		const { TOOL_PERMISSIONS } = await import("../../src/tools/index.js");
-		assert.deepStrictEqual(TOOL_PERMISSIONS.shell, ["filesystem:exec", "process:spawn"]);
+		assert.deepStrictEqual(TOOL_PERMISSIONS.process, ["filesystem:exec", "process:spawn"]);
 	});
 
 	it("all tools have permission arrays", async () => {
@@ -78,15 +77,15 @@ describe("tools - buildToolConfig", () => {
 		delete process.env.CUSTOM_SEARCH_URL;
 	});
 
-	it("returns clarify + sampling + shell + date + scanAgents with filesystem:read", async () => {
+	it("returns clarify + sampling + date + scanAgents with filesystem:read", async () => {
 		const { buildToolConfig } = await import("../../src/tools/index.js");
 		const tools = await buildToolConfig({ permissions: ["filesystem:read"], maxReadSize: "1mb" });
 		const toolNames = tools.map((t) => t.name);
-		// filesystem:read enables: clarify, sampling, shell (always), compactContext, scanAgents,
+		// filesystem:read enables: clarify, sampling (exempt), compactContext, scanAgents,
 		// sessionSearch, date
 		assert.ok(toolNames.includes("clarify"));
 		assert.ok(toolNames.includes("sampling"));
-		assert.ok(toolNames.includes("shell"));
+		assert.ok(!toolNames.includes("process"), "process requires filesystem:exec + process:spawn");
 		assert.ok(toolNames.includes("date"));
 		assert.ok(toolNames.includes("scanAgents"));
 		assert.ok(toolNames.includes("sessionSearch"));
@@ -110,9 +109,7 @@ describe("tools - buildToolConfig", () => {
 			"sessionSearch should register with filesystem:read",
 		);
 		assert.ok(toolNames.includes("sampling"), "sampling should register (no perms needed)");
-		// shell is exempt from permission gating (always registered)
-		assert.ok(toolNames.includes("shell"), "shell should register (exempt)");
-		assert.ok(!toolNames.includes("process"), "process should NOT register without process:spawn");
+		assert.ok(!toolNames.includes("process"), "process requires filesystem:exec + process:spawn");
 	});
 
 	it("returns all tier 1 + tier 2 tools when all permissions enabled", async () => {
@@ -132,7 +129,6 @@ describe("tools - buildToolConfig", () => {
 		// Tier 2: cronJob, sampling, date (no perms or network:outbound)
 		// No API keys: webSearch/webExtract/visionAnalyze/imageGenerate/textToSpeech/mixtureOfAgents won't register
 		assert.ok(toolNames.length >= 9, "All tier 1 + tier 2 tools should register");
-		assert.ok(toolNames.includes("shell"), "shell should register");
 		assert.ok(toolNames.includes("process"), "process should register");
 		assert.ok(toolNames.includes("cronJob"), "cronJob should register");
 	});
@@ -157,9 +153,9 @@ describe("tools - buildToolConfig", () => {
 			maxReadSize: "2mb",
 		});
 		const toolNames = tools.map((t) => t.name);
-		// filesystem:read enables: clarify, sampling, shell (always), compactContext, scanAgents,
+		// filesystem:read enables: clarify, sampling (exempt), compactContext, scanAgents,
 		// sessionSearch, date, reflectionSessions, docx, pptx, xlsx, pdf
-		assert.strictEqual(toolNames.length, 12);
+		assert.strictEqual(toolNames.length, 11);
 		assert.ok(toolNames.includes("clarify"));
 		assert.ok(toolNames.includes("sampling"));
 		assert.ok(toolNames.includes("date"));

@@ -8,7 +8,6 @@ import { memory } from "./memory.js";
 import { mixtureOfAgents } from "./moa.js";
 import { sampling } from "./sampling.js";
 import { sessionSearch } from "./session_search.js";
-import { shell } from "./shell.js";
 import { processTool } from "./process.js";
 import { createSkill } from "./skills.js";
 import { textToSpeech } from "./tts.js";
@@ -27,7 +26,7 @@ import { pdfGenerateTool } from "./pdfGenerate.js";
 /**
  * Maps tool names to required permission scopes.
  * A tool registers only when ALL its required permissions are in the enabled set.
- * Clarify, sampling, and shell are exempt (always registered).
+ * Clarify, sampling, and process are exempt (always registered).
  */
 export const TOOL_PERMISSIONS = {
 	clarify: ["filesystem:read", "filesystem:write"],
@@ -38,11 +37,10 @@ export const TOOL_PERMISSIONS = {
 	imageGenerate: ["network:outbound"],
 	memory: ["filesystem:read", "filesystem:write"],
 	mixtureOfAgents: ["network:outbound"],
-	process: ["process:spawn"],
+	process: ["filesystem:exec", "process:spawn"],
 	sampling: ["filesystem:write"],
 	scanAgents: ["filesystem:read"],
 	sessionSearch: ["filesystem:read"],
-	shell: ["filesystem:exec", "process:spawn"],
 	textToSpeech: [],
 	visionAnalyze: [],
 	webExtract: ["network:outbound"],
@@ -106,7 +104,6 @@ export const TOOL_CLASSIFICATIONS = {
 	sampling: ["documentation"],
 	scanAgents: ["security-audit", "code-review", "coding"],
 	sessionSearch: ["search", "research"],
-	shell: ["debug", "code-review", "testing", "security-audit", "performance", "coding"],
 	textToSpeech: ["documentation"],
 	visionAnalyze: ["code-review", "testing", "coding"],
 	webExtract: ["search", "research", "coding"],
@@ -153,7 +150,6 @@ export const ORCHESTRATOR_TOOLS = [
 	"webSearch",
 	"webExtract",
 	"scanAgents",
-	"shell",
 	"sampling",
 	"createSkill",
 ];
@@ -172,7 +168,6 @@ export const TOOLS = {
 	sampling,
 	scanAgents,
 	sessionSearch,
-	shell,
 	textToSpeech,
 	visionAnalyze,
 	webExtract,
@@ -286,8 +281,7 @@ export async function buildToolConfig(options) {
 
 		switch (toolName) {
 			case "clarify":
-			case "sampling":
-			case "shell": {
+			case "sampling": {
 				tools.push(TOOLS[toolName]);
 				continue;
 			}
