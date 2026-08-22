@@ -1,3 +1,7 @@
+## Purpose
+
+Extend the configuration system to support per-agent temperature tuning via a new `subAgentsTemperature` config section.
+
 ## MODIFIED Requirements
 
 ### Requirement: Configuration Loading and Validation
