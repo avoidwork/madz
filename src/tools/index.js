@@ -281,7 +281,8 @@ export async function buildToolConfig(options) {
 
 		switch (toolName) {
 			case "clarify":
-			case "sampling": {
+			case "sampling":
+			case "process": {
 				tools.push(TOOLS[toolName]);
 				continue;
 			}

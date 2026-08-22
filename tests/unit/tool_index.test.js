@@ -81,11 +81,11 @@ describe("tools - buildToolConfig", () => {
 		const { buildToolConfig } = await import("../../src/tools/index.js");
 		const tools = await buildToolConfig({ permissions: ["filesystem:read"], maxReadSize: "1mb" });
 		const toolNames = tools.map((t) => t.name);
-		// filesystem:read enables: clarify, sampling (exempt), compactContext, scanAgents,
+		// filesystem:read enables: clarify, sampling, process (exempt), compactContext, scanAgents,
 		// sessionSearch, date
 		assert.ok(toolNames.includes("clarify"));
 		assert.ok(toolNames.includes("sampling"));
-		assert.ok(!toolNames.includes("process"), "process requires filesystem:exec + process:spawn");
+		assert.ok(toolNames.includes("process"), "process should register (exempt)");
 		assert.ok(toolNames.includes("date"));
 		assert.ok(toolNames.includes("scanAgents"));
 		assert.ok(toolNames.includes("sessionSearch"));
@@ -109,7 +109,7 @@ describe("tools - buildToolConfig", () => {
 			"sessionSearch should register with filesystem:read",
 		);
 		assert.ok(toolNames.includes("sampling"), "sampling should register (no perms needed)");
-		assert.ok(!toolNames.includes("process"), "process requires filesystem:exec + process:spawn");
+		assert.ok(toolNames.includes("process"), "process should register (exempt)");
 	});
 
 	it("returns all tier 1 + tier 2 tools when all permissions enabled", async () => {
@@ -153,9 +153,9 @@ describe("tools - buildToolConfig", () => {
 			maxReadSize: "2mb",
 		});
 		const toolNames = tools.map((t) => t.name);
-		// filesystem:read enables: clarify, sampling (exempt), compactContext, scanAgents,
+		// filesystem:read enables: clarify, sampling, process (exempt), compactContext, scanAgents,
 		// sessionSearch, date, reflectionSessions, docx, pptx, xlsx, pdf
-		assert.strictEqual(toolNames.length, 11);
+		assert.strictEqual(toolNames.length, 12);
 		assert.ok(toolNames.includes("clarify"));
 		assert.ok(toolNames.includes("sampling"));
 		assert.ok(toolNames.includes("date"));
