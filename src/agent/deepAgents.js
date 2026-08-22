@@ -47,12 +47,15 @@ function getAgentClassifications(agentName) {
 /**
  * Create subagent definitions with filtered tools and agent-specific skills.
  * @param {Object[]} allTools - Array of built tool instances
- * @param {Object} model - Chat model instance
+ * @param {Object} model - Chat model instance (orchestrator model)
  * @param {SkillRegistry} skillRegistry - Skill registry instance
+ * @param {Object} config - Resolved config object
  * @returns {Object[]} Array of subagent definitions
  */
-function createSubagentDefinitions(allTools, model, skillRegistry) {
+function createSubagentDefinitions(allTools, model, skillRegistry, config) {
 	const allAgents = getAllAgents();
+	const providerName = Object.keys(config.providers)[0] || "openai";
+	const providerConfig = config.providers[providerName] || {};
 
 	return allAgents.map((agentDef) => {
 		const classifications = getAgentClassifications(agentDef.name);
@@ -66,9 +69,21 @@ function createSubagentDefinitions(allTools, model, skillRegistry) {
 		// Get skills specific to this agent (metadata.agent === agentName)
 		const agentSkills = skillRegistry.getSkillPathsForAgent(agentDef.name);
 
+		// Determine per-agent temperature from config
+		const agentTemp = config.subAgentsTemperature?.[agentDef.name];
+
+		// Create a per-agent model instance when a specific temperature is configured
+		let agentModel = model;
+		if (agentTemp !== undefined) {
+			agentModel = createChatModel({
+				...providerConfig,
+				temperature: agentTemp,
+			});
+		}
+
 		const definition = {
 			...agentDef,
-			model,
+			model: agentModel,
 			tools: filteredTools,
 		};
 
@@ -226,7 +241,7 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	const contextRoute = "/" + config.memory.contextDir.replace(/^\.?\//, "");
 
 	// Create subagent definitions with filtered tools and agent-specific skills
-	const subagentDefinitions = createSubagentDefinitions(allTools, model, skillRegistry);
+	const subagentDefinitions = createSubagentDefinitions(allTools, model, skillRegistry, config);
 
 	// All discovered skills are available to the orchestrator
 

@@ -7,3 +7,4 @@ export { TuiSchema } from "./tui.js";
 export { AgentSchema } from "./agent.js";
 export { LruSchema } from "./lru.js";
 export { PersistenceSchema } from "./persistence.js";
+export { SubAgentsTemperatureSchema } from "./subAgentsTemperature.js";
