@@ -556,9 +556,6 @@ export default function App({
 		// Clear input buffer
 		setInputText("");
 
-		// Set interrupted state for visual feedback
-		setInterrupted(true);
-
 		// Clean up session state if needed
 		// Remove orphaned tool-call messages and partial assistant messages
 		if (sessionState) {
@@ -579,11 +576,6 @@ export default function App({
 
 		// Set status message for visual feedback
 		setStatusMessage("Interrupted.");
-
-		// Clear interrupted flag after brief delay (for visual feedback)
-		setTimeout(() => {
-			setInterrupted(false);
-		}, 2000);
 
 		// Wait for the dispatchProvider promise to resolve (it will throw
 		// AbortError and be caught by the try/catch, then run finally).
