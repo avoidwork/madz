@@ -94,7 +94,7 @@ function buildSkillsMapping(skillRegistry) {
 	// Group skills by agent
 	const skillsByAgent = new Map();
 	for (const skill of catalog) {
-		const agent = skill.metadata?.agent || "orchestrator";
+		const agent = skill.metadata?.metadata?.agent || "orchestrator";
 		if (!skillsByAgent.has(agent)) {
 			skillsByAgent.set(agent, []);
 		}

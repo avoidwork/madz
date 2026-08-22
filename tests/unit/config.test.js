@@ -612,7 +612,7 @@ describe("safety config schema", () => {
 			});
 		});
 
-		describe("memory.ephemeral default config in DEFAULT_CONFIG", () => {
+		describe("memory.ephemeral default config", () => {
 			it("has ephemeral section with defaults", () => {
 				const config = {
 					ephemeral: { ttlDays: 7, maxEntries: 10 },

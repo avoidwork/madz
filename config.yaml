@@ -100,4 +100,9 @@ lru:
 persistence:
   mode: memory
   sqlite_path: memory/checkpoints.db
+skillAgentMap:
+  - pattern: "^openspec-"
+    agent: coding
+  - pattern: "^audit-"
+    agent: security-audit
 cwd: ""
