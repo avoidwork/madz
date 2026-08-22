@@ -554,7 +554,7 @@ export default function App({
 		isStreamingRef.current = false;
 
 		// Clear input buffer
-		setInputValue("");
+		setInputText("");
 
 		// Set interrupted state for visual feedback
 		setInterrupted(true);
