@@ -43,11 +43,9 @@ skillAgentMap:
     agent: coding
   - pattern: "^audit-"
     agent: security-audit
-  - pattern: ".*"
-    agent: general-purpose
 ```
 
-**Rationale:** Array order is explicit and predictable. Regex patterns are flexible enough for any naming convention. The catch-all `".*"` pattern at the end ensures no skill is ever orphaned.
+**Rationale:** Array order is explicit and predictable. Regex patterns are flexible enough for any naming convention. Skills not matched by any pattern are left without `metadata.agent` and fall through to the default `"orchestrator"` in `deepAgents.js`.
 
 **Alternatives considered:**
 - Object with named keys: Less flexible, no regex support.
@@ -63,7 +61,7 @@ skillAgentMap:
 
 - **Regex injection:** User-provided patterns could be malicious. Mitigation: validate patterns with Zod's `.refine()` to reject patterns with dangerous constructs (e.g., `(?=)`, `(?!)`).
 - **Performance:** Pattern matching happens per-skill during discovery. With ~20-30 skills, this is negligible. No caching needed.
-- **Breaking change:** If a user adds `skillAgentMap` with a catch-all pattern that differs from the current default (`"orchestrator"`), skills that previously defaulted to orchestrator will now go to the configured agent. This is the intended behavior but could surprise users.
+- **Unmatched skills:** Skills not matched by any `skillAgentMap` pattern will not have `metadata.agent` injected. They fall through to the `"orchestrator"` default in `deepAgents.js`, which is the existing behavior — no breaking change.
 
 ## Migration Plan
 
@@ -75,4 +73,4 @@ skillAgentMap:
 
 ## Open Questions
 
-- Should the default catch-all pattern be `"general-purpose"` or `"orchestrator"`? The issue description suggests `"general-purpose"` is more correct, but the current code defaults to `"orchestrator"`. I'll use `"general-purpose"` as the default since it's semantically more accurate — skills without an explicit agent assignment should go to the general-purpose agent, not the orchestrator.
+- None. Unmatched skills fall through to the existing `"orchestrator"` default in `deepAgents.js`.

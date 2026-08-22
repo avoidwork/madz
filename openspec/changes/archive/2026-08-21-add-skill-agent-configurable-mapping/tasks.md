@@ -2,7 +2,7 @@
 
 - [ ] 1.1 Create `src/config/schemas/skillAgentMap.js` with Zod schema for `skillAgentMap` array entries (pattern: string, agent: string, regex validation)
 - [ ] 1.2 Import and add `SkillAgentMapSchema` to `ConfigSchema` in `src/config/config.js`
-- [ ] 1.3 Add default `skillAgentMap` entries to `DEFAULT_CONFIG` in `src/config/config.js` (openspec→coding, audit→security-audit, catch-all→general-purpose)
+- [ ] 1.3 Add default `skillAgentMap` entries to `DEFAULT_CONFIG` in `src/config/config.js` (openspec→coding, audit→security-audit)
 - [ ] 1.4 Add `skillAgentMap` entries to `config.yaml` with the same defaults
 
 ## 2. Discoverer Agent Injection
@@ -13,7 +13,7 @@
 
 ## 3. Tests
 
-- [ ] 3.1 Create `tests/unit/skills/agentMapper.test.js` with tests for: frontmatter override, config fallback, catch-all pattern, no config fallback, invalid regex rejection
+- [ ] 3.1 Create `tests/unit/skills/agentMapper.test.js` with tests for: frontmatter override, config fallback, no config fallback, invalid regex rejection
 - [ ] 3.2 Create `tests/unit/config/skillAgentMap.test.js` with tests for: valid config, missing pattern, missing agent, invalid regex, empty array
 - [ ] 3.3 Update `tests/unit/discoverer.test.js` to verify agent injection during discovery
 

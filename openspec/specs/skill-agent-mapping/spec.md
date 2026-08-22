@@ -15,10 +15,6 @@ The system SHALL support a `skillAgentMap` section in `config.yaml` that maps sk
 - **WHEN** multiple patterns in `skillAgentMap` match a skill name
 - **THEN** the system uses the first matching pattern and ignores subsequent matches
 
-#### Scenario: Catch-all pattern ensures no orphaned skills
-- **WHEN** a skill has no `metadata.agent` and no specific pattern matches
-- **THEN** a catch-all pattern (`.*`) assigns the skill to a default agent (e.g., `general-purpose`)
-
 ### Requirement: Frontmatter metadata.agent takes priority over config
 
 The system SHALL check a skill's frontmatter `metadata.agent` before falling back to `skillAgentMap` config patterns.
