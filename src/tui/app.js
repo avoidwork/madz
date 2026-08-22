@@ -39,7 +39,6 @@ export default function App({
 	const [inputFocused, setInputFocused] = useState(true);
 	const [contextSize, setContextSize] = useState(0);
 	const [isCompacting, setIsCompacting] = useState(false);
-	const [interrupted, setInterrupted] = useState(false);
 	const messageListRef = useRef(null);
 	const abortControllerRef = useRef(null);
 	const isStreamingRef = useRef(false);
@@ -926,7 +925,6 @@ export default function App({
 		contextSize: contextSize,
 		statusMessage: statusMessage,
 		isCompacting: isCompacting,
-		interrupted: interrupted,
 	};
 
 	return React.createElement(
