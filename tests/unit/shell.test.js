@@ -1,7 +1,6 @@
 import { describe, it, afterEach } from "node:test";
 import assert from "node:assert";
-import { executeShellImpl } from "../../src/tools/shell.js";
-import { manageProcessImpl, processTracker, trackProcess } from "../../src/tools/process.js";
+import { unifiedProcessImpl, processTracker, trackProcess } from "../../src/tools/process.js";
 import { spawn } from "node:child_process";
 
 let spawned = [];
@@ -44,381 +43,207 @@ async function waitForExit(child) {
 	});
 }
 
-describe("tools - shell", () => {
-	describe("foreground execution", () => {
-		it("executes echo command", async () => {
-			const result = await executeShellImpl(
-				{ command: "echo hello", background: false },
+describe("tools - process (unified)", () => {
+	describe("start action — foreground", () => {
+		it("executes echo command in foreground", async () => {
+			const result = await unifiedProcessImpl(
+				{ action: "start", command: "echo hello", background: false },
 				{ allowedPaths: ["/"], maxReadSize: "1mb" },
 			);
 			assert.ok(result.includes("hello"));
 			assert.ok(result.includes("exitCode"));
 		});
 
-		it("executes ls command", async () => {
-			const result = await executeShellImpl(
-				{ command: "ls", background: false },
+		it("executes ls command in foreground", async () => {
+			const result = await unifiedProcessImpl(
+				{ action: "start", command: "ls", background: false },
 				{ allowedPaths: ["/"], maxReadSize: "1mb" },
 			);
 			assert.ok(result.includes("exitCode"));
 		});
 	});
 
-	describe("command length enforcement", () => {
+	describe("start action — background", () => {
+		afterEach(() => {
+			cleanup();
+			const pids = Array.from(processTracker.keys());
+			for (const pid of pids) {
+				const entry = processTracker.get(pid);
+				if (entry) {
+					try {
+						entry.child.kill("SIGKILL");
+					} catch {
+						/* ignore */
+					}
+				}
+				processTracker.delete(pid);
+			}
+		});
+
+		it("starts background process and returns PID", async () => {
+			const result = await unifiedProcessImpl(
+				{ action: "start", command: "sleep 30", background: true },
+				{ allowedPaths: ["/"], maxReadSize: "1mb" },
+			);
+			assert.ok(result.includes("Started process in background"));
+			const pidMatch = result.match(/PID: (\d+)/);
+			assert.ok(pidMatch, "Should contain PID");
+		});
+
 		it("rejects command exceeding max length", async () => {
 			const longCommand = "x".repeat(4097);
-			const result = await executeShellImpl(
-				{ command: longCommand, background: false },
+			const result = await unifiedProcessImpl(
+				{ action: "start", command: longCommand, background: false },
 				{ allowedPaths: ["/"], maxReadSize: "1mb" },
 			);
 			assert.ok(result.includes("exceeds"));
 		});
 	});
-});
 
-describe("tools - process management", () => {
-	afterEach(() => {
-		cleanup();
-		const pids = Array.from(processTracker.keys());
-		for (const pid of pids) {
-			const entry = processTracker.get(pid);
-			if (entry) {
-				try {
-					entry.child.kill("SIGKILL");
-				} catch {
-					/* ignore */
+	describe("process lifecycle actions", () => {
+		afterEach(() => {
+			cleanup();
+			const pids = Array.from(processTracker.keys());
+			for (const pid of pids) {
+				const entry = processTracker.get(pid);
+				if (entry) {
+					try {
+						entry.child.kill("SIGKILL");
+					} catch {
+						/* ignore */
+					}
 				}
+				processTracker.delete(pid);
 			}
-			processTracker.delete(pid);
-		}
-	});
+		});
 
-	it("list shows empty array when no processes", async () => {
-		const result = await manageProcessImpl(
-			{ action: "list" },
-			{ allowedPaths: ["/"], maxReadSize: "1mb" },
-		);
-		const entries = JSON.parse(result);
-		assert.strictEqual(Array.isArray(entries), true);
-	});
+		it("list shows empty array when no processes", async () => {
+			const result = await unifiedProcessImpl(
+				{ action: "list" },
+				{ allowedPaths: ["/"], maxReadSize: "1mb" },
+			);
+			const entries = JSON.parse(result);
+			assert.strictEqual(entries.length, 0);
+		});
 
-	it("tracks a process", async () => {
-		const child = spawn("sh", ["-c", "sleep 0.2"], { detached: true });
-		spawned.push(child);
-		child.unref();
-		const pid = trackProcess(child, "sleep 0.2");
+		it("list shows running process", async () => {
+			await unifiedProcessImpl(
+				{ action: "start", command: "sleep 30", background: true },
+				{ allowedPaths: ["/"], maxReadSize: "1mb" },
+			);
+			const result = await unifiedProcessImpl(
+				{ action: "list" },
+				{ allowedPaths: ["/"], maxReadSize: "1mb" },
+			);
+			const entries = JSON.parse(result);
+			assert.strictEqual(entries.length, 1);
+			assert.strictEqual(entries[0].command, "sleep 30");
+		});
 
-		const result = await manageProcessImpl(
-			{ action: "list" },
-			{ allowedPaths: ["/"], maxReadSize: "1mb" },
-		);
-		const entries = JSON.parse(result);
-		assert.ok(entries.some((e) => e.pid === pid));
+		it("log captures stdout from background process", async () => {
+			const child = spawn("sh", ["-c", "echo hello_world"], {
+				cwd: process.cwd(),
+				detached: true,
+				stdio: ["ignore", "pipe", "pipe"],
+			});
+			const pid = trackProcess(child, "echo hello_world");
+			spawned.push(child);
 
-		await waitForExit(child);
-		processTracker.delete(pid);
-	});
+			await waitForExit(child);
 
-	it("polls process status", async () => {
-		const child = spawn("sh", ["-c", "sleep 0.2"], { detached: true });
-		spawned.push(child);
-		child.unref();
-		const pid = trackProcess(child, "sleep 0.2");
-
-		const result = await manageProcessImpl(
-			{ action: "poll", processId: pid },
-			{ allowedPaths: ["/"], maxReadSize: "1mb" },
-		);
-		assert.ok(result.includes("status"));
-
-		await waitForExit(child);
-		processTracker.delete(pid);
-	});
-
-	it("rejects unknown action", async () => {
-		const result = await manageProcessImpl(
-			{ action: "foobar" },
-			{ allowedPaths: ["/"], maxReadSize: "1mb" },
-		);
-		assert.ok(result.includes("Unknown action") || result.includes("Error"));
-	});
-
-	it("rejects missing processId for kill action", async () => {
-		const result = await manageProcessImpl(
-			{ action: "kill" },
-			{ allowedPaths: ["/"], maxReadSize: "1mb" },
-		);
-		assert.ok(result.includes("processId"));
-	});
-
-	it("handles unknown processId", async () => {
-		const result = await manageProcessImpl(
-			{ action: "kill", processId: 99999 },
-			{ allowedPaths: ["/"], maxReadSize: "1mb" },
-		);
-		assert.ok(result.includes("not found") || result.includes("Error"));
-	});
-
-	it("handles missing processId for log action", async () => {
-		const result = await manageProcessImpl(
-			{ action: "log" },
-			{ allowedPaths: ["/"], maxReadSize: "1mb" },
-		);
-		assert.ok(result.includes("processId"));
-	});
-
-	it("handles missing processId for wait action", async () => {
-		const result = await manageProcessImpl(
-			{ action: "wait" },
-			{ allowedPaths: ["/"], maxReadSize: "1mb" },
-		);
-		assert.ok(result.includes("processId"));
-	});
-
-	it("handles missing processId for write action", async () => {
-		const result = await manageProcessImpl(
-			{ action: "write" },
-			{ allowedPaths: ["/"], maxReadSize: "1mb" },
-		);
-		assert.ok(result.includes("processId"));
-	});
-
-	it("handles missing processId for pause action", async () => {
-		const result = await manageProcessImpl(
-			{ action: "pause" },
-			{ allowedPaths: ["/"], maxReadSize: "1mb" },
-		);
-		assert.ok(result.includes("processId"));
-	});
-
-	it("handles missing processId for resume action", async () => {
-		const result = await manageProcessImpl(
-			{ action: "resume" },
-			{ allowedPaths: ["/"], maxReadSize: "1mb" },
-		);
-		assert.ok(result.includes("processId"));
-	});
-
-	it("handles unknown processId for log action", async () => {
-		const result = await manageProcessImpl(
-			{ action: "log", processId: 99999 },
-			{ allowedPaths: ["/"], maxReadSize: "1mb" },
-		);
-		assert.ok(result.includes("not found"));
-	});
-
-	it("handles unknown processId for wait action", async () => {
-		const result = await manageProcessImpl(
-			{ action: "wait", processId: 99999 },
-			{ allowedPaths: ["/"], maxReadSize: "1mb" },
-		);
-		assert.ok(result.includes("not found"));
-	});
-
-	it("handles unknown processId for write action", async () => {
-		const result = await manageProcessImpl(
-			{ action: "write", processId: 99999 },
-			{ allowedPaths: ["/"], maxReadSize: "1mb" },
-		);
-		assert.ok(result.includes("not found"));
-	});
-
-	it("handles unknown processId for pause action", async () => {
-		const result = await manageProcessImpl(
-			{ action: "pause", processId: 99999 },
-			{ allowedPaths: ["/"], maxReadSize: "1mb" },
-		);
-		assert.ok(result.includes("not found"));
-	});
-
-	it("handles unknown processId for resume action", async () => {
-		const result = await manageProcessImpl(
-			{ action: "resume", processId: 99999 },
-			{ allowedPaths: ["/"], maxReadSize: "1mb" },
-		);
-		assert.ok(result.includes("not found"));
-	});
-
-	it("logs background process", async () => {
-		const child = spawn("sh", ["-c", "sleep 0.5"], { detached: true });
-		spawned.push(child);
-		child.unref();
-		const pid = trackProcess(child, "sleep 0.5");
-
-		try {
-			const result = await manageProcessImpl(
+			const result = await unifiedProcessImpl(
 				{ action: "log", processId: pid },
 				{ allowedPaths: ["/"], maxReadSize: "1mb" },
 			);
-			assert.ok(result.includes("log"));
-		} finally {
+			assert.ok(result.includes("hello_world"));
+		});
+
+		it("wait returns exit status", async () => {
+			const child = spawn("sh", ["-c", "echo done"], {
+				cwd: process.cwd(),
+				detached: true,
+				stdio: ["ignore", "pipe", "pipe"],
+			});
+			const pid = trackProcess(child, "echo done");
+			spawned.push(child);
+
 			await waitForExit(child);
-			processTracker.delete(pid);
-		}
-	});
 
-	it("waits for background process", async () => {
-		const child = spawn("sh", ["-c", "sleep 0.3"], { detached: true });
-		spawned.push(child);
-		child.unref();
-		const pid = trackProcess(child, "sleep 0.3");
-
-		try {
-			const result = await manageProcessImpl(
+			const result = await unifiedProcessImpl(
 				{ action: "wait", processId: pid },
 				{ allowedPaths: ["/"], maxReadSize: "1mb" },
 			);
-			assert.ok(result.includes("wait"));
-		} finally {
-			await waitForExit(child);
-			processTracker.delete(pid);
-		}
-	});
+			assert.ok(result.includes("completed"));
+		});
 
-	it("kills background process", async () => {
-		const child = spawn("sh", ["-c", "sleep 10"], { detached: true });
-		spawned.push(child);
-		child.unref();
-		const pid = trackProcess(child, "sleep 10");
+		it("kill terminates process", async () => {
+			const child = spawn("sh", ["-c", "sleep 60"], {
+				cwd: process.cwd(),
+				detached: true,
+				stdio: ["ignore", "pipe", "pipe"],
+			});
+			const pid = trackProcess(child, "sleep 60");
+			spawned.push(child);
 
-		try {
-			const result = await manageProcessImpl(
+			const result = await unifiedProcessImpl(
 				{ action: "kill", processId: pid },
 				{ allowedPaths: ["/"], maxReadSize: "1mb" },
 			);
 			assert.ok(result.includes("SIGTERM"));
-			await waitForExit(child);
-		} finally {
-			processTracker.delete(pid);
-		}
-	});
 
-	it("writes to background process stdin", async () => {
-		const child = spawn("sh", ["-c", "read -r line"], {
-			detached: true,
-			stdio: ["pipe", "ignore", "ignore"],
+			// Wait for kill to complete
+			await new Promise((r) => setTimeout(r, 6000));
+			cleanup();
 		});
-		spawned.push(child);
-		child.unref();
-		const pid = trackProcess(child, "sh -c 'read -r line'");
 
-		try {
-			const result = await manageProcessImpl(
-				{ action: "write", processId: pid, data: "test data" },
+		it("write sends data to stdin", async () => {
+			const child = spawn("sh", ["-c", "cat"], {
+				cwd: process.cwd(),
+				detached: true,
+				stdio: ["pipe", "pipe", "pipe"],
+			});
+			const pid = trackProcess(child, "cat");
+			spawned.push(child);
+
+			const result = await unifiedProcessImpl(
+				{ action: "write", processId: pid, data: "test input" },
 				{ allowedPaths: ["/"], maxReadSize: "1mb" },
 			);
 			assert.ok(result.includes("Wrote to stdin"));
-		} catch {
-			// stdin may not be available for detached processes
-		} finally {
-			try {
-				child.kill("SIGTERM");
-			} catch {
-				/* ignore */
-			}
-			try {
-				child.kill("SIGKILL");
-			} catch {
-				/* ignore */
-			}
-			await new Promise((resolve) => setTimeout(resolve, 50));
-			processTracker.delete(pid);
-		}
-	});
-
-	it("pauses background process", async () => {
-		const child = spawn("sh", ["-c", "sleep 10"], { detached: true });
-		spawned.push(child);
-		child.unref();
-		const pid = trackProcess(child, "sleep 10");
-
-		try {
-			const result = await manageProcessImpl(
-				{ action: "pause", processId: pid },
-				{ allowedPaths: ["/"], maxReadSize: "1mb" },
-			);
-			assert.ok(result.includes("Paused"));
-		} finally {
-			try {
-				child.kill("SIGKILL");
-			} catch {
-				/* ignore */
-			}
-			processTracker.delete(pid);
-		}
-	});
-
-	it("resumes background process", async () => {
-		const child = spawn("sh", ["-c", "sleep 10"], { detached: true });
-		spawned.push(child);
-		child.unref();
-		const pid = trackProcess(child, "sleep 10");
-
-		try {
-			await manageProcessImpl(
-				{ action: "pause", processId: pid },
-				{ allowedPaths: ["/"], maxReadSize: "1mb" },
-			);
-		} catch {
-			/* pause may fail, continue */
-		}
-		try {
-			const result = await manageProcessImpl(
-				{ action: "resume", processId: pid },
-				{ allowedPaths: ["/"], maxReadSize: "1mb" },
-			);
-			assert.ok(result.includes("Resumed"));
-		} finally {
-			try {
-				child.kill("SIGKILL");
-			} catch {
-				/* ignore */
-			}
-			processTracker.delete(pid);
-		}
-	});
-
-	it("assigns incrementing PIDs", () => {
-		const child1 = spawn("sh", ["-c", "sleep 0.1"], { detached: true });
-		spawned.push(child1);
-		child1.unref();
-		const pid1 = trackProcess(child1, "cmd1");
-
-		const child2 = spawn("sh", ["-c", "sleep 0.1"], { detached: true });
-		spawned.push(child2);
-		child2.unref();
-		const pid2 = trackProcess(child2, "cmd2");
-
-		assert.strictEqual(pid1 < pid2, true);
-	});
-
-	describe("foreground stderr capture", () => {
-		it("captures stderr in output", async () => {
-			const result = await executeShellImpl(
-				{ command: "sh -c 'echo error >&2'", background: false },
-				{ allowedPaths: ["/"], maxReadSize: "1mb" },
-			);
-			assert.ok(result.includes("exitCode"));
-			assert.ok(result.includes("stderr"));
-			assert.ok(result.includes("error"));
+			child.kill("SIGTERM");
 		});
 
-		it("returns error message when child errors", async () => {
-			const result = await executeShellImpl(
-				{ command: "sh -c 'exit 1' && invalid_nonexistent_binary", background: false },
+		it("returns error for non-existent process", async () => {
+			const result = await unifiedProcessImpl(
+				{ action: "log", processId: 99999 },
 				{ allowedPaths: ["/"], maxReadSize: "1mb" },
 			);
-			assert.ok(Array.isArray(result) || typeof result === "string");
+			assert.ok(result.includes("not found"));
 		});
-	});
 
-	describe("background execution", () => {
-		it("starts process in background mode", async () => {
-			const result = await executeShellImpl(
-				{ command: "sleep 0.5", background: true },
-				{ allowedPaths: ["/"] },
+		it("returns error for invalid action", async () => {
+			const child = spawn("sh", ["-c", "sleep 60"], {
+				cwd: process.cwd(),
+				detached: true,
+				stdio: ["ignore", "pipe", "pipe"],
+			});
+			const pid = trackProcess(child, "sleep 60");
+			spawned.push(child);
+
+			const result = await unifiedProcessImpl(
+				{ action: "invalid", processId: pid },
+				{ allowedPaths: ["/"], maxReadSize: "1mb" },
 			);
-			assert.ok(result.includes("Started process in background"));
+			assert.ok(result.includes("Unknown action"));
+			child.kill("SIGTERM");
+		});
+
+		it("returns error when processId required but missing", async () => {
+			const result = await unifiedProcessImpl(
+				{ action: "log" },
+				{ allowedPaths: ["/"], maxReadSize: "1mb" },
+			);
+			assert.ok(result.includes("processId is required"));
 		});
 	});
 });

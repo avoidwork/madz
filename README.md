@@ -453,14 +453,14 @@ Uses the [Deep Agents](https://github.com/avoidwork/deepagents) library to orche
 | Agent | Purpose | Tool Access |
 | ----- | ------- | ----------- |
 | `code-review` | Structured code reviews covering bugs, security, style, performance | `readFile`, `grep`, `glob` |
-| `coding` | Code implementation with read-before-write discipline, complete shipping, convention adherence, and dead-code elimination | `shell`, `write`, `compactContext`, `process`, `scanAgents`, `visionAnalyze` |
-| `debug` | Error tracing, reproduction, and fix proposals | `readFile`, `grep`, `glob`, `shell` |
+| `coding` | Code implementation with read-before-write discipline, complete shipping, convention adherence, and dead-code elimination | `process`, `write`, `compactContext`, `scanAgents`, `visionAnalyze` |
+| `debug` | Error tracing, reproduction, and fix proposals | `readFile`, `grep`, `glob`, `process` |
 | `documentation` | Documentation updates, API docs generation, changelog maintenance | `readFile`, `writeFile`, `grep`, `glob` |
-| `performance` | Performance benchmarking, bottleneck identification, optimization suggestions | `readFile`, `grep`, `shell` |
+| `performance` | Performance benchmarking, bottleneck identification, optimization suggestions | `readFile`, `grep`, `process` |
 | `research` | Multi-step research with source tracking and comprehensive reports | `webSearch`, `webExtract`, `grep`, `glob`, `sessionSearch` |
 | `search` | Multi-source search (web, docs, codebase) with synthesis | `webSearch`, `webExtract`, `grep`, `glob`, `sessionSearch` |
-| `security-audit` | Security scanning, dependency auditing, vulnerability detection | `readFile`, `grep`, `glob`, `shell` |
-| `testing` | Test generation, gap analysis, and coverage improvements | `readFile`, `grep`, `glob`, `shell` |
+| `security-audit` | Security scanning, dependency auditing, vulnerability detection | `readFile`, `grep`, `glob`, `process` |
+| `testing` | Test generation, gap analysis, and coverage improvements | `readFile`, `grep`, `glob`, `process` |
 
 Each agent definition lives in `src/agent/agents/` with its own file. The `AgentRegistry` class (`src/agent/agentRegistry.js`) manages registration, validation, and lookup. Tool access is gated by `TOOL_CLASSIFICATIONS` in `src/tools/index.js` — each tool declares which agent types it serves, and the orchestrator filters tools per agent at runtime.
 
@@ -484,11 +484,10 @@ All built-in tools are defined in `src/tools/` and registered as LangChain tools
 | `imageGenerate` | Generate images via FAL.ai flux/klein API. |
 | `memory` | Persistent key-value memory with CRUD actions (create, read, update, delete, list). Each entry stored as `.md` in `memory/context/` with `createdDate`/`updatedDate` metadata. |
 | `mixtureOfAgents` | Multi-agent orchestration via OpenRouter. Calls 4 reference prompts (factual, practical, creative, cautious) and synthesizes a consensus response. |
-| `process` | Manage background processes — list, poll, wait, kill, write, pause, resume. |
+| `process` | Execute shell commands and manage background processes. Actions: start (launch command), list (show all), log (read stdout/stderr), wait (wait for exit), kill (SIGTERM/SIGKILL), write (send stdin data), pause (SIGSTOP), resume (SIGCONT). |
 | `sampling` | Capture emotional moments as ephemeral memories. Rate-limited to 1 per 60 minutes. Stored with `expiresAt` frontmatter. |
 | `scanAgents` | Scan for `AGENTS.md` workspace rules files in a target directory. Returns file contents or empty string. |
 | `sessionSearch` | Search past conversations by keyword query, full retrieval by conversation ID, or browse all sessions. |
-| `shell` | Execute shell commands (foreground/background). Max command length 4096 chars. |
 | `textToSpeech` | Convert text to speech via OpenAI TTS (tts-1/tts-1-hd). Saves MP3 to `~/voice-memos/`. |
 | `visionAnalyze` | Analyze images via OpenAI multimodal LLM. Accepts URL or base64 data URI. |
 | `webExtract` | Extract readable text content from a web page URL. Supports summarization for large pages. |
@@ -512,9 +511,8 @@ Built-in tools are registered only when their required permissions are enabled f
 | ----------------------------------- | -------------------------------------------------------------------------- |
 | `filesystem:read`                   | `compactContext`, `scanAgents`, `sessionSearch` |
 | `filesystem:write`                  | `clarify`, `createSkill`, `memory`, `sampling`                             |
-| `filesystem:exec` + `process:spawn` | `shell`                                                    |
+| `filesystem:exec` + `process:spawn` | `process`                                                                  |
 | `network:outbound`                  | `cronJob`, `imageGenerate`, `mixtureOfAgents`, `webExtract`, `webSearch`, `email`, `calendar`   |
-| `process:spawn`                     | `process`                                                                  |
 | _(none)_                            | `date`, `textToSpeech`, `visionAnalyze`                                    |
 | `filesystem:read` + `filesystem:write` + `network:outbound` | `pdfGenerate` |
 | `filesystem:read` + `filesystem:write` | `spreadsheet` |
