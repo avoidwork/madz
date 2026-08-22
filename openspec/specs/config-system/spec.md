@@ -1,5 +1,4 @@
 ## Requirements
-
 ### Requirement: Centralized Configuration File
 The system SHALL load all configuration from a single `config.yaml` file located in the project root directory using YAML parsing.
 
@@ -34,7 +33,7 @@ The system SHALL validate all `config.yaml` contents against a zod-based schema 
 - **THEN** the system validates the new value against the schema before applying it
 
 ### Requirement: Configuration Loading and Validation
-The system SHALL load all configuration from `config.yaml` via `src/config/loader.js`, validate it against Zod schemas in `src/config/schemas.js`, and make it available to all subsystems through the `settings` singleton. The config MUST include a `persistence` section at the top level for configuring LangGraph checkpoint persistence with `mode` (string, default: `"memory"`) and optional `sqlite_path` (string, default: `"memory/checkpoints.db"`).
+The system SHALL load all configuration from `config.yaml` via `src/config/loader.js`, validate it against Zod schemas in `src/config/schemas.js`, and make it available to all subsystems through the `settings` singleton. The config MUST include a `persistence` section at the top level for configuring LangGraph checkpoint persistence with `mode` (string, default: `"memory"`) and optional `sqlite_path` (string, default: `"memory/checkpoints.db"`). The config MUST include a `subAgentsTemperature` section at the top level as a record mapping agent name strings to temperature numbers in the range [0, 2], defaulting to an empty object `{}`.
 
 #### Scenario: Configuration is loaded from YAML file
 - **WHEN** the application starts and reads `config.yaml`
@@ -47,6 +46,14 @@ The system SHALL load all configuration from `config.yaml` via `src/config/loade
 #### Scenario: Persistence mode validation
 - **WHEN** `config.yaml` sets `persistence.mode` to an unsupported value (e.g., `"redis"`)
 - **THEN** the application logs a warning and falls back to `"memory"` mode
+
+#### Scenario: subAgentsTemperature defaults to empty object
+- **WHEN** `config.yaml` has no `subAgentsTemperature` section
+- **THEN** the system defaults `subAgentsTemperature` to an empty object `{}`
+
+#### Scenario: subAgentsTemperature validation rejects invalid values
+- **WHEN** `config.yaml` sets `subAgentsTemperature.coding` to a value outside 0–2 range
+- **THEN** the application logs a validation error and rejects the configuration
 
 ### Requirement: Runtime Config Mutation
 The system SHALL provide a dedicated config mutator tool (`src/config/mutate.js`) that deserializes `config.yaml`, applies dot-path mutations, validates via zod, serializes back to YAML, and persists to disk — enabling dynamic adjustment of sandbox parameters, memory policies, skill permissions, and provider assignments without restarting the harness. Mutation is exposed to the TUI via `:config set <path> <value>` which calls the mutator through `config.setValue`.
@@ -69,3 +76,4 @@ The system SHALL configure OpenTelemetry export settings (format, endpoint, samp
 #### Scenario: User configures sensitive field redaction
 - **WHEN** `config.yaml` sets `telemetry.redact.paths` to include `credentials.apiKey`
 - **THEN** all span attributes matching the path are redacted before export
+

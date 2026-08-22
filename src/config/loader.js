@@ -2,7 +2,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { createRequire } from "node:module";
-import { ConfigSchema } from "./config.js";
+import { ConfigSchema, _setResolvedConfig } from "./config.js";
 import { applyDotPathMutation } from "./patch.js";
 
 const _require = createRequire(import.meta.url);
@@ -18,6 +18,9 @@ const CONFIG_PATH = join(PROJECT_ROOT, "../../config.yaml");
  * @returns {string}
  */
 function _toUpperSnake(str) {
+	// Convert hyphens to underscores before the camelCase → SNAKE_CASE conversion
+	// so agent names like "code-review" produce CODE_REVIEW env vars
+	str = str.replace(/-/g, "_");
 	// Insert underscore before each uppercase letter preceded by lowercase
 	return str
 		.split("")
@@ -61,6 +64,7 @@ export function _resolveEnvRecursively(node, path) {
 		"search", // e.g. search.exa.apiKey → EXA_API_KEY
 		"process",
 		"calendar", // e.g. calendar.google.apiKey → GOOGLE_CALENDAR_API_KEY
+		"subAgentsTemperature", // e.g. subAgentsTemperature.coding → SUB_AGENTS_TEMPERATURE_CODING
 	];
 
 	if (Array.isArray(node)) {
@@ -162,6 +166,7 @@ export function loadConfig() {
 	// Capture the original working directory before any chdir happens
 	config.cwd = process.cwd();
 	cachedConfig = config;
+	_setResolvedConfig(config);
 	return config;
 }
 
