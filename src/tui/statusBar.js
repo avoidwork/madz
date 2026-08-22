@@ -95,11 +95,7 @@ export const StatusBar = React.memo(function StatusBar({
 				"[\u25A4 " + formatSize(contextSize) + "]",
 			),
 			interrupted
-				? React.createElement(
-						Text,
-						{ key: "interrupted", color: "yellow" },
-						" [INTERRUPTED]",
-					)
+				? React.createElement(Text, { key: "interrupted", color: "yellow" }, " [INTERRUPTED]")
 				: null,
 		),
 	);
