@@ -62,6 +62,16 @@ export function trackProcess(child, command, sessionId) {
 }
 
 /**
+ * Escape '--' sequences in a command so the tool parser doesn't treat them
+ * as parameter delimiters.
+ * @param {string} command - Raw shell command
+ * @returns {string} Escaped command
+ */
+function escapeCommand(command) {
+	return command.replace(/--/g, "\-\-");
+}
+
+/**
  * Execute a command in foreground mode.
  * @param {string} command - Shell command to execute
  * @returns {Promise<string>} Command execution result
@@ -72,7 +82,7 @@ function executeForeground(command) {
 		let stderr = "";
 		let exitCode = -1;
 
-		const child = spawn("sh", ["-c", command], {
+		const child = spawn("sh", ["-c", escapeCommand(command)], {
 			cwd: process.cwd(),
 			timeout: 30000,
 		});
@@ -112,7 +122,7 @@ function executeForeground(command) {
  */
 function executeBackground(command) {
 	try {
-		const child = spawn("sh", ["-c", command], {
+		const child = spawn("sh", ["-c", escapeCommand(command)], {
 			cwd: process.cwd(),
 			detached: true,
 			stdio: ["ignore", "pipe", "pipe"],
