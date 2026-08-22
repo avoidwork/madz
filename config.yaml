@@ -105,4 +105,14 @@ skillAgentMap:
     agent: coding
   - pattern: "^audit-"
     agent: security-audit
+subAgentsTemperature:
+  coding: 0.3
+  search: 0.5
+  debug: 0.2
+  "code-review": 0.1
+  research: 0.5
+  testing: 0.2
+  documentation: 0.3
+  "security-audit": 0.1
+  performance: 0.2
 cwd: ""
