@@ -446,7 +446,7 @@ The cache enforces a maximum size (default: 100 entries) with LRU eviction and a
 
 ### Agent
 
-Uses the [Deep Agents](https://github.com/avoidwork/deepagents) library to orchestrate a primary agent with a family of specialized subagents. The orchestrator routes tasks automatically — each subagent has a focused system prompt and a curated tool set matched to its domain.
+Uses the [Deep Agents](https://github.com/langchain-ai/deepagentsjs) library to orchestrate a primary agent with a family of specialized subagents. The orchestrator routes tasks automatically — each subagent has a focused system prompt and a curated tool set matched to its domain.
 
 **Built-in subagents:**
 
@@ -461,6 +461,22 @@ Uses the [Deep Agents](https://github.com/avoidwork/deepagents) library to orche
 | `search` | Multi-source search (web, docs, codebase) with synthesis | `webSearch`, `webExtract`, `grep`, `glob`, `sessionSearch` |
 | `security-audit` | Security scanning, dependency auditing, vulnerability detection | `readFile`, `grep`, `glob`, `process` |
 | `testing` | Test generation, gap analysis, and coverage improvements | `readFile`, `grep`, `glob`, `process` |
+
+**Default subagent temperatures:**
+
+| Agent | Temperature | Rationale |
+| ----- | ----------- | --------- |
+| `code-review` | 0.1 | Maximum precision for review |
+| `coding` | 0.3 | Balanced creativity and precision |
+| `debug` | 0.2 | Precision work |
+| `documentation` | 0.3 | Balanced output |
+| `performance` | 0.2 | Structured analysis |
+| `research` | 0.5 | Exploratory research |
+| `search` | 0.5 | Exploratory search |
+| `security-audit` | 0.1 | Maximum precision for security analysis |
+| `testing` | 0.2 | Structured, deterministic output |
+
+Temperatures are configurable via `subAgentsTemperature` in `config.yaml` or environment variables (`SUB_AGENTS_TEMPERATURE_<AGENT_NAME>`).
 
 Each agent definition lives in `src/agent/agents/` with its own file. The `AgentRegistry` class (`src/agent/agentRegistry.js`) manages registration, validation, and lookup. Tool access is gated by `TOOL_CLASSIFICATIONS` in `src/tools/index.js` — each tool declares which agent types it serves, and the orchestrator filters tools per agent at runtime.
 
