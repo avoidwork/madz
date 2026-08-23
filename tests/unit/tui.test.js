@@ -1165,7 +1165,7 @@ describe("TUI - scroll throttle behavior", () => {
 });
 
 describe("MessageList - render window limits React tree size", () => {
-	it("uses MAX_RENDER_MESSAGES window from messageList", async () => {
+	it("mounts and unmounts without error", async () => {
 		const { MessageList } = await import("../../src/tui/messageList.js");
 		const { unmount: um } = render(
 			React.createElement(MessageList, {
