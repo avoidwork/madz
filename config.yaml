@@ -86,6 +86,7 @@ schedules:
 tui:
   name: madz
   cursorChar: "█"
+  renderWindow: 100
 agent:
   recursionLimit: 1000
   autoContinueLimit: 1000
