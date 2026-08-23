@@ -68,7 +68,7 @@ export function trackProcess(child, command, sessionId) {
  * @returns {string} Escaped command
  */
 function escapeCommand(command) {
-	return command.replace(/--/g, "\-\-");
+	return command.replace(/--/g, "-\-");
 }
 
 /**
