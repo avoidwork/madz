@@ -44,7 +44,7 @@ export const MessageList = forwardRef(function MessageList(
 	{
 		messages: _messages = [],
 		assistantName = "Assistant",
-		renderWindow = 100,
+		renderWindow,
 		scrollRef: externalScrollRef,
 	},
 	forwardRef,
