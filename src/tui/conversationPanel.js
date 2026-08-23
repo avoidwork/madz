@@ -75,7 +75,7 @@ export function getBubbleStyle(role) {
 export function ConversationPanel({
 	messages = [],
 	assistantName = "Assistant",
-	renderWindow = 100,
+	renderWindow,
 	scrollRef: externalScrollRef,
 	messageListRef,
 }) {
