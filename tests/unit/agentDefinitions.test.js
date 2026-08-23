@@ -31,6 +31,9 @@ const EXPECTED_AGENT_NAMES = [
 	"documentation",
 	"security-audit",
 	"performance",
+	"textEditor",
+	"seoAnalyst",
+	"translator",
 ];
 
 describe("Agent Definitions", () => {
@@ -38,8 +41,8 @@ describe("Agent Definitions", () => {
 		await waitForPrompts();
 	});
 	describe("getAllAgents", () => {
-		it("should return all 9 agent definitions", () => {
-			strictEqual(ALL_AGENTS.length, 9, "Should have exactly 9 agents");
+		it("should return all 12 agent definitions", () => {
+			strictEqual(ALL_AGENTS.length, 12, "Should have exactly 12 agents");
 		});
 
 		it("should include all expected agent names", () => {
@@ -162,6 +165,24 @@ describe("Agent Definitions", () => {
 
 			// Search agent references decisiveness/directness
 			ok(ALL_AGENTS[1].systemPrompt.includes("Claus"), "Search agent should reference Claus");
+
+			// Text editor agent references Hannibal's precision
+			ok(
+				ALL_AGENTS[9].systemPrompt.includes("Hannibal"),
+				"Text editor agent should reference Hannibal",
+			);
+
+			// SEO analyst agent references Martin's curiosity
+			ok(
+				ALL_AGENTS[10].systemPrompt.includes("Martin"),
+				"SEO analyst agent should reference Martin",
+			);
+
+			// Translator agent references Hannibal's cultural sophistication
+			ok(
+				ALL_AGENTS[11].systemPrompt.includes("Hannibal"),
+				"Translator agent should reference Hannibal",
+			);
 		});
 
 		it("should suppress persona for code/diff output (coding agent)", () => {

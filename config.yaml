@@ -115,4 +115,7 @@ subAgentsTemperature:
   documentation: 0.3
   "security-audit": 0.1
   performance: 0.2
+  textEditor: 0.4
+  seoAnalyst: 0.3
+  translator: 0.3
 cwd: ""

@@ -11,6 +11,9 @@ import { testingAgent } from "./testing.js";
 import { documentationAgent } from "./documentation.js";
 import { securityAuditAgent } from "./security-audit.js";
 import { performanceAgent } from "./performance.js";
+import { textEditorAgent } from "./text-editor.js";
+import { seoAnalystAgent } from "./seo-analyst.js";
+import { translatorAgent } from "./translator.js";
 
 export {
 	codingAgent,
@@ -22,6 +25,9 @@ export {
 	documentationAgent,
 	securityAuditAgent,
 	performanceAgent,
+	textEditorAgent,
+	seoAnalystAgent,
+	translatorAgent,
 };
 
 /**
@@ -39,5 +45,8 @@ export function getAllAgents() {
 		documentationAgent,
 		securityAuditAgent,
 		performanceAgent,
+		textEditorAgent,
+		seoAnalystAgent,
+		translatorAgent,
 	];
 }
