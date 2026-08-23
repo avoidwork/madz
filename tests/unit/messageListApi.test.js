@@ -6,6 +6,10 @@ import assert from "node:assert";
  * Simulates the imperative API used by MessageList without React.
  * Tests the addMessage, updateMessage, clear, setMessages workflow
  * including pub/sub topic management.
+ *
+ * Note: The data layer stores all messages without a cap.
+ * The render layer uses a virtual window (last 100 messages) for
+ * performance, but the underlying data structures grow unbounded.
  */
 describe("messageList imperative API simulation", () => {
 	let pubsub;
