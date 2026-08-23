@@ -347,14 +347,9 @@ export async function buildToolConfig(options) {
 			}
 
 			case "text":
-			case "seo": {
-				if (!runtimeOptions.openaiApiKey) continue;
-				tools.push(TOOLS[toolName]);
-				continue;
-			}
-
+			case "seo":
 			case "translate": {
-				if (!hasAllPerms || !process.env.GOOGLE_TRANSLATE_API_KEY) continue;
+				if (!runtimeOptions.openaiApiKey) continue;
 				tools.push(TOOLS[toolName]);
 				continue;
 			}
