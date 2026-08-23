@@ -22,9 +22,6 @@ import { email } from "./email/tools.js";
 import { spreadsheet } from "./spreadsheet/spreadsheet.js";
 import { calendar } from "./calendar/index.js";
 import { pdfGenerateTool } from "./pdfGenerate.js";
-import { text } from "./text.js";
-import { seo } from "./seo.js";
-import { translateTool } from "./translate.js";
 
 /**
  * Maps tool names to required permission scopes.
@@ -57,9 +54,6 @@ export const TOOL_PERMISSIONS = {
 	spreadsheet: ["filesystem:read", "filesystem:write"],
 	calendar: ["network:outbound"],
 	pdfGenerate: ["filesystem:read", "filesystem:write", "network:outbound"],
-	text: ["network:outbound"],
-	seo: ["network:outbound"],
-	translate: ["network:outbound"],
 };
 
 /**
@@ -123,9 +117,6 @@ export const TOOL_CLASSIFICATIONS = {
 	spreadsheet: ["search", "research", "coding", "documentation", "debug"],
 	calendar: ["search", "research", "coding", "documentation", "debug", "performance"],
 	pdfGenerate: ["search", "research", "coding", "documentation", "debug"],
-	text: ["search", "research", "coding", "documentation", "debug"],
-	seo: ["search", "research", "coding", "documentation", "debug"],
-	translate: ["search", "research", "coding", "documentation", "debug"],
 };
 
 /**
@@ -190,9 +181,6 @@ export const TOOLS = {
 	spreadsheet,
 	calendar,
 	pdfGenerate: pdfGenerateTool,
-	text,
-	seo,
-	translate: translateTool,
 };
 
 /**
@@ -342,14 +330,6 @@ export async function buildToolConfig(options) {
 
 			case "imageGenerate": {
 				if (!hasAllPerms || !runtimeOptions.falApiKey) continue;
-				tools.push(TOOLS[toolName]);
-				continue;
-			}
-
-			case "text":
-			case "seo":
-			case "translate": {
-				if (!runtimeOptions.openaiApiKey) continue;
 				tools.push(TOOLS[toolName]);
 				continue;
 			}
