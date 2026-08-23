@@ -23,7 +23,7 @@
 
 ## 4. Verify
 
-- [ ] 4.1 Run npm run test to verify all tests pass
-- [ ] 4.2 Run npm run lint to verify lint passes
-- [ ] 4.3 Run npm run coverage to verify coverage is maintained
-- [ ] 4.4 Verify application starts with npm start (timeout 10s)
+- [x] 4.1 Run npm run test to verify all tests pass
+- [x] 4.2 Run npm run lint to verify lint passes
+- [x] 4.3 Run npm run coverage to verify coverage is maintained
+- [x] 4.4 Verify application starts with npm start (timeout 10s)

@@ -1,56 +1,64 @@
 # text-processing Specification
 
 ## Purpose
-TBD - created by archiving change add-text-processing-tools. Update Purpose after archive.
+Defines the text-editor subagent's capabilities for text processing operations including summarization, rewriting, tone adjustment, grammar correction, and length modification.
+
 ## Requirements
-### Requirement: Translate tool supports translation
-The translate tool SHALL accept a "translate" action that translates input text to a target language.
 
-#### Scenario: Translate English to Spanish
-- **WHEN** the user calls the translate tool with action "translate", input "Hello world", and options { targetLanguage: "es" }
-- **THEN** the tool returns structured JSON with result containing the Spanish translation
+### Requirement: Text editor subagent handles summarization
+The textEditor subagent SHALL accept text input and produce a concise summary that captures all key points when invoked with a summarization request.
 
-#### Scenario: Translate with source language specified
-- **WHEN** the user calls the translate tool with action "translate", input text, and options { sourceLanguage: "en", targetLanguage: "fr" }
-- **THEN** the tool returns structured JSON with the French translation
+#### Scenario: Summarize short text
+- **WHEN** the user provides text and requests a summary
+- **THEN** the subagent returns a concise summary that preserves all key information
 
-### Requirement: Translate tool supports language detection
-The translate tool SHALL accept a "detect" action that identifies the language of the input text.
+#### Scenario: Summarize long text
+- **WHEN** the user provides text exceeding 5000 characters and requests a summary
+- **THEN** the subagent returns a summary that captures the essential points without losing critical context
 
-#### Scenario: Detect English text
-- **WHEN** the user calls the translate tool with action "detect" and input "Hello world"
-- **THEN** the tool returns structured JSON with result containing { language: "en", confidence: number }
+### Requirement: Text editor subagent handles rewriting
+The textEditor subagent SHALL accept text input and rewrite it according to specified tone, style, or structural requirements while preserving the original meaning.
 
-#### Scenario: Detect Spanish text
-- **WHEN** the user calls the translate tool with action "detect" and input "Hola mundo"
-- **THEN** the tool returns structured JSON with result containing { language: "es", confidence: number }
+#### Scenario: Rewrite with tone adjustment
+- **WHEN** the user provides text and specifies a target tone (e.g., "professional", "casual")
+- **THEN** the subagent returns rewritten text matching the specified tone
 
-### Requirement: Translate tool caching
-The translate tool SHALL cache translation results by (input, sourceLanguage, targetLanguage) key with a 24-hour TTL.
+#### Scenario: Rewrite preserving meaning
+- **WHEN** the user provides text for rewriting
+- **THEN** the subagent returns rewritten text that preserves all original facts and key information
 
-#### Scenario: Cached translation result
-- **WHEN** the user calls the translate tool with the same (input, sourceLanguage, targetLanguage) twice within 24 hours
-- **THEN** the second call returns the cached result without making a new API request
+### Requirement: Text editor subagent handles grammar correction
+The textEditor subagent SHALL accept text input and correct all grammatical, spelling, and punctuation errors while preserving the original meaning and style.
 
-#### Scenario: Expired cache
-- **WHEN** the user calls the translate tool with a cached key that is older than 24 hours
-- **THEN** the tool makes a new API request and updates the cache
+#### Scenario: Correct grammatical errors
+- **WHEN** the user provides text with grammatical errors
+- **THEN** the subagent returns corrected text with all errors fixed
 
-### Requirement: Translate tool input validation
-The translate tool SHALL validate all inputs against a zod schema before processing.
+#### Scenario: Preserve style during correction
+- **WHEN** the user provides text with a distinctive voice or style
+- **THEN** the subagent corrects errors without altering the distinctive voice
 
-#### Scenario: Missing input field
-- **WHEN** the user calls the translate tool without an "input" field
-- **THEN** the tool returns a validation error
+### Requirement: Text editor subagent handles length modification
+The textEditor subagent SHALL accept text input and either condense or expand it while preserving the core message.
 
-#### Scenario: Input exceeds size limit
-- **WHEN** the user calls the translate tool with input text exceeding 10,000 characters
-- **THEN** the tool returns an error indicating the input exceeds the maximum size limit
+#### Scenario: Shorten text
+- **WHEN** the user provides text and requests it to be shortened
+- **THEN** the subagent returns condensed text preserving the core message
 
-### Requirement: Translate tool structured output
-The translate tool SHALL return structured JSON output with result, action, and metadata fields.
+#### Scenario: Expand text
+- **WHEN** the user provides text and requests it to be expanded
+- **THEN** the subagent returns elaborated text with relevant detail added
 
-#### Scenario: Successful translation
-- **WHEN** the translate tool processes a valid request
-- **THEN** the tool returns JSON with { result: string, action: string, metadata: { sourceLanguage: string, targetLanguage: string, cached: boolean } }
+### Requirement: Text editor subagent respects input limits
+The textEditor subagent SHALL reject inputs exceeding 10,000 characters with a clear error message.
 
+#### Scenario: Reject oversized input
+- **WHEN** the user provides text exceeding 10,000 characters
+- **THEN** the subagent returns an error indicating the input exceeds the maximum size limit
+
+### Requirement: Text editor subagent uses LLM integration
+The textEditor subagent SHALL use the existing ChatOpenAI integration for all text processing operations, consistent with other subagents in the system.
+
+#### Scenario: Process text via LLM
+- **WHEN** the user requests any text processing operation
+- **THEN** the subagent invokes the LLM with an appropriate system prompt and returns the processed result
