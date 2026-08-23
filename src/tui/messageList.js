@@ -41,7 +41,12 @@ let _messageIdCounter = 0;
  * @returns {React.ReactElement}
  */
 export const MessageList = forwardRef(function MessageList(
-	{ messages: _messages = [], assistantName = "Assistant", renderWindow = 100, scrollRef: externalScrollRef },
+	{
+		messages: _messages = [],
+		assistantName = "Assistant",
+		renderWindow = 100,
+		scrollRef: externalScrollRef,
+	},
 	forwardRef,
 ) {
 	const internalRef = useRef(null);
