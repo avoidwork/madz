@@ -272,6 +272,7 @@ export const processTool = tool(unifiedProcessImpl, {
 	schema: z.object({
 		action: z
 			.enum(["start", "list", "log", "wait", "kill", "write", "pause", "resume"])
+			.default("start")
 			.describe("Action to perform on the process"),
 		command: z
 			.string()
