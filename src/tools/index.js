@@ -24,10 +24,6 @@ import { calendar } from "./calendar/index.js";
 import { pdfGenerateTool } from "./pdfGenerate.js";
 import { namecom } from "./namecom/index.js";
 import { pptxGenerateTool } from "./fileCreate/pptx.js";
-import { apiClientTool } from "./api.js";
-import { graphQLClientTool } from "./graphql.js";
-import { webhookManagementTool } from "./webhooks.js";
-import { dataToolTool } from "./data.js";
 
 /**
  * Maps tool names to required permission scopes.
@@ -62,10 +58,6 @@ export const TOOL_PERMISSIONS = {
 	pdfGenerate: ["filesystem:read", "filesystem:write", "network:outbound"],
 	namecom: ["network:outbound"],
 	pptxGenerate: ["filesystem:write"],
-	apiClientTool: ["network:outbound"],
-	graphQLClientTool: ["network:outbound"],
-	webhookManagementTool: ["network:outbound"],
-	dataToolTool: ["filesystem:read"],
 };
 
 /**
@@ -131,10 +123,6 @@ export const TOOL_CLASSIFICATIONS = {
 	pdfGenerate: ["search", "research", "coding", "documentation", "debug"],
 	namecom: ["search", "research", "coding", "documentation", "debug"],
 	pptxGenerate: ["search", "research", "coding", "documentation", "debug"],
-	apiClientTool: ["search", "research", "coding", "debug"],
-	graphQLClientTool: ["search", "research", "coding", "debug"],
-	webhookManagementTool: ["security-audit", "coding", "debug"],
-	dataToolTool: ["search", "research", "coding", "documentation", "debug"],
 };
 
 /**
@@ -201,10 +189,6 @@ export const TOOLS = {
 	pdfGenerate: pdfGenerateTool,
 	namecom,
 	pptxGenerate: pptxGenerateTool,
-	apiClientTool,
-	graphQLClientTool,
-	webhookManagementTool,
-	dataToolTool,
 };
 
 /**
