@@ -154,8 +154,8 @@ describe("tools - buildToolConfig", () => {
 		});
 		const toolNames = tools.map((t) => t.name);
 		// filesystem:read enables: clarify, sampling, process (exempt), compactContext, scanAgents,
-		// sessionSearch, date, reflectionSessions, docx, pptx, xlsx, pdf, dataToolTool
-		assert.strictEqual(toolNames.length, 13);
+		// sessionSearch, date, reflectionSessions, docx, pptx, xlsx, pdf
+		assert.strictEqual(toolNames.length, 12);
 		assert.ok(toolNames.includes("clarify"));
 		assert.ok(toolNames.includes("sampling"));
 		assert.ok(toolNames.includes("date"));
@@ -166,6 +166,5 @@ describe("tools - buildToolConfig", () => {
 		assert.ok(toolNames.includes("pptx"));
 		assert.ok(toolNames.includes("xlsx"));
 		assert.ok(toolNames.includes("pdf"));
-		assert.ok(toolNames.includes("dataTool"));
 	});
 });
