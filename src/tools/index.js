@@ -23,7 +23,7 @@ import { spreadsheet } from "./spreadsheet/spreadsheet.js";
 import { calendar } from "./calendar/index.js";
 import { pdfGenerateTool } from "./pdfGenerate.js";
 import { namecom } from "./namecom/index.js";
-import { pptxCreateTool } from "./fileCreate/pptx.js";
+import { pptxGenerateTool } from "./fileCreate/pptx.js";
 
 /**
  * Maps tool names to required permission scopes.
@@ -57,7 +57,7 @@ export const TOOL_PERMISSIONS = {
 	calendar: ["network:outbound"],
 	pdfGenerate: ["filesystem:read", "filesystem:write", "network:outbound"],
 	namecom: ["network:outbound"],
-	pptxCreate: ["filesystem:write"],
+	pptxGenerate: ["filesystem:write"],
 };
 
 /**
@@ -122,7 +122,7 @@ export const TOOL_CLASSIFICATIONS = {
 	calendar: ["search", "research", "coding", "documentation", "debug", "performance"],
 	pdfGenerate: ["search", "research", "coding", "documentation", "debug"],
 	namecom: ["search", "research", "coding", "documentation", "debug"],
-	pptxCreate: ["search", "research", "coding", "documentation", "debug"],
+	pptxGenerate: ["search", "research", "coding", "documentation", "debug"],
 };
 
 /**
@@ -188,7 +188,7 @@ export const TOOLS = {
 	calendar,
 	pdfGenerate: pdfGenerateTool,
 	namecom,
-	pptxCreate: pptxCreateTool,
+	pptxGenerate: pptxGenerateTool,
 };
 
 /**

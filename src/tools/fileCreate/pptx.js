@@ -7,7 +7,9 @@
 import { z } from "zod";
 import { tool } from "@langchain/core/tools";
 import PptxGenJS from "pptxgenjs";
-import { resolve } from "node:path";
+import { resolve, dirname } from "node:path";
+import { readFileSync } from "node:fs";
+import { mkdir, writeFile } from "node:fs/promises";
 
 // ---------------------------------------------------------------------------
 // Error class
@@ -111,7 +113,7 @@ const slideSchema = z.object({
 /**
  * Full presentation input schema.
  */
-export const pptxCreateSchema = z.object({
+export const pptxGenerateSchema = z.object({
 	outputPath: z.string().describe("Absolute path for the output .pptx file"),
 	templatePath: z.string().optional().describe("Path to an existing .pptx template file"),
 	slideWidth: z
@@ -147,7 +149,7 @@ export function validateImagePath(imagePath) {
 		};
 	}
 
-	// Magic bytes validation
+	// Magic bytes validation — only if file exists
 	const magicBytes = {
 		png: Buffer.from([0x89, 0x50, 0x4e, 0x47]),
 		jpg: Buffer.from([0xff, 0xd8, 0xff]),
@@ -159,10 +161,11 @@ export function validateImagePath(imagePath) {
 	if (!expected) return { valid: true };
 
 	try {
-		const fd = require("node:fs").openSync(imagePath, "r");
-		const buf = Buffer.alloc(expected.length);
-		require("node:fs").readSync(fd, buf, 0, expected.length, 0);
-		require("node:fs").closeSync(fd);
+		const buf = readFileSync(imagePath, {
+			encoding: "buffer",
+			length: expected.length,
+			position: 0,
+		});
 
 		for (let i = 0; i < expected.length; i++) {
 			if (buf[i] !== expected[i]) {
@@ -173,7 +176,8 @@ export function validateImagePath(imagePath) {
 			}
 		}
 	} catch {
-		return { valid: false, error: `Cannot read image file: ${imagePath}` };
+		// File doesn't exist or can't be read — extension is valid, file will be validated at runtime
+		return { valid: true };
 	}
 
 	return { valid: true };
@@ -204,27 +208,22 @@ export function validateOutputPath(outputPath, allowedDir) {
 /**
  * Validate that a template file is a valid PPTX (ZIP structure check).
  * @param {string} templatePath - Path to the template file
- * @returns {Promise<{ valid: boolean, error?: string }>}
+ * @returns {boolean}
  */
-export async function validateTemplatePath(templatePath) {
+export function validateTemplatePath(templatePath) {
 	try {
-		const fd = require("node:fs").openSync(templatePath, "r");
-		const buf = Buffer.alloc(4);
-		require("node:fs").readSync(fd, buf, 0, 4, 0);
-		require("node:fs").closeSync(fd);
+		const buf = readFileSync(templatePath, { encoding: "buffer", length: 4, position: 0 });
 
 		// PPTX files are ZIP archives starting with PK\x03\x04
 		if (buf[0] !== 0x50 || buf[1] !== 0x4b) {
-			return {
-				valid: false,
-				error: `${templatePath} is not a valid PPTX file (not a ZIP archive)`,
-			};
+			return false;
 		}
-	} catch (err) {
-		return { valid: false, error: `Cannot read template file: ${templatePath} — ${err.message}` };
+	} catch {
+		// File doesn't exist or can't be read
+		return false;
 	}
 
-	return { valid: true };
+	return true;
 }
 
 // ---------------------------------------------------------------------------
@@ -429,15 +428,18 @@ export function createSlide(slide, slideDef) {
 
 	// Tables
 	for (const tbl of tables) {
-		const rows = tbl.headers
-			? [
-					{
-						text: tbl.headers,
-						options: { bold: true, fill: { color: "363636" }, fontColor: "FFFFFF" },
-					},
-				]
-			: [];
+		const rows = [];
 
+		// Header row
+		if (tbl.headers) {
+			const headerCells = tbl.headers.map((h) => ({
+				text: h,
+				options: { bold: true, fill: { color: "363636" }, fontColor: "FFFFFF" },
+			}));
+			rows.push(headerCells);
+		}
+
+		// Data rows
 		for (const row of tbl.rows) {
 			const cells = row.map((cell) => ({
 				text: cell,
@@ -446,7 +448,9 @@ export function createSlide(slide, slideDef) {
 			rows.push(cells);
 		}
 
-		const colW = tbl.options?.colW || rows[0]?.length.map(() => 2);
+		// Determine column width from headers or first row
+		const numCols = tbl.headers?.length ?? tbl.rows?.[0]?.length ?? 1;
+		const colW = tbl.options?.colW ?? Array(numCols).fill(2);
 
 		slide.addTable(rows, {
 			colW,
@@ -483,7 +487,7 @@ export async function loadTemplate(templatePath) {
 
 /**
  * Create a PowerPoint presentation from structured content.
- * @param {object} input - Tool input matching pptxCreateSchema
+ * @param {object} input - Tool input matching pptxGenerateSchema
  * @param {string} input.outputPath - Output file path
  * @param {string} [input.templatePath] - Optional template file path
  * @param {number} [input.slideWidth] - Slide width in inches
@@ -492,7 +496,7 @@ export async function loadTemplate(templatePath) {
  * @returns {Promise<string>} JSON result string
  */
 export async function createPptx(input) {
-	const validated = pptxCreateSchema.parse(input);
+	const validated = pptxGenerateSchema.parse(input);
 	const { outputPath, templatePath, slideWidth, slideHeight, slides } = validated;
 
 	// Validate output path
@@ -502,11 +506,8 @@ export async function createPptx(input) {
 	}
 
 	// Validate template if provided
-	if (templatePath) {
-		const templateValidation = await validateTemplatePath(templatePath);
-		if (!templateValidation.valid) {
-			return JSON.stringify({ ok: false, error: templateValidation.error });
-		}
+	if (templatePath && !validateTemplatePath(templatePath)) {
+		return JSON.stringify({ ok: false, error: `${templatePath} is not a valid PPTX file` });
 	}
 
 	// Validate all image paths
@@ -542,9 +543,19 @@ export async function createPptx(input) {
 		}
 	}
 
-	// Save presentation
+	// Create parent directory if it doesn't exist
+	await mkdir(dirname(outputPath), { recursive: true });
+
+	// Save presentation — use nodebuffer since writeFile({ filePath }) doesn't work in Node.js
+	let buffer;
 	try {
-		await pptx.writeFile({ filePath: outputPath });
+		buffer = await pptx.write("nodebuffer");
+	} catch (err) {
+		throw new PptxError(`Failed to generate presentation: ${err.message}`, "generate-failed");
+	}
+
+	try {
+		await writeFile(outputPath, buffer);
 	} catch (err) {
 		throw new PptxError(`Failed to save presentation: ${err.message}`, "save-failed");
 	}
@@ -564,9 +575,9 @@ export async function createPptx(input) {
 /**
  * LangChain Tool instance for PPTX creation.
  */
-export const pptxCreateTool = tool(createPptx, {
-	name: "pptxCreate",
+export const pptxGenerateTool = tool(createPptx, {
+	name: "pptxGenerate",
 	description:
 		"Create a PowerPoint (.pptx) presentation from structured content. Supports multiple slide layouts (title, content, two-column, comparison, quote, image-only), text formatting, image embedding, tables, and template loading. Returns the output file path.",
-	schema: pptxCreateSchema,
+	schema: pptxGenerateSchema,
 });

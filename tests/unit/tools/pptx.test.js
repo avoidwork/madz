@@ -5,11 +5,12 @@
 
 import { describe, it } from "node:test";
 import assert from "node:assert";
-import { readFile, writeFile, rm } from "node:fs/promises";
+import { readFile, writeFile, rm, mkdir } from "node:fs/promises";
 import { join } from "node:path";
+import { writeFileSync, rmSync } from "node:fs";
 import {
 	createPptx,
-	pptxCreateSchema,
+	pptxGenerateSchema,
 	validateImagePath,
 	validateOutputPath,
 	validateTemplatePath,
@@ -19,22 +20,23 @@ import {
 
 const TMP_DIR = join(process.cwd(), "tmp", "pptx-tests");
 
-async function ensureTmpDir() {
-	const { mkdir } = await import("node:fs/promises");
-	await mkdir(TMP_DIR, { recursive: true });
-}
+// Ensure temp dir exists at module load time
+await mkdir(TMP_DIR, { recursive: true });
 
 async function cleanupTmp() {
 	await rm(TMP_DIR, { recursive: true, force: true });
 }
 
+// Cleanup after all tests
+process.on("exit", () => cleanupTmp().catch(() => {}));
+
 // ---------------------------------------------------------------------------
 // Schema tests
 // ---------------------------------------------------------------------------
 
-describe("pptxCreateSchema", () => {
+describe("pptxGenerateSchema", () => {
 	it("validates a minimal presentation input", () => {
-		const result = pptxCreateSchema.safeParse({
+		const result = pptxGenerateSchema.safeParse({
 			outputPath: join(TMP_DIR, "test.pptx"),
 			slides: [{ title: "Hello" }],
 		});
@@ -42,17 +44,17 @@ describe("pptxCreateSchema", () => {
 	});
 
 	it("rejects missing outputPath", () => {
-		const result = pptxCreateSchema.safeParse({ slides: [] });
+		const result = pptxGenerateSchema.safeParse({ slides: [] });
 		assert.strictEqual(result.success, false);
 	});
 
 	it("rejects missing slides", () => {
-		const result = pptxCreateSchema.safeParse({ outputPath: "/tmp/test.pptx" });
+		const result = pptxGenerateSchema.safeParse({ outputPath: "/tmp/test.pptx" });
 		assert.strictEqual(result.success, false);
 	});
 
 	it("rejects invalid hex color", () => {
-		const result = pptxCreateSchema.safeParse({
+		const result = pptxGenerateSchema.safeParse({
 			outputPath: join(TMP_DIR, "test.pptx"),
 			slides: [{ backgroundColor: "not-a-color" }],
 		});
@@ -62,7 +64,7 @@ describe("pptxCreateSchema", () => {
 	it("accepts all layout types", () => {
 		const layouts = ["title", "content", "two-column", "comparison", "quote", "image-only"];
 		for (const layout of layouts) {
-			const result = pptxCreateSchema.safeParse({
+			const result = pptxGenerateSchema.safeParse({
 				outputPath: join(TMP_DIR, "test.pptx"),
 				slides: [{ layout, title: "Test" }],
 			});
@@ -71,7 +73,7 @@ describe("pptxCreateSchema", () => {
 	});
 
 	it("defaults layout to content when omitted", () => {
-		const result = pptxCreateSchema.safeParse({
+		const result = pptxGenerateSchema.safeParse({
 			outputPath: join(TMP_DIR, "test.pptx"),
 			slides: [{ title: "Test" }],
 		});
@@ -131,18 +133,18 @@ describe("validateOutputPath", () => {
 });
 
 describe("validateTemplatePath", () => {
-	it("rejects non-ZIP file", async () => {
+	it("rejects non-ZIP file", () => {
 		const testFile = join(TMP_DIR, "not-a-pptx.txt");
-		await writeFile(testFile, "not a pptx");
-		const result = await validateTemplatePath(testFile);
-		assert.strictEqual(result.valid, false);
-		assert.ok(result.error?.includes("not a valid PPTX"));
-		await rm(testFile, { force: true });
+		writeFileSync(testFile, "not a pptx");
+		const result = validateTemplatePath(testFile);
+		assert.strictEqual(result, false);
+		writeFileSync(testFile, ""); // cleanup
+		rmSync(testFile, { force: true });
 	});
 
-	it("rejects non-existent file", async () => {
-		const result = await validateTemplatePath("/nonexistent/file.pptx");
-		assert.strictEqual(result.valid, false);
+	it("rejects non-existent file", () => {
+		const result = validateTemplatePath("/nonexistent/file.pptx");
+		assert.strictEqual(result, false);
 	});
 });
 
@@ -196,14 +198,6 @@ describe("shrinkToFit", () => {
 // ---------------------------------------------------------------------------
 
 describe("createPptx", () => {
-	before(async () => {
-		await ensureTmpDir();
-	});
-
-	after(async () => {
-		await cleanupTmp();
-	});
-
 	it("creates a presentation with a title slide", async () => {
 		const outputPath = join(TMP_DIR, "title-slide.pptx");
 		const result = await createPptx({
