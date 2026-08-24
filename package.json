@@ -75,7 +75,7 @@
     "cron-parser": "^5.10.0",
     "csv-parse": "^7.0.2",
     "csv-stringify": "^6.8.3",
-    "deepagents": "^1.13.0",
+    "deepagents": "^1.13.1",
     "exceljs": "^4.4.0",
     "googleapis": "^176.0.0",
     "imap-simple": "^5.1.0",
