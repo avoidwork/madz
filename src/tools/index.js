@@ -78,7 +78,7 @@ export const TOOL_CLASSIFICATIONS = {
 		"coding",
 	],
 	compactContext: ["debug", "code-review", "research", "coding"],
-	cronJob: ["security-audit", "performance"],
+	cronJob: ["orchestrator", "security-audit", "performance"],
 	createSkill: ["documentation"],
 	date: [
 		"search",
@@ -148,6 +148,7 @@ export function getToolsForAgentTypes(agentTypes, tools) {
 export const ORCHESTRATOR_TOOLS = [
 	"clarify",
 	"compactContext",
+	"cronJob",
 	"date",
 	"memory",
 	"process",

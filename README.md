@@ -506,7 +506,7 @@ All built-in tools are defined in `src/tools/` and registered as LangChain tools
 | ---- | ----------- |
 | `clarify` | Send clarification questions to the user with optional numbered choices. Zero permissions — always registered. |
 | `compactContext` | Reduce conversation context when LLM context length is exceeded. Tiered retention: retain recent, summarize older, drop oldest. |
-| `cronJob` | Manage scheduled cron jobs — create, list, update, pause, resume, run, remove. Persisted to `memory/schedules/`. |
+| `cronJob` | Manage scheduled cron jobs — create, list, update, pause, resume, run, remove. Persisted to `memory/schedules/`. Available to the orchestrator agent. |
 | `createSkill` | Create a spec-compliant skill directory with SKILL.md YAML frontmatter. Optionally scaffolds a `scripts/` directory. |
 | `date` | Return current date/time in ISO 8601 UTC or human-readable format. Zero permissions — always registered. |
 | `imageGenerate` | Generate images via FAL.ai flux/klein API. |
