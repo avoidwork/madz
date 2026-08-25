@@ -368,6 +368,12 @@ All configuration is controlled via environment variables in the `docker run` co
 | `TUI_NAME`        | `madz`  | TUI identifier in banner |
 | `TUI_CURSOR_CHAR` | `█`     | Cursor character         |
 
+**Optional — Timezone:**
+
+| Variable | Default | Description |
+| -------- | ------- | ----------- |
+| `TZ`     | `UTC`   | IANA timezone name (e.g., `America/Toronto`, `Europe/London`). The container ships with `tzdata` so any valid IANA timezone resolves. Set at runtime via `docker run -e TZ=...` or in `docker-compose.yml`. |
+
 **Optional — Agent:**
 
 | Variable                        | Default  | Description                                    |
