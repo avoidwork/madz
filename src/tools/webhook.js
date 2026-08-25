@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
-const WEBHOOKS_FILE = join(__dirname, "../../data/webhooks.json");
+const WEBHOOKS_FILE = join(__dirname, "../../memory/tools/webhooks.json");
 
 /**
  * Load webhooks from persistent storage.
