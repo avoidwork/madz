@@ -207,8 +207,8 @@ describe("pptxGenerateSchema", () => {
 		assert.strictEqual(result.slideHeight, 7.5);
 	});
 
-	it("rejects image with unsupported extension", () => {
-		const result = validateImagePath("/tmp/test.webp");
+	it("rejects image with unsupported extension", async () => {
+		const result = await validateImagePath("/tmp/test.webp");
 		assert.strictEqual(result.valid, false);
 		assert.ok(result.error.includes("Unsupported image format"));
 	});
@@ -352,28 +352,28 @@ describe("pptxGenerateSchema", () => {
 // ---------------------------------------------------------------------------
 
 describe("validateImagePath", () => {
-	it("accepts valid PNG path", () => {
-		const result = validateImagePath(join(FIXTURES, "test.png"));
+	it("accepts valid PNG path", async () => {
+		const result = await validateImagePath(join(FIXTURES, "test.png"));
 		assert.strictEqual(result.valid, true);
 	});
 
-	it("accepts valid JPG path", () => {
-		const result = validateImagePath(join(FIXTURES, "test.jpg"));
+	it("accepts valid JPG path", async () => {
+		const result = await validateImagePath(join(FIXTURES, "test.jpg"));
 		assert.strictEqual(result.valid, true);
 	});
 
-	it("accepts valid GIF path", () => {
-		const result = validateImagePath(join(FIXTURES, "test.gif"));
+	it("accepts valid GIF path", async () => {
+		const result = await validateImagePath(join(FIXTURES, "test.gif"));
 		assert.strictEqual(result.valid, true);
 	});
 
-	it("accepts valid BMP path", () => {
-		const result = validateImagePath(join(FIXTURES, "test.bmp"));
+	it("accepts valid BMP path", async () => {
+		const result = await validateImagePath(join(FIXTURES, "test.bmp"));
 		assert.strictEqual(result.valid, true);
 	});
 
-	it("rejects unsupported image format", () => {
-		const result = validateImagePath("/tmp/test.webp");
+	it("rejects unsupported image format", async () => {
+		const result = await validateImagePath("/tmp/test.webp");
 		assert.strictEqual(result.valid, false);
 		assert.ok(result.error.includes("Unsupported image format"));
 	});
@@ -382,7 +382,7 @@ describe("validateImagePath", () => {
 		const badPath = join(FIXTURES, "bad.png");
 		await writeFile(badPath, Buffer.from("not a png"));
 		try {
-			const result = validateImagePath(badPath);
+			const result = await validateImagePath(badPath);
 			assert.strictEqual(result.valid, false);
 			assert.ok(result.error.includes("not a valid png"));
 		} finally {
@@ -390,13 +390,13 @@ describe("validateImagePath", () => {
 		}
 	});
 
-	it("accepts non-existent file (extension valid, runtime check later)", () => {
-		const result = validateImagePath("/tmp/nonexistent.png");
+	it("accepts non-existent file (extension valid, runtime check later)", async () => {
+		const result = await validateImagePath("/tmp/nonexistent.png");
 		assert.strictEqual(result.valid, true);
 	});
 
-	it("rejects file with no extension", () => {
-		const result = validateImagePath("/tmp/noextension");
+	it("rejects file with no extension", async () => {
+		const result = await validateImagePath("/tmp/noextension");
 		assert.strictEqual(result.valid, false);
 	});
 });
@@ -438,18 +438,18 @@ describe("validateOutputPath", () => {
 // ---------------------------------------------------------------------------
 
 describe("validateTemplatePath", () => {
-	it("accepts valid PPTX template (PK magic bytes)", () => {
-		const result = validateTemplatePath(join(FIXTURES, "template.pptx"));
+	it("accepts valid PPTX template (PK magic bytes)", async () => {
+		const result = await validateTemplatePath(join(FIXTURES, "template.pptx"));
 		assert.strictEqual(result, true);
 	});
 
-	it("rejects non-PPTX file", () => {
-		const result = validateTemplatePath(join(FIXTURES, "not-a-pptx.txt"));
+	it("rejects non-PPTX file", async () => {
+		const result = await validateTemplatePath(join(FIXTURES, "not-a-pptx.txt"));
 		assert.strictEqual(result, false);
 	});
 
-	it("rejects non-existent file", () => {
-		const result = validateTemplatePath("/tmp/nonexistent.pptx");
+	it("rejects non-existent file", async () => {
+		const result = await validateTemplatePath("/tmp/nonexistent.pptx");
 		assert.strictEqual(result, false);
 	});
 });

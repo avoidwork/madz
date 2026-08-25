@@ -8,8 +8,7 @@ import { z } from "zod";
 import { tool } from "@langchain/core/tools";
 import PptxGenJS from "pptxgenjs";
 import { resolve, dirname } from "node:path";
-import { mkdir, writeFile } from "node:fs/promises";
-import { readFileSync } from "node:fs";
+import { readFile, mkdir, writeFile } from "node:fs/promises";
 
 // ---------------------------------------------------------------------------
 // Error class
@@ -138,9 +137,9 @@ export const pptxGenerateSchema = z.object({
 /**
  * Validate that an image file has a supported extension and valid content.
  * @param {string} imagePath - Absolute path to the image file
- * @returns {{ valid: boolean, error?: string }}
+ * @returns {Promise<{ valid: boolean, error?: string }>}
  */
-export function validateImagePath(imagePath) {
+export async function validateImagePath(imagePath) {
 	const ext = imagePath.split(".").pop()?.toLowerCase();
 	if (!ext || !SUPPORTED_IMAGE_EXTENSIONS.has(ext)) {
 		return {
@@ -161,7 +160,7 @@ export function validateImagePath(imagePath) {
 	if (!expected) return { valid: true };
 
 	try {
-		const fd = readFileSync(imagePath);
+		const fd = await readFile(imagePath);
 
 		for (let i = 0; i < expected.length; i++) {
 			if (fd[i] !== expected[i]) {
@@ -204,11 +203,11 @@ export function validateOutputPath(outputPath, allowedDir) {
 /**
  * Validate that a template file is a valid PPTX (ZIP structure check).
  * @param {string} templatePath - Path to the template file
- * @returns {boolean}
+ * @returns {Promise<boolean>}
  */
-export function validateTemplatePath(templatePath) {
+export async function validateTemplatePath(templatePath) {
 	try {
-		const buf = readFileSync(templatePath);
+		const buf = await readFile(templatePath);
 
 		// PPTX files are ZIP archives starting with PK\x03\x04
 		if (buf[0] !== 0x50 || buf[1] !== 0x4b) {
@@ -502,14 +501,14 @@ export async function createPptx(input) {
 	}
 
 	// Validate template if provided
-	if (templatePath && !validateTemplatePath(templatePath)) {
+	if (templatePath && !(await validateTemplatePath(templatePath))) {
 		return JSON.stringify({ ok: false, error: `${templatePath} is not a valid PPTX file` });
 	}
 
 	// Validate all image paths
 	for (const slide of slides) {
 		for (const img of slide.images || []) {
-			const imgValidation = validateImagePath(img.path);
+			const imgValidation = await validateImagePath(img.path);
 			if (!imgValidation.valid) {
 				return JSON.stringify({
 					ok: false,
