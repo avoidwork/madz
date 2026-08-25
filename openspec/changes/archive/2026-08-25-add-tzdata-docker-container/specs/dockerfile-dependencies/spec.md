@@ -1,8 +1,8 @@
 # dockerfile-dependencies Spec Delta
 
-## Changes
+## ADDED Requirements
 
-### New Requirement: tzdata must be installed in the container image
+### Requirement: tzdata must be installed in the container image
 
 The Dockerfile SHALL include `tzdata` in the `apk add --no-cache` command in the runtime stage, ensuring timezone data is present in every built container image.
 
@@ -14,7 +14,7 @@ The Dockerfile SHALL include `tzdata` in the `apk add --no-cache` command in the
 - **WHEN** the container is built and started
 - **THEN** `tzdata` is installed and IANA timezone names (e.g., `America/Toronto`) resolve correctly
 
-### New Requirement: Timezone override via environment variable
+### Requirement: Timezone override via environment variable
 
 The Dockerfile SHALL NOT hardcode a default timezone. The container defaults to UTC, and users may override the timezone by setting the `TZ` environment variable at runtime.
 
