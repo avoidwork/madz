@@ -6,6 +6,7 @@ services:
     image: madz:latest
     environment:
       - NODE_ENV=development
+      - TZ=America/Toronto
     ports:
       - "2222:22"
     volumes:
