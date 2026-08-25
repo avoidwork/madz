@@ -1,7 +1,7 @@
 import { describe, it, before, after, beforeEach } from "node:test";
 import assert from "node:assert";
 import { createHmac } from "node:crypto";
-import { existsSync, unlinkSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, unlinkSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -32,7 +32,10 @@ describe("webhook tool", () => {
 	after(cleanup);
 
 	it("creates a webhook registration", async () => {
-		const result = createWebhook("https://example.com/webhook", "my-secret", ["push", "pull_request"]);
+		const result = createWebhook("https://example.com/webhook", "my-secret", [
+			"push",
+			"pull_request",
+		]);
 		assert.strictEqual(result.ok, true);
 		assert.ok(result.data.id);
 		assert.strictEqual(result.data.url, "https://example.com/webhook");
@@ -82,20 +85,12 @@ describe("webhook tool", () => {
 	});
 
 	it("rejects verify with missing secret", async () => {
-		const result = verifyWebhook(
-			JSON.stringify({ test: true }),
-			"sha256=abc",
-			undefined,
-		);
+		const result = verifyWebhook(JSON.stringify({ test: true }), "sha256=abc", undefined);
 		assert.strictEqual(result.ok, false);
 	});
 
 	it("rejects verify with missing signature", async () => {
-		const result = verifyWebhook(
-			JSON.stringify({ test: true }),
-			undefined,
-			"my-secret",
-		);
+		const result = verifyWebhook(JSON.stringify({ test: true }), undefined, "my-secret");
 		assert.strictEqual(result.ok, false);
 	});
 

@@ -71,7 +71,11 @@ export function filterUrl(url, allowlist = []) {
 			const hostname = parsed.hostname.toLowerCase();
 			const onAllowlist = allowlist.some((entry) => {
 				const normalized = entry.replace(/^https?:\/\//, "").toLowerCase();
-				return hostname === normalized || hostname === normalized.replace(/:\d+$/, "") || url.startsWith(entry);
+				return (
+					hostname === normalized ||
+					hostname === normalized.replace(/:\d+$/, "") ||
+					url.startsWith(entry)
+				);
 			});
 			if (!onAllowlist) {
 				return { allowed: false, reason: `Host not on allowlist: ${hostname}` };

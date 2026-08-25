@@ -189,7 +189,9 @@ export async function jsonManipulation(input) {
  */
 export async function jsonManipulationImpl(input) {
 	const schema = z.object({
-		action: z.enum(["parse", "serialize", "transform", "filter", "access"]).describe("Action to perform"),
+		action: z
+			.enum(["parse", "serialize", "transform", "filter", "access"])
+			.describe("Action to perform"),
 		input: z.string().describe("JSON string input"),
 		path: z.string().optional().describe("JSONPath expression or dot-notation path"),
 		mapping: z.string().optional().describe("JSON string mapping rules for transform action"),
@@ -245,18 +247,26 @@ export async function jsonManipulationImpl(input) {
  * @returns {object} LangChain Tool instance
  */
 export function createJsonTool() {
-	return tool(async (input) => {
-		const result = await jsonManipulation(input);
-		return JSON.stringify(result, null, 2);
-	}, {
-		name: "json",
-		description:
-			"Parse, serialize, transform, filter, and access JSON data. Actions: parse (string→object), serialize (object→string), transform (apply key mapping rules), filter (JSONPath expressions via jsonpath-plus), access (dot-notation path access including array indices).",
-		schema: z.object({
-			action: z.enum(["parse", "serialize", "transform", "filter", "access"]).describe("Action to perform"),
-			input: z.string().describe("JSON string input"),
-			path: z.string().optional().describe("JSONPath expression (filter) or dot-notation path (access)"),
-			mapping: z.string().optional().describe("JSON string mapping rules for transform action"),
-		}),
-	});
+	return tool(
+		async (input) => {
+			const result = await jsonManipulation(input);
+			return JSON.stringify(result, null, 2);
+		},
+		{
+			name: "json",
+			description:
+				"Parse, serialize, transform, filter, and access JSON data. Actions: parse (string→object), serialize (object→string), transform (apply key mapping rules), filter (JSONPath expressions via jsonpath-plus), access (dot-notation path access including array indices).",
+			schema: z.object({
+				action: z
+					.enum(["parse", "serialize", "transform", "filter", "access"])
+					.describe("Action to perform"),
+				input: z.string().describe("JSON string input"),
+				path: z
+					.string()
+					.optional()
+					.describe("JSONPath expression (filter) or dot-notation path (access)"),
+				mapping: z.string().optional().describe("JSON string mapping rules for transform action"),
+			}),
+		},
+	);
 }

@@ -1,7 +1,6 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { filterUrl } from "../sandbox/urlFilter.js";
-import { gql } from "graphql-request";
 
 const DEFAULT_TIMEOUT = 30000;
 const DEFAULT_MAX_DEPTH = 10;
@@ -302,22 +301,46 @@ export async function introspectSchema(input) {
  * @returns {object} LangChain Tool instance
  */
 export function createGraphqlTool() {
-	return tool(async (input) => {
-		const result = await graphqlImpl(input);
-		return JSON.stringify(result, null, 2);
-	}, {
-		name: "graphql",
-		description:
-			"Execute GraphQL queries and mutations against a GraphQL endpoint. Supports query variables, operation names, and schema introspection. Enforces query depth limits (default: 10) and complexity limits (default: 1000) to prevent DoS. Default timeout: 30s.",
-		schema: z.object({
-			url: z.string().url().describe("GraphQL endpoint URL"),
-			query: z.string().min(1).describe("GraphQL query or mutation string"),
-			variables: z.record(z.unknown()).optional().describe("Query variables as key-value pairs"),
-			operationName: z.string().optional().describe("Operation name (for multi-operation documents)"),
-			timeout: z.number().int().positive().optional().describe("Request timeout in milliseconds (default: 30000)"),
-			maxDepth: z.number().int().positive().optional().describe("Maximum query depth (default: 10)"),
-			maxComplexity: z.number().int().positive().optional().describe("Maximum query complexity (default: 1000)"),
-			allowlist: z.array(z.string()).optional().describe("URL allowlist — host must match one entry"),
-		}),
-	});
+	return tool(
+		async (input) => {
+			const result = await graphqlImpl(input);
+			return JSON.stringify(result, null, 2);
+		},
+		{
+			name: "graphql",
+			description:
+				"Execute GraphQL queries and mutations against a GraphQL endpoint. Supports query variables, operation names, and schema introspection. Enforces query depth limits (default: 10) and complexity limits (default: 1000) to prevent DoS. Default timeout: 30s.",
+			schema: z.object({
+				url: z.string().url().describe("GraphQL endpoint URL"),
+				query: z.string().min(1).describe("GraphQL query or mutation string"),
+				variables: z.record(z.unknown()).optional().describe("Query variables as key-value pairs"),
+				operationName: z
+					.string()
+					.optional()
+					.describe("Operation name (for multi-operation documents)"),
+				timeout: z
+					.number()
+					.int()
+					.positive()
+					.optional()
+					.describe("Request timeout in milliseconds (default: 30000)"),
+				maxDepth: z
+					.number()
+					.int()
+					.positive()
+					.optional()
+					.describe("Maximum query depth (default: 10)"),
+				maxComplexity: z
+					.number()
+					.int()
+					.positive()
+					.optional()
+					.describe("Maximum query complexity (default: 1000)"),
+				allowlist: z
+					.array(z.string())
+					.optional()
+					.describe("URL allowlist — host must match one entry"),
+			}),
+		},
+	);
 }

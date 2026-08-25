@@ -1,9 +1,6 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { filterUrl } from "../sandbox/urlFilter.js";
-import { loadConfig } from "../config/loader.js";
-
-const config = loadConfig();
 
 const DEFAULT_TIMEOUT = 30000;
 const DEFAULT_MAX_BODY_SIZE = 10 * 1024 * 1024; // 10MB
@@ -188,29 +185,55 @@ export async function apiImpl(input) {
  * @returns {object} LangChain Tool instance
  */
 export function createApiTool() {
-	return tool(async (input) => {
-		const result = await apiImpl(input);
-		return JSON.stringify(result, null, 2);
-	}, {
-		name: "api",
-		description:
-			"Make authenticated HTTP requests (GET/POST/PUT/DELETE/PATCH) to external APIs. Supports bearer, basic, and API key authentication. Enforces URL allowlist and scheme blocking. Response headers are sanitized (Set-Cookie, WWW-Authenticate stripped). Default timeout: 30s. Max response body: 10MB.",
-		schema: z.object({
-			url: z.string().url().describe("Target URL"),
-			method: z.enum(["GET", "POST", "PUT", "DELETE", "PATCH"]).optional().default("GET").describe("HTTP method"),
-			headers: z.record(z.string()).optional().describe("Additional HTTP headers"),
-			body: z.unknown().optional().describe("Request body (auto-serialized to JSON for non-GET requests)"),
-			auth: z
-				.object({
-					type: z.enum(["bearer", "basic", "apikey"]).describe("Authentication type"),
-					token: z.string().optional().describe("Auth token (bearer token, basic password, or API key value)"),
-					key: z.string().optional().describe("API key header name (for apikey auth type)"),
-				})
-				.optional()
-				.describe("Authentication configuration"),
-			timeout: z.number().int().positive().optional().describe("Request timeout in milliseconds (default: 30000)"),
-			allowlist: z.array(z.string()).optional().describe("URL allowlist — hosts must match one entry"),
-			maxBodySize: z.number().int().positive().optional().describe("Maximum response body size in bytes (default: 10485760)"),
-		}),
-	});
+	return tool(
+		async (input) => {
+			const result = await apiImpl(input);
+			return JSON.stringify(result, null, 2);
+		},
+		{
+			name: "api",
+			description:
+				"Make authenticated HTTP requests (GET/POST/PUT/DELETE/PATCH) to external APIs. Supports bearer, basic, and API key authentication. Enforces URL allowlist and scheme blocking. Response headers are sanitized (Set-Cookie, WWW-Authenticate stripped). Default timeout: 30s. Max response body: 10MB.",
+			schema: z.object({
+				url: z.string().url().describe("Target URL"),
+				method: z
+					.enum(["GET", "POST", "PUT", "DELETE", "PATCH"])
+					.optional()
+					.default("GET")
+					.describe("HTTP method"),
+				headers: z.record(z.string()).optional().describe("Additional HTTP headers"),
+				body: z
+					.unknown()
+					.optional()
+					.describe("Request body (auto-serialized to JSON for non-GET requests)"),
+				auth: z
+					.object({
+						type: z.enum(["bearer", "basic", "apikey"]).describe("Authentication type"),
+						token: z
+							.string()
+							.optional()
+							.describe("Auth token (bearer token, basic password, or API key value)"),
+						key: z.string().optional().describe("API key header name (for apikey auth type)"),
+					})
+					.optional()
+					.describe("Authentication configuration"),
+				timeout: z
+					.number()
+					.int()
+					.positive()
+					.optional()
+					.describe("Request timeout in milliseconds (default: 30000)"),
+				allowlist: z
+					.array(z.string())
+					.optional()
+					.describe("URL allowlist — hosts must match one entry"),
+				maxBodySize: z
+					.number()
+					.int()
+					.positive()
+					.optional()
+					.describe("Maximum response body size in bytes (default: 10485760)"),
+			}),
+		},
+	);
 }

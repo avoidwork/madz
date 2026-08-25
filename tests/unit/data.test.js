@@ -28,7 +28,10 @@ describe("data tool", () => {
 	it("converts JSON to CSV", async () => {
 		const result = await dataTransformationImpl({
 			action: "json-to-csv",
-			input: JSON.stringify([{ name: "Alice", age: 30 }, { name: "Bob", age: 25 }]),
+			input: JSON.stringify([
+				{ name: "Alice", age: 30 },
+				{ name: "Bob", age: 25 },
+			]),
 			format: "json",
 		});
 		assert.strictEqual(result.ok, true);

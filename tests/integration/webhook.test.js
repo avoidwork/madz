@@ -2,7 +2,12 @@ import { describe, it, before, after } from "node:test";
 import assert from "node:assert";
 import { createServer } from "node:http";
 import { createHmac } from "node:crypto";
-import { createWebhookTool, createWebhook, listWebhooks, deleteWebhook, verifyWebhook } from "../../src/tools/webhook.js";
+import {
+	createWebhook,
+	listWebhooks,
+	deleteWebhook,
+	verifyWebhook,
+} from "../../src/tools/webhook.js";
 import { existsSync, unlinkSync } from "node:fs";
 import { setTestMode } from "../../src/sandbox/urlFilter.js";
 
@@ -18,7 +23,9 @@ describe("webhook integration tests", () => {
 
 	const webhookHandler = (req, res) => {
 		let body = "";
-		req.on("data", (chunk) => { body += chunk; });
+		req.on("data", (chunk) => {
+			body += chunk;
+		});
 		req.on("end", () => {
 			const signature = req.headers["x-webhook-signature"];
 			res.setHeader("Content-Type", "application/json");
@@ -50,7 +57,10 @@ describe("webhook integration tests", () => {
 
 	it("creates and verifies a webhook with valid signature", async () => {
 		// Use impl function to bypass URL validation in integration tests
-		const createResult = createWebhook(`${baseUrl}/webhook`, "integration-secret", ["push", "pull_request"]);
+		const createResult = createWebhook(`${baseUrl}/webhook`, "integration-secret", [
+			"push",
+			"pull_request",
+		]);
 		assert.strictEqual(createResult.ok, true);
 		assert.ok(createResult.data.id);
 

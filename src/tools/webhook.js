@@ -81,7 +81,7 @@ export function listWebhooks(includeSecret = false) {
 	if (includeSecret) {
 		return { ok: true, data: webhooks };
 	}
-	const safe = webhooks.map(({ secret, ...rest }) => rest);
+	const safe = webhooks.map(({ secret: _secret, ...rest }) => rest);
 	return { ok: true, data: safe };
 }
 
@@ -202,21 +202,27 @@ export async function webhookManagementImpl(input) {
  * @returns {object} LangChain Tool instance
  */
 export function createWebhookTool() {
-	return tool(async (input) => {
-		const result = await webhookManagementImpl(input);
-		return JSON.stringify(result, null, 2);
-	}, {
-		name: "webhook",
-		description:
-			"Manage webhook registrations. Actions: create (register webhook with URL, secret, events), list (return all webhooks), delete (remove webhook by ID), verify (HMAC-SHA256 signature verification against payload and secret). Webhooks are persisted to data/webhooks.json.",
-		schema: z.object({
-			action: z.enum(["create", "list", "delete", "verify"]).describe("Action to perform"),
-			url: z.string().url().optional().describe("Webhook URL (required for create)"),
-			secret: z.string().optional().describe("Secret for HMAC verification (required for create)"),
-			events: z.array(z.string()).optional().describe("Event types to subscribe to"),
-			id: z.string().optional().describe("Webhook ID (required for delete)"),
-			payload: z.string().optional().describe("Raw request body (required for verify)"),
-			signature: z.string().optional().describe("HMAC signature (required for verify)"),
-		}),
-	});
+	return tool(
+		async (input) => {
+			const result = await webhookManagementImpl(input);
+			return JSON.stringify(result, null, 2);
+		},
+		{
+			name: "webhook",
+			description:
+				"Manage webhook registrations. Actions: create (register webhook with URL, secret, events), list (return all webhooks), delete (remove webhook by ID), verify (HMAC-SHA256 signature verification against payload and secret). Webhooks are persisted to data/webhooks.json.",
+			schema: z.object({
+				action: z.enum(["create", "list", "delete", "verify"]).describe("Action to perform"),
+				url: z.string().url().optional().describe("Webhook URL (required for create)"),
+				secret: z
+					.string()
+					.optional()
+					.describe("Secret for HMAC verification (required for create)"),
+				events: z.array(z.string()).optional().describe("Event types to subscribe to"),
+				id: z.string().optional().describe("Webhook ID (required for delete)"),
+				payload: z.string().optional().describe("Raw request body (required for verify)"),
+				signature: z.string().optional().describe("HMAC signature (required for verify)"),
+			}),
+		},
+	);
 }

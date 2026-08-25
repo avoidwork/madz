@@ -212,7 +212,9 @@ export async function yamlManipulation(input) {
  */
 export async function yamlManipulationImpl(input) {
 	const schema = z.object({
-		action: z.enum(["parse", "serialize", "transform", "filter", "access"]).describe("Action to perform"),
+		action: z
+			.enum(["parse", "serialize", "transform", "filter", "access"])
+			.describe("Action to perform"),
 		input: z.string().describe("YAML string input"),
 		path: z.string().optional().describe("Dot-notation path expression"),
 		mapping: z.string().optional().describe("JSON string mapping rules for transform action"),
@@ -249,7 +251,8 @@ export async function yamlManipulationImpl(input) {
 			if (!path) {
 				return { ok: false, error: "Path is required for filter/access action" };
 			}
-			const result = action === "filter" ? filterYaml(yamlInput, path) : accessYamlPath(yamlInput, path);
+			const result =
+				action === "filter" ? filterYaml(yamlInput, path) : accessYamlPath(yamlInput, path);
 			return result.ok ? { ok: true, data: result.data } : result;
 		}
 		default:
@@ -262,18 +265,23 @@ export async function yamlManipulationImpl(input) {
  * @returns {object} LangChain Tool instance
  */
 export function createYamlTool() {
-	return tool(async (input) => {
-		const result = await yamlManipulation(input);
-		return JSON.stringify(result, null, 2);
-	}, {
-		name: "yaml",
-		description:
-			"Parse, serialize, transform, filter, and access YAML data. Actions: parse (string→object), serialize (object→string), transform (apply key mapping rules), filter (dot-notation path filter), access (dot-notation path access including array indices).",
-		schema: z.object({
-			action: z.enum(["parse", "serialize", "transform", "filter", "access"]).describe("Action to perform"),
-			input: z.string().describe("YAML string input"),
-			path: z.string().optional().describe("Dot-notation path expression"),
-			mapping: z.string().optional().describe("JSON string mapping rules for transform action"),
-		}),
-	});
+	return tool(
+		async (input) => {
+			const result = await yamlManipulation(input);
+			return JSON.stringify(result, null, 2);
+		},
+		{
+			name: "yaml",
+			description:
+				"Parse, serialize, transform, filter, and access YAML data. Actions: parse (string→object), serialize (object→string), transform (apply key mapping rules), filter (dot-notation path filter), access (dot-notation path access including array indices).",
+			schema: z.object({
+				action: z
+					.enum(["parse", "serialize", "transform", "filter", "access"])
+					.describe("Action to perform"),
+				input: z.string().describe("YAML string input"),
+				path: z.string().optional().describe("Dot-notation path expression"),
+				mapping: z.string().optional().describe("JSON string mapping rules for transform action"),
+			}),
+		},
+	);
 }

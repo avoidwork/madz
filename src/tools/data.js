@@ -2,7 +2,6 @@ import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { load, dump } from "js-yaml";
 import { parse } from "csv-parse/sync";
-import { generate } from "csv-generate";
 import { stringify } from "csv-stringify/sync";
 
 /**
@@ -191,7 +190,16 @@ export async function dataTransformation(input) {
  */
 export async function dataTransformationImpl(input) {
 	const schema = z.object({
-		action: z.enum(["json-to-yaml", "yaml-to-json", "json-to-csv", "csv-to-json", "yaml-to-csv", "csv-to-yaml"]).describe("Conversion action"),
+		action: z
+			.enum([
+				"json-to-yaml",
+				"yaml-to-json",
+				"json-to-csv",
+				"csv-to-json",
+				"yaml-to-csv",
+				"csv-to-yaml",
+			])
+			.describe("Conversion action"),
 		input: z.string().describe("Input data string"),
 		format: z.enum(["json", "yaml", "csv"]).describe("Input format"),
 		mapping: z.string().optional().describe("JSON string mapping rules for CSV conversions"),
@@ -236,18 +244,30 @@ export async function dataTransformationImpl(input) {
  * @returns {object} LangChain Tool instance
  */
 export function createDataTool() {
-	return tool(async (input) => {
-		const result = await dataTransformation(input);
-		return JSON.stringify(result, null, 2);
-	}, {
-		name: "data",
-		description:
-			"Convert data between JSON, YAML, and CSV formats. Actions: json-to-yaml, yaml-to-json, json-to-csv, csv-to-json, yaml-to-csv, csv-to-yaml. CSV conversions support optional mapping rules (JSON string) to rename columns.",
-		schema: z.object({
-			action: z.enum(["json-to-yaml", "yaml-to-json", "json-to-csv", "csv-to-json", "yaml-to-csv", "csv-to-yaml"]).describe("Conversion action"),
-			input: z.string().describe("Input data string"),
-			format: z.enum(["json", "yaml", "csv"]).describe("Input format"),
-			mapping: z.string().optional().describe("JSON string mapping rules for CSV conversions"),
-		}),
-	});
+	return tool(
+		async (input) => {
+			const result = await dataTransformation(input);
+			return JSON.stringify(result, null, 2);
+		},
+		{
+			name: "data",
+			description:
+				"Convert data between JSON, YAML, and CSV formats. Actions: json-to-yaml, yaml-to-json, json-to-csv, csv-to-json, yaml-to-csv, csv-to-yaml. CSV conversions support optional mapping rules (JSON string) to rename columns.",
+			schema: z.object({
+				action: z
+					.enum([
+						"json-to-yaml",
+						"yaml-to-json",
+						"json-to-csv",
+						"csv-to-json",
+						"yaml-to-csv",
+						"csv-to-yaml",
+					])
+					.describe("Conversion action"),
+				input: z.string().describe("Input data string"),
+				format: z.enum(["json", "yaml", "csv"]).describe("Input format"),
+				mapping: z.string().optional().describe("JSON string mapping rules for CSV conversions"),
+			}),
+		},
+	);
 }
