@@ -8,7 +8,7 @@ import { z } from "zod";
 import { tool } from "@langchain/core/tools";
 import PptxGenJS from "pptxgenjs";
 import { resolve, dirname } from "node:path";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { readFileSync } from "node:fs";
 
 // ---------------------------------------------------------------------------

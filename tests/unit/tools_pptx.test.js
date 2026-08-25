@@ -329,7 +329,10 @@ describe("pptxGenerateSchema", () => {
 					tables: [
 						{
 							headers: ["A", "B"],
-							rows: [["1", "2"], ["3", "4"]],
+							rows: [
+								["1", "2"],
+								["3", "4"],
+							],
 							options: {
 								colW: [2, 3],
 								fill: { color: "#FFFFFF" },
@@ -588,7 +591,10 @@ describe("createSlide", () => {
 			tables: [
 				{
 					headers: ["Name", "Age"],
-					rows: [["Alice", "30"], ["Bob", "25"]],
+					rows: [
+						["Alice", "30"],
+						["Bob", "25"],
+					],
 				},
 			],
 		});
@@ -603,7 +609,10 @@ describe("createSlide", () => {
 		createSlide(slide, {
 			tables: [
 				{
-					rows: [["Alice", "30"], ["Bob", "25"]],
+					rows: [
+						["Alice", "30"],
+						["Bob", "25"],
+					],
 				},
 			],
 		});
@@ -759,7 +768,10 @@ describe("createPptx", () => {
 						tables: [
 							{
 								headers: ["Name", "Role"],
-								rows: [["Alice", "Engineer"], ["Bob", "Designer"]],
+								rows: [
+									["Alice", "Engineer"],
+									["Bob", "Designer"],
+								],
 							},
 						],
 					},
