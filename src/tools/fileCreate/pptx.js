@@ -8,7 +8,8 @@ import { z } from "zod";
 import { tool } from "@langchain/core/tools";
 import PptxGenJS from "pptxgenjs";
 import { resolve, dirname } from "node:path";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { readFileSync } from "node:fs";
 
 // ---------------------------------------------------------------------------
 // Error class
@@ -160,14 +161,10 @@ export function validateImagePath(imagePath) {
 	if (!expected) return { valid: true };
 
 	try {
-		const buf = readFileSync(imagePath, {
-			encoding: "buffer",
-			length: expected.length,
-			position: 0,
-		});
+		const fd = readFileSync(imagePath);
 
 		for (let i = 0; i < expected.length; i++) {
-			if (buf[i] !== expected[i]) {
+			if (fd[i] !== expected[i]) {
 				return {
 					valid: false,
 					error: `File ${imagePath} is not a valid ${ext} image (invalid magic bytes)`,
@@ -211,7 +208,7 @@ export function validateOutputPath(outputPath, allowedDir) {
  */
 export function validateTemplatePath(templatePath) {
 	try {
-		const buf = readFileSync(templatePath, { encoding: "buffer", length: 4, position: 0 });
+		const buf = readFileSync(templatePath);
 
 		// PPTX files are ZIP archives starting with PK\x03\x04
 		if (buf[0] !== 0x50 || buf[1] !== 0x4b) {
