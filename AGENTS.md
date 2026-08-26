@@ -389,6 +389,30 @@ The `README.md` may show a more up-to-date project structure (e.g., additional m
 
 ---
 
+## 9. Skills System
+
+Bundled skills live in `.skills/` alongside the core skills in `skills/`. Each skill is a directory containing a `SKILL.md` file with YAML frontmatter and progressive disclosure instructions.
+
+### Bundled Skills (`.skills/`)
+
+These skills enable the agent to work across polyglot projects (TypeScript, Python, Java, Go, Rust, etc.):
+
+- **project-context** — Detects the project's language, build system, test framework, and dependency manager. Extracts build/test commands from config files.
+- **security-audit** — Runs security scans appropriate for the detected stack (dependency CVEs, SAST, secret scanning, container scanning).
+- **build-run** — Executes build, type-check, lint, and test commands with the correct flags for the detected stack.
+- **dependency-manager** — Safely adds, removes, or updates dependencies with lock file management and vulnerability pre-checks.
+- **test-env-setup** — Manages test infrastructure (browser binaries, test databases, mock services).
+
+These skills form a pipeline: `project-context` → `security-audit` → `build-run` → `dependency-manager` → `test-env-setup`.
+
+### Skill Discovery
+
+Skills are discovered by scanning for `SKILL.md` files in:
+- `skills/` — Core skills (audit-code, fix-issue, scan-issues, etc.)
+- `.skills/` — Bundled polyglot toolkit skills (project-context, security-audit, etc.)
+
+Each SKILL.md must have YAML frontmatter with at least `name`, `description`, and optionally `metadata`.
+
 ## 8. Checklist Before Marking a TODO Complete
 
 - [ ] All JSDoc annotations present (`@param`, `@returns`) on public APIs.
