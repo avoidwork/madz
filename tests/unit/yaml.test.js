@@ -25,6 +25,17 @@ describe("yaml tool", () => {
 		assert.ok(result.data.includes("value: 42"));
 	});
 
+	it("serializes YAML input to YAML output", async () => {
+		const result = await yamlManipulationImpl({
+			action: "serialize",
+			input: "name: test\nvalue: 42",
+			format: "yaml",
+		});
+		assert.strictEqual(result.ok, true);
+		assert.ok(result.data.includes("name: test"));
+		assert.ok(result.data.includes("value: 42"));
+	});
+
 	it("transforms with mapping rules", async () => {
 		const result = await yamlManipulationImpl({
 			action: "transform",

@@ -236,7 +236,9 @@ export async function yamlManipulationImpl(input) {
 			return result.ok ? { ok: true, data: result.data } : result;
 		}
 		case "serialize": {
-			const result = serializeYaml(yamlInput);
+			const parsed = parseYaml(yamlInput);
+			if (!parsed.ok) return parsed;
+			const result = serializeYaml(parsed.data);
 			return result.ok ? { ok: true, data: result.data } : result;
 		}
 		case "transform": {
