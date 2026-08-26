@@ -5,6 +5,63 @@ import { filterUrl } from "../sandbox/urlFilter.js";
 const DEFAULT_TIMEOUT = 30000;
 const DEFAULT_MAX_DEPTH = 10;
 const DEFAULT_MAX_COMPLEXITY = 1000;
+const DEFAULT_RATE_LIMIT = 10; // requests per second
+
+/**
+ * Simple in-memory rate limiter — tracks request timestamps per URL.
+ * @param {string} url - Request URL
+ * @param {number} maxRequests - Maximum requests per second
+ * @returns {Promise<void>}
+ */
+async function rateLimit(url, maxRequests) {
+	if (!maxRequests || maxRequests <= 0) return;
+
+	const windowMs = 1000; // 1 second window
+	const now = Date.now();
+
+	if (!rateLimit._windows) {
+		rateLimit._windows = new Map();
+	}
+	let timestamps = rateLimit._windows.get(url);
+	if (!timestamps) {
+		timestamps = [];
+		rateLimit._windows.set(url, timestamps);
+	}
+
+	const windowStart = now - windowMs;
+	while (timestamps.length > 0 && timestamps[0] < windowStart) {
+		timestamps.shift();
+	}
+
+	if (timestamps.length >= maxRequests) {
+		const waitTime = timestamps[0] - windowStart + 1;
+		await new Promise((resolve) => setTimeout(resolve, waitTime));
+		const newTimestamps = rateLimit._windows.get(url);
+		const newWindowStart = Date.now() - windowMs;
+		while (newTimestamps.length > 0 && newTimestamps[0] < newWindowStart) {
+			newTimestamps.shift();
+		}
+	}
+
+	const currentTimestamps = rateLimit._windows.get(url);
+	currentTimestamps.push(Date.now());
+}
+
+// Clean up old entries periodically
+setInterval(() => {
+	if (rateLimit._windows) {
+		const now = Date.now();
+		for (const [url, timestamps] of rateLimit._windows) {
+			const windowStart = now - 10000;
+			while (timestamps.length > 0 && timestamps[0] < windowStart) {
+				timestamps.shift();
+			}
+			if (timestamps.length === 0) {
+				rateLimit._windows.delete(url);
+			}
+		}
+	}
+}, 60000);
 
 /**
  * Simple query depth analyzer — walks the parsed query AST to compute max depth.
@@ -117,6 +174,7 @@ function estimateComplexity(query) {
  * @param {number} [maxDepth] - Maximum query depth
  * @param {number} [maxComplexity] - Maximum query complexity
  * @param {string[]} [allowlist] - URL allowlist
+ * @param {boolean} [isIntrospection] - Skip depth/complexity analysis for introspection
  * @returns {Promise<{ ok: boolean, data?: unknown, error?: string }>}
  */
 export async function executeGraphQL(
@@ -128,27 +186,31 @@ export async function executeGraphQL(
 	maxDepth = DEFAULT_MAX_DEPTH,
 	maxComplexity = DEFAULT_MAX_COMPLEXITY,
 	allowlist = [],
+	isIntrospection = false,
 ) {
 	const validation = filterUrl(url, allowlist);
 	if (!validation.allowed) {
 		return { ok: false, error: validation.reason };
 	}
 
-	// Analyze query constraints
-	const depth = analyzeDepth(query);
-	if (depth > maxDepth) {
-		return {
-			ok: false,
-			error: `Query depth ${depth} exceeds maximum allowed depth ${maxDepth}`,
-		};
-	}
+	// Skip depth/complexity analysis for introspection queries
+	if (!isIntrospection) {
+		// Analyze query constraints
+		const depth = analyzeDepth(query);
+		if (depth > maxDepth) {
+			return {
+				ok: false,
+				error: `Query depth ${depth} exceeds maximum allowed depth ${maxDepth}`,
+			};
+		}
 
-	const complexity = estimateComplexity(query);
-	if (complexity > maxComplexity) {
-		return {
-			ok: false,
-			error: `Query complexity ${complexity} exceeds maximum allowed complexity ${maxComplexity}`,
-		};
+		const complexity = estimateComplexity(query);
+		if (complexity > maxComplexity) {
+			return {
+				ok: false,
+				error: `Query complexity ${complexity} exceeds maximum allowed complexity ${maxComplexity}`,
+			};
+		}
 	}
 
 	try {
@@ -197,6 +259,99 @@ export async function executeGraphQL(
 }
 
 /**
+ * Standard GraphQL introspection query.
+ * @returns {string}
+ */
+const INTROSPECTION_QUERY = `
+  query IntrospectionQuery {
+    __schema {
+      queryType { name }
+      mutationType { name }
+      subscriptionType { name }
+      types {
+        ...FullType
+      }
+      directives {
+        name
+        description
+        locations
+        args {
+          ...InputValue
+        }
+      }
+    }
+  }
+  fragment FullType on __Type {
+    kind
+    name
+    description
+    fields(includeDeprecated: true) {
+      name
+      description
+      args {
+        ...InputValue
+      }
+      type { ...TypeRef }
+      isDeprecated
+      deprecationReason
+    }
+    inputFields {
+      ...InputValue
+    }
+    interfaces {
+      ...TypeRef
+    }
+    enumValues(includeDeprecated: true) {
+      name
+      description
+      isDeprecated
+      deprecationReason
+    }
+    possibleTypes {
+      ...TypeRef
+    }
+  }
+  fragment InputValue on __InputValue {
+    name
+    description
+    type { ...TypeRef }
+    defaultValue
+  }
+  fragment TypeRef on __Type {
+    kind
+    name
+    ofType {
+      kind
+      name
+      ofType {
+        kind
+        name
+        ofType {
+          kind
+          name
+          ofType {
+            kind
+            name
+            ofType {
+              kind
+              name
+              ofType {
+                kind
+                name
+                ofType {
+                  kind
+                  name
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
+/**
  * GraphQL client tool — execute queries and mutations against GraphQL endpoints.
  * @param {string} input - JSON string with url, query, variables, operationName, timeout, maxDepth, maxComplexity, allowlist
  * @returns {Promise<{ ok: boolean, data?: unknown, error?: string }>}
@@ -219,7 +374,7 @@ export async function graphql(input) {
 export async function graphqlImpl(input) {
 	const schema = z.object({
 		url: z.string().url(),
-		query: z.string().min(1),
+		query: z.string().optional().describe("GraphQL query/mutation string (required for query/mutation actions)"),
 		variables: z.record(z.unknown()).optional(),
 		operationName: z.string().optional(),
 		timeout: z.number().int().positive().optional(),
@@ -236,15 +391,33 @@ export async function graphqlImpl(input) {
 		};
 	}
 
+	const { url, query, variables, operationName, timeout, maxDepth, maxComplexity, allowlist } = validated.data;
+
+	// Introspection — no depth/complexity limits
+	if (!query) {
+		return executeGraphQL(
+			url,
+			INTROSPECTION_QUERY,
+			variables || {},
+			operationName,
+			timeout || DEFAULT_TIMEOUT,
+			maxDepth,
+			maxComplexity,
+			allowlist || [],
+			true, // isIntrospection
+		);
+	}
+
 	return executeGraphQL(
-		validated.data.url,
-		validated.data.query,
-		validated.data.variables,
-		validated.data.operationName,
-		validated.data.timeout || DEFAULT_TIMEOUT,
-		validated.data.maxDepth || DEFAULT_MAX_DEPTH,
-		validated.data.maxComplexity || DEFAULT_MAX_COMPLEXITY,
-		validated.data.allowlist || [],
+		url,
+		query,
+		variables || {},
+		operationName,
+		timeout || DEFAULT_TIMEOUT,
+		maxDepth || DEFAULT_MAX_DEPTH,
+		maxComplexity || DEFAULT_MAX_COMPLEXITY,
+		allowlist || [],
+		false, // isIntrospection
 	);
 }
 

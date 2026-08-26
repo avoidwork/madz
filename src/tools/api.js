@@ -4,6 +4,68 @@ import { filterUrl } from "../sandbox/urlFilter.js";
 
 const DEFAULT_TIMEOUT = 30000;
 const DEFAULT_MAX_BODY_SIZE = 10 * 1024 * 1024; // 10MB
+const DEFAULT_RATE_LIMIT = 10; // requests per second
+
+/**
+ * Simple in-memory rate limiter — tracks request timestamps per URL.
+ * @param {string} url - Request URL
+ * @param {number} maxRequests - Maximum requests per second
+ * @returns {Promise<void>}
+ */
+async function rateLimit(url, maxRequests) {
+	if (!maxRequests || maxRequests <= 0) return;
+
+	const windowMs = 1000; // 1 second window
+	const now = Date.now();
+
+	// Get or create the timestamp array for this URL
+	if (!rateLimit._windows) {
+		rateLimit._windows = new Map();
+	}
+	let timestamps = rateLimit._windows.get(url);
+	if (!timestamps) {
+		timestamps = [];
+		rateLimit._windows.set(url, timestamps);
+	}
+
+	// Remove timestamps outside the window
+	const windowStart = now - windowMs;
+	while (timestamps.length > 0 && timestamps[0] < windowStart) {
+		timestamps.shift();
+	}
+
+	// Check if we've exceeded the limit
+	if (timestamps.length >= maxRequests) {
+		const waitTime = timestamps[0] - windowStart + 1;
+		await new Promise((resolve) => setTimeout(resolve, waitTime));
+		// Re-check after waiting
+		const newTimestamps = rateLimit._windows.get(url);
+		const newWindowStart = Date.now() - windowMs;
+		while (newTimestamps.length > 0 && newTimestamps[0] < newWindowStart) {
+			newTimestamps.shift();
+		}
+	}
+
+	// Record this request
+	const currentTimestamps = rateLimit._windows.get(url);
+	currentTimestamps.push(Date.now());
+}
+
+// Clean up old entries periodically (every 60 seconds)
+setInterval(() => {
+	if (rateLimit._windows) {
+		const now = Date.now();
+		for (const [url, timestamps] of rateLimit._windows) {
+			const windowStart = now - 10000; // 10 second cleanup window
+			while (timestamps.length > 0 && timestamps[0] < windowStart) {
+				timestamps.shift();
+			}
+			if (timestamps.length === 0) {
+				rateLimit._windows.delete(url);
+			}
+		}
+	}
+}, 60000);
 
 /**
  * Sanitize response headers by stripping sensitive ones.
@@ -52,6 +114,9 @@ export async function makeApiRequest(
 	if (!validation.allowed) {
 		return { ok: false, error: validation.reason };
 	}
+
+	// Apply rate limiting per URL
+	await rateLimit(url, DEFAULT_RATE_LIMIT);
 
 	const controller = new AbortController();
 	const timeoutId = setTimeout(() => controller.abort(), timeout);
