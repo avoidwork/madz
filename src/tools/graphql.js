@@ -14,6 +14,9 @@ const DEFAULT_RATE_LIMIT = 10; // requests per second
  * @returns {Promise<void>}
  */
 async function rateLimit(url, maxRequests) {
+	// Skip rate limiting in test mode
+	if (rateLimit._testMode) return;
+
 	if (!maxRequests || maxRequests <= 0) return;
 
 	const windowMs = 1000; // 1 second window
@@ -61,7 +64,9 @@ setInterval(() => {
 			}
 		}
 	}
-}, 60000);
+}, 60000).unref();
+
+export { rateLimit };
 
 /**
  * Simple query depth analyzer — walks the parsed query AST to compute max depth.

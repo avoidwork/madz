@@ -6,6 +6,10 @@ import { setTestMode } from "../../src/sandbox/urlFilter.js";
 // Ensure test mode is off for unit tests
 setTestMode(false);
 
+// Disable rate limiting in tests
+import { rateLimit } from "../../src/tools/api.js";
+rateLimit._testMode = true;
+
 describe("api tool", () => {
 	it("rejects blocked scheme (file://)", async () => {
 		const result = await apiImpl({
