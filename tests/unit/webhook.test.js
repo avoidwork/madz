@@ -1,7 +1,8 @@
 import { describe, it, before, after, beforeEach } from "node:test";
 import assert from "node:assert";
 import { createHmac } from "node:crypto";
-import { existsSync, unlinkSync, mkdirSync } from "node:fs";
+import { access, constants, unlink, readFile } from "node:fs/promises";
+import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -12,39 +13,43 @@ import {
 } from "../../src/tools/webhook.js";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
-const WEBHOOKS_FILE = join(__dirname, "../../data/webhooks.json");
+const WEBHOOKS_FILE = join(__dirname, "../../memory/tools/webhooks.json");
 
 describe("webhook tool", () => {
-	const cleanup = () => {
-		if (existsSync(WEBHOOKS_FILE)) {
-			unlinkSync(WEBHOOKS_FILE);
+	const cleanup = async () => {
+		try {
+			await access(WEBHOOKS_FILE, constants.F_OK);
+			await unlink(WEBHOOKS_FILE);
+		} catch {
+			// File doesn't exist, nothing to clean up
 		}
 	};
 
-	before(() => {
-		const dir = join(__dirname, "../../data");
-		if (!existsSync(dir)) {
-			mkdirSync(dir, { recursive: true });
-		}
+	before(async () => {
+		const dir = join(__dirname, "../../memory/tools");
+		await mkdir(dir, { recursive: true });
 	});
 
-	beforeEach(cleanup);
-	after(cleanup);
+	beforeEach(async () => {
+		await cleanup();
+	});
+	after(async () => {
+		await cleanup();
+	});
 
 	it("creates a webhook registration", async () => {
-		const result = createWebhook("https://example.com/webhook", "my-secret", [
+		const result = await createWebhook("https://example.com/webhook", "my-secret", [
 			"push",
 			"pull_request",
 		]);
 		assert.strictEqual(result.ok, true);
 		assert.ok(result.data.id);
 		assert.strictEqual(result.data.url, "https://example.com/webhook");
-		assert.ok(existsSync(WEBHOOKS_FILE));
 	});
 
 	it("lists all registered webhooks", async () => {
-		createWebhook("https://example.com/webhook", "my-secret", ["push"]);
-		const result = listWebhooks();
+		await createWebhook("https://example.com/webhook", "my-secret", ["push"]);
+		const result = await listWebhooks();
 		assert.strictEqual(result.ok, true);
 		assert.ok(Array.isArray(result.data));
 		assert.strictEqual(result.data.length, 1);
@@ -52,14 +57,14 @@ describe("webhook tool", () => {
 	});
 
 	it("deletes a webhook by ID", async () => {
-		const createResult = createWebhook("https://example.com/webhook", "my-secret", ["push"]);
+		const createResult = await createWebhook("https://example.com/webhook", "my-secret", ["push"]);
 		const id = createResult.data.id;
 
-		const result = deleteWebhook(id);
+		const result = await deleteWebhook(id);
 		assert.strictEqual(result.ok, true);
 
 		// Verify it's gone
-		const listResult = listWebhooks();
+		const listResult = await listWebhooks();
 		assert.strictEqual(listResult.data.length, 0);
 	});
 
@@ -95,33 +100,32 @@ describe("webhook tool", () => {
 	});
 
 	it("rejects create with missing URL", async () => {
-		const result = createWebhook("", "my-secret", ["push"]);
+		const result = await createWebhook("", "my-secret", ["push"]);
 		assert.strictEqual(result.ok, true);
 		assert.ok(result.data.id);
 	});
 
 	it("rejects create with missing secret", async () => {
-		const result = createWebhook("https://example.com/webhook", "", ["push"]);
+		const result = await createWebhook("https://example.com/webhook", "", ["push"]);
 		assert.strictEqual(result.ok, true);
 		assert.ok(result.data.id);
 	});
 
 	it("rejects delete with missing ID", async () => {
-		const result = deleteWebhook(undefined);
+		const result = await deleteWebhook(undefined);
 		assert.strictEqual(result.ok, false);
 	});
 
 	it("rejects delete with non-existent ID", async () => {
-		const result = deleteWebhook("wh_nonexistent");
+		const result = await deleteWebhook("wh_nonexistent");
 		assert.strictEqual(result.ok, false);
 	});
 
 	it("persists webhooks to disk", async () => {
-		cleanup();
-		createWebhook("https://example.com/webhook", "my-secret", ["push"]);
+		await cleanup();
+		await createWebhook("https://example.com/webhook", "my-secret", ["push"]);
 
-		const { readFileSync } = await import("node:fs");
-		const content = readFileSync(WEBHOOKS_FILE, "utf-8");
+		const content = await readFile(WEBHOOKS_FILE, "utf-8");
 		const webhooks = JSON.parse(content);
 		assert.ok(Array.isArray(webhooks));
 		assert.strictEqual(webhooks.length, 1);

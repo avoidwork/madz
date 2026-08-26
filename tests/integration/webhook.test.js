@@ -2,19 +2,19 @@ import { describe, it, before, after } from "node:test";
 import assert from "node:assert";
 import { createServer } from "node:http";
 import { createHmac } from "node:crypto";
+import { access, constants, unlink } from "node:fs/promises";
 import {
 	createWebhook,
 	listWebhooks,
 	deleteWebhook,
 	verifyWebhook,
 } from "../../src/tools/webhook.js";
-import { existsSync, unlinkSync } from "node:fs";
 import { setTestMode } from "../../src/sandbox/urlFilter.js";
 
 // Enable test mode to allow internal IPs in integration tests
 setTestMode(true);
 
-const WEBHOOKS_FILE = "data/webhooks.json";
+const WEBHOOKS_FILE = "memory/tools/webhooks.json";
 
 describe("webhook integration tests", () => {
 	let server;
@@ -50,14 +50,17 @@ describe("webhook integration tests", () => {
 
 	after(async () => {
 		await new Promise((resolve) => server.close(resolve));
-		if (existsSync(WEBHOOKS_FILE)) {
-			unlinkSync(WEBHOOKS_FILE);
+		try {
+			await access(WEBHOOKS_FILE, constants.F_OK);
+			await unlink(WEBHOOKS_FILE);
+		} catch {
+			// File doesn't exist, nothing to clean up
 		}
 	});
 
 	it("creates and verifies a webhook with valid signature", async () => {
 		// Use impl function to bypass URL validation in integration tests
-		const createResult = createWebhook(`${baseUrl}/webhook`, "integration-secret", [
+		const createResult = await createWebhook(`${baseUrl}/webhook`, "integration-secret", [
 			"push",
 			"pull_request",
 		]);
@@ -76,7 +79,7 @@ describe("webhook integration tests", () => {
 	});
 
 	it("rejects webhook with invalid signature", async () => {
-		createWebhook(`${baseUrl}/webhook`, "integration-secret", ["push"]);
+		await createWebhook(`${baseUrl}/webhook`, "integration-secret", ["push"]);
 
 		// Verify with wrong signature
 		const result = verifyWebhook(
@@ -89,22 +92,22 @@ describe("webhook integration tests", () => {
 	});
 
 	it("lists webhooks after creation", async () => {
-		createWebhook(`${baseUrl}/webhook`, "integration-secret", ["push"]);
+		await createWebhook(`${baseUrl}/webhook`, "integration-secret", ["push"]);
 
-		const listResult = listWebhooks();
+		const listResult = await listWebhooks();
 		assert.strictEqual(listResult.ok, true);
 		assert.ok(Array.isArray(listResult.data));
 		assert.ok(listResult.data.some((w) => w.url === `${baseUrl}/webhook`));
 	});
 
 	it("deletes webhook and verifies removal", async () => {
-		const createResult = createWebhook(`${baseUrl}/webhook`, "integration-secret", ["push"]);
+		const createResult = await createWebhook(`${baseUrl}/webhook`, "integration-secret", ["push"]);
 		const id = createResult.data.id;
 
-		const deleteResult = deleteWebhook(id);
+		const deleteResult = await deleteWebhook(id);
 		assert.strictEqual(deleteResult.ok, true);
 
-		const listResult = listWebhooks();
+		const listResult = await listWebhooks();
 		assert.strictEqual(listResult.ok, true);
 		assert.ok(!listResult.data.some((w) => w.id === id));
 	});
