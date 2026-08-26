@@ -1,6 +1,6 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import { createHmac } from "node:crypto";
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { readFile, writeFile, access } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -62,6 +62,17 @@ function generateId() {
  * @returns {Promise<{ ok: boolean, data?: object, error?: string }>}
  */
 export async function createWebhook(url, secret, events) {
+	if (!url || typeof url !== "string" || !url.trim()) {
+		return { ok: false, error: "URL is required and must be a non-empty string" };
+	}
+	if (!secret || typeof secret !== "string" || !secret.trim()) {
+		return { ok: false, error: "Secret is required and must be a non-empty string" };
+	}
+	try {
+		new URL(url);
+	} catch {
+		return { ok: false, error: `Invalid URL: ${url}` };
+	}
 	const webhooks = await loadWebhooks();
 	const webhook = {
 		id: generateId(),
@@ -122,7 +133,11 @@ export function verifyWebhook(payload, signature, secret) {
 	const expected = createHmac("sha256", secret).update(payload).digest("hex");
 	const sigWithoutPrefix = signature.startsWith("sha256=") ? signature.slice(7) : signature;
 
-	const verified = expected === sigWithoutPrefix;
+	// Constant-time comparison to prevent timing attacks
+	if (expected.length !== sigWithoutPrefix.length) {
+		return { ok: true, data: false };
+	}
+	const verified = timingSafeEqual(Buffer.from(expected), Buffer.from(sigWithoutPrefix));
 	return { ok: true, data: verified };
 }
 

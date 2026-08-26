@@ -98,16 +98,22 @@ describe("webhook tool", () => {
 		assert.strictEqual(result.ok, false);
 	});
 
-	it("rejects create with missing URL", async () => {
+	it("rejects create with empty URL", async () => {
 		const result = await createWebhook("", "my-secret", ["push"]);
-		assert.strictEqual(result.ok, true);
-		assert.ok(result.data.id);
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("URL"));
 	});
 
-	it("rejects create with missing secret", async () => {
+	it("rejects create with empty secret", async () => {
 		const result = await createWebhook("https://example.com/webhook", "", ["push"]);
-		assert.strictEqual(result.ok, true);
-		assert.ok(result.data.id);
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("Secret"));
+	});
+
+	it("rejects create with invalid URL", async () => {
+		const result = await createWebhook("not-a-url", "my-secret", ["push"]);
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("Invalid URL"));
 	});
 
 	it("rejects delete with missing ID", async () => {
