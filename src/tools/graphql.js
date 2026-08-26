@@ -193,6 +193,9 @@ export async function executeGraphQL(
 		return { ok: false, error: validation.reason };
 	}
 
+	// Apply rate limiting per URL
+	await rateLimit(url, DEFAULT_RATE_LIMIT);
+
 	// Skip depth/complexity analysis for introspection queries
 	if (!isIntrospection) {
 		// Analyze query constraints
@@ -374,7 +377,10 @@ export async function graphql(input) {
 export async function graphqlImpl(input) {
 	const schema = z.object({
 		url: z.string().url(),
-		query: z.string().optional().describe("GraphQL query/mutation string (required for query/mutation actions)"),
+		query: z
+			.string()
+			.optional()
+			.describe("GraphQL query/mutation string (required for query/mutation actions)"),
 		variables: z.record(z.unknown()).optional(),
 		operationName: z.string().optional(),
 		timeout: z.number().int().positive().optional(),
@@ -391,7 +397,8 @@ export async function graphqlImpl(input) {
 		};
 	}
 
-	const { url, query, variables, operationName, timeout, maxDepth, maxComplexity, allowlist } = validated.data;
+	const { url, query, variables, operationName, timeout, maxDepth, maxComplexity, allowlist } =
+		validated.data;
 
 	// Introspection — no depth/complexity limits
 	if (!query) {
