@@ -37,7 +37,7 @@ RUN apk update && \
     tar xzf /tmp/grype.tar.gz -C /usr/local/bin grype && \
     rm /tmp/grype.tar.gz && \
     # semgrep — SAST (language-agnostic rules)
-    pip3 install --no-cache-dir semgrep==1.93.0 && \
+    pip3 install --break-system-packages --no-cache-dir semgrep==1.93.0 && \
     # gitleaks — secret scanning
     curl -sL "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz" -o /tmp/gitleaks.tar.gz && \
     tar xzf /tmp/gitleaks.tar.gz -C /usr/local/bin gitleaks && \
