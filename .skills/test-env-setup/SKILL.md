@@ -55,7 +55,7 @@ Manage browser binaries for end-to-end testing frameworks:
 
 ```bash
 # Playwright — Chromium installation
-if [ "$TEST_FRAMEWORK" = "playwright" ] || [ -f "package.json" ] && grep -q '"@playwright/test"' package.json; then
+if [ "$TEST_FRAMEWORK" = "playwright" ] || { [ -f "package.json" ] && grep -q '"@playwright/test"' package.json; }; then
   echo "Checking Playwright browser binaries..."
 
   # Check if Chromium is installed
@@ -75,20 +75,20 @@ if [ "$TEST_FRAMEWORK" = "playwright" ] || [ -f "package.json" ] && grep -q '"@p
   fi
 
   # Check for Firefox
-  if grep -q '"firefox"' package.json playwright.config.* 2>/dev/null; then
+  if { grep -q '"firefox"' package.json playwright.config.* 2>/dev/null; }; then
     echo "Checking Firefox..."
     npx playwright install firefox 2>&1 || true
   fi
 
   # Check for WebKit
-  if grep -q '"webkit"' package.json playwright.config.* 2>/dev/null; then
+  if { grep -q '"webkit"' package.json playwright.config.* 2>/dev/null; }; then
     echo "Checking WebKit..."
     npx playwright install webkit 2>&1 || true
   fi
 fi
 
 # Puppeteer — Chrome installation
-if [ "$TEST_FRAMEWORK" = "puppeteer" ] || [ -f "package.json" ] && grep -q '"puppeteer"' package.json; then
+if [ "$TEST_FRAMEWORK" = "puppeteer" ] || { [ -f "package.json" ] && grep -q '"puppeteer"' package.json; }; then
   echo "Checking Puppeteer browser..."
 
   # Check if Chrome/Chromium is installed
@@ -109,7 +109,7 @@ if [ "$TEST_FRAMEWORK" = "puppeteer" ] || [ -f "package.json" ] && grep -q '"pup
 fi
 
 # Cypress — browser installation
-if [ "$TEST_FRAMEWORK" = "cypress" ] || [ -f "package.json" ] && grep -q '"cypress"' package.json; then
+if [ "$TEST_FRAMEWORK" = "cypress" ] || { [ -f "package.json" ] && grep -q '"cypress"' package.json; }; then
   echo "Checking Cypress browsers..."
   npx cypress cache list 2>&1 || true
 

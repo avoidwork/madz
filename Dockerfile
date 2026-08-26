@@ -48,7 +48,15 @@ RUN apk update && \
     # syft — SBOM generation (optional, used by security-audit)
     curl -sL "https://github.com/anchore/syft/releases/download/v1.51.0/syft_1.51.0_linux_amd64.tar.gz" -o /tmp/syft.tar.gz && \
     tar xzf /tmp/syft.tar.gz -C /usr/local/bin syft && \
-    rm /tmp/syft.tar.gz
+    rm /tmp/syft.tar.gz && \
+    # Optional security tools (used with graceful degradation)
+    # pip-audit — Python dependency CVE scanning
+    pip3 install --break-system-packages --no-cache-dir pip-audit && \
+    # govulncheck — Go vulnerability analysis
+    go install golang.org/x/vuln/cmd/govulncheck@latest && \
+    mv /root/go/bin/govulncheck /usr/local/bin/govulncheck && \
+    # cargo-audit — Rust dependency security auditing
+    cargo install cargo-audit --locked
 
 ENV HOME=/home/madz
 

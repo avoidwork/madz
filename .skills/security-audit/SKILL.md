@@ -19,6 +19,12 @@ Run security scans appropriate for the detected project stack. This skill depend
   - `grype` (v0.70+) — dependency CVE scanning
   - `semgrep` (v1.0+) — language-agnostic SAST
   - `gitleaks` (v8.0+) — secret scanning
+- Optional tools (used with graceful degradation if available):
+  - `pip-audit` — Python dependency CVE scanning
+  - `govulncheck` — Go vulnerability analysis
+  - `cargo-audit` — Rust dependency security auditing
+  - `eslint` — JavaScript/TypeScript linting (project uses oxlint by default)
+  - `spotbugs` — Java static analysis (if configured in pom.xml)
 
 Check tool availability before proceeding:
 
@@ -148,11 +154,11 @@ fi
 Language-specific SAST (if semgrep is not available):
 
 ```bash
-# JavaScript/TypeScript — eslint with security plugin
-if [ -f "package.json" ]; then
-  if command -v eslint &> /dev/null; then
-    echo "Running eslint security check..."
-    eslint --config .eslintrc.security.json . 2>/dev/null || true
+# JavaScript/TypeScript — oxlint (project default)
+if [ -f "package.json" ] && [ -f ".oxlint.json" ]; then
+  if command -v npx &> /dev/null; then
+    echo "Running oxlint security check..."
+    timeout 120 npx oxlint --config .oxlint.json . 2>/dev/null || true
   fi
 fi
 
