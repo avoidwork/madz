@@ -1,13 +1,12 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
-import { apiImpl } from "../../src/tools/api.js";
+import { apiImpl, rateLimit } from "../../src/tools/api.js";
 import { setTestMode } from "../../src/sandbox/urlFilter.js";
 
 // Ensure test mode is off for unit tests
 setTestMode(false);
 
 // Disable rate limiting in tests
-import { rateLimit } from "../../src/tools/api.js";
 rateLimit._testMode = true;
 
 describe("api tool", () => {
