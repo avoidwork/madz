@@ -24,6 +24,12 @@ import { calendar } from "./calendar/index.js";
 import { pdfGenerateTool } from "./pdfGenerate.js";
 import { namecom } from "./namecom/index.js";
 import { pptxGenerateTool } from "./fileCreate/pptx.js";
+import { createApiTool } from "./api.js";
+import { createGraphqlTool } from "./graphql.js";
+import { createJsonTool } from "./json.js";
+import { createYamlTool } from "./yaml.js";
+import { createDataTool } from "./data.js";
+import { createWebhookTool } from "./webhook.js";
 
 /**
  * Maps tool names to required permission scopes.
@@ -58,6 +64,12 @@ export const TOOL_PERMISSIONS = {
 	pdfGenerate: ["filesystem:read", "filesystem:write", "network:outbound"],
 	namecom: ["network:outbound"],
 	pptxGenerate: ["filesystem:write"],
+	api: ["network:outbound"],
+	graphql: ["network:outbound"],
+	json: ["filesystem:read"],
+	yaml: ["filesystem:read"],
+	data: ["filesystem:read"],
+	webhook: ["filesystem:read", "filesystem:write"],
 };
 
 /**
@@ -123,6 +135,12 @@ export const TOOL_CLASSIFICATIONS = {
 	pdfGenerate: ["search", "research", "coding", "documentation", "debug"],
 	namecom: ["search", "research", "coding", "documentation", "debug"],
 	pptxGenerate: ["search", "research", "coding", "documentation", "debug"],
+	api: ["search", "research", "coding", "documentation", "debug"],
+	graphql: ["search", "research", "coding", "documentation", "debug"],
+	json: ["search", "research", "coding", "documentation", "debug"],
+	yaml: ["search", "research", "coding", "documentation", "debug"],
+	data: ["search", "research", "coding", "documentation", "debug"],
+	webhook: ["search", "research", "coding", "documentation", "debug"],
 };
 
 /**
@@ -190,6 +208,12 @@ export const TOOLS = {
 	pdfGenerate: pdfGenerateTool,
 	namecom,
 	pptxGenerate: pptxGenerateTool,
+	api: createApiTool,
+	graphql: createGraphqlTool,
+	json: createJsonTool,
+	yaml: createYamlTool,
+	data: createDataTool,
+	webhook: createWebhookTool,
 };
 
 /**
@@ -348,6 +372,17 @@ export async function buildToolConfig(options) {
 				if (toolName === "textToSpeech" && !runtimeOptions.openaiApiKey) continue;
 				if (toolName === "mixtureOfAgents" && !runtimeOptions.openrouterApiKey) continue;
 				tools.push(TOOLS[toolName]);
+				continue;
+			}
+
+			case "api":
+			case "graphql":
+			case "json":
+			case "yaml":
+			case "data":
+			case "webhook": {
+				if (!hasAllPerms) continue;
+				tools.push(TOOLS[toolName]());
 				continue;
 			}
 

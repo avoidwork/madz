@@ -149,13 +149,12 @@ describe("tools - buildToolConfig", () => {
 	it("handles maxReadSize in config", async () => {
 		const { buildToolConfig } = await import("../../src/tools/index.js");
 		const tools = await buildToolConfig({
-			permissions: ["filesystem:read"],
+			permissions: ["filesystem:read", "filesystem:write", "network:outbound"],
 			maxReadSize: "2mb",
 		});
 		const toolNames = tools.map((t) => t.name);
-		// filesystem:read enables: clarify, sampling, process (exempt), compactContext, scanAgents,
-		// sessionSearch, date, reflectionSessions, docx, pptx, xlsx, pdf
-		assert.strictEqual(toolNames.length, 12);
+		// filesystem:read + filesystem:write + network:outbound enables: clarify, sampling, process (exempt), compactContext, scanAgents,
+		// sessionSearch, date, reflectionSessions, docx, pptx, xlsx, pdf, api, graphql, webhook, data, json, yaml
 		assert.ok(toolNames.includes("clarify"));
 		assert.ok(toolNames.includes("sampling"));
 		assert.ok(toolNames.includes("date"));
@@ -166,5 +165,11 @@ describe("tools - buildToolConfig", () => {
 		assert.ok(toolNames.includes("pptx"));
 		assert.ok(toolNames.includes("xlsx"));
 		assert.ok(toolNames.includes("pdf"));
+		assert.ok(toolNames.includes("api"));
+		assert.ok(toolNames.includes("graphql"));
+		assert.ok(toolNames.includes("webhook"));
+		assert.ok(toolNames.includes("data"));
+		assert.ok(toolNames.includes("json"));
+		assert.ok(toolNames.includes("yaml"));
 	});
 });

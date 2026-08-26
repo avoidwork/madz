@@ -504,26 +504,32 @@ All built-in tools are defined in `src/tools/` and registered as LangChain tools
 
 | Tool | Description |
 | ---- | ----------- |
+| `api` | REST API client with auth (bearer, basic, apikey), URL filtering, timeouts, and rate limiting. |
+| `calendar` | Read, create, and manage calendar events via Google Calendar API. |
 | `clarify` | Send clarification questions to the user with optional numbered choices. Zero permissions — always registered. |
 | `compactContext` | Reduce conversation context when LLM context length is exceeded. Tiered retention: retain recent, summarize older, drop oldest. |
 | `cronJob` | Manage scheduled cron jobs — create, list, update, pause, resume, run, remove. Persisted to `memory/schedules/`. Available to the orchestrator agent. |
 | `createSkill` | Create a spec-compliant skill directory with SKILL.md YAML frontmatter. Optionally scaffolds a `scripts/` directory. |
+| `data` | Format conversion between JSON, YAML, and CSV. |
 | `date` | Return current date/time in ISO 8601 UTC or human-readable format. Zero permissions — always registered. |
+| `email` | Read, send, manage drafts, organize, and search emails. Actions: `read`, `send`, `draftSave`, `draftList`, `draftUpdate`, `draftDelete`, `organize`, `search`. Requires email provider credentials via environment variables. |
+| `graphql` | GraphQL client with depth/complexity limits, introspection support, and rate limiting. |
 | `imageGenerate` | Generate images via FAL.ai flux/klein API. |
+| `json` | JSON parse, serialize, transform, filter, and access operations. |
 | `memory` | Persistent key-value memory with CRUD actions (create, read, update, delete, list). Each entry stored as `.md` in `memory/context/` with `createdDate`/`updatedDate` metadata. |
 | `mixtureOfAgents` | Multi-agent orchestration via OpenRouter. Calls 4 reference prompts (factual, practical, creative, cautious) and synthesizes a consensus response. |
+| `pdfGenerate` | Generate PDFs from HTML or markdown, or manipulate existing PDFs (merge, split, watermark, signature, annotate). Use action to specify the operation. |
 | `process` | Execute shell commands and manage background processes. Actions: start (launch command), list (show all), log (read stdout/stderr), wait (wait for exit), kill (SIGTERM/SIGKILL), write (send stdin data), pause (SIGSTOP), resume (SIGCONT). |
 | `sampling` | Capture emotional moments as ephemeral memories. Rate-limited to 1 per 60 minutes. Stored with `expiresAt` frontmatter. |
 | `scanAgents` | Scan for `AGENTS.md` workspace rules files in a target directory. Returns file contents or empty string. |
 | `sessionSearch` | Search past conversations by keyword query, full retrieval by conversation ID, or browse all sessions. |
+| `spreadsheet` | Spreadsheet computation and analysis. Actions: compute (sum, average, count, min, max, formula, median, stddev, variance), generate (create XLSX with formulas), analyze (pivot tables, filtering, groupBy, stats, percentile), csvImport, csvExport, modify (add/modify/delete cells and sheets), export (XLSX, CSV, JSON). |
 | `textToSpeech` | Convert text to speech via OpenAI TTS (tts-1/tts-1-hd). Saves MP3 to `~/voice-memos/`. |
 | `visionAnalyze` | Analyze images via OpenAI multimodal LLM. Accepts URL or base64 data URI. |
 | `webExtract` | Extract readable text content from a web page URL. Supports summarization for large pages. |
 | `webSearch` | Search the web via DuckDuckGo, Google, Bing, SearXNG, or Custom endpoints. |
-| `email` | Read, send, manage drafts, organize, and search emails. Actions: `read`, `send`, `draftSave`, `draftList`, `draftUpdate`, `draftDelete`, `organize`, `search`. Requires email provider credentials via environment variables. |
-| `pdfGenerate` | Generate PDFs from HTML or markdown, or manipulate existing PDFs (merge, split, watermark, signature, annotate). Use action to specify the operation. |
-| `calendar` | Read, create, and manage calendar events via Google Calendar API. |
-| `spreadsheet` | Spreadsheet computation and analysis. Actions: compute (sum, average, count, min, max, formula, median, stddev, variance), generate (create XLSX with formulas), analyze (pivot tables, filtering, groupBy, stats, percentile), csvImport, csvExport, modify (add/modify/delete cells and sheets), export (XLSX, CSV, JSON). |
+| `webhook` | Webhook CRUD and HMAC verification with URL validation. |
+| `yaml` | YAML parse, serialize, transform, filter, and access operations. |
 
 **Deep Agents tools:** Core filesystem operations (`readFile`, `writeFile`, `patch`, `searchFiles`) and task management (`todo`) are provided by [deepagentsjs](https://github.com/langchain-ai/deepagentsjs) and are not listed as madz-built-in tools.
 
@@ -537,10 +543,10 @@ Built-in tools are registered only when their required permissions are enabled f
 
 | Permission Required                 | Tools                                                                      |
 | ----------------------------------- | -------------------------------------------------------------------------- |
-| `filesystem:read`                   | `compactContext`, `scanAgents`, `sessionSearch` |
+| `filesystem:read`                   | `compactContext`, `json`, `scanAgents`, `sessionSearch`, `yaml`, `data` |
 | `filesystem:write`                  | `clarify`, `createSkill`, `memory`, `sampling`                             |
 | `filesystem:exec` + `process:spawn` | `process`                                                                  |
-| `network:outbound`                  | `cronJob`, `imageGenerate`, `mixtureOfAgents`, `webExtract`, `webSearch`, `email`, `calendar`   |
+| `network:outbound`                  | `api`, `cronJob`, `graphql`, `imageGenerate`, `mixtureOfAgents`, `webExtract`, `webSearch`, `email`, `calendar`, `webhook`   |
 | _(none)_                            | `date`, `textToSpeech`, `visionAnalyze`                                    |
 | `filesystem:read` + `filesystem:write` + `network:outbound` | `pdfGenerate` |
 | `filesystem:read` + `filesystem:write` | `spreadsheet` |
