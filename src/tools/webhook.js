@@ -1,23 +1,35 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { createHmac } from "node:crypto";
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { readFile, writeFile, access } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const WEBHOOKS_FILE = join(__dirname, "../../memory/tools/webhooks.json");
+const WEBHOOKS_DIR = join(__dirname, "../../memory/tools");
+
+/**
+ * Ensure the webhooks directory exists.
+ * @returns {Promise<void>}
+ */
+async function ensureWebhooksDir() {
+	try {
+		await access(WEBHOOKS_DIR);
+	} catch {
+		const { mkdir } = await import("node:fs/promises");
+		await mkdir(WEBHOOKS_DIR, { recursive: true });
+	}
+}
 
 /**
  * Load webhooks from persistent storage.
- * @returns {Array} Array of webhook objects
+ * @returns {Promise<Array>} Array of webhook objects
  */
-function loadWebhooks() {
-	if (!existsSync(WEBHOOKS_FILE)) {
-		return [];
-	}
+async function loadWebhooks() {
 	try {
-		const data = readFileSync(WEBHOOKS_FILE, "utf-8");
+		await access(WEBHOOKS_FILE);
+		const data = await readFile(WEBHOOKS_FILE, "utf-8");
 		return JSON.parse(data);
 	} catch {
 		return [];
@@ -27,17 +39,11 @@ function loadWebhooks() {
 /**
  * Save webhooks to persistent storage.
  * @param {Array} webhooks - Array of webhook objects
+ * @returns {Promise<void>}
  */
-function saveWebhooks(webhooks) {
-	const dir = join(__dirname, "../../data");
-	try {
-		if (!existsSync(dir)) {
-			import("node:fs").then((fs) => fs.mkdirSync(dir, { recursive: true }));
-		}
-	} catch {
-		// Directory creation failed silently — will fail on write below
-	}
-	writeFileSync(WEBHOOKS_FILE, JSON.stringify(webhooks, null, 2), "utf-8");
+async function saveWebhooks(webhooks) {
+	await ensureWebhooksDir();
+	await writeFile(WEBHOOKS_FILE, JSON.stringify(webhooks, null, 2), "utf-8");
 }
 
 /**
@@ -53,10 +59,10 @@ function generateId() {
  * @param {string} url - Webhook URL
  * @param {string} secret - Secret for HMAC verification
  * @param {string[]} events - Event types to subscribe to
- * @returns {{ ok: boolean, data?: object, error?: string }}
+ * @returns {Promise<{ ok: boolean, data?: object, error?: string }>}
  */
-export function createWebhook(url, secret, events) {
-	const webhooks = loadWebhooks();
+export async function createWebhook(url, secret, events) {
+	const webhooks = await loadWebhooks();
 	const webhook = {
 		id: generateId(),
 		url,
@@ -67,17 +73,17 @@ export function createWebhook(url, secret, events) {
 		active: true,
 	};
 	webhooks.push(webhook);
-	saveWebhooks(webhooks);
+	await saveWebhooks(webhooks);
 	return { ok: true, data: webhook };
 }
 
 /**
  * List all registered webhooks.
  * @param {boolean} [includeSecret=false] - Whether to include secrets in output
- * @returns {{ ok: boolean, data?: object[], error?: string }}
+ * @returns {Promise<{ ok: boolean, data?: object[], error?: string }>}
  */
-export function listWebhooks(includeSecret = false) {
-	const webhooks = loadWebhooks();
+export async function listWebhooks(includeSecret = false) {
+	const webhooks = await loadWebhooks();
 	if (includeSecret) {
 		return { ok: true, data: webhooks };
 	}
@@ -88,16 +94,16 @@ export function listWebhooks(includeSecret = false) {
 /**
  * Delete a webhook by ID.
  * @param {string} id - Webhook ID
- * @returns {{ ok: boolean, error?: string }}
+ * @returns {Promise<{ ok: boolean, error?: string }>}
  */
-export function deleteWebhook(id) {
-	const webhooks = loadWebhooks();
+export async function deleteWebhook(id) {
+	const webhooks = await loadWebhooks();
 	const idx = webhooks.findIndex((w) => w.id === id);
 	if (idx === -1) {
 		return { ok: false, error: `Webhook not found: ${id}` };
 	}
 	webhooks.splice(idx, 1);
-	saveWebhooks(webhooks);
+	await saveWebhooks(webhooks);
 	return { ok: true };
 }
 
@@ -210,7 +216,7 @@ export function createWebhookTool() {
 		{
 			name: "webhook",
 			description:
-				"Manage webhook registrations. Actions: create (register webhook with URL, secret, events), list (return all webhooks), delete (remove webhook by ID), verify (HMAC-SHA256 signature verification against payload and secret). Webhooks are persisted to data/webhooks.json.",
+				"Manage webhook registrations. Actions: create (register webhook with URL, secret, events), list (return all webhooks), delete (remove webhook by ID), verify (HMAC-SHA256 signature verification against payload and secret). Webhooks are persisted to memory/tools/webhooks.json.",
 			schema: z.object({
 				action: z.enum(["create", "list", "delete", "verify"]).describe("Action to perform"),
 				url: z.string().url().optional().describe("Webhook URL (required for create)"),
