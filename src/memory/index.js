@@ -8,3 +8,4 @@ export {
 	readEphemeralFile,
 } from "./expireEphemeralMemories.js";
 export { gc, isAvailable, initGC, getGcCalls } from "./gc.js";
+export { ensureToolsDir } from "./tools.js";
