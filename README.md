@@ -518,6 +518,12 @@ All built-in tools are defined in `src/tools/` and registered as LangChain tools
 | `pdfGenerate` | Generate PDFs from HTML or markdown, or manipulate existing PDFs (merge, split, watermark, signature, annotate). Use action to specify the operation. |
 | `calendar` | Read, create, and manage calendar events via Google Calendar API. |
 | `spreadsheet` | Spreadsheet computation and analysis. Actions: compute (sum, average, count, min, max, formula, median, stddev, variance), generate (create XLSX with formulas), analyze (pivot tables, filtering, groupBy, stats, percentile), csvImport, csvExport, modify (add/modify/delete cells and sheets), export (XLSX, CSV, JSON). |
+| `api` | REST API client with auth (bearer, basic, apikey), URL filtering, timeouts, and rate limiting. |
+| `graphql` | GraphQL client with depth/complexity limits, introspection support, and rate limiting. |
+| `webhook` | Webhook CRUD and HMAC verification with URL validation. |
+| `json` | JSON parse, serialize, transform, filter, and access operations. |
+| `yaml` | YAML parse, serialize, transform, filter, and access operations. |
+| `data` | Format conversion between JSON, YAML, and CSV. |
 
 **Deep Agents tools:** Core filesystem operations (`readFile`, `writeFile`, `patch`, `searchFiles`) and task management (`todo`) are provided by [deepagentsjs](https://github.com/langchain-ai/deepagentsjs) and are not listed as madz-built-in tools.
 
@@ -531,10 +537,10 @@ Built-in tools are registered only when their required permissions are enabled f
 
 | Permission Required                 | Tools                                                                      |
 | ----------------------------------- | -------------------------------------------------------------------------- |
-| `filesystem:read`                   | `compactContext`, `scanAgents`, `sessionSearch` |
+| `filesystem:read`                   | `compactContext`, `json`, `scanAgents`, `sessionSearch`, `yaml`, `data` |
 | `filesystem:write`                  | `clarify`, `createSkill`, `memory`, `sampling`                             |
 | `filesystem:exec` + `process:spawn` | `process`                                                                  |
-| `network:outbound`                  | `cronJob`, `imageGenerate`, `mixtureOfAgents`, `webExtract`, `webSearch`, `email`, `calendar`   |
+| `network:outbound`                  | `api`, `cronJob`, `graphql`, `imageGenerate`, `mixtureOfAgents`, `webExtract`, `webSearch`, `email`, `calendar`, `webhook`   |
 | _(none)_                            | `date`, `textToSpeech`, `visionAnalyze`                                    |
 | `filesystem:read` + `filesystem:write` + `network:outbound` | `pdfGenerate` |
 | `filesystem:read` + `filesystem:write` | `spreadsheet` |
