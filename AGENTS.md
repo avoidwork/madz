@@ -389,7 +389,7 @@ The `README.md` may show a more up-to-date project structure (e.g., additional m
 
 ---
 
-## 9. Skills System
+## 8. Skills System
 
 Bundled skills live in `.skills/` alongside the core skills in `skills/`. Each skill is a directory containing a `SKILL.md` file with YAML frontmatter and progressive disclosure instructions.
 
@@ -413,7 +413,7 @@ Skills are discovered by scanning for `SKILL.md` files in:
 
 Each SKILL.md must have YAML frontmatter with at least `name`, `description`, and optionally `metadata`.
 
-## 8. Checklist Before Marking a TODO Complete
+## 9. Checklist Before Marking a TODO Complete
 
 - [ ] All JSDoc annotations present (`@param`, `@returns`) on public APIs.
 - [ ] Unit tests written and passing.
