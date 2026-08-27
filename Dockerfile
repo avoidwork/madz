@@ -29,15 +29,15 @@ RUN apk update && \
     sed -i 's/^#*PermitEmptyPasswords.*/PermitEmptyPasswords yes/' /etc/ssh/sshd_config && \
     printf '%s\n' 'AcceptEnv *' >> /etc/ssh/sshd_config
 
-# Python dependency CVE scanning
-RUN pip3 install --break-system-packages --no-cache-dir pip-audit
+# Python dependency CVE scanning (v2.10.1)
+RUN pip3 install --break-system-packages --no-cache-dir pip-audit==2.10.1
 
-# Go vulnerability analysis
-RUN go install golang.org/x/vuln/cmd/govulncheck@latest && \
+# Go vulnerability analysis (v1.2.0)
+RUN go install golang.org/x/vuln/cmd/govulncheck@v1.2.0 && \
     mv /root/go/bin/govulncheck /usr/local/bin/govulncheck
 
-# Rust dependency security auditing
-RUN cargo install cargo-audit --locked
+# Rust dependency security auditing (v0.22.2)
+RUN cargo install cargo-audit@0.22.2 --locked
 
 ENV HOME=/home/madz
 
