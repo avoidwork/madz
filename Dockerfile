@@ -17,9 +17,15 @@ FROM node:24-alpine
 
 # System packages
 RUN apk update && \
-    apk add --no-cache python3 ruby curl bash jq unzip wget ca-certificates git github-cli file zip xz lz4 diffutils tree rsync openssh-server openssh-client cronie ripgrep tzdata chromium go maven gradle openjdk21-jdk build-base uv vault py3-pip && \
+    apk add --no-cache python3 ruby curl bash jq unzip wget ca-certificates git github-cli file zip xz lz4 diffutils tree rsync openssh-server openssh-client cronie ripgrep tzdata chromium go maven gradle openjdk21-jdk build-base uv py3-pip && \
     # Add community repo for cargo (includes rustc)
     apk add --no-cache cargo --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community && \
+    # Install vault CLI from HashiCorp releases
+    VAULT_VER="1.21.1" && \
+    curl -fsSL "https://releases.hashicorp.com/vault/${VAULT_VER}/vault_${VAULT_VER}_linux_amd64.zip" -o /tmp/vault.zip && \
+    unzip /tmp/vault.zip -d /usr/local/bin && \
+    rm /tmp/vault.zip && \
+    chmod +x /usr/local/bin/vault && \
     ssh-keygen -A && \
     adduser -S -G node -h /home/madz -s /bin/sh madz && \
     mkdir -p /run/sshd /root/.cache /home/madz/.cache/madz/logs && \
