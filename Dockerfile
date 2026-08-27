@@ -11,22 +11,34 @@ RUN npm ci
 COPY src/ ./src/
 COPY tests/ ./tests/
 
-RUN npm prune --omit=dev && \
-    npm cache clean --force
+RUN npm prune --omit=dev
 
 FROM node:24-alpine
 
+# System packages
 RUN apk update && \
-    apk add --no-cache python3 ruby curl bash jq unzip wget ca-certificates git github-cli file zip xz lz4 diffutils tree rsync openssh-server openssh-client cronie ripgrep tzdata chromium && \
+    apk add --no-cache python3 ruby curl bash jq unzip wget ca-certificates git github-cli file zip xz lz4 diffutils tree rsync openssh-server openssh-client cronie ripgrep tzdata chromium go maven gradle openjdk21-jdk build-base uv py3-pip && \
+    # Add community repo for cargo (includes rustc)
+    apk add --no-cache cargo --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community && \
     ssh-keygen -A && \
     adduser -S -G node -h /home/madz -s /bin/sh madz && \
     mkdir -p /run/sshd /root/.cache /home/madz/.cache/madz/logs && \
     printf '%s\n' '#!/bin/sh' '[ -f /etc/profile.d/madz-env.sh ] && . /etc/profile.d/madz-env.sh' 'if [ -x "/app" ]; then' '    echo "Starting madz..."' '    cd /app && exec node --expose-gc index.js --mode interactive' 'fi' > /etc/profile && \
     passwd -d madz && \
+    # Dev container: allow empty passwords for SSH access
     sed -i 's/^#*PermitEmptyPasswords.*/PermitEmptyPasswords yes/' /etc/ssh/sshd_config && \
-    printf '%s\n' 'AcceptEnv *' >> /etc/ssh/sshd_config && \
-    curl -LsSf https://astral.sh/uv/install.sh | sh && \
-    mv /root/.local/bin/uv /usr/local/bin/uv
+    printf '%s\n' 'AcceptEnv *' >> /etc/ssh/sshd_config
+
+# Python dependency CVE scanning (v2.10.1)
+RUN pip install --break-system-packages --no-cache-dir pip-audit==2.10.1
+
+# Go vulnerability analysis (v1.2.0)
+RUN go install golang.org/x/vuln/cmd/govulncheck@v1.2.0 && \
+    mv /root/go/bin/govulncheck /usr/local/bin/govulncheck
+
+# Rust dependency security auditing (v0.22.2)
+RUN cargo install cargo-audit@0.22.2 --locked && \
+    mv /root/.cargo/bin/cargo-audit /usr/local/bin/cargo-audit
 
 ENV HOME=/home/madz
 
@@ -34,16 +46,14 @@ WORKDIR /app
 
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package*.json ./
-COPY LICENSE ./
-COPY index.js ./
+COPY LICENSE index.js config.yaml ./
 COPY src/ ./src/
-COPY config.yaml ./
 COPY prompts/ ./prompts/
 COPY .skills/ ./.skills/
 COPY docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
 
-RUN chown -R madz:node /app /home/madz && \
+RUN chmod +x /docker-entrypoint.sh && \
+    chown -R madz:node /app /home/madz && \
     chmod -R g+rwX /app /home/madz
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
