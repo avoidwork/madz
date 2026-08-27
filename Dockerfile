@@ -17,7 +17,7 @@ FROM node:24-alpine
 
 # System packages
 RUN apk update && \
-    apk add --no-cache python3 ruby curl bash jq unzip wget ca-certificates git github-cli file zip xz lz4 diffutils tree rsync openssh-server openssh-client cronie ripgrep tzdata chromium go maven gradle openjdk21-jdk build-base uv py3-pip && \
+    apk add --no-cache python3 ruby curl bash jq unzip wget ca-certificates git github-cli file zip xz lz4 diffutils tree rsync openssh-server openssh-client cronie ripgrep tzdata chromium go maven gradle openjdk21-jdk build-base uv vault py3-pip && \
     # Add community repo for cargo (includes rustc)
     apk add --no-cache cargo --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community && \
     ssh-keygen -A && \
