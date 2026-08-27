@@ -14,6 +14,7 @@ Detect the project's language, build system, test framework, and extract relevan
 ## Prerequisites
 
 - **ripgrep (`rg`)** must be installed and available in PATH
+- **jq** must be installed and available in PATH
 - Read access to the project root directory
 
 Check tool availability before proceeding:
@@ -21,6 +22,11 @@ Check tool availability before proceeding:
 ```bash
 if ! command -v rg &> /dev/null; then
   echo "ERROR: ripgrep (rg) is required but not installed. Install with: apt install ripgrep (Debian/Ubuntu), brew install ripgrep (macOS), or cargo install ripgrep (Rust)."
+  exit 1
+fi
+
+if ! command -v jq &> /dev/null; then
+  echo "ERROR: jq is required but not installed. Install with: apt install jq (Debian/Ubuntu), brew install jq (macOS), or apk add jq (Alpine)."
   exit 1
 fi
 ```

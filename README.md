@@ -539,14 +539,14 @@ Auto-discovers Agent Skills spec-compliant skills from `skills/` (user-created) 
 
 **Bundled skills (`.skills/`):** Six pre-packaged skills ship with the harness:
 
-| Skill | Status | Purpose |
-| ----- | ------ | ------- |
-| `build-run` | Scaffolded | Executes build, type-check, lint, and test commands with correct flags for each supported stack. |
-| `dependency-manager` | Scaffolded | Safe dependency add/remove/update operations with lock file management and vulnerability pre-checks. |
-| `project-context` | MVP (fully implemented) | Detects project language, build system, test framework, and dependency manager. Extracts build/test/lint/type-check commands from config files. |
-| `reflection` | Fully implemented | Generates a narrative reflection summary from recent session history to capture mood, energy, and interaction quality. |
-| `security-audit` | Scaffolded | Dependency CVE scanning (trivy/grype), SAST (semgrep), secret scanning (gitleaks), container scanning (trivy image). |
-| `test-env-setup` | Scaffolded | Browser binary management (Playwright/Puppeteer), test database setup (PostgreSQL/SQLite), mock service configuration. |
+| Skill | Purpose |
+| ----- | ------- |
+| `build-run` | Executes build, type-check, lint, and test commands with correct flags for each supported stack. |
+| `dependency-manager` | Safe dependency add/remove/update operations with lock file management and vulnerability pre-checks. |
+| `project-context` | Detects project language, build system, test framework, and dependency manager. Extracts build/test/lint/type-check commands from config files. |
+| `reflection` | Generates a narrative reflection summary from recent session history to capture mood, energy, and interaction quality. |
+| `security-audit` | Dependency CVE scanning (trivy/grype), SAST (semgrep), secret scanning (gitleaks), container scanning (trivy image). |
+| `test-env-setup` | Browser binary management (Playwright/Puppeteer), test database setup (PostgreSQL/SQLite), mock service configuration. |
 
 ### Permission Gating
 
