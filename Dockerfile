@@ -17,7 +17,14 @@ RUN npm prune --omit=dev && \
 FROM node:24-alpine
 
 RUN apk update && \
-    apk add --no-cache python3 py3-pip gcc musl-dev python3-dev ruby curl bash jq unzip wget ca-certificates git github-cli file zip xz lz4 diffutils tree rsync openssh-server openssh-client cronie ripgrep tzdata chromium golang maven gradle openjdk21 build-base && \
+    apk add --no-cache python3 py3-pip gcc musl-dev python3-dev ruby curl bash jq unzip wget ca-certificates git github-cli file zip xz lz4 diffutils tree rsync openssh-server openssh-client cronie ripgrep tzdata chromium golang maven gradle openjdk21 build-base kubectl helm k9s sqlite3 redis-cli postgresql-client mysql-client strace gdb htop tcpdump nmap vim tmux cmake && \
+    # Add community repo for cargo/rustc
+    apk add --no-cache cargo rustc --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community && \
+    # AWS CLI v2 (not in Alpine repos)
+    curl -sL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awscliv2.zip && \
+    unzip -q /tmp/awscliv2.zip -d /tmp/aws && \
+    /tmp/aws/install && \
+    rm -rf /tmp/awscliv2.zip /tmp/aws
     ssh-keygen -A && \
     adduser -S -G node -h /home/madz -s /bin/sh madz && \
     mkdir -p /run/sshd /root/.cache /home/madz/.cache/madz/logs && \
