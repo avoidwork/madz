@@ -541,11 +541,11 @@ Auto-discovers Agent Skills spec-compliant skills from `skills/` (user-created) 
 
 | Skill | Status | Purpose |
 | ----- | ------ | ------- |
-| `reflection` | Fully implemented | Generates a narrative reflection summary from recent session history to capture mood, energy, and interaction quality. |
-| `project-context` | MVP (fully implemented) | Detects project language, build system, test framework, and dependency manager. Extracts build/test/lint/type-check commands from config files. |
-| `security-audit` | Scaffolded | Dependency CVE scanning (trivy/grype), SAST (semgrep), secret scanning (gitleaks), container scanning (trivy image). |
 | `build-run` | Scaffolded | Executes build, type-check, lint, and test commands with correct flags for each supported stack. |
 | `dependency-manager` | Scaffolded | Safe dependency add/remove/update operations with lock file management and vulnerability pre-checks. |
+| `project-context` | MVP (fully implemented) | Detects project language, build system, test framework, and dependency manager. Extracts build/test/lint/type-check commands from config files. |
+| `reflection` | Fully implemented | Generates a narrative reflection summary from recent session history to capture mood, energy, and interaction quality. |
+| `security-audit` | Scaffolded | Dependency CVE scanning (trivy/grype), SAST (semgrep), secret scanning (gitleaks), container scanning (trivy image). |
 | `test-env-setup` | Scaffolded | Browser binary management (Playwright/Puppeteer), test database setup (PostgreSQL/SQLite), mock service configuration. |
 
 ### Permission Gating
