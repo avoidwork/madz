@@ -17,7 +17,9 @@ RUN npm prune --omit=dev && \
 FROM node:24-alpine
 
 RUN apk update && \
-    apk add --no-cache python3 ruby curl bash jq unzip wget ca-certificates git github-cli file zip xz lz4 diffutils tree rsync openssh-server openssh-client cronie ripgrep tzdata chromium && \
+    apk add --no-cache python3 ruby curl bash jq unzip wget ca-certificates git github-cli file zip xz lz4 diffutils tree rsync openssh-server openssh-client cronie ripgrep tzdata chromium go maven gradle openjdk21-jdk build-base uv && \
+    # Add community repo for cargo (includes rustc)
+    apk add --no-cache cargo --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community && \
     ssh-keygen -A && \
     adduser -S -G node -h /home/madz -s /bin/sh madz && \
     mkdir -p /run/sshd /root/.cache /home/madz/.cache/madz/logs && \
@@ -25,8 +27,10 @@ RUN apk update && \
     passwd -d madz && \
     sed -i 's/^#*PermitEmptyPasswords.*/PermitEmptyPasswords yes/' /etc/ssh/sshd_config && \
     printf '%s\n' 'AcceptEnv *' >> /etc/ssh/sshd_config && \
-    curl -LsSf https://astral.sh/uv/install.sh | sh && \
-    mv /root/.local/bin/uv /usr/local/bin/uv
+    pip3 install --break-system-packages --no-cache-dir pip-audit && \
+    go install golang.org/x/vuln/cmd/govulncheck@latest && \
+    mv /root/go/bin/govulncheck /usr/local/bin/govulncheck && \
+    cargo install cargo-audit --locked
 
 ENV HOME=/home/madz
 
