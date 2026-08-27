@@ -537,17 +537,16 @@ All built-in tools are defined in `src/tools/` and registered as LangChain tools
 
 Auto-discovers Agent Skills spec-compliant skills from `skills/` (user-created) and `.skills/` (bundled skills) directories. Each skill directory contains a `SKILL.md` file with YAML frontmatter (`name` required, 1-64 lowercase alphanumeric + hyphens; `description` required, 1-1024 characters; optional `license`, `compatibility`, `metadata`). Supports optional `scripts/` subdirectory containing executable scripts (detected by extension: `.py`, `.sh`, `.js`, `.rb`, `.ts`). The `createSkill` tool lets agents create new skills programmatically — validating spec constraints before writing `SKILL.md` and optionally scaffolding a `scripts/` directory.
 
-**Bundled polyglot toolkit (`.skills/`):** Five pre-packaged skills enable the agent to work across polyglot projects (TypeScript, Python, Java, Go, Rust, etc.):
+**Bundled skills (`.skills/`):** Six pre-packaged skills ship with the harness:
 
 | Skill | Status | Purpose |
 | ----- | ------ | ------- |
+| `reflection` | Fully implemented | Generates a narrative reflection summary from recent session history to capture mood, energy, and interaction quality. |
 | `project-context` | MVP (fully implemented) | Detects project language, build system, test framework, and dependency manager. Extracts build/test/lint/type-check commands from config files. |
 | `security-audit` | Scaffolded | Dependency CVE scanning (trivy/grype), SAST (semgrep), secret scanning (gitleaks), container scanning (trivy image). |
 | `build-run` | Scaffolded | Executes build, type-check, lint, and test commands with correct flags for each supported stack. |
 | `dependency-manager` | Scaffolded | Safe dependency add/remove/update operations with lock file management and vulnerability pre-checks. |
 | `test-env-setup` | Scaffolded | Browser binary management (Playwright/Puppeteer), test database setup (PostgreSQL/SQLite), mock service configuration. |
-
-These form a pipeline: `project-context` → `security-audit` → `build-run` → `dependency-manager` → `test-env-setup`.
 
 ### Permission Gating
 
