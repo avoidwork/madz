@@ -535,7 +535,7 @@ All built-in tools are defined in `src/tools/` and registered as LangChain tools
 
 ### Skills Registry
 
-Auto-discovers Agent Skills spec-compliant skills from `skills/` (user-created) and `.skills/` (bundled polyglot toolkit) directories. Each skill directory contains a `SKILL.md` file with YAML frontmatter (`name` required, 1-64 lowercase alphanumeric + hyphens; `description` required, 1-1024 characters; optional `license`, `compatibility`, `metadata`). Supports optional `scripts/` subdirectory containing executable scripts (detected by extension: `.py`, `.sh`, `.js`, `.rb`, `.ts`). The `createSkill` tool lets agents create new skills programmatically — validating spec constraints before writing `SKILL.md` and optionally scaffolding a `scripts/` directory.
+Auto-discovers Agent Skills spec-compliant skills from `skills/` (user-created) and `.skills/` (bundled skills) directories. Each skill directory contains a `SKILL.md` file with YAML frontmatter (`name` required, 1-64 lowercase alphanumeric + hyphens; `description` required, 1-1024 characters; optional `license`, `compatibility`, `metadata`). Supports optional `scripts/` subdirectory containing executable scripts (detected by extension: `.py`, `.sh`, `.js`, `.rb`, `.ts`). The `createSkill` tool lets agents create new skills programmatically — validating spec constraints before writing `SKILL.md` and optionally scaffolding a `scripts/` directory.
 
 **Bundled polyglot toolkit (`.skills/`):** Five pre-packaged skills enable the agent to work across polyglot projects (TypeScript, Python, Java, Go, Rust, etc.):
 
