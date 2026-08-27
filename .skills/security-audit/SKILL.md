@@ -1,17 +1,17 @@
 ---
 name: "security-audit"
-description: "Run dev-time security scans appropriate for the detected stack — dependency CVEs, SAST, secret scanning, and container scanning."
+description: "Run dev-time security scans appropriate for the detected stack — dependency CVEs, SAST, and secret scanning."
 metadata:
   author: "madz"
   version: "1.0"
-  agent: "coding"
+  agent: "security-audit"
 ---
 
 # Security Audit Skill
 
 Run dev-time security scans appropriate for the detected project stack. This skill depends on `project-context` output to determine which scans are relevant.
 
-**Note:** This skill runs dev-time security checks only. CI/CD pipeline scanning (trivy, semgrep, gitleaks, grype) is handled by the platform environment, not the dev container.
+**Scope:** This skill runs dev-time security checks only. CI/CD pipeline scanning (trivy, semgrep, gitleaks, grype) is handled by the platform environment, not the dev container.
 
 ## Prerequisites
 
@@ -23,7 +23,6 @@ Run dev-time security scans appropriate for the detected project stack. This ski
   - `cargo-audit` — Rust dependency security auditing
   - `oxlint` — JavaScript/TypeScript linting with security rules (project default)
   - `rg` (ripgrep) — pattern matching for secret detection
-  - `docker` — container image scanning
 
 ## Input/Output Contract
 
@@ -42,9 +41,6 @@ Run dev-time security scans appropriate for the detected project stack. This ski
 
 ### Secret Scanning
 - [SEVERITY] <file> — <secret type>
-
-### Container Scanning
-- [SEVERITY] <image> — <vulnerability>
 
 ### Summary
 - Total findings: <count>
@@ -123,26 +119,6 @@ echo "Checking for hardcoded secrets..."
 rg -n 'password\s*=\s*["\x27][^"\x27]+["\x27]' --type txt . 2>/dev/null || true
 rg -n 'api[_-]?key\s*=\s*["\x27][^"\x27]+["\x27]' --type txt . 2>/dev/null || true
 rg -n 'secret\s*=\s*["\x27][^"\x27]+["\x27]' --type txt . 2>/dev/null || true
-```
-
-## 4. Container Scanning
-
-Scan Docker images if a Dockerfile is present.
-
-```bash
-if [ -f "Dockerfile" ] || [ -f "Dockerfile.*" ]; then
-  if command -v docker &> /dev/null; then
-    echo "Scanning Docker image..."
-    # Build the image first if not already built
-    docker build -t madz-scan . 2>/dev/null || true
-    # Use trivy if available, otherwise note container scanning skipped
-    if command -v trivy &> /dev/null; then
-      trivy image --severity HIGH,CRITICAL madz-scan 2>/dev/null || true
-    else
-      echo "NOTE: trivy not installed — container scanning unavailable"
-    fi
-  fi
-fi
 ```
 
 ## Graceful Degradation
