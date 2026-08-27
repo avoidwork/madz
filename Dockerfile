@@ -17,7 +17,7 @@ FROM node:24-alpine
 
 # System packages
 RUN apk update && \
-    apk add --no-cache python3 ruby curl bash jq unzip wget ca-certificates git github-cli file zip xz lz4 diffutils tree rsync openssh-server openssh-client cronie ripgrep tzdata chromium go maven gradle openjdk21-jdk build-base uv && \
+    apk add --no-cache python3 ruby curl bash jq unzip wget ca-certificates git github-cli file zip xz lz4 diffutils tree rsync openssh-server openssh-client cronie ripgrep tzdata chromium go maven gradle openjdk21-jdk build-base uv py3-pip && \
     # Add community repo for cargo (includes rustc)
     apk add --no-cache cargo --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community && \
     ssh-keygen -A && \
@@ -30,14 +30,15 @@ RUN apk update && \
     printf '%s\n' 'AcceptEnv *' >> /etc/ssh/sshd_config
 
 # Python dependency CVE scanning (v2.10.1)
-RUN pip3 install --break-system-packages --no-cache-dir pip-audit==2.10.1
+RUN pip install --break-system-packages --no-cache-dir pip-audit==2.10.1
 
 # Go vulnerability analysis (v1.2.0)
 RUN go install golang.org/x/vuln/cmd/govulncheck@v1.2.0 && \
     mv /root/go/bin/govulncheck /usr/local/bin/govulncheck
 
 # Rust dependency security auditing (v0.22.2)
-RUN cargo install cargo-audit@0.22.2 --locked
+RUN cargo install cargo-audit@0.22.2 --locked && \
+    mv /root/.cargo/bin/cargo-audit /usr/local/bin/cargo-audit
 
 ENV HOME=/home/madz
 
