@@ -70,7 +70,13 @@ fi
 - Medium: <count>
 - Low: <count>
 
-**Reference:** See `references/owasp-top-10.md` for OWASP Top 10 categories to contextualize findings.
+**Reference:** See `references/` for OWASP Top 10 categories to contextualize findings:
+
+- `owasp-top-10.md` — OWASP Top 10 2021 (legacy reference)
+- `owasp-top-10-2025.md` — OWASP Top 10 2025 (current web app security)
+- `owasp-llm-top-10-2025.md` — OWASP Top 10 for LLM Applications 2025
+- `owasp-mcp-top-10-2025.md` — OWASP MCP Top 10 2025
+- `owasp-business-logic-top-10-2025.md` — OWASP Business Logic Abuse Top 10 2025
 ```
 
 ## 1. Dependency CVE Scanning
