@@ -17,14 +17,11 @@ RUN npm prune --omit=dev && \
 FROM node:24-alpine
 
 RUN apk update && \
-    apk add --no-cache python3 py3-pip gcc musl-dev python3-dev ruby curl bash jq unzip wget ca-certificates git github-cli file zip xz lz4 diffutils tree rsync openssh-server openssh-client cronie ripgrep tzdata chromium golang maven gradle openjdk21 build-base kubectl helm k9s sqlite3 redis-cli postgresql-client mysql-client strace gdb htop tcpdump nmap vim tmux cmake && \
-    # Add community repo for cargo/rustc
-    apk add --no-cache cargo rustc --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community && \
+    apk add --no-cache python3 py3-pip gcc musl-dev python3-dev ruby curl bash jq unzip wget ca-certificates git github-cli file zip xz lz4 diffutils tree rsync openssh-server openssh-client cronie ripgrep tzdata chromium go maven gradle openjdk21-jdk build-base kubectl helm k9s sqlite redis postgresql-client mysql-client strace gdb htop tcpdump nmap vim tmux cmake && \
+    # Add community repo for cargo (includes rustc)
+    apk add --no-cache cargo --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community && \
     # AWS CLI v2 (not in Alpine repos)
-    curl -sL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awscliv2.zip && \
-    unzip -q /tmp/awscliv2.zip -d /tmp/aws && \
-    /tmp/aws/install && \
-    rm -rf /tmp/awscliv2.zip /tmp/aws
+    pip3 install --break-system-packages --no-cache-dir awscli && \
     ssh-keygen -A && \
     adduser -S -G node -h /home/madz -s /bin/sh madz && \
     mkdir -p /run/sshd /root/.cache /home/madz/.cache/madz/logs && \
@@ -32,12 +29,11 @@ RUN apk update && \
     passwd -d madz && \
     sed -i 's/^#*PermitEmptyPasswords.*/PermitEmptyPasswords yes/' /etc/ssh/sshd_config && \
     printf '%s\n' 'AcceptEnv *' >> /etc/ssh/sshd_config && \
-    curl -LsSf https://astral.sh/uv/install.sh | sh && \
-    mv /root/.local/bin/uv /usr/local/bin/uv && \
     # Polyglot toolkit CLI tools (for .skills/ bundled skills)
     # yq — YAML parsing
-    wget -qO /usr/local/bin/yq "https://github.com/mikefarah/yq/releases/download/v4.45.1/yq_linux_amd64" && \
-    chmod +x /usr/local/bin/yq && \
+    apk add --no-cache yq && \
+    # uv — Python package manager
+    apk add --no-cache uv && \
     # Language-specific dev tools (used with graceful degradation)
     # pip-audit — Python dependency CVE scanning
     pip3 install --break-system-packages --no-cache-dir pip-audit && \
