@@ -1,6 +1,6 @@
 ---
 name: "security-audit"
-description: "Run security scans appropriate for the detected stack — dependency CVEs, SAST, secret scanning, and container scanning with graceful degradation."
+description: "Run dev-time security scans appropriate for the detected stack — dependency CVEs, SAST, secret scanning, and container scanning."
 metadata:
   author: "madz"
   version: "1.0"
@@ -9,7 +9,9 @@ metadata:
 
 # Security Audit Skill
 
-Run security scans appropriate for the detected project stack. This skill depends on `project-context` output to determine which scans are relevant.
+Run dev-time security scans appropriate for the detected project stack. This skill depends on `project-context` output to determine which scans are relevant.
+
+**Note:** This skill runs dev-time security checks only. CI/CD pipeline scanning (trivy, semgrep, gitleaks, grype) is handled by the platform environment, not the dev container.
 
 ## Prerequisites
 
