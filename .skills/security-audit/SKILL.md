@@ -19,7 +19,7 @@ Run security scans appropriate for the detected project stack. This skill depend
   - `pip-audit` — Python dependency CVE scanning
   - `govulncheck` — Go vulnerability analysis
   - `cargo-audit` — Rust dependency security auditing
-- **CI/CD tools** (not required in dev container — run in pipeline instead):
+- **Security scanning tools** (optional, used with graceful degradation):
   - `trivy` — container and dependency vulnerability scanning
   - `semgrep` — language-agnostic SAST
   - `gitleaks` — secret scanning
@@ -69,6 +69,8 @@ fi
 - High: <count>
 - Medium: <count>
 - Low: <count>
+
+**Reference:** See `references/owasp-top-10.md` for OWASP Top 10 categories to contextualize findings.
 ```
 
 ## 1. Dependency CVE Scanning
