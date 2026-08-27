@@ -14,40 +14,31 @@ Run security scans appropriate for the detected project stack. This skill depend
 ## Prerequisites
 
 - **project-context skill** must be run first to detect the project stack
-- Required tools (availability checked at runtime):
-  - `trivy` (v0.50+) — container and dependency vulnerability scanning
-  - `grype` (v0.70+) — dependency CVE scanning
-  - `semgrep` (v1.0+) — language-agnostic SAST
-  - `gitleaks` (v8.0+) — secret scanning
-- Optional tools (used with graceful degradation if available):
+- **Language-specific scanners** (optional, used with graceful degradation):
+  - `npm audit` — Node.js dependency CVE scanning (built into Node, always available)
   - `pip-audit` — Python dependency CVE scanning
   - `govulncheck` — Go vulnerability analysis
   - `cargo-audit` — Rust dependency security auditing
-  - `eslint` — JavaScript/TypeScript linting (project uses oxlint by default)
-  - `spotbugs` — Java static analysis (if configured in pom.xml)
+- **CI/CD tools** (not required in dev container — run in pipeline instead):
+  - `trivy` — container and dependency vulnerability scanning
+  - `semgrep` — language-agnostic SAST
+  - `gitleaks` — secret scanning
+  - `grype` — dependency CVE scanning
 
 Check tool availability before proceeding:
 
 ```bash
-MISSING_TOOLS=()
-for tool in trivy grype semgrep gitleaks; do
+MISSING_CI_TOOLS=()
+for tool in trivy semgrep gitleaks grype; do
   if ! command -v "$tool" &> /dev/null; then
-    MISSING_TOOLS+=("$tool")
+    MISSING_CI_TOOLS+=("$tool")
   fi
 done
 
-if [ ${#MISSING_TOOLS[@]} -gt 0 ]; then
-  echo "WARNING: Missing security tools: ${MISSING_TOOLS[*]}"
-  echo "Install with:"
-  for tool in "${MISSING_TOOLS[@]}"; do
-    case "$tool" in
-      trivy)   echo "  trivy:   https://aquasecurity.github.io/trivy/latest/getting-started/installation/" ;;
-      grype)   echo "  grype:   https://github.com/anchore/grype#install" ;;
-      semgrep) echo "  semgrep: pip install semgrep" ;;
-      gitleaks) echo "  gitleaks: https://github.com/gitleaks/gitleaks#install" ;;
-    esac
-  done
-  echo "Proceeding with available tools only."
+if [ ${#MISSING_CI_TOOLS[@]} -gt 0 ]; then
+  echo "NOTE: CI/CD security tools not available in dev container (expected): ${MISSING_CI_TOOLS[*]}"
+  echo "These tools belong in CI/CD pipelines, not the dev workspace."
+  echo "Proceeding with available dev tools only."
 fi
 ```
 
@@ -82,32 +73,18 @@ fi
 
 ## 1. Dependency CVE Scanning
 
-Run dependency vulnerability scanning using available tools:
-
-```bash
-# Trivy filesystem scan (dependency CVEs)
-if command -v trivy &> /dev/null; then
-  echo "Running trivy dependency scan..."
-  trivy fs --severity HIGH,CRITICAL --format table . 2>/dev/null || true
-fi
-
-# Grype dependency scan (alternative/complement to trivy)
-if command -v grype &> /dev/null; then
-  echo "Running grype dependency scan..."
-  grype . --severity HIGH,CRITICAL --format table 2>/dev/null || true
-fi
-```
+Run language-specific dependency vulnerability scanning. These tools are useful in the dev environment for quick checks. CI/CD tools like `trivy` and `grype` are not expected in the dev container — they belong in the pipeline.
 
 Language-specific dependency scanning:
 
 ```bash
-# Node.js — npm audit
+# Node.js — npm audit (always available)
 if [ -f "package.json" ]; then
   echo "Running npm audit..."
   npm audit --json 2>/dev/null || true
 fi
 
-# Python — pip audit (if pip-audit is installed)
+# Python — pip audit (if installed)
 if [ -f "pyproject.toml" ] || [ -f "requirements.txt" ]; then
   if command -v pip-audit &> /dev/null; then
     echo "Running pip-audit..."
@@ -115,7 +92,7 @@ if [ -f "pyproject.toml" ] || [ -f "requirements.txt" ]; then
   fi
 fi
 
-# Go — govulncheck
+# Go — govulncheck (if installed)
 if [ -f "go.mod" ]; then
   if command -v govulncheck &> /dev/null; then
     echo "Running govulncheck..."
@@ -123,7 +100,7 @@ if [ -f "go.mod" ]; then
   fi
 fi
 
-# Rust — cargo audit
+# Rust — cargo audit (if installed)
 if [ -f "Cargo.toml" ]; then
   if command -v cargo-audit &> /dev/null; then
     echo "Running cargo audit..."
@@ -134,7 +111,7 @@ fi
 
 ## 2. SAST Scanning
 
-Run static application security testing with semgrep:
+Run static application security testing. Note: `semgrep` is a CI/CD tool — it's not expected in the dev container. If the IC has it installed locally, great. Otherwise, skip it.
 
 ```bash
 if command -v semgrep &> /dev/null; then
@@ -148,6 +125,8 @@ if command -v semgrep &> /dev/null; then
 
   # Run strict mode for high-confidence findings
   semgrep --strict --config auto . 2>/dev/null || true
+else
+  echo "SKIP: semgrep not available — SAST scanning deferred to CI/CD pipeline"
 fi
 ```
 
@@ -171,12 +150,14 @@ fi
 
 ## 3. Secret Scanning
 
-Run secret detection with gitleaks:
+Run secret detection. Note: `gitleaks` is a CI/CD tool — not expected in the dev container. Use basic pattern matching as a fallback.
 
 ```bash
 if command -v gitleaks &> /dev/null; then
   echo "Running gitleaks secret scan..."
   gitleaks detect --source . --report-format json --report-path gitleaks-report.json 2>/dev/null || true
+else
+  echo "SKIP: gitleaks not available — secret scanning deferred to CI/CD pipeline"
 fi
 ```
 
@@ -192,7 +173,7 @@ rg -n 'secret\s*=\s*["\x27][^"\x27]+["\x27]' --type txt . 2>/dev/null || true
 
 ## 4. Container Scanning
 
-Scan Docker images if a Dockerfile is present:
+Scan Docker images if a Dockerfile is present. Note: `trivy` is a CI/CD tool — not expected in the dev container.
 
 ```bash
 if [ -f "Dockerfile" ] || [ -f "Dockerfile.*" ]; then
@@ -201,6 +182,8 @@ if [ -f "Dockerfile" ] || [ -f "Dockerfile.*" ]; then
     # Build the image first if not already built
     docker build -t madz-scan . 2>/dev/null || true
     trivy image --severity HIGH,CRITICAL madz-scan 2>/dev/null || true
+  else
+    echo "SKIP: trivy not available — container scanning deferred to CI/CD pipeline"
   fi
 fi
 ```
