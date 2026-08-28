@@ -1,3 +1,8 @@
+FROM rust:1.96-alpine3.21 AS cargo-audit-builder
+
+RUN cargo install cargo-audit@0.22.2 --locked && \
+    cp /usr/local/cargo/bin/cargo-audit /cargo-audit
+
 FROM node:24-alpine AS builder
 
 RUN apk add --no-cache python3 make g++ bash
@@ -17,11 +22,9 @@ FROM node:24-alpine
 
 # System packages
 RUN apk update && \
-    apk add --no-cache python3 ruby curl bash jq unzip wget ca-certificates git github-cli file zip xz lz4 diffutils tree rsync openssh-server openssh-client cronie ripgrep tzdata chromium go maven gradle openjdk21-jdk build-base uv py3-pip && \
-    # Add community repo for cargo (includes rustc)
-    apk add --no-cache cargo --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community && \
+    apk add --no-cache python3 ruby curl bash jq unzip wget ca-certificates git github-cli file zip xz lz4 diffutils tree rsync openssh-server openssh-client cronie ripgrep tzdata chromium go maven gradle openjdk21-jdk uv py3-pip && \
     # Install vault CLI from HashiCorp releases
-    VAULT_VER="1.21.1" && \
+    VAULT_VER="2.0.4" && \
     curl -fsSL "https://releases.hashicorp.com/vault/${VAULT_VER}/vault_${VAULT_VER}_linux_amd64.zip" -o /tmp/vault.zip && \
     unzip /tmp/vault.zip -d /usr/local/bin && \
     rm /tmp/vault.zip && \
@@ -42,9 +45,8 @@ RUN pip install --break-system-packages --no-cache-dir pip-audit==2.10.1
 RUN go install golang.org/x/vuln/cmd/govulncheck@v1.2.0 && \
     mv /root/go/bin/govulncheck /usr/local/bin/govulncheck
 
-# Rust dependency security auditing (v0.22.2)
-RUN cargo install cargo-audit@0.22.2 --locked && \
-    mv /root/.cargo/bin/cargo-audit /usr/local/bin/cargo-audit
+# Rust dependency security auditing (v0.22.2) — pre-compiled from builder stage
+COPY --from=cargo-audit-builder /cargo-audit /usr/local/bin/cargo-audit
 
 ENV HOME=/home/madz
 
