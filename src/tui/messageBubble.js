@@ -99,6 +99,12 @@ export function createPubSub() {
 export const PubSubContext = React.createContext({ subscribe: () => {}, unsubscribe: () => {} });
 
 /**
+ * Context for scroll imperative — allows MessageBubble to trigger
+ * ScrollView auto-scroll without parent re-render.
+ */
+export const ScrollContext = React.createContext({ scrollToBottom: () => {} });
+
+/**
  * A single message bubble with its own chunks state.
  *
  * Uses pub/sub to listen for streaming updates directly from MessageList.
@@ -128,7 +134,8 @@ export function MessageBubbleInner({
 	streaming,
 }) {
 	const [chunks, setChunks] = useState([]);
-	const { subscribe, unsubscribe, publish } = useContext(PubSubContext);
+	const { subscribe, unsubscribe } = useContext(PubSubContext);
+	const { scrollToBottom } = useContext(ScrollContext);
 
 	// Subscribe to pub/sub updates — each update appends a chunk, triggering
 	// re-render of just this bubble without re-rendering the parent.
@@ -152,8 +159,9 @@ export function MessageBubbleInner({
 	const text = chunks.at(-1) || content || "";
 
 	// Trigger scroll-to-bottom when streaming content grows.
-	// This bypasses the ScrollView's onContentHeightChange which doesn't
-	// fire reliably when bubbles update via pub/sub (no parent re-render).
+	// Uses ScrollContext to call scrollToBottom directly on the ScrollView,
+	// bypassing the broken onContentHeightChange path that never fires
+	// when bubbles update via pub/sub (no parent re-render).
 	const prevContentLengthRef = useRef(0);
 	useEffect(() => {
 		if (!streaming) {
@@ -161,10 +169,10 @@ export function MessageBubbleInner({
 			return;
 		}
 		if (text.length > prevContentLengthRef.current) {
-			publish("scroll-to-bottom", { id: topic });
+			scrollToBottom();
 		}
 		prevContentLengthRef.current = text.length;
-	}, [text, streaming, publish, topic]);
+	}, [text, streaming, scrollToBottom]);
 
 	const ts = time || formatTime(new Date());
 	const colors = getRoleColors(role);

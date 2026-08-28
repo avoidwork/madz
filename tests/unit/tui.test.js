@@ -972,10 +972,9 @@ describe("StatusBar - no appInfo rendering", () => {
 		const { renderToString } = await import("ink");
 		const { StatusBar } = await import("../../src/tui/statusBar.js");
 
-		const memoInner = StatusBar.type;
 		const result = String(
 			renderToString(
-				React.createElement(memoInner, {
+				React.createElement(StatusBar, {
 					statusMessage: "Ready",
 					skillCount: 3,
 					messageCount: 10,
@@ -992,10 +991,9 @@ describe("StatusBar - no appInfo rendering", () => {
 		const { renderToString } = await import("ink");
 		const { StatusBar } = await import("../../src/tui/statusBar.js");
 
-		const memoInner = StatusBar.type;
 		const result = String(
 			renderToString(
-				React.createElement(memoInner, {
+				React.createElement(StatusBar, {
 					statusMessage: "Ready",
 					skillCount: 1,
 					messageCount: 5,
@@ -1013,10 +1011,9 @@ describe("StatusBar - no appInfo rendering", () => {
 		const { renderToString } = await import("ink");
 		const { StatusBar } = await import("../../src/tui/statusBar.js");
 
-		const memoInner = StatusBar.type;
 		const result = String(
 			renderToString(
-				React.createElement(memoInner, {
+				React.createElement(StatusBar, {
 					statusMessage: "Streaming...",
 					skillCount: 0,
 					messageCount: 0,
