@@ -47,7 +47,7 @@ export function formatSize(bytes) {
  * Displays status indicator, status message, and info counts.
  * Input text entry is handled by InputPanel with IRC-style prompt ("> text" / ": text").
  */
-export const StatusBar = React.memo(function StatusBar({
+export function StatusBar({
 	statusMessage = "",
 	skillCount = 0,
 	messageCount = 0,
@@ -95,4 +95,4 @@ export const StatusBar = React.memo(function StatusBar({
 			),
 		),
 	);
-});
+}

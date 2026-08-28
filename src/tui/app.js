@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Box, useApp, useInput, useWindowSize } from "ink";
 import { CommandParser } from "./commandParser.js";
 import { ConversationPanel } from "./conversationPanel.js";
@@ -68,26 +68,7 @@ export default function App({
 		process.on("unhandledRejection", onUnhandled);
 		// Initialize contextSize from the current conversation token count + system prompt
 		if (sessionState) {
-			const conversation = sessionState.getConversation();
-			const providerName = sessionState.getProvider();
-			const providerConfig = config?.providers?.[providerName] || {};
-			const modelName = providerConfig.model || "gpt-4o";
-			const encoding = providerConfig.encoding;
-
-			// Calculate conversation tokens
-			let totalTokens = calculateConversationTokens(conversation, modelName, encoding);
-
-			// Add system prompt tokens
-			loadSystemPrompt().then((systemPrompt) => {
-				if (systemPrompt) {
-					totalTokens += calculateConversationTokens(
-						[{ role: "system", content: systemPrompt }],
-						modelName,
-						encoding,
-					);
-				}
-				setContextSize(totalTokens);
-			});
+			updateContextSize(sessionState, config);
 		}
 		return () => {
 			process.off("uncaughtException", onUncaught);
@@ -356,27 +337,9 @@ export default function App({
 		addMessage({ role: "user", content: text });
 
 		// Persist user message to session state and recalculate context
-		// NOTE: Don't add to sessionState before dispatchProvider — it needs to see
-		// an empty conversation to correctly set isNewThread=true for the system prompt
 		if (sessionState) {
-			const conversation = sessionState.getConversation();
-			const providerName = sessionState.getProvider();
-			const providerConfig = config?.providers?.[providerName] || {};
-			const modelName = providerConfig.model || "gpt-4o";
-			const encoding = providerConfig.encoding;
-
-			// Calculate conversation tokens + system prompt
-			let totalTokens = calculateConversationTokens(conversation, modelName, encoding);
-			loadSystemPrompt().then((systemPrompt) => {
-				if (systemPrompt) {
-					totalTokens += calculateConversationTokens(
-						[{ role: "system", content: systemPrompt }],
-						modelName,
-						encoding,
-					);
-				}
-				setContextSize(totalTokens);
-			});
+			sessionState.addExchange({ role: "user", content: text });
+			updateContextSize(sessionState, config);
 		}
 
 		const assistantTime = getTimestamp();
@@ -480,24 +443,7 @@ export default function App({
 					role: "assistant",
 					content: responseContent,
 				});
-				const conversation = sessionState.getConversation();
-				const providerName = sessionState.getProvider();
-				const providerConfig = config?.providers?.[providerName] || {};
-				const modelName = providerConfig.model || "gpt-4o";
-				const encoding = providerConfig.encoding;
-
-				// Calculate conversation tokens + system prompt
-				let totalTokens = calculateConversationTokens(conversation, modelName, encoding);
-				loadSystemPrompt().then((systemPrompt) => {
-					if (systemPrompt) {
-						totalTokens += calculateConversationTokens(
-							[{ role: "system", content: systemPrompt }],
-							modelName,
-							encoding,
-						);
-					}
-					setContextSize(totalTokens);
-				});
+				updateContextSize(sessionState, config);
 			}
 			if (onSaveSession) {
 				onSaveSession();
@@ -689,6 +635,36 @@ export default function App({
 		);
 	};
 
+	/**
+	 * Calculate total context tokens (conversation + system prompt) and set contextSize.
+	 * Single source of truth — replaces 3 duplicate blocks.
+	 * @param {Object} sessionState - Current session state
+	 * @param {Object} config - App config
+	 */
+	const updateContextSize = useCallback(
+		(sessionState, config) => {
+			if (!sessionState) return;
+			const conversation = sessionState.getConversation();
+			const providerName = sessionState.getProvider();
+			const providerConfig = config?.providers?.[providerName] || {};
+			const modelName = providerConfig.model || "gpt-4o";
+			const encoding = providerConfig.encoding;
+
+			let totalTokens = calculateConversationTokens(conversation, modelName, encoding);
+			loadSystemPrompt().then((systemPrompt) => {
+				if (systemPrompt) {
+					totalTokens += calculateConversationTokens(
+						[{ role: "system", content: systemPrompt }],
+						modelName,
+						encoding,
+					);
+				}
+				setContextSize(totalTokens);
+			});
+		},
+		[calculateConversationTokens],
+	);
+
 	const addMessage = (msg) => {
 		const time = getTimestamp();
 		messageListRef.current?.addMessage(msg.role, msg.content, { time });
@@ -703,89 +679,87 @@ export default function App({
 	 * @param {Function} [onTextReceived] - Optional callback when text arrives
 	 * @returns {Function} Event callback for dispatchProvider
 	 */
-	const createStreamingHandler = (
-		committedContentRef,
-		committedReasoningRef,
-		lastToolCallDisplayRef,
-		onTextReceived,
-	) => {
-		return (event) => {
-			if (shouldAbort()) return;
-			try {
-				// Capture all events on the message
-				const currentEvents =
-					messageListRef.current?.getMessageData(streamingMsgIdRef.current)?.events || [];
-				messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
-					events: [...currentEvents, event],
-				});
-
-				if (event.type === "message") {
-					committedContentRef.current = (committedContentRef.current || "") + event.text;
+	const createStreamingHandler = useCallback(
+		(committedContentRef, committedReasoningRef, lastToolCallDisplayRef, onTextReceived) => {
+			return (event) => {
+				if (shouldAbort()) return;
+				try {
+					// Capture all events on the message
+					const currentEvents =
+						messageListRef.current?.getMessageData(streamingMsgIdRef.current)?.events || [];
 					messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
-						content: committedContentRef.current + (config?.tui?.cursorChar || "\u2588"),
-						streaming: true,
+						events: [...currentEvents, event],
 					});
-					messageListRef.current?._triggerRender();
-					if (onTextReceived) onTextReceived();
-				}
 
-				// Handle on_chat_model_stream — accumulate content and reasoning
-				if (event.type === "on_chat_model_stream") {
-					if (event.data?.chunk?.content) {
-						committedContentRef.current =
-							(committedContentRef.current || "") + event.data.chunk.content;
+					if (event.type === "message") {
+						committedContentRef.current = (committedContentRef.current || "") + event.text;
 						messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
 							content: committedContentRef.current + (config?.tui?.cursorChar || "\u2588"),
 							streaming: true,
 						});
 						messageListRef.current?._triggerRender();
+						if (onTextReceived) onTextReceived();
 					}
-					if (event.data?.chunk?.reasoning) {
-						committedReasoningRef.current =
-							(committedReasoningRef.current || "") + event.data.chunk.reasoning;
+
+					// Handle on_chat_model_stream — accumulate content and reasoning
+					if (event.type === "on_chat_model_stream") {
+						if (event.data?.chunk?.content) {
+							committedContentRef.current =
+								(committedContentRef.current || "") + event.data.chunk.content;
+							messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
+								content: committedContentRef.current + (config?.tui?.cursorChar || "\u2588"),
+								streaming: true,
+							});
+							messageListRef.current?._triggerRender();
+						}
+						if (event.data?.chunk?.reasoning) {
+							committedReasoningRef.current =
+								(committedReasoningRef.current || "") + event.data.chunk.reasoning;
+						}
 					}
-				}
 
-				// Handle on_tool_start — set activeToolCall
-				if (event.type === "on_tool_start") {
-					messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
-						activeToolCall: {
-							name: event.name,
-							input: event.data?.input,
-							status: "running",
-						},
-					});
-				}
-
-				// Handle on_tool_end — clear activeToolCall, set toolCallDisplay
-				if (event.type === "on_tool_end") {
-					messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
-						activeToolCall: null,
-					});
-					if (event.data?.output) {
-						lastToolCallDisplayRef.current =
-							(lastToolCallDisplayRef.current || "") + event.data.output;
+					// Handle on_tool_start — set activeToolCall
+					if (event.type === "on_tool_start") {
 						messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
-							toolCallDisplay: lastToolCallDisplayRef.current,
+							activeToolCall: {
+								name: event.name,
+								input: event.data?.input,
+								status: "running",
+							},
 						});
 					}
-				}
 
-				// Handle on_tool_error — set activeToolCall with error
-				if (event.type === "on_tool_error") {
-					messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
-						activeToolCall: {
-							name: event.name,
-							error: event.data?.error,
-							status: "error",
-						},
-					});
+					// Handle on_tool_end — clear activeToolCall, set toolCallDisplay
+					if (event.type === "on_tool_end") {
+						messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
+							activeToolCall: null,
+						});
+						if (event.data?.output) {
+							lastToolCallDisplayRef.current =
+								(lastToolCallDisplayRef.current || "") + event.data.output;
+							messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
+								toolCallDisplay: lastToolCallDisplayRef.current,
+							});
+						}
+					}
+
+					// Handle on_tool_error — set activeToolCall with error
+					if (event.type === "on_tool_error") {
+						messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
+							activeToolCall: {
+								name: event.name,
+								error: event.data?.error,
+								status: "error",
+							},
+						});
+					}
+				} catch (cbErr) {
+					logger.debug(`[streaming] callback error: ${cbErr.message}`);
 				}
-			} catch (cbErr) {
-				logger.debug(`[streaming] callback error: ${cbErr.message}`);
-			}
-		};
-	};
+			};
+		},
+		[config?.tui?.cursorChar],
+	);
 
 	/**
 	 * Finalize streaming message — strips cursor, sets final state.

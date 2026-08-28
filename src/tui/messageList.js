@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState, forwardRef } from "react";
 import { Box, Text, useStdout } from "ink";
 import { ScrollView } from "ink-scroll-view";
-import { MessageBubble, PubSubContext } from "./messageBubble.js";
+import { MessageBubble, PubSubContext, ScrollContext } from "./messageBubble.js";
 
 /**
  * Pub/Sub wrapper component for MessageList children.
@@ -252,6 +252,14 @@ export const MessageList = forwardRef(function MessageList(
 		},
 
 		/**
+		 * Scroll to the bottom of the ScrollView.
+		 * Called by MessageBubble when streaming content grows.
+		 */
+		scrollToBottom() {
+			scrollRef.current?.scrollToBottom?.();
+		},
+
+		/**
 		 * Get internal state (test/debug).
 		 * @returns {Object}
 		 * @internal
@@ -319,75 +327,77 @@ export const MessageList = forwardRef(function MessageList(
 
 	// Detect manual scroll-up: when user scrolls away from bottom,
 	// suppress auto-scroll until they return to bottom or streaming completes.
-	// Checked inline in handleContentHeightChange — not via useEffect, because
-	// the ref-only approach never refreshed after mount.
+	const isUserScrolledUpRef = useRef(false);
 
 	// Scroll-to-bottom whenever content height changes (new message added).
 	// Fires on children array changes — covers user, system, and assistant messages.
 	// Uses the imperative scrollToBottom() API exposed by ScrollView.
+	// Respects manual scroll-up detection: only auto-scrolls when user is at bottom.
 	const handleContentHeightChange = (height, previousHeight) => {
 		if (!scrollRef.current || height <= previousHeight) return;
+		// Respect manual scroll-up: don't jump user back to bottom if they're reading
+		if (isUserScrolledUpRef.current) return;
 		scrollRef.current.scrollToBottom?.();
 		lastMsgCountRef.current = idsRef.current.length;
 	};
-
-	// Render the last N messages as MessageBubble elements.
-	// Each bubble subscribes to its own pub/sub topic for streaming updates.
-	// Children array is stabilized in a ref — only rebuilt when message count
-	// changes (new message added, pruned, or cleared). This lets Ink's diffing
-	// reuse existing elements and only update the one bubble that changed.
-	//
-	// The data layer stores all messages without a cap. The ScrollView handles
-	// scrolling through the full conversation history. The render window keeps
-	// the React tree bounded; pub/sub topics for messages far from the current
-	// view are pruned to keep memory bounded.
-	const childrenRef = useRef(null);
 
 	// Virtual render window — keeps the React tree bounded while the data
 	// layer stores all messages. The ScrollView scrolls through the full
 	// conversation history; only the last N messages are rendered as bubbles.
 	// Configurable via `tui.renderWindow` in config.yaml.
-	const renderData = idsRef.current.slice(-renderWindow);
-	const prunedIds = idsRef.current.slice(0, idsRef.current.length - renderWindow);
-	for (const id of prunedIds) {
-		topicsRef.current.delete(`msg-${id}`);
-	}
+	// Guarded by count check — slice and prune only run when message count changes.
+	const childrenRef = useRef(null);
+	const prevRenderCountRef = useRef(0);
 
-	// Rebuild children only when message count changes.
-	const currentCount = renderData.length;
-	if (childrenRef.current === null || childrenRef.current._count !== currentCount) {
-		const newChildren = renderData.map((id) => {
-			const data = dataRef.current.get(id);
-			if (!data) return null;
-			// Use stable content reference from contentRef for React.memo to work
-			const stableContent = contentRef.current.get(id) || data.content;
-			return React.createElement(MessageBubble, {
-				key: id,
-				role: data.role,
-				content: stableContent,
-				time: data.time,
-				reasoningContent: data.reasoningContent,
-				activeToolCall: data.activeToolCall,
-				toolCallDisplay: data.toolCallDisplay,
-				events: data.events,
-				streaming: data.streaming,
-				assistantName,
-				topic: `msg-${id}`,
-			});
-		});
-
-		if (newChildren.length === 0) {
-			newChildren.push(
-				React.createElement(
-					Text,
-					{ key: "empty", color: "gray" },
-					" No messages yet. Start chatting!",
-				),
-			);
+	// Virtual render window — keeps the React tree bounded while the data
+	// layer stores all messages. The ScrollView scrolls through the full
+	// conversation history; only the last N messages are rendered as bubbles.
+	// Configurable via `tui.renderWindow` in config.yaml.
+	const currentCount = idsRef.current.length;
+	if (currentCount !== prevRenderCountRef.current) {
+		const renderData = idsRef.current.slice(-renderWindow);
+		const prunedIds = idsRef.current.slice(0, idsRef.current.length - renderWindow);
+		for (const id of prunedIds) {
+			topicsRef.current.delete(`msg-${id}`);
 		}
 
-		newChildren._count = currentCount;
-		childrenRef.current = newChildren;
+		// Rebuild children only when message count changes.
+		if (childrenRef.current === null || childrenRef.current._count !== renderData.length) {
+			const newChildren = renderData.map((id) => {
+				const data = dataRef.current.get(id);
+				if (!data) return null;
+				// Use stable content reference from contentRef for React.memo to work
+				const stableContent = contentRef.current.get(id) || data.content;
+				return React.createElement(MessageBubble, {
+					key: id,
+					role: data.role,
+					content: stableContent,
+					time: data.time,
+					reasoningContent: data.reasoningContent,
+					activeToolCall: data.activeToolCall,
+					toolCallDisplay: data.toolCallDisplay,
+					events: data.events,
+					streaming: data.streaming,
+					assistantName,
+					topic: `msg-${id}`,
+				});
+			});
+
+			if (newChildren.length === 0) {
+				newChildren.push(
+					React.createElement(
+						Text,
+						{ key: "empty", color: "gray" },
+						" No messages yet. Start chatting!",
+					),
+				);
+			}
+
+			newChildren._count = renderData.length;
+			childrenRef.current = newChildren;
+		}
+
+		prevRenderCountRef.current = currentCount;
 	}
 
 	const children = childrenRef.current;
@@ -395,25 +405,35 @@ export const MessageList = forwardRef(function MessageList(
 	// Sync scroll offset back from ScrollView (e.g., keyboard nav).
 	const handleScroll = (offset) => {
 		setScrollOffset(offset);
+		// Track when user is at bottom vs scrolled up
+		if (offset === 0) {
+			isUserScrolledUpRef.current = false;
+		} else {
+			isUserScrolledUpRef.current = true;
+		}
 	};
 
 	return React.createElement(
 		PubSubProvider,
 		{ subscribe, unsubscribe, publish },
 		React.createElement(
-			Box,
-			{ key: "panel", flexDirection: "column", flexGrow: 1 },
+			ScrollContext.Provider,
+			{ value: { scrollToBottom: imperativeApiRef.current?.scrollToBottom } },
 			React.createElement(
-				ScrollView,
-				{
-					ref: scrollRef,
-					key: "scroll",
-					grow: 1,
-					scrollOffset,
-					onContentHeightChange: handleContentHeightChange,
-					onScroll: handleScroll,
-				},
-				...children,
+				Box,
+				{ key: "panel", flexDirection: "column", flexGrow: 1 },
+				React.createElement(
+					ScrollView,
+					{
+						ref: scrollRef,
+						key: "scroll",
+						grow: 1,
+						scrollOffset,
+						onContentHeightChange: handleContentHeightChange,
+						onScroll: handleScroll,
+					},
+					...children,
+				),
 			),
 		),
 	);
