@@ -135,8 +135,8 @@ export default function App({
 	 * Handle user input: parse commands or dispatch as chat.
 	 * @param {string} text - Raw user input text
 	 */
-		// Process command or dispatch as normal chat
-const handleCommand = async (trimmed) => {
+	// Process command or dispatch as normal chat
+	const handleCommand = async (trimmed) => {
 		try {
 			// Always show the user's command in the chat display
 			addMessage({ role: "user", content: trimmed });
@@ -351,7 +351,7 @@ const handleCommand = async (trimmed) => {
 		}
 	};
 
-const handleChat = async (text) => {
+	const handleChat = async (text) => {
 		if (shouldAbort()) return;
 		gcManager?.();
 		setStatusMessage("Streaming...");
@@ -500,7 +500,7 @@ const handleChat = async (text) => {
 		gcManager?.();
 	};
 
-const handleSubmit = useCallback(
+	const handleSubmit = useCallback(
 		async (text) => {
 			const trimmed = text.trim();
 			if (!trimmed) return;
