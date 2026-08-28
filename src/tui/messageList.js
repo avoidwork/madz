@@ -134,7 +134,19 @@ export const MessageList = forwardRef(function MessageList(
 			idsRef.current.push(id);
 			idToIdxRef.current.set(id, idsRef.current.length - 1);
 
+			// Reset scroll-up suppression — new messages should auto-scroll
+			isUserScrolledUpRef.current = false;
+
 			triggerRender();
+
+			// Imperative scroll-to-bottom — mirrors the approach used in
+			// MessageBubble for streaming content. handleContentHeightChange
+			// is unreliable because the children array guard can prevent
+			// the ScrollView from detecting a height change.
+			if (role === "user" || role === "system") {
+				scrollRef.current?.scrollToBottom?.();
+			}
+
 			return id;
 		},
 
