@@ -81,31 +81,34 @@ export default function App({
 	 * Handle user input: parse commands or dispatch as chat.
 	 * @param {string} text - Raw user input text
 	 */
-	const handleSubmit = async (text) => {
-		const trimmed = text.trim();
-		if (!trimmed) return;
+	const handleSubmit = useCallback(
+		async (text) => {
+			const trimmed = text.trim();
+			if (!trimmed) return;
 
-		// Abort any active stream before processing a new message
-		// This prevents forked UX where both streams render to the same destination
-		if (isStreamingRef.current) {
-			await handleInterrupt();
-		}
+			// Abort any active stream before processing a new message
+			// This prevents forked UX where both streams render to the same destination
+			if (isStreamingRef.current) {
+				await handleInterrupt();
+			}
 
-		// Track user input in chat history (non-empty lines only)
-		setChatHistory((prev) => {
-			const filtered = prev.filter((line) => line.trim());
-			return [...filtered, trimmed];
-		});
-		setHistoryIndex(-1);
-		setInputText("");
+			// Track user input in chat history (non-empty lines only)
+			setChatHistory((prev) => {
+				const filtered = prev.filter((line) => line.trim());
+				return [...filtered, trimmed];
+			});
+			setHistoryIndex(-1);
+			setInputText("");
 
-		if (parser.isCommand(trimmed)) {
-			await handleCommand(trimmed);
-		} else {
-			gcManager?.();
-			await handleChat(trimmed);
-		}
-	};
+			if (parser.isCommand(trimmed)) {
+				await handleCommand(trimmed);
+			} else {
+				gcManager?.();
+				await handleChat(trimmed);
+			}
+		},
+		[handleInterrupt, handleCommand, handleChat, gcManager],
+	);
 
 	/**
 	 * Handle IRC-style command parsing with dispatch table.
@@ -885,6 +888,10 @@ export default function App({
 
 	const { rows } = useWindowSize();
 
+	// Stable handlers for child components — prevents cascade re-renders
+	const handleInputFocus = useCallback(() => setInputFocused(true), []);
+	const handleInputBlur = useCallback(() => setInputFocused(false), []);
+
 	const statusProps = {
 		skillCount: skillList.length,
 		messageCount: messageListRef.current?.getMessageCount() || 0,
@@ -943,8 +950,8 @@ export default function App({
 						value: inputText,
 						onChange: setInputText,
 						onSubmit: handleSubmit,
-						onFocus: () => setInputFocused(true),
-						onBlur: () => setInputFocused(false),
+						onFocus: handleInputFocus,
+						onBlur: handleInputBlur,
 						focus: inputFocused,
 					}),
 				)

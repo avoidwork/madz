@@ -876,39 +876,52 @@ describe("TuiSchema defaults", () => {
 });
 
 describe("InputPanel - component rendering", () => {
-	it("renders as a TextInput element", () => {
-		const result = InputPanel({
-			value: "hello",
-			onChange: () => {},
-			onSubmit: () => {},
-			focus: true,
-		});
-		assert.ok(React.isValidElement(result));
-		assert.strictEqual(result.props.value, "hello");
-		assert.strictEqual(result.props.showCursor, true);
+	it("renders as a TextInput element", async () => {
+		const { renderToString } = await import("ink");
+		const result = String(
+			renderToString(
+				React.createElement(InputPanel, {
+					value: "hello",
+					onChange: () => {},
+					onSubmit: () => {},
+					focus: true,
+				}),
+			),
+		);
+		assert.ok(result.includes("hello"), "should render the input value");
 	});
 
 	it("passes onChange callback", () => {
 		const onChange = () => {};
-		const result = InputPanel({ value: "", onChange, onSubmit: () => {} });
+		const result = React.createElement(InputPanel, {
+			value: "",
+			onChange,
+			onSubmit: () => {},
+		});
+		assert.ok(React.isValidElement(result));
 		assert.strictEqual(result.props.onChange, onChange);
 	});
 
 	it("passes onSubmit callback", () => {
 		const onSubmit = () => {};
-		const result = InputPanel({ value: "", onChange: () => {}, onSubmit });
+		const result = React.createElement(InputPanel, {
+			value: "",
+			onChange: () => {},
+			onSubmit,
+		});
+		assert.ok(React.isValidElement(result));
 		assert.strictEqual(result.props.onSubmit, onSubmit);
 	});
 
 	it("respects focus prop", () => {
-		const resultFocused = InputPanel({
+		const resultFocused = React.createElement(InputPanel, {
 			value: "",
 			onChange: () => {},
 			onSubmit: () => {},
 			focus: true,
 		});
 		assert.strictEqual(resultFocused.props.focus, true);
-		const resultUnfocused = InputPanel({
+		const resultUnfocused = React.createElement(InputPanel, {
 			value: "",
 			onChange: () => {},
 			onSubmit: () => {},

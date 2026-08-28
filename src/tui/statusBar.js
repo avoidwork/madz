@@ -1,6 +1,5 @@
-import React from "react";
-import { Box, Text } from "ink";
-import Spinner from "ink-spinner";
+import React, { useEffect, useRef } from "react";
+import { Box, Text, useStdout } from "ink";
 
 /**
  * Format number using Intl.NumberFormat with the user's locale.
@@ -43,11 +42,21 @@ export function formatSize(bytes) {
 }
 
 /**
+ * 10-frame spinner sequence (Unicode braille characters).
+ */
+const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+const SPINNER_INTERVAL_MS = 80;
+
+/**
  * Bottom status bar.
  * Displays status indicator, status message, and info counts.
  * Input text entry is handled by InputPanel with IRC-style prompt ("> text" / ": text").
+ *
+ * Spinner animation is handled imperatively via stdout.write() with ANSI escape codes,
+ * bypassing React's render cycle entirely. This prevents the spinner from triggering
+ * re-renders of the StatusBar or its parent App component.
  */
-export function StatusBar({
+export const StatusBar = React.memo(function StatusBar({
 	statusMessage = "",
 	skillCount = 0,
 	messageCount = 0,
@@ -56,6 +65,34 @@ export function StatusBar({
 }) {
 	const contextColor = isCompacting ? "red" : "#606060";
 	const isStreaming = statusMessage === "Sending..." || statusMessage === "Streaming...";
+	const { stdout } = useStdout();
+	const intervalRef = useRef(null);
+	const frameRef = useRef(0);
+
+	// Imperative spinner: write frames directly to stdout, bypassing React
+	useEffect(() => {
+		if (!isStreaming) return;
+
+		// Hide cursor before starting spinner
+		stdout.write("\x1B[?25l");
+
+		const tick = () => {
+			const frame = SPINNER_FRAMES[frameRef.current % SPINNER_FRAMES.length];
+			frameRef.current += 1;
+			// \r overwrites the current line position with the spinner + trailing space
+			stdout.write(`\r${frame} `);
+		};
+
+		// Initial frame
+		tick();
+		intervalRef.current = setInterval(tick, SPINNER_INTERVAL_MS);
+
+		return () => {
+			clearInterval(intervalRef.current);
+			// Restore cursor on unmount
+			stdout.write("\x1B[?25h");
+		};
+	}, [isStreaming, stdout]);
 
 	return React.createElement(
 		Box,
@@ -71,11 +108,7 @@ export function StatusBar({
 			Box,
 			{ key: "left", flexDirection: "row", alignItems: "center" },
 			isStreaming
-				? React.createElement(
-						Text,
-						{ color: "cyan" },
-						React.createElement(Spinner, { type: "point" }),
-					)
+				? React.createElement(Text, { color: "cyan" }, " ")
 				: React.createElement(Text, { color: "#606060" }, "∙∙∙"),
 
 			React.createElement(
@@ -95,4 +128,4 @@ export function StatusBar({
 			),
 		),
 	);
-}
+});

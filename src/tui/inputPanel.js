@@ -13,7 +13,14 @@ import TextInput from "ink-text-input";
  * @param {boolean} [props.focus] - Whether the input should be focused
  * @returns {React.ReactElement}
  */
-export function InputPanel({ value = "", onChange, onSubmit, onFocus, onBlur, focus = true }) {
+export const InputPanel = React.memo(function InputPanel({
+	value = "",
+	onChange,
+	onSubmit,
+	onFocus,
+	onBlur,
+	focus = true,
+}) {
 	return React.createElement(TextInput, {
 		value,
 		onChange,
@@ -23,4 +30,4 @@ export function InputPanel({ value = "", onChange, onSubmit, onFocus, onBlur, fo
 		focus,
 		showCursor: true,
 	});
-}
+});
