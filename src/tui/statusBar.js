@@ -1,5 +1,6 @@
-import React, { useEffect, useRef } from "react";
-import { Box, Text, useStdout } from "ink";
+import React from "react";
+import { Box, Text } from "ink";
+import Spinner from "ink-spinner";
 
 /**
  * Format number using Intl.NumberFormat with the user's locale.
@@ -42,19 +43,9 @@ export function formatSize(bytes) {
 }
 
 /**
- * 10-frame spinner sequence (Unicode braille characters).
- */
-const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
-const SPINNER_INTERVAL_MS = 80;
-
-/**
  * Bottom status bar.
  * Displays status indicator, status message, and info counts.
  * Input text entry is handled by InputPanel with IRC-style prompt ("> text" / ": text").
- *
- * Spinner animation is handled imperatively via stdout.write() with ANSI escape codes,
- * bypassing React's render cycle entirely. This prevents the spinner from triggering
- * re-renders of the StatusBar or its parent App component.
  */
 export const StatusBar = React.memo(function StatusBar({
 	statusMessage = "",
@@ -65,39 +56,6 @@ export const StatusBar = React.memo(function StatusBar({
 }) {
 	const contextColor = isCompacting ? "red" : "#606060";
 	const isStreaming = statusMessage === "Sending..." || statusMessage === "Streaming...";
-	const { stdout } = useStdout();
-	const intervalRef = useRef(null);
-	const frameRef = useRef(0);
-
-	// Imperative spinner: write frames directly to stdout, bypassing React
-	// Uses cursor positioning to target the status bar line (second from bottom)
-	// regardless of where the input cursor is.
-	useEffect(() => {
-		if (!isStreaming) return;
-
-		// Hide cursor before starting spinner
-		stdout.write("\x1B[?25l");
-
-		const tick = () => {
-			const frame = SPINNER_FRAMES[frameRef.current % SPINNER_FRAMES.length];
-			frameRef.current += 1;
-			// Move cursor up one line (to status bar), then to column 0, then write spinner
-			// \x1B[1A = move cursor up 1 line
-			// \x1B[0G = move cursor to column 0
-			// Then write spinner + trailing space to overwrite previous frame
-			stdout.write(`\x1B[1A\x1B[0G${frame} `);
-		};
-
-		// Initial frame
-		tick();
-		intervalRef.current = setInterval(tick, SPINNER_INTERVAL_MS);
-
-		return () => {
-			clearInterval(intervalRef.current);
-			// Restore cursor on unmount
-			stdout.write("\x1B[?25h");
-		};
-	}, [isStreaming, stdout]);
 
 	return React.createElement(
 		Box,
@@ -113,7 +71,11 @@ export const StatusBar = React.memo(function StatusBar({
 			Box,
 			{ key: "left", flexDirection: "row", alignItems: "center" },
 			isStreaming
-				? React.createElement(Text, { color: "cyan" }, " ")
+				? React.createElement(
+						Text,
+						{ color: "cyan" },
+						React.createElement(Spinner, { type: "point" }),
+					)
 				: React.createElement(Text, { color: "#606060" }, "∙∙∙"),
 
 			React.createElement(
