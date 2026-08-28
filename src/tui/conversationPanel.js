@@ -67,7 +67,6 @@ export function getBubbleStyle(role) {
  * @param {Object} props
  * @param {Array} [props.messages] - Messages to display (for session restore)
  * @param {string} [props.assistantName] - Name for assistant messages
- * @param {number} [props.renderWindow] - Number of messages to render (from config)
  * @param {React.Ref} [props.scrollRef] - Optional external scroll ref
  * @param {React.Ref} [props.messageListRef] - Optional ref for imperative access
  * @returns {React.ReactElement}
@@ -75,7 +74,6 @@ export function getBubbleStyle(role) {
 export function ConversationPanel({
 	messages = [],
 	assistantName = "Assistant",
-	renderWindow,
 	scrollRef: externalScrollRef,
 	messageListRef,
 }) {
@@ -95,7 +93,6 @@ export function ConversationPanel({
 		React.createElement(MessageList, {
 			ref: panelRef,
 			assistantName,
-			renderWindow,
 			scrollRef: externalScrollRef,
 		}),
 	);

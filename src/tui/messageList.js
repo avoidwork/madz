@@ -35,19 +35,13 @@ let _messageIdCounter = 0;
  * @param {Object} props
  * @param {Array} [props.messages] - Initial messages array for session restore
  * @param {string} [props.assistantName] - Name to display for assistant messages
- * @param {number} [props.renderWindow] - Number of messages to render (from config)
  * @param {React.Ref} [props.forwardRef] - For exposed imperative API
  * @param {React.Ref} [props.scrollRef] - Forwarded scroll ref for external keyboard nav
  * @returns {React.ReactElement}
  */
 export const MessageList = React.memo(
 	forwardRef(function MessageList(
-		{
-			messages: _messages = [],
-			assistantName = "Assistant",
-			renderWindow,
-			scrollRef: externalScrollRef,
-		},
+		{ messages: _messages = [], assistantName = "Assistant", scrollRef: externalScrollRef },
 		forwardRef,
 	) {
 		const internalRef = useRef(null);
@@ -355,25 +349,15 @@ export const MessageList = React.memo(
 			lastMsgCountRef.current = idsRef.current.length;
 		};
 
-		// Virtual render window — keeps the React tree bounded while the data
-		// layer stores all messages. The ScrollView scrolls through the full
-		// conversation history; only the last N messages are rendered as bubbles.
-		// Configurable via `tui.renderWindow` in config.yaml.
-		// Guarded by count check — slice and prune only run when message count changes.
+		// Virtual render window — removed. All messages are now rendered
+		// through the ScrollView mechanism. The data layer stores all messages
+		// and the render layer renders all of them without a cap.
 		const childrenRef = useRef(null);
 		const prevRenderCountRef = useRef(-1);
 
-		// Virtual render window — keeps the React tree bounded while the data
-		// layer stores all messages. The ScrollView scrolls through the full
-		// conversation history; only the last N messages are rendered as bubbles.
-		// Configurable via `tui.renderWindow` in config.yaml.
 		const currentCount = idsRef.current.length;
 		if (currentCount !== prevRenderCountRef.current) {
-			const renderData = idsRef.current.slice(-renderWindow);
-			const prunedIds = idsRef.current.slice(0, idsRef.current.length - renderWindow);
-			for (const id of prunedIds) {
-				topicsRef.current.delete(`msg-${id}`);
-			}
+			const renderData = idsRef.current.slice();
 
 			// Rebuild children only when message count changes.
 			if (childrenRef.current === null || childrenRef.current._count !== renderData.length) {
