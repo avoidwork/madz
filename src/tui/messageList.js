@@ -144,7 +144,8 @@ export const MessageList = React.memo(
 				// MessageBubble for streaming content. handleContentHeightChange
 				// is unreliable because the children array guard can prevent
 				// the ScrollView from detecting a height change.
-				if (role === "user" || role === "system") {
+				// Scroll for all message types to ensure the latest content is visible.
+				if (role === "user" || role === "system" || role === "assistant") {
 					scrollRef.current?.scrollToBottom?.();
 				}
 

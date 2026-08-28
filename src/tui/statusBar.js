@@ -70,6 +70,8 @@ export const StatusBar = React.memo(function StatusBar({
 	const frameRef = useRef(0);
 
 	// Imperative spinner: write frames directly to stdout, bypassing React
+	// Uses cursor positioning to target the status bar line (second from bottom)
+	// regardless of where the input cursor is.
 	useEffect(() => {
 		if (!isStreaming) return;
 
@@ -79,8 +81,11 @@ export const StatusBar = React.memo(function StatusBar({
 		const tick = () => {
 			const frame = SPINNER_FRAMES[frameRef.current % SPINNER_FRAMES.length];
 			frameRef.current += 1;
-			// \r overwrites the current line position with the spinner + trailing space
-			stdout.write(`\r${frame} `);
+			// Move cursor up one line (to status bar), then to column 0, then write spinner
+			// \x1B[1A = move cursor up 1 line
+			// \x1B[0G = move cursor to column 0
+			// Then write spinner + trailing space to overwrite previous frame
+			stdout.write(`\x1B[1A\x1B[0G${frame} `);
 		};
 
 		// Initial frame

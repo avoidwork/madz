@@ -76,45 +76,67 @@ export default function App({
 		};
 	}, []);
 
+	/**
+	 * Interrupt the current streaming response. Resets the abort controller
+	 * so the user can interrupt future responses. Does NOT quit the app.
+	 * Returns a promise that resolves once dispatchProvider has finished
+	 * processing the abort and completed its cleanup.
+	 * Handles both streaming and non-streaming interrupt scenarios.
+	 */
+	const handleInterrupt = async () => {
+		// Abort any active stream
+		if (abortControllerRef.current) {
+			abortControllerRef.current.abort();
+			abortControllerRef.current = null;
+		}
+		isStreamingRef.current = false;
+
+		// Clear input buffer
+		setInputText("");
+
+		// Clean up session state if needed
+		// Remove orphaned tool-call messages and partial assistant messages
+		if (sessionState) {
+			sessionState.removeLastAssistantToolCallMessage();
+			sessionState.popExchange();
+		}
+
+		// Reset abort controller and streaming flags
+		abortControllerRef.current = new AbortController();
+		isStreamingRef.current = false;
+
+		// Update message list if there's a streaming message
+		if (streamingMsgIdRef.current) {
+			messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
+				streaming: false,
+			});
+		}
+
+		// Set status message for visual feedback
+		setStatusMessage("Interrupted.");
+
+		// Wait for the dispatchProvider promise to resolve (it will throw
+		// AbortError and be caught by the try/catch, then run finally).
+		// This ensures the stream is fully dead before we proceed.
+		const dispatchPromise = dispatchPromiseRef.current;
+		dispatchPromiseRef.current = null;
+		if (dispatchPromise) {
+			try {
+				await dispatchPromise;
+			} catch (_err) {
+				// AbortError is expected — dispatchProvider catches and handles it.
+				// We just need to wait for the cleanup to complete.
+			}
+		}
+	};
+
 	// Process command or dispatch as normal chat
 	/**
 	 * Handle user input: parse commands or dispatch as chat.
 	 * @param {string} text - Raw user input text
 	 */
-	const handleSubmit = useCallback(
-		async (text) => {
-			const trimmed = text.trim();
-			if (!trimmed) return;
-
-			// Abort any active stream before processing a new message
-			// This prevents forked UX where both streams render to the same destination
-			if (isStreamingRef.current) {
-				await handleInterrupt();
-			}
-
-			// Track user input in chat history (non-empty lines only)
-			setChatHistory((prev) => {
-				const filtered = prev.filter((line) => line.trim());
-				return [...filtered, trimmed];
-			});
-			setHistoryIndex(-1);
-			setInputText("");
-
-			if (parser.isCommand(trimmed)) {
-				await handleCommand(trimmed);
-			} else {
-				gcManager?.();
-				await handleChat(trimmed);
-			}
-		},
-		[handleInterrupt, handleCommand, handleChat, gcManager],
-	);
-
-	/**
-	 * Handle IRC-style command parsing with dispatch table.
-	 * @param {string} trimmed - The command string (sans leading whitespace)
-	 */
-	const handleCommand = async (trimmed) => {
+		// Process command or dispatch as normal chat
+const handleCommand = async (trimmed) => {
 		try {
 			// Always show the user's command in the chat display
 			addMessage({ role: "user", content: trimmed });
@@ -329,11 +351,7 @@ export default function App({
 		}
 	};
 
-	/**
-	 * Dispatch user text to the AI agent with streaming.
-	 * @param {string} text - The user's message text
-	 */
-	const handleChat = async (text) => {
+const handleChat = async (text) => {
 		if (shouldAbort()) return;
 		gcManager?.();
 		setStatusMessage("Streaming...");
@@ -482,63 +500,38 @@ export default function App({
 		gcManager?.();
 	};
 
+const handleSubmit = useCallback(
+		async (text) => {
+			const trimmed = text.trim();
+			if (!trimmed) return;
+
+			// Abort any active stream before processing a new message
+			// This prevents forked UX where both streams render to the same destination
+			if (isStreamingRef.current) {
+				await handleInterrupt();
+			}
+
+			// Track user input in chat history (non-empty lines only)
+			setChatHistory((prev) => {
+				const filtered = prev.filter((line) => line.trim());
+				return [...filtered, trimmed];
+			});
+			setHistoryIndex(-1);
+			setInputText("");
+
+			if (parser.isCommand(trimmed)) {
+				await handleCommand(trimmed);
+			} else {
+				gcManager?.();
+				await handleChat(trimmed);
+			}
+		},
+		[handleInterrupt, handleCommand, handleChat, gcManager],
+	);
+
 	const handleQuit = () => {
 		exit();
 		process.exit(0);
-	};
-
-	/**
-	 * Interrupt the current streaming response. Resets the abort controller
-	 * so the user can interrupt future responses. Does NOT quit the app.
-	 * Returns a promise that resolves once dispatchProvider has finished
-	 * processing the abort and completed its cleanup.
-	 * Handles both streaming and non-streaming interrupt scenarios.
-	 */
-	const handleInterrupt = async () => {
-		// Abort any active stream
-		if (abortControllerRef.current) {
-			abortControllerRef.current.abort();
-			abortControllerRef.current = null;
-		}
-		isStreamingRef.current = false;
-
-		// Clear input buffer
-		setInputText("");
-
-		// Clean up session state if needed
-		// Remove orphaned tool-call messages and partial assistant messages
-		if (sessionState) {
-			sessionState.removeLastAssistantToolCallMessage();
-			sessionState.popExchange();
-		}
-
-		// Reset abort controller and streaming flags
-		abortControllerRef.current = new AbortController();
-		isStreamingRef.current = false;
-
-		// Update message list if there's a streaming message
-		if (streamingMsgIdRef.current) {
-			messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
-				streaming: false,
-			});
-		}
-
-		// Set status message for visual feedback
-		setStatusMessage("Interrupted.");
-
-		// Wait for the dispatchProvider promise to resolve (it will throw
-		// AbortError and be caught by the try/catch, then run finally).
-		// This ensures the stream is fully dead before we proceed.
-		const dispatchPromise = dispatchPromiseRef.current;
-		dispatchPromiseRef.current = null;
-		if (dispatchPromise) {
-			try {
-				await dispatchPromise;
-			} catch (_err) {
-				// AbortError is expected — dispatchProvider catches and handles it.
-				// We just need to wait for the cleanup to complete.
-			}
-		}
 	};
 
 	/**
