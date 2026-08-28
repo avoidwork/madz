@@ -347,7 +347,7 @@ export const MessageList = forwardRef(function MessageList(
 	// Configurable via `tui.renderWindow` in config.yaml.
 	// Guarded by count check — slice and prune only run when message count changes.
 	const childrenRef = useRef(null);
-	const prevRenderCountRef = useRef(0);
+	const prevRenderCountRef = useRef(-1);
 
 	// Virtual render window — keeps the React tree bounded while the data
 	// layer stores all messages. The ScrollView scrolls through the full
