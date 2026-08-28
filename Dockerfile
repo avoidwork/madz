@@ -1,4 +1,4 @@
-FROM rust:1.84 AS cargo-audit-builder
+FROM rust:1.96-alpine3.21 AS cargo-audit-builder
 
 RUN cargo install cargo-audit@0.22.2 --locked && \
     cp /usr/local/cargo/bin/cargo-audit /cargo-audit
@@ -24,7 +24,7 @@ FROM node:24-alpine
 RUN apk update && \
     apk add --no-cache python3 ruby curl bash jq unzip wget ca-certificates git github-cli file zip xz lz4 diffutils tree rsync openssh-server openssh-client cronie ripgrep tzdata chromium go maven gradle openjdk21-jdk uv py3-pip && \
     # Install vault CLI from HashiCorp releases
-    VAULT_VER="1.21.1" && \
+    VAULT_VER="2.0.4" && \
     curl -fsSL "https://releases.hashicorp.com/vault/${VAULT_VER}/vault_${VAULT_VER}_linux_amd64.zip" -o /tmp/vault.zip && \
     unzip /tmp/vault.zip -d /usr/local/bin && \
     rm /tmp/vault.zip && \
