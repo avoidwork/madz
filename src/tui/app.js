@@ -924,7 +924,6 @@ export default function App({
 						},
 						React.createElement(ConversationPanel, {
 							assistantName: config?.tui?.name || "Assistant",
-							renderWindow: config?.tui?.renderWindow ?? 100,
 							messageListRef,
 						}),
 					),
