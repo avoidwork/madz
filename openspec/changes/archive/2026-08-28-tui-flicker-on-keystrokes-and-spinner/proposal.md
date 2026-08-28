@@ -1,14 +1,16 @@
 # Proposal: Fix TUI Flicker on Keystrokes and Spinner
 
-## Problem
+## Why
 
-The TUI flickers on every keystroke and spinner frame update. This is caused by:
-1. StatusBar re-rendering on every statusMessage change (including spinner updates)
-2. InputPanel re-rendering on every keystroke (value prop change cascading from App)
-3. MessageList re-rendering on every renderTick change
-4. App-level handlers being recreated on every render, defeating child memoization
+The TUI flickers on every keystroke and spinner frame update because:
+1. StatusBar re-renders on every statusMessage change (including spinner updates)
+2. InputPanel re-renders on every keystroke (value prop change cascading from App)
+3. MessageList re-renders on every renderTick change
+4. App-level handlers are recreated on every render, defeating child memoization
 
-## Solution
+This causes a poor user experience with visible screen flicker during normal interaction.
+
+## What Changes
 
 1. **Memoize StatusBar** with `React.memo` to prevent cascade re-renders from spinner/statusMessage changes
 2. **Memoize InputPanel** with `React.memo` to prevent cascade re-renders from keystroke changes
