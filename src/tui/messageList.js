@@ -357,7 +357,7 @@ export const MessageList = React.memo(
 
 		const currentCount = idsRef.current.length;
 		if (currentCount !== prevRenderCountRef.current) {
-			const renderData = idsRef.current.slice();
+			const renderData = idsRef.current;
 
 			// Rebuild children only when message count changes.
 			if (childrenRef.current === null || childrenRef.current._count !== renderData.length) {
