@@ -18,8 +18,8 @@ import {
 	TOOLS,
 } from "../tools/index.js";
 import { createEmailProvider, validateProviderConfig } from "../tools/email/index.js";
-import { createCoreBackend } from "./backends/coreBackend.js";
-import { createContextBackend } from "./backends/contextBackend.js";
+import { createCoreBackend } from "./coreBackend.js";
+import { createContextBackend } from "./contextBackend.js";
 import { getAllAgents } from "./definitions/index.js";
 import { logger } from "../shared/logger.js";
 

@@ -1,19 +1,21 @@
 /**
- * Agent definitions index - exports all subagent definitions.
+ * Agent definitions index — re-exports from consolidated config and derives getAllAgents().
  */
 
-import { codingAgent } from "./coding.js";
-import { searchAgent } from "./search.js";
-import { debugAgent } from "./debug.js";
-import { codeReviewAgent } from "./code-review.js";
-import { researchAgent } from "./research.js";
-import { testingAgent } from "./testing.js";
-import { documentationAgent } from "./documentation.js";
-import { securityAuditAgent } from "./security-audit.js";
-import { performanceAgent } from "./performance.js";
-import { textEditorAgent } from "./text-editor.js";
-import { seoAnalystAgent } from "./seo-analyst.js";
-import { translatorAgent } from "./translator.js";
+import {
+	codingAgent,
+	searchAgent,
+	debugAgent,
+	codeReviewAgent,
+	researchAgent,
+	testingAgent,
+	documentationAgent,
+	securityAuditAgent,
+	performanceAgent,
+	textEditorAgent,
+	seoAnalystAgent,
+	translatorAgent,
+} from "../agentDefinitions.js";
 
 export {
 	codingAgent,
@@ -31,8 +33,8 @@ export {
 };
 
 /**
- * Get all agent definitions.
- * @returns {Object[]} Array of agent definition objects
+ * Get all agent definitions, derived from the consolidated config.
+ * @returns {{ name: string, description: string, systemPrompt: string }[]}
  */
 export function getAllAgents() {
 	return [
