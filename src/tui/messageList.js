@@ -382,12 +382,20 @@ export const MessageList = React.memo(
 				});
 
 				// Remove orphaned pending assistant bubble (user interrupted before content arrived).
-				const lastId = renderData[renderData.length - 1];
-				const lastData = dataRef.current.get(lastId);
-				const isPendingAssistant =
-					lastData && lastData.role === "assistant" && !lastData.content && lastData.streaming;
-				if (isPendingAssistant) {
-					newChildren.pop();
+				// The orphaned bubble is at index -2: the current pending response is at -1,
+				// the interrupted one is at -2. Only pop if it's a pending assistant bubble.
+				const orphanedIdx = renderData.length - 2;
+				if (orphanedIdx >= 0) {
+					const orphanedId = renderData[orphanedIdx];
+					const orphanedData = dataRef.current.get(orphanedId);
+					if (
+						orphanedData &&
+						orphanedData.role === "assistant" &&
+						!orphanedData.content &&
+						orphanedData.streaming
+					) {
+						newChildren.splice(orphanedIdx, 1);
+					}
 				}
 
 				if (newChildren.length === 0) {
