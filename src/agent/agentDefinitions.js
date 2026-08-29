@@ -110,13 +110,32 @@ function createAgentDefinition(name, promptFile, description) {
 }
 
 /**
+ * Cached agent definitions loaded at module init.
+ * @type {{ name: string, description: string, systemPrompt: string }[]}
+ */
+const agents = AGENT_CONFIGS.map((cfg) =>
+	createAgentDefinition(cfg.name, cfg.promptFile, cfg.description),
+);
+
+// Wait for all prompts to load before exporting.
+await Promise.all(
+	AGENT_CONFIGS.map((cfg) =>
+		readFile(join(process.cwd(), "prompts", cfg.promptFile), "utf-8")
+			.then((prompt) => {
+				logger.debug(`[${cfg.name}] Prompt loaded (${prompt.length} chars)`);
+			})
+			.catch((err) => {
+				logger.debug(`[${cfg.name}] Failed to load prompt: ${err.message}`);
+			}),
+	),
+);
+
+/**
  * Build all agent definitions from the consolidated config.
  * @returns {{ name: string, description: string, systemPrompt: string }[]}
  */
 function buildAllAgents() {
-	return AGENT_CONFIGS.map((cfg) =>
-		createAgentDefinition(cfg.name, cfg.promptFile, cfg.description),
-	);
+	return agents;
 }
 
 /**

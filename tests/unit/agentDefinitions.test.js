@@ -8,17 +8,6 @@ import { getAllAgents } from "../../src/agent/agentDefinitions.js";
 import { getToolsForAgentTypes, TOOL_CLASSIFICATIONS } from "../../src/tools/index.js";
 
 // Wait for async prompt loading at module init
-function waitForPrompts() {
-	return new Promise((resolve) => {
-		const check = () => {
-			const agents = getAllAgents();
-			const allLoaded = agents.every((a) => a.systemPrompt && a.systemPrompt.length > 50);
-			if (allLoaded) resolve();
-			else setTimeout(check, 10);
-		};
-		check();
-	});
-}
 
 const ALL_AGENTS = getAllAgents();
 const EXPECTED_AGENT_NAMES = [
@@ -37,9 +26,6 @@ const EXPECTED_AGENT_NAMES = [
 ];
 
 describe("Agent Definitions", () => {
-	before(async () => {
-		await waitForPrompts();
-	});
 	describe("getAllAgents", () => {
 		it("should return all 12 agent definitions", () => {
 			strictEqual(ALL_AGENTS.length, 12, "Should have exactly 12 agents");
