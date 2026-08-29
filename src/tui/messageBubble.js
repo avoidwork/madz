@@ -145,6 +145,9 @@ export function MessageBubbleInner({
 		const handleUpdate = (data) => {
 			setChunks((prev) => {
 				const newContent = data?.content ?? "";
+				// Skip dedup during streaming — every tick must append so the
+				// scroll effect fires even when the chunk text is identical.
+				if (data?.streaming) return [...prev, newContent];
 				// Skip appends when content hasn't changed (avoids duplicate renders)
 				if (prev.length > 0 && prev[prev.length - 1] === newContent) return prev;
 				return [...prev, newContent];
@@ -158,27 +161,19 @@ export function MessageBubbleInner({
 	// Display the latest chunk (or initial content if no chunks yet)
 	const text = chunks.at(-1) || content || "";
 
-	// Trigger scroll-to-bottom when streaming content grows or when streaming starts.
+	// Trigger scroll-to-bottom on every streaming tick.
 	// Uses ScrollContext to call scrollToBottom directly on the ScrollView,
 	// bypassing the broken onContentHeightChange path that never fires
 	// when bubbles update via pub/sub (no parent re-render).
 	const prevContentLengthRef = useRef(0);
-	const hasScrolledOnStreamStartRef = useRef(false);
 	useEffect(() => {
 		if (!streaming) {
 			prevContentLengthRef.current = text.length;
-			hasScrolledOnStreamStartRef.current = false;
 			return;
 		}
-		// Scroll when streaming first starts (even if content is empty)
-		if (!hasScrolledOnStreamStartRef.current) {
-			scrollToBottom();
-			hasScrolledOnStreamStartRef.current = true;
-		}
-		// Also scroll when content grows
-		if (text.length > prevContentLengthRef.current) {
-			scrollToBottom();
-		}
+		// Scroll on every streaming tick — dedup is now bypassed for streaming,
+		// so this fires reliably as chunks arrive.
+		scrollToBottom();
 		prevContentLengthRef.current = text.length;
 	}, [text, streaming, scrollToBottom]);
 
