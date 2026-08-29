@@ -71,7 +71,7 @@ export function getBubbleStyle(role) {
  * @param {React.Ref} [props.messageListRef] - Optional ref for imperative access
  * @returns {React.ReactElement}
  */
-export function ConversationPanel({
+export const ConversationPanel = React.memo(function ConversationPanel({
 	messages = [],
 	assistantName = "Assistant",
 	scrollRef: externalScrollRef,
@@ -96,4 +96,4 @@ export function ConversationPanel({
 			scrollRef: externalScrollRef,
 		}),
 	);
-}
+});
