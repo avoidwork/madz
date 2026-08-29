@@ -14,10 +14,45 @@ import { calculateConversationTokens } from "./contextTokens.js";
 import { logger } from "../shared/logger.js";
 
 /**
+ * Custom React.memo comparator for App.
+ * Ignores frequently-changing props (inputText, statusMessage, chatHistory,
+ * historyIndex, inputFocused, showBanner, onboardingResponse) while comparing
+ * stable props (config, registry, sessionState, etc.).
+ */
+function areEqual(prevProps, nextProps) {
+	const stableProps = [
+		"config",
+		"registry",
+		"sessionState",
+		"contextSize",
+		"isCompacting",
+		"messageListRef",
+		"abortControllerRef",
+		"isStreamingRef",
+		"dispatchPromiseRef",
+		"autoContinueCountRef",
+		"isAutoContinuingRef",
+		"streamingMsgIdRef",
+		"lastInterruptTimeRef",
+		"exitRef",
+		"skillList",
+		"onboarding",
+		"onSaveSession",
+		"gcManager",
+		"gcTrigger",
+		"scheduleManager",
+	];
+	for (const prop of stableProps) {
+		if (prevProps[prop] !== nextProps[prop]) return false;
+	}
+	return true;
+}
+
+/**
  * Main App component (Ink). Renders an IRC-style layout:
  * full-height conversation REPL at top, input bar at bottom.
  */
-export default function App({
+function AppInner({
 	config,
 	registry,
 	sessionState,
@@ -953,3 +988,5 @@ export default function App({
 			: null,
 	);
 }
+
+export default memo(AppInner, areEqual);
