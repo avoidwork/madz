@@ -885,13 +885,16 @@ export default function App({
 	const handleInputFocus = useCallback(() => setInputFocused(true), []);
 	const handleInputBlur = useCallback(() => setInputFocused(false), []);
 
-	const statusProps = {
-		skillCount: skillList.length,
-		messageCount: messageListRef.current?.getMessageCount() || 0,
-		contextSize: contextSize,
-		statusMessage: statusMessage,
-		isCompacting: isCompacting,
-	};
+	const statusProps = React.useMemo(
+		() => ({
+			skillCount: skillList.length,
+			messageCount: messageListRef.current?.getMessageCount() || 0,
+			contextSize,
+			statusMessage,
+			isCompacting,
+		}),
+		[skillList.length, messageListRef, contextSize, statusMessage, isCompacting],
+	);
 
 	return React.createElement(
 		Box,

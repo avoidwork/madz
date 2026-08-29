@@ -480,6 +480,12 @@ const MAX_CACHE_SIZE = 500;
 
 const parseCache = lru(MAX_CACHE_SIZE);
 
+// --- Last rendered content cache (prevents flicker during streaming) ---
+// Module-level variables instead of React hooks so tests can call the
+// component directly without a React renderer.
+let lastContentRef = null;
+let lastElementRef = null;
+
 // --- Public API (preserved) ---
 
 /**
@@ -511,10 +517,18 @@ export function MarkdownTextInner({ content }) {
 		return null;
 	}
 
-	const cleanContent = (content || "").replace(new RegExp(STREAMING_CURSOR, "g"), "");
+	// Skip re-render if content hasn't changed — prevents flicker during
+	// streaming when the LRU cache returns the same parsed output but
+	// the content string reference changes on every tick.
+	if (lastContentRef === content) return lastElementRef;
 
+	const cleanContent = (content || "").replace(new RegExp(STREAMING_CURSOR, "g"), "");
 	const parsed = parseMarkdown(cleanContent);
-	return React.createElement(Text, { color: "white" }, parsed);
+
+	const el = React.createElement(Text, { color: "white" }, parsed);
+	lastContentRef = content;
+	lastElementRef = el;
+	return el;
 }
 
 /**

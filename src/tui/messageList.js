@@ -416,7 +416,12 @@ export const MessageList = React.memo(
 			{ subscribe, unsubscribe, publish },
 			React.createElement(
 				ScrollContext.Provider,
-				{ value: { scrollToBottom: imperativeApiRef.current?.scrollToBottom } },
+				{
+					value: React.useMemo(
+						() => ({ scrollToBottom: imperativeApiRef.current?.scrollToBottom }),
+						[],
+					),
+				},
 				React.createElement(
 					Box,
 					{ key: "panel", flexDirection: "column", flexGrow: 1 },
