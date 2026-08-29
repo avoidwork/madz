@@ -2,7 +2,7 @@ import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { mkdir, writeFile, readFile, readdir, unlink, access } from "node:fs/promises";
 import { join, basename } from "node:path";
-import { loadConfig } from "../config/loader.js";
+import { loadConfig } from "../../config/loader.js";
 
 const cwd = loadConfig().cwd;
 

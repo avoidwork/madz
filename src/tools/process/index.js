@@ -1,7 +1,7 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { spawn } from "node:child_process";
-import { logger } from "../shared/logger.js";
+import { logger } from "../../shared/logger.js";
 
 /**
  * Process tracker shared between shell and process tools.

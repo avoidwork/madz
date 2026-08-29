@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
-import { dataTransformationImpl } from "../../src/tools/data.js";
+import { dataTransformationImpl } from "../../src/tools/data/index.js";
 
 describe("data tool", () => {
 	it("converts JSON to YAML", async () => {

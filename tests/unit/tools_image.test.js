@@ -1,6 +1,6 @@
 import { describe, it, before, after } from "node:test";
 import assert from "node:assert";
-import { imageGenerateImpl } from "../../src/tools/image.js";
+import { imageGenerateImpl } from "../../src/tools/image/index.js";
 
 describe("imageGenerate", () => {
 	let origFetch;

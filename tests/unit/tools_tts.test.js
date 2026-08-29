@@ -1,6 +1,6 @@
 import { describe, it, before, after } from "node:test";
 import assert from "node:assert";
-import { textToSpeechImpl } from "../../src/tools/tts.js";
+import { textToSpeechImpl } from "../../src/tools/tts/index.js";
 
 describe("textToSpeech", () => {
 	let origFetch;

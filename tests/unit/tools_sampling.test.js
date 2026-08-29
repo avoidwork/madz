@@ -10,7 +10,7 @@ import {
 	calculateExpirationTimestamp,
 	samplingImpl,
 	SamplingSchema,
-} from "../../src/tools/sampling.js";
+} from "../../src/tools/sampling/index.js";
 
 const TEST_DIR = "memory/__test_sampling__/";
 const CWD = join(process.cwd(), TEST_DIR);

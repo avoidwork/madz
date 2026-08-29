@@ -1,7 +1,7 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import { filterUrl } from "../sandbox/urlFilter.js";
-import { loadConfig } from "../config/loader.js";
+import { filterUrl } from "../../sandbox/urlFilter.js";
+import { loadConfig } from "../../config/loader.js";
 
 const config = loadConfig();
 

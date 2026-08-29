@@ -1,6 +1,6 @@
 import { describe, it, before, after } from "node:test";
 import assert from "node:assert";
-import { mixtureOfAgentsImpl } from "../../src/tools/moa.js";
+import { mixtureOfAgentsImpl } from "../../src/tools/moa/index.js";
 
 describe("mixture_of_agents", () => {
 	let origFetch;

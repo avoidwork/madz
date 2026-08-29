@@ -2,7 +2,7 @@ import { describe, it, after } from "node:test";
 import assert from "node:assert";
 import { rmSync, existsSync } from "node:fs";
 import { join } from "node:path";
-import { clarifyImpl } from "../../src/tools/clarify.js";
+import { clarifyImpl } from "../../src/tools/clarify/index.js";
 
 const TEST_DIR = join(process.cwd(), "memory", "__test_clarify__");
 const CLARIFICATION_FILE = join(TEST_DIR, "clarifications.md");

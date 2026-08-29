@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
-import { apiImpl, rateLimit } from "../../src/tools/api.js";
+import { apiImpl, rateLimit } from "../../src/tools/api/index.js";
 import { setTestMode } from "../../src/sandbox/urlFilter.js";
 
 // Ensure test mode is off for unit tests

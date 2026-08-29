@@ -2,8 +2,8 @@ import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { readdir, readFile, access, stat } from "node:fs/promises";
 import { join } from "node:path";
-import { parseFrontmatter } from "../memory/reader.js";
-import { loadConfig } from "../config/loader.js";
+import { parseFrontmatter } from "../../memory/reader.js";
+import { loadConfig } from "../../config/loader.js";
 
 const config = loadConfig();
 export let cwd = config.cwd;

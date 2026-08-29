@@ -9,7 +9,7 @@ import {
 	listWebhooks,
 	deleteWebhook,
 	verifyWebhook,
-} from "../../src/tools/webhook.js";
+} from "../../src/tools/webhook/index.js";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const WEBHOOKS_FILE = join(__dirname, "../../memory/tools/webhooks.json");
