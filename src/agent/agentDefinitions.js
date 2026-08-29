@@ -11,7 +11,7 @@ import { logger } from "../shared/logger.js";
  * Agent configuration entries.
  * @type {{ name: string, promptFile: string, description: string }[]}
  */
-const AGENT_CONFIGS = [
+export const AGENT_CONFIGS = [
 	{
 		name: "coding",
 		promptFile: "CODING.md",
@@ -126,61 +126,3 @@ function buildAllAgents() {
 export function getAllAgents() {
 	return buildAllAgents();
 }
-
-// Individual named exports for backward compatibility.
-export const codingAgent = createAgentDefinition(
-	"coding",
-	"CODING.md",
-	AGENT_CONFIGS[0].description,
-);
-export const searchAgent = createAgentDefinition(
-	"search",
-	"SEARCH.md",
-	AGENT_CONFIGS[1].description,
-);
-export const debugAgent = createAgentDefinition("debug", "DEBUG.md", AGENT_CONFIGS[2].description);
-export const codeReviewAgent = createAgentDefinition(
-	"code-review",
-	"CODE_REVIEW.md",
-	AGENT_CONFIGS[3].description,
-);
-export const researchAgent = createAgentDefinition(
-	"research",
-	"RESEARCH.md",
-	AGENT_CONFIGS[4].description,
-);
-export const testingAgent = createAgentDefinition(
-	"testing",
-	"TESTING.md",
-	AGENT_CONFIGS[5].description,
-);
-export const documentationAgent = createAgentDefinition(
-	"documentation",
-	"DOCUMENTATION.md",
-	AGENT_CONFIGS[6].description,
-);
-export const securityAuditAgent = createAgentDefinition(
-	"security-audit",
-	"SECURITY_AUDIT.md",
-	AGENT_CONFIGS[7].description,
-);
-export const performanceAgent = createAgentDefinition(
-	"performance",
-	"PERFORMANCE.md",
-	AGENT_CONFIGS[8].description,
-);
-export const textEditorAgent = createAgentDefinition(
-	"textEditor",
-	"TEXT_EDITOR.md",
-	AGENT_CONFIGS[9].description,
-);
-export const seoAnalystAgent = createAgentDefinition(
-	"seoAnalyst",
-	"SEO_ANALYST.md",
-	AGENT_CONFIGS[10].description,
-);
-export const translatorAgent = createAgentDefinition(
-	"translator",
-	"TRANSLATOR.md",
-	AGENT_CONFIGS[11].description,
-);

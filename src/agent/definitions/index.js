@@ -2,53 +2,22 @@
  * Agent definitions index — re-exports from consolidated config and derives getAllAgents().
  */
 
-import {
-	codingAgent,
-	searchAgent,
-	debugAgent,
-	codeReviewAgent,
-	researchAgent,
-	testingAgent,
-	documentationAgent,
-	securityAuditAgent,
-	performanceAgent,
-	textEditorAgent,
-	seoAnalystAgent,
-	translatorAgent,
-} from "../agentDefinitions.js";
+import { getAllAgents, AGENT_CONFIGS } from "../agentDefinitions.js";
 
-export {
-	codingAgent,
-	searchAgent,
-	debugAgent,
-	codeReviewAgent,
-	researchAgent,
-	testingAgent,
-	documentationAgent,
-	securityAuditAgent,
-	performanceAgent,
-	textEditorAgent,
-	seoAnalystAgent,
-	translatorAgent,
-};
+export { getAllAgents };
 
 /**
  * Get all agent definitions, derived from the consolidated config.
  * @returns {{ name: string, description: string, systemPrompt: string }[]}
  */
-export function getAllAgents() {
-	return [
-		codingAgent,
-		searchAgent,
-		debugAgent,
-		codeReviewAgent,
-		researchAgent,
-		testingAgent,
-		documentationAgent,
-		securityAuditAgent,
-		performanceAgent,
-		textEditorAgent,
-		seoAnalystAgent,
-		translatorAgent,
-	];
+export function getAgentByName(name) {
+	return getAllAgents().find((agent) => agent.name === name);
 }
+
+/**
+ * Map of agent name → agent definition for keyed access.
+ * @type {Record<string, { name: string, description: string, systemPrompt: string }>}
+ */
+export const agents = Object.fromEntries(
+	AGENT_CONFIGS.map((cfg) => [cfg.name, cfg]),
+);
