@@ -51,7 +51,6 @@ export const MessageList = React.memo(
 		const dataRef = useRef(new Map());
 		const contentRef = useRef(new Map());
 		const lastMsgCountRef = useRef(0);
-		const [scrollOffset, setScrollOffset] = useState(0);
 		const { stdout } = useStdout();
 
 		// Pub/sub topics map — each topic key maps to an array of pending update listeners
@@ -256,7 +255,7 @@ export const MessageList = React.memo(
 			 * @param {number} delta - Number of rows to scroll
 			 */
 			scrollBy(delta) {
-				setScrollOffset((prev) => Math.max(0, prev + delta));
+				scrollRef.current?.scrollBy?.(delta);
 			},
 
 			/**
@@ -400,17 +399,6 @@ export const MessageList = React.memo(
 
 		const children = childrenRef.current;
 
-		// Sync scroll offset back from ScrollView (e.g., keyboard nav).
-		const handleScroll = (offset) => {
-			setScrollOffset(offset);
-			// Track when user is at bottom vs scrolled up
-			if (offset === 0) {
-				isUserScrolledUpRef.current = false;
-			} else {
-				isUserScrolledUpRef.current = true;
-			}
-		};
-
 		return React.createElement(
 			PubSubProvider,
 			{ subscribe, unsubscribe, publish },
@@ -431,9 +419,7 @@ export const MessageList = React.memo(
 							ref: scrollRef,
 							key: "scroll",
 							grow: 1,
-							scrollOffset,
 							onContentHeightChange: handleContentHeightChange,
-							onScroll: handleScroll,
 						},
 						...children,
 					),
