@@ -20,7 +20,7 @@ import {
 import { createEmailProvider, validateProviderConfig } from "../tools/email/index.js";
 import { createCoreBackend } from "./coreBackend.js";
 import { createContextBackend } from "./contextBackend.js";
-import { getAllAgents } from "./definitions/index.js";
+import { getAllAgents } from "./agentDefinitions.js";
 import { logger } from "../shared/logger.js";
 
 /**
