@@ -145,10 +145,9 @@ export function MessageBubbleInner({
 		const handleUpdate = (data) => {
 			setChunks((prev) => {
 				const newContent = data?.content ?? "";
-				// Skip dedup during streaming — every tick must append so the
-				// scroll effect fires even when the chunk text is identical.
-				if (data?.streaming) return [...prev, newContent];
-				// Skip appends when content hasn't changed (avoids duplicate renders)
+				// Skip empty content — appending "" causes re-renders with no visual change.
+				if (newContent.length === 0) return prev;
+				// Skip appends when content hasn't changed (avoids duplicate renders).
 				if (prev.length > 0 && prev[prev.length - 1] === newContent) return prev;
 				return [...prev, newContent];
 			});
