@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, memo } from "react";
 import { Box } from "ink";
 import { MessageList } from "./messageList.js";
 
@@ -71,12 +71,12 @@ export function getBubbleStyle(role) {
  * @param {React.Ref} [props.messageListRef] - Optional ref for imperative access
  * @returns {React.ReactElement}
  */
-const ConversationPanelInner = ({
+export const ConversationPanel = React.memo(function ConversationPanel({
 	messages = [],
 	assistantName = "Assistant",
 	scrollRef: externalScrollRef,
 	messageListRef,
-}) => {
+}) {
 	const internalListRef = useRef(null);
 	const panelRef = messageListRef || internalListRef;
 
@@ -96,6 +96,4 @@ const ConversationPanelInner = ({
 			scrollRef: externalScrollRef,
 		}),
 	);
-};
-
-export const ConversationPanel = React.memo(ConversationPanelInner);
+});

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, memo } from "react";
 import { Box, useApp, useInput, useWindowSize } from "ink";
 import { CommandParser } from "./commandParser.js";
 import { ConversationPanel } from "./conversationPanel.js";
@@ -52,7 +52,7 @@ function areEqual(prevProps, nextProps) {
  * Main App component (Ink). Renders an IRC-style layout:
  * full-height conversation REPL at top, input bar at bottom.
  */
-function AppInner({
+function App({
 	config,
 	registry,
 	sessionState,
@@ -989,4 +989,4 @@ function AppInner({
 	);
 }
 
-export default memo(AppInner, areEqual);
+export default memo(App, areEqual);
