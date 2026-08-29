@@ -20,7 +20,7 @@ import {
 import { createEmailProvider, validateProviderConfig } from "../tools/email/index.js";
 import { createCoreBackend } from "./coreBackend.js";
 import { createContextBackend } from "./contextBackend.js";
-import { getAllAgents } from "./definitions/index.js";
+import { getAllAgents } from "./agentDefinitions.js";
 import { logger } from "../shared/logger.js";
 
 /**
@@ -30,18 +30,7 @@ import { logger } from "../shared/logger.js";
  * @returns {string[]} Array of tool classifications
  */
 function getAgentClassifications(agentName) {
-	const classificationMap = {
-		search: ["read_file", "webSearch", "webExtract", "glob", "sessionSearch"],
-		debug: ["read_file", "glob", "process"],
-		"code-review": ["read_file", "glob"],
-		research: ["read_file", "webSearch", "webExtract", "glob", "sessionSearch"],
-		testing: ["read_file", "glob", "process"],
-		documentation: ["read_file", "write_file", "edit_file", "glob"],
-		"security-audit": ["read_file", "glob", "process"],
-		performance: ["read_file", "process"],
-		coding: ["read_file", "write_file", "edit_file", "glob", "process"],
-	};
-	return classificationMap[agentName] || [];
+	return [agentName];
 }
 
 /**

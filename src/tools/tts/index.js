@@ -3,7 +3,7 @@ import { z } from "zod";
 import { writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { homedir } from "node:os";
-import { loadConfig } from "../config/loader.js";
+import { loadConfig } from "../../config/loader.js";
 
 const TTS_MODELS = ["tts-1", "tts-1-hd"];
 const TTS_VOICES = [

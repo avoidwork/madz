@@ -1,6 +1,6 @@
 import { describe, it, after } from "node:test";
 import assert from "node:assert";
-import { memoryImpl, sanitizeKey } from "../../src/tools/memory.js";
+import { memoryImpl, sanitizeKey } from "../../src/tools/memory/index.js";
 import { mkdir, writeFile, rm, readFile } from "node:fs/promises";
 import { join } from "node:path";
 

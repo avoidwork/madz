@@ -1,6 +1,6 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import { filterUrl } from "../sandbox/urlFilter.js";
+import { filterUrl } from "../../sandbox/urlFilter.js";
 
 const DEFAULT_TIMEOUT = 30000;
 const DEFAULT_MAX_DEPTH = 10;

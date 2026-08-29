@@ -1,7 +1,7 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { ChatOpenAI } from "@langchain/openai";
-import { loadConfig } from "../config/loader.js";
+import { loadConfig } from "../../config/loader.js";
 
 const MAX_IMAGE_SIZE = 4 * 1024 * 1024; // 4MB
 

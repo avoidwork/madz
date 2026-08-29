@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
-import { date, dateImpl } from "../../src/tools/date.js";
+import { date, dateImpl } from "../../src/tools/date/index.js";
 import { buildToolConfig } from "../../src/tools/index.js";
 
 describe("date tool - dateImpl", () => {

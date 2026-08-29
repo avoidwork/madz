@@ -1,6 +1,6 @@
 import { describe, it, after, beforeEach } from "node:test";
 import assert from "node:assert";
-import { reflectionImpl } from "../../src/tools/reflection.js";
+import { reflectionImpl } from "../../src/tools/reflection/index.js";
 import { mkdir, writeFile, rm, readdir } from "node:fs/promises";
 import { join } from "node:path";
 
@@ -447,17 +447,17 @@ describe("reflection tool", () => {
 
 describe("reflectionSessions tool - singleton export", () => {
 	it("exports a LangChain Tool with correct name", async () => {
-		const { reflectionSessions } = await import("../../src/tools/reflection.js");
+		const { reflectionSessions } = await import("../../src/tools/reflection/index.js");
 		assert.strictEqual(reflectionSessions.name, "reflectionSessions");
 	});
 
 	it("exports a LangChain Tool with description", async () => {
-		const { reflectionSessions } = await import("../../src/tools/reflection.js");
+		const { reflectionSessions } = await import("../../src/tools/reflection/index.js");
 		assert.ok(reflectionSessions.description.length > 10, "Expected a descriptive description");
 	});
 
 	it("exports a LangChain Tool with a zod schema", async () => {
-		const { reflectionSessions } = await import("../../src/tools/reflection.js");
+		const { reflectionSessions } = await import("../../src/tools/reflection/index.js");
 		assert.ok(reflectionSessions.schema, "Expected a schema to be defined");
 	});
 });

@@ -1,6 +1,6 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import { loadConfig } from "../config/loader.js";
+import { loadConfig } from "../../config/loader.js";
 
 const DEFAULT_TIMEOUT = 30000;
 

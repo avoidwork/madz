@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
-import { graphqlImpl, rateLimit } from "../../src/tools/graphql.js";
+import { graphqlImpl, rateLimit } from "../../src/tools/graphql/index.js";
 
 // Disable rate limiting in tests
 rateLimit._testMode = true;

@@ -8,7 +8,7 @@ import assert from "node:assert";
 import { readFile, writeFile, rm, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { PDFDocument, StandardFonts } from "pdf-lib";
-import { pdfGenerate } from "../../src/tools/pdfGenerate.js";
+import { pdfGenerate } from "../../src/tools/pdfGenerate/index.js";
 
 const TEST_DIR = "memory/__test_pdf_generate__/";
 

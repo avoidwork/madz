@@ -8,7 +8,7 @@ import {
 	listWebhooks,
 	deleteWebhook,
 	verifyWebhook,
-} from "../../src/tools/webhook.js";
+} from "../../src/tools/webhook/index.js";
 import { setTestMode } from "../../src/sandbox/urlFilter.js";
 
 // Enable test mode to allow internal IPs in integration tests

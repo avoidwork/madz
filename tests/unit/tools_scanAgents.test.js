@@ -3,7 +3,7 @@ import assert from "node:assert";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { writeFile, rm, mkdir } from "node:fs/promises";
-import { scanAgentsImpl, scanAgents } from "../../src/tools/scanAgents.js";
+import { scanAgentsImpl, scanAgents } from "../../src/tools/scanAgents/index.js";
 import { buildToolConfig } from "../../src/tools/index.js";
 
 // Test fixtures

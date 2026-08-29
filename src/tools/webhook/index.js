@@ -6,8 +6,8 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
-const WEBHOOKS_FILE = join(__dirname, "../../memory/tools/webhooks.json");
-const WEBHOOKS_DIR = join(__dirname, "../../memory/tools");
+const WEBHOOKS_FILE = join(__dirname, "../../../memory/tools/webhooks.json");
+const WEBHOOKS_DIR = join(__dirname, "../../../memory/tools");
 
 /**
  * Ensure the webhooks directory exists.

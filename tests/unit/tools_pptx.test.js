@@ -12,7 +12,7 @@ import {
 	validateTemplatePath,
 	PptxError,
 	pptxGenerateSchema,
-} from "../../src/tools/fileCreate/pptx.js";
+} from "../../src/tools/fileCreate/index.js";
 import PptxGenJS from "pptxgenjs";
 
 const FIXTURES = resolve("tests/fixtures/pptx");

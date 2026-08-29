@@ -1,6 +1,6 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import { loadConfig } from "../config/loader.js";
+import { loadConfig } from "../../config/loader.js";
 
 const NUM_REFERENCES = 4;
 const CALL_TIMEOUT_MS = 60000; // 60 seconds per call

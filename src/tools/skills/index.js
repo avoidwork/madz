@@ -8,10 +8,10 @@ import {
 	validateSkillDescription,
 	validateOptionalFields,
 	validateSkillSchema,
-} from "../skills/validator.js";
-import { ensureSkillsDir } from "../skills/registry.js";
-import { PermissionSchema } from "../skills/types.js";
-import { loadConfig } from "../config/loader.js";
+} from "../../skills/validator.js";
+import { ensureSkillsDir } from "../../skills/registry.js";
+import { PermissionSchema } from "../../skills/types.js";
+import { loadConfig } from "../../config/loader.js";
 
 export let cwd = process.cwd();
 

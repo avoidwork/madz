@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
-import { yamlManipulationImpl } from "../../src/tools/yaml.js";
+import { yamlManipulationImpl } from "../../src/tools/yaml/index.js";
 
 describe("yaml tool", () => {
 	it("parses YAML string to object", async () => {

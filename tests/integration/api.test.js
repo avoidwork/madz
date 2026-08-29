@@ -1,6 +1,6 @@
 import { describe, it, before, after } from "node:test";
 import assert from "node:assert";
-import { makeApiRequest } from "../../src/tools/api.js";
+import { makeApiRequest } from "../../src/tools/api/index.js";
 
 describe("api integration tests", () => {
 	let origFetch;

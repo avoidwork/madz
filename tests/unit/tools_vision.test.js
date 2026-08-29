@@ -1,6 +1,6 @@
 import { describe, it, before, after, mock } from "node:test";
 import assert from "node:assert";
-import { visionAnalyzeImpl } from "../../src/tools/vision.js";
+import { visionAnalyzeImpl } from "../../src/tools/vision/index.js";
 
 describe("visionAnalyze", () => {
 	let origFetch;
@@ -112,25 +112,25 @@ describe("visionAnalyze", () => {
 	});
 
 	it("decodes dataUri correctly", async () => {
-		const { decodeDataUri } = await import("../../src/tools/vision.js");
+		const { decodeDataUri } = await import("../../src/tools/vision/index.js");
 		const result = decodeDataUri("data:image/png;base64,aGVsbG8=");
 		assert.strictEqual(result, "aGVsbG8=");
 	});
 
 	it("returns null for invalid dataUri prefix", async () => {
-		const { decodeDataUri } = await import("../../src/tools/vision.js");
+		const { decodeDataUri } = await import("../../src/tools/vision/index.js");
 		const result = decodeDataUri("data:text/plain,hello");
 		assert.strictEqual(result, null);
 	});
 
 	it("returns null for non-data URI string", async () => {
-		const { decodeDataUri } = await import("../../src/tools/vision.js");
+		const { decodeDataUri } = await import("../../src/tools/vision/index.js");
 		const result = decodeDataUri("https://example.com/image.png");
 		assert.strictEqual(result, null);
 	});
 
 	it("converts arrayBuffer to base64", async () => {
-		const { arrayBufferToBase64 } = await import("../../src/tools/vision.js");
+		const { arrayBufferToBase64 } = await import("../../src/tools/vision/index.js");
 		const original = "hello world";
 		const encoder = new TextEncoder();
 		const buffer = encoder.encode(original).buffer;

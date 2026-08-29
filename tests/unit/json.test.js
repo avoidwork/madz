@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
-import { jsonManipulationImpl } from "../../src/tools/json.js";
+import { jsonManipulationImpl } from "../../src/tools/json/index.js";
 
 describe("json tool", () => {
 	it("parses JSON string to object", async () => {

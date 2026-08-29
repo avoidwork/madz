@@ -1,6 +1,6 @@
 import { describe, it, afterEach } from "node:test";
 import assert from "node:assert";
-import { unifiedProcessImpl, processTracker, trackProcess } from "../../src/tools/process.js";
+import { unifiedProcessImpl, processTracker, trackProcess } from "../../src/tools/process/index.js";
 import { spawn } from "node:child_process";
 
 let spawned = [];

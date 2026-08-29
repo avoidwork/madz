@@ -1,6 +1,6 @@
 import { test, describe } from "node:test";
 import assert from "node:assert";
-import { emailImpl } from "../../../../src/tools/email/tools.js";
+import { emailImpl } from "../../../../src/tools/email/index.js";
 
 describe("Email Tool", () => {
 	test("email tool has correct name", () => {

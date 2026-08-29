@@ -10,8 +10,8 @@ import {
 	createSkill,
 	cwd,
 	setCwd,
-} from "../../src/tools/skills.js";
-import { findSkillScript } from "../../src/tools/cron.js";
+} from "../../src/tools/skills/index.js";
+import { findSkillScript } from "../../src/tools/cron/index.js";
 import { SkillRegistry } from "../../src/skills/registry.js";
 
 let testDir;
