@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React from "react";
 import { Text } from "ink";
 import { marked, setOptions, Renderer } from "marked";
 import chalk from "chalk";
