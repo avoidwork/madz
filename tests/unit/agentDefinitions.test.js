@@ -2,7 +2,7 @@
  * Agent definition tests - validates structure, output formats, and tool mappings.
  */
 
-import { describe, it, before } from "node:test";
+import { describe, it } from "node:test";
 import { strictEqual, ok, deepStrictEqual } from "node:assert";
 import { getAllAgents } from "../../src/agent/agentDefinitions.js";
 import { getToolsForAgentTypes, TOOL_CLASSIFICATIONS } from "../../src/tools/index.js";
