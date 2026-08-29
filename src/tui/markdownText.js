@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef } from "react";
 import { Text } from "ink";
 import { marked, setOptions, Renderer } from "marked";
 import chalk from "chalk";
@@ -507,14 +507,27 @@ export function parseMarkdown(markdown) {
  * @returns {React.ReactNode}
  */
 export function MarkdownTextInner({ content }) {
+	const lastContentRef = useRef(null);
+	const lastElementRef = useRef(null);
+
 	if (content === null || content === undefined || content === "") {
+		lastContentRef.current = null;
+		lastElementRef.current = null;
 		return null;
 	}
 
-	const cleanContent = (content || "").replace(new RegExp(STREAMING_CURSOR, "g"), "");
+	// Skip re-render if content hasn't changed — prevents flicker during
+	// streaming when the LRU cache returns the same parsed output but
+	// the content string reference changes on every tick.
+	if (lastContentRef.current === content) return lastElementRef.current;
 
+	const cleanContent = (content || "").replace(new RegExp(STREAMING_CURSOR, "g"), "");
 	const parsed = parseMarkdown(cleanContent);
-	return React.createElement(Text, { color: "white" }, parsed);
+
+	const el = React.createElement(Text, { color: "white" }, parsed);
+	lastContentRef.current = content;
+	lastElementRef.current = el;
+	return el;
 }
 
 /**
