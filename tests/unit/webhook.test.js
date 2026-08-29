@@ -1,7 +1,7 @@
 import { describe, it, before, after, beforeEach } from "node:test";
 import assert from "node:assert";
 import { createHmac } from "node:crypto";
-import { access, constants, mkdir, readFile, unlink } from "node:fs/promises";
+import { access, constants, copyFile, mkdir, readFile, unlink } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -12,6 +12,7 @@ import {
 } from "../../src/tools/webhook/index.js";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
+const FIXTURE_FILE = join(__dirname, "../fixtures/webhooks.json");
 const WEBHOOKS_FILE = join(__dirname, "../../memory/tools/webhooks.json");
 
 describe("webhook tool", () => {
@@ -30,7 +31,8 @@ describe("webhook tool", () => {
 	});
 
 	beforeEach(async () => {
-		await cleanup();
+		// Seed from fixture file for each test
+		await copyFile(FIXTURE_FILE, WEBHOOKS_FILE);
 	});
 	after(async () => {
 		await cleanup();

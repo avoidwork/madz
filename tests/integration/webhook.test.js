@@ -1,8 +1,9 @@
-import { describe, it, before, after } from "node:test";
+import { describe, it, before, after, beforeEach } from "node:test";
 import assert from "node:assert";
 import { createServer } from "node:http";
 import { createHmac } from "node:crypto";
-import { access, constants, unlink } from "node:fs/promises";
+import { access, constants, copyFile, mkdir, unlink } from "node:fs/promises";
+import { join } from "node:path";
 import {
 	createWebhook,
 	listWebhooks,
@@ -14,7 +15,10 @@ import { setTestMode } from "../../src/sandbox/urlFilter.js";
 // Enable test mode to allow internal IPs in integration tests
 setTestMode(true);
 
-const WEBHOOKS_FILE = "memory/tools/webhooks.json";
+const __dirname = join(process.cwd(), "tests", "integration");
+const FIXTURE_FILE = join(__dirname, "../fixtures/webhooks.json");
+const TEST_DIR = join(process.cwd(), "memory/__test_webhooks__");
+const WEBHOOKS_FILE = join(TEST_DIR, "webhooks.json");
 
 describe("webhook integration tests", () => {
 	let server;
@@ -46,6 +50,11 @@ describe("webhook integration tests", () => {
 		const addr = server.address();
 		port = addr.port;
 		baseUrl = `http://127.0.0.1:${port}`;
+		await mkdir(TEST_DIR, { recursive: true });
+	});
+
+	beforeEach(async () => {
+		await copyFile(FIXTURE_FILE, WEBHOOKS_FILE);
 	});
 
 	after(async () => {
