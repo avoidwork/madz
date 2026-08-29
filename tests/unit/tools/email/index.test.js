@@ -9,7 +9,7 @@ import {
 	emailDraftDelete,
 	emailOrganize,
 	emailSearch,
-} from "../../../src/tools/email/tools.js";
+} from "../../../src/tools/email/index.js";
 
 describe("Email Tools", () => {
 	test("emailRead should have a valid name", () => {

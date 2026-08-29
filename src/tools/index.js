@@ -1,5 +1,5 @@
 import { clarify } from "./clarify/index.js";
-import { createCompactContextTool } from "./compact_context/index.js";
+import { createCompactContextTool } from "./compactContext/index.js";
 import { cronJob } from "./cron/index.js";
 import { date } from "./date/index.js";
 import { scanAgents } from "./scanAgents/index.js";
@@ -7,7 +7,7 @@ import { imageGenerate } from "./image/index.js";
 import { memory } from "./memory/index.js";
 import { mixtureOfAgents } from "./moa/index.js";
 import { sampling } from "./sampling/index.js";
-import { sessionSearch } from "./session_search/index.js";
+import { sessionSearch } from "./sessionSearch/index.js";
 import { processTool } from "./process/index.js";
 import { createSkill } from "./skills/index.js";
 import { textToSpeech } from "./tts/index.js";
