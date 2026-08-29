@@ -234,7 +234,7 @@ export function MessageBubbleInner({
 			)
 		: null;
 
-	const pendingState = role === "assistant" && chunks.length === 0 && !content;
+	const pendingState = role === "assistant" && streaming && chunks.length === 0 && !content;
 
 	return React.createElement(
 		Box,
