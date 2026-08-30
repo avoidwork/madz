@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState, forwardRef } from "react";
 import { Box, Text, useStdout } from "ink";
 import { ScrollView } from "ink-scroll-view";
 import { MessageBubble, PubSubContext, ScrollContext } from "./messageBubble.js";
+import { formatTime } from "./conversationPanel.js";
 
 /**
  * Pub/Sub wrapper component for MessageList children.
@@ -117,7 +118,7 @@ export const MessageList = React.memo(
 					id,
 					role,
 					content: stableContent,
-					time: options.time,
+					time: options.time ? formatTime(new Date(options.time)) : undefined,
 					reasoningContent: options.reasoningContent,
 					activeToolCall: options.activeToolCall,
 					toolCallDisplay: options.toolCallDisplay,
