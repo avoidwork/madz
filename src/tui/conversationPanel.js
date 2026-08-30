@@ -94,31 +94,35 @@ function detectLocale(tz) {
 }
 
 /**
- * Timezone to use for TUI time display.
- * Lifted from the shell environment; falls back to the runtime's default.
+ * Lazily create the Intl.DateTimeFormat so TZ is always set by the time
+ * the formatter is needed (module load time may precede env setup).
  */
-const displayTimezone = process.env.TZ || Intl.DateTimeFormat().resolvedOptions().timeZone;
+let _formatter;
 
 /**
- * Cached Intl.DateTimeFormat for localized time display.
- * Uses the host's locale and timezone so 12/24-hour and date conventions
- * follow the user's system preferences.
- * Falls back to en-US if the locale is rejected by ICU.
+ * Get the cached Intl.DateTimeFormat, creating it lazily.
+ * @returns {Intl.DateTimeFormat}
  */
-let timeFormatter;
-try {
-	timeFormatter = new Intl.DateTimeFormat(detectLocale(displayTimezone), {
-		hour: "numeric",
-		minute: "2-digit",
-		timeZone: displayTimezone,
-	});
-} catch {
-	// Some locales (e.g., "C") are rejected by ICU — fall back to en-US
-	timeFormatter = new Intl.DateTimeFormat("en-US", {
-		hour: "numeric",
-		minute: "2-digit",
-		timeZone: displayTimezone,
-	});
+function getFormatter() {
+	if (!_formatter) {
+		const tz = process.env.TZ || Intl.DateTimeFormat().resolvedOptions().timeZone;
+		const locale = detectLocale(tz);
+		try {
+			_formatter = new Intl.DateTimeFormat(locale, {
+				hour: "numeric",
+				minute: "2-digit",
+				timeZone: tz,
+			});
+		} catch {
+			// Some locales (e.g., "C") are rejected by ICU — fall back to en-US
+			_formatter = new Intl.DateTimeFormat("en-US", {
+				hour: "numeric",
+				minute: "2-digit",
+				timeZone: tz,
+			});
+		}
+	}
+	return _formatter;
 }
 
 /**
@@ -127,7 +131,7 @@ try {
  * @returns {string} Localized time string
  */
 export function formatTime(date) {
-	return timeFormatter.format(date);
+	return getFormatter().format(date);
 }
 
 /**
