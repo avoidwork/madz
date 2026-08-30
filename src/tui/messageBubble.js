@@ -6,6 +6,47 @@ import { getRoleLabel } from "./messages.js";
 import { getRoleColors, getBubbleStyle, formatTime } from "./conversationPanel.js";
 
 /**
+ * Curated list of action-oriented words for the assistant thinking state.
+ * A random word is selected on each render to provide visual variety.
+ * @type {string[]}
+ */
+export const THINKING_WORDS = [
+	"Brewing",
+	"Weaving",
+	"Distilling",
+	"Assembling",
+	"Curating",
+	"Simmering",
+	"Unspooling",
+	"Crafting",
+	"Kindling",
+	"Polishing",
+	"Orchestrating",
+	"Converging",
+	"Illuminating",
+	"Tuning",
+	"Sculpting",
+	"Harmonizing",
+	"Coalescing",
+	"Stirring",
+	"Unfolding",
+	"Refining",
+	"Pondering",
+	"Forging",
+	"Aligning",
+	"Resonating",
+	"Awakening",
+];
+
+/**
+ * Returns a random word from the THINKING_WORDS array.
+ * @returns {string} A random word from the list
+ */
+export function getRandomThinkingWord() {
+	return THINKING_WORDS[Math.floor(Math.random() * THINKING_WORDS.length)];
+}
+
+/**
  * Creates a pub/sub topic manager for component-to-component communication.
  *
  * **Test Pattern**: Create an instance to wire up bubbles independently
@@ -275,7 +316,7 @@ export function MessageBubbleInner({
 							Text,
 							{ color: "cyan" },
 							React.createElement(Spinner, { type: "dots2" }),
-							" thinking",
+							` ${getRandomThinkingWord()}`,
 						)
 					: React.createElement(MarkdownText, {
 							content: text,
