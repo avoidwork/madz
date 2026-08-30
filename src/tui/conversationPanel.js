@@ -5,19 +5,21 @@ import { MessageList } from "./messageList.js";
 /**
  * Lazily create the Intl.DateTimeFormat so TZ is always set by the time
  * the formatter is needed (module load time may precede env setup).
- * ICU automatically selects the appropriate locale for the given timezone.
  */
 let _formatter;
 
 /**
  * Get the cached Intl.DateTimeFormat, creating it lazily.
+ * Uses the system's default locale (from resolvedOptions) and the
+ * host timezone (from TZ env var or resolvedOptions).
  * @returns {Intl.DateTimeFormat}
  */
 function getFormatter() {
 	if (!_formatter) {
-		const tz = process.env.TZ || Intl.DateTimeFormat().resolvedOptions().timeZone;
+		const { timeZone: defaultTimezone, locale } = Intl.DateTimeFormat().resolvedOptions();
+		const tz = process.env.TZ || defaultTimezone;
 		try {
-			_formatter = new Intl.DateTimeFormat(undefined, {
+			_formatter = new Intl.DateTimeFormat(locale, {
 				hour: "numeric",
 				minute: "2-digit",
 				timeZone: tz,
