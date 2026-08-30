@@ -6,9 +6,9 @@ The madz codebase has significant test coverage gaps in critical tool modules. T
 
 - Write or extend unit tests for 14 priority files with the lowest coverage (spreadsheet, calendar, email provider modules)
 - Create new test files for 6 files with no existing tests (scheduler/cron, session/shutdown, shared/logger, skills/registry, tools/yaml, tools/webhook)
-- Target ≥90% line coverage per file using c8 via `npm run coverage`
+- Target ≥90% line coverage per file using the Node.js native test harness (`node --test --experimental-test-coverage`)
 - Mock all external dependencies (Gmail API, Microsoft Graph, IMAP) — no real API calls in tests
-- Document untestable paths with `c8 ignore next` comments where live credentials or hardware are required
+- Document untestable paths with `// c8 ignore next` comments (native test harness annotation) where live credentials or hardware are required
 - Verify each file reaches 90% before moving to the next
 
 ## Capabilities
@@ -25,7 +25,7 @@ The madz codebase has significant test coverage gaps in critical tool modules. T
 
 - **Affected code:** src/tools/spreadsheet/, src/tools/calendar/, src/tools/email/providers/, src/tools/compactContext/, src/scheduler/, src/session/, src/shared/, src/skills/, src/tools/yaml/, src/tools/webhook/
 - **Affected tests:** tests/unit/tools/spreadsheet/, tests/unit/tools/calendar/, tests/unit/tools/email/, tests/unit/tools/compactContext/, tests/unit/scheduler/, tests/unit/session/, tests/unit/shared/, tests/unit/skills/, tests/unit/tools/yaml/, tests/unit/tools/webhook/
-- **Dependencies:** No new dependencies — uses existing `node --test` and c8 coverage
+- **Dependencies:** No new dependencies — uses existing `node --test` with `--experimental-test-coverage` (native test harness, c8 under the hood)
 - **Systems:** Testing pipeline only — no runtime behavior changes
 
 ## Non-goals

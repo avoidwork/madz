@@ -2,11 +2,11 @@
 
 ### Requirement: All source files achieve ≥90% line coverage
 
-The system SHALL achieve at least 90% line coverage for every source file in the madz codebase, measured using c8 via `npm run coverage`.
+The system SHALL achieve at least 90% line coverage for every source file in the madz codebase, measured using the Node.js native test harness via `node --test --experimental-test-coverage`.
 
 #### Scenario: Priority files reach 90% coverage
 - **WHEN** the test suite runs against the 14 priority files (spreadsheet/formulaParser.js, calendar/index.js, email/providers/graph.js, email/providers/gmail.js, compactContext/index.js, email/providers/imap.js, spreadsheet/pivot.js, calendar/providers/msgraph.js, calendar/providers/google.js, spreadsheet/stats.js, spreadsheet/spreadsheet.js, calendar/providers/base.js, calendar/providers/factory.js, email/providers/base.js)
-- **THEN** each file reports ≥90% line coverage in the c8 coverage report
+- **THEN** each file reports ≥90% line coverage in the native test harness coverage report
 
 #### Scenario: No-test-file modules get new test files
 - **WHEN** the test suite runs against modules without existing tests (scheduler/cron.js, session/shutdown.js, shared/logger.js, skills/registry.js, tools/yaml/index.js, tools/webhook/index.js)
@@ -30,11 +30,11 @@ The system SHALL mock all external service dependencies in tests — no real API
 
 ### Requirement: Untestable paths are documented
 
-The system SHALL document code paths that cannot be tested without live credentials or hardware using `c8 ignore next` comments.
+The system SHALL document code paths that cannot be tested without live credentials or hardware using `// c8 ignore next` comments (native test harness annotation).
 
 #### Scenario: Paths requiring live credentials are annotated
 - **WHEN** a source file contains code paths that require live API credentials or hardware access
-- **THEN** those lines are annotated with `c8 ignore next` comments and the reason is documented
+- **THEN** those lines are annotated with `// c8 ignore next` comments (native test harness annotation) and the reason is documented
 
 ### Requirement: Tests follow project conventions
 

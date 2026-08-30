@@ -135,4 +135,22 @@ export class EmailProvider {
 	validateConfig() {
 		return { valid: true };
 	}
+
+	/**
+	 * Normalize a raw message object into a standard format.
+	 * @param {object} raw - Raw message object from provider
+	 * @returns {object} Normalized message object
+	 */
+	normalizeMessage(raw) {
+		return {
+			id: raw.id,
+			from: raw.from,
+			to: raw.to,
+			subject: raw.subject,
+			body: raw.body,
+			date: raw.date,
+			attachments: raw.attachments || [],
+			read: raw.read !== false,
+		};
+	}
 }

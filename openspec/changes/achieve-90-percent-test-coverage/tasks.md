@@ -9,6 +9,11 @@
 - [ ] 2.2 Extend tests for src/tools/spreadsheet/pivot.js (25.00% → 90%)
 - [ ] 2.3 Extend tests for src/tools/spreadsheet/stats.js (34.31% → 90%)
 - [ ] 2.4 Extend tests for src/tools/spreadsheet/spreadsheet.js (33.27% → 90%)
+- [x] 2.5 Extend tests for src/tools/spreadsheet/csv.js
+- [x] 2.6 Extend tests for src/tools/spreadsheet/formulaParser.js (extended)
+- [x] 2.7 Extend tests for src/tools/spreadsheet/pivot.js (extended)
+- [x] 2.8 Extend tests for src/tools/spreadsheet/spreadsheet.js (extended)
+- [x] 2.9 Extend tests for src/tools/spreadsheet/stats.js (extended)
 
 ## 3. Calendar Module Tests
 
@@ -41,6 +46,6 @@
 ## 7. Verification and Polish
 
 - [ ] 7.1 Run full test suite and verify all tests pass
-- [ ] 7.2 Run coverage report and verify all priority files ≥90%
+- [ ] 7.2 Run coverage report (`node --test --experimental-test-coverage`) and verify all priority files ≥90%
 - [ ] 7.3 Run lint check and fix any issues
-- [ ] 7.4 Add c8 ignore comments for genuinely untestable paths
+- [ ] 7.4 Add `// c8 ignore next` comments for genuinely untestable paths

@@ -1,6 +1,6 @@
 import { test, describe } from "node:test";
 import assert from "node:assert";
-import { EmailProvider } from "../../../src/tools/email/providers/base.js";
+import { EmailProvider } from "../../../../../src/tools/email/providers/base.js";
 
 describe("EmailProvider (base)", () => {
 	test("should throw on read() — abstract method", async () => {

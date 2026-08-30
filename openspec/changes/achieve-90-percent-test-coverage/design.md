@@ -1,6 +1,6 @@
 ## Context
 
-The madz codebase has significant test coverage gaps in its most complex and frequently-used modules. The spreadsheet formula parser sits at 16.99% line coverage, email and calendar providers range from 18-28%, and several core utilities have no tests at all. The project uses `node --test` with c8 for coverage measurement, and the pre-commit hook runs lint + test + coverage. External dependencies (Gmail API, Microsoft Graph, IMAP) must be mocked in tests.
+The madz codebase has significant test coverage gaps in its most complex and frequently-used modules. The spreadsheet formula parser sits at 16.99% line coverage, email and calendar providers range from 18-28%, and several core utilities have no tests at all. The project uses `node --test` with `--experimental-test-coverage` for coverage measurement, and the pre-commit hook runs lint + test + coverage. External dependencies (Gmail API, Microsoft Graph, IMAP) must be mocked in tests.
 
 ## Goals / Non-Goals
 
@@ -8,7 +8,7 @@ The madz codebase has significant test coverage gaps in its most complex and fre
 - Achieve ≥90% line coverage for 14 priority files (spreadsheet, calendar, email provider modules)
 - Create test files for 6 modules with no existing tests
 - Mock all external service dependencies — no real API calls in tests
-- Document untestable paths with `c8 ignore next` comments
+- Document untestable paths with `// c8 ignore next` comments (native test harness annotation)
 - Verify each file reaches 90% before moving to the next
 
 **Non-Goals:**
@@ -34,9 +34,9 @@ The madz codebase has significant test coverage gaps in its most complex and fre
 - Sinon.js: adds dependency, already has Node.js native support
 - Manual stubbing: more verbose, error-prone
 
-### Decision: c8 ignore comments for untestable paths
-**Choice:** Use `/* c8 ignore next */` comments to annotate lines that cannot be tested (e.g., code requiring live credentials).
-**Rationale:** This is the standard c8 annotation format. It allows us to maintain 90% coverage while being honest about genuinely untestable paths.
+### Decision: Coverage ignore comments for untestable paths
+**Choice:** Use `// c8 ignore next` comments (native test harness annotation) to annotate lines that cannot be tested (e.g., code requiring live credentials).
+**Rationale:** The `--experimental-test-coverage` flag uses c8 under the hood, but we're not installing c8 as a separate dependency. The annotation format is the same — it's baked into the Node.js test harness. This allows us to maintain 90% coverage while being honest about genuinely untestable paths.
 **Alternatives considered:**
 - Exclude entire files from coverage: loses visibility into testable code within those files
 - Accept lower coverage: defeats the purpose of the initiative
@@ -48,7 +48,7 @@ The madz codebase has significant test coverage gaps in its most complex and fre
 ## Risks / Trade-offs
 
 ### Risk: Some files may not realistically reach 90%
-**Mitigation:** Document untestable paths with `c8 ignore next` comments. If a file truly cannot reach 90% after thorough effort, note the reason and move on. The issue acknowledges this possibility.
+**Mitigation:** Document untestable paths with `// c8 ignore next` comments (native test harness annotation). If a file truly cannot reach 90% after thorough effort, note the reason and move on. The issue acknowledges this possibility.
 
 ### Risk: Test maintenance burden
 **Mitigation:** Write focused, minimal tests that cover the specific code paths. Avoid over-engineering test fixtures. Each test should be a single assertion on a single behavior.
@@ -71,4 +71,4 @@ This change is purely additive — new test files and test extensions. No migrat
 ## Open Questions
 
 - Should we set a project-wide coverage threshold in package.json (e.g., `--test-coverage-threshold=90`)? This would enforce the 90% requirement going forward but is a separate change.
-- Should we add a `.c8ignore` file to exclude files that are genuinely untestable from the overall coverage report?
+- Should we add a `.c8ignore` file (native test harness annotation) to exclude files that are genuinely untestable from the overall coverage report?
