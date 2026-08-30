@@ -38,7 +38,7 @@ describe("handleShutdown", () => {
 	});
 
 	it("should handle flushTelemetry errors gracefully", async () => {
-		// Should not throw
+		// Should not throw — logs error internally
 		await assert.doesNotReject(
 			handleShutdown({
 				flushTelemetry: async () => { throw new Error("flush failed"); },
