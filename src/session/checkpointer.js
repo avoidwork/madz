@@ -1,5 +1,8 @@
 import { MemorySaver } from "@langchain/langgraph";
 import { SqliteSaver } from "@langchain/langgraph-checkpoint-sqlite";
+import { resolve, dirname } from "node:path";
+import { mkdirSync, existsSync } from "node:fs";
+import Database from "better-sqlite3";
 
 /**
  * Create a LangGraph checkpointer instance based on persistence config.
@@ -37,8 +40,18 @@ export function createCheckpointer(persistenceConfig) {
  */
 /* node:coverage ignore next */
 function createSqliteCheckpointer(persistenceConfig) {
-	const sqlitePath = persistenceConfig.sqlite_path || "memory/checkpoints.db";
+	const sqlitePath = resolve(persistenceConfig.sqlite_path || "memory/checkpoints.db");
 
-	/* node:coverage ignore next */
-	return SqliteSaver.fromConnString(`file:${sqlitePath}?mode=rwc&_journal=WAL`);
+	// Ensure parent directory exists — better-sqlite3 won't create it
+	const dir = dirname(sqlitePath);
+	if (!existsSync(dir)) {
+		mkdirSync(dir, { recursive: true });
+	}
+
+	// Create Database directly with absolute path (not file: URI)
+	// better-sqlite3 doesn't parse file: URIs reliably
+	const db = new Database(sqlitePath);
+	db.pragma("journal_mode=WAL");
+
+	return new SqliteSaver(db);
 }
