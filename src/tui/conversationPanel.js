@@ -10,25 +10,23 @@ let _formatter;
 
 /**
  * Get the cached Intl.DateTimeFormat, creating it lazily.
- * Uses the system's default locale (from resolvedOptions) and the
- * host timezone (from TZ env var or resolvedOptions).
+ * Uses the system's default locale and timezone from resolvedOptions.
  * @returns {Intl.DateTimeFormat}
  */
 function getFormatter() {
 	if (!_formatter) {
-		const { timeZone: defaultTimezone, locale } = Intl.DateTimeFormat().resolvedOptions();
-		const tz = process.env.TZ || defaultTimezone;
+		const { timeZone, locale } = Intl.DateTimeFormat().resolvedOptions();
 		try {
 			_formatter = new Intl.DateTimeFormat(locale, {
 				hour: "numeric",
 				minute: "2-digit",
-				timeZone: tz,
+				timeZone,
 			});
 		} catch {
 			_formatter = new Intl.DateTimeFormat("en-US", {
 				hour: "numeric",
 				minute: "2-digit",
-				timeZone: tz,
+				timeZone,
 			});
 		}
 	}
