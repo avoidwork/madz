@@ -155,7 +155,7 @@ export const ScrollContext = React.createContext({ scrollToBottom: () => {} });
  * @param {string} props.role - Message role: "user" | "assistant" | "system"
  * @param {string} props.content - Initial content for first render
  * @param {string} props.topic - Pub/sub topic this bubble listens on
- * @param {string} [props.time] - Timestamp string (HH:MM)
+ * @param {string} [props.time] - Localized time string (e.g., "10:39 AM" for en-US, "22:39" for de-DE)
  * @param {string} props.assistantName - Name to display for assistant messages
  * @param {string} [props.reasoningContent] - Thinking/thought content
  * @param {Object} [props.activeToolCall] - {name: string} for running tool
