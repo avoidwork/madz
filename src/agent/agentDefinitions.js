@@ -4,8 +4,12 @@
  */
 
 import { readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { logger } from "../shared/logger.js";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const PROMPTS_DIR = join(__dirname, "..", "..", "prompts");
 
 /**
  * Agent configuration entries.
@@ -98,7 +102,7 @@ function createAgentDefinition(name, promptFile, description) {
 		systemPrompt: "",
 	};
 
-	readFile(join(process.cwd(), "prompts", promptFile), "utf-8")
+	readFile(join(PROMPTS_DIR, promptFile), "utf-8")
 		.then((prompt) => {
 			agent.systemPrompt = prompt;
 		})
@@ -120,7 +124,7 @@ const agents = AGENT_CONFIGS.map((cfg) =>
 // Wait for all prompts to load before exporting.
 await Promise.all(
 	AGENT_CONFIGS.map((cfg) =>
-		readFile(join(process.cwd(), "prompts", cfg.promptFile), "utf-8")
+		readFile(join(PROMPTS_DIR, cfg.promptFile), "utf-8")
 			.then((prompt) => {
 				logger.debug(`[${cfg.name}] Prompt loaded (${prompt.length} chars)`);
 			})
