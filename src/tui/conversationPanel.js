@@ -88,7 +88,9 @@ function detectLocale(tz) {
 	// 2. Fallback: detect from shell environment
 	const raw =
 		process.env.LC_ALL || process.env.LANG || Intl.DateTimeFormat().resolvedOptions().locale;
-	return raw.split(".")[0];
+	const cleaned = raw.split(".")[0];
+	// CI environments often have empty LC_ALL/LANG — default to en-US
+	return cleaned || "en-US";
 }
 
 /**
