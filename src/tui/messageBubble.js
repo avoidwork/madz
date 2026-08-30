@@ -227,7 +227,7 @@ export function MessageBubbleInner({
 		prevContentLengthRef.current = text.length;
 	}, [text, streaming, scrollToBottom]);
 
-	const ts = time || formatTime(new Date());
+	const ts = formatTime(time ? new Date(time) : new Date());
 	const colors = getRoleColors(role);
 	const bubble = getBubbleStyle(role);
 
