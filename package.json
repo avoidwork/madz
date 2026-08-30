@@ -37,8 +37,8 @@
   "bin": "index.js",
   "scripts": {
     "start": "node index.js --mode interactive",
-    "test": "node --test tests/**/*.test.js",
-    "coverage": "node --test --experimental-test-coverage --test-coverage-exclude=dist/** --test-coverage-exclude=tests/** --test-reporter=spec tests/**/*.test.js 2>&1 | grep -A 1000 \"start of coverage report\" > coverage.txt",
+    "test": "node --test --experimental-test-module-mocks tests/**/*.test.js",
+    "coverage": "node --test --experimental-test-coverage --experimental-test-module-mocks --test-coverage-exclude=dist/** --test-coverage-exclude=tests/** --test-reporter=spec tests/**/*.test.js 2>&1 | grep -A 1000 \"start of coverage report\" > coverage.txt",
     "fix": "oxlint --fix *.js src tests/unit tests/integration tests/tui && oxfmt *.js src tests/unit tests/integration tests/tui --write",
     "lint": "oxlint *.js src tests/unit tests/integration tests/tui && oxfmt *.js src tests/unit tests/integration tests/tui --check",
     "docker:build": "docker build -t madz:latest .",

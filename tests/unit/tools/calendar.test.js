@@ -357,7 +357,7 @@ describe("Calendar Schemas", () => {
 
 // --- CalendarProviderBase Tests ---
 
-import { CalendarProviderBase, findFreeSlots } from "../../../src/tools/calendar/providers/base.js";
+import { CalendarProviderBase } from "../../../src/tools/calendar/providers/base.js";
 
 describe("Calendar Provider", () => {
 	describe("CalendarProviderBase", () => {
@@ -438,7 +438,7 @@ describe("Calendar Provider", () => {
 
 	describe("findFreeSlots", () => {
 		it("should find free slot in empty calendar", () => {
-			const slots = findFreeSlots("2025-01-01T00:00:00Z", "2025-01-01T23:59:59Z", 60, []);
+			const slots = CalendarProviderBase.findFreeSlots("2025-01-01T00:00:00Z", "2025-01-01T23:59:59Z", 60, []);
 			assert.ok(slots.length > 0);
 			assert.ok(new Date(slots[0].start) >= new Date("2025-01-01T00:00:00Z"));
 		});
@@ -448,7 +448,7 @@ describe("Calendar Provider", () => {
 				{ start: "2025-01-01T09:00:00Z", end: "2025-01-01T10:00:00Z" },
 				{ start: "2025-01-01T14:00:00Z", end: "2025-01-01T15:00:00Z" },
 			];
-			const slots = findFreeSlots("2025-01-01T00:00:00Z", "2025-01-01T23:59:59Z", 60, busy);
+			const slots = CalendarProviderBase.findFreeSlots("2025-01-01T00:00:00Z", "2025-01-01T23:59:59Z", 60, busy);
 			assert.ok(slots.length > 0);
 			// No slot should overlap with busy intervals
 			for (const slot of slots) {
@@ -467,7 +467,7 @@ describe("Calendar Provider", () => {
 
 		it("should return empty array when all time is busy", () => {
 			const busy = [{ start: "2025-01-01T00:00:00Z", end: "2025-01-01T23:59:59Z" }];
-			const slots = findFreeSlots("2025-01-01T00:00:00Z", "2025-01-01T23:59:59Z", 60, busy);
+			const slots = CalendarProviderBase.findFreeSlots("2025-01-01T00:00:00Z", "2025-01-01T23:59:59Z", 60, busy);
 			assert.strictEqual(slots.length, 0);
 		});
 
@@ -476,7 +476,7 @@ describe("Calendar Provider", () => {
 				{ start: "2025-01-01T09:00:00Z", end: "2025-01-01T10:00:00Z" },
 				{ start: "2025-01-01T10:00:00Z", end: "2025-01-01T11:00:00Z" },
 			];
-			const slots = findFreeSlots("2025-01-01T00:00:00Z", "2025-01-01T23:59:59Z", 60, busy);
+			const slots = CalendarProviderBase.findFreeSlots("2025-01-01T00:00:00Z", "2025-01-01T23:59:59Z", 60, busy);
 			// Should find slots before 9am and after 11am
 			const hasMorningSlot = slots.some(
 				(s) => new Date(s.start).getTime() < new Date("2025-01-01T09:00:00Z").getTime(),
@@ -574,8 +574,7 @@ describe("Calendar Config", () => {
 	});
 
 	it("should have calendar in config schema", () => {
-		const defaults = ConfigSchema.parse({});
-		const result = ConfigSchema.safeParse(defaults);
+		const result = ConfigSchema.safeParse({});
 		assert.strictEqual(result.success, true);
 		assert.ok(result.data.calendar);
 	});

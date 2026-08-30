@@ -5,7 +5,7 @@
 
 import { describe, it } from "node:test";
 import assert from "node:assert";
-import * as csv from "../../../src/tools/spreadsheet/csv.js";
+import * as csv from "../../../../src/tools/spreadsheet/csv.js";
 
 describe("csv", () => {
 	describe("csvImport", () => {
@@ -13,7 +13,7 @@ describe("csv", () => {
 			const result = csv.csvImport("name,age\nAlice,30\nBob,25");
 			assert.strictEqual(result.length, 2);
 			assert.strictEqual(result[0].name, "Alice");
-			assert.strictEqual(result[0].age, "30");
+			assert.strictEqual(result[0].age, 30);
 		});
 
 		it("should handle custom delimiter", () => {
@@ -33,14 +33,12 @@ describe("csv", () => {
 			assert.ok(result[0].note.includes("line2"));
 		});
 
-		it("should handle empty content", () => {
-			const result = csv.csvImport("");
-			assert.strictEqual(result.length, 0);
+		it("should throw for empty content", () => {
+			assert.throws(() => csv.csvImport(""), /non-empty/);
 		});
 
-		it("should handle header-only content", () => {
-			const result = csv.csvImport("name,age");
-			assert.strictEqual(result.length, 0);
+		it("should throw for header-only content", () => {
+			assert.throws(() => csv.csvImport("name,age"), /no records/);
 		});
 
 		it("should trim whitespace when trim option is true", () => {
@@ -76,9 +74,8 @@ describe("csv", () => {
 			assert.ok(result.includes("Alice,30"));
 		});
 
-		it("should handle empty data", () => {
-			const result = csv.csvExport([]);
-			assert.strictEqual(result, "");
+		it("should throw for empty data", () => {
+			assert.throws(() => csv.csvExport([]), /non-empty/);
 		});
 
 		it("should quote fields containing commas", () => {

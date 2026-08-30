@@ -353,7 +353,7 @@ async function modify(input) {
 
 	// Load workbook with exceljs
 	const ExcelJS = await import("exceljs");
-	const workbook = new ExcelJS.Workbook();
+	const workbook = new ExcelJS.default.Workbook();
 	await workbook.xlsx.readFile(inputPath);
 
 	const results = [];
@@ -476,7 +476,7 @@ async function exportData(input) {
 		}
 		case "xlsx": {
 			const ExcelJS = await import("exceljs");
-			const workbook = new ExcelJS.Workbook();
+			const workbook = new ExcelJS.default.Workbook();
 			const sheet = workbook.addWorksheet("Sheet1");
 
 			// Add headers
