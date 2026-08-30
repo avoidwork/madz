@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, memo } from "react";
 import { Box, useApp, useInput, useWindowSize } from "ink";
 import { CommandParser } from "./commandParser.js";
-import { ConversationPanel } from "./conversationPanel.js";
+import { ConversationPanel, formatTime } from "./conversationPanel.js";
 import { StatusBar } from "./statusBar.js";
 import { InputPanel } from "./inputPanel.js";
 import { Banner } from "./banner.js";
@@ -659,12 +659,7 @@ function App({
 	 * Generate a timestamp string in HH:MM format.
 	 * @returns {string}
 	 */
-	const getTimestamp = () => {
-		const now = new Date();
-		return (
-			String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0")
-		);
-	};
+	const getTimestamp = () => formatTime(new Date());
 
 	/**
 	 * Calculate total context tokens (conversation + system prompt) and set contextSize.

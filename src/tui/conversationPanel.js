@@ -3,13 +3,35 @@ import { Box } from "ink";
 import { MessageList } from "./messageList.js";
 
 /**
- * Cached Intl.DateTimeFormat for system-localized time display.
- * Uses the runtime's default locale with numeric hour and 2-digit minute.
+ * Lazily create the Intl.DateTimeFormat so TZ is always set by the time
+ * the formatter is needed (module load time may precede env setup).
  */
-const timeFormatter = new Intl.DateTimeFormat(undefined, {
-	hour: "numeric",
-	minute: "2-digit",
-});
+let _formatter;
+
+/**
+ * Get the cached Intl.DateTimeFormat, creating it lazily.
+ * Uses the system's default locale and timezone from resolvedOptions.
+ * @returns {Intl.DateTimeFormat}
+ */
+function getFormatter() {
+	if (!_formatter) {
+		const { timeZone, locale } = Intl.DateTimeFormat().resolvedOptions();
+		try {
+			_formatter = new Intl.DateTimeFormat(locale, {
+				hour: "numeric",
+				minute: "2-digit",
+				timeZone,
+			});
+		} catch {
+			_formatter = new Intl.DateTimeFormat("en-US", {
+				hour: "numeric",
+				minute: "2-digit",
+				timeZone,
+			});
+		}
+	}
+	return _formatter;
+}
 
 /**
  * Format a Date as a locale-aware time string using the cached formatter.
@@ -17,7 +39,7 @@ const timeFormatter = new Intl.DateTimeFormat(undefined, {
  * @returns {string} Localized time string
  */
 export function formatTime(date) {
-	return timeFormatter.format(date);
+	return getFormatter().format(date);
 }
 
 /**
