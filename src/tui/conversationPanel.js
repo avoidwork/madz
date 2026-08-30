@@ -3,99 +3,9 @@ import { Box } from "ink";
 import { MessageList } from "./messageList.js";
 
 /**
- * Map of common IANA timezones to their native locale.
- * Used to derive 12/24-hour preference and date conventions from the timezone.
- * Falls back to shell locale detection for unmapped zones.
- */
-const TZ_LOCALE_MAP = new Map([
-	["America/Toronto", "en-CA"],
-	["America/New_York", "en-US"],
-	["America/Chicago", "en-US"],
-	["America/Denver", "en-US"],
-	["America/Los_Angeles", "en-US"],
-	["America/Vancouver", "en-CA"],
-	["America/Montreal", "en-CA"],
-	["America/Winnipeg", "en-CA"],
-	["America/Halifax", "en-CA"],
-	["America/Edmonton", "en-CA"],
-	["America/Regina", "en-CA"],
-	["America/St_Johns", "en-CA"],
-	["America/Puerto_Rico", "en-US"],
-	["America/Anchorage", "en-US"],
-	["Pacific/Honolulu", "en-US"],
-	["Europe/London", "en-GB"],
-	["Europe/Berlin", "de-DE"],
-	["Europe/Paris", "fr-FR"],
-	["Europe/Madrid", "es-ES"],
-	["Europe/Rome", "it-IT"],
-	["Europe/Amsterdam", "nl-NL"],
-	["Europe/Brussels", "nl-BE"],
-	["Europe/Vienna", "de-AT"],
-	["Europe/Zurich", "de-CH"],
-	["Europe/Stockholm", "sv-SE"],
-	["Europe/Oslo", "nb-NO"],
-	["Europe/Copenhagen", "da-DK"],
-	["Europe/Helsinki", "fi-FI"],
-	["Europe/Warsaw", "pl-PL"],
-	["Europe/Prague", "cs-CZ"],
-	["Europe/Budapest", "hu-HU"],
-	["Europe/Bucharest", "ro-RO"],
-	["Europe/Athens", "el-GR"],
-	["Europe/Moscow", "ru-RU"],
-	["Europe/Istanbul", "tr-TR"],
-	["Asia/Tokyo", "ja-JP"],
-	["Asia/Shanghai", "zh-CN"],
-	["Asia/Hong_Kong", "zh-HK"],
-	["Asia/Taipei", "zh-TW"],
-	["Asia/Seoul", "ko-KR"],
-	["Asia/Singapore", "en-SG"],
-	["Asia/Kolkata", "en-IN"],
-	["Asia/Bangkok", "th-TH"],
-	["Asia/Jakarta", "id-ID"],
-	["Asia/Manila", "fil-PH"],
-	["Asia/Dubai", "ar-AE"],
-	["Asia/Riyadh", "ar-SA"],
-	["Australia/Sydney", "en-AU"],
-	["Australia/Melbourne", "en-AU"],
-	["Australia/Brisbane", "en-AU"],
-	["Australia/Perth", "en-AU"],
-	["Australia/Adelaide", "en-AU"],
-	["Australia/Darwin", "en-AU"],
-	["Pacific/Auckland", "en-NZ"],
-	["Africa/Cairo", "ar-EG"],
-	["Africa/Johannesburg", "en-ZA"],
-	["Africa/Lagos", "en-NG"],
-	["America/Sao_Paulo", "pt-BR"],
-	["America/Buenos_Aires", "es-AR"],
-	["America/Mexico_City", "es-MX"],
-	["America/Bogota", "es-CO"],
-	["America/Lima", "es-PE"],
-	["America/Santiago", "es-CL"],
-]);
-
-/**
- * Derive the native locale for a given IANA timezone.
- * Falls back to shell locale detection (LC_ALL/LANG) if the timezone
- * isn't in the map, then to the runtime default.
- *
- * @param {string} tz - IANA timezone identifier (e.g., "America/Toronto")
- * @returns {string} Locale string (e.g., "en_CA", "de_DE")
- */
-function detectLocale(tz) {
-	// 1. Direct lookup from timezone map
-	if (TZ_LOCALE_MAP.has(tz)) return TZ_LOCALE_MAP.get(tz);
-
-	// 2. Fallback: detect from shell environment
-	const raw =
-		process.env.LC_ALL || process.env.LANG || Intl.DateTimeFormat().resolvedOptions().locale;
-	const cleaned = raw.split(".")[0];
-	// CI environments often have empty LC_ALL/LANG — default to en-US
-	return cleaned || "en-US";
-}
-
-/**
  * Lazily create the Intl.DateTimeFormat so TZ is always set by the time
  * the formatter is needed (module load time may precede env setup).
+ * ICU automatically selects the appropriate locale for the given timezone.
  */
 let _formatter;
 
@@ -106,15 +16,13 @@ let _formatter;
 function getFormatter() {
 	if (!_formatter) {
 		const tz = process.env.TZ || Intl.DateTimeFormat().resolvedOptions().timeZone;
-		const locale = detectLocale(tz);
 		try {
-			_formatter = new Intl.DateTimeFormat(locale, {
+			_formatter = new Intl.DateTimeFormat(undefined, {
 				hour: "numeric",
 				minute: "2-digit",
 				timeZone: tz,
 			});
 		} catch {
-			// Some locales (e.g., "C") are rejected by ICU — fall back to en-US
 			_formatter = new Intl.DateTimeFormat("en-US", {
 				hour: "numeric",
 				minute: "2-digit",
