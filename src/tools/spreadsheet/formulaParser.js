@@ -387,7 +387,11 @@ const BUILTIN_FUNCTIONS = {
 	},
 	COUNT: (args) => args.filter((v) => v !== null && v !== undefined && v !== "").length,
 	COUNTA: (args) => args.filter((v) => v !== null && v !== undefined && v !== "" && v !== 0).length,
-	COUNTBLANK: (args) => args.filter((v) => v === null || v === undefined || v === "").length,
+	COUNTBLANK: (args) => {
+		// COUNTBLANK counts null, undefined, and empty strings
+		// Note: 0 is NOT blank — it's a valid numeric value
+		return args.filter((v) => v === null || v === undefined || v === "").length;
+	},
 	MIN: (args) => {
 		const nums = args.map(safeNumber).filter((v) => !isNaN(v));
 		return nums.length ? Math.min(...nums) : 0;
@@ -436,7 +440,7 @@ const BUILTIN_FUNCTIONS = {
 	UPPER: (args) => String(args[0]).toUpperCase(),
 	LOWER: (args) => String(args[0]).toLowerCase(),
 	TRIM: (args) => String(args[0]).trim(),
-	CONCATENATE: (args) => args.map(String).join(""),
+	CONCATENATE: (args) => args.map((v) => (v === null || v === undefined) ? "" : String(v)).join(""),
 	MID: (args) => {
 		const str = String(args[0]);
 		const start = safeNumber(args[1]) - 1; // 1-indexed
