@@ -360,25 +360,35 @@ export const MessageList = React.memo(
 
 			// Rebuild children only when message count changes.
 			if (childrenRef.current === null || childrenRef.current._count !== renderData.length) {
-				const newChildren = renderData.map((id) => {
-					const data = dataRef.current.get(id);
-					if (!data) return null;
-					// Use stable content reference from contentRef for React.memo to work
-					const stableContent = contentRef.current.get(id) || data.content;
-					return React.createElement(MessageBubble, {
-						key: id,
-						role: data.role,
-						content: stableContent,
-						time: data.time,
-						reasoningContent: data.reasoningContent,
-						activeToolCall: data.activeToolCall,
-						toolCallDisplay: data.toolCallDisplay,
-						events: data.events,
-						streaming: data.streaming,
-						assistantName,
-						topic: `msg-${id}`,
-					});
-				});
+				const newChildren = renderData
+					.map((id) => {
+						const data = dataRef.current.get(id);
+						if (!data) return null;
+						// Skip rendering empty assistant bubbles that aren't streaming
+						if (
+							data.role === "assistant" &&
+							!data.streaming &&
+							!(contentRef.current.get(id) || data.content || "").trim()
+						) {
+							return null;
+						}
+						// Use stable content reference from contentRef for React.memo to work
+						const stableContent = contentRef.current.get(id) || data.content;
+						return React.createElement(MessageBubble, {
+							key: id,
+							role: data.role,
+							content: stableContent,
+							time: data.time,
+							reasoningContent: data.reasoningContent,
+							activeToolCall: data.activeToolCall,
+							toolCallDisplay: data.toolCallDisplay,
+							events: data.events,
+							streaming: data.streaming,
+							assistantName,
+							topic: `msg-${id}`,
+						});
+					})
+					.filter(Boolean);
 
 				if (newChildren.length === 0) {
 					newChildren.push(
