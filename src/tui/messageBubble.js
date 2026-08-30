@@ -32,7 +32,7 @@ export const THINKING_WORDS = [
 	"Unfolding",
 	"Refining",
 	"Pondering",
-	"Foraging",
+	"Forging",
 	"Aligning",
 	"Resonating",
 	"Awakening",
