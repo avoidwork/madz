@@ -103,12 +103,23 @@ const displayTimezone = process.env.TZ || Intl.DateTimeFormat().resolvedOptions(
  * Cached Intl.DateTimeFormat for localized time display.
  * Uses the host's locale and timezone so 12/24-hour and date conventions
  * follow the user's system preferences.
+ * Falls back to en-US if the locale is rejected by ICU.
  */
-const timeFormatter = new Intl.DateTimeFormat(detectLocale(displayTimezone), {
-	hour: "numeric",
-	minute: "2-digit",
-	timeZone: displayTimezone,
-});
+let timeFormatter;
+try {
+	timeFormatter = new Intl.DateTimeFormat(detectLocale(displayTimezone), {
+		hour: "numeric",
+		minute: "2-digit",
+		timeZone: displayTimezone,
+	});
+} catch {
+	// Some locales (e.g., "C") are rejected by ICU — fall back to en-US
+	timeFormatter = new Intl.DateTimeFormat("en-US", {
+		hour: "numeric",
+		minute: "2-digit",
+		timeZone: displayTimezone,
+	});
+}
 
 /**
  * Format a Date as a locale-aware time string using the cached formatter.
