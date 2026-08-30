@@ -3,38 +3,38 @@ import assert from "node:assert";
 import { createCheckpointer } from "../../src/session/checkpointer.js";
 import { MemorySaver } from "@langchain/langgraph";
 import { SqliteSaver } from "@langchain/langgraph-checkpoint-sqlite";
-import { mkdirSync, rmSync, existsSync } from "node:fs";
+import { rmSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 describe("createCheckpointer", () => {
-	it("returns MemorySaver for memory mode", () => {
-		const cp = createCheckpointer({ mode: "memory" });
+	it("returns MemorySaver for memory mode", async () => {
+		const cp = await createCheckpointer({ mode: "memory" });
 		assert.ok(cp instanceof MemorySaver);
 	});
 
-	it("returns MemorySaver when config is empty", () => {
-		const cp = createCheckpointer({});
+	it("returns MemorySaver when config is empty", async () => {
+		const cp = await createCheckpointer({});
 		assert.ok(cp instanceof MemorySaver);
 	});
 
-	it("returns null when config is undefined", () => {
-		const cp = createCheckpointer(undefined);
+	it("returns null when config is undefined", async () => {
+		const cp = await createCheckpointer(undefined);
 		assert.strictEqual(cp, null);
 	});
 
-	it("returns MemorySaver for unknown mode (fallback)", () => {
-		const cp = createCheckpointer({ mode: "redis" });
+	it("returns MemorySaver for unknown mode (fallback)", async () => {
+		const cp = await createCheckpointer({ mode: "redis" });
 		assert.ok(cp instanceof MemorySaver);
 	});
 
-	it("returns null for null config", () => {
-		const cp = createCheckpointer(null);
+	it("returns null for null config", async () => {
+		const cp = await createCheckpointer(null);
 		assert.strictEqual(cp, null);
 	});
 
-	it("falls back to MemorySaver for unrecognized mode string", () => {
-		const cp = createCheckpointer({ mode: "postgres" });
+	it("falls back to MemorySaver for unrecognized mode string", async () => {
+		const cp = await createCheckpointer({ mode: "postgres" });
 		assert.ok(cp instanceof MemorySaver);
 	});
 
@@ -55,21 +55,21 @@ describe("createCheckpointer", () => {
 			}
 		});
 
-		it("creates SqliteSaver and initializes the DB file", () => {
-			const cp = createCheckpointer({ mode: "sqlite", sqlite_path: dbPath });
+		it("creates SqliteSaver and initializes the DB file", async () => {
+			const cp = await createCheckpointer({ mode: "sqlite", sqlite_path: dbPath });
 			assert.ok(cp instanceof SqliteSaver);
 			assert.ok(existsSync(dbPath), "DB file should be created");
 		});
 
-		it("creates parent directories when they don't exist", () => {
+		it("creates parent directories when they don't exist", async () => {
 			const nestedPath = join(testDir, "deep", "nested", "path", "test.db");
-			const cp = createCheckpointer({ mode: "sqlite", sqlite_path: nestedPath });
+			const cp = await createCheckpointer({ mode: "sqlite", sqlite_path: nestedPath });
 			assert.ok(cp instanceof SqliteSaver);
 			assert.ok(existsSync(nestedPath), "Nested DB file should be created");
 		});
 
-		it("uses default path when sqlite_path is not provided", () => {
-			const cp = createCheckpointer({ mode: "sqlite" });
+		it("uses default path when sqlite_path is not provided", async () => {
+			const cp = await createCheckpointer({ mode: "sqlite" });
 			assert.ok(cp instanceof SqliteSaver);
 		});
 	});
