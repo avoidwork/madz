@@ -14,6 +14,11 @@ export function parseFormula(formula) {
 	// Strip leading '=' if present
 	const expr = formula.startsWith("=") ? formula.slice(1) : formula;
 
+	// Handle empty/whitespace-only formulas
+	if (!expr.trim()) {
+		return { evaluate: () => 0 };
+	}
+
 	const tokens = tokenize(expr);
 	const ast = parseExpression(tokens, { pos: 0 });
 
@@ -79,8 +84,12 @@ function tokenize(input) {
 			pos++; // skip opening quote
 			while (pos < input.length && input[pos] !== '"') {
 				if (input[pos] === "\\" && pos + 1 < input.length) {
-					str += input[pos + 1];
-					pos += 2;
+					const next = input[pos + 1];
+					if (next === "n") { str += "\n"; pos += 2; }
+					else if (next === "t") { str += "\t"; pos += 2; }
+					else if (next === "\\") { str += "\\"; pos += 2; }
+					else if (next === '"') { str += '"'; pos += 2; }
+					else { str += next; pos += 2; }
 				} else {
 					str += input[pos++];
 				}
@@ -99,16 +108,22 @@ function tokenize(input) {
 			ch === "^" ||
 			ch === "=" ||
 			ch === "<" ||
-			ch === ">"
+			ch === ">" ||
+			ch === "!" ||
+			ch === "&" ||
+			ch === "|"
 		) {
 			let op = ch;
 			pos++;
-			// Handle !=, <=, >=
+			// Handle !=, ==, <=, >=, &&, ||
 			if (
 				pos < input.length &&
 				((op === "!" && input[pos] === "=") ||
+					(op === "=" && input[pos] === "=") ||
 					(op === "<" && input[pos] === "=") ||
-					(op === ">" && input[pos] === "="))
+					(op === ">" && input[pos] === "=") ||
+					(op === "&" && input[pos] === "&") ||
+					(op === "|" && input[pos] === "|"))
 			) {
 				op += input[pos];
 				pos++;
@@ -141,7 +156,7 @@ function tokenize(input) {
 		// Identifiers (cell references, function names, sheet references)
 		if (/[a-zA-Z_]/.test(ch)) {
 			let ident = "";
-			while (pos < input.length && /[a-zA-Z0-9_!]/.test(input[pos])) {
+			while (pos < input.length && /[a-zA-Z0-9_]/.test(input[pos])) {
 				ident += input[pos++];
 			}
 			tokens.push({ type: TOKEN_TYPES.IDENTIFIER, value: ident });
@@ -339,8 +354,8 @@ function parseFunctionCall(name, tokens, ctx) {
 
 function parseCellRef(name, tokens, ctx) {
 	let ref = name;
-	// Handle Sheet1!A1 format
-	if (tokens[ctx.pos]?.value === "!") {
+	// Handle Sheet1!A1 format — ! is now tokenized as OPERATOR
+	if (tokens[ctx.pos]?.type === TOKEN_TYPES.OPERATOR && tokens[ctx.pos].value === "!") {
 		ctx.pos++;
 		ref += "!";
 		if (tokens[ctx.pos]?.type === TOKEN_TYPES.IDENTIFIER) {
@@ -362,7 +377,10 @@ function parseCellRef(name, tokens, ctx) {
 // ─── Evaluator ────────────────────────────────────────────────────────────────────
 
 const BUILTIN_FUNCTIONS = {
-	SUM: (args) => args.reduce((sum, v) => sum + safeNumber(v), 0),
+	SUM: (args) => {
+		const flat = args.flatMap((v) => (Array.isArray(v) ? v : [v]));
+		return flat.reduce((sum, v) => sum + safeNumber(v), 0);
+	},
 	AVERAGE: (args) => {
 		const nums = args.map(safeNumber).filter((v) => !isNaN(v));
 		return nums.length ? nums.reduce((s, v) => s + v, 0) / nums.length : 0;
@@ -463,7 +481,7 @@ function evaluateCondition(v) {
 function evaluateNode(node, context, options) {
 	const { depth, maxDepth, visited } = options;
 
-	if (depth > maxDepth) {
+	if (depth >= maxDepth) {
 		throw new Error("Maximum recursion depth exceeded — possible circular reference");
 	}
 
@@ -477,12 +495,13 @@ function evaluateNode(node, context, options) {
 			if (ref.includes(":")) {
 				return evaluateRange(ref, context, options);
 			}
-			// Direct cell reference
+			// Direct cell reference — only track refs on the current path
 			if (visited.has(ref)) {
 				throw new Error(`Circular reference detected: ${ref}`);
 			}
 			const value = context[ref];
-			if (value === undefined || value === null) return 0;
+			// Return raw value so functions like COUNTBLANK can distinguish null/undefined from 0
+			if (value === undefined || value === null) return value;
 			if (typeof value === "string" && !isNaN(Number(value))) return Number(value);
 			return value;
 		}
@@ -491,7 +510,7 @@ function evaluateNode(node, context, options) {
 			const operand = evaluateNode(node.operand, context, {
 				...options,
 				depth: depth + 1,
-				visited: new Set([...visited, ...getRefs(node.operand)]),
+				visited: new Set(visited),
 			});
 			if (node.op === "-") return -safeNumber(operand);
 			if (node.op === "!") return !evaluateCondition(operand);
@@ -502,23 +521,30 @@ function evaluateNode(node, context, options) {
 			const left = evaluateNode(node.left, context, {
 				...options,
 				depth: depth + 1,
-				visited: new Set([...visited, ...getRefs(node.left)]),
+				visited: new Set(visited),
 			});
 			const right = evaluateNode(node.right, context, {
 				...options,
 				depth: depth + 1,
-				visited: new Set([...visited, ...getRefs(node.right)]),
+				visited: new Set(visited),
 			});
 
 			switch (node.op) {
-				case "+":
-					return safeNumber(left) + safeNumber(right);
+				case "+": {
+					const ln = safeNumber(left);
+					const rn = safeNumber(right);
+					// If either operand is a string, concatenate
+					if (typeof left === "string" || typeof right === "string") {
+						return String(left) + String(right);
+					}
+					return ln + rn;
+				}
 				case "-":
 					return safeNumber(left) - safeNumber(right);
 				case "*":
 					return safeNumber(left) * safeNumber(right);
 				case "/": {
-					if (safeNumber(right) === 0) throw new Error("Division by zero");
+					if (safeNumber(right) === 0) throw new Error("division by zero");
 					return safeNumber(left) / safeNumber(right);
 				}
 				case "^":
@@ -554,7 +580,7 @@ function evaluateNode(node, context, options) {
 				evaluateNode(arg, context, {
 					...options,
 					depth: depth + 1,
-					visited: new Set([...visited, ...getRefs(arg)]),
+					visited: new Set(visited),
 				}),
 			);
 
@@ -591,21 +617,45 @@ function getRefs(node) {
 	return refs;
 }
 
+function colToNum(col) {
+	let num = 0;
+	for (let i = 0; i < col.length; i++) {
+		num = num * 26 + (col.charCodeAt(i) - 64);
+	}
+	return num;
+}
+
+function numToCol(num) {
+	let result = "";
+	while (num > 0) {
+		num--;
+		result = String.fromCharCode(65 + (num % 26)) + result;
+		num = Math.floor(num / 26);
+	}
+	return result;
+}
+
 function evaluateRange(rangeStr, context, _options) {
 	const [start, end] = rangeStr.split(":");
 	if (!start || !end) throw new Error(`Invalid range: ${rangeStr}`);
 
-	const startRow = parseInt(start.replace(/[^0-9]/g, ""), 10);
-	const endRow = parseInt(end.replace(/[^0-9]/g, ""), 10);
-	const colMatch = start.match(/^([A-Z]+)/);
-	if (!colMatch) throw new Error(`Invalid range: ${rangeStr}`);
-	const col = colMatch[1];
+	// Parse start cell: extract column letters and row number
+	const startMatch = start.match(/^([A-Z]+)(\d+)$/i);
+	const endMatch = end.match(/^([A-Z]+)(\d+)$/i);
+	if (!startMatch || !endMatch) throw new Error(`Invalid range: ${rangeStr}`);
+
+	const startCol = colToNum(startMatch[1].toUpperCase());
+	const startRow = parseInt(startMatch[2], 10);
+	const endCol = colToNum(endMatch[1].toUpperCase());
+	const endRow = parseInt(endMatch[2], 10);
 
 	const values = [];
-	for (let row = startRow; row <= endRow; row++) {
-		const ref = `${col}${row}`;
-		if (context[ref] !== undefined && context[ref] !== null) {
-			values.push(context[ref]);
+	for (let row = Math.min(startRow, endRow); row <= Math.max(startRow, endRow); row++) {
+		for (let col = Math.min(startCol, endCol); col <= Math.max(startCol, endCol); col++) {
+			const ref = `${numToCol(col)}${row}`;
+			if (context[ref] !== undefined && context[ref] !== null) {
+				values.push(context[ref]);
+			}
 		}
 	}
 	return values;
