@@ -3,12 +3,108 @@ import { Box } from "ink";
 import { MessageList } from "./messageList.js";
 
 /**
- * Cached Intl.DateTimeFormat for system-localized time display.
- * Uses the runtime's default locale with numeric hour and 2-digit minute.
+ * Map of common IANA timezones to their native locale.
+ * Used to derive 12/24-hour preference and date conventions from the timezone.
+ * Falls back to shell locale detection for unmapped zones.
  */
-const timeFormatter = new Intl.DateTimeFormat(undefined, {
+const TZ_LOCALE_MAP = new Map([
+	["America/Toronto", "en-CA"],
+	["America/New_York", "en-US"],
+	["America/Chicago", "en-US"],
+	["America/Denver", "en-US"],
+	["America/Los_Angeles", "en-US"],
+	["America/Vancouver", "en-CA"],
+	["America/Montreal", "en-CA"],
+	["America/Winnipeg", "en-CA"],
+	["America/Halifax", "en-CA"],
+	["America/Edmonton", "en-CA"],
+	["America/Regina", "en-CA"],
+	["America/St_Johns", "en-CA"],
+	["America/Puerto_Rico", "en-US"],
+	["America/Anchorage", "en-US"],
+	["Pacific/Honolulu", "en-US"],
+	["Europe/London", "en-GB"],
+	["Europe/Berlin", "de-DE"],
+	["Europe/Paris", "fr-FR"],
+	["Europe/Madrid", "es-ES"],
+	["Europe/Rome", "it-IT"],
+	["Europe/Amsterdam", "nl-NL"],
+	["Europe/Brussels", "nl-BE"],
+	["Europe/Vienna", "de-AT"],
+	["Europe/Zurich", "de-CH"],
+	["Europe/Stockholm", "sv-SE"],
+	["Europe/Oslo", "nb-NO"],
+	["Europe/Copenhagen", "da-DK"],
+	["Europe/Helsinki", "fi-FI"],
+	["Europe/Warsaw", "pl-PL"],
+	["Europe/Prague", "cs-CZ"],
+	["Europe/Budapest", "hu-HU"],
+	["Europe/Bucharest", "ro-RO"],
+	["Europe/Athens", "el-GR"],
+	["Europe/Moscow", "ru-RU"],
+	["Europe/Istanbul", "tr-TR"],
+	["Asia/Tokyo", "ja-JP"],
+	["Asia/Shanghai", "zh-CN"],
+	["Asia/Hong_Kong", "zh-HK"],
+	["Asia/Taipei", "zh-TW"],
+	["Asia/Seoul", "ko-KR"],
+	["Asia/Singapore", "en-SG"],
+	["Asia/Kolkata", "en-IN"],
+	["Asia/Bangkok", "th-TH"],
+	["Asia/Jakarta", "id-ID"],
+	["Asia/Manila", "fil-PH"],
+	["Asia/Dubai", "ar-AE"],
+	["Asia/Riyadh", "ar-SA"],
+	["Australia/Sydney", "en-AU"],
+	["Australia/Melbourne", "en-AU"],
+	["Australia/Brisbane", "en-AU"],
+	["Australia/Perth", "en-AU"],
+	["Australia/Adelaide", "en-AU"],
+	["Australia/Darwin", "en-AU"],
+	["Pacific/Auckland", "en-NZ"],
+	["Africa/Cairo", "ar-EG"],
+	["Africa/Johannesburg", "en-ZA"],
+	["Africa/Lagos", "en-NG"],
+	["America/Sao_Paulo", "pt-BR"],
+	["America/Buenos_Aires", "es-AR"],
+	["America/Mexico_City", "es-MX"],
+	["America/Bogota", "es-CO"],
+	["America/Lima", "es-PE"],
+	["America/Santiago", "es-CL"],
+]);
+
+/**
+ * Derive the native locale for a given IANA timezone.
+ * Falls back to shell locale detection (LC_ALL/LANG) if the timezone
+ * isn't in the map, then to the runtime default.
+ *
+ * @param {string} tz - IANA timezone identifier (e.g., "America/Toronto")
+ * @returns {string} Locale string (e.g., "en_CA", "de_DE")
+ */
+function detectLocale(tz) {
+	// 1. Direct lookup from timezone map
+	if (TZ_LOCALE_MAP.has(tz)) return TZ_LOCALE_MAP.get(tz);
+
+	// 2. Fallback: detect from shell environment
+	const raw = process.env.LC_ALL || process.env.LANG || Intl.DateTimeFormat().resolvedOptions().locale;
+	return raw.split(".")[0];
+}
+
+/**
+ * Timezone to use for TUI time display.
+ * Lifted from the shell environment; falls back to the runtime's default.
+ */
+const displayTimezone = process.env.TZ || Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+/**
+ * Cached Intl.DateTimeFormat for localized time display.
+ * Uses the host's locale and timezone so 12/24-hour and date conventions
+ * follow the user's system preferences.
+ */
+const timeFormatter = new Intl.DateTimeFormat(detectLocale(displayTimezone), {
 	hour: "numeric",
 	minute: "2-digit",
+	timeZone: displayTimezone,
 });
 
 /**
