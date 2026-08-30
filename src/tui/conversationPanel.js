@@ -86,7 +86,8 @@ function detectLocale(tz) {
 	if (TZ_LOCALE_MAP.has(tz)) return TZ_LOCALE_MAP.get(tz);
 
 	// 2. Fallback: detect from shell environment
-	const raw = process.env.LC_ALL || process.env.LANG || Intl.DateTimeFormat().resolvedOptions().locale;
+	const raw =
+		process.env.LC_ALL || process.env.LANG || Intl.DateTimeFormat().resolvedOptions().locale;
 	return raw.split(".")[0];
 }
 
