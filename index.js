@@ -159,8 +159,10 @@ try {
 }
 
 // Create checkpointer before tools so compactContext can access it
-const { createCheckpointer } = await import("./src/session/checkpointer.js");
-const checkpointer = createCheckpointer(config.persistence);
+const { createCheckpointer, ensureCheckpointsDir } = await import("./src/session/checkpointer.js");
+const checkpointsDir = config.memory?.checkpointsDir || "memory/checkpoints/";
+await ensureCheckpointsDir(checkpointsDir);
+const checkpointer = createCheckpointer(config);
 
 // Provider config for TUI
 const providerConfig = config.providers[providerName] || {};

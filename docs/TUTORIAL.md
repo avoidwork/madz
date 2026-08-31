@@ -33,7 +33,7 @@ Choose the method that best fits your workflow. There is no wrong choice, only d
 
 **📦 Just want to run it? (Minimal Docker Command)**
 ```bash
-docker run -d --name madz -p 2222:22 -v ./memory:/app/memory -v ./skills:/app/skills --env-file .env avoidwork/madz:latest
+docker run -d --name madz -p 2222:22 -v ./memory:/app/memory -v madz-checkpoints:/app/memory/checkpoints -v ./skills:/app/skills --env-file .env avoidwork/madz:latest
 ```
 *This pulls the image, sets up basic persistence, and starts the service. For full configuration and bind mount explanations, see below.*
 
@@ -55,12 +55,15 @@ Bind mounts link a directory on your host machine directly into the container. T
 mkdir -p ./memory ./skills
 ```
 
+**SQLite checkpoints:** `madz` uses an SQLite-backed checkpointer for LangGraph state persistence. The checkpoint database lives in `memory/checkpoints/checkpoints.db`. Rather than bind-mounting this subdirectory to the host, use a Docker named volume. This keeps checkpoint data managed by Docker — no host-side directory needed, and the DB survives container recreation without touching local files.
+
 **Step 3: Run the container**
 ```bash
 docker run -d \
   --name madz \
   -p 2222:22 \
   -v ./memory:/app/memory \
+  -v madz-checkpoints:/app/memory/checkpoints \
   -v ./skills:/app/skills \
   --env-file .env \
   avoidwork/madz:latest
@@ -101,10 +104,11 @@ When using a non-OpenAI model, you may need to set `OPENAI_ENCODING` to specify 
 | `--name madz` | Assign a human-readable name to the container |
 | `-p 2222:22` | Map host port `2222` to container SSH port `22` (avoids conflicts with local SSH) |
 | `-v ./memory:/app/memory` | Bind mount host `./memory` into container `/app/memory` for persistence |
+| `-v madz-checkpoints:/app/memory/checkpoints` | Named volume for SQLite checkpoint data (managed by Docker, no host directory needed) |
 | `-v ./skills:/app/skills` | Bind mount host `./skills` into container `/app/skills` for custom tools |
 | `--env-file .env` | Inject sensitive credentials securely from a local file |
 
-**Volumes vs. Bind Mounts:** Docker supports two persistence methods. *Volumes* are managed by Docker and live in `/var/lib/docker/volumes/`. *Bind mounts* (used here) link directly to a path on your host filesystem. We use bind mounts so you can read, edit, and version-control your memory and skills files directly from your terminal or editor.
+**Volumes vs. Bind Mounts:** Docker supports two persistence methods. *Volumes* are managed by Docker and live in `/var/lib/docker/volumes/`. *Bind mounts* (used here) link directly to a path on your host filesystem. We use bind mounts for `memory/` and `skills/` so you can read, edit, and version-control your memory and skills files directly from your terminal or editor. SQLite checkpoint data (`memory/checkpoints/`) uses a named volume instead — it's a binary database that doesn't need host-side editing, and Docker manages its lifecycle automatically.
 
 *Port collision?* If port `2222` is already in use, change the host port in the `-p` flag (e.g., `-p 2223:22`) and update your SSH command accordingly.
 

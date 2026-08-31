@@ -55,11 +55,16 @@ sandbox:
     - process:spawn
     - network:outbound
   maxReadSize: 10mb
+persistence:
+  mode: sqlite
+  sqlite_path: memory/checkpoints/checkpoints.db
+
 memory:
   directory: memory/
   contextDir: memory/context/
   schedulesDir: memory/schedules/
   sessionsDir: memory/sessions/
+  checkpointsDir: memory/checkpoints/
   gc:
     enabled: true
     idleTimeoutMs: 300000
@@ -98,9 +103,6 @@ agent:
 lru:
   size: 100
   ttl: 600000
-persistence:
-  mode: memory
-  sqlite_path: memory/checkpoints.db
 skillAgentMap:
   - pattern: "^openspec-"
     agent: coding
