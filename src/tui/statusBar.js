@@ -30,16 +30,8 @@ export function formatNumber(num) {
  */
 export function formatSize(bytes) {
 	if (bytes === 0) return "0";
-	if (bytes < 1024) return String(bytes);
-	const units = ["k", "M"];
-	const exp = Math.floor(Math.log(bytes) / Math.log(1024));
-	const value = bytes / Math.pow(1024, exp);
 	const locale = Intl.DateTimeFormat().resolvedOptions().locale;
-	const formatted =
-		value % 1 === 0
-			? new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(Math.round(value))
-			: new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(value);
-	return formatted + units[exp - 1];
+	return new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(bytes);
 }
 
 /**
