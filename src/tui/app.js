@@ -266,11 +266,21 @@ function App({
 				isStreamingRef.current = true;
 
 				try {
+					// Capture context size before streaming so we can compute deltas
+					const preStreamContextSize = contextSize;
+
 					// Capture the dispatch promise so handleInterrupt can await it
 					const dispatchPromise = dispatchProvider(
 						result.skillBody,
 						sessionState ? sessionState.getProvider() : null,
-						createStreamingHandler(committedContentRef, { current: "" }, { current: "" }),
+						createStreamingHandler(
+							committedContentRef,
+							{ current: "" },
+							{ current: "" },
+							undefined,
+							preStreamContextSize,
+							setContextSize,
+						),
 						abortControllerRef.current?.signal,
 					);
 
@@ -314,10 +324,15 @@ function App({
 							const continuePromise = dispatchProvider(
 								"Please continue.",
 								sessionState ? sessionState.getProvider() : null,
-								createStreamingHandler(committedContentRef, () => {
-									// Reset flag — text arrived, not stuck anymore
-									isAutoContinuingRef.current = false;
-								}),
+								createStreamingHandler(
+									committedContentRef,
+									() => {
+										// Reset flag — text arrived, not stuck anymore
+										isAutoContinuingRef.current = false;
+									},
+									preStreamContextSize,
+									setContextSize,
+								),
 								abortControllerRef.current?.signal,
 							);
 							// Update the ref so handleInterrupt can await this promise too
@@ -414,11 +429,21 @@ function App({
 		isStreamingRef.current = true;
 
 		try {
+			// Capture context size before streaming so we can compute deltas
+			const preStreamContextSize = contextSize;
+
 			// Capture the dispatch promise so handleInterrupt can await it
 			const dispatchPromise = dispatchProvider(
 				text,
 				sessionState ? sessionState.getProvider() : null,
-				createStreamingHandler(committedContentRef, { current: "" }, { current: "" }),
+				createStreamingHandler(
+					committedContentRef,
+					{ current: "" },
+					{ current: "" },
+					undefined,
+					preStreamContextSize,
+					setContextSize,
+				),
 				abortControllerRef.current?.signal,
 			);
 
@@ -465,10 +490,17 @@ function App({
 					const continuePromise = dispatchProvider(
 						"Please continue.",
 						sessionState ? sessionState.getProvider() : null,
-						createStreamingHandler(committedContentRef, { current: "" }, { current: "" }, () => {
-							// Reset flag — text arrived, not stuck anymore
-							isAutoContinuingRef.current = false;
-						}),
+						createStreamingHandler(
+							committedContentRef,
+							{ current: "" },
+							{ current: "" },
+							() => {
+								// Reset flag — text arrived, not stuck anymore
+								isAutoContinuingRef.current = false;
+							},
+							preStreamContextSize,
+							setContextSize,
+						),
 						abortControllerRef.current?.signal,
 					);
 					// Update the ref so handleInterrupt can await this promise too
@@ -703,10 +735,19 @@ function App({
 	 * @param {Object} [committedReasoningRef] - Ref holding accumulated reasoning
 	 * @param {Object} [lastToolCallDisplayRef] - Ref holding accumulated tool call display
 	 * @param {Function} [onTextReceived] - Optional callback when text arrives
+	 * @param {number} [preStreamContextSize] - Context size before streaming began
+	 * @param {Function} [onContextUpdate] - Optional callback to update context size with delta
 	 * @returns {Function} Event callback for dispatchProvider
 	 */
 	const createStreamingHandler = useCallback(
-		(committedContentRef, committedReasoningRef, lastToolCallDisplayRef, onTextReceived) => {
+		(
+			committedContentRef,
+			committedReasoningRef,
+			lastToolCallDisplayRef,
+			onTextReceived,
+			preStreamContextSize,
+			onContextUpdate,
+		) => {
 			return (event) => {
 				if (shouldAbort()) return;
 				try {
@@ -718,20 +759,30 @@ function App({
 					});
 
 					if (event.type === "message") {
-						committedContentRef.current = (committedContentRef.current || "") + event.text;
+						const newText = event.data?.text || event.text || "";
+						committedContentRef.current = (committedContentRef.current || "") + newText;
 						messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
 							content: committedContentRef.current + (config?.tui?.cursorChar || "\u2588"),
 							streaming: true,
 						});
 						messageListRef.current?._triggerRender();
 						if (onTextReceived) onTextReceived();
+						// Update context size using accumulated content already streamed to UI
+						if (committedContentRef.current && preStreamContextSize != null && onContextUpdate) {
+							const deltaTokens = calculateConversationTokens(
+								[{ role: "assistant", content: committedContentRef.current }],
+								config?.providers?.[sessionState?.getProvider()]?.model || "gpt-4o",
+								config?.providers?.[sessionState?.getProvider()]?.encoding,
+							);
+							onContextUpdate(preStreamContextSize + deltaTokens);
+						}
 					}
 
 					// Handle on_chat_model_stream — accumulate content and reasoning
 					if (event.type === "on_chat_model_stream") {
 						if (event.data?.chunk?.content) {
-							committedContentRef.current =
-								(committedContentRef.current || "") + event.data.chunk.content;
+							const chunkContent = event.data.chunk.content;
+							committedContentRef.current = (committedContentRef.current || "") + chunkContent;
 							messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
 								content: committedContentRef.current + (config?.tui?.cursorChar || "\u2588"),
 								streaming: true,
