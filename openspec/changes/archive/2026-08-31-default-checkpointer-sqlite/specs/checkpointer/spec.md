@@ -1,7 +1,5 @@
-## Purpose
+## MODIFIED Requirements
 
-Define the checkpointer factory that creates LangGraph-compatible checkpoint savers based on persistence configuration.
-## Requirements
 ### Requirement: Checkpointer factory creates the appropriate checkpointer instance
 The system SHALL provide a `createCheckpointer(persistenceConfig)` function at `src/session/checkpointer.js` that returns a LangGraph-compatible checkpointer instance based on the `persistence.mode` config value. Supported modes are `"memory"` (uses `InMemorySaver`) and `"sqlite"` (uses `AsyncSqliteSaver`). The default mode when no config is provided is `"sqlite"`.
 
@@ -23,11 +21,3 @@ The checkpointer SHALL be an optional component. When no checkpointer is configu
 #### Scenario: No persistence config produces SQLite checkpointer
 - **WHEN** `createCheckpointer` is called with `null` or `undefined`
 - **THEN** the function returns an `AsyncSqliteSaver` instance (defaulting to SQLite mode)
-
-### Requirement: Checkpointer state is isolated per thread
-Each unique `thread_id` passed to the checkpointer SHALL result in a separate checkpoint chain with no state leakage between threads.
-
-#### Scenario: Different thread_ids have independent checkpoints
-- **WHEN** the same agent is invoked with `thread_id: "a"` and `thread_id: "b"`
-- **THEN** the conversation state from thread "a" is not visible when querying thread "b"
-
