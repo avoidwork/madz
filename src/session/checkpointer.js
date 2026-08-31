@@ -6,20 +6,17 @@ import Database from "better-sqlite3";
 
 /**
  * Create a LangGraph checkpointer instance based on persistence config.
- * @param {Object} fullConfig - Full application config containing both persistence and memory sections
- * @param {Object} fullConfig.persistence - Persistence configuration
- * @param {"memory"|"sqlite"} fullConfig.persistence.mode - Persistence mode
- * @param {string} [fullConfig.persistence.sqlite_path] - Optional explicit SQLite DB path
- * @param {Object} fullConfig.memory - Memory configuration
- * @param {string} fullConfig.memory.checkpointsDir - Directory for checkpoint files
- * @returns {import("@langchain/langgraph").BaseCheckpointSaver | null} A checkpointer instance, or null if mode is not supported
+ * @param {Object} persistenceConfig - Persistence configuration
+ * @param {"memory"|"sqlite"} [persistenceConfig.mode] - Persistence mode (defaults to "sqlite")
+ * @param {string} [persistenceConfig.sqlite_path] - Optional explicit SQLite DB path
+ * @returns {import("@langchain/langgraph").BaseCheckpointSaver | null} A checkpointer instance, or null if config is falsy
  */
 export async function createCheckpointer(persistenceConfig) {
 	if (!persistenceConfig) {
 		return null;
 	}
 
-	const mode = fullConfig.persistence.mode || "sqlite";
+	const mode = persistenceConfig.mode || "sqlite";
 
 	switch (mode) {
 		case "memory": {
@@ -27,7 +24,7 @@ export async function createCheckpointer(persistenceConfig) {
 		}
 		case "sqlite": {
 			/* node:coverage ignore next */
-			return createSqliteCheckpointer(fullConfig);
+			return createSqliteCheckpointer(persistenceConfig);
 		}
 		default: {
 			return new MemorySaver();

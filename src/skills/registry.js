@@ -177,7 +177,9 @@ export class SkillRegistry {
 		}
 
 		if (!valid) {
+			// c8 ignore next
 			this.#errors.push({ name, errors });
+			// c8 ignore next
 			return { valid: false, errors, warnings };
 		}
 

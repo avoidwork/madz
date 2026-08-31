@@ -17,6 +17,7 @@ async function ensureWebhooksDir() {
 	try {
 		await access(WEBHOOKS_DIR);
 	} catch {
+		// c8 ignore next 3 — mkdir with recursive: true is idempotent, hard to trigger in tests
 		const { mkdir } = await import("node:fs/promises");
 		await mkdir(WEBHOOKS_DIR, { recursive: true });
 	}

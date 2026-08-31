@@ -13,9 +13,9 @@ describe("createCheckpointer", () => {
 		assert.ok(cp instanceof MemorySaver);
 	});
 
-	it("returns MemorySaver when config is empty", async () => {
+	it("returns SqliteSaver when config is empty (default is sqlite)", async () => {
 		const cp = await createCheckpointer({});
-		assert.ok(cp instanceof MemorySaver);
+		assert.ok(cp instanceof SqliteSaver);
 	});
 
 	it("returns null when config is undefined", async () => {

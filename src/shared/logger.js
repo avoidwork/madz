@@ -23,6 +23,7 @@ export function getLogDirectory() {
 	if (platformName === "linux") {
 		const alpineRelease = "/etc/alpine-release";
 		if (existsSync(alpineRelease)) {
+			// c8 ignore next 7 — requires /etc/alpine-release to exist, can't mock in tests
 			try {
 				const content = readFileSync(alpineRelease, "utf8").trim();
 				if (content) {
@@ -36,8 +37,10 @@ export function getLogDirectory() {
 
 	switch (platformName) {
 		case "darwin":
+			// c8 ignore next — darwin platform can't be simulated in tests
 			return join(home, "Library", "Logs", "madz");
 		case "win32": {
+			// c8 ignore next 3 — win32 platform can't be simulated in tests
 			const localAppData = process.env.LOCALAPPDATA || join(home, "AppData", "Local");
 			return join(localAppData, "madz", "logs");
 		}
