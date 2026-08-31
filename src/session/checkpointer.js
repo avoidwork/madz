@@ -40,10 +40,13 @@ function createSqliteCheckpointer(persistenceConfig) {
 	const sqlitePath = persistenceConfig.sqlite_path || "memory/checkpoints.db";
 
 	/* node:coverage ignore next */
-	const saver = SqliteSaver.fromConnString(`file:${sqlitePath}?mode=rwc&_journal=WAL`);
+	const saver = SqliteSaver.fromConnString(sqlitePath);
 
 	/* node:coverage ignore next */
 	saver.setup();
+
+	/* node:coverage ignore next */
+	saver.db.pragma("synchronous = NORMAL");
 
 	/* node:coverage ignore next */
 	return saver;
