@@ -64,6 +64,7 @@ memory:
   contextDir: memory/context/
   schedulesDir: memory/schedules/
   sessionsDir: memory/sessions/
+  checkpointsDir: memory/checkpoints/
   gc:
     enabled: true
     idleTimeoutMs: 300000

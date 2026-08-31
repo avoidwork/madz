@@ -5,7 +5,7 @@ import { MemorySaver } from "@langchain/langgraph";
 
 describe("createCheckpointer", () => {
 	it("returns MemorySaver for memory mode", () => {
-		const cp = createCheckpointer({ mode: "memory" });
+		const cp = createCheckpointer({ persistence: { mode: "memory" }, memory: { checkpointsDir: "memory/checkpoints/" } });
 		assert.ok(cp instanceof MemorySaver);
 	});
 
@@ -22,7 +22,7 @@ describe("createCheckpointer", () => {
 	});
 
 	it("returns MemorySaver for unknown mode (fallback)", () => {
-		const cp = createCheckpointer({ mode: "redis" });
+		const cp = createCheckpointer({ persistence: { mode: "redis" }, memory: { checkpointsDir: "memory/checkpoints/" } });
 		assert.ok(cp instanceof MemorySaver);
 	});
 
@@ -32,7 +32,7 @@ describe("createCheckpointer", () => {
 	});
 
 	it("falls back to MemorySaver for unrecognized mode string", () => {
-		const cp = createCheckpointer({ mode: "postgres" });
+		const cp = createCheckpointer({ persistence: { mode: "postgres" }, memory: { checkpointsDir: "memory/checkpoints/" } });
 		assert.ok(cp instanceof MemorySaver);
 	});
 });

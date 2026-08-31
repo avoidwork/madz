@@ -3,17 +3,20 @@ import { SqliteSaver } from "@langchain/langgraph-checkpoint-sqlite";
 
 /**
  * Create a LangGraph checkpointer instance based on persistence config.
- * @param {Object} [persistenceConfig] - Persistence configuration from config
- * @param {"memory"|"sqlite"|"null"} [persistenceConfig.mode="sqlite"] - Persistence mode
- * @param {string} [persistenceConfig.sqlite_path="memory/checkpoints/checkpoints.db"] - SQLite DB file path
+ * @param {Object} fullConfig - Full application config containing both persistence and memory sections
+ * @param {Object} fullConfig.persistence - Persistence configuration
+ * @param {"memory"|"sqlite"} fullConfig.persistence.mode - Persistence mode
+ * @param {string} [fullConfig.persistence.sqlite_path] - Optional explicit SQLite DB path
+ * @param {Object} fullConfig.memory - Memory configuration
+ * @param {string} fullConfig.memory.checkpointsDir - Directory for checkpoint files
  * @returns {import("@langchain/langgraph").BaseCheckpointSaver | null} A checkpointer instance, or null if mode is not supported
  */
-export function createCheckpointer(persistenceConfig) {
-	if (!persistenceConfig) {
+export function createCheckpointer(fullConfig) {
+	if (!fullConfig?.persistence) {
 		return null;
 	}
 
-	const mode = persistenceConfig.mode || "sqlite";
+	const mode = fullConfig.persistence.mode || "sqlite";
 
 	switch (mode) {
 		case "memory": {
@@ -21,7 +24,7 @@ export function createCheckpointer(persistenceConfig) {
 		}
 		case "sqlite": {
 			/* node:coverage ignore next */
-			return createSqliteCheckpointer(persistenceConfig);
+			return createSqliteCheckpointer(fullConfig);
 		}
 		default: {
 			return new MemorySaver();
@@ -31,13 +34,18 @@ export function createCheckpointer(persistenceConfig) {
 
 /**
  * Create an SQLite-backed checkpointer.
- * @param {Object} persistenceConfig - Persistence configuration with sqlite_path
- * @param {string} persistenceConfig.sqlite_path - Path to the SQLite database file
+ * @param {Object} fullConfig - Full application config containing persistence and memory sections
+ * @param {Object} fullConfig.persistence - Persistence configuration
+ * @param {string} [fullConfig.persistence.sqlite_path] - Optional explicit SQLite DB path
+ * @param {Object} fullConfig.memory - Memory configuration
+ * @param {string} fullConfig.memory.checkpointsDir - Directory for checkpoint files
  * @returns {import("@langchain/langgraph-checkpoint-sqlite").SqliteSaver}
  */
 /* node:coverage ignore next */
-function createSqliteCheckpointer(persistenceConfig) {
-	const sqlitePath = persistenceConfig.sqlite_path || "memory/checkpoints/checkpoints.db";
+function createSqliteCheckpointer(fullConfig) {
+	const explicitPath = fullConfig.persistence?.sqlite_path;
+	const checkpointsDir = fullConfig.memory?.checkpointsDir || "memory/checkpoints/";
+	const sqlitePath = explicitPath || `${checkpointsDir}checkpoints.db`;
 
 	/* node:coverage ignore next */
 	const saver = SqliteSaver.fromConnString(sqlitePath);
