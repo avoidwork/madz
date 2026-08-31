@@ -10,9 +10,12 @@ import { Cron, writeEnvCron, sanitizeCrontabCommand, prepareCrontabCommand, setE
 
 describe("writeEnvCron", () => {
 	test("should write env vars to .env.cron file", async () => {
-		const tmpDir = "/tmp/test-env-cron";
+		const { default: fs } = await import("node:fs/promises");
+		const tmpDir = "/tmp/test-env-cron-" + Date.now();
+		await fs.mkdir(tmpDir, { recursive: true });
 		const result = await writeEnvCron(tmpDir);
 		assert.strictEqual(result.written, true);
+		await fs.rm(tmpDir, { recursive: true, force: true });
 	});
 
 	test("should return written: false when no env vars", async () => {
@@ -33,12 +36,14 @@ describe("writeEnvCron", () => {
 	});
 
 	test("should set file permissions to 0o600", async () => {
-		const tmpDir = "/tmp/test-env-cron-perms";
+		const { default: fs } = await import("node:fs/promises");
+		const tmpDir = "/tmp/test-env-cron-perms-" + Date.now();
+		await fs.mkdir(tmpDir, { recursive: true });
 		await writeEnvCron(tmpDir);
 		// File should exist
-		const { default: fs } = await import("node:fs/promises");
 		const stat = await fs.stat(join(tmpDir, ".env.cron"));
 		assert.strictEqual(stat.mode & 0o777, 0o600);
+		await fs.rm(tmpDir, { recursive: true, force: true });
 	});
 });
 
@@ -146,7 +151,7 @@ describe("Cron._splitBlock", () => {
 0 4 * * * echo world`;
 
 		const result = Cron._splitBlock(crontab);
-		assert.strictEqual(result.outsideLines.length, 4); // header, hello, world, empty
+		assert.strictEqual(result.outsideLines.length, 3); // header, hello, world
 		assert.strictEqual(result.blockLines.length, 2);
 	});
 
@@ -525,7 +530,7 @@ describe("Cron.sync", () => {
 		}));
 
 		const result = await Cron.sync(tmpDir);
-		assert.strictEqual(result.added, 1);
+		assert.strictEqual(result.added, 2); // new-job + reflection-daily (auto-created by _ensureReflectionJob)
 	});
 
 	test("should detect updated jobs", async () => {

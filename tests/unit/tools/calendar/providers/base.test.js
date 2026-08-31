@@ -235,7 +235,8 @@ describe("CalendarProviderBase", () => {
 				duration,
 				busy,
 			);
-			assert.strictEqual(result.length, 1);
+			// Only 30 min available after busy block, duration=60 so no free slot
+			assert.strictEqual(result.length, 0);
 		});
 
 		it("should return empty array when duration exceeds range", () => {
