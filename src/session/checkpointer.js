@@ -1,6 +1,21 @@
 import { MemorySaver } from "@langchain/langgraph";
 import { SqliteSaver } from "@langchain/langgraph-checkpoint-sqlite";
+import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
+import { loadConfig } from "../config/loader.js";
+
+const cwd = loadConfig().cwd;
+
+/**
+ * Ensure the checkpoints directory exists by creating it if necessary.
+ * @param {string} checkpointsDir - Path to checkpoints directory
+ * @param {string} [cwdParam] - Base directory (defaults to project cwd)
+ * @returns {Promise<void>}
+ */
+export async function ensureCheckpointsDir(checkpointsDir, cwdParam = cwd) {
+	const dir = join(cwdParam, checkpointsDir);
+	await mkdir(dir, { recursive: true });
+}
 
 /**
  * Create a LangGraph checkpointer instance based on persistence config.
