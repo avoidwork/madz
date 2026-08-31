@@ -17,6 +17,6 @@
 
 ## 4. Verify
 
-- [ ] 4.1 Run `npm run test` and confirm all tests pass
-- [ ] 4.2 Run `npm run lint` and confirm no lint errors
-- [ ] 4.3 Run `npm run coverage` and confirm coverage is maintained
+- [x] 4.1 Run `npm run test` and confirm all tests pass
+- [x] 4.2 Run `npm run lint` and confirm no lint errors
+- [x] 4.3 Run `npm run coverage` and confirm coverage is maintained
