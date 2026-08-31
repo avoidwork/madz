@@ -22,10 +22,10 @@ describe("PersistenceSchema", () => {
 		assert.strictEqual(result.data.sqlite_path, "data/checkpoints.db");
 	});
 
-	it("defaults to memory mode when omitted", () => {
+	it("defaults to sqlite mode when omitted", () => {
 		const result = PersistenceSchema.safeParse({});
 		assert.strictEqual(result.success, true);
-		assert.strictEqual(result.data.mode, "memory");
+		assert.strictEqual(result.data.mode, "sqlite");
 		assert.strictEqual(result.data.sqlite_path, "memory/checkpoints.db");
 	});
 
@@ -50,8 +50,8 @@ describe("PersistenceSchema", () => {
 describe("PersistenceSchema defaults", () => {
 	const defaults = PersistenceSchema.parse({});
 
-	it("has memory mode in defaults", () => {
-		assert.strictEqual(defaults.mode, "memory");
+	it("has sqlite mode in defaults", () => {
+		assert.strictEqual(defaults.mode, "sqlite");
 	});
 
 	it("has default sqlite_path", () => {

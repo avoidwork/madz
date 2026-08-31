@@ -3,7 +3,7 @@ import { MemorySaver } from "@langchain/langgraph";
 /**
  * Create a LangGraph checkpointer instance based on persistence config.
  * @param {Object} [persistenceConfig] - Persistence configuration from config
- * @param {"memory"|"sqlite"|"null"} [persistenceConfig.mode="memory"] - Persistence mode
+ * @param {"memory"|"sqlite"|"null"} [persistenceConfig.mode="sqlite"] - Persistence mode
  * @param {string} [persistenceConfig.sqlite_path="memory/checkpoints.db"] - SQLite DB file path
  * @returns {import("@langchain/langgraph").BaseCheckpointSaver | null} A checkpointer instance, or null if mode is not supported
  */
@@ -12,7 +12,7 @@ export function createCheckpointer(persistenceConfig) {
 		return null;
 	}
 
-	const mode = persistenceConfig.mode || "memory";
+	const mode = persistenceConfig.mode || "sqlite";
 
 	switch (mode) {
 		case "memory": {

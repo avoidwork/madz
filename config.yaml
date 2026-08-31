@@ -99,7 +99,7 @@ lru:
   size: 100
   ttl: 600000
 persistence:
-  mode: memory
+  mode: sqlite
   sqlite_path: memory/checkpoints.db
 skillAgentMap:
   - pattern: "^openspec-"
