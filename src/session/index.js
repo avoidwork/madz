@@ -4,4 +4,4 @@ export { enforceContextWindow, trimConversation } from "./window.js";
 export { loadSession } from "./loader.js";
 export { saveSession } from "./saver.js";
 export { handleShutdown, registerShutdownHandler } from "./shutdown.js";
-export { createCheckpointer } from "./checkpointer.js";
+export { createCheckpointer, ensureCheckpointsDir } from "./checkpointer.js";
