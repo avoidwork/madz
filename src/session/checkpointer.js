@@ -1,5 +1,6 @@
 import { MemorySaver } from "@langchain/langgraph";
 import { SqliteSaver } from "@langchain/langgraph-checkpoint-sqlite";
+import { join } from "node:path";
 
 /**
  * Create a LangGraph checkpointer instance based on persistence config.
@@ -45,7 +46,7 @@ export function createCheckpointer(fullConfig) {
 function createSqliteCheckpointer(fullConfig) {
 	const explicitPath = fullConfig.persistence?.sqlite_path;
 	const checkpointsDir = fullConfig.memory?.checkpointsDir || "memory/checkpoints/";
-	const sqlitePath = explicitPath || `${checkpointsDir}checkpoints.db`;
+	const sqlitePath = explicitPath || join(checkpointsDir, "checkpoints.db");
 
 	/* node:coverage ignore next */
 	const saver = SqliteSaver.fromConnString(sqlitePath);
