@@ -759,7 +759,7 @@ function App({
 					});
 
 					if (event.type === "message") {
-						const newText = event.text || "";
+						const newText = event.data?.text || event.text || "";
 						committedContentRef.current = (committedContentRef.current || "") + newText;
 						messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
 							content: committedContentRef.current + (config?.tui?.cursorChar || "\u2588"),
@@ -767,10 +767,10 @@ function App({
 						});
 						messageListRef.current?._triggerRender();
 						if (onTextReceived) onTextReceived();
-						// Update context size with delta for new content
-						if (newText && preStreamContextSize != null && onContextUpdate) {
+						// Update context size using accumulated content already streamed to UI
+						if (committedContentRef.current && preStreamContextSize != null && onContextUpdate) {
 							const deltaTokens = calculateConversationTokens(
-								[{ role: "assistant", content: newText }],
+								[{ role: "assistant", content: committedContentRef.current }],
 								config?.providers?.[sessionState?.getProvider()]?.model || "gpt-4o",
 								config?.providers?.[sessionState?.getProvider()]?.encoding,
 							);
