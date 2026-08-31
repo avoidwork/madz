@@ -26,7 +26,7 @@ describe("PersistenceSchema", () => {
 		const result = PersistenceSchema.safeParse({});
 		assert.strictEqual(result.success, true);
 		assert.strictEqual(result.data.mode, "sqlite");
-		assert.strictEqual(result.data.sqlite_path, "memory/checkpoints.db");
+		assert.strictEqual(result.data.sqlite_path, "memory/checkpoints/checkpoints.db");
 	});
 
 	it("rejects invalid mode", () => {
@@ -37,7 +37,7 @@ describe("PersistenceSchema", () => {
 	it("uses default sqlite_path when omitted", () => {
 		const result = PersistenceSchema.safeParse({ mode: "memory" });
 		assert.strictEqual(result.success, true);
-		assert.strictEqual(result.data.sqlite_path, "memory/checkpoints.db");
+		assert.strictEqual(result.data.sqlite_path, "memory/checkpoints/checkpoints.db");
 	});
 
 	it("accepts custom sqlite_path for sqlite mode", () => {
@@ -55,6 +55,6 @@ describe("PersistenceSchema defaults", () => {
 	});
 
 	it("has default sqlite_path", () => {
-		assert.strictEqual(defaults.sqlite_path, "memory/checkpoints.db");
+		assert.strictEqual(defaults.sqlite_path, "memory/checkpoints/checkpoints.db");
 	});
 });
