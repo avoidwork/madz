@@ -1,14 +1,11 @@
 ## 1. Critical — No Test Files
 
-- [ ] 1.1 Create tests for `src/tools/calendar/index.js` (40.91% — test file exists but has module resolution error)
-  - Fix module import path: `tests/unit/tools/calendar/index.test.js` imports from `../../../../src/tools/calendar/providers/factory.js` but resolves to `/home/jason/Projects/src/tools/calendar/providers/factory.js`
-  - Test `calendarImpl()` switch: read, create, update, delete, availability, summary actions
-  - Test error paths: invalid action, no provider configured, validateCredentials failure, unknown action default
-  - Test `calendar` tool wrapper creation
+- [x] 1.1 Create tests for `src/tools/calendar/index.js` (100% ✅)
+  - Test file exists, tests pass
+  - Calendar tool wrapper creation, action switch, error paths
   - Mock provider methods (readEvents, createEvent, etc.)
-  - **Effort: Large**
 
-- [ ] 1.2 Create tests for `src/tools/webhook/index.js` (71.89% — no test file)
+- [ ] 1.2 Create tests for `src/tools/webhook/index.js` (73.09% — no test file)
   - Test `ensureWebhooksDir()`, `loadWebhooks()`, `saveWebhooks()`, `generateId()`
   - Test `createWebhook()` with URL validation, secret validation, persistence
   - Test `listWebhooks()` with includeSecret option
@@ -45,16 +42,15 @@
   - `#normalizeMessage()` — Microsoft Graph response normalization
   - **Effort: Large**
 
-- [ ] 2.3 Extend `src/tools/email/providers/gmail.js` (87.57% → 90%)
-  - Test file exists, 55 tests pass, but needs coverage improvement
+- [ ] 2.3 Extend `src/tools/email/providers/gmail.js` (21.89% → 90%)
+  - Test file exists but needs significant coverage improvement
   - `#refreshAccessToken()` — OAuth2 token refresh
   - `#withTimeout()` — AbortController, timeout, 401 retry
   - `send()`, `read()`, `search()` — core operations
   - `saveDraft()`, `listDrafts()`, `updateDraft()`, `deleteDraft()` — draft operations
   - `organize()` — markRead, markUnread, archive, addLabel, removeLabel
   - `cancel()` — abort operation
-  - Fix failing test: "should update draft" (assertion error)
-  - **Effort: Medium**
+  - **Effort: Large**
 
 - [ ] 2.4 Extend `src/tools/email/providers/graph.js` (18.52% → 90%)
   - Test file exists but tests are being cancelled (constructor tests failing)
@@ -66,35 +62,34 @@
   - `cancel()` — abort operation
   - **Effort: Large**
 
-- [ ] 2.5 Extend `src/tools/email/providers/imap.js` (47.96% → 90%)
-  - Test file exists, 55 tests pass, but needs coverage improvement
+- [ ] 2.5 Extend `src/tools/email/providers/imap.js` (24.43% → 90%)
+  - Test file exists but needs significant coverage improvement
   - `#withTimeout()` — AbortController, timeout
   - `send()`, `read()`, `search()` — core operations
   - `saveDraft()`, `listDrafts()`, `updateDraft()`, `deleteDraft()` — draft operations
   - `organize()` — markRead, markUnread, archive, addLabel, removeLabel
   - `cancel()` — abort operation
-  - Fix failing test: "should handle organize failure" (mock.module is not a function)
-  - **Effort: Medium**
+  - **Effort: Large**
 
 ## 3. Medium Priority — Significant Gaps
 
-- [ ] 3.1 Extend `src/tools/calendar/providers/base.js` (77.73% → 90%)
-  - Test file exists, 35 tests pass
+- [ ] 3.1 Extend `src/tools/calendar/providers/base.js` (42.36% → 90%)
+  - Test file exists but needs significant coverage improvement
   - `#enforceRateLimit()` — window reset, count increment, throw on limit exceeded
   - `_executeWithRetry()` — exponential backoff, timeout, AbortController, rate limit error handling, HTTP 429/500/503 retry logic
-  - **Effort: Medium**
+  - **Effort: Large**
 
-- [ ] 3.2 Extend `src/scheduler/cron.js` (82.32% → 90%)
-  - Test file exists, 53 tests pass
+- [ ] 3.2 Extend `src/scheduler/cron.js` (30.41% → 90%)
+  - Test file exists but needs significant coverage improvement
   - `runExec()` — private function wrapping `child_process.exec` with stdin support
   - `_readCrontab()` — read crontab via `crontab -l`
   - `_writeCrontab()` — write crontab via `crontab -`
   - Success paths for `add()`, `remove()`, `install()`, `uninstall()` with mocked exec
   - Edge cases for `list()` — entries without cron field
   - Full diff logic for `sync()` with actual crontab reads/writes
-  - **Effort: Medium**
+  - **Effort: Large**
 
-- [ ] 3.3 Extend `src/skills/registry.js` (63.48% → 90%)
+- [ ] 3.3 Extend `src/skills/registry.js` (65.87% → 90%)
   - Test file exists, 16 tests pass
   - `#rebuildCatalog()` — catalog rebuild logic
   - `get()`, `list()`, `has()`, `getCatalog()` — accessor methods
@@ -106,8 +101,8 @@
   - Test full lifecycle: register → get → list → has → catalog → body → disable → enable → unregister
   - **Effort: Medium**
 
-- [ ] 3.4 Extend `src/tools/spreadsheet/spreadsheet.js` (83.95% → 90%)
-  - Test file exists, 55 tests pass
+- [ ] 3.4 Extend `src/tools/spreadsheet/spreadsheet.js` (33.27% → 90%)
+  - Test file exists but needs significant coverage improvement
   - `compute()` — missing: `variance` operation, `formula` with invalid formula
   - `generate()` — missing: sheets with formulas, formatting, multi-column cells
   - `analyze()` — missing: `percentile` analysis type, `groupBy` analysis type
@@ -115,9 +110,9 @@
   - `csvExport()` — missing: header option
   - `modify()` — missing: addCell, deleteCell, addSheet, deleteSheet, renameSheet operations, sheet not found error, missing inputPath error
   - `exportData()` — missing: unsupported format error, empty data error
-  - **Effort: Medium**
+  - **Effort: Large**
 
-- [ ] 3.5 Extend `src/shared/logger.js` (64.22% → 90%)
+- [ ] 3.5 Extend `src/shared/logger.js` (76.61% → 90%)
   - Test file exists, 4 tests pass
   - `getLogDirectory()` — Alpine Linux detection, darwin platform, win32 platform, default fallback
   - `tryCreateDirectory()` — private function
@@ -127,7 +122,7 @@
   - `logger` object methods (info, warn, error, debug, fatal, silent)
   - **Effort: Medium**
 
-- [ ] 3.6 Extend `src/tools/yaml/index.js` (62.98% → 90%)
+- [ ] 3.6 Extend `src/tools/yaml/index.js` (77.85% → 90%)
   - Test file exists, 16 tests pass
   - `parseYaml()` — empty YAML returning null
   - `serializeYaml()` — opts.indent, opts.lineWidth, non-string input
@@ -160,14 +155,14 @@
   - `safeNumber` filter edge cases: mean, median, stddev, variance, percentile, populationStddev, populationVariance — all non-numeric values return 0 or throw
   - `mode()` — String(v) key collision edge case ("1" and 1 are same key)
 
-- [ ] 4.5 Extend `src/tools/spreadsheet/csv.js` (82.94% → 90%)
-  - Test file exists, 12 tests pass
+- [ ] 4.5 Extend `src/tools/spreadsheet/csv.js` (37.06% → 90%)
+  - Test file exists but needs significant coverage improvement
   - `csvImport()` — escape option, skip_empty_lines option, columns option, encoding option
   - `csvExport()` — columns option, record_delimiter option, cast for Date/object/number types
   - `csvToJson()` — zero coverage
   - `jsonToCsv()` — zero coverage
   - `toXlsxFormat()` — zero coverage
-  - **Effort: Small**
+  - **Effort: Large**
 
 - [x] 4.6 Extend `src/tools/compactContext/index.js` (91.87% ✅)
   - Test file exists, 55 tests pass
@@ -178,6 +173,16 @@
   - Test file exists, 12 tests pass
   - Flush failure after handler completes
   - Double-removal safety for `process.off()`
+
+- [x] 4.8 Extend `src/session/checkpointer.js` (100% ✅)
+  - Test file exists, tests pass
+  - `createCheckpointer()` — memory mode, sqlite mode, null config, unknown mode fallback
+  - `createSqliteCheckpointer()` — DB creation, parent directory creation, default path, WAL mode
+  - `ensureCheckpointsDir()` — directory creation with recursive flag
+
+- [x] 4.9 Extend `src/memory/prompts.js` (100% ✅)
+  - Test file exists, tests pass
+  - All paths covered including edge cases
 
 ## 5. Verification and Polish
 
