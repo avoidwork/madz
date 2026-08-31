@@ -788,15 +788,6 @@ function App({
 								streaming: true,
 							});
 							messageListRef.current?._triggerRender();
-							// Update context size with delta for new content
-							if (preStreamContextSize != null && onContextUpdate) {
-								const deltaTokens = calculateConversationTokens(
-									[{ role: "assistant", content: chunkContent }],
-									config?.providers?.[sessionState?.getProvider()]?.model || "gpt-4o",
-									config?.providers?.[sessionState?.getProvider()]?.encoding,
-								);
-								onContextUpdate(preStreamContextSize + deltaTokens);
-							}
 						}
 						if (event.data?.chunk?.reasoning) {
 							committedReasoningRef.current =
