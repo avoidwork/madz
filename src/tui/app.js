@@ -82,6 +82,7 @@ function App({
 	const isAutoContinuingRef = useRef(false);
 	const streamingMsgIdRef = useRef(null);
 	const lastInterruptTimeRef = useRef(0);
+	const tokenCacheRef = useRef({ content: "", tokens: 0 });
 	const { exit } = useApp();
 	const exitRef = useRef(exit);
 	exitRef.current = exit;
@@ -769,12 +770,16 @@ function App({
 						if (onTextReceived) onTextReceived();
 						// Update context size using accumulated content already streamed to UI
 						if (committedContentRef.current && preStreamContextSize != null && onContextUpdate) {
-							const deltaTokens = calculateConversationTokens(
-								[{ role: "assistant", content: committedContentRef.current }],
-								config?.providers?.[sessionState?.getProvider()]?.model || "gpt-4o",
-								config?.providers?.[sessionState?.getProvider()]?.encoding,
-							);
-							onContextUpdate(preStreamContextSize + deltaTokens);
+							const cached = tokenCacheRef.current;
+							if (cached.content !== committedContentRef.current) {
+								cached.content = committedContentRef.current;
+								cached.tokens = calculateConversationTokens(
+									[{ role: "assistant", content: committedContentRef.current }],
+									config?.providers?.[sessionState?.getProvider()]?.model || "gpt-4o",
+									config?.providers?.[sessionState?.getProvider()]?.encoding,
+								);
+							}
+							onContextUpdate(preStreamContextSize + cached.tokens);
 						}
 					}
 
