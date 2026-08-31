@@ -66,6 +66,7 @@ docker run -d \
   --name madz \
   -p 2222:22 \
   -v ./memory:/app/memory \
+  -v madz-checkpoints:/app/memory/checkpoints \
   -v ./skills:/app/skills \
   -v ./tmp:/app/tmp \
   -v ./logs:/home/madz/.cache/madz/logs \
@@ -75,6 +76,8 @@ ssh -p 2222 madz@localhost
 ```
 
 The full `docker run` command with all optional variables is in the [Docker Environment Variables](#environment-variables) section below.
+
+**Volume strategy:** `memory/` is bind-mounted to the host for persistent markdown storage (context, profiles, sessions). The `memory/checkpoints/` subdirectory is mounted as a separate named volume (`madz-checkpoints`) so SQLite checkpoint data lives in a Docker-managed volume rather than on the host filesystem — no host-side directory needed, and the checkpoint DB survives container recreation without touching local files.
 
 ### Prerequisites
 
@@ -110,6 +113,7 @@ docker run -d \
   --name madz \
   -p 2222:22 \
   -v ./memory:/app/memory \
+  -v madz-checkpoints:/app/memory/checkpoints \
   -v ./skills:/app/skills \
   -v ./tmp:/app/tmp \
   -v ./logs:/home/madz/.cache/madz/logs \
@@ -217,6 +221,7 @@ docker run -d \
   --name madz \
   -p 2222:22 \
   -v ./memory:/app/memory \
+  -v madz-checkpoints:/app/memory/checkpoints \
   -v ./skills:/app/skills \
   -v ./tmp:/app/tmp \
   -v ./logs:/home/madz/.cache/madz/logs \
