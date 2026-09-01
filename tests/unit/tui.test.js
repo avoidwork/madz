@@ -836,42 +836,17 @@ describe("MarkdownText - rendering", () => {
 	});
 });
 
-describe("TuiSchema - cursorChar", () => {
-	it("accepts valid cursorChar string", () => {
-		const result = TuiSchema.safeParse({ name: "test", cursorChar: "_" });
-		assert.strictEqual(result.success, true);
-		assert.strictEqual(result.data.cursorChar, "_");
-	});
-
-	it("accepts unicode block character", () => {
-		const result = TuiSchema.safeParse({ name: "test", cursorChar: "\u2588" });
-		assert.strictEqual(result.success, true);
-		assert.strictEqual(result.data.cursorChar, "\u2588");
-	});
-
-	it("rejects non-string cursorChar", () => {
-		const result = TuiSchema.safeParse({ name: "test", cursorChar: 123 });
-		assert.strictEqual(result.success, false);
-	});
-
-	it("defaults cursorChar to block when missing", () => {
-		const result = TuiSchema.safeParse({ name: "test" });
-		assert.strictEqual(result.success, true);
-		assert.strictEqual(result.data.cursorChar, "\u2588");
-	});
-});
-
 describe("TuiSchema defaults", () => {
 	const defaults = TuiSchema.parse({});
 
-	it("includes cursorChar default", () => {
-		assert.strictEqual(defaults.cursorChar, "\u2588");
+	it("includes name default", () => {
+		assert.strictEqual(defaults.name, "madz");
 	});
 
-	it("matches TuiSchema defaults for cursorChar", () => {
+	it("matches TuiSchema defaults for name", () => {
 		const schemaResult = TuiSchema.safeParse({});
 		assert.strictEqual(schemaResult.success, true);
-		assert.strictEqual(schemaResult.data.cursorChar, defaults.cursorChar);
+		assert.strictEqual(schemaResult.data.name, defaults.name);
 	});
 });
 
