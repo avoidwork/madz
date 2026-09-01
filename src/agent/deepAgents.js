@@ -232,6 +232,16 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	// Create subagent definitions with filtered tools and agent-specific skills
 	const subagentDefinitions = createSubagentDefinitions(allTools, model, skillRegistry, config);
 
+	// Conditionally add CodeInterpreterMiddleware
+	let middleware = [];
+	if (config.codeInterpreter?.enabled) {
+		const { createCodeInterpreterMiddleware } = await import("../agent/codeInterpreter.js");
+		const middlewareInstance = createCodeInterpreterMiddleware(config.codeInterpreter);
+		if (middlewareInstance.evalTool) {
+			middleware = [middlewareInstance];
+		}
+	}
+
 	// All discovered skills are available to the orchestrator
 
 	return createDeepAgent({
@@ -245,5 +255,6 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 		subagents: subagentDefinitions,
 		...(skillPaths.length > 0 && { skills: skillPaths }),
 		...(checkpointer && { checkpointer }),
+		...(middleware.length > 0 && { middleware }),
 	});
 }

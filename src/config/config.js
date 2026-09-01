@@ -14,6 +14,7 @@ import { AgentSchema } from "./schemas/agent.js";
 import { LruSchema } from "./schemas/lru.js";
 import { PersistenceSchema } from "./schemas/persistence.js";
 import { SkillAgentMapSchema } from "./schemas/skillAgentMap.js";
+import { CodeInterpreterSchema } from "./schemas/codeInterpreter.js";
 import { SubAgentsTemperatureSchema } from "./schemas/subAgentsTemperature.js";
 
 // Re-export individual schemas for backward compatibility
@@ -50,6 +51,7 @@ export const ConfigSchema = z.object({
 	skillAgentMap: SkillAgentMapSchema,
 	cwd: z.string().default(""),
 	subAgentsTemperature: SubAgentsTemperatureSchema,
+	codeInterpreter: CodeInterpreterSchema,
 });
 
 // Derive defaults from Zod schema — config.yaml is the source of truth,

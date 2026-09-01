@@ -100,6 +100,16 @@ agent:
     codingAgent:
       description: "Specialized agent for code-related tasks including file editing, debugging, and implementation."
       temperature: 0.3
+codeInterpreter:
+  enabled: false
+  mode: thread
+  memoryLimit: 536870912
+  timeoutMs: 30000
+  maxResultChars: 50000
+  captureConsole: false
+  subagentsEnabled: false
+  ptcEnabled: false
+  toolName: eval
 lru:
   size: 100
   ttl: 600000

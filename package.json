@@ -94,6 +94,7 @@
     "pino": "^10.3.1",
     "pptxgenjs": "^4.0.1",
     "puppeteer": "^25.8.0",
+    "quickjs-emscripten-core": "^0.30.0",
     "supports-hyperlinks": "^4.5.0",
     "tiktoken": "^1.0.22",
     "tiny-lru": "^13.0.0",
