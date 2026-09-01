@@ -102,8 +102,6 @@ describe("codeInterpreter - schema", () => {
           timeoutMs: 30000,
           maxResultChars: 50000,
           captureConsole: false,
-          subagentsEnabled: false,
-          ptcEnabled: false,
           toolName: "eval",
         });
         result.valid = true;
@@ -150,8 +148,6 @@ describe("codeInterpreter - schema", () => {
       result.timeoutMs = parsed.timeoutMs;
       result.maxResultChars = parsed.maxResultChars;
       result.captureConsole = parsed.captureConsole;
-      result.subagentsEnabled = parsed.subagentsEnabled;
-      result.ptcEnabled = parsed.ptcEnabled;
       result.toolName = parsed.toolName;
     `,
 		);
@@ -162,217 +158,7 @@ describe("codeInterpreter - schema", () => {
 		assert.strictEqual(result.parsed?.timeoutMs, 30000);
 		assert.strictEqual(result.parsed?.maxResultChars, 50000);
 		assert.strictEqual(result.parsed?.captureConsole, false);
-		assert.strictEqual(result.parsed?.subagentsEnabled, false);
-		assert.strictEqual(result.parsed?.ptcEnabled, false);
 		assert.strictEqual(result.parsed?.toolName, "eval");
-	});
-});
-
-describe("codeInterpreter - snapshot", () => {
-	it("exports signSnapshot, verifySnapshot, extractSnapshot", async () => {
-		const result = await runTestScript(
-			"snapshot-exports",
-			`
-      const mod = await import('./src/sandbox/vm/snapshot.js');
-      result.hasSign = typeof mod.signSnapshot === 'function';
-      result.hasVerify = typeof mod.verifySnapshot === 'function';
-      result.hasExtract = typeof mod.extractSnapshot === 'function';
-    `,
-		);
-		assert.strictEqual(result.code, 0, `stderr: ${result.stderr}`);
-		assert.strictEqual(result.parsed?.hasSign, true);
-		assert.strictEqual(result.parsed?.hasVerify, true);
-		assert.strictEqual(result.parsed?.hasExtract, true);
-	});
-
-	it("signs and verifies a snapshot", async () => {
-		const result = await runTestScript(
-			"snapshot-sign-verify",
-			`
-      import { signSnapshot, verifySnapshot } from './src/sandbox/vm/snapshot.js';
-      const secret = 'test-secret-key';
-      const snapshot = '{"state":"test-data"}';
-      const signed = signSnapshot(snapshot, secret);
-      const { valid, snapshot: extracted } = verifySnapshot(signed, secret);
-      result.valid = valid;
-      result.extracted = extracted;
-      result.matches = extracted === snapshot;
-    `,
-		);
-		assert.strictEqual(result.code, 0, `stderr: ${result.stderr}`);
-		assert.strictEqual(result.parsed?.valid, true);
-		assert.strictEqual(result.parsed?.matches, true);
-	});
-
-	it("rejects tampered snapshot", async () => {
-		const result = await runTestScript(
-			"snapshot-tamper",
-			`
-      import { signSnapshot, verifySnapshot } from './src/sandbox/vm/snapshot.js';
-      const secret = 'test-secret-key';
-      const snapshot = '{"state":"test-data"}';
-      const signed = signSnapshot(snapshot, secret);
-      const tampered = signed.slice(0, -5) + 'XXXXX';
-      const { valid } = verifySnapshot(tampered, secret);
-      result.valid = valid;
-    `,
-		);
-		assert.strictEqual(result.code, 0, `stderr: ${result.stderr}`);
-		assert.strictEqual(result.parsed?.valid, false);
-	});
-
-	it("rejects wrong secret", async () => {
-		const result = await runTestScript(
-			"snapshot-wrong-secret",
-			`
-      import { signSnapshot, verifySnapshot } from './src/sandbox/vm/snapshot.js';
-      const snapshot = '{"state":"test-data"}';
-      const signed = signSnapshot(snapshot, 'secret-a');
-      const { valid } = verifySnapshot(signed, 'secret-b');
-      result.valid = valid;
-    `,
-		);
-		assert.strictEqual(result.code, 0, `stderr: ${result.stderr}`);
-		assert.strictEqual(result.parsed?.valid, false);
-	});
-
-	it("extracts snapshot from signed format", async () => {
-		const result = await runTestScript(
-			"snapshot-extract",
-			`
-      import { signSnapshot, extractSnapshot } from './src/sandbox/vm/snapshot.js';
-      const snapshot = '{"state":"test-data"}';
-      const signed = signSnapshot(snapshot, 'secret');
-      const extracted = extractSnapshot(signed);
-      result.matches = extracted === snapshot;
-    `,
-		);
-		assert.strictEqual(result.code, 0, `stderr: ${result.stderr}`);
-		assert.strictEqual(result.parsed?.matches, true);
-	});
-});
-
-describe("codeInterpreter - PTC proxy", () => {
-	it("exports createPTCProxy", async () => {
-		const result = await runTestScript(
-			"ptc-export",
-			`
-      import { createPTCProxy } from './src/sandbox/vm/ptc.js';
-      result.hasProxy = typeof createPTCProxy === 'function';
-    `,
-		);
-		assert.strictEqual(result.code, 0, `stderr: ${result.stderr}`);
-		assert.strictEqual(result.parsed?.hasProxy, true);
-	});
-
-	it("creates proxy with whitelisted tools", async () => {
-		const result = await runTestScript(
-			"ptc-create",
-			`
-      import { createPTCProxy } from './src/sandbox/vm/ptc.js';
-      const tools = [
-        { name: "readFile", execute: async () => "file content" },
-        { name: "writeFile", execute: async () => "written" },
-      ];
-      const proxy = createPTCProxy(tools, ["readFile"]);
-      result.hasReadFile = typeof proxy.readFile === 'function';
-      result.hasWriteFile = typeof proxy.writeFile === 'function';
-      const readResult = await proxy.readFile("test.txt");
-      result.readResult = readResult;
-    `,
-		);
-		assert.strictEqual(result.code, 0, `stderr: ${result.stderr}`);
-		assert.strictEqual(result.parsed?.hasReadFile, true);
-		assert.strictEqual(result.parsed?.hasWriteFile, false);
-		assert.strictEqual(result.parsed?.readResult, "file content");
-	});
-
-	it("returns error for non-whitelisted tools", async () => {
-		const result = await runTestScript(
-			"ptc-whitelist",
-			`
-      import { createPTCProxy } from './src/sandbox/vm/ptc.js';
-      const tools = [
-        { name: "readFile", execute: async () => "content" },
-      ];
-      const proxy = createPTCProxy(tools, ["readFile"]);
-      result.writeFileExists = typeof proxy.writeFile === 'function';
-    `,
-		);
-		assert.strictEqual(result.code, 0, `stderr: ${result.stderr}`);
-		assert.strictEqual(result.parsed?.writeFileExists, false);
-	});
-
-	it("handles tool execution errors", async () => {
-		const result = await runTestScript(
-			"ptc-error",
-			`
-      import { createPTCProxy } from './src/sandbox/vm/ptc.js';
-      const tools = [
-        { name: "failingTool", execute: async () => { throw new Error("boom"); } },
-      ];
-      const proxy = createPTCProxy(tools, ["failingTool"]);
-      const result2 = await proxy.failingTool("input");
-      result.errorMsg = result2;
-    `,
-		);
-		assert.strictEqual(result.code, 0, `stderr: ${result.stderr}`);
-		assert.ok(
-			result.parsed?.errorMsg.includes("Error:"),
-			`Expected error string, got: ${result.parsed?.errorMsg}`,
-		);
-	});
-});
-
-describe("codeInterpreter - task proxy", () => {
-	it("exports createTaskProxy", async () => {
-		const result = await runTestScript(
-			"task-export",
-			`
-      import { createTaskProxy } from './src/sandbox/vm/task.js';
-      result.hasProxy = typeof createTaskProxy === 'function';
-    `,
-		);
-		assert.strictEqual(result.code, 0, `stderr: ${result.stderr}`);
-		assert.strictEqual(result.parsed?.hasProxy, true);
-	});
-
-	it("creates task function from dispatch", async () => {
-		const result = await runTestScript(
-			"task-create",
-			`
-      import { createTaskProxy } from './src/sandbox/vm/task.js';
-      const dispatch = async (desc, opts) => {
-        return \`Task \${desc} completed\`;
-      };
-      const taskFn = createTaskProxy(dispatch);
-      const result2 = await taskFn("analyze data", { agent: "coding" });
-      result.taskResult = result2;
-    `,
-		);
-		assert.strictEqual(result.code, 0, `stderr: ${result.stderr}`);
-		assert.ok(
-			result.parsed?.taskResult.includes("Task"),
-			`Expected task result, got: ${result.parsed?.taskResult}`,
-		);
-	});
-
-	it("handles dispatch errors", async () => {
-		const result = await runTestScript(
-			"task-error",
-			`
-      import { createTaskProxy } from './src/sandbox/vm/task.js';
-      const dispatch = async () => { throw new Error("dispatch failed"); };
-      const taskFn = createTaskProxy(dispatch);
-      const result2 = await taskFn("bad task");
-      result.errorMsg = result2;
-    `,
-		);
-		assert.strictEqual(result.code, 0, `stderr: ${result.stderr}`);
-		assert.ok(
-			result.parsed?.errorMsg.includes("Error:"),
-			`Expected error string, got: ${result.parsed?.errorMsg}`,
-		);
 	});
 });
 
@@ -478,24 +264,16 @@ describe("codeInterpreter - middleware", () => {
         timeoutMs: 60000,
         maxResultChars: 100000,
         captureConsole: true,
-        subagentsEnabled: true,
-        ptcEnabled: true,
         toolName: "execute",
-        snapshotSecret: "test-secret",
-        ptcWhitelist: ["readFile", "writeFile"],
       });
       result.hasEvalTool = !!mw.evalTool;
       result.hasWrapModelCall = typeof mw.wrapModelCall === 'function';
-      result.hasGetSnapshot = typeof mw.getSnapshot === 'function';
-      result.hasRestoreSnapshot = typeof mw.restoreSnapshot === 'function';
       result.hasDispose = typeof mw.dispose === 'function';
     `,
 		);
 		assert.strictEqual(result.code, 0, `stderr: ${result.stderr}`);
 		assert.strictEqual(result.parsed?.hasEvalTool, true);
 		assert.strictEqual(result.parsed?.hasWrapModelCall, true);
-		assert.strictEqual(result.parsed?.hasGetSnapshot, true);
-		assert.strictEqual(result.parsed?.hasRestoreSnapshot, true);
 		assert.strictEqual(result.parsed?.hasDispose, true);
 	});
 });

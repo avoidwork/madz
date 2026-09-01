@@ -14,11 +14,7 @@ export const CodeInterpreterSchema = z
 		timeoutMs: z.number().int().min(0).default(30000),
 		maxResultChars: z.number().int().min(0).default(50000),
 		captureConsole: z.boolean().default(false),
-		subagentsEnabled: z.boolean().default(false),
-		ptcEnabled: z.boolean().default(false),
 		toolName: z.string().default("eval"),
-		snapshotSecret: z.string().optional(),
-		ptcWhitelist: z.array(z.string()).default([]),
 	})
 	.default({
 		enabled: false,
@@ -27,7 +23,5 @@ export const CodeInterpreterSchema = z
 		timeoutMs: 30000,
 		maxResultChars: 50000,
 		captureConsole: false,
-		subagentsEnabled: false,
-		ptcEnabled: false,
 		toolName: "eval",
 	});

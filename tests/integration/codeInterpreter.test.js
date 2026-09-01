@@ -116,9 +116,6 @@ describe("codeInterpreter - integration", () => {
 			`
       const files = [
         './src/sandbox/vm.js',
-        './src/sandbox/vm/snapshot.js',
-        './src/sandbox/vm/ptc.js',
-        './src/sandbox/vm/task.js',
         './src/agent/codeInterpreter.js',
         './src/config/schemas/codeInterpreter.js',
         './tests/unit/codeInterpreter.test.js',
@@ -184,7 +181,7 @@ describe("codeInterpreter - integration", () => {
 		assert.strictEqual(result.parsed?.hasUsage, true);
 	});
 
-	it("middleware has all required methods", async () => {
+	it("middleware has required methods", async () => {
 		const result = await runTestScript(
 			"middleware-methods",
 			`
@@ -195,8 +192,6 @@ describe("codeInterpreter - integration", () => {
       });
       result.hasEvalTool = typeof mw.evalTool !== 'undefined';
       result.hasWrapModelCall = typeof mw.wrapModelCall === 'function';
-      result.hasGetSnapshot = typeof mw.getSnapshot === 'function';
-      result.hasRestoreSnapshot = typeof mw.restoreSnapshot === 'function';
       result.hasDispose = typeof mw.dispose === 'function';
       result.evalToolName = mw.evalTool?.name;
       result.evalToolType = typeof mw.evalTool;
@@ -205,92 +200,8 @@ describe("codeInterpreter - integration", () => {
 		assert.strictEqual(result.code, 0, `stderr: ${result.stderr}`);
 		assert.strictEqual(result.parsed?.hasEvalTool, true);
 		assert.strictEqual(result.parsed?.hasWrapModelCall, true);
-		assert.strictEqual(result.parsed?.hasGetSnapshot, true);
-		assert.strictEqual(result.parsed?.hasRestoreSnapshot, true);
 		assert.strictEqual(result.parsed?.hasDispose, true);
 		assert.strictEqual(result.parsed?.evalToolName, "eval");
 		assert.strictEqual(result.parsed?.evalToolType, "object");
-	});
-
-	it("snapshot module handles edge cases", async () => {
-		const result = await runTestScript(
-			"snapshot-edge",
-			`
-      import { signSnapshot, verifySnapshot, extractSnapshot } from './src/sandbox/vm/snapshot.js';
-      const secret = 'test';
-
-      // Empty snapshot
-      const emptySigned = signSnapshot('', secret);
-      const { valid: emptyValid } = verifySnapshot(emptySigned, secret);
-
-      // Malformed signed (no :: separator)
-      const malformed = 'just-data';
-      const { valid: malformedValid } = verifySnapshot(malformed, secret);
-
-      // Extract from malformed
-      const extracted = extractSnapshot(malformed);
-
-      result.emptyValid = emptyValid;
-      result.malformedValid = malformedValid;
-      result.extracted = extracted;
-    `,
-		);
-		assert.strictEqual(result.code, 0, `stderr: ${result.stderr}`);
-		assert.strictEqual(result.parsed?.emptyValid, true);
-		assert.strictEqual(result.parsed?.malformedValid, false);
-		assert.strictEqual(result.parsed?.extracted, "just-data");
-	});
-
-	it("PTC proxy handles empty whitelist", async () => {
-		const result = await runTestScript(
-			"ptc-empty-whitelist",
-			`
-      import { createPTCProxy } from './src/sandbox/vm/ptc.js';
-      const tools = [
-        { name: "readFile", execute: async () => "content" },
-      ];
-      const proxy = createPTCProxy(tools, []);
-      result.readFileExists = typeof proxy.readFile === 'function';
-    `,
-		);
-		assert.strictEqual(result.code, 0, `stderr: ${result.stderr}`);
-		assert.strictEqual(result.parsed?.readFileExists, false);
-	});
-
-	it("PTC proxy handles empty tools array", async () => {
-		const result = await runTestScript(
-			"ptc-empty-tools",
-			`
-      import { createPTCProxy } from './src/sandbox/vm/ptc.js';
-      const proxy = createPTCProxy([], ["readFile"]);
-      const result2 = await proxy.readFile("test.txt");
-      result.errorMsg = result2;
-    `,
-		);
-		assert.strictEqual(result.code, 0, `stderr: ${result.stderr}`);
-		assert.ok(
-			result.parsed?.errorMsg.includes("not available"),
-			`Expected "not available" error, got: ${result.parsed?.errorMsg}`,
-		);
-	});
-
-	it("task proxy handles empty options", async () => {
-		const result = await runTestScript(
-			"task-empty-options",
-			`
-      import { createTaskProxy } from './src/sandbox/vm/task.js';
-      const dispatch = async (desc, opts) => {
-        return \`Task: \${desc}, opts: \${JSON.stringify(opts)}\`;
-      };
-      const taskFn = createTaskProxy(dispatch);
-      const result2 = await taskFn("test task");
-      result.taskResult = result2;
-    `,
-		);
-		assert.strictEqual(result.code, 0, `stderr: ${result.stderr}`);
-		assert.ok(
-			result.parsed?.taskResult.includes("test task"),
-			`Expected task result, got: ${result.parsed?.taskResult}`,
-		);
 	});
 });

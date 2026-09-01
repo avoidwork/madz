@@ -3,7 +3,6 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { QuickJSVM } from "../sandbox/vm.js";
-import { signSnapshot, verifySnapshot } from "../sandbox/vm/snapshot.js";
 import { logger } from "../shared/logger.js";
 
 /**
@@ -14,11 +13,7 @@ import { logger } from "../shared/logger.js";
  * @property {number} timeoutMs - Execution timeout in ms
  * @property {number} maxResultChars - Max result characters
  * @property {boolean} captureConsole - Capture console output
- * @property {boolean} subagentsEnabled - Enable subagent dispatch
- * @property {boolean} ptcEnabled - Enable PTC tool proxy
  * @property {string} toolName - Name of the eval tool
- * @property {string} [snapshotSecret] - HMAC secret for snapshots
- * @property {string[]} [ptcWhitelist] - Whitelisted PTC tool names
  */
 
 /**
@@ -77,14 +72,9 @@ export function createCodeInterpreterMiddleware(config) {
 		timeoutMs = 30000,
 		maxResultChars = 50000,
 		captureConsole = false,
-		_subagentsEnabled = false,
-		_ptcEnabled = false,
 		toolName = "eval",
-		snapshotSecret,
-		_ptcWhitelist = [],
 	} = config;
 
-	// VM state per persistence mode
 	/** @type {QuickJSVM | null} */
 	let threadVm = null;
 	/** @type {QuickJSVM | null} */
@@ -96,7 +86,6 @@ export function createCodeInterpreterMiddleware(config) {
 	 */
 	async function getVm() {
 		if (mode === "call") {
-			// Fresh VM per call — create and caller is responsible for disposal
 			const vm = new QuickJSVM({
 				memoryLimit,
 				timeoutMs,
@@ -119,9 +108,6 @@ export function createCodeInterpreterMiddleware(config) {
 		}
 
 		// mode === "turn"
-		// Need to track turn boundaries — use a simple turn counter
-		// Since we don't have turn IDs from the middleware layer,
-		// we create a new VM when the previous one is stale
 		if (!turnVm) {
 			turnVm = new QuickJSVM({
 				memoryLimit,
@@ -207,65 +193,6 @@ export function createCodeInterpreterMiddleware(config) {
 	}
 
 	/**
-	 * Get a snapshot of the current VM state.
-	 * @returns {Promise<string>} Signed snapshot string
-	 */
-	async function getSnapshot() {
-		let vm;
-		if (mode === "thread") {
-			vm = threadVm;
-		} else if (mode === "turn") {
-			vm = turnVm;
-		}
-		if (!vm) {
-			return "";
-		}
-		const rawSnapshot = await vm.getSnapshot();
-		if (!rawSnapshot || !snapshotSecret) {
-			return rawSnapshot;
-		}
-		return signSnapshot(rawSnapshot, snapshotSecret);
-	}
-
-	/**
-	 * Restore VM state from a snapshot.
-	 * @param {string} snapshot - Signed snapshot string
-	 * @returns {Promise<boolean>} True if restored successfully
-	 */
-	async function restoreSnapshot(snapshot) {
-		if (!snapshot) {
-			return false;
-		}
-
-		let rawSnapshot = snapshot;
-		if (snapshotSecret) {
-			const { valid, snapshot: extracted } = verifySnapshot(snapshot, snapshotSecret);
-			if (!valid) {
-				logger.warn(
-					{ snapshotLength: snapshot.length },
-					"[CodeInterpreter] Snapshot verification failed",
-				);
-				return false;
-			}
-			rawSnapshot = extracted;
-		}
-
-		try {
-			const vm = await QuickJSVM.restore(rawSnapshot);
-			if (mode === "thread") {
-				threadVm = vm;
-			} else if (mode === "turn") {
-				turnVm = vm;
-			}
-			logger.info({ mode }, "[CodeInterpreter] Snapshot restored");
-			return true;
-		} catch (err) {
-			logger.error({ error: err.message }, "[CodeInterpreter] Snapshot restore failed");
-			return false;
-		}
-	}
-
-	/**
 	 * Dispose all VMs and clean up resources.
 	 * @returns {Promise<void>}
 	 */
@@ -279,8 +206,6 @@ export function createCodeInterpreterMiddleware(config) {
 	return {
 		evalTool,
 		wrapModelCall,
-		getSnapshot,
-		restoreSnapshot,
 		dispose,
 	};
 }
