@@ -41,7 +41,6 @@ search:
     descriptionField: ""
     apiKey: ""
 calendar:
-  active: google
   google:
     type: google
     apiKey: ""

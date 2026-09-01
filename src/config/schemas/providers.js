@@ -160,7 +160,7 @@ export const CalendarProviderSchema = z.discriminatedUnion("type", [
 ]);
 
 export const CalendarConfigSchema = z.object({
-	active: z.enum(["google", "msgraph"]).default("google"),
+	active: z.enum(["google", "msgraph"]).optional(),
 	google: GoogleCalendarConfigSchema.default({}),
 	msgraph: MsGraphConfigSchema.default({}),
 });
