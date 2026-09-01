@@ -29,4 +29,3 @@ Operators need fine-grained control over retry and concurrency behavior when cal
 - Rate limiting implementation (throttling, queuing) — this change only wires config through
 - Changes to other providers (OpenRouter, Fal)
 - Integration or end-to-end tests
-- Changes to `config.yaml` defaults

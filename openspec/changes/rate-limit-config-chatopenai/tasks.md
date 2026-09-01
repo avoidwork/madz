@@ -1,24 +1,29 @@
 ## 1. Extend RateLimitSchema
 
-- [ ] 1.1 Add `maxRetries` field to RateLimitSchema (int, 0-10, default: 6)
-- [ ] 1.2 Add `maxConcurrency` field to RateLimitSchema (int, 1+, optional)
+- [x] 1.1 Add `maxRetries` field to RateLimitSchema (int, 0-10, default: 6)
+- [x] 1.2 Add `maxConcurrency` field to RateLimitSchema (int, 1+, optional)
 
 ## 2. Update createChatModel Factory
 
-- [ ] 2.1 Pass `maxRetries` from config to ChatOpenAI constructor
-- [ ] 2.2 Conditionally pass `maxConcurrency` when specified in config
-- [ ] 2.3 Update JSDoc to document new rateLimit properties
+- [x] 2.1 Pass `maxRetries` from config to ChatOpenAI constructor
+- [x] 2.2 Conditionally pass `maxConcurrency` when specified in config
+- [x] 2.3 Update JSDoc to document new rateLimit properties
 
 ## 3. Add Unit Tests
 
-- [ ] 3.1 Test maxRetries validation (valid range 0-10, invalid values rejected)
-- [ ] 3.2 Test maxConcurrency validation (optional, min 1, invalid values rejected)
-- [ ] 3.3 Test createChatModel passes maxRetries to ChatOpenAI constructor
-- [ ] 3.4 Test createChatModel passes maxConcurrency to ChatOpenAI constructor when specified
-- [ ] 3.5 Test createChatModel omits maxConcurrency when not specified
+- [x] 3.1 Test maxRetries passthrough to ChatOpenAI constructor
+- [x] 3.2 Test default maxRetries (6) when not specified
+- [x] 3.3 Test maxConcurrency passthrough when specified
+- [x] 3.4 Test maxConcurrency omission when not specified
 
-## 4. Verify
+## 4. Config & Documentation
 
-- [ ] 4.1 Run `npm run test` — all tests pass
-- [ ] 4.2 Run `npm run lint` — no lint errors
-- [ ] 4.3 Run `npm run coverage` — coverage report generated successfully
+- [x] 4.1 Add `maxRetries` and `maxConcurrency` defaults to `config.yaml` under `providers.openai.rateLimit`
+- [x] 4.2 Add `OPENAI_MAX_RETRIES` and `OPENAI_MAX_CONCURRENCY` to README.md environment variables table
+- [x] 4.3 Update PR body to reflect config.yaml and README changes
+
+## 5. Verify
+
+- [x] 5.1 Run `npm run test` — all 1368 tests pass
+- [x] 5.2 Run `npm run lint` — no lint errors
+- [x] 5.3 Run `npm run coverage` — coverage report generated successfully

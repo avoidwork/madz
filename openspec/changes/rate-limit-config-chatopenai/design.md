@@ -16,7 +16,6 @@ Currently, the `RateLimitSchema` only captures `requestsPerMinute`. The `ChatOpe
 - Implementing actual rate limiting (throttling, queuing)
 - Changes to other providers (OpenRouter, Fal)
 - Integration tests or E2E tests
-- Changes to `config.yaml` defaults
 
 ## Decisions
 
