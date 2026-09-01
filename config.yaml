@@ -10,6 +10,8 @@ providers:
     maxTokens: 4096
     rateLimit:
       requestsPerMinute: 120
+      maxRetries: 6
+      maxConcurrency: 4
 email:
   provider:
     type: gmail

@@ -10,6 +10,9 @@ import { ChatOpenAI } from "@langchain/openai";
  * @property {number} [temperature] - Sampling temperature (0-2)
  * @property {number} [maxTokens] - Maximum output tokens
  * @property {boolean} [streaming] - Enable streaming token output
+ * @property {Object} [rateLimit] - Rate limit configuration
+ * @property {number} [rateLimit.maxRetries] - Maximum retry attempts (0-10, default: 6)
+ * @property {number} [rateLimit.maxConcurrency] - Maximum concurrent requests (1+, optional)
  */
 
 /**
@@ -19,7 +22,7 @@ import { ChatOpenAI } from "@langchain/openai";
  * @returns {ChatOpenAI} A configured ChatOpenAI instance
  */
 export function createChatModel(config) {
-	return new ChatOpenAI({
+	const opts = {
 		model: config.model,
 		temperature: config.temperature,
 		maxTokens: config.maxTokens,
@@ -28,5 +31,14 @@ export function createChatModel(config) {
 		configuration: {
 			baseURL: config.base_url,
 		},
-	});
+	};
+
+	if (config.rateLimit) {
+		opts.maxRetries = config.rateLimit.maxRetries;
+		if (config.rateLimit.maxConcurrency !== undefined) {
+			opts.maxConcurrency = config.rateLimit.maxConcurrency;
+		}
+	}
+
+	return new ChatOpenAI(opts);
 }

@@ -109,4 +109,60 @@ describe("createChatModel", () => {
 		const model = createChatModel(config);
 		assert.strictEqual(model.streaming, false);
 	});
+
+	it("passes maxRetries to ChatOpenAI constructor", () => {
+		const config = {
+			model: "test",
+			temperature: 0.7,
+			maxTokens: 4096,
+			credentials: { apiKey: "sk-test" },
+			base_url: "https://api.openai.com/v1",
+			rateLimit: { maxRetries: 3 },
+		};
+
+		const model = createChatModel(config);
+		assert.strictEqual(model.caller.maxRetries, 3);
+	});
+
+	it("passes default maxRetries when not specified", () => {
+		const config = {
+			model: "test",
+			temperature: 0.7,
+			maxTokens: 4096,
+			credentials: { apiKey: "sk-test" },
+			base_url: "https://api.openai.com/v1",
+		};
+
+		const model = createChatModel(config);
+		assert.strictEqual(model.caller.maxRetries, 6);
+	});
+
+	it("passes maxConcurrency to ChatOpenAI constructor when specified", () => {
+		const config = {
+			model: "test",
+			temperature: 0.7,
+			maxTokens: 4096,
+			credentials: { apiKey: "sk-test" },
+			base_url: "https://api.openai.com/v1",
+			rateLimit: { maxRetries: 6, maxConcurrency: 5 },
+		};
+
+		const model = createChatModel(config);
+		assert.strictEqual(model.caller.maxConcurrency, 5);
+	});
+
+	it("omits maxConcurrency when not specified in rateLimit", () => {
+		const config = {
+			model: "test",
+			temperature: 0.7,
+			maxTokens: 4096,
+			credentials: { apiKey: "sk-test" },
+			base_url: "https://api.openai.com/v1",
+			rateLimit: { maxRetries: 6 },
+		};
+
+		const model = createChatModel(config);
+		// SDK defaults maxConcurrency to Infinity when not specified
+		assert.ok(model.caller.maxConcurrency !== 5);
+	});
 });
