@@ -1,5 +1,9 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
+import { load } from "js-yaml";
 
 describe("config schema validation", () => {
 	describe("RateLimitSchema", () => {
@@ -258,6 +262,57 @@ describe("env var expansion", () => {
 		const value = "${NONEXISTENT_VAR_XYZ}";
 		const result = value.replace(/\$\{([A-Z_]+)\}/g, (_, key) => process.env[key] || value);
 		assert.strictEqual(result, "${NONEXISTENT_VAR_XYZ}");
+	});
+});
+
+describe("config.yaml schema completeness", () => {
+	it("has all search engine config keys", () => {
+		const __dirname = dirname(fileURLToPath(import.meta.url));
+		const configPath = join(__dirname, "../../config.yaml");
+		const config = load(readFileSync(configPath, "utf8"));
+		assert.ok(config.search, "search section must exist");
+		assert.ok(config.search.searxng, "search.searxng must exist");
+		assert.ok(config.search.searxng.url !== undefined, "search.searxng.url must exist");
+		assert.ok(config.search.exa, "search.exa must exist");
+		assert.ok(config.search.firecrawl, "search.firecrawl must exist");
+		assert.ok(config.search.tavily, "search.tavily must exist");
+		assert.ok(config.search.parallel, "search.parallel must exist");
+		assert.ok(config.search.bing, "search.bing must exist");
+		assert.ok(config.search.custom, "search.custom must exist");
+	});
+
+	it("has all calendar config keys", () => {
+		const __dirname = dirname(fileURLToPath(import.meta.url));
+		const configPath = join(__dirname, "../../config.yaml");
+		const config = load(readFileSync(configPath, "utf8"));
+		assert.ok(config.calendar, "calendar section must exist");
+		assert.ok(config.calendar.google, "calendar.google must exist");
+		assert.ok(config.calendar.msgraph, "calendar.msgraph must exist");
+	});
+
+	it("has all memory config keys", () => {
+		const __dirname = dirname(fileURLToPath(import.meta.url));
+		const configPath = join(__dirname, "../../config.yaml");
+		const config = load(readFileSync(configPath, "utf8"));
+		assert.strictEqual(config.memory.subAgentsDir, "memory/sub-agents/");
+		assert.strictEqual(config.memory.errorsDir, "memory/errors/");
+		assert.strictEqual(config.memory.ephemeralLimit, 5);
+		assert.strictEqual(config.memory.ephemeral.ttlDays, 7);
+		assert.strictEqual(config.memory.ephemeral.maxEntries, 10);
+	});
+
+	it("has sandbox trustProjectSkills key", () => {
+		const __dirname = dirname(fileURLToPath(import.meta.url));
+		const configPath = join(__dirname, "../../config.yaml");
+		const config = load(readFileSync(configPath, "utf8"));
+		assert.strictEqual(config.sandbox.trustProjectSkills, true);
+	});
+
+	it("has schedules mode key", () => {
+		const __dirname = dirname(fileURLToPath(import.meta.url));
+		const configPath = join(__dirname, "../../config.yaml");
+		const config = load(readFileSync(configPath, "utf8"));
+		assert.strictEqual(config.schedules.mode, "inprocess");
 	});
 });
 
@@ -621,5 +676,45 @@ describe("safety config schema", () => {
 				assert.deepStrictEqual(config.ephemeral.maxEntries, 10);
 			});
 		});
+	});
+});
+
+describe("config.yaml completeness", () => {
+	const PROJECT_ROOT = dirname(fileURLToPath(import.meta.url));
+	const configPath = join(PROJECT_ROOT, "../../config.yaml");
+	const config = load(readFileSync(configPath, "utf8"));
+
+	it("has all search engine config keys", () => {
+		assert.ok(config.search, "search section must exist");
+		assert.ok(config.search.searxng, "search.searxng must exist");
+		assert.ok(config.search.searxng.url !== undefined, "search.searxng.url must exist");
+		assert.ok(config.search.exa, "search.exa must exist");
+		assert.ok(config.search.firecrawl, "search.firecrawl must exist");
+		assert.ok(config.search.tavily, "search.tavily must exist");
+		assert.ok(config.search.parallel, "search.parallel must exist");
+		assert.ok(config.search.bing, "search.bing must exist");
+		assert.ok(config.search.custom, "search.custom must exist");
+	});
+
+	it("has all calendar config keys", () => {
+		assert.ok(config.calendar, "calendar section must exist");
+		assert.ok(config.calendar.google, "calendar.google must exist");
+		assert.ok(config.calendar.msgraph, "calendar.msgraph must exist");
+	});
+
+	it("has all memory config keys", () => {
+		assert.strictEqual(config.memory.subAgentsDir, "memory/sub-agents/");
+		assert.strictEqual(config.memory.errorsDir, "memory/errors/");
+		assert.strictEqual(config.memory.ephemeralLimit, 5);
+		assert.strictEqual(config.memory.ephemeral.ttlDays, 7);
+		assert.strictEqual(config.memory.ephemeral.maxEntries, 10);
+	});
+
+	it("has sandbox trustProjectSkills key", () => {
+		assert.strictEqual(config.sandbox.trustProjectSkills, true);
+	});
+
+	it("has schedules mode key", () => {
+		assert.strictEqual(config.schedules.mode, "inprocess");
 	});
 });
