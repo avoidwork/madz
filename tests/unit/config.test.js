@@ -3,7 +3,7 @@ import assert from "node:assert";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { load, dump } from "js-yaml";
+import { load } from "js-yaml";
 
 describe("config schema validation", () => {
 	describe("RateLimitSchema", () => {
