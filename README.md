@@ -275,6 +275,8 @@ All configuration is controlled via environment variables in the `docker run` co
 | `OPENAI_ENCODING`            | _(auto)_                    | Tiktoken encoder name (see [Encoding Reference](#encoding-reference) below) |
 | `OPENAI_TEMPERATURE`         | `0.4`                       | Sampling temperature (0–2) |
 | `OPENAI_MAX_TOKENS`          | `4096`                      | Max output tokens          |
+| `OPENAI_MAX_CONCURRENCY`     | _(none)_                    | Max concurrent API calls   |
+| `OPENAI_MAX_RETRIES`         | `6`                         | Max retries for API calls  |
 | `OPENAI_REQUESTS_PER_MINUTE` | `60`                        | Rate limit for API calls   |
 | `OPENROUTER_API_KEY`         | _(empty)_                   | OpenRouter API key         |
 | `OPENROUTER_MODEL`           | `openrouter/auto`           | OpenRouter model name      |
