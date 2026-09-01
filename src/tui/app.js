@@ -763,7 +763,7 @@ function App({
 						const newText = event.data?.text || event.text || "";
 						committedContentRef.current = (committedContentRef.current || "") + newText;
 						messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
-							content: committedContentRef.current + (config?.tui?.cursorChar || "\u2588"),
+							content: committedContentRef.current,
 							streaming: true,
 						});
 						messageListRef.current?._triggerRender();
@@ -789,7 +789,7 @@ function App({
 							const chunkContent = event.data.chunk.content;
 							committedContentRef.current = (committedContentRef.current || "") + chunkContent;
 							messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
-								content: committedContentRef.current + (config?.tui?.cursorChar || "\u2588"),
+								content: committedContentRef.current,
 								streaming: true,
 							});
 							messageListRef.current?._triggerRender();
@@ -840,7 +840,6 @@ function App({
 				}
 			};
 		},
-		[config?.tui?.cursorChar],
 	);
 
 	/**
