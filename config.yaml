@@ -17,6 +17,47 @@ email:
   defaultFolder: INBOX
   maxAttachments: 10
   maxAttachmentSize: 25mb
+search:
+  exa:
+    apiKey: ""
+  firecrawl:
+    apiKey: ""
+  tavily:
+    apiKey: ""
+  parallel:
+    apiKey: ""
+  searxng:
+    url: ""
+  bing:
+    apiKey: ""
+  custom:
+    url: ""
+    method: ""
+    body: ""
+    headers: ""
+    queryKey: ""
+    titleField: ""
+    urlField: ""
+    descriptionField: ""
+    apiKey: ""
+calendar:
+  active: google
+  google:
+    type: google
+    apiKey: ""
+    serviceAccountKey: ""
+    serviceAccountEmail: ""
+    impersonateEmail: ""
+    rateLimit:
+      requestsPerMinute: 60
+  msgraph:
+    type: msgraph
+    tenantId: ""
+    clientId: ""
+    clientSecret: ""
+    delegatedUser: ""
+    rateLimit:
+      requestsPerMinute: 60
 sandbox:
   paths:
     - "./"
@@ -55,6 +96,7 @@ sandbox:
     - process:spawn
     - network:outbound
   maxReadSize: 10mb
+  trustProjectSkills: true
 persistence:
   mode: sqlite
   sqlite_path: memory/checkpoints/checkpoints.db
@@ -62,9 +104,15 @@ persistence:
 memory:
   directory: memory/
   contextDir: memory/context/
+  subAgentsDir: memory/sub-agents/
+  errorsDir: memory/errors/
   schedulesDir: memory/schedules/
   sessionsDir: memory/sessions/
   checkpointsDir: memory/checkpoints/
+  ephemeralLimit: 5
+  ephemeral:
+    ttlDays: 7
+    maxEntries: 10
   gc:
     enabled: true
     idleTimeoutMs: 300000
@@ -86,6 +134,7 @@ telemetry:
       - request.headers.x-api-key
 schedules:
   maxConcurrent: 1
+  mode: inprocess
   syncOnInit: true
   entries: []
 tui:

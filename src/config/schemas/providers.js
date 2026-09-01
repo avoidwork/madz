@@ -126,7 +126,7 @@ const _GoogleCalendarCredentialsSchema = z.object({
 	apiKey: z.string().optional().default(""),
 	serviceAccountKey: z.string().optional().default(""),
 	serviceAccountEmail: z.string().optional().default(""),
-	impersonateEmail: z.string().email().optional().default(""),
+	impersonateEmail: z.string().optional().default(""),
 });
 
 const GoogleCalendarConfigSchema = z.object({
@@ -134,7 +134,7 @@ const GoogleCalendarConfigSchema = z.object({
 	apiKey: z.string().optional().default(""),
 	serviceAccountKey: z.string().optional().default(""),
 	serviceAccountEmail: z.string().optional().default(""),
-	impersonateEmail: z.string().email().optional().default(""),
+	impersonateEmail: z.string().optional().default(""),
 	rateLimit: RateLimitSchema.default({ requestsPerMinute: 60 }),
 });
 
