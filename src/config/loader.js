@@ -2,7 +2,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { createRequire } from "node:module";
-import { ConfigSchema, _setResolvedConfig } from "./config.js";
+import { ConfigSchema, DEFAULT_CONFIG, _setResolvedConfig } from "./config.js";
 import { applyDotPathMutation } from "./patch.js";
 
 const _require = createRequire(import.meta.url);
@@ -153,12 +153,13 @@ export function loadConfig() {
 		return cachedConfig;
 	}
 
-	let raw = ConfigSchema.parse({});
+	// Start from DEFAULT_CONFIG (which has all defaults baked in) and deep-merge parsed config on top
+	let raw = deepMerge({}, DEFAULT_CONFIG);
 	if (existsSync(CONFIG_PATH)) {
 		const fileContent = readFileSync(CONFIG_PATH, "utf-8");
 		const parsed = load(fileContent);
 		if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-			raw = deepMerge({}, { ...ConfigSchema.parse({}), ...parsed });
+			deepMerge(raw, parsed);
 		}
 	}
 	const resolved = _resolveEnvRecursively(raw, []);

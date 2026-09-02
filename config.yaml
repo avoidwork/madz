@@ -118,26 +118,6 @@ memory:
     enabled: true
     idleTimeoutMs: 300000
     maxGcPerHour: 4
-telemetry:
-  enabled: false
-  exporter:
-    protocol: console
-    endpoint: http://localhost:4318
-    batch:
-      maxSize: 512
-      scheduledDelay: 5000
-  sampling:
-    ratio: 0.1
-  redact:
-    paths:
-      - credentials.apiKey
-      - headers.authorization
-      - request.headers.x-api-key
-schedules:
-  maxConcurrent: 1
-  mode: inprocess
-  syncOnInit: true
-  entries: []
 tui:
   name: madz
   renderWindow: 100
@@ -149,9 +129,6 @@ agent:
     codingAgent:
       description: "Specialized agent for code-related tasks including file editing, debugging, and implementation."
       temperature: 0.3
-lru:
-  size: 100
-  ttl: 600000
 skillAgentMap:
   - pattern: "^openspec-"
     agent: coding
