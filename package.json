@@ -79,7 +79,7 @@
     "csv-stringify": "^6.8.3",
     "deepagents": "^1.13.2",
     "exceljs": "^4.4.0",
-    "googleapis": "^176.0.0",
+    "googleapis": "^178.0.0",
     "imap-simple": "^5.1.0",
     "ink": "^7.1.1",
     "ink-scroll-view": "^0.3.7",
