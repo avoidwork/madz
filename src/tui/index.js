@@ -1,4 +1,6 @@
 export { default as App } from "./app.js";
+export { default as ConversationArea } from "./conversationArea.js";
+export { default as InputArea } from "./inputArea.js";
 export { CommandParser } from "./commandParser.js";
 export { PANELS, nextPanel, prevPanel, getPanelOrder } from "./panels.js";
 export { getRoleLabel, calcVisibleCount, getVisibleMessages, formatMessage } from "./messages.js";
