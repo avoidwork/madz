@@ -3,7 +3,7 @@
 - [x] 1.1 Extend formulaParser tests to cover tokenize, parseExpression, evaluateNode, all built-in functions, ranges, cell refs, booleans, strings
 - [x] 1.2 Extend pivot tests to cover all pivot operations and edge cases
 - [x] 1.3 Extend stats tests to cover all statistical functions
-- [ ] 1.4 Extend spreadsheet tests to cover all computation paths
+- [x] 1.4 Extend spreadsheet tests to cover all computation paths
 
 ## 2. Email Provider Module
 
