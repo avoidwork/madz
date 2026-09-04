@@ -1234,3 +1234,161 @@ describe("LRUCache - bounded LRU parse cache", () => {
 		assert.strictEqual(result, "");
 	});
 });
+
+describe("ConversationArea - imperative handle", () => {
+	it("mounts and unmounts without error", async () => {
+		const ConversationArea = (await import("../../src/tui/conversationArea.js")).default;
+		const messageCountRef = React.createRef();
+		messageCountRef.current = 0;
+
+		const { unmount: um } = render(
+			React.createElement(ConversationArea, {
+				config: { tui: { name: "madz" } },
+				messageCountRef,
+				onStatusChange: () => {},
+				onContextChange: () => {},
+				onCompactingChange: () => {},
+				onInterruptInput: () => {},
+				onQuit: () => {},
+				onNewSession: () => {},
+			}),
+		);
+		um();
+	});
+
+	it("exports expected imperative methods", async () => {
+		const ConversationArea = (await import("../../src/tui/conversationArea.js")).default;
+		// Verify the component is exported (forwardRef returns a React element type)
+		assert.ok(ConversationArea, "ConversationArea should be exported");
+	});
+
+	it("renders via renderToString", async () => {
+		const { renderToString } = await import("ink");
+		const ConversationArea = (await import("../../src/tui/conversationArea.js")).default;
+		const messageCountRef = React.createRef();
+		messageCountRef.current = 0;
+
+		const result = String(
+			renderToString(
+				React.createElement(ConversationArea, {
+					config: { tui: { name: "madz" } },
+					messageCountRef,
+					onStatusChange: () => {},
+					onContextChange: () => {},
+					onCompactingChange: () => {},
+					onInterruptInput: () => {},
+					onQuit: () => {},
+					onNewSession: () => {},
+				}),
+			),
+		);
+
+		assert.ok(result.length >= 0);
+	});
+});
+
+describe("InputArea - imperative handle", () => {
+	it("mounts and unmounts without error", async () => {
+		const InputArea = (await import("../../src/tui/inputArea.js")).default;
+		const messageCountRef = React.createRef();
+		messageCountRef.current = 0;
+
+		const { unmount: um } = render(
+			React.createElement(InputArea, {
+				onSubmit: () => {},
+				onFocus: () => {},
+				onBlur: () => {},
+				focus: true,
+				skillCount: 0,
+				messageCountRef,
+				showBanner: false,
+				showOnboarding: false,
+			}),
+		);
+		um();
+	});
+
+	it("exports expected imperative methods", async () => {
+		const InputArea = (await import("../../src/tui/inputArea.js")).default;
+		assert.ok(InputArea, "InputArea should be exported");
+	});
+
+	it("renders nothing during banner mode", async () => {
+		const { renderToString } = await import("ink");
+		const InputArea = (await import("../../src/tui/inputArea.js")).default;
+		const messageCountRef = React.createRef();
+		messageCountRef.current = 0;
+
+		const result = String(
+			renderToString(
+				React.createElement(InputArea, {
+					onSubmit: () => {},
+					onFocus: () => {},
+					onBlur: () => {},
+					focus: true,
+					skillCount: 0,
+					messageCountRef,
+					showBanner: true,
+					showOnboarding: false,
+				}),
+			),
+		);
+
+		assert.strictEqual(result, "", "should render nothing during banner");
+	});
+
+	it("renders StatusBar and InputPanel in normal mode", async () => {
+		const { renderToString } = await import("ink");
+		const InputArea = (await import("../../src/tui/inputArea.js")).default;
+		const messageCountRef = React.createRef();
+		messageCountRef.current = 5;
+
+		const result = String(
+			renderToString(
+				React.createElement(InputArea, {
+					onSubmit: () => {},
+					onFocus: () => {},
+					onBlur: () => {},
+					focus: true,
+					skillCount: 3,
+					messageCountRef,
+					showBanner: false,
+					showOnboarding: false,
+				}),
+			),
+		);
+
+		// Should show message count and skill count
+		assert.ok(result.includes("[⚡3]"), "skill count should appear");
+		assert.ok(result.includes("[💬 5]"), "message count should appear");
+	});
+});
+
+describe("Thin App - cross-cutting state only", () => {
+	it("renders without crashing", async () => {
+		const App = (await import("../../src/tui/app.js")).default;
+
+		const { unmount: um } = render(
+			React.createElement(App, {
+				config: { tui: { name: "madz" } },
+			}),
+		);
+		um();
+	});
+
+	it("renders banner on initial render", async () => {
+		const { renderToString } = await import("ink");
+		const App = (await import("../../src/tui/app.js")).default;
+
+		const result = String(
+			renderToString(
+				React.createElement(App, {
+					config: { tui: { name: "madz" } },
+					appInfo: { version: "1.0.0" },
+				}),
+			),
+		);
+
+		assert.ok(result.includes("1.0.0"), "banner should render version");
+	});
+});

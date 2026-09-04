@@ -1,56 +1,14 @@
-import React, { useState, useEffect, useRef, useCallback, memo } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import { Box, useApp, useInput, useWindowSize } from "ink";
-import { CommandParser } from "./commandParser.js";
-import { ConversationPanel, formatTime } from "./conversationPanel.js";
-import { StatusBar } from "./statusBar.js";
-import { InputPanel } from "./inputPanel.js";
+import ConversationArea from "./conversationArea.js";
+import InputArea from "./inputArea.js";
 import { Banner } from "./banner.js";
 import { OnboardingPanel } from "./onboardingPanel.js";
-import { createSession } from "../session/factory.js";
-import { setConfigValue } from "../config/loader.js";
-import { isAvailable, getGcCalls } from "../memory/gc.js";
-import { loadSystemPrompt } from "../memory/prompts.js";
-import { calculateConversationTokens } from "./contextTokens.js";
-import { logger } from "../shared/logger.js";
+import { CommandParser } from "./commandParser.js";
 
 /**
- * Custom React.memo comparator for App.
- * Ignores frequently-changing props (inputText, statusMessage, chatHistory,
- * historyIndex, inputFocused, showBanner, onboardingResponse) while comparing
- * stable props (config, registry, sessionState, etc.).
- */
-function areEqual(prevProps, nextProps) {
-	const stableProps = [
-		"config",
-		"registry",
-		"sessionState",
-		"contextSize",
-		"isCompacting",
-		"messageListRef",
-		"abortControllerRef",
-		"isStreamingRef",
-		"dispatchPromiseRef",
-		"autoContinueCountRef",
-		"isAutoContinuingRef",
-		"streamingMsgIdRef",
-		"lastInterruptTimeRef",
-		"exitRef",
-		"skillList",
-		"onboarding",
-		"onSaveSession",
-		"gcManager",
-		"gcTrigger",
-		"scheduleManager",
-	];
-	for (const prop of stableProps) {
-		if (prevProps[prop] !== nextProps[prop]) return false;
-	}
-	return true;
-}
-
-/**
- * Main App component (Ink). Renders an IRC-style layout:
- * full-height conversation REPL at top, input bar at bottom.
+ * Thin App router — holds only cross-cutting state.
+ * Renders ConversationArea and InputArea as sibling subtrees.
  */
 function App({
 	config,
@@ -67,573 +25,71 @@ function App({
 	const [showBanner, setShowBanner] = useState(true);
 	const [showOnboarding, setShowOnboarding] = useState(!!onboarding);
 	const [onboardingResponse, setOnboardingResponse] = useState(0);
-	const [statusMessage, setStatusMessage] = useState("Ready");
-	const [chatHistory, setChatHistory] = useState([]);
-	const [historyIndex, setHistoryIndex] = useState(-1);
-	const [inputText, setInputText] = useState("");
 	const [inputFocused, setInputFocused] = useState(true);
-	const [contextSize, setContextSize] = useState(0);
-	const [isCompacting, setIsCompacting] = useState(false);
-	const messageListRef = useRef(null);
-	const abortControllerRef = useRef(null);
-	const isStreamingRef = useRef(false);
-	const dispatchPromiseRef = useRef(null);
-	const autoContinueCountRef = useRef(0);
-	const isAutoContinuingRef = useRef(false);
-	const streamingMsgIdRef = useRef(null);
 	const lastInterruptTimeRef = useRef(0);
-	const tokenCacheRef = useRef({ content: "", tokens: 0 });
 	const { exit } = useApp();
 	const exitRef = useRef(exit);
 	exitRef.current = exit;
 
-	const skillList = registry ? registry.list() : [];
+	const conversationAreaRef = useRef(null);
+	const inputAreaRef = useRef(null);
+	const messageCountRef = useRef(0);
 
+	const skillCount = registry ? registry.list().length : 0;
 	const parser = new CommandParser();
 
-	// Register global error handlers once on mount, remove on unmount
-	useEffect(() => {
-		function onUncaught(err) {
-			addMessage({ role: "system", content: `Uncaught error: ${err.message}` });
-		}
-		function onUnhandled(reason) {
-			const msg = reason?.message || String(reason);
-			addMessage({ role: "system", content: `Unhandled rejection: ${msg}` });
-		}
-		process.on("uncaughtException", onUncaught);
-		process.on("unhandledRejection", onUnhandled);
-		// Initialize contextSize from the current conversation token count + system prompt
-		if (sessionState) {
-			updateContextSize(sessionState, config);
-		}
-		return () => {
-			process.off("uncaughtException", onUncaught);
-			process.off("unhandledRejection", onUnhandled);
-		};
-	}, []);
+	// Stable callbacks — flow status/context/compacting from ConversationArea into InputArea
+	const onStatusChange = useCallback((msg) => inputAreaRef.current?.setStatusMessage(msg), []);
+	const onContextChange = useCallback((size) => inputAreaRef.current?.setContextSize(size), []);
+	const onCompactingChange = useCallback((val) => inputAreaRef.current?.setIsCompacting(val), []);
+	const onInterruptInput = useCallback(() => inputAreaRef.current?.clearInput(), []);
 
 	/**
-	 * Interrupt the current streaming response. Resets the abort controller
-	 * so the user can interrupt future responses. Does NOT quit the app.
-	 * Returns a promise that resolves once dispatchProvider has finished
-	 * processing the abort and completed its cleanup.
-	 * Handles both streaming and non-streaming interrupt scenarios.
+	 * handleSubmit — App-level router.
+	 * Interrupts if streaming, then routes to handleCommand/handleChat on ConversationArea.
 	 */
-	const handleInterrupt = async () => {
-		// Abort any active stream
-		if (abortControllerRef.current) {
-			abortControllerRef.current.abort();
-			abortControllerRef.current = null;
-		}
-		isStreamingRef.current = false;
-
-		// Clear input buffer
-		setInputText("");
-
-		// Clean up session state if needed
-		// Remove orphaned tool-call messages and partial assistant messages
-		if (sessionState) {
-			sessionState.removeLastAssistantToolCallMessage();
-			sessionState.popExchange();
-		}
-
-		// Reset abort controller and streaming flags
-		abortControllerRef.current = new AbortController();
-		isStreamingRef.current = false;
-
-		// Update message list if there's a streaming message
-		if (streamingMsgIdRef.current) {
-			messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
-				streaming: false,
-			});
-		}
-
-		// Set status message for visual feedback
-		setStatusMessage("Interrupted.");
-
-		// Wait for the dispatchProvider promise to resolve (it will throw
-		// AbortError and be caught by the try/catch, then run finally).
-		// This ensures the stream is fully dead before we proceed.
-		const dispatchPromise = dispatchPromiseRef.current;
-		dispatchPromiseRef.current = null;
-		if (dispatchPromise) {
-			try {
-				await dispatchPromise;
-			} catch (_err) {
-				// AbortError is expected — dispatchProvider catches and handles it.
-				// We just need to wait for the cleanup to complete.
-			}
-		}
-	};
-
-	// Process command or dispatch as normal chat
-	/**
-	 * Handle user input: parse commands or dispatch as chat.
-	 * @param {string} text - Raw user input text
-	 */
-	// Process command or dispatch as normal chat
-	const handleCommand = async (trimmed) => {
-		try {
-			// Always show the user's command in the chat display
-			addMessage({ role: "user", content: trimmed });
-
-			const result = parser.parse(trimmed, {
-				_sessionState: sessionState,
-				_setConfigValue: (dotPath, valueStr) => {
-					if (config) {
-						setConfigValue(config, dotPath, valueStr);
-					}
-				},
-				_scheduleList: scheduleManager ? scheduleManager.list() : [],
-				_schedulePause: (name) => {
-					scheduleManager?.pause(name);
-					return scheduleManager.list();
-				},
-				_scheduleResume: (name) => {
-					scheduleManager?.resume(name);
-					return scheduleManager.list();
-				},
-				_contextList: false,
-				_gcTrigger: gcTrigger,
-				_gcStatus: gcTrigger
-					? () => ({
-							available: isAvailable(),
-							calls: getGcCalls(),
-							hourCalls: getGcCalls().length,
-						})
-					: null,
-				_skillList: skillList,
-				_executeSkill: async (skillName, _args) => {
-					const skill = registry.get(skillName);
-					if (!skill) {
-						return {
-							action: "skill",
-							subAction: "error",
-							message: `Skill "${skillName}" not found.`,
-						};
-					}
-					// Skills are prompt-based instructions for the agent to interpret and execute.
-					// Load the SKILL.md and pass it to the conversation so the agent can use it.
-					const body = await registry.getSkillBody(skillName);
-					return {
-						action: "skill",
-						subAction: "load",
-						name: skillName,
-						skillBody: body || "",
-						message: body
-							? `Skill "${skillName}" loaded.\n${body}`
-							: `Skill "${skillName}" loaded. No instructions found.`,
-					};
-				},
-			});
-			if (result.action === "quit") {
-				handleQuit();
-				return;
-			}
-			if (result.action === "new") {
-				handleNewSession();
-				return;
-			}
-			if (result.action === "clear") {
-				messageListRef.current?.clear();
-				setStatusMessage(result.message || "Conversation cleared.");
-				return;
-			}
-			if (result.action === "unknown") {
-				setStatusMessage(result.message);
-				return;
-			}
-			if (result.action === "skill" && result.subAction === "load" && result.skillBody) {
-				gcManager?.();
-				setStatusMessage("Streaming...");
-
-				if (sessionState) {
-					sessionState.addExchange({ role: "user", content: trimmed });
-				}
-
-				const assistantTime = getTimestamp();
-				streamingMsgIdRef.current = messageListRef.current.addMessage("assistant", "", {
-					time: assistantTime,
-					streaming: true,
-				});
-
-				let committedContentRef = { current: "" };
-				let committedReasoning = "";
-				let lastToolCallDisplay = "";
-				let todoStatusLines = "";
-
-				// Set up abort controller for this stream
-				abortControllerRef.current = new AbortController();
-				isStreamingRef.current = true;
-
-				try {
-					// Capture context size before streaming so we can compute deltas
-					const preStreamContextSize = contextSize;
-
-					// Capture the dispatch promise so handleInterrupt can await it
-					const dispatchPromise = dispatchProvider(
-						result.skillBody,
-						sessionState ? sessionState.getProvider() : null,
-						createStreamingHandler(
-							committedContentRef,
-							{ current: "" },
-							{ current: "" },
-							undefined,
-							preStreamContextSize,
-							setContextSize,
-						),
-						abortControllerRef.current?.signal,
-					);
-
-					// Store the promise so handleInterrupt can await it
-					dispatchPromiseRef.current = dispatchPromise;
-					await dispatchPromise;
-
-					let responseContent = committedContentRef.current;
-
-					// Auto-continue if the agent stalled with zero text output
-					// Circuit breaker: configurable limit (default 1000) of consecutive
-					// empty responses to prevent infinite loops when the model generates
-					// thinking but no text
-					if (!responseContent.trim() && !shouldAbort()) {
-						// Show tool results so the user knows work happened
-						if (lastToolCallDisplay) {
-							messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
-								toolCallDisplay: lastToolCallDisplay,
-							});
-						}
-
-						if (autoContinueCountRef.current >= (config?.agent?.autoContinueLimit ?? 1000)) {
-							// Circuit breaker: model is stuck in thinking-only loop
-							setStatusMessage("Model appears stuck — starting fresh.");
-							messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
-								streaming: false,
-							});
-							autoContinueCountRef.current = 0;
-							addMessage({
-								role: "system",
-								content: `I've tried to continue ${config?.agent?.autoContinueLimit ?? 1000} times with no text output. The model may be stuck in a reasoning loop. Please try a new conversation or rephrase your request.`,
-							});
-							return;
-						}
-
-						// Send a quiet continuation signal to the agent
-						setStatusMessage("Continuing...");
-						isAutoContinuingRef.current = true;
-						try {
-							// Capture the dispatch promise so handleInterrupt can await it
-							const continuePromise = dispatchProvider(
-								"Please continue.",
-								sessionState ? sessionState.getProvider() : null,
-								createStreamingHandler(
-									committedContentRef,
-									() => {
-										// Reset flag — text arrived, not stuck anymore
-										isAutoContinuingRef.current = false;
-									},
-									preStreamContextSize,
-									setContextSize,
-								),
-								abortControllerRef.current?.signal,
-							);
-							// Update the ref so handleInterrupt can await this promise too
-							dispatchPromiseRef.current = continuePromise;
-							await continuePromise;
-							setStatusMessage("Done");
-						} catch (contErr) {
-							setStatusMessage(`Error continuing: ${contErr.message}`);
-						} finally {
-							isAutoContinuingRef.current = false;
-							autoContinueCountRef.current++;
-						}
-					}
-
-					if (shouldAbort()) return;
-
-					finalizeStreaming(
-						responseContent,
-						committedReasoning,
-						lastToolCallDisplay,
-						todoStatusLines,
-					);
-
-					// Persist assistant response to session state
-					if (sessionState) {
-						sessionState.addExchange({
-							role: "assistant",
-							content: responseContent,
-						});
-					}
-				} catch (err) {
-					// Abort is a normal interruption, not an error
-					if (err.name === "AbortError") {
-						if (sessionState) {
-							sessionState.popExchange();
-						}
-						messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
-							streaming: false,
-						});
-						setStatusMessage("Interrupted.");
-					} else {
-						messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
-							streaming: false,
-						});
-						setStatusMessage(`Error: ${err.message}`);
-					}
-				} finally {
-					// Reset abort controller and streaming flag
-					abortControllerRef.current = null;
-					isStreamingRef.current = false;
-				}
-			} else if (result.action !== "help" && result.action !== "skill") {
-				setStatusMessage(result.message || result.action + " executed");
-			}
-			if (
-				result.message &&
-				result.action !== "provider" &&
-				result.action !== "schedule" &&
-				result.action !== "skill"
-			) {
-				addMessage({ role: "system", content: result.message });
-			}
-		} catch (err) {
-			addMessage({ role: "system", content: `Command error: ${err.message}` });
-			setStatusMessage("Something went wrong");
-		}
-	};
-
-	const handleChat = async (text) => {
-		if (shouldAbort()) return;
-		gcManager?.();
-		setStatusMessage("Streaming...");
-		addMessage({ role: "user", content: text });
-
-		// Persist user message to session state and recalculate context
-		if (sessionState) {
-			sessionState.addExchange({ role: "user", content: text });
-			updateContextSize(sessionState, config);
-		}
-
-		const assistantTime = getTimestamp();
-		streamingMsgIdRef.current = messageListRef.current.addMessage("assistant", "", {
-			time: assistantTime,
-			streaming: true,
-		});
-
-		let committedContentRef = { current: "" };
-		let committedReasoning = "";
-		let lastToolCallDisplay = "";
-		let todoStatusLines = "";
-
-		// Set up abort controller for this stream
-		abortControllerRef.current = new AbortController();
-		isStreamingRef.current = true;
-
-		try {
-			// Capture context size before streaming so we can compute deltas
-			const preStreamContextSize = contextSize;
-
-			// Capture the dispatch promise so handleInterrupt can await it
-			const dispatchPromise = dispatchProvider(
-				text,
-				sessionState ? sessionState.getProvider() : null,
-				createStreamingHandler(
-					committedContentRef,
-					{ current: "" },
-					{ current: "" },
-					undefined,
-					preStreamContextSize,
-					setContextSize,
-				),
-				abortControllerRef.current?.signal,
-			);
-
-			// Store the promise so handleInterrupt can await it
-			dispatchPromiseRef.current = dispatchPromise;
-			const _response = await dispatchPromise;
-
-			// committedContentRef.current is accumulated from streaming text events —
-			// this is the actual AI response. response.content is only the
-			// originalMessage fallback from callReactAgentStreaming.
-			let responseContent = committedContentRef.current;
-
-			// Auto-continue if the agent stalled with zero text output
-			// Circuit breaker: configurable limit (default 1000) of consecutive
-			// empty responses to prevent infinite loops when the model generates
-			// thinking but no text
-			if (!responseContent.trim() && !shouldAbort()) {
-				// Show tool results so the user knows work happened
-				if (lastToolCallDisplay) {
-					messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
-						toolCallDisplay: lastToolCallDisplay,
-					});
-				}
-
-				if (autoContinueCountRef.current >= (config?.agent?.autoContinueLimit ?? 1000)) {
-					// Circuit breaker: model is stuck in thinking-only loop
-					setStatusMessage("Model appears stuck — starting fresh.");
-					messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
-						streaming: false,
-					});
-					autoContinueCountRef.current = 0;
-					addMessage({
-						role: "system",
-						content: `I've tried to continue ${config?.agent?.autoContinueLimit ?? 1000} times with no text output. The model may be stuck in a reasoning loop. Please try a new conversation or rephrase your request.`,
-					});
-					return;
-				}
-
-				// Send a quiet continuation signal to the agent
-				setStatusMessage("Continuing...");
-				isAutoContinuingRef.current = true;
-				try {
-					// Capture the dispatch promise so handleInterrupt can await it
-					const continuePromise = dispatchProvider(
-						"Please continue.",
-						sessionState ? sessionState.getProvider() : null,
-						createStreamingHandler(
-							committedContentRef,
-							{ current: "" },
-							{ current: "" },
-							() => {
-								// Reset flag — text arrived, not stuck anymore
-								isAutoContinuingRef.current = false;
-							},
-							preStreamContextSize,
-							setContextSize,
-						),
-						abortControllerRef.current?.signal,
-					);
-					// Update the ref so handleInterrupt can await this promise too
-					dispatchPromiseRef.current = continuePromise;
-					await continuePromise;
-					setStatusMessage("Received response");
-				} catch (contErr) {
-					setStatusMessage(`Error continuing: ${contErr.message}`);
-				} finally {
-					isAutoContinuingRef.current = false;
-					autoContinueCountRef.current++;
-				}
-			}
-
-			if (shouldAbort()) return;
-
-			// Now persist user message to session state (after dispatchProvider so
-			// isNewThread is correctly computed for the system prompt)
-			if (sessionState) {
-				sessionState.addExchange({ role: "user", content: text });
-			}
-
-			finalizeStreaming(responseContent, committedReasoning, lastToolCallDisplay, todoStatusLines);
-
-			// Persist assistant message and recalculate context
-			if (sessionState) {
-				sessionState.addExchange({
-					role: "assistant",
-					content: responseContent,
-				});
-				updateContextSize(sessionState, config);
-			}
-			if (onSaveSession) {
-				onSaveSession();
-			}
-			gcManager?.();
-			setStatusMessage("Received response");
-		} catch (err) {
-			// Abort is a normal interruption, not an error
-			if (err.name === "AbortError") {
-				// Clean up: remove the assistant's tool-call message (if any) and the user message.
-				// The assistant's tool-call message is removed first to prevent orphaned tool_calls
-				// from corrupting the conversation history sent to the LLM API on resume.
-				if (sessionState) {
-					sessionState.removeLastAssistantToolCallMessage();
-					sessionState.popExchange();
-				}
-				setStatusMessage("Interrupted.");
-			} else {
-				if (onSaveSession) {
-					onSaveSession();
-				}
-				setStatusMessage("Something went wrong");
-				addMessage({
-					role: "system",
-					content: `I couldn't connect right now - ${err.message}. Try sending your message again?`,
-				});
-			}
-		} finally {
-			// Reset abort controller and streaming flag
-			abortControllerRef.current = null;
-			isStreamingRef.current = false;
-		}
-		gcManager?.();
-	};
-
 	const handleSubmit = useCallback(
 		async (text) => {
 			const trimmed = text.trim();
 			if (!trimmed) return;
 
-			// Abort any active stream before processing a new message
-			// This prevents forked UX where both streams render to the same destination
-			if (isStreamingRef.current) {
-				await handleInterrupt();
-			}
+			const area = conversationAreaRef.current;
+			if (!area) return;
 
-			// Track user input in chat history (non-empty lines only)
-			setChatHistory((prev) => {
-				const filtered = prev.filter((line) => line.trim());
-				return [...filtered, trimmed];
-			});
-			setHistoryIndex(-1);
-			setInputText("");
+			// Interrupt if currently streaming
+			if (area.isStreaming?.()) {
+				await area.interrupt();
+			}
 
 			if (parser.isCommand(trimmed)) {
-				await handleCommand(trimmed);
+				await area.handleCommand(trimmed);
 			} else {
 				gcManager?.();
-				await handleChat(trimmed);
+				await area.handleChat(trimmed);
 			}
 		},
-		[handleInterrupt, handleCommand, handleChat, gcManager],
+		[gcManager],
 	);
 
-	const handleQuit = () => {
+	/**
+	 * handleNewSession — App-level router.
+	 * Resets both ConversationArea and InputArea.
+	 */
+	const handleNewSession = useCallback(async () => {
+		await conversationAreaRef.current?.newSession();
+		inputAreaRef.current?.clearHistory();
+	}, []);
+
+	/**
+	 * handleQuit — App-level exit.
+	 */
+	const handleQuit = useCallback(() => {
 		exit();
 		process.exit(0);
-	};
+	}, [exit]);
 
 	/**
-	 * Check if the current stream should be aborted.
-	 */
-	const shouldAbort = () => {
-		if (abortControllerRef.current?.signal?.aborted) return true;
-		return false;
-	};
-
-	/**
-	 * Start a new session: generate new UUID, clear conversation, reset state.
-	 */
-	const handleNewSession = async () => {
-		// Persist the current session before wiping state
-		if (onSaveSession) {
-			await onSaveSession();
-		}
-		const newSession = createSession({ provider: sessionState.getProvider() });
-		sessionState.createNewSession(newSession.sessionId);
-		setIsCompacting(false);
-		messageListRef.current?.clear();
-		setChatHistory([]);
-		setContextSize(0);
-		setStatusMessage("New session started.");
-		addMessage({
-			role: "system",
-			content: `New session started (thread: ${newSession.sessionId.slice(0, 8)}...).`,
-		});
-	};
-
-	/**
-	 * Process onboarding input: forward to onboarding instance and update state.
-	 * @param {string} text - Raw user input
+	 * Process onboarding input.
 	 */
 	async function processOnboardingInput(text) {
 		if (!onboarding || !showOnboarding) return false;
@@ -658,7 +114,7 @@ function App({
 		if (result.action === "save") {
 			const saved = await onboarding.save();
 			if (saved) {
-				addMessage({
+				conversationAreaRef.current?.addMessage({
 					role: "system",
 					content: "Profile saved. Let's get started!",
 				});
@@ -670,17 +126,12 @@ function App({
 
 		// Track user input in chat history for normal responses during onboarding
 		if (trimmed) {
-			setChatHistory((prev) => {
-				const filtered = prev.filter((l) => l.trim());
-				return [...filtered, trimmed];
-			});
-			setHistoryIndex(-1);
+			inputAreaRef.current?.addToHistory(trimmed);
 		}
 
 		// Trigger onboarding panel to refresh with new prompt
 		setOnboardingResponse((prev) => prev + 1);
 
-		// If there's a pending prompt, keep showing onboarding
 		if (result.action === "nextPrompt" && onboarding) {
 			return true;
 		}
@@ -688,208 +139,13 @@ function App({
 		return true;
 	}
 
-	/**
-	 * Generate a timestamp string in HH:MM format.
-	 * @returns {string}
-	 */
-	const getTimestamp = () => formatTime(new Date());
-
-	/**
-	 * Calculate total context tokens (conversation + system prompt) and set contextSize.
-	 * Single source of truth — replaces 3 duplicate blocks.
-	 * @param {Object} sessionState - Current session state
-	 * @param {Object} config - App config
-	 */
-	const updateContextSize = useCallback(
-		(sessionState, config) => {
-			if (!sessionState) return;
-			const conversation = sessionState.getConversation();
-			const providerName = sessionState.getProvider();
-			const providerConfig = config?.providers?.[providerName] || {};
-			const modelName = providerConfig.model || "gpt-4o";
-			const encoding = providerConfig.encoding;
-
-			let totalTokens = calculateConversationTokens(conversation, modelName, encoding);
-			loadSystemPrompt().then((systemPrompt) => {
-				if (systemPrompt) {
-					totalTokens += calculateConversationTokens(
-						[{ role: "system", content: systemPrompt }],
-						modelName,
-						encoding,
-					);
-				}
-				setContextSize(totalTokens);
-			});
-		},
-		[calculateConversationTokens],
-	);
-
-	const addMessage = (msg) => {
-		const time = getTimestamp();
-		messageListRef.current?.addMessage(msg.role, msg.content, { time });
-	};
-
-	/**
-	 * Streaming event handler — single handler for all dispatch streams.
-	 * Captures all event types, accumulates content/reasoning, and handles structured events.
-	 * @param {Object} committedContentRef - Ref holding accumulated text
-	 * @param {Object} [committedReasoningRef] - Ref holding accumulated reasoning
-	 * @param {Object} [lastToolCallDisplayRef] - Ref holding accumulated tool call display
-	 * @param {Function} [onTextReceived] - Optional callback when text arrives
-	 * @param {number} [preStreamContextSize] - Context size before streaming began
-	 * @param {Function} [onContextUpdate] - Optional callback to update context size with delta
-	 * @returns {Function} Event callback for dispatchProvider
-	 */
-	const createStreamingHandler = useCallback(
-		(
-			committedContentRef,
-			committedReasoningRef,
-			lastToolCallDisplayRef,
-			onTextReceived,
-			preStreamContextSize,
-			onContextUpdate,
-		) => {
-			return (event) => {
-				if (shouldAbort()) return;
-				try {
-					// Capture all events on the message
-					const currentEvents =
-						messageListRef.current?.getMessageData(streamingMsgIdRef.current)?.events || [];
-					messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
-						events: [...currentEvents, event],
-					});
-
-					if (event.type === "message") {
-						const newText = event.data?.text || event.text || "";
-						committedContentRef.current = (committedContentRef.current || "") + newText;
-						messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
-							content: committedContentRef.current,
-							streaming: true,
-						});
-						messageListRef.current?._triggerRender();
-						if (onTextReceived) onTextReceived();
-						// Update context size using accumulated content already streamed to UI
-						if (committedContentRef.current && preStreamContextSize != null && onContextUpdate) {
-							const cached = tokenCacheRef.current;
-							if (cached.content !== committedContentRef.current) {
-								cached.content = committedContentRef.current;
-								cached.tokens = calculateConversationTokens(
-									[{ role: "assistant", content: committedContentRef.current }],
-									config?.providers?.[sessionState?.getProvider()]?.model || "gpt-4o",
-									config?.providers?.[sessionState?.getProvider()]?.encoding,
-								);
-							}
-							onContextUpdate(preStreamContextSize + cached.tokens);
-						}
-					}
-
-					// Handle on_chat_model_stream — accumulate content and reasoning
-					if (event.type === "on_chat_model_stream") {
-						if (event.data?.chunk?.content) {
-							const chunkContent = event.data.chunk.content;
-							committedContentRef.current = (committedContentRef.current || "") + chunkContent;
-							messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
-								content: committedContentRef.current,
-								streaming: true,
-							});
-							messageListRef.current?._triggerRender();
-						}
-						if (event.data?.chunk?.reasoning) {
-							committedReasoningRef.current =
-								(committedReasoningRef.current || "") + event.data.chunk.reasoning;
-						}
-					}
-
-					// Handle on_tool_start — set activeToolCall
-					if (event.type === "on_tool_start") {
-						messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
-							activeToolCall: {
-								name: event.name,
-								input: event.data?.input,
-								status: "running",
-							},
-						});
-					}
-
-					// Handle on_tool_end — clear activeToolCall, set toolCallDisplay
-					if (event.type === "on_tool_end") {
-						messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
-							activeToolCall: null,
-						});
-						if (event.data?.output) {
-							lastToolCallDisplayRef.current =
-								(lastToolCallDisplayRef.current || "") + event.data.output;
-							messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
-								toolCallDisplay: lastToolCallDisplayRef.current,
-							});
-						}
-					}
-
-					// Handle on_tool_error — set activeToolCall with error
-					if (event.type === "on_tool_error") {
-						messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
-							activeToolCall: {
-								name: event.name,
-								error: event.data?.error,
-								status: "error",
-							},
-						});
-					}
-				} catch (cbErr) {
-					logger.debug(`[streaming] callback error: ${cbErr.message}`);
-				}
-			};
-		},
-	);
-
-	/**
-	 * Finalize streaming message — strips cursor, sets final state.
-	 * @param {string} responseContent - Final accumulated text
-	 * @param {string} committedReasoning - Accumulated reasoning content
-	 * @param {string} lastToolCallDisplay - Tool call display text
-	 * @param {string} todoStatusLines - Todo status lines
-	 */
-	const finalizeStreaming = (
-		responseContent,
-		committedReasoning,
-		lastToolCallDisplay,
-		todoStatusLines,
-	) => {
-		const updates = {
-			content: responseContent,
-			reasoningContent: committedReasoning || undefined,
-			streaming: false,
-			activeToolCall: null,
-		};
-		if (lastToolCallDisplay) {
-			updates.toolCallDisplay = lastToolCallDisplay;
-		}
-		if (todoStatusLines) {
-			const prevTool = messageListRef.current?.getMessageData(
-				streamingMsgIdRef.current,
-			)?.toolCallDisplay;
-			if (prevTool) {
-				updates.toolCallDisplay = prevTool + "\n" + todoStatusLines;
-			} else {
-				updates.toolCallDisplay = todoStatusLines;
-			}
-		}
-		messageListRef.current?.updateMessage(streamingMsgIdRef.current, updates);
-	};
-
-	// Single input handler - focus-aware key event routing
-	// InputPanel uses ink-text-input for text entry (handles typing, cursor nav, etc.)
-	// Global keys (Tab, Escape) always handled at app level regardless of focus.
-	// When inputBar is focused: only intercept Tab and Escape; all other keys pass through
-	//   to child components (message list auto-scroll, etc.)
-	// When message list is focused: intercept up/down/pageUp/pageDown for navigation;
-	//   Escape for global quit/interrupt; all other keys pass through
+	// Focus-aware key routing
 	useInput((input, key) => {
 		// Onboarding phase takes priority
 		if (showOnboarding) {
 			if (key.return && !key.shift) {
-				processOnboardingInput(inputText);
-				setInputText("");
+				processOnboardingInput(inputAreaRef.current?.getInputText() || "");
+				inputAreaRef.current?.clearInput();
 			} else if (key.escape) {
 				handleQuit();
 			}
@@ -903,7 +159,6 @@ function App({
 				return;
 			}
 			setShowBanner(false);
-			// After dismissal, fall through to normal input processing
 		}
 
 		// Global keys always handled at app level, regardless of focus state
@@ -913,73 +168,41 @@ function App({
 		}
 
 		if (key.escape) {
-			// Debounce: ignore ESC presses within 500ms of the last interrupt
 			const now = Date.now();
 			if (now - lastInterruptTimeRef.current < 500) {
 				return;
 			}
-			// Onboarding and banner ESC behavior is already handled above — fall through to interrupt
-			handleInterrupt();
+			conversationAreaRef.current?.interrupt();
 			lastInterruptTimeRef.current = now;
 			return;
 		}
 
 		// Focus-aware key routing
 		if (inputFocused) {
-			// InputBar focused: only history navigation is app-level concern.
-			// All other keys (up/down/pageUp/pageDown, etc.) pass through to
-			// child components — enabling message list auto-scroll during streaming.
-			if (key.upArrow && chatHistory.length > 0) {
-				// History navigation — ink-text-input doesn't handle this
-				const newIndex =
-					historyIndex === -1 ? chatHistory.length - 1 : Math.max(0, historyIndex - 1);
-				setHistoryIndex(newIndex);
-				setInputText(chatHistory[newIndex]);
+			if (key.upArrow) {
+				inputAreaRef.current?.navigateHistory("up");
 			} else if (key.downArrow) {
-				// History navigation — ink-text-input doesn't handle this
-				if (historyIndex === -1) return;
-				const nextIndex = historyIndex + 1;
-				if (nextIndex >= chatHistory.length) {
-					setHistoryIndex(-1);
-					setInputText("");
-				} else {
-					setHistoryIndex(nextIndex);
-					setInputText(chatHistory[nextIndex]);
-				}
+				inputAreaRef.current?.navigateHistory("down");
 			}
-			// All other keys fall through — return nothing so Ink lets them bubble
 		} else {
-			// Message list focused: intercept navigation keys for manual scroll.
-			// All other keys pass through to child components.
-			if (key.upArrow) messageListRef.current?.scrollBy(-1);
-			if (key.downArrow) messageListRef.current?.scrollBy(1);
+			if (key.upArrow) conversationAreaRef.current?.scrollBy(-1);
+			if (key.downArrow) conversationAreaRef.current?.scrollBy(1);
 			if (key.pageUp)
-				messageListRef.current?.scrollBy(
-					-(messageListRef.current?.getScrollRef()?.current?.getViewportHeight?.() || 1),
+				conversationAreaRef.current?.scrollBy(
+					-(conversationAreaRef.current?.getViewportHeight?.() || 1),
 				);
 			if (key.pageDown)
-				messageListRef.current?.scrollBy(
-					messageListRef.current?.getScrollRef()?.current?.getViewportHeight?.() || 1,
+				conversationAreaRef.current?.scrollBy(
+					conversationAreaRef.current?.getViewportHeight?.() || 1,
 				);
 		}
 	});
 
 	const { rows } = useWindowSize();
 
-	// Stable handlers for child components — prevents cascade re-renders
+	// Stable handlers for child components
 	const handleInputFocus = useCallback(() => setInputFocused(true), []);
 	const handleInputBlur = useCallback(() => setInputFocused(false), []);
-
-	const statusProps = React.useMemo(
-		() => ({
-			skillCount: skillList.length,
-			messageCount: messageListRef.current?.getMessageCount() || 0,
-			contextSize,
-			statusMessage,
-			isCompacting,
-		}),
-		[skillList.length, messageListRef, contextSize, statusMessage, isCompacting],
-	);
 
 	return React.createElement(
 		Box,
@@ -1002,41 +225,37 @@ function App({
 						onDismiss: () => setShowBanner(false),
 						version: appInfo ? appInfo.version : undefined,
 					})
-				: React.createElement(
-						Box,
-						{
-							key: "conversation-wrapper",
-							flexDirection: "column",
-							flexGrow: 1,
-							backgroundColor: undefined,
-						},
-						React.createElement(ConversationPanel, {
-							assistantName: config?.tui?.name || "Assistant",
-							messageListRef,
-						}),
-					),
-		!showBanner && !showOnboarding && React.createElement(StatusBar, statusProps),
-		showOnboarding || (!showBanner && !showOnboarding)
-			? React.createElement(
-					Box,
-					{
-						key: "input-wrapper",
-						flexDirection: "row",
-						paddingX: 1,
-						paddingY: 0,
-					},
-					React.createElement(InputPanel, {
-						key: inputFocused ? "input-focused" : "input-unfocused",
-						value: inputText,
-						onChange: setInputText,
-						onSubmit: handleSubmit,
-						onFocus: handleInputFocus,
-						onBlur: handleInputBlur,
-						focus: inputFocused,
+				: React.createElement(ConversationArea, {
+						ref: conversationAreaRef,
+						config,
+						registry,
+						sessionState,
+						dispatchProvider,
+						scheduleManager,
+						appInfo,
+						onSaveSession,
+						gcManager,
+						gcTrigger,
+						onStatusChange,
+						onContextChange,
+						onCompactingChange,
+						onInterruptInput,
+						onQuit: handleQuit,
+						onNewSession: handleNewSession,
+						messageCountRef,
 					}),
-				)
-			: null,
+		React.createElement(InputArea, {
+			ref: inputAreaRef,
+			onSubmit: handleSubmit,
+			onFocus: handleInputFocus,
+			onBlur: handleInputBlur,
+			focus: inputFocused,
+			skillCount,
+			messageCountRef,
+			showBanner,
+			showOnboarding,
+		}),
 	);
 }
 
-export default memo(App, areEqual);
+export default App;
