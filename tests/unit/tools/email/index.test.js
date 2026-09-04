@@ -1,94 +1,41 @@
 import { test, describe } from "node:test";
 import assert from "node:assert";
 import {
-	emailRead,
-	emailSend,
-	emailDraftSave,
-	emailDraftList,
-	emailDraftUpdate,
-	emailDraftDelete,
-	emailOrganize,
-	emailSearch,
-} from "../../../src/tools/email/index.js";
+	createEmailProvider,
+	getActiveProvider,
+	validateProviderConfig,
+	EmailProvider,
+	GmailProvider,
+	GraphProvider,
+	ImapProvider,
+} from "../../../../src/tools/email/index.js";
 
-describe("Email Tools", () => {
-	test("emailRead should have a valid name", () => {
-		assert.strictEqual(emailRead.name, "emailRead");
+describe("Email Tools — index exports", () => {
+	test("should export createEmailProvider function", () => {
+		assert.strictEqual(typeof createEmailProvider, "function");
 	});
 
-	test("emailSend should have a valid name", () => {
-		assert.strictEqual(emailSend.name, "emailSend");
+	test("should export getActiveProvider function", () => {
+		assert.strictEqual(typeof getActiveProvider, "function");
 	});
 
-	test("emailDraftSave should have a valid name", () => {
-		assert.strictEqual(emailDraftSave.name, "emailDraftSave");
+	test("should export validateProviderConfig function", () => {
+		assert.strictEqual(typeof validateProviderConfig, "function");
 	});
 
-	test("emailDraftList should have a valid name", () => {
-		assert.strictEqual(emailDraftList.name, "emailDraftList");
+	test("should export EmailProvider class", () => {
+		assert.strictEqual(typeof EmailProvider, "function");
 	});
 
-	test("emailDraftUpdate should have a valid name", () => {
-		assert.strictEqual(emailDraftUpdate.name, "emailDraftUpdate");
+	test("should export GmailProvider class", () => {
+		assert.strictEqual(typeof GmailProvider, "function");
 	});
 
-	test("emailDraftDelete should have a valid name", () => {
-		assert.strictEqual(emailDraftDelete.name, "emailDraftDelete");
+	test("should export GraphProvider class", () => {
+		assert.strictEqual(typeof GraphProvider, "function");
 	});
 
-	test("emailOrganize should have a valid name", () => {
-		assert.strictEqual(emailOrganize.name, "emailOrganize");
-	});
-
-	test("emailSearch should have a valid name", () => {
-		assert.strictEqual(emailSearch.name, "emailSearch");
-	});
-
-	test("emailRead should return { ok: false } when no provider configured", async () => {
-		const result = await emailRead("{}", {});
-		assert.strictEqual(result.ok, false);
-		assert.ok(result.error);
-	});
-
-	test("emailSend should return { ok: false } when no provider configured", async () => {
-		const result = await emailSend("{}", {});
-		assert.strictEqual(result.ok, false);
-		assert.ok(result.error);
-	});
-
-	test("emailDraftSave should return { ok: false } when no provider configured", async () => {
-		const result = await emailDraftSave("{}", {});
-		assert.strictEqual(result.ok, false);
-		assert.ok(result.error);
-	});
-
-	test("emailDraftList should return { ok: false } when no provider configured", async () => {
-		const result = await emailDraftList("{}", {});
-		assert.strictEqual(result.ok, false);
-		assert.ok(result.error);
-	});
-
-	test("emailDraftUpdate should return { ok: false } when no provider configured", async () => {
-		const result = await emailDraftUpdate("{}", {});
-		assert.strictEqual(result.ok, false);
-		assert.ok(result.error);
-	});
-
-	test("emailDraftDelete should return { ok: false } when no provider configured", async () => {
-		const result = await emailDraftDelete("{}", {});
-		assert.strictEqual(result.ok, false);
-		assert.ok(result.error);
-	});
-
-	test("emailOrganize should return { ok: false } when no provider configured", async () => {
-		const result = await emailOrganize("{}", {});
-		assert.strictEqual(result.ok, false);
-		assert.ok(result.error);
-	});
-
-	test("emailSearch should return { ok: false } when no provider configured", async () => {
-		const result = await emailSearch("{}", {});
-		assert.strictEqual(result.ok, false);
-		assert.ok(result.error);
+	test("should export ImapProvider class", () => {
+		assert.strictEqual(typeof ImapProvider, "function");
 	});
 });

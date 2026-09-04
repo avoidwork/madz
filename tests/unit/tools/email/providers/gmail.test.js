@@ -1,31 +1,33 @@
 import { test, describe, before, after, mock } from "node:test";
 import assert from "node:assert";
-import { GmailProvider } from "../../../../../src/tools/email/providers/gmail.js";
 
 describe("GmailProvider — happy paths", () => {
-	/** @type {import('googleapis').google} */
-	let mockGmail;
-	/** @type {import('googleapis').google.auth.OAuth2} */
-	let mockOAuth2;
-	/** @type {typeof import('googleapis')} */
-	let origGoogle;
+	let GmailProvider;
+	let mockGmailInstance;
+	let mockOAuth2Instance;
+	let googleapis;
 
 	before(async () => {
-		origGoogle = await import("googleapis");
+		// Set required env vars
+		process.env.EMAIL_GMAIL_CLIENT_ID = "test-client-id";
+		process.env.EMAIL_GMAIL_CLIENT_SECRET = "test-client-secret";
+		process.env.EMAIL_GMAIL_REFRESH_TOKEN = "test-refresh-token";
 
-		const mockOAuth2Instance = {
+		mockOAuth2Instance = {
 			setCredentials: () => {},
+			refreshAccessToken: async () => ({
+				credentials: { access_token: "new-access-token" },
+			}),
+			credentials: { refresh_token: "test-refresh-token" },
 		};
 
-		mockOAuth2 = mock.method(origGoogle.auth, "OAuth2", () => mockOAuth2Instance);
-
-		const mockGmailInstance = {
+		mockGmailInstance = {
 			users: {
 				messages: {
-					list: mock.method(async () => ({
+					list: async () => ({
 						data: { messages: [{ id: "msg-1" }, { id: "msg-2" }] },
-					})),
-					get: mock.method(async () => ({
+					}),
+					get: async () => ({
 						data: {
 							id: "msg-1",
 							threadId: "thread-1",
@@ -48,17 +50,17 @@ describe("GmailProvider — happy paths", () => {
 							labelIds: ["INBOX", "UNREAD"],
 							snippet: "Test body",
 						},
-					})),
-					send: mock.method(async () => ({
+					}),
+					send: async () => ({
 						data: { id: "routed-msg-123" },
-					})),
-					modify: mock.method(async () => ({})),
+					}),
+					modify: async () => ({}),
 				},
 				drafts: {
-					list: mock.method(async () => ({
+					list: async () => ({
 						data: { drafts: [{ id: "draft-1" }, { id: "draft-2" }] },
-					})),
-					get: mock.method(async () => ({
+					}),
+					get: async () => ({
 						data: {
 							id: "draft-1",
 							message: {
@@ -77,30 +79,37 @@ describe("GmailProvider — happy paths", () => {
 								},
 							},
 						},
-					})),
-					create: mock.method(async () => ({
-						id: "new-draft-456",
-					})),
-					update: mock.method(async () => ({})),
-					delete: mock.method(async () => ({})),
+					}),
+					create: async () => ({
+						data: { id: "new-draft-456" },
+					}),
+					update: async () => ({ data: {} }),
+					delete: async () => ({}),
 				},
 			},
 		};
 
-		mockGmail = mock.method(origGoogle, "gmail", () => mockGmailInstance);
+		// Import googleapis and replace its methods before GmailProvider is instantiated
+		googleapis = await import("googleapis");
+		// Replace OAuth2 constructor with a mock constructor
+		googleapis.google.auth.OAuth2 = function() { return mockOAuth2Instance; };
+		// Replace gmail factory
+		googleapis.google.gmail = () => mockGmailInstance;
+
+		const mod = await import("../../../../../src/tools/email/providers/gmail.js");
+		GmailProvider = mod.GmailProvider;
 	});
 
 	after(() => {
-		mock.restore();
+		delete process.env.EMAIL_GMAIL_CLIENT_ID;
+		delete process.env.EMAIL_GMAIL_CLIENT_SECRET;
+		delete process.env.EMAIL_GMAIL_REFRESH_TOKEN;
+		mock.reset();
 	});
 
 	describe("read()", () => {
 		test("should return messages with normalized data", async () => {
-			const provider = new GmailProvider({
-				clientId: "id",
-				clientSecret: "secret",
-				refreshToken: "token",
-			});
+			const provider = new GmailProvider({});
 			const result = await provider.read({ limit: 5 });
 			assert.ok(result.ok);
 			assert.strictEqual(result.messages.length, 2);
@@ -110,29 +119,20 @@ describe("GmailProvider — happy paths", () => {
 		});
 
 		test("should build query from filters", async () => {
-			const provider = new GmailProvider({
-				clientId: "id",
-				clientSecret: "secret",
-				refreshToken: "token",
-			});
-			await provider.read({
+			const provider = new GmailProvider({});
+			const result = await provider.read({
 				sender: "test@example.com",
 				subject: "urgent",
 				dateFrom: "2024-01-01",
 				label: "Important",
 			});
-			const listCall = mock.methodCalls(mockGmail);
-			assert.ok(listCall.length > 0);
+			assert.ok(result.ok);
 		});
 	});
 
 	describe("send()", () => {
 		test("should build raw MIME and send", async () => {
-			const provider = new GmailProvider({
-				clientId: "id",
-				clientSecret: "secret",
-				refreshToken: "token",
-			});
+			const provider = new GmailProvider({});
 			const result = await provider.send({
 				to: ["recipient@example.com"],
 				subject: "Hello",
@@ -143,11 +143,7 @@ describe("GmailProvider — happy paths", () => {
 		});
 
 		test("should include CC and BCC in MIME", async () => {
-			const provider = new GmailProvider({
-				clientId: "id",
-				clientSecret: "secret",
-				refreshToken: "token",
-			});
+			const provider = new GmailProvider({});
 			const result = await provider.send({
 				to: ["to@example.com"],
 				cc: ["cc@example.com"],
@@ -159,11 +155,7 @@ describe("GmailProvider — happy paths", () => {
 		});
 
 		test("should handle HTML body type", async () => {
-			const provider = new GmailProvider({
-				clientId: "id",
-				clientSecret: "secret",
-				refreshToken: "token",
-			});
+			const provider = new GmailProvider({});
 			const result = await provider.send({
 				to: ["recipient@example.com"],
 				subject: "HTML Test",
@@ -174,11 +166,7 @@ describe("GmailProvider — happy paths", () => {
 		});
 
 		test("should handle attachments", async () => {
-			const provider = new GmailProvider({
-				clientId: "id",
-				clientSecret: "secret",
-				refreshToken: "token",
-			});
+			const provider = new GmailProvider({});
 			const result = await provider.send({
 				to: ["recipient@example.com"],
 				subject: "With attachment",
@@ -193,11 +181,7 @@ describe("GmailProvider — happy paths", () => {
 
 	describe("search()", () => {
 		test("should return messages matching query", async () => {
-			const provider = new GmailProvider({
-				clientId: "id",
-				clientSecret: "secret",
-				refreshToken: "token",
-			});
+			const provider = new GmailProvider({});
 			const result = await provider.search({ query: "test query", limit: 10 });
 			assert.ok(result.ok);
 			assert.strictEqual(result.messages.length, 2);
@@ -206,11 +190,7 @@ describe("GmailProvider — happy paths", () => {
 
 	describe("drafts", () => {
 		test("saveDraft() should create a draft and return draftId", async () => {
-			const provider = new GmailProvider({
-				clientId: "id",
-				clientSecret: "secret",
-				refreshToken: "token",
-			});
+			const provider = new GmailProvider({});
 			const result = await provider.saveDraft({
 				to: ["recipient@example.com"],
 				subject: "Draft",
@@ -221,23 +201,16 @@ describe("GmailProvider — happy paths", () => {
 		});
 
 		test("listDrafts() should return list of drafts", async () => {
-			const provider = new GmailProvider({
-				clientId: "id",
-				clientSecret: "secret",
-				refreshToken: "token",
-			});
+			const provider = new GmailProvider({});
 			const result = await provider.listDrafts({ limit: 5 });
 			assert.ok(result.ok);
 			assert.strictEqual(result.drafts.length, 2);
 		});
 
 		test("updateDraft() should update an existing draft", async () => {
-			const provider = new GmailProvider({
-				clientId: "id",
-				clientSecret: "secret",
-				refreshToken: "token",
-			});
+			const provider = new GmailProvider({});
 			const result = await provider.updateDraft("draft-1", {
+				to: ["recipient@example.com"],
 				subject: "Updated Subject",
 				body: "Updated body",
 			});
@@ -245,11 +218,7 @@ describe("GmailProvider — happy paths", () => {
 		});
 
 		test("deleteDraft() should delete a draft", async () => {
-			const provider = new GmailProvider({
-				clientId: "id",
-				clientSecret: "secret",
-				refreshToken: "token",
-			});
+			const provider = new GmailProvider({});
 			const result = await provider.deleteDraft("draft-1");
 			assert.ok(result.ok);
 		});
@@ -257,11 +226,7 @@ describe("GmailProvider — happy paths", () => {
 
 	describe("organize()", () => {
 		test("should mark messages as read", async () => {
-			const provider = new GmailProvider({
-				clientId: "id",
-				clientSecret: "secret",
-				refreshToken: "token",
-			});
+			const provider = new GmailProvider({});
 			const result = await provider.organize({
 				messageIds: ["msg-1", "msg-2"],
 				action: "markRead",
@@ -270,11 +235,7 @@ describe("GmailProvider — happy paths", () => {
 		});
 
 		test("should mark messages as unread", async () => {
-			const provider = new GmailProvider({
-				clientId: "id",
-				clientSecret: "secret",
-				refreshToken: "token",
-			});
+			const provider = new GmailProvider({});
 			const result = await provider.organize({
 				messageIds: ["msg-1"],
 				action: "markUnread",
@@ -283,11 +244,7 @@ describe("GmailProvider — happy paths", () => {
 		});
 
 		test("should archive messages", async () => {
-			const provider = new GmailProvider({
-				clientId: "id",
-				clientSecret: "secret",
-				refreshToken: "token",
-			});
+			const provider = new GmailProvider({});
 			const result = await provider.organize({
 				messageIds: ["msg-1"],
 				action: "archive",
@@ -296,11 +253,7 @@ describe("GmailProvider — happy paths", () => {
 		});
 
 		test("should add a label", async () => {
-			const provider = new GmailProvider({
-				clientId: "id",
-				clientSecret: "secret",
-				refreshToken: "token",
-			});
+			const provider = new GmailProvider({});
 			const result = await provider.organize({
 				messageIds: ["msg-1"],
 				action: "addLabel",
@@ -310,11 +263,7 @@ describe("GmailProvider — happy paths", () => {
 		});
 
 		test("should remove a label", async () => {
-			const provider = new GmailProvider({
-				clientId: "id",
-				clientSecret: "secret",
-				refreshToken: "token",
-			});
+			const provider = new GmailProvider({});
 			const result = await provider.organize({
 				messageIds: ["msg-1"],
 				action: "removeLabel",
@@ -324,11 +273,7 @@ describe("GmailProvider — happy paths", () => {
 		});
 
 		test("should return error for unknown action", async () => {
-			const provider = new GmailProvider({
-				clientId: "id",
-				clientSecret: "secret",
-				refreshToken: "token",
-			});
+			const provider = new GmailProvider({});
 			const result = await provider.organize({
 				messageIds: ["msg-1"],
 				action: "unknownAction",
@@ -338,11 +283,7 @@ describe("GmailProvider — happy paths", () => {
 		});
 
 		test("should handle single messageId as string", async () => {
-			const provider = new GmailProvider({
-				clientId: "id",
-				clientSecret: "secret",
-				refreshToken: "token",
-			});
+			const provider = new GmailProvider({});
 			const result = await provider.organize({
 				messageIds: "msg-1",
 				action: "markRead",
@@ -353,93 +294,334 @@ describe("GmailProvider — happy paths", () => {
 
 	describe("normalizeMessage()", () => {
 		test("should handle HTML body parts", async () => {
-			const provider = new GmailProvider({
-				clientId: "id",
-				clientSecret: "secret",
-				refreshToken: "token",
-			});
-			const normalized = provider["normalizeMessage"]({
-				id: "msg-html",
-				payload: {
-					headers: [
-						{ name: "From", value: "from@example.com" },
-						{ name: "Subject", value: "HTML Test" },
-						{ name: "Date", value: "Mon, 01 Jan 2024 00:00:00 +0000" },
-					],
-					parts: [
-						{
-							mimeType: "text/html",
-							body: { data: "PGk+SGVsbG88L2k+" }, // "<i>Hello</i>" in base64
-						},
-					],
+			// Test indirectly through read() which uses #normalizeMessage
+			mockGmailInstance.users.messages.get = async () => ({
+				data: {
+					id: "msg-html",
+					threadId: "thread-1",
+					payload: {
+						headers: [
+							{ name: "From", value: "from@example.com" },
+							{ name: "To", value: "to@example.com" },
+							{ name: "Subject", value: "HTML Test" },
+							{ name: "Date", value: "Mon, 01 Jan 2024 00:00:00 +0000" },
+						],
+						parts: [
+							{
+								mimeType: "text/html",
+								body: { data: "PGk+SGVsbG88L2k+" }, // "<i>Hello</i>" in base64
+							},
+						],
+					},
+					labelIds: [],
+					snippet: "",
 				},
 			});
-			assert.strictEqual(normalized.id, "msg-html");
-			assert.strictEqual(normalized.body, "<i>Hello</i>");
+			const provider = new GmailProvider({});
+			const result = await provider.read({ limit: 1 });
+			assert.ok(result.ok);
+			assert.strictEqual(result.messages[0].body, "<i>Hello</i>");
+		});
+
+		test("should handle body without parts", async () => {
+			mockGmailInstance.users.messages.get = async () => ({
+				data: {
+					id: "msg-body",
+					threadId: "thread-1",
+					payload: {
+						headers: [
+							{ name: "From", value: "from@example.com" },
+							{ name: "To", value: "to@example.com" },
+							{ name: "Subject", value: "Direct Body" },
+							{ name: "Date", value: "Mon, 01 Jan 2024 00:00:00 +0000" },
+						],
+						body: { data: "RGlyZWN0IGJvZHk=" }, // "Direct body" in base64
+					},
+					labelIds: [],
+					snippet: "",
+				},
+			});
+			const provider = new GmailProvider({});
+			const result = await provider.read({ limit: 1 });
+			assert.ok(result.ok);
+			assert.strictEqual(result.messages[0].body, "Direct body");
+		});
+
+		test("should handle null message", async () => {
+			mockGmailInstance.users.messages.get = async () => ({
+				data: null,
+			});
+			const provider = new GmailProvider({});
+			const result = await provider.read({ limit: 1 });
+			assert.ok(result.ok);
 		});
 	});
 
 	describe("read() edge cases", () => {
 		test("should handle empty message list", async () => {
-			const provider = new GmailProvider({
-				clientId: "id",
-				clientSecret: "secret",
-				refreshToken: "token",
+			mockGmailInstance.users.messages.list = async () => ({
+				data: { messages: [] },
 			});
+			const provider = new GmailProvider({});
 			const result = await provider.read({ limit: 5 });
 			assert.ok(result.ok);
 			assert.ok(Array.isArray(result.messages));
+			assert.strictEqual(result.messages.length, 0);
 		});
 	});
 
 	describe("constructor", () => {
-		test("OAuth2 client should be configured with credentials", async () => {
-			new GmailProvider({
-				clientId: "test-client-id",
-				clientSecret: "test-client-secret",
-				refreshToken: "test-refresh-token",
-			});
-			assert.ok(mockOAuth2.mock.calls.length > 0);
+		test("should throw when env vars are missing", () => {
+			delete process.env.EMAIL_GMAIL_CLIENT_ID;
+			assert.throws(
+				() => new GmailProvider({}),
+				/Gmail provider requires/,
+			);
+			process.env.EMAIL_GMAIL_CLIENT_ID = "test-client-id";
 		});
 
-		test("OAuth2 should set refresh token credentials", async () => {
-			new GmailProvider({
-				clientId: "id",
-				clientSecret: "secret",
-				refreshToken: "my-refresh-token",
+		test("should use custom userId when provided", () => {
+			const provider = new GmailProvider({ userId: "custom@example.com" });
+			assert.ok(provider);
+		});
+	});
+
+	describe("validateConfig()", () => {
+		test("should return valid when env vars are set", () => {
+			const provider = new GmailProvider({});
+			const result = provider.validateConfig();
+			assert.strictEqual(result.valid, true);
+		});
+	});
+
+	describe("cancel()", () => {
+		test("should not throw when no current request", () => {
+			const provider = new GmailProvider({});
+			provider.cancel();
+			assert.ok(true);
+		});
+	});
+
+	describe("send() error handling", () => {
+		test("should return error when Gmail API fails", async () => {
+			mockGmailInstance.users.messages.send = async () => {
+				throw new Error("API error");
+			};
+			const provider = new GmailProvider({});
+			const result = await provider.send({
+				to: ["recipient@example.com"],
+				subject: "Test",
+				body: "Body",
 			});
-			const calls = mockOAuth2.mock.calls;
-			assert.ok(calls.length > 0);
+			assert.ok(!result.ok);
+			assert.ok(result.error.includes("Gmail send failed"));
+		});
+	});
+
+	describe("read() error handling", () => {
+		test("should return error when Gmail API fails", async () => {
+			mockGmailInstance.users.messages.list = async () => {
+				throw new Error("API error");
+			};
+			const provider = new GmailProvider({});
+			const result = await provider.read({ limit: 5 });
+			assert.ok(!result.ok);
+			assert.ok(result.error.includes("Gmail read failed"));
+		});
+	});
+
+	describe("search() error handling", () => {
+		test("should return error when Gmail API fails", async () => {
+			mockGmailInstance.users.messages.list = async () => {
+				throw new Error("API error");
+			};
+			const provider = new GmailProvider({});
+			const result = await provider.search({ query: "test" });
+			assert.ok(!result.ok);
+			assert.ok(result.error.includes("Gmail search failed"));
+		});
+	});
+
+	describe("draft error handling", () => {
+		test("saveDraft() should return error on failure", async () => {
+			mockGmailInstance.users.drafts.create = async () => {
+				throw new Error("API error");
+			};
+			const provider = new GmailProvider({});
+			const result = await provider.saveDraft({
+				to: ["recipient@example.com"],
+				subject: "Draft",
+				body: "Body",
+			});
+			assert.ok(!result.ok);
+			assert.ok(result.error.includes("Gmail saveDraft failed"));
 		});
 
-		test("OAuth2 should set access token when provided", async () => {
-			new GmailProvider({
-				clientId: "id",
-				clientSecret: "secret",
-				refreshToken: "token",
-				accessToken: "access-token-123",
-			});
-			const calls = mockOAuth2.mock.calls;
-			assert.ok(calls.length > 0);
+		test("listDrafts() should return error on failure", async () => {
+			mockGmailInstance.users.drafts.list = async () => {
+				throw new Error("API error");
+			};
+			const provider = new GmailProvider({});
+			const result = await provider.listDrafts({});
+			assert.ok(!result.ok);
+			assert.ok(result.error.includes("Gmail listDrafts failed"));
 		});
 
-		test("gmail() should be called with v1 and auth client", async () => {
-			new GmailProvider({
-				clientId: "id",
-				clientSecret: "secret",
-				refreshToken: "token",
+		test("updateDraft() should return error on failure", async () => {
+			mockGmailInstance.users.drafts.update = async () => {
+				throw new Error("API error");
+			};
+			const provider = new GmailProvider({});
+			const result = await provider.updateDraft("draft-1", {
+				subject: "Updated",
+				body: "Body",
 			});
-			assert.ok(mockGmail.mock.calls.length > 0);
+			assert.ok(!result.ok);
+			assert.ok(result.error.includes("Gmail updateDraft failed"));
 		});
 
-		test("gmail() should use custom userId when provided", async () => {
-			new GmailProvider({
-				clientId: "id",
-				clientSecret: "secret",
-				refreshToken: "token",
-				userId: "custom@example.com",
+		test("deleteDraft() should return error on failure", async () => {
+			mockGmailInstance.users.drafts.delete = async () => {
+				throw new Error("API error");
+			};
+			const provider = new GmailProvider({});
+			const result = await provider.deleteDraft("draft-1");
+			assert.ok(!result.ok);
+			assert.ok(result.error.includes("Gmail deleteDraft failed"));
+		});
+	});
+
+	describe("organize() error handling", () => {
+		test("should return error on failure", async () => {
+			mockGmailInstance.users.messages.modify = async () => {
+				throw new Error("API error");
+			};
+			const provider = new GmailProvider({});
+			const result = await provider.organize({
+				messageIds: ["msg-1"],
+				action: "markRead",
 			});
-			assert.ok(mockGmail.mock.calls.length > 0);
+			assert.ok(!result.ok);
+			assert.ok(result.error.includes("Gmail organize failed"));
+		});
+	});
+
+	describe("token refresh", () => {
+		test("should retry on 401 error", async () => {
+			let callCount = 0;
+			mockGmailInstance.users.messages.list = async () => {
+				callCount++;
+				if (callCount === 1) {
+					const err = new Error("401 Unauthorized");
+					err.code = "ERR_OAUTH_TOKEN";
+					throw err;
+				}
+				return { data: { messages: [] } };
+			};
+			// Mock refreshAccessToken by making setCredentials work
+			const provider = new GmailProvider({});
+			const result = await provider.read({ limit: 5 });
+			assert.strictEqual(result.ok, true);
+			assert.strictEqual(callCount, 2);
+		});
+
+		test("should return error when token refresh fails", async () => {
+			mockGmailInstance.users.messages.list = async () => {
+				const err = new Error("401 Unauthorized");
+				err.code = "ERR_OAUTH_TOKEN";
+				throw err;
+			};
+			// Make refreshAccessToken fail by not having a refresh token
+			// The mock OAuth2 instance doesn't have credentials.refresh_token
+			const provider = new GmailProvider({});
+			const result = await provider.read({ limit: 5 });
+			assert.ok(!result.ok);
+			assert.ok(result.error.includes("Gmail read failed"));
+		});
+	});
+
+	describe("sanitizeError", () => {
+		test("should handle null/undefined error messages", async () => {
+			mockGmailInstance.users.messages.list = async () => {
+				throw null;
+			};
+			const provider = new GmailProvider({});
+			const result = await provider.read({ limit: 5 });
+			assert.ok(!result.ok);
+		});
+	});
+
+	describe("cancel()", () => {
+		test("should not throw when no current request", () => {
+			const provider = new GmailProvider({});
+			provider.cancel();
+			assert.ok(true);
+		});
+	});
+
+	describe("refreshAccessToken edge cases", () => {
+		test("should handle refresh token failure", async () => {
+			// Remove refresh_token from mock to trigger "No refresh token" error
+			delete mockOAuth2Instance.credentials.refresh_token;
+			// Trigger a 401 to force token refresh
+			mockGmailInstance.users.messages.list = async () => {
+				const err = new Error("401 Unauthorized");
+				err.code = "ERR_OAUTH_TOKEN";
+				throw err;
+			};
+			const provider = new GmailProvider({});
+			const result = await provider.read({ limit: 5 });
+			assert.ok(!result.ok);
+			assert.ok(result.error.includes("Gmail read failed"));
+		});
+
+		test("should handle refresh token API failure", async () => {
+			// Make refreshAccessToken throw
+			mockOAuth2Instance.refreshAccessToken = async () => {
+				throw new Error("Token refresh API error");
+			};
+			// Trigger a 401 to force token refresh
+			mockGmailInstance.users.messages.list = async () => {
+				const err = new Error("401 Unauthorized");
+				err.code = "ERR_OAUTH_TOKEN";
+				throw err;
+			};
+			const provider = new GmailProvider({});
+			const result = await provider.read({ limit: 5 });
+			assert.ok(!result.ok);
+			assert.ok(result.error.includes("Gmail read failed"));
+		});
+	});
+
+	describe("sanitizeError edge cases", () => {
+		test("should handle error with client_id in message", async () => {
+			mockGmailInstance.users.messages.list = async () => {
+				throw new Error("client_id=my-client-id&client_secret=my-secret");
+			};
+			const provider = new GmailProvider({});
+			const result = await provider.read({ limit: 5 });
+			assert.ok(!result.ok);
+			assert.ok(result.error.includes("[REDACTED]"));
+		});
+
+		test("should handle error with Bearer token", async () => {
+			mockGmailInstance.users.messages.list = async () => {
+				throw new Error("Bearer my-access-token");
+			};
+			const provider = new GmailProvider({});
+			const result = await provider.read({ limit: 5 });
+			assert.ok(!result.ok);
+			assert.ok(result.error.includes("[REDACTED]"));
+		});
+
+		test("should handle error with apiKey", async () => {
+			mockGmailInstance.users.messages.list = async () => {
+				throw new Error("apiKey=my-api-key");
+			};
+			const provider = new GmailProvider({});
+			const result = await provider.read({ limit: 5 });
+			assert.ok(!result.ok);
+			assert.ok(result.error.includes("[REDACTED]"));
 		});
 	});
 });

@@ -117,6 +117,76 @@ describe("AgentRegistry", () => {
 				"Should have systemPrompt error",
 			);
 		});
+
+		it("should reject agent with empty string name (caught by falsy check)", () => {
+			const registry = new AgentRegistry();
+			const result = registry.validateAgent({ name: "", systemPrompt: "test" });
+			ok(!result.isValid, "Should be invalid");
+			ok(
+				result.errors.includes("Agent must have a name"),
+				"Should have name error (empty string is falsy)",
+			);
+		});
+
+		it("should reject agent with non-string name", () => {
+			const registry = new AgentRegistry();
+			const result = registry.validateAgent({ name: 123, systemPrompt: "test" });
+			ok(!result.isValid, "Should be invalid");
+			ok(
+				result.errors.includes("Agent name must be a non-empty string"),
+				"Should have non-empty name error",
+			);
+		});
+
+		it("should reject agent with non-string systemPrompt", () => {
+			const registry = new AgentRegistry();
+			const result = registry.validateAgent({ name: "test", systemPrompt: 456 });
+			ok(!result.isValid, "Should be invalid");
+			ok(
+				result.errors.includes("Agent systemPrompt must be a string"),
+				"Should have systemPrompt type error",
+			);
+		});
+
+		it("should reject agent with non-object model", () => {
+			const registry = new AgentRegistry();
+			const result = registry.validateAgent({
+				name: "test",
+				systemPrompt: "test",
+				model: "not-an-object",
+			});
+			ok(!result.isValid, "Should be invalid");
+			ok(
+				result.errors.includes("Agent model must be an object"),
+				"Should have model type error",
+			);
+		});
+
+		it("should reject agent with non-array tools", () => {
+			const registry = new AgentRegistry();
+			const result = registry.validateAgent({
+				name: "test",
+				systemPrompt: "test",
+				tools: "not-an-array",
+			});
+			ok(!result.isValid, "Should be invalid");
+			ok(
+				result.errors.includes("Agent tools must be an array"),
+				"Should have tools type error",
+			);
+		});
+
+		it("should collect multiple validation errors", () => {
+			const registry = new AgentRegistry();
+			const result = registry.validateAgent({
+				name: 123,
+				systemPrompt: 456,
+				model: "bad",
+				tools: "bad",
+			});
+			ok(!result.isValid, "Should be invalid");
+			ok(result.errors.length >= 4, "Should have multiple errors");
+		});
 	});
 
 	describe("clear", () => {

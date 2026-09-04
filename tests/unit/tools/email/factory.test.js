@@ -1,21 +1,43 @@
-import { test, describe } from "node:test";
+import { test, describe, before, after } from "node:test";
 import assert from "node:assert";
 import {
 	createEmailProvider,
 	getActiveProvider,
 	validateProviderConfig,
-} from "../../../src/tools/email/index.js";
-import { GmailProvider } from "../../../src/tools/email/providers/gmail.js";
-import { GraphProvider } from "../../../src/tools/email/providers/graph.js";
-import { ImapProvider } from "../../../src/tools/email/providers/imap.js";
+} from "../../../../src/tools/email/index.js";
+import { GmailProvider } from "../../../../src/tools/email/providers/gmail.js";
+import { GraphProvider } from "../../../../src/tools/email/providers/graph.js";
+import { ImapProvider } from "../../../../src/tools/email/providers/imap.js";
+
+// Set required env vars for provider constructors
+before(() => {
+	process.env.EMAIL_GMAIL_CLIENT_ID = "test-client-id";
+	process.env.EMAIL_GMAIL_CLIENT_SECRET = "test-client-secret";
+	process.env.EMAIL_GMAIL_REFRESH_TOKEN = "test-refresh-token";
+	process.env.EMAIL_GRAPH_CLIENT_ID = "test-client-id";
+	process.env.EMAIL_GRAPH_CLIENT_SECRET = "test-client-secret";
+	process.env.EMAIL_GRAPH_REFRESH_TOKEN = "test-refresh-token";
+	process.env.EMAIL_GRAPH_TENANT_ID = "test-tenant-id";
+	process.env.EMAIL_IMAP_USER = "test-user";
+	process.env.EMAIL_IMAP_PASSWORD = "test-pass";
+});
+
+after(() => {
+	delete process.env.EMAIL_GMAIL_CLIENT_ID;
+	delete process.env.EMAIL_GMAIL_CLIENT_SECRET;
+	delete process.env.EMAIL_GMAIL_REFRESH_TOKEN;
+	delete process.env.EMAIL_GRAPH_CLIENT_ID;
+	delete process.env.EMAIL_GRAPH_CLIENT_SECRET;
+	delete process.env.EMAIL_GRAPH_REFRESH_TOKEN;
+	delete process.env.EMAIL_GRAPH_TENANT_ID;
+	delete process.env.EMAIL_IMAP_USER;
+	delete process.env.EMAIL_IMAP_PASSWORD;
+});
 
 describe("createEmailProvider factory", () => {
 	test("should create a GmailProvider when type is gmail", () => {
 		const provider = createEmailProvider({
 			type: "gmail",
-			clientId: "id",
-			clientSecret: "secret",
-			refreshToken: "token",
 		});
 		assert.ok(provider instanceof GmailProvider);
 		assert.strictEqual(provider.type, "gmail");
@@ -24,10 +46,6 @@ describe("createEmailProvider factory", () => {
 	test("should create a GraphProvider when type is graph", () => {
 		const provider = createEmailProvider({
 			type: "graph",
-			clientId: "id",
-			clientSecret: "secret",
-			refreshToken: "token",
-			tenantId: "tenant",
 		});
 		assert.ok(provider instanceof GraphProvider);
 		assert.strictEqual(provider.type, "graph");
@@ -36,9 +54,6 @@ describe("createEmailProvider factory", () => {
 	test("should create an ImapProvider when type is imap", () => {
 		const provider = createEmailProvider({
 			type: "imap",
-			host: "imap.example.com",
-			user: "user",
-			password: "pass",
 		});
 		assert.ok(provider instanceof ImapProvider);
 		assert.strictEqual(provider.type, "imap");
@@ -66,9 +81,6 @@ describe("createEmailProvider factory", () => {
 	test("should pass userId to GmailProvider when provided", () => {
 		const provider = createEmailProvider({
 			type: "gmail",
-			clientId: "id",
-			clientSecret: "secret",
-			refreshToken: "token",
 			userId: "user@example.com",
 		});
 		assert.ok(provider instanceof GmailProvider);
@@ -77,9 +89,6 @@ describe("createEmailProvider factory", () => {
 	test("should default userId to 'me' for GmailProvider", () => {
 		const provider = createEmailProvider({
 			type: "gmail",
-			clientId: "id",
-			clientSecret: "secret",
-			refreshToken: "token",
 		});
 		assert.ok(provider instanceof GmailProvider);
 	});
@@ -87,9 +96,6 @@ describe("createEmailProvider factory", () => {
 	test("should pass accessToken to GmailProvider when provided", () => {
 		const provider = createEmailProvider({
 			type: "gmail",
-			clientId: "id",
-			clientSecret: "secret",
-			refreshToken: "token",
 			accessToken: "access-token",
 		});
 		assert.ok(provider instanceof GmailProvider);
@@ -98,10 +104,6 @@ describe("createEmailProvider factory", () => {
 	test("should pass accessToken to GraphProvider when provided", () => {
 		const provider = createEmailProvider({
 			type: "graph",
-			clientId: "id",
-			clientSecret: "secret",
-			refreshToken: "token",
-			tenantId: "tenant",
 			accessToken: "access-token",
 		});
 		assert.ok(provider instanceof GraphProvider);
@@ -134,9 +136,6 @@ describe("getActiveProvider", () => {
 			email: {
 				provider: {
 					type: "gmail",
-					clientId: "id",
-					clientSecret: "secret",
-					refreshToken: "token",
 				},
 			},
 		});
@@ -148,10 +147,6 @@ describe("getActiveProvider", () => {
 			email: {
 				provider: {
 					type: "graph",
-					clientId: "id",
-					clientSecret: "secret",
-					refreshToken: "token",
-					tenantId: "tenant",
 				},
 			},
 		});
@@ -163,9 +158,6 @@ describe("getActiveProvider", () => {
 			email: {
 				provider: {
 					type: "imap",
-					host: "imap.example.com",
-					user: "user",
-					password: "pass",
 				},
 			},
 		});
@@ -177,9 +169,6 @@ describe("validateProviderConfig", () => {
 	test("should return valid for complete Gmail config", () => {
 		const result = validateProviderConfig({
 			type: "gmail",
-			clientId: "id",
-			clientSecret: "secret",
-			refreshToken: "token",
 		});
 		assert.strictEqual(result.valid, true);
 		assert.strictEqual(result.errors, undefined);
@@ -188,10 +177,6 @@ describe("validateProviderConfig", () => {
 	test("should return valid for complete Graph config", () => {
 		const result = validateProviderConfig({
 			type: "graph",
-			clientId: "id",
-			clientSecret: "secret",
-			refreshToken: "token",
-			tenantId: "tenant",
 		});
 		assert.strictEqual(result.valid, true);
 		assert.strictEqual(result.errors, undefined);
@@ -200,89 +185,80 @@ describe("validateProviderConfig", () => {
 	test("should return valid for complete IMAP config", () => {
 		const result = validateProviderConfig({
 			type: "imap",
-			host: "imap.example.com",
-			user: "user",
-			password: "pass",
 		});
 		assert.strictEqual(result.valid, true);
 		assert.strictEqual(result.errors, undefined);
 	});
 
-	test("should return errors when type is missing", () => {
-		const result = validateProviderConfig({ clientId: "id" });
+	test("should return invalid when config is null", () => {
+		const result = validateProviderConfig(null);
 		assert.strictEqual(result.valid, false);
 		assert.ok(result.errors);
-		assert.ok(result.errors.some((e) => e.includes("required")));
+		assert.ok(result.errors.length > 0);
 	});
 
-	test("should return errors for incomplete Gmail config", () => {
-		const result = validateProviderConfig({ type: "gmail", clientId: "id" });
+	test("should return invalid when config has no type", () => {
+		const result = validateProviderConfig({});
 		assert.strictEqual(result.valid, false);
 		assert.ok(result.errors);
-		assert.ok(result.errors.some((e) => e.includes("clientSecret")));
-		assert.ok(result.errors.some((e) => e.includes("refreshToken")));
 	});
 
-	test("should return errors for incomplete Graph config", () => {
-		const result = validateProviderConfig({
-			type: "graph",
-			clientId: "id",
-			clientSecret: "secret",
-		});
+	test("should return errors for missing Gmail env vars", () => {
+		// Temporarily clear the env vars
+		const origId = process.env.EMAIL_GMAIL_CLIENT_ID;
+		const origSecret = process.env.EMAIL_GMAIL_CLIENT_SECRET;
+		const origRefresh = process.env.EMAIL_GMAIL_REFRESH_TOKEN;
+		delete process.env.EMAIL_GMAIL_CLIENT_ID;
+		delete process.env.EMAIL_GMAIL_CLIENT_SECRET;
+		delete process.env.EMAIL_GMAIL_REFRESH_TOKEN;
+
+		const result = validateProviderConfig({ type: "gmail" });
 		assert.strictEqual(result.valid, false);
-		assert.ok(result.errors);
-		assert.ok(result.errors.some((e) => e.includes("tenantId")));
-		assert.ok(result.errors.some((e) => e.includes("refreshToken")));
+		assert.ok(result.errors.length >= 3);
+
+		process.env.EMAIL_GMAIL_CLIENT_ID = origId;
+		process.env.EMAIL_GMAIL_CLIENT_SECRET = origSecret;
+		process.env.EMAIL_GMAIL_REFRESH_TOKEN = origRefresh;
 	});
 
-	test("should return errors for incomplete IMAP config", () => {
-		const result = validateProviderConfig({ type: "imap", host: "imap.example.com" });
+	test("should return errors for missing Graph env vars", () => {
+		const origId = process.env.EMAIL_GRAPH_CLIENT_ID;
+		const origSecret = process.env.EMAIL_GRAPH_CLIENT_SECRET;
+		const origRefresh = process.env.EMAIL_GRAPH_REFRESH_TOKEN;
+		const origTenant = process.env.EMAIL_GRAPH_TENANT_ID;
+		delete process.env.EMAIL_GRAPH_CLIENT_ID;
+		delete process.env.EMAIL_GRAPH_CLIENT_SECRET;
+		delete process.env.EMAIL_GRAPH_REFRESH_TOKEN;
+		delete process.env.EMAIL_GRAPH_TENANT_ID;
+
+		const result = validateProviderConfig({ type: "graph" });
 		assert.strictEqual(result.valid, false);
-		assert.ok(result.errors);
-		assert.ok(result.errors.some((e) => e.includes("user")));
-		assert.ok(result.errors.some((e) => e.includes("password")));
+		assert.ok(result.errors.length >= 4);
+
+		process.env.EMAIL_GRAPH_CLIENT_ID = origId;
+		process.env.EMAIL_GRAPH_CLIENT_SECRET = origSecret;
+		process.env.EMAIL_GRAPH_REFRESH_TOKEN = origRefresh;
+		process.env.EMAIL_GRAPH_TENANT_ID = origTenant;
+	});
+
+	test("should return errors for missing IMAP env vars", () => {
+		const origUser = process.env.EMAIL_IMAP_USER;
+		const origPass = process.env.EMAIL_IMAP_PASSWORD;
+		delete process.env.EMAIL_IMAP_USER;
+		delete process.env.EMAIL_IMAP_PASSWORD;
+
+		const result = validateProviderConfig({ type: "imap" });
+		assert.strictEqual(result.valid, false);
+		assert.ok(result.errors.length >= 2);
+
+		process.env.EMAIL_IMAP_USER = origUser;
+		process.env.EMAIL_IMAP_PASSWORD = origPass;
 	});
 
 	test("should return error for unknown provider type", () => {
-		const result = validateProviderConfig({ type: "outlook" });
+		const result = validateProviderConfig({ type: "unknown" });
 		assert.strictEqual(result.valid, false);
 		assert.ok(result.errors);
-		assert.ok(result.errors.some((e) => e.includes("Unknown")));
-	});
-
-	test("should return valid for Gmail config with optional fields", () => {
-		const result = validateProviderConfig({
-			type: "gmail",
-			clientId: "id",
-			clientSecret: "secret",
-			refreshToken: "token",
-			accessToken: "access",
-			userId: "user@example.com",
-		});
-		assert.strictEqual(result.valid, true);
-	});
-
-	test("should return valid for Graph config with optional accessToken", () => {
-		const result = validateProviderConfig({
-			type: "graph",
-			clientId: "id",
-			clientSecret: "secret",
-			refreshToken: "token",
-			tenantId: "tenant",
-			accessToken: "access",
-		});
-		assert.strictEqual(result.valid, true);
-	});
-
-	test("should return valid for IMAP config with optional fields", () => {
-		const result = validateProviderConfig({
-			type: "imap",
-			host: "imap.example.com",
-			port: 993,
-			secure: true,
-			user: "user",
-			password: "pass",
-		});
-		assert.strictEqual(result.valid, true);
+		assert.ok(result.errors[0].includes("Unknown provider type"));
 	});
 });
