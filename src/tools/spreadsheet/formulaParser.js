@@ -99,16 +99,22 @@ function tokenize(input) {
 			ch === "^" ||
 			ch === "=" ||
 			ch === "<" ||
-			ch === ">"
+			ch === ">" ||
+			ch === "!" ||
+			ch === "&" ||
+			ch === "|"
 		) {
 			let op = ch;
 			pos++;
-			// Handle !=, <=, >=
+			// Handle ==, !=, <=, >=, &&, ||
 			if (
 				pos < input.length &&
-				((op === "!" && input[pos] === "=") ||
+				((op === "=" && input[pos] === "=") ||
+					(op === "!" && input[pos] === "=") ||
 					(op === "<" && input[pos] === "=") ||
-					(op === ">" && input[pos] === "="))
+					(op === ">" && input[pos] === "=") ||
+					(op === "&" && input[pos] === "&") ||
+					(op === "|" && input[pos] === "|"))
 			) {
 				op += input[pos];
 				pos++;
@@ -141,7 +147,7 @@ function tokenize(input) {
 		// Identifiers (cell references, function names, sheet references)
 		if (/[a-zA-Z_]/.test(ch)) {
 			let ident = "";
-			while (pos < input.length && /[a-zA-Z0-9_!]/.test(input[pos])) {
+			while (pos < input.length && /[a-zA-Z0-9_]/.test(input[pos])) {
 				ident += input[pos++];
 			}
 			tokens.push({ type: TOKEN_TYPES.IDENTIFIER, value: ident });
@@ -427,17 +433,17 @@ const BUILTIN_FUNCTIONS = {
 	},
 	LEFT: (args) => {
 		const str = String(args[0]);
-		const n = safeNumber(args[1]) ?? 1;
+		const n = args.length > 1 ? safeNumber(args[1]) : 1;
 		return str.substring(0, n);
 	},
 	RIGHT: (args) => {
 		const str = String(args[0]);
-		const n = safeNumber(args[1]) ?? 1;
+		const n = args.length > 1 ? safeNumber(args[1]) : 1;
 		return str.substring(str.length - n);
 	},
 	FIND: (args) => {
-		const str = String(args[0]);
-		const search = String(args[1]);
+		const search = String(args[0]);
+		const str = String(args[1]);
 		return str.indexOf(search) + 1; // 1-indexed like Excel
 	},
 	NOW: () => new Date().toISOString(),
@@ -481,9 +487,10 @@ function evaluateNode(node, context, options) {
 			if (visited.has(ref)) {
 				throw new Error(`Circular reference detected: ${ref}`);
 			}
+			visited.add(ref);
 			const value = context[ref];
 			if (value === undefined || value === null) return 0;
-			if (typeof value === "string" && !isNaN(Number(value))) return Number(value);
+			if (typeof value === "string" && value.length > 0 && !isNaN(Number(value))) return Number(value);
 			return value;
 		}
 
@@ -491,7 +498,7 @@ function evaluateNode(node, context, options) {
 			const operand = evaluateNode(node.operand, context, {
 				...options,
 				depth: depth + 1,
-				visited: new Set([...visited, ...getRefs(node.operand)]),
+				visited,
 			});
 			if (node.op === "-") return -safeNumber(operand);
 			if (node.op === "!") return !evaluateCondition(operand);
@@ -502,12 +509,12 @@ function evaluateNode(node, context, options) {
 			const left = evaluateNode(node.left, context, {
 				...options,
 				depth: depth + 1,
-				visited: new Set([...visited, ...getRefs(node.left)]),
+				visited,
 			});
 			const right = evaluateNode(node.right, context, {
 				...options,
 				depth: depth + 1,
-				visited: new Set([...visited, ...getRefs(node.right)]),
+				visited,
 			});
 
 			switch (node.op) {
@@ -550,13 +557,14 @@ function evaluateNode(node, context, options) {
 				throw new Error(`Unknown function: ${fnName}`);
 			}
 
-			const evaluatedArgs = node.args.map((arg) =>
-				evaluateNode(arg, context, {
+			const evaluatedArgs = node.args.flatMap((arg) => {
+				const result = evaluateNode(arg, context, {
 					...options,
 					depth: depth + 1,
-					visited: new Set([...visited, ...getRefs(arg)]),
-				}),
-			);
+					visited,
+				});
+				return Array.isArray(result) ? result : [result];
+			});
 
 			return BUILTIN_FUNCTIONS[fnName](evaluatedArgs);
 		}
@@ -591,21 +599,34 @@ function getRefs(node) {
 	return refs;
 }
 
-function evaluateRange(rangeStr, context, _options) {
+function evaluateRange(rangeStr, context, options) {
 	const [start, end] = rangeStr.split(":");
 	if (!start || !end) throw new Error(`Invalid range: ${rangeStr}`);
 
+	const startColMatch = start.match(/^([A-Z]+)/);
+	const endColMatch = end.match(/^([A-Z]+)/);
+	if (!startColMatch || !endColMatch) throw new Error(`Invalid range: ${rangeStr}`);
+
+	const startCol = startColMatch[1];
+	const endCol = endColMatch[1];
 	const startRow = parseInt(start.replace(/[^0-9]/g, ""), 10);
 	const endRow = parseInt(end.replace(/[^0-9]/g, ""), 10);
-	const colMatch = start.match(/^([A-Z]+)/);
-	if (!colMatch) throw new Error(`Invalid range: ${rangeStr}`);
-	const col = colMatch[1];
 
 	const values = [];
-	for (let row = startRow; row <= endRow; row++) {
-		const ref = `${col}${row}`;
-		if (context[ref] !== undefined && context[ref] !== null) {
-			values.push(context[ref]);
+	// Iterate over columns
+	const colStart = startCol.charCodeAt(0) - 65;
+	const colEnd = endCol.charCodeAt(0) - 65;
+	for (let colIdx = colStart; colIdx <= colEnd; colIdx++) {
+		const col = String.fromCharCode(65 + colIdx);
+		for (let row = startRow; row <= endRow; row++) {
+			const ref = `${col}${row}`;
+			if (options.visited.has(ref)) {
+				throw new Error(`Circular reference detected: ${ref}`);
+			}
+			options.visited.add(ref);
+			if (context[ref] !== undefined && context[ref] !== null) {
+				values.push(context[ref]);
+			}
 		}
 	}
 	return values;
