@@ -385,7 +385,7 @@ describe("Calendar Schemas", () => {
 // --- CalendarProviderBase Tests ---
 
 import { CalendarProviderBase } from "../../../src/tools/calendar/providers/base.js";
-import { findFreeSlots } from "../../../src/tools/calendar/index.js";
+import { calendar, calendarImpl, findFreeSlots } from "../../../src/tools/calendar/index.js";
 
 describe("Calendar Provider", () => {
 	describe("CalendarProviderBase", () => {
@@ -564,8 +564,6 @@ describe("Calendar Provider", () => {
 
 // --- Calendar Tool Integration Tests ---
 
-import { calendar, calendarImpl } from "../../../src/tools/calendar/index.js";
-
 describe("Calendar Tool Integration", () => {
 	describe("calendar tool", () => {
 		it("should be a valid LangChain tool", () => {
@@ -732,14 +730,18 @@ describe("Google Calendar Provider", () => {
 		// Import the real googleapis module and mock its methods
 		const { google } = await import("googleapis");
 		mock.method(google, "calendar", () => mockCalendarObj);
-		mock.method(google.auth, "JWT", class MockJWT {
-			constructor(opts) {
-				this.email = opts.email;
-				this.key = opts.key;
-				this.scope = opts.scope;
-				this.quotaUser = undefined;
-			}
-		});
+		mock.method(
+			google.auth,
+			"JWT",
+			class MockJWT {
+				constructor(opts) {
+					this.email = opts.email;
+					this.key = opts.key;
+					this.scope = opts.scope;
+					this.quotaUser = undefined;
+				}
+			},
+		);
 
 		// Now import the provider module (it will use the mocked google)
 		const googleModule = await import("../../../src/tools/calendar/providers/google.js");
@@ -899,9 +901,7 @@ describe("Google Calendar Provider", () => {
 
 	it("should create event", async () => {
 		const provider = new GoogleCalendarProvider({ apiKey: "test-key" });
-		mockEventsInsert.mock.mockImplementation(() =>
-			Promise.resolve({ data: { id: "evt-new" } }),
-		);
+		mockEventsInsert.mock.mockImplementation(() => Promise.resolve({ data: { id: "evt-new" } }));
 
 		const result = await provider.createEvent({
 			title: "New Event",
@@ -919,9 +919,7 @@ describe("Google Calendar Provider", () => {
 
 	it("should create event without reminders", async () => {
 		const provider = new GoogleCalendarProvider({ apiKey: "test-key" });
-		mockEventsInsert.mock.mockImplementation(() =>
-			Promise.resolve({ data: { id: "evt-new-2" } }),
-		);
+		mockEventsInsert.mock.mockImplementation(() => Promise.resolve({ data: { id: "evt-new-2" } }));
 
 		const result = await provider.createEvent({
 			title: "Simple Event",
@@ -973,9 +971,7 @@ describe("Google Calendar Provider", () => {
 				data: {
 					calendars: {
 						primary: {
-							busy: [
-								{ start: "2025-01-01T09:00:00Z", end: "2025-01-01T10:00:00Z" },
-							],
+							busy: [{ start: "2025-01-01T09:00:00Z", end: "2025-01-01T10:00:00Z" }],
 						},
 					},
 				},
@@ -1081,7 +1077,14 @@ describe("Google Calendar Provider", () => {
 			mockEventsList.mock.mockImplementation(() =>
 				Promise.resolve({
 					data: {
-						items: [{ id: "evt-1", summary: "Test", start: { dateTime: "2025-01-01T10:00:00Z" }, end: { dateTime: "2025-01-01T11:00:00Z" } }],
+						items: [
+							{
+								id: "evt-1",
+								summary: "Test",
+								start: { dateTime: "2025-01-01T10:00:00Z" },
+								end: { dateTime: "2025-01-01T11:00:00Z" },
+							},
+						],
 					},
 				}),
 			);
@@ -1095,9 +1098,7 @@ describe("Google Calendar Provider", () => {
 		});
 
 		it("should handle read action with default endDate", async () => {
-			mockEventsList.mock.mockImplementation(() =>
-				Promise.resolve({ data: { items: [] } }),
-			);
+			mockEventsList.mock.mockImplementation(() => Promise.resolve({ data: { items: [] } }));
 
 			const result = await calendarImpl(
 				{ action: "read", startDate: "2025-01-01T00:00:00Z" },
@@ -1107,9 +1108,7 @@ describe("Google Calendar Provider", () => {
 		});
 
 		it("should handle read action error from provider", async () => {
-			mockEventsList.mock.mockImplementation(() =>
-				Promise.reject(new Error("Provider error")),
-			);
+			mockEventsList.mock.mockImplementation(() => Promise.reject(new Error("Provider error")));
 
 			const result = await calendarImpl(
 				{ action: "read", startDate: "2025-01-01T00:00:00Z" },
@@ -1119,9 +1118,7 @@ describe("Google Calendar Provider", () => {
 		});
 
 		it("should handle read action exception", async () => {
-			mockEventsList.mock.mockImplementation(() =>
-				Promise.reject(new Error("Network error")),
-			);
+			mockEventsList.mock.mockImplementation(() => Promise.reject(new Error("Network error")));
 
 			const result = await calendarImpl(
 				{ action: "read", startDate: "2025-01-01T00:00:00Z" },
@@ -1132,9 +1129,7 @@ describe("Google Calendar Provider", () => {
 		});
 
 		it("should successfully create event", async () => {
-			mockEventsInsert.mock.mockImplementation(() =>
-				Promise.resolve({ data: { id: "evt-new" } }),
-			);
+			mockEventsInsert.mock.mockImplementation(() => Promise.resolve({ data: { id: "evt-new" } }));
 
 			const result = await calendarImpl(
 				{
@@ -1150,9 +1145,7 @@ describe("Google Calendar Provider", () => {
 		});
 
 		it("should handle create action error from provider", async () => {
-			mockEventsInsert.mock.mockImplementation(() =>
-				Promise.reject(new Error("Create failed")),
-			);
+			mockEventsInsert.mock.mockImplementation(() => Promise.reject(new Error("Create failed")));
 
 			const result = await calendarImpl(
 				{
@@ -1167,9 +1160,7 @@ describe("Google Calendar Provider", () => {
 		});
 
 		it("should handle create action exception", async () => {
-			mockEventsInsert.mock.mockImplementation(() =>
-				Promise.reject(new Error("Create error")),
-			);
+			mockEventsInsert.mock.mockImplementation(() => Promise.reject(new Error("Create error")));
 
 			const result = await calendarImpl(
 				{
@@ -1196,9 +1187,7 @@ describe("Google Calendar Provider", () => {
 		});
 
 		it("should handle update action error from provider", async () => {
-			mockEventsUpdate.mock.mockImplementation(() =>
-				Promise.reject(new Error("Update failed")),
-			);
+			mockEventsUpdate.mock.mockImplementation(() => Promise.reject(new Error("Update failed")));
 
 			const result = await calendarImpl(
 				{ action: "update", eventId: "evt-1" },
@@ -1208,9 +1197,7 @@ describe("Google Calendar Provider", () => {
 		});
 
 		it("should handle update action exception", async () => {
-			mockEventsUpdate.mock.mockImplementation(() =>
-				Promise.reject(new Error("Update error")),
-			);
+			mockEventsUpdate.mock.mockImplementation(() => Promise.reject(new Error("Update error")));
 
 			const result = await calendarImpl(
 				{ action: "update", eventId: "evt-1" },
@@ -1232,9 +1219,7 @@ describe("Google Calendar Provider", () => {
 		});
 
 		it("should handle delete action error from provider", async () => {
-			mockEventsDelete.mock.mockImplementation(() =>
-				Promise.reject(new Error("Delete failed")),
-			);
+			mockEventsDelete.mock.mockImplementation(() => Promise.reject(new Error("Delete failed")));
 
 			const result = await calendarImpl(
 				{ action: "delete", eventId: "evt-1" },
@@ -1244,9 +1229,7 @@ describe("Google Calendar Provider", () => {
 		});
 
 		it("should handle delete action exception", async () => {
-			mockEventsDelete.mock.mockImplementation(() =>
-				Promise.reject(new Error("Delete error")),
-			);
+			mockEventsDelete.mock.mockImplementation(() => Promise.reject(new Error("Delete error")));
 
 			const result = await calendarImpl(
 				{ action: "delete", eventId: "evt-1" },
@@ -1336,7 +1319,14 @@ describe("Google Calendar Provider", () => {
 			mockEventsList.mock.mockImplementation(() =>
 				Promise.resolve({
 					data: {
-						items: [{ id: "evt-1", summary: "Event", start: { dateTime: "2025-01-01T10:00:00Z" }, end: { dateTime: "2025-01-01T11:00:00Z" } }],
+						items: [
+							{
+								id: "evt-1",
+								summary: "Event",
+								start: { dateTime: "2025-01-01T10:00:00Z" },
+								end: { dateTime: "2025-01-01T11:00:00Z" },
+							},
+						],
 					},
 				}),
 			);
@@ -1353,9 +1343,7 @@ describe("Google Calendar Provider", () => {
 		});
 
 		it("should handle summary action with default endDate", async () => {
-			mockEventsList.mock.mockImplementation(() =>
-				Promise.resolve({ data: { items: [] } }),
-			);
+			mockEventsList.mock.mockImplementation(() => Promise.resolve({ data: { items: [] } }));
 
 			const result = await calendarImpl(
 				{
@@ -1368,9 +1356,7 @@ describe("Google Calendar Provider", () => {
 		});
 
 		it("should handle summary action error from provider", async () => {
-			mockEventsList.mock.mockImplementation(() =>
-				Promise.reject(new Error("Summary failed")),
-			);
+			mockEventsList.mock.mockImplementation(() => Promise.reject(new Error("Summary failed")));
 
 			const result = await calendarImpl(
 				{
@@ -1383,9 +1369,7 @@ describe("Google Calendar Provider", () => {
 		});
 
 		it("should handle summary action exception", async () => {
-			mockEventsList.mock.mockImplementation(() =>
-				Promise.reject(new Error("Summary error")),
-			);
+			mockEventsList.mock.mockImplementation(() => Promise.reject(new Error("Summary error")));
 
 			const result = await calendarImpl(
 				{
@@ -1431,9 +1415,7 @@ describe("MS Graph Calendar Provider", () => {
 		fetchMock.mock.mockImplementation((url) => {
 			const urlStr = typeof url === "string" ? url : url.toString();
 			if (urlStr.includes("login.microsoftonline.com")) {
-				return Promise.resolve(
-					mockResponse({ access_token: "mock-access-token" }),
-				);
+				return Promise.resolve(mockResponse({ access_token: "mock-access-token" }));
 			}
 			// Default graph response: empty
 			return Promise.resolve(mockResponse({ value: [] }));
@@ -1772,7 +1754,10 @@ describe("MS Graph Calendar Provider", () => {
 					value: [
 						{
 							busyTimes: [
-								{ start: { dateTime: "2025-01-01T09:00:00Z" }, end: { dateTime: "2025-01-01T10:00:00Z" } },
+								{
+									start: { dateTime: "2025-01-01T09:00:00Z" },
+									end: { dateTime: "2025-01-01T10:00:00Z" },
+								},
 							],
 						},
 					],
@@ -1917,8 +1902,8 @@ describe("MS Graph Calendar Provider", () => {
 		});
 
 		// The API call should fail because auth failed
-		await assert.rejects(
-			() => provider.readEvents({ startDate: "2025-01-01T00:00:00Z", endDate: "2025-01-02T00:00:00Z" }),
+		await assert.rejects(() =>
+			provider.readEvents({ startDate: "2025-01-01T00:00:00Z", endDate: "2025-01-02T00:00:00Z" }),
 		);
 	});
 });
@@ -1965,10 +1950,7 @@ describe("CalendarProviderBase Rate Limiting", () => {
 		provider._executeWithRetry(async () => "ok");
 		provider._executeWithRetry(async () => "ok");
 		// Third call should fail with rate limit
-		assert.rejects(
-			() => provider._executeWithRetry(async () => "ok"),
-			/rate limit/i,
-		);
+		assert.rejects(() => provider._executeWithRetry(async () => "ok"), /rate limit/i);
 	});
 
 	it("should reset rate limit window after timeout", async () => {
@@ -1976,10 +1958,7 @@ describe("CalendarProviderBase Rate Limiting", () => {
 		// Use first request
 		await provider._executeWithRetry(async () => "ok");
 		// Second should hit rate limit
-		await assert.rejects(
-			() => provider._executeWithRetry(async () => "ok"),
-			/rate limit/i,
-		);
+		await assert.rejects(() => provider._executeWithRetry(async () => "ok"), /rate limit/i);
 	});
 
 	it("should retry on rate limit error", async () => {

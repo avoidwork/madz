@@ -23,17 +23,11 @@ describe("compactContext - extractContextLength", () => {
 	});
 
 	it("extracts from 'maximum context length is X tokens'", () => {
-		assert.strictEqual(
-			extractContextLength("maximum context length is 128000 tokens"),
-			128000,
-		);
+		assert.strictEqual(extractContextLength("maximum context length is 128000 tokens"), 128000);
 	});
 
 	it("extracts from 'maximum context length of X tokens'", () => {
-		assert.strictEqual(
-			extractContextLength("maximum context length of 4096 tokens"),
-			4096,
-		);
+		assert.strictEqual(extractContextLength("maximum context length of 4096 tokens"), 4096);
 	});
 
 	it("extracts from 'context limit: X'", () => {
@@ -45,25 +39,13 @@ describe("compactContext - extractContextLength", () => {
 	});
 
 	it("returns null for unrelated error messages", () => {
-		assert.strictEqual(
-			extractContextLength("rate limit exceeded: 429"),
-			null,
-		);
-		assert.strictEqual(
-			extractContextLength("internal server error"),
-			null,
-		);
+		assert.strictEqual(extractContextLength("rate limit exceeded: 429"), null);
+		assert.strictEqual(extractContextLength("internal server error"), null);
 	});
 
 	it("is case-insensitive", () => {
-		assert.strictEqual(
-			extractContextLength("MAXIMUM CONTEXT LENGTH IS 32000 TOKENS"),
-			32000,
-		);
-		assert.strictEqual(
-			extractContextLength("Context LIMIT: 64000"),
-			64000,
-		);
+		assert.strictEqual(extractContextLength("MAXIMUM CONTEXT LENGTH IS 32000 TOKENS"), 32000);
+		assert.strictEqual(extractContextLength("Context LIMIT: 64000"), 64000);
 	});
 });
 
@@ -190,9 +172,7 @@ describe("compactContext - compactConversation", () => {
 		});
 		assert.strictEqual(result.ok, true);
 		assert.ok(
-			["minimal-retention", "minimal-over-budget", "last-message-only"].includes(
-				result.strategy,
-			),
+			["minimal-retention", "minimal-over-budget", "last-message-only"].includes(result.strategy),
 		);
 	});
 
@@ -263,9 +243,7 @@ describe("compactContext - compactConversation", () => {
 			targetTokens: 1,
 		});
 		assert.strictEqual(result.ok, true);
-		assert.ok(
-			["last-message-only", "minimal-over-budget"].includes(result.strategy),
-		);
+		assert.ok(["last-message-only", "minimal-over-budget"].includes(result.strategy));
 	});
 
 	it("computes originalTokenCount correctly", () => {
@@ -304,9 +282,12 @@ describe("compactContext - compactConversation", () => {
 		});
 		assert.strictEqual(result.ok, true);
 		assert.ok(
-			["tiered-retention-reduced", "minimal-retention", "minimal-over-budget", "last-message-only"].includes(
-				result.strategy,
-			),
+			[
+				"tiered-retention-reduced",
+				"minimal-retention",
+				"minimal-over-budget",
+				"last-message-only",
+			].includes(result.strategy),
 		);
 	});
 
@@ -333,9 +314,7 @@ describe("compactContext - compactConversation", () => {
 	it("returns warning when no messages can be produced", () => {
 		// Create a conversation where the last exchange has no user message
 		// This is an edge case: conversation starts with assistant
-		const conversation = [
-			{ role: "assistant", content: "Hello" },
-		];
+		const conversation = [{ role: "assistant", content: "Hello" }];
 		const result = compactConversation({
 			systemPrompt: "",
 			conversation,
@@ -406,9 +385,7 @@ describe("compactContext - createCompactContextTool", () => {
 		const tool = createCompactContextTool({
 			checkpointer: failingCheckpointer,
 			threadConfig: { configurable: { thread_id: "test-thread" } },
-			conversation: [
-				{ role: "user", content: "Hello" },
-			],
+			conversation: [{ role: "user", content: "Hello" }],
 		});
 		const result = await tool.invoke({ action: "compact", targetTokens: 10000 });
 		const parsed = JSON.parse(result);
@@ -423,9 +400,7 @@ describe("compactContext - createCompactContextTool", () => {
 		const tool = createCompactContextTool({
 			maxContextLength: 128000,
 			maxTokens: 4096,
-			conversation: [
-				{ role: "user", content: "Hello" },
-			],
+			conversation: [{ role: "user", content: "Hello" }],
 		});
 		const result = await tool.invoke({ action: "compact" });
 		const parsed = JSON.parse(result);
@@ -498,9 +473,7 @@ describe("compactContext - createCompactContextTool", () => {
 		const tool = createCompactContextTool({
 			checkpointer: throwingCheckpointer,
 			threadConfig: { configurable: { thread_id: "test" } },
-			conversation: [
-				{ role: "user", content: "Hello" },
-			],
+			conversation: [{ role: "user", content: "Hello" }],
 		});
 		const result = await tool.invoke({ action: "compact", targetTokens: 10000 });
 		const parsed = JSON.parse(result);

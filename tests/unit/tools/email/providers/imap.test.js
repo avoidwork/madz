@@ -3,7 +3,6 @@ import assert from "node:assert";
 
 describe("ImapProvider — happy paths", () => {
 	let ImapProvider;
-	let nodemailerMod;
 	let imapSimpleMod;
 	let mockConnection;
 	let origConnect;
@@ -13,7 +12,6 @@ describe("ImapProvider — happy paths", () => {
 		process.env.EMAIL_IMAP_USER = "test-user";
 		process.env.EMAIL_IMAP_PASSWORD = "test-pass";
 
-		nodemailerMod = await import("nodemailer");
 		imapSimpleMod = await import("imap-simple");
 
 		const mod = await import("../../../../../src/tools/email/providers/imap.js");
@@ -234,9 +232,7 @@ describe("ImapProvider — happy paths", () => {
 
 	describe("search()", () => {
 		test("should search messages by query", async () => {
-			mockConnection.search = async () => [
-				{ attributes: { uid: "uid-1" } },
-			];
+			mockConnection.search = async () => [{ attributes: { uid: "uid-1" } }];
 			mockConnection.getAttributes = async () => [
 				{
 					headers: {
@@ -595,9 +591,7 @@ describe("ImapProvider — happy paths", () => {
 	describe("normalizeMessage()", () => {
 		test("should handle IMAP message format", async () => {
 			// Test indirectly through read()
-			mockConnection.search = async () => [
-				{ attributes: { uid: "uid-1" } },
-			];
+			mockConnection.search = async () => [{ attributes: { uid: "uid-1" } }];
 			mockConnection.getAttributes = async () => [
 				{
 					headers: {
@@ -785,8 +779,8 @@ describe("ImapProvider — happy paths", () => {
 			// updateDraft calls deleteDraft then saveDraft, both catch their own errors
 			assert.ok(
 				result.error.includes("IMAP saveDraft failed") ||
-				result.error.includes("IMAP deleteDraft failed") ||
-				result.error.includes("IMAP updateDraft failed"),
+					result.error.includes("IMAP deleteDraft failed") ||
+					result.error.includes("IMAP updateDraft failed"),
 			);
 		});
 

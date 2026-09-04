@@ -156,10 +156,7 @@ describe("AgentRegistry", () => {
 				model: "not-an-object",
 			});
 			ok(!result.isValid, "Should be invalid");
-			ok(
-				result.errors.includes("Agent model must be an object"),
-				"Should have model type error",
-			);
+			ok(result.errors.includes("Agent model must be an object"), "Should have model type error");
 		});
 
 		it("should reject agent with non-array tools", () => {
@@ -170,10 +167,7 @@ describe("AgentRegistry", () => {
 				tools: "not-an-array",
 			});
 			ok(!result.isValid, "Should be invalid");
-			ok(
-				result.errors.includes("Agent tools must be an array"),
-				"Should have tools type error",
-			);
+			ok(result.errors.includes("Agent tools must be an array"), "Should have tools type error");
 		});
 
 		it("should collect multiple validation errors", () => {

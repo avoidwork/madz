@@ -520,7 +520,7 @@ describe("cron - Cron.add write error", () => {
 	});
 
 	it("returns error when _writeCrontab fails", async () => {
-		const failingWriteExec = (cmd, options) => {
+		const failingWriteExec = (cmd, _options) => {
 			if (cmd.includes("which crontab")) {
 				return Promise.resolve({ stdout: "/usr/bin/crontab", stderr: "" });
 			}
@@ -550,12 +550,16 @@ describe("cron - Cron.remove write error", () => {
 	});
 
 	it("returns error when _writeCrontab fails during remove", async () => {
-		const failingWriteExec = (cmd, options) => {
+		const failingWriteExec = (cmd, _options) => {
 			if (cmd.includes("which crontab")) {
 				return Promise.resolve({ stdout: "/usr/bin/crontab", stderr: "" });
 			}
 			if (cmd.includes("crontab -l")) {
-				return Promise.resolve({ stdout: "# --- BEGIN madz-schedules ---\n* * * * *  echo test  # madz-schedule: test\n# --- END madz-schedules ---\n", stderr: "" });
+				return Promise.resolve({
+					stdout:
+						"# --- BEGIN madz-schedules ---\n* * * * *  echo test  # madz-schedule: test\n# --- END madz-schedules ---\n",
+					stderr: "",
+				});
 			}
 			if (cmd.includes("crontab -")) {
 				return Promise.reject(new Error("write failed"));
@@ -580,7 +584,7 @@ describe("cron - Cron.install write error", () => {
 	});
 
 	it("returns error when _writeCrontab fails during install", async () => {
-		const failingWriteExec = (cmd, options) => {
+		const failingWriteExec = (cmd, _options) => {
 			if (cmd.includes("which crontab")) {
 				return Promise.resolve({ stdout: "/usr/bin/crontab", stderr: "" });
 			}
@@ -610,7 +614,7 @@ describe("cron - Cron.sync write error", () => {
 	});
 
 	it("returns error when _writeCrontab fails during sync", async () => {
-		const failingWriteExec = (cmd, options) => {
+		const failingWriteExec = (cmd, _options) => {
 			if (cmd.includes("which crontab")) {
 				return Promise.resolve({ stdout: "/usr/bin/crontab", stderr: "" });
 			}
@@ -652,17 +656,23 @@ describe("cron - Cron.sync with updates and removals", () => {
 
 	it("detects updated and skipped entries", async () => {
 		const testDir = "memory/__test_sync_update__/";
-		const { mkdirSync, writeFileSync, rmSync } = await import("node:fs");
+		const { mkdirSync, rmSync } = await import("node:fs");
 		const { join } = await import("node:path");
 		mkdirSync(join(process.cwd(), testDir), { recursive: true });
 
 		// Pre-populate crontab with an existing entry
-		mockCrontabContent = "# --- BEGIN madz-schedules ---\n* * * * *  echo old  # madz-schedule: existing-job\n# --- END madz-schedules ---\n";
+		mockCrontabContent =
+			"# --- BEGIN madz-schedules ---\n* * * * *  echo old  # madz-schedule: existing-job\n# --- END madz-schedules ---\n";
 
 		// Create job file with same name but different command (update)
 		writeFileSync(
 			join(process.cwd(), testDir, "existing-job.json"),
-			JSON.stringify({ name: "existing-job", cron: "* * * * *", command: "echo new", enabled: true }),
+			JSON.stringify({
+				name: "existing-job",
+				cron: "* * * * *",
+				command: "echo new",
+				enabled: true,
+			}),
 		);
 
 		const result = await Cron.sync(testDir);
@@ -676,12 +686,13 @@ describe("cron - Cron.sync with updates and removals", () => {
 
 	it("detects removed entries", async () => {
 		const testDir = "memory/__test_sync_remove__/";
-		const { mkdirSync, writeFileSync, rmSync } = await import("node:fs");
+		const { mkdirSync, rmSync } = await import("node:fs");
 		const { join } = await import("node:path");
 		mkdirSync(join(process.cwd(), testDir), { recursive: true });
 
 		// Pre-populate crontab with an entry that has no corresponding job file
-		mockCrontabContent = "# --- BEGIN madz-schedules ---\n* * * * *  echo old  # madz-schedule: removed-job\n# --- END madz-schedules ---\n";
+		mockCrontabContent =
+			"# --- BEGIN madz-schedules ---\n* * * * *  echo old  # madz-schedule: removed-job\n# --- END madz-schedules ---\n";
 
 		const result = await Cron.sync(testDir);
 		// _ensureReflectionJob creates reflection-daily (added) + removed-job (removed)
@@ -693,7 +704,7 @@ describe("cron - Cron.sync with updates and removals", () => {
 
 	it("handles unreadable job files gracefully", async () => {
 		const testDir = "memory/__test_sync_unreadable__/";
-		const { mkdirSync, writeFileSync, rmSync, chmodSync } = await import("node:fs");
+		const { mkdirSync, writeFileSync, rmSync } = await import("node:fs");
 		const { join } = await import("node:path");
 		mkdirSync(join(process.cwd(), testDir), { recursive: true });
 

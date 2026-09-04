@@ -35,14 +35,16 @@ describe("GraphProvider — happy paths", () => {
 				return {
 					ok: true,
 					json: async () => ({
-						value: [{
-							id: "graph-msg-1",
-							subject: "Graph Test",
-							from: { emailAddress: { address: "graph@example.com" } },
-							toRecipients: [{ emailAddress: { address: "me@example.com" } }],
-							body: { contentType: "Text", content: "Graph body" },
-							receivedDateTime: "2024-01-01T00:00:00Z",
-						}],
+						value: [
+							{
+								id: "graph-msg-1",
+								subject: "Graph Test",
+								from: { emailAddress: { address: "graph@example.com" } },
+								toRecipients: [{ emailAddress: { address: "me@example.com" } }],
+								body: { contentType: "Text", content: "Graph body" },
+								receivedDateTime: "2024-01-01T00:00:00Z",
+							},
+						],
 					}),
 				};
 			}
@@ -117,13 +119,13 @@ describe("GraphProvider — happy paths", () => {
 	});
 
 	test("send() should POST to sendMail endpoint", async () => {
-		let sentBody = null;
+		let _sentBody = null;
 		globalThis.fetch = async (url, opts) => {
 			if (url.includes("/token")) {
 				return { ok: true, json: async () => ({ access_token: "fake-token" }) };
 			}
 			if (url.includes("/sendMail")) {
-				sentBody = JSON.parse(opts.body);
+				_sentBody = JSON.parse(opts.body);
 				return { ok: true, json: async () => ({ id: "sent-msg-123" }) };
 			}
 			return { ok: false, status: 404 };
@@ -143,13 +145,13 @@ describe("GraphProvider — happy paths", () => {
 	});
 
 	test("send() should include CC and BCC recipients", async () => {
-		let sentBody = null;
+		let _sentBody = null;
 		globalThis.fetch = async (url, opts) => {
 			if (url.includes("/token")) {
 				return { ok: true, json: async () => ({ access_token: "fake-token" }) };
 			}
 			if (url.includes("/sendMail")) {
-				sentBody = JSON.parse(opts.body);
+				_sentBody = JSON.parse(opts.body);
 				return { ok: true, json: async () => ({ id: "sent-1" }) };
 			}
 			return { ok: false, status: 404 };
@@ -169,13 +171,13 @@ describe("GraphProvider — happy paths", () => {
 	});
 
 	test("send() should include attachments", async () => {
-		let sentBody = null;
+		let _sentBody = null;
 		globalThis.fetch = async (url, opts) => {
 			if (url.includes("/token")) {
 				return { ok: true, json: async () => ({ access_token: "fake-token" }) };
 			}
 			if (url.includes("/sendMail")) {
-				sentBody = JSON.parse(opts.body);
+				_sentBody = JSON.parse(opts.body);
 				return { ok: true, json: async () => ({ id: "sent-1" }) };
 			}
 			return { ok: false, status: 404 };
@@ -186,7 +188,9 @@ describe("GraphProvider — happy paths", () => {
 			to: ["recipient@example.com"],
 			subject: "With attachment",
 			body: "See attached",
-			attachments: [{ filename: "report.pdf", content: "base64data", contentType: "application/pdf" }],
+			attachments: [
+				{ filename: "report.pdf", content: "base64data", contentType: "application/pdf" },
+			],
 		});
 
 		assert.ok(sentBody.message.attachments);
@@ -194,13 +198,13 @@ describe("GraphProvider — happy paths", () => {
 	});
 
 	test("send() should handle HTML body type", async () => {
-		let sentBody = null;
+		let _sentBody = null;
 		globalThis.fetch = async (url, opts) => {
 			if (url.includes("/token")) {
 				return { ok: true, json: async () => ({ access_token: "fake-token" }) };
 			}
 			if (url.includes("/sendMail")) {
-				sentBody = JSON.parse(opts.body);
+				_sentBody = JSON.parse(opts.body);
 				return { ok: true, json: async () => ({ id: "sent-1" }) };
 			}
 			return { ok: false, status: 404 };
@@ -237,13 +241,13 @@ describe("GraphProvider — happy paths", () => {
 	});
 
 	test("saveDraft() should POST to drafts endpoint", async () => {
-		let sentBody = null;
+		let _sentBody = null;
 		globalThis.fetch = async (url, opts) => {
 			if (url.includes("/token")) {
 				return { ok: true, json: async () => ({ access_token: "fake-token" }) };
 			}
 			if (url.includes("/messages/drafts") && opts.method === "POST") {
-				sentBody = JSON.parse(opts.body);
+				_sentBody = JSON.parse(opts.body);
 				return { ok: true, json: async () => ({ id: "draft-abc-123" }) };
 			}
 			return { ok: false, status: 404 };
@@ -270,8 +274,20 @@ describe("GraphProvider — happy paths", () => {
 					ok: true,
 					json: async () => ({
 						value: [
-							{ id: "draft-1", subject: "Draft One", from: { emailAddress: { address: "me@example.com" } }, body: { contentType: "Text", content: "Draft body 1" }, receivedDateTime: "2024-01-01T00:00:00Z" },
-							{ id: "draft-2", subject: "Draft Two", from: { emailAddress: { address: "me@example.com" } }, body: { contentType: "Text", content: "Draft body 2" }, receivedDateTime: "2024-01-02T00:00:00Z" },
+							{
+								id: "draft-1",
+								subject: "Draft One",
+								from: { emailAddress: { address: "me@example.com" } },
+								body: { contentType: "Text", content: "Draft body 1" },
+								receivedDateTime: "2024-01-01T00:00:00Z",
+							},
+							{
+								id: "draft-2",
+								subject: "Draft Two",
+								from: { emailAddress: { address: "me@example.com" } },
+								body: { contentType: "Text", content: "Draft body 2" },
+								receivedDateTime: "2024-01-02T00:00:00Z",
+							},
 						],
 					}),
 				};
@@ -288,13 +304,13 @@ describe("GraphProvider — happy paths", () => {
 	});
 
 	test("updateDraft() should PATCH a draft", async () => {
-		let sentBody = null;
+		let _sentBody = null;
 		globalThis.fetch = async (url, opts) => {
 			if (url.includes("/token")) {
 				return { ok: true, json: async () => ({ access_token: "fake-token" }) };
 			}
 			if (url.includes("/messages/drafts/draft-1") && opts.method === "PATCH") {
-				sentBody = JSON.parse(opts.body);
+				_sentBody = JSON.parse(opts.body);
 				return { ok: true };
 			}
 			return { ok: false, status: 404 };
@@ -444,7 +460,11 @@ describe("GraphProvider — happy paths", () => {
 		};
 
 		const provider = new GraphProvider({});
-		const result = await provider.organize({ messageIds: ["msg-1"], action: "addLabel", label: "Important" });
+		const result = await provider.organize({
+			messageIds: ["msg-1"],
+			action: "addLabel",
+			label: "Important",
+		});
 
 		assert.strictEqual(result.ok, true);
 		assert.deepStrictEqual(patchBodies[0].categories, ["Important"]);
@@ -464,7 +484,11 @@ describe("GraphProvider — happy paths", () => {
 		};
 
 		const provider = new GraphProvider({});
-		const result = await provider.organize({ messageIds: ["msg-1"], action: "removeLabel", label: "Important" });
+		const result = await provider.organize({
+			messageIds: ["msg-1"],
+			action: "removeLabel",
+			label: "Important",
+		});
 
 		assert.strictEqual(result.ok, true);
 		assert.deepStrictEqual(patchBodies[0].categories, []);
@@ -521,15 +545,17 @@ describe("GraphProvider — happy paths", () => {
 			return {
 				ok: true,
 				json: async () => ({
-					value: [{
-						id: "graph-msg-1",
-						subject: "Graph Test",
-						from: { emailAddress: { address: "graph@example.com" } },
-						toRecipients: [{ emailAddress: { address: "me@example.com" } }],
-						body: { contentType: "Text", content: "Graph body" },
-						receivedDateTime: "2024-01-01T00:00:00Z",
-						bodyPreview: "Graph body preview",
-					}],
+					value: [
+						{
+							id: "graph-msg-1",
+							subject: "Graph Test",
+							from: { emailAddress: { address: "graph@example.com" } },
+							toRecipients: [{ emailAddress: { address: "me@example.com" } }],
+							body: { contentType: "Text", content: "Graph body" },
+							receivedDateTime: "2024-01-01T00:00:00Z",
+							bodyPreview: "Graph body preview",
+						},
+					],
 				}),
 			};
 		};
@@ -643,7 +669,9 @@ describe("GraphProvider — happy paths", () => {
 	});
 
 	test("send() should handle network error", async () => {
-		globalThis.fetch = async () => { throw new Error("Network error"); };
+		globalThis.fetch = async () => {
+			throw new Error("Network error");
+		};
 
 		const provider = new GraphProvider({});
 		const result = await provider.send({
@@ -668,7 +696,9 @@ describe("GraphProvider — happy paths", () => {
 	});
 
 	test("read() should handle network error", async () => {
-		globalThis.fetch = async () => { throw new Error("Network error"); };
+		globalThis.fetch = async () => {
+			throw new Error("Network error");
+		};
 
 		const provider = new GraphProvider({});
 		const result = await provider.read({ limit: 5 });
@@ -689,7 +719,9 @@ describe("GraphProvider — happy paths", () => {
 	});
 
 	test("search() should handle network error", async () => {
-		globalThis.fetch = async () => { throw new Error("Network error"); };
+		globalThis.fetch = async () => {
+			throw new Error("Network error");
+		};
 
 		const provider = new GraphProvider({});
 		const result = await provider.search({ query: "test" });
@@ -714,7 +746,9 @@ describe("GraphProvider — happy paths", () => {
 	});
 
 	test("saveDraft() should handle network error", async () => {
-		globalThis.fetch = async () => { throw new Error("Network error"); };
+		globalThis.fetch = async () => {
+			throw new Error("Network error");
+		};
 
 		const provider = new GraphProvider({});
 		const result = await provider.saveDraft({
@@ -742,7 +776,9 @@ describe("GraphProvider — happy paths", () => {
 	});
 
 	test("updateDraft() should handle network error", async () => {
-		globalThis.fetch = async () => { throw new Error("Network error"); };
+		globalThis.fetch = async () => {
+			throw new Error("Network error");
+		};
 
 		const provider = new GraphProvider({});
 		const result = await provider.updateDraft("draft-1", {
@@ -766,7 +802,9 @@ describe("GraphProvider — happy paths", () => {
 	});
 
 	test("deleteDraft() should handle network error", async () => {
-		globalThis.fetch = async () => { throw new Error("Network error"); };
+		globalThis.fetch = async () => {
+			throw new Error("Network error");
+		};
 
 		const provider = new GraphProvider({});
 		const result = await provider.deleteDraft("draft-1");
@@ -787,7 +825,9 @@ describe("GraphProvider — happy paths", () => {
 	});
 
 	test("organize() should handle network error", async () => {
-		globalThis.fetch = async () => { throw new Error("Network error"); };
+		globalThis.fetch = async () => {
+			throw new Error("Network error");
+		};
 
 		const provider = new GraphProvider({});
 		const result = await provider.organize({ messageIds: ["msg-1"], action: "markRead" });
@@ -802,7 +842,7 @@ describe("GraphProvider — happy paths", () => {
 
 	test("token refresh should handle 401 retry", async () => {
 		let callCount = 0;
-		globalThis.fetch = async (url, opts) => {
+		globalThis.fetch = async (url, _opts) => {
 			callCount++;
 			if (url.includes("/token")) {
 				return { ok: true, json: async () => ({ access_token: "new-token" }) };
@@ -837,7 +877,9 @@ describe("GraphProvider — happy paths", () => {
 	});
 
 	test("sanitizeError should handle null message", async () => {
-		globalThis.fetch = async () => { throw new Error(); };
+		globalThis.fetch = async () => {
+			throw new Error();
+		};
 
 		const provider = new GraphProvider({});
 		const result = await provider.read({ limit: 1 });
@@ -846,7 +888,11 @@ describe("GraphProvider — happy paths", () => {
 
 	test("sanitizeError should redact credentials in error", async () => {
 		// sanitizeError is called in send() error path
-		globalThis.fetch = async () => { throw new Error("client_id=my-id&client_secret=my-secret&access_token=my-token&refresh_token=my-refresh&Bearer my-bearer"); };
+		globalThis.fetch = async () => {
+			throw new Error(
+				"client_id=my-id&client_secret=my-secret&access_token=my-token&refresh_token=my-refresh&Bearer my-bearer",
+			);
+		};
 
 		const provider = new GraphProvider({});
 		const result = await provider.send({

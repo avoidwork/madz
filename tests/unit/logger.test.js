@@ -422,7 +422,10 @@ describe("logger module", () => {
 			);
 			assert.strictEqual(result.code, 0, `stderr: ${result.stderr}`);
 			assert.ok(result.parsed?.r1.includes("[PHONE REDACTED]"), "Phone should be redacted");
-			assert.ok(result.parsed?.r2.includes("[PHONE REDACTED]"), "Formatted phone should be redacted");
+			assert.ok(
+				result.parsed?.r2.includes("[PHONE REDACTED]"),
+				"Formatted phone should be redacted",
+			);
 		});
 
 		it("redacts IP addresses", async () => {
@@ -521,7 +524,10 @@ describe("logger module", () => {
 			`,
 			);
 			assert.strictEqual(result.code, 0, `stderr: ${result.stderr}`);
-			assert.ok(result.parsed?.email.includes("[EMAIL REDACTED]"), "Nested email should be redacted");
+			assert.ok(
+				result.parsed?.email.includes("[EMAIL REDACTED]"),
+				"Nested email should be redacted",
+			);
 			assert.ok(result.parsed?.ip.includes("[IP REDACTED]"), "Nested IP should be redacted");
 		});
 
@@ -608,7 +614,10 @@ describe("logger module", () => {
 			const lines = result.parsed?.content?.split("\n").filter(Boolean) || [];
 			assert.ok(lines.length > 0, "Should have log lines");
 			const entry = JSON.parse(lines[0]);
-			assert.ok(entry.err || entry.stack || entry.msg.includes("error occurred"), "Error should be logged");
+			assert.ok(
+				entry.err || entry.stack || entry.msg.includes("error occurred"),
+				"Error should be logged",
+			);
 		});
 
 		it("logs with interpolated values", async () => {
@@ -733,7 +742,13 @@ describe("logger module", () => {
 });
 
 // Direct tests in main process for coverage
-import { redactPII, redactPIIFromObject, flush, getLogDirectory, logger } from "../../src/shared/logger.js";
+import {
+	redactPII,
+	redactPIIFromObject,
+	flush,
+	getLogDirectory,
+	logger,
+} from "../../src/shared/logger.js";
 
 describe("logger - direct coverage tests", () => {
 	it("redactPII returns non-string input unchanged", () => {

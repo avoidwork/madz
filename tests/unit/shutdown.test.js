@@ -136,9 +136,13 @@ describe("session - registerShutdownHandler", () => {
 	});
 
 	it("supports multiple independent registrations", () => {
-		let callCount = 0;
-		const handler1 = () => { callCount++; };
-		const handler2 = () => { callCount++; };
+		let _callCount = 0;
+		const handler1 = () => {
+			_callCount++;
+		};
+		const handler2 = () => {
+			_callCount++;
+		};
 
 		const remove1 = registerShutdownHandler(handler1);
 		const remove2 = registerShutdownHandler(handler2);

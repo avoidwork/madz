@@ -490,7 +490,8 @@ function evaluateNode(node, context, options) {
 			visited.add(ref);
 			const value = context[ref];
 			if (value === undefined || value === null) return 0;
-			if (typeof value === "string" && value.length > 0 && !isNaN(Number(value))) return Number(value);
+			if (typeof value === "string" && value.length > 0 && !isNaN(Number(value)))
+				return Number(value);
 			return value;
 		}
 
@@ -572,31 +573,6 @@ function evaluateNode(node, context, options) {
 		default:
 			throw new Error(`Unknown AST node type: ${node.type}`);
 	}
-}
-
-function getRefs(node) {
-	if (!node || !node.type) return new Set();
-	const refs = new Set();
-	if (node.type === "cellRef") refs.add(node.ref);
-	if (node.left) {
-		const leftRefs = getRefs(node.left);
-		leftRefs.forEach((r) => refs.add(r));
-	}
-	if (node.right) {
-		const rightRefs = getRefs(node.right);
-		rightRefs.forEach((r) => refs.add(r));
-	}
-	if (node.operand) {
-		const opRefs = getRefs(node.operand);
-		opRefs.forEach((r) => refs.add(r));
-	}
-	if (node.args) {
-		node.args.forEach((arg) => {
-			const argRefs = getRefs(arg);
-			argRefs.forEach((r) => refs.add(r));
-		});
-	}
-	return refs;
 }
 
 function evaluateRange(rangeStr, context, options) {

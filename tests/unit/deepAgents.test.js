@@ -53,9 +53,7 @@ describe("createDeepAgentsOrchestrator", () => {
 		process.env.EMAIL_GMAIL_CLIENT_SECRET = "test-client-secret";
 		process.env.EMAIL_GMAIL_REFRESH_TOKEN = "test-refresh-token";
 
-		const { createDeepAgentsOrchestrator } = await import(
-			"../../src/agent/deepAgents.js"
-		);
+		const { createDeepAgentsOrchestrator } = await import("../../src/agent/deepAgents.js");
 		const result = await createDeepAgentsOrchestrator();
 		assert.ok(result, "Should return an orchestrator");
 		assert.ok(typeof result === "object", "Orchestrator should be an object");
@@ -67,9 +65,7 @@ describe("createDeepAgentsOrchestrator", () => {
 		process.env.EMAIL_GMAIL_CLIENT_SECRET = "test-client-secret";
 		process.env.EMAIL_GMAIL_REFRESH_TOKEN = "test-refresh-token";
 
-		const { createDeepAgentsOrchestrator } = await import(
-			"../../src/agent/deepAgents.js"
-		);
+		const { createDeepAgentsOrchestrator } = await import("../../src/agent/deepAgents.js");
 		const mockCheckpointer = {
 			get: async () => null,
 			set: async () => undefined,
@@ -92,9 +88,7 @@ describe("createDeepAgentsOrchestrator", () => {
 		}
 
 		try {
-			const { createDeepAgentsOrchestrator } = await import(
-				"../../src/agent/deepAgents.js"
-			);
+			const { createDeepAgentsOrchestrator } = await import("../../src/agent/deepAgents.js");
 			const result = await createDeepAgentsOrchestrator();
 			assert.ok(result, "Should still create orchestrator without AGENTS.md");
 		} finally {
@@ -110,11 +104,12 @@ describe("createDeepAgentsOrchestrator", () => {
 		delete process.env.EMAIL_GMAIL_CLIENT_SECRET;
 		delete process.env.EMAIL_GMAIL_REFRESH_TOKEN;
 
-		const { createDeepAgentsOrchestrator } = await import(
-			"../../src/agent/deepAgents.js"
-		);
+		const { createDeepAgentsOrchestrator } = await import("../../src/agent/deepAgents.js");
 		const result = await createDeepAgentsOrchestrator();
-		assert.ok(result, "Should create orchestrator even when email provider config validation fails");
+		assert.ok(
+			result,
+			"Should create orchestrator even when email provider config validation fails",
+		);
 	});
 
 	it("should handle email provider instance validation failure gracefully", async () => {
@@ -131,11 +126,12 @@ describe("createDeepAgentsOrchestrator", () => {
 		}));
 
 		try {
-			const { createDeepAgentsOrchestrator } = await import(
-				"../../src/agent/deepAgents.js"
-			);
+			const { createDeepAgentsOrchestrator } = await import("../../src/agent/deepAgents.js");
 			const result = await createDeepAgentsOrchestrator();
-			assert.ok(result, "Should create orchestrator even when email provider instance validation fails");
+			assert.ok(
+				result,
+				"Should create orchestrator even when email provider instance validation fails",
+			);
 		} finally {
 			mock.reset();
 		}
@@ -154,11 +150,12 @@ describe("createDeepAgentsOrchestrator", () => {
 		});
 
 		try {
-			const { createDeepAgentsOrchestrator } = await import(
-				"../../src/agent/deepAgents.js"
-			);
+			const { createDeepAgentsOrchestrator } = await import("../../src/agent/deepAgents.js");
 			const result = await createDeepAgentsOrchestrator();
-			assert.ok(result, "Should create orchestrator even when email provider validateConfig throws");
+			assert.ok(
+				result,
+				"Should create orchestrator even when email provider validateConfig throws",
+			);
 		} finally {
 			mock.reset();
 		}

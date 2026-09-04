@@ -92,7 +92,9 @@ describe("GmailProvider — happy paths", () => {
 		// Import googleapis and replace its methods before GmailProvider is instantiated
 		googleapis = await import("googleapis");
 		// Replace OAuth2 constructor with a mock constructor
-		googleapis.google.auth.OAuth2 = function() { return mockOAuth2Instance; };
+		googleapis.google.auth.OAuth2 = function () {
+			return mockOAuth2Instance;
+		};
 		// Replace gmail factory
 		googleapis.google.gmail = () => mockGmailInstance;
 
@@ -373,10 +375,7 @@ describe("GmailProvider — happy paths", () => {
 	describe("constructor", () => {
 		test("should throw when env vars are missing", () => {
 			delete process.env.EMAIL_GMAIL_CLIENT_ID;
-			assert.throws(
-				() => new GmailProvider({}),
-				/Gmail provider requires/,
-			);
+			assert.throws(() => new GmailProvider({}), /Gmail provider requires/);
 			process.env.EMAIL_GMAIL_CLIENT_ID = "test-client-id";
 		});
 

@@ -12,7 +12,11 @@ describe("createContextBackend", () => {
 	it("should return a FilesystemBackend instance", () => {
 		const backend = createContextBackend();
 		assert.ok(backend, "Should return a backend");
-		assert.strictEqual(backend.constructor.name, "FilesystemBackend", "Should be a FilesystemBackend");
+		assert.strictEqual(
+			backend.constructor.name,
+			"FilesystemBackend",
+			"Should be a FilesystemBackend",
+		);
 	});
 
 	it("should create backend with context directory from config", () => {

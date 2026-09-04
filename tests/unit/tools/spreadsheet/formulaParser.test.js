@@ -306,57 +306,57 @@ describe("formulaParser", () => {
 		});
 
 		it("should evaluate LEN", () => {
-			const { evaluate } = parseFormula('=LEN(A1)');
+			const { evaluate } = parseFormula("=LEN(A1)");
 			assert.strictEqual(evaluate({ A1: "hello" }), 5);
 		});
 
 		it("should evaluate UPPER", () => {
-			const { evaluate } = parseFormula('=UPPER(A1)');
+			const { evaluate } = parseFormula("=UPPER(A1)");
 			assert.strictEqual(evaluate({ A1: "hello" }), "HELLO");
 		});
 
 		it("should evaluate LOWER", () => {
-			const { evaluate } = parseFormula('=LOWER(A1)');
+			const { evaluate } = parseFormula("=LOWER(A1)");
 			assert.strictEqual(evaluate({ A1: "HELLO" }), "hello");
 		});
 
 		it("should evaluate TRIM", () => {
-			const { evaluate } = parseFormula('=TRIM(A1)');
+			const { evaluate } = parseFormula("=TRIM(A1)");
 			assert.strictEqual(evaluate({ A1: "  hello  " }), "hello");
 		});
 
 		it("should evaluate CONCATENATE", () => {
-			const { evaluate } = parseFormula('=CONCATENATE(A1, A2)');
+			const { evaluate } = parseFormula("=CONCATENATE(A1, A2)");
 			assert.strictEqual(evaluate({ A1: "hello", A2: " world" }), "hello world");
 		});
 
 		it("should evaluate MID", () => {
-			const { evaluate } = parseFormula('=MID(A1, A2, A3)');
+			const { evaluate } = parseFormula("=MID(A1, A2, A3)");
 			assert.strictEqual(evaluate({ A1: "hello", A2: 2, A3: 3 }), "ell");
 		});
 
 		it("should evaluate LEFT", () => {
-			const { evaluate } = parseFormula('=LEFT(A1, A2)');
+			const { evaluate } = parseFormula("=LEFT(A1, A2)");
 			assert.strictEqual(evaluate({ A1: "hello", A2: 2 }), "he");
 		});
 
 		it("should evaluate LEFT with default length", () => {
-			const { evaluate } = parseFormula('=LEFT(A1)');
+			const { evaluate } = parseFormula("=LEFT(A1)");
 			assert.strictEqual(evaluate({ A1: "hello" }), "h");
 		});
 
 		it("should evaluate RIGHT", () => {
-			const { evaluate } = parseFormula('=RIGHT(A1, A2)');
+			const { evaluate } = parseFormula("=RIGHT(A1, A2)");
 			assert.strictEqual(evaluate({ A1: "hello", A2: 2 }), "lo");
 		});
 
 		it("should evaluate FIND", () => {
-			const { evaluate } = parseFormula('=FIND(A1, A2)');
+			const { evaluate } = parseFormula("=FIND(A1, A2)");
 			assert.strictEqual(evaluate({ A1: "ell", A2: "hello" }), 2);
 		});
 
 		it("should evaluate FIND with no match", () => {
-			const { evaluate } = parseFormula('=FIND(A1, A2)');
+			const { evaluate } = parseFormula("=FIND(A1, A2)");
 			assert.strictEqual(evaluate({ A1: "xyz", A2: "hello" }), 0);
 		});
 
@@ -398,10 +398,7 @@ describe("formulaParser", () => {
 
 		it("should handle range references (A1:B3)", () => {
 			const { evaluate } = parseFormula("=SUM(A1:B3)");
-			assert.strictEqual(
-				evaluate({ A1: 1, A2: 2, A3: 3, B1: 4, B2: 5, B3: 6 }),
-				21,
-			);
+			assert.strictEqual(evaluate({ A1: 1, A2: 2, A3: 3, B1: 4, B2: 5, B3: 6 }), 21);
 		});
 
 		it("should handle sheet-qualified references (Sheet1!A1)", () => {
@@ -411,7 +408,10 @@ describe("formulaParser", () => {
 
 		it("should detect circular references", () => {
 			const { evaluate } = parseFormula("=A1+B2");
-			assert.throws(() => evaluate({ A1: 10, B2: 20 }, { maxDepth: 0 }), /Maximum recursion depth exceeded/);
+			assert.throws(
+				() => evaluate({ A1: 10, B2: 20 }, { maxDepth: 0 }),
+				/Maximum recursion depth exceeded/,
+			);
 		});
 	});
 
