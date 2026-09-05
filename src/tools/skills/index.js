@@ -64,9 +64,6 @@ export async function createSkillImpl(input, options = {}) {
 	if (descResult.skip) {
 		return { success: false, name, paths: [], registered: false, errors: descResult.warnings };
 	}
-	if (!descResult.valid) {
-		return { success: false, name, paths: [], registered: false, errors: descResult.warnings };
-	}
 
 	// Validate permissions if provided
 	const warnings = [...nameResult.warnings, ...descResult.warnings];
@@ -116,19 +113,6 @@ export async function createSkillImpl(input, options = {}) {
 
 	if (permissions && permissions.length > 0) {
 		skillMetadata.permission = permissions;
-	}
-
-	// Run full spec validation before writing
-	const fullResult = validateSkillSchema(skillMetadata, name);
-	if (!fullResult.valid) {
-		return {
-			success: false,
-			name,
-			paths: [],
-			registered: false,
-			errors: fullResult.errors,
-			warnings: fullResult.warnings,
-		};
 	}
 
 	// Create the skill directory

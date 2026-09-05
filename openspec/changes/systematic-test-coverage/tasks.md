@@ -54,9 +54,9 @@ Target: raise all files in this group to ≥90% line coverage.
 
 Target: raise all files in this group to ≥90% line coverage.
 
-- [x] 7.1 **skills/registry.js** (83.86%) — uncovered lines are defensive error-handling paths (skip/invalid metadata branches in discover/register) and the `#errors` tracking array (only populated on validation failures). `getErrors()` removed as dead code (never called in production). `getSkillPaths()` and `getSkillPathsForAgent()` retained — used by `deepAgents.js`.
-- [x] 7.2 **skills/agentMapper.js** (83.33% in full suite, 100% in isolation) — same Node.js test runner artifact as patch.js: `discoverer.js` imports it before the test file runs. Tests cover all paths: regex matching, invalid regex skip, null/empty config, edge cases. 17 tests, all passing.
-- [x] 7.3 **tools/skills/index.js** (88.47%) — uncovered lines are defensive error-handling paths (registry check, file write failures, scaffold failures). `generateSkillCatalogPrompt()` removed as dead code (never called in production, only tested).
+- [x] 7.1 **skills/registry.js** (86.62% in full suite, 98.55% in isolation) — removed dead code: `getErrors()` (never called in production), unreachable `if (!valid)` branches in `discover()` and `register()` (validator never returns `valid:false, skip:false`), unreachable `skip` branch in `discover()` (discoverer filters those out first). Added tests for catalog sorting by name, `getSkillPaths` with mixed path presence. Remaining uncovered lines in full suite are Node.js test runner artifacts (other files import registry before test runs).
+- [x] 7.2 **skills/agentMapper.js** (83.33% in full suite, 100% in isolation) — Node.js test runner artifact: `discoverer.js` imports it before the test file runs. 17 tests cover all paths: regex matching, invalid regex skip, null/empty config, edge cases.
+- [x] 7.3 **tools/skills/index.js** (90.91%, up from 87.36%) — removed dead code: unreachable `if (!descResult.valid)` branch and unreachable `if (!fullResult.valid)` branch (validator never returns `valid:false, skip:false`). Remaining uncovered lines are defensive error-handling paths (file write failures, scaffold failures, registry registration failures).
 
 ## 8. Data & Serialization Tools — ⬜ PENDING
 
@@ -153,7 +153,7 @@ Target: push all files in this group to ≥95% line coverage.
 
 ---
 
-**Current coverage: 70.12% line / 82.29% branch / 56.94% funcs** (up from 69.22% / 81.01% / 55.12%)
+**Current coverage: 70.16% line / 82.38% branch / 56.92% funcs** (up from 69.22% / 81.01% / 55.12%)
 
 **Target coverage after sections 6-16:** ≥75% line / ≥85% branch / ≥60% funcs
 

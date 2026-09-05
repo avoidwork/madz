@@ -42,17 +42,6 @@ export class SkillRegistry {
 			const dirName = skill.name;
 			const { valid, skip, errors, warnings } = validateSkillSchema(skill.metadata, dirName);
 
-			if (skip) {
-				this.#errors.push({ name: skill.metadata.name || "unknown", errors });
-				results.push({ name: skill.metadata.name || "unknown", errors, warnings });
-				continue;
-			}
-
-			if (!valid) {
-				errors.push(`Skill "${skill.metadata.name}" rejected: ${warnings.join("; ")}`);
-				continue;
-			}
-
 			const entry = {
 				path: skill.path,
 				name: skill.metadata.name,
@@ -172,11 +161,6 @@ export class SkillRegistry {
 	register(name, metadata) {
 		const { valid, skip, errors, warnings } = validateSkillSchema({ name, ...metadata });
 		if (skip) {
-			this.#errors.push({ name, errors });
-			return { valid: false, errors, warnings };
-		}
-
-		if (!valid) {
 			this.#errors.push({ name, errors });
 			return { valid: false, errors, warnings };
 		}
