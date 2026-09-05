@@ -611,6 +611,25 @@ describe("spreadsheet", () => {
 	});
 
 	describe("modify", () => {
+		let testXlsx;
+		let testOutput;
+
+		before(async () => {
+			const { default: ExcelJS } = await import("exceljs");
+			const workbook = new ExcelJS.Workbook();
+			const sheet = workbook.addWorksheet("Sheet1");
+			sheet.getCell("A1").value = 10;
+			sheet.getCell("B1").value = 20;
+			testXlsx = "/tmp/test-modify-input.xlsx";
+			testOutput = "/tmp/test-modify-output.xlsx";
+			await workbook.xlsx.writeFile(testXlsx);
+		});
+
+		after(() => {
+			try { fs.unlinkSync(testXlsx); } catch { /* ignore */ }
+			try { fs.unlinkSync(testOutput); } catch { /* ignore */ }
+		});
+
 		it("should throw on missing input file", async () => {
 			await assert.rejects(
 				() =>
@@ -622,6 +641,105 @@ describe("spreadsheet", () => {
 					}),
 				/Input file not found/,
 			);
+		});
+
+		it("should add a cell", async () => {
+			const result = await callSpreadsheet({
+				action: "modify",
+				inputPath: testXlsx,
+				modifyOperations: [{ type: "addCell", sheetName: "Sheet1", cellRef: "C1", value: 30 }],
+				outputPath: testOutput,
+			});
+			assert.strictEqual(result.status, "modified");
+			assert.strictEqual(result.operations, 1);
+			assert.strictEqual(result.results[0].status, "added");
+		});
+
+		it("should modify a cell", async () => {
+			const result = await callSpreadsheet({
+				action: "modify",
+				inputPath: testXlsx,
+				modifyOperations: [{ type: "modifyCell", sheetName: "Sheet1", cellRef: "A1", value: 99 }],
+				outputPath: testOutput,
+			});
+			assert.strictEqual(result.results[0].status, "modified");
+		});
+
+		it("should delete a cell", async () => {
+			const result = await callSpreadsheet({
+				action: "modify",
+				inputPath: testXlsx,
+				modifyOperations: [{ type: "deleteCell", sheetName: "Sheet1", cellRef: "A1" }],
+				outputPath: testOutput,
+			});
+			assert.strictEqual(result.results[0].status, "deleted");
+		});
+
+		it("should add a sheet", async () => {
+			const result = await callSpreadsheet({
+				action: "modify",
+				inputPath: testXlsx,
+				modifyOperations: [{ type: "addSheet", sheetName: "Sheet2" }],
+				outputPath: testOutput,
+			});
+			assert.strictEqual(result.results[0].status, "added");
+		});
+
+		it("should delete a sheet", async () => {
+			const result = await callSpreadsheet({
+				action: "modify",
+				inputPath: testXlsx,
+				modifyOperations: [
+					{ type: "addSheet", sheetName: "TempSheet" },
+					{ type: "deleteSheet", sheetName: "TempSheet" },
+				],
+				outputPath: testOutput,
+			});
+			assert.strictEqual(result.results[1].status, "deleted");
+		});
+
+		it("should rename a sheet", async () => {
+			const result = await callSpreadsheet({
+				action: "modify",
+				inputPath: testXlsx,
+				modifyOperations: [{ type: "renameSheet", sheetName: "Sheet1", newName: "Renamed" }],
+				outputPath: testOutput,
+			});
+			assert.strictEqual(result.results[0].status, "renamed");
+		});
+
+		it("should handle missing sheet gracefully", async () => {
+			const result = await callSpreadsheet({
+				action: "modify",
+				inputPath: testXlsx,
+				modifyOperations: [{ type: "addCell", sheetName: "NonExistent", cellRef: "A1", value: 1 }],
+				outputPath: testOutput,
+			});
+			assert.strictEqual(result.results[0].status, "error");
+			assert.ok(result.results[0].reason.includes("not found"));
+		});
+
+		it("should handle unknown modify operation", async () => {
+			await assert.rejects(
+				() =>
+					callSpreadsheet({
+						action: "modify",
+						inputPath: testXlsx,
+						modifyOperations: [{ type: "unknownOp", sheetName: "Sheet1" }],
+						outputPath: testOutput,
+					}),
+				/Invalid option/,
+			);
+		});
+
+		it("should add a cell with formula", async () => {
+			const result = await callSpreadsheet({
+				action: "modify",
+				inputPath: testXlsx,
+				modifyOperations: [{ type: "addCell", sheetName: "Sheet1", cellRef: "C1", formula: "=A1+B1" }],
+				outputPath: testOutput,
+			});
+			assert.strictEqual(result.results[0].status, "added");
 		});
 	});
 
@@ -692,6 +810,21 @@ describe("spreadsheet", () => {
 				format: "csv",
 			});
 			assert.ok(result.output.includes("name,age"));
+		});
+
+		it("should export to XLSX", async () => {
+			const data = [{ name: "Alice", age: "30" }];
+			const result = await callSpreadsheet({
+				action: "export",
+				data,
+				format: "xlsx",
+				outputPath: "/tmp/test-export.xlsx",
+			});
+			assert.strictEqual(result.format, "xlsx");
+			assert.strictEqual(result.status, "generated");
+			assert.strictEqual(result.rows, 1);
+			assert.deepStrictEqual(result.columns, ["name", "age"]);
+			try { fs.unlinkSync("/tmp/test-export.xlsx"); } catch { /* ignore */ }
 		});
 	});
 

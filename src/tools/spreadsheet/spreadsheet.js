@@ -352,13 +352,20 @@ async function modify(input) {
 	}
 
 	// Load workbook with exceljs
-	const ExcelJS = await import("exceljs");
+	const { default: ExcelJS } = await import("exceljs");
 	const workbook = new ExcelJS.Workbook();
 	await workbook.xlsx.readFile(inputPath);
 
 	const results = [];
 
 	for (const op of modifyOperations) {
+		// addSheet and deleteSheet don't need pre-check (addSheet creates, deleteSheet uses id)
+		if (op.type === "addSheet") {
+			await workbook.addWorksheet(op.sheetName);
+			results.push({ operation: op.type, sheet: op.sheetName, status: "added" });
+			continue;
+		}
+
 		const sheet = workbook.getWorksheet(op.sheetName);
 		if (!sheet) {
 			results.push({
@@ -407,11 +414,6 @@ async function modify(input) {
 					cell: op.cellRef,
 					status: "deleted",
 				});
-				break;
-			}
-			case "addSheet": {
-				await workbook.addWorksheet(op.sheetName);
-				results.push({ operation: op.type, sheet: op.sheetName, status: "added" });
 				break;
 			}
 			case "deleteSheet": {
@@ -475,7 +477,7 @@ async function exportData(input) {
 			return { format: "csv", output: csvString, outputPath };
 		}
 		case "xlsx": {
-			const ExcelJS = await import("exceljs");
+			const { default: ExcelJS } = await import("exceljs");
 			const workbook = new ExcelJS.Workbook();
 			const sheet = workbook.addWorksheet("Sheet1");
 

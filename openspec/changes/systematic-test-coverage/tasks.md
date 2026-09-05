@@ -4,7 +4,7 @@
 - [x] 1.2 Extend pivot tests to cover all pivot operations and edge cases
 - [x] 1.3 Extend stats tests to cover all statistical functions
 - [x] 1.4 Extend spreadsheet tests to cover all computation paths
-- [ ] 1.5 Increase source coverage: formulaParser.js (16.91%), csv.js (37.06%), pivot.js (25.00%), spreadsheet.js (33.27%), stats.js (34.31%) — unchanged
+- [x] 1.5 Increase source coverage: formulaParser.js (98.69%), csv.js (98.24%), pivot.js (99.11%), spreadsheet.js (98.07%), stats.js (99.58%) — ✅ all above 98%
 
 ## 2. Email Provider Module — ⚠️ PARTIAL (tests exist, source coverage still low)
 
