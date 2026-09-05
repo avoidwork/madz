@@ -58,13 +58,13 @@ Target: raise all files in this group to ≥90% line coverage.
 - [x] 7.2 **skills/agentMapper.js** (83.33% in full suite, 100% in isolation) — Node.js test runner artifact: `discoverer.js` imports it before the test file runs. 17 tests cover all paths: regex matching, invalid regex skip, null/empty config, edge cases.
 - [x] 7.3 **tools/skills/index.js** (90.91%, up from 87.36%) — removed dead code: unreachable `if (!descResult.valid)` branch and unreachable `if (!fullResult.valid)` branch (validator never returns `valid:false, skip:false`). Remaining uncovered lines are defensive error-handling paths (file write failures, scaffold failures, registry registration failures).
 
-## 8. Data & Serialization Tools — ⬜ PENDING
+## 8. Data & Serialization Tools — ✅ DONE
 
 Target: raise all files in this group to ≥90% line coverage.
 
-- [ ] 8.1 **tools/json/index.js** (78.52%) — uncovered lines are defensive error handling and the nested mapping branch (71-88). Write tests covering: nested key mapping objects, JSONPath expressions with array indices, transform with complex mappings, all error paths (invalid JSON, missing path, missing mapping).
-- [ ] 8.2 **tools/yaml/index.js** (78.26%) — same pattern as json tool. Write tests covering: YAML parse/serialize round-trip, filter with dot-notation paths, transform with mapping, all error paths.
-- [ ] 8.3 **tools/data/index.js** (80.30%) — uncovered lines 97-112 (yamlToCsv), 119-127 (csvToYaml), 175-182 (dataTransformation parse), 232-234 (yaml-to-csv case), 245-246 (createDataTool). Write tests covering: YAML↔CSV conversion, format validation edge cases, all transformation actions.
+- [x] 8.1 **tools/json/index.js** (100% line, 97.59% branch, 100% funcs) — 30 tests covering all actions (parse, serialize, transform, filter, access), error paths, nested mappings, array recursion, null/undefined values, outer wrapper, and LangChain tool creation. Removed dead try/catch around JSONPath (never throws with valid inputs).
+- [x] 8.2 **tools/yaml/index.js** (100% line, 94.44% branch, 100% funcs) — 33 tests covering all actions, `[*]` wildcard filter paths, nested mappings, null intermediate values, outer wrapper, and LangChain tool creation. Removed dead try/catch in serializeYaml (always receives parsed object).
+- [x] 8.3 **tools/data/index.js** (100% line, 97.83% branch, 100% funcs) — 24 tests covering all six conversion actions, mapping rules, YAML↔CSV conversion, format validation edge cases, outer wrapper, and LangChain tool creation. Removed dead try/catch blocks from all six conversion functions (validateFormat catches format errors first).
 
 ## 9. Process & Webhook Tools — ⬜ PENDING
 
@@ -153,7 +153,7 @@ Target: push all files in this group to ≥95% line coverage.
 
 ---
 
-**Current coverage: 70.16% line / 82.38% branch / 56.92% funcs** (up from 69.22% / 81.01% / 55.12%)
+**Current coverage: 70.86% line / 84.85% branch / 57.71% funcs** (up from 70.16% / 82.38% / 56.92%)
 
 **Target coverage after sections 6-16:** ≥75% line / ≥85% branch / ≥60% funcs
 
