@@ -62,6 +62,18 @@ describe("createCheckpointer", () => {
 		const cp = createCheckpointer({ persistence: null, memory: { checkpointsDir: "memory/checkpoints/" } });
 		assert.strictEqual(cp, null);
 	});
+
+	it("creates SQLite checkpointer for sqlite mode", async () => {
+		const testDir = "/tmp/test-checkpoints-sqlite-" + Date.now();
+		await mkdir(testDir, { recursive: true });
+		const cp = createCheckpointer({
+			persistence: { mode: "sqlite" },
+			memory: { checkpointsDir: testDir },
+		});
+		assert.ok(cp);
+		assert.ok(typeof cp.get === "function");
+		await rm(testDir, { recursive: true, force: true });
+	});
 });
 
 describe("ensureCheckpointsDir", () => {

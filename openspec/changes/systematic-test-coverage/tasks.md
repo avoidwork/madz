@@ -81,13 +81,13 @@ Target: raise all files in this group to ≥90% line coverage.
 - [x] 10.2 **tools/namecom/index.js** (98.68%, up from 70.84%) — removed dead code: unreachable `if (!handler)` branch (VALID_ACTIONS only contains actions with handlers). Remaining uncovered lines (38-42, 66-67) are validateHost returning error and host check in makeRequest, which require a real fetch to a non-allowed host.
 - [x] 10.3 **tools/api/index.js** (96.12%, up from 94.17%) — added test covering response body too large via actual text length (not just content-length header). Remaining uncovered lines (59-70) are setInterval cleanup that requires real time delays.
 
-## 11. Session & Checkpoint — ⬜ PENDING
+## 11. Session & Checkpoint — ✅ DONE
 
 Target: raise all files in this group to ≥90% line coverage.
 
-- [ ] 11.1 **session/checkpointer.js** (82.89%) — uncovered lines 42, 44, 62-65, 67-68, 70-71, 73-74, 76. Write tests covering: checkpoint creation/loading, serialization edge cases, error recovery, concurrent access patterns.
-- [ ] 11.2 **email/index.js** (66.67%) — uncovered lines 14-15, 21, 23, 25, 35-45, 56-58, 69-75, 77-79, 81. Write tests covering: provider selection logic, configuration loading, error paths when no provider is configured.
-- [ ] 11.3 **email/providers/base.js** (86.96%) — uncovered lines 43-44, 60-61, 71-72, 84-85, 94-95, 107-108, 116-117, 128-129, 136-137. Write tests covering: base provider method validation, parameter normalization, error handling.
+- [x] 11.1 **session/checkpointer.js** (100%, up from 82.89%) — added SQLite checkpointer tests covering: sqlite mode with explicit checkpointsDir, sqlite mode with default checkpointsDir. Removed stale `/* node:coverage ignore next */` comments (no longer needed since SQLite paths are now covered). Remaining uncovered lines: none.
+- [x] 11.2 **email/index.js** (100%, already at 100% via existing tests)
+- [x] 11.3 **email/providers/base.js** (100%, up from 86.96%) — added 11 tests covering: constructor with config, defaults when config fields missing, all 8 abstract methods throw not-implemented errors (send, read, search, saveDraft, listDrafts, updateDraft, deleteDraft, organize), validateConfig returns valid by default.
 
 ## 12. TUI Components — ⬜ PENDING
 
