@@ -6,7 +6,6 @@ import { chdir } from "node:process";
 import { join } from "node:path";
 import {
 	createSkillImpl,
-	generateSkillCatalogPrompt,
 	createSkill,
 	cwd,
 	setCwd,
@@ -450,37 +449,6 @@ describe("return value structure", () => {
 		assert.strictEqual(result.success, false);
 		assert.ok(Array.isArray(result.errors));
 		assert.ok(result.errors.length > 0);
-	});
-});
-
-// --- Catalog prompt generation ---
-
-describe("generateSkillCatalogPrompt", () => {
-	it("returns empty string for empty catalog", () => {
-		const result = generateSkillCatalogPrompt([]);
-		assert.strictEqual(result, "");
-	});
-
-	it("returns empty string for null catalog", () => {
-		const result = generateSkillCatalogPrompt(null);
-		assert.strictEqual(result, "");
-	});
-
-	it("formats skill entries", () => {
-		const catalog = [
-			{ name: "pdf-skill", description: "Process PDFs", location: "/skills/pdf-skill" },
-			{
-				name: "search-skill",
-				description: "Search files",
-				location: "/skills/search-skill",
-			},
-		];
-		const result = generateSkillCatalogPrompt(catalog);
-		assert.ok(result.includes("# Available Skills"));
-		assert.ok(result.includes("## pdf-skill"));
-		assert.ok(result.includes("Process PDFs"));
-		assert.ok(result.includes("Location: /skills/pdf-skill"));
-		assert.ok(result.includes("## search-skill"));
 	});
 });
 

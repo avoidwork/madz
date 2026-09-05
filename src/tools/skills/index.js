@@ -267,29 +267,3 @@ export const createSkill = tool(createSkillImpl, {
 			.describe("Create a scripts/ directory with a README.md placeholder"),
 	}),
 });
-
-// --- Progressive disclosure: system prompt catalog ---
-
-/**
- * Format the skill catalog as a system prompt section.
- * Lists all discovered skills with name and description for model-driven relevance matching.
- * @param {Array<{ name: string, description: string, location: string }>} catalog - The skill catalog
- * @returns {string} Formatted prompt section
- */
-export function generateSkillCatalogPrompt(catalog) {
-	if (!catalog || catalog.length === 0) {
-		return "";
-	}
-
-	const lines = ["# Available Skills\n"];
-	for (const skill of catalog) {
-		lines.push(`## ${skill.name}`);
-		if (skill.description) {
-			lines.push(skill.description);
-		}
-		lines.push(`Location: ${skill.location}`);
-		lines.push("");
-	}
-
-	return lines.join("\n");
-}

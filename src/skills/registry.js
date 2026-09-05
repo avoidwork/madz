@@ -238,14 +238,6 @@ export class SkillRegistry {
 	}
 
 	/**
-	 * Get registration errors from the last discover run.
-	 * @returns {Array<{ name: string, errors: string[] }>}
-	 */
-	getErrors() {
-		return this.#errors;
-	}
-
-	/**
 	 * Count of registered skills.
 	 */
 	get size() {
