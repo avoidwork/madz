@@ -10,12 +10,7 @@ import { stringify } from "csv-stringify/sync";
  * @returns {{ ok: boolean, data?: string, error?: string }}
  */
 function jsonToYaml(input) {
-	let obj;
-	try {
-		obj = JSON.parse(input);
-	} catch (err) {
-		return { ok: false, error: `Invalid JSON input: ${err.message}` };
-	}
+	const obj = JSON.parse(input);
 	return { ok: true, data: dump(obj, { indent: 2 }) };
 }
 
@@ -25,12 +20,7 @@ function jsonToYaml(input) {
  * @returns {{ ok: boolean, data?: string, error?: string }}
  */
 function yamlToJson(input) {
-	let data;
-	try {
-		data = load(input);
-	} catch (err) {
-		return { ok: false, error: `YAML parse error: ${err.message}` };
-	}
+	const data = load(input);
 	return { ok: true, data: JSON.stringify(data, null, 2) };
 }
 
@@ -41,12 +31,7 @@ function yamlToJson(input) {
  * @returns {{ ok: boolean, data?: string, error?: string }}
  */
 function jsonToCsv(input, mapping) {
-	let obj;
-	try {
-		obj = JSON.parse(input);
-	} catch (err) {
-		return { ok: false, error: `Invalid JSON input: ${err.message}` };
-	}
+	const obj = JSON.parse(input);
 
 	const records = Array.isArray(obj) ? obj : [obj];
 
@@ -79,12 +64,7 @@ function jsonToCsv(input, mapping) {
  * @returns {{ ok: boolean, data?: string, error?: string }}
  */
 function csvToJson(input) {
-	let records;
-	try {
-		records = parse(input, { columns: true, relax_columns: true });
-	} catch (err) {
-		return { ok: false, error: `CSV parse error: ${err.message}` };
-	}
+	const records = parse(input, { columns: true, relax_columns: true });
 	return { ok: true, data: JSON.stringify(records, null, 2) };
 }
 
@@ -95,12 +75,7 @@ function csvToJson(input) {
  * @returns {{ ok: boolean, data?: string, error?: string }}
  */
 function yamlToCsv(input, mapping) {
-	let data;
-	try {
-		data = load(input);
-	} catch (err) {
-		return { ok: false, error: `YAML parse error: ${err.message}` };
-	}
+	const data = load(input);
 
 	if (Array.isArray(data)) {
 		return jsonToCsv(JSON.stringify(data), mapping);
@@ -117,12 +92,7 @@ function yamlToCsv(input, mapping) {
  * @returns {{ ok: boolean, data?: string, error?: string }}
  */
 function csvToYaml(input) {
-	let records;
-	try {
-		records = parse(input, { columns: true, relax_columns: true });
-	} catch (err) {
-		return { ok: false, error: `CSV parse error: ${err.message}` };
-	}
+	const records = parse(input, { columns: true, relax_columns: true });
 	return { ok: true, data: dump(records, { indent: 2 }) };
 }
 
@@ -133,7 +103,7 @@ function csvToYaml(input) {
  * @returns {{ ok: boolean, error?: string }}
  */
 function validateFormat(input, format) {
-	if (!input || typeof input !== "string") {
+	if (!input) {
 		return { ok: false, error: "Input must be a non-empty string" };
 	}
 	const trimmed = input.trim();
@@ -242,7 +212,7 @@ export async function dataTransformationImpl(input) {
 export function createDataTool() {
 	return tool(
 		async (input) => {
-			const result = await dataTransformation(input);
+			const result = await dataTransformationImpl(input);
 			return JSON.stringify(result, null, 2);
 		},
 		{

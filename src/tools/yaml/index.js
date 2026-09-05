@@ -23,15 +23,8 @@ function parseYaml(input) {
  * @returns {{ ok: boolean, data?: string, error?: string }}
  */
 function serializeYaml(input, opts = {}) {
-	let obj;
-	try {
-		obj = typeof input === "string" ? JSON.parse(input) : input;
-	} catch (err) {
-		return { ok: false, error: `Invalid JSON input: ${err.message}` };
-	}
-
 	const indent = opts.indent || 2;
-	return { ok: true, data: dump(obj, { indent, lineWidth: opts.lineWidth || 80 }) };
+	return { ok: true, data: dump(input, { indent, lineWidth: opts.lineWidth || 80 }) };
 }
 
 /**
@@ -256,7 +249,7 @@ export async function yamlManipulationImpl(input) {
 export function createYamlTool() {
 	return tool(
 		async (input) => {
-			const result = await yamlManipulation(input);
+			const result = await yamlManipulationImpl(input);
 			return JSON.stringify(result, null, 2);
 		},
 		{
