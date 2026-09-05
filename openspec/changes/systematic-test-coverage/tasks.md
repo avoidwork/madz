@@ -1,10 +1,10 @@
-## 1. Spreadsheet Module — ⚠️ PARTIAL (tests exist, source coverage still low)
+## 1. Spreadsheet Module — ✅ DONE
 
 - [x] 1.1 Extend formulaParser tests to cover tokenize, parseExpression, evaluateNode, all built-in functions, ranges, cell refs, booleans, strings
 - [x] 1.2 Extend pivot tests to cover all pivot operations and edge cases
 - [x] 1.3 Extend stats tests to cover all statistical functions
 - [x] 1.4 Extend spreadsheet tests to cover all computation paths
-- [x] 1.5 Increase source coverage: formulaParser.js (98.69%), csv.js (98.24%), pivot.js (99.11%), spreadsheet.js (98.07%), stats.js (99.58%) — ✅ all above 98%
+- [x] 1.5 Increase source coverage: formulaParser.js (100%), csv.js (98.24%), pivot.js (100%), spreadsheet.js (100%), stats.js (99.58%) — ✅ all above 98%
 
 ## 2. Email Provider Module — ⚠️ PARTIAL (tests exist, source coverage still low)
 
