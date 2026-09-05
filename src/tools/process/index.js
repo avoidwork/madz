@@ -256,8 +256,6 @@ export async function unifiedProcessImpl(input) {
 			} catch (err) {
 				return `Error resuming process ${pid}: ${err.message}`;
 			}
-		default:
-			return `Error: Unknown action '${action}'. Supported: list, start, ${validActions.join(", ")}`;
 	}
 }
 

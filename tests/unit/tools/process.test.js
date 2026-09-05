@@ -26,7 +26,7 @@ describe("process tool - unifiedProcessImpl", () => {
 	});
 
 	it("returns error for unknown action", async () => {
-		const result = await unifiedProcessImpl({ action: "unknown" });
+		const result = await unifiedProcessImpl({ action: "unknown", processId: 1 });
 		assert.ok(result.includes("Unknown action"));
 	});
 
