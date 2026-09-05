@@ -270,7 +270,4 @@ export const logger = {
 			// Silently discard
 		}
 	},
-	silent: () => {
-		// No-op: used when caller conditionally doesn't want to log anything
-	},
 };

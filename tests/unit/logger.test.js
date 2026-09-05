@@ -97,7 +97,7 @@ describe("logger module", () => {
 			"export-2",
 			`
 			import { logger } from './src/shared/logger.js';
-			const methods = ['info', 'warn', 'error', 'debug', 'fatal', 'silent'];
+			const methods = ['info', 'warn', 'error', 'debug', 'fatal'];
 			result.allMethods = methods.every(m => typeof logger[m] === 'function');
 		`,
 		);
@@ -708,19 +708,6 @@ describe("logger module", () => {
 		assert.strictEqual(result.parsed?.ok, true);
 	});
 
-	it("logger silent method is a no-op", async () => {
-		const result = await runTestScript(
-			"silent-method",
-			`
-			import { logger } from './src/shared/logger.js';
-			logger.silent();
-			result.ok = true;
-		`,
-		);
-		assert.strictEqual(result.code, 0, `stderr: ${result.stderr}`);
-		assert.strictEqual(result.parsed?.ok, true);
-	});
-
 	it("logger methods handle errors gracefully when pinoLogger is not fully initialized", async () => {
 		const result = await runTestScript(
 			"logger-error-handling",
@@ -819,7 +806,7 @@ describe("logger - direct coverage tests", () => {
 	});
 
 	it("logger has all required methods", () => {
-		const methods = ["info", "warn", "error", "debug", "fatal", "silent"];
+		const methods = ["info", "warn", "error", "debug", "fatal"];
 		for (const m of methods) {
 			assert.strictEqual(typeof logger[m], "function", `logger.${m} should be a function`);
 		}
@@ -831,7 +818,6 @@ describe("logger - direct coverage tests", () => {
 		assert.doesNotThrow(() => logger.error("test"));
 		assert.doesNotThrow(() => logger.debug("test"));
 		assert.doesNotThrow(() => logger.fatal("test"));
-		assert.doesNotThrow(() => logger.silent());
 	});
 
 	it("getLogDirectory handles Alpine detection gracefully when file is deleted", () => {
