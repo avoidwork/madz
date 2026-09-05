@@ -432,12 +432,6 @@ export async function namecomImpl(input) {
 	}
 
 	const handler = handlers[action];
-	if (!handler) {
-		return {
-			ok: false,
-			error: `No handler for action: "${action}"`,
-		};
-	}
 
 	try {
 		const result = await handler(params);

@@ -255,6 +255,21 @@ describe("api — makeApiRequest()", () => {
 		assert.ok(result.error.includes("too large"));
 	});
 
+	it("rejects response body exceeding maxBodySize via actual text length", async () => {
+		const { makeApiRequest } = await import("../../src/tools/api/index.js");
+		globalThis.fetch = async () => ({
+			ok: true, status: 200,
+			headers: {
+				get() { return null; },
+				forEach() {},
+			},
+			text: async () => "x".repeat(2048),
+		});
+		const result = await makeApiRequest("https://example.com/api", { maxBodySize: 1024 });
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("too large"));
+	});
+
 	it("sanitizes Set-Cookie headers", async () => {
 		const { makeApiRequest } = await import("../../src/tools/api/index.js");
 		globalThis.fetch = async () => ({

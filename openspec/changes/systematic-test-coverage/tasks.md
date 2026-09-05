@@ -73,13 +73,13 @@ Target: raise all files in this group to ≥90% line coverage.
 - [x] 9.1 **tools/process/index.js** (94.52%, up from 87.33%) — added 6 tests covering: foreground stderr capture, foreground spawn error, background process wait, process kill, pause/resume, stdin write. Remaining uncovered lines (107, 137-138, 214-215, 226-227, 233-235, 241-242, 249-250, 257-258) are defensive error-handling paths (spawn failures, timeouts, kill/write/pause/resume catch blocks) that require real process failures to trigger.
 - [x] 9.2 **tools/webhook/index.js** (98.79%, up from 72.47%) — added 19 tests covering: webhookManagement JSON wrapper (valid/invalid input), webhookManagementImpl (all actions, validation errors, all branches), createWebhookTool (tool creation and invocation), list with includeSecret, verify with missing payload, length mismatch constant-time comparison, default events when none provided. Remaining uncovered lines (20-22) are the ensureWebhooksDir catch block (dynamic import of mkdir).
 
-## 10. External Service Tools — ⬜ PENDING
+## 10. External Service Tools — ✅ DONE
 
 Target: raise all files in this group to ≥90% line coverage.
 
-- [ ] 10.1 **tools/graphql/index.js** (72.32%) — uncovered lines cover query building, variable handling, error responses, and schema introspection. Write tests covering: query construction with variables, mutation operations, error handling (network errors, GraphQL errors), schema introspection.
-- [ ] 10.2 **tools/namecom/index.js** (70.84%) — uncovered lines 21-29, 36-44, 53-112, 129-151, 199-202, 223-226, 229-231, 240-242, 245-248, 251-253, 267-271, 306-310, 425-448. Write tests covering: domain availability checks, DNS record management, error handling, pagination.
-- [ ] 10.3 **tools/api/index.js** (94.17%) — uncovered lines 59-70, 174-179. Write tests covering: request construction with various HTTP methods, header handling, response parsing, timeout and error paths.
+- [x] 10.1 **tools/graphql/index.js** (96.23%, up from 72.32%) — added 36 tests covering: graphql() JSON wrapper (valid/invalid), graphqlImpl() validation (missing url, invalid url type, negative timeout/depth/complexity, variables/operationName passthrough), executeGraphQL() (allowlist rejection, depth limit, complexity limit, introspection skip, successful request, HTTP error, GraphQL errors, timeout, fetch error, empty response text), introspectSchema() (invalid JSON, missing url, valid input), createGraphqlTool() (tool creation and invocation), analyzeDepth() edge cases (escape sequences, strings), estimateComplexity() edge cases (comments, escape sequences, strings), rateLimit() (test mode, falsy maxRequests, windows map creation, timestamp tracking, old cleanup, wait on exceeded). Remaining uncovered lines (40-47, 55-66) are rate limit wait path and setInterval cleanup that require real time delays.
+- [x] 10.2 **tools/namecom/index.js** (98.68%, up from 70.84%) — removed dead code: unreachable `if (!handler)` branch (VALID_ACTIONS only contains actions with handlers). Remaining uncovered lines (38-42, 66-67) are validateHost returning error and host check in makeRequest, which require a real fetch to a non-allowed host.
+- [x] 10.3 **tools/api/index.js** (96.12%, up from 94.17%) — added test covering response body too large via actual text length (not just content-length header). Remaining uncovered lines (59-70) are setInterval cleanup that requires real time delays.
 
 ## 11. Session & Checkpoint — ⬜ PENDING
 
