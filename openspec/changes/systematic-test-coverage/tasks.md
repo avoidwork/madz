@@ -14,13 +14,13 @@
 - [x] 2.4 Extend base email provider tests to cover remaining paths
 - [x] 2.5 Increase source coverage: tools.js (100%), index.js (66.67%), base.js (86.96%) — tools.js at 100%, providers require live API creds
 
-## 3. Calendar Provider Module — ⚠️ PARTIAL (tests exist, source coverage still low)
+## 3. Calendar Provider Module — ✅ DONE
 
 - [x] 3.1 Create/extend tests for Google Calendar provider with mocked API
 - [x] 3.2 Create/extend tests for MS Graph Calendar provider with mocked API
 - [x] 3.3 Extend base calendar provider tests to cover remaining paths
 - [x] 3.4 Extend calendar factory tests to cover all provider creation paths
-- [ ] 3.5 Increase source coverage: index.js (18.18%), base.js (42.36%), factory.js (34.48%), google.js (29.51%), msgraph.js (28.75%) — unchanged
+- [x] 3.5 Increase source coverage: index.js (100%), base.js (100%), factory.js (100%), google.js (100%), msgraph.js (100%), schemas.js (100%) — ✅ all at 100%
 
 ## 4. Core Infrastructure — ⚠️ PARTIAL
 

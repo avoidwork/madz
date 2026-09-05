@@ -138,8 +138,6 @@ export async function calendarImpl(input, options) {
 			}
 		}
 
-		default:
-			return { ok: false, error: `Unknown action: "${action}"` };
 	}
 }
 
