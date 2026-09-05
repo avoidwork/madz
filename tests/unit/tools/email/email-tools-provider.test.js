@@ -16,33 +16,17 @@ describe("Email Tool — emailImpl provider interaction paths", () => {
 	};
 
 	before(async () => {
-		// Set env vars so validateProviderConfig would pass if not mocked
-		process.env.EMAIL_GMAIL_CLIENT_ID = "test-id";
-		process.env.EMAIL_GMAIL_CLIENT_SECRET = "test-secret";
-		process.env.EMAIL_GMAIL_REFRESH_TOKEN = "test-token";
-
-		// Mock the index module so getActiveProvider returns our mock provider
-		// and validateProviderConfig always passes
-		mock.module("../../../../src/tools/email/index.js", {
-			namedExports: {
-				getActiveProvider: () => mockProvider,
-				validateProviderConfig: () => ({ valid: true }),
-			},
-		});
-
 		const mod = await import("../../../../src/tools/email/tools.js");
 		emailImpl = mod.emailImpl;
 	});
 
 	after(() => {
-		delete process.env.EMAIL_GMAIL_CLIENT_ID;
-		delete process.env.EMAIL_GMAIL_CLIENT_SECRET;
-		delete process.env.EMAIL_GMAIL_REFRESH_TOKEN;
 		mock.reset();
 	});
 
-	const withConfig = (overrides = {}) => ({
-		config: { email: { provider: { type: "gmail", ...overrides } } },
+	const withMock = (overrides = {}) => ({
+		_provider: mockProvider,
+		...overrides,
 	});
 
 	// =========================================================================
@@ -53,7 +37,7 @@ describe("Email Tool — emailImpl provider interaction paths", () => {
 			ok: true,
 			messages: [{ id: "1" }],
 		}));
-		const result = await emailImpl({ action: "read", folder: "INBOX" }, withConfig());
+		const result = await emailImpl({ action: "read", folder: "INBOX" }, withMock());
 		assert.ok(result.ok);
 		assert.strictEqual(result.count, 1);
 		assert.deepStrictEqual(result.messages, [{ id: "1" }]);
@@ -64,7 +48,7 @@ describe("Email Tool — emailImpl provider interaction paths", () => {
 			ok: false,
 			error: "read failed",
 		}));
-		const result = await emailImpl({ action: "read", folder: "INBOX" }, withConfig());
+		const result = await emailImpl({ action: "read", folder: "INBOX" }, withMock());
 		assert.ok(!result.ok);
 		assert.ok(result.error.includes("read failed"));
 	});
@@ -73,7 +57,7 @@ describe("Email Tool — emailImpl provider interaction paths", () => {
 		mock.method(mockProvider, "read", async () => {
 			throw new Error("connection failed");
 		});
-		const result = await emailImpl({ action: "read", folder: "INBOX" }, withConfig());
+		const result = await emailImpl({ action: "read", folder: "INBOX" }, withMock());
 		assert.ok(!result.ok);
 		assert.ok(result.error.includes("Email read failed"));
 	});
@@ -93,7 +77,7 @@ describe("Email Tool — emailImpl provider interaction paths", () => {
 				subject: "Test",
 				body: "Hello",
 			},
-			withConfig(),
+			withMock(),
 		);
 		assert.ok(result.ok);
 		assert.strictEqual(result.messageId, "sent-1");
@@ -112,7 +96,7 @@ describe("Email Tool — emailImpl provider interaction paths", () => {
 				subject: "Test",
 				body: "Hello",
 			},
-			withConfig(),
+			withMock(),
 		);
 		assert.ok(!result.ok);
 		assert.ok(result.error.includes("send failed"));
@@ -129,7 +113,7 @@ describe("Email Tool — emailImpl provider interaction paths", () => {
 				subject: "Test",
 				body: "Hello",
 			},
-			withConfig(),
+			withMock(),
 		);
 		assert.ok(!result.ok);
 		assert.ok(result.error.includes("Email send failed"));
@@ -150,7 +134,7 @@ describe("Email Tool — emailImpl provider interaction paths", () => {
 				subject: "Test",
 				body: "Hello",
 			},
-			withConfig(),
+			withMock(),
 		);
 		assert.ok(result.ok);
 		assert.strictEqual(result.draftId, "draft-1");
@@ -168,7 +152,7 @@ describe("Email Tool — emailImpl provider interaction paths", () => {
 				subject: "Test",
 				body: "Hello",
 			},
-			withConfig(),
+			withMock(),
 		);
 		assert.ok(!result.ok);
 		assert.ok(result.error.includes("save failed"));
@@ -185,7 +169,7 @@ describe("Email Tool — emailImpl provider interaction paths", () => {
 				subject: "Test",
 				body: "Hello",
 			},
-			withConfig(),
+			withMock(),
 		);
 		assert.ok(!result.ok);
 		assert.ok(result.error.includes("Email draft save failed"));
@@ -199,7 +183,7 @@ describe("Email Tool — emailImpl provider interaction paths", () => {
 			ok: true,
 			drafts: [{ id: "d-1" }],
 		}));
-		const result = await emailImpl({ action: "draftList" }, withConfig());
+		const result = await emailImpl({ action: "draftList" }, withMock());
 		assert.ok(result.ok);
 		assert.strictEqual(result.count, 1);
 		assert.deepStrictEqual(result.drafts, [{ id: "d-1" }]);
@@ -210,7 +194,7 @@ describe("Email Tool — emailImpl provider interaction paths", () => {
 			ok: false,
 			error: "list failed",
 		}));
-		const result = await emailImpl({ action: "draftList" }, withConfig());
+		const result = await emailImpl({ action: "draftList" }, withMock());
 		assert.ok(!result.ok);
 		assert.ok(result.error.includes("list failed"));
 	});
@@ -219,7 +203,7 @@ describe("Email Tool — emailImpl provider interaction paths", () => {
 		mock.method(mockProvider, "listDrafts", async () => {
 			throw new Error("list error");
 		});
-		const result = await emailImpl({ action: "draftList" }, withConfig());
+		const result = await emailImpl({ action: "draftList" }, withMock());
 		assert.ok(!result.ok);
 		assert.ok(result.error.includes("Email draft list failed"));
 	});
@@ -231,7 +215,7 @@ describe("Email Tool — emailImpl provider interaction paths", () => {
 		mock.method(mockProvider, "updateDraft", async () => ({ ok: true }));
 		const result = await emailImpl(
 			{ action: "draftUpdate", draftId: "d-1", subject: "Updated" },
-			withConfig(),
+			withMock(),
 		);
 		assert.ok(result.ok);
 		assert.strictEqual(result.draftId, "d-1");
@@ -242,7 +226,7 @@ describe("Email Tool — emailImpl provider interaction paths", () => {
 			ok: false,
 			error: "update failed",
 		}));
-		const result = await emailImpl({ action: "draftUpdate", draftId: "d-1" }, withConfig());
+		const result = await emailImpl({ action: "draftUpdate", draftId: "d-1" }, withMock());
 		assert.ok(!result.ok);
 		assert.ok(result.error.includes("update failed"));
 	});
@@ -251,7 +235,7 @@ describe("Email Tool — emailImpl provider interaction paths", () => {
 		mock.method(mockProvider, "updateDraft", async () => {
 			throw new Error("update error");
 		});
-		const result = await emailImpl({ action: "draftUpdate", draftId: "d-1" }, withConfig());
+		const result = await emailImpl({ action: "draftUpdate", draftId: "d-1" }, withMock());
 		assert.ok(!result.ok);
 		assert.ok(result.error.includes("Email draft update failed"));
 	});
@@ -261,7 +245,7 @@ describe("Email Tool — emailImpl provider interaction paths", () => {
 	// =========================================================================
 	test("draftDelete: returns success on delete", async () => {
 		mock.method(mockProvider, "deleteDraft", async () => ({ ok: true }));
-		const result = await emailImpl({ action: "draftDelete", draftId: "d-1" }, withConfig());
+		const result = await emailImpl({ action: "draftDelete", draftId: "d-1" }, withMock());
 		assert.ok(result.ok);
 	});
 
@@ -270,7 +254,7 @@ describe("Email Tool — emailImpl provider interaction paths", () => {
 			ok: false,
 			error: "delete failed",
 		}));
-		const result = await emailImpl({ action: "draftDelete", draftId: "d-1" }, withConfig());
+		const result = await emailImpl({ action: "draftDelete", draftId: "d-1" }, withMock());
 		assert.ok(!result.ok);
 		assert.ok(result.error.includes("delete failed"));
 	});
@@ -279,7 +263,7 @@ describe("Email Tool — emailImpl provider interaction paths", () => {
 		mock.method(mockProvider, "deleteDraft", async () => {
 			throw new Error("delete error");
 		});
-		const result = await emailImpl({ action: "draftDelete", draftId: "d-1" }, withConfig());
+		const result = await emailImpl({ action: "draftDelete", draftId: "d-1" }, withMock());
 		assert.ok(!result.ok);
 		assert.ok(result.error.includes("Email draft delete failed"));
 	});
@@ -295,7 +279,7 @@ describe("Email Tool — emailImpl provider interaction paths", () => {
 				messageIds: ["msg-1"],
 				organizeAction: "markRead",
 			},
-			withConfig(),
+			withMock(),
 		);
 		assert.ok(result.ok);
 		assert.strictEqual(result.action, "markRead");
@@ -310,7 +294,7 @@ describe("Email Tool — emailImpl provider interaction paths", () => {
 				messageIds: ["msg-1", "msg-2"],
 				organizeAction: "archive",
 			},
-			withConfig(),
+			withMock(),
 		);
 		assert.ok(result.ok);
 		assert.strictEqual(result.action, "archive");
@@ -328,7 +312,7 @@ describe("Email Tool — emailImpl provider interaction paths", () => {
 				messageIds: ["msg-1"],
 				organizeAction: "markRead",
 			},
-			withConfig(),
+			withMock(),
 		);
 		assert.ok(!result.ok);
 		assert.ok(result.error.includes("organize failed"));
@@ -344,7 +328,7 @@ describe("Email Tool — emailImpl provider interaction paths", () => {
 				messageIds: ["msg-1"],
 				organizeAction: "markRead",
 			},
-			withConfig(),
+			withMock(),
 		);
 		assert.ok(!result.ok);
 		assert.ok(result.error.includes("Email organize failed"));
@@ -358,7 +342,7 @@ describe("Email Tool — emailImpl provider interaction paths", () => {
 			ok: true,
 			messages: [{ id: "1" }],
 		}));
-		const result = await emailImpl({ action: "search", query: "test" }, withConfig());
+		const result = await emailImpl({ action: "search", query: "test" }, withMock());
 		assert.ok(result.ok);
 		assert.strictEqual(result.count, 1);
 		assert.deepStrictEqual(result.messages, [{ id: "1" }]);
@@ -369,7 +353,7 @@ describe("Email Tool — emailImpl provider interaction paths", () => {
 			ok: false,
 			error: "search failed",
 		}));
-		const result = await emailImpl({ action: "search", query: "test" }, withConfig());
+		const result = await emailImpl({ action: "search", query: "test" }, withMock());
 		assert.ok(!result.ok);
 		assert.ok(result.error.includes("search failed"));
 	});
@@ -378,7 +362,7 @@ describe("Email Tool — emailImpl provider interaction paths", () => {
 		mock.method(mockProvider, "search", async () => {
 			throw new Error("search error");
 		});
-		const result = await emailImpl({ action: "search", query: "test" }, withConfig());
+		const result = await emailImpl({ action: "search", query: "test" }, withMock());
 		assert.ok(!result.ok);
 		assert.ok(result.error.includes("Email search failed"));
 	});

@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
-import { parseValue, assignPath, applyDotPathMutation } from "../../../src/config/mutate.js";
-import { ConfigSchema } from "../../../src/config/schemas.js";
+import { parseValue, assignPath, applyDotPathMutation } from "../../../src/config/patch.js";
+import { ConfigSchema } from "../../../src/config/config.js";
 
 describe("parseValue", () => {
 	it("parses boolean true", () => assert.strictEqual(parseValue("true"), true));
@@ -86,6 +86,8 @@ describe("applyDotPathMutation", () => {
 			schedules: { maxConcurrent: 1, entries: [] },
 			tui: { name: "madz" },
 			persistence: { mode: "memory", sqlite_path: "memory/checkpoints.db" },
+			email: { provider: { type: "gmail" } },
+			calendar: {},
 		});
 	}
 

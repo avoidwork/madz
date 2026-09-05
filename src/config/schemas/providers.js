@@ -116,7 +116,7 @@ export const EmailProviderSchema = z.discriminatedUnion("type", [
 ]);
 
 export const EmailConfigSchema = z.object({
-	provider: EmailProviderSchema,
+	provider: EmailProviderSchema.default({ type: "gmail" }),
 	defaultFolder: z.string().nullable().default("INBOX"),
 	maxAttachments: z.number().int().positive().default(10),
 	maxAttachmentSize: z.string().nullable().default("25mb"),

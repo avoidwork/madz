@@ -31,7 +31,7 @@ export async function emailImpl(input, options) {
 		};
 	}
 
-	const provider = getActiveProvider(options?.config);
+	const provider = options?._provider || getActiveProvider(options?.config);
 	if (!provider) {
 		return {
 			ok: false,
