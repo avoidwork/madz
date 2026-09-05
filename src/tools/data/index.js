@@ -163,8 +163,6 @@ function validateFormat(input, format) {
 			} catch {
 				return { ok: false, error: "Invalid CSV input" };
 			}
-		default:
-			return { ok: false, error: `Unsupported format: ${format}` };
 	}
 }
 
@@ -234,8 +232,6 @@ export async function dataTransformationImpl(input) {
 			return yamlToCsv(dataInput, mapping);
 		case "csv-to-yaml":
 			return csvToYaml(dataInput);
-		default:
-			return { ok: false, error: `Unknown action: ${action}` };
 	}
 }
 

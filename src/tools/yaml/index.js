@@ -257,8 +257,6 @@ export async function yamlManipulationImpl(input) {
 				action === "filter" ? filterYaml(yamlInput, path) : accessYamlPath(yamlInput, path);
 			return result.ok ? { ok: true, data: result.data } : result;
 		}
-		default:
-			return { ok: false, error: `Unknown action: ${action}` };
 	}
 }
 
