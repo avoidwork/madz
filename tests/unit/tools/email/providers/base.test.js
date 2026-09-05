@@ -72,4 +72,90 @@ describe("EmailProvider (base)", () => {
 		const provider = new EmailProvider({});
 		await assert.rejects(() => provider.listDrafts(), Error);
 	});
+
+	test("send() should include provider type in error message", async () => {
+		const provider = new EmailProvider({ type: "gmail" });
+		try {
+			await provider.send({});
+			assert.fail("Should have thrown");
+		} catch (err) {
+			assert.ok(err.message.includes("gmail"));
+		}
+	});
+
+	test("read() should include provider type in error message", async () => {
+		const provider = new EmailProvider({ type: "graph" });
+		try {
+			await provider.read({});
+			assert.fail("Should have thrown");
+		} catch (err) {
+			assert.ok(err.message.includes("graph"));
+		}
+	});
+
+	test("search() should include provider type in error message", async () => {
+		const provider = new EmailProvider({ type: "imap" });
+		try {
+			await provider.search({});
+			assert.fail("Should have thrown");
+		} catch (err) {
+			assert.ok(err.message.includes("imap"));
+		}
+	});
+
+	test("saveDraft() should include provider type in error message", async () => {
+		const provider = new EmailProvider({ type: "gmail" });
+		try {
+			await provider.saveDraft({});
+			assert.fail("Should have thrown");
+		} catch (err) {
+			assert.ok(err.message.includes("gmail"));
+		}
+	});
+
+	test("listDrafts() should include provider type in error message", async () => {
+		const provider = new EmailProvider({ type: "graph" });
+		try {
+			await provider.listDrafts({});
+			assert.fail("Should have thrown");
+		} catch (err) {
+			assert.ok(err.message.includes("graph"));
+		}
+	});
+
+	test("updateDraft() should include provider type in error message", async () => {
+		const provider = new EmailProvider({ type: "imap" });
+		try {
+			await provider.updateDraft("draft-1", {});
+			assert.fail("Should have thrown");
+		} catch (err) {
+			assert.ok(err.message.includes("imap"));
+		}
+	});
+
+	test("deleteDraft() should include provider type in error message", async () => {
+		const provider = new EmailProvider({ type: "gmail" });
+		try {
+			await provider.deleteDraft("draft-1");
+			assert.fail("Should have thrown");
+		} catch (err) {
+			assert.ok(err.message.includes("gmail"));
+		}
+	});
+
+	test("organize() should include provider type in error message", async () => {
+		const provider = new EmailProvider({ type: "graph" });
+		try {
+			await provider.organize({});
+			assert.fail("Should have thrown");
+		} catch (err) {
+			assert.ok(err.message.includes("graph"));
+		}
+	});
+
+	test("validateConfig() returns { valid: true } for any provider", () => {
+		const provider = new EmailProvider({ name: "custom", type: "custom" });
+		const result = provider.validateConfig();
+		assert.deepStrictEqual(result, { valid: true });
+	});
 });

@@ -13,6 +13,12 @@ import {
 } from "../../src/tools/skills/index.js";
 import { findSkillScript } from "../../src/tools/cron/index.js";
 import { SkillRegistry } from "../../src/skills/registry.js";
+import {
+	validateSkillName,
+	validateSkillDescription,
+	validateOptionalFields,
+	validateSkillSchema,
+} from "../../src/skills/validator.js";
 
 let testDir;
 let originalCwd;
@@ -536,5 +542,133 @@ describe("findSkillScript", () => {
 
 		const result = await findSkillScript("root-skill", ".skills");
 		assert.ok(result.endsWith(".skills/root-skill/run.sh"));
+	});
+});
+
+// --- Direct validator unit tests ---
+
+describe("validateSkillName (direct)", () => {
+	it("returns warning for name length 0 (empty string)", () => {
+		const result = validateSkillName("");
+		assert.strictEqual(result.valid, false);
+		assert.ok(result.warnings.some((w) => w.includes("name")));
+	});
+
+	it("returns warning for name length > 64", () => {
+		const result = validateSkillName("a".repeat(65));
+		assert.strictEqual(result.valid, false);
+		assert.ok(result.warnings.some((w) => w.includes("length")));
+	});
+
+	it("returns warning when dirName is provided and name does not match", () => {
+		const result = validateSkillName("my-skill", "other-dir");
+		assert.strictEqual(result.valid, false);
+		assert.ok(result.warnings.some((w) => w.includes("does not match")));
+	});
+
+	it("returns no warning when dirName matches name", () => {
+		const result = validateSkillName("my-skill", "my-skill");
+		assert.strictEqual(result.valid, true);
+		assert.strictEqual(result.warnings.length, 0);
+	});
+});
+
+describe("validateSkillDescription (direct)", () => {
+	it("returns skip=true for null description", () => {
+		const result = validateSkillDescription(null);
+		assert.strictEqual(result.valid, false);
+		assert.strictEqual(result.skip, true);
+	});
+
+	it("returns skip=true for undefined description", () => {
+		const result = validateSkillDescription(undefined);
+		assert.strictEqual(result.valid, false);
+		assert.strictEqual(result.skip, true);
+	});
+
+	it("returns skip=true for non-string description", () => {
+		const result = validateSkillDescription(42);
+		assert.strictEqual(result.valid, false);
+		assert.strictEqual(result.skip, true);
+	});
+});
+
+describe("validateOptionalFields (direct)", () => {
+	it("returns warning when compatibility is not a string", () => {
+		const result = validateOptionalFields({ compatibility: 123 });
+		assert.ok(result.some((w) => w.includes("Compatibility field must be a string")));
+	});
+
+	it("returns warning when compatibility is empty string", () => {
+		const result = validateOptionalFields({ compatibility: "" });
+		assert.ok(result.some((w) => w.includes("1-500")));
+	});
+
+	it("returns warning when compatibility exceeds 500 chars", () => {
+		const result = validateOptionalFields({ compatibility: "a".repeat(501) });
+		assert.ok(result.some((w) => w.includes("1-500")));
+	});
+
+	it("returns warning when metadata is not an object (array)", () => {
+		const result = validateOptionalFields({ metadata: [] });
+		assert.ok(result.some((w) => w.includes("string-to-string map")));
+	});
+
+	it("returns warning when metadata entries have non-string values", () => {
+		const result = validateOptionalFields({ metadata: { key: 42 } });
+		assert.ok(result.some((w) => w.includes("string keys and string values")));
+	});
+
+	it("returns no warnings for valid compatibility and metadata", () => {
+		const result = validateOptionalFields({
+			compatibility: "Node.js 20+",
+			metadata: { author: "test" },
+		});
+		assert.strictEqual(result.length, 0);
+	});
+
+	it("handles undefined compatibility and metadata gracefully", () => {
+		const result = validateOptionalFields({});
+		assert.strictEqual(result.length, 0);
+	});
+});
+
+describe("validateSkillSchema (direct)", () => {
+	it("returns skip=true when skill has no name", () => {
+		const result = validateSkillSchema({ description: "test" });
+		assert.strictEqual(result.valid, false);
+		assert.strictEqual(result.skip, true);
+		assert.ok(result.errors.some((e) => e.includes("name")));
+	});
+
+	it("returns skip=true when description is empty", () => {
+		const result = validateSkillSchema({ name: "test-skill", description: "" });
+		assert.strictEqual(result.valid, false);
+		assert.strictEqual(result.skip, true);
+		assert.ok(result.errors.some((e) => e.includes("empty")));
+	});
+
+	it("returns valid=true with warnings for invalid name pattern", () => {
+		const result = validateSkillSchema({ name: "BAD_NAME", description: "test" });
+		assert.strictEqual(result.valid, true);
+		assert.strictEqual(result.skip, false);
+		assert.ok(result.warnings.some((w) => w.includes("lowercase")));
+	});
+
+	it("returns valid=true with warnings for dirName mismatch", () => {
+		const result = validateSkillSchema({ name: "my-skill", description: "test" }, "other-dir");
+		assert.strictEqual(result.valid, true);
+		assert.strictEqual(result.skip, false);
+		assert.ok(result.warnings.some((w) => w.includes("does not match")));
+	});
+
+	it("returns valid=true for a fully valid skill", () => {
+		const result = validateSkillSchema({
+			name: "valid-skill",
+			description: "A valid test skill",
+		});
+		assert.strictEqual(result.valid, true);
+		assert.strictEqual(result.skip, false);
+		assert.strictEqual(result.errors.length, 0);
 	});
 });

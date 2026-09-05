@@ -6,7 +6,7 @@ import {
 	writeEnvCron,
 	prepareCrontabCommand,
 } from "../../../src/scheduler/cron.js";
-import { rmSync, readFileSync, statSync } from "node:fs";
+import { rmSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 // --- Mock crontab state ---

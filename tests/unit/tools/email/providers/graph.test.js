@@ -140,8 +140,8 @@ describe("GraphProvider — happy paths", () => {
 
 		assert.strictEqual(result.ok, true);
 		assert.strictEqual(result.messageId, "sent-msg-123");
-		assert.ok(sentBody);
-		assert.strictEqual(sentBody.message.subject, "Send Test");
+		assert.ok(_sentBody);
+		assert.strictEqual(_sentBody.message.subject, "Send Test");
 	});
 
 	test("send() should include CC and BCC recipients", async () => {
@@ -166,8 +166,8 @@ describe("GraphProvider — happy paths", () => {
 			body: "Body",
 		});
 
-		assert.ok(sentBody.message.ccRecipients);
-		assert.ok(sentBody.message.bccRecipients);
+		assert.ok(_sentBody.message.ccRecipients);
+		assert.ok(_sentBody.message.bccRecipients);
 	});
 
 	test("send() should include attachments", async () => {
@@ -193,8 +193,8 @@ describe("GraphProvider — happy paths", () => {
 			],
 		});
 
-		assert.ok(sentBody.message.attachments);
-		assert.strictEqual(sentBody.message.attachments.length, 1);
+		assert.ok(_sentBody.message.attachments);
+		assert.strictEqual(_sentBody.message.attachments.length, 1);
 	});
 
 	test("send() should handle HTML body type", async () => {
@@ -218,7 +218,7 @@ describe("GraphProvider — happy paths", () => {
 			bodyType: "html",
 		});
 
-		assert.strictEqual(sentBody.message.body.contentType, "HTML");
+		assert.strictEqual(_sentBody.message.body.contentType, "HTML");
 	});
 
 	test("search() should query messages with $q parameter", async () => {
