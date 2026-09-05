@@ -182,13 +182,7 @@ function parseExpression(tokens, ctx) {
 }
 
 function parseCondition(tokens, ctx) {
-	let left = parseOr(tokens, ctx);
-	while (tokens[ctx.pos]?.value === "||") {
-		ctx.pos++;
-		const right = parseOr(tokens, ctx);
-		left = { type: "binaryOp", op: "||", left, right };
-	}
-	return left;
+	return parseOr(tokens, ctx);
 }
 
 function parseOr(tokens, ctx) {
@@ -503,7 +497,6 @@ function evaluateNode(node, context, options) {
 			});
 			if (node.op === "-") return -safeNumber(operand);
 			if (node.op === "!") return !evaluateCondition(operand);
-			return operand;
 		}
 
 		case "binaryOp": {
@@ -547,8 +540,7 @@ function evaluateNode(node, context, options) {
 					return evaluateCondition(left) && evaluateCondition(right);
 				case "||":
 					return evaluateCondition(left) || evaluateCondition(right);
-				default:
-					return left;
+
 			}
 		}
 
@@ -570,8 +562,7 @@ function evaluateNode(node, context, options) {
 			return BUILTIN_FUNCTIONS[fnName](evaluatedArgs);
 		}
 
-		default:
-			throw new Error(`Unknown AST node type: ${node.type}`);
+
 	}
 }
 

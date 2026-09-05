@@ -131,8 +131,6 @@ export async function spreadsheetImpl(input) {
 			return modify(input);
 		case "export":
 			return exportData(input);
-		default:
-			throw new Error(`Unknown action: ${action}`);
 	}
 }
 
@@ -204,8 +202,6 @@ async function compute(input) {
 				result.value = stats.variance(values);
 				break;
 			}
-			default:
-				throw new Error(`Unknown operation type: ${op.type}`);
 		}
 
 		if (op.alias) {
@@ -307,8 +303,6 @@ async function analyze(input) {
 				results.push({ type: "percentile", field, p, value: stats.percentile(values, p) });
 				break;
 			}
-			default:
-				throw new Error(`Unknown analysis type: ${op.type}`);
 		}
 	}
 
@@ -433,13 +427,6 @@ async function modify(input) {
 				});
 				break;
 			}
-			default:
-				results.push({
-					operation: op.type,
-					sheet: op.sheetName,
-					status: "error",
-					reason: `Unknown operation: ${op.type}`,
-				});
 		}
 	}
 
@@ -499,8 +486,6 @@ async function exportData(input) {
 				columns: headers,
 			};
 		}
-		default:
-			throw new Error(`Unsupported export format: ${format}`);
 	}
 }
 

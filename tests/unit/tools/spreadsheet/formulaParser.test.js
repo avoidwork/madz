@@ -567,6 +567,14 @@ describe("formulaParser", () => {
 			const { evaluate } = parseFormula("=SUM(A1:B2)");
 			assert.strictEqual(evaluate({ A1: 1, B2: 4 }), 5);
 		});
+
+		it("should detect circular reference when cell in range already visited", () => {
+			const { evaluate } = parseFormula("=A1+SUM(A1:B1)");
+			assert.throws(
+				() => evaluate({ A1: 10, B1: 20 }),
+				/Circular reference detected/,
+			);
+		});
 	});
 
 	describe("evaluate - literals", () => {
