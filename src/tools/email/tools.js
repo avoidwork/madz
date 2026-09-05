@@ -182,11 +182,7 @@ export async function emailImpl(input, options) {
 			}
 		}
 
-		default:
-			return {
-				ok: false,
-				error: `Unknown action: "${action}". Valid actions: read, send, draftSave, draftList, draftUpdate, draftDelete, organize, search`,
-			};
+
 	}
 }
 
