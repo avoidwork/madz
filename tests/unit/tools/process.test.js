@@ -135,6 +135,93 @@ describe("process tool - unifiedProcessImpl", () => {
 		// Empty command will fail to spawn
 		assert.ok(typeof result === "string");
 	});
+
+	it("captures stderr output from foreground command", async () => {
+		const result = await unifiedProcessImpl({
+			action: "start",
+			command: "echo stderr-output >&2",
+		});
+		assert.ok(result.includes("exitCode: 0"));
+		assert.ok(result.includes("stderr-output"));
+	});
+
+	it("handles foreground command spawn error", async () => {
+		const result = await unifiedProcessImpl({
+			action: "start",
+			command: "nonexistent-command-xyzzy",
+		});
+		assert.ok(typeof result === "string");
+	});
+
+	it("waits for a background process to complete", async () => {
+		const startResult = await unifiedProcessImpl({
+			action: "start",
+			command: "echo wait-test",
+			background: true,
+		});
+		const pidMatch = startResult.match(/PID: (\d+)/);
+		assert.ok(pidMatch);
+		const pid = parseInt(pidMatch[1], 10);
+
+		const waitResult = await unifiedProcessImpl({ action: "wait", processId: pid });
+		assert.ok(waitResult.includes("completed"));
+		assert.ok(waitResult.includes("wait-test"));
+	});
+
+	it("kills a background process", async () => {
+		const startResult = await unifiedProcessImpl({
+			action: "start",
+			command: "sleep 30",
+			background: true,
+		});
+		const pidMatch = startResult.match(/PID: (\d+)/);
+		assert.ok(pidMatch);
+		const pid = parseInt(pidMatch[1], 10);
+
+		const killResult = await unifiedProcessImpl({ action: "kill", processId: pid });
+		assert.ok(killResult.includes("SIGTERM"));
+	});
+
+	it("pauses and resumes a background process", async () => {
+		const startResult = await unifiedProcessImpl({
+			action: "start",
+			command: "sleep 30",
+			background: true,
+		});
+		const pidMatch = startResult.match(/PID: (\d+)/);
+		assert.ok(pidMatch);
+		const pid = parseInt(pidMatch[1], 10);
+
+		const pauseResult = await unifiedProcessImpl({ action: "pause", processId: pid });
+		assert.ok(pauseResult.includes("Paused"));
+
+		const resumeResult = await unifiedProcessImpl({ action: "resume", processId: pid });
+		assert.ok(resumeResult.includes("Resumed"));
+
+		// Clean up
+		await unifiedProcessImpl({ action: "kill", processId: pid });
+	});
+
+	it("writes to stdin of a background process", async () => {
+		const startResult = await unifiedProcessImpl({
+			action: "start",
+			command: "cat",
+			background: true,
+		});
+		const pidMatch = startResult.match(/PID: (\d+)/);
+		assert.ok(pidMatch);
+		const pid = parseInt(pidMatch[1], 10);
+
+		const writeResult = await unifiedProcessImpl({
+			action: "write",
+			processId: pid,
+			data: "hello stdin",
+		});
+		assert.ok(writeResult.includes("Wrote to stdin"));
+
+		// Clean up
+		await unifiedProcessImpl({ action: "kill", processId: pid });
+	});
 });
 
 describe("process tool - trackProcess", () => {

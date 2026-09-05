@@ -66,12 +66,12 @@ Target: raise all files in this group to ≥90% line coverage.
 - [x] 8.2 **tools/yaml/index.js** (100% line, 94.44% branch, 100% funcs) — 33 tests covering all actions, `[*]` wildcard filter paths, nested mappings, null intermediate values, outer wrapper, and LangChain tool creation. Removed dead try/catch in serializeYaml (always receives parsed object).
 - [x] 8.3 **tools/data/index.js** (100% line, 97.83% branch, 100% funcs) — 24 tests covering all six conversion actions, mapping rules, YAML↔CSV conversion, format validation edge cases, outer wrapper, and LangChain tool creation. Removed dead try/catch blocks from all six conversion functions (validateFormat catches format errors first).
 
-## 9. Process & Webhook Tools — ⬜ PENDING
+## 9. Process & Webhook Tools — ✅ DONE
 
 Target: raise all files in this group to ≥90% line coverage.
 
-- [ ] 9.1 **tools/process/index.js** (87.33%) — uncovered lines 41-44, 55-58, 95, 107, 137-138, 153-154, 214-215, 226-227, 233-235, 241-242, 244-250, 252-258. Write tests covering: process start with various options, signal handling, stdout/stderr capture, timeout behavior, error propagation.
-- [ ] 9.2 **tools/webhook/index.js** (72.47%) — uncovered lines 20-22, 99-100, 150-157, 165-217, 226-227. Write tests covering: webhook creation with payload, HMAC verification, list/detete operations, error responses.
+- [x] 9.1 **tools/process/index.js** (94.52%, up from 87.33%) — added 6 tests covering: foreground stderr capture, foreground spawn error, background process wait, process kill, pause/resume, stdin write. Remaining uncovered lines (107, 137-138, 214-215, 226-227, 233-235, 241-242, 249-250, 257-258) are defensive error-handling paths (spawn failures, timeouts, kill/write/pause/resume catch blocks) that require real process failures to trigger.
+- [x] 9.2 **tools/webhook/index.js** (98.79%, up from 72.47%) — added 19 tests covering: webhookManagement JSON wrapper (valid/invalid input), webhookManagementImpl (all actions, validation errors, all branches), createWebhookTool (tool creation and invocation), list with includeSecret, verify with missing payload, length mismatch constant-time comparison, default events when none provided. Remaining uncovered lines (20-22) are the ensureWebhooksDir catch block (dynamic import of mkdir).
 
 ## 10. External Service Tools — ⬜ PENDING
 
