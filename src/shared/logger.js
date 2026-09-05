@@ -4,6 +4,64 @@ import os from "node:os";
 import pino from "pino";
 
 // ---------------------------------------------------------------------------
+// Section 1: PII redaction patterns
+// ---------------------------------------------------------------------------
+
+/**
+ * Regex patterns for detecting and redacting personally identifiable information (PII).
+ * Each pattern has a corresponding replacement string.
+ */
+const PII_PATTERNS = [
+	// Email addresses
+	{ pattern: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, replacement: "[EMAIL REDACTED]" },
+	// Phone numbers (various formats)
+	{
+		pattern: /(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g,
+		replacement: "[PHONE REDACTED]",
+	},
+	// IP addresses (IPv4)
+	{ pattern: /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g, replacement: "[IP REDACTED]" },
+	// Social Security Numbers (SSN)
+	{ pattern: /\b\d{3}-\d{2}-\d{4}\b/g, replacement: "[SSN REDACTED]" },
+	// Credit card numbers (basic Luhn-checkable patterns)
+	{ pattern: /\b(?:\d{4}[-\s]?){3}\d{4}\b/g, replacement: "[CC REDACTED]" },
+];
+
+/**
+ * Redact PII from a log message string.
+ * @param {string} message - The log message to redact
+ * @returns {string} The redacted message
+ */
+export function redactPII(message) {
+	if (typeof message !== "string") return message;
+	let redacted = message;
+	for (const { pattern, replacement } of PII_PATTERNS) {
+		redacted = redacted.replace(pattern, replacement);
+	}
+	return redacted;
+}
+
+/**
+ * Redact PII from an object's string properties recursively.
+ * @param {object} obj - The object to redact
+ * @returns {object} A new object with redacted string values
+ */
+export function redactPIIFromObject(obj) {
+	if (typeof obj !== "object" || obj === null) return obj;
+	const redacted = Array.isArray(obj) ? [] : {};
+	for (const [key, value] of Object.entries(obj)) {
+		if (typeof value === "string") {
+			redacted[key] = redactPII(value);
+		} else if (typeof value === "object" && value !== null) {
+			redacted[key] = redactPIIFromObject(value);
+		} else {
+			redacted[key] = value;
+		}
+	}
+	return redacted;
+}
+
+// ---------------------------------------------------------------------------
 // Section 2.1: OS-aware log directory detection
 // ---------------------------------------------------------------------------
 
@@ -179,35 +237,35 @@ export async function flush() {
 export const logger = {
 	info: (msg, ...args) => {
 		try {
-			pinoLogger.info(msg, ...args);
+			pinoLogger.info(redactPII(msg), ...args);
 		} catch {
 			// Silently discard if logger is in silent/dev-null mode
 		}
 	},
 	warn: (msg, ...args) => {
 		try {
-			pinoLogger.warn(msg, ...args);
+			pinoLogger.warn(redactPII(msg), ...args);
 		} catch {
 			// Silently discard
 		}
 	},
 	error: (msg, ...args) => {
 		try {
-			pinoLogger.error(msg, ...args);
+			pinoLogger.error(redactPII(msg), ...args);
 		} catch {
 			// Silently discard
 		}
 	},
 	debug: (msg, ...args) => {
 		try {
-			pinoLogger.debug(msg, ...args);
+			pinoLogger.debug(redactPII(msg), ...args);
 		} catch {
 			// Silently discard
 		}
 	},
 	fatal: (msg, ...args) => {
 		try {
-			pinoLogger.fatal(msg, ...args);
+			pinoLogger.fatal(redactPII(msg), ...args);
 		} catch {
 			// Silently discard
 		}

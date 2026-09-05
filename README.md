@@ -473,9 +473,9 @@ Uses the [Deep Agents](https://github.com/langchain-ai/deepagentsjs) library to 
 | `research` | Multi-step research with source tracking and comprehensive reports | `webSearch`, `webExtract`, `grep`, `glob`, `sessionSearch` |
 | `search` | Multi-source search (web, docs, codebase) with synthesis | `webSearch`, `webExtract`, `grep`, `glob`, `sessionSearch` |
 | `security-audit` | Security scanning, dependency auditing, vulnerability detection | `readFile`, `grep`, `glob`, `process` |
+| `seoAnalyst` | SEO analysis — keyword density, meta description generation, SERP analysis, content optimization | `webSearch`, `webExtract` |
 | `testing` | Test generation, gap analysis, and coverage improvements | `readFile`, `grep`, `glob`, `process` |
 | `textEditor` | Text processing — summarize, rewrite, tone adjustment, grammar correction, shorten, expand | `webSearch`, `webExtract` |
-| `seoAnalyst` | SEO analysis — keyword density, meta description generation, SERP analysis, content optimization | `webSearch`, `webExtract` |
 | `translator` | Multi-language translation and language detection | _(none)_ |
 
 **Default subagent temperatures:**
@@ -490,9 +490,9 @@ Uses the [Deep Agents](https://github.com/langchain-ai/deepagentsjs) library to 
 | `research` | 0.5 | Exploratory research |
 | `search` | 0.5 | Exploratory search |
 | `security-audit` | 0.1 | Maximum precision for security analysis |
+| `seoAnalyst` | 0.3 | Analytical precision with room for insight |
 | `testing` | 0.2 | Structured, deterministic output |
 | `textEditor` | 0.4 | Balanced creativity and precision for language |
-| `seoAnalyst` | 0.3 | Analytical precision with room for insight |
 | `translator` | 0.3 | Nuanced translation with cultural fidelity |
 
 Temperatures are configurable via `subAgentsTemperature` in `config.yaml` or environment variables (`SUB_AGENTS_TEMPERATURE_<AGENT_NAME>`).

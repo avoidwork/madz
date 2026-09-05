@@ -783,11 +783,6 @@ export async function pdfGenerate(input) {
 			return embedSignature(actionInput);
 		case "annotate":
 			return addAnnotations(actionInput);
-		default:
-			return JSON.stringify({
-				ok: false,
-				error: `Unknown action: ${action}`,
-			});
 	}
 }
 

@@ -1,6 +1,6 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import { getActiveProvider, validateProviderConfig } from "./index.js";
+import { getActiveProvider } from "./index.js";
 import { loadConfig } from "../../config/loader.js";
 
 const config = loadConfig();
@@ -31,19 +31,11 @@ export async function emailImpl(input, options) {
 		};
 	}
 
-	const provider = getActiveProvider(options?.config);
+	const provider = options?._provider || getActiveProvider(options?.config);
 	if (!provider) {
 		return {
 			ok: false,
 			error: "No email provider configured. Set up email credentials via environment variables.",
-		};
-	}
-
-	const validation = validateProviderConfig(options?.config?.email?.provider);
-	if (!validation.valid) {
-		return {
-			ok: false,
-			error: `Invalid email provider config: ${validation.errors?.join("; ")}`,
 		};
 	}
 
@@ -190,11 +182,7 @@ export async function emailImpl(input, options) {
 			}
 		}
 
-		default:
-			return {
-				ok: false,
-				error: `Unknown action: "${action}". Valid actions: read, send, draftSave, draftList, draftUpdate, draftDelete, organize, search`,
-			};
+
 	}
 }
 

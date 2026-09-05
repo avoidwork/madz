@@ -237,8 +237,6 @@ export async function jsonManipulationImpl(input) {
 			const result = accessJsonPath(jsonInput, path);
 			return result.ok ? { ok: true, data: result.data } : result;
 		}
-		default:
-			return { ok: false, error: `Unknown action: ${action}` };
 	}
 }
 

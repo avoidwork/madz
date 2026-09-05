@@ -181,16 +181,6 @@ function filterYaml(input, path) {
 }
 
 /**
- * Access a value in YAML data using dot notation or array indices.
- * @param {string} input - YAML string input
- * @param {string} path - Dot-notation path
- * @returns {{ ok: boolean, data?: unknown, error?: string }}
- */
-function accessYamlPath(input, path) {
-	return filterYaml(input, path);
-}
-
-/**
  * YAML manipulation tool — parse, serialize, transform, filter, and access YAML data.
  * @param {string} input - JSON string with action, input, path, mapping
  * @returns {Promise<{ ok: boolean, data?: unknown, error?: string }>}
@@ -253,12 +243,9 @@ export async function yamlManipulationImpl(input) {
 			if (!path) {
 				return { ok: false, error: "Path is required for filter/access action" };
 			}
-			const result =
-				action === "filter" ? filterYaml(yamlInput, path) : accessYamlPath(yamlInput, path);
+			const result = filterYaml(yamlInput, path);
 			return result.ok ? { ok: true, data: result.data } : result;
 		}
-		default:
-			return { ok: false, error: `Unknown action: ${action}` };
 	}
 }
 
