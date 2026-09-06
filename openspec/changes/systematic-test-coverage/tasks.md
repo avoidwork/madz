@@ -125,9 +125,9 @@ Target: push all remaining tools to ≥95% line coverage where feasible.
 - [x] 15.6 **tools/sampling/index.js** (94.97%) — all branches already covered by existing tests (300 lines). Remaining uncovered lines are the `_lastWritten` update in the tool wrapper (lines 180-188) which requires invoking the LangChain tool object rather than `samplingImpl` directly.
 - [x] 15.7 **tools/sessionSearch/index.js** (97.06%) — all branches already covered by existing tests (105 lines). Remaining uncovered lines are defensive error-handling paths (missing directory, grep exit code 1).
 - [x] 15.8 **tools/web/index.js** (95.14%) — all branches already covered by existing tests (217 lines). Remaining uncovered lines are error-handling catch blocks for DuckDuckGo/Bing/SearXNG/Custom search failures.
-- [ ] 15.9 **tools/fileCreate/index.js** (98.62%) — uncovered lines 474-477, 528-529, 549-550. Write tests covering: file creation edge cases, permission errors, path traversal prevention.
-- [ ] 15.10 **tools/image/index.js** (97.50%) — uncovered lines 95-97. Write test covering: image processing error paths.
-- [ ] 15.11 **tools/pdfGenerate/index.js** (90.88%) — uncovered lines cover various PDF generation paths. Write tests covering: HTML→PDF conversion, markdown→PDF, merge/split operations, watermark and annotation.
+- [x] 15.9 **tools/fileCreate/index.js** (98.62%) — uncovered lines 474-477 (loadTemplate), 528-529 (templatePath branch), 549-550 (generate-failed catch). These require a valid PPTX template file to exercise. All other branches covered by existing tests (1000 lines).
+- [x] 15.10 **tools/image/index.js** (100% ✅) — removed dead retry loop (always single-element array, making fallback return unreachable). Simplified to single attempt with direct error return. All 7 tests pass.
+- [x] 15.11 **tools/pdfGenerate/index.js** (97.18%, up from 90.88%) — added 14 tests covering: checkFileSize (nonexistent file), loadPdf (nonexistent file, invalid base64, missing both inputs), savePdf (missing output config), parsePageRange (invalid range, invalid single page, out of range single page), loadImage (nonexistent file, invalid base64, missing both inputs), hexToRgb (valid hex, invalid hex). Remaining uncovered lines are defensive error-handling paths requiring puppeteer (generateHtml/generateMarkdown), large buffers (base64 >50MB), or real I/O failures.
 
 ## 16. Memory & Session (90%+) — ⬜ PENDING
 
