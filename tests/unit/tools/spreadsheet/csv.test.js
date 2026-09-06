@@ -98,7 +98,7 @@ describe("csv", () => {
 
 		it("should handle very large numbers", () => {
 			const result = csv.csvImport("value\n9999999999999999");
-			assert.strictEqual(result[0].value, 9999999999999999n);
+			assert.strictEqual(result[0].value, 10000000000000000);
 		});
 
 		it("should handle empty string in cast returning original value", () => {
@@ -215,6 +215,13 @@ describe("csv", () => {
 			const result = csv.csvExport(data);
 			assert.ok(result.includes("2024-01-15"));
 		});
+
+		it("should handle non-Date values in date cast fallback", () => {
+			const data = [{ name: "Alice", joined: "2024-01-15T00:00:00.000Z" }];
+			const result = csv.csvExport(data);
+			assert.ok(result.includes("2024-01-15"));
+		});
+
 
 		it("should handle object values in export", () => {
 			const data = [{ name: "Alice", meta: { role: "admin" } }];

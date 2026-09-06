@@ -67,6 +67,16 @@ describe("stats", () => {
 		it("should handle Infinity", () => {
 			assert.strictEqual(stats.mean([Infinity, Infinity]), Infinity);
 		});
+
+		it("should handle boolean values via safeNumber fallthrough", () => {
+			// safeNumber(true) returns 0 because boolean is not number/string/Date
+			assert.strictEqual(stats.mean([true, false]), 0);
+		});
+
+		it("should handle object values via safeNumber fallthrough", () => {
+			// safeNumber({}) returns 0
+			assert.strictEqual(stats.mean([{}, []]), 0);
+		});
 	});
 
 	describe("median", () => {
