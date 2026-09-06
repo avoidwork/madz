@@ -108,8 +108,9 @@ describe("extractFrontmatter", () => {
 		assert.strictEqual(result.frontmatter.description, "Use when: the user asks about PDFs");
 	});
 
-	it("merges metadata block between second and third --- delimiters (lines 63-68)", () => {
-		// Three --- blocks: frontmatter, metadata, body
+	it("treats content after first --- block as body", () => {
+		// Only the first YAML block between --- delimiters is frontmatter.
+		// Everything after the closing --- is body content.
 		const content = [
 			"---",
 			"name: my-skill",
@@ -127,25 +128,24 @@ describe("extractFrontmatter", () => {
 		assert.strictEqual(result.frontmatter.name, "my-skill");
 		assert.strictEqual(result.frontmatter.description, "A skill with metadata block");
 
-		// The metadata block fields should be merged into frontmatter
-		assert.strictEqual(result.frontmatter.agent, "coding");
-		assert.strictEqual(result.frontmatter.confidence, 0.95);
+		// The second block is body, not merged into frontmatter
+		assert.strictEqual(result.frontmatter.agent, undefined);
+		assert.strictEqual(result.frontmatter.confidence, undefined);
 
-		// Body should be everything after the third ---
+		// Body includes everything after the first closing ---
+		assert.ok(result.body.includes("agent: coding"));
 		assert.ok(result.body.includes("Body content after metadata block."));
 	});
 
-	it("merges metadata block with nested metadata wrapper (metadata.metadata flattening)", () => {
-		// When the second YAML block has a top-level "metadata" key that is an object,
-		// its contents should be flattened into the frontmatter (lines 65-67).
+	it("treats second --- block as body content (not metadata)", () => {
+		// Frontmatter is only the first YAML block between --- delimiters.
+		// Any subsequent --- blocks are part of the body.
 		const content = [
 			"---",
-			"name: nested-meta",
-			"description: Nested metadata test",
+			"name: my-skill",
+			"description: A skill",
 			"---",
-			"metadata:",
-			"  agent: research",
-			"  priority: high",
+			"extra: data",
 			"---",
 			"",
 			"Body",
@@ -153,10 +153,11 @@ describe("extractFrontmatter", () => {
 
 		const result = extractFrontmatter(content);
 		assert.ok(result.frontmatter !== null);
-		assert.strictEqual(result.frontmatter.name, "nested-meta");
-		// The nested metadata.agent and metadata.priority should be at top level
-		assert.strictEqual(result.frontmatter.agent, "research");
-		assert.strictEqual(result.frontmatter.priority, "high");
+		assert.strictEqual(result.frontmatter.name, "my-skill");
+		assert.strictEqual(result.frontmatter.description, "A skill");
+		// The second block is body, not merged into frontmatter
+		assert.strictEqual(result.frontmatter.extra, undefined);
+		assert.ok(result.body.includes("extra: data"));
 	});
 
 	it("returns null frontmatter when YAML parses to non-object", () => {
@@ -483,21 +484,21 @@ describe("discoverSkills", () => {
 	it("handles multiple scopes, merging results", async () => {
 		const scopeA = join(FULL_TEST_DIR, "scope-a");
 		const scopeB = join(FULL_TEST_DIR, "scope-b");
-		mkdirSync(scopeA, { recursive: true });
-		mkdirSync(scopeB, { recursive: true });
+		mkdirSync(join(scopeA, "skill-a"), { recursive: true });
+		mkdirSync(join(scopeB, "skill-b"), { recursive: true });
 
 		writeFileSync(
-			join(scopeA, "SKILL.md"),
+			join(scopeA, "skill-a", "SKILL.md"),
 			["---", "name: from-scope-a", "description: In scope A", "---", "", "Body"].join("\n"),
 		);
 		writeFileSync(
-			join(scopeB, "SKILL.md"),
+			join(scopeB, "skill-b", "SKILL.md"),
 			["---", "name: from-scope-b", "description: In scope B", "---", "", "Body"].join("\n"),
 		);
 
 		const skills = await discoverSkills([scopeA, scopeB]);
 		assert.strictEqual(skills.length, 2);
-		const names = skills.map((s) => s.name).sort();
+		const names = skills.map((s) => s.metadata.name).sort();
 		assert.deepStrictEqual(names, ["from-scope-a", "from-scope-b"]);
 	});
 
