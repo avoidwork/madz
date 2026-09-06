@@ -113,7 +113,7 @@ Target: raise all files in this group to ≥95% line coverage.
 - [x] 14.1 **sandbox/runner.js** (91.58% → 99.50%) — added tests for `detectShebang` (all shebang variants: `#!/usr/bin/env node/python3/bash/ruby`, `#!/bin/bash`, `#!/bin/zsh`, `#!/usr/bin/python2`, `#!/usr/bin/node`, `#!/usr/bin/ruby`, unknown env targets, unknown shebangs, no shebang, read errors, null path, nonexistent file), `detectInterpreter` (lua extension, null path, non-string path), and `runSandbox` fallback when both interpreter and shebang return null. Remaining uncovered line (190) is `child.on("error")` handler excluded via `node:coverage ignore next 3`. All 84 tests pass.
 - [x] 14.2 **scheduler/scheduler.js** (94.27% → 99.12%) — added tests for `runNow` with contextFile (existing file path, nonexistent file fallback to `loadContext`, sandbox timeout, skill execution without contextFile). Remaining uncovered lines (202-203) are the outer defensive catch in contextFile loading — `loadContext` has its own internal try-catch, making this practically unreachable. All 46 tests pass. Fixed test directories to use `os.tmpdir()` instead of `memory/__test_*` dirs.
 
-## 15. Remaining Tools (90%+) — ⬜ PENDING
+## 15. Remaining Tools (90%+) — ✅ DONE
 
 Target: push all remaining tools to ≥95% line coverage where feasible.
 
@@ -159,7 +159,7 @@ Target: push all files in this group to ≥95% line coverage.
 
 **Section 14 status:** sandbox/runner.js (99.50% ✅), scheduler/scheduler.js (99.12% ✅). Both above 95% target. Remaining uncovered lines are defensive error-handling paths (child.on("error"), outer catch in contextFile loading) that are practically unreachable.
 
-**Section 15 status:** tools/common.js (100% ✅), tools/compactContext/index.js (dead code removed ✅), tools/cron/index.js (all branches tested ✅), tools/memory/index.js (all branches tested ✅), tools/reflection/index.js (all branches tested ✅), tools/sampling/index.js (all branches tested ✅), tools/sessionSearch/index.js (all branches tested ✅), tools/web/index.js (all branches tested ✅). Remaining uncovered lines across all tools are defensive error-handling catch blocks that require real I/O failures to trigger. Sections 15.9-15.11 (fileCreate, image, pdfGenerate) still need targeted tests.
+**Section 15 status:** All 11 subsections complete ✅. tools/common.js (100%), tools/compactContext/index.js (dead code removed), tools/image/index.js (100%), tools/pdfGenerate/index.js (97.18%, up from 90.88%), tools/fileCreate/index.js (98.62%). Remaining uncovered lines across all tools are defensive error-handling catch blocks that require real I/O failures, puppeteer, or PPTX template files to trigger.
 
 **Summary:** Tests have been written for most modules, but many source files still have low coverage because the tests don't exercise enough code paths. The biggest gaps remain in:
 - Spreadsheet tools (formulaParser, csv, pivot, spreadsheet, stats) — require complex computation mocking
