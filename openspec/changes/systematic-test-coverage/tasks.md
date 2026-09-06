@@ -133,6 +133,8 @@ Target: push all remaining tools to ≥95% line coverage where feasible.
 
 Target: push all files in this group to ≥95% line coverage.
 
+**Status:** No tests written yet. All 11 subsections remain open. The uncovered lines are primarily defensive error-handling catch blocks (file not found, YAML parse failures, directory read errors) and edge-case branches. Most require either I/O failure simulation or specific state machine transitions to trigger.
+
 - [ ] 16.1 **memory/expireEphemeralMemories.js** (93.15%) — uncovered lines 25-27, 68-69. Write tests covering: ephemeral memory expiration, TTL enforcement, cleanup on read.
 - [ ] 16.2 **memory/reader.js** (95.16%) — uncovered lines 23-25. Write test covering: memory read with missing entries, directory traversal prevention.
 - [ ] 16.3 **memory/context.js** (97.44%) — uncovered lines 114-116. Write test covering: context assembly edge cases.

@@ -79,7 +79,21 @@ Archive a completed change in the experimental workflow.
    - If no: Move the change directory to archive
 
    ```bash
-   mv openspec/changes/<name> openspec/changes/archive/YYYY-MM-DD-<name>
+   ARCHIVE_DATE=$(date -u +%Y-%m-%d)
+   ARCHIVE_TARGET="openspec/changes/archive/${ARCHIVE_DATE}-<name>"
+
+   # Verify source exists before moving
+   if [ ! -d "openspec/changes/<name>" ]; then
+     echo "ERROR: Change directory 'openspec/changes/<name>' does not exist. Cannot archive."
+     exit 1
+   fi
+
+   if [ -d "$ARCHIVE_TARGET" ]; then
+     echo "ERROR: Archive target '$ARCHIVE_TARGET' already exists. Rename existing archive or use a different date."
+     exit 1
+   fi
+
+   mv "openspec/changes/<name>" "$ARCHIVE_TARGET"
    ```
 
 6. **Display summary**
