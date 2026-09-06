@@ -40,7 +40,7 @@ export class SkillRegistry {
 
 		for (const skill of discovered) {
 			const dirName = skill.name;
-			const { valid, skip, errors, warnings } = validateSkillSchema(skill.metadata, dirName);
+			const { warnings } = validateSkillSchema(skill.metadata, dirName);
 
 			const entry = {
 				path: skill.path,
@@ -159,7 +159,7 @@ export class SkillRegistry {
 	 * @returns {{ valid: boolean, errors: string[], warnings: string[] }}
 	 */
 	register(name, metadata) {
-		const { valid, skip, errors, warnings } = validateSkillSchema({ name, ...metadata });
+		const { skip, warnings } = validateSkillSchema({ name, ...metadata });
 		if (skip) {
 			this.#errors.push({ name, errors });
 			return { valid: false, errors, warnings };

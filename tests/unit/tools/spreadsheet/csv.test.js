@@ -98,7 +98,7 @@ describe("csv", () => {
 
 		it("should handle very large numbers", () => {
 			const result = csv.csvImport("value\n9999999999999999");
-			assert.strictEqual(result[0].value, 9999999999999999);
+			assert.strictEqual(result[0].value, 9999999999999999n);
 		});
 
 		it("should handle empty string in cast returning original value", () => {

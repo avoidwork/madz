@@ -3,7 +3,7 @@
  * @see {@link src/tools/calendar/providers/base.js}
  */
 
-import { describe, it, before, after, mock } from "node:test";
+import { describe, it, before } from "node:test";
 import assert from "node:assert";
 
 describe("CalendarProviderBase", () => {

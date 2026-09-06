@@ -3,7 +3,7 @@
  * @see {@link src/tools/fileExtract/zipExtractor.js}
  */
 
-import { describe, it, before, after } from "node:test";
+import { describe, it, before } from "node:test";
 import assert from "node:assert";
 import { validateZip, ZipExtractionError } from "../../../../src/tools/fileExtract/zipExtractor.js";
 

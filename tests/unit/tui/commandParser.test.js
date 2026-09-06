@@ -22,14 +22,14 @@ function createMockContext(overrides = {}) {
 			},
 			getProvider: () => provider.current,
 		},
-		_setConfigValue: (path, value) => {
+		_setConfigValue: (_path, _value) => {
 			/* spy target */
 		},
 		_scheduleList: scheduleList,
-		_schedulePause: (name) => {
+		_schedulePause: (_name) => {
 			/* spy target */
 		},
-		_scheduleResume: (name) => {
+		_scheduleResume: (_name) => {
 			/* spy target */
 		},
 		_gcStatus: () => ({ ...gcInfo }),

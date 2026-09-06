@@ -1,4 +1,4 @@
-import { describe, it, beforeEach, afterEach } from "node:test";
+import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert";
 import {
 	unifiedProcessImpl,
@@ -232,9 +232,9 @@ describe("process tool - trackProcess", () => {
 	it("tracks a process and assigns a PID", () => {
 		// Create a mock child process
 		const mockChild = {
-			stdout: { on: (event, cb) => {} },
-			stderr: { on: (event, cb) => {} },
-			on: (event, cb) => {},
+			stdout: { on: (_event, _cb) => {} },
+			stderr: { on: (_event, _cb) => {} },
+			on: (_event, _cb) => {},
 		};
 		const pid = trackProcess(mockChild, "echo test");
 		assert.ok(typeof pid === "number");
@@ -248,8 +248,8 @@ describe("process tool - trackProcess", () => {
 	it("updates status to exited on process exit", () => {
 		let exitHandler;
 		const mockChild = {
-			stdout: { on: (event, cb) => {} },
-			stderr: { on: (event, cb) => {} },
+			stdout: { on: (_event, _cb) => {} },
+			stderr: { on: (_event, _cb) => {} },
 			on: (event, cb) => {
 				if (event === "exit") exitHandler = cb;
 			},
@@ -263,8 +263,8 @@ describe("process tool - trackProcess", () => {
 	it("updates status to error on process error", () => {
 		let errorHandler;
 		const mockChild = {
-			stdout: { on: (event, cb) => {} },
-			stderr: { on: (event, cb) => {} },
+			stdout: { on: (_event, _cb) => {} },
+			stderr: { on: (_event, _cb) => {} },
 			on: (event, cb) => {
 				if (event === "error") errorHandler = cb;
 			},
@@ -283,8 +283,8 @@ describe("process tool - trackProcess", () => {
 					stdoutHandler = cb;
 				},
 			},
-			stderr: { on: (event, cb) => {} },
-			on: (event, cb) => {},
+			stderr: { on: (_event, _cb) => {} },
+			on: (_event, _cb) => {},
 		};
 		const pid = trackProcess(mockChild, "echo test");
 		stdoutHandler(Buffer.from("hello world"));
@@ -295,13 +295,13 @@ describe("process tool - trackProcess", () => {
 	it("collects stderr data", () => {
 		let stderrHandler;
 		const mockChild = {
-			stdout: { on: (event, cb) => {} },
+			stdout: { on: (_event, _cb) => {} },
 			stderr: {
 				on: (event, cb) => {
 					stderrHandler = cb;
 				},
 			},
-			on: (event, cb) => {},
+			on: (_event, _cb) => {},
 		};
 		const pid = trackProcess(mockChild, "echo test");
 		stderrHandler(Buffer.from("error output"));

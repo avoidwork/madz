@@ -21,27 +21,7 @@ function createImperativeApi() {
 	const contentRef = { current: new Map() };
 	const topicsRef = { current: new Map() };
 	const lastMsgCountRef = { current: 0 };
-	let renderTick = 0;
-	const triggerRender = () => {
-		renderTick++;
-	};
-
-	const subscribe = (topic, callback) => {
-		const callbacks = topicsRef.current.get(topic);
-		if (callbacks) {
-			if (!callbacks.includes(callback)) callbacks.push(callback);
-		} else {
-			topicsRef.current.set(topic, [callback]);
-		}
-	};
-
-	const unsubscribe = (topic, callback) => {
-		const callbacks = topicsRef.current.get(topic);
-		if (callbacks) {
-			const idx = callbacks.indexOf(callback);
-			if (idx !== -1) callbacks.splice(idx, 1);
-		}
-	};
+	const triggerRender = () => {};
 
 	const publish = (topic, data) => {
 		const callbacks = topicsRef.current.get(topic);
@@ -179,7 +159,7 @@ describe("MessageList — imperative API", () => {
 		});
 
 		it("adds a system message", () => {
-			const id = api.addMessage("system", "System message");
+			api.addMessage("system", "System message");
 			assert.strictEqual(api.getMessageCount(), 1);
 		});
 
@@ -314,7 +294,7 @@ describe("MessageList — imperative API", () => {
 
 	describe("_getState", () => {
 		it("returns internal state with ids, data, topics", () => {
-			const id = api.addMessage("user", "test");
+			api.addMessage("user", "test");
 			const state = api._getState();
 			assert.ok(Array.isArray(state.ids));
 			assert.ok(state.idToIdx instanceof Map);

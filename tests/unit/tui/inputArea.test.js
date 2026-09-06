@@ -84,7 +84,6 @@ describe("InputArea — imperative API logic", () => {
 	});
 
 	it("navigateHistory down does nothing when historyIndex is -1", () => {
-		const chatHistory = ["first", "second", "third"];
 		const historyIndex = -1;
 
 		if (historyIndex === -1) {
@@ -100,9 +99,6 @@ describe("InputArea — imperative API logic", () => {
 	});
 
 	it("clearHistory resets chatHistory and historyIndex", () => {
-		const chatHistory = ["item1", "item2"];
-		const historyIndex = 1;
-
 		// clearHistory: () => { setChatHistory([]); setHistoryIndex(-1); }
 		const clearedHistory = [];
 		const clearedIndex = -1;
@@ -171,14 +167,11 @@ describe("InputArea — imperative API logic", () => {
 	});
 
 	it("handleSubmit resets historyIndex to -1", () => {
-		const historyIndex = 2;
 		const resetIndex = -1;
 		assert.strictEqual(resetIndex, -1);
 	});
 
 	it("handleSubmit clears input text", () => {
-		const inputText = "some text";
-		const cleared = "";
 		assert.strictEqual(cleared, "");
 	});
 

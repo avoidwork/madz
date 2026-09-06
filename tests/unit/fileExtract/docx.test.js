@@ -3,7 +3,7 @@
  * @module tests/unit/fileExtract/docx.test
  */
 
-import { describe, it, before, after } from "node:test";
+import { describe, it } from "node:test";
 import assert from "node:assert";
 import { docxExtract } from "../../../src/tools/fileExtract/docx.js";
 

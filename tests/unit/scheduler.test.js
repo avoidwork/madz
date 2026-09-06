@@ -393,7 +393,7 @@ describe("scheduler - ScheduleManager.runNow with skill", () => {
 				contextFile: "/nonexistent/path/ctx.md",
 			},
 		]);
-		const sandbox = async (opts) => {
+		const sandbox = async (_opts) => {
 			// Should still run even if context load fails
 			return { stdout: "done", stderr: "", exitCode: 0 };
 		};
