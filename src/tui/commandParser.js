@@ -133,11 +133,7 @@ export class CommandParser {
 		});
 
 		// Skill execution: /skillName [args]
-		// Registered last so it catches unmatched commands and checks the registry
-		this.#register("_skillFallback", (_args, _ctx) => {
-			// This handler is never called — skill execution is handled in parse()
-			return { action: "skill", subAction: "error", message: "Skill not found" };
-		});
+		// Handled in parse() via context._skillList and context._executeSkill
 	}
 
 	#register(name, handler) {

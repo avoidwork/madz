@@ -3,21 +3,21 @@
  * @param {Array} conversation - Array of {role, content} messages
  * @param {string} modelName - The model name (e.g., "gpt-4o", "llama3.1")
  * @param {string} [encoding] - Optional explicit tiktoken encoder name.
- *   Resolved in order: env var → config → derived from model name.
- * @returns {number} Total token count
+ *   Resolved in order: env var, config, derived from model name.
+ * @returns {Promise<number>} Total token count
  */
-export function calculateConversationTokens(conversation, modelName, encoding) {
+export async function calculateConversationTokens(conversation, modelName, encoding) {
 	if (!conversation || conversation.length === 0) {
 		return 0;
 	}
 
 	// Resolve encoder: env var takes priority, then config, then derive from model name.
 	const encoderName =
-		process.env.OPENAI_ENCODING || encoding || (modelName ? modelName.split(":")[0] : "gpt-4o");
+			process.env.OPENAI_ENCODING || encoding || (modelName ? modelName.split(":")[0] : "gpt-4o");
 
 	let tiktoken;
 	try {
-		tiktoken = require("tiktoken");
+		tiktoken = await import("tiktoken");
 	} catch (_err) {
 		// tiktoken not available — estimate based on character count
 		// Rough heuristic: ~4 characters per token for English text

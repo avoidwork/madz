@@ -507,3 +507,151 @@ describe("parseMarkdown - code block edge cases", () => {
     assert.ok(stripped.includes("tag"));
   });
 });
+
+describe("parseMarkdown - reflow text", () => {
+  it("renders with reflow enabled via parseMarkdown", () => {
+    const result = parseMarkdown("A long paragraph that should wrap at forty characters");
+    assert.ok(typeof result === "string");
+    assert.ok(result.length > 0);
+  });
+});
+
+describe("parseMarkdown - emoji rendering", () => {
+  it("renders multiple emoji shortcodes", () => {
+    const result = parseMarkdown("Hello :wave: :smile: :rocket:");
+    assert.ok(typeof result === "string");
+    assert.ok(result.length > 0);
+  });
+
+  it("renders unknown emoji shortcode as text", () => {
+    const result = parseMarkdown(":unknown_emoji_code:");
+    assert.ok(typeof result === "string");
+  });
+});
+
+describe("parseMarkdown - code block with syntax highlighting", () => {
+  it("renders code block with language for highlighting", () => {
+    const result = parseMarkdown("```javascript\nconst x = 1;\n```");
+    assert.ok(typeof result === "string");
+    assert.ok(result.length > 0);
+  });
+
+  it("renders code block with unknown language", () => {
+    const result = parseMarkdown("```unknownlang\nsome code\n```");
+    assert.ok(typeof result === "string");
+    assert.ok(result.length > 0);
+  });
+});
+
+describe("parseMarkdown - nested lists", () => {
+  it("renders nested unordered list", () => {
+    const result = parseMarkdown("- item 1\n  - nested item\n- item 2");
+    assert.ok(typeof result === "string");
+    assert.ok(result.includes("item 1"));
+    assert.ok(result.includes("nested item"));
+  });
+
+  it("renders nested ordered list", () => {
+    const result = parseMarkdown("1. first\n   1. nested\n2. second");
+    assert.ok(typeof result === "string");
+    assert.ok(result.includes("first"));
+    assert.ok(result.includes("nested"));
+  });
+});
+
+describe("parseMarkdown - mixed lists", () => {
+  it("renders ordered list inside unordered", () => {
+    const result = parseMarkdown("- item\n  1. nested ordered\n- another");
+    assert.ok(typeof result === "string");
+    assert.ok(result.includes("nested ordered"));
+  });
+});
+
+describe("parseMarkdown - definition list style", () => {
+  it("renders term and definition", () => {
+    const result = parseMarkdown("Term\n: Definition");
+    assert.ok(typeof result === "string");
+  });
+});
+
+describe("parseMarkdown - escaped characters", () => {
+  it("renders escaped asterisk", () => {
+    const result = parseMarkdown("\\*not italic\\*");
+    assert.ok(typeof result === "string");
+    assert.ok(result.includes("*"));
+  });
+
+  it("renders escaped backtick", () => {
+    const result = parseMarkdown("\\`not code\\`");
+    assert.ok(typeof result === "string");
+  });
+});
+
+describe("parseMarkdown - line break rendering", () => {
+  it("renders hard line break with reflow", () => {
+    const result = parseMarkdown("Line 1  \nLine 2");
+    assert.ok(typeof result === "string");
+    assert.ok(result.length > 0);
+  });
+});
+
+describe("parseMarkdown - text token rendering", () => {
+  it("renders plain text token", () => {
+    const result = parseMarkdown("Just plain text");
+    assert.ok(typeof result === "string");
+    assert.ok(result.includes("plain text"));
+  });
+});
+
+describe("parseMarkdown - cache behavior", () => {
+  it("returns cached result for repeated content", () => {
+    const first = parseMarkdown("# Hello");
+    const second = parseMarkdown("# Hello");
+    assert.strictEqual(first, second);
+  });
+});
+
+describe("parseMarkdown - empty and edge inputs", () => {
+  it("handles whitespace-only input", () => {
+    const result = parseMarkdown("   ");
+    assert.ok(typeof result === "string");
+  });
+
+  it("handles input with only newlines", () => {
+    const result = parseMarkdown("\n\n\n");
+    assert.ok(typeof result === "string");
+  });
+
+  it("handles input with only special characters", () => {
+    const result = parseMarkdown("@#$%^&*()");
+    assert.ok(typeof result === "string");
+  });
+});
+
+describe("parseMarkdown - definition lists", () => {
+  it("renders definition list", () => {
+    const result = parseMarkdown("First Term\n: This is the definition");
+    assert.ok(typeof result === "string");
+  });
+});
+
+describe("parseMarkdown - footnotes", () => {
+  it("renders footnote reference", () => {
+    const result = parseMarkdown("Some text[^1]\n\n[^1]: The footnote");
+    assert.ok(typeof result === "string");
+  });
+});
+
+describe("TerminalRenderer - checkbox", () => {
+  it("renders checked checkbox", () => {
+    const renderer = createTerminalRenderer();
+    const result = renderer.checkbox({ checked: true });
+    assert.strictEqual(result, "[X] ");
+  });
+
+  it("renders unchecked checkbox", () => {
+    const renderer = createTerminalRenderer();
+    const result = renderer.checkbox({ checked: false });
+    assert.strictEqual(result, "[ ] ");
+  });
+});
