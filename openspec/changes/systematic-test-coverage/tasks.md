@@ -117,7 +117,7 @@ Target: raise all files in this group to ≥95% line coverage.
 
 Target: push all remaining tools to ≥95% line coverage where feasible.
 
-- [ ] 15.1 **tools/common.js** (95.54%) — uncovered lines 58-62 (fetchWithTimeout catch block). Write test covering: timeout abort, network error simulation.
+- [x] 15.1 **tools/common.js** (95.54% → 100%) — added 26 tests covering: validatePath (allowed, denied, parent traversal, multiple scopes, empty allowedPaths), validateUrl (http, file/gopher/dict blocked, allowlist, invalid/empty/null/non-string, no allowlist), fetchWithTimeout (successful fetch, blocked URL, HTTP 500, 404, timeout, allowlist rejection), checkFileLimit (small file, exceeds limit, nonexistent, zero-byte). All 35 tests pass.
 - [ ] 15.2 **tools/compactContext/index.js** (95.07%) — uncovered lines 126-132, 225-232, 283-287. Write tests covering: context compaction with various token budgets, retention tier behavior, edge cases.
 - [ ] 15.3 **tools/cron/index.js** (94.41%) — uncovered lines 93-94, 106-107, 228-229, 231-242, 246-252, 325-326. Write tests covering: cron job creation/listing/deletion, schedule parsing, error paths.
 - [ ] 15.4 **tools/memory/index.js** (96.52%) — uncovered lines 55, 98-99, 194-198, 298-300. Write tests covering: memory CRUD operations, search/filter, error handling.
