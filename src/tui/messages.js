@@ -28,5 +28,3 @@ export function getRoleLabel(role, assistantName) {
 			return role || "Unknown";
 	}
 }
-
-

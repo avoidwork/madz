@@ -358,6 +358,8 @@ describe("MessageBubble - memo wrapper", () => {
 	it("exports MessageBubble as a memo-wrapped component", () => {
 		assert.ok(MessageBubble);
 		// React.memo wraps the component, so the inner type name is MessageBubbleInner
-		assert.ok(MessageBubble.type?.name === "MessageBubbleInner" || typeof MessageBubble === "object");
+		assert.ok(
+			MessageBubble.type?.name === "MessageBubbleInner" || typeof MessageBubble === "object",
+		);
 	});
 });

@@ -29,7 +29,11 @@ function makeBase() {
 		},
 		telemetry: {
 			enabled: false,
-			exporter: { protocol: "console", endpoint: "http://localhost:4318", batch: { maxSize: 512, scheduledDelay: 5000 } },
+			exporter: {
+				protocol: "console",
+				endpoint: "http://localhost:4318",
+				batch: { maxSize: 512, scheduledDelay: 5000 },
+			},
 			sampling: { ratio: 0.1 },
 			redact: { paths: ["credentials.apiKey"] },
 		},
@@ -144,9 +148,7 @@ describe("SkillAgentMap env var resolution", () => {
 		process.env.SKILL_AGENT_MAP_0_AGENT = "nested-agent";
 		const rawConfig = {
 			...makeBase(),
-			skillAgentMap: [
-				{ pattern: "^openspec-", agent: "coding" },
-			],
+			skillAgentMap: [{ pattern: "^openspec-", agent: "coding" }],
 		};
 		const resolved = _resolveEnvRecursively(rawConfig, []);
 		const config = ConfigSchema.parse(resolved);

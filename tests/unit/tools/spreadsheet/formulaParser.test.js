@@ -530,10 +530,7 @@ describe("formulaParser", () => {
 
 		it("should detect circular reference when same cell used twice", () => {
 			const { evaluate } = parseFormula("=A1+A1");
-			assert.throws(
-				() => evaluate({ A1: 10 }),
-				/Circular reference detected/,
-			);
+			assert.throws(() => evaluate({ A1: 10 }), /Circular reference detected/);
 		});
 
 		it("should detect circular references in range", () => {
@@ -570,10 +567,7 @@ describe("formulaParser", () => {
 
 		it("should detect circular reference when cell in range already visited", () => {
 			const { evaluate } = parseFormula("=A1+SUM(A1:B1)");
-			assert.throws(
-				() => evaluate({ A1: 10, B1: 20 }),
-				/Circular reference detected/,
-			);
+			assert.throws(() => evaluate({ A1: 10, B1: 20 }), /Circular reference detected/);
 		});
 	});
 

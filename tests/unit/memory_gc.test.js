@@ -81,10 +81,7 @@ describe("memory/gc", () => {
 		it("prunes stale timestamps before checking rate limit", () => {
 			global.gc = () => {};
 			// Inject two stale timestamps (both older than 1 hour)
-			_setGcCalls([
-				Date.now() - 2 * 60 * 60 * 1000,
-				Date.now() - 1.5 * 60 * 60 * 1000,
-			]);
+			_setGcCalls([Date.now() - 2 * 60 * 60 * 1000, Date.now() - 1.5 * 60 * 60 * 1000]);
 			// After pruning, hourCalls=0 → under maxGcPerHour=2 → proceeds
 			const result = gc(2);
 			assert.strictEqual(result.triggered, true);

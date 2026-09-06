@@ -226,7 +226,9 @@ describe("scheduler - ScheduleManager.loadFromDisk", () => {
 	});
 
 	it("returns empty manager for nonexistent directory", async () => {
-		const mgr = await ScheduleManager.loadFromDisk(join(tmpdir(), "scheduler-nonexistent-" + randomSuffix()));
+		const mgr = await ScheduleManager.loadFromDisk(
+			join(tmpdir(), "scheduler-nonexistent-" + randomSuffix()),
+		);
 		assert.deepStrictEqual(mgr.list(), []);
 	});
 
@@ -346,7 +348,9 @@ describe("scheduler - ScheduleManager.runNow with skill", () => {
 			const ctxFile = join(ctxDir, "context.md");
 			writeFileSync(ctxFile, "custom context content");
 			const mgr = new ScheduleManager();
-			mgr.register([{ name: "skill-job", cron: "0 * * * *", skill: "test-skill", contextFile: ctxFile }]);
+			mgr.register([
+				{ name: "skill-job", cron: "0 * * * *", skill: "test-skill", contextFile: ctxFile },
+			]);
 			const sandbox = async (opts) => {
 				assert.strictEqual(opts.context, "custom context content");
 				return { stdout: "done", stderr: "", exitCode: 0 };
@@ -376,15 +380,19 @@ describe("scheduler - ScheduleManager.runNow with skill", () => {
 			return { stdout: "", stderr: "", exitCode: 0 };
 		};
 		const scheduler = { sandbox, state: { timeoutMs: 10 } };
-		await assert.rejects(
-			() => mgr.runNow("slow-job", scheduler),
-			/execution timed out/,
-		);
+		await assert.rejects(() => mgr.runNow("slow-job", scheduler), /execution timed out/);
 	});
 
 	it("handles contextFile load failure gracefully", async () => {
 		const mgr = new ScheduleManager();
-		mgr.register([{ name: "ctx-job", cron: "0 * * * *", skill: "ctx-skill", contextFile: "/nonexistent/path/ctx.md" }]);
+		mgr.register([
+			{
+				name: "ctx-job",
+				cron: "0 * * * *",
+				skill: "ctx-skill",
+				contextFile: "/nonexistent/path/ctx.md",
+			},
+		]);
 		const sandbox = async (opts) => {
 			// Should still run even if context load fails
 			return { stdout: "done", stderr: "", exitCode: 0 };

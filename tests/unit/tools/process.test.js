@@ -278,7 +278,11 @@ describe("process tool - trackProcess", () => {
 	it("collects stdout data", () => {
 		let stdoutHandler;
 		const mockChild = {
-			stdout: { on: (event, cb) => { stdoutHandler = cb; } },
+			stdout: {
+				on: (event, cb) => {
+					stdoutHandler = cb;
+				},
+			},
 			stderr: { on: (event, cb) => {} },
 			on: (event, cb) => {},
 		};
@@ -292,7 +296,11 @@ describe("process tool - trackProcess", () => {
 		let stderrHandler;
 		const mockChild = {
 			stdout: { on: (event, cb) => {} },
-			stderr: { on: (event, cb) => { stderrHandler = cb; } },
+			stderr: {
+				on: (event, cb) => {
+					stderrHandler = cb;
+				},
+			},
 			on: (event, cb) => {},
 		};
 		const pid = trackProcess(mockChild, "echo test");

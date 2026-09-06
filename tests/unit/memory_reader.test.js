@@ -31,8 +31,7 @@ describe("memory_reader", () => {
 		});
 
 		it("parses valid frontmatter with entries", () => {
-			const content =
-				"---\nentries:\n  - key: test\n    value: hello\n---\nSome body text.";
+			const content = "---\nentries:\n  - key: test\n    value: hello\n---\nSome body text.";
 			const result = parseFrontmatter(content);
 			assert.deepStrictEqual(result.frontmatter, {
 				entries: [{ key: "test", value: "hello" }],
@@ -79,10 +78,7 @@ describe("memory_reader", () => {
 				result.frontmatter.timestamp instanceof Date,
 				"timestamp should be a Date instance",
 			);
-			assert.strictEqual(
-				result.frontmatter.timestamp.toISOString(),
-				"2024-06-15T12:00:00.000Z",
-			);
+			assert.strictEqual(result.frontmatter.timestamp.toISOString(), "2024-06-15T12:00:00.000Z");
 		});
 
 		it("handles non-object YAML parse result (line 27)", () => {
@@ -112,10 +108,7 @@ describe("memory_reader", () => {
 
 		it("returns parsed data for existing file with frontmatter", async () => {
 			const filePath = join(CWD, "test.md");
-			writeFileSync(
-				filePath,
-				"---\ntitle: Test File\n---\n\nThis is the body content.",
-			);
+			writeFileSync(filePath, "---\ntitle: Test File\n---\n\nThis is the body content.");
 			const result = await readMemoryFile(filePath);
 			assert.ok(result);
 			assert.strictEqual(result.frontmatter.title, "Test File");
@@ -137,10 +130,7 @@ describe("memory_reader", () => {
 			// Exercises the same catch block as parseFrontmatter but through
 			// the I/O path, verifying readMemoryFile propagates the fallback.
 			const filePath = join(CWD, "invalid-yaml.md");
-			writeFileSync(
-				filePath,
-				"---\ninvalid: [unclosed\n---\nbody content",
-			);
+			writeFileSync(filePath, "---\ninvalid: [unclosed\n---\nbody content");
 			const result = await readMemoryFile(filePath);
 			assert.ok(result);
 			assert.deepStrictEqual(result.frontmatter, {});

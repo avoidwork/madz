@@ -137,7 +137,6 @@ export async function calendarImpl(input, options) {
 				return { ok: false, error: `Calendar summary failed: ${err.message}` };
 			}
 		}
-
 	}
 }
 

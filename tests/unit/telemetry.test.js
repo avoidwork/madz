@@ -106,7 +106,11 @@ describe("telemetry — llmInstrumenter.js", () => {
 describe("telemetry — skillInstrumenter.js", () => {
 	it("instrumentSkillExecution returns span data for success", async () => {
 		const { instrumentSkillExecution } = await import("../../src/telemetry/skillInstrumenter.js");
-		const result = instrumentSkillExecution({ skillName: "test-skill", durationMs: 150, exitStatus: 0 });
+		const result = instrumentSkillExecution({
+			skillName: "test-skill",
+			durationMs: 150,
+			exitStatus: 0,
+		});
 		assert.equal(result.name, "skill:test-skill");
 		assert.equal(result.attributes["mz.skill.status"], "ok");
 		assert.equal(result.attributes["mz.skill.exit_code"], 0);
@@ -115,7 +119,11 @@ describe("telemetry — skillInstrumenter.js", () => {
 
 	it("instrumentSkillExecution returns span data for error", async () => {
 		const { instrumentSkillExecution } = await import("../../src/telemetry/skillInstrumenter.js");
-		const result = instrumentSkillExecution({ skillName: "failing-skill", durationMs: 50, exitStatus: 1 });
+		const result = instrumentSkillExecution({
+			skillName: "failing-skill",
+			durationMs: 50,
+			exitStatus: 1,
+		});
 		assert.equal(result.attributes["mz.skill.status"], "error");
 		assert.equal(result.attributes["mz.skill.exit_code"], 1);
 	});

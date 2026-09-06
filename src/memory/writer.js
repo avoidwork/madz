@@ -30,9 +30,9 @@ export async function writeMemoryFile(subdirectory, title, frontmatter, body = "
 	await mkdir(directory, { recursive: true });
 	const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
 	const slug = title
-			.toLowerCase()
-			.replace(/[^a-z0-9]+/g, "-")
-			.replace(/^-|-$/g, "");
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, "-")
+		.replace(/^-|-$/g, "");
 	const filename = `${timestamp}-${slug || "entry"}.md`;
 	const filepath = join(directory, filename);
 

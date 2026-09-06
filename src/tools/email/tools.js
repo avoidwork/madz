@@ -181,8 +181,6 @@ export async function emailImpl(input, options) {
 				return { ok: false, error: `Email search failed: ${err.message}` };
 			}
 		}
-
-
 	}
 }
 

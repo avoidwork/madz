@@ -1,6 +1,10 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
-import { yamlManipulationImpl, yamlManipulation, createYamlTool } from "../../src/tools/yaml/index.js";
+import {
+	yamlManipulationImpl,
+	yamlManipulation,
+	createYamlTool,
+} from "../../src/tools/yaml/index.js";
 
 describe("yaml tool", () => {
 	it("parses YAML string to object", async () => {
@@ -93,7 +97,10 @@ describe("yaml tool", () => {
 		const result = await yamlManipulationImpl({
 			action: "transform",
 			input: "user:\n  firstName: Alice\n  lastName: Smith\nage: 30",
-			mapping: JSON.stringify({ name: { name: "user.firstName" }, surname: { surname: "user.lastName" } }),
+			mapping: JSON.stringify({
+				name: { name: "user.firstName" },
+				surname: { surname: "user.lastName" },
+			}),
 		});
 		assert.strictEqual(result.ok, true);
 		assert.strictEqual(result.data.name, "Alice");
@@ -104,7 +111,10 @@ describe("yaml tool", () => {
 		const result = await yamlManipulationImpl({
 			action: "transform",
 			input: "user:\n  firstName: Alice",
-			mapping: JSON.stringify({ name: { name: "user.firstName" }, missing: { missing: "user.nonexistent" } }),
+			mapping: JSON.stringify({
+				name: { name: "user.firstName" },
+				missing: { missing: "user.nonexistent" },
+			}),
 		});
 		assert.strictEqual(result.ok, true);
 		assert.strictEqual(result.data.name, "Alice");
@@ -338,9 +348,7 @@ describe("yaml tool", () => {
 	});
 
 	it("yamlManipulation outer function parses JSON string input", async () => {
-		const result = await yamlManipulation(
-			JSON.stringify({ action: "parse", input: "a: 1" }),
-		);
+		const result = await yamlManipulation(JSON.stringify({ action: "parse", input: "a: 1" }));
 		assert.strictEqual(result.ok, true);
 		assert.strictEqual(result.data.a, 1);
 	});

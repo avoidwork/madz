@@ -118,7 +118,6 @@ function computeAggregate(values, aggregate) {
 			return Math.min(...values);
 		case "max":
 			return Math.max(...values);
-
 	}
 }
 
@@ -164,7 +163,6 @@ export function filter(data, field, operator, value) {
 				return String(fieldValue).includes(String(value));
 			case "in":
 				return Array.isArray(value) && value.includes(fieldValue);
-
 		}
 	});
 }

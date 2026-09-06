@@ -319,11 +319,7 @@ describe("saveProfile (I/O)", () => {
 		// No .tmp file should be left behind
 		const files = readdirSync(FULL_TEST_DIR);
 		const tmpFiles = files.filter((f) => f.endsWith(".tmp"));
-		assert.strictEqual(
-			tmpFiles.length,
-			0,
-			`Expected no .tmp files, found: ${tmpFiles.join(", ")}`,
-		);
+		assert.strictEqual(tmpFiles.length, 0, `Expected no .tmp files, found: ${tmpFiles.join(", ")}`);
 	});
 
 	it("overwrites an existing profile", async () => {

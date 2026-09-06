@@ -1,6 +1,10 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
-import { jsonManipulationImpl, jsonManipulation, createJsonTool } from "../../src/tools/json/index.js";
+import {
+	jsonManipulationImpl,
+	jsonManipulation,
+	createJsonTool,
+} from "../../src/tools/json/index.js";
 
 describe("json tool", () => {
 	it("parses JSON string to object", async () => {
@@ -82,7 +86,10 @@ describe("json tool", () => {
 		const result = await jsonManipulationImpl({
 			action: "transform",
 			input: JSON.stringify({ user: { firstName: "Alice", lastName: "Smith" }, age: 30 }),
-			mapping: JSON.stringify({ name: { name: "user.firstName" }, surname: { surname: "user.lastName" } }),
+			mapping: JSON.stringify({
+				name: { name: "user.firstName" },
+				surname: { surname: "user.lastName" },
+			}),
 		});
 		assert.strictEqual(result.ok, true);
 		assert.strictEqual(result.data.name, "Alice");
@@ -93,7 +100,10 @@ describe("json tool", () => {
 		const result = await jsonManipulationImpl({
 			action: "transform",
 			input: JSON.stringify({ user: { firstName: "Alice" } }),
-			mapping: JSON.stringify({ name: { name: "user.firstName" }, missing: { missing: "user.nonexistent" } }),
+			mapping: JSON.stringify({
+				name: { name: "user.firstName" },
+				missing: { missing: "user.nonexistent" },
+			}),
 		});
 		assert.strictEqual(result.ok, true);
 		assert.strictEqual(result.data.name, "Alice");
@@ -306,9 +316,7 @@ describe("json tool", () => {
 	});
 
 	it("jsonManipulation outer function parses JSON string input", async () => {
-		const result = await jsonManipulation(
-			JSON.stringify({ action: "parse", input: '{"a":1}' }),
-		);
+		const result = await jsonManipulation(JSON.stringify({ action: "parse", input: '{"a":1}' }));
 		assert.strictEqual(result.ok, true);
 		assert.strictEqual(result.data.a, 1);
 	});

@@ -22,7 +22,9 @@ function createImperativeApi() {
 	const topicsRef = { current: new Map() };
 	const lastMsgCountRef = { current: 0 };
 	let renderTick = 0;
-	const triggerRender = () => { renderTick++; };
+	const triggerRender = () => {
+		renderTick++;
+	};
 
 	const subscribe = (topic, callback) => {
 		const callbacks = topicsRef.current.get(topic);
@@ -54,11 +56,15 @@ function createImperativeApi() {
 			const stableContent = content || "";
 			contentRef.current.set(id, stableContent);
 			dataRef.current.set(id, {
-				id, role, content: stableContent,
-				time: options.time, reasoningContent: options.reasoningContent,
+				id,
+				role,
+				content: stableContent,
+				time: options.time,
+				reasoningContent: options.reasoningContent,
 				activeToolCall: options.activeToolCall,
 				toolCallDisplay: options.toolCallDisplay,
-				events: options.events, streaming: options.streaming || false,
+				events: options.events,
+				streaming: options.streaming || false,
 			});
 			idsRef.current.push(id);
 			idToIdxRef.current.set(id, idsRef.current.length - 1);
@@ -103,11 +109,15 @@ function createImperativeApi() {
 				const stableContent = m.content || "";
 				contentRef.current.set(id, stableContent);
 				dataRef.current.set(id, {
-					id, role: m.role, content: stableContent,
-					time: m.time, reasoningContent: m.reasoningContent,
+					id,
+					role: m.role,
+					content: stableContent,
+					time: m.time,
+					reasoningContent: m.reasoningContent,
 					activeToolCall: m.activeToolCall,
 					toolCallDisplay: m.toolCallDisplay,
-					events: m.events, streaming: m.streaming || false,
+					events: m.events,
+					streaming: m.streaming || false,
 				});
 				idsRef.current.push(id);
 				idToIdxRef.current.set(id, idsRef.current.length - 1);
@@ -223,7 +233,9 @@ describe("MessageList — imperative API", () => {
 			let received = null;
 			// Manually subscribe to the topic
 			const topicsRef = new Map();
-			const cb = (data) => { received = data; };
+			const cb = (data) => {
+				received = data;
+			};
 			topicsRef.set(`msg-${id}`, [cb]);
 			// Simulate publish
 			const callbacks = topicsRef.get(`msg-${id}`);
@@ -271,16 +283,18 @@ describe("MessageList — imperative API", () => {
 		});
 
 		it("handles messages with all optional fields", () => {
-			api.setMessages([{
-				role: "assistant",
-				content: "Response",
-				time: "12:00",
-				reasoningContent: "thinking",
-				activeToolCall: { name: "search" },
-				toolCallDisplay: "done",
-				events: [],
-				streaming: true,
-			}]);
+			api.setMessages([
+				{
+					role: "assistant",
+					content: "Response",
+					time: "12:00",
+					reasoningContent: "thinking",
+					activeToolCall: { name: "search" },
+					toolCallDisplay: "done",
+					events: [],
+					streaming: true,
+				},
+			]);
 			assert.strictEqual(api.getMessageCount(), 1);
 		});
 	});

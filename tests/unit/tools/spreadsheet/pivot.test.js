@@ -54,10 +54,7 @@ describe("pivot", () => {
 		});
 
 		it("should handle missing key values with empty string", () => {
-			const data = [
-				{ region: "North", sales: 100 },
-				{ sales: 200 },
-			];
+			const data = [{ region: "North", sales: 100 }, { sales: 200 }];
 			const result = pivot.groupBy(data, "region");
 			assert.strictEqual(result.length, 2);
 		});
@@ -383,7 +380,10 @@ describe("pivot", () => {
 
 		it("should throw on invalid operator", () => {
 			const data = [{ region: "North" }];
-			assert.throws(() => pivot.filter(data, "region", "invalid", "North"), /operator must be one of/);
+			assert.throws(
+				() => pivot.filter(data, "region", "invalid", "North"),
+				/operator must be one of/,
+			);
 		});
 
 		it("should filter by neq", () => {
@@ -437,33 +437,25 @@ describe("pivot", () => {
 		});
 
 		it("should filter by in with non-array value", () => {
-			const data = [
-				{ region: "North", sales: 100 },
-			];
+			const data = [{ region: "North", sales: 100 }];
 			const result = pivot.filter(data, "region", "in", "North");
 			assert.strictEqual(result.length, 0);
 		});
 
 		it("should handle loose equality (eq) with different types", () => {
-			const data = [
-				{ region: "North", sales: "100" },
-			];
+			const data = [{ region: "North", sales: "100" }];
 			const result = pivot.filter(data, "sales", "eq", 100);
 			assert.strictEqual(result.length, 1);
 		});
 
 		it("should handle loose inequality (neq) with different types", () => {
-			const data = [
-				{ region: "North", sales: "100" },
-			];
+			const data = [{ region: "North", sales: "100" }];
 			const result = pivot.filter(data, "sales", "neq", 200);
 			assert.strictEqual(result.length, 1);
 		});
 
 		it("should filter by contains with non-string field", () => {
-			const data = [
-				{ region: "North", sales: 100 },
-			];
+			const data = [{ region: "North", sales: 100 }];
 			const result = pivot.filter(data, "sales", "contains", "10");
 			assert.strictEqual(result.length, 1);
 		});
@@ -487,10 +479,7 @@ describe("pivot", () => {
 		});
 
 		it("should handle missing field value gracefully", () => {
-			const data = [
-				{ region: "North" },
-				{ region: "South", sales: 200 },
-			];
+			const data = [{ region: "North" }, { region: "South", sales: 200 }];
 			const result = pivot.filter(data, "sales", "eq", undefined);
 			assert.strictEqual(result.length, 1); // North has undefined sales == undefined
 		});
@@ -518,7 +507,13 @@ describe("pivot", () => {
 
 		it("should throw on empty data", () => {
 			assert.throws(
-				() => pivot.pivotMulti([], { rowKey: "region", colKey: "product", value: "sales", aggregate: "sum" }),
+				() =>
+					pivot.pivotMulti([], {
+						rowKey: "region",
+						colKey: "product",
+						value: "sales",
+						aggregate: "sum",
+					}),
 				/non-empty array/,
 			);
 		});
@@ -611,9 +606,7 @@ describe("pivot", () => {
 		});
 
 		it("should handle unknown column keys", () => {
-			const data = [
-				{ region: "North", product: "A", sales: 100 },
-			];
+			const data = [{ region: "North", product: "A", sales: 100 }];
 			const result = pivot.pivotMulti(data, {
 				rowKey: "region",
 				colKey: "product",

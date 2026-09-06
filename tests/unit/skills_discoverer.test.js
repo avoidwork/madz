@@ -229,10 +229,7 @@ describe("lenientYamlParse", () => {
 	});
 
 	it("handles YAML with already-quoted values containing colons", () => {
-		const yaml = [
-			"name: log-parser",
-			'description: "Use when: parsing log files"',
-		].join("\n");
+		const yaml = ["name: log-parser", 'description: "Use when: parsing log files"'].join("\n");
 
 		const result = lenientYamlParse(yaml);
 		assert.ok(result !== null);
@@ -419,9 +416,7 @@ describe("discoverSkills", () => {
 		mkdirSync(userSkillDir, { recursive: true });
 		writeFileSync(
 			join(userSkillDir, "SKILL.md"),
-			["---", "name: shadow-skill", "description: User version", "---", "", "User body"].join(
-				"\n",
-			),
+			["---", "name: shadow-skill", "description: User version", "---", "", "User body"].join("\n"),
 		);
 
 		// User scope first, then .skills/ — .skills/ shadows (prevents duplicate), first-found wins
@@ -475,7 +470,9 @@ describe("discoverSkills", () => {
 		mkdirSync(skillDir, { recursive: true });
 		writeFileSync(
 			join(skillDir, "SKILL.md"),
-			["---", "name: openspec-test", "description: Test agent injection", "---", "", "Body"].join("\n"),
+			["---", "name: openspec-test", "description: Test agent injection", "---", "", "Body"].join(
+				"\n",
+			),
 		);
 
 		const skills = await discoverSkills([FULL_TEST_DIR]);

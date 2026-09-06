@@ -284,7 +284,7 @@ describe("spreadsheet", () => {
 				sheets: [
 					{
 						name: "Sheet1",
-						rows: [{ values: [1, 2], formulas: { "1": "=A1*2" } }],
+						rows: [{ values: [1, 2], formulas: { 1: "=A1*2" } }],
 					},
 				],
 				outputPath: "/tmp/test.xlsx",
@@ -314,7 +314,7 @@ describe("spreadsheet", () => {
 				sheets: [
 					{
 						name: "Sheet1",
-						rows: [{ values: [1], formatting: { "0": { bold: true } } }],
+						rows: [{ values: [1], formatting: { 0: { bold: true } } }],
 					},
 				],
 				outputPath: "/tmp/test.xlsx",
@@ -626,8 +626,16 @@ describe("spreadsheet", () => {
 		});
 
 		after(() => {
-			try { fs.unlinkSync(testXlsx); } catch { /* ignore */ }
-			try { fs.unlinkSync(testOutput); } catch { /* ignore */ }
+			try {
+				fs.unlinkSync(testXlsx);
+			} catch {
+				/* ignore */
+			}
+			try {
+				fs.unlinkSync(testOutput);
+			} catch {
+				/* ignore */
+			}
 		});
 
 		it("should throw on missing input file", async () => {
@@ -736,7 +744,9 @@ describe("spreadsheet", () => {
 			const result = await callSpreadsheet({
 				action: "modify",
 				inputPath: testXlsx,
-				modifyOperations: [{ type: "addCell", sheetName: "Sheet1", cellRef: "C1", formula: "=A1+B1" }],
+				modifyOperations: [
+					{ type: "addCell", sheetName: "Sheet1", cellRef: "C1", formula: "=A1+B1" },
+				],
 				outputPath: testOutput,
 			});
 			assert.strictEqual(result.results[0].status, "added");
@@ -824,7 +834,11 @@ describe("spreadsheet", () => {
 			assert.strictEqual(result.status, "generated");
 			assert.strictEqual(result.rows, 1);
 			assert.deepStrictEqual(result.columns, ["name", "age"]);
-			try { fs.unlinkSync("/tmp/test-export.xlsx"); } catch { /* ignore */ }
+			try {
+				fs.unlinkSync("/tmp/test-export.xlsx");
+			} catch {
+				/* ignore */
+			}
 		});
 	});
 

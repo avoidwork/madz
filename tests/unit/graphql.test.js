@@ -233,10 +233,7 @@ describe("graphql — executeGraphQL()", () => {
 			status: 200,
 			json: async () => ({ data: { user: { name: "Alice" } } }),
 		});
-		const result = await executeGraphQL(
-			"https://example.com/graphql",
-			"{ user { name } }",
-		);
+		const result = await executeGraphQL("https://example.com/graphql", "{ user { name } }");
 		assert.strictEqual(result.ok, true);
 		assert.deepStrictEqual(result.data, { user: { name: "Alice" } });
 	});
@@ -247,10 +244,7 @@ describe("graphql — executeGraphQL()", () => {
 			status: 400,
 			text: async () => "Bad request",
 		});
-		const result = await executeGraphQL(
-			"https://example.com/graphql",
-			"{ user { name } }",
-		);
+		const result = await executeGraphQL("https://example.com/graphql", "{ user { name } }");
 		assert.strictEqual(result.ok, false);
 		assert.ok(result.error.includes("400"));
 	});
@@ -264,10 +258,7 @@ describe("graphql — executeGraphQL()", () => {
 				errors: [{ message: "Field 'unknown' doesn't exist" }],
 			}),
 		});
-		const result = await executeGraphQL(
-			"https://example.com/graphql",
-			"{ unknown }",
-		);
+		const result = await executeGraphQL("https://example.com/graphql", "{ unknown }");
 		assert.strictEqual(result.ok, false);
 		assert.ok(result.error.includes("GraphQL errors"));
 	});
@@ -291,10 +282,7 @@ describe("graphql — executeGraphQL()", () => {
 		globalThis.fetch = async () => {
 			throw new Error("Network failure");
 		};
-		const result = await executeGraphQL(
-			"https://example.com/graphql",
-			"{ user { name } }",
-		);
+		const result = await executeGraphQL("https://example.com/graphql", "{ user { name } }");
 		assert.strictEqual(result.ok, false);
 		assert.ok(result.error.includes("Network failure"));
 	});
@@ -303,12 +291,11 @@ describe("graphql — executeGraphQL()", () => {
 		globalThis.fetch = async () => ({
 			ok: false,
 			status: 500,
-			text: async () => { throw new Error("no body"); },
+			text: async () => {
+				throw new Error("no body");
+			},
 		});
-		const result = await executeGraphQL(
-			"https://example.com/graphql",
-			"{ user { name } }",
-		);
+		const result = await executeGraphQL("https://example.com/graphql", "{ user { name } }");
 		assert.strictEqual(result.ok, false);
 		assert.ok(result.error.includes("500"));
 	});
@@ -328,9 +315,7 @@ describe("graphql — introspectSchema()", () => {
 	});
 
 	it("attempts introspection with valid input", async () => {
-		const result = await introspectSchema(
-			JSON.stringify({ url: "https://example.com/graphql" }),
-		);
+		const result = await introspectSchema(JSON.stringify({ url: "https://example.com/graphql" }));
 		// Should not be a validation error
 		assert.ok(!result.error || !result.error.includes("Invalid input"));
 	});

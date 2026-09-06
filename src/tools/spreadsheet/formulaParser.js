@@ -540,7 +540,6 @@ function evaluateNode(node, context, options) {
 					return evaluateCondition(left) && evaluateCondition(right);
 				case "||":
 					return evaluateCondition(left) || evaluateCondition(right);
-
 			}
 		}
 
@@ -561,8 +560,6 @@ function evaluateNode(node, context, options) {
 
 			return BUILTIN_FUNCTIONS[fnName](evaluatedArgs);
 		}
-
-
 	}
 }
 

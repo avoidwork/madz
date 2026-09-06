@@ -535,9 +535,7 @@ describe("stats", () => {
 		});
 
 		it("should handle December dates correctly for quarter", () => {
-			const decData = [
-				{ date: "2024-12-15", sales: 100 },
-			];
+			const decData = [{ date: "2024-12-15", sales: 100 }];
 			const result = stats.groupByDate(decData, "date", "quarter");
 			assert.strictEqual(result[0].key, "2024-Q4");
 		});

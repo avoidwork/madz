@@ -223,5 +223,4 @@ export class ScheduleManager {
 		entry.lastRun = endTime;
 		return result;
 	}
-
 }

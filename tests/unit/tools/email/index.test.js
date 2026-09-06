@@ -74,10 +74,7 @@ describe("createEmailProvider", () => {
 	});
 
 	test("throws for unknown provider type", () => {
-		assert.throws(
-			() => createEmailProvider({ type: "unknown" }),
-			/Unknown email provider type/,
-		);
+		assert.throws(() => createEmailProvider({ type: "unknown" }), /Unknown email provider type/);
 	});
 });
 

@@ -466,36 +466,36 @@ describe("sandbox - detectShebang", () => {
 	});
 
 	it("detects node from #!/usr/bin/node shebang", async () => {
-			const testDir = join(tmpdir(), "madz-shebang-" + Date.now());
-			mkdirSync(testDir, { recursive: true });
-			const scriptPath = join(testDir, "script");
-			writeFileSync(scriptPath, "#!/usr/bin/node\nconsole.log('hi');\n");
-			try {
-				const result = await detectShebang(scriptPath);
-				assert.deepStrictEqual(result, { command: "node", args: [] });
-			} finally {
-				rmSync(testDir, { recursive: true, force: true });
-			}
-		});
-
-		it("detects ruby from #!/usr/bin/ruby shebang", async () => {
-			const testDir = join(tmpdir(), "madz-shebang-" + Date.now());
-			mkdirSync(testDir, { recursive: true });
-			const scriptPath = join(testDir, "script");
-			writeFileSync(scriptPath, "#!/usr/bin/ruby\nputs 'hi'\n");
-			try {
-				const result = await detectShebang(scriptPath);
-				assert.deepStrictEqual(result, { command: "ruby", args: [] });
-			} finally {
-				rmSync(testDir, { recursive: true, force: true });
-			}
-		});
-
-		it("detects unknown shebang via default case", async () => {
 		const testDir = join(tmpdir(), "madz-shebang-" + Date.now());
 		mkdirSync(testDir, { recursive: true });
 		const scriptPath = join(testDir, "script");
-		writeFileSync(scriptPath, "#!/usr/bin/awk -f\nBEGIN { print \"hi\" }\n");
+		writeFileSync(scriptPath, "#!/usr/bin/node\nconsole.log('hi');\n");
+		try {
+			const result = await detectShebang(scriptPath);
+			assert.deepStrictEqual(result, { command: "node", args: [] });
+		} finally {
+			rmSync(testDir, { recursive: true, force: true });
+		}
+	});
+
+	it("detects ruby from #!/usr/bin/ruby shebang", async () => {
+		const testDir = join(tmpdir(), "madz-shebang-" + Date.now());
+		mkdirSync(testDir, { recursive: true });
+		const scriptPath = join(testDir, "script");
+		writeFileSync(scriptPath, "#!/usr/bin/ruby\nputs 'hi'\n");
+		try {
+			const result = await detectShebang(scriptPath);
+			assert.deepStrictEqual(result, { command: "ruby", args: [] });
+		} finally {
+			rmSync(testDir, { recursive: true, force: true });
+		}
+	});
+
+	it("detects unknown shebang via default case", async () => {
+		const testDir = join(tmpdir(), "madz-shebang-" + Date.now());
+		mkdirSync(testDir, { recursive: true });
+		const scriptPath = join(testDir, "script");
+		writeFileSync(scriptPath, '#!/usr/bin/awk -f\nBEGIN { print "hi" }\n');
 		try {
 			const result = await detectShebang(scriptPath);
 			assert.deepStrictEqual(result, { command: "/usr/bin/awk", args: ["-f"] });

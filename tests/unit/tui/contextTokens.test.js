@@ -103,27 +103,21 @@ describe("calculateConversationTokens", () => {
 	});
 
 	it("handles messages with special characters", async () => {
-		const conversation = [
-			{ role: "user", content: "Hello! @#$%^&*()_+-=[]{}|;':\",./<>?`~" },
-		];
+		const conversation = [{ role: "user", content: "Hello! @#$%^&*()_+-=[]{}|;':\",./<>?`~" }];
 		const tokens = await calculateConversationTokens(conversation, "gpt-4o");
 		assert.ok(typeof tokens === "number");
 		assert.ok(tokens > 0);
 	});
 
 	it("handles messages with unicode characters", async () => {
-		const conversation = [
-			{ role: "user", content: "Hello, 世界! 🌍" },
-		];
+		const conversation = [{ role: "user", content: "Hello, 世界! 🌍" }];
 		const tokens = await calculateConversationTokens(conversation, "gpt-4o");
 		assert.ok(typeof tokens === "number");
 		assert.ok(tokens > 0);
 	});
 
 	it("handles messages with only whitespace", async () => {
-		const conversation = [
-			{ role: "user", content: "   " },
-		];
+		const conversation = [{ role: "user", content: "   " }];
 		const tokens = await calculateConversationTokens(conversation, "gpt-4o");
 		assert.ok(typeof tokens === "number");
 	});

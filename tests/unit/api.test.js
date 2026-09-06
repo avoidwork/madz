@@ -120,8 +120,12 @@ describe("api — makeApiRequest()", () => {
 			ok: true,
 			status: 200,
 			headers: {
-				get() { return null; },
-				forEach(cb) { cb("application/json", "content-type"); },
+				get() {
+					return null;
+				},
+				forEach(cb) {
+					cb("application/json", "content-type");
+				},
 			},
 			text: async () => '{"ok":true}',
 		});
@@ -137,8 +141,14 @@ describe("api — makeApiRequest()", () => {
 		globalThis.fetch = async (url, opts) => {
 			capturedHeaders = opts.headers;
 			return {
-				ok: true, status: 200,
-				headers: { get() { return null; }, forEach() {} },
+				ok: true,
+				status: 200,
+				headers: {
+					get() {
+						return null;
+					},
+					forEach() {},
+				},
 				text: async () => "{}",
 			};
 		};
@@ -154,8 +164,14 @@ describe("api — makeApiRequest()", () => {
 		globalThis.fetch = async (url, opts) => {
 			capturedHeaders = opts.headers;
 			return {
-				ok: true, status: 200,
-				headers: { get() { return null; }, forEach() {} },
+				ok: true,
+				status: 200,
+				headers: {
+					get() {
+						return null;
+					},
+					forEach() {},
+				},
 				text: async () => "{}",
 			};
 		};
@@ -171,8 +187,14 @@ describe("api — makeApiRequest()", () => {
 		globalThis.fetch = async (url, opts) => {
 			capturedHeaders = opts.headers;
 			return {
-				ok: true, status: 200,
-				headers: { get() { return null; }, forEach() {} },
+				ok: true,
+				status: 200,
+				headers: {
+					get() {
+						return null;
+					},
+					forEach() {},
+				},
 				text: async () => "{}",
 			};
 		};
@@ -188,8 +210,14 @@ describe("api — makeApiRequest()", () => {
 		globalThis.fetch = async (url, opts) => {
 			capturedOpts = opts;
 			return {
-				ok: true, status: 200,
-				headers: { get() { return null; }, forEach() {} },
+				ok: true,
+				status: 200,
+				headers: {
+					get() {
+						return null;
+					},
+					forEach() {},
+				},
 				text: async () => "{}",
 			};
 		};
@@ -207,8 +235,14 @@ describe("api — makeApiRequest()", () => {
 		globalThis.fetch = async (url, opts) => {
 			capturedOpts = opts;
 			return {
-				ok: true, status: 200,
-				headers: { get() { return null; }, forEach() {} },
+				ok: true,
+				status: 200,
+				headers: {
+					get() {
+						return null;
+					},
+					forEach() {},
+				},
 				text: async () => "{}",
 			};
 		};
@@ -231,7 +265,9 @@ describe("api — makeApiRequest()", () => {
 
 	it("handles fetch error", async () => {
 		const { makeApiRequest } = await import("../../src/tools/api/index.js");
-		globalThis.fetch = async () => { throw new Error("Network failure"); };
+		globalThis.fetch = async () => {
+			throw new Error("Network failure");
+		};
 		const result = await makeApiRequest("https://example.com/api");
 		assert.strictEqual(result.ok, false);
 		assert.ok(result.error.includes("Network failure"));
@@ -240,7 +276,8 @@ describe("api — makeApiRequest()", () => {
 	it("rejects response body exceeding maxBodySize via content-length", async () => {
 		const { makeApiRequest } = await import("../../src/tools/api/index.js");
 		globalThis.fetch = async () => ({
-			ok: true, status: 200,
+			ok: true,
+			status: 200,
 			headers: {
 				get(name) {
 					if (name === "content-length") return String(20 * 1024 * 1024);
@@ -258,9 +295,12 @@ describe("api — makeApiRequest()", () => {
 	it("rejects response body exceeding maxBodySize via actual text length", async () => {
 		const { makeApiRequest } = await import("../../src/tools/api/index.js");
 		globalThis.fetch = async () => ({
-			ok: true, status: 200,
+			ok: true,
+			status: 200,
 			headers: {
-				get() { return null; },
+				get() {
+					return null;
+				},
 				forEach() {},
 			},
 			text: async () => "x".repeat(2048),
@@ -273,7 +313,8 @@ describe("api — makeApiRequest()", () => {
 	it("sanitizes Set-Cookie headers", async () => {
 		const { makeApiRequest } = await import("../../src/tools/api/index.js");
 		globalThis.fetch = async () => ({
-			ok: true, status: 200,
+			ok: true,
+			status: 200,
 			headers: {
 				get(name) {
 					const map = { "content-type": "application/json", "set-cookie": "session=abc" };

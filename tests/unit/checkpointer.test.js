@@ -59,7 +59,10 @@ describe("createCheckpointer", () => {
 	});
 
 	it("returns null when persistence is null", () => {
-		const cp = createCheckpointer({ persistence: null, memory: { checkpointsDir: "memory/checkpoints/" } });
+		const cp = createCheckpointer({
+			persistence: null,
+			memory: { checkpointsDir: "memory/checkpoints/" },
+		});
 		assert.strictEqual(cp, null);
 	});
 

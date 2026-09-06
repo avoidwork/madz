@@ -39,17 +39,26 @@ describe("EmailProvider base class", () => {
 
 	it("listDrafts() throws not implemented error", async () => {
 		const p = new EmailProvider({ type: "test" });
-		await assert.rejects(() => p.listDrafts({}), /listDrafts\(\) not implemented for test provider/);
+		await assert.rejects(
+			() => p.listDrafts({}),
+			/listDrafts\(\) not implemented for test provider/,
+		);
 	});
 
 	it("updateDraft() throws not implemented error", async () => {
 		const p = new EmailProvider({ type: "test" });
-		await assert.rejects(() => p.updateDraft("id", {}), /updateDraft\(\) not implemented for test provider/);
+		await assert.rejects(
+			() => p.updateDraft("id", {}),
+			/updateDraft\(\) not implemented for test provider/,
+		);
 	});
 
 	it("deleteDraft() throws not implemented error", async () => {
 		const p = new EmailProvider({ type: "test" });
-		await assert.rejects(() => p.deleteDraft("id"), /deleteDraft\(\) not implemented for test provider/);
+		await assert.rejects(
+			() => p.deleteDraft("id"),
+			/deleteDraft\(\) not implemented for test provider/,
+		);
 	});
 
 	it("organize() throws not implemented error", async () => {

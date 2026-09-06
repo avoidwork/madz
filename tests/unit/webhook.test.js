@@ -180,9 +180,11 @@ describe("webhookManagement (JSON string wrapper)", () => {
 
 	it("parses valid JSON input and delegates to impl", async () => {
 		const { webhookManagement } = await import("../../src/tools/webhook/index.js");
-		const result = await webhookManagement(JSON.stringify({
-			action: "list",
-		}));
+		const result = await webhookManagement(
+			JSON.stringify({
+				action: "list",
+			}),
+		);
 		assert.strictEqual(result.ok, true);
 		assert.ok(Array.isArray(result.data));
 	});

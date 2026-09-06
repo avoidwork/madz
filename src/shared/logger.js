@@ -250,7 +250,7 @@ export const logger = {
 	info: (msg, ...args) => {
 		try {
 			pinoLogger.info(redactPII(msg), ...args);
-		/* node:coverage disable — defensive, requires pino to throw */
+			/* node:coverage disable — defensive, requires pino to throw */
 		} catch {
 			// Silently discard if logger is in silent/dev-null mode
 		}
@@ -259,7 +259,7 @@ export const logger = {
 	warn: (msg, ...args) => {
 		try {
 			pinoLogger.warn(redactPII(msg), ...args);
-		/* node:coverage disable — defensive, requires pino to throw */
+			/* node:coverage disable — defensive, requires pino to throw */
 		} catch {
 			// Silently discard
 		}
@@ -268,7 +268,7 @@ export const logger = {
 	error: (msg, ...args) => {
 		try {
 			pinoLogger.error(redactPII(msg), ...args);
-		/* node:coverage disable — defensive, requires pino to throw */
+			/* node:coverage disable — defensive, requires pino to throw */
 		} catch {
 			// Silently discard
 		}
@@ -277,7 +277,7 @@ export const logger = {
 	debug: (msg, ...args) => {
 		try {
 			pinoLogger.debug(redactPII(msg), ...args);
-		/* node:coverage disable — defensive, requires pino to throw */
+			/* node:coverage disable — defensive, requires pino to throw */
 		} catch {
 			// Silently discard
 		}
@@ -286,7 +286,7 @@ export const logger = {
 	fatal: (msg, ...args) => {
 		try {
 			pinoLogger.fatal(redactPII(msg), ...args);
-		/* node:coverage disable — defensive, requires pino to throw */
+			/* node:coverage disable — defensive, requires pino to throw */
 		} catch {
 			// Silently discard
 		}

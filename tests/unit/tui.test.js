@@ -4,9 +4,7 @@ import assert from "node:assert";
 import { render } from "ink";
 import { CommandParser } from "../../src/tui/commandParser.js";
 import { PANELS, nextPanel, prevPanel, getPanelOrder } from "../../src/tui/panels.js";
-import {
-	getRoleLabel,
-} from "../../src/tui/messages.js";
+import { getRoleLabel } from "../../src/tui/messages.js";
 import {
 	parseMarkdown,
 	MarkdownTextInner,
@@ -395,7 +393,6 @@ describe("TUI - getRoleLabel", () => {
 		assert.strictEqual(getRoleLabel(null), "Unknown");
 	});
 });
-
 
 describe("TUI - streaming message utility", () => {
 	it("detects a streaming message", () => {

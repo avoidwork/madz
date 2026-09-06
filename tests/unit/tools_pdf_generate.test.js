@@ -1033,7 +1033,9 @@ describe("pdfGenerate", () => {
 				}),
 			);
 			assert.strictEqual(result.ok, false);
-			assert.ok(result.error.includes("Failed to stat file") || result.error.includes("Failed to merge"));
+			assert.ok(
+				result.error.includes("Failed to stat file") || result.error.includes("Failed to merge"),
+			);
 		});
 	});
 
