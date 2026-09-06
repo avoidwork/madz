@@ -3,7 +3,7 @@ export { default as ConversationArea } from "./conversationArea.js";
 export { default as InputArea } from "./inputArea.js";
 export { CommandParser } from "./commandParser.js";
 export { PANELS, nextPanel, prevPanel, getPanelOrder } from "./panels.js";
-export { getRoleLabel, calcVisibleCount, getVisibleMessages, formatMessage } from "./messages.js";
+export { getRoleLabel } from "./messages.js";
 export { createPanelState } from "./hooks.js";
 export { ConversationPanel } from "./conversationPanel.js";
 export { InputPanel } from "./inputPanel.js";
