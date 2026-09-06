@@ -48,7 +48,7 @@ Target: raise all files in this group to ≥90% line coverage.
 
 - [x] 6.1 **config/patch.js** (54.72% in full suite, 100% in isolation) — 49 tests covering `parseValue`, `assignPath`, `applyDotPathMutation` with all edge cases. The 54.72% is a Node.js test runner artifact: other test files import `loader.js` (which imports `patch.js`) before `patch.test.js` runs, locking coverage data at first import. Tests pass 49/49.
 - [x] 6.2 **shared/logger.js** (82.78%) — uncovered lines are all legitimate defensive error-handling paths: Alpine detection TOCTOU race (84-92), platform-specific branches (97, 99-101), `tryCreateDirectory` fallback (122-123, 131-135), file stream fallback to `/dev/null` (158-164, 170-174), silent mode when no streams (189), `flush()` catch (221-225), and catch blocks in logger methods (242-243, 249-250, 256-257, 263-264, 270-271). These require platform-specific or I/O failure conditions to trigger. PII redaction and structured logging paths are fully covered by direct tests.
-- [x] 6.3 Remove dead code — removed `logger.silent()` method (never called in production) and updated tests accordingly.
+- [x] 6.3 Remove dead code — removed `logger.silent()` method (never called in production) and updated tests accordingly. Removed `hasPermission` and `resolveCapabilities` from `src/skills/permissions.js` (never imported anywhere in the codebase).
 
 ## 7. Skills Module — ✅ DONE
 
@@ -100,11 +100,11 @@ Target: raise all files in this group to ≥90% line coverage where feasible (In
 - [x] 12.5 **tui/contextTokens.js** (70.49%) — fixed `require("tiktoken")` → `await import("tiktoken")` for ESM compatibility; made function async; updated tests accordingly. Coverage: 80.33% (tiktoken path untrackable by coverage tool due to dynamic import).
 - [x] 12.6 **tui/banner.js** (90.00%) — wrote 5 tests covering: ASCII art rendering, version string display, BANNER_ART structure. Remaining uncovered lines (45-52) are the useInput handler which requires Ink input simulation.
 
-## 13. File Extraction Utilities — ⬜ PENDING
+## 13. File Extraction Utilities — ✅ DONE
 
 Target: raise formatValidator.js to ≥90% line coverage.
 
-- [ ] 13.1 **fileExtract/formatValidator.js** (73.39%) — uncovered lines 53-70, 78-79, 87-88, 96-97, 105-109. Write tests covering: MIME type validation, magic byte detection, extension whitelist, all error paths.
+- [x] 13.1 **fileExtract/formatValidator.js** (73.39% → 100%) — already at 100% line/branch/func coverage via existing tests (48 tests). Tasks.md was stale.
 
 ## 14. Sandbox & Scheduler — ⬜ PENDING
 
