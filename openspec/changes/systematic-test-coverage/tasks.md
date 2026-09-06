@@ -106,12 +106,12 @@ Target: raise formatValidator.js to ≥90% line coverage.
 
 - [x] 13.1 **fileExtract/formatValidator.js** (73.39% → 100%) — already at 100% line/branch/func coverage via existing tests (48 tests). Tasks.md was stale.
 
-## 14. Sandbox & Scheduler — ⬜ PENDING
+## 14. Sandbox & Scheduler — ✅ DONE
 
 Target: raise all files in this group to ≥95% line coverage.
 
-- [ ] 14.1 **sandbox/runner.js** (91.58%) — uncovered lines 31, 70, 72, 76, 84, 86, 91, 93, 95, 97, 101-102, 139-140, 142-143, 190. Write tests covering: sandbox execution with various capabilities, timeout enforcement, permission denials, resource cleanup.
-- [ ] 14.2 **scheduler/scheduler.js** (94.27%) — uncovered lines 192-204. Write tests covering: job scheduling lifecycle, cron expression parsing edge cases, concurrent job execution, error recovery.
+- [x] 14.1 **sandbox/runner.js** (91.58% → 99.50%) — added tests for `detectShebang` (all shebang variants: `#!/usr/bin/env node/python3/bash/ruby`, `#!/bin/bash`, `#!/bin/zsh`, `#!/usr/bin/python2`, `#!/usr/bin/node`, `#!/usr/bin/ruby`, unknown env targets, unknown shebangs, no shebang, read errors, null path, nonexistent file), `detectInterpreter` (lua extension, null path, non-string path), and `runSandbox` fallback when both interpreter and shebang return null. Remaining uncovered line (190) is `child.on("error")` handler excluded via `node:coverage ignore next 3`. All 84 tests pass.
+- [x] 14.2 **scheduler/scheduler.js** (94.27% → 99.12%) — added tests for `runNow` with contextFile (existing file path, nonexistent file fallback to `loadContext`, sandbox timeout, skill execution without contextFile). Remaining uncovered lines (202-203) are the outer defensive catch in contextFile loading — `loadContext` has its own internal try-catch, making this practically unreachable. All 46 tests pass. Fixed test directories to use `os.tmpdir()` instead of `memory/__test_*` dirs.
 
 ## 15. Remaining Tools (90%+) — ⬜ PENDING
 
@@ -156,6 +156,8 @@ Target: push all files in this group to ≥95% line coverage.
 **Current coverage: 70.86% line / 84.85% branch / 57.71% funcs** (up from 70.16% / 82.38% / 56.92%)
 
 **Target coverage after sections 6-16:** ≥75% line / ≥85% branch / ≥60% funcs
+
+**Section 14 status:** sandbox/runner.js (99.50% ✅), scheduler/scheduler.js (99.12% ✅). Both above 95% target. Remaining uncovered lines are defensive error-handling paths (child.on("error"), outer catch in contextFile loading) that are practically unreachable.
 
 **Summary:** Tests have been written for most modules, but many source files still have low coverage because the tests don't exercise enough code paths. The biggest gaps remain in:
 - Spreadsheet tools (formulaParser, csv, pivot, spreadsheet, stats) — require complex computation mocking

@@ -2,29 +2,31 @@ import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert";
 import { mkdirSync, rmSync, existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { tmpdir } from "node:os";
 import { ScheduleManager } from "../../src/scheduler/index.js";
 import { sanitizeCrontabCommand } from "../../src/scheduler/cron.js";
 
 // --- Helpers ---
 
-const TEST_DIR = "memory/__test_scheduler__/";
-
-function setupTestDir(dir = TEST_DIR) {
-	mkdirSync(join(process.cwd(), dir), { recursive: true });
+function randomSuffix() {
+	return Math.random().toString(36).slice(2, 8);
 }
 
-function cleanupTestDir(dir = TEST_DIR) {
-	if (existsSync(join(process.cwd(), dir))) {
-		rmSync(join(process.cwd(), dir), { recursive: true, force: true });
+function makeTempDir(prefix = "scheduler-test-") {
+	const dir = join(tmpdir(), prefix + randomSuffix());
+	mkdirSync(dir, { recursive: true });
+	return dir;
+}
+
+function removeDir(dir) {
+	if (existsSync(dir)) {
+		rmSync(dir, { recursive: true, force: true });
 	}
 }
 
 // --- ScheduleManager CRUD ---
 
 describe("scheduler - ScheduleManager", () => {
-	beforeEach(() => setupTestDir());
-	afterEach(() => cleanupTestDir());
-
 	it("returns empty results for register with empty array", () => {
 		const mgr = new ScheduleManager();
 		assert.deepStrictEqual(mgr.register([]), []);
@@ -118,15 +120,13 @@ describe("scheduler - ScheduleManager", () => {
 // --- ScheduleManager loadFromDisk ---
 
 describe("scheduler - ScheduleManager.loadFromDisk", () => {
-	const testDir = "memory/__test_loadFromDisk__/";
+	let testDir;
 
 	beforeEach(() => {
-		mkdirSync(join(process.cwd(), testDir), { recursive: true });
+		testDir = makeTempDir("scheduler-load-");
 	});
 	afterEach(() => {
-		if (existsSync(join(process.cwd(), testDir))) {
-			rmSync(join(process.cwd(), testDir), { recursive: true, force: true });
-		}
+		removeDir(testDir);
 	});
 
 	it("returns empty manager when directory is empty", async () => {
@@ -136,7 +136,7 @@ describe("scheduler - ScheduleManager.loadFromDisk", () => {
 
 	it("loads valid schedule entries from JSON files", async () => {
 		writeFileSync(
-			join(process.cwd(), testDir, "test-job.json"),
+			join(testDir, "test-job.json"),
 			JSON.stringify({ name: "test-job", cron: "0 * * * *", command: "echo hello", enabled: true }),
 		);
 		const mgr = await ScheduleManager.loadFromDisk(testDir);
@@ -150,7 +150,7 @@ describe("scheduler - ScheduleManager.loadFromDisk", () => {
 
 	it("skips entries with enabled: false", async () => {
 		writeFileSync(
-			join(process.cwd(), testDir, "paused-job.json"),
+			join(testDir, "paused-job.json"),
 			JSON.stringify({
 				name: "paused-job",
 				cron: "0 * * * *",
@@ -164,7 +164,7 @@ describe("scheduler - ScheduleManager.loadFromDisk", () => {
 
 	it("skips entries missing name", async () => {
 		writeFileSync(
-			join(process.cwd(), testDir, "no-name.json"),
+			join(testDir, "no-name.json"),
 			JSON.stringify({ cron: "0 * * * *", command: "echo hello" }),
 		);
 		const mgr = await ScheduleManager.loadFromDisk(testDir);
@@ -173,7 +173,7 @@ describe("scheduler - ScheduleManager.loadFromDisk", () => {
 
 	it("skips entries missing cron", async () => {
 		writeFileSync(
-			join(process.cwd(), testDir, "no-cron.json"),
+			join(testDir, "no-cron.json"),
 			JSON.stringify({ name: "no-cron-job", command: "echo hello" }),
 		);
 		const mgr = await ScheduleManager.loadFromDisk(testDir);
@@ -182,7 +182,7 @@ describe("scheduler - ScheduleManager.loadFromDisk", () => {
 
 	it("skips entries missing both skill and command", async () => {
 		writeFileSync(
-			join(process.cwd(), testDir, "no-skill.json"),
+			join(testDir, "no-skill.json"),
 			JSON.stringify({ name: "no-skill-job", cron: "0 * * * *" }),
 		);
 		const mgr = await ScheduleManager.loadFromDisk(testDir);
@@ -190,9 +190,9 @@ describe("scheduler - ScheduleManager.loadFromDisk", () => {
 	});
 
 	it("skips non-json files", async () => {
-		writeFileSync(join(process.cwd(), testDir, "readme.txt"), "not a job");
+		writeFileSync(join(testDir, "readme.txt"), "not a job");
 		writeFileSync(
-			join(process.cwd(), testDir, "real-job.json"),
+			join(testDir, "real-job.json"),
 			JSON.stringify({ name: "real-job", cron: "0 * * * *", command: "echo real" }),
 		);
 		const mgr = await ScheduleManager.loadFromDisk(testDir);
@@ -202,10 +202,10 @@ describe("scheduler - ScheduleManager.loadFromDisk", () => {
 
 	it("handles malformed JSON gracefully", async () => {
 		writeFileSync(
-			join(process.cwd(), testDir, "good.json"),
+			join(testDir, "good.json"),
 			JSON.stringify({ name: "good", cron: "0 * * * *", command: "echo good" }),
 		);
-		writeFileSync(join(process.cwd(), testDir, "bad.json"), "{ not valid json }");
+		writeFileSync(join(testDir, "bad.json"), "{ not valid json }");
 		const mgr = await ScheduleManager.loadFromDisk(testDir);
 		const schedules = mgr.list();
 		assert.strictEqual(schedules.length, 1);
@@ -214,7 +214,7 @@ describe("scheduler - ScheduleManager.loadFromDisk", () => {
 
 	it("sets skill and command when job has skill field", async () => {
 		writeFileSync(
-			join(process.cwd(), testDir, "skill-job.json"),
+			join(testDir, "skill-job.json"),
 			JSON.stringify({ name: "skill-job", cron: "0 * * * *", skill: "test-skill", enabled: true }),
 		);
 		const mgr = await ScheduleManager.loadFromDisk(testDir);
@@ -226,13 +226,13 @@ describe("scheduler - ScheduleManager.loadFromDisk", () => {
 	});
 
 	it("returns empty manager for nonexistent directory", async () => {
-		const mgr = await ScheduleManager.loadFromDisk("memory/__nonexistent_dir_xyz__/");
+		const mgr = await ScheduleManager.loadFromDisk(join(tmpdir(), "scheduler-nonexistent-" + randomSuffix()));
 		assert.deepStrictEqual(mgr.list(), []);
 	});
 
 	it("sets default input and contextFile on loaded entries", async () => {
 		writeFileSync(
-			join(process.cwd(), testDir, "input-job.json"),
+			join(testDir, "input-job.json"),
 			JSON.stringify({ name: "input-job", cron: "0 * * * *", command: "echo test" }),
 		);
 		const mgr = await ScheduleManager.loadFromDisk(testDir);
@@ -243,7 +243,7 @@ describe("scheduler - ScheduleManager.loadFromDisk", () => {
 
 	it("passes custom input through to loaded entries", async () => {
 		writeFileSync(
-			join(process.cwd(), testDir, "input-job.json"),
+			join(testDir, "input-job.json"),
 			JSON.stringify({
 				name: "input-job",
 				cron: "0 * * * *",
@@ -259,9 +259,6 @@ describe("scheduler - ScheduleManager.loadFromDisk", () => {
 // --- ScheduleManager register with command ---
 
 describe("scheduler - ScheduleManager.register with command", () => {
-	beforeEach(() => setupTestDir());
-	afterEach(() => cleanupTestDir());
-
 	it("accepts entries with command instead of skill", () => {
 		const mgr = new ScheduleManager();
 		const results = mgr.register([{ name: "cmd-entry", cron: "0 * * * *", command: "echo hello" }]);
@@ -313,9 +310,6 @@ describe("scheduler - ScheduleManager.register with command", () => {
 // --- ScheduleManager runNow with command ---
 
 describe("scheduler - ScheduleManager.runNow with command", () => {
-	beforeEach(() => setupTestDir());
-	afterEach(() => cleanupTestDir());
-
 	it("executes command directly when skill is absent", async () => {
 		const mgr = new ScheduleManager();
 		mgr.register([{ name: "cmd-job", cron: "0 * * * *", command: "echo hello from command" }]);
@@ -340,6 +334,64 @@ describe("scheduler - ScheduleManager.runNow with command", () => {
 		await mgr.runNow("cmd-job", scheduler);
 		assert.ok(mgr.list()[0].lastRun !== null);
 		assert.ok(new Date(mgr.list()[0].lastRun).getTime() > 0);
+	});
+});
+
+// --- ScheduleManager runNow with skill and contextFile ---
+
+describe("scheduler - ScheduleManager.runNow with skill", () => {
+	it("executes skill through sandbox with contextFile", async () => {
+		const ctxDir = makeTempDir("scheduler-ctx-");
+		try {
+			const ctxFile = join(ctxDir, "context.md");
+			writeFileSync(ctxFile, "custom context content");
+			const mgr = new ScheduleManager();
+			mgr.register([{ name: "skill-job", cron: "0 * * * *", skill: "test-skill", contextFile: ctxFile }]);
+			const sandbox = async (opts) => {
+				assert.strictEqual(opts.context, "custom context content");
+				return { stdout: "done", stderr: "", exitCode: 0 };
+			};
+			const scheduler = { sandbox, state: { timeoutMs: 10000 } };
+			const result = await mgr.runNow("skill-job", scheduler);
+			assert.strictEqual(result.exitCode, 0);
+		} finally {
+			removeDir(ctxDir);
+		}
+	});
+
+	it("executes skill through sandbox without contextFile", async () => {
+		const mgr = new ScheduleManager();
+		mgr.register([{ name: "skill-job", cron: "0 * * * *", skill: "test-skill" }]);
+		const sandbox = async () => ({ stdout: "done", stderr: "", exitCode: 0 });
+		const scheduler = { sandbox, state: { timeoutMs: 10000 } };
+		const result = await mgr.runNow("skill-job", scheduler);
+		assert.strictEqual(result.exitCode, 0);
+	});
+
+	it("handles sandbox timeout", async () => {
+		const mgr = new ScheduleManager();
+		mgr.register([{ name: "slow-job", cron: "0 * * * *", skill: "slow-skill" }]);
+		const sandbox = async () => {
+			await new Promise((resolve) => setTimeout(resolve, 50000));
+			return { stdout: "", stderr: "", exitCode: 0 };
+		};
+		const scheduler = { sandbox, state: { timeoutMs: 10 } };
+		await assert.rejects(
+			() => mgr.runNow("slow-job", scheduler),
+			/execution timed out/,
+		);
+	});
+
+	it("handles contextFile load failure gracefully", async () => {
+		const mgr = new ScheduleManager();
+		mgr.register([{ name: "ctx-job", cron: "0 * * * *", skill: "ctx-skill", contextFile: "/nonexistent/path/ctx.md" }]);
+		const sandbox = async (opts) => {
+			// Should still run even if context load fails
+			return { stdout: "done", stderr: "", exitCode: 0 };
+		};
+		const scheduler = { sandbox, state: { timeoutMs: 10000 } };
+		const result = await mgr.runNow("ctx-job", scheduler);
+		assert.strictEqual(result.exitCode, 0);
 	});
 });
 
