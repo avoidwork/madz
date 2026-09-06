@@ -3,10 +3,10 @@ import assert from "node:assert";
 import { calculateConversationTokens } from "../../src/tui/contextTokens.js";
 
 describe("streaming context size delta", () => {
-	it("calculates token delta for a single content chunk", () => {
+	it("calculates token delta for a single content chunk", async () => {
 		const preStreamSize = 1000;
 		const chunkContent = "Hello, world!";
-		const deltaTokens = calculateConversationTokens(
+		const deltaTokens = await calculateConversationTokens(
 			[{ role: "assistant", content: chunkContent }],
 			"gpt-4o",
 			undefined,
@@ -15,13 +15,13 @@ describe("streaming context size delta", () => {
 		assert.strictEqual(preStreamSize + deltaTokens, preStreamSize + deltaTokens);
 	});
 
-	it("calculates incremental deltas — each chunk adds to pre-stream size", () => {
+	it("calculates incremental deltas — each chunk adds to pre-stream size", async () => {
 		const preStreamSize = 1000;
 		const chunks = ["Hello", ", ", "world", "!"];
 		let runningTotal = preStreamSize;
 
 		for (const chunk of chunks) {
-			const deltaTokens = calculateConversationTokens(
+			const deltaTokens = await calculateConversationTokens(
 				[{ role: "assistant", content: chunk }],
 				"gpt-4o",
 				undefined,
@@ -31,9 +31,9 @@ describe("streaming context size delta", () => {
 		}
 	});
 
-	it("does not update context size when content is absent", () => {
+	it("does not update context size when content is absent", async () => {
 		const emptyChunk = "";
-		const deltaTokens = calculateConversationTokens(
+		const deltaTokens = await calculateConversationTokens(
 			[{ role: "assistant", content: emptyChunk }],
 			"gpt-4o",
 			undefined,
@@ -42,11 +42,11 @@ describe("streaming context size delta", () => {
 		assert.strictEqual(deltaTokens, 0, "empty content should produce zero delta");
 	});
 
-	it("handles reasoning-only chunks — no content means no context update", () => {
+	it("handles reasoning-only chunks — no content means no context update", async () => {
 		const reasoningChunk = "Let me think about this...";
 		// Reasoning content is NOT assistant message content — it's separate
 		// The streaming handler only updates context size for content, not reasoning
-		const deltaTokens = calculateConversationTokens(
+		const deltaTokens = await calculateConversationTokens(
 			[{ role: "assistant", content: reasoningChunk }],
 			"gpt-4o",
 			undefined,
@@ -56,7 +56,7 @@ describe("streaming context size delta", () => {
 		assert.ok(deltaTokens >= 0, "reasoning content should produce non-negative delta");
 	});
 
-	it("delta calculation is consistent with full conversation calculation", () => {
+	it("delta calculation is consistent with full conversation calculation", async () => {
 		const existingMessages = [
 			{ role: "user", content: "Hello" },
 			{ role: "assistant", content: "Hi there!" },
@@ -64,17 +64,17 @@ describe("streaming context size delta", () => {
 		const newChunk = " How are you?";
 
 		// Full conversation delta
-		const fullDelta = calculateConversationTokens(
+		const fullDelta = await calculateConversationTokens(
 			[...existingMessages, { role: "assistant", content: newChunk }],
 			"gpt-4o",
 			undefined,
 		);
 
 		// Pre-stream size (existing messages only)
-		const existingDelta = calculateConversationTokens(existingMessages, "gpt-4o", undefined);
+		const existingDelta = await calculateConversationTokens(existingMessages, "gpt-4o", undefined);
 
 		// Chunk-only delta
-		const chunkDelta = calculateConversationTokens(
+		const chunkDelta = await calculateConversationTokens(
 			[{ role: "assistant", content: newChunk }],
 			"gpt-4o",
 			undefined,

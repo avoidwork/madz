@@ -156,11 +156,6 @@ const MsGraphConfigSchema = z.object({
 	rateLimit: RateLimitSchema.default({ requestsPerMinute: 60 }),
 });
 
-export const CalendarProviderSchema = z.discriminatedUnion("type", [
-	GoogleCalendarConfigSchema,
-	MsGraphConfigSchema,
-]);
-
 export const CalendarConfigSchema = z.object({
 	active: z.enum(["google", "msgraph"]).optional(),
 	google: GoogleCalendarConfigSchema.default({}),

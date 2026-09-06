@@ -516,7 +516,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 	 * Calculate total context tokens (conversation + system prompt) and set contextSize.
 	 */
 	const updateContextSize = useCallback(
-		(sessionState, config) => {
+		async (sessionState, config) => {
 			if (!sessionState) return;
 			const conversation = sessionState.getConversation();
 			const providerName = sessionState.getProvider();
@@ -524,18 +524,17 @@ const ConversationArea = forwardRef(function ConversationArea(
 			const modelName = providerConfig.model || "gpt-4o";
 			const encoding = providerConfig.encoding;
 
-			let totalTokens = calculateConversationTokens(conversation, modelName, encoding);
-			loadSystemPrompt().then((systemPrompt) => {
-				if (systemPrompt) {
-					totalTokens += calculateConversationTokens(
-						[{ role: "system", content: systemPrompt }],
-						modelName,
-						encoding,
-					);
-				}
-				setContextSize(totalTokens);
-				onContextChange?.(totalTokens);
-			});
+			let totalTokens = await calculateConversationTokens(conversation, modelName, encoding);
+			const systemPrompt = await loadSystemPrompt();
+			if (systemPrompt) {
+				totalTokens += await calculateConversationTokens(
+					[{ role: "system", content: systemPrompt }],
+					modelName,
+					encoding,
+				);
+			}
+			setContextSize(totalTokens);
+			onContextChange?.(totalTokens);
 		},
 		[calculateConversationTokens],
 	);
@@ -560,7 +559,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 			preStreamContextSize,
 			onContextUpdate,
 		) => {
-			return (event) => {
+			return async (event) => {
 				if (shouldAbort()) return;
 				try {
 					const currentEvents =
@@ -582,7 +581,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 							const cached = tokenCacheRef.current;
 							if (cached.content !== committedContentRef.current) {
 								cached.content = committedContentRef.current;
-								cached.tokens = calculateConversationTokens(
+								cached.tokens = await calculateConversationTokens(
 									[{ role: "assistant", content: committedContentRef.current }],
 									config?.providers?.[sessionState?.getProvider()]?.model || "gpt-4o",
 									config?.providers?.[sessionState?.getProvider()]?.encoding,

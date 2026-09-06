@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const ScheduleEntrySchema = z.object({
+const ScheduleEntrySchema = z.object({
 	name: z.string().min(1),
 	cron: z.string().min(1),
 	skill: z.string().min(1),

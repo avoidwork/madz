@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const TelemetryExporterSchema = z.object({
+const TelemetryExporterSchema = z.object({
 	protocol: z.enum(["console", "http", "grpc"]).default("console"),
 	endpoint: z.string().url().default("http://localhost:4318"),
 	batch: z.object({
