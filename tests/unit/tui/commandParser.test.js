@@ -242,6 +242,15 @@ describe("CommandParser", () => {
 			assert.ok(result.message.startsWith("Available commands:"));
 		});
 
+		it('parses "/help" with skill list → includes skills in message (covers lines 101-102)', () => {
+			const ctx = createMockContext({ _skillList: ["mySkill", "otherSkill"] });
+			const result = parser.parse("/help", ctx);
+			assert.strictEqual(result.action, "help");
+			assert.ok(result.message.includes("Skills:"));
+			assert.ok(result.message.includes("/mySkill"));
+			assert.ok(result.message.includes("/otherSkill"));
+		});
+
 		it('parses "/gc status" with gcInfo → returns status with available/calls/hourCalls', () => {
 			const ctx = createMockContext();
 			const result = parser.parse("/gc status", ctx);

@@ -28,10 +28,10 @@
 ℹ  memory                        |        |          |         | 
 ℹ   context.js                   |  97.44 |    78.79 |  100.00 | 114-116
 ℹ   expireEphemeralMemories.js   |  93.15 |    73.68 |  100.00 | 25-27 68-69
-ℹ   gc.js                        |  99.30 |    96.00 |  100.00 | 53
-ℹ   profile.js                   |  98.48 |    96.43 |  100.00 | 82-84
+ℹ   gc.js                        | 100.00 |   100.00 |  100.00 | 
+ℹ   profile.js                   | 100.00 |    98.41 |  100.00 | 
 ℹ   prompts.js                   | 100.00 |   100.00 |  100.00 | 
-ℹ   reader.js                    |  95.16 |    82.35 |  100.00 | 23-25
+ℹ   reader.js                    | 100.00 |    94.44 |  100.00 | 
 ℹ  provider                      |        |          |         | 
 ℹ   openai.js                    | 100.00 |   100.00 |  100.00 | 
 ℹ  sandbox                       |        |          |         | 
@@ -48,8 +48,8 @@
 ℹ  session                       |        |          |         | 
 ℹ   checkpointer.js              | 100.00 |    81.82 |  100.00 | 
 ℹ   factory.js                   | 100.00 |   100.00 |  100.00 | 
-ℹ   onboarding.js                |  95.83 |    89.58 |  100.00 | 162-168 195-196
-ℹ   saver.js                     |  98.18 |    82.35 |  100.00 | 47
+ℹ   onboarding.js                | 100.00 |    94.23 |  100.00 | 
+ℹ   saver.js                     |  96.43 |    82.35 |  100.00 | 47-48
 ℹ   shutdown.js                  | 100.00 |   100.00 |  100.00 | 
 ℹ   stateManager.js              | 100.00 |   100.00 |  100.00 | 
 ℹ   window.js                    | 100.00 |    91.67 |  100.00 | 
@@ -57,7 +57,7 @@
 ℹ   logger.js                    |  84.07 |    66.67 |  100.00 | 85-93 98 100-102 125-126 136-140 165-171 177-181 198 232-233 235-236 255-256 264-265 273-274 282-283 291-292
 ℹ  skills                        |        |          |         | 
 ℹ   agentMapper.js               |  83.33 |    62.50 |  100.00 | 12-13 23-25
-ℹ   discoverer.js                |  95.83 |    87.69 |  100.00 | 63-68 187-188 192-193
+ℹ   discoverer.js                |  98.65 |    92.31 |  100.00 | 174-176
 ℹ   registry.js                  |  86.62 |    68.57 |   72.22 | 95-96 117-118 144-153 164-166 192-198 206-210 218-222 255-256
 ℹ   types.js                     | 100.00 |   100.00 |  100.00 | 
 ℹ   validator.js                 | 100.00 |   100.00 |   80.00 | 
@@ -85,7 +85,7 @@
 ℹ    index.js                    | 100.00 |    94.12 |  100.00 | 
 ℹ   common.js                    |  95.54 |    92.31 |   83.33 | 58-62
 ℹ   compactContext               |        |          |         | 
-ℹ    index.js                    |  95.07 |    85.37 |  100.00 | 126-132 225-232 283-287
+ℹ    index.js                    | 100.00 |    88.89 |  100.00 | 
 ℹ   cron                         |        |          |         | 
 ℹ    index.js                    |  94.41 |    88.46 |   73.68 | 93-94 106-107 228-229 231-242 246-252 325-326
 ℹ   data                         |        |          |         | 
@@ -118,7 +118,7 @@
 ℹ   graphql                      |        |          |         | 
 ℹ    index.js                    |  97.74 |    97.89 |   93.75 | 55-66
 ℹ   image                        |        |          |         | 
-ℹ    index.js                    |  97.50 |    91.67 |   50.00 | 95-97
+ℹ    index.js                    | 100.00 |    95.65 |   50.00 | 
 ℹ   index.js                     | 100.00 |    94.87 |  100.00 | 
 ℹ   json                         |        |          |         | 
 ℹ    index.js                    | 100.00 |    97.59 |  100.00 | 
@@ -129,9 +129,9 @@
 ℹ   namecom                      |        |          |         | 
 ℹ    index.js                    |  71.64 |   100.00 |    0.00 | 21-29 36-44 53-112 129-151 199-202 223-226 229-231 240-242 245-248 251-253 267-271 306-310 425-442
 ℹ   pdfGenerate                  |        |          |         | 
-ℹ    index.js                    |  90.88 |    80.46 |   82.61 | 39-40 59-60 66-70 74-75 77 97 113-114 124-125 141-156 164-166 168-169 171 179-188 224-228 249 331-332 366-367 450-451 469-471 473-475 477-479 481-483 504-505 582-583 614-615 660-661
+ℹ    index.js                    |  97.18 |    92.86 |   91.30 | 66-70 143-152 165-166 224-228 249 331-332
 ℹ   process                      |        |          |         | 
-ℹ    index.js                    |  87.24 |    78.00 |   80.00 | 39-42 53-56 93 105 135-136 151-152 212-213 224-225 231-233 239-240 242-248 250-256
+ℹ    index.js                    |  87.24 |    78.43 |   80.00 | 39-42 53-56 93 105 135-136 151-152 212-213 224-225 231-233 239-240 242-248 250-256
 ℹ   reflection                   |        |          |         | 
 ℹ    index.js                    |  95.18 |    82.00 |   91.67 | 58-62 127-128 151-152 206-207
 ℹ   sampling                     |        |          |         | 
@@ -162,25 +162,25 @@
 ℹ  tui                           |        |          |         | 
 ℹ   commandParser.js             |  55.50 |    62.96 |   52.94 | 12 16 20-27 31-61 65-83 87-90 94 98-106 124-125 164-165 167-181
 ℹ   contextTokens.js             |  80.33 |    71.43 |  100.00 | 22-25 32-39
-ℹ   conversationPanel.js         |  95.04 |    95.45 |  100.00 | 26-31
+ℹ   conversationPanel.js         |  94.26 |    95.45 |  100.00 | 26-32
 ℹ   inputPanel.js                |  51.52 |   100.00 |    0.00 | 17-32
 ℹ   markdownText.js              |  91.42 |    82.98 |   96.00 | 69 199-205 220-228 231-233 266-281 359
 ℹ   messageBubble.js             |  85.00 |    51.52 |   62.50 | 46-47 187-194 218-227 242-251 256-263 268-275 316-320
 ℹ   messageList.js               |  77.73 |    65.38 |   51.85 | 63 80-83 108-145 155-178 187 194-199 242 250 258 266 275-281 290 298-303 325-327 371 373-374
 ℹ   messages.js                  |  90.63 |    40.00 |  100.00 | 24 26 28
 ℹ   panels.js                    |  74.36 |   100.00 |    0.00 | 16-17 25-28 36-39
-ℹ   statusBar.js                 |  97.78 |    92.86 |  100.00 | 22-23
+ℹ   statusBar.js                 |  96.70 |    92.86 |  100.00 | 22-24
 ℹ  workspace                     |        |          |         | 
 ℹ   loadAgents.js                | 100.00 |    87.50 |  100.00 | 
 ℹ --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-ℹ all files                      |  73.74 |    86.47 |   59.37 | 
+ℹ all files                      |  74.15 |    87.81 |   59.58 | 
 ℹ --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ℹ end of coverage report
 
 ✖ failing tests:
 
 test at tests/tui/contextTokens.test.js:20:2
-✖ returns 0 for empty conversation (1.86878ms)
+✖ returns 0 for empty conversation (1.831178ms)
   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
   + actual - expected
   
@@ -206,7 +206,7 @@ test at tests/tui/contextTokens.test.js:20:2
   }
 
 test at tests/tui/contextTokens.test.js:26:2
-✖ calculates tokens from conversation messages (12.242761ms)
+✖ calculates tokens from conversation messages (12.431737ms)
   AssertionError [ERR_ASSERTION]: Should return positive token count
       at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/tui/contextTokens.test.js:32:10)
       at Test.runInAsyncScope (node:async_hooks:226:14)
@@ -221,7 +221,7 @@ test at tests/tui/contextTokens.test.js:26:2
   }
 
 test at tests/tui/contextTokens.test.js:35:2
-✖ uses explicit encoding parameter when provided (1.786195ms)
+✖ uses explicit encoding parameter when provided (1.763219ms)
   AssertionError [ERR_ASSERTION]: Should return positive token count with explicit encoding
       at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/tui/contextTokens.test.js:38:10)
       at Test.runInAsyncScope (node:async_hooks:226:14)
@@ -236,7 +236,7 @@ test at tests/tui/contextTokens.test.js:35:2
   }
 
 test at tests/tui/contextTokens.test.js:41:2
-✖ derives encoder from model name when no encoding provided (0.345108ms)
+✖ derives encoder from model name when no encoding provided (1.220491ms)
   AssertionError [ERR_ASSERTION]: Should derive encoder from model name
       at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/tui/contextTokens.test.js:44:10)
       at Test.runInAsyncScope (node:async_hooks:226:14)
@@ -251,7 +251,7 @@ test at tests/tui/contextTokens.test.js:41:2
   }
 
 test at tests/tui/contextTokens.test.js:47:2
-✖ derives encoder from model name with namespace prefix (0.521719ms)
+✖ derives encoder from model name with namespace prefix (0.285476ms)
   AssertionError [ERR_ASSERTION]: Should handle namespace prefix in model name
       at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/tui/contextTokens.test.js:50:10)
       at Test.runInAsyncScope (node:async_hooks:226:14)
@@ -266,7 +266,7 @@ test at tests/tui/contextTokens.test.js:47:2
   }
 
 test at tests/tui/contextTokens.test.js:53:2
-✖ uses env var OPENAI_ENCODING when no explicit encoding (0.299663ms)
+✖ uses env var OPENAI_ENCODING when no explicit encoding (0.25561ms)
   AssertionError [ERR_ASSERTION]: Should use OPENAI_ENCODING env var
       at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/tui/contextTokens.test.js:57:10)
       at Test.runInAsyncScope (node:async_hooks:226:14)
@@ -281,7 +281,7 @@ test at tests/tui/contextTokens.test.js:53:2
   }
 
 test at tests/tui/contextTokens.test.js:60:2
-✖ explicit encoding takes precedence over env var (0.237616ms)
+✖ explicit encoding takes precedence over env var (0.237656ms)
   AssertionError [ERR_ASSERTION]: Explicit encoding should take precedence
       at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/tui/contextTokens.test.js:64:10)
       at Test.runInAsyncScope (node:async_hooks:226:14)
@@ -296,7 +296,7 @@ test at tests/tui/contextTokens.test.js:60:2
   }
 
 test at tests/tui/contextTokens.test.js:67:2
-✖ env var takes precedence over model name (0.189285ms)
+✖ env var takes precedence over model name (0.228068ms)
   AssertionError [ERR_ASSERTION]: Env var should take precedence over model name
       at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/tui/contextTokens.test.js:71:10)
       at Test.runInAsyncScope (node:async_hooks:226:14)
@@ -311,7 +311,7 @@ test at tests/tui/contextTokens.test.js:67:2
   }
 
 test at tests/tui/contextTokens.test.js:74:2
-✖ skips messages with no content (0.344147ms)
+✖ skips messages with no content (0.272381ms)
   AssertionError [ERR_ASSERTION]: Should skip messages without content
       at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/tui/contextTokens.test.js:81:10)
       at Test.runInAsyncScope (node:async_hooks:226:14)
@@ -326,7 +326,7 @@ test at tests/tui/contextTokens.test.js:74:2
   }
 
 test at tests/tui/contextTokens.test.js:84:2
-✖ defaults to gpt-4o when no model or encoding provided (0.350228ms)
+✖ defaults to gpt-4o when no model or encoding provided (0.241854ms)
   AssertionError [ERR_ASSERTION]: Should default to gpt-4o
       at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/tui/contextTokens.test.js:87:10)
       at Test.runInAsyncScope (node:async_hooks:226:14)
@@ -341,7 +341,7 @@ test at tests/tui/contextTokens.test.js:84:2
   }
 
 test at tests/tui/contextTokens.test.js:90:2
-✖ handles messages with empty content strings (0.176251ms)
+✖ handles messages with empty content strings (0.252574ms)
   AssertionError [ERR_ASSERTION]: Should handle empty content strings
       at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/tui/contextTokens.test.js:97:10)
       at Test.runInAsyncScope (node:async_hooks:226:14)
@@ -356,7 +356,7 @@ test at tests/tui/contextTokens.test.js:90:2
   }
 
 test at tests/tui/contextTokens.test.js:100:2
-✖ calculates tokens for longer conversation (0.238097ms)
+✖ calculates tokens for longer conversation (0.276489ms)
   AssertionError [ERR_ASSERTION]: Longer conversation should have more tokens
       at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/tui/contextTokens.test.js:113:10)
       at Test.runInAsyncScope (node:async_hooks:226:14)
@@ -371,7 +371,7 @@ test at tests/tui/contextTokens.test.js:100:2
   }
 
 test at tests/tui/contextTokens.test.js:116:2
-✖ uses cl100k_base encoding for gpt-4o (0.266571ms)
+✖ uses cl100k_base encoding for gpt-4o (0.289974ms)
   AssertionError [ERR_ASSERTION]: Should use cl100k_base for gpt-4o
       at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/tui/contextTokens.test.js:120:10)
       at Test.runInAsyncScope (node:async_hooks:226:14)
@@ -386,7 +386,7 @@ test at tests/tui/contextTokens.test.js:116:2
   }
 
 test at tests/tui/contextTokens.test.js:123:2
-✖ uses p50k_base encoding for text-davinci-003 (0.219422ms)
+✖ uses p50k_base encoding for text-davinci-003 (0.214182ms)
   AssertionError [ERR_ASSERTION]: Should use p50k_base for text-davinci-003
       at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/tui/contextTokens.test.js:126:10)
       at Test.runInAsyncScope (node:async_hooks:226:14)
@@ -401,7 +401,7 @@ test at tests/tui/contextTokens.test.js:123:2
   }
 
 test at tests/tui/contextTokens.test.js:129:2
-✖ uses r50k_base encoding for code-davinci-002 (0.151244ms)
+✖ uses r50k_base encoding for code-davinci-002 (0.23431ms)
   AssertionError [ERR_ASSERTION]: Should use r50k_base for code-davinci-002
       at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/tui/contextTokens.test.js:132:10)
       at Test.runInAsyncScope (node:async_hooks:226:14)
@@ -416,7 +416,7 @@ test at tests/tui/contextTokens.test.js:129:2
   }
 
 test at tests/tui/contextTokens.test.js:135:2
-✖ fallback to character estimation when tiktoken unavailable (0.140755ms)
+✖ fallback to character estimation when tiktoken unavailable (0.217258ms)
   AssertionError [ERR_ASSERTION]: Should return positive value with tiktoken
       at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/tui/contextTokens.test.js:142:10)
       at Test.runInAsyncScope (node:async_hooks:226:14)
@@ -431,7 +431,7 @@ test at tests/tui/contextTokens.test.js:135:2
   }
 
 test at tests/tui/contextTokens.test.js:145:2
-✖ character estimation fallback returns reasonable value (0.255029ms)
+✖ character estimation fallback returns reasonable value (0.344196ms)
   AssertionError [ERR_ASSERTION]: Fallback should return reasonable token count
       at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/tui/contextTokens.test.js:152:10)
       at Test.runInAsyncScope (node:async_hooks:226:14)
@@ -446,7 +446,7 @@ test at tests/tui/contextTokens.test.js:145:2
   }
 
 test at tests/unit/streaming-context.test.js:6:2
-✖ calculates token delta for a single content chunk (5.113212ms)
+✖ calculates token delta for a single content chunk (4.571882ms)
   AssertionError [ERR_ASSERTION]: delta should be positive
       at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/streaming-context.test.js:14:10)
       at Test.runInAsyncScope (node:async_hooks:226:14)
@@ -467,7 +467,7 @@ test at tests/unit/streaming-context.test.js:6:2
   }
 
 test at tests/unit/streaming-context.test.js:18:2
-✖ calculates incremental deltas — each chunk adds to pre-stream size (0.353614ms)
+✖ calculates incremental deltas — each chunk adds to pre-stream size (0.267512ms)
   AssertionError [ERR_ASSERTION]: running total should increase with each chunk
       at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/streaming-context.test.js:30:11)
       at Test.runInAsyncScope (node:async_hooks:226:14)
@@ -487,7 +487,7 @@ test at tests/unit/streaming-context.test.js:18:2
   }
 
 test at tests/unit/streaming-context.test.js:34:2
-✖ does not update context size when content is absent (15.482185ms)
+✖ does not update context size when content is absent (12.835144ms)
   AssertionError [ERR_ASSERTION]: empty content should produce zero delta
   + actual - expected
   
@@ -514,7 +514,7 @@ test at tests/unit/streaming-context.test.js:34:2
   }
 
 test at tests/unit/streaming-context.test.js:45:2
-✖ handles reasoning-only chunks — no content means no context update (0.359255ms)
+✖ handles reasoning-only chunks — no content means no context update (0.331592ms)
   AssertionError [ERR_ASSERTION]: reasoning content should produce non-negative delta
       at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/streaming-context.test.js:56:10)
       at Test.runInAsyncScope (node:async_hooks:226:14)
@@ -532,7 +532,7 @@ test at tests/unit/streaming-context.test.js:45:2
   }
 
 test at tests/unit/streaming-context.test.js:59:2
-✖ delta calculation is consistent with full conversation calculation (0.602121ms)
+✖ delta calculation is consistent with full conversation calculation (0.294372ms)
   AssertionError [ERR_ASSERTION]: chunk delta should be close to full delta minus existing delta
       at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/streaming-context.test.js:85:10)
       at Test.runInAsyncScope (node:async_hooks:226:14)
@@ -550,5 +550,5 @@ test at tests/unit/streaming-context.test.js:59:2
   }
 
 test at tests/unit/tui.test.js:1:1
-✖ tests/unit/tui.test.js (307.885056ms)
+✖ tests/unit/tui.test.js (315.263876ms)
   'test failed'

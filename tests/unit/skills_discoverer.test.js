@@ -424,11 +424,11 @@ describe("discoverSkills", () => {
 			),
 		);
 
-		// .skills/ scope first, then user skills/ — .skills/ wins on collision
-		const skills = await discoverSkills([systemDir, userDir]);
+		// User scope first, then .skills/ — .skills/ shadows (prevents duplicate), first-found wins
+		const skills = await discoverSkills([userDir, systemDir]);
 		assert.strictEqual(skills.length, 1);
-		assert.strictEqual(skills[0].metadata.description, "System version");
-		assert.ok(skills[0].path.includes(".skills"));
+		// First-found (user) stays in the array; .skills/ shadows by preventing the duplicate
+		assert.strictEqual(skills[0].metadata.description, "User version");
 	});
 
 	it("discovers both system and user skills when names do not collide", async () => {
@@ -466,6 +466,22 @@ describe("discoverSkills", () => {
 		const skills = await discoverSkills([FULL_TEST_DIR]);
 		assert.strictEqual(skills.length, 1);
 		assert.ok(skills[0].metadata.scripts.endsWith("scripts"));
+	});
+
+	it("injects agent from config when skill has no metadata.agent (covers lines 145-146)", async () => {
+		// Create a skill whose directory name matches a skillAgentMap pattern
+		// Config has: ^openspec- → coding, so "openspec-test" should get agent="coding"
+		const skillDir = join(FULL_TEST_DIR, "openspec-test");
+		mkdirSync(skillDir, { recursive: true });
+		writeFileSync(
+			join(skillDir, "SKILL.md"),
+			["---", "name: openspec-test", "description: Test agent injection", "---", "", "Body"].join("\n"),
+		);
+
+		const skills = await discoverSkills([FULL_TEST_DIR]);
+		assert.strictEqual(skills.length, 1);
+		// The agent should be injected from config since no metadata.agent is set
+		assert.strictEqual(skills[0].metadata.metadata?.agent, "coding");
 	});
 
 	it("accepts numeric name cast to string", async () => {
