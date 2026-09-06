@@ -159,6 +159,8 @@ Target: push all files in this group to ≥95% line coverage.
 
 **Section 14 status:** sandbox/runner.js (99.50% ✅), scheduler/scheduler.js (99.12% ✅). Both above 95% target. Remaining uncovered lines are defensive error-handling paths (child.on("error"), outer catch in contextFile loading) that are practically unreachable.
 
+**Section 15 status:** tools/common.js (100% ✅, up from 95.54%). 26 new tests covering validatePath, validateUrl, fetchWithTimeout, checkFileLimit.
+
 **Summary:** Tests have been written for most modules, but many source files still have low coverage because the tests don't exercise enough code paths. The biggest gaps remain in:
 - Spreadsheet tools (formulaParser, csv, pivot, spreadsheet, stats) — require complex computation mocking
 - Email providers (gmail, graph, imap) — require live API credentials
