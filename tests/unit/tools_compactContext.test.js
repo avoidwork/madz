@@ -324,6 +324,44 @@ describe("compactContext - compactConversation", () => {
 		// Should still produce something or give a warning
 		assert.ok(result.compactedMessages.length >= 0);
 	});
+
+	it("handles conversation starting with assistant message", () => {
+		// Conversation starts with assistant (no user message at even index 0)
+		const conversation = [{ role: "assistant", content: "Hi" }];
+		const result = compactConversation({
+			systemPrompt: "Be helpful.",
+			conversation,
+			targetTokens: 1000,
+		});
+		assert.strictEqual(result.ok, true);
+		// Should still produce compacted messages
+		assert.ok(result.compactedMessages.length >= 1);
+	});
+
+	it("returns tiered-retention-reduced when reduced fits within budget", () => {
+		// Create enough exchanges so summarizeCount > 1, then set targetTokens
+		// so the initial compacted is over budget but the reduced version fits.
+		// Use very long messages so summaries (truncated to 200 chars) are shorter
+		// than the originals, making the reduced path actually reduce tokens.
+		const conversation = [];
+		for (let i = 0; i < 6; i++) {
+			conversation.push({ role: "user", content: "A".repeat(500) + " " + i });
+			conversation.push({ role: "assistant", content: "B".repeat(500) + " " + i });
+		}
+		// With recentCount=3 and 6 exchanges, summarizeCount = min(10, 3) = 3
+		// Initial compacted: system(1) + 6*125 + 3*50 = 901 tokens
+		// Reduced: system(1) + 2*125 + 5*50 = 501 tokens
+		// Set targetTokens between 788 and 1078 to trigger reduced path
+		const result = compactConversation({
+			systemPrompt: "Hi",
+			conversation,
+			targetTokens: 800,
+			recentCount: 3,
+			summarizeWindow: 10,
+		});
+		assert.strictEqual(result.ok, true);
+		assert.strictEqual(result.strategy, "tiered-retention-reduced");
+	});
 });
 
 // ---------------------------------------------------------------------------
