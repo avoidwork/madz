@@ -11,14 +11,14 @@ import { parseStringPromise } from "xml2js";
  * @param {Map<string, string>} zipContent - Map of internal path → content
  * @returns {string} Markdown string with tables per sheet
  */
-export function xlsxToMarkdown(zipContent) {
+export async function xlsxToMarkdown(zipContent) {
 	let markdown = "";
 
 	const workbookXml = zipContent.get("xl/workbook.xml");
 	if (!workbookXml) return "";
 
 	try {
-		const parsed = parseStringPromise(workbookXml, {
+		const parsed = await parseStringPromise(workbookXml, {
 			mergeAttrs: true,
 			explicitArray: false,
 		});
@@ -36,7 +36,7 @@ export function xlsxToMarkdown(zipContent) {
 			const sheetXml = findSheetXml(zipContent, sheetId);
 			if (!sheetXml) continue;
 
-			const table = parseSheetContent(sheetXml);
+			const table = await parseSheetContent(sheetXml);
 			if (table && table.rows.length > 0) {
 				markdown += `## ${sheetName}\n\n`;
 				markdown += toMarkdownTable(table.rows);
@@ -81,9 +81,9 @@ function findSheetXml(zipContent, sheetId) {
  * @param {string} sheetXml - Sheet XML content
  * @returns {{ rows: string[][] } | null} Parsed rows or null
  */
-function parseSheetContent(sheetXml) {
+async function parseSheetContent(sheetXml) {
 	try {
-		const parsed = parseStringPromise(sheetXml, {
+		const parsed = await parseStringPromise(sheetXml, {
 			mergeAttrs: true,
 			explicitArray: false,
 		});

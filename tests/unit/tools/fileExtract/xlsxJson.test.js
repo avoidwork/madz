@@ -12,12 +12,12 @@ import assert from "node:assert";
 import { xlsxToJson } from "../../../../src/tools/fileExtract/xlsxJson.js";
 
 describe("xlsxToJson", () => {
-	it("should return empty object for empty zip content", () => {
-		const result = xlsxToJson(new Map());
+	it("should return empty object for empty zip content", async () => {
+		const result = await xlsxToJson(new Map());
 		assert.deepStrictEqual(result, {});
 	});
 
-	it("should throw on null input (calls .get() on null)", () => {
-		assert.throws(() => xlsxToJson(null), TypeError);
+	it("should throw on null input (calls .get() on null)", async () => {
+		await assert.rejects(() => xlsxToJson(null), TypeError);
 	});
 });

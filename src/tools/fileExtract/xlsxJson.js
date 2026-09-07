@@ -11,14 +11,14 @@ import { parseStringPromise } from "xml2js";
  * @param {Map<string, string>} zipContent - Map of internal path → content
  * @returns {object} JSON object with sheet data
  */
-export function xlsxToJson(zipContent) {
+export async function xlsxToJson(zipContent) {
 	const result = {};
 
 	const workbookXml = zipContent.get("xl/workbook.xml");
 	if (!workbookXml) return result;
 
 	try {
-		const parsed = parseStringPromise(workbookXml, {
+		const parsed = await parseStringPromise(workbookXml, {
 			mergeAttrs: true,
 			explicitArray: false,
 		});
@@ -35,7 +35,7 @@ export function xlsxToJson(zipContent) {
 			const sheetXml = findSheetXml(zipContent, sheetId);
 			if (!sheetXml) continue;
 
-			const rows = parseSheetRows(sheetXml);
+			const rows = await parseSheetRows(sheetXml);
 			result[sheetName] = rows;
 		}
 	} catch (_err) {
@@ -74,9 +74,9 @@ function findSheetXml(zipContent, sheetId) {
  * @param {string} sheetXml - Sheet XML content
  * @returns {object[]} Array of row objects
  */
-function parseSheetRows(sheetXml) {
+async function parseSheetRows(sheetXml) {
 	try {
-		const parsed = parseStringPromise(sheetXml, {
+		const parsed = await parseStringPromise(sheetXml, {
 			mergeAttrs: true,
 			explicitArray: false,
 		});

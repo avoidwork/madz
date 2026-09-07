@@ -12,12 +12,12 @@ import assert from "node:assert";
 import { pptxToMarkdown } from "../../../../src/tools/fileExtract/pptxParser.js";
 
 describe("pptxToMarkdown", () => {
-	it("should return empty string for empty zip content", () => {
-		const result = pptxToMarkdown(new Map());
+	it("should return empty string for empty zip content", async () => {
+		const result = await pptxToMarkdown(new Map());
 		assert.strictEqual(result, "");
 	});
 
-	it("should throw on null input (calls .keys() on null)", () => {
-		assert.throws(() => pptxToMarkdown(null), TypeError);
+	it("should throw on null input (calls .keys() on null)", async () => {
+		await assert.rejects(() => pptxToMarkdown(null), TypeError);
 	});
 });

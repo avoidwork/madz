@@ -11,7 +11,7 @@ import { parseStringPromise } from "xml2js";
  * @param {Map<string, string>} zipContent - Map of internal path → content
  * @returns {string} Markdown string
  */
-export function pptxToMarkdown(zipContent) {
+export async function pptxToMarkdown(zipContent) {
 	let markdown = "";
 	let slideIndex = 0;
 
@@ -32,7 +32,7 @@ export function pptxToMarkdown(zipContent) {
 		markdown += `---\n\n`;
 
 		try {
-			const parsed = parseStringPromise(slideXml, {
+			const parsed = await parseStringPromise(slideXml, {
 				mergeAttrs: true,
 				explicitArray: false,
 			});
@@ -66,7 +66,7 @@ export function pptxToMarkdown(zipContent) {
 			const notesXml = zipContent.get(notesPath);
 			if (notesXml) {
 				try {
-					const notesParsed = parseStringPromise(notesXml, {
+					const notesParsed = await parseStringPromise(notesXml, {
 						mergeAttrs: true,
 						explicitArray: false,
 					});

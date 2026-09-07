@@ -12,12 +12,12 @@ import assert from "node:assert";
 import { xlsxToMarkdown } from "../../../../src/tools/fileExtract/xlsxParser.js";
 
 describe("xlsxToMarkdown", () => {
-	it("should return empty string for empty zip content", () => {
-		const result = xlsxToMarkdown(new Map());
+	it("should return empty string for empty zip content", async () => {
+		const result = await xlsxToMarkdown(new Map());
 		assert.strictEqual(result, "");
 	});
 
-	it("should throw on null input (calls .get() on null)", () => {
-		assert.throws(() => xlsxToMarkdown(null), TypeError);
+	it("should throw on null input (calls .get() on null)", async () => {
+		await assert.rejects(() => xlsxToMarkdown(null), TypeError);
 	});
 });

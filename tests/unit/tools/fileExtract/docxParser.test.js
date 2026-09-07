@@ -12,15 +12,15 @@ import assert from "node:assert";
 import { docxToMarkdown } from "../../../../src/tools/fileExtract/docxParser.js";
 
 describe("docxToMarkdown", () => {
-	it("should return empty string for null input", () => {
-		assert.strictEqual(docxToMarkdown(null), "");
+	it("should return empty string for null input", async () => {
+		assert.strictEqual(await docxToMarkdown(null), "");
 	});
 
-	it("should return empty string for empty input", () => {
-		assert.strictEqual(docxToMarkdown(""), "");
+	it("should return empty string for empty input", async () => {
+		assert.strictEqual(await docxToMarkdown(""), "");
 	});
 
-	it("should return empty string for whitespace-only input", () => {
-		assert.strictEqual(docxToMarkdown("   "), "");
+	it("should return empty string for whitespace-only input", async () => {
+		assert.strictEqual(await docxToMarkdown("   "), "");
 	});
 });

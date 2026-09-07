@@ -11,7 +11,7 @@ import { parseStringPromise } from "xml2js";
  * @param {string} documentXml - The word/document.xml content
  * @returns {string} Markdown string
  */
-export function docxToMarkdown(documentXml) {
+export async function docxToMarkdown(documentXml) {
 	if (!documentXml || !documentXml.trim()) {
 		return "";
 	}
@@ -162,13 +162,13 @@ function _isListItem(para) {
  * @param {string} documentXml - The word/document.xml content
  * @returns {string} Markdown tables
  */
-export function extractDocxTables(documentXml) {
+export async function extractDocxTables(documentXml) {
 	if (!documentXml) return "";
 
 	let markdown = "";
 
 	try {
-		const parsed = parseStringPromise(documentXml, {
+		const parsed = await parseStringPromise(documentXml, {
 			mergeAttrs: true,
 			explicitArray: false,
 		});

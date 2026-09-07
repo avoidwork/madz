@@ -56,7 +56,7 @@ export async function xlsxExtract(input) {
 	}
 
 	if (format === "json") {
-		const jsonData = xlsxToJson(zipContent);
+		const jsonData = await xlsxToJson(zipContent);
 		return JSON.stringify({
 			ok: true,
 			format: "json",
@@ -64,7 +64,7 @@ export async function xlsxExtract(input) {
 		});
 	}
 
-	const markdown = xlsxToMarkdown(zipContent);
+	const markdown = await xlsxToMarkdown(zipContent);
 
 	return JSON.stringify({
 		ok: true,
