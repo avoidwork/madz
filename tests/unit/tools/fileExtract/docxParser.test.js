@@ -61,22 +61,30 @@ describe("docxToMarkdown", () => {
 
 	it("should parse heading levels 1-6", async () => {
 		const xml = wrapBody(
-			heading("H1", 1) + heading("H2", 2) + heading("H3", 3) +
-			heading("H4", 4) + heading("H5", 5) + heading("H6", 6)
+			heading("H1", 1) +
+				heading("H2", 2) +
+				heading("H3", 3) +
+				heading("H4", 4) +
+				heading("H5", 5) +
+				heading("H6", 6),
 		);
 		assert.strictEqual(
 			await docxToMarkdown(xml),
-			"# H1\n\n## H2\n\n### H3\n\n#### H4\n\n##### H5\n\n###### H6"
+			"# H1\n\n## H2\n\n### H3\n\n#### H4\n\n##### H5\n\n###### H6",
 		);
 	});
 
 	it("should parse Title as heading level 1", async () => {
-		const xml = wrapBody(`<w:p><w:pPr><w:pStyle w:val="Title"/></w:pPr><w:r><w:t>Title</w:t></w:r></w:p>`);
+		const xml = wrapBody(
+			`<w:p><w:pPr><w:pStyle w:val="Title"/></w:pPr><w:r><w:t>Title</w:t></w:r></w:p>`,
+		);
 		assert.strictEqual(await docxToMarkdown(xml), "# Title");
 	});
 
 	it("should parse Subtitle as heading level 2", async () => {
-		const xml = wrapBody(`<w:p><w:pPr><w:pStyle w:val="Subtitle"/></w:pPr><w:r><w:t>Sub</w:t></w:r></w:p>`);
+		const xml = wrapBody(
+			`<w:p><w:pPr><w:pStyle w:val="Subtitle"/></w:pPr><w:r><w:t>Sub</w:t></w:r></w:p>`,
+		);
 		assert.strictEqual(await docxToMarkdown(xml), "## Sub");
 	});
 
@@ -133,13 +141,17 @@ describe("docxToMarkdown", () => {
 	});
 
 	it("should handle non-heading pStyle values", async () => {
-		const xml = wrapBody(`<w:p><w:pPr><w:pStyle w:val="Normal"/></w:pPr><w:r><w:t>Normal</w:t></w:r></w:p>`);
+		const xml = wrapBody(
+			`<w:p><w:pPr><w:pStyle w:val="Normal"/></w:pPr><w:r><w:t>Normal</w:t></w:r></w:p>`,
+		);
 		assert.strictEqual(await docxToMarkdown(xml), "Normal");
 	});
 
 	it("should handle pStyle as object with _ property", async () => {
 		// When explicitArray is false, a single element is not an array
-		const xml = wrapBody(`<w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr><w:r><w:t>H</w:t></w:r></w:p>`);
+		const xml = wrapBody(
+			`<w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr><w:r><w:t>H</w:t></w:r></w:p>`,
+		);
 		assert.strictEqual(await docxToMarkdown(xml), "# H");
 	});
 });
@@ -161,7 +173,7 @@ describe("extractDocxTables", () => {
 	it("should extract a basic table", async () => {
 		const xml = wrapBody(
 			`<w:tbl><w:tr><w:tc><w:p><w:r><w:t>A</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>B</w:t></w:r></w:p></w:tc></w:tr>` +
-			`<w:tr><w:tc><w:p><w:r><w:t>1</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>2</w:t></w:r></w:p></w:tc></w:tr></w:tbl>`
+				`<w:tr><w:tc><w:p><w:r><w:t>1</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>2</w:t></w:r></w:p></w:tc></w:tr></w:tbl>`,
 		);
 		const result = await extractDocxTables(xml);
 		assert.ok(result.includes("| A | B |"));
@@ -189,7 +201,7 @@ describe("extractDocxTables", () => {
 
 	it("should handle table with empty cells", async () => {
 		const xml = wrapBody(
-			`<w:tbl><w:tr><w:tc><w:p><w:r><w:t>A</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t/></w:r></w:p></w:tc></w:tr></w:tbl>`
+			`<w:tbl><w:tr><w:tc><w:p><w:r><w:t>A</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t/></w:r></w:p></w:tc></w:tr></w:tbl>`,
 		);
 		const result = await extractDocxTables(xml);
 		assert.ok(result.includes("A"));

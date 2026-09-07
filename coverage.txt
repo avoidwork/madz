@@ -183,7 +183,7 @@
 ✖ failing tests:
 
 test at tests/unit/skills/registry.test.js:308:2
-✖ should handle register with skip=true (invalid metadata) (0.247074ms)
+✖ should handle register with skip=true (invalid metadata) (0.235061ms)
   ReferenceError: errors is not defined
       at SkillRegistry.register (file:///home/jason/Projects/madz/src/skills/registry.js:164:30)
       at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/skills/registry.test.js:310:27)
@@ -195,16 +195,5 @@ test at tests/unit/skills/registry.test.js:308:2
       at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7)
 
 test at tests/unit/tools/pptx.test.js:1:1
-✖ tests/unit/tools/pptx.test.js (49.073366ms)
+✖ tests/unit/tools/pptx.test.js (37.064229ms)
   'test failed'
-
-test at tests/unit/tui/inputArea.test.js:174:2
-✖ handleSubmit clears input text (0.215855ms)
-  ReferenceError: cleared is not defined
-      at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/tui/inputArea.test.js:175:22)
-      at Test.runInAsyncScope (node:async_hooks:226:14)
-      at Test.run (node:internal/test_runner/test:1201:25)
-      at Suite.processPendingSubtests (node:internal/test_runner/test:831:18)
-      at Test.postRun (node:internal/test_runner/test:1330:19)
-      at Test.run (node:internal/test_runner/test:1258:12)
-      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7)

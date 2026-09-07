@@ -39,7 +39,10 @@ describe("pptxToMarkdown", () => {
 
 	it("should parse a single slide with title and bullets", async () => {
 		const content = new Map();
-		content.set("ppt/slides/slide1.xml", slideXml(shape("title", "My Title") + shape("", "Bullet 1") + shape("", "Bullet 2")));
+		content.set(
+			"ppt/slides/slide1.xml",
+			slideXml(shape("title", "My Title") + shape("", "Bullet 1") + shape("", "Bullet 2")),
+		);
 		const result = await pptxToMarkdown(content);
 		assert.ok(result.includes("# My Title"));
 		assert.ok(result.includes("- Bullet 1"));
@@ -105,8 +108,9 @@ describe("pptxToMarkdown", () => {
 
 	it("should handle shape with no text (empty txBody)", async () => {
 		const content = new Map();
-		content.set("ppt/slides/slide1.xml",
-			`<?xml version="1.0"?><p:slide ${P_NS} ${A_NS}><p:spTree><p:sp><p:nvSpPr><p:cNvPr name="title"/></p:nvSpPr><p:txBody><a:p><a:r><a:t></a:t></a:r></a:p></p:txBody></p:sp></p:spTree></p:slide>`
+		content.set(
+			"ppt/slides/slide1.xml",
+			`<?xml version="1.0"?><p:slide ${P_NS} ${A_NS}><p:spTree><p:sp><p:nvSpPr><p:cNvPr name="title"/></p:nvSpPr><p:txBody><a:p><a:r><a:t></a:t></a:r></a:p></p:txBody></p:sp></p:spTree></p:slide>`,
 		);
 		const result = await pptxToMarkdown(content);
 		assert.ok(result.includes("## Slide 1"));
@@ -114,8 +118,9 @@ describe("pptxToMarkdown", () => {
 
 	it("should handle shape with txBody but no a:p", async () => {
 		const content = new Map();
-		content.set("ppt/slides/slide1.xml",
-			`<?xml version="1.0"?><p:slide ${P_NS} ${A_NS}><p:spTree><p:sp><p:nvSpPr><p:cNvPr name="title"/></p:nvSpPr><p:txBody></p:txBody></p:sp></p:spTree></p:slide>`
+		content.set(
+			"ppt/slides/slide1.xml",
+			`<?xml version="1.0"?><p:slide ${P_NS} ${A_NS}><p:spTree><p:sp><p:nvSpPr><p:cNvPr name="title"/></p:nvSpPr><p:txBody></p:txBody></p:sp></p:spTree></p:slide>`,
 		);
 		const result = await pptxToMarkdown(content);
 		assert.ok(result.includes("## Slide 1"));
@@ -123,8 +128,9 @@ describe("pptxToMarkdown", () => {
 
 	it("should handle slide with no spTree", async () => {
 		const content = new Map();
-		content.set("ppt/slides/slide1.xml",
-			`<?xml version="1.0"?><p:slide ${P_NS} ${A_NS}></p:slide>`
+		content.set(
+			"ppt/slides/slide1.xml",
+			`<?xml version="1.0"?><p:slide ${P_NS} ${A_NS}></p:slide>`,
 		);
 		const result = await pptxToMarkdown(content);
 		assert.strictEqual(result, "");

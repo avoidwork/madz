@@ -56,10 +56,13 @@ describe("xlsxToMarkdown", () => {
 	it("should parse a single sheet into markdown table", async () => {
 		const zip = new Map();
 		zip.set("xl/workbook.xml", workbookXml(sheetDef("Sheet1", "1")));
-		zip.set("xl/worksheets/sheet1.xml", sheetXml(
-			row(1, cell("A1", "", "Name"), cell("B1", "", "Age")) +
-			row(2, cell("A2", "", "Alice"), cell("B2", "", "30"))
-		));
+		zip.set(
+			"xl/worksheets/sheet1.xml",
+			sheetXml(
+				row(1, cell("A1", "", "Name"), cell("B1", "", "Age")) +
+					row(2, cell("A2", "", "Alice"), cell("B2", "", "30")),
+			),
+		);
 		const result = await xlsxToMarkdown(zip);
 		assert.ok(result.includes("## Sheet1"));
 		assert.ok(result.includes("| Name | Age |"));
@@ -80,7 +83,10 @@ describe("xlsxToMarkdown", () => {
 		const zip = new Map();
 		zip.set("xl/workbook.xml", workbookXml(sheetDef("Sheet1", "1") + sheetDef("Sheet2", "2")));
 		zip.set("xl/worksheets/sheet1.xml", sheetXml(row(1, cell("A1", "", "Data"))));
-		zip.set("xl/worksheets/sheet2.xml", `<?xml version="1.0"?><worksheet ${NS}><sheetData></sheetData></worksheet>`);
+		zip.set(
+			"xl/worksheets/sheet2.xml",
+			`<?xml version="1.0"?><worksheet ${NS}><sheetData></sheetData></worksheet>`,
+		);
 		const result = await xlsxToMarkdown(zip);
 		assert.ok(result.includes("## Sheet1"));
 		assert.ok(!result.includes("## Sheet2"));
@@ -89,9 +95,7 @@ describe("xlsxToMarkdown", () => {
 	it("should handle inlineStr cells", async () => {
 		const zip = new Map();
 		zip.set("xl/workbook.xml", workbookXml(sheetDef("Sheet1", "1")));
-		zip.set("xl/worksheets/sheet1.xml", sheetXml(
-			row(1, cell("A1", "inlineStr", "Hello"))
-		));
+		zip.set("xl/worksheets/sheet1.xml", sheetXml(row(1, cell("A1", "inlineStr", "Hello"))));
 		const result = await xlsxToMarkdown(zip);
 		assert.ok(result.includes("Hello"));
 	});
@@ -99,11 +103,14 @@ describe("xlsxToMarkdown", () => {
 	it("should handle merged cells (empty in non-primary positions)", async () => {
 		const zip = new Map();
 		zip.set("xl/workbook.xml", workbookXml(sheetDef("Sheet1", "1")));
-		zip.set("xl/worksheets/sheet1.xml", sheetXml(
-			row(1, cell("A1", "", "Merged"), cell("B1", "", "")),
-			row(2, cell("A2", "", ""), cell("B2", "", "")),
-			mergeCell("A1:B2")
-		));
+		zip.set(
+			"xl/worksheets/sheet1.xml",
+			sheetXml(
+				row(1, cell("A1", "", "Merged"), cell("B1", "", "")),
+				row(2, cell("A2", "", ""), cell("B2", "", "")),
+				mergeCell("A1:B2"),
+			),
+		);
 		const result = await xlsxToMarkdown(zip);
 		assert.ok(result.includes("Merged"));
 	});
@@ -135,7 +142,10 @@ describe("xlsxToMarkdown", () => {
 	it("should handle sheet with sheetData but no rows", async () => {
 		const zip = new Map();
 		zip.set("xl/workbook.xml", workbookXml(sheetDef("Sheet1", "1")));
-		zip.set("xl/worksheets/sheet1.xml", `<?xml version="1.0"?><worksheet ${NS}><sheetData></sheetData></worksheet>`);
+		zip.set(
+			"xl/worksheets/sheet1.xml",
+			`<?xml version="1.0"?><worksheet ${NS}><sheetData></sheetData></worksheet>`,
+		);
 		const result = await xlsxToMarkdown(zip);
 		assert.strictEqual(result, "");
 	});
@@ -151,10 +161,13 @@ describe("xlsxToMarkdown", () => {
 	it("should handle mergeCell with $ wrapper", async () => {
 		const zip = new Map();
 		zip.set("xl/workbook.xml", workbookXml(sheetDef("Sheet1", "1")));
-		zip.set("xl/worksheets/sheet1.xml", sheetXml(
-			row(1, cell("A1", "", "A"), cell("B1", "", "B")),
-			`<mergeCells><mergeCell ref="A1:B1"/></mergeCells>`
-		));
+		zip.set(
+			"xl/worksheets/sheet1.xml",
+			sheetXml(
+				row(1, cell("A1", "", "A"), cell("B1", "", "B")),
+				`<mergeCells><mergeCell ref="A1:B1"/></mergeCells>`,
+			),
+		);
 		const result = await xlsxToMarkdown(zip);
 		assert.ok(result.includes("A"));
 	});
@@ -162,10 +175,10 @@ describe("xlsxToMarkdown", () => {
 	it("should handle mergeCell with invalid ref", async () => {
 		const zip = new Map();
 		zip.set("xl/workbook.xml", workbookXml(sheetDef("Sheet1", "1")));
-		zip.set("xl/worksheets/sheet1.xml", sheetXml(
-			row(1, cell("A1", "", "A")),
-			`<mergeCells><mergeCell ref="invalid"/></mergeCells>`
-		));
+		zip.set(
+			"xl/worksheets/sheet1.xml",
+			sheetXml(row(1, cell("A1", "", "A")), `<mergeCells><mergeCell ref="invalid"/></mergeCells>`),
+		);
 		const result = await xlsxToMarkdown(zip);
 		assert.ok(result.includes("A"));
 	});
@@ -181,10 +194,13 @@ describe("xlsxToMarkdown", () => {
 	it("should handle irregular row lengths", async () => {
 		const zip = new Map();
 		zip.set("xl/workbook.xml", workbookXml(sheetDef("Sheet1", "1")));
-		zip.set("xl/worksheets/sheet1.xml", sheetXml(
-			row(1, cell("A1", "", "A"), cell("B1", "", "B"), cell("C1", "", "C")) +
-			row(2, cell("A2", "", "short"))
-		));
+		zip.set(
+			"xl/worksheets/sheet1.xml",
+			sheetXml(
+				row(1, cell("A1", "", "A"), cell("B1", "", "B"), cell("C1", "", "C")) +
+					row(2, cell("A2", "", "short")),
+			),
+		);
 		const result = await xlsxToMarkdown(zip);
 		assert.ok(result.includes("A"));
 		assert.ok(result.includes("short"));

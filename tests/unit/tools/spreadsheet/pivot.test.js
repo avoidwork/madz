@@ -47,7 +47,10 @@ describe("groupBy", () => {
 
 describe("pivot", () => {
 	it("should throw for empty array", () => {
-		assert.throws(() => pivot([], { keys: "region", value: "sales", aggregate: "sum" }), /non-empty array/);
+		assert.throws(
+			() => pivot([], { keys: "region", value: "sales", aggregate: "sum" }),
+			/non-empty array/,
+		);
 	});
 
 	it("should throw for missing config", () => {
@@ -55,7 +58,10 @@ describe("pivot", () => {
 	});
 
 	it("should throw for invalid aggregate", () => {
-		assert.throws(() => pivot(data, { keys: "region", value: "sales", aggregate: "invalid" }), /aggregate must be/);
+		assert.throws(
+			() => pivot(data, { keys: "region", value: "sales", aggregate: "invalid" }),
+			/aggregate must be/,
+		);
 	});
 
 	it("should compute sum aggregation", () => {
@@ -89,7 +95,12 @@ describe("pivot", () => {
 	});
 
 	it("should use custom label", () => {
-		const result = pivot(data, { keys: "region", value: "sales", aggregate: "sum", label: "Total" });
+		const result = pivot(data, {
+			keys: "region",
+			value: "sales",
+			aggregate: "sum",
+			label: "Total",
+		});
 		assert.ok(result[0].Total !== undefined);
 	});
 
@@ -99,13 +110,20 @@ describe("pivot", () => {
 	});
 
 	it("should handle null/undefined values", () => {
-		const dirty = [{ region: "N", sales: null }, { region: "N", sales: undefined }, { region: "N", sales: 100 }];
+		const dirty = [
+			{ region: "N", sales: null },
+			{ region: "N", sales: undefined },
+			{ region: "N", sales: 100 },
+		];
 		const result = pivot(dirty, { keys: "region", value: "sales", aggregate: "sum" });
 		assert.strictEqual(result[0]["sum(sales)"], 100);
 	});
 
 	it("should handle non-numeric values", () => {
-		const dirty = [{ region: "N", sales: "abc" }, { region: "N", sales: 100 }];
+		const dirty = [
+			{ region: "N", sales: "abc" },
+			{ region: "N", sales: 100 },
+		];
 		const result = pivot(dirty, { keys: "region", value: "sales", aggregate: "sum" });
 		assert.strictEqual(result[0]["sum(sales)"], 100);
 	});
@@ -167,7 +185,11 @@ describe("filter", () => {
 
 describe("pivotMulti", () => {
 	it("should throw for empty array", () => {
-		assert.throws(() => pivotMulti([], { rowKey: "region", colKey: "product", value: "sales", aggregate: "sum" }), /non-empty array/);
+		assert.throws(
+			() =>
+				pivotMulti([], { rowKey: "region", colKey: "product", value: "sales", aggregate: "sum" }),
+			/non-empty array/,
+		);
 	});
 
 	it("should throw for missing config", () => {
@@ -175,7 +197,12 @@ describe("pivotMulti", () => {
 	});
 
 	it("should create multi-dimensional pivot", () => {
-		const result = pivotMulti(data, { rowKey: "region", colKey: "product", value: "sales", aggregate: "sum" });
+		const result = pivotMulti(data, {
+			rowKey: "region",
+			colKey: "product",
+			value: "sales",
+			aggregate: "sum",
+		});
 		assert.strictEqual(result.length, 2);
 		const north = result.find((r) => r.region === "North");
 		assert.strictEqual(north.A, 100);
@@ -187,13 +214,23 @@ describe("pivotMulti", () => {
 			{ region: "N", product: "A", sales: 100 },
 			{ region: "S", product: "B", sales: 200 },
 		];
-		const result = pivotMulti(sparse, { rowKey: "region", colKey: "product", value: "sales", aggregate: "sum" });
+		const result = pivotMulti(sparse, {
+			rowKey: "region",
+			colKey: "product",
+			value: "sales",
+			aggregate: "sum",
+		});
 		const n = result.find((r) => r.region === "N");
 		assert.strictEqual(n.B, 0);
 	});
 
 	it("should handle unknown keys", () => {
-		const result = pivotMulti(data, { rowKey: "region", colKey: "product", value: "sales", aggregate: "sum" });
+		const result = pivotMulti(data, {
+			rowKey: "region",
+			colKey: "product",
+			value: "sales",
+			aggregate: "sum",
+		});
 		assert.ok(result.length > 0);
 	});
 });

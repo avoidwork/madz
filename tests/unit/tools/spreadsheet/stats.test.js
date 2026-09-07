@@ -6,8 +6,15 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
 import {
-	mean, median, mode, stddev, populationStddev,
-	variance, populationVariance, percentile, groupByDate,
+	mean,
+	median,
+	mode,
+	stddev,
+	populationStddev,
+	variance,
+	populationVariance,
+	percentile,
+	groupByDate,
 } from "../../../../src/tools/spreadsheet/stats.js";
 
 describe("mean", () => {
@@ -234,7 +241,10 @@ describe("groupByDate", () => {
 	});
 
 	it("should skip invalid dates", () => {
-		const badData = [{ date: "not-a-date", val: 1 }, { date: "2024-01-15", val: 2 }];
+		const badData = [
+			{ date: "not-a-date", val: 1 },
+			{ date: "2024-01-15", val: 2 },
+		];
 		const result = groupByDate(badData, "date", "month");
 		assert.strictEqual(result.length, 1);
 	});

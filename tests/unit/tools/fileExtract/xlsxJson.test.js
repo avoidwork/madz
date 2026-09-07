@@ -48,10 +48,13 @@ describe("xlsxToJson", () => {
 	it("should parse a single sheet with data", async () => {
 		const zip = new Map();
 		zip.set("xl/workbook.xml", workbookXml(sheetDef("Sheet1", "1")));
-		zip.set("xl/worksheets/sheet1.xml", sheetXml(
-			row(1, cell("A1", "", "Name"), cell("B1", "", "Age")) +
-			row(2, cell("A2", "", "Alice"), cell("B2", "n", "30"))
-		));
+		zip.set(
+			"xl/worksheets/sheet1.xml",
+			sheetXml(
+				row(1, cell("A1", "", "Name"), cell("B1", "", "Age")) +
+					row(2, cell("A2", "", "Alice"), cell("B2", "n", "30")),
+			),
+		);
 		const result = await xlsxToJson(zip);
 		assert.deepStrictEqual(result, {
 			Sheet1: [
@@ -76,10 +79,10 @@ describe("xlsxToJson", () => {
 	it("should preserve boolean cell type", async () => {
 		const zip = new Map();
 		zip.set("xl/workbook.xml", workbookXml(sheetDef("Sheet1", "1")));
-		zip.set("xl/worksheets/sheet1.xml", sheetXml(
-			row(1, cell("A1", "b", "1")) +
-			row(2, cell("A2", "b", "0"))
-		));
+		zip.set(
+			"xl/worksheets/sheet1.xml",
+			sheetXml(row(1, cell("A1", "b", "1")) + row(2, cell("A2", "b", "0"))),
+		);
 		const result = await xlsxToJson(zip);
 		assert.strictEqual(result.Sheet1[0].A1, true);
 		assert.strictEqual(result.Sheet1[1].A2, false);
