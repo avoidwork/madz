@@ -159,7 +159,7 @@ export class SkillRegistry {
 	 * @returns {{ valid: boolean, errors: string[], warnings: string[] }}
 	 */
 	register(name, metadata) {
-		const { skip, warnings } = validateSkillSchema({ name, ...metadata });
+		const { skip, errors, warnings } = validateSkillSchema({ name, ...metadata });
 		if (skip) {
 			this.#errors.push({ name, errors });
 			return { valid: false, errors, warnings };
