@@ -186,18 +186,37 @@ export function MessageBubbleInner({
 
 	// Subscribe to pub/sub updates — each update appends a chunk, triggering
 	// re-render of just this bubble without re-rendering the parent.
+	// Also picks up streaming/turnDuration changes so the timer stops
+	// without needing a parent re-render.
+	const [localStreaming, setLocalStreaming] = useState(streaming);
+	const [localTurnDuration, setLocalTurnDuration] = useState(turnDuration);
+	const [localCompletedToolCalls, setLocalCompletedToolCalls] = useState(completedToolCalls || []);
+
+	// Sync local state from props when not using pub/sub (session restore, initial render)
+	useEffect(() => {
+		if (!topic) {
+			setLocalStreaming(streaming);
+			setLocalTurnDuration(turnDuration);
+			setLocalCompletedToolCalls(completedToolCalls || []);
+		}
+	}, [topic, streaming, turnDuration, completedToolCalls]);
+
 	useEffect(() => {
 		if (!topic) return;
 
 		const handleUpdate = (data) => {
 			setChunks((prev) => {
 				const newContent = data?.content ?? "";
-				// Skip empty content — appending "" causes re-renders with no visual change.
 				if (newContent.length === 0) return prev;
-				// Skip appends when content hasn't changed (avoids duplicate renders).
 				if (prev.length > 0 && prev[prev.length - 1] === newContent) return prev;
 				return [...prev, newContent];
 			});
+			// Pick up streaming/turnDuration from published data so the
+			// timer stops without a parent re-render.
+			if (data?.streaming !== undefined) setLocalStreaming(data.streaming);
+			if (data?.turnDuration !== undefined) setLocalTurnDuration(data.turnDuration);
+			if (data?.completedToolCalls !== undefined)
+				setLocalCompletedToolCalls(data.completedToolCalls);
 		};
 
 		subscribe(topic, handleUpdate);
@@ -281,12 +300,18 @@ export function MessageBubbleInner({
 			)
 		: null;
 
-	const pendingState = role === "assistant" && streaming && chunks.length === 0 && !content;
+	const pendingState = role === "assistant" && localStreaming && chunks.length === 0 && !content;
 
-	// Live timer: updates every second while streaming, shows final duration when done
+	// Memoize the thinking word so it doesn't rotate on every render
+	const thinkingWordRef = useRef(null);
+	if (!thinkingWordRef.current) {
+		thinkingWordRef.current = getRandomThinkingWord();
+	}
+
+	// Live timer: updates every 200ms while streaming, shows final duration when done
 	const [liveElapsed, setLiveElapsed] = useState(0);
 	useEffect(() => {
-		if (!streaming || !turnStartTime) {
+		if (!localStreaming || !turnStartTime) {
 			setLiveElapsed(0);
 			return;
 		}
@@ -294,9 +319,9 @@ export function MessageBubbleInner({
 			setLiveElapsed(Date.now() - turnStartTime);
 		}, 200);
 		return () => clearInterval(interval);
-	}, [streaming, turnStartTime]);
+	}, [localStreaming, turnStartTime]);
 
-	const displayElapsed = turnDuration || liveElapsed;
+	const displayElapsed = localTurnDuration || liveElapsed;
 
 	/**
 	 * Format elapsed ms to the nearest logical unit.
@@ -313,28 +338,28 @@ export function MessageBubbleInner({
 
 	// Timer display element
 	const timerEl =
-		role === "assistant" && (streaming || turnDuration)
+		role === "assistant" && (localStreaming || localTurnDuration)
 			? React.createElement(
 					Box,
 					{ flexDirection: "row", marginTop: 1, marginLeft: 2 },
 					React.createElement(
 						Text,
 						{ dimColor: true, color: "gray" },
-						streaming ? `⏱ ${formatElapsed(displayElapsed)}` : `⏱ ${formatElapsed(displayElapsed)}`,
+						`⏱ ${formatElapsed(displayElapsed)}`,
 					),
 				)
 			: null;
 
 	// Completed tool calls display
 	const completedToolCallsEl =
-		role === "assistant" && completedToolCalls && completedToolCalls.length > 0
+		role === "assistant" && localCompletedToolCalls && localCompletedToolCalls.length > 0
 			? React.createElement(
 					Box,
 					{ flexDirection: "column", marginTop: 1, marginLeft: 2 },
 					React.createElement(
 						Text,
 						{ dimColor: true, color: "gray" },
-						`⚡ ${completedToolCalls.length} tool call${completedToolCalls.length !== 1 ? "s" : ""}: ${completedToolCalls.join(", ")}`,
+						`⚡ ${localCompletedToolCalls.length} tool call${localCompletedToolCalls.length !== 1 ? "s" : ""}: ${localCompletedToolCalls.join(", ")}`,
 					),
 				)
 			: null;
@@ -378,7 +403,7 @@ export function MessageBubbleInner({
 							Text,
 							{ color: "cyan" },
 							React.createElement(Spinner, { type: "dots2" }),
-							` ${getRandomThinkingWord()}`,
+							` ${thinkingWordRef.current}`,
 						)
 					: React.createElement(MarkdownText, {
 							content: text,
