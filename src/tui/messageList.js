@@ -123,6 +123,9 @@ export const MessageList = React.memo(
 					toolCallDisplay: options.toolCallDisplay,
 					events: options.events,
 					streaming: options.streaming || false,
+					turnStartTime: options.turnStartTime,
+					turnDuration: options.turnDuration,
+					completedToolCalls: options.completedToolCalls,
 				});
 
 				idsRef.current.push(id);
@@ -225,6 +228,9 @@ export const MessageList = React.memo(
 						toolCallDisplay: m.toolCallDisplay,
 						events: m.events,
 						streaming: m.streaming || false,
+						turnStartTime: m.turnStartTime,
+						turnDuration: m.turnDuration,
+						completedToolCalls: m.completedToolCalls,
 					});
 
 					idsRef.current.push(id);
@@ -386,6 +392,9 @@ export const MessageList = React.memo(
 							streaming: data.streaming,
 							assistantName,
 							topic: `msg-${id}`,
+							turnStartTime: data.turnStartTime,
+							turnDuration: data.turnDuration,
+							completedToolCalls: data.completedToolCalls,
 						});
 					})
 					.filter(Boolean);

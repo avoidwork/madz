@@ -203,15 +203,19 @@ const ConversationArea = forwardRef(function ConversationArea(
 				}
 
 				const assistantTime = getTimestamp();
+				const turnStartTime = Date.now();
 				streamingMsgIdRef.current = messageListRef.current.addMessage("assistant", "", {
 					time: assistantTime,
 					streaming: true,
+					turnStartTime,
 				});
 
 				let committedContentRef = { current: "" };
 				let committedReasoning = "";
 				let lastToolCallDisplay = "";
 				let todoStatusLines = "";
+				/** @type {string[]} */
+				const completedToolCalls = [];
 
 				// Set up abort controller for this stream
 				abortControllerRef.current = new AbortController();
@@ -230,6 +234,8 @@ const ConversationArea = forwardRef(function ConversationArea(
 							undefined,
 							preStreamContextSize,
 							setContextSize,
+							completedToolCalls,
+							turnStartTime,
 						),
 						abortControllerRef.current?.signal,
 					);
@@ -293,6 +299,8 @@ const ConversationArea = forwardRef(function ConversationArea(
 						committedReasoning,
 						lastToolCallDisplay,
 						todoStatusLines,
+						turnStartTime,
+						completedToolCalls,
 					);
 
 					if (sessionState) {
@@ -349,15 +357,19 @@ const ConversationArea = forwardRef(function ConversationArea(
 		}
 
 		const assistantTime = getTimestamp();
+		const turnStartTime = Date.now();
 		streamingMsgIdRef.current = messageListRef.current.addMessage("assistant", "", {
 			time: assistantTime,
 			streaming: true,
+			turnStartTime,
 		});
 
 		let committedContentRef = { current: "" };
 		let committedReasoning = "";
 		let lastToolCallDisplay = "";
 		let todoStatusLines = "";
+		/** @type {string[]} */
+		const completedToolCalls = [];
 
 		abortControllerRef.current = new AbortController();
 		isStreamingRef.current = true;
@@ -375,6 +387,8 @@ const ConversationArea = forwardRef(function ConversationArea(
 					undefined,
 					preStreamContextSize,
 					setContextSize,
+					completedToolCalls,
+					turnStartTime,
 				),
 				abortControllerRef.current?.signal,
 			);
@@ -439,7 +453,14 @@ const ConversationArea = forwardRef(function ConversationArea(
 				sessionState.addExchange({ role: "user", content: text });
 			}
 
-			finalizeStreaming(responseContent, committedReasoning, lastToolCallDisplay, todoStatusLines);
+			finalizeStreaming(
+				responseContent,
+				committedReasoning,
+				lastToolCallDisplay,
+				todoStatusLines,
+				turnStartTime,
+				completedToolCalls,
+			);
 
 			if (sessionState) {
 				sessionState.addExchange({
@@ -558,6 +579,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 			onTextReceived,
 			preStreamContextSize,
 			onContextUpdate,
+			completedToolCalls = [],
 		) => {
 			return async (event) => {
 				if (shouldAbort()) return;
@@ -618,8 +640,10 @@ const ConversationArea = forwardRef(function ConversationArea(
 					}
 
 					if (event.type === "on_tool_end") {
+						completedToolCalls.push(event.name);
 						messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
 							activeToolCall: null,
+							completedToolCalls: [...completedToolCalls],
 						});
 						if (event.data?.output) {
 							lastToolCallDisplayRef.current =
@@ -654,12 +678,17 @@ const ConversationArea = forwardRef(function ConversationArea(
 		committedReasoning,
 		lastToolCallDisplay,
 		todoStatusLines,
+		turnStartTime = 0,
+		completedToolCalls = [],
 	) => {
+		const elapsed = turnStartTime ? Date.now() - turnStartTime : 0;
 		const updates = {
 			content: responseContent,
 			reasoningContent: committedReasoning || undefined,
 			streaming: false,
 			activeToolCall: null,
+			turnDuration: elapsed,
+			completedToolCalls,
 		};
 		if (lastToolCallDisplay) {
 			updates.toolCallDisplay = lastToolCallDisplay;

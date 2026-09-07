@@ -160,6 +160,9 @@ export const ScrollContext = React.createContext({ scrollToBottom: () => {} });
  * @param {string} [props.reasoningContent] - Thinking/thought content
  * @param {Object} [props.activeToolCall] - {name: string} for running tool
  * @param {string} [props.toolCallDisplay] - Tool call result display text
+ * @param {number} [props.turnStartTime] - Timestamp when the turn started (for live timer)
+ * @param {number} [props.turnDuration] - Final elapsed time in ms when streaming ended
+ * @param {string[]} [props.completedToolCalls] - List of completed tool call names
 
  * @returns {React.ReactElement}
  */
@@ -173,6 +176,9 @@ export function MessageBubbleInner({
 	activeToolCall,
 	toolCallDisplay,
 	streaming,
+	turnStartTime,
+	turnDuration,
+	completedToolCalls,
 }) {
 	const [chunks, setChunks] = useState([]);
 	const { subscribe, unsubscribe } = useContext(PubSubContext);
@@ -277,6 +283,62 @@ export function MessageBubbleInner({
 
 	const pendingState = role === "assistant" && streaming && chunks.length === 0 && !content;
 
+	// Live timer: updates every second while streaming, shows final duration when done
+	const [liveElapsed, setLiveElapsed] = useState(0);
+	useEffect(() => {
+		if (!streaming || !turnStartTime) {
+			setLiveElapsed(0);
+			return;
+		}
+		const interval = setInterval(() => {
+			setLiveElapsed(Date.now() - turnStartTime);
+		}, 200);
+		return () => clearInterval(interval);
+	}, [streaming, turnStartTime]);
+
+	const displayElapsed = turnDuration || liveElapsed;
+
+	/**
+	 * Format elapsed ms to the nearest logical unit.
+	 * @param {number} ms
+	 * @returns {string}
+	 */
+	function formatElapsed(ms) {
+		if (ms < 1000) return `${ms}ms`;
+		if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
+		if (ms < 3600000) return `${Math.floor(ms / 60000)}m ${Math.floor((ms % 60000) / 1000)}s`;
+		if (ms < 86400000) return `${Math.floor(ms / 3600000)}h ${Math.floor((ms % 3600000) / 60000)}m`;
+		return `${Math.floor(ms / 86400000)}d ${Math.floor((ms % 86400000) / 3600000)}h`;
+	}
+
+	// Timer display element
+	const timerEl =
+		role === "assistant" && (streaming || turnDuration)
+			? React.createElement(
+					Box,
+					{ flexDirection: "row", marginTop: 1, marginLeft: 2 },
+					React.createElement(
+						Text,
+						{ dimColor: true, color: "gray" },
+						streaming ? `⏱ ${formatElapsed(displayElapsed)}` : `⏱ ${formatElapsed(displayElapsed)}`,
+					),
+				)
+			: null;
+
+	// Completed tool calls display
+	const completedToolCallsEl =
+		role === "assistant" && completedToolCalls && completedToolCalls.length > 0
+			? React.createElement(
+					Box,
+					{ flexDirection: "column", marginTop: 1, marginLeft: 2 },
+					React.createElement(
+						Text,
+						{ dimColor: true, color: "gray" },
+						`⚡ ${completedToolCalls.length} tool call${completedToolCalls.length !== 1 ? "s" : ""}: ${completedToolCalls.join(", ")}`,
+					),
+				)
+			: null;
+
 	return React.createElement(
 		Box,
 		{
@@ -326,6 +388,8 @@ export function MessageBubbleInner({
 			reasoningEl,
 			toolCallEl,
 			toolDisplayEl,
+			timerEl,
+			completedToolCallsEl,
 		),
 	);
 }
