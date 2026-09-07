@@ -14,16 +14,14 @@ let nextPid = 1000;
  * Record a background process in the tracker.
  * @param {import("node:child_process").ChildProcess} child - The child process
  * @param {string} command - The command that was executed
- * @param {string} [sessionId] - Optional session ID for sub-agent correlation
  * @returns {number} The assigned PID
  */
-export function trackProcess(child, command, sessionId) {
+export function trackProcess(child, command) {
 	const pid = nextPid++;
 	processTracker.set(pid, {
 		pid,
 		child,
 		command,
-		sessionId,
 		status: "running",
 		startTime: Date.now(),
 		stdout: "",
@@ -256,8 +254,6 @@ export async function unifiedProcessImpl(input) {
 			} catch (err) {
 				return `Error resuming process ${pid}: ${err.message}`;
 			}
-		default:
-			return `Error: Unknown action '${action}'. Supported: list, start, ${validActions.join(", ")}`;
 	}
 }
 

@@ -49,7 +49,7 @@ export async function pptxExtract(input) {
 	}
 
 	// Extract presentation content
-	const markdown = pptxToMarkdown(zipContent);
+	const markdown = await pptxToMarkdown(zipContent);
 
 	return JSON.stringify({
 		ok: true,

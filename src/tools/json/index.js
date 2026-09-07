@@ -107,12 +107,8 @@ function filterJson(input, path) {
 		return { ok: false, error: `JSON parse error: ${err.message}` };
 	}
 
-	try {
-		const results = JSONPath({ path, json: data, resultType: "value" });
-		return { ok: true, data: results };
-	} catch (err) {
-		return { ok: false, error: `JSONPath error: ${err.message}` };
-	}
+	const results = JSONPath({ path, json: data, resultType: "value" });
+	return { ok: true, data: results };
 }
 
 /**
@@ -237,8 +233,6 @@ export async function jsonManipulationImpl(input) {
 			const result = accessJsonPath(jsonInput, path);
 			return result.ok ? { ok: true, data: result.data } : result;
 		}
-		default:
-			return { ok: false, error: `Unknown action: ${action}` };
 	}
 }
 
@@ -249,7 +243,7 @@ export async function jsonManipulationImpl(input) {
 export function createJsonTool() {
 	return tool(
 		async (input) => {
-			const result = await jsonManipulation(input);
+			const result = await jsonManipulationImpl(input);
 			return JSON.stringify(result, null, 2);
 		},
 		{

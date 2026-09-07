@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const MemoryGcSchema = z.object({
+const MemoryGcSchema = z.object({
 	enabled: z.boolean().default(true),
 	idleTimeoutMs: z.number().int().positive().default(300000),
 	maxGcPerHour: z.number().int().positive().default(4),

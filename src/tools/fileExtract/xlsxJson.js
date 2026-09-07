@@ -11,31 +11,31 @@ import { parseStringPromise } from "xml2js";
  * @param {Map<string, string>} zipContent - Map of internal path → content
  * @returns {object} JSON object with sheet data
  */
-export function xlsxToJson(zipContent) {
+export async function xlsxToJson(zipContent) {
 	const result = {};
 
 	const workbookXml = zipContent.get("xl/workbook.xml");
 	if (!workbookXml) return result;
 
 	try {
-		const parsed = parseStringPromise(workbookXml, {
+		const parsed = await parseStringPromise(workbookXml, {
 			mergeAttrs: true,
 			explicitArray: false,
 		});
 
-		const sheets = parsed?.workbook?.[0]?.sheets?.sheet;
+		const sheets = parsed?.workbook?.sheets?.sheet;
 		if (!sheets) return result;
 
 		const sheetArray = Array.isArray(sheets) ? sheets : [sheets];
 
 		for (const sheetDef of sheetArray) {
-			const sheetName = sheetDef?.$?.name || "Sheet";
-			const sheetId = sheetDef?.$?.sheetId || "1";
+			const sheetName = sheetDef?.name || "Sheet";
+			const sheetId = sheetDef?.sheetId || "1";
 
 			const sheetXml = findSheetXml(zipContent, sheetId);
 			if (!sheetXml) continue;
 
-			const rows = parseSheetRows(sheetXml);
+			const rows = await parseSheetRows(sheetXml);
 			result[sheetName] = rows;
 		}
 	} catch (_err) {
@@ -60,12 +60,6 @@ function findSheetXml(zipContent, sheetId) {
 		}
 	}
 
-	for (const path of zipContent.keys()) {
-		if (/^xl\/worksheets\/sheet\d+\.xml$/.test(path)) {
-			return zipContent.get(path);
-		}
-	}
-
 	return null;
 }
 
@@ -74,14 +68,14 @@ function findSheetXml(zipContent, sheetId) {
  * @param {string} sheetXml - Sheet XML content
  * @returns {object[]} Array of row objects
  */
-function parseSheetRows(sheetXml) {
+async function parseSheetRows(sheetXml) {
 	try {
-		const parsed = parseStringPromise(sheetXml, {
+		const parsed = await parseStringPromise(sheetXml, {
 			mergeAttrs: true,
 			explicitArray: false,
 		});
 
-		const sheetData = parsed?.sheet?.[0]?.sheetData?.row;
+		const sheetData = parsed?.worksheet?.sheetData?.row;
 		if (!sheetData) return [];
 
 		const rowArray = Array.isArray(sheetData) ? sheetData : [sheetData];
@@ -93,7 +87,7 @@ function parseSheetRows(sheetXml) {
 			const rowData = {};
 
 			for (const cell of cellArray) {
-				const ref = cell?.$?.r;
+				const ref = cell?.r;
 				if (ref) {
 					rowData[ref] = getCellValue(cell);
 				}
@@ -120,7 +114,7 @@ function getCellValue(cell) {
 	const strVal = String(v);
 
 	// Check type
-	const t = cell?.$?.t || cell?.t;
+	const t = cell?.t;
 	if (t === "b") {
 		return strVal === "1" ? true : false;
 	}

@@ -55,7 +55,7 @@ export function redactAttributes(attrs, redactKeys = []) {
 
 	const result = { ...attrs };
 	for (const key of Object.keys(result)) {
-		if (redactKeys.some((rk) => key.includes(rk.toLowerCase()))) {
+		if (redactKeys.some((rk) => key.toLowerCase().includes(rk.toLowerCase()))) {
 			result[key] = REDACTED;
 		}
 	}

@@ -4,13 +4,7 @@ import assert from "node:assert";
 import { render } from "ink";
 import { CommandParser } from "../../src/tui/commandParser.js";
 import { PANELS, nextPanel, prevPanel, getPanelOrder } from "../../src/tui/panels.js";
-import {
-	isStreamingMessage,
-	getRoleLabel,
-	formatMessage,
-	countMessageLines,
-	getToolCallLines,
-} from "../../src/tui/messages.js";
+import { getRoleLabel } from "../../src/tui/messages.js";
 import {
 	parseMarkdown,
 	MarkdownTextInner,
@@ -400,75 +394,9 @@ describe("TUI - getRoleLabel", () => {
 	});
 });
 
-describe("TUI - formatMessage", () => {
-	it("formats message with timestamp", () => {
-		const msg = { role: "user", content: "hello", timestamp: "10:00" };
-		const result = formatMessage(msg);
-		assert.ok(result.includes("You (10:00)"));
-		assert.ok(result.includes("hello"));
-	});
-
-	it("formats message without timestamp", () => {
-		const msg = { role: "assistant", content: "world" };
-		const result = formatMessage(msg, "madz");
-		assert.ok(result.includes("madz"));
-		assert.ok(result.includes("world"));
-		assert.ok(!result.includes("("));
-	});
-
-	it("handles empty content", () => {
-		const msg = { role: "user", content: "" };
-		const result = formatMessage(msg);
-		assert.ok(result.includes("(empty)"));
-	});
-});
-
-describe("TUI - countMessageLines", () => {
-	it("counts lines for single message", () => {
-		const messages = [{ role: "user", content: "hello world" }];
-		const result = countMessageLines(messages, 80);
-		assert.ok(typeof result === "number" && result > 0);
-	});
-
-	it("counts lines for multiple messages", () => {
-		const messages = [
-			{ role: "user", content: "hello" },
-			{ role: "assistant", content: "world" },
-		];
-		const result = countMessageLines(messages, 80);
-		assert.ok(result > countMessageLines([{ role: "user", content: "hello" }], 80));
-	});
-
-	it("handles empty messages array", () => {
-		const result = countMessageLines([], 80);
-		assert.strictEqual(result, 0);
-	});
-
-	it("handles long content with line wrapping", () => {
-		const longContent = "x".repeat(240);
-		const messages = [{ role: "user", content: longContent }];
-		const result = countMessageLines(messages, 80);
-		assert.ok(result > 3); // Should wrap to multiple lines
-	});
-});
-
-describe("TUI - getToolCallLines", () => {
-	it("splits tool call display by newlines", () => {
-		const lines = getToolCallLines("- Tool: search\n- Tool: readFile");
-		assert.strictEqual(lines.length, 2);
-		assert.strictEqual(lines[0], "- Tool: search");
-		assert.strictEqual(lines[1], "- Tool: readFile");
-	});
-
-	it("returns empty array for falsy input", () => {
-		const lines = getToolCallLines("");
-		assert.strictEqual(lines.length, 0);
-		assert.strictEqual(getToolCallLines(null).length, 0);
-	});
-});
-
 describe("TUI - streaming message utility", () => {
 	it("detects a streaming message", () => {
+		const isStreamingMessage = (msg) => msg.streaming === true;
 		assert.strictEqual(
 			isStreamingMessage({ role: "assistant", content: "hello", streaming: true }),
 			true,

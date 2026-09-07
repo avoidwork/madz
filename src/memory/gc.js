@@ -46,16 +46,6 @@ export function gc(maxGcPerHour = 4) {
 		return { triggered: false, reason: "gc not available", hourCalls };
 	}
 
-	// Prune one more time after window edge case
-	const effectiveWindowStart = now - 60 * 60 * 1000;
-	for (let i = gcCalls.length - 1; i >= 0; i--) {
-		if (gcCalls[i] < effectiveWindowStart) {
-			gcCalls.splice(i, 1);
-		} else {
-			break;
-		}
-	}
-
 	global.gc();
 	const lastRun = Date.now();
 	gcCalls.push(lastRun);

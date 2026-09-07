@@ -18,55 +18,5 @@ export function resolvePermissions(skillMetadata) {
 	return Array.from(combined);
 }
 
-/**
- * Check if a skill has a specific permission.
- * @param {string[]} permissions - The resolved permission list
- * @param {string} permission - The permission to check
- * @returns {boolean}
- */
-export function hasPermission(permissions, permission) {
-	return permissions.includes(permission);
-}
-
-/**
- * Resolve capability rules from permissions.
- * Maps permission scopes to resource access rules.
- * @param {Object} skillMetadata - The skill metadata
- * @returns {{ filesystem: string[], network: string[] }}
- */
-export function resolveCapabilities(skillMetadata) {
-	const perms = resolvePermissions(skillMetadata);
-	const capabilities = {
-		filesystem: [],
-		network: [],
-		env: [],
-		process: [],
-	};
-
-	for (const perm of perms) {
-		switch (perm) {
-			case "filesystem:read":
-				capabilities.filesystem.push("read");
-				break;
-			case "filesystem:write":
-				capabilities.filesystem.push("read");
-				capabilities.filesystem.push("write");
-				break;
-			case "filesystem:exec":
-				capabilities.filesystem.push("read");
-				capabilities.filesystem.push("exec");
-				break;
-			case "network:outbound":
-				capabilities.network.push("outbound");
-				break;
-			case "process:spawn":
-				capabilities.process.push("spawn");
-				break;
-			case "env:read":
-				capabilities.env.push("read");
-				break;
-		}
-	}
-
-	return capabilities;
-}
+// hasPermission and resolveCapabilities were removed — never imported or used
+// anywhere in the codebase. resolvePermissions remains as it's used by index.js.

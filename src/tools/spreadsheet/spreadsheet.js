@@ -131,8 +131,6 @@ export async function spreadsheetImpl(input) {
 			return modify(input);
 		case "export":
 			return exportData(input);
-		default:
-			throw new Error(`Unknown action: ${action}`);
 	}
 }
 
@@ -204,8 +202,6 @@ async function compute(input) {
 				result.value = stats.variance(values);
 				break;
 			}
-			default:
-				throw new Error(`Unknown operation type: ${op.type}`);
 		}
 
 		if (op.alias) {
@@ -307,8 +303,6 @@ async function analyze(input) {
 				results.push({ type: "percentile", field, p, value: stats.percentile(values, p) });
 				break;
 			}
-			default:
-				throw new Error(`Unknown analysis type: ${op.type}`);
 		}
 	}
 
@@ -352,13 +346,20 @@ async function modify(input) {
 	}
 
 	// Load workbook with exceljs
-	const ExcelJS = await import("exceljs");
+	const { default: ExcelJS } = await import("exceljs");
 	const workbook = new ExcelJS.Workbook();
 	await workbook.xlsx.readFile(inputPath);
 
 	const results = [];
 
 	for (const op of modifyOperations) {
+		// addSheet and deleteSheet don't need pre-check (addSheet creates, deleteSheet uses id)
+		if (op.type === "addSheet") {
+			await workbook.addWorksheet(op.sheetName);
+			results.push({ operation: op.type, sheet: op.sheetName, status: "added" });
+			continue;
+		}
+
 		const sheet = workbook.getWorksheet(op.sheetName);
 		if (!sheet) {
 			results.push({
@@ -409,11 +410,6 @@ async function modify(input) {
 				});
 				break;
 			}
-			case "addSheet": {
-				await workbook.addWorksheet(op.sheetName);
-				results.push({ operation: op.type, sheet: op.sheetName, status: "added" });
-				break;
-			}
 			case "deleteSheet": {
 				workbook.removeWorksheet(sheet.id);
 				results.push({ operation: op.type, sheet: op.sheetName, status: "deleted" });
@@ -431,13 +427,6 @@ async function modify(input) {
 				});
 				break;
 			}
-			default:
-				results.push({
-					operation: op.type,
-					sheet: op.sheetName,
-					status: "error",
-					reason: `Unknown operation: ${op.type}`,
-				});
 		}
 	}
 
@@ -475,7 +464,7 @@ async function exportData(input) {
 			return { format: "csv", output: csvString, outputPath };
 		}
 		case "xlsx": {
-			const ExcelJS = await import("exceljs");
+			const { default: ExcelJS } = await import("exceljs");
 			const workbook = new ExcelJS.Workbook();
 			const sheet = workbook.addWorksheet("Sheet1");
 
@@ -497,8 +486,6 @@ async function exportData(input) {
 				columns: headers,
 			};
 		}
-		default:
-			throw new Error(`Unsupported export format: ${format}`);
 	}
 }
 

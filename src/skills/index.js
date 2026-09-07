@@ -7,4 +7,4 @@ export {
 export { discoverSkills } from "./discoverer.js";
 export { validateSkillSchema } from "./validator.js";
 export { SkillRegistry, ensureSkillsDir } from "./registry.js";
-export { resolvePermissions, hasPermission, resolveCapabilities } from "./permissions.js";
+export { resolvePermissions } from "./permissions.js";

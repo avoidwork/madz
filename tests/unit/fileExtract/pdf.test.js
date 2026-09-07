@@ -38,5 +38,13 @@ describe("fileExtract/pdf", () => {
 			assert.strictEqual(parsed.ok, false);
 			assert.ok(parsed.error.includes("PDF extraction failed"));
 		});
+
+		it("should handle invalid PDF gracefully", async () => {
+			const { writeFileSync } = await import("node:fs");
+			writeFileSync("/tmp/test-invalid-pdf.pdf", "Not a PDF at all");
+			const result = await pdfExtract({ filePath: "/tmp/test-invalid-pdf.pdf" });
+			const parsed = JSON.parse(result);
+			assert.strictEqual(parsed.ok, false);
+		});
 	});
 });

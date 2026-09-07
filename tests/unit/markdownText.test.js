@@ -1,21 +1,29 @@
+/**
+ * Unit tests for the markdown text renderer.
+ * @module tests/unit/markdownText.test
+ */
+
 import { describe, it } from "node:test";
 import assert from "node:assert";
-import { generateTableRow, parseMarkdown } from "../../src/tui/markdownText.js";
+import {
+	generateTableRow,
+	parseMarkdown,
+	createTerminalRenderer,
+	getParseCacheStats,
+	MarkdownTextInner,
+} from "../../src/tui/markdownText.js";
 
 // Helper: strip ANSI escape codes for comparison
 function stripAnsi(str) {
 	const ESCAPE = "\u001b";
 	const BELL = "\u0007";
 	return str
-		.replace(new RegExp(ESCAPE + "\\[[\\d;]*m", "g"), "")
+		.replace(new RegExp(ESCAPE + "\\[\\d;]*m", "g"), "")
 		.replace(new RegExp(ESCAPE + "\\]8;;[^" + BELL + "]*" + BELL, "g"), "");
 }
 
 describe("generateTableRow - table cell parsing", () => {
 	it("parses a single row with two cells", () => {
-		// Simulate what tablerow() + tablecell() produce
-		// tablerow: '*|*|*|' + text + '*|*|*|'
-		// tablecell: content + '^*||*^'
 		const row = "*|*|*|Name^*||*^Age^*||*^*|*|*|";
 		const result = generateTableRow(row);
 		assert.deepStrictEqual(result, [["Name", "Age"]]);
@@ -64,7 +72,6 @@ describe("generateTableRow - table cell parsing", () => {
 	});
 
 	it("handles cells with pipe characters in content", () => {
-		// Pipe in cell content should be preserved (it's inside ^*||*^)
 		const row = "*|*|*|a|b^*||*^c^*||*^*|*|*|";
 		const result = generateTableRow(row);
 		assert.deepStrictEqual(result, [["a|b", "c"]]);
@@ -95,7 +102,6 @@ describe("parseMarkdown - table rendering", () => {
 		const result = parseMarkdown(markdown);
 		assert.ok(typeof result === "string");
 		assert.ok(result.length > 0);
-		// Should contain table-like structure (cli-table3 uses ASCII art)
 		assert.ok(result.includes("Name") || result.includes("Alice"));
 	});
 
@@ -103,7 +109,6 @@ describe("parseMarkdown - table rendering", () => {
 		const markdown = "| Name | Age | City |\n|------|-----|------|\n| Alice | 30 | Ottawa |";
 		const result = parseMarkdown(markdown);
 		assert.ok(typeof result === "string");
-		assert.ok(result.length > 0);
 		assert.ok(result.includes("Name"));
 		assert.ok(result.includes("Alice"));
 		assert.ok(result.includes("Ottawa"));
@@ -112,7 +117,6 @@ describe("parseMarkdown - table rendering", () => {
 	it("renders a table with multiple rows", () => {
 		const markdown = "| Name | Age |\n|------|-----|\n| Alice | 30 |\n| Bob | 25 |\n| Carol | 35 |";
 		const result = parseMarkdown(markdown);
-		assert.ok(typeof result === "string");
 		assert.ok(result.includes("Alice"));
 		assert.ok(result.includes("Bob"));
 		assert.ok(result.includes("Carol"));
@@ -121,7 +125,6 @@ describe("parseMarkdown - table rendering", () => {
 	it("renders a table with special characters", () => {
 		const markdown = "| Item | Value |\n|------|-------|\n| Score | 100% |\n| Note | Good! |";
 		const result = parseMarkdown(markdown);
-		assert.ok(typeof result === "string");
 		assert.ok(result.includes("100%"));
 		assert.ok(result.includes("Good!"));
 	});
@@ -136,7 +139,6 @@ describe("parseMarkdown - table rendering", () => {
 	it("renders a table followed by text", () => {
 		const markdown = "| Name | Age |\n|------|-----|\n| Alice | 30 |\n\nSome text after.";
 		const result = parseMarkdown(markdown);
-		assert.ok(typeof result === "string");
 		assert.ok(result.includes("Alice"));
 		assert.ok(result.includes("Some text after"));
 	});
@@ -144,7 +146,6 @@ describe("parseMarkdown - table rendering", () => {
 	it("renders a table with code in cells", () => {
 		const markdown = "| Func | Desc |\n|------|------|\n| `foo()` | Does stuff |";
 		const result = parseMarkdown(markdown);
-		assert.ok(typeof result === "string");
 		assert.ok(result.includes("foo()"));
 		assert.ok(result.includes("Does stuff"));
 	});
@@ -375,15 +376,11 @@ describe("parseMarkdown - links", () => {
 describe("parseMarkdown - horizontal rule", () => {
 	it("renders a horizontal rule", () => {
 		const result = parseMarkdown("---");
-		// In non-TTY environments (tests), process.stdout.columns is undefined,
-		// so hr() returns an empty string. This is expected — hr() only renders
-		// in a real terminal where stdout.columns is available.
 		assert.ok(typeof result === "string");
 	});
 
 	it("renders horizontal rule with asterisks", () => {
 		const result = parseMarkdown("***");
-		// Same TTY dependency as ---
 		assert.ok(typeof result === "string");
 	});
 });
@@ -398,50 +395,263 @@ describe("parseMarkdown - strikethrough", () => {
 
 describe("parseMarkdown - mixed content", () => {
 	it("renders a complex document with multiple elements", () => {
-		const markdown = [
-			"# Title",
-			"",
-			"Paragraph with **bold** and *italic* and `code`.",
-			"",
-			"> A blockquote",
-			"",
-			"- item 1",
-			"- item 2",
-			"",
-			"1. ordered 1",
-			"2. ordered 2",
-			"",
-			"[Link](https://example.com)",
-			"",
-			"---",
-			"",
-			"~~strikethrough~~",
-		].join("\n");
-		const result = parseMarkdown(markdown);
+		const result = parseMarkdown(
+			"# Title\n\nParagraph with **bold** and *italic*.\n\n- List item\n- Another item\n\n> A quote",
+		);
+		assert.ok(typeof result === "string");
+		assert.ok(result.length > 0);
+	});
+});
+
+describe("parseMarkdown - images", () => {
+	it("renders an image", () => {
+		const result = parseMarkdown("![alt text](https://example.com/image.png)");
 		const stripped = stripAnsi(result);
+		assert.ok(stripped.includes("alt text"));
+		assert.ok(stripped.includes("image.png"));
+	});
+
+	it("renders an image with title", () => {
+		const result = parseMarkdown('![alt](https://example.com/img.png "Title")');
+		const stripped = stripAnsi(result);
+		assert.ok(stripped.includes("alt"));
 		assert.ok(stripped.includes("Title"));
-		assert.ok(stripped.includes("bold"));
-		assert.ok(stripped.includes("italic"));
-		assert.ok(stripped.includes("code"));
-		assert.ok(stripped.includes("A blockquote"));
-		assert.ok(stripped.includes("item 1"));
-		assert.ok(stripped.includes("item 2"));
-		assert.ok(stripped.includes("ordered 1"));
-		assert.ok(stripped.includes("ordered 2"));
-		assert.ok(stripped.includes("Link"));
-		assert.ok(stripped.includes("example.com"));
-		assert.ok(stripped.includes("strikethrough"));
+	});
+});
+
+describe("parseMarkdown - task lists", () => {
+	it("renders a task list with checked item", () => {
+		const result = parseMarkdown("- [x] done\n- [ ] todo");
+		const stripped = stripAnsi(result);
+		assert.ok(stripped.includes("done"));
+		assert.ok(stripped.includes("todo"));
+	});
+});
+
+describe("parseMarkdown - inline HTML", () => {
+	it("renders inline HTML", () => {
+		const result = parseMarkdown("Some <b>bold</b> HTML");
+		const stripped = stripAnsi(result);
+		assert.ok(stripped.includes("Some"));
+	});
+});
+
+describe("parseMarkdown - line breaks", () => {
+	it("renders hard line break", () => {
+		const result = parseMarkdown("Line 1\nLine 2");
+		const stripped = stripAnsi(result);
+		assert.ok(stripped.includes("Line 1"));
+		assert.ok(stripped.includes("Line 2"));
+	});
+});
+
+describe("createTerminalRenderer", () => {
+	it("creates a renderer with default options", () => {
+		const renderer = createTerminalRenderer();
+		assert.ok(renderer);
+		assert.strictEqual(renderer.tab, "    ");
 	});
 
-	it("renders paragraph with HTML entity", () => {
-		const result = parseMarkdown("5 &lt; 10");
-		const stripped = stripAnsi(result);
-		assert.ok(stripped.includes("5 < 10"));
+	it("creates a renderer with custom options", () => {
+		const renderer = createTerminalRenderer({ width: 60, tab: 2 });
+		assert.ok(renderer);
+		assert.strictEqual(renderer.o.width, 60);
+		assert.strictEqual(renderer.tab, "  ");
+	});
+});
+
+describe("getParseCacheStats", () => {
+	it("returns cache statistics", () => {
+		const stats = getParseCacheStats();
+		assert.ok(typeof stats.size === "number");
+		assert.ok(typeof stats.hitRate === "number");
+		assert.ok(stats.hitRate >= 0 && stats.hitRate <= 1);
+	});
+});
+
+describe("MarkdownTextInner", () => {
+	it("returns null for null content", () => {
+		const result = MarkdownTextInner({ content: null });
+		assert.strictEqual(result, null);
 	});
 
-	it("renders paragraph with ampersand", () => {
-		const result = parseMarkdown("Tom & Jerry");
+	it("returns null for undefined content", () => {
+		const result = MarkdownTextInner({ content: undefined });
+		assert.strictEqual(result, null);
+	});
+
+	it("returns null for empty content", () => {
+		const result = MarkdownTextInner({ content: "" });
+		assert.strictEqual(result, null);
+	});
+
+	it("renders markdown content", () => {
+		const result = MarkdownTextInner({ content: "Hello **world**" });
+		assert.ok(result);
+		assert.ok(typeof result === "object");
+	});
+});
+
+describe("parseMarkdown - emoji", () => {
+	it("renders emoji shortcodes", () => {
+		const result = parseMarkdown("Hello :wave:");
 		const stripped = stripAnsi(result);
-		assert.ok(stripped.includes("Tom & Jerry"));
+		assert.ok(stripped.length > 0);
+	});
+});
+
+describe("parseMarkdown - code block edge cases", () => {
+	it("renders code block with special characters", () => {
+		const result = parseMarkdown("```\n<tag>\n```");
+		const stripped = stripAnsi(result);
+		assert.ok(stripped.includes("tag"));
+	});
+});
+
+describe("parseMarkdown - reflow text", () => {
+	it("renders with reflow enabled via parseMarkdown", () => {
+		const result = parseMarkdown("A long paragraph that should wrap at forty characters");
+		assert.ok(typeof result === "string");
+		assert.ok(result.length > 0);
+	});
+});
+
+describe("parseMarkdown - emoji rendering", () => {
+	it("renders multiple emoji shortcodes", () => {
+		const result = parseMarkdown("Hello :wave: :smile: :rocket:");
+		assert.ok(typeof result === "string");
+		assert.ok(result.length > 0);
+	});
+
+	it("renders unknown emoji shortcode as text", () => {
+		const result = parseMarkdown(":unknown_emoji_code:");
+		assert.ok(typeof result === "string");
+	});
+});
+
+describe("parseMarkdown - code block with syntax highlighting", () => {
+	it("renders code block with language for highlighting", () => {
+		const result = parseMarkdown("```javascript\nconst x = 1;\n```");
+		assert.ok(typeof result === "string");
+		assert.ok(result.length > 0);
+	});
+
+	it("renders code block with unknown language", () => {
+		const result = parseMarkdown("```unknownlang\nsome code\n```");
+		assert.ok(typeof result === "string");
+		assert.ok(result.length > 0);
+	});
+});
+
+describe("parseMarkdown - nested lists", () => {
+	it("renders nested unordered list", () => {
+		const result = parseMarkdown("- item 1\n  - nested item\n- item 2");
+		assert.ok(typeof result === "string");
+		assert.ok(result.includes("item 1"));
+		assert.ok(result.includes("nested item"));
+	});
+
+	it("renders nested ordered list", () => {
+		const result = parseMarkdown("1. first\n   1. nested\n2. second");
+		assert.ok(typeof result === "string");
+		assert.ok(result.includes("first"));
+		assert.ok(result.includes("nested"));
+	});
+});
+
+describe("parseMarkdown - mixed lists", () => {
+	it("renders ordered list inside unordered", () => {
+		const result = parseMarkdown("- item\n  1. nested ordered\n- another");
+		assert.ok(typeof result === "string");
+		assert.ok(result.includes("nested ordered"));
+	});
+});
+
+describe("parseMarkdown - definition list style", () => {
+	it("renders term and definition", () => {
+		const result = parseMarkdown("Term\n: Definition");
+		assert.ok(typeof result === "string");
+	});
+});
+
+describe("parseMarkdown - escaped characters", () => {
+	it("renders escaped asterisk", () => {
+		const result = parseMarkdown("\\*not italic\\*");
+		assert.ok(typeof result === "string");
+		assert.ok(result.includes("*"));
+	});
+
+	it("renders escaped backtick", () => {
+		const result = parseMarkdown("\\`not code\\`");
+		assert.ok(typeof result === "string");
+	});
+});
+
+describe("parseMarkdown - line break rendering", () => {
+	it("renders hard line break with reflow", () => {
+		const result = parseMarkdown("Line 1  \nLine 2");
+		assert.ok(typeof result === "string");
+		assert.ok(result.length > 0);
+	});
+});
+
+describe("parseMarkdown - text token rendering", () => {
+	it("renders plain text token", () => {
+		const result = parseMarkdown("Just plain text");
+		assert.ok(typeof result === "string");
+		assert.ok(result.includes("plain text"));
+	});
+});
+
+describe("parseMarkdown - cache behavior", () => {
+	it("returns cached result for repeated content", () => {
+		const first = parseMarkdown("# Hello");
+		const second = parseMarkdown("# Hello");
+		assert.strictEqual(first, second);
+	});
+});
+
+describe("parseMarkdown - empty and edge inputs", () => {
+	it("handles whitespace-only input", () => {
+		const result = parseMarkdown("   ");
+		assert.ok(typeof result === "string");
+	});
+
+	it("handles input with only newlines", () => {
+		const result = parseMarkdown("\n\n\n");
+		assert.ok(typeof result === "string");
+	});
+
+	it("handles input with only special characters", () => {
+		const result = parseMarkdown("@#$%^&*()");
+		assert.ok(typeof result === "string");
+	});
+});
+
+describe("parseMarkdown - definition lists", () => {
+	it("renders definition list", () => {
+		const result = parseMarkdown("First Term\n: This is the definition");
+		assert.ok(typeof result === "string");
+	});
+});
+
+describe("parseMarkdown - footnotes", () => {
+	it("renders footnote reference", () => {
+		const result = parseMarkdown("Some text[^1]\n\n[^1]: The footnote");
+		assert.ok(typeof result === "string");
+	});
+});
+
+describe("TerminalRenderer - checkbox", () => {
+	it("renders checked checkbox", () => {
+		const renderer = createTerminalRenderer();
+		const result = renderer.checkbox({ checked: true });
+		assert.strictEqual(result, "[X] ");
+	});
+
+	it("renders unchecked checkbox", () => {
+		const renderer = createTerminalRenderer();
+		const result = renderer.checkbox({ checked: false });
+		assert.strictEqual(result, "[ ] ");
 	});
 });

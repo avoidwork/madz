@@ -25,7 +25,7 @@ const DEFAULT_WATERMARK_ROTATION = -45;
  * @param {number} maxSizeBytes - Maximum allowed size in bytes
  * @returns {Promise<{ ok: boolean, error?: string }>}
  */
-async function checkFileSize(filePath, maxSizeBytes) {
+export async function checkFileSize(filePath, maxSizeBytes) {
 	try {
 		const stats = await stat(filePath);
 		if (stats.size > maxSizeBytes) {
@@ -47,7 +47,7 @@ async function checkFileSize(filePath, maxSizeBytes) {
  * @param {string} [input.base64] - Base64-encoded PDF content
  * @returns {Promise<{ ok: boolean, pdf?: PDFDocument, error?: string }>}
  */
-async function loadPdf(input) {
+export async function loadPdf(input) {
 	if (input.filePath) {
 		const sizeCheck = await checkFileSize(input.filePath, DEFAULT_MAX_FILE_SIZE);
 		if (!sizeCheck.ok) return { ok: false, error: sizeCheck.error };
@@ -85,7 +85,7 @@ async function loadPdf(input) {
  * @param {boolean} [output.base64] - Return as base64 instead of writing to file
  * @returns {Promise<{ ok: boolean, filePath?: string, base64?: string, error?: string }>}
  */
-async function savePdf(pdf, output) {
+export async function savePdf(pdf, output) {
 	const bytes = await pdf.save();
 	if (output.base64) {
 		return { ok: true, base64: Buffer.from(bytes).toString("base64") };
@@ -103,7 +103,7 @@ async function savePdf(pdf, output) {
  * @param {number} totalPages - Total number of pages in the source PDF
  * @returns {{ ok: boolean, pages?: number[], error?: string }}
  */
-function parsePageRange(rangeStr, totalPages) {
+export function parsePageRange(rangeStr, totalPages) {
 	const pages = new Set();
 	const parts = rangeStr.split(",").map((p) => p.trim());
 	for (const part of parts) {
@@ -136,7 +136,7 @@ function parsePageRange(rangeStr, totalPages) {
  * @param {string} [input.base64] - Base64-encoded image content
  * @returns {Promise<{ ok: boolean, image?: import("pdf-lib").PdfImage, error?: string }>}
  */
-async function loadImage(input) {
+export async function loadImage(input) {
 	if (input.filePath) {
 		try {
 			const buffer = await readFile(input.filePath);
@@ -176,7 +176,7 @@ async function loadImage(input) {
  * @param {string} hex - Hex color string (e.g., "#FF0000")
  * @returns {import("pdf-lib").RGB}
  */
-function hexToRgb(hex) {
+export function hexToRgb(hex) {
 	const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
 	return result
 		? rgb(
@@ -783,11 +783,6 @@ export async function pdfGenerate(input) {
 			return embedSignature(actionInput);
 		case "annotate":
 			return addAnnotations(actionInput);
-		default:
-			return JSON.stringify({
-				ok: false,
-				error: `Unknown action: ${action}`,
-			});
 	}
 }
 

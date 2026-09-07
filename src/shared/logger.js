@@ -4,9 +4,68 @@ import os from "node:os";
 import pino from "pino";
 
 // ---------------------------------------------------------------------------
+// Section 1: PII redaction patterns
+// ---------------------------------------------------------------------------
+
+/**
+ * Regex patterns for detecting and redacting personally identifiable information (PII).
+ * Each pattern has a corresponding replacement string.
+ */
+const PII_PATTERNS = [
+	// Email addresses
+	{ pattern: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, replacement: "[EMAIL REDACTED]" },
+	// Phone numbers (various formats)
+	{
+		pattern: /(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g,
+		replacement: "[PHONE REDACTED]",
+	},
+	// IP addresses (IPv4)
+	{ pattern: /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g, replacement: "[IP REDACTED]" },
+	// Social Security Numbers (SSN)
+	{ pattern: /\b\d{3}-\d{2}-\d{4}\b/g, replacement: "[SSN REDACTED]" },
+	// Credit card numbers (basic Luhn-checkable patterns)
+	{ pattern: /\b(?:\d{4}[-\s]?){3}\d{4}\b/g, replacement: "[CC REDACTED]" },
+];
+
+/**
+ * Redact PII from a log message string.
+ * @param {string} message - The log message to redact
+ * @returns {string} The redacted message
+ */
+export function redactPII(message) {
+	if (typeof message !== "string") return message;
+	let redacted = message;
+	for (const { pattern, replacement } of PII_PATTERNS) {
+		redacted = redacted.replace(pattern, replacement);
+	}
+	return redacted;
+}
+
+/**
+ * Redact PII from an object's string properties recursively.
+ * @param {object} obj - The object to redact
+ * @returns {object} A new object with redacted string values
+ */
+export function redactPIIFromObject(obj) {
+	if (typeof obj !== "object" || obj === null) return obj;
+	const redacted = Array.isArray(obj) ? [] : {};
+	for (const [key, value] of Object.entries(obj)) {
+		if (typeof value === "string") {
+			redacted[key] = redactPII(value);
+		} else if (typeof value === "object" && value !== null) {
+			redacted[key] = redactPIIFromObject(value);
+		} else {
+			redacted[key] = value;
+		}
+	}
+	return redacted;
+}
+
+// ---------------------------------------------------------------------------
 // Section 2.1: OS-aware log directory detection
 // ---------------------------------------------------------------------------
 
+/* node:coverage disable — platform-specific paths, requires OS mocking */
 /**
  * Get the OS-specific log directory for the madz application.
  * Alpine/Docker: ~/.cache/madz/logs/
@@ -45,6 +104,7 @@ export function getLogDirectory() {
 			return join(home, ".local", "share", "madz", "logs");
 	}
 }
+/* node:coverage enable */
 
 // ---------------------------------------------------------------------------
 // Section 2.2: Log directory auto-creation with graceful fallback (2.6)
@@ -56,6 +116,7 @@ export function getLogDirectory() {
  * @param {string} dir - Directory path to create
  * @returns {boolean} True if directory was created or already exists
  */
+/* node:coverage disable — requires unwritable filesystem */
 function tryCreateDirectory(dir) {
 	try {
 		mkdirSync(dir, { recursive: true });
@@ -64,17 +125,20 @@ function tryCreateDirectory(dir) {
 		return false;
 	}
 }
+/* node:coverage enable */
 
 const primaryDir = getLogDirectory();
 let logDir = primaryDir;
 
 // Attempt primary directory; fall back to tmpdir() if unwritable (2.6)
+/* node:coverage disable — fallback requires unwritable primary dir */
 if (!tryCreateDirectory(primaryDir)) {
 	const fallbackDir = join(os.tmpdir(), "madz", "logs");
 	if (tryCreateDirectory(fallbackDir)) {
 		logDir = fallbackDir;
 	}
 }
+/* node:coverage enable */
 
 // ---------------------------------------------------------------------------
 // Section 2.4: Silent mode for tests (2.4) + 2.3: Dual-file pino multistream
@@ -93,6 +157,7 @@ if (process.env.NODE_ENV === "test") {
 	let errorStream = null;
 	let devNull = null;
 
+	/* node:coverage disable — file stream fallbacks require unwritable filesystem */
 	// Attempt to open info file stream
 	try {
 		infoStream = createWriteStream(infoPath, { flags: "a" });
@@ -114,6 +179,7 @@ if (process.env.NODE_ENV === "test") {
 			errorStream = devNull;
 		}
 	}
+	/* node:coverage enable */
 
 	// Build multistream array for dual-file output
 	const streams = [];
@@ -127,6 +193,7 @@ if (process.env.NODE_ENV === "test") {
 	}
 
 	// If no streams at all (both dirs unwritable), use silent mode
+	/* node:coverage disable — requires both file streams to fail */
 	if (streams.length === 0) {
 		pinoLogger = pino({ level: "silent" });
 	} else {
@@ -139,6 +206,7 @@ if (process.env.NODE_ENV === "test") {
 			pino.multistream(streams),
 		);
 	}
+	/* node:coverage enable */
 }
 
 // ---------------------------------------------------------------------------
@@ -151,6 +219,7 @@ if (process.env.NODE_ENV === "test") {
  */
 export async function flush() {
 	return new Promise((resolve) => {
+		/* node:coverage disable — requires pinoLogger.flush to throw */
 		try {
 			if (typeof pinoLogger.flush === "function") {
 				pinoLogger.flush(() => {
@@ -165,6 +234,7 @@ export async function flush() {
 		} catch {
 			resolve();
 		}
+		/* node:coverage enable */
 	});
 }
 
@@ -179,40 +249,47 @@ export async function flush() {
 export const logger = {
 	info: (msg, ...args) => {
 		try {
-			pinoLogger.info(msg, ...args);
+			pinoLogger.info(redactPII(msg), ...args);
+			/* node:coverage disable — defensive, requires pino to throw */
 		} catch {
 			// Silently discard if logger is in silent/dev-null mode
 		}
+		/* node:coverage enable */
 	},
 	warn: (msg, ...args) => {
 		try {
-			pinoLogger.warn(msg, ...args);
+			pinoLogger.warn(redactPII(msg), ...args);
+			/* node:coverage disable — defensive, requires pino to throw */
 		} catch {
 			// Silently discard
 		}
+		/* node:coverage enable */
 	},
 	error: (msg, ...args) => {
 		try {
-			pinoLogger.error(msg, ...args);
+			pinoLogger.error(redactPII(msg), ...args);
+			/* node:coverage disable — defensive, requires pino to throw */
 		} catch {
 			// Silently discard
 		}
+		/* node:coverage enable */
 	},
 	debug: (msg, ...args) => {
 		try {
-			pinoLogger.debug(msg, ...args);
+			pinoLogger.debug(redactPII(msg), ...args);
+			/* node:coverage disable — defensive, requires pino to throw */
 		} catch {
 			// Silently discard
 		}
+		/* node:coverage enable */
 	},
 	fatal: (msg, ...args) => {
 		try {
-			pinoLogger.fatal(msg, ...args);
+			pinoLogger.fatal(redactPII(msg), ...args);
+			/* node:coverage disable — defensive, requires pino to throw */
 		} catch {
 			// Silently discard
 		}
-	},
-	silent: () => {
-		// No-op: used when caller conditionally doesn't want to log anything
+		/* node:coverage enable */
 	},
 };

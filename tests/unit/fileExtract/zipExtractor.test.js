@@ -35,9 +35,8 @@ describe("fileExtract/zipExtractor", () => {
 			assert.deepStrictEqual(result, []);
 		});
 
-		it("should return an empty array for non-ZIP files", async () => {
-			const result = await getZipFileNames("test.txt");
-			assert.deepStrictEqual(result, []);
+		it("should throw an error for non-ZIP files", async () => {
+			await assert.rejects(getZipFileNames("test.txt"), { name: "ZipExtractionError" });
 		});
 	});
 

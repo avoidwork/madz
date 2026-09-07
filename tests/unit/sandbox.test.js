@@ -7,7 +7,7 @@ import { resolvePath, assertPathAllowed } from "../../src/sandbox/pathResolver.j
 import { filterUrl, isSchemeAllowed } from "../../src/sandbox/urlFilter.js";
 import { injectEnv, filterEnv } from "../../src/sandbox/envInjector.js";
 import { enforceCapabilities } from "../../src/sandbox/capability.js";
-import { detectInterpreter, runSandbox } from "../../src/sandbox/runner.js";
+import { detectInterpreter, detectShebang, runSandbox } from "../../src/sandbox/runner.js";
 
 describe("sandbox - path resolution", () => {
 	describe("resolvePath", () => {
@@ -90,8 +90,6 @@ describe("sandbox - path resolution", () => {
 		});
 
 		it("handles negation with matching absolute paths", () => {
-			// Both the positive rule and negation resolve relative to CWD
-			// In practice, CWD is the project root, so both paths align
 			const cwd = process.cwd();
 			const result = resolvePath(join(cwd, "node_modules/x.js"), [
 				join(cwd, "/"),
@@ -201,7 +199,6 @@ describe("sandbox - env injector", () => {
 			assert.strictEqual(result.HOME, "/home/user");
 			assert.strictEqual(result.SECRET, undefined);
 
-			// Restore original env
 			if (origPath === undefined) delete process.env.PATH;
 			else process.env.PATH = origPath;
 			if (origHome === undefined) delete process.env.HOME;
@@ -289,7 +286,7 @@ describe("sandbox - capability enforcement", () => {
 	});
 });
 
-// --- Detect interpreter tests (in sandbox/runner.js too) ---
+// --- Detect interpreter tests ---
 
 describe("sandbox - detectInterpreter", () => {
 	it("detects python from .py extension", async () => {
@@ -317,9 +314,218 @@ describe("sandbox - detectInterpreter", () => {
 		assert.deepStrictEqual(result, { command: "node", args: ["--import", "tsx"] });
 	});
 
+	it("detects lua from .lua extension", async () => {
+		const result = await detectInterpreter("script.lua");
+		assert.deepStrictEqual(result, { command: "lua", args: [] });
+	});
+
 	it("returns null for unknown extension", async () => {
 		const result = await detectInterpreter("script.xyz");
 		assert.strictEqual(result, null);
+	});
+
+	it("returns null for null path", async () => {
+		const result = await detectInterpreter(null);
+		assert.strictEqual(result, null);
+	});
+
+	it("returns null for non-string path", async () => {
+		const result = await detectInterpreter(42);
+		assert.strictEqual(result, null);
+	});
+});
+
+// --- detectShebang tests ---
+
+describe("sandbox - detectShebang", () => {
+	it("returns null for null path", async () => {
+		const result = await detectShebang(null);
+		assert.strictEqual(result, null);
+	});
+
+	it("returns null for nonexistent file", async () => {
+		const result = await detectShebang("/nonexistent/shebang-script");
+		assert.strictEqual(result, null);
+	});
+
+	it("detects node from #!/usr/bin/env node shebang", async () => {
+		const testDir = join(tmpdir(), "madz-shebang-" + Date.now());
+		mkdirSync(testDir, { recursive: true });
+		const scriptPath = join(testDir, "script");
+		writeFileSync(scriptPath, "#!/usr/bin/env node\nconsole.log('hi');\n");
+		try {
+			const result = await detectShebang(scriptPath);
+			assert.deepStrictEqual(result, { command: "node", args: [] });
+		} finally {
+			rmSync(testDir, { recursive: true, force: true });
+		}
+	});
+
+	it("detects python from #!/usr/bin/env python3 shebang", async () => {
+		const testDir = join(tmpdir(), "madz-shebang-" + Date.now());
+		mkdirSync(testDir, { recursive: true });
+		const scriptPath = join(testDir, "script");
+		writeFileSync(scriptPath, "#!/usr/bin/env python3\nprint('hi');\n");
+		try {
+			const result = await detectShebang(scriptPath);
+			assert.deepStrictEqual(result, { command: "python3", args: [] });
+		} finally {
+			rmSync(testDir, { recursive: true, force: true });
+		}
+	});
+
+	it("detects bash from #!/usr/bin/env bash shebang", async () => {
+		const testDir = join(tmpdir(), "madz-shebang-" + Date.now());
+		mkdirSync(testDir, { recursive: true });
+		const scriptPath = join(testDir, "script");
+		writeFileSync(scriptPath, "#!/usr/bin/env bash\necho hi\n");
+		try {
+			const result = await detectShebang(scriptPath);
+			assert.deepStrictEqual(result, { command: "bash", args: [] });
+		} finally {
+			rmSync(testDir, { recursive: true, force: true });
+		}
+	});
+
+	it("detects ruby from #!/usr/bin/env ruby shebang", async () => {
+		const testDir = join(tmpdir(), "madz-shebang-" + Date.now());
+		mkdirSync(testDir, { recursive: true });
+		const scriptPath = join(testDir, "script");
+		writeFileSync(scriptPath, "#!/usr/bin/env ruby\nputs 'hi'\n");
+		try {
+			const result = await detectShebang(scriptPath);
+			assert.deepStrictEqual(result, { command: "ruby", args: [] });
+		} finally {
+			rmSync(testDir, { recursive: true, force: true });
+		}
+	});
+
+	it("detects python from #!/usr/bin/python3 shebang", async () => {
+		const testDir = join(tmpdir(), "madz-shebang-" + Date.now());
+		mkdirSync(testDir, { recursive: true });
+		const scriptPath = join(testDir, "script");
+		writeFileSync(scriptPath, "#!/usr/bin/python3\nprint('hi');\n");
+		try {
+			const result = await detectShebang(scriptPath);
+			assert.deepStrictEqual(result, { command: "python3", args: [] });
+		} finally {
+			rmSync(testDir, { recursive: true, force: true });
+		}
+	});
+
+	it("detects bash from #!/bin/bash shebang", async () => {
+		const testDir = join(tmpdir(), "madz-shebang-" + Date.now());
+		mkdirSync(testDir, { recursive: true });
+		const scriptPath = join(testDir, "script");
+		writeFileSync(scriptPath, "#!/bin/bash\necho hi\n");
+		try {
+			const result = await detectShebang(scriptPath);
+			assert.deepStrictEqual(result, { command: "bash", args: [] });
+		} finally {
+			rmSync(testDir, { recursive: true, force: true });
+		}
+	});
+
+	it("detects zsh from #!/bin/zsh shebang", async () => {
+		const testDir = join(tmpdir(), "madz-shebang-" + Date.now());
+		mkdirSync(testDir, { recursive: true });
+		const scriptPath = join(testDir, "script");
+		writeFileSync(scriptPath, "#!/bin/zsh\necho hi\n");
+		try {
+			const result = await detectShebang(scriptPath);
+			assert.deepStrictEqual(result, { command: "zsh", args: [] });
+		} finally {
+			rmSync(testDir, { recursive: true, force: true });
+		}
+	});
+
+	it("detects python2 from #!/usr/bin/python2 shebang", async () => {
+		const testDir = join(tmpdir(), "madz-shebang-" + Date.now());
+		mkdirSync(testDir, { recursive: true });
+		const scriptPath = join(testDir, "script");
+		writeFileSync(scriptPath, "#!/usr/bin/python2\nprint('hi');\n");
+		try {
+			const result = await detectShebang(scriptPath);
+			assert.deepStrictEqual(result, { command: "python2", args: [] });
+		} finally {
+			rmSync(testDir, { recursive: true, force: true });
+		}
+	});
+
+	it("detects unknown env target via default case", async () => {
+		const testDir = join(tmpdir(), "madz-shebang-" + Date.now());
+		mkdirSync(testDir, { recursive: true });
+		const scriptPath = join(testDir, "script");
+		writeFileSync(scriptPath, "#!/usr/bin/env perl\nprint 'hi';\n");
+		try {
+			const result = await detectShebang(scriptPath);
+			assert.deepStrictEqual(result, { command: "perl", args: [] });
+		} finally {
+			rmSync(testDir, { recursive: true, force: true });
+		}
+	});
+
+	it("detects node from #!/usr/bin/node shebang", async () => {
+		const testDir = join(tmpdir(), "madz-shebang-" + Date.now());
+		mkdirSync(testDir, { recursive: true });
+		const scriptPath = join(testDir, "script");
+		writeFileSync(scriptPath, "#!/usr/bin/node\nconsole.log('hi');\n");
+		try {
+			const result = await detectShebang(scriptPath);
+			assert.deepStrictEqual(result, { command: "node", args: [] });
+		} finally {
+			rmSync(testDir, { recursive: true, force: true });
+		}
+	});
+
+	it("detects ruby from #!/usr/bin/ruby shebang", async () => {
+		const testDir = join(tmpdir(), "madz-shebang-" + Date.now());
+		mkdirSync(testDir, { recursive: true });
+		const scriptPath = join(testDir, "script");
+		writeFileSync(scriptPath, "#!/usr/bin/ruby\nputs 'hi'\n");
+		try {
+			const result = await detectShebang(scriptPath);
+			assert.deepStrictEqual(result, { command: "ruby", args: [] });
+		} finally {
+			rmSync(testDir, { recursive: true, force: true });
+		}
+	});
+
+	it("detects unknown shebang via default case", async () => {
+		const testDir = join(tmpdir(), "madz-shebang-" + Date.now());
+		mkdirSync(testDir, { recursive: true });
+		const scriptPath = join(testDir, "script");
+		writeFileSync(scriptPath, '#!/usr/bin/awk -f\nBEGIN { print "hi" }\n');
+		try {
+			const result = await detectShebang(scriptPath);
+			assert.deepStrictEqual(result, { command: "/usr/bin/awk", args: ["-f"] });
+		} finally {
+			rmSync(testDir, { recursive: true, force: true });
+		}
+	});
+
+	it("returns null for file without shebang", async () => {
+		const testDir = join(tmpdir(), "madz-shebang-" + Date.now());
+		mkdirSync(testDir, { recursive: true });
+		const scriptPath = join(testDir, "script");
+		writeFileSync(scriptPath, "console.log('no shebang');\n");
+		try {
+			const result = await detectShebang(scriptPath);
+			assert.strictEqual(result, null);
+		} finally {
+			rmSync(testDir, { recursive: true, force: true });
+		}
+	});
+
+	it("handles read error gracefully", async () => {
+		const testDir = join(tmpdir(), "madz-shebang-dir-" + Date.now());
+		mkdirSync(testDir, { recursive: true });
+		try {
+			const result = await detectShebang(testDir);
+			assert.strictEqual(result, null);
+		} finally {
+			rmSync(testDir, { recursive: true, force: true });
+		}
 	});
 });
 
@@ -458,8 +664,24 @@ describe("sandbox - runner (spawn)", () => {
 			});
 			assert.ok(typeof result.exitCode === "number" || result.exitCode === null);
 		} catch (err) {
-			// spawn may reject with ENOENT for nonexistent script
 			assert.ok(err instanceof Error);
+		}
+	});
+
+	it("falls back to node when interpreter and shebang both unknown", async () => {
+		const testDir = join(tmpdir(), "madz-fallback-" + Date.now());
+		mkdirSync(testDir, { recursive: true });
+		const scriptPath = join(testDir, "script.unknown");
+		writeFileSync(scriptPath, "console.log('fallback');\n");
+		try {
+			const result = await runSandbox({
+				script: scriptPath,
+				skillName: "test",
+			});
+			assert.strictEqual(result.exitCode, 0);
+			assert.strictEqual(result.stdout.trim(), "fallback");
+		} finally {
+			rmSync(testDir, { recursive: true, force: true });
 		}
 	});
 });
@@ -488,9 +710,6 @@ describe("handleTimeout", () => {
 		if (process.arch === "arm64") {
 			return;
 		}
-		const { tmpdir } = await import("node:os");
-		const { join } = await import("node:path");
-		const { writeFileSync, mkdirSync, rmSync } = await import("node:fs");
 		const testDir = join(tmpdir(), "madz-sigterm-" + Date.now());
 		mkdirSync(testDir, { recursive: true });
 		const scriptPath = join(testDir, "sigterm-handler.js");
@@ -520,9 +739,6 @@ describe("handleTimeout", () => {
 	});
 
 	it("sends SIGKILL after grace period when child does not exit", async () => {
-		const { tmpdir } = await import("node:os");
-		const { join } = await import("node:path");
-		const { writeFileSync, mkdirSync, rmSync } = await import("node:fs");
 		const testDir = join(tmpdir(), "madz-sigkill-" + Date.now());
 		mkdirSync(testDir, { recursive: true });
 		const scriptPath = join(testDir, "forever.js");

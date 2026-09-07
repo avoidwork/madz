@@ -54,8 +54,8 @@ export async function docxExtract(input) {
 		return JSON.stringify({ ok: false, error: "No word/document.xml found in archive" });
 	}
 
-	const markdown = docxToMarkdown(documentXml);
-	const tables = extractDocxTables(documentXml);
+	const markdown = await docxToMarkdown(documentXml);
+	const tables = await extractDocxTables(documentXml);
 	const content = markdown + tables;
 
 	return JSON.stringify({

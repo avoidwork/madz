@@ -81,20 +81,12 @@ export async function imageGenerateImpl(input, options = {}) {
 		});
 	}
 
-	const timeouts = [timeout || DEFAULT_TIMEOUT];
-	for (const attempt of timeouts) {
-		const result = await generateWithFal(apiKey, prompt, attempt);
-		if (result.ok) {
-			return JSON.stringify({ ok: true, imageUrl: result.imageUrl });
-		}
-		// Retry on failure
-		if (attempt === timeouts[timeouts.length - 1]) {
-			return JSON.stringify({ ok: false, error: result.error });
-		}
+	const timeoutMs = timeout || DEFAULT_TIMEOUT;
+	const result = await generateWithFal(apiKey, prompt, timeoutMs);
+	if (result.ok) {
+		return JSON.stringify({ ok: true, imageUrl: result.imageUrl });
 	}
-
-	// node:coverage ignore next
-	return JSON.stringify({ ok: false, error: "Image generation failed after retries" });
+	return JSON.stringify({ ok: false, error: result.error });
 }
 
 /**

@@ -213,8 +213,6 @@ export async function webhookManagementImpl(input) {
 			}
 			return verifyWebhook(payload, signature, secret);
 		}
-		default:
-			return { ok: false, error: `Unknown action: ${action}` };
 	}
 }
 

@@ -8,7 +8,15 @@ import assert from "node:assert";
 import { readFile, writeFile, rm, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { PDFDocument, StandardFonts } from "pdf-lib";
-import { pdfGenerate } from "../../src/tools/pdfGenerate/index.js";
+import {
+	pdfGenerate,
+	checkFileSize,
+	loadPdf,
+	savePdf,
+	parsePageRange,
+	loadImage,
+	hexToRgb,
+} from "../../src/tools/pdfGenerate/index.js";
 
 const TEST_DIR = "memory/__test_pdf_generate__/";
 
@@ -871,6 +879,284 @@ describe("pdfGenerate", () => {
 
 			const outputPdf = await PDFDocument.load(Buffer.from(result.base64, "base64"));
 			assert.ok(outputPdf);
+		});
+	});
+
+	describe("watermark edge cases", () => {
+		it("adds watermark at top-left position", async () => {
+			const pdf = await createTestPdf();
+			await writeFile(join(TEST_DIR, "wm_tl_src.pdf"), pdf);
+			const outputPath = join(TEST_DIR, "wm_tl_out.pdf");
+			const result = JSON.parse(
+				await pdfGenerate({
+					action: "watermark",
+					filePath: join(TEST_DIR, "wm_tl_src.pdf"),
+					text: "TOP LEFT",
+					position: "top-left",
+					outputPath,
+				}),
+			);
+			assert.strictEqual(result.ok, true);
+		});
+
+		it("adds watermark at top-right position", async () => {
+			const pdf = await createTestPdf();
+			await writeFile(join(TEST_DIR, "wm_tr_src.pdf"), pdf);
+			const outputPath = join(TEST_DIR, "wm_tr_out.pdf");
+			const result = JSON.parse(
+				await pdfGenerate({
+					action: "watermark",
+					filePath: join(TEST_DIR, "wm_tr_src.pdf"),
+					text: "TOP RIGHT",
+					position: "top-right",
+					outputPath,
+				}),
+			);
+			assert.strictEqual(result.ok, true);
+		});
+
+		it("adds watermark at bottom-left position", async () => {
+			const pdf = await createTestPdf();
+			await writeFile(join(TEST_DIR, "wm_bl_src.pdf"), pdf);
+			const outputPath = join(TEST_DIR, "wm_bl_out.pdf");
+			const result = JSON.parse(
+				await pdfGenerate({
+					action: "watermark",
+					filePath: join(TEST_DIR, "wm_bl_src.pdf"),
+					text: "BOTTOM LEFT",
+					position: "bottom-left",
+					outputPath,
+				}),
+			);
+			assert.strictEqual(result.ok, true);
+		});
+
+		it("adds watermark at bottom-right position", async () => {
+			const pdf = await createTestPdf();
+			await writeFile(join(TEST_DIR, "wm_br_src.pdf"), pdf);
+			const outputPath = join(TEST_DIR, "wm_br_out.pdf");
+			const result = JSON.parse(
+				await pdfGenerate({
+					action: "watermark",
+					filePath: join(TEST_DIR, "wm_br_src.pdf"),
+					text: "BOTTOM RIGHT",
+					position: "bottom-right",
+					outputPath,
+				}),
+			);
+			assert.strictEqual(result.ok, true);
+		});
+
+		it("returns error when image watermark fails to load", async () => {
+			const pdf = await createTestPdf();
+			await writeFile(join(TEST_DIR, "wm_imgfail_src.pdf"), pdf);
+			const result = JSON.parse(
+				await pdfGenerate({
+					action: "watermark",
+					filePath: join(TEST_DIR, "wm_imgfail_src.pdf"),
+					imagePath: "/nonexistent/image.png",
+					outputPath: join(TEST_DIR, "wm_imgfail_out.pdf"),
+				}),
+			);
+			assert.strictEqual(result.ok, false);
+			assert.ok(result.error.includes("Failed to load image"));
+		});
+
+		it("returns error when loadPdf fails for watermark", async () => {
+			const result = JSON.parse(
+				await pdfGenerate({
+					action: "watermark",
+					filePath: "/nonexistent/file.pdf",
+					text: "WATERMARK",
+				}),
+			);
+			assert.strictEqual(result.ok, false);
+			assert.ok(result.error.includes("Failed to stat file"));
+		});
+	});
+
+	describe("signature edge cases", () => {
+		it("returns error when loadPdf fails", async () => {
+			const result = JSON.parse(
+				await pdfGenerate({
+					action: "signature",
+					filePath: "/nonexistent/file.pdf",
+					text: "Signed",
+					page: 1,
+					x: 50,
+					y: 50,
+				}),
+			);
+			assert.strictEqual(result.ok, false);
+			assert.ok(result.error.includes("Failed to stat file"));
+		});
+
+		it("returns error when image signature fails to load", async () => {
+			const pdf = await createTestPdf();
+			await writeFile(join(TEST_DIR, "sig_imgfail_src.pdf"), pdf);
+			const result = JSON.parse(
+				await pdfGenerate({
+					action: "signature",
+					filePath: join(TEST_DIR, "sig_imgfail_src.pdf"),
+					imagePath: "/nonexistent/sig.png",
+					page: 1,
+					x: 50,
+					y: 50,
+				}),
+			);
+			assert.strictEqual(result.ok, false);
+			assert.ok(result.error.includes("Failed to load image"));
+		});
+	});
+
+	describe("annotate edge cases", () => {
+		it("returns error when loadPdf fails", async () => {
+			const result = JSON.parse(
+				await pdfGenerate({
+					action: "annotate",
+					filePath: "/nonexistent/file.pdf",
+					annotations: [{ type: "note", page: 1, position: { x: 0, y: 0 } }],
+				}),
+			);
+			assert.strictEqual(result.ok, false);
+			assert.ok(result.error.includes("Failed to stat file"));
+		});
+	});
+
+	describe("merge edge cases", () => {
+		it("returns error when a file cannot be loaded", async () => {
+			const result = JSON.parse(
+				await pdfGenerate({
+					action: "merge",
+					filePaths: ["/nonexistent/file.pdf", "/nonexistent/file2.pdf"],
+					outputPath: join(TEST_DIR, "merge_fail.pdf"),
+				}),
+			);
+			assert.strictEqual(result.ok, false);
+			assert.ok(
+				result.error.includes("Failed to stat file") || result.error.includes("Failed to merge"),
+			);
+		});
+	});
+
+	describe("split edge cases", () => {
+		it("returns error when file exceeds max size", async () => {
+			const largeBuffer = Buffer.alloc(51 * 1024 * 1024, 0x00);
+			await writeFile(join(TEST_DIR, "split_large.pdf"), largeBuffer);
+			const result = JSON.parse(
+				await pdfGenerate({
+					action: "split",
+					filePath: join(TEST_DIR, "split_large.pdf"),
+					pageRange: "1",
+					outputPattern: join(TEST_DIR, "split_out_%d.pdf"),
+				}),
+			);
+			assert.strictEqual(result.ok, false);
+			assert.ok(result.error.includes("exceeds maximum"));
+		});
+	});
+
+	// ---------------------------------------------------------------------------
+	// Helper function tests
+	// ---------------------------------------------------------------------------
+
+	describe("checkFileSize", () => {
+		it("returns error for non-existent file", async () => {
+			const result = await checkFileSize("/nonexistent/file.pdf", 1024);
+			assert.strictEqual(result.ok, false);
+			assert.ok(result.error.includes("Failed to stat file"));
+		});
+	});
+
+	describe("loadPdf", () => {
+		it("returns error for invalid PDF file", async () => {
+			await writeFile(join(TEST_DIR, "invalid.pdf"), "not a pdf");
+			const result = await loadPdf({ filePath: join(TEST_DIR, "invalid.pdf") });
+			assert.strictEqual(result.ok, false);
+			assert.ok(result.error.includes("Failed to load PDF"));
+		});
+
+		it("returns error for invalid base64 PDF", async () => {
+			const result = await loadPdf({ base64: "not-valid-base64!!" });
+			assert.strictEqual(result.ok, false);
+			assert.ok(result.error.includes("Failed to decode base64 PDF"));
+		});
+
+		it("returns error when neither filePath nor base64 provided", async () => {
+			const result = await loadPdf({});
+			assert.strictEqual(result.ok, false);
+			assert.ok(result.error.includes("filePath or base64 must be provided"));
+		});
+	});
+
+	describe("savePdf", () => {
+		it("returns error when neither filePath nor base64 specified", async () => {
+			const pdf = await PDFDocument.create();
+			const result = await savePdf(pdf, {});
+			assert.strictEqual(result.ok, false);
+			assert.ok(result.error.includes("filePath or base64 output"));
+		});
+	});
+
+	describe("parsePageRange", () => {
+		it("returns error for invalid range format", () => {
+			const result = parsePageRange("abc-def", 10);
+			assert.strictEqual(result.ok, false);
+			assert.ok(result.error.includes("Invalid page range"));
+		});
+
+		it("returns error for out of range start", () => {
+			const result = parsePageRange("1-20", 10);
+			assert.strictEqual(result.ok, false);
+			assert.ok(result.error.includes("out of range"));
+		});
+
+		it("returns error for invalid single page number", () => {
+			const result = parsePageRange("abc", 10);
+			assert.strictEqual(result.ok, false);
+			assert.ok(result.error.includes("Invalid page number"));
+		});
+
+		it("returns error for out of range single page", () => {
+			const result = parsePageRange("15", 10);
+			assert.strictEqual(result.ok, false);
+			assert.ok(result.error.includes("Invalid page number"));
+		});
+	});
+
+	describe("loadImage", () => {
+		it("returns error for non-existent image file", async () => {
+			const result = await loadImage({ filePath: "/nonexistent/image.png" });
+			assert.strictEqual(result.ok, false);
+			assert.ok(result.error.includes("Failed to load image"));
+		});
+
+		it("returns error for invalid base64 image", async () => {
+			const result = await loadImage({ base64: "not-valid-base64!!" });
+			assert.strictEqual(result.ok, false);
+			assert.ok(result.error.includes("Failed to decode base64 image"));
+		});
+
+		it("returns error when neither filePath nor base64 provided", async () => {
+			const result = await loadImage({});
+			assert.strictEqual(result.ok, false);
+			assert.ok(result.error.includes("filePath or base64 must be provided for image"));
+		});
+	});
+
+	describe("hexToRgb", () => {
+		it("converts valid hex color to RGB", () => {
+			const result = hexToRgb("#FF0000");
+			assert.strictEqual(result.red, 1);
+			assert.strictEqual(result.green, 0);
+			assert.strictEqual(result.blue, 0);
+		});
+
+		it("returns black for invalid hex", () => {
+			const result = hexToRgb("invalid");
+			assert.strictEqual(result.red, 0);
+			assert.strictEqual(result.green, 0);
+			assert.strictEqual(result.blue, 0);
 		});
 	});
 });

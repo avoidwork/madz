@@ -223,14 +223,4 @@ export class ScheduleManager {
 		entry.lastRun = endTime;
 		return result;
 	}
-
-	/**
-	 * Test helper: set a schedule entry directly on the internal map.
-	 * @param {string} name
-	 * @param {Object} entry
-	 * @returns {void}
-	 */
-	_testSetEntry(name, entry) {
-		this.#scheduleEntry.set(name, entry);
-	}
 }

@@ -64,9 +64,6 @@ export async function createSkillImpl(input, options = {}) {
 	if (descResult.skip) {
 		return { success: false, name, paths: [], registered: false, errors: descResult.warnings };
 	}
-	if (!descResult.valid) {
-		return { success: false, name, paths: [], registered: false, errors: descResult.warnings };
-	}
 
 	// Validate permissions if provided
 	const warnings = [...nameResult.warnings, ...descResult.warnings];
@@ -116,19 +113,6 @@ export async function createSkillImpl(input, options = {}) {
 
 	if (permissions && permissions.length > 0) {
 		skillMetadata.permission = permissions;
-	}
-
-	// Run full spec validation before writing
-	const fullResult = validateSkillSchema(skillMetadata, name);
-	if (!fullResult.valid) {
-		return {
-			success: false,
-			name,
-			paths: [],
-			registered: false,
-			errors: fullResult.errors,
-			warnings: fullResult.warnings,
-		};
 	}
 
 	// Create the skill directory
@@ -267,29 +251,3 @@ export const createSkill = tool(createSkillImpl, {
 			.describe("Create a scripts/ directory with a README.md placeholder"),
 	}),
 });
-
-// --- Progressive disclosure: system prompt catalog ---
-
-/**
- * Format the skill catalog as a system prompt section.
- * Lists all discovered skills with name and description for model-driven relevance matching.
- * @param {Array<{ name: string, description: string, location: string }>} catalog - The skill catalog
- * @returns {string} Formatted prompt section
- */
-export function generateSkillCatalogPrompt(catalog) {
-	if (!catalog || catalog.length === 0) {
-		return "";
-	}
-
-	const lines = ["# Available Skills\n"];
-	for (const skill of catalog) {
-		lines.push(`## ${skill.name}`);
-		if (skill.description) {
-			lines.push(skill.description);
-		}
-		lines.push(`Location: ${skill.location}`);
-		lines.push("");
-	}
-
-	return lines.join("\n");
-}

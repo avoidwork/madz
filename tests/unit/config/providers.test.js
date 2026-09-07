@@ -60,35 +60,32 @@ describe("Email Provider Config Schemas", () => {
 		test("should validate a complete IMAP config", () => {
 			const result = ImapProviderSchema.safeParse({
 				type: "imap",
-				host: "imap.gmail.com",
-				port: 993,
-				secure: true,
-				user: "user@gmail.com",
-				password: "app-password",
+				imapHost: "imap.gmail.com",
+				imapPort: 993,
+				imapSecure: true,
 			});
 			assert.strictEqual(result.success, true);
 		});
 
 		test("should accept minimal IMAP config with defaults", () => {
-			const result = ImapProviderSchema.safeParse({
-				user: "user@gmail.com",
-				password: "app-password",
-			});
+			const result = ImapProviderSchema.safeParse({});
 			assert.strictEqual(result.success, true);
 			assert.strictEqual(result.data.type, "imap");
-			assert.strictEqual(result.data.host, "imap.gmail.com");
-			assert.strictEqual(result.data.port, 993);
-			assert.strictEqual(result.data.secure, true);
+			assert.strictEqual(result.data.imapHost, "imap.gmail.com");
+			assert.strictEqual(result.data.imapPort, 993);
+			assert.strictEqual(result.data.imapSecure, true);
 		});
 
-		test("should reject IMAP config without user", () => {
-			const result = ImapProviderSchema.safeParse({ password: "pass" });
-			assert.strictEqual(result.success, false);
-		});
-
-		test("should reject IMAP config without password", () => {
-			const result = ImapProviderSchema.safeParse({ user: "user" });
-			assert.strictEqual(result.success, false);
+		test("should accept IMAP config with custom values", () => {
+			const result = ImapProviderSchema.safeParse({
+				imapHost: "custom.imap.com",
+				imapPort: 143,
+				imapSecure: false,
+			});
+			assert.strictEqual(result.success, true);
+			assert.strictEqual(result.data.imapHost, "custom.imap.com");
+			assert.strictEqual(result.data.imapPort, 143);
+			assert.strictEqual(result.data.imapSecure, false);
 		});
 	});
 

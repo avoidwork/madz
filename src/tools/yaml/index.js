@@ -23,15 +23,8 @@ function parseYaml(input) {
  * @returns {{ ok: boolean, data?: string, error?: string }}
  */
 function serializeYaml(input, opts = {}) {
-	let obj;
-	try {
-		obj = typeof input === "string" ? JSON.parse(input) : input;
-	} catch (err) {
-		return { ok: false, error: `Invalid JSON input: ${err.message}` };
-	}
-
 	const indent = opts.indent || 2;
-	return { ok: true, data: dump(obj, { indent, lineWidth: opts.lineWidth || 80 }) };
+	return { ok: true, data: dump(input, { indent, lineWidth: opts.lineWidth || 80 }) };
 }
 
 /**
@@ -181,16 +174,6 @@ function filterYaml(input, path) {
 }
 
 /**
- * Access a value in YAML data using dot notation or array indices.
- * @param {string} input - YAML string input
- * @param {string} path - Dot-notation path
- * @returns {{ ok: boolean, data?: unknown, error?: string }}
- */
-function accessYamlPath(input, path) {
-	return filterYaml(input, path);
-}
-
-/**
  * YAML manipulation tool — parse, serialize, transform, filter, and access YAML data.
  * @param {string} input - JSON string with action, input, path, mapping
  * @returns {Promise<{ ok: boolean, data?: unknown, error?: string }>}
@@ -253,12 +236,9 @@ export async function yamlManipulationImpl(input) {
 			if (!path) {
 				return { ok: false, error: "Path is required for filter/access action" };
 			}
-			const result =
-				action === "filter" ? filterYaml(yamlInput, path) : accessYamlPath(yamlInput, path);
+			const result = filterYaml(yamlInput, path);
 			return result.ok ? { ok: true, data: result.data } : result;
 		}
-		default:
-			return { ok: false, error: `Unknown action: ${action}` };
 	}
 }
 
@@ -269,7 +249,7 @@ export async function yamlManipulationImpl(input) {
 export function createYamlTool() {
 	return tool(
 		async (input) => {
-			const result = await yamlManipulation(input);
+			const result = await yamlManipulationImpl(input);
 			return JSON.stringify(result, null, 2);
 		},
 		{

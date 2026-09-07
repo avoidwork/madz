@@ -9,14 +9,6 @@ import supportsHyperlinks from "supports-hyperlinks";
 import Table from "cli-table3";
 import { lru } from "tiny-lru";
 
-// --- Utility: ANSI-aware text length ---
-// node:coverage ignore next — ANSI escape matching for reflow
-const ESCAPE = "\u001b";
-const ANSI_REGEXP = new RegExp(ESCAPE + "\\[[\\d;]*m", "g");
-function textLength(str) {
-	return str.replace(ANSI_REGEXP, "").length;
-}
-
 // --- Utility: HTML entity unescaping ---
 function unescapeEntities(html) {
 	return html
@@ -34,87 +26,6 @@ function escapeColon(text) {
 }
 function undoColon(str) {
 	return str.split(COLON_REPLACER).join(":");
-}
-
-// --- Utility: Text reflow with ANSI awareness ---
-function reflowText(text, width, gfm) {
-	const HARD_RETURN = "\r";
-	const HARD_RETURN_RE = new RegExp(HARD_RETURN);
-	const HARD_RETURN_GFM_RE = new RegExp(HARD_RETURN + "|<br />");
-
-	const splitRe = gfm ? HARD_RETURN_GFM_RE : HARD_RETURN_RE;
-	const sections = text.split(splitRe);
-	const reflowed = [];
-
-	sections.forEach((section) => {
-		const fragments = section.split(new RegExp(ESCAPE + "\\[[\\d;]*m", "g"));
-		let column = 0;
-		let currentLine = "";
-		let lastWasEscapeChar = false;
-
-		while (fragments.length) {
-			const fragment = fragments[0];
-
-			if (fragment === "") {
-				fragments.splice(0, 1);
-				lastWasEscapeChar = false;
-				continue;
-			}
-
-			if (!textLength(fragment)) {
-				currentLine += fragment;
-				fragments.splice(0, 1);
-				lastWasEscapeChar = true;
-				continue;
-			}
-
-			const words = fragment.split(/[ \t\n]+/);
-
-			for (let i = 0; i < words.length; i++) {
-				let word = words[i];
-				let addSpace = column != 0;
-				if (lastWasEscapeChar) addSpace = false;
-
-				if (column + word.length + addSpace > width) {
-					if (word.length <= width) {
-						reflowed.push(currentLine);
-						currentLine = word;
-						column = word.length;
-					} else {
-						const w = word.substr(0, width - column - addSpace);
-						if (addSpace) currentLine += " ";
-						currentLine += w;
-						reflowed.push(currentLine);
-						currentLine = "";
-						column = 0;
-
-						word = word.substr(w.length);
-						while (word.length) {
-							const w = word.substr(0, width);
-							if (!w.length) break;
-							if (w.length < width) {
-								currentLine = w;
-								column = w.length;
-								break;
-							} else {
-								reflowed.push(w);
-								word = word.substr(width);
-							}
-						}
-					}
-				} else {
-					if (addSpace) currentLine += " ";
-					currentLine += word;
-					column += word.length;
-				}
-				lastWasEscapeChar = false;
-			}
-		}
-
-		if (textLength(currentLine)) reflowed.push(currentLine);
-	});
-
-	return reflowed.join("\n");
 }
 
 // --- Utility: Nested list handling ---
@@ -206,11 +117,6 @@ export function generateTableRow(text, escape) {
 	return data;
 }
 
-// --- Utility: Fix hard return ---
-function fixHardReturn(text, reflow) {
-	return reflow ? text.replace(/\r/g, "\n") : text;
-}
-
 // --- Default options matching marked-terminal's defaults ---
 const defaultOptions = {
 	code: chalk.yellow,
@@ -258,10 +164,6 @@ class TerminalRenderer extends Renderer {
 			: "";
 		processed = prefix + processed;
 
-		if (this.o.reflowText) {
-			processed = reflowText(processed, this.o.width, this.options?.gfm);
-		}
-
 		const style = depth === 1 ? this.o.firstHeading : this.o.heading;
 		return style(processed) + "\n\n";
 	}
@@ -269,10 +171,6 @@ class TerminalRenderer extends Renderer {
 	paragraph({ tokens }) {
 		let processed = this.parser.parseInline(tokens);
 		processed = this.transform(processed);
-
-		if (this.o.reflowText) {
-			processed = reflowText(processed, this.o.width, this.options?.gfm);
-		}
 
 		return this.o.paragraph(processed) + "\n\n";
 	}
@@ -284,19 +182,16 @@ class TerminalRenderer extends Renderer {
 
 	em({ tokens }) {
 		let processed = this.parser.parseInline(tokens);
-		processed = fixHardReturn(processed, this.o.reflowText);
 		return this.o.em(processed);
 	}
 
 	codespan({ text }) {
 		let processed = text;
-		processed = fixHardReturn(processed, this.o.reflowText);
 		return this.o.codespan(escapeColon(processed));
 	}
 
 	code({ text, lang, _escaped }) {
 		let code = text;
-		code = fixHardReturn(code, this.o.reflowText);
 
 		if (chalk.level === 0) {
 			return this.o.code(code) + "\n\n";

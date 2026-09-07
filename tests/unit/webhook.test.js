@@ -138,4 +138,198 @@ describe("webhook tool", () => {
 		assert.strictEqual(webhooks.length, 1);
 		assert.strictEqual(webhooks[0].url, "https://example.com/webhook");
 	});
+
+	it("lists webhooks with includeSecret=true", async () => {
+		await createWebhook("https://example.com/webhook", "my-secret", ["push"]);
+		const result = await listWebhooks(true);
+		assert.strictEqual(result.ok, true);
+		assert.ok(Array.isArray(result.data));
+		assert.ok(result.data[0].secret !== undefined);
+	});
+
+	it("rejects verify with missing payload", async () => {
+		const result = verifyWebhook(undefined, "sha256=abc", "my-secret");
+		assert.strictEqual(result.ok, false);
+	});
+
+	it("handles verify with length mismatch (constant-time comparison)", async () => {
+		const payload = JSON.stringify({ test: true });
+		// Use a signature with "sha256=" prefix removed — same length as expected
+		const hmac = createHmac("sha256", "my-secret");
+		hmac.update(payload);
+		const fullSignature = "sha256=" + hmac.digest("hex");
+		// Truncate to make length mismatch
+		const shortSignature = fullSignature.slice(0, 10);
+		const result = verifyWebhook(payload, shortSignature, "my-secret");
+		assert.strictEqual(result.ok, true);
+		assert.strictEqual(result.data, false);
+	});
+
+	it("creates webhook with default events when none provided", async () => {
+		const result = await createWebhook("https://example.com/webhook", "my-secret");
+		assert.strictEqual(result.ok, true);
+		assert.deepStrictEqual(result.data.events, ["*"]);
+	});
+});
+
+describe("webhookManagement (JSON string wrapper)", () => {
+	beforeEach(async () => {
+		const dir = join(__dirname, "../../memory/tools");
+		await mkdir(dir, { recursive: true });
+	});
+
+	it("parses valid JSON input and delegates to impl", async () => {
+		const { webhookManagement } = await import("../../src/tools/webhook/index.js");
+		const result = await webhookManagement(
+			JSON.stringify({
+				action: "list",
+			}),
+		);
+		assert.strictEqual(result.ok, true);
+		assert.ok(Array.isArray(result.data));
+	});
+
+	it("returns error for invalid JSON input", async () => {
+		const { webhookManagement } = await import("../../src/tools/webhook/index.js");
+		const result = await webhookManagement("not-json");
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("Invalid JSON"));
+	});
+});
+
+describe("webhookManagementImpl", () => {
+	beforeEach(async () => {
+		const dir = join(__dirname, "../../memory/tools");
+		await mkdir(dir, { recursive: true });
+	});
+
+	it("validates input schema and returns error for invalid input", async () => {
+		const { webhookManagementImpl } = await import("../../src/tools/webhook/index.js");
+		const result = await webhookManagementImpl({ action: "invalid" });
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("Invalid input"));
+	});
+
+	it("handles create action with missing URL", async () => {
+		const { webhookManagementImpl } = await import("../../src/tools/webhook/index.js");
+		const result = await webhookManagementImpl({ action: "create", secret: "s" });
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("URL"));
+	});
+
+	it("handles create action with missing secret", async () => {
+		const { webhookManagementImpl } = await import("../../src/tools/webhook/index.js");
+		const result = await webhookManagementImpl({ action: "create", url: "https://example.com/w" });
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("Secret"));
+	});
+
+	it("handles create action successfully", async () => {
+		const { webhookManagementImpl } = await import("../../src/tools/webhook/index.js");
+		const result = await webhookManagementImpl({
+			action: "create",
+			url: "https://example.com/webhook",
+			secret: "my-secret",
+			events: ["push"],
+		});
+		assert.strictEqual(result.ok, true);
+	});
+
+	it("handles list action", async () => {
+		const { webhookManagementImpl } = await import("../../src/tools/webhook/index.js");
+		const result = await webhookManagementImpl({ action: "list" });
+		assert.strictEqual(result.ok, true);
+		assert.ok(Array.isArray(result.data));
+	});
+
+	it("handles delete action with missing ID", async () => {
+		const { webhookManagementImpl } = await import("../../src/tools/webhook/index.js");
+		const result = await webhookManagementImpl({ action: "delete" });
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("ID"));
+	});
+
+	it("handles delete action successfully", async () => {
+		const { webhookManagementImpl } = await import("../../src/tools/webhook/index.js");
+		const createResult = await webhookManagementImpl({
+			action: "create",
+			url: "https://example.com/webhook",
+			secret: "my-secret",
+		});
+		const id = createResult.data.id;
+		const result = await webhookManagementImpl({ action: "delete", id });
+		assert.strictEqual(result.ok, true);
+	});
+
+	it("handles verify action with missing payload", async () => {
+		const { webhookManagementImpl } = await import("../../src/tools/webhook/index.js");
+		const result = await webhookManagementImpl({
+			action: "verify",
+			signature: "sha256=abc",
+			secret: "my-secret",
+		});
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("Payload"));
+	});
+
+	it("handles verify action with missing signature", async () => {
+		const { webhookManagementImpl } = await import("../../src/tools/webhook/index.js");
+		const result = await webhookManagementImpl({
+			action: "verify",
+			payload: "test",
+			secret: "my-secret",
+		});
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("Signature"));
+	});
+
+	it("handles verify action with missing secret", async () => {
+		const { webhookManagementImpl } = await import("../../src/tools/webhook/index.js");
+		const result = await webhookManagementImpl({
+			action: "verify",
+			payload: "test",
+			signature: "sha256=abc",
+		});
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("Secret"));
+	});
+
+	it("handles verify action successfully", async () => {
+		const { webhookManagementImpl } = await import("../../src/tools/webhook/index.js");
+		const payload = JSON.stringify({ test: true });
+		const hmac = createHmac("sha256", "my-secret");
+		hmac.update(payload);
+		const signature = "sha256=" + hmac.digest("hex");
+		const result = await webhookManagementImpl({
+			action: "verify",
+			payload,
+			signature,
+			secret: "my-secret",
+		});
+		assert.strictEqual(result.ok, true);
+		assert.strictEqual(result.data, true);
+	});
+});
+
+describe("createWebhookTool", () => {
+	beforeEach(async () => {
+		const dir = join(__dirname, "../../memory/tools");
+		await mkdir(dir, { recursive: true });
+	});
+
+	it("creates a LangChain tool with correct name and schema", async () => {
+		const { createWebhookTool } = await import("../../src/tools/webhook/index.js");
+		const tool = createWebhookTool();
+		assert.strictEqual(tool.name, "webhook");
+		assert.ok(tool.description);
+		assert.ok(tool.schema);
+	});
+
+	it("invokes the tool and returns JSON result", async () => {
+		const { createWebhookTool } = await import("../../src/tools/webhook/index.js");
+		const tool = createWebhookTool();
+		const result = await tool.invoke({ action: "list" });
+		const parsed = JSON.parse(result);
+		assert.strictEqual(parsed.ok, true);
+	});
 });

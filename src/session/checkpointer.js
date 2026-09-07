@@ -39,7 +39,6 @@ export function createCheckpointer(fullConfig) {
 			return new MemorySaver();
 		}
 		case "sqlite": {
-			/* node:coverage ignore next */
 			return createSqliteCheckpointer(fullConfig);
 		}
 		default: {
@@ -57,20 +56,15 @@ export function createCheckpointer(fullConfig) {
  * @param {string} fullConfig.memory.checkpointsDir - Directory for checkpoint files
  * @returns {import("@langchain/langgraph-checkpoint-sqlite").SqliteSaver}
  */
-/* node:coverage ignore next */
 function createSqliteCheckpointer(fullConfig) {
 	const checkpointsDir = fullConfig.memory?.checkpointsDir || "memory/checkpoints/";
 	const sqlitePath = resolve(checkpointsDir, "checkpoints.db");
 
-	/* node:coverage ignore next */
 	const saver = SqliteSaver.fromConnString(sqlitePath);
 
-	/* node:coverage ignore next */
 	saver.setup();
 
-	/* node:coverage ignore next */
 	saver.db.pragma("synchronous = NORMAL");
 
-	/* node:coverage ignore next */
 	return saver;
 }

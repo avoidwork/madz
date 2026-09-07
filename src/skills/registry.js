@@ -40,18 +40,7 @@ export class SkillRegistry {
 
 		for (const skill of discovered) {
 			const dirName = skill.name;
-			const { valid, skip, errors, warnings } = validateSkillSchema(skill.metadata, dirName);
-
-			if (skip) {
-				this.#errors.push({ name: skill.metadata.name || "unknown", errors });
-				results.push({ name: skill.metadata.name || "unknown", errors, warnings });
-				continue;
-			}
-
-			if (!valid) {
-				errors.push(`Skill "${skill.metadata.name}" rejected: ${warnings.join("; ")}`);
-				continue;
-			}
+			const { warnings } = validateSkillSchema(skill.metadata, dirName);
 
 			const entry = {
 				path: skill.path,
@@ -170,13 +159,8 @@ export class SkillRegistry {
 	 * @returns {{ valid: boolean, errors: string[], warnings: string[] }}
 	 */
 	register(name, metadata) {
-		const { valid, skip, errors, warnings } = validateSkillSchema({ name, ...metadata });
+		const { skip, errors, warnings } = validateSkillSchema({ name, ...metadata });
 		if (skip) {
-			this.#errors.push({ name, errors });
-			return { valid: false, errors, warnings };
-		}
-
-		if (!valid) {
 			this.#errors.push({ name, errors });
 			return { valid: false, errors, warnings };
 		}
@@ -235,14 +219,6 @@ export class SkillRegistry {
 		if (!skill) return false;
 		skill.disabled = false;
 		return true;
-	}
-
-	/**
-	 * Get registration errors from the last discover run.
-	 * @returns {Array<{ name: string, errors: string[] }>}
-	 */
-	getErrors() {
-		return this.#errors;
 	}
 
 	/**

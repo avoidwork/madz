@@ -36,12 +36,26 @@ export {
 
 export const ConfigSchema = z.object({
 	providers: ProvidersSchema.default({}),
-	email: EmailConfigSchema.default({}),
+	email: EmailConfigSchema.default({
+		provider: { type: "gmail" },
+		defaultFolder: "INBOX",
+		maxAttachments: 10,
+		maxAttachmentSize: "25mb",
+	}),
 	calendar: CalendarConfigSchema.default({}),
 	sandbox: SandboxScopeSchema.default({}),
 	search: SearchConfigSchema.default({}),
 	memory: MemorySchema.default({}),
-	telemetry: TelemetrySchema.default({}),
+	telemetry: TelemetrySchema.default({
+		enabled: false,
+		exporter: {
+			protocol: "console",
+			endpoint: "http://localhost:4318",
+			batch: { maxSize: 512, scheduledDelay: 5000 },
+		},
+		sampling: { ratio: 0.1 },
+		redact: { paths: ["credentials.apiKey"] },
+	}),
 	schedules: SchedulesSchema.default({}),
 	tui: TuiSchema.default({}),
 	agent: AgentSchema.default({}),

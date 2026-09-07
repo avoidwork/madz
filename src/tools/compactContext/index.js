@@ -122,15 +122,6 @@ export function compactConversation({
 		}
 	}
 
-	if (exchanges.length === 0) {
-		return {
-			...result,
-			ok: true,
-			compactedMessages: [],
-			compactedTokenCount: 0,
-		};
-	}
-
 	// Build compacted messages using tiered retention
 	const compacted = [];
 	let currentTokenCount = estimateTokens(systemPrompt || "");
@@ -270,20 +261,13 @@ export function compactConversation({
 
 	// Last resort: return last user message only
 	const lastUserMsg = exchanges[exchanges.length - 1]?.user;
-	if (lastUserMsg) {
-		return {
-			...result,
-			ok: true,
-			compactedMessages: [lastUserMsg],
-			compactedTokenCount: estimateTokens(lastUserMsg.content),
-			strategy: "last-message-only",
-			warning: "Only last user message could be retained",
-		};
-	}
-
 	return {
 		...result,
-		warning: "Could not produce any compacted messages",
+		ok: true,
+		compactedMessages: [lastUserMsg],
+		compactedTokenCount: estimateTokens(lastUserMsg.content),
+		strategy: "last-message-only",
+		warning: "Only last user message could be retained",
 	};
 }
 
