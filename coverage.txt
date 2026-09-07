@@ -101,7 +101,7 @@
 ℹ     imap.js                    |  87.78 |    82.35 |   88.89 | 71-73 99-112 119-153 337-338
 ℹ    tools.js                    | 100.00 |    94.55 |   50.00 | 
 ℹ   fileCreate                   |        |          |         | 
-ℹ    index.js                    |  98.62 |    90.36 |   92.31 | 474-477 528-529 549-550
+ℹ    index.js                    |  98.62 |    95.18 |   92.31 | 474-477 528-529 549-550
 ℹ   fileExtract                  |        |          |         | 
 ℹ    docx.js                     | 100.00 |    91.67 |  100.00 | 
 ℹ    docxParser.js               |  99.08 |    87.50 |  100.00 | 214-215
@@ -110,7 +110,7 @@
 ℹ    pdf.js                      |  85.00 |    66.67 |  100.00 | 50-55 62-67
 ℹ    pdfParser.js                |  75.86 |    66.67 |   50.00 | 35 37-47 53-54
 ℹ    pptx.js                     | 100.00 |   100.00 |  100.00 | 
-ℹ    pptxParser.js               |  98.48 |    73.81 |  100.00 | 91-92
+ℹ    pptxParser.js               |  98.47 |    73.81 |  100.00 | 90-91
 ℹ    xlsx.js                     | 100.00 |    91.67 |  100.00 | 
 ℹ    xlsxJson.js                 |  98.43 |    89.13 |  100.00 | 101-102
 ℹ    xlsxParser.js               |  82.21 |    83.33 |   88.89 | 47-48 93-112 130-137 150-156
@@ -176,24 +176,6 @@
 ℹ  workspace                     |        |          |         | 
 ℹ   loadAgents.js                | 100.00 |    87.50 |  100.00 | 
 ℹ ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-ℹ all files                      |  96.02 |    90.48 |   91.76 | 
+ℹ all files                      |  96.02 |    90.57 |   91.76 | 
 ℹ ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ℹ end of coverage report
-
-✖ failing tests:
-
-test at tests/unit/skills/registry.test.js:308:2
-✖ should handle register with skip=true (invalid metadata) (0.235061ms)
-  ReferenceError: errors is not defined
-      at SkillRegistry.register (file:///home/jason/Projects/madz/src/skills/registry.js:164:30)
-      at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/skills/registry.test.js:310:27)
-      at Test.runInAsyncScope (node:async_hooks:226:14)
-      at Test.run (node:internal/test_runner/test:1201:25)
-      at Suite.processPendingSubtests (node:internal/test_runner/test:831:18)
-      at Test.postRun (node:internal/test_runner/test:1330:19)
-      at Test.run (node:internal/test_runner/test:1258:12)
-      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7)
-
-test at tests/unit/tools/pptx.test.js:1:1
-✖ tests/unit/tools/pptx.test.js (37.064229ms)
-  'test failed'
