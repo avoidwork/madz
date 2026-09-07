@@ -1,4 +1,5 @@
 import { ChatOpenAI } from "@langchain/openai";
+import { AIMessageChunk } from "@langchain/core/messages";
 
 /**
  * Configuration for creating an OpenAI-compatible chat model.
@@ -48,6 +49,19 @@ export function createChatModel(config) {
 	}
 
 	const model = new ChatOpenAI(opts);
+
+	// Monkey-patch AIMessageChunk to expose a .reasoning getter that reads
+	// from additional_kwargs.reasoning_content. LangChain stores reasoning
+	// content there, but the streaming handler checks chunk.reasoning.
+	if (AIMessageChunk.prototype && !("reasoning" in AIMessageChunk.prototype)) {
+		Object.defineProperty(AIMessageChunk.prototype, "reasoning", {
+			get() {
+				return this.additional_kwargs?.reasoning_content;
+			},
+			enumerable: true,
+			configurable: true,
+		});
+	}
 
 	// Normalize vLLM's 'reasoning' field to OpenAI's 'reasoning_content'
 	// LangChain's converter only reads 'reasoning_content', so vLLM's
