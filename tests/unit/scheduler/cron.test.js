@@ -1,4 +1,4 @@
-import { describe, it, beforeEach, afterEach, mock } from "node:test";
+import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert";
 import {
 	Cron,
@@ -42,7 +42,18 @@ function mockExecBuilder() {
 		return Promise.reject(new Error(`Unexpected command: ${command}`));
 	}
 
-	return { mockExec, getCrontab: () => crontabContent, setCrontab: (c) => { crontabContent = c; }, getCalls: () => calls, reset: () => { crontabContent = ""; calls.length = 0; } };
+	return {
+		mockExec,
+		getCrontab: () => crontabContent,
+		setCrontab: (c) => {
+			crontabContent = c;
+		},
+		getCalls: () => calls,
+		reset: () => {
+			crontabContent = "";
+			calls.length = 0;
+		},
+	};
 }
 
 // ---------------------------------------------------------------------------
@@ -162,7 +173,11 @@ describe("writeEnvCron", () => {
 	afterEach(() => {
 		delete process.env.__TEST_CRON_A;
 		delete process.env.__TEST_CRON_B;
-		try { rmSync(envPath(), { force: true }); } catch { /* ignore */ }
+		try {
+			rmSync(envPath(), { force: true });
+		} catch {
+			/* ignore */
+		}
 	});
 
 	it("writes .env.cron with all env variables", async () => {
@@ -386,7 +401,8 @@ describe("Cron._splitBlock", () => {
 	});
 
 	it("extracts block lines when block markers are present", () => {
-		const input = "outside1\n# --- BEGIN madz-schedules ---\nblock1\nblock2\n# --- END madz-schedules ---\noutside2";
+		const input =
+			"outside1\n# --- BEGIN madz-schedules ---\nblock1\nblock2\n# --- END madz-schedules ---\noutside2";
 		const result = Cron._splitBlock(input);
 		assert.deepStrictEqual(result, {
 			outsideLines: ["outside1", "outside2"],
@@ -839,14 +855,13 @@ describe("Cron.uninstall", () => {
 		};
 		setExecOverride(failingWriteExec);
 		// uninstall does not catch write errors — it will throw
-		await assert.rejects(
-			() => Cron.uninstall(),
-			/write failed/,
-		);
+		await assert.rejects(() => Cron.uninstall(), /write failed/);
 	});
 
 	it("preserves outside lines when uninstalling", async () => {
-		helper.setCrontab("SHELL=/bin/bash\n# --- BEGIN madz-schedules ---\n* * * * *  echo job  # madz-schedule: job\n# --- END madz-schedules ---\n");
+		helper.setCrontab(
+			"SHELL=/bin/bash\n# --- BEGIN madz-schedules ---\n* * * * *  echo job  # madz-schedule: job\n# --- END madz-schedules ---\n",
+		);
 		await Cron.uninstall();
 		const crontab = helper.getCrontab();
 		assert.ok(crontab.includes("SHELL=/bin/bash"));
@@ -927,11 +942,19 @@ describe("Cron._ensureReflectionJob", () => {
 	const testDir = join(process.cwd(), "memory/__test_ensure_reflection__");
 
 	beforeEach(() => {
-		try { rmSync(testDir, { recursive: true, force: true }); } catch { /* ignore */ }
+		try {
+			rmSync(testDir, { recursive: true, force: true });
+		} catch {
+			/* ignore */
+		}
 	});
 
 	afterEach(() => {
-		try { rmSync(testDir, { recursive: true, force: true }); } catch { /* ignore */ }
+		try {
+			rmSync(testDir, { recursive: true, force: true });
+		} catch {
+			/* ignore */
+		}
 	});
 
 	it("creates the directory and reflection-daily.json when neither exists", async () => {
@@ -946,7 +969,15 @@ describe("Cron._ensureReflectionJob", () => {
 
 	it("does nothing when reflection-daily.json already exists", async () => {
 		mkdirSync(testDir, { recursive: true });
-		writeFileSync(join(testDir, "reflection-daily.json"), JSON.stringify({ name: "reflection-daily", cron: "0 3 * * *", command: "echo custom", enabled: false }));
+		writeFileSync(
+			join(testDir, "reflection-daily.json"),
+			JSON.stringify({
+				name: "reflection-daily",
+				cron: "0 3 * * *",
+				command: "echo custom",
+				enabled: false,
+			}),
+		);
 		await Cron._ensureReflectionJob(testDir);
 		const content = JSON.parse(readFileSync(join(testDir, "reflection-daily.json"), "utf-8"));
 		// Should NOT have overwritten
@@ -988,12 +1019,20 @@ describe("Cron._readJobsFromDisk", () => {
 	const testDir = join(process.cwd(), "memory/__test_read_jobs__");
 
 	beforeEach(() => {
-		try { rmSync(testDir, { recursive: true, force: true }); } catch { /* ignore */ }
+		try {
+			rmSync(testDir, { recursive: true, force: true });
+		} catch {
+			/* ignore */
+		}
 		mkdirSync(testDir, { recursive: true });
 	});
 
 	afterEach(() => {
-		try { rmSync(testDir, { recursive: true, force: true }); } catch { /* ignore */ }
+		try {
+			rmSync(testDir, { recursive: true, force: true });
+		} catch {
+			/* ignore */
+		}
 	});
 
 	it("reads valid job files from directory", async () => {
@@ -1033,9 +1072,15 @@ describe("Cron._readJobsFromDisk", () => {
 	});
 
 	it("skips JSON files missing required fields (name, cron, command)", async () => {
-		writeFileSync(join(testDir, "no-name.json"), JSON.stringify({ cron: "* * * * *", command: "echo" }));
+		writeFileSync(
+			join(testDir, "no-name.json"),
+			JSON.stringify({ cron: "* * * * *", command: "echo" }),
+		);
 		writeFileSync(join(testDir, "no-cron.json"), JSON.stringify({ name: "x", command: "echo" }));
-		writeFileSync(join(testDir, "no-command.json"), JSON.stringify({ name: "x", cron: "* * * * *" }));
+		writeFileSync(
+			join(testDir, "no-command.json"),
+			JSON.stringify({ name: "x", cron: "* * * * *" }),
+		);
 		writeFileSync(
 			join(testDir, "valid.json"),
 			JSON.stringify({ name: "valid", cron: "* * * * *", command: "echo valid", enabled: true }),
@@ -1089,13 +1134,21 @@ describe("Cron.sync", () => {
 		helper = mockExecBuilder();
 		helper.reset();
 		setExecOverride(helper.mockExec);
-		try { rmSync(testDir, { recursive: true, force: true }); } catch { /* ignore */ }
+		try {
+			rmSync(testDir, { recursive: true, force: true });
+		} catch {
+			/* ignore */
+		}
 		mkdirSync(testDir, { recursive: true });
 	});
 
 	afterEach(() => {
 		setExecOverride(undefined);
-		try { rmSync(testDir, { recursive: true, force: true }); } catch { /* ignore */ }
+		try {
+			rmSync(testDir, { recursive: true, force: true });
+		} catch {
+			/* ignore */
+		}
 	});
 
 	it("adds new jobs from disk to crontab", async () => {
@@ -1135,7 +1188,12 @@ describe("Cron.sync", () => {
 		// Create job file with same name but different command
 		writeFileSync(
 			join(testDir, "existing-job.json"),
-			JSON.stringify({ name: "existing-job", cron: "0 * * * *", command: "echo new", enabled: true }),
+			JSON.stringify({
+				name: "existing-job",
+				cron: "0 * * * *",
+				command: "echo new",
+				enabled: true,
+			}),
 		);
 		const result = await Cron.sync(testDir);
 		// reflection-daily added, existing-job updated
@@ -1155,7 +1213,12 @@ describe("Cron.sync", () => {
 		// Create job file with identical content
 		writeFileSync(
 			join(testDir, "stable-job.json"),
-			JSON.stringify({ name: "stable-job", cron: "* * * * *", command: "echo same", enabled: true }),
+			JSON.stringify({
+				name: "stable-job",
+				cron: "* * * * *",
+				command: "echo same",
+				enabled: true,
+			}),
 		);
 		const result = await Cron.sync(testDir);
 		// reflection-daily added, stable-job skipped
@@ -1168,7 +1231,12 @@ describe("Cron.sync", () => {
 	it("excludes disabled jobs from crontab", async () => {
 		writeFileSync(
 			join(testDir, "disabled-job.json"),
-			JSON.stringify({ name: "disabled-job", cron: "* * * * *", command: "echo disabled", enabled: false }),
+			JSON.stringify({
+				name: "disabled-job",
+				cron: "* * * * *",
+				command: "echo disabled",
+				enabled: false,
+			}),
 		);
 		const result = await Cron.sync(testDir);
 		// Only reflection-daily added
@@ -1185,7 +1253,12 @@ describe("Cron.sync", () => {
 		// Create job file with enabled: false
 		writeFileSync(
 			join(testDir, "now-disabled.json"),
-			JSON.stringify({ name: "now-disabled", cron: "* * * * *", command: "echo now-disabled", enabled: false }),
+			JSON.stringify({
+				name: "now-disabled",
+				cron: "* * * * *",
+				command: "echo now-disabled",
+				enabled: false,
+			}),
 		);
 		const result = await Cron.sync(testDir);
 		// reflection-daily added, now-disabled removed

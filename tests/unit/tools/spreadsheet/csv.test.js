@@ -222,7 +222,6 @@ describe("csv", () => {
 			assert.ok(result.includes("2024-01-15"));
 		});
 
-
 		it("should handle object values in export", () => {
 			const data = [{ name: "Alice", meta: { role: "admin" } }];
 			const result = csv.csvExport(data);
