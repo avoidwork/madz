@@ -23,14 +23,14 @@ export async function xlsxToMarkdown(zipContent) {
 			explicitArray: false,
 		});
 
-		const sheets = parsed?.workbook?.[0]?.sheets?.sheet;
+		const sheets = parsed?.workbook?.sheets?.sheet;
 		if (!sheets) return "";
 
 		const sheetArray = Array.isArray(sheets) ? sheets : [sheets];
 
 		for (const sheetDef of sheetArray) {
-			const sheetName = sheetDef?.$?.name || "Sheet";
-			const sheetId = sheetDef?.$?.sheetId || "1";
+			const sheetName = sheetDef?.name || "Sheet";
+			const sheetId = sheetDef?.sheetId || "1";
 
 			// Find the corresponding sheet XML file
 			const sheetXml = findSheetXml(zipContent, sheetId);
@@ -66,13 +66,6 @@ function findSheetXml(zipContent, sheetId) {
 		}
 	}
 
-	// Fallback: scan all sheet files
-	for (const path of zipContent.keys()) {
-		if (/^xl\/worksheets\/sheet\d+\.xml$/.test(path)) {
-			return zipContent.get(path);
-		}
-	}
-
 	return null;
 }
 
@@ -88,18 +81,18 @@ async function parseSheetContent(sheetXml) {
 			explicitArray: false,
 		});
 
-		const sheetData = parsed?.sheet?.[0]?.sheetData?.row;
+		const sheetData = parsed?.worksheet?.sheetData?.row;
 		if (!sheetData) return null;
 
 		const rowArray = Array.isArray(sheetData) ? sheetData : [sheetData];
 
 		// First pass: collect merged cell ranges
-		const mergedCells = parsed?.sheet?.[0]?.mergeCells?.mergeCell;
+		const mergedCells = parsed?.worksheet?.mergeCells?.mergeCell;
 		const mergedMap = new Map();
 		if (mergedCells) {
 			const mergedArray = Array.isArray(mergedCells) ? mergedCells : [mergedCells];
 			for (const mc of mergedArray) {
-				const ref = mc?.$?.ref || mc?.ref;
+				const ref = mc?.ref;
 				if (!ref) continue;
 				const match = ref.match(/^([A-Z]+)(\d+):([A-Z]+)(\d+)$/);
 				if (!match) continue;
@@ -174,7 +167,7 @@ function getCellValue(cell) {
 	}
 
 	// Check for t="inlineStr"
-	const t = cell?.$?.t || cell?.t;
+	const t = cell?.t;
 	if (t === "inlineStr") {
 		const is = cell?.is;
 		if (is) {

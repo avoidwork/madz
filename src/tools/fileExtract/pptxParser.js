@@ -22,14 +22,17 @@ export async function pptxToMarkdown(zipContent) {
 			slideFiles.push(path);
 		}
 	}
-	slideFiles.sort();
+	slideFiles.sort((a, b) => {
+		const numA = parseInt(a.match(/slide(\d+)/)?.[1] || "0", 10);
+		const numB = parseInt(b.match(/slide(\d+)/)?.[1] || "0", 10);
+		return numA - numB;
+	});
 
 	for (const slidePath of slideFiles) {
 		const slideXml = zipContent.get(slidePath);
 		if (!slideXml) continue;
 
 		slideIndex++;
-		markdown += `---\n\n`;
 
 		try {
 			const parsed = await parseStringPromise(slideXml, {
@@ -37,8 +40,10 @@ export async function pptxToMarkdown(zipContent) {
 				explicitArray: false,
 			});
 
-			const spTree = parsed?.p?.slide?.[0]?.["p:spTree"] || parsed?.p?.slide?.["p:spTree"];
+			const spTree = parsed?.["p:slide"]?.["p:spTree"];
 			if (!spTree) continue;
+
+			markdown += `---\n\n`;
 
 			const shapes = spTree["p:sp"] || [];
 			const shapeArray = Array.isArray(shapes) ? shapes : [shapes];
@@ -46,7 +51,7 @@ export async function pptxToMarkdown(zipContent) {
 			let titleFound = false;
 
 			for (const shape of shapeArray) {
-				const nm = shape?.$?.name;
+				const nm = shape?.["p:nvSpPr"]?.["p:cNvPr"]?.name;
 				if (nm === "title") {
 					const text = extractShapeText(shape);
 					if (text) {
@@ -71,8 +76,7 @@ export async function pptxToMarkdown(zipContent) {
 						explicitArray: false,
 					});
 					const notesBody =
-						notesParsed?.p?.notesSlide?.[0]?.["p:spTree"] ||
-						notesParsed?.p?.notesSlide?.["p:spTree"];
+						notesParsed?.["p:notesSlide"]?.["p:spTree"];
 					if (notesBody) {
 						const notesShapes = notesBody["p:sp"] || [];
 						const notesArray = Array.isArray(notesShapes) ? notesShapes : [notesShapes];

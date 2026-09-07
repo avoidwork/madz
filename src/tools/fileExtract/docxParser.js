@@ -21,23 +21,23 @@ export async function docxToMarkdown(documentXml) {
 	let _listType = null;
 
 	try {
-		const parsed = parseStringPromise(documentXml, {
+		const parsed = await parseStringPromise(documentXml, {
 			mergeAttrs: true,
 			explicitArray: false,
 		});
 
-		const body = parsed?.w?.document?.[0]?.["w:body"] || parsed?.w?.document?.["w:body"];
+		const body = parsed?.["w:document"]?.["w:body"];
 		if (!body) return "";
 
 		const paragraphs = body["w:p"] || [];
+		const paraArray = Array.isArray(paragraphs) ? paragraphs : [paragraphs];
 
-		for (const para of paragraphs) {
+		for (const para of paraArray) {
 			const textContent = extractParagraphText(para);
 			const headingLevel = getHeadingLevel(para);
 			const isListItem = _isListItem(para);
 
 			if (headingLevel > 0) {
-				// Close any open list
 				if (inList) {
 					markdown += "\n";
 					inList = false;
@@ -80,21 +80,21 @@ export async function docxToMarkdown(documentXml) {
  */
 function extractParagraphText(para) {
 	const runs = para["w:r"] || [];
+	const runArray = Array.isArray(runs) ? runs : [runs];
 	let text = "";
 	let bold = false;
 	let italic = false;
 	let code = false;
 
-	for (const run of runs) {
+	for (const run of runArray) {
 		const rPr = run["w:rPr"];
 		const tElements = run["w:t"];
 		const texts = Array.isArray(tElements) ? tElements : tElements ? [tElements] : [];
 
-		// Check formatting properties
 		if (rPr) {
 			if (rPr["w:b"] || rPr["w:b"] === "") bold = true;
 			if (rPr["w:i"] || rPr["w:i"] === "") italic = true;
-			if (rPr["w:u"]) code = true;
+			if (rPr["w:u"] || rPr["w:u"] === "") code = true;
 		}
 
 		for (const t of texts) {
@@ -130,7 +130,9 @@ function getHeadingLevel(para) {
 	const style = pPr["w:pStyle"];
 	if (!style) return 0;
 
-	const val = style._ || style;
+	// With mergeAttrs:true, attributes are merged into the parent
+	// w:pStyle has w:val attribute with the style name
+	const val = style["w:val"] || style._ || style;
 	if (typeof val !== "string") return 0;
 
 	const match = val.match(/Heading(\d)/);
@@ -154,7 +156,7 @@ function _isListItem(para) {
 	if (!pPr) return false;
 
 	const numPr = pPr["w:numPr"];
-	return !!numPr;
+	return numPr !== undefined && numPr !== null;
 }
 
 /**
@@ -173,11 +175,13 @@ export async function extractDocxTables(documentXml) {
 			explicitArray: false,
 		});
 
-		const body = parsed?.w?.document?.[0]?.["w:body"] || parsed?.w?.document?.["w:body"];
+		const body = parsed?.["w:document"]?.["w:body"];
 		if (!body) return "";
 
 		const tables = body["w:tbl"];
-		const tableArray = Array.isArray(tables) ? tables : tables ? [tables] : [];
+		if (!tables) return "";
+
+		const tableArray = Array.isArray(tables) ? tables : [tables];
 
 		for (const table of tableArray) {
 			const rows = table["w:tr"] || [];

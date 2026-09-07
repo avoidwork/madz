@@ -23,14 +23,14 @@ export async function xlsxToJson(zipContent) {
 			explicitArray: false,
 		});
 
-		const sheets = parsed?.workbook?.[0]?.sheets?.sheet;
+		const sheets = parsed?.workbook?.sheets?.sheet;
 		if (!sheets) return result;
 
 		const sheetArray = Array.isArray(sheets) ? sheets : [sheets];
 
 		for (const sheetDef of sheetArray) {
-			const sheetName = sheetDef?.$?.name || "Sheet";
-			const sheetId = sheetDef?.$?.sheetId || "1";
+			const sheetName = sheetDef?.name || "Sheet";
+			const sheetId = sheetDef?.sheetId || "1";
 
 			const sheetXml = findSheetXml(zipContent, sheetId);
 			if (!sheetXml) continue;
@@ -60,12 +60,6 @@ function findSheetXml(zipContent, sheetId) {
 		}
 	}
 
-	for (const path of zipContent.keys()) {
-		if (/^xl\/worksheets\/sheet\d+\.xml$/.test(path)) {
-			return zipContent.get(path);
-		}
-	}
-
 	return null;
 }
 
@@ -81,7 +75,7 @@ async function parseSheetRows(sheetXml) {
 			explicitArray: false,
 		});
 
-		const sheetData = parsed?.sheet?.[0]?.sheetData?.row;
+		const sheetData = parsed?.worksheet?.sheetData?.row;
 		if (!sheetData) return [];
 
 		const rowArray = Array.isArray(sheetData) ? sheetData : [sheetData];
@@ -93,7 +87,7 @@ async function parseSheetRows(sheetXml) {
 			const rowData = {};
 
 			for (const cell of cellArray) {
-				const ref = cell?.$?.r;
+				const ref = cell?.r;
 				if (ref) {
 					rowData[ref] = getCellValue(cell);
 				}
@@ -120,7 +114,7 @@ function getCellValue(cell) {
 	const strVal = String(v);
 
 	// Check type
-	const t = cell?.$?.t || cell?.t;
+	const t = cell?.t;
 	if (t === "b") {
 		return strVal === "1" ? true : false;
 	}
