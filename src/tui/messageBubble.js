@@ -280,11 +280,7 @@ export function MessageBubbleInner({
 		? React.createElement(
 				Box,
 				{ flexDirection: "row", marginTop: 1, marginLeft: 2 },
-				React.createElement(
-					Text,
-					{ color: "gray" },
-					`- Running: ${activeToolCall.name} ...`,
-				),
+				React.createElement(Text, { color: "gray" }, `- Running: ${activeToolCall.name} ...`),
 			)
 		: null;
 
@@ -342,11 +338,7 @@ export function MessageBubbleInner({
 			? React.createElement(
 					Box,
 					{ flexDirection: "row", marginTop: 1, marginLeft: 2 },
-					React.createElement(
-						Text,
-						{ color: "gray" },
-						`⏱ ${formatElapsed(displayElapsed)}`,
-					),
+					React.createElement(Text, { color: "gray" }, `⏱ ${formatElapsed(displayElapsed)}`),
 				)
 			: null;
 
