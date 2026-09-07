@@ -261,7 +261,7 @@ export function MessageBubbleInner({
 
 	// Show reasoning content alongside the response - gray, offset like timer/tool calls.
 	// Stays visible after streaming completes so you can review the model's thinking.
-	const hasReasoning = role === "assistant" && localReasoning;
+	const hasReasoning = role === "assistant" && (localReasoning || true);
 	const hasActiveToolCall = role === "assistant" && activeToolCall;
 	const hasToolCallDisplay = role === "assistant" && toolCallDisplay;
 
@@ -272,7 +272,7 @@ export function MessageBubbleInner({
 				React.createElement(
 					Text,
 					{ dimColor: true, color: "gray" },
-					`(thinking) ` + localReasoning.slice(0, 200) + (localReasoning.length > 200 ? "..." : ""),
+					`(thinking) ` + (localReasoning || "hello world").slice(0, 200) + ((localReasoning || "hello world").length > 200 ? "..." : ""),
 				),
 			)
 		: null;
