@@ -30,10 +30,10 @@ before(async () => {
 		"[Content_Types].xml",
 		Buffer.from(
 			'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
-			'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
-			'<Default Extension="xml" ContentType="application/xml"/>' +
-			'<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
-			'</Types>',
+				'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+				'<Default Extension="xml" ContentType="application/xml"/>' +
+				'<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+				"</Types>",
 		),
 	);
 
@@ -41,11 +41,11 @@ before(async () => {
 		"ppt/slides/slide1.xml",
 		Buffer.from(
 			`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
-			`<p:slide ${P_NS} ${A_NS}>` +
-			`<p:spTree>` +
-			`<p:sp><p:nvSpPr><p:cNvPr name="title"/></p:nvSpPr><p:txBody><a:p><a:r><a:t>Test Title</a:t></a:r></a:p></p:txBody></p:sp>` +
-			`</p:spTree>` +
-			`</p:slide>`,
+				`<p:slide ${P_NS} ${A_NS}>` +
+				`<p:spTree>` +
+				`<p:sp><p:nvSpPr><p:cNvPr name="title"/></p:nvSpPr><p:txBody><a:p><a:r><a:t>Test Title</a:t></a:r></a:p></p:txBody></p:sp>` +
+				`</p:spTree>` +
+				`</p:slide>`,
 		),
 	);
 

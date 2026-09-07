@@ -7,7 +7,7 @@ import { describe, it, before, after } from "node:test";
 import assert from "node:assert";
 import { mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
-import { writeFileSync, existsSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 import { docxExtract } from "../../../src/tools/fileExtract/docx.js";
 
 const TMP_DIR = join(process.cwd(), "tmp", "fileExtract-docx");
@@ -29,10 +29,10 @@ before(async () => {
 		"[Content_Types].xml",
 		Buffer.from(
 			'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
-			'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
-			'<Default Extension="xml" ContentType="application/xml"/>' +
-			'<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
-			'</Types>',
+				'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+				'<Default Extension="xml" ContentType="application/xml"/>' +
+				'<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+				"</Types>",
 		),
 	);
 
@@ -40,9 +40,9 @@ before(async () => {
 		"word/document.xml",
 		Buffer.from(
 			`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
-			`<w:document ${W_NS}>` +
-			`<w:body><w:p><w:r><w:t>Hello World</w:t></w:r></w:p></w:body>` +
-			`</w:document>`,
+				`<w:document ${W_NS}>` +
+				`<w:body><w:p><w:r><w:t>Hello World</w:t></w:r></w:p></w:body>` +
+				`</w:document>`,
 		),
 	);
 

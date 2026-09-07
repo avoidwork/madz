@@ -30,12 +30,12 @@ before(async () => {
 		"[Content_Types].xml",
 		Buffer.from(
 			'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
-			'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
-			'<Default Extension="xml" ContentType="application/xml"/>' +
-			'<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
-			'<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
-			'<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' +
-			'</Types>',
+				'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+				'<Default Extension="xml" ContentType="application/xml"/>' +
+				'<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+				'<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+				'<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' +
+				"</Types>",
 		),
 	);
 
@@ -43,9 +43,9 @@ before(async () => {
 		"xl/workbook.xml",
 		Buffer.from(
 			`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
-			`<workbook ${SPREADSHEET_NS} ${R_NS}>` +
-			`<sheets><sheet name="Sheet1" sheetId="1" r:id="rId1"/></sheets>` +
-			`</workbook>`,
+				`<workbook ${SPREADSHEET_NS} ${R_NS}>` +
+				`<sheets><sheet name="Sheet1" sheetId="1" r:id="rId1"/></sheets>` +
+				`</workbook>`,
 		),
 	);
 
@@ -53,9 +53,9 @@ before(async () => {
 		"xl/_rels/workbook.xml.rels",
 		Buffer.from(
 			'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
-			'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
-			'<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>' +
-			'</Relationships>',
+				'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+				'<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>' +
+				"</Relationships>",
 		),
 	);
 
@@ -63,12 +63,12 @@ before(async () => {
 		"xl/worksheets/sheet1.xml",
 		Buffer.from(
 			`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
-			`<worksheet ${SPREADSHEET_NS}>` +
-			`<sheetData>` +
-			`<row r="1"><c r="A1" t="inlineStr"><is><t>Name</t></is></c><c r="B1" t="inlineStr"><is><t>Value</t></is></c></row>` +
-			`<row r="2"><c r="A2" t="inlineStr"><is><t>Alpha</t></is></c><c r="B2" t="n"><v>42</v></c></row>` +
-			`</sheetData>` +
-			`</worksheet>`,
+				`<worksheet ${SPREADSHEET_NS}>` +
+				`<sheetData>` +
+				`<row r="1"><c r="A1" t="inlineStr"><is><t>Name</t></is></c><c r="B1" t="inlineStr"><is><t>Value</t></is></c></row>` +
+				`<row r="2"><c r="A2" t="inlineStr"><is><t>Alpha</t></is></c><c r="B2" t="n"><v>42</v></c></row>` +
+				`</sheetData>` +
+				`</worksheet>`,
 		),
 	);
 
