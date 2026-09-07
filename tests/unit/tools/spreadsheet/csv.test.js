@@ -86,7 +86,6 @@ describe("csv", () => {
 		});
 
 		it("should handle parse errors gracefully", () => {
-			// Malformed CSV with unmatched quote
 			assert.throws(() => csv.csvImport('name,age\nAlice,"30'), /csvImport\(\) failed/);
 		});
 
@@ -102,7 +101,6 @@ describe("csv", () => {
 		});
 
 		it("should handle empty string in cast returning original value", () => {
-			// The cast function returns the original value for empty trimmed strings
 			const result = csv.csvImport("name,note\nAlice,");
 			assert.strictEqual(result[0].note, "");
 		});
@@ -121,6 +119,93 @@ describe("csv", () => {
 		it("should handle CRLF line endings", () => {
 			const result = csv.csvImport("name,age\r\nAlice,30\r\nBob,25");
 			assert.strictEqual(result.length, 2);
+		});
+
+		it("should handle Infinity values without converting to number", () => {
+			const result = csv.csvImport("value\nInfinity\n-Infinity");
+			assert.strictEqual(result[0].value, "Infinity");
+			assert.strictEqual(result[1].value, "-Infinity");
+		});
+
+		it("should handle NaN values without converting to number", () => {
+			const result = csv.csvImport("value\nNaN");
+			assert.strictEqual(result[0].value, "NaN");
+		});
+
+		it("should handle columns as array", () => {
+			const result = csv.csvImport("1,2\n3,4", { columns: ["a", "b"] });
+			assert.strictEqual(result.length, 2);
+			assert.strictEqual(result[0].a, 1);
+			assert.strictEqual(result[0].b, 2);
+			assert.strictEqual(result[1].a, 3);
+			assert.strictEqual(result[1].b, 4);
+		});
+
+		it("should throw when columns array length differs from CSV columns", () => {
+			assert.throws(
+				() => csv.csvImport("1,2\n3,4", { columns: ["a", "b", "c"] }),
+				/csvImport\(\) failed/,
+			);
+			assert.throws(
+				() => csv.csvImport("1,2,3\n4,5,6", { columns: ["a"] }),
+				/csvImport\(\) failed/,
+			);
+		});
+
+		it("should handle custom escape character with backslash", () => {
+			const result = csv.csvImport('name,note\nAlice,"escaped\\"quote"', { escape: "\\" });
+			assert.strictEqual(result[0].note, 'escaped"quote');
+		});
+
+		it("should handle negative numbers", () => {
+			const result = csv.csvImport("value\n-30\n-0.5");
+			assert.strictEqual(result[0].value, -30);
+			assert.strictEqual(result[1].value, -0.5);
+		});
+
+		it("should handle zero values", () => {
+			const result = csv.csvImport("value\n0");
+			assert.strictEqual(result[0].value, 0);
+		});
+
+		it("should handle default skip_empty_lines behavior (false)", () => {
+			const result = csv.csvImport("name,age\nAlice,30\nBob,25", { skip_empty_lines: false });
+			assert.strictEqual(result.length, 2);
+		});
+
+		it("should handle columns=false with no data rows returns header as data", () => {
+			const result = csv.csvImport("name,age", { columns: false });
+			assert.strictEqual(result.length, 1);
+			assert.deepStrictEqual(result[0], ["name", "age"]);
+		});
+
+		it("should handle non-numeric non-boolean string fallback in cast", () => {
+			const result = csv.csvImport("name,note\nAlice,hello");
+			assert.strictEqual(result[0].note, "hello");
+		});
+
+		it("should handle hexadecimal-like strings", () => {
+			const result = csv.csvImport("value\n0xFF");
+			assert.strictEqual(result[0].value, 255);
+		});
+
+		it("should handle trim option being false", () => {
+			// When trim is false, field names retain whitespace but cast still trims for type conversion
+			const result = csv.csvImport("name , age\nAlice , 30", { trim: false });
+			assert.strictEqual(result[0]["name "], "Alice ");
+			assert.strictEqual(result[0][" age"], 30);
+		});
+
+		it("should handle skip_empty_lines with multiple consecutive empty lines", () => {
+			const result = csv.csvImport("name,age\nAlice,30\n\n\nBob,25", { skip_empty_lines: true });
+			assert.strictEqual(result.length, 2);
+		});
+
+		it("should handle columns as array with no data rows", () => {
+			const result = csv.csvImport("a,b", { columns: ["x", "y"] });
+			assert.strictEqual(result.length, 1);
+			assert.strictEqual(result[0].x, "a");
+			assert.strictEqual(result[0].y, "b");
 		});
 	});
 
@@ -255,7 +340,7 @@ describe("csv", () => {
 		it("should handle single row", () => {
 			const data = [{ name: "Alice", age: "30" }];
 			const result = csv.csvExport(data);
-			assert.strictEqual(result.trim().split("\n").length, 2); // header + 1 row
+			assert.strictEqual(result.trim().split("\n").length, 2);
 		});
 
 		it("should handle columns option preserving order", () => {
@@ -264,6 +349,46 @@ describe("csv", () => {
 			const lines = result.trim().split("\n");
 			assert.ok(lines[0].includes("city,name"));
 			assert.ok(lines[1].includes("NYC,Alice"));
+		});
+
+		it("should throw on circular reference objects", () => {
+			const data = [{ name: "Alice" }];
+			data[0].self = data[0];
+			assert.throws(() => csv.csvExport(data), /csvExport\(\) failed/);
+		});
+
+		it("should handle columns option with extra columns not in data", () => {
+			const data = [{ name: "Alice", age: "30" }];
+			const result = csv.csvExport(data, { columns: ["name", "age", "city"] });
+			const lines = result.trim().split("\n");
+			assert.ok(lines[0].includes("name,age,city"));
+			assert.ok(lines[1].includes("Alice,30,"));
+		});
+
+		it("should handle record_delimiter as \\r", () => {
+			const data = [{ name: "Alice", age: "30" }];
+			const result = csv.csvExport(data, { record_delimiter: "\r" });
+			assert.ok(result.includes("Alice,30\r"));
+		});
+
+		it("should handle header=true explicitly", () => {
+			const data = [{ name: "Alice", age: "30" }];
+			const result = csv.csvExport(data, { header: true });
+			assert.ok(result.includes("name,age"));
+			assert.ok(result.includes("Alice,30"));
+		});
+
+		it("should handle columns option with empty array", () => {
+			const data = [{ name: "Alice", age: "30" }];
+			const result = csv.csvExport(data, { columns: [] });
+			// Empty columns array means no columns are exported; produces empty output
+			assert.strictEqual(result.trim(), "");
+		});
+
+		it("should handle boolean false values in export", () => {
+			const data = [{ name: "Alice", active: false }];
+			const result = csv.csvExport(data);
+			assert.ok(result.includes("false"));
 		});
 	});
 
@@ -287,7 +412,7 @@ describe("csv", () => {
 
 		it("should produce pretty-printed JSON", () => {
 			const result = csv.csvToJson("name,age\nAlice,30");
-			assert.ok(result.includes("\n")); // pretty-printed with indentation
+			assert.ok(result.includes("\n"));
 		});
 
 		it("should handle custom options like trim", () => {
@@ -340,7 +465,7 @@ describe("csv", () => {
 				{ name: "Bob", age: 25 },
 			];
 			const result = csv.toXlsxFormat(data);
-			assert.strictEqual(result.length, 3); // header + 2 rows
+			assert.strictEqual(result.length, 3);
 			assert.deepStrictEqual(result[0], ["name", "age"]);
 			assert.deepStrictEqual(result[1], ["Alice", 30]);
 			assert.deepStrictEqual(result[2], ["Bob", 25]);
@@ -367,19 +492,17 @@ describe("csv", () => {
 		it("should handle missing fields with empty string", () => {
 			const data = [{ name: "Alice", age: 30 }, { name: "Bob" }];
 			const result = csv.toXlsxFormat(data);
-			// cols = ["name", "age"] from first object
 			assert.strictEqual(result[0][0], "name");
 			assert.strictEqual(result[0][1], "age");
 			assert.strictEqual(result[1][0], "Alice");
 			assert.strictEqual(result[1][1], 30);
 			assert.strictEqual(result[2][0], "Bob");
-			assert.strictEqual(result[2][1], ""); // missing age -> empty string
+			assert.strictEqual(result[2][1], "");
 		});
 
-		it("should handle empty columns array (empty array is truthy, so no columns)", () => {
+		it("should handle empty columns array", () => {
 			const data = [{ name: "Alice", age: 30 }];
 			const result = csv.toXlsxFormat(data, []);
-			// Empty array is truthy in JS, so it's used as-is
 			assert.deepStrictEqual(result[0], []);
 			assert.deepStrictEqual(result[1], []);
 		});
@@ -397,9 +520,41 @@ describe("csv", () => {
 				{ name: "Bob", city: "LA" },
 			];
 			const result = csv.toXlsxFormat(data);
-			// cols from first object: ["name", "age"]
-			assert.strictEqual(result[2][1], ""); // Bob has no age
-			assert.strictEqual(result[2][2], undefined); // city not in cols
+			assert.strictEqual(result[2][1], "");
+			assert.strictEqual(result[2][2], undefined);
+		});
+
+		it("should handle columns=null by using Object.keys", () => {
+			const data = [{ name: "Alice", age: 30 }];
+			const result = csv.toXlsxFormat(data, null);
+			assert.deepStrictEqual(result[0], ["name", "age"]);
+			assert.deepStrictEqual(result[1], ["Alice", 30]);
+		});
+
+		it("should handle undefined columns by using Object.keys", () => {
+			const data = [{ name: "Alice", age: 30 }];
+			const result = csv.toXlsxFormat(data, undefined);
+			assert.deepStrictEqual(result[0], ["name", "age"]);
+			assert.deepStrictEqual(result[1], ["Alice", 30]);
+		});
+
+		it("should handle null field values with ?? empty string", () => {
+			const data = [{ name: "Alice", age: null }];
+			const result = csv.toXlsxFormat(data);
+			assert.strictEqual(result[1][1], "");
+		});
+
+		it("should handle undefined field values with ?? empty string", () => {
+			const data = [{ name: "Alice", age: undefined }];
+			const result = csv.toXlsxFormat(data);
+			assert.strictEqual(result[1][1], "");
+		});
+
+		it("should handle zero and false field values without replacement", () => {
+			const data = [{ name: "Alice", count: 0, active: false }];
+			const result = csv.toXlsxFormat(data);
+			assert.strictEqual(result[1][1], 0);
+			assert.strictEqual(result[1][2], false);
 		});
 	});
 });
