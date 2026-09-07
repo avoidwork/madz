@@ -209,6 +209,9 @@ const ConversationArea = forwardRef(function ConversationArea(
 					streaming: true,
 					turnStartTime,
 				});
+				if (messageCountRef) {
+					messageCountRef.current = messageListRef.current?.getMessageCount() || 0;
+				}
 
 				let committedContentRef = { current: "" };
 				let committedReasoning = "";
@@ -363,6 +366,9 @@ const ConversationArea = forwardRef(function ConversationArea(
 			streaming: true,
 			turnStartTime,
 		});
+		if (messageCountRef) {
+			messageCountRef.current = messageListRef.current?.getMessageCount() || 0;
+		}
 
 		let committedContentRef = { current: "" };
 		let committedReasoning = "";

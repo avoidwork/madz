@@ -190,19 +190,37 @@ async function callProvider(_name, _providerConfig, message, streamingCallback, 
 		messages: [{ role: "user", content: message }],
 	};
 
-	for await (const [_namespace, chunk] of await agent.stream(input, {
+	for await (const [_namespace, mode, payload] of await agent.stream(input, {
 		...config,
 		...options,
-		streamMode: "messages",
+		streamMode: ["messages", "tools"],
 		subgraphs: true,
 	})) {
-		const [message] = chunk;
-		const text = message?.text ?? "";
+		if (mode === "messages") {
+			const [message] = payload;
+			const text = message?.text ?? "";
 
-		if (text) {
-			collectedContent += text;
-			if (streamingCallback) {
-				streamingCallback({ type: "message", text });
+			if (text) {
+				collectedContent += text;
+				if (streamingCallback) {
+					streamingCallback({ type: "message", text });
+				}
+			}
+		} else if (mode === "tools" && streamingCallback) {
+			// payload is StreamToolsOutput with event, name, etc.
+			if (payload?.event === "on_tool_start") {
+				streamingCallback({
+					type: "on_tool_start",
+					name: payload.name,
+					data: { input: payload.input },
+				});
+			}
+			if (payload?.event === "on_tool_end") {
+				streamingCallback({
+					type: "on_tool_end",
+					name: payload.name,
+					data: { output: payload.output },
+				});
 			}
 		}
 	}
