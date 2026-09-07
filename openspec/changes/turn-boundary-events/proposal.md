@@ -19,10 +19,9 @@ deepagentsjs delegates all event handling to LangGraph's streaming protocol. Whi
 
 ## Impact
 
-- **New file**: `tmp/deepagentsjs/libs/deepagents/src/stream/transformers/turn.ts` — turn boundary transformer implementation
-- **New file**: `tmp/deepagentsjs/libs/deepagents/src/stream/transformers/index.ts` — barrel export
-- **Modified**: `tmp/deepagentsjs/libs/deepagents/src/index.ts` — re-export `createTurnTransformer` and `TurnEvent`
-- **Modified**: `tmp/deepagentsjs/libs/deepagents/src/stream.test-d.ts` — add type tests
-- **New file**: `tmp/deepagentsjs/libs/deepagents/src/stream/transformers/turn.test.ts` — unit tests
-- **New file**: `tmp/deepagentsjs/libs/deepagents/src/stream/transformers/turn.int.test.ts` — integration test
-- **No new dependencies** — all types from `@langchain/langgraph` (already a dependency)
+- **New file**: `src/stream/transformers/turn.js` — turn boundary transformer implementation (consumer-side JavaScript)
+- **New file**: `src/stream/transformers/index.js` — barrel export
+- **Modified**: `src/agent/deepAgents.js` — wire `createTurnTransformer` via `streamTransformers` to `createDeepAgent()`
+- **New file**: `tests/unit/stream/transformers/turn.test.js` — unit tests
+- **New file**: `tests/integration/turn-transformer.test.js` — integration test
+- **No new dependencies** — all types from `@langchain/langgraph` (already a dependency of deepagents)

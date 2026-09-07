@@ -1,24 +1,41 @@
 ## 1. Core Transformer Implementation
 
-- [ ] 1.1 Create `tmp/deepagentsjs/libs/deepagents/src/stream/transformers/turn.ts` — implement `createTurnTransformer()` with `StreamTransformer<TurnProjection>` interface, including `init()`, `process()`, `onRegister()`, `finalize()`, and `fail()` methods
-- [ ] 1.2 Create `tmp/deepagentsjs/libs/deepagents/src/stream/transformers/index.ts` — barrel export for `createTurnTransformer` and `TurnEvent` type
+- [x] 1.1 Create `src/stream/transformers/turn.js` — implement `createTurnTransformer()` following the `StreamTransformer` pattern:
+  - `init()` — create a `StreamChannel.local<TurnEvent>()` for the turn event log
+  - `process()` — watch `values`/`updates` channel for new `HumanMessage` → emit `turn:start`; track tool calls from `tools` channel; detect terminal state (no pending tool calls + last message is `AIMessage` with content) → emit `turn:end`
+  - `onRegister()` — receive `StreamEmitter.push()` for synthetic event emission
+  - `finalize()` / `fail()` — cleanup
+  - Use `Map<string, boolean>` keyed by tool call ID for tool tracking (not a simple counter)
+  - Track tool calls across all namespaces (not just root)
+  - Guard against re-entrant self-processing
+- [x] 1.2 Create `src/stream/transformers/index.js` — barrel export for `createTurnTransformer`
 
-## 2. Package Exports
+## 2. Wire into Orchestrator
 
-- [ ] 2.1 Add `createTurnTransformer` and `TurnEvent` exports to `tmp/deepagentsjs/libs/deepagents/src/index.ts`
+- [x] 2.1 In `src/agent/deepAgents.js`, import `createTurnTransformer` and pass it via `streamTransformers` to `createDeepAgent()`:
+  ```js
+  import { createTurnTransformer } from "../stream/transformers/index.js";
+  ```
+  Add `streamTransformers: [() => createTurnTransformer()]` to the `createDeepAgent()` call
 
-## 3. Type Tests
+## 3. Unit Tests
 
-- [ ] 3.1 Add type test in `tmp/deepagentsjs/libs/deepagents/src/stream.test-d.ts` verifying `run.extensions.turns` is `AsyncIterable<TurnEvent>` and events yield correct types
+- [x] 3.1 Create `tests/unit/stream/transformers/turn.test.js` with unit tests for:
+  - `turn:start` emitted on HumanMessage entry
+  - `turn:end` emitted only after all tool calls resolve and AIMessage with content appears
+  - Tool call tracking (start → increment, finish → decrement)
+  - Edge cases: empty user message, zero tool calls, nested subagent delegations, error paths
+  - Follow project testing conventions (node:test, assert, mocking patterns from existing tests)
 
-## 4. Unit Tests
+## 4. Integration Test
 
-- [ ] 4.1 Create `tmp/deepagentsjs/libs/deepagents/src/stream/transformers/turn.test.ts` with unit tests for turn boundary detection, tool call tracking, edge cases, and error paths
+- [ ] 4.1 Create `tests/integration/turn-transformer.test.js` with integration test:
+  - Wire the transformer into a real agent invocation
+  - Verify `turn:start`/`turn:end` events appear in correct order
+  - Test with tool calls and without
 
-## 5. Integration Test
+## 5. Verification
 
-- [ ] 5.1 Create `tmp/deepagentsjs/libs/deepagents/src/stream/transformers/turn.int.test.ts` with integration test using real `createDeepAgent()` invocation
-
-## 6. Verification
-
-- [ ] 6.1 Run `pnpm test` and `pnpm typecheck` from `tmp/deepagentsjs/libs/deepagents` to confirm no regressions
+- [ ] 5.1 Run `npm run test` — all tests passing
+- [ ] 5.2 Run `npm run lint` — lint clean
+- [ ] 5.3 Run `npm run coverage` — coverage maintained
