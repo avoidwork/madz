@@ -23,6 +23,7 @@ import { createContextBackend } from "./contextBackend.js";
 import { getAllAgents } from "./agentDefinitions.js";
 import { logger } from "../shared/logger.js";
 import { createCodeInterpreterMiddleware } from "@langchain/quickjs";
+import { createTurnTransformer } from "../stream/transformers/index.js";
 
 /**
  * Get tool classifications for an agent by name.
@@ -247,5 +248,6 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 		...(skillPaths.length > 0 && { skills: skillPaths }),
 		...(checkpointer && { checkpointer }),
 		middleware: [createCodeInterpreterMiddleware()],
+		streamTransformers: [() => createTurnTransformer()],
 	});
 }
