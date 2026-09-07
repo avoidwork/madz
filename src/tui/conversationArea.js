@@ -651,13 +651,6 @@ const ConversationArea = forwardRef(function ConversationArea(
 							activeToolCall: null,
 							completedToolCalls: [...completedToolCalls],
 						});
-						if (event.data?.output) {
-							lastToolCallDisplayRef.current =
-								(lastToolCallDisplayRef.current || "") + event.data.output;
-							messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
-								toolCallDisplay: lastToolCallDisplayRef.current,
-							});
-						}
 					}
 
 					if (event.type === "on_tool_error") {
