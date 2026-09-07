@@ -191,6 +191,7 @@ export function MessageBubbleInner({
 	const [localStreaming, setLocalStreaming] = useState(streaming);
 	const [localTurnDuration, setLocalTurnDuration] = useState(turnDuration);
 	const [localCompletedToolCalls, setLocalCompletedToolCalls] = useState(completedToolCalls || []);
+	const [localReasoning, setLocalReasoning] = useState(reasoningContent);
 
 	// Sync local state from props when not using pub/sub (session restore, initial render)
 	useEffect(() => {
@@ -198,8 +199,9 @@ export function MessageBubbleInner({
 			setLocalStreaming(streaming);
 			setLocalTurnDuration(turnDuration);
 			setLocalCompletedToolCalls(completedToolCalls || []);
+			setLocalReasoning(reasoningContent);
 		}
-	}, [topic, streaming, turnDuration, completedToolCalls]);
+	}, [topic, streaming, turnDuration, completedToolCalls, reasoningContent]);
 
 	useEffect(() => {
 		if (!topic) return;
@@ -217,6 +219,7 @@ export function MessageBubbleInner({
 			if (data?.turnDuration !== undefined) setLocalTurnDuration(data.turnDuration);
 			if (data?.completedToolCalls !== undefined)
 				setLocalCompletedToolCalls(data.completedToolCalls);
+			if (data?.reasoningContent !== undefined) setLocalReasoning(data.reasoningContent);
 		};
 
 		subscribe(topic, handleUpdate);
@@ -256,9 +259,9 @@ export function MessageBubbleInner({
 	const colors = getRoleColors(role);
 	const bubble = getBubbleStyle(role);
 
-	// Hide reasoning once streaming has started — the response content
-	// is now flowing in and the thinking block is stale.
-	const hasReasoning = role === "assistant" && reasoningContent && chunks.length === 0;
+	// Show reasoning content alongside the response - gray, offset like timer/tool calls.
+	// Stays visible after streaming completes so you can review the model's thinking.
+	const hasReasoning = role === "assistant" && localReasoning;
 	const hasActiveToolCall = role === "assistant" && activeToolCall;
 	const hasToolCallDisplay = role === "assistant" && toolCallDisplay;
 
@@ -269,9 +272,7 @@ export function MessageBubbleInner({
 				React.createElement(
 					Text,
 					{ dimColor: true, color: "gray" },
-					`(thinking) ` +
-						reasoningContent.slice(0, 200) +
-						(reasoningContent.length > 200 ? "..." : ""),
+					`(thinking) ` + localReasoning.slice(0, 200) + (localReasoning.length > 200 ? "..." : ""),
 				),
 			)
 		: null;
@@ -296,7 +297,8 @@ export function MessageBubbleInner({
 			)
 		: null;
 
-	const pendingState = role === "assistant" && localStreaming && chunks.length === 0 && !content;
+	const pendingState =
+		role === "assistant" && localStreaming && chunks.length === 0 && !content && !localReasoning;
 
 	// Memoize the thinking word so it doesn't rotate on every render
 	const thinkingWordRef = useRef(null);
