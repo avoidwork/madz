@@ -1,8 +1,210 @@
 ℹ start of coverage report
-ℹ ----------------------------------------------------------
-ℹ file      | line % | branch % | funcs % | uncovered lines
-ℹ ----------------------------------------------------------
-ℹ ----------------------------------------------------------
-ℹ all files | 100.00 |   100.00 |  100.00 | 
-ℹ ----------------------------------------------------------
+ℹ ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ℹ file                           | line % | branch % | funcs % | uncovered lines
+ℹ ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ℹ src                            |        |          |         | 
+ℹ  agent                         |        |          |         | 
+ℹ   agentDefinitions.js          |  98.68 |   100.00 |   77.78 | 110 132
+ℹ   agentRegistry.js             | 100.00 |   100.00 |  100.00 | 
+ℹ   contextBackend.js            | 100.00 |   100.00 |  100.00 | 
+ℹ   coreBackend.js               | 100.00 |   100.00 |  100.00 | 
+ℹ   deepAgents.js                |  97.21 |    62.50 |  100.00 | 82-83 116-120
+ℹ  config                        |        |          |         | 
+ℹ   config.js                    | 100.00 |   100.00 |  100.00 | 
+ℹ   loader.js                    |  92.82 |    90.48 |   81.82 | 98-100 125 127 178-182 192-195
+ℹ   patch.js                     | 100.00 |   100.00 |  100.00 | 
+ℹ   schemas                      |        |          |         | 
+ℹ    agent.js                    | 100.00 |   100.00 |  100.00 | 
+ℹ    lru.js                      | 100.00 |   100.00 |  100.00 | 
+ℹ    memory.js                   | 100.00 |   100.00 |  100.00 | 
+ℹ    persistence.js              | 100.00 |   100.00 |  100.00 | 
+ℹ    providers.js                | 100.00 |   100.00 |  100.00 | 
+ℹ    sandbox.js                  | 100.00 |   100.00 |  100.00 | 
+ℹ    schedules.js                | 100.00 |   100.00 |  100.00 | 
+ℹ    skillAgentMap.js            | 100.00 |   100.00 |  100.00 | 
+ℹ    subAgentsTemperature.js     | 100.00 |   100.00 |  100.00 | 
+ℹ    telemetry.js                | 100.00 |   100.00 |  100.00 | 
+ℹ    tui.js                      | 100.00 |   100.00 |  100.00 | 
+ℹ  memory                        |        |          |         | 
+ℹ   context.js                   |  97.44 |    78.79 |  100.00 | 114-116
+ℹ   expireEphemeralMemories.js   |  93.15 |    73.68 |  100.00 | 25-27 68-69
+ℹ   gc.js                        | 100.00 |   100.00 |  100.00 | 
+ℹ   profile.js                   | 100.00 |    98.41 |  100.00 | 
+ℹ   prompts.js                   | 100.00 |   100.00 |  100.00 | 
+ℹ   reader.js                    | 100.00 |    94.44 |  100.00 | 
+ℹ  provider                      |        |          |         | 
+ℹ   openai.js                    | 100.00 |   100.00 |  100.00 | 
+ℹ  sandbox                       |        |          |         | 
+ℹ   capability.js                | 100.00 |   100.00 |  100.00 | 
+ℹ   envInjector.js               | 100.00 |   100.00 |  100.00 | 
+ℹ   pathResolver.js              | 100.00 |   100.00 |  100.00 | 
+ℹ   runner.js                    |  99.50 |    93.22 |   88.89 | 190
+ℹ   timeoutHandler.js            | 100.00 |   100.00 |  100.00 | 
+ℹ   urlFilter.js                 | 100.00 |    93.33 |  100.00 | 
+ℹ  scheduler                     |        |          |         | 
+ℹ   cron.js                      |  97.45 |    90.71 |   96.00 | 62-73 221 265 270-271
+ℹ   index.js                     | 100.00 |   100.00 |  100.00 | 
+ℹ   scheduler.js                 |  99.12 |    93.85 |   89.47 | 202-203
+ℹ  session                       |        |          |         | 
+ℹ   checkpointer.js              | 100.00 |    81.82 |  100.00 | 
+ℹ   factory.js                   | 100.00 |   100.00 |  100.00 | 
+ℹ   onboarding.js                | 100.00 |    94.23 |  100.00 | 
+ℹ   saver.js                     |  98.18 |    82.35 |  100.00 | 47
+ℹ   shutdown.js                  | 100.00 |   100.00 |  100.00 | 
+ℹ   stateManager.js              | 100.00 |   100.00 |  100.00 | 
+ℹ   window.js                    | 100.00 |    91.67 |  100.00 | 
+ℹ  shared                        |        |          |         | 
+ℹ   logger.js                    |  84.07 |    66.67 |  100.00 | 85-93 98 100-102 125-126 136-140 165-171 177-181 198 232-233 235-236 255-256 264-265 273-274 282-283 291-292
+ℹ  skills                        |        |          |         | 
+ℹ   agentMapper.js               | 100.00 |   100.00 |  100.00 | 
+ℹ   discoverer.js                |  99.10 |    92.42 |  100.00 | 174-175
+ℹ   registry.js                  | 100.00 |    90.57 |  100.00 | 
+ℹ   types.js                     | 100.00 |   100.00 |  100.00 | 
+ℹ   validator.js                 | 100.00 |   100.00 |   80.00 | 
+ℹ  telemetry                     |        |          |         | 
+ℹ   flusher.js                   | 100.00 |   100.00 |  100.00 | 
+ℹ   index.js                     | 100.00 |   100.00 |  100.00 | 
+ℹ   llmInstrumenter.js           | 100.00 |   100.00 |  100.00 | 
+ℹ   metrics.js                   | 100.00 |   100.00 |  100.00 | 
+ℹ   provider.js                  |  81.82 |    45.45 |   80.00 | 17 22-28 41 49-51 67-68
+ℹ   redaction.js                 | 100.00 |    94.12 |  100.00 | 
+ℹ   sampler.js                   | 100.00 |   100.00 |  100.00 | 
+ℹ   skillInstrumenter.js         | 100.00 |   100.00 |  100.00 | 
+ℹ  tools                         |        |          |         | 
+ℹ   api                          |        |          |         | 
+ℹ    index.js                    |  96.12 |    98.36 |   83.33 | 59-70
+ℹ   calendar                     |        |          |         | 
+ℹ    index.js                    | 100.00 |    98.00 |  100.00 | 
+ℹ    providers                   |        |          |         | 
+ℹ     base.js                    | 100.00 |    98.21 |  100.00 | 
+ℹ     factory.js                 | 100.00 |   100.00 |  100.00 | 
+ℹ     google.js                  | 100.00 |    92.21 |  100.00 | 
+ℹ     msgraph.js                 | 100.00 |    90.48 |  100.00 | 
+ℹ    schemas.js                  | 100.00 |   100.00 |  100.00 | 
+ℹ   clarify                      |        |          |         | 
+ℹ    index.js                    | 100.00 |    94.12 |  100.00 | 
+ℹ   common.js                    | 100.00 |    96.77 |  100.00 | 
+ℹ   compactContext               |        |          |         | 
+ℹ    index.js                    | 100.00 |    88.89 |  100.00 | 
+ℹ   cron                         |        |          |         | 
+ℹ    index.js                    |  94.41 |    88.46 |   73.68 | 93-94 106-107 228-229 231-242 246-252 325-326
+ℹ   data                         |        |          |         | 
+ℹ    index.js                    | 100.00 |    97.96 |  100.00 | 
+ℹ   date                         |        |          |         | 
+ℹ    index.js                    | 100.00 |   100.00 |  100.00 | 
+ℹ   email                        |        |          |         | 
+ℹ    index.js                    | 100.00 |   100.00 |  100.00 | 
+ℹ    providers                   |        |          |         | 
+ℹ     base.js                    | 100.00 |   100.00 |  100.00 | 
+ℹ     gmail.js                   |  98.70 |    84.73 |   96.88 | 89-90 112-114 141-142
+ℹ     graph.js                   |  91.14 |    81.06 |   85.71 | 82-84 111-112 122-138 157-158 189-215 413-414 422-423
+ℹ     imap.js                    |  87.78 |    82.35 |   88.89 | 71-73 99-112 119-153 337-338
+ℹ    tools.js                    | 100.00 |    94.55 |   50.00 | 
+ℹ   fileCreate                   |        |          |         | 
+ℹ    index.js                    |  98.62 |    90.36 |   92.31 | 474-477 528-529 549-550
+ℹ   fileExtract                  |        |          |         | 
+ℹ    docx.js                     | 100.00 |    91.67 |  100.00 | 
+ℹ    docxParser.js               |  99.08 |    87.50 |  100.00 | 214-215
+ℹ    formatValidator.js          | 100.00 |   100.00 |  100.00 | 
+ℹ    index.js                    | 100.00 |   100.00 |  100.00 | 
+ℹ    pdf.js                      |  85.00 |    66.67 |  100.00 | 50-55 62-67
+ℹ    pdfParser.js                |  75.86 |    66.67 |   50.00 | 35 37-47 53-54
+ℹ    pptx.js                     | 100.00 |   100.00 |  100.00 | 
+ℹ    pptxParser.js               |  98.48 |    73.81 |  100.00 | 91-92
+ℹ    xlsx.js                     | 100.00 |    91.67 |  100.00 | 
+ℹ    xlsxJson.js                 |  98.43 |    89.13 |  100.00 | 101-102
+ℹ    xlsxParser.js               |  82.21 |    83.33 |   88.89 | 47-48 93-112 130-137 150-156
+ℹ    zipExtractor.js             |  82.32 |    77.78 |   66.67 | 62-63 104-107 124-142 149-152
+ℹ   graphql                      |        |          |         | 
+ℹ    index.js                    |  97.74 |    97.89 |   93.75 | 55-66
+ℹ   image                        |        |          |         | 
+ℹ    index.js                    | 100.00 |    95.65 |   50.00 | 
+ℹ   index.js                     | 100.00 |    94.87 |  100.00 | 
+ℹ   json                         |        |          |         | 
+ℹ    index.js                    | 100.00 |    97.59 |  100.00 | 
+ℹ   memory                       |        |          |         | 
+ℹ    index.js                    |  96.52 |    83.56 |   93.33 | 55 98-99 194-198 298-300
+ℹ   moa                          |        |          |         | 
+ℹ    index.js                    | 100.00 |    94.44 |   84.62 | 
+ℹ   namecom                      |        |          |         | 
+ℹ    index.js                    |  98.68 |    96.15 |   98.70 | 38-42 66-67
+ℹ   pdfGenerate                  |        |          |         | 
+ℹ    index.js                    |  97.18 |    92.86 |   91.30 | 66-70 143-152 165-166 224-228 249 331-332
+ℹ   process                      |        |          |         | 
+ℹ    index.js                    |  95.86 |    88.14 |   95.00 | 105 135-136 212-213 224-225 231-233 239-240
+ℹ   reflection                   |        |          |         | 
+ℹ    index.js                    |  95.18 |    82.00 |   91.67 | 58-62 127-128 151-152 206-207
+ℹ   sampling                     |        |          |         | 
+ℹ    index.js                    |  94.97 |    81.82 |   80.00 | 27 180-188
+ℹ   scanAgents                   |        |          |         | 
+ℹ    index.js                    | 100.00 |    80.00 |  100.00 | 
+ℹ   sessionSearch                |        |          |         | 
+ℹ    index.js                    |  97.06 |    71.19 |   94.12 | 71-72 118-119 128 181-182
+ℹ   skills                       |        |          |         | 
+ℹ    index.js                    |  90.91 |    86.54 |  100.00 | 93-94 127-134 154-161 177-179 194-195
+ℹ   spreadsheet                  |        |          |         | 
+ℹ    csv.js                      |  99.41 |    97.78 |  100.00 | 109
+ℹ    formulaParser.js            | 100.00 |    96.81 |  100.00 | 
+ℹ    index.js                    | 100.00 |   100.00 |  100.00 | 
+ℹ    pivot.js                    | 100.00 |    96.51 |  100.00 | 
+ℹ    spreadsheet.js              | 100.00 |    93.40 |  100.00 | 
+ℹ    stats.js                    |  99.16 |    96.19 |  100.00 | 237-238
+ℹ   tts                          |        |          |         | 
+ℹ    index.js                    | 100.00 |    88.00 |   50.00 | 
+ℹ   vision                       |        |          |         | 
+ℹ    index.js                    | 100.00 |    84.21 |   80.00 | 
+ℹ   web                          |        |          |         | 
+ℹ    index.js                    |  95.14 |    69.88 |   62.50 | 27-28 42-43 46-48 89-91 126-128 192-194 325-326
+ℹ   webhook                      |        |          |         | 
+ℹ    index.js                    |  98.79 |    96.49 |  100.00 | 20-22
+ℹ   yaml                         |        |          |         | 
+ℹ    index.js                    | 100.00 |    94.44 |  100.00 | 
+ℹ  tui                           |        |          |         | 
+ℹ   app.js                       |  42.53 |    66.67 |    6.67 | 53-69 79-80 87-88 95-140 144-198 212-222 229-245
+ℹ   banner.js                    |  90.00 |   100.00 |   85.71 | 45-52
+ℹ   commandParser.js             | 100.00 |    90.67 |  100.00 | 
+ℹ   contextTokens.js             |  80.33 |    73.33 |  100.00 | 22-25 32-39
+ℹ   conversationPanel.js         |  95.04 |    95.83 |  100.00 | 26-31
+ℹ   inputArea.js                 |  69.60 |    83.33 |   25.00 | 28-40 48-64 69-70 73-78
+ℹ   inputPanel.js                | 100.00 |   100.00 |  100.00 | 
+ℹ   markdownText.js              |  95.13 |    85.11 |   96.00 | 69 199-205 220-228 231-233 359
+ℹ   messageBubble.js             |  97.65 |    97.78 |   75.00 | 187-194
+ℹ   messageList.js               |  77.73 |    67.86 |   51.85 | 63 80-83 108-145 155-178 187 194-199 242 250 258 266 275-281 290 298-303 325-327 371 373-374
+ℹ   messages.js                  | 100.00 |   100.00 |  100.00 | 
+ℹ   panels.js                    | 100.00 |   100.00 |  100.00 | 
+ℹ   statusBar.js                 |  97.78 |    93.33 |  100.00 | 22-23
+ℹ  workspace                     |        |          |         | 
+ℹ   loadAgents.js                | 100.00 |    87.50 |  100.00 | 
+ℹ ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ℹ all files                      |  96.02 |    90.48 |   91.76 | 
+ℹ ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ℹ end of coverage report
+
+✖ failing tests:
+
+test at tests/unit/skills/registry.test.js:308:2
+✖ should handle register with skip=true (invalid metadata) (0.247074ms)
+  ReferenceError: errors is not defined
+      at SkillRegistry.register (file:///home/jason/Projects/madz/src/skills/registry.js:164:30)
+      at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/skills/registry.test.js:310:27)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Suite.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7)
+
+test at tests/unit/tools/pptx.test.js:1:1
+✖ tests/unit/tools/pptx.test.js (49.073366ms)
+  'test failed'
+
+test at tests/unit/tui/inputArea.test.js:174:2
+✖ handleSubmit clears input text (0.215855ms)
+  ReferenceError: cleared is not defined
+      at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/tui/inputArea.test.js:175:22)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Suite.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7)

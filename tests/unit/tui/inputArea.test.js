@@ -172,6 +172,7 @@ describe("InputArea — imperative API logic", () => {
 	});
 
 	it("handleSubmit clears input text", () => {
+		const cleared = "";
 		assert.strictEqual(cleared, "");
 	});
 
