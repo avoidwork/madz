@@ -40,5 +40,12 @@ export function createChatModel(config) {
 		}
 	}
 
+	// Pass reasoning configuration (effort) for models that support it (o3, o4-mini, etc.)
+	if (config.reasoning) {
+		opts.reasoning = {
+			effort: config.reasoning.effort,
+		};
+	}
+
 	return new ChatOpenAI(opts);
 }

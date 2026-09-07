@@ -64,6 +64,12 @@ export const SearchConfigSchema = z.object({
 	custom: CustomSearchSchema.default({}),
 });
 
+const ReasoningConfigSchema = z
+	.object({
+		effort: z.enum(["low", "medium", "high"]).default("medium"),
+	})
+	.default({ effort: "medium" });
+
 const _OpenaiProviderConfigSchema = z.object({
 	type: z.literal("openai").default("openai"),
 	base_url: z.string().url().default("https://api.openai.com/v1"),
@@ -72,6 +78,7 @@ const _OpenaiProviderConfigSchema = z.object({
 	credentials: OpenAICredentialsSchema,
 	temperature: z.number().min(0).max(2).default(0.4),
 	maxTokens: z.number().int().positive().default(4096),
+	reasoning: ReasoningConfigSchema,
 	rateLimit: RateLimitSchema.default({ requestsPerMinute: 60 }),
 });
 

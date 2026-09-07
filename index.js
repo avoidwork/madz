@@ -186,6 +186,7 @@ async function callProvider(_name, _providerConfig, message, streamingCallback, 
 	};
 
 	let collectedContent = "";
+	let collectedReasoning = "";
 	const input = {
 		messages: [{ role: "user", content: message }],
 	};
@@ -197,13 +198,34 @@ async function callProvider(_name, _providerConfig, message, streamingCallback, 
 		subgraphs: true,
 	})) {
 		if (mode === "messages") {
-			const [message] = payload;
-			const text = message?.text ?? "";
+			const [msg] = payload;
+			const text = msg?.text ?? "";
 
 			if (text) {
 				collectedContent += text;
 				if (streamingCallback) {
 					streamingCallback({ type: "message", text });
+				}
+			}
+
+			// Capture reasoning content from additional_kwargs (Chat Completions API)
+			const reasoningContent = msg?.additional_kwargs?.reasoning_content;
+			if (reasoningContent) {
+				collectedReasoning += reasoningContent;
+				if (streamingCallback) {
+					streamingCallback({ type: "reasoning", text: reasoningContent });
+				}
+			}
+
+			// Capture reasoning from content blocks (Responses API / block format)
+			if (Array.isArray(msg?.content)) {
+				for (const block of msg.content) {
+					if (block?.type === "reasoning" && block.reasoning) {
+						collectedReasoning += block.reasoning;
+						if (streamingCallback) {
+							streamingCallback({ type: "reasoning", text: block.reasoning });
+						}
+					}
 				}
 			}
 		} else if (mode === "tools" && streamingCallback) {
@@ -225,7 +247,12 @@ async function callProvider(_name, _providerConfig, message, streamingCallback, 
 		}
 	}
 
-	return { provider: providerName, content: collectedContent, tokens: { input: 0, output: 0 } };
+	return {
+		provider: providerName,
+		content: collectedContent,
+		reasoning: collectedReasoning || undefined,
+		tokens: { input: 0, output: 0 },
+	};
 }
 
 // Conversation handler
@@ -245,7 +272,11 @@ async function handleConversation(message, sessionId = "") {
 	});
 
 	sessionState.addExchange({ role: "user", content: message });
-	sessionState.addExchange({ role: "assistant", content: response.content });
+	sessionState.addExchange({
+		role: "assistant",
+		content: response.content,
+		reasoningContent: response.reasoning,
+	});
 
 	// Persist session after each exchange
 	await saveSession(
