@@ -272,7 +272,9 @@ export function MessageBubbleInner({
 				React.createElement(
 					Text,
 					{ dimColor: true, color: "gray" },
-					`(thinking) ` + (localReasoning || "hello world").slice(0, 200) + ((localReasoning || "hello world").length > 200 ? "..." : ""),
+					`(thinking) ` +
+						(localReasoning || "hello world").slice(0, 200) +
+						((localReasoning || "hello world").length > 200 ? "..." : ""),
 				),
 			)
 		: null;
@@ -389,6 +391,7 @@ export function MessageBubbleInner({
 					`${getRoleLabel(role, assistantName)}: `,
 				),
 			),
+			reasoningEl,
 			React.createElement(
 				Box,
 				{ flexDirection: "row" },
@@ -404,7 +407,6 @@ export function MessageBubbleInner({
 							color: role === "system" ? "orange" : undefined,
 						}),
 			),
-			reasoningEl,
 			toolCallEl,
 			toolDisplayEl,
 			timerEl,

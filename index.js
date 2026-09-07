@@ -209,7 +209,8 @@ async function callProvider(_name, _providerConfig, message, streamingCallback, 
 			}
 
 			// Capture reasoning content from additional_kwargs (Chat Completions API)
-			const reasoningContent = msg?.additional_kwargs?.reasoning_content ?? msg?.additional_kwargs?.reasoning;
+			const reasoningContent =
+				msg?.additional_kwargs?.reasoning_content ?? msg?.additional_kwargs?.reasoning;
 			if (reasoningContent) {
 				collectedReasoning += reasoningContent;
 				if (streamingCallback) {

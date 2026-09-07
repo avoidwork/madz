@@ -53,15 +53,23 @@ export function createChatModel(config) {
 	// LangChain's converter only reads 'reasoning_content', so vLLM's
 	// reasoning tokens are silently dropped without this normalization.
 	if (model.completions) {
-		const origDelta = model.completions._convertCompletionsDeltaToBaseMessageChunk.bind(model.completions);
-		model.completions._convertCompletionsDeltaToBaseMessageChunk = (delta, rawResponse, defaultRole) => {
+		const origDelta = model.completions._convertCompletionsDeltaToBaseMessageChunk.bind(
+			model.completions,
+		);
+		model.completions._convertCompletionsDeltaToBaseMessageChunk = (
+			delta,
+			rawResponse,
+			defaultRole,
+		) => {
 			if (delta.reasoning !== undefined && delta.reasoning_content === undefined) {
 				delta = { ...delta, reasoning_content: delta.reasoning };
 			}
 			return origDelta(delta, rawResponse, defaultRole);
 		};
 
-		const origMsg = model.completions._convertCompletionsMessageToBaseMessage.bind(model.completions);
+		const origMsg = model.completions._convertCompletionsMessageToBaseMessage.bind(
+			model.completions,
+		);
 		model.completions._convertCompletionsMessageToBaseMessage = (message, rawResponse) => {
 			if (message.reasoning !== undefined && message.reasoning_content === undefined) {
 				message = { ...message, reasoning_content: message.reasoning };
