@@ -282,7 +282,7 @@ export function MessageBubbleInner({
 				{ flexDirection: "row", marginTop: 1, marginLeft: 2 },
 				React.createElement(
 					Text,
-					{ dimColor: true, color: "gray" },
+					{ color: "gray" },
 					`- Running: ${activeToolCall.name} ...`,
 				),
 			)
@@ -344,7 +344,7 @@ export function MessageBubbleInner({
 					{ flexDirection: "row", marginTop: 1, marginLeft: 2 },
 					React.createElement(
 						Text,
-						{ dimColor: true, color: "gray" },
+						{ color: "gray" },
 						`⏱ ${formatElapsed(displayElapsed)}`,
 					),
 				)
@@ -358,7 +358,7 @@ export function MessageBubbleInner({
 					{ flexDirection: "column", marginTop: 1, marginLeft: 2 },
 					React.createElement(
 						Text,
-						{ dimColor: true, color: "gray" },
+						{ color: "gray" },
 						`⚡ ${localCompletedToolCalls.length} tool call${localCompletedToolCalls.length !== 1 ? "s" : ""}: ${localCompletedToolCalls.join(", ")}`,
 					),
 				)
