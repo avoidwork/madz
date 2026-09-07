@@ -271,10 +271,8 @@ export function MessageBubbleInner({
 				{ flexDirection: "row", marginTop: 1, marginLeft: 2 },
 				React.createElement(
 					Text,
-					{ dimColor: true, color: "gray" },
-					`(thinking) ` +
-						(localReasoning || "hello world").slice(0, 200) +
-						((localReasoning || "hello world").length > 200 ? "..." : ""),
+					{ color: "gray" },
+					`(thinking) ` + (localReasoning || "hello world")
 				),
 			)
 		: null;
@@ -392,21 +390,28 @@ export function MessageBubbleInner({
 				),
 			),
 			reasoningEl,
-			React.createElement(
-				Box,
-				{ flexDirection: "row" },
-				pendingState
-					? React.createElement(
+			pendingState
+				? React.createElement(
+						Box,
+						{ flexDirection: "row" },
+						React.createElement(
 							Text,
 							{ color: "cyan" },
 							React.createElement(Spinner, { type: "dots2" }),
 							` ${thinkingWordRef.current}`,
-						)
-					: React.createElement(MarkdownText, {
+						),
+					)
+				: null,
+			!pendingState
+				? React.createElement(
+						Box,
+						{ flexDirection: "row" },
+						React.createElement(MarkdownText, {
 							content: text,
 							color: role === "system" ? "orange" : undefined,
 						}),
-			),
+					)
+				: null,
 			toolCallEl,
 			toolDisplayEl,
 			timerEl,
