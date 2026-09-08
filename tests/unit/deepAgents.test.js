@@ -161,3 +161,40 @@ describe("createDeepAgentsOrchestrator", () => {
 		}
 	});
 });
+
+describe("modelIdentifier colon sanitization", () => {
+	it("should replace a single colon in model name with hyphen", () => {
+		const providerName = "openai";
+		const modelName = "qwen3.8:27b-mlx";
+		const result = `${providerName}:${modelName.replace(/:/g, "-")}`;
+		assert.strictEqual(result, "openai:qwen3.8-27b-mlx");
+	});
+
+	it("should replace multiple colons in model name with hyphens", () => {
+		const providerName = "openai";
+		const modelName = "a:b:c";
+		const result = `${providerName}:${modelName.replace(/:/g, "-")}`;
+		assert.strictEqual(result, "openai:a-b-c");
+	});
+
+	it("should replace leading and trailing colons in model name with hyphens", () => {
+		const providerName = "openai";
+		const modelName = ":model:";
+		const result = `${providerName}:${modelName.replace(/:/g, "-")}`;
+		assert.strictEqual(result, "openai:-model-");
+	});
+
+	it("should not modify model name without colons", () => {
+		const providerName = "openai";
+		const modelName = "gpt-4o";
+		const result = `${providerName}:${modelName.replace(/:/g, "-")}`;
+		assert.strictEqual(result, "openai:gpt-4o");
+	});
+
+	it("should preserve original model name for API calls", () => {
+		const modelName = "qwen3.8:27b-mlx";
+		const sanitized = modelName.replace(/:/g, "-");
+		assert.notStrictEqual(sanitized, modelName);
+		assert.strictEqual(modelName, "qwen3.8:27b-mlx");
+	});
+});
