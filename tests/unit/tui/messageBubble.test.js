@@ -254,7 +254,7 @@ describe("MessageBubbleInner - reasoning content", () => {
 					React.createElement(MessageBubbleInner, {
 						role: "assistant",
 						content: "response",
-						reasoningContent: "thinking step by step",
+						segments: [{ type: "reasoning", content: "thinking step by step" }],
 						streaming: false,
 					}),
 				),
@@ -277,7 +277,7 @@ describe("MessageBubbleInner - reasoning content", () => {
 					React.createElement(MessageBubbleInner, {
 						role: "assistant",
 						content: "response",
-						reasoningContent: "thinking",
+						segments: [{ type: "reasoning", content: "thinking" }],
 						streaming: true,
 					}),
 				),
