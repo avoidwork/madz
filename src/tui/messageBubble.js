@@ -339,7 +339,7 @@ export function MessageBubbleInner({
 		role === "assistant" && (localStreaming || localTurnDuration)
 			? React.createElement(
 					Box,
-					{ flexDirection: "row", marginTop: 1, marginLeft: 2 },
+					{ flexDirection: "row", marginLeft: 2 },
 					React.createElement(Text, { color: "gray" }, `⏱ ${formatElapsed(displayElapsed)}`),
 				)
 			: null;
