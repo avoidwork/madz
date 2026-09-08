@@ -43,6 +43,14 @@ const ConversationArea = forwardRef(function ConversationArea(
 ) {
 	const [contextSize, setContextSize] = useState(0);
 	const [, setIsCompacting] = useState(false);
+	// Wrapper that updates both local state and the status bar (via InputArea)
+	const updateContextDisplay = useCallback(
+		(size) => {
+			setContextSize(size);
+			onContextChange?.(size);
+		},
+		[setContextSize, onContextChange],
+	);
 	const messageListRef = useRef(null);
 	const abortControllerRef = useRef(null);
 	const isStreamingRef = useRef(false);
@@ -239,7 +247,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 							{ current: "" },
 							undefined,
 							preStreamContextSize,
-							setContextSize,
+							updateContextDisplay,
 							completedToolCalls,
 							turnStartTime,
 						),
@@ -286,7 +294,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 										isAutoContinuingRef.current = false;
 									},
 									preStreamContextSize,
-									setContextSize,
+									updateContextDisplay,
 								),
 								abortControllerRef.current?.signal,
 							);
@@ -399,7 +407,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 					{ current: "" },
 					undefined,
 					preStreamContextSize,
-					setContextSize,
+					updateContextDisplay,
 					completedToolCalls,
 					turnStartTime,
 				),
@@ -446,7 +454,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 								isAutoContinuingRef.current = false;
 							},
 							preStreamContextSize,
-							setContextSize,
+							updateContextDisplay,
 						),
 						abortControllerRef.current?.signal,
 					);
