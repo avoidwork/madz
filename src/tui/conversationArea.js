@@ -650,6 +650,19 @@ const ConversationArea = forwardRef(function ConversationArea(
 								streaming: true,
 							});
 							messageListRef.current?._triggerRender();
+							// Update context size as text streams in, not just after the last chunk
+							if (committedContentRef.current && preStreamContextSize != null && onContextUpdate) {
+								const cached = tokenCacheRef.current;
+								if (cached.content !== committedContentRef.current) {
+									cached.content = committedContentRef.current;
+									cached.tokens = await calculateConversationTokens(
+										[{ role: "assistant", content: committedContentRef.current }],
+										config?.providers?.[sessionState?.getProvider()]?.model || "gpt-4o",
+										config?.providers?.[sessionState?.getProvider()]?.encoding,
+									);
+								}
+								onContextUpdate(preStreamContextSize + cached.tokens);
+							}
 						}
 						if (event.data?.chunk?.reasoning) {
 							const reasoningChunk = event.data.chunk.reasoning;
