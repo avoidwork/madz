@@ -43,6 +43,14 @@ const ConversationArea = forwardRef(function ConversationArea(
 ) {
 	const [contextSize, setContextSize] = useState(0);
 	const [, setIsCompacting] = useState(false);
+	// Wrapper that updates both local state and the status bar (via InputArea)
+	const updateContextDisplay = useCallback(
+		(size) => {
+			setContextSize(size);
+			onContextChange?.(size);
+		},
+		[setContextSize, onContextChange],
+	);
 	const messageListRef = useRef(null);
 	const abortControllerRef = useRef(null);
 	const isStreamingRef = useRef(false);
@@ -51,6 +59,8 @@ const ConversationArea = forwardRef(function ConversationArea(
 	const isAutoContinuingRef = useRef(false);
 	const streamingMsgIdRef = useRef(null);
 	const tokenCacheRef = useRef({ content: "", tokens: 0 });
+	const contextUpdateTimerRef = useRef(null);
+	const pendingContextRef = useRef({ content: "" });
 
 	const skillList = registry ? registry.list() : [];
 	const parser = new CommandParser();
@@ -200,6 +210,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 
 				if (sessionState) {
 					sessionState.addExchange({ role: "user", content: trimmed });
+					updateContextSize(sessionState, config);
 				}
 
 				const assistantTime = getTimestamp();
@@ -236,7 +247,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 							{ current: "" },
 							undefined,
 							preStreamContextSize,
-							setContextSize,
+							updateContextDisplay,
 							completedToolCalls,
 							turnStartTime,
 						),
@@ -283,7 +294,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 										isAutoContinuingRef.current = false;
 									},
 									preStreamContextSize,
-									setContextSize,
+									updateContextDisplay,
 								),
 								abortControllerRef.current?.signal,
 							);
@@ -314,6 +325,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 							role: "assistant",
 							content: responseContent,
 						});
+						updateContextSize(sessionState, config);
 					}
 				} catch (err) {
 					if (err.name === "AbortError") {
@@ -395,7 +407,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 					{ current: "" },
 					undefined,
 					preStreamContextSize,
-					setContextSize,
+					updateContextDisplay,
 					completedToolCalls,
 					turnStartTime,
 				),
@@ -442,7 +454,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 								isAutoContinuingRef.current = false;
 							},
 							preStreamContextSize,
-							setContextSize,
+							updateContextDisplay,
 						),
 						abortControllerRef.current?.signal,
 					);
@@ -458,10 +470,6 @@ const ConversationArea = forwardRef(function ConversationArea(
 			}
 
 			if (shouldAbort()) return;
-
-			if (sessionState) {
-				sessionState.addExchange({ role: "user", content: text });
-			}
 
 			finalizeStreaming(
 				responseContent,
@@ -548,6 +556,12 @@ const ConversationArea = forwardRef(function ConversationArea(
 	 */
 	const updateContextSize = useCallback(
 		async (sessionState, config) => {
+			// Cancel any pending debounced update so a stale streaming-era
+			// value doesn't overwrite this accurate full-conversation recount.
+			if (contextUpdateTimerRef.current) {
+				clearTimeout(contextUpdateTimerRef.current);
+				contextUpdateTimerRef.current = null;
+			}
 			if (!sessionState) return;
 			const conversation = sessionState.getConversation();
 			const providerName = sessionState.getProvider();
@@ -591,6 +605,30 @@ const ConversationArea = forwardRef(function ConversationArea(
 			onContextUpdate,
 			completedToolCalls = [],
 		) => {
+			// Debounced context size update — coalesces rapid chunks into a single
+			// token calculation every ~200ms so the status bar stays responsive.
+			const debouncedContextUpdate = (content) => {
+				if (contextUpdateTimerRef.current) {
+					clearTimeout(contextUpdateTimerRef.current);
+				}
+				pendingContextRef.current.content = content;
+				contextUpdateTimerRef.current = setTimeout(async () => {
+					contextUpdateTimerRef.current = null;
+					const text = pendingContextRef.current.content;
+					if (!text || preStreamContextSize == null || !onContextUpdate) return;
+					const cached = tokenCacheRef.current;
+					if (cached.content !== text) {
+						cached.content = text;
+						cached.tokens = await calculateConversationTokens(
+							[{ role: "assistant", content: text }],
+							config?.providers?.[sessionState?.getProvider()]?.model || "gpt-4o",
+							config?.providers?.[sessionState?.getProvider()]?.encoding,
+						);
+					}
+					onContextUpdate(preStreamContextSize + cached.tokens);
+				}, 33);
+			};
+
 			return async (event) => {
 				if (shouldAbort()) return;
 				try {
@@ -610,18 +648,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 						});
 						messageListRef.current?._triggerRender();
 						if (onTextReceived) onTextReceived();
-						if (committedContentRef.current && preStreamContextSize != null && onContextUpdate) {
-							const cached = tokenCacheRef.current;
-							if (cached.content !== committedContentRef.current) {
-								cached.content = committedContentRef.current;
-								cached.tokens = await calculateConversationTokens(
-									[{ role: "assistant", content: committedContentRef.current }],
-									config?.providers?.[sessionState?.getProvider()]?.model || "gpt-4o",
-									config?.providers?.[sessionState?.getProvider()]?.encoding,
-								);
-							}
-							onContextUpdate(preStreamContextSize + cached.tokens);
-						}
+						debouncedContextUpdate(committedContentRef.current);
 					}
 
 					if (event.type === "reasoning") {
@@ -652,6 +679,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 								streaming: true,
 							});
 							messageListRef.current?._triggerRender();
+							debouncedContextUpdate(committedContentRef.current);
 						}
 						if (event.data?.chunk?.reasoning) {
 							const reasoningChunk = event.data.chunk.reasoning;
