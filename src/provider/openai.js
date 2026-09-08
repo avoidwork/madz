@@ -1,4 +1,5 @@
 import { ChatOpenAI } from "@langchain/openai";
+import { AIMessageChunk } from "@langchain/core/messages";
 
 /**
  * Configuration for creating an OpenAI-compatible chat model.
@@ -40,5 +41,56 @@ export function createChatModel(config) {
 		}
 	}
 
-	return new ChatOpenAI(opts);
+	// Pass reasoning configuration (effort) for models that support it (o3, o4-mini, etc.)
+	if (config.reasoning) {
+		opts.reasoning = {
+			effort: config.reasoning.effort,
+		};
+	}
+
+	const model = new ChatOpenAI(opts);
+
+	// Monkey-patch AIMessageChunk to expose a .reasoning getter that reads
+	// from additional_kwargs.reasoning_content. LangChain stores reasoning
+	// content there, but the streaming handler checks chunk.reasoning.
+	if (AIMessageChunk.prototype && !("reasoning" in AIMessageChunk.prototype)) {
+		Object.defineProperty(AIMessageChunk.prototype, "reasoning", {
+			get() {
+				return this.additional_kwargs?.reasoning_content;
+			},
+			enumerable: true,
+			configurable: true,
+		});
+	}
+
+	// Normalize vLLM's 'reasoning' field to OpenAI's 'reasoning_content'
+	// LangChain's converter only reads 'reasoning_content', so vLLM's
+	// reasoning tokens are silently dropped without this normalization.
+	if (model.completions) {
+		const origDelta = model.completions._convertCompletionsDeltaToBaseMessageChunk.bind(
+			model.completions,
+		);
+		model.completions._convertCompletionsDeltaToBaseMessageChunk = (
+			delta,
+			rawResponse,
+			defaultRole,
+		) => {
+			if (delta.reasoning !== undefined && delta.reasoning_content === undefined) {
+				delta = { ...delta, reasoning_content: delta.reasoning };
+			}
+			return origDelta(delta, rawResponse, defaultRole);
+		};
+
+		const origMsg = model.completions._convertCompletionsMessageToBaseMessage.bind(
+			model.completions,
+		);
+		model.completions._convertCompletionsMessageToBaseMessage = (message, rawResponse) => {
+			if (message.reasoning !== undefined && message.reasoning_content === undefined) {
+				message = { ...message, reasoning_content: message.reasoning };
+			}
+			return origMsg(message, rawResponse);
+		};
+	}
+
+	return model;
 }

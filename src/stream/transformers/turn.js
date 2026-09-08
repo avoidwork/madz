@@ -78,15 +78,26 @@ export function createTurnTransformer() {
 		if (!msg || typeof msg !== "object") return false;
 		// Check for text content
 		if (typeof msg.content === "string" && msg.content.length > 0) return true;
-		// Check for tool calls in additional_kwargs
+		// Check for reasoning content in additional_kwargs (Chat Completions API)
 		if (msg.additional_kwargs && typeof msg.additional_kwargs === "object") {
 			const tc = msg.additional_kwargs.tool_calls;
 			if (Array.isArray(tc) && tc.length > 0) return true;
+			if (
+				typeof msg.additional_kwargs.reasoning_content === "string" &&
+				msg.additional_kwargs.reasoning_content.length > 0
+			)
+				return true;
 		}
 		// Check for tool_calls directly on the message (LangChain v0.3+)
 		if (Array.isArray(msg.tool_calls) && msg.tool_calls.length > 0) return true;
 		// Check for invalid_tool_calls
 		if (Array.isArray(msg.invalid_tool_calls) && msg.invalid_tool_calls.length > 0) return true;
+		// Check for reasoning content blocks (Responses API / block format)
+		if (Array.isArray(msg.content)) {
+			for (const block of msg.content) {
+				if (block?.type === "reasoning" && block.reasoning) return true;
+			}
+		}
 		return false;
 	}
 

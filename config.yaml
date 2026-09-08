@@ -8,6 +8,8 @@ providers:
       apiKey:
     temperature: 0.4
     maxTokens: 4096
+    reasoning:
+      effort: medium
     rateLimit:
       requestsPerMinute: 120
       maxRetries: 6

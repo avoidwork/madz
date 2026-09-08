@@ -214,7 +214,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 				}
 
 				let committedContentRef = { current: "" };
-				let committedReasoning = "";
+				const committedReasoningRef = { current: "" };
 				let lastToolCallDisplay = "";
 				let todoStatusLines = "";
 				/** @type {string[]} */
@@ -232,7 +232,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 						sessionState ? sessionState.getProvider() : null,
 						createStreamingHandler(
 							committedContentRef,
-							{ current: "" },
+							committedReasoningRef,
 							{ current: "" },
 							undefined,
 							preStreamContextSize,
@@ -247,6 +247,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 					await dispatchPromise;
 
 					let responseContent = committedContentRef.current;
+					const committedReasoning = committedReasoningRef.current;
 
 					if (!responseContent.trim() && !shouldAbort()) {
 						if (lastToolCallDisplay) {
@@ -276,6 +277,8 @@ const ConversationArea = forwardRef(function ConversationArea(
 								sessionState ? sessionState.getProvider() : null,
 								createStreamingHandler(
 									committedContentRef,
+									committedReasoningRef,
+									{ current: "" },
 									() => {
 										isAutoContinuingRef.current = false;
 									},
@@ -310,6 +313,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 						sessionState.addExchange({
 							role: "assistant",
 							content: responseContent,
+							reasoningContent: committedReasoning || undefined,
 						});
 					}
 				} catch (err) {
@@ -371,7 +375,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 		}
 
 		let committedContentRef = { current: "" };
-		let committedReasoning = "";
+		const committedReasoningRef = { current: "" };
 		let lastToolCallDisplay = "";
 		let todoStatusLines = "";
 		/** @type {string[]} */
@@ -388,7 +392,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 				sessionState ? sessionState.getProvider() : null,
 				createStreamingHandler(
 					committedContentRef,
-					{ current: "" },
+					committedReasoningRef,
 					{ current: "" },
 					undefined,
 					preStreamContextSize,
@@ -403,6 +407,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 			const _response = await dispatchPromise;
 
 			let responseContent = committedContentRef.current;
+			const committedReasoning = committedReasoningRef.current;
 
 			if (!responseContent.trim() && !shouldAbort()) {
 				if (lastToolCallDisplay) {
@@ -432,7 +437,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 						sessionState ? sessionState.getProvider() : null,
 						createStreamingHandler(
 							committedContentRef,
-							{ current: "" },
+							committedReasoningRef,
 							{ current: "" },
 							() => {
 								isAutoContinuingRef.current = false;
@@ -472,6 +477,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 				sessionState.addExchange({
 					role: "assistant",
 					content: responseContent,
+					reasoningContent: committedReasoning || undefined,
 				});
 				updateContextSize(sessionState, config);
 			}
@@ -616,6 +622,18 @@ const ConversationArea = forwardRef(function ConversationArea(
 								);
 							}
 							onContextUpdate(preStreamContextSize + cached.tokens);
+						}
+					}
+
+					if (event.type === "reasoning") {
+						const reasoningText = event.data?.text || event.text || "";
+						if (reasoningText) {
+							committedReasoningRef.current = (committedReasoningRef.current || "") + reasoningText;
+							messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
+								reasoningContent: committedReasoningRef.current,
+								streaming: true,
+							});
+							messageListRef.current?._triggerRender();
 						}
 					}
 

@@ -783,12 +783,16 @@ For Docker-specific configuration, see the [Environment Variables](#environment-
 
 See [Config Reference](#config-reference) for the full list of configuration keys and their defaults.
 
-## License
+### LangChain Reasoning Patch
 
-Licensed under the [BSD-3-Clause](LICENSE) License.
+vLLM sends reasoning tokens in a field called `reasoning` in the streaming delta and final message. LangChain's OpenAI converter only reads `reasoning_content` (OpenAI's field name), so vLLM's reasoning tokens are silently dropped without a patch.
 
-Copyright (c) 2026 Jason Mulligan.
-[Config Reference](#config-reference) for the full list of configuration keys and their defaults.
+A `postinstall` script at `scripts/patch-langchain-reasoning.mjs` applies two patches to `node_modules/@langchain/openai/dist/converters/completions.js`:
+
+1. **`convertCompletionsMessageToBaseMessage`** — falls back `message.reasoning` → `reasoning_content` for non-streaming final messages
+2. **`convertCompletionsDeltaToBaseMessageChunk`** — same for streaming deltas
+
+The patch is idempotent — it checks if the patch is already applied before modifying. It runs automatically on `npm install` via the `postinstall` hook.
 
 ## License
 
