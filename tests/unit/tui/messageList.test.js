@@ -56,7 +56,34 @@ function createImperativeApi() {
 			const idx = idToIdxRef.current.get(id);
 			if (idx === undefined) return;
 			const existing = dataRef.current.get(id);
-			if (existing) dataRef.current.set(id, { ...existing, ...updates });
+			if (existing) {
+				// Segment append/coalesce — mirrors the real implementation
+				if (updates.segments && existing.segments) {
+					const newSeg = updates.segments[updates.segments.length - 1];
+					const mergedSegments = existing.segments.map((s) => ({ ...s }));
+					if (newSeg.type === "reasoning" && newSeg.content === ".") {
+						let found = false;
+						for (let i = mergedSegments.length - 1; i >= 0; i--) {
+							if (mergedSegments[i].type === "reasoning") {
+								mergedSegments[i].content += ".";
+								found = true;
+								break;
+							}
+						}
+						if (!found) mergedSegments.push({ ...newSeg });
+					} else {
+						const lastSeg = mergedSegments[mergedSegments.length - 1];
+						if (lastSeg && lastSeg.type === newSeg.type) {
+							lastSeg.content += newSeg.content;
+						} else {
+							mergedSegments.push({ ...newSeg });
+						}
+					}
+					dataRef.current.set(id, { ...existing, ...updates, segments: mergedSegments });
+				} else {
+					dataRef.current.set(id, { ...existing, ...updates });
+				}
+			}
 			idsRef.current[idx] = id;
 			if (updates.content !== undefined) {
 				const stableContent = updates.content || "";
@@ -223,6 +250,63 @@ describe("MessageList — imperative API", () => {
 			if (callbacks) for (const cb of callbacks) cb({ content: "Updated" });
 			assert.ok(received !== null);
 			assert.strictEqual(received.content, "Updated");
+		});
+
+		it("coalesces same-type segments on update", () => {
+			const id = api.addMessage("assistant", "", {
+				segments: [{ type: "reasoning", content: "thinking" }],
+			});
+			api.updateMessage(id, {
+				segments: [{ type: "reasoning", content: " deeper" }],
+			});
+			const data = api.getMessageData(id);
+			assert.strictEqual(data.segments.length, 1);
+			assert.strictEqual(data.segments[0].content, "thinking deeper");
+		});
+
+		it("appends different-type segments on update", () => {
+			const id = api.addMessage("assistant", "", {
+				segments: [{ type: "reasoning", content: "thinking" }],
+			});
+			api.updateMessage(id, {
+				segments: [{ type: "message", content: "Hello" }],
+			});
+			const data = api.getMessageData(id);
+			assert.strictEqual(data.segments.length, 2);
+			assert.strictEqual(data.segments[0].type, "reasoning");
+			assert.strictEqual(data.segments[1].type, "message");
+		});
+
+		it("appends stray '.' reasoning chunk to last reasoning segment", () => {
+			const id = api.addMessage("assistant", "", {
+				segments: [
+					{ type: "reasoning", content: "thinking" },
+					{ type: "message", content: "Hello" },
+				],
+			});
+			api.updateMessage(id, {
+				segments: [{ type: "reasoning", content: "." }],
+			});
+			const data = api.getMessageData(id);
+			assert.strictEqual(data.segments.length, 2);
+			assert.strictEqual(data.segments[0].type, "reasoning");
+			assert.strictEqual(data.segments[0].content, "thinking.");
+			assert.strictEqual(data.segments[1].type, "message");
+			assert.strictEqual(data.segments[1].content, "Hello");
+		});
+
+		it("creates new reasoning segment if no prior reasoning exists for stray '.'", () => {
+			const id = api.addMessage("assistant", "", {
+				segments: [{ type: "message", content: "Hello" }],
+			});
+			api.updateMessage(id, {
+				segments: [{ type: "reasoning", content: "." }],
+			});
+			const data = api.getMessageData(id);
+			assert.strictEqual(data.segments.length, 2);
+			assert.strictEqual(data.segments[0].type, "message");
+			assert.strictEqual(data.segments[1].type, "reasoning");
+			assert.strictEqual(data.segments[1].content, ".");
 		});
 	});
 
