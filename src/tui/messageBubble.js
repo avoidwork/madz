@@ -280,7 +280,7 @@ export function MessageBubbleInner({
 	const toolCallEl = hasActiveToolCall
 		? React.createElement(
 				Box,
-				{ flexDirection: "row", marginTop: 1, marginLeft: 2 },
+				{ flexDirection: "row", marginLeft: 2 },
 				React.createElement(Text, { color: "gray" }, `- Running: ${activeToolCall.name} ...`),
 			)
 		: null;
@@ -288,7 +288,7 @@ export function MessageBubbleInner({
 	const toolDisplayEl = hasToolCallDisplay
 		? React.createElement(
 				Box,
-				{ flexDirection: "column", marginTop: 1, marginLeft: 2 },
+				{ flexDirection: "column", marginLeft: 2 },
 				...toolCallDisplay
 					.split("\n")
 					.map((line, i) =>
@@ -349,7 +349,7 @@ export function MessageBubbleInner({
 		role === "assistant" && localCompletedToolCalls && localCompletedToolCalls.length > 0
 			? React.createElement(
 					Box,
-					{ flexDirection: "column", marginTop: 1, marginLeft: 2 },
+					{ flexDirection: "column", marginLeft: 2 },
 					React.createElement(
 						Text,
 						{ color: "gray" },
