@@ -51,6 +51,8 @@ const ConversationArea = forwardRef(function ConversationArea(
 	const isAutoContinuingRef = useRef(false);
 	const streamingMsgIdRef = useRef(null);
 	const tokenCacheRef = useRef({ content: "", tokens: 0 });
+	const contextUpdateTimerRef = useRef(null);
+	const pendingContextRef = useRef({ content: "" });
 
 	const skillList = registry ? registry.list() : [];
 	const parser = new CommandParser();
@@ -589,6 +591,30 @@ const ConversationArea = forwardRef(function ConversationArea(
 			onContextUpdate,
 			completedToolCalls = [],
 		) => {
+			// Debounced context size update — coalesces rapid chunks into a single
+			// token calculation every ~200ms so the status bar stays responsive.
+			const debouncedContextUpdate = (content) => {
+				if (contextUpdateTimerRef.current) {
+					clearTimeout(contextUpdateTimerRef.current);
+				}
+				pendingContextRef.current.content = content;
+				contextUpdateTimerRef.current = setTimeout(async () => {
+					contextUpdateTimerRef.current = null;
+					const text = pendingContextRef.current.content;
+					if (!text || preStreamContextSize == null || !onContextUpdate) return;
+					const cached = tokenCacheRef.current;
+					if (cached.content !== text) {
+						cached.content = text;
+						cached.tokens = await calculateConversationTokens(
+							[{ role: "assistant", content: text }],
+							config?.providers?.[sessionState?.getProvider()]?.model || "gpt-4o",
+							config?.providers?.[sessionState?.getProvider()]?.encoding,
+						);
+					}
+					onContextUpdate(preStreamContextSize + cached.tokens);
+				}, 200);
+			};
+
 			return async (event) => {
 				if (shouldAbort()) return;
 				try {
@@ -608,18 +634,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 						});
 						messageListRef.current?._triggerRender();
 						if (onTextReceived) onTextReceived();
-						if (committedContentRef.current && preStreamContextSize != null && onContextUpdate) {
-							const cached = tokenCacheRef.current;
-							if (cached.content !== committedContentRef.current) {
-								cached.content = committedContentRef.current;
-								cached.tokens = await calculateConversationTokens(
-									[{ role: "assistant", content: committedContentRef.current }],
-									config?.providers?.[sessionState?.getProvider()]?.model || "gpt-4o",
-									config?.providers?.[sessionState?.getProvider()]?.encoding,
-								);
-							}
-							onContextUpdate(preStreamContextSize + cached.tokens);
-						}
+						debouncedContextUpdate(committedContentRef.current);
 					}
 
 					if (event.type === "reasoning") {
@@ -650,19 +665,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 								streaming: true,
 							});
 							messageListRef.current?._triggerRender();
-							// Update context size as text streams in, not just after the last chunk
-							if (committedContentRef.current && preStreamContextSize != null && onContextUpdate) {
-								const cached = tokenCacheRef.current;
-								if (cached.content !== committedContentRef.current) {
-									cached.content = committedContentRef.current;
-									cached.tokens = await calculateConversationTokens(
-										[{ role: "assistant", content: committedContentRef.current }],
-										config?.providers?.[sessionState?.getProvider()]?.model || "gpt-4o",
-										config?.providers?.[sessionState?.getProvider()]?.encoding,
-									);
-								}
-								onContextUpdate(preStreamContextSize + cached.tokens);
-							}
+							debouncedContextUpdate(committedContentRef.current);
 						}
 						if (event.data?.chunk?.reasoning) {
 							const reasoningChunk = event.data.chunk.reasoning;
