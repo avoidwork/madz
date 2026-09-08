@@ -374,7 +374,7 @@ export function MessageBubbleInner({
 				key: `bubble-inner-${role}`,
 				flexDirection: "column",
 				paddingX: 1,
-				paddingY: 1,
+				paddingBottom: 1,
 				width: "100%",
 				gap: 1,
 				...(role === "system" || role === "user" ? { backgroundColor: "#0d0d0d" } : {}),
