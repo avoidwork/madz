@@ -378,8 +378,7 @@ export function MessageBubbleInner({
 		{
 			key: `bubble-${role}`,
 			flexDirection: "row",
-			paddingY: 0,
-			paddingBottom: 1,
+			paddingY: 1,
 			justifyContent: bubble.alignment,
 			gap: 0,
 		},
