@@ -200,6 +200,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 
 				if (sessionState) {
 					sessionState.addExchange({ role: "user", content: trimmed });
+					updateContextSize(sessionState, config);
 				}
 
 				const assistantTime = getTimestamp();
@@ -314,6 +315,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 							role: "assistant",
 							content: responseContent,
 						});
+						updateContextSize(sessionState, config);
 					}
 				} catch (err) {
 					if (err.name === "AbortError") {
@@ -458,10 +460,6 @@ const ConversationArea = forwardRef(function ConversationArea(
 			}
 
 			if (shouldAbort()) return;
-
-			if (sessionState) {
-				sessionState.addExchange({ role: "user", content: text });
-			}
 
 			finalizeStreaming(
 				responseContent,
