@@ -378,7 +378,7 @@ export function MessageBubbleInner({
 		{
 			key: `bubble-${role}`,
 			flexDirection: "row",
-			paddingY: 1,
+			//paddingY: 1,
 			justifyContent: bubble.alignment,
 			gap: 0,
 		},
@@ -388,7 +388,7 @@ export function MessageBubbleInner({
 				key: `bubble-inner-${role}`,
 				flexDirection: "column",
 				paddingX: 1,
-				paddingBottom: 1,
+				paddingY: 1,
 				width: "100%",
 				gap: 1,
 				...(role === "system" || role === "user" ? { backgroundColor: "#0d0d0d" } : {}),
