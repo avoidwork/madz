@@ -620,7 +620,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 						);
 					}
 					onContextUpdate(preStreamContextSize + cached.tokens);
-				}, 200);
+				}, 33);
 			};
 
 			return async (event) => {
