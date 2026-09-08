@@ -186,8 +186,11 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 		}
 	}
 
-	// Register harness profile for subagents using config-derived model identifier
-	const modelIdentifier = `${providerName}:${providerConfig.model}`;
+	// Register harness profile for subagents using config-derived model identifier.
+	// The model name may contain colons (e.g. "qwen3.8:27b-mlx"), so we replace
+	// them with hyphens to keep the "provider:model" key format valid — the
+	// deepagents library rejects keys with more than one colon.
+	const modelIdentifier = `${providerName}:${providerConfig.model.replace(/:/g, "-")}`;
 	registerHarnessProfile(
 		modelIdentifier,
 		createHarnessProfile({
