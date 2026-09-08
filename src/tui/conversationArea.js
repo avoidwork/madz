@@ -556,6 +556,12 @@ const ConversationArea = forwardRef(function ConversationArea(
 	 */
 	const updateContextSize = useCallback(
 		async (sessionState, config) => {
+			// Cancel any pending debounced update so a stale streaming-era
+			// value doesn't overwrite this accurate full-conversation recount.
+			if (contextUpdateTimerRef.current) {
+				clearTimeout(contextUpdateTimerRef.current);
+				contextUpdateTimerRef.current = null;
+			}
 			if (!sessionState) return;
 			const conversation = sessionState.getConversation();
 			const providerName = sessionState.getProvider();
