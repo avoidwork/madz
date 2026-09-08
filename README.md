@@ -799,10 +799,3 @@ The patch is idempotent — it checks if the patch is already applied before mod
 Licensed under the [BSD-3-Clause](LICENSE) License.
 
 Copyright (c) 2026 Jason Mulligan.
-[Config Reference](#config-reference) for the full list of configuration keys and their defaults.
-
-## License
-
-Licensed under the [BSD-3-Clause](LICENSE) License.
-
-Copyright (c) 2026 Jason Mulligan.
