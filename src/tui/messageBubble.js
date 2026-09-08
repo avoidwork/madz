@@ -267,7 +267,7 @@ export function MessageBubbleInner({
 			return React.createElement(
 				Box,
 				{ key: `seg-${i}`, flexDirection: "row", marginLeft: 2 },
-				React.createElement(Text, { color: "gray" }, `(thinking) ` + seg.content),
+				React.createElement(Text, { color: "gray" }, `💭 ` + seg.content),
 			);
 		}
 		return React.createElement(
