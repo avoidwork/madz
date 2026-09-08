@@ -10,6 +10,7 @@ RUN apk add --no-cache python3 make g++ bash
 WORKDIR /app
 
 COPY package*.json ./
+COPY scripts/ ./scripts/
 
 RUN npm ci
 
