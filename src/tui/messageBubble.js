@@ -268,7 +268,7 @@ export function MessageBubbleInner({
 	const reasoningEl = hasReasoning
 		? React.createElement(
 				Box,
-				{ flexDirection: "row", marginTop: 1, marginLeft: 2 },
+				{ flexDirection: "row", marginLeft: 2 },
 				React.createElement(
 					Text,
 					{ color: "gray" },
