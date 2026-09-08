@@ -162,14 +162,32 @@ export const MessageList = React.memo(
 				if (existing) {
 					// Handle segment append/coalesce: if updates contains a new segment,
 					// coalesce with the last segment if same type, otherwise push.
+					// Special case: a stray "." reasoning chunk after message content
+					// has started should append to the last reasoning segment, not
+					// create a new one that splits the message.
 					if (updates.segments && existing.segments) {
 						const newSeg = updates.segments[updates.segments.length - 1];
 						const mergedSegments = existing.segments.map((s) => ({ ...s }));
-						const lastSeg = mergedSegments[mergedSegments.length - 1];
-						if (lastSeg && lastSeg.type === newSeg.type) {
-							lastSeg.content += newSeg.content;
+						if (newSeg.type === "reasoning" && newSeg.content === ".") {
+							// Find the last reasoning segment and append the "." to it
+							let found = false;
+							for (let i = mergedSegments.length - 1; i >= 0; i--) {
+								if (mergedSegments[i].type === "reasoning") {
+									mergedSegments[i].content += ".";
+									found = true;
+									break;
+								}
+							}
+							if (!found) {
+								mergedSegments.push({ ...newSeg });
+							}
 						} else {
-							mergedSegments.push({ ...newSeg });
+							const lastSeg = mergedSegments[mergedSegments.length - 1];
+							if (lastSeg && lastSeg.type === newSeg.type) {
+								lastSeg.content += newSeg.content;
+							} else {
+								mergedSegments.push({ ...newSeg });
+							}
 						}
 						dataRef.current.set(id, { ...existing, ...updates, segments: mergedSegments });
 					} else {
