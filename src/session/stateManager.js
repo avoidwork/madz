@@ -49,7 +49,7 @@ export class SessionStateManager {
 
 	/**
 	 * Add a message exchange to the conversation.
-	 * @param {{ role: string, content: string, reasoningContent?: string }} exchange - Message exchange
+	 * @param {{ role: string, content: string }} exchange - Message exchange
 	 */
 	addExchange(exchange) {
 		this.#state.conversation.push({

@@ -40,7 +40,7 @@ function createImperativeApi() {
 				role,
 				content: stableContent,
 				time: options.time,
-				reasoningContent: options.reasoningContent,
+				segments: options.segments,
 				activeToolCall: options.activeToolCall,
 				toolCallDisplay: options.toolCallDisplay,
 				events: options.events,
@@ -93,7 +93,7 @@ function createImperativeApi() {
 					role: m.role,
 					content: stableContent,
 					time: m.time,
-					reasoningContent: m.reasoningContent,
+					segments: m.segments,
 					activeToolCall: m.activeToolCall,
 					toolCallDisplay: m.toolCallDisplay,
 					events: m.events,
@@ -148,13 +148,14 @@ describe("MessageList — imperative API", () => {
 		it("adds an assistant message with options", () => {
 			const id = api.addMessage("assistant", "Response", {
 				time: "10:00 AM",
-				reasoningContent: "thinking...",
+				segments: [{ type: "reasoning", content: "thinking..." }],
 				streaming: true,
 			});
 			const data = api.getMessageData(id);
 			assert.strictEqual(data.role, "assistant");
 			assert.strictEqual(data.time, "10:00 AM");
-			assert.strictEqual(data.reasoningContent, "thinking...");
+			assert.strictEqual(data.segments[0].type, "reasoning");
+			assert.strictEqual(data.segments[0].content, "thinking...");
 			assert.strictEqual(data.streaming, true);
 		});
 
@@ -268,7 +269,7 @@ describe("MessageList — imperative API", () => {
 					role: "assistant",
 					content: "Response",
 					time: "12:00",
-					reasoningContent: "thinking",
+					segments: [{ type: "reasoning", content: "thinking" }],
 					activeToolCall: { name: "search" },
 					toolCallDisplay: "done",
 					events: [],

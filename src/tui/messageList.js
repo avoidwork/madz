@@ -97,7 +97,7 @@ export const MessageList = React.memo(
 			 * @param {string} content - Message content
 			 * @param {Object} [options] - Additional properties
 			 * @param {string} [options.time] - Timestamp
-			 * @param {string} [options.reasoningContent] - Thinking content
+			 * @param {Array<{type: string, content: string}>} [options.segments] - Ordered content segments
 			 * @param {Object} [options.activeToolCall] - {name: string}
 			 * @param {string} [options.toolCallDisplay] - Tool call display text
 			 * @param {Array<Object>} [options.events] - Raw stream events
@@ -118,7 +118,7 @@ export const MessageList = React.memo(
 					role,
 					content: stableContent,
 					time: options.time,
-					reasoningContent: options.reasoningContent,
+					segments: options.segments,
 					activeToolCall: options.activeToolCall,
 					toolCallDisplay: options.toolCallDisplay,
 					events: options.events,
@@ -160,7 +160,21 @@ export const MessageList = React.memo(
 
 				const existing = dataRef.current.get(id);
 				if (existing) {
-					dataRef.current.set(id, { ...existing, ...updates });
+					// Handle segment append/coalesce: if updates contains a new segment,
+					// coalesce with the last segment if same type, otherwise push.
+					if (updates.segments && existing.segments) {
+						const newSeg = updates.segments[updates.segments.length - 1];
+						const mergedSegments = existing.segments.map((s) => ({ ...s }));
+						const lastSeg = mergedSegments[mergedSegments.length - 1];
+						if (lastSeg && lastSeg.type === newSeg.type) {
+							lastSeg.content += newSeg.content;
+						} else {
+							mergedSegments.push({ ...newSeg });
+						}
+						dataRef.current.set(id, { ...existing, ...updates, segments: mergedSegments });
+					} else {
+						dataRef.current.set(id, { ...existing, ...updates });
+					}
 				}
 
 				idsRef.current[idx] = id;
@@ -204,7 +218,7 @@ export const MessageList = React.memo(
 
 			/**
 			 * Initialize the list from a messages data array.
-			 * @param {Array<{role: string, content: string, time?: string, reasoningContent?: string, activeToolCall?: Object, toolCallDisplay?: string, events?: Array<Object>}>} msgs
+			 * @param {Array<{role: string, content: string, time?: string, segments?: Array<{type: string, content: string}>, activeToolCall?: Object, toolCallDisplay?: string, events?: Array<Object>}>} msgs
 			 */
 			setMessages(msgs) {
 				idsRef.current = [];
@@ -223,7 +237,7 @@ export const MessageList = React.memo(
 						role: m.role,
 						content: stableContent,
 						time: m.time,
-						reasoningContent: m.reasoningContent,
+						segments: m.segments,
 						activeToolCall: m.activeToolCall,
 						toolCallDisplay: m.toolCallDisplay,
 						events: m.events,
@@ -385,7 +399,7 @@ export const MessageList = React.memo(
 							role: data.role,
 							content: stableContent,
 							time: data.time,
-							reasoningContent: data.reasoningContent,
+							segments: data.segments,
 							activeToolCall: data.activeToolCall,
 							toolCallDisplay: data.toolCallDisplay,
 							events: data.events,

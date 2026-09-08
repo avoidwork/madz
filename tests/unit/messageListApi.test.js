@@ -35,7 +35,7 @@ describe("messageList imperative API simulation", () => {
 			role,
 			content: content || "",
 			time: options.time,
-			reasoningContent: options.reasoningContent,
+			segments: options.segments,
 			activeToolCall: options.activeToolCall,
 			toolCallDisplay: options.toolCallDisplay,
 			streaming: options.streaming || false,

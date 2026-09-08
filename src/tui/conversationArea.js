@@ -313,7 +313,6 @@ const ConversationArea = forwardRef(function ConversationArea(
 						sessionState.addExchange({
 							role: "assistant",
 							content: responseContent,
-							reasoningContent: committedReasoning || undefined,
 						});
 					}
 				} catch (err) {
@@ -477,7 +476,6 @@ const ConversationArea = forwardRef(function ConversationArea(
 				sessionState.addExchange({
 					role: "assistant",
 					content: responseContent,
-					reasoningContent: committedReasoning || undefined,
 				});
 				updateContextSize(sessionState, config);
 			}
@@ -606,6 +604,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 						const newText = event.data?.text || event.text || "";
 						committedContentRef.current = (committedContentRef.current || "") + newText;
 						messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
+							segments: [{ type: "message", content: newText }],
 							content: committedContentRef.current,
 							streaming: true,
 						});
@@ -630,7 +629,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 						if (reasoningText) {
 							committedReasoningRef.current = (committedReasoningRef.current || "") + reasoningText;
 							messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
-								reasoningContent: committedReasoningRef.current,
+								segments: [{ type: "reasoning", content: reasoningText }],
 								streaming: true,
 							});
 							messageListRef.current?._triggerRender();
@@ -642,14 +641,21 @@ const ConversationArea = forwardRef(function ConversationArea(
 							const chunkContent = event.data.chunk.content;
 							committedContentRef.current = (committedContentRef.current || "") + chunkContent;
 							messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
+								segments: [{ type: "message", content: chunkContent }],
 								content: committedContentRef.current,
 								streaming: true,
 							});
 							messageListRef.current?._triggerRender();
 						}
 						if (event.data?.chunk?.reasoning) {
+							const reasoningChunk = event.data.chunk.reasoning;
 							committedReasoningRef.current =
-								(committedReasoningRef.current || "") + event.data.chunk.reasoning;
+								(committedReasoningRef.current || "") + reasoningChunk;
+							messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
+								segments: [{ type: "reasoning", content: reasoningChunk }],
+								streaming: true,
+							});
+							messageListRef.current?._triggerRender();
 						}
 					}
 
@@ -701,7 +707,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 		const elapsed = turnStartTime ? Date.now() - turnStartTime : 0;
 		const updates = {
 			content: responseContent,
-			reasoningContent: committedReasoning || undefined,
+
 			streaming: false,
 			activeToolCall: null,
 			turnDuration: elapsed,

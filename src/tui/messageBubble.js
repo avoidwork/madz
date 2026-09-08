@@ -146,10 +146,10 @@ export const PubSubContext = React.createContext({ subscribe: () => {}, unsubscr
 export const ScrollContext = React.createContext({ scrollToBottom: () => {} });
 
 /**
- * A single message bubble with its own chunks state.
+ * A single message bubble with its own segments state.
  *
  * Uses pub/sub to listen for streaming updates directly from MessageList.
- * Each append to the chunks array triggers a re-render of just this bubble.
+ * Each update to segments triggers a re-render of just this bubble.
  *
  * @param {Object} props
  * @param {string} props.role - Message role: "user" | "assistant" | "system"
@@ -157,7 +157,7 @@ export const ScrollContext = React.createContext({ scrollToBottom: () => {} });
  * @param {string} props.topic - Pub/sub topic this bubble listens on
  * @param {string} [props.time] - Localized time string (e.g., "10:39 AM" for en-US, "22:39" for de-DE)
  * @param {string} props.assistantName - Name to display for assistant messages
- * @param {string} [props.reasoningContent] - Thinking/thought content
+ * @param {Array<{type: string, content: string}>} [props.segments] - Ordered content segments
  * @param {Object} [props.activeToolCall] - {name: string} for running tool
  * @param {string} [props.toolCallDisplay] - Tool call result display text
  * @param {number} [props.turnStartTime] - Timestamp when the turn started (for live timer)
@@ -172,7 +172,7 @@ export function MessageBubbleInner({
 	topic,
 	time,
 	assistantName,
-	reasoningContent,
+	segments: initialSegments,
 	activeToolCall,
 	toolCallDisplay,
 	streaming,
@@ -180,18 +180,17 @@ export function MessageBubbleInner({
 	turnDuration,
 	completedToolCalls,
 }) {
-	const [chunks, setChunks] = useState([]);
+	const [segments, setSegments] = useState(initialSegments || []);
 	const { subscribe, unsubscribe } = useContext(PubSubContext);
 	const { scrollToBottom } = useContext(ScrollContext);
 
-	// Subscribe to pub/sub updates — each update appends a chunk, triggering
-	// re-render of just this bubble without re-rendering the parent.
+	// Subscribe to pub/sub updates — each update appends/coalesces a segment,
+	// triggering re-render of just this bubble without re-rendering the parent.
 	// Also picks up streaming/turnDuration changes so the timer stops
 	// without needing a parent re-render.
 	const [localStreaming, setLocalStreaming] = useState(streaming);
 	const [localTurnDuration, setLocalTurnDuration] = useState(turnDuration);
 	const [localCompletedToolCalls, setLocalCompletedToolCalls] = useState(completedToolCalls || []);
-	const [localReasoning, setLocalReasoning] = useState(reasoningContent);
 
 	// Sync local state from props when not using pub/sub (session restore, initial render)
 	useEffect(() => {
@@ -199,42 +198,38 @@ export function MessageBubbleInner({
 			setLocalStreaming(streaming);
 			setLocalTurnDuration(turnDuration);
 			setLocalCompletedToolCalls(completedToolCalls || []);
-			setLocalReasoning(reasoningContent);
 		}
-	}, [topic, streaming, turnDuration, completedToolCalls, reasoningContent]);
+	}, [topic, streaming, turnDuration, completedToolCalls]);
 
 	useEffect(() => {
 		if (!topic) return;
 
 		const handleUpdate = (data) => {
-			setChunks((prev) => {
-				const newContent = data?.content ?? "";
-				if (newContent.length === 0) return prev;
-				if (prev.length > 0 && prev[prev.length - 1] === newContent) return prev;
-				return [...prev, newContent];
-			});
+			// Replace segments entirely from parent — messageList.updateMessage
+			// already handles coalescing. The published data contains the full
+			// merged segments, so we just copy them.
+			if (data?.segments) {
+				setSegments(data.segments.map((s) => ({ ...s })));
+			}
 			// Pick up streaming/turnDuration from published data so the
 			// timer stops without a parent re-render.
 			if (data?.streaming !== undefined) setLocalStreaming(data.streaming);
 			if (data?.turnDuration !== undefined) setLocalTurnDuration(data.turnDuration);
 			if (data?.completedToolCalls !== undefined)
 				setLocalCompletedToolCalls(data.completedToolCalls);
-			if (data?.reasoningContent !== undefined) setLocalReasoning(data.reasoningContent);
 		};
 
 		subscribe(topic, handleUpdate);
 		return () => unsubscribe(topic, handleUpdate);
 	}, [topic, subscribe, unsubscribe]);
 
-	// Display the latest chunk (or initial content if no chunks yet)
-	const text = chunks.at(-1) || content || "";
+	// Display the latest content — use segments if available, otherwise fall back to content prop
+	const text = segments.length > 0 ? segments.map((s) => s.content).join("") : content || "";
 
 	// Trigger scroll-to-bottom when streaming content grows or when streaming starts.
 	// Uses ScrollContext to call scrollToBottom directly on the ScrollView,
 	// bypassing the broken onContentHeightChange path that never fires
 	// when bubbles update via pub/sub (no parent re-render).
-	// Dedup is bypassed for streaming (see handleUpdate), so content growth
-	// is now reliably detected via text.length changes.
 	const prevContentLengthRef = useRef(0);
 	const hasScrolledOnStreamStartRef = useRef(false);
 	useEffect(() => {
@@ -259,19 +254,44 @@ export function MessageBubbleInner({
 	const colors = getRoleColors(role);
 	const bubble = getBubbleStyle(role);
 
-	// Show reasoning content alongside the response - gray, offset like timer/tool calls.
+	// Show reasoning segments alongside the response - gray, offset like timer/tool calls.
 	// Stays visible after streaming completes so you can review the model's thinking.
-	const hasReasoning = role === "assistant" && localReasoning;
+	const hasReasoning = role === "assistant" && segments.some((s) => s.type === "reasoning");
 	const hasActiveToolCall = role === "assistant" && activeToolCall;
 	const hasToolCallDisplay = role === "assistant" && toolCallDisplay;
 
-	const reasoningEl = hasReasoning
-		? React.createElement(
+	// Render segments in order — reasoning segments get gray "(thinking)" prefix,
+	// message segments render as normal MarkdownText.
+	const segmentEls = segments.map((seg, i) => {
+		if (seg.type === "reasoning") {
+			return React.createElement(
 				Box,
-				{ flexDirection: "row", marginLeft: 2 },
-				React.createElement(Text, { color: "gray" }, `(thinking) ` + localReasoning),
-			)
-		: null;
+				{ key: `seg-${i}`, flexDirection: "row", marginLeft: 2 },
+				React.createElement(Text, { color: "gray" }, `💭 ` + seg.content),
+			);
+		}
+		return React.createElement(
+			Box,
+			{ key: `seg-${i}`, flexDirection: "row" },
+			React.createElement(MarkdownText, {
+				content: seg.content,
+				color: role === "system" ? "orange" : undefined,
+			}),
+		);
+	});
+
+	// Fallback for non-segments path (session restore, non-streaming messages)
+	const fallbackContentEl =
+		!hasReasoning && segments.length === 0 && content
+			? React.createElement(
+					Box,
+					{ flexDirection: "row" },
+					React.createElement(MarkdownText, {
+						content: content,
+						color: role === "system" ? "orange" : undefined,
+					}),
+				)
+			: null;
 
 	const toolCallEl = hasActiveToolCall
 		? React.createElement(
@@ -293,8 +313,7 @@ export function MessageBubbleInner({
 			)
 		: null;
 
-	const pendingState =
-		role === "assistant" && localStreaming && chunks.length === 0 && !content && !localReasoning;
+	const pendingState = role === "assistant" && localStreaming && segments.length === 0 && !content;
 
 	// Memoize the thinking word so it doesn't rotate on every render
 	const thinkingWordRef = useRef(null);
@@ -385,7 +404,8 @@ export function MessageBubbleInner({
 					`${getRoleLabel(role, assistantName)}: `,
 				),
 			),
-			reasoningEl,
+			...segmentEls,
+			fallbackContentEl,
 			pendingState
 				? React.createElement(
 						Box,
@@ -396,16 +416,6 @@ export function MessageBubbleInner({
 							React.createElement(Spinner, { type: "dots2" }),
 							` ${thinkingWordRef.current}`,
 						),
-					)
-				: null,
-			!pendingState
-				? React.createElement(
-						Box,
-						{ flexDirection: "row" },
-						React.createElement(MarkdownText, {
-							content: text,
-							color: role === "system" ? "orange" : undefined,
-						}),
 					)
 				: null,
 			toolCallEl,
