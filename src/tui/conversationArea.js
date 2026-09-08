@@ -313,7 +313,6 @@ const ConversationArea = forwardRef(function ConversationArea(
 						sessionState.addExchange({
 							role: "assistant",
 							content: responseContent,
-							
 						});
 					}
 				} catch (err) {
@@ -477,7 +476,6 @@ const ConversationArea = forwardRef(function ConversationArea(
 				sessionState.addExchange({
 					role: "assistant",
 					content: responseContent,
-					
 				});
 				updateContextSize(sessionState, config);
 			}
@@ -709,7 +707,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 		const elapsed = turnStartTime ? Date.now() - turnStartTime : 0;
 		const updates = {
 			content: responseContent,
-			
+
 			streaming: false,
 			activeToolCall: null,
 			turnDuration: elapsed,

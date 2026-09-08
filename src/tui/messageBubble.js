@@ -209,7 +209,7 @@ export function MessageBubbleInner({
 			// already handles coalescing. The published data contains the full
 			// merged segments, so we just copy them.
 			if (data?.segments) {
-				setSegments(data.segments.map(s => ({ ...s })));
+				setSegments(data.segments.map((s) => ({ ...s })));
 			}
 			// Pick up streaming/turnDuration from published data so the
 			// timer stops without a parent re-render.
@@ -224,9 +224,7 @@ export function MessageBubbleInner({
 	}, [topic, subscribe, unsubscribe]);
 
 	// Display the latest content — use segments if available, otherwise fall back to content prop
-	const text = segments.length > 0
-		? segments.map(s => s.content).join("")
-		: content || "";
+	const text = segments.length > 0 ? segments.map((s) => s.content).join("") : content || "";
 
 	// Trigger scroll-to-bottom when streaming content grows or when streaming starts.
 	// Uses ScrollContext to call scrollToBottom directly on the ScrollView,
@@ -258,7 +256,7 @@ export function MessageBubbleInner({
 
 	// Show reasoning segments alongside the response - gray, offset like timer/tool calls.
 	// Stays visible after streaming completes so you can review the model's thinking.
-	const hasReasoning = role === "assistant" && segments.some(s => s.type === "reasoning");
+	const hasReasoning = role === "assistant" && segments.some((s) => s.type === "reasoning");
 	const hasActiveToolCall = role === "assistant" && activeToolCall;
 	const hasToolCallDisplay = role === "assistant" && toolCallDisplay;
 
@@ -283,16 +281,17 @@ export function MessageBubbleInner({
 	});
 
 	// Fallback for non-segments path (session restore, non-streaming messages)
-	const fallbackContentEl = !hasReasoning && segments.length === 0 && content
-		? React.createElement(
-				Box,
-				{ flexDirection: "row" },
-				React.createElement(MarkdownText, {
-					content: content,
-					color: role === "system" ? "orange" : undefined,
-				}),
-			)
-		: null;
+	const fallbackContentEl =
+		!hasReasoning && segments.length === 0 && content
+			? React.createElement(
+					Box,
+					{ flexDirection: "row" },
+					React.createElement(MarkdownText, {
+						content: content,
+						color: role === "system" ? "orange" : undefined,
+					}),
+				)
+			: null;
 
 	const toolCallEl = hasActiveToolCall
 		? React.createElement(
@@ -314,8 +313,7 @@ export function MessageBubbleInner({
 			)
 		: null;
 
-	const pendingState =
-		role === "assistant" && localStreaming && segments.length === 0 && !content;
+	const pendingState = role === "assistant" && localStreaming && segments.length === 0 && !content;
 
 	// Memoize the thinking word so it doesn't rotate on every render
 	const thinkingWordRef = useRef(null);
