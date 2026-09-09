@@ -343,18 +343,32 @@ if (isMain) {
 		const { reindex } = await import("./src/vector/indexer.js");
 
 		const vectorConfig = config.vector || {};
-		const store = await createVectorStore(vectorConfig.dbPath || "memory/vectorSearch/vector.db");
-		await store.init();
 		const embedder = createEmbedder({ model: vectorConfig.model || "local" });
-		await reindex(store, embedder, {
-			rootDir: config.cwd || ".",
-			include: vectorConfig.include || ["src/**/*.js", "src/**/*.mjs", "src/**/*.cjs"],
-			exclude: vectorConfig.exclude || ["node_modules/**", ".git/**", ".worktrees/**"],
-			chunkSize: vectorConfig.chunkSize || 96,
-			chunkOverlap: vectorConfig.chunkOverlap || 16,
-			maxFileSize: vectorConfig.maxFileSize || 524288,
-		});
-		store.close();
+		const projects = vectorConfig.projects || {};
+
+		if (Object.keys(projects).length === 0) {
+			logger.error("No vector projects configured in config.yaml under vector.projects.");
+			process.exit(1);
+		}
+
+		for (const [name, proj] of Object.entries(projects)) {
+			logger.info(`Indexing project "${name}"...`);
+			const store = await createVectorStore(proj.dbPath);
+			await store.init();
+			const result = await reindex(store, embedder, {
+				rootDir: proj.rootDir || ".",
+				include: proj.include || ["src/**/*.js", "src/**/*.mjs", "src/**/*.cjs"],
+				exclude: proj.exclude || ["node_modules/**", ".git/**", ".worktrees/**"],
+				chunkSize: proj.chunkSize || 96,
+				chunkOverlap: proj.chunkOverlap || 16,
+				maxFileSize: proj.maxFileSize || 524288,
+			});
+			store.close();
+			logger.info(
+				`  indexed: ${result.indexed}, skipped: ${result.skipped}, errors: ${result.errors}`,
+			);
+		}
+
 		process.exit(0);
 	}
 

@@ -21,7 +21,17 @@ const vectorConfig = config.vector || {};
  */
 export async function codeSearchImpl(input, options = {}) {
 	const cfg = options.vector || vectorConfig;
-	const dbPath = cfg.dbPath || "memory/vectorSearch/vector.db";
+	const projects = cfg.projects || {};
+
+	// Resolve which project to search — default to the first configured project
+	const projectName = input.project || Object.keys(projects)[0];
+	if (!projectName || !projects[projectName]) {
+		const available = Object.keys(projects).join(", ") || "none configured";
+		return `Unknown project "${projectName}". Available projects: ${available}`;
+	}
+
+	const proj = projects[projectName];
+	const dbPath = proj.dbPath;
 
 	let store;
 	try {
@@ -111,6 +121,12 @@ export const codeSearch = tool(codeSearchImpl, {
 		"Use when you need to find relevant code by meaning rather than exact text match.",
 	schema: z.object({
 		query: z.string().min(1).describe("Natural language query describing the code to find"),
+		project: z
+			.string()
+			.optional()
+			.describe(
+				"Project name to search (as configured in vector.projects). Defaults to the first project.",
+			),
 		topK: z.number().int().positive().max(50).default(5).describe("Number of results to return"),
 		fileFilter: z
 			.string()

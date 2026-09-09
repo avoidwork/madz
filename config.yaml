@@ -106,18 +106,21 @@ persistence:
 
 vector:
   model: local
-  chunkSize: 96
-  chunkOverlap: 16
-  dbPath: memory/vectorSearch/vector.db
-  maxFileSize: 524288
-  include:
-    - "src/**/*.js"
-    - "src/**/*.mjs"
-    - "src/**/*.cjs"
-  exclude:
-    - "node_modules/**"
-    - ".git/**"
-    - ".worktrees/**"
+  projects:
+    madz:
+      rootDir: .
+      dbPath: memory/vectorSearch/madz.db
+      chunkSize: 96
+      chunkOverlap: 16
+      maxFileSize: 524288
+      include:
+        - "src/**/*.js"
+        - "src/**/*.mjs"
+        - "src/**/*.cjs"
+      exclude:
+        - "node_modules/**"
+        - ".git/**"
+        - ".worktrees/**"
 
 memory:
   directory: memory/
