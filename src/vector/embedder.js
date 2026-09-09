@@ -23,6 +23,23 @@ export function createEmbedder(options = {}) {
 	let pipelineLoadAttempted = false;
 
 	/**
+	 * Configure the ONNX WASM backend for local embeddings.
+	 * Sets the WASM paths, thread count, and proxy settings to ensure
+	 * the transformers.js runtime can load and execute WASM binaries.
+	 * @returns {Promise<void>}
+	 */
+	async function configureWasmBackend() {
+		const { env } = await import("@xenova/transformers");
+		const wasmDir = new URL(
+			"../../node_modules/@xenova/transformers/dist/",
+			import.meta.url,
+		).pathname;
+		env.backends.onnx.wasm.wasmPaths = wasmDir;
+		env.backends.onnx.wasm.numThreads = 1;
+		env.backends.onnx.wasm.proxy = false;
+	}
+
+	/**
 	 * Load the local transformers.js pipeline lazily.
 	 * @returns {Promise<import("@xenova/transformers").PipelineFunction|null>}
 	 */
@@ -32,6 +49,7 @@ export function createEmbedder(options = {}) {
 
 		pipelineLoadAttempted = true;
 		try {
+			await configureWasmBackend();
 			const { pipeline } = await import("@xenova/transformers");
 			localPipeline = await pipeline("feature-extraction", "Xenova/all-MiniLM-L6-v2", {
 				quantized: true,
