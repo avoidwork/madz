@@ -1,5 +1,5 @@
 import { createRequire } from "node:module";
-import { existsSync, mkdirSync } from "node:fs";
+import { mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
 
 const _require = createRequire(import.meta.url);
@@ -22,9 +22,7 @@ const _require = createRequire(import.meta.url);
 export async function createVectorStore(dbPath) {
 	// Ensure the directory exists
 	const dbDir = dirname(dbPath);
-	if (!existsSync(dbDir)) {
-		mkdirSync(dbDir, { recursive: true });
-	}
+	await mkdir(dbDir, { recursive: true }).catch(() => {});
 
 	// Load better-sqlite3 and sqlite-vec
 	const Database = _require("better-sqlite3");

@@ -1,6 +1,5 @@
-import { readFile, stat, readdir } from "node:fs/promises";
+import { readFile, stat, readdir, writeFile } from "node:fs/promises";
 import { join, relative, extname } from "node:path";
-import { readFileSync, writeFileSync } from "node:fs";
 import { chunkContent } from "./chunker.js";
 
 /**
@@ -57,12 +56,12 @@ function mtimeCachePath(dbPath) {
 /**
  * Load the mtime cache from disk.
  * @param {string} dbPath - Path to the vector database
- * @returns {Record<string, number>}
+ * @returns {Promise<Record<string, number>>}
  */
-function loadMtimeCache(dbPath) {
+async function loadMtimeCache(dbPath) {
 	const cacheFile = mtimeCachePath(dbPath);
 	try {
-		return JSON.parse(readFileSync(cacheFile, "utf-8"));
+		return JSON.parse(await readFile(cacheFile, "utf-8"));
 	} catch {
 		return {};
 	}
@@ -73,9 +72,9 @@ function loadMtimeCache(dbPath) {
  * @param {string} dbPath - Path to the vector database
  * @param {Record<string, number>} cache - Mtime cache
  */
-function saveMtimeCache(dbPath, cache) {
+async function saveMtimeCache(dbPath, cache) {
 	const cacheFile = mtimeCachePath(dbPath);
-	writeFileSync(cacheFile, JSON.stringify(cache, null, 2));
+	await writeFile(cacheFile, JSON.stringify(cache, null, 2));
 }
 
 /**
@@ -219,7 +218,7 @@ export async function reindex(store, embedder, options) {
 	} = options;
 
 	const dbPath = store.dbPath;
-	const mtimeCache = force ? {} : loadMtimeCache(dbPath);
+	const mtimeCache = force ? {} : await loadMtimeCache(dbPath);
 	const files = await scanFiles(rootDir, include, exclude);
 
 	let indexed = 0;
@@ -283,7 +282,7 @@ export async function reindex(store, embedder, options) {
 	}
 
 	// Save mtime cache
-	saveMtimeCache(dbPath, mtimeCache);
+	await saveMtimeCache(dbPath, mtimeCache);
 
 	return { indexed, skipped, errors };
 }
