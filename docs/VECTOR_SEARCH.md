@@ -4,43 +4,35 @@ Semantic code search using local vector embeddings and SQLite-based KNN retrieva
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                      CLI (--index-code)                      │
-│              node index.js --index-code                      │
-└──────────────┬──────────────────────────────────────────────┘
-               │
-               ▼
-┌─────────────────────────────────────────────────────────────┐
-│                      indexer.js                              │
-│  scanFiles() → chunkContent() → embedder.embed() → store    │
-│  Mtime cache for incremental indexing                        │
-└──────┬──────────────────┬──────────────────┬────────────────┘
-       │                  │                  │
-       ▼                  ▼                  ▼
-┌─────────────┐  ┌──────────────┐  ┌──────────────────────┐
-│  chunker.js  │  │  embedder.js  │  │     store.js         │
-│              │  │               │  │                      │
-│ Fixed-size   │  │ transformers  │  │ better-sqlite3       │
-│ line blocks  │  │ .js (local)   │  │ + sqlite-vec         │
-│ with overlap │  │ ─ or ─        │  │ vec0 virtual table   │
-│              │  │ OpenAI API    │  │ KNN MATCH queries    │
-└──────────────┘  └──────────────┘  └──────────────────────┘
-                                               │
-                                               ▼
-                                    ┌──────────────────────┐
-                                    │  memory/vectorSearch/ │
-                                    │  vector.db            │
-                                    │  vector-mtimes.json   │
-                                    └──────────────────────┘
-                                               ▲
-                                               │
-┌──────────────────────────────────────────────┴──────────────┐
-│                    codeSearch Tool                           │
-│  Available to orchestrator + all code-related subagents     │
-│  (coding, code-review, debug, security-audit, testing,      │
-│   performance, documentation, seoAnalyst, search, research)  │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    CLI["node index.js --index-code"] --> IND["indexer.js"]
+    IND -->|"scanFiles()"| CHK["chunker.js"]
+    IND -->|"embedder.embed()"| EMB["embedder.js"]
+    IND -->|"store.insertChunks()"| STO["store.js"]
+    IND -.->|"mtime cache"| MTC["vector-mtimes.json"]
+
+    CHK -->|"fixed-size blocks + overlap"| CHK_OUT["chunks: filePath, lineStart, lineEnd, content"]
+    EMB -->|"transformers.js (local) / OpenAI (fallback)"| EMB_OUT["Float32Array[384]"]
+    STO -->|"better-sqlite3 + sqlite-vec"| DB["memory/vectorSearch/vector.db"]
+
+    DB -->|"KNN MATCH query"| CST["codeSearch Tool"]
+    CST -->|"orchestrator"| ORC["Orchestrator"]
+    CST -->|"subagents"| SAG["coding, code-review, debug,<br/>security-audit, testing,<br/>performance, documentation,<br/>seoAnalyst, search, research"]
+
+    classDef cli fill:#f9a825,color:#fff,stroke:#e65100
+    classDef core fill:#42a5f5,color:#fff,stroke:#1565c0
+    classDef util fill:#66bb6a,color:#fff,stroke:#2e7d32
+    classDef store fill:#ab47bc,color:#fff,stroke:#6a1b9a
+    classDef cache fill:#26a69a,color:#fff,stroke:#00695c
+    classDef tool fill:#7e57c2,color:#fff,stroke:#4527a0
+
+    class CLI cli
+    class IND,CHK,EMB core
+    class CHK_OUT,EMB_OUT util
+    class STO,DB store
+    class MTC cache
+    class CST,ORC,SAG tool
 ```
 
 ## Modules
