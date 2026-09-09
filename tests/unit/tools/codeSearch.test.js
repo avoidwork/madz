@@ -40,9 +40,9 @@ describe("codeSearch tool", () => {
 		}
 	});
 
-	async function seedData() {
+	async function seedData(path) {
 		const { createVectorStore } = await import("../../../src/vector/store.js");
-		const store = await createVectorStore(dbPath);
+		const store = await createVectorStore(path);
 		await store.init();
 		store.insertChunks([
 			{
@@ -63,22 +63,46 @@ describe("codeSearch tool", () => {
 		store.close();
 	}
 
-	it("returns no results message when index is empty", async () => {
+	it("returns unknown project message when project not found", async () => {
+		const { codeSearchImpl } = await import("../../../src/tools/codeSearch/index.js");
+		const result = await codeSearchImpl(
+			{ query: "hello", topK: 5, project: "nonexistent" },
+			{ vector: { projects: { madz: { dbPath } } }, openaiApiKey: "test-key" },
+		);
+		assert.ok(result.includes('Unknown project "nonexistent"'), `Got: ${result}`);
+	});
+
+	it("returns unknown project message when no projects configured", async () => {
+		const { codeSearchImpl } = await import("../../../src/tools/codeSearch/index.js");
+		const result = await codeSearchImpl(
+			{ query: "hello", topK: 5 },
+			{ vector: { projects: {} }, openaiApiKey: "test-key" },
+		);
+		assert.ok(result.includes("none configured"), `Got: ${result}`);
+	});
+
+	it("returns no matching code message when index is empty", async () => {
 		const { codeSearchImpl } = await import("../../../src/tools/codeSearch/index.js");
 		const emptyDb = join(tmpDir, "empty.db");
 		const result = await codeSearchImpl(
 			{ query: "hello", topK: 5 },
-			{ vector: { dbPath: emptyDb, model: "openai" }, openaiApiKey: "test-key" },
+			{
+				vector: { projects: { test: { dbPath: emptyDb } }, model: "openai" },
+				openaiApiKey: "test-key",
+			},
 		);
 		assert.ok(result.includes("No matching code found"), `Got: ${result}`);
 	});
 
 	it("returns formatted results from indexed data", async () => {
-		await seedData();
+		await seedData(dbPath);
 		const { codeSearchImpl } = await import("../../../src/tools/codeSearch/index.js");
 		const result = await codeSearchImpl(
 			{ query: "hello", topK: 5 },
-			{ vector: { dbPath, model: "openai" }, openaiApiKey: "test-key" },
+			{
+				vector: { projects: { test: { dbPath } }, model: "openai" },
+				openaiApiKey: "test-key",
+			},
 		);
 		assert.ok(result.includes("src/foo.js"), `Got: ${result}`);
 		assert.ok(result.includes("distance:"), `Got: ${result}`);
@@ -88,9 +112,60 @@ describe("codeSearch tool", () => {
 		const { codeSearchImpl } = await import("../../../src/tools/codeSearch/index.js");
 		const result = await codeSearchImpl(
 			{ query: "hello", topK: 5, fileFilter: "src/foo*" },
-			{ vector: { dbPath, model: "openai" }, openaiApiKey: "test-key" },
+			{
+				vector: { projects: { test: { dbPath } }, model: "openai" },
+				openaiApiKey: "test-key",
+			},
 		);
 		assert.ok(result.includes("src/foo.js"), `Got: ${result}`);
 		assert.ok(!result.includes("src/bar.js"), `Got: ${result}`);
+	});
+
+	it("returns no results message when fileFilter excludes everything", async () => {
+		const { codeSearchImpl } = await import("../../../src/tools/codeSearch/index.js");
+		const result = await codeSearchImpl(
+			{ query: "hello", topK: 5, fileFilter: "nonexistent/*" },
+			{
+				vector: { projects: { test: { dbPath } }, model: "openai" },
+				openaiApiKey: "test-key",
+			},
+		);
+		assert.ok(result.includes('No results matching filter'), `Got: ${result}`);
+	});
+
+	it("uses first project as default when no project specified", async () => {
+		const { codeSearchImpl } = await import("../../../src/tools/codeSearch/index.js");
+		const result = await codeSearchImpl(
+			{ query: "hello", topK: 5 },
+			{
+				vector: { projects: { test: { dbPath } }, model: "openai" },
+				openaiApiKey: "test-key",
+			},
+		);
+		assert.ok(result.includes("src/foo.js"), `Got: ${result}`);
+	});
+
+	it("handles store open failure gracefully", async () => {
+		const { codeSearchImpl } = await import("../../../src/tools/codeSearch/index.js");
+		const result = await codeSearchImpl(
+			{ query: "hello", topK: 5 },
+			{
+				vector: { projects: { test: { dbPath: "/nonexistent/dir/db.sqlite" } }, model: "openai" },
+				openaiApiKey: "test-key",
+			},
+		);
+		assert.ok(result.includes("Failed to open vector store"), `Got: ${result}`);
+	});
+
+	it("handles embed failure gracefully", async () => {
+		const { codeSearchImpl } = await import("../../../src/tools/codeSearch/index.js");
+		const result = await codeSearchImpl(
+			{ query: "hello", topK: 5 },
+			{
+				vector: { projects: { test: { dbPath } }, model: "openai" },
+				// No openaiApiKey — will fail
+			},
+		);
+		assert.ok(result.includes("Failed to embed query"), `Got: ${result}`);
 	});
 });

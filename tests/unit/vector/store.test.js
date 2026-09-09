@@ -1,5 +1,8 @@
 import { describe, it, after } from "node:test";
 import assert from "node:assert";
+import { mkdtempSync, existsSync, rmSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 import { createVectorStore } from "../../../src/vector/store.js";
 
 describe("createVectorStore", () => {
@@ -19,6 +22,15 @@ describe("createVectorStore", () => {
 		assert.ok(typeof store.insertChunks === "function");
 		assert.ok(typeof store.search === "function");
 		assert.ok(typeof store.removeFile === "function");
+	});
+
+	it("creates directory for file-based db", async () => {
+		const tmpDir = mkdtempSync(join(tmpdir(), "store-test-"));
+		const dbPath = join(tmpDir, "subdir", "test.db");
+		store = await createVectorStore(dbPath);
+		await store.init();
+		assert.ok(existsSync(join(tmpDir, "subdir")));
+		rmSync(tmpDir, { recursive: true, force: true });
 	});
 
 	it("inserts chunks and searches them", async () => {
@@ -97,5 +109,15 @@ describe("createVectorStore", () => {
 
 		const results = store.search(new Float32Array(384).fill(0.1), 3);
 		assert.strictEqual(results.length, 3);
+	});
+
+	it("removeFile handles non-existent file gracefully", () => {
+		// Should not throw when removing a file that doesn't exist
+		store.removeFile("nonexistent.js");
+	});
+
+	it("close can be called multiple times", () => {
+		store.close();
+		store.close();
 	});
 });
