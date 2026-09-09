@@ -7,16 +7,19 @@ Semantic code search using local vector embeddings and SQLite-based KNN retrieva
 ```mermaid
 graph TD
     CLI["node index.js --index-code"] --> IND["indexer.js"]
-    IND -->|"scanFiles()"| CHK["chunker.js"]
-    IND -->|"embedder.embed()"| EMB["embedder.js"]
-    IND -->|"store.insertChunks()"| STO["store.js"]
-    IND -.->|"mtime cache"| MTC["vector-mtimes.json"]
+    IND -->|"iterates projects"| CFG["config.yaml<br/>vector.projects"]
+    CFG -->|"madz"| MADZ["madz project"]
+    MADZ --> CHK["chunker.js"]
+    MADZ --> EMB["embedder.js"]
+    MADZ --> STO["store.js"]
+    IND -.->|"mtime cache"| MTC["*-mtimes.json"]
 
     CHK -->|"fixed-size blocks + overlap"| CHK_OUT["chunks: filePath, lineStart, lineEnd, content"]
     EMB -->|"transformers.js (local) / OpenAI (fallback)"| EMB_OUT["Float32Array[384]"]
-    STO -->|"better-sqlite3 + sqlite-vec"| DB["memory/vectorSearch/vector.db"]
+    STO -->|"better-sqlite3 + sqlite-vec"| DB["madz.db"]
 
     DB -->|"KNN MATCH query"| CST["codeSearch Tool"]
+    CST -->|"project param"| CFG
     CST -->|"orchestrator"| ORC["Orchestrator"]
     CST -->|"subagents"| SAG["coding, code-review, debug,<br/>security-audit, testing,<br/>performance, documentation,<br/>seoAnalyst, search, research"]
 
@@ -30,7 +33,7 @@ graph TD
     class CLI cli
     class IND,CHK,EMB core
     class CHK_OUT,EMB_OUT util
-    class STO,DB store
+    class STO,DB,CFG store
     class MTC cache
     class CST,ORC,SAG tool
 ```
@@ -117,6 +120,7 @@ LangChain tool available to the orchestrator and all code-related subagents.
 |-------|------|---------|-------------|
 | `query` | string | required | Natural language query describing the code to find |
 | `topK` | number | 5 | Number of results (1–50) |
+| `project` | string | first configured | Project name from `vector.projects` in config.yaml |
 | `fileFilter` | string | optional | Glob pattern to filter results (e.g., `src/tools/*.js`) |
 
 **Output:** Formatted list of matching code chunks with file paths, line ranges, content, and cosine distance scores.
@@ -127,20 +131,25 @@ LangChain tool available to the orchestrator and all code-related subagents.
 
 ```yaml
 vector:
-  model: local                    # "local" or "openai"
-  chunkSize: 96                   # Lines per chunk
-  chunkOverlap: 16                # Overlap between consecutive chunks
-  dbPath: memory/vectorSearch/vector.db
-  maxFileSize: 524288             # Max file size in bytes (500 KB)
-  include:
-    - "src/**/*.js"
-    - "src/**/*.mjs"
-    - "src/**/*.cjs"
-  exclude:
-    - "node_modules/**"
-    - ".git/**"
-    - ".worktrees/**"
+  model: local                    # "local" or "openai" — shared across all projects
+  projects:
+    madz:
+      rootDir: .                  # Root directory to scan
+      dbPath: memory/vectorSearch/madz.db
+      chunkSize: 96               # Lines per chunk
+      chunkOverlap: 16            # Overlap between consecutive chunks
+      maxFileSize: 524288         # Max file size in bytes (500 KB)
+      include:
+        - "src/**/*.js"
+        - "src/**/*.mjs"
+        - "src/**/*.cjs"
+      exclude:
+        - "node_modules/**"
+        - ".git/**"
+        - ".worktrees/**"
 ```
+
+Each named project under `vector.projects` defines its own root directory, database path, and indexing rules. This allows multiple projects to be indexed independently — e.g., mounting external project directories into the container and adding a corresponding project entry.
 
 ### Environment Variables
 
@@ -153,15 +162,14 @@ vector:
 ### Indexing
 
 ```bash
-# Initial index (downloads model on first run)
+# Index all configured projects (downloads model on first run)
 node index.js --index-code
 
-# Force re-index all files
+# Force re-index all files across all projects
 node index.js --index-code --force
-
-# Index a different project (via config.yaml)
-# Change vector.dbPath and vector.include patterns
 ```
+
+Indexing iterates over every project in `vector.projects`, creating or updating each project's database independently.
 
 ### Querying
 
@@ -169,25 +177,28 @@ Via the `codeSearch` tool, available to any agent:
 
 ```
 codeSearch(query="how does SSE streaming work", topK=3)
-codeSearch(query="tool registration pattern", fileFilter="src/tools/*.js")
+codeSearch(query="tool registration pattern", project="madz")
+codeSearch(query="authentication flow", project="madz", fileFilter="src/tools/*.js")
 ```
+
+The `project` parameter selects which indexed project to search. Defaults to the first configured project if omitted.
 
 ### Verification
 
 ```bash
-# Check DB exists and count indexed chunks
+# Check DB exists and count indexed chunks for a project
 node -e "
 const Database = require('better-sqlite3');
-const db = new Database('memory/vectorSearch/vector.db');
+const db = new Database('memory/vectorSearch/madz.db');
 console.log('Chunks:', db.prepare('SELECT COUNT(*) as c FROM code_chunks').get().c);
 db.close();
 "
 
-# Test a semantic query
+# Test a semantic query against a specific project
 node -e "
 const { createVectorStore } = await import('./src/vector/store.js');
 const { createEmbedder } = await import('./src/vector/embedder.js');
-const store = await createVectorStore('memory/vectorSearch/vector.db');
+const store = await createVectorStore('memory/vectorSearch/madz.db');
 store.init();
 const embedder = createEmbedder({ model: 'local' });
 const [vec] = await embedder.embed(['your query here']);
@@ -241,8 +252,9 @@ console.log(JSON.stringify(results.map(r => r.filePath + ':' + r.lineStart + '-'
 ```
 memory/
 ├── vectorSearch/
-│   ├── vector.db              # SQLite database with code_chunks + vec_code_chunks tables
-│   └── vector-mtimes.json     # File mtime cache for incremental indexing
-└── checkpoints/               # LangGraph checkpoint storage (separate concern)
+│   ├── madz.db                  # SQLite database for the "madz" project
+│   ├── madz-mtimes.json         # File mtime cache for incremental indexing
+│   └── ...                      # Additional project databases as configured
+└── checkpoints/                 # LangGraph checkpoint storage (separate concern)
     └── checkpoints.db
 ```
