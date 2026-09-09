@@ -103,7 +103,7 @@ export async function codeSearchImpl(input, options = {}) {
 export const codeSearch = tool(codeSearchImpl, {
 	name: "codeSearch",
 	description:
-		"Semantically search the project's own source code using vector similarity. " +
+		"Semantically search source code using vector similarity. " +
 		"Unlike grep (sessionSearch), this finds conceptually related code even when " +
 		"the exact keywords don't match — e.g., searching for 'authentication' will find " +
 		"login handlers, token validation, and auth middleware. " +
