@@ -239,12 +239,6 @@ console.log(JSON.stringify(results.map(r => r.filePath + ':' + r.lineStart + '-'
 - Reranking across multiple vector stores
 - AST-aware chunking (function/class boundary preservation) as an alternative to fixed-size blocks
 
-### Phase 5 — IDE Integration
-
-- Expose `codeSearch` as a standalone CLI tool for use outside the madz runtime
-- LSP-style protocol for editor integration (VS Code extension, Neovim plugin)
-- Background indexing daemon with file watcher
-
 ## Dependencies
 
 | Package | Version | Purpose |
