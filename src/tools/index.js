@@ -150,6 +150,7 @@ export const TOOL_CLASSIFICATIONS = {
 		"testing",
 		"performance",
 		"documentation",
+		"seoAnalyst",
 	],
 };
 
