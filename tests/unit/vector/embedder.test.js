@@ -180,13 +180,22 @@ describe("createEmbedder", () => {
 		};
 
 		const embedder = createEmbedder({ model: "local", openaiApiKey: "sk-test" });
-		// Triggers getLocalPipeline → configureWasmBackend, then fails locally
-		// and falls back to the mocked OpenAI endpoint
+		// Triggers getLocalPipeline → redirectOnnxRuntime + WASM config,
+		// then falls back to the mocked OpenAI endpoint
 		await embedder.embed("test");
 
-		// Verify configureWasmBackend() set the expected env properties
+		// Verify WASM backend was configured
 		assert.ok(typeof env.backends.onnx.wasm.wasmPaths === "string", "wasmPaths should be a string");
 		assert.ok(env.backends.onnx.wasm.wasmPaths.length > 0, "wasmPaths should not be empty");
+		// Trailing slash is required — ORT concatenates wasmPaths + filename
+		assert.ok(
+			env.backends.onnx.wasm.wasmPaths.endsWith("/"),
+			"wasmPaths should end with trailing slash",
+		);
+		assert.ok(
+			env.backends.onnx.wasm.wasmPaths.includes("onnxruntime-web"),
+			"wasmPaths should point to onnxruntime-web",
+		);
 		assert.strictEqual(env.backends.onnx.wasm.numThreads, 1, "numThreads should be 1");
 		assert.strictEqual(env.backends.onnx.wasm.proxy, false, "proxy should be false");
 	});
