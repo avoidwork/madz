@@ -30,10 +30,8 @@ export function createEmbedder(options = {}) {
 	 */
 	async function configureWasmBackend() {
 		const { env } = await import("@xenova/transformers");
-		const wasmDir = new URL(
-			"../../node_modules/@xenova/transformers/dist/",
-			import.meta.url,
-		).pathname;
+		const wasmDir = new URL("../../node_modules/@xenova/transformers/dist/", import.meta.url)
+			.pathname;
 		env.backends.onnx.wasm.wasmPaths = wasmDir;
 		env.backends.onnx.wasm.numThreads = 1;
 		env.backends.onnx.wasm.proxy = false;

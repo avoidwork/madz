@@ -185,23 +185,9 @@ describe("createEmbedder", () => {
 		await embedder.embed("test");
 
 		// Verify configureWasmBackend() set the expected env properties
-		assert.ok(
-			typeof env.backends.onnx.wasm.wasmPaths === "string",
-			"wasmPaths should be a string",
-		);
-		assert.ok(
-			env.backends.onnx.wasm.wasmPaths.length > 0,
-			"wasmPaths should not be empty",
-		);
-		assert.strictEqual(
-			env.backends.onnx.wasm.numThreads,
-			1,
-			"numThreads should be 1",
-		);
-		assert.strictEqual(
-			env.backends.onnx.wasm.proxy,
-			false,
-			"proxy should be false",
-		);
+		assert.ok(typeof env.backends.onnx.wasm.wasmPaths === "string", "wasmPaths should be a string");
+		assert.ok(env.backends.onnx.wasm.wasmPaths.length > 0, "wasmPaths should not be empty");
+		assert.strictEqual(env.backends.onnx.wasm.numThreads, 1, "numThreads should be 1");
+		assert.strictEqual(env.backends.onnx.wasm.proxy, false, "proxy should be false");
 	});
 });
