@@ -231,6 +231,12 @@ console.log(JSON.stringify(results.map(r => r.filePath + ':' + r.lineStart + '-'
 
 Language support is handled entirely through include patterns in each project's config. Whatever languages are present in the project — whether installed at Docker build time or mounted at runtime — just add their extensions to the project's `include` list. No per-language logic, no language-specific chunking, no per-project embedding models. The chunker treats all text as lines; the embedder works on any natural language or code text.
 
+### Phase 3 — Advanced Retrieval
+
+- Hybrid search (vector + keyword) for precision on exact matches
+- Reranking across multiple vector stores
+- AST-aware chunking (function/class boundary preservation) as an alternative to fixed-size blocks
+
 ## Dependencies
 
 | Package | Version | Purpose |
