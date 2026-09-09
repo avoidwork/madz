@@ -161,4 +161,42 @@ describe("createEmbedder", () => {
 		const result = await embedder.embed("test");
 		assert.ok(result instanceof Float32Array, "Should fall back to OpenAI successfully");
 	});
+
+	it("configures WASM backend when local embedding is attempted", async () => {
+		const { env } = await import("@xenova/transformers");
+
+		globalThis.fetch = async (_url, opts) => {
+			const body = JSON.parse(opts.body);
+			return {
+				ok: true,
+				json: async () => ({
+					data: body.input.map((text, i) => ({
+						index: i,
+						embedding: Array.from({ length: 384 }).fill(0.1),
+					})),
+					model: "text-embedding-3-small",
+				}),
+			};
+		};
+
+		const embedder = createEmbedder({ model: "local", openaiApiKey: "sk-test" });
+		// Triggers getLocalPipeline → redirectOnnxRuntime + WASM config,
+		// then falls back to the mocked OpenAI endpoint
+		await embedder.embed("test");
+
+		// Verify WASM backend was configured
+		assert.ok(typeof env.backends.onnx.wasm.wasmPaths === "string", "wasmPaths should be a string");
+		assert.ok(env.backends.onnx.wasm.wasmPaths.length > 0, "wasmPaths should not be empty");
+		// Trailing slash is required — ORT concatenates wasmPaths + filename
+		assert.ok(
+			env.backends.onnx.wasm.wasmPaths.endsWith("/"),
+			"wasmPaths should end with trailing slash",
+		);
+		assert.ok(
+			env.backends.onnx.wasm.wasmPaths.includes("onnxruntime-web"),
+			"wasmPaths should point to onnxruntime-web",
+		);
+		assert.strictEqual(env.backends.onnx.wasm.numThreads, 1, "numThreads should be 1");
+		assert.strictEqual(env.backends.onnx.wasm.proxy, false, "proxy should be false");
+	});
 });
