@@ -537,6 +537,8 @@ All built-in tools are defined in `src/tools/` and registered as LangChain tools
 | `webSearch` | Search the web via DuckDuckGo, Google, Bing, SearXNG, or Custom endpoints. |
 | `webhook` | Webhook CRUD and HMAC verification with URL validation. |
 | `yaml` | YAML parse, serialize, transform, filter, and access operations. |
+| `codeSearch` | Semantic code search using vector similarity. Finds conceptually related code even when exact keywords don't match — e.g., searching for "authentication" finds login handlers, token validation, and auth middleware. |
+| `codeIndex` | Index project source code for vector search. Scans configured project directories, chunks source files, generates embeddings, and stores them for semantic search. Runs incrementally — only processes changed files. |
 
 **Deep Agents tools:** Core filesystem operations (`readFile`, `writeFile`, `patch`, `searchFiles`) and task management (`todo`) are provided by [deepagentsjs](https://github.com/langchain-ai/deepagentsjs) and are not listed as madz-built-in tools.
 
@@ -550,13 +552,13 @@ Built-in tools are registered only when their required permissions are enabled f
 
 | Permission Required                 | Tools                                                                      |
 | ----------------------------------- | -------------------------------------------------------------------------- |
-| `filesystem:read`                   | `compactContext`, `json`, `scanAgents`, `sessionSearch`, `yaml`, `data` |
+| `filesystem:read`                   | `codeSearch`, `compactContext`, `json`, `scanAgents`, `sessionSearch`, `yaml`, `data` |
 | `filesystem:write`                  | `clarify`, `createSkill`, `memory`, `sampling`                             |
 | `filesystem:exec` + `process:spawn` | `process`                                                                  |
 | `network:outbound`                  | `api`, `cronJob`, `graphql`, `imageGenerate`, `mixtureOfAgents`, `webExtract`, `webSearch`, `email`, `calendar`, `webhook`   |
 | _(none)_                            | `date`, `textToSpeech`, `visionAnalyze`                                    |
 | `filesystem:read` + `filesystem:write` + `network:outbound` | `pdfGenerate` |
-| `filesystem:read` + `filesystem:write` | `spreadsheet` |
+| `filesystem:read` + `filesystem:write` | `codeIndex`, `spreadsheet` |
 
 ### Memory System
 
@@ -583,6 +585,24 @@ Skills run in isolated spawned child processes with time limits, memory caps, an
 
 Optional `@opentelemetry/sdk-node` integration. Configurable exporter (console, OTLP HTTP, OTLP gRPC), probability sampling, and automatic redaction of sensitive fields (API keys, auth headers).
 
+### Vector Search
+
+Semantic code search using local vector embeddings and SQLite-based KNN retrieval. Enables finding code by meaning rather than exact keyword matches — useful for debugging, refactoring, and feature implementation.
+
+**Architecture:** Source files are chunked into fixed-size line blocks with configurable overlap, embedded into 384-dimensional vectors via transformers.js (local) or OpenAI, and stored in a sqlite-vec virtual table for cosine-distance KNN search.
+
+**Modules:**
+- `src/vector/chunker.js` — Splits source files into line blocks (default: 96 lines, 16-line overlap)
+- `src/vector/embedder.js` — Generates embeddings via `Xenova/all-MiniLM-L6-v2` (local, default) or OpenAI `text-embedding-3-small`
+- `src/vector/store.js` — SQLite-backed vector store using `better-sqlite3` + `@photostructure/sqlite-vec`
+- `src/vector/indexer.js` — Orchestrates scanning, chunking, embedding, and storage with incremental mtime-based caching
+
+**Tools:**
+- `codeSearch` — Query indexed code semantically. Available to orchestrator and all code-related subagents.
+- `codeIndex` — Trigger indexing from conversation. Runs incrementally; pass `force: true` to re-index all files.
+
+**Configuration** in `config.yaml` under `vector.projects.<name>` — each project defines its own `rootDir`, `dbPath`, chunking parameters, and include/exclude patterns. See `docs/VECTOR_SEARCH.md` for full documentation.
+
 ### Cron Scheduler
 
 Recurring job definitions in `config.yaml`. Scheduling is delegated to the system crontab — there is no in-process clock tick loop. Each invocation inherits the current session's memory context and sandbox permissions. Max-concurrency control prevents run overlap (currently a no-op, kept for API compatibility).
@@ -608,6 +628,14 @@ On first onboarding completion, `madz` automatically installs a `reflection-dail
 │   ├── session/                # Per-session state & context windows
 │   ├── telemetry/              # OpenTelemetry tracing & redaction
 │   ├── tools/                  # Built-in LangChain tools
+│   │   ├── codeSearch/         # Semantic code search via vector similarity
+│   │   ├── codeIndex/          # Trigger code indexing from conversation
+│   │   └── ...                 # Other tool modules
+│   ├── vector/                 # Vector search pipeline
+│   │   ├── chunker.js          # Line-based file chunking
+│   │   ├── embedder.js         # Embedding generation (local/OpenAI)
+│   │   ├── store.js            # sqlite-vec vector store
+│   │   └── indexer.js          # Scanning, embedding & storage orchestration
 │   ├── workspace/              # Workspace rules discovery (AGENTS.md)
 │   └── tui/                    # Ink React terminal UI
 ├── tests/
@@ -693,6 +721,14 @@ Graceful shutdown flushes all buffered log entries to disk before process exit.
 |               | `sqlite_path`                        | `memory/checkpoints.db`                  | SQLite checkpointer file path                 |
 | `skillAgentMap` | `[].pattern`                       | _(none)_                                 | Regex pattern to match skill names            |
 |               | `[].agent`                           | _(none)_                                 | Agent name to assign when pattern matches     |
+| `vector`      | `model`                              | `local`                                  | Embedding model (`local` or `openai`)         |
+|               | `projects.<name>.rootDir`            | `.`                                      | Project root directory to scan                |
+|               | `projects.<name>.dbPath`             | _(none)_                                 | Path to sqlite-vec database file              |
+|               | `projects.<name>.chunkSize`          | `96`                                     | Lines per chunk                               |
+|               | `projects.<name>.chunkOverlap`       | `16`                                     | Overlap between consecutive chunks            |
+|               | `projects.<name>.maxFileSize`        | `524288`                                 | Max file size in bytes (500 KB)               |
+|               | `projects.<name>.include`            | `["src/**/*.js", ...]`                   | Glob patterns for files to index              |
+|               | `projects.<name>.exclude`            | `["node_modules/**", ...]`               | Glob patterns for files to exclude            |
 
 **Optional — Environment Variable Overrides:**
 

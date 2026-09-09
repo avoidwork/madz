@@ -28,6 +28,7 @@ import { createYamlTool } from "./yaml/index.js";
 import { createDataTool } from "./data/index.js";
 import { createWebhookTool } from "./webhook/index.js";
 import { codeSearch } from "./codeSearch/index.js";
+import { codeIndex } from "./codeIndex/index.js";
 
 /**
  * Maps tool names to required permission scopes.
@@ -69,6 +70,7 @@ export const TOOL_PERMISSIONS = {
 	data: ["filesystem:read"],
 	webhook: ["filesystem:read", "filesystem:write"],
 	codeSearch: ["filesystem:read"],
+	codeIndex: ["filesystem:read", "filesystem:write"],
 };
 
 /**
@@ -152,6 +154,7 @@ export const TOOL_CLASSIFICATIONS = {
 		"documentation",
 		"seoAnalyst",
 	],
+	codeIndex: ["coding", "debug", "performance"],
 };
 
 /**
@@ -189,6 +192,7 @@ export const ORCHESTRATOR_TOOLS = [
 	"sampling",
 	"createSkill",
 	"codeSearch",
+	"codeIndex",
 ];
 
 // Tool instances keyed by tool name
@@ -227,6 +231,7 @@ export const TOOLS = {
 	data: createDataTool,
 	webhook: createWebhookTool,
 	codeSearch,
+	codeIndex,
 };
 
 /**
