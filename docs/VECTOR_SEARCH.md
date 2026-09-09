@@ -219,21 +219,27 @@ console.log(JSON.stringify(results.map(r => r.filePath + ':' + r.lineStart + '-'
 - CLI flag `--index-code` for one-shot indexing
 - Config-driven include/exclude patterns
 
-### Phase 2 — Multi-Project Support
+### Phase 2 ✅ — Multi-Project Config (Complete)
 
-- Allow indexing multiple project roots with separate or tagged vector stores
-- `codeSearch` tool accepts an optional project identifier
+- Named project entries under `vector.projects` in config.yaml
+- Each project defines its own `rootDir`, `dbPath`, include/exclude patterns, and chunking params
+- `codeSearch` tool accepts an optional `project` parameter (defaults to first configured)
+- Indexer iterates all projects on `--index-code`
+- Foundation laid for mounting external project directories into the container
+
+### Phase 3 — Watch Mode & Language Expansion
+
 - Watch mode (`--watch`) for automatic re-indexing on file changes
-- Support for non-JavaScript file types (Python, Rust, Go, etc.) via language-aware chunking or configurable include patterns
+- Support for non-JavaScript file types (Python, Rust, Go, etc.) via configurable include patterns and language-aware chunking
+- Per-project embedding model selection (e.g., code-specific models for different languages)
 
-### Phase 3 — Advanced Retrieval
+### Phase 4 — Advanced Retrieval
 
 - Hybrid search (vector + keyword) for precision on exact matches
 - Reranking across multiple vector stores
 - AST-aware chunking (function/class boundary preservation) as an alternative to fixed-size blocks
-- Embedding model selection per project or per file type
 
-### Phase 4 — IDE Integration
+### Phase 5 — IDE Integration
 
 - Expose `codeSearch` as a standalone CLI tool for use outside the madz runtime
 - LSP-style protocol for editor integration (VS Code extension, Neovim plugin)
