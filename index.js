@@ -12,6 +12,10 @@ const parsed = yargs(process.argv.slice(2))
 		type: "string",
 		description: "Session ID to restore",
 	})
+	.option("index-code", {
+		type: "boolean",
+		description: "Index project source code for vector search",
+	})
 	.positional("message", {
 		type: "string",
 		description: "Message to send",
@@ -332,6 +336,28 @@ registerShutdownHandler(runShutdown);
 // CLI mode detection (if run directly as node.js/index.js)
 const isMain = process.argv[1] === fileURLToPath(import.meta.url);
 if (isMain) {
+	// Handle --index-code flag
+	if (parsed.indexCode) {
+		const { createVectorStore } = await import("./src/vector/store.js");
+		const { createEmbedder } = await import("./src/vector/embedder.js");
+		const { reindex } = await import("./src/vector/indexer.js");
+
+		const vectorConfig = config.vector || {};
+		const store = await createVectorStore(vectorConfig.dbPath || "memory/vector.db");
+		await store.init();
+		const embedder = createEmbedder({ model: vectorConfig.model || "local" });
+		await reindex(store, embedder, {
+			rootDir: config.cwd || ".",
+			include: vectorConfig.include || ["src/**/*.js", "src/**/*.mjs", "src/**/*.cjs"],
+			exclude: vectorConfig.exclude || ["node_modules/**", ".git/**", ".worktrees/**"],
+			chunkSize: vectorConfig.chunkSize || 96,
+			chunkOverlap: vectorConfig.chunkOverlap || 16,
+			maxFileSize: vectorConfig.maxFileSize || 524288,
+		});
+		store.close();
+		process.exit(0);
+	}
+
 	const mode = parsed.mode === "interactive" ? "interactive" : "chat";
 	const chatSessionId = parsed.session || "";
 	let message = parsed.message;
