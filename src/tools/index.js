@@ -140,7 +140,17 @@ export const TOOL_CLASSIFICATIONS = {
 	yaml: ["search", "research", "coding", "documentation", "debug"],
 	data: ["search", "research", "coding", "documentation", "debug"],
 	webhook: ["search", "research", "coding", "documentation", "debug"],
-	codeSearch: ["search", "research", "coding"],
+	codeSearch: [
+		"search",
+		"research",
+		"coding",
+		"code-review",
+		"debug",
+		"security-audit",
+		"testing",
+		"performance",
+		"documentation",
+	],
 };
 
 /**
