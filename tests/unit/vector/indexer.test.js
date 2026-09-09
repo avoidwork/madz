@@ -27,7 +27,11 @@ describe("scanFiles", () => {
 	});
 
 	it("finds source files matching include patterns", async () => {
-		const files = await scanFiles(tmpDir, ["src/**/*.js", "src/**/*.mjs"], ["node_modules/**", ".git/**"]);
+		const files = await scanFiles(
+			tmpDir,
+			["src/**/*.js", "src/**/*.mjs"],
+			["node_modules/**", ".git/**"],
+		);
 		assert.strictEqual(files.length, 3);
 		assert.ok(files.some((f) => f.endsWith("foo.js")));
 		assert.ok(files.some((f) => f.endsWith("bar.mjs")));

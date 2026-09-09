@@ -129,7 +129,7 @@ describe("codeSearch tool", () => {
 				openaiApiKey: "test-key",
 			},
 		);
-		assert.ok(result.includes('No results matching filter'), `Got: ${result}`);
+		assert.ok(result.includes("No results matching filter"), `Got: ${result}`);
 	});
 
 	it("uses first project as default when no project specified", async () => {
