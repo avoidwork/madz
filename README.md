@@ -396,6 +396,21 @@ All configuration is controlled via environment variables in the `docker run` co
 | `PERSISTENCE_MODE`        | `memory`                | Storage backend          |
 | `PERSISTENCE_SQLITE_PATH` | `memory/checkpoints.db` | SQLite checkpointer path |
 
+**Optional — Vector Search:**
+
+| Variable                                       | Default                                       | Description                                |
+| ---------------------------------------------- | --------------------------------------------- | ------------------------------------------ |
+| `VECTOR_MODEL`                                 | `local`                                       | Embedding model (`local` or `openai`)      |
+| `VECTOR_PROJECTS_<NAME>_ROOT_DIR`              | `.`                                           | Project root directory to scan             |
+| `VECTOR_PROJECTS_<NAME>_DB_PATH`               | _(none)_                                      | Path to sqlite-vec database file           |
+| `VECTOR_PROJECTS_<NAME>_CHUNK_SIZE`            | `96`                                          | Lines per chunk                            |
+| `VECTOR_PROJECTS_<NAME>_CHUNK_OVERLAP`         | `16`                                          | Overlap between consecutive chunks         |
+| `VECTOR_PROJECTS_<NAME>_MAX_FILE_SIZE`         | `524288`                                      | Max file size in bytes (500 KB)            |
+| `VECTOR_PROJECTS_<NAME>_INCLUDE_<N>`           | `src/**/*.js`                                 | Include glob pattern (indexed per entry)   |
+| `VECTOR_PROJECTS_<NAME>_EXCLUDE_<N>`           | `node_modules/**`                             | Exclude glob pattern (indexed per entry)   |
+
+Replace `<NAME>` with the project name in `UPPER_SNAKE_CASE` (e.g., `MADZ`, `FILESIZE_JS`). For array fields like `INCLUDE` and `EXCLUDE`, append `_0`, `_1`, etc. for each entry.
+
 **Alternative: inline env var references in `config.yaml`:**
 
 Instead of passing env vars to `docker run`, reference them directly in `config.yaml`:
