@@ -2,7 +2,6 @@ import { describe, it, before, after } from "node:test";
 import assert from "node:assert";
 import { mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 
 describe("codeSearch tool", () => {
 	let origFetch;
@@ -11,7 +10,7 @@ describe("codeSearch tool", () => {
 
 	before(() => {
 		origFetch = globalThis.fetch;
-		tmpDir = mkdtempSync(join(tmpdir(), "codesearch-"));
+		tmpDir = mkdtempSync(join(process.cwd(), "tmp", "codesearch-"));
 		dbPath = join(tmpDir, "vector.db");
 
 		// Mock OpenAI embedding API before any module imports

@@ -2,7 +2,6 @@ import { describe, it, before, after } from "node:test";
 import assert from "node:assert";
 import { mkdtempSync, writeFileSync, rmSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import { scanFiles } from "../../../src/vector/indexer.js";
 
 describe("scanFiles", () => {
@@ -10,7 +9,7 @@ describe("scanFiles", () => {
 	let tmpDir;
 
 	before(() => {
-		tmpDir = mkdtempSync(join(tmpdir(), "indexer-test-"));
+		tmpDir = mkdtempSync(join(process.cwd(), "tmp", "indexer-test-"));
 		mkdirSync(join(tmpDir, "src"), { recursive: true });
 		mkdirSync(join(tmpDir, "node_modules"), { recursive: true });
 		mkdirSync(join(tmpDir, ".git"), { recursive: true });
@@ -74,7 +73,7 @@ describe("reindex", () => {
 
 	before(async () => {
 		origFetch = globalThis.fetch;
-		tmpDir = mkdtempSync(join(tmpdir(), "reindex-test-"));
+		tmpDir = mkdtempSync(join(process.cwd(), "tmp", "reindex-test-"));
 		dbPath = join(tmpDir, "vector.db");
 
 		mkdirSync(join(tmpDir, "src"), { recursive: true });
@@ -206,7 +205,7 @@ describe("reindex", () => {
 		const { createEmbedder } = await import("../../../src/vector/embedder.js");
 		const { reindex } = await import("../../../src/vector/indexer.js");
 
-		const emptyDir = mkdtempSync(join(tmpdir(), "empty-reindex-"));
+		const emptyDir = mkdtempSync(join(process.cwd(), "tmp", "empty-reindex-"));
 		const emptyDb = join(emptyDir, "vector.db");
 
 		const store = await createVectorStore(emptyDb);

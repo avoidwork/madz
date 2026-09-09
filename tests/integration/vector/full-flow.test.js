@@ -2,7 +2,6 @@ import { describe, it, before, after } from "node:test";
 import assert from "node:assert";
 import { mkdtempSync, writeFileSync, rmSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import { createVectorStore } from "../../../src/vector/store.js";
 import { createEmbedder } from "../../../src/vector/embedder.js";
 import { reindex } from "../../../src/vector/indexer.js";
@@ -17,7 +16,7 @@ describe("vector full flow", () => {
 	let origFetch;
 
 	before(async () => {
-		tmpDir = mkdtempSync(join(tmpdir(), "vector-int-"));
+		tmpDir = mkdtempSync(join(process.cwd(), "tmp", "vector-int-"));
 		dbPath = join(tmpDir, "vector.db");
 
 		// Create a test project structure

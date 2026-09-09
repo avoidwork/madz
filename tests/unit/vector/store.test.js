@@ -2,7 +2,6 @@ import { describe, it, after } from "node:test";
 import assert from "node:assert";
 import { mkdtempSync, existsSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import { createVectorStore } from "../../../src/vector/store.js";
 
 describe("createVectorStore", () => {
@@ -25,7 +24,7 @@ describe("createVectorStore", () => {
 	});
 
 	it("creates directory for file-based db", async () => {
-		const tmpDir = mkdtempSync(join(tmpdir(), "store-test-"));
+		const tmpDir = mkdtempSync(join(process.cwd(), "tmp", "store-test-"));
 		const dbPath = join(tmpDir, "subdir", "test.db");
 		store = await createVectorStore(dbPath);
 		await store.init();

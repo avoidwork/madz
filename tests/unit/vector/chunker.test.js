@@ -2,7 +2,6 @@ import { describe, it, before, after } from "node:test";
 import assert from "node:assert";
 import { mkdtempSync, writeFileSync, rmSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import { chunkContent, chunkFile } from "../../../src/vector/chunker.js";
 
 describe("chunkContent", () => {
@@ -102,7 +101,7 @@ describe("chunkFile", () => {
 	let tmpDir;
 
 	before(() => {
-		tmpDir = mkdtempSync(join(tmpdir(), "chunkfile-"));
+		tmpDir = mkdtempSync(join(process.cwd(), "tmp", "chunkfile-"));
 	});
 
 	after(() => {
