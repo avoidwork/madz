@@ -15,10 +15,10 @@ env | sed 's/^\([^=]*\)=\(.*\)/export \1="\2"/' | grep -v '^export PWD=' | grep 
 printf '%s\n' '#!/bin/sh' '[ -f /etc/madz-env.sh ] && . /etc/madz-env.sh' > /etc/profile.d/madz-env.sh
 chmod a+r /etc/profile.d/madz-env.sh
 
-# Ensure checkpoints directory is writable (handles host-mounted volumes)
-mkdir -p /app/memory/checkpoints
-chown -R madz:node /app/memory/checkpoints
-chmod -R u+rwX /app/memory/checkpoints
+# Ensure checkpoints and vector search directories are writable (handles host-mounted volumes)
+mkdir -p /app/memory/checkpoints /app/memory/vectorSearch
+chown -R madz:node /app/memory/checkpoints /app/memory/vectorSearch
+chmod -R u+rwX /app/memory/checkpoints /app/memory/vectorSearch
 
 # Start sshd as a background process so it picks up injected env vars
 /usr/sbin/sshd -D &

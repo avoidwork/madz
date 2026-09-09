@@ -104,6 +104,24 @@ persistence:
   mode: sqlite
   sqlite_path: memory/checkpoints/checkpoints.db
 
+vector:
+  model: local
+  projects:
+    madz:
+      rootDir: .
+      dbPath: memory/vectorSearch/madz.db
+      chunkSize: 96
+      chunkOverlap: 16
+      maxFileSize: 524288
+      include:
+        - "src/**/*.js"
+        - "src/**/*.mjs"
+        - "src/**/*.cjs"
+      exclude:
+        - "node_modules/**"
+        - ".git/**"
+        - ".worktrees/**"
+
 memory:
   directory: memory/
   contextDir: memory/context/

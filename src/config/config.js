@@ -15,6 +15,7 @@ import { LruSchema } from "./schemas/lru.js";
 import { PersistenceSchema } from "./schemas/persistence.js";
 import { SkillAgentMapSchema } from "./schemas/skillAgentMap.js";
 import { SubAgentsTemperatureSchema } from "./schemas/subAgentsTemperature.js";
+import { VectorConfigSchema } from "./schemas/vector.js";
 
 // Re-export individual schemas for backward compatibility
 export {
@@ -30,6 +31,7 @@ export {
 	LruSchema,
 	PersistenceSchema,
 	SkillAgentMapSchema,
+	VectorConfigSchema,
 };
 
 // --- Root config ---
@@ -64,6 +66,7 @@ export const ConfigSchema = z.object({
 	skillAgentMap: SkillAgentMapSchema,
 	cwd: z.string().default(""),
 	subAgentsTemperature: SubAgentsTemperatureSchema,
+	vector: VectorConfigSchema.default({}),
 });
 
 // Derive defaults from Zod schema — config.yaml is the source of truth,

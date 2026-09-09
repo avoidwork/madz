@@ -12,6 +12,10 @@ const parsed = yargs(process.argv.slice(2))
 		type: "string",
 		description: "Session ID to restore",
 	})
+	.option("index-code", {
+		type: "boolean",
+		description: "Index project source code for vector search",
+	})
 	.positional("message", {
 		type: "string",
 		description: "Message to send",
@@ -332,6 +336,42 @@ registerShutdownHandler(runShutdown);
 // CLI mode detection (if run directly as node.js/index.js)
 const isMain = process.argv[1] === fileURLToPath(import.meta.url);
 if (isMain) {
+	// Handle --index-code flag
+	if (parsed.indexCode) {
+		const { createVectorStore } = await import("./src/vector/store.js");
+		const { createEmbedder } = await import("./src/vector/embedder.js");
+		const { reindex } = await import("./src/vector/indexer.js");
+
+		const vectorConfig = config.vector || {};
+		const embedder = createEmbedder({ model: vectorConfig.model || "local" });
+		const projects = vectorConfig.projects || {};
+
+		if (Object.keys(projects).length === 0) {
+			logger.error("No vector projects configured in config.yaml under vector.projects.");
+			process.exit(1);
+		}
+
+		for (const [name, proj] of Object.entries(projects)) {
+			logger.info(`Indexing project "${name}"...`);
+			const store = await createVectorStore(proj.dbPath);
+			await store.init();
+			const result = await reindex(store, embedder, {
+				rootDir: proj.rootDir || ".",
+				include: proj.include || ["src/**/*.js", "src/**/*.mjs", "src/**/*.cjs"],
+				exclude: proj.exclude || ["node_modules/**", ".git/**", ".worktrees/**"],
+				chunkSize: proj.chunkSize || 96,
+				chunkOverlap: proj.chunkOverlap || 16,
+				maxFileSize: proj.maxFileSize || 524288,
+			});
+			store.close();
+			logger.info(
+				`  indexed: ${result.indexed}, skipped: ${result.skipped}, errors: ${result.errors}`,
+			);
+		}
+
+		process.exit(0);
+	}
+
 	const mode = parsed.mode === "interactive" ? "interactive" : "chat";
 	const chatSessionId = parsed.session || "";
 	let message = parsed.message;
