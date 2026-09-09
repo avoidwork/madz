@@ -12,7 +12,7 @@ export const VectorConfigSchema = z.object({
 	/** Number of overlapping lines between consecutive chunks */
 	chunkOverlap: z.number().int().min(0).default(16),
 	/** Path to the SQLite vector database file */
-	dbPath: z.string().default("memory/vector.db"),
+	dbPath: z.string().default("memory/vectorSearch/vector.db"),
 	/** Maximum file size in bytes to index (default 500KB) */
 	maxFileSize: z.number().int().positive().default(524288),
 	/** Glob patterns for files to include in indexing */

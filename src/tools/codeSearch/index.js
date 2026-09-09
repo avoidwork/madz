@@ -21,7 +21,7 @@ const vectorConfig = config.vector || {};
  */
 export async function codeSearchImpl(input, options = {}) {
 	const cfg = options.vector || vectorConfig;
-	const dbPath = cfg.dbPath || "memory/vector.db";
+	const dbPath = cfg.dbPath || "memory/vectorSearch/vector.db";
 
 	let store;
 	try {

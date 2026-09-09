@@ -343,7 +343,7 @@ if (isMain) {
 		const { reindex } = await import("./src/vector/indexer.js");
 
 		const vectorConfig = config.vector || {};
-		const store = await createVectorStore(vectorConfig.dbPath || "memory/vector.db");
+		const store = await createVectorStore(vectorConfig.dbPath || "memory/vectorSearch/vector.db");
 		await store.init();
 		const embedder = createEmbedder({ model: vectorConfig.model || "local" });
 		await reindex(store, embedder, {
