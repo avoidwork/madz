@@ -210,23 +210,6 @@ console.log(JSON.stringify(results.map(r => r.filePath + ':' + r.lineStart + '-'
 
 ## Phased Goals
 
-### Phase 1 ✅ — madz Self-Indexing (Complete)
-
-- Index the madz project's own `src/` directory
-- `codeSearch` tool available to orchestrator and all subagents
-- Local embedding via transformers.js (no external dependencies)
-- Incremental indexing via mtime cache
-- CLI flag `--index-code` for one-shot indexing
-- Config-driven include/exclude patterns
-
-### Phase 2 ✅ — Multi-Project Config (Complete)
-
-- Named project entries under `vector.projects` in config.yaml
-- Each project defines its own `rootDir`, `dbPath`, include/exclude patterns, and chunking params
-- `codeSearch` tool accepts an optional `project` parameter (defaults to first configured)
-- Indexer iterates all projects on `--index-code`
-- Foundation laid for mounting external project directories into the container
-
 ### Language Support
 
 Language support is handled entirely through include patterns in each project's config. Whatever languages are present in the project — whether installed at Docker build time or mounted at runtime — just add their extensions to the project's `include` list. No per-language logic, no language-specific chunking, no per-project embedding models. The chunker treats all text as lines; the embedder works on any natural language or code text.
