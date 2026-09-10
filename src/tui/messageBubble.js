@@ -163,6 +163,7 @@ export const ScrollContext = React.createContext({ scrollToBottom: () => {} });
  * @param {number} [props.turnStartTime] - Timestamp when the turn started (for live timer)
  * @param {number} [props.turnDuration] - Final elapsed time in ms when streaming ended
  * @param {string[]} [props.completedToolCalls] - List of completed tool call names
+ * @param {boolean} [props.showToolResults=true] - Whether to display tool call result lines
 
  * @returns {React.ReactElement}
  */
@@ -179,6 +180,7 @@ export function MessageBubbleInner({
 	turnStartTime,
 	turnDuration,
 	completedToolCalls,
+	showToolResults = true,
 }) {
 	const [segments, setSegments] = useState(initialSegments || []);
 	const { subscribe, unsubscribe } = useContext(PubSubContext);
@@ -258,7 +260,7 @@ export function MessageBubbleInner({
 	// Stays visible after streaming completes so you can review the model's thinking.
 	const hasReasoning = role === "assistant" && segments.some((s) => s.type === "reasoning");
 	const hasActiveToolCall = role === "assistant" && activeToolCall;
-	const hasToolCallDisplay = role === "assistant" && toolCallDisplay;
+	const hasToolCallDisplay = role === "assistant" && toolCallDisplay && showToolResults !== false;
 
 	// Render segments in order — reasoning segments get gray "(thinking)" prefix,
 	// message segments render as normal MarkdownText.

@@ -331,6 +331,74 @@ describe("MessageBubbleInner - tool call display", () => {
 		);
 		assert.ok(typeof result === "string");
 	});
+
+	it("suppresses tool call display when showToolResults is false", () => {
+		const result = renderToString(
+			React.createElement(
+				PubSubContext.Provider,
+				{ value: { subscribe: () => {}, unsubscribe: () => {} } },
+				React.createElement(
+					ScrollContext.Provider,
+					{ value: { scrollToBottom: () => {} } },
+					React.createElement(MessageBubbleInner, {
+						role: "assistant",
+						content: "",
+						toolCallDisplay: "Result: success\nData: 42",
+						showToolResults: false,
+						streaming: false,
+					}),
+				),
+			),
+		);
+		assert.ok(typeof result === "string");
+		assert.ok(!result.includes("Result: success"), "tool call result should be hidden");
+	});
+
+	it("keeps activeToolCall visible when showToolResults is false", () => {
+		const result = renderToString(
+			React.createElement(
+				PubSubContext.Provider,
+				{ value: { subscribe: () => {}, unsubscribe: () => {} } },
+				React.createElement(
+					ScrollContext.Provider,
+					{ value: { scrollToBottom: () => {} } },
+					React.createElement(MessageBubbleInner, {
+						role: "assistant",
+						content: "",
+						activeToolCall: { name: "webSearch" },
+						showToolResults: false,
+						streaming: false,
+					}),
+				),
+			),
+		);
+		assert.ok(typeof result === "string");
+		assert.ok(result.includes("Running"), "active tool call indicator should remain visible");
+		assert.ok(result.includes("webSearch"), "tool call name should remain visible");
+	});
+
+	it("keeps completedToolCalls visible when showToolResults is false", () => {
+		const result = renderToString(
+			React.createElement(
+				PubSubContext.Provider,
+				{ value: { subscribe: () => {}, unsubscribe: () => {} } },
+				React.createElement(
+					ScrollContext.Provider,
+					{ value: { scrollToBottom: () => {} } },
+					React.createElement(MessageBubbleInner, {
+						role: "assistant",
+						content: "",
+						completedToolCalls: ["webSearch", "readFile"],
+						showToolResults: false,
+						streaming: false,
+					}),
+				),
+			),
+		);
+		assert.ok(typeof result === "string");
+		assert.ok(result.includes("tool call"), "completed tool calls summary should remain visible");
+		assert.ok(result.includes("webSearch"), "completed tool name should remain visible");
+	});
 });
 
 describe("MessageBubbleInner - pending state", () => {

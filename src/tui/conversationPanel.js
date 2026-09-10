@@ -96,6 +96,7 @@ export function getBubbleStyle(role) {
 export const ConversationPanel = React.memo(function ConversationPanel({
 	messages = [],
 	assistantName = "Assistant",
+	showToolResults = true,
 	scrollRef: externalScrollRef,
 	messageListRef,
 }) {
@@ -115,6 +116,7 @@ export const ConversationPanel = React.memo(function ConversationPanel({
 		React.createElement(MessageList, {
 			ref: panelRef,
 			assistantName,
+			showToolResults,
 			scrollRef: externalScrollRef,
 		}),
 	);
