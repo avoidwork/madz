@@ -30,7 +30,7 @@ RUN apt-get update && \
     chmod +x /usr/local/bin/vault && \
     ssh-keygen -A && \
     useradd -m -d /home/madz -s /bin/bash -G node madz && \
-    mkdir -p /run/sshd /root/.cache /home/madz/.cache/madz/logs && \
+    mkdir -p /run/sshd /root/.cache /home/madz/.cache/madz/logs /home/madz/.local/share/madz/logs && \
     printf '%s\n' '#!/bin/sh' '[ -f /etc/profile.d/madz-env.sh ] && . /etc/profile.d/madz-env.sh' 'if [ -x "/app" ]; then' '    echo "Starting madz..."' '    cd /app && exec node --expose-gc index.js --mode interactive' 'fi' > /etc/profile && \
     passwd -d madz && \
     # Dev container: allow empty passwords for SSH access
