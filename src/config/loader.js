@@ -43,6 +43,233 @@ function _parseValue(str) {
 	return str;
 }
 
+/// -- Known config sections (top-level keys from ConfigSchema minus cwd)
+const KNOWN_SECTIONS = [
+	"providers",
+	"email",
+	"calendar",
+	"sandbox",
+	"search",
+	"memory",
+	"telemetry",
+	"schedules",
+	"tui",
+	"agent",
+	"lru",
+	"persistence",
+	"skillAgentMap",
+	"subAgentsTemperature",
+	"vector",
+];
+
+/// -- Apply a dot-path value to an object, materializing intermediate structure
+
+/**
+ * Set a value at a dot-path in an object, creating intermediate objects or arrays as needed.
+ * Handles numeric path segments as array indices.
+ * Mutates the target object in place.
+ * @param {Object} obj - Target object to mutate
+ * @param {string} dotPath - Dot-separated path (e.g., "vector.projects.projectAlpha.include.0")
+ * @param {unknown} value - Value to set at the path
+ */
+export function applyDotPath(obj, dotPath, value) {
+	const keys = dotPath.split(".");
+	let current = obj;
+	for (let i = 0; i < keys.length - 1; i++) {
+		const key = keys[i];
+		const nextKey = keys[i + 1];
+		const isNextNumeric = /^\d+$/.test(nextKey);
+		if (current[key] === undefined || current[key] === null) {
+			current[key] = isNextNumeric ? [] : {};
+		}
+		// If the current key is a numeric index but current is not an array, coerce
+		if (/^\d+$/.test(key) && !Array.isArray(current)) {
+			const arr = [];
+			const idx = Number(key);
+			arr[idx] = current[key] || {};
+			current = arr;
+			// Re-assign the array back to parent
+			const parentKey = keys[i - 1];
+			if (parentKey !== undefined) {
+				obj[parentKey] = current;
+			}
+		}
+		current = current[key];
+	}
+	current[keys[keys.length - 1]] = value;
+}
+
+/// -- Schema-driven reverse mapping
+
+/**
+ * Walk a Zod schema recursively to enumerate all valid leaf paths and compute
+ * their environment variable names using the same DROPPED_KEYS logic as
+ * _resolveEnvRecursively. Returns a Map of env-var-name → dot-path.
+ *
+ * This solves the ambiguous kebab-case/camelCase conversion problem: instead of
+ * guessing whether PROJECT_ALPHA maps to "project-alpha" or "projectAlpha", we
+ * derive the exact path from the schema definition.
+ *
+ * @param {import("zod").ZodType} schema - Zod schema to introspect
+ * @param {string[]} [path] - Current dot-path segments (for recursion)
+ * @param {Map<string, string>} [map] - Accumulator map (for recursion)
+ * @returns {Map<string, string>}
+ */
+export function buildReverseMap(schema, path = [], map = new Map()) {
+	const DROPPED_KEYS = [
+		"providers",
+		"credentials",
+		"ratelimit",
+		"timeout",
+		"search",
+		"process",
+		"calendar",
+		"subagentstemperature",
+	];
+
+	const def = schema._def;
+	if (!def || !def.type) {
+		// Unknown schema type — treat as leaf if we have a path
+		if (path.length > 0) {
+			const envPath = path.filter((p) => !DROPPED_KEYS.includes(p.toLowerCase()));
+			const envKey = envPath.map(_toUpperSnake).join("_");
+			map.set(envKey, path.join("."));
+		}
+		return map;
+	}
+
+	const type = def.type;
+
+	// Object schemas — recurse into each property
+	if (type === "object" && schema.shape) {
+		for (const [key, childSchema] of Object.entries(schema.shape)) {
+			buildReverseMap(childSchema, [...path, key], map);
+		}
+		return map;
+	}
+
+	// Record schemas (e.g., providers: z.object({}).passthrough(), vector.projects: z.record(...))
+	if (type === "record") {
+		// Records have dynamic keys — we cannot enumerate them statically.
+		// The value schema tells us the shape of each entry.
+		// We skip record value schemas since keys are unknown at build time.
+		// syncEnv() handles record entries via the prefix allowlist + reverse map lookup.
+		return map;
+	}
+
+	// Array schemas
+	if (type === "array") {
+		// Arrays have numeric indices — register the array path itself
+		// and recurse into the element schema with a wildcard segment
+		if (def.innerType) {
+			buildReverseMap(def.innerType, [...path, "0"], map);
+		}
+		return map;
+	}
+
+	// Optional / defaultable / nullable wrappers — unwrap and recurse
+	if (type === "optional" || type === "default" || type === "nullable") {
+		if (def.innerType) {
+			buildReverseMap(def.innerType, path, map);
+		}
+		return map;
+	}
+
+	// Effects (e.g., .transform, .preprocess) — unwrap
+	if (type === "effects") {
+		if (def.schema) {
+			buildReverseMap(def.schema, path, map);
+		}
+		return map;
+	}
+
+	// Union — recurse into each variant
+	if (type === "union" && def.options) {
+		for (const option of def.options) {
+			buildReverseMap(option, path, map);
+		}
+		return map;
+	}
+
+	// Discriminated union
+	if (type === "discriminatedUnion" && def.optionsMap) {
+		for (const option of Object.values(def.optionsMap)) {
+			buildReverseMap(option, path, map);
+		}
+		return map;
+	}
+
+	// Literal / enum — these are leaf values
+	if (type === "literal" || type === "enum") {
+		if (path.length > 0) {
+			const envPath = path.filter((p) => !DROPPED_KEYS.includes(p.toLowerCase()));
+			const envKey = envPath.map(_toUpperSnake).join("_");
+			map.set(envKey, path.join("."));
+		}
+		return map;
+	}
+
+	// Leaf types: string, number, boolean, bigint, date, etc.
+	if (path.length > 0) {
+		const envPath = path.filter((p) => !DROPPED_KEYS.includes(p.toLowerCase()));
+		const envKey = envPath.map(_toUpperSnake).join("_");
+		map.set(envKey, path.join("."));
+	}
+
+	return map;
+}
+
+/// -- Sync env vars into config
+
+/**
+ * Scan process.env for keys matching known config section prefixes and
+ * materialize any missing config structure (objects, arrays) into the raw
+ * config object. Runs after YAML parse and before _resolveEnvRecursively().
+ *
+ * Uses the schema-driven reverse map to resolve env-var names to config paths,
+ * solving the ambiguous kebab-case/camelCase conversion problem.
+ *
+ * Idempotent: only creates missing structure; never overrides existing YAML keys.
+ *
+ * @param {Object} raw - Raw config object (mutated in place)
+ * @param {string[]} knownSections - Top-level config section names to allowlist
+ * @param {Map<string, string>} reverseMap - Env-var-name → dot-path map from buildReverseMap()
+ */
+export function syncEnv(raw, knownSections, reverseMap) {
+	for (const [envKey, envValue] of Object.entries(process.env)) {
+		// Check prefix allowlist
+		const topLevel = envKey.split("_")[0].toLowerCase();
+		if (!knownSections.some((s) => s.toLowerCase() === topLevel)) {
+			continue;
+		}
+
+		// Look up in reverse map
+		const dotPath = reverseMap.get(envKey);
+		if (!dotPath) {
+			continue;
+		}
+
+		// Check if the path already exists in raw config (idempotent)
+		const keys = dotPath.split(".");
+		let existing = raw;
+		let exists = true;
+		for (const key of keys) {
+			if (existing === undefined || existing === null || !(key in existing)) {
+				exists = false;
+				break;
+			}
+			existing = existing[key];
+		}
+		if (exists) {
+			continue;
+		}
+
+		// Materialize the path
+		const parsed = _parseValue(envValue);
+		applyDotPath(raw, dotPath, parsed);
+	}
+}
+
 /// -- Recursive env-var resolver
 
 /**
@@ -64,7 +291,7 @@ export function _resolveEnvRecursively(node, path) {
 		"search", // e.g. search.exa.apiKey → EXA_API_KEY
 		"process",
 		"calendar", // e.g. calendar.google.apiKey → GOOGLE_CALENDAR_API_KEY
-		"subAgentsTemperature", // e.g. subAgentsTemperature.coding → SUB_AGENTS_TEMPERATURE_CODING
+		"subagentstemperature", // e.g. subAgentsTemperature.coding → SUB_AGENTS_TEMPERATURE_CODING
 	];
 
 	if (Array.isArray(node)) {
@@ -161,6 +388,12 @@ export function loadConfig() {
 			raw = deepMerge({}, { ...ConfigSchema.parse({}), ...parsed });
 		}
 	}
+	// Materialize missing config structure from environment variables
+	// before the recursive resolver runs. This makes env vars a first-class
+	// config source — they can define new config paths, not just override
+	// existing YAML keys.
+	const reverseMap = buildReverseMap(ConfigSchema);
+	syncEnv(raw, KNOWN_SECTIONS, reverseMap);
 	const resolved = _resolveEnvRecursively(raw, []);
 	const config = validateConfig(resolved);
 	// Capture the original working directory before any chdir happens

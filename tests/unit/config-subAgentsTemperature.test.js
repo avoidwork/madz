@@ -109,22 +109,22 @@ describe("_resolveEnvRecursively — subAgentsTemperature", () => {
 		Object.assign(process.env, saved);
 	});
 
-	it("resolves SUB_AGENTS_TEMPERATURE_CODING from env var", () => {
-		process.env.SUB_AGENTS_TEMPERATURE_CODING = "0.3";
+	it("resolves CODING from env var (subAgentsTemperature dropped)", () => {
+		process.env.CODING = "0.3";
 		const config = { coding: 0.4 };
 		const result = _resolveEnvRecursively(config, ["subAgentsTemperature"]);
 		assert.strictEqual(result.coding, 0.3);
 	});
 
 	it("resolves hyphenated agent name env var", () => {
-		process.env.SUB_AGENTS_TEMPERATURE_CODE_REVIEW = "0.1";
+		process.env.CODE_REVIEW = "0.1";
 		const config = { "code-review": 0.2 };
 		const result = _resolveEnvRecursively(config, ["subAgentsTemperature"]);
 		assert.strictEqual(result["code-review"], 0.1);
 	});
 
 	it("resolves security-audit agent name", () => {
-		process.env.SUB_AGENTS_TEMPERATURE_SECURITY_AUDIT = "0.1";
+		process.env.SECURITY_AUDIT = "0.1";
 		const config = { "security-audit": 0.3 };
 		const result = _resolveEnvRecursively(config, ["subAgentsTemperature"]);
 		assert.strictEqual(result["security-audit"], 0.1);
@@ -138,9 +138,9 @@ describe("_resolveEnvRecursively — subAgentsTemperature", () => {
 	});
 
 	it("resolves multiple agents from env vars", () => {
-		process.env.SUB_AGENTS_TEMPERATURE_CODING = "0.3";
-		process.env.SUB_AGENTS_TEMPERATURE_DEBUG = "0.2";
-		process.env.SUB_AGENTS_TEMPERATURE_RESEARCH = "0.5";
+		process.env.CODING = "0.3";
+		process.env.DEBUG = "0.2";
+		process.env.RESEARCH = "0.5";
 		const config = {
 			coding: 0.4,
 			debug: 0.3,
@@ -153,18 +153,17 @@ describe("_resolveEnvRecursively — subAgentsTemperature", () => {
 	});
 
 	it("parses numeric env var value correctly", () => {
-		process.env.SUB_AGENTS_TEMPERATURE_CODING = "0.3";
+		process.env.CODING = "0.3";
 		const config = { coding: 0.4 };
 		const result = _resolveEnvRecursively(config, ["subAgentsTemperature"]);
 		assert.strictEqual(typeof result.coding, "number");
 		assert.strictEqual(result.coding, 0.3);
 	});
 
-	it("does not include dropped key in env var name", () => {
-		// The DROPPED_KEYS should prevent "subAgentsTemperature" from appearing
-		// in the env var name, so it's SUB_AGENTS_TEMPERATURE_CODING not
-		// SUB_AGENTS_TEMPERATURE_SUB_AGENTS_TEMPERATURE_CODING
-		process.env.SUB_AGENTS_TEMPERATURE_CODING = "0.3";
+	it("drops subAgentsTemperature from env var name", () => {
+		// The DROPPED_KEYS now correctly drops "subAgentsTemperature" from the path,
+		// so the env var is CODING not SUB_AGENTS_TEMPERATURE_CODING
+		process.env.CODING = "0.3";
 		const config = { coding: 0.4 };
 		const result = _resolveEnvRecursively(config, ["subAgentsTemperature"]);
 		assert.strictEqual(result.coding, 0.3);

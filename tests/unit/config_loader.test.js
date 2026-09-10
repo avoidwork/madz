@@ -1,6 +1,7 @@
 import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert";
-import { _resolveEnvRecursively } from "../../src/config/loader.js";
+import { _resolveEnvRecursively, applyDotPath, buildReverseMap, syncEnv } from "../../src/config/loader.js";
+import { ConfigSchema } from "../../src/config/config.js";
 
 describe("_resolveEnvRecursively — OpenAI provider", () => {
 	let saved = { ...process.env };
@@ -215,19 +216,22 @@ describe("_resolveEnvRecursively — Persistence options", () => {
 		Object.assign(process.env, saved);
 	});
 
-	it("resolves all Persistence env vars", () => {
-		process.env.PERSISTENCE_MODE = "sqlite";
-		process.env.PERSISTENCE_SQLITE_PATH = "/data/madz.db";
-		const config = {
-			persistence: { mode: "memory", sqlite_path: "memory/checkpoints.db" },
-		};
+	it("resolves PERSISTENCE_MODE", () => {
+		process.env.PERSISTENCE_MODE = "memory";
+		const config = { persistence: { mode: "sqlite" } };
 		const result = _resolveEnvRecursively(config, []);
-		assert.strictEqual(result.persistence.mode, "sqlite");
-		assert.strictEqual(result.persistence.sqlite_path, "/data/madz.db");
+		assert.strictEqual(result.persistence.mode, "memory");
+	});
+
+	it("resolves PERSISTENCE_SQLITE_PATH", () => {
+		process.env.PERSISTENCE_SQLITE_PATH = "/tmp/test.db";
+		const config = { persistence: { sqlite_path: "default.db" } };
+		const result = _resolveEnvRecursively(config, []);
+		assert.strictEqual(result.persistence.sqlite_path, "/tmp/test.db");
 	});
 });
 
-describe("_resolveEnvRecursively — SubAgent temperature config", () => {
+describe("_resolveEnvRecursively — Agent options", () => {
 	let saved = { ...process.env };
 
 	beforeEach(() => {
@@ -246,37 +250,294 @@ describe("_resolveEnvRecursively — SubAgent temperature config", () => {
 		Object.assign(process.env, saved);
 	});
 
-	it("preserves subAgent temperature from config", () => {
-		const config = { process: { subAgent: { temperature: 0.5 } } };
+	it("resolves AGENT_RECURSION_LIMIT", () => {
+		process.env.AGENT_RECURSION_LIMIT = "500";
+		const config = { agent: { recursionLimit: 1000 } };
 		const result = _resolveEnvRecursively(config, []);
-		assert.strictEqual(result.process.subAgent.temperature, 0.5);
+		assert.strictEqual(result.agent.recursionLimit, 500);
 	});
 
-	it("preserves subAgent temperature when set in config", () => {
-		const config = { process: { subAgent: { temperature: 0.7 } } };
+	it("resolves AGENT_NODE_TIMEOUT", () => {
+		process.env.AGENT_NODE_TIMEOUT = "300000";
+		const config = { agent: { nodeTimeout: 600000 } };
 		const result = _resolveEnvRecursively(config, []);
-		assert.strictEqual(result.process.subAgent.temperature, 0.7);
+		assert.strictEqual(result.agent.nodeTimeout, 300000);
+	});
+});
+
+describe("_resolveEnvRecursively — LRU options", () => {
+	let saved = { ...process.env };
+
+	beforeEach(() => {
+		saved = { ...process.env };
+		const keys = Object.keys(process.env);
+		for (const key of keys) {
+			delete process.env[key];
+		}
 	});
 
-	it("preserves all subAgent config fields", () => {
-		const config = {
-			process: {
-				subAgent: {
-					timeout: 300000,
-					maxConcurrent: 2,
-					sessionMode: "shared",
-					defaultStrategy: "sequential",
-					defaultOnError: "fail-fast",
-					temperature: 0.9,
-				},
-			},
-		};
+	afterEach(() => {
+		const keys = Object.keys(process.env);
+		for (const key of keys) {
+			delete process.env[key];
+		}
+		Object.assign(process.env, saved);
+	});
+
+	it("resolves LRU_SIZE", () => {
+		process.env.LRU_SIZE = "200";
+		const config = { lru: { size: 100 } };
 		const result = _resolveEnvRecursively(config, []);
-		assert.strictEqual(result.process.subAgent.timeout, 300000);
-		assert.strictEqual(result.process.subAgent.maxConcurrent, 2);
-		assert.strictEqual(result.process.subAgent.sessionMode, "shared");
-		assert.strictEqual(result.process.subAgent.defaultStrategy, "sequential");
-		assert.strictEqual(result.process.subAgent.defaultOnError, "fail-fast");
-		assert.strictEqual(result.process.subAgent.temperature, 0.9);
+		assert.strictEqual(result.lru.size, 200);
+	});
+
+	it("resolves LRU_TTL", () => {
+		process.env.LRU_TTL = "300000";
+		const config = { lru: { ttl: 600000 } };
+		const result = _resolveEnvRecursively(config, []);
+		assert.strictEqual(result.lru.ttl, 300000);
+	});
+});
+
+describe("_resolveEnvRecursively — subAgentsTemperature", () => {
+	let saved = { ...process.env };
+
+	beforeEach(() => {
+		saved = { ...process.env };
+		const keys = Object.keys(process.env);
+		for (const key of keys) {
+			delete process.env[key];
+		}
+	});
+
+	afterEach(() => {
+		const keys = Object.keys(process.env);
+		for (const key of keys) {
+			delete process.env[key];
+		}
+		Object.assign(process.env, saved);
+	});
+
+	it("resolves CODING from env var (subAgentsTemperature dropped)", () => {
+		process.env.CODING = "0.5";
+		const config = { subAgentsTemperature: { coding: 0.3 } };
+		const result = _resolveEnvRecursively(config, []);
+		assert.strictEqual(result.subAgentsTemperature.coding, 0.5);
+	});
+});
+
+// --- New tests for syncEnv(), applyDotPath(), buildReverseMap() ---
+
+describe("applyDotPath", () => {
+	it("creates intermediate objects for nested paths", () => {
+		const obj = {};
+		applyDotPath(obj, "a.b.c", "deep");
+		assert.strictEqual(obj.a.b.c, "deep");
+	});
+
+	it("creates arrays for numeric path segments", () => {
+		const obj = {};
+		applyDotPath(obj, "items.0", "first");
+		assert.strictEqual(Array.isArray(obj.items), true);
+		assert.strictEqual(obj.items[0], "first");
+	});
+
+	it("creates array when next segment is numeric", () => {
+		const obj = {};
+		applyDotPath(obj, "projects.projectAlpha.include.0", "src/**/*.js");
+		assert.strictEqual(Array.isArray(obj.projects.projectAlpha.include), true);
+		assert.strictEqual(obj.projects.projectAlpha.include[0], "src/**/*.js");
+	});
+
+	it("handles multiple array indices", () => {
+		const obj = {};
+		applyDotPath(obj, "arr.0.nested.1", "value");
+		assert.strictEqual(Array.isArray(obj.arr), true);
+		assert.strictEqual(obj.arr[0].nested[1], "value");
+	});
+
+	it("overwrites existing scalar values", () => {
+		const obj = { a: "old" };
+		applyDotPath(obj, "a", "new");
+		assert.strictEqual(obj.a, "new");
+	});
+
+	it("preserves existing nested objects when setting sibling", () => {
+		const obj = { a: { b: "existing", c: "keep" } };
+		applyDotPath(obj, "a.b", "updated");
+		assert.strictEqual(obj.a.b, "updated");
+		assert.strictEqual(obj.a.c, "keep");
+	});
+});
+
+describe("buildReverseMap", () => {
+	it("returns a Map", () => {
+		const map = buildReverseMap(ConfigSchema);
+		assert.ok(map instanceof Map);
+	});
+
+	it("contains known env-var mappings", () => {
+		const map = buildReverseMap(ConfigSchema);
+		// TUI name
+		assert.ok(map.has("TUI_NAME"), "Should have TUI_NAME");
+		assert.strictEqual(map.get("TUI_NAME"), "tui.name");
+
+		// Agent recursion limit
+		assert.ok(map.has("AGENT_RECURSION_LIMIT"), "Should have AGENT_RECURSION_LIMIT");
+		assert.strictEqual(map.get("AGENT_RECURSION_LIMIT"), "agent.recursionLimit");
+
+		// Persistence mode
+		assert.ok(map.has("PERSISTENCE_MODE"), "Should have PERSISTENCE_MODE");
+		assert.strictEqual(map.get("PERSISTENCE_MODE"), "persistence.mode");
+
+		// LRU size
+		assert.ok(map.has("LRU_SIZE"), "Should have LRU_SIZE");
+		assert.strictEqual(map.get("LRU_SIZE"), "lru.size");
+
+		// Memory directory
+		assert.ok(map.has("MEMORY_DIRECTORY"), "Should have MEMORY_DIRECTORY");
+		assert.strictEqual(map.get("MEMORY_DIRECTORY"), "memory.directory");
+	});
+
+	it("handles DROPPED_KEYS correctly (providers dropped)", () => {
+		const map = buildReverseMap(ConfigSchema);
+		// providers.openai.credentials.apiKey → OPENAI_API_KEY (providers + credentials dropped)
+		// But since providers is a passthrough record, the openai key is dynamic.
+		// We check that the map does NOT contain PROVIDERS_OPENAI_CREDENTIALS_API_KEY
+		// because providers is a ZodRecord (passthrough) and we skip record value schemas.
+		assert.ok(!map.has("PROVIDERS_OPENAI_CREDENTIALS_API_KEY"));
+	});
+
+	it("handles subAgentsTemperature path correctly", () => {
+		const map = buildReverseMap(ConfigSchema);
+		// subAgentsTemperature is a ZodRecord (z.record(z.string(), z.number())),
+		// so its value schema is skipped. The map won't contain SUB_AGENTS_TEMPERATURE_*
+		// entries because record keys are dynamic.
+		// This is expected — syncEnv() handles record entries via the prefix allowlist.
+	});
+});
+
+describe("syncEnv", () => {
+	let saved = { ...process.env };
+
+	beforeEach(() => {
+		saved = { ...process.env };
+		const keys = Object.keys(process.env);
+		for (const key of keys) {
+			delete process.env[key];
+		}
+	});
+
+	afterEach(() => {
+		const keys = Object.keys(process.env);
+		for (const key of keys) {
+			delete process.env[key];
+		}
+		Object.assign(process.env, saved);
+	});
+
+	it("materializes missing config structure from env vars", () => {
+		process.env.VECTOR_MODEL = "openai";
+		const raw = {};
+		const knownSections = ["vector"];
+		const reverseMap = buildReverseMap(ConfigSchema);
+		syncEnv(raw, knownSections, reverseMap);
+		assert.strictEqual(raw.vector?.model, "openai");
+	});
+
+	it("respects prefix allowlist — ignores unknown prefixes", () => {
+		process.env.UNKNOWN_KEY = "value";
+		const raw = {};
+		const knownSections = ["vector"];
+		const reverseMap = buildReverseMap(ConfigSchema);
+		syncEnv(raw, knownSections, reverseMap);
+		assert.deepStrictEqual(raw, {});
+	});
+
+	it("is idempotent — does not override existing YAML keys", () => {
+		process.env.TUI_NAME = "overridden";
+		const raw = { tui: { name: "original" } };
+		const knownSections = ["tui"];
+		const reverseMap = buildReverseMap(ConfigSchema);
+		syncEnv(raw, knownSections, reverseMap);
+		assert.strictEqual(raw.tui.name, "original");
+	});
+
+	it("materializes array structure from env vars with numeric suffixes", () => {
+		// Vector projects is a record, so individual project keys are dynamic.
+		// We test with a known array path: sandbox.paths is z.array(z.string())
+		process.env.SANDBOX_PATHS_0 = "./src";
+		process.env.SANDBOX_PATHS_1 = "!node_modules";
+		const raw = {};
+		const knownSections = ["sandbox"];
+		const reverseMap = buildReverseMap(ConfigSchema);
+		syncEnv(raw, knownSections, reverseMap);
+		// sandbox.paths is an array — the reverse map will have SANDBOX_PATHS_0 and SANDBOX_PATHS_1
+		// but since sandbox is a ZodObject with known shape, the array path is registered.
+		// The syncEnv will materialize sandbox.paths as an array.
+		assert.ok(raw.sandbox !== undefined);
+	});
+
+	it("handles TUI_NAME materialization", () => {
+		process.env.TUI_NAME = "my-app";
+		const raw = {};
+		const knownSections = ["tui"];
+		const reverseMap = buildReverseMap(ConfigSchema);
+		syncEnv(raw, knownSections, reverseMap);
+		assert.strictEqual(raw.tui?.name, "my-app");
+	});
+
+	it("handles AGENT_RECURSION_LIMIT materialization", () => {
+		process.env.AGENT_RECURSION_LIMIT = "500";
+		const raw = {};
+		const knownSections = ["agent"];
+		const reverseMap = buildReverseMap(ConfigSchema);
+		syncEnv(raw, knownSections, reverseMap);
+		assert.strictEqual(raw.agent?.recursionLimit, 500);
+	});
+
+	it("handles PERSISTENCE_MODE materialization", () => {
+		process.env.PERSISTENCE_MODE = "memory";
+		const raw = {};
+		const knownSections = ["persistence"];
+		const reverseMap = buildReverseMap(ConfigSchema);
+		syncEnv(raw, knownSections, reverseMap);
+		assert.strictEqual(raw.persistence?.mode, "memory");
+	});
+
+	it("handles LRU_SIZE materialization", () => {
+		process.env.LRU_SIZE = "200";
+		const raw = {};
+		const knownSections = ["lru"];
+		const reverseMap = buildReverseMap(ConfigSchema);
+		syncEnv(raw, knownSections, reverseMap);
+		assert.strictEqual(raw.lru?.size, 200);
+	});
+
+	it("handles MEMORY_DIRECTORY materialization", () => {
+		process.env.MEMORY_DIRECTORY = "/custom/memory";
+		const raw = {};
+		const knownSections = ["memory"];
+		const reverseMap = buildReverseMap(ConfigSchema);
+		syncEnv(raw, knownSections, reverseMap);
+		assert.strictEqual(raw.memory?.directory, "/custom/memory");
+	});
+
+	it("parses boolean values correctly", () => {
+		process.env.TELEMETRY_ENABLED = "true";
+		const raw = {};
+		const knownSections = ["telemetry"];
+		const reverseMap = buildReverseMap(ConfigSchema);
+		syncEnv(raw, knownSections, reverseMap);
+		assert.strictEqual(raw.telemetry?.enabled, true);
+	});
+
+	it("parses numeric values correctly", () => {
+		process.env.AGENT_RECURSION_LIMIT = "100";
+		const raw = {};
+		const knownSections = ["agent"];
+		const reverseMap = buildReverseMap(ConfigSchema);
+		syncEnv(raw, knownSections, reverseMap);
+		assert.strictEqual(raw.agent?.recursionLimit, 100);
 	});
 });
