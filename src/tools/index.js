@@ -29,6 +29,7 @@ import { createDataTool } from "./data/index.js";
 import { createWebhookTool } from "./webhook/index.js";
 import { codeSearch } from "./codeSearch/index.js";
 import { codeIndex } from "./codeIndex/index.js";
+import { getConfig } from "./codeIndex/getConfig.js";
 
 /**
  * Maps tool names to required permission scopes.
@@ -71,6 +72,7 @@ export const TOOL_PERMISSIONS = {
 	webhook: ["filesystem:read", "filesystem:write"],
 	codeSearch: ["filesystem:read"],
 	codeIndex: ["filesystem:read", "filesystem:write"],
+	getConfig: ["filesystem:read"],
 };
 
 /**
@@ -155,6 +157,17 @@ export const TOOL_CLASSIFICATIONS = {
 		"seoAnalyst",
 	],
 	codeIndex: ["coding", "debug", "performance"],
+	getConfig: [
+		"coding",
+		"debug",
+		"performance",
+		"search",
+		"code-review",
+		"research",
+		"testing",
+		"documentation",
+		"security-audit",
+	],
 };
 
 /**
@@ -193,6 +206,7 @@ export const ORCHESTRATOR_TOOLS = [
 	"createSkill",
 	"codeSearch",
 	"codeIndex",
+	"getConfig",
 ];
 
 // Tool instances keyed by tool name
@@ -232,6 +246,7 @@ export const TOOLS = {
 	webhook: createWebhookTool,
 	codeSearch,
 	codeIndex,
+	getConfig,
 };
 
 /**
