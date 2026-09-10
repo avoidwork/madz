@@ -400,6 +400,8 @@ All configuration is controlled via environment variables in the `docker run` co
 
 | Variable                                       | Default                                       | Description                                |
 | ---------------------------------------------- | --------------------------------------------- | ------------------------------------------ |
+| `VECTOR_FTS_TOKENIZE`                          | `porter unicode61`                            | FTS5 tokenizer configuration               |
+| `VECTOR_FULLTEXT`                              | `true`                                        | Enable FTS5 full-text indexing             |
 | `VECTOR_MODEL`                                 | `local`                                       | Embedding model (`local` or `openai`)      |
 | `VECTOR_PROJECTS_<NAME>_CHUNK_OVERLAP`         | `16`                                          | Overlap between consecutive chunks         |
 | `VECTOR_PROJECTS_<NAME>_CHUNK_SIZE`            | `96`                                          | Lines per chunk                            |
