@@ -88,17 +88,18 @@ export async function createVectorStore(dbPath, options = {}) {
 		`);
 		const insertFts = fulltext
 			? db.prepare(`
-				INSERT INTO fts_code_chunks (file_path, content)
-				VALUES (?, ?)
+				INSERT INTO fts_code_chunks (rowid, file_path, content)
+				VALUES (?, ?, ?)
 			`)
 			: null;
 
 		const transaction = db.transaction((items) => {
 			for (const chunk of items) {
 				const info = insertChunk.run(chunk.filePath, chunk.lineStart, chunk.lineEnd, chunk.content);
-				insertVec.run(BigInt(info.lastInsertRowid), new Float32Array(chunk.embedding));
+				const rowid = BigInt(info.lastInsertRowid);
+				insertVec.run(rowid, new Float32Array(chunk.embedding));
 				if (insertFts) {
-					insertFts.run(chunk.filePath, chunk.content);
+					insertFts.run(rowid, chunk.filePath, chunk.content);
 				}
 			}
 		});
@@ -171,7 +172,7 @@ export async function createVectorStore(dbPath, options = {}) {
 			.prepare(`
 				SELECT c.id, c.file_path, c.line_start, c.line_end, c.content, f.rank
 				FROM fts_code_chunks f
-				JOIN code_chunks c ON c.rowid = f.rowid
+				JOIN code_chunks c ON c.id = f.rowid
 				WHERE f.content MATCH ?
 				ORDER BY f.rank
 				LIMIT ?
