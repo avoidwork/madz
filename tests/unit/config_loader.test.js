@@ -1,6 +1,12 @@
 import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert";
-import { _resolveEnvRecursively } from "../../src/config/loader.js";
+import {
+	_resolveEnvRecursively,
+	applyDotPath,
+	buildReverseMap,
+	syncEnv,
+} from "../../src/config/loader.js";
+import { ConfigSchema } from "../../src/config/config.js";
 
 describe("_resolveEnvRecursively — OpenAI provider", () => {
 	let saved = { ...process.env };
@@ -278,5 +284,201 @@ describe("_resolveEnvRecursively — SubAgent temperature config", () => {
 		assert.strictEqual(result.process.subAgent.defaultStrategy, "sequential");
 		assert.strictEqual(result.process.subAgent.defaultOnError, "fail-fast");
 		assert.strictEqual(result.process.subAgent.temperature, 0.9);
+	});
+});
+
+describe("applyDotPath", () => {
+	it("creates intermediate objects for simple path", () => {
+		const obj = {};
+		applyDotPath(obj, "a.b.c", "value");
+		assert.strictEqual(obj.a.b.c, "value");
+	});
+
+	it("creates arrays for numeric segments", () => {
+		const obj = {};
+		applyDotPath(obj, "arr.0", "first");
+		assert.deepStrictEqual(obj.arr, ["first"]);
+	});
+
+	it("fills array gaps with null", () => {
+		const obj = {};
+		applyDotPath(obj, "arr.2", "third");
+		assert.deepStrictEqual(obj.arr, [null, null, "third"]);
+	});
+
+	it("creates nested objects inside arrays", () => {
+		const obj = {};
+		applyDotPath(obj, "items.0.name", "alpha");
+		assert.strictEqual(obj.items[0].name, "alpha");
+	});
+
+	it("is idempotent — does not override existing values", () => {
+		const obj = { a: { b: "existing" } };
+		const result = applyDotPath(obj, "a.b", "new");
+		assert.strictEqual(result, false);
+		assert.strictEqual(obj.a.b, "existing");
+	});
+
+	it("returns true when value was set (path was missing)", () => {
+		const obj = {};
+		const result = applyDotPath(obj, "x", "new");
+		assert.strictEqual(result, true);
+		assert.strictEqual(obj.x, "new");
+	});
+
+	it("handles mixed object/array paths", () => {
+		const obj = {};
+		applyDotPath(obj, "projects.myProject.include.0", "src/**/*.js");
+		assert.strictEqual(obj.projects.myProject.include[0], "src/**/*.js");
+	});
+
+	it("returns false for non-array numeric index", () => {
+		const obj = { a: "string" };
+		const result = applyDotPath(obj, "a.0", "value");
+		assert.strictEqual(result, false);
+	});
+});
+
+describe("buildReverseMap", () => {
+	it("returns a Map", () => {
+		const map = buildReverseMap(ConfigSchema);
+		assert.ok(map instanceof Map);
+	});
+
+	it("contains sandbox paths with timeout dropped", () => {
+		const map = buildReverseMap(ConfigSchema);
+		assert.ok(map.has("SANDBOX_SECONDS"), "Should have SANDBOX_SECONDS");
+		assert.strictEqual(map.get("SANDBOX_SECONDS"), "sandbox.timeout.seconds");
+	});
+
+	it("contains vector config paths", () => {
+		const map = buildReverseMap(ConfigSchema);
+		// vector.projects is a record, so we should have paths from VectorProjectSchema
+		assert.ok(map.has("VECTOR_MODEL"), "Should have VECTOR_MODEL");
+		assert.ok(map.has("VECTOR_SEARCH_MODE"), "Should have VECTOR_SEARCH_MODE");
+	});
+
+	it("contains memory paths", () => {
+		const map = buildReverseMap(ConfigSchema);
+		assert.ok(map.has("MEMORY_DIRECTORY"), "Should have MEMORY_DIRECTORY");
+	});
+
+	it("contains telemetry paths", () => {
+		const map = buildReverseMap(ConfigSchema);
+		assert.ok(map.has("TELEMETRY_ENABLED"), "Should have TELEMETRY_ENABLED");
+	});
+
+	it("contains tui paths", () => {
+		const map = buildReverseMap(ConfigSchema);
+		assert.ok(map.has("TUI_NAME"), "Should have TUI_NAME");
+	});
+
+	it("contains email paths", () => {
+		const map = buildReverseMap(ConfigSchema);
+		assert.ok(map.has("EMAIL_DEFAULT_FOLDER"), "Should have EMAIL_DEFAULT_FOLDER");
+	});
+
+	it("contains cwd (runtime-only, but schema has it)", () => {
+		const map = buildReverseMap(ConfigSchema);
+		// cwd is a plain z.string() in the schema, so it appears in the map.
+		// syncEnv() filters it out via KNOWN_SECTIONS prefix allowlist.
+		assert.ok(map.has("CWD"), "Should have CWD since it's in the schema");
+	});
+});
+
+describe("syncEnv", () => {
+	let savedEnv;
+
+	beforeEach(() => {
+		savedEnv = { ...process.env };
+		const keys = Object.keys(process.env);
+		for (const key of keys) {
+			delete process.env[key];
+		}
+	});
+
+	afterEach(() => {
+		const keys = Object.keys(process.env);
+		for (const key of keys) {
+			delete process.env[key];
+		}
+		Object.assign(process.env, savedEnv);
+	});
+
+	it("materializes a simple config value from env var", () => {
+		process.env.TUI_NAME = "test-tui";
+		const raw = {};
+		syncEnv(raw, ["tui"]);
+		assert.strictEqual(raw.tui.name, "test-tui");
+	});
+
+	it("materializes nested structure with DROPPED_KEYS", () => {
+		// SANDBOX_SECONDS maps to sandbox.timeout.seconds — "timeout" is a DROPPED_KEY
+		process.env.SANDBOX_SECONDS = "120";
+		const raw = {};
+		syncEnv(raw, ["sandbox"]);
+		assert.strictEqual(raw.sandbox.timeout.seconds, 120);
+	});
+
+	it("materializes sandbox timeout path", () => {
+		process.env.SANDBOX_SECONDS = "120";
+		const raw = {};
+		syncEnv(raw, ["sandbox"]);
+		assert.strictEqual(raw.sandbox.timeout.seconds, 120);
+	});
+
+	it("is idempotent — does not override existing YAML keys", () => {
+		process.env.TUI_NAME = "env-name";
+		const raw = { tui: { name: "yaml-name" } };
+		syncEnv(raw, ["tui"]);
+		assert.strictEqual(raw.tui.name, "yaml-name");
+	});
+
+	it("ignores env vars with unknown prefixes", () => {
+		process.env.PATH = "/usr/bin";
+		process.env.HOME = "/root";
+		const raw = {};
+		syncEnv(raw, ["tui"]);
+		// Should not have created anything from PATH or HOME
+		assert.deepStrictEqual(raw, {});
+	});
+
+	it("materializes array values from env vars", () => {
+		process.env.VECTOR_FULLTEXT = "true";
+		const raw = {};
+		syncEnv(raw, ["vector"]);
+		assert.strictEqual(raw.vector.fulltext, true);
+	});
+
+	it("handles boolean env var values", () => {
+		process.env.TELEMETRY_ENABLED = "false";
+		const raw = {};
+		syncEnv(raw, ["telemetry"]);
+		assert.strictEqual(raw.telemetry.enabled, false);
+	});
+
+	it("handles numeric env var values", () => {
+		process.env.SANDBOX_SECONDS = "300";
+		const raw = {};
+		syncEnv(raw, ["sandbox"]);
+		assert.strictEqual(raw.sandbox.timeout.seconds, 300);
+	});
+
+	it("handles multiple env vars together", () => {
+		process.env.TUI_NAME = "multi-tui";
+		process.env.TELEMETRY_ENABLED = "true";
+		process.env.MEMORY_DIRECTORY = "/custom/memory/";
+		const raw = {};
+		syncEnv(raw, ["tui", "telemetry", "memory"]);
+		assert.strictEqual(raw.tui.name, "multi-tui");
+		assert.strictEqual(raw.telemetry.enabled, true);
+		assert.strictEqual(raw.memory.directory, "/custom/memory/");
+	});
+
+	it("returns the raw object (same reference)", () => {
+		process.env.TUI_NAME = "ref-test";
+		const raw = {};
+		const result = syncEnv(raw, ["tui"]);
+		assert.strictEqual(result, raw);
 	});
 });
