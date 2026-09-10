@@ -28,6 +28,8 @@ const VectorProjectSchema = z.object({
 export const VectorConfigSchema = z.object({
 	/** Embedding model provider: "local" (transformers.js) or "openai" */
 	model: z.enum(["local", "openai"]).default("local"),
+	/** Default search mode: "vector", "fulltext", or "hybrid" */
+	searchMode: z.enum(["vector", "fulltext", "hybrid"]).default("hybrid"),
 	/** Named project configurations */
 	projects: z.record(VectorProjectSchema).default({}),
 });

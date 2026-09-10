@@ -32,7 +32,7 @@ export async function codeSearchImpl(input, options = {}) {
 
 	const proj = projects[projectName];
 	const dbPath = proj.dbPath;
-	const mode = input.mode || "hybrid";
+	const mode = input.mode || cfg.searchMode || "hybrid";
 
 	let store;
 	try {

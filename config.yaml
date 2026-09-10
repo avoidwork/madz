@@ -106,6 +106,7 @@ persistence:
 
 vector:
   model: local
+  searchMode: hybrid
   projects:
     madz:
       rootDir: .
