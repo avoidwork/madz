@@ -167,4 +167,74 @@ describe("codeSearch tool", () => {
 		);
 		assert.ok(result.includes("Failed to embed query"), `Got: ${result}`);
 	});
+
+	it("fulltext mode returns FTS results with rank", async () => {
+		// Seed with fulltext-enabled store
+		const { createVectorStore } = await import("../../../src/vector/store.js");
+		const ftsDb = join(tmpDir, "fts-test.db");
+		const ftsStore = await createVectorStore(ftsDb, { fulltext: true });
+		await ftsStore.init();
+		ftsStore.insertChunks([
+			{
+				filePath: "src/hello.js",
+				lineStart: 1,
+				lineEnd: 10,
+				content: "function hello() { return 42; }",
+				embedding: new Float32Array(384).fill(0.1),
+			},
+			{
+				filePath: "src/debian.js",
+				lineStart: 1,
+				lineEnd: 5,
+				content: "const debian = require('debian');",
+				embedding: new Float32Array(384).fill(0.5),
+			},
+		]);
+		ftsStore.close();
+
+		const { codeSearchImpl } = await import("../../../src/tools/codeSearch/index.js");
+		const result = await codeSearchImpl(
+			{ query: "debian", topK: 5, mode: "fulltext" },
+			{
+				vector: { projects: { test: { dbPath: ftsDb, fulltext: true } }, model: "openai" },
+				openaiApiKey: "test-key",
+			},
+		);
+		assert.ok(result.includes("src/debian.js"), `Got: ${result}`);
+		assert.ok(result.includes("rank:"), `Got: ${result}`);
+	});
+
+	it("hybrid mode returns combined results with source annotation", async () => {
+		const { createVectorStore } = await import("../../../src/vector/store.js");
+		const hybridDb = join(tmpDir, "hybrid-test.db");
+		const hybridStore = await createVectorStore(hybridDb, { fulltext: true });
+		await hybridStore.init();
+		hybridStore.insertChunks([
+			{
+				filePath: "src/hello.js",
+				lineStart: 1,
+				lineEnd: 10,
+				content: "function hello() { return 42; }",
+				embedding: new Float32Array(384).fill(0.1),
+			},
+			{
+				filePath: "src/debian.js",
+				lineStart: 1,
+				lineEnd: 5,
+				content: "const debian = require('debian');",
+				embedding: new Float32Array(384).fill(0.9),
+			},
+		]);
+		hybridStore.close();
+
+		const { codeSearchImpl } = await import("../../../src/tools/codeSearch/index.js");
+		const result = await codeSearchImpl(
+			{ query: "debian", topK: 5, mode: "hybrid" },
+			{
+				vector: { projects: { test: { dbPath: hybridDb, fulltext: true } }, model: "openai" },
+				openaiApiKey: "test-key",
+			},
+		);
+		assert.ok(result.includes("source:"), `Got: ${result}`);
+	});
 });

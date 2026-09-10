@@ -1,8 +1,5 @@
-# code-search Specification
+## MODIFIED Requirements
 
-## Purpose
-TBD - created by archiving change sqlite-vec-code-search. Update Purpose after archive.
-## Requirements
 ### Requirement: codeSearch tool accepts natural language query
 The system SHALL provide a `codeSearch` tool that accepts a natural language query string and optional parameters including a `mode` parameter.
 
@@ -36,11 +33,3 @@ The system SHALL return results with file path, line range, content snippet, sim
 - **AND** in `fulltext` mode, includes `rank`
 - **AND** in `hybrid` mode, includes `distance`, `rank`, and `source` annotation
 - **AND** results are formatted as a readable string with file locations and scores
-
-### Requirement: codeSearch tool handles empty index gracefully
-The system SHALL return a clear message when no chunks have been indexed.
-
-#### Scenario: Query with empty index
-- **WHEN** codeSearch is invoked but no code has been indexed yet
-- **THEN** the tool returns a message indicating the index is empty and suggesting the user run indexing first
-

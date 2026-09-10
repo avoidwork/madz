@@ -106,6 +106,9 @@ persistence:
 
 vector:
   model: local
+  searchMode: hybrid
+  fulltext: true
+  ftsTokenize: "porter unicode61"
   projects:
     madz:
       rootDir: .

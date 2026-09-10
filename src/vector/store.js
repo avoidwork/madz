@@ -17,9 +17,14 @@ const _require = createRequire(import.meta.url);
  * Create a vector store connected to the given database file.
  *
  * @param {string} dbPath - Path to the SQLite database file
- * @returns {Promise<{ init: () => Promise<void>, insertChunks: (chunks: Array) => Promise<void>, search: (embedding: Float32Array, topK: number) => Promise<Array>, removeFile: (filePath: string) => Promise<void>, close: () => Promise<void>, dbPath: string }>}
+ * @param {object} [options] - Store options
+ * @param {boolean} [options.fulltext=false] - Enable FTS5 full-text search
+ * @param {string} [options.ftsTokenize="porter unicode61"] - FTS5 tokenizer configuration
+ * @returns {Promise<{ init: () => Promise<void>, insertChunks: (chunks: Array) => Promise<void>, search: (embedding: Float32Array, topK: number) => Promise<Array>, searchFts: (query: string, topK: number) => Promise<Array>, hybridSearch: (embedding: Float32Array, query: string, topK: number, k?: number) => Promise<Array>, insertFtsChunks: (chunks: Array) => Promise<void>, removeFile: (filePath: string) => Promise<void>, close: () => Promise<void>, dbPath: string }>}
  */
-export async function createVectorStore(dbPath) {
+export async function createVectorStore(dbPath, options = {}) {
+	const { fulltext = false, ftsTokenize = "porter unicode61" } = options;
+
 	// Ensure the directory exists
 	const dbDir = dirname(dbPath);
 	await mkdir(dbDir, { recursive: true }).catch(() => {});
@@ -55,6 +60,16 @@ export async function createVectorStore(dbPath) {
 				embedding float[384] distance_metric=cosine
 			);
 		`);
+
+		if (fulltext) {
+			db.exec(`
+				CREATE VIRTUAL TABLE IF NOT EXISTS fts_code_chunks USING fts5(
+					file_path UNINDEXED,
+					content,
+					tokenize='${ftsTokenize}'
+				);
+			`);
+		}
 	}
 
 	/**
@@ -71,11 +86,21 @@ export async function createVectorStore(dbPath) {
 			INSERT INTO vec_code_chunks (id, embedding)
 			VALUES (?, ?)
 		`);
+		const insertFts = fulltext
+			? db.prepare(`
+				INSERT INTO fts_code_chunks (rowid, file_path, content)
+				VALUES (?, ?, ?)
+			`)
+			: null;
 
 		const transaction = db.transaction((items) => {
 			for (const chunk of items) {
 				const info = insertChunk.run(chunk.filePath, chunk.lineStart, chunk.lineEnd, chunk.content);
-				insertVec.run(BigInt(info.lastInsertRowid), new Float32Array(chunk.embedding));
+				const rowid = BigInt(info.lastInsertRowid);
+				insertVec.run(rowid, new Float32Array(chunk.embedding));
+				if (insertFts) {
+					insertFts.run(rowid, chunk.filePath, chunk.content);
+				}
 			}
 		});
 
@@ -112,6 +137,120 @@ export async function createVectorStore(dbPath) {
 	}
 
 	/**
+	 * Insert chunks into the FTS5 table.
+	 *
+	 * @param {Array<{filePath: string, lineStart: number, lineEnd: number, content: string}>} chunks - Chunks to index in FTS
+	 */
+	function insertFtsChunks(chunks) {
+		if (!fulltext) return;
+
+		const insertFts = db.prepare(`
+			INSERT INTO fts_code_chunks (file_path, content)
+			VALUES (?, ?)
+		`);
+
+		const transaction = db.transaction((items) => {
+			for (const chunk of items) {
+				insertFts.run(chunk.filePath, chunk.content);
+			}
+		});
+
+		transaction(chunks);
+	}
+
+	/**
+	 * Search the FTS5 index for matching chunks.
+	 *
+	 * @param {string} query - FTS5 query string
+	 * @param {number} [topK=5] - Number of results to return
+	 * @returns {Array<{id: number, filePath: string, lineStart: number, lineEnd: number, content: string, rank: number}>}
+	 */
+	function searchFts(query, topK = 5) {
+		if (!fulltext) return [];
+
+		const rows = db
+			.prepare(`
+				SELECT c.id, c.file_path, c.line_start, c.line_end, c.content, f.rank
+				FROM fts_code_chunks f
+				JOIN code_chunks c ON c.id = f.rowid
+				WHERE f.content MATCH ?
+				ORDER BY f.rank
+				LIMIT ?
+			`)
+			.all(query, topK);
+
+		return rows.map((row) => ({
+			id: row.id,
+			filePath: row.file_path,
+			lineStart: row.line_start,
+			lineEnd: row.line_end,
+			content: row.content,
+			rank: row.rank,
+		}));
+	}
+
+	/**
+	 * Perform hybrid search combining vector and FTS results via RRF.
+	 *
+	 * @param {Float32Array} embedding - Query embedding vector (384-dim)
+	 * @param {string} query - FTS5 query string
+	 * @param {number} [topK=5] - Number of results to return
+	 * @param {number} [k=60] - RRF constant
+	 * @returns {Array<{id: number, filePath: string, lineStart: number, lineEnd: number, content: string, distance?: number, rank?: number, source: string}>}
+	 */
+	function hybridSearch(embedding, query, topK = 5, k = 60) {
+		const vecResults = search(embedding, topK * 2);
+		const ftsResults = searchFts(query, topK * 2);
+
+		// Build RRF scores
+		/** @type {Map<number, {score: number, vecRank: number|null, ftsRank: number|null, row: object}>} */
+		const combined = new Map();
+
+		vecResults.forEach((r, i) => {
+			combined.set(r.id, {
+				score: 1 / (k + i + 1),
+				vecRank: i + 1,
+				ftsRank: null,
+				row: r,
+			});
+		});
+
+		ftsResults.forEach((r, i) => {
+			const existing = combined.get(r.id);
+			if (existing) {
+				existing.score += 1 / (k + i + 1);
+				existing.ftsRank = i + 1;
+				// Merge FTS rank into the row for display
+				existing.row.rank = r.rank;
+			} else {
+				combined.set(r.id, {
+					score: 1 / (k + i + 1),
+					vecRank: null,
+					ftsRank: i + 1,
+					row: r,
+				});
+			}
+		});
+
+		// Sort by RRF score descending, take topK
+		const sorted = [...combined.entries()].sort((a, b) => b[1].score - a[1].score).slice(0, topK);
+
+		return sorted.map(([_id, entry]) => {
+			let source;
+			if (entry.vecRank !== null && entry.ftsRank !== null) source = "both";
+			else if (entry.vecRank !== null) source = "vector";
+			else source = "fulltext";
+
+			return {
+				...entry.row,
+				distance: entry.row.distance,
+				rank: entry.row.rank,
+				source,
+			};
+		});
+	}
+
+	/**
 	 * Remove all chunks for a given file path.
 	 *
 	 * @param {string} filePath - File path to remove chunks for
@@ -123,6 +262,9 @@ export async function createVectorStore(dbPath) {
 			if (ids.length > 0) {
 				const placeholders = ids.map(() => "?").join(",");
 				db.prepare(`DELETE FROM vec_code_chunks WHERE id IN (${placeholders})`).run(...ids);
+				if (fulltext) {
+					db.prepare(`DELETE FROM fts_code_chunks WHERE rowid IN (${placeholders})`).run(...ids);
+				}
 				db.prepare("DELETE FROM code_chunks WHERE file_path = ?").run(fp);
 			}
 		});
@@ -137,5 +279,15 @@ export async function createVectorStore(dbPath) {
 		db.close();
 	}
 
-	return { init, insertChunks, search, removeFile, close, dbPath };
+	return {
+		init,
+		insertChunks,
+		insertFtsChunks,
+		search,
+		searchFts,
+		hybridSearch,
+		removeFile,
+		close,
+		dbPath,
+	};
 }

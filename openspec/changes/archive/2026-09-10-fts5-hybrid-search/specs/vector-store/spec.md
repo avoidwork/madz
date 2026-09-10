@@ -1,8 +1,5 @@
-# vector-store Specification
+## MODIFIED Requirements
 
-## Purpose
-TBD - created by archiving change sqlite-vec-code-search. Update Purpose after archive.
-## Requirements
 ### Requirement: Vector store initializes schema on first use
 The system SHALL create the `code_chunks` table, `vec_code_chunks` virtual table, and optionally the `fts_code_chunks` FTS5 virtual table when the vector store is first initialized.
 
@@ -21,18 +18,9 @@ The system SHALL accept a chunk with its embedding vector and insert it into all
 - **AND** a row is inserted into `vec_code_chunks` with the embedding
 - **AND** when `fulltext: true`, a row is inserted into `fts_code_chunks` with the content
 
-### Requirement: Vector store queries via KNN MATCH
-The system SHALL support KNN queries using the `vec0` virtual table `MATCH` syntax, returning results joined with chunk metadata.
-
-#### Scenario: KNN query returns top-N results
-- **WHEN** a query embedding vector and a top-K value are provided
-- **THEN** the system returns up to K results, each with `id`, `file_path`, `line_start`, `line_end`, `content`, and `distance`
-- **AND** results are ordered by ascending distance
-
 ### Requirement: Vector store supports incremental upsert by file path
 The system SHALL replace all chunks for a given file path when re-indexing, removing stale chunks from all active tables before inserting new ones.
 
 #### Scenario: Upsert replaces old chunks for a file
 - **WHEN** chunks are inserted for a file path that already has chunks in the store
 - **THEN** all existing chunks for that file path are deleted from `code_chunks`, `vec_code_chunks`, and `fts_code_chunks` before the new chunks are inserted
-
