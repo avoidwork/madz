@@ -159,10 +159,12 @@ export function buildReverseMap(schema, path = [], map = new Map()) {
 
 	// Array schemas
 	if (type === "array") {
-		// Arrays have numeric indices — register the array path itself
-		// and recurse into the element schema with a wildcard segment
-		if (def.innerType) {
-			buildReverseMap(def.innerType, [...path, "0"], map);
+		// Register the base array path (without index) so syncEnv can match
+		// env vars with numeric suffixes like SANDBOX_PATHS_0, SANDBOX_PATHS_1
+		if (path.length > 0) {
+			const envPath = path.filter((p) => !DROPPED_KEYS.includes(p.toLowerCase()));
+			const envKey = envPath.map(_toUpperSnake).join("_");
+			map.set(envKey, path.join("."));
 		}
 		return map;
 	}
@@ -243,8 +245,27 @@ export function syncEnv(raw, knownSections, reverseMap) {
 			continue;
 		}
 
-		// Look up in reverse map
-		const dotPath = reverseMap.get(envKey);
+		// Look up in reverse map — try exact match first, then strip numeric suffixes
+		// for array elements (e.g., SANDBOX_PATHS_0 → strip _0 → SANDBOX_PATHS)
+		let dotPath = reverseMap.get(envKey);
+		let arrayIndex = -1;
+		if (!dotPath) {
+			// Try stripping trailing numeric segments to find a matching array path
+			const segments = envKey.split("_");
+			for (let i = segments.length - 1; i >= 0; i--) {
+				if (/^\d+$/.test(segments[i])) {
+					const baseKey = segments.slice(0, i).join("_");
+					const basePath = reverseMap.get(baseKey);
+					if (basePath) {
+						dotPath = basePath + "." + segments[i];
+						arrayIndex = Number(segments[i]);
+						break;
+					}
+				} else {
+					break;
+				}
+			}
+		}
 		if (!dotPath) {
 			continue;
 		}
