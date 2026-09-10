@@ -37,8 +37,8 @@ export async function codeSearchImpl(input, options = {}) {
 	let store;
 	try {
 		store = await createVectorStore(dbPath, {
-			fulltext: proj.fulltext !== false,
-			ftsTokenize: proj.ftsTokenize || "porter unicode61",
+			fulltext: cfg.fulltext !== false,
+			ftsTokenize: cfg.ftsTokenize || "porter unicode61",
 		});
 		store.init();
 	} catch (err) {

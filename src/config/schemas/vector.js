@@ -30,6 +30,10 @@ export const VectorConfigSchema = z.object({
 	model: z.enum(["local", "openai"]).default("local"),
 	/** Default search mode: "vector", "fulltext", or "hybrid" */
 	searchMode: z.enum(["vector", "fulltext", "hybrid"]).default("hybrid"),
+	/** Enable FTS5 full-text indexing (required for fulltext/hybrid search modes) */
+	fulltext: z.boolean().default(true),
+	/** FTS5 tokenizer configuration (e.g., "porter unicode61", "unicode61", "simple") */
+	ftsTokenize: z.string().default("porter unicode61"),
 	/** Named project configurations */
 	projects: z.record(VectorProjectSchema).default({}),
 });

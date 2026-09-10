@@ -37,8 +37,8 @@ export async function codeIndexImpl(input) {
 
 		try {
 			const store = await createVectorStore(proj.dbPath, {
-				fulltext: proj.fulltext !== false,
-				ftsTokenize: proj.ftsTokenize || "porter unicode61",
+				fulltext: vectorConfig.fulltext !== false,
+				ftsTokenize: vectorConfig.ftsTokenize || "porter unicode61",
 			});
 			await store.init();
 
