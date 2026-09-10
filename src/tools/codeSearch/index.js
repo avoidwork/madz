@@ -32,7 +32,7 @@ export async function codeSearchImpl(input, options = {}) {
 
 	const proj = projects[projectName];
 	const dbPath = proj.dbPath;
-	const mode = input.mode || "vector";
+	const mode = input.mode || "hybrid";
 
 	let store;
 	try {
@@ -223,12 +223,11 @@ export async function codeSearchImpl(input, options = {}) {
 export const codeSearch = tool(codeSearchImpl, {
 	name: "codeSearch",
 	description:
-		"Semantically search source code using vector similarity. " +
-		"Unlike grep (sessionSearch), this finds conceptually related code even when " +
-		"the exact keywords don't match — e.g., searching for 'authentication' will find " +
-		"login handlers, token validation, and auth middleware. " +
-		"Returns code chunks with file paths, line numbers, and similarity scores. " +
-		"Use when you need to find relevant code by meaning rather than exact text match.",
+		"Search source code using hybrid (vector + keyword), full-text, or vector similarity search. " +
+		"By default, uses hybrid mode combining semantic similarity with FTS5 keyword matching " +
+		"via Reciprocal Rank Fusion. " +
+		"Use 'mode: vector' for pure semantic search, or 'mode: fulltext' for exact keyword matches. " +
+		"Returns code chunks with file paths, line numbers, and similarity scores.",
 	schema: z.object({
 		query: z.string().min(1).describe("Natural language query describing the code to find"),
 		project: z
@@ -244,7 +243,7 @@ export const codeSearch = tool(codeSearchImpl, {
 			.describe("Optional glob pattern to filter results by file path (e.g., 'src/tools/*.js')"),
 		mode: z
 			.enum(["vector", "fulltext", "hybrid"])
-			.default("vector")
+			.default("hybrid")
 			.describe(
 				"Search mode: 'vector' (semantic similarity), 'fulltext' (keyword FTS5), or 'hybrid' (both with RRF fusion)",
 			),
