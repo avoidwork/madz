@@ -32,16 +32,127 @@ export async function codeSearchImpl(input, options = {}) {
 
 	const proj = projects[projectName];
 	const dbPath = proj.dbPath;
+	const mode = input.mode || "vector";
 
 	let store;
 	try {
-		store = await createVectorStore(dbPath);
+		store = await createVectorStore(dbPath, {
+			fulltext: proj.fulltext || false,
+			ftsTokenize: proj.ftsTokenize || "porter unicode61",
+		});
 		store.init();
 	} catch (err) {
 		return `Failed to open vector store at ${dbPath}: ${err.message}`;
 	}
 
 	try {
+		const topK = input.topK || 5;
+
+		// Full-text mode — no embedding needed
+		if (mode === "fulltext") {
+			let results;
+			try {
+				results = store.searchFts(input.query, topK);
+			} catch (err) {
+				store.close();
+				return `FTS search failed: ${err.message}`;
+			}
+
+			store.close();
+
+			if (results.length === 0) {
+				return "No matching code found. Try re-indexing with `--index-code` first.";
+			}
+
+			// Apply file filter if specified
+			if (input.fileFilter) {
+				const filterPattern = input.fileFilter.replace(/\*/g, ".*");
+				const filterRe = new RegExp(filterPattern);
+				results = results.filter((r) => filterRe.test(r.filePath));
+			}
+
+			if (results.length === 0) {
+				return `No results matching filter "${input.fileFilter}".`;
+			}
+
+			// Format results
+			const lines = results.map(
+				(r, i) =>
+					`${i + 1}. ${r.filePath}:${r.lineStart}-${r.lineEnd} (rank: ${r.rank.toFixed(4)})\n` +
+					"```\n" +
+					r.content +
+					"\n```",
+			);
+
+			return lines.join("\n\n");
+		}
+
+		// Hybrid mode — run both vector and FTS, merge via RRF
+		if (mode === "hybrid") {
+			// Create embedder
+			const embedder = createEmbedder({
+				model: cfg.model || "local",
+				openaiApiKey: cfg.openaiApiKey || options.openaiApiKey,
+			});
+
+			// Embed the query
+			let embeddings;
+			try {
+				embeddings = await embedder.embed([input.query]);
+			} catch (err) {
+				store.close();
+				return `Failed to embed query: ${err.message}`;
+			}
+
+			if (embeddings.length === 0) {
+				store.close();
+				return "No embedding generated for the query.";
+			}
+
+			let results;
+			try {
+				results = store.hybridSearch(embeddings[0], input.query, topK);
+			} catch (err) {
+				store.close();
+				return `Hybrid search failed: ${err.message}`;
+			}
+
+			store.close();
+
+			if (results.length === 0) {
+				return "No matching code found. Try re-indexing with `--index-code` first.";
+			}
+
+			// Apply file filter if specified
+			if (input.fileFilter) {
+				const filterPattern = input.fileFilter.replace(/\*/g, ".*");
+				const filterRe = new RegExp(filterPattern);
+				results = results.filter((r) => filterRe.test(r.filePath));
+			}
+
+			if (results.length === 0) {
+				return `No results matching filter "${input.fileFilter}".`;
+			}
+
+			// Format results
+			const lines = results.map((r, i) => {
+				let scoreStr;
+				if (r.source === "vector") scoreStr = `distance: ${r.distance.toFixed(4)}`;
+				else if (r.source === "fulltext") scoreStr = `rank: ${r.rank.toFixed(4)}`;
+				else scoreStr = `distance: ${r.distance.toFixed(4)}, rank: ${r.rank.toFixed(4)}`;
+
+				return (
+					`${i + 1}. ${r.filePath}:${r.lineStart}-${r.lineEnd} (${scoreStr}, source: ${r.source})\n` +
+					"```\n" +
+					r.content +
+					"\n```"
+				);
+			});
+
+			return lines.join("\n\n");
+		}
+
+		// Default: vector mode (existing behavior)
 		// Create embedder
 		const embedder = createEmbedder({
 			model: cfg.model || "local",
@@ -63,7 +174,6 @@ export async function codeSearchImpl(input, options = {}) {
 		}
 
 		// Search
-		const topK = input.topK || 5;
 		let results;
 		try {
 			results = store.search(embeddings[0], topK);
@@ -132,5 +242,11 @@ export const codeSearch = tool(codeSearchImpl, {
 			.string()
 			.optional()
 			.describe("Optional glob pattern to filter results by file path (e.g., 'src/tools/*.js')"),
+		mode: z
+			.enum(["vector", "fulltext", "hybrid"])
+			.default("vector")
+			.describe(
+				"Search mode: 'vector' (semantic similarity), 'fulltext' (keyword FTS5), or 'hybrid' (both with RRF fusion)",
+			),
 	}),
 });

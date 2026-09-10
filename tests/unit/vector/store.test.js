@@ -20,6 +20,9 @@ describe("createVectorStore", () => {
 		assert.ok(store);
 		assert.ok(typeof store.insertChunks === "function");
 		assert.ok(typeof store.search === "function");
+		assert.ok(typeof store.searchFts === "function");
+		assert.ok(typeof store.hybridSearch === "function");
+		assert.ok(typeof store.insertFtsChunks === "function");
 		assert.ok(typeof store.removeFile === "function");
 	});
 
@@ -118,5 +121,118 @@ describe("createVectorStore", () => {
 	it("close can be called multiple times", () => {
 		store.close();
 		store.close();
+	});
+});
+
+describe("createVectorStore with fulltext", () => {
+	/** @type {import("../../../src/vector/store.js").VectorStore} */
+	let ftsStore;
+
+	after(async () => {
+		if (ftsStore) {
+			ftsStore.close();
+		}
+	});
+
+	it("creates FTS5 table when fulltext is enabled", async () => {
+		ftsStore = await createVectorStore(":memory:", { fulltext: true });
+		await ftsStore.init();
+		assert.ok(ftsStore);
+		assert.ok(typeof ftsStore.searchFts === "function");
+		assert.ok(typeof ftsStore.hybridSearch === "function");
+	});
+
+	it("inserts chunks and searches via FTS5", async () => {
+		ftsStore = await createVectorStore(":memory:", { fulltext: true });
+		await ftsStore.init();
+
+		ftsStore.insertChunks([
+			{
+				filePath: "test.js",
+				lineStart: 1,
+				lineEnd: 10,
+				content: "function hello() { return 42; }",
+				embedding: new Float32Array(384).fill(0.1),
+			},
+			{
+				filePath: "other.js",
+				lineStart: 1,
+				lineEnd: 5,
+				content: "const debian = require('debian');",
+				embedding: new Float32Array(384).fill(0.2),
+			},
+		]);
+
+		const results = ftsStore.searchFts("debian", 5);
+		assert.strictEqual(results.length, 1);
+		assert.strictEqual(results[0].filePath, "other.js");
+		assert.ok(typeof results[0].rank === "number");
+	});
+
+	it("returns empty array when FTS query matches nothing", async () => {
+		ftsStore = await createVectorStore(":memory:", { fulltext: true });
+		await ftsStore.init();
+
+		ftsStore.insertChunks([
+			{
+				filePath: "test.js",
+				lineStart: 1,
+				lineEnd: 10,
+				content: "function hello() { return 42; }",
+				embedding: new Float32Array(384).fill(0.1),
+			},
+		]);
+
+		const results = ftsStore.searchFts("nonexistent", 5);
+		assert.strictEqual(results.length, 0);
+	});
+
+	it("hybridSearch returns combined results with source annotation", async () => {
+		ftsStore = await createVectorStore(":memory:", { fulltext: true });
+		await ftsStore.init();
+
+		ftsStore.insertChunks([
+			{
+				filePath: "hello.js",
+				lineStart: 1,
+				lineEnd: 10,
+				content: "function hello() { return 42; }",
+				embedding: new Float32Array(384).fill(0.1),
+			},
+			{
+				filePath: "debian.js",
+				lineStart: 1,
+				lineEnd: 5,
+				content: "const debian = require('debian');",
+				embedding: new Float32Array(384).fill(0.9),
+			},
+		]);
+
+		// Search with embedding close to hello.js and keyword "debian"
+		const results = ftsStore.hybridSearch(new Float32Array(384).fill(0.1), "debian", 5);
+		assert.ok(results.length > 0);
+		// debian.js should match via FTS, hello.js via vector
+		const debianResult = results.find((r) => r.filePath === "debian.js");
+		assert.ok(debianResult);
+		assert.ok(debianResult.source === "fulltext" || debianResult.source === "both");
+	});
+
+	it("removeFile cleans up FTS entries", async () => {
+		ftsStore = await createVectorStore(":memory:", { fulltext: true });
+		await ftsStore.init();
+
+		ftsStore.insertChunks([
+			{
+				filePath: "test.js",
+				lineStart: 1,
+				lineEnd: 10,
+				content: "function hello() { return 42; }",
+				embedding: new Float32Array(384).fill(0.1),
+			},
+		]);
+
+		ftsStore.removeFile("test.js");
+		const results = ftsStore.searchFts("hello", 5);
+		assert.strictEqual(results.length, 0);
 	});
 });

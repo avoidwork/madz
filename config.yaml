@@ -113,6 +113,8 @@ vector:
       chunkSize: 96
       chunkOverlap: 16
       maxFileSize: 524288
+      fulltext: true
+      ftsTokenize: "porter unicode61"
       include:
         - "src/**/*.js"
         - "src/**/*.mjs"

@@ -36,7 +36,10 @@ export async function codeIndexImpl(input) {
 		}
 
 		try {
-			const store = await createVectorStore(proj.dbPath);
+			const store = await createVectorStore(proj.dbPath, {
+				fulltext: proj.fulltext || false,
+				ftsTokenize: proj.ftsTokenize || "porter unicode61",
+			});
 			await store.init();
 
 			const result = await reindex(store, embedder, {
