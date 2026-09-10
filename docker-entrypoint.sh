@@ -24,7 +24,7 @@ chmod -R u+rwX /app/memory/checkpoints /app/memory/vectorSearch
 /usr/sbin/sshd -D &
 
 # Start the cron daemon so scheduled jobs execute
-crond -p -P -s &
+cron -f &
 
 # Run the CMD (e.g. sleep infinity)
 exec "$@"
