@@ -61,7 +61,7 @@ export async function codeSearchImpl(input, options = {}) {
 			store.close();
 
 			if (results.length === 0) {
-				return "No matching code found. Try re-indexing with `--index-code` first.";
+				return "No matching code found. Try running the codeIndex tool first to index your source code.";
 			}
 
 			// Apply file filter if specified
@@ -120,7 +120,7 @@ export async function codeSearchImpl(input, options = {}) {
 			store.close();
 
 			if (results.length === 0) {
-				return "No matching code found. Try re-indexing with `--index-code` first.";
+				return "No matching code found. Try running the codeIndex tool first to index your source code.";
 			}
 
 			// Apply file filter if specified
@@ -185,7 +185,7 @@ export async function codeSearchImpl(input, options = {}) {
 		store.close();
 
 		if (results.length === 0) {
-			return "No matching code found. Try re-indexing with `--index-code` first.";
+			return "No matching code found. Try running the codeIndex tool first to index your source code.";
 		}
 
 		// Apply file filter if specified
