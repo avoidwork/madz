@@ -157,7 +157,17 @@ export const TOOL_CLASSIFICATIONS = {
 		"seoAnalyst",
 	],
 	codeIndex: ["coding", "debug", "performance"],
-	getConfig: ["coding", "debug", "performance"],
+	getConfig: [
+		"coding",
+		"debug",
+		"performance",
+		"search",
+		"code-review",
+		"research",
+		"testing",
+		"documentation",
+		"security-audit",
+	],
 };
 
 /**
