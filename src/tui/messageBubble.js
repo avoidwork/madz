@@ -266,8 +266,7 @@ export function MessageBubbleInner({
 	// Stays visible after streaming completes so you can review the model's thinking.
 	const hasReasoning = role === "assistant" && segments.some((s) => s.type === "reasoning");
 	const hasActiveToolCall = role === "assistant" && localActiveToolCall;
-	const hasToolCallDisplay =
-		role === "assistant" && localToolCallDisplay && showToolResults;
+	const hasToolCallDisplay = role === "assistant" && localToolCallDisplay && showToolResults;
 
 	// Render segments in order — reasoning segments get gray "(thinking)" prefix,
 	// message segments render as normal MarkdownText.
