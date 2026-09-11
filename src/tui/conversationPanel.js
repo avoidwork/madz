@@ -96,7 +96,7 @@ export function getBubbleStyle(role) {
 export const ConversationPanel = React.memo(function ConversationPanel({
 	messages = [],
 	assistantName = "Assistant",
-	showToolResults = true,
+	showToolResults = false,
 	scrollRef: externalScrollRef,
 	messageListRef,
 }) {
