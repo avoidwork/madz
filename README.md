@@ -372,8 +372,9 @@ All configuration is controlled via environment variables in the `docker run` co
 
 | Variable          | Default | Description              |
 | ----------------- | ------- | ------------------------ |
-| `TUI_NAME`        | `madz`  | TUI identifier in banner |
-| `TUI_CURSOR_CHAR` | `█`     | Cursor character         |
+| `TUI_CURSOR_CHAR`      | `█`     | Cursor character         |
+| `TUI_NAME`             | `madz`  | TUI identifier in banner |
+| `TUI_SHOW_TOOL_RESULTS` | `true`  | Show tool call result lines in assistant messages |
 
 **Optional — Timezone:**
 
