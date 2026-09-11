@@ -164,7 +164,7 @@ schedules:
 tui:
   name: madz
   renderWindow: 100
-  showToolResults: true
+  showToolResults: false
 agent:
   recursionLimit: 1000
   autoContinueLimit: 1000
