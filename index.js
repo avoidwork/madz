@@ -203,6 +203,17 @@ async function callProvider(_name, _providerConfig, message, streamingCallback, 
 	})) {
 		if (mode === "messages") {
 			const [msg] = payload;
+
+			// Detect ToolMessage — route to tool_result instead of message content
+			const msgType = msg?._getType ? msg._getType() : msg?.type;
+			if (msgType === "tool") {
+				const toolText = msg?.text ?? "";
+				if (toolText && streamingCallback) {
+					streamingCallback({ type: "tool_result", text: toolText });
+				}
+				continue;
+			}
+
 			const text = msg?.text ?? "";
 
 			if (text) {

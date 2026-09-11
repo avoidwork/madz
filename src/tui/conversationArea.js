@@ -226,7 +226,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 
 				let committedContentRef = { current: "" };
 				const committedReasoningRef = { current: "" };
-				let lastToolCallDisplay = "";
+				const lastToolCallDisplayRef = { current: "" };
 				let todoStatusLines = "";
 				/** @type {string[]} */
 				const completedToolCalls = [];
@@ -244,7 +244,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 						createStreamingHandler(
 							committedContentRef,
 							committedReasoningRef,
-							{ current: "" },
+							lastToolCallDisplayRef,
 							undefined,
 							preStreamContextSize,
 							updateContextDisplay,
@@ -261,9 +261,9 @@ const ConversationArea = forwardRef(function ConversationArea(
 					const committedReasoning = committedReasoningRef.current;
 
 					if (!responseContent.trim() && !shouldAbort()) {
-						if (lastToolCallDisplay) {
+						if (lastToolCallDisplayRef.current) {
 							messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
-								toolCallDisplay: lastToolCallDisplay,
+								toolCallDisplay: lastToolCallDisplayRef.current,
 							});
 						}
 
@@ -314,7 +314,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 					finalizeStreaming(
 						responseContent,
 						committedReasoning,
-						lastToolCallDisplay,
+						lastToolCallDisplayRef.current,
 						todoStatusLines,
 						turnStartTime,
 						completedToolCalls,
@@ -387,7 +387,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 
 		let committedContentRef = { current: "" };
 		const committedReasoningRef = { current: "" };
-		let lastToolCallDisplay = "";
+		const lastToolCallDisplayRef = { current: "" };
 		let todoStatusLines = "";
 		/** @type {string[]} */
 		const completedToolCalls = [];
@@ -404,7 +404,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 				createStreamingHandler(
 					committedContentRef,
 					committedReasoningRef,
-					{ current: "" },
+					lastToolCallDisplayRef,
 					undefined,
 					preStreamContextSize,
 					updateContextDisplay,
@@ -421,9 +421,9 @@ const ConversationArea = forwardRef(function ConversationArea(
 			const committedReasoning = committedReasoningRef.current;
 
 			if (!responseContent.trim() && !shouldAbort()) {
-				if (lastToolCallDisplay) {
+				if (lastToolCallDisplayRef.current) {
 					messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
-						toolCallDisplay: lastToolCallDisplay,
+						toolCallDisplay: lastToolCallDisplayRef.current,
 					});
 				}
 
@@ -449,7 +449,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 						createStreamingHandler(
 							committedContentRef,
 							committedReasoningRef,
-							{ current: "" },
+							lastToolCallDisplayRef,
 							() => {
 								isAutoContinuingRef.current = false;
 							},
@@ -474,7 +474,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 			finalizeStreaming(
 				responseContent,
 				committedReasoning,
-				lastToolCallDisplay,
+				lastToolCallDisplayRef.current,
 				todoStatusLines,
 				turnStartTime,
 				completedToolCalls,
@@ -714,6 +714,15 @@ const ConversationArea = forwardRef(function ConversationArea(
 							activeToolCall: null,
 							completedToolCalls: [...completedToolCalls],
 						});
+					}
+
+					if (event.type === "tool_result") {
+						const toolText = event.data?.text || event.text || "";
+						if (toolText) {
+							lastToolCallDisplayRef.current =
+								(lastToolCallDisplayRef.current ? lastToolCallDisplayRef.current + "\n" : "") +
+								toolText;
+						}
 					}
 
 					if (event.type === "on_tool_error") {
