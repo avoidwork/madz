@@ -193,6 +193,8 @@ export function MessageBubbleInner({
 	const [localStreaming, setLocalStreaming] = useState(streaming);
 	const [localTurnDuration, setLocalTurnDuration] = useState(turnDuration);
 	const [localCompletedToolCalls, setLocalCompletedToolCalls] = useState(completedToolCalls || []);
+	const [localToolCallDisplay, setLocalToolCallDisplay] = useState(toolCallDisplay);
+	const [localActiveToolCall, setLocalActiveToolCall] = useState(activeToolCall);
 
 	// Sync local state from props when not using pub/sub (session restore, initial render)
 	useEffect(() => {
@@ -200,8 +202,10 @@ export function MessageBubbleInner({
 			setLocalStreaming(streaming);
 			setLocalTurnDuration(turnDuration);
 			setLocalCompletedToolCalls(completedToolCalls || []);
+			setLocalToolCallDisplay(toolCallDisplay);
+			setLocalActiveToolCall(activeToolCall);
 		}
-	}, [topic, streaming, turnDuration, completedToolCalls]);
+	}, [topic, streaming, turnDuration, completedToolCalls, toolCallDisplay, activeToolCall]);
 
 	useEffect(() => {
 		if (!topic) return;
@@ -219,6 +223,8 @@ export function MessageBubbleInner({
 			if (data?.turnDuration !== undefined) setLocalTurnDuration(data.turnDuration);
 			if (data?.completedToolCalls !== undefined)
 				setLocalCompletedToolCalls(data.completedToolCalls);
+			if (data?.toolCallDisplay !== undefined) setLocalToolCallDisplay(data.toolCallDisplay);
+			if (data?.activeToolCall !== undefined) setLocalActiveToolCall(data.activeToolCall);
 		};
 
 		subscribe(topic, handleUpdate);
@@ -259,8 +265,9 @@ export function MessageBubbleInner({
 	// Show reasoning segments alongside the response - gray, offset like timer/tool calls.
 	// Stays visible after streaming completes so you can review the model's thinking.
 	const hasReasoning = role === "assistant" && segments.some((s) => s.type === "reasoning");
-	const hasActiveToolCall = role === "assistant" && activeToolCall;
-	const hasToolCallDisplay = role === "assistant" && toolCallDisplay && showToolResults !== false;
+	const hasActiveToolCall = role === "assistant" && localActiveToolCall;
+	const hasToolCallDisplay =
+		role === "assistant" && localToolCallDisplay && showToolResults;
 
 	// Render segments in order — reasoning segments get gray "(thinking)" prefix,
 	// message segments render as normal MarkdownText.
@@ -299,7 +306,7 @@ export function MessageBubbleInner({
 		? React.createElement(
 				Box,
 				{ flexDirection: "row", marginLeft: 2 },
-				React.createElement(Text, { color: "gray" }, `- Running: ${activeToolCall.name} ...`),
+				React.createElement(Text, { color: "gray" }, `- Running: ${localActiveToolCall.name} ...`),
 			)
 		: null;
 
@@ -307,7 +314,7 @@ export function MessageBubbleInner({
 		? React.createElement(
 				Box,
 				{ flexDirection: "column", marginLeft: 2 },
-				...toolCallDisplay
+				...localToolCallDisplay
 					.split("\n")
 					.map((line, i) =>
 						React.createElement(Text, { key: `tool-${i}`, color: "gray" }, `  ${line}`),
