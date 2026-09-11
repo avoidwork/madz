@@ -35,7 +35,7 @@ let _messageIdCounter = 0;
  * @param {Object} props
  * @param {Array} [props.messages] - Initial messages array for session restore
  * @param {string} [props.assistantName] - Name to display for assistant messages
- * @param {boolean} [props.showToolResults=true] - Whether to display tool call result lines
+ * @param {boolean} [props.showToolResults=false] - Whether to display tool call result lines
  * @param {React.Ref} [props.forwardRef] - For exposed imperative API
  * @param {React.Ref} [props.scrollRef] - Forwarded scroll ref for external keyboard nav
  * @returns {React.ReactElement}
@@ -45,7 +45,7 @@ export const MessageList = React.memo(
 		{
 			messages: _messages = [],
 			assistantName = "Assistant",
-			showToolResults = true,
+			showToolResults = false,
 			scrollRef: externalScrollRef,
 		},
 		forwardRef,

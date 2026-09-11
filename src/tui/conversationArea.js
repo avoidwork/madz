@@ -797,7 +797,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 		{ key: "conversation-wrapper", flexDirection: "column", flexGrow: 1 },
 		React.createElement(ConversationPanel, {
 			assistantName: config?.tui?.name || "Assistant",
-			showToolResults: config?.tui?.showToolResults !== false,
+			showToolResults: config?.tui?.showToolResults,
 			messageListRef,
 		}),
 	);
