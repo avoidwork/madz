@@ -35,13 +35,19 @@ let _messageIdCounter = 0;
  * @param {Object} props
  * @param {Array} [props.messages] - Initial messages array for session restore
  * @param {string} [props.assistantName] - Name to display for assistant messages
+ * @param {boolean} [props.showToolResults=true] - Whether to display tool call result lines
  * @param {React.Ref} [props.forwardRef] - For exposed imperative API
  * @param {React.Ref} [props.scrollRef] - Forwarded scroll ref for external keyboard nav
  * @returns {React.ReactElement}
  */
 export const MessageList = React.memo(
 	forwardRef(function MessageList(
-		{ messages: _messages = [], assistantName = "Assistant", scrollRef: externalScrollRef },
+		{
+			messages: _messages = [],
+			assistantName = "Assistant",
+			showToolResults = true,
+			scrollRef: externalScrollRef,
+		},
 		forwardRef,
 	) {
 		const internalRef = useRef(null);
@@ -427,6 +433,7 @@ export const MessageList = React.memo(
 							turnStartTime: data.turnStartTime,
 							turnDuration: data.turnDuration,
 							completedToolCalls: data.completedToolCalls,
+							showToolResults,
 						});
 					})
 					.filter(Boolean);

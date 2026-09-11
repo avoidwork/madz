@@ -175,6 +175,9 @@ const agent = await createDeepAgentsOrchestrator(checkpointer);
 
 const sessionConfig = { configurable: { thread_id: sessionState.getSessionId() } };
 
+// Capture config value before callProvider shadows the name
+const showToolResults = config.tui?.showToolResults;
+
 async function callProvider(_name, _providerConfig, message, streamingCallback, signal) {
 	const isNewThread = sessionState.getConversation().length === 0;
 
@@ -203,6 +206,13 @@ async function callProvider(_name, _providerConfig, message, streamingCallback, 
 	})) {
 		if (mode === "messages") {
 			const [msg] = payload;
+
+			// Skip ToolMessage from message content when showToolResults is false
+			const msgType = msg?._getType ? msg._getType() : msg?.type;
+			if (msgType === "tool" && showToolResults === false) {
+				continue;
+			}
+
 			const text = msg?.text ?? "";
 
 			if (text) {
