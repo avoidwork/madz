@@ -5,7 +5,7 @@ import { Box, Text, useInput } from "ink";
  * Skills panel that lists registered skills with search.
  * Props: skills - array of skill names
  */
-export function SkillsPanel({ skills = [], isActive = false }) {
+export function SkillsPanel({ skills = [], onViewChange, isActive = false }) {
 	const [searchQuery, _setSearchQuery] = useState("");
 	const [focusedSkill, setFocusedSkill] = useState(0);
 
@@ -18,6 +18,9 @@ export function SkillsPanel({ skills = [], isActive = false }) {
 			}
 			if (key.downArrow && focusedSkill < filteredSkills.length - 1) {
 				setFocusedSkill((prev) => Math.min(filteredSkills.length - 1, prev + 1));
+			}
+			if (key.escape) {
+				onViewChange?.("conversation");
 			}
 		},
 		{ isActive },

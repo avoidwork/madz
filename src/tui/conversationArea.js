@@ -37,6 +37,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 		onInterruptInput,
 		onQuit,
 		onNewSession,
+		onViewChange,
 		messageCountRef,
 	},
 	ref,
@@ -165,6 +166,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 							hourCalls: getGcCalls().length,
 						})
 					: null,
+				_onViewChange: onViewChange,
 				_skillList: skillList,
 				_executeSkill: async (skillName, _args) => {
 					const skill = registry.get(skillName);
@@ -202,6 +204,10 @@ const ConversationArea = forwardRef(function ConversationArea(
 			}
 			if (result.action === "unknown") {
 				onStatusChange?.(result.message);
+				return;
+			}
+			if (result.action === "view") {
+				onViewChange?.(result.value);
 				return;
 			}
 			if (result.action === "skill" && result.subAction === "load" && result.skillBody) {
@@ -785,6 +791,26 @@ const ConversationArea = forwardRef(function ConversationArea(
 		newSession: handleNewSession,
 		clear: () => messageListRef.current?.clear(),
 		addMessage,
+		/**
+		 * Bulk-load conversation exchanges into the message list.
+		 * Clears existing messages and repopulates from the array.
+		 * @param {Array<{ role: string, content: string }>} conversation
+		 */
+		loadConversation: (conversation) => {
+			messageListRef.current?.clear();
+			if (Array.isArray(conversation)) {
+				for (const exchange of conversation) {
+					if (exchange.role && exchange.content !== undefined) {
+						messageListRef.current?.addMessage(exchange.role, exchange.content, {
+							time: exchange.timestamp,
+						});
+					}
+				}
+			}
+			if (messageCountRef) {
+				messageCountRef.current = messageListRef.current?.getMessageCount() || 0;
+			}
+		},
 		scrollBy: (delta) => messageListRef.current?.scrollBy(delta),
 		getViewportHeight: () =>
 			messageListRef.current?.getScrollRef()?.current?.getViewportHeight?.() || 1,

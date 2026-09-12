@@ -6,6 +6,7 @@ export const PANELS = Object.freeze({
 	SKILLS: "skills",
 	MEMORY: "memory",
 	SETTINGS: "settings",
+	SESSIONS: "sessions",
 });
 
 /**
@@ -13,7 +14,13 @@ export const PANELS = Object.freeze({
  * @returns {string[]}
  */
 export function getPanelOrder() {
-	return [PANELS.CONVERSATION, PANELS.SKILLS, PANELS.MEMORY, PANELS.SETTINGS];
+	return [
+		PANELS.CONVERSATION,
+		PANELS.SKILLS,
+		PANELS.MEMORY,
+		PANELS.SETTINGS,
+		PANELS.SESSIONS,
+	];
 }
 
 /**
