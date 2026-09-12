@@ -199,11 +199,11 @@ describe("MessageList — imperative API", () => {
 
 		it("adds message with activeToolCall and toolCallDisplay", () => {
 			const id = api.addMessage("assistant", "", {
-				activeToolCall: { name: "webSearch" },
+				activeToolCall: { name: "searchWeb" },
 				toolCallDisplay: "Result: ok",
 			});
 			const data = api.getMessageData(id);
-			assert.deepStrictEqual(data.activeToolCall, { name: "webSearch" });
+			assert.deepStrictEqual(data.activeToolCall, { name: "searchWeb" });
 			assert.strictEqual(data.toolCallDisplay, "Result: ok");
 		});
 

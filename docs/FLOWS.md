@@ -218,8 +218,8 @@ buildToolConfig({ permissions, allowedPaths, maxReadSize, registry, safety, time
 │   ├── hasAllPerms = requiredPerms.every(perm => enabledSet.has(perm))
 │   ├── switch toolName:
 │   │   ├── clarify | code → always create (no perms needed)
-│   │   ├── webSearch | web_extract → if hasAllPerms && hasSearchKey()
-│   │   ├── visionAnalyze → if OPENAI_API_KEY
+│   │   ├── searchWeb | extractWeb → if hasAllPerms && hasSearchKey()
+│   │   ├── analyzeVision → if OPENAI_API_KEY
 │   │   ├── image_generate → if hasAllPerms && FAL_API_KEY
 │   │   ├── cronjob → if hasAllPerms
 │   │   ├── createSkill → if hasAllPerms (filesystem:write)
@@ -504,10 +504,10 @@ Permission gates per tool:
 ├── process → "process:spawn"
 ├── todo → "filesystem:read", "filesystem:write"
 ├── memory → "filesystem:read", "filesystem:write"
-├── sessionSearch → "filesystem:read"
+├── searchSession → "filesystem:read"
 ├── createSkill → "filesystem:write"
-├── webSearch, web_extract → "network:outbound" + hasSearchKey()
-├── visionAnalyze → OPENAI_API_KEY (no perms)
+├── searchWeb, extractWeb → "network:outbound" + hasSearchKey()
+├── analyzeVision → OPENAI_API_KEY (no perms)
 ├── image_generate → "network:outbound" + FAL_API_KEY
 ├── cronjob → "network:outbound"
 ├── textToSpeech → OPENAI_API_KEY
@@ -607,14 +607,14 @@ process tool:
 **Entry:** `src/tools/web.js`
 
 ```
-webSearch / web_extract:
+searchWeb / extractWeb:
 ├── validateUrl(url, allowlist)
 │   └── filterUrl(url) → blocks file://, gopher://, dict:// schemes
 ├── fetchWithTimeout(url, timeoutMs = 10000, allowlist)
 │   └── → fetch(url, { signal: AbortController(timeout) }) → response.text()
-└── returns HTML-to-text (web_extract) or multi-engine search results (webSearch)
+└── returns HTML-to-text (extractWeb) or multi-engine search results (searchWeb)
 
-Multi-engine search backends (webSearch):
+Multi-engine search backends (searchWeb):
 ├── EXA_API_KEY → exa search
 ├── FIRECRAWL_API_KEY → firecrawl scrape
 ├── TAVILY_API_KEY → tavily search
@@ -1139,7 +1139,7 @@ index.js
 │     ├── tools/web.js → fetch, node:fs/promises, tools/common.js (filterUrl, validateUrl)
 │     ├── tools/common.js → sandbox/urlFilter.js, sandbox/pathResolver.js, node:fs/promises
 │     ├── tools/memory.js → js-yaml, node:fs/promises — key-value entry storage. Each entry stored as an individual .md file in context directory with createdDate/updatedDate metadata. Actions: create, read, update, delete, list
-│     ├── tools/sessionSearch.js → node:fs/promises, memory/reader.js
+│     ├── tools/session/index.js → node:fs/promises, memory/reader.js
 │     ├── tools/code.js → node:child_process, node:fs/promises, node:path, posix (setrlimit memory limit)
 │     ├── tools/todo.js → node:fs/promises — CRUD task management in memory/tools/todo.json
 │     ├── tools/clarify.js → node:fs/promises — zero-permission clarification questions

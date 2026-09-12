@@ -9,14 +9,14 @@ import { readFile, writeFile, rm, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { PDFDocument, StandardFonts } from "pdf-lib";
 import {
-	pdfGenerate,
+	generatePdf,
 	checkFileSize,
 	loadPdf,
 	savePdf,
 	parsePageRange,
 	loadImage,
 	hexToRgb,
-} from "../../src/tools/pdfGenerate/index.js";
+} from "../../src/tools/pdf/index.js";
 
 const TEST_DIR = "memory/__test_pdf_generate__/";
 
@@ -47,7 +47,7 @@ function createTestImage() {
 	);
 }
 
-describe("pdfGenerate", () => {
+describe("generatePdf", () => {
 	before(async () => {
 		await mkdir(TEST_DIR, { recursive: true });
 	});
@@ -62,13 +62,13 @@ describe("pdfGenerate", () => {
 
 	describe("action validation", () => {
 		it("rejects invalid action", async () => {
-			const result = JSON.parse(await pdfGenerate({ action: "invalidAction" }));
+			const result = JSON.parse(await generatePdf({ action: "invalidAction" }));
 			assert.strictEqual(result.ok, false);
 			assert.ok(result.error.includes("Invalid action"));
 		});
 
 		it("rejects missing action", async () => {
-			const result = JSON.parse(await pdfGenerate({}));
+			const result = JSON.parse(await generatePdf({}));
 			assert.strictEqual(result.ok, false);
 			assert.ok(result.error.includes("Invalid action"));
 		});
@@ -77,7 +77,7 @@ describe("pdfGenerate", () => {
 	describe("generateHtml", () => {
 		it("requires html string", async () => {
 			const result = JSON.parse(
-				await pdfGenerate({
+				await generatePdf({
 					action: "generateHtml",
 					filePath: join(TEST_DIR, "test.html"),
 				}),
@@ -87,7 +87,7 @@ describe("pdfGenerate", () => {
 		});
 
 		it("requires filePath", async () => {
-			const result = JSON.parse(await pdfGenerate({ action: "generateHtml", html: "<p>test</p>" }));
+			const result = JSON.parse(await generatePdf({ action: "generateHtml", html: "<p>test</p>" }));
 			assert.strictEqual(result.ok, false);
 			assert.ok(result.error.includes("filePath is required"));
 		});
@@ -95,7 +95,7 @@ describe("pdfGenerate", () => {
 		it("generates a valid PDF from HTML", async () => {
 			const outputPath = join(TEST_DIR, "html_output.pdf");
 			const result = JSON.parse(
-				await pdfGenerate({
+				await generatePdf({
 					action: "generateHtml",
 					html: "<html><body><h1>Hello World</h1></body></html>",
 					filePath: outputPath,
@@ -114,7 +114,7 @@ describe("pdfGenerate", () => {
 		it("generates PDF with custom page options", async () => {
 			const outputPath = join(TEST_DIR, "html_options.pdf");
 			const result = JSON.parse(
-				await pdfGenerate({
+				await generatePdf({
 					action: "generateHtml",
 					html: "<html><body><p>Test content</p></body></html>",
 					filePath: outputPath,
@@ -135,7 +135,7 @@ describe("pdfGenerate", () => {
 	describe("generateMarkdown", () => {
 		it("requires markdown string", async () => {
 			const result = JSON.parse(
-				await pdfGenerate({
+				await generatePdf({
 					action: "generateMarkdown",
 					filePath: join(TEST_DIR, "test.md"),
 				}),
@@ -146,7 +146,7 @@ describe("pdfGenerate", () => {
 
 		it("requires filePath", async () => {
 			const result = JSON.parse(
-				await pdfGenerate({ action: "generateMarkdown", markdown: "# Test" }),
+				await generatePdf({ action: "generateMarkdown", markdown: "# Test" }),
 			);
 			assert.strictEqual(result.ok, false);
 			assert.ok(result.error.includes("filePath is required"));
@@ -155,7 +155,7 @@ describe("pdfGenerate", () => {
 		it("generates a valid PDF from markdown", async () => {
 			const outputPath = join(TEST_DIR, "md_output.pdf");
 			const result = JSON.parse(
-				await pdfGenerate({
+				await generatePdf({
 					action: "generateMarkdown",
 					markdown: "# Hello World\n\nThis is a test.",
 					filePath: outputPath,
@@ -173,7 +173,7 @@ describe("pdfGenerate", () => {
 		it("generates PDF with custom CSS", async () => {
 			const outputPath = join(TEST_DIR, "md_css.pdf");
 			const result = JSON.parse(
-				await pdfGenerate({
+				await generatePdf({
 					action: "generateMarkdown",
 					markdown: "# Styled\n\nContent here.",
 					filePath: outputPath,
@@ -191,7 +191,7 @@ describe("pdfGenerate", () => {
 	describe("merge", () => {
 		it("requires at least 2 file paths", async () => {
 			const result = JSON.parse(
-				await pdfGenerate({
+				await generatePdf({
 					action: "merge",
 					filePaths: ["only_one.pdf"],
 					outputPath: join(TEST_DIR, "merged.pdf"),
@@ -208,7 +208,7 @@ describe("pdfGenerate", () => {
 			await writeFile(join(TEST_DIR, "b.pdf"), pdf2);
 
 			const result = JSON.parse(
-				await pdfGenerate({
+				await generatePdf({
 					action: "merge",
 					filePaths: [join(TEST_DIR, "a.pdf"), join(TEST_DIR, "b.pdf")],
 				}),
@@ -225,7 +225,7 @@ describe("pdfGenerate", () => {
 
 			const outputPath = join(TEST_DIR, "merged.pdf");
 			const result = JSON.parse(
-				await pdfGenerate({
+				await generatePdf({
 					action: "merge",
 					filePaths: [join(TEST_DIR, "a.pdf"), join(TEST_DIR, "b.pdf")],
 					outputPath,
@@ -244,7 +244,7 @@ describe("pdfGenerate", () => {
 			await writeFile(join(TEST_DIR, "d.pdf"), pdf2);
 
 			const result = JSON.parse(
-				await pdfGenerate({
+				await generatePdf({
 					action: "merge",
 					filePaths: [join(TEST_DIR, "c.pdf"), join(TEST_DIR, "d.pdf")],
 					outputPath: join(TEST_DIR, "merged2.pdf"),
@@ -269,7 +269,7 @@ describe("pdfGenerate", () => {
 			await writeFile(join(TEST_DIR, "small.pdf"), pdf2);
 
 			const result = JSON.parse(
-				await pdfGenerate({
+				await generatePdf({
 					action: "merge",
 					filePaths: [join(TEST_DIR, "large.pdf"), join(TEST_DIR, "small.pdf")],
 					outputPath: join(TEST_DIR, "merged_large.pdf"),
@@ -282,14 +282,14 @@ describe("pdfGenerate", () => {
 
 	describe("split", () => {
 		it("requires filePath", async () => {
-			const result = JSON.parse(await pdfGenerate({ action: "split", pageRange: "1" }));
+			const result = JSON.parse(await generatePdf({ action: "split", pageRange: "1" }));
 			assert.strictEqual(result.ok, false);
 			assert.ok(result.error.includes("filePath is required"));
 		});
 
 		it("requires pageRange", async () => {
 			const result = JSON.parse(
-				await pdfGenerate({
+				await generatePdf({
 					action: "split",
 					filePath: join(TEST_DIR, "test.pdf"),
 				}),
@@ -303,7 +303,7 @@ describe("pdfGenerate", () => {
 			await writeFile(join(TEST_DIR, "split_src.pdf"), pdf);
 
 			const result = JSON.parse(
-				await pdfGenerate({
+				await generatePdf({
 					action: "split",
 					filePath: join(TEST_DIR, "split_src.pdf"),
 					pageRange: "1",
@@ -319,7 +319,7 @@ describe("pdfGenerate", () => {
 
 			const outputPath = join(TEST_DIR, "split_%d.pdf");
 			const result = JSON.parse(
-				await pdfGenerate({
+				await generatePdf({
 					action: "split",
 					filePath: join(TEST_DIR, "src_range.pdf"),
 					pageRange: "1-2",
@@ -336,7 +336,7 @@ describe("pdfGenerate", () => {
 
 			const outputPath = join(TEST_DIR, "split_pages_%d.pdf");
 			const result = JSON.parse(
-				await pdfGenerate({
+				await generatePdf({
 					action: "split",
 					filePath: join(TEST_DIR, "src_pages.pdf"),
 					pageRange: "1,3",
@@ -353,7 +353,7 @@ describe("pdfGenerate", () => {
 
 			const outputPath = join(TEST_DIR, "split_all_%d.pdf");
 			const result = JSON.parse(
-				await pdfGenerate({
+				await generatePdf({
 					action: "split",
 					filePath: join(TEST_DIR, "src_all.pdf"),
 					pageRange: "all",
@@ -369,7 +369,7 @@ describe("pdfGenerate", () => {
 			await writeFile(join(TEST_DIR, "src_b64.pdf"), pdf);
 
 			const result = JSON.parse(
-				await pdfGenerate({
+				await generatePdf({
 					action: "split",
 					filePath: join(TEST_DIR, "src_b64.pdf"),
 					pageRange: "1-2",
@@ -393,7 +393,7 @@ describe("pdfGenerate", () => {
 			await writeFile(join(TEST_DIR, "src_invalid.pdf"), pdf);
 
 			const result = JSON.parse(
-				await pdfGenerate({
+				await generatePdf({
 					action: "split",
 					filePath: join(TEST_DIR, "src_invalid.pdf"),
 					pageRange: "1-5",
@@ -407,7 +407,7 @@ describe("pdfGenerate", () => {
 
 	describe("watermark", () => {
 		it("requires filePath or base64", async () => {
-			const result = JSON.parse(await pdfGenerate({ action: "watermark", text: "WATERMARK" }));
+			const result = JSON.parse(await generatePdf({ action: "watermark", text: "WATERMARK" }));
 			assert.strictEqual(result.ok, false);
 			assert.ok(result.error.includes("filePath or base64"));
 		});
@@ -417,7 +417,7 @@ describe("pdfGenerate", () => {
 			await writeFile(join(TEST_DIR, "wm_src.pdf"), pdf);
 
 			const result = JSON.parse(
-				await pdfGenerate({
+				await generatePdf({
 					action: "watermark",
 					filePath: join(TEST_DIR, "wm_src.pdf"),
 					outputPath: join(TEST_DIR, "wm_out.pdf"),
@@ -433,7 +433,7 @@ describe("pdfGenerate", () => {
 
 			const outputPath = join(TEST_DIR, "wm_all_out.pdf");
 			const result = JSON.parse(
-				await pdfGenerate({
+				await generatePdf({
 					action: "watermark",
 					filePath: join(TEST_DIR, "wm_all.pdf"),
 					text: "CONFIDENTIAL",
@@ -452,7 +452,7 @@ describe("pdfGenerate", () => {
 
 			const outputPath = join(TEST_DIR, "wm_pages_out.pdf");
 			const result = JSON.parse(
-				await pdfGenerate({
+				await generatePdf({
 					action: "watermark",
 					filePath: join(TEST_DIR, "wm_pages.pdf"),
 					text: "PAGE 2 ONLY",
@@ -473,7 +473,7 @@ describe("pdfGenerate", () => {
 
 			const outputPath = join(TEST_DIR, "wm_img_out.pdf");
 			const result = JSON.parse(
-				await pdfGenerate({
+				await generatePdf({
 					action: "watermark",
 					filePath: join(TEST_DIR, "wm_img_src.pdf"),
 					imageBase64: image.toString("base64"),
@@ -491,7 +491,7 @@ describe("pdfGenerate", () => {
 			await writeFile(join(TEST_DIR, "wm_b64_src.pdf"), pdf);
 
 			const result = JSON.parse(
-				await pdfGenerate({
+				await generatePdf({
 					action: "watermark",
 					filePath: join(TEST_DIR, "wm_b64_src.pdf"),
 					text: "WATERMARK",
@@ -511,7 +511,7 @@ describe("pdfGenerate", () => {
 
 			const outputPath = join(TEST_DIR, "wm_b64in_out.pdf");
 			const result = JSON.parse(
-				await pdfGenerate({
+				await generatePdf({
 					action: "watermark",
 					base64: base64Input,
 					text: "FROM BASE64",
@@ -528,7 +528,7 @@ describe("pdfGenerate", () => {
 	describe("signature", () => {
 		it("requires filePath or base64", async () => {
 			const result = JSON.parse(
-				await pdfGenerate({
+				await generatePdf({
 					action: "signature",
 					text: "Signed",
 					page: 1,
@@ -545,7 +545,7 @@ describe("pdfGenerate", () => {
 			await writeFile(join(TEST_DIR, "sig_src.pdf"), pdf);
 
 			const result = JSON.parse(
-				await pdfGenerate({
+				await generatePdf({
 					action: "signature",
 					filePath: join(TEST_DIR, "sig_src.pdf"),
 					page: 1,
@@ -562,7 +562,7 @@ describe("pdfGenerate", () => {
 			await writeFile(join(TEST_DIR, "sig_coords.pdf"), pdf);
 
 			const result = JSON.parse(
-				await pdfGenerate({
+				await generatePdf({
 					action: "signature",
 					filePath: join(TEST_DIR, "sig_coords.pdf"),
 					text: "Signed",
@@ -578,7 +578,7 @@ describe("pdfGenerate", () => {
 
 			const outputPath = join(TEST_DIR, "sig_text_out.pdf");
 			const result = JSON.parse(
-				await pdfGenerate({
+				await generatePdf({
 					action: "signature",
 					filePath: join(TEST_DIR, "sig_text_src.pdf"),
 					text: "John Doe",
@@ -601,7 +601,7 @@ describe("pdfGenerate", () => {
 
 			const outputPath = join(TEST_DIR, "sig_img_out.pdf");
 			const result = JSON.parse(
-				await pdfGenerate({
+				await generatePdf({
 					action: "signature",
 					filePath: join(TEST_DIR, "sig_img_src.pdf"),
 					imageBase64: image.toString("base64"),
@@ -622,7 +622,7 @@ describe("pdfGenerate", () => {
 			await writeFile(join(TEST_DIR, "sig_page.pdf"), pdf);
 
 			const result = JSON.parse(
-				await pdfGenerate({
+				await generatePdf({
 					action: "signature",
 					filePath: join(TEST_DIR, "sig_page.pdf"),
 					text: "Signed",
@@ -640,7 +640,7 @@ describe("pdfGenerate", () => {
 			await writeFile(join(TEST_DIR, "sig_b64_src.pdf"), pdf);
 
 			const result = JSON.parse(
-				await pdfGenerate({
+				await generatePdf({
 					action: "signature",
 					filePath: join(TEST_DIR, "sig_b64_src.pdf"),
 					text: "Signed",
@@ -661,7 +661,7 @@ describe("pdfGenerate", () => {
 	describe("annotate", () => {
 		it("requires filePath or base64", async () => {
 			const result = JSON.parse(
-				await pdfGenerate({
+				await generatePdf({
 					action: "annotate",
 					annotations: [{ type: "note", page: 1, position: { x: 0, y: 0 } }],
 				}),
@@ -675,7 +675,7 @@ describe("pdfGenerate", () => {
 			await writeFile(join(TEST_DIR, "ann_src.pdf"), pdf);
 
 			const result = JSON.parse(
-				await pdfGenerate({
+				await generatePdf({
 					action: "annotate",
 					filePath: join(TEST_DIR, "ann_src.pdf"),
 					annotations: [],
@@ -690,7 +690,7 @@ describe("pdfGenerate", () => {
 			await writeFile(join(TEST_DIR, "ann_fields.pdf"), pdf);
 
 			const result = JSON.parse(
-				await pdfGenerate({
+				await generatePdf({
 					action: "annotate",
 					filePath: join(TEST_DIR, "ann_fields.pdf"),
 					annotations: [{ type: "note" }],
@@ -706,7 +706,7 @@ describe("pdfGenerate", () => {
 
 			const outputPath = join(TEST_DIR, "ann_highlight_out.pdf");
 			const result = JSON.parse(
-				await pdfGenerate({
+				await generatePdf({
 					action: "annotate",
 					filePath: join(TEST_DIR, "ann_highlight_src.pdf"),
 					annotations: [
@@ -731,7 +731,7 @@ describe("pdfGenerate", () => {
 
 			const outputPath = join(TEST_DIR, "ann_note_out.pdf");
 			const result = JSON.parse(
-				await pdfGenerate({
+				await generatePdf({
 					action: "annotate",
 					filePath: join(TEST_DIR, "ann_note_src.pdf"),
 					annotations: [
@@ -757,7 +757,7 @@ describe("pdfGenerate", () => {
 
 			const outputPath = join(TEST_DIR, "ann_stamp_out.pdf");
 			const result = JSON.parse(
-				await pdfGenerate({
+				await generatePdf({
 					action: "annotate",
 					filePath: join(TEST_DIR, "ann_stamp_src.pdf"),
 					annotations: [
@@ -783,7 +783,7 @@ describe("pdfGenerate", () => {
 
 			const outputPath = join(TEST_DIR, "ann_multi_out.pdf");
 			const result = JSON.parse(
-				await pdfGenerate({
+				await generatePdf({
 					action: "annotate",
 					filePath: join(TEST_DIR, "ann_multi_src.pdf"),
 					annotations: [
@@ -819,7 +819,7 @@ describe("pdfGenerate", () => {
 			await writeFile(join(TEST_DIR, "ann_type_src.pdf"), pdf);
 
 			const result = JSON.parse(
-				await pdfGenerate({
+				await generatePdf({
 					action: "annotate",
 					filePath: join(TEST_DIR, "ann_type_src.pdf"),
 					annotations: [
@@ -840,7 +840,7 @@ describe("pdfGenerate", () => {
 			await writeFile(join(TEST_DIR, "ann_page_src.pdf"), pdf);
 
 			const result = JSON.parse(
-				await pdfGenerate({
+				await generatePdf({
 					action: "annotate",
 					filePath: join(TEST_DIR, "ann_page_src.pdf"),
 					annotations: [
@@ -861,7 +861,7 @@ describe("pdfGenerate", () => {
 			await writeFile(join(TEST_DIR, "ann_b64_src.pdf"), pdf);
 
 			const result = JSON.parse(
-				await pdfGenerate({
+				await generatePdf({
 					action: "annotate",
 					filePath: join(TEST_DIR, "ann_b64_src.pdf"),
 					annotations: [
@@ -888,7 +888,7 @@ describe("pdfGenerate", () => {
 			await writeFile(join(TEST_DIR, "wm_tl_src.pdf"), pdf);
 			const outputPath = join(TEST_DIR, "wm_tl_out.pdf");
 			const result = JSON.parse(
-				await pdfGenerate({
+				await generatePdf({
 					action: "watermark",
 					filePath: join(TEST_DIR, "wm_tl_src.pdf"),
 					text: "TOP LEFT",
@@ -904,7 +904,7 @@ describe("pdfGenerate", () => {
 			await writeFile(join(TEST_DIR, "wm_tr_src.pdf"), pdf);
 			const outputPath = join(TEST_DIR, "wm_tr_out.pdf");
 			const result = JSON.parse(
-				await pdfGenerate({
+				await generatePdf({
 					action: "watermark",
 					filePath: join(TEST_DIR, "wm_tr_src.pdf"),
 					text: "TOP RIGHT",
@@ -920,7 +920,7 @@ describe("pdfGenerate", () => {
 			await writeFile(join(TEST_DIR, "wm_bl_src.pdf"), pdf);
 			const outputPath = join(TEST_DIR, "wm_bl_out.pdf");
 			const result = JSON.parse(
-				await pdfGenerate({
+				await generatePdf({
 					action: "watermark",
 					filePath: join(TEST_DIR, "wm_bl_src.pdf"),
 					text: "BOTTOM LEFT",
@@ -936,7 +936,7 @@ describe("pdfGenerate", () => {
 			await writeFile(join(TEST_DIR, "wm_br_src.pdf"), pdf);
 			const outputPath = join(TEST_DIR, "wm_br_out.pdf");
 			const result = JSON.parse(
-				await pdfGenerate({
+				await generatePdf({
 					action: "watermark",
 					filePath: join(TEST_DIR, "wm_br_src.pdf"),
 					text: "BOTTOM RIGHT",
@@ -951,7 +951,7 @@ describe("pdfGenerate", () => {
 			const pdf = await createTestPdf();
 			await writeFile(join(TEST_DIR, "wm_imgfail_src.pdf"), pdf);
 			const result = JSON.parse(
-				await pdfGenerate({
+				await generatePdf({
 					action: "watermark",
 					filePath: join(TEST_DIR, "wm_imgfail_src.pdf"),
 					imagePath: "/nonexistent/image.png",
@@ -964,7 +964,7 @@ describe("pdfGenerate", () => {
 
 		it("returns error when loadPdf fails for watermark", async () => {
 			const result = JSON.parse(
-				await pdfGenerate({
+				await generatePdf({
 					action: "watermark",
 					filePath: "/nonexistent/file.pdf",
 					text: "WATERMARK",
@@ -978,7 +978,7 @@ describe("pdfGenerate", () => {
 	describe("signature edge cases", () => {
 		it("returns error when loadPdf fails", async () => {
 			const result = JSON.parse(
-				await pdfGenerate({
+				await generatePdf({
 					action: "signature",
 					filePath: "/nonexistent/file.pdf",
 					text: "Signed",
@@ -995,7 +995,7 @@ describe("pdfGenerate", () => {
 			const pdf = await createTestPdf();
 			await writeFile(join(TEST_DIR, "sig_imgfail_src.pdf"), pdf);
 			const result = JSON.parse(
-				await pdfGenerate({
+				await generatePdf({
 					action: "signature",
 					filePath: join(TEST_DIR, "sig_imgfail_src.pdf"),
 					imagePath: "/nonexistent/sig.png",
@@ -1012,7 +1012,7 @@ describe("pdfGenerate", () => {
 	describe("annotate edge cases", () => {
 		it("returns error when loadPdf fails", async () => {
 			const result = JSON.parse(
-				await pdfGenerate({
+				await generatePdf({
 					action: "annotate",
 					filePath: "/nonexistent/file.pdf",
 					annotations: [{ type: "note", page: 1, position: { x: 0, y: 0 } }],
@@ -1026,7 +1026,7 @@ describe("pdfGenerate", () => {
 	describe("merge edge cases", () => {
 		it("returns error when a file cannot be loaded", async () => {
 			const result = JSON.parse(
-				await pdfGenerate({
+				await generatePdf({
 					action: "merge",
 					filePaths: ["/nonexistent/file.pdf", "/nonexistent/file2.pdf"],
 					outputPath: join(TEST_DIR, "merge_fail.pdf"),
@@ -1044,7 +1044,7 @@ describe("pdfGenerate", () => {
 			const largeBuffer = Buffer.alloc(51 * 1024 * 1024, 0x00);
 			await writeFile(join(TEST_DIR, "split_large.pdf"), largeBuffer);
 			const result = JSON.parse(
-				await pdfGenerate({
+				await generatePdf({
 					action: "split",
 					filePath: join(TEST_DIR, "split_large.pdf"),
 					pageRange: "1",

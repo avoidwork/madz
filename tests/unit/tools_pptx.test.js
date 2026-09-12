@@ -11,8 +11,8 @@ import {
 	validateOutputPath,
 	validateTemplatePath,
 	PptxError,
-	pptxGenerateSchema,
-} from "../../src/tools/fileCreate/index.js";
+	generatePptxSchema,
+} from "../../src/tools/pptx/index.js";
 import PptxGenJS from "pptxgenjs";
 
 const FIXTURES = resolve("tests/fixtures/pptx");
@@ -30,9 +30,9 @@ async function cleanTmp() {
 // Zod schema
 // ---------------------------------------------------------------------------
 
-describe("pptxGenerateSchema", () => {
+describe("generatePptxSchema", () => {
 	it("accepts minimal valid input", () => {
-		const result = pptxGenerateSchema.parse({
+		const result = generatePptxSchema.parse({
 			outputPath: join(TMP, "test.pptx"),
 			slides: [],
 		});
@@ -41,13 +41,13 @@ describe("pptxGenerateSchema", () => {
 	});
 
 	it("rejects missing outputPath", () => {
-		assert.throws(() => pptxGenerateSchema.parse({ slides: [] }), {
+		assert.throws(() => generatePptxSchema.parse({ slides: [] }), {
 			message: /outputPath/,
 		});
 	});
 
 	it("rejects missing slides", () => {
-		assert.throws(() => pptxGenerateSchema.parse({ outputPath: join(TMP, "test.pptx") }), {
+		assert.throws(() => generatePptxSchema.parse({ outputPath: join(TMP, "test.pptx") }), {
 			message: /slides/,
 		});
 	});
@@ -55,7 +55,7 @@ describe("pptxGenerateSchema", () => {
 	it("rejects invalid slide layout", () => {
 		assert.throws(
 			() =>
-				pptxGenerateSchema.parse({
+				generatePptxSchema.parse({
 					outputPath: join(TMP, "test.pptx"),
 					slides: [{ layout: "foobar" }],
 				}),
@@ -66,7 +66,7 @@ describe("pptxGenerateSchema", () => {
 	it("accepts valid slide layouts", () => {
 		const layouts = ["title", "content", "two-column", "comparison", "quote", "image-only"];
 		for (const layout of layouts) {
-			const result = pptxGenerateSchema.parse({
+			const result = generatePptxSchema.parse({
 				outputPath: join(TMP, "test.pptx"),
 				slides: [{ layout }],
 			});
@@ -77,7 +77,7 @@ describe("pptxGenerateSchema", () => {
 	it("rejects invalid background color", () => {
 		assert.throws(
 			() =>
-				pptxGenerateSchema.parse({
+				generatePptxSchema.parse({
 					outputPath: join(TMP, "test.pptx"),
 					slides: [{ backgroundColor: "not-a-color" }],
 				}),
@@ -86,7 +86,7 @@ describe("pptxGenerateSchema", () => {
 	});
 
 	it("accepts valid background color", () => {
-		const result = pptxGenerateSchema.parse({
+		const result = generatePptxSchema.parse({
 			outputPath: join(TMP, "test.pptx"),
 			slides: [{ backgroundColor: "#FF5733" }],
 		});
@@ -96,7 +96,7 @@ describe("pptxGenerateSchema", () => {
 	it("rejects title exceeding 200 chars", () => {
 		assert.throws(
 			() =>
-				pptxGenerateSchema.parse({
+				generatePptxSchema.parse({
 					outputPath: join(TMP, "test.pptx"),
 					slides: [{ title: "a".repeat(201) }],
 				}),
@@ -107,7 +107,7 @@ describe("pptxGenerateSchema", () => {
 	it("rejects content exceeding 5000 chars", () => {
 		assert.throws(
 			() =>
-				pptxGenerateSchema.parse({
+				generatePptxSchema.parse({
 					outputPath: join(TMP, "test.pptx"),
 					slides: [{ content: "a".repeat(5001) }],
 				}),
@@ -118,7 +118,7 @@ describe("pptxGenerateSchema", () => {
 	it("rejects quote exceeding 2000 chars", () => {
 		assert.throws(
 			() =>
-				pptxGenerateSchema.parse({
+				generatePptxSchema.parse({
 					outputPath: join(TMP, "test.pptx"),
 					slides: [{ quote: "a".repeat(2001) }],
 				}),
@@ -129,7 +129,7 @@ describe("pptxGenerateSchema", () => {
 	it("rejects subtitle exceeding 500 chars", () => {
 		assert.throws(
 			() =>
-				pptxGenerateSchema.parse({
+				generatePptxSchema.parse({
 					outputPath: join(TMP, "test.pptx"),
 					slides: [{ subtitle: "a".repeat(501) }],
 				}),
@@ -140,7 +140,7 @@ describe("pptxGenerateSchema", () => {
 	it("rejects quoteAttribution exceeding 200 chars", () => {
 		assert.throws(
 			() =>
-				pptxGenerateSchema.parse({
+				generatePptxSchema.parse({
 					outputPath: join(TMP, "test.pptx"),
 					slides: [{ quote: "a quote", quoteAttribution: "a".repeat(201) }],
 				}),
@@ -151,7 +151,7 @@ describe("pptxGenerateSchema", () => {
 	it("rejects slideWidth below 9", () => {
 		assert.throws(
 			() =>
-				pptxGenerateSchema.parse({
+				generatePptxSchema.parse({
 					outputPath: join(TMP, "test.pptx"),
 					slides: [],
 					slideWidth: 8,
@@ -163,7 +163,7 @@ describe("pptxGenerateSchema", () => {
 	it("rejects slideWidth above 20", () => {
 		assert.throws(
 			() =>
-				pptxGenerateSchema.parse({
+				generatePptxSchema.parse({
 					outputPath: join(TMP, "test.pptx"),
 					slides: [],
 					slideWidth: 21,
@@ -175,7 +175,7 @@ describe("pptxGenerateSchema", () => {
 	it("rejects slideHeight below 7.5", () => {
 		assert.throws(
 			() =>
-				pptxGenerateSchema.parse({
+				generatePptxSchema.parse({
 					outputPath: join(TMP, "test.pptx"),
 					slides: [],
 					slideHeight: 7,
@@ -187,7 +187,7 @@ describe("pptxGenerateSchema", () => {
 	it("rejects slideHeight above 15", () => {
 		assert.throws(
 			() =>
-				pptxGenerateSchema.parse({
+				generatePptxSchema.parse({
 					outputPath: join(TMP, "test.pptx"),
 					slides: [],
 					slideHeight: 16,
@@ -197,7 +197,7 @@ describe("pptxGenerateSchema", () => {
 	});
 
 	it("accepts valid slideWidth and slideHeight", () => {
-		const result = pptxGenerateSchema.parse({
+		const result = generatePptxSchema.parse({
 			outputPath: join(TMP, "test.pptx"),
 			slides: [],
 			slideWidth: 13.33,
@@ -216,7 +216,7 @@ describe("pptxGenerateSchema", () => {
 	it("rejects image with missing path", () => {
 		assert.throws(
 			() =>
-				pptxGenerateSchema.parse({
+				generatePptxSchema.parse({
 					outputPath: join(TMP, "test.pptx"),
 					slides: [{ images: [{ x: 0 }] }],
 				}),
@@ -227,7 +227,7 @@ describe("pptxGenerateSchema", () => {
 	it("rejects image with negative dimensions", () => {
 		assert.throws(
 			() =>
-				pptxGenerateSchema.parse({
+				generatePptxSchema.parse({
 					outputPath: join(TMP, "test.pptx"),
 					slides: [{ images: [{ path: "/tmp/test.png", w: -1 }] }],
 				}),
@@ -238,7 +238,7 @@ describe("pptxGenerateSchema", () => {
 	it("rejects image with zero width", () => {
 		assert.throws(
 			() =>
-				pptxGenerateSchema.parse({
+				generatePptxSchema.parse({
 					outputPath: join(TMP, "test.pptx"),
 					slides: [{ images: [{ path: "/tmp/test.png", w: 0 }] }],
 				}),
@@ -247,7 +247,7 @@ describe("pptxGenerateSchema", () => {
 	});
 
 	it("accepts image with minimal valid dimensions", () => {
-		const result = pptxGenerateSchema.parse({
+		const result = generatePptxSchema.parse({
 			outputPath: join(TMP, "test.pptx"),
 			slides: [{ images: [{ path: "/tmp/test.png", w: 0.1, h: 0.1 }] }],
 		});
@@ -257,7 +257,7 @@ describe("pptxGenerateSchema", () => {
 	it("rejects table with non-string row values", () => {
 		assert.throws(
 			() =>
-				pptxGenerateSchema.parse({
+				generatePptxSchema.parse({
 					outputPath: join(TMP, "test.pptx"),
 					slides: [{ tables: [{ rows: [[1, 2, 3]] }] }],
 				}),
@@ -268,7 +268,7 @@ describe("pptxGenerateSchema", () => {
 	it("rejects table with invalid fill color", () => {
 		assert.throws(
 			() =>
-				pptxGenerateSchema.parse({
+				generatePptxSchema.parse({
 					outputPath: join(TMP, "test.pptx"),
 					slides: [{ tables: [{ options: { fill: { color: "red" } } }] }],
 				}),
@@ -279,7 +279,7 @@ describe("pptxGenerateSchema", () => {
 	it("rejects table with invalid border color", () => {
 		assert.throws(
 			() =>
-				pptxGenerateSchema.parse({
+				generatePptxSchema.parse({
 					outputPath: join(TMP, "test.pptx"),
 					slides: [
 						{
@@ -294,7 +294,7 @@ describe("pptxGenerateSchema", () => {
 	it("rejects table border pt above 50", () => {
 		assert.throws(
 			() =>
-				pptxGenerateSchema.parse({
+				generatePptxSchema.parse({
 					outputPath: join(TMP, "test.pptx"),
 					slides: [
 						{
@@ -309,7 +309,7 @@ describe("pptxGenerateSchema", () => {
 	it("rejects table border pt below 0", () => {
 		assert.throws(
 			() =>
-				pptxGenerateSchema.parse({
+				generatePptxSchema.parse({
 					outputPath: join(TMP, "test.pptx"),
 					slides: [
 						{
@@ -322,7 +322,7 @@ describe("pptxGenerateSchema", () => {
 	});
 
 	it("accepts table with valid options", () => {
-		const result = pptxGenerateSchema.parse({
+		const result = generatePptxSchema.parse({
 			outputPath: join(TMP, "test.pptx"),
 			slides: [
 				{

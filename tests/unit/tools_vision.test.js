@@ -1,8 +1,8 @@
 import { describe, it, before, after, mock } from "node:test";
 import assert from "node:assert";
-import { visionAnalyzeImpl } from "../../src/tools/vision/index.js";
+import { analyzeVisionImpl } from "../../src/tools/vision/index.js";
 
-describe("visionAnalyze", () => {
+describe("analyzeVision", () => {
 	let origFetch;
 	let ChatOpenAI;
 	let savedOpenAiKey;
@@ -26,7 +26,7 @@ describe("visionAnalyze", () => {
 
 	it("requires url or dataUri", async () => {
 		globalThis.fetch = origFetch;
-		const result = await visionAnalyzeImpl({});
+		const result = await analyzeVisionImpl({});
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("url or dataUri"));
@@ -34,7 +34,7 @@ describe("visionAnalyze", () => {
 
 	it("returns error when openaiApiKey is not set", async () => {
 		globalThis.fetch = origFetch;
-		const result = await visionAnalyzeImpl({ url: "https://example.com/img.jpg" });
+		const result = await analyzeVisionImpl({ url: "https://example.com/img.jpg" });
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("OPENAI_API_KEY"));
@@ -42,7 +42,7 @@ describe("visionAnalyze", () => {
 
 	it("rejects invalid dataUri", async () => {
 		globalThis.fetch = origFetch;
-		const result = await visionAnalyzeImpl(
+		const result = await analyzeVisionImpl(
 			{ dataUri: "not-a-valid-uri" },
 			{ openaiApiKey: "sk-test" },
 		);
@@ -60,7 +60,7 @@ describe("visionAnalyze", () => {
 					type: "image/png",
 				}),
 		});
-		const result = await visionAnalyzeImpl(
+		const result = await analyzeVisionImpl(
 			{ url: "https://example.com/large.png" },
 			{ openaiApiKey: "sk-test-key" },
 		);
@@ -72,7 +72,7 @@ describe("visionAnalyze", () => {
 
 	it("estimates size from base64 for dataUri and rejects oversized", async () => {
 		const bigBase64 = "a".repeat(5 * 1024 * 1024 * 2);
-		const result = await visionAnalyzeImpl(
+		const result = await analyzeVisionImpl(
 			{ dataUri: `data:image/png;base64,${bigBase64}` },
 			{ openaiApiKey: "sk-test-key" },
 		);
@@ -87,7 +87,7 @@ describe("visionAnalyze", () => {
 			status: 404,
 			statusText: "Not Found",
 		});
-		const result = await visionAnalyzeImpl(
+		const result = await analyzeVisionImpl(
 			{ url: "https://example.com/missing.png" },
 			{ openaiApiKey: "sk-test-key" },
 		);
@@ -101,7 +101,7 @@ describe("visionAnalyze", () => {
 		globalThis.fetch = async () => {
 			throw new Error("Network unreachable");
 		};
-		const result = await visionAnalyzeImpl(
+		const result = await analyzeVisionImpl(
 			{ url: "https://example.com/img.jpg" },
 			{ openaiApiKey: "sk-test-key" },
 		);
@@ -156,7 +156,7 @@ describe("visionAnalyze", () => {
 		const originalInvoke = ChatOpenAI.prototype.invoke;
 		mock.method(ChatOpenAI.prototype, "invoke", () => Promise.resolve(fakeResponse));
 
-		const result = await visionAnalyzeImpl(
+		const result = await analyzeVisionImpl(
 			{ url: "https://example.com/img.png" },
 			{ openaiApiKey: "sk-test-key" },
 		);
@@ -177,7 +177,7 @@ describe("visionAnalyze", () => {
 		const originalInvoke = ChatOpenAI.prototype.invoke;
 		mock.method(ChatOpenAI.prototype, "invoke", () => Promise.resolve(fakeResponse));
 
-		const result = await visionAnalyzeImpl(
+		const result = await analyzeVisionImpl(
 			{ dataUri: `data:image/png;base64,${smallBase64}` },
 			{ openaiApiKey: "sk-test-key" },
 		);
@@ -197,7 +197,7 @@ describe("visionAnalyze", () => {
 			Promise.reject(new Error("API rate limited")),
 		);
 
-		const result = await visionAnalyzeImpl(
+		const result = await analyzeVisionImpl(
 			{ dataUri: `data:image/png;base64,${smallBase64}` },
 			{ openaiApiKey: "sk-test-key" },
 		);

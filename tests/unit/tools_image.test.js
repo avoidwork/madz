@@ -1,8 +1,8 @@
 import { describe, it, before, after } from "node:test";
 import assert from "node:assert";
-import { imageGenerateImpl } from "../../src/tools/image/index.js";
+import { generateImageImpl } from "../../src/tools/image/index.js";
 
-describe("imageGenerate", () => {
+describe("generateImage", () => {
 	let origFetch;
 
 	before(() => {
@@ -14,28 +14,28 @@ describe("imageGenerate", () => {
 	});
 
 	it("requires prompt", async () => {
-		const result = await imageGenerateImpl({}, {});
+		const result = await generateImageImpl({}, {});
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("Prompt is required"));
 	});
 
 	it("rejects empty prompt", async () => {
-		const result = await imageGenerateImpl({ prompt: "" }, {});
+		const result = await generateImageImpl({ prompt: "" }, {});
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("Prompt is required"));
 	});
 
 	it("rejects long prompts (>1000 chars)", async () => {
-		const result = await imageGenerateImpl({ prompt: "a".repeat(1001) }, {});
+		const result = await generateImageImpl({ prompt: "a".repeat(1001) }, {});
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("1000 characters"));
 	});
 
 	it("returns error when falApiKey is not set", async () => {
-		const result = await imageGenerateImpl({ prompt: "a cat" }, {});
+		const result = await generateImageImpl({ prompt: "a cat" }, {});
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("FAL_API_KEY"));
@@ -48,7 +48,7 @@ describe("imageGenerate", () => {
 				images: [{ url: "https://fal.ai/generated.png" }],
 			}),
 		});
-		const result = await imageGenerateImpl(
+		const result = await generateImageImpl(
 			{ prompt: "a sunset" },
 			{ falApiKey: "sk-fake-fal-key" },
 		);
@@ -70,7 +70,7 @@ describe("imageGenerate", () => {
 				json: async () => ({ images: [{ url: "https://fal.ai/result.png" }] }),
 			};
 		};
-		const result = await imageGenerateImpl({ prompt: "a mountain" }, { falApiKey: "sk-test" });
+		const result = await generateImageImpl({ prompt: "a mountain" }, { falApiKey: "sk-test" });
 		const parsed = JSON.parse(result);
 		assert.ok(parsed.ok);
 	});
@@ -81,7 +81,7 @@ describe("imageGenerate", () => {
 			status: 429,
 			text: async () => "Rate limit exceeded",
 		});
-		const result = await imageGenerateImpl({ prompt: "test" }, { falApiKey: "sk-fake-key" });
+		const result = await generateImageImpl({ prompt: "test" }, { falApiKey: "sk-fake-key" });
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("FAL.ai"));
@@ -92,7 +92,7 @@ describe("imageGenerate", () => {
 			ok: true,
 			json: async () => ({ messages: [] }), // no images key
 		});
-		const result = await imageGenerateImpl({ prompt: "test" }, { falApiKey: "sk-fake-key" });
+		const result = await generateImageImpl({ prompt: "test" }, { falApiKey: "sk-fake-key" });
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("missing image"));
@@ -102,7 +102,7 @@ describe("imageGenerate", () => {
 		globalThis.fetch = async () => {
 			throw new Error("Network error");
 		};
-		const result = await imageGenerateImpl({ prompt: "test" }, { falApiKey: "sk-fake-key" });
+		const result = await generateImageImpl({ prompt: "test" }, { falApiKey: "sk-fake-key" });
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("Network error"));

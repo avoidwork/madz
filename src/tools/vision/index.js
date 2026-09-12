@@ -78,7 +78,7 @@ async function fetchImageFromUrl(url) {
  * @param {string} [options.openaiApiKey] - OpenAI API key (overrides config)
  * @returns {Promise<string>} JSON result string
  */
-export async function visionAnalyzeImpl(input, options = {}) {
+export async function analyzeVisionImpl(input, options = {}) {
 	const { url, dataUri, prompt: _prompt } = input;
 
 	if (!url && !dataUri) {
@@ -164,8 +164,8 @@ export async function visionAnalyzeImpl(input, options = {}) {
  * @param {object} _options - Runtime options
  * @returns {string} JSON result string
  */
-export const visionAnalyze = tool(visionAnalyzeImpl, {
-	name: "visionAnalyze",
+export const analyzeVision = tool(analyzeVisionImpl, {
+	name: "analyzeVision",
 	description:
 		"Analyze an image by sending it to a multimodal LLM. Accepts a URL or base64 data URI. The image is fetched, validated (max 4MB), and sent to GPT-4o for description or answering a specific question about the image.",
 	schema: z.object({

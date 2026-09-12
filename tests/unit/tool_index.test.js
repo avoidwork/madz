@@ -6,12 +6,12 @@ describe("tools - buildToolConfig", () => {
 		const { TOOL_PERMISSIONS } = await import("../../src/tools/index.js");
 		const expectedTools = [
 			"process",
-			"sessionSearch",
+			"searchSession",
 			"clarify",
-			"webSearch",
-			"webExtract",
-			"visionAnalyze",
-			"imageGenerate",
+			"searchWeb",
+			"extractWeb",
+			"analyzeVision",
+			"generateImage",
 			"cronJob",
 			"textToSpeech",
 			"mixtureOfAgents",
@@ -82,13 +82,13 @@ describe("tools - buildToolConfig", () => {
 		const tools = await buildToolConfig({ permissions: ["filesystem:read"], maxReadSize: "1mb" });
 		const toolNames = tools.map((t) => t.name);
 		// filesystem:read enables: clarify, sampling, process (exempt), compactContext, scanAgents,
-		// sessionSearch, date
+		// searchSession, date
 		assert.ok(toolNames.includes("clarify"));
 		assert.ok(toolNames.includes("sampling"));
 		assert.ok(toolNames.includes("process"), "process should register (exempt)");
 		assert.ok(toolNames.includes("date"));
 		assert.ok(toolNames.includes("scanAgents"));
-		assert.ok(toolNames.includes("sessionSearch"));
+		assert.ok(toolNames.includes("searchSession"));
 		assert.ok(toolNames.includes("compactContext"));
 	});
 
@@ -105,8 +105,8 @@ describe("tools - buildToolConfig", () => {
 			"memory should register with filesystem:read + filesystem:write",
 		);
 		assert.ok(
-			toolNames.includes("sessionSearch"),
-			"sessionSearch should register with filesystem:read",
+			toolNames.includes("searchSession"),
+			"searchSession should register with filesystem:read",
 		);
 		assert.ok(toolNames.includes("sampling"), "sampling should register (no perms needed)");
 		assert.ok(toolNames.includes("process"), "process should register (exempt)");
@@ -125,15 +125,15 @@ describe("tools - buildToolConfig", () => {
 			maxReadSize: "1mb",
 		});
 		const toolNames = tools.map((t) => t.name);
-		// Tier 1: 6 tools (terminal, process, sessionSearch, clarify, scanAgents)
+		// Tier 1: 6 tools (terminal, process, searchSession, clarify, scanAgents)
 		// Tier 2: cronJob, sampling, date (no perms or network:outbound)
-		// No API keys: webSearch/webExtract/visionAnalyze/imageGenerate/textToSpeech/mixtureOfAgents won't register
+		// No API keys: searchWeb/extractWeb/analyzeVision/generateImage/textToSpeech/mixtureOfAgents won't register
 		assert.ok(toolNames.length >= 9, "All tier 1 + tier 2 tools should register");
 		assert.ok(toolNames.includes("process"), "process should register");
 		assert.ok(toolNames.includes("cronJob"), "cronJob should register");
 	});
 
-	it("returns clarify and sessionSearch with filesystem:read-only", async () => {
+	it("returns clarify and searchSession with filesystem:read-only", async () => {
 		const { buildToolConfig } = await import("../../src/tools/index.js");
 		const tools = await buildToolConfig({
 			permissions: ["filesystem:read"],
@@ -141,7 +141,7 @@ describe("tools - buildToolConfig", () => {
 		});
 		const toolNames = tools.map((t) => t.name);
 		assert.ok(toolNames.includes("clarify"));
-		assert.ok(toolNames.includes("sessionSearch"));
+		assert.ok(toolNames.includes("searchSession"));
 		// tools requiring write permissions should NOT register
 		assert.ok(!toolNames.includes("memory"), "memory should NOT register with only read");
 	});
@@ -154,12 +154,12 @@ describe("tools - buildToolConfig", () => {
 		});
 		const toolNames = tools.map((t) => t.name);
 		// filesystem:read + filesystem:write + network:outbound enables: clarify, sampling, process (exempt), compactContext, scanAgents,
-		// sessionSearch, date, reflectionSessions, docx, pptx, xlsx, pdf, api, graphql, webhook, data, json, yaml
+		// searchSession, date, reflectionSessions, docx, pptx, xlsx, pdf, api, graphql, webhook, data, json, yaml
 		assert.ok(toolNames.includes("clarify"));
 		assert.ok(toolNames.includes("sampling"));
 		assert.ok(toolNames.includes("date"));
 		assert.ok(toolNames.includes("scanAgents"));
-		assert.ok(toolNames.includes("sessionSearch"));
+		assert.ok(toolNames.includes("searchSession"));
 		assert.ok(toolNames.includes("reflectionSessions"));
 		assert.ok(toolNames.includes("docx"));
 		assert.ok(toolNames.includes("pptx"));

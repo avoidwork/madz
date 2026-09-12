@@ -2,7 +2,7 @@ import { describe, it, before, after } from "node:test";
 import assert from "node:assert";
 import { mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { sessionSearchImpl } from "../../src/tools/sessionSearch/index.js";
+import { searchSessionImpl } from "../../src/tools/session/index.js";
 
 const testDir = join(process.cwd(), "memory", "__test_search__");
 const testSubDir = join("memory", "__test_search__", "conv_sub");
@@ -16,17 +16,17 @@ function teardown() {
 	rmSync(testDir, { recursive: true, force: true });
 }
 
-describe("sessionSearch", () => {
+describe("searchSession", () => {
 	before(setup);
 	after(teardown);
 
 	it("browse with no conversations directory returns missing message", async () => {
-		const result = await sessionSearchImpl({}, { sessionsDir: "nonexistent_path/" });
+		const result = await searchSessionImpl({}, { sessionsDir: "nonexistent_path/" });
 		assert.ok(result.includes("No conversations directory found"));
 	});
 
 	it("browse empty directory lists sessions", async () => {
-		const result = await sessionSearchImpl({}, { sessionsDir: testSubDir });
+		const result = await searchSessionImpl({}, { sessionsDir: testSubDir });
 		assert.ok(typeof result === "string");
 	});
 
@@ -35,14 +35,14 @@ describe("sessionSearch", () => {
 			join(testDir, "conv_sub", "session1.md"),
 			"---\nsessionId: abc123\n---\nUser: Hello\nAssistant: Welcome to the session.",
 		);
-		const result = await sessionSearchImpl({ query: "Welcome" }, { sessionsDir: testSubDir });
+		const result = await searchSessionImpl({ query: "Welcome" }, { sessionsDir: testSubDir });
 		assert.ok(
 			typeof result === "string" && (result.includes("Found") || result.includes("search")),
 		);
 	});
 
 	it("searches with no matching query", async () => {
-		const result = await sessionSearchImpl(
+		const result = await searchSessionImpl(
 			{ query: "xyz_not_in_any_file_123" },
 			{ sessionsDir: testSubDir },
 		);
@@ -58,7 +58,7 @@ describe("sessionSearch", () => {
 			join(testDir, "conv_sub", "abc123.md"),
 			"---\nsessionId: abc123\n---\nUser: Test\nAssistant: Response",
 		);
-		const result = await sessionSearchImpl(
+		const result = await searchSessionImpl(
 			{ conversationId: "abc123" },
 			{ sessionsDir: testSubDir },
 		);
@@ -68,7 +68,7 @@ describe("sessionSearch", () => {
 	});
 
 	it("returns not found when conversation id does not match", async () => {
-		const result = await sessionSearchImpl(
+		const result = await searchSessionImpl(
 			{ conversationId: "does_not_match_anything_123_xyz" },
 			{ sessionsDir: testSubDir },
 		);
@@ -80,7 +80,7 @@ describe("sessionSearch", () => {
 			join(testDir, "conv_sub", "browse-test.md"),
 			"---\nsessionId: browse-123\n---\ntest content browse",
 		);
-		const result = await sessionSearchImpl({}, { sessionsDir: testSubDir });
+		const result = await searchSessionImpl({}, { sessionsDir: testSubDir });
 		const parsed = JSON.parse(result);
 		assert.ok(Array.isArray(parsed));
 		assert.ok(parsed.length > 0);
@@ -95,7 +95,7 @@ describe("sessionSearch", () => {
 			join(testDir, "conv_sub", "json-body.md"),
 			'---\nsessionId: json-sess\n---\n[{"role": "user", "content": "Hello world"}]',
 		);
-		const result = await sessionSearchImpl({}, { sessionsDir: testSubDir });
+		const result = await searchSessionImpl({}, { sessionsDir: testSubDir });
 		const parsed = JSON.parse(result);
 		const jsonEntry = parsed.find((c) => c.file === "json-body.md");
 		assert.ok(jsonEntry);

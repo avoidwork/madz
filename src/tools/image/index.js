@@ -58,7 +58,7 @@ async function generateWithFal(apiKey, prompt, timeout) {
  * @param {string} [options.falApiKey] - FAL.ai API key (overrides config)
  * @returns {Promise<string>} JSON result string
  */
-export async function imageGenerateImpl(input, options = {}) {
+export async function generateImageImpl(input, options = {}) {
 	const { prompt, timeout } = input;
 
 	if (!prompt || typeof prompt !== "string" || prompt.trim().length === 0) {
@@ -94,8 +94,8 @@ export async function imageGenerateImpl(input, options = {}) {
  * @param {object} _options - Runtime options
  * @returns {string} JSON result string
  */
-export const imageGenerate = tool(imageGenerateImpl, {
-	name: "imageGenerate",
+export const generateImage = tool(generateImageImpl, {
+	name: "generateImage",
 	description:
 		"Generate an image from a text prompt using FAL.ai (FLUX Klein model). Returns a public image URL. Requires FAL_API_KEY environment variable",
 	schema: z.object({

@@ -10,13 +10,13 @@ import { join } from "node:path";
 import { writeFileSync, rmSync } from "node:fs";
 import {
 	createPptx,
-	pptxGenerateSchema,
+	generatePptxSchema,
 	validateImagePath,
 	validateOutputPath,
 	validateTemplatePath,
 	createTextRuns,
 	shrinkToFit,
-} from "../../../src/tools/fileCreate/index.js";
+} from "../../../src/tools/pptx/index.js";
 
 const TMP_DIR = join(process.cwd(), "tmp", "pptx-tests");
 
@@ -34,9 +34,9 @@ process.on("exit", () => cleanupTmp().catch(() => {}));
 // Schema tests
 // ---------------------------------------------------------------------------
 
-describe("pptxGenerateSchema", () => {
+describe("generatePptxSchema", () => {
 	it("validates a minimal presentation input", () => {
-		const result = pptxGenerateSchema.safeParse({
+		const result = generatePptxSchema.safeParse({
 			outputPath: join(TMP_DIR, "test.pptx"),
 			slides: [{ title: "Hello" }],
 		});
@@ -44,17 +44,17 @@ describe("pptxGenerateSchema", () => {
 	});
 
 	it("rejects missing outputPath", () => {
-		const result = pptxGenerateSchema.safeParse({ slides: [] });
+		const result = generatePptxSchema.safeParse({ slides: [] });
 		assert.strictEqual(result.success, false);
 	});
 
 	it("rejects missing slides", () => {
-		const result = pptxGenerateSchema.safeParse({ outputPath: "/tmp/test.pptx" });
+		const result = generatePptxSchema.safeParse({ outputPath: "/tmp/test.pptx" });
 		assert.strictEqual(result.success, false);
 	});
 
 	it("rejects invalid hex color", () => {
-		const result = pptxGenerateSchema.safeParse({
+		const result = generatePptxSchema.safeParse({
 			outputPath: join(TMP_DIR, "test.pptx"),
 			slides: [{ backgroundColor: "not-a-color" }],
 		});
@@ -64,7 +64,7 @@ describe("pptxGenerateSchema", () => {
 	it("accepts all layout types", () => {
 		const layouts = ["title", "content", "two-column", "comparison", "quote", "image-only"];
 		for (const layout of layouts) {
-			const result = pptxGenerateSchema.safeParse({
+			const result = generatePptxSchema.safeParse({
 				outputPath: join(TMP_DIR, "test.pptx"),
 				slides: [{ layout, title: "Test" }],
 			});
@@ -73,7 +73,7 @@ describe("pptxGenerateSchema", () => {
 	});
 
 	it("defaults layout to content when omitted", () => {
-		const result = pptxGenerateSchema.safeParse({
+		const result = generatePptxSchema.safeParse({
 			outputPath: join(TMP_DIR, "test.pptx"),
 			slides: [{ title: "Test" }],
 		});

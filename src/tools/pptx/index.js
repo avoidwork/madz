@@ -1,7 +1,7 @@
 /**
  * PPTX presentation creation tool.
  * Creates PowerPoint presentations (.pptx) from structured content using pptxgenjs.
- * @module fileCreate/pptx
+ * @module tools/pptx
  */
 
 import { z } from "zod";
@@ -112,7 +112,7 @@ const slideSchema = z.object({
 /**
  * Full presentation input schema.
  */
-export const pptxGenerateSchema = z.object({
+export const generatePptxSchema = z.object({
 	outputPath: z.string().describe("Absolute path for the output .pptx file"),
 	templatePath: z.string().optional().describe("Path to an existing .pptx template file"),
 	slideWidth: z
@@ -482,7 +482,7 @@ export async function loadTemplate(templatePath) {
 
 /**
  * Create a PowerPoint presentation from structured content.
- * @param {object} input - Tool input matching pptxGenerateSchema
+ * @param {object} input - Tool input matching generatePptxSchema
  * @param {string} input.outputPath - Output file path
  * @param {string} [input.templatePath] - Optional template file path
  * @param {number} [input.slideWidth] - Slide width in inches
@@ -491,7 +491,7 @@ export async function loadTemplate(templatePath) {
  * @returns {Promise<string>} JSON result string
  */
 export async function createPptx(input) {
-	const validated = pptxGenerateSchema.parse(input);
+	const validated = generatePptxSchema.parse(input);
 	const { outputPath, templatePath, slideWidth, slideHeight, slides } = validated;
 
 	// Validate output path
@@ -570,9 +570,9 @@ export async function createPptx(input) {
 /**
  * LangChain Tool instance for PPTX creation.
  */
-export const pptxGenerateTool = tool(createPptx, {
-	name: "pptxGenerate",
+export const generatePptxTool = tool(createPptx, {
+	name: "generatePptx",
 	description:
 		"Create a PowerPoint (.pptx) presentation from structured content. Supports multiple slide layouts (title, content, two-column, comparison, quote, image-only), text formatting, image embedding, tables, and template loading. Returns the output file path.",
-	schema: pptxGenerateSchema,
+	schema: generatePptxSchema,
 });
