@@ -94,6 +94,18 @@ export class CommandParser {
 			return { action: "new", message: "New session started." };
 		});
 
+		// View-switching commands
+		for (const [cmd, view] of [
+			["sessions", "sessions"],
+			["memory", "memory"],
+			["skills", "skills"],
+			["settings", "settings"],
+		]) {
+			this.#register(cmd, (_args, _ctx) => {
+				return { action: "view", value: view, message: `Switching to ${view} view.` };
+			});
+		}
+
 		this.#register("help", (_args, _ctx) => {
 			const cmds = Array.from(this.#dispatch.keys()).filter((k) => !k.startsWith("_"));
 			let message = `Available commands: /${cmds.join(", /")}`;

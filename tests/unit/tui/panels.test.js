@@ -6,7 +6,7 @@ describe("getPanelOrder", () => {
 	it("returns the panel order array", () => {
 		const order = getPanelOrder();
 		assert.ok(Array.isArray(order));
-		assert.strictEqual(order.length, 4);
+		assert.strictEqual(order.length, 5);
 		assert.strictEqual(order[0], PANELS.CONVERSATION);
 	});
 });
@@ -16,10 +16,11 @@ describe("nextPanel", () => {
 		assert.strictEqual(nextPanel(PANELS.CONVERSATION), PANELS.SKILLS);
 		assert.strictEqual(nextPanel(PANELS.SKILLS), PANELS.MEMORY);
 		assert.strictEqual(nextPanel(PANELS.MEMORY), PANELS.SETTINGS);
+		assert.strictEqual(nextPanel(PANELS.SETTINGS), PANELS.SESSIONS);
 	});
 
 	it("wraps around from last to first", () => {
-		assert.strictEqual(nextPanel(PANELS.SETTINGS), PANELS.CONVERSATION);
+		assert.strictEqual(nextPanel(PANELS.SESSIONS), PANELS.CONVERSATION);
 	});
 
 	it("handles unknown panel by wrapping to first", () => {
@@ -30,17 +31,18 @@ describe("nextPanel", () => {
 
 describe("prevPanel", () => {
 	it("cycles to the previous panel", () => {
+		assert.strictEqual(prevPanel(PANELS.SESSIONS), PANELS.SETTINGS);
 		assert.strictEqual(prevPanel(PANELS.SETTINGS), PANELS.MEMORY);
 		assert.strictEqual(prevPanel(PANELS.MEMORY), PANELS.SKILLS);
 		assert.strictEqual(prevPanel(PANELS.SKILLS), PANELS.CONVERSATION);
 	});
 
 	it("wraps around from first to last", () => {
-		assert.strictEqual(prevPanel(PANELS.CONVERSATION), PANELS.SETTINGS);
+		assert.strictEqual(prevPanel(PANELS.CONVERSATION), PANELS.SESSIONS);
 	});
 
 	it("handles unknown panel by wrapping to last", () => {
 		const result = prevPanel("unknown");
-		assert.strictEqual(result, PANELS.MEMORY);
+		assert.strictEqual(result, PANELS.SETTINGS);
 	});
 });
