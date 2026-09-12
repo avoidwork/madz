@@ -26,22 +26,20 @@ export function SkillsPanel({ skills = [], onViewChange, isActive = false }) {
 		{ isActive },
 	);
 
-	return (
-		<Box flexDirection="column">
-			<Text bold color="cyan">
-				{" "}
-				Skills{" "}
-			</Text>
-			<Text gray> Filter: {searchQuery || "all"}</Text>
-			{filteredSkills.map((skill, i) => (
-				<Box key={skill} borderColor={focusedSkill === i ? "cyan" : "transparent"}>
-					<Text>
-						{focusedSkill === i ? "▸ " : "  "}
-						{skill}
-					</Text>
-				</Box>
-			))}
-			{skills.length === 0 && <Text gray> No skills registered.</Text>}
-		</Box>
+	return React.createElement(
+		Box,
+		{ flexDirection: "column" },
+		React.createElement(Text, { bold: true, color: "cyan" }, " Skills"),
+		React.createElement(Text, { color: "gray" }, " Filter: ", searchQuery || "all"),
+		...filteredSkills.map((skill, i) =>
+			React.createElement(
+				Box,
+				{ key: skill, borderColor: focusedSkill === i ? "cyan" : "transparent" },
+				React.createElement(Text, null, focusedSkill === i ? "▸ " : "  ", skill),
+			),
+		),
+		skills.length === 0
+			? React.createElement(Text, { color: "gray" }, " No skills registered.")
+			: null,
 	);
 }
