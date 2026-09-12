@@ -166,7 +166,7 @@ Node.js-based AI harness application using LangGraph for state machines and Open
 │   │   ├── tools_memory.test.js
 │   │   ├── tools_moa.test.js
 │   │   ├── tools_sampling.test.js
-│   │   ├── tools_sessionSearch.test.js
+│   │   ├── tools_session_search.test.js
 │   │   ├── tools_tts.test.js
 │   │   ├── tools_vision.test.js
 │   │   ├── tools_web.test.js

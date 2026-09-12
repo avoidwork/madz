@@ -219,7 +219,7 @@ export function detectSearchBackend(options = config) {
  * @param {object} [options] - Config object (defaults to module-level config)
  * @returns {Promise<string>} JSON result string
  */
-export async function webSearchImpl(input, options = config) {
+export async function searchWebImpl(input, options = config) {
 	const { query, limit = 5 } = input;
 
 	if (!query || typeof query !== "string" || query.trim().length === 0) {
@@ -264,7 +264,7 @@ export async function webSearchImpl(input, options = config) {
  * @param {object} input - Tool input with URL
  * @returns {Promise<string>} JSON result string
  */
-export async function webExtractImpl(input) {
+export async function extractWebImpl(input) {
 	const { url, summarizeLarge = false } = input;
 
 	if (!url || typeof url !== "string") {
@@ -336,8 +336,8 @@ export async function webExtractImpl(input) {
  * @param {z.infer<typeof WebSearchSchema>} input - Tool input with query
  * @returns {string} JSON result string
  */
-export const webSearch = tool(webSearchImpl, {
-	name: "webSearch",
+export const searchWeb = tool(searchWebImpl, {
+	name: "searchWeb",
 	description:
 		"Search the web. Built-in engines: DuckDuckGo (default), Google, Bing (requires BING_API_KEY), SearXNG (requires SEARXNG_URL), Custom (requires CUSTOM_SEARCH_URL).",
 	schema: z.object({
@@ -357,8 +357,8 @@ export const webSearch = tool(webSearchImpl, {
  * @param {object} _options - Runtime options
  * @returns {string} JSON result string
  */
-export const webExtract = tool(webExtractImpl, {
-	name: "webExtract",
+export const extractWeb = tool(extractWebImpl, {
+	name: "extractWeb",
 	description: "Extract readable text content from a web page URL.",
 	schema: z.object({
 		url: z.string().url().describe("URL to extract content from"),

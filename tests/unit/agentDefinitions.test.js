@@ -206,13 +206,13 @@ describe("Agent Definitions", () => {
 			deepStrictEqual(tools, []);
 		});
 
-		it("search agent should reference correct tools (webSearch, webExtract, sessionSearch)", () => {
+		it("search agent should reference correct tools (searchWeb, extractWeb, searchSession)", () => {
 			const search = ALL_AGENTS.find((a) => a.name === "search");
-			ok(search.systemPrompt.includes("webSearch"), "Search agent should reference webSearch");
-			ok(search.systemPrompt.includes("webExtract"), "Search agent should reference webExtract");
+			ok(search.systemPrompt.includes("searchWeb"), "Search agent should reference searchWeb");
+			ok(search.systemPrompt.includes("extractWeb"), "Search agent should reference extractWeb");
 			ok(
-				search.systemPrompt.includes("sessionSearch"),
-				"Search agent should reference sessionSearch",
+				search.systemPrompt.includes("searchSession"),
+				"Search agent should reference searchSession",
 			);
 		});
 
@@ -248,17 +248,17 @@ describe("Agent Definitions", () => {
 			ok(security.systemPrompt.includes("cronJob"), "Security agent should reference cronJob");
 		});
 
-		it("documentation agent should reference doc tools (imageGenerate, textToSpeech)", () => {
+		it("documentation agent should reference doc tools (generateImage, textToSpeech)", () => {
 			const doc = ALL_AGENTS.find((a) => a.name === "documentation");
-			ok(doc.systemPrompt.includes("imageGenerate"), "Doc agent should reference imageGenerate");
+			ok(doc.systemPrompt.includes("generateImage"), "Doc agent should reference generateImage");
 			ok(doc.systemPrompt.includes("textToSpeech"), "Doc agent should reference textToSpeech");
 		});
 
-		it("coding agent should reference correct tools (visionAnalyze, scanAgents)", () => {
+		it("coding agent should reference correct tools (analyzeVision, scanAgents)", () => {
 			const coding = ALL_AGENTS.find((a) => a.name === "coding");
 			ok(
-				coding.systemPrompt.includes("visionAnalyze"),
-				"Coding agent should reference visionAnalyze",
+				coding.systemPrompt.includes("analyzeVision"),
+				"Coding agent should reference analyzeVision",
 			);
 			ok(coding.systemPrompt.includes("scanAgents"), "Coding agent should reference scanAgents");
 		});
@@ -266,17 +266,17 @@ describe("Agent Definitions", () => {
 
 	describe("getToolsForAgentTypes", () => {
 		it("should return tools matching agent type classifications", () => {
-			const tools = getToolsForAgentTypes(["search"], { webSearch: {}, webExtract: {}, grep: {} });
+			const tools = getToolsForAgentTypes(["search"], { searchWeb: {}, extractWeb: {}, grep: {} });
 			ok(Array.isArray(tools), "Should return an array");
 		});
 
 		it("should return tools matching multiple agent types", () => {
 			const tools = getToolsForAgentTypes(["search", "debug"], {
-				webSearch: {},
-				webExtract: {},
+				searchWeb: {},
+				extractWeb: {},
 				grep: {},
 				glob: {},
-				sessionSearch: {},
+				searchSession: {},
 				executeCode: {},
 				shell: {},
 			});
@@ -285,7 +285,7 @@ describe("Agent Definitions", () => {
 		});
 
 		it("should return empty array for unknown agent types", () => {
-			const tools = getToolsForAgentTypes(["nonexistent"], { webSearch: {} });
+			const tools = getToolsForAgentTypes(["nonexistent"], { searchWeb: {} });
 			deepStrictEqual(tools, []);
 		});
 	});

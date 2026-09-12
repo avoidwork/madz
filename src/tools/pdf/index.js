@@ -1,7 +1,7 @@
 /**
  * PDF generation and manipulation tools.
  * Uses puppeteer for HTML/markdown-to-PDF generation and pdf-lib for manipulation.
- * @module tools/pdfGenerate
+ * @module tools/generatePdf
  * @see {@link https://marked.js.org/} marked — markdown-to-HTML conversion
  */
 
@@ -756,7 +756,7 @@ export const PDF_ACTIONS = [
  * @param {object} [input.options] - Action-specific options
  * @returns {Promise<string>} JSON result string
  */
-export async function pdfGenerate(input) {
+export async function generatePdf(input) {
 	const { action, ...actionInput } = input;
 
 	if (!action || !PDF_ACTIONS.includes(action)) {
@@ -789,7 +789,7 @@ export async function pdfGenerate(input) {
 /**
  * Schema for the unified pdf tool.
  */
-export const pdfGenerateSchema = z.object({
+export const generatePdfSchema = z.object({
 	action: z
 		.enum(PDF_ACTIONS)
 		.describe(
@@ -880,9 +880,9 @@ export const pdfGenerateSchema = z.object({
 /**
  * LangChain Tool instance for unified PDF generation/manipulation.
  */
-export const pdfGenerateTool = tool(pdfGenerate, {
-	name: "pdfGenerate",
+export const generatePdfTool = tool(generatePdf, {
+	name: "generatePdf",
 	description:
 		"Generate PDFs from HTML or markdown, or manipulate existing PDFs (merge, split, watermark, signature, annotate). Use action to specify the operation.",
-	schema: pdfGenerateSchema,
+	schema: generatePdfSchema,
 });

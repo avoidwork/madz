@@ -299,7 +299,7 @@ describe("MessageBubbleInner - active tool call", () => {
 					React.createElement(MessageBubbleInner, {
 						role: "assistant",
 						content: "",
-						activeToolCall: { name: "webSearch" },
+						activeToolCall: { name: "searchWeb" },
 						streaming: false,
 					}),
 				),
@@ -307,7 +307,7 @@ describe("MessageBubbleInner - active tool call", () => {
 		);
 		assert.ok(typeof result === "string");
 		assert.ok(result.includes("Running"));
-		assert.ok(result.includes("webSearch"));
+		assert.ok(result.includes("searchWeb"));
 	});
 });
 
@@ -365,7 +365,7 @@ describe("MessageBubbleInner - tool call display", () => {
 					React.createElement(MessageBubbleInner, {
 						role: "assistant",
 						content: "",
-						activeToolCall: { name: "webSearch" },
+						activeToolCall: { name: "searchWeb" },
 						showToolResults: false,
 						streaming: false,
 					}),
@@ -374,7 +374,7 @@ describe("MessageBubbleInner - tool call display", () => {
 		);
 		assert.ok(typeof result === "string");
 		assert.ok(result.includes("Running"), "active tool call indicator should remain visible");
-		assert.ok(result.includes("webSearch"), "tool call name should remain visible");
+		assert.ok(result.includes("searchWeb"), "tool call name should remain visible");
 	});
 
 	it("keeps completedToolCalls visible when showToolResults is false", () => {
@@ -388,7 +388,7 @@ describe("MessageBubbleInner - tool call display", () => {
 					React.createElement(MessageBubbleInner, {
 						role: "assistant",
 						content: "",
-						completedToolCalls: ["webSearch", "readFile"],
+						completedToolCalls: ["searchWeb", "readFile"],
 						showToolResults: false,
 						streaming: false,
 					}),
@@ -397,7 +397,7 @@ describe("MessageBubbleInner - tool call display", () => {
 		);
 		assert.ok(typeof result === "string");
 		assert.ok(result.includes("tool call"), "completed tool calls summary should remain visible");
-		assert.ok(result.includes("webSearch"), "completed tool name should remain visible");
+		assert.ok(result.includes("searchWeb"), "completed tool name should remain visible");
 	});
 });
 

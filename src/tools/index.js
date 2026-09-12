@@ -3,33 +3,32 @@ import { createCompactContextTool } from "./compactContext/index.js";
 import { cronJob } from "./cron/index.js";
 import { date } from "./date/index.js";
 import { scanAgents } from "./scanAgents/index.js";
-import { imageGenerate } from "./image/index.js";
+import { generateImage } from "./image/index.js";
 import { memory } from "./memory/index.js";
 import { mixtureOfAgents } from "./moa/index.js";
 import { sampling } from "./sampling/index.js";
-import { sessionSearch } from "./sessionSearch/index.js";
+import { searchSession } from "./session/index.js";
 import { processTool } from "./process/index.js";
 import { createSkill } from "./skills/index.js";
 import { textToSpeech } from "./tts/index.js";
-import { visionAnalyze } from "./vision/index.js";
-import { webSearch, webExtract } from "./web/index.js";
+import { analyzeVision } from "./vision/index.js";
+import { searchWeb, extractWeb } from "./web/index.js";
 import { docxTool, pdfTool, pptxTool, xlsxTool } from "./fileExtract/index.js";
 import { reflectionSessions } from "./reflection/index.js";
 import { email } from "./email/tools.js";
 import { spreadsheet } from "./spreadsheet/index.js";
 import { calendar } from "./calendar/index.js";
-import { pdfGenerateTool } from "./pdfGenerate/index.js";
+import { generatePdfTool } from "./pdf/index.js";
 import { namecom } from "./namecom/index.js";
-import { pptxGenerateTool } from "./fileCreate/index.js";
+import { generatePptxTool } from "./pptx/index.js";
 import { createApiTool } from "./api/index.js";
 import { createGraphqlTool } from "./graphql/index.js";
 import { createJsonTool } from "./json/index.js";
 import { createYamlTool } from "./yaml/index.js";
 import { createDataTool } from "./data/index.js";
 import { createWebhookTool } from "./webhook/index.js";
-import { codeSearch } from "./codeSearch/index.js";
-import { codeIndex } from "./codeIndex/index.js";
-import { getConfig } from "./codeIndex/getConfig.js";
+import { searchCode, indexCode } from "./code/index.js";
+import { getConfig } from "./config/index.js";
 
 /**
  * Maps tool names to required permission scopes.
@@ -42,17 +41,17 @@ export const TOOL_PERMISSIONS = {
 	cronJob: ["network:outbound"],
 	createSkill: ["filesystem:write"],
 	date: [],
-	imageGenerate: ["network:outbound"],
+	generateImage: ["network:outbound"],
 	memory: ["filesystem:read", "filesystem:write"],
 	mixtureOfAgents: ["network:outbound"],
 	process: ["filesystem:exec", "process:spawn"],
 	sampling: ["filesystem:write"],
 	scanAgents: ["filesystem:read"],
-	sessionSearch: ["filesystem:read"],
+	searchSession: ["filesystem:read"],
 	textToSpeech: [],
-	visionAnalyze: [],
-	webExtract: ["network:outbound"],
-	webSearch: ["network:outbound"],
+	analyzeVision: [],
+	extractWeb: ["network:outbound"],
+	searchWeb: ["network:outbound"],
 	docx: ["filesystem:read"],
 	pptx: ["filesystem:read"],
 	xlsx: ["filesystem:read"],
@@ -61,17 +60,17 @@ export const TOOL_PERMISSIONS = {
 	email: ["network:outbound"],
 	spreadsheet: ["filesystem:read", "filesystem:write"],
 	calendar: ["network:outbound"],
-	pdfGenerate: ["filesystem:read", "filesystem:write", "network:outbound"],
+	generatePdf: ["filesystem:read", "filesystem:write", "network:outbound"],
 	namecom: ["network:outbound"],
-	pptxGenerate: ["filesystem:write"],
+	generatePptx: ["filesystem:write"],
 	api: ["network:outbound"],
 	graphql: ["network:outbound"],
 	json: ["filesystem:read"],
 	yaml: ["filesystem:read"],
 	data: ["filesystem:read"],
 	webhook: ["filesystem:read", "filesystem:write"],
-	codeSearch: ["filesystem:read"],
-	codeIndex: ["filesystem:read", "filesystem:write"],
+	searchCode: ["filesystem:read"],
+	indexCode: ["filesystem:read", "filesystem:write"],
 	getConfig: ["filesystem:read"],
 };
 
@@ -106,7 +105,7 @@ export const TOOL_CLASSIFICATIONS = {
 		"performance",
 		"coding",
 	],
-	imageGenerate: ["documentation"],
+	generateImage: ["documentation"],
 	memory: [
 		"search",
 		"debug",
@@ -122,11 +121,11 @@ export const TOOL_CLASSIFICATIONS = {
 	process: ["debug", "performance", "coding"],
 	sampling: ["documentation"],
 	scanAgents: ["security-audit", "code-review", "coding"],
-	sessionSearch: ["search", "research"],
+	searchSession: ["search", "research"],
 	textToSpeech: ["documentation"],
-	visionAnalyze: ["code-review", "testing", "coding"],
-	webExtract: ["search", "research", "coding"],
-	webSearch: ["search", "research", "coding"],
+	analyzeVision: ["code-review", "testing", "coding"],
+	extractWeb: ["search", "research", "coding"],
+	searchWeb: ["search", "research", "coding"],
 	docx: ["search", "research", "coding", "documentation", "debug"],
 	pptx: ["search", "research", "coding", "documentation", "debug"],
 	xlsx: ["search", "research", "coding", "documentation", "debug"],
@@ -135,16 +134,16 @@ export const TOOL_CLASSIFICATIONS = {
 	email: ["search", "research", "coding", "documentation", "debug"],
 	spreadsheet: ["search", "research", "coding", "documentation", "debug"],
 	calendar: ["search", "research", "coding", "documentation", "debug", "performance"],
-	pdfGenerate: ["search", "research", "coding", "documentation", "debug"],
+	generatePdf: ["search", "research", "coding", "documentation", "debug"],
 	namecom: ["search", "research", "coding", "documentation", "debug"],
-	pptxGenerate: ["search", "research", "coding", "documentation", "debug"],
+	generatePptx: ["search", "research", "coding", "documentation", "debug"],
 	api: ["search", "research", "coding", "documentation", "debug"],
 	graphql: ["search", "research", "coding", "documentation", "debug"],
 	json: ["search", "research", "coding", "documentation", "debug"],
 	yaml: ["search", "research", "coding", "documentation", "debug"],
 	data: ["search", "research", "coding", "documentation", "debug"],
 	webhook: ["search", "research", "coding", "documentation", "debug"],
-	codeSearch: [
+	searchCode: [
 		"search",
 		"research",
 		"coding",
@@ -156,7 +155,7 @@ export const TOOL_CLASSIFICATIONS = {
 		"documentation",
 		"seoAnalyst",
 	],
-	codeIndex: ["coding", "debug", "performance"],
+	indexCode: ["coding", "debug", "performance"],
 	getConfig: [
 		"coding",
 		"debug",
@@ -198,14 +197,14 @@ export const ORCHESTRATOR_TOOLS = [
 	"memory",
 	"process",
 	"reflectionSessions",
-	"sessionSearch",
-	"webSearch",
-	"webExtract",
+	"searchSession",
+	"searchWeb",
+	"extractWeb",
 	"scanAgents",
 	"sampling",
 	"createSkill",
-	"codeSearch",
-	"codeIndex",
+	"searchCode",
+	"indexCode",
 	"getConfig",
 ];
 
@@ -216,17 +215,17 @@ export const TOOLS = {
 	cronJob,
 	createSkill,
 	date,
-	imageGenerate,
+	generateImage,
 	memory,
 	mixtureOfAgents,
 	process: processTool,
 	sampling,
 	scanAgents,
-	sessionSearch,
+	searchSession,
 	textToSpeech,
-	visionAnalyze,
-	webExtract,
-	webSearch,
+	analyzeVision,
+	extractWeb,
+	searchWeb,
 	docx: docxTool,
 	pptx: pptxTool,
 	xlsx: xlsxTool,
@@ -235,17 +234,17 @@ export const TOOLS = {
 	email,
 	spreadsheet,
 	calendar,
-	pdfGenerate: pdfGenerateTool,
+	generatePdf: generatePdfTool,
 	namecom,
-	pptxGenerate: pptxGenerateTool,
+	generatePptx: generatePptxTool,
 	api: createApiTool,
 	graphql: createGraphqlTool,
 	json: createJsonTool,
 	yaml: createYamlTool,
 	data: createDataTool,
 	webhook: createWebhookTool,
-	codeSearch,
-	codeIndex,
+	searchCode,
+	indexCode,
 	getConfig,
 };
 
@@ -371,8 +370,8 @@ export async function buildToolConfig(options) {
 				continue;
 			}
 
-			case "webSearch":
-			case "webExtract": {
+			case "searchWeb":
+			case "extractWeb": {
 				if (!hasAllPerms) continue;
 				const hasAnySearch =
 					runtimeOptions.searchExaApiKey ||
@@ -388,13 +387,13 @@ export async function buildToolConfig(options) {
 				continue;
 			}
 
-			case "visionAnalyze": {
+			case "analyzeVision": {
 				if (!runtimeOptions.openaiApiKey) continue;
 				tools.push(TOOLS[toolName]);
 				continue;
 			}
 
-			case "imageGenerate": {
+			case "generateImage": {
 				if (!hasAllPerms || !runtimeOptions.falApiKey) continue;
 				tools.push(TOOLS[toolName]);
 				continue;

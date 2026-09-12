@@ -485,16 +485,16 @@ Uses the [Deep Agents](https://github.com/langchain-ai/deepagentsjs) library to 
 | Agent | Purpose | Tool Access |
 | ----- | ------- | ----------- |
 | `code-review` | Structured code reviews covering bugs, security, style, performance | `readFile`, `grep`, `glob` |
-| `coding` | Code implementation with read-before-write discipline, complete shipping, convention adherence, and dead-code elimination | `process`, `write`, `compactContext`, `scanAgents`, `visionAnalyze` |
+| `coding` | Code implementation with read-before-write discipline, complete shipping, convention adherence, and dead-code elimination | `process`, `write`, `compactContext`, `scanAgents`, `analyzeVision` |
 | `debug` | Error tracing, reproduction, and fix proposals | `readFile`, `grep`, `glob`, `process` |
 | `documentation` | Documentation updates, API docs generation, changelog maintenance | `readFile`, `writeFile`, `grep`, `glob` |
 | `performance` | Performance benchmarking, bottleneck identification, optimization suggestions | `readFile`, `grep`, `process` |
-| `research` | Multi-step research with source tracking and comprehensive reports | `webSearch`, `webExtract`, `grep`, `glob`, `sessionSearch` |
-| `search` | Multi-source search (web, docs, codebase) with synthesis | `webSearch`, `webExtract`, `grep`, `glob`, `sessionSearch` |
+| `research` | Multi-step research with source tracking and comprehensive reports | `searchWeb`, `extractWeb`, `grep`, `glob`, `searchSession` |
+| `search` | Multi-source search (web, docs, codebase) with synthesis | `searchWeb`, `extractWeb`, `grep`, `glob`, `searchSession` |
 | `security-audit` | Security scanning, dependency auditing, vulnerability detection | `readFile`, `grep`, `glob`, `process` |
-| `seoAnalyst` | SEO analysis — keyword density, meta description generation, SERP analysis, content optimization | `webSearch`, `webExtract` |
+| `seoAnalyst` | SEO analysis — keyword density, meta description generation, SERP analysis, content optimization | `searchWeb`, `extractWeb` |
 | `testing` | Test generation, gap analysis, and coverage improvements | `readFile`, `grep`, `glob`, `process` |
-| `textEditor` | Text processing — summarize, rewrite, tone adjustment, grammar correction, shorten, expand | `webSearch`, `webExtract` |
+| `textEditor` | Text processing — summarize, rewrite, tone adjustment, grammar correction, shorten, expand | `searchWeb`, `extractWeb` |
 | `translator` | Multi-language translation and language detection | _(none)_ |
 
 **Default subagent temperatures:**
@@ -540,24 +540,24 @@ All built-in tools are defined in `src/tools/` and registered as LangChain tools
 | `date` | Return current date/time in ISO 8601 UTC or human-readable format. Zero permissions — always registered. |
 | `email` | Read, send, manage drafts, organize, and search emails. Actions: `read`, `send`, `draftSave`, `draftList`, `draftUpdate`, `draftDelete`, `organize`, `search`. Requires email provider credentials via environment variables. |
 | `graphql` | GraphQL client with depth/complexity limits, introspection support, and rate limiting. |
-| `imageGenerate` | Generate images via FAL.ai flux/klein API. |
+| `generateImage` | Generate images via FAL.ai flux/klein API. |
 | `json` | JSON parse, serialize, transform, filter, and access operations. |
 | `memory` | Persistent key-value memory with CRUD actions (create, read, update, delete, list). Each entry stored as `.md` in `memory/context/` with `createdDate`/`updatedDate` metadata. |
 | `mixtureOfAgents` | Multi-agent orchestration via OpenRouter. Calls 4 reference prompts (factual, practical, creative, cautious) and synthesizes a consensus response. |
-| `pdfGenerate` | Generate PDFs from HTML or markdown, or manipulate existing PDFs (merge, split, watermark, signature, annotate). Use action to specify the operation. |
+| `generatePdf` | Generate PDFs from HTML or markdown, or manipulate existing PDFs (merge, split, watermark, signature, annotate). Use action to specify the operation. |
 | `process` | Execute shell commands and manage background processes. Actions: start (launch command), list (show all), log (read stdout/stderr), wait (wait for exit), kill (SIGTERM/SIGKILL), write (send stdin data), pause (SIGSTOP), resume (SIGCONT). |
 | `sampling` | Capture emotional moments as ephemeral memories. Rate-limited to 1 per 60 minutes. Stored with `expiresAt` frontmatter. |
 | `scanAgents` | Scan for `AGENTS.md` workspace rules files in a target directory. Returns file contents or empty string. |
-| `sessionSearch` | Search past conversations by keyword query, full retrieval by conversation ID, or browse all sessions. |
+| `searchSession` | Search past conversations by keyword query, full retrieval by conversation ID, or browse all sessions. |
 | `spreadsheet` | Spreadsheet computation and analysis. Actions: compute (sum, average, count, min, max, formula, median, stddev, variance), generate (create XLSX with formulas), analyze (pivot tables, filtering, groupBy, stats, percentile), csvImport, csvExport, modify (add/modify/delete cells and sheets), export (XLSX, CSV, JSON). |
 | `textToSpeech` | Convert text to speech via OpenAI TTS (tts-1/tts-1-hd). Saves MP3 to `~/voice-memos/`. |
-| `visionAnalyze` | Analyze images via OpenAI multimodal LLM. Accepts URL or base64 data URI. |
-| `webExtract` | Extract readable text content from a web page URL. Supports summarization for large pages. |
-| `webSearch` | Search the web via DuckDuckGo, Google, Bing, SearXNG, or Custom endpoints. |
+| `analyzeVision` | Analyze images via OpenAI multimodal LLM. Accepts URL or base64 data URI. |
+| `extractWeb` | Extract readable text content from a web page URL. Supports summarization for large pages. |
+| `searchWeb` | Search the web via DuckDuckGo, Google, Bing, SearXNG, or Custom endpoints. |
 | `webhook` | Webhook CRUD and HMAC verification with URL validation. |
 | `yaml` | YAML parse, serialize, transform, filter, and access operations. |
-| `codeSearch` | Semantic code search using vector similarity. Finds conceptually related code even when exact keywords don't match — e.g., searching for "authentication" finds login handlers, token validation, and auth middleware. |
-| `codeIndex` | Index project source code for vector search. Scans configured project directories, chunks source files, generates embeddings, and stores them for semantic search. Runs incrementally — only processes changed files. |
+| `searchCode` | Semantic code search using vector similarity. Finds conceptually related code even when exact keywords don't match — e.g., searching for "authentication" finds login handlers, token validation, and auth middleware. |
+| `indexCode` | Index project source code for vector search. Scans configured project directories, chunks source files, generates embeddings, and stores them for semantic search. Runs incrementally — only processes changed files. |
 
 **Deep Agents tools:** Core filesystem operations (`readFile`, `writeFile`, `patch`, `searchFiles`) and task management (`todo`) are provided by [deepagentsjs](https://github.com/langchain-ai/deepagentsjs) and are not listed as madz-built-in tools.
 
@@ -571,13 +571,13 @@ Built-in tools are registered only when their required permissions are enabled f
 
 | Permission Required                 | Tools                                                                      |
 | ----------------------------------- | -------------------------------------------------------------------------- |
-| `filesystem:read`                   | `codeSearch`, `compactContext`, `json`, `scanAgents`, `sessionSearch`, `yaml`, `data` |
+| `filesystem:read`                   | `searchCode`, `compactContext`, `json`, `scanAgents`, `searchSession`, `yaml`, `data` |
 | `filesystem:write`                  | `clarify`, `createSkill`, `memory`, `sampling`                             |
 | `filesystem:exec` + `process:spawn` | `process`                                                                  |
-| `network:outbound`                  | `api`, `cronJob`, `graphql`, `imageGenerate`, `mixtureOfAgents`, `webExtract`, `webSearch`, `email`, `calendar`, `webhook`   |
-| _(none)_                            | `date`, `textToSpeech`, `visionAnalyze`                                    |
-| `filesystem:read` + `filesystem:write` + `network:outbound` | `pdfGenerate` |
-| `filesystem:read` + `filesystem:write` | `codeIndex`, `spreadsheet` |
+| `network:outbound`                  | `api`, `cronJob`, `graphql`, `generateImage`, `mixtureOfAgents`, `extractWeb`, `searchWeb`, `email`, `calendar`, `webhook`   |
+| _(none)_                            | `date`, `textToSpeech`, `analyzeVision`                                    |
+| `filesystem:read` + `filesystem:write` + `network:outbound` | `generatePdf` |
+| `filesystem:read` + `filesystem:write` | `indexCode`, `spreadsheet` |
 
 ### Memory System
 
@@ -617,8 +617,8 @@ Semantic code search using local vector embeddings and SQLite-based KNN retrieva
 - `src/vector/indexer.js` — Orchestrates scanning, chunking, embedding, and storage with incremental mtime-based caching
 
 **Tools:**
-- `codeSearch` — Query indexed code semantically. Available to orchestrator and all code-related subagents.
-- `codeIndex` — Trigger indexing from conversation. Runs incrementally; pass `force: true` to re-index all files.
+- `searchCode` — Query indexed code semantically. Available to orchestrator and all code-related subagents.
+- `indexCode` — Trigger indexing from conversation. Runs incrementally; pass `force: true` to re-index all files.
 
 **Configuration** in `config.yaml` under `vector.projects.<name>` — each project defines its own `rootDir`, `dbPath`, chunking parameters, and include/exclude patterns. See `docs/VECTOR_SEARCH.md` for full documentation.
 
@@ -647,8 +647,11 @@ On first onboarding completion, `madz` automatically installs a `reflection-dail
 │   ├── session/                # Per-session state & context windows
 │   ├── telemetry/              # OpenTelemetry tracing & redaction
 │   ├── tools/                  # Built-in LangChain tools
-│   │   ├── codeSearch/         # Semantic code search via vector similarity
-│   │   ├── codeIndex/          # Trigger code indexing from conversation
+│   │   ├── code/               # Semantic code search & indexing (searchCode, indexCode)
+│   │   ├── config/             # getConfig tool
+│   │   ├── pdf/                # PDF generation & manipulation (generatePdf)
+│   │   ├── pptx/               # PPTX creation (generatePptx)
+│   │   ├── session/            # Session search (searchSession)
 │   │   └── ...                 # Other tool modules
 │   ├── vector/                 # Vector search pipeline
 │   │   ├── chunker.js          # Line-based file chunking

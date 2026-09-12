@@ -17,7 +17,7 @@ const vectorConfig = config.vector || {};
  * @param {z.infer<typeof CodeIndexSchema>} input - The tool input
  * @returns {Promise<string>} Formatted indexing results
  */
-export async function codeIndexImpl(input) {
+export async function indexCodeImpl(input) {
 	const projects = vectorConfig.projects || {};
 
 	if (Object.keys(projects).length === 0) {
@@ -64,12 +64,12 @@ export async function codeIndexImpl(input) {
 	return results.join("\n");
 }
 
-export const codeIndex = tool(codeIndexImpl, {
-	name: "codeIndex",
+export const indexCode = tool(indexCodeImpl, {
+	name: "indexCode",
 	description:
 		"Index project source code for vector search. " +
 		"Scans configured project directories, chunks source files, generates embeddings, " +
-		"and stores them for semantic search via codeSearch. " +
+		"and stores them for semantic search via searchCode. " +
 		"Runs incrementally — only processes changed files. " +
 		"Use this after adding new code or changing project configuration.",
 	schema: z.object({

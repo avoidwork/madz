@@ -18,7 +18,7 @@ graph TD
     EMB -->|"transformers.js (local) / OpenAI (fallback)"| EMB_OUT["Float32Array[384]"]
     STO -->|"better-sqlite3 + sqlite-vec"| DB["madz.db"]
 
-    DB -->|"KNN MATCH query"| CST["codeSearch Tool"]
+    DB -->|"KNN MATCH query"| CST["searchCode Tool"]
     CST -->|"project param"| CFG
     CST -->|"orchestrator"| ORC["Orchestrator"]
     CST -->|"subagents"| SAG["coding, code-review, debug,<br/>security-audit, testing,<br/>performance, documentation,<br/>seoAnalyst, search, research"]
@@ -110,7 +110,7 @@ Orchestrates the full indexing pipeline:
 
 **Incremental indexing:** Only processes files whose mtime has changed since the last index. Pass `--force` to re-index everything.
 
-### `src/tools/codeSearch/index.js`
+### `src/tools/code/searchCode.js`
 
 LangChain tool available to the orchestrator and all code-related subagents.
 
@@ -173,12 +173,12 @@ Indexing iterates over every project in `vector.projects`, creating or updating 
 
 ### Querying
 
-Via the `codeSearch` tool, available to any agent:
+Via the `searchCode` tool, available to any agent:
 
 ```
-codeSearch(query="how does SSE streaming work", topK=3)
-codeSearch(query="tool registration pattern", project="madz")
-codeSearch(query="authentication flow", project="madz", fileFilter="src/tools/*.js")
+searchCode(query="how does SSE streaming work", topK=3)
+searchCode(query="tool registration pattern", project="madz")
+searchCode(query="authentication flow", project="madz", fileFilter="src/tools/*.js")
 ```
 
 The `project` parameter selects which indexed project to search. Defaults to the first configured project if omitted.
