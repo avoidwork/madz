@@ -6,5 +6,4 @@ tmp
 !src/skills
 .env
 .env.cron
-.worktrees/
 memory/tools/webhooks.json
