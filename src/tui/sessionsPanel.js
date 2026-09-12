@@ -20,6 +20,15 @@ export function SessionsPanel({ sessionState, config, onViewChange, isActive = f
 	const [error, setError] = useState(null);
 	const [resuming, setResuming] = useState(null);
 
+	// Proper mount-only detector
+	const mountedRef = React.useRef(false);
+	React.useEffect(() => {
+		if (!mountedRef.current) {
+			mountedRef.current = true;
+			console.error(`[SESSIONS MOUNT] mounted`);
+		}
+	}, []);
+
 	// Async load session list
 	useEffect(() => {
 		let cancelled = false;
@@ -109,6 +118,7 @@ export function SessionsPanel({ sessionState, config, onViewChange, isActive = f
 		};
 	}, [config?.memory?.sessionsDir, config?.cwd]);
 
+	console.error(`[SESSIONS RENDER] focusIndex=${focusIndex} sessions=${sessions.length} loading=${loading}`);
 	const handleResume = useCallback(
 		async (sessionId) => {
 			if (!sessionState || !sessionId) return;
@@ -137,6 +147,7 @@ export function SessionsPanel({ sessionState, config, onViewChange, isActive = f
 
 	useInput(
 		(input, key) => {
+			console.error(`[SESSIONS useInput] input=${JSON.stringify(input)} up=${key.upArrow} down=${key.downArrow} return=${key.return} esc=${key.escape} focusIndex=${focusIndex} len=${sessions.length}`);
 			if (key.upArrow && focusIndex > 0) {
 				setFocusIndex((prev) => Math.max(0, prev - 1));
 			}
@@ -180,6 +191,7 @@ export function SessionsPanel({ sessionState, config, onViewChange, isActive = f
 			? React.createElement(Text, { color: "gray" }, " No saved sessions.")
 			: sessions.map((entry, i) => {
 					const isSelected = focusIndex === i;
+					console.error(`[SESSIONS MAP] i=${i} focusIndex=${focusIndex} isSelected=${isSelected}`);
 					const isResumingThis = resuming === entry.sessionId;
 					const dateStr = entry.endedAt
 						? new Date(entry.endedAt).toLocaleDateString(undefined, {
@@ -208,12 +220,12 @@ export function SessionsPanel({ sessionState, config, onViewChange, isActive = f
 						{
 							key: entry.sessionId,
 							flexDirection: "row",
-							borderColor: isSelected ? "cyan" : "transparent",
+							// borderColor removed for probe
 						},
 						React.createElement(
 							Text,
 							null,
-							isSelected ? "▸ " : "  ",
+							`[${focusIndex}] `,
 							isResumingThis ? "⟳ " : "",
 							entry.sessionId.slice(0, 8),
 							"... ",
