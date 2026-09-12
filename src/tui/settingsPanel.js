@@ -61,9 +61,7 @@ export function SettingsPanel({ config, onViewChange, isActive = false }) {
 	}, [config, expandedSection]);
 
 	// Total list length: sections list + expanded entries
-	const totalLen = expandedSection
-		? sections.length + expandedEntries.length
-		: sections.length;
+	const totalLen = expandedSection ? sections.length + expandedEntries.length : sections.length;
 
 	useInput(
 		(_, key) => {
@@ -96,8 +94,9 @@ export function SettingsPanel({ config, onViewChange, isActive = false }) {
 					const sectionIdx = sections.indexOf(expandedSection);
 					setExpandedSection(null);
 					setFocusIndex(sectionIdx);
+				} else {
+					onViewChange?.("conversation");
 				}
-				// Otherwise handled by App-level routing
 			}
 		},
 		{ isActive },
@@ -129,13 +128,7 @@ export function SettingsPanel({ config, onViewChange, isActive = false }) {
 					flexDirection: "row",
 					borderColor: isFocused ? "cyan" : "transparent",
 				},
-				React.createElement(
-					Text,
-					null,
-					isFocused ? "▸ " : "  ",
-					isExpanded ? "▼ " : "▶ ",
-					section,
-				),
+				React.createElement(Text, null, isFocused ? "▸ " : "  ", isExpanded ? "▼ " : "▶ ", section),
 			),
 		);
 		globalIdx++;
@@ -159,9 +152,7 @@ export function SettingsPanel({ config, onViewChange, isActive = false }) {
 							isEntryFocused ? "▸ " : "  ",
 							React.createElement(Text, { color: "gray" }, entry.path),
 							": ",
-							entry.value.length > 80
-								? entry.value.slice(0, 80) + "..."
-								: entry.value,
+							entry.value.length > 80 ? entry.value.slice(0, 80) + "..." : entry.value,
 						),
 					),
 				);

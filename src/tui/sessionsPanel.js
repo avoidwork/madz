@@ -76,31 +76,36 @@ export function SessionsPanel({ sessionState, config, onViewChange, isActive = f
 			}
 		}
 		load();
-		return () => { cancelled = true; };
+		return () => {
+			cancelled = true;
+		};
 	}, [config?.memory?.sessionsDir, config?.cwd]);
 
-	const handleResume = useCallback(async (sessionId) => {
-		if (!sessionState || !sessionId) return;
-		setResuming(sessionId);
-		try {
-			const sessionsDir = config?.memory?.sessionsDir || "memory/sessions/";
-			const cwd = config?.cwd || process.cwd();
-			const loaded = await loadSession(sessionsDir, 20, sessionId, cwd);
-			if (!loaded || !loaded.conversation) {
+	const handleResume = useCallback(
+		async (sessionId) => {
+			if (!sessionState || !sessionId) return;
+			setResuming(sessionId);
+			try {
+				const sessionsDir = config?.memory?.sessionsDir || "memory/sessions/";
+				const cwd = config?.cwd || process.cwd();
+				const loaded = await loadSession(sessionsDir, 20, sessionId, cwd);
+				if (!loaded || !loaded.conversation) {
+					setResuming(null);
+					return;
+				}
+				// Resume: createNewSession → loadConversation → setSessionId
+				sessionState.createNewSession(sessionId);
+				sessionState.loadConversation(loaded.conversation);
+				sessionState.setSessionId(sessionId);
+				// Navigate back to conversation view
+				onViewChange?.("conversation");
+			} catch (err) {
+				setError(`Failed to resume session: ${err.message}`);
 				setResuming(null);
-				return;
 			}
-			// Resume: createNewSession → loadConversation → setSessionId
-			sessionState.createNewSession(sessionId);
-			sessionState.loadConversation(loaded.conversation);
-			sessionState.setSessionId(sessionId);
-			// Navigate back to conversation view
-			onViewChange?.("conversation");
-		} catch (err) {
-			setError(`Failed to resume session: ${err.message}`);
-			setResuming(null);
-		}
-	}, [sessionState, config, onViewChange]);
+		},
+		[sessionState, config, onViewChange],
+	);
 
 	useInput(
 		(input, key) => {
@@ -184,7 +189,14 @@ export function SessionsPanel({ sessionState, config, onViewChange, isActive = f
 							isResumingThis ? "⟳ " : "",
 							entry.sessionId.slice(0, 8),
 							"... ",
-							React.createElement(Text, { color: "gray" }, msgLabel, " ", startStr ? `${startStr} → ` : "", dateStr),
+							React.createElement(
+								Text,
+								{ color: "gray" },
+								msgLabel,
+								" ",
+								startStr ? `${startStr} → ` : "",
+								dateStr,
+							),
 						),
 					);
 				}),

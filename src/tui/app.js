@@ -57,15 +57,18 @@ function App({
 	 * (e.g., after session resume).
 	 * @param {string} view - One of PANELS values
 	 */
-	const handleViewChange = useCallback((view) => {
-		setCurrentView(view);
-		if (view === PANELS.CONVERSATION && conversationAreaRef.current) {
-			const conv = sessionState?.getConversation();
-			if (conv && conv.length > 0) {
-				conversationAreaRef.current.loadConversation(conv);
+	const handleViewChange = useCallback(
+		(view) => {
+			setCurrentView(view);
+			if (view === PANELS.CONVERSATION && conversationAreaRef.current) {
+				const conv = sessionState?.getConversation();
+				if (conv && conv.length > 0) {
+					conversationAreaRef.current.loadConversation(conv);
+				}
 			}
-		}
-	}, [sessionState]);
+		},
+		[sessionState],
+	);
 
 	/**
 	 * handleSubmit — App-level router.

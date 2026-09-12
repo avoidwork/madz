@@ -83,7 +83,9 @@ export function MemoryPanel({ config, onViewChange, isActive = false }) {
 			}
 		}
 		load();
-		return () => { cancelled = true; };
+		return () => {
+			cancelled = true;
+		};
 	}, [config?.memory?.contextDir, config?.cwd]);
 
 	const handleSelect = useCallback(async (entry) => {
@@ -153,14 +155,7 @@ export function MemoryPanel({ config, onViewChange, isActive = false }) {
 						Box,
 						{ flexDirection: "column", marginY: 1 },
 						...Object.entries(detailContent.frontmatter).map(([k, v]) =>
-							React.createElement(
-								Text,
-								{ key: k, color: "gray" },
-								" ",
-								k,
-								": ",
-								String(v),
-							),
+							React.createElement(Text, { key: k, color: "gray" }, " ", k, ": ", String(v)),
 						),
 					)
 				: null,

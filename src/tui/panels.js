@@ -14,13 +14,7 @@ export const PANELS = Object.freeze({
  * @returns {string[]}
  */
 export function getPanelOrder() {
-	return [
-		PANELS.CONVERSATION,
-		PANELS.SKILLS,
-		PANELS.MEMORY,
-		PANELS.SETTINGS,
-		PANELS.SESSIONS,
-	];
+	return [PANELS.CONVERSATION, PANELS.SKILLS, PANELS.MEMORY, PANELS.SETTINGS, PANELS.SESSIONS];
 }
 
 /**
