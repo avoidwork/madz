@@ -48,21 +48,29 @@ export function SessionsPanel({ sessionState, config, onViewChange, isActive = f
 
 						// Synthesize a topic from the first user message
 						let topic = "";
+						let isCronJob = false;
 						try {
 							const exchanges = JSON.parse(body);
 							if (Array.isArray(exchanges)) {
 								const firstUser = exchanges.find((e) => e.role === "user");
 								if (firstUser?.content) {
-									topic = firstUser.content
+									const msg = firstUser.content;
+									topic = msg
 										.replace(/[\n\r]+/g, " ")
 										.replace(/\s+/g, " ")
 										.trim()
 										.slice(0, 80);
+
+									// Filter out cron-triggered skill executions
+									isCronJob = /^run the .+ skill/i.test(msg.trim());
 								}
 							}
 						} catch (_e) {
 							// Body is not JSON — leave topic empty
 						}
+
+						// Skip cron job sessions
+						if (isCronJob) continue;
 
 						entries.push({
 							sessionId,
