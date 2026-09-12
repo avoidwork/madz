@@ -238,31 +238,32 @@ function App({
 	const handleInputBlur = useCallback(() => setInputFocused(false), []);
 
 	// Determine which panel component to render
+	// Each panel is only active when it IS the current view, not when any panel is active
 	let panelComponent = null;
 	if (currentView === PANELS.SKILLS) {
 		panelComponent = React.createElement(SkillsPanel, {
 			skills: registry ? registry.list() : [],
 			onViewChange: handleViewChange,
-			isActive: currentView !== PANELS.CONVERSATION,
+			isActive: true,
 		});
 	} else if (currentView === PANELS.MEMORY) {
 		panelComponent = React.createElement(MemoryPanel, {
 			config,
 			onViewChange: handleViewChange,
-			isActive: currentView !== PANELS.CONVERSATION,
+			isActive: true,
 		});
 	} else if (currentView === PANELS.SETTINGS) {
 		panelComponent = React.createElement(SettingsPanel, {
 			config,
 			onViewChange: handleViewChange,
-			isActive: currentView !== PANELS.CONVERSATION,
+			isActive: true,
 		});
 	} else if (currentView === PANELS.SESSIONS) {
 		panelComponent = React.createElement(SessionsPanel, {
 			sessionState,
 			config,
 			onViewChange: handleViewChange,
-			isActive: currentView !== PANELS.CONVERSATION,
+			isActive: true,
 		});
 	}
 

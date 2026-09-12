@@ -43,8 +43,27 @@ export function SessionsPanel({ sessionState, config, onViewChange, isActive = f
 						const filepath = join(dir, file);
 						const st = await stat(filepath);
 						const content = await readFile(filepath, "utf-8");
-						const { frontmatter } = parseFrontmatter(content);
+						const { frontmatter, content: body } = parseFrontmatter(content);
 						const sessionId = file.replace(/\.md$/, "");
+
+						// Synthesize a topic from the first user message
+						let topic = "";
+						try {
+							const exchanges = JSON.parse(body);
+							if (Array.isArray(exchanges)) {
+								const firstUser = exchanges.find((e) => e.role === "user");
+								if (firstUser?.content) {
+									topic = firstUser.content
+										.replace(/[\n\r]+/g, " ")
+										.replace(/\s+/g, " ")
+										.trim()
+										.slice(0, 80);
+								}
+							}
+						} catch (_e) {
+							// Body is not JSON — leave topic empty
+						}
+
 						entries.push({
 							sessionId,
 							fileName: file,
@@ -53,6 +72,7 @@ export function SessionsPanel({ sessionState, config, onViewChange, isActive = f
 							messageCount: frontmatter.messageCount ?? 0,
 							startedAt: frontmatter.startedAt || null,
 							endedAt: frontmatter.endedAt || null,
+							topic,
 						});
 					} catch (_err) {
 						// skip unreadable files
@@ -197,6 +217,7 @@ export function SessionsPanel({ sessionState, config, onViewChange, isActive = f
 								startStr ? `${startStr} → ` : "",
 								dateStr,
 							),
+							entry.topic ? React.createElement(Text, null, " ", entry.topic) : null,
 						),
 					);
 				}),
