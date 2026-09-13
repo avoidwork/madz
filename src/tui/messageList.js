@@ -167,33 +167,17 @@ export const MessageList = React.memo(
 				const existing = dataRef.current.get(id);
 				if (existing) {
 					// Handle segment append/coalesce: if updates contains a new segment,
-					// coalesce with the last segment if same type, otherwise push.
-					// Special case: a stray "." reasoning chunk after message content
-					// has started should append to the last reasoning segment, not
-					// create a new one that splits the message.
+					// coalesce with the last segment if same type, unless newBlock is set.
 					if (updates.segments && existing.segments) {
 						const newSeg = updates.segments[updates.segments.length - 1];
 						const mergedSegments = existing.segments.map((s) => ({ ...s }));
-						if (newSeg.type === "reasoning" && newSeg.content === ".") {
-							// Find the last reasoning segment and append the "." to it
-							let found = false;
-							for (let i = mergedSegments.length - 1; i >= 0; i--) {
-								if (mergedSegments[i].type === "reasoning") {
-									mergedSegments[i].content += ".";
-									found = true;
-									break;
-								}
-							}
-							if (!found) {
-								mergedSegments.push({ ...newSeg });
-							}
+						const lastSeg = mergedSegments[mergedSegments.length - 1];
+						// Honor an explicit newBlock flag — force a new segment regardless
+						// of type. Otherwise coalesce with the last segment if same type.
+						if (updates.newBlock || !lastSeg || lastSeg.type !== newSeg.type) {
+							mergedSegments.push({ ...newSeg });
 						} else {
-							const lastSeg = mergedSegments[mergedSegments.length - 1];
-							if (lastSeg && lastSeg.type === newSeg.type) {
-								lastSeg.content += newSeg.content;
-							} else {
-								mergedSegments.push({ ...newSeg });
-							}
+							lastSeg.content += newSeg.content;
 						}
 						dataRef.current.set(id, { ...existing, ...updates, segments: mergedSegments });
 					} else {

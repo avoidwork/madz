@@ -61,6 +61,8 @@ const ConversationArea = forwardRef(function ConversationArea(
 	const tokenCacheRef = useRef({ content: "", tokens: 0 });
 	const contextUpdateTimerRef = useRef(null);
 	const pendingContextRef = useRef({ content: "" });
+	const pendingNewBlockRef = useRef(false);
+	const reasoningBlockTimerRef = useRef(null);
 
 	const skillList = registry ? registry.list() : [];
 	const parser = new CommandParser();
@@ -629,6 +631,27 @@ const ConversationArea = forwardRef(function ConversationArea(
 				}, 33);
 			};
 
+			// Reasoning block debounce — when a reasoning chunk ends with a
+			// sentence boundary (.?!), start a 250ms timer. If the next reasoning
+			// chunk arrives before the timer fires, it appends to the current
+			// block (even across multiple sentences). If the timer fires first,
+			// the next chunk starts a new block. A message chunk interrupts and
+			// clears the timer.
+			const updateReasoningBlockTimer = (text) => {
+				if (reasoningBlockTimerRef.current) {
+					clearTimeout(reasoningBlockTimerRef.current);
+					reasoningBlockTimerRef.current = null;
+				}
+				if (/[.?!]$/.test(text)) {
+					reasoningBlockTimerRef.current = setTimeout(() => {
+						reasoningBlockTimerRef.current = null;
+						pendingNewBlockRef.current = true;
+					}, 250);
+				} else {
+					pendingNewBlockRef.current = false;
+				}
+			};
+
 			return async (event) => {
 				if (shouldAbort()) return;
 				try {
@@ -641,6 +664,11 @@ const ConversationArea = forwardRef(function ConversationArea(
 					if (event.type === "message") {
 						const newText = event.data?.text || event.text || "";
 						committedContentRef.current = (committedContentRef.current || "") + newText;
+						if (reasoningBlockTimerRef.current) {
+							clearTimeout(reasoningBlockTimerRef.current);
+							reasoningBlockTimerRef.current = null;
+						}
+						pendingNewBlockRef.current = false;
 						messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
 							segments: [{ type: "message", content: newText }],
 							content: committedContentRef.current,
@@ -654,18 +682,16 @@ const ConversationArea = forwardRef(function ConversationArea(
 					if (event.type === "reasoning") {
 						const reasoningText = event.data?.text || event.text || "";
 						if (reasoningText) {
-							// Lone "." is a trailing artifact — coalesce into the last
-							// reasoning segment visually but don't track it in committed
-							// reasoning so it doesn't split an incoming message.
-							if (reasoningText !== ".") {
-								committedReasoningRef.current =
-									(committedReasoningRef.current || "") + reasoningText;
-							}
+							committedReasoningRef.current = (committedReasoningRef.current || "") + reasoningText;
+							const newBlock = pendingNewBlockRef.current;
+							pendingNewBlockRef.current = false;
 							messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
 								segments: [{ type: "reasoning", content: reasoningText }],
+								newBlock,
 								streaming: true,
 							});
 							messageListRef.current?._triggerRender();
+							updateReasoningBlockTimer(reasoningText);
 						}
 					}
 
@@ -673,6 +699,11 @@ const ConversationArea = forwardRef(function ConversationArea(
 						if (event.data?.chunk?.content) {
 							const chunkContent = event.data.chunk.content;
 							committedContentRef.current = (committedContentRef.current || "") + chunkContent;
+							if (reasoningBlockTimerRef.current) {
+								clearTimeout(reasoningBlockTimerRef.current);
+								reasoningBlockTimerRef.current = null;
+							}
+							pendingNewBlockRef.current = false;
 							messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
 								segments: [{ type: "message", content: chunkContent }],
 								content: committedContentRef.current,
@@ -683,18 +714,17 @@ const ConversationArea = forwardRef(function ConversationArea(
 						}
 						if (event.data?.chunk?.reasoning) {
 							const reasoningChunk = event.data.chunk.reasoning;
-							// Lone "." is a trailing artifact — coalesce into the last
-							// reasoning segment visually but don't track it in committed
-							// reasoning so it doesn't split an incoming message.
-							if (reasoningChunk !== ".") {
-								committedReasoningRef.current =
-									(committedReasoningRef.current || "") + reasoningChunk;
-							}
+							committedReasoningRef.current =
+								(committedReasoningRef.current || "") + reasoningChunk;
+							const newBlock = pendingNewBlockRef.current;
+							pendingNewBlockRef.current = false;
 							messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
 								segments: [{ type: "reasoning", content: reasoningChunk }],
+								newBlock,
 								streaming: true,
 							});
 							messageListRef.current?._triggerRender();
+							updateReasoningBlockTimer(reasoningChunk);
 						}
 					}
 
@@ -752,6 +782,11 @@ const ConversationArea = forwardRef(function ConversationArea(
 		turnStartTime = 0,
 		completedToolCalls = [],
 	) => {
+		if (reasoningBlockTimerRef.current) {
+			clearTimeout(reasoningBlockTimerRef.current);
+			reasoningBlockTimerRef.current = null;
+		}
+		pendingNewBlockRef.current = false;
 		const elapsed = turnStartTime ? Date.now() - turnStartTime : 0;
 		const updates = {
 			content: responseContent,
