@@ -13,7 +13,7 @@ Current coalescing rule (in `src/tui/messageList.js` `updateMessage`):
 
 No timing-based logic exists yet.
 
-> **Note:** The `250ms` timeout in the Desired Behavior table is **provisional**. It was chosen from a simulation of synthetic gap distributions (continuations ~80ms, new blocks ~650ms). The ranking of the rules is robust, but the optimal timeout is sensitive to the real gap distribution. Instrument the live stream to log actual gaps between segments, then tune the timeout against measured data.
+> **Note:** The `500ms` timeout in the Desired Behavior table is **provisional**. It was chosen from a simulation of synthetic gap distributions (continuations ~80ms, new blocks ~650ms). The ranking of the rules is robust, but the optimal timeout is sensitive to the real gap distribution. Instrument the live stream to log actual gaps between segments, then tune the timeout against measured data.
 
 ## Current Behavior
 
@@ -31,8 +31,9 @@ No timing-based logic exists yet.
 | type | append | previous segment | current segment | result |
 |------|--------|------------------|-----------------|--------|
 | message | yes | message | message | Append content to last message segment |
-| message | maybe | reasoning | message | Append to last message segment if it exists, doesn't end with sentence-ending punctuation (`.`, `!`, `?`), and arrived within 250ms of the last message segment; otherwise push a new message segment (new block) |
+| message | maybe | reasoning | message | Append to last message segment if it exists, doesn't end with sentence-ending punctuation (`.`, `!`, `?`), and arrived within 500ms of the last message segment; otherwise push a new message segment (new block) |
 | message | no | (none) | message | Push new message segment (first block) |
 | reasoning | yes | reasoning | reasoning | Append content to last reasoning segment |
-| reasoning | maybe | message | reasoning | Append to last reasoning segment if one exists and arrived within 250ms of the last reasoning segment; otherwise push a new reasoning segment (new block) |
+| reasoning | maybe | message | reasoning | Append to last reasoning segment if one exists and arrived within 500ms of the last reasoning segment; otherwise push a new reasoning segment (new block) |
 | reasoning | no | (none) | reasoning | Push new reasoning segment (first block) |
+| reasoning | no | (any) | reasoning (trivial) | Drop segment — no alphanumeric content (bare punctuation/whitespace, e.g., `💭 .`) |
