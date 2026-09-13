@@ -657,7 +657,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 							// Lone "." is a trailing artifact — coalesce into the last
 							// reasoning segment visually but don't track it in committed
 							// reasoning so it doesn't split an incoming message.
-							if (reasoningText !== ".") {
+							if !(committedReasoningRef.current.endsWith(".") && /^[A-Z]/.test(reasoningText)) {
 								committedReasoningRef.current =
 									(committedReasoningRef.current || "") + reasoningText;
 							}
