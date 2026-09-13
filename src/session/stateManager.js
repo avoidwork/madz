@@ -136,6 +136,20 @@ export class SessionStateManager {
 	}
 
 	/**
+	 * Bulk-load a conversation array into the session state.
+	 * Replaces the current conversation with the provided exchanges.
+	 * @param {Array<{ role: string, content: string }>} conversation - Array of message exchanges
+	 */
+	loadConversation(conversation) {
+		if (!Array.isArray(conversation)) return;
+		this.#state.conversation = conversation.map((exchange) => ({
+			...exchange,
+			timestamp: exchange.timestamp || new Date().toISOString(),
+		}));
+		this.#state.updatedAt = new Date().toISOString();
+	}
+
+	/**
 	 * Get a serializable copy of the session state.
 	 * @returns {Object}
 	 */
