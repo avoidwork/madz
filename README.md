@@ -485,7 +485,7 @@ Uses the [Deep Agents](https://github.com/langchain-ai/deepagentsjs) library to 
 | Agent | Purpose | Tool Access |
 | ----- | ------- | ----------- |
 | `code-review` | Structured code reviews covering bugs, security, style, performance | `readFile`, `grep`, `glob` |
-| `coding` | Code implementation with read-before-write discipline, complete shipping, convention adherence, and dead-code elimination | `process`, `write`, `compactContext`, `scanAgents`, `analyzeVision` |
+| `coding` | Code implementation with read-before-write discipline, complete shipping, convention adherence, and dead-code elimination | `process`, `write`, `scanAgents` |
 | `debug` | Error tracing, reproduction, and fix proposals | `readFile`, `grep`, `glob`, `process` |
 | `documentation` | Documentation updates, API docs generation, changelog maintenance | `readFile`, `writeFile`, `grep`, `glob` |
 | `performance` | Performance benchmarking, bottleneck identification, optimization suggestions | `readFile`, `grep`, `process` |
@@ -520,10 +520,6 @@ Each agent definition lives in `src/agent/agents/` with its own file. The `Agent
 
 The orchestrator also manages two filesystem backends via the deepagents `CompositeBackend`: the core working directory and the memory context directory.
 
-### Context Window Management
-
-When conversations grow long enough to exceed the model's maximum context length, `madz` automatically detects the error and triggers a compaction routine. A tiered retention strategy preserves high-fidelity information: the system prompt and the most recent exchanges are kept intact, older exchanges are summarized into concise bullet-point previews, and the oldest messages are d| **Agents**          | `mixtureOfAgents` — multi-agent orchestration; `scanAgents` — scan for `AGENTS.md` workspace rules files in a target directory |t, the user is presented with a clear error message. This happens transparently; the user never needs to start a new session or manually manage context.
-
 ### Built-in Tools
 
 All built-in tools are defined in `src/tools/` and registered as LangChain tools, gated by sandbox permissions.
@@ -533,7 +529,6 @@ All built-in tools are defined in `src/tools/` and registered as LangChain tools
 | `api` | REST API client with auth (bearer, basic, apikey), URL filtering, timeouts, and rate limiting. |
 | `calendar` | Read, create, and manage calendar events via Google Calendar API. |
 | `clarify` | Send clarification questions to the user with optional numbered choices. Zero permissions — always registered. |
-| `compactContext` | Reduce conversation context when LLM context length is exceeded. Tiered retention: retain recent, summarize older, drop oldest. |
 | `cronJob` | Manage scheduled cron jobs — create, list, update, pause, resume, run, remove. Persisted to `memory/schedules/`. Available to the orchestrator agent. |
 | `createSkill` | Create a spec-compliant skill directory with SKILL.md YAML frontmatter. Optionally scaffolds a `scripts/` directory. |
 | `data` | Format conversion between JSON, YAML, and CSV. |
@@ -543,7 +538,6 @@ All built-in tools are defined in `src/tools/` and registered as LangChain tools
 | `generateImage` | Generate images via FAL.ai flux/klein API. |
 | `json` | JSON parse, serialize, transform, filter, and access operations. |
 | `memory` | Persistent key-value memory with CRUD actions (create, read, update, delete, list). Each entry stored as `.md` in `memory/context/` with `createdDate`/`updatedDate` metadata. |
-| `mixtureOfAgents` | Multi-agent orchestration via OpenRouter. Calls 4 reference prompts (factual, practical, creative, cautious) and synthesizes a consensus response. |
 | `generatePdf` | Generate PDFs from HTML or markdown, or manipulate existing PDFs (merge, split, watermark, signature, annotate). Use action to specify the operation. |
 | `process` | Execute shell commands and manage background processes. Actions: start (launch command), list (show all), log (read stdout/stderr), wait (wait for exit), kill (SIGTERM/SIGKILL), write (send stdin data), pause (SIGSTOP), resume (SIGCONT). |
 | `sampling` | Capture emotional moments as ephemeral memories. Rate-limited to 1 per 60 minutes. Stored with `expiresAt` frontmatter. |
@@ -551,7 +545,6 @@ All built-in tools are defined in `src/tools/` and registered as LangChain tools
 | `searchSession` | Search past conversations by keyword query, full retrieval by conversation ID, or browse all sessions. |
 | `spreadsheet` | Spreadsheet computation and analysis. Actions: compute (sum, average, count, min, max, formula, median, stddev, variance), generate (create XLSX with formulas), analyze (pivot tables, filtering, groupBy, stats, percentile), csvImport, csvExport, modify (add/modify/delete cells and sheets), export (XLSX, CSV, JSON). |
 | `textToSpeech` | Convert text to speech via OpenAI TTS (tts-1/tts-1-hd). Saves MP3 to `~/voice-memos/`. |
-| `analyzeVision` | Analyze images via OpenAI multimodal LLM. Accepts URL or base64 data URI. |
 | `extractWeb` | Extract readable text content from a web page URL. Supports summarization for large pages. |
 | `searchWeb` | Search the web via DuckDuckGo, Google, Bing, SearXNG, or Custom endpoints. |
 | `webhook` | Webhook CRUD and HMAC verification with URL validation. |
@@ -571,11 +564,11 @@ Built-in tools are registered only when their required permissions are enabled f
 
 | Permission Required                 | Tools                                                                      |
 | ----------------------------------- | -------------------------------------------------------------------------- |
-| `filesystem:read`                   | `searchCode`, `compactContext`, `json`, `scanAgents`, `searchSession`, `yaml`, `data` |
+| `filesystem:read`                   | `searchCode`, `json`, `scanAgents`, `searchSession`, `yaml`, `data` |
 | `filesystem:write`                  | `clarify`, `createSkill`, `memory`, `sampling`                             |
 | `filesystem:exec` + `process:spawn` | `process`                                                                  |
-| `network:outbound`                  | `api`, `cronJob`, `graphql`, `generateImage`, `mixtureOfAgents`, `extractWeb`, `searchWeb`, `email`, `calendar`, `webhook`   |
-| _(none)_                            | `date`, `textToSpeech`, `analyzeVision`                                    |
+| `network:outbound`                  | `api`, `cronJob`, `graphql`, `generateImage`, `extractWeb`, `searchWeb`, `email`, `calendar`, `webhook`   |
+| _(none)_                            | `date`, `textToSpeech`                                                    |
 | `filesystem:read` + `filesystem:write` + `network:outbound` | `generatePdf` |
 | `filesystem:read` + `filesystem:write` | `indexCode`, `spreadsheet` |
 
