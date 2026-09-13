@@ -165,6 +165,7 @@ tui:
   name: madz
   renderWindow: 100
   showToolResults: false
+  segmentBlockTimeout: 250
 agent:
   recursionLimit: 1000
   autoContinueLimit: 1000

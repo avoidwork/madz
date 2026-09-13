@@ -167,17 +167,26 @@ export const MessageList = React.memo(
 				const existing = dataRef.current.get(id);
 				if (existing) {
 					// Handle segment append/coalesce: if updates contains a new segment,
-					// coalesce with the last segment if same type, unless newBlock is set.
+					// coalesce with the last segment of the SAME type (which may not be
+					// the last segment overall when reasoning interleaves with message).
+					// An explicit newBlock flag forces a fresh segment regardless of type.
 					if (updates.segments && existing.segments) {
 						const newSeg = updates.segments[updates.segments.length - 1];
 						const mergedSegments = existing.segments.map((s) => ({ ...s }));
-						const lastSeg = mergedSegments[mergedSegments.length - 1];
-						// Honor an explicit newBlock flag — force a new segment regardless
-						// of type. Otherwise coalesce with the last segment if same type.
-						if (updates.newBlock || !lastSeg || lastSeg.type !== newSeg.type) {
-							mergedSegments.push({ ...newSeg });
+						let target = null;
+						if (!updates.newBlock) {
+							// Find the last segment matching the incoming type
+							for (let i = mergedSegments.length - 1; i >= 0; i--) {
+								if (mergedSegments[i].type === newSeg.type) {
+									target = mergedSegments[i];
+									break;
+								}
+							}
+						}
+						if (target) {
+							target.content += newSeg.content;
 						} else {
-							lastSeg.content += newSeg.content;
+							mergedSegments.push({ ...newSeg });
 						}
 						dataRef.current.set(id, { ...existing, ...updates, segments: mergedSegments });
 					} else {

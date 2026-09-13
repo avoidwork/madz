@@ -61,8 +61,14 @@ const ConversationArea = forwardRef(function ConversationArea(
 	const tokenCacheRef = useRef({ content: "", tokens: 0 });
 	const contextUpdateTimerRef = useRef(null);
 	const pendingContextRef = useRef({ content: "" });
-	const pendingNewBlockRef = useRef(false);
-	const reasoningBlockTimerRef = useRef(null);
+	// Per-type block tracking — each type (message, reasoning) keeps a ref to its
+	// last block's content and arrival time. A new block is created when: no block
+	// of this type exists yet (first segment), the stream paused (now - last.time
+	// > segmentBlockTimeout), or the last block ended with a sentence boundary.
+	// Otherwise the segment appends to the last block of its type, even across
+	// interleaved reasoning/message segments.
+	const lastSegmentRefs = useRef({ message: null, reasoning: null });
+	const segmentBlockTimeout = config?.tui?.segmentBlockTimeout ?? 250;
 
 	const skillList = registry ? registry.list() : [];
 	const parser = new CommandParser();
@@ -631,25 +637,17 @@ const ConversationArea = forwardRef(function ConversationArea(
 				}, 33);
 			};
 
-			// Reasoning block debounce — when a reasoning chunk ends with a
-			// sentence boundary (.?!), start a 250ms timer. If the next reasoning
-			// chunk arrives before the timer fires, it appends to the current
-			// block (even across multiple sentences). If the timer fires first,
-			// the next chunk starts a new block. A message chunk interrupts and
-			// clears the timer.
-			const updateReasoningBlockTimer = (text) => {
-				if (reasoningBlockTimerRef.current) {
-					clearTimeout(reasoningBlockTimerRef.current);
-					reasoningBlockTimerRef.current = null;
-				}
-				if (/[.?!]$/.test(text)) {
-					reasoningBlockTimerRef.current = setTimeout(() => {
-						reasoningBlockTimerRef.current = null;
-						pendingNewBlockRef.current = true;
-					}, 250);
-				} else {
-					pendingNewBlockRef.current = false;
-				}
+			// Decide whether an incoming segment of a given type should start a new
+			// block or append to the last block of that type. A new block is created
+			// when: no block of this type exists yet, the stream paused past the
+			// segmentBlockTimeout, or the last block of this type ended with a
+			// sentence boundary (.!?). Otherwise it appends to the last block of
+			// that type — even if other types interleaved in between.
+			const shouldStartNewBlock = (type) => {
+				const last = lastSegmentRefs.current[type];
+				if (!last) return true;
+				if (Date.now() - last.time > segmentBlockTimeout) return true;
+				return /[.?!]$/.test(last.content);
 			};
 
 			return async (event) => {
@@ -664,13 +662,16 @@ const ConversationArea = forwardRef(function ConversationArea(
 					if (event.type === "message") {
 						const newText = event.data?.text || event.text || "";
 						committedContentRef.current = (committedContentRef.current || "") + newText;
-						if (reasoningBlockTimerRef.current) {
-							clearTimeout(reasoningBlockTimerRef.current);
-							reasoningBlockTimerRef.current = null;
+						const newBlock = shouldStartNewBlock("message");
+						if (!newBlock) {
+							lastSegmentRefs.current.message.content += newText;
+							lastSegmentRefs.current.message.time = Date.now();
+						} else {
+							lastSegmentRefs.current.message = { content: newText, time: Date.now() };
 						}
-						pendingNewBlockRef.current = false;
 						messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
 							segments: [{ type: "message", content: newText }],
+							newBlock,
 							content: committedContentRef.current,
 							streaming: true,
 						});
@@ -683,15 +684,19 @@ const ConversationArea = forwardRef(function ConversationArea(
 						const reasoningText = event.data?.text || event.text || "";
 						if (reasoningText) {
 							committedReasoningRef.current = (committedReasoningRef.current || "") + reasoningText;
-							const newBlock = pendingNewBlockRef.current;
-							pendingNewBlockRef.current = false;
+							const newBlock = shouldStartNewBlock("reasoning");
+							if (!newBlock) {
+								lastSegmentRefs.current.reasoning.content += reasoningText;
+								lastSegmentRefs.current.reasoning.time = Date.now();
+							} else {
+								lastSegmentRefs.current.reasoning = { content: reasoningText, time: Date.now() };
+							}
 							messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
 								segments: [{ type: "reasoning", content: reasoningText }],
 								newBlock,
 								streaming: true,
 							});
 							messageListRef.current?._triggerRender();
-							updateReasoningBlockTimer(reasoningText);
 						}
 					}
 
@@ -699,13 +704,16 @@ const ConversationArea = forwardRef(function ConversationArea(
 						if (event.data?.chunk?.content) {
 							const chunkContent = event.data.chunk.content;
 							committedContentRef.current = (committedContentRef.current || "") + chunkContent;
-							if (reasoningBlockTimerRef.current) {
-								clearTimeout(reasoningBlockTimerRef.current);
-								reasoningBlockTimerRef.current = null;
+							const newBlock = shouldStartNewBlock("message");
+							if (!newBlock) {
+								lastSegmentRefs.current.message.content += chunkContent;
+								lastSegmentRefs.current.message.time = Date.now();
+							} else {
+								lastSegmentRefs.current.message = { content: chunkContent, time: Date.now() };
 							}
-							pendingNewBlockRef.current = false;
 							messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
 								segments: [{ type: "message", content: chunkContent }],
+								newBlock,
 								content: committedContentRef.current,
 								streaming: true,
 							});
@@ -716,15 +724,19 @@ const ConversationArea = forwardRef(function ConversationArea(
 							const reasoningChunk = event.data.chunk.reasoning;
 							committedReasoningRef.current =
 								(committedReasoningRef.current || "") + reasoningChunk;
-							const newBlock = pendingNewBlockRef.current;
-							pendingNewBlockRef.current = false;
+							const newBlock = shouldStartNewBlock("reasoning");
+							if (!newBlock) {
+								lastSegmentRefs.current.reasoning.content += reasoningChunk;
+								lastSegmentRefs.current.reasoning.time = Date.now();
+							} else {
+								lastSegmentRefs.current.reasoning = { content: reasoningChunk, time: Date.now() };
+							}
 							messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
 								segments: [{ type: "reasoning", content: reasoningChunk }],
 								newBlock,
 								streaming: true,
 							});
 							messageListRef.current?._triggerRender();
-							updateReasoningBlockTimer(reasoningChunk);
 						}
 					}
 
@@ -782,11 +794,8 @@ const ConversationArea = forwardRef(function ConversationArea(
 		turnStartTime = 0,
 		completedToolCalls = [],
 	) => {
-		if (reasoningBlockTimerRef.current) {
-			clearTimeout(reasoningBlockTimerRef.current);
-			reasoningBlockTimerRef.current = null;
-		}
-		pendingNewBlockRef.current = false;
+		// Reset per-type block tracking so the next stream starts fresh
+		lastSegmentRefs.current = { message: null, reasoning: null };
 		const elapsed = turnStartTime ? Date.now() - turnStartTime : 0;
 		const updates = {
 			content: responseContent,

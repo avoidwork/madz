@@ -61,11 +61,19 @@ function createImperativeApi() {
 				if (updates.segments && existing.segments) {
 					const newSeg = updates.segments[updates.segments.length - 1];
 					const mergedSegments = existing.segments.map((s) => ({ ...s }));
-					const lastSeg = mergedSegments[mergedSegments.length - 1];
-					if (updates.newBlock || !lastSeg || lastSeg.type !== newSeg.type) {
-						mergedSegments.push({ ...newSeg });
+					let target = null;
+					if (!updates.newBlock) {
+						for (let i = mergedSegments.length - 1; i >= 0; i--) {
+							if (mergedSegments[i].type === newSeg.type) {
+								target = mergedSegments[i];
+								break;
+							}
+						}
+					}
+					if (target) {
+						target.content += newSeg.content;
 					} else {
-						lastSeg.content += newSeg.content;
+						mergedSegments.push({ ...newSeg });
 					}
 					dataRef.current.set(id, { ...existing, ...updates, segments: mergedSegments });
 				} else {
@@ -277,6 +285,25 @@ describe("MessageList — imperative API", () => {
 			assert.strictEqual(data.segments.length, 2);
 			assert.strictEqual(data.segments[0].content, "thinking");
 			assert.strictEqual(data.segments[1].content, " deeper");
+		});
+
+		it("coalesces same-type segments across an interleaved reasoning gap", () => {
+			const id = api.addMessage("assistant", "", {
+				segments: [{ type: "message", content: "The answer is" }],
+			});
+			// Reasoning interleaves between two message segments
+			api.updateMessage(id, {
+				segments: [{ type: "reasoning", content: "…" }],
+			});
+			api.updateMessage(id, {
+				segments: [{ type: "message", content: " 42" }],
+			});
+			const data = api.getMessageData(id);
+			assert.strictEqual(data.segments.length, 2);
+			assert.strictEqual(data.segments[0].type, "message");
+			assert.strictEqual(data.segments[0].content, "The answer is 42");
+			assert.strictEqual(data.segments[1].type, "reasoning");
+			assert.strictEqual(data.segments[1].content, "…");
 		});
 
 		it("coalesces same-type segments when newBlock is not set", () => {
