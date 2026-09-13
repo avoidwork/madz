@@ -273,7 +273,7 @@ describe("MessageList — imperative API", () => {
 			assert.strictEqual(data.segments[0].content, "thinking.");
 		});
 
-		it("creates new reasoning segment for '.' when last segment is a different type and gap exceeds timeout", () => {
+		it("drops a trivial '.' reasoning segment (noise) regardless of gap", () => {
 			const id = api.addMessage("assistant", "", {
 				segments: [
 					{ type: "reasoning", content: "thinking", time: 1000 },
@@ -284,13 +284,11 @@ describe("MessageList — imperative API", () => {
 				segments: [{ type: "reasoning", content: ".", time: 2000 }],
 			});
 			const data = api.getMessageData(id);
-			assert.strictEqual(data.segments.length, 3);
+			assert.strictEqual(data.segments.length, 2);
 			assert.strictEqual(data.segments[0].type, "reasoning");
 			assert.strictEqual(data.segments[0].content, "thinking");
 			assert.strictEqual(data.segments[1].type, "message");
 			assert.strictEqual(data.segments[1].content, "Hello");
-			assert.strictEqual(data.segments[2].type, "reasoning");
-			assert.strictEqual(data.segments[2].content, ".");
 		});
 
 		it("appends message to last message segment when no punctuation and within timeout", () => {

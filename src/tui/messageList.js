@@ -10,7 +10,7 @@ import { logger } from "../shared/logger.js";
  * new blocks ~650ms). Instrumented via logger.debug to tune against real data.
  * @type {number}
  */
-export const SEGMENT_COALESCE_TIMEOUT_MS = 250;
+export const SEGMENT_COALESCE_TIMEOUT_MS = 500;
 
 /**
  * Sentence-ending punctuation that terminates a message anchor, forcing a new
@@ -18,6 +18,17 @@ export const SEGMENT_COALESCE_TIMEOUT_MS = 250;
  * @type {string}
  */
 const SENTENCE_END_PUNCTUATION = ".!?";
+
+/**
+ * A reasoning segment is "trivial" (noise) if it contains no alphanumeric
+ * content — e.g., a bare period or whitespace fragment like `💭 .`. Such
+ * segments are dropped rather than rendered as a visible thinking line.
+ * @param {string} content - Segment content
+ * @returns {boolean} True if the segment has no alphanumeric content
+ */
+function isTrivialReasoning(content) {
+	return !/[a-zA-Z0-9]/.test(content);
+}
 
 /**
  * Coalesce an incoming streaming segment into an existing ordered segment list.
@@ -42,6 +53,19 @@ export function coalesceSegments(
 ) {
 	const merged = existingSegments.map((s) => ({ ...s }));
 	const lastSeg = merged[merged.length - 1];
+
+	// Drop trivial reasoning segments (no alphanumeric content) when they are
+	// standalone fragments — noise like a bare period or whitespace blip between
+	// message chunks should not render as a thinking line. If the last segment is
+	// already reasoning, a trivial chunk is a legitimate continuation (e.g., the
+	// period ending a thought) and is appended below.
+	if (
+		newSegment.type === "reasoning" &&
+		isTrivialReasoning(newSegment.content) &&
+		lastSeg?.type !== "reasoning"
+	) {
+		return { segments: merged, gap: null };
+	}
 
 	if (!lastSeg) {
 		return { segments: [...merged, { ...newSegment }], gap: null };
