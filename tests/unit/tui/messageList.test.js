@@ -8,7 +8,6 @@ import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert";
 import React from "react";
 import { renderToString } from "ink";
-import { coalesceSegments } from "../../../src/tui/messageList.js";
 
 /**
  * Simulate the MessageList imperative API logic in isolation.
@@ -61,8 +60,23 @@ function createImperativeApi() {
 				// Segment append/coalesce — mirrors the real implementation
 				if (updates.segments && existing.segments) {
 					const newSeg = updates.segments[updates.segments.length - 1];
-					const { segments: mergedSegments } = coalesceSegments(existing.segments, newSeg);
-					dataRef.current.set(id, { ...existing, ...updates, segments: mergedSegments });
+					const mergedSegments = existing.segments.map((s) => ({ ...s }));
+					const lastSeg = mergedSegments[mergedSegments.length - 1];
+					// Drop trivial reasoning noise (no alphanumeric content) unless it
+					// continues existing reasoning.
+					if (
+						newSeg.type === "reasoning" &&
+						!/[a-zA-Z0-9]/.test(newSeg.content) &&
+						lastSeg?.type !== "reasoning"
+					) {
+						dataRef.current.set(id, { ...existing, ...updates, segments: mergedSegments });
+					} else if (lastSeg && lastSeg.type === newSeg.type) {
+						lastSeg.content += newSeg.content;
+						dataRef.current.set(id, { ...existing, ...updates, segments: mergedSegments });
+					} else {
+						mergedSegments.push({ ...newSeg });
+						dataRef.current.set(id, { ...existing, ...updates, segments: mergedSegments });
+					}
 				} else {
 					dataRef.current.set(id, { ...existing, ...updates });
 				}
@@ -291,7 +305,7 @@ describe("MessageList — imperative API", () => {
 			assert.strictEqual(data.segments[1].content, "Hello");
 		});
 
-		it("appends message to last message segment across a reasoning gap", () => {
+		it("pushes a new message segment when the last segment is reasoning (mingled)", () => {
 			const id = api.addMessage("assistant", "", {
 				segments: [
 					{ type: "message", content: "The answer is" },
@@ -302,28 +316,14 @@ describe("MessageList — imperative API", () => {
 				segments: [{ type: "message", content: " 42" }],
 			});
 			const data = api.getMessageData(id);
-			assert.strictEqual(data.segments.length, 2);
-			assert.strictEqual(data.segments[0].content, "The answer is 42");
+			assert.strictEqual(data.segments.length, 3);
+			assert.strictEqual(data.segments[0].content, "The answer is");
 			assert.strictEqual(data.segments[1].type, "reasoning");
+			assert.strictEqual(data.segments[2].type, "message");
+			assert.strictEqual(data.segments[2].content, " 42");
 		});
 
-		it("appends message even when the last message anchor ends with punctuation", () => {
-			const id = api.addMessage("assistant", "", {
-				segments: [
-					{ type: "message", content: "The answer is 42." },
-					{ type: "reasoning", content: "thinking" },
-				],
-			});
-			api.updateMessage(id, {
-				segments: [{ type: "message", content: " Next" }],
-			});
-			const data = api.getMessageData(id);
-			assert.strictEqual(data.segments.length, 2);
-			assert.strictEqual(data.segments[0].content, "The answer is 42. Next");
-			assert.strictEqual(data.segments[1].type, "reasoning");
-		});
-
-		it("appends reasoning to last reasoning segment across a message gap", () => {
+		it("pushes a new reasoning segment when the last segment is message (mingled)", () => {
 			const id = api.addMessage("assistant", "", {
 				segments: [
 					{ type: "reasoning", content: "thinking" },
@@ -334,9 +334,23 @@ describe("MessageList — imperative API", () => {
 				segments: [{ type: "reasoning", content: " more" }],
 			});
 			const data = api.getMessageData(id);
-			assert.strictEqual(data.segments.length, 2);
-			assert.strictEqual(data.segments[0].content, "thinking more");
+			assert.strictEqual(data.segments.length, 3);
+			assert.strictEqual(data.segments[0].content, "thinking");
 			assert.strictEqual(data.segments[1].type, "message");
+			assert.strictEqual(data.segments[2].type, "reasoning");
+			assert.strictEqual(data.segments[2].content, " more");
+		});
+
+		it("appends a trivial '.' reasoning chunk when the last segment is reasoning", () => {
+			const id = api.addMessage("assistant", "", {
+				segments: [{ type: "reasoning", content: "thinking" }],
+			});
+			api.updateMessage(id, {
+				segments: [{ type: "reasoning", content: "." }],
+			});
+			const data = api.getMessageData(id);
+			assert.strictEqual(data.segments.length, 1);
+			assert.strictEqual(data.segments[0].content, "thinking.");
 		});
 	});
 

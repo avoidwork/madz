@@ -7,33 +7,29 @@ Behavior of how streaming messages are received and coalesced into segments.
 Streaming events arrive as a sequence of segments, each of `type` `message` or
 `reasoning`. The TUI coalesces them into ordered segments per message bubble.
 
-Current coalescing rule (in `src/tui/messageList.js` `updateMessage`):
+The coalescing rule (in `src/tui/messageList.js` `updateMessage`) is type-based:
 - If the last segment has the same `type` as the incoming segment → **append** content.
 - Otherwise → **push** a new segment.
 
-No timing-based logic exists yet.
+This produces **mingled rendering**: reasoning blocks appear inline between
+message chunks as they arrive, preserving the interleaved order of the stream.
+This is intentional for long-running responses where reasoning and message
+content alternate over time.
 
-> **Note:** The `500ms` timeout in the Desired Behavior table is **provisional**. It was chosen from a simulation of synthetic gap distributions (continuations ~80ms, new blocks ~650ms). The ranking of the rules is robust, but the optimal timeout is sensitive to the real gap distribution. Instrument the live stream to log actual gaps between segments, then tune the timeout against measured data.
+The only filtering applied is dropping **trivial reasoning noise** — a reasoning
+segment with no alphanumeric content (e.g., a bare `.` or `""` fragment) is
+dropped rather than rendered as a visible `💭 .` thinking line. A trivial chunk
+that continues existing reasoning (e.g., the period ending a thought) is still
+appended.
 
-## Current Behavior
+## Behavior
 
-| type | append | previous segment | current segment | result |
-|------|--------|------------------|-----------------|--------|
-| message | yes | message | message | Append content to last message segment |
-| message | no | reasoning | message | Push new message segment (new block) |
-| message | no | (none) | message | Push new message segment (first block) |
-| reasoning | yes | reasoning | reasoning | Append content to last reasoning segment |
-| reasoning | no | message | reasoning | Push new reasoning segment (new block) |
-| reasoning | no | (none) | reasoning | Push new reasoning segment (first block) |
-
-## Desired Behavior
-
-| type | append | previous segment | current segment | result |
-|------|--------|------------------|-----------------|--------|
-| message | yes | message | message | Append content to last message segment |
-| message | maybe | reasoning | message | Append to last message segment if it exists, doesn't end with sentence-ending punctuation (`.`, `!`, `?`), and arrived within 500ms of the last message segment; otherwise push a new message segment (new block) |
-| message | no | (none) | message | Push new message segment (first block) |
-| reasoning | yes | reasoning | reasoning | Append content to last reasoning segment |
-| reasoning | maybe | message | reasoning | Append to last reasoning segment if one exists and arrived within 500ms of the last reasoning segment; otherwise push a new reasoning segment (new block) |
-| reasoning | no | (none) | reasoning | Push new reasoning segment (first block) |
-| reasoning | no | (any) | reasoning (trivial) | Drop segment — no alphanumeric content (bare punctuation/whitespace, e.g., `💭 .`) |
+| type | previous segment | current segment | result |
+|------|------------------|-----------------|--------|
+| message | message | message | Append content to last message segment |
+| message | reasoning | message | Push new message segment (new block) |
+| message | (none) | message | Push new message segment (first block) |
+| reasoning | reasoning | reasoning | Append content to last reasoning segment |
+| reasoning | message | reasoning | Push new reasoning segment (new block) |
+| reasoning | (none) | reasoning | Push new reasoning segment (first block) |
+| reasoning | (any) | reasoning (trivial) | Drop segment — no alphanumeric content (bare punctuation/whitespace, e.g., `💭 .`) |

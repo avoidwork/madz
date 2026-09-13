@@ -4,68 +4,6 @@ import { ScrollView } from "ink-scroll-view";
 import { MessageBubble, PubSubContext, ScrollContext } from "./messageBubble.js";
 
 /**
- * A reasoning segment is "trivial" (noise) if it contains no alphanumeric
- * content — e.g., a bare period or whitespace fragment like `💭 .`. Such
- * segments are dropped rather than rendered as a visible thinking line.
- * @param {string} content - Segment content
- * @returns {boolean} True if the segment has no alphanumeric content
- */
-function isTrivialReasoning(content) {
-	return !/[a-zA-Z0-9]/.test(content);
-}
-
-/**
- * Coalesce an incoming streaming segment into an existing ordered segment list.
- *
- * All segments within a single streaming response belong to the same message,
- * so message chunks always coalesce into one continuous message segment and
- * reasoning chunks always coalesce into one reasoning segment. The only
- * filtering applied is dropping trivial reasoning noise (no alphanumeric
- * content, e.g., a bare `💭 .` fragment).
- *
- * @param {Array<{type: string, content: string}>} existingSegments - Accumulated segments
- * @param {{type: string, content: string}} newSegment - Incoming segment
- * @returns {{segments: Array<{type: string, content: string}>}} Merged segments
- */
-export function coalesceSegments(existingSegments, newSegment) {
-	const merged = existingSegments.map((s) => ({ ...s }));
-	const lastSeg = merged[merged.length - 1];
-
-	// Drop trivial reasoning noise (no alphanumeric content) unless it's a
-	// continuation of existing reasoning (e.g., the period ending a thought).
-	if (
-		newSegment.type === "reasoning" &&
-		isTrivialReasoning(newSegment.content) &&
-		lastSeg?.type !== "reasoning"
-	) {
-		return { segments: merged };
-	}
-
-	if (!lastSeg) {
-		return { segments: [...merged, { ...newSegment }] };
-	}
-
-	// Same type → append to the last segment.
-	if (lastSeg.type === newSegment.type) {
-		lastSeg.content += newSegment.content;
-		return { segments: merged };
-	}
-
-	// Cross-type transition → append to the last segment of the incoming type.
-	// Within a single response, message chunks and reasoning chunks each belong
-	// to one continuous block, so we append rather than push a new block.
-	const lastOfType = merged.findLastIndex((s) => s.type === newSegment.type);
-	if (lastOfType >= 0) {
-		merged[lastOfType].content += newSegment.content;
-		return { segments: merged };
-	}
-
-	// No existing segment of this type → push a new one.
-	merged.push({ ...newSegment });
-	return { segments: merged };
-}
-
-/**
  * Pub/Sub wrapper component for MessageList children.
  * Supplies subscribe/unsubscribe/publish methods from MessageList via context.
  * @param {Object} props
@@ -229,11 +167,26 @@ export const MessageList = React.memo(
 				const existing = dataRef.current.get(id);
 				if (existing) {
 					// Handle segment append/coalesce: if updates contains a new segment,
-					// coalesce it into the existing segment list.
+					// coalesce with the last segment if same type, otherwise push.
 					if (updates.segments && existing.segments) {
 						const newSeg = updates.segments[updates.segments.length - 1];
-						const { segments: mergedSegments } = coalesceSegments(existing.segments, newSeg);
-						dataRef.current.set(id, { ...existing, ...updates, segments: mergedSegments });
+						const mergedSegments = existing.segments.map((s) => ({ ...s }));
+						const lastSeg = mergedSegments[mergedSegments.length - 1];
+						// Drop trivial reasoning noise (no alphanumeric content, e.g., a
+						// bare "." or "" fragment) unless it continues existing reasoning.
+						if (
+							newSeg.type === "reasoning" &&
+							!/[a-zA-Z0-9]/.test(newSeg.content) &&
+							lastSeg?.type !== "reasoning"
+						) {
+							dataRef.current.set(id, { ...existing, ...updates, segments: mergedSegments });
+						} else if (lastSeg && lastSeg.type === newSeg.type) {
+							lastSeg.content += newSeg.content;
+							dataRef.current.set(id, { ...existing, ...updates, segments: mergedSegments });
+						} else {
+							mergedSegments.push({ ...newSeg });
+							dataRef.current.set(id, { ...existing, ...updates, segments: mergedSegments });
+						}
 					} else {
 						dataRef.current.set(id, { ...existing, ...updates });
 					}
