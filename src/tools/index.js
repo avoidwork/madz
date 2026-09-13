@@ -16,7 +16,7 @@ import { email } from "./email/tools.js";
 import { spreadsheet } from "./spreadsheet/index.js";
 import { calendar } from "./calendar/index.js";
 import { generatePdfTool } from "./pdf/index.js";
-import { namecom } from "./namecom/index.js";
+import { namecom } from "./dns/index.js";
 import { generatePptxTool } from "./pptx/index.js";
 import { createApiTool } from "./api/index.js";
 import { createGraphqlTool } from "./graphql/index.js";
