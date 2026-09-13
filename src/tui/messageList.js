@@ -174,36 +174,25 @@ export const MessageList = React.memo(
 					if (updates.segments && existing.segments) {
 						const newSeg = updates.segments[updates.segments.length - 1];
 						const mergedSegments = existing.segments.map((s) => ({ ...s }));
-						if (newSeg.type === "reasoning") {
-							// Find the last reasoning segment
-							let lastReasoning = null;
-							for (let i = mergedSegments.length - 1; i >= 0; i--) {
-								if (mergedSegments[i].type === "reasoning") {
-									lastReasoning = mergedSegments[i];
-									break;
-								}
-							}
-							// If the last reasoning segment ends with "." and the new
-							// content starts with a capital letter, it's a new block
-							// (grammatically a new sentence). Otherwise coalesce.
+						const lastSeg = mergedSegments[mergedSegments.length - 1];
+						// Track the last type received: a new segment only appends when
+						// its type matches the last segment's type. A type mismatch
+						// (e.g., message after reasoning) forces a new block.
+						if (lastSeg && lastSeg.type === newSeg.type) {
+							// Same type — for reasoning, apply the grammatical
+							// sentence-boundary check: a period followed by a capital
+							// letter starts a new block.
 							if (
-								lastReasoning &&
-								lastReasoning.content.endsWith(".") &&
+								newSeg.type === "reasoning" &&
+								lastSeg.content.endsWith(".") &&
 								/^[A-Z]/.test(newSeg.content)
 							) {
 								mergedSegments.push({ ...newSeg });
-							} else if (lastReasoning) {
-								lastReasoning.content += newSeg.content;
 							} else {
-								mergedSegments.push({ ...newSeg });
+								lastSeg.content += newSeg.content;
 							}
 						} else {
-							const lastSeg = mergedSegments[mergedSegments.length - 1];
-							if (lastSeg && lastSeg.type === newSeg.type) {
-								lastSeg.content += newSeg.content;
-							} else {
-								mergedSegments.push({ ...newSeg });
-							}
+							mergedSegments.push({ ...newSeg });
 						}
 						dataRef.current.set(id, { ...existing, ...updates, segments: mergedSegments });
 					} else {
