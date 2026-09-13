@@ -254,12 +254,8 @@ describe("Agent Definitions", () => {
 			ok(doc.systemPrompt.includes("textToSpeech"), "Doc agent should reference textToSpeech");
 		});
 
-		it("coding agent should reference correct tools (analyzeVision, scanAgents)", () => {
+		it("coding agent should reference correct tools (scanAgents)", () => {
 			const coding = ALL_AGENTS.find((a) => a.name === "coding");
-			ok(
-				coding.systemPrompt.includes("analyzeVision"),
-				"Coding agent should reference analyzeVision",
-			);
 			ok(coding.systemPrompt.includes("scanAgents"), "Coding agent should reference scanAgents");
 		});
 	});

@@ -1,17 +1,14 @@
 import { clarify } from "./clarify/index.js";
-import { createCompactContextTool } from "./compactContext/index.js";
 import { cronJob } from "./cron/index.js";
 import { date } from "./date/index.js";
 import { scanAgents } from "./scanAgents/index.js";
 import { generateImage } from "./image/index.js";
 import { memory } from "./memory/index.js";
-import { mixtureOfAgents } from "./moa/index.js";
 import { sampling } from "./sampling/index.js";
 import { searchSession } from "./session/index.js";
 import { processTool } from "./process/index.js";
 import { createSkill } from "./skills/index.js";
 import { textToSpeech } from "./tts/index.js";
-import { analyzeVision } from "./vision/index.js";
 import { searchWeb, extractWeb } from "./web/index.js";
 import { docxTool, pdfTool, pptxTool, xlsxTool } from "./fileExtract/index.js";
 import { reflectionSessions } from "./reflection/index.js";
@@ -37,19 +34,16 @@ import { getConfig } from "./config/index.js";
  */
 export const TOOL_PERMISSIONS = {
 	clarify: ["filesystem:read", "filesystem:write"],
-	compactContext: ["filesystem:read"],
 	cronJob: ["network:outbound"],
 	createSkill: ["filesystem:write"],
 	date: [],
 	generateImage: ["network:outbound"],
 	memory: ["filesystem:read", "filesystem:write"],
-	mixtureOfAgents: ["network:outbound"],
 	process: ["filesystem:exec", "process:spawn"],
 	sampling: ["filesystem:write"],
 	scanAgents: ["filesystem:read"],
 	searchSession: ["filesystem:read"],
 	textToSpeech: [],
-	analyzeVision: [],
 	extractWeb: ["network:outbound"],
 	searchWeb: ["network:outbound"],
 	docx: ["filesystem:read"],
@@ -91,7 +85,6 @@ export const TOOL_CLASSIFICATIONS = {
 		"performance",
 		"coding",
 	],
-	compactContext: ["debug", "code-review", "research", "coding"],
 	cronJob: ["orchestrator", "security-audit", "performance"],
 	createSkill: ["documentation"],
 	date: [
@@ -117,13 +110,11 @@ export const TOOL_CLASSIFICATIONS = {
 		"performance",
 		"coding",
 	],
-	mixtureOfAgents: ["research"],
 	process: ["debug", "performance", "coding"],
 	sampling: ["documentation"],
 	scanAgents: ["security-audit", "code-review", "coding"],
 	searchSession: ["search", "research"],
 	textToSpeech: ["documentation"],
-	analyzeVision: ["code-review", "testing", "coding"],
 	extractWeb: ["search", "research", "coding"],
 	searchWeb: ["search", "research", "coding"],
 	docx: ["search", "research", "coding", "documentation", "debug"],
@@ -191,7 +182,6 @@ export function getToolsForAgentTypes(agentTypes, tools) {
  */
 export const ORCHESTRATOR_TOOLS = [
 	"clarify",
-	"compactContext",
 	"cronJob",
 	"date",
 	"memory",
@@ -211,19 +201,16 @@ export const ORCHESTRATOR_TOOLS = [
 // Tool instances keyed by tool name
 export const TOOLS = {
 	clarify,
-	compactContext: createCompactContextTool,
 	cronJob,
 	createSkill,
 	date,
 	generateImage,
 	memory,
-	mixtureOfAgents,
 	process: processTool,
 	sampling,
 	scanAgents,
 	searchSession,
 	textToSpeech,
-	analyzeVision,
 	extractWeb,
 	searchWeb,
 	docx: docxTool,
@@ -283,16 +270,13 @@ export async function buildToolConfig(options) {
 		ephemeralTtlDays = 7,
 		ephemeralMaxEntries = 10,
 		config,
-		checkpointer,
 	} = options;
 
 	// Extract resolved API keys from config fallback
 	const providers = config?.providers || {};
 	const providersOpenAI = providers?.openai || {};
-	const providersOpenRouter = providers?.openrouter || {};
 	const providersFal = providers?.fal || {};
 	const credentials = providersOpenAI?.credentials || {};
-	const openrouterCredentials = providersOpenRouter?.credentials || {};
 	const falCredentials = providersFal?.credentials || {};
 
 	const search = config?.search || {};
@@ -319,7 +303,6 @@ export async function buildToolConfig(options) {
 		ephemeralMaxEntries,
 		// Resolved provider API keys from config (env var resolved values)
 		openaiApiKey: credentials?.apiKey,
-		openrouterApiKey: openrouterCredentials?.apiKey,
 		falApiKey: falCredentials?.apiKey,
 		// Resolved search backend configs from config
 		searchExaApiKey: searchExa?.apiKey,
@@ -352,12 +335,6 @@ export async function buildToolConfig(options) {
 				continue;
 			}
 
-			case "compactContext": {
-				if (!hasAllPerms) continue;
-				tools.push(createCompactContextTool({ checkpointer }));
-				continue;
-			}
-
 			case "readFile":
 			case "writeFile":
 			case "patch":
@@ -387,22 +364,14 @@ export async function buildToolConfig(options) {
 				continue;
 			}
 
-			case "analyzeVision": {
-				if (!runtimeOptions.openaiApiKey) continue;
-				tools.push(TOOLS[toolName]);
-				continue;
-			}
-
 			case "generateImage": {
 				if (!hasAllPerms || !runtimeOptions.falApiKey) continue;
 				tools.push(TOOLS[toolName]);
 				continue;
 			}
 
-			case "textToSpeech":
-			case "mixtureOfAgents": {
-				if (toolName === "textToSpeech" && !runtimeOptions.openaiApiKey) continue;
-				if (toolName === "mixtureOfAgents" && !runtimeOptions.openrouterApiKey) continue;
+			case "textToSpeech": {
+				if (!runtimeOptions.openaiApiKey) continue;
 				tools.push(TOOLS[toolName]);
 				continue;
 			}

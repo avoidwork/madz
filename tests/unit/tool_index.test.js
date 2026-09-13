@@ -10,15 +10,12 @@ describe("tools - buildToolConfig", () => {
 			"clarify",
 			"searchWeb",
 			"extractWeb",
-			"analyzeVision",
 			"generateImage",
 			"cronJob",
 			"textToSpeech",
-			"mixtureOfAgents",
 			"sampling",
 			"date",
 			"scanAgents",
-			"compactContext",
 			"createSkill",
 			"memory",
 		];
@@ -81,7 +78,7 @@ describe("tools - buildToolConfig", () => {
 		const { buildToolConfig } = await import("../../src/tools/index.js");
 		const tools = await buildToolConfig({ permissions: ["filesystem:read"], maxReadSize: "1mb" });
 		const toolNames = tools.map((t) => t.name);
-		// filesystem:read enables: clarify, sampling, process (exempt), compactContext, scanAgents,
+		// filesystem:read enables: clarify, sampling, process (exempt), scanAgents,
 		// searchSession, date
 		assert.ok(toolNames.includes("clarify"));
 		assert.ok(toolNames.includes("sampling"));
@@ -89,7 +86,6 @@ describe("tools - buildToolConfig", () => {
 		assert.ok(toolNames.includes("date"));
 		assert.ok(toolNames.includes("scanAgents"));
 		assert.ok(toolNames.includes("searchSession"));
-		assert.ok(toolNames.includes("compactContext"));
 	});
 
 	it("returns clarify + filesystem tools when filesystem:read and filesystem:write enabled", async () => {
@@ -127,7 +123,7 @@ describe("tools - buildToolConfig", () => {
 		const toolNames = tools.map((t) => t.name);
 		// Tier 1: 6 tools (terminal, process, searchSession, clarify, scanAgents)
 		// Tier 2: cronJob, sampling, date (no perms or network:outbound)
-		// No API keys: searchWeb/extractWeb/analyzeVision/generateImage/textToSpeech/mixtureOfAgents won't register
+		// No API keys: searchWeb/extractWeb/generateImage/textToSpeech won't register
 		assert.ok(toolNames.length >= 9, "All tier 1 + tier 2 tools should register");
 		assert.ok(toolNames.includes("process"), "process should register");
 		assert.ok(toolNames.includes("cronJob"), "cronJob should register");
@@ -153,7 +149,7 @@ describe("tools - buildToolConfig", () => {
 			maxReadSize: "2mb",
 		});
 		const toolNames = tools.map((t) => t.name);
-		// filesystem:read + filesystem:write + network:outbound enables: clarify, sampling, process (exempt), compactContext, scanAgents,
+		// filesystem:read + filesystem:write + network:outbound enables: clarify, sampling, process (exempt), scanAgents,
 		// searchSession, date, reflectionSessions, docx, pptx, xlsx, pdf, api, graphql, webhook, data, json, yaml
 		assert.ok(toolNames.includes("clarify"));
 		assert.ok(toolNames.includes("sampling"));
