@@ -174,17 +174,23 @@ export const MessageList = React.memo(
 					if (updates.segments && existing.segments) {
 						const newSeg = updates.segments[updates.segments.length - 1];
 						const mergedSegments = existing.segments.map((s) => ({ ...s }));
-						if (newSeg.type === "reasoning" && newSeg.content === ".") {
-							// Find the last reasoning segment and append the "." to it
-							let found = false;
+						if (newSeg.type === "reasoning") {
+							// Find the last reasoning segment
+							let lastReasoning = null;
 							for (let i = mergedSegments.length - 1; i >= 0; i--) {
 								if (mergedSegments[i].type === "reasoning") {
-									mergedSegments[i].content += ".";
-									found = true;
+									lastReasoning = mergedSegments[i];
 									break;
 								}
 							}
-							if (!found) {
+							// If the last reasoning segment ends with "." and the new
+							// content starts with a capital letter, it's a new block
+							// (grammatically a new sentence). Otherwise coalesce.
+							if (lastReasoning && lastReasoning.content.endsWith(".") && /^[A-Z]/.test(newSeg.content)) {
+								mergedSegments.push({ ...newSeg });
+							} else if (lastReasoning) {
+								lastReasoning.content += newSeg.content;
+							} else {
 								mergedSegments.push({ ...newSeg });
 							}
 						} else {
