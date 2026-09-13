@@ -29,6 +29,6 @@ No timing-based logic exists yet.
 | type | append | previous segment | current segment | result |
 |------|--------|------------------|-----------------|--------|
 | message | yes | message | message | Append content to last message segment |
-| message | no | reasoning | message | Push new message segment (new block) |
+| message | no | reasoning | message | Append to last message segment if it exists and doesn't end with sentence-ending punctuation (`.`, `!`, `?`); otherwise push a new message segment (new block) |
 | message | no | (none) | message | Push new message segment (first block) |
 |      |        |                  |                 |        |
