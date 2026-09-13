@@ -186,7 +186,11 @@ export const MessageList = React.memo(
 							// If the last reasoning segment ends with "." and the new
 							// content starts with a capital letter, it's a new block
 							// (grammatically a new sentence). Otherwise coalesce.
-							if (lastReasoning && lastReasoning.content.endsWith(".") && /^[A-Z]/.test(newSeg.content)) {
+							if (
+								lastReasoning &&
+								lastReasoning.content.endsWith(".") &&
+								/^[A-Z]/.test(newSeg.content)
+							) {
 								mergedSegments.push({ ...newSeg });
 							} else if (lastReasoning) {
 								lastReasoning.content += newSeg.content;
