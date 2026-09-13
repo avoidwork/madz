@@ -291,15 +291,15 @@ describe("MessageList — imperative API", () => {
 			assert.strictEqual(data.segments[1].content, "Hello");
 		});
 
-		it("appends message to last message segment when no punctuation and within timeout", () => {
+		it("appends message to last message segment across a reasoning gap", () => {
 			const id = api.addMessage("assistant", "", {
 				segments: [
-					{ type: "message", content: "The answer is", time: 1000 },
-					{ type: "reasoning", content: "thinking", time: 1100 },
+					{ type: "message", content: "The answer is" },
+					{ type: "reasoning", content: "thinking" },
 				],
 			});
 			api.updateMessage(id, {
-				segments: [{ type: "message", content: " 42", time: 1200 }],
+				segments: [{ type: "message", content: " 42" }],
 			});
 			const data = api.getMessageData(id);
 			assert.strictEqual(data.segments.length, 2);
@@ -307,68 +307,36 @@ describe("MessageList — imperative API", () => {
 			assert.strictEqual(data.segments[1].type, "reasoning");
 		});
 
-		it("pushes a new message segment when the last message anchor ends with punctuation", () => {
+		it("appends message even when the last message anchor ends with punctuation", () => {
 			const id = api.addMessage("assistant", "", {
 				segments: [
-					{ type: "message", content: "The answer is 42.", time: 1000 },
-					{ type: "reasoning", content: "thinking", time: 1100 },
+					{ type: "message", content: "The answer is 42." },
+					{ type: "reasoning", content: "thinking" },
 				],
 			});
 			api.updateMessage(id, {
-				segments: [{ type: "message", content: " Next", time: 1200 }],
+				segments: [{ type: "message", content: " Next" }],
 			});
 			const data = api.getMessageData(id);
-			assert.strictEqual(data.segments.length, 3);
-			assert.strictEqual(data.segments[2].type, "message");
-			assert.strictEqual(data.segments[2].content, " Next");
+			assert.strictEqual(data.segments.length, 2);
+			assert.strictEqual(data.segments[0].content, "The answer is 42. Next");
+			assert.strictEqual(data.segments[1].type, "reasoning");
 		});
 
-		it("pushes a new message segment when the gap exceeds the timeout", () => {
+		it("appends reasoning to last reasoning segment across a message gap", () => {
 			const id = api.addMessage("assistant", "", {
 				segments: [
-					{ type: "message", content: "The answer is", time: 1000 },
-					{ type: "reasoning", content: "thinking", time: 1100 },
+					{ type: "reasoning", content: "thinking" },
+					{ type: "message", content: "Hello" },
 				],
 			});
 			api.updateMessage(id, {
-				segments: [{ type: "message", content: " 42", time: 2000 }],
-			});
-			const data = api.getMessageData(id);
-			assert.strictEqual(data.segments.length, 3);
-			assert.strictEqual(data.segments[2].type, "message");
-			assert.strictEqual(data.segments[2].content, " 42");
-		});
-
-		it("appends reasoning to last reasoning segment when within timeout", () => {
-			const id = api.addMessage("assistant", "", {
-				segments: [
-					{ type: "reasoning", content: "thinking", time: 1000 },
-					{ type: "message", content: "Hello", time: 1100 },
-				],
-			});
-			api.updateMessage(id, {
-				segments: [{ type: "reasoning", content: " more", time: 1200 }],
+				segments: [{ type: "reasoning", content: " more" }],
 			});
 			const data = api.getMessageData(id);
 			assert.strictEqual(data.segments.length, 2);
 			assert.strictEqual(data.segments[0].content, "thinking more");
 			assert.strictEqual(data.segments[1].type, "message");
-		});
-
-		it("pushes a new reasoning segment when the gap exceeds the timeout", () => {
-			const id = api.addMessage("assistant", "", {
-				segments: [
-					{ type: "reasoning", content: "thinking", time: 1000 },
-					{ type: "message", content: "Hello", time: 1100 },
-				],
-			});
-			api.updateMessage(id, {
-				segments: [{ type: "reasoning", content: " more", time: 2000 }],
-			});
-			const data = api.getMessageData(id);
-			assert.strictEqual(data.segments.length, 3);
-			assert.strictEqual(data.segments[2].type, "reasoning");
-			assert.strictEqual(data.segments[2].content, " more");
 		});
 	});
 
