@@ -8,6 +8,7 @@ import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert";
 import React from "react";
 import { renderToString } from "ink";
+import { coalesceSegments } from "../../../src/tui/messageList.js";
 
 /**
  * Simulate the MessageList imperative API logic in isolation.
@@ -60,13 +61,7 @@ function createImperativeApi() {
 				// Segment append/coalesce — mirrors the real implementation
 				if (updates.segments && existing.segments) {
 					const newSeg = updates.segments[updates.segments.length - 1];
-					const mergedSegments = existing.segments.map((s) => ({ ...s }));
-					const lastSeg = mergedSegments[mergedSegments.length - 1];
-					if (lastSeg && lastSeg.type === newSeg.type) {
-						lastSeg.content += newSeg.content;
-					} else {
-						mergedSegments.push({ ...newSeg });
-					}
+					const { segments: mergedSegments } = coalesceSegments(existing.segments, newSeg);
 					dataRef.current.set(id, { ...existing, ...updates, segments: mergedSegments });
 				} else {
 					dataRef.current.set(id, { ...existing, ...updates });
@@ -278,15 +273,15 @@ describe("MessageList — imperative API", () => {
 			assert.strictEqual(data.segments[0].content, "thinking.");
 		});
 
-		it("creates new reasoning segment for '.' when last segment is a different type", () => {
+		it("creates new reasoning segment for '.' when last segment is a different type and gap exceeds timeout", () => {
 			const id = api.addMessage("assistant", "", {
 				segments: [
-					{ type: "reasoning", content: "thinking" },
-					{ type: "message", content: "Hello" },
+					{ type: "reasoning", content: "thinking", time: 1000 },
+					{ type: "message", content: "Hello", time: 1100 },
 				],
 			});
 			api.updateMessage(id, {
-				segments: [{ type: "reasoning", content: "." }],
+				segments: [{ type: "reasoning", content: ".", time: 2000 }],
 			});
 			const data = api.getMessageData(id);
 			assert.strictEqual(data.segments.length, 3);
@@ -296,6 +291,86 @@ describe("MessageList — imperative API", () => {
 			assert.strictEqual(data.segments[1].content, "Hello");
 			assert.strictEqual(data.segments[2].type, "reasoning");
 			assert.strictEqual(data.segments[2].content, ".");
+		});
+
+		it("appends message to last message segment when no punctuation and within timeout", () => {
+			const id = api.addMessage("assistant", "", {
+				segments: [
+					{ type: "message", content: "The answer is", time: 1000 },
+					{ type: "reasoning", content: "thinking", time: 1100 },
+				],
+			});
+			api.updateMessage(id, {
+				segments: [{ type: "message", content: " 42", time: 1200 }],
+			});
+			const data = api.getMessageData(id);
+			assert.strictEqual(data.segments.length, 2);
+			assert.strictEqual(data.segments[0].content, "The answer is 42");
+			assert.strictEqual(data.segments[1].type, "reasoning");
+		});
+
+		it("pushes a new message segment when the last message anchor ends with punctuation", () => {
+			const id = api.addMessage("assistant", "", {
+				segments: [
+					{ type: "message", content: "The answer is 42.", time: 1000 },
+					{ type: "reasoning", content: "thinking", time: 1100 },
+				],
+			});
+			api.updateMessage(id, {
+				segments: [{ type: "message", content: " Next", time: 1200 }],
+			});
+			const data = api.getMessageData(id);
+			assert.strictEqual(data.segments.length, 3);
+			assert.strictEqual(data.segments[2].type, "message");
+			assert.strictEqual(data.segments[2].content, " Next");
+		});
+
+		it("pushes a new message segment when the gap exceeds the timeout", () => {
+			const id = api.addMessage("assistant", "", {
+				segments: [
+					{ type: "message", content: "The answer is", time: 1000 },
+					{ type: "reasoning", content: "thinking", time: 1100 },
+				],
+			});
+			api.updateMessage(id, {
+				segments: [{ type: "message", content: " 42", time: 2000 }],
+			});
+			const data = api.getMessageData(id);
+			assert.strictEqual(data.segments.length, 3);
+			assert.strictEqual(data.segments[2].type, "message");
+			assert.strictEqual(data.segments[2].content, " 42");
+		});
+
+		it("appends reasoning to last reasoning segment when within timeout", () => {
+			const id = api.addMessage("assistant", "", {
+				segments: [
+					{ type: "reasoning", content: "thinking", time: 1000 },
+					{ type: "message", content: "Hello", time: 1100 },
+				],
+			});
+			api.updateMessage(id, {
+				segments: [{ type: "reasoning", content: " more", time: 1200 }],
+			});
+			const data = api.getMessageData(id);
+			assert.strictEqual(data.segments.length, 2);
+			assert.strictEqual(data.segments[0].content, "thinking more");
+			assert.strictEqual(data.segments[1].type, "message");
+		});
+
+		it("pushes a new reasoning segment when the gap exceeds the timeout", () => {
+			const id = api.addMessage("assistant", "", {
+				segments: [
+					{ type: "reasoning", content: "thinking", time: 1000 },
+					{ type: "message", content: "Hello", time: 1100 },
+				],
+			});
+			api.updateMessage(id, {
+				segments: [{ type: "reasoning", content: " more", time: 2000 }],
+			});
+			const data = api.getMessageData(id);
+			assert.strictEqual(data.segments.length, 3);
+			assert.strictEqual(data.segments[2].type, "reasoning");
+			assert.strictEqual(data.segments[2].content, " more");
 		});
 	});
 

@@ -642,7 +642,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 						const newText = event.data?.text || event.text || "";
 						committedContentRef.current = (committedContentRef.current || "") + newText;
 						messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
-							segments: [{ type: "message", content: newText }],
+							segments: [{ type: "message", content: newText, time: Date.now() }],
 							content: committedContentRef.current,
 							streaming: true,
 						});
@@ -656,7 +656,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 						if (reasoningText) {
 							committedReasoningRef.current = (committedReasoningRef.current || "") + reasoningText;
 							messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
-								segments: [{ type: "reasoning", content: reasoningText }],
+								segments: [{ type: "reasoning", content: reasoningText, time: Date.now() }],
 								streaming: true,
 							});
 							messageListRef.current?._triggerRender();
@@ -668,7 +668,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 							const chunkContent = event.data.chunk.content;
 							committedContentRef.current = (committedContentRef.current || "") + chunkContent;
 							messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
-								segments: [{ type: "message", content: chunkContent }],
+								segments: [{ type: "message", content: chunkContent, time: Date.now() }],
 								content: committedContentRef.current,
 								streaming: true,
 							});
@@ -680,7 +680,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 							committedReasoningRef.current =
 								(committedReasoningRef.current || "") + reasoningChunk;
 							messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
-								segments: [{ type: "reasoning", content: reasoningChunk }],
+								segments: [{ type: "reasoning", content: reasoningChunk, time: Date.now() }],
 								streaming: true,
 							});
 							messageListRef.current?._triggerRender();

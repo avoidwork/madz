@@ -2,6 +2,105 @@ import React, { useRef, useEffect, useState, forwardRef } from "react";
 import { Box, Text, useStdout } from "ink";
 import { ScrollView } from "ink-scroll-view";
 import { MessageBubble, PubSubContext, ScrollContext } from "./messageBubble.js";
+import { logger } from "../shared/logger.js";
+
+/**
+ * Provisional coalesce timeout (ms) for cross-type segment transitions.
+ * Chosen from a simulation of synthetic gap distributions (continuations ~80ms,
+ * new blocks ~650ms). Instrumented via logger.debug to tune against real data.
+ * @type {number}
+ */
+export const SEGMENT_COALESCE_TIMEOUT_MS = 250;
+
+/**
+ * Sentence-ending punctuation that terminates a message anchor, forcing a new
+ * block on the next cross-type transition.
+ * @type {string}
+ */
+const SENTENCE_END_PUNCTUATION = ".!?";
+
+/**
+ * Coalesce an incoming streaming segment into an existing ordered segment list.
+ * Implements the Desired Behavior table from docs/STREAMING.md:
+ * - same type → append content to the last segment
+ * - reasoning → message → append to last message segment if it exists, does not
+ *   end with sentence-ending punctuation, and arrived within `timeoutMs` of the
+ *   last message segment; otherwise push a new message segment
+ * - message → reasoning → append to last reasoning segment if one exists and
+ *   arrived within `timeoutMs` of the last reasoning segment; otherwise push a
+ *   new reasoning segment
+ *
+ * @param {Array<{type: string, content: string, time?: number}>} existingSegments - Accumulated segments
+ * @param {{type: string, content: string, time?: number}} newSegment - Incoming segment
+ * @param {number} [timeoutMs] - Coalesce timeout in milliseconds
+ * @returns {{segments: Array<{type: string, content: string, time?: number}>, gap: number|null}} Merged segments and measured gap
+ */
+export function coalesceSegments(
+	existingSegments,
+	newSegment,
+	timeoutMs = SEGMENT_COALESCE_TIMEOUT_MS,
+) {
+	const merged = existingSegments.map((s) => ({ ...s }));
+	const lastSeg = merged[merged.length - 1];
+
+	if (!lastSeg) {
+		return { segments: [...merged, { ...newSegment }], gap: null };
+	}
+
+	const gap =
+		newSegment.time !== undefined && lastSeg.time !== undefined
+			? newSegment.time - lastSeg.time
+			: null;
+
+	if (lastSeg.type === newSegment.type) {
+		lastSeg.content += newSegment.content;
+		return { segments: merged, gap };
+	}
+
+	// Cross-type transition: gate on timing (and punctuation for message anchors).
+	if (newSegment.type === "message" && lastSeg.type === "reasoning") {
+		// Find the last message segment to use as the anchor.
+		const lastMessageIdx = merged.findLastIndex((s) => s.type === "message");
+		const lastMessage = lastMessageIdx >= 0 ? merged[lastMessageIdx] : null;
+		const anchorGap =
+			lastMessage && newSegment.time !== undefined && lastMessage.time !== undefined
+				? newSegment.time - lastMessage.time
+				: null;
+		const anchorWithinTimeout = anchorGap === null || anchorGap <= timeoutMs;
+		const anchorEndsSentence = lastMessage
+			? SENTENCE_END_PUNCTUATION.includes(lastMessage.content.trim().slice(-1))
+			: false;
+
+		if (lastMessage && !anchorEndsSentence && anchorWithinTimeout) {
+			lastMessage.content += newSegment.content;
+			return { segments: merged, gap: anchorGap };
+		}
+		merged.push({ ...newSegment });
+		return { segments: merged, gap: anchorGap };
+	}
+
+	if (newSegment.type === "reasoning" && lastSeg.type === "message") {
+		// Find the last reasoning segment to use as the anchor.
+		const lastReasoningIdx = merged.findLastIndex((s) => s.type === "reasoning");
+		const lastReasoning = lastReasoningIdx >= 0 ? merged[lastReasoningIdx] : null;
+		const anchorGap =
+			lastReasoning && newSegment.time !== undefined && lastReasoning.time !== undefined
+				? newSegment.time - lastReasoning.time
+				: null;
+		const anchorWithinTimeout = anchorGap === null || anchorGap <= timeoutMs;
+
+		if (lastReasoning && anchorWithinTimeout) {
+			lastReasoning.content += newSegment.content;
+			return { segments: merged, gap: anchorGap };
+		}
+		merged.push({ ...newSegment });
+		return { segments: merged, gap: anchorGap };
+	}
+
+	// Fallback for any other cross-type transition: push a new segment.
+	merged.push({ ...newSegment });
+	return { segments: merged, gap };
+}
 
 /**
  * Pub/Sub wrapper component for MessageList children.
@@ -167,15 +266,13 @@ export const MessageList = React.memo(
 				const existing = dataRef.current.get(id);
 				if (existing) {
 					// Handle segment append/coalesce: if updates contains a new segment,
-					// coalesce with the last segment if same type, otherwise push.
+					// coalesce using the timing-aware + punctuation-aware rule.
 					if (updates.segments && existing.segments) {
 						const newSeg = updates.segments[updates.segments.length - 1];
-						const mergedSegments = existing.segments.map((s) => ({ ...s }));
-						const lastSeg = mergedSegments[mergedSegments.length - 1];
-						if (lastSeg && lastSeg.type === newSeg.type) {
-							lastSeg.content += newSeg.content;
-						} else {
-							mergedSegments.push({ ...newSeg });
+						const lastExisting = existing.segments[existing.segments.length - 1];
+						const { segments: mergedSegments, gap } = coalesceSegments(existing.segments, newSeg);
+						if (gap !== null && lastExisting && lastExisting.type !== newSeg.type) {
+							logger.debug(`[streaming] segment coalesce gap=${gap}ms type=${newSeg.type}`);
 						}
 						dataRef.current.set(id, { ...existing, ...updates, segments: mergedSegments });
 					} else {

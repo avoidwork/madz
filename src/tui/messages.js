@@ -2,7 +2,7 @@
  * @typedef {Object} Message
  * @property {string} role - "user" | "assistant" | "system"
  * @property {string} content - The message content
- * @property {Array<{type: string, content: string}>} [segments] - Ordered content segments for interleaved rendering
+ * @property {Array<{type: string, content: string, time?: number}>} [segments] - Ordered content segments for interleaved rendering; `time` is the event arrival timestamp used for timing-aware coalescing
  * @property {Object} [activeToolCall] - {name: string} for assistant when a tool is running
  * @property {string} [toolCallDisplay] - Tool call result strings for assistant messages
  * @property {Array<Object>} [events] - Raw stream events for this message
