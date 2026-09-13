@@ -14,6 +14,7 @@ import { setConfigValue } from "../config/loader.js";
 import { isAvailable, getGcCalls } from "../memory/gc.js";
 import { loadSystemPrompt } from "../memory/prompts.js";
 import { calculateConversationTokens } from "./contextTokens.js";
+import { createBlockTracker, upsertSegment } from "./segmentBlocks.js";
 import { logger } from "../shared/logger.js";
 
 /**
@@ -62,17 +63,13 @@ const ConversationArea = forwardRef(function ConversationArea(
 	const contextUpdateTimerRef = useRef(null);
 	const pendingContextRef = useRef({ content: "" });
 	// Per-type block tracking — each type (message, reasoning) keeps a ref to its
-	// last block's content and arrival time. A new block is created when: no block
-	// of this type exists yet (first segment), the stream paused (now - last.time
-	// > segmentBlockTimeout), or — when types are mingled — the last block ended
-	// with a sentence boundary. Otherwise the segment appends to the last block of
-	// its type, even across interleaved reasoning/message segments.
-	const lastSegmentRefs = useRef({ message: null, reasoning: null });
-	// Tracks whether the stream has mingled segment types (both reasoning and
-	// message have appeared). A sentence boundary (.!?) only forces a new block
-	// when types are mingled — a pure single-type stream stays one block.
-	const mingledRef = useRef(false);
-	const segmentBlockTimeout = config?.tui?.segmentBlockTimeout ?? 250;
+	// last block's content and arrival time. The most recent segment overall is
+	// tracked so a type transition (message↔reasoning) can be detected. Segments
+	// of the same type always append to the last block of that type. A new block
+	// is only created on a type transition when the last block of the incoming
+	// type ended with a sentence boundary (.!?) — a continuous reasoning stream
+	// stays one block regardless of pauses.
+	const blockTrackerRef = useRef(createBlockTracker());
 
 	const skillList = registry ? registry.list() : [];
 	const parser = new CommandParser();
@@ -641,25 +638,6 @@ const ConversationArea = forwardRef(function ConversationArea(
 				}, 33);
 			};
 
-			// Decide whether an incoming segment of a given type should start a new
-			// block or append to the last block of that type. A new block is created
-			// when: no block of this type exists yet (first segment), or the stream
-			// paused past the segmentBlockTimeout. A sentence boundary (.!?) only
-			// forces a new block when the stream has mingled segment types — a pure
-			// single-type stream stays one block regardless of sentence breaks.
-			const shouldStartNewBlock = (type) => {
-				const last = lastSegmentRefs.current[type];
-				if (!last) return true;
-				if (mingledRef.current && /[.?!]$/.test(last.content)) return true;
-				return Date.now() - last.time > segmentBlockTimeout;
-			};
-
-			// Mark the stream as mingled once both segment types have appeared.
-			const markMingled = (type) => {
-				const other = type === "message" ? "reasoning" : "message";
-				if (lastSegmentRefs.current[other]) mingledRef.current = true;
-			};
-
 			return async (event) => {
 				if (shouldAbort()) return;
 				try {
@@ -672,14 +650,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 					if (event.type === "message") {
 						const newText = event.data?.text || event.text || "";
 						committedContentRef.current = (committedContentRef.current || "") + newText;
-						const newBlock = shouldStartNewBlock("message");
-						if (!newBlock) {
-							lastSegmentRefs.current.message.content += newText;
-							lastSegmentRefs.current.message.time = Date.now();
-						} else {
-							lastSegmentRefs.current.message = { content: newText, time: Date.now() };
-						}
-						markMingled("message");
+						const newBlock = upsertSegment(blockTrackerRef.current, "message", newText, Date.now());
 						messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
 							segments: [{ type: "message", content: newText }],
 							newBlock,
@@ -695,14 +666,12 @@ const ConversationArea = forwardRef(function ConversationArea(
 						const reasoningText = event.data?.text || event.text || "";
 						if (reasoningText) {
 							committedReasoningRef.current = (committedReasoningRef.current || "") + reasoningText;
-							const newBlock = shouldStartNewBlock("reasoning");
-							if (!newBlock) {
-								lastSegmentRefs.current.reasoning.content += reasoningText;
-								lastSegmentRefs.current.reasoning.time = Date.now();
-							} else {
-								lastSegmentRefs.current.reasoning = { content: reasoningText, time: Date.now() };
-							}
-							markMingled("reasoning");
+							const newBlock = upsertSegment(
+								blockTrackerRef.current,
+								"reasoning",
+								reasoningText,
+								Date.now(),
+							);
 							messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
 								segments: [{ type: "reasoning", content: reasoningText }],
 								newBlock,
@@ -716,14 +685,12 @@ const ConversationArea = forwardRef(function ConversationArea(
 						if (event.data?.chunk?.content) {
 							const chunkContent = event.data.chunk.content;
 							committedContentRef.current = (committedContentRef.current || "") + chunkContent;
-							const newBlock = shouldStartNewBlock("message");
-							if (!newBlock) {
-								lastSegmentRefs.current.message.content += chunkContent;
-								lastSegmentRefs.current.message.time = Date.now();
-							} else {
-								lastSegmentRefs.current.message = { content: chunkContent, time: Date.now() };
-							}
-							markMingled("message");
+							const newBlock = upsertSegment(
+								blockTrackerRef.current,
+								"message",
+								chunkContent,
+								Date.now(),
+							);
 							messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
 								segments: [{ type: "message", content: chunkContent }],
 								newBlock,
@@ -737,14 +704,12 @@ const ConversationArea = forwardRef(function ConversationArea(
 							const reasoningChunk = event.data.chunk.reasoning;
 							committedReasoningRef.current =
 								(committedReasoningRef.current || "") + reasoningChunk;
-							const newBlock = shouldStartNewBlock("reasoning");
-							if (!newBlock) {
-								lastSegmentRefs.current.reasoning.content += reasoningChunk;
-								lastSegmentRefs.current.reasoning.time = Date.now();
-							} else {
-								lastSegmentRefs.current.reasoning = { content: reasoningChunk, time: Date.now() };
-							}
-							markMingled("reasoning");
+							const newBlock = upsertSegment(
+								blockTrackerRef.current,
+								"reasoning",
+								reasoningChunk,
+								Date.now(),
+							);
 							messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
 								segments: [{ type: "reasoning", content: reasoningChunk }],
 								newBlock,
@@ -809,8 +774,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 		completedToolCalls = [],
 	) => {
 		// Reset per-type block tracking so the next stream starts fresh
-		lastSegmentRefs.current = { message: null, reasoning: null };
-		mingledRef.current = false;
+		blockTrackerRef.current = createBlockTracker();
 		const elapsed = turnStartTime ? Date.now() - turnStartTime : 0;
 		const updates = {
 			content: responseContent,
