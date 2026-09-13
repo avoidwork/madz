@@ -639,15 +639,14 @@ const ConversationArea = forwardRef(function ConversationArea(
 
 			// Decide whether an incoming segment of a given type should start a new
 			// block or append to the last block of that type. A new block is created
-			// when: no block of this type exists yet, the stream paused past the
-			// segmentBlockTimeout, or the last block of this type ended with a
-			// sentence boundary (.!?). Otherwise it appends to the last block of
-			// that type — even if other types interleaved in between.
+			// only when: no block of this type exists yet (first segment), or the
+			// stream paused past the segmentBlockTimeout. A sentence boundary (.!?)
+			// does NOT force a new block — if the next segment arrives within the
+			// timeout, it appends to the current block even across sentence breaks.
 			const shouldStartNewBlock = (type) => {
 				const last = lastSegmentRefs.current[type];
 				if (!last) return true;
-				if (Date.now() - last.time > segmentBlockTimeout) return true;
-				return /[.?!]$/.test(last.content);
+				return Date.now() - last.time > segmentBlockTimeout;
 			};
 
 			return async (event) => {
