@@ -1104,6 +1104,25 @@ describe("Cron._readJobsFromDisk", () => {
 		);
 	});
 
+	it("serializes input into the derived command for skill-only jobs with input", async () => {
+		writeFileSync(
+			join(testDir, "skill-input-job.json"),
+			JSON.stringify({
+				name: "skill-input-job",
+				cron: "* * * * *",
+				skill: "report-gen",
+				input: { format: "pdf", region: "na" },
+				enabled: true,
+			}),
+		);
+		const jobs = await Cron._readJobsFromDisk(testDir);
+		assert.strictEqual(jobs.length, 1);
+		assert.strictEqual(
+			jobs[0].command,
+			`cd ${process.cwd()} && node index.js --message "Run the report-gen skill ${JSON.stringify({ format: "pdf", region: "na" })}"`,
+		);
+	});
+
 	it("uses explicit command when both skill and command are present", async () => {
 		writeFileSync(
 			join(testDir, "both-job.json"),
