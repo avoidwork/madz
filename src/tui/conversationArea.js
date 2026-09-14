@@ -654,9 +654,6 @@ const ConversationArea = forwardRef(function ConversationArea(
 					if (event.type === "reasoning") {
 						const reasoningText = event.data?.text || event.text || "";
 						if (reasoningText) {
-							// Lone "." is a trailing artifact — coalesce into the last
-							// reasoning segment visually but don't track it in committed
-							// reasoning so it doesn't split an incoming message.
 							if (
 								!(
 									committedReasoningRef.current.endsWith(".") ||
@@ -690,9 +687,6 @@ const ConversationArea = forwardRef(function ConversationArea(
 						}
 						if (event.data?.chunk?.reasoning) {
 							const reasoningChunk = event.data.chunk.reasoning;
-							// Lone "." is a trailing artifact — coalesce into the last
-							// reasoning segment visually but don't track it in committed
-							// reasoning so it doesn't split an incoming message.
 							if (
 								!(
 									committedReasoningRef.current.endsWith(".") ||
