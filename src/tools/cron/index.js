@@ -305,8 +305,10 @@ export async function cronJobImpl(input, options) {
 					});
 				}
 				const now = new Date().toISOString();
+				const inputStr = Object.keys(jobInput).length ? ` ${JSON.stringify(jobInput)}` : "";
 				const derivedCommand =
-					command || `cd ${process.cwd()} && node index.js --message "Run the ${skill} skill"`;
+					command ||
+					`cd ${process.cwd()} && node index.js --message "Run the ${skill} skill${inputStr}"`;
 				const job = {
 					name,
 					cron,

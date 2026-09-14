@@ -243,6 +243,40 @@ describe("cronJob", () => {
 		await cronJobImpl({ action: "remove", name: "skill-only-job" }, opts());
 	});
 
+	it("serializes input into the derived command when creating a skill-only job with input", async () => {
+		const result = await cronJobImpl(
+			{
+				action: "create",
+				name: "skill-input-job",
+				cron: "0 9 * * *",
+				skill: "report-gen",
+				input: { format: "pdf", region: "na" },
+			},
+			opts(),
+		);
+		const parsed = JSON.parse(result);
+		assert.strictEqual(parsed.ok, true);
+		assert.strictEqual(
+			parsed.job.command,
+			`cd ${process.cwd()} && node index.js --message "Run the report-gen skill ${JSON.stringify({ format: "pdf", region: "na" })}"`,
+		);
+		await cronJobImpl({ action: "remove", name: "skill-input-job" }, opts());
+	});
+
+	it("does not append input to the derived command when input is empty", async () => {
+		const result = await cronJobImpl(
+			{ action: "create", name: "skill-noinput-job", cron: "0 9 * * *", skill: "report-gen" },
+			opts(),
+		);
+		const parsed = JSON.parse(result);
+		assert.strictEqual(parsed.ok, true);
+		assert.strictEqual(
+			parsed.job.command,
+			`cd ${process.cwd()} && node index.js --message "Run the report-gen skill"`,
+		);
+		await cronJobImpl({ action: "remove", name: "skill-noinput-job" }, opts());
+	});
+
 	it("uses explicit command when provided instead of deriving from skill", async () => {
 		const result = await cronJobImpl(
 			{
