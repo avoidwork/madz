@@ -227,6 +227,39 @@ describe("cronJob", () => {
 		assert.ok(parsed.job.createdAt);
 	});
 
+	it("derives command from skill when creating a job without explicit command", async () => {
+		const result = await cronJobImpl(
+			{ action: "create", name: "skill-only-job", cron: "0 9 * * *", skill: "report-gen" },
+			opts(),
+		);
+		const parsed = JSON.parse(result);
+		assert.strictEqual(parsed.ok, true);
+		assert.ok(parsed.job);
+		assert.strictEqual(parsed.job.skill, "report-gen");
+		assert.strictEqual(
+			parsed.job.command,
+			`cd ${process.cwd()} && node index.js --message "Run the report-gen skill"`,
+		);
+		await cronJobImpl({ action: "remove", name: "skill-only-job" }, opts());
+	});
+
+	it("uses explicit command when provided instead of deriving from skill", async () => {
+		const result = await cronJobImpl(
+			{
+				action: "create",
+				name: "explicit-command-job",
+				cron: "0 9 * * *",
+				skill: "report-gen",
+				command: "echo explicit",
+			},
+			opts(),
+		);
+		const parsed = JSON.parse(result);
+		assert.strictEqual(parsed.ok, true);
+		assert.strictEqual(parsed.job.command, "echo explicit");
+		await cronJobImpl({ action: "remove", name: "explicit-command-job" }, opts());
+	});
+
 	it("list returns created jobs", async () => {
 		const result = await cronJobImpl({ action: "list" }, opts());
 		const parsed = JSON.parse(result);

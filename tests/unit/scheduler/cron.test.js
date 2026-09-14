@@ -1090,6 +1090,37 @@ describe("Cron._readJobsFromDisk", () => {
 		assert.strictEqual(jobs[0].name, "valid");
 	});
 
+	it("reads skill-only jobs and derives command from skill", async () => {
+		writeFileSync(
+			join(testDir, "skill-job.json"),
+			JSON.stringify({ name: "skill-job", cron: "* * * * *", skill: "report-gen", enabled: true }),
+		);
+		const jobs = await Cron._readJobsFromDisk(testDir);
+		assert.strictEqual(jobs.length, 1);
+		assert.strictEqual(jobs[0].name, "skill-job");
+		assert.strictEqual(
+			jobs[0].command,
+			`cd ${process.cwd()} && node index.js --message "Run the report-gen skill"`,
+		);
+	});
+
+	it("uses explicit command when both skill and command are present", async () => {
+		writeFileSync(
+			join(testDir, "both-job.json"),
+			JSON.stringify({
+				name: "both-job",
+				cron: "* * * * *",
+				skill: "report-gen",
+				command: "echo explicit",
+				enabled: true,
+			}),
+		);
+		const jobs = await Cron._readJobsFromDisk(testDir);
+		assert.strictEqual(jobs.length, 1);
+		assert.strictEqual(jobs[0].name, "both-job");
+		assert.strictEqual(jobs[0].command, "echo explicit");
+	});
+
 	it("returns empty array for empty directory", async () => {
 		const jobs = await Cron._readJobsFromDisk(testDir);
 		assert.strictEqual(jobs.length, 0);
