@@ -168,9 +168,6 @@ export const MessageList = React.memo(
 				if (existing) {
 					// Handle segment append/coalesce: if updates contains a new segment,
 					// coalesce with the last segment if same type, otherwise push.
-					// Special case: a stray "." reasoning chunk after message content
-					// has started should append to the last reasoning segment, not
-					// create a new one that splits the message.
 					if (updates.segments && existing.segments) {
 						const newSeg = updates.segments[updates.segments.length - 1];
 						const mergedSegments = existing.segments.map((s) => ({ ...s }));
