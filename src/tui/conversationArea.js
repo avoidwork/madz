@@ -657,7 +657,14 @@ const ConversationArea = forwardRef(function ConversationArea(
 							// Lone "." is a trailing artifact — coalesce into the last
 							// reasoning segment visually but don't track it in committed
 							// reasoning so it doesn't split an incoming message.
-							if (!committedReasoningRef.current.endsWith(".") && !/^[A-Z]/.test(reasoningText)) {
+							if (
+								!(
+									committedReasoningRef.current.endsWith(".") ||
+									committedReasoningRef.current.endsWith("?") ||
+									committedReasoningRef.current.endsWith("!")
+								) &&
+								!/^[A-Z]/.test(reasoningText)
+							) {
 								committedReasoningRef.current =
 									(committedReasoningRef.current || "") + reasoningText;
 							}
@@ -686,7 +693,14 @@ const ConversationArea = forwardRef(function ConversationArea(
 							// Lone "." is a trailing artifact — coalesce into the last
 							// reasoning segment visually but don't track it in committed
 							// reasoning so it doesn't split an incoming message.
-							if (!committedReasoningRef.current.endsWith(".") && !/^[A-Z]/.test(reasoningChunk)) {
+							if (
+								!(
+									committedReasoningRef.current.endsWith(".") ||
+									committedReasoningRef.current.endsWith("?") ||
+									committedReasoningRef.current.endsWith("!")
+								) &&
+								!/^[A-Z]/.test(reasoningChunk)
+							) {
 								committedReasoningRef.current =
 									(committedReasoningRef.current || "") + reasoningChunk;
 							}

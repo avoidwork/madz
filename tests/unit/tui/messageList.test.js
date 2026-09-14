@@ -73,7 +73,9 @@ function createImperativeApi() {
 						}
 						if (
 							lastReasoning &&
-							lastReasoning.content.endsWith(".") &&
+							(lastReasoning.content.endsWith(".") ||
+								lastReasoning.content.endsWith("?") ||
+								lastReasoning.content.endsWith("!")) &&
 							/^[A-Z]/.test(newSeg.content)
 						) {
 							mergedSegments.push({ ...newSeg });

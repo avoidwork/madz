@@ -190,7 +190,9 @@ export const MessageList = React.memo(
 							// capital letter starts a new block; otherwise coalesce.
 							if (
 								lastReasoning &&
-								lastReasoning.content.endsWith(".") &&
+								(lastReasoning.content.endsWith(".") ||
+									lastReasoning.content.endsWith("?") ||
+									lastReasoning.content.endsWith("!")) &&
 								/^[A-Z]/.test(newSeg.content)
 							) {
 								mergedSegments.push({ ...newSeg });
