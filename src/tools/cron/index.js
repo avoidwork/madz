@@ -305,11 +305,13 @@ export async function cronJobImpl(input, options) {
 					});
 				}
 				const now = new Date().toISOString();
+				const derivedCommand =
+					command || `cd ${process.cwd()} && node index.js --message "Run the ${skill} skill"`;
 				const job = {
 					name,
 					cron,
 					skill,
-					command,
+					command: derivedCommand,
 					input: jobInput,
 					enabled: true,
 					createdAt: now,
