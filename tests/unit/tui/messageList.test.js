@@ -61,25 +61,34 @@ function createImperativeApi() {
 				if (updates.segments && existing.segments) {
 					const newSeg = updates.segments[updates.segments.length - 1];
 					const mergedSegments = existing.segments.map((s) => ({ ...s }));
-					const lastSeg = mergedSegments[mergedSegments.length - 1];
-					// Track the last type received: a new segment only appends when
-					// its type matches the last segment's type. A type mismatch
-					// (e.g., message after reasoning) forces a new block.
-					if (lastSeg && lastSeg.type === newSeg.type) {
-						// Same type — for reasoning, apply the grammatical
-						// sentence-boundary check: a period followed by a capital
-						// letter starts a new block.
+					if (newSeg.type === "reasoning") {
+						// Reasoning coalesces with the last reasoning segment even if
+						// a message interleaved between chunks.
+						let lastReasoning = null;
+						for (let i = mergedSegments.length - 1; i >= 0; i--) {
+							if (mergedSegments[i].type === "reasoning") {
+								lastReasoning = mergedSegments[i];
+								break;
+							}
+						}
 						if (
-							newSeg.type === "reasoning" &&
-							lastSeg.content.endsWith(".") &&
+							lastReasoning &&
+							lastReasoning.content.endsWith(".") &&
 							/^[A-Z]/.test(newSeg.content)
 						) {
 							mergedSegments.push({ ...newSeg });
+						} else if (lastReasoning) {
+							lastReasoning.content += newSeg.content;
 						} else {
-							lastSeg.content += newSeg.content;
+							mergedSegments.push({ ...newSeg });
 						}
 					} else {
-						mergedSegments.push({ ...newSeg });
+						const lastSeg = mergedSegments[mergedSegments.length - 1];
+						if (lastSeg && lastSeg.type === newSeg.type) {
+							lastSeg.content += newSeg.content;
+						} else {
+							mergedSegments.push({ ...newSeg });
+						}
 					}
 					dataRef.current.set(id, { ...existing, ...updates, segments: mergedSegments });
 				} else {
@@ -279,16 +288,22 @@ describe("MessageList — imperative API", () => {
 			assert.strictEqual(data.segments[1].type, "message");
 		});
 
-		it("coalesces reasoning after period when next chunk is lowercase", () => {
+		it("coalesces reasoning across an interleaved message", () => {
 			const id = api.addMessage("assistant", "", {
-				segments: [{ type: "reasoning", content: "measured cadence." }],
+				segments: [
+					{ type: "reasoning", content: "measured cad" },
+					{ type: "message", content: "Yo," },
+				],
 			});
 			api.updateMessage(id, {
-				segments: [{ type: "reasoning", content: "ence" }],
+				segments: [{ type: "reasoning", content: "ence." }],
 			});
 			const data = api.getMessageData(id);
-			assert.strictEqual(data.segments.length, 1);
-			assert.strictEqual(data.segments[0].content, "measured cadence.ence");
+			assert.strictEqual(data.segments.length, 2);
+			assert.strictEqual(data.segments[0].type, "reasoning");
+			assert.strictEqual(data.segments[0].content, "measured cadence.");
+			assert.strictEqual(data.segments[1].type, "message");
+			assert.strictEqual(data.segments[1].content, "Yo,");
 		});
 
 		it("starts new reasoning block after period when next chunk is capitalized", () => {

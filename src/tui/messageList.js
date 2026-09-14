@@ -174,25 +174,40 @@ export const MessageList = React.memo(
 					if (updates.segments && existing.segments) {
 						const newSeg = updates.segments[updates.segments.length - 1];
 						const mergedSegments = existing.segments.map((s) => ({ ...s }));
-						const lastSeg = mergedSegments[mergedSegments.length - 1];
-						// Track the last type received: a new segment only appends when
-						// its type matches the last segment's type. A type mismatch
-						// (e.g., message after reasoning) forces a new block.
-						if (lastSeg && lastSeg.type === newSeg.type) {
-							// Same type — for reasoning, apply the grammatical
-							// sentence-boundary check: a period followed by a capital
-							// letter starts a new block.
+						if (newSeg.type === "reasoning") {
+							// Reasoning coalesces with the last reasoning segment even if
+							// a message interleaved between chunks — otherwise continuous
+							// reasoning gets split into separate 💭 blocks. Search backwards
+							// for the last reasoning segment.
+							let lastReasoning = null;
+							for (let i = mergedSegments.length - 1; i >= 0; i--) {
+								if (mergedSegments[i].type === "reasoning") {
+									lastReasoning = mergedSegments[i];
+									break;
+								}
+							}
+							// Grammatical sentence boundary: a period followed by a
+							// capital letter starts a new block; otherwise coalesce.
 							if (
-								newSeg.type === "reasoning" &&
-								lastSeg.content.endsWith(".") &&
+								lastReasoning &&
+								lastReasoning.content.endsWith(".") &&
 								/^[A-Z]/.test(newSeg.content)
 							) {
 								mergedSegments.push({ ...newSeg });
+							} else if (lastReasoning) {
+								lastReasoning.content += newSeg.content;
 							} else {
-								lastSeg.content += newSeg.content;
+								mergedSegments.push({ ...newSeg });
 							}
 						} else {
-							mergedSegments.push({ ...newSeg });
+							// Message segments require a type match to append; a mismatch
+							// (e.g., message after reasoning) forces a new block.
+							const lastSeg = mergedSegments[mergedSegments.length - 1];
+							if (lastSeg && lastSeg.type === newSeg.type) {
+								lastSeg.content += newSeg.content;
+							} else {
+								mergedSegments.push({ ...newSeg });
+							}
 						}
 						dataRef.current.set(id, { ...existing, ...updates, segments: mergedSegments });
 					} else {
