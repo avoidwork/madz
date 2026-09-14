@@ -171,11 +171,42 @@ export const MessageList = React.memo(
 					if (updates.segments && existing.segments) {
 						const newSeg = updates.segments[updates.segments.length - 1];
 						const mergedSegments = existing.segments.map((s) => ({ ...s }));
-						const lastSeg = mergedSegments[mergedSegments.length - 1];
-						if (lastSeg && lastSeg.type === newSeg.type) {
-							lastSeg.content += newSeg.content;
+						if (newSeg.type === "reasoning") {
+							// Reasoning coalesces with the last reasoning segment even if
+							// a message interleaved between chunks — otherwise continuous
+							// reasoning gets split into separate 💭 blocks. Search backwards
+							// for the last reasoning segment.
+							let lastReasoning = null;
+							for (let i = mergedSegments.length - 1; i >= 0; i--) {
+								if (mergedSegments[i].type === "reasoning") {
+									lastReasoning = mergedSegments[i];
+									break;
+								}
+							}
+							// Grammatical sentence boundary: a period followed by a
+							// capital letter starts a new block; otherwise coalesce.
+							if (
+								lastReasoning &&
+								(lastReasoning.content.endsWith(".") ||
+									lastReasoning.content.endsWith("?") ||
+									lastReasoning.content.endsWith("!")) &&
+								/^[A-Z]/.test(newSeg.content)
+							) {
+								mergedSegments.push({ ...newSeg });
+							} else if (lastReasoning) {
+								lastReasoning.content += newSeg.content;
+							} else {
+								mergedSegments.push({ ...newSeg });
+							}
 						} else {
-							mergedSegments.push({ ...newSeg });
+							// Message segments require a type match to append; a mismatch
+							// (e.g., message after reasoning) forces a new block.
+							const lastSeg = mergedSegments[mergedSegments.length - 1];
+							if (lastSeg && lastSeg.type === newSeg.type) {
+								lastSeg.content += newSeg.content;
+							} else {
+								mergedSegments.push({ ...newSeg });
+							}
 						}
 						dataRef.current.set(id, { ...existing, ...updates, segments: mergedSegments });
 					} else {

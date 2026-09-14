@@ -654,7 +654,17 @@ const ConversationArea = forwardRef(function ConversationArea(
 					if (event.type === "reasoning") {
 						const reasoningText = event.data?.text || event.text || "";
 						if (reasoningText) {
-							committedReasoningRef.current = (committedReasoningRef.current || "") + reasoningText;
+							if (
+								!(
+									committedReasoningRef.current.endsWith(".") ||
+									committedReasoningRef.current.endsWith("?") ||
+									committedReasoningRef.current.endsWith("!")
+								) &&
+								!/^[A-Z]/.test(reasoningText)
+							) {
+								committedReasoningRef.current =
+									(committedReasoningRef.current || "") + reasoningText;
+							}
 							messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
 								segments: [{ type: "reasoning", content: reasoningText }],
 								streaming: true,
@@ -677,8 +687,17 @@ const ConversationArea = forwardRef(function ConversationArea(
 						}
 						if (event.data?.chunk?.reasoning) {
 							const reasoningChunk = event.data.chunk.reasoning;
-							committedReasoningRef.current =
-								(committedReasoningRef.current || "") + reasoningChunk;
+							if (
+								!(
+									committedReasoningRef.current.endsWith(".") ||
+									committedReasoningRef.current.endsWith("?") ||
+									committedReasoningRef.current.endsWith("!")
+								) &&
+								!/^[A-Z]/.test(reasoningChunk)
+							) {
+								committedReasoningRef.current =
+									(committedReasoningRef.current || "") + reasoningChunk;
+							}
 							messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
 								segments: [{ type: "reasoning", content: reasoningChunk }],
 								streaming: true,

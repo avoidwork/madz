@@ -61,11 +61,36 @@ function createImperativeApi() {
 				if (updates.segments && existing.segments) {
 					const newSeg = updates.segments[updates.segments.length - 1];
 					const mergedSegments = existing.segments.map((s) => ({ ...s }));
-					const lastSeg = mergedSegments[mergedSegments.length - 1];
-					if (lastSeg && lastSeg.type === newSeg.type) {
-						lastSeg.content += newSeg.content;
+					if (newSeg.type === "reasoning") {
+						// Reasoning coalesces with the last reasoning segment even if
+						// a message interleaved between chunks.
+						let lastReasoning = null;
+						for (let i = mergedSegments.length - 1; i >= 0; i--) {
+							if (mergedSegments[i].type === "reasoning") {
+								lastReasoning = mergedSegments[i];
+								break;
+							}
+						}
+						if (
+							lastReasoning &&
+							(lastReasoning.content.endsWith(".") ||
+								lastReasoning.content.endsWith("?") ||
+								lastReasoning.content.endsWith("!")) &&
+							/^[A-Z]/.test(newSeg.content)
+						) {
+							mergedSegments.push({ ...newSeg });
+						} else if (lastReasoning) {
+							lastReasoning.content += newSeg.content;
+						} else {
+							mergedSegments.push({ ...newSeg });
+						}
 					} else {
-						mergedSegments.push({ ...newSeg });
+						const lastSeg = mergedSegments[mergedSegments.length - 1];
+						if (lastSeg && lastSeg.type === newSeg.type) {
+							lastSeg.content += newSeg.content;
+						} else {
+							mergedSegments.push({ ...newSeg });
+						}
 					}
 					dataRef.current.set(id, { ...existing, ...updates, segments: mergedSegments });
 				} else {
@@ -265,37 +290,48 @@ describe("MessageList — imperative API", () => {
 			assert.strictEqual(data.segments[1].type, "message");
 		});
 
-		it("appends '.' reasoning chunk to last reasoning segment when last is reasoning", () => {
+		it("coalesces reasoning across an interleaved message", () => {
+			const id = api.addMessage("assistant", "", {
+				segments: [
+					{ type: "reasoning", content: "measured cad" },
+					{ type: "message", content: "Yo," },
+				],
+			});
+			api.updateMessage(id, {
+				segments: [{ type: "reasoning", content: "ence." }],
+			});
+			const data = api.getMessageData(id);
+			assert.strictEqual(data.segments.length, 2);
+			assert.strictEqual(data.segments[0].type, "reasoning");
+			assert.strictEqual(data.segments[0].content, "measured cadence.");
+			assert.strictEqual(data.segments[1].type, "message");
+			assert.strictEqual(data.segments[1].content, "Yo,");
+		});
+
+		it("starts new reasoning block after period when next chunk is capitalized", () => {
+			const id = api.addMessage("assistant", "", {
+				segments: [{ type: "reasoning", content: "measured cadence." }],
+			});
+			api.updateMessage(id, {
+				segments: [{ type: "reasoning", content: "Jason" }],
+			});
+			const data = api.getMessageData(id);
+			assert.strictEqual(data.segments.length, 2);
+			assert.strictEqual(data.segments[0].content, "measured cadence.");
+			assert.strictEqual(data.segments[1].content, "Jason");
+		});
+
+		it("forces new block on type mismatch (message after reasoning)", () => {
 			const id = api.addMessage("assistant", "", {
 				segments: [{ type: "reasoning", content: "thinking" }],
 			});
 			api.updateMessage(id, {
-				segments: [{ type: "reasoning", content: "." }],
+				segments: [{ type: "message", content: "Hello" }],
 			});
 			const data = api.getMessageData(id);
-			assert.strictEqual(data.segments.length, 1);
+			assert.strictEqual(data.segments.length, 2);
 			assert.strictEqual(data.segments[0].type, "reasoning");
-			assert.strictEqual(data.segments[0].content, "thinking.");
-		});
-
-		it("creates new reasoning segment for '.' when last segment is a different type", () => {
-			const id = api.addMessage("assistant", "", {
-				segments: [
-					{ type: "reasoning", content: "thinking" },
-					{ type: "message", content: "Hello" },
-				],
-			});
-			api.updateMessage(id, {
-				segments: [{ type: "reasoning", content: "." }],
-			});
-			const data = api.getMessageData(id);
-			assert.strictEqual(data.segments.length, 3);
-			assert.strictEqual(data.segments[0].type, "reasoning");
-			assert.strictEqual(data.segments[0].content, "thinking");
 			assert.strictEqual(data.segments[1].type, "message");
-			assert.strictEqual(data.segments[1].content, "Hello");
-			assert.strictEqual(data.segments[2].type, "reasoning");
-			assert.strictEqual(data.segments[2].content, ".");
 		});
 	});
 
