@@ -4,7 +4,7 @@
 
 ## 2. Create worker entry file
 
-- [x] 2.1 Create `src/vector/indexer.worker.js` that accepts plain project config, creates the store + embedder internally, and calls `reindex`
+- [x] 2.1 Create `src/vector/indexerWorker.js` that accepts plain project config, creates the store + embedder internally, and calls `reindex`
 
 ## 3. Modify indexCode tool
 

@@ -4,7 +4,7 @@ The `indexCode` tool performs all indexing work — scanning source files, chunk
 
 ## What Changes
 
-- Add a new worker entry file `src/vector/indexer.worker.js` that accepts plain project config and creates the store + embedder internally, then calls `reindex`.
+- Add a new worker entry file `src/vector/indexerWorker.js` that accepts plain project config and creates the store + embedder internally, then calls `reindex`.
 - Modify `indexCodeImpl` in `src/tools/code/indexCode.js` to dispatch the project config to a Piscina pool and await the result, instead of calling `reindex` inline.
 - Preserve the existing `indexCode` tool schema (`project`, `force`) and the `${name}: ${indexed} indexed, ...` return format.
 - Add `piscina` (^5.3.2) to package.json dependencies.
@@ -22,7 +22,7 @@ The `indexCode` tool performs all indexing work — scanning source files, chunk
 
 ## Impact
 
-- **Affected code:** `src/tools/code/indexCode.js` (dispatch to pool), new `src/vector/indexer.worker.js` (worker entry).
+- **Affected code:** `src/tools/code/indexCode.js` (dispatch to pool), new `src/vector/indexerWorker.js` (worker entry).
 - **No API changes:** The `indexCode` tool schema (`project`, `force`) and return format are unchanged.
 - **Dependency changes:** Add `piscina` (^5.3.2) to `package.json` dependencies.
 - **Test impact:** Add `tests/unit/tools/codeIndex.test.js` mocking the Piscina pool's `run` method.

@@ -22,7 +22,7 @@ The `reindex` function (`src/vector/indexer.js`, line 208) scans source files, c
 
 ### Decision 1: Worker creates store + embedder internally
 
-**Choice:** The worker entry file (`src/vector/indexer.worker.js`) accepts a plain config object and creates the store + embedder internally, then calls `reindex`.
+**Choice:** The worker entry file (`src/vector/indexerWorker.js`) accepts a plain config object and creates the store + embedder internally, then calls `reindex`.
 
 **Rationale:** `store` (better-sqlite3 Database) and `embedder` (@xenova/transformers pipeline) are NOT structured-cloneable across worker threads. Passing them via `postMessage` would fail with a DataCloneError. The only viable approach is to pass plain serializable config (dbPath, rootDir, include, exclude, chunkSize, chunkOverlap, maxFileSize, force) and reconstruct the store + embedder inside the worker.
 
@@ -50,6 +50,6 @@ The `reindex` function (`src/vector/indexer.js`, line 208) scans source files, c
 | Risk | Mitigation |
 |------|-----------|
 | Each worker thread loads its own embedder pipeline (memory cost) | Pool is bounded; acceptable trade-off since native handles cannot be shared |
-| Worker file path resolution across ESM | Use `new URL("../../vector/indexer.worker.js", import.meta.url).href` for robust resolution |
+| Worker file path resolution across ESM | Use `new URL("../../vector/indexerWorker.js", import.meta.url).href` for robust resolution |
 | Pool errors surface as rejected promises | Catch per-project and format as `${name}: error — ${err.message}` |
 | `indexCode.js` loads config at import time | Tests must mock the config loader or inject config; the pool's `run` is mocked via `mock.method` |

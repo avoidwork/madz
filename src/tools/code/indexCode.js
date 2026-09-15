@@ -14,13 +14,13 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
  * Piscina worker pool for the indexCode tool.
  *
  * Runs the indexing work (scan, chunk, embed, store) off the main event loop.
- * The worker entry file (`src/vector/indexer.worker.js`) accepts plain project
+ * The worker entry file (`src/vector/indexerWorker.js`) accepts plain project
  * config and creates the vector store + embedder internally, since those
  * instances wrap native handles that are not structured-cloneable across
  * worker threads.
  */
 export const pool = new Piscina({
-	filename: join(__dirname, "../../vector/indexer.worker.js"),
+	filename: join(__dirname, "../../vector/indexerWorker.js"),
 });
 
 /**

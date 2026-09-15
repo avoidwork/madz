@@ -40,7 +40,7 @@ describe("indexCode worker", () => {
 	});
 
 	it("creates store and embedder internally and runs reindex", async () => {
-		const { default: indexWorker } = await import("../../../src/vector/indexer.worker.js");
+		const { default: indexWorker } = await import("../../../src/vector/indexerWorker.js");
 		const result = await indexWorker({
 			dbPath: join(tmpDir, "vector.db"),
 			rootDir: tmpDir,
@@ -60,7 +60,7 @@ describe("indexCode worker", () => {
 	});
 
 	it("applies defaults when config fields are omitted", async () => {
-		const { default: indexWorker } = await import("../../../src/vector/indexer.worker.js");
+		const { default: indexWorker } = await import("../../../src/vector/indexerWorker.js");
 		const result = await indexWorker({
 			dbPath: join(tmpDir, "defaults.db"),
 			rootDir: tmpDir,
