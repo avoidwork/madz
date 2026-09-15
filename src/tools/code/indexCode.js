@@ -1,30 +1,49 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
+import { Piscina } from "piscina";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 import { loadConfig } from "../../config/loader.js";
-import { createVectorStore } from "../../vector/store.js";
-import { createEmbedder } from "../../vector/embedder.js";
-import { reindex } from "../../vector/indexer.js";
 
 const config = loadConfig();
 const vectorConfig = config.vector || {};
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+/**
+ * Piscina worker pool for the indexCode tool.
+ *
+ * Runs the indexing work (scan, chunk, embed, store) off the main event loop.
+ * The worker entry file (`src/vector/indexer.worker.js`) accepts plain project
+ * config and creates the vector store + embedder internally, since those
+ * instances wrap native handles that are not structured-cloneable across
+ * worker threads.
+ */
+export const pool = new Piscina({
+	filename: join(__dirname, "../../vector/indexer.worker.js"),
+});
 
 /**
  * Index project source code for vector search.
  *
  * Scans, chunks, embeds, and stores source files for one or all configured
  * projects. Runs incrementally — only processes changed files unless force is set.
+ * The indexing work is dispatched to a Piscina worker pool to avoid blocking the
+ * main event loop.
  *
  * @param {z.infer<typeof CodeIndexSchema>} input - The tool input
+ * @param {object} [options] - Runtime options for test injection
+ * @param {object} [options.vector] - Vector config override (for testing)
  * @returns {Promise<string>} Formatted indexing results
  */
-export async function indexCodeImpl(input) {
-	const projects = vectorConfig.projects || {};
+export async function indexCodeImpl(input, options = {}) {
+	const cfg = options.vector || vectorConfig;
+	const projects = cfg.projects || {};
 
 	if (Object.keys(projects).length === 0) {
 		return "No vector projects configured in config.yaml under vector.projects.";
 	}
 
-	const embedder = createEmbedder({ model: vectorConfig.model || "local" });
 	const projectNames = input.project ? [input.project] : Object.keys(projects);
 	const results = [];
 
@@ -36,13 +55,8 @@ export async function indexCodeImpl(input) {
 		}
 
 		try {
-			const store = await createVectorStore(proj.dbPath, {
-				fulltext: vectorConfig.fulltext !== false,
-				ftsTokenize: vectorConfig.ftsTokenize || "porter unicode61",
-			});
-			await store.init();
-
-			const result = await reindex(store, embedder, {
+			const result = await pool.run({
+				dbPath: proj.dbPath,
 				rootDir: proj.rootDir || ".",
 				include: proj.include || ["src/**/*.js", "src/**/*.mjs", "src/**/*.cjs"],
 				exclude: proj.exclude || ["node_modules/**", ".git/**", ".worktrees/**"],
@@ -50,9 +64,12 @@ export async function indexCodeImpl(input) {
 				chunkOverlap: proj.chunkOverlap || 16,
 				maxFileSize: proj.maxFileSize || 524288,
 				force: input.force || false,
+				model: cfg.model || "local",
+				openaiApiKey: cfg.openaiApiKey || options.openaiApiKey,
+				fulltext: cfg.fulltext !== false,
+				ftsTokenize: cfg.ftsTokenize || "porter unicode61",
 			});
 
-			store.close();
 			results.push(
 				`${name}: ${result.indexed} indexed, ${result.skipped} skipped, ${result.errors} errors`,
 			);
