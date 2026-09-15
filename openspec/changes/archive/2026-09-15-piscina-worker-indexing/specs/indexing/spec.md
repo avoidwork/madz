@@ -1,8 +1,5 @@
-# indexing Specification
+## MODIFIED Requirements
 
-## Purpose
-TBD - created by archiving change sqlite-vec-code-search. Update Purpose after archive.
-## Requirements
 ### Requirement: Indexer scans project source files
 
 The system SHALL scan project source files recursively, discovering files with recognized extensions (.js, .mjs, .cjs, .json, .yaml, .yml, .md, .html, .css). The scanning work SHALL run in a Piscina worker pool rather than inline on the main event loop.
@@ -43,4 +40,3 @@ The system SHALL report progress during indexing, indicating which file is being
 
 - **WHEN** the indexer is processing files
 - **THEN** it outputs progress messages like `[3/42] src/vector/store.js`
-
