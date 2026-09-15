@@ -142,15 +142,8 @@ export const MessageList = React.memo(
 
 				triggerRender();
 
-				// Imperative scroll-to-bottom — mirrors the approach used in
-				// MessageBubble for streaming content. handleContentHeightChange
-				// is unreliable because the children array guard can prevent
-				// the ScrollView from detecting a height change.
-				// Scroll for all message types to ensure the latest content is visible.
-				if (role === "user" || role === "system" || role === "assistant") {
-					scrollRef.current?.scrollToBottom?.();
-				}
-
+				// Imperative scroll-to-bottom DISABLED — relying on
+				// onContentHeightChange to drive auto-scroll instead.
 				return id;
 			},
 
@@ -401,7 +394,6 @@ export const MessageList = React.memo(
 			if (!scrollRef.current || height <= previousHeight) return;
 			// Respect manual scroll-up: don't jump user back to bottom if they're reading
 			if (isUserScrolledUpRef.current) return;
-			scrollRef.current.scrollToBottom?.();
 			lastMsgCountRef.current = idsRef.current.length;
 		};
 

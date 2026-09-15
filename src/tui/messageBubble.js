@@ -246,15 +246,8 @@ export function MessageBubbleInner({
 			hasScrolledOnStreamStartRef.current = false;
 			return;
 		}
-		// Scroll when streaming first starts (even if content is empty)
-		if (!hasScrolledOnStreamStartRef.current) {
-			scrollToBottom();
-			hasScrolledOnStreamStartRef.current = true;
-		}
-		// Also scroll when content grows
-		if (text.length > prevContentLengthRef.current) {
-			scrollToBottom();
-		}
+		// Imperative scroll-to-bottom DISABLED — relying on
+		// onContentHeightChange to drive auto-scroll instead.
 		prevContentLengthRef.current = text.length;
 	}, [text, streaming, scrollToBottom]);
 
