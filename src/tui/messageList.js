@@ -317,6 +317,16 @@ export const MessageList = React.memo(
 			},
 
 			/**
+			 * Force the ScrollView to re-measure a specific item by its render index.
+			 * Used when a bubble grows via pub/sub (no parent re-render) so the
+			 * ScrollView's contentHeight updates and onContentHeightChange fires.
+			 * @param {number} index - Render index of the item to re-measure
+			 */
+			remeasureItem(index) {
+				scrollRef.current?.remeasureItem?.(index);
+			},
+
+			/**
 			 * Get internal state (test/debug).
 			 * @returns {Object}
 			 * @internal
@@ -394,6 +404,7 @@ export const MessageList = React.memo(
 			if (!scrollRef.current || height <= previousHeight) return;
 			// Respect manual scroll-up: don't jump user back to bottom if they're reading
 			if (isUserScrolledUpRef.current) return;
+			scrollRef.current.scrollToBottom?.();
 			lastMsgCountRef.current = idsRef.current.length;
 		};
 
@@ -423,6 +434,10 @@ export const MessageList = React.memo(
 						}
 						// Use stable content reference from contentRef for React.memo to work
 						const stableContent = contentRef.current.get(id) || data.content;
+						return { id, data, stableContent };
+					})
+					.filter(Boolean)
+					.map(({ id, data, stableContent }, renderIndex) => {
 						return React.createElement(MessageBubble, {
 							key: id,
 							role: data.role,
@@ -439,9 +454,10 @@ export const MessageList = React.memo(
 							turnDuration: data.turnDuration,
 							completedToolCalls: data.completedToolCalls,
 							showToolResults,
+							renderIndex,
+							onRemeasure: (index) => scrollRef.current?.remeasureItem?.(index),
 						});
-					})
-					.filter(Boolean);
+					});
 
 				if (newChildren.length === 0) {
 					newChildren.push(
