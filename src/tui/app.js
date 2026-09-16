@@ -242,7 +242,7 @@ function App({
 	let panelComponent = null;
 	if (currentView === PANELS.SKILLS) {
 		panelComponent = React.createElement(SkillsPanel, {
-			skills: registry ? registry.list() : [],
+			skills: registry ? registry.getCatalog() : [],
 			onViewChange: handleViewChange,
 			activeView: currentView,
 		});
