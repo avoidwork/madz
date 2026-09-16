@@ -32,7 +32,7 @@ async function exists(path) {
  * @param {string} [options.sessionsDir] - Sessions subdirectory (overrides config)
  * @returns {Promise<string>} Search results or conversation content
  */
-export async function sessionSearchImpl(input, options = {}) {
+export async function searchSessionImpl(input, options = {}) {
 	const config = loadConfig();
 	const cwd = options.cwd || config.cwd;
 	const memory = config.memory || {};
@@ -49,8 +49,8 @@ export async function sessionSearchImpl(input, options = {}) {
 	return browseConversations(sessionsDir);
 }
 
-export const sessionSearch = tool(sessionSearchImpl, {
-	name: "sessionSearch",
+export const searchSession = tool(searchSessionImpl, {
+	name: "searchSession",
 	description:
 		"Search past conversations. Use query for keyword search, conversationId for full retrieval, or call without arguments to browse available conversations.",
 	schema: z.object({

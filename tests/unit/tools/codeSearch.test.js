@@ -3,7 +3,7 @@ import assert from "node:assert";
 import { mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 
-describe("codeSearch tool", () => {
+describe("searchCode tool", () => {
 	let origFetch;
 	let tmpDir;
 	let dbPath;
@@ -63,8 +63,8 @@ describe("codeSearch tool", () => {
 	}
 
 	it("returns unknown project message when project not found", async () => {
-		const { codeSearchImpl } = await import("../../../src/tools/codeSearch/index.js");
-		const result = await codeSearchImpl(
+		const { searchCodeImpl } = await import("../../../src/tools/code/searchCode.js");
+		const result = await searchCodeImpl(
 			{ query: "hello", topK: 5, project: "nonexistent" },
 			{ vector: { projects: { madz: { dbPath } } }, openaiApiKey: "test-key" },
 		);
@@ -72,8 +72,8 @@ describe("codeSearch tool", () => {
 	});
 
 	it("returns unknown project message when no projects configured", async () => {
-		const { codeSearchImpl } = await import("../../../src/tools/codeSearch/index.js");
-		const result = await codeSearchImpl(
+		const { searchCodeImpl } = await import("../../../src/tools/code/searchCode.js");
+		const result = await searchCodeImpl(
 			{ query: "hello", topK: 5 },
 			{ vector: { projects: {} }, openaiApiKey: "test-key" },
 		);
@@ -81,9 +81,9 @@ describe("codeSearch tool", () => {
 	});
 
 	it("returns no matching code message when index is empty", async () => {
-		const { codeSearchImpl } = await import("../../../src/tools/codeSearch/index.js");
+		const { searchCodeImpl } = await import("../../../src/tools/code/searchCode.js");
 		const emptyDb = join(tmpDir, "empty.db");
-		const result = await codeSearchImpl(
+		const result = await searchCodeImpl(
 			{ query: "hello", topK: 5 },
 			{
 				vector: { projects: { test: { dbPath: emptyDb } }, model: "openai" },
@@ -95,8 +95,8 @@ describe("codeSearch tool", () => {
 
 	it("returns formatted results from indexed data", async () => {
 		await seedData(dbPath);
-		const { codeSearchImpl } = await import("../../../src/tools/codeSearch/index.js");
-		const result = await codeSearchImpl(
+		const { searchCodeImpl } = await import("../../../src/tools/code/searchCode.js");
+		const result = await searchCodeImpl(
 			{ query: "hello", topK: 5 },
 			{
 				vector: { projects: { test: { dbPath } }, model: "openai" },
@@ -108,8 +108,8 @@ describe("codeSearch tool", () => {
 	});
 
 	it("filters results by fileFilter", async () => {
-		const { codeSearchImpl } = await import("../../../src/tools/codeSearch/index.js");
-		const result = await codeSearchImpl(
+		const { searchCodeImpl } = await import("../../../src/tools/code/searchCode.js");
+		const result = await searchCodeImpl(
 			{ query: "hello", topK: 5, fileFilter: "src/foo*" },
 			{
 				vector: { projects: { test: { dbPath } }, model: "openai" },
@@ -121,8 +121,8 @@ describe("codeSearch tool", () => {
 	});
 
 	it("returns no results message when fileFilter excludes everything", async () => {
-		const { codeSearchImpl } = await import("../../../src/tools/codeSearch/index.js");
-		const result = await codeSearchImpl(
+		const { searchCodeImpl } = await import("../../../src/tools/code/searchCode.js");
+		const result = await searchCodeImpl(
 			{ query: "hello", topK: 5, fileFilter: "nonexistent/*" },
 			{
 				vector: { projects: { test: { dbPath } }, model: "openai" },
@@ -133,8 +133,8 @@ describe("codeSearch tool", () => {
 	});
 
 	it("uses first project as default when no project specified", async () => {
-		const { codeSearchImpl } = await import("../../../src/tools/codeSearch/index.js");
-		const result = await codeSearchImpl(
+		const { searchCodeImpl } = await import("../../../src/tools/code/searchCode.js");
+		const result = await searchCodeImpl(
 			{ query: "hello", topK: 5 },
 			{
 				vector: { projects: { test: { dbPath } }, model: "openai" },
@@ -145,8 +145,8 @@ describe("codeSearch tool", () => {
 	});
 
 	it("handles store open failure gracefully", async () => {
-		const { codeSearchImpl } = await import("../../../src/tools/codeSearch/index.js");
-		const result = await codeSearchImpl(
+		const { searchCodeImpl } = await import("../../../src/tools/code/searchCode.js");
+		const result = await searchCodeImpl(
 			{ query: "hello", topK: 5 },
 			{
 				vector: { projects: { test: { dbPath: "/nonexistent/dir/db.sqlite" } }, model: "openai" },
@@ -157,8 +157,8 @@ describe("codeSearch tool", () => {
 	});
 
 	it("handles embed failure gracefully", async () => {
-		const { codeSearchImpl } = await import("../../../src/tools/codeSearch/index.js");
-		const result = await codeSearchImpl(
+		const { searchCodeImpl } = await import("../../../src/tools/code/searchCode.js");
+		const result = await searchCodeImpl(
 			{ query: "hello", topK: 5 },
 			{
 				vector: { projects: { test: { dbPath } }, model: "openai" },
@@ -192,8 +192,8 @@ describe("codeSearch tool", () => {
 		]);
 		ftsStore.close();
 
-		const { codeSearchImpl } = await import("../../../src/tools/codeSearch/index.js");
-		const result = await codeSearchImpl(
+		const { searchCodeImpl } = await import("../../../src/tools/code/searchCode.js");
+		const result = await searchCodeImpl(
 			{ query: "debian", topK: 5, mode: "fulltext" },
 			{
 				vector: { projects: { test: { dbPath: ftsDb, fulltext: true } }, model: "openai" },
@@ -227,8 +227,8 @@ describe("codeSearch tool", () => {
 		]);
 		hybridStore.close();
 
-		const { codeSearchImpl } = await import("../../../src/tools/codeSearch/index.js");
-		const result = await codeSearchImpl(
+		const { searchCodeImpl } = await import("../../../src/tools/code/searchCode.js");
+		const result = await searchCodeImpl(
 			{ query: "debian", topK: 5, mode: "hybrid" },
 			{
 				vector: { projects: { test: { dbPath: hybridDb, fulltext: true } }, model: "openai" },

@@ -227,6 +227,73 @@ describe("cronJob", () => {
 		assert.ok(parsed.job.createdAt);
 	});
 
+	it("derives command from skill when creating a job without explicit command", async () => {
+		const result = await cronJobImpl(
+			{ action: "create", name: "skill-only-job", cron: "0 9 * * *", skill: "report-gen" },
+			opts(),
+		);
+		const parsed = JSON.parse(result);
+		assert.strictEqual(parsed.ok, true);
+		assert.ok(parsed.job);
+		assert.strictEqual(parsed.job.skill, "report-gen");
+		assert.strictEqual(
+			parsed.job.command,
+			`cd ${process.cwd()} && node index.js --message "Run the report-gen skill"`,
+		);
+		await cronJobImpl({ action: "remove", name: "skill-only-job" }, opts());
+	});
+
+	it("serializes input into the derived command when creating a skill-only job with input", async () => {
+		const result = await cronJobImpl(
+			{
+				action: "create",
+				name: "skill-input-job",
+				cron: "0 9 * * *",
+				skill: "report-gen",
+				input: { format: "pdf", region: "na" },
+			},
+			opts(),
+		);
+		const parsed = JSON.parse(result);
+		assert.strictEqual(parsed.ok, true);
+		assert.strictEqual(
+			parsed.job.command,
+			`cd ${process.cwd()} && node index.js --message "Run the report-gen skill ${JSON.stringify({ format: "pdf", region: "na" })}"`,
+		);
+		await cronJobImpl({ action: "remove", name: "skill-input-job" }, opts());
+	});
+
+	it("does not append input to the derived command when input is empty", async () => {
+		const result = await cronJobImpl(
+			{ action: "create", name: "skill-noinput-job", cron: "0 9 * * *", skill: "report-gen" },
+			opts(),
+		);
+		const parsed = JSON.parse(result);
+		assert.strictEqual(parsed.ok, true);
+		assert.strictEqual(
+			parsed.job.command,
+			`cd ${process.cwd()} && node index.js --message "Run the report-gen skill"`,
+		);
+		await cronJobImpl({ action: "remove", name: "skill-noinput-job" }, opts());
+	});
+
+	it("uses explicit command when provided instead of deriving from skill", async () => {
+		const result = await cronJobImpl(
+			{
+				action: "create",
+				name: "explicit-command-job",
+				cron: "0 9 * * *",
+				skill: "report-gen",
+				command: "echo explicit",
+			},
+			opts(),
+		);
+		const parsed = JSON.parse(result);
+		assert.strictEqual(parsed.ok, true);
+		assert.strictEqual(parsed.job.command, "echo explicit");
+		await cronJobImpl({ action: "remove", name: "explicit-command-job" }, opts());
+	});
+
 	it("list returns created jobs", async () => {
 		const result = await cronJobImpl({ action: "list" }, opts());
 		const parsed = JSON.parse(result);

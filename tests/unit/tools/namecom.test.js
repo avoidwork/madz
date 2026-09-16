@@ -1,6 +1,6 @@
 import { test, describe, before, after } from "node:test";
 import assert from "node:assert";
-import { namecomImpl, NamecomToolSchema } from "../../../src/tools/namecom/index.js";
+import { namecomImpl, NamecomToolSchema } from "../../../src/tools/dns/namecom.js";
 
 // All valid action names from the schema
 const VALID_ACTIONS = [

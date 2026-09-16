@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, forwardRef } from "react";
-import { Box, Text, useStdout } from "ink";
+import { Box, Text, useStdout, useWindowSize } from "ink";
 import { ScrollView } from "ink-scroll-view";
 import { MessageBubble, PubSubContext, ScrollContext } from "./messageBubble.js";
 
@@ -58,6 +58,15 @@ export const MessageList = React.memo(
 		const contentRef = useRef(new Map());
 		const lastMsgCountRef = useRef(0);
 		const { stdout } = useStdout();
+		const { rows } = useWindowSize();
+
+		// The ScrollView needs a bounded height for reliable viewport measurement.
+		// The docs example gives it an explicit height. Here we derive it from the
+		// terminal height minus the input panel and status bar (2 rows). Without a
+		// bounded height, flexGrow makes the viewport measure the full terminal,
+		// so scrollToBottom() computes an oversized viewport and content scrolls
+		// offscreen behind the input panel / status bar.
+		const scrollViewportHeight = Math.max(1, rows - 2);
 
 		// Pub/sub topics map — each topic key maps to an array of pending update listeners
 		const topicsRef = useRef(new Map());
@@ -142,15 +151,8 @@ export const MessageList = React.memo(
 
 				triggerRender();
 
-				// Imperative scroll-to-bottom — mirrors the approach used in
-				// MessageBubble for streaming content. handleContentHeightChange
-				// is unreliable because the children array guard can prevent
-				// the ScrollView from detecting a height change.
-				// Scroll for all message types to ensure the latest content is visible.
-				if (role === "user" || role === "system" || role === "assistant") {
-					scrollRef.current?.scrollToBottom?.();
-				}
-
+				// Imperative scroll-to-bottom DISABLED — relying on
+				// onContentHeightChange to drive auto-scroll instead.
 				return id;
 			},
 
@@ -168,26 +170,39 @@ export const MessageList = React.memo(
 				if (existing) {
 					// Handle segment append/coalesce: if updates contains a new segment,
 					// coalesce with the last segment if same type, otherwise push.
-					// Special case: a stray "." reasoning chunk after message content
-					// has started should append to the last reasoning segment, not
-					// create a new one that splits the message.
 					if (updates.segments && existing.segments) {
 						const newSeg = updates.segments[updates.segments.length - 1];
 						const mergedSegments = existing.segments.map((s) => ({ ...s }));
-						if (newSeg.type === "reasoning" && newSeg.content === ".") {
-							// Find the last reasoning segment and append the "." to it
-							let found = false;
+						if (newSeg.type === "reasoning") {
+							// Reasoning coalesces with the last reasoning segment even if
+							// a message interleaved between chunks — otherwise continuous
+							// reasoning gets split into separate 💭 blocks. Search backwards
+							// for the last reasoning segment.
+							let lastReasoning = null;
 							for (let i = mergedSegments.length - 1; i >= 0; i--) {
 								if (mergedSegments[i].type === "reasoning") {
-									mergedSegments[i].content += ".";
-									found = true;
+									lastReasoning = mergedSegments[i];
 									break;
 								}
 							}
-							if (!found) {
+							// Grammatical sentence boundary: a period followed by a
+							// capital letter starts a new block; otherwise coalesce.
+							if (
+								lastReasoning &&
+								(lastReasoning.content.endsWith(".") ||
+									lastReasoning.content.endsWith("?") ||
+									lastReasoning.content.endsWith("!")) &&
+								/^[A-Z]/.test(newSeg.content)
+							) {
+								mergedSegments.push({ ...newSeg });
+							} else if (lastReasoning) {
+								lastReasoning.content += newSeg.content;
+							} else {
 								mergedSegments.push({ ...newSeg });
 							}
 						} else {
+							// Message segments require a type match to append; a mismatch
+							// (e.g., message after reasoning) forces a new block.
 							const lastSeg = mergedSegments[mergedSegments.length - 1];
 							if (lastSeg && lastSeg.type === newSeg.type) {
 								lastSeg.content += newSeg.content;
@@ -311,6 +326,16 @@ export const MessageList = React.memo(
 			},
 
 			/**
+			 * Force the ScrollView to re-measure a specific item by its render index.
+			 * Used when a bubble grows via pub/sub (no parent re-render) so the
+			 * ScrollView's contentHeight updates and onContentHeightChange fires.
+			 * @param {number} index - Render index of the item to re-measure
+			 */
+			remeasureItem(index) {
+				scrollRef.current?.remeasureItem?.(index);
+			},
+
+			/**
 			 * Get internal state (test/debug).
 			 * @returns {Object}
 			 * @internal
@@ -418,6 +443,10 @@ export const MessageList = React.memo(
 						}
 						// Use stable content reference from contentRef for React.memo to work
 						const stableContent = contentRef.current.get(id) || data.content;
+						return { id, data, stableContent };
+					})
+					.filter(Boolean)
+					.map(({ id, data, stableContent }, renderIndex) => {
 						return React.createElement(MessageBubble, {
 							key: id,
 							role: data.role,
@@ -434,9 +463,10 @@ export const MessageList = React.memo(
 							turnDuration: data.turnDuration,
 							completedToolCalls: data.completedToolCalls,
 							showToolResults,
+							renderIndex,
+							onRemeasure: (index) => scrollRef.current?.remeasureItem?.(index),
 						});
-					})
-					.filter(Boolean);
+					});
 
 				if (newChildren.length === 0) {
 					newChildren.push(
@@ -470,13 +500,13 @@ export const MessageList = React.memo(
 				},
 				React.createElement(
 					Box,
-					{ key: "panel", flexDirection: "column", flexGrow: 1 },
+					{ key: "panel", flexDirection: "column" },
 					React.createElement(
 						ScrollView,
 						{
 							ref: scrollRef,
 							key: "scroll",
-							grow: 1,
+							height: scrollViewportHeight,
 							onContentHeightChange: handleContentHeightChange,
 						},
 						...children,

@@ -170,7 +170,6 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 		ephemeralTtlDays: config.memory?.ephemeral?.ttlDays || 7,
 		ephemeralMaxEntries: config.memory?.ephemeral?.maxEntries || 10,
 		config,
-		checkpointer,
 	};
 
 	// Build all tools, then filter to orchestrator-only set

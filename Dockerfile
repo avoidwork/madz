@@ -53,6 +53,12 @@ RUN cargo install cargo-audit@0.22.1 --locked && \
     cp /root/.cargo/bin/cargo-audit /usr/local/bin/cargo-audit && \
     rm -rf /root/.cargo/registry
 
+# Node package managers (yarn, pnpm) — available as globals
+RUN npm install -g yarn pnpm
+
+# OpenSpec CLI — global module
+RUN npm install -g @fission-ai/openspec@latest
+
 ENV HOME=/home/madz
 
 WORKDIR /app

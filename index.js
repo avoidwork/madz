@@ -162,7 +162,7 @@ try {
 	// Graceful degradation: session starts even if cleanup import fails
 }
 
-// Create checkpointer before tools so compactContext can access it
+// Create checkpointer before tools so the orchestrator can access it
 const { createCheckpointer, ensureCheckpointsDir } = await import("./src/session/checkpointer.js");
 const checkpointsDir = config.memory?.checkpointsDir || "memory/checkpoints/";
 await ensureCheckpointsDir(checkpointsDir);

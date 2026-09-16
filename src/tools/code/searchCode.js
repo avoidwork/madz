@@ -19,7 +19,7 @@ const vectorConfig = config.vector || {};
  * @param {object} [options.vector] - Vector config override (for testing)
  * @returns {Promise<string>} Formatted search results
  */
-export async function codeSearchImpl(input, options = {}) {
+export async function searchCodeImpl(input, options = {}) {
 	const cfg = options.vector || vectorConfig;
 	const projects = cfg.projects || {};
 
@@ -61,7 +61,7 @@ export async function codeSearchImpl(input, options = {}) {
 			store.close();
 
 			if (results.length === 0) {
-				return "No matching code found. Try running the codeIndex tool first to index your source code.";
+				return "No matching code found. Try running the indexCode tool first to index your source code.";
 			}
 
 			// Apply file filter if specified
@@ -120,7 +120,7 @@ export async function codeSearchImpl(input, options = {}) {
 			store.close();
 
 			if (results.length === 0) {
-				return "No matching code found. Try running the codeIndex tool first to index your source code.";
+				return "No matching code found. Try running the indexCode tool first to index your source code.";
 			}
 
 			// Apply file filter if specified
@@ -185,7 +185,7 @@ export async function codeSearchImpl(input, options = {}) {
 		store.close();
 
 		if (results.length === 0) {
-			return "No matching code found. Try running the codeIndex tool first to index your source code.";
+			return "No matching code found. Try running the indexCode tool first to index your source code.";
 		}
 
 		// Apply file filter if specified
@@ -220,8 +220,8 @@ export async function codeSearchImpl(input, options = {}) {
 	}
 }
 
-export const codeSearch = tool(codeSearchImpl, {
-	name: "codeSearch",
+export const searchCode = tool(searchCodeImpl, {
+	name: "searchCode",
 	description:
 		"Search source code using hybrid (vector + keyword), full-text, or vector similarity search. " +
 		"By default, uses hybrid mode combining semantic similarity with FTS5 keyword matching " +

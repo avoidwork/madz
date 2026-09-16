@@ -181,6 +181,8 @@ export function MessageBubbleInner({
 	turnDuration,
 	completedToolCalls,
 	showToolResults = false,
+	renderIndex,
+	onRemeasure,
 }) {
 	const [segments, setSegments] = useState(initialSegments || []);
 	const { subscribe, unsubscribe } = useContext(PubSubContext);
@@ -235,9 +237,10 @@ export function MessageBubbleInner({
 	const text = segments.length > 0 ? segments.map((s) => s.content).join("") : content || "";
 
 	// Trigger scroll-to-bottom when streaming content grows or when streaming starts.
-	// Uses ScrollContext to call scrollToBottom directly on the ScrollView,
-	// bypassing the broken onContentHeightChange path that never fires
-	// when bubbles update via pub/sub (no parent re-render).
+	// When a bubble grows via pub/sub, the parent doesn't re-render, so the
+	// ScrollView's MeasurableItem never re-measures and contentHeight stays stale.
+	// Call onRemeasure(renderIndex) to force a re-measure, which updates
+	// contentHeight and fires onContentHeightChange, which drives auto-scroll.
 	const prevContentLengthRef = useRef(0);
 	const hasScrolledOnStreamStartRef = useRef(false);
 	useEffect(() => {
@@ -251,12 +254,13 @@ export function MessageBubbleInner({
 			scrollToBottom();
 			hasScrolledOnStreamStartRef.current = true;
 		}
-		// Also scroll when content grows
+		// Force re-measure when content grows so the ScrollView updates
+		// contentHeight and fires onContentHeightChange.
 		if (text.length > prevContentLengthRef.current) {
-			scrollToBottom();
+			onRemeasure?.(renderIndex);
 		}
 		prevContentLengthRef.current = text.length;
-	}, [text, streaming, scrollToBottom]);
+	}, [text, streaming, scrollToBottom, onRemeasure, renderIndex]);
 
 	const ts = time || formatTime(new Date());
 	const colors = getRoleColors(role);

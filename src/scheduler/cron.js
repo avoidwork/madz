@@ -501,11 +501,16 @@ export const Cron = {
 				try {
 					const content = await readFile(join(schedulesDir, file), "utf-8");
 					const job = JSON.parse(content);
-					if (job.name && job.cron && job.command) {
+					if (job.name && job.cron && (job.skill || job.command)) {
+						const inputStr =
+							job.input && Object.keys(job.input).length ? ` ${JSON.stringify(job.input)}` : "";
+						const command =
+							job.command ||
+							`cd ${process.cwd()} && node index.js --message "Run the ${job.skill} skill${inputStr}"`;
 						jobs.push({
 							name: job.name,
 							cron: job.cron,
-							command: job.command,
+							command,
 							enabled: job.enabled !== false,
 						});
 					}

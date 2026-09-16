@@ -61,16 +61,29 @@ function createImperativeApi() {
 				if (updates.segments && existing.segments) {
 					const newSeg = updates.segments[updates.segments.length - 1];
 					const mergedSegments = existing.segments.map((s) => ({ ...s }));
-					if (newSeg.type === "reasoning" && newSeg.content === ".") {
-						let found = false;
+					if (newSeg.type === "reasoning") {
+						// Reasoning coalesces with the last reasoning segment even if
+						// a message interleaved between chunks.
+						let lastReasoning = null;
 						for (let i = mergedSegments.length - 1; i >= 0; i--) {
 							if (mergedSegments[i].type === "reasoning") {
-								mergedSegments[i].content += ".";
-								found = true;
+								lastReasoning = mergedSegments[i];
 								break;
 							}
 						}
-						if (!found) mergedSegments.push({ ...newSeg });
+						if (
+							lastReasoning &&
+							(lastReasoning.content.endsWith(".") ||
+								lastReasoning.content.endsWith("?") ||
+								lastReasoning.content.endsWith("!")) &&
+							/^[A-Z]/.test(newSeg.content)
+						) {
+							mergedSegments.push({ ...newSeg });
+						} else if (lastReasoning) {
+							lastReasoning.content += newSeg.content;
+						} else {
+							mergedSegments.push({ ...newSeg });
+						}
 					} else {
 						const lastSeg = mergedSegments[mergedSegments.length - 1];
 						if (lastSeg && lastSeg.type === newSeg.type) {
@@ -199,11 +212,11 @@ describe("MessageList — imperative API", () => {
 
 		it("adds message with activeToolCall and toolCallDisplay", () => {
 			const id = api.addMessage("assistant", "", {
-				activeToolCall: { name: "webSearch" },
+				activeToolCall: { name: "searchWeb" },
 				toolCallDisplay: "Result: ok",
 			});
 			const data = api.getMessageData(id);
-			assert.deepStrictEqual(data.activeToolCall, { name: "webSearch" });
+			assert.deepStrictEqual(data.activeToolCall, { name: "searchWeb" });
 			assert.strictEqual(data.toolCallDisplay, "Result: ok");
 		});
 
@@ -277,36 +290,48 @@ describe("MessageList — imperative API", () => {
 			assert.strictEqual(data.segments[1].type, "message");
 		});
 
-		it("appends stray '.' reasoning chunk to last reasoning segment", () => {
+		it("coalesces reasoning across an interleaved message", () => {
 			const id = api.addMessage("assistant", "", {
 				segments: [
-					{ type: "reasoning", content: "thinking" },
-					{ type: "message", content: "Hello" },
+					{ type: "reasoning", content: "measured cad" },
+					{ type: "message", content: "Yo," },
 				],
 			});
 			api.updateMessage(id, {
-				segments: [{ type: "reasoning", content: "." }],
+				segments: [{ type: "reasoning", content: "ence." }],
 			});
 			const data = api.getMessageData(id);
 			assert.strictEqual(data.segments.length, 2);
 			assert.strictEqual(data.segments[0].type, "reasoning");
-			assert.strictEqual(data.segments[0].content, "thinking.");
+			assert.strictEqual(data.segments[0].content, "measured cadence.");
 			assert.strictEqual(data.segments[1].type, "message");
-			assert.strictEqual(data.segments[1].content, "Hello");
+			assert.strictEqual(data.segments[1].content, "Yo,");
 		});
 
-		it("creates new reasoning segment if no prior reasoning exists for stray '.'", () => {
+		it("starts new reasoning block after period when next chunk is capitalized", () => {
 			const id = api.addMessage("assistant", "", {
-				segments: [{ type: "message", content: "Hello" }],
+				segments: [{ type: "reasoning", content: "measured cadence." }],
 			});
 			api.updateMessage(id, {
-				segments: [{ type: "reasoning", content: "." }],
+				segments: [{ type: "reasoning", content: "Jason" }],
 			});
 			const data = api.getMessageData(id);
 			assert.strictEqual(data.segments.length, 2);
-			assert.strictEqual(data.segments[0].type, "message");
-			assert.strictEqual(data.segments[1].type, "reasoning");
-			assert.strictEqual(data.segments[1].content, ".");
+			assert.strictEqual(data.segments[0].content, "measured cadence.");
+			assert.strictEqual(data.segments[1].content, "Jason");
+		});
+
+		it("forces new block on type mismatch (message after reasoning)", () => {
+			const id = api.addMessage("assistant", "", {
+				segments: [{ type: "reasoning", content: "thinking" }],
+			});
+			api.updateMessage(id, {
+				segments: [{ type: "message", content: "Hello" }],
+			});
+			const data = api.getMessageData(id);
+			assert.strictEqual(data.segments.length, 2);
+			assert.strictEqual(data.segments[0].type, "reasoning");
+			assert.strictEqual(data.segments[1].type, "message");
 		});
 	});
 
