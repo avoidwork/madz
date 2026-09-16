@@ -181,3 +181,5 @@ subAgentsTemperature:
   seoAnalyst: 0.3
   translator: 0.3
 cwd: ""
+image:
+  maxSize: 100kb

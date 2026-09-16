@@ -16,6 +16,7 @@ import { PersistenceSchema } from "./schemas/persistence.js";
 import { SkillAgentMapSchema } from "./schemas/skillAgentMap.js";
 import { SubAgentsTemperatureSchema } from "./schemas/subAgentsTemperature.js";
 import { VectorConfigSchema } from "./schemas/vector.js";
+import { ImageSchema } from "./schemas/image.js";
 
 // Re-export individual schemas for backward compatibility
 export {
@@ -67,6 +68,7 @@ export const ConfigSchema = z.object({
 	cwd: z.string().default(""),
 	subAgentsTemperature: SubAgentsTemperatureSchema,
 	vector: VectorConfigSchema.default({}),
+	image: ImageSchema.default({}),
 });
 
 // Derive defaults from Zod schema — config.yaml is the source of truth,

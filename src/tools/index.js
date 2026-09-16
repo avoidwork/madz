@@ -3,6 +3,7 @@ import { cronJob } from "./cron/index.js";
 import { date } from "./date/index.js";
 import { scanAgents } from "./scanAgents/index.js";
 import { generateImage } from "./image/index.js";
+import { readImage } from "./image/readImage.js";
 import { memory } from "./memory/index.js";
 import { sampling } from "./sampling/index.js";
 import { searchSession } from "./session/index.js";
@@ -38,6 +39,7 @@ export const TOOL_PERMISSIONS = {
 	createSkill: ["filesystem:write"],
 	date: [],
 	generateImage: ["network:outbound"],
+	readImage: ["filesystem:read"],
 	memory: ["filesystem:read", "filesystem:write"],
 	process: ["filesystem:exec", "process:spawn"],
 	sampling: ["filesystem:write"],
@@ -99,6 +101,7 @@ export const TOOL_CLASSIFICATIONS = {
 		"coding",
 	],
 	generateImage: ["documentation"],
+	readImage: ["search", "research", "coding", "documentation", "debug"],
 	memory: [
 		"search",
 		"debug",
@@ -205,6 +208,7 @@ export const TOOLS = {
 	createSkill,
 	date,
 	generateImage,
+	readImage,
 	memory,
 	process: processTool,
 	sampling,
