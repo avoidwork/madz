@@ -93,8 +93,12 @@ export function MemoryPanel({ config, onViewChange, activeView }) {
 		};
 	}, [config?.memory?.contextDir, config?.cwd]);
 
-	// Load detail content for a given entry
-	const loadDetail = useCallback(async (entry) => {
+	// Load detail content for a given entry.
+	// Accepts either the entry object directly (from the mount effect) or the
+	// SelectInput item shape { label, value, key } (from onHighlight/onSelect).
+	const loadDetail = useCallback(async (itemOrEntry) => {
+		const entry =
+			itemOrEntry?.value && typeof itemOrEntry.value === "object" ? itemOrEntry.value : itemOrEntry;
 		if (!entry) return;
 		setSelectedEntry(entry);
 		try {
