@@ -5,10 +5,16 @@ import InputArea from "./inputArea.js";
 import { Banner } from "./banner.js";
 import { OnboardingPanel } from "./onboardingPanel.js";
 import { CommandParser } from "./commandParser.js";
+import { PANELS } from "./panels.js";
+import { SkillsPanel } from "./skillsPanel.js";
+import { MemoryPanel } from "./memoryPanel.js";
+import { SettingsPanel } from "./settingsPanel.js";
+import { SessionsPanel } from "./sessionsPanel.js";
 
 /**
- * Thin App router — holds only cross-cutting state.
- * Renders ConversationArea and InputArea as sibling subtrees.
+ * App router — holds cross-cutting state and view routing.
+ * Renders ConversationArea + InputArea in conversation view,
+ * or a panel component in panel views.
  */
 function App({
 	config,
@@ -26,6 +32,8 @@ function App({
 	const [showOnboarding, setShowOnboarding] = useState(!!onboarding);
 	const [onboardingResponse, setOnboardingResponse] = useState(0);
 	const [inputFocused, setInputFocused] = useState(true);
+	const [currentView, setCurrentView] = useState(PANELS.CONVERSATION);
+	const [pendingInput, setPendingInput] = useState("");
 	const lastInterruptTimeRef = useRef(0);
 	const { exit } = useApp();
 	const exitRef = useRef(exit);
@@ -43,6 +51,39 @@ function App({
 	const onContextChange = useCallback((size) => inputAreaRef.current?.setContextSize(size), []);
 	const onCompactingChange = useCallback((val) => inputAreaRef.current?.setIsCompacting(val), []);
 	const onInterruptInput = useCallback(() => inputAreaRef.current?.clearInput(), []);
+
+	/**
+	 * onViewChange — switch between conversation and panel views.
+	 * When returning to conversation view, reload messages from session state
+	 * (e.g., after session resume).
+	 * @param {string} view - One of PANELS values
+	 */
+	const handleViewChange = useCallback(
+		(view) => {
+			setCurrentView(view);
+			if (view === PANELS.CONVERSATION && conversationAreaRef.current) {
+				const conv = sessionState?.getConversation();
+				if (conv && conv.length > 0) {
+					conversationAreaRef.current.loadConversation(conv);
+				}
+			}
+		},
+		[sessionState],
+	);
+
+	/**
+	 * handleSelectSkill — switch to the conversation view and pre-load the
+	 * "Run the <skill> skill" prompt into the input so the user can hit Enter
+	 * to execute or append to it.
+	 * @param {string} skillName - The selected skill name
+	 */
+	const handleSelectSkill = useCallback((skillName) => {
+		setCurrentView(PANELS.CONVERSATION);
+		// Pre-load the prompt into the input. InputArea is unmounted during
+		// panel views, so set a pending value that it consumes on mount.
+		setPendingInput(`Run the ${skillName} skill`);
+		inputAreaRef.current?.setStatusMessage(`Selected ${skillName} — press Enter to run or append.`);
+	}, []);
 
 	/**
 	 * handleSubmit — App-level router.
@@ -161,6 +202,13 @@ function App({
 			setShowBanner(false);
 		}
 
+		// Panel view — defer all input to the active panel via its own useInput({ isActive })
+		// Each panel handles Escape to return to conversation when appropriate.
+		if (currentView !== PANELS.CONVERSATION) {
+			return;
+		}
+
+		// Conversation view key handling
 		// Global keys always handled at app level, regardless of focus state
 		if (input === "\t" || key.tab) {
 			setInputFocused((prev) => !prev);
@@ -204,6 +252,37 @@ function App({
 	const handleInputFocus = useCallback(() => setInputFocused(true), []);
 	const handleInputBlur = useCallback(() => setInputFocused(false), []);
 
+	// Determine which panel component to render
+	// Each panel derives its own isActive from the active view name.
+	let panelComponent = null;
+	if (currentView === PANELS.SKILLS) {
+		panelComponent = React.createElement(SkillsPanel, {
+			skills: registry ? registry.getCatalog() : [],
+			onViewChange: handleViewChange,
+			onSelectSkill: handleSelectSkill,
+			activeView: currentView,
+		});
+	} else if (currentView === PANELS.MEMORY) {
+		panelComponent = React.createElement(MemoryPanel, {
+			config,
+			onViewChange: handleViewChange,
+			activeView: currentView,
+		});
+	} else if (currentView === PANELS.SETTINGS) {
+		panelComponent = React.createElement(SettingsPanel, {
+			config,
+			onViewChange: handleViewChange,
+			activeView: currentView,
+		});
+	} else if (currentView === PANELS.SESSIONS) {
+		panelComponent = React.createElement(SessionsPanel, {
+			sessionState,
+			config,
+			onViewChange: handleViewChange,
+			activeView: currentView,
+		});
+	}
+
 	return React.createElement(
 		Box,
 		{ flexDirection: "column", width: "100%", height: rows },
@@ -225,36 +304,44 @@ function App({
 						onDismiss: () => setShowBanner(false),
 						version: appInfo ? appInfo.version : undefined,
 					})
-				: React.createElement(ConversationArea, {
-						ref: conversationAreaRef,
-						config,
-						registry,
-						sessionState,
-						dispatchProvider,
-						scheduleManager,
-						appInfo,
-						onSaveSession,
-						gcManager,
-						gcTrigger,
-						onStatusChange,
-						onContextChange,
-						onCompactingChange,
-						onInterruptInput,
-						onQuit: handleQuit,
-						onNewSession: handleNewSession,
-						messageCountRef,
-					}),
-		React.createElement(InputArea, {
-			ref: inputAreaRef,
-			onSubmit: handleSubmit,
-			onFocus: handleInputFocus,
-			onBlur: handleInputBlur,
-			focus: inputFocused,
-			skillCount,
-			messageCountRef,
-			showBanner,
-			showOnboarding,
-		}),
+				: currentView !== PANELS.CONVERSATION
+					? panelComponent
+					: React.createElement(ConversationArea, {
+							ref: conversationAreaRef,
+							config,
+							registry,
+							sessionState,
+							dispatchProvider,
+							scheduleManager,
+							appInfo,
+							onSaveSession,
+							gcManager,
+							gcTrigger,
+							onStatusChange,
+							onContextChange,
+							onCompactingChange,
+							onInterruptInput,
+							onQuit: handleQuit,
+							onNewSession: handleNewSession,
+							onViewChange: handleViewChange,
+							messageCountRef,
+						}),
+		// InputArea — hidden during panel views
+		currentView === PANELS.CONVERSATION || showOnboarding
+			? React.createElement(InputArea, {
+					ref: inputAreaRef,
+					onSubmit: handleSubmit,
+					onFocus: handleInputFocus,
+					onBlur: handleInputBlur,
+					focus: inputFocused,
+					skillCount,
+					messageCountRef,
+					showBanner,
+					showOnboarding,
+					initialValue: pendingInput,
+					onInitialValueConsumed: () => setPendingInput(""),
+				})
+			: null,
 	);
 }
 

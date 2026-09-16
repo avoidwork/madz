@@ -1,7 +1,7 @@
 ℹ start of coverage report
-ℹ ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ℹ ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ℹ file                           | line % | branch % | funcs % | uncovered lines
-ℹ ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ℹ ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ℹ src                            |        |          |         | 
 ℹ  agent                         |        |          |         | 
 ℹ   agentDefinitions.js          |  98.54 |    83.33 |  100.00 | 109-110
@@ -27,11 +27,11 @@
 ℹ    tui.js                      | 100.00 |   100.00 |  100.00 | 
 ℹ    vector.js                   | 100.00 |   100.00 |  100.00 | 
 ℹ  memory                        |        |          |         | 
-ℹ   context.js                   |  95.73 |    67.65 |  100.00 | 112-116
+ℹ   context.js                   |  97.44 |    78.79 |  100.00 | 114-116
 ℹ   expireEphemeralMemories.js   |  93.15 |    73.68 |  100.00 | 25-27 68-69
 ℹ   gc.js                        | 100.00 |   100.00 |  100.00 | 
 ℹ   profile.js                   | 100.00 |    98.41 |  100.00 | 
-ℹ   prompts.js                   |  94.29 |    87.50 |  100.00 | 28-29
+ℹ   prompts.js                   | 100.00 |   100.00 |  100.00 | 
 ℹ   reader.js                    | 100.00 |    94.44 |  100.00 | 
 ℹ  provider                      |        |          |         | 
 ℹ   openai.js                    |  86.46 |   100.00 |   25.00 | 59 74-81 88-91
@@ -49,19 +49,20 @@
 ℹ  session                       |        |          |         | 
 ℹ   checkpointer.js              | 100.00 |    81.82 |  100.00 | 
 ℹ   factory.js                   | 100.00 |   100.00 |  100.00 | 
+ℹ   loader.js                    |  20.78 |   100.00 |    0.00 | 16-51 53-77
 ℹ   onboarding.js                | 100.00 |    94.23 |  100.00 | 
 ℹ   saver.js                     |  98.18 |    82.35 |  100.00 | 47
 ℹ   shutdown.js                  | 100.00 |   100.00 |  100.00 | 
-ℹ   stateManager.js              | 100.00 |   100.00 |  100.00 | 
+ℹ   stateManager.js              |  96.82 |   100.00 |   94.74 | 144-150
 ℹ   window.js                    | 100.00 |    91.67 |  100.00 | 
 ℹ  shared                        |        |          |         | 
 ℹ   logger.js                    |  84.07 |    66.67 |  100.00 | 85-93 98 100-102 125-126 136-140 165-171 177-181 198 232-233 235-236 255-256 264-265 273-274 282-283 291-292
 ℹ  skills                        |        |          |         | 
-ℹ   agentMapper.js               |  83.33 |    62.50 |  100.00 | 12-13 23-25
-ℹ   discoverer.js                |  99.10 |    92.06 |  100.00 | 174-175
-ℹ   registry.js                  |  85.87 |    51.85 |   66.67 | 95-96 117-118 135-136 144-153 164-166 192-198 206-210 218-222 255-256
+ℹ   agentMapper.js               | 100.00 |   100.00 |  100.00 | 
+ℹ   discoverer.js                |  99.10 |    92.42 |  100.00 | 174-175
+ℹ   registry.js                  | 100.00 |    90.57 |  100.00 | 
 ℹ   types.js                     | 100.00 |   100.00 |  100.00 | 
-ℹ   validator.js                 |  96.35 |    97.50 |   80.00 | 130-134
+ℹ   validator.js                 | 100.00 |   100.00 |   80.00 | 
 ℹ  stream                        |        |          |         | 
 ℹ   transformers                 |        |          |         | 
 ℹ    index.js                    | 100.00 |   100.00 |  100.00 | 
@@ -135,7 +136,7 @@
 ℹ   memory                       |        |          |         | 
 ℹ    index.js                    |  96.53 |    83.56 |   93.33 | 56 99-100 195-199 299-301
 ℹ   pdf                          |        |          |         | 
-ℹ    index.js                    |  97.18 |    92.86 |   91.30 | 66-70 143-152 165-166 224-228 249 331-332
+ℹ    index.js                    |  70.16 |    69.77 |   78.26 | 31-37 54-60 66-70 91-92 95-96 126-127 129 143-152 162 165-166 224-228 315-316 325-332 334-336 358-407 445-446 469-471 473-475 477-479 481-483 502-523 526 571-572 574-578 584-587 589-610 612-626 655-656 662-732
 ℹ   pptx                         |        |          |         | 
 ℹ    index.js                    |  98.62 |    95.18 |   92.31 | 474-477 528-529 549-550
 ℹ   process                      |        |          |         | 
@@ -162,22 +163,26 @@
 ℹ   web                          |        |          |         | 
 ℹ    index.js                    |  95.14 |    69.88 |   62.50 | 27-28 42-43 46-48 89-91 126-128 192-194 325-326
 ℹ   webhook                      |        |          |         | 
-ℹ    index.js                    | 100.00 |    98.28 |  100.00 | 
+ℹ    index.js                    |  98.79 |    96.49 |  100.00 | 20-22
 ℹ   yaml                         |        |          |         | 
 ℹ    index.js                    | 100.00 |    94.44 |  100.00 | 
 ℹ  tui                           |        |          |         | 
-ℹ   app.js                       |  42.53 |    66.67 |    6.67 | 53-69 79-80 87-88 95-140 144-198 212-222 229-245
-ℹ   banner.js                    |  90.00 |   100.00 |   85.71 | 45-52
-ℹ   commandParser.js             | 100.00 |    90.67 |  100.00 | 
+ℹ   app.js                       |  43.97 |    50.00 |    5.56 | 63-69 81-85 94-110 120-121 128-129 136-181 185-246 259-264 266-270 272-276 278-284 291-301 308-327
+ℹ   banner.js                    |  90.70 |   100.00 |   85.71 | 51-58
+ℹ   commandParser.js             |  99.55 |    90.79 |   94.74 | 105
 ℹ   contextTokens.js             |  80.33 |    73.33 |  100.00 | 22-25 32-39
 ℹ   conversationPanel.js         |  95.12 |    95.83 |  100.00 | 26-31
-ℹ   inputArea.js                 |  69.60 |    83.33 |   25.00 | 28-40 48-64 69-70 73-78
+ℹ   inputArea.js                 |  72.41 |    78.57 |   30.00 | 37-38 47-59 67-83 89-90 93-98
 ℹ   inputPanel.js                | 100.00 |   100.00 |  100.00 | 
-ℹ   markdownText.js              |  95.13 |    85.11 |   96.00 | 69 199-205 220-228 231-233 359
-ℹ   messageBubble.js             |  92.10 |    91.30 |   70.83 | 214-227 281-285 314-321 339-342 354-357
-ℹ   messageList.js               |  70.86 |    67.86 |   51.85 | 69 86-89 114-154 164-232 241 248-253 299 307 315 323 332-338 347 355-360 382-384 428 430-431
+ℹ   markdownText.js              |  95.36 |    86.32 |   96.00 | 69 199-205 220-228 231-233
+ℹ   memoryPanel.js               |   7.92 |   100.00 |    0.00 | 17-202
+ℹ   messageBubble.js             |  92.17 |    90.00 |   70.83 | 216-229 285-289 318-325 343-346 358-361
+ℹ   messageList.js               |  72.97 |    68.97 |   50.00 | 78 95-98 123-156 166-234 243 250-255 301 309 317 325 335 344-350 359 367-372 394-396 440 442-443
 ℹ   messages.js                  | 100.00 |   100.00 |  100.00 | 
 ℹ   panels.js                    | 100.00 |   100.00 |  100.00 | 
+ℹ   sessionsPanel.js             |   7.56 |   100.00 |    0.00 | 18-225
+ℹ   settingsPanel.js             |  16.15 |   100.00 |    0.00 | 9-35 40-44 54-130
+ℹ   skillsPanel.js               |  13.73 |   100.00 |    0.00 | 15-102
 ℹ   statusBar.js                 |  97.78 |    93.33 |  100.00 | 22-23
 ℹ  vector                        |        |          |         | 
 ℹ   chunker.js                   |  98.81 |    95.45 |  100.00 | 159-160
@@ -187,7 +192,597 @@
 ℹ   store.js                     |  92.15 |    90.63 |   94.74 | 145-159 226-232 242
 ℹ  workspace                     |        |          |         | 
 ℹ   loadAgents.js                | 100.00 |    87.50 |  100.00 | 
-ℹ ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-ℹ all files                      |  95.11 |    89.56 |   90.98 | 
-ℹ ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ℹ ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ℹ all files                      |  91.59 |    89.19 |   90.05 | 
+ℹ ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ℹ end of coverage report
+
+✖ failing tests:
+
+test at tests/unit/tools_pdf_generate.test.js:155:3
+✖ generates a valid PDF from markdown (2203.813739ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  false !== true
+  
+      at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/tools_pdf_generate.test.js:164:11)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/unit/tools_pdf_generate.test.js:173:3
+✖ generates PDF with custom CSS (2197.455068ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  false !== true
+  
+      at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/tools_pdf_generate.test.js:183:11)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/unit/tools_pdf_generate.test.js:204:3
+✖ requires outputPath or base64 (17.786029ms)
+  Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/a.pdf'
+      at async open (node:internal/fs/promises:636:25)
+      at async writeFile (node:internal/fs/promises:1243:14)
+      at async TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/tools_pdf_generate.test.js:207:4)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'memory/__test_pdf_generate__/a.pdf'
+  }
+
+test at tests/unit/tools_pdf_generate.test.js:220:3
+✖ merges two PDFs (4.149209ms)
+  Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/a.pdf'
+      at async open (node:internal/fs/promises:636:25)
+      at async writeFile (node:internal/fs/promises:1243:14)
+      at async TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/tools_pdf_generate.test.js:223:4)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'memory/__test_pdf_generate__/a.pdf'
+  }
+
+test at tests/unit/tools_pdf_generate.test.js:240:3
+✖ merges PDFs and returns base64 (4.411792ms)
+  Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/c.pdf'
+      at async open (node:internal/fs/promises:636:25)
+      at async writeFile (node:internal/fs/promises:1243:14)
+      at async TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/tools_pdf_generate.test.js:243:4)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'memory/__test_pdf_generate__/c.pdf'
+  }
+
+test at tests/unit/tools_pdf_generate.test.js:263:3
+✖ rejects file exceeding max size (0.423215ms)
+  Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/large.pdf'
+      at async open (node:internal/fs/promises:636:25)
+      at async writeFile (node:internal/fs/promises:1243:14)
+      at async TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/tools_pdf_generate.test.js:266:4)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'memory/__test_pdf_generate__/large.pdf'
+  }
+
+test at tests/unit/tools_pdf_generate.test.js:301:3
+✖ requires outputPattern or base64 (3.030349ms)
+  Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/split_src.pdf'
+      at async open (node:internal/fs/promises:636:25)
+      at async writeFile (node:internal/fs/promises:1243:14)
+      at async TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/tools_pdf_generate.test.js:303:4)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'memory/__test_pdf_generate__/split_src.pdf'
+  }
+
+test at tests/unit/tools_pdf_generate.test.js:316:3
+✖ splits PDF by page range (6.779297ms)
+  Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/src_range.pdf'
+      at async open (node:internal/fs/promises:636:25)
+      at async writeFile (node:internal/fs/promises:1243:14)
+      at async TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/tools_pdf_generate.test.js:318:4)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'memory/__test_pdf_generate__/src_range.pdf'
+  }
+
+test at tests/unit/tools_pdf_generate.test.js:333:3
+✖ splits PDF by individual pages (2.589211ms)
+  Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/src_pages.pdf'
+      at async open (node:internal/fs/promises:636:25)
+      at async writeFile (node:internal/fs/promises:1243:14)
+      at async TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/tools_pdf_generate.test.js:335:4)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'memory/__test_pdf_generate__/src_pages.pdf'
+  }
+
+test at tests/unit/tools_pdf_generate.test.js:350:3
+✖ splits PDF by all pages (2.460278ms)
+  Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/src_all.pdf'
+      at async open (node:internal/fs/promises:636:25)
+      at async writeFile (node:internal/fs/promises:1243:14)
+      at async TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/tools_pdf_generate.test.js:352:4)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'memory/__test_pdf_generate__/src_all.pdf'
+  }
+
+test at tests/unit/tools_pdf_generate.test.js:367:3
+✖ returns base64 array when requested (2.068894ms)
+  Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/src_b64.pdf'
+      at async open (node:internal/fs/promises:636:25)
+      at async writeFile (node:internal/fs/promises:1243:14)
+      at async TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/tools_pdf_generate.test.js:369:4)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'memory/__test_pdf_generate__/src_b64.pdf'
+  }
+
+test at tests/unit/tools_pdf_generate.test.js:391:3
+✖ rejects invalid page range (1.977562ms)
+  Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/src_invalid.pdf'
+      at async open (node:internal/fs/promises:636:25)
+      at async writeFile (node:internal/fs/promises:1243:14)
+      at async TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/tools_pdf_generate.test.js:393:4)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'memory/__test_pdf_generate__/src_invalid.pdf'
+  }
+
+test at tests/unit/tools_pdf_generate.test.js:415:3
+✖ requires text or image watermark (1.919113ms)
+  Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/wm_src.pdf'
+      at async open (node:internal/fs/promises:636:25)
+      at async writeFile (node:internal/fs/promises:1243:14)
+      at async TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/tools_pdf_generate.test.js:417:4)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'memory/__test_pdf_generate__/wm_src.pdf'
+  }
+
+test at tests/unit/tools_pdf_generate.test.js:430:3
+✖ adds text watermark to all pages (2.182507ms)
+  Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/wm_all.pdf'
+      at async open (node:internal/fs/promises:636:25)
+      at async writeFile (node:internal/fs/promises:1243:14)
+      at async TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/tools_pdf_generate.test.js:432:4)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'memory/__test_pdf_generate__/wm_all.pdf'
+  }
+
+test at tests/unit/tools_pdf_generate.test.js:449:3
+✖ adds text watermark to specific pages (2.968763ms)
+  Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/wm_pages.pdf'
+      at async open (node:internal/fs/promises:636:25)
+      at async writeFile (node:internal/fs/promises:1243:14)
+      at async TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/tools_pdf_generate.test.js:451:4)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'memory/__test_pdf_generate__/wm_pages.pdf'
+  }
+
+test at tests/unit/tools_pdf_generate.test.js:469:3
+✖ adds image watermark (1.890028ms)
+  Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/wm_img_src.pdf'
+      at async open (node:internal/fs/promises:636:25)
+      at async writeFile (node:internal/fs/promises:1243:14)
+      at async TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/tools_pdf_generate.test.js:471:4)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'memory/__test_pdf_generate__/wm_img_src.pdf'
+  }
+
+test at tests/unit/tools_pdf_generate.test.js:489:3
+✖ returns base64 output (1.845354ms)
+  Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/wm_b64_src.pdf'
+      at async open (node:internal/fs/promises:636:25)
+      at async writeFile (node:internal/fs/promises:1243:14)
+      at async TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/tools_pdf_generate.test.js:491:4)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'memory/__test_pdf_generate__/wm_b64_src.pdf'
+  }
+
+test at tests/unit/tools_pdf_generate.test.js:508:3
+✖ accepts base64 input (8.114994ms)
+  Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/wm_b64in_out.pdf'
+      at async open (node:internal/fs/promises:636:25)
+      at async writeFile (node:internal/fs/promises:1243:14)
+      at async savePdf (file:///home/jason/Projects/madz/src/tools/pdf/index.js:94:3)
+      at async addWatermark (file:///home/jason/Projects/madz/src/tools/pdf/index.js:525:17)
+      at async TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/tools_pdf_generate.test.js:514:5)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'memory/__test_pdf_generate__/wm_b64in_out.pdf'
+  }
+
+test at tests/unit/tools_pdf_generate.test.js:543:3
+✖ requires text or image signature (1.910987ms)
+  Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/sig_src.pdf'
+      at async open (node:internal/fs/promises:636:25)
+      at async writeFile (node:internal/fs/promises:1243:14)
+      at async TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/tools_pdf_generate.test.js:545:4)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'memory/__test_pdf_generate__/sig_src.pdf'
+  }
+
+test at tests/unit/tools_pdf_generate.test.js:560:3
+✖ requires page, x, y (1.524621ms)
+  Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/sig_coords.pdf'
+      at async open (node:internal/fs/promises:636:25)
+      at async writeFile (node:internal/fs/promises:1243:14)
+      at async TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/tools_pdf_generate.test.js:562:4)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'memory/__test_pdf_generate__/sig_coords.pdf'
+  }
+
+test at tests/unit/tools_pdf_generate.test.js:575:3
+✖ embeds text signature (1.53955ms)
+  Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/sig_text_src.pdf'
+      at async open (node:internal/fs/promises:636:25)
+      at async writeFile (node:internal/fs/promises:1243:14)
+      at async TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/tools_pdf_generate.test.js:577:4)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'memory/__test_pdf_generate__/sig_text_src.pdf'
+  }
+
+test at tests/unit/tools_pdf_generate.test.js:597:3
+✖ embeds image signature (1.529772ms)
+  Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/sig_img_src.pdf'
+      at async open (node:internal/fs/promises:636:25)
+      at async writeFile (node:internal/fs/promises:1243:14)
+      at async TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/tools_pdf_generate.test.js:599:4)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'memory/__test_pdf_generate__/sig_img_src.pdf'
+  }
+
+test at tests/unit/tools_pdf_generate.test.js:620:3
+✖ rejects out-of-range page (1.580667ms)
+  Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/sig_page.pdf'
+      at async open (node:internal/fs/promises:636:25)
+      at async writeFile (node:internal/fs/promises:1243:14)
+      at async TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/tools_pdf_generate.test.js:622:4)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'memory/__test_pdf_generate__/sig_page.pdf'
+  }
+
+test at tests/unit/tools_pdf_generate.test.js:638:3
+✖ returns base64 output (1.548006ms)
+  Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/sig_b64_src.pdf'
+      at async open (node:internal/fs/promises:636:25)
+      at async writeFile (node:internal/fs/promises:1243:14)
+      at async TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/tools_pdf_generate.test.js:640:4)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'memory/__test_pdf_generate__/sig_b64_src.pdf'
+  }
+
+test at tests/unit/tools_pdf_generate.test.js:673:3
+✖ requires at least one annotation (1.972143ms)
+  Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/ann_src.pdf'
+      at async open (node:internal/fs/promises:636:25)
+      at async writeFile (node:internal/fs/promises:1243:14)
+      at async TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/tools_pdf_generate.test.js:675:4)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'memory/__test_pdf_generate__/ann_src.pdf'
+  }
+
+test at tests/unit/tools_pdf_generate.test.js:688:3
+✖ requires annotation fields (1.630721ms)
+  Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/ann_fields.pdf'
+      at async open (node:internal/fs/promises:636:25)
+      at async writeFile (node:internal/fs/promises:1243:14)
+      at async TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/tools_pdf_generate.test.js:690:4)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'memory/__test_pdf_generate__/ann_fields.pdf'
+  }
+
+test at tests/unit/tools_pdf_generate.test.js:703:3
+✖ adds highlight annotation (1.753722ms)
+  Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/ann_highlight_src.pdf'
+      at async open (node:internal/fs/promises:636:25)
+      at async writeFile (node:internal/fs/promises:1243:14)
+      at async TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/tools_pdf_generate.test.js:705:4)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'memory/__test_pdf_generate__/ann_highlight_src.pdf'
+  }
+
+test at tests/unit/tools_pdf_generate.test.js:728:3
+✖ adds note annotation (1.571691ms)
+  Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/ann_note_src.pdf'
+      at async open (node:internal/fs/promises:636:25)
+      at async writeFile (node:internal/fs/promises:1243:14)
+      at async TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/tools_pdf_generate.test.js:730:4)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'memory/__test_pdf_generate__/ann_note_src.pdf'
+  }
+
+test at tests/unit/tools_pdf_generate.test.js:754:3
+✖ adds stamp annotation (1.554418ms)
+  Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/ann_stamp_src.pdf'
+      at async open (node:internal/fs/promises:636:25)
+      at async writeFile (node:internal/fs/promises:1243:14)
+      at async TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/tools_pdf_generate.test.js:756:4)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'memory/__test_pdf_generate__/ann_stamp_src.pdf'
+  }
+
+test at tests/unit/tools_pdf_generate.test.js:780:3
+✖ adds multiple annotations (1.597178ms)
+  Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/ann_multi_src.pdf'
+      at async open (node:internal/fs/promises:636:25)
+      at async writeFile (node:internal/fs/promises:1243:14)
+      at async TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/tools_pdf_generate.test.js:782:4)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'memory/__test_pdf_generate__/ann_multi_src.pdf'
+  }
+
+test at tests/unit/tools_pdf_generate.test.js:817:3
+✖ rejects unknown annotation type (1.655026ms)
+  Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/ann_type_src.pdf'
+      at async open (node:internal/fs/promises:636:25)
+      at async writeFile (node:internal/fs/promises:1243:14)
+      at async TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/tools_pdf_generate.test.js:819:4)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'memory/__test_pdf_generate__/ann_type_src.pdf'
+  }
+
+test at tests/unit/tools_pdf_generate.test.js:838:3
+✖ rejects out-of-range page (1.778248ms)
+  Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/ann_page_src.pdf'
+      at async open (node:internal/fs/promises:636:25)
+      at async writeFile (node:internal/fs/promises:1243:14)
+      at async TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/tools_pdf_generate.test.js:840:4)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'memory/__test_pdf_generate__/ann_page_src.pdf'
+  }
+
+test at tests/unit/tools_pdf_generate.test.js:859:3
+✖ returns base64 output (2.228954ms)
+  Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/ann_b64_src.pdf'
+      at async open (node:internal/fs/promises:636:25)
+      at async writeFile (node:internal/fs/promises:1243:14)
+      at async TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/tools_pdf_generate.test.js:861:4)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'memory/__test_pdf_generate__/ann_b64_src.pdf'
+  }
+
+test at tests/unit/tools_pdf_generate.test.js:886:3
+✖ adds watermark at top-left position (2.123687ms)
+  Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/wm_tl_src.pdf'
+      at async open (node:internal/fs/promises:636:25)
+      at async writeFile (node:internal/fs/promises:1243:14)
+      at async TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/tools_pdf_generate.test.js:888:4)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Promise.all (index 0)
+      at async Suite.run (node:internal/test_runner/test:1619:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'memory/__test_pdf_generate__/wm_tl_src.pdf'
+  }
+
+test at tests/unit/tools_pdf_generate.test.js:902:3
+✖ adds watermark at top-right position (1.940563ms)
+  Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/wm_tr_src.pdf'
+      at async open (node:internal/fs/promises:636:25)
+      at async writeFile (node:internal/fs/promises:1243:14)
+      at async TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/tools_pdf_generate.test.js:904:4)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'memory/__test_pdf_generate__/wm_tr_src.pdf'
+  }
+
+test at tests/unit/tools_pdf_generate.test.js:918:3
+✖ adds watermark at bottom-left position (4.026649ms)
+  Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/wm_bl_src.pdf'
+      at async open (node:internal/fs/promises:636:25)
+      at async writeFile (node:internal/fs/promises:1243:14)
+      at async TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/tools_pdf_generate.test.js:920:4)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'memory/__test_pdf_generate__/wm_bl_src.pdf'
+  }
+
+test at tests/unit/tools_pdf_generate.test.js:934:3
+✖ adds watermark at bottom-right position (1.673001ms)
+  Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/wm_br_src.pdf'
+      at async open (node:internal/fs/promises:636:25)
+      at async writeFile (node:internal/fs/promises:1243:14)
+      at async TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/tools_pdf_generate.test.js:936:4)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'memory/__test_pdf_generate__/wm_br_src.pdf'
+  }
+
+test at tests/unit/tools_pdf_generate.test.js:950:3
+✖ returns error when image watermark fails to load (1.529702ms)
+  Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/wm_imgfail_src.pdf'
+      at async open (node:internal/fs/promises:636:25)
+      at async writeFile (node:internal/fs/promises:1243:14)
+      at async TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/tools_pdf_generate.test.js:952:4)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'memory/__test_pdf_generate__/wm_imgfail_src.pdf'
+  }
+
+test at tests/unit/tools_pdf_generate.test.js:994:3
+✖ returns error when image signature fails to load (1.476041ms)
+  Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/sig_imgfail_src.pdf'
+      at async open (node:internal/fs/promises:636:25)
+      at async writeFile (node:internal/fs/promises:1243:14)
+      at async TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/tools_pdf_generate.test.js:996:4)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'memory/__test_pdf_generate__/sig_imgfail_src.pdf'
+  }
+
+test at tests/unit/tools_pdf_generate.test.js:1043:3
+✖ returns error when file exceeds max size (0.29304ms)
+  Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/split_large.pdf'
+      at async open (node:internal/fs/promises:636:25)
+      at async writeFile (node:internal/fs/promises:1243:14)
+      at async TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/tools_pdf_generate.test.js:1045:4)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Promise.all (index 0)
+      at async Suite.run (node:internal/test_runner/test:1619:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'memory/__test_pdf_generate__/split_large.pdf'
+  }
+
+test at tests/unit/tools_pdf_generate.test.js:1072:3
+✖ returns error for invalid PDF file (0.316063ms)
+  Error: ENOENT: no such file or directory, open 'memory/__test_pdf_generate__/invalid.pdf'
+      at async open (node:internal/fs/promises:636:25)
+      at async writeFile (node:internal/fs/promises:1243:14)
+      at async TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/tools_pdf_generate.test.js:1073:4)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Promise.all (index 0)
+      at async Suite.run (node:internal/test_runner/test:1619:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'memory/__test_pdf_generate__/invalid.pdf'
+  }

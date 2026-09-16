@@ -1,44 +1,102 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Box, Text, useInput } from "ink";
 
 /**
- * Skills panel that lists registered skills with search.
- * Props: skills - array of skill names
+ * Skills panel that lists registered skills with a live filter.
+ * Uses a single useInput handler for both filtering and list navigation
+ * to avoid the focus conflict between ink-text-input and ink-select-input.
+ * Props:
+ *   skills    - array of skill names or catalog entries ({ name, description })
+ *   onViewChange  - Callback to switch back to conversation view
+ *   onSelectSkill  - Callback invoked with the selected skill name on Enter
+ *   activeView  - The current active view name (from PANELS)
  */
-export function SkillsPanel({ skills = [], isActive = false }) {
-	const [searchQuery, _setSearchQuery] = useState("");
-	const [focusedSkill, setFocusedSkill] = useState(0);
+export function SkillsPanel({ skills = [], onViewChange, onSelectSkill, activeView }) {
+	const isActive = activeView === "skills";
+	const [searchQuery, setSearchQuery] = useState("");
+	const [focusIndex, setFocusIndex] = useState(0);
 
-	const filteredSkills = skills.filter((s) => s.toLowerCase().includes(searchQuery.toLowerCase()));
+	// Normalize skills to { name, description } — accept either string names
+	// or catalog entries from registry.getCatalog().
+	const normalized = useMemo(
+		() =>
+			skills.map((s) =>
+				typeof s === "string"
+					? { name: s, description: "" }
+					: { name: s.name, description: s.description || "" },
+			),
+		[skills],
+	);
+
+	const filteredSkills = useMemo(
+		() => normalized.filter((s) => s.name.toLowerCase().includes(searchQuery.toLowerCase())),
+		[normalized, searchQuery],
+	);
+
+	// Clamp focus index when the filtered list shrinks.
+	const clampedIndex = Math.min(focusIndex, Math.max(0, filteredSkills.length - 1));
 
 	useInput(
-		(_, key) => {
-			if (key.upArrow && focusedSkill > 0) {
-				setFocusedSkill((prev) => Math.max(0, prev - 1));
+		(input, key) => {
+			if (!isActive) return;
+			if (key.escape) {
+				onViewChange?.("conversation");
+				return;
 			}
-			if (key.downArrow && focusedSkill < filteredSkills.length - 1) {
-				setFocusedSkill((prev) => Math.min(filteredSkills.length - 1, prev + 1));
+			if (key.upArrow) {
+				setFocusIndex((prev) => (prev <= 0 ? filteredSkills.length - 1 : prev - 1));
+				return;
+			}
+			if (key.downArrow) {
+				setFocusIndex((prev) => (prev >= filteredSkills.length - 1 ? 0 : prev + 1));
+				return;
+			}
+			if (key.return) {
+				const selected = filteredSkills[clampedIndex];
+				if (selected) {
+					onSelectSkill?.(selected.name);
+				}
+				return;
+			}
+			if (key.backspace || key.delete) {
+				setSearchQuery((prev) => prev.slice(0, -1));
+				return;
+			}
+			// Printable characters build the filter query.
+			if (input && input.length === 1 && input >= " ") {
+				setSearchQuery((prev) => prev + input);
 			}
 		},
 		{ isActive },
 	);
 
-	return (
-		<Box flexDirection="column">
-			<Text bold color="cyan">
-				{" "}
-				Skills{" "}
-			</Text>
-			<Text gray> Filter: {searchQuery || "all"}</Text>
-			{filteredSkills.map((skill, i) => (
-				<Box key={skill} borderColor={focusedSkill === i ? "cyan" : "transparent"}>
-					<Text>
-						{focusedSkill === i ? "▸ " : "  "}
-						{skill}
-					</Text>
-				</Box>
-			))}
-			{skills.length === 0 && <Text gray> No skills registered.</Text>}
-		</Box>
+	return React.createElement(
+		Box,
+		{ flexDirection: "column" },
+		React.createElement(Text, { bold: true, color: "cyan" }, " Skills"),
+		React.createElement(Text, { color: "gray" }, " Filter: ", searchQuery || "all"),
+		normalized.length === 0
+			? React.createElement(Text, { color: "gray" }, " No skills registered.")
+			: filteredSkills.length === 0
+				? React.createElement(Text, { color: "gray" }, " No skills match filter.")
+				: filteredSkills.map((skill, i) => {
+						const isSelected = i === clampedIndex;
+						const desc = skill.description
+							? skill.description.length > 50
+								? `${skill.description.slice(0, 50)}...`
+								: skill.description
+							: "";
+						return React.createElement(
+							Box,
+							{ key: skill.name, flexDirection: "column" },
+							React.createElement(
+								Text,
+								{ color: isSelected ? "cyan" : undefined },
+								isSelected ? "▸ " : "  ",
+								skill.name,
+							),
+							desc ? React.createElement(Text, { color: "gray" }, "    ", desc) : null,
+						);
+					}),
 	);
 }
