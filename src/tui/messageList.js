@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, forwardRef } from "react";
-import { Box, Text, useStdout } from "ink";
+import { Box, Text, useStdout, useWindowSize } from "ink";
 import { ScrollView } from "ink-scroll-view";
 import { MessageBubble, PubSubContext, ScrollContext } from "./messageBubble.js";
 
@@ -58,6 +58,15 @@ export const MessageList = React.memo(
 		const contentRef = useRef(new Map());
 		const lastMsgCountRef = useRef(0);
 		const { stdout } = useStdout();
+		const { rows } = useWindowSize();
+
+		// The ScrollView needs a bounded height for reliable viewport measurement.
+		// The docs example gives it an explicit height. Here we derive it from the
+		// terminal height minus the input panel and status bar (2 rows). Without a
+		// bounded height, flexGrow makes the viewport measure the full terminal,
+		// so scrollToBottom() computes an oversized viewport and content scrolls
+		// offscreen behind the input panel / status bar.
+		const scrollViewportHeight = Math.max(1, rows - 2);
 
 		// Pub/sub topics map — each topic key maps to an array of pending update listeners
 		const topicsRef = useRef(new Map());
@@ -142,15 +151,8 @@ export const MessageList = React.memo(
 
 				triggerRender();
 
-				// Imperative scroll-to-bottom — mirrors the approach used in
-				// MessageBubble for streaming content. handleContentHeightChange
-				// is unreliable because the children array guard can prevent
-				// the ScrollView from detecting a height change.
-				// Scroll for all message types to ensure the latest content is visible.
-				if (role === "user" || role === "system" || role === "assistant") {
-					scrollRef.current?.scrollToBottom?.();
-				}
-
+				// Imperative scroll-to-bottom DISABLED — relying on
+				// onContentHeightChange to drive auto-scroll instead.
 				return id;
 			},
 
@@ -324,6 +326,16 @@ export const MessageList = React.memo(
 			},
 
 			/**
+			 * Force the ScrollView to re-measure a specific item by its render index.
+			 * Used when a bubble grows via pub/sub (no parent re-render) so the
+			 * ScrollView's contentHeight updates and onContentHeightChange fires.
+			 * @param {number} index - Render index of the item to re-measure
+			 */
+			remeasureItem(index) {
+				scrollRef.current?.remeasureItem?.(index);
+			},
+
+			/**
 			 * Get internal state (test/debug).
 			 * @returns {Object}
 			 * @internal
@@ -431,6 +443,10 @@ export const MessageList = React.memo(
 						}
 						// Use stable content reference from contentRef for React.memo to work
 						const stableContent = contentRef.current.get(id) || data.content;
+						return { id, data, stableContent };
+					})
+					.filter(Boolean)
+					.map(({ id, data, stableContent }, renderIndex) => {
 						return React.createElement(MessageBubble, {
 							key: id,
 							role: data.role,
@@ -447,9 +463,10 @@ export const MessageList = React.memo(
 							turnDuration: data.turnDuration,
 							completedToolCalls: data.completedToolCalls,
 							showToolResults,
+							renderIndex,
+							onRemeasure: (index) => scrollRef.current?.remeasureItem?.(index),
 						});
-					})
-					.filter(Boolean);
+					});
 
 				if (newChildren.length === 0) {
 					newChildren.push(
@@ -483,13 +500,13 @@ export const MessageList = React.memo(
 				},
 				React.createElement(
 					Box,
-					{ key: "panel", flexDirection: "column", flexGrow: 1 },
+					{ key: "panel", flexDirection: "column" },
 					React.createElement(
 						ScrollView,
 						{
 							ref: scrollRef,
 							key: "scroll",
-							grow: 1,
+							height: scrollViewportHeight,
 							onContentHeightChange: handleContentHeightChange,
 						},
 						...children,
