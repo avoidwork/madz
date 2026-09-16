@@ -235,14 +235,17 @@ describe("CommandParser", () => {
 			});
 		});
 
-		it('parses "/help" → lists commands', () => {
+		it('parses "/help" → returns grouped command help', () => {
 			const ctx = createMockContext();
 			const result = parser.parse("/help", ctx);
 			assert.strictEqual(result.action, "help");
-			assert.ok(result.message.startsWith("Available commands:"));
+			assert.ok(result.message.includes("Chat:"));
+			assert.ok(result.message.includes("Command:"));
+			assert.ok(result.message.includes("/clear"));
+			assert.ok(result.message.includes("/quit, /exit"));
 		});
 
-		it('parses "/help" with skill list → includes skills in message (covers lines 101-102)', () => {
+		it('parses "/help" with skill list → includes skills in message', () => {
 			const ctx = createMockContext({ _skillList: ["mySkill", "otherSkill"] });
 			const result = parser.parse("/help", ctx);
 			assert.strictEqual(result.action, "help");
