@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Box, Text, useInput } from "ink";
+import { COMMAND_GROUPS } from "./commandHelp.js";
 
 export const BANNER_ART = `
                     .___
@@ -10,30 +11,6 @@ export const BANNER_ART = `
       \\/     \\/      \\/      \\/
 
 `.split("\n");
-
-const COMMAND_GROUPS = [
-	{
-		group: "Chat:",
-		items: ["Type naturally to chat", "Up/Down arrow: message history", "Esc: interrupt"],
-	},
-	{
-		group: "Command:",
-		items: [
-			"/clear - clear conversation",
-			"/config set <path> <value> - update config",
-			"/gc [status] - garbage collect or show GC status",
-			"/help - show this list",
-			"/memory - view memory panel",
-			"/new - start a new session",
-			"/provider [set <name>] - list or switch provider",
-			"/quit, /exit - exit the app",
-			"/schedule [list|pause|resume|run-now]",
-			"/sessions - view sessions panel",
-			"/settings - view settings panel",
-			"/skills - view skills panel",
-		],
-	},
-];
 
 const SEPARATOR = "─".repeat(70);
 

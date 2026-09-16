@@ -197,7 +197,8 @@ describe("command parser", () => {
 			const parser = new CommandParser();
 			const result = parser.parse("/help", {});
 			assert.strictEqual(result.action, "help");
-			assert.ok(result.message.includes("Available commands"));
+			assert.ok(result.message.includes("Chat:"));
+			assert.ok(result.message.includes("Command:"));
 		});
 
 		it("shows commands dynamically", () => {
