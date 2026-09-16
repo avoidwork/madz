@@ -320,6 +320,10 @@ table of registered commands, with fallback to skill execution.
 | `/schedule run-now <name>` | Run a scheduled task immediately |
 | `/gc` | Trigger V8 garbage collection |
 | `/gc status` | Show GC status |
+| `/sessions` | Open the sessions panel |
+| `/memory` | Open the memory panel |
+| `/skills` | Open the skills panel |
+| `/settings` | Open the settings panel |
 
 ### Skill Execution
 

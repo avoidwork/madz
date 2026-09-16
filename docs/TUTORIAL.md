@@ -243,6 +243,10 @@ Once inside the interactive terminal, use these commands:
 | `/gc status` | Check GC availability and call count |
 | `/clear` | Clear current conversation |
 | `/new` | Start a fresh session |
+| `/sessions` | Open the sessions panel |
+| `/memory` | Open the memory panel |
+| `/skills` | Open the skills panel |
+| `/settings` | Open the settings panel |
 
 ### Memory System
 `madz` operates on a **triple-layer** memory architecture:
