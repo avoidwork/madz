@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, forwardRef } from "react";
-import { Box, Text, useStdout } from "ink";
+import { Box, Text, useStdout, useWindowSize } from "ink";
 import { ScrollView } from "ink-scroll-view";
 import { MessageBubble, PubSubContext, ScrollContext } from "./messageBubble.js";
 
@@ -58,6 +58,15 @@ export const MessageList = React.memo(
 		const contentRef = useRef(new Map());
 		const lastMsgCountRef = useRef(0);
 		const { stdout } = useStdout();
+		const { rows } = useWindowSize();
+
+		// The ScrollView needs a bounded height for reliable viewport measurement.
+		// The docs example gives it an explicit height. Here we derive it from the
+		// terminal height minus the input panel and status bar (2 rows). Without a
+		// bounded height, flexGrow makes the viewport measure the full terminal,
+		// so scrollToBottom() computes an oversized viewport and content scrolls
+		// offscreen behind the input panel / status bar.
+		const scrollViewportHeight = Math.max(1, rows - 2);
 
 		// Pub/sub topics map — each topic key maps to an array of pending update listeners
 		const topicsRef = useRef(new Map());
@@ -498,6 +507,7 @@ export const MessageList = React.memo(
 							ref: scrollRef,
 							key: "scroll",
 							grow: 1,
+							height: scrollViewportHeight,
 							onContentHeightChange: handleContentHeightChange,
 						},
 						...children,
