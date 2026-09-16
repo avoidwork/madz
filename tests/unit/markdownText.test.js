@@ -333,6 +333,37 @@ describe("parseMarkdown - unordered lists", () => {
 		assert.ok(stripped.includes("bold"));
 		assert.ok(stripped.includes("normal"));
 	});
+
+	it("strips inline formatting markers inside list items", () => {
+		const result = parseMarkdown("* **bold text** here");
+		const stripped = stripAnsi(result);
+		assert.ok(stripped.includes("bold text"));
+		assert.ok(stripped.includes("here"));
+		assert.ok(!stripped.includes("**"));
+	});
+
+	it("strips italic markers inside list items", () => {
+		const result = parseMarkdown("* *italic text* here");
+		const stripped = stripAnsi(result);
+		assert.ok(stripped.includes("italic text"));
+		assert.ok(!stripped.includes("*italic text*"));
+	});
+
+	it("strips inline code markers inside list items", () => {
+		const result = parseMarkdown("* item with `code`");
+		const stripped = stripAnsi(result);
+		assert.ok(stripped.includes("code"));
+		assert.ok(!stripped.includes("`code`"));
+	});
+
+	it("strips mixed inline formatting inside list items", () => {
+		const result = parseMarkdown("* **bold** and *italic*");
+		const stripped = stripAnsi(result);
+		assert.ok(stripped.includes("bold"));
+		assert.ok(stripped.includes("italic"));
+		assert.ok(!stripped.includes("**bold**"));
+		assert.ok(!stripped.includes("*italic*"));
+	});
 });
 
 describe("parseMarkdown - ordered lists", () => {

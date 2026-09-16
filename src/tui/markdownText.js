@@ -353,10 +353,10 @@ class TerminalRenderer extends Renderer {
 	}
 
 	text(token) {
-		if ("text" in token) {
-			return this.o.text(token.text);
+		if (token.tokens) {
+			return this.parser.parseInline(token.tokens);
 		}
-		return this.o.text(token);
+		return this.o.text(token.text);
 	}
 }
 
