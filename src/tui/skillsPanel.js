@@ -8,9 +8,10 @@ import { Box, Text, useInput } from "ink";
  * Props:
  *   skills    - array of skill names or catalog entries ({ name, description })
  *   onViewChange  - Callback to switch back to conversation view
+ *   onSelectSkill  - Callback invoked with the selected skill name on Enter
  *   activeView  - The current active view name (from PANELS)
  */
-export function SkillsPanel({ skills = [], onViewChange, activeView }) {
+export function SkillsPanel({ skills = [], onViewChange, onSelectSkill, activeView }) {
 	const isActive = activeView === "skills";
 	const [searchQuery, setSearchQuery] = useState("");
 	const [focusIndex, setFocusIndex] = useState(0);
@@ -51,7 +52,10 @@ export function SkillsPanel({ skills = [], onViewChange, activeView }) {
 				return;
 			}
 			if (key.return) {
-				// Selection is a no-op for now (skills are executed via /skillName).
+				const selected = filteredSkills[clampedIndex];
+				if (selected) {
+					onSelectSkill?.(selected.name);
+				}
 				return;
 			}
 			if (key.backspace || key.delete) {

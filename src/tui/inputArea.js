@@ -1,4 +1,4 @@
-import React, { useState, useCallback, forwardRef, useImperativeHandle } from "react";
+import React, { useState, useEffect, useCallback, forwardRef, useImperativeHandle } from "react";
 import { Box } from "ink";
 import { StatusBar } from "./statusBar.js";
 import { InputPanel } from "./inputPanel.js";
@@ -10,15 +10,34 @@ import { InputPanel } from "./inputPanel.js";
  * @type {React.ForwardRefRenderFunction}
  */
 const InputArea = forwardRef(function InputArea(
-	{ onSubmit, onFocus, onBlur, focus, skillCount, messageCountRef, showBanner, showOnboarding },
+	{
+		onSubmit,
+		onFocus,
+		onBlur,
+		focus,
+		skillCount,
+		messageCountRef,
+		showBanner,
+		showOnboarding,
+		initialValue = "",
+		onInitialValueConsumed,
+	},
 	ref,
 ) {
-	const [inputText, setInputText] = useState("");
+	const [inputText, setInputText] = useState(initialValue);
 	const [historyIndex, setHistoryIndex] = useState(-1);
 	const [chatHistory, setChatHistory] = useState([]);
 	const [statusMessage, setStatusMessage] = useState("Ready");
 	const [contextSize, setContextSize] = useState(0);
 	const [isCompacting, setIsCompacting] = useState(false);
+
+	// Consume a pre-loaded initial value once on mount (e.g., skill selection).
+	useEffect(() => {
+		if (initialValue) {
+			onInitialValueConsumed?.();
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
 
 	/**
 	 * Handle input-side submit: trim, track in chatHistory, clear input, call onSubmit.
@@ -64,6 +83,7 @@ const InputArea = forwardRef(function InputArea(
 			}
 		},
 		clearInput: () => setInputText(""),
+		setInputText: (text) => setInputText(text),
 		getInputText: () => inputText,
 		clearHistory: () => {
 			setChatHistory([]);
