@@ -87,6 +87,29 @@ const ConversationArea = forwardRef(function ConversationArea(
 		};
 	}, []);
 
+	// On mount, load any existing conversation from session state.
+	// This covers session resume: the panel populates sessionState before
+	// switching back to the conversation view, and this component mounts
+	// fresh (the ref is null during the synchronous view change, so the
+	// App-level loadConversation call is a no-op).
+	useEffect(() => {
+		const conv = sessionState?.getConversation();
+		if (conv && conv.length > 0) {
+			messageListRef.current?.clear();
+			for (const exchange of conv) {
+				if (exchange.role && exchange.content !== undefined) {
+					messageListRef.current?.addMessage(exchange.role, exchange.content, {
+						time: exchange.timestamp,
+					});
+				}
+			}
+			if (messageCountRef) {
+				messageCountRef.current = messageListRef.current?.getMessageCount() || 0;
+			}
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
+
 	/**
 	 * Interrupt the current streaming response.
 	 */
