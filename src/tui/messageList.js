@@ -500,13 +500,12 @@ export const MessageList = React.memo(
 				},
 				React.createElement(
 					Box,
-					{ key: "panel", flexDirection: "column", flexGrow: 1 },
+					{ key: "panel", flexDirection: "column" },
 					React.createElement(
 						ScrollView,
 						{
 							ref: scrollRef,
 							key: "scroll",
-							grow: 1,
 							height: scrollViewportHeight,
 							onContentHeightChange: handleContentHeightChange,
 						},
