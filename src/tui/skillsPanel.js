@@ -1,24 +1,30 @@
-import React, { useState } from "react";
-import { Box, Text, useInput } from "ink";
+import React, { useState, useMemo } from "react";
+import { Box, Text, useInput, useWindowSize } from "ink";
+import TextInput from "ink-text-input";
+import SelectInput from "ink-select-input";
 
 /**
- * Skills panel that lists registered skills with search.
- * Props: skills - array of skill names
+ * Skills panel that lists registered skills with a live filter.
+ * Props:
+ *   skills    - array of skill names
+ *   onViewChange  - Callback to switch back to conversation view
+ *   activeView  - The current active view name (from PANELS)
  */
-export function SkillsPanel({ skills = [], onViewChange, isActive = false }) {
-	const [searchQuery, _setSearchQuery] = useState("");
-	const [focusedSkill, setFocusedSkill] = useState(0);
+export function SkillsPanel({ skills = [], onViewChange, activeView }) {
+	const isActive = activeView === "skills";
+	const [searchQuery, setSearchQuery] = useState("");
+	const { rows } = useWindowSize();
+	// Bound the visible list to the terminal height minus header + filter rows.
+	const limit = Math.max(1, rows - 4);
 
-	const filteredSkills = skills.filter((s) => s.toLowerCase().includes(searchQuery.toLowerCase()));
+	const filteredSkills = useMemo(
+		() => skills.filter((s) => s.toLowerCase().includes(searchQuery.toLowerCase())),
+		[skills, searchQuery],
+	);
 
+	// Escape returns to conversation view
 	useInput(
-		(_, key) => {
-			if (key.upArrow && focusedSkill > 0) {
-				setFocusedSkill((prev) => Math.max(0, prev - 1));
-			}
-			if (key.downArrow && focusedSkill < filteredSkills.length - 1) {
-				setFocusedSkill((prev) => Math.min(filteredSkills.length - 1, prev + 1));
-			}
+		(_input, key) => {
 			if (key.escape) {
 				onViewChange?.("conversation");
 			}
@@ -26,20 +32,27 @@ export function SkillsPanel({ skills = [], onViewChange, isActive = false }) {
 		{ isActive },
 	);
 
+	const items = filteredSkills.map((skill) => ({ label: skill, value: skill }));
+
 	return React.createElement(
 		Box,
 		{ flexDirection: "column" },
 		React.createElement(Text, { bold: true, color: "cyan" }, " Skills"),
-		React.createElement(Text, { color: "gray" }, " Filter: ", searchQuery || "all"),
-		...filteredSkills.map((skill, i) =>
-			React.createElement(
-				Box,
-				{ key: skill, borderColor: focusedSkill === i ? "cyan" : "transparent" },
-				React.createElement(Text, null, focusedSkill === i ? "▸ " : "  ", skill),
-			),
-		),
+		React.createElement(TextInput, {
+			value: searchQuery,
+			onChange: setSearchQuery,
+			placeholder: "Filter skills...",
+			focus: isActive,
+			showCursor: true,
+		}),
 		skills.length === 0
 			? React.createElement(Text, { color: "gray" }, " No skills registered.")
-			: null,
+			: filteredSkills.length === 0
+				? React.createElement(Text, { color: "gray" }, " No skills match filter.")
+				: React.createElement(SelectInput, {
+						items,
+						isFocused: false,
+						limit,
+					}),
 	);
 }

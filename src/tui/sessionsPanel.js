@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Box, Text, useInput } from "ink";
+import { Box, Text, useInput, useWindowSize } from "ink";
+import SelectInput from "ink-select-input";
 import { readdir, readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { parseFrontmatter } from "../memory/reader.js";
@@ -11,23 +12,17 @@ import { loadSession } from "../session/loader.js";
  *   sessionState  - SessionStateManager instance
  *   config        - App config (for memory.sessionsDir)
  *   onViewChange  - Callback to switch back to conversation view
- *   isActive      - Whether this panel is the active input target
+ *   activeView  - The current active view name (from PANELS)
  */
-export function SessionsPanel({ sessionState, config, onViewChange, isActive = false }) {
+export function SessionsPanel({ sessionState, config, onViewChange, activeView }) {
+	const isActive = activeView === "sessions";
 	const [sessions, setSessions] = useState([]);
-	const [focusIndex, setFocusIndex] = useState(0);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 	const [resuming, setResuming] = useState(null);
-
-	// Proper mount-only detector
-	const mountedRef = React.useRef(false);
-	React.useEffect(() => {
-		if (!mountedRef.current) {
-			mountedRef.current = true;
-			console.error(`[SESSIONS MOUNT] mounted`);
-		}
-	}, []);
+	const { rows } = useWindowSize();
+	// Bound the visible list to the terminal height minus header rows.
+	const limit = Math.max(1, rows - 4);
 
 	// Async load session list
 	useEffect(() => {
@@ -118,7 +113,6 @@ export function SessionsPanel({ sessionState, config, onViewChange, isActive = f
 		};
 	}, [config?.memory?.sessionsDir, config?.cwd]);
 
-	console.error(`[SESSIONS RENDER] focusIndex=${focusIndex} sessions=${sessions.length} loading=${loading}`);
 	const handleResume = useCallback(
 		async (sessionId) => {
 			if (!sessionState || !sessionId) return;
@@ -145,18 +139,9 @@ export function SessionsPanel({ sessionState, config, onViewChange, isActive = f
 		[sessionState, config, onViewChange],
 	);
 
+	// Escape returns to conversation view
 	useInput(
-		(input, key) => {
-			console.error(`[SESSIONS useInput] input=${JSON.stringify(input)} up=${key.upArrow} down=${key.downArrow} return=${key.return} esc=${key.escape} focusIndex=${focusIndex} len=${sessions.length}`);
-			if (key.upArrow && focusIndex > 0) {
-				setFocusIndex((prev) => Math.max(0, prev - 1));
-			}
-			if (key.downArrow && focusIndex < sessions.length - 1) {
-				setFocusIndex((prev) => Math.min(sessions.length - 1, prev + 1));
-			}
-			if (key.return && sessions[focusIndex]) {
-				handleResume(sessions[focusIndex].sessionId);
-			}
+		(_input, key) => {
 			if (key.escape) {
 				onViewChange?.("conversation");
 			}
@@ -182,64 +167,59 @@ export function SessionsPanel({ sessionState, config, onViewChange, isActive = f
 		);
 	}
 
+	if (sessions.length === 0) {
+		return React.createElement(
+			Box,
+			{ flexDirection: "column", paddingX: 1 },
+			React.createElement(Text, { bold: true, color: "cyan" }, " Sessions"),
+			React.createElement(Text, { color: "gray" }, " No saved sessions."),
+		);
+	}
+
+	const items = sessions.map((entry) => {
+		const dateStr = entry.endedAt
+			? new Date(entry.endedAt).toLocaleDateString(undefined, {
+					month: "short",
+					day: "numeric",
+					hour: "2-digit",
+					minute: "2-digit",
+				})
+			: entry.mtime.toLocaleDateString(undefined, {
+					month: "short",
+					day: "numeric",
+					hour: "2-digit",
+					minute: "2-digit",
+				});
+		const msgLabel = entry.messageCount === 1 ? "1 msg" : `${entry.messageCount} msgs`;
+		const startStr = entry.startedAt
+			? new Date(entry.startedAt).toLocaleDateString(undefined, {
+					month: "short",
+					day: "numeric",
+					hour: "2-digit",
+					minute: "2-digit",
+				})
+			: "";
+		const isResumingThis = resuming === entry.sessionId;
+		const label = `${isResumingThis ? "⟳ " : ""}${entry.sessionId.slice(0, 8)}...  ${msgLabel}  ${
+			startStr ? `${startStr} → ` : ""
+		}${dateStr}${entry.topic ? `  ${entry.topic}` : ""}`;
+		return {
+			label,
+			value: entry,
+			key: entry.sessionId,
+		};
+	});
+
 	return React.createElement(
 		Box,
 		{ flexDirection: "column", paddingX: 1, flexGrow: 1 },
 		React.createElement(Text, { bold: true, color: "cyan" }, " Sessions"),
 		React.createElement(Text, { color: "gray" }, " ↑↓ navigate, Enter resume, Escape back"),
-		sessions.length === 0
-			? React.createElement(Text, { color: "gray" }, " No saved sessions.")
-			: sessions.map((entry, i) => {
-					const isSelected = focusIndex === i;
-					console.error(`[SESSIONS MAP] i=${i} focusIndex=${focusIndex} isSelected=${isSelected}`);
-					const isResumingThis = resuming === entry.sessionId;
-					const dateStr = entry.endedAt
-						? new Date(entry.endedAt).toLocaleDateString(undefined, {
-								month: "short",
-								day: "numeric",
-								hour: "2-digit",
-								minute: "2-digit",
-							})
-						: entry.mtime.toLocaleDateString(undefined, {
-								month: "short",
-								day: "numeric",
-								hour: "2-digit",
-								minute: "2-digit",
-							});
-					const msgLabel = entry.messageCount === 1 ? "1 msg" : `${entry.messageCount} msgs`;
-					const startStr = entry.startedAt
-						? new Date(entry.startedAt).toLocaleDateString(undefined, {
-								month: "short",
-								day: "numeric",
-								hour: "2-digit",
-								minute: "2-digit",
-							})
-						: "";
-					return React.createElement(
-						Box,
-						{
-							key: entry.sessionId,
-							flexDirection: "row",
-							// borderColor removed for probe
-						},
-						React.createElement(
-							Text,
-							null,
-							`[${focusIndex}] `,
-							isResumingThis ? "⟳ " : "",
-							entry.sessionId.slice(0, 8),
-							"... ",
-							React.createElement(
-								Text,
-								{ color: "gray" },
-								msgLabel,
-								" ",
-								startStr ? `${startStr} → ` : "",
-								dateStr,
-							),
-							entry.topic ? React.createElement(Text, null, " ", entry.topic) : null,
-						),
-					);
-				}),
+		React.createElement(SelectInput, {
+			items,
+			isFocused: isActive,
+			limit,
+			onSelect: (item) => handleResume(item.value.sessionId),
+		}),
 	);
 }

@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react";
-import { Box, Text, useInput } from "ink";
+import { Box, Text, useInput, useWindowSize } from "ink";
+import SelectInput from "ink-select-input";
 
 /**
  * Flatten a nested config object into an array of { path, value } pairs,
@@ -46,57 +47,54 @@ function getConfigSections(config) {
  * SettingsPanel — read-only config section browser with collapsible groups.
  * Props:
  *   config    - App config object
- *   isActive  - Whether this panel is the active input target
+ *   onViewChange  - Callback to switch back to conversation view
+ *   activeView  - The current active view name (from PANELS)
  */
-export function SettingsPanel({ config, onViewChange, isActive = false }) {
+export function SettingsPanel({ config, onViewChange, activeView }) {
+	const isActive = activeView === "settings";
 	const sections = useMemo(() => getConfigSections(config), [config]);
-
-	const [focusIndex, setFocusIndex] = useState(0);
 	const [expandedSection, setExpandedSection] = useState(null);
+	const { rows } = useWindowSize();
+	// Bound the visible list to the terminal height minus header rows.
+	const limit = Math.max(1, rows - 4);
 
-	// Flattened entries for the currently expanded section
-	const expandedEntries = useMemo(() => {
-		if (!expandedSection || !config?.[expandedSection]) return [];
-		return flattenConfig(config[expandedSection]);
-	}, [config, expandedSection]);
+	// Build a flat selectable list: section headers + (when expanded) their entries
+	const items = useMemo(() => {
+		const list = [];
+		for (const section of sections) {
+			const isExpanded = expandedSection === section;
+			list.push({
+				label: `${isExpanded ? "▼" : "▶"} ${section}`,
+				value: { type: "section", name: section },
+				key: `section-${section}`,
+			});
+			if (isExpanded) {
+				for (const entry of flattenConfig(config?.[section])) {
+					const display = entry.value.length > 80 ? `${entry.value.slice(0, 80)}...` : entry.value;
+					list.push({
+						label: `  ${entry.path}: ${display}`,
+						value: { type: "entry", path: entry.path },
+						key: `entry-${section}-${entry.path}`,
+					});
+				}
+			}
+		}
+		return list;
+	}, [sections, expandedSection, config]);
 
-	// Total list length: sections list + expanded entries
-	const totalLen = expandedSection ? sections.length + expandedEntries.length : sections.length;
+	const handleSelect = (item) => {
+		const v = item.value;
+		if (v.type === "section") {
+			setExpandedSection((prev) => (prev === v.name ? null : v.name));
+		}
+		// Entries are read-only — no action on select
+	};
 
+	// Escape returns to conversation view
 	useInput(
-		(_, key) => {
-			if (key.upArrow && focusIndex > 0) {
-				setFocusIndex((prev) => prev - 1);
-			}
-			if (key.downArrow && focusIndex < totalLen - 1) {
-				setFocusIndex((prev) => prev + 1);
-			}
-			if (key.return) {
-				if (expandedSection) {
-					// If focus is on a section header, collapse it
-					const sectionIdx = sections.indexOf(expandedSection);
-					if (focusIndex <= sectionIdx) {
-						setExpandedSection(null);
-						setFocusIndex(sectionIdx);
-					}
-					// Otherwise focus is on a detail entry — no action needed (read-only)
-				} else {
-					// Expand the focused section
-					const section = sections[focusIndex];
-					if (section) {
-						setExpandedSection(section);
-						// Focus stays on the section header (index 0 of expanded view)
-					}
-				}
-			}
+		(_input, key) => {
 			if (key.escape) {
-				if (expandedSection) {
-					const sectionIdx = sections.indexOf(expandedSection);
-					setExpandedSection(null);
-					setFocusIndex(sectionIdx);
-				} else {
-					onViewChange?.("conversation");
-				}
+				onViewChange?.("conversation");
 			}
 		},
 		{ isActive },
@@ -111,56 +109,6 @@ export function SettingsPanel({ config, onViewChange, isActive = false }) {
 		);
 	}
 
-	// Build the rendered list
-	const renderItems = [];
-	let globalIdx = 0;
-
-	for (let i = 0; i < sections.length; i++) {
-		const section = sections[i];
-		const isExpanded = expandedSection === section;
-		const isFocused = focusIndex === globalIdx;
-
-		renderItems.push(
-			React.createElement(
-				Box,
-				{
-					key: `section-${section}`,
-					flexDirection: "row",
-					borderColor: isFocused ? "cyan" : "transparent",
-				},
-				React.createElement(Text, null, isFocused ? "▸ " : "  ", isExpanded ? "▼ " : "▶ ", section),
-			),
-		);
-		globalIdx++;
-
-		// Render expanded entries
-		if (isExpanded) {
-			for (const entry of expandedEntries) {
-				const isEntryFocused = focusIndex === globalIdx;
-				renderItems.push(
-					React.createElement(
-						Box,
-						{
-							key: `entry-${entry.path}`,
-							flexDirection: "row",
-							paddingLeft: 3,
-							borderColor: isEntryFocused ? "cyan" : "transparent",
-						},
-						React.createElement(
-							Text,
-							null,
-							isEntryFocused ? "▸ " : "  ",
-							React.createElement(Text, { color: "gray" }, entry.path),
-							": ",
-							entry.value.length > 80 ? entry.value.slice(0, 80) + "..." : entry.value,
-						),
-					),
-				);
-				globalIdx++;
-			}
-		}
-	}
-
 	return React.createElement(
 		Box,
 		{ flexDirection: "column", paddingX: 1, flexGrow: 1 },
@@ -169,9 +117,14 @@ export function SettingsPanel({ config, onViewChange, isActive = false }) {
 			Text,
 			{ color: "gray" },
 			expandedSection
-				? " ↑↓ navigate, Enter/ Escape collapse, Escape back"
+				? " ↑↓ navigate, Enter collapse, Escape back"
 				: " ↑↓ navigate, Enter expand, Escape back",
 		),
-		...renderItems,
+		React.createElement(SelectInput, {
+			items,
+			isFocused: isActive,
+			limit,
+			onSelect: handleSelect,
+		}),
 	);
 }

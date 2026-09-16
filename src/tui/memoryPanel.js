@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Box, Text, useInput } from "ink";
+import { Box, Text, useInput, useWindowSize } from "ink";
+import SelectInput from "ink-select-input";
 import { readdir, readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { parseFrontmatter } from "../memory/reader.js";
@@ -9,15 +10,19 @@ import { parseFrontmatter } from "../memory/reader.js";
  * Filters out ephemeral-*.md, reflection.md, clarifications.md.
  * Props:
  *   config    - App config (for memory.contextDir)
- *   isActive  - Whether this panel is the active input target
+ *   onViewChange  - Callback to switch back to conversation view
+ *   activeView  - The current active view name (from PANELS)
  */
-export function MemoryPanel({ config, onViewChange, isActive = false }) {
+export function MemoryPanel({ config, onViewChange, activeView }) {
+	const isActive = activeView === "memory";
 	const [entries, setEntries] = useState([]);
-	const [focusIndex, setFocusIndex] = useState(0);
 	const [selectedEntry, setSelectedEntry] = useState(null);
 	const [detailContent, setDetailContent] = useState(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
+	const { rows } = useWindowSize();
+	// Bound the visible list to the terminal height minus header + detail viewer rows.
+	const limit = Math.max(1, rows - 8);
 
 	// Async load memory entries
 	useEffect(() => {
@@ -88,7 +93,8 @@ export function MemoryPanel({ config, onViewChange, isActive = false }) {
 		};
 	}, [config?.memory?.contextDir, config?.cwd]);
 
-	const handleSelect = useCallback(async (entry) => {
+	// Load detail content for a given entry
+	const loadDetail = useCallback(async (entry) => {
 		if (!entry) return;
 		setSelectedEntry(entry);
 		try {
@@ -100,25 +106,16 @@ export function MemoryPanel({ config, onViewChange, isActive = false }) {
 		}
 	}, []);
 
+	// Show the first entry's detail once entries load
+	useEffect(() => {
+		if (entries.length > 0 && !selectedEntry) {
+			loadDetail(entries[0]);
+		}
+	}, [entries, selectedEntry, loadDetail]);
+
+	// Escape returns to conversation view
 	useInput(
-		(input, key) => {
-			if (selectedEntry) {
-				// Detail view mode — Escape closes detail
-				if (key.escape) {
-					setSelectedEntry(null);
-					setDetailContent(null);
-				}
-				return;
-			}
-			if (key.upArrow && focusIndex > 0) {
-				setFocusIndex((prev) => Math.max(0, prev - 1));
-			}
-			if (key.downArrow && focusIndex < entries.length - 1) {
-				setFocusIndex((prev) => Math.min(entries.length - 1, prev + 1));
-			}
-			if (key.return && entries[focusIndex]) {
-				handleSelect(entries[focusIndex]);
-			}
+		(_input, key) => {
 			if (key.escape) {
 				onViewChange?.("conversation");
 			}
@@ -144,63 +141,58 @@ export function MemoryPanel({ config, onViewChange, isActive = false }) {
 		);
 	}
 
-	// Detail view
-	if (selectedEntry && detailContent) {
+	if (entries.length === 0) {
 		return React.createElement(
 			Box,
-			{ flexDirection: "column", paddingX: 1, flexGrow: 1 },
-			React.createElement(Text, { bold: true, color: "cyan" }, " ", selectedEntry.title),
-			detailContent.frontmatter && Object.keys(detailContent.frontmatter).length > 0
-				? React.createElement(
-						Box,
-						{ flexDirection: "column", marginY: 1 },
-						...Object.entries(detailContent.frontmatter).map(([k, v]) =>
-							React.createElement(Text, { key: k, color: "gray" }, " ", k, ": ", String(v)),
-						),
-					)
-				: null,
-			React.createElement(
-				Box,
-				{ flexDirection: "column", marginY: 1, borderStyle: "single", borderColor: "gray" },
-				React.createElement(
-					Text,
-					null,
-					detailContent.body || React.createElement(Text, { color: "gray" }, " (empty)"),
-				),
-			),
-			React.createElement(Text, { color: "gray" }, " Escape to close"),
+			{ flexDirection: "column", paddingX: 1 },
+			React.createElement(Text, { bold: true, color: "cyan" }, " Memory"),
+			React.createElement(Text, { color: "gray" }, " No memory entries."),
 		);
 	}
+
+	const items = entries.map((entry) => {
+		const dateStr = entry.mtime.toLocaleDateString(undefined, {
+			month: "short",
+			day: "numeric",
+		});
+		return {
+			label: `${entry.title}  ${dateStr}`,
+			value: entry,
+			key: entry.fileName,
+		};
+	});
 
 	return React.createElement(
 		Box,
 		{ flexDirection: "column", paddingX: 1, flexGrow: 1 },
 		React.createElement(Text, { bold: true, color: "cyan" }, " Memory"),
 		React.createElement(Text, { color: "gray" }, " ↑↓ navigate, Enter view, Escape back"),
-		entries.length === 0
-			? React.createElement(Text, { color: "gray" }, " No memory entries.")
-			: entries.map((entry, i) => {
-					const isSelected = focusIndex === i;
-					const dateStr = entry.mtime.toLocaleDateString(undefined, {
-						month: "short",
-						day: "numeric",
-					});
-					return React.createElement(
-						Box,
-						{
-							key: entry.fileName,
-							flexDirection: "row",
-							borderColor: isSelected ? "cyan" : "transparent",
-						},
-						React.createElement(
-							Text,
-							null,
-							isSelected ? "▸ " : "  ",
-							entry.title,
-							" ",
-							React.createElement(Text, { color: "gray" }, dateStr),
-						),
-					);
-				}),
+		React.createElement(SelectInput, {
+			items,
+			isFocused: isActive,
+			limit,
+			onHighlight: loadDetail,
+			onSelect: loadDetail,
+		}),
+		selectedEntry && detailContent
+			? React.createElement(
+					Box,
+					{ flexDirection: "column", marginY: 1, borderStyle: "single", borderColor: "gray" },
+					detailContent.frontmatter && Object.keys(detailContent.frontmatter).length > 0
+						? React.createElement(
+								Box,
+								{ flexDirection: "column", marginBottom: 1 },
+								...Object.entries(detailContent.frontmatter).map(([k, v]) =>
+									React.createElement(Text, { key: k, color: "gray" }, " ", k, ": ", String(v)),
+								),
+							)
+						: null,
+					React.createElement(
+						Text,
+						null,
+						detailContent.body || React.createElement(Text, { color: "gray" }, " (empty)"),
+					),
+				)
+			: null,
 	);
 }
