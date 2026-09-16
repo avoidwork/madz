@@ -14,7 +14,7 @@ export const BANNER_ART = `
 const COMMAND_GROUPS = [
 	{
 		group: "Chat:",
-		items: ["Type naturally to chat", "Up/Down arrow: message history", "Esc: quit"],
+		items: ["Type naturally to chat", "Up/Down arrow: message history", "Esc: interrupt"],
 	},
 	{
 		group: "Command:",
