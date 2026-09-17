@@ -177,12 +177,12 @@ class TerminalRenderer extends Renderer {
 
 	strong({ tokens }) {
 		const processed = this.parser.parseInline(tokens);
-		return this.o.strong(processed);
+		return this.o.strong(undoColon(processed));
 	}
 
 	em({ tokens }) {
 		let processed = this.parser.parseInline(tokens);
-		return this.o.em(processed);
+		return this.o.em(undoColon(processed));
 	}
 
 	codespan({ text }) {
@@ -228,11 +228,11 @@ class TerminalRenderer extends Renderer {
 		}
 
 		if (supportsHyperlinks.stdout) {
-			const linkText = hasText ? this.emoji(text) : this.emoji(href);
+			const linkText = hasText ? undoColon(this.emoji(text)) : undoColon(this.emoji(href));
 			const link = this.o.href(linkText);
 			out = ansiEscapes.link(link, href.replace(/\+/g, "%20"));
 		} else {
-			if (hasText) out += this.emoji(text) + " (";
+			if (hasText) out += undoColon(this.emoji(text)) + " (";
 			out += this.o.href(href);
 			if (hasText) out += ")";
 		}
@@ -285,7 +285,7 @@ class TerminalRenderer extends Renderer {
 		}
 
 		text += this.parser.parse(item.tokens, !!item.loose);
-		var transform = (t) => this.o.listitem(t);
+		var transform = (t) => this.o.listitem(undoColon(t));
 		var isNested = text.indexOf("\n") !== -1;
 		if (isNested) text = text.trim();
 
@@ -329,7 +329,7 @@ class TerminalRenderer extends Renderer {
 	}
 
 	tablecell(token) {
-		const content = this.parser.parseInline(token.tokens);
+		const content = undoColon(this.parser.parseInline(token.tokens));
 		return content + "^*||*^";
 	}
 
@@ -341,7 +341,7 @@ class TerminalRenderer extends Renderer {
 
 	del({ tokens }) {
 		const processed = this.parser.parseInline(tokens);
-		return this.o.del(processed);
+		return this.o.del(undoColon(processed));
 	}
 
 	br() {
