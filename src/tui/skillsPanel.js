@@ -81,11 +81,7 @@ export function SkillsPanel({ skills = [], onViewChange, onSelectSkill, activeVi
 				? React.createElement(Text, { color: "gray" }, " No skills match filter.")
 				: filteredSkills.map((skill, i) => {
 						const isSelected = i === clampedIndex;
-						const desc = skill.description
-							? skill.description.length > 50
-								? `${skill.description.slice(0, 50)}...`
-								: skill.description
-							: "";
+						const desc = skill.description || "";
 						return React.createElement(
 							Box,
 							{ key: skill.name, flexDirection: "column" },
