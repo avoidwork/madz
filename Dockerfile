@@ -42,19 +42,6 @@ RUN chown -R madz:node /app /home/madz && \
 # Install uv (no native Debian package)
 RUN pip install --no-cache-dir uv --break-system-packages
 
-# Python dependency CVE scanning (v2.10.1)
-RUN pip install --break-system-packages --no-cache-dir pip-audit==2.10.1
-
-# Go vulnerability analysis (v1.2.0)
-ENV GOBIN=/usr/local/bin
-RUN go install golang.org/x/vuln/cmd/govulncheck@v1.2.0 && \
-  rm -rf /home/madz/go /home/madz/.cache/go-build
-
-# Rust dependency security auditing (v0.22.1)
-ENV CARGO_INSTALL_ROOT=/usr/local/bin
-RUN cargo install cargo-audit@0.22.1 --locked && \
-  rm -rf /home/madz/.cargo
-
 # Node package managers (yarn, pnpm) — available as globals
 RUN npm install -g yarn pnpm
 
