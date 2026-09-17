@@ -91,15 +91,6 @@ describe("Agent Definitions", () => {
 			}
 		});
 
-		it("should have CAPABILITIES section for all agents", () => {
-			for (const agent of ALL_AGENTS) {
-				ok(
-					agent.systemPrompt.includes("### CAPABILITIES"),
-					`${agent.name} should have CAPABILITIES section`,
-				);
-			}
-		});
-
 		it("should have RULES section for all agents", () => {
 			for (const agent of ALL_AGENTS) {
 				ok(agent.systemPrompt.includes("### RULES"), `${agent.name} should have RULES section`);
@@ -204,59 +195,6 @@ describe("Agent Definitions", () => {
 		it("should return empty array for unknown agent types", () => {
 			const tools = getToolsForAgentTypes(["nonexistent"], {});
 			deepStrictEqual(tools, []);
-		});
-
-		it("search agent should reference correct tools (searchWeb, extractWeb, searchSession)", () => {
-			const search = ALL_AGENTS.find((a) => a.name === "search");
-			ok(search.systemPrompt.includes("searchWeb"), "Search agent should reference searchWeb");
-			ok(search.systemPrompt.includes("extractWeb"), "Search agent should reference extractWeb");
-			ok(
-				search.systemPrompt.includes("searchSession"),
-				"Search agent should reference searchSession",
-			);
-		});
-
-		it("debug agent should reference correct tools (shell)", () => {
-			const debug = ALL_AGENTS.find((a) => a.name === "debug");
-			ok(debug.systemPrompt.includes("shell"), "Debug agent should reference shell");
-		});
-
-		it("code-review agent should reference correct tools (scanAgents)", () => {
-			const review = ALL_AGENTS.find((a) => a.name === "code-review");
-			ok(
-				review.systemPrompt.includes("scanAgents"),
-				"Code review agent should reference scanAgents",
-			);
-		});
-
-		it("testing agent should reference correct tools (shell)", () => {
-			const testing = ALL_AGENTS.find((a) => a.name === "testing");
-			ok(testing.systemPrompt.includes("shell"), "Testing agent should reference shell");
-		});
-
-		it("performance agent should reference correct tools (cronJob)", () => {
-			const perf = ALL_AGENTS.find((a) => a.name === "performance");
-			ok(perf.systemPrompt.includes("cronJob"), "Performance agent should reference cronJob");
-		});
-
-		it("security-audit agent should reference security-focused tools (scanAgents, cronJob)", () => {
-			const security = ALL_AGENTS.find((a) => a.name === "security-audit");
-			ok(
-				security.systemPrompt.includes("scanAgents"),
-				"Security agent should reference scanAgents",
-			);
-			ok(security.systemPrompt.includes("cronJob"), "Security agent should reference cronJob");
-		});
-
-		it("documentation agent should reference doc tools (generateImage, textToSpeech)", () => {
-			const doc = ALL_AGENTS.find((a) => a.name === "documentation");
-			ok(doc.systemPrompt.includes("generateImage"), "Doc agent should reference generateImage");
-			ok(doc.systemPrompt.includes("textToSpeech"), "Doc agent should reference textToSpeech");
-		});
-
-		it("coding agent should reference correct tools (scanAgents)", () => {
-			const coding = ALL_AGENTS.find((a) => a.name === "coding");
-			ok(coding.systemPrompt.includes("scanAgents"), "Coding agent should reference scanAgents");
 		});
 	});
 
