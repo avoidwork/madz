@@ -439,7 +439,7 @@ The prompt replaced a 35-item flat rule list with thematic grouping (Environment
 
 **Character selection:** The model analyzes the task context and lets one character dominate. Default is a blended tone — one mode emerges when the task clearly calls for it. Execution mode (code, diffs, structured data) suppresses persona entirely.
 
-**Subagent Prompts:** Each of the 9 subagents (`prompts/*.md`) has a unified structure: ROLE, PERSONALITY, CAPABILITIES, RULES, OUTPUT FORMAT, SAFETY, NOTE. Personality is assigned from the Mads Mikkelsen canon to give each agent a distinct creative framing while suppressing the main orchestrator persona.
+**Subagent Prompts:** Each of the 9 subagents (`prompts/*.md`) has a unified structure: ROLE, PERSONALITY, RULES, OUTPUT FORMAT, SAFETY, NOTE. Personality is assigned from the Mads Mikkelsen canon to give each agent a distinct creative framing while suppressing the main orchestrator persona.
 
 | Agent | Personality | Character Source | Role |
 |-------|-------------|-----------------|------|
@@ -455,4 +455,4 @@ The prompt replaced a 35-item flat rule list with thematic grouping (Environment
 
 All subagents report back using the orchestrator's unified `Status/Summary/Details/Artifacts/Next Steps` format and carry explicit safety constraints.
 
-**Capability mapping:** Subagent tools are dynamically filtered at runtime from `TOOL_CLASSIFICATIONS` in `src/tools/index.js`. Each prompt's CAPABILITIES section reflects the agent's actual tool access — not generic filesystem operations.
+**Capability mapping:** Subagent tools are dynamically filtered at runtime from `TOOL_CLASSIFICATIONS` in `src/tools/index.js` and passed to each subagent as tool definitions via the model's tool-calling interface. The subagent's system prompt does not enumerate tools — the model discovers them from the tool definitions themselves.

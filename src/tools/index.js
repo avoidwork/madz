@@ -199,6 +199,7 @@ export const ORCHESTRATOR_TOOLS = [
 	"searchCode",
 	"indexCode",
 	"getConfig",
+	"readImage",
 ];
 
 // Tool instances keyed by tool name

@@ -84,3 +84,30 @@ describe("orchestrator - cronJob access", () => {
 		);
 	});
 });
+
+describe("orchestrator - readImage access", () => {
+	it("ORCHESTRATOR_TOOLS should include readImage", () => {
+		ok(ORCHESTRATOR_TOOLS.includes("readImage"), "ORCHESTRATOR_TOOLS should include readImage");
+	});
+
+	it("readImage should be classified for subagent types", () => {
+		ok(TOOL_CLASSIFICATIONS.readImage, "readImage should have a TOOL_CLASSIFICATIONS entry");
+		ok(
+			TOOL_CLASSIFICATIONS.readImage.includes("coding"),
+			"readImage should include coding in its classifications",
+		);
+		ok(
+			TOOL_CLASSIFICATIONS.readImage.includes("documentation"),
+			"readImage should include documentation in its classifications",
+		);
+	});
+
+	it("getToolsForAgentTypes should return readImage for coding type", async () => {
+		const tools = await loadTools();
+		const toolsForCoding = getToolsForAgentTypes(["coding"], tools);
+		ok(
+			toolsForCoding.includes("readImage"),
+			"getToolsForAgentTypes(['coding']) should include readImage",
+		);
+	});
+});
