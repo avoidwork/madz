@@ -1,7 +1,5 @@
-## Purpose
+## MODIFIED Requirements
 
-Define how the application presents its identity — the application name and version — to the user in the TUI, including the startup banner and the persistent status bar.
-## Requirements
 ### Requirement: App Identity Display
 The system SHALL display the application version once in the startup banner, positioned below the ASCII art. The system SHALL also display the application version persistently, right-aligned in the bottom status bar, when a version is provided.
 
@@ -20,4 +18,3 @@ The system SHALL display the application version once in the startup banner, pos
 #### Scenario: Version not displayed when absent
 - **WHEN** the user is actively using the TUI in conversation mode and no version is provided
 - **THEN** the application version is not visible in the status bar, input panel, or any persistent UI element
-

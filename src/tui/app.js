@@ -340,6 +340,7 @@ function App({
 					showOnboarding,
 					initialValue: pendingInput,
 					onInitialValueConsumed: () => setPendingInput(""),
+					appInfo,
 				})
 			: null,
 	);

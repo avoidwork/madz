@@ -21,6 +21,7 @@ const InputArea = forwardRef(function InputArea(
 		showOnboarding,
 		initialValue = "",
 		onInitialValueConsumed,
+		appInfo,
 	},
 	ref,
 ) {
@@ -118,6 +119,7 @@ const InputArea = forwardRef(function InputArea(
 					messageCount,
 					contextSize,
 					isCompacting,
+					version: appInfo?.version,
 				})
 			: null,
 		// InputPanel in normal mode and during onboarding

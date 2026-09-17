@@ -926,6 +926,24 @@ describe("StatusBar - no appInfo rendering", () => {
 		);
 	});
 
+	it("renders version when provided", async () => {
+		const { renderToString } = await import("ink");
+		const { StatusBar } = await import("../../src/tui/statusBar.js");
+
+		const result = String(
+			renderToString(
+				React.createElement(StatusBar, {
+					statusMessage: "Ready",
+					skillCount: 1,
+					messageCount: 5,
+					version: "1.80.1",
+				}),
+			),
+		);
+
+		assert.ok(result.includes("1.80.1"), "version should appear in status bar output");
+	});
+
 	it("renders spinner when streaming", async () => {
 		const { renderToString } = await import("ink");
 		const { StatusBar } = await import("../../src/tui/statusBar.js");
