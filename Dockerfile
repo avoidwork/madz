@@ -31,6 +31,14 @@ RUN apt-get update && \
     sed -i 's/^#*PermitEmptyPasswords.*/PermitEmptyPasswords yes/' /etc/ssh/sshd_config && \
     printf '%s\n' 'AcceptEnv *' >> /etc/ssh/sshd_config
 
+# Environment
+ENV HOME=/home/madz
+WORKDIR /app
+
+# Permissions
+RUN chown -R madz:node /app /home/madz && \
+    chmod -R g+rwX /app /home/madz
+
 # Install uv (no native Debian package)
 RUN pip install --no-cache-dir uv --break-system-packages
 
@@ -38,25 +46,20 @@ RUN pip install --no-cache-dir uv --break-system-packages
 RUN pip install --break-system-packages --no-cache-dir pip-audit==2.10.1
 
 # Go vulnerability analysis (v1.2.0)
+ENV GOBIN=/usr/local/bin
 RUN go install golang.org/x/vuln/cmd/govulncheck@v1.2.0 && \
-    mv /root/go/bin/govulncheck /usr/local/bin/govulncheck && \
-    rm -rf /root/go /root/.cache/go-build
+  rm -rf /home/madz/go /home/madz/.cache/go-build
 
-# Rust dependency security auditing (v0.22.1) — compiled from source via apt rustc/cargo
-# cargo-audit 0.22.2 requires rustc 1.88+; Debian apt provides rustc 1.85, so use 0.22.1
+# Rust dependency security auditing (v0.22.1)
+ENV CARGO_INSTALL_ROOT=/usr/local/bin
 RUN cargo install cargo-audit@0.22.1 --locked && \
-    cp /root/.cargo/bin/cargo-audit /usr/local/bin/cargo-audit && \
-    rm -rf /root/.cargo
+  rm -rf /home/madz/.cargo
 
 # Node package managers (yarn, pnpm) — available as globals
 RUN npm install -g yarn pnpm
 
 # OpenSpec CLI — global module
 RUN npm install -g @fission-ai/openspec@latest
-
-ENV HOME=/home/madz
-
-WORKDIR /app
 
 COPY --from=builder --chown=madz:node /app/node_modules ./node_modules
 COPY --from=builder --chown=madz:node /app/package*.json ./
@@ -66,9 +69,6 @@ COPY --chown=madz:node prompts/ ./prompts/
 COPY --chown=madz:node .skills/ ./.skills/
 COPY --chown=madz:node docker-entrypoint.sh /docker-entrypoint.sh
 
-RUN chmod +x /docker-entrypoint.sh && \
-    chown -R madz:node /home/madz && \
-    chmod -R g+rwX /home/madz
-
+RUN chmod +x /docker-entrypoint.sh
 ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["sleep", "infinity"]
