@@ -1,6 +1,9 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
-import { formatNumber, formatSize } from "../../../src/tui/statusBar.js";
+import React from "react";
+import { renderToString } from "ink";
+import { formatNumber, formatSize, StatusBar } from "../../../src/tui/statusBar.js";
+import { QUOTES, getRandomQuoteIndex } from "../../../src/tui/quotes.js";
 
 describe("formatNumber", () => {
 	it("formats a number with locale formatting", () => {
@@ -34,5 +37,102 @@ describe("formatSize", () => {
 		const result = formatSize(1024);
 		assert.ok(typeof result === "string");
 		assert.ok(result.length > 0);
+	});
+});
+
+describe("QUOTES", () => {
+	it("is a frozen array", () => {
+		assert.ok(Array.isArray(QUOTES));
+		assert.ok(Object.isFrozen(QUOTES));
+	});
+
+	it("contains exactly 25 curated quotes", () => {
+		assert.strictEqual(QUOTES.length, 25);
+	});
+
+	it("contains non-empty string quotes", () => {
+		assert.ok(QUOTES.every((q) => typeof q === "string" && q.length > 0));
+	});
+});
+
+describe("getRandomQuoteIndex", () => {
+	it("returns a valid index within bounds", () => {
+		for (let i = 0; i < 100; i++) {
+			const index = getRandomQuoteIndex(-1, () => Math.random());
+			assert.ok(Number.isInteger(index));
+			assert.ok(index >= 0 && index < QUOTES.length);
+		}
+	});
+
+	it("avoids the previous index when the list has more than one element", () => {
+		for (let i = 0; i < 100; i++) {
+			const previous = Math.floor(Math.random() * QUOTES.length);
+			const index = getRandomQuoteIndex(previous, () => Math.random());
+			assert.notStrictEqual(index, previous);
+		}
+	});
+
+	it("returns 0 for a single-element list", () => {
+		const single = ["only quote"];
+		assert.strictEqual(
+			getRandomQuoteIndex(0, () => 0, single),
+			0,
+		);
+	});
+
+	it("returns -1 for an empty list", () => {
+		assert.strictEqual(
+			getRandomQuoteIndex(-1, () => 0, []),
+			-1,
+		);
+	});
+});
+
+describe("StatusBar", () => {
+	it("renders the quote to the left of the version", () => {
+		const result = renderToString(
+			React.createElement(StatusBar, {
+				statusMessage: "Ready",
+				skillCount: 1,
+				messageCount: 2,
+				contextSize: 3,
+				version: "1.0.0",
+				quote: "A test quote",
+			}),
+		);
+		assert.ok(typeof result === "string");
+		assert.ok(result.includes("A test quote"));
+		assert.ok(result.includes("1.0.0"));
+	});
+
+	it("does not render an empty quote element when no quote is provided", () => {
+		const result = renderToString(
+			React.createElement(StatusBar, {
+				statusMessage: "Ready",
+				skillCount: 1,
+				messageCount: 2,
+				contextSize: 3,
+				version: "1.0.0",
+				quote: "",
+			}),
+		);
+		assert.ok(typeof result === "string");
+		assert.ok(result.includes("1.0.0"));
+	});
+
+	it("truncates long quotes to fit terminal width", () => {
+		const longQuote = "x".repeat(200);
+		const result = renderToString(
+			React.createElement(StatusBar, {
+				statusMessage: "Ready",
+				skillCount: 1,
+				messageCount: 2,
+				contextSize: 3,
+				version: "1.0.0",
+				quote: longQuote,
+			}),
+		);
+		assert.ok(typeof result === "string");
+		assert.ok(result.length < longQuote.length + 50);
 	});
 });

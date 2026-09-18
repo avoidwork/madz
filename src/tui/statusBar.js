@@ -46,9 +46,13 @@ export const StatusBar = React.memo(function StatusBar({
 	contextSize = 0,
 	isCompacting = false,
 	version = "",
+	quote = "",
 }) {
 	const contextColor = isCompacting ? "red" : "#606060";
 	const isStreaming = statusMessage === "Sending..." || statusMessage === "Streaming...";
+	const maxQuoteLength = 80;
+	const truncatedQuote =
+		quote.length > maxQuoteLength ? quote.slice(0, maxQuoteLength - 1) + "…" : quote;
 
 	return React.createElement(
 		Box,
@@ -91,7 +95,10 @@ export const StatusBar = React.memo(function StatusBar({
 			? React.createElement(
 					Box,
 					{ key: "right", marginLeft: "auto" },
-					React.createElement(Text, { color: "#606060" }, version),
+					truncatedQuote
+						? React.createElement(Text, { key: "quote", color: "#606060" }, truncatedQuote + "  ")
+						: null,
+					React.createElement(Text, { key: "version", color: "#606060" }, version),
 				)
 			: null,
 	);
