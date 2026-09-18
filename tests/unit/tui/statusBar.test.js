@@ -120,7 +120,7 @@ describe("StatusBar", () => {
 		assert.ok(result.includes("1.0.0"));
 	});
 
-	it("truncates long quotes to fit terminal width", () => {
+	it("renders the full quote without truncation or ellipsis", () => {
 		const longQuote = "x".repeat(200);
 		const result = renderToString(
 			React.createElement(StatusBar, {
@@ -133,6 +133,11 @@ describe("StatusBar", () => {
 			}),
 		);
 		assert.ok(typeof result === "string");
-		assert.ok(result.length < longQuote.length + 50);
+		// No ellipsis appended
+		assert.ok(!result.includes("…"));
+		// Not truncated to the old 80-char limit — ink may wrap across lines,
+		// so assert the quote renders well beyond 80 chars rather than an exact count.
+		const xCount = (result.match(/x/g) || []).length;
+		assert.ok(xCount > 80, `expected >80 chars rendered, got ${xCount}`);
 	});
 });
