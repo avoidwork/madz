@@ -46,6 +46,7 @@ export const StatusBar = React.memo(function StatusBar({
 	contextSize = 0,
 	isCompacting = false,
 	version = "",
+	quote = "",
 }) {
 	const contextColor = isCompacting ? "red" : "#606060";
 	const isStreaming = statusMessage === "Sending..." || statusMessage === "Streaming...";
@@ -91,7 +92,10 @@ export const StatusBar = React.memo(function StatusBar({
 			? React.createElement(
 					Box,
 					{ key: "right", marginLeft: "auto" },
-					React.createElement(Text, { color: "#606060" }, version),
+					quote
+						? React.createElement(Text, { key: "quote", color: "#606060" }, quote + "  ")
+						: null,
+					React.createElement(Text, { key: "version", color: "#606060" }, version),
 				)
 			: null,
 	);

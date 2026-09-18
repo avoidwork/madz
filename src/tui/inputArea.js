@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, forwardRef, useImperativeHandl
 import { Box } from "ink";
 import { StatusBar } from "./statusBar.js";
 import { InputPanel } from "./inputPanel.js";
+import { QUOTES, getRandomQuoteIndex } from "./quotes.js";
 
 /**
  * InputArea — owns all input and status state.
@@ -31,6 +32,7 @@ const InputArea = forwardRef(function InputArea(
 	const [statusMessage, setStatusMessage] = useState("Ready");
 	const [contextSize, setContextSize] = useState(0);
 	const [isCompacting, setIsCompacting] = useState(false);
+	const [quoteIndex, setQuoteIndex] = useState(-1);
 
 	// Consume a pre-loaded initial value once on mount (e.g., skill selection).
 	useEffect(() => {
@@ -39,6 +41,22 @@ const InputArea = forwardRef(function InputArea(
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
+
+	// Rotate the status bar quote at a fixed ~2 minute interval.
+	// Only ticks while the status bar is visible (normal mode, not during banner/onboarding).
+	const statusBarVisible = !showBanner && !showOnboarding;
+	useEffect(() => {
+		if (!statusBarVisible) return;
+
+		// Initialize the quote on first visibility.
+		setQuoteIndex((prev) => (prev === -1 ? getRandomQuoteIndex(-1) : prev));
+
+		const interval = setInterval(() => {
+			setQuoteIndex((prev) => getRandomQuoteIndex(prev));
+		}, 120000);
+
+		return () => clearInterval(interval);
+	}, [statusBarVisible]);
 
 	/**
 	 * Handle input-side submit: trim, track in chatHistory, clear input, call onSubmit.
@@ -120,6 +138,7 @@ const InputArea = forwardRef(function InputArea(
 					contextSize,
 					isCompacting,
 					version: appInfo?.version,
+					quote: quoteIndex >= 0 ? QUOTES[quoteIndex] : "",
 				})
 			: null,
 		// InputPanel in normal mode and during onboarding
