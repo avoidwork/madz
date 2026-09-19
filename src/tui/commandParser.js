@@ -145,8 +145,9 @@ export class CommandParser {
 			return { action: "gc", subAction: "run", ...result, message: msg };
 		});
 
-		// Skill execution: /skillName [args]
-		// Handled in parse() via context._skillList and context._executeSkill
+		// Skill invocation: /skillName [args]
+		// Handled in parse() via context._skillList — returns a skill-invoke result
+		// that the conversation area routes through the deepagents skill system.
 	}
 
 	#register(name, handler) {
@@ -175,15 +176,13 @@ export class CommandParser {
 			return handler(args, context);
 		}
 
-		// 2. Fall back to skill execution
+		// 2. Fall back to skill invocation — route through the deepagents skill system
 		if (context?._skillList && context._skillList.includes(commandName)) {
-			if (context._executeSkill) {
-				return context._executeSkill(commandName, args);
-			}
 			return {
 				action: "skill",
-				subAction: "error",
-				message: `Skill "${commandName}" not available in this context.`,
+				subAction: "invoke",
+				name: commandName,
+				args,
 			};
 		}
 

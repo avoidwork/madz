@@ -252,26 +252,19 @@ describe("command parser", () => {
 	});
 
 	describe("skill execution", () => {
-		it("dispatches to _executeSkill when skill is in _skillList", () => {
+		it("invokes skill when skill is in _skillList", () => {
 			const parser = new CommandParser();
-			let executedSkill = null;
-			let executedArgs = null;
 			const ctx = {
 				_skillList: ["commit-push", "create-feature"],
-				_executeSkill: (name, args) => {
-					executedSkill = name;
-					executedArgs = args;
-					return { action: "skill", subAction: "executed", skill: name, args };
-				},
 			};
 			const result = parser.parse("/commit-push feature-123", ctx);
 			assert.strictEqual(result.action, "skill");
-			assert.strictEqual(result.subAction, "executed");
-			assert.strictEqual(executedSkill, "commit-push");
-			assert.deepStrictEqual(executedArgs, ["feature-123"]);
+			assert.strictEqual(result.subAction, "invoke");
+			assert.strictEqual(result.name, "commit-push");
+			assert.deepStrictEqual(result.args, ["feature-123"]);
 		});
 
-		it("returns error when skill not in _skillList", () => {
+		it("returns unknown when skill not in _skillList", () => {
 			const parser = new CommandParser();
 			const ctx = { _skillList: ["commit-push"] };
 			const result = parser.parse("/nonexistent-skill", ctx);
@@ -279,20 +272,20 @@ describe("command parser", () => {
 			assert.ok(result.message.includes("Unknown command"));
 		});
 
-		it("returns error when skill found but no _executeSkill", () => {
+		it("invokes skill with no args when skill is in _skillList", () => {
 			const parser = new CommandParser();
 			const ctx = { _skillList: ["commit-push"] };
 			const result = parser.parse("/commit-push", ctx);
 			assert.strictEqual(result.action, "skill");
-			assert.strictEqual(result.subAction, "error");
-			assert.ok(result.message.includes("not available"));
+			assert.strictEqual(result.subAction, "invoke");
+			assert.strictEqual(result.name, "commit-push");
+			assert.deepStrictEqual(result.args, []);
 		});
 
 		it("registered commands take priority over skills", () => {
 			const parser = new CommandParser();
 			const ctx = {
 				_skillList: ["help"],
-				_executeSkill: () => ({ action: "skill", subAction: "executed" }),
 			};
 			const result = parser.parse("/help", ctx);
 			assert.strictEqual(result.action, "help");

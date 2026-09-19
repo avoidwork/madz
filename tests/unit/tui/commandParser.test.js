@@ -35,12 +35,6 @@ function createMockContext(overrides = {}) {
 		_gcStatus: () => ({ ...gcInfo }),
 		_gcTrigger: () => ({ triggered: true, hourCalls: 3 }),
 		_skillList: [],
-		_executeSkill: (name, args) => ({
-			action: "skill",
-			subAction: "execute",
-			name,
-			args,
-		}),
 		...overrides,
 	};
 }
@@ -296,24 +290,22 @@ describe("CommandParser", () => {
 			assert.ok(result.message.includes("/nonexistent"));
 		});
 
-		it("executes skill when command matches _skillList", () => {
+		it("invokes skill when command matches _skillList", () => {
 			const ctx = createMockContext({ _skillList: ["mySkill"] });
 			const result = parser.parse("/mySkill arg1 arg2", ctx);
 			assert.strictEqual(result.action, "skill");
-			assert.strictEqual(result.subAction, "execute");
+			assert.strictEqual(result.subAction, "invoke");
 			assert.strictEqual(result.name, "mySkill");
 			assert.deepStrictEqual(result.args, ["arg1", "arg2"]);
 		});
 
-		it("returns skill error when _executeSkill is missing", () => {
-			const ctx = createMockContext({
-				_skillList: ["brokenSkill"],
-				_executeSkill: null,
-			});
-			const result = parser.parse("/brokenSkill", ctx);
+		it("invokes skill with no args when command matches _skillList", () => {
+			const ctx = createMockContext({ _skillList: ["mySkill"] });
+			const result = parser.parse("/mySkill", ctx);
 			assert.strictEqual(result.action, "skill");
-			assert.strictEqual(result.subAction, "error");
-			assert.ok(result.message.includes("brokenSkill"));
+			assert.strictEqual(result.subAction, "invoke");
+			assert.strictEqual(result.name, "mySkill");
+			assert.deepStrictEqual(result.args, []);
 		});
 	});
 

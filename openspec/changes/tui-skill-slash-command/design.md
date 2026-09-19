@@ -4,14 +4,11 @@ The TUI (`src/tui/`) handles user input through a `CommandParser` (`commandParse
 
 This is the legacy IPC dispatch path. The deepagents orchestrator (`src/agent/deepAgents.js`) already has skills attached to it (`skills: skillPaths`), so skills should be invoked by sending the natural-language prompt `Run the <skill> skill [args]` through the normal chat path — the orchestrator's skill system picks it up and invokes the skill properly.
 
-Separately, `statusBar.js` destructures `statusMessage` (line 43) but never renders it — it only uses it to compute `isStreaming` (line 51). All status feedback is silently discarded.
-
 ## Goals / Non-Goals
 
 **Goals:**
 - Remove the legacy IPC skill dispatch path (`_executeSkill` and the `subAction === "load"` branch).
 - Make `/skill-name` invoke the skill as shorthand through the deepagents skill system.
-- Render `statusMessage` in the status bar so the user sees feedback.
 - Update tests to cover the new `/SKILL` shorthand behavior.
 
 **Non-Goals:**
@@ -40,17 +37,7 @@ Separately, `statusBar.js` destructures `statusMessage` (line 43) but never rend
 **Alternatives considered:**
 - Keep the `subAction === "load"` branch but change what it dispatches — rejected because it keeps a parallel streaming path that duplicates `handleChat`.
 
-### Decision 3: Render `statusMessage` in the status bar left group
-
-**Choice:** Add a `Text` element rendering `statusMessage` in the left group of `statusBar.js`, after the context indicator.
-
-**Why:** The prop is already passed from `inputArea.js`. Rendering it gives the user visible feedback for "Ready", "Streaming...", "Interrupted.", skill status, etc.
-
-**Alternatives considered:**
-- Render it in the right group — rejected because the left group is the natural home for live status and the right group holds version/quote.
-
 ## Risks / Trade-offs
 
 - **[Skill invocation depends on the orchestrator resolving the prompt]** → Mitigation: the prompt format `Run the <skill> skill` is already used by the skills panel and scheduler, so the orchestrator already handles it.
 - **[Removing `_executeSkill` may break callers]** → Mitigation: `_executeSkill` is only referenced by the parser fallback and the `handleCommand` skill branch, both of which are being removed together. Verified via grep.
-- **[Status bar layout shift]** → Mitigation: the status message is rendered in the left group with the existing muted color, keeping the layout stable.

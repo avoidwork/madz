@@ -161,9 +161,6 @@ const ConversationArea = forwardRef(function ConversationArea(
 	 */
 	const handleCommand = async (trimmed) => {
 		try {
-			// Always show the user's command in the chat display
-			addMessage({ role: "user", content: trimmed });
-
 			const result = parser.parse(trimmed, {
 				_sessionState: sessionState,
 				_setConfigValue: (dotPath, valueStr) => {
@@ -191,26 +188,6 @@ const ConversationArea = forwardRef(function ConversationArea(
 					: null,
 				_onViewChange: onViewChange,
 				_skillList: skillList,
-				_executeSkill: async (skillName, _args) => {
-					const skill = registry.get(skillName);
-					if (!skill) {
-						return {
-							action: "skill",
-							subAction: "error",
-							message: `Skill "${skillName}" not found.`,
-						};
-					}
-					const body = await registry.getSkillBody(skillName);
-					return {
-						action: "skill",
-						subAction: "load",
-						name: skillName,
-						skillBody: body || "",
-						message: body
-							? `Skill "${skillName}" loaded.\n${body}`
-							: `Skill "${skillName}" loaded. No instructions found.`,
-					};
-				},
 			});
 			if (result.action === "quit") {
 				onQuit?.();
@@ -233,150 +210,18 @@ const ConversationArea = forwardRef(function ConversationArea(
 				onViewChange?.(result.value);
 				return;
 			}
-			if (result.action === "skill" && result.subAction === "load" && result.skillBody) {
-				gcManager?.();
-				onStatusChange?.("Streaming...");
-
-				if (sessionState) {
-					sessionState.addExchange({ role: "user", content: trimmed });
-					updateContextSize(sessionState, config);
+			if (result.action === "skill" && result.subAction === "invoke") {
+				// Route /SKILL through the deepagents skill system by synthesizing the
+				// "Run the <skill> skill [args]" prompt and dispatching it via handleChat.
+				// handleChat adds the synthesized prompt as the user message.
+				const skillPrompt = `Run the ${result.name} skill${result.args?.length ? " " + result.args.join(" ") : ""}`;
+				await handleChat(skillPrompt);
+			} else {
+				// Show the user's command in the chat display for non-skill commands
+				addMessage({ role: "user", content: trimmed });
+				if (result.action !== "help" && result.action !== "skill") {
+					onStatusChange?.(result.message || result.action + " executed");
 				}
-
-				const assistantTime = getTimestamp();
-				const turnStartTime = Date.now();
-				streamingMsgIdRef.current = messageListRef.current.addMessage("assistant", "", {
-					time: assistantTime,
-					streaming: true,
-					turnStartTime,
-				});
-				if (messageCountRef) {
-					messageCountRef.current = messageListRef.current?.getMessageCount() || 0;
-				}
-
-				let committedContentRef = { current: "" };
-				const committedReasoningRef = { current: "" };
-				const lastToolCallDisplayRef = { current: "" };
-				let todoStatusLines = "";
-				/** @type {string[]} */
-				const completedToolCalls = [];
-
-				// Set up abort controller for this stream
-				abortControllerRef.current = new AbortController();
-				isStreamingRef.current = true;
-
-				try {
-					const preStreamContextSize = contextSize;
-
-					const dispatchPromise = dispatchProvider(
-						result.skillBody,
-						sessionState ? sessionState.getProvider() : null,
-						createStreamingHandler(
-							committedContentRef,
-							committedReasoningRef,
-							lastToolCallDisplayRef,
-							undefined,
-							preStreamContextSize,
-							updateContextDisplay,
-							completedToolCalls,
-							turnStartTime,
-						),
-						abortControllerRef.current?.signal,
-					);
-
-					dispatchPromiseRef.current = dispatchPromise;
-					await dispatchPromise;
-
-					let responseContent = committedContentRef.current;
-					const committedReasoning = committedReasoningRef.current;
-
-					if (!responseContent.trim() && !shouldAbort()) {
-						if (lastToolCallDisplayRef.current) {
-							messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
-								toolCallDisplay: lastToolCallDisplayRef.current,
-							});
-						}
-
-						if (autoContinueCountRef.current >= (config?.agent?.autoContinueLimit ?? 1000)) {
-							onStatusChange?.("Model appears stuck — starting fresh.");
-							messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
-								streaming: false,
-							});
-							autoContinueCountRef.current = 0;
-							addMessage({
-								role: "system",
-								content: `I've tried to continue ${config?.agent?.autoContinueLimit ?? 1000} times with no text output. The model may be stuck in a reasoning loop. Please try a new conversation or rephrase your request.`,
-							});
-							return;
-						}
-
-						onStatusChange?.("Continuing...");
-						isAutoContinuingRef.current = true;
-						try {
-							const continuePromise = dispatchProvider(
-								"Please continue.",
-								sessionState ? sessionState.getProvider() : null,
-								createStreamingHandler(
-									committedContentRef,
-									committedReasoningRef,
-									{ current: "" },
-									() => {
-										isAutoContinuingRef.current = false;
-									},
-									preStreamContextSize,
-									updateContextDisplay,
-								),
-								abortControllerRef.current?.signal,
-							);
-							dispatchPromiseRef.current = continuePromise;
-							await continuePromise;
-							onStatusChange?.("Done");
-						} catch (contErr) {
-							onStatusChange?.(`Error continuing: ${contErr.message}`);
-						} finally {
-							isAutoContinuingRef.current = false;
-							autoContinueCountRef.current++;
-						}
-					}
-
-					if (shouldAbort()) return;
-
-					finalizeStreaming(
-						responseContent,
-						committedReasoning,
-						lastToolCallDisplayRef.current,
-						todoStatusLines,
-						turnStartTime,
-						completedToolCalls,
-					);
-
-					if (sessionState) {
-						sessionState.addExchange({
-							role: "assistant",
-							content: responseContent,
-						});
-						updateContextSize(sessionState, config);
-					}
-				} catch (err) {
-					if (err.name === "AbortError") {
-						if (sessionState) {
-							sessionState.popExchange();
-						}
-						messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
-							streaming: false,
-						});
-						onStatusChange?.("Interrupted.");
-					} else {
-						messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
-							streaming: false,
-						});
-						onStatusChange?.(`Error: ${err.message}`);
-					}
-				} finally {
-					abortControllerRef.current = null;
-					isStreamingRef.current = false;
-				}
-			} else if (result.action !== "help" && result.action !== "skill") {
-				onStatusChange?.(result.message || result.action + " executed");
 			}
 			if (
 				result.message &&
