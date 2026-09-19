@@ -264,6 +264,31 @@ describe("MessageBubbleInner - reasoning content", () => {
 		assert.ok(result.includes("thinking"));
 	});
 
+	it("renders reasoning content without the unicode prefix", () => {
+		const result = renderToString(
+			React.createElement(
+				PubSubContext.Provider,
+				{ value: { subscribe: () => {}, unsubscribe: () => {} } },
+				React.createElement(
+					ScrollContext.Provider,
+					{ value: { scrollToBottom: () => {} } },
+					React.createElement(MessageBubbleInner, {
+						role: "assistant",
+						content: "response",
+						segments: [{ type: "reasoning", content: "thinking step by step" }],
+						streaming: false,
+					}),
+				),
+			),
+		);
+		assert.ok(typeof result === "string");
+		assert.ok(result.includes("thinking"), "reasoning content should be rendered");
+		assert.ok(
+			!result.includes("💭"),
+			"reasoning content should not be prefixed with the unicode character",
+		);
+	});
+
 	it("does not render reasoning when chunks exist (streaming started)", () => {
 		// When chunks.length > 0, reasoning is hidden
 		// We can't easily set chunks state, but we can verify the component renders

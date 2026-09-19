@@ -176,7 +176,7 @@ export const MessageList = React.memo(
 						if (newSeg.type === "reasoning") {
 							// Reasoning coalesces with the last reasoning segment even if
 							// a message interleaved between chunks — otherwise continuous
-							// reasoning gets split into separate 💭 blocks. Search backwards
+							// reasoning gets split into separate reasoning blocks. Search backwards
 							// for the last reasoning segment.
 							let lastReasoning = null;
 							for (let i = mergedSegments.length - 1; i >= 0; i--) {
