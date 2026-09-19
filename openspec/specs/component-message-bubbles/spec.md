@@ -1,5 +1,8 @@
-## ADDED Requirements
+# component-message-bubbles Specification
 
+## Purpose
+TBD - created by archiving change replace-ref-based-messages-with-component-message-bubbles. Update Purpose after archive.
+## Requirements
 ### Requirement: MessageBubble manages its own state via chunk accumulation
 The MessageBubble component SHALL maintain internal state for chunk accumulation, streaming status, reasoning content, active tool call, and tool call display via `useState`. Each bubble is a standalone React functional component that receives content updates through a pub/sub topic subscription.
 
@@ -19,10 +22,6 @@ The MessageBubble component SHALL maintain internal state for chunk accumulation
 - **WHEN** a MessageBubble's streaming state is true
 - **THEN** it appends a cursor character (`\u2588`) to its rendered content
 
-#### Scenario: MessageBubble renders reasoning content
-- **WHEN** a MessageBubble's reasoningContent is present and role is "assistant"
-- **THEN** it renders the reasoning content as muted text, truncated to 200 characters
-
 #### Scenario: MessageBubble renders active tool call
 - **WHEN** a MessageBubble's activeToolCall is present
 - **THEN** it renders a "Running: <name>" indicator below the main content
@@ -30,6 +29,13 @@ The MessageBubble component SHALL maintain internal state for chunk accumulation
 #### Scenario: MessageBubble renders tool call display output
 - **WHEN** a MessageBubble's toolCallDisplay is present
 - **THEN** it renders each line of tool call display output below the main content
+
+### Requirement: MessageBubble renders reasoning content
+The MessageBubble component SHALL render reasoning segments as muted (gray) offset text without any unicode prefix. When a MessageBubble's reasoningContent is present and role is "assistant", it renders the reasoning content as muted text, with no `💭 ` prefix prepended.
+
+#### Scenario: MessageBubble renders reasoning content without unicode prefix
+- **WHEN** a MessageBubble's reasoningContent is present and role is "assistant"
+- **THEN** it renders the reasoning content as muted text, with no `💭 ` prefix prepended
 
 ### Requirement: MessageUpdate via Pub/Sub Topic System
 When `updateMessage(id, updates)` is called on MessageList, it SHALL publish the updates to a unique pub/sub topic keyed by message ID. Each MessageBubble subscribes to its own topic (`msg-{id}`) on mount and unsubscribes on unmount. This eliminates the need for the parent to hold refs to individual bubbles.
@@ -133,16 +139,17 @@ The ConversationPanel SHALL be a thin wrapper around MessageList, responsible on
 - **WHEN** ConversationPanel mounts with no messages or an empty array
 - **THEN** MessageList renders "No messages yet. Start chatting!"
 
-## ADDED Requirements (negative requirements)
-
 ### Requirement: No ref callback pattern for bubble updates
 The MessageList component SHALL NOT maintain a Map of bubble refs or call imperative methods on child components. All message updates flow through the pub/sub topic system.
 
+#### Scenario: updateMessage does not use bubble refs
 - **WHEN** `updateMessage(id, updates)` is called
 - **THEN** MessageList publishes to the topic and does NOT look up any bubble ref
 
 ### Requirement: No streamingId counter in MessageBubble
 The MessageBubble component SHALL NOT use a separate `streamingId` counter to force re-renders. Instead, chunk appending naturally triggers React re-renders via `useState`.
 
+#### Scenario: chunk update triggers re-render via state
 - **WHEN** a chunk update is published to a bubble's topic
 - **THEN** the bubble's `chunks` state changes, triggering a re-render with the joined content
+
