@@ -213,9 +213,11 @@ const ConversationArea = forwardRef(function ConversationArea(
 			if (result.action === "skill" && result.subAction === "invoke") {
 				// Route /SKILL through the deepagents skill system by synthesizing the
 				// "Run the <skill> skill [args]" prompt and dispatching it via handleChat.
-				// handleChat adds the synthesized prompt as the user message.
+				// The synthesized prompt is silent — it stays out of the TUI message list
+				// (and is not rendered as a user message), but the agent's streaming
+				// response still renders normally.
 				const skillPrompt = `Run the ${result.name} skill${result.args?.length ? " " + result.args.join(" ") : ""}`;
-				await handleChat(skillPrompt);
+				await handleChat(skillPrompt, { silentUser: true });
 			} else {
 				// Show the user's command in the chat display for non-skill commands
 				addMessage({ role: "user", content: trimmed });
@@ -237,11 +239,16 @@ const ConversationArea = forwardRef(function ConversationArea(
 		}
 	};
 
-	const handleChat = async (text) => {
+	const handleChat = async (text, options = {}) => {
 		if (shouldAbort()) return;
 		gcManager?.();
 		onStatusChange?.("Streaming...");
-		addMessage({ role: "user", content: text });
+		// silentUser: dispatch the message without rendering it as a user message
+		// in the TUI (e.g., synthesized skill prompts). The assistant's streaming
+		// response still renders normally.
+		if (!options.silentUser) {
+			addMessage({ role: "user", content: text });
+		}
 
 		if (sessionState) {
 			sessionState.addExchange({ role: "user", content: text });
