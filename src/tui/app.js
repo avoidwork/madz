@@ -73,15 +73,15 @@ function App({
 
 	/**
 	 * handleSelectSkill — switch to the conversation view and pre-load the
-	 * "Run the <skill> skill" prompt into the input so the user can hit Enter
-	 * to execute or append to it.
+	 * "/<skill>" command into the input so the user can hit Enter to execute
+	 * or append to it.
 	 * @param {string} skillName - The selected skill name
 	 */
 	const handleSelectSkill = useCallback((skillName) => {
 		setCurrentView(PANELS.CONVERSATION);
-		// Pre-load the prompt into the input. InputArea is unmounted during
+		// Pre-load the command into the input. InputArea is unmounted during
 		// panel views, so set a pending value that it consumes on mount.
-		setPendingInput(`Run the ${skillName} skill`);
+		setPendingInput(`/${skillName}`);
 		inputAreaRef.current?.setStatusMessage(`Selected ${skillName} — press Enter to run or append.`);
 	}, []);
 
