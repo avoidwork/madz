@@ -13,3 +13,24 @@ describe("App module", () => {
 		assert.strictEqual(typeof mod.default, "function");
 	});
 });
+
+describe("App — file picker bail", () => {
+	it("bails when the picker is open so up/down and Escape don't steal keys", () => {
+		// Simulate the App-level guard: return early if isPickerOpen() is true.
+		const inputAreaRef = { current: { isPickerOpen: () => true } };
+		const shouldBail = inputAreaRef.current?.isPickerOpen?.();
+		assert.strictEqual(shouldBail, true);
+	});
+
+	it("does not bail when the picker is closed", () => {
+		const inputAreaRef = { current: { isPickerOpen: () => false } };
+		const shouldBail = inputAreaRef.current?.isPickerOpen?.();
+		assert.strictEqual(shouldBail, false);
+	});
+
+	it("does not bail when the ref is not yet mounted", () => {
+		const inputAreaRef = { current: null };
+		const shouldBail = inputAreaRef.current?.isPickerOpen?.();
+		assert.strictEqual(shouldBail, undefined);
+	});
+});

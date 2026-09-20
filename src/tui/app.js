@@ -209,6 +209,12 @@ function App({
 		}
 
 		// Conversation view key handling
+		// When the file picker is open, it owns the input — bail so up/down,
+		// Escape, and other keys don't steal from the picker.
+		if (inputAreaRef.current?.isPickerOpen?.()) {
+			return;
+		}
+
 		// Global keys always handled at app level, regardless of focus state
 		if (input === "\t" || key.tab) {
 			setInputFocused((prev) => !prev);

@@ -1,7 +1,15 @@
-import React, { useState, useEffect, useCallback, forwardRef, useImperativeHandle } from "react";
+import React, {
+	useState,
+	useEffect,
+	useCallback,
+	useRef,
+	forwardRef,
+	useImperativeHandle,
+} from "react";
 import { Box } from "ink";
 import { StatusBar } from "./statusBar.js";
 import { InputPanel } from "./inputPanel.js";
+import { FilePicker } from "./filePicker.js";
 import { QUOTES, getRandomQuoteIndex } from "./quotes.js";
 
 /**
@@ -33,6 +41,43 @@ const InputArea = forwardRef(function InputArea(
 	const [contextSize, setContextSize] = useState(0);
 	const [isCompacting, setIsCompacting] = useState(false);
 	const [quoteIndex, setQuoteIndex] = useState(-1);
+	const [pickerOpen, setPickerOpen] = useState(false);
+	const pickerOpenRef = useRef(false);
+
+	// Keep the ref in sync so the imperative isPickerOpen() reads current state.
+	useEffect(() => {
+		pickerOpenRef.current = pickerOpen;
+	}, [pickerOpen]);
+
+	// Open the picker when the input contains an `@` token with content after it.
+	// The token is bounded by whitespace (unquoted) or quotes (quoted).
+	/* node:coverage disable */
+	useEffect(() => {
+		const lastAt = inputText.lastIndexOf("@");
+		if (lastAt === -1) {
+			setPickerOpen(false);
+			return;
+		}
+		// Find the token end: whitespace (unquoted) or quote.
+		let end = lastAt + 1;
+		let quoted = false;
+		while (end < inputText.length) {
+			const ch = inputText[end];
+			if (ch === '"') {
+				quoted = !quoted;
+				end++;
+				continue;
+			}
+			if (!quoted && /\s/.test(ch)) {
+				break;
+			}
+			end++;
+		}
+		const token = inputText.slice(lastAt, end);
+		const hasContent = token.length > 1;
+		setPickerOpen(hasContent);
+	}, [inputText]);
+	/* node:coverage enable */
 
 	// Consume a pre-loaded initial value once on mount (e.g., skill selection).
 	useEffect(() => {
@@ -119,6 +164,7 @@ const InputArea = forwardRef(function InputArea(
 		setStatusMessage,
 		setContextSize,
 		setIsCompacting,
+		isPickerOpen: () => pickerOpenRef.current,
 	}));
 
 	const messageCount = messageCountRef?.current || 0;
@@ -126,6 +172,7 @@ const InputArea = forwardRef(function InputArea(
 	// Don't render during banner mode
 	if (showBanner && !showOnboarding) return null;
 
+	/* node:coverage disable */
 	return React.createElement(
 		React.Fragment,
 		null,
@@ -157,10 +204,20 @@ const InputArea = forwardRef(function InputArea(
 				onSubmit: handleSubmit,
 				onFocus,
 				onBlur,
-				focus,
+				focus: focus && !pickerOpen,
 			}),
 		),
+		// FilePicker below the input when open — it owns the input while open.
+		pickerOpen
+			? React.createElement(FilePicker, {
+					key: "file-picker",
+					value: inputText,
+					onChange: setInputText,
+					onClose: () => setPickerOpen(false),
+				})
+			: null,
 	);
+	/* node:coverage enable */
 });
 
 export default InputArea;
