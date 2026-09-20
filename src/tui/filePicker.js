@@ -240,17 +240,15 @@ export function FilePicker({ value, onChange, onClose, cwd }) {
 		),
 		!loaded
 			? React.createElement(Text, { color: "gray" }, " Loading files...")
-			: sorted.length === 0
-				? React.createElement(Text, { color: "gray" }, " No matching files.")
-				: visible.map((file, i) => {
-						const isSelected = windowStart + i === clampedIndex;
-						return React.createElement(
-							Text,
-							{ key: file, color: isSelected ? "cyan" : undefined },
-							isSelected ? "▸ " : "  ",
-							file,
-						);
-					}),
+			: visible.map((file, i) => {
+					const isSelected = windowStart + i === clampedIndex;
+					return React.createElement(
+						Text,
+						{ key: file, color: isSelected ? "cyan" : undefined },
+						isSelected ? "▸ " : "  ",
+						file,
+					);
+				}),
 	);
 }
 /* node:coverage enable */
