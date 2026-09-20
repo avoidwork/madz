@@ -193,30 +193,27 @@ const InputArea = forwardRef(function InputArea(
 					quote: quoteIndex >= 0 ? QUOTES[quoteIndex] : "",
 				})
 			: null,
-		// InputPanel in normal mode and during onboarding.
-		// Hidden while the picker is open so it remounts fresh on close —
-		// ink-text-input initializes its cursor to the current input length
-		// on mount, which avoids a stale cursor position.
-		!pickerOpen
-			? React.createElement(
-					Box,
-					{
-						key: "input-wrapper",
-						flexDirection: "row",
-						paddingX: 1,
-						paddingY: 0,
-					},
-					React.createElement(InputPanel, {
-						key: focus ? "input-focused" : "input-unfocused",
-						value: inputText,
-						onChange: setInputText,
-						onSubmit: handleSubmit,
-						onFocus,
-						onBlur,
-						focus,
-					}),
-				)
-			: null,
+		// InputPanel is always visible. While the picker is open it is
+		// unfocused so the FilePicker owns the keystrokes (avoiding the
+		// focus conflict), but the panel stays on screen.
+		React.createElement(
+			Box,
+			{
+				key: "input-wrapper",
+				flexDirection: "row",
+				paddingX: 1,
+				paddingY: 0,
+			},
+			React.createElement(InputPanel, {
+				key: focus ? "input-focused" : "input-unfocused",
+				value: inputText,
+				onChange: setInputText,
+				onSubmit: handleSubmit,
+				onFocus,
+				onBlur,
+				focus: focus && !pickerOpen,
+			}),
+		),
 		// FilePicker below the input when open — it owns the input while open.
 		pickerOpen
 			? React.createElement(FilePicker, {
