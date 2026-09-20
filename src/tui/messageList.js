@@ -26,6 +26,25 @@ export function PubSubProvider({ subscribe, unsubscribe, publish, children }) {
 let _messageIdCounter = 0;
 
 /**
+ * Determine whether a message bubble should be rendered.
+ * An assistant bubble is skipped only when it is not streaming, has empty
+ * content, and has no non-empty `reasoning` or `message` segments. This keeps
+ * interrupted assistant responses (which may hold only reasoning/partial
+ * message segments with empty `content`) visible in the message list.
+ * @param {Object} data - Message data
+ * @param {string} content - Stable content from contentRef
+ * @returns {boolean} True if the bubble should be rendered
+ */
+export function shouldRenderBubble(data, content) {
+	if (data.role !== "assistant") return true;
+	if (data.streaming) return true;
+	if ((content || data.content || "").trim()) return true;
+	return (data.segments || []).some(
+		(s) => (s.type === "reasoning" || s.type === "message") && (s.content || "").trim(),
+	);
+}
+
+/**
  * Manages an array of MessageBubble component instances.
  * Provides imperative API: addMessage, updateMessage, clear.
  * Owns ScrollView rendering with scroll management.
@@ -433,12 +452,10 @@ export const MessageList = React.memo(
 					.map((id) => {
 						const data = dataRef.current.get(id);
 						if (!data) return null;
-						// Skip rendering empty assistant bubbles that aren't streaming
-						if (
-							data.role === "assistant" &&
-							!data.streaming &&
-							!(contentRef.current.get(id) || data.content || "").trim()
-						) {
+						// Skip rendering empty assistant bubbles that aren't streaming.
+						// Keep bubbles that carry non-empty reasoning/message segments so
+						// interrupted assistant responses persist in the message list.
+						if (!shouldRenderBubble(data, contentRef.current.get(id))) {
 							return null;
 						}
 						// Use stable content reference from contentRef for React.memo to work

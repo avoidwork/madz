@@ -451,3 +451,92 @@ describe("MessageList — module exports", () => {
 		assert.strictEqual(typeof mod.PubSubProvider, "function");
 	});
 });
+
+describe("MessageList — shouldRenderBubble", () => {
+	let shouldRenderBubble;
+
+	beforeEach(async () => {
+		const mod = await import("../../../src/tui/messageList.js");
+		shouldRenderBubble = mod.shouldRenderBubble;
+	});
+
+	it("renders an interrupted assistant bubble with reasoning segments and empty content", () => {
+		const data = {
+			role: "assistant",
+			content: "",
+			streaming: false,
+			segments: [{ type: "reasoning", content: "thinking through the problem" }],
+		};
+		assert.strictEqual(shouldRenderBubble(data, ""), true);
+	});
+
+	it("renders an interrupted assistant bubble with message segments and empty content", () => {
+		const data = {
+			role: "assistant",
+			content: "",
+			streaming: false,
+			segments: [{ type: "message", content: "partial response" }],
+		};
+		assert.strictEqual(shouldRenderBubble(data, ""), true);
+	});
+
+	it("skips an empty assistant bubble that is not streaming and has no segments", () => {
+		const data = {
+			role: "assistant",
+			content: "",
+			streaming: false,
+			segments: [],
+		};
+		assert.strictEqual(shouldRenderBubble(data, ""), false);
+	});
+
+	it("skips an assistant bubble with only non-reasoning/message segments", () => {
+		const data = {
+			role: "assistant",
+			content: "",
+			streaming: false,
+			segments: [{ type: "tool", content: "result" }],
+		};
+		assert.strictEqual(shouldRenderBubble(data, ""), false);
+	});
+
+	it("renders an assistant bubble with non-empty content even when not streaming", () => {
+		const data = {
+			role: "assistant",
+			content: "completed response",
+			streaming: false,
+			segments: [],
+		};
+		assert.strictEqual(shouldRenderBubble(data, ""), true);
+	});
+
+	it("renders a streaming assistant bubble even with empty content", () => {
+		const data = {
+			role: "assistant",
+			content: "",
+			streaming: true,
+			segments: [],
+		};
+		assert.strictEqual(shouldRenderBubble(data, ""), true);
+	});
+
+	it("renders non-assistant bubbles regardless of content", () => {
+		const data = {
+			role: "user",
+			content: "",
+			streaming: false,
+			segments: [],
+		};
+		assert.strictEqual(shouldRenderBubble(data, ""), true);
+	});
+
+	it("prefers the stable content reference over data.content", () => {
+		const data = {
+			role: "assistant",
+			content: "",
+			streaming: false,
+			segments: [],
+		};
+		assert.strictEqual(shouldRenderBubble(data, "stable content"), true);
+	});
+});
