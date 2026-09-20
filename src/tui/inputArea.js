@@ -42,11 +42,18 @@ const InputArea = forwardRef(function InputArea(
 	const [isCompacting, setIsCompacting] = useState(false);
 	const [quoteIndex, setQuoteIndex] = useState(-1);
 	const [pickerOpen, setPickerOpen] = useState(false);
+	const [pickerCloseTick, setPickerCloseTick] = useState(0);
 	const pickerOpenRef = useRef(false);
 
 	// Keep the ref in sync so the imperative isPickerOpen() reads current state.
 	useEffect(() => {
 		pickerOpenRef.current = pickerOpen;
+		// When the picker closes, bump the close tick so the InputPanel
+		// remounts and ink-text-input re-initializes its cursor to the end
+		// of the current value.
+		if (!pickerOpen) {
+			setPickerCloseTick((t) => t + 1);
+		}
 	}, [pickerOpen]);
 
 	// Open the picker when the input contains an `@` token with content after it.
@@ -205,7 +212,7 @@ const InputArea = forwardRef(function InputArea(
 				paddingY: 0,
 			},
 			React.createElement(InputPanel, {
-				key: focus ? "input-focused" : "input-unfocused",
+				key: `${focus ? "input-focused" : "input-unfocused"}-${pickerCloseTick}`,
 				value: inputText,
 				onChange: setInputText,
 				onSubmit: handleSubmit,
