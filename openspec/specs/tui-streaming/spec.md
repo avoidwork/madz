@@ -102,6 +102,14 @@ The `finalizeStreaming` function SHALL pass the accumulated reasoning content to
 - **WHEN** `finalizeStreaming(responseContent, committedReasoning, ...)` is called
 - **THEN** the message is updated with `reasoningContent: committedReasoning || undefined`
 
+#### Scenario: Reasoning-only completion dispatches silent continue
+- **WHEN** a turn finalizes with committed reasoning present and no committed message content
+- **THEN** the system dispatches a silent "Please continue." prompt via `handleChat(text, { silentUser: true })`
+
+#### Scenario: Reasoning-only continue renders in a fresh bubble
+- **WHEN** the silent continue produces a response
+- **THEN** the response streams into a new assistant bubble rather than appending to the existing reasoning bubble
+
 ### Requirement: Pub/sub deduplication SHALL be bypassed for streaming updates
 When a streaming update is published via the pub/sub system, the `handleUpdate` function in `MessageBubbleInner` SHALL NOT skip the append when content is identical to the previous chunk. The dedup check must be bypassed when `data?.streaming` is truthy.
 
