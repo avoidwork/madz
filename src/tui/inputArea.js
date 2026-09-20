@@ -50,7 +50,8 @@ const InputArea = forwardRef(function InputArea(
 	}, [pickerOpen]);
 
 	// Open the picker when the input contains an `@` token with content after it.
-	// The token is bounded by whitespace (unquoted) or quotes (quoted).
+	// Once open, keep it open as long as the `@` remains — closing only when
+	// the `@` is erased, the user makes a selection, or presses Escape.
 	/* node:coverage disable */
 	useEffect(() => {
 		const lastAt = inputText.lastIndexOf("@");
@@ -58,7 +59,12 @@ const InputArea = forwardRef(function InputArea(
 			setPickerOpen(false);
 			return;
 		}
-		// Find the token end: whitespace (unquoted) or quote.
+		// Already open — keep it open while the `@` remains.
+		if (pickerOpenRef.current) {
+			return;
+		}
+		// Initial open: require `@` followed by content.
+		// The token is bounded by whitespace (unquoted) or quotes (quoted).
 		let end = lastAt + 1;
 		let quoted = false;
 		while (end < inputText.length) {
@@ -74,8 +80,7 @@ const InputArea = forwardRef(function InputArea(
 			end++;
 		}
 		const token = inputText.slice(lastAt, end);
-		const hasContent = token.length > 1;
-		setPickerOpen(hasContent);
+		setPickerOpen(token.length > 1);
 	}, [inputText]);
 	/* node:coverage enable */
 
@@ -188,25 +193,30 @@ const InputArea = forwardRef(function InputArea(
 					quote: quoteIndex >= 0 ? QUOTES[quoteIndex] : "",
 				})
 			: null,
-		// InputPanel in normal mode and during onboarding
-		React.createElement(
-			Box,
-			{
-				key: "input-wrapper",
-				flexDirection: "row",
-				paddingX: 1,
-				paddingY: 0,
-			},
-			React.createElement(InputPanel, {
-				key: focus ? "input-focused" : "input-unfocused",
-				value: inputText,
-				onChange: setInputText,
-				onSubmit: handleSubmit,
-				onFocus,
-				onBlur,
-				focus: focus && !pickerOpen,
-			}),
-		),
+		// InputPanel in normal mode and during onboarding.
+		// Hidden while the picker is open so it remounts fresh on close —
+		// ink-text-input initializes its cursor to the current input length
+		// on mount, which avoids a stale cursor position.
+		!pickerOpen
+			? React.createElement(
+					Box,
+					{
+						key: "input-wrapper",
+						flexDirection: "row",
+						paddingX: 1,
+						paddingY: 0,
+					},
+					React.createElement(InputPanel, {
+						key: focus ? "input-focused" : "input-unfocused",
+						value: inputText,
+						onChange: setInputText,
+						onSubmit: handleSubmit,
+						onFocus,
+						onBlur,
+						focus,
+					}),
+				)
+			: null,
 		// FilePicker below the input when open — it owns the input while open.
 		pickerOpen
 			? React.createElement(FilePicker, {
