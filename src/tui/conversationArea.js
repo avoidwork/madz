@@ -73,7 +73,6 @@ const ConversationArea = forwardRef(function ConversationArea(
 	const abortControllerRef = useRef(null);
 	const isStreamingRef = useRef(false);
 	const dispatchPromiseRef = useRef(null);
-	const autoContinueCountRef = useRef(0);
 	const streamingMsgIdRef = useRef(null);
 	const tokenCacheRef = useRef({ content: "", tokens: 0 });
 	const contextUpdateTimerRef = useRef(null);
@@ -327,21 +326,6 @@ const ConversationArea = forwardRef(function ConversationArea(
 				const segments = msgData?.segments || [];
 
 				if (shouldAutoContinue(segments)) {
-					if (autoContinueCountRef.current >= (config?.agent?.autoContinueLimit ?? 1000)) {
-						onStatusChange?.("Model appears stuck — starting fresh.");
-						messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
-							streaming: false,
-						});
-						autoContinueCountRef.current = 0;
-						addMessage({
-							role: "system",
-							content: `I've tried to continue ${config?.agent?.autoContinueLimit ?? 1000} times with no text output. The model may be stuck in a reasoning loop. Please try a new conversation or rephrase your request.`,
-						});
-						return;
-					}
-
-					onStatusChange?.("Continuing...");
-					autoContinueCountRef.current++;
 					// Finalize the reasoning bubble so its timer stops, then dispatch
 					// a silent continue that streams into a fresh assistant bubble.
 					finalizeStreaming(

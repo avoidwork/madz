@@ -18,13 +18,6 @@ The system SHALL detect when a turn ends with reasoning present but no message c
 - **WHEN** the silent continue produces a response
 - **THEN** the response streams into a new assistant bubble rather than appending to the existing reasoning bubble
 
-### Requirement: Reasoning-only continue SHALL be bounded by the auto-continue limit
-The system SHALL cap the number of silent continue attempts using the `agent.autoContinueLimit` config value (default 1000).
-
-#### Scenario: Limit reached stops the loop
-- **WHEN** the number of silent continue attempts reaches `agent.autoContinueLimit`
-- **THEN** the system stops auto-continuing and emits the "Model appears stuck" message
-
 ### Requirement: Reasoning-only detection SHALL require reasoning present
 The system SHALL only dispatch a silent continue when reasoning content is present.
 
