@@ -8,7 +8,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert";
 import { deriveFilter, replaceToken } from "../../../src/tui/filePicker.js";
 
-describe("deriveFilter — cursor-aware filter derivation", () => {
+describe("deriveFilter — whitespace-bounded token derivation", () => {
 	it("derives filter from unquoted token bounded by whitespace", () => {
 		const result = deriveFilter("read @src/config/loader.js", 10);
 		assert.strictEqual(result.active, true);
@@ -16,16 +16,27 @@ describe("deriveFilter — cursor-aware filter derivation", () => {
 		assert.strictEqual(result.tokenStart, 5);
 	});
 
-	it("derives filter from quoted token where spaces are part of the path", () => {
-		const result = deriveFilter('"@foo bar"', 6);
+	it("derives filter when @ is mid-string with a space on either side", () => {
+		const result = deriveFilter("foo @bar baz", 8);
 		assert.strictEqual(result.active, true);
-		assert.strictEqual(result.filter, "foo");
+		assert.strictEqual(result.filter, "bar");
+		assert.strictEqual(result.tokenStart, 4);
+		assert.strictEqual(result.tokenEnd, 8);
 	});
 
-	it("derives filter mid-quoted-token", () => {
-		const result = deriveFilter('"@foo bar"', 8);
-		assert.strictEqual(result.active, true);
-		assert.strictEqual(result.filter, "foo ba");
+	it("ignores the first space and anything after it when unquoted", () => {
+		// Typing after the space: the token is bounded by the space, so the
+		// filter is empty and the picker is inactive.
+		const result = deriveFilter("foo @bar baz", 9);
+		assert.strictEqual(result.active, false);
+		assert.strictEqual(result.filter, "");
+	});
+
+	it("keeps the filter growing as the user types inside the token", () => {
+		const first = deriveFilter("foo @bar baz", 8);
+		const second = deriveFilter("foo @barx baz", 9);
+		assert.strictEqual(first.filter, "bar");
+		assert.strictEqual(second.filter, "barx");
 	});
 
 	it("is inactive when there is no @ token", () => {
@@ -48,24 +59,6 @@ describe("deriveFilter — cursor-aware filter derivation", () => {
 		const result = deriveFilter("@", 1);
 		assert.strictEqual(result.active, true);
 		assert.strictEqual(result.filter, "");
-	});
-
-	it("is inactive for a quoted @ with nothing to filter by", () => {
-		const result = deriveFilter('"@"', 2);
-		assert.strictEqual(result.active, false);
-		assert.strictEqual(result.filter, "");
-	});
-
-	it("is inactive for a quoted @ with only whitespace to filter by", () => {
-		const result = deriveFilter('"@ "', 3);
-		assert.strictEqual(result.active, false);
-		assert.strictEqual(result.filter, "");
-	});
-
-	it("preserves spaces within a quoted token (trimmed at edges)", () => {
-		const result = deriveFilter('"@foo bar"', 9);
-		assert.strictEqual(result.active, true);
-		assert.strictEqual(result.filter, "foo bar");
 	});
 
 	it("treats glob metacharacters literally", () => {
@@ -99,6 +92,11 @@ describe("replaceToken — @ token replacement", () => {
 			"src/config/loader.js",
 		);
 		assert.strictEqual(result, "read src/config/loader.js and fix");
+	});
+
+	it("quotes a selected path with spaces when inserted mid-string", () => {
+		const result = replaceToken("foo @bar baz", 4, 8, "my file.txt");
+		assert.strictEqual(result, 'foo "my file.txt" baz');
 	});
 });
 

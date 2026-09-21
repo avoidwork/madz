@@ -37,9 +37,9 @@ function FileIndicator({ isSelected }) {
 
 /**
  * Derive the autocomplete filter from the token at the cursor.
- * A token is bounded by whitespace (unquoted) or quotes (quoted).
- * Returns { filter, tokenStart, tokenEnd, active } where active is true
- * only when the cursor is inside an `@` token.
+ * A token is bounded by whitespace on either side. The token must start with
+ * `@` and the cursor must be after the `@` for the picker to be active.
+ * Returns { filter, tokenStart, tokenEnd, active }.
  * @param {string} value - The full input text
  * @param {number} cursor - The cursor position
  * @returns {{filter: string, tokenStart: number, tokenEnd: number, active: boolean}}
@@ -47,64 +47,27 @@ function FileIndicator({ isSelected }) {
 export function deriveFilter(value, cursor) {
 	const pos = Math.max(0, Math.min(cursor, value.length));
 
-	// Determine whether the cursor is inside a quoted region by scanning
-	// from the start. Quotes contain the path, so spaces within them are
-	// part of the token rather than a boundary.
-	let inQuote = false;
-	for (let i = 0; i < pos; i++) {
-		if (value[i] === '"') inQuote = !inQuote;
-	}
-
-	// Walk back to find the token start.
+	// Walk back to find the start of the whitespace-delimited token.
 	let start = pos;
-	while (start > 0) {
-		const ch = value[start - 1];
-		if (ch === '"') {
-			start--;
-			break;
-		}
-		if (!inQuote && /\s/.test(ch)) {
-			break;
-		}
-		start--;
-	}
+	while (start > 0 && !/\s/.test(value[start - 1])) start--;
 
-	// If the region begins with a quote, the token starts at the `@` after it.
-	if (value[start] === '"') {
-		start++;
-	}
-
-	// Walk forward to find the token end.
+	// Walk forward to find the end of the token.
 	let end = pos;
-	while (end < value.length) {
-		const ch = value[end];
-		if (ch === '"') {
-			break;
-		}
-		if (!inQuote && /\s/.test(ch)) {
-			break;
-		}
-		end++;
-	}
+	while (end < value.length && !/\s/.test(value[end])) end++;
 
-	// The token must start with `@` and the cursor must be after it.
 	const token = value.slice(start, end);
 	if (!token.startsWith("@") || pos <= start) {
 		return { filter: "", tokenStart: start, tokenEnd: end, active: false };
 	}
 
-	const filter = value.slice(start + 1, pos).trim();
-	// A quoted `@` with nothing to filter by is invalid — there's no path to
-	// match, so don't open the picker.
-	if (filter === "" && start > 0 && value[start - 1] === '"') {
-		return { filter: "", tokenStart: start, tokenEnd: end, active: false };
-	}
+	const filter = value.slice(start + 1, pos);
 	return { filter, tokenStart: start, tokenEnd: end, active: true };
 }
 
 /**
  * Replace the `@` token (tokenStart..tokenEnd) with the full selected path.
- * Wraps the path in quotes if it contains whitespace.
+ * Wraps the path in quotes if it contains whitespace, so a file with spaces
+ * is sent to the input panel as a single quoted token.
  * @param {string} value - The full input text
  * @param {number} tokenStart - Start index of the token
  * @param {number} tokenEnd - End index of the token
