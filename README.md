@@ -1,6 +1,6 @@
 # Madz
 
-**A security-first, self-contained autonomous coding agent — with a soul.** | [denkerne.ai](https://denkerne.ai)
+**A security-first, self-contained autonomous coding agent — with a cinematic soul.** | [denkerne.ai](https://denkerne.ai)
 
 [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD--3--Clause-blue.svg)](LICENSE)
 [![Node.js >= 24](https://img.shields.io/badge/node-%3E%3D24-brightgreen)](https://nodejs.org)
