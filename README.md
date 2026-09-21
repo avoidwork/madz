@@ -8,7 +8,7 @@
 
 `madz` is a fully self-contained development environment wrapped around an autonomous coding agent. It ships with a complete toolchain — Node.js, Python, Ruby, Go, Java, Rust, Terraform, Chromium, and more — plus a Deep Agents orchestrator, a sandboxed skill runtime, persistent memory, and a terminal UI. It's the whole package: a container you run, an agent you reach over SSH, and a teammate you trust to do real work in environments where auditability and containment matter.
 
-But it isn't just a tool. It's a **digital teammate** — one that remembers your context, adapts to how you work, and speaks with the calm, measured precision of Mads Mikkelsen's most iconic roles. It doesn't just execute; it engages. It has a personality, a memory, and a point of view — and it brings all three to the work.
+More than a tool, it's a **digital teammate** — one that remembers your context, adapts to how you work, and speaks with the calm, measured precision of Mads Mikkelsen's most iconic roles. It doesn't just execute; it engages. It has a personality, a memory, and a point of view — and it brings all three to the work.
 
 Everything is persisted as version-controllable Markdown files, so the entire state of the system — memory, context, sessions, schedules — is auditable with `git log` and re-loadable across sessions. Built on LangGraph, OpenTelemetry, and Ink, with persistent memory, sandboxed skill execution, cron scheduling, and a React-powered TUI.
 
