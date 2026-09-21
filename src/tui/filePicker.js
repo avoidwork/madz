@@ -155,7 +155,10 @@ export function FilePicker({ value, onChange, onClose, cwd }) {
 		};
 	}, [filter]);
 
-	const sorted = useMemo(() => [...files].sort((a, b) => a.localeCompare(b)), [files]);
+	const sorted = useMemo(
+		() => [...files].sort((a, b) => a.length - b.length || a.localeCompare(b)),
+		[files],
+	);
 	const clampedIndex = Math.min(focusIndex, Math.max(0, sorted.length - 1));
 
 	// Rotating window: show up to MAX_VISIBLE options around the selection.
