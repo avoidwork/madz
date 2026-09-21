@@ -61,10 +61,10 @@
     "oxlint": "^1.83.0"
   },
   "dependencies": {
-    "@langchain/langgraph": "^1.4.15",
+    "@langchain/langgraph": "^1.4.16",
     "@langchain/langgraph-checkpoint-sqlite": "^1.0.4",
     "@langchain/openai": "^1.5.13",
-    "@langchain/quickjs": "^0.6.3",
+    "@langchain/quickjs": "^0.6.4",
     "@microsoft/microsoft-graph-client": "^3.0.7",
     "@opentelemetry/api": "^1.9.1",
     "@opentelemetry/auto-instrumentations-node": "^0.80.0",
