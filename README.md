@@ -1,16 +1,20 @@
 # Madz
 
-**A personality-driven AI harness channeling Mads Mikkelsen's cinematic soul.** | [denkerne.ai](https://denkerne.ai)
+**A security-first, self-contained autonomous coding agent.** | [denkerne.ai](https://denkerne.ai)
 
 [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD--3--Clause-blue.svg)](LICENSE)
 [![Node.js >= 24](https://img.shields.io/badge/node-%3E%3D24-brightgreen)](https://nodejs.org)
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen)](#testing)
 
-`madz` is a Node.js AI harness that combines a terminal-based UI with structured skill execution and a distinctive personality. Drawn from Mads Mikkelsen's most iconic roles, it speaks with calm, precision, and quiet intensity — solving problems with style, remembering your context, safely running your skills, and automating the mundane. Everything is persisted as version-controllable Markdown files, making it easy to audit with `git log` and re-load across sessions. Built on LangGraph, OpenTelemetry, and Ink — with persistent memory, sandboxed skill execution, cron scheduling, and a React-powered TUI.
+`madz` is a fully self-contained development environment wrapped around an autonomous coding agent. It ships with a complete toolchain — Node.js, Python, Ruby, Go, Java, Rust, Terraform, Chromium, and more — plus a Deep Agents orchestrator, a sandboxed skill runtime, persistent memory, and a terminal UI. It is designed to be dropped into a container, reached over SSH, and trusted to do real work in environments where auditability and containment matter.
+
+Everything is persisted as version-controllable Markdown files, so the entire state of the system — memory, context, sessions, schedules — is auditable with `git log` and re-loadable across sessions. Built on LangGraph, OpenTelemetry, and Ink, with persistent memory, sandboxed skill execution, cron scheduling, and a React-powered TUI.
 
 ## Table of Contents
 
-- [Overview](#overview)
+- [Why Madz](#why-madz)
+- [Use Cases](#use-cases)
+- [How It Works](#how-it-works)
 - [Quick Start](#quick-start)
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
@@ -29,13 +33,13 @@
   - [LLM Provider Abstraction](#llm-provider-abstraction)
   - [LLM Response Caching](#llm-response-caching)
   - [Agent](#agent)
-  - [Context Window Management](#context-window-management)
   - [Built-in Tools](#built-in-tools)
   - [Skills Registry](#skills-registry)
   - [Permission Gating](#permission-gating)
   - [Memory System](#memory-system)
   - [Sandbox RTE](#sandbox-rte)
   - [Telemetry](#telemetry)
+  - [Vector Search](#vector-search)
   - [Cron Scheduler](#cron-scheduler)
 - [Directory Structure](#directory-structure)
 - [Logging](#logging)
@@ -44,15 +48,58 @@
 - [Development](#development)
   - [Extending Skills](#extending-skills)
   - [Environment Variables Usage](#environment-variables-usage)
+  - [LangChain Reasoning Patch](#langchain-reasoning-patch)
 - [License](#license)
 
-## Overview
+## Why Madz
 
-- 🧠 **Remembers everything** → Persistent memory across sessions
-- 🎭 **Personality with purpose** → Mads Mikkelsen's cinematic soul — quiet intensity, elegant precision
-- 🛠️ **Runs your custom skills** → Safely execute plugins & tools in a sandboxed runtime
-- ⏱️ **Automates your routines** → Declare cron jobs in YAML and run on autopilot
-- 💬 **Orchestrates conversations** → Multi-turn LLM chats with context-window management
+Most coding agents are a thin layer over a model. `madz` is the opposite — it is a **complete development environment** with an agent at its center. That distinction is the whole point.
+
+- **Self-contained.** The container ships a full toolchain: Node.js 26, Python 3, Ruby, Go, Java (OpenJDK 21), Rust, Terraform, tflint, Chromium, ripgrep, git, the GitHub CLI, and three package managers (npm, yarn, pnpm). It is a working dev box, not a chat window. You can SSH into it and do real work.
+- **Security-first.** Skills run in isolated child processes with time limits, memory caps, and allowlists for filesystem paths and outbound URLs. Blocked schemes include `file://`, `gopher://`, and `dict://`. Every tool is gated by explicit permissions. Sensitive fields are redacted from telemetry. This is layered containment by design — not a promise that the agent is harmless, but a guarantee that untrusted code is constrained.
+- **Autonomous.** A Deep Agents orchestrator routes work to a family of specialized subagents — code review, coding, debugging, security auditing, testing, performance, research, and more. It can read your codebase, find bugs, write fixes, run tests, and open PRs without you driving every step.
+- **Auditable.** The entire system state is Markdown. Memory, context, sessions, schedules, and skill definitions are all plain files under version control. `git log` is your audit trail — essential for regulated environments where you must prove what happened and why.
+- **Local-first.** Data stays in your environment. Nothing leaves the container unless you explicitly configure it to. Secrets are loaded only from environment variables and never logged or hardcoded.
+
+## Use Cases
+
+`madz` is built for environments where you need an agent that can be trusted with real work and held accountable for it.
+
+- **Enterprise development.** A self-contained dev environment with a full toolchain, semantic code search, and an orchestrator that can implement, test, and ship features. Onboard a new agent per project with a single container.
+- **Security operations.** A sandboxed runtime for running untrusted skills and tools, a dedicated `security-audit` subagent, dependency auditing, and a documented threat model. Run audits in an isolated container without exposing your host.
+- **Regulated & high-assurance environments.** Medical, financial, and government contexts where auditability, deterministic behavior, and data sovereignty are non-negotiable. Because every action is a version-controlled Markdown file, you can demonstrate exactly what the agent did and why.
+- **Personal automation.** A persistent assistant that remembers your context, runs your skills on a schedule, and automates the mundane — with the calm precision of a well-built tool.
+
+## How It Works
+
+```
+┌───────────────────────────────────────────────────────────────┐
+│  TUI (Ink / React)                     SSH (madz@host:2222)   │
+│        │                                        │             │
+│        └──────────────┬─────────────────────────┘             │
+│                       ▼                                       │
+│              ┌──────────────────────┐                         │
+│              │  Deep Agents         │                         │
+│              │  Orchestrator        │                         │
+│              │  (primary + 12       │                         │
+│              │   specialized        │                         │
+│              │   subagents)         │                         │
+│              └──────────┬───────────┘                         │
+│                         │                                     │
+│        ┌────────────────┼────────────────┐                    │
+│        ▼                ▼                ▼                    │
+│  ┌───────────┐   ┌────────────┐   ┌──────────────┐            │
+│  │ Sandboxed │   │ LLM        │   │ Built-in     │            │
+│  │ skills    │   │ provider   │   │ tools (30+)  │            │
+│  │ (isolated │   │ (OpenAI-   │   │ + deepagents │            │
+│  │  process) │   │  compat)   │   │  filesystem) │            │
+│  └───────────┘   └────────────┘   └──────────────┘            │
+│                                                               │
+│  Memory (Markdown) · Vector search (sqlite-vec) · Cron        │
+└───────────────────────────────────────────────────────────────┘
+```
+
+The orchestrator routes tasks to specialized subagents, each with a focused system prompt and a curated tool set. Tools are gated by permissions and sandbox constraints. Skills execute in isolated child processes. Everything is persisted as Markdown and indexed for semantic search.
 
 ## Quick Start
 
@@ -78,6 +125,8 @@ ssh -p 2222 madz@localhost
 The full `docker run` command with all optional variables is in the [Docker Environment Variables](#environment-variables) section below.
 
 **Volume strategy:** `memory/` is bind-mounted to the host for persistent markdown storage (context, profiles, sessions). The `memory/checkpoints/` subdirectory is mounted as a separate named volume (`madz-checkpoints`) so SQLite checkpoint data lives in a Docker-managed volume rather than on the host filesystem — no host-side directory needed, and the checkpoint DB survives container recreation without touching local files.
+
+**Skills:** The image ships with system skills in `.skills/` (e.g., the reflection skill). Project skills in `skills/` are bind-mounted by the user and are discovered at runtime. System skills shadow user skills of the same name.
 
 ### Prerequisites
 
@@ -561,6 +610,8 @@ All built-in tools are defined in `src/tools/` and registered as LangChain tools
 ### Skills Registry
 
 Auto-discovers Agent Skills spec-compliant skills from a `skills/` directory structure. Each skill directory contains a `SKILL.md` file with YAML frontmatter (`name` required, 1-64 lowercase alphanumeric + hyphens; `description` required, 1-1024 characters; optional `license`, `compatibility`, `metadata`). Supports optional `scripts/` subdirectory containing executable scripts (detected by extension: `.py`, `.sh`, `.js`, `.rb`, `.ts`). The `createSkill` tool lets agents create new skills programmatically — validating spec constraints before writing `SKILL.md` and optionally scaffolding a `scripts/` directory.
+
+System skills in `.skills/` are scanned first and shadow user skills of the same name in `skills/`.
 
 ### Permission Gating
 
