@@ -66,6 +66,11 @@ export function deriveFilter(value, cursor) {
 	}
 
 	const filter = value.slice(start + 1, pos).trim();
+	// A quoted `@` with nothing to filter by is invalid — there's no path to
+	// match, so don't open the picker.
+	if (filter === "" && start > 0 && value[start - 1] === '"') {
+		return { filter: "", tokenStart: start, tokenEnd: end, active: false };
+	}
 	return { filter, tokenStart: start, tokenEnd: end, active: true };
 }
 

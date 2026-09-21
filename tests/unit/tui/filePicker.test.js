@@ -50,6 +50,18 @@ describe("deriveFilter — cursor-aware filter derivation", () => {
 		assert.strictEqual(result.filter, "");
 	});
 
+	it("is inactive for a quoted @ with nothing to filter by", () => {
+		const result = deriveFilter('"@"', 2);
+		assert.strictEqual(result.active, false);
+		assert.strictEqual(result.filter, "");
+	});
+
+	it("is inactive for a quoted @ with only whitespace to filter by", () => {
+		const result = deriveFilter('"@ "', 3);
+		assert.strictEqual(result.active, false);
+		assert.strictEqual(result.filter, "");
+	});
+
 	it("preserves spaces within a quoted token (trimmed at edges)", () => {
 		const result = deriveFilter('"@foo bar"', 9);
 		assert.strictEqual(result.active, true);
