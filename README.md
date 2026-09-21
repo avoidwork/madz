@@ -6,7 +6,7 @@
 [![Node.js >= 24](https://img.shields.io/badge/node-%3E%3D24-brightgreen)](https://nodejs.org)
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen)](#testing)
 
-`madz` is a fully self-contained development environment wrapped around an autonomous coding agent. It ships with a complete toolchain — Node.js, Python, Ruby, Go, Java, Rust, Terraform, Chromium, and more — plus a Deep Agents orchestrator, a sandboxed skill runtime, persistent memory, and a terminal UI. It is designed to be dropped into a container, reached over SSH, and trusted to do real work in environments where auditability and containment matter.
+`madz` is a fully self-contained development environment wrapped around an autonomous coding agent. It ships with a complete toolchain — Node.js, Python, Ruby, Go, Java, Rust, Terraform, Chromium, and more — plus a Deep Agents orchestrator, a sandboxed skill runtime, persistent memory, and a terminal UI. It's the whole package: a container you run, an agent you reach over SSH, and a teammate you trust to do real work in environments where auditability and containment matter.
 
 But it isn't just a tool. It's a **digital teammate** — one that remembers your context, adapts to how you work, and speaks with the calm, measured precision of Mads Mikkelsen's most iconic roles. It doesn't just execute; it engages. It has a personality, a memory, and a point of view — and it brings all three to the work.
 
@@ -85,7 +85,7 @@ Most coding agents are a thin layer over a model. `madz` is the opposite — it 
 
 `madz` is built for environments where you need an agent that can be trusted with real work and held accountable for it.
 
-- **Enterprise development.** A self-contained dev environment with a full toolchain, semantic code search, and an orchestrator that can implement, test, and ship features. Onboard a new agent per project with a single container.
+- **Enterprise development.** A self-contained dev environment with a full toolchain, semantic code search, and an orchestrator that can implement, test, and ship features. Spin up one `madz` per project and you've got a dedicated teammate with its own context and memory.
 - **Security operations.** A sandboxed runtime for running untrusted skills and tools, a dedicated `security-audit` subagent, dependency auditing, and a documented threat model. Run audits in an isolated container without exposing your host.
 - **Regulated & high-assurance environments.** Medical, financial, and government contexts where auditability, deterministic behavior, and data sovereignty are non-negotiable. Because every action is a version-controlled Markdown file, you can demonstrate exactly what the agent did and why.
 - **Personal automation.** A persistent teammate that remembers your context, runs your skills on a schedule, and automates the mundane — with the calm precision of a well-built tool and the dry wit of someone who's been at this a while.
