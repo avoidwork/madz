@@ -230,6 +230,7 @@ Once inside the interactive terminal, use these commands:
 | Command | Action |
 |---------|--------|
 | `↑ / ↓` | Scroll conversation history |
+| `@` | Open the file picker (type to filter paths, `Enter` to select) |
 | `/help` | List available commands |
 | `/quit` | Exit the application |
 | `/exit` | Exit the application |

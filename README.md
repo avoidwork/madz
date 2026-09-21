@@ -182,6 +182,7 @@ node index.js --mode interactive --session abc123
 | Key                          | Action                               |
 | ---------------------------- | ------------------------------------ |
 | `↑/↓`                        | Scroll conversation history          |
+| `@`                          | Open the file picker (type to filter paths, `Enter` to select) |
 | `/help`                      | Show available commands              |
 | `/quit`                      | Exit the application                   |
 | `/provider set <name>`     | Switch LLM provider                  |
