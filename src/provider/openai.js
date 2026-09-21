@@ -4,6 +4,38 @@ import { calculateConversationTokens } from "../tui/contextTokens.js";
 import { createTokenBudget } from "./tokenBudget.js";
 import { logger } from "../shared/logger.js";
 
+/** Default retry delay (ms) when a 429 carries no `retry-after` hint. */
+export const DEFAULT_RETRY_AFTER_MS = 60_000;
+
+/** Number of dispatch-level retries on a 429 when the token budget is enabled. */
+const RATE_LIMIT_RETRIES = 1;
+
+/**
+ * Resolve the retry delay for a rate-limit error.
+ * Prefers the `retry-after` header (seconds or HTTP-date) when present;
+ * otherwise returns the supplied default.
+ * @param {Error} err - The rate-limit error
+ * @param {number} defaultMs - Fallback delay in milliseconds
+ * @returns {number} Delay in milliseconds
+ */
+export function getRetryDelayMs(err, defaultMs) {
+	const header =
+		err?.headers?.["retry-after"] ??
+		err?.headers?.["Retry-After"] ??
+		err?.response?.headers?.["retry-after"] ??
+		err?.response?.headers?.["Retry-After"];
+	if (header !== undefined) {
+		const seconds = Number(header);
+		if (!Number.isNaN(seconds) && seconds >= 0) return seconds * 1000;
+		const date = Date.parse(header);
+		if (!Number.isNaN(date)) {
+			const delay = date - Date.now();
+			return delay > 0 ? delay : defaultMs;
+		}
+	}
+	return defaultMs;
+}
+
 /**
  * Detect a rate-limit (429) error from an LLM provider.
  * @param {Error} err - The caught error
@@ -107,17 +139,30 @@ export function createChatModel(config) {
 				const estimatedCost = await estimateRequestCost(normalizeMessages(messages), config);
 				await budget.waitForCapacity(estimatedCost);
 				budget.consume(estimatedCost);
-				try {
-					return await method.apply(this, args);
-				} catch (err) {
-					if (isRateLimitError(err) && budget.current() > maxTokensMinute) {
-						logger.warn(
-							{ tokens: budget.current(), maxTokensMinute },
-							"[provider] Rate-limit error attributed to exceeded token budget",
-						);
+				let lastError;
+				for (let attempt = 0; attempt <= RATE_LIMIT_RETRIES; attempt++) {
+					try {
+						return await method.apply(this, args);
+					} catch (err) {
+						lastError = err;
+						if (isRateLimitError(err) && budget.current() > maxTokensMinute) {
+							logger.warn(
+								{ tokens: budget.current(), maxTokensMinute },
+								"[provider] Rate-limit error attributed to exceeded token budget",
+							);
+						}
+						// Retry a rate-limit error once when the token budget is enabled,
+						// honoring `retry-after` or defaulting to 60s.
+						if (attempt < RATE_LIMIT_RETRIES && isRateLimitError(err)) {
+							const delay = getRetryDelayMs(err, DEFAULT_RETRY_AFTER_MS);
+							logger.warn({ delayMs: delay }, "[provider] Rate-limit hit; retrying after delay");
+							await new Promise((resolve) => setTimeout(resolve, delay));
+							continue;
+						}
+						throw err;
 					}
-					throw err;
 				}
+				throw lastError;
 			};
 
 		model.invoke = wrapDispatch(model.invoke);
