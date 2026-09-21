@@ -248,15 +248,19 @@ export function FilePicker({ value, onChange, onClose, cwd }) {
 		),
 		!loaded
 			? React.createElement(Text, { color: "gray" }, " Loading files...")
-			: visible.map((file, i) => {
-					const isSelected = windowStart + i === clampedIndex;
-					return React.createElement(
-						Text,
-						{ key: file, color: isSelected ? "cyan" : undefined },
-						isSelected ? "▸ " : "  ",
-						file,
-					);
-				}),
+			: React.createElement(
+					Box,
+					{ width: "100%", backgroundColor: "#0d0d0d" },
+					visible.map((file, i) => {
+						const isSelected = windowStart + i === clampedIndex;
+						return React.createElement(
+							Text,
+							{ key: file, color: isSelected ? "cyan" : undefined },
+							isSelected ? "▸ " : "  ",
+							file,
+						);
+					}),
+				),
 	);
 }
 /* node:coverage enable */
