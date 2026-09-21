@@ -177,53 +177,63 @@ shutdownTelemetry()
 
 ## Skill Registry Discovery & Validation
 
-**Entry:** `index.js` → `registry.discover("skills/")`
+**Entry:** `index.js` → `registry.discover()` (defaults to `sandbox.skillScanPaths` from config)
 
 ```
-registry.discover(skillsDir = "skills/")
-├── discovered = discoverSkills(skillsDir)
-│   └── discoverSkills(fullDir):
-│       ├── entries = readdirSync(fullDir)
-│       └── for each entry name:
-│           ├── stat → skip if not directory
-│           └── try SKILL.md (YAML frontmatter: name, description, license, compatibility, metadata):
-│           ├── if metadata found:
-│           │   ├── metadata._directory = skillPath
-│           │   └── if scripts/ dir exists: metadata.scripts = scriptsDir
-│           └── push { path: skillPath, name, metadata }
+registry.discover(scope = defaultScope, options = {})
+├── defaultScope = config.sandbox.skillScanPaths (array of directories)
+├── discovered = discoverSkills(scope, options)
+│   └── discoverSkills(scope, options):
+│       ├── for each scopePath in scope:
+│       │   ├── fullScope = resolve(cwd, scopePath)
+│       │   ├── if !exists(fullScope) → continue
+│       │   └── findSkillFiles(fullScope) → recursively scan for SKILL.md
+│       │       ├── shouldSkip(name): dotfiles, node_modules, .git (but NOT .agents)
+│       │       ├── for each dir with SKILL.md:
+│       │       │   ├── extractFrontmatter(content) → { frontmatter, body }
+│       │       │   │   └── lenientYamlParse fallback for unquoted colons
+│       │       │   ├── skip if no frontmatter or missing name/description
+│       │       │   ├── inject agent from config if not in metadata (getAgentForSkill)
+│       │       │   ├── metadata._path = skillMdPath, metadata._directory = fullPath
+│       │       │   └── if scripts/ dir exists: metadata.scripts = scriptsDir
+│       │       └── push { path, name, metadata }
+│       └── dedupe by name (seenNames Map):
+│           ├── system skills (.skills/) shadow user skills (skills/)
+│           └── first occurrence wins unless higher-priority shadow
 ├── for each skill in discovered:
-│   ├── { valid, errors } = validateSkillSchema(skill.metadata)
-│   │   └── validateSkillSchema(metadata):
-│   │       ├── errors = []
-│   │       └── for each field in SkillMetadataSchema:
-│   │           └── try schema.parse(metadata) → catch → { valid: false, errors }
-│   └── if valid:
-│       │   #skills.set(name, { ...skill, validated: true, disabled })
-│       └── else:
-│           └── #errors.push({ name, errors })
+│   ├── { warnings } = validateSkillSchema(skill.metadata, dirName)
+│   ├── entry = { path, name, metadata, validated: true, errors: [], warnings, disabled }
+│   ├── if metadata._path → #bodyPaths.set(name, metadata._path)
+│   └── #skills.set(name, entry)
 │
-└── return results: [{ name, errors[] }] for each discovered skill
+└── return results: [{ name, errors[], warnings[] }] for each discovered skill
 ```
+
+**Registry API:** `list()` → `string[]` of names; `has(name)` → boolean; `getCatalog()` → `[{ name, description, location }]` (tier 1 progressive disclosure); `getSkillBody(name)` → full SKILL.md body (tier 2); `register(name, metadata)` → `{ valid, errors, warnings }`.
 
 ## Tool Configuration Building
 
 **Entry:** `index.js` → `buildToolConfig(options)`
 
 ```
-buildToolConfig({ permissions, allowedPaths, maxReadSize, registry, safety, timeout, memoryLimit })
+buildToolConfig({ permissions, allowedPaths, maxReadSize, registry, safety, timeout, memoryLimit, sessionsDir, contextDir, ephemeralTtlDays, ephemeralMaxEntries, config })
 ├── enabledSet = new Set(permissions)
-├── runtimeOptions = { allowedPaths, maxReadSize, registry, safety, timeout, memoryLimit }
+├── runtimeOptions = { allowedPaths, maxReadSize, registry, safety, timeout, memoryLimit, sessionsDir, contextDir, ephemeralTtlDays, ephemeralMaxEntries,
+│   ├── openaiApiKey: config.providers.openai.credentials.apiKey
+│   ├── falApiKey: config.providers.fal.credentials.apiKey
+│   └── search*: resolved search backend configs (exa, firecrawl, tavily, parallel, searxng, bing, custom)
 ├── for each [toolName, requiredPerms] in TOOL_PERMISSIONS:
 │   ├── hasAllPerms = requiredPerms.every(perm => enabledSet.has(perm))
 │   ├── switch toolName:
-│   │   ├── clarify | code → always create (no perms needed)
-│   │   ├── searchWeb | extractWeb → if hasAllPerms && hasSearchKey()
-│   │   ├── image_generate → if hasAllPerms && FAL_API_KEY
-│   │   ├── cronjob → if hasAllPerms
-│   │   ├── createSkill → if hasAllPerms (filesystem:write)
-│   │   ├── textToSpeech | tts → if OPENAI_API_KEY
-│   │   └── default: → if requiredPerms.length === 0 || hasAllPerms
-│   └── tools.push(TOOL_FACTORIES[toolName](runtimeOptions))
+│   │   ├── clarify | sampling | process → always create (no perms needed)
+│   │   ├── readFile | writeFile | patch | searchFiles | scanAgents | date | cronJob → if hasAllPerms
+│   │   ├── searchWeb | extractWeb → if hasAllPerms && hasAnySearchKey()
+│   │   │   └── hasAnySearchKey: exa || firecrawl || tavily || parallel || searxngUrl || bing || custom.url+apiKey
+│   │   ├── generateImage → if hasAllPerms && falApiKey
+│   │   ├── textToSpeech → if openaiApiKey
+│   │   ├── api | graphql | json | yaml | data | webhook → if hasAllPerms (factory invoked)
+│   │   └── default → if requiredPerms.length === 0 || hasAllPerms
+│   └── tools.push(TOOLS[toolName] or TOOLS[toolName]())
 └── return tools[]
 ```
 
@@ -318,13 +328,13 @@ callReactAgentStreaming(agent, initMessages, originalMessage, config, callback, 
 
 **Conditional caching rules:**
 
-| Condition | Cached? | Reason |
-|-----------|---------|--------|
-| No tools invoked | Yes | Pure LLM response, safe to reuse |
-| Tools invoked | No | State-changing operations must not be skipped |
-| Stream aborted | No | Partial response, incomplete |
-| Stream failed | No | Incomplete or error response |
-| No threadId | No | Cannot generate cache key |
+| Condition        | Cached? | Reason                                        |
+| ---------------- | ------- | --------------------------------------------- |
+| No tools invoked | Yes     | Pure LLM response, safe to reuse              |
+| Tools invoked    | No      | State-changing operations must not be skipped |
+| Stream aborted   | No      | Partial response, incomplete                  |
+| Stream failed    | No      | Incomplete or error response                  |
+| No threadId      | No      | Cannot generate cache key                     |
 
 ## Session Creation
 
@@ -408,32 +418,39 @@ createChatModel(config)
 ## Tool Permission Enforcement
 
 ```
-Permission gates per tool:
-├── code → always (no perms, no env vars)
-├── clarify → always (no perms, always registered)
-├── read_file, write_file, patch, search_files → "filesystem:read" or "filesystem:write"
-├── shell → "filesystem:exec", "process:spawn"
-├── process → "process:spawn"
-├── todo → "filesystem:read", "filesystem:write"
-├── memory → "filesystem:read", "filesystem:write"
-├── searchSession → "filesystem:read"
+Permission gates per tool (from TOOL_PERMISSIONS in src/tools/index.js):
+├── clarify → "filesystem:read", "filesystem:write" (but always registered)
+├── sampling → "filesystem:write" (but always registered)
+├── process → "filesystem:exec", "process:spawn" (but always registered)
+├── date → [] (always registered)
+├── cronJob → "network:outbound"
 ├── createSkill → "filesystem:write"
-├── searchWeb, extractWeb → "network:outbound" + hasSearchKey()
-├── image_generate → "network:outbound" + FAL_API_KEY
-├── cronjob → "network:outbound"
-├── textToSpeech → OPENAI_API_KEY
-├── sampling → always (no perms)
-├── date → always (no perms)
-└── tts → OPENAI_API_KEY
+├── generateImage → "network:outbound" + falApiKey
+├── readImage → "filesystem:read"
+├── memory → "filesystem:read", "filesystem:write"
+├── scanAgents → "filesystem:read"
+├── searchSession → "filesystem:read"
+├── textToSpeech → [] (requires openaiApiKey)
+├── searchWeb, extractWeb → "network:outbound" + hasAnySearchKey()
+├── docx, pptx, xlsx, pdf → "filesystem:read"
+├── reflectionSessions → "filesystem:read"
+├── email, calendar, namecom, api, graphql → "network:outbound"
+├── spreadsheet → "filesystem:read", "filesystem:write"
+├── generatePdf → "filesystem:read", "filesystem:write", "network:outbound"
+├── generatePptx → "filesystem:write"
+├── json, yaml, data, searchCode, getConfig → "filesystem:read"
+├── webhook → "filesystem:read", "filesystem:write"
+└── indexCode → "filesystem:read", "filesystem:write"
 ```
 
 ### Search Backend Detection
 
 ```
-hasSearchKey()
+hasAnySearchKey()
 └── return || (
-    EXA_API_KEY || FIRECRAWL_API_KEY || TAVILY_API_KEY ||
-    PARALLEL_API_KEY || SEARXNG_URL || BING_API_KEY || CUSTOM_SEARCH_URL
+    searchExaApiKey || searchFirecrawlApiKey || searchTavilyApiKey ||
+    searchParallelApiKey || searchSearxngUrl || searchBingApiKey ||
+    (searchCustomConfig?.url && searchCustomConfig?.apiKey !== undefined)
 )
 ```
 
@@ -532,7 +549,6 @@ Multi-engine search backends (searchWeb):
 ├── BING_API_KEY → bing search
 └── CUSTOM_SEARCH_URL → custom endpoint
 ```
-
 
 ## Deep Agents Orchestration Flow
 
@@ -678,6 +694,7 @@ scanAgents tool (requires filesystem:read permission):
 ```
 
 **Key features:**
+
 - Path validation against sandbox allowed paths
 - Configurable scan path (defaults to `config.cwd`)
 - File size limit enforcement via `maxReadSize`
@@ -723,7 +740,6 @@ runScheduledSkill(schedule, sandbox, sessionState)
 ```
 
 ## Deep Agents Log Management
-
 
 ### Text-to-Speech
 
@@ -907,7 +923,6 @@ setupAutoSchedule()
         └── writes `memory/schedules/reflection-daily.json`
 ```
 
-
 ## Memory Retention Cleanup
 
 **Entry:** `src/memory/retention.js` → `cleanRetainedMemory(), enforceMaxEntries()`
@@ -1006,20 +1021,20 @@ index.js
 │     ├── tools/session/index.js → node:fs/promises, memory/reader.js
 │     ├── tools/code.js → node:child_process, node:fs/promises, node:path, posix (setrlimit memory limit)
 │     ├── tools/todo.js → node:fs/promises — CRUD task management in memory/tools/todo.json
-│     ├── tools/clarify.js → node:fs/promises — zero-permission clarification questions
-│     ├── tools/skills.js → registry (list discovered skills, view SKILL.md content, createSkill — programmatic skill scaffolding with spec validation)
-│     ├── tools/image.js → FAL_API_KEY — image generation via fal.ai queue
-│     ├── tools/tts.js → OPENAI_API_KEY — text-to-speech via OpenAI TTS API
-│     ├── tools/cron.js → node:fs/promises — cron job CRUD operations
-│     └── tools/...
+│     ├── tools/clarify/index.js → node:fs/promises — zero-permission clarification questions
+│     ├── tools/skills/index.js → skills/validator.js, skills/registry.js, skills/types.js — createSkill tool (programmatic skill scaffolding with spec validation)
+│     ├── tools/image/index.js → FAL_API_KEY — image generation via fal.ai queue
+│     ├── tools/tts/index.js → OPENAI_API_KEY — text-to-speech via OpenAI TTS API
+│     ├── tools/cron/index.js → node:fs/promises — cron job CRUD operations
 │     └── tools/...
 ├── sandbox/pathResolver.js → node:path
 ├── sandbox/urlFilter.js → node:url
 ├── sandbox/runner.js → node:child_process, sandbox/timeoutHandler.js, envInjector.js, capability.js
-├── registry/registry.js → discoverer.js, validator.js
-├── registry/discoverer.js → js-yaml, node:fs, node:path
-├── registry/validator.js → types.js (zod schemas)
-├── registry/types.js → zod
+├── skills/registry.js → discoverer.js, validator.js — SkillRegistry (discover, list, getCatalog, getSkillBody, register)
+├── skills/discoverer.js → js-yaml, node:fs, node:path, skills/agentMapper.js — discoverSkills (multi-scope scan, system skills shadow user skills)
+├── skills/validator.js → types.js (zod schemas) — validateSkillSchema
+├── skills/types.js → zod — SkillMetadataSchema, PermissionSchema, DEFAULT_PERMS
+├── skills/agentMapper.js → config — getAgentForSkill (inject agent from config into skill metadata)
 ├── scheduler/scheduler.js → node:fs/promises — ScheduleManager CRUD class (register, list, pause, resume, runNow)
 ├── scheduler/cron.js → node:child_process, node:fs/promises, node:path — Cron object (isAvailable, add, remove)
 ├── scheduler/autoSchedule.js → node:fs — setupAutoSchedule() callback for reflection-daily cron

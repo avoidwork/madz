@@ -65,128 +65,237 @@ Node.js-based AI harness application using LangGraph for state machines and Open
 ├── index.js                    # Application entry point
 ├── package.json
 ├── config.yaml                 # Project configuration
-├── .oxlint.json                # oxlint configuration
+├── .oxlintrc.json              # oxlint configuration
 ├── .oxfmtrc.json               # oxfmt configuration
 ├── .oxfmtignore                # Files to ignore for formatting
 ├── .husky/                     # Husky git hooks directory
 │   └── pre-commit              # Pre-commit hook script
 ├── coverage.txt                # Coverage report output
 ├── src/
+│   ├── agent/                  # Deep-agents orchestration & backend routing
+│   │   ├── agentDefinitions.js
+│   │   ├── agentRegistry.js
+│   │   ├── contextBackend.js
+│   │   ├── coreBackend.js
+│   │   └── deepAgents.js
 │   ├── config/                 # Configuration loading and validation
+│   │   ├── config.js
 │   │   ├── loader.js
-│   │   └── schemas.js
+│   │   ├── patch.js
+│   │   └── schemas/            # Zod schema modules (per-section)
+│   │       ├── index.js
+│   │       ├── agent.js
+│   │       ├── image.js
+│   │       ├── lru.js
+│   │       ├── memory.js
+│   │       ├── persistence.js
+│   │       ├── providers.js
+│   │       ├── sandbox.js
+│   │       ├── schedules.js
+│   │       ├── skillAgentMap.js
+│   │       ├── subAgentsTemperature.js
+│   │       ├── telemetry.js
+│   │       ├── tui.js
+│   │       └── vector.js
 │   ├── memory/                 # Memory and conversation storage
-│   │   ├── reader.js
-│   │   ├── writer.js
 │   │   ├── context.js
-│   │   └── retention.js
-│   ├── skills/                 # Agent Skills spec discovery, validation & permissions
-│   │   ├── types.js
-│   │   ├── validator.js
-│   │   ├── registry.js
-│   │   ├── permissions.js
-│   │   ├── discoverer.js
-│   │   └── index.js
+│   │   ├── expireEphemeralMemories.js
+│   │   ├── gc.js
+│   │   ├── index.js
+│   │   ├── profile.js
+│   │   ├── prompts.js
+│   │   ├── reader.js
+│   │   ├── retention.js
+│   │   ├── tools.js
+│   │   └── writer.js
+│   ├── provider/               # LLM provider adapters
+│   │   └── openai.js
 │   ├── sandbox/                # Secure skill execution sandbox
-│   │   ├── runner.js
-│   │   ├── pathResolver.js
-│   │   ├── urlFilter.js
-│   │   ├── envInjector.js
 │   │   ├── capability.js
-│   │   └── timeoutHandler.js
-│   ├── scheduler/              # Cron-based task scheduling
-│   │   ├── parser.js
-│   │   ├── queue.js
+│   │   ├── envInjector.js
+│   │   ├── index.js
+│   │   ├── pathResolver.js
 │   │   ├── runner.js
-│   │   ├── logger.js
+│   │   ├── timeoutHandler.js
+│   │   └── urlFilter.js
+│   ├── scheduler/              # Cron-based task scheduling
+│   │   ├── cron.js
+│   │   ├── index.js
 │   │   └── scheduler.js
 │   ├── session/                # Session state management
+│   │   ├── checkpointer.js
 │   │   ├── factory.js
-│   │   ├── stateManager.js
-│   │   ├── window.js
+│   │   ├── index.js
 │   │   ├── loader.js
+│   │   ├── onboarding.js
 │   │   ├── saver.js
-│   │   └── shutdown.js
-│   ├── spreadsheet/            # Spreadsheet computation and analysis
-│   │   ├── csv.js
-│   │   ├── formulaParser.js
-│   │   ├── pivot.js
-│   │   ├── spreadsheet.js
-│   │   └── stats.js
+│   │   ├── shutdown.js
+│   │   ├── stateManager.js
+│   │   └── window.js
+│   ├── shared/                 # Cross-cutting shared modules
+│   │   └── logger.js
+│   ├── skills/                 # Agent Skills spec discovery, validation & permissions
+│   │   ├── agentMapper.js
+│   │   ├── discoverer.js
+│   │   ├── index.js
+│   │   ├── permissions.js
+│   │   ├── registry.js
+│   │   ├── types.js
+│   │   └── validator.js
+│   ├── stream/                 # Streaming response transformers
+│   │   └── transformers/
+│   │       ├── index.js
+│   │       └── turn.js
 │   ├── telemetry/              # OpenTelemetry observability
+│   │   ├── flusher.js
+│   │   ├── index.js
+│   │   ├── llmInstrumenter.js
+│   │   ├── metrics.js
 │   │   ├── provider.js
 │   │   ├── redaction.js
-│   │   ├── llmInstrumenter.js
-│   │   ├── skillInstrumenter.js
-│   │   ├── metrics.js
 │   │   ├── sampler.js
-│   │   └── flusher.js
-│   └── tui/                    # Terminal user interface (Ink)
-│       ├── app.js
-│       ├── inputPanel.js
-│       ├── conversationPanel.js
-│       ├── skillsPanel.js
-│       ├── memoryPanel.js
-│       ├── settingsPanel.js
-│       ├── commandParser.js
-│       ├── panels.js
-│       ├── messages.js
-│       ├── hooks.js
-│       └── components.js
+│   │   └── skillInstrumenter.js
+│   ├── tools/                  # LangChain tool factories (one dir per tool)
+│   │   ├── index.js            # TOOL_PERMISSIONS, TOOL_CLASSIFICATIONS, TOOLS, buildToolConfig
+│   │   ├── common.js
+│   │   ├── api/  calendar/  clarify/  code/  config/  cron/  data/  date/
+│   │   ├── dns/  email/  fileExtract/  graphql/  image/  json/  memory/
+│   │   ├── pdf/  pptx/  process/  reflection/  sampling/  scanAgents/
+│   │   ├── session/  skills/  spreadsheet/  tts/  web/  webhook/  yaml/
+│   │   └── (each dir exports index.js; some have extra modules e.g. code/searchCode.js,
+│   │        image/readImage.js, fileExtract/*.js, spreadsheet/*.js)
+│   ├── tui/                    # Terminal user interface (Ink)
+│   │   ├── app.js
+│   │   ├── banner.js
+│   │   ├── commandHelp.js
+│   │   ├── commandParser.js
+│   │   ├── contextTokens.js
+│   │   ├── conversationArea.js
+│   │   ├── conversationPanel.js
+│   │   ├── filePicker.js       # @ file-path autocomplete
+│   │   ├── hooks.js
+│   │   ├── index.js
+│   │   ├── inputArea.js
+│   │   ├── inputPanel.js
+│   │   ├── markdownText.js
+│   │   ├── memoryPanel.js
+│   │   ├── messageBubble.js
+│   │   ├── messageList.js
+│   │   ├── messages.js
+│   │   ├── onboardingPanel.js
+│   │   ├── panels.js
+│   │   ├── quotes.js
+│   │   ├── sessionsPanel.js
+│   │   ├── settingsPanel.js
+│   │   ├── skillsPanel.js
+│   │   └── statusBar.js
+│   ├── vector/                 # SQLite-backed vector store & indexing
+│   │   ├── chunker.js
+│   │   ├── embedder.js
+│   │   ├── indexer.js
+│   │   ├── indexerWorker.js
+│   │   └── store.js
+│   └── workspace/              # Workspace rules loading
+│       └── loadAgents.js
 ├── tests/
 │   ├── unit/                   # Unit tests mirroring src/ structure
+│   │   ├── agentDefinitions.test.js
+│   │   ├── agentRegistry.test.js
+│   │   ├── api.test.js
 │   │   ├── checkpointer.test.js
 │   │   ├── config.test.js
+│   │   ├── config_loader.test.js
+│   │   ├── config_persistence.test.js
 │   │   ├── context.test.js
+│   │   ├── contextBackend.test.js
 │   │   ├── conversationPanel.test.js
+│   │   ├── coreBackend.test.js
+│   │   ├── data.test.js
+│   │   ├── deepAgents.test.js
 │   │   ├── discoverer.test.js
-│   │   ├── filesystem.test.js
+│   │   ├── gc.test.js
+│   │   ├── graphql.test.js
+│   │   ├── json.test.js
+│   │   ├── logger.test.js
+│   │   ├── markdownText.test.js
 │   │   ├── memory.test.js
+│   │   ├── memory_expireEphemeral.test.js
+│   │   ├── memory_gc.test.js
+│   │   ├── memory_profile.test.js
+│   │   ├── memory_reader.test.js
 │   │   ├── onboarding.test.js
 │   │   ├── profile.test.js
+│   │   ├── prompts.test.js
 │   │   ├── provider.test.js
-│   │   ├── react_agent.test.js
 │   │   ├── reader.test.js
 │   │   ├── registry.test.js
 │   │   ├── sandbox.test.js
+│   │   ├── saver.test.js
 │   │   ├── scheduler.test.js
 │   │   ├── session.test.js
+│   │   ├── session_onboarding.test.js
+│   │   ├── shell.test.js
 │   │   ├── shutdown.test.js
 │   │   ├── skills.test.js
+│   │   ├── skills_discoverer.test.js
+│   │   ├── statusBar.test.js
+│   │   ├── streaming-context.test.js
 │   │   ├── telemetry.test.js
-│   │   ├── terminal.test.js
 │   │   ├── tool_index.test.js
 │   │   ├── tool_registration.test.js
 │   │   ├── tools.test.js
 │   │   ├── tools_clarify.test.js
-│   │   ├── tools_code.test.js
 │   │   ├── tools_cron.test.js
 │   │   ├── tools_date.test.js
 │   │   ├── tools_image.test.js
 │   │   ├── tools_memory.test.js
-│   │   ├── tools_moa.test.js
+│   │   ├── tools_orchestrator.test.js
+│   │   ├── tools_pdf_generate.test.js
+│   │   ├── tools_pptx.test.js
+│   │   ├── tools_reflection.test.js
 │   │   ├── tools_sampling.test.js
+│   │   ├── tools_scanAgents.test.js
 │   │   ├── tools_session_search.test.js
 │   │   ├── tools_tts.test.js
-│   │   ├── tools_vision.test.js
 │   │   ├── tools_web.test.js
-│   │   └── tui.test.js
-│   └── integration/            # Integration tests
-│       └── full-flow.test.js
+│   │   ├── tui.test.js
+│   │   ├── webhook.test.js
+│   │   ├── yaml.test.js
+│   │   ├── config/             # config/*.test.js (mutate, patch, providers, skillAgentMap)
+│   │   ├── fileExtract/        # fileExtract/*.test.js (docx, pdf, pptx, xlsx, zipExtractor)
+│   │   ├── scheduler/          # scheduler/cron.test.js
+│   │   ├── stream/transformers/# stream/transformers/turn.test.js
+│   │   ├── tools/              # tools/*.test.js (calendar, codeIndex, codeSearch, common,
+│   │   │                       #   data, email, fileExtract, getConfig, image, namecom,
+│   │   │                       #   pptx, process, spreadsheet)
+│   │   ├── tui/                # tui/*.test.js (app, banner, commandParser, contextTokens,
+│   │   │                       #   conversationArea, conversationPanel, filePicker, inputArea,
+│   │   │                       #   messageBubble, messageList, messages, onboardingPanel,
+│   │   │                       #   panels, statusBar)
+│   │   └── vector/             # vector/*.test.js (chunker, embedder, indexer, store)
+│   ├── integration/            # Integration tests
+│   │   ├── api.test.js
+│   │   ├── full-flow.test.js
+│   │   ├── syncEnv.test.js
+│   │   ├── webhook.test.js
+│   │   └── vector/full-flow.test.js
+│   ├── tui/                    # TUI-specific tests
+│   │   └── contextTokens.test.js
+│   └── fixtures/               # Test fixtures (pptx/, webhooks.json)
 └── memory/                     # Persistent memory storage
     └── schedules/              # Scheduled job output files
 ```
 
-Misc details: The `config.yaml` file is the single source of project configuration, loaded by `src/config/loader.js`. All subsystems wire into the entry point `index.js` at the project root.
+Misc details: The `config.yaml` file is the single source of project configuration, loaded by `src/config/loader.js`. All subsystems wire into the entry point `index.js` at the project root. The `src/tools/` directory follows a one-directory-per-tool convention, with `index.js` re-exporting each tool's factory and `src/tools/index.js` aggregating `TOOL_PERMISSIONS`, `TOOL_CLASSIFICATIONS`, `TOOLS`, and `buildToolConfig()`.
 
 ### 2.1 Quick Commands
 
-| Command               | Purpose                                        |
-|-----------------------|------------------------------------------------|
-| `npm run test`        | Run all tests                                  |
-| `npm run coverage`    | Generate coverage report to `coverage.txt`     |
-| `npm run fix`         | Auto-fix lint issues and format code           |
-| `npm run lint`        | Check lint and formatting (no auto-fix)        |
+| Command            | Purpose                                    |
+| ------------------ | ------------------------------------------ |
+| `npm run test`     | Run all tests                              |
+| `npm run coverage` | Generate coverage report to `coverage.txt` |
+| `npm run fix`      | Auto-fix lint issues and format code       |
+| `npm run lint`     | Check lint and formatting (no auto-fix)    |
 
 ---
 
@@ -218,10 +327,10 @@ Misc details: The `config.yaml` file is the single source of project configurati
 
 ```javascript
 class AppError extends Error {
-  constructor(message, code = 500) {
-    super(message);
-    this.code = code;
-  }
+	constructor(message, code = 500) {
+		super(message);
+		this.code = code;
+	}
 }
 ```
 
@@ -232,10 +341,8 @@ class AppError extends Error {
 
 ```javascript
 const [data, result] = await Promise.race([
-  longOperation(),
-  new Promise((_, reject) =>
-    setTimeout(() => reject(new TimeoutError()), TIMEOUT_MS)
-  ),
+	longOperation(),
+	new Promise((_, reject) => setTimeout(() => reject(new TimeoutError()), TIMEOUT_MS)),
 ]);
 ```
 
@@ -292,6 +399,7 @@ chore: pin all dependencies in package.json
 ### 5.2.1 Agent Workflow
 
 When auditing or modifying AGENTS.md (or any file):
+
 1. Create a feature branch: `git checkout -b docs/<short-desc>` (or `feat/`, `fix/`).
 2. Make changes and commit on the feature branch.
 3. Push the feature branch and open a PR with `gh pr create --base main`.
@@ -344,7 +452,7 @@ config.settings.auth.apiKey = "secret";
 
 // Right: replace the module entirely
 vi.mock("./config.js", () => ({
-  settings: { auth: { apiKey: "test-key" }, tools: { maxReadSize: 50 } },
+	settings: { auth: { apiKey: "test-key" }, tools: { maxReadSize: 50 } },
 }));
 ```
 

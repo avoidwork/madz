@@ -8,7 +8,9 @@ Call chains and component interactions for all primary code paths in the termina
 - [Banner Dismissal](#banner-dismissal)
 - [Chat Message Flow (Streaming)](#chat-message-flow-streaming)
 - [Command Parsing Flow](#command-parsing-flow)
-- [Keyboard Input (useInput, app.js:282)](#keyboard-input-useinput-appjs282)
+- [Skill Slash-Command Invocation](#skill-slash-command-invocation)
+- [File Picker (@ Autocomplete)](#file-picker--autocomplete)
+- [Keyboard Input (useInput, app.js:184)](#keyboard-input-useinput-appjs184)
 - [Conversation Panel Render](#conversation-panel-render)
 - [Panel Navigation (Tab Cycles)](#panel-navigation-tab-cycles)
 - [Input Panel](#input-panel)
@@ -119,71 +121,156 @@ Streaming re-renders: each `setMessages` call triggers a `ConversationPanel` re-
 ## Command Parsing Flow
 
 ```
-User enters ":command ...", presses Enter (app.js:294)
+User enters "/command ...", presses Enter (app.js:92 handleSubmit)
 └── handleSubmit(inputText)
     ├── parser.isCommand(trimmed) → true
-    └── handleCommand(trimmed)
+    └── area.handleCommand(trimmed)   (ConversationArea)
         ├── parser.parse(trimmed, context)
-        │   ├── trimmed.startsWith(":") → yes
+        │   ├── trimmed.startsWith("/") → yes
         │   ├── parts = trimmed.slice(1).trim().split(/\s+/)
         │   │   ├── commandName = parts[0] (e.g., "quit")
         │   │   └── args = parts.slice(1)
         │   ├── handler = #dispatch.get(commandName)
-        │   └── handler(args, context)
-        │       ├── action === "quit" → handleQuit() → process.exit(0)
-        │       ├── action === "unknown" → setStatusMessage(message)
-        │       ├── action === "provider" → setStatusMessage + optional addMessage
-        │       ├── action === "config" → setConfigValue(config, dotPath, value)
-        │       ├── action === "memory" → setStatusMessage or context action
-        │       ├── action === "schedule" → setStatusMessage or schedule action
-        │       └── action === "context" → setStatusMessage + addMessage
-        └── catch → setStatusMessage("Something went wrong")
+        │   │   └── if found → handler(args, context)
+        │   └── else if context._skillList.includes(commandName)
+        │       └── returns { action: "skill", subAction: "invoke", name, args }
+        │           └── [see Skill Slash-Command Invocation]
+        ├── switch result.action:
+        │   ├── "quit" → onQuit() → process.exit(0)
+        │   ├── "new" → onNewSession() → reset ConversationArea + InputArea
+        │   ├── "clear" → messageListRef.clear() + status
+        │   ├── "unknown" → onStatusChange(message)
+        │   ├── "view" → onViewChange(value) → switch to panel view
+        │   │   └── [see Panel Navigation (Tab Cycles)]
+        │   ├── "skill" → [see Skill Slash-Command Invocation]
+        │   └── default → addMessage({ role: "user" }) + optional system message
+        └── catch → addMessage({ role: "system", content: "Command error: ..." })
 ```
 
 ### Dispatch Table (CommandParser constructor)
 
-| Command     | Subcommands              | Effect                           |
-|-------------|--------------------------|----------------------------------|
-| `/quit`     | —                        | `process.exit(0)`                |
-| `/provider` | `set <name>`             | `sessionState.setProvider(name)` |
-| `/config`   | `set <path> <value>`     | `setConfigValue(config, path, v)`|
-| `/schedule` | `list`, `pause <n>`, `resume <n>`, `run-now <n>` | Schedule actions |
-| `/clear`    | —                        | Clear conversation messages      |
-| `/new`      | —                        | Start a fresh session            |
-| `/gc`       | `status`                 | Trigger V8 GC or show status     |
-| `/help`     | —                        | Available commands message       |
+| Command     | Subcommands                                      | Effect                            |
+| ----------- | ------------------------------------------------ | --------------------------------- |
+| `/quit`     | —                                                | `process.exit(0)`                 |
+| `/exit`     | —                                                | `process.exit(0)`                 |
+| `/provider` | `set <name>`                                     | `sessionState.setProvider(name)`  |
+| `/config`   | `set <path> <value>`                             | `setConfigValue(config, path, v)` |
+| `/schedule` | `list`, `pause <n>`, `resume <n>`, `run-now <n>` | Schedule actions                  |
+| `/clear`    | —                                                | Clear conversation messages       |
+| `/new`      | —                                                | Start a fresh session             |
+| `/gc`       | `status`                                         | Trigger V8 GC or show status      |
+| `/help`     | —                                                | Available commands message        |
+| `/sessions` | —                                                | View switch → `sessions` panel    |
+| `/memory`   | —                                                | View switch → `memory` panel      |
+| `/skills`   | —                                                | View switch → `skills` panel      |
+| `/settings` | —                                                | View switch → `settings` panel    |
+| `/<skill>`  | `[args]`                                         | Skill invocation (fallback)       |
 
-**Note:** `/memory` and `/context` commands are not in the CommandParser dispatch table — they are handled elsewhere in the TUI. The actual registered commands are: quit, provider, config, schedule, clear, new, gc, help.
+**Note:** `/sessions`, `/memory`, `/skills`, and `/settings` are registered as view-switching commands in the CommandParser constructor (loop over `[["sessions","sessions"],["memory","memory"],["skills","skills"],["settings","settings"]]`), each returning `{ action: "view", value }`. Skill names are NOT in the dispatch table — they fall through to the skill-registry check in `parse()`, which returns `{ action: "skill", subAction: "invoke", name, args }`.
 
 ---
 
-## Keyboard Input (useInput, app.js:282)
+## Skill Slash-Command Invocation
+
+**Entry:** `src/tui/conversationArea.js` → `handleCommand()` → `parser.parse()` fallback
+
+```
+User enters "/<skill-name> [args]", presses Enter
+└── parser.parse(trimmed, context)
+    ├── commandName not in #dispatch
+    ├── context._skillList.includes(commandName) → true
+    │   └── _skillList = registry.list() (array of registered skill names)
+    └── returns { action: "skill", subAction: "invoke", name: commandName, args }
+└── handleCommand() switch on result.action === "skill"
+    ├── skillPrompt = `Run the ${result.name} skill${args?.length ? " " + args.join(" ") : ""}`
+    │   └── Synthesizes the deepagents "Run the <skill> skill [args]" prompt
+    ├── await handleChat(skillPrompt, { silentUser: true })
+    │   ├── silentUser: the synthesized prompt is NOT rendered as a user message
+    │   └── dispatchProvider → deepagents skill system → streaming response renders normally
+    └── No user/system message added for the command itself
+```
+
+**Key behavior:**
+
+- Skill commands are routed through the **deepagents skill system** (not the sandbox `invokeSkill` path).
+- The synthesized prompt is silent — it stays out of the TUI message list, but the assistant's streaming response renders normally.
+- `/help` appends `Skills: /<name>, /<name>... (execute with /skillName [args])` when `_skillList` is non-empty.
+
+---
+
+## File Picker (@ Autocomplete)
+
+**Entry:** `src/tui/filePicker.js` → `FilePicker` component, wired in `src/tui/inputArea.js`
+
+```
+User types "@" followed by a path fragment in the input
+├── inputArea.js useEffect on [inputText]:
+│   ├── lastAt = inputText.lastIndexOf("@")
+│   ├── if lastAt === -1 → setPickerOpen(false)
+│   ├── if pickerOpenRef.current → keep open while "@" remains
+│   └── else → scan token (bounded by whitespace unquoted / quotes quoted)
+│       └── setPickerOpen(token.length > 1)  ← require "@" + content
+├── pickerOpen === true:
+│   ├── InputPanel unmounts (hidden) — FilePicker owns the keystrokes
+│   │   └── avoids focus conflict between ink-text-input and ink-select-input
+│   └── FilePicker renders below the input
+└── FilePicker:
+    ├── deriveFilter(value, cursor) → { filter, tokenStart, tokenEnd, active }
+    │   ├── active only when cursor is inside an "@" token
+    │   └── quoted "@" with empty filter → inactive (no path to match)
+    ├── useEffect: fast-glob("**/*", { cwd, ignore: [node_modules, .git, dist], onlyFiles, deep: 6 })
+    │   └── caches file list in filesRef, filters in JS on debounce (250ms)
+    ├── sorted = files.sort(by path length asc, then localeCompare)
+    ├── useInput (isActive: true):
+    │   ├── escape → onClose()
+    │   ├── return → handleSelect()
+    │   │   └── onChange(replaceToken(value, tokenStart, tokenEnd, selected))
+    │   │       └── wraps path in quotes if it contains whitespace
+    │   ├── up/down → focusIndex navigation (wraps)
+    │   ├── left/right → cursor movement
+    │   ├── backspace/delete → edit at cursor
+    │   └── printable → insert at cursor
+    └── Render: input text with cursor indicator + up to MAX_VISIBLE (3) matches
+        └── rotating window around the selection
+```
+
+**Key behavior:**
+
+- The picker opens when the input contains an `@` token with content after it, and stays open while the `@` remains.
+- While open, the FilePicker **owns the input** — `app.js` bails on all key handling when `inputAreaRef.current?.isPickerOpen?.()` is true (app.js:214).
+- On close, the InputPanel remounts fresh, re-initializing ink-text-input's cursor to the end of the current value.
+- Results are sorted by path length ascending (shortest first), then alphabetically.
+
+---
+
+## Keyboard Input (useInput, app.js:184)
 
 ```
 useInput((input, key))
+├── showOnboarding === true
+│   ├── key.return && !key.shift → processOnboardingInput(inputText)
+│   └── key.escape → handleQuit()
 ├── showBanner === true
-│   ├── key.escape
-│   │   └── handleQuit() → process.exit(0)
-│   └── key !== escape && input !== "\r"
-│       └── setShowBanner(false) → fall through to normal input
-└── showBanner === false
-    ├── key.escape → handleQuit() → process.exit(0)
-    ├── key.return && !key.shift
-    │   └── handleSubmit(inputText) → [see Chat Message Flow / Command Parsing Flow]
-    ├── key.upArrow && chatHistory.length > 0
-    │   ├── historyIndex === -1 → index = length - 1
-    │   ├── else → index = max(0, index - 1)
-    │   └── setHistoryIndex(newIndex), setInputText(chatHistory[newIndex])
-    ├── key.downArrow
-    │   ├── historyIndex === -1 → no-op
-    │   ├── historyIndex + 1 >= history.length → reset
-    │   │   └── setHistoryIndex(-1), setInputText("")
-    │   └── else → setHistoryIndex + 1), setInputText(chatHistory[nextIndex])
-    ├── key.backspace && inputText.length > 0
-    │   └── setInputText(prev.slice(0, -1))
-    └── input && input !== "\r"
-        └── setInputText(prev + input)
+│   ├── key.escape → handleQuit() → process.exit(0)
+│   └── else → setShowBanner(false) → fall through to normal input
+├── currentView !== PANELS.CONVERSATION
+│   └── return  ← defer all input to the active panel's own useInput({ isActive })
+└── currentView === PANELS.CONVERSATION
+    ├── inputAreaRef.current?.isPickerOpen?.() === true
+    │   └── return  ← file picker owns the input, don't steal keys
+    ├── key.tab / input === "\t" → setInputFocused(!prev)
+    ├── key.escape → interrupt() (debounced 500ms)
+    ├── inputFocused === true:
+    │   ├── key.upArrow → navigateHistory("up")
+    │   └── key.downArrow → navigateHistory("down")
+    └── inputFocused === false:
+        ├── key.upArrow → scrollBy(-1)
+        ├── key.downArrow → scrollBy(1)
+        ├── key.pageUp → scrollBy(-viewportHeight)
+        └── key.pageDown → scrollBy(viewportHeight)
 ```
+
+**Note:** Enter/Return is handled by the focused `InputPanel`/`FilePicker` component's own `useInput`, not at the app level. The app-level `useInput` only handles navigation, focus toggling, and interrupt.
 
 ---
 
@@ -241,13 +328,13 @@ areEqual(prevProps, nextProps):
 
 ## Panel Navigation (Tab Cycles)
 
-**Order:** `conversation` → `skills` → `memory` → `settings` → `conversation` ...
+**Order:** `conversation` → `skills` → `memory` → `settings` → `sessions` → `conversation` ...
 
 **Note:** `OnboardingPanel` is rendered conditionally (when `showOnboarding === true`) and is NOT part of the tab cycling order. It runs its own internal state machine (INIT → ATTRACTOR → COLLECT → SAVE → TRANSCEND) before transitioning to the main app.
 
 ```
 nextPanel(current):
-└── order = ["conversation","skills","memory","settings"]
+└── order = ["conversation","skills","memory","settings","sessions"]
     └── order[(order.indexOf(current) + 1) % order.length]
 
 prevPanel(current):
@@ -256,14 +343,19 @@ prevPanel(current):
 
 **Panel components:**
 
-| Panel           | Component File          | Key Props              | State              |
-|-----------------|-------------------------|------------------------|--------------------|
-| Conversation    | conversationPanel.js    | `messages`, `assistantName` | scrollRef, prevMessageCount |
-| Skills          | skillsPanel.js          | `skills[]`             | searchQuery, focusedSkill |
-| Memory          | memoryPanel.js          | `entries[]`            | selectedEntry, focusIndex |
-| Settings        | settingsPanel.js        | `configSections[]`     | focusIndex, selectedSection |
+| Panel        | Component File       | Key Props                   | State                       |
+| ------------ | -------------------- | --------------------------- | --------------------------- |
+| Conversation | conversationPanel.js | `messages`, `assistantName` | scrollRef, prevMessageCount |
+| Skills       | skillsPanel.js       | `skills[]` (catalog)        | searchQuery, focusedSkill   |
+| Memory       | memoryPanel.js       | `entries[]`                 | selectedEntry, focusIndex   |
+| Settings     | settingsPanel.js     | `configSections[]`          | focusIndex, selectedSection |
+| Sessions     | sessionsPanel.js     | `sessionState`, `config`    | sessions[], selectedEntry   |
 
 Each panel (except Conversation) has its own internal `useInput` for arrow-key navigation.
+
+**View switching:** `/sessions`, `/memory`, `/skills`, and `/settings` commands return `{ action: "view", value }`, which `handleCommand` routes to `onViewChange(value)` → `setCurrentView(view)`. Returning to `conversation` reloads messages from session state via `loadConversation()`.
+
+**Skill selection:** Selecting a skill in the SkillsPanel calls `onSelectSkill(name)` → `handleSelectSkill()` which switches to the conversation view and pre-loads `/<skill>` into the input (via `pendingInput`), so the user can press Enter to run it or append to it.
 
 ---
 
@@ -370,19 +462,25 @@ Streaming error:
 ```
 index.js ──┐
            ├── commandParser.js ── (pure class, no deps)
-           ├── panels.js ──────── (pure functions)
+           ├── panels.js ──────── (pure functions: PANELS, getPanelOrder, nextPanel, prevPanel)
            ├── hooks.js ───────── (imports from panels.js)
            │
 app.js ─────├── onboardingPanel.js (state machine: INIT → ATTRACTOR → COLLECT → SAVE → TRANSCEND)
            ├── banner.js (BANNER_ART, COMMAND_GROUPS)
-           ├── conversationPanel.js ──┐ (uses ink-scroll-view: ScrollView)
-           ├── inputPanel.js ─────────┤  All components export
-           ├── statusBar.js ──────────┤  via components.js / index.js
-           ├── messages.js ───────────┤
-           ├── markdownText.js ────────┘ (uses marked + marked-terminal)
-           ├── components.js ──────── (exports: ConversationPanel, SkillsPanel, MemoryPanel, SettingsPanel)
-           ├── skillsPanel.js ─────── (skill list with search)
-           ├── memoryPanel.js ─────── (memory entries browser)
-           ├── settingsPanel.js ───── (config sections editor)
-           └── hooks.js ───────────── (useWindowSize, useInput helpers)
+           ├── conversationArea.js ──┐ (owns conversation + streaming state)
+           │   ├── conversationPanel.js ──┐ (uses ink-scroll-view: ScrollView)
+           │   ├── commandParser.js ──────┤
+           │   └── contextTokens.js ──────┤
+           ├── inputArea.js ──────────────┤ (owns input + status state)
+           │   ├── inputPanel.js ─────────┤  All components export
+           │   ├── statusBar.js ──────────┤  via components.js / index.js
+           │   ├── filePicker.js ─────────┘ (uses fast-glob; @ autocomplete)
+           ├── messages.js ───────────────
+           ├── markdownText.js ─────────── (uses marked + marked-terminal)
+           ├── components.js ──────────── (exports: ConversationPanel, SkillsPanel, MemoryPanel, SettingsPanel)
+           ├── skillsPanel.js ─────────── (skill list with search + select)
+           ├── memoryPanel.js ─────────── (memory entries browser)
+           ├── settingsPanel.js ───────── (config sections editor)
+           ├── sessionsPanel.js ───────── (session browser + resume; uses ink-select-input)
+           └── hooks.js ───────────────── (useWindowSize, useInput helpers)
 ```
