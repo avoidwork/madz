@@ -42,18 +42,11 @@ const InputArea = forwardRef(function InputArea(
 	const [isCompacting, setIsCompacting] = useState(false);
 	const [quoteIndex, setQuoteIndex] = useState(-1);
 	const [pickerOpen, setPickerOpen] = useState(false);
-	const [pickerCloseTick, setPickerCloseTick] = useState(0);
 	const pickerOpenRef = useRef(false);
 
 	// Keep the ref in sync so the imperative isPickerOpen() reads current state.
 	useEffect(() => {
 		pickerOpenRef.current = pickerOpen;
-		// When the picker closes, bump the close tick so the InputPanel
-		// remounts and ink-text-input re-initializes its cursor to the end
-		// of the current value.
-		if (!pickerOpen) {
-			setPickerCloseTick((t) => t + 1);
-		}
 	}, [pickerOpen]);
 
 	// Open the picker when the input contains an `@` token with content after it.
@@ -200,27 +193,30 @@ const InputArea = forwardRef(function InputArea(
 					quote: quoteIndex >= 0 ? QUOTES[quoteIndex] : "",
 				})
 			: null,
-		// InputPanel is always visible. While the picker is open it is
-		// unfocused so the FilePicker owns the keystrokes (avoiding the
-		// focus conflict), but the panel stays on screen.
-		React.createElement(
-			Box,
-			{
-				key: "input-wrapper",
-				flexDirection: "row",
-				paddingX: 1,
-				paddingY: 0,
-			},
-			React.createElement(InputPanel, {
-				key: `${focus ? "input-focused" : "input-unfocused"}-${pickerCloseTick}`,
-				value: inputText,
-				onChange: setInputText,
-				onSubmit: handleSubmit,
-				onFocus,
-				onBlur,
-				focus: focus && !pickerOpen,
-			}),
-		),
+		// InputPanel in normal mode and during onboarding. Hidden while the
+		// picker is open so the FilePicker owns the keystrokes (avoiding the
+		// focus conflict). On close it remounts fresh, which re-initializes
+		// ink-text-input's cursor to the end of the current value.
+		!pickerOpen
+			? React.createElement(
+					Box,
+					{
+						key: "input-wrapper",
+						flexDirection: "row",
+						paddingX: 1,
+						paddingY: 0,
+					},
+					React.createElement(InputPanel, {
+						key: focus ? "input-focused" : "input-unfocused",
+						value: inputText,
+						onChange: setInputText,
+						onSubmit: handleSubmit,
+						onFocus,
+						onBlur,
+						focus,
+					}),
+				)
+			: null,
 		// FilePicker below the input when open — it owns the input while open.
 		pickerOpen
 			? React.createElement(FilePicker, {
