@@ -769,6 +769,9 @@ Graceful shutdown flushes all buffered log entries to disk before process exit.
 |               | `openai.temperature`                 | `0.4`                                    | Sampling temperature (0–2)                    |
 |               | `openai.maxTokens`                   | `4096`                                   | Max output tokens                             |
 |               | `openai.rateLimit.requestsPerMinute` | `60`                                     | Rate limit for API calls                      |
+|               | `openai.rateLimit.maxRetries`       | `6`                                      | Max retry attempts on transient errors         |
+|               | `openai.rateLimit.maxConcurrency`   | _(unset)_                                | Max concurrent requests (defaults to Infinity) |
+|               | `openai.rateLimit.maxTokensMinute`  | `0`                                      | Rolling tokens-per-minute budget; `0` disables the throttle |
 | `sandbox`     | `paths`                              | `["memory/", "skills/", "tmp/"]` | Allowed filesystem paths                      |
 |               | `timeout.seconds`                    | `30`                                     | Max execution time in seconds                 |
 |               | `timeout.gracePeriod`                | `5`                                      | Kill grace period in seconds                  |
@@ -819,6 +822,12 @@ Graceful shutdown flushes all buffered log entries to disk before process exit.
 |               | `projects.<name>.maxFileSize`        | `524288`                                 | Max file size in bytes (500 KB)               |
 |               | `projects.<name>.include`            | `["src/**/*.js", ...]`                   | Glob patterns for files to index              |
 |               | `projects.<name>.exclude`            | `["node_modules/**", ...]`               | Glob patterns for files to exclude            |
+
+### Rate Limiting
+
+When `openai.rateLimit.maxTokensMinute` is set to a positive value, outgoing LLM requests are paced against a rolling 60-second token budget. Before a request is dispatched, its estimated token cost (input tokens plus the `maxTokens` output budget) is checked against the budget; if adding it would exceed the limit, the request is delayed until the window has room. Set to `0` (the default) to disable the throttle.
+
+On a `429` rate-limit response, the request is retried once after the `retry-after` header value (in seconds or as an HTTP-date). If no `retry-after` header is present, the retry waits a default of **60 seconds**. This applies only when `maxTokensMinute` is enabled; when it is `0`, no retry occurs and the error surfaces immediately.
 
 **Optional — Environment Variable Overrides:**
 
