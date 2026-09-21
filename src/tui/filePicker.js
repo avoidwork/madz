@@ -9,6 +9,33 @@ const DEPTH_CAP = 6;
 const GLOB_IGNORES = ["**/node_modules/**", "**/.git/**", "**/dist/**"];
 
 /**
+ * Custom item renderer for SelectInput — highlights the selected entry in cyan.
+ * @param {Object} props
+ * @param {boolean} props.isSelected - Whether this item is currently selected
+ * @param {string} props.label - The item label
+ * @returns {React.ReactElement}
+ */
+function FileItem({ isSelected, label }) {
+	return React.createElement(Text, { color: isSelected ? "cyan" : undefined }, label);
+}
+
+/**
+ * Custom indicator renderer for SelectInput — renders the pointer in cyan.
+ * @param {Object} props
+ * @param {boolean} props.isSelected - Whether this item is currently selected
+ * @returns {React.ReactElement}
+ */
+function FileIndicator({ isSelected }) {
+	return React.createElement(
+		Box,
+		{ marginRight: 1 },
+		isSelected
+			? React.createElement(Text, { color: "cyan" }, "▶")
+			: React.createElement(Text, null, " "),
+	);
+}
+
+/**
  * Derive the autocomplete filter from the token at the cursor.
  * A token is bounded by whitespace (unquoted) or quotes (quoted).
  * Returns { filter, tokenStart, tokenEnd, active } where active is true
@@ -237,6 +264,8 @@ export function FilePicker({ value, onChange, onClose, cwd }) {
 						items,
 						isFocused: true,
 						limit: MAX_VISIBLE,
+						itemComponent: FileItem,
+						indicatorComponent: FileIndicator,
 						onSelect: handleSelect,
 					}),
 				),
