@@ -31,6 +31,24 @@ RUN apt-get update && \
     sed -i 's/^#*PermitEmptyPasswords.*/PermitEmptyPasswords yes/' /etc/ssh/sshd_config && \
     printf '%s\n' 'AcceptEnv *' >> /etc/ssh/sshd_config
 
+# Terraform & tflint — downloaded binaries (not in Debian repos)
+ARG TARGETARCH
+RUN TF_VER="1.16.3" && \
+    TFLINT_VER="0.64.0" && \
+    ARCH="${TARGETARCH:-$(uname -m)}" && \
+    case "$ARCH" in \
+      amd64|x86_64) ARCH="amd64" ;; \
+      arm64|aarch64) ARCH="arm64" ;; \
+      *) echo "Unsupported architecture: $ARCH" && exit 1 ;; \
+    esac && \
+    curl -fsSL "https://releases.hashicorp.com/terraform/${TF_VER}/terraform_${TF_VER}_linux_${ARCH}.zip" -o /tmp/terraform.zip && \
+    unzip -o /tmp/terraform.zip -d /usr/local/bin && \
+    rm /tmp/terraform.zip && \
+    curl -fsSL "https://github.com/terraform-linters/tflint/releases/download/v${TFLINT_VER}/tflint_linux_${ARCH}.zip" -o /tmp/tflint.zip && \
+    unzip -o /tmp/tflint.zip -d /usr/local/bin && \
+    rm /tmp/tflint.zip && \
+    chmod +x /usr/local/bin/terraform /usr/local/bin/tflint
+
 # Environment
 ENV HOME=/home/madz
 WORKDIR /app

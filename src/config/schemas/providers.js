@@ -4,6 +4,7 @@ export const RateLimitSchema = z.object({
 	requestsPerMinute: z.number().int().positive().default(60),
 	maxRetries: z.number().int().min(0).max(10).default(6),
 	maxConcurrency: z.number().int().min(1).optional(),
+	maxTokensMinute: z.number().int().min(0).default(0),
 });
 
 const OpenAICredentialsSchema = z.object({

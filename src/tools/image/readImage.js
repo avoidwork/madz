@@ -97,8 +97,10 @@ export const readImage = tool(readImageImpl, {
 	name: "readImage",
 	description:
 		"Read an image file from disk and return its base64-encoded contents plus MIME type, " +
-		"so it can be passed directly to an LLM for vision analysis. Validates the path against " +
-		"the sandbox allowlist and enforces a configurable size limit (image.maxSize, default 100kb). " +
-		"Uses async file system operations.",
+		"so it can be passed directly to an LLM for vision analysis. Use this tool for ANY task " +
+		"requiring vision — reading a screenshot, inspecting a diagram, or sending an image to the LLM. " +
+		"Do NOT use read_file for images: read_file returns raw octet-stream binary that poisons the " +
+		"session and errors the inference provider. Validates the path against the sandbox allowlist " +
+		"and enforces a configurable size limit (image.maxSize, default 100kb). Uses async file system operations.",
 	schema: ReadImageSchema,
 });
