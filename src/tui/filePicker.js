@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { Box, Text, useInput } from "ink";
+import SelectInput from "ink-select-input";
 import fg from "fast-glob";
 
 const MAX_VISIBLE = 3;
@@ -89,9 +90,9 @@ export function replaceToken(value, tokenStart, tokenEnd, path) {
 }
 
 /**
- * FilePicker — self-contained input+list component that owns the input while open.
- * Uses a single useInput handler for filtering and navigation to avoid the
- * focus conflict between ink-text-input and ink-select-input.
+ * FilePicker — input + list component that owns the input while open.
+ * The list is rendered by ink-select-input; typing/filtering is handled by a
+ * single useInput handler so the two don't fight over focus.
  * @param {Object} props
  * @param {string} props.value - Current input text
  * @param {(value: string) => void} props.onChange - Callback when value changes
@@ -103,7 +104,6 @@ export function replaceToken(value, tokenStart, tokenEnd, path) {
 export function FilePicker({ value, onChange, onClose, cwd }) {
 	const [cursor, setCursor] = useState(value.length);
 	const [files, setFiles] = useState([]);
-	const [focusIndex, setFocusIndex] = useState(0);
 	const [loaded, setLoaded] = useState(false);
 	const debounceRef = useRef(null);
 	const filesRef = useRef([]);
@@ -153,35 +153,29 @@ export function FilePicker({ value, onChange, onClose, cwd }) {
 				? filesRef.current.filter((f) => f.toLowerCase().includes(q))
 				: filesRef.current;
 			setFiles(matches);
-			setFocusIndex(0);
 		}, DEBOUNCE_MS);
 		return () => {
 			if (debounceRef.current) clearTimeout(debounceRef.current);
 		};
 	}, [filter]);
 
-	const sorted = useMemo(
-		() => [...files].sort((a, b) => a.length - b.length || a.localeCompare(b)),
+	const items = useMemo(
+		() =>
+			[...files]
+				.sort((a, b) => a.length - b.length || a.localeCompare(b))
+				.map((file) => ({ label: file, value: file, key: file })),
 		[files],
 	);
-	const clampedIndex = Math.min(focusIndex, Math.max(0, sorted.length - 1));
 
-	// Rotating window: show up to MAX_VISIBLE options around the selection.
-	const windowStart = useMemo(() => {
-		if (sorted.length <= MAX_VISIBLE) return 0;
-		const start = Math.max(0, clampedIndex - Math.floor(MAX_VISIBLE / 2));
-		return Math.min(start, sorted.length - MAX_VISIBLE);
-	}, [clampedIndex, sorted.length]);
-
-	const visible = sorted.slice(windowStart, windowStart + MAX_VISIBLE);
-
-	const handleSelect = useCallback(() => {
-		const selected = sorted[clampedIndex];
-		if (selected) {
-			onChange(replaceToken(value, tokenStart, tokenEnd, selected));
-		}
-		onClose?.();
-	}, [sorted, clampedIndex, value, tokenStart, tokenEnd, onChange, onClose]);
+	const handleSelect = useCallback(
+		(item) => {
+			if (item) {
+				onChange(replaceToken(value, tokenStart, tokenEnd, item.value));
+			}
+			onClose?.();
+		},
+		[value, tokenStart, tokenEnd, onChange, onClose],
+	);
 
 	useInput(
 		(input, key) => {
@@ -191,18 +185,6 @@ export function FilePicker({ value, onChange, onClose, cwd }) {
 			}
 			if (key.escape) {
 				onClose?.();
-				return;
-			}
-			if (key.return) {
-				handleSelect();
-				return;
-			}
-			if (key.upArrow) {
-				setFocusIndex((prev) => (prev <= 0 ? sorted.length - 1 : prev - 1));
-				return;
-			}
-			if (key.downArrow) {
-				setFocusIndex((prev) => (prev >= sorted.length - 1 ? 0 : prev + 1));
 				return;
 			}
 			if (key.leftArrow) {
@@ -238,7 +220,7 @@ export function FilePicker({ value, onChange, onClose, cwd }) {
 
 	return React.createElement(
 		Box,
-		{ flexDirection: "column", paddingX: 1 },
+		{ flexDirection: "column", width: "100%", backgroundColor: "#0d0d0d", paddingX: 1 },
 		React.createElement(
 			Text,
 			null,
@@ -251,14 +233,11 @@ export function FilePicker({ value, onChange, onClose, cwd }) {
 			: React.createElement(
 					Box,
 					{ width: "100%", backgroundColor: "#0d0d0d" },
-					visible.map((file, i) => {
-						const isSelected = windowStart + i === clampedIndex;
-						return React.createElement(
-							Text,
-							{ key: file, color: isSelected ? "cyan" : undefined },
-							isSelected ? "▸ " : "  ",
-							file,
-						);
+					React.createElement(SelectInput, {
+						items,
+						isFocused: true,
+						limit: MAX_VISIBLE,
+						onSelect: handleSelect,
 					}),
 				),
 	);
