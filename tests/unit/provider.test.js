@@ -1,5 +1,6 @@
-import { describe, it, beforeEach, afterEach } from "node:test";
+import { describe, it, beforeEach, afterEach, mock } from "node:test";
 import assert from "node:assert";
+import { ChatOpenAI } from "@langchain/openai";
 import { createChatModel } from "../../src/provider/openai.js";
 
 describe("createChatModel", () => {
@@ -164,5 +165,76 @@ describe("createChatModel", () => {
 		const model = createChatModel(config);
 		// SDK defaults maxConcurrency to Infinity when not specified
 		assert.ok(model.caller.maxConcurrency !== 5);
+	});
+
+	it("wires the token-budget throttle when maxTokensMinute is positive", async () => {
+		const config = {
+			model: "gpt-4o",
+			temperature: 0.7,
+			maxTokens: 4096,
+			credentials: { apiKey: "sk-test" },
+			base_url: "https://api.openai.com/v1",
+			rateLimit: { maxRetries: 6, maxTokensMinute: 100000 },
+		};
+
+		// Mock the ChatOpenAI prototype invoke to resolve without network.
+		const invokeMock = mock.method(ChatOpenAI.prototype, "invoke", async () => "ok");
+		try {
+			const model = createChatModel(config);
+			const result = await model.invoke([{ role: "user", content: "Hello" }]);
+			assert.strictEqual(result, "ok");
+			assert.strictEqual(invokeMock.mock.callCount(), 1);
+		} finally {
+			invokeMock.mock.restore();
+		}
+	});
+
+	it("does not wire the token-budget throttle when maxTokensMinute is zero", async () => {
+		const config = {
+			model: "gpt-4o",
+			temperature: 0.7,
+			maxTokens: 4096,
+			credentials: { apiKey: "sk-test" },
+			base_url: "https://api.openai.com/v1",
+			rateLimit: { maxRetries: 6, maxTokensMinute: 0 },
+		};
+
+		const invokeMock = mock.method(ChatOpenAI.prototype, "invoke", async () => "ok");
+		try {
+			const model = createChatModel(config);
+			const result = await model.invoke([{ role: "user", content: "Hello" }]);
+			assert.strictEqual(result, "ok");
+			assert.strictEqual(invokeMock.mock.callCount(), 1);
+		} finally {
+			invokeMock.mock.restore();
+		}
+	});
+
+	it("attributes 429 errors to an exceeded token budget", async () => {
+		const config = {
+			model: "gpt-4o",
+			temperature: 0.7,
+			maxTokens: 4096,
+			credentials: { apiKey: "sk-test" },
+			base_url: "https://api.openai.com/v1",
+			rateLimit: { maxRetries: 6, maxTokensMinute: 100000 },
+		};
+
+		// Simulate a 429 error from the underlying provider call.
+		const rateLimitError = new Error("rate limited");
+		rateLimitError.status = 429;
+		const invokeMock = mock.method(ChatOpenAI.prototype, "invoke", async () => {
+			throw rateLimitError;
+		});
+		try {
+			const model = createChatModel(config);
+			await assert.rejects(
+				() => model.invoke([{ role: "user", content: "Hello" }]),
+				/rate limited/,
+			);
+			assert.strictEqual(invokeMock.mock.callCount(), 1);
+		} finally {
+			invokeMock.mock.restore();
+		}
 	});
 });
