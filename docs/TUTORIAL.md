@@ -268,31 +268,19 @@ docker run -d \
   avoidwork/madz:latest
 ```
 
-Your repositories are now visible inside the container at `/app/projects/<repo>`.
+Your repositories are now visible inside the container at `/app/projects/<repo>`. The image already ships an empty `/app/projects/` directory (owned by the `madz` user), so the mount simply overlays it — no `mkdir` required.
 
-**Step 2: Teach madz the convention — with a memory.**
+**Step 2: The convention is built in.**
 
-madz's file tools resolve paths relative to the application root (`/app`). To make project work feel direct, add a canonical memory that tells the agent to treat your projects directory as the working root. The easiest way is to ask, in plain language:
+You do not need to configure anything for this to work. The system prompt carries a standing directive:
 
-```
-Remember: my projects live in /app/projects. When I name a project,
-treat /app/projects/<name> as the working root — resolve all file
-operations, git commands, and builds relative to it.
-```
+> **Project directories are cwd.** Each immediate subdirectory of `projects/` is a standalone project root. When the user works on one, treat that subdirectory as the working directory for the task — resolve relative paths against it, run commands with it as the working directory, and apply its own project rules (`AGENTS.md`, config, lint) instead of the parent's.
 
-madz writes this to `memory/context/`, and it is loaded into every session from then on. You can also create the file yourself:
-
-```markdown
-# Projects
-
-My projects live in `/app/projects`. When I refer to a project by name
-(e.g. "backend-api"), treat `/app/projects/backend-api` as the working
-root — resolve all file operations, git commands, and builds relative to it.
-```
+So naming a project is enough. The agent resolves the name to its directory and works there.
 
 **Step 3: Speak in direct statements.**
 
-With the memory in place, you no longer describe paths. You describe work:
+Out of the box, you no longer describe paths. You describe work:
 
 ```
 Fix the failing test in backend-api.
@@ -301,6 +289,26 @@ Create a PR on backend-api for the session timeout fix.
 ```
 
 The agent resolves the project name to its directory and works there — reading files, running commands, editing, committing, and pushing, all inside the mounted repo.
+
+**Optional: reinforce or adjust the convention with a memory.**
+
+The built-in directive covers the standard case. If you mount projects somewhere other than `/app/projects`, or you want to add project-specific rules the agent should always honor, layer a canonical memory on top. Ask in plain language:
+
+```
+Remember: my projects live in /app/projects. When I name a project,
+treat /app/projects/<name> as the working root — resolve all file
+operations, git commands, and builds relative to it.
+```
+
+madz writes this to `memory/context/` and loads it into every session. You can also create the file yourself:
+
+```markdown
+# Projects
+
+My projects live in `/app/projects`. When I refer to a project by name
+(e.g. "backend-api"), treat `/app/projects/backend-api` as the working
+root — resolve all file operations, git commands, and builds relative to it.
+```
 
 **Project conventions:** If a repository contains an `AGENTS.md`, the agent discovers and follows it — commit format, lint rules, branch policy. Your project's own rules take precedence over general behavior.
 
