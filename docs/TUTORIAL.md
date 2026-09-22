@@ -501,14 +501,3 @@ These guardrails exist so you can delegate with confidence. The agent is a colla
 | **Session not persisting?** | Verify that `memory/` is writable and not mounted as read-only. |
 
 *Deploy with confidence. The machine waits for no one, but `madz` remembers everything.*
-unts, verify host directory permissions allow the `madz` user to read and write. |
-| Need a shell for inspection | SSH login launches the TUI directly — there is no interactive shell. Use `docker exec -it madz /bin/sh` instead. |
-
-### General
-| Issue | Solution |
-|-------|----------|
-| **TUI not launching?** | Ensure `ink` and `react` dependencies are installed (`npm install`). |
-| **Skill not executing?** | Check that the required permissions (`filesystem:read`, `filesystem:write`, etc.) are enabled in `config.yaml` under `sandbox.permissions`. |
-| **Session not persisting?** | Verify that `memory/` is writable and not mounted as read-only. |
-
-*Deploy with confidence. The machine waits for no one, but `madz` remembers everything.*
