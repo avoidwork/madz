@@ -145,11 +145,18 @@ Same flags, new image. Because `memory/`, `skills/`, and the checkpoint volume l
 `madz` reads its configuration from `config.yaml`. Sensitive values should be injected via environment variables to keep secrets out of version control. Secrets belong in the dark. Configuration belongs in the light.
 
 ### 🌐 LLM Providers & Sovereignty
-`madz` is architecturally designed for **local AI**. While it supports cloud endpoints, its core philosophy prioritizes **data sovereignty** and **privacy**. By running models locally (e.g., Ollama, LM Studio, vLLM), you keep your conversation history, memory files, and custom skills entirely on your machine. No telemetry. No external data routing. Just pure, unfiltered compute.
+`madz` is architecturally designed for **local AI**. While it supports cloud endpoints, its core philosophy prioritizes **data sovereignty** and **privacy**. By running models locally, you keep your conversation history, memory files, and custom skills entirely on your machine. No telemetry. No external data routing. Just pure, unfiltered compute.
 
-For a self-hosted, local-first experience, **Ollama** ([https://ollama.com/](https://ollama.com/)) is the most straightforward path. Install it, pull a model (`ollama pull gemma4:12b`), and configure `madz` to talk to it. You will need to set `OPENAI_BASE_URL=http://localhost:11434/v1` in your `.env` file or `config.yaml`. For local providers, `OPENAI_API_KEY` is optional—many run without authentication.
+**Any OpenAI-compatible endpoint works.** madz talks to its model through the OpenAI chat-completions API, so it works with any provider that exposes that interface — not just OpenAI itself. That includes:
 
-Cloud providers are fully supported via the configuration below if latency or model availability dictates it, but the architecture assumes local-first by default.
+- **Ollama** — the most straightforward local path. Install it, pull a model (`ollama pull gemma4:12b`), and point `OPENAI_BASE_URL` at it.
+- **vLLM** — high-throughput self-hosted inference, OpenAI-compatible out of the box.
+- **LiteLLM** — a proxy that fronts many backends behind a single OpenAI-compatible endpoint.
+- **LM Studio**, **llama.cpp**, or any other OpenAI-compatible server.
+
+You point madz at one by setting `OPENAI_BASE_URL` (and `OPENAI_MODEL`) in your `.env`. For local providers, `OPENAI_API_KEY` is optional — many run without authentication.
+
+Cloud providers (OpenAI, OpenRouter, and others) are fully supported via the configuration below if latency or model availability dictates it, but the architecture assumes local-first by default.
 
 ### Environment Variable Mapping
 Config keys map to `UPPER_SNAKE_CASE` environment variables. Container-specific keys (`providers`, `credentials`, `timeout`, `search`) are stripped from the variable name.
