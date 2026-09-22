@@ -190,19 +190,9 @@ If you deployed with Docker (the deployment model), connect to the container usi
 ssh -p 2222 madz@localhost
 ```
 
-The `madz` user has no password. On login the TUI launches automatically. Press `Esc` to exit. When `madz` exits the SSH session will terminate — there is no interactive shell inside the container.
+The `madz` user has no password. On login the TUI launches automatically. Type `/exit` (or `/quit`) to leave; `Esc` interrupts a running response. When `madz` exits, the SSH session terminates with it — there is no interactive shell inside the container.
 
 *First command to try:* `Give me a quick system health check — CPU load, memory, and disk.`
-
-### Local — Interactive TUI
-
-If you installed from source (contributing), launch the React-powered terminal interface with full conversation history, skill invocation, and runtime config mutability:
-
-```bash
-npm start
-# or
-node index.js --mode interactive
-```
 
 ### First Launch: The Living Profile
 On your very first run, `madz` will detect that no user profile exists and initiate an **interactive onboarding flow**. It will ask a series of targeted questions to build your initial profile (e.g., *"What do you build?"*, *"What tools do you use?"*, *"How direct should I be?"*), establishing a foundation for deep, immediate personalization.
