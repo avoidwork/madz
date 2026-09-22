@@ -117,4 +117,106 @@ describe("createTokenBudget", () => {
 		await budget.waitForCapacity(2000);
 		assert.strictEqual(slept, 0, "exactly at limit should not sleep");
 	});
+
+	describe("reserve", () => {
+		it("records tokens and returns a handle", async () => {
+			const budget = createTokenBudget(100000);
+			const handle = await budget.reserve(1000);
+			assert.ok(handle !== null, "should return a handle");
+			assert.strictEqual(budget.current(), 1000);
+		});
+
+		it("returns null handle when disabled", async () => {
+			const budget = createTokenBudget(0);
+			const handle = await budget.reserve(1000);
+			assert.strictEqual(handle, null);
+			assert.strictEqual(budget.current(), 0);
+		});
+
+		it("concurrent reserves do not overshoot the budget", async () => {
+			const clock = makeClock();
+			let slept = 0;
+			const budget = createTokenBudget(1000, {
+				now: clock.now,
+				sleep: async (ms) => {
+					slept += ms;
+					clock.advance(ms);
+				},
+			});
+			// 3 concurrent reserves of 600 each; only 1 fits in a 1000 window.
+			const handles = await Promise.all([
+				budget.reserve(600),
+				budget.reserve(600),
+				budget.reserve(600),
+			]);
+			assert.strictEqual(handles.length, 3);
+			assert.ok(handles.every((h) => h !== null));
+			// The key invariant: the window never held more than one 600-token
+			// entry at a time. Each of the 2nd and 3rd reserves had to wait for
+			// the previous entry to expire (a full 60s window each) before being
+			// admitted, so current() never exceeded maxTokensMinute.
+			assert.strictEqual(slept, 120_000, "reserves must wait for the window to drain");
+			// Only the most recent entry remains inside the window.
+			assert.strictEqual(budget.current(), 600);
+		});
+
+		it("waits for capacity before admitting a reserve that does not fit", async () => {
+			const clock = makeClock();
+			let slept = 0;
+			const budget = createTokenBudget(1000, {
+				now: clock.now,
+				sleep: async (ms) => {
+					slept += ms;
+					clock.advance(ms);
+				},
+			});
+			// Fill the window to 900.
+			await budget.reserve(900);
+			// A second reserve of 200 does not fit (900+200 > 1000); must wait.
+			// The sleep function advances the clock, evicting the first entry.
+			const p = budget.reserve(200);
+			await p;
+			assert.ok(slept > 0, "should have slept to wait for capacity");
+			assert.strictEqual(budget.current(), 200);
+		});
+	});
+
+	describe("reconcile", () => {
+		it("adjusts an entry up to actual usage", async () => {
+			const budget = createTokenBudget(100000);
+			const handle = await budget.reserve(1000);
+			budget.reconcile(handle, 1500);
+			assert.strictEqual(budget.current(), 1500);
+		});
+
+		it("adjusts an entry down to actual usage", async () => {
+			const budget = createTokenBudget(100000);
+			const handle = await budget.reserve(1000);
+			budget.reconcile(handle, 400);
+			assert.strictEqual(budget.current(), 400);
+		});
+
+		it("is a no-op for an unknown handle", async () => {
+			const budget = createTokenBudget(100000);
+			await budget.reserve(1000);
+			budget.reconcile(99999, 500);
+			assert.strictEqual(budget.current(), 1000);
+		});
+	});
+
+	describe("release", () => {
+		it("removes a reserved entry", async () => {
+			const budget = createTokenBudget(100000);
+			const handle = await budget.reserve(1000);
+			budget.release(handle);
+			assert.strictEqual(budget.current(), 0);
+		});
+
+		it("is a no-op for an unknown handle", async () => {
+			const budget = createTokenBudget(100000);
+			await budget.reserve(1000);
+			budget.release(99999);
+			assert.strictEqual(budget.current(), 1000);
+		});
+	});
 });
