@@ -413,17 +413,17 @@ You do not type agent names. You state the task; the orchestrator dispatches.
 
 | Agent | Scope |
 |-------|-------|
-| `coding` | Code editing, debugging, implementation, git operations |
-| `search` | Multi-source search (web, docs, codebase) with synthesis |
-| `debug` | Error tracing, reproduction, and fix proposals |
 | `code-review` | Structured reviews: bugs, security, style, performance |
-| `research` | Multi-step research with source tracking |
-| `testing` | Test generation, gap analysis, coverage improvements |
+| `coding` | Code editing, debugging, implementation, git operations |
+| `debug` | Error tracing, reproduction, and fix proposals |
 | `documentation` | Documentation updates, API docs, changelogs |
-| `security-audit` | Security scanning and dependency auditing |
 | `performance` | Benchmarking, bottleneck identification, optimization |
-| `textEditor` | Text processing — summarize, rewrite, tone, grammar |
+| `research` | Multi-step research with source tracking |
+| `search` | Multi-source search (web, docs, codebase) with synthesis |
+| `security-audit` | Security scanning and dependency auditing |
 | `seoAnalyst` | Keyword density, meta descriptions, SERP analysis |
+| `testing` | Test generation, gap analysis, coverage improvements |
+| `textEditor` | Text processing — summarize, rewrite, tone, grammar |
 | `translator` | Multi-language translation and language detection |
 
 ### Concrete Examples
@@ -493,7 +493,7 @@ These guardrails exist so you can delegate with confidence. The agent is a colla
 ### General
 | Issue | Solution |
 |-------|----------|
-| **TUI not launching?** | Ensure `ink` and `react` dependencies are installed (`npm install`). |
+| **TUI not launching?** | Check the configuration — it's always a configuration issue. |
 | **Skill not executing?** | Check that the required permissions (`filesystem:read`, `filesystem:write`, etc.) are enabled in `config.yaml` under `sandbox.permissions`. |
 | **Session not persisting?** | Verify that `memory/` is writable and not mounted as read-only. |
 
