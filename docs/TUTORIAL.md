@@ -39,8 +39,6 @@ ssh -p 2222 madz@localhost
 
 *This creates the data directories, writes your key to `.env`, starts the container, verifies it, and connects you. For full configuration and bind mount explanations, see below.*
 
-### Option A: Docker (The Deployment Model)
-
 **Step 1: Pull the official image**
 ```bash
 docker pull avoidwork/madz:latest
@@ -120,33 +118,6 @@ When using a non-OpenAI model, you may need to set `OPENAI_ENCODING` to specify 
 docker ps            # STATUS should read "Up"
 docker logs madz     # boot log: scheduler sync, session init, TUI ready
 ```
-
-### Option B: Local Install (Contributing to Madz Itself)
-
-Nobody clones madz to *use* it — the container is the product. You only clone the source if you intend to modify the harness itself: extend skills, tweak the TUI, debug subsystems, or contribute.
-
-```bash
-git clone https://github.com/avoidwork/madz.git
-cd madz
-npm install
-npm start
-```
-
-**Example `config.yaml` (Local Install):**
-```yaml
-providers:
-  openai:
-    credentials:
-      apiKey: "${OPENAI_API_KEY}"
-    model: gpt-4o
-    base_url: https://api.openai.com/v1
-sandbox:
-  permissions:
-    - filesystem:read
-    - filesystem:write
-    - process:spawn
-```
-*Replace `apiKey`, `model`, and `base_url` as needed. For local LLMs, set `base_url` to your local endpoint and omit `apiKey` if your provider doesn't require one.*
 
 ### Upgrading
 
@@ -520,6 +491,17 @@ These guardrails exist so you can delegate with confidence. The agent is a colla
 | Container exits immediately | Check logs: `docker logs madz`. Missing `OPENAI_API_KEY` or invalid config will cause early exit. |
 | SSH connection refused | Ensure port mapping is correct (`-p 2222:22`). Try `ssh -o StrictHostKeyChecking=no -p 2222 madz@localhost`. |
 | Memory/skills not persisting | Use volumes or bind mounts for persistent state. If using bind mounts, verify host directory permissions allow the `madz` user to read and write. |
+| Need a shell for inspection | SSH login launches the TUI directly — there is no interactive shell. Use `docker exec -it madz /bin/sh` instead. |
+
+### General
+| Issue | Solution |
+|-------|----------|
+| **TUI not launching?** | Ensure `ink` and `react` dependencies are installed (`npm install`). |
+| **Skill not executing?** | Check that the required permissions (`filesystem:read`, `filesystem:write`, etc.) are enabled in `config.yaml` under `sandbox.permissions`. |
+| **Session not persisting?** | Verify that `memory/` is writable and not mounted as read-only. |
+
+*Deploy with confidence. The machine waits for no one, but `madz` remembers everything.*
+unts, verify host directory permissions allow the `madz` user to read and write. |
 | Need a shell for inspection | SSH login launches the TUI directly — there is no interactive shell. Use `docker exec -it madz /bin/sh` instead. |
 
 ### General
