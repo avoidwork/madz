@@ -269,13 +269,20 @@ root — resolve all file operations, git commands, and builds relative to it.
 
 **Project conventions:** If a repository contains an `AGENTS.md`, the agent discovers and follows it — commit format, lint rules, branch policy. Your project's own rules take precedence over general behavior.
 
-**Semantic code search:** For larger codebases, index a project so the agent can search it by meaning, not just by keyword:
+**Semantic code search:** For larger codebases, index a project so the agent can search it by meaning, not just by keyword. Configure the project in `.env` — the project name is the first segment, lowercased, so keep it a single word:
+
+```env
+VECTOR_PROJECTS_BACKENDAPI_ROOT_DIR=/app/projects/backend-api
+VECTOR_PROJECTS_BACKENDAPI_DB_PATH=/app/projects/backend-api/vector.db
+```
+
+(`include` defaults to `src/**/*.js`, `src/**/*.mjs`, `src/**/*.cjs`; add `VECTOR_PROJECTS_BACKENDAPI_INCLUDE_0=...` to change it.) Then ask:
 
 ```
-Index the code in /app/projects/backend-api for vector search
+Index the code in backendapi for vector search
 ```
 
-(or run `node index.js --index-code` with the project configured under `vector.projects` in `config.yaml`).
+The agent's indexing tool reads these from the environment — no file editing required. (`.env` is injected at container start, so after adding these lines, recreate the container with the same `docker run` flags.)
 
 ---
 
