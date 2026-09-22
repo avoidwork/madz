@@ -954,6 +954,61 @@ describe("StatusBar - no appInfo rendering", () => {
 		assert.ok(result.includes("Streaming...") === false, "status message text should not appear");
 		assert.ok(result.includes("[⚡0]"), "skill count should appear");
 	});
+
+	it("renders the token budget segment when a budget is configured", async () => {
+		const { renderToString } = await import("ink");
+		const { StatusBar } = await import("../../src/tui/statusBar.js");
+
+		const result = String(
+			renderToString(
+				React.createElement(StatusBar, {
+					statusMessage: "Ready",
+					skillCount: 1,
+					messageCount: 5,
+					tokenCount: 123,
+					tokenBudget: 100000,
+				}),
+			),
+		);
+
+		assert.ok(result.includes("[◷123/100,000]"), "token count/budget should appear");
+	});
+
+	it("does not render the token budget segment when no budget is configured", async () => {
+		const { renderToString } = await import("ink");
+		const { StatusBar } = await import("../../src/tui/statusBar.js");
+
+		const result = String(
+			renderToString(
+				React.createElement(StatusBar, {
+					statusMessage: "Ready",
+					skillCount: 1,
+					messageCount: 5,
+				}),
+			),
+		);
+
+		assert.ok(!result.includes("◷"), "token segment should be absent without a budget");
+	});
+
+	it("renders zero token count against a configured budget", async () => {
+		const { renderToString } = await import("ink");
+		const { StatusBar } = await import("../../src/tui/statusBar.js");
+
+		const result = String(
+			renderToString(
+				React.createElement(StatusBar, {
+					statusMessage: "Ready",
+					skillCount: 0,
+					messageCount: 0,
+					tokenCount: 0,
+					tokenBudget: 50000,
+				}),
+			),
+		);
+
+		assert.ok(result.includes("[◷0/50,000]"), "zero count should still show the budget");
+	});
 });
 
 describe("TUI - message ordering with batched updates", () => {
