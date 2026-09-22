@@ -71,6 +71,7 @@ COPY --from=builder --chown=madz:node /app/package*.json ./
 COPY --chown=madz:node LICENSE index.js config.yaml ./
 COPY --chown=madz:node src/ ./src/
 COPY --chown=madz:node prompts/ ./prompts/
+COPY --chown=madz:node projects/ ./projects/
 COPY --chown=madz:node .skills/ ./.skills/
 COPY --chown=madz:node docker-entrypoint.sh /docker-entrypoint.sh
 

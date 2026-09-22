@@ -153,7 +153,7 @@ The full `docker run` command with all optional variables is in the [Docker Envi
 - **Docker** (for the recommended containerized experience)
 - **Node.js** 24 or later (optional — for local development only)
 - **npm** (included with Node.js)
-- An LLM provider API key (e.g., `OPENAI_API_KEY`)
+- An LLM provider — a cloud API key (e.g., `OPENAI_API_KEY`) or a local OpenAI-compatible server (Ollama, vLLM, LiteLLM, LM Studio)
 
 ### Installation (Local Development)
 
@@ -337,7 +337,7 @@ All configuration is controlled via environment variables in the `docker run` co
 
 | Variable         | Required | Default   | Description          |
 | ---------------- | -------- | --------- | -------------------- |
-| `OPENAI_API_KEY` | Yes      | _(empty)_ | LLM provider API key |
+| `OPENAI_API_KEY` | Cloud only | _(empty)_ | LLM provider API key (not needed for local providers) |
 
 **Optional — Providers:**
 
@@ -530,7 +530,7 @@ On first launch, `madz` starts an interactive onboarding flow that collects your
 
 ### LLM Provider Abstraction
 
-Configurable provider dispatch with rate limiting and context-window trimming. Supports OpenAI-compatible APIs.
+Configurable provider dispatch with rate limiting and context-window trimming. madz talks to its model through the OpenAI chat-completions API, so it works with **any OpenAI-compatible endpoint** — OpenAI, Ollama, vLLM, LiteLLM, LM Studio, llama.cpp, and others. Point `OPENAI_BASE_URL` at the server and `OPENAI_MODEL` at the model; local providers typically need no API key.
 
 ### LLM Response Caching
 
