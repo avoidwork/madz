@@ -15,10 +15,6 @@ Before we build, we must prepare the ground. Ensure your system meets these requ
 - **Docker Desktop** or **Docker Engine** — madz runs as a local container
 - **An LLM Provider** (API key from OpenAI, or a local model via Ollama)
 
-#### Optional
-
-- **Node.js 24+** and **npm** — only if you intend to modify madz's own source (contributing), not to use it
-
 ### What is Docker?
 
 Docker packages an application and all its dependencies into a single, isolated container. It ensures `madz` runs identically on your machine, day after day, without conflicts or "it works on my machine."
