@@ -1,8 +1,8 @@
 # Getting Started with Madz
 
-Madz is an AI harness designed to learn, adapt, and assist. You can speak to it through a terminal interface, a command-line prompt, or pipe it directly into your scripts. It does not demand ceremony. It demands clarity.
+Madz is an AI harness designed to learn, adapt, and assist. You speak to it through a terminal interface, a one-shot command, or a pipe into your scripts. It does not demand ceremony. It demands clarity.
 
-This guide walks you through deployment, configuration, and daily operation—whether you prefer the isolation of a container or the directness of a local installation. From zero to your first conversation. With precision.
+This guide takes you from zero to your first conversation — and then to working on *your* projects.
 
 ---
 
@@ -12,32 +12,38 @@ Before we build, we must prepare the ground. Ensure your system meets these requ
 
 ### Core Requirements
 
-- **Docker Desktop** or **Docker Engine** — the recommended deployment method
-- **An LLM Provider** (API key from OpenAI, Ollama, etc.)
+- **Docker Desktop** or **Docker Engine** — madz runs as a local container
+- **An LLM Provider** (API key from OpenAI, or a local model via Ollama)
 
 #### Optional
 
-- **Git** — only if you choose to clone the repo or run without Docker
-- **Node.js 24+** and **npm** — only for local installs without Docker
+- **Node.js 24+** and **npm** — only if you intend to modify madz's own source (contributing), not to use it
 
 ### What is Docker?
-Docker packages your application and all its dependencies into a single, isolated container. It ensures `madz` runs identically across your machine, a server, or a cloud environment. No conflicts. No "it works on my machine."
 
-**If you're new to Docker:** Do not worry. The commands below are straightforward. I will explain exactly what each part does.
+Docker packages an application and all its dependencies into a single, isolated container. It ensures `madz` runs identically on your machine, day after day, without conflicts or "it works on my machine."
+
+**If you're new to Docker:** Do not worry. The commands below are straightforward, and each part is explained.
 
 ---
 
 ## 🚀 Installation
 
-Choose the method that best fits your workflow. There is no wrong choice, only different philosophies.
+The Docker container **is** the deployment model — for home use and professional use alike. It runs locally, with no authentication and no server. You reach it over SSH on a loopback port.
 
-**📦 Just want to run it? (Minimal Docker Command)**
+**📦 Just want to run it? (Minimal Setup)**
+
 ```bash
+mkdir -p ./memory ./skills
+echo 'OPENAI_API_KEY=sk-proj-xxxxxxxxxxxxxxxx' > .env
 docker run -d --name madz -p 2222:22 -v ./memory:/app/memory -v madz-checkpoints:/app/memory/checkpoints -v ./skills:/app/skills --env-file .env avoidwork/madz:latest
+docker ps   # confirm the container is Up
+ssh -p 2222 madz@localhost
 ```
-*This pulls the image, sets up basic persistence, and starts the service. For full configuration and bind mount explanations, see below.*
 
-### Option A: Docker (Recommended for Isolation)
+*This creates the data directories, writes your key to `.env`, starts the container, verifies it, and connects you. For full configuration and bind mount explanations, see below.*
+
+### Option A: Docker (The Deployment Model)
 
 **Step 1: Pull the official image**
 ```bash
@@ -68,6 +74,7 @@ docker run -d \
   --env-file .env \
   avoidwork/madz:latest
 ```
+
 *Security Note: Avoid passing API keys directly via `-e` flags, as they will persist in your shell history. Instead, create a `.env` file in your project root with your variables and reference it with `--env-file .env`. For quick testing, you can still use `-e OPENAI_API_KEY="your-key"` directly, but remember to switch to `.env` for anything beyond a trial.*
 
 **Example `.env` files:**
@@ -112,16 +119,22 @@ When using a non-OpenAI model, you may need to set `OPENAI_ENCODING` to specify 
 
 *Port collision?* If port `2222` is already in use, change the host port in the `-p` flag (e.g., `-p 2223:22`) and update your SSH command accordingly.
 
-### Option B: Clone Source Repository (Development/Customization)
+**Verify it's alive:**
+```bash
+docker ps            # STATUS should read "Up"
+docker logs madz     # boot log: scheduler sync, session init, TUI ready
+```
 
-For modifying the harness or contributing:
+### Option B: Local Install (Contributing to Madz Itself)
+
+Nobody clones madz to *use* it — the container is the product. You only clone the source if you intend to modify the harness itself: extend skills, tweak the TUI, debug subsystems, or contribute.
+
 ```bash
 git clone https://github.com/avoidwork/madz.git
 cd madz
 npm install
 npm start
 ```
-*This gives you full control over the codebase. Use this if you plan to extend skills, tweak the TUI, or debug subsystems.*
 
 **Example `config.yaml` (Local Install):**
 ```yaml
@@ -138,6 +151,25 @@ sandbox:
     - process:spawn
 ```
 *Replace `apiKey`, `model`, and `base_url` as needed. For local LLMs, set `base_url` to your local endpoint and omit `apiKey` if your provider doesn't require one.*
+
+### Upgrading
+
+The container is disposable; your data is not. To upgrade:
+
+```bash
+docker pull avoidwork/madz:latest
+docker rm madz
+docker run -d \
+  --name madz \
+  -p 2222:22 \
+  -v ./memory:/app/memory \
+  -v madz-checkpoints:/app/memory/checkpoints \
+  -v ./skills:/app/skills \
+  --env-file .env \
+  avoidwork/madz:latest
+```
+
+Same flags, new image. Because `memory/`, `skills/`, and the checkpoint volume live outside the container, your profile, memories, sessions, and skills are exactly where you left them.
 
 ---
 
@@ -185,30 +217,24 @@ providers:
 
 ### Docker — Connect via SSH
 
-If you deployed with Docker (recommended), connect to the container using the SSH port you passed to `docker run`. The container's SSH daemon listens on internal port `22`, so you map it to a host port of your choosing (commonly `2222` to avoid conflicts with your local SSH):
+If you deployed with Docker (the deployment model), connect to the container using the SSH port you passed to `docker run`. The container's SSH daemon listens on internal port `22`, so you map it to a host port of your choosing (commonly `2222` to avoid conflicts with your local SSH):
 
 ```bash
 ssh -p 2222 madz@localhost
 ```
 
-The `madz` user has no password. On login the TUI launches automatically. Press `Esc` to exit. When `madz` exits the SSH session will terminate — there is no interactive shell inside the container. The machine does not wait for idle terminals.
+The `madz` user has no password. On login the TUI launches automatically. Press `Esc` to exit. When `madz` exits the SSH session will terminate — there is no interactive shell inside the container.
 
-*First command to try: `What's the current system load?`*
+*First command to try:* `Give me a quick system health check — CPU load, memory, and disk.`
 
-### NPM — Interactive TUI
+### Local — Interactive TUI
 
-If you installed locally via npm or cloned the repo, launch the React-powered terminal interface with full conversation history, skill invocation, and runtime config mutability:
+If you installed from source (contributing), launch the React-powered terminal interface with full conversation history, skill invocation, and runtime config mutability:
 
 ```bash
 npm start
 # or
 node index.js --mode interactive
-```
-
-For global npm installs, just run `madz` from anywhere:
-
-```bash
-madz
 ```
 
 ### First Launch: The Living Profile
@@ -219,6 +245,72 @@ This profile is saved to `memory/context/profile.md` and injected into the syste
 Over time, `madz` autonomously captures **ephemeral memories** during operation. These entries log interaction patterns, decision milestones, and stylistic preferences, layering directly onto the base profile. The system prompt is dynamically rebuilt each session, ensuring consistent, context-aware behavior without manual intervention.
 
 *To re-trigger the initial profile setup, simply delete `memory/context/profile.md` and restart.*
+
+---
+
+## 📂 Working on Your Projects
+
+This is where madz stops being a demo and becomes a teammate. The container ships a full development toolchain — Node.js, Python, Ruby, Go, Java, Rust, Terraform, git, the GitHub CLI, and three package managers — so it can build, test, and commit real code.
+
+**Step 1: Mount your projects directory.**
+
+Add one bind mount to your `docker run` command, pointing at the directory on your host that holds your repositories:
+
+```bash
+docker run -d \
+  --name madz \
+  -p 2222:22 \
+  -v ./memory:/app/memory \
+  -v madz-checkpoints:/app/memory/checkpoints \
+  -v ./skills:/app/skills \
+  -v ~/projects:/app/projects \
+  --env-file .env \
+  avoidwork/madz:latest
+```
+
+Your repositories are now visible inside the container at `/app/projects/<repo>`.
+
+**Step 2: Teach madz the convention — with a memory.**
+
+madz's file tools resolve paths relative to the application root (`/app`). To make project work feel direct, add a canonical memory that tells the agent to treat your projects directory as the working root. The easiest way is to ask, in plain language:
+
+```
+Remember: my projects live in /app/projects. When I name a project,
+treat /app/projects/<name> as the working root — resolve all file
+operations, git commands, and builds relative to it.
+```
+
+madz writes this to `memory/context/`, and it is loaded into every session from then on. You can also create the file yourself:
+
+```markdown
+# Projects
+
+My projects live in `/app/projects`. When I refer to a project by name
+(e.g. "backend-api"), treat `/app/projects/backend-api` as the working
+root — resolve all file operations, git commands, and builds relative to it.
+```
+
+**Step 3: Speak in direct statements.**
+
+With the memory in place, you no longer describe paths. You describe work:
+
+```
+Fix the failing test in backend-api.
+Run the build in my photo-app repo and tell me what broke.
+Create a PR on backend-api for the session timeout fix.
+```
+
+The agent resolves the project name to its directory and works there — reading files, running commands, editing, committing, and pushing, all inside the mounted repo.
+
+**Project conventions:** If a repository contains an `AGENTS.md`, the agent discovers and follows it — commit format, lint rules, branch policy. Your project's own rules take precedence over general behavior.
+
+**Semantic code search:** For larger codebases, index a project so the agent can search it by meaning, not just by keyword:
+
+```
+Index the code in /app/projects/backend-api for vector search
+```
+
+(or run `node index.js --index-code` with the project configured under `vector.projects` in `config.yaml`).
 
 ---
 
@@ -252,7 +344,7 @@ Once inside the interactive terminal, use these commands:
 `madz` operates on a **triple-layer** memory architecture:
 - **Canonical Memories:** Explicitly set by you. Stored as `.md` files in `memory/context/`. Loaded into every session. Includes profile, clarifications, reflections, and temporal captures.
 - **Ephemeral Memories:** Captured autonomously during operation. Record patterns, milestones, and tones. Auto-expire over time via `expiresAt` frontmatter field.
-- **Reflections:** Generated daily by a cron job (`0 2 * * *`) that runs `/reflection` via `--chat` mode. Stored as canonical memories in `memory/context/` with `createdDate` and `updatedDate` metadata. The cron job is auto-installed on first onboarding completion via `setupAutoSchedule()` and persisted as `memory/schedules/reflection-daily.json`.
+- **Reflections:** Generated daily by a cron job (`0 2 * * *`) that runs the reflection skill in chat mode. Stored as canonical memories in `memory/context/` with `createdDate` and `updatedDate` metadata. The job file is ensured at startup by the scheduler's crontab sync and persisted as `memory/schedules/reflection-daily.json`.
 
 *This triple-layer architecture powers the autonomous learning loop — canonical memories persist, ephemeral memories capture moments, and reflections synthesize patterns into lasting context.*
 
@@ -291,7 +383,37 @@ license: MIT
 
 Skills are stored in `skills/` and are version-controllable. Simple skills can be chained together into pipelines for complex multi-step processing, or composed by asking `madz` to coordinate between them.
 
-**Built-in tools:** Beyond skills, `madz` ships with built-in tools for common tasks. The Deep Agents orchestrator (`deepAgents` library) handles multi-agent routing natively — a coding-agent for code work. The `scanAgents` tool scans for `AGENTS.md` workspace rules files. Other built-in tools include filesystem operations, shell execution, search, memory management, and more.
+**Built-in tools:** Beyond skills, `madz` ships with built-in tools for common tasks. The Deep Agents orchestrator (`deepagents` library) handles multi-agent routing natively — see [Delegating Work to Subagents](#-delegating-work-to-subagents). The `scanAgents` tool scans for `AGENTS.md` workspace rules files. Other built-in tools include filesystem operations, shell execution, search, memory management, and more.
+
+---
+
+## ⚙️ Advanced Usage
+
+### Scheduled Jobs
+
+`madz` supports cron-based scheduled jobs that run in non-interactive mode. Each invocation inherits the current session's memory context and sandbox permissions. Max-concurrency control prevents run overlap.
+
+To schedule a task, simply ask:
+
+```
+madz, schedule the news-email skill to run during the week at 8pm
+```
+
+`madz` will parse the natural language instruction and create the cron entry for you. Manage jobs from the TUI with `/schedule list`, `/schedule pause <name>`, `/schedule resume <name>`, and `/schedule run-now <name>`.
+
+### Scripting & Automation
+
+For headless execution, use chat mode — the response streams to stdout, so you can pipe it into other tools:
+
+```bash
+node index.js "Summarize memory/_index.md"
+```
+
+This is the same mode the internal cron jobs use (e.g., `node index.js --message "Run the reflection skill"`). In the container, run it with `docker exec`:
+
+```bash
+docker exec madz node index.js "Summarize memory/_index.md"
+```
 
 ### Virtual Filesystem
 
@@ -309,97 +431,72 @@ This creates a clean, consistent namespace where the agent always sees `/` as th
 
 ---
 
-## ⚙️ Advanced Usage
+## 🤖 Delegating Work to Subagents
 
-### Scheduled Jobs
+`madz` can delegate complex, multi-step work to specialized subagents. Instead of you orchestrating each step manually — checking git status, running lint, editing files, committing — you describe the outcome you want in plain language, and the orchestrator routes the work to the right specialist.
 
-`madz` supports cron-based scheduled jobs that run in non-interactive mode. Define entries in `config.yaml` to execute skills or prompts on a schedule — for example, running a skill every hour. Each invocation inherits the current session's memory context and sandbox permissions. Max-concurrency control prevents run overlap.
-
-To schedule a task, simply ask:
-
-```
-madz, schedule the news-email skill to run during the week at 8pm
-```
-
-`madz` will parse the natural language instruction and create the cron entry for you.
-
-### Scripting & Automation
-
-For headless execution, pipe results directly into other tools or scripts. The `--json` flag enables structured output for automation pipelines.
-
-```bash
-node index.js "Summarize memory/_index.md" --json | jq '.content'
-```
-
-This mode is used by internal cron jobs and NPM installations.
-
----
-
-## 🤖 Automating Coding Tasks with the Task Tool
-
-`madz` can delegate complex, multi-step coding tasks to specialized subagents through the `task` tool. Instead of you orchestrating each step manually — checking git status, running lint, editing files, committing — you describe the outcome you want and a subagent handles the execution. The machine does not wait for idle terminals; it waits for clear instructions.
+You do not type agent names. You state the task; the orchestrator dispatches.
 
 ### Available Agent Types
 
-Two agent types are available, each with a distinct scope:
-
-- **`general-purpose`** — Research, file searches, multi-step tasks that span multiple domains. Has access to all tools. Use this when the task is exploratory, involves gathering information, or doesn't fit neatly into a single specialty.
-
-- **`coding`** — Specialized for code-related work: file editing, debugging, implementation, code review, and git operations. This agent understands project conventions, follows linting standards, and respects commit message formatting rules. Use this when the task touches source code, tests, or version control.
+| Agent | Scope |
+|-------|-------|
+| `coding` | Code editing, debugging, implementation, git operations |
+| `search` | Multi-source search (web, docs, codebase) with synthesis |
+| `debug` | Error tracing, reproduction, and fix proposals |
+| `code-review` | Structured reviews: bugs, security, style, performance |
+| `research` | Multi-step research with source tracking |
+| `testing` | Test generation, gap analysis, coverage improvements |
+| `documentation` | Documentation updates, API docs, changelogs |
+| `security-audit` | Security scanning and dependency auditing |
+| `performance` | Benchmarking, bottleneck identification, optimization |
+| `textEditor` | Text processing — summarize, rewrite, tone, grammar |
+| `seoAnalyst` | Keyword density, meta descriptions, SERP analysis |
+| `translator` | Multi-language translation and language detection |
 
 ### Concrete Examples
 
-**Example 1: Commit and Push**
-
+**Commit and push:**
 ```
-task coding: commit and push to this branch, we have an open pr
+Commit and push this branch — we have an open PR.
 ```
+The coding agent checks git status, stages changed files, crafts a commit message following the project's conventional commit format, and pushes to the remote branch. It will not push without explicit approval — see the notes below.
 
-The coding-agent checks git status, stages changed files, crafts a descriptive commit message following the project's conventional commit format, and pushes to the remote branch. It will not push without explicit approval — see the notes below.
-
-**Example 2: Run Lint, Fix Errors, Commit, and Push**
-
+**Run lint, fix, commit, push:**
 ```
-task coding: run lint, fix any errors, then commit and push
+Run lint, fix any errors, then commit and push.
 ```
+The agent runs the project's lint command, identifies each issue, applies fixes, re-runs lint to verify, and proceeds to commit and push. If a fix is ambiguous or risky, it pauses and asks for guidance rather than guessing.
 
-The coding-agent runs the project's lint command, identifies each issue, applies fixes to the relevant files, re-runs lint to verify all issues are resolved, and then proceeds to commit and push. If a fix is ambiguous or risky, the agent will pause and ask for guidance rather than guessing.
-
-**Example 3: Update a PR**
-
+**Update a PR:**
 ```
-task coding: update PR #123 with the latest changes from this branch
+Update PR #123 with the latest changes from this branch.
 ```
+The agent reads the current branch state, diffs against the target branch, and composes a meaningful description from the actual code changes.
 
-The coding-agent can interact with GitHub pull requests — updating PR descriptions, adding review comments, requesting changes, or merging. It reads the current branch state, diffs against the target branch, and composes meaningful descriptions from the actual code changes.
-
-**Example 4: Create an Issue**
-
+**Create an issue:**
 ```
-task coding: create an issue for memory leak in session manager
+Create an issue for the memory leak in the session manager.
 ```
+The agent searches the codebase for relevant context, references related files, and creates the issue with a proper title, description, and labels.
 
-The coding-agent can create GitHub issues with proper titles, descriptions, labels, and categorization. It will search the codebase for relevant context, reference related files, and suggest labels based on the project's issue taxonomy.
-
-**Example 5: Debug a Failing Test**
-
+**Debug a failing test:**
 ```
-task coding: debug the failing test in tests/unit/skills.test.js and fix it
+Debug the failing test in tests/unit/skills.test.js and fix it.
 ```
-
-The coding-agent runs the specified test, analyzes the failure output, traces the root cause through the relevant source files, and applies a fix. It re-runs the test to confirm the fix resolves the issue and does not introduce regressions in related tests.
+The agent runs the test, analyzes the failure, traces the root cause through the relevant source files, applies a fix, and re-runs the test to confirm the fix without regressions.
 
 ### Best Practices
 
-- **Be specific in your delegation.** Clear, unambiguous instructions produce better results. "Fix the lint errors" is good; "run eslint on src/ and fix all errors without changing the public API" is better.
-- **The coding-agent operates in the project's CWD by default.** All file paths and commands are resolved relative to the working directory.
+- **Be specific in your delegation.** Clear, unambiguous instructions produce better results. "Fix the lint errors" is good; "run lint on src/ and fix all errors without changing the public API" is better.
+- **The agent operates in the project's working directory by default.** All file paths and commands are resolved relative to it.
 - **It follows project conventions.** The agent reads `AGENTS.md` rules, respects the project's commit message format, and adheres to linting and formatting standards.
 - **For git operations, it respects branch protection.** It will not force-push or bypass protected branches.
 - **Complex tasks benefit from step-by-step instructions.** If a task has multiple phases, describe them in order and the agent will execute sequentially.
 
 ### Important Notes
 
-- The coding-agent **never rebases** without explicit agreement.
+- The agent **never rebases** without explicit agreement.
 - It **never pushes** without explicit user approval.
 - It **never changes branches** without permission.
 - It follows the project's **conventional commit format** for all commits.
@@ -414,18 +511,18 @@ These guardrails exist so you can delegate with confidence. The agent is a colla
 | Issue | Solution |
 |-------|----------|
 | `docker: command not found` | Install Docker Desktop (macOS/Windows) or Docker Engine (Linux). Verify with `docker --version`. |
-| **Is the container running?** | Check status with `docker ps -a | grep madz`. If it's `Exited`, check logs with `docker logs madz`. |
+| **Is the container running?** | Check status with `docker ps -a \| grep madz`. If it's `Exited`, check logs with `docker logs madz`. |
 | Permission denied on `docker` commands | Add your user to the `docker` group: `sudo usermod -aG docker $USER`, then restart your terminal. |
 | Container exits immediately | Check logs: `docker logs madz`. Missing `OPENAI_API_KEY` or invalid config will cause early exit. |
 | SSH connection refused | Ensure port mapping is correct (`-p 2222:22`). Try `ssh -o StrictHostKeyChecking=no -p 2222 madz@localhost`. |
 | Memory/skills not persisting | Use volumes or bind mounts for persistent state. If using bind mounts, verify host directory permissions allow the `madz` user to read and write. |
+| Need a shell for inspection | SSH login launches the TUI directly — there is no interactive shell. Use `docker exec -it madz /bin/sh` instead. |
 
 ### General
 | Issue | Solution |
 |-------|----------|
-| **TUI not launching?** | Ensure `INK` and `React` dependencies are installed (`npm install`). |
+| **TUI not launching?** | Ensure `ink` and `react` dependencies are installed (`npm install`). |
 | **Skill not executing?** | Check that the required permissions (`filesystem:read`, `filesystem:write`, etc.) are enabled in `config.yaml` under `sandbox.permissions`. |
 | **Session not persisting?** | Verify that `memory/` is writable and not mounted as read-only. |
-| **Need a fresh shell in Docker?** | Run `/bin/sh` after logging in, or start the app in the background with `npm start &`. |
 
 *Deploy with confidence. The machine waits for no one, but `madz` remembers everything.*
