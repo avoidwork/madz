@@ -72,7 +72,7 @@ COPY --chown=madz:node LICENSE index.js config.yaml ./
 COPY --chown=madz:node src/ ./src/
 COPY --chown=madz:node prompts/ ./prompts/
 COPY --chown=madz:node .skills/ ./.skills/
-RUN mkdir -p /app/projects && chown madz:node /app/projects
+RUN mkdir -p ./projects && chown madz:node ./projects
 COPY --chown=madz:node docker-entrypoint.sh /docker-entrypoint.sh
 
 RUN chmod +x /docker-entrypoint.sh
