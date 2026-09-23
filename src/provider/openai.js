@@ -1,19 +1,18 @@
 import { ChatOpenAI } from "@langchain/openai";
 import { AIMessageChunk } from "@langchain/core/messages";
-import { calculateConversationTokens } from "../tui/contextTokens.js";
 import { createTokenBudget } from "./tokenBudget.js";
-import { logger } from "../shared/logger.js";
 
 /** Default retry delay (ms) when a 429 carries no `retry-after` hint. */
 export const DEFAULT_RETRY_AFTER_MS = 60_000;
-
-/** Number of dispatch-level retries on a 429 when the token budget is enabled. */
-const RATE_LIMIT_RETRIES = 1;
 
 // Module-level shared token budget. Every `createChatModel` call with
 // `maxTokensMinute > 0` paces against this single instance so the orchestrator
 // and all subagents share one rolling window (not an independent budget each).
 // Lazily created and keyed by `maxTokensMinute`; a changed value re-creates it.
+// Enforcement happens in the `TokenBudget` middleware
+// (`src/provider/tokenBudgetMiddleware.js`), which reads this same instance —
+// NOT by patching the returned model's `invoke`/`stream`, which `bindTools()`
+// would orphan.
 let sharedTokenBudget = null;
 let sharedTokenBudgetMax = 0;
 
@@ -67,44 +66,6 @@ export function getRetryDelayMs(err, defaultMs) {
 }
 
 /**
- * Detect a rate-limit (429) error from an LLM provider.
- * @param {Error} err - The caught error
- * @returns {boolean} True if the error is a 429 rate-limit error
- */
-function isRateLimitError(err) {
-	return err?.status === 429 || err?.response?.status === 429;
-}
-
-/**
- * Estimate the token cost of a request: input tokens plus the output budget.
- * @param {Array|Object} messages - LangChain message(s) to be sent
- * @param {ProviderConfig} config - Provider configuration
- * @returns {Promise<number>} Estimated total token cost
- */
-async function estimateRequestCost(messages, config) {
-	const msgs = Array.isArray(messages) ? messages : [messages];
-	const inputTokens = await calculateConversationTokens(msgs, config.model, config.encoding);
-	const outputBudget = config.maxTokens || 0;
-	return inputTokens + outputBudget;
-}
-
-/**
- * Extract the actual token usage (prompt + completion) from a dispatch
- * response. Returns the total when present, or 0 when the response carries no
- * usable `usage` field (e.g. some providers or streaming responses).
- * @param {Object} result - The invoke/stream result from the model
- * @returns {number} Actual prompt + completion tokens, or 0 when absent
- */
-export function readUsageTokens(result) {
-	const usage = result?.usage_metadata ?? result?.usage ?? result?.llmOutput?.usage;
-	if (!usage) return 0;
-	const prompt = usage.prompt_tokens ?? usage.input_tokens ?? 0;
-	const completion = usage.completion_tokens ?? usage.output_tokens ?? 0;
-	const total = usage.total_tokens ?? prompt + completion;
-	return total > 0 ? total : prompt + completion;
-}
-
-/**
  * Configuration for creating an OpenAI-compatible chat model.
  * @typedef {Object} ProviderConfig
  * @property {string} base_url - The base URL of the OpenAI-compatible API
@@ -120,12 +81,20 @@ export function readUsageTokens(result) {
  *   Passed through to `ChatOpenAI`, but NOT used by the dispatch path to gate
  *   concurrent model calls — actual concurrency comes from parallel subagents.
  *   The shared token budget is the enforcement point for the tokens-per-minute ceiling.
- * @property {number} [rateLimit.maxTokensMinute] - Rolling tokens-per-minute budget (non-negative int, default: 0 = disabled)
+ * @property {number} [rateLimit.maxTokensMinute] - Rolling tokens-per-minute budget (non-negative int, default: 0 = disabled).
+ *   Enforced by the `TokenBudget` middleware (`src/provider/tokenBudgetMiddleware.js`) registered on
+ *   `createDeepAgent`, NOT by this model instance — `createChatModel` deliberately does not patch
+ *   `invoke`/`stream`, because `ChatOpenAI.bindTools()` constructs a new object and orphans such patches.
  */
 
 /**
  * Create a ChatOpenAI model instance from provider configuration.
- * This is a thin model client factory — it does NOT contain graph or agent logic.
+ * This is a thin model client factory — it does NOT contain graph or agent logic,
+ * and it does NOT enforce `rateLimit.maxTokensMinute` on the returned instance.
+ * When `maxTokensMinute > 0` it only ensures the shared token budget exists (so
+ * the TUI status bar and the `TokenBudget` middleware observe the same window);
+ * enforcement lives in the `TokenBudget` middleware, because `bindTools()`
+ * rebuilds the model object and would orphan any `invoke`/`stream` override.
  * @param {ProviderConfig} config - Provider configuration object
  * @returns {ChatOpenAI} A configured ChatOpenAI instance
  */
@@ -157,86 +126,13 @@ export function createChatModel(config) {
 
 	const model = new ChatOpenAI(opts);
 
-	// Wire the token-budget throttle into dispatch when maxTokensMinute > 0.
+	// Ensure the shared token budget exists when a budget is configured, so the
+	// TokenBudget middleware and the TUI status bar observe the same rolling window.
+	// Enforcement is NOT wired here: patching model.invoke/stream is orphaned by
+	// ChatOpenAI.bindTools() -> withConfig(), which builds a new object. See
+	// src/provider/tokenBudgetMiddleware.js.
 	const maxTokensMinute = config.rateLimit?.maxTokensMinute || 0;
-	if (maxTokensMinute > 0) {
-		// All model instances (orchestrator + subagents) share one budget window.
-		const budget = getSharedTokenBudget(maxTokensMinute);
-
-		/**
-		 * Normalize LangChain messages to {role, content} for token estimation.
-		 * @param {Array|Object} messages - LangChain message(s)
-		 * @returns {Array} Normalized messages
-		 */
-		const normalizeMessages = (messages) => {
-			const msgs = Array.isArray(messages) ? messages : [messages];
-			return msgs.map((msg) => ({
-				role: msg.role || msg._getType?.() || "user",
-				content: Array.isArray(msg.content)
-					? msg.content.map((block) => block?.text ?? "").join("")
-					: (msg.content ?? ""),
-			}));
-		};
-
-		/**
-		 * Wrap a dispatch method to pace requests against the shared token budget.
-		 * Reserves capacity atomically before dispatch, reconciles the reserved
-		 * entry to actual usage on success, and releases the reservation on
-		 * failure. A 429 releases the failed attempt, re-paces, and retries once.
-		 * The raw method is read at call time so tests can swap the underlying
-		 * implementation (via `model._rawInvoke` / `model._rawStream`) without
-		 * bypassing the wrapper.
-		 * @param {Function} raw - Getter returning the current raw dispatch method
-		 * @returns {Function} Wrapped method
-		 */
-		const wrapDispatch = (raw) =>
-			async function (...args) {
-				const [messages] = args;
-				const estimatedCost = await estimateRequestCost(normalizeMessages(messages), config);
-				let lastError;
-				for (let attempt = 0; attempt <= RATE_LIMIT_RETRIES; attempt++) {
-					// Atomically wait for capacity and record the reservation.
-					const handle = await budget.reserve(estimatedCost);
-					try {
-						const result = await raw().apply(this, args);
-						// Reconcile the reserved entry to the actual usage reported by the API.
-						const actual = readUsageTokens(result);
-						if (actual > 0) budget.reconcile(handle, actual);
-						return result;
-					} catch (err) {
-						lastError = err;
-						// A failed attempt must not consume budget.
-						budget.release(handle);
-						if (isRateLimitError(err) && budget.current() > maxTokensMinute) {
-							logger.warn(
-								{ tokens: budget.current(), maxTokensMinute },
-								"[provider] Rate-limit error attributed to exceeded token budget",
-							);
-						}
-						// Retry a rate-limit error once when the token budget is enabled,
-						// honoring `retry-after` or defaulting to 60s.
-						if (attempt < RATE_LIMIT_RETRIES && isRateLimitError(err)) {
-							const delay = getRetryDelayMs(err, DEFAULT_RETRY_AFTER_MS);
-							logger.warn({ delayMs: delay }, "[provider] Rate-limit hit; retrying after delay");
-							await new Promise((resolve) => setTimeout(resolve, delay));
-							// Re-pace before re-dispatching so the retry does not fire
-							// while the window is still over capacity.
-							await budget.waitForCapacity(estimatedCost);
-							continue;
-						}
-						throw err;
-					}
-				}
-				throw lastError;
-			};
-
-		// Keep the raw methods reachable so the wrapper always calls the
-		// current implementation, even after a test (or caller) swaps it.
-		model._rawInvoke = model.invoke;
-		model._rawStream = model.stream;
-		model.invoke = wrapDispatch(() => model._rawInvoke);
-		model.stream = wrapDispatch(() => model._rawStream);
-	}
+	if (maxTokensMinute > 0) getSharedTokenBudget(maxTokensMinute);
 
 	// Monkey-patch AIMessageChunk to expose a .reasoning getter that reads
 	// from additional_kwargs.reasoning_content. LangChain stores reasoning

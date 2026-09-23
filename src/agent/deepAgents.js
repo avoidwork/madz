@@ -11,6 +11,7 @@ import { loadConfig } from "../config/loader.js";
 import { loadSystemPrompt } from "../memory/prompts.js";
 import { SkillRegistry } from "../skills/registry.js";
 import { createChatModel } from "../provider/openai.js";
+import { createTokenBudgetMiddleware } from "../provider/tokenBudgetMiddleware.js";
 import {
 	buildToolConfig,
 	getToolsForAgentTypes,
@@ -196,6 +197,17 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 
 	// All discovered skills are available to the orchestrator
 
+	// Token-budget enforcement middleware. Registered LAST: AgentNode composes
+	// the wrapModelCall chain backwards, so the last entry is innermost and
+	// observes the final post-summarization/post-truncation message set.
+	// Returns null when maxTokensMinute is 0/unset, so it is spread in conditionally.
+	const tokenBudgetMiddleware = createTokenBudgetMiddleware({
+		maxTokensMinute: providerConfig.rateLimit?.maxTokensMinute,
+		model: providerConfig.model,
+		maxTokens: providerConfig.maxTokens,
+		encoding: providerConfig.encoding,
+	});
+
 	return createDeepAgent({
 		model,
 		tools: orchestratorTools,
@@ -207,7 +219,10 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 		subagents: subagentDefinitions,
 		...(skillPaths.length > 0 && { skills: skillPaths }),
 		...(checkpointer && { checkpointer }),
-		middleware: [createCodeInterpreterMiddleware()],
+		middleware: [
+			createCodeInterpreterMiddleware(),
+			...(tokenBudgetMiddleware ? [tokenBudgetMiddleware] : []),
+		],
 		streamTransformers: [() => createTurnTransformer()],
 	});
 }
