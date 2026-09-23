@@ -10,38 +10,36 @@ This document describes how madz is structured, how subsystems interact, and the
 graph TD
     C["config.yaml"] -->|"loadConfig()"| I["index.js"]
     I --> T["Telemetry"]
-    I --> R["Registry"]
-    I --> S["Scheduler"]
+    I --> R["SkillRegistry"]
+    I --> SM["ScheduleManager"]
+    I --> CR["Cron\n(system crontab)"]
+    CR -->|"crontab fires\nnode index.js --message"| I
     I --> DA["Deep Agents\nOrchestrator"]
-    DA -->|"orchestrator + shared"| OT["Orchestrator Tools"]
-    DA -->|"subagent + shared"| ST["Subagent Tools"]
-    DA -->|"model"| P["Provider"]
+    DA -->|"ORCHESTRATOR_TOOLS\nallowlist"| OT["Orchestrator Tools"]
+    DA -->|"TOOL_CLASSIFICATIONS\nper agent name"| ST["Subagent Tools"]
+    DA -->|"model"| P["Provider\nChatOpenAI"]
     DA -->|"backend"| CB["CompositeBackend"]
-    CB -->|"default"| CFB["Core Backend\nFilesystemBackend\n(rootDir: process.cwd())"]
+    CB -->|"default"| CFB["Core Backend\nLocalShellBackend\n(rootDir: process.cwd())"]
     CB -->|"/memory/context/"| CTB["Context Backend\nFilesystemBackend\n(rootDir: memory/context/)"]
-    DA -->|"delegate"| SA["Coding Subagent"]
+    DA -->|"task tool"| SA["Subagents x12\n(coding, search, debug,\nresearch, testing, ...)"]
     SA -->|"execution"| ST
-    S -->|"runNow()"| SB["Sandbox"]
-    SB -->|"spawn()"| SK["scripts/"]
-    TM["Memory Files"] -->|"context"| SE["Session"]
-    SE -->|context window| CW["conversation state"]
-    TM -->|write/read| FS["filesystem"]
-    UI["TUI (Ink)"] -->|"handleConversation"| DA
-    UI -->|"invokeSkill"| SB
-    I <-->|handleConversation / invokeSkill| UI
+    DA -->|"checkpointer"| CK["Checkpointer\nSqliteSaver / MemorySaver"]
+    TM["Memory Files\nmemory/context/"] -->|"loadContext()"| SE["Session"]
+    SE -->|"sessionState"| UI["TUI (Ink)"]
+    UI -->|"dispatchProvider"| DA
+    I <-->|"render / onExit"| UI
     classDef root fill:#f9a825,color:#fff,stroke:#e65100
     classDef core fill:#42a5f5,color:#fff,stroke:#1565c0
     classDef util fill:#66bb6a,color:#fff,stroke:#2e7d32
     classDef ext fill:#ab47bc,color:#fff,stroke:#6a1b9a
-    classDef cache fill:#26a69a,color:#fff,stroke:#00695c
     classDef agent fill:#7e57c2,color:#fff,stroke:#4527a0
     classDef backend fill:#26a69a,color:#fff,stroke:#00695c
     class I root
     class DA,P,T,R core
     class DA,SA agent
-    class S,TM,SE,SB util
-    class SK,CW,FS ext
-    class CB,CFB,CTB,DB backend
+    class SM,CR,TM,SE util
+    class CK ext
+    class CB,CFB,CTB backend
 ```
 
 ---
@@ -52,15 +50,22 @@ graph TD
 
 **Startup:**
 
-1. `loadConfig()` → reads `config.yaml`, deep-merges defaults, resolves env vars, validates via Zod
-2. Conditionally boots Telemetry (`config.telemetry.enabled`)
-3. Creates `SkillRegistry`, calls `discover("skills/")`
-4. Loads memory system, creates session + `SessionStateManager`
-5. Creates `ScheduleManager`, defines `dispatchProvider()`, `handleConversation()`, `invokeSkill()`
+1. Parse CLI args (yargs) → `loadConfig()` reads `config.yaml`, deep-merges defaults, resolves env vars, validates via Zod
+2. `writeEnvCron()` → dumps `process.env` to `.env.cron` for cron-invoked processes
+3. `Cron.sync(schedulesDir)` → reconciles persisted jobs (`memory/schedules/*.json`) with the system crontab; ensures `reflection-daily` exists
+4. `ensureSessionsDir()` / `ensureToolsDir()` → create `memory/sessions/`, `memory/tools/`
+5. Onboarding check: `await hasProfile()` → if missing, create `createOnboarding()` instance (passed to TUI)
+6. Conditionally boot Telemetry (`config.telemetry.enabled`)
+7. Create `SkillRegistry`, call `discover()` (scopes from `sandbox.skillScanPaths`: `.skills/`, `skills/`)
+8. Initialize GC manager (`initGC()`), expire ephemeral memories (non-blocking)
+9. Create session + `SessionStateManager`; create checkpointer (`SqliteSaver` or `MemorySaver`)
+10. `ScheduleManager.loadFromDisk(schedulesDir)` → load persisted jobs
+11. `createDeepAgentsOrchestrator(checkpointer)` → build the Deep Agents orchestrator
+12. Define `dispatchProvider()`, `handleConversation()`, `invokeSkill()`; register shutdown handler
 
-**Shutdown:** saves session → cleans retained memory → flushes OpenTelemetry.
+**Shutdown:** stops GC manager → flushes OpenTelemetry → flushes logger. (`cleanRetainedMemory()` / `enforceMaxEntries()` exist in `src/memory/retention.js` but are not wired into shutdown.)
 
-**TUI exports:** `config`, `sessionId`, `sessionState`, `registry`, `dispatchProvider`, `handleConversation`, `invokeSkill`, `handleShutdown`, `scheduleManager`, `setConfigValue`, `loadContext`, memory helpers.
+**TUI exports:** `config`, `sessionState`, `registry`, `tracer`, `dispatchProvider`, `handleConversation`, `invokeSkill`, `handleShutdown`, `scheduleManager`, `setConfigValue`, `loadContext`, `readMemoryFile`.
 
 ---
 
@@ -70,17 +75,18 @@ graph TD
 
 | File | Purpose |
 |------|---------|
-| `schemas.js` | Zod schemas: `ConfigSchema`, `ProvidersSchema`, `SandboxScopeSchema`, etc. |
-| `loader.js` | Loads `config.yaml`, merges defaults, resolves env vars, validates |
-| `mutate.js` | `parseValue()`, `assignPath()`, `applyDotPathMutation()` — dot-path mutation with Zod validation |
+| `config.js` | `ConfigSchema` (composed from `schemas/`), `DEFAULT_CONFIG`, `getSubAgentTemperature()`, `_setResolvedConfig()` |
+| `schemas/` | Per-section Zod schemas: `providers.js`, `sandbox.js`, `memory.js`, `telemetry.js`, `schedules.js`, `tui.js`, `agent.js`, `lru.js`, `persistence.js`, `skillAgentMap.js`, `subAgentsTemperature.js`, `vector.js`, `image.js`, `calendar`/`email`/`search` (in `providers.js`) |
+| `loader.js` | `loadConfig()` — loads `config.yaml`, deep-merges defaults, `syncEnv()` materializes env-defined paths, resolves env vars, validates; `setConfigValue()` / `saveConfig()` |
+| `patch.js` | `applyDotPathMutation()` — dot-path mutation with Zod validation |
 
-Env var resolution maps config paths → `UPPER_SNAKE_CASE` (e.g., `sandbox.timeout.seconds` → `SANDBOX_TIMEOUT_SECONDS`). `'providers'`/`'credentials'`/`'process'` containers are dropped from the name path. String env values auto-parsed to booleans/numbers. Legacy `${VAR_NAME}` interpolation supported as fallback.
+Env var resolution maps config paths → `UPPER_SNAKE_CASE` (e.g., `sandbox.timeout.seconds` → `SANDBOX_TIMEOUT_SECONDS`). Container keys dropped from the name path: `providers`, `credentials`, `ratelimit`, `timeout`, `search`, `process`, `calendar`, `subAgentsTemperature`. String env values auto-parsed to booleans/numbers. Legacy `${VAR_NAME}` interpolation supported as fallback.
 
 ---
 
 ## Logger
 
-`src/logger.js` — structured JSON logging via `pino` with OS-aware log directories and dual-file output.
+`src/shared/logger.js` — structured JSON logging via `pino` with OS-aware log directories and dual-file output.
 
 | File | Purpose |
 |------|---------|
@@ -114,47 +120,55 @@ The directory is created automatically (`mkdirSync({ recursive: true })`). If th
 | File | Purpose |
 |------|---------|
 | `openai.js` | `createChatModel()` — produces `ChatOpenAI` from `ProviderConfig` |
+| `tokenBudget.js` | Shared rolling token budget (observed by TUI status bar and middleware) |
+| `tokenBudgetMiddleware.js` | `createTokenBudgetMiddleware()` — `wrapModelCall` middleware enforcing `rateLimit.maxTokensMinute` |
 
 The provider config includes an optional `encoding` field (mapped from `OPENAI_ENCODING` env var) that specifies the tiktoken encoder name for token counting. This is primarily useful when using non-OpenAI models via `OPENAI_BASE_URL`.
 
-The provider instance is consumed by `Agent` (via `createReactAgent`) or `dispatchProvider()` in `index.js`.
+The provider instance is consumed by the Deep Agents orchestrator (`createDeepAgentsOrchestrator()` in `src/agent/deepAgents.js`). `createChatModel()` deliberately does not patch `invoke`/`stream` — `ChatOpenAI.bindTools()` constructs a new object and would orphan such patches; rate-limit enforcement lives in the `TokenBudget` middleware instead.
 
 ---
 
 ## Agent
 
-`src/agent/` — ReAct agent wrapper around LangGraph's prebuilt builder.
+`src/agent/` — Deep Agents orchestrator and subagent definitions. There is no standalone ReAct wrapper; the agent loop is compiled by `createDeepAgent()` from the `deepagents` library.
 
 | File | Purpose |
 |------|---------|
-| `react.js` | `createReactAgent()` — compiles `createReactAgentGraph`; `callReactAgent()` — runs loop, returns response |
-
-The agent runs: reason → call tool(s) → reason again → answer. Tool array built by `buildToolConfig()` gates definitions on sandbox permissions.
+| `deepAgents.js` | `createDeepAgentsOrchestrator(checkpointer)` — builds the orchestrator: model, orchestrator tools, backends, subagent definitions, middleware, stream transformers |
+| `agentDefinitions.js` | `getAllAgents()` — the 12 subagent definitions (name, promptFile, description) |
+| `agentRegistry.js` | Registry helpers for agent definitions |
+| `coreBackend.js` | `createCoreBackend()` — `LocalShellBackend` (`rootDir: process.cwd()`, `virtualMode: false`, `inheritEnv: true`) |
+| `contextBackend.js` | `createContextBackend(cwd)` — `FilesystemBackend` (`rootDir: memory/context/`, `virtualMode: false`) |
 
 ---
 
 ## Deep Agents
 
-`src/agent/deepAgents.js` — Deep Agents orchestrator with a specialized coding agent. Uses middleware for filesystem, memory, skills, and summarization capabilities.
+`src/agent/deepAgents.js` — Deep Agents orchestrator with 12 specialized subagents. The `deepagents` library supplies the middleware stack (filesystem, subagents, skills, summarization, patch-tool-calls); madz adds `createCodeInterpreterMiddleware()` (`@langchain/quickjs`) and, when `rateLimit.maxTokensMinute > 0`, `createTokenBudgetMiddleware()`.
 
-| File | Purpose |
-|------|---------|  
-| `deepAgents.js` | `createDeepAgentsOrchestrator()` — creates the Deep Agents orchestrator with coding and utility agents; loads per-project agent prompt configuration |
+**Orchestrator construction (`createDeepAgentsOrchestrator`):**
 
-The orchestrator routes tasks automatically — the system prompt delegates every task to the orchestrator, which manages routing, state, and observability natively.
+1. `loadConfig()` + `loadSystemPrompt()`, then append `AGENTS.md` (from `config.cwd`) directly to the system prompt — this avoids deepagents' `MemoryMiddleware` injecting its own hardcoded memory guidelines
+2. `SkillRegistry.discover()` → `getSkillPaths()` for the orchestrator's skills
+3. `createChatModel(providerConfig)` → orchestrator model
+4. `registerHarnessProfile()` — excludes `execute`, `grep`, `ls` for the configured model identifier
+5. `buildToolConfig()` → all tools; orchestrator receives only those in `ORCHESTRATOR_TOOLS`
+6. `createSubagentDefinitions()` → per-agent tool sets and skills
+7. `createDeepAgent({ model, tools, systemPrompt, store: InMemoryStore, backend: CompositeBackend, subagents, skills, checkpointer, middleware, streamTransformers })`
 
-**Tool Classification:** Tools and skills are classified by agent type (`orchestrator`, `subagent`, or `shared`) in `src/tools/index.js`. The orchestrator receives only `orchestrator`-classified and `shared` tools/skills, while the coding subagent receives `subagent`-classified and `shared` tools/skills. This ensures each agent has only the capabilities it needs for its role. The classification is applied via `buildToolConfig()`'s `classificationFilter` parameter and `filterSkillPaths()` helper function.
+**Tool Classification:** Tools are classified per agent name in `TOOL_CLASSIFICATIONS` (`src/tools/index.js`) — a map of tool name → array of agent names (e.g. `"coding"`, `"debug"`, `"orchestrator"`). The orchestrator receives only the tools listed in `ORCHESTRATOR_TOOLS`; each subagent receives tools whose classification array includes its own name, via `getToolsForAgentTypes()`. Skills are mapped to agents by frontmatter `metadata.agent` first, then `skillAgentMap` config patterns (`src/skills/agentMapper.js`), and attached per-subagent via `SkillRegistry.getSkillPathsForAgent()`. There is no `shared` classification tier.
 
 ---
 
 ## Backends
 
-`src/agent/backends/` — Virtual filesystem backends powered by the `deepagents` library's `CompositeBackend` and `FilesystemBackend`. The application root is `'/'` — all file paths are virtual paths under this root, resolved relative to the process working directory.
+`src/agent/` — Filesystem backends powered by the `deepagents` library's `CompositeBackend`, `FilesystemBackend`, and `LocalShellBackend`. Both backends run with `virtualMode: false`, so absolute paths are allowed and resolved against `rootDir` (legacy behavior); `O_NOFOLLOW` is used for file I/O where the platform supports it.
 
 | File | Purpose |
 |------|---------|
-| `coreBackend.js` | `createCoreBackend()` — `FilesystemBackend` with `rootDir: process.cwd()`, `virtualMode: true` |
-| `contextBackend.js` | `createContextBackend(cwd)` — `FilesystemBackend` with `rootDir: memory/context/`, `virtualMode: true` |
+| `coreBackend.js` | `createCoreBackend()` — `LocalShellBackend` with `rootDir: process.cwd()`, `virtualMode: false`, `inheritEnv: true` (shell execution-capable) |
+| `contextBackend.js` | `createContextBackend(cwd)` — `FilesystemBackend` with `rootDir: memory/context/`, `virtualMode: false` |
 
 **CompositeBackend Routing:**
 
@@ -162,12 +176,14 @@ The orchestrator receives a `CompositeBackend` that routes file operations to di
 
 ```
 CompositeBackend(
-  defaultBackend: coreBackend,    // Falls back to process.cwd()
+  defaultBackend: coreBackend,    // LocalShellBackend → process.cwd()
   routes: {
     "/memory/context/": contextBackend  // Memory context files
   }
 )
 ```
+
+The route key is derived from config: `"/" + config.memory.contextDir` (default `memory/context/` → `/memory/context/`).
 
 **Routing algorithm:**
 1. Routes are sorted by prefix length (longest match first)
@@ -175,31 +191,19 @@ CompositeBackend(
 3. Matching prefix is stripped, operation delegated to that backend
 4. Unmatched paths fall through to the default backend (core)
 
-**Virtual Mode:**
-
-All `FilesystemBackend` instances use `virtualMode: true`. This means:
-- Incoming paths are treated as virtual absolute paths (starting with `/`)
-- The leading `/` is stripped, then resolved relative to `rootDir`
-- All results return virtual paths (with leading `/`)
-- Path traversal is validated — resolved paths must stay within `rootDir`
-
-**Application Root (`'/'`):**
-
-The `'/'` root is the application's working directory from the agent's perspective. When the agent reads `/package.json`, it resolves to `<cwd>/package.json`. When it writes `/src/tools/index.js`, it resolves to `<cwd>/src/tools/index.js`. The virtual filesystem creates a clean, consistent namespace where `/` always means "the application root."
-
 **Security:**
 
-`FilesystemBackend` uses `O_NOFOLLOW` flag when available to prevent symlink following. In virtual mode, parent directories are also validated on delete operations. The `allPathsScopedToRoutes` function enforces that filesystem permissions with execution-capable backends are scoped to `CompositeBackend` route prefixes, preventing shell commands from bypassing path-based permission rules.
+`FilesystemBackend` uses the `O_NOFOLLOW` flag when available to prevent symlink following. The core backend is execution-capable (`LocalShellBackend`), which is why the harness profile excludes `execute`, `grep`, and `ls` for the configured model identifier — shell access is governed by tool permissions rather than path routing alone.
 
 ---
 
 ## Scan Agents
 
-`src/tools/scanAgents.js` — scans for `AGENTS.md` files in a target directory. Delegates to `loadAgents()` from `src/workspace/loadAgents.js` with path validation.
+`src/tools/scanAgents/index.js` — scans for `AGENTS.md` files in a target directory. Delegates to `loadAgents()` from `src/workspace/loadAgents.js` with path validation.
 
 | File | Purpose |
 |------|---------|
-| `scanAgents.js` | `createScanAgentsTool()` — LangChain tool with `filesystem:read` permission; `scanAgentsImpl()` — validates path, delegates to `loadAgents()`; `ScanAgentsSchema` — zod schema with optional `path` parameter |
+| `index.js` | `scanAgents` — LangChain tool singleton requiring `filesystem:read`; `scanAgentsImpl()` — validates path via `resolvePath()`, delegates to `loadAgents()` |
 
 **Key features:**
 
@@ -208,29 +212,11 @@ The `'/'` root is the application's working directory from the agent's perspecti
 3. **File size limit** — Respects `maxReadSize` configuration
 4. **Workspace rules** — Returns formatted workspace rules section for system prompt injection
 
-
 ---
-
----
-
 
 ## Cache
 
-`src/cache/` — cache-aside LRU response cache for LLM API calls.
-
-| File | Purpose |
-|------|---------|
-| `llm_cache.js` | `createLlmCache(size, ttl)` — creates a tiny-lru-backed cache with `get()`, `set()`, `clear()` methods; `getCacheKey(threadId, message)` — generates `${threadId}_${sha256_hash}` cache keys |
-
-**How it works:**
-
-1. **Cache-aside pattern:** Before every LLM call (both streaming and non-streaming), the system checks the cache using a key derived from the thread ID and SHA-256 hash of the message content. On a hit, the cached response is returned immediately without an API call. On a miss, the LLM is called and the response is stored.
-2. **Conditional caching:** Responses are only cached when no tools or skills were invoked during agent execution. This prevents state-changing operations from being skipped on subsequent identical prompts.
-3. **Streaming support:** For streaming calls, the cache is checked before the stream begins. On successful completion, the aggregated final response is stored — individual chunks are never cached. Failed or aborted streams do not cache partial responses.
-4. **Eviction:** The cache enforces a maximum size (default: 100 entries) with LRU eviction. Entries expire after the configured TTL (default: 600000ms / 10 minutes).
-5. **Fail-open:** Cache retrieval or storage failures never block or prevent an LLM call.
-
-**Configuration:** Cache parameters are set via `config.lru.size` (default: 100) and `config.lru.ttl` (default: 600000). The cache is lazily initialized on first use — if config is unavailable, it falls back to defaults.
+There is no LLM response cache. An earlier cache-aside LRU layer (`src/cache/llm_cache.js`, `getCacheKey()`, conditional caching on tool usage) was removed; no cache module exists in `src/` and no call path consults one. `config.lru` (`schemas/lru.js`) survives in the schema but is currently vestigial — nothing in `src/` or `index.js` reads it.
 
 ---
 
@@ -243,10 +229,10 @@ The `'/'` root is the application's working directory from the agent's perspecti
 | `writer.js` | `writeMemoryFile()` — writes timestamped `.md` files with YAML frontmatter, auto-slugifies titles |
 | `reader.js` | `parseFrontmatter()` — YAML frontmatter parsing via `js-yaml`; `readMemoryFile()` — loads and parses a single memory file |
 | `context.js` | `loadContext()` — scans context directory for `.md` files, loads profile, returns combined string sorted by `timestamp` frontmatter |
-| `retention.js` | `cleanRetainedMemory()` — removes files older than `retentionDays` (default 90); `enforceMaxEntries()` — caps directory at `maxEntries` (default 1000) by oldest mtime |
-| `loadMemories.js` | `loadMemories()` — loads all entries sorted by `updatedDate` descending; `formatMemoriesForPrompt()` — formats entries with category labels (`USER PROFILE`, `USER CLARIFICATIONS`, `WORKING REFLECTION`, `TEMPORAL CAPTURE`); `parseEntryFile()` — parses a single entry's frontmatter + body |
-| `profile.js` | User profile CRUD: `loadProfile()`, `saveProfile()`, `hasProfile()`, `formatProfileContext()`, `sanitizeProfileData()`. Defines 12 attributes (name, dob, relationship, pets, hobbies, expertise, favorite bands/books/tv/movies, location, notes) with onboarding state machine (`INIT → ATTRACTOR → COLLECT → SAVE → TRANSCEND`) and control pattern matching (`skip`, `cancel`, `exit`) |
-| `expireEphemeral.js` | `expireEphemeralMemories()` — scans context directory, removes `.md` files with `ephemeral: true` + expired `expiresAt`; `isExpired()` — checks `expiresAt` against current time; `readEphemeralFile()` — extracts ephemeral metadata from frontmatter |
+| `retention.js` | `cleanRetainedMemory()` — removes files older than `retentionDays` (default 90); `enforceMaxEntries()` — caps directory at `maxEntries` (default 1000) by oldest mtime. Both exported; neither wired into shutdown |
+| `tools.js` | `ensureToolsDir()` — creates `memory/tools/` at startup |
+| `profile.js` | User profile CRUD: `loadProfile()`, `saveProfile()`, `hasProfile()` (async), `formatProfileContext()`, `sanitizeProfileData()`, `processOnboardingInput()`, `getAttribute()`. Defines 12 attributes (name, dob, relationship, pets, hobbies, expertise, favorite bands/books/tv/movies, location, notes) |
+| `expireEphemeralMemories.js` | `expireEphemeralMemories()` — scans context directory, removes `.md` files with `ephemeral: true` + expired `expiresAt`; `isExpired()` — checks `expiresAt` against current time; `readEphemeralFile()` — extracts ephemeral metadata from frontmatter. Invoked non-blocking at startup via `queueMicrotask()` |
 | `gc.js` | V8 garbage collection manager: `gc()` — triggers `global.gc()` with rate limiting (default 4 calls/hour, sliding window); `initGC()` — creates idle-timer controller with `onActivity()` reset and `stop()`; `isAvailable()` — checks `--expose-gc`; `getGcCalls()` / `_resetGcCalls()` — call tracking for testing |
 | `prompts.js` | `loadSystemPrompt()` — loads `prompts/SYSTEM_PROMPT.md`, strips YAML frontmatter if present |
 
@@ -254,25 +240,26 @@ The `'/'` root is the application's working directory from the agent's perspecti
 
 - **Canonical Memories** — Long-term, user-defined context stored as individual `.md` files in `memory/context/`. Each carries `createdDate` and `updatedDate` in YAML frontmatter. Loaded at session start and appended to the system prompt. Includes profile, clarifications, reflections, and temporal captures.
 
-- **Ephemeral Memories** — Autonomously captured moments (victories, frustrations, insights) with automatic expiration via `expiresAt` frontmatter field. Cleaned by `expireEphemeralMemories()` on a scheduled basis. These create a living lens that subtly influences tone and awareness over time.
+- **Ephemeral Memories** — Autonomously captured moments (victories, frustrations, insights) with automatic expiration via `expiresAt` frontmatter field. Cleaned by `expireEphemeralMemories()` at startup. These create a living lens that subtly influences tone and awareness over time.
 
-- **Reflections** — Generated daily by a cron job (`0 2 * * *`) that runs `/reflection` via `--chat` mode. Reflections are stored as canonical memories in `memory/context/` with `createdDate` and `updatedDate` metadata. The cron job is auto-installed on first onboarding completion, persisted as `memory/schedules/reflection-daily.json`, and registered in the system crontab under the `madz-schedules` block.
-
-`src/scheduler/autoSchedule.js` — `setupAutoSchedule()` returns a callback invoked after `saveProfile()` succeeds during onboarding. It automatically installs a `reflection-daily` cron job (`0 2 * * *`) into the system crontab and persists the job definition as `memory/schedules/reflection-daily.json`. The job invokes `node index.js --chat "/reflection"` at 2 AM daily.
+- **Reflections** — Generated daily by a cron job (`0 2 * * *`) that runs the reflection skill via `node index.js --message "Run the reflection skill"`. Reflections are stored as canonical memories in `memory/context/` with `createdDate` and `updatedDate` metadata. The job definition is seeded by `Cron._ensureReflectionJob()` during `Cron.sync()` at startup and registered in the system crontab under the `madz-schedules` block.
 
 ---
 
 ## Registry / Skills
 
-`src/registry/` — skill discovery, validation, and permission management.
+`src/skills/` — skill discovery, validation, and permission management.
 
 | File | Purpose |
 |------|---------|
 | `types.js` | `SkillMetadataSchema`, `PermissionSchema` (6 scopes), `DEFAULT_PERMS` |
-| `discoverer.js` | `discoverSkills()` — scans for `SKILL.md`, extracts frontmatter |
+| `discoverer.js` | `discoverSkills()` — scans scope directories for `SKILL.md`, extracts frontmatter |
 | `validator.js` | `validateSkillSchema()` — name (1-64 chars), description, optional fields |
-| `registry.js` | `SkillRegistry` — Map-based `discover`, `get`, `list`, `enable`, `disable` |
+| `registry.js` | `SkillRegistry` — Map-based `discover(scope)` (defaults to `sandbox.skillScanPaths`: `.skills/`, `skills/`), `get`, `list`, `enable`, `disable`, `getSkillPaths()`, `getSkillPathsForAgent()` |
+| `agentMapper.js` | `getAgentForSkill()` — resolves a skill's agent: frontmatter `metadata.agent` first, then `skillAgentMap` config regex patterns |
 | `permissions.js` | `resolvePermissions()` — merge defaults with skill-specific perms; `resolveCapabilities()` → `{resources, rules}[]` |
+
+System skills (`.skills/`) are scanned first and shadow user skills (`skills/`).
 
 ---
 
@@ -289,6 +276,8 @@ The `'/'` root is the application's working directory from the agent's perspecti
 | `capability.js` | `enforceCapabilities()` — permissions → `{resources, rules}[]` |
 | `timeoutHandler.js` | `handleTimeout()` — SIGTERM → SIGKILL after grace period |
 
+**Status:** fully implemented and unit-tested, but currently has **no production call path**. `index.js` `invokeSkill()` is a placeholder (resolves permissions, returns a stub), and `ScheduleManager.runNow()` only invokes a caller-injected sandbox — nothing injects one. Scheduled skills execute via the system crontab (`node index.js --message "Run the <skill> skill"`). `pathResolver.js` and `urlFilter.js` *are* live: `src/tools/common.js` uses them for tool-side path/URL validation.
+
 ---
 
 ## Scheduler
@@ -297,10 +286,11 @@ The `'/'` root is the application's working directory from the agent's perspecti
 
 | File | Purpose |
 |------|---------|
-| `scheduler.js` | `ScheduleManager` — simple CRUD class (register, list, pause, resume, runNow). No in-process scheduling. |
-| `cron.js` | `Cron` object with static methods: `isAvailable()`, `add()`, `remove()`. Manages entries in system crontab using `# --- BEGIN madz-schedules ---` / `# --- END madz-schedules ---` block delimiters. |
-| `autoSchedule.js` | `setupAutoSchedule()` — returns callback invoked after `saveProfile()` during onboarding. Installs `reflection-daily` cron job (`0 2 * * *`) into system crontab and persists to `memory/schedules/reflection-daily.json`. |
-| `index.js` | Re-exports `ScheduleManager` and `Cron`. |
+| `scheduler.js` | `ScheduleManager` — CRUD class (`register`, `list`, `pause`, `resume`, `runNow`) with `loadFromDisk()` static loader. No in-process scheduling. |
+| `cron.js` | `Cron` object with static methods: `isAvailable()`, `add()`, `remove()`, `sync()`, `_ensureReflectionJob()`. Manages entries in system crontab using `# --- BEGIN madz-schedules ---` / `# --- END madz-schedules ---` block delimiters. `writeEnvCron()` dumps `process.env` to `.env.cron` so cron-fired commands inherit app env. |
+| `index.js` | Re-exports `ScheduleManager`, `Cron`, `writeEnvCron`. |
+
+The `reflection-daily` job (`0 2 * * *`) is seeded by `Cron._ensureReflectionJob()` at the start of `Cron.sync()` (called from `index.js` when `schedules.syncOnInit !== false`), persisted as `memory/schedules/reflection-daily.json`, and installed into the crontab by the sync. Its command is `cd <cwd> && node index.js --message "Run the reflection skill"`, prefixed with a `. .env.cron` source so the cron process inherits the app environment.
 
 ---
 
@@ -312,10 +302,10 @@ The `'/'` root is the application's working directory from the agent's perspecti
 |------|---------|
 | `factory.js` | `createSession()` — `{sessionId: UUID, state: {...}}` |
 | `stateManager.js` | `SessionStateManager` — `addExchange()`, `setContextWindow()`, `getState()` |
-| `window.js` | `enforceContextWindow()` — trims oldest exchanges |
+| `window.js` | `enforceContextWindow()` / `trimConversation()` — trims oldest exchanges (exported; not currently called in production paths) |
 | `loader.js` / `saver.js` | `loadSession()` / `saveSession()` — persists `.md` per session |
 | `shutdown.js` | `handleShutdown()` — orchestrates flush/save/cleanup |
-| `checkpointer.js` | `createCheckpointer()` — `MemorySaver` or `SQLiteCheckpointer` |
+| `checkpointer.js` | `createCheckpointer()` — `MemorySaver` (mode `"memory"`) or `SqliteSaver` (mode `"sqlite"`, default) |
 | `onboarding.js` | State machine: `INIT → ATTRACTOR → COLLECT → SAVE → TRANSCEND` |
 
 ```javascript
@@ -364,51 +354,68 @@ The `'/'` root is the application's working directory from the agent's perspecti
 
 ## Key Data Flows
 
-**Conversation flow:**
+**Conversation flow (TUI):**
 
 ```
-index.js
+TUI input
+  dispatchProvider(message, streamingCallback, signal)   ← index.js
+    └── callProvider()
+          ├── agent.stream({ messages }, { thread_id, isNewThread,
+          │        streamMode: ["messages","tools"], subgraphs: true })
+          ├── for each chunk: text → streamingCallback({type:"message"})
+          │                         reasoning → streamingCallback({type:"reasoning"})
+          │                         tools     → on_tool_start / on_tool_end
+          └── returns { provider, content, reasoning }
+  sessionState.addExchange(...)  →  onSaveSession() → saveSession()
+```
+
+**Conversation flow (CLI chat mode):**
+
+```
+index.js --message "..."
   handleConversation(message)
-    ├── enforceContextWindow()     ← trim oldest exchanges
-    ├── loadContext()              ← prepend context markdown
-    ├── dispatchProvider()         ← Provider → Agent → ReAct loop
-    └── writeMemoryFile()          ← persists to filesystem
+    ├── callProvider() → same orchestrator stream as above
+    ├── sessionState.addExchange(user + assistant)
+    └── saveSession("memory/sessions/", conversation, sessionId)
 ```
 
-**Skill invocation:**
+**Skill execution (scheduled):**
 
 ```
-index.js
-  invokeSkill(name, input)
-    ├── registry.get(name)
-    ├── resolvePermissions(metadata)    ← merge with defaults
-    ├── enforceCapabilities()           ← {rules, resources}
-    └── runSandbox({script, permissions, ...input})
-          ├── resolvePath() / filterUrl() / filterEnv()
-          ├── child_process.spawn()
-          └── handleTimeout(seconds, grace)     ← SIGTERM → SIGKILL
+system crontab fires
+  └── . .env.cron && cd <cwd> && node index.js --message "Run the <skill> skill"
+        └── full app boot → orchestrator handles the message
+```
+
+**Skill execution (cronJob tool, run action):**
+
+```
+cronJob { action: "run", name }
+  └── runJob(job)
+        ├── findSkillScript(skill) → scripts/run.{sh,py,js,bash}
+        └── runScript(scriptPath) → spawn + collect stdout/stderr + timeout
 ```
 
 **Scheduler flow:**
 
 ```
-ScheduleManager.register(config.schedules.entries)
+ScheduleManager.loadFromDisk(schedulesDir)
   └── entries stored in #scheduleEntry Map
 
 ScheduleManager.runNow(name, scheduler)
   ├── entry = #scheduleEntry.get(name)
-  ├── contextPrefix = loadContext(entry.contextFile) or loadContext("memory/context/")
-  └── sandbox({ skillName: entry.skill, input: entry.input, context: contextPrefix })
+  ├── command-only entry → spawn("/bin/sh", ["-c", command])
+  └── skill entry → scheduler.sandbox(...) (injected by caller; no production wiring)
 ```
 
 **Cron system flow:**
 
 ```
-Cron.add({ name, cron, command })
-  ├── _readCrontab() → current crontab content
-  ├── if entry exists → { added: false, error }
-  ├── insert `<cron>  <command>  # madz-schedule: <name>` between BEGIN/END markers
-  └── execSync(`crontab -`) → write updated crontab
+Cron.sync(schedulesDir)
+  ├── _ensureReflectionJob() → seed reflection-daily.json if missing
+  ├── _readJobsFromDisk() → desired state
+  ├── _readCrontab() → current state (madz-schedules block)
+  └── diff → replace block atomically via `crontab -`
 ```
 
 ---
@@ -423,7 +430,7 @@ Cron.add({ name, cron, command })
 | **OPERATING PRINCIPLES** | How the orchestrator works | Thematic groups (5 rules each) |
 | **OUTPUT FORMAT** | Response structure selection | One schema, decision-driven |
 | **MEMORY** | How to use loaded context | Wield, don't recite |
-| **SUBAGENTS** | Delegation strategy | 10 agent types + when/how |
+| **SUBAGENTS** | Delegation strategy | `task` tool usage, when/when-not |
 
 The prompt replaced a 35-item flat rule list with thematic grouping (Environment, Delivery, Delegation, Engagement, Safety & Correctness — 5 rules each), reducing cognitive load and improving recall. Character anchors are selected via a decision table mapping task context to behavioral mode.
 
@@ -439,7 +446,7 @@ The prompt replaced a 35-item flat rule list with thematic grouping (Environment
 
 **Character selection:** The model analyzes the task context and lets one character dominate. Default is a blended tone — one mode emerges when the task clearly calls for it. Execution mode (code, diffs, structured data) suppresses persona entirely.
 
-**Subagent Prompts:** Each of the 9 subagents (`prompts/*.md`) has a unified structure: ROLE, PERSONALITY, RULES, OUTPUT FORMAT, SAFETY, NOTE. Personality is assigned from the Mads Mikkelsen canon to give each agent a distinct creative framing while suppressing the main orchestrator persona.
+**Subagent Prompts:** Each of the 12 subagents (`prompts/*.md`) has a unified structure: ROLE, PERSONALITY, RULES, OUTPUT FORMAT, SAFETY, NOTE. Personality is assigned from the Mads Mikkelsen canon to give each agent a distinct creative framing while suppressing the main orchestrator persona.
 
 | Agent | Personality | Character Source | Role |
 |-------|-------------|-----------------|------|

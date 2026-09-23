@@ -198,57 +198,32 @@ async function getScheduleFiles(schedulesDir) {
 }
 
 /**
- * Trigger a job immediately via the sandbox.
+ * Trigger a job immediately by locating and running its skill script.
  * @param {object} job - Job to run
- * @param {object} [schedulerModule] - Scheduler module for testing
  * @param {string} [schedulesDir] - Directory to write output to
  * @returns {Promise<{ ok: boolean, error?: string }>}
  */
-async function runJob(job, schedulerModule, schedulesDir) {
+async function runJob(job, schedulesDir) {
 	if (!job.enabled) {
 		return { ok: false, error: `Job "${job.name}" is paused` };
 	}
 
-	if (!schedulerModule) {
-		const scriptPath = await findSkillScript(job.skill);
-		if (!scriptPath) {
-			return {
-				ok: false,
-				error: `Skill "${job.skill}" has no discoverable script. Job "${job.name}" was not executed.`,
-			};
-		}
-
-		try {
-			const result = await runScript(scriptPath, [], { timeout: 30000 });
-			job.lastRun = new Date().toISOString();
-			job.updatedAt = new Date().toISOString();
-			await saveJob(job, schedulesDir);
-			return { ok: result.exitCode === 0, result };
-		} catch (err) {
-			return { ok: false, error: `Execution failed: ${err.message}` };
-		}
+	const scriptPath = await findSkillScript(job.skill);
+	if (!scriptPath) {
+		return {
+			ok: false,
+			error: `Skill "${job.skill}" has no discoverable script. Job "${job.name}" was not executed.`,
+		};
 	}
 
-	const scheduleEntry = {
-		name: job.name,
-		cron: job.cron,
-		skill: job.skill,
-		input: job.input,
-		contextFile: "",
-	};
-
 	try {
-		await schedulerModule.runScheduledSkill(
-			scheduleEntry,
-			schedulerModule.sandbox || (() => ({})),
-			{},
-		);
+		const result = await runScript(scriptPath, [], { timeout: 30000 });
 		job.lastRun = new Date().toISOString();
 		job.updatedAt = new Date().toISOString();
 		await saveJob(job, schedulesDir);
-		return { ok: true, outputDir: schedulesDir };
+		return { ok: result.exitCode === 0, result };
 	} catch (err) {
-		return { ok: false, error: `Scheduler execution failed: ${err.message}` };
+		return { ok: false, error: `Execution failed: ${err.message}` };
 	}
 }
 
@@ -259,7 +234,6 @@ async function runJob(job, schedulerModule, schedulesDir) {
  * @param {object} input - Tool input with action and parameters
  * @param {object} [options] - Runtime options
  * @param {string} [options.schedulesDir] - Directory for job persistence (default "memory/schedules/")
- * @param {object} [options.scheduler] - Scheduler module for testing
  * @param {object} [options.cron] - Cron module for testing
  * @returns {Promise<string>} JSON result string
  */
@@ -423,7 +397,7 @@ export async function cronJobImpl(input, options) {
 				if (!existing) {
 					return JSON.stringify({ ok: false, error: `Job "${runName}" not found` });
 				}
-				const result = await runJob(existing, options?.scheduler, schedulesDir);
+				const result = await runJob(existing, schedulesDir);
 				return JSON.stringify(result);
 			}
 

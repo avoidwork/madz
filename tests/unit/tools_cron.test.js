@@ -567,7 +567,7 @@ describe("cronJob", () => {
 		await cronJobImpl({ action: "remove", name: "catch-test" }, opts());
 	});
 
-	it("run without scheduler option uses dynamic import path", async () => {
+	it("run executes via skill-script path when no scheduler is injected", async () => {
 		await cronJobImpl(
 			{
 				action: "create",
