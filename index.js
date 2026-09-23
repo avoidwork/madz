@@ -99,8 +99,7 @@ if (config.telemetry.enabled) {
 }
 
 // Initialize skill registry
-const { SkillRegistry, resolvePermissions, ensureSkillsDir } =
-	await import("./src/skills/index.js");
+const { SkillRegistry, ensureSkillsDir } = await import("./src/skills/index.js");
 const registry = new SkillRegistry();
 await ensureSkillsDir(config.cwd + "/" + "skills/");
 await registry.discover();
@@ -304,27 +303,8 @@ async function dispatchProvider(message, _sessionState = null, streamingCallback
 	return callProvider(null, null, message, streamingCallback, signal);
 }
 
-// Skill invocation through sandbox
-async function invokeSkill(skillName, input = {}) {
-	const skill = registry.get(skillName);
-	if (!skill) {
-		throw new Error(`Unknown skill: ${skillName}`);
-	}
-
-	if (skill.disabled) {
-		throw new Error(`Skill "${skillName}" is disabled`);
-	}
-
-	const permissions = resolvePermissions(skill.metadata);
-
-	// Placeholder — actual sandbox execution
-	return {
-		skill: skillName,
-		input,
-		output: `[Skill ${skillName} executed with permissions: ${permissions.join(", ")}]`,
-		exitCode: 0,
-	};
-}
+// Skill invocation is handled by the LLM via the deepagents skill system;
+// there is no direct programmatic invocation path.
 
 // Shared shutdown logic — called on signals and in non-interactive mode
 const runShutdown = async () => {
@@ -409,7 +389,6 @@ if (isMain) {
 				sessionState,
 				dispatchProvider,
 				scheduleManager,
-				invokeSkill,
 				appInfo,
 				onboarding: onboardingInstance,
 				onSaveSession: () =>
@@ -450,7 +429,6 @@ export {
 	tracer,
 	dispatchProvider,
 	handleConversation,
-	invokeSkill,
 	handleShutdown,
 	scheduleManager,
 	setConfigValue,

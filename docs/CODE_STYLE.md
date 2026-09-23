@@ -25,9 +25,9 @@ This guide documents the coding conventions used throughout `madz`. It is derive
 
 | Convention | Example | Used For |
 |---|---|---|
-| `camelCase` | `writeMemoryFile`, `resolvePermissions`, `contextList` | Functions, methods, variables |
-| `UPPER_SNAKE_CASE` | `PANELS`, `DEFAULT_PERMS`, `BLOCKED_SCHEMES`, `FRONTMATTER_DELIMITER` | Constants, frozen objects, static config |
-| `PascalCase` | `SkillRegistry`, `ScheduleQueue`, `InputPanel` | Classes, React components |
+| `camelCase` | `writeMemoryFile`, `resolvePath`, `contextList` | Functions, methods, variables |
+| `UPPER_SNAKE_CASE` | `PANELS`, `BLOCKED_SCHEMES`, `FRONTMATTER_DELIMITER` | Constants, frozen objects, static config |
+| `PascalCase` | `SkillRegistry`, `ScheduleManager`, `InputPanel` | Classes, React components |
 | kebab-case | `pathResolver.js`, `urlFilter.js` | File names |
 
 - **Private fields** use the `#` prefix — no additional prefix (e.g. `#skills` not `#_skills`).
@@ -107,7 +107,7 @@ import { loadConfig } from "../config/loader.js";
 - **Destructured parameters** with defaults:
 
   ```javascript
-  function handleTimeout(options = { seconds: 30, gracePeriod: 5 }) {
+  function SkillsPanel({ skills = [], onViewChange, onSelectSkill }) {
   ```
 
 - **One responsibility per function**. If a function exceeds ~20 lines or more than 3 levels of nesting, extract a helper.
