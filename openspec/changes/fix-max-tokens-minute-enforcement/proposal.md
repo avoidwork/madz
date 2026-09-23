@@ -1,39 +1,50 @@
 ## Why
 
-The `rateLimit.maxTokensMinute` config value does not enforce the configured tokens-per-minute budget. The throttle is reached on the main dispatch path, but it paces on a broken token estimate (the configured tiktoken encoding name is passed to a model-keyed API and silently falls back to a char/4 heuristic), maintains an independent budget per model instance (orchestrator + each subagent), never reconciles against the API's reported usage, has no concurrency guard, and charges the window for failed requests. The number in `config.yaml` is therefore not the number of tokens that actually flow.
+The `rateLimit.maxTokensMinute` config value does not enforce the configured tokens-per-minute budget.
+
+The original diagnosis for this change held that the throttle was "reached on the main dispatch path" and that the defects were limited to what the budget measured and how it was shared. **That premise was wrong.** The throttle is installed by assigning an instance property over `model.invoke` / `model.stream`. The agent never calls those. LangChain's `AgentNode` performs `bindTools(request.model)` before every dispatch, and `ChatOpenAI.bindTools()` delegates to `withConfig()`, which returns a **freshly constructed** `ChatOpenAI` from serializable constructor state. Instance properties do not survive that reconstruction.
+
+Verified against this repository's own module and dependencies:
+
+```
+1) direct model.invoke : stubCalls=1  budget 0 -> 70     <- wrapper fires
+   bound ctor: ChatOpenAI | bound.invoke === model.invoke ? false
+   bound.invoke threw: APIConnectionError (hit REAL transport)
+2) bound.invoke        : stubCalls=1  budget 70 -> 70    <- wrapper never fired
+```
+
+Every real dispatch — orchestrator and all subagents — bypasses the throttle entirely. A subclass override was also tested and likewise does not survive `bindTools`, so that alternative is closed. `model.stream` was doubly dead: `AgentNode` always calls `.invoke()` and surfaces tokens via stream transformers.
+
+The remaining defects from the original diagnosis are real but secondary: a broken token estimate, per-instance budgets, no reconciliation, no concurrency guard, and charging for failed requests.
 
 ## What Changes
 
-- **Fix encoder resolution** in `src/tui/contextTokens.js`: stop passing the tiktoken *encoding* name to `encoding_for_model` (which is keyed by model name). Resolve the encoder from the model name, with an explicit encoding→model map for configured encodings, so tiktoken is actually used instead of silently falling back to char/4.
-- **Make the budget global**: hoist a single shared `createTokenBudget` instance out of `createChatModel` so the orchestrator and all subagents pace against one rolling window, not `N × maxTokensMinute`.
-- **Reconcile with actual usage**: after dispatch, read `usage` (prompt + completion tokens) from the response and adjust the consumed entry to the real total instead of the pre-dispatch estimate.
-- **Add a concurrency guard**: make `waitForCapacity` + `consume` atomic (single lock/queue in `tokenBudget.js`) so concurrent dispatches cannot overshoot the window.
-- **Re-pace the 429 retry**: call `waitForCapacity` again before re-dispatching, and only charge the window for the attempt that succeeds.
-- **Charge only on success**: a failed dispatch no longer consumes budget.
-- **Document `maxConcurrency`**: clarify that actual concurrency comes from parallel subagents, not this option; the shared budget is the enforcement point.
-- Add unit tests: encoder resolution uses tiktoken for known models; budget enforces the ceiling under concurrent calls; a single shared budget is used across multiple model instances.
+- **Move enforcement to `wrapModelCall` middleware** (new `src/provider/tokenBudgetMiddleware.js`). This hook runs inside `AgentNode` around the real dispatch, sees `request.model` / `request.messages` / `request.systemMessage` / `request.tools`, and is the only extension point that survives `bindTools`. Verified live: `["RESERVE(ChatOpenAI)","RELEASE(APIConnectionError)"]`.
+- **Remove the instance-property wrapper** from `createChatModel`, along with the `_rawInvoke` / `_rawStream` test hooks. `createChatModel` returns a plain `ChatOpenAI` and no longer claims to throttle.
+- **Keep** the shared-budget singleton, `reserve`/`reconcile`/`release`, and the encoder fix — all sound, all still required.
+- **Register the middleware** on `createDeepAgent({ middleware: [...] })`, which merges it into the subagent stack as well, so one instance governs the orchestrator and every subagent.
+- **Add a regression test that drives a real `createAgent`**, asserting the budget moves. The existing tests asserted against the wrapper directly and could not fail.
 
 ## Capabilities
 
 ### New Capabilities
 
-- `token-estimation`: Defines how conversation token counts are computed — encoder resolution from model name with an explicit encoding→model map, tiktoken as the primary path, and char/4 as a last-resort fallback only when tiktoken is genuinely unavailable.
+- `token-estimation`: How conversation token counts are computed — encoder resolution from model name, tiktoken as the primary path, char/4 as last resort.
 
 ### Modified Capabilities
 
-- `provider-token-budget`: The budget gains an atomic `reserve` (check-and-consume under a single lock), a `reconcile` operation to adjust a consumed entry to actual usage, and a shared/global instance requirement so all model instances pace against one window.
-- `provider-rate-limit-config`: `createChatModel` wires a single shared budget (not a per-instance one), charges the window only on successful dispatch, re-paces 429 retries through `waitForCapacity`, and documents that `maxConcurrency` does not bound what the budget sees.
+- `provider-token-budget`: Gains atomic `reserve`, `reconcile`, `release`, a shared instance, and enforcement via `wrapModelCall` middleware rather than model-instance wrapping.
+- `provider-rate-limit-config`: The instance-wrapping throttle contract is withdrawn; `createChatModel` no longer enforces the budget.
 
 ## Impact
 
-- **Affected code:** `src/tui/contextTokens.js`, `src/provider/tokenBudget.js`, `src/provider/openai.js`, `src/agent/deepAgents.js` (budget hoisting), `tests/unit/provider/tokenBudget.test.js`, `tests/unit/tui/contextTokens.test.js`.
-- **No API changes:** `createChatModel(config)` signature unchanged; `createTokenBudget` gains optional methods, existing API preserved.
-- **No dependency changes:** tiktoken is already a dependency.
-- **Behavior change:** token pacing becomes a hard, shared, usage-reconciled ceiling — previously it was an advisory, per-instance, estimate-based pacer.
+- **Affected code:** `src/provider/tokenBudgetMiddleware.js` (new), `src/provider/openai.js`, `src/agent/deepAgents.js`, `src/tui/contextTokens.js`, `src/provider/tokenBudget.js`, and their tests.
+- **No dependency changes.** `createMiddleware` is already available from `langchain`.
+- **Behavior change:** token pacing becomes a hard, shared, usage-reconciled ceiling on the actual agent dispatch path.
 
 ## Non-goals
 
 - Changing the `maxTokensMinute` Zod schema or config surface.
 - Adding new rate-limit dimensions (requests/minute, cost-based).
-- Modifying the LangChain `ChatOpenAI` internals or the deepagents graph.
+- Patching `langgraph`, `langchain`, or `deepagents`. Middleware is a supported extension point; no fork is required.
 - Changing retry policy beyond re-pacing the existing single 429 retry.
