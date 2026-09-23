@@ -10,7 +10,6 @@ import {
 	discoverSkills,
 	setCwd,
 } from "../../src/skills/discoverer.js";
-import { detectInterpreter, detectShebang } from "../../src/sandbox/runner.js";
 
 let testDir;
 let originalCwd;
@@ -344,100 +343,6 @@ describe("discoverSkills", () => {
 		assert.strictEqual(skills.length, 2);
 		const names = skills.map((s) => s.name).sort();
 		assert.deepStrictEqual(names, ["sys-only", "user-only"]);
-	});
-});
-
-// --- Detect interpreter tests ---
-
-describe("detectInterpreter", () => {
-	it("detects python from .py extension", async () => {
-		const result = await detectInterpreter("skill/scripts/extract.py");
-		assert.deepStrictEqual(result, { command: "python3", args: [] });
-	});
-
-	it("detects node from .js extension", async () => {
-		const result = await detectInterpreter("skill/main.js");
-		assert.deepStrictEqual(result, { command: "node", args: [] });
-	});
-
-	it("detects node from .mjs extension", async () => {
-		const result = await detectInterpreter("skill/module.mjs");
-		assert.deepStrictEqual(result, { command: "node", args: [] });
-	});
-
-	it("detects bash from .sh extension", async () => {
-		const result = await detectInterpreter("skill/run.sh");
-		assert.deepStrictEqual(result, { command: "bash", args: [] });
-	});
-
-	it("detects ruby from .rb extension", async () => {
-		const result = await detectInterpreter("skill/script.rb");
-		assert.deepStrictEqual(result, { command: "ruby", args: [] });
-	});
-
-	it("detects typescript via node+tsx", async () => {
-		const result = await detectInterpreter("skill/index.ts");
-		assert.deepStrictEqual(result, { command: "node", args: ["--import", "tsx"] });
-	});
-
-	it("returns null for unsupported extension", async () => {
-		const result = await detectInterpreter("skill/file.xyz");
-		assert.strictEqual(result, null);
-	});
-
-	it("returns null for null input", async () => {
-		const result = await detectInterpreter(null);
-		assert.strictEqual(result, null);
-	});
-});
-
-// --- Detect shebang tests ---
-
-describe("detectShebang", () => {
-	it("detects python shebang", async () => {
-		const scriptDir = join(testDir, "shebang-test");
-		mkdirSync(scriptDir, { recursive: true });
-		const scriptPath = join(scriptDir, "script");
-		writeFileSync(scriptPath, "#!/usr/bin/env python3\nprint('hello')");
-
-		const result = await detectShebang(scriptPath);
-		assert.deepStrictEqual(result, { command: "python3", args: [] });
-	});
-
-	it("detects bash shebang", async () => {
-		const scriptDir = join(testDir, "shebang-test2");
-		mkdirSync(scriptDir, { recursive: true });
-		const scriptPath = join(scriptDir, "run");
-		writeFileSync(scriptPath, "#!/bin/bash\necho hello");
-
-		const result = await detectShebang(scriptPath);
-		assert.deepStrictEqual(result, { command: "bash", args: [] });
-	});
-
-	it("detects ruby shebang with args", async () => {
-		const scriptDir = join(testDir, "shebang-test3");
-		mkdirSync(scriptDir, { recursive: true });
-		const scriptPath = join(scriptDir, "script");
-		writeFileSync(scriptPath, "#!/usr/bin/env ruby -w\nputs 'hello'");
-
-		const result = await detectShebang(scriptPath);
-		assert.strictEqual(result.command, "ruby");
-		assert.ok(result.args.includes("-w"));
-	});
-
-	it("returns null for non-existent file", async () => {
-		const result = await detectShebang("/nonexistent/file.py");
-		assert.strictEqual(result, null);
-	});
-
-	it("returns null for no shebang", async () => {
-		const scriptDir = join(testDir, "shebang-test4");
-		mkdirSync(scriptDir, { recursive: true });
-		const scriptPath = join(scriptDir, "plain");
-		writeFileSync(scriptPath, "print('hello')");
-
-		const result = await detectShebang(scriptPath);
-		assert.strictEqual(result, null);
 	});
 });
 

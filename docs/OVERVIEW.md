@@ -61,11 +61,11 @@ graph TD
 9. Create session + `SessionStateManager`; create checkpointer (`SqliteSaver` or `MemorySaver`)
 10. `ScheduleManager.loadFromDisk(schedulesDir)` → load persisted jobs
 11. `createDeepAgentsOrchestrator(checkpointer)` → build the Deep Agents orchestrator
-12. Define `dispatchProvider()`, `handleConversation()`, `invokeSkill()`; register shutdown handler
+12. Define `dispatchProvider()`, `handleConversation()`; register shutdown handler
 
 **Shutdown:** stops GC manager → flushes OpenTelemetry → flushes logger. (`cleanRetainedMemory()` / `enforceMaxEntries()` exist in `src/memory/retention.js` but are not wired into shutdown.)
 
-**TUI exports:** `config`, `sessionState`, `registry`, `tracer`, `dispatchProvider`, `handleConversation`, `invokeSkill`, `handleShutdown`, `scheduleManager`, `setConfigValue`, `loadContext`, `readMemoryFile`.
+**TUI exports:** `config`, `sessionState`, `registry`, `tracer`, `dispatchProvider`, `handleConversation`, `handleShutdown`, `scheduleManager`, `setConfigValue`, `loadContext`, `readMemoryFile`.
 
 ---
 
@@ -248,16 +248,15 @@ There is no LLM response cache. An earlier cache-aside LRU layer (`src/cache/llm
 
 ## Registry / Skills
 
-`src/skills/` — skill discovery, validation, and permission management.
+`src/skills/` — skill discovery, validation, and permission metadata. Skills are invoked by the LLM through the Deep Agents skill system; there is no programmatic invocation path.
 
 | File | Purpose |
 |------|---------|
-| `types.js` | `SkillMetadataSchema`, `PermissionSchema` (6 scopes), `DEFAULT_PERMS` |
+| `types.js` | `SkillMetadataSchema`, `PermissionSchema` (6 scopes), `ExecutionContextSchema` |
 | `discoverer.js` | `discoverSkills()` — scans scope directories for `SKILL.md`, extracts frontmatter |
 | `validator.js` | `validateSkillSchema()` — name (1-64 chars), description, optional fields |
 | `registry.js` | `SkillRegistry` — Map-based `discover(scope)` (defaults to `sandbox.skillScanPaths`: `.skills/`, `skills/`), `get`, `list`, `enable`, `disable`, `getSkillPaths()`, `getSkillPathsForAgent()` |
 | `agentMapper.js` | `getAgentForSkill()` — resolves a skill's agent: frontmatter `metadata.agent` first, then `skillAgentMap` config regex patterns |
-| `permissions.js` | `resolvePermissions()` — merge defaults with skill-specific perms; `resolveCapabilities()` → `{resources, rules}[]` |
 
 System skills (`.skills/`) are scanned first and shadow user skills (`skills/`).
 
@@ -265,18 +264,14 @@ System skills (`.skills/`) are scanned first and shadow user skills (`skills/`).
 
 ## Sandbox
 
-`src/sandbox/` — secure skill execution via spawned processes with resource limits.
+`src/sandbox/` — path and URL validation used by the tool layer.
 
 | File | Purpose |
 |------|---------|
-| `runner.js` | `runSandbox()` — `spawn()`, memory limits, capture stdout/stderr, timeout |
 | `pathResolver.js` | `resolvePath()` / `assertPathAllowed()` — sandbox scope enforcement |
 | `urlFilter.js` | `filterUrl()` — blocks `file://`, `gopher://`, `dict://`; hostname allowlist |
-| `envInjector.js` | `injectEnv()` / `filterEnv()` — whitelist env vars |
-| `capability.js` | `enforceCapabilities()` — permissions → `{resources, rules}[]` |
-| `timeoutHandler.js` | `handleTimeout()` — SIGTERM → SIGKILL after grace period |
 
-**Status:** fully implemented and unit-tested, but currently has **no production call path**. `index.js` `invokeSkill()` is a placeholder (resolves permissions, returns a stub), and `ScheduleManager.runNow()` only invokes a caller-injected sandbox — nothing injects one. Scheduled skills execute via the system crontab (`node index.js --message "Run the <skill> skill"`). `pathResolver.js` and `urlFilter.js` *are* live: `src/tools/common.js` uses them for tool-side path/URL validation.
+**Status:** both modules are live — `src/tools/common.js` uses them for tool-side path/URL validation. The former process-sandbox runtime (`runner.js`, `envInjector.js`, `capability.js`, `timeoutHandler.js`, `index.js`) was removed as dead code: it had no production call path. Skills execute via the Deep Agents skill system, and scheduled skills via the system crontab (`node index.js --message "Run the <skill> skill"`). `ScheduleManager.runNow()` retains a `scheduler.sandbox` injection hook that defaults to a no-op stub; nothing injects an implementation.
 
 ---
 
