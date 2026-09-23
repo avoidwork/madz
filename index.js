@@ -79,7 +79,7 @@ await ensureToolsDir(config.cwd + "/" + "memory/tools/");
 let onboardingInstance = null;
 try {
 	const { hasProfile, ATTRIBUTES } = await import("./src/memory/profile.js");
-	if (!hasProfile()) {
+	if (!(await hasProfile())) {
 		const { createOnboarding } = await import("./src/session/onboarding.js");
 		onboardingInstance = createOnboarding(ATTRIBUTES, { onSave: () => {} });
 	}
@@ -106,7 +106,8 @@ await ensureSkillsDir(config.cwd + "/" + "skills/");
 await registry.discover();
 
 // Initialize memory system
-const { readMemoryFile, loadContext } = await import("./src/memory/index.js");
+const { readMemoryFile, loadContext, expireEphemeralMemories } =
+	await import("./src/memory/index.js");
 
 // Initialize GC manager (if enabled)
 let gcManager = null;
@@ -153,14 +154,9 @@ const { state: initialState } = createSession({
 const sessionState = new SessionStateManager(initialState);
 
 // Session-init: asynchronously clean up expired ephemeral memories (non-blocking)
-try {
-	const { expireEphemeralMemories } = await import("./src/memory/expireEphemeral.js");
-	queueMicrotask(() =>
-		expireEphemeralMemories(config.cwd + "/" + config.memory.contextDir).catch(() => {}),
-	);
-} catch {
-	// Graceful degradation: session starts even if cleanup import fails
-}
+queueMicrotask(() =>
+	expireEphemeralMemories(config.cwd + "/" + config.memory.contextDir).catch(() => {}),
+);
 
 // Create checkpointer before tools so the orchestrator can access it
 const { createCheckpointer, ensureCheckpointsDir } = await import("./src/session/checkpointer.js");

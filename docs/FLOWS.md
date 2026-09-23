@@ -9,26 +9,26 @@ Call chains and data flows for all primary code paths in the project, excluding 
 - [Telemetry Initialization](#telemetry-initialization)
 - [Skill Registry Discovery & Validation](#skill-registry-discovery--validation)
 - [Tool Configuration Building](#tool-configuration-building)
-- [Agent Creation](#agent-creation)
-- [Cache Lookup Flow](#cache-lookup-flow)
-- [Cache Storage Flow](#cache-storage-flow)
+- [Deep Agents Orchestration Flow](#deep-agents-orchestration-flow)
+- [Backend Routing Flow](#backend-routing-flow)
 - [Session Creation](#session-creation)
 - [Chat Flow (CLI Chat Mode)](#chat-flow-cli-chat-mode)
 - [Chat Model Creation](#chat-model-creation)
-- [Agent ReAct Streaming](#agent-react-streaming)
 - [Tool Permission Enforcement](#tool-permission-enforcement)
-- [File Tool Execution Flow](#file-tool-execution-flow)
-- [Shell Tool Execution Flow](#shell-tool-execution-flow)
 - [Web Tool Execution Flow](#web-tool-execution-flow)
-- [Deep Agents Orchestration Flow](#deep-agents-orchestration-flow)
+- [Process Tool Execution Flow](#process-tool-execution-flow)
+- [Text-to-Speech](#text-to-speech)
+- [Image Generation](#image-generation)
+- [Clarify](#clarify)
+- [Cron Job Execution Flow](#cron-job-execution-flow)
 - [Sandbox Skill Execution](#sandbox-skill-execution)
 - [Memory Persistence Flow](#memory-persistence-flow)
 - [Context Loading](#context-loading)
 - [Schedule Manager Lifecycle](#schedule-manager-lifecycle)
+- [Cron System](#cron-system)
 - [Memory Retention Cleanup](#memory-retention-cleanup)
 - [Profile Management](#profile-management)
 - [Shutdown Flow](#shutdown-flow)
-- [Additional Tool Flows](#additional-tool-flows)
 - [File Dependencies](#file-dependencies)
 
 ## Application Startup
@@ -37,77 +37,59 @@ Call chains and data flows for all primary code paths in the project, excluding 
 
 ```
 index.js (main)
-├── import { loadConfig } from "./src/config/loader.js"
+├── yargs parse → { mode, session, indexCode, message }
 ├── config = loadConfig()
 │   └── [see Config Loading]
+├── writeEnvCron(process.cwd()) → dumps process.env to .env.cron (for cron-fired processes)
 ├── if config.schedules.syncOnInit !== false:
-│   ├── Cron.sync(schedulesDir) → reconciles persisted jobs with system crontab
-│   └── Cron.add(reflection-daily) → ensures daily reflection job exists
-├── ensureSessionsDir("memory/sessions/") → creates sessions directory
-├── if !hasProfile():
-│   └── createOnboarding() with autoSchedule callback → [see Onboarding]
+│   └── Cron.sync(schedulesDir) → reconciles memory/schedules/*.json with system crontab
+│       └── _ensureReflectionJob() seeds reflection-daily.json if missing
+├── ensureSessionsDir(config.cwd + "/memory/sessions/")
+├── ensureToolsDir(config.cwd + "/memory/tools/")
+├── if !(await hasProfile()):
+│   └── onboardingInstance = createOnboarding(ATTRIBUTES, { onSave })
 ├── if config.telemetry.enabled:
 │   ├── initTelemetry(config.telemetry)
 │   ├── tracer = getTracer()
 │   └── shutdownFn = shutdownTelemetry
-├── registry = new SkillRegistry()
-├── ensureSkillsDir("skills/")
-├── registry.discover("skills/")
+├── registry = new SkillRegistry(); ensureSkillsDir(); registry.discover()
 │   └── [see Skill Registry Discovery & Validation]
-├── { writeMemoryFile, readMemoryFile, loadContext }
-│   └── from "./src/memory/index.js"
-├── initGC({ idleTimeoutMs, maxGcPerHour, onIdle }) → GC idle manager
+├── { readMemoryFile, loadContext, expireEphemeralMemories } from "./src/memory/index.js"
+├── initGC({ idleTimeoutMs, maxGcPerHour, onIdle }) → V8 GC idle manager (if enabled)
 ├── { createSession, SessionStateManager, saveSession, handleShutdown, registerShutdownHandler }
 │   └── from "./src/session/index.js"
-├── scheduleManager = new ScheduleManager()  // maxConcurrent param deprecated
-├── scheduleManager.register(config.schedules.entries)
+├── scheduleManager = ScheduleManager.loadFromDisk(config.cwd + "/" + schedulesDir)
 │   └── [see Schedule Manager Lifecycle]
 ├── providerName = Object.keys(config.providers)[0] || "openai"
-├── { sessionId, state: initialState } = createSession({
-│   │   provider: providerName,
-│   │   contextWindow: config.session.context_window_size,
-│   │   })
+├── { state: initialState } = createSession({ provider: providerName })
 │   └── [see Session Creation]
 ├── sessionState = new SessionStateManager(initialState)
-├── { loadSystemPrompt } = import("./src/memory/prompts.js")
-├── systemPrompt = loadSystemPrompt()
-│   └── reads prompts/SYSTEM_PROMPT.md, strips frontmatter
-├── providerConfig = config.providers[providerName]
-├── tools = await buildToolConfig({
-│   │   permissions, allowedPaths, maxReadSize, registry,
-│   │   sessionsDir, safety, timeout, memoryLimit,
-│   │   contextDir, ephemeralTtlDays, ephemeralMaxEntries, config
-│   │   })
-│   └── [see Tool Configuration Building]
-├── model = createChatModel(providerConfig)
-│   └── [see Chat Model Creation]
-├── { createCheckpointer } = import("./src/session/checkpointer.js")
-├── checkpointer = createCheckpointer(config.persistence)
-├── agent = createReactAgent(model, tools, checkpointer, recursionLimit)
-│   └── [see Chat Flow (CLI Chat Mode)]
-├── sessionConfig = { configurable: { thread_id: sessionState.getThreadId() } }
-├── registerShutdownHandler(async () => {
-│   ├── saveSession()
-│   ├── cleanRetainedMemory()
-│   ├── enforceMaxEntries()
-│   └── shutdownFn()
-│   })
+├── queueMicrotask → expireEphemeralMemories(cwd + "/" + contextDir)  (non-blocking)
+├── ensureCheckpointsDir(checkpointsDir)
+├── checkpointer = createCheckpointer(config) → SqliteSaver | MemorySaver
+├── agent = createDeepAgentsOrchestrator(checkpointer)
+│   └── [see Deep Agents Orchestration Flow]
+├── sessionConfig = { configurable: { thread_id: sessionState.getSessionId() } }
+├── runShutdown = () => { gcManager.stop(); shutdownFn() }
+├── registerShutdownHandler(runShutdown)
 ├── isMain = process.argv[1] === fileURLToPath(import.meta.url)
 ├── if isMain:
-│   ├── mode = --mode flag ("chat" | "interactive")
+│   ├── if --index-code: vector reindex all config.vector.projects → process.exit(0)
+│   ├── mode = --mode flag ("chat" default | "interactive")
 │   ├── if mode === "chat":
-│   │   ├── message = first non-flag argv arg
-│   │   └── handleConversation(message)
-│   │       └── [see Chat Flow (CLI Chat Mode)]
+│   │   ├── message = first non-flag argv arg (default "Hello")
+│   │   ├── handleConversation(message, chatSessionId) → [see Chat Flow (CLI Chat Mode)]
+│   │   └── runShutdown() + flushLogger() + process.exit(0)
 │   └── else (interactive):
 │       ├── { render } = import("ink")
 │       ├── App = import("./src/tui/app.js").default
-│       └── render(<App config registry sessionState dispatchProvider invokeSkill appInfo />)
-│           └── onExit: handleShutdown() + stdout.write("\n")
-└── export: config, sessionId, sessionState, registry, tracer, dispatchProvider,
+│       └── render(<App config registry sessionState dispatchProvider scheduleManager
+│   │                    invokeSkill appInfo onboarding onSaveSession gcManager gcTrigger
+│   │                    checkpointer />)
+│           └── onExit: handleShutdown({ onShutdown }) + flushLogger() + exit
+└── export: config, sessionState, registry, tracer, dispatchProvider,
             handleConversation, invokeSkill, handleShutdown, scheduleManager,
-            setConfigValue, loadContext, writeMemoryFile, readMemoryFile,
-            cleanRetainedMemory
+            setConfigValue, loadContext, readMemoryFile
 ```
 
 ## Config Loading
@@ -116,34 +98,40 @@ index.js (main)
 
 ```
 loadConfig()
-├── raw = DEFAULT_CONFIG (from schemas.js)
+├── if cachedConfig → return cachedConfig
+├── raw = ConfigSchema.parse({})  (defaults from src/config/config.js, composed from schemas/)
 ├── if config.yaml exists:
 │   ├── fileContent = readFileSync(config.yaml, "utf-8")
 │   ├── parsed = yaml.load(fileContent)
-│   └── raw = deepMerge({}, DEFAULT_CONFIG, parsed)
+│   └── raw = deepMerge({}, { ...ConfigSchema.parse({}), ...parsed })
 │       └── Recursively merges object properties from source → target
+├── syncEnv(raw, KNOWN_SECTIONS)
+│   └── Materializes config structure from env vars for paths absent from config.yaml
 ├── resolved = _resolveEnvRecursively(raw, [])
 │   └── Walks config tree; for each leaf:
-│       ├── DROPPED_KEYS = ["providers", "credentials", "process"]
+│       ├── DROPPED_KEYS = ["providers", "credentials", "ratelimit", "timeout",
+│       │                   "search", "process", "calendar", "subAgentsTemperature"]
 │       ├── envKey = pathSegments (minus dropped) → UPPER_SNAKE_CASE → join("_")
 │       ├── envValue = process.env[envKey]
 │       └── if envValue exists:
-│           ├── _parseValue(envValue) → boolean / number / string
+│           ├── parse to boolean / number / string
 │           ├── else if value matches ${VAR} legacy pattern:
 │           │   └── resolve process.env[legacy]
 │           └── else: keep original value
-└── validateConfig(resolved) → ConfigSchema.parse(resolved)
+├── config = validateConfig(resolved) → ConfigSchema.parse(resolved)
+├── config.cwd = process.cwd()
+└── cachedConfig = config; _setResolvedConfig(config); return config
 ```
 
 ### Runtime Mutation
 
 ```
 setConfigValue(config, dotPath, valueStr)
-├── applyDotPathMutation(config, dotPath, valueStr) -- mutates config in-place
+├── applyDotPathMutation(config, dotPath, valueStr)  (src/config/patch.js)
 │   ├── clone = JSON.parse(JSON.stringify(config))
 │   ├── split dotPath by "/" → assignPath(clone, segments, value)
 │   ├── validate against ConfigSchema
-│   └── restore from validated clone (max depth 5)
+│   └── restore from validated clone
 ├── saveConfig(config)
 │   ├── writeFileSync(config.yaml, yaml.dump(config))
 │   └── mkdirSync(dirname) if needed
@@ -156,20 +144,19 @@ setConfigValue(config, dotPath, valueStr)
 
 ```
 initTelemetry(teleconfig)
+├── if !teleconfig.enabled → return null
+├── if exporter.protocol === "http" || "grpc":
+│   └── traceExporter = OTLPTraceExporter({ url: endpoint || "http://localhost:4318/v1/traces" })
+├── else: ConsoleSpanExporter
+├── ratio = teleconfig.sampling.ratio || 0.1
 ├── NodeSDK config:
-│   ├── serviceName: "madz"
-│   ├── spanProcessor: batch (OTLP exporter)
-│   ├── sampler: createSampler(teleconfig.sampling.ratio)
-│   ├── resource: attrs from telemetry.config.resource
-│   └── dynamic span samplers: on
-├── if exporter.protocol === "http":
-│   └── OTLPTraceExporter(url: endpoint)
-└── else: ConsoleSpanExporter
-├── NodeSDK.start()
-└── SDK is ready
+│   ├── traceExporter
+│   ├── sampling: { strategy: "probability", probability: ratio }
+│   └── instrumentations: [getNodeAutoInstrumentations()]
+└── await sdk.start()
 
 getTracer()
-└── return tracerManager.getTracer("madz-harness")
+└── return api.trace.getTracer("madz-harness")
 
 shutdownTelemetry()
 └── SDK.shutdown() -- gracefully flushes pending spans
@@ -177,212 +164,188 @@ shutdownTelemetry()
 
 ## Skill Registry Discovery & Validation
 
-**Entry:** `index.js` → `registry.discover("skills/")`
+**Entry:** `index.js` → `registry.discover()`
 
 ```
-registry.discover(skillsDir = "skills/")
-├── discovered = discoverSkills(skillsDir)
-│   └── discoverSkills(fullDir):
-│       ├── entries = readdirSync(fullDir)
-│       └── for each entry name:
-│           ├── stat → skip if not directory
-│           └── try SKILL.md (YAML frontmatter: name, description, license, compatibility, metadata):
-│           ├── if metadata found:
-│           │   ├── metadata._directory = skillPath
-│           │   └── if scripts/ dir exists: metadata.scripts = scriptsDir
-│           └── push { path: skillPath, name, metadata }
+registry.discover(scope = defaultScope, options = {})
+├── defaultScope = config.sandbox.skillScanPaths  (default: [".skills/", "skills/"])
+├── discovered = discoverSkills(scope, options)
+│   └── for each directory entry in scope:
+│       ├── stat → skip if not directory
+│       └── read SKILL.md → extractFrontmatter (YAML: name, description, license,
+│           compatibility, metadata, disabled)
+│           └── system skills (.skills/) are scanned first and shadow user skills
 ├── for each skill in discovered:
-│   ├── { valid, errors } = validateSkillSchema(skill.metadata)
-│   │   └── validateSkillSchema(metadata):
-│   │       ├── errors = []
-│   │       └── for each field in SkillMetadataSchema:
-│   │           └── try schema.parse(metadata) → catch → { valid: false, errors }
-│   └── if valid:
-│       │   #skills.set(name, { ...skill, validated: true, disabled })
-│       └── else:
-│           └── #errors.push({ name, errors })
-│
-└── return results: [{ name, errors[] }] for each discovered skill
+│   ├── { warnings } = validateSkillSchema(skill.metadata, dirName)
+│   │   └── validateSkillName (1-64 chars, lowercase alphanumeric + hyphens),
+│   │       validateSkillDescription (1-1024), validateOptionalFields
+│   └── #skills.set(name, { path, name, metadata, validated: true, errors, warnings, disabled })
+└── return results: [{ name, errors[], warnings[] }] for each discovered skill
 ```
 
 ## Tool Configuration Building
 
-**Entry:** `index.js` → `buildToolConfig(options)`
+**Entry:** `src/agent/deepAgents.js` → `buildToolConfig(options)` (defined in `src/tools/index.js`)
 
 ```
-buildToolConfig({ permissions, allowedPaths, maxReadSize, registry, safety, timeout, memoryLimit })
+buildToolConfig({ permissions, allowedPaths, maxReadSize, registry, sessionsDir,
+                  safety, timeout, memoryLimit, contextDir, ephemeralTtlDays,
+                  ephemeralMaxEntries, config })
 ├── enabledSet = new Set(permissions)
-├── runtimeOptions = { allowedPaths, maxReadSize, registry, safety, timeout, memoryLimit }
+├── runtimeOptions = { allowedPaths, maxReadSize, registry, safety, timeout, memoryLimit,
+│   │   searchExaApiKey, searchFirecrawlApiKey, searchTavilyApiKey, searchParallelApiKey,
+│   │   searchSearxngUrl, searchBingApiKey, searchCustomConfig, falApiKey, openaiApiKey, ... }
 ├── for each [toolName, requiredPerms] in TOOL_PERMISSIONS:
 │   ├── hasAllPerms = requiredPerms.every(perm => enabledSet.has(perm))
 │   ├── switch toolName:
-│   │   ├── clarify | code → always create (no perms needed)
-│   │   ├── searchWeb | extractWeb → if hasAllPerms && hasSearchKey()
-│   │   ├── image_generate → if hasAllPerms && FAL_API_KEY
-│   │   ├── cronjob → if hasAllPerms
-│   │   ├── createSkill → if hasAllPerms (filesystem:write)
-│   │   ├── textToSpeech | tts → if OPENAI_API_KEY
+│   │   ├── clarify | sampling | process → always create (no perms gate)
+│   │   ├── searchWeb | extractWeb → if hasAllPerms && any search backend configured
+│   │   ├── generateImage → if hasAllPerms && falApiKey
+│   │   ├── textToSpeech → if openaiApiKey
+│   │   ├── api | graphql | json | yaml | data | webhook → if hasAllPerms, via factory call
 │   │   └── default: → if requiredPerms.length === 0 || hasAllPerms
-│   └── tools.push(TOOL_FACTORIES[toolName](runtimeOptions))
+│   └── tools.push(TOOLS[toolName]) (or TOOL_FACTORIES[toolName]() for factory tools)
 └── return tools[]
 ```
 
 ### Tool Factory Pattern
 
-Each tool file exports three things:
+Tools are exported as ready LangChain `tool()` instances from `src/tools/index.js`, or built by per-domain factories (e.g. `createEmailProvider()`). Each tool file exports:
 
-1. **Core impl function** (e.g., `readFileImpl(input, options)`)
+1. **Core impl function** (e.g., `scanAgentsImpl(input, options)`)
 2. **Tool definition** (`tool(impl, { name, description, schema })`)
-3. **Factory function** (e.g., `createReadFileTool(options)`)
+3. **Factory function** where runtime options are needed (e.g., `createEmailProvider(config)`)
 
-The factory closes over runtime options, creating a LangChain `tool()` instance where each invocation calls the impl with those options.
-
-## Agent Creation
-
-**Entry:** `index.js` → `createReactAgent(model, tools, checkpointer)`
+### Orchestrator vs Subagent Tool Sets
 
 ```
-createReactAgent(model, tools, checkpointer)
-└── createReactAgentGraph({ llm: model, tools, ...(checkpointer && { checkpointer }) })
-    └── Returns compiled LangGraph ReAct agent
+allTools = buildToolConfig(...)
+├── orchestratorTools = allTools.filter(t => ORCHESTRATOR_TOOLS.includes(t.name))
+│   └── ORCHESTRATOR_TOOLS: clarify, cronJob, date, memory, process, reflectionSessions,
+│       searchSession, searchWeb, extractWeb, scanAgents, sampling, createSkill,
+│       searchCode, indexCode, getConfig, readImage
+└── per subagent: getToolsForAgentTypes([agentName], TOOLS)
+    └── TOOL_CLASSIFICATIONS[toolName] is an array of agent names;
+        a tool is included when the agent's name appears in that array
 ```
 
-## Cache Lookup Flow
+Filesystem tools (`ls`, `read_file`, `write_file`, `edit_file`, `glob`, `grep`, `execute`) and the `task` delegation tool are supplied by the `deepagents` library middleware, not by `buildToolConfig()`.
 
-**Entry:** `src/agent/react.js` → `callReactAgent()` / `callReactAgentStreaming()`
+## Deep Agents Orchestration Flow
 
-Both the non-streaming and streaming agent invocation paths check the cache before making an LLM API call.
-
-```
-callReactAgent(agent, message, config, systemPrompt, callback, options)
-├── threadId = config?.configurable?.thread_id
-├── cacheKey = threadId ? getCacheKey(threadId, message) : null
-│   └── getCacheKey(threadId, message):
-│       ├── hash = SHA-256(message) → hex string
-│       └── return `${threadId}_${hash}`
-├── if cacheKey:
-│   ├── cached = getCache().get(cacheKey)
-│   │   └── getCache() → lazily initializes with config.lru.size / config.lru.ttl (fallback: 100, 600000)
-│   └── if cached → return { content: cached }  ← cache hit, skip LLM call
-└── proceed to LLM call...
-
-callReactAgentStreaming(agent, initMessages, originalMessage, config, callback, options)
-├── threadId = config?.configurable?.thread_id
-├── cacheKey = threadId ? getCacheKey(threadId, originalMessage) : null
-├── if cacheKey:
-│   ├── cached = getCache().get(cacheKey)
-│   └── if cached:
-│       ├── callback({ type: "text", text: cached })  ← emit as streaming events
-│       └── return { content: cached }  ← cache hit, skip stream
-└── proceed to stream...
-```
-
-**Cache key generation:** The key is `${threadId}_${sha256_hex_hash_of_message}`. Identical messages in the same thread always produce the same key. Different threads produce different keys even for identical messages.
-
-## Cache Storage Flow
-
-**Entry:** `src/agent/react.js` → `callReactAgent()` / `callReactAgentStreaming()`
-
-Cache storage only occurs on successful LLM calls where no tools were invoked.
-
-### Non-Streaming Path
+**Entry:** `src/agent/deepAgents.js` → `createDeepAgentsOrchestrator(checkpointer)`
 
 ```
-callReactAgent(agent, message, config, systemPrompt, callback, options)
-├── result = await agent.invoke({ messages }, invokeConfig)
-├── content = extractContent(result, message)
-├── hasToolCalls = result.messages?.some(m => m.tool_calls?.length > 0) ?? false
-├── if cacheKey && !hasToolCalls:
-│   ├── getCache().set(cacheKey, content.content)
-│   │   └── Fail-open: silently ignores write errors
-│   └── return content
-└── else (hasToolCalls):
-    └── return content  ← NOT cached
+createDeepAgentsOrchestrator(checkpointer)
+├── config = loadConfig(); systemPrompt = await loadSystemPrompt()
+├── append AGENTS.md (config.cwd + "/AGENTS.md") to systemPrompt
+│   └── avoids deepagents MemoryMiddleware injecting its own memory guidelines
+├── skillRegistry = new SkillRegistry(); await discover(); skillPaths = getSkillPaths()
+├── model = createChatModel(providerConfig)
+├── email provider config validation (non-blocking, if config.email.provider.type)
+├── registerHarnessProfile(`${providerName}:${model}`, excludedTools: execute, grep, ls)
+├── allTools = buildToolConfig(buildOptions)
+├── orchestratorTools = allTools filtered to ORCHESTRATOR_TOOLS
+├── coreBackend = createCoreBackend()      // LocalShellBackend, cwd, virtualMode: false
+├── contextBackend = createContextBackend() // FilesystemBackend, memory/context/
+├── contextRoute = "/" + config.memory.contextDir  → "/memory/context/"
+├── subagentDefinitions = createSubagentDefinitions(allTools, model, skillRegistry, config)
+│   └── for each of the 12 agent definitions (agentDefinitions.js):
+│       ├── tools = getToolsForAgentTypes([agentName], TOOLS) → mapped to instances
+│       ├── skills = skillRegistry.getSkillPathsForAgent(name) (metadata.agent / skillAgentMap)
+│       └── model = per-agent temperature clone when config.subAgentsTemperature[name] set
+├── tokenBudgetMiddleware = createTokenBudgetMiddleware({ maxTokensMinute, model, maxTokens,
+│   │   encoding })  → null when maxTokensMinute unset; registered LAST (innermost)
+└── createDeepAgent({
+    ├── model, tools: orchestratorTools, systemPrompt
+    ├── store: new InMemoryStore()
+    ├── backend: CompositeBackend(coreBackend, { [contextRoute]: contextBackend })
+    ├── subagents: subagentDefinitions
+    ├── skills: skillPaths (if any)
+    ├── checkpointer (if provided)
+    ├── middleware: [createCodeInterpreterMiddleware(), ...(tokenBudgetMiddleware ? [...] : [])]
+    │   └── deepagents adds its own stack: filesystem, subagents, skills,
+    │       summarization, patch-tool-calls
+    └── streamTransformers: [() => createTurnTransformer()]
+    })
+
+Invocation (index.js callProvider):
+├── agent.stream({ messages }, { thread_id, isNewThread, maxTokens, recursionLimit,
+│   │   streamMode: ["messages", "tools"], subgraphs: true })
+├── for each [namespace, mode, payload]:
+│   ├── mode "messages" → text chunks → streamingCallback({ type: "message" })
+│   │   ├── reasoning_content / reasoning additional_kwargs → { type: "reasoning" }
+│   │   └── content blocks of type "reasoning" → { type: "reasoning" }
+│   └── mode "tools" → on_tool_start / on_tool_end → streamingCallback
+└── returns { provider, content, reasoning }
 ```
 
-### Streaming Path
+## Backend Routing Flow
+
+**Entry:** `src/agent/coreBackend.js`, `src/agent/contextBackend.js` → `CompositeBackend`
+
+The `CompositeBackend` routes file operations to different backends based on path prefix matching.
 
 ```
-callReactAgentStreaming(agent, initMessages, originalMessage, config, callback, options)
-├── for await (event of stream):
-│   ├── on_chat_model_stream → callback({ type: "text", text })
-│   │   └── aggregatedText += textContent  ← aggregate for caching
-│   └── on_tool_start / on_tool_end → track in toolCallSet
-├── if cacheKey && aggregatedText && toolCallSet.size === 0:
-│   ├── getCache().set(cacheKey, aggregatedText)
-│   │   └── Fail-open: silently ignores write errors
-│   └── return { content: originalMessage }
-└── else (hasToolCalls or empty):
-    └── return { content: originalMessage }  ← NOT cached
+CompositeBackend routing:
+├── Constructor:
+│   ├── defaultBackend: coreBackend (LocalShellBackend, process.cwd(), virtualMode: false,
+│   │   │   inheritEnv: true)
+│   └── routes: {
+│       │   "/memory/context/": contextBackend (FilesystemBackend, memory/context/,
+│       │       virtualMode: false)
+│       }
+├── sortedRoutes = Object.entries(routes).sort(longest prefix first)
+├── for an operation on path P:
+│   ├── find first route prefix matching P
+│   ├── strip matching prefix → delegate to that backend (prefix re-added on results)
+│   └── no match → defaultBackend
+└── FilesystemBackend security: O_NOFOLLOW on file I/O where supported
 ```
-
-**Conditional caching rules:**
-
-| Condition | Cached? | Reason |
-|-----------|---------|--------|
-| No tools invoked | Yes | Pure LLM response, safe to reuse |
-| Tools invoked | No | State-changing operations must not be skipped |
-| Stream aborted | No | Partial response, incomplete |
-| Stream failed | No | Incomplete or error response |
-| No threadId | No | Cannot generate cache key |
 
 ## Session Creation
 
-**Entry:** `index.js` → `createSession({ provider, contextWindow })`
+**Entry:** `index.js` → `createSession({ provider })`
 
 ```
-createSession({ provider, contextWindow })
-├── state = {
-│   ├── provider
-│   ├── conversation: []
-│   ├── contextWindow
-│   ├── skills: []
-│   ├── createdAt: new Date().toISOString()
-│   └── updatedAt: new Date().toISOString()
-│   }
-├── sessionId = uuidv4()
-└── return { sessionId, state }
-```
+createSession(config = {})
+├── sessionId = randomUUID()
+└── return {
+    sessionId,
+    state: {
+    │   provider: config.provider || "openai",
+    │   conversation: [],
+    │   contextWindow: config.contextWindow || 20,
+    │   skills: config.skills || [],
+    │   sessionId,
+    │   },
+    createdAt: ISODate,
+    updatedAt: ISODate,
+    }
 
-### Session State Manager
-
-```
 sessionState = new SessionStateManager(initialState)
-├── getProvider() → "openai"
-├── setProvider(name) → updates state.provider, updatedAt
-├── getConversation() → state.conversation
-├── addExchange({ role, content }) → pushes { ...exchange, timestamp }, updates updatedAt
-├── getSkills() → state.skills
-├── registerSkill(name) → adds if not already present
-├── getContextWindow() → state.contextWindow
-├── setContextWindow(size) → Math.max(1, Math.floor(size))
-└── getState() → shallow copy of { ...state, conversation[], skills[] }
+├── addExchange({ role, content, reasoningContent? })
+├── getConversation() / getSessionId() / getState()
+└── setContextWindow(n)
 ```
 
 ## Chat Flow (CLI Chat Mode)
 
-**Entry:** `index.js` → `handleConversation(message)` (non-streaming)
+**Entry:** `index.js` → `handleConversation(message, sessionId)`
 
 ```
-handleConversation(message)
-├── response = await callProvider(providerName, providerConfig, message)
-│   ├── isNewThread = sessionState.getConversation().length === 0
-│   ├── result = await callReactAgent(agent, message, { configurable: { thread_id, isNewThread } }, systemPrompt)
-│   │   └── callReactAgent(agent, message, config, systemPrompt, callback = null):
-│   │       ├── messages = [HumanMessage(message)]
-│   │       ├── if isNewThread → messages = [SystemMessage(systemPrompt), ...messages]
-│   │       └── result = agent.invoke({ messages, ...config })
-│   │           └── extractContent(result):
-│   │               └── last AI message content → trimmed, returned
-│   └── return { provider: providerName, content: result.content, tokens: { input: 0, output: 0 } }
+handleConversation(message, sessionId = "")
+├── if sessionId:
+│   └── { conversation } = loadSession(cwd + "/memory/sessions/", 20)
+│       └── conversation.forEach(msg → sessionState.addExchange(msg))
+├── response = await callProvider(null, null, message, chunk → stdout.write(chunk.text))
+│   ├── config = { thread_id: sessionId, isNewThread: conversation.length === 0 }
+│   ├── agent.stream(input, config)   ← [see Deep Agents Orchestration Flow]
+│   ├── collect content + reasoning from message chunks
+│   └── return { provider: providerName, content, reasoning, tokens: { input: 0, output: 0 } }
 ├── sessionState.addExchange({ role: "user", content: message })
-├── sessionState.addExchange({ role: "assistant", content: response.content })
-├── writeMemoryFile(
-│   │   "memory/sessions/",
-│   │   `Conversation ${new Date().toISOString()}`,
-│   │   { provider: response.provider, sessionId },
-│   │   JSON.stringify(sessionState.getConversation(), null, 2)
-│   │   )
+├── sessionState.addExchange({ role: "assistant", content, reasoningContent })
+├── saveSession("memory/sessions/", conversation, sessionId)
 │   └── [see Memory Persistence Flow]
 └── return response
 ```
@@ -393,399 +356,185 @@ handleConversation(message)
 
 ```
 createChatModel(config)
-└── ChatOpenAI({
+└── new ChatOpenAI({
     ├── model: config.model
     ├── temperature: config.temperature
     ├── maxTokens: config.maxTokens
     ├── apiKey: config.credentials.apiKey
     ├── streaming: config.streaming !== false
-    └── configuration: { baseURL: config.base_url }
+    ├── configuration: { baseURL: config.base_url }
+    ├── maxRetries / maxConcurrency (from config.rateLimit, when set)
+    └── reasoning: { effort } (when config.reasoning set)
     })
 ```
 
----
+`createChatModel()` deliberately does not patch `invoke`/`stream` on the instance — `ChatOpenAI.bindTools()` constructs a new object and would orphan such patches. `rateLimit.maxTokensMinute` enforcement lives in `createTokenBudgetMiddleware()` (`src/provider/tokenBudgetMiddleware.js`), registered on `createDeepAgent`.
 
 ## Tool Permission Enforcement
 
 ```
-Permission gates per tool:
-├── code → always (no perms, no env vars)
-├── clarify → always (no perms, always registered)
-├── read_file, write_file, patch, search_files → "filesystem:read" or "filesystem:write"
-├── shell → "filesystem:exec", "process:spawn"
-├── process → "process:spawn"
-├── todo → "filesystem:read", "filesystem:write"
-├── memory → "filesystem:read", "filesystem:write"
-├── searchSession → "filesystem:read"
+TOOL_PERMISSIONS (src/tools/index.js) — tool registers only when ALL required perms enabled:
+├── clarify → ["filesystem:read", "filesystem:write"] (but always registered — switch exempt)
+├── sampling → ["filesystem:write"] (always registered — switch exempt)
+├── process → ["filesystem:exec", "process:spawn"] (always registered — switch exempt)
+├── cronJob → "network:outbound"
 ├── createSkill → "filesystem:write"
-├── searchWeb, extractWeb → "network:outbound" + hasSearchKey()
-├── image_generate → "network:outbound" + FAL_API_KEY
-├── cronjob → "network:outbound"
-├── textToSpeech → OPENAI_API_KEY
-├── sampling → always (no perms)
-├── date → always (no perms)
-└── tts → OPENAI_API_KEY
+├── date → [] (always)
+├── generateImage → "network:outbound" + falApiKey
+├── readImage | scanAgents | reflectionSessions | searchCode | json | yaml | getConfig
+│   → "filesystem:read"
+├── memory | spreadsheet | generatePdf | webhook → "filesystem:read" + "filesystem:write"
+│   (generatePdf also "network:outbound")
+├── searchSession → "filesystem:read"
+├── searchWeb | extractWeb → "network:outbound" + search backend configured
+├── textToSpeech → [] + openaiApiKey
+├── docx | pptx | xlsx | pdf → "filesystem:read"
+├── email | calendar | api | graphql | namecom → "network:outbound"
+├── indexCode → "filesystem:read" + "filesystem:write"
+└── generatePptx → "filesystem:write"
 ```
 
 ### Search Backend Detection
 
 ```
-hasSearchKey()
-└── return || (
-    EXA_API_KEY || FIRECRAWL_API_KEY || TAVILY_API_KEY ||
-    PARALLEL_API_KEY || SEARXNG_URL || BING_API_KEY || CUSTOM_SEARCH_URL
-)
-```
-
-## File Tool Execution Flow
-
-**Entry:** `src/tools/filesystem.js`
-
-```
-readFile:
-├── validatePath(input.path, allowedPaths)
-│   └── resolvePath(file, dirs) → { allowed: true/false, path }
-│       └── resolves → checks if resolved.startsWith(allowed + "/")
-├── checkFileLimit(resolved.path, maxReadSize)
-│   └── access(file) → stat(file) → compare size vs maxReadBytes
-│       └── parseSizeString("1mb") → 1048576
-├── readFile(resolved.path, "utf-8")
-├── if ENOENT → suggestSimilarFile(path) → Levenshtein distance ≤ 2
-└── lines.map((line, i) => `${i+1}|${line}`).join("\n")
-
-write_file:
-├── validatePath(input.path, allowedPaths)
-├── if input.content.length > MAX_CONTENT_SIZE (500KB) → error
-├── mkdir(dirname(resolved.path), recursive)
-└── writeFile(resolved.path, content, "utf-8")
-
-patch:
-├── validatePath(input.path, allowedPaths)
-├── readFile(resolved.path) → content
-├── fuzzyMatch(input.oldStr, content)
-│   └── 9 strategies: exact, line-exact, trim-trailing/leading, collapse-whitespace,
-│       case-insensitive, normalize-newlines, normalize-tabs, loose-substring
-├── if no match → suggest Levenshtein line matches
-└── content = content.slice(0,match.start) + input.newStr + content.slice(match.end)
-    → writeFile → return with unified diff
-
-search_files:
-├── validatePath(input.path, allowedPaths)
-├── execFile("rg", ["--line-number", "--no-heading", "-n", pattern, resolved.path], timeout: 10s)
-└── if ENOENT (no ripgrep) → nativeSearch(pattern, resolved.path, maxResults)
-    └── walk() → readdir → stat → readFile → regex test line by line
-```
-
-## Shell Tool Execution Flow
-
-**Entry:** `src/tools/shell.js`
-
-```
-shell tool:
-├── if command.length > MAX_COMMAND_LENGTH (4096) → error
-├── if background:
-│   ├── executeBackground(command):
-│   │   ├── spawn("sh", ["-c", command], { detached: true, stdio: "ignore" })
-│   │   ├── trackProcess(child, command) → { pid, child, status: "running", startTime }
-│   │   │   └── child.on("exit", "exited"|"exited:code")
-│   │   │   └── child.on("error", "error")
-│   │   └── child.unref()
-│   └── "Started process in background: {command} (PID: {pid})"
-└── else (foreground):
-    ├── executeForeground(command):
-    │   ├── spawn("sh", ["-c", command], { timeout: 30000 })
-    │   ├── child.stdout.on("data") → stdout
-    │   ├── child.stderr.on("data") → stderr
-│   ├── child.on("exit") → { stdout, stderr, exitCode }
-│   └── "exitCode: {code}\nstdout: {stdout}" or "Error: {err.message}" on failure
-
-process tool:
-└── actions on processTracker Map:
-    ├── list → JSON.stringify(entries)
-    ├── poll → status
-    ├── log → stdout/stderr placeholder
-    ├── wait → waiting placeholder
-    ├── kill → entry.child.kill("SIGTERM") → setTimeout 5s → SIGKILL if still running
-    ├── write → entry.child.stdin?.write(data)
-    ├── pause → entry.child.kill("SIGSTOP")
-    └── resume → entry.child.kill("SIGCONT")
+searchWeb/extractWeb register when any of runtimeOptions is set:
+└── searchExaApiKey || searchFirecrawlApiKey || searchTavilyApiKey ||
+    searchParallelApiKey || searchSearxngUrl || searchBingApiKey ||
+    (searchCustomConfig.url && searchCustomConfig.apiKey !== undefined)
 ```
 
 ## Web Tool Execution Flow
 
-**Entry:** `src/tools/web.js`
+**Entry:** `src/tools/web/index.js`
 
 ```
 searchWeb / extractWeb:
-├── validateUrl(url, allowlist)
-│   └── filterUrl(url) → blocks file://, gopher://, dict:// schemes
-├── fetchWithTimeout(url, timeoutMs = 10000, allowlist)
-│   └── → fetch(url, { signal: AbortController(timeout) }) → response.text()
-└── returns HTML-to-text (extractWeb) or multi-engine search results (searchWeb)
-
-Multi-engine search backends (searchWeb):
-├── EXA_API_KEY → exa search
-├── FIRECRAWL_API_KEY → firecrawl scrape
-├── TAVILY_API_KEY → tavily search
-├── PARALLEL_API_KEY → parallel.ai search
-├── SEARXNG_URL → searxng search
-├── BING_API_KEY → bing search
-└── CUSTOM_SEARCH_URL → custom endpoint
+├── extractWeb: filterUrl(url, []) → blocks file://, gopher://, dict:// schemes
+├── fetch with AbortController timeout → response text → HTML-to-text
+└── searchWeb engine selection (priority order):
+    ├── CUSTOM_SEARCH_URL (+apiKey) → custom endpoint
+    ├── BING_API_KEY → bing search
+    ├── SEARXNG_URL → searxng instance
+    ├── Google (HTML scrape, no key)
+    └── DuckDuckGo (default, no key)
 ```
 
+## Process Tool Execution Flow
 
-## Deep Agents Orchestration Flow
-
-**Entry:** `src/agent/deepAgents.js` → `createDeepAgentsOrchestrator()`
-
-```
-Deep Agents orchestrator (native multi-agent architecture):
-├── createDeepAgent({ model, systemPrompt, tools, middleware, subagents, checkpointer, backend })
-│   ├── backend: CompositeBackend(coreBackend, {
-│   │   │   "/memory/context/": contextBackend,
-│   │   │ })
-│   │   ├── coreBackend: FilesystemBackend({ rootDir: process.cwd(), virtualMode: true })
-│   │   └── contextBackend: FilesystemBackend({ rootDir: memory/context/, virtualMode: true })
-│   ├── middleware: filesystem, memory, skills, summarization
-│   ├── subagents:
-│   │   ├── coding-agent: code editing, debugging, implementation, code review
-│   │   └── orchestrator routes tasks automatically based on task nature
-├── agent.stream(input, { streamMode: "messages", subgraphs: true })
-│   ├── for each chunk:
-│   │   ├── extract text content
-│   │   └── streamingCallback({ type: "text", text })
-│   └── returns { provider, content, tokens }
-└── orchestrator manages routing, state, and observability natively
-
-No process spawning, no marker-based parsing, no manual fan-out coordination.
-The deepagents library handles agent lifecycle, state management, and streaming internally.
-```
-
-## Backend Routing Flow
-
-**Entry:** `src/agent/backends/coreBackend.js`, `contextBackend.js`, `dmzBackend.js` → `CompositeBackend`
-
-The `CompositeBackend` routes file operations to different backends based on path prefix matching.
+**Entry:** `src/tools/process/index.js`
 
 ```
-CompositeBackend routing:
-├── Constructor:
-│   ├── defaultBackend: coreBackend (process.cwd(), virtualMode: true)
-│   └── routes: {
-│       │   "/memory/context/": contextBackend
-│       └── }
-│
-├── Route matching (longest prefix first):
-│   ├── "/memory/context/profile.md" → contextBackend (stripped: "/profile.md")
-│   └── "/package.json" → coreBackend (default, no route match)
-│
-├── FilesystemBackend virtualMode:
-│   ├── Incoming path: "/src/tools/index.js"
-│   ├── Strip leading "/": "src/tools/index.js"
-│   ├── Resolve relative to rootDir: path.resolve(rootDir, "src/tools/index.js")
-│   ├── Validate: resolved.startsWith(rootDir + "/")
-│   └── Return virtual path: "/src/tools/index.js"
-│
-└── ls("/") special case:
-    ├── Returns files from default backend at "/"
-    ├── Route prefixes as directory entries (is_dir: true)
-    └── Sorted together by path
+process tool (actions on a tracked-process Map):
+├── start → spawn(command), background mode; trackProcess → { pid, child, status, startTime }
+├── list → entries with status + uptime
+├── log → collected stdout/stderr for pid
+├── wait → await child exit for pid
+├── kill → SIGTERM → 5s grace → SIGKILL
+├── write → child.stdin.write(data)
+├── pause → SIGSTOP
+└── resume → SIGCONT
 ```
 
-**Virtual Path Convention:**
+## Text-to-Speech
 
-All file paths in the agent's view are virtual paths starting with `/`. The `/` root maps to the application's working directory. When the agent reads `/package.json`, it resolves to `<cwd>/package.json`. When it writes `/src/tools/index.js`, it resolves to `<cwd>/src/tools/index.js`.
-
-**Security:**
-
-```
-allPathsScopedToRoutes(permissions, backend):
-├── if !CompositeBackend.isInstance(backend) → false
-├── prefixes = backend.routePrefixes
-├── if prefixes.length === 0 → false
-└── permissions.every(rule =>
-    rule.paths.every(path =>
-        prefixes.some(prefix =>
-            path.startsWith(prefix.endsWith("/") ? prefix : `${prefix}/`)
-        )
-    )
-  )
-```
-
-This prevents shell commands from bypassing path-based permission rules when using CompositeBackend.
-
----
-
-## File Tool Execution Flow
-
-**Entry:** `src/tools/code.js` (read_file, write_file, patch, search_files)
-
-```
-read_file:
-├── validatePath(input.path, allowedPaths)
-│   └── resolvePath(file, dirs) → { allowed: true/false, path }
-│       └── In virtualMode: path.resolve(rootDir, key.substring(1))
-│           └── Validates: resolved.startsWith(rootDir + "/")
-├── checkFileLimit(resolved.path, maxReadSize)
-│   └── access(file) → stat(file) → compare size vs maxReadBytes
-│       └── parseSizeString("1mb") → 1048576
-├── readFile(resolved.path, "utf-8")
-├── if ENOENT → suggestSimilarFile(path) → Levenshtein distance ≤ 2
-└── lines.map((line, i) => `${i+1}|${line}`).join("\n")
-
-write_file:
-├── validatePath(input.path, allowedPaths)
-├── if input.content.length > MAX_CONTENT_SIZE (500KB) → error
-├── mkdir(dirname(resolved.path), recursive)
-└── writeFile(resolved.path, content, "utf-8")
-
-patch:
-├── validatePath(input.path, allowedPaths)
-├── readFile(resolved.path) → content
-├── fuzzyMatch(input.oldStr, content)
-│   └── 9 strategies: exact, line-exact, trim-trailing/leading, collapse-whitespace,
-│       case-insensitive, normalize-newlines, normalize-tabs, loose-substring
-├── if no match → suggest Levenshtein line matches
-└── content = content.slice(0,match.start) + input.newStr + content.slice(match.end)
-    → writeFile → return with unified diff
-
-search_files:
-├── validatePath(input.path, allowedPaths)
-├── execFile("rg", ["--line-number", "--no-heading", "-n", pattern, resolved.path], timeout: 10s)
-└── if ENOENT (no ripgrep) → nativeSearch(pattern, resolved.path, maxResults)
-    └── walk() → readdir → stat → readFile → regex test line by line
-```
-
----
-
-## Deep Agents Orchestration Flow
-
-**Entry:** `src/tools/scanAgents.js` → `createScanAgentsTool()`
-
-```
-scanAgents tool (requires filesystem:read permission):
-├── validate input: path (optional, defaults to config.cwd)
-├── validatePath(input.path, allowedPaths)
-│   └── resolvePath(file, dirs) → { allowed: true/false, path }
-│       └── resolves → checks if resolved.startsWith(allowed + "/")
-├── loadAgents(resolved.path, maxReadSize)
-│   ├── join(resolved.path, "AGENTS.md") → agentsPath
-│   ├── access(agentsPath) → if not exists → return ""
-│   ├── checkFileLimit(agentsPath, maxReadSize) → if exceeds → return error
-│   └── readFile(agentsPath, "utf-8") → content
-│       └── return "## Workspace Rules\n\n" + content.trim()
-└── return formatted workspace rules section
-```
-
-**Key features:**
-- Path validation against sandbox allowed paths
-- Configurable scan path (defaults to `config.cwd`)
-- File size limit enforcement via `maxReadSize`
-- Returns formatted workspace rules section for system prompt injection
-- Returns empty string silently if no `AGENTS.md` found
-
----
-
-## Sandbox Skill Execution
-
-**Entry:** `index.js` → `invokeSkill(skillName, input = {})`
-
-```
-invokeSkill(skillName, input)
-├── skill = registry.get(skillName)
-├── if !skill → throw `Unknown skill: ${skillName}`
-├── if skill.disabled → throw `Skill "${skillName}" is disabled`
-├── permissions = resolvePermissions(skill.metadata)
-│   └── merge DEFAULT_PERMS(["filesystem:read", "env:read"]) with skill-level permissions
-└── return { skill, input, output: `Skill ${skillName} executed...`, exitCode: 0 }
-```
-
-### Scheduled Skill Execution
-
-```
-runScheduledSkill(schedule, sandbox, sessionState)
-├── Load context:
-│   ├── if contextFile exists → readFileSync(contextFile)
-│   └── else if contextFile → loadContext("memory/context/")
-│       └── recent .md files → sort by timestamp → combine `[Context: title]\nbody`
-├── sandbox({ skillName, input, context, permissions: sessionState.skills || [] })
-│   └── runSandbox(options):
-│       ├── enforceCapabilities(permissions) → rules
-│       ├── filterEnv(process.env, whitelist)
-│       ├── spawn(script, [], { cwd, env, execArgv: ["--max-old-space-size=512"], stdio: ["pipe","pipe","pipe"] })
-│       ├── child.stdout.on("data") → result.stdout
-│       ├── child.stderr.on("data") → result.stderr
-│       ├── child.on("exit") → resolve code
-│       └── handleTimeout(child, { seconds, gracePeriod })
-│           └── timeout → SIGTERM → gracePeriod → SIGKILL → "terminated" | "killed"
-└── return { stdout, stderr, exitCode }
-
-```
-
-## Deep Agents Log Management
-
-
-### Text-to-Speech
-
-**Entry:** `src/tools/tts.js` → `createTextToSpeechTool()`
+**Entry:** `src/tools/tts/index.js`
 
 ```
 textToSpeech tool:
 ├── validate OPENAI_API_KEY exists
-├── ChatOpenAI.tts.create({
-│   ├── model: "tts-1"
+├── validate voice ∈ {alloy, echo, fable, onyx, nova, shimmer}
+├── POST https://api.openai.com/v1/audio/speech (15s AbortController timeout)
+│   ├── model: "tts-1" | "tts-1-hd"
 │   ├── input: text
-│   ├── voice: "alloy" | "echo" | "fable" | "onyx" | "nova" | "shimmer"
-│   └── response_format: "mp3" | "wav" | "opus" | "aac" | "flac" | "pcm"
-├── write MP3 bytes to ~/voice-memos/{timestamp}-{slug}.mp3
+│   ├── voice
+│   └── speed: clamped 0.25–4.0
+├── write MP3 bytes to ~/voice-memos/{timestamp}_{voice}.mp3
 └── return { path, status: "complete" }
 ```
 
-### Image Generation
+## Image Generation
 
-**Entry:** `src/tools/image.js` → `createImageGenerationTool()`
+**Entry:** `src/tools/image/index.js`
 
 ```
-image_generate tool:
+generateImage tool:
 ├── validate FAL_API_KEY exists
-├── validateUrl(prompt) → blocks empty prompts
-├── fal.queue.submit("fal-ai/klein/fast", { prompt, ...options })
-│   ├── model: "fal-ai/klein/fast" | "fal-ai/air-playground"
-│   ├── image_count: configurable
-│   └── image_size: configurable
-├── wait for queue with poll (pollInterval = 0.5s, polling = 600s)
+├── POST https://queue.fal.run/fal-ai/flux/klein (prompt + options)
+├── poll queue for completion
 ├── download image URLs
-└── return { images: [{ url }], status: "complete" | "processing" }
+└── return { images: [{ url }], status }
 ```
 
-### Clarify
+## Clarify
 
-**Entry:** `src/tools/clarify.js` → `createClarifyTool()`
+**Entry:** `src/tools/clarify/index.js`
 
 ```
-clarify tool (zero-permission, always registered):
-├── readFileSync("memory/context/clarifications.md") → existing questions
-├── append new question with timestamp
-├── writeFileSync("memory/context/clarifications.md")
+clarify tool (always registered):
+├── build entry: question + timestamp + numbered choices (if provided)
+├── append to memory/context/clarifications.md (read + concat + write)
 └── return { status: "ok", message: "Clarification noted." }
+```
+
+## Cron Job Execution Flow
+
+**Entry:** `src/tools/cron/index.js` → `cronJobImpl(input, options)`
+
+```
+cronJob tool (actions: create, list, update, pause, resume, run, remove):
+├── create → validate name + cron + (skill | command)
+│   ├── isValidCron() → 5-6 fields
+│   ├── derivedCommand = command || `cd <cwd> && node index.js --message "Run the <skill> skill..."`
+│   ├── saveJob() → memory/schedules/<name>.json
+│   └── Cron.add({ name, cron, command }) → system crontab
+├── run → runJob(job, schedulesDir)
+│   ├── if !job.enabled → "Job is paused"
+│   ├── scriptPath = findSkillScript(job.skill)
+│   │   └── search .skills/ then skills/ for scripts/run.{sh,py,js,bash} or run.{sh,py,js,bash}
+│   ├── if !scriptPath → error "no discoverable script"
+│   └── runScript(scriptPath, [], { timeout: 30000 })
+│       └── spawn + collect stdout/stderr + SIGTERM on timeout
+│       └── update job.lastRun / updatedAt, saveJob()
+├── pause / resume → toggle job.enabled, saveJob()
+├── update → patch cron/skill/command/input, saveJob(), Cron.add replacement
+└── remove → unlink job file + Cron.remove(name)
+```
+
+## Sandbox Skill Execution
+
+**Entry:** `src/sandbox/runner.js` → `runSandbox(options)`
+
+The sandbox module (`runner.js`, `pathResolver.js`, `urlFilter.js`, `envInjector.js`, `capability.js`, `timeoutHandler.js`) is fully implemented and unit-tested, but currently has **no production call path**: `index.js` `invokeSkill()` is a placeholder that resolves permissions and returns a stub result, and `ScheduleManager.runNow()` only invokes a sandbox injected by the caller (nothing injects one). Scheduled skills execute via the system crontab instead — see [Cron System](#cron-system).
+
+```
+runSandbox(options):
+├── enforceCapabilities(permissions) → {resources, rules}[]
+├── resolvePath() / assertPathAllowed() → sandbox scope enforcement
+├── filterEnv(process.env, whitelist)
+├── spawn(interp.command, [...args, script], { cwd, env, execArgv: ["--max-old-space-size=..."] })
+├── collect stdout/stderr
+└── handleTimeout(child, { seconds, gracePeriod })
+    └── timeout → SIGTERM → gracePeriod → SIGKILL → "terminated" | "killed"
 ```
 
 ## Memory Persistence Flow
 
-**Entry:** `src/memory/writer.js` → `writeMemoryFile(directory, title, frontmatter, body)`
+**Entry:** `src/memory/writer.js` → `writeMemoryFile(subdirectory, title, frontmatter, body)`
 
 ```
-writeMemoryFile(directory, title, frontmatter, body = "")
-├── mkdirSync(directory, recursive)
+writeMemoryFile(subdirectory, title, frontmatter, body = "")
+├── directory = join(config.cwd, subdirectory)
+├── await mkdir(directory, recursive)
 ├── timestamp = new Date().toISOString().replace(/[:.]/g, "-")
 ├── slug = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
 │   └── filename = `${timestamp}-${slug || "entry"}.md`
 ├── filepath = join(directory, filename)
-└── writeFileSync(filepath, [
+└── await writeFile(filepath, [
        "---",
-       `title: "${title}"`,
-       `timestamp: "${timestamp}"`,
-       ...Object.entries(frontmatter) → `${key}: "${value}"` or `${key}: value`,
+       `title: "${escapeYamlString(title)}"`,
+       `timestamp: "${escapeYamlString(timestamp)}"`,
+       ...Object.entries(frontmatter) → typed lines (null → `key:`, string → quoted,
+           boolean/number → raw, other → JSON.stringify),
        "---",
        "",
        body,
@@ -799,28 +548,27 @@ writeMemoryFile(directory, title, frontmatter, body = "")
 ```
 parseFrontmatter(content)
 ├── match /^---\n([\s\S]*?)\n---\n?([\s\S]*)$/
-│   ├── match[1] → yaml.load() → frontmatter
+│   ├── match[1] → yaml.load() → frontmatter (parse failure → {})
 │   └── match[2] → body content
 └── return { frontmatter, content: body.trim() }
 
 readMemoryFile(filepath)
-├── if !existsSync(filepath) → null
-├── content = readFileSync(filepath, "utf-8")
+├── if !exists → null
+├── content = await readFile(filepath, "utf-8")
 └── return { frontmatter, content, path }
 ```
 
 ## Context Loading
 
-**Entry:** `src/memory/context.js` → `loadContext(contextDir, limit = 10)`
+**Entry:** `src/memory/context.js` → `loadContext(contextDir = "memory/context/", limit = 10)`
 
 ```
-loadContext("memory/context/", limit)
-├── files = readdirSync(fullPath).filter(f → f.endsWith(".md"))
-├── for each file:
-│   ├── readFileSync(filepath, "utf-8")
-│   ├── parseFrontmatter(content) → { frontmatter, body }
-│   └── { filepath, frontmatter, body, timestamp: frontmatter.timestamp }
-├── sort by timestamp (descending, localeCompare)
+loadContext(contextDir, limit)
+├── files = readdir(fullPath).filter(.md)
+├── persistent files: read + parseFrontmatter → { frontmatter, body, timestamp }
+├── ephemeral files: same, with ephemeral metadata handling
+├── profile: loadAndFormatProfile() → profile context block
+├── sort by timestamp (descending)
 ├── recent = sorted.slice(0, limit)
 └── recent.map(entry → `\n[Context: ${title}]\n${body.trim()}`).join("\n")
 ```
@@ -829,36 +577,37 @@ loadContext("memory/context/", limit)
 
 **Entry:** `src/scheduler/scheduler.js` → `ScheduleManager`
 
-The ScheduleManager is a simple CRUD class. Scheduling is delegated to the system crontab — there is no in-process clock tick loop.
+The ScheduleManager is a CRUD class. Scheduling is delegated to the system crontab — there is no in-process clock tick loop.
 
 ```
-scheduleManager = new ScheduleManager(maxConcurrent = 1)
-├── #scheduleEntry = new Map()
+ScheduleManager.loadFromDisk(schedulesDir, deps = {})
+├── readdir(schedulesDir) → *.json files
+├── skip jobs with enabled === false
+├── skip jobs missing name/cron or both skill and command
+└── new ScheduleManager() + register(entries)
 
 scheduleManager.register(entries = [])
 ├── results = []
 └── for each entry in entries:
-    ├── if !entry.name || !entry.cron || !entry.skill:
-    │   └── results.push({ name: entry.name, error: "Missing required fields" })
-    └── #scheduleEntry.set(entry.name, { ...entry, paused: false, lastRun: null })
+    ├── if !entry.name || !entry.cron || (!entry.skill && !entry.command):
+    │   └── results.push({ name, error: "Missing required fields" })
+    └── #scheduleEntry.set(entry.name,
+            { ...entry, paused: false, lastRun: null, input: {}, contextFile: "" })
 └── return results
 
-scheduleManager.list()
-└── for each entry: { ...entry }
-
+scheduleManager.list() → [{ ...entry }]
 scheduleManager.pause(name) → entry.paused = true
-
 scheduleManager.resume(name) → entry.paused = false
 
 scheduleManager.runNow(name, scheduler)
 ├── entry = #scheduleEntry.get(name)
-├── if !entry → { error: "Unknown schedule: ${name}" }
+├── if !entry → { error: "Unknown schedule" }
 ├── if entry.paused → { error: "Schedule is paused" }
-├── contextPrefix = loadContext(entry.contextFile) or loadContext("memory/context/")
-├── sandbox({ skillName: entry.skill, input: entry.input, context: contextPrefix, permissions })
-│   └── [see Sandbox Skill Execution]
-├── entry.lastRun = new Date().toISOString()
-└── return result
+├── command-only entry → spawn("/bin/sh", ["-c", command]) with timeout
+│   └── collect stdout/stderr → { stdout, stderr, exitCode }
+└── skill entry → contextPrefix from entry.contextFile or loadContext(contextDir)
+    └── scheduler.sandbox({ skillName, input, context, permissions })
+        └── injected by caller; no production wiring exists (see Sandbox Skill Execution)
 ```
 
 ## Cron System
@@ -889,76 +638,74 @@ Cron.remove(name)
 ├── filter out entry with matching name
 ├── execSync(`crontab -`) → write updated crontab
 └── return { removed: true }
+
+Cron.sync(schedulesDir)
+├── isAvailable() → bail with error if crontab missing
+├── _ensureReflectionJob(schedulesDir) → seed reflection-daily.json if absent
+├── _readJobsFromDisk() → desired jobs (enabled only)
+├── _splitBlock(_readCrontab()) → current entries
+├── diff desired vs current → added / removed / updated / skipped
+└── replace the madz-schedules block atomically via `crontab -`
+
+prepareCrontabCommand(command)
+└── `. <cwd>/.env.cron 2>/dev/null || true && <sanitized command>`
+    └── cron-fired processes source .env.cron (written at boot by writeEnvCron())
 ```
 
-## Auto Schedule
-
-**Entry:** `src/scheduler/autoSchedule.js` → `setupAutoSchedule()`
-
-Returns a callback invoked after `saveProfile()` succeeds during onboarding.
+### Reflection Job
 
 ```
-setupAutoSchedule()
-└── returns autoScheduleCallback()
-    ├── cwd = process.cwd()
-    ├── job = { name: "reflection-daily", cron: "0 2 * * *", command: `cd ${cwd} && node index.js --chat "/reflection"` }
-    ├── Cron.add(job) → adds to system crontab
-    └── persistJobFile(job.name, job, cwd)
-        └── writes `memory/schedules/reflection-daily.json`
+reflection-daily (seeded by Cron._ensureReflectionJob at startup sync)
+├── cron: "0 2 * * *"
+├── command: `cd <cwd> && node index.js --message "Run the reflection skill"`
+├── persisted: memory/schedules/reflection-daily.json
+└── installed into system crontab by Cron.sync()
 ```
-
 
 ## Memory Retention Cleanup
 
 **Entry:** `src/memory/retention.js` → `cleanRetainedMemory(), enforceMaxEntries()`
 
+Both functions are exported and tested but are **not wired into the shutdown path** — `index.js` `runShutdown()` stops the GC manager and flushes telemetry only.
+
 ```
-cleanRetainedMemory("memory/", retentionDays = 90)
-├── cutoff = Date.now() - retentionDays * 24 * 60 * 60 * 1000
+cleanRetainedMemory(directory, retentionDays = 90)
+├── cutoff = Date.now() - retentionDays * 86400000
 ├── for each .md file:
-│   └── if stat.mtimeMs < cutoff → unlinkSync(filepath), removed++
+│   └── if stat.mtimeMs < cutoff → unlink(filepath), removed++
 └── return removed
 
-enforceMaxEntries("memory/", maxEntries = 1000)
-├── files = readdirSync(fullPath).filter(.md).map(.mtime)
+enforceMaxEntries(directory, maxEntries = 1000)
+├── files = readdir(fullPath).filter(.md) → { name, mtime }
 ├── sort by mtime ascending
 ├── if files.length > maxEntries:
-│   └── for i in 0..excess → unlinkSync(files[i])
+│   └── for i in 0..excess → unlink(files[i])
 └── return removed
 ```
 
 ## Profile Management
 
-**Entry:** `src/memory/profile.js` → `loadProfile(), saveProfile(), formatProfileContext(), processOnboardingInput(), getAttribute()`
+**Entry:** `src/memory/profile.js` → `loadProfile(), saveProfile(), hasProfile(), formatProfileContext(), processOnboardingInput(), getAttribute(), sanitizeProfileData()`
 
 ```
-loadProfile()
-├── readFileSync("memory/context/profile.md", "utf-8")
-├── if file exists → parseFrontmatter(content)
-├── else → { ATTRIBUTES, data: {} }
-└── return { data, fullContext: formatProfileContext() }
+loadProfile(profilePath)          (async)
+├── read profile.md → parseFrontmatter → body "key: value" lines → data
+├── if no known attribute keys present → null
+└── return { data, fullContext: formatProfileContext(data) }
 
-saveProfile(data)
-├── sanitizeProfileData(data, ATTRIBUTES) → only known attribute keys
-├── writeFileSync("memory/context/profile.md", frontmatter + body)
-└── return sanitized
+saveProfile(profileData, profilePath)   (async)
+├── sanitizeProfileData(data) → only known attribute keys
+└── writeFileSync(profilePath, frontmatter + body)
 
-formatProfileContext(profile)
-└── for each attribute in ATTRIBUTES:
-    └── `${attribute.label}: ${profile.data[attribute.key]}`
+hasProfile(profilePath)          (async) → boolean
+formatProfileContext(profileData) → "key: value" lines for each ATTRIBUTES entry
+processOnboardingInput(input) → validate against control patterns (skip/cancel/exit) + attributes
+getAttribute(index) → ATTRIBUTES[index]
 
-processOnboardingInput(key, value)
-└── validate attribute key against ATTRIBUTES → update profile.data
-
-getAttribute(key)
-└── loadProfile().data[key]
-
-ATTRIBUTES (known profile fields):
-├── attractor: string → user's primary interest/focus
-├── expertise: string[] → user knowledge areas
-├── tools: string[] → user's development tools
-├── voice: string → user's preferred communication style
-└── preferences: object → structured user preferences
+ATTRIBUTES (12 known profile fields):
+├── name, dob, relationship, pets, hobbies, expertise,
+├── favorite bands, favorite books, favorite tv, favorite movies,
+└── location, notes (free-form)
 ```
 
 ## Shutdown Flow
@@ -969,72 +716,99 @@ ATTRIBUTES (known profile fields):
 registerShutdownHandler(cleanupFn)
 ├── process.on("SIGTERM", () => cleanup())
 ├── process.on("SIGINT", () => cleanup())
-└── return () => process.off("SIGTERM", process.off("SIGINT", ...)
+└── return () => process.off(...)
 
-# At exit (onExit from ink or SIGTERM):
-saveSession(sessionsDir, conversation)
-├── writeMemoryFile(sessionsDir, "Session", metadata, JSON.stringify(conversation))
-└── [see Memory Persistence Flow]
+# index.js runShutdown (registered above, also called in CLI mode):
+runShutdown()
+├── gcManager.stop() (if initialized)
+└── shutdownFn() → shutdownTelemetry()
 
-cleanRetainedMemory(config.memory.directory, config.memory.retention.days)
-└── [see Memory Retention Cleanup]
+# CLI chat mode exit:
+runShutdown() → flushLogger() → process.exit(0)
 
-enforceMaxEntries(config.memory.directory, config.memory.retention.maxEntries)
-└── [see Memory Retention Cleanup]
-
-shutdownTelemetry()
-└── [see Telemetry Initialization]
+# TUI exit (ink onExit):
+handleShutdown({ onShutdown: () => { gcManager.stop(); shutdownFn() } })
+└── flushLogger() → stdout.write("\n") → process.exit(0)
 ```
 
 ## File Dependencies
 
 ```
 index.js
-├── config/loader.js → schemas.js, mutate.js
-│     └── js-yaml
-├── config/mutate.js
-├── config/schemas.js → zod
+├── config/loader.js → config.js (ConfigSchema, DEFAULT_CONFIG), patch.js, schemas/*
+│     └── js-yaml, zod
+├── config/patch.js → zod
 ├── provider/openai.js → @langchain/openai
-├── agent/react.js → @langchain/langgraph, @langchain/core, cache/llm_cache.js — ReAct agent wrapper with cache-aside LLM response caching (conditional on tool usage, streaming support, fail-open)
-├── cache/llm_cache.js → tiny-lru, node:crypto — cache-aside LRU response cache with SHA-256 key generation, configurable size/TTL, fail-open behavior
-├── tools/index.js → (all tool files below)
-│     ├── tools/filesystem.js → @langchain/core, zod, node:fs/promises, node:path, tools/common.js
-│     ├── tools/shell.js → @langchain/core, zod, node:child_process
-│     ├── tools/web.js → fetch, node:fs/promises, tools/common.js (filterUrl, validateUrl)
-│     ├── tools/common.js → sandbox/urlFilter.js, sandbox/pathResolver.js, node:fs/promises
-│     ├── tools/memory.js → js-yaml, node:fs/promises — key-value entry storage. Each entry stored as an individual .md file in context directory with createdDate/updatedDate metadata. Actions: create, read, update, delete, list
-│     ├── tools/session/index.js → node:fs/promises, memory/reader.js
-│     ├── tools/code.js → node:child_process, node:fs/promises, node:path, posix (setrlimit memory limit)
-│     ├── tools/todo.js → node:fs/promises — CRUD task management in memory/tools/todo.json
-│     ├── tools/clarify.js → node:fs/promises — zero-permission clarification questions
-│     ├── tools/skills.js → registry (list discovered skills, view SKILL.md content, createSkill — programmatic skill scaffolding with spec validation)
-│     ├── tools/image.js → FAL_API_KEY — image generation via fal.ai queue
-│     ├── tools/tts.js → OPENAI_API_KEY — text-to-speech via OpenAI TTS API
-│     ├── tools/cron.js → node:fs/promises — cron job CRUD operations
-│     └── tools/...
-│     └── tools/...
+├── provider/tokenBudgetMiddleware.js → provider/tokenBudget.js, tiktoken encoding
+├── agent/deepAgents.js → deepagents, @langchain/quickjs, @langchain/langgraph-checkpoint,
+│     config/loader.js, memory/prompts.js, skills/registry.js, provider/openai.js,
+│     provider/tokenBudgetMiddleware.js, tools/index.js, tools/email/index.js,
+│     agent/coreBackend.js, agent/contextBackend.js, agent/agentDefinitions.js,
+│     shared/logger.js, stream/transformers/index.js
+├── agent/coreBackend.js → deepagents (LocalShellBackend)
+├── agent/contextBackend.js → deepagents (FilesystemBackend), config/loader.js
+├── tools/index.js → (all tool modules below)
+│     ├── tools/clarify/ → node:fs/promises — clarification questions → clarifications.md
+│     ├── tools/cron/ → scheduler/cron.js, node:child_process — cron job CRUD + run
+│     ├── tools/skills/ → skills/registry.js — list/view/createSkill
+│     ├── tools/memory/ → memory/tools.js — key-value entry storage in memory/context/entries/
+│     ├── tools/session/ → memory/reader.js — searchSession
+│     ├── tools/code/ → vector/store.js, vector/embedder.js, vector/indexer.js —
+│     │     searchCode (hybrid vector+keyword), indexCode (worker-thread reindex)
+│     ├── tools/date/ → date tool
+│     ├── tools/process/ → node:child_process — background process management
+│     ├── tools/sampling/ → ephemeral memory capture
+│     ├── tools/scanAgents/ → workspace/loadAgents.js — AGENTS.md discovery
+│     ├── tools/reflection/ → reflectionSessions
+│     ├── tools/web/ → sandbox/urlFilter.js, fetch — searchWeb/extractWeb
+│     ├── tools/image/ → FAL_API_KEY — generateImage via queue.fal.run
+│     ├── tools/tts/ → OPENAI_API_KEY — textToSpeech via OpenAI audio endpoint
+│     ├── tools/fileExtract/ → docx/pptx/xlsx/pdf extraction (docx, pptx, xlsx, pdf tools)
+│     ├── tools/pdf/ → generatePdf
+│     ├── tools/pptx/ → generatePptx
+│     ├── tools/email/ → email provider factory (validateProviderConfig, createEmailProvider)
+│     ├── tools/calendar/ → calendar provider
+│     ├── tools/spreadsheet/ → spreadsheet computation
+│     ├── tools/api/ → api tool (factory)
+│     ├── tools/graphql/ → graphql tool (factory)
+│     ├── tools/json/ → json tool (factory)
+│     ├── tools/yaml/ → yaml tool (factory)
+│     ├── tools/data/ → data tool (factory)
+│     ├── tools/webhook/ → webhook tool (factory)
+│     ├── tools/dns/ → namecom tool (name.com API; NAMECOM_USERNAME/NAMECOM_TOKEN)
+│     ├── tools/config/ → getConfig
+│     └── tools/image readImage → filesystem:read
+├── sandbox/runner.js → node:child_process, sandbox/timeoutHandler.js, envInjector.js,
+│     capability.js  (unit-tested; no production call path — see Sandbox Skill Execution)
 ├── sandbox/pathResolver.js → node:path
 ├── sandbox/urlFilter.js → node:url
-├── sandbox/runner.js → node:child_process, sandbox/timeoutHandler.js, envInjector.js, capability.js
-├── registry/registry.js → discoverer.js, validator.js
-├── registry/discoverer.js → js-yaml, node:fs, node:path
-├── registry/validator.js → types.js (zod schemas)
-├── registry/types.js → zod
-├── scheduler/scheduler.js → node:fs/promises — ScheduleManager CRUD class (register, list, pause, resume, runNow)
-├── scheduler/cron.js → node:child_process, node:fs/promises, node:path — Cron object (isAvailable, add, remove)
-├── scheduler/autoSchedule.js → node:fs — setupAutoSchedule() callback for reflection-daily cron
-├── scheduler/index.js → re-exports ScheduleManager and Cron
-├── memory/writer.js → node:fs, node:path
-├── memory/reader.js → js-yaml, node:fs
-├── memory/context.js → node:fs, node:path, memory/reader.js
-├── memory/retention.js → node:fs, node:path
-├── memory/prompts.js → node:fs
-├── memory/profile.js → node:fs — user profile management: ATTRIBUTES, loadProfile, saveProfile, formatProfileContext, processOnboardingInput
+├── skills/registry.js → discoverer.js, validator.js, agentMapper.js
+├── skills/discoverer.js → js-yaml, node:fs/promises, node:path
+├── skills/validator.js → types.js (zod schemas)
+├── skills/types.js → zod
+├── scheduler/scheduler.js → node:fs/promises — ScheduleManager CRUD class
+├── scheduler/cron.js → node:child_process, node:fs/promises, node:path — Cron + writeEnvCron
+├── scheduler/index.js → re-exports ScheduleManager, Cron, writeEnvCron
+├── memory/writer.js → node:fs/promises, node:path, config/loader.js
+├── memory/reader.js → js-yaml, node:fs/promises
+├── memory/context.js → node:fs/promises, memory/reader.js, memory/profile.js
+├── memory/retention.js → node:fs/promises
+├── memory/expireEphemeralMemories.js → node:fs/promises, js-yaml
+├── memory/gc.js → node:v8 — initGC/gc/isAvailable
+├── memory/prompts.js → node:fs — loadSystemPrompt()
+├── memory/profile.js → node:fs — ATTRIBUTES, loadProfile, saveProfile, hasProfile,
+│     formatProfileContext, processOnboardingInput, sanitizeProfileData
 ├── session/factory.js → node:crypto (randomUUID)
 ├── session/stateManager.js
-├── session/checkpointer.js → @langchain/langgraph, @langchain/langgraph-checkpoint-sqlite — createCheckpointer() returns MemorySaver (in-memory) or SQLiteCheckpointer (persistent)
-├── session/loader.js → fs, path, memory/reader.js
-├── session/saver.js → fs, path, memory/writer.js
-├── session/onboarding.js → session/stateManager.js — onboarding state machine (INIT → ATTRACTOR → COLLECT → SAVE → TRANSCEND)
+├── session/window.js → enforceContextWindow, trimConversation (exported; unused in prod paths)
+├── session/checkpointer.js → @langchain/langgraph (MemorySaver),
+│     @langchain/langgraph-checkpoint-sqlite (SqliteSaver)
+├── session/loader.js → node:fs/promises, memory/reader.js
+├── session/saver.js → node:fs/promises, memory/writer.js
+├── session/onboarding.js → memory/profile.js — INIT → ATTRACTOR → COLLECT → SAVE → TRANSCEND
+├── stream/transformers/index.js → createTurnTransformer()
+├── vector/store.js → sqlite-vec — createVectorStore
+├── vector/embedder.js → createEmbedder
+├── vector/indexer.js → vector/chunker.js, indexerWorker.js — reindex()
 └── telemetry/provider.js → @opentelemetry/sdk-node
 ```
