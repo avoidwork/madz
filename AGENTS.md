@@ -65,112 +65,126 @@ Node.js-based AI harness application using LangGraph for state machines and Open
 ├── index.js                    # Application entry point
 ├── package.json
 ├── config.yaml                 # Project configuration
-├── .oxlint.json                # oxlint configuration
+├── .oxlintrc.json              # oxlint configuration
 ├── .oxfmtrc.json               # oxfmt configuration
 ├── .oxfmtignore                # Files to ignore for formatting
 ├── .husky/                     # Husky git hooks directory
 │   └── pre-commit              # Pre-commit hook script
 ├── coverage.txt                # Coverage report output
 ├── src/
-│   ├── config/                 # Configuration loading and validation
+│   ├── agent/                  # Deep Agents orchestrator, backends, agent definitions
+│   │   ├── agentDefinitions.js
+│   │   ├── agentRegistry.js
+│   │   ├── contextBackend.js
+│   │   ├── coreBackend.js
+│   │   └── deepAgents.js
+│   ├── config/                 # Configuration loading, validation, runtime mutation
+│   │   ├── config.js
 │   │   ├── loader.js
-│   │   └── schemas.js
-│   ├── memory/                 # Memory and conversation storage
-│   │   ├── reader.js
-│   │   ├── writer.js
+│   │   ├── patch.js
+│   │   └── schemas/            # Zod schemas, one file per config section
+│   ├── memory/                 # Markdown memory, context, profiles, GC
 │   │   ├── context.js
-│   │   └── retention.js
-│   ├── skills/                 # Agent Skills spec discovery, validation & metadata
-│   │   ├── types.js
-│   │   ├── validator.js
-│   │   ├── registry.js
-│   │   ├── agentMapper.js
-│   │   ├── discoverer.js
-│   │   └── index.js
+│   │   ├── expireEphemeralMemories.js
+│   │   ├── gc.js
+│   │   ├── index.js
+│   │   ├── profile.js
+│   │   ├── prompts.js
+│   │   ├── reader.js
+│   │   ├── retention.js
+│   │   ├── tools.js
+│   │   └── writer.js
+│   ├── provider/               # LLM model factory and token budgeting
+│   │   ├── openai.js
+│   │   ├── tokenBudget.js
+│   │   └── tokenBudgetMiddleware.js
 │   ├── sandbox/                # Path & URL validation for the tool layer
 │   │   ├── pathResolver.js
 │   │   └── urlFilter.js
 │   ├── scheduler/              # Cron-based task scheduling
-│   │   ├── parser.js
-│   │   ├── queue.js
-│   │   ├── runner.js
-│   │   ├── logger.js
+│   │   ├── cron.js
+│   │   ├── index.js
 │   │   └── scheduler.js
-│   ├── session/                # Session state management
+│   ├── session/                # Session state, checkpointing, onboarding
+│   │   ├── checkpointer.js
 │   │   ├── factory.js
-│   │   ├── stateManager.js
-│   │   ├── window.js
+│   │   ├── index.js
 │   │   ├── loader.js
+│   │   ├── onboarding.js
 │   │   ├── saver.js
-│   │   └── shutdown.js
-│   ├── spreadsheet/            # Spreadsheet computation and analysis
-│   │   ├── csv.js
-│   │   ├── formulaParser.js
-│   │   ├── pivot.js
-│   │   ├── spreadsheet.js
-│   │   └── stats.js
+│   │   ├── shutdown.js
+│   │   ├── stateManager.js
+│   │   └── window.js
+│   ├── shared/                 # Cross-cutting utilities
+│   │   └── logger.js           # Structured logging (pino)
+│   ├── skills/                 # Agent Skills spec discovery, validation & metadata
+│   │   ├── agentMapper.js
+│   │   ├── discoverer.js
+│   │   ├── index.js
+│   │   ├── registry.js
+│   │   ├── types.js
+│   │   └── validator.js
+│   ├── stream/                 # Stream transformers
+│   │   └── transformers/
+│   │       ├── index.js
+│   │       └── turn.js
 │   ├── telemetry/              # OpenTelemetry observability
+│   │   ├── flusher.js
+│   │   ├── index.js
+│   │   ├── llmInstrumenter.js
+│   │   ├── metrics.js
 │   │   ├── provider.js
 │   │   ├── redaction.js
-│   │   ├── llmInstrumenter.js
-│   │   ├── skillInstrumenter.js
-│   │   ├── metrics.js
 │   │   ├── sampler.js
-│   │   └── flusher.js
-│   └── tui/                    # Terminal user interface (Ink)
-│       ├── app.js
-│       ├── inputPanel.js
-│       ├── conversationPanel.js
-│       ├── skillsPanel.js
-│       ├── memoryPanel.js
-│       ├── settingsPanel.js
-│       ├── commandParser.js
-│       ├── panels.js
-│       ├── messages.js
-│       ├── hooks.js
-│       └── components.js
-├── tests/
-│   ├── unit/                   # Unit tests mirroring src/ structure
-│   │   ├── checkpointer.test.js
-│   │   ├── config.test.js
-│   │   ├── context.test.js
-│   │   ├── conversationPanel.test.js
-│   │   ├── discoverer.test.js
-│   │   ├── filesystem.test.js
-│   │   ├── memory.test.js
-│   │   ├── onboarding.test.js
-│   │   ├── profile.test.js
-│   │   ├── provider.test.js
-│   │   ├── react_agent.test.js
-│   │   ├── reader.test.js
-│   │   ├── registry.test.js
-│   │   ├── sandbox.test.js
-│   │   ├── scheduler.test.js
-│   │   ├── session.test.js
-│   │   ├── shutdown.test.js
-│   │   ├── skills.test.js
-│   │   ├── telemetry.test.js
-│   │   ├── terminal.test.js
-│   │   ├── tool_index.test.js
-│   │   ├── tool_registration.test.js
-│   │   ├── tools.test.js
-│   │   ├── tools_clarify.test.js
-│   │   ├── tools_code.test.js
-│   │   ├── tools_cron.test.js
-│   │   ├── tools_date.test.js
-│   │   ├── tools_image.test.js
-│   │   ├── tools_memory.test.js
-│   │   ├── tools_moa.test.js
-│   │   ├── tools_sampling.test.js
-│   │   ├── tools_session_search.test.js
-│   │   ├── tools_tts.test.js
-│   │   ├── tools_vision.test.js
-│   │   ├── tools_web.test.js
-│   │   └── tui.test.js
-│   └── integration/            # Integration tests
-│       └── full-flow.test.js
+│   │   └── skillInstrumenter.js
+│   ├── tools/                  # Built-in LangChain tools (one directory per tool)
+│   │   ├── index.js            # Tool registry, ORCHESTRATOR_TOOLS, buildToolConfig()
+│   │   ├── common.js           # Shared path/URL validation helpers
+│   │   ├── api/ calendar/ clarify/ code/ config/ cron/ data/ date/ dns/
+│   │   ├── email/ fileExtract/ graphql/ image/ json/ memory/ pdf/ pptx/
+│   │   ├── process/ reflection/ sampling/ scanAgents/ session/ skills/
+│   │   ├── spreadsheet/ tts/ web/ webhook/ yaml/
+│   │   └── ...                 # calendar/providers/, email/providers/ for backends
+│   ├── tui/                    # Terminal user interface (Ink)
+│   │   ├── app.js
+│   │   ├── inputPanel.js
+│   │   ├── conversationPanel.js
+│   │   ├── skillsPanel.js
+│   │   ├── memoryPanel.js
+│   │   ├── settingsPanel.js
+│   │   ├── commandParser.js
+│   │   ├── panels.js
+│   │   ├── messages.js
+│   │   ├── hooks.js
+│   │   └── ...                 # banner, messageBubble, messageList, statusBar,
+│   │                           #   markdownText, inputArea, conversationArea, etc.
+│   ├── vector/                 # Semantic code search (embeddings + sqlite-vec)
+│   │   ├── chunker.js
+│   │   ├── embedder.js
+│   │   ├── indexer.js
+│   │   ├── indexerWorker.js
+│   │   └── store.js
+│   └── workspace/              # AGENTS.md discovery
+│       └── loadAgents.js
+├── tests/                      # 142 test files; unit/ mirrors src/ structure
+│   ├── unit/                   # Unit tests (config/, provider/, scheduler/, skills/,
+│   │   │                       #   stream/transformers/, tools/, tui/, vector/, ...)
+│   │   └── ...
+│   ├── integration/            # Integration tests
+│   │   ├── full-flow.test.js
+│   │   ├── api.test.js
+│   │   ├── webhook.test.js
+│   │   ├── syncEnv.test.js
+│   │   └── vector/
+│   ├── tui/                    # TUI-specific tests
+│   └── fixtures/               # Test fixtures
 └── memory/                     # Persistent memory storage
-    └── schedules/              # Scheduled job output files
+    ├── checkpoints/            # SqliteSaver checkpoint database
+    ├── context/                # Loaded context files
+    ├── schedules/              # Scheduled job definitions
+    ├── sessions/               # Session transcripts
+    ├── tools/                  # Tool-persisted state
+    └── vectorSearch/           # Vector index database
 ```
 
 Misc details: The `config.yaml` file is the single source of project configuration, loaded by `src/config/loader.js`. All subsystems wire into the entry point `index.js` at the project root.
@@ -194,7 +208,7 @@ Misc details: The `config.yaml` file is the single source of project configurati
 - **Package manager**: `npm`
 - **Type checking**: N/A (plain JavaScript)
 - **Formatting**: `oxfmt` (line-length 100)
-- **Linting**: `oxlint` (strict config in `oxlint.json`)
+- **Linting**: `oxlint` (strict config in `.oxlintrc.json`)
 - **Testing**: `node --test` (built-in) or `vitest`
 - **Git hooks**: `pre-commit` via Husky (manages oxfmt, oxlint, tests)
 
@@ -321,11 +335,23 @@ Generates `coverage.txt` via `node --test --experimental-test-coverage`.
 
 ### 6.2 Pre-commit Hook and coverage.txt
 
-The `cover` pre-commit hook runs `npm run coverage` then regenerates `coverage.txt`. If the hook modifies a staged file, `git commit` fails. Always `git add -A` and `git commit --amend -C HEAD` after a failed commit from a modified `coverage.txt`.
+The hook is `.husky/pre-commit`, installed by husky via the `prepare` npm script (`core.hooksPath` = `.husky/_`). Its body is:
+
+```
+npm run fix && npm run coverage && git add -A
+```
+
+Because the final step is `git add -A`, files the hook regenerates — `coverage.txt`, plus anything `oxlint --fix` or `oxfmt --write` rewrote — are staged automatically, so the commit proceeds and includes them. The commit does **not** fail merely because the hook modified a file.
+
+Do not "fix" a hook-modified file by amending: §1.3 forbids amending outright. If a commit lands with content you did not intend to stage, add a follow-up commit instead.
+
+**Gotcha:** `git add -A` stages the *entire* working tree, not just what you staged before committing. Anything untracked and not gitignored gets swept into the commit. Stage selectively and check `git status` before committing, or expect unrelated files to ride along.
 
 ### 6.3 Pre-commit Runs Tests
 
-The pre-commit hook runs `npm run test` and the coverage report in addition to linting. A commit can fail due to test failures or insufficient coverage, not just lint.
+The hook gates on tests indirectly: `npm run coverage` runs `node --test` across the whole suite, and `set -o pipefail` propagates a test failure through the `grep`/redirect pipeline so the commit fails. Lint failures fail the commit via `npm run fix` (oxlint exits non-zero on errors it cannot auto-fix). A commit can therefore fail on lint errors or test failures.
+
+There is no coverage *threshold* gate — the report is regenerated and committed, but no minimum is enforced. "Maintained coverage" is a review convention, not an automated check.
 
 ### 6.4 Mocking Settings
 
@@ -379,9 +405,9 @@ Code that can never execute is a smell. Remove dead code to avoid coverage gaps 
 
 Discovery notes about the codebase.
 
-### 7.1 README is the source of truth for project layout
+### 7.1 The filesystem is the source of truth for project layout
 
-The `README.md` may show a more up-to-date project structure (e.g., additional middleware modules, tool files). When in doubt, use it to verify the layout in section 2.0.
+Neither `README.md` nor §2.0 above is authoritative — both drift as the code moves, and both have been wrong historically. When the layout matters, list the directory (`ls src/`, `find src -name '*.js'`) rather than trusting either document. §2.0 is maintained as a convenience map, not a contract.
 
 ---
 
