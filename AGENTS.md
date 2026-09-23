@@ -80,20 +80,16 @@ Node.js-based AI harness application using LangGraph for state machines and Open
 │   │   ├── writer.js
 │   │   ├── context.js
 │   │   └── retention.js
-│   ├── skills/                 # Agent Skills spec discovery, validation & permissions
+│   ├── skills/                 # Agent Skills spec discovery, validation & metadata
 │   │   ├── types.js
 │   │   ├── validator.js
 │   │   ├── registry.js
-│   │   ├── permissions.js
+│   │   ├── agentMapper.js
 │   │   ├── discoverer.js
 │   │   └── index.js
-│   ├── sandbox/                # Secure skill execution sandbox
-│   │   ├── runner.js
+│   ├── sandbox/                # Path & URL validation for the tool layer
 │   │   ├── pathResolver.js
-│   │   ├── urlFilter.js
-│   │   ├── envInjector.js
-│   │   ├── capability.js
-│   │   └── timeoutHandler.js
+│   │   └── urlFilter.js
 │   ├── scheduler/              # Cron-based task scheduling
 │   │   ├── parser.js
 │   │   ├── queue.js

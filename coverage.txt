@@ -39,11 +39,7 @@
 ℹ   tokenBudget.js               | 100.00 |    90.32 |   86.67 | 
 ℹ   tokenBudgetMiddleware.js     | 100.00 |    75.44 |   80.00 | 
 ℹ  sandbox                       |        |          |         | 
-ℹ   capability.js                | 100.00 |   100.00 |  100.00 | 
-ℹ   envInjector.js               | 100.00 |   100.00 |  100.00 | 
 ℹ   pathResolver.js              | 100.00 |   100.00 |  100.00 | 
-ℹ   runner.js                    |  99.50 |    93.22 |   88.89 | 190
-ℹ   timeoutHandler.js            | 100.00 |   100.00 |  100.00 | 
 ℹ   urlFilter.js                 | 100.00 |    93.33 |  100.00 | 
 ℹ  scheduler                     |        |          |         | 
 ℹ   cron.js                      |  97.47 |    90.96 |   96.00 | 62-73 221 265 270-271

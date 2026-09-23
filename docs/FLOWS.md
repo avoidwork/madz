@@ -21,7 +21,7 @@ Call chains and data flows for all primary code paths in the project, excluding 
 - [Image Generation](#image-generation)
 - [Clarify](#clarify)
 - [Cron Job Execution Flow](#cron-job-execution-flow)
-- [Sandbox Skill Execution](#sandbox-skill-execution)
+- [Sandbox Validation](#sandbox-validation)
 - [Memory Persistence Flow](#memory-persistence-flow)
 - [Context Loading](#context-loading)
 - [Schedule Manager Lifecycle](#schedule-manager-lifecycle)
@@ -84,11 +84,11 @@ index.js (main)
 │       ├── { render } = import("ink")
 │       ├── App = import("./src/tui/app.js").default
 │       └── render(<App config registry sessionState dispatchProvider scheduleManager
-│   │                    invokeSkill appInfo onboarding onSaveSession gcManager gcTrigger
+│   │                    appInfo onboarding onSaveSession gcManager gcTrigger
 │   │                    checkpointer />)
 │           └── onExit: handleShutdown({ onShutdown }) + flushLogger() + exit
 └── export: config, sessionState, registry, tracer, dispatchProvider,
-            handleConversation, invokeSkill, handleShutdown, scheduleManager,
+            handleConversation, handleShutdown, scheduleManager,
             setConfigValue, loadContext, readMemoryFile
 ```
 
@@ -500,22 +500,13 @@ cronJob tool (actions: create, list, update, pause, resume, run, remove):
 └── remove → unlink job file + Cron.remove(name)
 ```
 
-## Sandbox Skill Execution
+## Sandbox Validation
 
-**Entry:** `src/sandbox/runner.js` → `runSandbox(options)`
+**Entry:** `src/sandbox/pathResolver.js` → `resolvePath()` / `assertPathAllowed()`; `src/sandbox/urlFilter.js` → `filterUrl()`
 
-The sandbox module (`runner.js`, `pathResolver.js`, `urlFilter.js`, `envInjector.js`, `capability.js`, `timeoutHandler.js`) is fully implemented and unit-tested, but currently has **no production call path**: `index.js` `invokeSkill()` is a placeholder that resolves permissions and returns a stub result, and `ScheduleManager.runNow()` only invokes a sandbox injected by the caller (nothing injects one). Scheduled skills execute via the system crontab instead — see [Cron System](#cron-system).
+The sandbox module retains only the two modules with a live production call path: `src/tools/common.js` uses `resolvePath()` / `assertPathAllowed()` for tool-side filesystem scope enforcement and `filterUrl()` for outbound URL validation (blocked schemes, hostname allowlist).
 
-```
-runSandbox(options):
-├── enforceCapabilities(permissions) → {resources, rules}[]
-├── resolvePath() / assertPathAllowed() → sandbox scope enforcement
-├── filterEnv(process.env, whitelist)
-├── spawn(interp.command, [...args, script], { cwd, env, execArgv: ["--max-old-space-size=..."] })
-├── collect stdout/stderr
-└── handleTimeout(child, { seconds, gracePeriod })
-    └── timeout → SIGTERM → gracePeriod → SIGKILL → "terminated" | "killed"
-```
+The former process-sandbox runtime — `runner.js`, `envInjector.js`, `capability.js`, `timeoutHandler.js`, `index.js` — was removed as dead code. It had **no production call path**: `index.js` `invokeSkill()` was a placeholder that resolved permissions and returned a stub, and `ScheduleManager.runNow()` only invokes a sandbox injected by the caller (nothing injects one). Skills now execute via the Deep Agents skill system; scheduled skills execute via the system crontab — see [Cron System](#cron-system).
 
 ## Memory Persistence Flow
 
@@ -607,7 +598,8 @@ scheduleManager.runNow(name, scheduler)
 │   └── collect stdout/stderr → { stdout, stderr, exitCode }
 └── skill entry → contextPrefix from entry.contextFile or loadContext(contextDir)
     └── scheduler.sandbox({ skillName, input, context, permissions })
-        └── injected by caller; no production wiring exists (see Sandbox Skill Execution)
+        └── injected by caller; no production wiring exists — defaults to a no-op stub
+            (see Sandbox Validation)
 ```
 
 ## Cron System
@@ -778,10 +770,8 @@ index.js
 │     ├── tools/dns/ → namecom tool (name.com API; NAMECOM_USERNAME/NAMECOM_TOKEN)
 │     ├── tools/config/ → getConfig
 │     └── tools/image readImage → filesystem:read
-├── sandbox/runner.js → node:child_process, sandbox/timeoutHandler.js, envInjector.js,
-│     capability.js  (unit-tested; no production call path — see Sandbox Skill Execution)
-├── sandbox/pathResolver.js → node:path
-├── sandbox/urlFilter.js → node:url
+├── sandbox/pathResolver.js → node:path  (live: tools/common.js)
+├── sandbox/urlFilter.js → node:url  (live: tools/common.js, tools/web, tools/api, tools/graphql)
 ├── skills/registry.js → discoverer.js, validator.js, agentMapper.js
 ├── skills/discoverer.js → js-yaml, node:fs/promises, node:path
 ├── skills/validator.js → types.js (zod schemas)

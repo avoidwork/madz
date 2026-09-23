@@ -10,7 +10,7 @@
 
 More than a tool, it's a **digital teammate** — one that remembers your context, adapts to how you work, and speaks with the calm, measured precision of Mads Mikkelsen's most iconic roles. It doesn't just execute; it engages. It has a personality, a memory, and a point of view — and it brings all three to the work.
 
-Everything is persisted as version-controllable Markdown files, so the entire state of the system — memory, context, sessions, schedules — is auditable with `git log` and re-loadable across sessions. Built on LangGraph, OpenTelemetry, and Ink, with persistent memory, sandboxed skill execution, cron scheduling, and a React-powered TUI.
+Everything is persisted as version-controllable Markdown files, so the entire state of the system — memory, context, sessions, schedules — is auditable with `git log` and re-loadable across sessions. Built on LangGraph, OpenTelemetry, and Ink, with persistent memory, sandboxed tool execution, cron scheduling, and a React-powered TUI.
 
 ## The Personality
 
@@ -76,7 +76,7 @@ Most coding agents are a thin layer over a model. `madz` is the opposite — it 
 
 - **Self-contained.** The container ships a full toolchain: Node.js 26, Python 3, Ruby, Go, Java (OpenJDK 21), Rust, Terraform, tflint, Chromium, ripgrep, git, the GitHub CLI, and three package managers (npm, yarn, pnpm). It is a working dev box, not a chat window. You can SSH into it and do real work.
 - **A teammate, not a tool.** `madz` channels the cinematic soul of Mads Mikkelsen — the calm precision of Hannibal Lecter, the quiet intensity of Le Chiffre, the steady hand of Galen Erso. It speaks with measured cadence, dry humor, and a genuine point of view. It remembers your context, adapts to your energy, and works *with* you rather than at you. This isn't a gimmick — it's what makes long sessions feel collaborative instead of transactional.
-- **Security-first.** Skills run in isolated child processes with time limits, memory caps, and allowlists for filesystem paths and outbound URLs. Blocked schemes include `file://`, `gopher://`, and `dict://`. Every tool is gated by explicit permissions. Sensitive fields are redacted from telemetry. This is layered containment by design — not a promise that the agent is harmless, but a guarantee that untrusted code is constrained.
+- **Security-first.** Filesystem access is confined to an allowlist/denylist of paths, and outbound URLs are filtered by scheme and hostname — blocked schemes include `file://`, `gopher://`, and `dict://`. Built-in tools are gated by explicit permissions, and skill metadata is schema-validated before it is registered. Sensitive fields are redacted from telemetry. This is layered containment by design — not a promise that the agent is harmless, but a set of constraints that narrow what any single tool can reach.
 - **Autonomous.** A Deep Agents orchestrator routes work to a family of specialized subagents — code review, coding, debugging, security auditing, testing, performance, research, and more. It can read your codebase, find bugs, write fixes, run tests, and open PRs without you driving every step.
 - **Auditable.** The entire system state is Markdown. Memory, context, sessions, schedules, and skill definitions are all plain files under version control. `git log` is your audit trail — essential for regulated environments where you must prove what happened and why.
 - **Local-first.** Data stays in your environment. Nothing leaves the container unless you explicitly configure it to. Secrets are loaded only from environment variables and never logged or hardcoded.
@@ -86,7 +86,7 @@ Most coding agents are a thin layer over a model. `madz` is the opposite — it 
 `madz` is built for environments where you need an agent that can be trusted with real work and held accountable for it.
 
 - **Enterprise development.** A self-contained dev environment with a full toolchain, semantic code search, and an orchestrator that can implement, test, and ship features. Spin up one `madz` per project and you've got a dedicated teammate with its own context and memory.
-- **Security operations.** A sandboxed runtime for running untrusted skills and tools, a dedicated `security-audit` subagent, dependency auditing, and a documented threat model. Run audits in an isolated container without exposing your host.
+- **Security operations.** Path allowlists, URL scheme/hostname filtering, permission-gated tools, a dedicated `security-audit` subagent, dependency auditing, and a documented threat model. Run audits in an isolated container without exposing your host.
 - **Regulated & high-assurance environments.** Medical, financial, and government contexts where auditability, deterministic behavior, and data sovereignty are non-negotiable. Because every action is a version-controlled Markdown file, you can demonstrate exactly what the agent did and why.
 - **Personal automation.** A persistent teammate that remembers your context, runs your skills on a schedule, and automates the mundane — with the calm precision of a well-built tool and the dry wit of someone who's been at this a while.
 
@@ -119,13 +119,13 @@ Most coding agents are a thin layer over a model. `madz` is the opposite — it 
 └───────────────────────────────────────────────────────────────┘
 ```
 
-The orchestrator routes tasks to specialized subagents, each with a focused system prompt and a curated tool set. Tools are gated by permissions and sandbox constraints. Skills execute in isolated child processes. Everything is persisted as Markdown and indexed for semantic search.
+The orchestrator routes tasks to specialized subagents, each with a focused system prompt and a curated tool set. Tools are gated by permissions and sandbox path/URL constraints. Skills are `SKILL.md` instruction files interpreted by the agent through the Deep Agents skill system. Everything is persisted as Markdown and indexed for semantic search.
 
 ## Quick Start
 
 ### Docker Quick Start (Recommended)
 
-`madz` is designed to run in a containerized environment. This provides persistent memory, sandboxed skill execution, and SSH access out of the box.
+`madz` is designed to run in a containerized environment. This provides persistent memory, container-isolated execution, and SSH access out of the box.
 
 ```bash
 docker pull avoidwork/madz:latest
@@ -666,7 +666,9 @@ Together, these layers create a system that remembers what matters while natural
 
 ### Sandbox RTE
 
-Skills run in isolated spawned child processes with time limits, memory caps, and allowlists for filesystem paths and outbound URLs. Blocked schemes: `file://`, `gopher://`, `dict://`.
+Filesystem and network access for built-in tools is constrained by `src/sandbox/`: `pathResolver.js` enforces an allowlist/denylist of paths (negative `!exclude/` rules win, traversal outside allowed roots is blocked), and `urlFilter.js` blocks `file://`, `gopher://`, and `dict://` plus internal IP ranges, with an optional hostname allowlist.
+
+Skills themselves are `SKILL.md` instruction files interpreted by the agent — they are not spawned into a separate process. There is no per-skill time limit, memory cap, or env-var filter; the container boundary is the isolation boundary. See [THREAT_MODEL.md](docs/THREAT_MODEL.md) for the honest boundary description.
 
 ### Telemetry
 
@@ -773,12 +775,12 @@ Graceful shutdown flushes all buffered log entries to disk before process exit.
 |               | `openai.rateLimit.maxConcurrency`   | _(unset)_                                | Max concurrent requests (defaults to Infinity) |
 |               | `openai.rateLimit.maxTokensMinute`  | `0`                                      | Rolling tokens-per-minute budget; `0` disables the throttle |
 | `sandbox`     | `paths`                              | `["memory/", "skills/", "tmp/"]` | Allowed filesystem paths                      |
-|               | `timeout.seconds`                    | `30`                                     | Max execution time in seconds                 |
-|               | `timeout.gracePeriod`                | `5`                                      | Kill grace period in seconds                  |
-|               | `memoryLimit`                        | `"512m"`                                 | Heap limit (`--max-old-space-size`)           |
+|               | `timeout.seconds`                    | `30`                                     | _(no consumer — retained for config compat)_  |
+|               | `timeout.gracePeriod`                | `5`                                      | _(no consumer — retained for config compat)_  |
+|               | `memoryLimit`                        | `"512m"`                                 | _(no consumer — retained for config compat)_  |
 |               | `safety.urlFilter`                   | `true`                                   | Outbound URL blocking                         |
-|               | `safety.pythonImportHook`            | `true`                                   | Prevent subprocess import                     |
-|               | `env.allowlist`                      | `["PATH", "HOME", "NODE_ENV"]`           | Allowed environment variables                 |
+|               | `safety.pythonImportHook`            | `true`                                   | _(no consumer — retained for config compat)_  |
+|               | `env.allowlist`                      | `["PATH", "HOME", "NODE_ENV"]`           | _(no consumer — retained for config compat)_  |
 |               | `permissions`                        | `["filesystem:read", ...]`               | Permission grants                             |
 |               | `maxReadSize`                        | `"1mb"`                                  | Max file read size                            |
 |               | `skillScanPaths`                     | `["skills/", ".skills/"]`         | Skill discovery paths (comma-separated)       |

@@ -39,9 +39,3 @@ export const SkillMetadataSchema = z.object({
 	executionContext: ExecutionContextSchema.default({}),
 	disabled: z.boolean().default(false),
 });
-
-/**
- * Default permission scopes applied to all skills.
- * @type {string[]}
- */
-export const DEFAULT_PERMS = ["filesystem:read", "env:read"];

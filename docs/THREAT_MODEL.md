@@ -87,11 +87,10 @@ The threat model covers the runtime components:
 
 | Entry point | Component | Notes |
 |---|---|---|
-| Skill execution | `src/sandbox/runner.js` | Spawns scripts with an interpreter; resource limits + timeout |
+| Skill execution | Deep Agents skill system | Skills are `SKILL.md` instruction files interpreted by the LLM; any bundled scripts run through the agent's own `execute`/`process` tools, not a dedicated process sandbox |
 | Skill discovery | `src/skills/discoverer.js` | Scans `skills/` and `.skills/`; validates metadata |
 | Outbound HTTP | `src/sandbox/urlFilter.js` | Filters schemes, internal IPs, allowlist |
 | Filesystem access | `src/sandbox/pathResolver.js` | Allowlist/denylist path rules |
-| Env injection | `src/sandbox/envInjector.js` | Whitelist of env vars passed to child |
 | Cron scheduling | `src/scheduler/cron.js`, `scheduler.js` | Reads job JSON, builds crontab, executes skills |
 | Config loading | `src/config/loader.js` | YAML + env var resolution + Zod validation |
 | Telemetry | `src/telemetry/redaction.js` | Redacts sensitive span attributes |
@@ -105,22 +104,21 @@ The threat model covers the runtime components:
 
 **Threat:** A skill script escapes the sandbox to read/write files outside the allowed scope, access the network, or spawn processes.
 
-**Attack path:** A skill with `filesystem:exec` or `process:spawn` permission runs arbitrary code. The sandbox relies on:
-- `pathResolver.js` — allowlist/denylist path rules (`resolvePath`).
-- `envInjector.js` — only whitelisted env vars passed to the child.
-- `runner.js` — timeout + memory limit (`--max-old-space-size=512` for Node).
+**Attack path:** There is no dedicated process sandbox. Skills are `SKILL.md` instruction files interpreted by the LLM; any bundled script is executed through the agent's own `execute`/`process` tools, which run as the application user with the full privileges of the harness process. The constraints that remain are enforced at the tool layer:
+- `pathResolver.js` — allowlist/denylist path rules (`resolvePath`), applied by `src/tools/common.js` for tool-side file access.
+- `urlFilter.js` — scheme and hostname filtering for outbound tool requests.
 
 **Existing mitigations:**
-- Path resolution uses `resolve()` and prefix matching with `sep`, blocking traversal outside allowed roots.
+- Path resolution uses `resolve()` and prefix matching with `sep`, blocking traversal outside allowed roots — for tools that call it.
 - Negative rules (`!exclude/`) are checked first and override positives.
-- Env is filtered to a whitelist (`config.sandbox.env.allowlist`).
-- Timeout via `handleTimeout` with a grace period.
+- URL filtering blocks `file:`, `gopher:`, `dict:` and internal IP ranges.
+- Skill metadata is validated against `SkillMetadataSchema` (`validator.js`), including a `permissions` declaration.
 
 **Gaps / recommendations:**
-- The sandbox is **not** a security boundary in the OS sense — it is a best-effort constraint layer. A malicious skill with `process:spawn` can run any binary. Consider running skills in a container or with OS-level sandboxing (e.g., `bubblewrap`, seccomp) for untrusted skills.
+- **The `permissions` field is declarative, not enforced.** `SkillMetadataSchema` validates the scopes a skill claims, but nothing gates execution on them — the former `capability.js` / `envInjector.js` / `runner.js` enforcement path was removed as dead code. Treat skill permissions as documentation until an enforcement layer exists.
+- The tool-layer path/URL checks are **not** a security boundary in the OS sense. A raw shell command issued through `execute` bypasses `pathResolver` and `urlFilter` entirely. Consider running skills in a container or with OS-level sandboxing (e.g., `bubblewrap`, seccomp) for untrusted skills.
 - `trustProjectSkills: true` in config means project skills are trusted by default. Review this default — it assumes the repo's skills are safe.
-- Memory limit is only applied to Node scripts (`--max-old-space-size`); Python/Ruby/other interpreters have no memory cap. Consider a cgroup or `ulimit` for all interpreters.
-- `detectShebang` falls back to `node` if no interpreter is detected — a script with no shebang and an unexpected extension still runs as Node.
+- There is no timeout or memory cap on skill-bundled scripts; the former `runner.js` limits (`--max-old-space-size`, `handleTimeout` grace period) no longer exist.
 
 ### 6.2 Prompt Injection → Tool Abuse
 
@@ -157,16 +155,14 @@ The threat model covers the runtime components:
 
 **Threat:** A malicious skill or tool reads env vars / config and exfiltrates credentials.
 
-**Attack path:** `envInjector.js` only passes whitelisted env vars to child processes. But the core process itself has access to all env vars.
+**Attack path:** There is no env-var filter between the harness process and skill execution. Skills run inside the agent process, which has access to all env vars. The former `envInjector.js` whitelist is gone, so `config.sandbox.env.allowlist` no longer constrains anything.
 
 **Existing mitigations:**
-- `config.sandbox.env.allowlist` limits what a skill sees.
 - Secrets are loaded from env vars, not hardcoded.
 - Telemetry redaction masks configured paths.
 
 **Gaps / recommendations:**
-- The allowlist includes `AUTH_API_KEY`, `EMAIL_IMAP_PASSWORD`, etc. — these are passed to skills. A malicious skill with `env:read` permission could read them. Review whether skills need these or whether they should be scoped per-skill.
-- `OPENAI_API_KEY` is in the allowlist. Consider whether skills need the LLM key.
+- Any skill — or prompt-injected tool call — can read the full process environment, including `OPENAI_API_KEY`, `AUTH_API_KEY`, and mail credentials. Review whether these need to live in the same process as skill execution, or whether secrets should be resolved lazily per-tool and never exposed to a general-purpose shell.
 
 ### 6.5 Cron Job Abuse
 
@@ -218,15 +214,16 @@ The threat model covers the runtime components:
 
 | Control | Where | Status |
 |---|---|---|
-| Path allowlist/denylist | `pathResolver.js` | ✅ Implemented |
+| Path allowlist/denylist | `pathResolver.js` | ✅ Implemented (tool layer only) |
 | URL scheme + internal IP filter | `urlFilter.js` | ✅ Implemented (DNS gap) |
-| Env var whitelist | `envInjector.js` | ✅ Implemented |
-| Timeout + memory limit | `runner.js` | ⚠️ Memory only for Node |
-| Capability → resource mapping | `capability.js` | ✅ Implemented |
 | Skill metadata validation | `validator.js` | ✅ Implemented |
 | Telemetry redaction | `redaction.js` | ✅ Implemented |
 | Zod input validation | `src/tools/*/index.js` | ✅ Implemented |
 | Auth modes (jwt/apikey/none) | AGENTS.md | ⚠️ Verify implementation |
+| Skill permission enforcement | — | ❌ Declarative only (`permissions` is validated, never enforced) |
+| Env var whitelist | — | ❌ Removed with `envInjector.js`; `sandbox.env.allowlist` has no consumer |
+| Timeout + memory limit for skills | — | ❌ Removed with `runner.js` / `timeoutHandler.js`; `sandbox.timeout` / `sandbox.memoryLimit` have no skill-side consumer |
+| Capability → resource mapping | — | ❌ Removed with `capability.js` |
 | OS-level sandboxing | — | ❌ Not present |
 
 ---
