@@ -1,4 +1,4 @@
-import { describe, it } from "node:test";
+import { describe, it, before, after } from "node:test";
 import assert from "node:assert";
 import { calculateConversationTokens } from "../../../src/tui/contextTokens.js";
 
@@ -138,5 +138,70 @@ describe("calculateConversationTokens", () => {
 		const tokens = await calculateConversationTokens(conversation, "gpt-4o");
 		assert.ok(typeof tokens === "number");
 		assert.ok(tokens > 0);
+	});
+
+	describe("encoder resolution (tiktoken actually used)", () => {
+		// The ambient environment may set OPENAI_ENCODING to a value tiktoken
+		// cannot resolve (e.g. a provider-specific name), which would force the
+		// char/4 fallback and defeat these assertions. Neutralize it for this
+		// block and restore it afterwards.
+		let originalEncoding;
+		before(() => {
+			originalEncoding = process.env.OPENAI_ENCODING;
+			delete process.env.OPENAI_ENCODING;
+		});
+		after(() => {
+			if (originalEncoding !== undefined) {
+				process.env.OPENAI_ENCODING = originalEncoding;
+			} else {
+				delete process.env.OPENAI_ENCODING;
+			}
+		});
+
+		// A string whose tiktoken count differs from the chars/4 heuristic, so
+		// we can prove tiktoken was used rather than the character fallback.
+		const text = "The quick brown fox jumps over the lazy dog near the riverbank today.";
+		const charEstimate = Math.ceil(text.length / 4);
+
+		it("known model uses tiktoken, not the char/4 fallback", async () => {
+			const conversation = [{ role: "user", content: text }];
+			const tokens = await calculateConversationTokens(conversation, "gpt-4o");
+			assert.notStrictEqual(tokens, charEstimate, "should differ from char/4 estimate");
+		});
+
+		it("explicit cl100k_base encoding uses tiktoken, not the char/4 fallback", async () => {
+			const conversation = [{ role: "user", content: text }];
+			const tokens = await calculateConversationTokens(conversation, "gpt-4o", "cl100k_base");
+			assert.notStrictEqual(tokens, charEstimate, "should differ from char/4 estimate");
+		});
+
+		it("explicit encoding matches the model-derived count for the same text", async () => {
+			const conversation = [{ role: "user", content: text }];
+			const viaEncoding = await calculateConversationTokens(conversation, "gpt-4o", "cl100k_base");
+			const viaModel = await calculateConversationTokens(conversation, "gpt-4o");
+			assert.strictEqual(viaEncoding, viaModel);
+		});
+
+		it("OPENAI_ENCODING env var uses tiktoken, not the char/4 fallback", async () => {
+			const original = process.env.OPENAI_ENCODING;
+			process.env.OPENAI_ENCODING = "cl100k_base";
+			try {
+				const conversation = [{ role: "user", content: text }];
+				const tokens = await calculateConversationTokens(conversation, "gpt-4o");
+				assert.notStrictEqual(tokens, charEstimate, "should differ from char/4 estimate");
+			} finally {
+				if (original) {
+					process.env.OPENAI_ENCODING = original;
+				} else {
+					delete process.env.OPENAI_ENCODING;
+				}
+			}
+		});
+
+		it("unknown model with no encoding falls back to char/4", async () => {
+			const conversation = [{ role: "user", content: text }];
+			const tokens = await calculateConversationTokens(conversation, "totally-unknown-model-xyz");
+			assert.strictEqual(tokens, charEstimate, "should use the char/4 heuristic");
+		});
 	});
 });

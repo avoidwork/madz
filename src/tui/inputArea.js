@@ -3,6 +3,7 @@ import { Box } from "ink";
 import { StatusBar } from "./statusBar.js";
 import { InputPanel } from "./inputPanel.js";
 import { QUOTES, getRandomQuoteIndex } from "./quotes.js";
+import { getSharedTokenBudget } from "../provider/openai.js";
 
 /**
  * InputArea — owns all input and status state.
@@ -23,6 +24,7 @@ const InputArea = forwardRef(function InputArea(
 		initialValue = "",
 		onInitialValueConsumed,
 		appInfo,
+		tokenBudget = 0,
 	},
 	ref,
 ) {
@@ -33,6 +35,7 @@ const InputArea = forwardRef(function InputArea(
 	const [contextSize, setContextSize] = useState(0);
 	const [isCompacting, setIsCompacting] = useState(false);
 	const [quoteIndex, setQuoteIndex] = useState(-1);
+	const [tokenCount, setTokenCount] = useState(0);
 
 	// Consume a pre-loaded initial value once on mount (e.g., skill selection).
 	useEffect(() => {
@@ -57,6 +60,20 @@ const InputArea = forwardRef(function InputArea(
 
 		return () => clearInterval(interval);
 	}, [statusBarVisible]);
+
+	// Poll the shared token budget so the status bar shows the live rolling
+	// window (tokens added by dispatches, expiring after the 60s window).
+	// Only ticks while the bar is visible and a budget is configured.
+	useEffect(() => {
+		if (!statusBarVisible || tokenBudget <= 0) {
+			setTokenCount(0);
+			return;
+		}
+		const budget = getSharedTokenBudget(tokenBudget);
+		setTokenCount(budget.current());
+		const interval = setInterval(() => setTokenCount(budget.current()), 1000);
+		return () => clearInterval(interval);
+	}, [statusBarVisible, tokenBudget]);
 
 	/**
 	 * Handle input-side submit: trim, track in chatHistory, clear input, call onSubmit.
@@ -139,6 +156,8 @@ const InputArea = forwardRef(function InputArea(
 					isCompacting,
 					version: appInfo?.version,
 					quote: quoteIndex >= 0 ? QUOTES[quoteIndex] : "",
+					tokenCount,
+					tokenBudget,
 				})
 			: null,
 		// InputPanel in normal mode and during onboarding

@@ -46,6 +46,11 @@ function App({
 	const skillCount = registry ? registry.list().length : 0;
 	const parser = new CommandParser();
 
+	// Rolling token budget (tokens/minute) for the active provider, if enabled.
+	// Drives the live token counter in the status bar.
+	const providerName = Object.keys(config?.providers || {})[0] || "openai";
+	const tokenBudget = config?.providers?.[providerName]?.rateLimit?.maxTokensMinute || 0;
+
 	// Stable callbacks — flow status/context/compacting from ConversationArea into InputArea
 	const onStatusChange = useCallback((msg) => inputAreaRef.current?.setStatusMessage(msg), []);
 	const onContextChange = useCallback((size) => inputAreaRef.current?.setContextSize(size), []);
@@ -341,6 +346,7 @@ function App({
 					initialValue: pendingInput,
 					onInitialValueConsumed: () => setPendingInput(""),
 					appInfo,
+					tokenBudget,
 				})
 			: null,
 	);
