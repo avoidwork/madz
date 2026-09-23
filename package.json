@@ -38,7 +38,7 @@
   "scripts": {
     "start": "node index.js --mode interactive",
     "test": "mkdir -p tmp/ && node --test 'tests/**/*.test.js'",
-    "coverage": "mkdir -p tmp/ && node --test --experimental-test-coverage --test-coverage-exclude=dist/** --test-coverage-exclude=tests/** --test-coverage-exclude=src/tui/onboardingPanel.js --test-coverage-exclude=src/tui/conversationArea.js --test-coverage-exclude=src/tools/calendar/providers/ --test-coverage-exclude=src/tools/email/providers/ --test-reporter=spec 'tests/**/*.test.js' 2>&1 | grep -A 1000 \"start of coverage report\" > coverage.txt",
+    "coverage": "set -o pipefail && mkdir -p tmp/ && node --test --experimental-test-coverage --test-coverage-exclude=dist/** --test-coverage-exclude=tests/** --test-coverage-exclude=src/tui/onboardingPanel.js --test-coverage-exclude=src/tui/conversationArea.js --test-coverage-exclude=src/tools/calendar/providers/ --test-coverage-exclude=src/tools/email/providers/ --test-reporter=spec 'tests/**/*.test.js' 2>&1 | grep -A 1000 \"start of coverage report\" > coverage.txt",
     "fix": "oxlint --fix *.js src tests/unit tests/integration tests/tui && oxfmt *.js src tests/unit tests/integration tests/tui --write",
     "lint": "oxlint *.js src tests/unit tests/integration tests/tui && oxfmt *.js src tests/unit tests/integration tests/tui --check",
     "docker:build": "docker build -t madz:latest .",
@@ -50,6 +50,7 @@
     "docker:release:arm64": "docker buildx build --builder multiarch --platform linux/arm64 -t $DOCKER_USER/madz:$npm_package_version-arm64 -t $DOCKER_USER/madz:$npm_package_version -t $DOCKER_USER/madz:latest-arm64 --push .",
     "docker:compose:up": "docker compose up -d",
     "docker:compose:down": "docker compose down",
+    "prepare": "husky",
     "postinstall": "node scripts/patch-langchain-reasoning.mjs",
     "purge-branches": "git branch | grep -v \"main\" | xargs git branch -D",
     "changelog": "auto-changelog -p"
