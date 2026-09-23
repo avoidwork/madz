@@ -93,7 +93,7 @@ export const StatusBar = React.memo(function StatusBar({
 				? React.createElement(
 						Text,
 						{ key: "tokens", color: "#606060" },
-						" [\u25F7" + formatNumber(tokenCount) + "/" + formatNumber(tokenBudget) + "]",
+						" [\u{1F48E} " + formatNumber(tokenCount) + "/" + formatNumber(tokenBudget) + "]",
 					)
 				: null,
 		),

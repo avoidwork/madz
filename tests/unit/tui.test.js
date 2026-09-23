@@ -971,7 +971,7 @@ describe("StatusBar - no appInfo rendering", () => {
 			),
 		);
 
-		assert.ok(result.includes("[◷123/100,000]"), "token count/budget should appear");
+		assert.ok(result.includes("[💎 123/100,000]"), "token count/budget should appear");
 	});
 
 	it("does not render the token budget segment when no budget is configured", async () => {
@@ -988,7 +988,7 @@ describe("StatusBar - no appInfo rendering", () => {
 			),
 		);
 
-		assert.ok(!result.includes("◷"), "token segment should be absent without a budget");
+		assert.ok(!result.includes("💎"), "token segment should be absent without a budget");
 	});
 
 	it("renders zero token count against a configured budget", async () => {
@@ -1007,7 +1007,7 @@ describe("StatusBar - no appInfo rendering", () => {
 			),
 		);
 
-		assert.ok(result.includes("[◷0/50,000]"), "zero count should still show the budget");
+		assert.ok(result.includes("[💎 0/50,000]"), "zero count should still show the budget");
 	});
 });
 
