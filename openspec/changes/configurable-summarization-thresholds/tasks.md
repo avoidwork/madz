@@ -1,7 +1,7 @@
 ## 1. Config Schema
 
 - [ ] 1.1 Create `src/config/schemas/summarization.js` exporting `SummarizationSchema`: `enabled` (`z.boolean().default(false)`), `trigger`, `keep`, and `truncateArgs` (`{ trigger, keep, maxLength }`). Use `z.enum(["tokens","messages"])` for `type` and `z.number().int()` for `value`. Do NOT use `.strict()` or `z.discriminatedUnion`. *(summarization-config: SummarizationSchema defines the summarization config section; Trigger and keep accept only tokens and messages types)*
-- [ ] 1.2 Apply the bounds from design Decision 9: `trigger.value` min 2 / max 10000000; `keep.value` min 1 / max 10000000; `truncateArgs.trigger.value` and `truncateArgs.keep.value` min 1 / max 10000000; `truncateArgs.maxLength` min 1 / max 1000000. Reject, never clamp. *(summarization-config: Threshold values are validated and never clamped)*
+- [ ] 1.2 Apply the bounds from design Decision 10: `trigger.value` min 2 / max 10000000; `keep.value` min 1 / max 10000000; `truncateArgs.trigger.value` and `truncateArgs.keep.value` min 1 / max 10000000; `truncateArgs.maxLength` min 1 / max 1000000. Reject, never clamp. *(summarization-config: Threshold values are validated and never clamped)*
 - [ ] 1.3 Re-export `SummarizationSchema` from `src/config/schemas/index.js` as a named export (no wildcard export). *(summarization-config: Schema is re-exported from the barrel)*
 - [ ] 1.4 Compose `summarization: SummarizationSchema.default({})` into `ConfigSchema` in `src/config/config.js`. Do NOT edit `src/config/loader.js` — `KNOWN_SECTIONS` and `syncEnv()` derive automatically. *(summarization-config: SummarizationSchema defines the summarization config section; Summarization thresholds support environment variable overrides)*
 
