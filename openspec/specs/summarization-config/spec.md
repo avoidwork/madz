@@ -4,7 +4,7 @@
 TBD - created by archiving change configurable-summarization-thresholds. Update Purpose after archive.
 ## Requirements
 ### Requirement: Summarization config is validated by a Zod schema
-The `summarization` config section SHALL be validated by a Zod schema (`SummarizationSchema`) in `src/config/schemas/summarization.js`, registered in `ConfigSchema` in `src/config/config.js`. The schema SHALL expose `enabled` (boolean, default `false`), `trigger` (discriminated on `type: "tokens" | "messages" | "fraction"` with a positive `value`), `keep` (same shape), and optional `historyPathPrefix`.
+The `summarization` config section SHALL be validated by a Zod schema (`SummarizationSchema`) in `src/config/schemas/summarization.js`, registered in `ConfigSchema` in `src/config/config.js`. The schema SHALL expose `enabled` (boolean, default `false`), `trigger` (discriminated on `type: "tokens" | "messages" | "fraction"` with a positive `value`), and `keep` (same shape).
 
 #### Scenario: Valid token trigger config is accepted
 - **WHEN** a config specifies `summarization.enabled: true` with `trigger: { type: "tokens", value: 28000 }` and `keep: { type: "messages", value: 10 }`
@@ -39,7 +39,7 @@ The `summarization` config section SHALL be validated by a Zod schema (`Summariz
 - **THEN** the schema defaults to `enabled: false` and the section is a no-op
 
 ### Requirement: Summarization middleware factory passes trigger and keep explicitly
-The middleware factory (`src/provider/summarizationMiddleware.js`) SHALL return `createSummarizationMiddleware({ backend, trigger, keep, historyPathPrefix })` from `deepagents` when `enabled` is true, or `null` when `enabled` is false. It SHALL always pass `keep` explicitly to avoid the library default shift from 6 to 20 messages.
+The middleware factory (`src/provider/summarizationMiddleware.js`) SHALL return `createSummarizationMiddleware({ backend, trigger, keep })` from `deepagents` when `enabled` is true, or `null` when `enabled` is false. It SHALL always pass `keep` explicitly to avoid the library default shift from 6 to 20 messages.
 
 #### Scenario: Enabled config returns the middleware
 - **WHEN** `enabled` is true with a configured `trigger` and `keep`

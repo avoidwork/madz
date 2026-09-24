@@ -10,7 +10,7 @@ import { logger } from "../shared/logger.js";
  * 6 messages).
  *
  * When enabled, it returns `createSummarizationMiddleware({ backend, trigger,
- * keep, historyPathPrefix })` with `trigger` and `keep` passed **explicitly**.
+ * keep })` with `trigger` and `keep` passed **explicitly**.
  * This is required because deepagents' `createSummarizationMiddleware` defaults
  * `keep` to `{ type: "messages", value: 20 }` when a `trigger` is supplied
  * without a `keep` — silently moving keep from the fallback 6 → 20. madz always
@@ -26,12 +26,6 @@ import { logger } from "../shared/logger.js";
  * (`mode: "fork"`). madz's subagents are not forked, so they keep the library
  * default `SummarizationMiddleware` (170k trigger / keep 6). See design.md.
  *
- * NOTE — offload filename scheme (confirmed empirically against deepagents
- * v1.14.0): `getHistoryPath(state)` builds `${historyPathPrefix}/${getSessionId(state)}.md`
- * where `getSessionId(state)` returns `session_${crypto.randomUUID().substring(0, 8)}`.
- * The confirmed scheme is `/conversation_history/session_<8-hex>.md` — neither
- * the source gist's `<sessionId>.md`, nor a random 12-hex id, nor `{thread_id}.md`.
- *
  * @param {Object} options - Middleware options
  * @param {Object} options.backend - The deepagents backend used for history offload
  * @param {Object} [options.config] - The resolved `summarization` config section
@@ -45,7 +39,6 @@ export function createSummarizationMiddlewareFromConfig(options = {}) {
 
 	const trigger = config.trigger;
 	const keep = config.keep;
-	const historyPathPrefix = config.historyPathPrefix;
 
 	if (!trigger || !keep) {
 		logger.warn(
@@ -55,15 +48,11 @@ export function createSummarizationMiddlewareFromConfig(options = {}) {
 		return null;
 	}
 
-	logger.info(
-		{ trigger, keep, historyPathPrefix },
-		"[summarization] registering custom SummarizationMiddleware",
-	);
+	logger.info({ trigger, keep }, "[summarization] registering custom SummarizationMiddleware");
 
 	return createSummarizationMiddleware({
 		backend,
 		trigger,
 		keep,
-		...(historyPathPrefix ? { historyPathPrefix } : {}),
 	});
 }

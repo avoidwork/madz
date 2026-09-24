@@ -35,7 +35,6 @@ export const SummarizationSchema = z
 		enabled: z.boolean().default(false),
 		trigger: SummarizationThresholdSchema.optional(),
 		keep: SummarizationThresholdSchema.optional(),
-		historyPathPrefix: z.string().optional(),
 	})
 	.strict()
 	.default({});

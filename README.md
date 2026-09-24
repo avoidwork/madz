@@ -476,10 +476,9 @@ All configuration is controlled via environment variables in the `docker run` co
 | ----------------------------- | ------------------------- | ---------------------------------------- |
 | `SUMMARIZATION_ENABLED`       | `false`                   | Enable proactive context compaction      |
 | `SUMMARIZATION_TRIGGER_TYPE`  | `tokens`                  | Trigger type (`tokens`, `messages`, `fraction`) |
-| `SUMMARIZATION_TRIGGER_VALUE` | `28000`                   | Trigger threshold value                  |
+| `SUMMARIZATION_TRIGGER_VALUE` | `100000`                  | Trigger threshold value                  |
 | `SUMMARIZATION_KEEP_TYPE`     | `messages`                | Keep type (`tokens`, `messages`, `fraction`) |
 | `SUMMARIZATION_KEEP_VALUE`    | `10`                      | Messages/tokens to keep after compaction |
-| `SUMMARIZATION_HISTORYPATHPREFIX` | `/conversation_history` | Path prefix for offloaded conversation history |
 
 **Optional — Vector Search:**
 
@@ -829,10 +828,9 @@ Graceful shutdown flushes all buffered log entries to disk before process exit.
 |               | `[].agent`                           | _(none)_                                 | Agent name to assign when pattern matches     |
 | `summarization` | `enabled`                          | `false`                                  | Enable proactive context compaction           |
 |               | `trigger.type`                       | `tokens`                                 | Trigger type (`tokens`, `messages`, `fraction`) |
-|               | `trigger.value`                      | `28000`                                  | Trigger threshold value                       |
+|               | `trigger.value`                      | `100000`                                 | Trigger threshold value                       |
 |               | `keep.type`                          | `messages`                               | Keep type (`tokens`, `messages`, `fraction`)  |
 |               | `keep.value`                         | `10`                                     | Messages/tokens to keep after compaction      |
-|               | `historyPathPrefix`                  | `/conversation_history`                  | Path prefix for offloaded conversation history |
 | `vector`      | `model`                              | `local`                                  | Embedding model (`local` or `openai`)         |
 |               | `projects.<name>.rootDir`            | `.`                                      | Project root directory to scan                |
 |               | `projects.<name>.dbPath`             | _(none)_                                 | Path to sqlite-vec database file              |
@@ -853,7 +851,7 @@ summarization:
   enabled: true
   trigger:
     type: tokens
-    value: 28000
+    value: 100000
   keep:
     type: messages
     value: 10
@@ -861,7 +859,6 @@ summarization:
 
 - **`trigger`** — the threshold at which compaction fires. `tokens` counts input tokens, `messages` counts messages, `fraction` is a fraction of the model's max input tokens (0–1).
 - **`keep`** — how much history to retain after compaction. Must be passed explicitly; deepagents defaults `keep` to 20 messages when a `trigger` is supplied without it, silently moving it from the fallback 6.
-- **`historyPathPrefix`** — the path prefix for offloaded conversation history (default `/conversation_history`).
 
 **Note:** the custom middleware reaches the **orchestrator only**. Subagents are not forked, so they keep the library default `SummarizationMiddleware`.
 

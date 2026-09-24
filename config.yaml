@@ -164,11 +164,10 @@ summarization:
   enabled: false
   trigger:
     type: tokens
-    value: 28000
+    value: 100000
   keep:
     type: messages
     value: 10
-  historyPathPrefix: "/conversation_history"
 lru:
   size: 100
   ttl: 600000

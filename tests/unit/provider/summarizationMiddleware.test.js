@@ -35,20 +35,6 @@ describe("createSummarizationMiddlewareFromConfig", () => {
 		assert.strictEqual(typeof mw.wrapModelCall, "function");
 	});
 
-	it("passes historyPathPrefix through when provided", () => {
-		const mw = createSummarizationMiddlewareFromConfig({
-			backend: {},
-			config: {
-				enabled: true,
-				trigger: { type: "tokens", value: 28000 },
-				keep: { type: "messages", value: 10 },
-				historyPathPrefix: "/custom_history",
-			},
-		});
-		assert.ok(mw, "should return a middleware");
-		assert.strictEqual(mw.name, "SummarizationMiddleware");
-	});
-
 	it("supports a messages trigger", () => {
 		const mw = createSummarizationMiddlewareFromConfig({
 			backend: {},
