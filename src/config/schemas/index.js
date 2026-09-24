@@ -8,5 +8,6 @@ export { AgentSchema } from "./agent.js";
 export { LruSchema } from "./lru.js";
 export { PersistenceSchema } from "./persistence.js";
 export { SubAgentsTemperatureSchema } from "./subAgentsTemperature.js";
+export { SummarizationSchema } from "./summarization.js";
 export { VectorConfigSchema } from "./vector.js";
 export { ImageSchema } from "./image.js";
