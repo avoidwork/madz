@@ -12,6 +12,7 @@ import { loadSystemPrompt } from "../memory/prompts.js";
 import { SkillRegistry } from "../skills/registry.js";
 import { createChatModel } from "../provider/openai.js";
 import { createTokenBudgetMiddleware } from "../provider/tokenBudgetMiddleware.js";
+import { createSummarizationMiddlewareFromConfig } from "../provider/summarizationMiddleware.js";
 import {
 	buildToolConfig,
 	getToolsForAgentTypes,
@@ -197,6 +198,12 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 
 	// All discovered skills are available to the orchestrator
 
+	// Composite backend shared by the orchestrator and the summarization
+	// middleware (which offloads conversation history to it).
+	const backend = new CompositeBackend(coreBackend, {
+		[contextRoute]: contextBackend,
+	});
+
 	// Token-budget enforcement middleware. Registered LAST: AgentNode composes
 	// the wrapModelCall chain backwards, so the last entry is innermost and
 	// observes the final post-summarization/post-truncation message set.
@@ -208,19 +215,30 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 		encoding: providerConfig.encoding,
 	});
 
+	// Configurable summarization middleware. Registered BEFORE the token-budget
+	// middleware so the budget observes the post-summarization message set.
+	// Returns null when the `summarization` config section is absent or
+	// `enabled` is false, so unset config is a true no-op (deepagents' library
+	// default of 170k trigger / keep 6 applies). When enabled, the returned
+	// middleware is named `SummarizationMiddleware`, which displaces the library
+	// default via same-name merge semantics in `createDeepAgent`.
+	const summarizationMiddleware = createSummarizationMiddlewareFromConfig({
+		backend,
+		config: config.summarization,
+	});
+
 	return createDeepAgent({
 		model,
 		tools: orchestratorTools,
 		systemPrompt,
 		store: new InMemoryStore(),
-		backend: new CompositeBackend(coreBackend, {
-			[contextRoute]: contextBackend,
-		}),
+		backend,
 		subagents: subagentDefinitions,
 		...(skillPaths.length > 0 && { skills: skillPaths }),
 		...(checkpointer && { checkpointer }),
 		middleware: [
 			createCodeInterpreterMiddleware(),
+			...(summarizationMiddleware ? [summarizationMiddleware] : []),
 			...(tokenBudgetMiddleware ? [tokenBudgetMiddleware] : []),
 		],
 		streamTransformers: [() => createTurnTransformer()],

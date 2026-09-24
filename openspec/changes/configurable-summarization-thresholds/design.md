@@ -87,4 +87,25 @@ No migration. When the new config is unset, behavior is byte-for-byte identical 
 ## Open Questions
 
 - Does the custom middleware apply to subagents, or only the orchestrator? (To be verified empirically.)
-- What is the actual offload filename scheme? (To be confirmed empirically.)
+
+## Empirical Confirmations (from live probes against deepagents v1.14.0)
+
+### Offload filename scheme — CONFIRMED
+
+`getHistoryPath(state)` builds the path as `${historyPathPrefix}/${getSessionId(state)}.md`, and `getSessionId(state)` returns `session_${crypto.randomUUID().substring(0, 8)}`. The confirmed scheme is:
+
+```
+/conversation_history/session_<8-hex>.md
+```
+
+This is **neither** the source gist's claimed `<sessionId>.md`, **nor** the random 12-hex id, **nor** `{thread_id}.md`. Observed live: `/conversation_history/session_671428d4.md`. Recorded in the middleware JSDoc.
+
+### Runtime probe — custom middleware fires at the configured value
+
+A real `createAgent` driven with `createSummarizationMiddleware({ backend: new StateBackend(), trigger: { type: "messages", value: 2 }, keep: { type: "messages", value: 1 } })` and 3 input messages produced **two** model invokes (fetch #1 = agent dispatch, fetch #2 = summary generation). This proves the custom middleware fires at the configured trigger (2 messages), not the 170k default. The library default `SummarizationMiddleware` is displaced by the same-name custom entry via `mergeMiddlewareStack` (keys by `middleware.name`).
+
+### Subagent propagation — VERIFIED: does NOT propagate
+
+`buildSubagentMiddleware` (bundle line 6683) merges the orchestrator's `customMiddleware` into a subagent's stack **only when `isForkedSubAgent(input)` is true** (bundle line 6685, `value.mode === "fork"`). madz's subagents are created via `createSubagentDefinitions` and never set `mode: "fork"` — confirmed by grep (no `fork` reference in `src/agent/`). Therefore the custom `SummarizationMiddleware` reaches the **orchestrator only**, not subagents.
+
+This is a deliberate, documented limitation. Subagents continue to use deepagents' library-default `SummarizationMiddleware` (170k trigger / keep 6) via `createSubagentDefaultMiddleware` (bundle line 6675). If subagent-level proactive compaction is ever required, the subagent specs would need `mode: "fork"` or an explicit `middleware` array — out of scope for this change.
