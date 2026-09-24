@@ -6,6 +6,8 @@ import React, {
 	forwardRef,
 	useImperativeHandle,
 } from "react";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { Box } from "ink";
 import { ConversationPanel, formatTime } from "./conversationPanel.js";
 import { CommandParser } from "./commandParser.js";
@@ -31,6 +33,45 @@ export function shouldAutoContinue(segments) {
 	const hasReasoning = segs.some((s) => s.type === "reasoning");
 	const hasMessage = segs.some((s) => s.type === "message");
 	return hasReasoning && !hasMessage;
+}
+
+/**
+ * Compute the total context token count: conversation + full system prompt
+ * (SYSTEM_PROMPT + AGENTS.md) + output budget. Mirrors the system prompt
+ * construction in `createDeepAgentsOrchestrator` and the token-budget
+ * middleware's `estimateCost`, so the TUI context counter reflects the same
+ * context window the model sees.
+ * @param {Object} params - Computation inputs
+ * @param {Array} params.conversation - Conversation messages
+ * @param {string} params.systemPrompt - Base system prompt (SYSTEM_PROMPT + memory context)
+ * @param {string} [params.agentsContent] - AGENTS.md content, appended when present
+ * @param {number} [params.maxTokens] - Output token budget added to the count
+ * @param {string} [params.modelName] - Model name for tiktoken resolution
+ * @param {string} [params.encoding] - Explicit tiktoken encoding name
+ * @returns {Promise<number>} Total context token count
+ */
+export async function computeContextSize({
+	conversation,
+	systemPrompt,
+	agentsContent,
+	maxTokens,
+	modelName,
+	encoding,
+}) {
+	let totalTokens = await calculateConversationTokens(conversation, modelName, encoding);
+	let fullSystemPrompt = systemPrompt;
+	if (agentsContent) {
+		fullSystemPrompt = systemPrompt + "\n\n---\n\n" + agentsContent;
+	}
+	if (fullSystemPrompt) {
+		totalTokens += await calculateConversationTokens(
+			[{ role: "system", content: fullSystemPrompt }],
+			modelName,
+			encoding,
+		);
+	}
+	totalTokens += maxTokens || 0;
+	return totalTokens;
 }
 
 /**
@@ -424,7 +465,11 @@ const ConversationArea = forwardRef(function ConversationArea(
 	const getTimestamp = () => formatTime(new Date());
 
 	/**
-	 * Calculate total context tokens (conversation + system prompt) and set contextSize.
+	 * Calculate total context tokens (conversation + system prompt + AGENTS.md +
+	 * output budget) and set contextSize. Mirrors the system prompt construction
+	 * in `createDeepAgentsOrchestrator` so the count includes AGENTS.md, and adds
+	 * the configured output budget (`maxTokens`) to match the token-budget
+	 * middleware's `estimateCost`.
 	 */
 	const updateContextSize = useCallback(
 		async (sessionState, config) => {
@@ -440,16 +485,26 @@ const ConversationArea = forwardRef(function ConversationArea(
 			const providerConfig = config?.providers?.[providerName] || {};
 			const modelName = providerConfig.model || "gpt-4o";
 			const encoding = providerConfig.encoding;
+			const maxTokens = providerConfig.maxTokens || 0;
 
-			let totalTokens = await calculateConversationTokens(conversation, modelName, encoding);
 			const systemPrompt = await loadSystemPrompt();
-			if (systemPrompt) {
-				totalTokens += await calculateConversationTokens(
-					[{ role: "system", content: systemPrompt }],
-					modelName,
-					encoding,
-				);
+			// Append AGENTS.md the same way createDeepAgentsOrchestrator does, so
+			// the context counter reflects the full system prompt the model sees.
+			let agentsContent;
+			const agentsPath = join(config?.cwd || process.cwd(), "AGENTS.md");
+			try {
+				agentsContent = await readFile(agentsPath, "utf-8");
+			} catch {
+				logger.debug(`[conversationArea] Failed to load AGENTS.md: ${agentsPath}`);
 			}
+			const totalTokens = await computeContextSize({
+				conversation,
+				systemPrompt,
+				agentsContent,
+				maxTokens,
+				modelName,
+				encoding,
+			});
 			setContextSize(totalTokens);
 			onContextChange?.(totalTokens);
 		},

@@ -49,6 +49,23 @@ export function toConversation(messages, systemMessage) {
 }
 
 /**
+ * Estimate the context cost of a conversation: input tokens (system + messages)
+ * plus the configured output budget. Shared by the `TokenBudget` middleware and
+ * the TUI context counter so both report the same context window. Callable
+ * regardless of whether `maxTokensMinute` is configured.
+ * @param {Array} conversation - Array of {role, content} messages
+ * @param {Object} [options] - Estimation options
+ * @param {string} [options.model] - Model name, used for tiktoken encoder resolution
+ * @param {string} [options.encoding] - Explicit tiktoken encoding name
+ * @param {number} [options.maxTokens] - Output token budget added to the estimate
+ * @returns {Promise<number>} Estimated total token cost
+ */
+export async function estimateContextCost(conversation, { model, encoding, maxTokens } = {}) {
+	const inputTokens = await calculateConversationTokens(conversation, model, encoding);
+	return inputTokens + (maxTokens || 0);
+}
+
+/**
  * Create the `TokenBudget` middleware that enforces `rateLimit.maxTokensMinute`.
  *
  * Enforcement lives in `wrapModelCall` rather than on the model instance,
@@ -81,18 +98,18 @@ export function createTokenBudgetMiddleware(options = {}) {
 
 	/**
 	 * Estimate the cost of a model request: input tokens (system + messages)
-	 * plus the configured output budget.
+	 * plus the configured output budget. Delegates to the shared helper so the
+	 * middleware and the TUI context counter report the same context window.
 	 * @param {Object} request - The `wrapModelCall` request
 	 * @returns {Promise<number>} Estimated total token cost
 	 */
 	async function estimateCost(request) {
 		const conversation = toConversation(request.messages, request.systemMessage);
-		const inputTokens = await calculateConversationTokens(
-			conversation,
-			options.model,
-			options.encoding,
-		);
-		return inputTokens + (options.maxTokens || 0);
+		return estimateContextCost(conversation, {
+			model: options.model,
+			encoding: options.encoding,
+			maxTokens: options.maxTokens,
+		});
 	}
 
 	return createMiddleware({
