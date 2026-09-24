@@ -45,7 +45,7 @@ function getAgentClassifications(agentName) {
  * @param {Object} config - Resolved config object
  * @returns {Object[]} Array of subagent definitions
  */
-function createSubagentDefinitions(allTools, model, skillRegistry, config) {
+export function createSubagentDefinitions(allTools, model, skillRegistry, config) {
 	const allAgents = getAllAgents();
 	const providerName = Object.keys(config.providers)[0] || "openai";
 	const providerConfig = config.providers[providerName] || {};
@@ -74,8 +74,14 @@ function createSubagentDefinitions(allTools, model, skillRegistry, config) {
 			});
 		}
 
+		// Surface the tool list in the description so the orchestrator can see
+		// which tools each subagent carries (deepagents renders this via
+		// describeSubagentForTool() as `- <name>: <description>`).
+		const toolList = filteredToolNames.length > 0 ? ` Tools: ${filteredToolNames.join(", ")}` : "";
+
 		const definition = {
 			...agentDef,
+			description: `${agentDef.description}${toolList}`,
 			model: agentModel,
 			tools: filteredTools,
 		};
