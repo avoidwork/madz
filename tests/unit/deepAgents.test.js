@@ -198,3 +198,57 @@ describe("modelIdentifier colon sanitization", () => {
 		assert.strictEqual(modelName, "qwen3.8:27b-mlx");
 	});
 });
+
+describe("createSubagentDefinitions tool visibility", () => {
+	it("should include a Tools: list in descriptions of tool-capable subagents", async () => {
+		const { createSubagentDefinitions } = await import("../../src/agent/deepAgents.js");
+		const { getToolsForAgentTypes, TOOLS } = await import("../../src/tools/index.js");
+		const { SkillRegistry } = await import("../../src/skills/registry.js");
+
+		const skillRegistry = new SkillRegistry();
+		const config = { providers: { openai: {} }, subAgentsTemperature: {} };
+		const definitions = createSubagentDefinitions([], {}, skillRegistry, config);
+
+		assert.ok(definitions.length > 0, "Should produce subagent definitions");
+
+		for (const def of definitions) {
+			const expectedTools = getToolsForAgentTypes([def.name], TOOLS);
+			if (expectedTools.length > 0) {
+				assert.ok(
+					def.description.includes("Tools:"),
+					`Subagent "${def.name}" description should include a Tools: list`,
+				);
+			} else {
+				assert.ok(
+					!def.description.includes("Tools:"),
+					`Subagent "${def.name}" with no tools should omit the Tools: suffix`,
+				);
+			}
+		}
+	});
+
+	it("should match tool names in description to getToolsForAgentTypes", async () => {
+		const { createSubagentDefinitions } = await import("../../src/agent/deepAgents.js");
+		const { getToolsForAgentTypes, TOOLS } = await import("../../src/tools/index.js");
+		const { SkillRegistry } = await import("../../src/skills/registry.js");
+
+		const skillRegistry = new SkillRegistry();
+		const config = { providers: { openai: {} }, subAgentsTemperature: {} };
+		const definitions = createSubagentDefinitions([], {}, skillRegistry, config);
+
+		for (const def of definitions) {
+			const expectedTools = getToolsForAgentTypes([def.name], TOOLS);
+			if (expectedTools.length === 0) {
+				continue;
+			}
+			const toolsMatch = def.description.match(/Tools: (.+)$/);
+			assert.ok(toolsMatch, `Subagent "${def.name}" should have a Tools: list`);
+			const renderedTools = toolsMatch[1].split(", ");
+			assert.deepStrictEqual(
+				renderedTools,
+				expectedTools,
+				`Subagent "${def.name}" tool list should match getToolsForAgentTypes`,
+			);
+		}
+	});
+});
