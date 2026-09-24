@@ -160,16 +160,15 @@ agent:
     codingAgent:
       description: "Specialized agent for code-related tasks including file editing, debugging, and implementation."
       temperature: 0.3
-# Proactive context compaction. When disabled (default), deepagents' library
-# default applies (170k token trigger / keep last 6 messages). When enabled,
-# compaction fires at the configured trigger instead of after an overflow.
-# Env overrides: SUMMARIZATION_ENABLED, SUMMARIZATION_TRIGGER_TYPE,
-# SUMMARIZATION_TRIGGER_VALUE, SUMMARIZATION_KEEP_TYPE, SUMMARIZATION_KEEP_VALUE.
 summarization:
   enabled: false
-  # trigger: { type: "tokens", value: 28000 }   # tokens | messages | fraction
-  # keep: { type: "messages", value: 10 }
-  # historyPathPrefix: "/conversation_history"
+  trigger:
+    type: tokens
+    value: 28000
+  keep:
+    type: messages
+    value: 10
+  historyPathPrefix: "/conversation_history"
 lru:
   size: 100
   ttl: 600000
