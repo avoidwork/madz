@@ -1,8 +1,5 @@
-# context-window-status Specification
+## MODIFIED Requirements
 
-## Purpose
-TBD - created by archiving change context-window-status. Update Purpose after archive.
-## Requirements
 ### Requirement: Status bar displays current context window size
 The TUI status bar SHALL display the current number of messages in the session conversation as `context:N`, positioned immediately after `msg:N`. The `N` SHALL reflect the full context window — conversation tokens plus the full system prompt (SYSTEM_PROMPT plus AGENTS.md) plus the configured output token budget (`maxTokens`) — rather than only the conversation plus the base system prompt.
 
@@ -48,4 +45,3 @@ The `context:N` display SHALL render in red color when the agent is performing c
 #### Scenario: Context clears red on non-compaction errors
 - **WHEN** a non-context-length error occurs during streaming
 - **THEN** the `context:N` text remains in the default color (not red)
-

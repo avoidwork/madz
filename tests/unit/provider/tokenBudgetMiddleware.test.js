@@ -6,6 +6,7 @@ import { z } from "zod";
 import { tool } from "@langchain/core/tools";
 import {
 	createTokenBudgetMiddleware,
+	estimateContextCost,
 	readUsageTokens,
 	toConversation,
 } from "../../../src/provider/tokenBudgetMiddleware.js";
@@ -128,6 +129,60 @@ describe("toConversation", () => {
 	});
 });
 
+describe("estimateContextCost", () => {
+	it("adds maxTokens to the conversation estimate", async () => {
+		const conversation = [{ role: "user", content: "Hello, world!" }];
+		const base = await estimateContextCost(conversation, { model: "gpt-4o", maxTokens: 0 });
+		const withBudget = await estimateContextCost(conversation, {
+			model: "gpt-4o",
+			maxTokens: 4096,
+		});
+		assert.strictEqual(withBudget, base + 4096);
+	});
+
+	it("defaults maxTokens to 0 when absent", async () => {
+		const conversation = [{ role: "user", content: "Hello, world!" }];
+		const result = await estimateContextCost(conversation, { model: "gpt-4o" });
+		assert.strictEqual(typeof result, "number");
+		assert.ok(result > 0);
+	});
+
+	it("is callable without a budget configuration", async () => {
+		// The helper must not depend on maxTokensMinute being enabled.
+		const conversation = [{ role: "user", content: "Hello, world!" }];
+		const result = await estimateContextCost(conversation, { model: "gpt-4o" });
+		assert.strictEqual(typeof result, "number");
+		assert.ok(result > 0);
+	});
+
+	it("handles an empty conversation", async () => {
+		assert.strictEqual(await estimateContextCost([], { model: "gpt-4o" }), 0);
+	});
+
+	it("adds tool definition tokens when tools are provided", async () => {
+		const conversation = [{ role: "user", content: "Hello, world!" }];
+		const base = await estimateContextCost(conversation, { model: "gpt-4o" });
+		const withTools = await estimateContextCost(conversation, {
+			model: "gpt-4o",
+			tools: [
+				{
+					name: "test",
+					description: "A test tool",
+					schema: { type: "object", properties: { x: { type: "string" } } },
+				},
+			],
+		});
+		assert.ok(withTools > base, "tool definitions should add tokens to the estimate");
+	});
+
+	it("adds zero tool tokens when no tools are provided", async () => {
+		const conversation = [{ role: "user", content: "Hello, world!" }];
+		const result = await estimateContextCost(conversation, { model: "gpt-4o" });
+		assert.strictEqual(typeof result, "number");
+		assert.ok(result > 0);
+	});
+});
+
 describe("TokenBudget.wrapModelCall accounting", () => {
 	it("reconciles the reservation to actual usage on success", async () => {
 		const { mw, budget } = makeMiddleware();
@@ -143,6 +198,14 @@ describe("TokenBudget.wrapModelCall accounting", () => {
 		await mw.wrapModelCall(makeRequest(), async () => ({ content: "no usage" }));
 		// Estimate (input tokens + maxTokens=0) must remain; not zero, not doubled.
 		assert.ok(budget.current() > 0, "estimate should remain in the window");
+	});
+
+	it("includes maxTokens in the estimate via the shared helper", async () => {
+		// The middleware must delegate to estimateContextCost, which adds the
+		// configured output budget to the conversation estimate.
+		const { mw, budget } = makeMiddleware({ maxTokens: 4096 });
+		await mw.wrapModelCall(makeRequest(), async () => ({ content: "no usage" }));
+		assert.ok(budget.current() >= 4096, "estimate should include the output budget");
 	});
 
 	it("releases the reservation when the handler throws a non-429", async () => {

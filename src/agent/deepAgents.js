@@ -233,7 +233,7 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 		config: config.summarization,
 	});
 
-	return createDeepAgent({
+	const agent = createDeepAgent({
 		model,
 		tools: orchestratorTools,
 		systemPrompt,
@@ -249,4 +249,16 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 		],
 		streamTransformers: [() => createTurnTransformer()],
 	});
+
+	// Expose the orchestrator's tool and subagent definitions so the TUI context
+	// counter can count them. The orchestrator's request includes the 16
+	// orchestrator tools plus a `task` tool whose description embeds every
+	// subagent description (deepagents renders these via describeSubagentForTool).
+	// The TUI reads these to report the true context window the model sees.
+	agent.contextEstimate = {
+		tools: orchestratorTools,
+		subagents: subagentDefinitions,
+	};
+
+	return agent;
 }
