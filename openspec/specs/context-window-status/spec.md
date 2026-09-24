@@ -1,7 +1,10 @@
-## ADDED Requirements
+# context-window-status Specification
 
+## Purpose
+TBD - created by archiving change context-window-status. Update Purpose after archive.
+## Requirements
 ### Requirement: Status bar displays current context window size
-The TUI status bar SHALL display the current number of messages in the session conversation as `context:N`, positioned immediately after `msg:N`.
+The TUI status bar SHALL display the current number of messages in the session conversation as `context:N`, positioned immediately after `msg:N`. The `N` SHALL reflect the full context window — conversation tokens plus the full system prompt (SYSTEM_PROMPT plus AGENTS.md) plus the configured output token budget (`maxTokens`) — rather than only the conversation plus the base system prompt.
 
 #### Scenario: Context size shown on startup
 - **WHEN** the TUI starts with a new session
@@ -18,6 +21,14 @@ The TUI status bar SHALL display the current number of messages in the session c
 #### Scenario: Context size reflects session state
 - **WHEN** the session conversation changes
 - **THEN** the displayed context count matches `sessionState.getConversation().length`
+
+#### Scenario: Context size includes AGENTS.md
+- **WHEN** the session has a conversation and the project root contains `AGENTS.md`
+- **THEN** the displayed context count includes the AGENTS.md token contribution
+
+#### Scenario: Context size includes the output token budget
+- **WHEN** the active provider configures a `maxTokens` value
+- **THEN** the displayed context count includes that `maxTokens` value
 
 ### Requirement: Context display turns red during compaction
 The `context:N` display SHALL render in red color when the agent is performing conversation compaction, and return to the default color when compaction completes.
@@ -37,3 +48,4 @@ The `context:N` display SHALL render in red color when the agent is performing c
 #### Scenario: Context clears red on non-compaction errors
 - **WHEN** a non-context-length error occurs during streaming
 - **THEN** the `context:N` text remains in the default color (not red)
+
