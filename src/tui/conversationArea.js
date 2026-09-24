@@ -16,6 +16,7 @@ import { setConfigValue } from "../config/loader.js";
 import { isAvailable, getGcCalls } from "../memory/gc.js";
 import { loadSystemPrompt } from "../memory/prompts.js";
 import { calculateConversationTokens } from "./contextTokens.js";
+import { estimateContextCost } from "../provider/tokenBudgetMiddleware.js";
 import { logger } from "../shared/logger.js";
 
 /**
@@ -48,6 +49,9 @@ export function shouldAutoContinue(segments) {
  * @param {number} [params.maxTokens] - Output token budget added to the count
  * @param {string} [params.modelName] - Model name for tiktoken resolution
  * @param {string} [params.encoding] - Explicit tiktoken encoding name
+ * @param {Array} [params.tools] - Orchestrator tool definitions (StructuredTool[])
+ * @param {Array} [params.subagents] - Subagent definitions whose descriptions are
+ *   embedded in the `task` tool the orchestrator sees
  * @returns {Promise<number>} Total context token count
  */
 export async function computeContextSize({
@@ -57,8 +61,15 @@ export async function computeContextSize({
 	maxTokens,
 	modelName,
 	encoding,
+	tools,
+	subagents,
 }) {
-	let totalTokens = await calculateConversationTokens(conversation, modelName, encoding);
+	let totalTokens = await estimateContextCost(conversation, {
+		model: modelName,
+		encoding,
+		maxTokens,
+		tools,
+	});
 	let fullSystemPrompt = systemPrompt;
 	if (agentsContent) {
 		fullSystemPrompt = systemPrompt + "\n\n---\n\n" + agentsContent;
@@ -70,7 +81,17 @@ export async function computeContextSize({
 			encoding,
 		);
 	}
-	totalTokens += maxTokens || 0;
+	// The orchestrator's request includes a `task` tool whose description embeds
+	// every subagent description (deepagents renders these via
+	// describeSubagentForTool as `- <name>: <description>`). Count those lines.
+	if (subagents && subagents.length > 0) {
+		const subagentLines = subagents.map((s) => `- ${s.name}: ${s.description || ""}`).join("\n");
+		totalTokens += await calculateConversationTokens(
+			[{ role: "system", content: subagentLines }],
+			modelName,
+			encoding,
+		);
+	}
 	return totalTokens;
 }
 
@@ -97,6 +118,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 		onNewSession,
 		onViewChange,
 		messageCountRef,
+		contextEstimate,
 	},
 	ref,
 ) {
@@ -504,11 +526,13 @@ const ConversationArea = forwardRef(function ConversationArea(
 				maxTokens,
 				modelName,
 				encoding,
+				tools: contextEstimate?.tools,
+				subagents: contextEstimate?.subagents,
 			});
 			setContextSize(totalTokens);
 			onContextChange?.(totalTokens);
 		},
-		[calculateConversationTokens],
+		[calculateConversationTokens, contextEstimate],
 	);
 
 	const addMessage = (msg) => {

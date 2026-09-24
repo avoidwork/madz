@@ -1,4 +1,4 @@
-import { createMiddleware } from "langchain";
+import { createMiddleware, countTokensApproximately } from "langchain";
 import { getSharedTokenBudget, getRetryDelayMs, DEFAULT_RETRY_AFTER_MS } from "./openai.js";
 import { calculateConversationTokens } from "../tui/contextTokens.js";
 import { logger } from "../shared/logger.js";
@@ -58,11 +58,21 @@ export function toConversation(messages, systemMessage) {
  * @param {string} [options.model] - Model name, used for tiktoken encoder resolution
  * @param {string} [options.encoding] - Explicit tiktoken encoding name
  * @param {number} [options.maxTokens] - Output token budget added to the estimate
+ * @param {Array} [options.tools] - Tool definitions (StructuredTool[]) included in
+ *   the request. Tokenized via `countTokensApproximately`, matching the library's
+ *   own serialization of tool schemas into the model request.
  * @returns {Promise<number>} Estimated total token cost
  */
-export async function estimateContextCost(conversation, { model, encoding, maxTokens } = {}) {
+export async function estimateContextCost(
+	conversation,
+	{ model, encoding, maxTokens, tools } = {},
+) {
 	const inputTokens = await calculateConversationTokens(conversation, model, encoding);
-	return inputTokens + (maxTokens || 0);
+	let toolTokens = 0;
+	if (tools && tools.length > 0) {
+		toolTokens = countTokensApproximately([], tools);
+	}
+	return inputTokens + toolTokens + (maxTokens || 0);
 }
 
 /**
@@ -109,6 +119,7 @@ export function createTokenBudgetMiddleware(options = {}) {
 			model: options.model,
 			encoding: options.encoding,
 			maxTokens: options.maxTokens,
+			tools: request.tools,
 		});
 	}
 

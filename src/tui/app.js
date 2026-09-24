@@ -27,6 +27,7 @@ function App({
 	onSaveSession,
 	gcManager,
 	gcTrigger,
+	contextEstimate,
 }) {
 	const [showBanner, setShowBanner] = useState(true);
 	const [showOnboarding, setShowOnboarding] = useState(!!onboarding);
@@ -330,6 +331,7 @@ function App({
 							onNewSession: handleNewSession,
 							onViewChange: handleViewChange,
 							messageCountRef,
+							contextEstimate,
 						}),
 		// InputArea — hidden during panel views
 		currentView === PANELS.CONVERSATION || showOnboarding

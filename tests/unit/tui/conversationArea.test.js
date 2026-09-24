@@ -82,6 +82,53 @@ describe("computeContextSize", () => {
 		assert.strictEqual(typeof result, "number");
 		assert.ok(result > 0);
 	});
+
+	it("includes tool definition tokens when tools are provided", async () => {
+		const mod = await import("../../../src/tui/conversationArea.js");
+		const conversation = [{ role: "user", content: "Hello, world!" }];
+		const base = await mod.computeContextSize({
+			conversation,
+			systemPrompt: "You are a helpful assistant.",
+			maxTokens: 0,
+			modelName: "gpt-4o",
+		});
+		const withTools = await mod.computeContextSize({
+			conversation,
+			systemPrompt: "You are a helpful assistant.",
+			maxTokens: 0,
+			modelName: "gpt-4o",
+			tools: [
+				{
+					name: "test",
+					description: "A test tool",
+					schema: { type: "object", properties: { x: { type: "string" } } },
+				},
+			],
+		});
+		assert.ok(withTools > base, "tool definitions should increase the context count");
+	});
+
+	it("includes subagent description tokens when subagents are provided", async () => {
+		const mod = await import("../../../src/tui/conversationArea.js");
+		const conversation = [{ role: "user", content: "Hello, world!" }];
+		const base = await mod.computeContextSize({
+			conversation,
+			systemPrompt: "You are a helpful assistant.",
+			maxTokens: 0,
+			modelName: "gpt-4o",
+		});
+		const withSubagents = await mod.computeContextSize({
+			conversation,
+			systemPrompt: "You are a helpful assistant.",
+			maxTokens: 0,
+			modelName: "gpt-4o",
+			subagents: [
+				{ name: "coding", description: "Specialized agent for code editing." },
+				{ name: "search", description: "Specialized agent for multi-source search." },
+			],
+		});
+		assert.ok(withSubagents > base, "subagent descriptions should increase the context count");
+	});
 });
 
 describe("shouldAutoContinue", () => {

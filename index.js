@@ -400,6 +400,7 @@ if (isMain) {
 				gcManager: gcManager ? gcManager.onActivity.bind(gcManager) : null,
 				gcTrigger: gcTrace,
 				checkpointer,
+				contextEstimate: agent.contextEstimate,
 			}),
 			{
 				// Restore terminal with newline when app exits

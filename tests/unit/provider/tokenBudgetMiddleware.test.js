@@ -158,6 +158,29 @@ describe("estimateContextCost", () => {
 	it("handles an empty conversation", async () => {
 		assert.strictEqual(await estimateContextCost([], { model: "gpt-4o" }), 0);
 	});
+
+	it("adds tool definition tokens when tools are provided", async () => {
+		const conversation = [{ role: "user", content: "Hello, world!" }];
+		const base = await estimateContextCost(conversation, { model: "gpt-4o" });
+		const withTools = await estimateContextCost(conversation, {
+			model: "gpt-4o",
+			tools: [
+				{
+					name: "test",
+					description: "A test tool",
+					schema: { type: "object", properties: { x: { type: "string" } } },
+				},
+			],
+		});
+		assert.ok(withTools > base, "tool definitions should add tokens to the estimate");
+	});
+
+	it("adds zero tool tokens when no tools are provided", async () => {
+		const conversation = [{ role: "user", content: "Hello, world!" }];
+		const result = await estimateContextCost(conversation, { model: "gpt-4o" });
+		assert.strictEqual(typeof result, "number");
+		assert.ok(result > 0);
+	});
 });
 
 describe("TokenBudget.wrapModelCall accounting", () => {
