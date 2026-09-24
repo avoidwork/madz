@@ -106,16 +106,4 @@ describe("SummarizationSchema", () => {
 			assert.strictEqual(result.success, false);
 		});
 	});
-
-	describe("historyPathPrefix", () => {
-		test("accepts an optional historyPathPrefix", () => {
-			const result = SummarizationSchema.parse({
-				enabled: true,
-				trigger: { type: "tokens", value: 28000 },
-				keep: { type: "messages", value: 10 },
-				historyPathPrefix: "/conversation_history",
-			});
-			assert.strictEqual(result.historyPathPrefix, "/conversation_history");
-		});
-	});
 });

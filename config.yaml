@@ -160,6 +160,14 @@ agent:
     codingAgent:
       description: "Specialized agent for code-related tasks including file editing, debugging, and implementation."
       temperature: 0.3
+summarization:
+  enabled: false
+  trigger:
+    type: tokens
+    value: 100000
+  keep:
+    type: messages
+    value: 10
 lru:
   size: 100
   ttl: 600000
