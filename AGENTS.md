@@ -409,6 +409,14 @@ Discovery notes about the codebase.
 
 Neither `README.md` nor §2.0 above is authoritative — both drift as the code moves, and both have been wrong historically. When the layout matters, list the directory (`ls src/`, `find src -name '*.js'`) rather than trusting either document. §2.0 is maintained as a convenience map, not a contract.
 
+### 7.2 Subagent tool lists must be reflected in the subagent description
+
+The orchestrator learns what each subagent can do **only** through the subagent's `description` field. Deepagents renders it via `describeSubagentForTool()` as `- <name>: <description>`, and that is the entire picture the orchestrator gets when deciding whether to delegate.
+
+When you add a tool to a subagent in `createSubagentDefinitions()` (`src/agent/deepAgents.js`), you **must** also append the tool list to that subagent's `description`. Otherwise the orchestrator has no idea the subagent carries the tool and will improvise — e.g., write a script to handle a `.docx` instead of delegating to the subagent that actually has the `docx` tool.
+
+The `description` is built from `agentDef.description` (in `src/agent/agentDefinitions.js`); the tool list is derived from `filteredToolNames` via `getToolsForAgentTypes()`. Append it as a `Tools: <comma-separated list>` suffix, and omit the suffix when the subagent has no tools. The `tools` array (actual tool instances) is separate and unchanged — the description is what the orchestrator sees.
+
 ---
 
 ## 8. Checklist Before Marking a TODO Complete
