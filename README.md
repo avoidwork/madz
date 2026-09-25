@@ -262,7 +262,7 @@ node index.js --mode interactive --session abc123
 | `/gc`                        | Trigger manual V8 garbage collection |
 | `/gc status`                 | Show GC availability and call count  |
 | `/sessions`                  | Open the sessions panel              |
-| `/memory`                    | Open the memory panel                |
+| `/memories`                  | Open the memories panel              |
 | `/skills`                    | Open the skills panel                |
 | `/settings`                  | Open the settings panel              |
 

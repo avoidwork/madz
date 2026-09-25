@@ -268,7 +268,7 @@ function App({
 			onSelectSkill: handleSelectSkill,
 			activeView: currentView,
 		});
-	} else if (currentView === PANELS.MEMORY) {
+	} else if (currentView === PANELS.MEMORIES) {
 		panelComponent = React.createElement(MemoryPanel, {
 			config,
 			onViewChange: handleViewChange,

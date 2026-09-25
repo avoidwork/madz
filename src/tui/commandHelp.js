@@ -15,7 +15,7 @@ export const COMMAND_GROUPS = [
 			"/config set <path> <value> - update config",
 			"/gc [status] - garbage collect or show GC status",
 			"/help - show this list",
-			"/memory - view memory panel",
+			"/memories - view memories panel",
 			"/new - start a new session",
 			"/provider [set <name>] - list or switch provider",
 			"/quit, /exit - exit the app",

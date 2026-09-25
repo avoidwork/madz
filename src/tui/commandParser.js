@@ -99,7 +99,7 @@ export class CommandParser {
 		// View-switching commands
 		for (const [cmd, view] of [
 			["sessions", "sessions"],
-			["memory", "memory"],
+			["memories", "memories"],
 			["skills", "skills"],
 			["settings", "settings"],
 		]) {

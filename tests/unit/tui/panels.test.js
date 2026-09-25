@@ -14,8 +14,8 @@ describe("getPanelOrder", () => {
 describe("nextPanel", () => {
 	it("cycles to the next panel", () => {
 		assert.strictEqual(nextPanel(PANELS.CONVERSATION), PANELS.SKILLS);
-		assert.strictEqual(nextPanel(PANELS.SKILLS), PANELS.MEMORY);
-		assert.strictEqual(nextPanel(PANELS.MEMORY), PANELS.SETTINGS);
+		assert.strictEqual(nextPanel(PANELS.SKILLS), PANELS.MEMORIES);
+		assert.strictEqual(nextPanel(PANELS.MEMORIES), PANELS.SETTINGS);
 		assert.strictEqual(nextPanel(PANELS.SETTINGS), PANELS.SESSIONS);
 	});
 
@@ -32,8 +32,8 @@ describe("nextPanel", () => {
 describe("prevPanel", () => {
 	it("cycles to the previous panel", () => {
 		assert.strictEqual(prevPanel(PANELS.SESSIONS), PANELS.SETTINGS);
-		assert.strictEqual(prevPanel(PANELS.SETTINGS), PANELS.MEMORY);
-		assert.strictEqual(prevPanel(PANELS.MEMORY), PANELS.SKILLS);
+		assert.strictEqual(prevPanel(PANELS.SETTINGS), PANELS.MEMORIES);
+		assert.strictEqual(prevPanel(PANELS.MEMORIES), PANELS.SKILLS);
 		assert.strictEqual(prevPanel(PANELS.SKILLS), PANELS.CONVERSATION);
 	});
 
