@@ -79,4 +79,30 @@ describe("SkillsPanel", () => {
 		);
 		assert.strictEqual(skill.description, longDesc);
 	});
+
+	it("renders the skill name alongside the description", () => {
+		const result = renderToString(
+			React.createElement(SkillsPanel, {
+				skills: [{ name: "example-skill", description: "A short description." }],
+				activeView: "skills",
+			}),
+		);
+		// The rendered output must contain the skill name, not just the description.
+		assert.ok(result.includes("example-skill"));
+		assert.ok(result.includes("A short description."));
+	});
+
+	it("renders the skill name for each catalog entry", () => {
+		const result = renderToString(
+			React.createElement(SkillsPanel, {
+				skills: [
+					{ name: "alpha-skill", description: "Alpha description." },
+					{ name: "beta-skill", description: "Beta description." },
+				],
+				activeView: "skills",
+			}),
+		);
+		assert.ok(result.includes("alpha-skill"));
+		assert.ok(result.includes("beta-skill"));
+	});
 });

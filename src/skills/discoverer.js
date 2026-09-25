@@ -30,13 +30,13 @@ export function extractFrontmatter(content) {
 		return { frontmatter: null, body: "" };
 	}
 
-	const parts = content.split("---");
-	if (parts.length < 2 || !parts[1].trim()) {
+	const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---(\r?\n|$)/);
+	if (!match || !match[1].trim()) {
 		return { frontmatter: null, body: content.trim() };
 	}
 
-	const yamlStr = parts[1].trim();
-	const body = parts.slice(2).join("---").trim();
+	const yamlStr = match[1].trim();
+	const body = content.slice(match[0].length).trim();
 
 	let frontmatter;
 	try {
