@@ -10,7 +10,7 @@ import { InMemoryStore } from "@langchain/langgraph-checkpoint";
 import { loadConfig } from "../config/loader.js";
 import { loadSystemPrompt } from "../memory/prompts.js";
 import { SkillRegistry } from "../skills/registry.js";
-import { createChatModel } from "../provider/openai.js";
+import { createChatModel, getActiveProviderConfig } from "../provider/openai.js";
 import { createTokenBudgetMiddleware } from "../provider/tokenBudgetMiddleware.js";
 import { createSummarizationMiddlewareFromConfig } from "../provider/summarizationMiddleware.js";
 import {
@@ -122,7 +122,7 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 
 	// Create model from config
 	const providerName = Object.keys(config.providers)[0] || "openai";
-	const providerConfig = config.providers[providerName] || {};
+	const providerConfig = getActiveProviderConfig(config);
 	const model = createChatModel(providerConfig);
 
 	// Validate email provider config at startup (non-blocking)

@@ -141,3 +141,36 @@ describe("StatusBar", () => {
 		assert.ok(xCount > 80, `expected >80 chars rendered, got ${xCount}`);
 	});
 });
+
+describe("StatusBar model display", () => {
+	it("renders the model name with the brain glyph when configured", () => {
+		const result = renderToString(
+			React.createElement(StatusBar, {
+				statusMessage: "Ready",
+				skillCount: 1,
+				messageCount: 2,
+				contextSize: 3,
+				version: "1.0.0",
+				model: "gpt-4o",
+			}),
+		);
+		assert.ok(typeof result === "string");
+		assert.ok(result.includes("🧠"), "should render the brain glyph");
+		assert.ok(result.includes("gpt-4o"), "should render the model name");
+	});
+
+	it("omits the model display when no model is configured", () => {
+		const result = renderToString(
+			React.createElement(StatusBar, {
+				statusMessage: "Ready",
+				skillCount: 1,
+				messageCount: 2,
+				contextSize: 3,
+				version: "1.0.0",
+				model: "",
+			}),
+		);
+		assert.ok(typeof result === "string");
+		assert.ok(!result.includes("🧠"), "should not render the brain glyph");
+	});
+});

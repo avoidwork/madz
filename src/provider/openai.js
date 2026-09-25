@@ -98,6 +98,28 @@ export function getRetryDelayMs(err, defaultMs) {
  * @param {ProviderConfig} config - Provider configuration object
  * @returns {ChatOpenAI} A configured ChatOpenAI instance
  */
+/**
+ * Get the active provider configuration from a config object.
+ * The active provider is the first key in `config.providers`, falling back to
+ * `openai` when no provider is configured. Shared between the orchestrator and
+ * the TUI status bar so the selection rule is not duplicated.
+ * @param {Object} config - The loaded config object
+ * @returns {Object} The active provider config, or an empty object
+ */
+export function getActiveProviderConfig(config) {
+	const providerName = Object.keys(config?.providers || {})[0] || "openai";
+	return config?.providers?.[providerName] || {};
+}
+
+/**
+ * Get the active provider's model name from a config object.
+ * @param {Object} config - The loaded config object
+ * @returns {string} The active model name, or empty string if none is configured
+ */
+export function getActiveModelName(config) {
+	return getActiveProviderConfig(config).model || "";
+}
+
 export function createChatModel(config) {
 	const opts = {
 		model: config.model,

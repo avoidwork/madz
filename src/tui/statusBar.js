@@ -46,6 +46,7 @@ export const StatusBar = React.memo(function StatusBar({
 	contextSize = 0,
 	isCompacting = false,
 	version = "",
+	model = "",
 	quote = "",
 	tokenCount = 0,
 	tokenBudget = 0,
@@ -103,6 +104,13 @@ export const StatusBar = React.memo(function StatusBar({
 					{ key: "right", marginLeft: "auto" },
 					quote
 						? React.createElement(Text, { key: "quote", color: "#606060" }, quote + "  ")
+						: null,
+					model
+						? React.createElement(
+								Text,
+								{ key: "model", color: "#606060" },
+								"[\u{1F9E0} " + model + "]  ",
+							)
 						: null,
 					React.createElement(Text, { key: "version", color: "#606060" }, version),
 				)
