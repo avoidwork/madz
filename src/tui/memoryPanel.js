@@ -6,6 +6,32 @@ import { join } from "node:path";
 import { parseFrontmatter } from "../memory/reader.js";
 
 /**
+ * Custom item renderer for SelectInput that highlights the selected row in cyan,
+ * matching the /skills view. ink-select-input's default Item uses blue.
+ * @param {{ isSelected?: boolean, label: string }} props - The item props.
+ * @returns {React.ReactElement} The rendered item.
+ */
+function CyanItem({ isSelected = false, label }) {
+	return React.createElement(Text, { color: isSelected ? "cyan" : undefined }, label);
+}
+
+/**
+ * Custom indicator renderer for SelectInput that renders the pointer in cyan,
+ * matching the /skills view. ink-select-input's default Indicator uses blue.
+ * @param {{ isSelected?: boolean }} props - The indicator props.
+ * @returns {React.ReactElement} The rendered indicator.
+ */
+function CyanIndicator({ isSelected = false }) {
+	return React.createElement(
+		Box,
+		{ marginRight: 1 },
+		isSelected
+			? React.createElement(Text, { color: "cyan" }, "▸")
+			: React.createElement(Text, null, " "),
+	);
+}
+
+/**
  * MemoryPanel — browse canonical user memories from memory/context/.
  * Filters out ephemeral-*.md, reflection.md, clarifications.md.
  * Props:
@@ -175,6 +201,8 @@ export function MemoryPanel({ config, onViewChange, activeView }) {
 			items,
 			isFocused: isActive,
 			limit,
+			indicatorComponent: CyanIndicator,
+			itemComponent: CyanItem,
 			onHighlight: loadDetail,
 			onSelect: loadDetail,
 		}),
