@@ -173,3 +173,109 @@ describe("StatusBar model display", () => {
 		assert.ok(!result.includes("🧠"), "should not render the brain glyph");
 	});
 });
+
+describe("StatusBar per-item visibility", () => {
+	const baseProps = {
+		statusMessage: "Ready",
+		skillCount: 1,
+		messageCount: 2,
+		contextSize: 3,
+		version: "1.0.0",
+		model: "gpt-4o",
+		quote: "A test quote",
+		tokenCount: 5,
+		tokenBudget: 100,
+	};
+
+	it("renders all elements by default when no statusBar prop is provided", () => {
+		const result = renderToString(React.createElement(StatusBar, baseProps));
+		assert.ok(typeof result === "string");
+		assert.ok(result.includes("🧠"), "should render the model glyph");
+		assert.ok(result.includes("⚡"), "should render the skills glyph");
+		assert.ok(result.includes("💬"), "should render the messages glyph");
+		assert.ok(result.includes("▦"), "should render the context glyph");
+		assert.ok(result.includes("💎"), "should render the tokens glyph");
+		assert.ok(result.includes("A test quote"), "should render the quote");
+		assert.ok(result.includes("1.0.0"), "should render the version");
+	});
+
+	it("omits the skills element when statusBar.skills is false", () => {
+		const result = renderToString(
+			React.createElement(StatusBar, { ...baseProps, statusBar: { skills: false } }),
+		);
+		assert.ok(typeof result === "string");
+		assert.ok(!result.includes("⚡"), "should not render the skills glyph");
+		assert.ok(result.includes("🧠"), "should still render the model glyph");
+		assert.ok(result.includes("💬"), "should still render the messages glyph");
+	});
+
+	it("omits the model element when statusBar.model is false", () => {
+		const result = renderToString(
+			React.createElement(StatusBar, { ...baseProps, statusBar: { model: false } }),
+		);
+		assert.ok(typeof result === "string");
+		assert.ok(!result.includes("🧠"), "should not render the model glyph");
+		assert.ok(result.includes("⚡"), "should still render the skills glyph");
+	});
+
+	it("omits the messages element when statusBar.messages is false", () => {
+		const result = renderToString(
+			React.createElement(StatusBar, { ...baseProps, statusBar: { messages: false } }),
+		);
+		assert.ok(typeof result === "string");
+		assert.ok(!result.includes("💬"), "should not render the messages glyph");
+	});
+
+	it("omits the context element when statusBar.context is false", () => {
+		const result = renderToString(
+			React.createElement(StatusBar, { ...baseProps, statusBar: { context: false } }),
+		);
+		assert.ok(typeof result === "string");
+		assert.ok(!result.includes("▦"), "should not render the context glyph");
+	});
+
+	it("omits the tokens element when statusBar.tokens is false", () => {
+		const result = renderToString(
+			React.createElement(StatusBar, { ...baseProps, statusBar: { tokens: false } }),
+		);
+		assert.ok(typeof result === "string");
+		assert.ok(!result.includes("💎"), "should not render the tokens glyph");
+	});
+
+	it("omits the quote element when statusBar.quote is false", () => {
+		const result = renderToString(
+			React.createElement(StatusBar, { ...baseProps, statusBar: { quote: false } }),
+		);
+		assert.ok(typeof result === "string");
+		assert.ok(!result.includes("A test quote"), "should not render the quote");
+		assert.ok(result.includes("1.0.0"), "should still render the version");
+	});
+
+	it("omits the version element when statusBar.version is false", () => {
+		const result = renderToString(
+			React.createElement(StatusBar, { ...baseProps, statusBar: { version: false } }),
+		);
+		assert.ok(typeof result === "string");
+		assert.ok(!result.includes("1.0.0"), "should not render the version");
+	});
+
+	it("still renders the streaming indicator when all elements are hidden", () => {
+		const result = renderToString(
+			React.createElement(StatusBar, {
+				...baseProps,
+				statusMessage: "Streaming...",
+				statusBar: {
+					model: false,
+					skills: false,
+					messages: false,
+					context: false,
+					tokens: false,
+					quote: false,
+					version: false,
+				},
+			}),
+		);
+		assert.ok(typeof result === "string");
+		assert.ok(result.includes("∙"), "should still render the streaming indicator");
+	});
+});

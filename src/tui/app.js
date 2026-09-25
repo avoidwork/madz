@@ -349,6 +349,7 @@ function App({
 					onInitialValueConsumed: () => setPendingInput(""),
 					appInfo,
 					tokenBudget,
+					statusBar: config?.tui?.statusBar,
 				})
 			: null,
 	);
