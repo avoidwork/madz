@@ -2,7 +2,6 @@ node_modules
 memory
 skills
 tmp
-.tmp
 projects
 !src/memory
 !src/skills
