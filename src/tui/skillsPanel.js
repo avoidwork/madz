@@ -1,6 +1,24 @@
 import React, { useState, useMemo } from "react";
 import { Box, Text, useInput } from "ink";
 
+/** Maximum length of a skill description before it is truncated with an ellipsis. */
+export const DESCRIPTION_MAX_LENGTH = 500;
+
+/**
+ * Truncate a skill description for display.
+ * Returns the description unchanged when it is at or under `max` characters,
+ * otherwise returns the first `max` characters followed by an ellipsis.
+ * @param {string} desc - The description to truncate.
+ * @param {number} [max=DESCRIPTION_MAX_LENGTH] - The maximum allowed length.
+ * @returns {string} The truncated (or unchanged) description.
+ */
+export function truncateDescription(desc, max = DESCRIPTION_MAX_LENGTH) {
+	if (desc.length <= max) {
+		return desc;
+	}
+	return `${desc.slice(0, max)}…`;
+}
+
 /**
  * Skills panel that lists registered skills with a live filter.
  * Uses a single useInput handler for both filtering and list navigation
@@ -81,7 +99,7 @@ export function SkillsPanel({ skills = [], onViewChange, onSelectSkill, activeVi
 				? React.createElement(Text, { color: "gray" }, " No skills match filter.")
 				: filteredSkills.map((skill, i) => {
 						const isSelected = i === clampedIndex;
-						const desc = skill.description || "";
+						const desc = truncateDescription(skill.description || "");
 						return React.createElement(
 							Box,
 							{ key: skill.name, flexDirection: "column" },
