@@ -382,7 +382,11 @@ if (isMain) {
 	} else {
 		const { render } = await import("ink");
 		const App = (await import("./src/tui/app.js")).default;
-		const appInfo = { name: config.tui.name, version: pkg.version, model: getActiveModelName(config) };
+		const appInfo = {
+			name: config.tui.name,
+			version: pkg.version,
+			model: getActiveModelName(config),
+		};
 		render(
 			React.createElement(App, {
 				config,
