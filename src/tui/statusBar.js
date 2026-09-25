@@ -50,9 +50,17 @@ export const StatusBar = React.memo(function StatusBar({
 	quote = "",
 	tokenCount = 0,
 	tokenBudget = 0,
+	statusBar = {},
 }) {
 	const contextColor = isCompacting ? "red" : "#606060";
 	const isStreaming = statusMessage === "Sending..." || statusMessage === "Streaming...";
+	const showModel = statusBar.model !== false && model;
+	const showSkills = statusBar.skills !== false;
+	const showMessages = statusBar.messages !== false;
+	const showContext = statusBar.context !== false;
+	const showTokens = statusBar.tokens !== false && tokenBudget > 0;
+	const showQuote = statusBar.quote !== false && quote;
+	const showVersion = statusBar.version !== false && version;
 
 	return React.createElement(
 		Box,
@@ -75,7 +83,7 @@ export const StatusBar = React.memo(function StatusBar({
 					)
 				: React.createElement(Text, { color: "#606060" }, "∙∙∙"),
 
-			model
+			showModel
 				? React.createElement(
 						Text,
 						{ key: "model", color: "#606060" },
@@ -83,22 +91,28 @@ export const StatusBar = React.memo(function StatusBar({
 					)
 				: null,
 
-			React.createElement(
-				Text,
-				{ key: "skills", color: "#606060" },
-				" [\u26A1" + formatNumber(skillCount) + "] ",
-			),
-			React.createElement(
-				Text,
-				{ key: "messages", color: "#606060" },
-				"[\u{1F4AC} " + formatNumber(messageCount) + "] ",
-			),
-			React.createElement(
-				Text,
-				{ key: "context", color: contextColor },
-				"[\u25A6 " + formatSize(contextSize) + "]",
-			),
-			tokenBudget > 0
+			showSkills
+				? React.createElement(
+						Text,
+						{ key: "skills", color: "#606060" },
+						" [\u26A1" + formatNumber(skillCount) + "] ",
+					)
+				: null,
+			showMessages
+				? React.createElement(
+						Text,
+						{ key: "messages", color: "#606060" },
+						"[\u{1F4AC} " + formatNumber(messageCount) + "] ",
+					)
+				: null,
+			showContext
+				? React.createElement(
+						Text,
+						{ key: "context", color: contextColor },
+						"[\u25A6 " + formatSize(contextSize) + "]",
+					)
+				: null,
+			showTokens
 				? React.createElement(
 						Text,
 						{ key: "tokens", color: "#606060" },
@@ -106,11 +120,11 @@ export const StatusBar = React.memo(function StatusBar({
 					)
 				: null,
 		),
-		version
+		showVersion
 			? React.createElement(
 					Box,
 					{ key: "right", marginLeft: "auto", flexShrink: 1, minWidth: 0 },
-					quote
+					showQuote
 						? React.createElement(
 								Box,
 								{ key: "quote", flexShrink: 1, minWidth: 0 },

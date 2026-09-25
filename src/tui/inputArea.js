@@ -25,6 +25,7 @@ const InputArea = forwardRef(function InputArea(
 		onInitialValueConsumed,
 		appInfo,
 		tokenBudget = 0,
+		statusBar = {},
 	},
 	ref,
 ) {
@@ -159,6 +160,7 @@ const InputArea = forwardRef(function InputArea(
 					quote: quoteIndex >= 0 ? QUOTES[quoteIndex] : "",
 					tokenCount,
 					tokenBudget,
+					statusBar,
 				})
 			: null,
 		// InputPanel in normal mode and during onboarding

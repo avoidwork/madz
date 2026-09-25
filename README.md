@@ -63,10 +63,10 @@ This is what makes `madz` feel like a teammate rather than a tool — and it's a
 - [Directory Structure](#directory-structure)
 - [Logging](#logging)
 - [Config Reference](#config-reference)
+  - [Status Bar](#status-bar)
 - [Testing](#testing)
 - [Development](#development)
   - [Extending Skills](#extending-skills)
-  - [Environment Variables Usage](#environment-variables-usage)
   - [LangChain Reasoning Patch](#langchain-reasoning-patch)
 - [License](#license)
 
@@ -333,6 +333,18 @@ Volume mounts (`memory/`, `skills/`) are owned by the `madz` user with group `no
 
 All configuration is controlled via environment variables in the `docker run` command. Variable names follow `UPPER_SNAKE_CASE` of the config key path (e.g., `sandbox.timeout.seconds` → `SANDBOX_TIMEOUT_SECONDS`). Container keys like `providers`, `credentials`, `timeout`, and `search` are dropped from the env var name.
 
+`madz` supports two override patterns:
+
+1. **Direct override** — set env vars to override `config.yaml` values, as listed below.
+2. **Inline reference in `config.yaml`** — use `${VAR_NAME}` syntax in config values:
+
+```yaml
+providers:
+  openai:
+    credentials:
+      apiKey: "${OPENAI_API_KEY}"
+```
+
 **Essential:**
 
 | Variable         | Required | Default   | Description          |
@@ -443,11 +455,18 @@ All configuration is controlled via environment variables in the `docker run` co
 
 **Optional — TUI:**
 
-| Variable          | Default | Description              |
-| ----------------- | ------- | ------------------------ |
-| `TUI_CURSOR_CHAR`      | `█`     | Cursor character         |
-| `TUI_NAME`             | `madz`  | TUI identifier in banner |
-| `TUI_SHOW_TOOL_RESULTS` | `false` | Show tool call result lines in assistant messages |
+| Variable                  | Default | Description                                      |
+| ------------------------- | ------- | ------------------------------------------------ |
+| `TUI_CURSOR_CHAR`         | `█`     | Cursor character                                 |
+| `TUI_NAME`                | `madz`  | TUI identifier in banner                         |
+| `TUI_SHOW_TOOL_RESULTS`   | `false` | Show tool call result lines in assistant messages |
+| `TUI_STATUS_BAR_MODEL`    | `true`  | Show the active model in the status bar          |
+| `TUI_STATUS_BAR_SKILLS`   | `true`  | Show the skills count in the status bar          |
+| `TUI_STATUS_BAR_MESSAGES` | `true`  | Show the message count in the status bar         |
+| `TUI_STATUS_BAR_CONTEXT`  | `true`  | Show the context size in the status bar          |
+| `TUI_STATUS_BAR_TOKENS`   | `true`  | Show the rolling token budget in the status bar  |
+| `TUI_STATUS_BAR_QUOTE`    | `true`  | Show the rotating quote in the status bar        |
+| `TUI_STATUS_BAR_VERSION`  | `true`  | Show the version in the status bar               |
 
 **Optional — Timezone:**
 
@@ -816,7 +835,14 @@ Graceful shutdown flushes all buffered log entries to disk before process exit.
 |               | `mode`                               | `inprocess`                              | Scheduling backend (`inprocess`, `system`)    |
 |               | `syncOnInit`                         | `true`                                   | Sync crontab from persisted job definitions   |
 | `tui`         | `name`                               | `madz`                                   | TUI identifier in banner                      |
-|               | `cursorChar`                         | `█`                                      | Cursor character                              |
+|               | `showToolResults`                    | `false`                                 | Display tool call result lines in the TUI     |
+|               | `statusBar.model`                    | `true`                                  | Show the active model in the status bar       |
+|               | `statusBar.skills`                   | `true`                                  | Show the skills count in the status bar       |
+|               | `statusBar.messages`                 | `true`                                  | Show the message count in the status bar      |
+|               | `statusBar.context`                  | `true`                                  | Show the context size in the status bar       |
+|               | `statusBar.tokens`                   | `true`                                  | Show the rolling token budget in the status bar |
+|               | `statusBar.quote`                    | `true`                                  | Show the rotating quote in the status bar     |
+|               | `statusBar.version`                  | `true`                                  | Show the version in the status bar            |
 | `agent`       | `recursionLimit`                     | `1000`                                   | Max graph execution steps per agent call      |
 |               | `autoContinueLimit`                  | `1000`                                   | Max consecutive auto-continue attempts before circuit breaker triggers |
 |               | `nodeTimeout`                        | `600000`                                 | Superstep timeout in milliseconds (default 10 minutes) |
@@ -839,6 +865,32 @@ Graceful shutdown flushes all buffered log entries to disk before process exit.
 |               | `projects.<name>.maxFileSize`        | `524288`                                 | Max file size in bytes (500 KB)               |
 |               | `projects.<name>.include`            | `["src/**/*.js", ...]`                   | Glob patterns for files to index              |
 |               | `projects.<name>.exclude`            | `["node_modules/**", ...]`               | Glob patterns for files to exclude            |
+
+### Status Bar
+
+The `tui.statusBar` section controls which elements appear in the bottom status bar. Each element is independently gated by a boolean; the bar itself always renders, and the streaming indicator (spinner) is not configurable. All values default to `true`, so an existing config (or a bare `statusBar: {}`) resolves to today's behavior exactly.
+
+```yaml
+tui:
+  statusBar:
+    model: true
+    skills: true
+    messages: true
+    context: true
+    tokens: true
+    quote: true
+    version: true
+```
+
+- **`model`** — show the active model name (`[🧠 model]`).
+- **`skills`** — show the skills count (`[⚡N]`).
+- **`messages`** — show the message count (`[💬 N]`).
+- **`context`** — show the context size (`[▦ N]`).
+- **`tokens`** — show the rolling token budget (`[💎 count/budget]`); only renders when a budget is configured.
+- **`quote`** — show the rotating quote on the right side.
+- **`version`** — show the version on the right side.
+
+Each element renders only when its boolean is `true` **and** its data is present — e.g., `tokens` also requires `openai.rateLimit.maxTokensMinute > 0`, and `quote`/`model`/`version` require a non-empty value.
 
 ### Summarization
 
@@ -928,34 +980,6 @@ Skills follow the [Agent Skills spec](https://agentskills.io/specification). Eac
    ```
 3. (Optional) Place executable scripts under `skills/your-skill/scripts/`. Supported extensions: `.py` (Python 3), `.sh` (Bash), `.js`/`.mjs` (Node.js), `.rb` (Ruby), `.ts` (Node.js + tsx).
 4. Restart the harness — the skills registry auto-discovers new skills on boot.
-
-### Environment Variables Usage
-
-`madz` supports two environment variable patterns:
-
-1. **Direct override** — set env vars to override `config.yaml` values. Names follow `UPPER_SNAKE_CASE` of the config key path, with container keys (`providers`, `credentials`, `timeout`, `search`, `ratelimit`, `process`) dropped from the name. For example:
-
-   | Config Path                              | Env Var Name          |
-   | ---------------------------------------- | --------------------- |
-   | `providers.openai.credentials.apiKey`    | `OPENAI_API_KEY`      |
-   | `sandbox.timeout.seconds`                | `SANDBOX_SECONDS`     |
-   | `search.exa.apiKey`                      | `EXA_API_KEY`         |
-   | `telemetry.exporter.endpoint`            | `TELEMETRY_EXPORTER_ENDPOINT` |
-
-   Docker users: see the [Environment Variables](#environment-variables) section under Docker for the full table.
-
-2. **Inline reference in `config.yaml`** — use `${VAR_NAME}` syntax in config values:
-
-```yaml
-providers:
-  openai:
-    credentials:
-      apiKey: "${OPENAI_API_KEY}"
-```
-
-For Docker-specific configuration, see the [Environment Variables](#environment-variables) section under Docker.
-
-See [Config Reference](#config-reference) for the full list of configuration keys and their defaults.
 
 ### LangChain Reasoning Patch
 

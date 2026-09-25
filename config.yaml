@@ -152,6 +152,14 @@ tui:
   name: madz
   renderWindow: 100
   showToolResults: false
+  statusBar:
+    model: true
+    skills: true
+    messages: true
+    context: true
+    tokens: true
+    quote: true
+    version: true
 agent:
   recursionLimit: 1000
   autoContinueLimit: 1000
