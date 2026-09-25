@@ -975,6 +975,13 @@ Skills follow the [Agent Skills spec](https://agentskills.io/specification). Eac
    | `sandbox.timeout.seconds`                | `SANDBOX_SECONDS`     |
    | `search.exa.apiKey`                      | `EXA_API_KEY`         |
    | `telemetry.exporter.endpoint`            | `TELEMETRY_EXPORTER_ENDPOINT` |
+   | `tui.statusBar.model`                    | `TUI_STATUS_BAR_MODEL` |
+   | `tui.statusBar.skills`                   | `TUI_STATUS_BAR_SKILLS` |
+   | `tui.statusBar.messages`                 | `TUI_STATUS_BAR_MESSAGES` |
+   | `tui.statusBar.context`                  | `TUI_STATUS_BAR_CONTEXT` |
+   | `tui.statusBar.tokens`                   | `TUI_STATUS_BAR_TOKENS` |
+   | `tui.statusBar.quote`                    | `TUI_STATUS_BAR_QUOTE` |
+   | `tui.statusBar.version`                  | `TUI_STATUS_BAR_VERSION` |
 
    Docker users: see the [Environment Variables](#environment-variables) section under Docker for the full table.
 
