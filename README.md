@@ -63,6 +63,7 @@ This is what makes `madz` feel like a teammate rather than a tool — and it's a
 - [Directory Structure](#directory-structure)
 - [Logging](#logging)
 - [Config Reference](#config-reference)
+  - [Status Bar](#status-bar)
 - [Testing](#testing)
 - [Development](#development)
   - [Extending Skills](#extending-skills)
