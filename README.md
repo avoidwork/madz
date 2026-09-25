@@ -67,7 +67,6 @@ This is what makes `madz` feel like a teammate rather than a tool — and it's a
 - [Testing](#testing)
 - [Development](#development)
   - [Extending Skills](#extending-skills)
-  - [Environment Variables Usage](#environment-variables-usage)
   - [LangChain Reasoning Patch](#langchain-reasoning-patch)
 - [License](#license)
 
@@ -334,6 +333,18 @@ Volume mounts (`memory/`, `skills/`) are owned by the `madz` user with group `no
 
 All configuration is controlled via environment variables in the `docker run` command. Variable names follow `UPPER_SNAKE_CASE` of the config key path (e.g., `sandbox.timeout.seconds` → `SANDBOX_TIMEOUT_SECONDS`). Container keys like `providers`, `credentials`, `timeout`, and `search` are dropped from the env var name.
 
+`madz` supports two override patterns:
+
+1. **Direct override** — set env vars to override `config.yaml` values, as listed below.
+2. **Inline reference in `config.yaml`** — use `${VAR_NAME}` syntax in config values:
+
+```yaml
+providers:
+  openai:
+    credentials:
+      apiKey: "${OPENAI_API_KEY}"
+```
+
 **Essential:**
 
 | Variable         | Required | Default   | Description          |
@@ -444,11 +455,18 @@ All configuration is controlled via environment variables in the `docker run` co
 
 **Optional — TUI:**
 
-| Variable          | Default | Description              |
-| ----------------- | ------- | ------------------------ |
-| `TUI_CURSOR_CHAR`      | `█`     | Cursor character         |
-| `TUI_NAME`             | `madz`  | TUI identifier in banner |
-| `TUI_SHOW_TOOL_RESULTS` | `false` | Show tool call result lines in assistant messages |
+| Variable                  | Default | Description                                      |
+| ------------------------- | ------- | ------------------------------------------------ |
+| `TUI_CURSOR_CHAR`         | `█`     | Cursor character                                 |
+| `TUI_NAME`                | `madz`  | TUI identifier in banner                         |
+| `TUI_SHOW_TOOL_RESULTS`   | `false` | Show tool call result lines in assistant messages |
+| `TUI_STATUS_BAR_MODEL`    | `true`  | Show the active model in the status bar          |
+| `TUI_STATUS_BAR_SKILLS`   | `true`  | Show the skills count in the status bar          |
+| `TUI_STATUS_BAR_MESSAGES` | `true`  | Show the message count in the status bar         |
+| `TUI_STATUS_BAR_CONTEXT`  | `true`  | Show the context size in the status bar          |
+| `TUI_STATUS_BAR_TOKENS`   | `true`  | Show the rolling token budget in the status bar  |
+| `TUI_STATUS_BAR_QUOTE`    | `true`  | Show the rotating quote in the status bar        |
+| `TUI_STATUS_BAR_VERSION`  | `true`  | Show the version in the status bar               |
 
 **Optional — Timezone:**
 
@@ -962,41 +980,6 @@ Skills follow the [Agent Skills spec](https://agentskills.io/specification). Eac
    ```
 3. (Optional) Place executable scripts under `skills/your-skill/scripts/`. Supported extensions: `.py` (Python 3), `.sh` (Bash), `.js`/`.mjs` (Node.js), `.rb` (Ruby), `.ts` (Node.js + tsx).
 4. Restart the harness — the skills registry auto-discovers new skills on boot.
-
-### Environment Variables Usage
-
-`madz` supports two environment variable patterns:
-
-1. **Direct override** — set env vars to override `config.yaml` values. Names follow `UPPER_SNAKE_CASE` of the config key path, with container keys (`providers`, `credentials`, `timeout`, `search`, `ratelimit`, `process`) dropped from the name. For example:
-
-   | Config Path                              | Env Var Name          |
-   | ---------------------------------------- | --------------------- |
-   | `providers.openai.credentials.apiKey`    | `OPENAI_API_KEY`      |
-   | `sandbox.timeout.seconds`                | `SANDBOX_SECONDS`     |
-   | `search.exa.apiKey`                      | `EXA_API_KEY`         |
-   | `telemetry.exporter.endpoint`            | `TELEMETRY_EXPORTER_ENDPOINT` |
-   | `tui.statusBar.model`                    | `TUI_STATUS_BAR_MODEL` |
-   | `tui.statusBar.skills`                   | `TUI_STATUS_BAR_SKILLS` |
-   | `tui.statusBar.messages`                 | `TUI_STATUS_BAR_MESSAGES` |
-   | `tui.statusBar.context`                  | `TUI_STATUS_BAR_CONTEXT` |
-   | `tui.statusBar.tokens`                   | `TUI_STATUS_BAR_TOKENS` |
-   | `tui.statusBar.quote`                    | `TUI_STATUS_BAR_QUOTE` |
-   | `tui.statusBar.version`                  | `TUI_STATUS_BAR_VERSION` |
-
-   Docker users: see the [Environment Variables](#environment-variables) section under Docker for the full table.
-
-2. **Inline reference in `config.yaml`** — use `${VAR_NAME}` syntax in config values:
-
-```yaml
-providers:
-  openai:
-    credentials:
-      apiKey: "${OPENAI_API_KEY}"
-```
-
-For Docker-specific configuration, see the [Environment Variables](#environment-variables) section under Docker.
-
-See [Config Reference](#config-reference) for the full list of configuration keys and their defaults.
 
 ### LangChain Reasoning Patch
 
