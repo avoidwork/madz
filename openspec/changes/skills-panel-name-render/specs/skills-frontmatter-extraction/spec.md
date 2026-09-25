@@ -9,10 +9,10 @@ The system SHALL extract YAML frontmatter from `SKILL.md` content using a regex 
 - **WHEN** a `SKILL.md` file has a frontmatter block followed by a body that contains `---` (e.g., a Markdown table separator or horizontal rule)
 - **THEN** the frontmatter is extracted as the complete block between the first and second `---` lines, and the body retains the `---` occurrences
 
-#### Scenario: Frontmatter with `---` inside the frontmatter region is not truncated
+#### Scenario: Frontmatter block at the file start is captured precisely
 
-- **WHEN** a `SKILL.md` file has a `---` line inside the frontmatter region
-- **THEN** the frontmatter is not truncated mid-field and the full frontmatter block is parsed
+- **WHEN** a `SKILL.md` file begins with a `---` line followed by YAML frontmatter and a closing `---` line
+- **THEN** the frontmatter is extracted as the complete block between the opening and closing `---` lines, and the body is the content after the closing delimiter
 
 #### Scenario: Content without a valid frontmatter block returns null
 

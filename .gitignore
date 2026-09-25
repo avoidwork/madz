@@ -8,3 +8,4 @@ projects
 .env
 .env.cron
 memory/tools/webhooks.json
+!tests/unit/skills/

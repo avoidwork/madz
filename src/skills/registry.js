@@ -42,9 +42,18 @@ export class SkillRegistry {
 			const dirName = skill.name;
 			const { warnings } = validateSkillSchema(skill.metadata, dirName);
 
+			// The directory name is the canonical kebab-case identifier. If the
+			// frontmatter `name` drifts from it, surface a warning so the drift
+			// is visible in registration results.
+			if (skill.metadata.name !== dirName) {
+				warnings.push(
+					`Skill frontmatter name "${skill.metadata.name}" does not match directory name "${dirName}"`,
+				);
+			}
+
 			const entry = {
 				path: skill.path,
-				name: skill.metadata.name,
+				name: dirName,
 				metadata: skill.metadata,
 				validated: true,
 				errors: [],
@@ -58,7 +67,7 @@ export class SkillRegistry {
 			}
 
 			this.#skills.set(skill.name, entry);
-			results.push({ name: skill.metadata.name, errors: [], warnings });
+			results.push({ name: dirName, errors: [], warnings });
 		}
 
 		// Build catalog from validated skills
