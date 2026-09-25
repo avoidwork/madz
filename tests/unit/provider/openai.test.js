@@ -4,6 +4,8 @@ import {
 	createChatModel,
 	resetTokenBudget,
 	getSharedTokenBudget,
+	getActiveProviderConfig,
+	getActiveModelName,
 } from "../../../src/provider/openai.js";
 
 /**
@@ -78,5 +80,46 @@ describe("shared token budget across model instances", () => {
 		// A disabled budget must not have been materialized; the first access
 		// here creates a fresh instance whose window is empty.
 		assert.strictEqual(getSharedTokenBudget(100000).current(), 0);
+	});
+});
+
+describe("getActiveProviderConfig", () => {
+	it("returns the first configured provider", () => {
+		const config = {
+			providers: {
+				openai: { model: "gpt-4o" },
+				anthropic: { model: "claude-3-5-sonnet" },
+			},
+		};
+		assert.deepStrictEqual(getActiveProviderConfig(config), { model: "gpt-4o" });
+	});
+
+	it("falls back to openai when no provider is configured", () => {
+		const config = { providers: {} };
+		assert.deepStrictEqual(getActiveProviderConfig(config), {});
+	});
+
+	it("returns an empty object when config has no providers", () => {
+		assert.deepStrictEqual(getActiveProviderConfig({}), {});
+	});
+});
+
+describe("getActiveModelName", () => {
+	it("returns the model of the first configured provider", () => {
+		const config = {
+			providers: {
+				openai: { model: "gpt-4o" },
+				anthropic: { model: "claude-3-5-sonnet" },
+			},
+		};
+		assert.strictEqual(getActiveModelName(config), "gpt-4o");
+	});
+
+	it("returns an empty string when no model is configured", () => {
+		assert.strictEqual(getActiveModelName({ providers: {} }), "");
+	});
+
+	it("returns an empty string when config is undefined", () => {
+		assert.strictEqual(getActiveModelName(undefined), "");
 	});
 });

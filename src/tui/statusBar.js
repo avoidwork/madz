@@ -46,6 +46,7 @@ export const StatusBar = React.memo(function StatusBar({
 	contextSize = 0,
 	isCompacting = false,
 	version = "",
+	model = "",
 	quote = "",
 	tokenCount = 0,
 	tokenBudget = 0,
@@ -65,7 +66,7 @@ export const StatusBar = React.memo(function StatusBar({
 		},
 		React.createElement(
 			Box,
-			{ key: "left", flexDirection: "row", alignItems: "center" },
+			{ key: "left", flexDirection: "row", alignItems: "center", flexShrink: 0 },
 			isStreaming
 				? React.createElement(
 						Text,
@@ -73,6 +74,14 @@ export const StatusBar = React.memo(function StatusBar({
 						React.createElement(Spinner, { type: "point" }),
 					)
 				: React.createElement(Text, { color: "#606060" }, "∙∙∙"),
+
+			model
+				? React.createElement(
+						Text,
+						{ key: "model", color: "#606060" },
+						" [\u{1F9E0} " + model + "]",
+					)
+				: null,
 
 			React.createElement(
 				Text,
@@ -100,9 +109,13 @@ export const StatusBar = React.memo(function StatusBar({
 		version
 			? React.createElement(
 					Box,
-					{ key: "right", marginLeft: "auto" },
+					{ key: "right", marginLeft: "auto", flexShrink: 1, minWidth: 0 },
 					quote
-						? React.createElement(Text, { key: "quote", color: "#606060" }, quote + "  ")
+						? React.createElement(
+								Box,
+								{ key: "quote", flexShrink: 1, minWidth: 0 },
+								React.createElement(Text, { color: "#606060", wrap: "truncate-end" }, quote + "  "),
+							)
 						: null,
 					React.createElement(Text, { key: "version", color: "#606060" }, version),
 				)

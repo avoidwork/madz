@@ -155,6 +155,7 @@ const InputArea = forwardRef(function InputArea(
 					contextSize,
 					isCompacting,
 					version: appInfo?.version,
+					model: appInfo?.model,
 					quote: quoteIndex >= 0 ? QUOTES[quoteIndex] : "",
 					tokenCount,
 					tokenBudget,
