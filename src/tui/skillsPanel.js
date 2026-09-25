@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from "react";
-import { Box, Text, useInput } from "ink";
+import React, { useMemo } from "react";
+import { Box, Text, useInput, useWindowSize } from "ink";
+import SelectInput from "ink-select-input";
 
 /** Maximum length of a skill description before it is truncated with an ellipsis. */
 export const DESCRIPTION_MAX_LENGTH = 500;
@@ -20,9 +21,40 @@ export function truncateDescription(desc, max = DESCRIPTION_MAX_LENGTH) {
 }
 
 /**
- * Skills panel that lists registered skills with a live filter.
- * Uses a single useInput handler for both filtering and list navigation
- * to avoid the focus conflict between ink-text-input and ink-select-input.
+ * Custom item renderer for SelectInput that highlights the selected skill name
+ * in cyan and renders the description beneath it in gray.
+ * @param {{ isSelected?: boolean, label: string, description?: string }} props - The item props.
+ * @returns {React.ReactElement} The rendered item.
+ */
+function SkillItem({ isSelected = false, label, description }) {
+	const desc = truncateDescription(description || "");
+	return React.createElement(
+		Box,
+		{ flexDirection: "column" },
+		React.createElement(Text, { color: isSelected ? "cyan" : undefined }, label),
+		desc ? React.createElement(Text, { color: "gray" }, "    ", desc) : null,
+	);
+}
+
+/**
+ * Custom indicator renderer for SelectInput that renders the pointer in cyan,
+ * matching the /skills view. ink-select-input's default Indicator uses blue.
+ * @param {{ isSelected?: boolean }} props - The indicator props.
+ * @returns {React.ReactElement} The rendered indicator.
+ */
+function CyanIndicator({ isSelected = false }) {
+	return React.createElement(
+		Box,
+		{ marginRight: 1 },
+		isSelected
+			? React.createElement(Text, { color: "cyan" }, "▸")
+			: React.createElement(Text, null, " "),
+	);
+}
+
+/**
+ * Skills panel that lists registered skills for selection.
+ * Uses ink-select-input for navigation and selection.
  * Props:
  *   skills    - array of skill names or catalog entries ({ name, description })
  *   onViewChange  - Callback to switch back to conversation view
@@ -31,86 +63,58 @@ export function truncateDescription(desc, max = DESCRIPTION_MAX_LENGTH) {
  */
 export function SkillsPanel({ skills = [], onViewChange, onSelectSkill, activeView }) {
 	const isActive = activeView === "skills";
-	const [searchQuery, setSearchQuery] = useState("");
-	const [focusIndex, setFocusIndex] = useState(0);
+	const { rows } = useWindowSize();
+	// Bound the visible list to the terminal height minus header rows.
+	const limit = Math.max(1, rows - 4);
 
 	// Normalize skills to { name, description } — accept either string names
 	// or catalog entries from registry.getCatalog().
-	const normalized = useMemo(
+	const items = useMemo(
 		() =>
-			skills.map((s) =>
-				typeof s === "string"
-					? { name: s, description: "" }
-					: { name: s.name, description: s.description || "" },
-			),
+			skills.map((s) => {
+				const name = typeof s === "string" ? s : s.name;
+				const description = typeof s === "string" ? "" : s.description || "";
+				return {
+					label: name,
+					description,
+					value: name,
+					key: name,
+				};
+			}),
 		[skills],
 	);
 
-	const filteredSkills = useMemo(
-		() => normalized.filter((s) => s.name.toLowerCase().includes(searchQuery.toLowerCase())),
-		[normalized, searchQuery],
-	);
-
-	// Clamp focus index when the filtered list shrinks.
-	const clampedIndex = Math.min(focusIndex, Math.max(0, filteredSkills.length - 1));
-
+	// Escape returns to conversation view
 	useInput(
-		(input, key) => {
-			if (!isActive) return;
+		(_input, key) => {
 			if (key.escape) {
 				onViewChange?.("conversation");
-				return;
-			}
-			if (key.upArrow) {
-				setFocusIndex((prev) => (prev <= 0 ? filteredSkills.length - 1 : prev - 1));
-				return;
-			}
-			if (key.downArrow) {
-				setFocusIndex((prev) => (prev >= filteredSkills.length - 1 ? 0 : prev + 1));
-				return;
-			}
-			if (key.return) {
-				const selected = filteredSkills[clampedIndex];
-				if (selected) {
-					onSelectSkill?.(selected.name);
-				}
-				return;
-			}
-			if (key.backspace || key.delete) {
-				setSearchQuery((prev) => prev.slice(0, -1));
-				return;
-			}
-			// Printable characters build the filter query.
-			if (input && input.length === 1 && input >= " ") {
-				setSearchQuery((prev) => prev + input);
 			}
 		},
 		{ isActive },
 	);
 
+	if (items.length === 0) {
+		return React.createElement(
+			Box,
+			{ flexDirection: "column", paddingX: 1 },
+			React.createElement(Text, { bold: true, color: "cyan" }, " Skills"),
+			React.createElement(Text, { color: "gray" }, " No skills registered."),
+		);
+	}
+
 	return React.createElement(
 		Box,
-		{ flexDirection: "column" },
+		{ flexDirection: "column", paddingX: 1, flexGrow: 1 },
 		React.createElement(Text, { bold: true, color: "cyan" }, " Skills"),
-		React.createElement(Text, { color: "gray" }, " Filter: ", searchQuery || "all"),
-		normalized.length === 0
-			? React.createElement(Text, { color: "gray" }, " No skills registered.")
-			: filteredSkills.length === 0
-				? React.createElement(Text, { color: "gray" }, " No skills match filter.")
-				: filteredSkills.map((skill, i) => {
-						const isSelected = i === clampedIndex;
-						const desc = truncateDescription(skill.description || "");
-						return React.createElement(
-							Box,
-							{ key: skill.name, flexDirection: "column" },
-							React.createElement(
-								Text,
-								{ color: isSelected ? "cyan" : undefined },
-								isSelected ? "▸ " : "  ",
-								skill.name,
-							),
-							desc ? React.createElement(Text, { color: "gray" }, "    ", desc) : null,
-						);
-					}),
+		React.createElement(Text, { color: "gray" }, " ↑↓ navigate, Enter run, Escape back"),
+		React.createElement(SelectInput, {
+			items,
+			isFocused: isActive,
+			limit,
+			indicatorComponent: CyanIndicator,
+			itemComponent: SkillItem,
+			onSelect: (item) => onSelectSkill?.(item.value),
+		}),
 	);
 }
