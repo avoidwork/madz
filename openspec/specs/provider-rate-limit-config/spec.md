@@ -105,25 +105,28 @@ The `RateLimitSchema` in `src/config/schemas/providers.js` SHALL include a `maxT
 - **WHEN** a provider config specifies `rateLimit.maxTokensMinute: 100.5`
 - **THEN** the schema rejects the value with a validation error
 
-### Requirement: createChatModel wires the token-budget throttle
-The `createChatModel()` function in `src/provider/openai.js` SHALL, when `rateLimit.maxTokensMinute` is greater than `0`, estimate the request token cost (input tokens plus the `maxTokens` output budget), await `waitForCapacity(estimatedCost)`, then `consume(estimatedCost)` before invoking the model.
+### Requirement: createChatModel returns a plain model instance
+The `createChatModel()` function in `src/provider/openai.js` SHALL return a `ChatOpenAI` instance configured from
+the provider config, and SHALL NOT install token-budget throttling by overriding instance methods. Budget
+enforcement is the responsibility of the `TokenBudgetMiddleware` registered on the agent. The `createChatModel`
+JSDoc SHALL state where enforcement lives.
 
-#### Scenario: throttle is wired when maxTokensMinute is positive
-- **WHEN** a config includes `rateLimit.maxTokensMinute: 100000`
-- **THEN** the returned ChatOpenAI instance dispatches requests through the token-budget throttle
+#### Scenario: no instance-method override is installed
+- **WHEN** `createChatModel` is called with `rateLimit.maxTokensMinute: 100000`
+- **THEN** the returned instance's `invoke` and `stream` are the unmodified `ChatOpenAI` methods
+- **AND** no `_rawInvoke` or `_rawStream` property is present on the instance
 
-#### Scenario: throttle is disabled when maxTokensMinute is zero
-- **WHEN** a config has `rateLimit.maxTokensMinute: 0` or omits it
-- **THEN** the returned ChatOpenAI instance does not apply token-budget throttling
+#### Scenario: budget enforcement is documented at the provider boundary
+- **WHEN** reading the JSDoc of `createChatModel()`
+- **THEN** it states that `maxTokensMinute` is enforced by `TokenBudgetMiddleware`, not by the model instance
 
-### Requirement: createChatModel attributes 429 errors to an exceeded token budget
-The `createChatModel()` function in `src/provider/openai.js` SHALL, when a `429` rate-limit error is caught and the rolling token window exceeds `maxTokensMinute`, log/flag the error as an exceeded token budget rather than an opaque provider error.
+### Requirement: maxConcurrency semantics are documented
+The `createChatModel()` JSDoc in `src/provider/openai.js` SHALL document that `rateLimit.maxConcurrency` is
+passed through to `ChatOpenAI` but is not used to gate concurrent model calls; actual concurrency comes from
+parallel subagents, and the shared token budget is the enforcement point for the tokens-per-minute ceiling.
 
-#### Scenario: 429 attributed to exceeded token budget
-- **WHEN** a `429` error is caught and `current()` exceeds `maxTokensMinute`
-- **THEN** the error is logged as an exceeded token budget
-
-#### Scenario: 429 not attributed when budget not exceeded
-- **WHEN** a `429` error is caught and `current()` does not exceed `maxTokensMinute`
-- **THEN** the error is not attributed to an exceeded token budget
+#### Scenario: JSDoc clarifies maxConcurrency
+- **WHEN** reading the JSDoc of `createChatModel()`
+- **THEN** the `rateLimit.maxConcurrency` entry states that it does not bound what the token budget sees and that
+  the shared budget is the enforcement point
 
