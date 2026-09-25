@@ -154,7 +154,7 @@ describe("StatusBar model display", () => {
 			}),
 		);
 		assert.ok(typeof result === "string");
-		assert.ok(result.includes("🧠"), "should render the brain glyph");
+		assert.ok(!result.includes("🧠"), "should not render the brain glyph");
 		assert.ok(result.includes("gpt-4o"), "should render the model name");
 	});
 
@@ -190,7 +190,7 @@ describe("StatusBar per-item visibility", () => {
 	it("renders all elements by default when no statusBar prop is provided", () => {
 		const result = renderToString(React.createElement(StatusBar, baseProps));
 		assert.ok(typeof result === "string");
-		assert.ok(result.includes("🧠"), "should render the model glyph");
+		assert.ok(!result.includes("🧠"), "should not render the brain glyph");
 		assert.ok(result.includes("⚡"), "should render the skills glyph");
 		assert.ok(result.includes("💬"), "should render the messages glyph");
 		assert.ok(result.includes("▦"), "should render the context glyph");
@@ -205,7 +205,7 @@ describe("StatusBar per-item visibility", () => {
 		);
 		assert.ok(typeof result === "string");
 		assert.ok(!result.includes("⚡"), "should not render the skills glyph");
-		assert.ok(result.includes("🧠"), "should still render the model glyph");
+		assert.ok(!result.includes("🧠"), "should not render the brain glyph");
 		assert.ok(result.includes("💬"), "should still render the messages glyph");
 	});
 
@@ -214,7 +214,7 @@ describe("StatusBar per-item visibility", () => {
 			React.createElement(StatusBar, { ...baseProps, statusBar: { model: false } }),
 		);
 		assert.ok(typeof result === "string");
-		assert.ok(!result.includes("🧠"), "should not render the model glyph");
+		assert.ok(!result.includes("🧠"), "should not render the brain glyph");
 		assert.ok(result.includes("⚡"), "should still render the skills glyph");
 	});
 

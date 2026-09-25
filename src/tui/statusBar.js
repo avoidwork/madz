@@ -84,11 +84,7 @@ export const StatusBar = React.memo(function StatusBar({
 				: React.createElement(Text, { color: "#606060" }, "∙∙∙"),
 
 			showModel
-				? React.createElement(
-						Text,
-						{ key: "model", color: "#606060" },
-						" [\u{1F9E0} " + model + "]",
-					)
+				? React.createElement(Text, { key: "model", color: "#606060" }, " [" + model + "]")
 				: null,
 
 			showSkills
