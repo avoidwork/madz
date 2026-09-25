@@ -66,7 +66,7 @@ export const StatusBar = React.memo(function StatusBar({
 		},
 		React.createElement(
 			Box,
-			{ key: "left", flexDirection: "row", alignItems: "center" },
+			{ key: "left", flexDirection: "row", alignItems: "center", flexShrink: 0 },
 			isStreaming
 				? React.createElement(
 						Text,
