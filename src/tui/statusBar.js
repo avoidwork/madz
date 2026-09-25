@@ -96,7 +96,7 @@ export const StatusBar = React.memo(function StatusBar({
 			React.createElement(
 				Text,
 				{ key: "context", color: contextColor },
-				"[\u25A4 " + formatSize(contextSize) + "]",
+				"[\u25A6 " + formatSize(contextSize) + "]",
 			),
 			tokenBudget > 0
 				? React.createElement(
