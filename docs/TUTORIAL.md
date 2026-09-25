@@ -315,7 +315,7 @@ Once inside the interactive terminal, use these commands:
 | `/clear` | Clear current conversation |
 | `/new` | Start a fresh session |
 | `/sessions` | Open the sessions panel |
-| `/memory` | Open the memory panel |
+| `/memories` | Open the memories panel |
 | `/skills` | Open the skills panel |
 | `/settings` | Open the settings panel |
 

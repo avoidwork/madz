@@ -306,13 +306,13 @@ describe("command parser", () => {
 describe("TUI - panel navigation", () => {
 	it("has correct panel order", () => {
 		const order = getPanelOrder();
-		assert.deepStrictEqual(order, ["conversation", "skills", "memory", "settings", "sessions"]);
+		assert.deepStrictEqual(order, ["conversation", "skills", "memories", "settings", "sessions"]);
 	});
 
 	it("cycles to next panel", () => {
 		assert.strictEqual(nextPanel("conversation"), "skills");
-		assert.strictEqual(nextPanel("skills"), "memory");
-		assert.strictEqual(nextPanel("memory"), "settings");
+		assert.strictEqual(nextPanel("skills"), "memories");
+		assert.strictEqual(nextPanel("memories"), "settings");
 		assert.strictEqual(nextPanel("settings"), "sessions");
 		assert.strictEqual(nextPanel("sessions"), "conversation");
 	});
@@ -320,8 +320,8 @@ describe("TUI - panel navigation", () => {
 	it("cycles to prev panel", () => {
 		assert.strictEqual(prevPanel("conversation"), "sessions");
 		assert.strictEqual(prevPanel("skills"), "conversation");
-		assert.strictEqual(prevPanel("memory"), "skills");
-		assert.strictEqual(prevPanel("settings"), "memory");
+		assert.strictEqual(prevPanel("memories"), "skills");
+		assert.strictEqual(prevPanel("settings"), "memories");
 		assert.strictEqual(prevPanel("sessions"), "settings");
 	});
 

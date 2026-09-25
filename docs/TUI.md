@@ -321,7 +321,7 @@ table of registered commands, with fallback to skill execution.
 | `/gc` | Trigger V8 garbage collection |
 | `/gc status` | Show GC status |
 | `/sessions` | Open the sessions panel |
-| `/memory` | Open the memory panel |
+| `/memories` | Open the memories panel |
 | `/skills` | Open the skills panel |
 | `/settings` | Open the settings panel |
 
@@ -700,7 +700,7 @@ Not dogma — predictability. When you're looking for streaming logic, you know 
 
 The `panels.js`, `skillsPanel.js`, `memoryPanel.js`, `settingsPanel.js` files contradict the
 blueprint's philosophy ("No panels, no tabs, no switching"). If Jason needs to inspect skills or
-memory, those are commands (`/skills`, `/memory`) that produce output in the conversation stream —
+memory, those are commands (`/skills`, `/memories`) that produce output in the conversation stream —
 not separate UI surfaces. The TUI should be one thing: a terminal.
 
 ### 16.5 Command Parser — Event-Driven, Not Switch-Driven

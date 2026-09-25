@@ -40,7 +40,7 @@ function CyanIndicator({ isSelected = false }) {
  *   activeView  - The current active view name (from PANELS)
  */
 export function MemoryPanel({ config, onViewChange, activeView }) {
-	const isActive = activeView === "memory";
+	const isActive = activeView === "memories";
 	const [entries, setEntries] = useState([]);
 	const [selectedEntry, setSelectedEntry] = useState(null);
 	const [detailContent, setDetailContent] = useState(null);

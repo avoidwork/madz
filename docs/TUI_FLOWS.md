@@ -153,7 +153,7 @@ User enters ":command ...", presses Enter (app.js:294)
 | `/gc`       | `status`                 | Trigger V8 GC or show status     |
 | `/help`     | —                        | Available commands message       |
 
-**Note:** `/memory` and `/context` commands are not in the CommandParser dispatch table — they are handled elsewhere in the TUI. The actual registered commands are: quit, provider, config, schedule, clear, new, gc, help.
+**Note:** `/context` is not in the CommandParser dispatch table — it is handled elsewhere in the TUI. The actual registered commands are: quit, provider, config, schedule, clear, new, gc, help, sessions, memories, skills, settings.
 
 ---
 
