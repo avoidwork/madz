@@ -90,6 +90,13 @@ export const StatusBar = React.memo(function StatusBar({
 				{ key: "context", color: contextColor },
 				"[\u25A4 " + formatSize(contextSize) + "]",
 			),
+			model
+				? React.createElement(
+						Text,
+						{ key: "model", color: "#606060" },
+						" [\u{1F9E0} " + model + "]",
+					)
+				: null,
 			tokenBudget > 0
 				? React.createElement(
 						Text,
@@ -104,13 +111,6 @@ export const StatusBar = React.memo(function StatusBar({
 					{ key: "right", marginLeft: "auto" },
 					quote
 						? React.createElement(Text, { key: "quote", color: "#606060" }, quote + "  ")
-						: null,
-					model
-						? React.createElement(
-								Text,
-								{ key: "model", color: "#606060" },
-								"[\u{1F9E0} " + model + "]  ",
-							)
 						: null,
 					React.createElement(Text, { key: "version", color: "#606060" }, version),
 				)
