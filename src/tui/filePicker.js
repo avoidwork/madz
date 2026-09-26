@@ -139,10 +139,14 @@ export function FilePicker({ value, onChange, onClose, cwd }) {
 	const clampedIndex = Math.min(selectedIndex, Math.max(0, filteredFiles.length - 1));
 
 	// Rotating window: show up to MAX_VISIBLE options around the selection.
-	const visibleFiles = useMemo(() => {
-		if (filteredFiles.length <= MAX_VISIBLE) return filteredFiles;
+	// Returns the visible slice and the start offset so the render can map a
+	// visible position back to its index in the full filtered list.
+	const { visibleFiles, windowStart } = useMemo(() => {
+		if (filteredFiles.length <= MAX_VISIBLE) {
+			return { visibleFiles: filteredFiles, windowStart: 0 };
+		}
 		const start = Math.max(0, Math.min(clampedIndex - 1, filteredFiles.length - MAX_VISIBLE));
-		return filteredFiles.slice(start, start + MAX_VISIBLE);
+		return { visibleFiles: filteredFiles.slice(start, start + MAX_VISIBLE), windowStart: start };
 	}, [filteredFiles, clampedIndex]);
 
 	useInput(
@@ -213,7 +217,7 @@ export function FilePicker({ value, onChange, onClose, cwd }) {
 			: filteredFiles.length === 0
 				? React.createElement(Text, { color: "gray" }, " No matching files.")
 				: visibleFiles.map((file, i) => {
-						const isSelected = i === clampedIndex;
+						const isSelected = windowStart + i === clampedIndex;
 						return React.createElement(
 							Box,
 							{ key: file, flexDirection: "row" },
