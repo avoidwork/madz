@@ -29,7 +29,7 @@ The `FilePicker` renders the input text with a cursor (replicating `ink-text-inp
 - *Use `ink-select-input` directly* — rejected. It doesn't filter; it only navigates a pre-built `items` array. Filtering must live in our code.
 
 ### Decision 2: Cursor-aware filter derivation
-The filter is the text between the `@` and the cursor, where the token is bounded by whitespace (unquoted) or quotes (quoted). If the cursor moves out of the `@` token, the picker closes.
+The filter is the text between the `@` and the cursor, where the token is bounded by whitespace. If the cursor moves out of the `@` token, the picker closes.
 
 **Alternatives considered:**
 - *Filter = text between last `@` and end of input* — rejected. Breaks when the cursor moves left; the slice can become empty and show every file.
@@ -49,8 +49,7 @@ Mirror `ink-select-input`'s `limit` behavior: show up to 3 visible options with 
 - [Focus conflict if `InputPanel` isn't unfocused] → Set `focus={false}` on `InputPanel` and bail in App-level `useInput` via `isPickerOpen()`.
 - [Cursor-aware filter breaks if cursor moves out of token] → Close the picker when the cursor leaves the `@` token.
 - [Large directory glob is slow] → Cache the initial glob, debounce, cap depth, exclude heavy dirs.
-- [Paths with whitespace need quoting] → Wrap the selected path in quotes on insert.
-- [Quotes inside paths not escaped] → Documented limitation, not a bug.
+- [Paths with whitespace break the token] → The token is bounded by whitespace, so a path containing whitespace cannot be selected as a single token. Documented limitation, not a bug.
 
 ## Migration Plan
 

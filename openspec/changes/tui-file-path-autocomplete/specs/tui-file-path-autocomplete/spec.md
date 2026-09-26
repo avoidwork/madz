@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Trigger file picker on @ token
-The system SHALL open the file picker when the input contains an `@` token with content after it, where the token is bounded by whitespace (unquoted) or quotes (quoted).
+The system SHALL open the file picker when the input contains an `@` token with content after it, where the token is bounded by whitespace.
 
 #### Scenario: Picker opens on @ followed by a character
 - **WHEN** the user types `@` followed by a printable character in the input bar
@@ -11,12 +11,8 @@ The system SHALL open the file picker when the input contains an `@` token with 
 - **WHEN** the input contains only `@` with no following character
 - **THEN** the file picker does not open
 
-#### Scenario: Picker does not open for a quoted @ with no filter
-- **WHEN** the input contains `"@` with no content after the `@` inside the quotes
-- **THEN** the file picker does not open
-
 ### Requirement: Cursor-aware filter derivation
-The system SHALL derive the filter from the token at the cursor, where the token starts with `@` and is bounded by whitespace (unquoted) or quotes (quoted). The filter is the text between the `@` and the cursor.
+The system SHALL derive the filter from the token at the cursor, where the token starts with `@` and is bounded by whitespace. The filter is the text between the `@` and the cursor.
 
 #### Scenario: Filter is text between @ and cursor
 - **WHEN** the cursor is within an `@` token
@@ -25,10 +21,6 @@ The system SHALL derive the filter from the token at the cursor, where the token
 #### Scenario: Picker closes when cursor leaves the @ token
 - **WHEN** the cursor moves out of the `@` token (before the `@` or into a different token)
 - **THEN** the file picker closes
-
-#### Scenario: Quoted token includes spaces
-- **WHEN** the token is quoted (e.g., `"@foo bar"`)
-- **THEN** spaces within the quotes are part of the token and the filter
 
 ### Requirement: File list from cwd
 The system SHALL glob the current working directory for files using a fixed pattern, excluding `node_modules`, `.git`, and `dist`, with `onlyFiles: true`.
@@ -87,15 +79,11 @@ The system SHALL have the picker own all input while it is open, handling printa
 - **THEN** the picker closes without selecting
 
 ### Requirement: Selection replaces @ token
-The system SHALL replace the `@` token (from token start to token end) with the full selected path on Enter, wrapping the path in quotes if it contains whitespace.
+The system SHALL replace the `@` token (from token start to token end) with the full selected path on Enter.
 
-#### Scenario: Path without whitespace replaces token
-- **WHEN** the selected path contains no whitespace
+#### Scenario: Path replaces token
+- **WHEN** the user selects a path
 - **THEN** the `@` token is replaced with the path as-is
-
-#### Scenario: Path with whitespace is quoted
-- **WHEN** the selected path contains whitespace
-- **THEN** the path is wrapped in quotes when inserted
 
 ### Requirement: InputPanel unfocused while picker open
 The system SHALL set the `InputPanel` to `focus={false}` while the picker is open, and the App-level `useInput` SHALL bail when the picker is open.

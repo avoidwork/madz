@@ -68,17 +68,10 @@ const InputArea = forwardRef(function InputArea(
 			return;
 		}
 		// Initial open: require `@` followed by content.
-		// The token is bounded by whitespace (unquoted) or quotes (quoted).
+		// The token is bounded by whitespace.
 		let end = lastAt + 1;
-		let quoted = false;
 		while (end < inputText.length) {
-			const ch = inputText[end];
-			if (ch === '"') {
-				quoted = !quoted;
-				end++;
-				continue;
-			}
-			if (!quoted && /\s/.test(ch)) {
+			if (/\s/.test(inputText[end])) {
 				break;
 			}
 			end++;

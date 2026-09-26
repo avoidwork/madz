@@ -13,9 +13,9 @@ const EXCLUDED_DIRS = ["**/node_modules/**", "**/.git/**", "**/dist/**"];
 
 /**
  * Derive the autocomplete filter from the token at the cursor.
- * A token is bounded by whitespace (unquoted) or quotes (quoted). The token
- * must start with `@` and the cursor must be within the token for the picker
- * to be active. Returns { filter, tokenStart, tokenEnd, active }.
+ * A token is bounded by whitespace. The token must start with `@` and the
+ * cursor must be within the token for the picker to be active. Returns
+ * { filter, tokenStart, tokenEnd, active }.
  * @param {string} value - The full input text
  * @param {number} cursor - The cursor position
  * @returns {{filter: string, tokenStart: number, tokenEnd: number, active: boolean}}
@@ -34,24 +34,10 @@ export function deriveFilter(value, cursor) {
 		return { filter: "", tokenStart: lastAt, tokenEnd: lastAt, active: false };
 	}
 
-	// Determine if the `@` is inside a quoted token: count unclosed quotes
-	// before the `@`. An odd count means we're inside a quoted context.
-	let quoteCount = 0;
-	for (let i = 0; i < lastAt; i++) {
-		if (value[i] === '"') quoteCount++;
-	}
-	const inQuotes = quoteCount % 2 === 1;
-
-	// Determine the token end: walk forward from the `@`. In a quoted context,
-	// only the closing quote ends the token; otherwise whitespace ends it.
+	// Determine the token end: walk forward from the `@`. Whitespace ends the token.
 	let end = lastAt + 1;
 	while (end < value.length) {
-		const ch = value[end];
-		if (ch === '"') {
-			end++;
-			break;
-		}
-		if (!inQuotes && /\s/.test(ch)) {
+		if (/\s/.test(value[end])) {
 			break;
 		}
 		end++;
@@ -59,23 +45,11 @@ export function deriveFilter(value, cursor) {
 
 	const filter = value.slice(lastAt + 1, pos);
 
-	// If the token is quoted, extend the boundaries to include the quotes so
-	// replaceToken replaces the whole quoted token (including the quotes).
-	let tokenStart = lastAt;
-	let tokenEnd = end;
-	if (inQuotes) {
-		tokenStart = lastAt - 1;
-		if (value[end] === '"') {
-			tokenEnd = end + 1;
-		}
-	}
-
-	return { filter, tokenStart, tokenEnd, active: true };
+	return { filter, tokenStart: lastAt, tokenEnd: end, active: true };
 }
 
 /**
  * Replace the `@` token in the input with the selected path.
- * If the path contains whitespace, it is wrapped in quotes.
  * @param {string} value - The full input text
  * @param {number} tokenStart - Start index of the token
  * @param {number} tokenEnd - End index of the token
@@ -83,8 +57,7 @@ export function deriveFilter(value, cursor) {
  * @returns {string} The updated input text
  */
 export function replaceToken(value, tokenStart, tokenEnd, path) {
-	const replacement = /\s/.test(path) ? `"${path}"` : path;
-	return value.slice(0, tokenStart) + replacement + value.slice(tokenEnd);
+	return value.slice(0, tokenStart) + path + value.slice(tokenEnd);
 }
 
 /**

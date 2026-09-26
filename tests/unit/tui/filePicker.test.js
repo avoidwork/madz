@@ -26,14 +26,6 @@ describe("deriveFilter", () => {
 		assert.strictEqual(result.active, false);
 	});
 
-	it("treats quoted tokens as a single unit", () => {
-		const result = deriveFilter('read "@src/my file"', 18);
-		assert.strictEqual(result.active, true);
-		assert.strictEqual(result.filter, "src/my file");
-		assert.strictEqual(result.tokenStart, 5);
-		assert.strictEqual(result.tokenEnd, 19);
-	});
-
 	it("clamps cursor to value length", () => {
 		const result = deriveFilter("read @src", 100);
 		assert.strictEqual(result.active, true);
@@ -51,11 +43,6 @@ describe("replaceToken", () => {
 	it("replaces the @ token with the selected path", () => {
 		const result = replaceToken("read @src/config", 5, 16, "src/config/loader.js");
 		assert.strictEqual(result, "read src/config/loader.js");
-	});
-
-	it("quotes paths containing whitespace", () => {
-		const result = replaceToken('read "@src/my file"', 5, 19, "src/my file.txt");
-		assert.strictEqual(result, 'read "src/my file.txt"');
 	});
 
 	it("does not quote paths without whitespace", () => {

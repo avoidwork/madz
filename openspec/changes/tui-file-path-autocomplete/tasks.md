@@ -6,7 +6,7 @@
 
 - [ ] 2.1 Create `src/tui/filePicker.js` exporting a `FilePicker` component
 - [ ] 2.2 Implement `deriveFilter(value, cursor)` — cursor-aware token derivation returning `{ filter, tokenStart, tokenEnd, active }`
-- [ ] 2.3 Implement `replaceToken(value, tokenStart, tokenEnd, path)` — replaces the `@` token with the selected path, quoting if it contains whitespace
+- [ ] 2.3 Implement `replaceToken(value, tokenStart, tokenEnd, path)` — replaces the `@` token with the selected path
 - [ ] 2.4 Implement `FilePicker` with a single `useInput` handler owning printable chars (insert at cursor), backspace (delete before cursor), left/right (move cursor), up/down (navigate list), Enter (select), Escape (close)
 - [ ] 2.5 Render the input text with a cursor indicator (replicating `ink-text-input`'s inverse cursor)
 - [ ] 2.6 Glob the cwd once with `fast-glob` (`**/*`, excluding `node_modules`/`.git`/`dist`, `onlyFiles: true`, depth cap), cache the result, and filter in JS

@@ -6,11 +6,11 @@ Users frequently reference files in prompts (e.g., "read @src/config/loader.js a
 
 - Add a `FilePicker` component (`src/tui/filePicker.js`) rendered below the `InputPanel` when active.
 - Trigger on typing `@` followed by a printable character; the character after `@` seeds the filter.
-- Derive the filter from the token at the cursor (cursor-aware), bounded by whitespace (unquoted) or quotes (quoted).
+- Derive the filter from the token at the cursor (cursor-aware), bounded by whitespace.
 - Glob the cwd for files with a fixed pattern (`**/*`), excluding `node_modules`, `.git`, and `dist`; cache the initial glob and re-filter in JS.
 - Render results sorted alphabetically with a rotating window (up to 3 visible), using the `▸` indicator matching `/skills` and `/sessions`.
 - Own all input while the picker is open via a single `useInput` handler: printable chars refine, backspace deletes, left/right move cursor, up/down navigate, Enter selects, Escape closes.
-- On Enter, replace the `@`-token with the full selected path (wrapped in quotes if it contains whitespace) and close the picker.
+- On Enter, replace the `@`-token with the full selected path and close the picker.
 - Wire into `InputArea` (render, `focus={false}` on `InputPanel`, expose `isPickerOpen()`).
 - Bail in App-level `useInput` when the picker is open so up/down (history) and Escape (interrupt) don't steal keys.
 - Promote `fast-glob` from a transitive to a direct dependency.
@@ -37,5 +37,5 @@ Users frequently reference files in prompts (e.g., "read @src/config/loader.js a
 
 - Reading file contents (list-only).
 - Glob-pattern injection — the filter is always a substring match, never interpolated into a glob.
-- Escaping quotes inside paths (documented limitation).
+- Paths containing whitespace (documented limitation — the token is bounded by whitespace).
 - Any change to the `/skills`, `/sessions`, or `/memory` panel behavior.
