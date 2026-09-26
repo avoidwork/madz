@@ -224,7 +224,7 @@ const InputArea = forwardRef(function InputArea(
 				paddingY: 0,
 			},
 			React.createElement(InputPanel, {
-				key: focus ? "input-focused" : "input-unfocused",
+				key: `${focus ? "input-focused" : "input-unfocused"}-${pickerOpen ? "picker" : "no-picker"}`,
 				value: inputText,
 				onChange: setInputText,
 				onSubmit: handleSubmit,
