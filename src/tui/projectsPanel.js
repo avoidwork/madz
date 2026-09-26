@@ -39,9 +39,10 @@ function ProjectItem({ isSelected = false, label }) {
  *   cwd           - Base directory containing the projects/ folder
  *   onViewChange  - Callback to switch back to conversation view
  *   onSelectProject - Callback invoked with the selected project path on Enter
+ *   onClearProject - Callback invoked when the user selects the clear entry
  *   activeView    - The current active view name (from PANELS)
  */
-export function ProjectsPanel({ cwd, onViewChange, onSelectProject, activeView }) {
+export function ProjectsPanel({ cwd, onViewChange, onSelectProject, onClearProject, activeView }) {
 	const isActive = activeView === "projects";
 	const { rows } = useWindowSize();
 	// Bound the visible list to the terminal height minus header rows.
@@ -75,12 +76,15 @@ export function ProjectsPanel({ cwd, onViewChange, onSelectProject, activeView }
 	}, [cwd]);
 
 	// Normalize to SelectInput items (label = directory name, value = full path).
+	// Prepend a "clear" entry so the user can reset the active project.
 	const items = useMemo(
-		() =>
-			projects.map((name) => ({
+		() => [
+			{ label: "(clear active project)", value: "__clear__" },
+			...projects.map((name) => ({
 				label: name,
 				value: resolve(join(cwd || process.cwd(), "projects", name)),
 			})),
+		],
 		[projects, cwd],
 	);
 
@@ -123,7 +127,13 @@ export function ProjectsPanel({ cwd, onViewChange, onSelectProject, activeView }
 			limit,
 			indicatorComponent: CyanIndicator,
 			itemComponent: ProjectItem,
-			onSelect: (item) => onSelectProject?.(item.value),
+			onSelect: (item) => {
+				if (item.value === "__clear__") {
+					onClearProject?.();
+				} else {
+					onSelectProject?.(item.value);
+				}
+			},
 		}),
 	);
 }

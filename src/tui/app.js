@@ -106,6 +106,16 @@ function App({
 	}, []);
 
 	/**
+	 * handleClearProject — reset the active project to the default (config.cwd)
+	 * and return to the conversation view.
+	 */
+	const handleClearProject = useCallback(() => {
+		setActiveProject(config?.cwd || process.cwd());
+		setCurrentView(PANELS.CONVERSATION);
+		inputAreaRef.current?.setStatusMessage("Active project cleared.");
+	}, [config]);
+
+	/**
 	 * handleSubmit — App-level router.
 	 * Interrupts if streaming, then routes to handleCommand/handleChat on ConversationArea.
 	 */
@@ -311,6 +321,7 @@ function App({
 			cwd: config?.cwd || process.cwd(),
 			onViewChange: handleViewChange,
 			onSelectProject: handleSelectProject,
+			onClearProject: handleClearProject,
 			activeView: currentView,
 		});
 	}

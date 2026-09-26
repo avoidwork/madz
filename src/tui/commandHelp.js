@@ -18,7 +18,7 @@ export const COMMAND_GROUPS = [
 			"/memories - view memories panel",
 			"/new - start a new session",
 			"/provider [set <name>] - list or switch provider",
-			"/projects - view projects panel",
+			"/projects [clear] - view projects panel or clear active project",
 			"/quit, /exit - exit the app",
 			"/schedule [list|pause|resume|run-now]",
 			"/sessions - view sessions panel",
