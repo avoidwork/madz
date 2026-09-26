@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import { Box, useApp, useInput, useWindowSize } from "ink";
 import ConversationArea from "./conversationArea.js";
 import InputArea from "./inputArea.js";
@@ -45,6 +45,11 @@ function App({
 	const conversationAreaRef = useRef(null);
 	const inputAreaRef = useRef(null);
 	const messageCountRef = useRef(0);
+	// Pending silent message to dispatch once the conversation area is mounted.
+	// The conversation area unmounts during panel views, so the ref is null when
+	// a project is selected/cleared; we stage the message here and dispatch it in
+	// an effect once the ref is live.
+	const pendingSilentMessageRef = useRef(null);
 
 	const skillCount = registry ? registry.list().length : 0;
 	const parser = new CommandParser();
@@ -103,6 +108,14 @@ function App({
 		setActiveProject(projectPath);
 		setCurrentView(PANELS.CONVERSATION);
 		inputAreaRef.current?.setStatusMessage(`Active project: ${projectPath}`);
+		// Silently notify the agent that we're now working in the selected project.
+		// The conversation area is unmounted during the panel view, so stage the
+		// message and dispatch it once it mounts. Derive the project name the same
+		// way the status bar does — the segment after the last "projects/".
+		const projectName = projectPath.includes("projects/")
+			? projectPath.slice(projectPath.lastIndexOf("projects/") + "projects/".length)
+			: projectPath;
+		pendingSilentMessageRef.current = `We are working in projects/${projectName}`;
 	}, []);
 
 	/**
@@ -113,7 +126,20 @@ function App({
 		setActiveProject(config?.cwd || process.cwd());
 		setCurrentView(PANELS.CONVERSATION);
 		inputAreaRef.current?.setStatusMessage("Active project cleared.");
+		// Silently notify the agent that we've returned to the root directory.
+		pendingSilentMessageRef.current = "We are now working in madz root directory";
 	}, [config]);
+
+	// Dispatch a staged silent message once the conversation area is mounted.
+	// This covers project selection/clear, where the view switches from a panel
+	// back to the conversation view and the ref is null during the handler.
+	useEffect(() => {
+		if (pendingSilentMessageRef.current && conversationAreaRef.current) {
+			const message = pendingSilentMessageRef.current;
+			pendingSilentMessageRef.current = null;
+			conversationAreaRef.current.handleChat(message, { silentUser: true });
+		}
+	}, [currentView]);
 
 	/**
 	 * handleSubmit — App-level router.
