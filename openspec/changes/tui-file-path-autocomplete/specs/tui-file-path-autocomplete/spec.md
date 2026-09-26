@@ -33,12 +33,12 @@ The system SHALL glob the current working directory for files using a fixed patt
 - **WHEN** the cwd contains `node_modules`, `.git`, or `dist` directories
 - **THEN** files in those directories are not listed
 
-### Requirement: Results sorted by locale collation
-The system SHALL sort the file list by locale collation so the list is human-friendly, handling accents and case naturally.
+### Requirement: Results sorted by length then locale
+The system SHALL sort the file list by length (shortest first), then by locale collation as a tiebreaker, so the list is human-friendly.
 
-#### Scenario: Results are sorted
+#### Scenario: Results are sorted by length then locale
 - **WHEN** the picker lists files
-- **THEN** the files are sorted by locale collation
+- **THEN** the files are sorted by length (shortest first), then by locale collation
 
 ### Requirement: Filter is substring match only
 The system SHALL treat the filter as a case-insensitive substring match against file paths, never interpolating it into a glob pattern.

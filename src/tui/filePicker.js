@@ -61,13 +61,14 @@ export function replaceToken(value, tokenStart, tokenEnd, path) {
 }
 
 /**
- * Sort file paths using locale collation so the list is human-friendly
- * (accents and case handled naturally). Returns a new sorted array.
+ * Sort file paths by length (shortest first), then by locale collation as a
+ * tiebreaker so the list is human-friendly (accents and case handled
+ * naturally). Returns a new sorted array.
  * @param {string[]} files - The file paths to sort
  * @returns {string[]} The sorted file paths
  */
 export function sortFiles(files) {
-	return [...files].sort((a, b) => a.localeCompare(b));
+	return [...files].sort((a, b) => a.length - b.length || a.localeCompare(b));
 }
 
 /**

@@ -52,7 +52,12 @@ describe("replaceToken", () => {
 });
 
 describe("sortFiles", () => {
-	it("sorts paths alphabetically using locale collation", () => {
+	it("sorts by length (shortest first), then locale", () => {
+		const result = sortFiles(["src/very-long.js", "src/a.js", "src/mid.js"]);
+		assert.deepStrictEqual(result, ["src/a.js", "src/mid.js", "src/very-long.js"]);
+	});
+
+	it("uses locale collation as a tiebreaker for equal lengths", () => {
 		const result = sortFiles(["src/z.js", "src/a.js", "src/m.js"]);
 		assert.deepStrictEqual(result, ["src/a.js", "src/m.js", "src/z.js"]);
 	});
@@ -64,7 +69,7 @@ describe("sortFiles", () => {
 		assert.deepStrictEqual(input, ["src/z.js", "src/a.js"]);
 	});
 
-	it("handles case and accents naturally", () => {
+	it("handles case and accents naturally as a tiebreaker", () => {
 		const result = sortFiles(["src/é.js", "src/E.js", "src/a.js"]);
 		assert.deepStrictEqual(result, ["src/a.js", "src/E.js", "src/é.js"]);
 	});
