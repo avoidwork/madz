@@ -53,6 +53,7 @@ This is what makes `madz` feel like a teammate rather than a tool — and it's a
   - [LLM Response Caching](#llm-response-caching)
   - [Agent](#agent)
   - [Built-in Tools](#built-in-tools)
+  - [File Path Autocomplete](#file-path-autocomplete)
   - [Skills Registry](#skills-registry)
   - [Permission Gating](#permission-gating)
   - [Memory System](#memory-system)
@@ -265,6 +266,7 @@ node index.js --mode interactive --session abc123
 | `/memories`                  | Open the memories panel              |
 | `/skills`                    | Open the skills panel                |
 | `/settings`                  | Open the settings panel              |
+| `@`                          | Open the file picker — type `@` followed by a path fragment to autocomplete file paths from the working directory |
 
 ## Docker
 
@@ -655,6 +657,12 @@ All built-in tools are defined in `src/tools/` and registered as LangChain tools
 | `indexCode` | Index project source code for vector search. Scans configured project directories, chunks source files, generates embeddings, and stores them for semantic search. Runs incrementally — only processes changed files. |
 
 **Deep Agents tools:** Core filesystem operations (`readFile`, `writeFile`, `patch`, `searchFiles`) and task management (`todo`) are provided by [deepagentsjs](https://github.com/langchain-ai/deepagentsjs) and are not listed as madz-built-in tools.
+
+### File Path Autocomplete
+
+While typing in the input bar, type `@` followed by a path fragment to open a live file picker. It globs the current working directory (excluding `node_modules`, `.git`, and `dist`), filters by a case-insensitive substring match, and lists matching files sorted by path length (shortest first), then by locale collation. A rotating window shows up to 3 options at a time with the `▸` indicator.
+
+The picker owns all input while open: printable characters refine the filter, backspace deletes, left/right move the cursor, up/down navigate the list, Enter inserts the selected path, and Escape closes without selecting. The filter is always a substring match — never interpolated into a glob pattern — so glob metacharacters are treated literally.
 
 ### Skills Registry
 
