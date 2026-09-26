@@ -36,7 +36,7 @@ function App({
 	const [inputFocused, setInputFocused] = useState(true);
 	const [currentView, setCurrentView] = useState(PANELS.CONVERSATION);
 	const [pendingInput, setPendingInput] = useState("");
-	const [activeProject, setActiveProject] = useState(config?.cwd || process.cwd());
+	const [activeProject, setActiveProject] = useState("");
 	const lastInterruptTimeRef = useRef(0);
 	const { exit } = useApp();
 	const exitRef = useRef(exit);
@@ -123,7 +123,7 @@ function App({
 	 * and return to the conversation view.
 	 */
 	const handleClearProject = useCallback(() => {
-		setActiveProject(config?.cwd || process.cwd());
+		setActiveProject("");
 		setCurrentView(PANELS.CONVERSATION);
 		inputAreaRef.current?.setStatusMessage("Active project cleared.");
 		// Silently notify the agent that we've returned to the root directory.

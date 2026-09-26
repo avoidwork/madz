@@ -270,7 +270,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 				_skillList: skillList,
 				_activeProject: activeProject,
 				_setActiveProject: setActiveProject,
-				_clearActiveProject: () => setActiveProject(config?.cwd || process.cwd()),
+				_clearActiveProject: () => setActiveProject(""),
 			});
 			if (result.action === "quit") {
 				onQuit?.();
