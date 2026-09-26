@@ -223,15 +223,17 @@ const InputArea = forwardRef(function InputArea(
 				paddingX: 1,
 				paddingY: 0,
 			},
-			React.createElement(InputPanel, {
-				key: `${focus ? "input-focused" : "input-unfocused"}-${pickerOpen ? "picker" : "no-picker"}`,
-				value: inputText,
-				onChange: setInputText,
-				onSubmit: handleSubmit,
-				onFocus,
-				onBlur,
-				focus: focus && !pickerOpen,
-			}),
+			!pickerOpen
+				? React.createElement(InputPanel, {
+						key: focus ? "input-focused" : "input-unfocused",
+						value: inputText,
+						onChange: setInputText,
+						onSubmit: handleSubmit,
+						onFocus,
+						onBlur,
+						focus,
+					})
+				: null,
 			pickerOpen
 				? React.createElement(FilePicker, {
 						value: inputText,

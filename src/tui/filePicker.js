@@ -214,7 +214,7 @@ export function FilePicker({ value, onChange, onClose, cwd }) {
 
 	return React.createElement(
 		Box,
-		{ flexDirection: "column", width: "100%", backgroundColor: "#0d0d0d", paddingX: 1 },
+		{ flexDirection: "column", width: "100%", paddingX: 1 },
 		React.createElement(
 			Text,
 			null,
