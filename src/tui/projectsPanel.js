@@ -21,6 +21,17 @@ function CyanIndicator({ isSelected = false }) {
 }
 
 /**
+ * Custom item renderer for SelectInput that highlights the selected project
+ * name in cyan, matching the /skills view. ink-select-input's default Item
+ * uses blue.
+ * @param {{ isSelected?: boolean, label: string }} props - The item props.
+ * @returns {React.ReactElement} The rendered item.
+ */
+function ProjectItem({ isSelected = false, label }) {
+	return React.createElement(Text, { color: isSelected ? "cyan" : undefined }, label);
+}
+
+/**
  * Projects panel that lists directories within `projects/` for selection.
  * Uses ink-select-input for navigation and selection — no descriptions,
  * mirroring the /skills list style.
@@ -47,7 +58,7 @@ export function ProjectsPanel({ cwd, onViewChange, onSelectProject, activeView }
 			.then((entries) => {
 				if (cancelled) return;
 				const dirs = entries
-					.filter((e) => e.isDirectory())
+					.filter((e) => e.isDirectory() && !e.name.endsWith(".worktrees"))
 					.map((e) => e.name)
 					.sort((a, b) => a.localeCompare(b));
 				setProjects(dirs);
@@ -111,6 +122,7 @@ export function ProjectsPanel({ cwd, onViewChange, onSelectProject, activeView }
 			isFocused: isActive,
 			limit,
 			indicatorComponent: CyanIndicator,
+			itemComponent: ProjectItem,
 			onSelect: (item) => onSelectProject?.(item.value),
 		}),
 	);
