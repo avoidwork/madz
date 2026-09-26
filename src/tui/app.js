@@ -221,6 +221,11 @@ function App({
 			return;
 		}
 
+		// Bail when the file picker is open — it owns all keystrokes.
+		if (inputAreaRef.current?.isPickerOpen?.()) {
+			return;
+		}
+
 		if (key.escape) {
 			const now = Date.now();
 			if (now - lastInterruptTimeRef.current < 500) {
