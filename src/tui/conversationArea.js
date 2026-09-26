@@ -293,7 +293,11 @@ const ConversationArea = forwardRef(function ConversationArea(
 				onViewChange?.(result.value);
 				return;
 			}
-			if (result.action === "skill" && result.subAction === "invoke") {
+			if (result.action === "project" && result.subAction === "clear") {
+				// Silently notify the agent that we've returned to the root directory.
+				// The active project was already reset via _clearActiveProject above.
+				await handleChat("We are now working in madz root directory", { silentUser: true });
+			} else if (result.action === "skill" && result.subAction === "invoke") {
 				// Route /SKILL through the deepagents skill system by synthesizing the
 				// "Run the <skill> skill [args]" prompt and dispatching it via handleChat.
 				// The synthesized prompt is silent — it stays out of the TUI message list
@@ -312,7 +316,8 @@ const ConversationArea = forwardRef(function ConversationArea(
 				result.message &&
 				result.action !== "provider" &&
 				result.action !== "schedule" &&
-				result.action !== "skill"
+				result.action !== "skill" &&
+				result.action !== "project"
 			) {
 				addMessage({ role: "system", content: result.message });
 			}
