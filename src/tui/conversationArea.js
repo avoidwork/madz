@@ -119,6 +119,8 @@ const ConversationArea = forwardRef(function ConversationArea(
 		onViewChange,
 		messageCountRef,
 		contextEstimate,
+		activeProject,
+		setActiveProject,
 	},
 	ref,
 ) {
@@ -266,6 +268,9 @@ const ConversationArea = forwardRef(function ConversationArea(
 					: null,
 				_onViewChange: onViewChange,
 				_skillList: skillList,
+				_activeProject: activeProject,
+				_setActiveProject: setActiveProject,
+				_clearActiveProject: () => setActiveProject(config?.cwd || process.cwd()),
 			});
 			if (result.action === "quit") {
 				onQuit?.();

@@ -59,3 +59,14 @@ The `tui` configuration section SHALL support a `blinkTimeout` field specifying 
 - **WHEN** `tui.blinkTimeout` is set to a non-integer value (e.g., 3.5)
 - **THEN** schema validation fails
 
+### Requirement: Cursor rendered by picker while open
+The system SHALL render the input cursor by the file picker (not `ink-text-input`) while the picker owns the input.
+
+#### Scenario: Picker renders cursor while open
+- **WHEN** the file picker is open
+- **THEN** the picker renders the input text with a cursor indicator at the current cursor position
+
+#### Scenario: InputPanel cursor not rendered while picker open
+- **WHEN** the file picker is open
+- **THEN** the `ink-text-input` cursor is not rendered (the InputPanel is unfocused)
+

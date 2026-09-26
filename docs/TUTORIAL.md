@@ -291,6 +291,34 @@ Index the code in backendapi for vector search
 
 The agent's indexing tool reads these from the environment — no file editing required. (`.env` is injected at container start, so after adding these lines, recreate the container with the same `docker run` flags.)
 
+**Set the active project explicitly.**
+
+The convention above lets the agent resolve a project by name. But sometimes you want to *pin* the working directory — so the file picker and the agent's file operations both target a specific project. Use `/projects`:
+
+```
+/projects
+```
+
+This opens the projects panel, listing every directory under `projects/`. Navigate with `↑/↓`, press Enter to select one, and it becomes the **active project**. The status bar shows the selected project's name (e.g. `[backend-api]`), and the `@` file picker now globs that project's directory instead of the container root.
+
+Once a project is active, the `@` file picker lists files from inside it:
+
+```
+read @src/config/loader.js
+```
+
+The picker searches the active project's directory, so `@src/...` resolves relative to the project root — no need to type the full path.
+
+**Clear the active project.**
+
+To return to the default working directory (the container root), clear it:
+
+```
+/projects clear
+```
+
+Or select `(clear active project)` at the top of the projects panel. The status bar stops showing a project, and the `@` file picker globs the container root again.
+
 ---
 
 ## 🛠️ Daily Usage
@@ -318,6 +346,8 @@ Once inside the interactive terminal, use these commands:
 | `/memories` | Open the memories panel |
 | `/skills` | Open the skills panel |
 | `/settings` | Open the settings panel |
+| `/projects` | Open the projects panel — select a project directory to set the active project |
+| `/projects clear` | Clear the active project back to the default |
 
 ### Memory System
 `madz` operates on a **triple-layer** memory architecture:

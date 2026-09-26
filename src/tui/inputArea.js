@@ -1,7 +1,15 @@
-import React, { useState, useEffect, useCallback, forwardRef, useImperativeHandle } from "react";
+import React, {
+	useState,
+	useEffect,
+	useCallback,
+	forwardRef,
+	useImperativeHandle,
+	useRef,
+} from "react";
 import { Box } from "ink";
 import { StatusBar } from "./statusBar.js";
 import { InputPanel } from "./inputPanel.js";
+import { FilePicker } from "./filePicker.js";
 import { QUOTES, getRandomQuoteIndex } from "./quotes.js";
 import { getSharedTokenBudget } from "../provider/openai.js";
 
@@ -26,6 +34,8 @@ const InputArea = forwardRef(function InputArea(
 		appInfo,
 		tokenBudget = 0,
 		statusBar = {},
+		cwd,
+		activeProject,
 	},
 	ref,
 ) {
@@ -37,6 +47,41 @@ const InputArea = forwardRef(function InputArea(
 	const [isCompacting, setIsCompacting] = useState(false);
 	const [quoteIndex, setQuoteIndex] = useState(-1);
 	const [tokenCount, setTokenCount] = useState(0);
+	const [pickerOpen, setPickerOpen] = useState(false);
+	const pickerOpenRef = useRef(false);
+
+	// Keep the ref in sync so the imperative isPickerOpen() reads current state.
+	useEffect(() => {
+		pickerOpenRef.current = pickerOpen;
+	}, [pickerOpen]);
+
+	// Open the picker when the input contains an `@` token with content after it.
+	// Once open, keep it open as long as the `@` remains — closing only when
+	// the `@` is erased, the user makes a selection, or presses Escape.
+	/* node:coverage disable */
+	useEffect(() => {
+		const lastAt = inputText.lastIndexOf("@");
+		if (lastAt === -1) {
+			setPickerOpen(false);
+			return;
+		}
+		// Already open — keep it open while the `@` remains.
+		if (pickerOpenRef.current) {
+			return;
+		}
+		// Initial open: require `@` followed by content.
+		// The token is bounded by whitespace.
+		let end = lastAt + 1;
+		while (end < inputText.length) {
+			if (/\s/.test(inputText[end])) {
+				break;
+			}
+			end++;
+		}
+		const token = inputText.slice(lastAt, end);
+		setPickerOpen(token.length > 1);
+	}, [inputText]);
+	/* node:coverage enable */
 
 	// Consume a pre-loaded initial value once on mount (e.g., skill selection).
 	useEffect(() => {
@@ -137,6 +182,7 @@ const InputArea = forwardRef(function InputArea(
 		setStatusMessage,
 		setContextSize,
 		setIsCompacting,
+		isPickerOpen: () => pickerOpenRef.current,
 	}));
 
 	const messageCount = messageCountRef?.current || 0;
@@ -161,6 +207,7 @@ const InputArea = forwardRef(function InputArea(
 					tokenCount,
 					tokenBudget,
 					statusBar,
+					project: activeProject,
 				})
 			: null,
 		// InputPanel in normal mode and during onboarding
@@ -168,19 +215,29 @@ const InputArea = forwardRef(function InputArea(
 			Box,
 			{
 				key: "input-wrapper",
-				flexDirection: "row",
+				flexDirection: "column",
 				paddingX: 1,
 				paddingY: 0,
 			},
-			React.createElement(InputPanel, {
-				key: focus ? "input-focused" : "input-unfocused",
-				value: inputText,
-				onChange: setInputText,
-				onSubmit: handleSubmit,
-				onFocus,
-				onBlur,
-				focus,
-			}),
+			!pickerOpen
+				? React.createElement(InputPanel, {
+						key: focus ? "input-focused" : "input-unfocused",
+						value: inputText,
+						onChange: setInputText,
+						onSubmit: handleSubmit,
+						onFocus,
+						onBlur,
+						focus,
+					})
+				: null,
+			pickerOpen
+				? React.createElement(FilePicker, {
+						value: inputText,
+						onChange: setInputText,
+						onClose: () => setPickerOpen(false),
+						cwd: cwd || process.cwd(),
+					})
+				: null,
 		),
 	);
 });

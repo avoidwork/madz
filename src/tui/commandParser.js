@@ -85,6 +85,17 @@ export class CommandParser {
 			return { action: "schedule", message: `Unknown subcommand: ${sub}` };
 		});
 
+		this.#register("projects", (args, ctx) => {
+			if (args[0] === "clear") {
+				if (ctx._clearActiveProject) {
+					ctx._clearActiveProject();
+					return { action: "project", subAction: "clear", message: "Active project cleared." };
+				}
+				return { action: "project", message: "Project state unavailable." };
+			}
+			return { action: "view", value: "projects", message: "Switching to projects view." };
+		});
+
 		this.#register("clear", (_args, _ctx) => {
 			return {
 				action: "clear",

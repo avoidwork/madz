@@ -174,6 +174,55 @@ describe("StatusBar model display", () => {
 	});
 });
 
+describe("StatusBar project display", () => {
+	it("renders only the subdirectory name within projects/", () => {
+		const result = renderToString(
+			React.createElement(StatusBar, {
+				statusMessage: "Ready",
+				skillCount: 1,
+				messageCount: 2,
+				contextSize: 3,
+				version: "1.0.0",
+				project: "/home/user/projects/foo",
+			}),
+		);
+		assert.ok(typeof result === "string");
+		assert.ok(result.includes("foo"), "should render the project subdirectory name");
+		assert.ok(!result.includes("/home/user/projects/foo"), "should not render the full path");
+	});
+
+	it("falls back to the full path when not under projects/", () => {
+		const result = renderToString(
+			React.createElement(StatusBar, {
+				statusMessage: "Ready",
+				skillCount: 1,
+				messageCount: 2,
+				contextSize: 3,
+				version: "1.0.0",
+				project: "/some/other/dir",
+			}),
+		);
+		assert.ok(typeof result === "string");
+		assert.ok(result.includes("/some/other/dir"), "should render the full path");
+	});
+
+	it("omits the project element when statusBar.project is false", () => {
+		const result = renderToString(
+			React.createElement(StatusBar, {
+				statusMessage: "Ready",
+				skillCount: 1,
+				messageCount: 2,
+				contextSize: 3,
+				version: "1.0.0",
+				project: "/home/user/projects/foo",
+				statusBar: { project: false },
+			}),
+		);
+		assert.ok(typeof result === "string");
+		assert.ok(!result.includes("foo"), "should not render the project name");
+	});
+});
+
 describe("StatusBar per-item visibility", () => {
 	const baseProps = {
 		statusMessage: "Ready",

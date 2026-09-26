@@ -51,6 +51,7 @@ export const StatusBar = React.memo(function StatusBar({
 	tokenCount = 0,
 	tokenBudget = 0,
 	statusBar = {},
+	project = "",
 }) {
 	const contextColor = isCompacting ? "red" : "#606060";
 	const isStreaming = statusMessage === "Sending..." || statusMessage === "Streaming...";
@@ -61,6 +62,13 @@ export const StatusBar = React.memo(function StatusBar({
 	const showTokens = statusBar.tokens !== false && tokenBudget > 0;
 	const showQuote = statusBar.quote !== false && quote;
 	const showVersion = statusBar.version !== false && version;
+	const showProject = statusBar.project !== false && project;
+	// Render only the subdirectory name within projects/ (e.g., "foo" for
+	// "/path/to/projects/foo"), falling back to the full path if it's not
+	// under a projects/ directory.
+	const projectName = project.includes("projects/")
+		? project.slice(project.lastIndexOf("projects/") + "projects/".length)
+		: project;
 
 	return React.createElement(
 		Box,
@@ -85,6 +93,10 @@ export const StatusBar = React.memo(function StatusBar({
 
 			showModel
 				? React.createElement(Text, { key: "model", color: "#606060" }, " [" + model + "]")
+				: null,
+
+			showProject
+				? React.createElement(Text, { key: "project", color: "#606060" }, " [" + projectName + "]")
 				: null,
 
 			showSkills
