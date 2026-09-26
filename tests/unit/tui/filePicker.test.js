@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
-import { deriveFilter, replaceToken, MAX_VISIBLE } from "../../../src/tui/filePicker.js";
+import { deriveFilter, replaceToken, sortFiles, MAX_VISIBLE } from "../../../src/tui/filePicker.js";
 
 describe("deriveFilter", () => {
 	it("is active when cursor is within an @ token", () => {
@@ -48,6 +48,25 @@ describe("replaceToken", () => {
 	it("does not quote paths without whitespace", () => {
 		const result = replaceToken("read @src", 5, 9, "src/index.js");
 		assert.strictEqual(result, "read src/index.js");
+	});
+});
+
+describe("sortFiles", () => {
+	it("sorts paths alphabetically using locale collation", () => {
+		const result = sortFiles(["src/z.js", "src/a.js", "src/m.js"]);
+		assert.deepStrictEqual(result, ["src/a.js", "src/m.js", "src/z.js"]);
+	});
+
+	it("returns a new array without mutating the input", () => {
+		const input = ["src/z.js", "src/a.js"];
+		const result = sortFiles(input);
+		assert.deepStrictEqual(result, ["src/a.js", "src/z.js"]);
+		assert.deepStrictEqual(input, ["src/z.js", "src/a.js"]);
+	});
+
+	it("handles case and accents naturally", () => {
+		const result = sortFiles(["src/é.js", "src/E.js", "src/a.js"]);
+		assert.deepStrictEqual(result, ["src/a.js", "src/E.js", "src/é.js"]);
 	});
 });
 

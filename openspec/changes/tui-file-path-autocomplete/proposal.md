@@ -8,7 +8,7 @@ Users frequently reference files in prompts (e.g., "read @src/config/loader.js a
 - Trigger on typing `@` followed by a printable character; the character after `@` seeds the filter.
 - Derive the filter from the token at the cursor (cursor-aware), bounded by whitespace.
 - Glob the cwd for files with a fixed pattern (`**/*`), excluding `node_modules`, `.git`, and `dist`; cache the initial glob and re-filter in JS.
-- Render results sorted alphabetically with a rotating window (up to 3 visible), using the `▸` indicator matching `/skills` and `/sessions`.
+- Render results sorted by locale collation with a rotating window (up to 3 visible), using the `▸` indicator matching `/skills` and `/sessions`.
 - Own all input while the picker is open via a single `useInput` handler: printable chars refine, backspace deletes, left/right move cursor, up/down navigate, Enter selects, Escape closes.
 - On Enter, replace the `@`-token with the full selected path and close the picker.
 - Wire into `InputArea` (render, `focus={false}` on `InputPanel`, expose `isPickerOpen()`).

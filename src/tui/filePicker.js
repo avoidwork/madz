@@ -61,6 +61,16 @@ export function replaceToken(value, tokenStart, tokenEnd, path) {
 }
 
 /**
+ * Sort file paths using locale collation so the list is human-friendly
+ * (accents and case handled naturally). Returns a new sorted array.
+ * @param {string[]} files - The file paths to sort
+ * @returns {string[]} The sorted file paths
+ */
+export function sortFiles(files) {
+	return [...files].sort((a, b) => a.localeCompare(b));
+}
+
+/**
  * FilePicker — a self-contained input + file list component.
  * Owns a single useInput handler for printable chars (insert at cursor),
  * backspace (delete before cursor), left/right (move cursor), up/down
@@ -96,8 +106,11 @@ export function FilePicker({ value, onChange, onClose, cwd }) {
 					deep: 10,
 				});
 				if (!cancelled) {
-					filesRef.current = results;
-					setFiles(results);
+					// Sort once at cache time using locale collation so the list
+					// is human-friendly (accents and case handled naturally).
+					const sorted = sortFiles(results);
+					filesRef.current = sorted;
+					setFiles(sorted);
 					setLoaded(true);
 				}
 			} catch (_err) {
