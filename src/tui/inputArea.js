@@ -34,6 +34,7 @@ const InputArea = forwardRef(function InputArea(
 		appInfo,
 		tokenBudget = 0,
 		statusBar = {},
+		cwd,
 	},
 	ref,
 ) {
@@ -232,7 +233,7 @@ const InputArea = forwardRef(function InputArea(
 						value: inputText,
 						onChange: setInputText,
 						onClose: () => setPickerOpen(false),
-						cwd: process.cwd(),
+						cwd: cwd || process.cwd(),
 					})
 				: null,
 		),

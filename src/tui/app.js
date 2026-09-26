@@ -355,6 +355,7 @@ function App({
 					appInfo,
 					tokenBudget,
 					statusBar: config?.tui?.statusBar,
+					cwd: config?.cwd || process.cwd(),
 				})
 			: null,
 	);
