@@ -267,7 +267,8 @@ node index.js --mode interactive --session abc123
 | `/memories`                  | Open the memories panel              |
 | `/skills`                    | Open the skills panel                |
 | `/settings`                  | Open the settings panel              |
-| `/projects [clear]`          | Open the projects panel — select a project directory to set the active project, or clear it |
+| `/projects`                  | Open the projects panel — select a project directory to set the active project |
+| `/projects clear`            | Clear the active project back to the default |
 | `@`                          | Open the file picker — type `@` followed by a path fragment to autocomplete file paths from the active project directory |
 
 ## Docker
