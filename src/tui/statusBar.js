@@ -63,6 +63,12 @@ export const StatusBar = React.memo(function StatusBar({
 	const showQuote = statusBar.quote !== false && quote;
 	const showVersion = statusBar.version !== false && version;
 	const showProject = statusBar.project !== false && project;
+	// Render only the subdirectory name within projects/ (e.g., "foo" for
+	// "/path/to/projects/foo"), falling back to the full path if it's not
+	// under a projects/ directory.
+	const projectName = project.includes("projects/")
+		? project.slice(project.lastIndexOf("projects/") + "projects/".length)
+		: project;
 
 	return React.createElement(
 		Box,
@@ -90,7 +96,7 @@ export const StatusBar = React.memo(function StatusBar({
 				: null,
 
 			showProject
-				? React.createElement(Text, { key: "project", color: "#606060" }, " [" + project + "]")
+				? React.createElement(Text, { key: "project", color: "#606060" }, " [" + projectName + "]")
 				: null,
 
 			showSkills
