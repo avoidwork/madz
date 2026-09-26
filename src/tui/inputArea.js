@@ -35,6 +35,7 @@ const InputArea = forwardRef(function InputArea(
 		tokenBudget = 0,
 		statusBar = {},
 		cwd,
+		activeProject,
 	},
 	ref,
 ) {
@@ -206,6 +207,7 @@ const InputArea = forwardRef(function InputArea(
 					tokenCount,
 					tokenBudget,
 					statusBar,
+					project: activeProject,
 				})
 			: null,
 		// InputPanel in normal mode and during onboarding

@@ -10,6 +10,7 @@ import { SkillsPanel } from "./skillsPanel.js";
 import { MemoryPanel } from "./memoryPanel.js";
 import { SettingsPanel } from "./settingsPanel.js";
 import { SessionsPanel } from "./sessionsPanel.js";
+import { ProjectsPanel } from "./projectsPanel.js";
 
 /**
  * App router — holds cross-cutting state and view routing.
@@ -35,6 +36,7 @@ function App({
 	const [inputFocused, setInputFocused] = useState(true);
 	const [currentView, setCurrentView] = useState(PANELS.CONVERSATION);
 	const [pendingInput, setPendingInput] = useState("");
+	const [activeProject, setActiveProject] = useState(config?.cwd || process.cwd());
 	const lastInterruptTimeRef = useRef(0);
 	const { exit } = useApp();
 	const exitRef = useRef(exit);
@@ -89,6 +91,18 @@ function App({
 		// panel views, so set a pending value that it consumes on mount.
 		setPendingInput(`/${skillName}`);
 		inputAreaRef.current?.setStatusMessage(`Selected ${skillName} — press Enter to run or append.`);
+	}, []);
+
+	/**
+	 * handleSelectProject — switch to the conversation view and set the active
+	 * project directory. The file picker globs this directory, and the status
+	 * bar displays it.
+	 * @param {string} projectPath - The selected project directory
+	 */
+	const handleSelectProject = useCallback((projectPath) => {
+		setActiveProject(projectPath);
+		setCurrentView(PANELS.CONVERSATION);
+		inputAreaRef.current?.setStatusMessage(`Active project: ${projectPath}`);
 	}, []);
 
 	/**
@@ -292,6 +306,13 @@ function App({
 			onViewChange: handleViewChange,
 			activeView: currentView,
 		});
+	} else if (currentView === PANELS.PROJECTS) {
+		panelComponent = React.createElement(ProjectsPanel, {
+			cwd: config?.cwd || process.cwd(),
+			onViewChange: handleViewChange,
+			onSelectProject: handleSelectProject,
+			activeView: currentView,
+		});
 	}
 
 	return React.createElement(
@@ -337,6 +358,8 @@ function App({
 							onViewChange: handleViewChange,
 							messageCountRef,
 							contextEstimate,
+							activeProject,
+							setActiveProject,
 						}),
 		// InputArea — hidden during panel views
 		currentView === PANELS.CONVERSATION || showOnboarding
@@ -355,7 +378,8 @@ function App({
 					appInfo,
 					tokenBudget,
 					statusBar: config?.tui?.statusBar,
-					cwd: config?.cwd || process.cwd(),
+					cwd: activeProject || config?.cwd || process.cwd(),
+					activeProject,
 				})
 			: null,
 	);

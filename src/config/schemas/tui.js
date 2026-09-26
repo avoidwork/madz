@@ -12,6 +12,7 @@ export const TuiSchema = z.object({
 			tokens: z.boolean().default(true),
 			quote: z.boolean().default(true),
 			version: z.boolean().default(true),
+			project: z.boolean().default(true),
 		})
 		.default({}),
 });

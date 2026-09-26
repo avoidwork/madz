@@ -51,6 +51,7 @@ export const StatusBar = React.memo(function StatusBar({
 	tokenCount = 0,
 	tokenBudget = 0,
 	statusBar = {},
+	project = "",
 }) {
 	const contextColor = isCompacting ? "red" : "#606060";
 	const isStreaming = statusMessage === "Sending..." || statusMessage === "Streaming...";
@@ -61,6 +62,7 @@ export const StatusBar = React.memo(function StatusBar({
 	const showTokens = statusBar.tokens !== false && tokenBudget > 0;
 	const showQuote = statusBar.quote !== false && quote;
 	const showVersion = statusBar.version !== false && version;
+	const showProject = statusBar.project !== false && project;
 
 	return React.createElement(
 		Box,
@@ -85,6 +87,10 @@ export const StatusBar = React.memo(function StatusBar({
 
 			showModel
 				? React.createElement(Text, { key: "model", color: "#606060" }, " [" + model + "]")
+				: null,
+
+			showProject
+				? React.createElement(Text, { key: "project", color: "#606060" }, " [" + project + "]")
 				: null,
 
 			showSkills

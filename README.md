@@ -54,6 +54,7 @@ This is what makes `madz` feel like a teammate rather than a tool — and it's a
   - [Agent](#agent)
   - [Built-in Tools](#built-in-tools)
   - [File Path Autocomplete](#file-path-autocomplete)
+  - [Active Project](#active-project)
   - [Skills Registry](#skills-registry)
   - [Permission Gating](#permission-gating)
   - [Memory System](#memory-system)
@@ -266,7 +267,8 @@ node index.js --mode interactive --session abc123
 | `/memories`                  | Open the memories panel              |
 | `/skills`                    | Open the skills panel                |
 | `/settings`                  | Open the settings panel              |
-| `@`                          | Open the file picker — type `@` followed by a path fragment to autocomplete file paths from the working directory |
+| `/projects`                  | Open the projects panel — select a project directory to set the active project |
+| `@`                          | Open the file picker — type `@` followed by a path fragment to autocomplete file paths from the active project directory |
 
 ## Docker
 
@@ -660,9 +662,13 @@ All built-in tools are defined in `src/tools/` and registered as LangChain tools
 
 ### File Path Autocomplete
 
-While typing in the input bar, type `@` followed by a path fragment to open a live file picker. It globs the current working directory (excluding `node_modules`, `.git`, and `dist`), filters by a case-insensitive substring match, and lists matching files sorted by path length (shortest first), then by locale collation. A rotating window shows up to 3 options at a time with the `▸` indicator.
+While typing in the input bar, type `@` followed by a path fragment to open a live file picker. It globs the active project directory (excluding `node_modules`, `.git`, and `dist`), filters by a case-insensitive substring match, and lists matching files sorted by path length (shortest first), then by locale collation. A rotating window shows up to 3 options at a time with the `▸` indicator.
 
 The picker owns all input while open: printable characters refine the filter, backspace deletes, left/right move the cursor, up/down navigate the list, Enter inserts the selected path, and Escape closes without selecting. The filter is always a substring match — never interpolated into a glob pattern — so glob metacharacters are treated literally.
+
+### Active Project
+
+The active project is the directory the file picker globs and the agent treats as its working root. It defaults to the launch directory (`config.cwd`). Use `/projects` to open the projects panel, which lists directories under `./projects/` — select one to set it as the active project. The active project is shown in the status bar and can be toggled via the `statusBar.project` config option.
 
 ### Skills Registry
 

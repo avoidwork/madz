@@ -85,6 +85,10 @@ export class CommandParser {
 			return { action: "schedule", message: `Unknown subcommand: ${sub}` };
 		});
 
+		this.#register("projects", (_args, _ctx) => {
+			return { action: "view", value: "projects", message: "Switching to projects view." };
+		});
+
 		this.#register("clear", (_args, _ctx) => {
 			return {
 				action: "clear",
