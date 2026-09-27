@@ -2,6 +2,14 @@
 
 This document describes how madz is structured, how subsystems interact, and the key data flows through them. It covers the runtime components — not how to configure or contribute code.
 
+## What This Document Is
+
+This is the **map of the machine** — how madz is structured, how its subsystems interact, and the key data flows between them. It is the place to start if you want to understand the architecture before diving into code.
+
+**Who it's for:** Anyone who wants to understand how madz fits together. It assumes no prior knowledge of the codebase, but it does use technical terms (orchestrator, backend, checkpointer) that are defined inline as they appear. If you're brand new to madz, read [TUTORIAL.md](./TUTORIAL.md) first for the practical setup, then come back here for the architecture.
+
+**How to read it:** Work top-to-bottom. The system diagram at the top is the whole picture; each section below expands one subsystem. Terms in `code font` are module or function names you'll find in `src/`. Cross-references like "see [FLOWS.md](./FLOWS.md)" point to deeper call-chain detail for that subsystem. If you hit an unfamiliar term, check the [Glossary](./GLOSSARY.md).
+
 ---
 
 ## System Diagram

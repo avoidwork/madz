@@ -4,12 +4,24 @@
 + `ink-scroll-view` + structured logger), inspired by the best patterns of bitchx IRC client. The
 core functionality stays the same — the new TUI renders it better.*
 
+## What This Document Is
+
+This is a **design blueprint** for the madz terminal interface. It describes the philosophy, the current implementation, and the proposed direction — including features that are imagined but not yet built.
+
+**Who it's for:** Developers working on the TUI, and anyone who wants to understand how the terminal interface is structured. It assumes familiarity with React, Ink, and terminal UIs.
+
+**How to read it:** Sections marked **Implemented** describe what exists in `src/tui/`. Sections marked **Proposed** describe features that may not be built yet — they are design intent, not a spec of current behavior. Sections marked **Debt** describe known architectural trade-offs and suggested refactors. When a section is not marked, treat it as a mix of current behavior and design intent; cross-check against the source before relying on it.
+
+**Status legend:** `✅ Implemented` — live in the codebase. `🔶 Proposed` — design intent, not yet built. `⚠️ Debt` — known trade-off or suggested refactor.
+
 ---
 
 ## 1. Philosophy
 
 The interface is a terminal. Text flows in from the system, text flows out from the user. No panels,
 no tabs, no switching. One scrollable output area, one input line.
+
+> **Note:** "No panels, no tabs, no switching" is the **aspiration**, not the current state. The current implementation *does* have a panel system (`skillsPanel`, `memoryPanel`, `settingsPanel`, `projectsPanel`, `sessionsPanel`) reachable via `/skills`, `/memories`, `/settings`, `/projects`, `/sessions`. See §16 (Architectural Debt) for the proposal to remove them.
 
 The IRC layout is borrowed for its elegance: messages accumulate above, input sits at the bottom,
 scrolling is natural. But the content is code, output, system responses — not conversation.
@@ -46,15 +58,19 @@ ship built-in. No config file editing needed for common changes.
 ```
 App (src/tui/app.js)
 ├── Banner / OnboardingPanel    — First-run experience
-├── ConversationPanel           — ScrollView-based message display
-│   └── ScrollView (ink-scroll-view)
-│       └── MessageBubble[]     — Role-colored, markdown-rendered
-├── StatusBar                   — Status indicator, skill/message/context counts
-└── InputPanel                  — Text input with cursor display
+├── ConversationArea            — Streaming handler + message state
+│   └── ConversationPanel       — ScrollView-based message display
+│       └── ScrollView (ink-scroll-view)
+│           └── MessageBubble[] — Role-colored, markdown-rendered
+├── InputArea                   — Owns input + status state
+│   ├── StatusBar               — Status indicator, model, skill/message/context counts
+│   ├── InputPanel              — Text input (ink-text-input)
+│   └── FilePicker              — `@` file autocomplete (fast-glob)
+└── Panel views (conditional)   — SkillsPanel, MemoryPanel, SettingsPanel,
+                                 SessionsPanel, ProjectsPanel
 ```
 
-No panels, no tabs, no switching. The interface is a single scrollable output area with one input
-line.
+> **Note:** The current implementation uses `ConversationArea`/`InputArea` as the top-level containers, with `ConversationPanel`/`InputPanel`/`StatusBar`/`FilePicker` nested inside. The panel views (`/skills`, `/memories`, `/settings`, `/sessions`, `/projects`) are separate views, not part of the conversation view.
 
 ### Key Dependencies
 
@@ -62,7 +78,11 @@ line.
 |------------|------|
 | `ink` | TUI framework (Box, Text, useInput, useStdout, useWindowSize) |
 | `ink-scroll-view` | Scrollable viewport (ScrollView, scrollToBottom, scrollBy, remeasure) |
-| `pino` | Structured logger (dual-file: madz.log + madz_error.log) |
+| `fast-glob` | File autocomplete globbing (filePicker.js) |
+| `marked` + `marked-terminal` | Markdown → ANSI terminal rendering (markdownText.js) |
+| `tiktoken` | Conversation token counting (contextTokens.js, with character-count fallback) |
+
+> **Note:** `pino` is not a TUI dependency. The structured logger lives in `src/shared/logger.js` and is used by the backend, not the Ink components.
 
 ---
 
@@ -233,7 +253,9 @@ tui:
   debugOutput: false
 ```
 
-### Proposed: Toggle Commands
+### 🔶 Proposed: Toggle Commands
+
+> **Status: Proposed — not implemented.** The `/toggle` command does not exist in `commandParser.js`. This is design intent only.
 
 Toggle commands allow runtime overrides of the `config.yaml` defaults:
 
@@ -252,7 +274,9 @@ Usage:
 /toggle                   → shows all toggles and their states
 ```
 
-### Proposed: Format Customization
+### 🔶 Proposed: Format Customization
+
+> **Status: Proposed — not implemented.** The `/format` command does not exist. This is design intent only.
 
 Bitchx's `/fset` allowed users to customize how every message type rendered. The TUI could adopt a
 similar pattern:
@@ -271,7 +295,9 @@ Format specifiers:
 
 > **YAGNI:** These format specifiers are speculative. Implement only if there is a clear, demonstrated need. Do not build a full format customization system without evidence that users will use it.
 
-### Proposed: Message Filtering
+### 🔶 Proposed: Message Filtering
+
+> **Status: Proposed — not implemented.** The `/level` command does not exist. This is design intent only.
 
 Bitchx had a sophisticated message-level system where you could filter what appeared in each window.
 The TUI could adopt a similar pattern:
@@ -309,6 +335,7 @@ table of registered commands, with fallback to skill execution.
 | Command | Behavior |
 |---------|----------|
 | `/quit` | Disconnect and exit |
+| `/exit` | Disconnect and exit (alias for `/quit`) |
 | `/clear` | Clear conversation |
 | `/new` | Start a new session |
 | `/help` | Show available commands |
@@ -318,6 +345,8 @@ table of registered commands, with fallback to skill execution.
 | `/schedule pause <name>` | Pause a scheduled task |
 | `/schedule resume <name>` | Resume a scheduled task |
 | `/schedule run-now <name>` | Run a scheduled task immediately |
+| `/projects` | Open the projects panel (select a project directory) |
+| `/projects clear` | Clear the active project |
 | `/gc` | Trigger V8 garbage collection |
 | `/gc status` | Show GC status |
 | `/sessions` | Open the sessions panel |
@@ -332,8 +361,7 @@ Unrecognized `/command` patterns that match a registered skill name are executed
 /skillName [args]
 ```
 
-The skill body (from `SKILL.md`) is loaded and streamed to the agent as a prompt, allowing the agent
-to interpret and execute the skill instructions.
+The command parser falls back to the skill registry: if the command name matches a discovered skill, it returns a `skill` action that the conversation area routes through the **deepagents skill system** — the skill is invoked as a proper skill (with its metadata, permissions, and scripts), not by dumping the `SKILL.md` body as a chat prompt.
 
 ### Unknown Commands
 
@@ -394,26 +422,34 @@ The status bar displays connection status, system metrics, and contextual inform
 
 ### Current Implementation
 
+The status bar is a single row with a left-aligned cluster of indicators and a right-aligned version/quote area. Each element can be toggled via the `tui.statusBar` config section (e.g., `statusBar.model: false` hides the model).
+
 ```
-[●] Ready  | [⚡12] [💬42] [◣ 1.2k]
+∙∙∙ [gpt-4o] [⚡12] [💬42] [◣ 1.2k] [💎 120/4096] [backend-api]      quote text   v1.88.0
 ```
 
-| Element | Content |
-|---------|---------|
-| Status indicator | `●` green (ready), `▶` yellow (streaming), `✖` red (error) |
-| Status message | Current state ("Ready", "Streaming...", "Compacting context...") |
-| Skill count | Number of registered skills |
-| Message count | Total messages in conversation |
-| Context size | Current conversation token count (human-readable: "1.2k", "15k") |
+| Element | Config toggle | Content |
+|---------|---------------|---------|
+| Status indicator | — | `∙∙∙` (idle) or a spinner (streaming) |
+| Model | `statusBar.model` | The active model name, e.g. `[gpt-4o]` |
+| Skill count | `statusBar.skills` | Number of registered skills, `[⚡12]` |
+| Message count | `statusBar.messages` | Total messages in conversation, `[💬42]` |
+| Context size | `statusBar.context` | Conversation token estimate, `[◣ 1.2k]` |
+| Token budget | `statusBar.tokens` | Rolling budget usage, `[💎 120/4096]` (only when `maxTokensMinute > 0`) |
+| Active project | `statusBar.project` | The active project name, `[backend-api]` (only when a project is set) |
+| Quote | `statusBar.quote` | A rotating quote line (right-aligned) |
+| Version | `statusBar.version` | App version (right-aligned) |
 
-### Proposed Enhancement
+### 🔶 Proposed Enhancement
 
 Add toggle/filter indicators to the status bar:
 ```
 [●] Ready  | [⚡12] [💬42] [◣ 1.2k]  [ts:1 scroll:1]
 ```
 
-This gives the user a quick glance at which runtime features are active.
+> **Status: Proposed — not implemented.** The `[ts:1 scroll:1]` toggle indicators are design intent only.
+
+This would give the user a quick glance at which runtime features are active.
 
 ---
 
@@ -625,7 +661,9 @@ Not a dashboard. Not a tool. A workspace.
 
 ---
 
-## 16. Architectural Debt & Proposed Improvements
+## 16. ⚠️ Architectural Debt & Proposed Improvements
+
+> **Status: Debt — documented trade-offs, not current behavior.** The recommendations in this section are not implemented. They describe how the TUI *could* be reorganized, not how it *is* organized.
 
 The current implementation works, but several structural decisions compound as the TUI grows. This
 section documents known debt and proposed improvements for future refactoring.

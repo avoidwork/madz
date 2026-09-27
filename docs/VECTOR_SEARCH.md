@@ -122,8 +122,9 @@ LangChain tool available to the orchestrator and all code-related subagents.
 | `topK` | number | 5 | Number of results (1–50) |
 | `project` | string | first configured | Project name from `vector.projects` in config.yaml |
 | `fileFilter` | string | optional | Glob pattern to filter results (e.g., `src/tools/*.js`) |
+| `mode` | string | `hybrid` | Search mode: `vector` (semantic similarity), `fulltext` (keyword FTS5), or `hybrid` (both, merged via Reciprocal Rank Fusion) |
 
-**Output:** Formatted list of matching code chunks with file paths, line ranges, content, and cosine distance scores.
+**Output:** Formatted list of matching code chunks with file paths, line ranges, content, and similarity scores (cosine distance for vector results, rank for full-text results, both for hybrid).
 
 ## Configuration
 
@@ -214,9 +215,14 @@ console.log(JSON.stringify(results.map(r => r.filePath + ':' + r.lineStart + '-'
 
 Language support is handled entirely through include patterns in each project's config. Whatever languages are present in the project — whether installed at Docker build time or mounted at runtime — just add their extensions to the project's `include` list. No per-language logic, no language-specific chunking, no per-project embedding models. The chunker treats all text as lines; the embedder works on any natural language or code text.
 
-### Phase 3 — Advanced Retrieval
+### Advanced Retrieval
 
-- Hybrid search (vector + keyword) for precision on exact matches
+The following are already implemented:
+
+- **Hybrid search** (vector + keyword) — the default `searchMode`. `searchCode` runs both vector similarity and FTS5 keyword matching, merging results via Reciprocal Rank Fusion (RRF). Set `mode: vector` for pure semantic search or `mode: fulltext` for exact keyword matches.
+
+The following remain future work:
+
 - Reranking across multiple vector stores
 - AST-aware chunking (function/class boundary preservation) as an alternative to fixed-size blocks
 
