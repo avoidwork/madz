@@ -13,9 +13,11 @@ const EXCLUDED_DIRS = ["**/node_modules/**", "**/.git/**", "**/dist/**"];
 
 /**
  * Derive the autocomplete filter from the token at the cursor.
- * A token is bounded by whitespace. The token must start with `@` and the
- * cursor must be within the token for the picker to be active. Returns
- * { filter, tokenStart, tokenEnd, active }.
+ * A token is bounded by whitespace. The token must start with `@`, be at a
+ * word boundary (start of input or preceded by a space), and be followed by
+ * word characters (`\w`) for the picker to be active. The word being processed
+ * is the one to the left of the cursor, with no space between it and the
+ * cursor. Returns { filter, tokenStart, tokenEnd, active }.
  * @param {string} value - The full input text
  * @param {number} cursor - The cursor position
  * @returns {{filter: string, tokenStart: number, tokenEnd: number, active: boolean}}
@@ -23,19 +25,33 @@ const EXCLUDED_DIRS = ["**/node_modules/**", "**/.git/**", "**/dist/**"];
 export function deriveFilter(value, cursor) {
 	const pos = Math.max(0, Math.min(cursor, value.length));
 
-	// Find the last `@` at or before the cursor.
-	const lastAt = value.lastIndexOf("@", pos);
-	if (lastAt === -1) {
+	// Determine the word to the left of the cursor: walk left until whitespace
+	// or the start of the input. The cursor is at the end of this word.
+	let wordStart = pos;
+	while (wordStart > 0 && !/\s/.test(value[wordStart - 1])) {
+		wordStart--;
+	}
+
+	// The word must start with `@`.
+	if (value[wordStart] !== "@") {
 		return { filter: "", tokenStart: 0, tokenEnd: 0, active: false };
 	}
 
-	// The cursor must be after the `@` for the picker to be active.
-	if (pos <= lastAt) {
-		return { filter: "", tokenStart: lastAt, tokenEnd: lastAt, active: false };
+	// Word boundary required: the `@` must be at the start of the input or be
+	// preceded by a space.
+	if (wordStart > 0 && value[wordStart - 1] !== " ") {
+		return { filter: "", tokenStart: 0, tokenEnd: 0, active: false };
+	}
+
+	// The `@` must be followed by word characters (regex with `\w`). This
+	// rejects bare `@` and `@` followed by a space.
+	const token = value.slice(wordStart, pos);
+	if (!/^@\w/.test(token)) {
+		return { filter: "", tokenStart: 0, tokenEnd: 0, active: false };
 	}
 
 	// Determine the token end: walk forward from the `@`. Whitespace ends the token.
-	let end = lastAt + 1;
+	let end = wordStart + 1;
 	while (end < value.length) {
 		if (/\s/.test(value[end])) {
 			break;
@@ -43,9 +59,9 @@ export function deriveFilter(value, cursor) {
 		end++;
 	}
 
-	const filter = value.slice(lastAt + 1, pos);
+	const filter = value.slice(wordStart + 1, pos);
 
-	return { filter, tokenStart: lastAt, tokenEnd: end, active: true };
+	return { filter, tokenStart: wordStart, tokenEnd: end, active: true };
 }
 
 /**
