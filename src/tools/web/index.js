@@ -13,13 +13,23 @@ const FETCH_TIMEOUT = 10000;
  * Search DuckDuckGo via HTML scrape.
  * @param {string} query - Search query
  * @param {number} limit - Max results
+ * @param {object} [cfg] - DuckDuckGo configuration
+ * @param {string} [cfg.region=""] - Region code (e.g. "us-en", "ca-en")
+ * @param {string} [cfg.safeSearch="0"] - SafeSearch level: "0" off, "1" moderate, "2" strict
+ * @param {string} [cfg.time=""] - Recency filter: "" all, "d" day, "w" week, "m" month, "y" year
+ * @param {string} [cfg.baseUrl="https://html.duckduckgo.com/html/"] - Base URL for the HTML endpoint
  * @returns {Promise<{ ok: boolean, results?: object[], error?: string }>}
  */
-async function searchWithDuckDuckGo(query, limit) {
+async function searchWithDuckDuckGo(query, limit, cfg = {}) {
 	const controller = new AbortController();
 	const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
 	try {
-		const resp = await fetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`, {
+		const url = new URL(cfg.baseUrl || "https://html.duckduckgo.com/html/");
+		url.searchParams.set("q", query);
+		if (cfg.region) url.searchParams.set("kl", cfg.region);
+		if (cfg.safeSearch) url.searchParams.set("safe", cfg.safeSearch);
+		if (cfg.time) url.searchParams.set("df", cfg.time);
+		const resp = await fetch(url, {
 			signal: controller.signal,
 		});
 		clearTimeout(timeoutId);
@@ -47,8 +57,6 @@ async function searchWithDuckDuckGo(query, limit) {
 		return { ok: false, error: "DuckDuckGo search failed" };
 	}
 }
-
-/// -- Google (HTML scrape) --
 
 /// -- Bing --
 
@@ -198,12 +206,16 @@ async function searchWithCustom(cfg, query, limit) {
 
 /**
  * Detect which search engine is configured.
- * Priority: Custom (CUSTOM_SEARCH_URL) > Bing (BING_API_KEY) > SearXNG (SEARXNG_URL) > Google > DuckDuckGo.
+ * Priority: explicit `search.engine` > Custom (CUSTOM_SEARCH_URL) > Bing (BING_API_KEY) > SearXNG (SEARXNG_URL) > DuckDuckGo.
  * @param {object} [options] - Config object (defaults to module-level config)
  * @returns {string} Engine name or "none" (should never be none as DuckDuckGo always works)
  */
 export function detectSearchBackend(options = config) {
 	const search = options?.search || config.search || {};
+	const engine = search?.engine;
+	if (engine && ["duckduckgo", "bing", "searxng", "custom"].includes(engine)) {
+		return engine;
+	}
 	const custom = search.custom || {};
 	if (custom?.url) return "custom";
 	if (search?.bing?.apiKey) return "bing";
@@ -232,6 +244,7 @@ export async function searchWebImpl(input, options = config) {
 	const bing = search?.bing || {};
 	const searxng = search?.searxng || {};
 	const custom = search?.custom || {};
+	const duckduckgo = search?.duckduckgo || {};
 	let result;
 
 	switch (backend) {
@@ -247,7 +260,7 @@ export async function searchWebImpl(input, options = config) {
 		}
 		case "duckduckgo":
 		default:
-			result = await searchWithDuckDuckGo(query, clampedLimit);
+			result = await searchWithDuckDuckGo(query, clampedLimit, duckduckgo);
 	}
 
 	if (!result.ok) {
@@ -339,7 +352,7 @@ export async function extractWebImpl(input) {
 export const searchWeb = tool(searchWebImpl, {
 	name: "searchWeb",
 	description:
-		"Search the web. Built-in engines: DuckDuckGo (default), Google, Bing (requires BING_API_KEY), SearXNG (requires SEARXNG_URL), Custom (requires CUSTOM_SEARCH_URL).",
+		"Search the web. Built-in engines: DuckDuckGo (default), Bing (requires BING_API_KEY), SearXNG (requires SEARXNG_URL), Custom (requires CUSTOM_SEARCH_URL).",
 	schema: z.object({
 		query: z.string().min(1).describe("Search query"),
 		limit: z

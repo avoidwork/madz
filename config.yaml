@@ -23,14 +23,12 @@ email:
   maxAttachments: 10
   maxAttachmentSize: 25mb
 search:
-  exa:
-    apiKey: ""
-  firecrawl:
-    apiKey: ""
-  tavily:
-    apiKey: ""
-  parallel:
-    apiKey: ""
+  engine: duckduckgo
+  duckduckgo:
+    region: ""
+    safeSearch: "0"
+    time: ""
+    baseUrl: "https://html.duckduckgo.com/html/"
   searxng:
     url: ""
   bing:
