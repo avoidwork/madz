@@ -29,9 +29,6 @@ search:
     safeSearch: "0"
     time: ""
     baseUrl: "https://html.duckduckgo.com/html/"
-  google:
-    apiKey: ""
-    cx: ""
   searxng:
     url: ""
   bing:

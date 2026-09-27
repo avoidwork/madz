@@ -58,48 +58,6 @@ async function searchWithDuckDuckGo(query, limit, cfg = {}) {
 	}
 }
 
-/// -- Google (HTML scrape) --
-
-/**
- * Search Google via HTML scrape.
- * @param {string} query - Search query
- * @param {number} limit - Max results
- * @returns {Promise<{ ok: boolean, results?: object[], error?: string }>}
- */
-async function searchWithGoogle(query, limit) {
-	const controller = new AbortController();
-	const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
-	try {
-		const resp = await fetch(
-			`https://www.google.com/search?q=${encodeURIComponent(query)}&num=${Math.min(Math.max(limit, 1), 100)}`,
-			{ signal: controller.signal },
-		);
-		clearTimeout(timeoutId);
-		if (!resp.ok) {
-			return { ok: false, error: `Google HTTP error: ${resp.status}` };
-		}
-		const html = await resp.text();
-		const results = [];
-		const pattern =
-			/<a href="\/url\?q=([^&"]+)[^"]*"[^>]*>([^<]+)<\/a>[\s\S]*?<div class="VwiC3b[^"]*"[^>]*>([^<]+)<\/div>/g;
-		let match;
-		while ((match = pattern.exec(html)) && results.length < limit) {
-			results.push({
-				title: match[2].trim(),
-				url: decodeURIComponent(match[1]),
-				description: (match[3] || "").trim(),
-			});
-		}
-		if (results.length === 0) {
-			return { ok: false, error: "Google returned no results" };
-		}
-		return { ok: true, results };
-	} catch (_err) {
-		clearTimeout(timeoutId);
-		return { ok: false, error: "Google search failed" };
-	}
-}
-
 /// -- Bing --
 
 /**
@@ -255,7 +213,7 @@ async function searchWithCustom(cfg, query, limit) {
 export function detectSearchBackend(options = config) {
 	const search = options?.search || config.search || {};
 	const engine = search?.engine;
-	if (engine && ["duckduckgo", "google", "bing", "searxng", "custom"].includes(engine)) {
+	if (engine && ["duckduckgo", "bing", "searxng", "custom"].includes(engine)) {
 		return engine;
 	}
 	const custom = search.custom || {};
@@ -300,9 +258,6 @@ export async function searchWebImpl(input, options = config) {
 			result = await searchWithCustom(custom, query, clampedLimit);
 			break;
 		}
-		case "google":
-			result = await searchWithGoogle(query, clampedLimit);
-			break;
 		case "duckduckgo":
 		default:
 			result = await searchWithDuckDuckGo(query, clampedLimit, duckduckgo);
@@ -397,7 +352,7 @@ export async function extractWebImpl(input) {
 export const searchWeb = tool(searchWebImpl, {
 	name: "searchWeb",
 	description:
-		"Search the web. Built-in engines: DuckDuckGo (default), Google, Bing (requires BING_API_KEY), SearXNG (requires SEARXNG_URL), Custom (requires CUSTOM_SEARCH_URL).",
+		"Search the web. Built-in engines: DuckDuckGo (default), Bing (requires BING_API_KEY), SearXNG (requires SEARXNG_URL), Custom (requires CUSTOM_SEARCH_URL).",
 	schema: z.object({
 		query: z.string().min(1).describe("Search query"),
 		limit: z

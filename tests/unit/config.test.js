@@ -273,9 +273,6 @@ describe("config.yaml schema completeness", () => {
 		assert.ok(config.search, "search section must exist");
 		assert.ok(config.search.engine, "search.engine must exist");
 		assert.ok(config.search.duckduckgo, "search.duckduckgo must exist");
-		assert.ok(config.search.google, "search.google must exist");
-		assert.ok(config.search.google.apiKey !== undefined, "search.google.apiKey must exist");
-		assert.ok(config.search.google.cx !== undefined, "search.google.cx must exist");
 		assert.ok(config.search.searxng, "search.searxng must exist");
 		assert.ok(config.search.searxng.url !== undefined, "search.searxng.url must exist");
 		assert.ok(config.search.bing, "search.bing must exist");
@@ -689,9 +686,6 @@ describe("config.yaml completeness", () => {
 		assert.ok(config.search, "search section must exist");
 		assert.ok(config.search.engine, "search.engine must exist");
 		assert.ok(config.search.duckduckgo, "search.duckduckgo must exist");
-		assert.ok(config.search.google, "search.google must exist");
-		assert.ok(config.search.google.apiKey !== undefined, "search.google.apiKey must exist");
-		assert.ok(config.search.google.cx !== undefined, "search.google.cx must exist");
 		assert.ok(config.search.searxng, "search.searxng must exist");
 		assert.ok(config.search.searxng.url !== undefined, "search.searxng.url must exist");
 		assert.ok(config.search.bing, "search.bing must exist");

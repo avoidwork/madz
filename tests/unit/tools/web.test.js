@@ -29,10 +29,6 @@ describe("detectSearchBackend", () => {
 		);
 	});
 
-	it("returns google when engine is explicitly set to google", () => {
-		assert.strictEqual(detectSearchBackend({ search: { engine: "google" } }), "google");
-	});
-
 	it("returns bing when engine is explicitly set to bing", () => {
 		assert.strictEqual(detectSearchBackend({ search: { engine: "bing" } }), "bing");
 	});
@@ -53,9 +49,9 @@ describe("detectSearchBackend", () => {
 	it("honors explicit engine over custom.url", () => {
 		assert.strictEqual(
 			detectSearchBackend({
-				search: { engine: "google", custom: { url: "https://example.com/search" } },
+				search: { engine: "custom", custom: { url: "https://example.com/search" } },
 			}),
-			"google",
+			"custom",
 		);
 	});
 
@@ -84,85 +80,6 @@ describe("searchWebImpl", () => {
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.match(parsed.error, /Query is required/);
-	});
-
-	it("uses the google engine when explicitly configured", async () => {
-		const fetchMock = mock.method(globalThis, "fetch", async () => ({
-			ok: true,
-			status: 200,
-			text: async () =>
-				'<html><body><a href="/url?q=https%3A%2F%2Fexample.com" >Example</a><div class="VwiC3b">A description</div></body></html>',
-		}));
-		try {
-			const result = await searchWebImpl(
-				{ query: "test", limit: 5 },
-				{ search: { engine: "google" } },
-			);
-			const parsed = JSON.parse(result);
-			assert.strictEqual(parsed.ok, true);
-			assert.strictEqual(parsed.backend, "google");
-			assert.strictEqual(parsed.results.length, 1);
-			assert.strictEqual(parsed.results[0].title, "Example");
-			assert.strictEqual(parsed.results[0].url, "https://example.com");
-			assert.strictEqual(parsed.results[0].description, "A description");
-		} finally {
-			fetchMock.mock.restore();
-		}
-	});
-
-	it("returns an error when google returns no results", async () => {
-		const fetchMock = mock.method(globalThis, "fetch", async () => ({
-			ok: true,
-			status: 200,
-			text: async () => "<html><body>No results</body></html>",
-		}));
-		try {
-			const result = await searchWebImpl(
-				{ query: "test", limit: 5 },
-				{ search: { engine: "google" } },
-			);
-			const parsed = JSON.parse(result);
-			assert.strictEqual(parsed.ok, false);
-			assert.match(parsed.error, /Google returned no results/);
-		} finally {
-			fetchMock.mock.restore();
-		}
-	});
-
-	it("returns an error when google returns a non-ok response", async () => {
-		const fetchMock = mock.method(globalThis, "fetch", async () => ({
-			ok: false,
-			status: 500,
-			text: async () => "error",
-		}));
-		try {
-			const result = await searchWebImpl(
-				{ query: "test", limit: 5 },
-				{ search: { engine: "google" } },
-			);
-			const parsed = JSON.parse(result);
-			assert.strictEqual(parsed.ok, false);
-			assert.match(parsed.error, /Google HTTP error/);
-		} finally {
-			fetchMock.mock.restore();
-		}
-	});
-
-	it("returns an error when google fetch throws", async () => {
-		const fetchMock = mock.method(globalThis, "fetch", async () => {
-			throw new Error("network error");
-		});
-		try {
-			const result = await searchWebImpl(
-				{ query: "test", limit: 5 },
-				{ search: { engine: "google" } },
-			);
-			const parsed = JSON.parse(result);
-			assert.strictEqual(parsed.ok, false);
-			assert.match(parsed.error, /Google search failed/);
-		} finally {
-			fetchMock.mock.restore();
-		}
 	});
 
 	it("passes duckduckgo config params to the search URL", async () => {

@@ -39,11 +39,6 @@ const CustomSearchSchema = z.object({
 	apiKey: z.string().optional().default(""),
 });
 
-const GoogleSearchSchema = z.object({
-	apiKey: z.string().optional().default(""),
-	cx: z.string().optional().default(""),
-});
-
 const DuckDuckGoSearchSchema = z.object({
 	region: z.string().optional().default(""),
 	safeSearch: z.enum(["0", "1", "2"]).optional().default("0"),
@@ -52,9 +47,8 @@ const DuckDuckGoSearchSchema = z.object({
 });
 
 export const SearchConfigSchema = z.object({
-	engine: z.enum(["duckduckgo", "google", "bing", "searxng", "custom"]).default("duckduckgo"),
+	engine: z.enum(["duckduckgo", "bing", "searxng", "custom"]).default("duckduckgo"),
 	duckduckgo: DuckDuckGoSearchSchema.default({}),
-	google: GoogleSearchSchema.default({}),
 	searxng: SearXNGSearchSchema.default({}),
 	bing: BingSearchSchema.default({}),
 	custom: CustomSearchSchema.default({}),
