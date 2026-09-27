@@ -164,4 +164,41 @@ describe("searchWebImpl", () => {
 			fetchMock.mock.restore();
 		}
 	});
+
+	it("passes duckduckgo config params to the search URL", async () => {
+		let capturedUrl;
+		const fetchMock = mock.method(globalThis, "fetch", async (url) => {
+			capturedUrl = url;
+			return {
+				ok: true,
+				status: 200,
+				text: async () =>
+					'<a rel="nofollow" class="result__a" href="https://example.com">Example</a><a class="result__snippet" href="https://example.com">A description</a>',
+			};
+		});
+		try {
+			const result = await searchWebImpl(
+				{ query: "test", limit: 5 },
+				{
+					search: {
+						engine: "duckduckgo",
+						duckduckgo: {
+							region: "ca-en",
+							safeSearch: "2",
+							time: "w",
+							baseUrl: "https://html.duckduckgo.com/html/",
+						},
+					},
+				},
+			);
+			const parsed = JSON.parse(result);
+			assert.strictEqual(parsed.ok, true);
+			assert.strictEqual(parsed.backend, "duckduckgo");
+			assert.strictEqual(capturedUrl.searchParams.get("kl"), "ca-en");
+			assert.strictEqual(capturedUrl.searchParams.get("safe"), "2");
+			assert.strictEqual(capturedUrl.searchParams.get("df"), "w");
+		} finally {
+			fetchMock.mock.restore();
+		}
+	});
 });

@@ -13,13 +13,23 @@ const FETCH_TIMEOUT = 10000;
  * Search DuckDuckGo via HTML scrape.
  * @param {string} query - Search query
  * @param {number} limit - Max results
+ * @param {object} [cfg] - DuckDuckGo configuration
+ * @param {string} [cfg.region=""] - Region code (e.g. "us-en", "ca-en")
+ * @param {string} [cfg.safeSearch="0"] - SafeSearch level: "0" off, "1" moderate, "2" strict
+ * @param {string} [cfg.time=""] - Recency filter: "" all, "d" day, "w" week, "m" month, "y" year
+ * @param {string} [cfg.baseUrl="https://html.duckduckgo.com/html/"] - Base URL for the HTML endpoint
  * @returns {Promise<{ ok: boolean, results?: object[], error?: string }>}
  */
-async function searchWithDuckDuckGo(query, limit) {
+async function searchWithDuckDuckGo(query, limit, cfg = {}) {
 	const controller = new AbortController();
 	const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
 	try {
-		const resp = await fetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`, {
+		const url = new URL(cfg.baseUrl || "https://html.duckduckgo.com/html/");
+		url.searchParams.set("q", query);
+		if (cfg.region) url.searchParams.set("kl", cfg.region);
+		if (cfg.safeSearch) url.searchParams.set("safe", cfg.safeSearch);
+		if (cfg.time) url.searchParams.set("df", cfg.time);
+		const resp = await fetch(url, {
 			signal: controller.signal,
 		});
 		clearTimeout(timeoutId);
@@ -276,6 +286,7 @@ export async function searchWebImpl(input, options = config) {
 	const bing = search?.bing || {};
 	const searxng = search?.searxng || {};
 	const custom = search?.custom || {};
+	const duckduckgo = search?.duckduckgo || {};
 	let result;
 
 	switch (backend) {
@@ -294,7 +305,7 @@ export async function searchWebImpl(input, options = config) {
 			break;
 		case "duckduckgo":
 		default:
-			result = await searchWithDuckDuckGo(query, clampedLimit);
+			result = await searchWithDuckDuckGo(query, clampedLimit, duckduckgo);
 	}
 
 	if (!result.ok) {

@@ -24,7 +24,11 @@ email:
   maxAttachmentSize: 25mb
 search:
   engine: duckduckgo
-  duckduckgo: {}
+  duckduckgo:
+    region: ""
+    safeSearch: "0"
+    time: ""
+    baseUrl: "https://html.duckduckgo.com/html/"
   google:
     apiKey: ""
     cx: ""

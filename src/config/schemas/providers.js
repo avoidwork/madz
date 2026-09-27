@@ -44,7 +44,12 @@ const GoogleSearchSchema = z.object({
 	cx: z.string().optional().default(""),
 });
 
-const DuckDuckGoSearchSchema = z.object({});
+const DuckDuckGoSearchSchema = z.object({
+	region: z.string().optional().default(""),
+	safeSearch: z.enum(["0", "1", "2"]).optional().default("0"),
+	time: z.enum(["", "d", "w", "m", "y"]).optional().default(""),
+	baseUrl: z.string().url().optional().default("https://html.duckduckgo.com/html/"),
+});
 
 export const SearchConfigSchema = z.object({
 	engine: z.enum(["duckduckgo", "google", "bing", "searxng", "custom"]).default("duckduckgo"),
