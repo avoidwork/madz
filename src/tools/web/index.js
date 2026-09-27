@@ -2,8 +2,31 @@ import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { filterUrl } from "../../sandbox/urlFilter.js";
 import { loadConfig } from "../../config/loader.js";
+import { launchBrowser, openPage, DEFAULT_TIMEOUT } from "./browser.js";
 
 const config = loadConfig();
+
+/**
+ * Resize and re-encode a base64 PNG screenshot so it fits within a max width
+ * and stays consumable by readImage (which enforces image.maxSize).
+ * Uses sharp (native, fast) for the resize. Returns the base64 PNG.
+ * @param {string} data - Base64-encoded PNG
+ * @param {number} maxWidth - Maximum width in pixels
+ * @returns {Promise<string>} Base64-encoded resized PNG
+ */
+export async function resizeScreenshot(data, maxWidth) {
+	const { default: sharp } = await import("sharp");
+	const buffer = Buffer.from(data, "base64");
+	const metadata = await sharp(buffer).metadata();
+	if (metadata.width && metadata.width > maxWidth) {
+		const resized = await sharp(buffer)
+			.resize({ width: maxWidth, withoutEnlargement: true })
+			.png()
+			.toBuffer();
+		return resized.toString("base64");
+	}
+	return data;
+}
 
 const FETCH_TIMEOUT = 10000;
 
@@ -343,6 +366,96 @@ export async function extractWebImpl(input) {
 	}
 }
 
+/// -- Web render --
+
+/**
+ * Render a URL in headless Chromium and return the JS-aware extracted text.
+ * @param {object} input - Tool input with URL
+ * @param {string} input.url - URL to render
+ * @param {number} [input.timeout] - Per-call timeout in milliseconds
+ * @param {object} [options] - Runtime options for test injection
+ * @param {Function} [options.launchBrowser] - Browser launch factory (defaults to real one)
+ * @param {Function} [options.openPage] - Page opener (defaults to real one)
+ * @returns {Promise<string>} JSON result string
+ */
+export async function renderWebImpl(input, options = {}) {
+	const { url, timeout = DEFAULT_TIMEOUT } = input;
+	const launch = options.launchBrowser || launchBrowser;
+	const open = options.openPage || openPage;
+
+	if (!url || typeof url !== "string") {
+		return JSON.stringify({ ok: false, error: "URL is required" });
+	}
+
+	const validation = filterUrl(url, []);
+	if (!validation.allowed) {
+		return JSON.stringify({ ok: false, error: `URL rejected: ${validation.reason}` });
+	}
+
+	let browser;
+	try {
+		browser = await launch({ timeout });
+		const page = await open(browser, timeout);
+		await page.goto(url, { waitUntil: "networkidle0", timeout });
+		const content = await page.evaluate(() => document.body?.innerText || "");
+		await page.close();
+		return JSON.stringify({ ok: true, url, contentLength: content.length, content });
+	} catch (err) {
+		return JSON.stringify({ ok: false, error: `Render failed: ${err.message}` });
+	} finally {
+		if (browser) {
+			await browser.close().catch(() => {});
+		}
+	}
+}
+
+/// -- Web screenshot --
+
+/**
+ * Render a URL in headless Chromium and return a base64 PNG screenshot.
+ * @param {object} input - Tool input with URL
+ * @param {string} input.url - URL to render
+ * @param {number} [input.timeout] - Per-call timeout in milliseconds
+ * @param {object} [options] - Runtime options for test injection
+ * @param {Function} [options.launchBrowser] - Browser launch factory (defaults to real one)
+ * @param {Function} [options.openPage] - Page opener (defaults to real one)
+ * @returns {Promise<string>} JSON result string
+ */
+export async function screenshotWebImpl(input, options = {}) {
+	const { url, timeout = DEFAULT_TIMEOUT, maxWidth } = input;
+	const launch = options.launchBrowser || launchBrowser;
+	const open = options.openPage || openPage;
+	const resize = options.resizeScreenshot || resizeScreenshot;
+
+	if (!url || typeof url !== "string") {
+		return JSON.stringify({ ok: false, error: "URL is required" });
+	}
+
+	const validation = filterUrl(url, []);
+	if (!validation.allowed) {
+		return JSON.stringify({ ok: false, error: `URL rejected: ${validation.reason}` });
+	}
+
+	const widthLimit = maxWidth || config.image?.maxWidth || 1024;
+
+	let browser;
+	try {
+		browser = await launch({ timeout });
+		const page = await open(browser, timeout);
+		await page.goto(url, { waitUntil: "networkidle0", timeout });
+		let data = await page.screenshot({ fullPage: true, encoding: "base64" });
+		await page.close();
+		data = await resize(data, widthLimit);
+		return JSON.stringify({ ok: true, mimeType: "image/png", data });
+	} catch (err) {
+		return JSON.stringify({ ok: false, error: `Screenshot failed: ${err.message}` });
+	} finally {
+		if (browser) {
+			await browser.close().catch(() => {});
+		}
+	}
+}
+
 /// -- Tool definitions --
 
 /**
@@ -379,5 +492,54 @@ export const extractWeb = tool(extractWebImpl, {
 			.boolean()
 			.optional()
 			.describe("Summarize when page exceeds 10,000 characters"),
+	}),
+});
+
+/**
+ * @param {z.infer<typeof RenderWebSchema>} input - Tool input with URL
+ * @returns {string} JSON result string
+ */
+export const renderWeb = tool(renderWebImpl, {
+	name: "renderWeb",
+	description:
+		"Render a URL in headless Chromium and return the JS-aware extracted text. " +
+		"Use this for JavaScript-heavy pages (SPAs, dashboards, paywalled content) that " +
+		"a plain fetch() cannot see. Validates the URL against the sandbox allowlist.",
+	schema: z.object({
+		url: z.string().url().describe("URL to render"),
+		timeout: z
+			.number()
+			.int()
+			.min(1000)
+			.optional()
+			.describe("Per-call timeout in milliseconds (default: 30000)"),
+	}),
+});
+
+/**
+ * @param {z.infer<typeof ScreenshotWebSchema>} input - Tool input with URL
+ * @returns {string} JSON result string
+ */
+export const screenshotWeb = tool(screenshotWebImpl, {
+	name: "screenshotWeb",
+	description:
+		"Render a URL in headless Chromium and return a base64 PNG screenshot. " +
+		"Feed the result to readImage for vision analysis. Validates the URL against " +
+		"the sandbox allowlist. Resizes the screenshot to maxWidth (default 1024) " +
+		"so it stays consumable by readImage's image.maxSize limit.",
+	schema: z.object({
+		url: z.string().url().describe("URL to render"),
+		timeout: z
+			.number()
+			.int()
+			.min(1000)
+			.optional()
+			.describe("Per-call timeout in milliseconds (default: 30000)"),
+		maxWidth: z
+			.number()
+			.int()
+			.positive()
+			.optional()
+			.describe("Max screenshot width in pixels (default: 1024)"),
 	}),
 });

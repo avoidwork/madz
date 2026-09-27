@@ -10,7 +10,7 @@ import { searchSession } from "./session/index.js";
 import { processTool } from "./process/index.js";
 import { createSkill } from "./skills/index.js";
 import { textToSpeech } from "./tts/index.js";
-import { searchWeb, extractWeb } from "./web/index.js";
+import { searchWeb, extractWeb, renderWeb, screenshotWeb } from "./web/index.js";
 import { docxTool, pdfTool, pptxTool, xlsxTool } from "./fileExtract/index.js";
 import { reflectionSessions } from "./reflection/index.js";
 import { email } from "./email/tools.js";
@@ -48,6 +48,8 @@ export const TOOL_PERMISSIONS = {
 	textToSpeech: [],
 	extractWeb: ["network:outbound"],
 	searchWeb: ["network:outbound"],
+	renderWeb: ["network:outbound"],
+	screenshotWeb: ["network:outbound"],
 	docx: ["filesystem:read"],
 	pptx: ["filesystem:read"],
 	xlsx: ["filesystem:read"],
@@ -120,6 +122,8 @@ export const TOOL_CLASSIFICATIONS = {
 	textToSpeech: ["documentation"],
 	extractWeb: ["search", "research", "coding"],
 	searchWeb: ["search", "research", "coding"],
+	renderWeb: ["search", "research", "coding"],
+	screenshotWeb: ["search", "research", "coding"],
 	docx: ["search", "research", "coding", "documentation", "debug"],
 	pptx: ["search", "research", "coding", "documentation", "debug"],
 	xlsx: ["search", "research", "coding", "documentation", "debug"],
@@ -193,6 +197,8 @@ export const ORCHESTRATOR_TOOLS = [
 	"searchSession",
 	"searchWeb",
 	"extractWeb",
+	"renderWeb",
+	"screenshotWeb",
 	"scanAgents",
 	"sampling",
 	"createSkill",
@@ -218,6 +224,8 @@ export const TOOLS = {
 	textToSpeech,
 	extractWeb,
 	searchWeb,
+	renderWeb,
+	screenshotWeb,
 	docx: docxTool,
 	pptx: pptxTool,
 	xlsx: xlsxTool,
