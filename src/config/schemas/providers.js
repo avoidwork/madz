@@ -19,22 +19,6 @@ const FalCredentialsSchema = z.object({
 	apiKey: z.string().optional().default(""),
 });
 
-const ExaSearchSchema = z.object({
-	apiKey: z.string().optional().default(""),
-});
-
-const FirecrawlSearchSchema = z.object({
-	apiKey: z.string().optional().default(""),
-});
-
-const TavilySearchSchema = z.object({
-	apiKey: z.string().optional().default(""),
-});
-
-const ParallelSearchSchema = z.object({
-	apiKey: z.string().optional().default(""),
-});
-
 const SearXNGSearchSchema = z.object({
 	url: z.string().optional().default(""),
 });
@@ -55,11 +39,17 @@ const CustomSearchSchema = z.object({
 	apiKey: z.string().optional().default(""),
 });
 
+const GoogleSearchSchema = z.object({
+	apiKey: z.string().optional().default(""),
+	cx: z.string().optional().default(""),
+});
+
+const DuckDuckGoSearchSchema = z.object({});
+
 export const SearchConfigSchema = z.object({
-	exa: ExaSearchSchema.default({}),
-	firecrawl: FirecrawlSearchSchema.default({}),
-	tavily: TavilySearchSchema.default({}),
-	parallel: ParallelSearchSchema.default({}),
+	engine: z.enum(["duckduckgo", "google", "bing", "searxng", "custom"]).default("duckduckgo"),
+	duckduckgo: DuckDuckGoSearchSchema.default({}),
+	google: GoogleSearchSchema.default({}),
 	searxng: SearXNGSearchSchema.default({}),
 	bing: BingSearchSchema.default({}),
 	custom: CustomSearchSchema.default({}),

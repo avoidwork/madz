@@ -271,12 +271,13 @@ describe("config.yaml schema completeness", () => {
 		const configPath = join(__dirname, "../../config.yaml");
 		const config = load(readFileSync(configPath, "utf8"));
 		assert.ok(config.search, "search section must exist");
+		assert.ok(config.search.engine, "search.engine must exist");
+		assert.ok(config.search.duckduckgo, "search.duckduckgo must exist");
+		assert.ok(config.search.google, "search.google must exist");
+		assert.ok(config.search.google.apiKey !== undefined, "search.google.apiKey must exist");
+		assert.ok(config.search.google.cx !== undefined, "search.google.cx must exist");
 		assert.ok(config.search.searxng, "search.searxng must exist");
 		assert.ok(config.search.searxng.url !== undefined, "search.searxng.url must exist");
-		assert.ok(config.search.exa, "search.exa must exist");
-		assert.ok(config.search.firecrawl, "search.firecrawl must exist");
-		assert.ok(config.search.tavily, "search.tavily must exist");
-		assert.ok(config.search.parallel, "search.parallel must exist");
 		assert.ok(config.search.bing, "search.bing must exist");
 		assert.ok(config.search.custom, "search.custom must exist");
 	});
@@ -686,12 +687,13 @@ describe("config.yaml completeness", () => {
 
 	it("has all search engine config keys", () => {
 		assert.ok(config.search, "search section must exist");
+		assert.ok(config.search.engine, "search.engine must exist");
+		assert.ok(config.search.duckduckgo, "search.duckduckgo must exist");
+		assert.ok(config.search.google, "search.google must exist");
+		assert.ok(config.search.google.apiKey !== undefined, "search.google.apiKey must exist");
+		assert.ok(config.search.google.cx !== undefined, "search.google.cx must exist");
 		assert.ok(config.search.searxng, "search.searxng must exist");
 		assert.ok(config.search.searxng.url !== undefined, "search.searxng.url must exist");
-		assert.ok(config.search.exa, "search.exa must exist");
-		assert.ok(config.search.firecrawl, "search.firecrawl must exist");
-		assert.ok(config.search.tavily, "search.tavily must exist");
-		assert.ok(config.search.parallel, "search.parallel must exist");
 		assert.ok(config.search.bing, "search.bing must exist");
 		assert.ok(config.search.custom, "search.custom must exist");
 	});
