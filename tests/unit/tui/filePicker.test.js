@@ -37,6 +37,57 @@ describe("deriveFilter", () => {
 		assert.strictEqual(result.active, true);
 		assert.strictEqual(result.filter, "src/*.js");
 	});
+
+	it("is inactive when @ is mid-string (git URL)", () => {
+		const result = deriveFilter("git@github.com:owner/repo.git", 25);
+		assert.strictEqual(result.active, false);
+	});
+
+	it("is inactive when @ is not preceded by a space", () => {
+		const result = deriveFilter("git@github.com", 12);
+		assert.strictEqual(result.active, false);
+	});
+
+	it("is inactive when @ is followed by a space", () => {
+		const result = deriveFilter("read @ src", 7);
+		assert.strictEqual(result.active, false);
+	});
+
+	it("is inactive when @ is not at the end of input", () => {
+		const result = deriveFilter("read @src/config", 3);
+		assert.strictEqual(result.active, false);
+	});
+
+	it("is active when @ is at the start of the input", () => {
+		const result = deriveFilter("@src/config", 8);
+		assert.strictEqual(result.active, true);
+		assert.strictEqual(result.filter, "src/con");
+		assert.strictEqual(result.tokenStart, 0);
+		assert.strictEqual(result.tokenEnd, 11);
+	});
+
+	it("is inactive on a bare @", () => {
+		const result = deriveFilter("@", 1);
+		assert.strictEqual(result.active, false);
+	});
+
+	it("is inactive when @ is followed by a space at the start", () => {
+		const result = deriveFilter("@ src", 2);
+		assert.strictEqual(result.active, false);
+	});
+
+	it("is inactive when @ is preceded by a non-space whitespace", () => {
+		const result = deriveFilter("read\t@src", 8);
+		assert.strictEqual(result.active, false);
+	});
+
+	it("is active when the token is followed by whitespace", () => {
+		const result = deriveFilter("read @src config", 9);
+		assert.strictEqual(result.active, true);
+		assert.strictEqual(result.filter, "src");
+		assert.strictEqual(result.tokenStart, 5);
+		assert.strictEqual(result.tokenEnd, 9);
+	});
 });
 
 describe("replaceToken", () => {
