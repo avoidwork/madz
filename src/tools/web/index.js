@@ -6,6 +6,28 @@ import { launchBrowser, openPage, DEFAULT_TIMEOUT } from "./browser.js";
 
 const config = loadConfig();
 
+/**
+ * Resize and re-encode a base64 PNG screenshot so it fits within a max width
+ * and stays consumable by readImage (which enforces image.maxSize).
+ * Uses sharp (native, fast) for the resize. Returns the base64 PNG.
+ * @param {string} data - Base64-encoded PNG
+ * @param {number} maxWidth - Maximum width in pixels
+ * @returns {Promise<string>} Base64-encoded resized PNG
+ */
+export async function resizeScreenshot(data, maxWidth) {
+	const { default: sharp } = await import("sharp");
+	const buffer = Buffer.from(data, "base64");
+	const metadata = await sharp(buffer).metadata();
+	if (metadata.width && metadata.width > maxWidth) {
+		const resized = await sharp(buffer)
+			.resize({ width: maxWidth, withoutEnlargement: true })
+			.png()
+			.toBuffer();
+		return resized.toString("base64");
+	}
+	return data;
+}
+
 const FETCH_TIMEOUT = 10000;
 
 /// -- DuckDuckGo (HTML scrape) --
@@ -400,9 +422,10 @@ export async function renderWebImpl(input, options = {}) {
  * @returns {Promise<string>} JSON result string
  */
 export async function screenshotWebImpl(input, options = {}) {
-	const { url, timeout = DEFAULT_TIMEOUT } = input;
+	const { url, timeout = DEFAULT_TIMEOUT, maxWidth } = input;
 	const launch = options.launchBrowser || launchBrowser;
 	const open = options.openPage || openPage;
+	const resize = options.resizeScreenshot || resizeScreenshot;
 
 	if (!url || typeof url !== "string") {
 		return JSON.stringify({ ok: false, error: "URL is required" });
@@ -413,13 +436,16 @@ export async function screenshotWebImpl(input, options = {}) {
 		return JSON.stringify({ ok: false, error: `URL rejected: ${validation.reason}` });
 	}
 
+	const widthLimit = maxWidth || config.image?.maxWidth || 1024;
+
 	let browser;
 	try {
 		browser = await launch({ timeout });
 		const page = await open(browser, timeout);
 		await page.goto(url, { waitUntil: "networkidle0", timeout });
-		const data = await page.screenshot({ fullPage: true, encoding: "base64" });
+		let data = await page.screenshot({ fullPage: true, encoding: "base64" });
 		await page.close();
+		data = await resize(data, widthLimit);
 		return JSON.stringify({ ok: true, mimeType: "image/png", data });
 	} catch (err) {
 		return JSON.stringify({ ok: false, error: `Screenshot failed: ${err.message}` });
@@ -499,7 +525,8 @@ export const screenshotWeb = tool(screenshotWebImpl, {
 	description:
 		"Render a URL in headless Chromium and return a base64 PNG screenshot. " +
 		"Feed the result to readImage for vision analysis. Validates the URL against " +
-		"the sandbox allowlist.",
+		"the sandbox allowlist. Resizes the screenshot to maxWidth (default 1024) " +
+		"so it stays consumable by readImage's image.maxSize limit.",
 	schema: z.object({
 		url: z.string().url().describe("URL to render"),
 		timeout: z
@@ -508,5 +535,11 @@ export const screenshotWeb = tool(screenshotWebImpl, {
 			.min(1000)
 			.optional()
 			.describe("Per-call timeout in milliseconds (default: 30000)"),
+		maxWidth: z
+			.number()
+			.int()
+			.positive()
+			.optional()
+			.describe("Max screenshot width in pixels (default: 1024)"),
 	}),
 });

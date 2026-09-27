@@ -198,3 +198,4 @@ subAgentsTemperature:
 cwd: ""
 image:
   maxSize: 100kb
+  maxWidth: 1024

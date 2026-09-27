@@ -5,6 +5,7 @@ import {
 	searchWebImpl,
 	renderWebImpl,
 	screenshotWebImpl,
+	resizeScreenshot,
 } from "../../../src/tools/web/index.js";
 
 describe("detectSearchBackend", () => {
@@ -227,14 +228,36 @@ describe("screenshotWebImpl", () => {
 			screenshot: async () => "aGVsbG8=",
 			close: async () => {},
 		});
+		const resizeScreenshot = async (data) => data;
 		const result = await screenshotWebImpl(
 			{ url: "https://example.com" },
-			{ launchBrowser, openPage },
+			{ launchBrowser, openPage, resizeScreenshot },
 		);
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, true);
 		assert.strictEqual(parsed.mimeType, "image/png");
 		assert.strictEqual(parsed.data, "aGVsbG8=");
+	});
+
+	it("resizes the screenshot when maxWidth is provided", async () => {
+		const launchBrowser = async () => ({ close: async () => {} });
+		const openPage = async () => ({
+			goto: async () => {},
+			screenshot: async () => "aGVsbG8=",
+			close: async () => {},
+		});
+		let capturedWidth;
+		const resizeScreenshot = async (data, maxWidth) => {
+			capturedWidth = maxWidth;
+			return data;
+		};
+		const result = await screenshotWebImpl(
+			{ url: "https://example.com", maxWidth: 800 },
+			{ launchBrowser, openPage, resizeScreenshot },
+		);
+		const parsed = JSON.parse(result);
+		assert.strictEqual(parsed.ok, true);
+		assert.strictEqual(capturedWidth, 800);
 	});
 
 	it("returns an error when the capture fails", async () => {
@@ -274,5 +297,32 @@ describe("screenshotWebImpl", () => {
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.match(parsed.error, /URL is required/);
+	});
+});
+
+describe("resizeScreenshot", () => {
+	it("resizes a wide image to the max width", async () => {
+		const { default: sharp } = await import("sharp");
+		const buf = await sharp({
+			create: { width: 2000, height: 1000, channels: 3, background: { r: 100, g: 150, b: 200 } },
+		})
+			.png()
+			.toBuffer();
+		const b64 = buf.toString("base64");
+		const resized = await resizeScreenshot(b64, 1024);
+		const meta = await sharp(Buffer.from(resized, "base64")).metadata();
+		assert.strictEqual(meta.width, 1024);
+	});
+
+	it("leaves an image unchanged when it is within the max width", async () => {
+		const { default: sharp } = await import("sharp");
+		const buf = await sharp({
+			create: { width: 800, height: 600, channels: 3, background: { r: 50, g: 50, b: 50 } },
+		})
+			.png()
+			.toBuffer();
+		const b64 = buf.toString("base64");
+		const resized = await resizeScreenshot(b64, 1024);
+		assert.strictEqual(resized, b64);
 	});
 });
