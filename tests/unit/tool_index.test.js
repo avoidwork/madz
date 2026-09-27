@@ -142,6 +142,21 @@ describe("tools - buildToolConfig", () => {
 		assert.ok(!toolNames.includes("memory"), "memory should NOT register with only read");
 	});
 
+	it("returns searchWeb and extractWeb when search.engine is duckduckgo with no API key", async () => {
+		const { buildToolConfig } = await import("../../src/tools/index.js");
+		const tools = await buildToolConfig({
+			permissions: ["filesystem:read", "network:outbound"],
+			maxReadSize: "1mb",
+			config: { search: { engine: "duckduckgo" } },
+		});
+		const toolNames = tools.map((t) => t.name);
+		assert.ok(toolNames.includes("searchWeb"), "searchWeb should register with duckduckgo engine");
+		assert.ok(
+			toolNames.includes("extractWeb"),
+			"extractWeb should register with duckduckgo engine",
+		);
+	});
+
 	it("handles maxReadSize in config", async () => {
 		const { buildToolConfig } = await import("../../src/tools/index.js");
 		const tools = await buildToolConfig({
