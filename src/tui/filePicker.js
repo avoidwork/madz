@@ -65,6 +65,19 @@ export function deriveFilter(value, cursor) {
 }
 
 /**
+ * Determine whether the file picker should be open for the given input text.
+ * Mirrors `deriveFilter`'s word-boundary logic so the open/close gate and the
+ * picker's active state agree. The cursor is assumed to be at the end of the
+ * input (the position when typing), which is where the picker trigger is
+ * evaluated. Returns `true` only when a valid `@` trigger token exists.
+ * @param {string} value - The full input text
+ * @returns {boolean} Whether the picker should be open
+ */
+export function shouldOpenPicker(value) {
+	return deriveFilter(value, value.length).active;
+}
+
+/**
  * Replace the `@` token in the input with the selected path.
  * @param {string} value - The full input text
  * @param {number} tokenStart - Start index of the token

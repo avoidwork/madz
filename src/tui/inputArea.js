@@ -9,7 +9,7 @@ import React, {
 import { Box } from "ink";
 import { StatusBar } from "./statusBar.js";
 import { InputPanel } from "./inputPanel.js";
-import { FilePicker } from "./filePicker.js";
+import { FilePicker, shouldOpenPicker } from "./filePicker.js";
 import { QUOTES, getRandomQuoteIndex } from "./quotes.js";
 import { getSharedTokenBudget } from "../provider/openai.js";
 
@@ -55,13 +55,15 @@ const InputArea = forwardRef(function InputArea(
 		pickerOpenRef.current = pickerOpen;
 	}, [pickerOpen]);
 
-	// Open the picker when the input contains an `@` token with content after it.
-	// Once open, keep it open as long as the `@` remains — closing only when
-	// the `@` is erased, the user makes a selection, or presses Escape.
+	// Open the picker when the input contains a valid `@` trigger token at a
+	// word boundary (start of input or preceded by a space) followed by word
+	// characters. Once open, keep it open as long as the `@` remains — closing
+	// only when the `@` is erased, the user makes a selection, or presses Escape.
+	// The gate mirrors `deriveFilter` so it never opens on `@` mid-string (e.g.
+	// a git URL like `git@github.com`) or on a bare `@`.
 	/* node:coverage disable */
 	useEffect(() => {
-		const lastAt = inputText.lastIndexOf("@");
-		if (lastAt === -1) {
+		if (!shouldOpenPicker(inputText)) {
 			setPickerOpen(false);
 			return;
 		}
@@ -69,17 +71,7 @@ const InputArea = forwardRef(function InputArea(
 		if (pickerOpenRef.current) {
 			return;
 		}
-		// Initial open: require `@` followed by content.
-		// The token is bounded by whitespace.
-		let end = lastAt + 1;
-		while (end < inputText.length) {
-			if (/\s/.test(inputText[end])) {
-				break;
-			}
-			end++;
-		}
-		const token = inputText.slice(lastAt, end);
-		setPickerOpen(token.length > 1);
+		setPickerOpen(true);
 	}, [inputText]);
 	/* node:coverage enable */
 
