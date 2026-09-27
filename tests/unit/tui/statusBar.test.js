@@ -221,6 +221,35 @@ describe("StatusBar project display", () => {
 		assert.ok(typeof result === "string");
 		assert.ok(!result.includes("foo"), "should not render the project name");
 	});
+
+	it("renders the project tag after the model name, not adjacent to it", () => {
+		const result = renderToString(
+			React.createElement(StatusBar, {
+				statusMessage: "Ready",
+				skillCount: 1,
+				messageCount: 2,
+				contextSize: 3,
+				version: "1.0.0",
+				model: "gpt-4o",
+				project: "/home/user/projects/foo",
+			}),
+		);
+		assert.ok(typeof result === "string");
+		// The project tag must not sit immediately beside the model name.
+		// The model is rendered as "[gpt-4o]" and the project as "[foo]".
+		// Between them must be at least the skills/messages/context/tokens
+		// elements, so the project tag should appear after the model in the
+		// rendered output but not as "[gpt-4o] [foo]".
+		const modelIndex = result.indexOf("gpt-4o");
+		const projectIndex = result.indexOf("foo");
+		assert.ok(modelIndex !== -1, "should render the model name");
+		assert.ok(projectIndex !== -1, "should render the project name");
+		assert.ok(projectIndex > modelIndex, "project tag should appear after the model name");
+		assert.ok(
+			!result.includes("[gpt-4o] [foo]"),
+			"project tag should not be adjacent to the model name",
+		);
+	});
 });
 
 describe("StatusBar per-item visibility", () => {
