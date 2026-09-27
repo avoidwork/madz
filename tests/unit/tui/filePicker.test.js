@@ -1,6 +1,12 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
-import { deriveFilter, replaceToken, sortFiles, MAX_VISIBLE } from "../../../src/tui/filePicker.js";
+import {
+	deriveFilter,
+	shouldOpenPicker,
+	replaceToken,
+	sortFiles,
+	MAX_VISIBLE,
+} from "../../../src/tui/filePicker.js";
 
 describe("deriveFilter", () => {
 	it("is active when cursor is within an @ token", () => {
@@ -87,6 +93,45 @@ describe("deriveFilter", () => {
 		assert.strictEqual(result.filter, "src");
 		assert.strictEqual(result.tokenStart, 5);
 		assert.strictEqual(result.tokenEnd, 9);
+	});
+
+	it("is inactive when @ is mid-word (he@he)", () => {
+		const result = deriveFilter("he@he", 5);
+		assert.strictEqual(result.active, false);
+	});
+});
+
+describe("shouldOpenPicker", () => {
+	it("opens on a valid @ token at a word boundary", () => {
+		assert.strictEqual(shouldOpenPicker("read @src/config"), true);
+	});
+
+	it("opens on @ at the start of the input", () => {
+		assert.strictEqual(shouldOpenPicker("@src/config"), true);
+	});
+
+	it("does not open on @ mid-word (he@he)", () => {
+		assert.strictEqual(shouldOpenPicker("he@he"), false);
+	});
+
+	it("does not open on @ mid-string (git URL)", () => {
+		assert.strictEqual(shouldOpenPicker("git@github.com:owner/repo.git"), false);
+	});
+
+	it("does not open on @ not preceded by a space", () => {
+		assert.strictEqual(shouldOpenPicker("git@github.com"), false);
+	});
+
+	it("does not open on a bare @", () => {
+		assert.strictEqual(shouldOpenPicker("@"), false);
+	});
+
+	it("does not open on @ followed by a space", () => {
+		assert.strictEqual(shouldOpenPicker("read @ src"), false);
+	});
+
+	it("does not open when there is no @", () => {
+		assert.strictEqual(shouldOpenPicker("read src/config"), false);
 	});
 });
 
