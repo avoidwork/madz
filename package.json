@@ -38,7 +38,7 @@
   "scripts": {
     "start": "node index.js --mode interactive",
     "test": "mkdir -p tmp/ && node --test 'tests/**/*.test.js'",
-    "coverage": "set -o pipefail && mkdir -p tmp/ && node --test --experimental-test-coverage --test-coverage-exclude=dist/** --test-coverage-exclude=tests/** --test-coverage-exclude=src/tui/onboardingPanel.js --test-coverage-exclude=src/tui/conversationArea.js --test-coverage-exclude=src/tools/calendar/providers/ --test-coverage-exclude=src/tools/email/providers/ --test-reporter=spec 'tests/**/*.test.js' 2>&1 | grep -A 1000 \"start of coverage report\" > coverage.txt",
+    "coverage": "set -o pipefail && mkdir -p tmp/ && node --test --experimental-test-coverage --test-coverage-exclude=dist/** --test-coverage-exclude=tests/** --test-coverage-exclude=src/tui/onboardingPanel.js --test-coverage-exclude=src/tui/conversationArea.js --test-coverage-exclude=src/tools/calendar/providers/ --test-coverage-exclude=src/tools/email/providers/ --test-coverage-exclude=src/tools/web/browser.js --test-reporter=spec 'tests/**/*.test.js' 2>&1 | grep -A 1000 \"start of coverage report\" > coverage.txt",
     "fix": "oxlint --fix *.js src tests/unit tests/integration tests/tui && oxfmt *.js src tests/unit tests/integration tests/tui --write",
     "lint": "oxlint *.js src tests/unit tests/integration tests/tui && oxfmt *.js src tests/unit tests/integration tests/tui --check",
     "docker:build": "docker build -t madz:latest .",
@@ -103,6 +103,7 @@
     "piscina": "^5.3.2",
     "pptxgenjs": "^4.0.1",
     "puppeteer": "^25.11.0",
+    "puppeteer-core": "^25.11.0",
     "supports-hyperlinks": "^4.5.0",
     "tiktoken": "^1.0.22",
     "tiny-lru": "^13.0.1",
