@@ -24,20 +24,22 @@ Call chains and component interactions for all primary code paths in the termina
 **Entry:** `src/tui/index.js` → `export { default as App } from "./app.js"`
 
 ```
-App({ config, registry, sessionState, dispatchProvider, scheduleManager, appInfo, onboarding, onSaveSession, gcManager, gcTrigger })
+App({ config, registry, sessionState, dispatchProvider, scheduleManager, appInfo, onboarding, onSaveSession, gcManager, gcTrigger, contextEstimate })
 ├── useEffect: register process.on("uncaughtException", "unhandledRejection")
 ├── useInput: global key listener (key, input)
 ├── useWindowSize: { rows } for layout height
-└── Render tree (single-column vertical layout):
+└── Render tree (view-routed):
     ├── OnboardingPanel (showOnboarding === true)
     ├── Banner (showBanner === true AND NOT showOnboarding)
-    ├── ConversationPanel (showBanner === false AND NOT showOnboarding)
-    ├── StatusBar (when NOT showBanner AND NOT showOnboarding)
-    ├── InputPanel (when showOnboarding OR NOT showBanner)
+    ├── ConversationArea (currentView === conversation AND NOT showOnboarding)
+    │   ├── ConversationPanel (ScrollView + MessageBubble[])
+    │   └── InputArea (StatusBar + InputPanel + FilePicker)
+    ├── SkillsPanel | MemoryPanel | SettingsPanel | SessionsPanel | ProjectsPanel
+    │   (currentView === skills | memories | settings | sessions | projects)
     └── Text("exit-newline")
 ```
 
-**Note:** `scheduleManager`, `onboarding`, `onSaveSession`, `gcManager`, and `gcTrigger` are additional props passed from `index.js` but not documented in the original flow diagram.
+**Note:** `scheduleManager`, `onboarding`, `onSaveSession`, `gcManager`, `gcTrigger`, and `contextEstimate` are additional props passed from `index.js` but not documented in the original flow diagram.
 
 Mount order: state init → effects (error handlers) → input listener → window size → render.
 
@@ -83,61 +85,66 @@ User presses key (useInput callback, app.js:282)
 ## Chat Message Flow (Streaming)
 
 ```
-User presses Enter (useInput, app.js:294)
-└── handleSubmit(inputText)
-    ├── setChatHistory([...prev, trimmed])
-    ├── setHistoryIndex(-1)
-    ├── setInputText("")
-    ├── parser.isCommand(trimmed)
-    │   └── false → handleChat(trimmed)
-    │       ├── setStatusMessage("Streaming...")
-    │       ├── addMessage({ role: "user", content: text })
-    │       ├── setMessages([...prev, { role: "assistant", content: "", streaming: true }])
-    │       ├── dispatchProvider(text, provider, streamingCallback)
-    │       │   ├── event.type === "text"
-    │       │   │   └── committedContent += event.text
-    │       │   │   └── setMessages(last.content = committedContent + "\u2588")
-    │       │   ├── event.type === "reasoning"
-    │       │   │   └── committedReasoning += event.text
-    │       │   │   └── setMessages(last.reasoningContent = committedReasoning + "\u2588")
-    │       │   ├── event.type === "tool_start"
-    │       │   │   └── setMessages(last.activeToolCall = { name })
-    │       │   ├── event.type === "tool_end"
-    │       │   │   └── lastToolCallDisplay += displayLine
-    │       │   │   └── setMessages(last.activeToolCall = null, ...toolCallDisplay)
-    │       │   └── event.type === "tool_error"
-    │       │       └── lastToolCallDisplay += errorLine
-    │       │       └── setMessages(last.activeToolCall = null, ...toolCallDisplay)
-    │       ├── setMessages(last.content = committedContent, streaming = false, ...)
-    │       └── sessionState.addExchange({ role: "assistant", content: responseContent })
+User presses Enter (useInput, app.js)
+└── InputArea.handleSubmit(inputText)
+    ├── track in chatHistory, clear input, call onSubmit(trimmed)
+    └── App routes to ConversationArea.handleChat(text)
+        ├── sessionState.addExchange({ role: "user", content: text })
+        ├── updateContextSize(sessionState, config)
+        ├── streamingMsgId = messageList.addMessage("assistant", "", { streaming: true })
+        ├── abortController = new AbortController(); isStreaming = true
+        ├── dispatchProvider(text, provider, createStreamingHandler(...), signal)
+        │   └── createStreamingHandler returns an async event handler:
+        │       ├── event.type === "message"
+        │       │   └── committedContent += event.text
+        │       │   └── messageList.updateMessage(id, { segments: [{type:"message", content}],
+        │       │       content: committedContent, streaming: true })
+        │       ├── event.type === "reasoning"
+        │       │   └── committedReasoning += event.text (sentence-boundary guarded)
+        │       │   └── messageList.updateMessage(id, { segments: [{type:"reasoning", content}] })
+        │       ├── event.type === "on_chat_model_stream"
+        │       │   ├── chunk.content → message segment
+        │       │   └── chunk.reasoning → reasoning segment
+        │       ├── event.type === "on_tool_start"
+        │       │   └── messageList.updateMessage(id, { activeToolCall: { name, input, status } })
+        │       ├── event.type === "on_tool_end"
+        │       │   └── append to toolCallDisplay, clear activeToolCall
+        │       └── event.type === "on_tool_error"
+        │           └── append error to toolCallDisplay, clear activeToolCall
+        ├── await dispatchPromise
+        ├── messageList.updateMessage(id, { streaming: false, content: committedContent })
+        └── sessionState.addExchange({ role: "assistant", content: responseContent })
 ```
 
-Streaming re-renders: each `setMessages` call triggers a `ConversationPanel` re-render where `MessageBubble`'s React.memo `areEqual` determines if the bubble re-renders. Only the active streaming message updates.
+Streaming re-renders: each `updateMessage` call triggers a `MessageList` re-render. `MessageBubble` is wrapped in `React.memo` (default shallow comparison) — streaming content is delivered via a pub/sub topic (`msg-{id}`), so only the active streaming message updates. `MessageList` keeps a stable `contentRef` so unchanged content keeps the same string reference across renders.
 
 ---
 
 ## Command Parsing Flow
 
 ```
-User enters ":command ...", presses Enter (app.js:294)
-└── handleSubmit(inputText)
-    ├── parser.isCommand(trimmed) → true
-    └── handleCommand(trimmed)
+User enters "/command ...", presses Enter (useInput)
+└── InputArea.handleSubmit(inputText)
+    ├── track in chatHistory, clear input, call onSubmit(trimmed)
+    └── App routes to ConversationArea.handleCommand(trimmed)
         ├── parser.parse(trimmed, context)
-        │   ├── trimmed.startsWith(":") → yes
+        │   ├── trimmed.startsWith("/") → yes
         │   ├── parts = trimmed.slice(1).trim().split(/\s+/)
         │   │   ├── commandName = parts[0] (e.g., "quit")
         │   │   └── args = parts.slice(1)
         │   ├── handler = #dispatch.get(commandName)
-        │   └── handler(args, context)
-        │       ├── action === "quit" → handleQuit() → process.exit(0)
-        │       ├── action === "unknown" → setStatusMessage(message)
-        │       ├── action === "provider" → setStatusMessage + optional addMessage
-        │       ├── action === "config" → setConfigValue(config, dotPath, value)
-        │       ├── action === "memory" → setStatusMessage or context action
-        │       ├── action === "schedule" → setStatusMessage or schedule action
-        │       └── action === "context" → setStatusMessage + addMessage
-        └── catch → setStatusMessage("Something went wrong")
+        │   │   └── if found → handler(args, context)
+        │   └── fallback: if commandName matches a discovered skill → { action: "skill", subAction: "invoke" }
+        │       └── else → { action: "unknown" }
+        └── dispatch on result.action:
+            ├── "quit" → onQuit() → process.exit(0)
+            ├── "new" → onNewSession()
+            ├── "clear" → messageList.clear() + onStatusChange
+            ├── "unknown" → onStatusChange(message)
+            ├── "view" → onViewChange(value) (switch to a panel)
+            ├── "project" + "clear" → reset active project, silent handleChat
+            ├── "skill" + "invoke" → synthesize "Run the <skill> skill" prompt, silent handleChat
+            └── else → addMessage({ role: "user", content: trimmed })
 ```
 
 ### Dispatch Table (CommandParser constructor)
@@ -145,109 +152,83 @@ User enters ":command ...", presses Enter (app.js:294)
 | Command     | Subcommands              | Effect                           |
 |-------------|--------------------------|----------------------------------|
 | `/quit`     | —                        | `process.exit(0)`                |
+| `/exit`     | —                        | `process.exit(0)` (alias)        |
 | `/provider` | `set <name>`             | `sessionState.setProvider(name)` |
 | `/config`   | `set <path> <value>`     | `setConfigValue(config, path, v)`|
 | `/schedule` | `list`, `pause <n>`, `resume <n>`, `run-now <n>` | Schedule actions |
+| `/projects` | `clear`                  | Open projects panel / clear active project |
 | `/clear`    | —                        | Clear conversation messages      |
 | `/new`      | —                        | Start a fresh session            |
 | `/gc`       | `status`                 | Trigger V8 GC or show status     |
 | `/help`     | —                        | Available commands message       |
 
-**Note:** `/context` is not in the CommandParser dispatch table — it is handled elsewhere in the TUI. The actual registered commands are: quit, provider, config, schedule, clear, new, gc, help, sessions, memories, skills, settings.
+**Note:** `/sessions`, `/memories`, `/skills`, `/settings`, and `/projects` are view-switching commands registered in the constructor that return `{ action: "view" }`. The actual registered commands are: quit, exit, provider, config, schedule, projects, clear, new, sessions, memories, skills, settings, help, gc.
 
 ---
 
-## Keyboard Input (useInput, app.js:282)
+## Keyboard Input (useInput, app.js)
 
 ```
 useInput((input, key))
+├── showOnboarding === true
+│   ├── key.return && !key.shift → processOnboardingInput(inputAreaRef.getInputText())
+│   └── key.escape → handleQuit()
 ├── showBanner === true
-│   ├── key.escape
-│   │   └── handleQuit() → process.exit(0)
-│   └── key !== escape && input !== "\r"
-│       └── setShowBanner(false) → fall through to normal input
-└── showBanner === false
-    ├── key.escape → handleQuit() → process.exit(0)
-    ├── key.return && !key.shift
-    │   └── handleSubmit(inputText) → [see Chat Message Flow / Command Parsing Flow]
-    ├── key.upArrow && chatHistory.length > 0
-    │   ├── historyIndex === -1 → index = length - 1
-    │   ├── else → index = max(0, index - 1)
-    │   └── setHistoryIndex(newIndex), setInputText(chatHistory[newIndex])
-    ├── key.downArrow
-    │   ├── historyIndex === -1 → no-op
-    │   ├── historyIndex + 1 >= history.length → reset
-    │   │   └── setHistoryIndex(-1), setInputText("")
-    │   └── else → setHistoryIndex + 1), setInputText(chatHistory[nextIndex])
-    ├── key.backspace && inputText.length > 0
-    │   └── setInputText(prev.slice(0, -1))
-    └── input && input !== "\r"
-        └── setInputText(prev + input)
+│   ├── key.escape → handleQuit() → process.exit(0)
+│   └── else → setShowBanner(false) → fall through
+├── currentView !== conversation → defer to active panel's own useInput({ isActive })
+├── input === "\t" || key.tab → toggle inputFocused
+├── file picker open (inputAreaRef.isPickerOpen()) → bail (picker owns keystrokes)
+├── key.escape → conversationAreaRef.interrupt() (500ms debounce)
+└── focus-aware routing:
+    ├── inputFocused:
+    │   ├── key.upArrow → inputAreaRef.navigateHistory("up")
+    │   ├── key.downArrow → inputAreaRef.navigateHistory("down")
+    │   └── printable input → inputAreaRef.insertText(input)
+    └── !inputFocused:
+        ├── key.upArrow → conversationAreaRef.scrollBy(-1)
+        ├── key.downArrow → conversationAreaRef.scrollBy(1)
+        ├── key.pageUp → conversationAreaRef.scrollBy(-viewportHeight)
+        └── key.pageDown → conversationAreaRef.scrollBy(viewportHeight)
 ```
+
+> **Note:** The `useInput` handler is a single global listener in `App`. It routes based on phase (onboarding, banner, panel view) and focus state. When the file picker is open, it owns all keystrokes and the app-level handler bails. Escape interrupts a running stream (via `conversationAreaRef.interrupt()`) rather than quitting the app — quitting is only via `/quit`, `/exit`, or Escape while the banner is showing.
 
 ---
 
 ## Conversation Panel Render
 
 ```
-ConversationPanel({ messages, assistantName })
-└── Render cycle:
-    ├── useInput: handle scroll on up/down/pageUp/pageDown
-    ├── useEffect: stdout.on("resize") → remeasure ScrollView
-    ├── Content hash tracking:
-    │   ├── hash = messages.length + streamingOverflowCheck
-    │   ├── prevHash !== newHash → executeAutoScroll(scrollRef, messages, countRef)
-    │   └── streaming overflow → scrollToBottom()
-    ├── React.useMemo(() => renderMessages(messages, assistantName))
-    │   └── For each message i:
-    │       └── React.createElement(MessageBubble, { key: "msg-i", msg: {...msg, _index: i}, assistantName })
-    │           └── React.memo areEqual: role, content, time, reasoningContent, streaming, toolCallDisplay, activeToolCall, assistantName
-    │               ├── areEqual === true (no changes) → skip render
-    │               └── areEqual === false → render:
-    │                   ├── formatTime(new Date())
-    │                   ├── getRoleColors(msg.role) — cached
-    │                   ├── getBubbleStyle(msg.role) — cached
-    │                   ├── getRoleLabel(msg.role, assistantName)
-    │                   ├── <MessageBubble> (Box)
-    │                   │   ├── <header> Box: [time] Role:
-    │                   │   └── <content> Box:
-    │                   │       ├── <MarkdownText content={...} /> — React.memo
-    │                   │       ├── reasoningEl (if role=assistant && reasoningContent)
-    │                   │       ├── toolCallEl (if activeToolCall)
-    │                   │       └── toolDisplayEl (if toolCallDisplay)
-    │                   │           └── For each line: <Text> "  line"
-    │                   └── justifyContent: bubble.alignment (flex-start/flex-end)
+ConversationPanel({ messages, assistantName, messageListRef })
+└── Thin wrapper delegating to MessageList (component-based store).
+    ├── useEffect (mount only): if messages provided (session restore),
+    │   └── panelRef.setMessages(messages)
     └── <Box flexDirection="column" flexGrow="1">
-        └── <ScrollView ref={scrollRef}> ...children ... </ScrollView>
+        └── <MessageList ref={panelRef} assistantName showToolResults scrollRef />
 ```
 
-### Memo Guard: MessageBubble.areEqual
+`MessageList` is the message store. It is a `React.memo`-wrapped `forwardRef` component that:
+- Holds messages in a `Map` keyed by id (`dataRef`), with `contentRef` keeping stable string references for unchanged content.
+- Exposes an imperative API via ref: `addMessage`, `updateMessage`, `getMessageData`, `getMessageCount`, `clear`, `setMessages`, `_triggerRender`.
+- Renders each message as a `MessageBubble` inside a `ScrollView` (`ink-scroll-view`).
 
-```
-areEqual(prevProps, nextProps):
-  prev.msg.role === next.msg.role
-  && prev.msg.content === next.msg.content
-  && prev.msg.time === next.msg.time
-  && prev.msg.reasoningContent === next.msg.reasoningContent
-  && prev.msg.streaming === next.msg.streaming
-  && prev.msg.toolCallDisplay === next.msg.toolCallDisplay
-  && prev.msg.activeToolCall === next.msg.activeToolCall
-  && prev.msg._index === next.msg._index
-  && prev.assistantName === next.assistantName
-  → true  (skip re-render)
-```
+### Memo Guard: MessageBubble
+
+`MessageBubble` is wrapped in `React.memo(MessageBubbleInner)` with **no custom `areEqual`** — it uses React's default shallow comparison of props. Streaming content updates are delivered via a pub/sub topic (`msg-{id}`) rather than prop updates, so the memo guard only needs to catch prop-level changes (role, content, time, reasoningContent, streaming, toolCallDisplay, activeToolCall, assistantName).
+
+`MessageList` is likewise wrapped in `React.memo` around a `forwardRef` component, with a stable `contentRef` so unchanged message content keeps the same string reference across renders.
 
 ---
 
 ## Panel Navigation (Tab Cycles)
 
-**Order:** `conversation` → `skills` → `memory` → `settings` → `conversation` ...
+**Order:** `conversation` → `skills` → `memories` → `settings` → `sessions` → `projects` → `conversation` ...
 
 **Note:** `OnboardingPanel` is rendered conditionally (when `showOnboarding === true`) and is NOT part of the tab cycling order. It runs its own internal state machine (INIT → ATTRACTOR → COLLECT → SAVE → TRANSCEND) before transitioning to the main app.
 
 ```
 nextPanel(current):
-└── order = ["conversation","skills","memory","settings"]
+└── order = ["conversation","skills","memories","settings","sessions","projects"]
     └── order[(order.indexOf(current) + 1) % order.length]
 
 prevPanel(current):
@@ -258,17 +239,35 @@ prevPanel(current):
 
 | Panel           | Component File          | Key Props              | State              |
 |-----------------|-------------------------|------------------------|--------------------|
-| Conversation    | conversationPanel.js    | `messages`, `assistantName` | scrollRef, prevMessageCount |
+| Conversation    | conversationPanel.js    | `messages`, `assistantName`, `messageListRef` | messageListRef |
 | Skills          | skillsPanel.js          | `skills[]`             | searchQuery, focusedSkill |
 | Memory          | memoryPanel.js          | `entries[]`            | selectedEntry, focusIndex |
 | Settings        | settingsPanel.js        | `configSections[]`     | focusIndex, selectedSection |
+| Sessions        | sessionsPanel.js        | `sessions[]`           | selectedSession, focusIndex |
+| Projects        | projectsPanel.js        | `cwd`                  | selectedProject, focusIndex |
 
-Each panel (except Conversation) has its own internal `useInput` for arrow-key navigation.
+Each panel (except Conversation) has its own internal `useInput` for arrow-key navigation. Panels are reached via the `/skills`, `/memories`, `/settings`, `/sessions`, and `/projects` commands (which return `{ action: "view" }`), or by cycling with Tab.
 
 ---
 
 ## Input Panel
 
+`InputArea` owns all input and status state. It renders `StatusBar`, `InputPanel`, and (when the `@` trigger is active) `FilePicker`.
+
+```
+InputArea({ onSubmit, onFocus, onBlur, focus, skillCount, messageCountRef, showBanner,
+            showOnboarding, initialValue, appInfo, tokenBudget, statusBar, cwd, activeProject })
+├── handleSubmit(trimmed) → track in chatHistory, clear input, call onSubmit(trimmed)
+├── navigateHistory("up" | "down") → walk chatHistory
+├── isPickerOpen() → whether the `@` file picker is active
+└── Render:
+    ├── StatusBar (statusMessage, skillCount, messageCount, contextSize, tokenBudget,
+    │              statusBar config, project, version, model, quote)
+    ├── InputPanel (when picker closed) — ink-text-input wrapper
+    └── FilePicker (when picker open) — fast-glob file autocomplete
+```
+
+`InputPanel` wraps `ink-text-input`:
 ```
 InputPanel({ value, onChange, onSubmit, onFocus, onBlur, focus })
 └── <TextInput value={value} onChange={onChange} onSubmit={onSubmit} focus={focus} />
@@ -300,68 +299,92 @@ MarkdownText({ content }) [React.memo wrapper]
 
 ## Scroll Input
 
+Scroll input is handled by `MessageList` (which owns the `ScrollView`), exposed via an imperative ref API on `ConversationArea`:
+
 ```
-ConversationPanel useInput((input, key))
-└── handleScrollInput(scrollRef.current, key):
-    ├── key.upArrow → scrollRef.scrollBy(-1)
-    ├── key.downArrow → scrollRef.scrollBy(1)
-    ├── key.pageUp → scrollRef.scrollBy(-scrollRef.getViewportHeight())
-    └── key.pageDown → scrollRef.scrollBy(scrollRef.getViewportHeight())
+ConversationArea exposes scrollBy(delta) / scrollToBottom() via ref
+└── MessageList.scrollBy(delta) → scrollRef.current.scrollBy(delta)
+    ├── key.upArrow → scrollBy(-1)
+    ├── key.downArrow → scrollBy(1)
+    ├── key.pageUp → scrollBy(-viewportHeight)
+    └── key.pageDown → scrollBy(viewportHeight)
 ```
 
 ---
 
 ## Auto-Scroll
 
+Auto-scroll is driven by `ink-scroll-view`'s `onContentHeightChange` callback, not a manual content-hash tracker:
+
 ```
-ConversationPanel render cycle:
-├── contentHash = messages.length + streamingContentLength
-├── contentHash !== prevHash (and prevHash > 0):
-│   └── executeAutoScroll(scrollRef, messages, countRef.current, countRef)
-│       └── handleAutoScroll(scrollRef, messages, prevCount):
-│           ├── scrollRef null || messages empty → { newCount: prevCount, scrolled: false }
-│           ├── messages.length > prevCount:
-│           │   └── scrollRef.scrollToBottom() → { newCount: messages.length, scrolled: true }
-│           └── lastItem.streaming === true:
-│               ├── contentHeight > viewportHeight → scrollToBottom()
-│               └── else → { newCount: prevCount, scrolled: false }
-└── streaming overflow fallback (if hash not tracked):
-    └── getContentHeight() > getViewportHeight() → scrollToBottom()
+MessageList render cycle:
+├── ScrollView onContentHeightChange:
+│   ├── New content grows the viewport → scrollToBottom()
+│   └── Streaming content grows → scrollToBottom()
+├── Scroll-up suppression: when the user has scrolled up, new messages do NOT
+│   force a scroll-to-bottom until they scroll back down.
+└── Streaming content updates do NOT trigger a parent re-render — the scroll
+    effect (onContentHeightChange) detects content growth and scrolls to bottom.
 ```
+
+> **Note:** The former `executeAutoScroll`/`handleAutoScroll` content-hash tracker was replaced by `ink-scroll-view`'s `onContentHeightChange` callback. The imperative `scrollToBottom()` is disabled in favor of this callback-driven approach.
 
 ---
 
 ## Status Bar
 
 ```
-StatusBar({ statusMessage, skillCount, messageCount, appInfo }) [React.memo]
-└── getStatusIndicator(statusMessage):
-    ├── "Error..." → "\u2716" (red)
-    ├── "Sending..." || "Streaming..." → "\u25B6" (yellow)
-    └── else → "\u25CF" (green)
-└── <Box flexDirection="row" justifyContent="space-between">
-    ├── <left>: { indicator } { statusMessage } | skills:{skillCount} msg:{messageCount}
-    └── {appInfo}: appInfo.name + appInfo.version
+StatusBar({ statusMessage, skillCount, messageCount, contextSize, isCompacting,
+            version, model, quote, tokenCount, tokenBudget, statusBar, project }) [React.memo]
+└── isStreaming = statusMessage === "Sending..." || statusMessage === "Streaming..."
+└── Each element gated by the `statusBar` config toggles (model, skills, messages,
+    context, tokens, quote, version, project).
+└── <Box flexDirection="row" alignItems="center" justifyContent="flex-start">
+    ├── <left>:
+    │   ├── indicator: spinner (streaming) or "∙∙∙" (idle)
+    │   ├── [model] (if statusBar.model)
+    │   ├── [⚡skillCount] (if statusBar.skills)
+    │   ├── [💬 messageCount] (if statusBar.messages)
+    │   ├── [◣ contextSize] (if statusBar.context; red when compacting)
+    │   ├── [💎 tokenCount/tokenBudget] (if statusBar.tokens && tokenBudget > 0)
+    │   └── [projectName] (if statusBar.project && project set; shows subdir under projects/)
+    └── <right> (marginLeft: auto): quote + version (if statusBar.version)
 ```
+
+> **Note:** The status bar has no separate `statusMessage` text field in the current implementation — the streaming state is shown via the spinner/indicator, and the model/skill/message/context/token/project counts are rendered as bracketed segments. See [TUI.md](./TUI.md) §9 for the full element table.
 
 ---
 
 ## Error Handling
 
-```
-app.js mount:
-├── process.on("uncaughtException", onUncaught)
-│   └── addMessage({ role: "system", content: "Uncaught error: " + err.message })
-├── process.on("unhandledRejection", onUnhandled)
-│   └── addMessage({ role: "system", content: "Unhandled rejection: " + reason })
-└── unmount: process.off(...)
+Error handling lives in the streaming dispatch path in `conversationArea.js`, not in a global `process.on` handler in `app.js`.
 
-Streaming error:
-├── catch (err):
-│   ├── setMessages(prev.filter(m => !isStreamingMessage(m)))
-│   ├── setStatusMessage("Something went wrong")
-│   └── addMessage({ role: "system", content: "I couldn't connect..." })
 ```
+handleChat → dispatchProvider(...) → await dispatchPromise
+└── catch (err):
+    ├── err.name === "AbortError" (user interrupted):
+    │   ├── sessionState.removeLastAssistantToolCallMessage()
+    │   ├── sessionState.popExchange()
+    │   └── onStatusChange("Interrupted.")
+    └── else (stream/network error):
+        ├── onSaveSession()
+        ├── onStatusChange("Something went wrong")
+        └── addMessage({ role: "system",
+                         content: "I couldn't connect right now - {err.message}. Try sending your message again?" })
+└── finally:
+    ├── abortControllerRef.current = null
+    └── isStreamingRef.current = false
+```
+
+Command errors are caught separately in `handleCommand`:
+```
+handleCommand → parser.parse(...)
+└── catch (err):
+    ├── addMessage({ role: "system", content: `Command error: ${err.message}` })
+    └── onStatusChange("Something went wrong")
+```
+
+> **Note:** The former `process.on("uncaughtException")` / `process.on("unhandledRejection")` handlers in `app.js` were removed. Uncaught exceptions now surface through the streaming catch block or the process-level handler in `index.js`.
 
 ---
 
@@ -370,19 +393,27 @@ Streaming error:
 ```
 index.js ──┐
            ├── commandParser.js ── (pure class, no deps)
-           ├── panels.js ──────── (pure functions)
-           ├── hooks.js ───────── (imports from panels.js)
+           ├── commandHelp.js ──── (help text for commands)
+           ├── panels.js ──────── (pure functions, PANELS enum)
+           ├── hooks.js ───────── (useWindowSize, useInput helpers)
            │
 app.js ─────├── onboardingPanel.js (state machine: INIT → ATTRACTOR → COLLECT → SAVE → TRANSCEND)
            ├── banner.js (BANNER_ART, COMMAND_GROUPS)
-           ├── conversationPanel.js ──┐ (uses ink-scroll-view: ScrollView)
-           ├── inputPanel.js ─────────┤  All components export
-           ├── statusBar.js ──────────┤  via components.js / index.js
-           ├── messages.js ───────────┤
-           ├── markdownText.js ────────┘ (uses marked + marked-terminal)
-           ├── components.js ──────── (exports: ConversationPanel, SkillsPanel, MemoryPanel, SettingsPanel)
-           ├── skillsPanel.js ─────── (skill list with search)
-           ├── memoryPanel.js ─────── (memory entries browser)
-           ├── settingsPanel.js ───── (config sections editor)
-           └── hooks.js ───────────── (useWindowSize, useInput helpers)
+           ├── conversationArea.js ──┐ (streaming handler, message state)
+           ├── conversationPanel.js ─┤ (ScrollView + MessageBubble[]; uses ink-scroll-view)
+           ├── inputArea.js ─────────┤ (owns input + status state; renders StatusBar + InputPanel + FilePicker)
+           ├── inputPanel.js ────────┤ (ink-text-input wrapper)
+           ├── statusBar.js ─────────┤ (status indicator, skill/message/context counts)
+           ├── messageList.js ───────┤ (coalesces segments, memoized list)
+           ├── messageBubble.js ─────┤ (role-colored bubble, markdown, tool display; React.memo)
+           ├── markdownText.js ──────┘ (uses marked + marked-terminal)
+           ├── filePicker.js ─────── (fast-glob file autocomplete, `@` trigger)
+           ├── projectsPanel.js ──── (project directory selection)
+           ├── sessionsPanel.js ──── (session browser)
+           ├── skillsPanel.js ────── (skill list with search)
+           ├── memoryPanel.js ────── (memory entries browser)
+           ├── settingsPanel.js ──── (config sections editor)
+           ├── contextTokens.js ──── (tiktoken token calculation)
+           ├── quotes.js ─────────── (rotating quote lines)
+           └── index.js ──────────── (re-exports App and panels)
 ```

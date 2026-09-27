@@ -4,6 +4,14 @@ This document is a threat model for `madz` — an analysis of the assets it prot
 
 This is **not** the security policy. For vulnerability reporting and supported versions, see [SECURITY.md](../SECURITY.md).
 
+## What This Document Is
+
+This is a **threat model** — an analysis of what madz protects, who might attack it, how they could get in, and what's already in place to stop them. It is a living document: update it when subsystems change.
+
+**Who it's for:** Security reviewers, maintainers, and anyone deploying madz who wants to understand its security posture. It assumes a working knowledge of the architecture (see [OVERVIEW.md](./OVERVIEW.md)) but explains each threat in plain terms.
+
+**How to read it:** The sections build on each other. §1–§4 define the scope, assets, trust boundaries, and actors. §5–§6 enumerate the attack surface and concrete threat scenarios. §7–§8 summarize mitigations and residual risk. If you only have time for two sections, read §6 (threat scenarios) and §8 (residual risk).
+
 ---
 
 ## 1. Purpose & Scope
@@ -12,7 +20,7 @@ This is **not** the security policy. For vulnerability reporting and supported v
 
 The threat model covers the runtime components:
 
-- **Agent orchestration** — `src/agent/`, `src/graphs/`
+- **Agent orchestration** — `src/agent/` (the Deep Agents orchestrator and subagent definitions; the agent loop is compiled by the `deepagents` library, not a hand-written graph)
 - **Skills system** — `src/skills/` (discovery, validation, permissions, registry)
 - **Sandbox** — `src/sandbox/` (runner, path resolver, URL filter, env injector, capability)
 - **Scheduler** — `src/scheduler/` (cron sync, job execution)

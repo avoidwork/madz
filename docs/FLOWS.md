@@ -2,6 +2,14 @@
 
 Call chains and data flows for all primary code paths in the project, excluding the TUI (see [TUI_FLOWS.md](./TUI_FLOWS.md)).
 
+## What This Document Is
+
+This is a reference for **how the code actually runs** — the call chains and data flows behind every primary code path. It is written for anyone who wants to trace a feature from entry point to exit: contributors debugging a subsystem, reviewers checking a change, or curious readers mapping the architecture.
+
+**Who it's for:** Developers who already have a working mental model of madz's subsystems (see [OVERVIEW.md](./OVERVIEW.md) first if you don't). It assumes you know what `loadConfig()`, the orchestrator, and the backends are.
+
+**How to read it:** Each section is a call chain. The `├──` and `└──` characters are tree branches — `├──` means "followed by a sibling step," `└──` means "last step in this branch." An arrow (`→`) means "passes control to" or "calls." Indentation shows nesting: deeper lines are called by the line above them. Read top-to-bottom, following the branch that matches the path you're tracing.
+
 ## Table of Contents
 
 - [Application Startup](#application-startup)

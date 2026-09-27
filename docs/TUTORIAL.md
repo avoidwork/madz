@@ -21,6 +21,16 @@ Docker packages an application and all its dependencies into a single, isolated 
 
 **If you're new to Docker:** Do not worry. The commands below are straightforward, and each part is explained.
 
+### What runs where: host vs. container
+
+Before you run anything, it helps to have a mental model of the two "places" involved:
+
+- **Your host machine** — the computer you're sitting at. Your files live here: `./memory`, `./skills`, `~/projects`.
+- **The container** — an isolated environment running madz. It has its own filesystem at `/app`. madz runs *inside* the container; you talk to it over SSH.
+- **Bind mounts** — a bridge between the two. `-v ./memory:/app/memory` means "make the host's `./memory` directory appear at `/app/memory` inside the container." Changes on either side are visible on the other.
+
+The key idea: **the container is disposable, your data is not.** When you pull a new image or recreate the container, anything written *inside* the container's filesystem is lost. Anything in a bind mount or named volume survives. That's why the setup mounts `memory/` and `skills/` from your host — so your profile, memories, and skills persist across container upgrades.
+
 ---
 
 ## 🚀 Installation
@@ -168,13 +178,15 @@ Config keys map to `UPPER_SNAKE_CASE` environment variables. Container-specific 
 | `providers.openai.base_url` | `OPENAI_BASE_URL` | `https://api.openai.com/v1` |
 | `providers.openai.temperature` | `OPENAI_TEMPERATURE` | `0.4` |
 | `providers.openai.maxTokens` | `OPENAI_MAX_TOKENS` | `4096` |
-| `providers.openai.rateLimit.requestsPerMinute` | `OPENAI_REQUESTS_PER_MINUTE` | `60` |
+| `providers.openai.rateLimit.requestsPerMinute` | `OPENAI_REQUESTS_PER_MINUTE` | `120` |
 | `providers.openrouter.apiKey` | `OPENROUTER_API_KEY` | *(empty)* |
 | `providers.openrouter.model` | `OPENROUTER_MODEL` | `openrouter/auto` |
 | `providers.fal.credentials.apiKey` | `FAL_API_KEY` | *(empty)* |
-| `sandbox.timeout.seconds` | `SANDBOX_TIMEOUT_SECONDS` | `30` |
+| `sandbox.timeout.seconds` | `SANDBOX_TIMEOUT_SECONDS` | `600` |
 | `sandbox.timeout.gracePeriod` | `SANDBOX_GRACE_PERIOD` | `5` |
-| `sandbox.maxReadSize` | `SANDBOX_MAX_READ_SIZE` | `1mb` |
+| `sandbox.maxReadSize` | `SANDBOX_MAX_READ_SIZE` | `10mb` |
+
+> **Note:** The table reflects the shipped `config.yaml` defaults, which differ from the schema defaults in a few places. The schema default for `sandbox.timeout.seconds` is `30` (shipped: `600`), for `sandbox.maxReadSize` is `1mb` (shipped: `10mb`), and for `providers.openai.rateLimit.requestsPerMinute` is `60` (shipped: `120`). If you override any of these via env var, the value is a plain number (seconds, requests) or a size string (e.g., `10mb`, `500kb`).
 
 ### Inline References (Alternative)
 You can also reference environment variables directly in `config.yaml`:
@@ -197,7 +209,7 @@ If you deployed with Docker (the deployment model), connect to the container usi
 ssh -p 2222 madz@localhost
 ```
 
-The `madz` user has no password. On login the TUI launches automatically. Type `/exit` (or `/quit`) to leave; `Esc` interrupts a running response. When `madz` exits, the SSH session terminates with it — there is no interactive shell inside the container.
+The `madz` user has no password. On login the TUI launches automatically. Type `/exit` (or `/quit`) to leave; `Esc` interrupts a running response. When `madz` exits, the SSH session terminates with it — SSH login drops you straight into the TUI, not a shell. If you need a shell for inspection, use `docker exec -it madz /bin/sh` from the host instead (see Troubleshooting).
 
 *First command to try:* `Give me a quick system health check — CPU load, memory, and disk.`
 
@@ -283,13 +295,15 @@ VECTOR_PROJECTS_BACKENDAPI_ROOT_DIR=/app/projects/backend-api
 VECTOR_PROJECTS_BACKENDAPI_DB_PATH=/app/projects/backend-api/vector.db
 ```
 
-(`include` defaults to `src/**/*.js`, `src/**/*.mjs`, `src/**/*.cjs`; add `VECTOR_PROJECTS_BACKENDAPI_INCLUDE_0=...` to change it.) Then ask:
+(`include` defaults to `src/**/*.js`, `src/**/*.mjs`, `src/**/*.cjs`; add `VECTOR_PROJECTS_BACKENDAPI_INCLUDE_0=...` to change it. Array fields are indexed from `_0`, so `VECTOR_PROJECTS_BACKENDAPI_INCLUDE_0=src/**/*.ts` replaces the first include pattern.) Then ask:
 
 ```
 Index the code in backendapi for vector search
 ```
 
 The agent's indexing tool reads these from the environment — no file editing required. (`.env` is injected at container start, so after adding these lines, recreate the container with the same `docker run` flags.)
+
+> **Verified:** The `VECTOR_PROJECTS_*` env vars are materialized by `syncEnv()` in `src/config/loader.js`, which resolves dynamic record keys under `vector.projects`. Setting `VECTOR_PROJECTS_BACKENDAPI_ROOT_DIR` and `VECTOR_PROJECTS_BACKENDAPI_DB_PATH` creates a `backendapi` project entry with the default `include`/`exclude`/`chunkSize`/`chunkOverlap`/`maxFileSize` values. Array overrides like `VECTOR_PROJECTS_BACKENDAPI_INCLUDE_0` replace the corresponding index.
 
 **Set the active project explicitly.**
 

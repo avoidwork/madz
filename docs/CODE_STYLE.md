@@ -257,15 +257,15 @@ tests/
   ```
 
 - **Pre-commit hook** runs (in order):
-  1. `oxfmt` — format all changed files (line-length 100)
-  2. `oxlint` — lint check
-  3. `npm run test` — run tests
-  4. `npm run coverage` — generate `coverage.txt` (100% enforced)
+  1. `npm run fix` — auto-fix lint and format changed files (oxlint + oxfmt, line-length 100)
+  2. `npm run coverage` — run the test suite and regenerate `coverage.txt`
+  3. `git add -A` — stage everything the hook rewrote
 
-- **If `coverage.txt` changes** during commit, the commit fails. Fix with:
-  ```bash
-  git add -A && git commit --amend -C HEAD
-  ```
+  The hook is `.husky/pre-commit`, installed by Husky via the `prepare` npm script. Because the final step is `git add -A`, files the hook regenerates — `coverage.txt`, plus anything `oxlint --fix` or `oxfmt --write` rewrote — are staged automatically, so the commit proceeds and includes them. The commit does **not** fail merely because the hook modified a file.
+
+  **Gotcha:** `git add -A` stages the *entire* working tree, not just what you staged before committing. Anything untracked and not gitignored gets swept into the commit. Stage selectively and check `git status` before committing, or expect unrelated files to ride along.
+
+- **If a commit lands with content you did not intend to stage**, do **not** amend it. AGENTS.md §1.3 forbids amending outright. Add a follow-up commit instead.
 
 ---
 
