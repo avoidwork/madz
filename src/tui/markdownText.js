@@ -259,32 +259,10 @@ class TerminalRenderer extends Renderer {
 	}
 
 	listitem(item) {
-		let text = "";
-		if (item.task) {
-			const checkbox = this.checkbox({ checked: !!item.checked });
-			if (item.loose) {
-				if (item.tokens.length > 0 && item.tokens[0].type === "paragraph") {
-					item.tokens[0].text = checkbox + " " + item.tokens[0].text;
-					if (
-						item.tokens[0].tokens &&
-						item.tokens[0].tokens.length > 0 &&
-						item.tokens[0].tokens[0].type === "text"
-					) {
-						item.tokens[0].tokens[0].text = checkbox + " " + item.tokens[0].tokens[0].text;
-					}
-				} else {
-					item.tokens.unshift({
-						type: "text",
-						raw: checkbox + " ",
-						text: checkbox + " ",
-					});
-				}
-			} else {
-				text += checkbox + " ";
-			}
-		}
-
-		text += this.parser.parse(item.tokens, !!item.loose);
+		// `marked` already emits a `checkbox` token in `item.tokens` for task
+		// items, and `checkbox()` renders it as `[ ] ` / `[X] `. Do NOT prepend
+		// the checkbox again here — doing so duplicates it (e.g. `[ ] [ ] Text`).
+		let text = this.parser.parse(item.tokens, !!item.loose);
 		var transform = (t) => this.o.listitem(undoColon(t));
 		var isNested = text.indexOf("\n") !== -1;
 		if (isNested) text = text.trim();

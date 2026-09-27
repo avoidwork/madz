@@ -457,6 +457,27 @@ describe("parseMarkdown - task lists", () => {
 		assert.ok(stripped.includes("done"));
 		assert.ok(stripped.includes("todo"));
 	});
+
+	it("renders an unchecked checkbox exactly once (no duplication)", () => {
+		const result = parseMarkdown("* [ ] Text...");
+		const stripped = stripAnsi(result);
+		assert.strictEqual((stripped.match(/\[ \]/g) || []).length, 1);
+		assert.ok(stripped.includes("Text..."));
+	});
+
+	it("renders a checked checkbox exactly once (no duplication)", () => {
+		const result = parseMarkdown("* [x] Done...");
+		const stripped = stripAnsi(result);
+		assert.strictEqual((stripped.match(/\[X\]/g) || []).length, 1);
+		assert.ok(stripped.includes("Done..."));
+	});
+
+	it("renders multiple task items each with a single checkbox", () => {
+		const result = parseMarkdown("* [ ] Item one\n* [x] Item two");
+		const stripped = stripAnsi(result);
+		assert.strictEqual((stripped.match(/\[ \]/g) || []).length, 1);
+		assert.strictEqual((stripped.match(/\[X\]/g) || []).length, 1);
+	});
 });
 
 describe("parseMarkdown - inline HTML", () => {
