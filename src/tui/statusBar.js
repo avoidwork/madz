@@ -95,10 +95,6 @@ export const StatusBar = React.memo(function StatusBar({
 				? React.createElement(Text, { key: "model", color: "#606060" }, " [" + model + "]")
 				: null,
 
-			showProject
-				? React.createElement(Text, { key: "project", color: "#606060" }, " [" + projectName + "]")
-				: null,
-
 			showSkills
 				? React.createElement(
 						Text,
@@ -126,6 +122,10 @@ export const StatusBar = React.memo(function StatusBar({
 						{ key: "tokens", color: "#606060" },
 						" [\u{1F48E} " + formatNumber(tokenCount) + "/" + formatNumber(tokenBudget) + "]",
 					)
+				: null,
+
+			showProject
+				? React.createElement(Text, { key: "project", color: "#606060" }, " [" + projectName + "]")
 				: null,
 		),
 		showVersion
