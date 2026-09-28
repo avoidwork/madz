@@ -2,38 +2,15 @@ import React, { useMemo } from "react";
 import { Box, Text, useInput, useWindowSize } from "ink";
 import SelectInput from "ink-select-input";
 
-/** Maximum length of a skill description before it is truncated with an ellipsis. */
-export const DESCRIPTION_MAX_LENGTH = 500;
-
-/**
- * Truncate a skill description for display.
- * Returns the description unchanged when it is at or under `max` characters,
- * otherwise returns the first `max` characters followed by an ellipsis.
- * @param {string} desc - The description to truncate.
- * @param {number} [max=DESCRIPTION_MAX_LENGTH] - The maximum allowed length.
- * @returns {string} The truncated (or unchanged) description.
- */
-export function truncateDescription(desc, max = DESCRIPTION_MAX_LENGTH) {
-	if (desc.length <= max) {
-		return desc;
-	}
-	return `${desc.slice(0, max)}…`;
-}
-
 /**
  * Custom item renderer for SelectInput that highlights the selected skill name
- * in cyan and renders the description beneath it in gray.
- * @param {{ isSelected?: boolean, label: string, description?: string }} props - The item props.
+ * in cyan. Skill descriptions are intentionally not shown — the view lists
+ * only the skill names.
+ * @param {{ isSelected?: boolean, label: string }} props - The item props.
  * @returns {React.ReactElement} The rendered item.
  */
-function SkillItem({ isSelected = false, label, description }) {
-	const desc = truncateDescription(description || "");
-	return React.createElement(
-		Box,
-		{ flexDirection: "column" },
-		React.createElement(Text, { color: isSelected ? "cyan" : undefined }, label),
-		desc ? React.createElement(Text, { color: "gray" }, "    ", desc) : null,
-	);
+function SkillItem({ isSelected = false, label }) {
+	return React.createElement(Text, { color: isSelected ? "cyan" : undefined }, label);
 }
 
 /**
