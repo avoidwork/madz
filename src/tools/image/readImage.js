@@ -33,7 +33,9 @@ function detectMimeType(filePath) {
 /**
  * Read an image file from disk and return its base64-encoded contents.
  * Validates the path against the sandbox allowlist and enforces a configurable
- * size limit (`image.maxSize`, default `100000` bytes). Uses async `node:fs/promises`.
+ * size limit (`image.maxSize`, default `100000` bytes). The limit is applied to
+ * the base64-encoded output, so the raw file may be up to `maxSize * 1.33` bytes
+ * (base64 expands bytes by ~1.33x). Uses async `node:fs/promises`.
  * @param {z.infer<typeof ReadImageSchema>} input - Tool input
  * @param {object} [options] - Runtime options for test injection
  * @param {string[]} [options.allowedPaths] - Sandbox-allowed paths
@@ -65,10 +67,15 @@ export async function readImageImpl(input, options = {}) {
 		return JSON.stringify({ ok: false, error: `File not found: ${filePath}` });
 	}
 
-	if (stats.size > sizeLimit) {
+	// Base64 encoding expands raw bytes by ~1.33x (4 chars per 3 bytes). The
+	// size limit applies to the encoded output, so allow the raw file up to
+	// `sizeLimit * 1.33`.
+	const encodedLimit = Math.ceil(sizeLimit * 1.33);
+
+	if (stats.size > encodedLimit) {
 		return JSON.stringify({
 			ok: false,
-			error: `File size (${stats.size} bytes) exceeds max read size (${sizeLimit} bytes).`,
+			error: `File size (${stats.size} bytes) exceeds max read size (${encodedLimit} bytes).`,
 		});
 	}
 
@@ -105,6 +112,7 @@ export const readImage = tool(readImageImpl, {
 		"requiring vision — reading a screenshot, inspecting a diagram, or sending an image to the LLM. " +
 		"Do NOT use read_file for images: read_file returns raw octet-stream binary that poisons the " +
 		"session and errors the inference provider. Validates the path against the sandbox allowlist " +
-		"and enforces a configurable size limit (image.maxSize, default 100000 bytes). Uses async file system operations.",
+		"and enforces a configurable size limit (image.maxSize, default 100000 bytes) on the base64-encoded " +
+		"output, so the raw file may be up to maxSize * 1.33 bytes. Uses async file system operations.",
 	schema: ReadImageSchema,
 });
