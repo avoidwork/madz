@@ -33,13 +33,14 @@ function ProjectItem({ isSelected = false, label }) {
 
 /**
  * Filters directory entries to project directories, excluding hidden
- * directories (those starting with "."). Returns the sorted directory names.
+ * directories (those starting with ".") and git worktree directories
+ * (those ending with ".worktrees"). Returns the sorted directory names.
  * @param {import("node:fs").Dirent[]} entries - Directory entries from readdir.
  * @returns {string[]} Sorted project directory names.
  */
 export function filterProjectDirs(entries) {
 	return entries
-		.filter((e) => e.isDirectory() && !e.name.startsWith("."))
+		.filter((e) => e.isDirectory() && !e.name.startsWith(".") && !e.name.endsWith(".worktrees"))
 		.map((e) => e.name)
 		.sort((a, b) => a.localeCompare(b));
 }
