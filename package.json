@@ -85,7 +85,7 @@
     "deepagents": "^1.14.0",
     "exceljs": "^4.4.0",
     "fast-glob": "^3.3.3",
-    "googleapis": "^181.0.0",
+    "googleapis": "^182.0.0",
     "imap-simple": "^5.1.0",
     "ink": "^7.1.1",
     "ink-scroll-view": "^0.4.0",
