@@ -99,6 +99,18 @@ describe("deriveFilter", () => {
 		const result = deriveFilter("he@he", 5);
 		assert.strictEqual(result.active, false);
 	});
+
+	it("is active when the token contains a hyphen in the middle", () => {
+		const result = deriveFilter("read @my-config.js", 18);
+		assert.strictEqual(result.active, true);
+		assert.strictEqual(result.filter, "my-config.js");
+	});
+
+	it("is active when the token starts with a hyphenated filename", () => {
+		const result = deriveFilter("@-config.js", 11);
+		assert.strictEqual(result.active, true);
+		assert.strictEqual(result.filter, "-config.js");
+	});
 });
 
 describe("shouldOpenPicker", () => {
