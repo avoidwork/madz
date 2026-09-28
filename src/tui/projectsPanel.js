@@ -32,6 +32,19 @@ function ProjectItem({ isSelected = false, label }) {
 }
 
 /**
+ * Filters directory entries to project directories, excluding hidden
+ * directories (those starting with "."). Returns the sorted directory names.
+ * @param {import("node:fs").Dirent[]} entries - Directory entries from readdir.
+ * @returns {string[]} Sorted project directory names.
+ */
+export function filterProjectDirs(entries) {
+	return entries
+		.filter((e) => e.isDirectory() && !e.name.startsWith("."))
+		.map((e) => e.name)
+		.sort((a, b) => a.localeCompare(b));
+}
+
+/**
  * Projects panel that lists directories within `projects/` for selection.
  * Uses ink-select-input for navigation and selection — no descriptions,
  * mirroring the /skills list style.
@@ -58,11 +71,7 @@ export function ProjectsPanel({ cwd, onViewChange, onSelectProject, onClearProje
 		readdir(projectsDir, { withFileTypes: true })
 			.then((entries) => {
 				if (cancelled) return;
-				const dirs = entries
-					.filter((e) => e.isDirectory() && !e.name.endsWith(".worktrees"))
-					.map((e) => e.name)
-					.sort((a, b) => a.localeCompare(b));
-				setProjects(dirs);
+				setProjects(filterProjectDirs(entries));
 				setLoaded(true);
 			})
 			.catch(() => {
