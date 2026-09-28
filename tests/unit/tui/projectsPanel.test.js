@@ -27,6 +27,11 @@ describe("filterProjectDirs", () => {
 		assert.deepStrictEqual(result, ["alpha"]);
 	});
 
+	it("excludes git worktree directories (ending in '.worktrees')", () => {
+		const result = filterProjectDirs([dirent("alpha"), dirent("madz.worktrees"), dirent("beta")]);
+		assert.deepStrictEqual(result, ["alpha", "beta"]);
+	});
+
 	it("sorts results alphabetically", () => {
 		const result = filterProjectDirs([dirent("zeta"), dirent("alpha"), dirent("mid")]);
 		assert.deepStrictEqual(result, ["alpha", "mid", "zeta"]);
