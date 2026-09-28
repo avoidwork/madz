@@ -108,8 +108,37 @@ describe("readImage tool", () => {
 
 	it("rejects a file over the size limit", async () => {
 		const filePath = join(testDir, "large.png");
-		// ~200KB of data
+		// ~200KB of data — over the encoded limit (100000 * 1.33 = 133000)
 		writeFileSync(filePath, Buffer.alloc(200 * 1024, 1));
+
+		const result = await readImageImpl(
+			{ path: filePath, maxSize: 100000 },
+			{ allowedPaths: [testDir] },
+		);
+		const parsed = JSON.parse(result);
+
+		assert.strictEqual(parsed.ok, false);
+		assert.ok(parsed.error.includes("exceeds max read size"));
+	});
+
+	it("allows a file up to maxSize * 1.33 (base64 expansion)", async () => {
+		const filePath = join(testDir, "encoded-limit.png");
+		// 120000 bytes raw — under the encoded limit (100000 * 1.33 = 133000)
+		writeFileSync(filePath, Buffer.alloc(120000, 1));
+
+		const result = await readImageImpl(
+			{ path: filePath, maxSize: 100000 },
+			{ allowedPaths: [testDir] },
+		);
+		const parsed = JSON.parse(result);
+
+		assert.strictEqual(parsed.ok, true);
+	});
+
+	it("rejects a file over maxSize * 1.33", async () => {
+		const filePath = join(testDir, "over-encoded-limit.png");
+		// 140000 bytes raw — over the encoded limit (100000 * 1.33 = 133000)
+		writeFileSync(filePath, Buffer.alloc(140000, 1));
 
 		const result = await readImageImpl(
 			{ path: filePath, maxSize: 100000 },
