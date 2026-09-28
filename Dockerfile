@@ -57,6 +57,9 @@ WORKDIR /app
 RUN chown -R madz:node /app /home/madz && \
     chmod -R g+rwX /app /home/madz
 
+# Symlink /large_tool_results to /tmp so large tool outputs stay off the writable layer
+RUN ln -s /tmp /large_tool_results
+
 # Install uv (no native Debian package)
 RUN pip install --no-cache-dir uv --break-system-packages
 
