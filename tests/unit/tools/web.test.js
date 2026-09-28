@@ -336,7 +336,7 @@ describe("resizeScreenshot", () => {
 			.png()
 			.toBuffer();
 		const b64 = buf.toString("base64");
-		const resized = await resizeScreenshot(b64, 1024, "20kb");
+		const resized = await resizeScreenshot(b64, 1024, 20 * 1024);
 		const out = Buffer.from(resized, "base64");
 		assert.ok(out.length <= 20 * 1024, `expected <= 20kb, got ${out.length} bytes`);
 		const meta = await sharp(out).metadata();
@@ -351,7 +351,7 @@ describe("resizeScreenshot", () => {
 			.png()
 			.toBuffer();
 		const b64 = buf.toString("base64");
-		const resized = await resizeScreenshot(b64, 1024, "1mb");
+		const resized = await resizeScreenshot(b64, 1024, 1024 * 1024);
 		const out = Buffer.from(resized, "base64");
 		assert.ok(out.length <= 1024 * 1024);
 	});

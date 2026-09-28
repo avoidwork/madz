@@ -2,7 +2,6 @@ import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { filterUrl } from "../../sandbox/urlFilter.js";
 import { loadConfig } from "../../config/loader.js";
-import { parseSizeString } from "../common.js";
 import { launchBrowser, openPage, DEFAULT_TIMEOUT } from "./browser.js";
 
 const config = loadConfig();
@@ -18,7 +17,7 @@ const config = loadConfig();
  * limit readImage enforces.
  * @param {string} data - Base64-encoded PNG
  * @param {number} maxWidth - Maximum width in pixels
- * @param {string|number} [maxSize] - Byte budget (e.g. "100kb" or bytes). Optional.
+ * @param {number} [maxSize] - Byte budget. Optional.
  * @returns {Promise<string>} Base64-encoded resized PNG
  */
 export async function resizeScreenshot(data, maxWidth, maxSize) {
@@ -27,7 +26,7 @@ export async function resizeScreenshot(data, maxWidth, maxSize) {
 	const metadata = await sharp(buffer).metadata();
 
 	const widthLimit = metadata.width && metadata.width > maxWidth ? maxWidth : metadata.width;
-	const sizeLimit = maxSize ? parseSizeString(String(maxSize)) : 0;
+	const sizeLimit = maxSize || 0;
 
 	let resized = buffer;
 	if (widthLimit && widthLimit < buffer.length) {
@@ -476,7 +475,7 @@ export async function screenshotWebImpl(input, options = {}) {
 	}
 
 	const widthLimit = maxWidth || config.image?.maxWidth || 1024;
-	const sizeLimit = config.image?.maxSize || "100kb";
+	const sizeLimit = config.image?.maxSize || 100000;
 
 	let browser;
 	try {
