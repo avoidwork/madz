@@ -325,4 +325,34 @@ describe("resizeScreenshot", () => {
 		const resized = await resizeScreenshot(b64, 1024);
 		assert.strictEqual(resized, b64);
 	});
+
+	it("re-encodes to fit a byte budget when the resized image exceeds maxSize", async () => {
+		const { default: sharp } = await import("sharp");
+		// A large, high-detail image that will not fit under a tight byte budget
+		// at the default width.
+		const buf = await sharp({
+			create: { width: 2000, height: 1500, channels: 3, background: { r: 200, g: 120, b: 40 } },
+		})
+			.png()
+			.toBuffer();
+		const b64 = buf.toString("base64");
+		const resized = await resizeScreenshot(b64, 1024, "20kb");
+		const out = Buffer.from(resized, "base64");
+		assert.ok(out.length <= 20 * 1024, `expected <= 20kb, got ${out.length} bytes`);
+		const meta = await sharp(out).metadata();
+		assert.ok(meta.width <= 1024);
+	});
+
+	it("returns the resized image when it already fits the byte budget", async () => {
+		const { default: sharp } = await import("sharp");
+		const buf = await sharp({
+			create: { width: 800, height: 600, channels: 3, background: { r: 50, g: 50, b: 50 } },
+		})
+			.png()
+			.toBuffer();
+		const b64 = buf.toString("base64");
+		const resized = await resizeScreenshot(b64, 1024, "1mb");
+		const out = Buffer.from(resized, "base64");
+		assert.ok(out.length <= 1024 * 1024);
+	});
 });
