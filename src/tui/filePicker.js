@@ -43,10 +43,11 @@ export function deriveFilter(value, cursor) {
 		return { filter: "", tokenStart: 0, tokenEnd: 0, active: false };
 	}
 
-	// The `@` must be followed by word characters (regex with `\w`). This
-	// rejects bare `@` and `@` followed by a space.
+	// The `@` must be followed by a non-whitespace character. This rejects
+	// bare `@` and `@` followed by a space, while allowing filenames that
+	// start with a hyphen (e.g. `@-config.js`) or any other non-space char.
 	const token = value.slice(wordStart, pos);
-	if (!/^@\w/.test(token)) {
+	if (!/^@[^\s]/.test(token)) {
 		return { filter: "", tokenStart: 0, tokenEnd: 0, active: false };
 	}
 
