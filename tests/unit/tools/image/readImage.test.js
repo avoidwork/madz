@@ -112,7 +112,7 @@ describe("readImage tool", () => {
 		writeFileSync(filePath, Buffer.alloc(200 * 1024, 1));
 
 		const result = await readImageImpl(
-			{ path: filePath, maxSize: "100kb" },
+			{ path: filePath, maxSize: 100000 },
 			{ allowedPaths: [testDir] },
 		);
 		const parsed = JSON.parse(result);
@@ -149,7 +149,7 @@ describe("readImage tool", () => {
 		const filePath = join(testDir, "config-size.png");
 		writeFileSync(filePath, Buffer.alloc(50 * 1024, 1));
 
-		// No maxSize override — should use config default (100kb) which allows this file
+		// No maxSize override — should use config default (100000 bytes) which allows this file
 		const result = await readImageImpl({ path: filePath }, { allowedPaths: [testDir] });
 		const parsed = JSON.parse(result);
 

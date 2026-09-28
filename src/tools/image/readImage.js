@@ -3,7 +3,7 @@ import { z } from "zod";
 import { readFile, stat } from "node:fs/promises";
 import { extname } from "node:path";
 import { loadConfig } from "../../config/loader.js";
-import { validatePath, parseSizeString } from "../common.js";
+import { validatePath } from "../common.js";
 
 // MIME type map for common image extensions.
 const MIME_TYPES = {
@@ -33,11 +33,11 @@ function detectMimeType(filePath) {
 /**
  * Read an image file from disk and return its base64-encoded contents.
  * Validates the path against the sandbox allowlist and enforces a configurable
- * size limit (`image.maxSize`, default `100kb`). Uses async `node:fs/promises`.
+ * size limit (`image.maxSize`, default `100000` bytes). Uses async `node:fs/promises`.
  * @param {z.infer<typeof ReadImageSchema>} input - Tool input
  * @param {object} [options] - Runtime options for test injection
  * @param {string[]} [options.allowedPaths] - Sandbox-allowed paths
- * @param {string} [options.maxReadSize] - Fallback size limit (overridden by config.image.maxSize)
+ * @param {number} [options.maxReadSize] - Fallback size limit (overridden by config.image.maxSize)
  * @returns {Promise<string>} JSON result string
  */
 export async function readImageImpl(input, options = {}) {
@@ -49,7 +49,7 @@ export async function readImageImpl(input, options = {}) {
 
 	const config = loadConfig();
 	const allowedPaths = options.allowedPaths || config.sandbox?.paths || [];
-	const sizeLimit = maxSize || config.image?.maxSize || "100kb";
+	const sizeLimit = maxSize || config.image?.maxSize || 100000;
 
 	// Validate the path against the sandbox allowlist
 	const validation = validatePath(filePath, allowedPaths);
@@ -65,11 +65,10 @@ export async function readImageImpl(input, options = {}) {
 		return JSON.stringify({ ok: false, error: `File not found: ${filePath}` });
 	}
 
-	const maxSizeBytes = parseSizeString(sizeLimit);
-	if (stats.size > maxSizeBytes) {
+	if (stats.size > sizeLimit) {
 		return JSON.stringify({
 			ok: false,
-			error: `File size (${stats.size} bytes) exceeds max read size (${sizeLimit}).`,
+			error: `File size (${stats.size} bytes) exceeds max read size (${sizeLimit} bytes).`,
 		});
 	}
 
@@ -90,7 +89,12 @@ export async function readImageImpl(input, options = {}) {
 
 const ReadImageSchema = z.object({
 	path: z.string().min(1).describe("Path to the image file to read"),
-	maxSize: z.string().optional().describe("Override the max file size limit (e.g., '200kb')"),
+	maxSize: z
+		.number()
+		.int()
+		.positive()
+		.optional()
+		.describe("Override the max file size limit in bytes"),
 });
 
 export const readImage = tool(readImageImpl, {
@@ -101,6 +105,6 @@ export const readImage = tool(readImageImpl, {
 		"requiring vision — reading a screenshot, inspecting a diagram, or sending an image to the LLM. " +
 		"Do NOT use read_file for images: read_file returns raw octet-stream binary that poisons the " +
 		"session and errors the inference provider. Validates the path against the sandbox allowlist " +
-		"and enforces a configurable size limit (image.maxSize, default 100kb). Uses async file system operations.",
+		"and enforces a configurable size limit (image.maxSize, default 100000 bytes). Uses async file system operations.",
 	schema: ReadImageSchema,
 });

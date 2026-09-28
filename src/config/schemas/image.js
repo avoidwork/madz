@@ -1,6 +1,6 @@
 import { z } from "zod";
 
 export const ImageSchema = z.object({
-	maxSize: z.string().default("100kb"),
+	maxSize: z.number().int().positive().default(100000),
 	maxWidth: z.number().int().positive().default(1024),
 });
