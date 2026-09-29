@@ -15,7 +15,7 @@ The system SHALL provide a framework for defining specialized subagents with foc
 - **THEN** only tools matching its classification are available in its context
 
 ### Requirement: Subagent System Prompt
-Each subagent SHALL have a system prompt that defines its role, capabilities, and output format. Each subagent system prompt SHALL include an explicit target audience, a success definition (what "done" looks like), a knowledge cutoff with graceful-degradation rules, and proactive clarification/error-fallback behavior.
+Each subagent SHALL have a system prompt that defines its role, capabilities, and output format. Each subagent system prompt SHALL include an explicit target audience, a success definition (what "done" looks like), a knowledge cutoff with graceful-degradation rules, and proactive clarification/error-fallback behavior. When a subagent's prompt file fails to load, the system SHALL surface the failure at `warn` level (or fail fast) so the operator is aware the agent is running without its system prompt.
 
 #### Scenario: System prompt is loaded
 - **WHEN** a subagent is created
@@ -36,6 +36,10 @@ Each subagent SHALL have a system prompt that defines its role, capabilities, an
 #### Scenario: System prompt defines clarification and error-fallback behavior
 - **WHEN** a subagent system prompt is evaluated
 - **THEN** it includes a proactive clarification rule (ask when input is ambiguous) and an error-fallback behavior (report rather than loop on tool failures)
+
+#### Scenario: Prompt file load failure is surfaced
+- **WHEN** a subagent's prompt file is missing or unreadable
+- **THEN** the system logs a warning at `warn` level (or throws) identifying the affected agent, rather than silently degrading at `debug` level
 
 ### Requirement: Subagent Validation
 The system SHALL validate subagent definitions before registration.
