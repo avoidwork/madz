@@ -40,13 +40,13 @@ describe("tools - validatePath", () => {
 });
 
 describe("tools - validateUrl", () => {
-	it("allows valid http URL without allowlist", () => {
-		const result = validateUrl("http://example.com/api");
+	it("allows valid http URL without allowlist", async () => {
+		const result = await validateUrl("http://example.com/api");
 		assert.strictEqual(result.allowed, true);
 	});
 
-	it("blocks file:// scheme", () => {
-		const result = validateUrl("file:///etc/passwd");
+	it("blocks file:// scheme", async () => {
+		const result = await validateUrl("file:///etc/passwd");
 		assert.strictEqual(result.allowed, false);
 		assert.ok(
 			result.reason.toLowerCase().includes("blocked") ||
@@ -54,28 +54,28 @@ describe("tools - validateUrl", () => {
 		);
 	});
 
-	it("blocks gopher:// scheme", () => {
-		const result = validateUrl("gopher://example.com");
+	it("blocks gopher:// scheme", async () => {
+		const result = await validateUrl("gopher://example.com");
 		assert.strictEqual(result.allowed, false);
 	});
 
-	it("rejects empty URL", () => {
-		const result = validateUrl("");
+	it("rejects empty URL", async () => {
+		const result = await validateUrl("");
 		assert.strictEqual(result.allowed, false);
 	});
 
-	it("rejects null URL", () => {
-		const result = validateUrl(null);
+	it("rejects null URL", async () => {
+		const result = await validateUrl(null);
 		assert.strictEqual(result.allowed, false);
 	});
 
-	it("rejects invalid URL format", () => {
-		const result = validateUrl("not-a-valid-url");
+	it("rejects invalid URL format", async () => {
+		const result = await validateUrl("not-a-valid-url");
 		assert.strictEqual(result.allowed, false);
 	});
 
-	it("checks URL against allowlist", () => {
-		const result = validateUrl("http://allowed.com/api", ["allowed.com"]);
+	it("checks URL against allowlist", async () => {
+		const result = await validateUrl("http://allowed.com/api", ["allowed.com"]);
 		assert.strictEqual(result.allowed, true);
 	});
 });

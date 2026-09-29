@@ -115,7 +115,7 @@ export async function makeApiRequest(
 		maxBodySize = DEFAULT_MAX_BODY_SIZE,
 	} = {},
 ) {
-	const validation = filterUrl(url, allowlist);
+	const validation = await filterUrl(url, allowlist);
 	if (!validation.allowed) {
 		return { ok: false, error: validation.reason };
 	}
