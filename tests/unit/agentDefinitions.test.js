@@ -2,8 +2,10 @@
  * Agent definition tests - validates structure, output formats, and tool mappings.
  */
 
-import { describe, it } from "node:test";
+import { describe, it, mock } from "node:test";
 import { strictEqual, ok, deepStrictEqual } from "node:assert";
+import { renameSync } from "node:fs";
+import { join } from "node:path";
 import { getAllAgents } from "../../src/agent/agentDefinitions.js";
 import { getToolsForAgentTypes, TOOL_CLASSIFICATIONS } from "../../src/tools/index.js";
 
@@ -221,6 +223,78 @@ describe("Agent Definitions", () => {
 		it("should return empty array for unknown agent types", () => {
 			const tools = getToolsForAgentTypes(["nonexistent"], { searchWeb: {} });
 			deepStrictEqual(tools, []);
+		});
+	});
+
+	describe("Prompt load failure handling", () => {
+		const promptsDir = join(process.cwd(), "prompts");
+		const codingPrompt = join(promptsDir, "CODING.md");
+		const backupPrompt = join(promptsDir, "CODING.md.bak");
+
+		it("should surface a prompt-load failure at warn level when the prompt file is missing", async () => {
+			// Temporarily remove CODING.md to trigger a readFile failure
+			renameSync(codingPrompt, backupPrompt);
+
+			try {
+				const loggerMod = await import("../../src/shared/logger.js");
+				const warnCalls = [];
+				mock.method(loggerMod.logger, "warn", (msg) => {
+					warnCalls.push(msg);
+				});
+
+				// Force a fresh module load so createAgentDefinition runs with the missing file
+				const mod = await import(`../../src/agent/agentDefinitions.js?x=${Date.now()}`);
+				const agents = mod.getAllAgents();
+
+				// The agent is still returned (warn-and-continue), but with an empty system prompt
+				strictEqual(agents.length, 12, "Should still return all 12 agents");
+				const coding = agents.find((a) => a.name === "coding");
+				ok(coding, "Should include the coding agent");
+				strictEqual(coding.systemPrompt, "", "Coding agent should have empty system prompt");
+
+				// The failure must be surfaced at warn level, not silently swallowed
+				ok(
+					warnCalls.some((m) => m.includes("coding") && m.includes("Failed to load prompt")),
+					"Should log a warn-level message for the coding agent's prompt-load failure",
+				);
+			} finally {
+				renameSync(backupPrompt, codingPrompt);
+				mock.reset();
+			}
+		});
+
+		it("should not silently degrade at debug level when a prompt file is missing", async () => {
+			// Temporarily remove CODING.md to trigger a readFile failure
+			renameSync(codingPrompt, backupPrompt);
+
+			try {
+				const loggerMod = await import("../../src/shared/logger.js");
+				const warnCalls = [];
+				const debugCalls = [];
+				mock.method(loggerMod.logger, "warn", (msg) => {
+					warnCalls.push(msg);
+				});
+				mock.method(loggerMod.logger, "debug", (msg) => {
+					debugCalls.push(msg);
+				});
+
+				// Force a fresh module load so createAgentDefinition runs with the missing file
+				const mod = await import(`../../src/agent/agentDefinitions.js?x=${Date.now()}`);
+				mod.getAllAgents();
+
+				// The failure must be surfaced at warn level (regression: was debug before)
+				ok(
+					warnCalls.some((m) => m.includes("coding") && m.includes("Failed to load prompt")),
+					"Should log a warn-level message for the coding agent's prompt-load failure",
+				);
+				ok(
+					!debugCalls.some((m) => m.includes("coding") && m.includes("Failed to load prompt")),
+					"Should NOT log the prompt-load failure at debug level",
+				);
+			} finally {
+				renameSync(backupPrompt, codingPrompt);
+				mock.reset();
+			}
 		});
 	});
 });

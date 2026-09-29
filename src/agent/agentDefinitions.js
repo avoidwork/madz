@@ -106,7 +106,7 @@ async function createAgentDefinition(name, promptFile, description) {
 		agent.systemPrompt = await readFile(join(PROMPTS_DIR, promptFile), "utf-8");
 		logger.debug(`[${name}] Prompt loaded (${agent.systemPrompt.length} chars)`);
 	} catch (err) {
-		logger.debug(`[${name}] Failed to load prompt: ${err.message}`);
+		logger.warn(`[${name}] Failed to load prompt: ${err.message}`);
 	}
 
 	return agent;
