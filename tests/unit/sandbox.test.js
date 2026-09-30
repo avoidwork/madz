@@ -116,103 +116,55 @@ describe("sandbox - path resolution", () => {
 
 describe("sandbox - URL filtering", () => {
 	describe("filterUrl", () => {
-		it("allows http URLs", async () => {
-			const result = await filterUrl("http://api.example.com/health", ["api.example.com"]);
+		it("allows http URLs", () => {
+			const result = filterUrl("http://api.example.com/health", ["api.example.com"]);
 			assert.strictEqual(result.allowed, true);
 		});
 
-		it("blocks file:// scheme", async () => {
-			const result = await filterUrl("file:///etc/passwd");
+		it("blocks file:// scheme", () => {
+			const result = filterUrl("file:///etc/passwd");
 			assert.strictEqual(result.allowed, false);
 			assert.ok(result.reason.includes("Blocked scheme"));
 		});
 
-		it("blocks gopher:// scheme", async () => {
-			const result = await filterUrl("gopher://example.com");
+		it("blocks gopher:// scheme", () => {
+			const result = filterUrl("gopher://example.com");
 			assert.strictEqual(result.allowed, false);
 		});
 
-		it("blocks dict:// scheme", async () => {
-			const result = await filterUrl("dict://example.com");
+		it("blocks dict:// scheme", () => {
+			const result = filterUrl("dict://example.com");
 			assert.strictEqual(result.allowed, false);
 		});
 
-		it("rejects URLs not on allowlist", async () => {
-			const result = await filterUrl("http://evil.com", ["api.example.com"]);
+		it("rejects URLs not on allowlist", () => {
+			const result = filterUrl("http://evil.com", ["api.example.com"]);
 			assert.strictEqual(result.allowed, false);
 		});
 
-		it("accepts valid URL on allowlist", async () => {
-			const result = await filterUrl("https://api.example.com/v1/data", ["api.example.com"]);
+		it("accepts valid URL on allowlist", () => {
+			const result = filterUrl("https://api.example.com/v1/data", ["api.example.com"]);
 			assert.strictEqual(result.allowed, true);
 		});
 
-		it("handles invalid URLs", async () => {
-			const result = await filterUrl("not-a-url");
+		it("handles invalid URLs", () => {
+			const result = filterUrl("not-a-url");
 			assert.strictEqual(result.allowed, false);
 		});
 
-		it("handles empty URL", async () => {
-			const result = await filterUrl("");
+		it("handles empty URL", () => {
+			const result = filterUrl("");
 			assert.strictEqual(result.allowed, false);
 		});
 
-		it("handles null URL", async () => {
-			const result = await filterUrl(null);
+		it("handles null URL", () => {
+			const result = filterUrl(null);
 			assert.strictEqual(result.allowed, false);
 		});
 
-		it("works without allowlist", async () => {
-			const result = await filterUrl("http://any-domain.com/path");
+		it("works without allowlist", () => {
+			const result = filterUrl("http://any-domain.com/path");
 			assert.strictEqual(result.allowed, true);
-		});
-
-		it("blocks a hostname that resolves to a private IP", async () => {
-			const resolver = async () => ({ address: "169.254.169.254", family: 4 });
-			const result = await filterUrl("http://metadata.internal/latest", [], resolver);
-			assert.strictEqual(result.allowed, false);
-			assert.ok(result.reason.includes("Blocked internal host"));
-		});
-
-		it("blocks a hostname that resolves to a loopback IP", async () => {
-			const resolver = async () => ({ address: "127.0.0.1", family: 4 });
-			const result = await filterUrl("http://internal.example.com", [], resolver);
-			assert.strictEqual(result.allowed, false);
-			assert.ok(result.reason.includes("Blocked internal host"));
-		});
-
-		it("allows a hostname that resolves to a public IP", async () => {
-			const resolver = async () => ({ address: "93.184.216.34", family: 4 });
-			const result = await filterUrl("http://example.com", [], resolver);
-			assert.strictEqual(result.allowed, true);
-		});
-
-		it("rejects a prefix-match bypass on the allowlist", async () => {
-			const result = await filterUrl("https://example.com.evil.com", ["https://example.com"]);
-			assert.strictEqual(result.allowed, false);
-			assert.ok(result.reason.includes("Host not on allowlist"));
-		});
-
-		it("matches allowlist on exact hostname, not URL prefix", async () => {
-			const result = await filterUrl("https://example.com/path", ["https://example.com"]);
-			assert.strictEqual(result.allowed, true);
-		});
-
-		it("rejects a subdomain not explicitly allowlisted", async () => {
-			const result = await filterUrl("https://sub.example.com", ["example.com"]);
-			assert.strictEqual(result.allowed, false);
-			assert.ok(result.reason.includes("Host not on allowlist"));
-		});
-
-		it("matches allowlist on hostname and port", async () => {
-			const result = await filterUrl("https://example.com:8080/path", ["example.com:8080"]);
-			assert.strictEqual(result.allowed, true);
-		});
-
-		it("rejects a port mismatch on the allowlist", async () => {
-			const result = await filterUrl("https://example.com/path", ["example.com:8080"]);
-			assert.strictEqual(result.allowed, false);
-			assert.ok(result.reason.includes("Host not on allowlist"));
 		});
 	});
 

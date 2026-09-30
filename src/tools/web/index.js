@@ -345,7 +345,7 @@ export async function extractWebImpl(input) {
 		return JSON.stringify({ ok: false, error: "URL is required" });
 	}
 
-	const validation = await filterUrl(url, []);
+	const validation = filterUrl(url, []);
 	if (!validation.allowed) {
 		return JSON.stringify({ ok: false, error: `URL rejected: ${validation.reason}` });
 	}
@@ -425,7 +425,7 @@ export async function renderWebImpl(input, options = {}) {
 		return JSON.stringify({ ok: false, error: "URL is required" });
 	}
 
-	const validation = await filterUrl(url, []);
+	const validation = filterUrl(url, []);
 	if (!validation.allowed) {
 		return JSON.stringify({ ok: false, error: `URL rejected: ${validation.reason}` });
 	}
@@ -469,7 +469,7 @@ export async function screenshotWebImpl(input, options = {}) {
 		return JSON.stringify({ ok: false, error: "URL is required" });
 	}
 
-	const validation = await filterUrl(url, []);
+	const validation = filterUrl(url, []);
 	if (!validation.allowed) {
 		return JSON.stringify({ ok: false, error: `URL rejected: ${validation.reason}` });
 	}
