@@ -828,7 +828,7 @@ Graceful shutdown flushes all buffered log entries to disk before process exit.
 |               | `openai.credentials.apiKey`          | _(empty)_                                | API key for authentication                    |
 |               | `openai.temperature`                 | `0.4`                                    | Sampling temperature (0–2)                    |
 |               | `openai.maxTokens`                   | `4096`                                   | Max output tokens                             |
-|               | `openai.rateLimit.requestsPerMinute` | `60`                                     | Rate limit for API calls (the shipped `config.yaml` sets `120`) |
+|               | `openai.rateLimit.requestsPerMinute` | `60`                                     | Rate limit for API calls                      |
 |               | `openai.rateLimit.maxRetries`       | `6`                                      | Max retry attempts on transient errors         |
 |               | `openai.rateLimit.maxConcurrency`   | _(unset)_                                | Max concurrent requests (defaults to Infinity) |
 |               | `openai.rateLimit.maxTokensMinute`  | `0`                                      | Rolling tokens-per-minute budget; `0` disables the throttle |
@@ -841,7 +841,7 @@ Graceful shutdown flushes all buffered log entries to disk before process exit.
 |               | `env.allowlist`                      | `["PATH", "HOME", "NODE_ENV"]`           | _(no consumer — retained for config compat)_  |
 |               | `permissions`                        | `["filesystem:read", ...]`               | Permission grants                             |
 |               | `maxReadSize`                        | `"1mb"`                                  | Max file read size                            |
-|               | `skillScanPaths`                     | `[".skills/", "skills/"]`         | Skill discovery paths (comma-separated)       |
+|               | `skillScanPaths`                     | `["skills/", ".skills/"]`         | Skill discovery paths (comma-separated)       |
 |               | `trustProjectSkills`                 | `true`                                   | Trust skills in project root                  |
 | `memory`      | `directory`                          | `memory/`                                | Base directory for persistence                |
 |               | `contextDir`                         | `memory/context/`                        | Context file directory                        |
