@@ -85,7 +85,7 @@ export async function textToSpeechImpl(input, options = {}) {
 		});
 	}
 
-	const config = loadConfig();
+	const config = await loadConfig();
 	const providers = config.providers || {};
 	const providersOpenAI = providers?.openai || {};
 	const credentials = providersOpenAI?.credentials || {};

@@ -4,7 +4,7 @@ import { discoverSkills, defaultScope } from "./discoverer.js";
 import { validateSkillSchema } from "./validator.js";
 import { loadConfig } from "../config/loader.js";
 
-const config = loadConfig();
+const config = await loadConfig();
 const cwd = config.cwd || process.cwd();
 
 /**

@@ -35,7 +35,7 @@ export function setCwd(newCwd) {
  * @returns {Promise<{ success: boolean, name: string, paths: string[], registered: boolean, errors?: string[], warnings?: string[] }>}
  */
 export async function createSkillImpl(input, options = {}) {
-	const config = loadConfig();
+	const config = await loadConfig();
 	const { name, description, permissions, license, compatibility, metadata, scaffoldScripts } =
 		input;
 	const skillsDir = options.skillsDir || config.skillsDir || "skills/";

@@ -7,7 +7,7 @@ import { Cron } from "../../scheduler/cron.js";
 import { logger } from "../../shared/logger.js";
 import { loadConfig } from "../../config/loader.js";
 
-const config = loadConfig();
+const config = await loadConfig();
 
 /// -- Helper to find skill script --
 

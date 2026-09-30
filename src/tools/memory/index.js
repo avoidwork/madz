@@ -4,7 +4,7 @@ import { mkdir, writeFile, readFile, readdir, unlink, access } from "node:fs/pro
 import { join, basename } from "node:path";
 import { loadConfig } from "../../config/loader.js";
 
-const config = loadConfig();
+const config = await loadConfig();
 const cwd = config.cwd;
 
 const DEFAULT_MAX_ENTRIES = 100;

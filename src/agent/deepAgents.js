@@ -102,7 +102,7 @@ export function createSubagentDefinitions(allTools, model, skillRegistry, config
  * @returns {Object} Deep Agents orchestrator instance
  */
 export async function createDeepAgentsOrchestrator(checkpointer = null) {
-	const config = loadConfig();
+	const config = await loadConfig();
 	let systemPrompt = await loadSystemPrompt();
 	const agentsPath = join(config.cwd, "AGENTS.md");
 
@@ -196,7 +196,7 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	);
 
 	const coreBackend = createCoreBackend();
-	const contextBackend = createContextBackend();
+	const contextBackend = await createContextBackend();
 	const contextRoute = "/" + config.memory.contextDir.replace(/^\.?\//, "");
 
 	// Create subagent definitions with filtered tools and agent-specific skills

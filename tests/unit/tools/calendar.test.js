@@ -638,8 +638,8 @@ import { loadConfig } from "../../../src/config/loader.js";
 import { ConfigSchema } from "../../../src/config/config.js";
 
 describe("Calendar Config", () => {
-	it("should load config with calendar defaults", () => {
-		const config = loadConfig();
+	it("should load config with calendar defaults", async () => {
+		const config = await loadConfig();
 		assert.ok(config.calendar);
 		assert.ok(config.calendar.google);
 		assert.ok(config.calendar.msgraph);
@@ -656,42 +656,42 @@ describe("Calendar Config", () => {
 import { getActiveCalendarProvider } from "../../../src/tools/calendar/providers/factory.js";
 
 describe("Calendar Factory", () => {
-	it("should return null for missing calendar config", () => {
-		const provider = getActiveCalendarProvider({});
+	it("should return null for missing calendar config", async () => {
+		const provider = await getActiveCalendarProvider({});
 		assert.strictEqual(provider, null);
 	});
 
-	it("should fall back to loadConfig when config is null", () => {
+	it("should fall back to loadConfig when config is null", async () => {
 		// When config is null/undefined, factory calls loadConfig() which returns cached config
-		const provider = getActiveCalendarProvider(null);
+		const provider = await getActiveCalendarProvider(null);
 		// Should return a provider from the cached config (google by default)
 		assert.ok(provider);
 		assert.strictEqual(provider.type, "google");
 	});
 
-	it("should return Google provider by default", () => {
-		const provider = getActiveCalendarProvider(createMockConfig());
+	it("should return Google provider by default", async () => {
+		const provider = await getActiveCalendarProvider(createMockConfig());
 		assert.ok(provider);
 		assert.strictEqual(provider.type, "google");
 	});
 
-	it("should return Google provider when active is google", () => {
+	it("should return Google provider when active is google", async () => {
 		const config = createMockConfig({ active: "google" });
-		const provider = getActiveCalendarProvider(config);
+		const provider = await getActiveCalendarProvider(config);
 		assert.ok(provider);
 		assert.strictEqual(provider.type, "google");
 	});
 
-	it("should return MS Graph provider when active is msgraph", () => {
+	it("should return MS Graph provider when active is msgraph", async () => {
 		const config = createMockConfig({ active: "msgraph" });
-		const provider = getActiveCalendarProvider(config);
+		const provider = await getActiveCalendarProvider(config);
 		assert.ok(provider);
 		assert.strictEqual(provider.type, "msgraph");
 	});
 
-	it("should return null for unknown active provider", () => {
+	it("should return null for unknown active provider", async () => {
 		const config = createMockConfig({ active: "outlook" });
-		const provider = getActiveCalendarProvider(config);
+		const provider = await getActiveCalendarProvider(config);
 		assert.strictEqual(provider, null);
 	});
 });

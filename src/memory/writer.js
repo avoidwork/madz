@@ -25,7 +25,7 @@ function escapeYamlString(str) {
  * @returns {Promise<string>} The path of the created file
  */
 export async function writeMemoryFile(subdirectory, title, frontmatter, body = "") {
-	const config = loadConfig();
+	const config = await loadConfig();
 	const directory = join(config.cwd, subdirectory);
 	await mkdir(directory, { recursive: true });
 	const timestamp = new Date().toISOString().replace(/[:.]/g, "-");

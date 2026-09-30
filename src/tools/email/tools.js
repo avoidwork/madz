@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getActiveProvider } from "./index.js";
 import { loadConfig } from "../../config/loader.js";
 
-const config = loadConfig();
+const config = await loadConfig();
 
 /**
  * Email tool implementation — read, send, manage drafts, organize, and search.

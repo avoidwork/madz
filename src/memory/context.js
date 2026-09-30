@@ -5,7 +5,7 @@ import { parseFrontmatter } from "./reader.js";
 import { loadProfile, formatProfileContext } from "./profile.js";
 import { logger } from "../shared/logger.js";
 
-const cwd = loadConfig().cwd;
+const cwd = (await loadConfig()).cwd;
 const PROFILE_FILENAME = "profile.md";
 
 /**
@@ -61,7 +61,7 @@ export async function loadContext(contextDir = "memory/context/", limit = 10, cw
 			.join("\n");
 
 		// Load ephemeral memories last (newest first, limited)
-		const ephemeralLimit = loadConfig().memory.ephemeralLimit;
+		const ephemeralLimit = (await loadConfig()).memory.ephemeralLimit;
 		const ephemeralEntries = await Promise.all(
 			ephemeralFiles.map(async (filename) => {
 				const filepath = join(fullPath, filename);

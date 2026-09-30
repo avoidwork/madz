@@ -7,9 +7,9 @@ import { loadConfig } from "../config/loader.js";
  * @param {Object} [config] - Optional config override (defaults to loading from disk)
  * @returns {string} The resolved agent name
  */
-export function getAgentForSkill(skillName, config = null) {
+export async function getAgentForSkill(skillName, config = null) {
 	if (!config) {
-		config = loadConfig();
+		config = await loadConfig();
 	}
 
 	const map = config.skillAgentMap || [];

@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { readEphemeralFile, isExpired } from "../../memory/expireEphemeralMemories.js";
 import { loadConfig } from "../../config/loader.js";
 
-const config = loadConfig();
+const config = await loadConfig();
 
 const COOLDOWN_MS = 60 * 60 * 1000; // 60 minutes
 
@@ -103,7 +103,7 @@ export async function countEphemeralMemoryFiles(contextDir, nowStr) {
  */
 export async function samplingImpl(input, options = {}) {
 	const { content } = input;
-	const config = loadConfig();
+	const config = await loadConfig();
 	const memory = config.memory || {};
 	const contextDir = options.contextDir || memory.contextDir || "memory/context/";
 	const ttlDays = options.ttlDays ?? 7;

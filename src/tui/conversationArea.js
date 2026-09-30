@@ -243,9 +243,9 @@ const ConversationArea = forwardRef(function ConversationArea(
 		try {
 			const result = parser.parse(trimmed, {
 				_sessionState: sessionState,
-				_setConfigValue: (dotPath, valueStr) => {
+				_setConfigValue: async (dotPath, valueStr) => {
 					if (config) {
-						setConfigValue(config, dotPath, valueStr);
+						await setConfigValue(config, dotPath, valueStr);
 					}
 				},
 				_scheduleList: scheduleManager ? scheduleManager.list() : [],

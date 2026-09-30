@@ -23,7 +23,7 @@ const parsed = yargs(process.argv.slice(2))
 
 // Load config
 import { loadConfig } from "./src/config/loader.js";
-const config = loadConfig();
+const config = await loadConfig();
 import { fileURLToPath } from "node:url";
 import { loadSession } from "./src/session/loader.js";
 

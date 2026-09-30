@@ -7,9 +7,9 @@ import { loadConfig } from "../config/loader.js";
  * @param {string} [cwd] - Working directory (defaults to process.cwd())
  * @returns {FilesystemBackend}
  */
-export function createContextBackend(cwd) {
+export async function createContextBackend(cwd) {
 	const baseDir = cwd || process.cwd();
-	const config = loadConfig();
+	const config = await loadConfig();
 	const contextDir = join(baseDir, config.memory.contextDir);
 	return new FilesystemBackend({
 		rootDir: contextDir,

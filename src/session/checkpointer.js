@@ -4,7 +4,7 @@ import { mkdir } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { loadConfig } from "../config/loader.js";
 
-const cwd = loadConfig().cwd;
+const cwd = (await loadConfig()).cwd;
 
 /**
  * Ensure the checkpoints directory exists by creating it if necessary.

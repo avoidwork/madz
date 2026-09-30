@@ -4,7 +4,7 @@ import { loadConfig } from "../../config/loader.js";
 import { createVectorStore } from "../../vector/store.js";
 import { createEmbedder } from "../../vector/embedder.js";
 
-const config = loadConfig();
+const config = await loadConfig();
 const vectorConfig = config.vector || {};
 
 /**

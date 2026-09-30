@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
+import { readFile, writeFile, access, mkdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { createRequire } from "node:module";
@@ -524,19 +524,24 @@ let cachedConfig = null;
  * environment variable name: providers.openai.credentials.apiKey
  * resolves to OPENAI_API_KEY.
  * Cached after first call — subsequent calls return the same object.
- * @returns {z.infer<typeof ConfigSchema>}
+ * @returns {Promise<z.infer<typeof ConfigSchema>>}
  */
-export function loadConfig() {
+export async function loadConfig() {
 	if (cachedConfig) {
 		return cachedConfig;
 	}
 
 	let raw = ConfigSchema.parse({});
-	if (existsSync(CONFIG_PATH)) {
-		const fileContent = readFileSync(CONFIG_PATH, "utf-8");
+	try {
+		await access(CONFIG_PATH);
+		const fileContent = await readFile(CONFIG_PATH, "utf-8");
 		const parsed = load(fileContent);
 		if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
 			raw = deepMerge({}, { ...ConfigSchema.parse({}), ...parsed });
+		}
+	} catch (err) {
+		if (err?.code !== "ENOENT") {
+			throw err;
 		}
 	}
 	// Materialize missing config structure from environment variables
@@ -556,12 +561,13 @@ export function loadConfig() {
 /**
  * Save current config to config.yaml.
  * @param {Object} config
+ * @returns {Promise<void>}
  */
-export function saveConfig(config) {
+export async function saveConfig(config) {
 	const dir = dirname(CONFIG_PATH);
-	if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+	await mkdir(dir, { recursive: true });
 	const yamlContent = dump(config);
-	writeFileSync(CONFIG_PATH, yamlContent);
+	await writeFile(CONFIG_PATH, yamlContent);
 }
 
 /**
@@ -569,10 +575,10 @@ export function saveConfig(config) {
  * @param {Object} config
  * @param {string} dotPath - Dotted config path
  * @param {string} valueStr - String value to parse and save
- * @returns {boolean} Success
+ * @returns {Promise<boolean>} Success
  */
-export function setConfigValue(config, dotPath, valueStr) {
+export async function setConfigValue(config, dotPath, valueStr) {
 	applyDotPathMutation(config, dotPath, valueStr);
-	saveConfig(config);
+	await saveConfig(config);
 	return true;
 }

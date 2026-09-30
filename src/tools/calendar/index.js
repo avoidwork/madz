@@ -27,7 +27,7 @@ export async function calendarImpl(input, options) {
 		};
 	}
 
-	const provider = getActiveCalendarProvider(options?.config);
+	const provider = await getActiveCalendarProvider(options?.config);
 	if (!provider) {
 		return {
 			ok: false,

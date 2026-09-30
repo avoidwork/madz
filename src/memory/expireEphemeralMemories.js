@@ -4,7 +4,7 @@ import { parseFrontmatter } from "./reader.js";
 import { loadConfig } from "../config/loader.js";
 import { logger } from "../shared/logger.js";
 
-const cwd = loadConfig().cwd;
+const cwd = (await loadConfig()).cwd;
 
 /**
  * Read an ephemeral memory file and extract frontmatter metadata.

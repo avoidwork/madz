@@ -4,7 +4,7 @@ import { filterUrl } from "../../sandbox/urlFilter.js";
 import { loadConfig } from "../../config/loader.js";
 import { launchBrowser, openPage, DEFAULT_TIMEOUT } from "./browser.js";
 
-const config = loadConfig();
+const config = await loadConfig();
 
 /**
  * Resize and re-encode a base64 PNG screenshot so it fits within a max width

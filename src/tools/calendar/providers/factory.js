@@ -7,8 +7,8 @@ import { loadConfig } from "../../../config/loader.js";
  * @param {object} [config] - Optional config override
  * @returns {CalendarProviderBase|null} Active provider or null
  */
-export function getActiveCalendarProvider(config) {
-	const cfg = config || loadConfig();
+export async function getActiveCalendarProvider(config) {
+	const cfg = config || (await loadConfig());
 	const calendarConfig = cfg.calendar;
 
 	if (!calendarConfig) {

@@ -5,8 +5,8 @@ import { loadConfig } from "../config/loader.js";
 import { logger } from "../shared/logger.js";
 import { getAgentForSkill } from "./agentMapper.js";
 
-export const defaultScope = loadConfig().sandbox.skillScanPaths;
-export let cwd = loadConfig().cwd;
+export const defaultScope = (await loadConfig()).sandbox.skillScanPaths;
+export let cwd = (await loadConfig()).cwd;
 
 /**
  * Set the working directory for skill discovery.
@@ -139,8 +139,8 @@ async function findSkillFiles(dir) {
 
 					// Inject agent from config if not present in frontmatter metadata
 					if (!metadata.metadata?.agent) {
-						const config = loadConfig();
-						const agent = getAgentForSkill(basename(fullPath), config);
+						const config = await loadConfig();
+						const agent = await getAgentForSkill(basename(fullPath), config);
 						if (agent) {
 							metadata.metadata = { ...metadata.metadata, agent };
 						}

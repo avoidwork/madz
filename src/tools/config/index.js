@@ -12,7 +12,7 @@ import { loadConfig } from "../../config/loader.js";
  * @returns {Promise<string>} JSON-serialized harness configuration
  */
 async function getConfigImpl(_input) {
-	const config = loadConfig();
+	const config = await loadConfig();
 	return JSON.stringify(config, null, 2);
 }
 

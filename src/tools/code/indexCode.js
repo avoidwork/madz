@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { loadConfig } from "../../config/loader.js";
 
-const config = loadConfig();
+const config = await loadConfig();
 const vectorConfig = config.vector || {};
 
 const __dirname = dirname(fileURLToPath(import.meta.url));

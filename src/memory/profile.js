@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { loadConfig } from "../config/loader.js";
 import { logger } from "../shared/logger.js";
 
-const config = loadConfig();
+const config = await loadConfig();
 const PROFILE_DIR = join(config.cwd, config.memory.contextDir);
 const PROFILE_FILE = "profile.md";
 const PROFILE_PATH = join(PROFILE_DIR, PROFILE_FILE);

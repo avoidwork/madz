@@ -3,7 +3,7 @@ import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { loadConfig } from "../config/loader.js";
 
-const cwd = loadConfig().cwd;
+const cwd = (await loadConfig()).cwd;
 
 /**
  * Generate a session UUID and create initial session state.

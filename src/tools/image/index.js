@@ -72,7 +72,7 @@ export async function generateImageImpl(input, options = {}) {
 		return JSON.stringify({ ok: false, error: "Prompt must be 1000 characters or fewer" });
 	}
 
-	const config = loadConfig();
+	const config = await loadConfig();
 	const apiKey = options.falApiKey ?? config.providers?.fal?.credentials?.apiKey;
 	if (!apiKey) {
 		return JSON.stringify({

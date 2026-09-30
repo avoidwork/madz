@@ -49,7 +49,7 @@ export async function readImageImpl(input, options = {}) {
 		return JSON.stringify({ ok: false, error: "Path is required and must be a non-empty string" });
 	}
 
-	const config = loadConfig();
+	const config = await loadConfig();
 	const allowedPaths = options.allowedPaths || config.sandbox?.paths || [];
 	const sizeLimit = maxSize || config.image?.maxSize || 100000;
 

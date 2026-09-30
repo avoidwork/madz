@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { parseFrontmatter } from "../../memory/reader.js";
 import { loadConfig } from "../../config/loader.js";
 
-const config = loadConfig();
+const config = await loadConfig();
 export let cwd = config.cwd;
 const FS = Object.freeze({ MODE_RDONLY: 0 });
 
@@ -33,7 +33,7 @@ async function exists(path) {
  * @returns {Promise<string>} Search results or conversation content
  */
 export async function searchSessionImpl(input, options = {}) {
-	const config = loadConfig();
+	const config = await loadConfig();
 	const cwd = options.cwd || config.cwd;
 	const memory = config.memory || {};
 	const sessionsDir = join(cwd, options.sessionsDir || memory.sessionsDir || "memory/sessions/");
