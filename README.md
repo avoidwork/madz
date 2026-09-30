@@ -441,9 +441,9 @@ providers:
 | Variable                             | Default                 | Description                    |
 | ------------------------------------ | ----------------------- | ------------------------------ |
 | `TELEMETRY_ENABLED`                  | `false`                 | Enable OpenTelemetry export    |
-| `TELEMETRY_EXPORTER_PROTOCOL`        | `console`               | Exporter protocol              |
 | `TELEMETRY_EXPORTER_ENDPOINT`        | `http://localhost:4318` | OTLP endpoint URL              |
 | `TELEMETRY_EXPORTER_MAX_SIZE`        | `512`                   | Batch size before flush        |
+| `TELEMETRY_EXPORTER_PROTOCOL`        | `console`               | Exporter protocol              |
 | `TELEMETRY_EXPORTER_SCHEDULED_DELAY` | `5000`                  | Scheduled flush interval in ms |
 | `TELEMETRY_SAMPLING_RATIO`           | `0.1`                   | Trace probability              |
 
