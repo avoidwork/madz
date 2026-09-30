@@ -361,13 +361,13 @@ providers:
 | Variable                     | Default                     | Description                |
 | ---------------------------- | --------------------------- | -------------------------- |
 | `OPENAI_BASE_URL`            | `https://api.openai.com/v1` | API endpoint URL           |
-| `OPENAI_MODEL`               | `gpt-4o`                    | Model name                 |
 | `OPENAI_ENCODING`            | _(auto)_                    | Tiktoken encoder name (see [Encoding Reference](#encoding-reference) below) |
-| `OPENAI_TEMPERATURE`         | `0.4`                       | Sampling temperature (0–2) |
-| `OPENAI_MAX_TOKENS`          | `4096`                      | Max output tokens          |
 | `OPENAI_MAX_CONCURRENCY`     | _(none)_                    | Max concurrent API calls   |
 | `OPENAI_MAX_RETRIES`         | `6`                         | Max retries for API calls  |
+| `OPENAI_MAX_TOKENS`          | `4096`                      | Max output tokens          |
+| `OPENAI_MODEL`               | `gpt-4o`                    | Model name                 |
 | `OPENAI_REQUESTS_PER_MINUTE` | `60`                        | Rate limit for API calls   |
+| `OPENAI_TEMPERATURE`         | `0.4`                       | Sampling temperature (0–2) |
 | `OPENROUTER_API_KEY`         | _(empty)_                   | OpenRouter API key         |
 | `OPENROUTER_MODEL`           | `openrouter/auto`           | OpenRouter model name      |
 
