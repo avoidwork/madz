@@ -390,20 +390,20 @@ providers:
 
 | Variable                              | Default   | Description                         |
 | ------------------------------------- | --------- | ----------------------------------- |
+| `EMAIL_GMAIL_ACCESS_TOKEN`            | _(empty)_ | Gmail OAuth2 access token (optional) |
 | `EMAIL_GMAIL_CLIENT_ID`               | _(empty)_ | Gmail OAuth2 client ID              |
 | `EMAIL_GMAIL_CLIENT_SECRET`           | _(empty)_ | Gmail OAuth2 client secret          |
 | `EMAIL_GMAIL_REFRESH_TOKEN`           | _(empty)_ | Gmail OAuth2 refresh token          |
-| `EMAIL_GMAIL_ACCESS_TOKEN`            | _(empty)_ | Gmail OAuth2 access token (optional) |
+| `EMAIL_GRAPH_ACCESS_TOKEN`            | _(empty)_ | MS Graph OAuth2 access token (optional) |
 | `EMAIL_GRAPH_CLIENT_ID`               | _(empty)_ | MS Graph OAuth2 client ID           |
 | `EMAIL_GRAPH_CLIENT_SECRET`           | _(empty)_ | MS Graph OAuth2 client secret       |
 | `EMAIL_GRAPH_REFRESH_TOKEN`           | _(empty)_ | MS Graph OAuth2 refresh token       |
 | `EMAIL_GRAPH_TENANT_ID`               | _(empty)_ | MS Graph Azure AD tenant ID         |
-| `EMAIL_GRAPH_ACCESS_TOKEN`            | _(empty)_ | MS Graph OAuth2 access token (optional) |
 | `EMAIL_IMAP_HOST`                     | `imap.gmail.com` | IMAP server hostname            |
-| `EMAIL_IMAP_PORT`                     | `993`     | IMAP server port                  |
-| `EMAIL_IMAP_USER`                     | _(empty)_ | IMAP username                     |
 | `EMAIL_IMAP_PASSWORD`                 | _(empty)_ | IMAP password / app password        |
+| `EMAIL_IMAP_PORT`                     | `993`     | IMAP server port                  |
 | `EMAIL_IMAP_SECURE`                   | `true`    | Use SSL/TLS for IMAP connection     |
+| `EMAIL_IMAP_USER`                     | _(empty)_ | IMAP username                     |
 | `EMAIL_SMTP_HOST`                     | _(same as IMAP)_ | SMTP server hostname for sending |
 | `EMAIL_SMTP_PORT`                     | `587`     | SMTP server port (STARTTLS)       |
 
