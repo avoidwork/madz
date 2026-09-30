@@ -193,7 +193,7 @@ export async function executeGraphQL(
 	allowlist = [],
 	isIntrospection = false,
 ) {
-	const validation = await filterUrl(url, allowlist);
+	const validation = filterUrl(url, allowlist);
 	if (!validation.allowed) {
 		return { ok: false, error: validation.reason };
 	}
