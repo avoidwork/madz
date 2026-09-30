@@ -638,39 +638,39 @@ All built-in tools are defined in `src/tools/` and registered as LangChain tools
 | `api` | REST API client with auth (bearer, basic, apikey), URL filtering, timeouts, and rate limiting. |
 | `calendar` | Read, create, and manage calendar events via Google Calendar API. |
 | `clarify` | Send clarification questions to the user with optional numbered choices. Zero permissions — always registered. |
-| `cronJob` | Manage scheduled cron jobs — create, list, update, pause, resume, run, remove. Persisted to `memory/schedules/`. Available to the orchestrator agent. |
 | `createSkill` | Create a spec-compliant skill directory with SKILL.md YAML frontmatter. Optionally scaffolds a `scripts/` directory. |
+| `cronJob` | Manage scheduled cron jobs — create, list, update, pause, resume, run, remove. Persisted to `memory/schedules/`. Available to the orchestrator agent. |
 | `data` | Format conversion between JSON, YAML, and CSV. |
 | `date` | Return current date/time in ISO 8601 UTC or human-readable format. Zero permissions — always registered. |
+| `docx` | Read and extract content from `.docx` (Word) documents. |
 | `email` | Read, send, manage drafts, organize, and search emails. Actions: `read`, `send`, `draftSave`, `draftList`, `draftUpdate`, `draftDelete`, `organize`, `search`. Requires email provider credentials via environment variables. |
-| `graphql` | GraphQL client with depth/complexity limits, introspection support, and rate limiting. |
+| `extractWeb` | Extract readable text content from a web page URL. Supports summarization for large pages. |
 | `generateImage` | Generate images via FAL.ai flux/klein API. |
-| `readImage` | Read an image file from disk and return its base64-encoded contents plus MIME type, for direct LLM vision analysis. |
-| `json` | JSON parse, serialize, transform, filter, and access operations. |
-| `memory` | Persistent key-value memory with CRUD actions (create, read, update, delete, list). Each entry stored as `.md` in `memory/context/` with `createdDate`/`updatedDate` metadata. |
 | `generatePdf` | Generate PDFs from HTML or markdown, or manipulate existing PDFs (merge, split, watermark, signature, annotate). Use action to specify the operation. |
 | `generatePptx` | Generate PowerPoint presentations from a structured description. |
+| `getConfig` | Get the full harness configuration as a parsed JSON object. |
+| `graphql` | GraphQL client with depth/complexity limits, introspection support, and rate limiting. |
+| `indexCode` | Index project source code for vector search. Scans configured project directories, chunks source files, generates embeddings, and stores them for semantic search. Runs incrementally — only processes changed files. |
+| `json` | JSON parse, serialize, transform, filter, and access operations. |
+| `memory` | Persistent key-value memory with CRUD actions (create, read, update, delete, list). Each entry stored as `.md` in `memory/context/` with `createdDate`/`updatedDate` metadata. |
+| `namecom` | DNS name resolution and lookup. |
+| `pdf` | Read and extract content from PDF documents. |
+| `pptx` | Read and extract content from `.pptx` (PowerPoint) documents. |
 | `process` | Execute shell commands and manage background processes. Actions: start (launch command), list (show all), log (read stdout/stderr), wait (wait for exit), kill (SIGTERM/SIGKILL), write (send stdin data), pause (SIGSTOP), resume (SIGCONT). |
+| `readImage` | Read an image file from disk and return its base64-encoded contents plus MIME type, for direct LLM vision analysis. |
+| `reflectionSessions` | Read session files, filter by date window and ignore patterns, extract user messages, and return structured data. |
+| `renderWeb` | Render a URL in headless Chromium and return the JS-aware extracted text — for JavaScript-heavy pages (SPAs, dashboards, paywalled content). |
 | `sampling` | Capture emotional moments as ephemeral memories. Rate-limited to 1 per 60 minutes. Stored with `expiresAt` frontmatter. |
 | `scanAgents` | Scan for `AGENTS.md` workspace rules files in a target directory. Returns file contents or empty string. |
-| `reflectionSessions` | Read session files, filter by date window and ignore patterns, extract user messages, and return structured data. |
+| `screenshotWeb` | Render a URL in headless Chromium and return a base64 PNG screenshot for vision analysis. |
+| `searchCode` | Semantic code search using vector similarity. Finds conceptually related code even when exact keywords don't match — e.g., searching for "authentication" finds login handlers, token validation, and auth middleware. |
 | `searchSession` | Search past conversations by keyword query, full retrieval by conversation ID, or browse all sessions. |
+| `searchWeb` | Search the web via DuckDuckGo, Google, Bing, SearXNG, or Custom endpoints. |
 | `spreadsheet` | Spreadsheet computation and analysis. Actions: compute (sum, average, count, min, max, formula, median, stddev, variance), generate (create XLSX with formulas), analyze (pivot tables, filtering, groupBy, stats, percentile), csvImport, csvExport, modify (add/modify/delete cells and sheets), export (XLSX, CSV, JSON). |
 | `textToSpeech` | Convert text to speech via OpenAI TTS (tts-1/tts-1-hd). Saves MP3 to `~/voice-memos/`. |
-| `extractWeb` | Extract readable text content from a web page URL. Supports summarization for large pages. |
-| `renderWeb` | Render a URL in headless Chromium and return the JS-aware extracted text — for JavaScript-heavy pages (SPAs, dashboards, paywalled content). |
-| `screenshotWeb` | Render a URL in headless Chromium and return a base64 PNG screenshot for vision analysis. |
-| `searchWeb` | Search the web via DuckDuckGo, Google, Bing, SearXNG, or Custom endpoints. |
 | `webhook` | Webhook CRUD and HMAC verification with URL validation. |
-| `yaml` | YAML parse, serialize, transform, filter, and access operations. |
-| `searchCode` | Semantic code search using vector similarity. Finds conceptually related code even when exact keywords don't match — e.g., searching for "authentication" finds login handlers, token validation, and auth middleware. |
-| `indexCode` | Index project source code for vector search. Scans configured project directories, chunks source files, generates embeddings, and stores them for semantic search. Runs incrementally — only processes changed files. |
-| `getConfig` | Get the full harness configuration as a parsed JSON object. |
-| `namecom` | DNS name resolution and lookup. |
-| `docx` | Read and extract content from `.docx` (Word) documents. |
-| `pptx` | Read and extract content from `.pptx` (PowerPoint) documents. |
 | `xlsx` | Read and extract content from `.xlsx` (Excel) spreadsheets. |
-| `pdf` | Read and extract content from PDF documents. |
+| `yaml` | YAML parse, serialize, transform, filter, and access operations. |
 
 **Deep Agents tools:** Core filesystem operations (`readFile`, `writeFile`, `patch`, `searchFiles`) and task management (`todo`) are provided by [deepagentsjs](https://github.com/langchain-ai/deepagentsjs) and are not listed as madz-built-in tools.
 
