@@ -13,6 +13,7 @@ import { SkillRegistry } from "../skills/registry.js";
 import { createChatModel, getActiveProviderConfig } from "../provider/openai.js";
 import { createTokenBudgetMiddleware } from "../provider/tokenBudgetMiddleware.js";
 import { createSummarizationMiddlewareFromConfig } from "../provider/summarizationMiddleware.js";
+import { createImageDispatchMiddleware } from "../provider/imageDispatchMiddleware.js";
 import {
 	buildToolConfig,
 	getToolsForAgentTypes,
@@ -233,6 +234,14 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 		config: config.summarization,
 	});
 
+	// Image-dispatch middleware. Registered AFTER summarization and BEFORE
+	// token-budget: AgentNode composes the wrapModelCall chain backwards, so the
+	// last entry is innermost. Registering after summarization means this
+	// middleware observes the final post-summarization message set; registering
+	// before token-budget means the budget sees the injected image when
+	// estimating context cost.
+	const imageDispatchMiddleware = createImageDispatchMiddleware();
+
 	const agent = createDeepAgent({
 		model,
 		tools: orchestratorTools,
@@ -245,6 +254,7 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 		middleware: [
 			createCodeInterpreterMiddleware(),
 			...(summarizationMiddleware ? [summarizationMiddleware] : []),
+			imageDispatchMiddleware,
 			...(tokenBudgetMiddleware ? [tokenBudgetMiddleware] : []),
 		],
 		streamTransformers: [() => createTurnTransformer()],
