@@ -20,9 +20,9 @@ export function validatePath(filePath, allowedPaths) {
  * Validate a URL against blocked schemes and optional allowlist.
  * @param {string} url - The URL to validate
  * @param {string[]} [allowlist=[]] - Optional URL host allowlist
- * @returns {{ allowed: boolean, reason: string }}
+ * @returns {Promise<{ allowed: boolean, reason: string }>}
  */
-export function validateUrl(url, allowlist = []) {
+export async function validateUrl(url, allowlist = []) {
 	if (!url || typeof url !== "string") {
 		return { allowed: false, reason: "Invalid URL" };
 	}
@@ -37,7 +37,7 @@ export function validateUrl(url, allowlist = []) {
  * @returns {Promise<{ ok: boolean, body?: string, error?: string }>}
  */
 export async function fetchWithTimeout(url, timeoutMs = 5000, allowlist = []) {
-	const validation = validateUrl(url, allowlist);
+	const validation = await validateUrl(url, allowlist);
 	if (!validation.allowed) {
 		return { ok: false, error: validation.reason };
 	}

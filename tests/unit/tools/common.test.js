@@ -87,61 +87,61 @@ describe("validatePath", () => {
 // --- validateUrl ---
 
 describe("validateUrl", () => {
-	it("allows http URLs", () => {
-		const result = validateUrl("http://api.example.com/health", ["api.example.com"]);
+	it("allows http URLs", async () => {
+		const result = await validateUrl("http://api.example.com/health", ["api.example.com"]);
 		assert.strictEqual(result.allowed, true);
 	});
 
-	it("blocks file:// scheme", () => {
-		const result = validateUrl("file:///etc/passwd");
+	it("blocks file:// scheme", async () => {
+		const result = await validateUrl("file:///etc/passwd");
 		assert.strictEqual(result.allowed, false);
 	});
 
-	it("blocks gopher:// scheme", () => {
-		const result = validateUrl("gopher://example.com");
+	it("blocks gopher:// scheme", async () => {
+		const result = await validateUrl("gopher://example.com");
 		assert.strictEqual(result.allowed, false);
 	});
 
-	it("blocks dict:// scheme", () => {
-		const result = validateUrl("dict://example.com");
+	it("blocks dict:// scheme", async () => {
+		const result = await validateUrl("dict://example.com");
 		assert.strictEqual(result.allowed, false);
 	});
 
-	it("rejects URLs not on allowlist", () => {
-		const result = validateUrl("http://evil.com", ["api.example.com"]);
+	it("rejects URLs not on allowlist", async () => {
+		const result = await validateUrl("http://evil.com", ["api.example.com"]);
 		assert.strictEqual(result.allowed, false);
 	});
 
-	it("accepts valid URL on allowlist", () => {
-		const result = validateUrl("https://api.example.com/v1/data", ["api.example.com"]);
+	it("accepts valid URL on allowlist", async () => {
+		const result = await validateUrl("https://api.example.com/v1/data", ["api.example.com"]);
 		assert.strictEqual(result.allowed, true);
 	});
 
-	it("handles invalid URLs", () => {
-		const result = validateUrl("not-a-url");
+	it("handles invalid URLs", async () => {
+		const result = await validateUrl("not-a-url");
 		assert.strictEqual(result.allowed, false);
 	});
 
-	it("handles empty URL", () => {
-		const result = validateUrl("");
-		assert.strictEqual(result.allowed, false);
-		assert.ok(result.reason.includes("Invalid URL"));
-	});
-
-	it("handles null URL", () => {
-		const result = validateUrl(null);
+	it("handles empty URL", async () => {
+		const result = await validateUrl("");
 		assert.strictEqual(result.allowed, false);
 		assert.ok(result.reason.includes("Invalid URL"));
 	});
 
-	it("handles non-string URL", () => {
-		const result = validateUrl(42);
+	it("handles null URL", async () => {
+		const result = await validateUrl(null);
 		assert.strictEqual(result.allowed, false);
 		assert.ok(result.reason.includes("Invalid URL"));
 	});
 
-	it("works without allowlist", () => {
-		const result = validateUrl("http://any-domain.com/path");
+	it("handles non-string URL", async () => {
+		const result = await validateUrl(42);
+		assert.strictEqual(result.allowed, false);
+		assert.ok(result.reason.includes("Invalid URL"));
+	});
+
+	it("works without allowlist", async () => {
+		const result = await validateUrl("http://any-domain.com/path");
 		assert.strictEqual(result.allowed, true);
 	});
 });

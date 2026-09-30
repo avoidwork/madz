@@ -1,3 +1,5 @@
+import { lookup } from "node:dns/promises";
+
 const BLOCKED_SCHEMES = new Set(["file:", "gopher:", "dict:"]);
 
 // Internal/private IP ranges to block (RFC 1918 + loopback + link-local + metadata)
@@ -25,11 +27,31 @@ export function setTestMode(enabled) {
 }
 
 /**
+ * Normalize an allowlist entry into a hostname/port pair.
+ * @param {string} entry - Allowlist entry (bare hostname, hostname:port, or full URL)
+ * @returns {{ hostname: string, port: string } | null}
+ */
+function normalizeAllowlistEntry(entry) {
+	if (!entry || typeof entry !== "string") return null;
+	let parsed;
+	try {
+		parsed = new URL(entry.includes("://") ? entry : `https://${entry}`);
+	} catch (_err) {
+		return null;
+	}
+	return {
+		hostname: parsed.hostname.toLowerCase(),
+		port: parsed.port,
+	};
+}
+
+/**
  * Check if a hostname or IP is an internal/private address.
  * @param {string} host - Hostname or IP to check
- * @returns {boolean}
+ * @param {Function} [resolver] - DNS resolver (defaults to dns.promises.lookup)
+ * @returns {Promise<boolean>}
  */
-function isInternalHost(host) {
+async function isInternalHost(host, resolver = lookup) {
 	if (!host || typeof host !== "string") return false;
 	const lowerHost = host.toLowerCase();
 	// Direct IP match
@@ -40,16 +62,27 @@ function isInternalHost(host) {
 	if (lowerHost === "localhost" || lowerHost === "0.0.0.0") {
 		return true;
 	}
-	return false;
+	try {
+		const result = await resolver(lowerHost, { all: true });
+		const addresses = Array.isArray(result) ? result : [result];
+		return addresses.some((entry) => {
+			const addr = typeof entry === "string" ? entry : entry?.address;
+			return addr ? BLOCKED_IP_PATTERNS.some((pattern) => pattern.test(addr.toLowerCase())) : false;
+		});
+	} catch (_err) {
+		// Fail-open: an unresolvable host cannot be fetched, so it is not an SSRF vector
+		return false;
+	}
 }
 
 /**
  * Filter outbound URLs, blocking prohibited schemes, internal IPs, and checking against an allowlist.
  * @param {string} url - The URL to validate
  * @param {string[]} [allowlist=[]] - Allowed hostnames/URLs
- * @returns {{ allowed: boolean, reason: string }}
+ * @param {Function} [resolver] - DNS resolver (defaults to dns.promises.lookup)
+ * @returns {Promise<{ allowed: boolean, reason: string }>}
  */
-export function filterUrl(url, allowlist = []) {
+export async function filterUrl(url, allowlist = [], resolver = lookup) {
 	if (!url || typeof url !== "string") {
 		return { allowed: false, reason: "Invalid URL" };
 	}
@@ -63,18 +96,19 @@ export function filterUrl(url, allowlist = []) {
 		}
 
 		// Block internal/private IPs and hostnames (always enforced, unless test mode)
-		if (!_testMode && isInternalHost(parsed.hostname)) {
+		if (!_testMode && (await isInternalHost(parsed.hostname, resolver))) {
 			return { allowed: false, reason: `Blocked internal host: ${parsed.hostname}` };
 		}
 
 		if (allowlist.length > 0) {
 			const hostname = parsed.hostname.toLowerCase();
+			const port = parsed.port;
 			const onAllowlist = allowlist.some((entry) => {
-				const normalized = entry.replace(/^https?:\/\//, "").toLowerCase();
+				const normalized = normalizeAllowlistEntry(entry);
+				if (!normalized) return false;
+				// Exact hostname match; if the entry specifies a port, require it to match too
 				return (
-					hostname === normalized ||
-					hostname === normalized.replace(/:\d+$/, "") ||
-					url.startsWith(entry)
+					hostname === normalized.hostname && (normalized.port === "" || normalized.port === port)
 				);
 			});
 			if (!onAllowlist) {
