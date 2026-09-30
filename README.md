@@ -375,20 +375,16 @@ providers:
 
 | Variable                          | Default   | Description                         |
 | --------------------------------- | --------- | ----------------------------------- |
-| `FAL_API_KEY`                     | _(empty)_ | Fal.ai API key (image generation)   |
-| `EXA_API_KEY`                     | _(empty)_ | Exa search API key                  |
-| `FIRECRAWL_API_KEY`               | _(empty)_ | Firecrawl API key                   |
-| `TAVILY_API_KEY`                  | _(empty)_ | Tavily search API key               |
-| `PARALLEL_API_KEY`                | _(empty)_ | Parallel search API key             |
-| `SEARXNG_URL`                     | _(empty)_ | SearXNG search instance URL         |
 | `BING_API_KEY`                    | _(empty)_ | Bing search API key                 |
-| `CUSTOM_SEARCH_URL`               | _(empty)_ | Custom search engine URL            |
-| `CUSTOM_SEARCH_METHOD`            | _(empty)_ | Custom search HTTP method           |
+| `CUSTOM_SEARCH_DESCRIPTION_FIELD` | _(empty)_ | Custom search description field     |
 | `CUSTOM_SEARCH_HEADERS`           | _(empty)_ | Custom search headers (JSON string) |
+| `CUSTOM_SEARCH_METHOD`            | _(empty)_ | Custom search HTTP method           |
 | `CUSTOM_SEARCH_QUERY_KEY`         | _(empty)_ | Custom search query key             |
 | `CUSTOM_SEARCH_TITLE_FIELD`       | _(empty)_ | Custom search title field           |
+| `CUSTOM_SEARCH_URL`               | _(empty)_ | Custom search engine URL            |
 | `CUSTOM_SEARCH_URL_FIELD`         | _(empty)_ | Custom search URL field             |
-| `CUSTOM_SEARCH_DESCRIPTION_FIELD` | _(empty)_ | Custom search description field     |
+| `FAL_API_KEY`                     | _(empty)_ | Fal.ai API key (image generation)   |
+| `SEARXNG_URL`                     | _(empty)_ | SearXNG search instance URL         |
 
 **Optional — Email:**
 
