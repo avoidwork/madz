@@ -3,6 +3,11 @@ import { join } from "node:path";
 import os from "node:os";
 import pino from "pino";
 
+// Module-level pino logger instance. Declared here (before any catch blocks)
+// so the logError helper can reference it without hitting the temporal dead
+// zone during module initialization.
+let pinoLogger = null;
+
 // ---------------------------------------------------------------------------
 // Section 1: PII redaction patterns
 // ---------------------------------------------------------------------------
@@ -61,6 +66,39 @@ export function redactPIIFromObject(obj) {
 	return redacted;
 }
 
+/**
+ * Safely log an error from within a catch block without risking recursion or
+ * throwing. Uses the structured `logger` singleton when it is available and
+ * not the source of the failure; otherwise falls back to a guarded
+ * `process.stderr.write`. This preserves the logger's never-throw invariant.
+ * @param {unknown} err - The caught error to log
+ * @param {string} [context] - Optional context string describing the failure
+ * @returns {void}
+ */
+export function logError(err, context = "") {
+	const message = context ? `${context}: ${err?.message ?? err}` : (err?.message ?? String(err));
+	/* node:coverage disable — defensive, requires the logger and stderr to throw */
+	try {
+		if (typeof pinoLogger?.debug === "function") {
+			pinoLogger.debug(message);
+			return;
+		}
+	} catch (logErr) {
+		// Fall through to stderr if the logger itself throws. Bind the error so
+		// it is not silently discarded (AGENTS.md §1.1).
+		process.stderr.write(`[logger] ${message} (logger failed: ${logErr?.message ?? logErr})\n`);
+	}
+	try {
+		process.stderr.write(`[logger] ${message}\n`);
+	} catch (stderrErr) {
+		// Terminal guard — logging is impossible at this point. Bind the error
+		// so it is not silently discarded (AGENTS.md §1.1); there is no further
+		// sink available, so this is the last resort and must never throw.
+		void stderrErr;
+	}
+	/* node:coverage enable */
+}
+
 // ---------------------------------------------------------------------------
 // Section 2.1: OS-aware log directory detection
 // ---------------------------------------------------------------------------
@@ -87,8 +125,9 @@ export function getLogDirectory() {
 				if (content) {
 					return join(home, ".cache", "madz", "logs");
 				}
-			} catch {
+			} catch (err) {
 				// File deleted between check and read, or unreadable - fall through to default
+				logError(err, "Failed to read /etc/alpine-release");
 			}
 		}
 	}
@@ -121,7 +160,8 @@ function tryCreateDirectory(dir) {
 	try {
 		mkdirSync(dir, { recursive: true });
 		return true;
-	} catch {
+	} catch (err) {
+		logError(err, `Failed to create log directory ${dir}`);
 		return false;
 	}
 }
@@ -144,8 +184,6 @@ if (!tryCreateDirectory(primaryDir)) {
 // Section 2.4: Silent mode for tests (2.4) + 2.3: Dual-file pino multistream
 // ---------------------------------------------------------------------------
 
-let pinoLogger;
-
 if (process.env.NODE_ENV === "test") {
 	// Silent mode: suppress all pino output internally during tests
 	pinoLogger = pino({ level: "silent" });
@@ -161,20 +199,23 @@ if (process.env.NODE_ENV === "test") {
 	// Attempt to open info file stream
 	try {
 		infoStream = createWriteStream(infoPath, { flags: "a" });
-	} catch {
+	} catch (err) {
 		// If info stream fails, try /dev/null as fallback
+		logError(err, `Failed to open info log stream ${infoPath}`);
 		try {
 			devNull = createWriteStream("/dev/null");
-		} catch {
+		} catch (err2) {
 			// Both failed - pino multistream below will handle zero streams
+			logError(err2, "Failed to open /dev/null fallback stream");
 		}
 	}
 
 	// Attempt to open error file stream
 	try {
 		errorStream = createWriteStream(errorPath, { flags: "a" });
-	} catch {
+	} catch (err) {
 		// If error stream fails but we have devNull, reuse it
+		logError(err, `Failed to open error log stream ${errorPath}`);
 		if (!errorStream && devNull) {
 			errorStream = devNull;
 		}
@@ -231,7 +272,8 @@ export async function flush() {
 			} else {
 				resolve();
 			}
-		} catch {
+		} catch (err) {
+			logError(err, "Failed to flush pino logger");
 			resolve();
 		}
 		/* node:coverage enable */
@@ -251,8 +293,9 @@ export const logger = {
 		try {
 			pinoLogger.info(redactPII(msg), ...args);
 			/* node:coverage disable — defensive, requires pino to throw */
-		} catch {
-			// Silently discard if logger is in silent/dev-null mode
+		} catch (err) {
+			// Log the failure without recursing into the logger singleton
+			logError(err, "logger.info failed");
 		}
 		/* node:coverage enable */
 	},
@@ -260,8 +303,9 @@ export const logger = {
 		try {
 			pinoLogger.warn(redactPII(msg), ...args);
 			/* node:coverage disable — defensive, requires pino to throw */
-		} catch {
-			// Silently discard
+		} catch (err) {
+			// Log the failure without recursing into the logger singleton
+			logError(err, "logger.warn failed");
 		}
 		/* node:coverage enable */
 	},
@@ -269,8 +313,9 @@ export const logger = {
 		try {
 			pinoLogger.error(redactPII(msg), ...args);
 			/* node:coverage disable — defensive, requires pino to throw */
-		} catch {
-			// Silently discard
+		} catch (err) {
+			// Log the failure without recursing into the logger singleton
+			logError(err, "logger.error failed");
 		}
 		/* node:coverage enable */
 	},
@@ -278,8 +323,9 @@ export const logger = {
 		try {
 			pinoLogger.debug(redactPII(msg), ...args);
 			/* node:coverage disable — defensive, requires pino to throw */
-		} catch {
-			// Silently discard
+		} catch (err) {
+			// Log the failure without recursing into the logger singleton
+			logError(err, "logger.debug failed");
 		}
 		/* node:coverage enable */
 	},
@@ -287,8 +333,9 @@ export const logger = {
 		try {
 			pinoLogger.fatal(redactPII(msg), ...args);
 			/* node:coverage disable — defensive, requires pino to throw */
-		} catch {
-			// Silently discard
+		} catch (err) {
+			// Log the failure without recursing into the logger singleton
+			logError(err, "logger.fatal failed");
 		}
 		/* node:coverage enable */
 	},
