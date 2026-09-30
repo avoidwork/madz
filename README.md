@@ -427,14 +427,14 @@ providers:
 
 | Variable                    | Default             | Description                    |
 | --------------------------- | ------------------- | ------------------------------ |
-| `MEMORY_DIRECTORY`          | `memory/`           | Base directory for persistence |
 | `MEMORY_CONTEXT_DIR`        | `memory/context/`   | Context file directory         |
-| `MEMORY_TOOLS_DIR`          | `memory/tools/`     | Tool metadata directory        |
+| `MEMORY_DIRECTORY`          | `memory/`           | Base directory for persistence |
 | `MEMORY_ERRORS_DIR`         | `memory/errors/`    | Error log directory            |
-| `MEMORY_SCHEDULES_DIR`      | `memory/schedules/` | Cron result files directory    |
 | `MEMORY_GC_ENABLED`         | `true`              | Enable V8 garbage collection   |
 | `MEMORY_GC_IDLE_TIMEOUT_MS` | `300000`            | Idle timeout before GC (ms)    |
 | `MEMORY_GC_MAX_GC_PER_HOUR` | `4`                 | Max GC calls per hour          |
+| `MEMORY_SCHEDULES_DIR`      | `memory/schedules/` | Cron result files directory    |
+| `MEMORY_TOOLS_DIR`          | `memory/tools/`     | Tool metadata directory        |
 
 **Optional — Telemetry:**
 
