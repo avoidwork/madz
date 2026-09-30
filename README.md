@@ -253,22 +253,22 @@ node index.js --mode interactive --session abc123
 | Key                          | Action                               |
 | ---------------------------- | ------------------------------------ |
 | `↑/↓`                        | Scroll conversation history          |
-| `/help`                      | Show available commands              |
-| `/quit`                      | Exit the application                   |
-| `/provider set <name>`     | Switch LLM provider                  |
-| `/config set <path> <value>`  | Mutate config at runtime             |
 | `/<skill-name>`              | Invoke a discovered skill            |
-| `/schedule list`, `/schedule pause <name>`, `/schedule resume <name>`, `/schedule run-now <name>` | Control the cron scheduler           |
 | `/clear`                     | Clear conversation history           |
-| `/new`                       | Start a fresh session                |
+| `/config set <path> <value>`  | Mutate config at runtime             |
 | `/gc`                        | Trigger manual V8 garbage collection |
 | `/gc status`                 | Show GC availability and call count  |
-| `/sessions`                  | Open the sessions panel              |
+| `/help`                      | Show available commands              |
 | `/memories`                  | Open the memories panel              |
-| `/skills`                    | Open the skills panel                |
-| `/settings`                  | Open the settings panel              |
+| `/new`                       | Start a fresh session                |
 | `/projects`                  | Open the projects panel — select a project directory to set the active project |
 | `/projects clear`            | Clear the active project back to the default |
+| `/provider set <name>`     | Switch LLM provider                  |
+| `/quit`                      | Exit the application                   |
+| `/schedule list`, `/schedule pause <name>`, `/schedule resume <name>`, `/schedule run-now <name>` | Control the cron scheduler           |
+| `/sessions`                  | Open the sessions panel              |
+| `/settings`                  | Open the settings panel              |
+| `/skills`                    | Open the skills panel                |
 | `@`                          | Open the file picker — type `@` followed by a path fragment to autocomplete file paths from the active project directory |
 
 ## Docker
@@ -361,13 +361,13 @@ providers:
 | Variable                     | Default                     | Description                |
 | ---------------------------- | --------------------------- | -------------------------- |
 | `OPENAI_BASE_URL`            | `https://api.openai.com/v1` | API endpoint URL           |
-| `OPENAI_MODEL`               | `gpt-4o`                    | Model name                 |
 | `OPENAI_ENCODING`            | _(auto)_                    | Tiktoken encoder name (see [Encoding Reference](#encoding-reference) below) |
-| `OPENAI_TEMPERATURE`         | `0.4`                       | Sampling temperature (0–2) |
-| `OPENAI_MAX_TOKENS`          | `4096`                      | Max output tokens          |
 | `OPENAI_MAX_CONCURRENCY`     | _(none)_                    | Max concurrent API calls   |
 | `OPENAI_MAX_RETRIES`         | `6`                         | Max retries for API calls  |
+| `OPENAI_MAX_TOKENS`          | `4096`                      | Max output tokens          |
+| `OPENAI_MODEL`               | `gpt-4o`                    | Model name                 |
 | `OPENAI_REQUESTS_PER_MINUTE` | `60`                        | Rate limit for API calls   |
+| `OPENAI_TEMPERATURE`         | `0.4`                       | Sampling temperature (0–2) |
 | `OPENROUTER_API_KEY`         | _(empty)_                   | OpenRouter API key         |
 | `OPENROUTER_MODEL`           | `openrouter/auto`           | OpenRouter model name      |
 
@@ -375,39 +375,35 @@ providers:
 
 | Variable                          | Default   | Description                         |
 | --------------------------------- | --------- | ----------------------------------- |
-| `FAL_API_KEY`                     | _(empty)_ | Fal.ai API key (image generation)   |
-| `EXA_API_KEY`                     | _(empty)_ | Exa search API key                  |
-| `FIRECRAWL_API_KEY`               | _(empty)_ | Firecrawl API key                   |
-| `TAVILY_API_KEY`                  | _(empty)_ | Tavily search API key               |
-| `PARALLEL_API_KEY`                | _(empty)_ | Parallel search API key             |
-| `SEARXNG_URL`                     | _(empty)_ | SearXNG search instance URL         |
 | `BING_API_KEY`                    | _(empty)_ | Bing search API key                 |
-| `CUSTOM_SEARCH_URL`               | _(empty)_ | Custom search engine URL            |
-| `CUSTOM_SEARCH_METHOD`            | _(empty)_ | Custom search HTTP method           |
+| `CUSTOM_SEARCH_DESCRIPTION_FIELD` | _(empty)_ | Custom search description field     |
 | `CUSTOM_SEARCH_HEADERS`           | _(empty)_ | Custom search headers (JSON string) |
+| `CUSTOM_SEARCH_METHOD`            | _(empty)_ | Custom search HTTP method           |
 | `CUSTOM_SEARCH_QUERY_KEY`         | _(empty)_ | Custom search query key             |
 | `CUSTOM_SEARCH_TITLE_FIELD`       | _(empty)_ | Custom search title field           |
+| `CUSTOM_SEARCH_URL`               | _(empty)_ | Custom search engine URL            |
 | `CUSTOM_SEARCH_URL_FIELD`         | _(empty)_ | Custom search URL field             |
-| `CUSTOM_SEARCH_DESCRIPTION_FIELD` | _(empty)_ | Custom search description field     |
+| `FAL_API_KEY`                     | _(empty)_ | Fal.ai API key (image generation)   |
+| `SEARXNG_URL`                     | _(empty)_ | SearXNG search instance URL         |
 
 **Optional — Email:**
 
 | Variable                              | Default   | Description                         |
 | ------------------------------------- | --------- | ----------------------------------- |
+| `EMAIL_GMAIL_ACCESS_TOKEN`            | _(empty)_ | Gmail OAuth2 access token (optional) |
 | `EMAIL_GMAIL_CLIENT_ID`               | _(empty)_ | Gmail OAuth2 client ID              |
 | `EMAIL_GMAIL_CLIENT_SECRET`           | _(empty)_ | Gmail OAuth2 client secret          |
 | `EMAIL_GMAIL_REFRESH_TOKEN`           | _(empty)_ | Gmail OAuth2 refresh token          |
-| `EMAIL_GMAIL_ACCESS_TOKEN`            | _(empty)_ | Gmail OAuth2 access token (optional) |
+| `EMAIL_GRAPH_ACCESS_TOKEN`            | _(empty)_ | MS Graph OAuth2 access token (optional) |
 | `EMAIL_GRAPH_CLIENT_ID`               | _(empty)_ | MS Graph OAuth2 client ID           |
 | `EMAIL_GRAPH_CLIENT_SECRET`           | _(empty)_ | MS Graph OAuth2 client secret       |
 | `EMAIL_GRAPH_REFRESH_TOKEN`           | _(empty)_ | MS Graph OAuth2 refresh token       |
 | `EMAIL_GRAPH_TENANT_ID`               | _(empty)_ | MS Graph Azure AD tenant ID         |
-| `EMAIL_GRAPH_ACCESS_TOKEN`            | _(empty)_ | MS Graph OAuth2 access token (optional) |
 | `EMAIL_IMAP_HOST`                     | `imap.gmail.com` | IMAP server hostname            |
-| `EMAIL_IMAP_PORT`                     | `993`     | IMAP server port                  |
-| `EMAIL_IMAP_USER`                     | _(empty)_ | IMAP username                     |
 | `EMAIL_IMAP_PASSWORD`                 | _(empty)_ | IMAP password / app password        |
+| `EMAIL_IMAP_PORT`                     | `993`     | IMAP server port                  |
 | `EMAIL_IMAP_SECURE`                   | `true`    | Use SSL/TLS for IMAP connection     |
+| `EMAIL_IMAP_USER`                     | _(empty)_ | IMAP username                     |
 | `EMAIL_SMTP_HOST`                     | _(same as IMAP)_ | SMTP server hostname for sending |
 | `EMAIL_SMTP_PORT`                     | `587`     | SMTP server port (STARTTLS)       |
 
@@ -415,39 +411,39 @@ providers:
 
 | Variable                       | Default                    | Description                                |
 | ------------------------------ | -------------------------- | ------------------------------------------ |
-| `SANDBOX_PATHS`                | `memory/, skills/, tmp/`   | Allowed filesystem paths (comma-separated) |
-| `SANDBOX_TIMEOUT_SECONDS`      | `30`                       | Max execution time in seconds              |
-| `SANDBOX_GRACE_PERIOD`         | `5`                        | Kill grace period in seconds               |
-| `SANDBOX_MEMORY_LIMIT`         | `512m`                     | Heap limit (`--max-old-space-size`)        |
-| `SANDBOX_URL_FILTER`           | `true`                     | Outbound URL blocking                      |
-| `SANDBOX_PYTHON_IMPORT_HOOK`   | `true`                     | Prevent subprocess import                  |
 | `SANDBOX_ENV_ALLOWLIST`        | `PATH, HOME, NODE_ENV`     | Allowed env vars (comma-separated)         |
-| `SANDBOX_PERMISSIONS`          | _(none)_                   | Permission grants                          |
+| `SANDBOX_GRACE_PERIOD`         | `5`                        | Kill grace period in seconds               |
 | `SANDBOX_MAX_READ_SIZE`        | `1mb`                      | Max file read size                         |
-| `SANDBOX_SKILL_SCAN_PATHS`     | `skills/, .agents/skills/` | Skill scan paths (comma-separated)         |
+| `SANDBOX_MEMORY_LIMIT`         | `512m`                     | Heap limit (`--max-old-space-size`)        |
+| `SANDBOX_PATHS`                | `memory/, skills/, tmp/`   | Allowed filesystem paths (comma-separated) |
+| `SANDBOX_PERMISSIONS`          | _(none)_                   | Permission grants                          |
+| `SANDBOX_PYTHON_IMPORT_HOOK`   | `true`                     | Prevent subprocess import                  |
+| `SANDBOX_SKILL_SCAN_PATHS`     | `.skills/, skills/` | Skill scan paths (comma-separated)         |
+| `SANDBOX_TIMEOUT_SECONDS`      | `30`                       | Max execution time in seconds              |
 | `SANDBOX_TRUST_PROJECT_SKILLS` | `true`                     | Trust skills in project root               |
+| `SANDBOX_URL_FILTER`           | `true`                     | Outbound URL blocking                      |
 
 **Optional — Memory:**
 
 | Variable                    | Default             | Description                    |
 | --------------------------- | ------------------- | ------------------------------ |
-| `MEMORY_DIRECTORY`          | `memory/`           | Base directory for persistence |
 | `MEMORY_CONTEXT_DIR`        | `memory/context/`   | Context file directory         |
-| `MEMORY_TOOLS_DIR`          | `memory/tools/`     | Tool metadata directory        |
+| `MEMORY_DIRECTORY`          | `memory/`           | Base directory for persistence |
 | `MEMORY_ERRORS_DIR`         | `memory/errors/`    | Error log directory            |
-| `MEMORY_SCHEDULES_DIR`      | `memory/schedules/` | Cron result files directory    |
 | `MEMORY_GC_ENABLED`         | `true`              | Enable V8 garbage collection   |
 | `MEMORY_GC_IDLE_TIMEOUT_MS` | `300000`            | Idle timeout before GC (ms)    |
 | `MEMORY_GC_MAX_GC_PER_HOUR` | `4`                 | Max GC calls per hour          |
+| `MEMORY_SCHEDULES_DIR`      | `memory/schedules/` | Cron result files directory    |
+| `MEMORY_TOOLS_DIR`          | `memory/tools/`     | Tool metadata directory        |
 
 **Optional — Telemetry:**
 
 | Variable                             | Default                 | Description                    |
 | ------------------------------------ | ----------------------- | ------------------------------ |
 | `TELEMETRY_ENABLED`                  | `false`                 | Enable OpenTelemetry export    |
-| `TELEMETRY_EXPORTER_PROTOCOL`        | `console`               | Exporter protocol              |
 | `TELEMETRY_EXPORTER_ENDPOINT`        | `http://localhost:4318` | OTLP endpoint URL              |
 | `TELEMETRY_EXPORTER_MAX_SIZE`        | `512`                   | Batch size before flush        |
+| `TELEMETRY_EXPORTER_PROTOCOL`        | `console`               | Exporter protocol              |
 | `TELEMETRY_EXPORTER_SCHEDULED_DELAY` | `5000`                  | Scheduled flush interval in ms |
 | `TELEMETRY_SAMPLING_RATIO`           | `0.1`                   | Trace probability              |
 
@@ -589,19 +585,21 @@ Uses the [Deep Agents](https://github.com/langchain-ai/deepagentsjs) library to 
 
 **Built-in subagents:**
 
+Tool access below is the madz tool set each agent receives via `TOOL_CLASSIFICATIONS` in `src/tools/index.js`. All subagents also carry the deepagents filesystem tools (`readFile`, `writeFile`, `patch`, `searchFiles`) and task management (`todo`), which are not listed here.
+
 | Agent | Purpose | Tool Access |
 | ----- | ------- | ----------- |
-| `code-review` | Structured code reviews covering bugs, security, style, performance | `readFile`, `grep`, `glob` |
-| `coding` | Code implementation with read-before-write discipline, complete shipping, convention adherence, and dead-code elimination | `process`, `write`, `scanAgents` |
-| `debug` | Error tracing, reproduction, and fix proposals | `readFile`, `grep`, `glob`, `process` |
-| `documentation` | Documentation updates, API docs generation, changelog maintenance | `readFile`, `writeFile`, `grep`, `glob` |
-| `performance` | Performance benchmarking, bottleneck identification, optimization suggestions | `readFile`, `grep`, `process` |
-| `research` | Multi-step research with source tracking and comprehensive reports | `searchWeb`, `extractWeb`, `grep`, `glob`, `searchSession` |
-| `search` | Multi-source search (web, docs, codebase) with synthesis | `searchWeb`, `extractWeb`, `grep`, `glob`, `searchSession` |
-| `security-audit` | Security scanning, dependency auditing, vulnerability detection | `readFile`, `grep`, `glob`, `process` |
-| `seoAnalyst` | SEO analysis — keyword density, meta description generation, SERP analysis, content optimization | `searchWeb`, `extractWeb` |
-| `testing` | Test generation, gap analysis, and coverage improvements | `readFile`, `grep`, `glob`, `process` |
-| `textEditor` | Text processing — summarize, rewrite, tone adjustment, grammar correction, shorten, expand | `searchWeb`, `extractWeb` |
+| `code-review` | Structured code reviews covering bugs, security, style, performance | `clarify`, `date`, `memory`, `scanAgents`, `searchCode`, `getConfig` |
+| `coding` | Code implementation with read-before-write discipline, complete shipping, convention adherence, and dead-code elimination | `clarify`, `date`, `readImage`, `memory`, `process`, `scanAgents`, `extractWeb`, `searchWeb`, `renderWeb`, `screenshotWeb`, `docx`, `pptx`, `xlsx`, `pdf`, `email`, `spreadsheet`, `calendar`, `generatePdf`, `namecom`, `generatePptx`, `api`, `graphql`, `json`, `yaml`, `data`, `webhook`, `searchCode`, `indexCode`, `getConfig` |
+| `debug` | Error tracing, reproduction, and fix proposals | `clarify`, `date`, `readImage`, `memory`, `process`, `docx`, `pptx`, `xlsx`, `pdf`, `email`, `spreadsheet`, `calendar`, `generatePdf`, `namecom`, `generatePptx`, `api`, `graphql`, `json`, `yaml`, `data`, `webhook`, `searchCode`, `indexCode`, `getConfig` |
+| `documentation` | Documentation updates, API docs generation, changelog maintenance | `clarify`, `createSkill`, `date`, `generateImage`, `readImage`, `memory`, `sampling`, `textToSpeech`, `docx`, `pptx`, `xlsx`, `pdf`, `email`, `spreadsheet`, `calendar`, `generatePdf`, `namecom`, `generatePptx`, `api`, `graphql`, `json`, `yaml`, `data`, `webhook`, `searchCode`, `getConfig` |
+| `performance` | Performance benchmarking, bottleneck identification, optimization suggestions | `clarify`, `cronJob`, `date`, `memory`, `process`, `calendar`, `searchCode`, `indexCode`, `getConfig` |
+| `research` | Multi-step research with source tracking and comprehensive reports | `clarify`, `date`, `readImage`, `memory`, `searchSession`, `extractWeb`, `searchWeb`, `renderWeb`, `screenshotWeb`, `docx`, `pptx`, `xlsx`, `pdf`, `email`, `spreadsheet`, `calendar`, `generatePdf`, `namecom`, `generatePptx`, `api`, `graphql`, `json`, `yaml`, `data`, `webhook`, `searchCode`, `getConfig` |
+| `search` | Multi-source search (web, docs, codebase) with synthesis | `clarify`, `date`, `readImage`, `memory`, `searchSession`, `extractWeb`, `searchWeb`, `renderWeb`, `screenshotWeb`, `docx`, `pptx`, `xlsx`, `pdf`, `email`, `spreadsheet`, `calendar`, `generatePdf`, `namecom`, `generatePptx`, `api`, `graphql`, `json`, `yaml`, `data`, `webhook`, `searchCode`, `getConfig` |
+| `security-audit` | Security scanning, dependency auditing, vulnerability detection | `clarify`, `cronJob`, `date`, `memory`, `scanAgents`, `searchCode`, `getConfig` |
+| `seoAnalyst` | SEO analysis — keyword density, meta description generation, SERP analysis, content optimization | `searchCode` |
+| `testing` | Test generation, gap analysis, and coverage improvements | `clarify`, `date`, `memory`, `searchCode`, `getConfig` |
+| `textEditor` | Text processing — summarize, rewrite, tone adjustment, grammar correction, shorten, expand | _(none)_ |
 | `translator` | Multi-language translation and language detection | _(none)_ |
 
 **Default subagent temperatures:**
@@ -623,7 +621,7 @@ Uses the [Deep Agents](https://github.com/langchain-ai/deepagentsjs) library to 
 
 Temperatures are configurable via `subAgentsTemperature` in `config.yaml` or environment variables (`SUB_AGENTS_TEMPERATURE_<AGENT_NAME>`).
 
-Each agent definition lives in `src/agent/agents/` with its own file. The `AgentRegistry` class (`src/agent/agentRegistry.js`) manages registration, validation, and lookup. Tool access is gated by `TOOL_CLASSIFICATIONS` in `src/tools/index.js` — each tool declares which agent types it serves, and the orchestrator filters tools per agent at runtime.
+Agent definitions are consolidated in `src/agent/agentDefinitions.js` (a data-driven config mapping each agent name to its prompt file and description), with the system prompts in `prompts/*.md`. The `AgentRegistry` class (`src/agent/agentRegistry.js`) manages registration, validation, and lookup. Tool access is gated by `TOOL_CLASSIFICATIONS` in `src/tools/index.js` — each tool declares which agent types it serves, and the orchestrator filters tools per agent at runtime.
 
 The orchestrator also manages two filesystem backends via the deepagents `CompositeBackend`: the core working directory and the memory context directory.
 
@@ -636,28 +634,39 @@ All built-in tools are defined in `src/tools/` and registered as LangChain tools
 | `api` | REST API client with auth (bearer, basic, apikey), URL filtering, timeouts, and rate limiting. |
 | `calendar` | Read, create, and manage calendar events via Google Calendar API. |
 | `clarify` | Send clarification questions to the user with optional numbered choices. Zero permissions — always registered. |
-| `cronJob` | Manage scheduled cron jobs — create, list, update, pause, resume, run, remove. Persisted to `memory/schedules/`. Available to the orchestrator agent. |
 | `createSkill` | Create a spec-compliant skill directory with SKILL.md YAML frontmatter. Optionally scaffolds a `scripts/` directory. |
+| `cronJob` | Manage scheduled cron jobs — create, list, update, pause, resume, run, remove. Persisted to `memory/schedules/`. Available to the orchestrator agent. |
 | `data` | Format conversion between JSON, YAML, and CSV. |
 | `date` | Return current date/time in ISO 8601 UTC or human-readable format. Zero permissions — always registered. |
+| `docx` | Read and extract content from `.docx` (Word) documents. |
 | `email` | Read, send, manage drafts, organize, and search emails. Actions: `read`, `send`, `draftSave`, `draftList`, `draftUpdate`, `draftDelete`, `organize`, `search`. Requires email provider credentials via environment variables. |
-| `graphql` | GraphQL client with depth/complexity limits, introspection support, and rate limiting. |
+| `extractWeb` | Extract readable text content from a web page URL. Supports summarization for large pages. |
 | `generateImage` | Generate images via FAL.ai flux/klein API. |
+| `generatePdf` | Generate PDFs from HTML or markdown, or manipulate existing PDFs (merge, split, watermark, signature, annotate). Use action to specify the operation. |
+| `generatePptx` | Generate PowerPoint presentations from a structured description. |
+| `getConfig` | Get the full harness configuration as a parsed JSON object. |
+| `graphql` | GraphQL client with depth/complexity limits, introspection support, and rate limiting. |
+| `indexCode` | Index project source code for vector search. Scans configured project directories, chunks source files, generates embeddings, and stores them for semantic search. Runs incrementally — only processes changed files. |
 | `json` | JSON parse, serialize, transform, filter, and access operations. |
 | `memory` | Persistent key-value memory with CRUD actions (create, read, update, delete, list). Each entry stored as `.md` in `memory/context/` with `createdDate`/`updatedDate` metadata. |
-| `generatePdf` | Generate PDFs from HTML or markdown, or manipulate existing PDFs (merge, split, watermark, signature, annotate). Use action to specify the operation. |
+| `namecom` | DNS name resolution and lookup. |
+| `pdf` | Read and extract content from PDF documents. |
+| `pptx` | Read and extract content from `.pptx` (PowerPoint) documents. |
 | `process` | Execute shell commands and manage background processes. Actions: start (launch command), list (show all), log (read stdout/stderr), wait (wait for exit), kill (SIGTERM/SIGKILL), write (send stdin data), pause (SIGSTOP), resume (SIGCONT). |
+| `readImage` | Read an image file from disk and return its base64-encoded contents plus MIME type, for direct LLM vision analysis. |
+| `reflectionSessions` | Read session files, filter by date window and ignore patterns, extract user messages, and return structured data. |
+| `renderWeb` | Render a URL in headless Chromium and return the JS-aware extracted text — for JavaScript-heavy pages (SPAs, dashboards, paywalled content). |
 | `sampling` | Capture emotional moments as ephemeral memories. Rate-limited to 1 per 60 minutes. Stored with `expiresAt` frontmatter. |
 | `scanAgents` | Scan for `AGENTS.md` workspace rules files in a target directory. Returns file contents or empty string. |
+| `screenshotWeb` | Render a URL in headless Chromium and return a base64 PNG screenshot for vision analysis. |
+| `searchCode` | Semantic code search using vector similarity. Finds conceptually related code even when exact keywords don't match — e.g., searching for "authentication" finds login handlers, token validation, and auth middleware. |
 | `searchSession` | Search past conversations by keyword query, full retrieval by conversation ID, or browse all sessions. |
+| `searchWeb` | Search the web via DuckDuckGo, Google, Bing, SearXNG, or Custom endpoints. |
 | `spreadsheet` | Spreadsheet computation and analysis. Actions: compute (sum, average, count, min, max, formula, median, stddev, variance), generate (create XLSX with formulas), analyze (pivot tables, filtering, groupBy, stats, percentile), csvImport, csvExport, modify (add/modify/delete cells and sheets), export (XLSX, CSV, JSON). |
 | `textToSpeech` | Convert text to speech via OpenAI TTS (tts-1/tts-1-hd). Saves MP3 to `~/voice-memos/`. |
-| `extractWeb` | Extract readable text content from a web page URL. Supports summarization for large pages. |
-| `searchWeb` | Search the web via DuckDuckGo, Google, Bing, SearXNG, or Custom endpoints. |
 | `webhook` | Webhook CRUD and HMAC verification with URL validation. |
+| `xlsx` | Read and extract content from `.xlsx` (Excel) spreadsheets. |
 | `yaml` | YAML parse, serialize, transform, filter, and access operations. |
-| `searchCode` | Semantic code search using vector similarity. Finds conceptually related code even when exact keywords don't match — e.g., searching for "authentication" finds login handlers, token validation, and auth middleware. |
-| `indexCode` | Index project source code for vector search. Scans configured project directories, chunks source files, generates embeddings, and stores them for semantic search. Runs incrementally — only processes changed files. |
 
 **Deep Agents tools:** Core filesystem operations (`readFile`, `writeFile`, `patch`, `searchFiles`) and task management (`todo`) are provided by [deepagentsjs](https://github.com/langchain-ai/deepagentsjs) and are not listed as madz-built-in tools.
 
@@ -683,13 +692,13 @@ Built-in tools are registered only when their required permissions are enabled f
 
 | Permission Required                 | Tools                                                                      |
 | ----------------------------------- | -------------------------------------------------------------------------- |
-| `filesystem:read`                   | `searchCode`, `json`, `scanAgents`, `searchSession`, `yaml`, `data` |
-| `filesystem:write`                  | `clarify`, `createSkill`, `memory`, `sampling`                             |
-| `filesystem:exec` + `process:spawn` | `process`                                                                  |
-| `network:outbound`                  | `api`, `cronJob`, `graphql`, `generateImage`, `extractWeb`, `searchWeb`, `email`, `calendar`, `webhook`   |
 | _(none)_                            | `date`, `textToSpeech`                                                    |
+| `filesystem:read`                   | `readImage`, `scanAgents`, `searchSession`, `docx`, `pptx`, `xlsx`, `pdf`, `reflectionSessions`, `json`, `yaml`, `data`, `searchCode`, `getConfig` |
+| `filesystem:write`                  | `createSkill`, `sampling`, `generatePptx`                                  |
+| `filesystem:read` + `filesystem:write` | `clarify`, `memory`, `spreadsheet`, `webhook`, `indexCode`              |
+| `filesystem:exec` + `process:spawn` | `process`                                                                  |
+| `network:outbound`                  | `cronJob`, `generateImage`, `extractWeb`, `searchWeb`, `renderWeb`, `screenshotWeb`, `email`, `calendar`, `namecom`, `api`, `graphql` |
 | `filesystem:read` + `filesystem:write` + `network:outbound` | `generatePdf` |
-| `filesystem:read` + `filesystem:write` | `indexCode`, `spreadsheet` |
 
 ### Memory System
 
@@ -752,13 +761,14 @@ On first onboarding completion, `madz` automatically installs a `reflection-dail
 ├── src/
 │   ├── agent/                  # Deep Agents orchestrator (coding-agent)
 │   ├── config/                 # YAML parsing & Zod schema validation
-│   ├── logger.js               # Structured logging (pino)
 │   ├── memory/                 # Markdown file persistence
 │   ├── provider/               # LLM model factory (OpenAI)
+│   ├── shared/                 # Cross-cutting utilities (logger.js)
 │   ├── skills/                 # Agent Skills spec discovery, validation & permissions
 │   ├── sandbox/                # Process sandboxing & capability enforcement
 │   ├── scheduler/              # Cron-based job runner
 │   ├── session/                # Per-session state & context windows
+│   ├── stream/                 # Stream transformers
 │   ├── telemetry/              # OpenTelemetry tracing & redaction
 │   ├── tools/                  # Built-in LangChain tools
 │   │   ├── code/               # Semantic code search & indexing (searchCode, indexCode)
