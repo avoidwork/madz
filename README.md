@@ -253,22 +253,22 @@ node index.js --mode interactive --session abc123
 | Key                          | Action                               |
 | ---------------------------- | ------------------------------------ |
 | `↑/↓`                        | Scroll conversation history          |
-| `/help`                      | Show available commands              |
-| `/quit`                      | Exit the application                   |
-| `/provider set <name>`     | Switch LLM provider                  |
-| `/config set <path> <value>`  | Mutate config at runtime             |
 | `/<skill-name>`              | Invoke a discovered skill            |
-| `/schedule list`, `/schedule pause <name>`, `/schedule resume <name>`, `/schedule run-now <name>` | Control the cron scheduler           |
 | `/clear`                     | Clear conversation history           |
-| `/new`                       | Start a fresh session                |
+| `/config set <path> <value>`  | Mutate config at runtime             |
 | `/gc`                        | Trigger manual V8 garbage collection |
 | `/gc status`                 | Show GC availability and call count  |
-| `/sessions`                  | Open the sessions panel              |
+| `/help`                      | Show available commands              |
 | `/memories`                  | Open the memories panel              |
-| `/skills`                    | Open the skills panel                |
-| `/settings`                  | Open the settings panel              |
+| `/new`                       | Start a fresh session                |
 | `/projects`                  | Open the projects panel — select a project directory to set the active project |
 | `/projects clear`            | Clear the active project back to the default |
+| `/provider set <name>`     | Switch LLM provider                  |
+| `/quit`                      | Exit the application                   |
+| `/schedule list`, `/schedule pause <name>`, `/schedule resume <name>`, `/schedule run-now <name>` | Control the cron scheduler           |
+| `/sessions`                  | Open the sessions panel              |
+| `/settings`                  | Open the settings panel              |
+| `/skills`                    | Open the skills panel                |
 | `@`                          | Open the file picker — type `@` followed by a path fragment to autocomplete file paths from the active project directory |
 
 ## Docker
