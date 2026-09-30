@@ -411,17 +411,17 @@ providers:
 
 | Variable                       | Default                    | Description                                |
 | ------------------------------ | -------------------------- | ------------------------------------------ |
-| `SANDBOX_PATHS`                | `memory/, skills/, tmp/`   | Allowed filesystem paths (comma-separated) |
-| `SANDBOX_TIMEOUT_SECONDS`      | `30`                       | Max execution time in seconds              |
-| `SANDBOX_GRACE_PERIOD`         | `5`                        | Kill grace period in seconds               |
-| `SANDBOX_MEMORY_LIMIT`         | `512m`                     | Heap limit (`--max-old-space-size`)        |
-| `SANDBOX_URL_FILTER`           | `true`                     | Outbound URL blocking                      |
-| `SANDBOX_PYTHON_IMPORT_HOOK`   | `true`                     | Prevent subprocess import                  |
 | `SANDBOX_ENV_ALLOWLIST`        | `PATH, HOME, NODE_ENV`     | Allowed env vars (comma-separated)         |
-| `SANDBOX_PERMISSIONS`          | _(none)_                   | Permission grants                          |
+| `SANDBOX_GRACE_PERIOD`         | `5`                        | Kill grace period in seconds               |
 | `SANDBOX_MAX_READ_SIZE`        | `1mb`                      | Max file read size                         |
+| `SANDBOX_MEMORY_LIMIT`         | `512m`                     | Heap limit (`--max-old-space-size`)        |
+| `SANDBOX_PATHS`                | `memory/, skills/, tmp/`   | Allowed filesystem paths (comma-separated) |
+| `SANDBOX_PERMISSIONS`          | _(none)_                   | Permission grants                          |
+| `SANDBOX_PYTHON_IMPORT_HOOK`   | `true`                     | Prevent subprocess import                  |
 | `SANDBOX_SKILL_SCAN_PATHS`     | `.skills/, skills/` | Skill scan paths (comma-separated)         |
+| `SANDBOX_TIMEOUT_SECONDS`      | `30`                       | Max execution time in seconds              |
 | `SANDBOX_TRUST_PROJECT_SKILLS` | `true`                     | Trust skills in project root               |
+| `SANDBOX_URL_FILTER`           | `true`                     | Outbound URL blocking                      |
 
 **Optional — Memory:**
 
