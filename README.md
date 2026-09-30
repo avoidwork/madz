@@ -76,7 +76,7 @@ This is what makes `madz` feel like a teammate rather than a tool — and it's a
 
 Most coding agents are a thin layer over a model. `madz` is the opposite — it is a **complete development environment** with an agent at its center. That distinction is the whole point.
 
-- **Self-contained.** The container ships a full toolchain: Node.js 26, Python 3, Ruby, Go, Java (OpenJDK 21), Rust, Terraform, tflint, Chromium, ripgrep, git, the GitHub CLI, and three package managers (npm, yarn, pnpm). It is a working dev box, not a chat window. You can SSH into it and do real work.
+- **Self-contained.** The container ships a full toolchain: Node.js 26 (the package itself requires ≥24), Python 3, Ruby, Go, Java (OpenJDK 21), Rust, Terraform, tflint, Chromium, ripgrep, git, the GitHub CLI, and three package managers (npm, yarn, pnpm). It is a working dev box, not a chat window. You can SSH into it and do real work.
 - **A teammate, not a tool.** `madz` channels the cinematic soul of Mads Mikkelsen — the calm precision of Hannibal Lecter, the quiet intensity of Le Chiffre, the steady hand of Galen Erso. It speaks with measured cadence, dry humor, and a genuine point of view. It remembers your context, adapts to your energy, and works *with* you rather than at you. This isn't a gimmick — it's what makes long sessions feel collaborative instead of transactional.
 - **Security-first.** Filesystem access is confined to an allowlist/denylist of paths, and outbound URLs are filtered by scheme and hostname — blocked schemes include `file://`, `gopher://`, and `dict://`. Built-in tools are gated by explicit permissions, and skill metadata is schema-validated before it is registered. Sensitive fields are redacted from telemetry. This is layered containment by design — not a promise that the agent is harmless, but a set of constraints that narrow what any single tool can reach.
 - **Autonomous.** A Deep Agents orchestrator routes work to a family of specialized subagents — code review, coding, debugging, security auditing, testing, performance, research, and more. It can read your codebase, find bugs, write fixes, run tests, and open PRs without you driving every step.
@@ -424,7 +424,7 @@ providers:
 | `SANDBOX_ENV_ALLOWLIST`        | `PATH, HOME, NODE_ENV`     | Allowed env vars (comma-separated)         |
 | `SANDBOX_PERMISSIONS`          | _(none)_                   | Permission grants                          |
 | `SANDBOX_MAX_READ_SIZE`        | `1mb`                      | Max file read size                         |
-| `SANDBOX_SKILL_SCAN_PATHS`     | `skills/, .agents/skills/` | Skill scan paths (comma-separated)         |
+| `SANDBOX_SKILL_SCAN_PATHS`     | `.skills/, skills/` | Skill scan paths (comma-separated)         |
 | `SANDBOX_TRUST_PROJECT_SKILLS` | `true`                     | Trust skills in project root               |
 
 **Optional — Memory:**
@@ -589,19 +589,21 @@ Uses the [Deep Agents](https://github.com/langchain-ai/deepagentsjs) library to 
 
 **Built-in subagents:**
 
+Tool access below is the madz tool set each agent receives via `TOOL_CLASSIFICATIONS` in `src/tools/index.js`. All subagents also carry the deepagents filesystem tools (`readFile`, `writeFile`, `patch`, `searchFiles`) and task management (`todo`), which are not listed here.
+
 | Agent | Purpose | Tool Access |
 | ----- | ------- | ----------- |
-| `code-review` | Structured code reviews covering bugs, security, style, performance | `readFile`, `grep`, `glob` |
-| `coding` | Code implementation with read-before-write discipline, complete shipping, convention adherence, and dead-code elimination | `process`, `write`, `scanAgents` |
-| `debug` | Error tracing, reproduction, and fix proposals | `readFile`, `grep`, `glob`, `process` |
-| `documentation` | Documentation updates, API docs generation, changelog maintenance | `readFile`, `writeFile`, `grep`, `glob` |
-| `performance` | Performance benchmarking, bottleneck identification, optimization suggestions | `readFile`, `grep`, `process` |
-| `research` | Multi-step research with source tracking and comprehensive reports | `searchWeb`, `extractWeb`, `grep`, `glob`, `searchSession` |
-| `search` | Multi-source search (web, docs, codebase) with synthesis | `searchWeb`, `extractWeb`, `grep`, `glob`, `searchSession` |
-| `security-audit` | Security scanning, dependency auditing, vulnerability detection | `readFile`, `grep`, `glob`, `process` |
-| `seoAnalyst` | SEO analysis — keyword density, meta description generation, SERP analysis, content optimization | `searchWeb`, `extractWeb` |
-| `testing` | Test generation, gap analysis, and coverage improvements | `readFile`, `grep`, `glob`, `process` |
-| `textEditor` | Text processing — summarize, rewrite, tone adjustment, grammar correction, shorten, expand | `searchWeb`, `extractWeb` |
+| `code-review` | Structured code reviews covering bugs, security, style, performance | `clarify`, `date`, `memory`, `scanAgents`, `searchCode`, `getConfig` |
+| `coding` | Code implementation with read-before-write discipline, complete shipping, convention adherence, and dead-code elimination | `clarify`, `date`, `readImage`, `memory`, `process`, `scanAgents`, `extractWeb`, `searchWeb`, `renderWeb`, `screenshotWeb`, `docx`, `pptx`, `xlsx`, `pdf`, `email`, `spreadsheet`, `calendar`, `generatePdf`, `namecom`, `generatePptx`, `api`, `graphql`, `json`, `yaml`, `data`, `webhook`, `searchCode`, `indexCode`, `getConfig` |
+| `debug` | Error tracing, reproduction, and fix proposals | `clarify`, `date`, `readImage`, `memory`, `process`, `docx`, `pptx`, `xlsx`, `pdf`, `email`, `spreadsheet`, `calendar`, `generatePdf`, `namecom`, `generatePptx`, `api`, `graphql`, `json`, `yaml`, `data`, `webhook`, `searchCode`, `indexCode`, `getConfig` |
+| `documentation` | Documentation updates, API docs generation, changelog maintenance | `clarify`, `createSkill`, `date`, `generateImage`, `readImage`, `memory`, `sampling`, `textToSpeech`, `docx`, `pptx`, `xlsx`, `pdf`, `email`, `spreadsheet`, `calendar`, `generatePdf`, `namecom`, `generatePptx`, `api`, `graphql`, `json`, `yaml`, `data`, `webhook`, `searchCode`, `getConfig` |
+| `performance` | Performance benchmarking, bottleneck identification, optimization suggestions | `clarify`, `cronJob`, `date`, `memory`, `process`, `calendar`, `searchCode`, `indexCode`, `getConfig` |
+| `research` | Multi-step research with source tracking and comprehensive reports | `clarify`, `date`, `readImage`, `memory`, `searchSession`, `extractWeb`, `searchWeb`, `renderWeb`, `screenshotWeb`, `docx`, `pptx`, `xlsx`, `pdf`, `email`, `spreadsheet`, `calendar`, `generatePdf`, `namecom`, `generatePptx`, `api`, `graphql`, `json`, `yaml`, `data`, `webhook`, `searchCode`, `getConfig` |
+| `search` | Multi-source search (web, docs, codebase) with synthesis | `clarify`, `date`, `readImage`, `memory`, `searchSession`, `extractWeb`, `searchWeb`, `renderWeb`, `screenshotWeb`, `docx`, `pptx`, `xlsx`, `pdf`, `email`, `spreadsheet`, `calendar`, `generatePdf`, `namecom`, `generatePptx`, `api`, `graphql`, `json`, `yaml`, `data`, `webhook`, `searchCode`, `getConfig` |
+| `security-audit` | Security scanning, dependency auditing, vulnerability detection | `clarify`, `cronJob`, `date`, `memory`, `scanAgents`, `searchCode`, `getConfig` |
+| `seoAnalyst` | SEO analysis — keyword density, meta description generation, SERP analysis, content optimization | `searchCode` |
+| `testing` | Test generation, gap analysis, and coverage improvements | `clarify`, `date`, `memory`, `searchCode`, `getConfig` |
+| `textEditor` | Text processing — summarize, rewrite, tone adjustment, grammar correction, shorten, expand | _(none)_ |
 | `translator` | Multi-language translation and language detection | _(none)_ |
 
 **Default subagent temperatures:**
@@ -623,7 +625,7 @@ Uses the [Deep Agents](https://github.com/langchain-ai/deepagentsjs) library to 
 
 Temperatures are configurable via `subAgentsTemperature` in `config.yaml` or environment variables (`SUB_AGENTS_TEMPERATURE_<AGENT_NAME>`).
 
-Each agent definition lives in `src/agent/agents/` with its own file. The `AgentRegistry` class (`src/agent/agentRegistry.js`) manages registration, validation, and lookup. Tool access is gated by `TOOL_CLASSIFICATIONS` in `src/tools/index.js` — each tool declares which agent types it serves, and the orchestrator filters tools per agent at runtime.
+Agent definitions are consolidated in `src/agent/agentDefinitions.js` (a data-driven config mapping each agent name to its prompt file and description), with the system prompts in `prompts/*.md`. The `AgentRegistry` class (`src/agent/agentRegistry.js`) manages registration, validation, and lookup. Tool access is gated by `TOOL_CLASSIFICATIONS` in `src/tools/index.js` — each tool declares which agent types it serves, and the orchestrator filters tools per agent at runtime.
 
 The orchestrator also manages two filesystem backends via the deepagents `CompositeBackend`: the core working directory and the memory context directory.
 
@@ -643,21 +645,32 @@ All built-in tools are defined in `src/tools/` and registered as LangChain tools
 | `email` | Read, send, manage drafts, organize, and search emails. Actions: `read`, `send`, `draftSave`, `draftList`, `draftUpdate`, `draftDelete`, `organize`, `search`. Requires email provider credentials via environment variables. |
 | `graphql` | GraphQL client with depth/complexity limits, introspection support, and rate limiting. |
 | `generateImage` | Generate images via FAL.ai flux/klein API. |
+| `readImage` | Read an image file from disk and return its base64-encoded contents plus MIME type, for direct LLM vision analysis. |
 | `json` | JSON parse, serialize, transform, filter, and access operations. |
 | `memory` | Persistent key-value memory with CRUD actions (create, read, update, delete, list). Each entry stored as `.md` in `memory/context/` with `createdDate`/`updatedDate` metadata. |
 | `generatePdf` | Generate PDFs from HTML or markdown, or manipulate existing PDFs (merge, split, watermark, signature, annotate). Use action to specify the operation. |
+| `generatePptx` | Generate PowerPoint presentations from a structured description. |
 | `process` | Execute shell commands and manage background processes. Actions: start (launch command), list (show all), log (read stdout/stderr), wait (wait for exit), kill (SIGTERM/SIGKILL), write (send stdin data), pause (SIGSTOP), resume (SIGCONT). |
 | `sampling` | Capture emotional moments as ephemeral memories. Rate-limited to 1 per 60 minutes. Stored with `expiresAt` frontmatter. |
 | `scanAgents` | Scan for `AGENTS.md` workspace rules files in a target directory. Returns file contents or empty string. |
+| `reflectionSessions` | Read session files, filter by date window and ignore patterns, extract user messages, and return structured data. |
 | `searchSession` | Search past conversations by keyword query, full retrieval by conversation ID, or browse all sessions. |
 | `spreadsheet` | Spreadsheet computation and analysis. Actions: compute (sum, average, count, min, max, formula, median, stddev, variance), generate (create XLSX with formulas), analyze (pivot tables, filtering, groupBy, stats, percentile), csvImport, csvExport, modify (add/modify/delete cells and sheets), export (XLSX, CSV, JSON). |
 | `textToSpeech` | Convert text to speech via OpenAI TTS (tts-1/tts-1-hd). Saves MP3 to `~/voice-memos/`. |
 | `extractWeb` | Extract readable text content from a web page URL. Supports summarization for large pages. |
+| `renderWeb` | Render a URL in headless Chromium and return the JS-aware extracted text — for JavaScript-heavy pages (SPAs, dashboards, paywalled content). |
+| `screenshotWeb` | Render a URL in headless Chromium and return a base64 PNG screenshot for vision analysis. |
 | `searchWeb` | Search the web via DuckDuckGo, Google, Bing, SearXNG, or Custom endpoints. |
 | `webhook` | Webhook CRUD and HMAC verification with URL validation. |
 | `yaml` | YAML parse, serialize, transform, filter, and access operations. |
 | `searchCode` | Semantic code search using vector similarity. Finds conceptually related code even when exact keywords don't match — e.g., searching for "authentication" finds login handlers, token validation, and auth middleware. |
 | `indexCode` | Index project source code for vector search. Scans configured project directories, chunks source files, generates embeddings, and stores them for semantic search. Runs incrementally — only processes changed files. |
+| `getConfig` | Get the full harness configuration as a parsed JSON object. |
+| `namecom` | DNS name resolution and lookup. |
+| `docx` | Read and extract content from `.docx` (Word) documents. |
+| `pptx` | Read and extract content from `.pptx` (PowerPoint) documents. |
+| `xlsx` | Read and extract content from `.xlsx` (Excel) spreadsheets. |
+| `pdf` | Read and extract content from PDF documents. |
 
 **Deep Agents tools:** Core filesystem operations (`readFile`, `writeFile`, `patch`, `searchFiles`) and task management (`todo`) are provided by [deepagentsjs](https://github.com/langchain-ai/deepagentsjs) and are not listed as madz-built-in tools.
 
@@ -683,13 +696,13 @@ Built-in tools are registered only when their required permissions are enabled f
 
 | Permission Required                 | Tools                                                                      |
 | ----------------------------------- | -------------------------------------------------------------------------- |
-| `filesystem:read`                   | `searchCode`, `json`, `scanAgents`, `searchSession`, `yaml`, `data` |
-| `filesystem:write`                  | `clarify`, `createSkill`, `memory`, `sampling`                             |
-| `filesystem:exec` + `process:spawn` | `process`                                                                  |
-| `network:outbound`                  | `api`, `cronJob`, `graphql`, `generateImage`, `extractWeb`, `searchWeb`, `email`, `calendar`, `webhook`   |
 | _(none)_                            | `date`, `textToSpeech`                                                    |
+| `filesystem:read`                   | `readImage`, `scanAgents`, `searchSession`, `docx`, `pptx`, `xlsx`, `pdf`, `reflectionSessions`, `json`, `yaml`, `data`, `searchCode`, `getConfig` |
+| `filesystem:write`                  | `createSkill`, `sampling`, `generatePptx`                                  |
+| `filesystem:read` + `filesystem:write` | `clarify`, `memory`, `spreadsheet`, `webhook`, `indexCode`              |
+| `filesystem:exec` + `process:spawn` | `process`                                                                  |
+| `network:outbound`                  | `cronJob`, `generateImage`, `extractWeb`, `searchWeb`, `renderWeb`, `screenshotWeb`, `email`, `calendar`, `namecom`, `api`, `graphql` |
 | `filesystem:read` + `filesystem:write` + `network:outbound` | `generatePdf` |
-| `filesystem:read` + `filesystem:write` | `indexCode`, `spreadsheet` |
 
 ### Memory System
 
@@ -752,13 +765,14 @@ On first onboarding completion, `madz` automatically installs a `reflection-dail
 ├── src/
 │   ├── agent/                  # Deep Agents orchestrator (coding-agent)
 │   ├── config/                 # YAML parsing & Zod schema validation
-│   ├── logger.js               # Structured logging (pino)
 │   ├── memory/                 # Markdown file persistence
 │   ├── provider/               # LLM model factory (OpenAI)
+│   ├── shared/                 # Cross-cutting utilities (logger.js)
 │   ├── skills/                 # Agent Skills spec discovery, validation & permissions
 │   ├── sandbox/                # Process sandboxing & capability enforcement
 │   ├── scheduler/              # Cron-based job runner
 │   ├── session/                # Per-session state & context windows
+│   ├── stream/                 # Stream transformers
 │   ├── telemetry/              # OpenTelemetry tracing & redaction
 │   ├── tools/                  # Built-in LangChain tools
 │   │   ├── code/               # Semantic code search & indexing (searchCode, indexCode)
@@ -814,7 +828,7 @@ Graceful shutdown flushes all buffered log entries to disk before process exit.
 |               | `openai.credentials.apiKey`          | _(empty)_                                | API key for authentication                    |
 |               | `openai.temperature`                 | `0.4`                                    | Sampling temperature (0–2)                    |
 |               | `openai.maxTokens`                   | `4096`                                   | Max output tokens                             |
-|               | `openai.rateLimit.requestsPerMinute` | `60`                                     | Rate limit for API calls                      |
+|               | `openai.rateLimit.requestsPerMinute` | `60`                                     | Rate limit for API calls (the shipped `config.yaml` sets `120`) |
 |               | `openai.rateLimit.maxRetries`       | `6`                                      | Max retry attempts on transient errors         |
 |               | `openai.rateLimit.maxConcurrency`   | _(unset)_                                | Max concurrent requests (defaults to Infinity) |
 |               | `openai.rateLimit.maxTokensMinute`  | `0`                                      | Rolling tokens-per-minute budget; `0` disables the throttle |
@@ -827,7 +841,7 @@ Graceful shutdown flushes all buffered log entries to disk before process exit.
 |               | `env.allowlist`                      | `["PATH", "HOME", "NODE_ENV"]`           | _(no consumer — retained for config compat)_  |
 |               | `permissions`                        | `["filesystem:read", ...]`               | Permission grants                             |
 |               | `maxReadSize`                        | `"1mb"`                                  | Max file read size                            |
-|               | `skillScanPaths`                     | `["skills/", ".skills/"]`         | Skill discovery paths (comma-separated)       |
+|               | `skillScanPaths`                     | `[".skills/", "skills/"]`         | Skill discovery paths (comma-separated)       |
 |               | `trustProjectSkills`                 | `true`                                   | Trust skills in project root                  |
 | `memory`      | `directory`                          | `memory/`                                | Base directory for persistence                |
 |               | `contextDir`                         | `memory/context/`                        | Context file directory                        |
