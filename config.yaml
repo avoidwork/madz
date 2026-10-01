@@ -173,7 +173,7 @@ agent:
     model: tev1:4b
     temperature: 0
 summarization:
-  enabled: false
+  enabled: true
   trigger:
     type: tokens
     value: 100000
