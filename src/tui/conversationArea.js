@@ -119,6 +119,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 		onViewChange,
 		messageCountRef,
 		contextEstimate,
+		compactContext,
 		activeProject,
 		setActiveProject,
 	},
@@ -237,6 +238,39 @@ const ConversationArea = forwardRef(function ConversationArea(
 	};
 
 	/**
+	 * Compact the context window on demand.
+	 * Invokes the agent's compaction routine, syncs the TUI conversation view,
+	 * recomputes the context size, and reports the result via onStatusChange.
+	 */
+	const handleCompact = async () => {
+		if (!compactContext) {
+			onStatusChange?.("Compaction is not available.");
+			return;
+		}
+		onStatusChange?.("Compacting context window...");
+		try {
+			const result = await compactContext();
+			if (result?.ok) {
+				const parts = [];
+				if (result.removedVision > 0) {
+					parts.push(`${result.removedVision} vision message(s) removed`);
+				}
+				if (result.trimmed > 0) {
+					parts.push(`${result.trimmed} message(s) trimmed`);
+				}
+				const detail = parts.length > 0 ? parts.join(", ") : "no changes needed";
+				onStatusChange?.(`Context compacted: ${detail}.`);
+				// Recompute the context size so the status bar reflects the reduced window.
+				await updateContextSize(sessionState, config);
+			} else {
+				onStatusChange?.(`Compaction failed: ${result?.error || "unknown error"}`);
+			}
+		} catch (err) {
+			onStatusChange?.(`Compaction failed: ${err.message}`);
+		}
+	};
+
+	/**
 	 * Handle user input: parse commands or dispatch as chat.
 	 */
 	const handleCommand = async (trimmed) => {
@@ -283,6 +317,10 @@ const ConversationArea = forwardRef(function ConversationArea(
 			if (result.action === "clear") {
 				messageListRef.current?.clear();
 				onStatusChange?.(result.message || "Conversation cleared.");
+				return;
+			}
+			if (result.action === "compact") {
+				await handleCompact();
 				return;
 			}
 			if (result.action === "unknown") {

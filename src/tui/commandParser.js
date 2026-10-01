@@ -156,6 +156,10 @@ export class CommandParser {
 			return { action: "gc", subAction: "run", ...result, message: msg };
 		});
 
+		this.#register("compact", (_args, _ctx) => {
+			return { action: "compact", message: "Compacting context window." };
+		});
+
 		// Skill invocation: /skillName [args]
 		// Handled in parse() via context._skillList — returns a skill-invoke result
 		// that the conversation area routes through the deepagents skill system.

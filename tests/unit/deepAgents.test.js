@@ -252,3 +252,158 @@ describe("createSubagentDefinitions tool visibility", () => {
 		}
 	});
 });
+
+describe("compactAgentContext", () => {
+	/**
+	 * Create a mock LangChain message with the given type and content.
+	 * @param {string} type - Message type ("human", "ai", "tool", "system")
+	 * @param {string|Array} content - Message content
+	 * @param {Object} [extra] - Extra fields (e.g., name)
+	 * @returns {Object} Mock message
+	 */
+	function makeMessage(type, content, extra = {}) {
+		return {
+			_getType: () => type,
+			type,
+			content,
+			...extra,
+		};
+	}
+
+	/**
+	 * Create a mock agent with getState/updateState.
+	 * @param {Array} messages - Initial messages
+	 * @returns {{ agent: Object, updated: Object }} Mock agent and captured update
+	 */
+	function makeMockAgent(messages) {
+		const updated = { messages: null };
+		return {
+			agent: {
+				getState: async () => ({ values: { messages } }),
+				updateState: async (_config, values) => {
+					updated.messages = values.messages;
+				},
+			},
+			updated,
+		};
+	}
+
+	it("removes readImage ToolMessages with non-empty data", async () => {
+		const { compactAgentContext } = await import("../../src/agent/deepAgents.js");
+		const messages = [
+			makeMessage("human", "Look at this image"),
+			makeMessage("tool", JSON.stringify({ ok: true, mimeType: "image/png", data: "aGVsbG8=" }), {
+				name: "readImage",
+			}),
+			makeMessage("ai", "I see the image"),
+		];
+		const { agent, updated } = makeMockAgent(messages);
+		const result = await compactAgentContext(agent, { configurable: { thread_id: "t1" } });
+
+		assert.strictEqual(result.ok, true);
+		assert.strictEqual(result.removedVision, 1);
+		assert.strictEqual(result.remaining, 2);
+		// The readImage ToolMessage should be removed.
+		assert.strictEqual(updated.messages.length, 3); // RemoveMessage sentinel + 2 messages
+		assert.strictEqual(updated.messages[1].content, "Look at this image");
+		assert.strictEqual(updated.messages[2].content, "I see the image");
+	});
+
+	it("removes messages with image_url content blocks", async () => {
+		const { compactAgentContext } = await import("../../src/agent/deepAgents.js");
+		const messages = [
+			makeMessage("human", [
+				{ type: "text", text: "Describe this" },
+				{ type: "image_url", image_url: { url: "data:image/png;base64,aGVsbG8=" } },
+			]),
+			makeMessage("ai", "It's a hello world image"),
+		];
+		const { agent, updated } = makeMockAgent(messages);
+		const result = await compactAgentContext(agent, { configurable: { thread_id: "t1" } });
+
+		assert.strictEqual(result.ok, true);
+		assert.strictEqual(result.removedVision, 1);
+		assert.strictEqual(result.remaining, 1);
+		assert.strictEqual(updated.messages.length, 2); // RemoveMessage sentinel + 1 message
+		assert.strictEqual(updated.messages[1].content, "It's a hello world image");
+	});
+
+	it("trims older messages beyond keepRecent", async () => {
+		const { compactAgentContext } = await import("../../src/agent/deepAgents.js");
+		const messages = [];
+		for (let i = 0; i < 30; i++) {
+			messages.push(makeMessage("human", `message ${i}`));
+		}
+		const { agent, updated } = makeMockAgent(messages);
+		const result = await compactAgentContext(agent, { configurable: { thread_id: "t1" } }, null, {
+			keepRecent: 10,
+		});
+
+		assert.strictEqual(result.ok, true);
+		assert.strictEqual(result.trimmed, 20);
+		assert.strictEqual(result.remaining, 10);
+		assert.strictEqual(updated.messages.length, 11); // RemoveMessage sentinel + 10 messages
+		assert.strictEqual(updated.messages[1].content, "message 20");
+	});
+
+	it("updates sessionState.getConversation() when provided", async () => {
+		const { compactAgentContext } = await import("../../src/agent/deepAgents.js");
+		const messages = [makeMessage("human", "Hello"), makeMessage("ai", "Hi there")];
+		const { agent } = makeMockAgent(messages);
+		let loaded = null;
+		const sessionState = {
+			loadConversation: (conv) => {
+				loaded = conv;
+			},
+		};
+		const result = await compactAgentContext(
+			agent,
+			{ configurable: { thread_id: "t1" } },
+			sessionState,
+		);
+
+		assert.strictEqual(result.ok, true);
+		assert.ok(loaded, "sessionState.loadConversation should be called");
+		assert.strictEqual(loaded.length, 2);
+		assert.strictEqual(loaded[0].role, "user");
+		assert.strictEqual(loaded[0].content, "Hello");
+		assert.strictEqual(loaded[1].role, "assistant");
+		assert.strictEqual(loaded[1].content, "Hi there");
+	});
+
+	it("handles empty message state", async () => {
+		const { compactAgentContext } = await import("../../src/agent/deepAgents.js");
+		const { agent } = makeMockAgent([]);
+		const result = await compactAgentContext(agent, { configurable: { thread_id: "t1" } });
+
+		assert.strictEqual(result.ok, true);
+		assert.strictEqual(result.removedVision, 0);
+		assert.strictEqual(result.trimmed, 0);
+		assert.strictEqual(result.remaining, 0);
+	});
+
+	it("returns ok with no changes when no vision messages exist", async () => {
+		const { compactAgentContext } = await import("../../src/agent/deepAgents.js");
+		const messages = [makeMessage("human", "Hello"), makeMessage("ai", "Hi")];
+		const { agent } = makeMockAgent(messages);
+		const result = await compactAgentContext(agent, { configurable: { thread_id: "t1" } });
+
+		assert.strictEqual(result.ok, true);
+		assert.strictEqual(result.removedVision, 0);
+		assert.strictEqual(result.trimmed, 0);
+		assert.strictEqual(result.remaining, 2);
+	});
+
+	it("returns an error result when getState throws", async () => {
+		const { compactAgentContext } = await import("../../src/agent/deepAgents.js");
+		const agent = {
+			getState: async () => {
+				throw new Error("no checkpointer");
+			},
+		};
+		const result = await compactAgentContext(agent, { configurable: { thread_id: "t1" } });
+
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("no checkpointer"));
+	});
+});

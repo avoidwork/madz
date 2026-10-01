@@ -1,8 +1,5 @@
-# tui-conversation Specification
+## MODIFIED Requirements
 
-## Purpose
-TBD - created by archiving change preserve-conversation-on-interruption. Update Purpose after archive.
-## Requirements
 ### Requirement: Conversation Persistence on Interruption
 The system SHALL preserve conversation checkpoints when an interruption occurs (e.g., user sends interrupt signal, kills the process, or disconnects), allowing the user to resume the conversation from the exact point of interruption.
 
@@ -25,4 +22,3 @@ The system SHALL preserve conversation checkpoints when an interruption occurs (
 #### Scenario: Compact command is handled in conversation area
 - **WHEN** `handleCommand` receives a result with `action === "compact"`
 - **THEN** the system invokes the compaction routine and reports the result via `onStatusChange`
-

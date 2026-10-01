@@ -175,6 +175,10 @@ const agent = await createDeepAgentsOrchestrator(checkpointer);
 
 const sessionConfig = { configurable: { thread_id: sessionState.getSessionId() } };
 
+// Bind a compaction callback to the session thread so the TUI can manually
+// compress the context window on demand (via the `/compact` slash command).
+const compactContext = (options) => agent.compactContext(sessionConfig, sessionState, options);
+
 // Capture config value before callProvider shadows the name
 const showToolResults = config.tui?.showToolResults;
 
@@ -410,6 +414,7 @@ if (isMain) {
 				gcTrigger: gcTrace,
 				checkpointer,
 				contextEstimate: agent.contextEstimate,
+				compactContext,
 			}),
 			{
 				// Restore terminal with newline when app exits

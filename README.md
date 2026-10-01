@@ -255,6 +255,7 @@ node index.js --mode interactive --session abc123
 | `↑/↓`                        | Scroll conversation history          |
 | `/<skill-name>`              | Invoke a discovered skill            |
 | `/clear`                     | Clear conversation history           |
+| `/compact`                   | Compact the context window on demand |
 | `/config set <path> <value>`  | Mutate config at runtime             |
 | `/gc`                        | Trigger manual V8 garbage collection |
 | `/gc status`                 | Show GC availability and call count  |
