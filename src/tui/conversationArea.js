@@ -249,7 +249,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 			return;
 		}
 		onStatusChange?.("Compacting context window...");
-		addMessage({ role: "system", content: "Compacting context window..." });
+		const compactMsgId = addMessage({ role: "system", content: "Compacting context window..." });
 		try {
 			const result = await compactContext();
 			if (result?.ok) {
@@ -263,18 +263,18 @@ const ConversationArea = forwardRef(function ConversationArea(
 				const detail = parts.length > 0 ? parts.join(", ") : "no changes needed";
 				const msg = `Context compacted: ${detail}.`;
 				onStatusChange?.(msg);
-				addMessage({ role: "system", content: msg });
+				messageListRef.current?.updateMessage(compactMsgId, { content: msg });
 				// Recompute the context size so the status bar reflects the reduced window.
 				await updateContextSize(sessionState, config);
 			} else {
 				const msg = `Compaction failed: ${result?.error || "unknown error"}`;
 				onStatusChange?.(msg);
-				addMessage({ role: "system", content: msg });
+				messageListRef.current?.updateMessage(compactMsgId, { content: msg });
 			}
 		} catch (err) {
 			const msg = `Compaction failed: ${err.message}`;
 			onStatusChange?.(msg);
-			addMessage({ role: "system", content: msg });
+			messageListRef.current?.updateMessage(compactMsgId, { content: msg });
 		}
 	};
 
@@ -593,10 +593,11 @@ const ConversationArea = forwardRef(function ConversationArea(
 
 	const addMessage = (msg) => {
 		const time = getTimestamp();
-		messageListRef.current?.addMessage(msg.role, msg.content, { time });
+		const id = messageListRef.current?.addMessage(msg.role, msg.content, { time });
 		if (messageCountRef) {
 			messageCountRef.current = messageListRef.current?.getMessageCount() || 0;
 		}
+		return id;
 	};
 
 	/**
