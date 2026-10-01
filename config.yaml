@@ -117,7 +117,9 @@ memory:
   errorsDir: memory/errors/
   schedulesDir: memory/schedules/
   sessionsDir: memory/sessions/
+  screenshotsDir: memory/screenshots/
   checkpointsDir: memory/checkpoints/
+  toolsDir: memory/tools/
   ephemeralLimit: 5
   ephemeral:
     ttlDays: 7

@@ -13,6 +13,8 @@ export const MemorySchema = z.object({
 	errorsDir: z.string().default("memory/errors/"),
 	schedulesDir: z.string().default("memory/schedules/"),
 	sessionsDir: z.string().default("memory/sessions/"),
+	screenshotsDir: z.string().default("memory/screenshots/"),
+	toolsDir: z.string().default("memory/tools/"),
 	ephemeralLimit: z.number().int().positive().default(5),
 	ephemeral: z
 		.object({
