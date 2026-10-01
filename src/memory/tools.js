@@ -11,6 +11,8 @@ const cwd = loadConfig().cwd;
  * @returns {Promise<void>}
  */
 export async function ensureToolsDir(toolsDir, cwdParam = cwd) {
+console.log(toolsDir);
+console.log(cwdParam);
 	const dir = join(cwdParam, toolsDir);
 	await mkdir(dir, { recursive: true });
 }
