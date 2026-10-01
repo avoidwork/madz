@@ -45,7 +45,6 @@ const { ensureToolsDir, ensureScreenshotsDir } = await import("./src/memory/inde
 await ensureSessionsDir(config.memory.sessionsDir);
 
 // Ensure memory/tools directory exists before any subsystem initialization
-console.log(JSON.stringify(config.memory));
 await ensureToolsDir(config.memory.toolsDir);
 
 // Ensure memory/screenshots directory exists before any subsystem initialization
