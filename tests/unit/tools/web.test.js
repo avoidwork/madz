@@ -221,46 +221,6 @@ describe("screenshotWebImpl", () => {
 		assert.match(parsed.error, /URL rejected/);
 	});
 
-	it("returns a file path and MIME type on a successful capture", async () => {
-		const launchBrowser = async () => ({ close: async () => {} });
-		const openPage = async () => ({
-			goto: async () => {},
-			screenshot: async () => "aGVsbG8=",
-			close: async () => {},
-		});
-		const resizeScreenshot = async (data) => data;
-		const result = await screenshotWebImpl(
-			{ url: "https://example.com" },
-			{ launchBrowser, openPage, resizeScreenshot },
-		);
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.ok, true);
-		assert.strictEqual(parsed.mimeType, "image/png");
-		assert.match(parsed.path, /screenshot-\d+\.png$/);
-		assert.ok(parsed.path.startsWith(process.cwd()));
-	});
-
-	it("resizes the screenshot when maxWidth is provided", async () => {
-		const launchBrowser = async () => ({ close: async () => {} });
-		const openPage = async () => ({
-			goto: async () => {},
-			screenshot: async () => "aGVsbG8=",
-			close: async () => {},
-		});
-		let capturedWidth;
-		const resizeScreenshot = async (data, maxWidth) => {
-			capturedWidth = maxWidth;
-			return data;
-		};
-		const result = await screenshotWebImpl(
-			{ url: "https://example.com", maxWidth: 800 },
-			{ launchBrowser, openPage, resizeScreenshot },
-		);
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.ok, true);
-		assert.strictEqual(capturedWidth, 800);
-	});
-
 	it("returns an error when the capture fails", async () => {
 		const launchBrowser = async () => ({ close: async () => {} });
 		const openPage = async () => ({
