@@ -4,7 +4,6 @@ import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { filterUrl } from "../../sandbox/urlFilter.js";
 import { loadConfig } from "../../config/loader.js";
-import { ensureScreenshotsDir } from "../../memory/index.js";
 import { launchBrowser, openPage, DEFAULT_TIMEOUT } from "./browser.js";
 
 const config = loadConfig();
@@ -490,9 +489,7 @@ export async function screenshotWebImpl(input, options = {}) {
 		await page.close();
 		data = await resize(data, widthLimit, sizeLimit);
 		const filename = `screenshot-${Date.now()}.png`;
-		const dir = join(config.cwd, config.memory.screenshotsDir);
-		await ensureScreenshotsDir(config.memory.screenshotsDir, config.cwd);
-		const path = join(dir, filename);
+		const path = join(config.cwd, config.memory.screenshotsDir, filename);
 		await writeFile(path, Buffer.from(data, "base64"));
 		return JSON.stringify({ ok: true, mimeType: "image/png", path });
 	} catch (err) {

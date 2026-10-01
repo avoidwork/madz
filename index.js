@@ -76,6 +76,10 @@ await ensureSessionsDir(config.cwd + "/" + "memory/sessions/");
 const { ensureToolsDir } = await import("./src/memory/index.js");
 await ensureToolsDir(config.cwd + "/" + "memory/tools/");
 
+// Ensure memory/screenshots directory exists before any subsystem initialization
+const { ensureScreenshotsDir } = await import("./src/memory/index.js");
+await ensureScreenshotsDir(config.cwd + "/" + config.memory.screenshotsDir);
+
 // Initialize contextual onboarding if profile is missing (with graceful degradation)
 let onboardingInstance = null;
 try {
