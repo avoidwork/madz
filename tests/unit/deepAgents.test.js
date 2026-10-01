@@ -346,6 +346,47 @@ describe("compactAgentContext", () => {
 		assert.strictEqual(updated.messages[1].content, "message 20");
 	});
 
+	it("forces summarization when backend and model are provided", async () => {
+		const { HumanMessage } = await import("@langchain/core/messages");
+		const { LocalShellBackend } = await import("deepagents");
+		const { compactAgentContext } = await import("../../src/agent/deepAgents.js");
+		const messages = [
+			new HumanMessage("one"),
+			new HumanMessage("two"),
+			new HumanMessage("three"),
+			new HumanMessage("four"),
+		];
+		const { agent, updated } = makeMockAgent(messages);
+		// Real backend + mock model so the forced summarization path is exercised.
+		// The middleware calls model.invoke to produce a summary; the backend
+		// offload failure is caught internally and it proceeds with the summary.
+		const backend = new LocalShellBackend({
+			rootDir: process.cwd(),
+			virtualMode: false,
+			inheritEnv: true,
+		});
+		const model = {
+			invoke: async () => ({ text: "This is a summary." }),
+		};
+		const result = await compactAgentContext(agent, { configurable: { thread_id: "t1" } }, null, {
+			backend,
+			model,
+			keepRecent: 2,
+		});
+
+		assert.strictEqual(result.ok, true);
+		// The summary message replaces the older messages; the kept set is the
+		// summary + the 2 most recent messages. The summary is preserved (not
+		// re-trimmed), so the final set is summary + three + four.
+		assert.strictEqual(updated.messages.length, 4); // RemoveMessage sentinel + summary + 2 kept
+		assert.strictEqual(
+			updated.messages[1].content,
+			"Here is a summary of the conversation to date:\n\nThis is a summary.",
+		);
+		assert.strictEqual(updated.messages[2].content, "three");
+		assert.strictEqual(updated.messages[3].content, "four");
+	});
+
 	it("updates sessionState.getConversation() when provided", async () => {
 		const { compactAgentContext } = await import("../../src/agent/deepAgents.js");
 		const messages = [makeMessage("human", "Hello"), makeMessage("ai", "Hi there")];

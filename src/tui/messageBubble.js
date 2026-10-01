@@ -197,6 +197,7 @@ export function MessageBubbleInner({
 	const [localCompletedToolCalls, setLocalCompletedToolCalls] = useState(completedToolCalls || []);
 	const [localToolCallDisplay, setLocalToolCallDisplay] = useState(toolCallDisplay);
 	const [localActiveToolCall, setLocalActiveToolCall] = useState(activeToolCall);
+	const [localContent, setLocalContent] = useState(content);
 
 	// Sync local state from props when not using pub/sub (session restore, initial render)
 	useEffect(() => {
@@ -227,14 +228,16 @@ export function MessageBubbleInner({
 				setLocalCompletedToolCalls(data.completedToolCalls);
 			if (data?.toolCallDisplay !== undefined) setLocalToolCallDisplay(data.toolCallDisplay);
 			if (data?.activeToolCall !== undefined) setLocalActiveToolCall(data.activeToolCall);
+			if (data?.content !== undefined) setLocalContent(data.content);
 		};
 
 		subscribe(topic, handleUpdate);
 		return () => unsubscribe(topic, handleUpdate);
 	}, [topic, subscribe, unsubscribe]);
 
-	// Display the latest content — use segments if available, otherwise fall back to content prop
-	const text = segments.length > 0 ? segments.map((s) => s.content).join("") : content || "";
+	// Display the latest content — use segments if available, otherwise fall back to localContent
+	// (which tracks pub/sub content updates for non-segment messages like system messages).
+	const text = segments.length > 0 ? segments.map((s) => s.content).join("") : localContent || "";
 
 	// Trigger scroll-to-bottom when streaming content grows or when streaming starts.
 	// When a bubble grows via pub/sub, the parent doesn't re-render, so the
@@ -294,12 +297,12 @@ export function MessageBubbleInner({
 
 	// Fallback for non-segments path (session restore, non-streaming messages)
 	const fallbackContentEl =
-		!hasReasoning && segments.length === 0 && content
+		!hasReasoning && segments.length === 0 && localContent
 			? React.createElement(
 					Box,
 					{ flexDirection: "row" },
 					React.createElement(MarkdownText, {
-						content: content,
+						content: localContent,
 						color: role === "system" ? "orange" : undefined,
 					}),
 				)
@@ -325,7 +328,8 @@ export function MessageBubbleInner({
 			)
 		: null;
 
-	const pendingState = role === "assistant" && localStreaming && segments.length === 0 && !content;
+	const pendingState =
+		role === "assistant" && localStreaming && segments.length === 0 && !localContent;
 
 	// Memoize the thinking word so it doesn't rotate on every render
 	const thinkingWordRef = useRef(null);

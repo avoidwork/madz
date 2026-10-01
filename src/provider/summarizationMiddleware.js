@@ -56,3 +56,37 @@ export function createSummarizationMiddlewareFromConfig(options = {}) {
 		keep,
 	});
 }
+
+/**
+ * Force a summarization through the deepagents `SummarizationMiddleware`,
+ * bypassing the configured trigger threshold. Used by the `/compact` command.
+ *
+ * Creates a fresh middleware with an always-firing trigger, invokes its
+ * `wrapModelCall` with a capture handler, and returns the modified message set
+ * (summary message + preserved messages). The offload to backend storage is
+ * best-effort — a failure logs a warning and proceeds with summary generation.
+ *
+ * @param {Object} options - Options
+ * @param {Object} options.backend - The deepagents backend used for history offload
+ * @param {Object} [options.keep] - The keep policy (defaults to messages/20)
+ * @param {Object} options.state - The agent state values (with `messages`)
+ * @param {Object} options.model - The chat model used to generate the summary
+ * @returns {Promise<Array>} The modified message set (summary + preserved)
+ */
+export async function forceSummarize(options = {}) {
+	const { backend, keep = { type: "messages", value: 20 }, state, model } = options;
+	const middleware = createSummarizationMiddleware({
+		backend,
+		trigger: { type: "messages", value: 0 },
+		keep,
+	});
+	let captured = null;
+	await middleware.wrapModelCall(
+		{ state, messages: state.messages, model, systemMessage: null, tools: [] },
+		async (req) => {
+			captured = req.messages;
+			return req;
+		},
+	);
+	return captured;
+}

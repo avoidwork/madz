@@ -13,7 +13,10 @@ import { loadSystemPrompt } from "../memory/prompts.js";
 import { SkillRegistry } from "../skills/registry.js";
 import { createChatModel, getActiveProviderConfig } from "../provider/openai.js";
 import { createTokenBudgetMiddleware } from "../provider/tokenBudgetMiddleware.js";
-import { createSummarizationMiddlewareFromConfig } from "../provider/summarizationMiddleware.js";
+import {
+	createSummarizationMiddlewareFromConfig,
+	forceSummarize,
+} from "../provider/summarizationMiddleware.js";
 import { createImageDispatchMiddleware } from "../provider/imageDispatchMiddleware.js";
 import {
 	buildToolConfig,
@@ -185,11 +188,15 @@ function toConversationExchange(message) {
  * @param {Object} [sessionState] - Optional session state manager to sync
  * @param {Object} [options] - Compaction options
  * @param {number} [options.keepRecent=20] - Number of recent messages to retain after trimming
+ * @param {Object} [options.backend] - The deepagents backend used for history offload
+ * @param {Object} [options.model] - The chat model used to generate the summary
  * @returns {Promise<{ok: boolean, removedVision: number, trimmed: number, remaining: number, error?: string}>}
  *   Result describing what was removed and trimmed
  */
 export async function compactAgentContext(agent, config, sessionState, options = {}) {
 	const keepRecent = options.keepRecent ?? 20;
+	const backend = options.backend;
+	const model = options.model;
 
 	let state;
 	try {
@@ -203,23 +210,50 @@ export async function compactAgentContext(agent, config, sessionState, options =
 		return { ok: true, removedVision: 0, trimmed: 0, remaining: 0 };
 	}
 
-	const filtered = messages.filter((m) => !hasVisionBlock(m));
-	const removedVision = messages.length - filtered.length;
+	// Force a real summarization through the deepagents SummarizationMiddleware,
+	// bypassing the configured trigger threshold. This produces a summary message
+	// plus the preserved recent messages. When the middleware is unavailable
+	// (no backend/model), fall back to the legacy trim-only behavior.
+	let summarized;
+	if (backend && model) {
+		try {
+			summarized = await forceSummarize({
+				backend,
+				keep: { type: "messages", value: keepRecent },
+				state: state.values,
+				model,
+			});
+		} catch (err) {
+			logger.warn(
+				{ error: err.message },
+				"[compact] forced summarization failed; falling back to trim",
+			);
+		}
+	}
 
-	// Trim older messages, keeping the most recent `keepRecent`.
+	// Filter out vision-bearing messages (readImage ToolMessages with base64
+	// data and image_url content blocks) from the summarized set.
+	const filtered = (summarized || messages).filter((m) => !hasVisionBlock(m));
+	const removedVision = (summarized ? summarized.length : messages.length) - filtered.length;
+
+	// When summarization succeeded, the middleware already applied the keep
+	// policy (summary + preserved recent messages). Re-trimming here would drop
+	// the summary message, so only trim on the fallback path.
 	let trimmed = 0;
 	let finalMessages = filtered;
-	if (filtered.length > keepRecent) {
+	if (!summarized && filtered.length > keepRecent) {
 		trimmed = filtered.length - keepRecent;
 		finalMessages = filtered.slice(-keepRecent);
 	}
 
 	// Replace the checkpointer state with the compacted message set.
+	// The `model_request` node is the graph node that owns the `messages`
+	// channel — targeting it lets updateState replace the message history.
 	try {
 		await agent.updateState(
 			config,
 			{ messages: [new RemoveMessage({ id: "__remove_all__" }), ...finalMessages] },
-			"agent",
+			"model_request",
 		);
 	} catch (err) {
 		return {
@@ -418,7 +452,7 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	// a LangGraph runnable config (with `thread_id`), an optional session state
 	// manager to sync, plus optional options.
 	agent.compactContext = async (config, sessionState, options) =>
-		compactAgentContext(agent, config, sessionState, options);
+		compactAgentContext(agent, config, sessionState, { ...options, backend, model });
 
 	return agent;
 }
