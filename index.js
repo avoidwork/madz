@@ -68,7 +68,8 @@ if (config.schedules.syncOnInit !== false) {
 	}
 }
 
-const { ensureSessionsDir, ensureToolsDir, ensureScreenshotsDir } = await import("./src/session/index.js");
+const { ensureSessionsDir } = await import("./src/session/index.js");
+const { ensureToolsDir, ensureScreenshotsDir } = await import("./src/memory/index.js");
 
 // Ensure sessions directory exists before any subsystem initialization
 await ensureSessionsDir(config.memory.sessionsDir);
