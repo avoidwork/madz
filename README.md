@@ -638,6 +638,7 @@ All built-in tools are defined in `src/tools/` and registered as LangChain tools
 | `cronJob` | Manage scheduled cron jobs — create, list, update, pause, resume, run, remove. Persisted to `memory/schedules/`. Available to the orchestrator agent. |
 | `data` | Format conversion between JSON, YAML, and CSV. |
 | `date` | Return current date/time in ISO 8601 UTC or human-readable format. Zero permissions — always registered. |
+| `decision` | Make fast, structured decisions using a local decision model via Ollama's `/v1/systemone` endpoint. Accepts a `state` (string or JSON object/array) and a `questions` record (each with a `type` of `choice`, `noul`, or `score`), returning structured answers. Config-gated — only registered when `agent.decision.baseUrl` is set. |
 | `docx` | Read and extract content from `.docx` (Word) documents. |
 | `email` | Read, send, manage drafts, organize, and search emails. Actions: `read`, `send`, `draftSave`, `draftList`, `draftUpdate`, `draftDelete`, `organize`, `search`. Requires email provider credentials via environment variables. |
 | `extractWeb` | Extract readable text content from a web page URL. Supports summarization for large pages. |
@@ -670,6 +671,40 @@ All built-in tools are defined in `src/tools/` and registered as LangChain tools
 
 **Deep Agents tools:** Core filesystem operations (`readFile`, `writeFile`, `patch`, `searchFiles`) and task management (`todo`) are provided by [deepagentsjs](https://github.com/langchain-ai/deepagentsjs) and are not listed as madz-built-in tools.
 
+### Decisioning Models
+
+The `decision` tool wraps Ollama's `/v1/systemone` endpoint (which follows TypeSafe's Jev API) for fast, structured classification — routing a support ticket, checking a request against a policy, or scoring against a rubric. It uses a local decision model such as **tev1** from Together AI, fine-tuned from Qwen3.5 in 4B and 0.8B sizes. You give it a `state` (the text to judge) and a set of `questions`, and it selects an answer based on likely outcome, returning the probability of each option.
+
+Unlike a chat model, a decision model is not an agentic loop — it does not tool-call or iterate. It returns structured answers from a single request, which is why it's exposed as a tool rather than a subagent.
+
+**Configuration** lives under `agent.decision`. `baseUrl` is the activation switch — an empty string means the tool is not registered, so an unconfigured install is unaffected:
+
+```yaml
+agent:
+  decision:
+    baseUrl: ""            # empty = tool not registered
+    model: tev1:4b
+    temperature: 0
+```
+
+Set `baseUrl` to your local Ollama instance (e.g. `http://localhost:11434`) to enable it. Requires **Ollama 0.35+**, and the model is pulled via `ollama pull tev1:4b` (4.5GB, 256K context) or `ollama pull tev1:0.8b` (812MB).
+
+**Question types:**
+
+| Type | `criteria` | Answer fields |
+| ---- | ---------- | ------------- |
+| `choice` | An object mapping each option to a description (use `null` to let the option name describe itself) | `choice`, `probabilities`, `confidence` |
+| `noul` | Optional `{ "true": "...", "false": "..." }` to describe each side | `noul`, the probability that the answer is true |
+| `score` | An array of level descriptions, lowest first (levels numbered from 0) | `score` (probability-weighted level), `legend`, `probabilities`, `confidence` |
+
+**Notes:**
+
+- Use `/v1/systemone`, not the regular chat endpoint — in a regular chat, tev1 tends to reply in prose.
+- Keep inputs short: every question is scored with the full state and question set in its prompt, and tev1 runs at ~2,000 tokens context. The longest training example is ~1,500 tokens.
+- `choice` and `score` questions take 2–26 options (tev1 was trained on 2–24). Add a `none` option if none of your options might fit.
+- Request bodies are limited to 64 KiB.
+- It can be wrong — don't let it be the only check on a high-stakes decision.
+
 ### File Path Autocomplete
 
 While typing in the input bar, type `@` followed by a path fragment to open a live file picker. It globs the active project directory (excluding `node_modules`, `.git`, and `dist`), filters by a case-insensitive substring match, and lists matching files sorted by path length (shortest first), then by locale collation. A rotating window shows up to 3 options at a time with the `▸` indicator.
@@ -697,7 +732,7 @@ Built-in tools are registered only when their required permissions are enabled f
 | `filesystem:write`                  | `createSkill`, `sampling`, `generatePptx`                                  |
 | `filesystem:read` + `filesystem:write` | `clarify`, `memory`, `spreadsheet`, `webhook`, `indexCode`              |
 | `filesystem:exec` + `process:spawn` | `process`                                                                  |
-| `network:outbound`                  | `cronJob`, `generateImage`, `extractWeb`, `searchWeb`, `renderWeb`, `screenshotWeb`, `email`, `calendar`, `namecom`, `api`, `graphql` |
+| `network:outbound`                  | `cronJob`, `generateImage`, `extractWeb`, `searchWeb`, `renderWeb`, `screenshotWeb`, `email`, `calendar`, `namecom`, `api`, `graphql`, `decision` |
 | `filesystem:read` + `filesystem:write` + `network:outbound` | `generatePdf` |
 
 ### Memory System

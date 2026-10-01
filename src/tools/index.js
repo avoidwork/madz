@@ -27,6 +27,7 @@ import { createDataTool } from "./data/index.js";
 import { createWebhookTool } from "./webhook/index.js";
 import { searchCode, indexCode } from "./code/index.js";
 import { getConfig } from "./config/index.js";
+import { decision } from "./decision/index.js";
 
 /**
  * Maps tool names to required permission scopes.
@@ -70,6 +71,7 @@ export const TOOL_PERMISSIONS = {
 	searchCode: ["filesystem:read"],
 	indexCode: ["filesystem:read", "filesystem:write"],
 	getConfig: ["filesystem:read"],
+	decision: ["network:outbound"],
 };
 
 /**
@@ -165,6 +167,7 @@ export const TOOL_CLASSIFICATIONS = {
 		"documentation",
 		"security-audit",
 	],
+	decision: ["orchestrator", "coding", "research"],
 };
 
 /**
@@ -206,6 +209,7 @@ export const ORCHESTRATOR_TOOLS = [
 	"indexCode",
 	"getConfig",
 	"readImage",
+	"decision",
 ];
 
 // Tool instances keyed by tool name
@@ -246,6 +250,7 @@ export const TOOLS = {
 	searchCode,
 	indexCode,
 	getConfig,
+	decision,
 };
 
 /**
@@ -336,6 +341,8 @@ export async function buildToolConfig(options) {
 			descriptionField: searchCustom?.descriptionField,
 			apiKey: searchCustom?.apiKey,
 		},
+		// Resolved decision config from config.agent.decision
+		decisionConfig: config?.agent?.decision,
 	};
 
 	for (const [toolName, requiredPerms] of Object.entries(TOOL_PERMISSIONS)) {
@@ -390,6 +397,12 @@ export async function buildToolConfig(options) {
 
 			case "textToSpeech": {
 				if (!runtimeOptions.openaiApiKey) continue;
+				tools.push(TOOLS[toolName]);
+				continue;
+			}
+
+			case "decision": {
+				if (!hasAllPerms || !runtimeOptions.decisionConfig?.baseUrl) continue;
 				tools.push(TOOLS[toolName]);
 				continue;
 			}
