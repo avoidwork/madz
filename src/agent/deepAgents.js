@@ -215,11 +215,13 @@ export async function compactAgentContext(agent, config, sessionState, options =
 	}
 
 	// Replace the checkpointer state with the compacted message set.
+	// The `model_request` node is the graph node that owns the `messages`
+	// channel — targeting it lets updateState replace the message history.
 	try {
 		await agent.updateState(
 			config,
 			{ messages: [new RemoveMessage({ id: "__remove_all__" }), ...finalMessages] },
-			"agent",
+			"model_request",
 		);
 	} catch (err) {
 		return {
