@@ -38,6 +38,18 @@ const { default: pkg } = await import(new URL("./package.json", import.meta.url)
 	with: { type: "json" },
 });
 
+const { ensureSessionsDir } = await import("./src/session/index.js");
+const { ensureToolsDir, ensureScreenshotsDir } = await import("./src/memory/index.js");
+
+// Ensure sessions directory exists before any subsystem initialization
+await ensureSessionsDir(config.memory.sessionsDir);
+
+// Ensure memory/tools directory exists before any subsystem initialization
+await ensureToolsDir(config.memory.toolsDir);
+
+// Ensure memory/screenshots directory exists before any subsystem initialization
+await ensureScreenshotsDir(config.memory.screenshotsDir);
+
 // Initialize subsystems
 // Write .env.cron before any subsystem that may use cron
 try {
@@ -67,18 +79,6 @@ if (config.schedules.syncOnInit !== false) {
 		logger.warn(`[scheduler] Crontab sync error: ${err.message}`);
 	}
 }
-
-const { ensureSessionsDir } = await import("./src/session/index.js");
-const { ensureToolsDir, ensureScreenshotsDir } = await import("./src/memory/index.js");
-
-// Ensure sessions directory exists before any subsystem initialization
-await ensureSessionsDir(config.memory.sessionsDir);
-
-// Ensure memory/tools directory exists before any subsystem initialization
-await ensureToolsDir(config.memory.toolsDir);
-
-// Ensure memory/screenshots directory exists before any subsystem initialization
-await ensureScreenshotsDir(config.memory.screenshotsDir);
 
 // Initialize contextual onboarding if profile is missing (with graceful degradation)
 let onboardingInstance = null;
