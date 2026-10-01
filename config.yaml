@@ -119,6 +119,7 @@ memory:
   sessionsDir: memory/sessions/
   screenshotsDir: memory/screenshots/
   checkpointsDir: memory/checkpoints/
+  toolsDir: memory/tools/
   ephemeralLimit: 5
   ephemeral:
     ttlDays: 7
