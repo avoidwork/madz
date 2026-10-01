@@ -168,6 +168,10 @@ agent:
     codingAgent:
       description: "Specialized agent for code-related tasks including file editing, debugging, and implementation."
       temperature: 0.3
+  decision:
+    baseUrl: ""            # empty = tool not registered
+    model: tev1:4b
+    temperature: 0
 summarization:
   enabled: false
   trigger:
