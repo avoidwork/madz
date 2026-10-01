@@ -1,7 +1,10 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
+import { writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import { filterUrl } from "../../sandbox/urlFilter.js";
 import { loadConfig } from "../../config/loader.js";
+import { ensureScreenshotsDir } from "../../memory/index.js";
 import { launchBrowser, openPage, DEFAULT_TIMEOUT } from "./browser.js";
 
 const config = loadConfig();
@@ -450,7 +453,8 @@ export async function renderWebImpl(input, options = {}) {
 /// -- Web screenshot --
 
 /**
- * Render a URL in headless Chromium and return a base64 PNG screenshot.
+ * Render a URL in headless Chromium, save the PNG screenshot to disk, and
+ * return the file path plus MIME type so readImage can read it for vision analysis.
  * @param {object} input - Tool input with URL
  * @param {string} input.url - URL to render
  * @param {number} [input.timeout] - Per-call timeout in milliseconds
@@ -485,7 +489,12 @@ export async function screenshotWebImpl(input, options = {}) {
 		let data = await page.screenshot({ fullPage: true, encoding: "base64" });
 		await page.close();
 		data = await resize(data, widthLimit, sizeLimit);
-		return JSON.stringify({ ok: true, mimeType: "image/png", data });
+		const filename = `screenshot-${Date.now()}.png`;
+		const dir = join(config.cwd, config.memory.screenshotsDir);
+		await ensureScreenshotsDir(config.memory.screenshotsDir, config.cwd);
+		const path = join(dir, filename);
+		await writeFile(path, Buffer.from(data, "base64"));
+		return JSON.stringify({ ok: true, mimeType: "image/png", path });
 	} catch (err) {
 		return JSON.stringify({ ok: false, error: `Screenshot failed: ${err.message}` });
 	} finally {
@@ -562,8 +571,9 @@ export const renderWeb = tool(renderWebImpl, {
 export const screenshotWeb = tool(screenshotWebImpl, {
 	name: "screenshotWeb",
 	description:
-		"Render a URL in headless Chromium and return a base64 PNG screenshot. " +
-		"Feed the result to readImage for vision analysis. Validates the URL against " +
+		"Render a URL in headless Chromium, save the PNG screenshot to disk under " +
+		"memory/screenshots/, and return the file path plus MIME type. Feed the " +
+		"returned path to readImage for vision analysis. Validates the URL against " +
 		"the sandbox allowlist. Resizes the screenshot to maxWidth (default 1024) " +
 		"so it stays consumable by readImage's image.maxSize limit.",
 	schema: z.object({

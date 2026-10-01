@@ -221,7 +221,7 @@ describe("screenshotWebImpl", () => {
 		assert.match(parsed.error, /URL rejected/);
 	});
 
-	it("returns a base64 PNG on a successful capture", async () => {
+	it("returns a file path and MIME type on a successful capture", async () => {
 		const launchBrowser = async () => ({ close: async () => {} });
 		const openPage = async () => ({
 			goto: async () => {},
@@ -236,7 +236,8 @@ describe("screenshotWebImpl", () => {
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, true);
 		assert.strictEqual(parsed.mimeType, "image/png");
-		assert.strictEqual(parsed.data, "aGVsbG8=");
+		assert.match(parsed.path, /screenshot-\d+\.png$/);
+		assert.ok(parsed.path.startsWith(process.cwd()));
 	});
 
 	it("resizes the screenshot when maxWidth is provided", async () => {
