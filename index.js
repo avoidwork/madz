@@ -68,17 +68,16 @@ if (config.schedules.syncOnInit !== false) {
 	}
 }
 
+const { ensureSessionsDir, ensureToolsDir, ensureScreenshotsDir } = await import("./src/session/index.js");
+
 // Ensure sessions directory exists before any subsystem initialization
-const { ensureSessionsDir } = await import("./src/session/index.js");
-await ensureSessionsDir(config.cwd + "/" + "memory/sessions/");
+await ensureSessionsDir(config.memory.sessionsDir);
 
 // Ensure memory/tools directory exists before any subsystem initialization
-const { ensureToolsDir } = await import("./src/memory/index.js");
-await ensureToolsDir(config.cwd + "/" + "memory/tools/");
+await ensureToolsDir(config.memory.toolsDir);
 
 // Ensure memory/screenshots directory exists before any subsystem initialization
-const { ensureScreenshotsDir } = await import("./src/memory/index.js");
-await ensureScreenshotsDir(config.cwd + "/" + config.memory.screenshotsDir);
+await ensureScreenshotsDir(config.memory.screenshotsDir);
 
 // Initialize contextual onboarding if profile is missing (with graceful degradation)
 let onboardingInstance = null;
