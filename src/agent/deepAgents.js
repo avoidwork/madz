@@ -7,6 +7,7 @@ import {
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { InMemoryStore } from "@langchain/langgraph-checkpoint";
+import { RemoveMessage } from "@langchain/core/messages";
 import { loadConfig } from "../config/loader.js";
 import { loadSystemPrompt } from "../memory/prompts.js";
 import { SkillRegistry } from "../skills/registry.js";
@@ -94,6 +95,148 @@ export function createSubagentDefinitions(allTools, model, skillRegistry, config
 
 		return definition;
 	});
+}
+
+/**
+ * Determine whether a message contains a vision block (base64 image data).
+ *
+ * A message is considered vision-bearing when it is either:
+ * - A `readImage` ToolMessage whose content JSON has a non-empty `data` field
+ *   (the base64-encoded image payload), or
+ * - A message whose content array contains an `image_url` content block.
+ *
+ * @param {Object} message - A LangChain message
+ * @returns {boolean} True if the message contains a vision block
+ */
+export function hasVisionBlock(message) {
+	const type = message?._getType?.() ?? message?.type ?? message?.role;
+
+	// A `readImage` ToolMessage whose content JSON has a non-empty `data` field.
+	if (type === "tool" && message.name === "readImage") {
+		const content = message.content;
+		if (typeof content === "string") {
+			try {
+				const parsed = JSON.parse(content);
+				if (parsed?.ok === true && parsed?.data && parsed.data.length > 0) return true;
+			} catch {
+				// Not JSON — not a vision block.
+			}
+		}
+	}
+
+	// A message whose content array contains an `image_url` content block.
+	if (Array.isArray(message?.content)) {
+		return message.content.some((block) => block?.type === "image_url");
+	}
+
+	return false;
+}
+
+/**
+ * Convert a LangChain message to the simplified `{ role, content }` shape used
+ * by `sessionState.getConversation()`.
+ * @param {Object} message - A LangChain message
+ * @returns {{ role: string, content: string }} The simplified message
+ */
+function toConversationExchange(message) {
+	const type = message?._getType?.() ?? message?.type ?? message?.role;
+	let role = type;
+	if (type === "human") role = "user";
+	else if (type === "ai") role = "assistant";
+	else if (type === "tool") role = "tool";
+	else if (type === "system") role = "system";
+
+	let content = message?.content;
+	if (Array.isArray(content)) {
+		content = content
+			.map((block) => {
+				if (typeof block === "string") return block;
+				if (block?.type === "text") return block.text;
+				if (block?.type === "image_url") return "[image]";
+				return "";
+			})
+			.join("");
+	} else if (content && typeof content === "object") {
+		content = JSON.stringify(content);
+	}
+
+	return { role, content: content ?? "" };
+}
+
+/**
+ * Compact the agent's message state by removing messages that contain vision
+ * blocks (base64 image data) and trimming the remaining older messages so the
+ * context window is compressed.
+ *
+ * The routine walks the agent's message state (via `agent.getState`), filters
+ * out vision-bearing messages, trims the remaining messages to the most recent
+ * `keepRecent`, and writes the result back to the checkpointer via
+ * `agent.updateState`. Because the `messages` channel uses a reducer that
+ * merges by message ID, the update is prefixed with a `RemoveMessage` carrying
+ * the `__remove_all__` sentinel so the existing history is fully replaced
+ * rather than appended.
+ *
+ * When a `sessionState` is supplied, the TUI's conversation view is also
+ * updated (via `loadConversation`) so the TUI and the model agree on the
+ * compacted history.
+ *
+ * @param {Object} agent - The deepagents orchestrator instance
+ * @param {Object} config - LangGraph runnable config (with `thread_id`)
+ * @param {Object} [sessionState] - Optional session state manager to sync
+ * @param {Object} [options] - Compaction options
+ * @param {number} [options.keepRecent=20] - Number of recent messages to retain after trimming
+ * @returns {Promise<{ok: boolean, removedVision: number, trimmed: number, remaining: number, error?: string}>}
+ *   Result describing what was removed and trimmed
+ */
+export async function compactAgentContext(agent, config, sessionState, options = {}) {
+	const keepRecent = options.keepRecent ?? 20;
+
+	let state;
+	try {
+		state = await agent.getState(config);
+	} catch (err) {
+		return { ok: false, removedVision: 0, trimmed: 0, remaining: 0, error: err.message };
+	}
+
+	const messages = state?.values?.messages || [];
+	if (messages.length === 0) {
+		return { ok: true, removedVision: 0, trimmed: 0, remaining: 0 };
+	}
+
+	const filtered = messages.filter((m) => !hasVisionBlock(m));
+	const removedVision = messages.length - filtered.length;
+
+	// Trim older messages, keeping the most recent `keepRecent`.
+	let trimmed = 0;
+	let finalMessages = filtered;
+	if (filtered.length > keepRecent) {
+		trimmed = filtered.length - keepRecent;
+		finalMessages = filtered.slice(-keepRecent);
+	}
+
+	// Replace the checkpointer state with the compacted message set.
+	try {
+		await agent.updateState(
+			config,
+			{ messages: [new RemoveMessage({ id: "__remove_all__" }), ...finalMessages] },
+			"agent",
+		);
+	} catch (err) {
+		return {
+			ok: false,
+			removedVision,
+			trimmed,
+			remaining: finalMessages.length,
+			error: err.message,
+		};
+	}
+
+	// Sync the TUI conversation view so it agrees with the compacted model state.
+	if (sessionState) {
+		sessionState.loadConversation(finalMessages.map(toConversationExchange));
+	}
+
+	return { ok: true, removedVision, trimmed, remaining: finalMessages.length };
 }
 
 /**
@@ -269,6 +412,13 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 		tools: orchestratorTools,
 		subagents: subagentDefinitions,
 	};
+
+	// Expose a compaction path so the TUI can manually compress the context
+	// window on demand. The callback is bound to the agent instance and accepts
+	// a LangGraph runnable config (with `thread_id`), an optional session state
+	// manager to sync, plus optional options.
+	agent.compactContext = async (config, sessionState, options) =>
+		compactAgentContext(agent, config, sessionState, options);
 
 	return agent;
 }

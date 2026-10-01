@@ -29,6 +29,7 @@ function App({
 	gcManager,
 	gcTrigger,
 	contextEstimate,
+	compactContext,
 }) {
 	const [showBanner, setShowBanner] = useState(true);
 	const [showOnboarding, setShowOnboarding] = useState(!!onboarding);
@@ -395,6 +396,7 @@ function App({
 							onViewChange: handleViewChange,
 							messageCountRef,
 							contextEstimate,
+							compactContext,
 							activeProject,
 							setActiveProject,
 						}),

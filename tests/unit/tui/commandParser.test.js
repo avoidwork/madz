@@ -283,6 +283,12 @@ describe("CommandParser", () => {
 			assert.ok(result.message.includes("gc not wired"));
 		});
 
+		it('parses "/compact" → { action: "compact" }', () => {
+			const result = parser.parse("/compact", {});
+			assert.strictEqual(result.action, "compact");
+			assert.ok(result.message.includes("Compacting"));
+		});
+
 		it("returns unknown for unrecognized command", () => {
 			const ctx = createMockContext();
 			const result = parser.parse("/nonexistent", ctx);
@@ -341,7 +347,8 @@ describe("CommandParser", () => {
 		it("returns all registered command names (excluding internal)", () => {
 			const cmds = parser.listCommands();
 			assert.ok(Array.isArray(cmds));
-			assert.ok(cmds.length >= 9);
+			assert.ok(cmds.length >= 10);
+			assert.ok(cmds.includes("compact"));
 			assert.ok(cmds.every((c) => typeof c === "string"));
 			// None should start with "_"
 			assert.ok(cmds.every((c) => !c.startsWith("_")));
@@ -357,6 +364,7 @@ describe("CommandParser", () => {
 			assert.strictEqual(parser.hasCommand("exit"), true);
 			assert.strictEqual(parser.hasCommand("help"), true);
 			assert.strictEqual(parser.hasCommand("gc"), true);
+			assert.strictEqual(parser.hasCommand("compact"), true);
 		});
 
 		it("returns false for unknown commands", () => {

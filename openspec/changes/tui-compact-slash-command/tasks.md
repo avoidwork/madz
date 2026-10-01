@@ -1,18 +1,18 @@
 ## 1. Command Parser
 
-- [ ] 1.1 Register a `/compact` command in the dispatch table in `src/tui/commandParser.js` that returns `{ action: "compact" }`
-- [ ] 1.2 Add `/compact` to the command help list in `src/tui/commandHelp.js`
+- [x] 1.1 Register a `/compact` command in the dispatch table in `src/tui/commandParser.js` that returns `{ action: "compact" }`
+- [x] 1.2 Add `/compact` to the command help list in `src/tui/commandHelp.js`
 
 ## 2. Agent Compaction Path
 
-- [ ] 2.1 Add a `compactContext` callback to the agent in `src/agent/deepAgents.js` that walks the agent's message state, removes messages containing vision blocks (a `readImage` ToolMessage whose content JSON has a non-empty `data` field, and/or messages with `image_url` content blocks), and trims/summarizes the remaining older messages
-- [ ] 2.2 Thread the `compactContext` callback from `index.js` into the `App` props
+- [x] 2.1 Add a `compactContext` callback to the agent in `src/agent/deepAgents.js` that walks the agent's message state, removes messages containing vision blocks (a `readImage` ToolMessage whose content JSON has a non-empty `data` field, and/or messages with `image_url` content blocks), and trims/summarizes the remaining older messages
+- [x] 2.2 Thread the `compactContext` callback from `index.js` into the `App` props
 
 ## 3. TUI Conversation Area
 
-- [ ] 3.1 Accept the `compactContext` prop in `src/tui/app.js` and thread it into `ConversationArea`
-- [ ] 3.2 Handle `result.action === "compact"` in `src/tui/conversationArea.js` `handleCommand`, invoking the compaction routine and reporting the result via `onStatusChange`
-- [ ] 3.3 After compaction, update `sessionState.getConversation()` and recompute `contextSize` via `updateContextSize`
+- [x] 3.1 Accept the `compactContext` prop in `src/tui/app.js` and thread it into `ConversationArea`
+- [x] 3.2 Handle `result.action === "compact"` in `src/tui/conversationArea.js` `handleCommand`, invoking the compaction routine and reporting the result via `onStatusChange`
+- [x] 3.3 After compaction, update `sessionState.getConversation()` and recompute `contextSize` via `updateContextSize`
 
 ## 4. Tests
 

@@ -12,6 +12,7 @@ export const COMMAND_GROUPS = [
 		group: "Command:",
 		items: [
 			"/clear - clear conversation",
+			"/compact - compact the context window",
 			"/config set <path> <value> - update config",
 			"/gc [status] - garbage collect or show GC status",
 			"/help - show this list",

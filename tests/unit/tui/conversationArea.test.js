@@ -164,3 +164,38 @@ describe("shouldAutoContinue", () => {
 		assert.strictEqual(mod.shouldAutoContinue(null), false);
 	});
 });
+
+describe("context size recompute after compaction", () => {
+	it("should report fewer tokens for a compacted conversation", async () => {
+		const mod = await import("../../../src/tui/conversationArea.js");
+		const systemPrompt = "You are a helpful assistant.";
+		const fullConversation = [
+			{ role: "user", content: "Describe this image." },
+			{ role: "assistant", content: "The image shows a cat." },
+			{ role: "user", content: "What about this one?" },
+			{ role: "assistant", content: "This one shows a dog." },
+			{ role: "user", content: "And this?" },
+			{ role: "assistant", content: "This one shows a bird." },
+		];
+		const compactedConversation = [
+			{ role: "user", content: "Describe this image." },
+			{ role: "assistant", content: "The image shows a cat." },
+		];
+		const fullTokens = await mod.computeContextSize({
+			conversation: fullConversation,
+			systemPrompt,
+			maxTokens: 0,
+			modelName: "gpt-4o",
+		});
+		const compactedTokens = await mod.computeContextSize({
+			conversation: compactedConversation,
+			systemPrompt,
+			maxTokens: 0,
+			modelName: "gpt-4o",
+		});
+		assert.ok(
+			compactedTokens < fullTokens,
+			"a compacted conversation should report fewer context tokens",
+		);
+	});
+});
