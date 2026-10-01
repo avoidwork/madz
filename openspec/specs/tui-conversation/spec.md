@@ -22,3 +22,7 @@ The system SHALL preserve conversation checkpoints when an interruption occurs (
 - **WHEN** a non-AbortError occurs during conversation (e.g., network error, provider error)
 - **THEN** the system handles the error according to existing error handling logic (no change to current behavior)
 
+#### Scenario: Compact command is handled in conversation area
+- **WHEN** `handleCommand` receives a result with `action === "compact"`
+- **THEN** the system invokes the compaction routine and reports the result via `onStatusChange`
+

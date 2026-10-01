@@ -16,5 +16,5 @@
 
 ## 4. Tests
 
-- [ ] 4.1 Add a test for the `/compact` command in `tests/unit/tui/commandParser.test.js`
-- [ ] 4.2 Add tests for the compaction routine (vision-block removal, message trimming, context size recompute) in `tests/unit/tui/conversationArea.test.js`
+- [x] 4.1 Add a test for the `/compact` command in `tests/unit/tui/commandParser.test.js`
+- [x] 4.2 Add tests for the compaction routine (vision-block removal, message trimming, context size recompute) in `tests/unit/tui/conversationArea.test.js`

@@ -3,7 +3,7 @@
 ## Purpose
 The `/compact` slash command in the TUI that manually compresses the context window on demand, removes messages containing vision blocks (base64 image data), and trims/summarizes older messages so the context window is reduced.
 
-## Requirements
+## ADDED Requirements
 ### Requirement: Register /compact command in dispatch table
 The system SHALL register a `/compact` command in the TUI command parser dispatch table (`src/tui/commandParser.js`) that returns `{ action: "compact" }`.
 
