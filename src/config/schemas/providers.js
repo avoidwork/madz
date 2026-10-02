@@ -72,6 +72,17 @@ export const OpenaiProviderConfigSchema = z.object({
 	rateLimit: RateLimitSchema.default({ requestsPerMinute: 60 }),
 });
 
+export const CopilotProviderConfigSchema = z.object({
+	type: z.literal("github-copilot").default("github-copilot"),
+	base_url: z.string().url().default("https://api.githubcopilot.com"),
+	model: z.string().min(1),
+	enterpriseUrl: z.string().url().optional(),
+	temperature: z.number().min(0).max(2).default(0.4),
+	maxTokens: z.number().int().min(-1).default(-1),
+	reasoning: ReasoningConfigSchema,
+	rateLimit: RateLimitSchema.default({ requestsPerMinute: 60 }),
+});
+
 const _OpenrouterProviderConfigSchema = z.object({
 	model: z.string().optional().default("openrouter/auto"),
 	credentials: OpenRouterCredentialsSchema,

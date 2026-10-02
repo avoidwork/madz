@@ -1,4 +1,9 @@
-export { ProvidersSchema, SearchConfigSchema, RateLimitSchema } from "./providers.js";
+export {
+	ProvidersSchema,
+	SearchConfigSchema,
+	RateLimitSchema,
+	CopilotProviderConfigSchema,
+} from "./providers.js";
 export { SandboxScopeSchema } from "./sandbox.js";
 export { MemorySchema, MemoryGcSchema } from "./memory.js";
 export { TelemetrySchema, TelemetryExporterSchema } from "./telemetry.js";

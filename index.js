@@ -395,6 +395,35 @@ if (isMain) {
 			version: pkg.version,
 			model: getActiveModelName(config),
 		};
+
+		// GitHub Copilot authenticates via OAuth device flow. The user has no
+		// CLI access in this environment, so surface the auth URL/code as a
+		// system message in the chat on init. If a token is already present, or
+		// the provider isn't Copilot, this is null and no prompt is emitted.
+		// When the device-code request fails (e.g. no network), fall back to a
+		// static message so the user knows to check connectivity.
+		let authPrompt = null;
+		const activeProviderName = Object.keys(config?.providers || {})[0] || "openai";
+		const activeProvider = config?.providers?.[activeProviderName] || {};
+		if (activeProvider.type === "github-copilot") {
+			const { getAuthPrompt, getToken } = await import("./src/provider/copilotAuth.js");
+			const memoryDir = config.memory?.directory || "memory/";
+			const deploymentType = activeProvider.enterpriseUrl
+				? activeProvider.enterpriseUrl.replace(/^https?:\/\//i, "").replace(/\/+$/, "")
+				: "github.com";
+			const token = await getToken(memoryDir);
+			if (!token) {
+				authPrompt = await getAuthPrompt({ deploymentType, memoryDir });
+				if (!authPrompt) {
+					authPrompt = {
+						error:
+							"GitHub Copilot requires authentication, but the device-code request failed. " +
+							"Check your network connectivity and restart.",
+					};
+				}
+			}
+		}
+
 		render(
 			React.createElement(App, {
 				config,
@@ -403,6 +432,7 @@ if (isMain) {
 				dispatchProvider,
 				scheduleManager,
 				appInfo,
+				authPrompt,
 				onboarding: onboardingInstance,
 				onSaveSession: () =>
 					saveSession(

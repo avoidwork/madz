@@ -24,6 +24,7 @@ function App({
 	dispatchProvider,
 	scheduleManager,
 	appInfo,
+	authPrompt,
 	onboarding,
 	onSaveSession,
 	gcManager,
@@ -51,6 +52,15 @@ function App({
 	// a project is selected/cleared; we stage the message here and dispatch it in
 	// an effect once the ref is live.
 	const pendingSilentMessageRef = useRef(null);
+	// Tracks whether the Copilot auth prompt has been emitted, so the effect
+	// fires exactly once even though it re-runs as the conversation area mounts
+	// (the Banner/Onboarding render before it, leaving the ref null initially).
+	const authPromptEmittedRef = useRef(false);
+	// Holds the background poll's cancel function so it can be invoked only on
+	// unmount. The effect re-runs as the view/banner state changes, and React
+	// runs the previous effect's cleanup on every re-run — cancelling the poll
+	// there would kill it mid-flight when the user switches views.
+	const authPollCancelRef = useRef(null);
 
 	const skillCount = registry ? registry.list().length : 0;
 	const parser = new CommandParser();
@@ -58,6 +68,8 @@ function App({
 	// Rolling token budget (tokens/minute) for the active provider, if enabled.
 	// Drives the live token counter in the status bar.
 	const providerName = Object.keys(config?.providers || {})[0] || "openai";
+	const activeProviderName = providerName;
+	const activeProvider = config?.providers?.[providerName] || {};
 	const tokenBudget = config?.providers?.[providerName]?.rateLimit?.maxTokensMinute || 0;
 
 	// Stable callbacks — flow status/context/compacting from ConversationArea into InputArea
@@ -141,6 +153,109 @@ function App({
 			conversationAreaRef.current.handleChat(message, { silentUser: true });
 		}
 	}, [currentView]);
+
+	// GitHub Copilot auth prompt. When the active provider is Copilot and no
+	// token is present, `authPrompt` carries a live verification URL + user code
+	// (acquired on init). Emit it as a system message once the conversation area
+	// is mounted, then poll in the background until the user authorizes (or the
+	// device code expires). This is the chat-only path — the user has no CLI.
+	// When `authPrompt.error` is set (device-code request failed), emit the
+	// static fallback message instead — no polling.
+	//
+	// The conversation area mounts only after the Banner/Onboarding are
+	// dismissed, so `conversationAreaRef.current` is null on the first render.
+	// The effect re-runs as `showBanner`/`showOnboarding`/`currentView` change;
+	// `authPromptEmittedRef` guarantees the message is emitted exactly once.
+	//
+	// On a 401 (token expired/invalid), the fetch interceptor clears the token
+	// and invokes the registered re-auth handler, which re-acquires a fresh
+	// device code and re-emits the prompt + poll.
+	const startAuthPoll = useCallback(
+		async ({ verificationUri, userCode, deviceCode, deploymentType }) => {
+			if (!conversationAreaRef.current) return;
+			conversationAreaRef.current.addMessage({
+				role: "system",
+				content:
+					`GitHub Copilot requires authentication.\n` +
+					`Open ${verificationUri} and enter code: ${userCode}`,
+			});
+			let cancelled = false;
+			authPollCancelRef.current = () => {
+				cancelled = true;
+			};
+			const { pollForToken } = await import("../provider/copilotAuth.js");
+			const memoryDir = config?.memory?.directory || "memory/";
+			const result = await pollForToken(deviceCode, { memoryDir, deploymentType });
+			if (cancelled) return;
+			if (result.ok) {
+				conversationAreaRef.current?.addMessage({
+					role: "system",
+					content: "GitHub Copilot authenticated.",
+				});
+			} else {
+				conversationAreaRef.current?.addMessage({
+					role: "system",
+					content: `GitHub Copilot authentication failed: ${result.error || "unknown error"}.`,
+				});
+			}
+		},
+		[config],
+	);
+
+	useEffect(() => {
+		if (!authPrompt || !conversationAreaRef.current) return;
+		if (authPromptEmittedRef.current) return;
+		authPromptEmittedRef.current = true;
+		if (authPrompt.error) {
+			conversationAreaRef.current.addMessage({
+				role: "system",
+				content: authPrompt.error,
+			});
+			return;
+		}
+		startAuthPoll(authPrompt);
+	}, [authPrompt, config, showBanner, showOnboarding, currentView, startAuthPoll]);
+
+	// Register the 401 re-auth handler. When a Copilot request returns 401, the
+	// interceptor clears the token and calls this, which re-acquires a fresh
+	// device code and re-emits the prompt + poll. Only active when the provider
+	// is Copilot.
+	useEffect(() => {
+		if (activeProviderName !== "github-copilot") return;
+		let disposed = false;
+		import("../provider/copilotAuth.js").then(({ setAuthRequiredHandler }) => {
+			if (disposed) return;
+			setAuthRequiredHandler(async () => {
+				const { getAuthPrompt } = await import("../provider/copilotAuth.js");
+				const memoryDir = config?.memory?.directory || "memory/";
+				const deploymentType = activeProvider.enterpriseUrl
+					? activeProvider.enterpriseUrl.replace(/^https?:\/\//i, "").replace(/\/+$/, "")
+					: "github.com";
+				const prompt = await getAuthPrompt({ deploymentType, memoryDir });
+				if (prompt) {
+					startAuthPoll(prompt);
+				} else {
+					conversationAreaRef.current?.addMessage({
+						role: "system",
+						content: "GitHub Copilot authentication expired. Please restart to re-authenticate.",
+					});
+				}
+			});
+		});
+		return () => {
+			disposed = true;
+			import("../provider/copilotAuth.js").then(({ setAuthRequiredHandler }) => {
+				setAuthRequiredHandler(null);
+			});
+		};
+	}, [activeProviderName, activeProvider, config, startAuthPoll]);
+
+	// Cancel the background auth poll only on unmount — not on re-render.
+	useEffect(() => {
+		return () => {
+			authPollCancelRef.current?.();
+		};
+	}, []);
 
 	/**
 	 * handleSubmit — App-level router.
