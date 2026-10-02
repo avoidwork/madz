@@ -62,6 +62,7 @@ const ReasoningConfigSchema = z
 
 export const OpenaiProviderConfigSchema = z.object({
 	type: z.literal("openai").default("openai"),
+	enabled: z.boolean().default(true),
 	base_url: z.string().url().default("https://api.openai.com/v1"),
 	model: z.string().min(1),
 	encoding: z.string().optional(),
@@ -74,6 +75,7 @@ export const OpenaiProviderConfigSchema = z.object({
 
 export const CopilotProviderConfigSchema = z.object({
 	type: z.literal("github-copilot").default("github-copilot"),
+	enabled: z.boolean().default(true),
 	base_url: z.string().url().default("https://api.githubcopilot.com"),
 	model: z.string().min(1),
 	enterpriseUrl: z.string().url().optional(),

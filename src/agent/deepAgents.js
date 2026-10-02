@@ -11,7 +11,11 @@ import { RemoveMessage } from "@langchain/core/messages";
 import { loadConfig } from "../config/loader.js";
 import { loadSystemPrompt } from "../memory/prompts.js";
 import { SkillRegistry } from "../skills/registry.js";
-import { createChatModel, getActiveProviderConfig } from "../provider/openai.js";
+import {
+	createChatModel,
+	getActiveProviderConfig,
+	getActiveProviderName,
+} from "../provider/openai.js";
 import { createTokenBudgetMiddleware } from "../provider/tokenBudgetMiddleware.js";
 import {
 	createSummarizationMiddlewareFromConfig,
@@ -52,8 +56,7 @@ function getAgentClassifications(agentName) {
  */
 export function createSubagentDefinitions(allTools, model, skillRegistry, config) {
 	const allAgents = getAllAgents();
-	const providerName = Object.keys(config.providers)[0] || "openai";
-	const providerConfig = config.providers[providerName] || {};
+	const providerConfig = getActiveProviderConfig(config);
 
 	return allAgents.map((agentDef) => {
 		const classifications = getAgentClassifications(agentDef.name);
@@ -299,7 +302,7 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	}
 
 	// Create model from config
-	const providerName = Object.keys(config.providers)[0] || "openai";
+	const providerName = getActiveProviderName(config);
 	const providerConfig = getActiveProviderConfig(config);
 	const model = createChatModel(providerConfig);
 

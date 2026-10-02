@@ -11,6 +11,7 @@ import { MemoryPanel } from "./memoryPanel.js";
 import { SettingsPanel } from "./settingsPanel.js";
 import { SessionsPanel } from "./sessionsPanel.js";
 import { ProjectsPanel } from "./projectsPanel.js";
+import { getActiveProviderConfig } from "../provider/openai.js";
 
 /**
  * App router — holds cross-cutting state and view routing.
@@ -67,10 +68,8 @@ function App({
 
 	// Rolling token budget (tokens/minute) for the active provider, if enabled.
 	// Drives the live token counter in the status bar.
-	const providerName = Object.keys(config?.providers || {})[0] || "openai";
-	const activeProviderName = providerName;
-	const activeProvider = config?.providers?.[providerName] || {};
-	const tokenBudget = config?.providers?.[providerName]?.rateLimit?.maxTokensMinute || 0;
+	const activeProvider = getActiveProviderConfig(config);
+	const tokenBudget = activeProvider?.rateLimit?.maxTokensMinute || 0;
 
 	// Stable callbacks — flow status/context/compacting from ConversationArea into InputArea
 	const onStatusChange = useCallback((msg) => inputAreaRef.current?.setStatusMessage(msg), []);
@@ -221,7 +220,7 @@ function App({
 	// device code and re-emits the prompt + poll. Only active when the provider
 	// is Copilot.
 	useEffect(() => {
-		if (activeProviderName !== "github-copilot") return;
+		if (activeProvider.type !== "github-copilot") return;
 		let disposed = false;
 		import("../provider/copilotAuth.js").then(({ setAuthRequiredHandler }) => {
 			if (disposed) return;
@@ -248,7 +247,7 @@ function App({
 				setAuthRequiredHandler(null);
 			});
 		};
-	}, [activeProviderName, activeProvider, config, startAuthPoll]);
+	}, [activeProvider, config, startAuthPoll]);
 
 	// Cancel the background auth poll only on unmount — not on re-render.
 	useEffect(() => {
