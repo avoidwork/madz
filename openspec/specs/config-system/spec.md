@@ -13,7 +13,7 @@ The system SHALL load all configuration from a single `config.yaml` file located
 - **THEN** the system applies the documented default value
 
 ### Requirement: LLM Provider Configuration
-The system SHALL support configuration of multiple LLM providers including OpenAI-compatible APIs, local model deployments, and custom cloud endpoints, each specifying base URL, model identifier, authentication, rate limits, temperature, and fallback routing. The `maxTokens` provider setting SHALL allow `-1` (unlimited / no cap) and SHALL default to `-1`.
+The system SHALL support configuration of multiple LLM providers including OpenAI-compatible APIs, local model deployments, and custom cloud endpoints, each specifying base URL, model identifier, authentication, rate limits, temperature, and fallback routing. Each provider config SHALL include an `enabled` boolean field defaulting to `true`, and the active provider SHALL be the first provider whose `enabled !== false`. The `maxTokens` provider setting SHALL allow `-1` (unlimited / no cap) and SHALL default to `-1`.
 
 #### Scenario: User configures an OpenAI-compatible provider
 - **WHEN** `config.yaml` contains a provider entry with `type: openai`
@@ -34,6 +34,14 @@ The system SHALL support configuration of multiple LLM providers including OpenA
 #### Scenario: maxTokens rejects a value below -1
 - **WHEN** a provider entry sets `maxTokens: -2`
 - **THEN** the schema rejects the value with a validation error
+
+#### Scenario: Provider enabled defaults to true
+- **WHEN** a provider entry omits `enabled`
+- **THEN** the schema applies the default value of `true`
+
+#### Scenario: Active provider is the first enabled provider
+- **WHEN** `config.providers` has multiple providers and the first is disabled while a later one is enabled
+- **THEN** the system selects the first enabled provider as active
 
 ### Requirement: Configuration Validation
 The system SHALL validate all `config.yaml` contents against a zod-based schema on boot and on runtime mutation, rejecting invalid configurations with a structured error message.
