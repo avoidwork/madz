@@ -14,6 +14,7 @@ import {
 	requestDeviceCode,
 	pollForToken,
 	authorize,
+	getAuthPrompt,
 	createCopilotFetch,
 	CLIENT_ID,
 } from "../../../src/provider/copilotAuth.js";
@@ -332,6 +333,69 @@ describe("authorize", () => {
 			assert.strictEqual(statuses.length, 1);
 			assert.strictEqual(statuses[0].userCode, "ABCD-1234");
 			assert.strictEqual(await getToken(memoryDir), "tok-xyz");
+		} finally {
+			globalThis.fetch = origFetch;
+		}
+	});
+});
+
+describe("getAuthPrompt", () => {
+	it("returns the verification URL and user code when no token is present", async () => {
+		const origFetch = globalThis.fetch;
+		globalThis.fetch = async () =>
+			new Response(
+				JSON.stringify({
+					device_code: "dc",
+					user_code: "ABCD-1234",
+					verification_uri: "https://github.com/login/device",
+					interval: 5,
+				}),
+				{ status: 200 },
+			);
+		try {
+			const prompt = await getAuthPrompt({ domain: "github.com", memoryDir });
+			assert.ok(prompt);
+			assert.strictEqual(prompt.verificationUri, "https://github.com/login/device");
+			assert.strictEqual(prompt.userCode, "ABCD-1234");
+			assert.strictEqual(prompt.deploymentType, "github.com");
+			assert.strictEqual(prompt.deviceCode.device_code, "dc");
+		} finally {
+			globalThis.fetch = origFetch;
+		}
+	});
+
+	it("returns null when a token is already present", async () => {
+		await persist("tok-existing", memoryDir);
+		const origFetch = globalThis.fetch;
+		globalThis.fetch = async () => {
+			throw new Error("should not be called");
+		};
+		try {
+			const prompt = await getAuthPrompt({ domain: "github.com", memoryDir });
+			assert.strictEqual(prompt, null);
+		} finally {
+			globalThis.fetch = origFetch;
+		}
+	});
+
+	it("returns null when the device-code request fails", async () => {
+		const origFetch = globalThis.fetch;
+		globalThis.fetch = async () => new Response("nope", { status: 500 });
+		try {
+			const prompt = await getAuthPrompt({ domain: "github.com", memoryDir });
+			assert.strictEqual(prompt, null);
+		} finally {
+			globalThis.fetch = origFetch;
+		}
+	});
+
+	it("returns null when the response lacks a verification URI or code", async () => {
+		const origFetch = globalThis.fetch;
+		globalThis.fetch = async () =>
+			new Response(JSON.stringify({ device_code: "dc" }), { status: 200 });
+		try {
+			const prompt = await getAuthPrompt({ domain: "github.com", memoryDir });
+			assert.strictEqual(prompt, null);
 		} finally {
 			globalThis.fetch = origFetch;
 		}

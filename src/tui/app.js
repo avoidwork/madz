@@ -24,6 +24,7 @@ function App({
 	dispatchProvider,
 	scheduleManager,
 	appInfo,
+	authPrompt,
 	onboarding,
 	onSaveSession,
 	gcManager,
@@ -51,6 +52,10 @@ function App({
 	// a project is selected/cleared; we stage the message here and dispatch it in
 	// an effect once the ref is live.
 	const pendingSilentMessageRef = useRef(null);
+	// Tracks whether the Copilot auth prompt has been emitted, so the effect
+	// fires exactly once even though it re-runs as the conversation area mounts
+	// (the Banner/Onboarding render before it, leaving the ref null initially).
+	const authPromptEmittedRef = useRef(false);
 
 	const skillCount = registry ? registry.list().length : 0;
 	const parser = new CommandParser();
@@ -141,6 +146,59 @@ function App({
 			conversationAreaRef.current.handleChat(message, { silentUser: true });
 		}
 	}, [currentView]);
+
+	// GitHub Copilot auth prompt. When the active provider is Copilot and no
+	// token is present, `authPrompt` carries a live verification URL + user code
+	// (acquired on init). Emit it as a system message once the conversation area
+	// is mounted, then poll in the background until the user authorizes (or the
+	// device code expires). This is the chat-only path — the user has no CLI.
+	// When `authPrompt.error` is set (device-code request failed), emit the
+	// static fallback message instead — no polling.
+	//
+	// The conversation area mounts only after the Banner/Onboarding are
+	// dismissed, so `conversationAreaRef.current` is null on the first render.
+	// The effect re-runs as `showBanner`/`showOnboarding`/`currentView` change;
+	// `authPromptEmittedRef` guarantees the message is emitted exactly once.
+	useEffect(() => {
+		if (!authPrompt || !conversationAreaRef.current) return;
+		if (authPromptEmittedRef.current) return;
+		authPromptEmittedRef.current = true;
+		if (authPrompt.error) {
+			conversationAreaRef.current.addMessage({
+				role: "system",
+				content: authPrompt.error,
+			});
+			return;
+		}
+		const { verificationUri, userCode, deviceCode, deploymentType } = authPrompt;
+		conversationAreaRef.current.addMessage({
+			role: "system",
+			content:
+				`GitHub Copilot requires authentication.\n` +
+				`Open ${verificationUri} and enter code: ${userCode}`,
+		});
+		let cancelled = false;
+		(async () => {
+			const { pollForToken } = await import("../provider/copilotAuth.js");
+			const memoryDir = config?.memory?.directory || "memory/";
+			const result = await pollForToken(deviceCode, { memoryDir, deploymentType });
+			if (cancelled) return;
+			if (result.ok) {
+				conversationAreaRef.current?.addMessage({
+					role: "system",
+					content: "GitHub Copilot authenticated.",
+				});
+			} else {
+				conversationAreaRef.current?.addMessage({
+					role: "system",
+					content: `GitHub Copilot authentication failed: ${result.error || "unknown error"}.`,
+				});
+			}
+		})();
+		return () => {
+			cancelled = true;
+		};
+	}, [authPrompt, config, showBanner, showOnboarding, currentView]);
 
 	/**
 	 * handleSubmit — App-level router.

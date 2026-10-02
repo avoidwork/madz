@@ -269,6 +269,47 @@ export async function authorize(opts = {}) {
 }
 
 /**
+ * Produce an auth prompt for the chat UI: request a fresh device code and
+ * return the verification URL and user code so the user can authorize from a
+ * browser. Short-circuits to `null` when a token is already present.
+ *
+ * This is the chat-facing counterpart to the CLI `madz auth login` flow. It
+ * does NOT poll — it only acquires the device code. The caller is responsible
+ * for starting the poll (e.g. in the background) and for falling back to a
+ * static message when the request fails (e.g. no network).
+ * @param {Object} [opts] - Options
+ * @param {string} [opts.deploymentType] - The GitHub domain (e.g. "github.com")
+ * @param {string} [opts.domain] - Alias for `deploymentType`
+ * @param {string} [opts.clientId] - The OAuth client id
+ * @param {string} [opts.scope] - The requested scope
+ * @param {string} [opts.memoryDir] - The memory directory for persistence
+ * @returns {Promise<{ verificationUri: string, userCode: string, deviceCode: Object } | null>}
+ *   The prompt data, or `null` when already authenticated or the request failed.
+ */
+export async function getAuthPrompt(opts = {}) {
+	const { memoryDir } = opts;
+	if (await getToken(memoryDir)) {
+		return null;
+	}
+	try {
+		const deviceCode = await requestDeviceCode(opts);
+		const verificationUri = deviceCode.verification_uri || deviceCode.verification_uri_complete;
+		const userCode = deviceCode.user_code;
+		if (!verificationUri || !userCode) {
+			return null;
+		}
+		return {
+			verificationUri,
+			userCode,
+			deviceCode,
+			deploymentType: resolveDomain(opts),
+		};
+	} catch {
+		return null;
+	}
+}
+
+/**
  * Create a fetch interceptor that injects `Authorization: Bearer <token>` on
  * every request, reading the token fresh from the auth file. This is passed to
  * `ChatOpenAI` as `configuration.fetch` so it survives `bindTools()` and picks
