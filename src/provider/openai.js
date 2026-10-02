@@ -124,13 +124,18 @@ export function createChatModel(config) {
 	const opts = {
 		model: config.model,
 		temperature: config.temperature,
-		maxTokens: config.maxTokens,
 		apiKey: config.credentials.apiKey,
 		streaming: config.streaming !== false,
 		configuration: {
 			baseURL: config.base_url,
 		},
 	};
+
+	// `-1` means unlimited / no cap: omit maxTokens so the model uses its own
+	// output-token default rather than sending an invalid -1 to the API.
+	if (config.maxTokens !== -1) {
+		opts.maxTokens = config.maxTokens;
+	}
 
 	if (config.rateLimit) {
 		opts.maxRetries = config.rateLimit.maxRetries;
