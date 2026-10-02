@@ -36,6 +36,24 @@ const POLL_SAFETY_MS = 5_000;
 const MAX_POLL_ATTEMPTS = 120;
 
 /**
+ * Handler invoked when a Copilot request returns 401 (token expired or
+ * invalid). Registered by the TUI so it can surface a fresh device-flow
+ * prompt. `null` when no handler is registered.
+ * @type {Function|null}
+ */
+let authRequiredHandler = null;
+
+/**
+ * Register the handler invoked when a Copilot request returns 401. Pass
+ * `null` to clear. The handler is responsible for re-acquiring a device code
+ * and surfacing it to the user.
+ * @param {Function|null} handler - The handler, or null to clear
+ */
+export function setAuthRequiredHandler(handler) {
+	authRequiredHandler = handler;
+}
+
+/**
  * Normalize a domain by stripping any scheme and trailing slash.
  * @param {string} domain - The domain or URL to normalize
  * @returns {string} The normalized domain
@@ -314,6 +332,11 @@ export async function getAuthPrompt(opts = {}) {
  * every request, reading the token fresh from the auth file. This is passed to
  * `ChatOpenAI` as `configuration.fetch` so it survives `bindTools()` and picks
  * up a re-auth without rebuilding the model.
+ *
+ * When a response returns 401 (token expired or invalid), the interceptor
+ * clears the stale token and invokes the registered `authRequiredHandler` so
+ * the caller can surface a fresh device-flow prompt. The 401 response is
+ * returned unchanged so the caller's error handling still fires.
  * @param {string} [memoryDir] - The memory directory
  * @returns {Function} A fetch-compatible function
  */
@@ -324,6 +347,13 @@ export function createCopilotFetch(memoryDir) {
 		if (token) {
 			headers.set("Authorization", `Bearer ${token}`);
 		}
-		return fetch(input, { ...init, headers });
+		const res = await fetch(input, { ...init, headers });
+		if (res.status === 401) {
+			await clearToken(memoryDir);
+			if (authRequiredHandler) {
+				authRequiredHandler();
+			}
+		}
+		return res;
 	};
 }

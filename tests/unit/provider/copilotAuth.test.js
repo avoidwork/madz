@@ -16,6 +16,7 @@ import {
 	authorize,
 	getAuthPrompt,
 	createCopilotFetch,
+	setAuthRequiredHandler,
 	CLIENT_ID,
 } from "../../../src/provider/copilotAuth.js";
 
@@ -437,6 +438,50 @@ describe("createCopilotFetch", () => {
 			assert.strictEqual(capturedHeaders.get("Authorization"), null);
 		} finally {
 			globalThis.fetch = origFetch;
+		}
+	});
+
+	it("clears the token and invokes the re-auth handler on 401", async () => {
+		await persist("tok-expired", memoryDir);
+		const origFetch = globalThis.fetch;
+		let handlerCalled = false;
+		globalThis.fetch = async () => new Response("unauthorized", { status: 401 });
+		setAuthRequiredHandler(() => {
+			handlerCalled = true;
+		});
+		try {
+			const copilotFetch = createCopilotFetch(memoryDir);
+			const res = await copilotFetch("https://api.githubcopilot.com/v1/chat/completions", {
+				method: "POST",
+			});
+			assert.strictEqual(res.status, 401);
+			assert.strictEqual(handlerCalled, true);
+			assert.strictEqual(await getToken(memoryDir), null);
+		} finally {
+			globalThis.fetch = origFetch;
+			setAuthRequiredHandler(null);
+		}
+	});
+
+	it("does not invoke the re-auth handler on a non-401 response", async () => {
+		await persist("tok-valid", memoryDir);
+		const origFetch = globalThis.fetch;
+		let handlerCalled = false;
+		globalThis.fetch = async () => new Response("ok", { status: 200 });
+		setAuthRequiredHandler(() => {
+			handlerCalled = true;
+		});
+		try {
+			const copilotFetch = createCopilotFetch(memoryDir);
+			const res = await copilotFetch("https://api.githubcopilot.com/v1/chat/completions", {
+				method: "POST",
+			});
+			assert.strictEqual(res.status, 200);
+			assert.strictEqual(handlerCalled, false);
+			assert.strictEqual(await getToken(memoryDir), "tok-valid");
+		} finally {
+			globalThis.fetch = origFetch;
+			setAuthRequiredHandler(null);
 		}
 	});
 });

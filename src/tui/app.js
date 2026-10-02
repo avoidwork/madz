@@ -68,6 +68,8 @@ function App({
 	// Rolling token budget (tokens/minute) for the active provider, if enabled.
 	// Drives the live token counter in the status bar.
 	const providerName = Object.keys(config?.providers || {})[0] || "openai";
+	const activeProviderName = providerName;
+	const activeProvider = config?.providers?.[providerName] || {};
 	const tokenBudget = config?.providers?.[providerName]?.rateLimit?.maxTokensMinute || 0;
 
 	// Stable callbacks — flow status/context/compacting from ConversationArea into InputArea
@@ -164,29 +166,23 @@ function App({
 	// dismissed, so `conversationAreaRef.current` is null on the first render.
 	// The effect re-runs as `showBanner`/`showOnboarding`/`currentView` change;
 	// `authPromptEmittedRef` guarantees the message is emitted exactly once.
-	useEffect(() => {
-		if (!authPrompt || !conversationAreaRef.current) return;
-		if (authPromptEmittedRef.current) return;
-		authPromptEmittedRef.current = true;
-		if (authPrompt.error) {
+	//
+	// On a 401 (token expired/invalid), the fetch interceptor clears the token
+	// and invokes the registered re-auth handler, which re-acquires a fresh
+	// device code and re-emits the prompt + poll.
+	const startAuthPoll = useCallback(
+		async ({ verificationUri, userCode, deviceCode, deploymentType }) => {
+			if (!conversationAreaRef.current) return;
 			conversationAreaRef.current.addMessage({
 				role: "system",
-				content: authPrompt.error,
+				content:
+					`GitHub Copilot requires authentication.\n` +
+					`Open ${verificationUri} and enter code: ${userCode}`,
 			});
-			return;
-		}
-		const { verificationUri, userCode, deviceCode, deploymentType } = authPrompt;
-		conversationAreaRef.current.addMessage({
-			role: "system",
-			content:
-				`GitHub Copilot requires authentication.\n` +
-				`Open ${verificationUri} and enter code: ${userCode}`,
-		});
-		let cancelled = false;
-		authPollCancelRef.current = () => {
-			cancelled = true;
-		};
-		(async () => {
+			let cancelled = false;
+			authPollCancelRef.current = () => {
+				cancelled = true;
+			};
 			const { pollForToken } = await import("../provider/copilotAuth.js");
 			const memoryDir = config?.memory?.directory || "memory/";
 			const result = await pollForToken(deviceCode, { memoryDir, deploymentType });
@@ -202,8 +198,57 @@ function App({
 					content: `GitHub Copilot authentication failed: ${result.error || "unknown error"}.`,
 				});
 			}
-		})();
-	}, [authPrompt, config, showBanner, showOnboarding, currentView]);
+		},
+		[config],
+	);
+
+	useEffect(() => {
+		if (!authPrompt || !conversationAreaRef.current) return;
+		if (authPromptEmittedRef.current) return;
+		authPromptEmittedRef.current = true;
+		if (authPrompt.error) {
+			conversationAreaRef.current.addMessage({
+				role: "system",
+				content: authPrompt.error,
+			});
+			return;
+		}
+		startAuthPoll(authPrompt);
+	}, [authPrompt, config, showBanner, showOnboarding, currentView, startAuthPoll]);
+
+	// Register the 401 re-auth handler. When a Copilot request returns 401, the
+	// interceptor clears the token and calls this, which re-acquires a fresh
+	// device code and re-emits the prompt + poll. Only active when the provider
+	// is Copilot.
+	useEffect(() => {
+		if (activeProviderName !== "github-copilot") return;
+		let disposed = false;
+		import("../provider/copilotAuth.js").then(({ setAuthRequiredHandler }) => {
+			if (disposed) return;
+			setAuthRequiredHandler(async () => {
+				const { getAuthPrompt } = await import("../provider/copilotAuth.js");
+				const memoryDir = config?.memory?.directory || "memory/";
+				const deploymentType = activeProvider.enterpriseUrl
+					? activeProvider.enterpriseUrl.replace(/^https?:\/\//i, "").replace(/\/+$/, "")
+					: "github.com";
+				const prompt = await getAuthPrompt({ deploymentType, memoryDir });
+				if (prompt) {
+					startAuthPoll(prompt);
+				} else {
+					conversationAreaRef.current?.addMessage({
+						role: "system",
+						content: "GitHub Copilot authentication expired. Please restart to re-authenticate.",
+					});
+				}
+			});
+		});
+		return () => {
+			disposed = true;
+			import("../provider/copilotAuth.js").then(({ setAuthRequiredHandler }) => {
+				setAuthRequiredHandler(null);
+			});
+		};
+	}, [activeProviderName, activeProvider, config, startAuthPoll]);
 
 	// Cancel the background auth poll only on unmount — not on re-render.
 	useEffect(() => {
