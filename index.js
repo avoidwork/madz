@@ -16,6 +16,10 @@ const parsed = yargs(process.argv.slice(2))
 		type: "boolean",
 		description: "Index project source code for vector search",
 	})
+	.option("auth", {
+		type: "string",
+		description: "Auth subcommand: 'login', 'status', or 'logout'",
+	})
 	.positional("message", {
 		type: "string",
 		description: "Message to send",
@@ -364,6 +368,52 @@ if (isMain) {
 			);
 		}
 
+		process.exit(0);
+	}
+
+	// Handle `madz auth` subcommands (login / status / logout)
+	if (parsed.auth) {
+		const { authorize, getToken, clearToken } = await import("./src/provider/copilotAuth.js");
+		const memoryDir = config.memory?.directory || "memory/";
+		const providerConfig =
+			config.providers?.github_copilot || config.providers?.["github-copilot"] || {};
+		const deploymentType = providerConfig.enterpriseUrl
+			? providerConfig.enterpriseUrl.replace(/^https?:\/\//i, "").replace(/\/+$/, "")
+			: "github.com";
+
+		if (parsed.auth === "login") {
+			try {
+				const result = await authorize({
+					deploymentType,
+					memoryDir,
+					onStatus: ({ verificationUri, userCode }) => {
+						process.stdout.write(`\nOpen ${verificationUri}\n`);
+						process.stdout.write(`Enter code: ${userCode}\n`);
+					},
+				});
+				if (result.ok) {
+					process.stdout.write("\nAuthenticated. Token saved.\n");
+				} else {
+					process.stdout.write(`\nAuthentication failed: ${result.error}\n`);
+					process.exit(1);
+				}
+			} catch (err) {
+				process.stdout.write(`\nAuthentication failed: ${err.message}\n`);
+				process.exit(1);
+			}
+		} else if (parsed.auth === "status") {
+			const token = await getToken(memoryDir);
+			process.stdout.write(token ? "Authenticated\n" : "Not authenticated\n");
+		} else if (parsed.auth === "logout") {
+			await clearToken(memoryDir);
+			process.stdout.write("Logged out\n");
+		} else {
+			process.stdout.write(`Unknown auth command: ${parsed.auth}\n`);
+			process.exit(1);
+		}
+
+		await runShutdown();
+		await flushLogger();
 		process.exit(0);
 	}
 

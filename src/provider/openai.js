@@ -1,6 +1,7 @@
 import { ChatOpenAI } from "@langchain/openai";
 import { AIMessageChunk } from "@langchain/core/messages";
 import { createTokenBudget } from "./tokenBudget.js";
+import { createCopilotFetch } from "./copilotAuth.js";
 
 /** Default retry delay (ms) when a 429 carries no `retry-after` hint. */
 export const DEFAULT_RETRY_AFTER_MS = 60_000;
@@ -121,15 +122,25 @@ export function getActiveModelName(config) {
 }
 
 export function createChatModel(config) {
+	const isCopilot = config.type === "github-copilot";
 	const opts = {
 		model: config.model,
 		temperature: config.temperature,
-		apiKey: config.credentials.apiKey,
 		streaming: config.streaming !== false,
 		configuration: {
 			baseURL: config.base_url,
 		},
 	};
+
+	// GitHub Copilot authenticates via OAuth device flow, not a static apiKey.
+	// Inject the bearer token on every request through a custom fetch interceptor
+	// that reads the token fresh from the auth file. This survives bindTools()
+	// and picks up a re-auth without rebuilding the model.
+	if (isCopilot) {
+		opts.configuration.fetch = createCopilotFetch();
+	} else {
+		opts.apiKey = config.credentials.apiKey;
+	}
 
 	// `-1` means unlimited / no cap: omit maxTokens so the model uses its own
 	// output-token default rather than sending an invalid -1 to the API.
