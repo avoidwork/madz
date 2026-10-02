@@ -6,6 +6,7 @@ import {
 	ImapProviderSchema,
 	EmailProviderSchema,
 	EmailConfigSchema,
+	OpenaiProviderConfigSchema,
 } from "../../../src/config/schemas/providers.js";
 
 describe("Email Provider Config Schemas", () => {
@@ -121,6 +122,36 @@ describe("Email Provider Config Schemas", () => {
 
 		test("should reject unknown provider type", () => {
 			const result = EmailProviderSchema.safeParse({ type: "unknown", user: "user" });
+			assert.strictEqual(result.success, false);
+		});
+	});
+
+	describe("OpenaiProviderConfigSchema", () => {
+		test("should default maxTokens to -1 (unlimited)", () => {
+			const result = OpenaiProviderConfigSchema.safeParse({
+				model: "gpt-4o",
+				credentials: { apiKey: "sk-test" },
+			});
+			assert.strictEqual(result.success, true);
+			assert.strictEqual(result.data.maxTokens, -1);
+		});
+
+		test("should accept maxTokens of -1", () => {
+			const result = OpenaiProviderConfigSchema.safeParse({
+				model: "gpt-4o",
+				credentials: { apiKey: "sk-test" },
+				maxTokens: -1,
+			});
+			assert.strictEqual(result.success, true);
+			assert.strictEqual(result.data.maxTokens, -1);
+		});
+
+		test("should reject maxTokens below -1", () => {
+			const result = OpenaiProviderConfigSchema.safeParse({
+				model: "gpt-4o",
+				credentials: { apiKey: "sk-test" },
+				maxTokens: -2,
+			});
 			assert.strictEqual(result.success, false);
 		});
 	});

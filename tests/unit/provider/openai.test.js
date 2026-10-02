@@ -83,6 +83,23 @@ describe("shared token budget across model instances", () => {
 	});
 });
 
+describe("createChatModel maxTokens handling", () => {
+	beforeEach(() => {
+		resetTokenBudget();
+	});
+
+	it("omits maxTokens from ChatOpenAI opts when maxTokens is -1", () => {
+		const model = createChatModel({ ...makeConfig(0), maxTokens: -1 });
+		// maxTokens must be omitted so the model uses its own output-token default.
+		assert.strictEqual(model.maxTokens, undefined);
+	});
+
+	it("passes maxTokens through when it is a positive value", () => {
+		const model = createChatModel({ ...makeConfig(0), maxTokens: 4096 });
+		assert.strictEqual(model.maxTokens, 4096);
+	});
+});
+
 describe("getActiveProviderConfig", () => {
 	it("returns the first configured provider", () => {
 		const config = {

@@ -7,7 +7,7 @@ providers:
     credentials:
       apiKey:
     temperature: 0.4
-    maxTokens: 4096
+    maxTokens: -1
     reasoning:
       effort: medium
     rateLimit:

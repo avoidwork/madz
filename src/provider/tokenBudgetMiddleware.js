@@ -72,7 +72,10 @@ export async function estimateContextCost(
 	if (tools && tools.length > 0) {
 		toolTokens = countTokensApproximately([], tools);
 	}
-	return inputTokens + toolTokens + (maxTokens || 0);
+	// `-1` means unlimited / no cap — treat it as 0 (no output budget) so the
+	// estimate is not off by one.
+	const outputBudget = maxTokens === -1 ? 0 : maxTokens || 0;
+	return inputTokens + toolTokens + outputBudget;
 }
 
 /**
@@ -97,6 +100,10 @@ export async function estimateContextCost(
  * @param {Object} [options.budget] - Token budget instance (defaults to the
  *   shared instance for `maxTokensMinute`; injectable for tests)
  * @param {Function} [options.sleep] - Sleep function in ms (injectable for tests)
+ * @param {Function} [options.onContextWindowExceeded] - Callback invoked when a
+ *   400 context-window error is detected. It receives the error and the model
+ *   request (so the caller can extract the thread_id). It should compact the
+ *   context (e.g. via `agent.compactContext`) so the request can be re-sent once.
  * @returns {Object|null} The middleware, or `null` when the budget is disabled
  */
 export function createTokenBudgetMiddleware(options = {}) {
@@ -105,6 +112,7 @@ export function createTokenBudgetMiddleware(options = {}) {
 
 	const budget = options.budget ?? getSharedTokenBudget(maxTokensMinute);
 	const sleep = options.sleep ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
+	const onContextWindowExceeded = options.onContextWindowExceeded;
 
 	/**
 	 * Estimate the cost of a model request: input tokens (system + messages)
@@ -141,6 +149,23 @@ export function createTokenBudgetMiddleware(options = {}) {
 					// A failed attempt must not consume budget.
 					budget.release(handle);
 
+					// A 400 context-window error means the conversation exceeds the
+					// model's context length. Compact the context and re-send once.
+					if (isContextWindowError(err)) {
+						if (attempt === 0 && typeof onContextWindowExceeded === "function") {
+							logger.warn(
+								{ message: err?.message },
+								"[provider] Context window exceeded; compacting and re-sending",
+							);
+							await onContextWindowExceeded(err, request);
+							// Re-pace before re-dispatching so the retry does not fire
+							// while the window is still over capacity.
+							await budget.waitForCapacity(estimatedCost);
+							continue;
+						}
+						throw err;
+					}
+
 					if (!isRateLimitError(err)) throw err;
 
 					if (budget.current() > maxTokensMinute) {
@@ -171,4 +196,18 @@ export function createTokenBudgetMiddleware(options = {}) {
  */
 function isRateLimitError(err) {
 	return err?.status === 429 || err?.response?.status === 429;
+}
+
+/**
+ * Detect a 400 context-window error from an LLM provider. Requires both an HTTP
+ * status of 400 and a message that references the context window / context
+ * length, so non-context 400 errors (e.g. invalid API key) are not compacted.
+ * @param {Object} err - The caught error
+ * @returns {boolean} True if the error is a 400 context-window error
+ */
+function isContextWindowError(err) {
+	const status = err?.status ?? err?.response?.status;
+	if (status !== 400) return false;
+	const message = String(err?.message ?? err?.response?.data?.error?.message ?? "");
+	return /context|context length|context window|maximum .* length/i.test(message);
 }

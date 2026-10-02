@@ -563,7 +563,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 			const providerConfig = config?.providers?.[providerName] || {};
 			const modelName = providerConfig.model || "gpt-4o";
 			const encoding = providerConfig.encoding;
-			const maxTokens = providerConfig.maxTokens || 0;
+			const maxTokens = providerConfig.maxTokens === -1 ? 0 : providerConfig.maxTokens || 0;
 
 			const systemPrompt = await loadSystemPrompt();
 			// Append AGENTS.md the same way createDeepAgentsOrchestrator does, so

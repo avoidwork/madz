@@ -392,11 +392,19 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	// the wrapModelCall chain backwards, so the last entry is innermost and
 	// observes the final post-summarization/post-truncation message set.
 	// Returns null when maxTokensMinute is 0/unset, so it is spread in conditionally.
+	// The `onContextWindowExceeded` callback compacts the context via the agent's
+	// exposed compaction path and lets the middleware re-send the request once.
+	let compactOnContextWindowExceeded;
 	const tokenBudgetMiddleware = createTokenBudgetMiddleware({
 		maxTokensMinute: providerConfig.rateLimit?.maxTokensMinute,
 		model: providerConfig.model,
 		maxTokens: providerConfig.maxTokens,
 		encoding: providerConfig.encoding,
+		onContextWindowExceeded: async (err, request) => {
+			if (typeof compactOnContextWindowExceeded === "function") {
+				await compactOnContextWindowExceeded(err, request);
+			}
+		},
 	});
 
 	// Configurable summarization middleware. Registered BEFORE the token-budget
@@ -453,6 +461,16 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	// manager to sync, plus optional options.
 	agent.compactContext = async (config, sessionState, options) =>
 		compactAgentContext(agent, config, sessionState, { ...options, backend, model });
+
+	// Wire the middleware's 400 context-window handler to the agent's compaction
+	// path. The middleware is created before the agent, so this closure is set
+	// once the agent exists. It extracts the thread_id from the request runtime
+	// and compacts the context for that thread, then the middleware re-sends.
+	compactOnContextWindowExceeded = async (err, request) => {
+		const threadId = request?.runtime?.configurable?.thread_id;
+		const config = threadId ? { configurable: { thread_id: threadId } } : undefined;
+		await agent.compactContext(config);
+	};
 
 	return agent;
 }

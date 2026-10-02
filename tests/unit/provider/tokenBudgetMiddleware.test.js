@@ -140,6 +140,16 @@ describe("estimateContextCost", () => {
 		assert.strictEqual(withBudget, base + 4096);
 	});
 
+	it("normalizes maxTokens -1 to 0 (no output budget)", async () => {
+		const conversation = [{ role: "user", content: "Hello, world!" }];
+		const unlimited = await estimateContextCost(conversation, {
+			model: "gpt-4o",
+			maxTokens: -1,
+		});
+		const zero = await estimateContextCost(conversation, { model: "gpt-4o", maxTokens: 0 });
+		assert.strictEqual(unlimited, zero, "-1 must be treated as 0 (no output budget)");
+	});
+
 	it("defaults maxTokens to 0 when absent", async () => {
 		const conversation = [{ role: "user", content: "Hello, world!" }];
 		const result = await estimateContextCost(conversation, { model: "gpt-4o" });
@@ -300,6 +310,110 @@ describe("TokenBudget.wrapModelCall accounting", () => {
 			/limited/,
 		);
 		assert.strictEqual(calls, 2, "retried once even while over capacity");
+	});
+});
+
+describe("TokenBudget.wrapModelCall 400 context-window compaction", () => {
+	it("invokes onContextWindowExceeded and re-sends once on a 400 context-window error", async () => {
+		let compactCalls = 0;
+		let handlerCalls = 0;
+		const mw = createTokenBudgetMiddleware({
+			maxTokensMinute: 100000,
+			model: "gpt-4o",
+			maxTokens: 0,
+			budget: createTokenBudget(100000),
+			sleep: noSleep,
+			onContextWindowExceeded: async () => {
+				compactCalls += 1;
+			},
+		});
+		const result = await mw.wrapModelCall(makeRequest(), async () => {
+			handlerCalls += 1;
+			if (handlerCalls === 1) {
+				const e = new Error("This model's maximum context length is 128000 tokens");
+				e.status = 400;
+				throw e;
+			}
+			return { usage_metadata: { input_tokens: 10, output_tokens: 5, total_tokens: 15 } };
+		});
+		assert.strictEqual(compactCalls, 1, "should compact exactly once");
+		assert.strictEqual(handlerCalls, 2, "should re-send the request once");
+		assert.strictEqual(result.usage_metadata.total_tokens, 15);
+	});
+
+	it("passes the error and request to onContextWindowExceeded", async () => {
+		let captured;
+		let handlerCalls = 0;
+		const mw = createTokenBudgetMiddleware({
+			maxTokensMinute: 100000,
+			model: "gpt-4o",
+			maxTokens: 0,
+			budget: createTokenBudget(100000),
+			sleep: noSleep,
+			onContextWindowExceeded: async (err, request) => {
+				captured = { err, request };
+			},
+		});
+		const request = makeRequest();
+		await mw.wrapModelCall(request, async () => {
+			handlerCalls += 1;
+			if (handlerCalls === 1) {
+				const e = new Error("maximum context length exceeded (limit: 8192)");
+				e.status = 400;
+				throw e;
+			}
+			return { usage_metadata: { input_tokens: 10, output_tokens: 5, total_tokens: 15 } };
+		});
+		assert.strictEqual(captured.err.status, 400);
+		assert.strictEqual(captured.request, request);
+	});
+
+	it("does not compact a non-context 400 error", async () => {
+		let compactCalls = 0;
+		const mw = createTokenBudgetMiddleware({
+			maxTokensMinute: 100000,
+			model: "gpt-4o",
+			maxTokens: 0,
+			budget: createTokenBudget(100000),
+			sleep: noSleep,
+			onContextWindowExceeded: async () => {
+				compactCalls += 1;
+			},
+		});
+		await assert.rejects(
+			() =>
+				mw.wrapModelCall(makeRequest(), async () => {
+					const e = new Error("Invalid API key");
+					e.status = 400;
+					throw e;
+				}),
+			/Invalid API key/,
+		);
+		assert.strictEqual(compactCalls, 0, "non-context 400 must not trigger compaction");
+	});
+
+	it("surfaces the error when the retry also fails with a context-window error", async () => {
+		let compactCalls = 0;
+		const mw = createTokenBudgetMiddleware({
+			maxTokensMinute: 100000,
+			model: "gpt-4o",
+			maxTokens: 0,
+			budget: createTokenBudget(100000),
+			sleep: noSleep,
+			onContextWindowExceeded: async () => {
+				compactCalls += 1;
+			},
+		});
+		await assert.rejects(
+			() =>
+				mw.wrapModelCall(makeRequest(), async () => {
+					const e = new Error("This model's maximum context length is 128000 tokens");
+					e.status = 400;
+					throw e;
+				}),
+			/context length/,
+		);
+		assert.strictEqual(compactCalls, 1, "should compact once before surfacing");
 	});
 });
 

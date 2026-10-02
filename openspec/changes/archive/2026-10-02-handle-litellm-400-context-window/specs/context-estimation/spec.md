@@ -1,8 +1,5 @@
-# context-estimation Specification
+## MODIFIED Requirements
 
-## Purpose
-TBD - created by archiving change fix-status-bar-context-counter. Update Purpose after archive.
-## Requirements
 ### Requirement: Context cost is estimated from conversation, system prompt, and output budget
 The TUI context counter SHALL estimate the orchestrator's context window as the sum of the conversation tokens, the full system prompt tokens (SYSTEM_PROMPT plus AGENTS.md), and the configured output token budget (`maxTokens`). The estimate SHALL be computed by a shared helper that is callable regardless of whether `maxTokensMinute` is configured. A `maxTokens` value of `-1` (unlimited) SHALL be treated as `0` (no output budget) so the estimate is not off by one.
 
@@ -40,4 +37,3 @@ The context-cost logic (conversation + system prompt + output budget) SHALL be e
 #### Scenario: Middleware delegates to the helper
 - **WHEN** the token-budget middleware estimates a request cost
 - **THEN** it uses the exported helper, so the middleware and the TUI share the same cost logic
-
