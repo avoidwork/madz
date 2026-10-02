@@ -264,37 +264,14 @@ export async function pollForToken(deviceCode, opts = {}) {
 }
 
 /**
- * Run the full device-flow authorization: request a device code, surface the
- * verification URL and code, poll for the token, and persist it.
- * @param {Object} [opts] - Options
- * @param {string} [opts.deploymentType] - The GitHub domain (e.g. "github.com")
- * @param {string} [opts.domain] - Alias for `deploymentType`
- * @param {string} [opts.clientId] - The OAuth client id
- * @param {string} [opts.scope] - The requested scope
- * @param {string} [opts.memoryDir] - The memory directory for persistence
- * @param {Function} [opts.onStatus] - Callback for status updates
- * @returns {Promise<{ ok: boolean, token?: string, error?: string, userCode?: string, verificationUri?: string }>}
- */
-export async function authorize(opts = {}) {
-	const deviceCode = await requestDeviceCode(opts);
-	const verificationUri = deviceCode.verification_uri || deviceCode.verification_uri_complete;
-	const userCode = deviceCode.user_code;
-	if (opts.onStatus) {
-		opts.onStatus({ verificationUri, userCode });
-	}
-	const result = await pollForToken(deviceCode, opts);
-	return { ...result, userCode, verificationUri };
-}
-
-/**
  * Produce an auth prompt for the chat UI: request a fresh device code and
  * return the verification URL and user code so the user can authorize from a
  * browser. Short-circuits to `null` when a token is already present.
  *
- * This is the chat-facing counterpart to the CLI `madz auth login` flow. It
- * does NOT poll — it only acquires the device code. The caller is responsible
- * for starting the poll (e.g. in the background) and for falling back to a
- * static message when the request fails (e.g. no network).
+ * This is the chat-facing auth flow. It does NOT poll — it only acquires the
+ * device code. The caller is responsible for starting the poll (e.g. in the
+ * background) and for falling back to a static message when the request fails
+ * (e.g. no network).
  * @param {Object} [opts] - Options
  * @param {string} [opts.deploymentType] - The GitHub domain (e.g. "github.com")
  * @param {string} [opts.domain] - Alias for `deploymentType`

@@ -13,7 +13,6 @@ import {
 	clearToken,
 	requestDeviceCode,
 	pollForToken,
-	authorize,
 	getAuthPrompt,
 	createCopilotFetch,
 	setAuthRequiredHandler,
@@ -296,44 +295,6 @@ describe("pollForToken", () => {
 			);
 			assert.strictEqual(result.ok, false);
 			assert.strictEqual(result.error, "Polling timed out");
-		} finally {
-			globalThis.fetch = origFetch;
-		}
-	});
-});
-
-describe("authorize", () => {
-	it("surfaces the verification URL and code, then persists the token", async () => {
-		const origFetch = globalThis.fetch;
-		let call = 0;
-		globalThis.fetch = async () => {
-			call += 1;
-			if (call === 1) {
-				return new Response(
-					JSON.stringify({
-						device_code: "dc",
-						user_code: "ABCD-1234",
-						verification_uri: "https://github.com/login/device",
-						interval: 5,
-					}),
-					{ status: 200 },
-				);
-			}
-			return new Response(JSON.stringify({ access_token: "tok-xyz" }), { status: 200 });
-		};
-		try {
-			const statuses = [];
-			const result = await authorize({
-				domain: "github.com",
-				memoryDir,
-				onStatus: (s) => statuses.push(s),
-			});
-			assert.strictEqual(result.ok, true);
-			assert.strictEqual(result.userCode, "ABCD-1234");
-			assert.strictEqual(result.verificationUri, "https://github.com/login/device");
-			assert.strictEqual(statuses.length, 1);
-			assert.strictEqual(statuses[0].userCode, "ABCD-1234");
-			assert.strictEqual(await getToken(memoryDir), "tok-xyz");
 		} finally {
 			globalThis.fetch = origFetch;
 		}

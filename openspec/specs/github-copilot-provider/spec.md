@@ -22,7 +22,7 @@ The system SHALL support a `github-copilot` provider type in the config schema t
 The system SHALL implement the OAuth 2.0 Device Authorization Grant (RFC 8628) to obtain a Copilot access token.
 
 #### Scenario: Initiate device flow
-- **WHEN** `authorize()` is called with `deploymentType: "github.com"`
+- **WHEN** `requestDeviceCode()` is called with `deploymentType: "github.com"`
 - **THEN** it POSTs to `https://github.com/login/device/code` with `client_id` and `scope: "read:user"` and returns a verification URL and user code
 
 #### Scenario: Poll for token
@@ -67,18 +67,5 @@ The system SHALL inject `Authorization: Bearer <token>` on every Copilot model r
 - **WHEN** a `github-copilot` provider is the active provider
 - **THEN** `createChatModel` passes the custom fetch to `ChatOpenAI` and omits `apiKey`
 
-### Requirement: CLI auth commands
-The system SHALL provide `madz auth login`, `auth status`, and `auth logout` commands.
 
-#### Scenario: Login
-- **WHEN** `madz auth login` is run
-- **THEN** it initiates the device flow, prints the verification URL and code, polls, and persists the token
-
-#### Scenario: Status
-- **WHEN** `madz auth status` is run
-- **THEN** it reports whether a token exists in `memory/auth.json`
-
-#### Scenario: Logout
-- **WHEN** `madz auth logout` is run
-- **THEN** it deletes the token file
 
