@@ -56,6 +56,11 @@ function App({
 	// fires exactly once even though it re-runs as the conversation area mounts
 	// (the Banner/Onboarding render before it, leaving the ref null initially).
 	const authPromptEmittedRef = useRef(false);
+	// Holds the background poll's cancel function so it can be invoked only on
+	// unmount. The effect re-runs as the view/banner state changes, and React
+	// runs the previous effect's cleanup on every re-run — cancelling the poll
+	// there would kill it mid-flight when the user switches views.
+	const authPollCancelRef = useRef(null);
 
 	const skillCount = registry ? registry.list().length : 0;
 	const parser = new CommandParser();
@@ -178,6 +183,9 @@ function App({
 				`Open ${verificationUri} and enter code: ${userCode}`,
 		});
 		let cancelled = false;
+		authPollCancelRef.current = () => {
+			cancelled = true;
+		};
 		(async () => {
 			const { pollForToken } = await import("../provider/copilotAuth.js");
 			const memoryDir = config?.memory?.directory || "memory/";
@@ -195,10 +203,14 @@ function App({
 				});
 			}
 		})();
-		return () => {
-			cancelled = true;
-		};
 	}, [authPrompt, config, showBanner, showOnboarding, currentView]);
+
+	// Cancel the background auth poll only on unmount — not on re-render.
+	useEffect(() => {
+		return () => {
+			authPollCancelRef.current?.();
+		};
+	}, []);
 
 	/**
 	 * handleSubmit — App-level router.
