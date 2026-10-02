@@ -1,7 +1,7 @@
 import { ChatOpenAI } from "@langchain/openai";
 import { AIMessageChunk } from "@langchain/core/messages";
 import { createTokenBudget } from "./tokenBudget.js";
-import { createCopilotFetch } from "./copilotAuth.js";
+import { createCopilotFetch, base } from "./copilotAuth.js";
 
 /** Default retry delay (ms) when a 429 carries no `retry-after` hint. */
 export const DEFAULT_RETRY_AFTER_MS = 60_000;
@@ -136,7 +136,12 @@ export function createChatModel(config) {
 	// Inject the bearer token on every request through a custom fetch interceptor
 	// that reads the token fresh from the auth file. This survives bindTools()
 	// and picks up a re-auth without rebuilding the model.
+	// For GHEC (enterpriseUrl), derive the API base from the enterprise host
+	// rather than the public default, so model calls hit the right endpoint.
 	if (isCopilot) {
+		opts.configuration.baseURL = config.enterpriseUrl
+			? base(config.enterpriseUrl)
+			: config.base_url;
 		opts.configuration.fetch = createCopilotFetch();
 	} else {
 		opts.apiKey = config.credentials.apiKey;

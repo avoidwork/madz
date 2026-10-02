@@ -140,3 +140,34 @@ describe("getActiveModelName", () => {
 		assert.strictEqual(getActiveModelName(undefined), "");
 	});
 });
+
+describe("createChatModel Copilot base URL", () => {
+	beforeEach(() => {
+		resetTokenBudget();
+	});
+
+	it("derives the base URL from enterpriseUrl for GHEC", () => {
+		const model = createChatModel({
+			type: "github-copilot",
+			model: "gpt-4o",
+			base_url: "https://api.githubcopilot.com",
+			enterpriseUrl: "https://ghe.example.com/",
+			temperature: 0.4,
+			maxTokens: -1,
+			rateLimit: { maxRetries: 6 },
+		});
+		assert.strictEqual(model.clientConfig.baseURL, "https://ghe.example.com/api/v1");
+	});
+
+	it("uses the default Copilot base URL when no enterpriseUrl is set", () => {
+		const model = createChatModel({
+			type: "github-copilot",
+			model: "gpt-4o",
+			base_url: "https://api.githubcopilot.com",
+			temperature: 0.4,
+			maxTokens: -1,
+			rateLimit: { maxRetries: 6 },
+		});
+		assert.strictEqual(model.clientConfig.baseURL, "https://api.githubcopilot.com");
+	});
+});
