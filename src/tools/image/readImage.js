@@ -39,7 +39,6 @@ function detectMimeType(filePath) {
  * @param {z.infer<typeof ReadImageSchema>} input - Tool input
  * @param {object} [options] - Runtime options for test injection
  * @param {string[]} [options.allowedPaths] - Sandbox-allowed paths
- * @param {number} [options.maxReadSize] - Fallback size limit (overridden by config.image.maxSize)
  * @returns {Promise<string>} JSON result string
  */
 export async function readImageImpl(input, options = {}) {
@@ -96,12 +95,6 @@ export async function readImageImpl(input, options = {}) {
 
 const ReadImageSchema = z.object({
 	path: z.string().min(1).describe("Path to the image file to read"),
-	maxSize: z
-		.number()
-		.int()
-		.positive()
-		.optional()
-		.describe("Override the max file size limit in bytes"),
 });
 
 export const readImage = tool(readImageImpl, {
