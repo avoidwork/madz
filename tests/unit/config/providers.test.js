@@ -214,6 +214,16 @@ describe("Email Provider Config Schemas", () => {
 			assert.strictEqual(result.data.enabled, false);
 		});
 
+		test("should accept encoding", () => {
+			const result = CopilotProviderConfigSchema.safeParse({
+				type: "github-copilot",
+				model: "gpt-4o",
+				encoding: "cl100k_base",
+			});
+			assert.strictEqual(result.success, true);
+			assert.strictEqual(result.data.encoding, "cl100k_base");
+		});
+
 		test("should reject non-boolean enabled", () => {
 			const result = CopilotProviderConfigSchema.safeParse({
 				type: "github-copilot",

@@ -78,6 +78,7 @@ export const CopilotProviderConfigSchema = z.object({
 	enabled: z.boolean().default(true),
 	base_url: z.string().url().default("https://api.githubcopilot.com"),
 	model: z.string().min(1),
+	encoding: z.string().optional(),
 	enterpriseUrl: z.string().url().optional(),
 	temperature: z.number().min(0).max(2).default(0.4),
 	maxTokens: z.number().int().min(-1).default(-1),

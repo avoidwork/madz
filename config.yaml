@@ -21,6 +21,7 @@ providers:
     enabled: false
     base_url: https://api.githubcopilot.com
     model: gpt-4o
+    encoding: cl100k_base
     enterpriseUrl:
     temperature: 0.4
     maxTokens: -1
