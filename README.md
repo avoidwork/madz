@@ -304,6 +304,7 @@ docker run -d \
   -v ./skills:/app/skills \
   -v ./tmp:/app/tmp \
   -v ./logs:/home/madz/.cache/madz/logs \
+  -e OPENAI_ENABLED=true \
   -e OPENAI_API_KEY="abc" \
   -e OPENAI_MODEL=Qwen/Qwen3.6-35B-A3B-FP8 \
   -e OPENAI_ENCODING=qwen2_base \
@@ -359,8 +360,11 @@ providers:
 
 **Optional — Providers:**
 
+The active provider is selected by the `enabled` flag, not by config position or `type`. **OpenAI is enabled by default** (`OPENAI_ENABLED=true`); set `COPILOT_ENABLED=true` to switch to GitHub Copilot. When multiple providers are enabled, the first one in the `providers` block wins.
+
 | Variable                     | Default                     | Description                |
 | ---------------------------- | --------------------------- | -------------------------- |
+| `OPENAI_ENABLED`             | `true`                      | Enable the OpenAI provider (default) |
 | `OPENAI_BASE_URL`            | `https://api.openai.com/v1` | API endpoint URL           |
 | `OPENAI_ENCODING`            | _(auto)_                    | Tiktoken encoder name (see [Encoding Reference](#encoding-reference) below) |
 | `OPENAI_MAX_CONCURRENCY`     | _(none)_                    | Max concurrent API calls   |
@@ -369,6 +373,10 @@ providers:
 | `OPENAI_MODEL`               | `gpt-4o`                    | Model name                 |
 | `OPENAI_REQUESTS_PER_MINUTE` | `60`                        | Rate limit for API calls   |
 | `OPENAI_TEMPERATURE`         | `0.4`                       | Sampling temperature (0–2) |
+| `COPILOT_ENABLED`            | `false`                     | Enable the GitHub Copilot provider |
+| `COPILOT_BASE_URL`           | `https://api.githubcopilot.com` | Copilot API endpoint URL |
+| `COPILOT_MODEL`              | `gpt-4o`                    | Copilot model name         |
+| `COPILOT_ENTERPRISE_URL`     | _(empty)_                   | GitHub Enterprise (GHEC) URL for Copilot |
 | `OPENROUTER_API_KEY`         | _(empty)_                   | OpenRouter API key         |
 | `OPENROUTER_MODEL`           | `openrouter/auto`           | OpenRouter model name      |
 
@@ -562,6 +570,8 @@ On first launch, `madz` starts an interactive onboarding flow that collects your
 ### LLM Provider Abstraction
 
 Configurable provider dispatch with rate limiting and context-window trimming. madz talks to its model through the OpenAI chat-completions API, so it works with **any OpenAI-compatible endpoint** — OpenAI, Ollama, vLLM, LiteLLM, LM Studio, llama.cpp, and others. Point `OPENAI_BASE_URL` at the server and `OPENAI_MODEL` at the model; local providers typically need no API key.
+
+The active provider is selected by the `enabled` flag on each provider block in `config.yaml` (or the matching `*_ENABLED` env var), not by config position or `type`. **OpenAI is enabled by default.** To switch to GitHub Copilot, set `COPILOT_ENABLED=true` (and optionally `OPENAI_ENABLED=false`). Copilot authenticates via GitHub OAuth device flow — a bearer token is persisted to `memory/auth.json` and refreshed automatically, so no API key is required. For GitHub Enterprise Cloud (GHEC) deployments, set `COPILOT_ENTERPRISE_URL` to derive the API base.
 
 ### LLM Response Caching
 
@@ -854,9 +864,11 @@ Graceful shutdown flushes all buffered log entries to disk before process exit.
 
 | Section       | Key                                  | Default                                  | Description                                   |
 | ------------- | ------------------------------------ | ---------------------------------------- | --------------------------------------------- |
-| `providers`   | `openai.type`                        | `openai`                                 | LLM provider type                             |
+| `providers`   | `openai.enabled`                     | `true`                                   | Enable the OpenAI provider (default)          |
+|               | `openai.type`                        | `openai`                                 | LLM provider type                             |
 |               | `openai.base_url`                    | `https://api.openai.com/v1`              | API endpoint URL                              |
 |               | `openai.model`                       | `gpt-4o`                                 | Model name                                    |
+|               | `openai.encoding`                    | _(auto)_                                 | Tiktoken encoder name                         |
 |               | `openai.credentials.apiKey`          | _(empty)_                                | API key for authentication                    |
 |               | `openai.temperature`                 | `0.4`                                    | Sampling temperature (0–2)                    |
 |               | `openai.maxTokens`                   | `4096`                                   | Max output tokens                             |
@@ -864,6 +876,18 @@ Graceful shutdown flushes all buffered log entries to disk before process exit.
 |               | `openai.rateLimit.maxRetries`       | `6`                                      | Max retry attempts on transient errors         |
 |               | `openai.rateLimit.maxConcurrency`   | _(unset)_                                | Max concurrent requests (defaults to Infinity) |
 |               | `openai.rateLimit.maxTokensMinute`  | `0`                                      | Rolling tokens-per-minute budget; `0` disables the throttle |
+|               | `copilot.enabled`                    | `false`                                  | Enable the GitHub Copilot provider            |
+|               | `copilot.type`                       | `github-copilot`                         | LLM provider type                             |
+|               | `copilot.base_url`                   | `https://api.githubcopilot.com`          | Copilot API endpoint URL                      |
+|               | `copilot.model`                      | `gpt-4o`                                 | Copilot model name                            |
+|               | `copilot.encoding`                   | _(auto)_                                 | Tiktoken encoder name                         |
+|               | `copilot.enterpriseUrl`              | _(empty)_                                | GitHub Enterprise (GHEC) URL for Copilot      |
+|               | `copilot.temperature`                | `0.4`                                    | Sampling temperature (0–2)                    |
+|               | `copilot.maxTokens`                  | `4096`                                   | Max output tokens                             |
+|               | `copilot.rateLimit.requestsPerMinute`| `60`                                     | Rate limit for API calls                      |
+|               | `copilot.rateLimit.maxRetries`       | `6`                                      | Max retry attempts on transient errors         |
+|               | `copilot.rateLimit.maxConcurrency`   | _(unset)_                                | Max concurrent requests (defaults to Infinity) |
+|               | `copilot.rateLimit.maxTokensMinute`  | `0`                                      | Rolling tokens-per-minute budget; `0` disables the throttle |
 | `sandbox`     | `paths`                              | `["memory/", "skills/", "tmp/"]` | Allowed filesystem paths                      |
 |               | `timeout.seconds`                    | `30`                                     | _(no consumer — retained for config compat)_  |
 |               | `timeout.gracePeriod`                | `5`                                      | _(no consumer — retained for config compat)_  |
