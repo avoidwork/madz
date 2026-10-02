@@ -1,3 +1,5 @@
+## Purpose
+Defines how the harness loads, validates, and exposes configuration from a single `config.yaml` source of truth, including LLM provider settings.
 ## Requirements
 ### Requirement: Centralized Configuration File
 The system SHALL load all configuration from a single `config.yaml` file located in the project root directory using YAML parsing.
@@ -11,7 +13,7 @@ The system SHALL load all configuration from a single `config.yaml` file located
 - **THEN** the system applies the documented default value
 
 ### Requirement: LLM Provider Configuration
-The system SHALL support configuration of multiple LLM providers including OpenAI-compatible APIs, local model deployments, and custom cloud endpoints, each specifying base URL, model identifier, authentication, rate limits, temperature, and fallback routing.
+The system SHALL support configuration of multiple LLM providers including OpenAI-compatible APIs, local model deployments, and custom cloud endpoints, each specifying base URL, model identifier, authentication, rate limits, temperature, and fallback routing. The `maxTokens` provider setting SHALL allow `-1` (unlimited / no cap) and SHALL default to `-1`.
 
 #### Scenario: User configures an OpenAI-compatible provider
 - **WHEN** `config.yaml` contains a provider entry with `type: openai`
@@ -20,6 +22,18 @@ The system SHALL support configuration of multiple LLM providers including OpenA
 #### Scenario: Provider falls back to second provider on failure
 - **WHEN** the primary configured provider returns a consistent error
 - **THEN** the system switches to the next provider listed in `fallback_order`
+
+#### Scenario: maxTokens defaults to -1 (unlimited)
+- **WHEN** a provider entry omits `maxTokens`
+- **THEN** the schema applies the default value of `-1`
+
+#### Scenario: maxTokens accepts -1
+- **WHEN** a provider entry sets `maxTokens: -1`
+- **THEN** the schema accepts the value (no positive-integer constraint violation)
+
+#### Scenario: maxTokens rejects a value below -1
+- **WHEN** a provider entry sets `maxTokens: -2`
+- **THEN** the schema rejects the value with a validation error
 
 ### Requirement: Configuration Validation
 The system SHALL validate all `config.yaml` contents against a zod-based schema on boot and on runtime mutation, rejecting invalid configurations with a structured error message.
@@ -83,4 +97,8 @@ The system SHALL configure OpenTelemetry export settings (format, endpoint, samp
 
 ### Requirement: Environment variable config materialization
 The system SHALL materialize missing config structure from environment variables when the corresponding YAML path does not exist in `config.yaml`, enabling full configuration via environment variables without editing YAML files. See `specs/env-config-materialization/spec.md` for detailed requirements.
+
+#### Scenario: Env var materializes a missing config path
+- **WHEN** `config.yaml` omits a config path but a corresponding environment variable is set
+- **THEN** the system materializes the missing structure from the environment variable before resolving leaf values
 
