@@ -11,7 +11,7 @@ import { MemoryPanel } from "./memoryPanel.js";
 import { SettingsPanel } from "./settingsPanel.js";
 import { SessionsPanel } from "./sessionsPanel.js";
 import { ProjectsPanel } from "./projectsPanel.js";
-import { getActiveProviderConfig } from "../provider/openai.js";
+import { getActiveProviderConfig } from "../provider/index.js";
 
 /**
  * App router — holds cross-cutting state and view routing.
