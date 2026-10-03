@@ -19,7 +19,7 @@ The system SHALL support an `enabled` boolean field on both `OpenaiProviderConfi
 - **THEN** the schema rejects the value with a validation error
 
 ### Requirement: Active provider selected by enabled flag
-The system SHALL select the active provider as the first provider in `config.providers` whose `enabled !== false`, falling back to `openai` when no provider is enabled. This selection rule SHALL be shared across the orchestrator, model factory, and TUI via `getActiveProviderConfig`.
+The system SHALL select the active provider as the first provider in `config.providers` whose `enabled !== false`, falling back to `openai` when no provider is enabled. This selection rule SHALL be shared across the orchestrator, model factory, TUI, and the init-time auth flow via `getActiveProviderConfig`.
 
 #### Scenario: First enabled provider is selected
 - **WHEN** `config.providers` has multiple providers and the first is disabled while a later one is enabled
@@ -36,6 +36,14 @@ The system SHALL select the active provider as the first provider in `config.pro
 #### Scenario: No providers configured returns empty object
 - **WHEN** `config.providers` is empty or absent
 - **THEN** `getActiveProviderConfig` returns an empty object
+
+#### Scenario: Init-time auth flow uses enabled-based selection
+- **WHEN** the startup auth check in `index.js` resolves the active provider
+- **THEN** it uses `getActiveProviderName(config)` so the Copilot device flow triggers whenever Copilot is the enabled provider, regardless of config position
+
+#### Scenario: Copilot enabled but not first triggers device flow
+- **WHEN** `config.providers` lists `openai` first with `enabled: false` and `copilot` second with `enabled: true`
+- **THEN** the init-time auth check selects `copilot` and triggers the OAuth device flow
 
 ### Requirement: Copilot detection respects the enabled-based active provider
 The system SHALL determine Copilot behavior from the resolved active provider's `type` rather than relying solely on config position or a hardcoded provider name.
