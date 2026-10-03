@@ -11,11 +11,8 @@ import { RemoveMessage } from "@langchain/core/messages";
 import { loadConfig } from "../config/loader.js";
 import { loadSystemPrompt } from "../memory/prompts.js";
 import { SkillRegistry } from "../skills/registry.js";
-import {
-	createChatModel,
-	getActiveProviderConfig,
-	getActiveProviderName,
-} from "../provider/openai.js";
+import { createChatModel } from "../provider/openai.js";
+import { getActiveProviderConfig, getActiveProviderName } from "../provider/index.js";
 import { createTokenBudgetMiddleware } from "../provider/tokenBudgetMiddleware.js";
 import {
 	createSummarizationMiddlewareFromConfig,
