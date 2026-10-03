@@ -31,7 +31,7 @@ import React from "react";
 
 const { setConfigValue } = await import("./src/config/loader.js");
 const { createDeepAgentsOrchestrator } = await import("./src/agent/deepAgents.js");
-const { getActiveModelName } = await import("./src/provider/openai.js");
+const { getActiveModelName, getActiveProviderName } = await import("./src/provider/openai.js");
 const { logger } = await import("./src/shared/logger.js");
 
 const { default: pkg } = await import(new URL("./package.json", import.meta.url).href, {
@@ -403,7 +403,7 @@ if (isMain) {
 		// When the device-code request fails (e.g. no network), fall back to a
 		// static message so the user knows to check connectivity.
 		let authPrompt = null;
-		const activeProviderName = Object.keys(config?.providers || {})[0] || "openai";
+		const activeProviderName = getActiveProviderName(config);
 		const activeProvider = config?.providers?.[activeProviderName] || {};
 		if (activeProvider.type === "github-copilot") {
 			const { getAuthPrompt, getToken } = await import("./src/provider/copilotAuth.js");

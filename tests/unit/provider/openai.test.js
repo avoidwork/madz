@@ -170,6 +170,20 @@ describe("getActiveProviderName", () => {
 		assert.strictEqual(getActiveProviderName(config), "copilot");
 	});
 
+	it("returns copilot when it is enabled but not the first provider key", () => {
+		// Regression: the init-time auth flow in index.js used the first config
+		// key, ignoring the enabled flag. When copilot is enabled but listed
+		// after openai (disabled), the active provider must be copilot so the
+		// OAuth device flow triggers.
+		const config = {
+			providers: {
+				openai: { model: "gpt-4o", enabled: false },
+				copilot: { model: "gpt-4o", type: "github-copilot", enabled: true },
+			},
+		};
+		assert.strictEqual(getActiveProviderName(config), "copilot");
+	});
+
 	it("falls back to openai when no provider is enabled", () => {
 		const config = {
 			providers: {
