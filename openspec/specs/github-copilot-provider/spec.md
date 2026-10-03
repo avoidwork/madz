@@ -4,7 +4,7 @@
 TBD - created by archiving change github-copilot-provider-oauth. Update Purpose after archive.
 ## Requirements
 ### Requirement: GitHub Copilot provider configuration
-The system SHALL support a `github-copilot` provider type in the config schema that does not require a static `credentials.apiKey`.
+The system SHALL support a `github-copilot` provider type in the config schema that does not require a static `credentials.apiKey`. The `CopilotProviderConfigSchema` SHALL include an `enabled` boolean field defaulting to `true`.
 
 #### Scenario: Valid Copilot provider config
 - **WHEN** a config declares `providers.github-copilot` with a `model` and no `credentials.apiKey`
@@ -17,6 +17,14 @@ The system SHALL support a `github-copilot` provider type in the config schema t
 #### Scenario: Default base URL
 - **WHEN** a `github-copilot` provider is declared without a `base_url`
 - **THEN** the base URL defaults to `https://api.githubcopilot.com`
+
+#### Scenario: Copilot enabled defaults to true
+- **WHEN** a `github-copilot` provider config is validated without an `enabled` field
+- **THEN** the schema applies the default value of `true`
+
+#### Scenario: Copilot can be disabled
+- **WHEN** a `github-copilot` provider config sets `enabled: false`
+- **THEN** the schema validates successfully and preserves `false`
 
 ### Requirement: OAuth device flow authorization
 The system SHALL implement the OAuth 2.0 Device Authorization Grant (RFC 8628) to obtain a Copilot access token.
@@ -66,6 +74,4 @@ The system SHALL inject `Authorization: Bearer <token>` on every Copilot model r
 #### Scenario: Model uses the interceptor
 - **WHEN** a `github-copilot` provider is the active provider
 - **THEN** `createChatModel` passes the custom fetch to `ChatOpenAI` and omits `apiKey`
-
-
 

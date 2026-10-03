@@ -7,6 +7,7 @@ import {
 	EmailProviderSchema,
 	EmailConfigSchema,
 	OpenaiProviderConfigSchema,
+	CopilotProviderConfigSchema,
 } from "../../../src/config/schemas/providers.js";
 
 describe("Email Provider Config Schemas", () => {
@@ -151,6 +152,90 @@ describe("Email Provider Config Schemas", () => {
 				model: "gpt-4o",
 				credentials: { apiKey: "sk-test" },
 				maxTokens: -2,
+			});
+			assert.strictEqual(result.success, false);
+		});
+
+		test("should default enabled to true", () => {
+			const result = OpenaiProviderConfigSchema.safeParse({
+				model: "gpt-4o",
+				credentials: { apiKey: "sk-test" },
+			});
+			assert.strictEqual(result.success, true);
+			assert.strictEqual(result.data.enabled, true);
+		});
+
+		test("should accept enabled false", () => {
+			const result = OpenaiProviderConfigSchema.safeParse({
+				model: "gpt-4o",
+				credentials: { apiKey: "sk-test" },
+				enabled: false,
+			});
+			assert.strictEqual(result.success, true);
+			assert.strictEqual(result.data.enabled, false);
+		});
+
+		test("should reject non-boolean enabled", () => {
+			const result = OpenaiProviderConfigSchema.safeParse({
+				model: "gpt-4o",
+				credentials: { apiKey: "sk-test" },
+				enabled: "yes",
+			});
+			assert.strictEqual(result.success, false);
+		});
+	});
+
+	describe("CopilotProviderConfigSchema", () => {
+		test("should validate a complete Copilot config without credentials", () => {
+			const result = CopilotProviderConfigSchema.safeParse({
+				type: "github-copilot",
+				model: "gpt-4o",
+				base_url: "https://api.githubcopilot.com",
+			});
+			assert.strictEqual(result.success, true);
+		});
+
+		test("should default enabled to true", () => {
+			const result = CopilotProviderConfigSchema.safeParse({
+				type: "github-copilot",
+				model: "gpt-4o",
+			});
+			assert.strictEqual(result.success, true);
+			assert.strictEqual(result.data.enabled, true);
+		});
+
+		test("should accept enabled false", () => {
+			const result = CopilotProviderConfigSchema.safeParse({
+				type: "github-copilot",
+				model: "gpt-4o",
+				enabled: false,
+			});
+			assert.strictEqual(result.success, true);
+			assert.strictEqual(result.data.enabled, false);
+		});
+
+		test("should accept encoding", () => {
+			const result = CopilotProviderConfigSchema.safeParse({
+				type: "github-copilot",
+				model: "gpt-4o",
+				encoding: "cl100k_base",
+			});
+			assert.strictEqual(result.success, true);
+			assert.strictEqual(result.data.encoding, "cl100k_base");
+		});
+
+		test("should reject non-boolean enabled", () => {
+			const result = CopilotProviderConfigSchema.safeParse({
+				type: "github-copilot",
+				model: "gpt-4o",
+				enabled: "yes",
+			});
+			assert.strictEqual(result.success, false);
+		});
+
+		test("should reject missing model", () => {
+			const result = CopilotProviderConfigSchema.safeParse({
+				type: "github-copilot",
 			});
 			assert.strictEqual(result.success, false);
 		});

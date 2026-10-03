@@ -1,11 +1,28 @@
 providers:
   openai:
     type: openai
+    enabled: true
     base_url: https://api.openai.com/v1
     model: gpt-4o
     encoding: cl100k_base
     credentials:
       apiKey:
+    temperature: 0.4
+    maxTokens: -1
+    reasoning:
+      effort: medium
+    rateLimit:
+      requestsPerMinute: 120
+      maxRetries: 6
+      maxConcurrency: 4
+      maxTokensMinute: 0
+  copilot:
+    type: github-copilot
+    enabled: false
+    base_url: https://api.githubcopilot.com
+    model: gpt-4o
+    encoding: cl100k_base
+    enterpriseUrl:
     temperature: 0.4
     maxTokens: -1
     reasoning:
