@@ -15,7 +15,7 @@ import { setTimeout as sleep } from "node:timers/promises";
  */
 
 /** Public OAuth client id for GitHub Copilot. Not a credential. */
-export const CLIENT_ID = "Ov23li8tweQw6odWQebz";
+export const CLIENT_ID = "Ov23liRuYfjAgknNjVBa";
 
 /** Default Copilot API base URL. */
 export const DEFAULT_BASE_URL = "https://api.githubcopilot.com";
