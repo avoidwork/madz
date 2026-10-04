@@ -171,7 +171,7 @@ const checkpointer = createCheckpointer(config);
 // Provider config for TUI
 const providerConfig = config.providers[providerName] || {};
 
-const agent = await createDeepAgentsOrchestrator(checkpointer);
+const { agent, model } = await createDeepAgentsOrchestrator(checkpointer);
 
 // Build a session config for the CURRENT thread. `sessionConfig` is captured
 // once at startup with the initial thread_id, but `/new` replaces the session
@@ -465,9 +465,9 @@ if (isMain) {
 				gcManager: gcManager ? gcManager.onActivity.bind(gcManager) : null,
 				gcTrigger: gcTrace,
 				checkpointer,
-				contextEstimate: agent.contextEstimate,
 				compactContext,
 				getContextMessages,
+				model,
 			}),
 			{
 				// Restore terminal with newline when app exits

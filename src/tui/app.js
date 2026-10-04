@@ -30,9 +30,9 @@ function App({
 	onSaveSession,
 	gcManager,
 	gcTrigger,
-	contextEstimate,
 	compactContext,
 	getContextMessages,
+	model,
 }) {
 	const [showBanner, setShowBanner] = useState(true);
 	const [showOnboarding, setShowOnboarding] = useState(!!onboarding);
@@ -510,9 +510,9 @@ function App({
 							onNewSession: handleNewSession,
 							onViewChange: handleViewChange,
 							messageCountRef,
-							contextEstimate,
 							compactContext,
 							getContextMessages,
+							model,
 							activeProject,
 							setActiveProject,
 						}),

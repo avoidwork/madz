@@ -1,6 +1,5 @@
 import { createMiddleware, countTokensApproximately } from "langchain";
 import { getSharedTokenBudget, getRetryDelayMs, DEFAULT_RETRY_AFTER_MS } from "./openai.js";
-import { calculateConversationTokens, flattenMessageContent } from "../tui/contextTokens.js";
 import { logger } from "../shared/logger.js";
 
 /** Number of dispatch-level retries on a 429 when the token budget is enabled. */
@@ -23,64 +22,6 @@ export function readUsageTokens(result) {
 }
 
 /**
- * Normalize LangChain messages (and an optional system message) into the
- * `{role, content}` shape expected by `calculateConversationTokens`.
- * Content blocks are flattened to text so multimodal parts do not produce
- * `[object Object]` in the estimate. Tool calls on assistant messages and
- * tool messages are preserved so the estimate is not under-counted.
- * @param {Array} [messages] - LangChain messages from the model request
- * @param {Object} [systemMessage] - Optional system message from the request
- * @returns {Array} Conversation array of {role, content} with string content
- */
-export function toConversation(messages, systemMessage) {
-	const msgs = Array.isArray(messages) ? messages : messages ? [messages] : [];
-	const conversation = msgs.map((msg) => {
-		const type = msg.role || msg._getType?.() || msg.type || "user";
-		let role = type;
-		if (type === "human") role = "user";
-		else if (type === "ai") role = "assistant";
-		else if (type === "tool") role = "tool";
-		else if (type === "system") role = "system";
-		return { role, content: flattenMessageContent(msg) };
-	});
-	if (systemMessage) {
-		const text = flattenMessageContent(systemMessage);
-		if (text) conversation.unshift({ role: "system", content: text });
-	}
-	return conversation;
-}
-
-/**
- * Estimate the context cost of a conversation: input tokens (system + messages)
- * plus the configured output budget. Shared by the `TokenBudget` middleware and
- * the TUI context counter so both report the same context window. Callable
- * regardless of whether `maxTokensMinute` is configured.
- * @param {Array} conversation - Array of {role, content} messages
- * @param {Object} [options] - Estimation options
- * @param {string} [options.model] - Model name, used for tiktoken encoder resolution
- * @param {string} [options.encoding] - Explicit tiktoken encoding name
- * @param {number} [options.maxTokens] - Output token budget added to the estimate
- * @param {Array} [options.tools] - Tool definitions (StructuredTool[]) included in
- *   the request. Tokenized via `countTokensApproximately`, matching the library's
- *   own serialization of tool schemas into the model request.
- * @returns {Promise<number>} Estimated total token cost
- */
-export async function estimateContextCost(
-	conversation,
-	{ model, encoding, maxTokens, tools } = {},
-) {
-	const inputTokens = await calculateConversationTokens(conversation, model, encoding);
-	let toolTokens = 0;
-	if (tools && tools.length > 0) {
-		toolTokens = countTokensApproximately([], tools);
-	}
-	// `-1` means unlimited / no cap — treat it as 0 (no output budget) so the
-	// estimate is not off by one.
-	const outputBudget = maxTokens === -1 ? 0 : maxTokens || 0;
-	return inputTokens + toolTokens + outputBudget;
-}
-
-/**
  * Create the `TokenBudget` middleware that enforces `rateLimit.maxTokensMinute`.
  *
  * Enforcement lives in `wrapModelCall` rather than on the model instance,
@@ -96,9 +37,9 @@ export async function estimateContextCost(
  * @param {Object} options - Middleware options
  * @param {number} options.maxTokensMinute - Rolling tokens-per-minute budget.
  *   `0` (or absent) disables enforcement and returns `null`.
- * @param {string} options.model - Model name, used for tiktoken encoder resolution
+ * @param {Object} options.model - The model instance, used to estimate token
+ *   counts via `model.getNumTokensFromMessages(messages)`.
  * @param {number} [options.maxTokens] - Output token budget added to the estimate
- * @param {string} [options.encoding] - Explicit tiktoken encoding name
  * @param {Object} [options.budget] - Token budget instance (defaults to the
  *   shared instance for `maxTokensMinute`; injectable for tests)
  * @param {Function} [options.sleep] - Sleep function in ms (injectable for tests)
@@ -115,22 +56,31 @@ export function createTokenBudgetMiddleware(options = {}) {
 	const budget = options.budget ?? getSharedTokenBudget(maxTokensMinute);
 	const sleep = options.sleep ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
 	const onContextWindowExceeded = options.onContextWindowExceeded;
+	const model = options.model;
 
 	/**
 	 * Estimate the cost of a model request: input tokens (system + messages)
-	 * plus the configured output budget. Delegates to the shared helper so the
-	 * middleware and the TUI context counter report the same context window.
+	 * plus the configured output budget. Uses the model's own tokenizer via
+	 * `model.getNumTokensFromMessages(messages)` so the estimate matches the
+	 * model's actual tokenization.
 	 * @param {Object} request - The `wrapModelCall` request
 	 * @returns {Promise<number>} Estimated total token cost
 	 */
 	async function estimateCost(request) {
-		const conversation = toConversation(request.messages, request.systemMessage);
-		return estimateContextCost(conversation, {
-			model: options.model,
-			encoding: options.encoding,
-			maxTokens: options.maxTokens,
-			tools: request.tools,
-		});
+		const messages = request.messages ?? [];
+		let inputTokens = 0;
+		if (model && typeof model.getNumTokensFromMessages === "function") {
+			const { totalCount } = await model.getNumTokensFromMessages(messages);
+			inputTokens = totalCount;
+		}
+		let toolTokens = 0;
+		if (request.tools && request.tools.length > 0) {
+			toolTokens = countTokensApproximately([], request.tools);
+		}
+		// `-1` means unlimited / no cap — treat it as 0 (no output budget) so the
+		// estimate is not off by one.
+		const outputBudget = options.maxTokens === -1 ? 0 : options.maxTokens || 0;
+		return inputTokens + toolTokens + outputBudget;
 	}
 
 	return createMiddleware({
