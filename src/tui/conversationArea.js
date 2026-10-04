@@ -326,7 +326,10 @@ const ConversationArea = forwardRef(function ConversationArea(
 
 		if (sessionState) {
 			sessionState.addExchange({ role: "user", content: text });
-			updateContextSize(sessionState, config);
+			// Pass the just-sent user message explicitly so the context window
+			// increments immediately. On the first turn the checkpointer doesn't
+			// have it yet, so sourcing from graph state would miss it.
+			updateContextSize(sessionState, config, [new HumanMessage(text)]);
 		}
 
 		const assistantTime = getTimestamp();
@@ -512,7 +515,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 	};
 
 	const updateContextSize = useCallback(
-		async (sessionState, config) => {
+		async (sessionState, config, messages) => {
 			// Cancel any pending debounced update so a stale streaming-era
 			// value doesn't overwrite this accurate full-conversation recount.
 			if (contextUpdateTimerRef.current) {
@@ -520,26 +523,32 @@ const ConversationArea = forwardRef(function ConversationArea(
 				contextUpdateTimerRef.current = null;
 			}
 			if (!sessionState) return;
-			// Source the conversation from the real checkpointer session when the
-			// accessor is available, so the counter reflects the full message set
-			// the model sees (tool calls, tool messages, content blocks). Fall back
-			// to the lossy sessionState array when the accessor is unavailable.
-			let messages = sessionState.getConversation();
-			if (typeof getContextMessages === "function") {
-				const contextMessages = await getContextMessages();
-				if (contextMessages && contextMessages.length > 0) {
-					messages = contextMessages;
+			// When an explicit message set is provided (e.g. the user's just-sent
+			// message, which isn't in the checkpointer yet on the first turn), use
+			// it directly. Otherwise source the conversation from the real
+			// checkpointer session when the accessor is available, so the counter
+			// reflects the full message set the model sees (tool calls, tool
+			// messages, content blocks). Fall back to the lossy sessionState array
+			// when the accessor is unavailable.
+			let counted = messages;
+			if (!counted) {
+				counted = sessionState.getConversation();
+				if (typeof getContextMessages === "function") {
+					const contextMessages = await getContextMessages();
+					if (contextMessages && contextMessages.length > 0) {
+						counted = contextMessages;
+					}
 				}
 			}
 			// Normalize every message to a real LangChain object before counting.
-			messages = messages.map(toLangChainMessage);
+			counted = counted.map(toLangChainMessage);
 			const providerName = sessionState.getProvider();
 			const providerConfig = config?.providers?.[providerName] || {};
 			const maxTokens = providerConfig.maxTokens === -1 ? 0 : providerConfig.maxTokens || 0;
 
 			let totalTokens = 0;
 			if (model && typeof model.getNumTokensFromMessages === "function") {
-				const { totalCount } = await model.getNumTokensFromMessages(messages);
+				const { totalCount } = await model.getNumTokensFromMessages(counted);
 				totalTokens = totalCount;
 			}
 			totalTokens += maxTokens;
