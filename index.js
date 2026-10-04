@@ -179,6 +179,20 @@ const sessionConfig = { configurable: { thread_id: sessionState.getSessionId() }
 // compress the context window on demand (via the `/compact` slash command).
 const compactContext = (options) => agent.compactContext(sessionConfig, sessionState, options);
 
+// Expose the real LangChain message array from the checkpointer to the TUI so
+// the context counter reflects the full message set the model sees (tool calls,
+// tool messages, content blocks) rather than the lossy sessionState array.
+// Degrades gracefully: returns null when the checkpointer is unavailable or
+// `agent.getState` throws, so the TUI falls back to sessionState.getConversation().
+const getContextMessages = async () => {
+	try {
+		const state = await agent.getState(sessionConfig);
+		return state?.values?.messages ?? null;
+	} catch (_err) {
+		return null;
+	}
+};
+
 // Capture config value before callProvider shadows the name
 const showToolResults = config.tui?.showToolResults;
 
@@ -445,6 +459,7 @@ if (isMain) {
 				checkpointer,
 				contextEstimate: agent.contextEstimate,
 				compactContext,
+				getContextMessages,
 			}),
 			{
 				// Restore terminal with newline when app exits

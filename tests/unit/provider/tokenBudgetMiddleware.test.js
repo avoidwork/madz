@@ -127,6 +127,59 @@ describe("toConversation", () => {
 	it("handles a null/undefined messages array", () => {
 		assert.deepStrictEqual(toConversation(undefined, undefined), []);
 	});
+
+	it("maps LangChain human/ai/tool/system types to role names", () => {
+		const conv = toConversation([
+			{ _getType: () => "human", content: "hi" },
+			{ _getType: () => "ai", content: "hello" },
+			{ _getType: () => "tool", content: "result", name: "search" },
+			{ _getType: () => "system", content: "sys" },
+		]);
+		assert.deepStrictEqual(
+			conv.map((m) => m.role),
+			["user", "assistant", "tool", "system"],
+		);
+	});
+
+	it("preserves tool-call text on assistant messages", () => {
+		const conv = toConversation([
+			{
+				_getType: () => "ai",
+				content: "I'll look that up.",
+				tool_calls: [{ name: "search", args: { q: "madz" }, id: "call_1" }],
+			},
+		]);
+		assert.strictEqual(conv[0].role, "assistant");
+		assert.ok(conv[0].content.includes("I'll look that up."), "should keep the text content");
+		assert.ok(conv[0].content.includes("search"), "should serialize the tool call name");
+		assert.ok(conv[0].content.includes("madz"), "should serialize the tool call args");
+	});
+
+	it("preserves tool message content", () => {
+		const conv = toConversation([
+			{ _getType: () => "tool", content: "42 results", name: "search" },
+		]);
+		assert.strictEqual(conv[0].role, "tool");
+		assert.strictEqual(conv[0].content, "42 results");
+	});
+
+	it("flattens reasoning content blocks", () => {
+		const conv = toConversation([
+			{
+				_getType: () => "ai",
+				content: [
+					{ type: "reasoning", reasoning: "thinking..." },
+					{ type: "text", text: "answer" },
+				],
+			},
+		]);
+		assert.strictEqual(conv[0].content, "thinking...answer");
+	});
+
+	it("serializes object content to JSON", () => {
+		const conv = toConversation([{ _getType: () => "tool", content: { ok: true, data: [1] } }]);
+		assert.strictEqual(conv[0].content, JSON.stringify({ ok: true, data: [1] }));
+	});
 });
 
 describe("estimateContextCost", () => {
@@ -190,6 +243,46 @@ describe("estimateContextCost", () => {
 		const result = await estimateContextCost(conversation, { model: "gpt-4o" });
 		assert.strictEqual(typeof result, "number");
 		assert.ok(result > 0);
+	});
+
+	it("estimates a real LangChain message array with content blocks", async () => {
+		const conversation = [
+			{ _getType: () => "human", content: [{ type: "text", text: "Hello" }] },
+			{ _getType: () => "ai", content: [{ type: "text", text: "Hi there!" }] },
+		];
+		const result = await estimateContextCost(conversation, { model: "gpt-4o" });
+		assert.strictEqual(typeof result, "number");
+		assert.ok(result > 0, "content blocks should contribute to the estimate");
+	});
+
+	it("estimates a real LangChain message array with tool calls and tool messages", async () => {
+		const conversation = [
+			{ _getType: () => "human", content: "Search for madz" },
+			{
+				_getType: () => "ai",
+				content: "Let me search.",
+				tool_calls: [{ name: "search", args: { q: "madz" }, id: "call_1" }],
+			},
+			{ _getType: () => "tool", content: "42 results", name: "search" },
+		];
+		const result = await estimateContextCost(conversation, { model: "gpt-4o" });
+		assert.strictEqual(typeof result, "number");
+		assert.ok(result > 0, "tool calls and tool messages should contribute to the estimate");
+	});
+
+	it("estimates a real LangChain message array with reasoning content", async () => {
+		const conversation = [
+			{
+				_getType: () => "ai",
+				content: [
+					{ type: "reasoning", reasoning: "thinking..." },
+					{ type: "text", text: "answer" },
+				],
+			},
+		];
+		const result = await estimateContextCost(conversation, { model: "gpt-4o" });
+		assert.strictEqual(typeof result, "number");
+		assert.ok(result > 0, "reasoning content should contribute to the estimate");
 	});
 });
 

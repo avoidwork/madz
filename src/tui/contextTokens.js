@@ -11,8 +11,43 @@ const ENCODING_TO_MODEL = Object.freeze({
 });
 
 /**
+ * Flatten a single message's content into a tokenizable text string.
+ * Handles string content, content-block arrays (text, image_url, reasoning),
+ * and object content (serialized to JSON). Tool calls on assistant messages
+ * are appended so the estimate is not under-counted.
+ * @param {Object} msg - A message (LangChain or {role, content})
+ * @returns {string} The flattened text content
+ */
+function messageContent(msg) {
+	let content = msg?.content;
+	if (Array.isArray(content)) {
+		content = content
+			.map((block) => {
+				if (typeof block === "string") return block;
+				if (block?.type === "text") return block.text;
+				if (block?.type === "image_url") return "[image]";
+				if (block?.type === "reasoning") return block.reasoning ?? "";
+				return "";
+			})
+			.join("");
+	} else if (content && typeof content === "object") {
+		content = JSON.stringify(content);
+	}
+	let text = content ?? "";
+	if (Array.isArray(msg?.tool_calls) && msg.tool_calls.length > 0) {
+		const toolCallsText = JSON.stringify(msg.tool_calls);
+		text = text ? `${text}\n${toolCallsText}` : toolCallsText;
+	}
+	return text;
+}
+
+/**
  * Calculate the total token count of a conversation using tiktoken.
- * @param {Array} conversation - Array of {role, content} messages
+ * Accepts either normalized `{role, content}` messages or raw LangChain
+ * messages (with content blocks, tool calls, tool messages). Each message is
+ * flattened to text exactly once, so content blocks and tool calls are not
+ * double-counted.
+ * @param {Array} conversation - Array of messages
  * @param {string} modelName - The model name (e.g., "gpt-4o", "llama3.1")
  * @param {string} [encoding] - Optional explicit tiktoken encoder name.
  *   Resolved in order: env var, config, derived from model name.
@@ -41,9 +76,12 @@ export async function calculateConversationTokens(conversation, modelName, encod
 
 	let totalTokens = 0;
 	for (const msg of conversation) {
-		if (msg && msg.content) {
-			const tokens = enc.encode(msg.content);
-			totalTokens += tokens.length;
+		if (msg) {
+			const text = messageContent(msg);
+			if (text) {
+				const tokens = enc.encode(text);
+				totalTokens += tokens.length;
+			}
 		}
 	}
 	enc.free();
@@ -88,14 +126,14 @@ function resolveEncoder(tiktoken, explicitEncoding, modelName) {
 /**
  * Estimate token count based on character count as a fallback.
  * Uses rough heuristic: ~4 characters per token for English text.
- * @param {Array} conversation - Array of {role, content} messages
+ * @param {Array} conversation - Array of messages
  * @returns {number} Estimated token count
  */
 function estimateTokensFromCharacters(conversation) {
 	let totalChars = 0;
 	for (const msg of conversation) {
-		if (msg && msg.content) {
-			totalChars += msg.content.length;
+		if (msg) {
+			totalChars += messageContent(msg).length;
 		}
 	}
 	// Rough heuristic: ~4 characters per token for English text

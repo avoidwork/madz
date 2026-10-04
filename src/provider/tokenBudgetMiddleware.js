@@ -23,26 +23,63 @@ export function readUsageTokens(result) {
 }
 
 /**
+ * Normalize a LangChain message's content into a single text string.
+ * Handles string content, content-block arrays (text, image_url, reasoning),
+ * and object content (serialized to JSON). Used by `toConversation` so the
+ * estimate reflects the text the model actually sees.
+ * @param {Object} msg - A LangChain message
+ * @returns {string} The flattened text content
+ */
+function messageText(msg) {
+	let content = msg?.content;
+	if (Array.isArray(content)) {
+		return content
+			.map((block) => {
+				if (typeof block === "string") return block;
+				if (block?.type === "text") return block.text;
+				if (block?.type === "image_url") return "[image]";
+				if (block?.type === "reasoning") return block.reasoning ?? "";
+				return "";
+			})
+			.join("");
+	}
+	if (content && typeof content === "object") {
+		return JSON.stringify(content);
+	}
+	return content ?? "";
+}
+
+/**
  * Normalize LangChain messages (and an optional system message) into the
  * `{role, content}` shape expected by `calculateConversationTokens`.
  * Content blocks are flattened to text so multimodal parts do not produce
- * `[object Object]` in the estimate.
+ * `[object Object]` in the estimate. Tool calls on assistant messages and
+ * tool messages are preserved so the estimate is not under-counted.
  * @param {Array} [messages] - LangChain messages from the model request
  * @param {Object} [systemMessage] - Optional system message from the request
  * @returns {Array} Conversation array of {role, content} with string content
  */
 export function toConversation(messages, systemMessage) {
 	const msgs = Array.isArray(messages) ? messages : messages ? [messages] : [];
-	const conversation = msgs.map((msg) => ({
-		role: msg.role || msg._getType?.() || "user",
-		content: Array.isArray(msg.content)
-			? msg.content.map((block) => block?.text ?? "").join("")
-			: (msg.content ?? ""),
-	}));
+	const conversation = msgs.map((msg) => {
+		const type = msg.role || msg._getType?.() || msg.type || "user";
+		let role = type;
+		if (type === "human") role = "user";
+		else if (type === "ai") role = "assistant";
+		else if (type === "tool") role = "tool";
+		else if (type === "system") role = "system";
+
+		let content = messageText(msg);
+		// Preserve tool-call text on assistant messages so the estimate is not
+		// under-counted. Serialize the tool_calls array as JSON.
+		if (Array.isArray(msg.tool_calls) && msg.tool_calls.length > 0) {
+			const toolCallsText = JSON.stringify(msg.tool_calls);
+			content = content ? `${content}\n${toolCallsText}` : toolCallsText;
+		}
+		return { role, content };
+	});
 	if (systemMessage) {
-		const text = Array.isArray(systemMessage.content)
-			? systemMessage.content.map((block) => block?.text ?? "").join("")
-			: (systemMessage.content ?? "");
+		const text = messageText(systemMessage);
 		if (text) conversation.unshift({ role: "system", content: text });
 	}
 	return conversation;

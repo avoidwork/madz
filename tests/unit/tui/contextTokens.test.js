@@ -204,4 +204,64 @@ describe("calculateConversationTokens", () => {
 			assert.strictEqual(tokens, charEstimate, "should use the char/4 heuristic");
 		});
 	});
+
+	describe("real LangChain message arrays", () => {
+		it("tokenizes content blocks without double-counting", async () => {
+			const conversation = [
+				{ _getType: () => "human", content: [{ type: "text", text: "Hello" }] },
+				{ _getType: () => "ai", content: [{ type: "text", text: "Hi there!" }] },
+			];
+			const tokens = await calculateConversationTokens(conversation, "gpt-4o");
+			assert.ok(typeof tokens === "number");
+			assert.ok(tokens > 0, "content blocks should contribute to the token count");
+		});
+
+		it("tokenizes tool calls and tool messages", async () => {
+			const conversation = [
+				{ _getType: () => "human", content: "Search for madz" },
+				{
+					_getType: () => "ai",
+					content: "Let me search.",
+					tool_calls: [{ name: "search", args: { q: "madz" }, id: "call_1" }],
+				},
+				{ _getType: () => "tool", content: "42 results", name: "search" },
+			];
+			const tokens = await calculateConversationTokens(conversation, "gpt-4o");
+			assert.ok(typeof tokens === "number");
+			assert.ok(tokens > 0, "tool calls and tool messages should contribute to the token count");
+		});
+
+		it("tokenizes reasoning content blocks", async () => {
+			const conversation = [
+				{
+					_getType: () => "ai",
+					content: [
+						{ type: "reasoning", reasoning: "thinking..." },
+						{ type: "text", text: "answer" },
+					],
+				},
+			];
+			const tokens = await calculateConversationTokens(conversation, "gpt-4o");
+			assert.ok(typeof tokens === "number");
+			assert.ok(tokens > 0, "reasoning content should contribute to the token count");
+		});
+
+		it("does not double-count a message with both text and tool_calls", async () => {
+			const conversation = [
+				{
+					_getType: () => "ai",
+					content: "I'll look that up.",
+					tool_calls: [{ name: "search", args: { q: "madz" }, id: "call_1" }],
+				},
+			];
+			const tokens = await calculateConversationTokens(conversation, "gpt-4o");
+			assert.ok(typeof tokens === "number");
+			assert.ok(tokens > 0);
+		});
+
+		it("handles an empty real message array", async () => {
+			const tokens = await calculateConversationTokens([], "gpt-4o");
+			assert.strictEqual(tokens, 0);
+		});
+	});
 });
