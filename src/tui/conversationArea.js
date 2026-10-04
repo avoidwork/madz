@@ -535,8 +535,11 @@ const ConversationArea = forwardRef(function ConversationArea(
 		setIsCompacting(false);
 		onCompactingChange?.(false);
 		messageListRef.current?.clear();
-		setContextSize(0);
-		onContextChange?.(0);
+		// Recompute the context size for the fresh thread rather than hard-setting
+		// 0. The system prompt (SYSTEM_PROMPT.md + AGENTS.md + memory context) is
+		// still in the window even with an empty conversation, so the counter must
+		// reflect that baseline — not a misleading 0.
+		await updateContextSize(sessionState, config);
 		onStatusChange?.("New session started.");
 		addMessage({
 			role: "system",
