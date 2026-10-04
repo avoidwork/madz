@@ -1,6 +1,6 @@
 import { createMiddleware, countTokensApproximately } from "langchain";
 import { getSharedTokenBudget, getRetryDelayMs, DEFAULT_RETRY_AFTER_MS } from "./openai.js";
-import { calculateConversationTokens } from "../tui/contextTokens.js";
+import { calculateConversationTokens, flattenMessageContent } from "../tui/contextTokens.js";
 import { logger } from "../shared/logger.js";
 
 /** Number of dispatch-level retries on a 429 when the token budget is enabled. */
@@ -26,23 +26,25 @@ export function readUsageTokens(result) {
  * Normalize LangChain messages (and an optional system message) into the
  * `{role, content}` shape expected by `calculateConversationTokens`.
  * Content blocks are flattened to text so multimodal parts do not produce
- * `[object Object]` in the estimate.
+ * `[object Object]` in the estimate. Tool calls on assistant messages and
+ * tool messages are preserved so the estimate is not under-counted.
  * @param {Array} [messages] - LangChain messages from the model request
  * @param {Object} [systemMessage] - Optional system message from the request
  * @returns {Array} Conversation array of {role, content} with string content
  */
 export function toConversation(messages, systemMessage) {
 	const msgs = Array.isArray(messages) ? messages : messages ? [messages] : [];
-	const conversation = msgs.map((msg) => ({
-		role: msg.role || msg._getType?.() || "user",
-		content: Array.isArray(msg.content)
-			? msg.content.map((block) => block?.text ?? "").join("")
-			: (msg.content ?? ""),
-	}));
+	const conversation = msgs.map((msg) => {
+		const type = msg.role || msg._getType?.() || msg.type || "user";
+		let role = type;
+		if (type === "human") role = "user";
+		else if (type === "ai") role = "assistant";
+		else if (type === "tool") role = "tool";
+		else if (type === "system") role = "system";
+		return { role, content: flattenMessageContent(msg) };
+	});
 	if (systemMessage) {
-		const text = Array.isArray(systemMessage.content)
-			? systemMessage.content.map((block) => block?.text ?? "").join("")
-			: (systemMessage.content ?? "");
+		const text = flattenMessageContent(systemMessage);
 		if (text) conversation.unshift({ role: "system", content: text });
 	}
 	return conversation;

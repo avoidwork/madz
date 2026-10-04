@@ -173,11 +173,33 @@ const providerConfig = config.providers[providerName] || {};
 
 const agent = await createDeepAgentsOrchestrator(checkpointer);
 
-const sessionConfig = { configurable: { thread_id: sessionState.getSessionId() } };
+// Build a session config for the CURRENT thread. `sessionConfig` is captured
+// once at startup with the initial thread_id, but `/new` replaces the session
+// ID via `sessionState.createNewSession()`. Any consumer that needs the live
+// thread must resolve the ID at call time (as `callProvider` does) rather than
+// reuse the frozen `sessionConfig`, otherwise it queries the stale thread.
+const currentSessionConfig = () => ({
+	configurable: { thread_id: sessionState.getSessionId() },
+});
 
 // Bind a compaction callback to the session thread so the TUI can manually
 // compress the context window on demand (via the `/compact` slash command).
-const compactContext = (options) => agent.compactContext(sessionConfig, sessionState, options);
+const compactContext = (options) =>
+	agent.compactContext(currentSessionConfig(), sessionState, options);
+
+// Expose the real LangChain message array from the checkpointer to the TUI so
+// the context counter reflects the full message set the model sees (tool calls,
+// tool messages, content blocks) rather than the lossy sessionState array.
+// Degrades gracefully: returns null when the checkpointer is unavailable or
+// `agent.getState` throws, so the TUI falls back to sessionState.getConversation().
+const getContextMessages = async () => {
+	try {
+		const state = await agent.getState(currentSessionConfig());
+		return state?.values?.messages ?? null;
+	} catch (_err) {
+		return null;
+	}
+};
 
 // Capture config value before callProvider shadows the name
 const showToolResults = config.tui?.showToolResults;
@@ -186,7 +208,7 @@ async function callProvider(_name, _providerConfig, message, streamingCallback, 
 	const isNewThread = sessionState.getConversation().length === 0;
 
 	const config = {
-		...sessionConfig,
+		...currentSessionConfig(),
 		configurable: { thread_id: sessionState.getSessionId(), isNewThread },
 	};
 
@@ -445,6 +467,7 @@ if (isMain) {
 				checkpointer,
 				contextEstimate: agent.contextEstimate,
 				compactContext,
+				getContextMessages,
 			}),
 			{
 				// Restore terminal with newline when app exits

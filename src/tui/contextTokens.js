@@ -11,8 +11,83 @@ const ENCODING_TO_MODEL = Object.freeze({
 });
 
 /**
+ * Flatten a single content block into a tokenizable text string.
+ * Handles every standard LangChain content block type so nothing the model
+ * sees is silently dropped from the estimate. Unknown block types are
+ * serialized to JSON rather than discarded.
+ * @param {Object|string} block - A content block
+ * @returns {string} The flattened text
+ */
+function flattenBlock(block) {
+	if (typeof block === "string") return block;
+	if (!block || typeof block !== "object") return "";
+	switch (block.type) {
+		case "text":
+			return block.text ?? "";
+		case "reasoning":
+			return block.reasoning ?? "";
+		case "image_url": {
+			const iu = block.image_url;
+			return typeof iu === "string" ? iu : (iu?.url ?? "");
+		}
+		case "image":
+		case "video":
+		case "audio":
+		case "file":
+			return block.url ?? block.data ?? block.fileId ?? "";
+		case "text-plain":
+			return block.text ?? "";
+		case "tool_call":
+		case "tool_call_chunk":
+		case "invalid_tool_call":
+		case "server_tool_call":
+		case "non_standard":
+			return JSON.stringify(block);
+		case "citation":
+			return [block.title, block.url, block.citedText].filter(Boolean).join(" ");
+		default:
+			return JSON.stringify(block);
+	}
+}
+
+/**
+ * Flatten a single message into a tokenizable text string, preserving every
+ * field the model sees: content blocks (text, image_url base64, reasoning,
+ * tool calls), `tool_calls`/`invalid_tool_calls` on assistant messages, and
+ * the tool message `name`/`tool_call_id`. Used by `toConversation` and
+ * `calculateConversationTokens` so the estimate is not under-counted.
+ * @param {Object} msg - A message (LangChain or {role, content})
+ * @returns {string} The flattened text content
+ */
+export function flattenMessageContent(msg) {
+	let content = msg?.content;
+	if (Array.isArray(content)) {
+		content = content.map(flattenBlock).join("");
+	} else if (content && typeof content === "object") {
+		content = JSON.stringify(content);
+	}
+	let text = content ?? "";
+	const append = (part) => {
+		if (part) text = text ? `${text}\n${part}` : part;
+	};
+	if (Array.isArray(msg?.tool_calls) && msg.tool_calls.length > 0) {
+		append(JSON.stringify(msg.tool_calls));
+	}
+	if (Array.isArray(msg?.invalid_tool_calls) && msg.invalid_tool_calls.length > 0) {
+		append(JSON.stringify(msg.invalid_tool_calls));
+	}
+	if (msg?.name) append(msg.name);
+	if (msg?.tool_call_id) append(msg.tool_call_id);
+	return text;
+}
+
+/**
  * Calculate the total token count of a conversation using tiktoken.
- * @param {Array} conversation - Array of {role, content} messages
+ * Accepts either normalized `{role, content}` messages or raw LangChain
+ * messages (with content blocks, tool calls, tool messages). Each message is
+ * flattened to text exactly once, so content blocks and tool calls are not
+ * double-counted.
+ * @param {Array} conversation - Array of messages
  * @param {string} modelName - The model name (e.g., "gpt-4o", "llama3.1")
  * @param {string} [encoding] - Optional explicit tiktoken encoder name.
  *   Resolved in order: env var, config, derived from model name.
@@ -41,9 +116,12 @@ export async function calculateConversationTokens(conversation, modelName, encod
 
 	let totalTokens = 0;
 	for (const msg of conversation) {
-		if (msg && msg.content) {
-			const tokens = enc.encode(msg.content);
-			totalTokens += tokens.length;
+		if (msg) {
+			const text = flattenMessageContent(msg);
+			if (text) {
+				const tokens = enc.encode(text);
+				totalTokens += tokens.length;
+			}
 		}
 	}
 	enc.free();
@@ -88,14 +166,14 @@ function resolveEncoder(tiktoken, explicitEncoding, modelName) {
 /**
  * Estimate token count based on character count as a fallback.
  * Uses rough heuristic: ~4 characters per token for English text.
- * @param {Array} conversation - Array of {role, content} messages
+ * @param {Array} conversation - Array of messages
  * @returns {number} Estimated token count
  */
 function estimateTokensFromCharacters(conversation) {
 	let totalChars = 0;
 	for (const msg of conversation) {
-		if (msg && msg.content) {
-			totalChars += msg.content.length;
+		if (msg) {
+			totalChars += flattenMessageContent(msg).length;
 		}
 	}
 	// Rough heuristic: ~4 characters per token for English text

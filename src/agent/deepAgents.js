@@ -14,6 +14,7 @@ import { SkillRegistry } from "../skills/registry.js";
 import { createChatModel } from "../provider/openai.js";
 import { getActiveProviderConfig, getActiveProviderName } from "../provider/index.js";
 import { createTokenBudgetMiddleware } from "../provider/tokenBudgetMiddleware.js";
+import { flattenMessageContent } from "../tui/contextTokens.js";
 import {
 	createSummarizationMiddlewareFromConfig,
 	forceSummarize,
@@ -149,21 +150,7 @@ function toConversationExchange(message) {
 	else if (type === "tool") role = "tool";
 	else if (type === "system") role = "system";
 
-	let content = message?.content;
-	if (Array.isArray(content)) {
-		content = content
-			.map((block) => {
-				if (typeof block === "string") return block;
-				if (block?.type === "text") return block.text;
-				if (block?.type === "image_url") return "[image]";
-				return "";
-			})
-			.join("");
-	} else if (content && typeof content === "object") {
-		content = JSON.stringify(content);
-	}
-
-	return { role, content: content ?? "" };
+	return { role, content: flattenMessageContent(message) };
 }
 
 /**

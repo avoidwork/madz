@@ -16,7 +16,7 @@ import { setConfigValue } from "../config/loader.js";
 import { isAvailable, getGcCalls } from "../memory/gc.js";
 import { loadSystemPrompt } from "../memory/prompts.js";
 import { calculateConversationTokens } from "./contextTokens.js";
-import { estimateContextCost } from "../provider/tokenBudgetMiddleware.js";
+import { estimateContextCost, toConversation } from "../provider/tokenBudgetMiddleware.js";
 import { logger } from "../shared/logger.js";
 
 /**
@@ -64,7 +64,14 @@ export async function computeContextSize({
 	tools,
 	subagents,
 }) {
-	let totalTokens = await estimateContextCost(conversation, {
+	// Normalize the conversation. When sourced from the checkpointer it is a
+	// real LangChain message array (with content blocks, tool calls, tool
+	// messages); `toConversation` flattens it to the `{role, content}` shape
+	// `estimateContextCost`/`calculateConversationTokens` expect. When it is
+	// already a `{role, content}` array (e.g. sessionState fallback), the
+	// normalization is a no-op.
+	const normalizedConversation = toConversation(conversation);
+	let totalTokens = await estimateContextCost(normalizedConversation, {
 		model: modelName,
 		encoding,
 		maxTokens,
@@ -120,6 +127,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 		messageCountRef,
 		contextEstimate,
 		compactContext,
+		getContextMessages,
 		activeProject,
 		setActiveProject,
 	},
@@ -527,8 +535,11 @@ const ConversationArea = forwardRef(function ConversationArea(
 		setIsCompacting(false);
 		onCompactingChange?.(false);
 		messageListRef.current?.clear();
-		setContextSize(0);
-		onContextChange?.(0);
+		// Recompute the context size for the fresh thread rather than hard-setting
+		// 0. The system prompt (SYSTEM_PROMPT.md + AGENTS.md + memory context) is
+		// still in the window even with an empty conversation, so the counter must
+		// reflect that baseline — not a misleading 0.
+		await updateContextSize(sessionState, config);
 		onStatusChange?.("New session started.");
 		addMessage({
 			role: "system",
@@ -558,7 +569,17 @@ const ConversationArea = forwardRef(function ConversationArea(
 				contextUpdateTimerRef.current = null;
 			}
 			if (!sessionState) return;
-			const conversation = sessionState.getConversation();
+			// Source the conversation from the real checkpointer session when the
+			// accessor is available, so the counter reflects the full message set
+			// the model sees (tool calls, tool messages, content blocks). Fall back
+			// to the lossy sessionState array when the accessor is unavailable.
+			let conversation = sessionState.getConversation();
+			if (typeof getContextMessages === "function") {
+				const messages = await getContextMessages();
+				if (messages && messages.length > 0) {
+					conversation = messages;
+				}
+			}
 			const providerName = sessionState.getProvider();
 			const providerConfig = config?.providers?.[providerName] || {};
 			const modelName = providerConfig.model || "gpt-4o";
@@ -588,7 +609,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 			setContextSize(totalTokens);
 			onContextChange?.(totalTokens);
 		},
-		[calculateConversationTokens, contextEstimate],
+		[calculateConversationTokens, contextEstimate, getContextMessages],
 	);
 
 	const addMessage = (msg) => {

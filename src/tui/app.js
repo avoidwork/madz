@@ -32,6 +32,7 @@ function App({
 	gcTrigger,
 	contextEstimate,
 	compactContext,
+	getContextMessages,
 }) {
 	const [showBanner, setShowBanner] = useState(true);
 	const [showOnboarding, setShowOnboarding] = useState(!!onboarding);
@@ -511,6 +512,7 @@ function App({
 							messageCountRef,
 							contextEstimate,
 							compactContext,
+							getContextMessages,
 							activeProject,
 							setActiveProject,
 						}),
