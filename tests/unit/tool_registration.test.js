@@ -117,14 +117,14 @@ describe("tool registration - integration", () => {
 		assert.ok(toolNames.includes("extractWeb"));
 	});
 
-	it("does not register web tools without any search key", async () => {
+	it("registers web tools without any search key (duckduckgo fallback)", async () => {
 		const tools = await buildToolConfig({
 			permissions: ["network:outbound"],
 			config: { providers: {}, search: {} },
 		});
 		const toolNames = tools.map((t) => t.name);
-		assert.ok(!toolNames.includes("searchWeb"));
-		assert.ok(!toolNames.includes("extractWeb"));
+		assert.ok(toolNames.includes("searchWeb"));
+		assert.ok(toolNames.includes("extractWeb"));
 	});
 
 	it("registers image_generate with network:outbound and fal", async () => {

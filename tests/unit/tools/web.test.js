@@ -35,47 +35,6 @@ describe("detectSearchBackend", () => {
 		);
 	});
 
-	it("returns bing when engine is explicitly set to bing", () => {
-		assert.strictEqual(detectSearchBackend({ search: { engine: "bing" } }), "bing");
-	});
-
-	it("returns duckduckgo when engine is explicitly set to duckduckgo", () => {
-		assert.strictEqual(detectSearchBackend({ search: { engine: "duckduckgo" } }), "duckduckgo");
-	});
-
-	it("honors explicit engine over configured credentials", () => {
-		assert.strictEqual(
-			detectSearchBackend({
-				search: { engine: "duckduckgo", bing: { apiKey: "test-key" } },
-			}),
-			"duckduckgo",
-		);
-	});
-
-	it("honors explicit engine over custom.url", () => {
-		assert.strictEqual(
-			detectSearchBackend({
-				search: { engine: "custom", custom: { url: "https://example.com/search" } },
-			}),
-			"custom",
-		);
-	});
-
-	it("falls back to inference chain when engine is set to an unsupported value", () => {
-		assert.strictEqual(detectSearchBackend({ search: { engine: "exa" } }), "duckduckgo");
-	});
-
-	it("falls back to inference chain when engine is set to an unsupported value but bing is configured", () => {
-		assert.strictEqual(
-			detectSearchBackend({ search: { engine: "exa", bing: { apiKey: "test-key" } } }),
-			"bing",
-		);
-	});
-
-	it("returns tavily when engine is explicitly set to tavily", () => {
-		assert.strictEqual(detectSearchBackend({ search: { engine: "tavily" } }), "tavily");
-	});
-
 	it("returns tavily when tavily.apiKey is set", () => {
 		assert.strictEqual(
 			detectSearchBackend({ search: { tavily: { apiKey: "test-key" } } }),
@@ -99,7 +58,7 @@ describe("searchWebImpl", () => {
 		assert.match(parsed.error, /Query is required/);
 	});
 
-	it("routes to tavily when engine is set to tavily and returns normalized results", async () => {
+	it("routes to tavily when tavily.apiKey is set and returns normalized results", async () => {
 		let capturedUrl;
 		let capturedInit;
 		const fetchMock = mock.method(globalThis, "fetch", async (url, init) => {
@@ -116,7 +75,7 @@ describe("searchWebImpl", () => {
 		try {
 			const result = await searchWebImpl(
 				{ query: "test", limit: 5 },
-				{ search: { engine: "tavily", tavily: { apiKey: "test-key" } } },
+				{ search: { tavily: { apiKey: "test-key" } } },
 			);
 			const parsed = JSON.parse(result);
 			assert.strictEqual(parsed.ok, true);
@@ -146,7 +105,6 @@ describe("searchWebImpl", () => {
 				{ query: "test", limit: 5 },
 				{
 					search: {
-						engine: "duckduckgo",
 						duckduckgo: {
 							region: "ca-en",
 							safeSearch: "2",

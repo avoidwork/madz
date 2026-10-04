@@ -132,29 +132,9 @@ describe("searchWithTavily", () => {
 });
 
 describe("detectSearchBackend - tavily", () => {
-	it("returns tavily when engine is explicitly set to tavily", () => {
-		assert.strictEqual(detectSearchBackend({ search: { engine: "tavily" } }), "tavily");
-	});
-
 	it("returns tavily when tavily.apiKey is set", () => {
 		assert.strictEqual(
 			detectSearchBackend({ search: { tavily: { apiKey: "test-key" } } }),
-			"tavily",
-		);
-	});
-
-	it("honors explicit engine over tavily credentials", () => {
-		assert.strictEqual(
-			detectSearchBackend({
-				search: { engine: "duckduckgo", tavily: { apiKey: "test-key" } },
-			}),
-			"duckduckgo",
-		);
-	});
-
-	it("falls back to inference chain when engine is unsupported but tavily is configured", () => {
-		assert.strictEqual(
-			detectSearchBackend({ search: { engine: "exa", tavily: { apiKey: "test-key" } } }),
 			"tavily",
 		);
 	});

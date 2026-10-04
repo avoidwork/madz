@@ -323,7 +323,6 @@ export async function buildToolConfig(options) {
 		openaiApiKey: credentials?.apiKey,
 		falApiKey: falCredentials?.apiKey,
 		// Resolved search backend configs from config
-		searchEngine: search?.engine,
 		searchExaApiKey: searchExa?.apiKey,
 		searchFirecrawlApiKey: searchFirecrawl?.apiKey,
 		searchTavilyApiKey: searchTavily?.apiKey,
@@ -371,20 +370,8 @@ export async function buildToolConfig(options) {
 			case "searchWeb":
 			case "extractWeb": {
 				if (!hasAllPerms) continue;
-				// DuckDuckGo is the always-available keyless fallback engine.
-				// Treat it as a valid backend so searchWeb/extractWeb are not
-				// silently dropped when no paid search API key is configured.
-				const hasAnySearch =
-					runtimeOptions.searchEngine === "duckduckgo" ||
-					runtimeOptions.searchExaApiKey ||
-					runtimeOptions.searchFirecrawlApiKey ||
-					runtimeOptions.searchTavilyApiKey ||
-					runtimeOptions.searchParallelApiKey ||
-					runtimeOptions.searchSearxngUrl ||
-					runtimeOptions.searchBingApiKey ||
-					(runtimeOptions.searchCustomConfig?.url &&
-						runtimeOptions.searchCustomConfig?.apiKey !== undefined);
-				if (!hasAnySearch) continue;
+				// DuckDuckGo is the always-available keyless fallback engine,
+				// so searchWeb/extractWeb are always registered.
 				tools.push(TOOLS[toolName]);
 				continue;
 			}

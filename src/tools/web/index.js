@@ -315,7 +315,7 @@ async function searchWithCustom(cfg, query, limit) {
 
 /**
  * Detect which search engine is configured.
- * Priority: explicit `search.engine` > Custom (CUSTOM_SEARCH_URL) > Bing (BING_API_KEY) > Tavily (TAVILY_API_KEY) > SearXNG (SEARXNG_URL) > DuckDuckGo.
+ * Priority: Custom (CUSTOM_SEARCH_URL) > Bing (BING_API_KEY) > Tavily (TAVILY_API_KEY) > SearXNG (SEARXNG_URL) > DuckDuckGo.
  * @param {object} [options] - Config object (defaults to module-level config)
  * @returns {string} Engine name or "none" (should never be none as DuckDuckGo always works)
  */

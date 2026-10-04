@@ -51,7 +51,6 @@ const DuckDuckGoSearchSchema = z.object({
 });
 
 export const SearchConfigSchema = z.object({
-	engine: z.enum(["duckduckgo", "bing", "searxng", "custom", "tavily"]).default("duckduckgo"),
 	duckduckgo: DuckDuckGoSearchSchema.default({}),
 	searxng: SearXNGSearchSchema.default({}),
 	bing: BingSearchSchema.default({}),

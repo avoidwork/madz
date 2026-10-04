@@ -271,7 +271,6 @@ describe("config.yaml schema completeness", () => {
 		const configPath = join(__dirname, "../../config.yaml");
 		const config = load(readFileSync(configPath, "utf8"));
 		assert.ok(config.search, "search section must exist");
-		assert.ok(config.search.engine, "search.engine must exist");
 		assert.ok(config.search.duckduckgo, "search.duckduckgo must exist");
 		assert.ok(config.search.searxng, "search.searxng must exist");
 		assert.ok(config.search.searxng.url !== undefined, "search.searxng.url must exist");
@@ -684,7 +683,6 @@ describe("config.yaml completeness", () => {
 
 	it("has all search engine config keys", () => {
 		assert.ok(config.search, "search section must exist");
-		assert.ok(config.search.engine, "search.engine must exist");
 		assert.ok(config.search.duckduckgo, "search.duckduckgo must exist");
 		assert.ok(config.search.searxng, "search.searxng must exist");
 		assert.ok(config.search.searxng.url !== undefined, "search.searxng.url must exist");
