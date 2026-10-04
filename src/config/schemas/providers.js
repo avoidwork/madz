@@ -27,6 +27,10 @@ const BingSearchSchema = z.object({
 	apiKey: z.string().optional().default(""),
 });
 
+const TavilySearchSchema = z.object({
+	apiKey: z.string().optional().default(""),
+});
+
 const CustomSearchSchema = z.object({
 	url: z.string().optional().default(""),
 	method: z.string().optional().default(""),
@@ -47,11 +51,12 @@ const DuckDuckGoSearchSchema = z.object({
 });
 
 export const SearchConfigSchema = z.object({
-	engine: z.enum(["duckduckgo", "bing", "searxng", "custom"]).default("duckduckgo"),
+	engine: z.enum(["duckduckgo", "bing", "searxng", "custom", "tavily"]).default("duckduckgo"),
 	duckduckgo: DuckDuckGoSearchSchema.default({}),
 	searxng: SearXNGSearchSchema.default({}),
 	bing: BingSearchSchema.default({}),
 	custom: CustomSearchSchema.default({}),
+	tavily: TavilySearchSchema.default({}),
 });
 
 const ReasoningConfigSchema = z

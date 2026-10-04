@@ -50,6 +50,8 @@ search:
     url: ""
   bing:
     apiKey: ""
+  tavily:
+    apiKey: ""
   custom:
     url: ""
     method: ""
