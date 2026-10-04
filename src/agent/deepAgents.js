@@ -12,6 +12,7 @@ import { loadConfig } from "../config/loader.js";
 import { loadSystemPrompt } from "../memory/prompts.js";
 import { SkillRegistry } from "../skills/registry.js";
 import { createChatModel } from "../provider/openai.js";
+import { getModelContextLength } from "../provider/modelInfo.js";
 import { getActiveProviderConfig, getActiveProviderName } from "../provider/index.js";
 import { createTokenBudgetMiddleware } from "../provider/tokenBudgetMiddleware.js";
 import {
@@ -432,9 +433,29 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	// default of 170k trigger / keep 6 applies). When enabled, the returned
 	// middleware is named `SummarizationMiddleware`, which displaces the library
 	// default via same-name merge semantics in `createDeepAgent`.
+	// Derive the summarization trigger from the provider model context length.
+	// The configured token value is a guess that drifts from reality as models
+	// change. When the model's real context window is smaller than the
+	// configured trigger, the conversation overflows before summarization fires;
+	// when larger, we summarize too early. Resolve the context length at init
+	// and override the trigger with 80% of it. The 80% is hardcoded; no config
+	// schema change. If the context length cannot be resolved (unreachable,
+	// model not found, field absent), fall back to the configured token value so
+	// startup never blocks on a network call.
+	const summarizationConfig = { ...config.summarization };
+	const contextLength = await getModelContextLength(providerConfig);
+	if (contextLength !== undefined && summarizationConfig?.enabled === true) {
+		const triggerTokens = Math.floor(contextLength * 0.8);
+		logger.info(
+			{ contextLength, triggerTokens },
+			"[summarization] derived trigger from provider model context length",
+		);
+		summarizationConfig.trigger = { type: "tokens", value: triggerTokens };
+	}
+
 	const summarizationMiddleware = createSummarizationMiddlewareFromConfig({
 		backend,
-		config: config.summarization,
+		config: summarizationConfig,
 	});
 
 	// Image-dispatch middleware. Registered AFTER summarization and BEFORE
