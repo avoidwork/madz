@@ -443,7 +443,7 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	// model not found, field absent), fall back to the configured token value so
 	// startup never blocks on a network call.
 	const contextLength = await getModelContextLength(providerConfig);
-	if (contextLength !== undefined && config.summarization?.enabled === true) {
+	if (contextLength !== undefined) {
 		const triggerTokens = Math.floor(contextLength * 0.8);
 		logger.info(
 			{ contextLength, triggerTokens },
