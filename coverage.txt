@@ -175,7 +175,7 @@
 ℹ   tts                          |        |          |         | 
 ℹ    index.js                    | 100.00 |    88.00 |   50.00 | 
 ℹ   web                          |        |          |         | 
-ℹ    index.js                    |  92.68 |    75.89 |   57.69 | 44-66 100-101 115-116 119-121 160-162 243-245 309-311 452-453 540-545
+ℹ    index.js                    |  92.63 |    74.81 |   57.69 | 44-66 100-101 115-116 119-121 160-162 243-245 309-311 448-449 536-541
 ℹ   webhook                      |        |          |         | 
 ℹ    index.js                    |  98.79 |    96.49 |  100.00 | 20-22
 ℹ   yaml                         |        |          |         | 
@@ -210,6 +210,168 @@
 ℹ  workspace                     |        |          |         | 
 ℹ   loadAgents.js                | 100.00 |    87.50 |  100.00 | 
 ℹ -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-ℹ all files                      |  91.76 |    89.19 |   88.16 | 
+ℹ all files                      |  91.76 |    89.18 |   88.16 | 
 ℹ -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ℹ end of coverage report
+
+✖ failing tests:
+
+test at tests/unit/config.test.js:269:2
+✖ has all search engine config keys (7.765686ms)
+  AssertionError [ERR_ASSERTION]: search.engine must exist
+      at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/config.test.js:274:10)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.start (node:internal/test_runner/test:1096:17)
+      at node:internal/test_runner/test:1617:71
+      at node:internal/per_context/primordials:466:82
+      at new Promise (<anonymous>)
+      at new SafePromise (node:internal/per_context/primordials:435:3)
+      at node:internal/per_context/primordials:466:9
+      at Array.map (<anonymous>) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests/unit/config.test.js:685:2
+✖ has all search engine config keys (0.237315ms)
+  AssertionError [ERR_ASSERTION]: search.engine must exist
+      at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/config.test.js:687:10)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.start (node:internal/test_runner/test:1096:17)
+      at node:internal/test_runner/test:1617:71
+      at node:internal/per_context/primordials:466:82
+      at new Promise (<anonymous>)
+      at new SafePromise (node:internal/per_context/primordials:435:3)
+      at node:internal/per_context/primordials:466:9
+      at Array.map (<anonymous>) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests/unit/tools/web.test.js:38:2
+✖ returns bing when engine is explicitly set to bing (0.980701ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'duckduckgo'
+  - 'bing'
+  
+      at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/tools/web.test.js:39:10)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Suite.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'duckduckgo',
+    expected: 'bing',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/unit/tools/web.test.js:46:2
+✖ honors explicit engine over configured credentials (0.210897ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'bing'
+  - 'duckduckgo'
+  
+      at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/tools/web.test.js:47:10)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Suite.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'bing',
+    expected: 'duckduckgo',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/unit/tools/web.test.js:75:2
+✖ returns tavily when engine is explicitly set to tavily (0.295154ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'duckduckgo'
+  - 'tavily'
+  
+      at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/tools/web.test.js:76:10)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Suite.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'duckduckgo',
+    expected: 'tavily',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/unit/tools/web/searchTavily.test.js:135:2
+✖ returns tavily when engine is explicitly set to tavily (1.238847ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'duckduckgo'
+  - 'tavily'
+  
+      at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/tools/web/searchTavily.test.js:136:10)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.start (node:internal/test_runner/test:1096:17)
+      at node:internal/test_runner/test:1617:71
+      at node:internal/per_context/primordials:466:82
+      at new Promise (<anonymous>)
+      at new SafePromise (node:internal/per_context/primordials:435:3)
+      at node:internal/per_context/primordials:466:9
+      at Array.map (<anonymous>) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'duckduckgo',
+    expected: 'tavily',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/unit/tools/web/searchTavily.test.js:146:2
+✖ honors explicit engine over tavily credentials (0.20769ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'tavily'
+  - 'duckduckgo'
+  
+      at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/tools/web/searchTavily.test.js:147:10)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Suite.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'tavily',
+    expected: 'duckduckgo',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

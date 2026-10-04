@@ -910,8 +910,7 @@ Graceful shutdown flushes all buffered log entries to disk before process exit.
 |               | `ttl`                              | `600000`                                 | Cache entry TTL in milliseconds (10 minutes)  |
 | `persistence` | `mode`                               | `memory`                                 | Storage backend (`memory`, `sqlite`)          |
 |               | `sqlite_path`                        | `memory/checkpoints.db`                  | SQLite checkpointer file path                 |
-| `search`      | `engine`                             | `duckduckgo`                             | Search engine (`duckduckgo`, `bing`, `searxng`, `custom`, `tavily`) |
-|               | `tavily.apiKey`                      | _(empty)_                                | Tavily search API key                        |
+| `search`      | `tavily.apiKey`                      | _(empty)_                                | Tavily search API key                        |
 | `skillAgentMap` | `[].pattern`                       | _(none)_                                 | Regex pattern to match skill names            |
 |               | `[].agent`                           | _(none)_                                 | Agent name to assign when pattern matches     |
 | `summarization` | `enabled`                          | `false`                                  | Enable proactive context compaction           |
