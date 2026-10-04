@@ -16,6 +16,26 @@ import { isAvailable, getGcCalls } from "../memory/gc.js";
 import { logger } from "../shared/logger.js";
 
 /**
+/**
+ * Count the token count of a tool-message text using the model's tokenizer.
+ *
+ * This is decoupled from display: the tool text is counted toward the live
+ * context window but is never folded into the assistant's rendered content.
+ *
+ * @param {Object} model - The LLM model instance (may expose getNumTokensFromMessages)
+ * @param {string} text - The tool-message text to count
+ * @returns {Promise<number>} The token count (0 if the model has no tokenizer)
+ */
+export async function countToolMessageTokens(model, text) {
+	if (!text) return 0;
+	if (model && typeof model.getNumTokensFromMessages === "function") {
+		const { totalCount } = await model.getNumTokensFromMessages([new AIMessage(text)]);
+		return totalCount || 0;
+	}
+	return 0;
+}
+
+/**
  * Determine whether a completed turn should trigger a silent auto-continue.
  *
  * A turn is "reasoning-only" when the stream ended with reasoning segments
@@ -80,6 +100,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 	const dispatchPromiseRef = useRef(null);
 	const streamingMsgIdRef = useRef(null);
 	const tokenCacheRef = useRef({ content: "", tokens: 0 });
+	const toolMessageTokensRef = useRef(0);
 	const contextUpdateTimerRef = useRef(null);
 	const pendingContextRef = useRef({ content: "" });
 
@@ -317,6 +338,9 @@ const ConversationArea = forwardRef(function ConversationArea(
 	const handleChat = async (text, options = {}) => {
 		if (shouldAbort()) return;
 		gcManager?.();
+		// Reset the tool-message token accumulator at the start of each turn so
+		// tool tokens from a previous turn do not leak into the next.
+		toolMessageTokensRef.current = 0;
 		onStatusChange?.("Streaming...");
 		// silentUser: dispatch the message without rendering it as a user message
 		// in the TUI (e.g., synthesized skill prompts). The assistant's streaming
@@ -608,7 +632,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 							cached.tokens = 0;
 						}
 					}
-					onContextUpdate(preStreamContextSize + cached.tokens);
+					onContextUpdate(preStreamContextSize + cached.tokens + toolMessageTokensRef.current);
 				}, 33);
 			};
 
@@ -713,6 +737,17 @@ const ConversationArea = forwardRef(function ConversationArea(
 							lastToolCallDisplayRef.current =
 								(lastToolCallDisplayRef.current ? lastToolCallDisplayRef.current + "\n" : "") +
 								toolText;
+						}
+					}
+
+					if (event.type === "tool_message") {
+						const toolText = event.data?.text || event.text || "";
+						if (toolText) {
+							// Count the tool-message text toward the live context
+							// window. This is decoupled from display: the tool text
+							// is never folded into committedContentRef, so it does
+							// not pollute the rendered assistant message.
+							toolMessageTokensRef.current += await countToolMessageTokens(model, toolText);
 						}
 					}
 
