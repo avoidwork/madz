@@ -391,6 +391,7 @@ The active provider is selected by the `enabled` flag, not by config position or
 | `CUSTOM_SEARCH_URL_FIELD`         | _(empty)_ | Custom search URL field             |
 | `FAL_API_KEY`                     | _(empty)_ | Fal.ai API key (image generation)   |
 | `SEARXNG_URL`                     | _(empty)_ | SearXNG search instance URL         |
+| `TAVILY_API_KEY`                  | _(empty)_ | Tavily search API key               |
 
 **Optional — Email:**
 
@@ -649,7 +650,7 @@ All built-in tools are defined in `src/tools/` and registered as LangChain tools
 | `screenshotWeb` | Render a URL in headless Chromium and return a base64 PNG screenshot for vision analysis. |
 | `searchCode` | Semantic code search using vector similarity. Finds conceptually related code even when exact keywords don't match — e.g., searching for "authentication" finds login handlers, token validation, and auth middleware. |
 | `searchSession` | Search past conversations by keyword query, full retrieval by conversation ID, or browse all sessions. |
-| `searchWeb` | Search the web via DuckDuckGo, Google, Bing, SearXNG, or Custom endpoints. |
+| `searchWeb` | Search the web via DuckDuckGo, Google, Bing, SearXNG, Custom, or Tavily endpoints. |
 | `spreadsheet` | Spreadsheet computation and analysis. Actions: compute (sum, average, count, min, max, formula, median, stddev, variance), generate (create XLSX with formulas), analyze (pivot tables, filtering, groupBy, stats, percentile), csvImport, csvExport, modify (add/modify/delete cells and sheets), export (XLSX, CSV, JSON). |
 | `textToSpeech` | Convert text to speech via OpenAI TTS (tts-1/tts-1-hd). Saves MP3 to `~/voice-memos/`. |
 | `webhook` | Webhook CRUD and HMAC verification with URL validation. |
@@ -909,6 +910,7 @@ Graceful shutdown flushes all buffered log entries to disk before process exit.
 |               | `ttl`                              | `600000`                                 | Cache entry TTL in milliseconds (10 minutes)  |
 | `persistence` | `mode`                               | `memory`                                 | Storage backend (`memory`, `sqlite`)          |
 |               | `sqlite_path`                        | `memory/checkpoints.db`                  | SQLite checkpointer file path                 |
+| `search`      | `tavily.apiKey`                      | _(empty)_                                | Tavily search API key                        |
 | `skillAgentMap` | `[].pattern`                       | _(none)_                                 | Regex pattern to match skill names            |
 |               | `[].agent`                           | _(none)_                                 | Agent name to assign when pattern matches     |
 | `summarization` | `enabled`                          | `false`                                  | Enable proactive context compaction           |

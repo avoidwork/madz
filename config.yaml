@@ -40,7 +40,6 @@ email:
   maxAttachments: 10
   maxAttachmentSize: 25mb
 search:
-  engine: duckduckgo
   duckduckgo:
     region: ""
     safeSearch: "0"
@@ -49,6 +48,8 @@ search:
   searxng:
     url: ""
   bing:
+    apiKey: ""
+  tavily:
     apiKey: ""
   custom:
     url: ""

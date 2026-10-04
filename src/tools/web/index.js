@@ -162,6 +162,52 @@ async function searchWithBing(apiKey, query, limit) {
 	}
 }
 
+/// -- Tavily --
+
+/**
+ * Search using Tavily API.
+ * @param {string} apiKey - Tavily API key
+ * @param {string} query - Search query
+ * @param {number} limit - Max results
+ * @returns {Promise<{ ok: boolean, results?: object[], error?: string }>}
+ */
+export async function searchWithTavily(apiKey, query, limit) {
+	const controller = new AbortController();
+	const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+	try {
+		const resp = await fetch("https://api.tavily.com/search", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				Authorization: `Bearer ${apiKey}`,
+			},
+			body: JSON.stringify({
+				query,
+				search_depth: "basic",
+				max_results: Math.min(Math.max(limit, 1), 100),
+			}),
+			signal: controller.signal,
+		});
+		clearTimeout(timeoutId);
+		if (!resp.ok) {
+			const text = await resp.text().catch(() => "");
+			return { ok: false, error: `Tavily API error (${resp.status}): ${text.slice(0, 200)}` };
+		}
+		const data = await resp.json();
+		return {
+			ok: true,
+			results: (data.results || []).slice(0, limit).map((r) => ({
+				title: r.title || "Untitled",
+				url: r.url || "",
+				description: r.content || "",
+			})),
+		};
+	} catch (_err) {
+		clearTimeout(timeoutId);
+		return { ok: false, error: "Tavily search failed" };
+	}
+}
+
 /// -- SearXNG --
 
 /**
@@ -269,19 +315,16 @@ async function searchWithCustom(cfg, query, limit) {
 
 /**
  * Detect which search engine is configured.
- * Priority: explicit `search.engine` > Custom (CUSTOM_SEARCH_URL) > Bing (BING_API_KEY) > SearXNG (SEARXNG_URL) > DuckDuckGo.
+ * Priority: Custom (CUSTOM_SEARCH_URL) > Bing (BING_API_KEY) > Tavily (TAVILY_API_KEY) > SearXNG (SEARXNG_URL) > DuckDuckGo.
  * @param {object} [options] - Config object (defaults to module-level config)
  * @returns {string} Engine name or "none" (should never be none as DuckDuckGo always works)
  */
 export function detectSearchBackend(options = config) {
 	const search = options?.search || config.search || {};
-	const engine = search?.engine;
-	if (engine && ["duckduckgo", "bing", "searxng", "custom"].includes(engine)) {
-		return engine;
-	}
 	const custom = search.custom || {};
 	if (custom?.url) return "custom";
 	if (search?.bing?.apiKey) return "bing";
+	if (search?.tavily?.apiKey) return "tavily";
 	if (search?.searxng?.url) return "searxng";
 	return "duckduckgo"; // fallback, always available
 }
@@ -308,6 +351,7 @@ export async function searchWebImpl(input, options = config) {
 	const searxng = search?.searxng || {};
 	const custom = search?.custom || {};
 	const duckduckgo = search?.duckduckgo || {};
+	const tavily = search?.tavily || {};
 	let result;
 
 	switch (backend) {
@@ -321,6 +365,9 @@ export async function searchWebImpl(input, options = config) {
 			result = await searchWithCustom(custom, query, clampedLimit);
 			break;
 		}
+		case "tavily":
+			result = await searchWithTavily(tavily.apiKey, query, clampedLimit);
+			break;
 		case "duckduckgo":
 		default:
 			result = await searchWithDuckDuckGo(query, clampedLimit, duckduckgo);
@@ -510,7 +557,7 @@ export async function screenshotWebImpl(input, options = {}) {
 export const searchWeb = tool(searchWebImpl, {
 	name: "searchWeb",
 	description:
-		"Search the web. Built-in engines: DuckDuckGo (default), Bing (requires BING_API_KEY), SearXNG (requires SEARXNG_URL), Custom (requires CUSTOM_SEARCH_URL).",
+		"Search the web. Built-in engines: DuckDuckGo (default), Bing (requires BING_API_KEY), SearXNG (requires SEARXNG_URL), Custom (requires CUSTOM_SEARCH_URL), Tavily (requires TAVILY_API_KEY).",
 	schema: z.object({
 		query: z.string().min(1).describe("Search query"),
 		limit: z
