@@ -33,6 +33,7 @@ function App({
 	compactContext,
 	getContextMessages,
 	model,
+	systemPrompt,
 }) {
 	const [showBanner, setShowBanner] = useState(true);
 	const [showOnboarding, setShowOnboarding] = useState(!!onboarding);
@@ -513,6 +514,7 @@ function App({
 							compactContext,
 							getContextMessages,
 							model,
+							systemPrompt,
 							activeProject,
 							setActiveProject,
 						}),

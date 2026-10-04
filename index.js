@@ -172,7 +172,7 @@ const checkpointer = createCheckpointer(config);
 // Provider config for TUI
 const providerConfig = config.providers[providerName] || {};
 
-const { agent, model } = await createDeepAgentsOrchestrator(checkpointer);
+const { agent, model, systemPrompt } = await createDeepAgentsOrchestrator(checkpointer);
 
 // Build a session config for the CURRENT thread. `sessionConfig` is captured
 // once at startup with the initial thread_id, but `/new` replaces the session
@@ -469,6 +469,7 @@ if (isMain) {
 				compactContext,
 				getContextMessages,
 				model,
+				systemPrompt,
 			}),
 			{
 				// Restore terminal with newline when app exits

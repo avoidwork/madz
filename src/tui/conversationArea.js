@@ -58,6 +58,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 		compactContext,
 		getContextMessages,
 		model,
+		systemPrompt,
 		activeProject,
 		setActiveProject,
 	},
@@ -542,6 +543,12 @@ const ConversationArea = forwardRef(function ConversationArea(
 			}
 			// Normalize every message to a real LangChain object before counting.
 			counted = counted.map(toLangChainMessage);
+			// Include the system prompt in the count so the context window reflects
+			// what the model actually sees on every turn. It's not part of graph
+			// state, so it must be prepended here.
+			if (systemPrompt) {
+				counted = [new SystemMessage(systemPrompt), ...counted];
+			}
 			const providerName = sessionState.getProvider();
 			const providerConfig = config?.providers?.[providerName] || {};
 			const maxTokens = providerConfig.maxTokens === -1 ? 0 : providerConfig.maxTokens || 0;
@@ -555,7 +562,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 			setContextSize(totalTokens);
 			onContextChange?.(totalTokens);
 		},
-		[model, getContextMessages],
+		[model, getContextMessages, systemPrompt],
 	);
 
 	const addMessage = (msg) => {

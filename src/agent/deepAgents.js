@@ -480,5 +480,5 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 		await agent.compactContext(config);
 	};
 
-	return { agent, model };
+	return { agent, model, systemPrompt };
 }
