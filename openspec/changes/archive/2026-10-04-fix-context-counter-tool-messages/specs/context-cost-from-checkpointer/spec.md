@@ -1,8 +1,5 @@
-# context-cost-from-checkpointer Specification
+## MODIFIED Requirements
 
-## Purpose
-TBD - created by archiving change context-cost-from-checkpointer. Update Purpose after archive.
-## Requirements
 ### Requirement: Context cost is counted via the model tokenizer from the checkpointer
 The system SHALL count context cost by calling `model.getNumTokensFromMessages(messages)` on the message array sourced from `agent.getState(config)` → `state.values.messages` via `getContextMessages()`, falling back to `sessionState.getConversation()` when the accessor is unavailable. During streaming, the live counter SHALL additionally include tool-message tokens as they stream in, so the displayed context size reflects tool messages before the turn completes.
 
@@ -17,4 +14,3 @@ The system SHALL count context cost by calling `model.getNumTokensFromMessages(m
 #### Scenario: Live streaming counter includes tool-message tokens
 - **WHEN** the TUI is streaming a turn that produces tool messages
 - **THEN** the live context counter includes the tool-message tokens in addition to the assistant message content
-
