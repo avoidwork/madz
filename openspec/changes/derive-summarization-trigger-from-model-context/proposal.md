@@ -12,7 +12,7 @@ The deepagents summarization trigger is a fixed token count in `config.yaml` (`s
 ## Capabilities
 
 ### New Capabilities
-- `model-context-length`: A provider-aware resolver that probes all candidate endpoints (`GET /v1/models` for vLLM, `POST /api/show` for Ollama) to determine the model's context window length, returning `undefined` on any failure so the caller falls back gracefully. It does NOT branch on the provider `type` field, because Ollama and vLLM both expose OpenAI-compatible APIs and are configured as `type: openai`.
+- `model-context-length`: A provider-aware resolver that probes all candidate endpoints (the OpenAI-compatible models endpoint for vLLM, `POST /api/show` for Ollama) to determine the model's context window length, returning `undefined` on any failure so the caller falls back gracefully. It does NOT branch on the provider `type` field, because Ollama and vLLM both expose OpenAI-compatible APIs and are configured as `type: openai`. It constructs the models URL from `base_url` without duplicating a `/v1` prefix — if `base_url` already ends with `/v1`, it appends `/models`; otherwise it appends `/v1/models`.
 
 ### Modified Capabilities
 - `summarization-config`: The summarization trigger is now derived from the resolved model context length (80%) when available, overriding the configured token value. When the context length cannot be resolved, the configured value is used unchanged.

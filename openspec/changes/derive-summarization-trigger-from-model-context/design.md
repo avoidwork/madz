@@ -27,10 +27,15 @@ The init seam is `createDeepAgentsOrchestrator` in `src/agent/deepAgents.js`: th
 **Rationale**: The issue's original proposal branched on the provider `type` field (e.g. `type: openai` vs `type: ollama`) to detect vLLM/Ollama. This is incorrect: Ollama and vLLM both expose OpenAI-compatible APIs and are configured as `type: openai` in the config. You cannot rely on the `type` field to distinguish them. Probing all endpoints is provider-agnostic and robust.
 **Alternatives**: Branching on `type` — rejected because it misclassifies vLLM/Ollama as plain OpenAI.
 
-### Decision 2: Probe order — `/v1/models` first, then `/api/show`
-**Choice**: Probe `GET {base_url}/v1/models` first (OpenAI-compatible), then `POST {base_url}/api/show` (Ollama native).
+### Decision 2: Probe order — OpenAI-compatible models endpoint first, then `/api/show`
+**Choice**: Probe the OpenAI-compatible models endpoint first (`GET {base_url}/models`), then `POST {base_url}/api/show` (Ollama native).
 **Rationale**: The OpenAI-compatible endpoint is the most common configuration surface. If the model entry has `max_model_len`, it's a vLLM endpoint and we return it. Otherwise, fall through to the Ollama native endpoint. This ordering handles the common case first and the Ollama-specific case second.
 **Alternatives**: Probing `/api/show` first — rejected because it would fail for pure OpenAI/vLLM endpoints that don't expose the Ollama native API.
+
+### Decision 2.1: Do not duplicate the `/v1` prefix in the models URL
+**Choice**: Construct the OpenAI-compatible models URL from `base_url` without duplicating a `/v1` prefix. If `base_url` already ends with `/v1`, append `/models`; otherwise append `/v1/models`. The Ollama native `/api/show` endpoint is constructed relative to the base host, not the `/v1` prefix.
+**Rationale**: The OpenAI-compatible models route is `/models`, not `/v1/models`. The `base_url` may already include `/v1` (e.g. `https://api.openai.com/v1` or a vLLM base URL ending in `/v1`). Blindly appending `/v1/models` would produce `/v1/v1/models`. Detecting whether `/v1` is already present avoids the duplicate.
+**Alternatives**: Always appending `/v1/models` — rejected because it duplicates `/v1` when `base_url` already carries it.
 
 ### Decision 3: Explicit token-int computation instead of the library's `fraction` trigger
 **Choice**: Compute `triggerTokens = Math.floor(contextLength * 0.8)` and pass `{ type: "tokens", value: triggerTokens }`.
@@ -53,13 +58,17 @@ The init seam is `createDeepAgentsOrchestrator` in `src/agent/deepAgents.js`: th
 The resolver makes up to two HTTP calls at startup.
 **Mitigation**: The resolver is defensive and returns `undefined` on any failure, so startup never blocks. The calls are bounded and only made once at init.
 
-### Risk: Model not found in `/v1/models` list
-The configured model may not appear in the `/v1/models` response.
+### Risk: Model not found in the OpenAI-compatible models list
+The configured model may not appear in the OpenAI-compatible models response.
 **Mitigation**: The resolver moves on to the next candidate (`/api/show`) or returns `undefined`, falling back to the configured token value.
 
 ### Risk: `max_model_len` absent on a vLLM endpoint
 Some vLLM deployments may not expose `max_model_len`.
 **Mitigation**: The resolver falls through to the Ollama native endpoint, then returns `undefined` if neither yields a context length.
+
+### Risk: `base_url` already contains `/v1`
+The `base_url` may already end with `/v1`, so appending `/v1/models` would produce a malformed `/v1/v1/models` URL.
+**Mitigation**: The resolver detects whether `/v1` is already present and only appends `/models` when it is, avoiding the duplicate prefix.
 
 ### Risk: `model_info.<family>.context_length` absent or `num_ctx` not in `parameters`
 The Ollama `/api/show` response may not contain a usable context length.
