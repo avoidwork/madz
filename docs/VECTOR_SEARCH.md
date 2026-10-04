@@ -113,9 +113,53 @@ Orchestrates the full indexing pipeline:
 
 **Incremental indexing:** Only processes files whose mtime has changed since the last index. Pass `--force` to re-index everything.
 
+### `src/tools/code/indexCode.js`
+
+LangChain tool that dispatches indexing to a Piscina worker pool. This is the **primary** indexing path — invoked by the agent, not a CLI arg. Iterates over one or all configured projects, running each through the pool so the work stays off the main event loop.
+
+```mermaid
+graph TD
+    IDX["indexCode Tool"] -->|"pool.run()"| POOL["Piscina worker pool"]
+    POOL --> WK["indexerWorker.js"]
+    WK --> RE["reindex()"]
+    RE --> SCAN["Scan"]
+    RE --> FILT["Filter"]
+    RE --> MT["Mtime check"]
+    RE --> CHK["Chunk"]
+    RE --> EMB["Embed"]
+    RE --> STO["Store"]
+    RE --> CACHE["Update mtime cache"]
+    STO --> DB["madz.db"]
+    CACHE --> MTC["madz-mtimes.json"]
+```
+
+**Input schema:**
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `project` | string | all configured | Project name from `vector.projects` in config.yaml. Indexes all projects if omitted. |
+| `force` | boolean | `false` | Force re-index all files, ignoring the mtime cache |
+
 ### `src/tools/code/searchCode.js`
 
 LangChain tool available to the orchestrator and the code-related subagents — `search`, `research`, `coding`, `code-review`, `debug`, `security-audit`, `testing`, `performance`, `documentation`, and `seoAnalyst`.
+
+```mermaid
+graph TD
+    SC["searchCode Tool"] --> PROJ["Resolve project"]
+    PROJ --> OPEN["Open vector store"]
+    OPEN --> MODE{"mode"}
+    MODE -->|"vector"| EMB["Embed query"]
+    EMB --> VEC["KNN search"]
+    MODE -->|"fulltext"| FTS["FTS5 search"]
+    MODE -->|"hybrid"| EMB2["Embed query"]
+    EMB2 --> HYB["Hybrid search (RRF)"]
+    VEC --> FILT["Apply fileFilter"]
+    FTS --> FILT
+    HYB --> FILT
+    FILT --> FMT["Format results"]
+    FMT --> OUT["Return to orchestrator/subagent"]
+```
 
 **Input schema:**
 
@@ -242,32 +286,6 @@ Language support is handled entirely through include patterns in each project's 
 The following are already implemented:
 
 - **Hybrid search** (vector + keyword) — the default `searchMode`. `searchCode` runs both vector similarity and FTS5 keyword matching, merging results via Reciprocal Rank Fusion (RRF). Set `mode: vector` for pure semantic search or `mode: fulltext` for exact keyword matches.
-
-The following remain future work:
-
-- Reranking across multiple vector stores
-- AST-aware chunking (function/class boundary preservation) as an alternative to fixed-size blocks
-
-## Dependencies
-
-| Package | Version | Purpose |
-|---------|---------|---------|
-| `@photostructure/sqlite-vec` | ^1.1.1 | SQLite vector search extension (production-ready fork) |
-| `@xenova/transformers` | ^2.17.2 | In-process transformer inference via ONNX Runtime |
-| `better-sqlite3` | (existing) | Synchronous SQLite3 bindings |
-
-## Storage Layout
-
-```
-memory/
-├── vectorSearch/
-│   ├── madz.db                  # SQLite database for the "madz" project
-│   ├── madz-mtimes.json         # File mtime cache for incremental indexing
-│   └── ...                      # Additional project databases as configured
-└── checkpoints/                 # LangGraph checkpoint storage (separate concern)
-    └── checkpoints.db
-```
-tic search or `mode: fulltext` for exact keyword matches.
 
 The following remain future work:
 
