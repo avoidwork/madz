@@ -236,20 +236,11 @@ async function callProvider(_name, _providerConfig, message, streamingCallback, 
 
 			// Skip ToolMessage from message content when showToolResults is false
 			const msgType = msg?._getType ? msg._getType() : msg?.type;
-			const text = msg?.text ?? "";
-
-			// Emit a dedicated tool_message event for ToolMessage content so the
-			// TUI can count it toward the live context window regardless of the
-			// showToolResults display flag. This decouples counting from display:
-			// the tool text is counted but never rendered as assistant content.
-			if (msgType === "tool" && text) {
-				if (streamingCallback) {
-					streamingCallback({ type: "tool_message", text });
-				}
-				if (showToolResults === false) {
-					continue;
-				}
+			if (msgType === "tool" && showToolResults === false) {
+				continue;
 			}
+
+			const text = msg?.text ?? "";
 
 			if (text) {
 				collectedContent += text;
