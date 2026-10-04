@@ -442,20 +442,22 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	// schema change. If the context length cannot be resolved (unreachable,
 	// model not found, field absent), fall back to the configured token value so
 	// startup never blocks on a network call.
-	const summarizationConfig = { ...config.summarization };
 	const contextLength = await getModelContextLength(providerConfig);
-	if (contextLength !== undefined && summarizationConfig?.enabled === true) {
+	if (contextLength !== undefined) {
 		const triggerTokens = Math.floor(contextLength * 0.8);
 		logger.info(
 			{ contextLength, triggerTokens },
 			"[summarization] derived trigger from provider model context length",
 		);
-		summarizationConfig.trigger = { type: "tokens", value: triggerTokens };
+		// Mutate the shared config singleton so the /settings view reflects the
+		// live derived trigger. `loadConfig()` is cached, so this is the same
+		// object the SettingsPanel reads.
+		config.summarization.trigger = { type: "tokens", value: triggerTokens };
 	}
 
 	const summarizationMiddleware = createSummarizationMiddlewareFromConfig({
 		backend,
-		config: summarizationConfig,
+		config: config.summarization,
 	});
 
 	// Image-dispatch middleware. Registered AFTER summarization and BEFORE
