@@ -1,4 +1,4 @@
-## MODIFIED Requirements
+## ADDED Requirements
 
 ### Requirement: Summarization trigger is derived from model context length
 The system SHALL derive the summarization trigger from the resolved model context length at init. In `createDeepAgentsOrchestrator` (`src/agent/deepAgents.js`), after the model is created and before `createSummarizationMiddlewareFromConfig` is called, the system SHALL resolve the context length via `getModelContextLength(providerConfig)` and compute `triggerTokens = Math.floor(contextLength * 0.8)`. It SHALL pass the resolved `{ type: "tokens", value: triggerTokens }` trigger to the middleware, overriding the configured token value. When the context length cannot be resolved, the system SHALL fall back to the configured token value. The 80% is hardcoded; no config schema change is introduced.
