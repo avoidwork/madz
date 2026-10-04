@@ -115,7 +115,7 @@ Orchestrates the full indexing pipeline:
 
 ### `src/tools/code/searchCode.js`
 
-LangChain tool available to the orchestrator and all code-related subagents.
+LangChain tool available to the orchestrator and the code-related subagents — `search`, `research`, `coding`, `code-review`, `debug`, `security-audit`, `testing`, `performance`, `documentation`, and `seoAnalyst`.
 
 **Input schema:**
 
@@ -185,6 +185,13 @@ node index.js --index-code --force
 
 Both paths iterate over every project in `vector.projects`, creating or updating each project's database independently.
 
+### Workflow
+
+Indexing and search are two halves of one workflow. **You must index before you can search** — `searchCode` returns a "Try running the indexCode tool first" hint when the store is empty. The typical flow is:
+
+1. **Index** — run `indexCode` after adding code or changing project config, so the vector store reflects the current source tree.
+2. **Search** — run `searchCode` to find code by meaning. Re-index when the code changes.
+
 ### Querying
 
 Via the `searchCode` tool, available to any agent:
@@ -193,9 +200,11 @@ Via the `searchCode` tool, available to any agent:
 searchCode(query="how does SSE streaming work", topK=3)
 searchCode(query="tool registration pattern", project="madz")
 searchCode(query="authentication flow", project="madz", fileFilter="src/tools/*.js")
+searchCode(query="tool registration pattern", mode="vector")    # pure semantic search
+searchCode(query="tool registration pattern", mode="fulltext")  # exact keyword match
 ```
 
-The `project` parameter selects which indexed project to search. Defaults to the first configured project if omitted.
+The `project` parameter selects which indexed project to search. Defaults to the first configured project if omitted. The `mode` parameter overrides the configured `searchMode` for a single call.
 
 ### Verification
 
