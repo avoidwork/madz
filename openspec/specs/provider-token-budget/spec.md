@@ -50,25 +50,6 @@ the model handler without reserving.
 - **WHEN** `maxTokensMinute` is `0` and the middleware wraps a model call
 - **THEN** the handler is invoked with no reservation recorded
 
-### Requirement: Context-cost estimation is extracted into a shared helper
-The context-cost logic used by the `TokenBudget` middleware (conversation tokens plus the configured output budget) SHALL be extracted into an exported `estimateContextCost` function in `src/provider/tokenBudgetMiddleware.js`. The middleware SHALL delegate to this helper so the middleware and the TUI share the same cost logic, and the helper SHALL be callable regardless of whether `maxTokensMinute` is configured. The helper SHALL accept a conversation array that may contain normalized `{role, content}` messages OR real LangChain messages (with content blocks, tool calls, and tool messages), normalizing them via `toConversation` before tokenization.
-
-#### Scenario: Middleware delegates to the shared helper
-- **WHEN** the `TokenBudget` middleware estimates a request cost
-- **THEN** it uses the exported `estimateContextCost` helper, so the middleware and the TUI share the same cost logic
-
-#### Scenario: Helper is callable when the budget is disabled
-- **WHEN** `maxTokensMinute` is `0` (or unset) and the exported helper is called
-- **THEN** it still computes the estimate (it does not depend on the budget being enabled)
-
-#### Scenario: Helper adds the output budget to the conversation estimate
-- **WHEN** the exported helper is called with a conversation and `{ model, encoding, maxTokens }`
-- **THEN** it returns `calculateConversationTokens(conversation, model, encoding) + (maxTokens || 0)`
-
-#### Scenario: Helper normalizes real LangChain messages before tokenization
-- **WHEN** the exported helper is called with a real LangChain message array (content blocks, tool calls, tool messages)
-- **THEN** it normalizes the array via `toConversation` and tokenizes the normalized `{role, content}` messages, preserving tool-call/tool-message text
-
 ### Requirement: Enforcement happens in wrapModelCall middleware
 Token-budget enforcement SHALL be implemented as a `wrapModelCall` middleware named `TokenBudget`, created by a
 factory in `src/provider/tokenBudgetMiddleware.js` and registered on `createDeepAgent({ middleware: [...] })`.
@@ -206,18 +187,14 @@ per instance.
 - **WHEN** the shared budget is reset via the exported reset function
 - **THEN** a fresh budget instance is used for subsequent model creation
 
-### Requirement: toConversation normalizes LangChain messages for tokenization
-The `toConversation` function in `src/provider/tokenBudgetMiddleware.js` SHALL flatten LangChain messages with content blocks, tool calls, and tool messages into the `{role, content}` shape that `calculateConversationTokens` expects, preserving tool-call/tool-message text so the estimate is not under-counted.
+### Requirement: TokenBudget middleware estimates cost via the model tokenizer
+The `TokenBudget` middleware SHALL estimate the cost of a model request by calling `model.getNumTokensFromMessages(messages)` on the request's message array, plus the configured output budget (`maxTokens`). A `maxTokens` value of `-1` (unlimited) SHALL be treated as `0` (no output budget).
 
-#### Scenario: Content blocks are flattened to text
-- **WHEN** a LangChain message has an array of content blocks (e.g., text, image_url)
-- **THEN** the blocks are flattened to a single string for tokenization
+#### Scenario: Middleware estimates cost from the model tokenizer
+- **WHEN** the `TokenBudget` middleware estimates a request cost
+- **THEN** it calls `model.getNumTokensFromMessages(messages)` on the request's message array and adds the output budget
 
-#### Scenario: Tool calls on assistant messages are preserved
-- **WHEN** an assistant message carries `tool_calls`
-- **THEN** the tool-call text is included in the normalized content so the estimate is not under-counted
-
-#### Scenario: Tool messages are preserved
-- **WHEN** a `tool` role message is present in the message array
-- **THEN** its content is included in the normalized conversation
+#### Scenario: Middleware normalizes -1 maxTokens to zero
+- **WHEN** the `TokenBudget` middleware estimates a request cost with `maxTokens: -1`
+- **THEN** it treats `-1` as `0` (no output budget)
 
