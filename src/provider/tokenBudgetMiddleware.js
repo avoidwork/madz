@@ -1,6 +1,6 @@
 import { createMiddleware, countTokensApproximately } from "langchain";
 import { getSharedTokenBudget, getRetryDelayMs, DEFAULT_RETRY_AFTER_MS } from "./openai.js";
-import { calculateConversationTokens } from "../tui/contextTokens.js";
+import { calculateConversationTokens, flattenMessageContent } from "../tui/contextTokens.js";
 import { logger } from "../shared/logger.js";
 
 /** Number of dispatch-level retries on a 429 when the token budget is enabled. */
@@ -23,33 +23,6 @@ export function readUsageTokens(result) {
 }
 
 /**
- * Normalize a LangChain message's content into a single text string.
- * Handles string content, content-block arrays (text, image_url, reasoning),
- * and object content (serialized to JSON). Used by `toConversation` so the
- * estimate reflects the text the model actually sees.
- * @param {Object} msg - A LangChain message
- * @returns {string} The flattened text content
- */
-function messageText(msg) {
-	let content = msg?.content;
-	if (Array.isArray(content)) {
-		return content
-			.map((block) => {
-				if (typeof block === "string") return block;
-				if (block?.type === "text") return block.text;
-				if (block?.type === "image_url") return "[image]";
-				if (block?.type === "reasoning") return block.reasoning ?? "";
-				return "";
-			})
-			.join("");
-	}
-	if (content && typeof content === "object") {
-		return JSON.stringify(content);
-	}
-	return content ?? "";
-}
-
-/**
  * Normalize LangChain messages (and an optional system message) into the
  * `{role, content}` shape expected by `calculateConversationTokens`.
  * Content blocks are flattened to text so multimodal parts do not produce
@@ -68,18 +41,10 @@ export function toConversation(messages, systemMessage) {
 		else if (type === "ai") role = "assistant";
 		else if (type === "tool") role = "tool";
 		else if (type === "system") role = "system";
-
-		let content = messageText(msg);
-		// Preserve tool-call text on assistant messages so the estimate is not
-		// under-counted. Serialize the tool_calls array as JSON.
-		if (Array.isArray(msg.tool_calls) && msg.tool_calls.length > 0) {
-			const toolCallsText = JSON.stringify(msg.tool_calls);
-			content = content ? `${content}\n${toolCallsText}` : toolCallsText;
-		}
-		return { role, content };
+		return { role, content: flattenMessageContent(msg) };
 	});
 	if (systemMessage) {
-		const text = messageText(systemMessage);
+		const text = flattenMessageContent(systemMessage);
 		if (text) conversation.unshift({ role: "system", content: text });
 	}
 	return conversation;

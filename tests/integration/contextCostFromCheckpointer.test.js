@@ -86,7 +86,8 @@ describe("integration - TUI context counter reflects checkpointer state", () => 
 			["user", "assistant", "tool"],
 		);
 		assert.ok(normalized[1].content.includes("search"), "tool call name preserved");
-		assert.strictEqual(normalized[2].content, "42 results", "tool message content preserved");
+		assert.ok(normalized[2].content.includes("42 results"), "tool message content preserved");
+		assert.ok(normalized[2].content.includes("search"), "tool message name preserved");
 	});
 
 	it("falls back to the lossy conversation when the accessor is unavailable", async () => {

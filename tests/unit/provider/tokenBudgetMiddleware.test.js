@@ -160,7 +160,32 @@ describe("toConversation", () => {
 			{ _getType: () => "tool", content: "42 results", name: "search" },
 		]);
 		assert.strictEqual(conv[0].role, "tool");
-		assert.strictEqual(conv[0].content, "42 results");
+		assert.ok(conv[0].content.includes("42 results"), "should keep the tool result content");
+		assert.ok(conv[0].content.includes("search"), "should preserve the tool name");
+	});
+
+	it("preserves tool message tool_call_id", () => {
+		const conv = toConversation([
+			{ _getType: () => "tool", content: "42 results", name: "search", tool_call_id: "call_1" },
+		]);
+		assert.ok(conv[0].content.includes("call_1"), "should preserve the tool_call_id");
+	});
+
+	it("flattens image_url to its base64 url, not a placeholder", () => {
+		const conv = toConversation([
+			{
+				_getType: () => "human",
+				content: [
+					{ type: "text", text: "What is this?" },
+					{ type: "image_url", image_url: { url: "data:image/png;base64,aGVsbG8=" } },
+				],
+			},
+		]);
+		assert.ok(
+			conv[0].content.includes("data:image/png;base64,aGVsbG8="),
+			"should keep the base64 url",
+		);
+		assert.ok(!conv[0].content.includes("[image]"), "should not use the placeholder");
 	});
 
 	it("flattens reasoning content blocks", () => {

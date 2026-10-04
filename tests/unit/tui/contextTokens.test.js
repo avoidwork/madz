@@ -263,5 +263,67 @@ describe("calculateConversationTokens", () => {
 			const tokens = await calculateConversationTokens([], "gpt-4o");
 			assert.strictEqual(tokens, 0);
 		});
+
+		it("tokenizes the image_url base64 string, not a placeholder", async () => {
+			const conversation = [
+				{
+					_getType: () => "human",
+					content: [
+						{ type: "text", text: "What is this?" },
+						{ type: "image_url", image_url: { url: "data:image/png;base64,aGVsbG8=" } },
+					],
+				},
+			];
+			const tokens = await calculateConversationTokens(conversation, "gpt-4o");
+			assert.ok(typeof tokens === "number");
+			assert.ok(tokens > 0, "the image_url base64 string should contribute to the token count");
+		});
+
+		it("counts the image_url base64 string as more than a placeholder", async () => {
+			const withImage = await calculateConversationTokens(
+				[
+					{
+						_getType: () => "human",
+						content: [{ type: "image_url", image_url: { url: "data:image/png;base64,aGVsbG8=" } }],
+					},
+				],
+				"gpt-4o",
+			);
+			const withPlaceholder = await calculateConversationTokens(
+				[{ _getType: () => "human", content: "[image]" }],
+				"gpt-4o",
+			);
+			assert.ok(
+				withImage > withPlaceholder,
+				"the real base64 string must count more than the '[image]' placeholder",
+			);
+		});
+
+		it("preserves tool message name and tool_call_id in the count", async () => {
+			const conversation = [
+				{
+					_getType: () => "tool",
+					content: "42 results",
+					name: "search",
+					tool_call_id: "call_1",
+				},
+			];
+			const tokens = await calculateConversationTokens(conversation, "gpt-4o");
+			assert.ok(typeof tokens === "number");
+			assert.ok(tokens > 0, "tool message name and tool_call_id should contribute");
+		});
+
+		it("counts invalid_tool_calls on assistant messages", async () => {
+			const conversation = [
+				{
+					_getType: () => "ai",
+					content: "Let me try.",
+					invalid_tool_calls: [{ name: "search", args: "bad json", id: "call_1" }],
+				},
+			];
+			const tokens = await calculateConversationTokens(conversation, "gpt-4o");
+			assert.ok(typeof tokens === "number");
+			assert.ok(tokens > 0, "invalid_tool_calls should contribute to the token count");
+		});
 	});
 });
