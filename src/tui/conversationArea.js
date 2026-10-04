@@ -6,17 +6,13 @@ import React, {
 	forwardRef,
 	useImperativeHandle,
 } from "react";
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
 import { Box } from "ink";
+import { AIMessage, HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { ConversationPanel, formatTime } from "./conversationPanel.js";
 import { CommandParser } from "./commandParser.js";
 import { createSession } from "../session/factory.js";
 import { setConfigValue } from "../config/loader.js";
 import { isAvailable, getGcCalls } from "../memory/gc.js";
-import { loadSystemPrompt } from "../memory/prompts.js";
-import { calculateConversationTokens } from "./contextTokens.js";
-import { estimateContextCost, toConversation } from "../provider/tokenBudgetMiddleware.js";
 import { logger } from "../shared/logger.js";
 
 /**
@@ -34,72 +30,6 @@ export function shouldAutoContinue(segments) {
 	const hasReasoning = segs.some((s) => s.type === "reasoning");
 	const hasMessage = segs.some((s) => s.type === "message");
 	return hasReasoning && !hasMessage;
-}
-
-/**
- * Compute the total context token count: conversation + full system prompt
- * (SYSTEM_PROMPT + AGENTS.md) + output budget. Mirrors the system prompt
- * construction in `createDeepAgentsOrchestrator` and the token-budget
- * middleware's `estimateCost`, so the TUI context counter reflects the same
- * context window the model sees.
- * @param {Object} params - Computation inputs
- * @param {Array} params.conversation - Conversation messages
- * @param {string} params.systemPrompt - Base system prompt (SYSTEM_PROMPT + memory context)
- * @param {string} [params.agentsContent] - AGENTS.md content, appended when present
- * @param {number} [params.maxTokens] - Output token budget added to the count
- * @param {string} [params.modelName] - Model name for tiktoken resolution
- * @param {string} [params.encoding] - Explicit tiktoken encoding name
- * @param {Array} [params.tools] - Orchestrator tool definitions (StructuredTool[])
- * @param {Array} [params.subagents] - Subagent definitions whose descriptions are
- *   embedded in the `task` tool the orchestrator sees
- * @returns {Promise<number>} Total context token count
- */
-export async function computeContextSize({
-	conversation,
-	systemPrompt,
-	agentsContent,
-	maxTokens,
-	modelName,
-	encoding,
-	tools,
-	subagents,
-}) {
-	// Normalize the conversation. When sourced from the checkpointer it is a
-	// real LangChain message array (with content blocks, tool calls, tool
-	// messages); `toConversation` flattens it to the `{role, content}` shape
-	// `estimateContextCost`/`calculateConversationTokens` expect. When it is
-	// already a `{role, content}` array (e.g. sessionState fallback), the
-	// normalization is a no-op.
-	const normalizedConversation = toConversation(conversation);
-	let totalTokens = await estimateContextCost(normalizedConversation, {
-		model: modelName,
-		encoding,
-		maxTokens,
-		tools,
-	});
-	let fullSystemPrompt = systemPrompt;
-	if (agentsContent) {
-		fullSystemPrompt = systemPrompt + "\n\n---\n\n" + agentsContent;
-	}
-	if (fullSystemPrompt) {
-		totalTokens += await calculateConversationTokens(
-			[{ role: "system", content: fullSystemPrompt }],
-			modelName,
-			encoding,
-		);
-	}
-	// The orchestrator's request includes a `task` tool whose description embeds
-	// every subagent description (deepagents renders these via
-	// describeSubagentForTool as `- <name>: <description>`). Count those lines.
-	if (subagents && subagents.length > 0) {
-		const subagentLines = subagents.map((s) => `- ${s.name}: ${s.description || ""}`).join("\n");
-		totalTokens += await calculateConversationTokens(
-			[{ role: "system", content: subagentLines }],
-			modelName,
-			encoding,
-		);
-	}
-	return totalTokens;
 }
 
 /**
@@ -125,9 +55,10 @@ const ConversationArea = forwardRef(function ConversationArea(
 		onNewSession,
 		onViewChange,
 		messageCountRef,
-		contextEstimate,
 		compactContext,
 		getContextMessages,
+		model,
+		systemPrompt,
 		activeProject,
 		setActiveProject,
 	},
@@ -158,11 +89,13 @@ const ConversationArea = forwardRef(function ConversationArea(
 	// Register global error handlers once on mount, remove on unmount
 	useEffect(() => {
 		function onUncaught(err) {
-			addMessage({ role: "system", content: `Uncaught error: ${err.message}` });
+			const stack = err?.stack ? `\n${err.stack}` : "";
+			addMessage({ role: "system", content: `Uncaught error: ${err.message}${stack}` });
 		}
 		function onUnhandled(reason) {
 			const msg = reason?.message || String(reason);
-			addMessage({ role: "system", content: `Unhandled rejection: ${msg}` });
+			const stack = reason?.stack ? `\n${reason.stack}` : "";
+			addMessage({ role: "system", content: `Unhandled rejection: ${msg}${stack}` });
 		}
 		process.on("uncaughtException", onUncaught);
 		process.on("unhandledRejection", onUnhandled);
@@ -394,7 +327,10 @@ const ConversationArea = forwardRef(function ConversationArea(
 
 		if (sessionState) {
 			sessionState.addExchange({ role: "user", content: text });
-			updateContextSize(sessionState, config);
+			// Pass the just-sent user message explicitly so the context window
+			// increments immediately. On the first turn the checkpointer doesn't
+			// have it yet, so sourcing from graph state would miss it.
+			updateContextSize(sessionState, config, [new HumanMessage(text)]);
 		}
 
 		const assistantTime = getTimestamp();
@@ -554,14 +490,33 @@ const ConversationArea = forwardRef(function ConversationArea(
 	const getTimestamp = () => formatTime(new Date());
 
 	/**
-	 * Calculate total context tokens (conversation + system prompt + AGENTS.md +
-	 * output budget) and set contextSize. Mirrors the system prompt construction
-	 * in `createDeepAgentsOrchestrator` so the count includes AGENTS.md, and adds
-	 * the configured output budget (`maxTokens`) to match the token-budget
-	 * middleware's `estimateCost`.
+	 * Calculate total context tokens (conversation + output budget) and set
+	 * contextSize. Uses the model's own tokenizer via
+	 * `model.getNumTokensFromMessages(messages)` so the count reflects the
+	 * message set the model sees, and adds the configured output budget
+	 * (`maxTokens`) to match the token-budget middleware's `estimateCost`.
 	 */
+	/**
+	 * Normalize a message into a real LangChain message object.
+	 *
+	 * `model.getNumTokensFromMessages` calls `_getType()` on each message, so
+	 * plain `{ role, content }` objects (from `sessionState.getConversation()`)
+	 * crash. Real LangChain messages (BaseMessage instances) pass through
+	 * unchanged; plain objects are converted to the matching message class.
+	 * @param {Object} message - A message from the conversation or graph state
+	 * @returns {Object} A real LangChain message object
+	 */
+	const toLangChainMessage = (message) => {
+		if (message && typeof message._getType === "function") return message;
+		const role = message?.role || "user";
+		const content = message?.content ?? "";
+		if (role === "assistant") return new AIMessage(content);
+		if (role === "system") return new SystemMessage(content);
+		return new HumanMessage(content);
+	};
+
 	const updateContextSize = useCallback(
-		async (sessionState, config) => {
+		async (sessionState, config, messages) => {
 			// Cancel any pending debounced update so a stale streaming-era
 			// value doesn't overwrite this accurate full-conversation recount.
 			if (contextUpdateTimerRef.current) {
@@ -569,47 +524,45 @@ const ConversationArea = forwardRef(function ConversationArea(
 				contextUpdateTimerRef.current = null;
 			}
 			if (!sessionState) return;
-			// Source the conversation from the real checkpointer session when the
-			// accessor is available, so the counter reflects the full message set
-			// the model sees (tool calls, tool messages, content blocks). Fall back
-			// to the lossy sessionState array when the accessor is unavailable.
-			let conversation = sessionState.getConversation();
-			if (typeof getContextMessages === "function") {
-				const messages = await getContextMessages();
-				if (messages && messages.length > 0) {
-					conversation = messages;
+			// When an explicit message set is provided (e.g. the user's just-sent
+			// message, which isn't in the checkpointer yet on the first turn), use
+			// it directly. Otherwise source the conversation from the real
+			// checkpointer session when the accessor is available, so the counter
+			// reflects the full message set the model sees (tool calls, tool
+			// messages, content blocks). Fall back to the lossy sessionState array
+			// when the accessor is unavailable.
+			let counted = messages;
+			if (!counted) {
+				counted = sessionState.getConversation();
+				if (typeof getContextMessages === "function") {
+					const contextMessages = await getContextMessages();
+					if (contextMessages && contextMessages.length > 0) {
+						counted = contextMessages;
+					}
 				}
+			}
+			// Normalize every message to a real LangChain object before counting.
+			counted = counted.map(toLangChainMessage);
+			// Include the system prompt in the count so the context window reflects
+			// what the model actually sees on every turn. It's not part of graph
+			// state, so it must be prepended here.
+			if (systemPrompt) {
+				counted = [new SystemMessage(systemPrompt), ...counted];
 			}
 			const providerName = sessionState.getProvider();
 			const providerConfig = config?.providers?.[providerName] || {};
-			const modelName = providerConfig.model || "gpt-4o";
-			const encoding = providerConfig.encoding;
 			const maxTokens = providerConfig.maxTokens === -1 ? 0 : providerConfig.maxTokens || 0;
 
-			const systemPrompt = await loadSystemPrompt();
-			// Append AGENTS.md the same way createDeepAgentsOrchestrator does, so
-			// the context counter reflects the full system prompt the model sees.
-			let agentsContent;
-			const agentsPath = join(config?.cwd || process.cwd(), "AGENTS.md");
-			try {
-				agentsContent = await readFile(agentsPath, "utf-8");
-			} catch {
-				logger.debug(`[conversationArea] Failed to load AGENTS.md: ${agentsPath}`);
+			let totalTokens = 0;
+			if (model && typeof model.getNumTokensFromMessages === "function") {
+				const { totalCount } = await model.getNumTokensFromMessages(counted);
+				totalTokens = totalCount;
 			}
-			const totalTokens = await computeContextSize({
-				conversation,
-				systemPrompt,
-				agentsContent,
-				maxTokens,
-				modelName,
-				encoding,
-				tools: contextEstimate?.tools,
-				subagents: contextEstimate?.subagents,
-			});
+			totalTokens += maxTokens;
 			setContextSize(totalTokens);
 			onContextChange?.(totalTokens);
 		},
-		[calculateConversationTokens, contextEstimate, getContextMessages],
+		[model, getContextMessages, systemPrompt],
 	);
 
 	const addMessage = (msg) => {
@@ -648,11 +601,12 @@ const ConversationArea = forwardRef(function ConversationArea(
 					const cached = tokenCacheRef.current;
 					if (cached.content !== text) {
 						cached.content = text;
-						cached.tokens = await calculateConversationTokens(
-							[{ role: "assistant", content: text }],
-							config?.providers?.[sessionState?.getProvider()]?.model || "gpt-4o",
-							config?.providers?.[sessionState?.getProvider()]?.encoding,
-						);
+						if (model && typeof model.getNumTokensFromMessages === "function") {
+							const { totalCount } = await model.getNumTokensFromMessages([new AIMessage(text)]);
+							cached.tokens = totalCount;
+						} else {
+							cached.tokens = 0;
+						}
 					}
 					onContextUpdate(preStreamContextSize + cached.tokens);
 				}, 33);

@@ -30,9 +30,10 @@ function App({
 	onSaveSession,
 	gcManager,
 	gcTrigger,
-	contextEstimate,
 	compactContext,
 	getContextMessages,
+	model,
+	systemPrompt,
 }) {
 	const [showBanner, setShowBanner] = useState(true);
 	const [showOnboarding, setShowOnboarding] = useState(!!onboarding);
@@ -510,9 +511,10 @@ function App({
 							onNewSession: handleNewSession,
 							onViewChange: handleViewChange,
 							messageCountRef,
-							contextEstimate,
 							compactContext,
 							getContextMessages,
+							model,
+							systemPrompt,
 							activeProject,
 							setActiveProject,
 						}),

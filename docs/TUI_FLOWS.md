@@ -7,6 +7,7 @@ Call chains and component interactions for all primary code paths in the termina
 - [Application Lifecycle](#application-lifecycle)
 - [Banner Dismissal](#banner-dismissal)
 - [Chat Message Flow (Streaming)](#chat-message-flow-streaming)
+  - [Context Window Counting (`updateContextSize`)](#context-window-counting-updatecontextsize)
 - [Command Parsing Flow](#command-parsing-flow)
 - [Keyboard Input (useInput, app.js:282)](#keyboard-input-useinput-appjs282)
 - [Conversation Panel Render](#conversation-panel-render)
@@ -90,7 +91,10 @@ User presses Enter (useInput, app.js)
     ├── track in chatHistory, clear input, call onSubmit(trimmed)
     └── App routes to ConversationArea.handleChat(text)
         ├── sessionState.addExchange({ role: "user", content: text })
-        ├── updateContextSize(sessionState, config)
+        ├── updateContextSize(sessionState, config, [new HumanMessage(text)])
+        │   └── passes the just-sent user message explicitly so the counter
+        │       increments immediately (on the first turn the checkpointer
+        │       doesn't have it yet, so sourcing from graph state would miss it)
         ├── streamingMsgId = messageList.addMessage("assistant", "", { streaming: true })
         ├── abortController = new AbortController(); isStreaming = true
         ├── dispatchProvider(text, provider, createStreamingHandler(...), signal)
@@ -113,8 +117,53 @@ User presses Enter (useInput, app.js)
         │           └── append error to toolCallDisplay, clear activeToolCall
         ├── await dispatchPromise
         ├── messageList.updateMessage(id, { streaming: false, content: committedContent })
-        └── sessionState.addExchange({ role: "assistant", content: responseContent })
+        ├── sessionState.addExchange({ role: "assistant", content: responseContent })
+        └── updateContextSize(sessionState, config)   // end-of-turn resync
 ```
+
+### Context Window Counting (`updateContextSize`)
+
+The status bar's `[▤ N]` context counter is maintained by `updateContextSize` in
+`src/tui/conversationArea.js`. It is called at three points: immediately on the
+user's send (with the just-sent message), during streaming (debounced, approximate),
+and once at end-of-turn (accurate resync). The system prompt is not part of graph
+state, so it is sourced separately and prepended to the counted messages.
+
+```
+updateContextSize(sessionState, config, messages?)
+├── cancel any pending debounced update (contextUpdateTimerRef)
+├── determine the message set to count:
+│   ├── messages provided (e.g. [new HumanMessage(text)]) → use directly
+│   └── else source from the real checkpointer:
+│       ├── getContextMessages() → agent.getState(thread).values.messages
+│       │   └── returns null on error → fall back to sessionState.getConversation()
+│       └── fallback: sessionState.getConversation()
+├── normalize every message via toLangChainMessage():
+│   ├── already a BaseMessage (has _getType) → pass through
+│   └── plain { role, content } → new HumanMessage / AIMessage / SystemMessage
+│       (model.getNumTokensFromMessages calls _getType() on each message, so
+│        hand-rolled plain objects crash — real LangChain objects are required)
+├── prepend the system prompt: [new SystemMessage(systemPrompt), ...counted]
+│   └── systemPrompt = SYSTEM_PROMPT + "\n\n---\n\n" + AGENTS.md (built by
+│       createDeepAgentsOrchestrator, exposed via return { agent, model, systemPrompt }
+│       and threaded index.js → app.js → ConversationArea)
+├── totalTokens = model.getNumTokensFromMessages(counted).totalCount
+├── totalTokens += maxTokens (output budget, matching token-budget middleware)
+└── setContextSize(totalTokens); onContextChange(totalTokens)
+```
+
+**System prompt exposure:** `createDeepAgentsOrchestrator` (src/agent/deepAgents.js)
+now returns `{ agent, model, systemPrompt }`. `index.js` destructures it and passes
+`systemPrompt` (plus `getContextMessages` and `model`) into `App`, which threads them
+into `ConversationArea`. `getContextMessages` reads the live LangChain message array
+from the checkpointer via `agent.getState(thread).values.messages`, degrading to `null`
+so the counter falls back to `sessionState.getConversation()` when the checkpointer is
+unavailable.
+
+**Streaming approximation:** during streaming, `createStreamingHandler` debounces a
+token count of the committed content (via `model.getNumTokensFromMessages([new AIMessage(text)])`)
+every ~33ms and reports `preStreamContextSize + cached.tokens`. This keeps the status bar
+responsive; the end-of-turn `updateContextSize` call replaces it with an accurate recount.
 
 Streaming re-renders: each `updateMessage` call triggers a `MessageList` re-render. `MessageBubble` is wrapped in `React.memo` (default shallow comparison) — streaming content is delivered via a pub/sub topic (`msg-{id}`), so only the active streaming message updates. `MessageList` keeps a stable `contentRef` so unchanged content keeps the same string reference across renders.
 

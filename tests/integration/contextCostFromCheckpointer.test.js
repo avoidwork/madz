@@ -1,22 +1,23 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
-import { computeContextSize } from "../../src/tui/conversationArea.js";
-import { toConversation } from "../../src/provider/tokenBudgetMiddleware.js";
+import { createTokenBudgetMiddleware } from "../../src/provider/tokenBudgetMiddleware.js";
+import { createTokenBudget } from "../../src/provider/tokenBudget.js";
 
 /**
- * Integration test verifying the TUI context counter reflects the real
- * checkpointer state (LangChain messages with tool calls, tool messages, and
- * content blocks) after a multi-turn conversation, rather than the lossy
+ * Integration test verifying the context-counting path uses the model's own
+ * tokenizer (`model.getNumTokensFromMessages`) on the real checkpointer message
+ * array (LangChain messages with tool calls, tool messages, and content blocks)
+ * after a multi-turn conversation, rather than the lossy
  * `sessionState.getConversation()` `{role, content}` array.
  *
  * The checkpointer is the source of truth: `agent.getState(config)` →
  * `state.values.messages` returns the full LangChain message array the model
- * sees. `computeContextSize` must normalize that array (via `toConversation`)
- * and count it, so the counter does not under-report tool calls and tool
- * messages.
+ * sees. The token-budget middleware's `estimateCost` must pass that array to
+ * `model.getNumTokensFromMessages(messages)` so the estimate is not
+ * under-counted.
  */
-describe("integration - TUI context counter reflects checkpointer state", () => {
-	it("counts a multi-turn conversation with tool calls from the checkpointer", async () => {
+describe("integration - context counting uses the model tokenizer on checkpointer state", () => {
+	it("passes the full checkpointer message array to model.getNumTokensFromMessages", async () => {
 		// Simulate the real LangChain message array returned by
 		// `agent.getState(config)` → `state.values.messages` after a multi-turn
 		// conversation that included a tool call.
@@ -40,70 +41,84 @@ describe("integration - TUI context counter reflects checkpointer state", () => 
 			{ _getType: () => "ai", content: "It is cloudy in London at 60°F." },
 		];
 
+		// A mock model that records the exact message array handed to the
+		// tokenizer, mirroring the ChatOpenAI `getNumTokensFromMessages` API.
+		let receivedMessages;
+		const model = {
+			getNumTokensFromMessages: async (messages) => {
+				receivedMessages = messages;
+				return { totalCount: 100, countPerMessage: messages.map(() => 10) };
+			},
+		};
+
+		const budget = createTokenBudget(100000);
+		const mw = createTokenBudgetMiddleware({
+			maxTokensMinute: 100000,
+			model,
+			maxTokens: 0,
+			budget,
+			sleep: async () => {},
+		});
+
+		await mw.wrapModelCall(
+			{ messages: checkpointerMessages, systemMessage: null, model: {} },
+			async () => ({ content: "no usage" }),
+		);
+
+		assert.strictEqual(receivedMessages, checkpointerMessages);
+		assert.strictEqual(receivedMessages.length, 9);
+		assert.ok(budget.current() >= 100, "estimate should reflect the model tokenizer count");
+	});
+
+	it("counts a multi-turn conversation with tool calls from the checkpointer", async () => {
+		const checkpointerMessages = [
+			{ _getType: () => "human", content: "What is the weather in Paris?" },
+			{
+				_getType: () => "ai",
+				content: "Let me check the weather.",
+				tool_calls: [{ name: "getWeather", args: { city: "Paris" }, id: "call_1" }],
+			},
+			{ _getType: () => "tool", content: "Sunny, 72°F", name: "getWeather" },
+			{ _getType: () => "ai", content: "It is sunny in Paris at 72°F." },
+		];
+
 		// The lossy sessionState array omits tool calls and tool messages.
 		const lossyConversation = [
 			{ role: "user", content: "What is the weather in Paris?" },
 			{ role: "assistant", content: "It is sunny in Paris at 72°F." },
-			{ role: "user", content: "And in London?" },
-			{ role: "assistant", content: "It is cloudy in London at 60°F." },
 		];
 
-		const systemPrompt = "You are a helpful assistant.";
-		const modelName = "gpt-4o";
+		let checkpointerCount = 0;
+		let lossyCount = 0;
+		const model = {
+			getNumTokensFromMessages: async (messages) => {
+				// A simple length-based proxy: the full checkpointer array has more
+				// messages than the lossy array, so it must count higher.
+				return { totalCount: messages.length * 10, countPerMessage: messages.map(() => 10) };
+			},
+		};
 
-		const fromCheckpointer = await computeContextSize({
-			conversation: checkpointerMessages,
-			systemPrompt,
-			maxTokens: 0,
-			modelName,
-		});
-		const fromLossy = await computeContextSize({
-			conversation: lossyConversation,
-			systemPrompt,
-			maxTokens: 0,
-			modelName,
-		});
+		const run = async (messages) => {
+			const budget = createTokenBudget(100000);
+			const mw = createTokenBudgetMiddleware({
+				maxTokensMinute: 100000,
+				model,
+				maxTokens: 0,
+				budget,
+				sleep: async () => {},
+			});
+			await mw.wrapModelCall({ messages, systemMessage: null, model: {} }, async () => ({
+				content: "no usage",
+			}));
+			return budget.current();
+		};
+
+		checkpointerCount = await run(checkpointerMessages);
+		lossyCount = await run(lossyConversation);
 
 		assert.ok(
-			fromCheckpointer > fromLossy,
+			checkpointerCount > lossyCount,
 			"the checkpointer-derived count must exceed the lossy count because it includes tool calls and tool messages",
 		);
-	});
-
-	it("normalizes the checkpointer message array via toConversation", () => {
-		const checkpointerMessages = [
-			{ _getType: () => "human", content: "hi" },
-			{
-				_getType: () => "ai",
-				content: "Let me search.",
-				tool_calls: [{ name: "search", args: { q: "madz" }, id: "call_1" }],
-			},
-			{ _getType: () => "tool", content: "42 results", name: "search" },
-		];
-		const normalized = toConversation(checkpointerMessages);
-		assert.deepStrictEqual(
-			normalized.map((m) => m.role),
-			["user", "assistant", "tool"],
-		);
-		assert.ok(normalized[1].content.includes("search"), "tool call name preserved");
-		assert.ok(normalized[2].content.includes("42 results"), "tool message content preserved");
-		assert.ok(normalized[2].content.includes("search"), "tool message name preserved");
-	});
-
-	it("falls back to the lossy conversation when the accessor is unavailable", async () => {
-		// When no checkpointer accessor is present, computeContextSize must still
-		// work with the sessionState {role, content} array.
-		const conversation = [
-			{ role: "user", content: "Hello" },
-			{ role: "assistant", content: "Hi there!" },
-		];
-		const result = await computeContextSize({
-			conversation,
-			systemPrompt: "You are a helpful assistant.",
-			maxTokens: 0,
-			modelName: "gpt-4o",
-		});
-		assert.strictEqual(typeof result, "number");
-		assert.ok(result > 0);
 	});
 });

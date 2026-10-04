@@ -14,7 +14,6 @@ import { SkillRegistry } from "../skills/registry.js";
 import { createChatModel } from "../provider/openai.js";
 import { getActiveProviderConfig, getActiveProviderName } from "../provider/index.js";
 import { createTokenBudgetMiddleware } from "../provider/tokenBudgetMiddleware.js";
-import { flattenMessageContent } from "../tui/contextTokens.js";
 import {
 	createSummarizationMiddlewareFromConfig,
 	forceSummarize,
@@ -150,7 +149,40 @@ function toConversationExchange(message) {
 	else if (type === "tool") role = "tool";
 	else if (type === "system") role = "system";
 
-	return { role, content: flattenMessageContent(message) };
+	// Flatten content blocks to a single string so the TUI conversation view
+	// does not render `[object Object]` for multimodal parts.
+	let content = message?.content;
+	if (Array.isArray(content)) {
+		content = content
+			.map((block) => {
+				if (typeof block === "string") return block;
+				if (!block || typeof block !== "object") return "";
+				switch (block.type) {
+					case "text":
+						return block.text ?? "";
+					case "reasoning":
+						return block.reasoning ?? "";
+					case "image_url": {
+						const iu = block.image_url;
+						return typeof iu === "string" ? iu : (iu?.url ?? "");
+					}
+					case "image":
+					case "video":
+					case "audio":
+					case "file":
+						return block.url ?? block.data ?? block.fileId ?? "";
+					case "text-plain":
+						return block.text ?? "";
+					default:
+						return JSON.stringify(block);
+				}
+			})
+			.join("");
+	} else if (content && typeof content === "object") {
+		content = JSON.stringify(content);
+	}
+
+	return { role, content: content ?? "" };
 }
 
 /**
@@ -264,7 +296,7 @@ export async function compactAgentContext(agent, config, sessionState, options =
  * Create a Deep Agents orchestrator with coding and utility sub-agents.
  * Uses deepagents middleware for filesystem, memory, skills, and summarization.
  * @param {import("@langchain/langgraph").BaseCheckpointSaver | null} [checkpointer=null] - Optional checkpointer
- * @returns {Object} Deep Agents orchestrator instance
+ * @returns {Promise<{agent: Object, model: Object}>} The orchestrator agent and its chat model
  */
 export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	const config = loadConfig();
@@ -384,9 +416,8 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	let compactOnContextWindowExceeded;
 	const tokenBudgetMiddleware = createTokenBudgetMiddleware({
 		maxTokensMinute: providerConfig.rateLimit?.maxTokensMinute,
-		model: providerConfig.model,
+		model,
 		maxTokens: providerConfig.maxTokens,
-		encoding: providerConfig.encoding,
 		onContextWindowExceeded: async (err, request) => {
 			if (typeof compactOnContextWindowExceeded === "function") {
 				await compactOnContextWindowExceeded(err, request);
@@ -432,16 +463,6 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 		streamTransformers: [() => createTurnTransformer()],
 	});
 
-	// Expose the orchestrator's tool and subagent definitions so the TUI context
-	// counter can count them. The orchestrator's request includes the 16
-	// orchestrator tools plus a `task` tool whose description embeds every
-	// subagent description (deepagents renders these via describeSubagentForTool).
-	// The TUI reads these to report the true context window the model sees.
-	agent.contextEstimate = {
-		tools: orchestratorTools,
-		subagents: subagentDefinitions,
-	};
-
 	// Expose a compaction path so the TUI can manually compress the context
 	// window on demand. The callback is bound to the agent instance and accepts
 	// a LangGraph runnable config (with `thread_id`), an optional session state
@@ -459,5 +480,5 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 		await agent.compactContext(config);
 	};
 
-	return agent;
+	return { agent, model, systemPrompt };
 }

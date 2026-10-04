@@ -6,14 +6,24 @@ import { z } from "zod";
 import { tool } from "@langchain/core/tools";
 import {
 	createTokenBudgetMiddleware,
-	estimateContextCost,
 	readUsageTokens,
-	toConversation,
 } from "../../../src/provider/tokenBudgetMiddleware.js";
 import { createTokenBudget } from "../../../src/provider/tokenBudget.js";
 
 /** No-op sleep so 429 retry tests do not wait real seconds. */
 const noSleep = async () => {};
+
+/**
+ * Build a mock model exposing `getNumTokensFromMessages`, mirroring the
+ * ChatOpenAI tokenizer API used by the middleware's `estimateCost`.
+ * @param {number} [totalCount] - Token count returned by the mock
+ * @returns {Object} A mock model
+ */
+function makeMockModel(totalCount = 10) {
+	return {
+		getNumTokensFromMessages: async () => ({ totalCount, countPerMessage: [totalCount] }),
+	};
+}
 
 /**
  * Build a middleware wired to a fresh, isolated budget.
@@ -25,7 +35,7 @@ function makeMiddleware(overrides = {}) {
 	const budget = createTokenBudget(maxTokensMinute);
 	const mw = createTokenBudgetMiddleware({
 		maxTokensMinute,
-		model: "gpt-4o",
+		model: makeMockModel(),
 		maxTokens: 0,
 		budget,
 		sleep: noSleep,
@@ -98,216 +108,75 @@ describe("readUsageTokens", () => {
 	});
 });
 
-describe("toConversation", () => {
-	it("flattens array content blocks to text", () => {
-		const conv = toConversation([
-			{
-				role: "user",
-				content: [
-					{ type: "text", text: "a" },
-					{ type: "text", text: "b" },
-				],
+describe("TokenBudget.estimateCost via the model tokenizer", () => {
+	it("uses model.getNumTokensFromMessages for the input estimate", async () => {
+		let receivedMessages;
+		const model = {
+			getNumTokensFromMessages: async (messages) => {
+				receivedMessages = messages;
+				return { totalCount: 42, countPerMessage: [42] };
 			},
-		]);
-		assert.strictEqual(conv[0].content, "ab");
-	});
-
-	it("prepends the system message when present", () => {
-		const conv = toConversation([{ role: "user", content: "hi" }], { content: "be brief" });
-		assert.strictEqual(conv[0].role, "system");
-		assert.strictEqual(conv[0].content, "be brief");
-		assert.strictEqual(conv[1].role, "user");
-	});
-
-	it("omits an empty system message", () => {
-		const conv = toConversation([{ role: "user", content: "hi" }], { content: "" });
-		assert.strictEqual(conv.length, 1);
-	});
-
-	it("handles a null/undefined messages array", () => {
-		assert.deepStrictEqual(toConversation(undefined, undefined), []);
-	});
-
-	it("maps LangChain human/ai/tool/system types to role names", () => {
-		const conv = toConversation([
-			{ _getType: () => "human", content: "hi" },
-			{ _getType: () => "ai", content: "hello" },
-			{ _getType: () => "tool", content: "result", name: "search" },
-			{ _getType: () => "system", content: "sys" },
-		]);
-		assert.deepStrictEqual(
-			conv.map((m) => m.role),
-			["user", "assistant", "tool", "system"],
-		);
-	});
-
-	it("preserves tool-call text on assistant messages", () => {
-		const conv = toConversation([
-			{
-				_getType: () => "ai",
-				content: "I'll look that up.",
-				tool_calls: [{ name: "search", args: { q: "madz" }, id: "call_1" }],
-			},
-		]);
-		assert.strictEqual(conv[0].role, "assistant");
-		assert.ok(conv[0].content.includes("I'll look that up."), "should keep the text content");
-		assert.ok(conv[0].content.includes("search"), "should serialize the tool call name");
-		assert.ok(conv[0].content.includes("madz"), "should serialize the tool call args");
-	});
-
-	it("preserves tool message content", () => {
-		const conv = toConversation([
-			{ _getType: () => "tool", content: "42 results", name: "search" },
-		]);
-		assert.strictEqual(conv[0].role, "tool");
-		assert.ok(conv[0].content.includes("42 results"), "should keep the tool result content");
-		assert.ok(conv[0].content.includes("search"), "should preserve the tool name");
-	});
-
-	it("preserves tool message tool_call_id", () => {
-		const conv = toConversation([
-			{ _getType: () => "tool", content: "42 results", name: "search", tool_call_id: "call_1" },
-		]);
-		assert.ok(conv[0].content.includes("call_1"), "should preserve the tool_call_id");
-	});
-
-	it("flattens image_url to its base64 url, not a placeholder", () => {
-		const conv = toConversation([
-			{
-				_getType: () => "human",
-				content: [
-					{ type: "text", text: "What is this?" },
-					{ type: "image_url", image_url: { url: "data:image/png;base64,aGVsbG8=" } },
-				],
-			},
-		]);
-		assert.ok(
-			conv[0].content.includes("data:image/png;base64,aGVsbG8="),
-			"should keep the base64 url",
-		);
-		assert.ok(!conv[0].content.includes("[image]"), "should not use the placeholder");
-	});
-
-	it("flattens reasoning content blocks", () => {
-		const conv = toConversation([
-			{
-				_getType: () => "ai",
-				content: [
-					{ type: "reasoning", reasoning: "thinking..." },
-					{ type: "text", text: "answer" },
-				],
-			},
-		]);
-		assert.strictEqual(conv[0].content, "thinking...answer");
-	});
-
-	it("serializes object content to JSON", () => {
-		const conv = toConversation([{ _getType: () => "tool", content: { ok: true, data: [1] } }]);
-		assert.strictEqual(conv[0].content, JSON.stringify({ ok: true, data: [1] }));
-	});
-});
-
-describe("estimateContextCost", () => {
-	it("adds maxTokens to the conversation estimate", async () => {
-		const conversation = [{ role: "user", content: "Hello, world!" }];
-		const base = await estimateContextCost(conversation, { model: "gpt-4o", maxTokens: 0 });
-		const withBudget = await estimateContextCost(conversation, {
-			model: "gpt-4o",
-			maxTokens: 4096,
+		};
+		const budget = createTokenBudget(100000);
+		const mw = createTokenBudgetMiddleware({
+			maxTokensMinute: 100000,
+			model,
+			maxTokens: 0,
+			budget,
+			sleep: noSleep,
 		});
-		assert.strictEqual(withBudget, base + 4096);
+		await mw.wrapModelCall(makeRequest("hello"), async () => ({ content: "no usage" }));
+		assert.strictEqual(receivedMessages[0].content, "hello");
+		assert.ok(budget.current() >= 42, "estimate should reflect the model tokenizer count");
+	});
+
+	it("adds maxTokens to the model tokenizer estimate", async () => {
+		const { mw, budget } = makeMiddleware({ maxTokens: 4096 });
+		await mw.wrapModelCall(makeRequest(), async () => ({ content: "no usage" }));
+		assert.ok(budget.current() >= 4096, "estimate should include the output budget");
 	});
 
 	it("normalizes maxTokens -1 to 0 (no output budget)", async () => {
-		const conversation = [{ role: "user", content: "Hello, world!" }];
-		const unlimited = await estimateContextCost(conversation, {
-			model: "gpt-4o",
-			maxTokens: -1,
+		const { mw, budget } = makeMiddleware({ maxTokens: -1 });
+		await mw.wrapModelCall(makeRequest(), async () => ({ content: "no usage" }));
+		// The mock model returns totalCount 10; -1 must not add a negative budget.
+		assert.ok(budget.current() >= 10, "-1 must be treated as 0 (no output budget)");
+	});
+
+	it("handles an empty messages array", async () => {
+		const model = {
+			getNumTokensFromMessages: async () => ({ totalCount: 0, countPerMessage: [] }),
+		};
+		const budget = createTokenBudget(100000);
+		const mw = createTokenBudgetMiddleware({
+			maxTokensMinute: 100000,
+			model,
+			maxTokens: 0,
+			budget,
+			sleep: noSleep,
 		});
-		const zero = await estimateContextCost(conversation, { model: "gpt-4o", maxTokens: 0 });
-		assert.strictEqual(unlimited, zero, "-1 must be treated as 0 (no output budget)");
-	});
-
-	it("defaults maxTokens to 0 when absent", async () => {
-		const conversation = [{ role: "user", content: "Hello, world!" }];
-		const result = await estimateContextCost(conversation, { model: "gpt-4o" });
-		assert.strictEqual(typeof result, "number");
-		assert.ok(result > 0);
-	});
-
-	it("is callable without a budget configuration", async () => {
-		// The helper must not depend on maxTokensMinute being enabled.
-		const conversation = [{ role: "user", content: "Hello, world!" }];
-		const result = await estimateContextCost(conversation, { model: "gpt-4o" });
-		assert.strictEqual(typeof result, "number");
-		assert.ok(result > 0);
-	});
-
-	it("handles an empty conversation", async () => {
-		assert.strictEqual(await estimateContextCost([], { model: "gpt-4o" }), 0);
+		await mw.wrapModelCall({ messages: [], systemMessage: null, model: {} }, async () => ({
+			content: "no usage",
+		}));
+		assert.strictEqual(budget.current(), 0, "empty messages should estimate zero");
 	});
 
 	it("adds tool definition tokens when tools are provided", async () => {
-		const conversation = [{ role: "user", content: "Hello, world!" }];
-		const base = await estimateContextCost(conversation, { model: "gpt-4o" });
-		const withTools = await estimateContextCost(conversation, {
-			model: "gpt-4o",
-			tools: [
-				{
-					name: "test",
-					description: "A test tool",
-					schema: { type: "object", properties: { x: { type: "string" } } },
-				},
-			],
-		});
-		assert.ok(withTools > base, "tool definitions should add tokens to the estimate");
-	});
-
-	it("adds zero tool tokens when no tools are provided", async () => {
-		const conversation = [{ role: "user", content: "Hello, world!" }];
-		const result = await estimateContextCost(conversation, { model: "gpt-4o" });
-		assert.strictEqual(typeof result, "number");
-		assert.ok(result > 0);
-	});
-
-	it("estimates a real LangChain message array with content blocks", async () => {
-		const conversation = [
-			{ _getType: () => "human", content: [{ type: "text", text: "Hello" }] },
-			{ _getType: () => "ai", content: [{ type: "text", text: "Hi there!" }] },
-		];
-		const result = await estimateContextCost(conversation, { model: "gpt-4o" });
-		assert.strictEqual(typeof result, "number");
-		assert.ok(result > 0, "content blocks should contribute to the estimate");
-	});
-
-	it("estimates a real LangChain message array with tool calls and tool messages", async () => {
-		const conversation = [
-			{ _getType: () => "human", content: "Search for madz" },
+		const { mw, budget } = makeMiddleware();
+		await mw.wrapModelCall(
 			{
-				_getType: () => "ai",
-				content: "Let me search.",
-				tool_calls: [{ name: "search", args: { q: "madz" }, id: "call_1" }],
-			},
-			{ _getType: () => "tool", content: "42 results", name: "search" },
-		];
-		const result = await estimateContextCost(conversation, { model: "gpt-4o" });
-		assert.strictEqual(typeof result, "number");
-		assert.ok(result > 0, "tool calls and tool messages should contribute to the estimate");
-	});
-
-	it("estimates a real LangChain message array with reasoning content", async () => {
-		const conversation = [
-			{
-				_getType: () => "ai",
-				content: [
-					{ type: "reasoning", reasoning: "thinking..." },
-					{ type: "text", text: "answer" },
+				...makeRequest(),
+				tools: [
+					{
+						name: "test",
+						description: "A test tool",
+						schema: { type: "object", properties: { x: { type: "string" } } },
+					},
 				],
 			},
-		];
-		const result = await estimateContextCost(conversation, { model: "gpt-4o" });
-		assert.strictEqual(typeof result, "number");
-		assert.ok(result > 0, "reasoning content should contribute to the estimate");
+			async () => ({ content: "no usage" }),
+		);
+		assert.ok(budget.current() > 10, "tool definitions should add tokens to the estimate");
 	});
 });
 
@@ -328,9 +197,9 @@ describe("TokenBudget.wrapModelCall accounting", () => {
 		assert.ok(budget.current() > 0, "estimate should remain in the window");
 	});
 
-	it("includes maxTokens in the estimate via the shared helper", async () => {
-		// The middleware must delegate to estimateContextCost, which adds the
-		// configured output budget to the conversation estimate.
+	it("includes maxTokens in the estimate", async () => {
+		// The middleware must add the configured output budget to the model
+		// tokenizer estimate.
 		const { mw, budget } = makeMiddleware({ maxTokens: 4096 });
 		await mw.wrapModelCall(makeRequest(), async () => ({ content: "no usage" }));
 		assert.ok(budget.current() >= 4096, "estimate should include the output budget");
@@ -411,7 +280,7 @@ describe("TokenBudget.wrapModelCall accounting", () => {
 		};
 		const mw = createTokenBudgetMiddleware({
 			maxTokensMinute: 100000,
-			model: "gpt-4o",
+			model: makeMockModel(),
 			maxTokens: 0,
 			budget: overCapacity,
 			sleep: noSleep,
@@ -437,7 +306,7 @@ describe("TokenBudget.wrapModelCall 400 context-window compaction", () => {
 		let handlerCalls = 0;
 		const mw = createTokenBudgetMiddleware({
 			maxTokensMinute: 100000,
-			model: "gpt-4o",
+			model: makeMockModel(),
 			maxTokens: 0,
 			budget: createTokenBudget(100000),
 			sleep: noSleep,
@@ -464,7 +333,7 @@ describe("TokenBudget.wrapModelCall 400 context-window compaction", () => {
 		let handlerCalls = 0;
 		const mw = createTokenBudgetMiddleware({
 			maxTokensMinute: 100000,
-			model: "gpt-4o",
+			model: makeMockModel(),
 			maxTokens: 0,
 			budget: createTokenBudget(100000),
 			sleep: noSleep,
@@ -490,7 +359,7 @@ describe("TokenBudget.wrapModelCall 400 context-window compaction", () => {
 		let compactCalls = 0;
 		const mw = createTokenBudgetMiddleware({
 			maxTokensMinute: 100000,
-			model: "gpt-4o",
+			model: makeMockModel(),
 			maxTokens: 0,
 			budget: createTokenBudget(100000),
 			sleep: noSleep,
@@ -514,7 +383,7 @@ describe("TokenBudget.wrapModelCall 400 context-window compaction", () => {
 		let compactCalls = 0;
 		const mw = createTokenBudgetMiddleware({
 			maxTokensMinute: 100000,
-			model: "gpt-4o",
+			model: makeMockModel(),
 			maxTokens: 0,
 			budget: createTokenBudget(100000),
 			sleep: noSleep,

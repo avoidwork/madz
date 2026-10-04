@@ -57,6 +57,8 @@ describe("createDeepAgentsOrchestrator", () => {
 		const result = await createDeepAgentsOrchestrator();
 		assert.ok(result, "Should return an orchestrator");
 		assert.ok(typeof result === "object", "Orchestrator should be an object");
+		assert.ok(result.agent, "Should return the agent");
+		assert.ok(result.model, "Should return the model");
 	});
 
 	it("should accept an optional checkpointer", async () => {
@@ -410,6 +412,85 @@ describe("compactAgentContext", () => {
 		assert.strictEqual(loaded[0].content, "Hello");
 		assert.strictEqual(loaded[1].role, "assistant");
 		assert.strictEqual(loaded[1].content, "Hi there");
+	});
+
+	it("flattens content blocks when loading the conversation into sessionState", async () => {
+		const { compactAgentContext } = await import("../../src/agent/deepAgents.js");
+		const messages = [
+			makeMessage("human", [
+				{ type: "text", text: "What is this?" },
+				{ type: "text-plain", text: " plain text" },
+			]),
+			makeMessage("ai", [
+				{ type: "reasoning", reasoning: "thinking..." },
+				{ type: "text", text: "It's a hello world image." },
+			]),
+			makeMessage("tool", { ok: true, data: [1] }, { name: "search" }),
+		];
+		const { agent } = makeMockAgent(messages);
+		let loaded = null;
+		const sessionState = {
+			loadConversation: (conv) => {
+				loaded = conv;
+			},
+		};
+		const result = await compactAgentContext(
+			agent,
+			{ configurable: { thread_id: "t1" } },
+			sessionState,
+		);
+
+		assert.strictEqual(result.ok, true);
+		assert.ok(loaded, "sessionState.loadConversation should be called");
+		assert.strictEqual(loaded.length, 3);
+		assert.strictEqual(loaded[0].role, "user");
+		assert.strictEqual(
+			loaded[0].content,
+			"What is this? plain text",
+			"text and text-plain blocks should be flattened",
+		);
+		assert.strictEqual(loaded[1].role, "assistant");
+		assert.strictEqual(
+			loaded[1].content,
+			"thinking...It's a hello world image.",
+			"reasoning and text blocks should be flattened",
+		);
+		assert.strictEqual(loaded[2].role, "tool");
+		assert.strictEqual(loaded[2].content, JSON.stringify({ ok: true, data: [1] }));
+	});
+
+	it("flattens file, image, and unknown content blocks", async () => {
+		const { compactAgentContext } = await import("../../src/agent/deepAgents.js");
+		const messages = [
+			makeMessage("human", [
+				{ type: "file", url: "file:///tmp/a.txt" },
+				{ type: "image", data: "aGVsbG8=" },
+				{ type: "unknown", foo: "bar" },
+			]),
+			makeMessage("ai", "done"),
+		];
+		const { agent } = makeMockAgent(messages);
+		let loaded = null;
+		const sessionState = {
+			loadConversation: (conv) => {
+				loaded = conv;
+			},
+		};
+		const result = await compactAgentContext(
+			agent,
+			{ configurable: { thread_id: "t1" } },
+			sessionState,
+		);
+
+		assert.strictEqual(result.ok, true);
+		assert.ok(loaded, "sessionState.loadConversation should be called");
+		assert.strictEqual(loaded.length, 2);
+		assert.strictEqual(loaded[0].role, "user");
+		assert.strictEqual(
+			loaded[0].content,
+			"file:///tmp/a.txt" + "aGVsbG8=" + JSON.stringify({ type: "unknown", foo: "bar" }),
+			"file, image, and unknown blocks should be flattened",
+		);
 	});
 
 	it("handles empty message state", async () => {

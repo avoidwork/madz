@@ -28,6 +28,7 @@ import { fileURLToPath } from "node:url";
 import { loadSession } from "./src/session/loader.js";
 
 import React from "react";
+import { HumanMessage } from "@langchain/core/messages";
 
 const { setConfigValue } = await import("./src/config/loader.js");
 const { createDeepAgentsOrchestrator } = await import("./src/agent/deepAgents.js");
@@ -171,7 +172,7 @@ const checkpointer = createCheckpointer(config);
 // Provider config for TUI
 const providerConfig = config.providers[providerName] || {};
 
-const agent = await createDeepAgentsOrchestrator(checkpointer);
+const { agent, model, systemPrompt } = await createDeepAgentsOrchestrator(checkpointer);
 
 // Build a session config for the CURRENT thread. `sessionConfig` is captured
 // once at startup with the initial thread_id, but `/new` replaces the session
@@ -221,7 +222,7 @@ async function callProvider(_name, _providerConfig, message, streamingCallback, 
 	let collectedContent = "";
 	let collectedReasoning = "";
 	const input = {
-		messages: [{ role: "user", content: message }],
+		messages: [new HumanMessage(message)],
 	};
 
 	for await (const [_namespace, mode, payload] of await agent.stream(input, {
@@ -465,9 +466,10 @@ if (isMain) {
 				gcManager: gcManager ? gcManager.onActivity.bind(gcManager) : null,
 				gcTrigger: gcTrace,
 				checkpointer,
-				contextEstimate: agent.contextEstimate,
 				compactContext,
 				getContextMessages,
+				model,
+				systemPrompt,
 			}),
 			{
 				// Restore terminal with newline when app exits
