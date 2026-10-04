@@ -106,7 +106,6 @@
     "puppeteer-core": "^25.12.0",
     "sharp": "^0.35.5",
     "supports-hyperlinks": "^4.5.0",
-    "tiktoken": "^1.0.22",
     "tiny-lru": "^13.0.1",
     "xml2js": "^0.6.2",
     "yargs": "^18.2.0",

@@ -28,6 +28,7 @@ import { fileURLToPath } from "node:url";
 import { loadSession } from "./src/session/loader.js";
 
 import React from "react";
+import { HumanMessage } from "@langchain/core/messages";
 
 const { setConfigValue } = await import("./src/config/loader.js");
 const { createDeepAgentsOrchestrator } = await import("./src/agent/deepAgents.js");
@@ -221,7 +222,7 @@ async function callProvider(_name, _providerConfig, message, streamingCallback, 
 	let collectedContent = "";
 	let collectedReasoning = "";
 	const input = {
-		messages: [{ role: "user", content: message }],
+		messages: [new HumanMessage(message)],
 	};
 
 	for await (const [_namespace, mode, payload] of await agent.stream(input, {

@@ -7,6 +7,7 @@ import React, {
 	useImperativeHandle,
 } from "react";
 import { Box } from "ink";
+import { AIMessage } from "@langchain/core/messages";
 import { ConversationPanel, formatTime } from "./conversationPanel.js";
 import { CommandParser } from "./commandParser.js";
 import { createSession } from "../session/factory.js";
@@ -562,9 +563,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 					if (cached.content !== text) {
 						cached.content = text;
 						if (model && typeof model.getNumTokensFromMessages === "function") {
-							const { totalCount } = await model.getNumTokensFromMessages([
-								{ role: "assistant", content: text },
-							]);
+							const { totalCount } = await model.getNumTokensFromMessages([new AIMessage(text)]);
 							cached.tokens = totalCount;
 						} else {
 							cached.tokens = 0;
