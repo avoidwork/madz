@@ -19,6 +19,8 @@ The context-cost logic used by the `TokenBudget` middleware (conversation tokens
 - **WHEN** the exported helper is called with a real LangChain message array (content blocks, tool calls, tool messages)
 - **THEN** it normalizes the array via `toConversation` and tokenizes the normalized `{role, content}` messages, preserving tool-call/tool-message text
 
+## ADDED Requirements
+
 ### Requirement: toConversation normalizes LangChain messages for tokenization
 The `toConversation` function in `src/provider/tokenBudgetMiddleware.js` SHALL flatten LangChain messages with content blocks, tool calls, and tool messages into the `{role, content}` shape that `calculateConversationTokens` expects, preserving tool-call/tool-message text so the estimate is not under-counted.
 
