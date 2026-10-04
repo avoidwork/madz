@@ -7,7 +7,7 @@ import React, {
 	useImperativeHandle,
 } from "react";
 import { Box } from "ink";
-import { AIMessage } from "@langchain/core/messages";
+import { AIMessage, HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { ConversationPanel, formatTime } from "./conversationPanel.js";
 import { CommandParser } from "./commandParser.js";
 import { createSession } from "../session/factory.js";
@@ -88,11 +88,13 @@ const ConversationArea = forwardRef(function ConversationArea(
 	// Register global error handlers once on mount, remove on unmount
 	useEffect(() => {
 		function onUncaught(err) {
-			addMessage({ role: "system", content: `Uncaught error: ${err.message}` });
+			const stack = err?.stack ? `\n${err.stack}` : "";
+			addMessage({ role: "system", content: `Uncaught error: ${err.message}${stack}` });
 		}
 		function onUnhandled(reason) {
 			const msg = reason?.message || String(reason);
-			addMessage({ role: "system", content: `Unhandled rejection: ${msg}` });
+			const stack = reason?.stack ? `\n${reason.stack}` : "";
+			addMessage({ role: "system", content: `Unhandled rejection: ${msg}${stack}` });
 		}
 		process.on("uncaughtException", onUncaught);
 		process.on("unhandledRejection", onUnhandled);
@@ -490,6 +492,25 @@ const ConversationArea = forwardRef(function ConversationArea(
 	 * message set the model sees, and adds the configured output budget
 	 * (`maxTokens`) to match the token-budget middleware's `estimateCost`.
 	 */
+	/**
+	 * Normalize a message into a real LangChain message object.
+	 *
+	 * `model.getNumTokensFromMessages` calls `_getType()` on each message, so
+	 * plain `{ role, content }` objects (from `sessionState.getConversation()`)
+	 * crash. Real LangChain messages (BaseMessage instances) pass through
+	 * unchanged; plain objects are converted to the matching message class.
+	 * @param {Object} message - A message from the conversation or graph state
+	 * @returns {Object} A real LangChain message object
+	 */
+	const toLangChainMessage = (message) => {
+		if (message && typeof message._getType === "function") return message;
+		const role = message?.role || "user";
+		const content = message?.content ?? "";
+		if (role === "assistant") return new AIMessage(content);
+		if (role === "system") return new SystemMessage(content);
+		return new HumanMessage(content);
+	};
+
 	const updateContextSize = useCallback(
 		async (sessionState, config) => {
 			// Cancel any pending debounced update so a stale streaming-era
@@ -510,6 +531,8 @@ const ConversationArea = forwardRef(function ConversationArea(
 					messages = contextMessages;
 				}
 			}
+			// Normalize every message to a real LangChain object before counting.
+			messages = messages.map(toLangChainMessage);
 			const providerName = sessionState.getProvider();
 			const providerConfig = config?.providers?.[providerName] || {};
 			const maxTokens = providerConfig.maxTokens === -1 ? 0 : providerConfig.maxTokens || 0;
