@@ -6,7 +6,10 @@ Semantic code search using local vector embeddings and SQLite-based KNN retrieva
 
 ```mermaid
 graph TD
-    CLI["node index.js --index-code"] --> IND["indexer.js"]
+    IDX["indexCode Tool"] -->|"Piscina worker pool"| WK["indexerWorker.js"]
+    WK --> IND["indexer.js<br/>reindex()"]
+    CLI["node index.js --index-code"] -.->|"fallback (no worker pool)"| IND
+
     IND -->|"iterates projects"| CFG["config.yaml<br/>vector.projects"]
     CFG -->|"madz"| MADZ["madz project"]
     MADZ --> CHK["chunker.js"]
@@ -30,12 +33,12 @@ graph TD
     classDef cache fill:#26a69a,color:#fff,stroke:#00695c
     classDef tool fill:#7e57c2,color:#fff,stroke:#4527a0
 
-    class CLI cli
-    class IND,CHK,EMB core
+    class IDX,CST,ORC,SAG tool
+    class WK,IND,CHK,EMB core
     class CHK_OUT,EMB_OUT util
     class STO,DB,CFG store
     class MTC cache
-    class CST,ORC,SAG tool
+    class CLI cli
 ```
 
 ## Modules
@@ -102,7 +105,7 @@ Orchestrates the full indexing pipeline:
 
 1. **Scan** — Recursively walks the project directory, matching include/exclude glob patterns
 2. **Filter** — Skips binary files, hidden files, files exceeding `maxFileSize` (default 500 KB)
-3. **Mtime check** — Compares file modification times against a persisted cache (`vector-mtimes.json`) to skip unchanged files
+3. **Mtime check** — Compares file modification times against a persisted cache (`<dbName>-mtimes.json`) to skip unchanged files
 4. **Chunk** — Splits each file into overlapping line blocks
 5. **Embed** — Generates embeddings for all chunks in a file (batched)
 6. **Store** — Removes old chunks for the file, inserts new ones in a transaction
@@ -110,9 +113,53 @@ Orchestrates the full indexing pipeline:
 
 **Incremental indexing:** Only processes files whose mtime has changed since the last index. Pass `--force` to re-index everything.
 
+### `src/tools/code/indexCode.js`
+
+LangChain tool that dispatches indexing to a Piscina worker pool. This is the **primary** indexing path — invoked by the agent, not a CLI arg. Iterates over one or all configured projects, running each through the pool so the work stays off the main event loop.
+
+```mermaid
+graph TD
+    IDX["indexCode Tool"] -->|"pool.run()"| POOL["Piscina worker pool"]
+    POOL --> WK["indexerWorker.js"]
+    WK --> RE["reindex()"]
+    RE --> SCAN["Scan"]
+    RE --> FILT["Filter"]
+    RE --> MT["Mtime check"]
+    RE --> CHK["Chunk"]
+    RE --> EMB["Embed"]
+    RE --> STO["Store"]
+    RE --> CACHE["Update mtime cache"]
+    STO --> DB["madz.db"]
+    CACHE --> MTC["madz-mtimes.json"]
+```
+
+**Input schema:**
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `project` | string | all configured | Project name from `vector.projects` in config.yaml. Indexes all projects if omitted. |
+| `force` | boolean | `false` | Force re-index all files, ignoring the mtime cache |
+
 ### `src/tools/code/searchCode.js`
 
-LangChain tool available to the orchestrator and all code-related subagents.
+LangChain tool available to the orchestrator and the code-related subagents — `search`, `research`, `coding`, `code-review`, `debug`, `security-audit`, `testing`, `performance`, `documentation`, and `seoAnalyst`.
+
+```mermaid
+graph TD
+    SC["searchCode Tool"] --> PROJ["Resolve project"]
+    PROJ --> OPEN["Open vector store"]
+    OPEN --> MODE{"mode"}
+    MODE -->|"vector"| EMB["Embed query"]
+    EMB --> VEC["KNN search"]
+    MODE -->|"fulltext"| FTS["FTS5 search"]
+    MODE -->|"hybrid"| EMB2["Embed query"]
+    EMB2 --> HYB["Hybrid search (RRF)"]
+    VEC --> FILT["Apply fileFilter"]
+    FTS --> FILT
+    HYB --> FILT
+    FILT --> FMT["Format results"]
+    FMT --> OUT["Return to orchestrator/subagent"]
+```
 
 **Input schema:**
 
@@ -162,6 +209,16 @@ Each named project under `vector.projects` defines its own root directory, datab
 
 ### Indexing
 
+Indexing is driven by the `indexCode` tool, available to any agent. It dispatches the work to a Piscina worker pool, so it runs off the main event loop:
+
+```
+indexCode()                # Index all configured projects
+indexCode(project="madz")  # Index a single project
+indexCode(force=true)      # Force re-index all files
+```
+
+The CLI flag is a fallback that runs indexing inline (no worker pool):
+
 ```bash
 # Index all configured projects (downloads model on first run)
 node index.js --index-code
@@ -170,7 +227,14 @@ node index.js --index-code
 node index.js --index-code --force
 ```
 
-Indexing iterates over every project in `vector.projects`, creating or updating each project's database independently.
+Both paths iterate over every project in `vector.projects`, creating or updating each project's database independently.
+
+### Workflow
+
+Indexing and search are two halves of one workflow. **You must index before you can search** — `searchCode` returns a "Try running the indexCode tool first" hint when the store is empty. The typical flow is:
+
+1. **Index** — run `indexCode` after adding code or changing project config, so the vector store reflects the current source tree.
+2. **Search** — run `searchCode` to find code by meaning. Re-index when the code changes.
 
 ### Querying
 
@@ -180,9 +244,11 @@ Via the `searchCode` tool, available to any agent:
 searchCode(query="how does SSE streaming work", topK=3)
 searchCode(query="tool registration pattern", project="madz")
 searchCode(query="authentication flow", project="madz", fileFilter="src/tools/*.js")
+searchCode(query="tool registration pattern", mode="vector")    # pure semantic search
+searchCode(query="tool registration pattern", mode="fulltext")  # exact keyword match
 ```
 
-The `project` parameter selects which indexed project to search. Defaults to the first configured project if omitted.
+The `project` parameter selects which indexed project to search. Defaults to the first configured project if omitted. The `mode` parameter overrides the configured `searchMode` for a single call.
 
 ### Verification
 
