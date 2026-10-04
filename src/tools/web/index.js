@@ -321,10 +321,6 @@ async function searchWithCustom(cfg, query, limit) {
  */
 export function detectSearchBackend(options = config) {
 	const search = options?.search || config.search || {};
-	const engine = search?.engine;
-	if (engine && ["duckduckgo", "bing", "searxng", "custom", "tavily"].includes(engine)) {
-		return engine;
-	}
 	const custom = search.custom || {};
 	if (custom?.url) return "custom";
 	if (search?.bing?.apiKey) return "bing";
