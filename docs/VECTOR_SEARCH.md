@@ -6,7 +6,10 @@ Semantic code search using local vector embeddings and SQLite-based KNN retrieva
 
 ```mermaid
 graph TD
-    CLI["node index.js --index-code"] --> IND["indexer.js"]
+    IDX["indexCode Tool"] -->|"Piscina worker pool"| WK["indexerWorker.js"]
+    WK --> IND["indexer.js<br/>reindex()"]
+    CLI["node index.js --index-code"] -.->|"fallback (no worker pool)"| IND
+
     IND -->|"iterates projects"| CFG["config.yaml<br/>vector.projects"]
     CFG -->|"madz"| MADZ["madz project"]
     MADZ --> CHK["chunker.js"]
@@ -30,12 +33,12 @@ graph TD
     classDef cache fill:#26a69a,color:#fff,stroke:#00695c
     classDef tool fill:#7e57c2,color:#fff,stroke:#4527a0
 
-    class CLI cli
-    class IND,CHK,EMB core
+    class IDX,CST,ORC,SAG tool
+    class WK,IND,CHK,EMB core
     class CHK_OUT,EMB_OUT util
     class STO,DB,CFG store
     class MTC cache
-    class CST,ORC,SAG tool
+    class CLI cli
 ```
 
 ## Modules
@@ -102,7 +105,7 @@ Orchestrates the full indexing pipeline:
 
 1. **Scan** — Recursively walks the project directory, matching include/exclude glob patterns
 2. **Filter** — Skips binary files, hidden files, files exceeding `maxFileSize` (default 500 KB)
-3. **Mtime check** — Compares file modification times against a persisted cache (`vector-mtimes.json`) to skip unchanged files
+3. **Mtime check** — Compares file modification times against a persisted cache (`<dbName>-mtimes.json`) to skip unchanged files
 4. **Chunk** — Splits each file into overlapping line blocks
 5. **Embed** — Generates embeddings for all chunks in a file (batched)
 6. **Store** — Removes old chunks for the file, inserts new ones in a transaction
@@ -162,6 +165,16 @@ Each named project under `vector.projects` defines its own root directory, datab
 
 ### Indexing
 
+Indexing is driven by the `indexCode` tool, available to any agent. It dispatches the work to a Piscina worker pool, so it runs off the main event loop:
+
+```
+indexCode()                # Index all configured projects
+indexCode(project="madz")  # Index a single project
+indexCode(force=true)      # Force re-index all files
+```
+
+The CLI flag is a fallback that runs indexing inline (no worker pool):
+
 ```bash
 # Index all configured projects (downloads model on first run)
 node index.js --index-code
@@ -170,7 +183,7 @@ node index.js --index-code
 node index.js --index-code --force
 ```
 
-Indexing iterates over every project in `vector.projects`, creating or updating each project's database independently.
+Both paths iterate over every project in `vector.projects`, creating or updating each project's database independently.
 
 ### Querying
 
@@ -220,6 +233,32 @@ Language support is handled entirely through include patterns in each project's 
 The following are already implemented:
 
 - **Hybrid search** (vector + keyword) — the default `searchMode`. `searchCode` runs both vector similarity and FTS5 keyword matching, merging results via Reciprocal Rank Fusion (RRF). Set `mode: vector` for pure semantic search or `mode: fulltext` for exact keyword matches.
+
+The following remain future work:
+
+- Reranking across multiple vector stores
+- AST-aware chunking (function/class boundary preservation) as an alternative to fixed-size blocks
+
+## Dependencies
+
+| Package | Version | Purpose |
+|---------|---------|---------|
+| `@photostructure/sqlite-vec` | ^1.1.1 | SQLite vector search extension (production-ready fork) |
+| `@xenova/transformers` | ^2.17.2 | In-process transformer inference via ONNX Runtime |
+| `better-sqlite3` | (existing) | Synchronous SQLite3 bindings |
+
+## Storage Layout
+
+```
+memory/
+├── vectorSearch/
+│   ├── madz.db                  # SQLite database for the "madz" project
+│   ├── madz-mtimes.json         # File mtime cache for incremental indexing
+│   └── ...                      # Additional project databases as configured
+└── checkpoints/                 # LangGraph checkpoint storage (separate concern)
+    └── checkpoints.db
+```
+tic search or `mode: fulltext` for exact keyword matches.
 
 The following remain future work:
 
