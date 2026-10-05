@@ -128,3 +128,61 @@ describe("createChatModel Copilot base URL", () => {
 		assert.strictEqual(model.clientConfig.baseURL, "https://api.githubcopilot.com");
 	});
 });
+
+describe("createChatModel Copilot credential handling", () => {
+	beforeEach(() => {
+		resetTokenBudget();
+	});
+
+	// Regression guard for issue #1291: the OpenAI SDK v7 client constructor
+	// throws `Missing credentials` when no apiKey/workloadIdentity/adminAPIKey is
+	// present, even when a custom fetch is supplied. The Copilot path must pass a
+	// non-empty placeholder apiKey so the credential check passes.
+	it("constructs the Copilot model without throwing when OPENAI_API_KEY is unset", () => {
+		const saved = process.env.OPENAI_API_KEY;
+		delete process.env.OPENAI_API_KEY;
+		try {
+			const model = createChatModel({
+				type: "github-copilot",
+				model: "gpt-4o",
+				base_url: "https://api.githubcopilot.com",
+				temperature: 0.4,
+				maxTokens: -1,
+				rateLimit: { maxRetries: 6 },
+			});
+			assert.ok(model, "model should be constructed");
+			assert.strictEqual(model.clientConfig.apiKey, "copilot");
+		} finally {
+			if (saved === undefined) {
+				delete process.env.OPENAI_API_KEY;
+			} else {
+				process.env.OPENAI_API_KEY = saved;
+			}
+		}
+	});
+
+	it("sets a non-empty placeholder apiKey on the Copilot client config", () => {
+		const model = createChatModel({
+			type: "github-copilot",
+			model: "gpt-4o",
+			base_url: "https://api.githubcopilot.com",
+			temperature: 0.4,
+			maxTokens: -1,
+			rateLimit: { maxRetries: 6 },
+		});
+		assert.strictEqual(model.clientConfig.apiKey, "copilot");
+		assert.ok(model.clientConfig.apiKey.length > 0);
+	});
+
+	it("wires the custom fetch interceptor on the Copilot client config", () => {
+		const model = createChatModel({
+			type: "github-copilot",
+			model: "gpt-4o",
+			base_url: "https://api.githubcopilot.com",
+			temperature: 0.4,
+			maxTokens: -1,
+			rateLimit: { maxRetries: 6 },
+		});
+		assert.strictEqual(typeof model.clientConfig.fetch, "function");
+	});
+});

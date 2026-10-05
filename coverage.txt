@@ -45,10 +45,10 @@
 ℹ   imageDispatchMiddleware.js   |  96.26 |    83.33 |   80.00 | 103-106
 ℹ   index.js                     | 100.00 |   100.00 |  100.00 | 
 ℹ   modelInfo.js                 | 100.00 |   100.00 |  100.00 | 
-ℹ   openai.js                    |  92.04 |    93.55 |   57.14 | 62-64 164 179-186 193-196
+ℹ   openai.js                    |  92.31 |    93.55 |   57.14 | 62-64 171 186-193 200-203
 ℹ   summarizationMiddleware.js   | 100.00 |   100.00 |  100.00 | 
 ℹ   tokenBudget.js               | 100.00 |    90.32 |   86.67 | 
-ℹ   tokenBudgetMiddleware.js     | 100.00 |    79.66 |   85.71 | 
+ℹ   tokenBudgetMiddleware.js     | 100.00 |    82.46 |   85.71 | 
 ℹ  sandbox                       |        |          |         | 
 ℹ   pathResolver.js              | 100.00 |   100.00 |  100.00 | 
 ℹ   urlFilter.js                 | 100.00 |    93.75 |  100.00 | 
@@ -210,21 +210,21 @@
 ℹ  workspace                     |        |          |         | 
 ℹ   loadAgents.js                | 100.00 |    87.50 |  100.00 | 
 ℹ -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-ℹ all files                      |  91.76 |    88.85 |   87.83 | 
+ℹ all files                      |  91.76 |    88.88 |   87.83 | 
 ℹ -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ℹ end of coverage report
 
 ✖ failing tests:
 
 test at tests/unit/tools/web.test.js:12:2
-✖ returns duckduckgo when no config is provided (1.947768ms)
+✖ returns duckduckgo when no config is provided (2.026613ms)
   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
   + actual - expected
   
   + 'tavily'
   - 'duckduckgo'
   
-      at TestContext.<anonymous> (file:///home/jason/Projects/madz.worktrees/617682aecaaa74a4/tests/unit/tools/web.test.js:13:10)
+      at TestContext.<anonymous> (file:///home/jason/Projects/madz.worktrees/39f2d58721a2d168/tests/unit/tools/web.test.js:13:10)
       at Test.runInAsyncScope (node:async_hooks:226:14)
       at Test.run (node:internal/test_runner/test:1201:25)
       at Test.start (node:internal/test_runner/test:1096:17)
