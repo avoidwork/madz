@@ -53,6 +53,8 @@ search:
     apiKey: ""
   exa:
     apiKey: ""
+  firecrawl:
+    apiKey: ""
   custom:
     url: ""
     method: ""
