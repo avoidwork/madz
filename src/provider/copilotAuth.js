@@ -10,8 +10,8 @@ import { setTimeout as sleep } from "node:timers/promises";
  * input-constrained CLI/TUI client that cannot host a redirect URI, and it
  * works headless in a Docker/VM deployment with no public callback endpoint.
  *
- * The public OAuth client id below is not a secret — it is the same client id
- * used by opencode and is safe to commit.
+ * The public OAuth client id below is not a secret — it is the project's own
+ * app id and is safe to commit.
  */
 
 /** Public OAuth client id for GitHub Copilot. Not a credential. */

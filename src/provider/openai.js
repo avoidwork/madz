@@ -121,6 +121,13 @@ export function createChatModel(config) {
 			? base(config.enterpriseUrl)
 			: config.base_url;
 		opts.configuration.fetch = createCopilotFetch();
+		// The OpenAI SDK v7 client constructor throws `Missing credentials`
+		// when no apiKey/workloadIdentity/adminAPIKey is present, even when a
+		// custom fetch is supplied. Pass a non-empty placeholder so the
+		// credential check passes; the custom fetch interceptor overrides the
+		// Authorization header with the real bearer token on every request, so
+		// this placeholder is never sent to the API.
+		opts.apiKey = "copilot";
 	} else {
 		opts.apiKey = config.credentials.apiKey;
 	}
