@@ -233,17 +233,21 @@ async function callProvider(_name, _providerConfig, message, streamingCallback, 
 	})) {
 		if (mode === "messages") {
 			const [msg] = payload;
-
-			// Skip ToolMessage from message content when showToolResults is false
 			const msgType = msg?._getType ? msg._getType() : msg?.type;
-			if (msgType === "tool" && showToolResults === false) {
-				continue;
-			}
-
 			const text = msg?.text ?? "";
 
 			if (text) {
+				// Skip ToolMessage from message content when showToolResults is false
+				if (msgType === "tool" && showToolResults === false) {
+					if (streamingCallback) {
+						streamingCallback({ type: "tool", text });
+					}
+
+					continue;
+				}
+
 				collectedContent += text;
+
 				if (streamingCallback) {
 					streamingCallback({ type: "message", text });
 				}
