@@ -249,6 +249,52 @@ export async function searchWithBrave(apiKey, query, limit) {
 	}
 }
 
+/// -- Firecrawl --
+
+/**
+ * Search using Firecrawl API.
+ * @param {string} apiKey - Firecrawl API key
+ * @param {string} query - Search query
+ * @param {number} limit - Max results
+ * @returns {Promise<{ ok: boolean, results?: object[], error?: string }>}
+ */
+export async function searchWithFirecrawl(apiKey, query, limit) {
+	const controller = new AbortController();
+	const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+	try {
+		const resp = await fetch("https://api.firecrawl.dev/v2/search", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				Authorization: `Bearer ${apiKey}`,
+			},
+			body: JSON.stringify({
+				query,
+				limit: Math.min(Math.max(limit, 1), 100),
+				sources: ["web"],
+			}),
+			signal: controller.signal,
+		});
+		clearTimeout(timeoutId);
+		if (!resp.ok) {
+			const text = await resp.text().catch(() => "");
+			return { ok: false, error: `Firecrawl API error (${resp.status}): ${text.slice(0, 200)}` };
+		}
+		const data = await resp.json();
+		return {
+			ok: true,
+			results: (data.web || []).slice(0, limit).map((r) => ({
+				title: r.title || "Untitled",
+				url: r.url || "",
+				description: r.description || "",
+			})),
+		};
+	} catch (_err) {
+		clearTimeout(timeoutId);
+		return { ok: false, error: "Firecrawl search failed" };
+	}
+}
+
 /// -- SearXNG --
 
 /**
@@ -367,6 +413,7 @@ export function detectSearchBackend(options = config) {
 	if (search?.bing?.apiKey) return "bing";
 	if (search?.tavily?.apiKey) return "tavily";
 	if (search?.brave?.apiKey) return "brave";
+	if (search?.firecrawl?.apiKey) return "firecrawl";
 	if (search?.searxng?.url) return "searxng";
 	return "duckduckgo"; // fallback, always available
 }
@@ -395,6 +442,7 @@ export async function searchWebImpl(input, options = config) {
 	const duckduckgo = search?.duckduckgo || {};
 	const tavily = search?.tavily || {};
 	const brave = search?.brave || {};
+	const firecrawl = search?.firecrawl || {};
 	let result;
 
 	switch (backend) {
@@ -413,6 +461,9 @@ export async function searchWebImpl(input, options = config) {
 			break;
 		case "brave":
 			result = await searchWithBrave(brave.apiKey, query, clampedLimit);
+			break;
+		case "firecrawl":
+			result = await searchWithFirecrawl(firecrawl.apiKey, query, clampedLimit);
 			break;
 		case "duckduckgo":
 		default:
@@ -603,7 +654,7 @@ export async function screenshotWebImpl(input, options = {}) {
 export const searchWeb = tool(searchWebImpl, {
 	name: "searchWeb",
 	description:
-		"Search the web. Built-in engines: DuckDuckGo (default), Bing (requires BING_API_KEY), SearXNG (requires SEARXNG_URL), Custom (requires CUSTOM_SEARCH_URL), Tavily (requires TAVILY_API_KEY), Brave (requires BRAVE_API_KEY).",
+		"Search the web. Built-in engines: DuckDuckGo (default), Bing (requires BING_API_KEY), SearXNG (requires SEARXNG_URL), Custom (requires CUSTOM_SEARCH_URL), Tavily (requires TAVILY_API_KEY), Brave (requires BRAVE_API_KEY), Firecrawl (requires FIRECRAWL_API_KEY).",
 	schema: z.object({
 		query: z.string().min(1).describe("Search query"),
 		limit: z

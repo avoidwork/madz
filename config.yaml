@@ -53,6 +53,8 @@ search:
     apiKey: ""
   brave:
     apiKey: ""
+  firecrawl:
+    apiKey: ""
   custom:
     url: ""
     method: ""

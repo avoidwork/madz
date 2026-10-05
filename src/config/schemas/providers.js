@@ -35,6 +35,10 @@ const BraveSearchSchema = z.object({
 	apiKey: z.string().optional().default(""),
 });
 
+const FirecrawlSearchSchema = z.object({
+	apiKey: z.string().optional().default(""),
+});
+
 const CustomSearchSchema = z.object({
 	url: z.string().optional().default(""),
 	method: z.string().optional().default(""),
@@ -61,6 +65,7 @@ export const SearchConfigSchema = z.object({
 	custom: CustomSearchSchema.default({}),
 	tavily: TavilySearchSchema.default({}),
 	brave: BraveSearchSchema.default({}),
+	firecrawl: FirecrawlSearchSchema.default({}),
 });
 
 const ReasoningConfigSchema = z
