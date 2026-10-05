@@ -11,7 +11,7 @@
 ℹ   deepAgents.js                |  94.67 |    72.53 |   77.78 | 97-98 126-127 151 167-169 247-251 279-286 423-425 501-503
 ℹ  config                        |        |          |         | 
 ℹ   config.js                    | 100.00 |   100.00 |  100.00 | 
-ℹ   loader.js                    |  97.23 |    89.31 |   90.48 | 416-417 476-478 503 505 561-565 575-578
+ℹ   loader.js                    |  97.23 |    89.23 |   90.48 | 416-417 476-478 503 505 561-565 575-578
 ℹ   patch.js                     | 100.00 |   100.00 |  100.00 | 
 ℹ   schemas                      |        |          |         | 
 ℹ    agent.js                    | 100.00 |   100.00 |  100.00 | 
@@ -175,7 +175,7 @@
 ℹ   tts                          |        |          |         | 
 ℹ    index.js                    | 100.00 |    88.00 |   50.00 | 
 ℹ   web                          |        |          |         | 
-ℹ    index.js                    |  93.26 |    72.93 |   55.26 | 44-66 100-101 115-116 119-121 160-162 376-378 442-444 511-512 514-515 517-518 596-597 684-689
+ℹ    index.js                    |  93.26 |    72.47 |   55.26 | 44-66 100-101 115-116 119-121 160-162 376-378 442-444 511-512 514-515 517-518 596-597 684-689
 ℹ   webhook                      |        |          |         | 
 ℹ    index.js                    |  98.79 |    96.49 |  100.00 | 20-22
 ℹ   yaml                         |        |          |         | 
@@ -200,7 +200,7 @@
 ℹ   sessionsPanel.js             |  12.25 |   100.00 |    0.00 | 15-17 25-33 44-253
 ℹ   settingsPanel.js             |  75.31 |    83.87 |   76.47 | 78-92 118-144 181-189 195-199 205-207
 ℹ   skillsPanel.js               |  89.69 |    71.43 |   71.43 | 67-69 75-81
-ℹ   statusBar.js                 |  98.63 |    97.30 |  100.00 | 22-23
+ℹ   statusBar.js                 |  98.68 |    97.44 |  100.00 | 22-23
 ℹ  vector                        |        |          |         | 
 ℹ   chunker.js                   |  98.81 |    95.45 |  100.00 | 159-160
 ℹ   embedder.js                  |  95.65 |    82.14 |   90.00 | 94 110-116
@@ -213,3 +213,31 @@
 ℹ all files                      |  91.76 |    88.85 |   87.83 | 
 ℹ -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ℹ end of coverage report
+
+✖ failing tests:
+
+test at tests/unit/tools/web.test.js:12:2
+✖ returns duckduckgo when no config is provided (1.947768ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'tavily'
+  - 'duckduckgo'
+  
+      at TestContext.<anonymous> (file:///home/jason/Projects/madz.worktrees/617682aecaaa74a4/tests/unit/tools/web.test.js:13:10)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.start (node:internal/test_runner/test:1096:17)
+      at node:internal/test_runner/test:1617:71
+      at node:internal/per_context/primordials:466:82
+      at new Promise (<anonymous>)
+      at new SafePromise (node:internal/per_context/primordials:435:3)
+      at node:internal/per_context/primordials:466:9
+      at Array.map (<anonymous>) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'tavily',
+    expected: 'duckduckgo',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
