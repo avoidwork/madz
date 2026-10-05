@@ -35,6 +35,10 @@ const ExaSearchSchema = z.object({
 	apiKey: z.string().optional().default(""),
 });
 
+const BraveSearchSchema = z.object({
+	apiKey: z.string().optional().default(""),
+});
+
 const FirecrawlSearchSchema = z.object({
 	apiKey: z.string().optional().default(""),
 });
@@ -65,6 +69,7 @@ export const SearchConfigSchema = z.object({
 	custom: CustomSearchSchema.default({}),
 	tavily: TavilySearchSchema.default({}),
 	exa: ExaSearchSchema.default({}),
+	brave: BraveSearchSchema.default({}),
 	firecrawl: FirecrawlSearchSchema.default({}),
 });
 
