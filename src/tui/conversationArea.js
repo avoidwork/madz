@@ -351,10 +351,17 @@ const ConversationArea = forwardRef(function ConversationArea(
 
 		if (sessionState) {
 			sessionState.addExchange({ role: "user", content: text });
-			// Pass the just-sent user message explicitly so the context window
-			// increments immediately. On the first turn the checkpointer doesn't
-			// have it yet, so sourcing from graph state would miss it.
-			updateContextSize(sessionState, config, [new HumanMessage(text)]);
+			// Build the full message set: the real checkpointer conversation
+			// (which includes tool calls/messages) plus the just-sent user
+			// message. On the first turn the checkpointer doesn't have the
+			// message yet, so we append it explicitly rather than replacing the
+			// whole conversation with a single message.
+			let contextMessages = [];
+			if (typeof getContextMessages === "function") {
+				const ctx = await getContextMessages();
+				if (ctx && ctx.length > 0) contextMessages = ctx;
+			}
+			updateContextSize(sessionState, config, [...contextMessages, new HumanMessage(text)]);
 		}
 
 		const assistantTime = getTimestamp();
