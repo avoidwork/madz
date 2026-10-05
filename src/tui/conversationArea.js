@@ -628,9 +628,8 @@ const ConversationArea = forwardRef(function ConversationArea(
 				contextUpdateTimerRef.current = setTimeout(async () => {
 					contextUpdateTimerRef.current = null;
 					const text = pendingContextRef.current.content;
-					if (!text || preStreamContextSize == null || !onContextUpdate) return;
 					const cached = tokenCacheRef.current;
-					if (cached.content !== text) {
+					if (text && cached.content !== text) {
 						cached.content = text;
 						if (model && typeof model.getNumTokensFromMessages === "function") {
 							const { totalCount } = await model.getNumTokensFromMessages([new AIMessage(text)]);
@@ -746,6 +745,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 							// is never folded into committedContentRef, so it does
 							// not pollute the rendered assistant message.
 							toolMessageTokensRef.current += await countToolMessageTokens(model, toolText);
+							debouncedContextUpdate(committedContentRef.current);
 						}
 					}
 
