@@ -16,9 +16,9 @@ The system SHALL list every search engine's config values explicitly in `config.
 
 The system SHALL declare only implemented engines in `SearchConfigSchema`, and SHALL NOT declare `firecrawl` or `parallel`.
 
-#### Scenario: Schema enum matches implemented engines
+#### Scenario: Schema includes exa sub-schema
 - **WHEN** `SearchConfigSchema` is inspected
-- **THEN** its `engine` enum contains `duckduckgo`, `bing`, `searxng`, `custom`, `tavily`, and `exa`
+- **THEN** it contains an `exa` sub-schema with an `apiKey` field
 
 #### Scenario: Removed engines are not in schema
 - **WHEN** `SearchConfigSchema` is inspected

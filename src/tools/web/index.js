@@ -208,6 +208,52 @@ export async function searchWithTavily(apiKey, query, limit) {
 	}
 }
 
+/// -- Exa --
+
+/**
+ * Search using Exa API.
+ * @param {string} apiKey - Exa API key
+ * @param {string} query - Search query
+ * @param {number} limit - Max results
+ * @returns {Promise<{ ok: boolean, results?: object[], error?: string }>}
+ */
+export async function searchWithExa(apiKey, query, limit) {
+	const controller = new AbortController();
+	const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+	try {
+		const resp = await fetch("https://api.exa.ai/search", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				"x-api-key": apiKey,
+			},
+			body: JSON.stringify({
+				query,
+				type: "auto",
+				numResults: Math.min(Math.max(limit, 1), 100),
+			}),
+			signal: controller.signal,
+		});
+		clearTimeout(timeoutId);
+		if (!resp.ok) {
+			const text = await resp.text().catch(() => "");
+			return { ok: false, error: `Exa API error (${resp.status}): ${text.slice(0, 200)}` };
+		}
+		const data = await resp.json();
+		return {
+			ok: true,
+			results: (data.results || []).slice(0, limit).map((r) => ({
+				title: r.title || "Untitled",
+				url: r.url || "",
+				description: r.text || r.highlights?.[0] || "",
+			})),
+		};
+	} catch (_err) {
+		clearTimeout(timeoutId);
+		return { ok: false, error: "Exa search failed" };
+	}
+}
+
 /// -- SearXNG --
 
 /**
@@ -325,6 +371,7 @@ export function detectSearchBackend(options = config) {
 	if (custom?.url) return "custom";
 	if (search?.bing?.apiKey) return "bing";
 	if (search?.tavily?.apiKey) return "tavily";
+	if (search?.exa?.apiKey) return "exa";
 	if (search?.searxng?.url) return "searxng";
 	return "duckduckgo"; // fallback, always available
 }
@@ -352,6 +399,7 @@ export async function searchWebImpl(input, options = config) {
 	const custom = search?.custom || {};
 	const duckduckgo = search?.duckduckgo || {};
 	const tavily = search?.tavily || {};
+	const exa = search?.exa || {};
 	let result;
 
 	switch (backend) {
@@ -367,6 +415,9 @@ export async function searchWebImpl(input, options = config) {
 		}
 		case "tavily":
 			result = await searchWithTavily(tavily.apiKey, query, clampedLimit);
+			break;
+		case "exa":
+			result = await searchWithExa(exa.apiKey, query, clampedLimit);
 			break;
 		case "duckduckgo":
 		default:
@@ -557,7 +608,7 @@ export async function screenshotWebImpl(input, options = {}) {
 export const searchWeb = tool(searchWebImpl, {
 	name: "searchWeb",
 	description:
-		"Search the web. Built-in engines: DuckDuckGo (default), Bing (requires BING_API_KEY), SearXNG (requires SEARXNG_URL), Custom (requires CUSTOM_SEARCH_URL), Tavily (requires TAVILY_API_KEY).",
+		"Search the web. Built-in engines: DuckDuckGo (default), Bing (requires BING_API_KEY), SearXNG (requires SEARXNG_URL), Custom (requires CUSTOM_SEARCH_URL), Tavily (requires TAVILY_API_KEY), Exa (requires EXA_API_KEY).",
 	schema: z.object({
 		query: z.string().min(1).describe("Search query"),
 		limit: z

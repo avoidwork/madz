@@ -31,6 +31,10 @@ const TavilySearchSchema = z.object({
 	apiKey: z.string().optional().default(""),
 });
 
+const ExaSearchSchema = z.object({
+	apiKey: z.string().optional().default(""),
+});
+
 const CustomSearchSchema = z.object({
 	url: z.string().optional().default(""),
 	method: z.string().optional().default(""),
@@ -56,6 +60,7 @@ export const SearchConfigSchema = z.object({
 	bing: BingSearchSchema.default({}),
 	custom: CustomSearchSchema.default({}),
 	tavily: TavilySearchSchema.default({}),
+	exa: ExaSearchSchema.default({}),
 });
 
 const ReasoningConfigSchema = z

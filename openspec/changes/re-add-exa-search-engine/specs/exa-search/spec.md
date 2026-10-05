@@ -34,14 +34,10 @@ The system SHALL implement a `searchWithExa(apiKey, query, limit)` function that
 
 ### Requirement: Exa backend selection
 
-The system SHALL include `"exa"` in the `detectSearchBackend` explicit-engine list and the inference chain (`search?.exa?.apiKey`), and SHALL wire a `case "exa"` into the `searchWebImpl()` switch.
-
-#### Scenario: Explicit engine selects Exa
-- **WHEN** `search.engine` is set to `"exa"`
-- **THEN** `detectSearchBackend()` returns `"exa"`
+The system SHALL include `"exa"` in the `detectSearchBackend` inference chain (`search?.exa?.apiKey`), and SHALL wire a `case "exa"` into the `searchWebImpl()` switch.
 
 #### Scenario: Inference selects Exa when apiKey is configured
-- **WHEN** `search.engine` is unset and `search.exa.apiKey` is configured
+- **WHEN** `search.exa.apiKey` is configured
 - **THEN** `detectSearchBackend()` returns `"exa"`
 
 #### Scenario: searchWebImpl dispatches to Exa
