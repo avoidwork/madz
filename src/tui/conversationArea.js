@@ -731,16 +731,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 						});
 					}
 
-					if (event.type === "tool_result") {
-						const toolText = event.data?.text || event.text || "";
-						if (toolText) {
-							lastToolCallDisplayRef.current =
-								(lastToolCallDisplayRef.current ? lastToolCallDisplayRef.current + "\n" : "") +
-								toolText;
-						}
-					}
-
-					if (event.type === "tool_message") {
+					if (event.type === "tool") {
 						const toolText = event.data?.text || event.text || "";
 						if (toolText) {
 							// Count the tool-message text toward the live context
