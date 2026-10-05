@@ -2,11 +2,7 @@
 
 ### Requirement: Brave in search config schema
 
-The system SHALL declare `brave` in `SearchConfigSchema` with a `BraveSearchSchema` (`apiKey` field) and SHALL include `"brave"` in the `engine` enum.
-
-#### Scenario: Schema enum includes brave
-- **WHEN** `SearchConfigSchema` is inspected
-- **THEN** its `engine` enum contains `"brave"`
+The system SHALL declare `brave` in `SearchConfigSchema` with a `BraveSearchSchema` (`apiKey` field).
 
 #### Scenario: Brave sub-schema is declared
 - **WHEN** `SearchConfigSchema` is inspected

@@ -51,6 +51,8 @@ search:
     apiKey: ""
   tavily:
     apiKey: ""
+  brave:
+    apiKey: ""
   custom:
     url: ""
     method: ""
