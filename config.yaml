@@ -51,6 +51,8 @@ search:
     apiKey: ""
   tavily:
     apiKey: ""
+  exa:
+    apiKey: ""
   brave:
     apiKey: ""
   firecrawl:
