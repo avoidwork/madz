@@ -51,6 +51,8 @@ search:
     apiKey: ""
   tavily:
     apiKey: ""
+  firecrawl:
+    apiKey: ""
   custom:
     url: ""
     method: ""

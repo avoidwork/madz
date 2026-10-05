@@ -45,33 +45,33 @@ The system SHALL implement a `searchWithGoogle(query, limit)` function that sear
 
 ### Requirement: Explicit config.yaml search values
 
-The system SHALL list every search engine's config values explicitly in `config.yaml`, including DuckDuckGo, Bing, SearXNG, Custom, and a `tavily` block.
+The system SHALL list every search engine's config values explicitly in `config.yaml`, including DuckDuckGo, Bing, SearXNG, Custom, Tavily, and a `firecrawl` block.
 
 #### Scenario: config.yaml lists all engines
 - **WHEN** the `search:` section of `config.yaml` is inspected
-- **THEN** it contains `engine`, `duckduckgo`, `bing`, `searxng`, `custom`, and `tavily` blocks
+- **THEN** it contains `duckduckgo`, `bing`, `searxng`, `custom`, `tavily`, and `firecrawl` blocks
 
 #### Scenario: Removed engines are absent
 - **WHEN** the `search:` section of `config.yaml` is inspected
-- **THEN** it does not contain `exa`, `firecrawl`, or `parallel` blocks
+- **THEN** it does not contain `exa` or `parallel` blocks
 
 ### Requirement: Search config schema lists only implemented engines
 
-The system SHALL declare only implemented engines in `SearchConfigSchema`, and SHALL NOT declare `exa`, `firecrawl`, or `parallel`.
+The system SHALL declare only implemented engines in `SearchConfigSchema`, and SHALL NOT declare `exa` or `parallel`.
 
-#### Scenario: Schema enum matches implemented engines
+#### Scenario: Schema matches implemented engines
 - **WHEN** `SearchConfigSchema` is inspected
-- **THEN** its `engine` enum contains `duckduckgo`, `bing`, `searxng`, `custom`, and `tavily`
+- **THEN** it contains `duckduckgo`, `bing`, `searxng`, `custom`, `tavily`, and `firecrawl` sub-schemas
 
 #### Scenario: Removed engines are not in schema
 - **WHEN** `SearchConfigSchema` is inspected
-- **THEN** it does not contain `exa`, `firecrawl`, or `parallel` sub-schemas
+- **THEN** it does not contain `exa` or `parallel` sub-schemas
 
 ### Requirement: Search tool description reflects supported engines
 
-The system SHALL update the `searchWeb` tool description to reflect the actual supported engines, including Tavily.
+The system SHALL update the `searchWeb` tool description to reflect the actual supported engines, including Tavily and Firecrawl.
 
 #### Scenario: Tool description lists supported engines
 - **WHEN** the `searchWeb` tool description is inspected
-- **THEN** it lists the implemented engines including Tavily and does not reference unimplemented engines
+- **THEN** it lists the implemented engines including Tavily and Firecrawl and does not reference unimplemented engines
 
