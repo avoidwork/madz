@@ -82,7 +82,7 @@
     "csv-generate": "^4.6.2",
     "csv-parse": "^7.0.3",
     "csv-stringify": "^6.9.0",
-    "deepagents": "^1.14.0",
+    "deepagents": "^1.14.1",
     "exceljs": "^4.4.0",
     "fast-glob": "^3.3.3",
     "googleapis": "^182.0.0",
