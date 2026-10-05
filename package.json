@@ -58,7 +58,7 @@
   "devDependencies": {
     "auto-changelog": "^2.7.0",
     "husky": "^9.1.7",
-    "oxfmt": "^0.68.0",
+    "oxfmt": "^0.71.0",
     "oxlint": "^1.85.0"
   },
   "dependencies": {
