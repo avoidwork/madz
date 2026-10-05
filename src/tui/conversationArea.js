@@ -351,10 +351,17 @@ const ConversationArea = forwardRef(function ConversationArea(
 
 		if (sessionState) {
 			sessionState.addExchange({ role: "user", content: text });
-			// Pass the just-sent user message explicitly so the context window
-			// increments immediately. On the first turn the checkpointer doesn't
-			// have it yet, so sourcing from graph state would miss it.
-			updateContextSize(sessionState, config, [new HumanMessage(text)]);
+			// Build the full message set: the real checkpointer conversation
+			// (which includes tool calls/messages) plus the just-sent user
+			// message. On the first turn the checkpointer doesn't have the
+			// message yet, so we append it explicitly rather than replacing the
+			// whole conversation with a single message.
+			let contextMessages = [];
+			if (typeof getContextMessages === "function") {
+				const ctx = await getContextMessages();
+				if (ctx && ctx.length > 0) contextMessages = ctx;
+			}
+			updateContextSize(sessionState, config, [...contextMessages, new HumanMessage(text)]);
 		}
 
 		const assistantTime = getTimestamp();
@@ -621,9 +628,8 @@ const ConversationArea = forwardRef(function ConversationArea(
 				contextUpdateTimerRef.current = setTimeout(async () => {
 					contextUpdateTimerRef.current = null;
 					const text = pendingContextRef.current.content;
-					if (!text || preStreamContextSize == null || !onContextUpdate) return;
 					const cached = tokenCacheRef.current;
-					if (cached.content !== text) {
+					if (text && cached.content !== text) {
 						cached.content = text;
 						if (model && typeof model.getNumTokensFromMessages === "function") {
 							const { totalCount } = await model.getNumTokensFromMessages([new AIMessage(text)]);
@@ -731,16 +737,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 						});
 					}
 
-					if (event.type === "tool_result") {
-						const toolText = event.data?.text || event.text || "";
-						if (toolText) {
-							lastToolCallDisplayRef.current =
-								(lastToolCallDisplayRef.current ? lastToolCallDisplayRef.current + "\n" : "") +
-								toolText;
-						}
-					}
-
-					if (event.type === "tool_message") {
+					if (event.type === "tool") {
 						const toolText = event.data?.text || event.text || "";
 						if (toolText) {
 							// Count the tool-message text toward the live context
@@ -748,6 +745,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 							// is never folded into committedContentRef, so it does
 							// not pollute the rendered assistant message.
 							toolMessageTokensRef.current += await countToolMessageTokens(model, toolText);
+							debouncedContextUpdate(committedContentRef.current);
 						}
 					}
 
