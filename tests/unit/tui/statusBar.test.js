@@ -29,14 +29,23 @@ describe("formatNumber", () => {
 });
 
 describe("formatSize", () => {
-	it("returns 0 for zero bytes", () => {
+	it("returns 0 for zero", () => {
 		assert.strictEqual(formatSize(0), "0");
 	});
 
-	it("formats positive byte count", () => {
-		const result = formatSize(1024);
-		assert.ok(typeof result === "string");
-		assert.ok(result.length > 0);
+	it("formats small numbers without a postfix", () => {
+		assert.strictEqual(formatSize(999), "999");
+		assert.strictEqual(formatSize(100), "100");
+	});
+
+	it("applies SI postfix to thousands", () => {
+		assert.strictEqual(formatSize(1000), "1k");
+		assert.strictEqual(formatSize(12200), "12.2k");
+	});
+
+	it("applies SI postfix to millions", () => {
+		assert.strictEqual(formatSize(1400000), "1.4M");
+		assert.strictEqual(formatSize(1234567), "1.2M");
 	});
 });
 
@@ -236,17 +245,17 @@ describe("StatusBar project display", () => {
 		);
 		assert.ok(typeof result === "string");
 		// The project tag must not sit immediately beside the model name.
-		// The model is rendered as "[gpt-4o]" and the project as "[foo]".
+		// The model is rendered as " gpt-4o" and the project as " ∙ foo".
 		// Between them must be at least the skills/messages/context/tokens
 		// elements, so the project tag should appear after the model in the
-		// rendered output but not as "[gpt-4o] [foo]".
+		// rendered output but not as "gpt-4o ∙ foo" adjacent.
 		const modelIndex = result.indexOf("gpt-4o");
 		const projectIndex = result.indexOf("foo");
 		assert.ok(modelIndex !== -1, "should render the model name");
 		assert.ok(projectIndex !== -1, "should render the project name");
 		assert.ok(projectIndex > modelIndex, "project tag should appear after the model name");
 		assert.ok(
-			!result.includes("[gpt-4o] [foo]"),
+			!result.includes("gpt-4o ∙ foo"),
 			"project tag should not be adjacent to the model name",
 		);
 	});
@@ -275,6 +284,53 @@ describe("StatusBar per-item visibility", () => {
 		assert.ok(result.includes("💎"), "should render the tokens glyph");
 		assert.ok(result.includes("A test quote"), "should render the quote");
 		assert.ok(result.includes("1.0.0"), "should render the version");
+	});
+
+	it("renders dot separators instead of brackets", () => {
+		const result = renderToString(React.createElement(StatusBar, baseProps));
+		assert.ok(typeof result === "string");
+		assert.ok(!result.includes("["), "should not render opening brackets");
+		assert.ok(!result.includes("]"), "should not render closing brackets");
+		assert.ok(result.includes("∙"), "should render the dot separator");
+	});
+
+	it("renders the model name with no leading dot", () => {
+		const result = renderToString(React.createElement(StatusBar, baseProps));
+		assert.ok(typeof result === "string");
+		// The model name is the first element after the streaming indicator
+		// and should not have a dot immediately before it. The streaming
+		// indicator "∙∙∙" precedes it, so check that the char immediately
+		// before the model name is a space, not a dot separator.
+		const modelIndex = result.indexOf("gpt-4o");
+		assert.ok(modelIndex !== -1, "should render the model name");
+		assert.ok(
+			result[modelIndex - 1] !== "∙",
+			"model name should have no dot immediately before it",
+		);
+	});
+
+	it("renders dot-space-glyph spacing for each element", () => {
+		const result = renderToString(React.createElement(StatusBar, baseProps));
+		assert.ok(typeof result === "string");
+		assert.ok(result.includes("∙ ⚡"), "skills should render as dot-space-glyph");
+		assert.ok(result.includes("∙ 💬"), "messages should render as dot-space-glyph");
+		assert.ok(result.includes("∙ ▦"), "context should render as dot-space-glyph");
+		assert.ok(result.includes("∙ 💎"), "tokens should render as dot-space-glyph");
+	});
+
+	it("applies SI postfix to context and token numbers", () => {
+		const result = renderToString(
+			React.createElement(StatusBar, {
+				...baseProps,
+				contextSize: 12200,
+				tokenCount: 1400000,
+				tokenBudget: 2000000,
+			}),
+		);
+		assert.ok(typeof result === "string");
+		assert.ok(result.includes("12.2k"), "context should use SI postfix");
+		assert.ok(result.includes("1.4M"), "token count should use SI postfix");
+		assert.ok(result.includes("2M"), "token budget should use SI postfix");
 	});
 
 	it("omits the skills element when statusBar.skills is false", () => {

@@ -2,7 +2,7 @@ import { describe, it, afterEach } from "node:test";
 import assert from "node:assert";
 import React from "react";
 import { render } from "ink";
-import { StatusBar, formatNumber } from "../../src/tui/statusBar.js";
+import { StatusBar, formatNumber, formatSize } from "../../src/tui/statusBar.js";
 
 describe("formatNumber", () => {
 	it("formats small numbers without separators", () => {
@@ -41,6 +41,22 @@ describe("formatNumber", () => {
 	it("returns string for non-numeric input", () => {
 		const result = formatNumber("test");
 		assert.strictEqual(result, "test", "Should return string as-is");
+	});
+});
+
+describe("formatSize", () => {
+	it("returns 0 for zero", () => {
+		assert.strictEqual(formatSize(0), "0");
+	});
+
+	it("applies SI postfix to thousands", () => {
+		assert.strictEqual(formatSize(1000), "1k");
+		assert.strictEqual(formatSize(12200), "12.2k");
+	});
+
+	it("applies SI postfix to millions", () => {
+		assert.strictEqual(formatSize(1400000), "1.4M");
+		assert.strictEqual(formatSize(1234567), "1.2M");
 	});
 });
 

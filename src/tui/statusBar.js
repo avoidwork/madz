@@ -24,14 +24,21 @@ export function formatNumber(num) {
 }
 
 /**
- * Convert a raw number to a human-readable abbreviated form (e.g., "12.2k", "1.4M").
+ * Convert a raw number to a human-readable abbreviated form with SI postfix (e.g., "12.2k", "1.4M").
  * @param {number} num - Number to convert
  * @returns {string} Human-readable string representation
  */
-export function formatSize(bytes) {
-	if (bytes === 0) return "0";
+export function formatSize(num) {
+	if (num === 0) return "0";
+	const abs = Math.abs(num);
+	const units = ["", "k", "M", "B", "T"];
+	const unitIndex = Math.min(Math.floor(Math.log10(abs) / 3), units.length - 1);
+	const scaled = num / Math.pow(10, unitIndex * 3);
 	const locale = Intl.DateTimeFormat().resolvedOptions().locale;
-	return new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(bytes);
+	const formatted = new Intl.NumberFormat(locale, {
+		maximumFractionDigits: scaled % 1 !== 0 ? 1 : 0,
+	}).format(scaled);
+	return formatted + units[unitIndex];
 }
 
 /**
@@ -91,41 +98,39 @@ export const StatusBar = React.memo(function StatusBar({
 					)
 				: React.createElement(Text, { color: "#606060" }, "∙∙∙"),
 
-			showModel
-				? React.createElement(Text, { key: "model", color: "#606060" }, " [" + model + "]")
-				: null,
+			showModel ? React.createElement(Text, { key: "model", color: "#606060" }, " " + model) : null,
 
 			showSkills
 				? React.createElement(
 						Text,
 						{ key: "skills", color: "#606060" },
-						" [\u26A1" + formatNumber(skillCount) + "] ",
+						" \u2219 \u26A1 " + formatNumber(skillCount),
 					)
 				: null,
 			showMessages
 				? React.createElement(
 						Text,
 						{ key: "messages", color: "#606060" },
-						"[\u{1F4AC} " + formatNumber(messageCount) + "] ",
+						" \u2219 \u{1F4AC} " + formatNumber(messageCount),
 					)
 				: null,
 			showContext
 				? React.createElement(
 						Text,
 						{ key: "context", color: contextColor },
-						"[\u25A6 " + formatSize(contextSize) + "]",
+						" \u2219 \u25A6 " + formatSize(contextSize),
 					)
 				: null,
 			showTokens
 				? React.createElement(
 						Text,
 						{ key: "tokens", color: "#606060" },
-						" [\u{1F48E} " + formatNumber(tokenCount) + "/" + formatNumber(tokenBudget) + "]",
+						" \u2219 \u{1F48E} " + formatSize(tokenCount) + "/" + formatSize(tokenBudget),
 					)
 				: null,
 
 			showProject
-				? React.createElement(Text, { key: "project", color: "#606060" }, " [" + projectName + "]")
+				? React.createElement(Text, { key: "project", color: "#606060" }, " \u2219 " + projectName)
 				: null,
 		),
 		showVersion
