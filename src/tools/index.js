@@ -301,6 +301,7 @@ export async function buildToolConfig(options) {
 	const searchExa = search?.exa || {};
 	const searchFirecrawl = search?.firecrawl || {};
 	const searchTavily = search?.tavily || {};
+	const searchBrave = search?.brave || {};
 	const searchParallel = search?.parallel || {};
 	const searchSearxng = search?.searxng || {};
 	const searchBing = search?.bing || {};
@@ -326,6 +327,7 @@ export async function buildToolConfig(options) {
 		searchExaApiKey: searchExa?.apiKey,
 		searchFirecrawlApiKey: searchFirecrawl?.apiKey,
 		searchTavilyApiKey: searchTavily?.apiKey,
+		searchBraveApiKey: searchBrave?.apiKey,
 		searchParallelApiKey: searchParallel?.apiKey,
 		searchSearxngUrl: searchSearxng?.url,
 		searchBingApiKey: searchBing?.apiKey,
