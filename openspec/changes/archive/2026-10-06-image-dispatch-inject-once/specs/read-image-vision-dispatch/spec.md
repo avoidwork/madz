@@ -1,22 +1,4 @@
-# read-image-vision-dispatch Specification
-
-## Purpose
-TBD - created by archiving change read-image-vision-dispatch. Update Purpose after archive.
-## Requirements
-### Requirement: Build multimodal content from image data
-The system SHALL provide a `sendImage` content-builder that constructs a multimodal content array `[{ type: "text", text }, { type: "image_url", image_url: { url: "data:<mimeType>;base64,<data>" } }]` from `{ data, mimeType, text }`, where `data` is base64-encoded image bytes and `mimeType` is the detected image MIME type.
-
-#### Scenario: Successful content construction
-- **WHEN** `sendImage` is invoked with valid `{ data, mimeType, text }`
-- **THEN** it returns a content array with a text block containing `text` and an `image_url` block whose `url` is `data:<mimeType>;base64,<data>`
-
-#### Scenario: Unknown MIME type defaults to image/png
-- **WHEN** `sendImage` is invoked with an unknown or absent `mimeType`
-- **THEN** it defaults the MIME type to `image/png` and constructs the data URI accordingly
-
-#### Scenario: Missing or empty data is rejected
-- **WHEN** `sendImage` is invoked with missing or empty `data`
-- **THEN** it rejects the input via schema validation
+## MODIFIED Requirements
 
 ### Requirement: Dispatch readImage result to LLM as vision input
 The system SHALL provide a `wrapModelCall` middleware that observes a `readImage` ToolMessage in `request.messages`, parses the tool result JSON (`{ ok, mimeType, data }`), builds a multimodal content array, and injects a HumanMessage with that content into `request.messages` before invoking the handler. The image SHALL be injected only on the turn immediately following the `readImage` call (tracked by `tool_call_id`), SHALL be paired with the prompt that triggered the `readImage` call rather than the most recent user prompt, and SHALL strip the base64 payload from the ToolMessage content so the model never receives it as plain text tokens.
@@ -48,11 +30,3 @@ The system SHALL provide a `wrapModelCall` middleware that observes a `readImage
 #### Scenario: No readImage messages is a no-op
 - **WHEN** no `readImage` ToolMessage is present in `request.messages`
 - **THEN** the middleware invokes the handler without modifying `request.messages`
-
-### Requirement: Register image dispatch middleware in orchestrator
-The system SHALL register the image dispatch middleware in the `createDeepAgent` middleware array, after the summarization middleware and before the token-budget middleware.
-
-#### Scenario: Middleware is registered in the correct order
-- **WHEN** the orchestrator is created
-- **THEN** the image dispatch middleware is present in the `middleware` array after summarization and before token-budget
-

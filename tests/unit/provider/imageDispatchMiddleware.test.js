@@ -53,6 +53,114 @@ describe("imageDispatchMiddleware wrapModelCall", () => {
 		});
 	});
 
+	it("strips the base64 payload from the readImage ToolMessage content", async () => {
+		const mw = createImageDispatchMiddleware();
+		const request = makeRequest([
+			new HumanMessage({ content: "analyze this screenshot" }),
+			new AIMessage({
+				content: "reading",
+				tool_calls: [{ name: "readImage", args: { path: "/tmp/x.png" }, id: "call_1" }],
+			}),
+			new ToolMessage({
+				content: JSON.stringify({ ok: true, mimeType: "image/png", data: "iVBORw0KGgo=" }),
+				name: "readImage",
+				tool_call_id: "call_1",
+			}),
+		]);
+
+		let captured;
+		await mw.wrapModelCall(request, async (req) => {
+			captured = req;
+			return { content: "ok" };
+		});
+
+		const toolMsg = captured.messages.find((m) => m._getType() === "tool");
+		assert.strictEqual(toolMsg.content, "Image read successfully.");
+	});
+
+	it("pairs the image with the triggering prompt, not the most recent one", async () => {
+		const mw = createImageDispatchMiddleware();
+		// The readImage call was triggered by "analyze this screenshot", but a
+		// later unrelated HumanMessage precedes the tool result in the message
+		// list. The image must pair with the triggering prompt.
+		const request = makeRequest([
+			new HumanMessage({ content: "analyze this screenshot" }),
+			new AIMessage({
+				content: "reading",
+				tool_calls: [{ name: "readImage", args: { path: "/tmp/x.png" }, id: "call_1" }],
+			}),
+			new ToolMessage({
+				content: JSON.stringify({ ok: true, mimeType: "image/png", data: "iVBORw0KGgo=" }),
+				name: "readImage",
+				tool_call_id: "call_1",
+			}),
+			new HumanMessage({ content: "summarize this code" }),
+		]);
+
+		let captured;
+		await mw.wrapModelCall(request, async (req) => {
+			captured = req;
+			return { content: "ok" };
+		});
+
+		const last = captured.messages[captured.messages.length - 1];
+		assert.strictEqual(last._getType(), "human");
+		assert.deepStrictEqual(last.content[0], { type: "text", text: "analyze this screenshot" });
+	});
+
+	it("injects the image only once and does not re-attach it to a later unrelated prompt", async () => {
+		const mw = createImageDispatchMiddleware();
+		const readImageToolMessage = new ToolMessage({
+			content: JSON.stringify({ ok: true, mimeType: "image/png", data: "iVBORw0KGgo=" }),
+			name: "readImage",
+			tool_call_id: "call_1",
+		});
+
+		// Turn 1: the readImage call is processed — image is injected.
+		const turn1 = makeRequest([
+			new HumanMessage({ content: "analyze this screenshot" }),
+			new AIMessage({
+				content: "reading",
+				tool_calls: [{ name: "readImage", args: { path: "/tmp/x.png" }, id: "call_1" }],
+			}),
+			readImageToolMessage,
+		]);
+
+		let captured1;
+		await mw.wrapModelCall(turn1, async (req) => {
+			captured1 = req;
+			return { content: "ok" };
+		});
+
+		const last1 = captured1.messages[captured1.messages.length - 1];
+		assert.strictEqual(last1._getType(), "human");
+		assert.strictEqual(last1.content.length, 2);
+		assert.strictEqual(last1.content[1].type, "image_url");
+
+		// Turn 2: an unrelated prompt. The readImage ToolMessage is still in
+		// state, but it was already dispatched — no image should be injected.
+		const turn2 = makeRequest([
+			new HumanMessage({ content: "summarize this code" }),
+			readImageToolMessage,
+		]);
+
+		let captured2;
+		await mw.wrapModelCall(turn2, async (req) => {
+			captured2 = req;
+			return { content: "ok" };
+		});
+
+		assert.strictEqual(captured2.messages.length, 2);
+		// No new multimodal HumanMessage was injected — the image is not
+		// re-attached to the unrelated prompt.
+		const hasImageBlock = captured2.messages.some(
+			(m) => Array.isArray(m.content) && m.content.some((b) => b?.type === "image_url"),
+		);
+		assert.strictEqual(hasImageBlock, false);
+		const human2 = captured2.messages.find((m) => m._getType() === "human");
+		assert.strictEqual(human2.content, "summarize this code");
+	});
+
 	it("defaults unknown MIME type to image/png", async () => {
 		const mw = createImageDispatchMiddleware();
 		const request = makeRequest([
