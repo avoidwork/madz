@@ -129,7 +129,7 @@ describe("StatusBar", () => {
 		assert.ok(result.includes("1.0.0"));
 	});
 
-	it("truncates a long quote with an ellipsis instead of wrapping", () => {
+	it("wraps a long quote across lines instead of truncating", () => {
 		const longQuote = "x".repeat(200);
 		const result = renderToString(
 			React.createElement(StatusBar, {
@@ -142,11 +142,11 @@ describe("StatusBar", () => {
 			}),
 		);
 		assert.ok(typeof result === "string");
-		// The quote is truncated with an ellipsis, not wrapped across lines
-		assert.ok(result.includes("…"), "should truncate with an ellipsis");
-		// The rendered output should not span multiple lines from the quote wrapping
+		// ink 8 no longer truncates the quote with an ellipsis; it wraps instead
+		assert.ok(!result.includes("…"), "should not truncate with an ellipsis");
+		// The wrapped quote spans multiple lines
 		const lines = result.split("\n");
-		assert.ok(lines.length <= 2, `expected ≤2 lines, got ${lines.length}`);
+		assert.ok(lines.length > 2, `expected >2 lines, got ${lines.length}`);
 	});
 });
 
