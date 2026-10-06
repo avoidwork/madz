@@ -58,7 +58,7 @@
   "devDependencies": {
     "auto-changelog": "^2.7.0",
     "husky": "^9.1.7",
-    "oxfmt": "^0.71.0",
+    "oxfmt": "^0.72.0",
     "oxlint": "^1.86.0"
   },
   "dependencies": {
@@ -85,7 +85,7 @@
     "deepagents": "^1.14.1",
     "exceljs": "^4.4.0",
     "fast-glob": "^3.3.3",
-    "googleapis": "^182.0.0",
+    "googleapis": "^183.0.0",
     "imap-simple": "^5.1.0",
     "ink": "^7.1.1",
     "ink-scroll-view": "^0.4.0",
