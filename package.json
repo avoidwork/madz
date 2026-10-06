@@ -37,8 +37,8 @@
   "bin": "index.js",
   "scripts": {
     "start": "node index.js --mode interactive",
-    "test": "mkdir -p tmp/ && node --test 'tests/**/*.test.js'",
-    "coverage": "set -o pipefail && mkdir -p tmp/ && node --test --experimental-test-coverage --test-coverage-exclude=dist/** --test-coverage-exclude=tests/** --test-coverage-exclude=src/tui/onboardingPanel.js --test-coverage-exclude=src/tui/conversationArea.js --test-coverage-exclude=src/tools/calendar/providers/ --test-coverage-exclude=src/tools/email/providers/ --test-coverage-exclude=src/tools/web/browser.js --test-reporter=spec 'tests/**/*.test.js' 2>&1 | grep -A 1000 \"start of coverage report\" > coverage.txt",
+    "test": "mkdir -p tmp/ && env -u TAVILY_API_KEY node --test 'tests/**/*.test.js'",
+    "coverage": "set -o pipefail && mkdir -p tmp/ && env -u TAVILY_API_KEY node --test --experimental-test-coverage --test-coverage-exclude=dist/** --test-coverage-exclude=tests/** --test-coverage-exclude=src/tui/onboardingPanel.js --test-coverage-exclude=src/tui/conversationArea.js --test-coverage-exclude=src/tools/calendar/providers/ --test-coverage-exclude=src/tools/email/providers/ --test-coverage-exclude=src/tools/web/browser.js --test-reporter=spec 'tests/**/*.test.js' 2>&1 | grep -A 1000 \"start of coverage report\" > coverage.txt",
     "fix": "oxlint --fix *.js src tests/unit tests/integration tests/tui && oxfmt *.js src tests/unit tests/integration tests/tui --write",
     "lint": "oxlint *.js src tests/unit tests/integration tests/tui && oxfmt *.js src tests/unit tests/integration tests/tui --check",
     "docker:build": "docker build -t madz:latest .",
