@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, forwardRef } from "react";
+import React, { useRef, useEffect, useState, forwardRef, useCallback } from "react";
 import { Box, Text, useStdout, useWindowSize } from "ink";
 import { ScrollView } from "./scrollView.js";
 import { MessageBubble, PubSubContext, ScrollContext } from "./messageBubble.js";
@@ -428,13 +428,16 @@ export const MessageList = React.memo(
 		// Fires on children array changes — covers user, system, and assistant messages.
 		// Uses the imperative scrollToBottom() API exposed by ScrollView.
 		// Respects manual scroll-up detection: only auto-scrolls when user is at bottom.
-		const handleContentHeightChange = (height, previousHeight) => {
-			if (!scrollRef.current || height <= previousHeight) return;
-			// Respect manual scroll-up: don't jump user back to bottom if they're reading
-			if (isUserScrolledUpRef.current) return;
-			scrollRef.current.scrollToBottom?.();
-			lastMsgCountRef.current = idsRef.current.length;
-		};
+		const handleContentHeightChange = useCallback(
+			(height, previousHeight) => {
+				if (!scrollRef.current || height <= previousHeight) return;
+				// Respect manual scroll-up: don't jump user back to bottom if they're reading
+				if (isUserScrolledUpRef.current) return;
+				scrollRef.current.scrollToBottom?.();
+				lastMsgCountRef.current = idsRef.current.length;
+			},
+			[scrollRef, isUserScrolledUpRef, idsRef],
+		);
 
 		// Virtual render window — removed. All messages are now rendered
 		// through the ScrollView mechanism. The data layer stores all messages
