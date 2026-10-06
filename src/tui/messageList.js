@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, forwardRef } from "react";
 import { Box, Text, useStdout, useWindowSize } from "ink";
-import { ScrollView } from "ink-scroll-view";
+import { ScrollView } from "./scrollView.js";
 import { MessageBubble, PubSubContext, ScrollContext } from "./messageBubble.js";
 
 /**
