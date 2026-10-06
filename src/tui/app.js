@@ -12,6 +12,7 @@ import { SettingsPanel } from "./settingsPanel.js";
 import { SessionsPanel } from "./sessionsPanel.js";
 import { ProjectsPanel } from "./projectsPanel.js";
 import { getActiveProviderConfig } from "../provider/index.js";
+import { useMouseScroll } from "./useMouseScroll.js";
 
 /**
  * App router — holds cross-cutting state and view routing.
@@ -422,6 +423,14 @@ function App({
 					conversationAreaRef.current?.getViewportHeight?.() || 1,
 				);
 		}
+	});
+
+	// Mouse-wheel scrolling — only active in the conversation view with the
+	// file picker closed, matching the keyboard scroll routing above.
+	useMouseScroll((delta) => {
+		if (currentView !== PANELS.CONVERSATION) return;
+		if (inputAreaRef.current?.isPickerOpen?.()) return;
+		conversationAreaRef.current?.scrollBy(delta);
 	});
 
 	const { rows } = useWindowSize();

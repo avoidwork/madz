@@ -439,6 +439,17 @@ export const MessageList = React.memo(
 			[scrollRef, isUserScrolledUpRef, idsRef],
 		);
 
+		// Track manual scroll position via the ScrollView's onScroll callback.
+		// When the user scrolls away from the bottom (mouse or keyboard), suppress
+		// auto-scroll; when they return to the bottom, resume it.
+		const handleScroll = useCallback(
+			(offset) => {
+				const bottom = scrollRef.current?.getBottomOffset?.() || 0;
+				isUserScrolledUpRef.current = offset < bottom;
+			},
+			[scrollRef, isUserScrolledUpRef],
+		);
+
 		// Virtual render window — removed. All messages are now rendered
 		// through the ScrollView mechanism. The data layer stores all messages
 		// and the render layer renders all of them without a cap.
@@ -528,6 +539,7 @@ export const MessageList = React.memo(
 							key: "scroll",
 							height: scrollViewportHeight,
 							onContentHeightChange: handleContentHeightChange,
+							onScroll: handleScroll,
 						},
 						...children,
 					),

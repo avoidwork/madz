@@ -1,7 +1,9 @@
 ## Purpose
 
 The TUI conversation panel SHALL render message history in a scrollable container and support keyboard and mouse-wheel scrolling, with auto-scroll suppression when the user manually scrolls away from the bottom.
-## Requirements
+
+## MODIFIED Requirements
+
 ### Requirement: MessageList uses ScrollView for rendering messages
 The MessageList component SHALL render messages inside the custom `ScrollView` component from `src/tui/scrollView.js` rather than manually slicing a messages array. ConversationPanel delegates all rendering to MessageList and does not directly render messages.
 
@@ -78,6 +80,8 @@ The `app.js` component SHALL NOT maintain message history as a mutable state arr
 - **WHEN** `app.js` renders ConversationPanel
 - **THEN** it passes an initial `messages` array (for session restore), an optional `messageListRef` for imperative access, and `assistantName`, with all other message/scroll updates handled imperatively through the ref
 
+## ADDED Requirements
+
 ### Requirement: MessageList supports mouse-wheel scrolling
 The MessageList component SHALL support mouse-wheel scrolling via the `useMouseScroll` hook, which parses SGR mouse sequences and drives the custom `ScrollView`'s `scrollBy` API. Mouse scrolling integrates with the existing scroll-up suppression so auto-scroll on new messages is suppressed when the user scrolls up.
 
@@ -88,4 +92,3 @@ The MessageList component SHALL support mouse-wheel scrolling via the `useMouseS
 #### Scenario: Mouse scroll-up suppresses auto-scroll
 - **WHEN** the user scrolls up via mouse
 - **THEN** `isUserScrolledUpRef` is set to `true`, suppressing auto-scroll on new messages until the user returns to the bottom
-
