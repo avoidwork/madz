@@ -1,3 +1,7 @@
+## Purpose
+
+The TUI conversation panel SHALL support mouse-wheel scrolling via SGR mouse sequence parsing, driving the custom ScrollView's `scrollBy` API and integrating with scroll-up suppression.
+
 ## ADDED Requirements
 
 ### Requirement: Mouse-wheel scrolling drives the ScrollView scroll API

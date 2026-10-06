@@ -1,3 +1,7 @@
+## Purpose
+
+The TUI conversation panel SHALL render message history in a scrollable container and support keyboard and mouse-wheel scrolling, with auto-scroll suppression when the user manually scrolls away from the bottom.
+
 ## MODIFIED Requirements
 
 ### Requirement: MessageList uses ScrollView for rendering messages
