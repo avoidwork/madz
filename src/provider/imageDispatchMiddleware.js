@@ -1,5 +1,5 @@
 import { createMiddleware } from "langchain";
-import { HumanMessage } from "@langchain/core/messages";
+import { HumanMessage, ToolMessage } from "@langchain/core/messages";
 import { sendImageImpl } from "../tools/image/sendImage.js";
 import { logger } from "../shared/logger.js";
 
@@ -14,6 +14,12 @@ import { logger } from "../shared/logger.js";
  * invoking the handler. This pairs the user's prompt (the message that
  * triggered the `readImage` call) with the image as vision input.
  *
+ * The image is injected only on the turn immediately following the `readImage`
+ * call — a closure-level Set of dispatched `tool_call_id`s prevents the image
+ * from being re-attached to unrelated subsequent prompts. The base64 payload is
+ * stripped from the ToolMessage content (replaced with a short stub) so the
+ * model never receives it as plain text tokens.
+ *
  * Register it AFTER the summarization middleware and BEFORE the token-budget
  * middleware in `createDeepAgent({ middleware: [...] })`. `AgentNode` composes
  * the chain backwards, so the last entry is innermost: registering after
@@ -24,38 +30,100 @@ import { logger } from "../shared/logger.js";
  * @returns {Object} The middleware
  */
 export function createImageDispatchMiddleware() {
+	// Track which `readImage` tool_call_ids have already been dispatched so the
+	// image is injected only on the turn immediately following the `readImage`
+	// call, not re-attached to unrelated subsequent prompts.
+	const dispatchedToolCallIds = new Set();
+
 	return createMiddleware({
 		name: "ImageDispatch",
 		async wrapModelCall(request, handler) {
 			const messages = Array.isArray(request.messages) ? request.messages : [];
 			const imageBlocks = [];
+			const toolCallPrompts = new Map();
 			let userPrompt = null;
 
-			// Track the most recent HumanMessage so we can pair the image with
-			// the user's prompt that triggered the `readImage` call.
+			// First pass: record the triggering prompt for each `readImage`
+			// tool_call_id (the HumanMessage that preceded the AIMessage that
+			// made the call), and collect image blocks for undispatched results.
+			// Build a replacement message list so the base64 payload is stripped
+			// from the ToolMessage content without mutating the persisted state
+			// objects (which `request.messages` shares with the checkpointer).
+			const strippedMessages = [];
 			for (const message of messages) {
 				const type = message._getType?.() ?? message.type ?? message.role;
 				if (type === "human") {
 					userPrompt = extractText(message.content);
+					strippedMessages.push(message);
 					continue;
 				}
-				if (type !== "tool") continue;
-				if (message.name !== "readImage") continue;
+				if (type === "ai") {
+					const toolCalls = message.tool_calls || [];
+					for (const tc of toolCalls) {
+						if (tc.name === "readImage") {
+							toolCallPrompts.set(tc.id, userPrompt);
+						}
+					}
+					strippedMessages.push(message);
+					continue;
+				}
+				if (type !== "tool") {
+					strippedMessages.push(message);
+					continue;
+				}
+				if (message.name !== "readImage") {
+					strippedMessages.push(message);
+					continue;
+				}
+
+				const toolCallId = message.tool_call_id;
+				if (dispatchedToolCallIds.has(toolCallId)) {
+					// Already dispatched on a prior turn; keep the stub content so
+					// the model never sees the base64 as text.
+					strippedMessages.push(
+						new ToolMessage({
+							content: "Image read successfully.",
+							name: message.name,
+							tool_call_id: toolCallId,
+						}),
+					);
+					continue;
+				}
 
 				const block = buildImageBlock(message.content);
-				if (block) imageBlocks.push(block);
+				if (block) {
+					imageBlocks.push({ toolCallId, block });
+					dispatchedToolCallIds.add(toolCallId);
+					// Replace the ToolMessage with a stub so the base64 payload is
+					// not sent to the model as plain text tokens.
+					strippedMessages.push(
+						new ToolMessage({
+							content: "Image read successfully.",
+							name: message.name,
+							tool_call_id: toolCallId,
+						}),
+					);
+				} else {
+					strippedMessages.push(message);
+				}
 			}
 
 			if (imageBlocks.length > 0) {
+				// Pair the image with the prompt that triggered the `readImage`
+				// call, not the most recent user prompt.
+				const triggerPrompt =
+					toolCallPrompts.get(imageBlocks[0].toolCallId) ?? "Analyze the provided image.";
 				const content = [
-					{ type: "text", text: userPrompt ?? "Analyze the provided image." },
-					...imageBlocks,
+					{ type: "text", text: triggerPrompt },
+					...imageBlocks.map(({ block }) => block),
 				];
-				request.messages = [...messages, new HumanMessage({ content })];
+				request.messages = [...strippedMessages, new HumanMessage({ content })];
 				logger.debug(
 					{ imageBlocks: imageBlocks.length },
 					"[imageDispatch] injected multimodal HumanMessage",
 				);
+			} else {
+				request.messages = strippedMessages;
 			}
 
 			return handler(request);
