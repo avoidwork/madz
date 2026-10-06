@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
  * Regex matching SGR mouse sequences: `\x1b[<b;x;yM` (press) or `\x1b[<b;x;ym` (release).
  * Group 1 = button code, Group 2 = x, Group 3 = y, Group 4 = M (press) or m (release).
  */
+// eslint-disable-next-line no-control-regex -- matching ESC control sequences is the purpose of this regex
 const SGR_MOUSE_RE = /\x1b\[<(\d+);(\d+);(\d+)([Mm])/g;
 
 /**
