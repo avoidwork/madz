@@ -69,6 +69,10 @@ describe("useMouseScroll hook", () => {
 	let instances;
 
 	beforeEach(() => {
+		// Clear the ambient CI flag so the hook's CI guard doesn't bail early.
+		// GitHub Actions sets process.env.CI=true, which would otherwise prevent
+		// the hook from attaching and break the enable/disable tests.
+		delete process.env.CI;
 		stdinListeners = new Map();
 		stdoutWrites = [];
 		instances = [];
