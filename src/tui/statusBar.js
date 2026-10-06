@@ -141,10 +141,14 @@ export const StatusBar = React.memo(function StatusBar({
 						? React.createElement(
 								Box,
 								{ key: "quote", flexShrink: 1, minWidth: 0 },
-								React.createElement(Text, { color: "#606060" }, quote + "  "),
+								React.createElement(Text, { color: "#606060", wrap: "truncate-end" }, quote + "  "),
 							)
 						: null,
-					React.createElement(Text, { key: "version", color: "#606060" }, version),
+					React.createElement(
+						Text,
+						{ key: "version", color: "#606060", width: 10, flexShrink: 0, wrap: "truncate-end" },
+						version,
+					),
 				)
 			: null,
 	);

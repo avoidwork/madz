@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
 import React from "react";
-import { renderToString } from "ink";
+import { Box, renderToString } from "ink";
 import { formatNumber, formatSize, StatusBar } from "../../../src/tui/statusBar.js";
 import { QUOTES, getRandomQuoteIndex } from "../../../src/tui/quotes.js";
 
@@ -129,24 +129,28 @@ describe("StatusBar", () => {
 		assert.ok(result.includes("1.0.0"));
 	});
 
-	it("wraps a long quote across lines instead of truncating", () => {
+	it("truncates a long quote to a single line instead of wrapping", () => {
 		const longQuote = "x".repeat(200);
 		const result = renderToString(
-			React.createElement(StatusBar, {
-				statusMessage: "Ready",
-				skillCount: 1,
-				messageCount: 2,
-				contextSize: 3,
-				version: "1.0.0",
-				quote: longQuote,
-			}),
+			React.createElement(
+				Box,
+				{ width: 40 },
+				React.createElement(StatusBar, {
+					statusMessage: "Ready",
+					skillCount: 1,
+					messageCount: 2,
+					contextSize: 3,
+					version: "1.0.0",
+					quote: longQuote,
+				}),
+			),
 		);
 		assert.ok(typeof result === "string");
-		// ink 8 no longer truncates the quote with an ellipsis; it wraps instead
-		assert.ok(!result.includes("…"), "should not truncate with an ellipsis");
-		// The wrapped quote spans multiple lines
+		// The quote is truncated with an ellipsis rather than wrapping across lines
+		assert.ok(result.includes("…"), "should truncate with an ellipsis");
+		// The truncated quote stays on a single line
 		const lines = result.split("\n");
-		assert.ok(lines.length > 2, `expected >2 lines, got ${lines.length}`);
+		assert.ok(lines.length <= 2, `expected <=2 lines, got ${lines.length}`);
 	});
 });
 
