@@ -13,37 +13,55 @@ const { parseSgrMouseSequence, buttonToDelta, useMouseScroll } =
 
 describe("parseSgrMouseSequence", () => {
 	it("parses a wheel-up press sequence", () => {
-		const results = parseSgrMouseSequence("\x1b[<64;10;5M");
-		assert.strictEqual(results.length, 1);
-		assert.strictEqual(results[0].button, 64);
-		assert.strictEqual(results[0].x, 10);
-		assert.strictEqual(results[0].y, 5);
-		assert.strictEqual(results[0].isPress, true);
+		const { events, lastIndex } = parseSgrMouseSequence("\x1b[<64;10;5M");
+		assert.strictEqual(events.length, 1);
+		assert.strictEqual(events[0].button, 64);
+		assert.strictEqual(events[0].x, 10);
+		assert.strictEqual(events[0].y, 5);
+		assert.strictEqual(events[0].isPress, true);
+		assert.strictEqual(lastIndex, "\x1b[<64;10;5M".length);
 	});
 
 	it("parses a wheel-down press sequence", () => {
-		const results = parseSgrMouseSequence("\x1b[<65;10;5M");
-		assert.strictEqual(results.length, 1);
-		assert.strictEqual(results[0].button, 65);
-		assert.strictEqual(results[0].isPress, true);
+		const { events } = parseSgrMouseSequence("\x1b[<65;10;5M");
+		assert.strictEqual(events.length, 1);
+		assert.strictEqual(events[0].button, 65);
+		assert.strictEqual(events[0].isPress, true);
 	});
 
 	it("parses a release sequence", () => {
-		const results = parseSgrMouseSequence("\x1b[<0;10;5m");
-		assert.strictEqual(results.length, 1);
-		assert.strictEqual(results[0].button, 0);
-		assert.strictEqual(results[0].isPress, false);
+		const { events } = parseSgrMouseSequence("\x1b[<0;10;5m");
+		assert.strictEqual(events.length, 1);
+		assert.strictEqual(events[0].button, 0);
+		assert.strictEqual(events[0].isPress, false);
 	});
 
 	it("parses multiple sequences in one buffer", () => {
-		const results = parseSgrMouseSequence("\x1b[<64;1;1M\x1b[<65;2;2M");
-		assert.strictEqual(results.length, 2);
-		assert.strictEqual(results[0].button, 64);
-		assert.strictEqual(results[1].button, 65);
+		const { events } = parseSgrMouseSequence("\x1b[<64;1;1M\x1b[<65;2;2M");
+		assert.strictEqual(events.length, 2);
+		assert.strictEqual(events[0].button, 64);
+		assert.strictEqual(events[1].button, 65);
 	});
 
 	it("returns empty for non-mouse input", () => {
-		assert.deepStrictEqual(parseSgrMouseSequence("hello world"), []);
+		const { events } = parseSgrMouseSequence("hello world");
+		assert.deepStrictEqual(events, []);
+	});
+
+	it("reports lastIndex at the first unconsumed byte for a partial sequence", () => {
+		// A complete sequence followed by a trailing partial sequence (split
+		// across chunks). lastIndex must point at the start of the partial tail
+		// so the caller can retain it for the next chunk.
+		const { events, lastIndex } = parseSgrMouseSequence("\x1b[<64;10;5M\x1b[<65;");
+		assert.strictEqual(events.length, 1);
+		assert.strictEqual(events[0].button, 64);
+		assert.strictEqual(lastIndex, "\x1b[<64;10;5M".length);
+	});
+
+	it("reports lastIndex 0 when no complete sequence is present", () => {
+		const { events, lastIndex } = parseSgrMouseSequence("\x1b[<64;");
+		assert.strictEqual(events.length, 0);
+		assert.strictEqual(lastIndex, 0);
 	});
 });
 
@@ -168,6 +186,31 @@ describe("useMouseScroll hook", () => {
 		const handler = stdinListeners.get("data");
 		handler(Buffer.from("\x1b[<64;10;5m"));
 		assert.strictEqual(delta, null);
+	});
+
+	it("handles a mouse sequence split across multiple chunks", () => {
+		let deltas = [];
+		mountHook((d) => {
+			deltas.push(d);
+		});
+		const handler = stdinListeners.get("data");
+		assert.ok(handler, "data listener should be attached");
+		// Terminal may split a sequence arbitrarily across writes.
+		handler(Buffer.from("\x1b[<64;10;"));
+		handler(Buffer.from("5M"));
+		assert.deepStrictEqual(deltas, [-1]);
+	});
+
+	it("handles a partial sequence followed by a complete one in a later chunk", () => {
+		let deltas = [];
+		mountHook((d) => {
+			deltas.push(d);
+		});
+		const handler = stdinListeners.get("data");
+		// First chunk ends mid-sequence; second chunk completes it plus a new one.
+		handler(Buffer.from("\x1b[<64;"));
+		handler(Buffer.from("10;5M\x1b[<65;20;6M"));
+		assert.deepStrictEqual(deltas, [-1, 1]);
 	});
 
 	it("does not attach when stdout is not a TTY", () => {

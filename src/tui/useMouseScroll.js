@@ -9,21 +9,26 @@ const SGR_MOUSE_RE = /\x1b\[<(\d+);(\d+);(\d+)([Mm])/g;
 /**
  * Parse SGR mouse sequences from a data buffer.
  * @param {string} data - Raw terminal input
- * @returns {Array<{button: number, x: number, y: number, isPress: boolean}>} Parsed sequences
+ * @returns {{ events: Array<{button: number, x: number, y: number, isPress: boolean}>, lastIndex: number }}
+ *   Parsed sequences plus the index of the first unconsumed byte. Callers use
+ *   `lastIndex` to retain trailing partial data (an incomplete sequence split
+ *   across chunks) for the next call.
  */
 export function parseSgrMouseSequence(data) {
-	const results = [];
+	const events = [];
 	let match;
+	let lastIndex = 0;
 	SGR_MOUSE_RE.lastIndex = 0;
 	while ((match = SGR_MOUSE_RE.exec(data)) !== null) {
-		results.push({
+		events.push({
 			button: Number.parseInt(match[1], 10),
 			x: Number.parseInt(match[2], 10),
 			y: Number.parseInt(match[3], 10),
 			isPress: match[4] === "M",
 		});
+		lastIndex = SGR_MOUSE_RE.lastIndex;
 	}
-	return results;
+	return { events, lastIndex };
 }
 
 /**
@@ -62,17 +67,12 @@ export function useMouseScroll(onScroll) {
 
 		const handleData = (chunk) => {
 			bufferRef.current += chunk.toString();
-			const re = /\x1b\[<(\d+);(\d+);(\d+)([Mm])/g;
-			let match;
-			let lastIndex = 0;
-			while ((match = re.exec(bufferRef.current)) !== null) {
-				const button = Number.parseInt(match[1], 10);
-				const isPress = match[4] === "M";
-				if (isPress) {
-					const delta = buttonToDelta(button);
+			const { events, lastIndex } = parseSgrMouseSequence(bufferRef.current);
+			for (const event of events) {
+				if (event.isPress) {
+					const delta = buttonToDelta(event.button);
 					if (delta !== null) onScrollRef.current?.(delta);
 				}
-				lastIndex = re.lastIndex;
 			}
 			// Keep only trailing partial data after the last complete match.
 			bufferRef.current = bufferRef.current.slice(lastIndex);
