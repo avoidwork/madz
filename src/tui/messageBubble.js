@@ -281,13 +281,13 @@ export function MessageBubbleInner({
 		if (seg.type === "reasoning") {
 			return React.createElement(
 				Box,
-				{ key: `seg-${i}`, flexDirection: "row", marginLeft: 2 },
+				{ key: `seg-${i}`, flexDirection: "row", marginLeft: 2, flexShrink: 0 },
 				React.createElement(Text, { color: "gray" }, seg.content),
 			);
 		}
 		return React.createElement(
 			Box,
-			{ key: `seg-${i}`, flexDirection: "row" },
+			{ key: `seg-${i}`, flexDirection: "row", flexShrink: 0 },
 			React.createElement(MarkdownText, {
 				content: seg.content,
 				color: role === "system" ? "orange" : undefined,
@@ -300,7 +300,7 @@ export function MessageBubbleInner({
 		!hasReasoning && segments.length === 0 && localContent
 			? React.createElement(
 					Box,
-					{ flexDirection: "row" },
+					{ flexDirection: "row", flexShrink: 0 },
 					React.createElement(MarkdownText, {
 						content: localContent,
 						color: role === "system" ? "orange" : undefined,
@@ -311,7 +311,7 @@ export function MessageBubbleInner({
 	const toolCallEl = hasActiveToolCall
 		? React.createElement(
 				Box,
-				{ flexDirection: "row", marginLeft: 2 },
+				{ flexDirection: "row", marginLeft: 2, flexShrink: 0 },
 				React.createElement(Text, { color: "gray" }, `- Running: ${localActiveToolCall.name} ...`),
 			)
 		: null;
@@ -319,7 +319,7 @@ export function MessageBubbleInner({
 	const toolDisplayEl = hasToolCallDisplay
 		? React.createElement(
 				Box,
-				{ flexDirection: "column", marginLeft: 2 },
+				{ flexDirection: "column", marginLeft: 2, flexShrink: 0 },
 				...localToolCallDisplay
 					.split("\n")
 					.map((line, i) =>
@@ -370,7 +370,7 @@ export function MessageBubbleInner({
 		role === "assistant" && (localStreaming || localTurnDuration)
 			? React.createElement(
 					Box,
-					{ flexDirection: "row", marginLeft: 2 },
+					{ flexDirection: "row", marginLeft: 2, flexShrink: 0 },
 					React.createElement(Text, { color: "gray" }, `⏱ ${formatElapsed(displayElapsed)}`),
 				)
 			: null;
@@ -380,7 +380,7 @@ export function MessageBubbleInner({
 		role === "assistant" && localCompletedToolCalls && localCompletedToolCalls.length > 0
 			? React.createElement(
 					Box,
-					{ flexDirection: "column", marginLeft: 2 },
+					{ flexDirection: "column", marginLeft: 2, flexShrink: 0 },
 					React.createElement(
 						Text,
 						{ color: "gray" },

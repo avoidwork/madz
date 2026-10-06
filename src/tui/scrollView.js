@@ -24,6 +24,9 @@ export const ScrollView = forwardRef(function ScrollView(
 	const viewportRef = useRef(null);
 	const contentRef = useRef(null);
 	const [scrollOffset, setScrollOffset] = useState(0);
+	// Ref mirrors scrollOffset so imperative methods always read the latest value,
+	// avoiding stale closures when scrollBy/scrollToBottom are called in sequence.
+	const scrollOffsetRef = useRef(0);
 	const viewportMetrics = useBoxMetrics(viewportRef);
 	const contentMetrics = useBoxMetrics(contentRef);
 
@@ -38,6 +41,7 @@ export const ScrollView = forwardRef(function ScrollView(
 	const scrollTo = useCallback(
 		(offset) => {
 			const clamped = Math.max(0, Math.min(offset, getBottomOffset()));
+			scrollOffsetRef.current = clamped;
 			setScrollOffset(clamped);
 			onScroll?.(clamped);
 		},
@@ -48,10 +52,10 @@ export const ScrollView = forwardRef(function ScrollView(
 		ref,
 		() => ({
 			scrollTo,
-			scrollBy: (delta) => scrollTo(scrollOffset + delta),
+			scrollBy: (delta) => scrollTo(scrollOffsetRef.current + delta),
 			scrollToTop: () => scrollTo(0),
 			scrollToBottom: () => scrollTo(getBottomOffset()),
-			getScrollOffset: () => scrollOffset,
+			getScrollOffset: () => scrollOffsetRef.current,
 			getContentHeight: () => contentHeight,
 			getViewportHeight: () => viewportHeight,
 			getBottomOffset,
@@ -60,7 +64,7 @@ export const ScrollView = forwardRef(function ScrollView(
 			remeasure: () => {},
 			remeasureItem: () => {},
 		}),
-		[scrollTo, scrollOffset, getBottomOffset, contentHeight, viewportHeight],
+		[scrollTo, getBottomOffset, contentHeight, viewportHeight],
 	);
 
 	// Notify the caller when content height changes (e.g., a new message added).
@@ -74,10 +78,16 @@ export const ScrollView = forwardRef(function ScrollView(
 
 	return React.createElement(
 		Box,
-		{ ref: viewportRef, height, overflow: "hidden", ...boxProps },
+		{ ref: viewportRef, height, overflow: "hidden", flexDirection: "column", ...boxProps },
 		React.createElement(
 			Box,
-			{ ref: contentRef, flexDirection: "column", width: "100%", contentOffsetY: scrollOffset },
+			{
+				ref: contentRef,
+				flexDirection: "column",
+				width: "100%",
+				flexShrink: 0,
+				contentOffsetY: scrollOffset,
+			},
 			children,
 		),
 	);
