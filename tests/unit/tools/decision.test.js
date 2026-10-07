@@ -280,4 +280,50 @@ describe("decision tool - buildToolConfig", () => {
 		const toolNames = tools.map((t) => t.name);
 		assert.ok(!toolNames.includes("decision"));
 	});
+
+	it("threads decisionConfig into decisionImpl at invoke time", async () => {
+		const tools = await buildToolConfig({
+			permissions: ["network:outbound"],
+			config: {
+				providers: {},
+				search: {},
+				agent: {
+					decision: { baseUrl: "http://localhost:11434", model: "tev1:4b", temperature: 0 },
+				},
+			},
+		});
+		const decisionTool = tools.find((t) => t.name === "decision");
+		assert.ok(decisionTool, "decision tool should be registered");
+
+		let capturedUrl;
+		const fetchMock = mock.method(globalThis, "fetch", async (url, _opts) => {
+			capturedUrl = url;
+			return {
+				ok: true,
+				status: 200,
+				json: async () => ({
+					model: "tev1:4b",
+					answers: { team: { type: "choice", choice: "billing" } },
+					usage: { input_tokens: 10, output_tokens: 2 },
+				}),
+			};
+		});
+		try {
+			const result = await decisionTool.invoke({
+				state: "I was charged twice. Please refund the extra payment.",
+				questions: {
+					team: {
+						type: "choice",
+						instructions: "Which team should handle this ticket?",
+						criteria: { billing: "Payments and refunds", technical: "Bugs and integrations" },
+					},
+				},
+			});
+			assert.strictEqual(result.ok, true);
+			assert.strictEqual(result.answers.team.choice, "billing");
+			assert.strictEqual(capturedUrl, "http://localhost:11434/v1/systemone");
+		} finally {
+			fetchMock.mock.restore();
+		}
+	});
 });

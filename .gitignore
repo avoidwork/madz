@@ -3,6 +3,13 @@ memory
 skills
 tmp
 projects
+*-feature-goals.md
+*-feature-prompt.md
+*-audit-results.md
+*-test-patterns.md
+*-pr-number.txt
+*-archive-output.md
+*-archive-error.md
 !src/memory
 !src/skills
 .env
