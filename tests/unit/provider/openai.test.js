@@ -4,6 +4,7 @@ import {
 	createChatModel,
 	resetTokenBudget,
 	getSharedTokenBudget,
+	resolveCopilotModel,
 } from "../../../src/provider/openai.js";
 
 /**
@@ -113,7 +114,7 @@ describe("createChatModel Copilot base URL", () => {
 			maxTokens: -1,
 			rateLimit: { maxRetries: 6 },
 		});
-		assert.strictEqual(model.clientConfig.baseURL, "https://ghe.example.com/api/v1");
+		assert.strictEqual(model.clientConfig.baseURL, "https://copilot-api.ghe.example.com");
 	});
 
 	it("uses the default Copilot base URL when no enterpriseUrl is set", () => {
@@ -184,5 +185,105 @@ describe("createChatModel Copilot credential handling", () => {
 			rateLimit: { maxRetries: 6 },
 		});
 		assert.strictEqual(typeof model.clientConfig.fetch, "function");
+	});
+});
+
+describe("resolveCopilotModel", () => {
+	it("resolves the configured model against the tenant model list", async () => {
+		const origFetch = globalThis.fetch;
+		globalThis.fetch = async (url) => {
+			assert.strictEqual(url, "https://api.githubcopilot.com/models");
+			return new Response(
+				JSON.stringify({
+					data: [
+						{ id: "gpt-4o", model_picker_enabled: true },
+						{ id: "gpt-4o-mini", model_picker_enabled: true },
+					],
+				}),
+				{ status: 200, headers: { "Content-Type": "application/json" } },
+			);
+		};
+		try {
+			const result = await resolveCopilotModel({
+				type: "github-copilot",
+				model: "gpt-4o",
+				base_url: "https://api.githubcopilot.com",
+			});
+			assert.strictEqual(result, "gpt-4o");
+		} finally {
+			globalThis.fetch = origFetch;
+		}
+	});
+
+	it("falls back to the configured model when discovery fails", async () => {
+		const origFetch = globalThis.fetch;
+		globalThis.fetch = async () => new Response("nope", { status: 500 });
+		try {
+			const result = await resolveCopilotModel({
+				type: "github-copilot",
+				model: "gpt-4o",
+				base_url: "https://api.githubcopilot.com",
+			});
+			assert.strictEqual(result, "gpt-4o");
+		} finally {
+			globalThis.fetch = origFetch;
+		}
+	});
+
+	it("falls back to the configured model when the model is not in the list", async () => {
+		const origFetch = globalThis.fetch;
+		globalThis.fetch = async () =>
+			new Response(JSON.stringify({ data: [{ id: "other-model", model_picker_enabled: true }] }), {
+				status: 200,
+			});
+		try {
+			const result = await resolveCopilotModel({
+				type: "github-copilot",
+				model: "gpt-4o",
+				base_url: "https://api.githubcopilot.com",
+			});
+			assert.strictEqual(result, "gpt-4o");
+		} finally {
+			globalThis.fetch = origFetch;
+		}
+	});
+
+	it("uses the enterprise base URL for discovery", async () => {
+		const origFetch = globalThis.fetch;
+		globalThis.fetch = async (url) => {
+			assert.strictEqual(url, "https://copilot-api.ghe.example.com/models");
+			return new Response(
+				JSON.stringify({ data: [{ id: "gpt-4o", model_picker_enabled: true }] }),
+				{ status: 200 },
+			);
+		};
+		try {
+			const result = await resolveCopilotModel({
+				type: "github-copilot",
+				model: "gpt-4o",
+				enterpriseUrl: "https://ghe.example.com/",
+				base_url: "https://api.githubcopilot.com",
+			});
+			assert.strictEqual(result, "gpt-4o");
+		} finally {
+			globalThis.fetch = origFetch;
+		}
+	});
+
+	it("falls back to the configured model on a network error", async () => {
+		const origFetch = globalThis.fetch;
+		globalThis.fetch = async () => {
+			throw new Error("network unreachable");
+		};
+		try {
+			const result = await resolveCopilotModel({
+				type: "github-copilot",
+				model: "gpt-4o",
+				base_url: "https://api.githubcopilot.com",
+			});
+			assert.strictEqual(result, "gpt-4o");
+		} finally {
+			globalThis.fetch = origFetch;
+		}
 	});
 });

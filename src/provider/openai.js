@@ -206,3 +206,50 @@ export function createChatModel(config) {
 
 	return model;
 }
+
+/**
+ * Resolve the effective Copilot model name against the tenant's available
+ * models. Enterprise/GHE Copilot deployments expose a tenant-specific model
+ * list at `GET {base}/models`; the configured `model` may be a generic alias
+ * (e.g. "gpt-4o") that must be mapped to a tenant model that is actually
+ * available and pickable.
+ *
+ * This is best-effort and never throws: on any failure (network error,
+ * non-200, empty list, model not found) it returns the configured model string
+ * unchanged so the caller falls back gracefully.
+ * @param {Object} config - The provider configuration
+ * @param {string} config.model - The configured model name
+ * @param {string} [config.enterpriseUrl] - The enterprise/GHE URL
+ * @param {string} [config.base_url] - The provider base URL
+ * @returns {Promise<string>} The resolved model name (configured string on failure)
+ */
+export async function resolveCopilotModel(config = {}) {
+	const model = config.model;
+	if (!model) return model;
+
+	const baseUrl = config.enterpriseUrl ? base(config.enterpriseUrl) : config.base_url;
+	if (!baseUrl) return model;
+
+	try {
+		const res = await fetch(`${baseUrl}/models`, {
+			headers: { Accept: "application/json" },
+		});
+		if (!res.ok) return model;
+		const data = await res.json();
+		const models = Array.isArray(data) ? data : data?.data;
+		if (!Array.isArray(models) || models.length === 0) return model;
+
+		// Prefer a tenant model that is pickable (model_picker_enabled), matching
+		// opencode's model discovery. Fall back to any model whose id matches the
+		// configured name.
+		const pickable = models.find((m) => m?.model_picker_enabled === true && m?.id === model);
+		if (pickable?.id) return pickable.id;
+
+		const exact = models.find((m) => m?.id === model);
+		if (exact?.id) return exact.id;
+
+		return model;
+	} catch {
+		return model;
+	}
+}

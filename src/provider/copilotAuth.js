@@ -80,13 +80,17 @@ export function getUrls(domain) {
 
 /**
  * Resolve the Copilot API base URL for a given enterprise URL.
+ *
+ * For enterprise/GHE deployments the Copilot API is served from a dedicated
+ * `copilot-api.<domain>` host (matching opencode), not from `<domain>/api/v1`.
+ * The public default (`https://api.githubcopilot.com`) is unchanged.
  * @param {string} [enterpriseUrl] - An optional enterprise/GHE URL
  * @returns {string} The Copilot API base URL
  */
 export function base(enterpriseUrl) {
 	if (enterpriseUrl) {
 		const host = normalizeDomain(enterpriseUrl);
-		return `https://${host}/api/v1`;
+		return `https://copilot-api.${host}`;
 	}
 	return DEFAULT_BASE_URL;
 }
@@ -111,8 +115,13 @@ const exchangeCache = new Map();
 
 /**
  * Exchange the OAuth device-flow token for a short-lived API bearer at
- * `copilot_internal/v2/token`. The raw OAuth token is never sent to the
- * Copilot API — it is only used here to obtain the short-lived bearer.
+ * `copilot_internal/v2/token`. The raw OAuth token is normally never sent to
+ * the Copilot API — it is only used here to obtain the short-lived bearer.
+ *
+ * On enterprise/GHE deployments the exchange endpoint may be unsupported
+ * (404/405). In that case the OAuth token is returned directly as the bearer
+ * (opencode's approach) rather than failing. Genuine auth failures (401/403)
+ * still throw.
  *
  * The result is cached in memory, keyed by the OAuth token, and re-exchanged
  * on expiry. When the exchange response provides `endpoints.api`, it is
@@ -138,6 +147,19 @@ export async function exchangeCopilotToken(oauthToken, opts = {}) {
 		},
 	});
 	if (!res.ok) {
+		// Enterprise/GHE deployments may not support the `copilot_internal/v2/token`
+		// exchange endpoint. When it returns 404/405 (unsupported), fall back to
+		// sending the OAuth token directly as a bearer (opencode's approach) rather
+		// than failing. Genuine auth failures (401/403) still throw.
+		if (res.status === 404 || res.status === 405) {
+			const result = {
+				token: oauthToken,
+				expiresAt: Date.now() + 60 * 60 * 1000,
+				api: null,
+			};
+			exchangeCache.set(oauthToken, result);
+			return result;
+		}
 		const text = await res.text().catch(() => "");
 		throw new Error(
 			`Copilot token exchange failed: ${res.status} ${res.statusText}${text ? ` — ${text.slice(0, 200)}` : ""}`,

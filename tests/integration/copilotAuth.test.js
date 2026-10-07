@@ -189,11 +189,11 @@ describe("Copilot model request carries bearer token (integration)", () => {
 				maxTokens: -1,
 				rateLimit: { maxRetries: 6 },
 			});
-			assert.strictEqual(model.clientConfig.baseURL, "https://ghe.example.com/api/v1");
-			await model.clientConfig.fetch("https://ghe.example.com/api/v1/chat/completions", {
+			assert.strictEqual(model.clientConfig.baseURL, "https://copilot-api.ghe.example.com");
+			await model.clientConfig.fetch("https://copilot-api.ghe.example.com/v1/chat/completions", {
 				method: "POST",
 			});
-			assert.strictEqual(capturedUrl, "https://ghe.example.com/api/v1/chat/completions");
+			assert.strictEqual(capturedUrl, "https://copilot-api.ghe.example.com/v1/chat/completions");
 			assert.strictEqual(capturedHeaders.get("Authorization"), "Bearer short-lived");
 		} finally {
 			globalThis.fetch = origFetch;

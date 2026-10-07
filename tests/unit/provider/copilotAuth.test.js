@@ -67,7 +67,7 @@ describe("base", () => {
 	});
 
 	it("builds an enterprise API base URL from a GHE host", () => {
-		assert.strictEqual(base("https://ghe.example.com/"), "https://ghe.example.com/api/v1");
+		assert.strictEqual(base("https://ghe.example.com/"), "https://copilot-api.ghe.example.com");
 	});
 });
 
@@ -454,6 +454,31 @@ describe("exchangeCopilotToken", () => {
 	it("throws on a non-ok exchange response", async () => {
 		const origFetch = globalThis.fetch;
 		globalThis.fetch = async () => new Response("nope", { status: 500 });
+		try {
+			await assert.rejects(() => exchangeCopilotToken("oauth-token"));
+		} finally {
+			globalThis.fetch = origFetch;
+			clearExchangeCache();
+		}
+	});
+
+	it("falls back to the OAuth token as bearer on a 404 (enterprise unsupported)", async () => {
+		const origFetch = globalThis.fetch;
+		globalThis.fetch = async () => new Response("not found", { status: 404 });
+		try {
+			const result = await exchangeCopilotToken("oauth-token");
+			assert.strictEqual(result.token, "oauth-token");
+			assert.strictEqual(result.api, null);
+			assert.ok(result.expiresAt > Date.now());
+		} finally {
+			globalThis.fetch = origFetch;
+			clearExchangeCache();
+		}
+	});
+
+	it("still throws on a 401 (genuine auth failure)", async () => {
+		const origFetch = globalThis.fetch;
+		globalThis.fetch = async () => new Response("unauthorized", { status: 401 });
 		try {
 			await assert.rejects(() => exchangeCopilotToken("oauth-token"));
 		} finally {
