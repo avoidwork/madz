@@ -27,7 +27,8 @@ import { createDataTool } from "./data/index.js";
 import { createWebhookTool } from "./webhook/index.js";
 import { searchCode, indexCode } from "./code/index.js";
 import { getConfig } from "./config/index.js";
-import { decision } from "./decision/index.js";
+import { decision, decisionImpl, DecisionToolSchema } from "./decision/index.js";
+import { tool } from "@langchain/core/tools";
 
 /**
  * Maps tool names to required permission scopes.
@@ -392,7 +393,12 @@ export async function buildToolConfig(options) {
 
 			case "decision": {
 				if (!hasAllPerms || !runtimeOptions.decisionConfig?.baseUrl) continue;
-				tools.push(TOOLS[toolName]);
+				const decisionTool = tool(
+					(input, options = {}) =>
+						decisionImpl(input, { ...options, decisionConfig: runtimeOptions.decisionConfig }),
+					{ name: "decision", description: TOOLS.decision.description, schema: DecisionToolSchema },
+				);
+				tools.push(decisionTool);
 				continue;
 			}
 
