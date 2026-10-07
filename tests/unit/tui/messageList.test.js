@@ -540,3 +540,91 @@ describe("MessageList — shouldRenderBubble", () => {
 		assert.strictEqual(shouldRenderBubble(data, "stable content"), true);
 	});
 });
+
+describe("MessageList — estimateMessageHeight", () => {
+	let estimateMessageHeight;
+
+	beforeEach(async () => {
+		const mod = await import("../../../src/tui/messageList.js");
+		estimateMessageHeight = mod.estimateMessageHeight;
+	});
+
+	it("returns header row plus one content line for a short message", () => {
+		const data = { role: "user", content: "Hi" };
+		// 1 header row + 1 wrapped content line.
+		assert.strictEqual(estimateMessageHeight(data, 80), 2);
+	});
+
+	it("returns header row plus wrapped lines for a long message", () => {
+		const data = { role: "user", content: "a".repeat(200) };
+		// 200 chars / 80 width = 3 wrapped lines + 1 header row.
+		assert.strictEqual(estimateMessageHeight(data, 80), 4);
+	});
+
+	it("adds a row per reasoning segment", () => {
+		const data = {
+			role: "assistant",
+			content: "",
+			segments: [
+				{ type: "reasoning", content: "thinking" },
+				{ type: "message", content: "response" },
+			],
+		};
+		// 1 header + 1 wrapped line (joined text "thinkingresponse") + 1 reasoning row.
+		assert.strictEqual(estimateMessageHeight(data, 80), 3);
+	});
+
+	it("adds a row per tool-call display line", () => {
+		const data = {
+			role: "assistant",
+			content: "response",
+			toolCallDisplay: "line1\nline2",
+		};
+		// 1 header + 1 wrapped line + 2 tool-call display lines.
+		assert.strictEqual(estimateMessageHeight(data, 80), 4);
+	});
+
+	it("adds a row for an active tool call", () => {
+		const data = {
+			role: "assistant",
+			content: "response",
+			activeToolCall: { name: "searchWeb" },
+		};
+		// 1 header + 1 wrapped line + 1 active tool call row.
+		assert.strictEqual(estimateMessageHeight(data, 80), 3);
+	});
+
+	it("adds a row for completed tool calls", () => {
+		const data = {
+			role: "assistant",
+			content: "response",
+			completedToolCalls: ["searchWeb", "readFile"],
+		};
+		// 1 header + 1 wrapped line + 1 completed tool calls row.
+		assert.strictEqual(estimateMessageHeight(data, 80), 3);
+	});
+
+	it("handles empty content", () => {
+		const data = { role: "user", content: "" };
+		// 1 header row + 1 empty wrapped line.
+		assert.strictEqual(estimateMessageHeight(data, 80), 2);
+	});
+
+	it("handles null content", () => {
+		const data = { role: "user", content: null };
+		// 1 header row + 1 empty wrapped line.
+		assert.strictEqual(estimateMessageHeight(data, 80), 2);
+	});
+
+	it("handles a message with no segments and no content", () => {
+		const data = { role: "system", content: "" };
+		// 1 header row + 1 empty wrapped line.
+		assert.strictEqual(estimateMessageHeight(data, 80), 2);
+	});
+
+	it("handles a narrow width", () => {
+		const data = { role: "user", content: "a".repeat(10) };
+		// 10 chars / 5 width = 2 wrapped lines + 1 header row.
+		assert.strictEqual(estimateMessageHeight(data, 5), 3);
+	});
+});

@@ -1,8 +1,5 @@
-# tui-message-list Specification
+## MODIFIED Requirements
 
-## Purpose
-TBD - created by archiving change 2025-08-29-remove-render-window-message-limit. Update Purpose after archive.
-## Requirements
 ### Requirement: Message List Renders All Messages
 The TUI MessageList component MUST render conversation messages through a windowed virtual scroll view, mounting only the visible window plus an overscan buffer rather than a configurable hard limit. All historical messages remain accessible via the ScrollView.
 
@@ -63,6 +60,8 @@ The TUI MessageList MUST render an assistant bubble that carries non-empty `reas
 - **WHEN** an assistant message has `streaming` set to true
 - **THEN** the MessageList renders the assistant bubble regardless of content or segments
 
+## ADDED Requirements
+
 ### Requirement: MessageList preserves streaming and auto-scroll behavior
 The MessageList SHALL preserve the pub/sub streaming path and `isUserScrolledUpRef` auto-scroll suppression when using the virtualized scroll view. A growing bubble reports height via `onHeight`; scroll-to-bottom re-anchors when the user is at the bottom.
 
@@ -77,4 +76,3 @@ The MessageList SHALL preserve the pub/sub streaming path and `isUserScrolledUpR
 #### Scenario: Growing bubble re-anchors to bottom
 - **WHEN** a mounted bubble grows via streaming and the user is at the bottom
 - **THEN** the scroll position re-anchors to the bottom
-
