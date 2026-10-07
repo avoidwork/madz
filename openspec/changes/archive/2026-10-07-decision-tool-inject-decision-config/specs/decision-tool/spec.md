@@ -1,15 +1,4 @@
-## MODIFIED Requirements
-
-### Requirement: Config-gated registration
-The `decision` tool SHALL be registered only when `agent.decision.baseUrl` is present in the config.
-
-#### Scenario: baseUrl configured
-- **WHEN** `agent.decision.baseUrl` is a non-empty string
-- **THEN** the `decision` tool SHALL be registered in the tool index
-
-#### Scenario: baseUrl empty
-- **WHEN** `agent.decision.baseUrl` is an empty string
-- **THEN** the `decision` tool SHALL NOT be registered in the tool index
+## ADDED Requirements
 
 ### Requirement: Decision config threaded at invoke time
 The `decision` tool SHALL receive the configured `decisionConfig` at invoke time so it uses the configured `agent.decision.baseUrl` instead of failing with a "not configured" error.
