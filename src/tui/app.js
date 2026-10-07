@@ -13,6 +13,8 @@ import { SessionsPanel } from "./sessionsPanel.js";
 import { ProjectsPanel } from "./projectsPanel.js";
 import { getActiveProviderConfig } from "../provider/index.js";
 import { useMouseScroll } from "./useMouseScroll.js";
+import { buildLayout, extractSelection, mapCoordToChar } from "./selectionLayout.js";
+import clipboardy from "clipboardy";
 
 /**
  * App router — holds cross-cutting state and view routing.
@@ -43,6 +45,9 @@ function App({
 	const [currentView, setCurrentView] = useState(PANELS.CONVERSATION);
 	const [pendingInput, setPendingInput] = useState("");
 	const [activeProject, setActiveProject] = useState("");
+	// Current character selection range (global, in the flattened conversation
+	// text). Set during a drag and cleared on release.
+	const [selection, setSelection] = useState(null);
 	const lastInterruptTimeRef = useRef(0);
 	const { exit } = useApp();
 	const exitRef = useRef(exit);
@@ -425,15 +430,46 @@ function App({
 		}
 	});
 
-	// Mouse-wheel scrolling — only active in the conversation view with the
-	// file picker closed, matching the keyboard scroll routing above.
-	useMouseScroll((delta) => {
-		if (currentView !== PANELS.CONVERSATION) return;
-		if (inputAreaRef.current?.isPickerOpen?.()) return;
-		conversationAreaRef.current?.scrollBy(delta);
-	});
+	const { rows, columns } = useWindowSize();
 
-	const { rows } = useWindowSize();
+	// Mouse-wheel scrolling and drag selection — only active in the conversation
+	// view with the file picker closed, matching the keyboard scroll routing above.
+	useMouseScroll(
+		(delta) => {
+			if (currentView !== PANELS.CONVERSATION) return;
+			if (inputAreaRef.current?.isPickerOpen?.()) return;
+			conversationAreaRef.current?.scrollBy(delta);
+		},
+		(sel) => {
+			if (currentView !== PANELS.CONVERSATION) return;
+			if (inputAreaRef.current?.isPickerOpen?.()) return;
+			const width = columns || 80;
+			const scrollOffset = conversationAreaRef.current?.getScrollOffset?.() || 0;
+			const messages = conversationAreaRef.current?.getSelectionMessages?.() || [];
+			const layout = buildLayout({ width, scrollOffset, messages });
+			const text = extractSelection(layout, sel.start, sel.end);
+			if (text) {
+				clipboardy.write(text).catch(() => {});
+			}
+			setSelection(null);
+		},
+		(sel) => {
+			if (currentView !== PANELS.CONVERSATION) return;
+			if (inputAreaRef.current?.isPickerOpen?.()) return;
+			// Live highlight during the drag: map the current range to a global
+			// character range and store it so the message list can render it.
+			const width = columns || 80;
+			const scrollOffset = conversationAreaRef.current?.getScrollOffset?.() || 0;
+			const messages = conversationAreaRef.current?.getSelectionMessages?.() || [];
+			const layout = buildLayout({ width, scrollOffset, messages });
+			const startIdx = mapCoordToChar(layout, sel.start);
+			const endIdx = mapCoordToChar(layout, sel.end);
+			if (startIdx !== -1 && endIdx !== -1) {
+				const [a, b] = startIdx <= endIdx ? [startIdx, endIdx] : [endIdx, startIdx];
+				setSelection({ start: a, end: b });
+			}
+		},
+	);
 
 	// Stable handlers for child components
 	const handleInputFocus = useCallback(() => setInputFocused(true), []);
@@ -526,6 +562,7 @@ function App({
 							systemPrompt,
 							activeProject,
 							setActiveProject,
+							selection,
 						}),
 		// InputArea — hidden during panel views
 		currentView === PANELS.CONVERSATION || showOnboarding

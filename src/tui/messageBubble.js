@@ -164,7 +164,7 @@ export const ScrollContext = React.createContext({ scrollToBottom: () => {} });
  * @param {number} [props.turnDuration] - Final elapsed time in ms when streaming ended
  * @param {string[]} [props.completedToolCalls] - List of completed tool call names
  * @param {boolean} [props.showToolResults=false] - Whether to display tool call result lines
-
+ * @param {{start: number, end: number}} [props.selection] - Local character range to highlight (in the bubble's joined text)
  * @returns {React.ReactElement}
  */
 export function MessageBubbleInner({
@@ -183,6 +183,7 @@ export function MessageBubbleInner({
 	showToolResults = false,
 	renderIndex,
 	onRemeasure,
+	selection,
 }) {
 	const [segments, setSegments] = useState(initialSegments || []);
 	const { subscribe, unsubscribe } = useContext(PubSubContext);
@@ -239,6 +240,25 @@ export function MessageBubbleInner({
 	// (which tracks pub/sub content updates for non-segment messages like system messages).
 	const text = segments.length > 0 ? segments.map((s) => s.content).join("") : localContent || "";
 
+	/**
+	 * Split a string into highlighted and non-highlighted parts based on the
+	 * bubble's local selection range. The selection range is expressed in
+	 * character indices into the bubble's joined `text`.
+	 * @param {string} str - Text to split
+	 * @param {number} offset - Character offset of `str` within the bubble's joined text
+	 * @returns {Array<{text: string, highlighted: boolean}>} Segments with highlight flags
+	 */
+	function splitHighlight(str, offset) {
+		if (!selection) return [{ text: str, highlighted: false }];
+		const start = Math.max(0, selection.start - offset);
+		const end = Math.max(0, selection.end - offset);
+		const parts = [];
+		if (start > 0) parts.push({ text: str.slice(0, start), highlighted: false });
+		if (end > start) parts.push({ text: str.slice(start, end), highlighted: true });
+		if (end < str.length) parts.push({ text: str.slice(end), highlighted: false });
+		return parts.length > 0 ? parts : [{ text: str, highlighted: false }];
+	}
+
 	// Trigger scroll-to-bottom when streaming content grows or when streaming starts.
 	// When a bubble grows via pub/sub, the parent doesn't re-render, so the
 	// ScrollView's MeasurableItem never re-measures and contentHeight stays stale.
@@ -277,6 +297,7 @@ export function MessageBubbleInner({
 
 	// Render segments in order — reasoning segments get gray "(thinking)" prefix,
 	// message segments render as normal MarkdownText.
+	let segmentOffset = 0;
 	const segmentEls = segments.map((seg, i) => {
 		if (seg.type === "reasoning") {
 			return React.createElement(
@@ -285,13 +306,19 @@ export function MessageBubbleInner({
 				React.createElement(Text, { color: "gray" }, seg.content),
 			);
 		}
+		const parts = splitHighlight(seg.content, segmentOffset);
+		segmentOffset += seg.content.length;
 		return React.createElement(
 			Box,
 			{ key: `seg-${i}`, flexDirection: "row", flexShrink: 0 },
-			React.createElement(MarkdownText, {
-				content: seg.content,
-				color: role === "system" ? "orange" : undefined,
-			}),
+			...parts.map((part, j) =>
+				React.createElement(MarkdownText, {
+					key: `seg-${i}-${j}`,
+					content: part.text,
+					color: role === "system" ? "orange" : undefined,
+					backgroundColor: part.highlighted ? "blue" : undefined,
+				}),
+			),
 		);
 	});
 
@@ -301,10 +328,14 @@ export function MessageBubbleInner({
 			? React.createElement(
 					Box,
 					{ flexDirection: "row", flexShrink: 0 },
-					React.createElement(MarkdownText, {
-						content: localContent,
-						color: role === "system" ? "orange" : undefined,
-					}),
+					...splitHighlight(localContent, 0).map((part, j) =>
+						React.createElement(MarkdownText, {
+							key: `fallback-${j}`,
+							content: part.text,
+							color: role === "system" ? "orange" : undefined,
+							backgroundColor: part.highlighted ? "blue" : undefined,
+						}),
+					),
 				)
 			: null;
 

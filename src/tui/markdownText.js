@@ -377,9 +377,10 @@ export function parseMarkdown(markdown) {
  * Uses a module-level LRU cache to avoid reparsing identical content.
  * @param {object} props
  * @param {string} props.content - The markdown string to render
+ * @param {string} [props.backgroundColor] - Optional background color for selection highlight
  * @returns {React.ReactNode}
  */
-export function MarkdownTextInner({ content }) {
+export function MarkdownTextInner({ content, backgroundColor }) {
 	if (content === null || content === undefined || content === "") {
 		return null;
 	}
@@ -387,7 +388,7 @@ export function MarkdownTextInner({ content }) {
 	const cleanContent = (content || "").replace(new RegExp(STREAMING_CURSOR, "g"), "");
 	const parsed = parseMarkdown(cleanContent);
 
-	return React.createElement(Text, { color: "white" }, parsed);
+	return React.createElement(Text, { color: "white", backgroundColor }, parsed);
 }
 
 /**

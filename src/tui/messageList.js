@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState, forwardRef, useCallback } from "rea
 import { Box, Text, useStdout, useWindowSize } from "ink";
 import { ScrollView } from "./scrollView.js";
 import { MessageBubble, PubSubContext, ScrollContext } from "./messageBubble.js";
+import { stripAnsi, wrapText } from "./selectionLayout.js";
 
 /**
  * Pub/Sub wrapper component for MessageList children.
@@ -55,6 +56,7 @@ export function shouldRenderBubble(data, content) {
  * @param {Array} [props.messages] - Initial messages array for session restore
  * @param {string} [props.assistantName] - Name to display for assistant messages
  * @param {boolean} [props.showToolResults=false] - Whether to display tool call result lines
+ * @param {{start: number, end: number}} [props.selection] - Global character range to highlight
  * @param {React.Ref} [props.forwardRef] - For exposed imperative API
  * @param {React.Ref} [props.scrollRef] - Forwarded scroll ref for external keyboard nav
  * @returns {React.ReactElement}
@@ -66,6 +68,7 @@ export const MessageList = React.memo(
 			assistantName = "Assistant",
 			showToolResults = false,
 			scrollRef: externalScrollRef,
+			selection,
 		},
 		forwardRef,
 	) {
@@ -76,6 +79,9 @@ export const MessageList = React.memo(
 		const dataRef = useRef(new Map());
 		const contentRef = useRef(new Map());
 		const lastMsgCountRef = useRef(0);
+		// Running character offset used to map the global selection range to each
+		// bubble's local range during children rebuild.
+		const selectionStartRef = useRef(0);
 		const { stdout } = useStdout();
 		const { rows } = useWindowSize();
 
@@ -321,6 +327,30 @@ export const MessageList = React.memo(
 			},
 
 			/**
+			 * Get the rendered message layout for selection mapping.
+			 * Returns an array of `{ text, top }` where `text` is the message's
+			 * plain content (ANSI stripped) and `top` is the content row of its
+			 * first text line. The `top` is computed by accumulating the wrapped
+			 * line count of each preceding message plus a header row per bubble.
+			 * @returns {Array<{text: string, top: number}>}
+			 */
+			getMessages() {
+				const width = Math.max(1, typeof window !== "undefined" ? window.innerWidth : 80);
+				const result = [];
+				let top = 0;
+				for (const id of idsRef.current) {
+					const data = dataRef.current.get(id);
+					if (!data) continue;
+					const text = (data.segments || []).map((s) => s.content).join("") || data.content || "";
+					// Header row (timestamp + role label) plus one row per wrapped line.
+					const wrapped = wrapText(stripAnsi(text), width);
+					result.push({ text, top });
+					top += 1 + wrapped.length;
+				}
+				return result;
+			},
+
+			/**
 			 * Get the ref handle for the ScrollView.
 			 * @returns {React.Ref}
 			 */
@@ -455,13 +485,23 @@ export const MessageList = React.memo(
 		// and the render layer renders all of them without a cap.
 		const childrenRef = useRef(null);
 		const prevRenderCountRef = useRef(-1);
+		const prevSelectionRef = useRef(null);
 
 		const currentCount = idsRef.current.length;
-		if (currentCount !== prevRenderCountRef.current) {
+		const selectionChanged = JSON.stringify(selection) !== JSON.stringify(prevSelectionRef.current);
+		if (currentCount !== prevRenderCountRef.current || selectionChanged) {
 			const renderData = idsRef.current;
 
-			// Rebuild children only when message count changes.
-			if (childrenRef.current === null || childrenRef.current._count !== renderData.length) {
+			// Rebuild children when message count changes or the selection changes
+			// (so the live highlight updates during a drag without a count change).
+			if (
+				childrenRef.current === null ||
+				childrenRef.current._count !== renderData.length ||
+				selectionChanged
+			) {
+				prevSelectionRef.current = selection;
+				// Reset the running selection offset for this rebuild.
+				selectionStartRef.current = 0;
 				const newChildren = renderData
 					.map((id) => {
 						const data = dataRef.current.get(id);
@@ -478,6 +518,27 @@ export const MessageList = React.memo(
 					})
 					.filter(Boolean)
 					.map(({ id, data, stableContent }, renderIndex) => {
+						// Compute the bubble's local selection range from the global
+						// selection. The bubble's text is the joined segment content
+						// (or the stable content for non-segment messages). The global
+						// range is expressed in the flattened conversation text; each
+						// bubble contributes its own text length to the running offset.
+						const bubbleText =
+							(data.segments || []).map((s) => s.content).join("") || stableContent || "";
+						let localSelection = null;
+						if (selection) {
+							const bubbleStart = selectionStartRef.current;
+							const bubbleEnd = bubbleStart + bubbleText.length;
+							const selStart = Math.max(selection.start, bubbleStart);
+							const selEnd = Math.min(selection.end, bubbleEnd);
+							if (selEnd > selStart) {
+								localSelection = {
+									start: selStart - bubbleStart,
+									end: selEnd - bubbleStart,
+								};
+							}
+							selectionStartRef.current = bubbleEnd;
+						}
 						return React.createElement(MessageBubble, {
 							key: id,
 							role: data.role,
@@ -496,6 +557,7 @@ export const MessageList = React.memo(
 							showToolResults,
 							renderIndex,
 							onRemeasure: (index) => scrollRef.current?.remeasureItem?.(index),
+							selection: localSelection,
 						});
 					});
 

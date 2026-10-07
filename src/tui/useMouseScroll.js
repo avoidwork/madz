@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
 
 /**
- * Regex matching SGR mouse sequences: `\x1b[<b;x;yM` (press) or `\x1b[<b;x;ym` (release).
- * Group 1 = button code, Group 2 = x, Group 3 = y, Group 4 = M (press) or m (release).
+ * Regex matching SGR mouse sequences: `\x1b[<b;x;yM` (press/move) or `\x1b[<b;x;ym` (release).
+ * Group 1 = button code, Group 2 = x, Group 3 = y, Group 4 = M (press/move) or m (release).
  */
 // eslint-disable-next-line no-control-regex -- matching ESC control sequences is the purpose of this regex
 const SGR_MOUSE_RE = /\x1b\[<(\d+);(\d+);(\d+)([Mm])/g;
@@ -44,33 +44,79 @@ export function buttonToDelta(button) {
 }
 
 /**
+ * Classify an SGR button code as a left-button drag (selection) event.
+ * @param {number} button - SGR button code
+ * @returns {boolean} True for button 0 (left-button drag), false otherwise
+ */
+export function buttonToSelection(button) {
+	return button === 0;
+}
+
+/**
  * Hook that enables terminal mouse reporting and parses SGR mouse sequences
- * to detect wheel-up/wheel-down events, invoking a callback with a delta.
+ * to detect wheel-up/wheel-down events and left-button drag selection.
  *
- * Enables mouse reporting (`\x1b[?1000h` / `\x1b[?1006h`) on mount and disables
- * it (`\x1b[?1000l` / `\x1b[?1006l`) on unmount. Only attaches when stdout is a
+ * Enables mouse reporting (`\x1b[?1000h` / `\x1b[?1006h`) and button-event
+ * tracking (`\x1b[?1002h`) on mount and disables them (`\x1b[?1000l` /
+ * `\x1b[?1006l` / `\x1b[?1002l`) on unmount. Only attaches when stdout is a
  * TTY and not in CI. The stdin listener is removed on unmount.
  *
+ * Wheel events (button codes 64/65) invoke `onScroll` with a delta. Left-button
+ * drag (button code 0) tracks a selection: press records the start `(x, y)`,
+ * move while held updates the end, and release finalizes and invokes `onSelect`
+ * with the start/end coordinates.
+ *
  * @param {Function} [onScroll] - Called with -1 (wheel-up) or +1 (wheel-down)
+ * @param {Function} [onSelect] - Called with `{ start: {x, y}, end: {x, y} }` on release
+ * @param {Function} [onSelectionChange] - Called with `{ start: {x, y}, end: {x, y} }` on press/move for live highlighting
  * @returns {void}
  */
-export function useMouseScroll(onScroll) {
+export function useMouseScroll(onScroll, onSelect, onSelectionChange) {
 	const onScrollRef = useRef(onScroll);
 	onScrollRef.current = onScroll;
+	const onSelectRef = useRef(onSelect);
+	onSelectRef.current = onSelect;
+	const onSelectionChangeRef = useRef(onSelectionChange);
+	onSelectionChangeRef.current = onSelectionChange;
 	const bufferRef = useRef("");
+	const selectionRef = useRef(null);
 
 	useEffect(() => {
 		const stdout = process.stdout;
 		const stdin = process.stdin;
 		if (!stdout?.isTTY || process.env.CI) return;
 
-		stdout.write("\x1b[?1000h\x1b[?1006h");
+		stdout.write("\x1b[?1000h\x1b[?1006h\x1b[?1002h");
 
 		const handleData = (chunk) => {
 			bufferRef.current += chunk.toString();
 			const { events, lastIndex } = parseSgrMouseSequence(bufferRef.current);
 			for (const event of events) {
-				if (event.isPress) {
+				if (buttonToSelection(event.button)) {
+					// Left-button drag selection.
+					if (event.isPress) {
+						// Press or move while held. If no selection is active, this is
+						// the initial press — record the start. Otherwise it is a drag
+						// move — update the end.
+						if (selectionRef.current === null) {
+							selectionRef.current = {
+								start: { x: event.x, y: event.y },
+								end: { x: event.x, y: event.y },
+							};
+						} else {
+							selectionRef.current.end = { x: event.x, y: event.y };
+						}
+						// Notify for live highlighting during the drag.
+						onSelectionChangeRef.current?.(selectionRef.current);
+					} else {
+						// Release — finalize the selection.
+						const selection = selectionRef.current;
+						selectionRef.current = null;
+						if (selection) {
+							onSelectRef.current?.(selection);
+						}
+					}
+				} else if (event.isPress) {
 					const delta = buttonToDelta(event.button);
 					if (delta !== null) onScrollRef.current?.(delta);
 				}
@@ -82,7 +128,7 @@ export function useMouseScroll(onScroll) {
 		stdin.on("data", handleData);
 		return () => {
 			stdin.off("data", handleData);
-			stdout.write("\x1b[?1000l\x1b[?1006l");
+			stdout.write("\x1b[?1000l\x1b[?1006l\x1b[?1002l");
 		};
 	}, []);
 }
