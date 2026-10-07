@@ -12,7 +12,7 @@ const DECISION_TOOL_TOKEN = "<!-- DECISION_TOOL_INSTRUCTION -->";
 // Instruction block injected when agent.decision.baseUrl is set. Standalone and
 // unnumbered so disabling the tool leaves no gap in any numbered list.
 const DECISION_TOOL_INSTRUCTION =
-	"**Decision tool:** A `decision` tool is available for fast, structured classification (routing, policy checks, rubric scoring). It accepts a `state` and a `questions` record, where each question has a `type` (`choice`, `noul`, or `score`), `instructions`, and optional `criteria`. Use it when you need a quick, deterministic judgment from a local model rather than reasoning it out yourself.";
+	"**Decision tool:** A `decision` tool is available for fast, structured classification (routing, policy checks, rubric scoring). It accepts a `state` and a `questions` record, where each question has a `type` (`choice`, `noul`, or `score`), `instructions`, and optional `criteria`. Use it when you need a quick, deterministic judgment from a dedicated decision model rather than reasoning it out yourself.";
 
 /**
  * Load the system prompt from prompts/SYSTEM_PROMPT.md,
