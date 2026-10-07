@@ -98,4 +98,33 @@ describe("loadSystemPrompt", () => {
 		const result = await loadSystemPrompt("__nonexistent_dir_xyz__");
 		assert.strictEqual(result, "");
 	});
+
+	it("removes decision tool instruction when agent.decision.baseUrl is empty", async () => {
+		writeFileSync(
+			join(fullTestDir, "prompts", "SYSTEM_PROMPT.md"),
+			"# System Prompt\n\n<!-- DECISION_TOOL_INSTRUCTION -->\n\nYou are a helpful assistant.",
+		);
+
+		delete process.env.AGENT_DECISION_BASE_URL;
+		const { loadSystemPrompt } = await import("../../src/memory/prompts.js");
+		const result = await loadSystemPrompt(fullTestDir);
+		assert.ok(!result.includes("**Decision tool:**"));
+		assert.ok(!result.includes("<!-- DECISION_TOOL_INSTRUCTION -->"));
+	});
+
+	it("injects decision tool instruction when agent.decision.baseUrl is set", async () => {
+		writeFileSync(
+			join(fullTestDir, "prompts", "SYSTEM_PROMPT.md"),
+			"# System Prompt\n\n<!-- DECISION_TOOL_INSTRUCTION -->\n\nYou are a helpful assistant.",
+		);
+
+		process.env.AGENT_DECISION_BASE_URL = "http://localhost:11434";
+		const configLoader = await import("../../src/config/loader.js");
+		configLoader._resetConfigCache();
+		const { loadSystemPrompt } = await import("../../src/memory/prompts.js");
+		const result = await loadSystemPrompt(fullTestDir);
+		assert.ok(result.includes("**Decision tool:**"));
+		assert.ok(!result.includes("<!-- DECISION_TOOL_INSTRUCTION -->"));
+		delete process.env.AGENT_DECISION_BASE_URL;
+	});
 });
