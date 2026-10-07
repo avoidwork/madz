@@ -8,7 +8,7 @@ import assert from "node:assert";
 import React from "react";
 import { render } from "ink";
 
-const { parseSgrMouseSequence, buttonToDelta, useMouseScroll } =
+const { parseSgrMouseSequence, buttonToDelta, buttonToSelection, useMouseScroll } =
 	await import("../../../src/tui/useMouseScroll.js");
 
 describe("parseSgrMouseSequence", () => {
@@ -81,6 +81,23 @@ describe("buttonToDelta", () => {
 	});
 });
 
+describe("buttonToSelection", () => {
+	it("returns true for left-button (0)", () => {
+		assert.strictEqual(buttonToSelection(0), true);
+	});
+
+	it("returns false for wheel buttons (64/65)", () => {
+		assert.strictEqual(buttonToSelection(64), false);
+		assert.strictEqual(buttonToSelection(65), false);
+	});
+
+	it("returns false for other buttons", () => {
+		assert.strictEqual(buttonToSelection(1), false);
+		assert.strictEqual(buttonToSelection(2), false);
+		assert.strictEqual(buttonToSelection(66), false);
+	});
+});
+
 describe("useMouseScroll hook", () => {
 	let stdinListeners;
 	let stdoutWrites;
@@ -132,27 +149,49 @@ describe("useMouseScroll hook", () => {
 	});
 
 	// Wrapper component that invokes the hook so it can be rendered via Ink.
-	function Harness({ onScroll }) {
-		useMouseScroll(onScroll);
+	function Harness({ onScroll, onSelect, onSelectionChange, enabled }) {
+		useMouseScroll(onScroll, onSelect, onSelectionChange, enabled);
 		return React.createElement(React.Fragment, null);
 	}
 
-	function mountHook(onScroll) {
-		const instance = render(React.createElement(Harness, { onScroll }));
+	function mountHook(onScroll, onSelect, onSelectionChange, enabled) {
+		const instance = render(
+			React.createElement(Harness, { onScroll, onSelect, onSelectionChange, enabled }),
+		);
 		instances.push(instance);
 		return instance;
 	}
 
 	it("enables mouse reporting on mount", () => {
 		mountHook(() => {});
-		assert.ok(stdoutWrites.includes("\x1b[?1000h\x1b[?1006h"));
+		assert.ok(stdoutWrites.includes("\x1b[?1000h\x1b[?1006h\x1b[?1002h"));
+	});
+
+	it("disables mouse reporting when enabled is false", () => {
+		mountHook(() => {}, undefined, undefined, false);
+		// No enable sequence should be written.
+		assert.ok(!stdoutWrites.includes("\x1b[?1000h\x1b[?1006h\x1b[?1002h"));
+		// The disable sequence should be written so mouse events bubble out.
+		assert.ok(stdoutWrites.includes("\x1b[?1000l\x1b[?1006l\x1b[?1002l"));
+		// No data listener should be attached.
+		assert.strictEqual(stdinListeners.has("data"), false);
+	});
+
+	it("toggles mouse reporting off when enabled flips to false", () => {
+		const instance = mountHook(() => {}, undefined, undefined, true);
+		assert.ok(stdoutWrites.includes("\x1b[?1000h\x1b[?1006h\x1b[?1002h"));
+		assert.ok(stdinListeners.has("data"));
+		// Re-render with enabled=false — the effect cleanup should disable reporting.
+		instance.rerender(React.createElement(Harness, { onScroll: () => {}, enabled: false }));
+		assert.ok(stdoutWrites.includes("\x1b[?1000l\x1b[?1006l\x1b[?1002l"));
+		assert.strictEqual(stdinListeners.has("data"), false);
 	});
 
 	it("disables mouse reporting and removes listener on unmount", () => {
 		const instance = mountHook(() => {});
-		assert.ok(stdoutWrites.includes("\x1b[?1000h\x1b[?1006h"));
+		assert.ok(stdoutWrites.includes("\x1b[?1000h\x1b[?1006h\x1b[?1002h"));
 		instance.unmount();
-		assert.ok(stdoutWrites.includes("\x1b[?1000l\x1b[?1006l"));
+		assert.ok(stdoutWrites.includes("\x1b[?1000l\x1b[?1006l\x1b[?1002l"));
 		assert.strictEqual(stdinListeners.has("data"), false);
 	});
 
@@ -220,13 +259,90 @@ describe("useMouseScroll hook", () => {
 		});
 		mountHook(() => {});
 		assert.strictEqual(stdinListeners.has("data"), false);
-		assert.ok(!stdoutWrites.includes("\x1b[?1000h\x1b[?1006h"));
+		assert.ok(!stdoutWrites.includes("\x1b[?1000h\x1b[?1006h\x1b[?1002h"));
 	});
 
 	it("does not attach when in CI", () => {
 		process.env.CI = "true";
 		mountHook(() => {});
 		assert.strictEqual(stdinListeners.has("data"), false);
-		assert.ok(!stdoutWrites.includes("\x1b[?1000h\x1b[?1006h"));
+		assert.ok(!stdoutWrites.includes("\x1b[?1000h\x1b[?1006h\x1b[?1002h"));
+	});
+
+	it("records a selection on left-button press and move, then finalizes on release", () => {
+		let selected = null;
+		let changes = [];
+		mountHook(
+			() => {},
+			(sel) => {
+				selected = sel;
+			},
+			(sel) => {
+				changes.push(sel);
+			},
+		);
+		const handler = stdinListeners.get("data");
+		assert.ok(handler, "data listener should be attached");
+		// Left-button press at (10, 5)
+		handler(Buffer.from("\x1b[<0;10;5M"));
+		assert.strictEqual(changes.length, 1);
+		assert.deepStrictEqual(changes[0], { start: { x: 10, y: 5 }, end: { x: 10, y: 5 } });
+		// Drag move to (20, 8)
+		handler(Buffer.from("\x1b[<0;20;8M"));
+		assert.strictEqual(changes.length, 2);
+		assert.deepStrictEqual(changes[1], { start: { x: 10, y: 5 }, end: { x: 20, y: 8 } });
+		// Release
+		handler(Buffer.from("\x1b[<0;20;8m"));
+		assert.deepStrictEqual(selected, { start: { x: 10, y: 5 }, end: { x: 20, y: 8 } });
+	});
+
+	it("does not invoke onSelect for a press without a release", () => {
+		let selected = null;
+		mountHook(
+			() => {},
+			(sel) => {
+				selected = sel;
+			},
+		);
+		const handler = stdinListeners.get("data");
+		handler(Buffer.from("\x1b[<0;10;5M"));
+		assert.strictEqual(selected, null);
+	});
+
+	it("does not invoke onSelect for wheel events", () => {
+		let selected = null;
+		mountHook(
+			() => {},
+			(sel) => {
+				selected = sel;
+			},
+		);
+		const handler = stdinListeners.get("data");
+		handler(Buffer.from("\x1b[<64;10;5M"));
+		handler(Buffer.from("\x1b[<65;10;5M"));
+		assert.strictEqual(selected, null);
+	});
+
+	it("keeps wheel scrolling and drag selection disjoint", () => {
+		let deltas = [];
+		let selected = null;
+		mountHook(
+			(d) => {
+				deltas.push(d);
+			},
+			(sel) => {
+				selected = sel;
+			},
+		);
+		const handler = stdinListeners.get("data");
+		// Wheel-up scrolls
+		handler(Buffer.from("\x1b[<64;10;5M"));
+		assert.deepStrictEqual(deltas, [-1]);
+		// Left-button drag selects
+		handler(Buffer.from("\x1b[<0;10;5M"));
+		handler(Buffer.from("\x1b[<0;20;8M"));
+		handler(Buffer.from("\x1b[<0;20;8m"));
+		assert.deepStrictEqual(deltas, [-1]);
+		assert.deepStrictEqual(selected, { start: { x: 10, y: 5 }, end: { x: 20, y: 8 } });
 	});
 });

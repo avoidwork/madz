@@ -81,6 +81,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 		systemPrompt,
 		activeProject,
 		setActiveProject,
+		selection,
 	},
 	ref,
 ) {
@@ -832,6 +833,19 @@ const ConversationArea = forwardRef(function ConversationArea(
 		scrollBy: (delta) => messageListRef.current?.scrollBy(delta),
 		getViewportHeight: () =>
 			messageListRef.current?.getScrollRef()?.current?.getViewportHeight?.() || 1,
+		getScrollOffset: () =>
+			messageListRef.current?.getScrollRef()?.current?.getScrollOffset?.() || 0,
+		/**
+		 * Get the rendered message layout for selection mapping.
+		 * Returns an array of `{ text, top }` where `text` is the message's
+		 * plain content and `top` is the content row of its first text line.
+		 * @returns {Array<{text: string, top: number}>}
+		 */
+		getSelectionMessages: () => {
+			const list = messageListRef.current;
+			if (!list || typeof list.getMessages !== "function") return [];
+			return list.getMessages();
+		},
 		messageCountRef,
 		isStreaming: () => isStreamingRef.current,
 	}));
@@ -843,6 +857,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 			assistantName: config?.tui?.name || "Assistant",
 			showToolResults: config?.tui?.showToolResults,
 			messageListRef,
+			selection,
 		}),
 	);
 });

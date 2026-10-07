@@ -91,6 +91,7 @@ export function getBubbleStyle(role) {
  * @param {string} [props.assistantName] - Name for assistant messages
  * @param {React.Ref} [props.scrollRef] - Optional external scroll ref
  * @param {React.Ref} [props.messageListRef] - Optional ref for imperative access
+ * @param {{start: number, end: number}} [props.selection] - Global character range to highlight
  * @returns {React.ReactElement}
  */
 export const ConversationPanel = React.memo(function ConversationPanel({
@@ -99,6 +100,7 @@ export const ConversationPanel = React.memo(function ConversationPanel({
 	showToolResults = false,
 	scrollRef: externalScrollRef,
 	messageListRef,
+	selection,
 }) {
 	const internalListRef = useRef(null);
 	const panelRef = messageListRef || internalListRef;
@@ -118,6 +120,7 @@ export const ConversationPanel = React.memo(function ConversationPanel({
 			assistantName,
 			showToolResults,
 			scrollRef: externalScrollRef,
+			selection,
 		}),
 	);
 });
