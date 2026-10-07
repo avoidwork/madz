@@ -519,6 +519,14 @@ function validateConfig(raw) {
 let cachedConfig = null;
 
 /**
+ * @internal - Reset the cached config so the next loadConfig() re-reads
+ * config.yaml and env vars. Used by tests to control config via env vars.
+ */
+export function _resetConfigCache() {
+	cachedConfig = null;
+}
+
+/**
  * Load, parse, validate, merge defaults, and return.
  * Resolves env vars by mapping each config path segment to an
  * environment variable name: providers.openai.credentials.apiKey
