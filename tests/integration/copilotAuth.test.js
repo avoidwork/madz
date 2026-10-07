@@ -28,6 +28,15 @@ describe("Copilot model request carries bearer token (integration)", () => {
 		let capturedHeaders;
 		let capturedUrl;
 		globalThis.fetch = async (url, init) => {
+			if (url.includes("/copilot_internal/v2/token")) {
+				return new Response(
+					JSON.stringify({
+						token: "short-lived",
+						expires_at: new Date(Date.now() + 60_000).toISOString(),
+					}),
+					{ status: 200 },
+				);
+			}
 			capturedUrl = url;
 			capturedHeaders = new Headers(init.headers);
 			return new Response(JSON.stringify({ choices: [{ message: { content: "ok" } }] }), {
@@ -45,14 +54,14 @@ describe("Copilot model request carries bearer token (integration)", () => {
 				rateLimit: { maxRetries: 6 },
 			});
 			// The model's clientConfig.fetch is the interceptor; drive it directly
-			// to verify the bearer token is injected on the outbound request.
+			// to verify the exchanged bearer token is injected on the outbound request.
 			const res = await model.clientConfig.fetch(
 				"https://api.githubcopilot.com/v1/chat/completions",
 				{ method: "POST" },
 			);
 			assert.strictEqual(res.status, 200);
 			assert.strictEqual(capturedUrl, "https://api.githubcopilot.com/v1/chat/completions");
-			assert.strictEqual(capturedHeaders.get("Authorization"), "Bearer tok-bearer");
+			assert.strictEqual(capturedHeaders.get("Authorization"), "Bearer short-lived");
 		} finally {
 			globalThis.fetch = origFetch;
 		}
@@ -62,7 +71,16 @@ describe("Copilot model request carries bearer token (integration)", () => {
 		await persist("tok-bearer");
 		const origFetch = globalThis.fetch;
 		let capturedHeaders;
-		globalThis.fetch = async (_url, init) => {
+		globalThis.fetch = async (url, init) => {
+			if (url.includes("/copilot_internal/v2/token")) {
+				return new Response(
+					JSON.stringify({
+						token: "short-lived",
+						expires_at: new Date(Date.now() + 60_000).toISOString(),
+					}),
+					{ status: 200 },
+				);
+			}
 			capturedHeaders = new Headers(init.headers);
 			return new Response(JSON.stringify({ choices: [{ message: { content: "ok" } }] }), {
 				status: 200,
@@ -82,8 +100,8 @@ describe("Copilot model request carries bearer token (integration)", () => {
 				method: "POST",
 			});
 			// The placeholder apiKey ("copilot") must never be sent as the
-			// Authorization header; the real bearer token is used instead.
-			assert.strictEqual(capturedHeaders.get("Authorization"), "Bearer tok-bearer");
+			// Authorization header; the exchanged bearer token is used instead.
+			assert.strictEqual(capturedHeaders.get("Authorization"), "Bearer short-lived");
 			assert.notStrictEqual(capturedHeaders.get("Authorization"), "Bearer copilot");
 		} finally {
 			globalThis.fetch = origFetch;
@@ -145,6 +163,15 @@ describe("Copilot model request carries bearer token (integration)", () => {
 		let capturedUrl;
 		let capturedHeaders;
 		globalThis.fetch = async (url, init) => {
+			if (url.includes("/copilot_internal/v2/token")) {
+				return new Response(
+					JSON.stringify({
+						token: "short-lived",
+						expires_at: new Date(Date.now() + 60_000).toISOString(),
+					}),
+					{ status: 200 },
+				);
+			}
 			capturedUrl = url;
 			capturedHeaders = new Headers(init.headers);
 			return new Response(JSON.stringify({ choices: [{ message: { content: "ok" } }] }), {
@@ -167,7 +194,7 @@ describe("Copilot model request carries bearer token (integration)", () => {
 				method: "POST",
 			});
 			assert.strictEqual(capturedUrl, "https://ghe.example.com/api/v1/chat/completions");
-			assert.strictEqual(capturedHeaders.get("Authorization"), "Bearer tok-ghec");
+			assert.strictEqual(capturedHeaders.get("Authorization"), "Bearer short-lived");
 		} finally {
 			globalThis.fetch = origFetch;
 		}
