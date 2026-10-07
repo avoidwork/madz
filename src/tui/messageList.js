@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, forwardRef, useCallback } from "react";
 import { Box, Text, useStdout, useWindowSize } from "ink";
-import { ScrollView } from "./scrollView.js";
+import { VirtualScrollView } from "./scrollView.js";
 import { MessageBubble, PubSubContext, ScrollContext } from "./messageBubble.js";
 import { stripAnsi, wrapText } from "./selectionLayout.js";
 
@@ -46,6 +46,52 @@ export function shouldRenderBubble(data, content) {
 }
 
 /**
+ * Estimate the rendered height (in rows) of a message bubble.
+ *
+ * This is a pure function (no React, no DOM) that approximates how many rows a
+ * message occupies in the conversation panel. It is reused by both the selection
+ * map (`getMessages()`) and the virtualized scroll view's height estimation so
+ * the two cannot drift.
+ *
+ * The estimate accounts for:
+ * - The header row (timestamp + role label): 1 row
+ * - The wrapped lines of the joined segment/content text
+ * - One row per reasoning segment
+ * - One row per tool-call display line
+ * - One row for the active tool-call indicator
+ * - One row for the completed tool-calls summary
+ *
+ * @param {Object} data - Message data (with `segments`, `content`, `toolCallDisplay`, `activeToolCall`, `completedToolCalls`)
+ * @param {number} width - Terminal width in columns
+ * @returns {number} Estimated height in rows
+ */
+export function estimateMessageHeight(data, width) {
+	const text = (data.segments || []).map((s) => s.content).join("") || data.content || "";
+	const wrapped = wrapText(stripAnsi(text), width);
+	let height = 1 + wrapped.length;
+
+	// Each reasoning segment renders as its own row.
+	if (data.segments) {
+		for (const seg of data.segments) {
+			if (seg.type === "reasoning") height += 1;
+		}
+	}
+
+	// Tool-call display renders one row per line.
+	if (data.toolCallDisplay) {
+		height += data.toolCallDisplay.split("\n").length;
+	}
+
+	// Active tool-call indicator.
+	if (data.activeToolCall) height += 1;
+
+	// Completed tool-calls summary.
+	if (data.completedToolCalls && data.completedToolCalls.length > 0) height += 1;
+
+	return height;
+}
+
+/**
  * Manages an array of MessageBubble component instances.
  * Provides imperative API: addMessage, updateMessage, clear.
  * Owns ScrollView rendering with scroll management.
@@ -67,6 +113,7 @@ export const MessageList = React.memo(
 			messages: _messages = [],
 			assistantName = "Assistant",
 			showToolResults = false,
+			overscan = 10,
 			scrollRef: externalScrollRef,
 			selection,
 		},
@@ -79,9 +126,6 @@ export const MessageList = React.memo(
 		const dataRef = useRef(new Map());
 		const contentRef = useRef(new Map());
 		const lastMsgCountRef = useRef(0);
-		// Running character offset used to map the global selection range to each
-		// bubble's local range during children rebuild.
-		const selectionStartRef = useRef(0);
 		const { stdout } = useStdout();
 		const { rows } = useWindowSize();
 
@@ -342,10 +386,8 @@ export const MessageList = React.memo(
 					const data = dataRef.current.get(id);
 					if (!data) continue;
 					const text = (data.segments || []).map((s) => s.content).join("") || data.content || "";
-					// Header row (timestamp + role label) plus one row per wrapped line.
-					const wrapped = wrapText(stripAnsi(text), width);
 					result.push({ text, top });
-					top += 1 + wrapped.length;
+					top += estimateMessageHeight(data, width);
 				}
 				return result;
 			},
@@ -480,105 +522,93 @@ export const MessageList = React.memo(
 			[scrollRef, isUserScrolledUpRef],
 		);
 
-		// Virtual render window — removed. All messages are now rendered
-		// through the ScrollView mechanism. The data layer stores all messages
-		// and the render layer renders all of them without a cap.
-		const childrenRef = useRef(null);
+		// Virtualized render window. The data layer stores all messages; the
+		// render layer mounts only the visible window plus an overscan buffer via
+		// VirtualScrollView, instead of rendering every message bubble.
+		const renderDataRef = useRef([]);
+		const textOffsetsRef = useRef([]);
 		const prevRenderCountRef = useRef(-1);
 		const prevSelectionRef = useRef(null);
 
 		const currentCount = idsRef.current.length;
 		const selectionChanged = JSON.stringify(selection) !== JSON.stringify(prevSelectionRef.current);
 		if (currentCount !== prevRenderCountRef.current || selectionChanged) {
-			const renderData = idsRef.current;
+			prevSelectionRef.current = selection;
 
-			// Rebuild children when message count changes or the selection changes
-			// (so the live highlight updates during a drag without a count change).
-			if (
-				childrenRef.current === null ||
-				childrenRef.current._count !== renderData.length ||
-				selectionChanged
-			) {
-				prevSelectionRef.current = selection;
-				// Reset the running selection offset for this rebuild.
-				selectionStartRef.current = 0;
-				const newChildren = renderData
-					.map((id) => {
-						const data = dataRef.current.get(id);
-						if (!data) return null;
-						// Skip rendering empty assistant bubbles that aren't streaming.
-						// Keep bubbles that carry non-empty reasoning/message segments so
-						// interrupted assistant responses persist in the message list.
-						if (!shouldRenderBubble(data, contentRef.current.get(id))) {
-							return null;
-						}
-						// Use stable content reference from contentRef for React.memo to work
-						const stableContent = contentRef.current.get(id) || data.content;
-						return { id, data, stableContent };
-					})
-					.filter(Boolean)
-					.map(({ id, data, stableContent }, renderIndex) => {
-						// Compute the bubble's local selection range from the global
-						// selection. The bubble's text is the joined segment content
-						// (or the stable content for non-segment messages). The global
-						// range is expressed in the flattened conversation text; each
-						// bubble contributes its own text length to the running offset.
-						const bubbleText =
-							(data.segments || []).map((s) => s.content).join("") || stableContent || "";
-						let localSelection = null;
-						if (selection) {
-							const bubbleStart = selectionStartRef.current;
-							const bubbleEnd = bubbleStart + bubbleText.length;
-							const selStart = Math.max(selection.start, bubbleStart);
-							const selEnd = Math.min(selection.end, bubbleEnd);
-							if (selEnd > selStart) {
-								localSelection = {
-									start: selStart - bubbleStart,
-									end: selEnd - bubbleStart,
-								};
-							}
-							selectionStartRef.current = bubbleEnd;
-						}
-						return React.createElement(MessageBubble, {
-							key: id,
-							role: data.role,
-							content: stableContent,
-							time: data.time,
-							segments: data.segments,
-							activeToolCall: data.activeToolCall,
-							toolCallDisplay: data.toolCallDisplay,
-							events: data.events,
-							streaming: data.streaming,
-							assistantName,
-							topic: `msg-${id}`,
-							turnStartTime: data.turnStartTime,
-							turnDuration: data.turnDuration,
-							completedToolCalls: data.completedToolCalls,
-							showToolResults,
-							renderIndex,
-							onRemeasure: (index) => scrollRef.current?.remeasureItem?.(index),
-							selection: localSelection,
-						});
-					});
-
-				if (newChildren.length === 0) {
-					newChildren.push(
-						React.createElement(
-							Text,
-							{ key: "empty", color: "gray" },
-							" No messages yet. Start chatting!",
-						),
-					);
+			// Build the render data (all messages) and the cumulative text offsets
+			// used to map the global selection range to each bubble's local range.
+			const renderData = [];
+			const textOffsets = [];
+			let textOffset = 0;
+			for (const id of idsRef.current) {
+				const data = dataRef.current.get(id);
+				if (!data) continue;
+				// Skip rendering empty assistant bubbles that aren't streaming.
+				// Keep bubbles that carry non-empty reasoning/message segments so
+				// interrupted assistant responses persist in the message list.
+				if (!shouldRenderBubble(data, contentRef.current.get(id))) {
+					continue;
 				}
-
-				newChildren._count = renderData.length;
-				childrenRef.current = newChildren;
+				const stableContent = contentRef.current.get(id) || data.content;
+				const bubbleText =
+					(data.segments || []).map((s) => s.content).join("") || stableContent || "";
+				textOffsets.push(textOffset);
+				textOffset += bubbleText.length;
+				renderData.push({ id, data, stableContent });
 			}
 
+			renderDataRef.current = renderData;
+			textOffsetsRef.current = textOffsets;
 			prevRenderCountRef.current = currentCount;
 		}
 
-		const children = childrenRef.current;
+		const renderData = renderDataRef.current;
+		const textOffsets = textOffsetsRef.current;
+
+		// Render a single message bubble for a given item and global index.
+		const renderItem = useCallback(
+			(item, renderIndex) => {
+				const { id, data, stableContent } = item;
+				const bubbleText =
+					(data.segments || []).map((s) => s.content).join("") || stableContent || "";
+				let localSelection = null;
+				if (selection) {
+					const bubbleStart = textOffsets[renderIndex] || 0;
+					const bubbleEnd = bubbleStart + bubbleText.length;
+					const selStart = Math.max(selection.start, bubbleStart);
+					const selEnd = Math.min(selection.end, bubbleEnd);
+					if (selEnd > selStart) {
+						localSelection = {
+							start: selStart - bubbleStart,
+							end: selEnd - bubbleStart,
+						};
+					}
+				}
+				return React.createElement(MessageBubble, {
+					key: id,
+					role: data.role,
+					content: stableContent,
+					time: data.time,
+					segments: data.segments,
+					activeToolCall: data.activeToolCall,
+					toolCallDisplay: data.toolCallDisplay,
+					events: data.events,
+					streaming: data.streaming,
+					assistantName,
+					topic: `msg-${id}`,
+					turnStartTime: data.turnStartTime,
+					turnDuration: data.turnDuration,
+					completedToolCalls: data.completedToolCalls,
+					showToolResults,
+					renderIndex,
+					onRemeasure: (index) => scrollRef.current?.remeasureItem?.(index),
+					selection: localSelection,
+				});
+			},
+			[selection, textOffsets, assistantName, showToolResults, scrollRef],
+		);
+
+		const width = Math.max(1, typeof window !== "undefined" ? window.innerWidth : 80);
 
 		return React.createElement(
 			PubSubProvider,
@@ -594,17 +624,23 @@ export const MessageList = React.memo(
 				React.createElement(
 					Box,
 					{ key: "panel", flexDirection: "column" },
-					React.createElement(
-						ScrollView,
-						{
-							ref: scrollRef,
-							key: "scroll",
-							height: scrollViewportHeight,
-							onContentHeightChange: handleContentHeightChange,
-							onScroll: handleScroll,
-						},
-						...children,
-					),
+					renderData.length === 0
+						? React.createElement(
+								Text,
+								{ key: "empty", color: "gray" },
+								" No messages yet. Start chatting!",
+							)
+						: React.createElement(VirtualScrollView, {
+								ref: scrollRef,
+								key: "scroll",
+								items: renderData,
+								height: scrollViewportHeight,
+								overscan,
+								estimateHeight: (item) => estimateMessageHeight(item.data, width),
+								renderItem,
+								onContentHeightChange: handleContentHeightChange,
+								onScroll: handleScroll,
+							}),
 				),
 			),
 		);

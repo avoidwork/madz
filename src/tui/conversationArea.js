@@ -856,6 +856,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 		React.createElement(ConversationPanel, {
 			assistantName: config?.tui?.name || "Assistant",
 			showToolResults: config?.tui?.showToolResults,
+			overscan: config?.tui?.overscan,
 			messageListRef,
 			selection,
 		}),

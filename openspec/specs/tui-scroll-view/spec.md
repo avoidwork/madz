@@ -3,7 +3,7 @@
 The TUI conversation panel SHALL render message history in a scrollable container and support keyboard and mouse-wheel scrolling, with auto-scroll suppression when the user manually scrolls away from the bottom.
 ## Requirements
 ### Requirement: MessageList uses ScrollView for rendering messages
-The MessageList component SHALL render messages inside the custom `ScrollView` component from `src/tui/scrollView.js` rather than manually slicing a messages array. ConversationPanel delegates all rendering to MessageList and does not directly render messages.
+The MessageList component SHALL render messages inside the custom `ScrollView` component from `src/tui/scrollView.js` rather than manually slicing a messages array. ConversationPanel delegates all rendering to MessageList and does not directly render messages. The ScrollView SHALL support windowed/virtualized rendering so only the visible window plus an overscan buffer is mounted.
 
 #### Scenario: ScrollView wraps message list
 - **WHEN** the UI renders a conversation
@@ -12,6 +12,10 @@ The MessageList component SHALL render messages inside the custom `ScrollView` c
 #### Scenario: Messages receive unique keys
 - **WHEN** the ScrollView renders its children
 - **THEN** each message element has a unique `key` prop (derived from message ID)
+
+#### Scenario: ScrollView renders only the visible window plus overscan
+- **WHEN** the conversation has more messages than fit in the viewport plus overscan
+- **THEN** the ScrollView mounts only the visible range plus the overscan buffer, with spacer boxes for the off-window regions
 
 ### Requirement: MessageList handles keyboard scroll input
 The MessageList component SHALL capture keyboard input via Ink's `useInput` and translate arrow keys and page keys into scroll actions on the `ScrollView` ref through `messageListRef.current?.getScrollRef()`.
@@ -88,4 +92,15 @@ The MessageList component SHALL support mouse-wheel scrolling via the `useMouseS
 #### Scenario: Mouse scroll-up suppresses auto-scroll
 - **WHEN** the user scrolls up via mouse
 - **THEN** `isUserScrolledUpRef` is set to `true`, suppressing auto-scroll on new messages until the user returns to the bottom
+
+### Requirement: ScrollView performs real per-item measurement
+The ScrollView SHALL perform real per-item measurement via `useBoxMetrics`, replacing the no-op `remeasureItem`, so a growing bubble reports its height via `onHeight` and the height map updates without a full parent re-render.
+
+#### Scenario: remeasureItem is no longer a no-op
+- **WHEN** a mounted bubble grows via pub/sub streaming
+- **THEN** `remeasureItem` triggers a real re-measure of that item, updating the height map
+
+#### Scenario: Growing bubble reports height via onHeight
+- **WHEN** a mounted bubble's measured height changes
+- **THEN** the ScrollView updates the height map and re-anchors the scroll position when the user is at the bottom
 

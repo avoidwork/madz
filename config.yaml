@@ -174,7 +174,7 @@ schedules:
   entries: []
 tui:
   name: madz
-  renderWindow: 100
+  overscan: 10
   showToolResults: false
   statusBar:
     model: true
