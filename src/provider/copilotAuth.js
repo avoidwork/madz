@@ -15,7 +15,7 @@ import { setTimeout as sleep } from "node:timers/promises";
  */
 
 /** Public OAuth client id for GitHub Copilot. Not a credential. */
-export const CLIENT_ID = "Ov23liRuYfjAgknNjVBa";
+export const CLIENT_ID = "Iv1.b507a08c87ecfe98";
 
 /** Default Copilot API base URL. */
 export const DEFAULT_BASE_URL = "https://api.githubcopilot.com";
@@ -99,6 +99,83 @@ export function base(enterpriseUrl) {
  */
 export function authFilePath(memoryDir) {
 	return memoryDir ? join(memoryDir, "auth.json") : AUTH_FILE;
+}
+
+/**
+ * In-memory cache of exchanged Copilot bearer tokens, keyed by the OAuth
+ * device-flow token. Each entry stores the short-lived bearer, its expiry
+ * timestamp (ms since epoch), and the `endpoints.api` base URL (if any).
+ * @type {Map<string, { token: string, expiresAt: number, api: string|null }>}
+ */
+const exchangeCache = new Map();
+
+/**
+ * Exchange the OAuth device-flow token for a short-lived API bearer at
+ * `copilot_internal/v2/token`. The raw OAuth token is never sent to the
+ * Copilot API — it is only used here to obtain the short-lived bearer.
+ *
+ * The result is cached in memory, keyed by the OAuth token, and re-exchanged
+ * on expiry. When the exchange response provides `endpoints.api`, it is
+ * returned so callers can use it as the API base URL.
+ * @param {string} oauthToken - The OAuth device-flow access token
+ * @param {Object} [opts] - Options
+ * @param {string} [opts.baseUrl] - The Copilot token exchange base URL (defaults to `DEFAULT_BASE_URL`)
+ * @returns {Promise<{ token: string, expiresAt: number, api: string|null }>}
+ *   The short-lived bearer, its expiry timestamp (ms), and the API base URL
+ */
+export async function exchangeCopilotToken(oauthToken, opts = {}) {
+	const baseUrl = opts.baseUrl || DEFAULT_BASE_URL;
+	const cached = exchangeCache.get(oauthToken);
+	if (cached && cached.expiresAt > Date.now()) {
+		return cached;
+	}
+
+	const res = await fetch(`${baseUrl}/copilot_internal/v2/token`, {
+		method: "GET",
+		headers: {
+			Authorization: `token ${oauthToken}`,
+			Accept: "application/json",
+		},
+	});
+	if (!res.ok) {
+		const text = await res.text().catch(() => "");
+		throw new Error(
+			`Copilot token exchange failed: ${res.status} ${res.statusText}${text ? ` — ${text.slice(0, 200)}` : ""}`,
+		);
+	}
+	const text = await res.text();
+	let data;
+	try {
+		data = JSON.parse(text);
+	} catch {
+		throw new Error(`Copilot token exchange returned invalid JSON: ${text.slice(0, 200)}`);
+	}
+	if (!data.token) {
+		throw new Error("Copilot token exchange response missing token");
+	}
+
+	const expiresAt = data.expires_at ? Date.parse(data.expires_at) : Date.now() + 60 * 60 * 1000;
+	const result = {
+		token: data.token,
+		expiresAt,
+		api: data.endpoints?.api || null,
+	};
+	exchangeCache.set(oauthToken, result);
+	return result;
+}
+
+/**
+ * Clear the in-memory exchange cache for a given OAuth token (or all entries
+ * when no token is supplied). Used when a request returns 401 so the next
+ * call re-exchanges for a fresh bearer.
+ * @param {string} [oauthToken] - The OAuth token to evict, or all entries if omitted
+ */
+export function clearExchangeCache(oauthToken) {
+	if (oauthToken) {
+		exchangeCache.delete(oauthToken);
+	} else {
+		exchangeCache.clear();
+	}
 }
 
 /**
@@ -305,30 +382,80 @@ export async function getAuthPrompt(opts = {}) {
 }
 
 /**
- * Create a fetch interceptor that injects `Authorization: Bearer <token>` on
- * every request, reading the token fresh from the auth file. This is passed to
- * `ChatOpenAI` as `configuration.fetch` so it survives `bindTools()` and picks
- * up a re-auth without rebuilding the model.
+ * Rewrite a request URL to use the `endpoints.api` base URL from the exchange
+ * response. When the input URL uses the default Copilot API base, its origin
+ * (scheme + host) is replaced with the origin of `api`, preserving the path.
+ * Otherwise the URL is returned unchanged.
+ * @param {string|Request} input - The fetch input (URL string or Request)
+ * @param {string} api - The `endpoints.api` base URL from the exchange response
+ * @returns {string|Request} The rewritten input
+ */
+function rewriteBaseUrl(input, api) {
+	if (!api) return input;
+	const url = typeof input === "string" ? input : input.url;
+	if (url.startsWith(api)) return input;
+	if (url.startsWith(DEFAULT_BASE_URL)) {
+		const apiUrl = new URL(api);
+		const inputUrl = new URL(url);
+		inputUrl.protocol = apiUrl.protocol;
+		inputUrl.host = apiUrl.host;
+		const rewritten = inputUrl.toString();
+		if (typeof input === "string") return rewritten;
+		return new Request(rewritten, input);
+	}
+	return input;
+}
+
+/**
+ * Create a fetch interceptor that injects `Authorization: Bearer <short-lived-token>`
+ * on every request. The raw OAuth device-flow token is exchanged at
+ * `copilot_internal/v2/token` for a short-lived bearer before each request,
+ * and the result is cached in memory keyed by the OAuth token. This is passed
+ * to `ChatOpenAI` as `configuration.fetch` so it survives `bindTools()` and
+ * picks up a re-auth without rebuilding the model.
  *
- * When a response returns 401 (token expired or invalid), the interceptor
- * clears the stale token and invokes the registered `authRequiredHandler` so
- * the caller can surface a fresh device-flow prompt. The 401 response is
- * returned unchanged so the caller's error handling still fires.
+ * When a response returns 401 (short-lived bearer expired or invalid), the
+ * interceptor clears the cached bearer and re-exchanges for a fresh one,
+ * retrying the request once. If the re-exchange fails (e.g. the OAuth token
+ * is also expired), it clears the stored token and invokes the registered
+ * `authRequiredHandler` so the caller can surface a fresh device-flow prompt.
  * @param {string} [memoryDir] - The memory directory
  * @returns {Function} A fetch-compatible function
  */
 export function createCopilotFetch(memoryDir) {
 	return async (input, init = {}) => {
-		const token = await getToken(memoryDir);
+		const oauthToken = await getToken(memoryDir);
 		const headers = new Headers(init.headers || {});
-		if (token) {
-			headers.set("Authorization", `Bearer ${token}`);
+		if (oauthToken) {
+			try {
+				const exchanged = await exchangeCopilotToken(oauthToken);
+				headers.set("Authorization", `Bearer ${exchanged.token}`);
+				input = rewriteBaseUrl(input, exchanged.api);
+			} catch {
+				await clearToken(memoryDir);
+				if (authRequiredHandler) {
+					authRequiredHandler();
+				}
+				return new Response("Unauthorized", { status: 401 });
+			}
 		}
-		const res = await fetch(input, { ...init, headers });
-		if (res.status === 401) {
-			await clearToken(memoryDir);
-			if (authRequiredHandler) {
-				authRequiredHandler();
+		let res = await fetch(input, { ...init, headers });
+		if (res.status === 401 && oauthToken) {
+			// The short-lived bearer was rejected. Clear the cache and
+			// re-exchange for a fresh one, then retry once. If the exchange
+			// fails (e.g. the OAuth token is also expired), clear the stored
+			// token and invoke the re-auth handler.
+			clearExchangeCache(oauthToken);
+			try {
+				const exchanged = await exchangeCopilotToken(oauthToken);
+				headers.set("Authorization", `Bearer ${exchanged.token}`);
+				input = rewriteBaseUrl(input, exchanged.api);
+				res = await fetch(input, { ...init, headers });
+			} catch {
+				await clearToken(memoryDir);
+				if (authRequiredHandler) {
+					authRequiredHandler();
+				}
 			}
 		}
 		return res;

@@ -16,6 +16,8 @@ import {
 	getAuthPrompt,
 	createCopilotFetch,
 	setAuthRequiredHandler,
+	exchangeCopilotToken,
+	clearExchangeCache,
 	CLIENT_ID,
 } from "../../../src/provider/copilotAuth.js";
 
@@ -364,12 +366,143 @@ describe("getAuthPrompt", () => {
 	});
 });
 
+describe("exchangeCopilotToken", () => {
+	it("exchanges the OAuth token for a short-lived bearer", async () => {
+		const origFetch = globalThis.fetch;
+		let capturedUrl;
+		let capturedHeaders;
+		globalThis.fetch = async (url, init) => {
+			capturedUrl = url;
+			capturedHeaders = new Headers(init.headers);
+			return new Response(
+				JSON.stringify({
+					token: "short-lived",
+					expires_at: new Date(Date.now() + 60_000).toISOString(),
+					endpoints: { api: "https://api.githubcopilot.com" },
+				}),
+				{ status: 200, headers: { "Content-Type": "application/json" } },
+			);
+		};
+		try {
+			const result = await exchangeCopilotToken("oauth-token");
+			assert.strictEqual(result.token, "short-lived");
+			assert.strictEqual(result.api, "https://api.githubcopilot.com");
+			assert.ok(result.expiresAt > Date.now());
+			assert.strictEqual(capturedUrl, "https://api.githubcopilot.com/copilot_internal/v2/token");
+			assert.strictEqual(capturedHeaders.get("Authorization"), "token oauth-token");
+		} finally {
+			globalThis.fetch = origFetch;
+			clearExchangeCache();
+		}
+	});
+
+	it("caches the exchanged bearer and reuses it before expiry", async () => {
+		const origFetch = globalThis.fetch;
+		let calls = 0;
+		globalThis.fetch = async () => {
+			calls += 1;
+			return new Response(
+				JSON.stringify({
+					token: "short-lived",
+					expires_at: new Date(Date.now() + 60_000).toISOString(),
+				}),
+				{ status: 200 },
+			);
+		};
+		try {
+			const first = await exchangeCopilotToken("oauth-token");
+			const second = await exchangeCopilotToken("oauth-token");
+			assert.strictEqual(first.token, "short-lived");
+			assert.strictEqual(second.token, "short-lived");
+			assert.strictEqual(calls, 1);
+		} finally {
+			globalThis.fetch = origFetch;
+			clearExchangeCache();
+		}
+	});
+
+	it("re-exchanges when the cached bearer has expired", async () => {
+		const origFetch = globalThis.fetch;
+		let calls = 0;
+		globalThis.fetch = async () => {
+			calls += 1;
+			return new Response(
+				JSON.stringify({
+					token: `short-lived-${calls}`,
+					expires_at:
+						calls === 1
+							? new Date(Date.now() - 60_000).toISOString()
+							: new Date(Date.now() + 60_000).toISOString(),
+				}),
+				{ status: 200 },
+			);
+		};
+		try {
+			clearExchangeCache();
+			const first = await exchangeCopilotToken("oauth-token");
+			assert.strictEqual(first.token, "short-lived-1");
+			// The cached entry is expired, so this re-exchanges.
+			const result = await exchangeCopilotToken("oauth-token");
+			assert.strictEqual(result.token, "short-lived-2");
+			assert.strictEqual(calls, 2);
+		} finally {
+			globalThis.fetch = origFetch;
+			clearExchangeCache();
+		}
+	});
+
+	it("throws on a non-ok exchange response", async () => {
+		const origFetch = globalThis.fetch;
+		globalThis.fetch = async () => new Response("nope", { status: 500 });
+		try {
+			await assert.rejects(() => exchangeCopilotToken("oauth-token"));
+		} finally {
+			globalThis.fetch = origFetch;
+			clearExchangeCache();
+		}
+	});
+
+	it("throws on invalid JSON in the exchange response", async () => {
+		const origFetch = globalThis.fetch;
+		globalThis.fetch = async () => new Response("not-json", { status: 200 });
+		try {
+			await assert.rejects(() => exchangeCopilotToken("oauth-token"));
+		} finally {
+			globalThis.fetch = origFetch;
+			clearExchangeCache();
+		}
+	});
+
+	it("throws when the exchange response is missing a token", async () => {
+		const origFetch = globalThis.fetch;
+		globalThis.fetch = async () =>
+			new Response(JSON.stringify({ expires_at: "2025-01-01T00:00:00Z" }), { status: 200 });
+		try {
+			await assert.rejects(() => exchangeCopilotToken("oauth-token"));
+		} finally {
+			globalThis.fetch = origFetch;
+			clearExchangeCache();
+		}
+	});
+});
+
 describe("createCopilotFetch", () => {
-	it("injects the bearer token from the auth file", async () => {
-		await persist("tok-bearer", memoryDir);
+	it("injects the exchanged bearer token, not the raw OAuth token", async () => {
+		await persist("oauth-token", memoryDir);
 		const origFetch = globalThis.fetch;
 		let capturedHeaders;
-		globalThis.fetch = async (_input, init) => {
+		let capturedUrl;
+		globalThis.fetch = async (url, init) => {
+			if (url.includes("/copilot_internal/v2/token")) {
+				return new Response(
+					JSON.stringify({
+						token: "short-lived",
+						expires_at: new Date(Date.now() + 60_000).toISOString(),
+					}),
+					{ status: 200 },
+				);
+			}
+			capturedUrl = url;
 			capturedHeaders = new Headers(init.headers);
 			return new Response("ok", { status: 200 });
 		};
@@ -378,9 +511,11 @@ describe("createCopilotFetch", () => {
 			await copilotFetch("https://api.githubcopilot.com/v1/chat/completions", {
 				method: "POST",
 			});
-			assert.strictEqual(capturedHeaders.get("Authorization"), "Bearer tok-bearer");
+			assert.strictEqual(capturedHeaders.get("Authorization"), "Bearer short-lived");
+			assert.strictEqual(capturedUrl, "https://api.githubcopilot.com/v1/chat/completions");
 		} finally {
 			globalThis.fetch = origFetch;
+			clearExchangeCache();
 		}
 	});
 
@@ -402,11 +537,28 @@ describe("createCopilotFetch", () => {
 		}
 	});
 
-	it("clears the token and invokes the re-auth handler on 401", async () => {
-		await persist("tok-expired", memoryDir);
+	it("clears the token and invokes the re-auth handler on 401 when re-exchange fails", async () => {
+		await persist("oauth-token", memoryDir);
 		const origFetch = globalThis.fetch;
 		let handlerCalled = false;
-		globalThis.fetch = async () => new Response("unauthorized", { status: 401 });
+		let exchangeCalls = 0;
+		globalThis.fetch = async (url) => {
+			if (url.includes("/copilot_internal/v2/token")) {
+				exchangeCalls += 1;
+				if (exchangeCalls === 1) {
+					return new Response(
+						JSON.stringify({
+							token: "short-lived",
+							expires_at: new Date(Date.now() + 60_000).toISOString(),
+						}),
+						{ status: 200 },
+					);
+				}
+				// Re-exchange fails (OAuth token expired).
+				return new Response("unauthorized", { status: 401 });
+			}
+			return new Response("unauthorized", { status: 401 });
+		};
 		setAuthRequiredHandler(() => {
 			handlerCalled = true;
 		});
@@ -421,14 +573,33 @@ describe("createCopilotFetch", () => {
 		} finally {
 			globalThis.fetch = origFetch;
 			setAuthRequiredHandler(null);
+			clearExchangeCache();
 		}
 	});
 
-	it("does not invoke the re-auth handler on a non-401 response", async () => {
-		await persist("tok-valid", memoryDir);
+	it("re-exchanges and retries on 401 when re-exchange succeeds", async () => {
+		await persist("oauth-token", memoryDir);
 		const origFetch = globalThis.fetch;
 		let handlerCalled = false;
-		globalThis.fetch = async () => new Response("ok", { status: 200 });
+		let apiCalls = 0;
+		let exchangeCalls = 0;
+		globalThis.fetch = async (url, _init) => {
+			if (url.includes("/copilot_internal/v2/token")) {
+				exchangeCalls += 1;
+				return new Response(
+					JSON.stringify({
+						token: `short-lived-${exchangeCalls}`,
+						expires_at: new Date(Date.now() + 60_000).toISOString(),
+					}),
+					{ status: 200 },
+				);
+			}
+			apiCalls += 1;
+			if (apiCalls === 1) {
+				return new Response("unauthorized", { status: 401 });
+			}
+			return new Response("ok", { status: 200 });
+		};
 		setAuthRequiredHandler(() => {
 			handlerCalled = true;
 		});
@@ -439,10 +610,108 @@ describe("createCopilotFetch", () => {
 			});
 			assert.strictEqual(res.status, 200);
 			assert.strictEqual(handlerCalled, false);
-			assert.strictEqual(await getToken(memoryDir), "tok-valid");
+			assert.strictEqual(apiCalls, 2);
+			assert.strictEqual(exchangeCalls, 2);
 		} finally {
 			globalThis.fetch = origFetch;
 			setAuthRequiredHandler(null);
+			clearExchangeCache();
+		}
+	});
+
+	it("does not invoke the re-auth handler on a non-401 response", async () => {
+		await persist("oauth-token", memoryDir);
+		const origFetch = globalThis.fetch;
+		let handlerCalled = false;
+		globalThis.fetch = async (url) => {
+			if (url.includes("/copilot_internal/v2/token")) {
+				return new Response(
+					JSON.stringify({
+						token: "short-lived",
+						expires_at: new Date(Date.now() + 60_000).toISOString(),
+					}),
+					{ status: 200 },
+				);
+			}
+			return new Response("ok", { status: 200 });
+		};
+		setAuthRequiredHandler(() => {
+			handlerCalled = true;
+		});
+		try {
+			const copilotFetch = createCopilotFetch(memoryDir);
+			const res = await copilotFetch("https://api.githubcopilot.com/v1/chat/completions", {
+				method: "POST",
+			});
+			assert.strictEqual(res.status, 200);
+			assert.strictEqual(handlerCalled, false);
+			assert.strictEqual(await getToken(memoryDir), "oauth-token");
+		} finally {
+			globalThis.fetch = origFetch;
+			setAuthRequiredHandler(null);
+			clearExchangeCache();
+		}
+	});
+
+	it("honors endpoints.api as the base URL for API requests", async () => {
+		await persist("oauth-token", memoryDir);
+		const origFetch = globalThis.fetch;
+		let capturedUrl;
+		globalThis.fetch = async (url) => {
+			if (url.includes("/copilot_internal/v2/token")) {
+				return new Response(
+					JSON.stringify({
+						token: "short-lived",
+						expires_at: new Date(Date.now() + 60_000).toISOString(),
+						endpoints: { api: "https://ghe.example.com" },
+					}),
+					{ status: 200 },
+				);
+			}
+			capturedUrl = url;
+			return new Response("ok", { status: 200 });
+		};
+		try {
+			const copilotFetch = createCopilotFetch(memoryDir);
+			await copilotFetch("https://api.githubcopilot.com/v1/chat/completions", {
+				method: "POST",
+			});
+			assert.strictEqual(capturedUrl, "https://ghe.example.com/v1/chat/completions");
+		} finally {
+			globalThis.fetch = origFetch;
+			clearExchangeCache();
+		}
+	});
+
+	it("rewrites the base URL when the input is a Request object", async () => {
+		await persist("oauth-token", memoryDir);
+		const origFetch = globalThis.fetch;
+		let capturedUrl;
+		globalThis.fetch = async (url) => {
+			const urlStr = typeof url === "string" ? url : url.url;
+			if (urlStr.includes("/copilot_internal/v2/token")) {
+				return new Response(
+					JSON.stringify({
+						token: "short-lived",
+						expires_at: new Date(Date.now() + 60_000).toISOString(),
+						endpoints: { api: "https://ghe.example.com" },
+					}),
+					{ status: 200 },
+				);
+			}
+			capturedUrl = urlStr;
+			return new Response("ok", { status: 200 });
+		};
+		try {
+			const copilotFetch = createCopilotFetch(memoryDir);
+			const req = new Request("https://api.githubcopilot.com/v1/chat/completions", {
+				method: "POST",
+			});
+			await copilotFetch(req);
+			assert.strictEqual(capturedUrl, "https://ghe.example.com/v1/chat/completions");
+		} finally {
+			globalThis.fetch = origFetch;
+			clearExchangeCache();
 		}
 	});
 });
