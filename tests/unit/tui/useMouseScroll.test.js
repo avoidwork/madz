@@ -149,14 +149,14 @@ describe("useMouseScroll hook", () => {
 	});
 
 	// Wrapper component that invokes the hook so it can be rendered via Ink.
-	function Harness({ onScroll, onSelect, onSelectionChange }) {
-		useMouseScroll(onScroll, onSelect, onSelectionChange);
+	function Harness({ onScroll, onSelect, onSelectionChange, enabled }) {
+		useMouseScroll(onScroll, onSelect, onSelectionChange, enabled);
 		return React.createElement(React.Fragment, null);
 	}
 
-	function mountHook(onScroll, onSelect, onSelectionChange) {
+	function mountHook(onScroll, onSelect, onSelectionChange, enabled) {
 		const instance = render(
-			React.createElement(Harness, { onScroll, onSelect, onSelectionChange }),
+			React.createElement(Harness, { onScroll, onSelect, onSelectionChange, enabled }),
 		);
 		instances.push(instance);
 		return instance;
@@ -165,6 +165,26 @@ describe("useMouseScroll hook", () => {
 	it("enables mouse reporting on mount", () => {
 		mountHook(() => {});
 		assert.ok(stdoutWrites.includes("\x1b[?1000h\x1b[?1006h\x1b[?1002h"));
+	});
+
+	it("disables mouse reporting when enabled is false", () => {
+		mountHook(() => {}, undefined, undefined, false);
+		// No enable sequence should be written.
+		assert.ok(!stdoutWrites.includes("\x1b[?1000h\x1b[?1006h\x1b[?1002h"));
+		// The disable sequence should be written so mouse events bubble out.
+		assert.ok(stdoutWrites.includes("\x1b[?1000l\x1b[?1006l\x1b[?1002l"));
+		// No data listener should be attached.
+		assert.strictEqual(stdinListeners.has("data"), false);
+	});
+
+	it("toggles mouse reporting off when enabled flips to false", () => {
+		const instance = mountHook(() => {}, undefined, undefined, true);
+		assert.ok(stdoutWrites.includes("\x1b[?1000h\x1b[?1006h\x1b[?1002h"));
+		assert.ok(stdinListeners.has("data"));
+		// Re-render with enabled=false — the effect cleanup should disable reporting.
+		instance.rerender(React.createElement(Harness, { onScroll: () => {}, enabled: false }));
+		assert.ok(stdoutWrites.includes("\x1b[?1000l\x1b[?1006l\x1b[?1002l"));
+		assert.strictEqual(stdinListeners.has("data"), false);
 	});
 
 	it("disables mouse reporting and removes listener on unmount", () => {

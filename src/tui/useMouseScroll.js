@@ -56,10 +56,12 @@ export function buttonToSelection(button) {
  * Hook that enables terminal mouse reporting and parses SGR mouse sequences
  * to detect wheel-up/wheel-down events and left-button drag selection.
  *
- * Enables mouse reporting (`\x1b[?1000h` / `\x1b[?1006h`) and button-event
- * tracking (`\x1b[?1002h`) on mount and disables them (`\x1b[?1000l` /
- * `\x1b[?1006l` / `\x1b[?1002l`) on unmount. Only attaches when stdout is a
- * TTY and not in CI. The stdin listener is removed on unmount.
+ * When `enabled` is true, mouse reporting (`\x1b[?1000h` / `\x1b[?1006h`) and
+ * button-event tracking (`\x1b[?1002h`) are enabled and a stdin listener is
+ * attached. When `enabled` is false, mouse reporting is disabled and the
+ * listener is removed, so mouse events bubble out to the terminal's native
+ * handling (text selection, link clicks). Only attaches when stdout is a TTY
+ * and not in CI.
  *
  * Wheel events (button codes 64/65) invoke `onScroll` with a delta. Left-button
  * drag (button code 0) tracks a selection: press records the start `(x, y)`,
@@ -69,9 +71,10 @@ export function buttonToSelection(button) {
  * @param {Function} [onScroll] - Called with -1 (wheel-up) or +1 (wheel-down)
  * @param {Function} [onSelect] - Called with `{ start: {x, y}, end: {x, y} }` on release
  * @param {Function} [onSelectionChange] - Called with `{ start: {x, y}, end: {x, y} }` on press/move for live highlighting
+ * @param {boolean} [enabled=true] - Whether mouse reporting is active. When false, mouse events bubble out to the terminal.
  * @returns {void}
  */
-export function useMouseScroll(onScroll, onSelect, onSelectionChange) {
+export function useMouseScroll(onScroll, onSelect, onSelectionChange, enabled = true) {
 	const onScrollRef = useRef(onScroll);
 	onScrollRef.current = onScroll;
 	const onSelectRef = useRef(onSelect);
@@ -85,6 +88,14 @@ export function useMouseScroll(onScroll, onSelect, onSelectionChange) {
 		const stdout = process.stdout;
 		const stdin = process.stdin;
 		if (!stdout?.isTTY || process.env.CI) return;
+
+		// When disabled, ensure mouse reporting is off so the terminal's native
+		// selection/link handling is restored. No listener is attached, so mouse
+		// events bubble out to the terminal.
+		if (!enabled) {
+			stdout.write("\x1b[?1000l\x1b[?1006l\x1b[?1002l");
+			return;
+		}
 
 		stdout.write("\x1b[?1000h\x1b[?1006h\x1b[?1002h");
 
@@ -130,5 +141,5 @@ export function useMouseScroll(onScroll, onSelect, onSelectionChange) {
 			stdin.off("data", handleData);
 			stdout.write("\x1b[?1000l\x1b[?1006l\x1b[?1002l");
 		};
-	}, []);
+	}, [enabled]);
 }

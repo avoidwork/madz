@@ -432,8 +432,12 @@ function App({
 
 	const { rows, columns } = useWindowSize();
 
-	// Mouse-wheel scrolling and drag selection — only active in the conversation
-	// view with the file picker closed, matching the keyboard scroll routing above.
+	// Mouse-wheel scrolling and drag selection — active only when the
+	// conversation panel has focus (inputFocused is false, i.e. tabbed out of
+	// the input). When the input panel is focused, mouse reporting is disabled
+	// so mouse events bubble out to the terminal's native handling (text
+	// selection, link clicks). Also gated on the conversation view with the
+	// file picker closed, matching the keyboard scroll routing above.
 	useMouseScroll(
 		(delta) => {
 			if (currentView !== PANELS.CONVERSATION) return;
@@ -469,6 +473,10 @@ function App({
 				setSelection({ start: a, end: b });
 			}
 		},
+		// Enable mouse reporting only when the conversation panel has focus
+		// (tabbed out of the input). When the input is focused, mouse events
+		// bubble out to the terminal's native handling.
+		!inputFocused,
 	);
 
 	// Stable handlers for child components
