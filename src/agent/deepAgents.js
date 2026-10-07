@@ -11,7 +11,7 @@ import { RemoveMessage } from "@langchain/core/messages";
 import { loadConfig } from "../config/loader.js";
 import { loadSystemPrompt } from "../memory/prompts.js";
 import { SkillRegistry } from "../skills/registry.js";
-import { createChatModel } from "../provider/openai.js";
+import { createChatModel, resolveCopilotModel } from "../provider/openai.js";
 import { getModelContextLength } from "../provider/modelInfo.js";
 import { getActiveProviderConfig, getActiveProviderName } from "../provider/index.js";
 import { createTokenBudgetMiddleware } from "../provider/tokenBudgetMiddleware.js";
@@ -321,6 +321,11 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	// Create model from config
 	const providerName = getActiveProviderName(config);
 	const providerConfig = getActiveProviderConfig(config);
+	// For GitHub Copilot, resolve the configured model against the tenant's
+	// available models (best-effort; falls back to the configured string).
+	if (providerConfig.type === "github-copilot") {
+		providerConfig.model = await resolveCopilotModel(providerConfig);
+	}
 	const model = createChatModel(providerConfig);
 
 	// Validate email provider config at startup (non-blocking)
