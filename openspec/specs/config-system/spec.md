@@ -55,11 +55,11 @@ The system SHALL validate all `config.yaml` contents against a zod-based schema 
 - **THEN** the system validates the new value against the schema before applying it
 
 ### Requirement: Configuration Loading and Validation
-The system SHALL load all configuration from `config.yaml` via `src/config/loader.js`, validate it against Zod schemas in `src/config/schemas.js`, and make it available to all subsystems through the `settings` singleton. The config MUST include a `persistence` section at the top level for configuring LangGraph checkpoint persistence with `mode` (string, default: `"memory"`) and optional `sqlite_path` (string, default: `"memory/checkpoints.db"`). The config MUST include a `subAgentsTemperature` section at the top level as a record mapping agent name strings to temperature numbers in the range [0, 2], defaulting to an empty object `{}`. The loading pipeline SHALL include a `syncEnv()` step between YAML parsing and env-var resolution that materializes missing config structure from environment variables.
+The system SHALL load all configuration from `config.yaml` via `src/config/loader.js`, validate it against Zod schemas in `src/config/schemas.js`, and make it available to all subsystems through the `settings` singleton. The config MUST include a `persistence` section at the top level for configuring LangGraph checkpoint persistence with `mode` (string, default: `"memory"`) and optional `sqlite_path` (string, default: `"memory/checkpoints.db"`). The config MUST include a `subAgentsTemperature` section at the top level as a record mapping agent name strings to temperature numbers in the range [0, 2], defaulting to an empty object `{}`. The config MUST include an `mcp` section at the top level as an object with a `servers` record, defaulting to an empty object `{}`. The loading pipeline SHALL include a `syncEnv()` step between YAML parsing and env-var resolution that materializes missing config structure from environment variables.
 
 #### Scenario: Configuration is loaded from YAML file
 - **WHEN** the application starts and reads `config.yaml`
-- **THEN** all defined sections (`providers`, `memory`, `session`, `sandbox`, `skills`, `telemetry`, `tui`, `persistence`) are loaded and validated
+- **THEN** all defined sections (`providers`, `memory`, `session`, `sandbox`, `skills`, `telemetry`, `tui`, `persistence`, `mcp`) are loaded and validated
 
 #### Scenario: syncEnv materializes missing structure before env-var resolution
 - **WHEN** `config.yaml` does not define a `vector.projects.myProject` section but env vars like `VECTOR_PROJECTS_MYPROJECT_ROOT_DIR` and `VECTOR_PROJECTS_MYPROJECT_DB_PATH` are set
@@ -79,6 +79,14 @@ The system SHALL load all configuration from `config.yaml` via `src/config/loade
 
 #### Scenario: subAgentsTemperature validation rejects invalid values
 - **WHEN** `config.yaml` sets `subAgentsTemperature.coding` to a value outside 0–2 range
+- **THEN** the application logs a validation error and rejects the configuration
+
+#### Scenario: mcp section defaults to empty object
+- **WHEN** `config.yaml` has no `mcp` section
+- **THEN** the system defaults `mcp` to an empty object `{}` with no servers registered
+
+#### Scenario: mcp servers are validated
+- **WHEN** `config.yaml` sets `mcp.servers.<name>` with an invalid transport
 - **THEN** the application logs a validation error and rejects the configuration
 
 ### Requirement: Runtime Config Mutation
