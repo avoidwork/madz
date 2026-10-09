@@ -140,32 +140,36 @@ export const MessageList = React.memo(
 		// Pub/sub topics map — each topic key maps to an array of pending update listeners
 		const topicsRef = useRef(new Map());
 
-		// Subscribe to a specific topic
-		const subscribe = (topic, callback) => {
+		// Subscribe to a specific topic. Wrapped in useCallback with empty deps so
+		// the identity is stable across renders. The bubble's pub/sub effect depends
+		// on `subscribe`/`unsubscribe`; if they change identity on every render, the
+		// effect tears down and rebuilds on every streaming chunk, which would
+		// dispose the segment throttle before it can commit.
+		const subscribe = useCallback((topic, callback) => {
 			const callbacks = topicsRef.current.get(topic);
 			if (callbacks) {
 				if (!callbacks.includes(callback)) callbacks.push(callback);
 			} else {
 				topicsRef.current.set(topic, [callback]);
 			}
-		};
+		}, []);
 
-		// Unsubscribe from a specific topic
-		const unsubscribe = (topic, callback) => {
+		// Unsubscribe from a specific topic. Stable identity (see subscribe).
+		const unsubscribe = useCallback((topic, callback) => {
 			const callbacks = topicsRef.current.get(topic);
 			if (callbacks) {
 				const idx = callbacks.indexOf(callback);
 				if (idx !== -1) callbacks.splice(idx, 1);
 			}
-		};
+		}, []);
 
-		// Publish a message to all listeners of a topic
-		const publish = (topic, data) => {
+		// Publish a message to all listeners of a topic. Stable identity.
+		const publish = useCallback((topic, data) => {
 			const callbacks = topicsRef.current.get(topic);
 			if (callbacks) {
 				for (const cb of callbacks) cb(data);
 			}
-		};
+		}, []);
 
 		// Trigger a re-render of the MessageList tree (needed for add/remove/clear)
 		// eslint-disable-next-line no-unused-vars, no-shadow

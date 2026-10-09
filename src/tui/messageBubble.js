@@ -146,6 +146,80 @@ export const PubSubContext = React.createContext({ subscribe: () => {}, unsubscr
 export const ScrollContext = React.createContext({ scrollToBottom: () => {} });
 
 /**
+ * Creates a throttled segment committer for streaming message updates.
+ *
+ * During streaming, each published chunk carries the full merged segments
+ * array (the accumulated content so far). Committing it to React state
+ * re-renders the bubble and re-parses the entire markdown, which is expensive
+ * for long messages. This throttle accumulates the incoming segments and
+ * commits on a cadence (`throttleMs`), so the bubble re-renders at most once
+ * per cadence instead of once per chunk. The cadence targets 30fps (33ms) so
+ * renders stay smooth without backing up. When the stream ends
+ * (`streaming === false`) or `flush()` is called, the buffered segments are
+ * committed immediately so the final content renders.
+ *
+ * No content is discarded: each `push` carries the full accumulated snapshot,
+ * so the buffer always holds the complete content and the commit renders it
+ * all.
+ *
+ * @param {Function} commit - Called with the accumulated segments array to commit
+ * @param {number} [throttleMs=33] - Minimum interval between commits in ms (30fps)
+ * @returns {{push: Function, flush: Function, dispose: Function}}
+ *   `push(segments, streaming)` buffers segments and schedules/commits;
+ *   `flush()` commits any buffered segments immediately; `dispose()` clears
+ *   any pending timer and buffered data.
+ */
+export function createSegmentThrottle(commit, throttleMs = 33) {
+	let pending = null;
+	let timer = null;
+
+	const commitPending = () => {
+		if (pending) {
+			commit(pending);
+			pending = null;
+		}
+	};
+
+	return {
+		push(segments, streaming) {
+			// Accumulate the incoming segments. Each push carries the full merged
+			// snapshot, so this holds the complete content — nothing is dropped.
+			pending = segments;
+			if (streaming === true) {
+				// Throttle: schedule a commit if one isn't already pending.
+				if (!timer) {
+					timer = setTimeout(() => {
+						timer = null;
+						commitPending();
+					}, throttleMs);
+				}
+			} else {
+				// Stream ended (or non-streaming update): commit immediately.
+				if (timer) {
+					clearTimeout(timer);
+					timer = null;
+				}
+				commitPending();
+			}
+		},
+		flush() {
+			if (timer) {
+				clearTimeout(timer);
+				timer = null;
+			}
+			commitPending();
+		},
+		dispose() {
+			if (timer) {
+				clearTimeout(timer);
+				timer = null;
+			}
+			pending = null;
+		},
+	};
+}
+
+/**
  * A single message bubble with its own segments state.
  *
  * Uses pub/sub to listen for streaming updates directly from MessageList.
@@ -214,12 +288,23 @@ export function MessageBubbleInner({
 	useEffect(() => {
 		if (!topic) return;
 
+		// Throttle segment commits during streaming so the bubble re-renders on a
+		// cadence instead of once per chunk. The final chunk (streaming === false)
+		// flushes immediately so the completed content renders.
+		const throttle = createSegmentThrottle((segments) => {
+			setSegments(segments.map((s) => ({ ...s })));
+		});
+
 		const handleUpdate = (data) => {
 			// Replace segments entirely from parent — messageList.updateMessage
 			// already handles coalescing. The published data contains the full
 			// merged segments, so we just copy them.
 			if (data?.segments) {
-				setSegments(data.segments.map((s) => ({ ...s })));
+				throttle.push(data.segments, data.streaming);
+			} else if (data?.streaming === false) {
+				// Stream ended without a segments payload (finalize path): flush
+				// any buffered segments so the completed content renders now.
+				throttle.flush();
 			}
 			// Pick up streaming/turnDuration from published data so the
 			// timer stops without a parent re-render.
@@ -233,7 +318,10 @@ export function MessageBubbleInner({
 		};
 
 		subscribe(topic, handleUpdate);
-		return () => unsubscribe(topic, handleUpdate);
+		return () => {
+			unsubscribe(topic, handleUpdate);
+			throttle.dispose();
+		};
 	}, [topic, subscribe, unsubscribe]);
 
 	// Display the latest content — use segments if available, otherwise fall back to localContent
