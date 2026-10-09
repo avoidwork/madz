@@ -172,7 +172,7 @@ const checkpointer = createCheckpointer(config);
 // Provider config for TUI
 const providerConfig = config.providers[providerName] || {};
 
-const { agent, model, systemPrompt } = await createDeepAgentsOrchestrator(checkpointer);
+const { agent, model, systemPrompt, mcpAdapter } = await createDeepAgentsOrchestrator(checkpointer);
 
 // Build a session config for the CURRENT thread. `sessionConfig` is captured
 // once at startup with the initial thread_id, but `/new` replaces the session
@@ -346,6 +346,10 @@ async function dispatchProvider(message, _sessionState = null, streamingCallback
 const runShutdown = async () => {
 	if (gcManager) {
 		gcManager.stop();
+	}
+
+	if (mcpAdapter) {
+		await mcpAdapter.close();
 	}
 
 	if (shutdownFn) {

@@ -187,3 +187,68 @@ describe("tools - buildToolConfig", () => {
 		assert.ok(toolNames.includes("yaml"));
 	});
 });
+
+describe("tools - MCP tool classification", () => {
+	beforeEach(async () => {
+		// Reset the module-level MCP classification registry between tests.
+		const { MCP_TOOL_CLASSIFICATIONS } = await import("../../src/tools/index.js");
+		for (const key of Object.keys(MCP_TOOL_CLASSIFICATIONS)) {
+			delete MCP_TOOL_CLASSIFICATIONS[key];
+		}
+	});
+
+	it("registerMcpToolClassifications stores agent types per tool name", async () => {
+		const { registerMcpToolClassifications, MCP_TOOL_CLASSIFICATIONS } =
+			await import("../../src/tools/index.js");
+		registerMcpToolClassifications(["docs_search", "docs_read"], ["search", "research"]);
+		assert.deepStrictEqual(MCP_TOOL_CLASSIFICATIONS["docs_search"], ["search", "research"]);
+		assert.deepStrictEqual(MCP_TOOL_CLASSIFICATIONS["docs_read"], ["search", "research"]);
+	});
+
+	it("getToolsForAgentTypes includes MCP tools matching the agent type", async () => {
+		const { registerMcpToolClassifications, getToolsForAgentTypes } =
+			await import("../../src/tools/index.js");
+		registerMcpToolClassifications(["docs_search", "docs_read"], ["search", "research"]);
+		const matches = getToolsForAgentTypes(["search"], {});
+		assert.ok(matches.includes("docs_search"), "should include MCP tool classified for search");
+		assert.ok(matches.includes("docs_read"), "should include MCP tool classified for search");
+	});
+
+	it("getToolsForAgentTypes excludes MCP tools not matching the agent type", async () => {
+		const { registerMcpToolClassifications, getToolsForAgentTypes } =
+			await import("../../src/tools/index.js");
+		registerMcpToolClassifications(["docs_search"], ["search"]);
+		const matches = getToolsForAgentTypes(["coding"], {});
+		assert.ok(
+			!matches.includes("docs_search"),
+			"should exclude MCP tool not classified for coding",
+		);
+	});
+
+	it("getToolsForAgentTypes returns empty when no MCP tools registered", async () => {
+		const { getToolsForAgentTypes } = await import("../../src/tools/index.js");
+		const matches = getToolsForAgentTypes(["search"], {});
+		assert.deepStrictEqual(matches, []);
+	});
+});
+
+describe("tools - buildToolConfig MCP", () => {
+	it("is a no-op when no mcp servers are configured", async () => {
+		const { buildToolConfig } = await import("../../src/tools/index.js");
+		const tools = await buildToolConfig({
+			permissions: ["filesystem:read"],
+			maxReadSize: "1mb",
+			config: {},
+		});
+		assert.ok(!("mcpAdapter" in tools), "should not attach mcpAdapter when no servers configured");
+	});
+
+	it("does not crash when mcp config is absent", async () => {
+		const { buildToolConfig } = await import("../../src/tools/index.js");
+		const tools = await buildToolConfig({
+			permissions: ["filesystem:read"],
+			maxReadSize: "1mb",
+		});
+		assert.ok(Array.isArray(tools), "should return an array even without mcp config");
+	});
+});

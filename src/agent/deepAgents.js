@@ -23,6 +23,7 @@ import { createImageDispatchMiddleware } from "../provider/imageDispatchMiddlewa
 import {
 	buildToolConfig,
 	getToolsForAgentTypes,
+	MCP_TOOL_CLASSIFICATIONS,
 	ORCHESTRATOR_TOOLS,
 	TOOLS,
 } from "../tools/index.js";
@@ -390,9 +391,14 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 		`All tools: ${allTools.length}`,
 	);
 
-	// Filter to orchestrator tools only — domain-specific tools go to subagents
+	// Filter to orchestrator tools only — domain-specific tools go to subagents.
+	// MCP tools are dynamic; include those classified for the orchestrator.
 	const orchestratorToolNames = new Set(ORCHESTRATOR_TOOLS);
-	const orchestratorTools = allTools.filter((t) => orchestratorToolNames.has(t.name));
+	const orchestratorTools = allTools.filter(
+		(t) =>
+			orchestratorToolNames.has(t.name) ||
+			(MCP_TOOL_CLASSIFICATIONS[t.name] || []).includes("orchestrator"),
+	);
 	logger.info(
 		{ tools: orchestratorToolNames.size },
 		`Orchestrator tools: ${orchestratorToolNames.size}`,
@@ -508,5 +514,10 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 		await agent.compactContext(config);
 	};
 
-	return { agent, model, systemPrompt };
+	// Expose the MCP adapter (if any) so the caller can close it on shutdown.
+	// `allTools` is an array with the adapter attached as a property when MCP
+	// servers are configured.
+	const mcpAdapter = allTools.mcpAdapter;
+
+	return { agent, model, systemPrompt, mcpAdapter };
 }
