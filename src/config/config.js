@@ -18,6 +18,7 @@ import { SubAgentsTemperatureSchema } from "./schemas/subAgentsTemperature.js";
 import { SummarizationSchema } from "./schemas/summarization.js";
 import { VectorConfigSchema } from "./schemas/vector.js";
 import { ImageSchema } from "./schemas/image.js";
+import { McpSchema } from "./schemas/mcp.js";
 
 // Re-export individual schemas for backward compatibility
 export {
@@ -34,6 +35,7 @@ export {
 	PersistenceSchema,
 	SkillAgentMapSchema,
 	VectorConfigSchema,
+	McpSchema,
 };
 
 // --- Root config ---
@@ -71,6 +73,7 @@ export const ConfigSchema = z.object({
 	summarization: SummarizationSchema.default({}),
 	vector: VectorConfigSchema.default({}),
 	image: ImageSchema.default({}),
+	mcp: McpSchema,
 });
 
 // Derive defaults from Zod schema — config.yaml is the source of truth,

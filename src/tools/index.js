@@ -29,6 +29,8 @@ import { searchCode, indexCode } from "./code/index.js";
 import { getConfig } from "./config/index.js";
 import { decision, decisionImpl, DecisionToolSchema } from "./decision/index.js";
 import { tool } from "@langchain/core/tools";
+import { MCPAdapter } from "@langchain/mcp-adapters";
+import { logger } from "../shared/logger.js";
 
 /**
  * Maps tool names to required permission scopes.
@@ -172,6 +174,24 @@ export const TOOL_CLASSIFICATIONS = {
 };
 
 /**
+ * Classifications for dynamically-discovered MCP tools, keyed by tool name.
+ * Populated at runtime by `buildToolConfig()` from each server's `agents` list.
+ * @type {Record<string, string[]>}
+ */
+export const MCP_TOOL_CLASSIFICATIONS = {};
+
+/**
+ * Register the classifications for a set of dynamically-discovered MCP tools.
+ * @param {string[]} toolNames - Names of the discovered MCP tools
+ * @param {string[]} agentTypes - Agent type classifications for these tools
+ */
+export function registerMcpToolClassifications(toolNames, agentTypes) {
+	for (const name of toolNames) {
+		MCP_TOOL_CLASSIFICATIONS[name] = agentTypes;
+	}
+}
+
+/**
  * Get tools filtered by agent type classification.
  * @param {string[]} agentTypes - Array of agent type classifications (e.g., ["search", "debug"])
  * @param {object} tools - The full tools object from TOOLS
@@ -179,10 +199,18 @@ export const TOOL_CLASSIFICATIONS = {
  */
 export function getToolsForAgentTypes(agentTypes, tools) {
 	const toolNames = Object.keys(tools);
-	return toolNames.filter((toolName) => {
+	const staticMatches = toolNames.filter((toolName) => {
 		const classifications = TOOL_CLASSIFICATIONS[toolName] || [];
 		return agentTypes.some((type) => classifications.includes(type));
 	});
+
+	// Include dynamically-discovered MCP tools whose classification matches.
+	const mcpMatches = Object.keys(MCP_TOOL_CLASSIFICATIONS).filter((toolName) => {
+		const classifications = MCP_TOOL_CLASSIFICATIONS[toolName] || [];
+		return agentTypes.some((type) => classifications.includes(type));
+	});
+
+	return [...staticMatches, ...mcpMatches];
 }
 
 /**
@@ -417,6 +445,55 @@ export async function buildToolConfig(options) {
 				if (requiredPerms.length > 0 && !hasAllPerms) continue;
 				tools.push(TOOLS[toolName]);
 			}
+		}
+	}
+
+	// Discover and register MCP server tools. MCP tools are dynamic (discovered
+	// at runtime), so they are appended to the tool list rather than added to
+	// the static TOOLS map. The adapter stays open for the agent's lifetime and
+	// is attached to the returned array so the caller can close it on shutdown.
+	const mcpServers = config?.mcp || {};
+	if (Object.keys(mcpServers).length > 0) {
+		try {
+			// The adapter's config schema is strict and rejects madz-specific
+			// fields (e.g. `agents`). Strip those before constructing the
+			// adapter, keeping only the transport connection params.
+			const adapterServers = {};
+			for (const [serverName, serverConfig] of Object.entries(mcpServers)) {
+				const { agents: _agents, ...connection } = serverConfig;
+				adapterServers[serverName] = connection;
+			}
+
+			const adapter = new MCPAdapter({
+				servers: adapterServers,
+				onConnectionError: "ignore",
+			});
+			const mcpTools = await adapter.listTools();
+			for (const mcpTool of mcpTools) {
+				tools.push(mcpTool);
+			}
+
+			// Classify each server's tools by its `agents` list (default:
+			// orchestrator only). The adapter prefixes tool names with the
+			// server name, so we derive the server from the tool name prefix.
+			for (const [serverName, serverConfig] of Object.entries(mcpServers)) {
+				const agentTypes = serverConfig.agents?.length > 0 ? serverConfig.agents : ["orchestrator"];
+				const serverTools = mcpTools.filter((t) => t.name.startsWith(`${serverName}_`));
+				registerMcpToolClassifications(
+					serverTools.map((t) => t.name),
+					agentTypes,
+				);
+			}
+
+			// Attach the adapter to the returned array so the caller can close
+			// it on shutdown. The array remains iterable for existing callers.
+			tools.mcpAdapter = adapter;
+			logger.info(
+				{ servers: Object.keys(mcpServers), tools: mcpTools.length },
+				`[mcp] Registered ${mcpTools.length} MCP tools from ${Object.keys(mcpServers).length} server(s)`,
+			);
+		} catch (err) {
+			logger.warn({ error: err.message }, `[mcp] MCP tool discovery failed: ${err.message}`);
 		}
 	}
 

@@ -52,6 +52,7 @@ This is what makes `madz` feel like a teammate rather than a tool — and it's a
   - [LLM Response Caching](#llm-response-caching)
   - [Agent](#agent)
   - [Built-in Tools](#built-in-tools)
+  - [MCP Servers](#mcp-servers)
   - [File Path Autocomplete](#file-path-autocomplete)
   - [Active Project](#active-project)
   - [Skills Registry](#skills-registry)
@@ -660,6 +661,66 @@ All built-in tools are defined in `src/tools/` and registered as LangChain tools
 
 **Deep Agents tools:** Core filesystem operations (`readFile`, `writeFile`, `patch`, `searchFiles`) and task management (`todo`) are provided by [deepagentsjs](https://github.com/langchain-ai/deepagentsjs) and are not listed as madz-built-in tools.
 
+**MCP tools:** Tools exposed by [Model Context Protocol](https://modelcontextprotocol.io) servers are discovered at runtime from the `mcp` config section and registered alongside the built-in tools. They are dynamic — not part of the static table above. See [MCP Servers](#mcp-servers).
+
+### MCP Servers
+
+madz supports [Model Context Protocol](https://modelcontextprotocol.io) (MCP) servers, letting you plug in external tools and data sources declaratively via `config.yaml`. At startup, madz connects to each configured server, discovers its tools, and registers them alongside the built-in tools.
+
+#### Configuration
+
+Add a root-level `mcp` key. Each server is a named entry under it, specifying a transport and its connection parameters:
+
+```yaml
+mcp:
+  docs:
+    transport: http
+    url: https://docs.langchain.com/mcp
+  local-fs:
+    transport: stdio
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-filesystem", "/path"]
+    env:
+      API_KEY: "${MCP_API_KEY}"
+  legacy:
+    transport: sse
+    url: https://example.com/mcp
+```
+
+#### Transports
+
+| Transport | Fields | Description |
+| --------- | ------ | ----------- |
+| `stdio` | `command`, `args`, `env?` | Local, process-spawned server (e.g., `npx`-launched). |
+| `http` | `url` | Streamable HTTP — the default for remote servers. |
+| `sse` | `url` | HTTP + SSE, for backwards compatibility with older servers. |
+
+#### Classifying tools
+
+Each server can carry an optional `agents` list that determines which agent types receive its tools. When absent, tools default to the orchestrator only.
+
+```yaml
+mcp:
+  local-fs:
+    transport: stdio
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-filesystem", "/path"]
+    agents: ["coding", "search"]   # tools go to these subagents
+```
+
+- **No `agents`** → tools are added to the orchestrator.
+- **`agents: ["coding", "search"]`** → tools are delegated to those subagents only.
+- **`agents: ["orchestrator", "coding"]`** → tools are available to both the orchestrator and the `coding` subagent.
+
+The MCP server only exposes the tool (name, schema, handler). The `agents` classification is a madz-specific extension — it lives in your config, not on the server.
+
+#### Behavior
+
+- MCP tools are **dynamic** — discovered at runtime, so they are appended to the tool list rather than added to the static `TOOLS` map.
+- A server that fails to connect logs a warning and is **skipped** — startup never crashes on a bad server.
+- The adapter stays open for the agent's lifetime and is closed on shutdown.
+- Tool names are prefixed with the server name (e.g., `local-fs_read_file`) to avoid collisions.
+
 ### Decisioning Models
 
 The `decision` tool wraps Ollama's `/v1/systemone` endpoint (which follows TypeSafe's Jev API) for fast, structured classification — routing a support ticket, checking a request against a policy, or scoring against a rubric. It uses a local decision model such as **tev1** from Together AI, fine-tuned from Qwen3.5 in 4B and 0.8B sizes. You give it a `state` (the text to judge) and a set of `questions`, and it selects an answer based on likely outcome, returning the probability of each option.
@@ -908,6 +969,12 @@ Graceful shutdown flushes all buffered log entries to disk before process exit.
 | `agent`       | `recursionLimit`                     | `1000`                                   | Max graph execution steps per agent call      |
 |               | `autoContinueLimit`                  | `1000`                                   | Max consecutive auto-continue attempts before circuit breaker triggers |
 |               | `nodeTimeout`                        | `600000`                                 | Superstep timeout in milliseconds (default 10 minutes) |
+| `mcp`         | `<name>.transport`                   | _(none)_                                 | MCP transport (`stdio`, `http`, `sse`)        |
+|               | `<name>.command`                     | _(none)_                                 | Command for `stdio` servers                   |
+|               | `<name>.args`                        | `[]`                                     | Args for `stdio` servers                      |
+|               | `<name>.env`                         | _(none)_                                 | Env vars for `stdio` servers                  |
+|               | `<name>.url`                         | _(none)_                                 | URL for `http`/`sse` servers                  |
+|               | `<name>.agents`                      | `["orchestrator"]`                       | Agent types that receive the server's tools   |
 | `lru`         | `size`                             | `100`                                    | Maximum number of cached LLM responses        |
 |               | `ttl`                              | `600000`                                 | Cache entry TTL in milliseconds (10 minutes)  |
 | `persistence` | `mode`                               | `memory`                                 | Storage backend (`memory`, `sqlite`)          |

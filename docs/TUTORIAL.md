@@ -452,6 +452,53 @@ The orchestrator uses a `CompositeBackend` that routes file operations to differ
 
 This creates a clean, consistent namespace where the agent always sees `/` as the root, regardless of where the application is actually running. Path traversal is validated — resolved paths must stay within their backend's `rootDir`.
 
+### Connecting MCP Servers
+
+[Model Context Protocol](https://modelcontextprotocol.io) (MCP) lets you plug external tools and data sources into madz declaratively. Register servers under a root-level `mcp` key in `config.yaml`, and madz discovers their tools at startup and registers them alongside the built-in tools.
+
+```yaml
+mcp:
+  docs:
+    transport: http
+    url: https://docs.langchain.com/mcp
+  local-fs:
+    transport: stdio
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-filesystem", "/path"]
+```
+
+**Transports:**
+
+| Transport | Fields | Use for |
+| --------- | ------ | ------- |
+| `stdio` | `command`, `args`, `env?` | Local, process-spawned servers (e.g., `npx`-launched). |
+| `http` | `url` | Remote servers over Streamable HTTP (the default). |
+| `sse` | `url` | Older servers that only speak HTTP + SSE. |
+
+**Classifying tools:** Each server can carry an `agents` list that routes its tools to specific agent types. When absent, tools default to the orchestrator.
+
+```yaml
+mcp:
+  local-fs:
+    transport: stdio
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-filesystem", "/path"]
+    agents: ["coding", "search"]
+```
+
+- **No `agents`** → tools go to the orchestrator.
+- **`agents: ["coding", "search"]`** → tools are delegated to those subagents.
+- **`agents: ["orchestrator", "coding"]`** → tools are available to both.
+
+The `agents` classification is a madz-specific extension — it lives in your config, not on the server. The MCP server only provides the tool (name, schema, handler).
+
+**Behavior:**
+
+- MCP tools are discovered at runtime and appended to the tool list.
+- A server that fails to connect logs a warning and is skipped — startup never crashes.
+- Tool names are prefixed with the server name (e.g., `local-fs_read_file`) to avoid collisions.
+- The adapter stays open for the agent's lifetime and is closed on shutdown.
+
 ---
 
 ## 🤖 Delegating Work to Subagents

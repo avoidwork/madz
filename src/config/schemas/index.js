@@ -16,3 +16,4 @@ export { SubAgentsTemperatureSchema } from "./subAgentsTemperature.js";
 export { SummarizationSchema } from "./summarization.js";
 export { VectorConfigSchema } from "./vector.js";
 export { ImageSchema } from "./image.js";
+export { McpSchema } from "./mcp.js";
