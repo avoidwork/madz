@@ -781,6 +781,36 @@ describe("TuiSchema defaults", () => {
 		assert.strictEqual(schemaResult.success, true);
 		assert.strictEqual(schemaResult.data.name, defaults.name);
 	});
+
+	it("defaults mouseScrollLines to 1 when omitted", () => {
+		assert.strictEqual(defaults.mouseScrollLines, 1);
+		const schemaResult = TuiSchema.safeParse({});
+		assert.strictEqual(schemaResult.success, true);
+		assert.strictEqual(schemaResult.data.mouseScrollLines, 1);
+	});
+});
+
+describe("TuiSchema mouseScrollLines validation", () => {
+	it("accepts a positive integer", () => {
+		const schemaResult = TuiSchema.safeParse({ mouseScrollLines: 3 });
+		assert.strictEqual(schemaResult.success, true);
+		assert.strictEqual(schemaResult.data.mouseScrollLines, 3);
+	});
+
+	it("rejects zero", () => {
+		const schemaResult = TuiSchema.safeParse({ mouseScrollLines: 0 });
+		assert.strictEqual(schemaResult.success, false);
+	});
+
+	it("rejects negative values", () => {
+		const schemaResult = TuiSchema.safeParse({ mouseScrollLines: -1 });
+		assert.strictEqual(schemaResult.success, false);
+	});
+
+	it("rejects non-integers", () => {
+		const schemaResult = TuiSchema.safeParse({ mouseScrollLines: 1.5 });
+		assert.strictEqual(schemaResult.success, false);
+	});
 });
 
 describe("InputPanel - component rendering", () => {

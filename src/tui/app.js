@@ -12,7 +12,7 @@ import { SettingsPanel } from "./settingsPanel.js";
 import { SessionsPanel } from "./sessionsPanel.js";
 import { ProjectsPanel } from "./projectsPanel.js";
 import { getActiveProviderConfig } from "../provider/index.js";
-import { useMouseScroll } from "./useMouseScroll.js";
+import { useMouseScroll, scaleScrollDelta } from "./useMouseScroll.js";
 import { buildLayout, extractSelection, mapCoordToChar } from "./selectionLayout.js";
 import clipboardy from "clipboardy";
 
@@ -442,7 +442,9 @@ function App({
 		(delta) => {
 			if (currentView !== PANELS.CONVERSATION) return;
 			if (inputAreaRef.current?.isPickerOpen?.()) return;
-			conversationAreaRef.current?.scrollBy(delta);
+			conversationAreaRef.current?.scrollBy(
+				scaleScrollDelta(delta, config?.tui?.mouseScrollLines || 1),
+			);
 		},
 		(sel) => {
 			if (currentView !== PANELS.CONVERSATION) return;

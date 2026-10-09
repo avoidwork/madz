@@ -8,8 +8,13 @@ import assert from "node:assert";
 import React from "react";
 import { render } from "ink";
 
-const { parseSgrMouseSequence, buttonToDelta, buttonToSelection, useMouseScroll } =
-	await import("../../../src/tui/useMouseScroll.js");
+const {
+	parseSgrMouseSequence,
+	buttonToDelta,
+	buttonToSelection,
+	scaleScrollDelta,
+	useMouseScroll,
+} = await import("../../../src/tui/useMouseScroll.js");
 
 describe("parseSgrMouseSequence", () => {
 	it("parses a wheel-up press sequence", () => {
@@ -95,6 +100,23 @@ describe("buttonToSelection", () => {
 		assert.strictEqual(buttonToSelection(1), false);
 		assert.strictEqual(buttonToSelection(2), false);
 		assert.strictEqual(buttonToSelection(66), false);
+	});
+});
+
+describe("scaleScrollDelta", () => {
+	it("defaults to 1 line per wheel event", () => {
+		assert.strictEqual(scaleScrollDelta(-1), -1);
+		assert.strictEqual(scaleScrollDelta(1), 1);
+	});
+
+	it("scales the delta by the configured lines", () => {
+		assert.strictEqual(scaleScrollDelta(-1, 3), -3);
+		assert.strictEqual(scaleScrollDelta(1, 3), 3);
+	});
+
+	it("scales wheel-up and wheel-down symmetrically", () => {
+		assert.strictEqual(scaleScrollDelta(-1, 5), -5);
+		assert.strictEqual(scaleScrollDelta(1, 5), 5);
 	});
 });
 

@@ -466,6 +466,7 @@ The active provider is selected by the `enabled` flag, not by config position or
 | Variable                  | Default | Description                                      |
 | ------------------------- | ------- | ------------------------------------------------ |
 | `TUI_CURSOR_CHAR`         | `█`     | Cursor character                                 |
+| `TUI_MOUSE_SCROLL_LINES`  | `1`     | Lines to scroll per mouse wheel event            |
 | `TUI_NAME`                | `madz`  | TUI identifier in banner                         |
 | `TUI_SHOW_TOOL_RESULTS`   | `false` | Show tool call result lines in assistant messages |
 | `TUI_STATUS_BAR_MODEL`    | `true`  | Show the active model in the status bar          |
@@ -894,7 +895,8 @@ Graceful shutdown flushes all buffered log entries to disk before process exit.
 | `schedules`   | `maxConcurrent`                      | `1`                                      | Max parallel scheduled runs                   |
 |               | `mode`                               | `inprocess`                              | Scheduling backend (`inprocess`, `system`)    |
 |               | `syncOnInit`                         | `true`                                   | Sync crontab from persisted job definitions   |
-| `tui`         | `name`                               | `madz`                                   | TUI identifier in banner                      |
+| `tui`         | `mouseScrollLines`                   | `1`                                      | Lines to scroll per mouse wheel event         |
+|               | `name`                               | `madz`                                   | TUI identifier in banner                      |
 |               | `showToolResults`                    | `false`                                 | Display tool call result lines in the TUI     |
 |               | `statusBar.model`                    | `true`                                  | Show the active model in the status bar       |
 |               | `statusBar.skills`                   | `true`                                  | Show the skills count in the status bar       |
