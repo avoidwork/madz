@@ -8,6 +8,7 @@ import {
 	PubSubContext,
 	ScrollContext,
 	createPubSub,
+	createSegmentThrottle,
 	getRandomThinkingWord,
 	THINKING_WORDS,
 } from "../../../src/tui/messageBubble.js";
@@ -454,5 +455,57 @@ describe("MessageBubble - memo wrapper", () => {
 		assert.ok(
 			MessageBubble.type?.name === "MessageBubbleInner" || typeof MessageBubble === "object",
 		);
+	});
+});
+
+describe("createSegmentThrottle", () => {
+	it("commits immediately when streaming is false", () => {
+		const commits = [];
+		const t = createSegmentThrottle((s) => commits.push(s));
+		t.push([{ type: "message", content: "done" }], false);
+		assert.strictEqual(commits.length, 1);
+		assert.deepStrictEqual(commits[0], [{ type: "message", content: "done" }]);
+	});
+
+	it("buffers streaming chunks and commits the latest on the cadence", async () => {
+		const commits = [];
+		const t = createSegmentThrottle((s) => commits.push(s), 50);
+		t.push([{ type: "message", content: "a" }], true);
+		t.push([{ type: "message", content: "ab" }], true);
+		t.push([{ type: "message", content: "abc" }], true);
+		// No commit yet — buffered.
+		assert.strictEqual(commits.length, 0);
+		await new Promise((r) => setTimeout(r, 80));
+		assert.strictEqual(commits.length, 1);
+		assert.deepStrictEqual(commits[0], [{ type: "message", content: "abc" }]);
+	});
+
+	it("flushes buffered segments immediately when the stream ends", () => {
+		const commits = [];
+		const t = createSegmentThrottle((s) => commits.push(s), 50);
+		t.push([{ type: "message", content: "a" }], true);
+		t.push([{ type: "message", content: "ab" }], true);
+		assert.strictEqual(commits.length, 0);
+		t.push([{ type: "message", content: "ab" }], false);
+		assert.strictEqual(commits.length, 1);
+		assert.deepStrictEqual(commits[0], [{ type: "message", content: "ab" }]);
+	});
+
+	it("flush() commits any buffered segments", () => {
+		const commits = [];
+		const t = createSegmentThrottle((s) => commits.push(s), 50);
+		t.push([{ type: "message", content: "a" }], true);
+		assert.strictEqual(commits.length, 0);
+		t.flush();
+		assert.strictEqual(commits.length, 1);
+	});
+
+	it("dispose() clears the pending timer and buffer", async () => {
+		const commits = [];
+		const t = createSegmentThrottle((s) => commits.push(s), 20);
+		t.push([{ type: "message", content: "a" }], true);
+		t.dispose();
+		await new Promise((r) => setTimeout(r, 40));
+		assert.strictEqual(commits.length, 0);
 	});
 });
