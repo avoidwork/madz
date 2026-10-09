@@ -149,21 +149,27 @@ export const ScrollContext = React.createContext({ scrollToBottom: () => {} });
  * Creates a throttled segment committer for streaming message updates.
  *
  * During streaming, each published chunk carries the full merged segments
- * array. Committing it to React state re-renders the bubble and re-parses the
- * entire markdown, which is expensive for long messages. This throttle buffers
- * the latest segments and commits on a cadence (`throttleMs`), so the bubble
- * re-renders at most once per cadence instead of once per chunk. When the
- * stream ends (`streaming === false`) or `flush()` is called, the buffered
- * segments are committed immediately so the final content renders.
+ * array (the accumulated content so far). Committing it to React state
+ * re-renders the bubble and re-parses the entire markdown, which is expensive
+ * for long messages. This throttle accumulates the incoming segments and
+ * commits on a cadence (`throttleMs`), so the bubble re-renders at most once
+ * per cadence instead of once per chunk. The cadence targets 30fps (33ms) so
+ * renders stay smooth without backing up. When the stream ends
+ * (`streaming === false`) or `flush()` is called, the buffered segments are
+ * committed immediately so the final content renders.
  *
- * @param {Function} commit - Called with the latest segments array to commit
- * @param {number} [throttleMs=100] - Minimum interval between commits in ms
+ * No content is discarded: each `push` carries the full accumulated snapshot,
+ * so the buffer always holds the complete content and the commit renders it
+ * all.
+ *
+ * @param {Function} commit - Called with the accumulated segments array to commit
+ * @param {number} [throttleMs=33] - Minimum interval between commits in ms (30fps)
  * @returns {{push: Function, flush: Function, dispose: Function}}
  *   `push(segments, streaming)` buffers segments and schedules/commits;
  *   `flush()` commits any buffered segments immediately; `dispose()` clears
  *   any pending timer and buffered data.
  */
-export function createSegmentThrottle(commit, throttleMs = 100) {
+export function createSegmentThrottle(commit, throttleMs = 33) {
 	let pending = null;
 	let timer = null;
 
@@ -176,6 +182,8 @@ export function createSegmentThrottle(commit, throttleMs = 100) {
 
 	return {
 		push(segments, streaming) {
+			// Accumulate the incoming segments. Each push carries the full merged
+			// snapshot, so this holds the complete content — nothing is dropped.
 			pending = segments;
 			if (streaming === true) {
 				// Throttle: schedule a commit if one isn't already pending.
