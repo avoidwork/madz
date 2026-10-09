@@ -53,6 +53,16 @@ export function buttonToSelection(button) {
 }
 
 /**
+ * Scale a scroll delta by the configured number of lines per wheel event.
+ * @param {number} delta - Base scroll delta (-1 for wheel-up, +1 for wheel-down)
+ * @param {number} [lines=1] - Number of lines to scroll per wheel event
+ * @returns {number} The scaled delta
+ */
+export function scaleScrollDelta(delta, lines = 1) {
+	return delta * lines;
+}
+
+/**
  * Hook that enables terminal mouse reporting and parses SGR mouse sequences
  * to detect wheel-up/wheel-down events and left-button drag selection.
  *
