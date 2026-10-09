@@ -21,13 +21,11 @@ describe("MCP server tool registration (integration)", () => {
 	before(async () => {
 		const config = {
 			mcp: {
-				servers: {
-					"madz-test": {
-						transport: "stdio",
-						command: "node",
-						args: [FIXTURE_SERVER],
-						agents: ["coding", "search"],
-					},
+				"madz-test": {
+					transport: "stdio",
+					command: "node",
+					args: [FIXTURE_SERVER],
+					agents: ["coding", "search"],
 				},
 			},
 		};
@@ -93,12 +91,10 @@ describe("MCP server tool registration (integration)", () => {
 	it("defaults classification to orchestrator when no agents list is set", async () => {
 		const config = {
 			mcp: {
-				servers: {
-					"madz-test": {
-						transport: "stdio",
-						command: "node",
-						args: [FIXTURE_SERVER],
-					},
+				"madz-test": {
+					transport: "stdio",
+					command: "node",
+					args: [FIXTURE_SERVER],
 				},
 			},
 		};
@@ -124,12 +120,10 @@ describe("MCP server tool registration (integration)", () => {
 	it("warns and skips a server that fails to connect", async () => {
 		const config = {
 			mcp: {
-				servers: {
-					"broken-server": {
-						transport: "stdio",
-						command: "node",
-						args: ["/nonexistent/mcp-server.mjs"],
-					},
+				"broken-server": {
+					transport: "stdio",
+					command: "node",
+					args: ["/nonexistent/mcp-server.mjs"],
 				},
 			},
 		};

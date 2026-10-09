@@ -669,23 +669,22 @@ madz supports [Model Context Protocol](https://modelcontextprotocol.io) (MCP) se
 
 #### Configuration
 
-Add a root-level `mcp` key with a `servers` map. Each server specifies a transport and its connection parameters:
+Add a root-level `mcp` key. Each server is a named entry under it, specifying a transport and its connection parameters:
 
 ```yaml
 mcp:
-  servers:
-    docs:
-      transport: http
-      url: https://docs.langchain.com/mcp
-    local-fs:
-      transport: stdio
-      command: npx
-      args: ["-y", "@modelcontextprotocol/server-filesystem", "/path"]
-      env:
-        API_KEY: "${MCP_API_KEY}"
-    legacy:
-      transport: sse
-      url: https://example.com/mcp
+  docs:
+    transport: http
+    url: https://docs.langchain.com/mcp
+  local-fs:
+    transport: stdio
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-filesystem", "/path"]
+    env:
+      API_KEY: "${MCP_API_KEY}"
+  legacy:
+    transport: sse
+    url: https://example.com/mcp
 ```
 
 #### Transports
@@ -702,12 +701,11 @@ Each server can carry an optional `agents` list that determines which agent type
 
 ```yaml
 mcp:
-  servers:
-    local-fs:
-      transport: stdio
-      command: npx
-      args: ["-y", "@modelcontextprotocol/server-filesystem", "/path"]
-      agents: ["coding", "search"]   # tools go to these subagents
+  local-fs:
+    transport: stdio
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-filesystem", "/path"]
+    agents: ["coding", "search"]   # tools go to these subagents
 ```
 
 - **No `agents`** → tools are added to the orchestrator.
@@ -971,12 +969,12 @@ Graceful shutdown flushes all buffered log entries to disk before process exit.
 | `agent`       | `recursionLimit`                     | `1000`                                   | Max graph execution steps per agent call      |
 |               | `autoContinueLimit`                  | `1000`                                   | Max consecutive auto-continue attempts before circuit breaker triggers |
 |               | `nodeTimeout`                        | `600000`                                 | Superstep timeout in milliseconds (default 10 minutes) |
-| `mcp`         | `servers.<name>.transport`           | _(none)_                                 | MCP transport (`stdio`, `http`, `sse`)        |
-|               | `servers.<name>.command`             | _(none)_                                 | Command for `stdio` servers                   |
-|               | `servers.<name>.args`                | `[]`                                     | Args for `stdio` servers                      |
-|               | `servers.<name>.env`                 | _(none)_                                 | Env vars for `stdio` servers                  |
-|               | `servers.<name>.url`                 | _(none)_                                 | URL for `http`/`sse` servers                  |
-|               | `servers.<name>.agents`              | `["orchestrator"]`                       | Agent types that receive the server's tools   |
+| `mcp`         | `<name>.transport`                   | _(none)_                                 | MCP transport (`stdio`, `http`, `sse`)        |
+|               | `<name>.command`                     | _(none)_                                 | Command for `stdio` servers                   |
+|               | `<name>.args`                        | `[]`                                     | Args for `stdio` servers                      |
+|               | `<name>.env`                         | _(none)_                                 | Env vars for `stdio` servers                  |
+|               | `<name>.url`                         | _(none)_                                 | URL for `http`/`sse` servers                  |
+|               | `<name>.agents`                      | `["orchestrator"]`                       | Agent types that receive the server's tools   |
 | `lru`         | `size`                             | `100`                                    | Maximum number of cached LLM responses        |
 |               | `ttl`                              | `600000`                                 | Cache entry TTL in milliseconds (10 minutes)  |
 | `persistence` | `mode`                               | `memory`                                 | Storage backend (`memory`, `sqlite`)          |

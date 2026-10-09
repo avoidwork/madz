@@ -452,7 +452,7 @@ export async function buildToolConfig(options) {
 	// at runtime), so they are appended to the tool list rather than added to
 	// the static TOOLS map. The adapter stays open for the agent's lifetime and
 	// is attached to the returned array so the caller can close it on shutdown.
-	const mcpServers = config?.mcp?.servers || {};
+	const mcpServers = config?.mcp || {};
 	if (Object.keys(mcpServers).length > 0) {
 		try {
 			// The adapter's config schema is strict and rejects madz-specific

@@ -458,14 +458,13 @@ This creates a clean, consistent namespace where the agent always sees `/` as th
 
 ```yaml
 mcp:
-  servers:
-    docs:
-      transport: http
-      url: https://docs.langchain.com/mcp
-    local-fs:
-      transport: stdio
-      command: npx
-      args: ["-y", "@modelcontextprotocol/server-filesystem", "/path"]
+  docs:
+    transport: http
+    url: https://docs.langchain.com/mcp
+  local-fs:
+    transport: stdio
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-filesystem", "/path"]
 ```
 
 **Transports:**
@@ -480,12 +479,11 @@ mcp:
 
 ```yaml
 mcp:
-  servers:
-    local-fs:
-      transport: stdio
-      command: npx
-      args: ["-y", "@modelcontextprotocol/server-filesystem", "/path"]
-      agents: ["coding", "search"]
+  local-fs:
+    transport: stdio
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-filesystem", "/path"]
+    agents: ["coding", "search"]
 ```
 
 - **No `agents`** → tools go to the orchestrator.

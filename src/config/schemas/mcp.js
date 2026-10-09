@@ -41,14 +41,9 @@ const McpServerSchema = z.discriminatedUnion("transport", [
 /**
  * Configuration for Model Context Protocol (MCP) servers.
  *
- * A root-level `mcp` key defines named servers. Each server specifies a
+ * A root-level `mcp` key is a record of named servers. Each server specifies a
  * transport and its connection parameters. At startup, madz connects to each
  * server, discovers its tools via `MCPAdapter.listTools()`, and registers them
  * alongside the built-in tools.
  */
-export const McpSchema = z
-	.object({
-		servers: z.record(z.string(), McpServerSchema).default({}),
-	})
-	.strict()
-	.default({ servers: {} });
+export const McpSchema = z.record(z.string(), McpServerSchema).default({});

@@ -73,7 +73,7 @@ export const ConfigSchema = z.object({
 	summarization: SummarizationSchema.default({}),
 	vector: VectorConfigSchema.default({}),
 	image: ImageSchema.default({}),
-	mcp: McpSchema.default({}),
+	mcp: McpSchema,
 });
 
 // Derive defaults from Zod schema — config.yaml is the source of truth,
