@@ -281,6 +281,16 @@ export const MessageList = React.memo(
 							} else {
 								mergedSegments.push({ ...newSeg });
 							}
+						} else if (newSeg.type === "tool") {
+							// Tool segments coalesce with the last tool segment, but
+							// separate distinct tool messages with a blank line so they
+							// don't run together.
+							const lastSeg = mergedSegments[mergedSegments.length - 1];
+							if (lastSeg && lastSeg.type === "tool") {
+								lastSeg.content += "\n\n" + newSeg.content;
+							} else {
+								mergedSegments.push({ ...newSeg });
+							}
 						} else {
 							// Message segments require a type match to append; a mismatch
 							// (e.g., message after reasoning) forces a new block.
