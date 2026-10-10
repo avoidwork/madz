@@ -9,6 +9,13 @@ export const COMMAND_GROUPS = [
 		items: ["Type naturally to chat", "Up/Down arrow: message history", "Esc: interrupt"],
 	},
 	{
+		group: "Toggles:",
+		items: [
+			"Ctrl+R - collapse/expand reasoning blocks",
+			"Ctrl+T - collapse/expand tool result blocks",
+		],
+	},
+	{
 		group: "Command:",
 		items: [
 			"/clear - clear conversation",
