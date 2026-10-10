@@ -422,7 +422,7 @@ describe("MessageBubbleInner - tool call display", () => {
 			),
 		);
 		assert.ok(typeof result === "string");
-		assert.ok(result.includes("tool call"), "completed tool calls summary should remain visible");
+		assert.ok(result.includes("Tool calls"), "completed tool calls summary should remain visible");
 		assert.ok(result.includes("searchWeb"), "completed tool name should remain visible");
 	});
 
@@ -445,7 +445,7 @@ describe("MessageBubbleInner - tool call display", () => {
 			),
 		);
 		assert.ok(typeof result === "string");
-		assert.ok(result.includes("4 tool calls"), "should show the total call count");
+		assert.ok(result.includes("Tool calls"), "should show the tool calls summary");
 		assert.ok(result.includes("read_file ×3"), "should collapse repeated calls");
 		assert.ok(result.includes("searchCode"), "should list single calls without a count");
 		assert.ok(!result.includes("read_file, read_file"), "should not repeat the tool name");

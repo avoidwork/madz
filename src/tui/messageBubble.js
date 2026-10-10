@@ -529,18 +529,13 @@ export function MessageBubbleInner({
 
 	// Completed tool calls display — collapsed into a count map so repeated
 	// calls render as `name ×count` instead of a long list of duplicates.
-	const { total: completedTotal, text: completedText } =
-		formatCompletedToolCalls(localCompletedToolCalls);
+	const { text: completedText } = formatCompletedToolCalls(localCompletedToolCalls);
 	const completedToolCallsEl =
 		role === "assistant" && hasCompletedToolCalls(localCompletedToolCalls)
 			? React.createElement(
 					Box,
 					{ flexDirection: "column", marginLeft: 2, flexShrink: 0 },
-					React.createElement(
-						Text,
-						{ color: "gray" },
-						`⚡ ${completedTotal} tool call${completedTotal !== 1 ? "s" : ""}: ${completedText}`,
-					),
+					React.createElement(Text, { color: "gray" }, `⚡ Tool calls: ${completedText}`),
 				)
 			: null;
 
