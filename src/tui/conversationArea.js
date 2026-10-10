@@ -82,6 +82,8 @@ const ConversationArea = forwardRef(function ConversationArea(
 		activeProject,
 		setActiveProject,
 		selection,
+		reasoningCollapsed,
+		toolCallCollapsed,
 	},
 	ref,
 ) {
@@ -859,6 +861,8 @@ const ConversationArea = forwardRef(function ConversationArea(
 			overscan: config?.tui?.overscan,
 			messageListRef,
 			selection,
+			reasoningCollapsed,
+			toolCallCollapsed,
 		}),
 	);
 });

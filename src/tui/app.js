@@ -45,6 +45,10 @@ function App({
 	const [currentView, setCurrentView] = useState(PANELS.CONVERSATION);
 	const [pendingInput, setPendingInput] = useState("");
 	const [activeProject, setActiveProject] = useState("");
+	// Global collapse toggles for reasoning and tool-call blocks. Toggled by
+	// the key handler (ctrl+r / ctrl+t) and threaded down to MessageBubble.
+	const [reasoningCollapsed, setReasoningCollapsed] = useState(false);
+	const [toolCallCollapsed, setToolCallCollapsed] = useState(true);
 	// Current character selection range (global, in the flattened conversation
 	// text). Set during a drag and cleared on release.
 	const [selection, setSelection] = useState(null);
@@ -413,6 +417,18 @@ function App({
 			return;
 		}
 
+		// Ctrl+r / Ctrl+t toggle the global collapse state for reasoning and
+		// tool-call blocks. Return early so the key never reaches the input
+		// panel (which would render the letter).
+		if (key.ctrl && input === "r") {
+			setReasoningCollapsed((prev) => !prev);
+			return;
+		}
+		if (key.ctrl && input === "t") {
+			setToolCallCollapsed((prev) => !prev);
+			return;
+		}
+
 		// Focus-aware key routing
 		if (inputFocused) {
 			if (key.upArrow) {
@@ -577,6 +593,8 @@ function App({
 							activeProject,
 							setActiveProject,
 							selection,
+							reasoningCollapsed,
+							toolCallCollapsed,
 						}),
 		// InputArea — hidden during panel views
 		currentView === PANELS.CONVERSATION || showOnboarding

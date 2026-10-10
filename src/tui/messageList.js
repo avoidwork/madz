@@ -117,6 +117,8 @@ export const MessageList = React.memo(
 			overscan = 10,
 			scrollRef: externalScrollRef,
 			selection,
+			reasoningCollapsed = false,
+			toolCallCollapsed = true,
 		},
 		forwardRef,
 	) {
@@ -608,9 +610,19 @@ export const MessageList = React.memo(
 					renderIndex,
 					onRemeasure: (index) => scrollRef.current?.remeasureItem?.(index),
 					selection: localSelection,
+					reasoningCollapsed,
+					toolCallCollapsed,
 				});
 			},
-			[selection, textOffsets, assistantName, showToolResults, scrollRef],
+			[
+				selection,
+				textOffsets,
+				assistantName,
+				showToolResults,
+				scrollRef,
+				reasoningCollapsed,
+				toolCallCollapsed,
+			],
 		);
 
 		const width = Math.max(1, typeof window !== "undefined" ? window.innerWidth : 80);

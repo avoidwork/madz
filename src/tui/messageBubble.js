@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext, useRef } from "react";
-import { Box, Text, useInput } from "ink";
+import { Box, Text } from "ink";
 import Spinner from "ink-spinner";
 import { MarkdownText } from "./markdownText.js";
 import { getRoleLabel, formatCompletedToolCalls, hasCompletedToolCalls } from "./messages.js";
@@ -258,6 +258,8 @@ export function MessageBubbleInner({
 	renderIndex,
 	onRemeasure,
 	selection,
+	reasoningCollapsed = false,
+	toolCallCollapsed = true,
 }) {
 	const [segments, setSegments] = useState(initialSegments || []);
 	const { subscribe, unsubscribe } = useContext(PubSubContext);
@@ -273,13 +275,6 @@ export function MessageBubbleInner({
 	const [localToolCallDisplay, setLocalToolCallDisplay] = useState(toolCallDisplay);
 	const [localActiveToolCall, setLocalActiveToolCall] = useState(activeToolCall);
 	const [localContent, setLocalContent] = useState(content);
-
-	// Collapse state for reasoning and tool-call blocks. Each is a boolean
-	// toggle; defaults to expanded for reasoning (so thinking stays visible
-	// during streaming) and collapsed for tool-call results (so long outputs
-	// don't flood the stream).
-	const [reasoningCollapsed, setReasoningCollapsed] = useState(false);
-	const [toolCallCollapsed, setToolCallCollapsed] = useState(true);
 
 	// Sync local state from props when not using pub/sub (session restore, initial render)
 	useEffect(() => {
@@ -516,19 +511,6 @@ export function MessageBubbleInner({
 					React.createElement(Text, { color: "gray" }, `⏱ ${formatElapsed(displayElapsed)}`),
 				)
 			: null;
-
-	// Keyboard toggle for collapse/expand. `ctrl+r` toggles reasoning, `ctrl+t`
-	// toggles tool-call results. Only active when the bubble has the relevant
-	// content. Modifier keys are used so the toggles don't collide with normal
-	// message input.
-	useInput((input, key) => {
-		if (key?.escape) return;
-		if (key?.ctrl && input === "r" && hasReasoning) {
-			setReasoningCollapsed((prev) => !prev);
-		} else if (key?.ctrl && input === "t" && hasToolCallDisplay) {
-			setToolCallCollapsed((prev) => !prev);
-		}
-	});
 
 	// Completed tool calls display — collapsed into a count map so repeated
 	// calls render as `name ×count` instead of a long list of duplicates.

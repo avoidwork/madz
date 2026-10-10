@@ -102,6 +102,8 @@ export const ConversationPanel = React.memo(function ConversationPanel({
 	scrollRef: externalScrollRef,
 	messageListRef,
 	selection,
+	reasoningCollapsed = false,
+	toolCallCollapsed = true,
 }) {
 	const internalListRef = useRef(null);
 	const panelRef = messageListRef || internalListRef;
@@ -123,6 +125,8 @@ export const ConversationPanel = React.memo(function ConversationPanel({
 			overscan,
 			scrollRef: externalScrollRef,
 			selection,
+			reasoningCollapsed,
+			toolCallCollapsed,
 		}),
 	);
 });
