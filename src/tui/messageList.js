@@ -184,12 +184,10 @@ export const MessageList = React.memo(
 		const [renderTick, setRenderTick] = useState(0);
 		const triggerRender = () => setRenderTick((n) => n + 1);
 
-		// In-conversation search state. `searchQuery` is the active query string;
-		// `searchIndex` is the index of the current match within the ordered list
-		// of matches. A ref mirrors `searchQuery` so the imperative API can read
-		// the current value without a stale closure.
-		const [searchQuery, setSearchQueryState] = useState("");
-		const [searchIndex, setSearchIndex] = useState(0);
+		// In-conversation search state. `searchIndex` is the index of the current
+		// match within the ordered list of matches. A ref mirrors the query so
+		// the imperative API can read the current value without a stale closure.
+		const [searchIndex, setSearchIndex] = useState(-1);
 		const searchQueryRef = useRef("");
 
 		// --- Imperative API: exposed via ref ---
@@ -464,7 +462,6 @@ export const MessageList = React.memo(
 			 */
 			setSearchQuery(query) {
 				searchQueryRef.current = query || "";
-				setSearchQueryState(searchQueryRef.current);
 				setSearchIndex(-1);
 				triggerRender();
 			},
@@ -474,7 +471,6 @@ export const MessageList = React.memo(
 			 */
 			clearSearch() {
 				searchQueryRef.current = "";
-				setSearchQueryState("");
 				setSearchIndex(-1);
 				triggerRender();
 			},
@@ -724,25 +720,6 @@ export const MessageList = React.memo(
 						};
 					}
 				}
-				// Compute local match ranges for search highlighting. The query is
-				// escaped so special characters are treated literally (prevents
-				// regex injection). Each match is a local char range within the
-				// bubble's joined text.
-				let highlights = null;
-				if (searchQuery) {
-					const escaped = searchQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-					const regex = new RegExp(escaped, "gi");
-					const localMatches = [];
-					let match;
-					while ((match = regex.exec(bubbleText)) !== null) {
-						localMatches.push({
-							start: match.index,
-							end: match.index + match[0].length,
-						});
-						if (match[0].length === 0) regex.lastIndex++;
-					}
-					if (localMatches.length > 0) highlights = localMatches;
-				}
 				return React.createElement(MessageBubble, {
 					key: id,
 					role: data.role,
@@ -762,7 +739,6 @@ export const MessageList = React.memo(
 					renderIndex,
 					onRemeasure: (index) => scrollRef.current?.remeasureItem?.(index),
 					selection: localSelection,
-					highlights,
 					reasoningCollapsed,
 					toolCallCollapsed,
 				});
@@ -775,7 +751,6 @@ export const MessageList = React.memo(
 				scrollRef,
 				reasoningCollapsed,
 				toolCallCollapsed,
-				searchQuery,
 			],
 		);
 

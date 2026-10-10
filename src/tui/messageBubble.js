@@ -239,7 +239,6 @@ export function createSegmentThrottle(commit, throttleMs = 33) {
  * @param {string[]} [props.completedToolCalls] - List of completed tool call names
  * @param {boolean} [props.showToolResults=false] - Whether to display tool call result lines
  * @param {{start: number, end: number}} [props.selection] - Local character range to highlight (in the bubble's joined text)
- * @param {Array<{start: number, end: number}>} [props.highlights] - Local character ranges to highlight (search matches)
  * @returns {React.ReactElement}
  */
 export function MessageBubbleInner({
@@ -259,7 +258,6 @@ export function MessageBubbleInner({
 	renderIndex,
 	onRemeasure,
 	selection,
-	highlights,
 	reasoningCollapsed = false,
 	toolCallCollapsed = true,
 }) {
@@ -334,52 +332,20 @@ export function MessageBubbleInner({
 
 	/**
 	 * Split a string into highlighted and non-highlighted parts based on the
-	 * bubble's local selection range and any search-match highlight ranges.
-	 * Each range is expressed in character indices into the bubble's joined
-	 * `text`. The selection range and highlight ranges are merged into a single
-	 * ordered list of non-overlapping ranges before splitting.
+	 * bubble's local selection range. The selection range is expressed in
+	 * character indices into the bubble's joined `text`.
 	 * @param {string} str - Text to split
 	 * @param {number} offset - Character offset of `str` within the bubble's joined text
 	 * @returns {Array<{text: string, highlighted: boolean}>} Segments with highlight flags
 	 */
 	function splitHighlight(str, offset) {
-		// Build the list of local ranges (selection + search highlights).
-		const ranges = [];
-		if (selection) {
-			ranges.push({
-				start: Math.max(0, selection.start - offset),
-				end: Math.max(0, selection.end - offset),
-			});
-		}
-		if (highlights) {
-			for (const h of highlights) {
-				ranges.push({
-					start: Math.max(0, h.start - offset),
-					end: Math.max(0, h.end - offset),
-				});
-			}
-		}
-		if (ranges.length === 0) return [{ text: str, highlighted: false }];
-
-		// Sort and merge overlapping ranges so the split produces clean parts.
-		ranges.sort((a, b) => a.start - b.start);
-		const merged = [];
-		for (const r of ranges) {
-			if (merged.length === 0 || r.start > merged[merged.length - 1].end) {
-				merged.push({ ...r });
-			} else {
-				merged[merged.length - 1].end = Math.max(merged[merged.length - 1].end, r.end);
-			}
-		}
-
+		if (!selection) return [{ text: str, highlighted: false }];
+		const start = Math.max(0, selection.start - offset);
+		const end = Math.max(0, selection.end - offset);
 		const parts = [];
-		let cursor = 0;
-		for (const r of merged) {
-			if (r.start > cursor) parts.push({ text: str.slice(cursor, r.start), highlighted: false });
-			if (r.end > r.start) parts.push({ text: str.slice(r.start, r.end), highlighted: true });
-			cursor = Math.max(cursor, r.end);
-		}
-		if (cursor < str.length) parts.push({ text: str.slice(cursor), highlighted: false });
+		if (start > 0) parts.push({ text: str.slice(0, start), highlighted: false });
+		if (end > start) parts.push({ text: str.slice(start, end), highlighted: true });
+		if (end < str.length) parts.push({ text: str.slice(end), highlighted: false });
 		return parts.length > 0 ? parts : [{ text: str, highlighted: false }];
 	}
 
