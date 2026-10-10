@@ -10,8 +10,13 @@ import { Box } from "ink";
 import { StatusBar } from "./statusBar.js";
 import { InputPanel } from "./inputPanel.js";
 import { FilePicker, shouldOpenPicker } from "./filePicker.js";
+import { CommandPicker, shouldOpenCommandPicker } from "./commandPicker.js";
 import { QUOTES, getRandomQuoteIndex } from "./quotes.js";
 import { getSharedTokenBudget } from "../provider/openai.js";
+import { spawn } from "node:child_process";
+import { writeFile, readFile, unlink } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 /**
  * InputArea — owns all input and status state.
@@ -40,6 +45,7 @@ const InputArea = forwardRef(function InputArea(
 		searchMode = false,
 		searchQuery = "",
 		onSearchQueryChange,
+		commandList = [],
 	},
 	ref,
 ) {
@@ -53,11 +59,18 @@ const InputArea = forwardRef(function InputArea(
 	const [tokenCount, setTokenCount] = useState(0);
 	const [pickerOpen, setPickerOpen] = useState(false);
 	const pickerOpenRef = useRef(false);
+	const [commandPickerOpen, setCommandPickerOpen] = useState(false);
+	const commandPickerOpenRef = useRef(false);
 
 	// Keep the ref in sync so the imperative isPickerOpen() reads current state.
 	useEffect(() => {
 		pickerOpenRef.current = pickerOpen;
 	}, [pickerOpen]);
+
+	// Keep the command picker ref in sync.
+	useEffect(() => {
+		commandPickerOpenRef.current = commandPickerOpen;
+	}, [commandPickerOpen]);
 
 	// Open the picker when the input contains a valid `@` trigger token at a
 	// word boundary (start of input or preceded by a space) followed by word
@@ -76,6 +89,32 @@ const InputArea = forwardRef(function InputArea(
 			return;
 		}
 		setPickerOpen(true);
+	}, [inputText]);
+	/* node:coverage enable */
+
+	// Open the command picker when the input contains a valid `/` trigger token
+	// at a word boundary (start of input or preceded by a space) followed by a
+	// non-whitespace character. Once open, keep it open as long as the `/`
+	// remains — closing only when the `/` is erased, the user makes a selection,
+	// or presses Escape. The gate mirrors `deriveCommandFilter` so it never opens
+	// on `/` mid-string (e.g. a URL like `https://example.com`) or on a bare `/`.
+	// The command picker and file picker are mutually exclusive — only one can be
+	// open at a time.
+	/* node:coverage disable */
+	useEffect(() => {
+		if (!shouldOpenCommandPicker(inputText)) {
+			setCommandPickerOpen(false);
+			return;
+		}
+		// Already open — keep it open while the `/` remains.
+		if (commandPickerOpenRef.current) {
+			return;
+		}
+		// Close the file picker if it's open — the two are mutually exclusive.
+		if (pickerOpenRef.current) {
+			setPickerOpen(false);
+		}
+		setCommandPickerOpen(true);
 	}, [inputText]);
 	/* node:coverage enable */
 
@@ -139,8 +178,50 @@ const InputArea = forwardRef(function InputArea(
 		[onSubmit],
 	);
 
+	/**
+	 * Open the external editor ($EDITOR, falling back to vi) with the current
+	 * input text. On a successful save (exit code 0), read the temp file back
+	 * and submit the edited content. On a non-zero exit, clean up and show a
+	 * status message without submitting. Uses async `spawn` so the TUI event
+	 * loop is not blocked.
+	 */
+	const openEditor = useCallback(() => {
+		const editor = process.env.EDITOR || "vi";
+		const tmpFile = join(tmpdir(), `madz-input-${Date.now()}.txt`);
+		const cleanup = () => unlink(tmpFile).catch(() => {});
+
+		writeFile(tmpFile, inputText, "utf8")
+			.then(() => {
+				const child = spawn(editor, [tmpFile], { stdio: "inherit" });
+				child.on("error", () => {
+					cleanup();
+					setStatusMessage(`Failed to launch editor: ${editor}`);
+				});
+				child.on("exit", (code) => {
+					if (code === 0) {
+						readFile(tmpFile, "utf8")
+							.then((content) => {
+								cleanup();
+								handleSubmit(content);
+							})
+							.catch(() => {
+								cleanup();
+								setStatusMessage("Failed to read editor output.");
+							});
+					} else {
+						cleanup();
+						setStatusMessage(`Editor exited with code ${code}.`);
+					}
+				});
+			})
+			.catch(() => {
+				setStatusMessage("Failed to write editor temp file.");
+			});
+	}, [inputText, handleSubmit]);
+
 	// Expose imperative methods to App
 	useImperativeHandle(ref, () => ({
+		openEditor,
 		navigateHistory: (direction) => {
 			if (direction === "up") {
 				if (chatHistory.length === 0) return;
@@ -216,7 +297,7 @@ const InputArea = forwardRef(function InputArea(
 				paddingX: 1,
 				paddingY: 0,
 			},
-			!pickerOpen && !searchMode
+			!pickerOpen && !commandPickerOpen && !searchMode
 				? React.createElement(InputPanel, {
 						key: focus ? "input-focused" : "input-unfocused",
 						value: inputText,
@@ -245,6 +326,14 @@ const InputArea = forwardRef(function InputArea(
 						onChange: setInputText,
 						onClose: () => setPickerOpen(false),
 						cwd: cwd || process.cwd(),
+					})
+				: null,
+			commandPickerOpen
+				? React.createElement(CommandPicker, {
+						value: inputText,
+						onChange: setInputText,
+						onClose: () => setCommandPickerOpen(false),
+						commandList,
 					})
 				: null,
 		),

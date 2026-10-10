@@ -87,6 +87,9 @@ function App({
 
 	const skillCount = registry ? registry.list().length : 0;
 	const parser = new CommandParser();
+	// Command list for the slash-command autocomplete picker: registered
+	// commands plus available skill names, so both appear as suggestions.
+	const commandList = [...parser.listCommands(), ...(registry ? registry.list() : [])];
 
 	// Rolling token budget (tokens/minute) for the active provider, if enabled.
 	// Drives the live token counter in the status bar.
@@ -417,6 +420,12 @@ function App({
 			return;
 		}
 
+		// Ctrl+E opens the external editor to compose/edit the current input.
+		if (key.ctrl && input === "e") {
+			inputAreaRef.current?.openEditor?.();
+			return;
+		}
+
 		// Ctrl+F toggles in-conversation search mode. When toggled on, the
 		// search input takes precedence over normal input focus; Escape exits
 		// search mode and restores the chat input.
@@ -673,6 +682,7 @@ function App({
 						setSearchQuery(query);
 						conversationAreaRef.current?.setSearchQuery?.(query);
 					},
+					commandList,
 				})
 			: null,
 	);
