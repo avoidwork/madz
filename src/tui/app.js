@@ -432,11 +432,10 @@ function App({
 			return;
 		}
 
-		// In search mode, Escape exits search mode before the interrupt handler.
-		if (searchMode && key.escape) {
-			setSearchMode(false);
-			setSearchQuery("");
-			conversationAreaRef.current?.clearSearch?.();
+		// In search mode, the SearchInput component owns all key handling
+		// (Enter/Shift+Enter to navigate, Escape to exit, Ctrl+F to toggle off).
+		// Defer to it so the keys are not double-processed here.
+		if (searchMode) {
 			return;
 		}
 
@@ -464,19 +463,6 @@ function App({
 			setToolCallCollapsed((prev) => !prev);
 			setTimeout(() => conversationAreaRef.current?.scrollToBottom?.(), 50);
 			return;
-		}
-
-		// In search mode, Enter jumps to the next match; Shift+Enter jumps to
-		// the previous match. Arrow keys are handled by the search input.
-		if (searchMode) {
-			if (key.return && !key.shift) {
-				conversationAreaRef.current?.searchNext?.();
-				return;
-			}
-			if (key.return && key.shift) {
-				conversationAreaRef.current?.searchPrev?.();
-				return;
-			}
 		}
 
 		// Focus-aware key routing
@@ -671,6 +657,18 @@ function App({
 					onSearchQueryChange: (query) => {
 						setSearchQuery(query);
 						conversationAreaRef.current?.setSearchQuery?.(query);
+					},
+					onSearchNext: () => conversationAreaRef.current?.searchNext?.(),
+					onSearchPrev: () => conversationAreaRef.current?.searchPrev?.(),
+					onSearchExit: () => {
+						setSearchMode(false);
+						setSearchQuery("");
+						conversationAreaRef.current?.clearSearch?.();
+					},
+					onSearchToggle: () => {
+						setSearchMode(false);
+						setSearchQuery("");
+						conversationAreaRef.current?.clearSearch?.();
 					},
 				})
 			: null,

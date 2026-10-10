@@ -9,6 +9,7 @@ import React, {
 import { Box } from "ink";
 import { StatusBar } from "./statusBar.js";
 import { InputPanel } from "./inputPanel.js";
+import { SearchInput } from "./searchInput.js";
 import { FilePicker, shouldOpenPicker } from "./filePicker.js";
 import { QUOTES, getRandomQuoteIndex } from "./quotes.js";
 import { getSharedTokenBudget } from "../provider/openai.js";
@@ -40,6 +41,10 @@ const InputArea = forwardRef(function InputArea(
 		searchMode = false,
 		searchQuery = "",
 		onSearchQueryChange,
+		onSearchNext,
+		onSearchPrev,
+		onSearchExit,
+		onSearchToggle,
 	},
 	ref,
 ) {
@@ -228,13 +233,14 @@ const InputArea = forwardRef(function InputArea(
 					})
 				: null,
 			searchMode
-				? React.createElement(InputPanel, {
+				? React.createElement(SearchInput, {
 						key: "search-input",
 						value: searchQuery,
 						onChange: onSearchQueryChange,
-						onSubmit: () => {},
-						onFocus,
-						onBlur,
+						onNext: () => onSearchNext?.(),
+						onPrev: () => onSearchPrev?.(),
+						onExit: () => onSearchExit?.(),
+						onToggle: () => onSearchToggle?.(),
 						focus: true,
 					})
 				: null,
