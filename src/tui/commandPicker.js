@@ -80,7 +80,9 @@ export function shouldOpenCommandPicker(value) {
  * @returns {string} The updated input text
  */
 export function replaceCommandToken(value, tokenStart, tokenEnd, command) {
-	return value.slice(0, tokenStart) + command + value.slice(tokenEnd);
+	// Preserve the `/` prefix so the selection remains a valid command
+	// (e.g. `/config`, not `config`). The tokenStart points at the `/`.
+	return value.slice(0, tokenStart) + "/" + command + value.slice(tokenEnd);
 }
 
 /**
