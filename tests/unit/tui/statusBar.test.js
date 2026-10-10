@@ -367,12 +367,14 @@ describe("StatusBar per-item visibility", () => {
 	};
 
 	it("renders all elements by default when no statusBar prop is provided", () => {
-		const result = renderToString(React.createElement(StatusBar, baseProps));
+		const result = renderToString(
+			React.createElement(StatusBar, { ...baseProps, contextSize: 50, contextWindow: 100 }),
+		);
 		assert.ok(typeof result === "string");
 		assert.ok(!result.includes("🧠"), "should not render the brain glyph");
 		assert.ok(result.includes("⚡"), "should render the skills glyph");
 		assert.ok(result.includes("💬"), "should render the messages glyph");
-		assert.ok(result.includes("▦"), "should render the context glyph");
+		assert.ok(result.includes("▮"), "should render the context meter");
 		assert.ok(result.includes("💎"), "should render the tokens glyph");
 		assert.ok(result.includes("A test quote"), "should render the quote");
 		assert.ok(result.includes("1.0.0"), "should render the version");
@@ -402,11 +404,13 @@ describe("StatusBar per-item visibility", () => {
 	});
 
 	it("renders dot-space-glyph spacing for each element", () => {
-		const result = renderToString(React.createElement(StatusBar, baseProps));
+		const result = renderToString(
+			React.createElement(StatusBar, { ...baseProps, contextSize: 50, contextWindow: 100 }),
+		);
 		assert.ok(typeof result === "string");
 		assert.ok(result.includes("∙ ⚡"), "skills should render as dot-space-glyph");
 		assert.ok(result.includes("∙ 💬"), "messages should render as dot-space-glyph");
-		assert.ok(result.includes("∙ ▦"), "context should render as dot-space-glyph");
+		assert.ok(result.includes("∙ [▮"), "context should render as dot-space-meter");
 		assert.ok(result.includes("∙ 💎"), "tokens should render as dot-space-glyph");
 	});
 

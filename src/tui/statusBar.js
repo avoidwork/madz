@@ -171,7 +171,7 @@ export const StatusBar = React.memo(function StatusBar({
 				? React.createElement(
 						Text,
 						{ key: "context", color: contextColor },
-						" \u2219 \u25A6 " +
+						" \u2219 " +
 							(contextWindow > 0
 								? renderContextMeter(contextSize, contextWindow)
 								: formatSize(contextSize)),
