@@ -1,35 +1,40 @@
 ## Why
 
-The TUI currently renders reasoning, tool calls, code blocks, and file changes as flat, non-interactive text. Long reasoning chains and tool outputs are hard to scan, and users cannot copy code or review file diffs inline. These enhancements make the message stream more navigable and actionable.
+The TUI renders reasoning and tool-call output as flat, non-interactive text. Long reasoning chains and tool results dominate the message stream, making long agentic sessions hard to scan. These enhancements make the message stream navigable by letting the user collapse reasoning and tool output, and by rendering tool messages as a distinct, collapsible block rather than folding them into the assistant message.
 
 ## What Changes
 
-- Add a collapse/expand toggle to reasoning segments, rendering a single `💭 Thinking…` line when collapsed and the full gray content when expanded.
-- Add collapsible tool-call blocks that show tool name + args collapsed and expand to the full result.
-- Add a `[copy]` affordance on fenced code blocks, reusing `clipboardy` from `src/tui/app.js`. Syntax highlighting already exists via `cli-highlight`.
-- Add an inline diff view that renders file edits as green/red diff lines in a collapsible block.
+- Add a collapse/expand toggle for reasoning segments, rendering a single `💭 Thinking…` line when collapsed and the full gray content when expanded. Toggled with `ctrl+r`.
+- Render tool messages as a distinct `tool` segment type (no longer folded into the `message` segment), shown as a collapsible block. Toggled with `ctrl+t`.
+- Lift the collapse state to `App` and thread it down as props, so the key handler in `App` is the single source of truth.
+- Make the initial collapse state configurable via `tui.reasoningCollapsed` and `tui.toolCallCollapsed` (both default `true`), with `TUI_REASONING_COLLAPSED` / `TUI_TOOL_CALL_COLLAPSED` env var equivalents.
+- Patch `ink-text-input` (via `postinstall`) to swallow `ctrl+r`/`ctrl+t` so the letters never reach the input value.
+- Add a "Toggles" section to the banner and `/help` documenting the shortcuts.
 
 ## Capabilities
 
 ### New Capabilities
-- `tui-inline-diff`: Render file edits as green/red diff lines in a collapsible block within the TUI message stream.
+- `tui-tool-segment`: Render tool messages as a distinct `tool` segment type in the message bubble, collapsible via `toolCallCollapsed`.
 
 ### Modified Capabilities
-- `component-message-bubbles`: Add collapse/expand toggles for reasoning segments and tool-call blocks, and a code-block copy affordance in the message bubble component.
-- `markdown-rendering`: Add a `[copy]` affordance on fenced code blocks rendered by the markdown renderer.
+- `component-message-bubbles`: Add collapse/expand toggles for reasoning segments and tool-call blocks, and render tool messages as a distinct `tool` segment.
+- `tui-config`: Add `tui.reasoningCollapsed` and `tui.toolCallCollapsed` configuration options controlling the initial collapse state.
 
 ## Impact
 
-- `src/tui/messageBubble.js` — primary integration point for reasoning/tool-call collapse and copy affordance.
-- `src/tui/markdownText.js` — highlighting exists; add `[copy]` affordance.
-- `src/tui/app.js` — `clipboardy` imported line 17, used line 462; reused for code copy.
-- `src/tui/conversationArea.js` — reasoning segments created lines 668-716; tool-call data flows via `events`.
-- `src/tui/messageList.js` — forwards tool-call props ~line 592.
-- `src/tools/process/index.js` + `src/tools/code/index.js` — for diff view pairing.
-- `tests/unit/tui/messageBubble.test.js` — new tests for collapse/expand, copy handler, and diff rendering.
+- `src/tui/app.js` — owns the collapse state and the `ctrl+r`/`ctrl+t` key handler.
+- `src/tui/conversationArea.js` — forwards the collapse props; handles the `tool` event by creating a `tool` segment.
+- `src/tui/conversationPanel.js` — forwards the collapse props.
+- `src/tui/messageList.js` — forwards the collapse props; coalesces `tool` segments; `shouldRenderBubble`/`estimateMessageHeight` account for `tool` segments.
+- `src/tui/messageBubble.js` — renders `reasoning` and `tool` segments as collapsible blocks.
+- `src/tui/commandHelp.js` — adds the "Toggles" section to the banner and `/help`.
+- `index.js` — emits `ToolMessage` text as a `tool` event, never folded into `message`.
+- `scripts/patch-ink-text-input.mjs` — postinstall patch to swallow `ctrl+r`/`ctrl+t`.
+- `src/config/schemas/tui.js` + `config.yaml` — new config options.
+- `tests/unit/tui/messageBubble.test.js`, `tests/unit/tui/messageList.test.js` — tests for collapse toggles and tool segments.
 
 ## Non-goals
 
-- Replacing the lightweight markdown renderer with a full-featured one with built-in syntax highlighting.
+- Replacing the lightweight markdown renderer with a full-featured one.
 - Rendering diffs as separate panes.
-- Adding new credentials or storage; `clipboardy` operates on the local clipboard only.
+- Adding new credentials or storage.

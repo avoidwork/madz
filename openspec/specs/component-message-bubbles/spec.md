@@ -199,29 +199,18 @@ The MessageList component SHALL normalize legacy array-shaped `completedToolCall
 - **WHEN** `setMessages` is called with a message whose `completedToolCalls` is already a count map `{ read_file: 2 }`
 - **THEN** the stored message's `completedToolCalls` is unchanged
 
-### Requirement: MessageBubble renders collapsible tool-call blocks
-The MessageBubble component SHALL render tool-call blocks as collapsible. When collapsed, it SHALL show the tool name and args on a single line; when expanded, it SHALL render the full tool result. The collapse state SHALL be toggled by a click/keyboard handler and SHALL default to collapsed.
+### Requirement: MessageBubble renders tool messages as a distinct tool segment
+The MessageBubble component SHALL render tool messages as a distinct `tool` segment type, shown as a collapsible block. When collapsed, it SHALL render a single `🔧 Tool result` line; when expanded, it SHALL render the full tool result content. The collapse state SHALL be toggled by `ctrl+t` and SHALL default to collapsed.
 
-#### Scenario: MessageBubble renders a collapsed tool-call block
-- **WHEN** a MessageBubble has an active or completed tool call
-- **THEN** it renders the tool name and args collapsed on a single line
+#### Scenario: MessageBubble renders a collapsed tool segment
+- **WHEN** a MessageBubble has a `tool` segment
+- **THEN** it renders a single `🔧 Tool result` line
 
-#### Scenario: MessageBubble expands a tool-call block to show the full result
-- **WHEN** a collapsed tool-call block's toggle is activated
-- **THEN** it renders the full tool result
+#### Scenario: MessageBubble expands a tool segment to show the full result
+- **WHEN** a collapsed tool segment's toggle is activated
+- **THEN** it renders the full tool result content
 
-### Requirement: MessageBubble renders a code-block copy affordance
-The MessageBubble component SHALL render a `[copy]` affordance on fenced code blocks. When activated, the affordance SHALL copy the code block content to the clipboard via `clipboardy`. The copy handler SHALL be provided by the component layer and SHALL degrade gracefully if clipboard access fails.
-
-#### Scenario: MessageBubble renders a copy affordance on a code block
-- **WHEN** a message contains a fenced code block
-- **THEN** the bubble renders a `[copy]` affordance alongside the code block
-
-#### Scenario: MessageBubble copies code block content on activation
-- **WHEN** the `[copy]` affordance is activated
-- **THEN** the code block content is written to the clipboard via `clipboardy`
-
-#### Scenario: MessageBubble degrades gracefully when clipboard fails
-- **WHEN** clipboard access fails (e.g., headless environment)
-- **THEN** the bubble does not crash and the copy is silently skipped
+#### Scenario: MessageBubble coalesces consecutive tool segments with a blank line
+- **WHEN** multiple tool messages coalesce into a single tool segment
+- **THEN** they are joined with a blank line so distinct results don't run together
 

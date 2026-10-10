@@ -2,7 +2,7 @@
 Render markdown-formatted message content in the TUI conversation panel with visual formatting for supported syntax elements.
 ## Requirements
 ### Requirement: Markdown rendering in conversation panel
-The system SHALL render markdown-formatted message content in the conversation panel, applying visual formatting for supported syntax elements including bold, italic, inline code, code blocks, headings, lists, and links. Fenced code blocks SHALL expose a `[copy]` affordance so users can copy the code content to the clipboard. The affordance SHALL be rendered by the component layer (not the pure renderer), which receives a copy callback.
+The system SHALL render markdown-formatted message content in the conversation panel, applying visual formatting for supported syntax elements including bold, italic, inline code, code blocks, headings, lists, and links.
 
 #### Scenario: Bold text renders with emphasis
 - **WHEN** a user or assistant message contains `**bold**` or `__bold__` markdown
@@ -19,10 +19,6 @@ The system SHALL render markdown-formatted message content in the conversation p
 #### Scenario: Fenced code blocks render as multiline blocks
 - **WHEN** a message contains a fenced code block delimited by `` ``` ``
 - **THEN** the terminal displays the block as a visually separated multiline region
-
-#### Scenario: Fenced code blocks expose a copy affordance
-- **WHEN** a message contains a fenced code block
-- **THEN** the component layer renders a `[copy]` affordance alongside the code block
 
 #### Scenario: Unordered lists render with bullet markers
 - **WHEN** a message contains list items prefixed with `- ` or `* `
