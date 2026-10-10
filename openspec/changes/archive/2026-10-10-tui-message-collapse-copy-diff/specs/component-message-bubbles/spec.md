@@ -15,6 +15,8 @@ The MessageBubble component SHALL render reasoning segments as muted (gray) offs
 - **WHEN** a collapsed reasoning block's toggle is activated again
 - **THEN** it renders the full gray reasoning content
 
+## ADDED Requirements
+
 ### Requirement: MessageBubble renders collapsible tool-call blocks
 The MessageBubble component SHALL render tool-call blocks as collapsible. When collapsed, it SHALL show the tool name and args on a single line; when expanded, it SHALL render the full tool result. The collapse state SHALL be toggled by a click/keyboard handler and SHALL default to collapsed.
 

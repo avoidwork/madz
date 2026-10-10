@@ -1,6 +1,5 @@
-## Purpose
-Render markdown-formatted message content in the TUI conversation panel with visual formatting for supported syntax elements.
-## Requirements
+## MODIFIED Requirements
+
 ### Requirement: Markdown rendering in conversation panel
 The system SHALL render markdown-formatted message content in the conversation panel, applying visual formatting for supported syntax elements including bold, italic, inline code, code blocks, headings, lists, and links. Fenced code blocks SHALL expose a `[copy]` affordance so users can copy the code content to the clipboard. The affordance SHALL be rendered by the component layer (not the pure renderer), which receives a copy callback.
 
@@ -50,4 +49,3 @@ The system SHALL render markdown formatting bidirectionally — message content 
 #### Scenario: Assistant markdown response renders with formatting
 - **WHEN** the assistant responds with a message containing markdown syntax
 - **THEN** the assistant's response displays with proper markdown formatting in the conversation panel
-
