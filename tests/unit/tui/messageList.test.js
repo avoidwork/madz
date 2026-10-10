@@ -22,7 +22,7 @@ function createImperativeApi() {
 	const topicsRef = { current: new Map() };
 	const lastMsgCountRef = { current: 0 };
 	const searchQueryRef = { current: "" };
-	let searchIndex = 0;
+	let searchIndex = -1;
 	const triggerRender = () => {};
 
 	const publish = (topic, data) => {
@@ -196,13 +196,13 @@ function createImperativeApi() {
 
 		setSearchQuery(query) {
 			searchQueryRef.current = query || "";
-			searchIndex = 0;
+			searchIndex = -1;
 			triggerRender();
 		},
 
 		clearSearch() {
 			searchQueryRef.current = "";
-			searchIndex = 0;
+			searchIndex = -1;
 			triggerRender();
 		},
 
@@ -221,14 +221,15 @@ function createImperativeApi() {
 		searchNext() {
 			const matches = this.findMatches(searchQueryRef.current);
 			if (matches.length === 0) return;
-			searchIndex = (searchIndex + 1) % matches.length;
+			searchIndex = searchIndex < 0 ? 0 : (searchIndex + 1) % matches.length;
 			return matches[searchIndex];
 		},
 
 		searchPrev() {
 			const matches = this.findMatches(searchQueryRef.current);
 			if (matches.length === 0) return;
-			searchIndex = (searchIndex - 1 + matches.length) % matches.length;
+			searchIndex =
+				searchIndex < 0 ? matches.length - 1 : (searchIndex - 1 + matches.length) % matches.length;
 			return matches[searchIndex];
 		},
 
@@ -762,11 +763,11 @@ describe("MessageList — in-conversation search", () => {
 	});
 
 	describe("setSearchQuery / clearSearch", () => {
-		it("sets the search query and resets the index", () => {
+		it("sets the search query and resets the index to -1", () => {
 			api.addMessage("user", "Hello world");
 			api.setSearchQuery("hello");
 			assert.strictEqual(api.getSearchQuery(), "hello");
-			assert.strictEqual(api.getSearchIndex(), 0);
+			assert.strictEqual(api.getSearchIndex(), -1);
 		});
 
 		it("clears the search query", () => {
@@ -785,19 +786,21 @@ describe("MessageList — in-conversation search", () => {
 	});
 
 	describe("searchNext / searchPrev", () => {
-		it("advances to the next match and wraps around", () => {
+		it("lands on the first match when no match is selected yet", () => {
 			api.addMessage("user", "foo bar");
 			api.addMessage("assistant", "foo baz");
 			api.setSearchQuery("foo");
 			assert.strictEqual(api.getSearchMatchCount(), 2);
 
 			const first = api.searchNext();
-			assert.strictEqual(first.messageIndex, 1);
+			assert.strictEqual(first.messageIndex, 0);
 			const second = api.searchNext();
-			assert.strictEqual(second.messageIndex, 0);
+			assert.strictEqual(second.messageIndex, 1);
+			const third = api.searchNext();
+			assert.strictEqual(third.messageIndex, 0);
 		});
 
-		it("goes to the previous match and wraps around", () => {
+		it("lands on the last match when no match is selected yet", () => {
 			api.addMessage("user", "foo bar");
 			api.addMessage("assistant", "foo baz");
 			api.setSearchQuery("foo");

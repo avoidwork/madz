@@ -457,13 +457,15 @@ export const MessageList = React.memo(
 			},
 
 			/**
-			 * Set the search query and reset the current match index.
+			 * Set the search query and reset the current match index to -1
+			 * (no match selected yet). The first Enter/Shift+Enter then lands
+			 * on the first/last match respectively.
 			 * @param {string} query - The search query
 			 */
 			setSearchQuery(query) {
 				searchQueryRef.current = query || "";
 				setSearchQueryState(searchQueryRef.current);
-				setSearchIndex(0);
+				setSearchIndex(-1);
 				triggerRender();
 			},
 
@@ -473,7 +475,7 @@ export const MessageList = React.memo(
 			clearSearch() {
 				searchQueryRef.current = "";
 				setSearchQueryState("");
-				setSearchIndex(0);
+				setSearchIndex(-1);
 				triggerRender();
 			},
 
@@ -502,25 +504,30 @@ export const MessageList = React.memo(
 			},
 
 			/**
-			 * Advance to the next match and scroll to it. Wraps around to the
-			 * first match after the last.
+			 * Advance to the next match and scroll to it. When no match is
+			 * selected yet (searchIndex is -1), jumps to the first match.
+			 * Wraps around to the first match after the last.
 			 */
 			searchNext() {
 				const matches = this.findMatches(searchQueryRef.current);
 				if (matches.length === 0) return;
-				const next = (searchIndex + 1) % matches.length;
+				const next = searchIndex < 0 ? 0 : (searchIndex + 1) % matches.length;
 				setSearchIndex(next);
 				scrollRef.current?.scrollTo?.(matches[next].top);
 			},
 
 			/**
-			 * Go to the previous match and scroll to it. Wraps around to the
-			 * last match before the first.
+			 * Go to the previous match and scroll to it. When no match is
+			 * selected yet (searchIndex is -1), jumps to the last match.
+			 * Wraps around to the last match before the first.
 			 */
 			searchPrev() {
 				const matches = this.findMatches(searchQueryRef.current);
 				if (matches.length === 0) return;
-				const prev = (searchIndex - 1 + matches.length) % matches.length;
+				const prev =
+					searchIndex < 0
+						? matches.length - 1
+						: (searchIndex - 1 + matches.length) % matches.length;
 				setSearchIndex(prev);
 				scrollRef.current?.scrollTo?.(matches[prev].top);
 			},
