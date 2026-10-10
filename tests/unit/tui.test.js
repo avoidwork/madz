@@ -290,16 +290,6 @@ describe("command parser", () => {
 			const result = parser.parse("/help", ctx);
 			assert.strictEqual(result.action, "help");
 		});
-
-		it("shows skills in help message", () => {
-			const parser = new CommandParser();
-			const ctx = { _skillList: ["commit-push", "create-feature"] };
-			const result = parser.parse("/help", ctx);
-			assert.strictEqual(result.action, "help");
-			assert.ok(result.message.includes("Skills:"));
-			assert.ok(result.message.includes("commit-push"));
-			assert.ok(result.message.includes("create-feature"));
-		});
 	});
 });
 

@@ -120,13 +120,9 @@ export class CommandParser {
 		}
 
 		this.#register("help", (_args, _ctx) => {
-			let message = formatCommandHelp();
-			if (_ctx?._skillList && _ctx._skillList.length > 0) {
-				message += `\n\nSkills: /${_ctx._skillList.join(", /")} (execute with /skillName [args])`;
-			}
 			return {
 				action: "help",
-				message,
+				message: formatCommandHelp(),
 			};
 		});
 
