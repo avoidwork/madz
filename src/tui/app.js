@@ -78,6 +78,10 @@ function App({
 	// Drives the live token counter in the status bar.
 	const activeProvider = getActiveProviderConfig(config);
 	const tokenBudget = activeProvider?.rateLimit?.maxTokensMinute || 0;
+	// Context window size for the active provider, used to color the streaming
+	// spinner by context-window utilization. Falls back to 0 (no budget) when
+	// the provider does not configure a context window.
+	const contextWindow = activeProvider?.contextWindow || 0;
 
 	// Stable callbacks — flow status/context/compacting from ConversationArea into InputArea
 	const onStatusChange = useCallback((msg) => inputAreaRef.current?.setStatusMessage(msg), []);
@@ -590,6 +594,7 @@ function App({
 					onInitialValueConsumed: () => setPendingInput(""),
 					appInfo,
 					tokenBudget,
+					contextWindow,
 					statusBar: config?.tui?.statusBar,
 					cwd: activeProject || config?.cwd || process.cwd(),
 					activeProject,

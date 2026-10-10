@@ -2,7 +2,12 @@ import { describe, it } from "node:test";
 import assert from "node:assert";
 import React from "react";
 import { Box, renderToString } from "ink";
-import { formatNumber, formatSize, StatusBar } from "../../../src/tui/statusBar.js";
+import {
+	formatNumber,
+	formatSize,
+	getContextUtilizationColor,
+	StatusBar,
+} from "../../../src/tui/statusBar.js";
 import { QUOTES, getRandomQuoteIndex } from "../../../src/tui/quotes.js";
 
 describe("formatNumber", () => {
@@ -46,6 +51,36 @@ describe("formatSize", () => {
 	it("applies SI postfix to millions", () => {
 		assert.strictEqual(formatSize(1400000), "1.4M");
 		assert.strictEqual(formatSize(1234567), "1.2M");
+	});
+});
+
+describe("getContextUtilizationColor", () => {
+	it("returns cyan when no context window is configured", () => {
+		assert.strictEqual(getContextUtilizationColor(1000, 0), "cyan");
+		assert.strictEqual(getContextUtilizationColor(1000, undefined), "cyan");
+	});
+
+	it("returns cyan for 0-60% utilization", () => {
+		assert.strictEqual(getContextUtilizationColor(0, 128000), "cyan");
+		assert.strictEqual(getContextUtilizationColor(60000, 128000), "cyan");
+		// Boundary: exactly 60% is still cyan
+		assert.strictEqual(getContextUtilizationColor(76800, 128000), "cyan");
+	});
+
+	it("returns orange for 61-80% utilization", () => {
+		// Boundary: just above 60% flips to orange
+		assert.strictEqual(getContextUtilizationColor(76801, 128000), "orange");
+		assert.strictEqual(getContextUtilizationColor(100000, 128000), "orange");
+		// Boundary: exactly 80% is still orange
+		assert.strictEqual(getContextUtilizationColor(102400, 128000), "orange");
+	});
+
+	it("returns red for 81-100% utilization", () => {
+		// Boundary: just above 80% flips to red
+		assert.strictEqual(getContextUtilizationColor(102401, 128000), "red");
+		assert.strictEqual(getContextUtilizationColor(128000, 128000), "red");
+		// Over 100% is still red
+		assert.strictEqual(getContextUtilizationColor(200000, 128000), "red");
 	});
 });
 

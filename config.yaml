@@ -9,6 +9,7 @@ providers:
       apiKey:
     temperature: 0.4
     maxTokens: -1
+    contextWindow: 128000
     reasoning:
       effort: medium
     rateLimit:
@@ -25,6 +26,7 @@ providers:
     enterpriseUrl:
     temperature: 0.4
     maxTokens: -1
+    contextWindow: 128000
     reasoning:
       effort: medium
     rateLimit:
