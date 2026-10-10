@@ -184,6 +184,12 @@ export const MessageList = React.memo(
 		const [renderTick, setRenderTick] = useState(0);
 		const triggerRender = () => setRenderTick((n) => n + 1);
 
+		// In-conversation search state. `searchIndex` is the index of the current
+		// match within the ordered list of matches. A ref mirrors the query so
+		// the imperative API can read the current value without a stale closure.
+		const [searchIndex, setSearchIndex] = useState(-1);
+		const searchQueryRef = useRef("");
+
 		// --- Imperative API: exposed via ref ---
 		const imperativeApiRef = useRef(null);
 		imperativeApiRef.current = {
@@ -406,6 +412,120 @@ export const MessageList = React.memo(
 					top += estimateMessageHeight(data, width);
 				}
 				return result;
+			},
+
+			/**
+			 * Find all matches of a query across the rendered messages.
+			 * Escapes the query for regex so special characters are treated
+			 * literally (prevents regex injection). Returns an ordered array of
+			 * `{ messageIndex, matchIndex, top, start, end }` where `top` is the
+			 * cumulative row offset of the matched message (used as the scroll
+			 * target) and `start`/`end` are the global character range of the
+			 * match within the flattened conversation text.
+			 * @param {string} query - The search query
+			 * @returns {Array<{messageIndex: number, matchIndex: number, top: number, start: number, end: number}>}
+			 */
+			findMatches(query) {
+				if (!query) return [];
+				const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+				const regex = new RegExp(escaped, "gi");
+				const messages = this.getMessages();
+				const matches = [];
+				let messageIndex = 0;
+				let textOffset = 0;
+				for (const msg of messages) {
+					const text = msg.text || "";
+					let match;
+					let matchIndex = 0;
+					while ((match = regex.exec(text)) !== null) {
+						matches.push({
+							messageIndex,
+							matchIndex,
+							top: msg.top,
+							start: textOffset + match.index,
+							end: textOffset + match.index + match[0].length,
+						});
+						matchIndex++;
+						if (match[0].length === 0) regex.lastIndex++;
+					}
+					textOffset += text.length;
+					messageIndex++;
+				}
+				return matches;
+			},
+
+			/**
+			 * Set the search query and reset the current match index to -1
+			 * (no match selected yet). The first Enter/Shift+Enter then lands
+			 * on the first/last match respectively.
+			 * @param {string} query - The search query
+			 */
+			setSearchQuery(query) {
+				searchQueryRef.current = query || "";
+				setSearchIndex(-1);
+				triggerRender();
+			},
+
+			/**
+			 * Clear the search query and reset the current match index.
+			 */
+			clearSearch() {
+				searchQueryRef.current = "";
+				setSearchIndex(-1);
+				triggerRender();
+			},
+
+			/**
+			 * Get the current search query.
+			 * @returns {string} The active search query
+			 */
+			getSearchQuery() {
+				return searchQueryRef.current;
+			},
+
+			/**
+			 * Get the current search match index.
+			 * @returns {number} The current match index
+			 */
+			getSearchIndex() {
+				return searchIndex;
+			},
+
+			/**
+			 * Get the total number of matches for the current query.
+			 * @returns {number} The match count
+			 */
+			getSearchMatchCount() {
+				return this.findMatches(searchQueryRef.current).length;
+			},
+
+			/**
+			 * Advance to the next match and scroll to it. When no match is
+			 * selected yet (searchIndex is -1), jumps to the first match.
+			 * Wraps around to the first match after the last.
+			 */
+			searchNext() {
+				const matches = this.findMatches(searchQueryRef.current);
+				if (matches.length === 0) return;
+				const next = searchIndex < 0 ? 0 : (searchIndex + 1) % matches.length;
+				setSearchIndex(next);
+				scrollRef.current?.scrollTo?.(matches[next].top);
+			},
+
+			/**
+			 * Go to the previous match and scroll to it. When no match is
+			 * selected yet (searchIndex is -1), jumps to the last match.
+			 * Wraps around to the last match before the first.
+			 */
+			searchPrev() {
+				const matches = this.findMatches(searchQueryRef.current);
+				if (matches.length === 0) return;
+				const prev =
+					searchIndex < 0
+						? matches.length - 1
+						: (searchIndex - 1 + matches.length) % matches.length;
+				setSearchIndex(prev);
+				scrollRef.current?.scrollTo?.(matches[prev].top);
 			},
 
 			/**

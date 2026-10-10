@@ -1,8 +1,5 @@
-# context-window-status Specification
+## MODIFIED Requirements
 
-## Purpose
-TBD - created by archiving change context-window-status. Update Purpose after archive.
-## Requirements
 ### Requirement: Status bar displays current context window size
 The TUI status bar SHALL display the current context-window utilization as a visual meter (e.g. `[▮▮▮▯▯▯] 62%`) rather than a bare `context:N` number, positioned immediately after `msg:N`. The meter SHALL reflect the proportion of the context window used, computed as `contextSize / contextWindow`. When `contextWindow <= 0` (unset), the meter SHALL fall back to the bare `formatSize(contextSize)` number.
 
@@ -44,4 +41,3 @@ The context meter SHALL render in red color when the agent is performing convers
 #### Scenario: Context clears red on non-compaction errors
 - **WHEN** a non-context-length error occurs during streaming
 - **THEN** the context meter remains in the default color (not red)
-

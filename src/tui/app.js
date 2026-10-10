@@ -57,6 +57,11 @@ function App({
 	// Current character selection range (global, in the flattened conversation
 	// text). Set during a drag and cleared on release.
 	const [selection, setSelection] = useState(null);
+	// In-conversation search mode. When active, Ctrl+F toggles it on/off and
+	// the search query is forwarded to the MessageList for match highlighting
+	// and jump-to-next. Search mode takes precedence over normal input focus.
+	const [searchMode, setSearchMode] = useState(false);
+	const [searchQuery, setSearchQuery] = useState("");
 	const lastInterruptTimeRef = useRef(0);
 	const { exit } = useApp();
 	const exitRef = useRef(exit);
@@ -412,6 +417,29 @@ function App({
 			return;
 		}
 
+		// Ctrl+F toggles in-conversation search mode. When toggled on, the
+		// search input takes precedence over normal input focus; Escape exits
+		// search mode and restores the chat input.
+		if (key.ctrl && input === "f") {
+			setSearchMode((prev) => {
+				const next = !prev;
+				if (next) {
+					setSearchQuery("");
+					setInputFocused(true);
+				}
+				return next;
+			});
+			return;
+		}
+
+		// In search mode, Escape exits search mode before the interrupt handler.
+		if (searchMode && key.escape) {
+			setSearchMode(false);
+			setSearchQuery("");
+			conversationAreaRef.current?.clearSearch?.();
+			return;
+		}
+
 		if (key.escape) {
 			const now = Date.now();
 			if (now - lastInterruptTimeRef.current < 500) {
@@ -436,6 +464,20 @@ function App({
 			setToolCallCollapsed((prev) => !prev);
 			setTimeout(() => conversationAreaRef.current?.scrollToBottom?.(), 50);
 			return;
+		}
+
+		// In search mode, Enter jumps to the next match; Shift+Enter jumps to
+		// the previous match. The search input's ink-text-input onSubmit is a
+		// no-op, so these keys are handled here.
+		if (searchMode) {
+			if (key.return && !key.shift) {
+				conversationAreaRef.current?.searchNext?.();
+				return;
+			}
+			if (key.return && key.shift) {
+				conversationAreaRef.current?.searchPrev?.();
+				return;
+			}
 		}
 
 		// Focus-aware key routing
@@ -625,6 +667,12 @@ function App({
 					statusBar: config?.tui?.statusBar,
 					cwd: activeProject || config?.cwd || process.cwd(),
 					activeProject,
+					searchMode,
+					searchQuery,
+					onSearchQueryChange: (query) => {
+						setSearchQuery(query);
+						conversationAreaRef.current?.setSearchQuery?.(query);
+					},
 				})
 			: null,
 	);

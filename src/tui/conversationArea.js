@@ -858,6 +858,23 @@ const ConversationArea = forwardRef(function ConversationArea(
 			if (!list || typeof list.getMessages !== "function") return [];
 			return list.getMessages();
 		},
+		/**
+		 * Set the in-conversation search query.
+		 * @param {string} query - The search query
+		 */
+		setSearchQuery: (query) => messageListRef.current?.setSearchQuery?.(query),
+		/**
+		 * Clear the in-conversation search.
+		 */
+		clearSearch: () => messageListRef.current?.clearSearch?.(),
+		/**
+		 * Jump to the next search match.
+		 */
+		searchNext: () => messageListRef.current?.searchNext?.(),
+		/**
+		 * Jump to the previous search match.
+		 */
+		searchPrev: () => messageListRef.current?.searchPrev?.(),
 		messageCountRef,
 		isStreaming: () => isStreamingRef.current,
 	}));

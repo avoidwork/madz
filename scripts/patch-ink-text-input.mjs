@@ -1,15 +1,16 @@
 #!/usr/bin/env node
 /**
- * Patch ink-text-input to swallow ctrl+r and ctrl+t.
+ * Patch ink-text-input to swallow ctrl+r, ctrl+t, and ctrl+f.
  *
  * The TUI uses ctrl+r / ctrl+t as global collapse toggles for reasoning and
- * tool-call blocks (handled in src/tui/app.js). But ink-text-input's useInput
- * handler inserts any key that isn't in its early-return list into the input
- * value — so ctrl+r and ctrl+t render as literal 'r' and 't' characters in the
- * message text.
+ * tool-call blocks, and ctrl+f to toggle in-conversation search mode (all
+ * handled in src/tui/app.js). But ink-text-input's useInput handler inserts
+ * any key that isn't in its early-return list into the input value — so
+ * ctrl+r, ctrl+t, and ctrl+f render as literal 'r', 't', and 'f' characters
+ * in the message text or search query.
  *
- * This patch adds ctrl+r and ctrl+t to that early-return guard so the keys are
- * swallowed and never reach the input value.
+ * This patch adds ctrl+r, ctrl+t, and ctrl+f to that early-return guard so
+ * the keys are swallowed and never reach the input value.
  *
  * Applied via `postinstall` in package.json so it survives `npm install`.
  */
@@ -50,6 +51,7 @@ const to =
   "            (key.ctrl && input === 'c') ||\n" +
   "            (key.ctrl && input === 'r') ||\n" +
   "            (key.ctrl && input === 't') ||\n" +
+  "            (key.ctrl && input === 'f') ||\n" +
   "            key.tab ||\n" +
   "            (key.shift && key.tab)) {\n" +
   "            return;\n" +

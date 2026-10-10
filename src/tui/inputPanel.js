@@ -11,6 +11,7 @@ import TextInput from "ink-text-input";
  * @param {() => void} props.onFocus - Callback when input gains focus
  * @param {() => void} props.onBlur - Callback when input loses focus
  * @param {boolean} [props.focus] - Whether the input should be focused
+ * @param {string} [props.placeholder] - Placeholder text shown when value is empty
  * @returns {React.ReactElement}
  */
 export const InputPanel = React.memo(function InputPanel({
@@ -20,6 +21,7 @@ export const InputPanel = React.memo(function InputPanel({
 	onFocus,
 	onBlur,
 	focus = true,
+	placeholder,
 }) {
 	return React.createElement(TextInput, {
 		value,
@@ -28,6 +30,7 @@ export const InputPanel = React.memo(function InputPanel({
 		onFocus,
 		onBlur,
 		focus,
+		placeholder,
 		showCursor: true,
 	});
 });
