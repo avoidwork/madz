@@ -842,6 +842,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 			}
 		},
 		scrollBy: (delta) => messageListRef.current?.scrollBy(delta),
+		scrollToBottom: () => messageListRef.current?.scrollToBottom(),
 		getViewportHeight: () =>
 			messageListRef.current?.getScrollRef()?.current?.getViewportHeight?.() || 1,
 		getScrollOffset: () =>

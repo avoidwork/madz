@@ -424,13 +424,17 @@ function App({
 
 		// Ctrl+r / Ctrl+t toggle the global collapse state for reasoning and
 		// tool-call blocks. Return early so the key never reaches the input
-		// panel (which would render the letter).
+		// panel (which would render the letter). Scroll to the bottom after the
+		// redraw so the user isn't left far from the content when blocks expand
+		// or collapse.
 		if (key.ctrl && input === "r") {
 			setReasoningCollapsed((prev) => !prev);
+			setTimeout(() => conversationAreaRef.current?.scrollToBottom?.(), 50);
 			return;
 		}
 		if (key.ctrl && input === "t") {
 			setToolCallCollapsed((prev) => !prev);
+			setTimeout(() => conversationAreaRef.current?.scrollToBottom?.(), 50);
 			return;
 		}
 
