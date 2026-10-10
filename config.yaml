@@ -178,7 +178,7 @@ tui:
   name: madz
   overscan: 10
   mouseScrollLines: 1
-  showToolResults: false
+  showToolResults: true
   reasoningCollapsed: true
   toolCallCollapsed: true
   statusBar:

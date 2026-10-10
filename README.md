@@ -271,6 +271,8 @@ node index.js --mode interactive --session abc123
 | `/settings`                  | Open the settings panel              |
 | `/skills`                    | Open the skills panel                |
 | `@`                          | Open the file picker — type `@` followed by a path fragment to autocomplete file paths from the active project directory |
+| `Ctrl+R`                     | Toggle reasoning block collapse/expand |
+| `Ctrl+T`                     | Toggle tool-call result block collapse/expand |
 
 ## Docker
 
@@ -958,7 +960,9 @@ Graceful shutdown flushes all buffered log entries to disk before process exit.
 |               | `syncOnInit`                         | `true`                                   | Sync crontab from persisted job definitions   |
 | `tui`         | `mouseScrollLines`                   | `1`                                      | Lines to scroll per mouse wheel event         |
 |               | `name`                               | `madz`                                   | TUI identifier in banner                      |
-|               | `showToolResults`                    | `false`                                 | Display tool call result lines in the TUI     |
+|               | `showToolResults`                    | `true`                                  | Display tool call result lines in the TUI     |
+|               | `reasoningCollapsed`                 | `true`                                  | Start with reasoning blocks collapsed (`ctrl+r` to toggle) |
+|               | `toolCallCollapsed`                  | `true`                                  | Start with tool-call result blocks collapsed (`ctrl+t` to toggle) |
 |               | `statusBar.model`                    | `true`                                  | Show the active model in the status bar       |
 |               | `statusBar.skills`                   | `true`                                  | Show the skills count in the status bar       |
 |               | `statusBar.messages`                 | `true`                                  | Show the message count in the status bar      |
