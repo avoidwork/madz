@@ -493,7 +493,7 @@ export function MessageBubbleInner({
 				React.createElement(
 					Text,
 					{ color: "gray" },
-					toolCallCollapsed ? "▸ tool result (click to expand)" : "▾ tool result",
+					toolCallCollapsed ? "▸ tool result (ctrl+t to expand)" : "▾ tool result",
 				),
 				...(toolCallCollapsed
 					? []
@@ -594,7 +594,7 @@ export function MessageBubbleInner({
 				React.createElement(
 					Text,
 					{ color: "gray" },
-					diffCollapsed ? "▸ diff (click to expand)" : "▾ diff",
+					diffCollapsed ? "▸ diff (ctrl+d to expand)" : "▾ diff",
 				),
 				...(diffCollapsed
 					? []
