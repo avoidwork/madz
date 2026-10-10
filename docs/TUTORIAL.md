@@ -364,6 +364,7 @@ Once inside the interactive terminal, use these commands:
 | `/projects clear` | Clear the active project back to the default |
 | `Ctrl+R` | Toggle reasoning block collapse/expand |
 | `Ctrl+T` | Toggle tool-call result block collapse/expand |
+| `Ctrl+F` | Toggle in-conversation search |
 
 ### Memory System
 `madz` operates on a **triple-layer** memory architecture:
