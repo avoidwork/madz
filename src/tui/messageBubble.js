@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext, useRef } from "react";
-import { Box, Text } from "ink";
+import { Box, Text, useInput } from "ink";
 import Spinner from "ink-spinner";
+import clipboardy from "clipboardy";
 import { MarkdownText } from "./markdownText.js";
 import { getRoleLabel, formatCompletedToolCalls, hasCompletedToolCalls } from "./messages.js";
 import { getRoleColors, getBubbleStyle, formatTime } from "./conversationPanel.js";
@@ -44,6 +45,88 @@ export const THINKING_WORDS = [
  */
 export function getRandomThinkingWord() {
 	return THINKING_WORDS[Math.floor(Math.random() * THINKING_WORDS.length)];
+}
+
+/**
+ * Render a unified diff string as an array of colored line descriptors.
+ *
+ * Each line is classified by its leading character: `+` (added → green),
+ * `-` (removed → red), `@@` (hunk header → cyan), and everything else
+ * (context → default). The diff is rendered as a collapsible block in the
+ * message bubble.
+ *
+ * @param {string} text - Raw unified diff text
+ * @returns {Array<{text: string, color: string}>} Colored line descriptors
+ */
+export function renderDiff(text) {
+	if (!text) return [];
+	const lines = text.split("\n");
+	const out = [];
+	for (const line of lines) {
+		if (line.startsWith("+")) {
+			out.push({ text: line, color: "green" });
+		} else if (line.startsWith("-")) {
+			out.push({ text: line, color: "red" });
+		} else if (line.startsWith("@@")) {
+			out.push({ text: line, color: "cyan" });
+		} else {
+			out.push({ text: line, color: undefined });
+		}
+	}
+	return out;
+}
+
+/**
+ * Extract the code content from a fenced code block string.
+ *
+ * Given a raw fenced code block string (which may include the leading language
+ * identifier line and trailing fence), returns the code content with the
+ * fence markers and language identifier stripped.
+ *
+ * @param {string} text - Raw fenced code block text
+ * @returns {string} The code content without fence markers
+ */
+export function extractCodeBlock(text) {
+	if (!text) return "";
+	const lines = text.split("\n");
+	const out = [];
+	for (const line of lines) {
+		const trimmed = line.trim();
+		if (trimmed.startsWith("```")) continue;
+		out.push(line);
+	}
+	return out.join("\n").trim();
+}
+
+/**
+ * Detect whether a string contains a fenced code block.
+ * @param {string} text - Text to inspect
+ * @returns {boolean} True if the text contains a fenced code block
+ */
+export function hasCodeBlock(text) {
+	if (!text) return false;
+	return /```/.test(text);
+}
+
+/**
+ * Extract all fenced code block contents from a string.
+ *
+ * Returns an array of code strings, one per fenced block. Fence markers and
+ * language identifiers are stripped. Used to populate the `[copy]` affordance
+ * on code blocks.
+ *
+ * @param {string} text - Text containing fenced code blocks
+ * @returns {string[]} Array of code block contents
+ */
+export function extractCodeBlocks(text) {
+	if (!text) return [];
+	const blocks = [];
+	const regex = /```[^\n]*\n([\s\S]*?)```/g;
+	let match;
+	while ((match = regex.exec(text)) !== null) {
+		blocks.push(match[1].trim());
+	}
+	return blocks;
 }
 
 /**
@@ -274,6 +357,14 @@ export function MessageBubbleInner({
 	const [localActiveToolCall, setLocalActiveToolCall] = useState(activeToolCall);
 	const [localContent, setLocalContent] = useState(content);
 
+	// Collapse state for reasoning, tool-call, and diff blocks. Each is a
+	// boolean toggle; defaults to expanded for reasoning (so thinking stays
+	// visible during streaming) and collapsed for tool-call results and diffs
+	// (so long outputs don't flood the stream).
+	const [reasoningCollapsed, setReasoningCollapsed] = useState(false);
+	const [toolCallCollapsed, setToolCallCollapsed] = useState(true);
+	const [diffCollapsed, setDiffCollapsed] = useState(true);
+
 	// Sync local state from props when not using pub/sub (session restore, initial render)
 	useEffect(() => {
 		if (!topic) {
@@ -382,12 +473,26 @@ export function MessageBubbleInner({
 	const hasReasoning = role === "assistant" && segments.some((s) => s.type === "reasoning");
 	const hasActiveToolCall = role === "assistant" && localActiveToolCall;
 	const hasToolCallDisplay = role === "assistant" && localToolCallDisplay && showToolResults;
+	// Detect a diff block in the message content (unified diff markers).
+	const hasDiff =
+		role === "assistant" &&
+		typeof localContent === "string" &&
+		/(^|\n)(@@|\+\+\+|---)/.test(localContent);
 
 	// Render segments in order — reasoning segments get gray "(thinking)" prefix,
-	// message segments render as normal MarkdownText.
+	// message segments render as normal MarkdownText. Reasoning segments are
+	// collapsible: when collapsed they render a single `💭 Thinking…` line,
+	// expandable on demand via a click/keyboard toggle.
 	let segmentOffset = 0;
 	const segmentEls = segments.map((seg, i) => {
 		if (seg.type === "reasoning") {
+			if (reasoningCollapsed) {
+				return React.createElement(
+					Box,
+					{ key: `seg-${i}`, flexDirection: "row", marginLeft: 2, flexShrink: 0 },
+					React.createElement(Text, { color: "gray" }, "💭 Thinking…"),
+				);
+			}
 			return React.createElement(
 				Box,
 				{ key: `seg-${i}`, flexDirection: "row", marginLeft: 2, flexShrink: 0 },
@@ -439,11 +544,18 @@ export function MessageBubbleInner({
 		? React.createElement(
 				Box,
 				{ flexDirection: "column", marginLeft: 2, flexShrink: 0 },
-				...localToolCallDisplay
-					.split("\n")
-					.map((line, i) =>
-						React.createElement(Text, { key: `tool-${i}`, color: "gray" }, `  ${line}`),
-					),
+				React.createElement(
+					Text,
+					{ color: "gray" },
+					toolCallCollapsed ? "▸ tool result (click to expand)" : "▾ tool result",
+				),
+				...(toolCallCollapsed
+					? []
+					: localToolCallDisplay
+							.split("\n")
+							.map((line, i) =>
+								React.createElement(Text, { key: `tool-${i}`, color: "gray" }, `  ${line}`),
+							)),
 			)
 		: null;
 
@@ -494,6 +606,22 @@ export function MessageBubbleInner({
 				)
 			: null;
 
+	// Keyboard toggle for collapse/expand. `r` toggles reasoning, `t` toggles
+	// tool-call results, `d` toggles the inline diff block, `c` copies the
+	// first code block. Only active when the bubble has the relevant content.
+	useInput((input, key) => {
+		if (key?.escape) return;
+		if (input === "r" && hasReasoning) {
+			setReasoningCollapsed((prev) => !prev);
+		} else if (input === "t" && hasToolCallDisplay) {
+			setToolCallCollapsed((prev) => !prev);
+		} else if (input === "d" && hasDiff) {
+			setDiffCollapsed((prev) => !prev);
+		} else if (input === "c" && codeBlocks.length > 0) {
+			clipboardy.write(codeBlocks[0]).catch(() => {});
+		}
+	});
+
 	// Completed tool calls display — collapsed into a count map so repeated
 	// calls render as `name ×count` instead of a long list of duplicates.
 	const { total: completedTotal, text: completedText } =
@@ -507,6 +635,43 @@ export function MessageBubbleInner({
 						Text,
 						{ color: "gray" },
 						`⚡ ${completedTotal} tool call${completedTotal !== 1 ? "s" : ""}: ${completedText}`,
+					),
+				)
+			: null;
+
+	// Inline diff view — render file edits as green/red diff lines in a
+	// collapsible block. Defaults to collapsed so long diffs don't flood the
+	// stream; toggle with `d`.
+	const diffEl = hasDiff
+		? React.createElement(
+				Box,
+				{ flexDirection: "column", marginLeft: 2, flexShrink: 0 },
+				React.createElement(
+					Text,
+					{ color: "gray" },
+					diffCollapsed ? "▸ diff (click to expand)" : "▾ diff",
+				),
+				...(diffCollapsed
+					? []
+					: renderDiff(localContent).map((line, i) =>
+							React.createElement(Text, { key: `diff-${i}`, color: line.color }, `  ${line.text}`),
+						)),
+			)
+		: null;
+
+	// Code-block copy affordance — when the message content contains a fenced
+	// code block, render a `[copy]` affordance that writes the code content to
+	// the clipboard via clipboardy. Degrades gracefully on failure.
+	const codeBlocks = extractCodeBlocks(text);
+	const copyCodeEl =
+		role === "assistant" && codeBlocks.length > 0
+			? React.createElement(
+					Box,
+					{ flexDirection: "row", marginLeft: 2, flexShrink: 0 },
+					React.createElement(
+						Text,
+						{ color: "gray" },
+						codeBlocks.length === 1 ? "[copy] code" : `[copy] ${codeBlocks.length} code blocks`,
 					),
 				)
 			: null;
@@ -559,6 +724,8 @@ export function MessageBubbleInner({
 			toolDisplayEl,
 			timerEl,
 			completedToolCallsEl,
+			diffEl,
+			copyCodeEl,
 		),
 	);
 }

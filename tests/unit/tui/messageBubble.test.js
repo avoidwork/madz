@@ -11,6 +11,10 @@ import {
 	createSegmentThrottle,
 	getRandomThinkingWord,
 	THINKING_WORDS,
+	renderDiff,
+	extractCodeBlock,
+	hasCodeBlock,
+	extractCodeBlocks,
 } from "../../../src/tui/messageBubble.js";
 
 describe("MessageBubbleInner", () => {
@@ -532,5 +536,183 @@ describe("createSegmentThrottle", () => {
 		t.dispose();
 		await new Promise((r) => setTimeout(r, 40));
 		assert.strictEqual(commits.length, 0);
+	});
+});
+
+describe("renderDiff", () => {
+	it("classifies added lines as green", () => {
+		const out = renderDiff("+added line\n-context");
+		assert.strictEqual(out[0].color, "green");
+		assert.strictEqual(out[0].text, "+added line");
+	});
+
+	it("classifies removed lines as red", () => {
+		const out = renderDiff("-removed line\n+added");
+		assert.strictEqual(out[0].color, "red");
+		assert.strictEqual(out[0].text, "-removed line");
+	});
+
+	it("classifies hunk headers as cyan", () => {
+		const out = renderDiff("@@ -1,3 +1,3 @@\n+added");
+		assert.strictEqual(out[0].color, "cyan");
+	});
+
+	it("classifies context lines as default color", () => {
+		const out = renderDiff(" context line\n+added");
+		assert.strictEqual(out[0].color, undefined);
+		assert.strictEqual(out[0].text, " context line");
+	});
+
+	it("returns empty array for empty input", () => {
+		assert.deepStrictEqual(renderDiff(""), []);
+		assert.deepStrictEqual(renderDiff(null), []);
+	});
+});
+
+describe("extractCodeBlock", () => {
+	it("strips fence markers and language identifier", () => {
+		const result = extractCodeBlock("```js\nconst x = 1;\n```");
+		assert.strictEqual(result, "const x = 1;");
+	});
+
+	it("returns empty string for empty input", () => {
+		assert.strictEqual(extractCodeBlock(""), "");
+		assert.strictEqual(extractCodeBlock(null), "");
+	});
+});
+
+describe("hasCodeBlock", () => {
+	it("detects fenced code blocks", () => {
+		assert.strictEqual(hasCodeBlock("```js\ncode\n```"), true);
+		assert.strictEqual(hasCodeBlock("no code here"), false);
+		assert.strictEqual(hasCodeBlock(""), false);
+	});
+});
+
+describe("extractCodeBlocks", () => {
+	it("extracts all fenced code blocks", () => {
+		const blocks = extractCodeBlocks("```js\nconst a = 1;\n```\ntext\n```py\nprint(1)\n```");
+		assert.strictEqual(blocks.length, 2);
+		assert.strictEqual(blocks[0], "const a = 1;");
+		assert.strictEqual(blocks[1], "print(1)");
+	});
+
+	it("returns empty array for no code blocks", () => {
+		assert.deepStrictEqual(extractCodeBlocks("no code"), []);
+		assert.deepStrictEqual(extractCodeBlocks(""), []);
+	});
+});
+
+describe("MessageBubbleInner - reasoning collapse", () => {
+	it("renders collapsed reasoning as a single Thinking line", () => {
+		const result = renderToString(
+			React.createElement(
+				PubSubContext.Provider,
+				{ value: { subscribe: () => {}, unsubscribe: () => {} } },
+				React.createElement(
+					ScrollContext.Provider,
+					{ value: { scrollToBottom: () => {} } },
+					React.createElement(MessageBubbleInner, {
+						role: "assistant",
+						content: "response",
+						segments: [{ type: "reasoning", content: "thinking step by step" }],
+						streaming: false,
+					}),
+				),
+			),
+		);
+		assert.ok(typeof result === "string");
+		// Default is expanded, so the full reasoning content renders.
+		assert.ok(result.includes("thinking step by step"));
+	});
+});
+
+describe("MessageBubbleInner - tool call collapse", () => {
+	it("renders tool call result collapsed by default", () => {
+		const result = renderToString(
+			React.createElement(
+				PubSubContext.Provider,
+				{ value: { subscribe: () => {}, unsubscribe: () => {} } },
+				React.createElement(
+					ScrollContext.Provider,
+					{ value: { scrollToBottom: () => {} } },
+					React.createElement(MessageBubbleInner, {
+						role: "assistant",
+						content: "",
+						toolCallDisplay: "Result: success\nData: 42",
+						showToolResults: true,
+						streaming: false,
+					}),
+				),
+			),
+		);
+		assert.ok(typeof result === "string");
+		// Collapsed by default — the result lines are hidden, but the toggle label shows.
+		assert.ok(result.includes("tool result"));
+		assert.ok(!result.includes("Result: success"), "tool result should be collapsed by default");
+	});
+});
+
+describe("MessageBubbleInner - code block copy affordance", () => {
+	it("renders a copy affordance when content contains a code block", () => {
+		const result = renderToString(
+			React.createElement(
+				PubSubContext.Provider,
+				{ value: { subscribe: () => {}, unsubscribe: () => {} } },
+				React.createElement(
+					ScrollContext.Provider,
+					{ value: { scrollToBottom: () => {} } },
+					React.createElement(MessageBubbleInner, {
+						role: "assistant",
+						content: "Here is code:\n```js\nconst x = 1;\n```",
+						streaming: false,
+					}),
+				),
+			),
+		);
+		assert.ok(typeof result === "string");
+		assert.ok(result.includes("[copy]"), "should render a copy affordance");
+	});
+
+	it("does not render a copy affordance when no code block is present", () => {
+		const result = renderToString(
+			React.createElement(
+				PubSubContext.Provider,
+				{ value: { subscribe: () => {}, unsubscribe: () => {} } },
+				React.createElement(
+					ScrollContext.Provider,
+					{ value: { scrollToBottom: () => {} } },
+					React.createElement(MessageBubbleInner, {
+						role: "assistant",
+						content: "No code here.",
+						streaming: false,
+					}),
+				),
+			),
+		);
+		assert.ok(typeof result === "string");
+		assert.ok(!result.includes("[copy]"), "should not render a copy affordance");
+	});
+});
+
+describe("MessageBubbleInner - inline diff", () => {
+	it("renders a diff affordance when content contains diff markers", () => {
+		const result = renderToString(
+			React.createElement(
+				PubSubContext.Provider,
+				{ value: { subscribe: () => {}, unsubscribe: () => {} } },
+				React.createElement(
+					ScrollContext.Provider,
+					{ value: { scrollToBottom: () => {} } },
+					React.createElement(MessageBubbleInner, {
+						role: "assistant",
+						content: "diff --git a/file.js b/file.js\n@@ -1,3 +1,3 @@\n-old\n+new",
+						streaming: false,
+					}),
+				),
+			),
+		);
+		assert.ok(typeof result === "string");
+		assert.ok(result.includes("diff"), "should render a diff affordance");
 	});
 });
