@@ -412,7 +412,7 @@ export function MessageBubbleInner({
 				React.createElement(
 					Text,
 					{ color: "gray" },
-					toolCallCollapsed ? "▸ tool result (ctrl+t to expand)" : "▾ tool result",
+					toolCallCollapsed ? "🔧 Tool result" : "▾ Tool result",
 				),
 				...(toolCallCollapsed
 					? []
