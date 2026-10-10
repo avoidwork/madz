@@ -277,38 +277,3 @@ describe("InputArea — command picker gate logic", () => {
 		assert.strictEqual(shouldRender, false);
 	});
 });
-
-describe("InputArea — editor mode logic", () => {
-	it("openEditor uses $EDITOR or falls back to vi", () => {
-		const editor = process.env.EDITOR || "vi";
-		assert.strictEqual(typeof editor, "string");
-		assert.ok(editor.length > 0);
-	});
-
-	it("openEditor writes the current input to a temp file", () => {
-		const inputText = "hello world";
-		const tmpFile = `/tmp/madz-input-test-${Date.now()}.txt`;
-		// The editor path is derived from the input text.
-		assert.strictEqual(typeof tmpFile, "string");
-		assert.ok(tmpFile.startsWith("/tmp/"));
-		assert.ok(inputText.length > 0);
-	});
-
-	it("openEditor submits on exit code 0", () => {
-		const code = 0;
-		const shouldSubmit = code === 0;
-		assert.strictEqual(shouldSubmit, true);
-	});
-
-	it("openEditor does not submit on non-zero exit", () => {
-		const code = 1;
-		const shouldSubmit = code === 0;
-		assert.strictEqual(shouldSubmit, false);
-	});
-
-	it("openEditor cleans up the temp file on non-zero exit", () => {
-		const code = 1;
-		const shouldCleanup = code !== 0;
-		assert.strictEqual(shouldCleanup, true);
-	});
-});

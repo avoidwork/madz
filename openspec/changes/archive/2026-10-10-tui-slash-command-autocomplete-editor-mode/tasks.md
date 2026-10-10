@@ -10,7 +10,6 @@
 - [x] 2.1 Add a `commandList` prop to `InputArea` in `src/tui/inputArea.js`
 - [x] 2.2 Add `commandPickerOpen` state and a `useEffect` gate mirroring the `pickerOpen` gate, gated by `shouldOpenCommandPicker(inputText)`
 - [x] 2.3 Render `CommandPicker` when `commandPickerOpen` is true, and ensure the command picker and file picker are mutually exclusive
-- [x] 2.4 Add a Ctrl+E handler that spawns `$EDITOR` (falling back to `vi`) via `child_process.spawn`, writing the current input to a temp file, reading it back on exit, and calling `handleSubmit` on success
 
 ## 3. App Threading
 
@@ -19,7 +18,7 @@
 ## 4. Tests
 
 - [x] 4.1 Write `tests/unit/tui/commandPicker.test.js` covering `deriveCommandFilter` and `shouldOpenCommandPicker` (word boundary, bare `/`, mid-string, followed-by-space, cursor-aware filter)
-- [x] 4.2 Add tests to `tests/unit/tui/inputArea.test.js` for the command picker gate and editor-mode logic
+- [x] 4.2 Add tests to `tests/unit/tui/inputArea.test.js` for the command picker gate
 
 ## 5. Verification
 

@@ -423,12 +423,6 @@ function App({
 			return;
 		}
 
-		// Ctrl+E opens the external editor to compose/edit the current input.
-		if (key.ctrl && input === "e") {
-			inputAreaRef.current?.openEditor?.();
-			return;
-		}
-
 		// Ctrl+F toggles in-conversation search mode. When toggled on, the
 		// search input takes precedence over normal input focus; Escape exits
 		// search mode and restores the chat input.
