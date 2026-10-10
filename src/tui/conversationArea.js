@@ -742,6 +742,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 
 					if (event.type === "tool") {
 						const toolText = event.data?.text || event.text || "";
+						const toolName = event.data?.name || event.name || "";
 						if (toolText) {
 							// Count the tool-message text toward the live context
 							// window. This is decoupled from display: the tool text
@@ -753,7 +754,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 							// Render the tool text as a distinct `tool` segment so it
 							// shows as a separate block toggled by toolCallCollapsed.
 							messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
-								segments: [{ type: "tool", content: toolText }],
+								segments: [{ type: "tool", content: toolText, name: toolName }],
 								streaming: true,
 							});
 							messageListRef.current?._triggerRender();

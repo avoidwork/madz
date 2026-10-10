@@ -243,7 +243,7 @@ async function callProvider(_name, _providerConfig, message, streamingCallback, 
 				// is false, tool text is skipped entirely.
 				if (msgType === "tool") {
 					if (showToolResults !== false && streamingCallback) {
-						streamingCallback({ type: "tool", text });
+						streamingCallback({ type: "tool", text, name: msg?.name });
 					}
 
 					continue;

@@ -406,14 +406,11 @@ export function MessageBubbleInner({
 			);
 		}
 		if (seg.type === "tool") {
+			const header = seg.name ? `🔧 ${seg.name}` : "🔧 Tool result";
 			return React.createElement(
 				Box,
 				{ key: `seg-${i}`, flexDirection: "column", marginLeft: 2, flexShrink: 0 },
-				React.createElement(
-					Text,
-					{ color: "gray" },
-					toolCallCollapsed ? "🔧 Tool result" : "▾ Tool result",
-				),
+				React.createElement(Text, { color: "gray" }, toolCallCollapsed ? header : `▾ ${header}`),
 				...(toolCallCollapsed
 					? []
 					: seg.content
