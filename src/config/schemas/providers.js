@@ -88,6 +88,7 @@ export const OpenaiProviderConfigSchema = z.object({
 	credentials: OpenAICredentialsSchema,
 	temperature: z.number().min(0).max(2).default(0.4),
 	maxTokens: z.number().int().min(-1).default(-1),
+	contextWindow: z.number().int().positive().default(128000),
 	reasoning: ReasoningConfigSchema,
 	rateLimit: RateLimitSchema.default({ requestsPerMinute: 60 }),
 });
@@ -101,6 +102,7 @@ export const CopilotProviderConfigSchema = z.object({
 	enterpriseUrl: z.string().url().optional(),
 	temperature: z.number().min(0).max(2).default(0.4),
 	maxTokens: z.number().int().min(-1).default(-1),
+	contextWindow: z.number().int().positive().default(128000),
 	reasoning: ReasoningConfigSchema,
 	rateLimit: RateLimitSchema.default({ requestsPerMinute: 60 }),
 });

@@ -33,6 +33,7 @@ const InputArea = forwardRef(function InputArea(
 		onInitialValueConsumed,
 		appInfo,
 		tokenBudget = 0,
+		contextWindow = 0,
 		statusBar = {},
 		cwd,
 		activeProject,
@@ -198,6 +199,7 @@ const InputArea = forwardRef(function InputArea(
 					quote: quoteIndex >= 0 ? QUOTES[quoteIndex] : "",
 					tokenCount,
 					tokenBudget,
+					contextWindow,
 					statusBar,
 					project: activeProject,
 				})

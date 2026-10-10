@@ -1,6 +1,14 @@
 import React from "react";
 import { Box, Text } from "ink";
 import Spinner from "ink-spinner";
+import { basename } from "node:path";
+
+// Resolve the user's locale once at module load. `Intl.NumberFormat` is the
+// correct formatter for numeric output; `Intl.DateTimeFormat` was used before
+// but is semantically wrong for numbers and can differ from the number locale
+// (e.g. a date locale vs. a number locale). Caching avoids re-resolving on
+// every render.
+const LOCALE = Intl.NumberFormat().resolvedOptions().locale;
 
 /**
  * Format number using Intl.NumberFormat with the user's locale.
@@ -9,8 +17,7 @@ import Spinner from "ink-spinner";
  */
 export function formatNumber(num) {
 	try {
-		const locale = Intl.DateTimeFormat().resolvedOptions().locale;
-		const formatter = new Intl.NumberFormat(locale, {
+		const formatter = new Intl.NumberFormat(LOCALE, {
 			maximumFractionDigits: 0,
 		});
 		const result = formatter.format(num);
@@ -34,11 +41,26 @@ export function formatSize(num) {
 	const units = ["", "k", "M", "B", "T"];
 	const unitIndex = Math.min(Math.floor(Math.log10(abs) / 3), units.length - 1);
 	const scaled = num / Math.pow(10, unitIndex * 3);
-	const locale = Intl.DateTimeFormat().resolvedOptions().locale;
-	const formatted = new Intl.NumberFormat(locale, {
+	const formatted = new Intl.NumberFormat(LOCALE, {
 		maximumFractionDigits: scaled % 1 !== 0 ? 1 : 0,
 	}).format(scaled);
 	return formatted + units[unitIndex];
+}
+
+/**
+ * Determine the spinner color from context-window utilization.
+ * 0-60% → cyan, 61-80% → orange, 81-100% → red. Falls back to cyan when no
+ * context window is configured (contextWindow is 0/unset).
+ * @param {number} contextSize - Current context size in tokens
+ * @param {number} contextWindow - Configured context window in tokens (0 = unset)
+ * @returns {string} The color name for the streaming spinner
+ */
+export function getContextUtilizationColor(contextSize, contextWindow) {
+	if (!contextWindow || contextWindow <= 0) return "cyan";
+	const utilization = (contextSize / contextWindow) * 100;
+	if (utilization <= 60) return "cyan";
+	if (utilization <= 80) return "orange";
+	return "red";
 }
 
 /**
@@ -57,11 +79,13 @@ export const StatusBar = React.memo(function StatusBar({
 	quote = "",
 	tokenCount = 0,
 	tokenBudget = 0,
+	contextWindow = 0,
 	statusBar = {},
 	project = "",
 }) {
 	const contextColor = isCompacting ? "red" : "#606060";
 	const isStreaming = statusMessage === "Sending..." || statusMessage === "Streaming...";
+	const spinnerColor = getContextUtilizationColor(contextSize, contextWindow);
 	const showModel = statusBar.model !== false && model;
 	const showSkills = statusBar.skills !== false;
 	const showMessages = statusBar.messages !== false;
@@ -72,10 +96,9 @@ export const StatusBar = React.memo(function StatusBar({
 	const showProject = statusBar.project !== false && project;
 	// Render only the subdirectory name within projects/ (e.g., "foo" for
 	// "/path/to/projects/foo"), falling back to the full path if it's not
-	// under a projects/ directory.
-	const projectName = project.includes("projects/")
-		? project.slice(project.lastIndexOf("projects/") + "projects/".length)
-		: project;
+	// under a projects/ directory. `path.basename()` handles both POSIX and
+	// Windows separators and strips any trailing slash.
+	const projectName = project.includes("projects/") ? basename(project) : project;
 
 	return React.createElement(
 		Box,
@@ -93,7 +116,7 @@ export const StatusBar = React.memo(function StatusBar({
 			isStreaming
 				? React.createElement(
 						Text,
-						{ color: "cyan" },
+						{ color: spinnerColor },
 						React.createElement(Spinner, { type: "point" }),
 					)
 				: React.createElement(Text, { color: "#606060" }, "∙∙∙"),

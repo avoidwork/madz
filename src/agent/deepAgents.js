@@ -464,6 +464,12 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 		// live derived trigger. `loadConfig()` is cached, so this is the same
 		// object the SettingsPanel reads.
 		config.summarization.trigger = { type: "tokens", value: triggerTokens };
+		// Also update the active provider's context window so the TUI status bar
+		// spinner reflects the real model context length rather than the
+		// configured default. `providerName` is the config key (e.g. "openai").
+		if (config.providers?.[providerName]) {
+			config.providers[providerName].contextWindow = contextLength;
+		}
 	}
 
 	const summarizationMiddleware = createSummarizationMiddlewareFromConfig({
