@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useContext, useRef } from "react";
 import { Box, Text, useInput } from "ink";
 import Spinner from "ink-spinner";
-import clipboardy from "clipboardy";
 import { MarkdownText } from "./markdownText.js";
 import { getRoleLabel, formatCompletedToolCalls, hasCompletedToolCalls } from "./messages.js";
 import { getRoleColors, getBubbleStyle, formatTime } from "./conversationPanel.js";
@@ -74,59 +73,6 @@ export function renderDiff(text) {
 		}
 	}
 	return out;
-}
-
-/**
- * Extract the code content from a fenced code block string.
- *
- * Given a raw fenced code block string (which may include the leading language
- * identifier line and trailing fence), returns the code content with the
- * fence markers and language identifier stripped.
- *
- * @param {string} text - Raw fenced code block text
- * @returns {string} The code content without fence markers
- */
-export function extractCodeBlock(text) {
-	if (!text) return "";
-	const lines = text.split("\n");
-	const out = [];
-	for (const line of lines) {
-		const trimmed = line.trim();
-		if (trimmed.startsWith("```")) continue;
-		out.push(line);
-	}
-	return out.join("\n").trim();
-}
-
-/**
- * Detect whether a string contains a fenced code block.
- * @param {string} text - Text to inspect
- * @returns {boolean} True if the text contains a fenced code block
- */
-export function hasCodeBlock(text) {
-	if (!text) return false;
-	return /```/.test(text);
-}
-
-/**
- * Extract all fenced code block contents from a string.
- *
- * Returns an array of code strings, one per fenced block. Fence markers and
- * language identifiers are stripped. Used to populate the `[copy]` affordance
- * on code blocks.
- *
- * @param {string} text - Text containing fenced code blocks
- * @returns {string[]} Array of code block contents
- */
-export function extractCodeBlocks(text) {
-	if (!text) return [];
-	const blocks = [];
-	const regex = /```[^\n]*\n([\s\S]*?)```/g;
-	let match;
-	while ((match = regex.exec(text)) !== null) {
-		blocks.push(match[1].trim());
-	}
-	return blocks;
 }
 
 /**
@@ -606,19 +552,18 @@ export function MessageBubbleInner({
 				)
 			: null;
 
-	// Keyboard toggle for collapse/expand. `r` toggles reasoning, `t` toggles
-	// tool-call results, `d` toggles the inline diff block, `c` copies the
-	// first code block. Only active when the bubble has the relevant content.
+	// Keyboard toggle for collapse/expand. `ctrl+r` toggles reasoning, `ctrl+t`
+	// toggles tool-call results, `ctrl+d` toggles the inline diff block. Only
+	// active when the bubble has the relevant content. Modifier keys are used
+	// so the toggles don't collide with normal message input.
 	useInput((input, key) => {
 		if (key?.escape) return;
-		if (input === "r" && hasReasoning) {
+		if (key?.ctrl && input === "r" && hasReasoning) {
 			setReasoningCollapsed((prev) => !prev);
-		} else if (input === "t" && hasToolCallDisplay) {
+		} else if (key?.ctrl && input === "t" && hasToolCallDisplay) {
 			setToolCallCollapsed((prev) => !prev);
-		} else if (input === "d" && hasDiff) {
+		} else if (key?.ctrl && input === "d" && hasDiff) {
 			setDiffCollapsed((prev) => !prev);
-		} else if (input === "c" && codeBlocks.length > 0) {
-			clipboardy.write(codeBlocks[0]).catch(() => {});
 		}
 	});
 
@@ -658,23 +603,6 @@ export function MessageBubbleInner({
 						)),
 			)
 		: null;
-
-	// Code-block copy affordance — when the message content contains a fenced
-	// code block, render a `[copy]` affordance that writes the code content to
-	// the clipboard via clipboardy. Degrades gracefully on failure.
-	const codeBlocks = extractCodeBlocks(text);
-	const copyCodeEl =
-		role === "assistant" && codeBlocks.length > 0
-			? React.createElement(
-					Box,
-					{ flexDirection: "row", marginLeft: 2, flexShrink: 0 },
-					React.createElement(
-						Text,
-						{ color: "gray" },
-						codeBlocks.length === 1 ? "[copy] code" : `[copy] ${codeBlocks.length} code blocks`,
-					),
-				)
-			: null;
 
 	return React.createElement(
 		Box,
@@ -725,7 +653,6 @@ export function MessageBubbleInner({
 			timerEl,
 			completedToolCallsEl,
 			diffEl,
-			copyCodeEl,
 		),
 	);
 }
