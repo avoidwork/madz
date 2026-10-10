@@ -362,9 +362,9 @@ Once inside the interactive terminal, use these commands:
 | `/settings` | Open the settings panel |
 | `/projects` | Open the projects panel — select a project directory to set the active project |
 | `/projects clear` | Clear the active project back to the default |
+| `Ctrl+F` | Toggle in-conversation search |
 | `Ctrl+R` | Toggle reasoning block collapse/expand |
 | `Ctrl+T` | Toggle tool-call result block collapse/expand |
-| `Ctrl+F` | Toggle in-conversation search |
 
 ### Memory System
 `madz` operates on a **triple-layer** memory architecture:

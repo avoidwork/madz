@@ -11,9 +11,9 @@ export const COMMAND_GROUPS = [
 	{
 		group: "Toggles:",
 		items: [
+			"Ctrl+F - toggle in-conversation search",
 			"Ctrl+R - collapse/expand reasoning blocks",
 			"Ctrl+T - collapse/expand tool result blocks",
-			"Ctrl+F - toggle in-conversation search",
 		],
 	},
 	{

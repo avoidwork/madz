@@ -271,9 +271,9 @@ node index.js --mode interactive --session abc123
 | `/settings`                  | Open the settings panel              |
 | `/skills`                    | Open the skills panel                |
 | `@`                          | Open the file picker — type `@` followed by a path fragment to autocomplete file paths from the active project directory |
+| `Ctrl+F`                     | Toggle in-conversation search |
 | `Ctrl+R`                     | Toggle reasoning block collapse/expand |
 | `Ctrl+T`                     | Toggle tool-call result block collapse/expand |
-| `Ctrl+F`                     | Toggle in-conversation search |
 
 ## Docker
 
