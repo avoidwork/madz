@@ -490,14 +490,14 @@ describe("MessageList — shouldRenderBubble", () => {
 		assert.strictEqual(shouldRenderBubble(data, ""), false);
 	});
 
-	it("skips an assistant bubble with only non-reasoning/message segments", () => {
+	it("renders an assistant bubble with only a tool segment", () => {
 		const data = {
 			role: "assistant",
 			content: "",
 			streaming: false,
 			segments: [{ type: "tool", content: "result" }],
 		};
-		assert.strictEqual(shouldRenderBubble(data, ""), false);
+		assert.strictEqual(shouldRenderBubble(data, ""), true);
 	});
 
 	it("renders an assistant bubble with non-empty content even when not streaming", () => {

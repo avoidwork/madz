@@ -405,6 +405,24 @@ export function MessageBubbleInner({
 				React.createElement(Text, { color: "gray" }, seg.content),
 			);
 		}
+		if (seg.type === "tool") {
+			return React.createElement(
+				Box,
+				{ key: `seg-${i}`, flexDirection: "column", marginLeft: 2, flexShrink: 0 },
+				React.createElement(
+					Text,
+					{ color: "gray" },
+					toolCallCollapsed ? "▸ tool result (ctrl+t to expand)" : "▾ tool result",
+				),
+				...(toolCallCollapsed
+					? []
+					: seg.content
+							.split("\n")
+							.map((line, j) =>
+								React.createElement(Text, { key: `tool-${i}-${j}`, color: "gray" }, `  ${line}`),
+							)),
+			);
+		}
 		const parts = splitHighlight(seg.content, segmentOffset);
 		segmentOffset += seg.content.length;
 		return React.createElement(

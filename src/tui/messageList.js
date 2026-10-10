@@ -42,7 +42,9 @@ export function shouldRenderBubble(data, content) {
 	if (data.streaming) return true;
 	if ((content || data.content || "").trim()) return true;
 	return (data.segments || []).some(
-		(s) => (s.type === "reasoning" || s.type === "message") && (s.content || "").trim(),
+		(s) =>
+			(s.type === "reasoning" || s.type === "message" || s.type === "tool") &&
+			(s.content || "").trim(),
 	);
 }
 
@@ -72,9 +74,12 @@ export function estimateMessageHeight(data, width) {
 	let height = 1 + wrapped.length;
 
 	// Each reasoning segment renders as its own row.
+	// Each tool segment renders as a collapsed header row (1 row) plus its
+	// content lines when expanded.
 	if (data.segments) {
 		for (const seg of data.segments) {
 			if (seg.type === "reasoning") height += 1;
+			if (seg.type === "tool") height += 1 + seg.content.split("\n").length;
 		}
 	}
 

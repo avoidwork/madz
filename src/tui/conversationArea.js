@@ -749,6 +749,14 @@ const ConversationArea = forwardRef(function ConversationArea(
 							// not pollute the rendered assistant message.
 							toolMessageTokensRef.current += await countToolMessageTokens(model, toolText);
 							debouncedContextUpdate(committedContentRef.current);
+
+							// Render the tool text as a distinct `tool` segment so it
+							// shows as a separate block toggled by toolCallCollapsed.
+							messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
+								segments: [{ type: "tool", content: toolText }],
+								streaming: true,
+							});
+							messageListRef.current?._triggerRender();
 						}
 					}
 
