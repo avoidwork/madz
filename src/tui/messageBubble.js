@@ -258,6 +258,8 @@ export function MessageBubbleInner({
 	renderIndex,
 	onRemeasure,
 	selection,
+	reasoningCollapsed = false,
+	toolCallCollapsed = true,
 }) {
 	const [segments, setSegments] = useState(initialSegments || []);
 	const { subscribe, unsubscribe } = useContext(PubSubContext);
@@ -384,14 +386,38 @@ export function MessageBubbleInner({
 	const hasToolCallDisplay = role === "assistant" && localToolCallDisplay && showToolResults;
 
 	// Render segments in order — reasoning segments get gray "(thinking)" prefix,
-	// message segments render as normal MarkdownText.
+	// message segments render as normal MarkdownText. Reasoning segments are
+	// collapsible: when collapsed they render a single `💭 Thinking…` line,
+	// expandable on demand via a click/keyboard toggle.
 	let segmentOffset = 0;
 	const segmentEls = segments.map((seg, i) => {
 		if (seg.type === "reasoning") {
+			if (reasoningCollapsed) {
+				return React.createElement(
+					Box,
+					{ key: `seg-${i}`, flexDirection: "row", marginLeft: 2, flexShrink: 0 },
+					React.createElement(Text, { color: "gray" }, "💭 Thinking…"),
+				);
+			}
 			return React.createElement(
 				Box,
 				{ key: `seg-${i}`, flexDirection: "row", marginLeft: 2, flexShrink: 0 },
 				React.createElement(Text, { color: "gray" }, seg.content),
+			);
+		}
+		if (seg.type === "tool") {
+			const header = seg.name ? `🔧 ${seg.name}` : "🔧 Tool result";
+			return React.createElement(
+				Box,
+				{ key: `seg-${i}`, flexDirection: "column", marginLeft: 2, flexShrink: 0 },
+				React.createElement(Text, { color: "gray" }, toolCallCollapsed ? header : `▾ ${header}`),
+				...(toolCallCollapsed
+					? []
+					: seg.content
+							.split("\n")
+							.map((line, j) =>
+								React.createElement(Text, { key: `tool-${i}-${j}`, color: "gray" }, `  ${line}`),
+							)),
 			);
 		}
 		const parts = splitHighlight(seg.content, segmentOffset);
@@ -439,11 +465,18 @@ export function MessageBubbleInner({
 		? React.createElement(
 				Box,
 				{ flexDirection: "column", marginLeft: 2, flexShrink: 0 },
-				...localToolCallDisplay
-					.split("\n")
-					.map((line, i) =>
-						React.createElement(Text, { key: `tool-${i}`, color: "gray" }, `  ${line}`),
-					),
+				React.createElement(
+					Text,
+					{ color: "gray" },
+					toolCallCollapsed ? "▸ tool result (ctrl+t to expand)" : "▾ tool result",
+				),
+				...(toolCallCollapsed
+					? []
+					: localToolCallDisplay
+							.split("\n")
+							.map((line, i) =>
+								React.createElement(Text, { key: `tool-${i}`, color: "gray" }, `  ${line}`),
+							)),
 			)
 		: null;
 
@@ -490,7 +523,7 @@ export function MessageBubbleInner({
 			? React.createElement(
 					Box,
 					{ flexDirection: "row", marginLeft: 2, flexShrink: 0 },
-					React.createElement(Text, { color: "gray" }, `⏱ ${formatElapsed(displayElapsed)}`),
+					React.createElement(Text, { color: "gray" }, `⏱  ${formatElapsed(displayElapsed)}`),
 				)
 			: null;
 

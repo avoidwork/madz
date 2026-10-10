@@ -82,6 +82,8 @@ const ConversationArea = forwardRef(function ConversationArea(
 		activeProject,
 		setActiveProject,
 		selection,
+		reasoningCollapsed,
+		toolCallCollapsed,
 	},
 	ref,
 ) {
@@ -740,6 +742,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 
 					if (event.type === "tool") {
 						const toolText = event.data?.text || event.text || "";
+						const toolName = event.data?.name || event.name || "";
 						if (toolText) {
 							// Count the tool-message text toward the live context
 							// window. This is decoupled from display: the tool text
@@ -747,6 +750,14 @@ const ConversationArea = forwardRef(function ConversationArea(
 							// not pollute the rendered assistant message.
 							toolMessageTokensRef.current += await countToolMessageTokens(model, toolText);
 							debouncedContextUpdate(committedContentRef.current);
+
+							// Render the tool text as a distinct `tool` segment so it
+							// shows as a separate block toggled by toolCallCollapsed.
+							messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
+								segments: [{ type: "tool", content: toolText, name: toolName }],
+								streaming: true,
+							});
+							messageListRef.current?._triggerRender();
 						}
 					}
 
@@ -831,6 +842,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 			}
 		},
 		scrollBy: (delta) => messageListRef.current?.scrollBy(delta),
+		scrollToBottom: () => messageListRef.current?.scrollToBottom(),
 		getViewportHeight: () =>
 			messageListRef.current?.getScrollRef()?.current?.getViewportHeight?.() || 1,
 		getScrollOffset: () =>
@@ -859,6 +871,8 @@ const ConversationArea = forwardRef(function ConversationArea(
 			overscan: config?.tui?.overscan,
 			messageListRef,
 			selection,
+			reasoningCollapsed,
+			toolCallCollapsed,
 		}),
 	);
 });

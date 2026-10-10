@@ -42,7 +42,9 @@ export function shouldRenderBubble(data, content) {
 	if (data.streaming) return true;
 	if ((content || data.content || "").trim()) return true;
 	return (data.segments || []).some(
-		(s) => (s.type === "reasoning" || s.type === "message") && (s.content || "").trim(),
+		(s) =>
+			(s.type === "reasoning" || s.type === "message" || s.type === "tool") &&
+			(s.content || "").trim(),
 	);
 }
 
@@ -72,9 +74,12 @@ export function estimateMessageHeight(data, width) {
 	let height = 1 + wrapped.length;
 
 	// Each reasoning segment renders as its own row.
+	// Each tool segment renders as a collapsed header row (1 row) plus its
+	// content lines when expanded.
 	if (data.segments) {
 		for (const seg of data.segments) {
 			if (seg.type === "reasoning") height += 1;
+			if (seg.type === "tool") height += 1 + seg.content.split("\n").length;
 		}
 	}
 
@@ -117,6 +122,8 @@ export const MessageList = React.memo(
 			overscan = 10,
 			scrollRef: externalScrollRef,
 			selection,
+			reasoningCollapsed = false,
+			toolCallCollapsed = true,
 		},
 		forwardRef,
 	) {
@@ -274,6 +281,10 @@ export const MessageList = React.memo(
 							} else {
 								mergedSegments.push({ ...newSeg });
 							}
+						} else if (newSeg.type === "tool") {
+							// Each tool message gets its own segment so it renders as
+							// its own block with its own name header. No coalescing.
+							mergedSegments.push({ ...newSeg });
 						} else {
 							// Message segments require a type match to append; a mismatch
 							// (e.g., message after reasoning) forces a new block.
@@ -608,9 +619,19 @@ export const MessageList = React.memo(
 					renderIndex,
 					onRemeasure: (index) => scrollRef.current?.remeasureItem?.(index),
 					selection: localSelection,
+					reasoningCollapsed,
+					toolCallCollapsed,
 				});
 			},
-			[selection, textOffsets, assistantName, showToolResults, scrollRef],
+			[
+				selection,
+				textOffsets,
+				assistantName,
+				showToolResults,
+				scrollRef,
+				reasoningCollapsed,
+				toolCallCollapsed,
+			],
 		);
 
 		const width = Math.max(1, typeof window !== "undefined" ? window.innerWidth : 80);

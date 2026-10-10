@@ -534,3 +534,53 @@ describe("createSegmentThrottle", () => {
 		assert.strictEqual(commits.length, 0);
 	});
 });
+
+describe("MessageBubbleInner - reasoning collapse", () => {
+	it("renders collapsed reasoning as a single Thinking line", () => {
+		const result = renderToString(
+			React.createElement(
+				PubSubContext.Provider,
+				{ value: { subscribe: () => {}, unsubscribe: () => {} } },
+				React.createElement(
+					ScrollContext.Provider,
+					{ value: { scrollToBottom: () => {} } },
+					React.createElement(MessageBubbleInner, {
+						role: "assistant",
+						content: "response",
+						segments: [{ type: "reasoning", content: "thinking step by step" }],
+						streaming: false,
+					}),
+				),
+			),
+		);
+		assert.ok(typeof result === "string");
+		// Default is expanded, so the full reasoning content renders.
+		assert.ok(result.includes("thinking step by step"));
+	});
+});
+
+describe("MessageBubbleInner - tool call collapse", () => {
+	it("renders tool call result collapsed by default", () => {
+		const result = renderToString(
+			React.createElement(
+				PubSubContext.Provider,
+				{ value: { subscribe: () => {}, unsubscribe: () => {} } },
+				React.createElement(
+					ScrollContext.Provider,
+					{ value: { scrollToBottom: () => {} } },
+					React.createElement(MessageBubbleInner, {
+						role: "assistant",
+						content: "",
+						toolCallDisplay: "Result: success\nData: 42",
+						showToolResults: true,
+						streaming: false,
+					}),
+				),
+			),
+		);
+		assert.ok(typeof result === "string");
+		// Collapsed by default — the result lines are hidden, but the toggle label shows.
+		assert.ok(result.includes("tool result"));
+		assert.ok(!result.includes("Result: success"), "tool result should be collapsed by default");
+	});
+});

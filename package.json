@@ -51,7 +51,7 @@
     "docker:compose:up": "docker compose up -d",
     "docker:compose:down": "docker compose down",
     "prepare": "husky",
-    "postinstall": "node scripts/patch-langchain-reasoning.mjs",
+    "postinstall": "node scripts/patch-langchain-reasoning.mjs && node scripts/patch-ink-text-input.mjs",
     "purge-branches": "git branch | grep -v \"main\" | xargs git branch -D",
     "changelog": "auto-changelog -p"
   },

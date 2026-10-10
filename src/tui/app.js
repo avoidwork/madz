@@ -45,6 +45,15 @@ function App({
 	const [currentView, setCurrentView] = useState(PANELS.CONVERSATION);
 	const [pendingInput, setPendingInput] = useState("");
 	const [activeProject, setActiveProject] = useState("");
+	// Global collapse toggles for reasoning and tool-call blocks. Toggled by
+	// the key handler (ctrl+r / ctrl+t) and threaded down to MessageBubble.
+	// Initial state comes from config so the user can set the starting state.
+	const [reasoningCollapsed, setReasoningCollapsed] = useState(
+		config?.tui?.reasoningCollapsed ?? true,
+	);
+	const [toolCallCollapsed, setToolCallCollapsed] = useState(
+		config?.tui?.toolCallCollapsed ?? true,
+	);
 	// Current character selection range (global, in the flattened conversation
 	// text). Set during a drag and cleared on release.
 	const [selection, setSelection] = useState(null);
@@ -413,6 +422,22 @@ function App({
 			return;
 		}
 
+		// Ctrl+r / Ctrl+t toggle the global collapse state for reasoning and
+		// tool-call blocks. Return early so the key never reaches the input
+		// panel (which would render the letter). Scroll to the bottom after the
+		// redraw so the user isn't left far from the content when blocks expand
+		// or collapse.
+		if (key.ctrl && input === "r") {
+			setReasoningCollapsed((prev) => !prev);
+			setTimeout(() => conversationAreaRef.current?.scrollToBottom?.(), 50);
+			return;
+		}
+		if (key.ctrl && input === "t") {
+			setToolCallCollapsed((prev) => !prev);
+			setTimeout(() => conversationAreaRef.current?.scrollToBottom?.(), 50);
+			return;
+		}
+
 		// Focus-aware key routing
 		if (inputFocused) {
 			if (key.upArrow) {
@@ -577,6 +602,8 @@ function App({
 							activeProject,
 							setActiveProject,
 							selection,
+							reasoningCollapsed,
+							toolCallCollapsed,
 						}),
 		// InputArea — hidden during panel views
 		currentView === PANELS.CONVERSATION || showOnboarding

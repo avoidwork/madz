@@ -5,6 +5,8 @@ export const TuiSchema = z.object({
 	overscan: z.number().int().min(0).default(10),
 	mouseScrollLines: z.number().int().min(1).default(1),
 	showToolResults: z.boolean().default(false),
+	reasoningCollapsed: z.boolean().default(true),
+	toolCallCollapsed: z.boolean().default(true),
 	statusBar: z
 		.object({
 			model: z.boolean().default(true),

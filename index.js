@@ -237,10 +237,13 @@ async function callProvider(_name, _providerConfig, message, streamingCallback, 
 			const text = msg?.text ?? "";
 
 			if (text) {
-				// Skip ToolMessage from message content when showToolResults is false
-				if (msgType === "tool" && showToolResults === false) {
-					if (streamingCallback) {
-						streamingCallback({ type: "tool", text });
+				// ToolMessage text is never folded into the message segment. It is
+				// emitted as a distinct `tool` event so the TUI can render it as a
+				// separate block toggled by toolCallCollapsed. When showToolResults
+				// is false, tool text is skipped entirely.
+				if (msgType === "tool") {
+					if (showToolResults !== false && streamingCallback) {
+						streamingCallback({ type: "tool", text, name: msg?.name });
 					}
 
 					continue;
