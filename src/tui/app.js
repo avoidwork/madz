@@ -89,7 +89,10 @@ function App({
 	const parser = new CommandParser();
 	// Command list for the slash-command autocomplete picker: registered
 	// commands plus available skill names, so both appear as suggestions.
-	const commandList = [...parser.listCommands(), ...(registry ? registry.list() : [])];
+	// Sorted alphabetically (case-insensitive) so the picker reads cleanly.
+	const commandList = [...parser.listCommands(), ...(registry ? registry.list() : [])].sort(
+		(a, b) => a.localeCompare(b),
+	);
 
 	// Rolling token budget (tokens/minute) for the active provider, if enabled.
 	// Drives the live token counter in the status bar.
