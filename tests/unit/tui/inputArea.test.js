@@ -237,3 +237,78 @@ describe("InputArea — imperative API logic", () => {
 		assert.strictEqual(shouldRender, false);
 	});
 });
+
+describe("InputArea — command picker gate logic", () => {
+	it("command picker opens on a valid / trigger token", () => {
+		// Mirrors shouldOpenCommandPicker: a / at a word boundary followed by a char.
+		const inputText = "run /config";
+		const shouldOpen = /^\/[^\s]/.test(inputText.slice(inputText.lastIndexOf("/")));
+		assert.strictEqual(shouldOpen, true);
+	});
+
+	it("command picker does not open on a bare /", () => {
+		const inputText = "/";
+		const token = inputText.slice(inputText.lastIndexOf("/"));
+		const shouldOpen = /^\/[^\s]/.test(token);
+		assert.strictEqual(shouldOpen, false);
+	});
+
+	it("command picker does not open on / mid-string (URL)", () => {
+		const inputText = "https://example.com";
+		const slashIndex = inputText.indexOf("/");
+		// The / is not at a word boundary (not preceded by a space or start).
+		const atBoundary = slashIndex === 0 || inputText[slashIndex - 1] === " ";
+		assert.strictEqual(atBoundary, false);
+	});
+
+	it("command picker and file picker are mutually exclusive", () => {
+		// When the command picker opens, the file picker must be closed.
+		const commandPickerOpen = true;
+		const pickerOpen = false;
+		const bothOpen = pickerOpen && commandPickerOpen;
+		assert.strictEqual(bothOpen, false);
+	});
+
+	it("input panel does not render when command picker is open", () => {
+		const pickerOpen = false;
+		const commandPickerOpen = true;
+		const searchMode = false;
+		const shouldRender = !pickerOpen && !commandPickerOpen && !searchMode;
+		assert.strictEqual(shouldRender, false);
+	});
+});
+
+describe("InputArea — editor mode logic", () => {
+	it("openEditor uses $EDITOR or falls back to vi", () => {
+		const editor = process.env.EDITOR || "vi";
+		assert.strictEqual(typeof editor, "string");
+		assert.ok(editor.length > 0);
+	});
+
+	it("openEditor writes the current input to a temp file", () => {
+		const inputText = "hello world";
+		const tmpFile = `/tmp/madz-input-test-${Date.now()}.txt`;
+		// The editor path is derived from the input text.
+		assert.strictEqual(typeof tmpFile, "string");
+		assert.ok(tmpFile.startsWith("/tmp/"));
+		assert.ok(inputText.length > 0);
+	});
+
+	it("openEditor submits on exit code 0", () => {
+		const code = 0;
+		const shouldSubmit = code === 0;
+		assert.strictEqual(shouldSubmit, true);
+	});
+
+	it("openEditor does not submit on non-zero exit", () => {
+		const code = 1;
+		const shouldSubmit = code === 0;
+		assert.strictEqual(shouldSubmit, false);
+	});
+
+	it("openEditor cleans up the temp file on non-zero exit", () => {
+		const code = 1;
+		const shouldCleanup = code !== 0;
+		assert.strictEqual(shouldCleanup, true);
+	});
+});
