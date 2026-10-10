@@ -1,7 +1,7 @@
 ## MODIFIED Requirements
 
 ### Requirement: MessageBubble renders reasoning content
-The MessageBubble component SHALL render reasoning segments as muted (gray) offset text without any unicode prefix. When a MessageBubble's reasoningContent is present and role is "assistant", it renders the reasoning content as muted text, with no `💭 ` prefix prepended. The reasoning block SHALL be collapsible: when collapsed it renders a single `💭 Thinking…` line, and when expanded it renders the full gray content. The collapse state SHALL be toggled by `ctrl+r` and SHALL default to expanded.
+The MessageBubble component SHALL render reasoning segments as muted (gray) offset text without any unicode prefix. When a MessageBubble's reasoningContent is present and role is "assistant", it renders the reasoning content as muted text, with no `💭 ` prefix prepended. The reasoning block SHALL be collapsible: when collapsed it renders a single `💭 Thinking…` line, and when expanded it renders the full gray content. The collapse state SHALL be toggled by `ctrl+r` and SHALL default to collapsed.
 
 #### Scenario: MessageBubble renders reasoning content without unicode prefix
 - **WHEN** a MessageBubble's reasoningContent is present and role is "assistant"
