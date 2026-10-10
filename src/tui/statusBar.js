@@ -79,15 +79,16 @@ export function getContextUtilization(contextSize, contextWindow) {
 /**
  * Render a visual context-window utilization meter.
  * Produces a bar of block characters (filled `▮` / empty `▯`) plus a
- * percentage label, e.g. `[▮▮▮▯▯▯] 62%`. The bar uses a fixed number of
- * segments so it renders consistently regardless of terminal width.
+ * percentage label, e.g. `[▮▮▮▯▯] 60%`. The bar uses a fixed number of
+ * segments so it renders consistently regardless of terminal width. Five
+ * segments are used so each block maps cleanly to 20% (base-10 friendly).
  * @param {number} contextSize - Current context size in tokens
  * @param {number} contextWindow - Configured context window in tokens (0 = unset)
  * @returns {string} The rendered meter string
  */
 export function renderContextMeter(contextSize, contextWindow) {
 	const utilization = getContextUtilization(contextSize, contextWindow);
-	const segments = 6;
+	const segments = 5;
 	const filled = Math.round((utilization / 100) * segments);
 	const bar = "▮".repeat(filled) + "▯".repeat(Math.max(0, segments - filled));
 	return `[${bar}] ${utilization}%`;

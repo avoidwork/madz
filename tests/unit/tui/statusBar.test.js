@@ -115,17 +115,17 @@ describe("getContextUtilization", () => {
 describe("renderContextMeter", () => {
 	it("renders all empty blocks at 0% utilization", () => {
 		const result = renderContextMeter(0, 128000);
-		assert.strictEqual(result, "[▯▯▯▯▯▯] 0%");
+		assert.strictEqual(result, "[▯▯▯▯▯] 0%");
 	});
 
 	it("renders half filled blocks at 50% utilization", () => {
 		const result = renderContextMeter(64000, 128000);
-		assert.strictEqual(result, "[▮▮▮▯▯▯] 50%");
+		assert.strictEqual(result, "[▮▮▮▯▯] 50%");
 	});
 
 	it("renders all filled blocks at 100% utilization", () => {
 		const result = renderContextMeter(128000, 128000);
-		assert.strictEqual(result, "[▮▮▮▮▮▮] 100%");
+		assert.strictEqual(result, "[▮▮▮▮▮] 100%");
 	});
 
 	it("renders the bare number when context window is unset", () => {
@@ -133,7 +133,7 @@ describe("renderContextMeter", () => {
 		// falls back to formatSize in that case. This verifies the helper's
 		// behavior for the unset case.
 		const result = renderContextMeter(12200, 0);
-		assert.strictEqual(result, "[▯▯▯▯▯▯] 0%");
+		assert.strictEqual(result, "[▯▯▯▯▯] 0%");
 	});
 });
 
