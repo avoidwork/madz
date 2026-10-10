@@ -21,6 +21,8 @@ function createImperativeApi() {
 	const contentRef = { current: new Map() };
 	const topicsRef = { current: new Map() };
 	const lastMsgCountRef = { current: 0 };
+	const searchQueryRef = { current: "" };
+	let searchIndex = 0;
 	const triggerRender = () => {};
 
 	const publish = (topic, data) => {
@@ -147,6 +149,87 @@ function createImperativeApi() {
 
 		getMessageCount() {
 			return idsRef.current.length;
+		},
+
+		getMessages() {
+			const width = 80;
+			const result = [];
+			let top = 0;
+			for (const id of idsRef.current) {
+				const data = dataRef.current.get(id);
+				if (!data) continue;
+				const text = (data.segments || []).map((s) => s.content).join("") || data.content || "";
+				result.push({ text, top });
+				top += Math.max(1, Math.ceil(text.length / width)) + 1;
+			}
+			return result;
+		},
+
+		findMatches(query) {
+			if (!query) return [];
+			const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+			const regex = new RegExp(escaped, "gi");
+			const messages = this.getMessages();
+			const matches = [];
+			let messageIndex = 0;
+			let textOffset = 0;
+			for (const msg of messages) {
+				const text = msg.text || "";
+				let match;
+				let matchIndex = 0;
+				while ((match = regex.exec(text)) !== null) {
+					matches.push({
+						messageIndex,
+						matchIndex,
+						top: msg.top,
+						start: textOffset + match.index,
+						end: textOffset + match.index + match[0].length,
+					});
+					matchIndex++;
+					if (match[0].length === 0) regex.lastIndex++;
+				}
+				textOffset += text.length;
+				messageIndex++;
+			}
+			return matches;
+		},
+
+		setSearchQuery(query) {
+			searchQueryRef.current = query || "";
+			searchIndex = 0;
+			triggerRender();
+		},
+
+		clearSearch() {
+			searchQueryRef.current = "";
+			searchIndex = 0;
+			triggerRender();
+		},
+
+		getSearchQuery() {
+			return searchQueryRef.current;
+		},
+
+		getSearchIndex() {
+			return searchIndex;
+		},
+
+		getSearchMatchCount() {
+			return this.findMatches(searchQueryRef.current).length;
+		},
+
+		searchNext() {
+			const matches = this.findMatches(searchQueryRef.current);
+			if (matches.length === 0) return;
+			searchIndex = (searchIndex + 1) % matches.length;
+			return matches[searchIndex];
+		},
+
+		searchPrev() {
+			const matches = this.findMatches(searchQueryRef.current);
+			if (matches.length === 0) return;
+			searchIndex = (searchIndex - 1 + matches.length) % matches.length;
+			return matches[searchIndex];
 		},
 
 		_getState() {
@@ -626,5 +709,107 @@ describe("MessageList — estimateMessageHeight", () => {
 		const data = { role: "user", content: "a".repeat(10) };
 		// 10 chars / 5 width = 2 wrapped lines + 1 header row.
 		assert.strictEqual(estimateMessageHeight(data, 5), 3);
+	});
+});
+
+describe("MessageList — in-conversation search", () => {
+	let api;
+
+	beforeEach(() => {
+		api = createImperativeApi();
+	});
+
+	describe("findMatches", () => {
+		it("returns no matches for an empty query", () => {
+			api.addMessage("user", "Hello world");
+			assert.deepStrictEqual(api.findMatches(""), []);
+		});
+
+		it("finds matches across messages", () => {
+			api.addMessage("user", "Hello world");
+			api.addMessage("assistant", "Hello there");
+			const matches = api.findMatches("hello");
+			assert.strictEqual(matches.length, 2);
+			assert.strictEqual(matches[0].messageIndex, 0);
+			assert.strictEqual(matches[1].messageIndex, 1);
+		});
+
+		it("finds multiple matches within a single message", () => {
+			api.addMessage("user", "foo bar foo baz foo");
+			const matches = api.findMatches("foo");
+			assert.strictEqual(matches.length, 3);
+			assert.strictEqual(matches[0].start, 0);
+			assert.strictEqual(matches[1].start, 8);
+			assert.strictEqual(matches[2].start, 16);
+		});
+
+		it("escapes regex special characters", () => {
+			api.addMessage("user", "a.b c*d");
+			const matches = api.findMatches("a.b");
+			assert.strictEqual(matches.length, 1);
+			assert.strictEqual(matches[0].start, 0);
+			assert.strictEqual(matches[0].end, 3);
+		});
+
+		it("computes the scroll target offset for a matched message", () => {
+			api.addMessage("user", "first");
+			api.addMessage("assistant", "second");
+			api.addMessage("user", "third");
+			const matches = api.findMatches("third");
+			assert.strictEqual(matches.length, 1);
+			assert.ok(matches[0].top > 0, "should have a non-zero top offset");
+		});
+	});
+
+	describe("setSearchQuery / clearSearch", () => {
+		it("sets the search query and resets the index", () => {
+			api.addMessage("user", "Hello world");
+			api.setSearchQuery("hello");
+			assert.strictEqual(api.getSearchQuery(), "hello");
+			assert.strictEqual(api.getSearchIndex(), 0);
+		});
+
+		it("clears the search query", () => {
+			api.addMessage("user", "Hello world");
+			api.setSearchQuery("hello");
+			api.clearSearch();
+			assert.strictEqual(api.getSearchQuery(), "");
+			assert.strictEqual(api.getSearchMatchCount(), 0);
+		});
+
+		it("handles null query", () => {
+			api.addMessage("user", "Hello world");
+			api.setSearchQuery(null);
+			assert.strictEqual(api.getSearchQuery(), "");
+		});
+	});
+
+	describe("searchNext / searchPrev", () => {
+		it("advances to the next match and wraps around", () => {
+			api.addMessage("user", "foo bar");
+			api.addMessage("assistant", "foo baz");
+			api.setSearchQuery("foo");
+			assert.strictEqual(api.getSearchMatchCount(), 2);
+
+			const first = api.searchNext();
+			assert.strictEqual(first.messageIndex, 1);
+			const second = api.searchNext();
+			assert.strictEqual(second.messageIndex, 0);
+		});
+
+		it("goes to the previous match and wraps around", () => {
+			api.addMessage("user", "foo bar");
+			api.addMessage("assistant", "foo baz");
+			api.setSearchQuery("foo");
+			const prev = api.searchPrev();
+			assert.strictEqual(prev.messageIndex, 1);
+		});
+
+		it("does nothing when there are no matches", () => {
+			api.addMessage("user", "Hello world");
+			api.setSearchQuery("nonexistent");
+			assert.strictEqual(api.searchNext(), undefined);
+			assert.strictEqual(api.searchPrev(), undefined);
+		});
 	});
 });

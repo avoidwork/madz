@@ -37,6 +37,9 @@ const InputArea = forwardRef(function InputArea(
 		statusBar = {},
 		cwd,
 		activeProject,
+		searchMode = false,
+		searchQuery = "",
+		onSearchQueryChange,
 	},
 	ref,
 ) {
@@ -213,7 +216,7 @@ const InputArea = forwardRef(function InputArea(
 				paddingX: 1,
 				paddingY: 0,
 			},
-			!pickerOpen
+			!pickerOpen && !searchMode
 				? React.createElement(InputPanel, {
 						key: focus ? "input-focused" : "input-unfocused",
 						value: inputText,
@@ -222,6 +225,17 @@ const InputArea = forwardRef(function InputArea(
 						onFocus,
 						onBlur,
 						focus,
+					})
+				: null,
+			searchMode
+				? React.createElement(InputPanel, {
+						key: "search-input",
+						value: searchQuery,
+						onChange: onSearchQueryChange,
+						onSubmit: () => {},
+						onFocus,
+						onBlur,
+						focus: true,
 					})
 				: null,
 			pickerOpen

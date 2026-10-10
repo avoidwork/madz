@@ -64,6 +64,36 @@ export function getContextUtilizationColor(contextSize, contextWindow) {
 }
 
 /**
+ * Compute the context-window utilization percentage.
+ * Returns 0 when no context window is configured (contextWindow is 0/unset)
+ * to avoid a divide-by-zero.
+ * @param {number} contextSize - Current context size in tokens
+ * @param {number} contextWindow - Configured context window in tokens (0 = unset)
+ * @returns {number} Utilization percentage in the range [0, 100]
+ */
+export function getContextUtilization(contextSize, contextWindow) {
+	if (!contextWindow || contextWindow <= 0) return 0;
+	return Math.round((contextSize / contextWindow) * 100);
+}
+
+/**
+ * Render a visual context-window utilization meter.
+ * Produces a bar of block characters (filled `▮` / empty `▯`) plus a
+ * percentage label, e.g. `[▮▮▮▯▯▯] 62%`. The bar uses a fixed number of
+ * segments so it renders consistently regardless of terminal width.
+ * @param {number} contextSize - Current context size in tokens
+ * @param {number} contextWindow - Configured context window in tokens (0 = unset)
+ * @returns {string} The rendered meter string
+ */
+export function renderContextMeter(contextSize, contextWindow) {
+	const utilization = getContextUtilization(contextSize, contextWindow);
+	const segments = 6;
+	const filled = Math.round((utilization / 100) * segments);
+	const bar = "▮".repeat(filled) + "▯".repeat(Math.max(0, segments - filled));
+	return `[${bar}] ${utilization}%`;
+}
+
+/**
  * Bottom status bar.
  * Displays status indicator, status message, and info counts.
  * Input text entry is handled by InputPanel with IRC-style prompt ("> text" / ": text").
@@ -141,7 +171,10 @@ export const StatusBar = React.memo(function StatusBar({
 				? React.createElement(
 						Text,
 						{ key: "context", color: contextColor },
-						" \u2219 \u25A6 " + formatSize(contextSize),
+						" \u2219 \u25A6 " +
+							(contextWindow > 0
+								? renderContextMeter(contextSize, contextWindow)
+								: formatSize(contextSize)),
 					)
 				: null,
 			showTokens

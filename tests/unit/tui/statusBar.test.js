@@ -6,6 +6,8 @@ import {
 	formatNumber,
 	formatSize,
 	getContextUtilizationColor,
+	getContextUtilization,
+	renderContextMeter,
 	StatusBar,
 } from "../../../src/tui/statusBar.js";
 import { QUOTES, getRandomQuoteIndex } from "../../../src/tui/quotes.js";
@@ -81,6 +83,57 @@ describe("getContextUtilizationColor", () => {
 		assert.strictEqual(getContextUtilizationColor(128000, 128000), "red");
 		// Over 100% is still red
 		assert.strictEqual(getContextUtilizationColor(200000, 128000), "red");
+	});
+});
+
+describe("getContextUtilization", () => {
+	it("returns 0 when no context window is configured", () => {
+		assert.strictEqual(getContextUtilization(1000, 0), 0);
+		assert.strictEqual(getContextUtilization(1000, undefined), 0);
+		assert.strictEqual(getContextUtilization(1000, -1), 0);
+	});
+
+	it("returns 0% at zero context size", () => {
+		assert.strictEqual(getContextUtilization(0, 128000), 0);
+	});
+
+	it("returns 50% at half utilization", () => {
+		assert.strictEqual(getContextUtilization(64000, 128000), 50);
+	});
+
+	it("returns 100% at full utilization", () => {
+		assert.strictEqual(getContextUtilization(128000, 128000), 100);
+	});
+
+	it("rounds to the nearest integer", () => {
+		assert.strictEqual(getContextUtilization(64001, 128000), 50);
+		assert.strictEqual(getContextUtilization(64050, 128000), 50);
+		assert.strictEqual(getContextUtilization(64080, 128000), 50);
+	});
+});
+
+describe("renderContextMeter", () => {
+	it("renders all empty blocks at 0% utilization", () => {
+		const result = renderContextMeter(0, 128000);
+		assert.strictEqual(result, "[▯▯▯▯▯▯] 0%");
+	});
+
+	it("renders half filled blocks at 50% utilization", () => {
+		const result = renderContextMeter(64000, 128000);
+		assert.strictEqual(result, "[▮▮▮▯▯▯] 50%");
+	});
+
+	it("renders all filled blocks at 100% utilization", () => {
+		const result = renderContextMeter(128000, 128000);
+		assert.strictEqual(result, "[▮▮▮▮▮▮] 100%");
+	});
+
+	it("renders the bare number when context window is unset", () => {
+		// The meter helper itself returns 0% when unset; the StatusBar component
+		// falls back to formatSize in that case. This verifies the helper's
+		// behavior for the unset case.
+		const result = renderContextMeter(12200, 0);
+		assert.strictEqual(result, "[▯▯▯▯▯▯] 0%");
 	});
 });
 
@@ -450,5 +503,70 @@ describe("StatusBar per-item visibility", () => {
 		);
 		assert.ok(typeof result === "string");
 		assert.ok(result.includes("∙"), "should still render the streaming indicator");
+	});
+});
+
+describe("StatusBar context meter", () => {
+	it("renders a visual meter when contextWindow is configured", () => {
+		const result = renderToString(
+			React.createElement(StatusBar, {
+				statusMessage: "Ready",
+				skillCount: 1,
+				messageCount: 2,
+				contextSize: 64000,
+				contextWindow: 128000,
+				version: "1.0.0",
+			}),
+		);
+		assert.ok(typeof result === "string");
+		assert.ok(result.includes("▮"), "should render filled block characters");
+		assert.ok(result.includes("▯"), "should render empty block characters");
+		assert.ok(result.includes("50%"), "should render the utilization percentage");
+	});
+
+	it("falls back to the bare number when contextWindow is unset", () => {
+		const result = renderToString(
+			React.createElement(StatusBar, {
+				statusMessage: "Ready",
+				skillCount: 1,
+				messageCount: 2,
+				contextSize: 12200,
+				contextWindow: 0,
+				version: "1.0.0",
+			}),
+		);
+		assert.ok(typeof result === "string");
+		assert.ok(result.includes("12.2k"), "should render the bare SI-formatted number");
+		assert.ok(!result.includes("▮"), "should not render filled block characters");
+	});
+
+	it("renders 0% when context size is zero", () => {
+		const result = renderToString(
+			React.createElement(StatusBar, {
+				statusMessage: "Ready",
+				skillCount: 1,
+				messageCount: 2,
+				contextSize: 0,
+				contextWindow: 128000,
+				version: "1.0.0",
+			}),
+		);
+		assert.ok(typeof result === "string");
+		assert.ok(result.includes("0%"), "should render 0% utilization");
+	});
+
+	it("renders 100% when context size equals the window", () => {
+		const result = renderToString(
+			React.createElement(StatusBar, {
+				statusMessage: "Ready",
+				skillCount: 1,
+				messageCount: 2,
+				contextSize: 128000,
+				contextWindow: 128000,
+				version: "1.0.0",
+			}),
+		);
+		assert.ok(typeof result === "string");
+		assert.ok(result.includes("100%"), "should render 100% utilization");
 	});
 });
