@@ -523,7 +523,7 @@ export function MessageBubbleInner({
 			? React.createElement(
 					Box,
 					{ flexDirection: "row", marginLeft: 2, flexShrink: 0 },
-					React.createElement(Text, { color: "gray" }, `⏱ ${formatElapsed(displayElapsed)}`),
+					React.createElement(Text, { color: "gray" }, `⏱  ${formatElapsed(displayElapsed)}`),
 				)
 			: null;
 
