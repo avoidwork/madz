@@ -47,35 +47,6 @@ export function getRandomThinkingWord() {
 }
 
 /**
- * Render a unified diff string as an array of colored line descriptors.
- *
- * Each line is classified by its leading character: `+` (added → green),
- * `-` (removed → red), `@@` (hunk header → cyan), and everything else
- * (context → default). The diff is rendered as a collapsible block in the
- * message bubble.
- *
- * @param {string} text - Raw unified diff text
- * @returns {Array<{text: string, color: string}>} Colored line descriptors
- */
-export function renderDiff(text) {
-	if (!text) return [];
-	const lines = text.split("\n");
-	const out = [];
-	for (const line of lines) {
-		if (line.startsWith("+")) {
-			out.push({ text: line, color: "green" });
-		} else if (line.startsWith("-")) {
-			out.push({ text: line, color: "red" });
-		} else if (line.startsWith("@@")) {
-			out.push({ text: line, color: "cyan" });
-		} else {
-			out.push({ text: line, color: undefined });
-		}
-	}
-	return out;
-}
-
-/**
  * Creates a pub/sub topic manager for component-to-component communication.
  *
  * **Test Pattern**: Create an instance to wire up bubbles independently
@@ -303,13 +274,12 @@ export function MessageBubbleInner({
 	const [localActiveToolCall, setLocalActiveToolCall] = useState(activeToolCall);
 	const [localContent, setLocalContent] = useState(content);
 
-	// Collapse state for reasoning, tool-call, and diff blocks. Each is a
-	// boolean toggle; defaults to expanded for reasoning (so thinking stays
-	// visible during streaming) and collapsed for tool-call results and diffs
-	// (so long outputs don't flood the stream).
+	// Collapse state for reasoning and tool-call blocks. Each is a boolean
+	// toggle; defaults to expanded for reasoning (so thinking stays visible
+	// during streaming) and collapsed for tool-call results (so long outputs
+	// don't flood the stream).
 	const [reasoningCollapsed, setReasoningCollapsed] = useState(false);
 	const [toolCallCollapsed, setToolCallCollapsed] = useState(true);
-	const [diffCollapsed, setDiffCollapsed] = useState(true);
 
 	// Sync local state from props when not using pub/sub (session restore, initial render)
 	useEffect(() => {
@@ -419,11 +389,6 @@ export function MessageBubbleInner({
 	const hasReasoning = role === "assistant" && segments.some((s) => s.type === "reasoning");
 	const hasActiveToolCall = role === "assistant" && localActiveToolCall;
 	const hasToolCallDisplay = role === "assistant" && localToolCallDisplay && showToolResults;
-	// Detect a diff block in the message content (unified diff markers).
-	const hasDiff =
-		role === "assistant" &&
-		typeof localContent === "string" &&
-		/(^|\n)(@@|\+\+\+|---)/.test(localContent);
 
 	// Render segments in order — reasoning segments get gray "(thinking)" prefix,
 	// message segments render as normal MarkdownText. Reasoning segments are
@@ -553,17 +518,15 @@ export function MessageBubbleInner({
 			: null;
 
 	// Keyboard toggle for collapse/expand. `ctrl+r` toggles reasoning, `ctrl+t`
-	// toggles tool-call results, `ctrl+d` toggles the inline diff block. Only
-	// active when the bubble has the relevant content. Modifier keys are used
-	// so the toggles don't collide with normal message input.
+	// toggles tool-call results. Only active when the bubble has the relevant
+	// content. Modifier keys are used so the toggles don't collide with normal
+	// message input.
 	useInput((input, key) => {
 		if (key?.escape) return;
 		if (key?.ctrl && input === "r" && hasReasoning) {
 			setReasoningCollapsed((prev) => !prev);
 		} else if (key?.ctrl && input === "t" && hasToolCallDisplay) {
 			setToolCallCollapsed((prev) => !prev);
-		} else if (key?.ctrl && input === "d" && hasDiff) {
-			setDiffCollapsed((prev) => !prev);
 		}
 	});
 
@@ -583,26 +546,6 @@ export function MessageBubbleInner({
 					),
 				)
 			: null;
-
-	// Inline diff view — render file edits as green/red diff lines in a
-	// collapsible block. Defaults to collapsed so long diffs don't flood the
-	// stream; toggle with `d`.
-	const diffEl = hasDiff
-		? React.createElement(
-				Box,
-				{ flexDirection: "column", marginLeft: 2, flexShrink: 0 },
-				React.createElement(
-					Text,
-					{ color: "gray" },
-					diffCollapsed ? "▸ diff (ctrl+d to expand)" : "▾ diff",
-				),
-				...(diffCollapsed
-					? []
-					: renderDiff(localContent).map((line, i) =>
-							React.createElement(Text, { key: `diff-${i}`, color: line.color }, `  ${line.text}`),
-						)),
-			)
-		: null;
 
 	return React.createElement(
 		Box,
@@ -652,7 +595,6 @@ export function MessageBubbleInner({
 			toolDisplayEl,
 			timerEl,
 			completedToolCallsEl,
-			diffEl,
 		),
 	);
 }

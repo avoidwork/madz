@@ -11,7 +11,6 @@ import {
 	createSegmentThrottle,
 	getRandomThinkingWord,
 	THINKING_WORDS,
-	renderDiff,
 } from "../../../src/tui/messageBubble.js";
 
 describe("MessageBubbleInner", () => {
@@ -536,36 +535,6 @@ describe("createSegmentThrottle", () => {
 	});
 });
 
-describe("renderDiff", () => {
-	it("classifies added lines as green", () => {
-		const out = renderDiff("+added line\n-context");
-		assert.strictEqual(out[0].color, "green");
-		assert.strictEqual(out[0].text, "+added line");
-	});
-
-	it("classifies removed lines as red", () => {
-		const out = renderDiff("-removed line\n+added");
-		assert.strictEqual(out[0].color, "red");
-		assert.strictEqual(out[0].text, "-removed line");
-	});
-
-	it("classifies hunk headers as cyan", () => {
-		const out = renderDiff("@@ -1,3 +1,3 @@\n+added");
-		assert.strictEqual(out[0].color, "cyan");
-	});
-
-	it("classifies context lines as default color", () => {
-		const out = renderDiff(" context line\n+added");
-		assert.strictEqual(out[0].color, undefined);
-		assert.strictEqual(out[0].text, " context line");
-	});
-
-	it("returns empty array for empty input", () => {
-		assert.deepStrictEqual(renderDiff(""), []);
-		assert.deepStrictEqual(renderDiff(null), []);
-	});
-});
-
 describe("MessageBubbleInner - reasoning collapse", () => {
 	it("renders collapsed reasoning as a single Thinking line", () => {
 		const result = renderToString(
@@ -613,27 +582,5 @@ describe("MessageBubbleInner - tool call collapse", () => {
 		// Collapsed by default — the result lines are hidden, but the toggle label shows.
 		assert.ok(result.includes("tool result"));
 		assert.ok(!result.includes("Result: success"), "tool result should be collapsed by default");
-	});
-});
-
-describe("MessageBubbleInner - inline diff", () => {
-	it("renders a diff affordance when content contains diff markers", () => {
-		const result = renderToString(
-			React.createElement(
-				PubSubContext.Provider,
-				{ value: { subscribe: () => {}, unsubscribe: () => {} } },
-				React.createElement(
-					ScrollContext.Provider,
-					{ value: { scrollToBottom: () => {} } },
-					React.createElement(MessageBubbleInner, {
-						role: "assistant",
-						content: "diff --git a/file.js b/file.js\n@@ -1,3 +1,3 @@\n-old\n+new",
-						streaming: false,
-					}),
-				),
-			),
-		);
-		assert.ok(typeof result === "string");
-		assert.ok(result.includes("diff"), "should render a diff affordance");
 	});
 });
