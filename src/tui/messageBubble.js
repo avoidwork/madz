@@ -2,7 +2,7 @@ import React, { useState, useEffect, useContext, useRef } from "react";
 import { Box, Text } from "ink";
 import Spinner from "ink-spinner";
 import { MarkdownText } from "./markdownText.js";
-import { getRoleLabel } from "./messages.js";
+import { getRoleLabel, formatCompletedToolCalls, hasCompletedToolCalls } from "./messages.js";
 import { getRoleColors, getBubbleStyle, formatTime } from "./conversationPanel.js";
 
 /**
@@ -494,16 +494,19 @@ export function MessageBubbleInner({
 				)
 			: null;
 
-	// Completed tool calls display
+	// Completed tool calls display — collapsed into a count map so repeated
+	// calls render as `name ×count` instead of a long list of duplicates.
+	const { total: completedTotal, text: completedText } =
+		formatCompletedToolCalls(localCompletedToolCalls);
 	const completedToolCallsEl =
-		role === "assistant" && localCompletedToolCalls && localCompletedToolCalls.length > 0
+		role === "assistant" && hasCompletedToolCalls(localCompletedToolCalls)
 			? React.createElement(
 					Box,
 					{ flexDirection: "column", marginLeft: 2, flexShrink: 0 },
 					React.createElement(
 						Text,
 						{ color: "gray" },
-						`⚡ ${localCompletedToolCalls.length} tool call${localCompletedToolCalls.length !== 1 ? "s" : ""}: ${localCompletedToolCalls.join(", ")}`,
+						`⚡ ${completedTotal} tool call${completedTotal !== 1 ? "s" : ""}: ${completedText}`,
 					),
 				)
 			: null;

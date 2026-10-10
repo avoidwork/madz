@@ -380,8 +380,8 @@ const ConversationArea = forwardRef(function ConversationArea(
 		const committedReasoningRef = { current: "" };
 		const lastToolCallDisplayRef = { current: "" };
 		let todoStatusLines = "";
-		/** @type {string[]} */
-		const completedToolCalls = [];
+		/** @type {Object<string, number>} */
+		const completedToolCalls = {};
 
 		abortControllerRef.current = new AbortController();
 		isStreamingRef.current = true;
@@ -617,7 +617,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 			onTextReceived,
 			preStreamContextSize,
 			onContextUpdate,
-			completedToolCalls = [],
+			completedToolCalls = {},
 		) => {
 			// Debounced context size update — coalesces rapid chunks into a single
 			// token calculation every ~200ms so the status bar stays responsive.
@@ -731,10 +731,10 @@ const ConversationArea = forwardRef(function ConversationArea(
 					}
 
 					if (event.type === "on_tool_end") {
-						completedToolCalls.push(event.name);
+						completedToolCalls[event.name] = (completedToolCalls[event.name] || 0) + 1;
 						messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
 							activeToolCall: null,
-							completedToolCalls: [...completedToolCalls],
+							completedToolCalls: { ...completedToolCalls },
 						});
 					}
 
@@ -775,7 +775,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 		lastToolCallDisplay,
 		todoStatusLines,
 		turnStartTime = 0,
-		completedToolCalls = [],
+		completedToolCalls = {},
 	) => {
 		const elapsed = turnStartTime ? Date.now() - turnStartTime : 0;
 		const updates = {
