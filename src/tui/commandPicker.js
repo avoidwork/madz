@@ -82,7 +82,9 @@ export function shouldOpenCommandPicker(value) {
 export function replaceCommandToken(value, tokenStart, tokenEnd, command) {
 	// Preserve the `/` prefix so the selection remains a valid command
 	// (e.g. `/config`, not `config`). The tokenStart points at the `/`.
-	return value.slice(0, tokenStart) + "/" + command + value.slice(tokenEnd);
+	// Append a trailing space so the `/` token is no longer a trigger and the
+	// picker does not immediately re-open.
+	return value.slice(0, tokenStart) + "/" + command + " " + value.slice(tokenEnd);
 }
 
 /**

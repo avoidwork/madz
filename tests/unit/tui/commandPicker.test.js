@@ -126,17 +126,17 @@ describe("shouldOpenCommandPicker", () => {
 describe("replaceCommandToken", () => {
 	it("replaces the / token with the selected command, preserving the / prefix", () => {
 		const result = replaceCommandToken("run /config", 4, 11, "config");
-		assert.strictEqual(result, "run /config");
+		assert.strictEqual(result, "run /config ");
 	});
 
 	it("replaces a / token at the start of the input, preserving the / prefix", () => {
 		const result = replaceCommandToken("/config", 0, 7, "config");
-		assert.strictEqual(result, "/config");
+		assert.strictEqual(result, "/config ");
 	});
 
 	it("preserves the / prefix when the command is selected mid-input", () => {
 		const result = replaceCommandToken("run /config here", 4, 11, "config");
-		assert.strictEqual(result, "run /config here");
+		assert.strictEqual(result, "run /config  here");
 	});
 });
 
