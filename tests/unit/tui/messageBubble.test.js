@@ -425,6 +425,31 @@ describe("MessageBubbleInner - tool call display", () => {
 		assert.ok(result.includes("tool call"), "completed tool calls summary should remain visible");
 		assert.ok(result.includes("searchWeb"), "completed tool name should remain visible");
 	});
+
+	it("collapses repeated tool calls into a count map", () => {
+		const result = renderToString(
+			React.createElement(
+				PubSubContext.Provider,
+				{ value: { subscribe: () => {}, unsubscribe: () => {} } },
+				React.createElement(
+					ScrollContext.Provider,
+					{ value: { scrollToBottom: () => {} } },
+					React.createElement(MessageBubbleInner, {
+						role: "assistant",
+						content: "",
+						completedToolCalls: ["read_file", "read_file", "read_file", "searchCode"],
+						showToolResults: false,
+						streaming: false,
+					}),
+				),
+			),
+		);
+		assert.ok(typeof result === "string");
+		assert.ok(result.includes("4 tool calls"), "should show the total call count");
+		assert.ok(result.includes("read_file ×3"), "should collapse repeated calls");
+		assert.ok(result.includes("searchCode"), "should list single calls without a count");
+		assert.ok(!result.includes("read_file, read_file"), "should not repeat the tool name");
+	});
 });
 
 describe("MessageBubbleInner - pending state", () => {

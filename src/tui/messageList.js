@@ -3,6 +3,7 @@ import { Box, Text, useStdout, useWindowSize } from "ink";
 import { VirtualScrollView } from "./scrollView.js";
 import { MessageBubble, PubSubContext, ScrollContext } from "./messageBubble.js";
 import { stripAnsi, wrapText } from "./selectionLayout.js";
+import { hasCompletedToolCalls, normalizeCompletedToolCalls } from "./messages.js";
 
 /**
  * Pub/Sub wrapper component for MessageList children.
@@ -86,7 +87,7 @@ export function estimateMessageHeight(data, width) {
 	if (data.activeToolCall) height += 1;
 
 	// Completed tool-calls summary.
-	if (data.completedToolCalls && data.completedToolCalls.length > 0) height += 1;
+	if (hasCompletedToolCalls(data.completedToolCalls)) height += 1;
 
 	return height;
 }
@@ -356,7 +357,7 @@ export const MessageList = React.memo(
 						streaming: m.streaming || false,
 						turnStartTime: m.turnStartTime,
 						turnDuration: m.turnDuration,
-						completedToolCalls: m.completedToolCalls,
+						completedToolCalls: normalizeCompletedToolCalls(m.completedToolCalls),
 					});
 
 					idsRef.current.push(id);
