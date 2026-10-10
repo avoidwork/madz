@@ -179,6 +179,8 @@ tui:
   overscan: 10
   mouseScrollLines: 1
   showToolResults: false
+  reasoningCollapsed: true
+  toolCallCollapsed: true
   statusBar:
     model: true
     skills: true

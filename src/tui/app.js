@@ -47,8 +47,13 @@ function App({
 	const [activeProject, setActiveProject] = useState("");
 	// Global collapse toggles for reasoning and tool-call blocks. Toggled by
 	// the key handler (ctrl+r / ctrl+t) and threaded down to MessageBubble.
-	const [reasoningCollapsed, setReasoningCollapsed] = useState(false);
-	const [toolCallCollapsed, setToolCallCollapsed] = useState(true);
+	// Initial state comes from config so the user can set the starting state.
+	const [reasoningCollapsed, setReasoningCollapsed] = useState(
+		config?.tui?.reasoningCollapsed ?? true,
+	);
+	const [toolCallCollapsed, setToolCallCollapsed] = useState(
+		config?.tui?.toolCallCollapsed ?? true,
+	);
 	// Current character selection range (global, in the flattened conversation
 	// text). Set during a drag and cleared on release.
 	const [selection, setSelection] = useState(null);
