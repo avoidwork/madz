@@ -17,8 +17,9 @@ import { getRoleLabel } from "./messages.js";
  *   subagentStore - Object keyed by namespace string, each value being
  *                   `{ namespace, segments, toolCalls }`.
  *   activeView    - The current active view name (from PANELS).
+ *   onViewChange  - Callback to switch back to conversation view.
  */
-export function SubagentsPanel({ subagentStore = {}, activeView }) {
+export function SubagentsPanel({ subagentStore = {}, activeView, onViewChange }) {
 	const isActive = activeView === "subagents";
 	const { rows } = useWindowSize();
 	const limit = Math.max(1, rows - 4);
