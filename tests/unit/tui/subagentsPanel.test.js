@@ -39,6 +39,18 @@ describe("updateSubagentStore — namespace discrimination", () => {
 		assert.deepStrictEqual(next, {});
 	});
 
+	it('ignores events with a blank-component namespace (root graph yields [""])', () => {
+		// With `subgraphs: true`, the root graph's checkpoint_ns is "" which
+		// splits to `[""]` — length 1, not 0. The store must still ignore it.
+		const store = createSubagentStore();
+		const next = updateSubagentStore(store, {
+			type: "subagent_message",
+			namespace: [""],
+			text: "root message",
+		});
+		assert.deepStrictEqual(next, {});
+	});
+
 	it("routes a subagent message to the namespace entry", () => {
 		const store = createSubagentStore();
 		const next = updateSubagentStore(store, {

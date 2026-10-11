@@ -231,14 +231,17 @@ async function callProvider(_name, _providerConfig, message, streamingCallback, 
 		streamMode: ["messages", "tools"],
 		subgraphs: true,
 	})) {
-		// With `subgraphs: true`, the root graph yields an empty namespace `[]`
-		// and each subagent subgraph yields a populated namespace (e.g.
-		// `["task:<uuid>"]`). `namespace.length > 0` discriminates subagent
-		// activity from the orchestrator's own output. Subagent events are
-		// emitted with a `subagent_` prefix and carry the namespace so the TUI
-		// can route them to a dedicated SUBAGENTS store instead of folding them
-		// into the orchestrator's assistant bubble.
-		const isSubagent = namespace.length > 0;
+		// With `subgraphs: true`, the root graph yields a namespace of `[""]`
+		// (an empty checkpoint_ns split on "|") and each subagent subgraph
+		// yields a populated namespace (e.g. `["task:<uuid>"]`). The root
+		// graph's namespace is `[""]` — length 1, not 0 — so `length > 0`
+		// alone would misroute the orchestrator's own output as subagent
+		// activity. Discriminate on whether the namespace has a NON-EMPTY
+		// component instead. Subagent events are emitted with a `subagent_`
+		// prefix and carry the namespace so the TUI can route them to a
+		// dedicated SUBAGENTS store instead of folding them into the
+		// orchestrator's assistant bubble.
+		const isSubagent = Array.isArray(namespace) && namespace.some((part) => part.length > 0);
 
 		if (mode === "messages") {
 			const [msg] = payload;
