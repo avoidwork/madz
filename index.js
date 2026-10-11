@@ -241,8 +241,18 @@ async function callProvider(_name, _providerConfig, message, streamingCallback, 
 		// `subagent_` prefix and carry the namespace so the TUI can route them
 		// to a dedicated SUBAGENTS store instead of folding them into the
 		// orchestrator's assistant bubble.
+		//
+		// However, the orchestrator's OWN tool calls are also emitted under a
+		// `tools:` namespace (e.g. `["tools:<id>"]` — length 1). A subagent
+		// subgraph always adds a second segment (a nested `model_request:` or
+		// `tools:`), so a namespace is subagent-scoped only when it has a
+		// `tools:` segment AND more than one segment. This keeps the
+		// orchestrator's tool calls in the conversation view while routing
+		// subagent activity to the SUBAGENTS store.
 		const isSubagent =
-			Array.isArray(namespace) && namespace.some((part) => part.startsWith("tools:"));
+			Array.isArray(namespace) &&
+			namespace.length > 1 &&
+			namespace.some((part) => part.startsWith("tools:"));
 
 		if (mode === "messages") {
 			const [msg] = payload;
