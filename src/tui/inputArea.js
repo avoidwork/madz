@@ -13,10 +13,6 @@ import { FilePicker, shouldOpenPicker } from "./filePicker.js";
 import { CommandPicker, shouldOpenCommandPicker } from "./commandPicker.js";
 import { QUOTES, getRandomQuoteIndex } from "./quotes.js";
 import { getSharedTokenBudget } from "../provider/openai.js";
-import { spawn } from "node:child_process";
-import { writeFile, readFile, unlink } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 
 /**
  * InputArea — owns all input and status state.
@@ -178,50 +174,8 @@ const InputArea = forwardRef(function InputArea(
 		[onSubmit],
 	);
 
-	/**
-	 * Open the external editor ($EDITOR, falling back to vi) with the current
-	 * input text. On a successful save (exit code 0), read the temp file back
-	 * and submit the edited content. On a non-zero exit, clean up and show a
-	 * status message without submitting. Uses async `spawn` so the TUI event
-	 * loop is not blocked.
-	 */
-	const openEditor = useCallback(() => {
-		const editor = process.env.EDITOR || "vi";
-		const tmpFile = join(tmpdir(), `madz-input-${Date.now()}.txt`);
-		const cleanup = () => unlink(tmpFile).catch(() => {});
-
-		writeFile(tmpFile, inputText, "utf8")
-			.then(() => {
-				const child = spawn(editor, [tmpFile], { stdio: "inherit" });
-				child.on("error", () => {
-					cleanup();
-					setStatusMessage(`Failed to launch editor: ${editor}`);
-				});
-				child.on("exit", (code) => {
-					if (code === 0) {
-						readFile(tmpFile, "utf8")
-							.then((content) => {
-								cleanup();
-								handleSubmit(content);
-							})
-							.catch(() => {
-								cleanup();
-								setStatusMessage("Failed to read editor output.");
-							});
-					} else {
-						cleanup();
-						setStatusMessage(`Editor exited with code ${code}.`);
-					}
-				});
-			})
-			.catch(() => {
-				setStatusMessage("Failed to write editor temp file.");
-			});
-	}, [inputText, handleSubmit]);
-
 	// Expose imperative methods to App
 	useImperativeHandle(ref, () => ({
-		openEditor,
 		navigateHistory: (direction) => {
 			if (direction === "up") {
 				if (chatHistory.length === 0) return;
