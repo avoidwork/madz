@@ -34,6 +34,7 @@ export const COMMAND_GROUPS = [
 			"/sessions - view sessions panel",
 			"/settings - view settings panel",
 			"/skills - view skills panel",
+			"/subagents - view subagents panel",
 		],
 	},
 ];

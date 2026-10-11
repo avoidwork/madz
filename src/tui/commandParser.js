@@ -113,6 +113,7 @@ export class CommandParser {
 			["memories", "memories"],
 			["skills", "skills"],
 			["settings", "settings"],
+			["subagents", "subagents"],
 		]) {
 			this.#register(cmd, (_args, _ctx) => {
 				return { action: "view", value: view, message: `Switching to ${view} view.` };

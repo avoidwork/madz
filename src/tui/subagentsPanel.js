@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { Box, Text, useWindowSize } from "ink";
+import { Box, Text, useInput, useWindowSize } from "ink";
 import { MessageBubble } from "./messageBubble.js";
 import { getRoleLabel } from "./messages.js";
 
