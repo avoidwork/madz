@@ -1,4 +1,4 @@
-## MODIFIED Requirements
+## ADDED Requirements
 
 ### Requirement: Streaming handler SHALL route subagent events to a subagent store
 The `createStreamingHandler` function SHALL handle `subagent_message`, `subagent_reasoning`, `subagent_tool_start`, and `subagent_tool_end` event types by routing them to a dedicated subagent store keyed by namespace, instead of updating `streamingMsgIdRef.current`. The orchestrator's assistant bubble SHALL continue to receive the existing `message`, `reasoning`, `on_tool_start`, `on_tool_end`, `tool`, and `on_tool_error` event types.
