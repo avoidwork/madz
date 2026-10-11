@@ -138,7 +138,10 @@ function App({
 		setCurrentView(PANELS.CONVERSATION);
 		// Pre-load the command into the input. InputArea is unmounted during
 		// panel views, so set a pending value that it consumes on mount.
-		setPendingInput(`/${skillName}`);
+		// Append a trailing space so the "/<skill>" token is no longer a slash
+		// trigger and the command picker does not immediately re-open — matching
+		// the slash autocomplete's replaceCommandToken behavior.
+		setPendingInput(`/${skillName} `);
 		inputAreaRef.current?.setStatusMessage(`Selected ${skillName} — press Enter to run or append.`);
 	}, []);
 
