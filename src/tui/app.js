@@ -11,6 +11,7 @@ import { MemoryPanel } from "./memoryPanel.js";
 import { SettingsPanel } from "./settingsPanel.js";
 import { SessionsPanel } from "./sessionsPanel.js";
 import { ProjectsPanel } from "./projectsPanel.js";
+import { SubagentsPanel } from "./subagentsPanel.js";
 import { getActiveProviderConfig } from "../provider/index.js";
 import { useMouseScroll, scaleScrollDelta } from "./useMouseScroll.js";
 import { buildLayout, extractSelection, mapCoordToChar } from "./selectionLayout.js";
@@ -597,6 +598,12 @@ function App({
 			onViewChange: handleViewChange,
 			onSelectProject: handleSelectProject,
 			onClearProject: handleClearProject,
+			activeView: currentView,
+		});
+	} else if (currentView === PANELS.SUBAGENTS) {
+		panelComponent = React.createElement(SubagentsPanel, {
+			subagentStore: conversationAreaRef.current?.getSubagentStore?.() || {},
+			onViewChange: handleViewChange,
 			activeView: currentView,
 		});
 	}

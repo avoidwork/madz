@@ -14,6 +14,7 @@ import { createSession } from "../session/factory.js";
 import { setConfigValue } from "../config/loader.js";
 import { isAvailable, getGcCalls } from "../memory/gc.js";
 import { logger } from "../shared/logger.js";
+import { createSubagentStore, updateSubagentStore } from "./subagentStore.js";
 
 /**
 /**
@@ -106,6 +107,10 @@ const ConversationArea = forwardRef(function ConversationArea(
 	const toolMessageTokensRef = useRef(0);
 	const contextUpdateTimerRef = useRef(null);
 	const pendingContextRef = useRef({ content: "" });
+	// Subagent store — accumulates subagent reasoning/message segments and tool
+	// calls keyed by stream namespace. Populated by `createStreamingHandler`
+	// when it receives `subagent_*` events, and rendered by the SUBAGENTS panel.
+	const subagentStoreRef = useRef(createSubagentStore());
 
 	const skillList = registry ? registry.list() : [];
 	const parser = new CommandParser();
@@ -648,6 +653,21 @@ const ConversationArea = forwardRef(function ConversationArea(
 			return async (event) => {
 				if (shouldAbort()) return;
 				try {
+					// Subagent events are routed to the dedicated subagent store
+					// keyed by namespace, never to the orchestrator's assistant
+					// bubble. This keeps each subagent's reasoning/message
+					// segments and tool calls separate from the main conversation.
+					if (
+						event.type === "subagent_message" ||
+						event.type === "subagent_reasoning" ||
+						event.type === "subagent_tool" ||
+						event.type === "subagent_tool_start" ||
+						event.type === "subagent_tool_end"
+					) {
+						subagentStoreRef.current = updateSubagentStore(subagentStoreRef.current, event);
+						return;
+					}
+
 					const currentEvents =
 						messageListRef.current?.getMessageData(streamingMsgIdRef.current)?.events || [];
 					messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
@@ -821,6 +841,12 @@ const ConversationArea = forwardRef(function ConversationArea(
 		newSession: handleNewSession,
 		clear: () => messageListRef.current?.clear(),
 		addMessage,
+		/**
+		 * Get the current subagent store. The SUBAGENTS panel reads this to
+		 * render each subagent's reasoning/message segments and tool calls.
+		 * @returns {Object} The subagent store keyed by namespace.
+		 */
+		getSubagentStore: () => subagentStoreRef.current,
 		/**
 		 * Bulk-load conversation exchanges into the message list.
 		 * Clears existing messages and repopulates from the array.

@@ -303,6 +303,7 @@ describe("TUI - panel navigation", () => {
 			"settings",
 			"sessions",
 			"projects",
+			"subagents",
 		]);
 	});
 
@@ -312,21 +313,24 @@ describe("TUI - panel navigation", () => {
 		assert.strictEqual(nextPanel("memories"), "settings");
 		assert.strictEqual(nextPanel("settings"), "sessions");
 		assert.strictEqual(nextPanel("sessions"), "projects");
-		assert.strictEqual(nextPanel("projects"), "conversation");
+		assert.strictEqual(nextPanel("projects"), "subagents");
+		assert.strictEqual(nextPanel("subagents"), "conversation");
 	});
 
 	it("cycles to prev panel", () => {
-		assert.strictEqual(prevPanel("conversation"), "projects");
+		assert.strictEqual(prevPanel("conversation"), "subagents");
 		assert.strictEqual(prevPanel("skills"), "conversation");
 		assert.strictEqual(prevPanel("memories"), "skills");
 		assert.strictEqual(prevPanel("settings"), "memories");
 		assert.strictEqual(prevPanel("sessions"), "settings");
 		assert.strictEqual(prevPanel("projects"), "sessions");
+		assert.strictEqual(prevPanel("subagents"), "projects");
 	});
 
 	it("constants are frozen objects", () => {
 		assert.ok(typeof PANELS === "object");
 		assert.strictEqual(PANELS.CONVERSATION, "conversation");
+		assert.strictEqual(PANELS.SUBAGENTS, "subagents");
 	});
 });
 
