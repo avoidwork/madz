@@ -40,8 +40,9 @@ describe("updateSubagentStore — namespace discrimination", () => {
 	});
 
 	it('ignores events with a blank-component namespace (root graph yields [""])', () => {
-		// With `subgraphs: true`, the root graph's checkpoint_ns is "" which
-		// splits to `[""]` — length 1, not 0. The store must still ignore it.
+		// The store keys on the joined namespace; a blank component produces an
+		// empty key and is ignored. This guards against the root graph's
+		// `[""]` namespace leaking into the store.
 		const store = createSubagentStore();
 		const next = updateSubagentStore(store, {
 			type: "subagent_message",

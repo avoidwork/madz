@@ -231,17 +231,18 @@ async function callProvider(_name, _providerConfig, message, streamingCallback, 
 		streamMode: ["messages", "tools"],
 		subgraphs: true,
 	})) {
-		// With `subgraphs: true`, the root graph yields a namespace of `[""]`
-		// (an empty checkpoint_ns split on "|") and each subagent subgraph
-		// yields a populated namespace (e.g. `["task:<uuid>"]`). The root
-		// graph's namespace is `[""]` — length 1, not 0 — so `length > 0`
-		// alone would misroute the orchestrator's own output as subagent
-		// activity. Discriminate on whether the namespace has a NON-EMPTY
-		// component instead. Subagent events are emitted with a `subagent_`
-		// prefix and carry the namespace so the TUI can route them to a
-		// dedicated SUBAGENTS store instead of folding them into the
+		// With `subgraphs: true`, the root graph yields a namespace like
+		// `["model_request:<uuid>"]` and each subagent subgraph yields a
+		// namespace containing a `tools:` segment (e.g.
+		// `["tools:call_abc123", "model_request:<uuid>"]`). The orchestrator's
+		// own output has NO `tools:` segment, so a `tools:` prefix check is the
+		// correct discriminator (mirrors the deepagents library's own
+		// `isSubagentNamespace`). Subagent events are emitted with a
+		// `subagent_` prefix and carry the namespace so the TUI can route them
+		// to a dedicated SUBAGENTS store instead of folding them into the
 		// orchestrator's assistant bubble.
-		const isSubagent = Array.isArray(namespace) && namespace.some((part) => part.length > 0);
+		const isSubagent =
+			Array.isArray(namespace) && namespace.some((part) => part.startsWith("tools:"));
 
 		if (mode === "messages") {
 			const [msg] = payload;
