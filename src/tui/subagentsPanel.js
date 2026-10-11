@@ -27,6 +27,16 @@ export function SubagentsPanel({ subagentStore = {}, activeView }) {
 		return Object.values(subagentStore || {});
 	}, [subagentStore]);
 
+	// Escape returns to conversation view
+	useInput(
+		(_input, key) => {
+			if (key.escape) {
+				onViewChange?.("conversation");
+			}
+		},
+		{ isActive },
+	);
+
 	if (!isActive) {
 		return React.createElement(Box, null);
 	}
