@@ -4,6 +4,7 @@ import { dirname, join } from "node:path";
 import { createRequire } from "node:module";
 import { ConfigSchema, _setResolvedConfig } from "./config.js";
 import { applyDotPathMutation } from "./patch.js";
+import { parseValue } from "./parse.js";
 
 const _require = createRequire(import.meta.url);
 import { load, dump } from "js-yaml";
@@ -48,15 +49,6 @@ function _toUpperSnake(str) {
 		}, "")
 		.replace(/^_/, "")
 		.toUpperCase();
-}
-
-/// -- Parse a value string into the correct JS type ---
-
-function _parseValue(str) {
-	if (str === "true") return true;
-	if (str === "false") return false;
-	if (/^-?\d+(\.\d+)?$/.test(str)) return Number(str);
-	return str;
 }
 
 /// -- applyDotPath: materialize intermediate objects/arrays ---
@@ -372,7 +364,7 @@ export function syncEnv(raw, knownSections = KNOWN_SECTIONS) {
 		if (!dotPath) continue;
 
 		// Parse the value
-		const parsed = _parseValue(envValue);
+		const parsed = parseValue(envValue);
 
 		// Materialize the path — applyDotPath is idempotent and won't
 		// override existing keys
@@ -471,7 +463,7 @@ export function _resolveEnvRecursively(node, path) {
 
 			const envValue = process.env[envKey];
 			if (envValue !== undefined) {
-				result[key] = _parseValue(envValue);
+				result[key] = parseValue(envValue);
 			} else if (typeof value === "string" && value.match(/^\$\{[A-Z_]+\}$/)) {
 				const legacy = value.slice(2, -1);
 				const legacyValue = process.env[legacy];
