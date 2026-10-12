@@ -12,20 +12,19 @@ const PROFILE_FILENAME = "profile.md";
  * including the context profile if present. The profile block is prepended
  * first, followed by user-provided context files sorted by mtime (newest first),
  * then ephemeral memories (if any) sorted newest first.
- * @param {string} contextDir - Path to the context directory
- * @param {number} limit - Maximum number of recent context files to load (excludes profile and ephemeral)
+ * @param {string} [contextDir] - Path to the context directory (defaults to config.memory.contextDir)
+ * @param {number} [limit] - Maximum number of recent context files to load (excludes profile and ephemeral)
  * @param {string} [cwdParam] - Base directory (defaults to config.cwd)
  * @returns {Promise<string>} Combined context content with profile prefix
  */
-export async function loadContext(
-	contextDir = loadConfig().memory.contextDir,
-	limit = 10,
-	cwdParam = loadConfig().cwd,
-) {
-	const fullPath = join(cwdParam, contextDir);
+export async function loadContext(contextDir, limit = 10, cwdParam) {
+	const config = loadConfig();
+	const dir = contextDir ?? config.memory.contextDir;
+	const cwd = cwdParam ?? config.cwd;
+	const fullPath = join(cwd, dir);
 	try {
 		// Load profile context block first
-		const profileBlock = await loadAndFormatProfile(fullPath, contextDir, cwdParam);
+		const profileBlock = await loadAndFormatProfile(fullPath, dir, cwd);
 
 		// Load all .md files (excluding profile.md)
 		const allFiles = (await readdir(fullPath)).filter(
@@ -46,7 +45,7 @@ export async function loadContext(
 			.join("\n");
 
 		// Load ephemeral memories last (newest first, limited)
-		const ephemeralLimit = loadConfig().memory.ephemeralLimit;
+		const ephemeralLimit = config.memory.ephemeralLimit;
 		const ephemeralEntries = await selectRecentFiles(fullPath, ephemeralFiles, ephemeralLimit);
 		const ephemeralBlocks = ephemeralEntries
 			.map((entry) => {
@@ -107,9 +106,9 @@ async function selectRecentFiles(fullPath, filenames, limit) {
  * @param {string} [cwdParam] - Base directory (defaults to config.cwd)
  * @returns {Promise<string>} Formatted profile context block or empty string
  */
-async function loadAndFormatProfile(fullPath, contextDir, cwdParam = loadConfig().cwd) {
+async function loadAndFormatProfile(fullPath, contextDir, cwdParam) {
 	try {
-		const profilePath = join(cwdParam, contextDir, PROFILE_FILENAME);
+		const profilePath = join(cwdParam ?? loadConfig().cwd, contextDir, PROFILE_FILENAME);
 		const profile = await loadProfile(profilePath);
 		if (!profile) return "";
 		return formatProfileContext(profile.data);

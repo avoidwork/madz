@@ -18,9 +18,11 @@ const DECISION_TOOL_INSTRUCTION =
  * @param {string} [baseDir] - Base directory for loading the prompt file (defaults to config.cwd)
  * @returns {Promise<string>} System prompt text with appended context, or empty string if file not found
  */
-export async function loadSystemPrompt(baseDir = loadConfig().cwd) {
+export async function loadSystemPrompt(baseDir) {
+	const config = loadConfig();
 	try {
-		const path = join(baseDir, "prompts", "SYSTEM_PROMPT.md");
+		const dir = baseDir ?? config.cwd;
+		const path = join(dir, "prompts", "SYSTEM_PROMPT.md");
 		let content = await readFile(path, "utf-8");
 		if (content.startsWith("---")) {
 			const closeIdx = content.indexOf("---", 3);
@@ -30,7 +32,6 @@ export async function loadSystemPrompt(baseDir = loadConfig().cwd) {
 		}
 		// Inject the decision tool instruction when the tool is enabled, or
 		// remove the token entirely when it is disabled.
-		const config = loadConfig();
 		const baseUrl = config?.agent?.decision?.baseUrl;
 		const replacement = baseUrl ? DECISION_TOOL_INSTRUCTION : "";
 		content = content.replaceAll(DECISION_TOOL_TOKEN, replacement);
