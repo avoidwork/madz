@@ -4,15 +4,14 @@ import { parseFrontmatter } from "./reader.js";
 import { loadConfig } from "../config/loader.js";
 import { logger } from "../shared/logger.js";
 
-const cwd = loadConfig().cwd;
-
 /**
  * Read an ephemeral memory file and extract frontmatter metadata.
  * @param {string} contextDir - Directory containing the file
  * @param {string} filename - The filename
+ * @param {string} [cwdParam] - Base directory (defaults to config.cwd)
  * @returns {Promise<{ ephemeral: boolean, expiresAt: string } | null>} Parsed metadata or null if unreadable
  */
-export async function readEphemeralFile(contextDir, filename, cwdParam = cwd) {
+export async function readEphemeralFile(contextDir, filename, cwdParam = loadConfig().cwd) {
 	try {
 		const filepath = join(cwdParam, contextDir, filename);
 		const content = await readFile(filepath, "utf-8");
@@ -44,9 +43,10 @@ export function isExpired(expiresAt, now) {
  * Non-blocking: silently skips missing files and invalid entries.
  * @param {string} contextDir - Directory to scan and clean
  * @param {string} [nowStr] - Optional ISO timestamp for deterministic testing
+ * @param {string} [cwdParam] - Base directory (defaults to config.cwd)
  * @returns {Promise<number>} Number of files removed
  */
-export async function expireEphemeralMemories(contextDir, nowStr, cwdParam = cwd) {
+export async function expireEphemeralMemories(contextDir, nowStr, cwdParam = loadConfig().cwd) {
 	const checkNow = nowStr ? new Date(nowStr) : new Date();
 	let files;
 	try {
@@ -58,7 +58,7 @@ export async function expireEphemeralMemories(contextDir, nowStr, cwdParam = cwd
 	let removed = 0;
 	for (const file of files) {
 		if (!file.endsWith(".md")) continue;
-		const info = await readEphemeralFile(contextDir, file);
+		const info = await readEphemeralFile(contextDir, file, cwdParam);
 		if (info && info.ephemeral && isExpired(info.expiresAt, checkNow)) {
 			const filepath = join(cwdParam, contextDir, file);
 			try {

@@ -1,6 +1,6 @@
 import { describe, it, after, beforeEach } from "node:test";
 import assert from "node:assert";
-import { mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { mkdirSync, writeFileSync, rmSync, utimesSync } from "node:fs";
 import { join } from "node:path";
 import { loadContext } from "../../src/memory/context.js";
 import { parseFrontmatter } from "../../src/memory/reader.js";
@@ -28,6 +28,16 @@ function clearTestDir() {
 	}
 }
 
+/**
+ * Set a file's mtime to a specific date for deterministic ordering.
+ * @param {string} filepath - Path to the file
+ * @param {string} isoDate - ISO date string
+ */
+function setMtime(filepath, isoDate) {
+	const date = new Date(isoDate);
+	utimesSync(filepath, date, date);
+}
+
 describe("loadContext", () => {
 	beforeEach(() => {
 		clearTestDir();
@@ -35,7 +45,7 @@ describe("loadContext", () => {
 	});
 	after(teardown);
 
-	it("returns combined context from markdown files sorted by timestamp descending", async () => {
+	it("returns combined context from markdown files sorted by mtime descending", async () => {
 		writeFileSync(
 			join(fullTestDir, "note1.md"),
 			"---\ntitle: First Note\ntimestamp: 2024-01-01\n---\nContent of first note",
@@ -48,6 +58,11 @@ describe("loadContext", () => {
 			join(fullTestDir, "note3.md"),
 			"---\ntitle: Third Note\ntimestamp: 2024-01-02\n---\nContent of third note",
 		);
+
+		// Set explicit mtimes so ordering is deterministic (newest first)
+		setMtime(join(fullTestDir, "note1.md"), "2024-01-01T00:00:00.000Z");
+		setMtime(join(fullTestDir, "note2.md"), "2024-01-03T00:00:00.000Z");
+		setMtime(join(fullTestDir, "note3.md"), "2024-01-02T00:00:00.000Z");
 
 		const result = await loadContext(testDir, 3);
 		assert.ok(result.includes("[Context: Second Note]"));
@@ -67,6 +82,11 @@ describe("loadContext", () => {
 		writeFileSync(join(fullTestDir, "a.md"), "---\ntitle: A\ntimestamp: 2024-01-01\n---\nAAA");
 		writeFileSync(join(fullTestDir, "b.md"), "---\ntitle: B\ntimestamp: 2024-01-02\n---\nBBB");
 		writeFileSync(join(fullTestDir, "c.md"), "---\ntitle: C\ntimestamp: 2024-01-03\n---\nCCC");
+
+		// Set explicit mtimes so ordering is deterministic (newest first)
+		setMtime(join(fullTestDir, "a.md"), "2024-01-01T00:00:00.000Z");
+		setMtime(join(fullTestDir, "b.md"), "2024-01-02T00:00:00.000Z");
+		setMtime(join(fullTestDir, "c.md"), "2024-01-03T00:00:00.000Z");
 
 		const result = await loadContext(testDir, 2);
 		assert.ok(result.includes("[Context: B]"));
@@ -113,7 +133,7 @@ describe("loadContext", () => {
 		assert.ok(result.includes("some text with spaces"));
 	});
 
-	it("handles files without timestamp (falls back to empty string sort)", async () => {
+	it("handles files without timestamp (falls back to mtime sort)", async () => {
 		writeFileSync(
 			join(fullTestDir, "no-ts.md"),
 			"---\ntitle: No Timestamp\n---\nNo timestamp body",
@@ -159,6 +179,10 @@ describe("loadContext", () => {
 			"---\ntitle: Ephemeral New\ntimestamp: 2024-01-03\n---\nNew ephemeral",
 		);
 
+		// Set explicit mtimes so ephemeral-new is newest
+		setMtime(join(fullTestDir, "ephemeral-old.md"), "2024-01-01T00:00:00.000Z");
+		setMtime(join(fullTestDir, "ephemeral-new.md"), "2024-01-03T00:00:00.000Z");
+
 		const result = await loadContext(testDir, 10);
 		// Persistent should appear as [Context:]
 		assert.ok(result.includes("[Context: Persistent]"));
@@ -185,6 +209,8 @@ describe("loadContext", () => {
 				join(fullTestDir, `ephemeral-${i}.md`),
 				`---\ntitle: Ephemeral ${i}\ntimestamp: 2024-01-0${i}\n---\nEphemeral ${i} content`,
 			);
+			// Set explicit mtimes so the newest 5 are ephemeral-3..7
+			setMtime(join(fullTestDir, `ephemeral-${i}.md`), `2024-01-0${i}T00:00:00.000Z`);
 		}
 
 		const result = await loadContext(testDir, 10);

@@ -4,8 +4,6 @@ import { loadContext } from "./context.js";
 import { loadConfig } from "../config/loader.js";
 import { logger } from "../shared/logger.js";
 
-const cwd = loadConfig().cwd;
-
 // Token replaced in SYSTEM_PROMPT.md when the decision tool is enabled.
 const DECISION_TOOL_TOKEN = "<!-- DECISION_TOOL_INSTRUCTION -->";
 
@@ -17,10 +15,10 @@ const DECISION_TOOL_INSTRUCTION =
 /**
  * Load the system prompt from prompts/SYSTEM_PROMPT.md,
  * appending the current memory context to the end.
- * @param {string} [baseDir=cwd] - Base directory for loading the prompt file
+ * @param {string} [baseDir] - Base directory for loading the prompt file (defaults to config.cwd)
  * @returns {Promise<string>} System prompt text with appended context, or empty string if file not found
  */
-export async function loadSystemPrompt(baseDir = cwd) {
+export async function loadSystemPrompt(baseDir = loadConfig().cwd) {
 	try {
 		const path = join(baseDir, "prompts", "SYSTEM_PROMPT.md");
 		let content = await readFile(path, "utf-8");

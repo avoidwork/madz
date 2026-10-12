@@ -3,10 +3,16 @@ import { join } from "node:path";
 import { loadConfig } from "../config/loader.js";
 import { logger } from "../shared/logger.js";
 
-const config = loadConfig();
-const PROFILE_DIR = join(config.cwd, config.memory.contextDir);
 const PROFILE_FILE = "profile.md";
-const PROFILE_PATH = join(PROFILE_DIR, PROFILE_FILE);
+
+/**
+ * Resolve the profile file path lazily from the current config.
+ * @returns {string} Full path to the profile file
+ */
+function getProfilePath() {
+	const config = loadConfig();
+	return join(config.cwd, config.memory.contextDir, PROFILE_FILE);
+}
 
 /**
  * Profile attributes definition.
@@ -62,7 +68,7 @@ function parseProfileBody(body) {
  * @param {string} [profilePath] - Optional path override (default: memory/context/profile.md)
  * @returns {Promise<{ data: Object, body: string } | null>} The parsed profile or null if not found
  */
-export async function loadProfile(profilePath = PROFILE_PATH) {
+export async function loadProfile(profilePath = getProfilePath()) {
 	try {
 		await access(profilePath, constants.F_OK);
 	} catch (err) {
@@ -90,7 +96,7 @@ export async function loadProfile(profilePath = PROFILE_PATH) {
  * @param {string} [profilePath] - Optional path override
  * @returns {Promise<void>}
  */
-export async function saveProfile(profileData, profilePath = PROFILE_PATH) {
+export async function saveProfile(profileData, profilePath = getProfilePath()) {
 	const profileDir = join(profilePath, "..");
 	try {
 		await access(profileDir, constants.F_OK);
@@ -112,7 +118,7 @@ export async function saveProfile(profileData, profilePath = PROFILE_PATH) {
  * @param {string} [profilePath] - Optional path override
  * @returns {Promise<boolean>}
  */
-export async function hasProfile(profilePath = PROFILE_PATH) {
+export async function hasProfile(profilePath = getProfilePath()) {
 	try {
 		await access(profilePath, constants.F_OK);
 		return true;
