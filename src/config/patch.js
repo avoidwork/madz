@@ -1,18 +1,9 @@
 import { ConfigSchema } from "./config.js";
+import { parseValue } from "./parse.js";
 
 const MAX_PATH_DEPTH = 5;
 
-/**
- * Parse a string value into the correct JavaScript type.
- * @param {string} str - String to parse (e.g., "true", "42", "hello")
- * @returns {boolean|number|string} Parsed value
- */
-export function parseValue(str) {
-	if (str === "true") return true;
-	if (str === "false") return false;
-	if (/^-?\d+(\.\d+)?$/.test(str)) return Number(str);
-	return str;
-}
+export { parseValue };
 
 /**
  * Assign a value to a dot-path in an object, creating intermediate objects as needed.
