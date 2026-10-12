@@ -27,7 +27,7 @@ Current state:
 ## Decisions
 
 ### 1. Delete `AgentRegistry` and its test
-The class has no production consumer (YAGNI). Grep confirms only `tests/unit/agentRegistry.test.js` references it. Delete both `src/agent/agentRegistry.js` and `tests/unit/agentRegistry.test.js`. The `agent-registry` spec capability is removed accordingly.
+The class has no production consumer (YAGNI). Grep confirms only `tests/unit/agentRegistry.test.js` references it. Delete both `src/agent/agentRegistry.js` and `tests/unit/agentRegistry.test.js`. The `agent-registry` spec capability is deleted accordingly: `openspec/specs/agent-registry` and the change's delta spec are removed entirely (OpenSpec cannot write an empty spec, so the spec is deleted rather than updated to zero requirements).
 
 ### 2. Lazy prompt loading with a synchronous `getAllAgents()`
 The public API `getAllAgents()` is synchronous and called synchronously in production (`createSubagentDefinitions`) and tests (top-level `const ALL_AGENTS = getAllAgents()`). To preserve the API while deferring I/O, we keep an internal async loader that runs on first call and caches the resolved array. `getAllAgents()` returns the cached array synchronously on subsequent calls. The warn-and-continue behavior on a missing prompt file is preserved.
@@ -51,7 +51,7 @@ Build a `Map` keyed by tool name once at the top of `createSubagentDefinitions`,
 
 - **[Lazy loading changes import-time behavior]** → The first `getAllAgents()` call now performs the I/O. Since `getAllAgents()` is called at the top of `createSubagentDefinitions` (which runs during orchestrator creation) and at test module load, the I/O is still triggered before any agent runs. No functional regression; only the timing of the first load shifts.
 - **[Removing config mutation may break TUI consumers]** → The TUI `/settings` view and status bar read `config.summarization.trigger` and `config.providers[providerName].contextWindow`. We must verify these consumers and update them to read the explicitly-propagated values. This is the highest-risk change; tests must confirm the derived values still reach the TUI.
-- **[Deleting `AgentRegistry` removes a public export]** → No production consumer exists, so this is safe. The `agent-registry` spec is removed to keep specs in sync.
+- **[Deleting `AgentRegistry` removes a public export]** → No production consumer exists, so this is safe. The `agent-registry` spec is deleted to keep specs in sync.
 
 ## Migration Plan
 

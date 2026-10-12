@@ -616,7 +616,7 @@ Tool access below is the madz tool set each agent receives via `TOOL_CLASSIFICAT
 
 Temperatures are configurable via `subAgentsTemperature` in `config.yaml` or environment variables (`SUB_AGENTS_TEMPERATURE_<AGENT_NAME>`).
 
-Agent definitions are consolidated in `src/agent/agentDefinitions.js` (a data-driven config mapping each agent name to its prompt file and description), with the system prompts in `prompts/*.md`. The `AgentRegistry` class (`src/agent/agentRegistry.js`) manages registration, validation, and lookup. Tool access is gated by `TOOL_CLASSIFICATIONS` in `src/tools/index.js` — each tool declares which agent types it serves, and the orchestrator filters tools per agent at runtime.
+Agent definitions are consolidated in `src/agent/agentDefinitions.js` (a data-driven config mapping each agent name to its prompt file and description), with the system prompts in `prompts/*.md`. Tool access is gated by `TOOL_CLASSIFICATIONS` in `src/tools/index.js` — each tool declares which agent types it serves, and the orchestrator filters tools per agent at runtime.
 
 The orchestrator also manages two filesystem backends via the deepagents `CompositeBackend`: the core working directory and the memory context directory.
 

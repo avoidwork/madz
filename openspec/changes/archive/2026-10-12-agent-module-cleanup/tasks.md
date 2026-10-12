@@ -26,6 +26,6 @@
 
 ## 6. Verification
 
-- [ ] 6.1 Run `npm run lint`
-- [ ] 6.2 Run `npm run test`
-- [ ] 6.3 Run `npm run coverage`
+- [x] 6.1 Run `npm run lint`
+- [x] 6.2 Run `npm run test`
+- [x] 6.3 Run `npm run coverage`

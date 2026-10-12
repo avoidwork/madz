@@ -15,8 +15,8 @@ The agent module (`src/agent/`) carries dead code, eager I/O, a hidden config-si
 ### New Capabilities
 <!-- None — this is a cleanup/refactor change, not a new capability. -->
 
-### Modified Capabilities
-- `agent-registry`: The `AgentRegistry` class is dead code with no production consumer. The `agent-registry` capability (registry pattern for managing subagent definitions) is removed because the class it describes is deleted.
+### Removed Capabilities
+- `agent-registry`: The `AgentRegistry` class is dead code with no production consumer. The `agent-registry` capability (registry pattern for managing subagent definitions) is deleted because the class it describes is removed. The `openspec/specs/agent-registry` spec and its delta are deleted.
 
 ## Impact
 
