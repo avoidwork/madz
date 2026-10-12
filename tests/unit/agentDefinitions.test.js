@@ -11,7 +11,7 @@ import { getToolsForAgentTypes, TOOL_CLASSIFICATIONS } from "../../src/tools/ind
 
 // Wait for async prompt loading at module init
 
-const ALL_AGENTS = getAllAgents();
+const ALL_AGENTS = await getAllAgents();
 const EXPECTED_AGENT_NAMES = [
 	"coding",
 	"search",
@@ -244,7 +244,7 @@ describe("Agent Definitions", () => {
 
 				// Force a fresh module load so createAgentDefinition runs with the missing file
 				const mod = await import(`../../src/agent/agentDefinitions.js?x=${Date.now()}`);
-				const agents = mod.getAllAgents();
+				const agents = await mod.getAllAgents();
 
 				// The agent is still returned (warn-and-continue), but with an empty system prompt
 				strictEqual(agents.length, 12, "Should still return all 12 agents");
@@ -280,7 +280,7 @@ describe("Agent Definitions", () => {
 
 				// Force a fresh module load so createAgentDefinition runs with the missing file
 				const mod = await import(`../../src/agent/agentDefinitions.js?x=${Date.now()}`);
-				mod.getAllAgents();
+				await mod.getAllAgents();
 
 				// The failure must be surfaced at warn level (regression: was debug before)
 				ok(

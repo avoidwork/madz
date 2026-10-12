@@ -89,7 +89,7 @@ export const AGENT_CONFIGS = [
 ];
 
 /**
- * Create an agent definition with an async-loaded system prompt.
+ * Create an agent definition with an asynchronously-loaded system prompt.
  * @param {string} name - Agent name identifier
  * @param {string} promptFile - Prompt filename (e.g., "CODING.md")
  * @param {string} description - Agent description
@@ -113,25 +113,31 @@ async function createAgentDefinition(name, promptFile, description) {
 }
 
 /**
- * Cached agent definitions loaded at module init.
- * @type {{ name: string, description: string, systemPrompt: string }[]}
+ * Lazily-loaded agent definitions, populated on the first `getAllAgents()` call.
+ * @type {{ name: string, description: string, systemPrompt: string }[] | null}
  */
-const agents = await Promise.all(
-	AGENT_CONFIGS.map((cfg) => createAgentDefinition(cfg.name, cfg.promptFile, cfg.description)),
-);
+let agents = null;
 
 /**
  * Build all agent definitions from the consolidated config.
- * @returns {{ name: string, description: string, systemPrompt: string }[]}
+ * Loads prompts asynchronously on first call and caches the resolved array so
+ * subsequent calls return the cached result without re-reading the prompt files.
+ * @returns {Promise<{ name: string, description: string, systemPrompt: string }[]>}
  */
-function buildAllAgents() {
+async function buildAllAgents() {
+	if (agents === null) {
+		agents = await Promise.all(
+			AGENT_CONFIGS.map((cfg) => createAgentDefinition(cfg.name, cfg.promptFile, cfg.description)),
+		);
+	}
+
 	return agents;
 }
 
 /**
  * Get all agent definitions.
- * @returns {{ name: string, description: string, systemPrompt: string }[]}
+ * @returns {Promise<{ name: string, description: string, systemPrompt: string }[]>}
  */
-export function getAllAgents() {
+export async function getAllAgents() {
 	return buildAllAgents();
 }
