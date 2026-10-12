@@ -12,6 +12,7 @@ import { SettingsPanel } from "./settingsPanel.js";
 import { SessionsPanel } from "./sessionsPanel.js";
 import { ProjectsPanel } from "./projectsPanel.js";
 import { SubagentsPanel } from "./subagentsPanel.js";
+import { updateSubagentStore } from "./subagentStore.js";
 import { getActiveProviderConfig } from "../provider/index.js";
 import { useMouseScroll, scaleScrollDelta } from "./useMouseScroll.js";
 import { buildLayout, extractSelection, mapCoordToChar } from "./selectionLayout.js";
@@ -63,6 +64,11 @@ function App({
 	// and jump-to-next. Search mode takes precedence over normal input focus.
 	const [searchMode, setSearchMode] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
+	// Subagent store — accumulated subagent activity keyed by namespace. Lifted
+	// to App so the SUBAGENTS panel re-renders live as subagents stream. The
+	// ConversationArea's streaming handler reports each subagent event here via
+	// onSubagentUpdate, which updates this state and re-renders the panel.
+	const [subagentStore, setSubagentStore] = useState({});
 	const lastInterruptTimeRef = useRef(0);
 	const { exit } = useApp();
 	const exitRef = useRef(exit);
@@ -110,6 +116,13 @@ function App({
 	const onContextChange = useCallback((size) => inputAreaRef.current?.setContextSize(size), []);
 	const onCompactingChange = useCallback((val) => inputAreaRef.current?.setIsCompacting(val), []);
 	const onInterruptInput = useCallback(() => inputAreaRef.current?.clearInput(), []);
+	// Fold a subagent event into the App-level subagent store. Called by the
+	// ConversationArea's streaming handler for each subagent_* event. Updating
+	// this state re-renders App, which passes the fresh store to the SUBAGENTS
+	// panel so it updates live.
+	const onSubagentUpdate = useCallback((event) => {
+		setSubagentStore((prev) => updateSubagentStore(prev, event));
+	}, []);
 
 	/**
 	 * onViewChange — switch between conversation and panel views.
@@ -612,7 +625,7 @@ function App({
 	} else if (currentView === PANELS.SUBAGENTS) {
 		panelComponent = React.createElement(SubagentsPanel, {
 			ref: subagentsPanelRef,
-			subagentStore: conversationAreaRef.current?.getSubagentStore?.() || {},
+			subagentStore,
 			onViewChange: handleViewChange,
 			activeView: currentView,
 			reasoningCollapsed,
@@ -666,6 +679,7 @@ function App({
 							onContextChange,
 							onCompactingChange,
 							onInterruptInput,
+							onSubagentUpdate,
 							onQuit: handleQuit,
 							onNewSession: handleNewSession,
 							onViewChange: handleViewChange,

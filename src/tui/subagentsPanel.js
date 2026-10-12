@@ -1,7 +1,6 @@
 import React, { useMemo, useRef, useCallback, forwardRef, useImperativeHandle } from "react";
 import { Box, Text, useInput, useWindowSize } from "ink";
 import { MessageBubble } from "./messageBubble.js";
-import { getRoleLabel } from "./messages.js";
 import { VirtualScrollView } from "./scrollView.js";
 
 /**
@@ -106,7 +105,6 @@ export const SubagentsPanel = forwardRef(function SubagentsPanel(
 	return React.createElement(
 		Box,
 		{ flexDirection: "column", padding: 1 },
-		React.createElement(Text, { bold: true }, `Subagents (${entries.length})`),
 		React.createElement(VirtualScrollView, {
 			ref: scrollRef,
 			items: entries,
@@ -117,11 +115,6 @@ export const SubagentsPanel = forwardRef(function SubagentsPanel(
 				React.createElement(
 					Box,
 					{ key: entry.namespace, flexDirection: "column", marginBottom: 1 },
-					React.createElement(
-						Text,
-						{ color: "cyan", bold: true },
-						`▸ ${getRoleLabel("assistant", entry.namespace)}`,
-					),
 					React.createElement(MessageBubble, {
 						role: "assistant",
 						content: (entry.segments || []).map((s) => s.content).join(""),

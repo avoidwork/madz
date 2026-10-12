@@ -14,7 +14,6 @@ import { createSession } from "../session/factory.js";
 import { setConfigValue } from "../config/loader.js";
 import { isAvailable, getGcCalls } from "../memory/gc.js";
 import { logger } from "../shared/logger.js";
-import { createSubagentStore, updateSubagentStore } from "./subagentStore.js";
 
 /**
 /**
@@ -72,6 +71,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 		onContextChange,
 		onCompactingChange,
 		onInterruptInput,
+		onSubagentUpdate,
 		onQuit,
 		onNewSession,
 		onViewChange,
@@ -108,12 +108,10 @@ const ConversationArea = forwardRef(function ConversationArea(
 	const toolMessageTokensRef = useRef(0);
 	const contextUpdateTimerRef = useRef(null);
 	const pendingContextRef = useRef({ content: "" });
-	// Subagent store — accumulates subagent reasoning/message segments and tool
-	// calls keyed by stream namespace. Populated by `createStreamingHandler`
-	// when it receives `subagent_*` events, and rendered by the SUBAGENTS panel.
-	// Held as state (not a ref) so each update triggers a re-render, which the
-	// SUBAGENTS panel needs to show live output as subagents stream.
-	const [subagentStore, setSubagentStore] = useState(createSubagentStore);
+	// Subagent store is lifted to App state. The streaming handler reports each
+	// subagent_* event via onSubagentUpdate, which updates App's state and
+	// re-renders the SUBAGENTS panel live. This component no longer owns the
+	// store — it just forwards events upward.
 
 	const skillList = registry ? registry.list() : [];
 	const parser = new CommandParser();
@@ -667,7 +665,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 						event.type === "subagent_tool_start" ||
 						event.type === "subagent_tool_end"
 					) {
-						setSubagentStore((prev) => updateSubagentStore(prev, event));
+						onSubagentUpdate?.(event);
 						return;
 					}
 
@@ -844,12 +842,6 @@ const ConversationArea = forwardRef(function ConversationArea(
 		newSession: handleNewSession,
 		clear: () => messageListRef.current?.clear(),
 		addMessage,
-		/**
-		 * Get the current subagent store. The SUBAGENTS panel reads this to
-		 * render each subagent's reasoning/message segments and tool calls.
-		 * @returns {Object} The subagent store keyed by namespace.
-		 */
-		getSubagentStore: () => subagentStore,
 		/**
 		 * Bulk-load conversation exchanges into the message list.
 		 * Clears existing messages and repopulates from the array.
