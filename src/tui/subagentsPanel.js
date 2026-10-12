@@ -45,8 +45,13 @@ export const SubagentsPanel = forwardRef(function SubagentsPanel(
 	// suppress auto-scroll until they return to the bottom.
 	const isUserScrolledUpRef = useRef(false);
 
+	// VirtualScrollView keys items by `id` (used for the height map and React
+	// keys). Map each store entry to an object carrying its namespace as the id.
 	const entries = useMemo(() => {
-		return Object.values(subagentStore || {});
+		return Object.values(subagentStore || {}).map((entry) => ({
+			id: entry.namespace,
+			...entry,
+		}));
 	}, [subagentStore]);
 
 	// Escape returns to conversation view
@@ -114,7 +119,7 @@ export const SubagentsPanel = forwardRef(function SubagentsPanel(
 			renderItem: (entry) =>
 				React.createElement(
 					Box,
-					{ key: entry.namespace, flexDirection: "column", marginBottom: 1 },
+					{ flexDirection: "column", marginBottom: 1 },
 					React.createElement(MessageBubble, {
 						role: "assistant",
 						content: (entry.segments || []).map((s) => s.content).join(""),
