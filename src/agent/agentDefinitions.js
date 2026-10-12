@@ -3,7 +3,7 @@
  * Each entry maps an agent name to its prompt file and description.
  */
 
-import { readFile } from "node:fs/promises";
+import { readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { logger } from "../shared/logger.js";
@@ -89,13 +89,13 @@ export const AGENT_CONFIGS = [
 ];
 
 /**
- * Create an agent definition with an async-loaded system prompt.
+ * Create an agent definition with a synchronously-loaded system prompt.
  * @param {string} name - Agent name identifier
  * @param {string} promptFile - Prompt filename (e.g., "CODING.md")
  * @param {string} description - Agent description
- * @returns {Promise<{ name: string, description: string, systemPrompt: string }>}
+ * @returns {{ name: string, description: string, systemPrompt: string }}
  */
-async function createAgentDefinition(name, promptFile, description) {
+function createAgentDefinition(name, promptFile, description) {
 	const agent = {
 		name,
 		description,
@@ -103,7 +103,7 @@ async function createAgentDefinition(name, promptFile, description) {
 	};
 
 	try {
-		agent.systemPrompt = await readFile(join(PROMPTS_DIR, promptFile), "utf-8");
+		agent.systemPrompt = readFileSync(join(PROMPTS_DIR, promptFile), "utf-8");
 		logger.debug(`[${name}] Prompt loaded (${agent.systemPrompt.length} chars)`);
 	} catch (err) {
 		logger.warn(`[${name}] Failed to load prompt: ${err.message}`);
@@ -113,18 +113,24 @@ async function createAgentDefinition(name, promptFile, description) {
 }
 
 /**
- * Cached agent definitions loaded at module init.
- * @type {{ name: string, description: string, systemPrompt: string }[]}
+ * Lazily-loaded agent definitions, populated on the first `getAllAgents()` call.
+ * @type {{ name: string, description: string, systemPrompt: string }[] | null}
  */
-const agents = await Promise.all(
-	AGENT_CONFIGS.map((cfg) => createAgentDefinition(cfg.name, cfg.promptFile, cfg.description)),
-);
+let agents = null;
 
 /**
  * Build all agent definitions from the consolidated config.
+ * Loads prompts on first call and caches the result so subsequent calls are
+ * synchronous and do not re-read the prompt files.
  * @returns {{ name: string, description: string, systemPrompt: string }[]}
  */
 function buildAllAgents() {
+	if (agents === null) {
+		agents = AGENT_CONFIGS.map((cfg) =>
+			createAgentDefinition(cfg.name, cfg.promptFile, cfg.description),
+		);
+	}
+
 	return agents;
 }
 
