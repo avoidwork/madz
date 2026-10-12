@@ -94,6 +94,101 @@ describe("updateSubagentStore — namespace discrimination", () => {
 	});
 });
 
+describe("updateSubagentStore — segment coalescing", () => {
+	it("coalesces consecutive message chunks into one segment", () => {
+		let store = createSubagentStore();
+		store = updateSubagentStore(store, {
+			type: "subagent_message",
+			namespace: ["task:abc"],
+			text: "Hello ",
+		});
+		store = updateSubagentStore(store, {
+			type: "subagent_message",
+			namespace: ["task:abc"],
+			text: "world",
+		});
+		assert.deepStrictEqual(store["task:abc"].segments, [
+			{ type: "message", content: "Hello world" },
+		]);
+	});
+
+	it("coalesces consecutive reasoning chunks into one segment", () => {
+		let store = createSubagentStore();
+		store = updateSubagentStore(store, {
+			type: "subagent_reasoning",
+			namespace: ["task:abc"],
+			text: "thinking ",
+		});
+		store = updateSubagentStore(store, {
+			type: "subagent_reasoning",
+			namespace: ["task:abc"],
+			text: "hard",
+		});
+		assert.deepStrictEqual(store["task:abc"].segments, [
+			{ type: "reasoning", content: "thinking hard" },
+		]);
+	});
+
+	it("starts a new message block when a reasoning segment interleaves", () => {
+		let store = createSubagentStore();
+		store = updateSubagentStore(store, {
+			type: "subagent_message",
+			namespace: ["task:abc"],
+			text: "The answer is ",
+		});
+		store = updateSubagentStore(store, {
+			type: "subagent_reasoning",
+			namespace: ["task:abc"],
+			text: "calculating...",
+		});
+		store = updateSubagentStore(store, {
+			type: "subagent_message",
+			namespace: ["task:abc"],
+			text: "42",
+		});
+		// The second message chunk does not match the last segment (reasoning),
+		// so it starts a new message block rather than appending to the first.
+		const segs = store["task:abc"].segments;
+		assert.strictEqual(segs.length, 3);
+		assert.deepStrictEqual(segs[0], { type: "message", content: "The answer is " });
+		assert.deepStrictEqual(segs[1], { type: "reasoning", content: "calculating..." });
+		assert.deepStrictEqual(segs[2], { type: "message", content: "42" });
+	});
+
+	it("starts a new reasoning block at a grammatical sentence boundary", () => {
+		let store = createSubagentStore();
+		store = updateSubagentStore(store, {
+			type: "subagent_reasoning",
+			namespace: ["task:abc"],
+			text: "First thought.",
+		});
+		store = updateSubagentStore(store, {
+			type: "subagent_reasoning",
+			namespace: ["task:abc"],
+			text: "Second thought",
+		});
+		// A period followed by a capital letter starts a new block.
+		assert.strictEqual(store["task:abc"].segments.length, 2);
+	});
+
+	it("keeps each tool segment as its own block", () => {
+		let store = createSubagentStore();
+		store = updateSubagentStore(store, {
+			type: "subagent_tool",
+			namespace: ["task:abc"],
+			text: "output one",
+			name: "read_file",
+		});
+		store = updateSubagentStore(store, {
+			type: "subagent_tool",
+			namespace: ["task:abc"],
+			text: "output two",
+			name: "read_file",
+		});
+		assert.strictEqual(store["task:abc"].segments.length, 2);
+	});
+});
+
 describe("updateSubagentStore — tool-call redirection", () => {
 	it("records a subagent tool start", () => {
 		const store = createSubagentStore();

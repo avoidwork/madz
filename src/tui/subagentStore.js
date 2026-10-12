@@ -44,6 +44,68 @@ function ensureEntry(store, key) {
 }
 
 /**
+ * Coalesce a new segment into an existing segment list, mirroring the
+ * `MessageList.updateMessage` coalescing rules so subagent streaming output
+ * renders as continuous blocks rather than a fragment per chunk.
+ *
+ * - `message` segments append to the last segment when the type matches,
+ *   otherwise they start a new block.
+ * - `reasoning` segments coalesce with the last reasoning segment (searching
+ *   backwards, since a message may interleave), respecting a grammatical
+ *   sentence boundary (period/question/exclamation followed by a capital).
+ * - `tool` segments always start a new block (each tool result is its own
+ *   block with its own name header).
+ *
+ * @param {Array<{type: string, content: string, name?: string}>} segments - Existing segments.
+ * @param {{type: string, content: string, name?: string}} newSeg - The new segment to fold in.
+ * @returns {Array<{type: string, content: string, name?: string}>} The coalesced segments.
+ */
+function coalesceSegments(segments, newSeg) {
+	const merged = segments.map((s) => ({ ...s }));
+
+	if (newSeg.type === "reasoning") {
+		// Search backwards for the last reasoning segment — continuous reasoning
+		// should coalesce even if a message interleaved between chunks.
+		let lastReasoning = null;
+		for (let i = merged.length - 1; i >= 0; i--) {
+			if (merged[i].type === "reasoning") {
+				lastReasoning = merged[i];
+				break;
+			}
+		}
+		// Grammatical sentence boundary: a period followed by a capital letter
+		// starts a new block; otherwise coalesce.
+		if (
+			lastReasoning &&
+			(lastReasoning.content.endsWith(".") ||
+				lastReasoning.content.endsWith("?") ||
+				lastReasoning.content.endsWith("!")) &&
+			/^[A-Z]/.test(newSeg.content)
+		) {
+			merged.push({ ...newSeg });
+		} else if (lastReasoning) {
+			lastReasoning.content += newSeg.content;
+		} else {
+			merged.push({ ...newSeg });
+		}
+	} else if (newSeg.type === "tool") {
+		// Each tool message gets its own segment so it renders as its own block.
+		merged.push({ ...newSeg });
+	} else {
+		// Message segments require a type match to append; a mismatch (e.g.,
+		// message after reasoning) forces a new block.
+		const lastSeg = merged[merged.length - 1];
+		if (lastSeg && lastSeg.type === newSeg.type) {
+			lastSeg.content += newSeg.content;
+		} else {
+			merged.push({ ...newSeg });
+		}
+	}
+
+	return merged;
+}
+
+/**
  * Fold a single subagent event into the store. Returns a new store object so
  * React state updates are immutable.
  * @param {Object} store - The current subagent store.
@@ -56,21 +118,21 @@ export function updateSubagentStore(store, event) {
 
 	const next = { ...store };
 	const entry = ensureEntry(next, key);
-	const segments = [...entry.segments];
+	let segments = [...entry.segments];
 	const toolCalls = [...entry.toolCalls];
 
 	switch (event.type) {
 		case "subagent_message": {
 			const text = event.data?.text || event.text || "";
 			if (text) {
-				segments.push({ type: "message", content: text });
+				segments = coalesceSegments(segments, { type: "message", content: text });
 			}
 			break;
 		}
 		case "subagent_reasoning": {
 			const text = event.data?.text || event.text || "";
 			if (text) {
-				segments.push({ type: "reasoning", content: text });
+				segments = coalesceSegments(segments, { type: "reasoning", content: text });
 			}
 			break;
 		}
@@ -78,7 +140,7 @@ export function updateSubagentStore(store, event) {
 			const text = event.data?.text || event.text || "";
 			const name = event.data?.name || event.name || "";
 			if (text) {
-				segments.push({ type: "tool", content: text, name });
+				segments = coalesceSegments(segments, { type: "tool", content: text, name });
 			}
 			break;
 		}
