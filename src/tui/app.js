@@ -70,6 +70,7 @@ function App({
 
 	const conversationAreaRef = useRef(null);
 	const inputAreaRef = useRef(null);
+	const subagentsPanelRef = useRef(null);
 	const messageCountRef = useRef(0);
 	// Pending silent message to dispatch once the conversation area is mounted.
 	// The conversation area unmounts during panel views, so the ref is null when
@@ -410,12 +411,24 @@ function App({
 		// never reaches the input panel (which would render the letter).
 		if (key.ctrl && input === "r") {
 			setReasoningCollapsed((prev) => !prev);
-			setTimeout(() => conversationAreaRef.current?.scrollToBottom?.(), 50);
+			setTimeout(() => {
+				const target =
+					currentView === PANELS.SUBAGENTS
+						? subagentsPanelRef.current
+						: conversationAreaRef.current;
+				target?.scrollToBottom?.();
+			}, 50);
 			return;
 		}
 		if (key.ctrl && input === "t") {
 			setToolCallCollapsed((prev) => !prev);
-			setTimeout(() => conversationAreaRef.current?.scrollToBottom?.(), 50);
+			setTimeout(() => {
+				const target =
+					currentView === PANELS.SUBAGENTS
+						? subagentsPanelRef.current
+						: conversationAreaRef.current;
+				target?.scrollToBottom?.();
+			}, 50);
 			return;
 		}
 
@@ -492,16 +505,15 @@ function App({
 				inputAreaRef.current?.navigateHistory("down");
 			}
 		} else {
-			if (key.upArrow) conversationAreaRef.current?.scrollBy(-1);
-			if (key.downArrow) conversationAreaRef.current?.scrollBy(1);
-			if (key.pageUp)
-				conversationAreaRef.current?.scrollBy(
-					-(conversationAreaRef.current?.getViewportHeight?.() || 1),
-				);
-			if (key.pageDown)
-				conversationAreaRef.current?.scrollBy(
-					conversationAreaRef.current?.getViewportHeight?.() || 1,
-				);
+			// In the SUBAGENTS view, route scroll keys to the subagents panel
+			// (which has its own virtualized scroll). Otherwise route to the
+			// conversation area.
+			const scrollTarget =
+				currentView === PANELS.SUBAGENTS ? subagentsPanelRef.current : conversationAreaRef.current;
+			if (key.upArrow) scrollTarget?.scrollBy(-1);
+			if (key.downArrow) scrollTarget?.scrollBy(1);
+			if (key.pageUp) scrollTarget?.scrollBy(-(scrollTarget?.getViewportHeight?.() || 1));
+			if (key.pageDown) scrollTarget?.scrollBy(scrollTarget?.getViewportHeight?.() || 1);
 		}
 	});
 
@@ -599,6 +611,7 @@ function App({
 		});
 	} else if (currentView === PANELS.SUBAGENTS) {
 		panelComponent = React.createElement(SubagentsPanel, {
+			ref: subagentsPanelRef,
 			subagentStore: conversationAreaRef.current?.getSubagentStore?.() || {},
 			onViewChange: handleViewChange,
 			activeView: currentView,

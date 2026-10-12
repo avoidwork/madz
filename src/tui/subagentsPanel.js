@@ -1,7 +1,8 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useRef, useCallback, forwardRef, useImperativeHandle } from "react";
 import { Box, Text, useInput, useWindowSize } from "ink";
 import { MessageBubble } from "./messageBubble.js";
 import { getRoleLabel } from "./messages.js";
+import { VirtualScrollView } from "./scrollView.js";
 
 /**
  * Subagents panel — renders each subagent's reasoning/message segments and
@@ -13,6 +14,11 @@ import { getRoleLabel } from "./messages.js";
  * store and renders each subagent as a distinct block, reusing `MessageBubble`
  * to render the reasoning/message segments and a compact tool-call list.
  *
+ * The panel virtualizes the subagent list via `VirtualScrollView` and
+ * auto-scrolls to the bottom as new subagent output arrives, so the user can
+ * track live subagent activity. Manual scroll-up suppresses auto-scroll until
+ * the user returns to the bottom.
+ *
  * Props:
  *   subagentStore      - Object keyed by namespace string, each value being
  *                        `{ namespace, segments, toolCalls }`.
@@ -23,16 +29,22 @@ import { getRoleLabel } from "./messages.js";
  *   toolCallCollapsed  - Whether tool segments render collapsed (global
  *                        ctrl+t toggle, shared with the conversation view).
  */
-export function SubagentsPanel({
-	subagentStore = {},
-	activeView,
-	onViewChange,
-	reasoningCollapsed = false,
-	toolCallCollapsed = true,
-}) {
+export const SubagentsPanel = forwardRef(function SubagentsPanel(
+	{
+		subagentStore = {},
+		activeView,
+		onViewChange,
+		reasoningCollapsed = false,
+		toolCallCollapsed = true,
+	},
+	ref,
+) {
 	const isActive = activeView === "subagents";
 	const { rows } = useWindowSize();
-	const limit = Math.max(1, rows - 4);
+	const scrollRef = useRef(null);
+	// Track manual scroll-up: when the user scrolls away from the bottom,
+	// suppress auto-scroll until they return to the bottom.
+	const isUserScrolledUpRef = useRef(false);
 
 	const entries = useMemo(() => {
 		return Object.values(subagentStore || {});
@@ -48,6 +60,35 @@ export function SubagentsPanel({
 		{ isActive },
 	);
 
+	// Auto-scroll to the bottom when content grows, unless the user has scrolled
+	// up to read earlier output.
+	const handleContentHeightChange = useCallback((height, previousHeight) => {
+		if (!scrollRef.current || height <= previousHeight) return;
+		if (isUserScrolledUpRef.current) return;
+		scrollRef.current.scrollToBottom?.();
+	}, []);
+
+	// Track manual scroll position; resume auto-scroll when the user returns
+	// to the bottom.
+	const handleScroll = useCallback((offset) => {
+		const bottom = scrollRef.current?.getBottomOffset?.() || 0;
+		isUserScrolledUpRef.current = offset < bottom;
+	}, []);
+
+	// Expose imperative scroll API so the app-level scroll keys (up/down/page)
+	// and the ctrl+r/ctrl+t scroll-to-bottom can route to this panel.
+	useImperativeHandle(
+		ref,
+		() => ({
+			scrollToBottom: () => scrollRef.current?.scrollToBottom?.(),
+			scrollBy: (delta) => scrollRef.current?.scrollBy?.(delta),
+			scrollToTop: () => scrollRef.current?.scrollToTop?.(),
+			getViewportHeight: () => scrollRef.current?.getViewportHeight?.(),
+			getBottomOffset: () => scrollRef.current?.getBottomOffset?.(),
+		}),
+		[],
+	);
+
 	if (!isActive) {
 		return React.createElement(Box, null);
 	}
@@ -60,32 +101,59 @@ export function SubagentsPanel({
 		);
 	}
 
+	const viewportHeight = Math.max(1, rows - 4);
+
 	return React.createElement(
 		Box,
 		{ flexDirection: "column", padding: 1 },
 		React.createElement(Text, { bold: true }, `Subagents (${entries.length})`),
-		...entries.slice(0, limit).map((entry) =>
-			React.createElement(
-				Box,
-				{ key: entry.namespace, flexDirection: "column", marginBottom: 1 },
+		React.createElement(VirtualScrollView, {
+			ref: scrollRef,
+			items: entries,
+			height: viewportHeight,
+			overscan: 2,
+			estimateHeight: (entry) => estimateSubagentHeight(entry),
+			renderItem: (entry) =>
 				React.createElement(
-					Text,
-					{ color: "cyan", bold: true },
-					`▸ ${getRoleLabel("assistant", entry.namespace)}`,
+					Box,
+					{ key: entry.namespace, flexDirection: "column", marginBottom: 1 },
+					React.createElement(
+						Text,
+						{ color: "cyan", bold: true },
+						`▸ ${getRoleLabel("assistant", entry.namespace)}`,
+					),
+					React.createElement(MessageBubble, {
+						role: "assistant",
+						content: (entry.segments || []).map((s) => s.content).join(""),
+						segments: entry.segments,
+						streaming: false,
+						assistantName: entry.namespace,
+						reasoningCollapsed,
+						toolCallCollapsed,
+					}),
+					renderToolCalls(entry.toolCalls),
 				),
-				React.createElement(MessageBubble, {
-					role: "assistant",
-					content: (entry.segments || []).map((s) => s.content).join(""),
-					segments: entry.segments,
-					streaming: false,
-					assistantName: entry.namespace,
-					reasoningCollapsed,
-					toolCallCollapsed,
-				}),
-				renderToolCalls(entry.toolCalls),
-			),
-		),
+			onContentHeightChange: handleContentHeightChange,
+			onScroll: handleScroll,
+		}),
 	);
+});
+
+/**
+ * Estimate the rendered height of a subagent entry in rows, used by the
+ * virtualized scroll view for off-window items. The measured height corrects
+ * lazily as items scroll into view.
+ * @param {{segments?: Array<{type: string, content: string}>, toolCalls?: Array<Object>}} entry
+ * @returns {number} Estimated height in rows.
+ */
+export function estimateSubagentHeight(entry) {
+	// Header row + message content lines + tool-call rows.
+	let height = 1;
+	const text = (entry.segments || []).map((s) => s.content).join("");
+	if (text) height += Math.ceil(text.length / 80) || 1;
+	// Each tool call renders as a row in the compact list.
+	height += (entry.toolCalls || []).length;
+	return Math.max(1, height);
 }
 
 /**

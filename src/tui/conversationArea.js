@@ -111,7 +111,9 @@ const ConversationArea = forwardRef(function ConversationArea(
 	// Subagent store — accumulates subagent reasoning/message segments and tool
 	// calls keyed by stream namespace. Populated by `createStreamingHandler`
 	// when it receives `subagent_*` events, and rendered by the SUBAGENTS panel.
-	const subagentStoreRef = useRef(createSubagentStore());
+	// Held as state (not a ref) so each update triggers a re-render, which the
+	// SUBAGENTS panel needs to show live output as subagents stream.
+	const [subagentStore, setSubagentStore] = useState(createSubagentStore);
 
 	const skillList = registry ? registry.list() : [];
 	const parser = new CommandParser();
@@ -665,7 +667,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 						event.type === "subagent_tool_start" ||
 						event.type === "subagent_tool_end"
 					) {
-						subagentStoreRef.current = updateSubagentStore(subagentStoreRef.current, event);
+						setSubagentStore((prev) => updateSubagentStore(prev, event));
 						return;
 					}
 
@@ -847,7 +849,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 		 * render each subagent's reasoning/message segments and tool calls.
 		 * @returns {Object} The subagent store keyed by namespace.
 		 */
-		getSubagentStore: () => subagentStoreRef.current,
+		getSubagentStore: () => subagentStore,
 		/**
 		 * Bulk-load conversation exchanges into the message list.
 		 * Clears existing messages and repopulates from the array.

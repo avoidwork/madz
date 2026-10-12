@@ -7,7 +7,7 @@ import {
 	updateSubagentStore,
 	namespaceKey,
 } from "../../../src/tui/subagentStore.js";
-import { SubagentsPanel } from "../../../src/tui/subagentsPanel.js";
+import { SubagentsPanel, estimateSubagentHeight } from "../../../src/tui/subagentsPanel.js";
 
 describe("namespaceKey", () => {
 	it("joins a populated namespace into a stable key", () => {
@@ -364,5 +364,28 @@ describe("SubagentsPanel", () => {
 			}),
 		);
 		assert.ok(result.includes("tool output"));
+	});
+});
+
+describe("estimateSubagentHeight", () => {
+	it("returns at least 1 row for an empty entry", () => {
+		assert.ok(estimateSubagentHeight({ segments: [], toolCalls: [] }) >= 1);
+	});
+
+	it("accounts for message content and tool calls", () => {
+		const height = estimateSubagentHeight({
+			segments: [{ type: "message", content: "hello world" }],
+			toolCalls: [{ name: "read_file", status: "done" }],
+		});
+		// Header (1) + content lines + tool-call rows.
+		assert.ok(height >= 2);
+	});
+
+	it("grows with longer content", () => {
+		const short = estimateSubagentHeight({ segments: [{ type: "message", content: "hi" }] });
+		const long = estimateSubagentHeight({
+			segments: [{ type: "message", content: "x".repeat(200) }],
+		});
+		assert.ok(long >= short);
 	});
 });
