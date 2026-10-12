@@ -125,7 +125,7 @@ export const SubagentsPanel = forwardRef(function SubagentsPanel(
 						content: (entry.segments || []).map((s) => s.content).join(""),
 						segments: entry.segments,
 						streaming: false,
-						assistantName: entry.namespace,
+						assistantName: "Subagent",
 						reasoningCollapsed,
 						toolCallCollapsed,
 					}),
