@@ -125,7 +125,7 @@ export const SubagentsPanel = forwardRef(function SubagentsPanel(
 						content: (entry.segments || []).map((s) => s.content).join(""),
 						segments: entry.segments,
 						streaming: false,
-						assistantName: "Subagent",
+						assistantName: "subagent",
 						reasoningCollapsed,
 						toolCallCollapsed,
 					}),
@@ -165,12 +165,11 @@ function renderToolCalls(toolCalls) {
 	return React.createElement(
 		Box,
 		{ flexDirection: "column", marginTop: 1 },
-		React.createElement(Text, { color: "yellow", bold: true }, "Tool calls:"),
 		...toolCalls.map((call, idx) =>
 			React.createElement(
 				Text,
 				{ key: idx, color: call.status === "error" ? "red" : "gray" },
-				`  • ${call.name}${call.status === "running" ? " (running)" : ""}`,
+				`🔧 ${call.name}${call.status === "running" ? " (running)" : ""}`,
 			),
 		),
 	);
