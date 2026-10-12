@@ -14,12 +14,22 @@ import { getRoleLabel } from "./messages.js";
  * to render the reasoning/message segments and a compact tool-call list.
  *
  * Props:
- *   subagentStore - Object keyed by namespace string, each value being
- *                   `{ namespace, segments, toolCalls }`.
- *   activeView    - The current active view name (from PANELS).
- *   onViewChange  - Callback to switch back to conversation view.
+ *   subagentStore      - Object keyed by namespace string, each value being
+ *                        `{ namespace, segments, toolCalls }`.
+ *   activeView         - The current active view name (from PANELS).
+ *   onViewChange       - Callback to switch back to conversation view.
+ *   reasoningCollapsed - Whether reasoning segments render collapsed (global
+ *                        ctrl+r toggle, shared with the conversation view).
+ *   toolCallCollapsed  - Whether tool segments render collapsed (global
+ *                        ctrl+t toggle, shared with the conversation view).
  */
-export function SubagentsPanel({ subagentStore = {}, activeView, onViewChange }) {
+export function SubagentsPanel({
+	subagentStore = {},
+	activeView,
+	onViewChange,
+	reasoningCollapsed = false,
+	toolCallCollapsed = true,
+}) {
 	const isActive = activeView === "subagents";
 	const { rows } = useWindowSize();
 	const limit = Math.max(1, rows - 4);
@@ -69,6 +79,8 @@ export function SubagentsPanel({ subagentStore = {}, activeView, onViewChange })
 					segments: entry.segments,
 					streaming: false,
 					assistantName: entry.namespace,
+					reasoningCollapsed,
+					toolCallCollapsed,
 				}),
 				renderToolCalls(entry.toolCalls),
 			),

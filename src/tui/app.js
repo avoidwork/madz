@@ -403,6 +403,22 @@ function App({
 			setShowBanner(false);
 		}
 
+		// Ctrl+r / Ctrl+t toggle the global collapse state for reasoning and
+		// tool-call blocks. These are global — they work in the conversation
+		// view AND in panel views (e.g. SUBAGENTS), so they must be handled
+		// before the panel-view early return below. Return early so the key
+		// never reaches the input panel (which would render the letter).
+		if (key.ctrl && input === "r") {
+			setReasoningCollapsed((prev) => !prev);
+			setTimeout(() => conversationAreaRef.current?.scrollToBottom?.(), 50);
+			return;
+		}
+		if (key.ctrl && input === "t") {
+			setToolCallCollapsed((prev) => !prev);
+			setTimeout(() => conversationAreaRef.current?.scrollToBottom?.(), 50);
+			return;
+		}
+
 		// Panel view — defer all input to the active panel via its own useInput({ isActive })
 		// Each panel handles Escape to return to conversation when appropriate.
 		if (currentView !== PANELS.CONVERSATION) {
@@ -451,22 +467,6 @@ function App({
 			}
 			conversationAreaRef.current?.interrupt();
 			lastInterruptTimeRef.current = now;
-			return;
-		}
-
-		// Ctrl+r / Ctrl+t toggle the global collapse state for reasoning and
-		// tool-call blocks. Return early so the key never reaches the input
-		// panel (which would render the letter). Scroll to the bottom after the
-		// redraw so the user isn't left far from the content when blocks expand
-		// or collapse.
-		if (key.ctrl && input === "r") {
-			setReasoningCollapsed((prev) => !prev);
-			setTimeout(() => conversationAreaRef.current?.scrollToBottom?.(), 50);
-			return;
-		}
-		if (key.ctrl && input === "t") {
-			setToolCallCollapsed((prev) => !prev);
-			setTimeout(() => conversationAreaRef.current?.scrollToBottom?.(), 50);
 			return;
 		}
 
@@ -602,6 +602,8 @@ function App({
 			subagentStore: conversationAreaRef.current?.getSubagentStore?.() || {},
 			onViewChange: handleViewChange,
 			activeView: currentView,
+			reasoningCollapsed,
+			toolCallCollapsed,
 		});
 	}
 

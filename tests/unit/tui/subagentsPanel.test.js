@@ -312,4 +312,57 @@ describe("SubagentsPanel", () => {
 		);
 		assert.ok(result.includes("read_file"));
 	});
+
+	it("renders reasoning collapsed when reasoningCollapsed is true", () => {
+		const result = renderToString(
+			React.createElement(SubagentsPanel, {
+				subagentStore: {
+					"task:abc": {
+						namespace: "task:abc",
+						segments: [{ type: "reasoning", content: "secret thinking" }],
+						toolCalls: [],
+					},
+				},
+				activeView: "subagents",
+				reasoningCollapsed: true,
+			}),
+		);
+		// Collapsed reasoning renders the "💭 Thinking…" placeholder, not the content.
+		assert.ok(result.includes("Thinking"));
+		assert.ok(!result.includes("secret thinking"));
+	});
+
+	it("renders reasoning expanded when reasoningCollapsed is false", () => {
+		const result = renderToString(
+			React.createElement(SubagentsPanel, {
+				subagentStore: {
+					"task:abc": {
+						namespace: "task:abc",
+						segments: [{ type: "reasoning", content: "secret thinking" }],
+						toolCalls: [],
+					},
+				},
+				activeView: "subagents",
+				reasoningCollapsed: false,
+			}),
+		);
+		assert.ok(result.includes("secret thinking"));
+	});
+
+	it("renders tool content expanded when toolCallCollapsed is false", () => {
+		const result = renderToString(
+			React.createElement(SubagentsPanel, {
+				subagentStore: {
+					"task:abc": {
+						namespace: "task:abc",
+						segments: [{ type: "tool", content: "tool output", name: "read_file" }],
+						toolCalls: [],
+					},
+				},
+				activeView: "subagents",
+				toolCallCollapsed: false,
+			}),
+		);
+		assert.ok(result.includes("tool output"));
+	});
 });
