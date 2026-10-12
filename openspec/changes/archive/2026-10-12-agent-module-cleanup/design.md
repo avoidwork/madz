@@ -29,10 +29,12 @@ Current state:
 ### 1. Delete `AgentRegistry` and its test
 The class has no production consumer (YAGNI). Grep confirms only `tests/unit/agentRegistry.test.js` references it. Delete both `src/agent/agentRegistry.js` and `tests/unit/agentRegistry.test.js`. The `agent-registry` spec capability is deleted accordingly: `openspec/specs/agent-registry` and the change's delta spec are removed entirely (OpenSpec cannot write an empty spec, so the spec is deleted rather than updated to zero requirements).
 
-### 2. Lazy prompt loading with a synchronous `getAllAgents()`
-The public API `getAllAgents()` is synchronous and called synchronously in production (`createSubagentDefinitions`) and tests (top-level `const ALL_AGENTS = getAllAgents()`). To preserve the API while deferring I/O, we keep an internal async loader that runs on first call and caches the resolved array. `getAllAgents()` returns the cached array synchronously on subsequent calls. The warn-and-continue behavior on a missing prompt file is preserved.
+### 2. Lazy prompt loading with an asynchronous `getAllAgents()`
+The public API `getAllAgents()` is now async. It defers the prompt-file I/O to the first call and caches the resolved array, so subsequent calls return the cached result without re-reading the files. The warn-and-continue behavior on a missing prompt file is preserved.
 
-**Alternative considered:** Making `getAllAgents()` async. Rejected because it would break the synchronous call sites in `deepAgents.js` and tests, expanding the blast radius beyond the cleanup scope.
+**Why async:** AGENTS.md §1.1 forbids blocking operations (e.g. `readFileSync`) inside async functions. The original eager top-level `await Promise.all` was async but ran at import time; the lazy-loading fix initially used `readFileSync` to keep `getAllAgents()` synchronous, which reintroduced a blocking I/O violation. The correct fix is to keep the I/O async and propagate `async` through `createSubagentDefinitions` and `createDeepAgentsOrchestrator`.
+
+**Alternative considered:** Keeping `getAllAgents()` synchronous via `readFileSync`. Rejected because it violates AGENTS.md §1.1 (blocking I/O in async contexts) and the audit's core principle. The blast radius is contained to `createSubagentDefinitions` and its single call site in `createDeepAgentsOrchestrator`, both of which are already async.
 
 ### 3. Inline the identity wrapper
 `getAgentClassifications(agentName)` returns `[agentName]`. Inline `[agentDef.name]` at the single call site in `createSubagentDefinitions` and delete the function. This is a KISS cleanup with no behavior change.

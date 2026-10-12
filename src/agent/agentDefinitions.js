@@ -3,7 +3,7 @@
  * Each entry maps an agent name to its prompt file and description.
  */
 
-import { readFileSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { logger } from "../shared/logger.js";
@@ -89,13 +89,13 @@ export const AGENT_CONFIGS = [
 ];
 
 /**
- * Create an agent definition with a synchronously-loaded system prompt.
+ * Create an agent definition with an asynchronously-loaded system prompt.
  * @param {string} name - Agent name identifier
  * @param {string} promptFile - Prompt filename (e.g., "CODING.md")
  * @param {string} description - Agent description
- * @returns {{ name: string, description: string, systemPrompt: string }}
+ * @returns {Promise<{ name: string, description: string, systemPrompt: string }>}
  */
-function createAgentDefinition(name, promptFile, description) {
+async function createAgentDefinition(name, promptFile, description) {
 	const agent = {
 		name,
 		description,
@@ -103,7 +103,7 @@ function createAgentDefinition(name, promptFile, description) {
 	};
 
 	try {
-		agent.systemPrompt = readFileSync(join(PROMPTS_DIR, promptFile), "utf-8");
+		agent.systemPrompt = await readFile(join(PROMPTS_DIR, promptFile), "utf-8");
 		logger.debug(`[${name}] Prompt loaded (${agent.systemPrompt.length} chars)`);
 	} catch (err) {
 		logger.warn(`[${name}] Failed to load prompt: ${err.message}`);
@@ -120,14 +120,14 @@ let agents = null;
 
 /**
  * Build all agent definitions from the consolidated config.
- * Loads prompts on first call and caches the result so subsequent calls are
- * synchronous and do not re-read the prompt files.
- * @returns {{ name: string, description: string, systemPrompt: string }[]}
+ * Loads prompts asynchronously on first call and caches the resolved array so
+ * subsequent calls return the cached result without re-reading the prompt files.
+ * @returns {Promise<{ name: string, description: string, systemPrompt: string }[]>}
  */
-function buildAllAgents() {
+async function buildAllAgents() {
 	if (agents === null) {
-		agents = AGENT_CONFIGS.map((cfg) =>
-			createAgentDefinition(cfg.name, cfg.promptFile, cfg.description),
+		agents = await Promise.all(
+			AGENT_CONFIGS.map((cfg) => createAgentDefinition(cfg.name, cfg.promptFile, cfg.description)),
 		);
 	}
 
@@ -136,8 +136,8 @@ function buildAllAgents() {
 
 /**
  * Get all agent definitions.
- * @returns {{ name: string, description: string, systemPrompt: string }[]}
+ * @returns {Promise<{ name: string, description: string, systemPrompt: string }[]>}
  */
-export function getAllAgents() {
+export async function getAllAgents() {
 	return buildAllAgents();
 }

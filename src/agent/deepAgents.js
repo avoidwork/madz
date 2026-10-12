@@ -41,10 +41,10 @@ import { createTurnTransformer } from "../stream/transformers/index.js";
  * @param {Object} model - Chat model instance (orchestrator model)
  * @param {SkillRegistry} skillRegistry - Skill registry instance
  * @param {Object} config - Resolved config object
- * @returns {Object[]} Array of subagent definitions
+ * @returns {Promise<Object[]>} Array of subagent definitions
  */
-export function createSubagentDefinitions(allTools, model, skillRegistry, config) {
-	const allAgents = getAllAgents();
+export async function createSubagentDefinitions(allTools, model, skillRegistry, config) {
+	const allAgents = await getAllAgents();
 	const providerConfig = getActiveProviderConfig(config);
 	// Build a Map keyed by tool name once so per-agent tool lookups are O(1)
 	// instead of O(n*m) via `allTools.find()`.
@@ -399,7 +399,12 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	const contextRoute = "/" + config.memory.contextDir.replace(/^\.?\//, "");
 
 	// Create subagent definitions with filtered tools and agent-specific skills
-	const subagentDefinitions = createSubagentDefinitions(allTools, model, skillRegistry, config);
+	const subagentDefinitions = await createSubagentDefinitions(
+		allTools,
+		model,
+		skillRegistry,
+		config,
+	);
 
 	// All discovered skills are available to the orchestrator
 

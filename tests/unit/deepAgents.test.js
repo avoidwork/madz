@@ -252,7 +252,7 @@ describe("createSubagentDefinitions tool visibility", () => {
 
 		const skillRegistry = new SkillRegistry();
 		const config = { providers: { openai: {} }, subAgentsTemperature: {} };
-		const definitions = createSubagentDefinitions([], {}, skillRegistry, config);
+		const definitions = await createSubagentDefinitions([], {}, skillRegistry, config);
 
 		assert.ok(definitions.length > 0, "Should produce subagent definitions");
 
@@ -279,7 +279,7 @@ describe("createSubagentDefinitions tool visibility", () => {
 
 		const skillRegistry = new SkillRegistry();
 		const config = { providers: { openai: {} }, subAgentsTemperature: {} };
-		const definitions = createSubagentDefinitions([], {}, skillRegistry, config);
+		const definitions = await createSubagentDefinitions([], {}, skillRegistry, config);
 
 		for (const def of definitions) {
 			const expectedTools = getToolsForAgentTypes([def.name], TOOLS);
