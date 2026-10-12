@@ -332,6 +332,34 @@ describe("CommandParser", () => {
 	});
 
 	/* ------------------------------------------------------------------ */
+	/*  isViewCommand()                                                    */
+	/* ------------------------------------------------------------------ */
+	describe("isViewCommand()", () => {
+		it("returns true for view-switching commands", () => {
+			assert.strictEqual(parser.isViewCommand("/skills"), true);
+			assert.strictEqual(parser.isViewCommand("/subagents"), true);
+			assert.strictEqual(parser.isViewCommand("/memories"), true);
+			assert.strictEqual(parser.isViewCommand("/sessions"), true);
+			assert.strictEqual(parser.isViewCommand("/settings"), true);
+			assert.strictEqual(parser.isViewCommand("/projects"), true);
+		});
+
+		it("returns false for non-view commands", () => {
+			assert.strictEqual(parser.isViewCommand("/quit"), false);
+			assert.strictEqual(parser.isViewCommand("/help"), false);
+			assert.strictEqual(parser.isViewCommand("/compact"), false);
+			assert.strictEqual(parser.isViewCommand("/clear"), false);
+			assert.strictEqual(parser.isViewCommand("/config set telemetry.enabled true"), false);
+		});
+
+		it("returns false for plain text and non-command input", () => {
+			assert.strictEqual(parser.isViewCommand("hello"), false);
+			assert.strictEqual(parser.isViewCommand(""), false);
+			assert.strictEqual(parser.isViewCommand(null), false);
+		});
+	});
+
+	/* ------------------------------------------------------------------ */
 	/*  listCommands()                                                     */
 	/* ------------------------------------------------------------------ */
 	describe("listCommands()", () => {

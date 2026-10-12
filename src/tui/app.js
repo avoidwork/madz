@@ -296,8 +296,10 @@ function App({
 			const area = conversationAreaRef.current;
 			if (!area) return;
 
-			// Interrupt if currently streaming
-			if (area.isStreaming?.()) {
+			// Interrupt if currently streaming — but skip for view-switching
+			// commands (/skills, /subagents, /memories, etc.). Those are pure
+			// panel switches and should not kill an in-flight stream.
+			if (area.isStreaming?.() && !parser.isViewCommand(trimmed)) {
 				await area.interrupt();
 			}
 
