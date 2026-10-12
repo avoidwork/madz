@@ -18,7 +18,7 @@ const PROFILE_FILENAME = "profile.md";
  * @returns {Promise<string>} Combined context content with profile prefix
  */
 export async function loadContext(
-	contextDir = "memory/context/",
+	contextDir = loadConfig().memory.contextDir,
 	limit = 10,
 	cwdParam = loadConfig().cwd,
 ) {
