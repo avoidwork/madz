@@ -85,6 +85,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 		selection,
 		reasoningCollapsed,
 		toolCallCollapsed,
+		hidden = false,
 	},
 	ref,
 ) {
@@ -905,9 +906,19 @@ const ConversationArea = forwardRef(function ConversationArea(
 		isStreaming: () => isStreamingRef.current,
 	}));
 
+	// When hidden (a panel view is active), keep the full subtree mounted but
+	// hide it with `display: "none"` so the MessageList state (idsRef, dataRef,
+	// contentRef, scroll position) survives the round-trip. Returning an empty
+	// Box here would unmount ConversationPanel → MessageList and destroy that
+	// state, so returning to the conversation view would remount it empty.
 	return React.createElement(
 		Box,
-		{ key: "conversation-wrapper", flexDirection: "column", flexGrow: 1 },
+		{
+			key: "conversation-wrapper",
+			flexDirection: "column",
+			flexGrow: 1,
+			display: hidden ? "none" : "flex",
+		},
 		React.createElement(ConversationPanel, {
 			assistantName: config?.tui?.name || "Assistant",
 			showToolResults: config?.tui?.showToolResults,
