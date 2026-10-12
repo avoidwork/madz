@@ -622,11 +622,11 @@ function App({
 						{ flexDirection: "column", width: "100%", height: rows },
 						// ConversationArea stays mounted across panel views so the
 						// session (message list, scroll position, streaming state)
-						// survives the round-trip. Panels overlay it via absolute
-						// positioning. The app-level key handler gates on
-						// `currentView`, so Escape in a panel view only switches
-						// back to conversation — it never reaches the interrupt
-						// path while a panel is active.
+						// survives the round-trip. When a panel is active it renders
+						// nothing (hidden), so the panel is shown in its place. The
+						// app-level key handler gates on `currentView`, so Escape in
+						// a panel view only switches back to conversation — it never
+						// reaches the interrupt path while a panel is active.
 						React.createElement(ConversationArea, {
 							ref: conversationAreaRef,
 							config,
@@ -655,21 +655,9 @@ function App({
 							selection,
 							reasoningCollapsed,
 							toolCallCollapsed,
+							hidden: currentView !== PANELS.CONVERSATION,
 						}),
-						currentView !== PANELS.CONVERSATION
-							? React.createElement(
-									Box,
-									{
-										position: "absolute",
-										top: 0,
-										left: 0,
-										width: "100%",
-										height: rows,
-										flexDirection: "column",
-									},
-									panelComponent,
-								)
-							: null,
+						currentView !== PANELS.CONVERSATION ? panelComponent : null,
 					),
 		// InputArea — hidden during panel views
 		currentView === PANELS.CONVERSATION || showOnboarding
