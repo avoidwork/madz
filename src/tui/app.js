@@ -111,22 +111,14 @@ function App({
 
 	/**
 	 * onViewChange — switch between conversation and panel views.
-	 * When returning to conversation view, reload messages from session state
-	 * (e.g., after session resume).
+	 * The ConversationArea stays mounted across panel views, so the message
+	 * list and session state survive the round-trip. No reload is needed on
+	 * return — the conversation is already rendered.
 	 * @param {string} view - One of PANELS values
 	 */
-	const handleViewChange = useCallback(
-		(view) => {
-			setCurrentView(view);
-			if (view === PANELS.CONVERSATION && conversationAreaRef.current) {
-				const conv = sessionState?.getConversation();
-				if (conv && conv.length > 0) {
-					conversationAreaRef.current.loadConversation(conv);
-				}
-			}
-		},
-		[sessionState],
-	);
+	const handleViewChange = useCallback((view) => {
+		setCurrentView(view);
+	}, []);
 
 	/**
 	 * handleSelectSkill — switch to the conversation view and pre-load the
@@ -303,8 +295,10 @@ function App({
 			const area = conversationAreaRef.current;
 			if (!area) return;
 
-			// Interrupt if currently streaming
-			if (area.isStreaming?.()) {
+			// Interrupt if currently streaming — but skip for view-switching
+			// commands (/skills, /subagents, /memories, etc.). Those are pure
+			// panel switches and should not kill an in-flight stream.
+			if (area.isStreaming?.() && !parser.isViewCommand(trimmed)) {
 				await area.interrupt();
 			}
 
@@ -625,9 +619,17 @@ function App({
 						onDismiss: () => setShowBanner(false),
 						version: appInfo ? appInfo.version : undefined,
 					})
-				: currentView !== PANELS.CONVERSATION
-					? panelComponent
-					: React.createElement(ConversationArea, {
+				: React.createElement(
+						Box,
+						{ flexDirection: "column", width: "100%", height: rows },
+						// ConversationArea stays mounted across panel views so the
+						// session (message list, scroll position, streaming state)
+						// survives the round-trip. When a panel is active it renders
+						// nothing (hidden), so the panel is shown in its place. The
+						// app-level key handler gates on `currentView`, so Escape in
+						// a panel view only switches back to conversation — it never
+						// reaches the interrupt path while a panel is active.
+						React.createElement(ConversationArea, {
 							ref: conversationAreaRef,
 							config,
 							registry,
@@ -655,7 +657,10 @@ function App({
 							selection,
 							reasoningCollapsed,
 							toolCallCollapsed,
+							hidden: currentView !== PANELS.CONVERSATION,
 						}),
+						currentView !== PANELS.CONVERSATION ? panelComponent : null,
+					),
 		// InputArea — hidden during panel views
 		currentView === PANELS.CONVERSATION || showOnboarding
 			? React.createElement(InputArea, {

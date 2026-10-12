@@ -214,6 +214,19 @@ export class CommandParser {
 	}
 
 	/**
+	 * Check if a command opens a view (e.g. /skills, /subagents, /memories).
+	 * View-switching commands are pure panel switches — they should not
+	 * interrupt an in-flight stream. Determined by parsing the input and
+	 * checking the resulting action, so it stays correct as commands are added.
+	 * @param {string} input
+	 * @returns {boolean}
+	 */
+	isViewCommand(input) {
+		const result = this.parse(input, {});
+		return result?.action === "view";
+	}
+
+	/**
 	 * Get a list of all registered commands (excludes internal/fallback commands).
 	 * @returns {string[]}
 	 */
