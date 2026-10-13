@@ -148,14 +148,19 @@ describe("shouldOpenPicker", () => {
 });
 
 describe("replaceToken", () => {
-	it("replaces the @ token with the selected path", () => {
+	it("replaces the @ token with the selected path and appends a space", () => {
 		const result = replaceToken("read @src/config", 5, 16, "src/config/loader.js");
-		assert.strictEqual(result, "read src/config/loader.js");
+		assert.strictEqual(result, "read src/config/loader.js ");
 	});
 
 	it("does not quote paths without whitespace", () => {
 		const result = replaceToken("read @src", 5, 9, "src/index.js");
-		assert.strictEqual(result, "read src/index.js");
+		assert.strictEqual(result, "read src/index.js ");
+	});
+
+	it("does not append a space when the token is already followed by whitespace", () => {
+		const result = replaceToken("read @src config", 5, 9, "src/index.js");
+		assert.strictEqual(result, "read src/index.js  config");
 	});
 });
 
