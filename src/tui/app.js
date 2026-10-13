@@ -418,29 +418,21 @@ function App({
 		}
 
 		// Ctrl+r / Ctrl+t toggle the global collapse state for reasoning and
-		// tool-call blocks. These are global — they work in the conversation
-		// view AND in panel views (e.g. SUBAGENTS), so they must be handled
-		// before the panel-view early return below. Return early so the key
+		// tool-call blocks. These apply only to the conversation view — the
+		// SUBAGENTS panel is a read-only view that always renders expanded, so
+		// it does not participate in these toggles. Return early so the key
 		// never reaches the input panel (which would render the letter).
 		if (key.ctrl && input === "r") {
 			setReasoningCollapsed((prev) => !prev);
 			setTimeout(() => {
-				const target =
-					currentView === PANELS.SUBAGENTS
-						? subagentsPanelRef.current
-						: conversationAreaRef.current;
-				target?.scrollToBottom?.();
+				conversationAreaRef.current?.scrollToBottom?.();
 			}, 50);
 			return;
 		}
 		if (key.ctrl && input === "t") {
 			setToolCallCollapsed((prev) => !prev);
 			setTimeout(() => {
-				const target =
-					currentView === PANELS.SUBAGENTS
-						? subagentsPanelRef.current
-						: conversationAreaRef.current;
-				target?.scrollToBottom?.();
+				conversationAreaRef.current?.scrollToBottom?.();
 			}, 50);
 			return;
 		}
@@ -628,8 +620,6 @@ function App({
 			subagentStore,
 			onViewChange: handleViewChange,
 			activeView: currentView,
-			reasoningCollapsed,
-			toolCallCollapsed,
 		});
 	}
 

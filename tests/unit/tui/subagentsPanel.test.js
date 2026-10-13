@@ -313,7 +313,9 @@ describe("SubagentsPanel", () => {
 		assert.ok(result.includes("read_file"));
 	});
 
-	it("renders reasoning collapsed when reasoningCollapsed is true", () => {
+	it("always renders reasoning expanded (read-only view)", () => {
+		// The subagents panel is read-only and does not participate in the global
+		// collapse toggles — reasoning content is always visible.
 		const result = renderToString(
 			React.createElement(SubagentsPanel, {
 				subagentStore: {
@@ -324,32 +326,12 @@ describe("SubagentsPanel", () => {
 					},
 				},
 				activeView: "subagents",
-				reasoningCollapsed: true,
-			}),
-		);
-		// Collapsed reasoning renders the "💭 Thinking…" placeholder, not the content.
-		assert.ok(result.includes("Thinking"));
-		assert.ok(!result.includes("secret thinking"));
-	});
-
-	it("renders reasoning expanded when reasoningCollapsed is false", () => {
-		const result = renderToString(
-			React.createElement(SubagentsPanel, {
-				subagentStore: {
-					"task:abc": {
-						namespace: "task:abc",
-						segments: [{ type: "reasoning", content: "secret thinking" }],
-						toolCalls: [],
-					},
-				},
-				activeView: "subagents",
-				reasoningCollapsed: false,
 			}),
 		);
 		assert.ok(result.includes("secret thinking"));
 	});
 
-	it("renders tool content expanded when toolCallCollapsed is false", () => {
+	it("always renders tool content expanded (read-only view)", () => {
 		const result = renderToString(
 			React.createElement(SubagentsPanel, {
 				subagentStore: {
@@ -360,7 +342,6 @@ describe("SubagentsPanel", () => {
 					},
 				},
 				activeView: "subagents",
-				toolCallCollapsed: false,
 			}),
 		);
 		assert.ok(result.includes("tool output"));

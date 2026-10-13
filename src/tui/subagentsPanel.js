@@ -23,18 +23,16 @@ import { VirtualScrollView } from "./scrollView.js";
  *                        `{ namespace, segments, toolCalls }`.
  *   activeView         - The current active view name (from PANELS).
  *   onViewChange       - Callback to switch back to conversation view.
- *   reasoningCollapsed - Whether reasoning segments render collapsed (global
- *                        ctrl+r toggle, shared with the conversation view).
- *   toolCallCollapsed  - Whether tool segments render collapsed (global
- *                        ctrl+t toggle, shared with the conversation view).
+ *
+ * This is a read-only view: it always renders the message bubbles expanded
+ * (reasoning and tool content visible). It does not participate in the global
+ * ctrl+r / ctrl+t collapse toggles, which apply only to the conversation view.
  */
 export const SubagentsPanel = forwardRef(function SubagentsPanel(
 	{
 		subagentStore = {},
 		activeView,
 		onViewChange,
-		reasoningCollapsed = false,
-		toolCallCollapsed = true,
 	},
 	ref,
 ) {
@@ -126,8 +124,10 @@ export const SubagentsPanel = forwardRef(function SubagentsPanel(
 						segments: entry.segments,
 						streaming: false,
 						assistantName: "subagent",
-						reasoningCollapsed,
-						toolCallCollapsed,
+						// Read-only view — always render expanded. The subagents
+						// panel does not participate in the global collapse toggles.
+						reasoningCollapsed: false,
+						toolCallCollapsed: false,
 					}),
 					renderToolCalls(entry.toolCalls),
 				),
