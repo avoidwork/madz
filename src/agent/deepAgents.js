@@ -36,35 +36,25 @@ import { createCodeInterpreterMiddleware } from "@langchain/quickjs";
 import { createTurnTransformer } from "../stream/transformers/index.js";
 
 /**
- * Get tool classifications for an agent by name.
- * Maps agent names to their required tool classifications.
- * @param {string} agentName - Agent name
- * @returns {string[]} Array of tool classifications
- */
-function getAgentClassifications(agentName) {
-	return [agentName];
-}
-
-/**
  * Create subagent definitions with filtered tools and agent-specific skills.
  * @param {Object[]} allTools - Array of built tool instances
  * @param {Object} model - Chat model instance (orchestrator model)
  * @param {SkillRegistry} skillRegistry - Skill registry instance
  * @param {Object} config - Resolved config object
- * @returns {Object[]} Array of subagent definitions
+ * @returns {Promise<Object[]>} Array of subagent definitions
  */
-export function createSubagentDefinitions(allTools, model, skillRegistry, config) {
-	const allAgents = getAllAgents();
+export async function createSubagentDefinitions(allTools, model, skillRegistry, config) {
+	const allAgents = await getAllAgents();
 	const providerConfig = getActiveProviderConfig(config);
+	// Build a Map keyed by tool name once so per-agent tool lookups are O(1)
+	// instead of O(n*m) via `allTools.find()`.
+	const toolMap = new Map(allTools.map((tool) => [tool.name, tool]));
 
 	return allAgents.map((agentDef) => {
-		const classifications = getAgentClassifications(agentDef.name);
-		const filteredToolNames = getToolsForAgentTypes(classifications, TOOLS);
+		const filteredToolNames = getToolsForAgentTypes([agentDef.name], TOOLS);
 		// Map tool names back to actual tool instances — SubAgent.specs
 		// require StructuredTool[], not string names.
-		const filteredTools = filteredToolNames
-			.map((name) => allTools.find((t) => t.name === name))
-			.filter(Boolean);
+		const filteredTools = filteredToolNames.map((name) => toolMap.get(name)).filter(Boolean);
 
 		// Get skills specific to this agent (metadata.agent === agentName)
 		const agentSkills = skillRegistry.getSkillPathsForAgent(agentDef.name);
@@ -409,7 +399,12 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	const contextRoute = "/" + config.memory.contextDir.replace(/^\.?\//, "");
 
 	// Create subagent definitions with filtered tools and agent-specific skills
-	const subagentDefinitions = createSubagentDefinitions(allTools, model, skillRegistry, config);
+	const subagentDefinitions = await createSubagentDefinitions(
+		allTools,
+		model,
+		skillRegistry,
+		config,
+	);
 
 	// All discovered skills are available to the orchestrator
 
@@ -454,27 +449,27 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	// model not found, field absent), fall back to the configured token value so
 	// startup never blocks on a network call.
 	const contextLength = await getModelContextLength(providerConfig);
+	// Build a local summarization config so the derived trigger is applied
+	// explicitly rather than mutating the shared config singleton returned by
+	// `loadConfig()`. `config.summarization` is spread into a new object so the
+	// shared config is never mutated; the derived trigger is only used by the
+	// middleware created below.
+	let summarizationConfig = config.summarization;
 	if (contextLength !== undefined) {
 		const triggerTokens = Math.floor(contextLength * 0.8);
 		logger.info(
 			{ contextLength, triggerTokens },
 			"[summarization] derived trigger from provider model context length",
 		);
-		// Mutate the shared config singleton so the /settings view reflects the
-		// live derived trigger. `loadConfig()` is cached, so this is the same
-		// object the SettingsPanel reads.
-		config.summarization.trigger = { type: "tokens", value: triggerTokens };
-		// Also update the active provider's context window so the TUI status bar
-		// spinner reflects the real model context length rather than the
-		// configured default. `providerName` is the config key (e.g. "openai").
-		if (config.providers?.[providerName]) {
-			config.providers[providerName].contextWindow = contextLength;
-		}
+		summarizationConfig = {
+			...config.summarization,
+			trigger: { type: "tokens", value: triggerTokens },
+		};
 	}
 
 	const summarizationMiddleware = createSummarizationMiddlewareFromConfig({
 		backend,
-		config: config.summarization,
+		config: summarizationConfig,
 	});
 
 	// Image-dispatch middleware. Registered AFTER summarization and BEFORE
@@ -525,5 +520,9 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	// servers are configured.
 	const mcpAdapter = allTools.mcpAdapter;
 
-	return { agent, model, systemPrompt, mcpAdapter };
+	// Expose the resolved model context length so the caller can propagate it to
+	// the TUI explicitly (e.g. the status-bar context window) instead of the
+	// orchestrator mutating the shared config singleton. `undefined` when the
+	// context length could not be resolved.
+	return { agent, model, systemPrompt, mcpAdapter, contextLength };
 }

@@ -39,6 +39,7 @@ function App({
 	getContextMessages,
 	model,
 	systemPrompt,
+	contextLength,
 }) {
 	const [showBanner, setShowBanner] = useState(true);
 	const [showOnboarding, setShowOnboarding] = useState(!!onboarding);
@@ -108,8 +109,10 @@ function App({
 	const tokenBudget = activeProvider?.rateLimit?.maxTokensMinute || 0;
 	// Context window size for the active provider, used to color the streaming
 	// spinner by context-window utilization. Falls back to 0 (no budget) when
-	// the provider does not configure a context window.
-	const contextWindow = activeProvider?.contextWindow || 0;
+	// the provider does not configure a context window. When the orchestrator
+	// resolved the real model context length at init, prefer that value over the
+	// configured default so the status bar reflects the live model context.
+	const contextWindow = contextLength ?? activeProvider?.contextWindow ?? 0;
 
 	// Stable callbacks — flow status/context/compacting from ConversationArea into InputArea
 	const onStatusChange = useCallback((msg) => inputAreaRef.current?.setStatusMessage(msg), []);
