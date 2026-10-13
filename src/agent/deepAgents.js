@@ -449,27 +449,29 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	// model not found, field absent), fall back to the configured token value so
 	// startup never blocks on a network call.
 	const contextLength = await getModelContextLength(providerConfig);
-	// Build a local summarization config so the derived trigger is applied
-	// explicitly rather than mutating the shared config singleton returned by
-	// `loadConfig()`. `config.summarization` is spread into a new object so the
-	// shared config is never mutated; the derived trigger is only used by the
-	// middleware created below.
-	let summarizationConfig = config.summarization;
+	// Mutate the shared config singleton so the derived trigger and the
+	// server-derived context window are visible everywhere they are read
+	// (e.g. the /settings view and the TUI status-bar context meter).
+	// `loadConfig()` is cached, so this is the same object the SettingsPanel
+	// reads. The derived trigger is also used by the middleware created below.
 	if (contextLength !== undefined) {
 		const triggerTokens = Math.floor(contextLength * 0.8);
 		logger.info(
 			{ contextLength, triggerTokens },
 			"[summarization] derived trigger from provider model context length",
 		);
-		summarizationConfig = {
-			...config.summarization,
-			trigger: { type: "tokens", value: triggerTokens },
-		};
+		config.summarization.trigger = { type: "tokens", value: triggerTokens };
+		// Also update the active provider's context window so the TUI status bar
+		// spinner reflects the real model context length rather than the
+		// configured default. `providerName` is the config key (e.g. "openai").
+		if (config.providers?.[providerName]) {
+			config.providers[providerName].contextWindow = contextLength;
+		}
 	}
 
 	const summarizationMiddleware = createSummarizationMiddlewareFromConfig({
 		backend,
-		config: summarizationConfig,
+		config: config.summarization,
 	});
 
 	// Image-dispatch middleware. Registered AFTER summarization and BEFORE
