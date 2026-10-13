@@ -29,11 +29,7 @@ import { VirtualScrollView } from "./scrollView.js";
  * ctrl+r / ctrl+t collapse toggles, which apply only to the conversation view.
  */
 export const SubagentsPanel = forwardRef(function SubagentsPanel(
-	{
-		subagentStore = {},
-		activeView,
-		onViewChange,
-	},
+	{ subagentStore = {}, activeView, onViewChange },
 	ref,
 ) {
 	const isActive = activeView === "subagents";
