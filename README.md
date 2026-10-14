@@ -270,6 +270,7 @@ node index.js --mode interactive --session abc123
 | `/sessions`                  | Open the sessions panel              |
 | `/settings`                  | Open the settings panel              |
 | `/skills`                    | Open the skills panel                |
+| `/subagents`                 | Open the subagents panel — view each subagent's reasoning, message segments, and tool calls live during a multi-agent turn |
 | `@`                          | Open the file picker — type `@` followed by a path fragment to autocomplete file paths from the active project directory |
 | `Ctrl+F`                     | Toggle in-conversation search |
 | `Ctrl+R`                     | Toggle reasoning block collapse/expand |

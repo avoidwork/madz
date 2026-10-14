@@ -359,6 +359,7 @@ Once inside the interactive terminal, use these commands:
 | `/sessions` | Open the sessions panel |
 | `/memories` | Open the memories panel |
 | `/skills` | Open the skills panel |
+| `/subagents` | Open the subagents panel — view each subagent's reasoning, message segments, and tool calls live during a multi-agent turn |
 | `/settings` | Open the settings panel |
 | `/projects` | Open the projects panel — select a project directory to set the active project |
 | `/projects clear` | Clear the active project back to the default |
