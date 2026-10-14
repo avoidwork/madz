@@ -63,7 +63,7 @@
     "oxlint": "^1.87.0"
   },
   "dependencies": {
-    "@langchain/langgraph": "^1.4.19",
+    "@langchain/langgraph": "^1.4.21",
     "@langchain/langgraph-checkpoint-sqlite": "^1.0.4",
     "@langchain/mcp-adapters": "^2.0.1",
     "@langchain/openai": "^1.6.2",
