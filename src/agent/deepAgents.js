@@ -472,6 +472,9 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	const summarizationMiddleware = createSummarizationMiddlewareFromConfig({
 		backend,
 		config: config.summarization,
+		model,
+		maxTokens: providerConfig.maxTokens,
+		contextWindow: contextLength,
 	});
 
 	// Image-dispatch middleware. Registered AFTER summarization and BEFORE
