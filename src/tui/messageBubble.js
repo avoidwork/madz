@@ -276,7 +276,11 @@ export function MessageBubbleInner({
 	const [localActiveToolCall, setLocalActiveToolCall] = useState(activeToolCall);
 	const [localContent, setLocalContent] = useState(content);
 
-	// Sync local state from props when not using pub/sub (session restore, initial render)
+	// Sync local state from props when not using pub/sub (session restore, initial render).
+	// The SUBAGENTS panel renders MessageBubble without a `topic`, so this path is
+	// also the live-update path there: `segments` and `content` must track the props
+	// as the subagent store grows, otherwise the bubble freezes on the first chunk
+	// (subagent_* events route to the store, not to a pub/sub topic).
 	useEffect(() => {
 		if (!topic) {
 			setLocalStreaming(streaming);
@@ -284,8 +288,19 @@ export function MessageBubbleInner({
 			setLocalCompletedToolCalls(completedToolCalls || []);
 			setLocalToolCallDisplay(toolCallDisplay);
 			setLocalActiveToolCall(activeToolCall);
+			setSegments(initialSegments || []);
+			setLocalContent(content);
 		}
-	}, [topic, streaming, turnDuration, completedToolCalls, toolCallDisplay, activeToolCall]);
+	}, [
+		topic,
+		streaming,
+		turnDuration,
+		completedToolCalls,
+		toolCallDisplay,
+		activeToolCall,
+		initialSegments,
+		content,
+	]);
 
 	useEffect(() => {
 		if (!topic) return;
