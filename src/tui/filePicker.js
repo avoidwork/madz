@@ -80,6 +80,9 @@ export function shouldOpenPicker(value) {
 
 /**
  * Replace the `@` token in the input with the selected path.
+ * Appends a trailing space so the `@` token is no longer a trigger and the
+ * picker does not immediately re-open — mirroring the command picker's
+ * `replaceCommandToken`. The tokenStart points at the `@`.
  * @param {string} value - The full input text
  * @param {number} tokenStart - Start index of the token
  * @param {number} tokenEnd - End index of the token
@@ -87,7 +90,7 @@ export function shouldOpenPicker(value) {
  * @returns {string} The updated input text
  */
 export function replaceToken(value, tokenStart, tokenEnd, path) {
-	return value.slice(0, tokenStart) + path + value.slice(tokenEnd);
+	return value.slice(0, tokenStart) + path + " " + value.slice(tokenEnd);
 }
 
 /**
