@@ -7,7 +7,13 @@ import {
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { InMemoryStore } from "@langchain/langgraph-checkpoint";
-import { RemoveMessage } from "@langchain/core/messages";
+import {
+	AIMessage,
+	HumanMessage,
+	RemoveMessage,
+	ToolMessage,
+	getBufferString,
+} from "@langchain/core/messages";
 import { loadConfig } from "../config/loader.js";
 import { loadSystemPrompt } from "../memory/prompts.js";
 import { SkillRegistry } from "../skills/registry.js";
@@ -15,10 +21,6 @@ import { createChatModel, resolveCopilotModel } from "../provider/openai.js";
 import { getModelContextLength } from "../provider/modelInfo.js";
 import { getActiveProviderConfig, getActiveProviderName } from "../provider/index.js";
 import { createTokenBudgetMiddleware } from "../provider/tokenBudgetMiddleware.js";
-import {
-	createSummarizationMiddlewareFromConfig,
-	forceSummarize,
-} from "../provider/summarizationMiddleware.js";
 import { createImageDispatchMiddleware } from "../provider/imageDispatchMiddleware.js";
 import {
 	buildToolConfig,
@@ -178,13 +180,120 @@ function toConversationExchange(message) {
 }
 
 /**
+ * The system prompt used to summarize a conversation into a concise summary.
+ * Mirrors deepagents' `DEFAULT_SUMMARY_PROMPT` so `/compact` produces the same
+ * quality of summary the middleware used to.
+ */
+const SUMMARY_PROMPT = `You are a conversation summarizer. Your task is to create a concise summary of the conversation that captures:
+
+1. The main topics discussed
+2. Key decisions or conclusions reached
+3. Any important context that would be needed for continuing the conversation
+
+Keep the summary focused and informative. Do not include unnecessary details.
+
+Conversation to summarize:
+{conversation}
+
+Summary:`;
+
+/**
+ * Determine whether a message is a previous summarization message.
+ * Summary messages are HumanMessage objects with `lc_source: "summarization"`.
+ * @param {Object} message - A LangChain message
+ * @returns {boolean} True if the message is a prior summary message
+ */
+function isSummaryMessage(message) {
+	if (!HumanMessage.isInstance(message)) return false;
+	return message.additional_kwargs?.lc_source === "summarization";
+}
+
+/**
+ * Find a safe cutoff point that doesn't split AI/Tool message pairs.
+ *
+ * If the message at `cutoffIndex` is a ToolMessage, adjust the boundary so
+ * related AI and Tool messages stay together. Move backward to include the
+ * AIMessage that produced the tool calls (preferred when it doesn't move the
+ * cutoff too far back), otherwise advance forward past all consecutive
+ * ToolMessages.
+ *
+ * @param {Array} messages - The message array
+ * @param {number} cutoffIndex - The raw cutoff index
+ * @returns {number} The adjusted cutoff index
+ */
+function findSafeCutoffPoint(messages, cutoffIndex) {
+	if (cutoffIndex >= messages.length || !ToolMessage.isInstance(messages[cutoffIndex])) {
+		return cutoffIndex;
+	}
+	let forwardIdx = cutoffIndex;
+	while (forwardIdx < messages.length && ToolMessage.isInstance(messages[forwardIdx])) {
+		forwardIdx++;
+	}
+	const toolCallIds = new Set();
+	for (let i = cutoffIndex; i < forwardIdx; i++) {
+		const toolMsg = messages[i];
+		if (toolMsg.tool_call_id) toolCallIds.add(toolMsg.tool_call_id);
+	}
+	let backwardIdx = null;
+	for (let i = cutoffIndex - 1; i >= 0; i--) {
+		const msg = messages[i];
+		if (AIMessage.isInstance(msg) && msg.tool_calls) {
+			const aiToolCallIds = new Set(msg.tool_calls.map((tc) => tc.id).filter((id) => id != null));
+			for (const id of toolCallIds) {
+				if (aiToolCallIds.has(id)) {
+					backwardIdx = i;
+					break;
+				}
+			}
+			if (backwardIdx !== null) break;
+		}
+	}
+	if (backwardIdx === null) return forwardIdx;
+	if (cutoffIndex - backwardIdx > cutoffIndex / 2 && cutoffIndex > 2) return forwardIdx;
+	return backwardIdx;
+}
+
+/**
+ * Determine the cutoff index for messages to summarize. Messages at index <
+ * cutoff are summarized; messages at index >= cutoff are preserved.
+ *
+ * @param {Array} messages - The message array
+ * @param {number} keepRecent - Number of recent messages to preserve
+ * @returns {number} The cutoff index
+ */
+function determineCutoffIndex(messages, keepRecent) {
+	if (messages.length <= keepRecent) return 0;
+	const rawCutoff = messages.length - keepRecent;
+	return findSafeCutoffPoint(messages, rawCutoff);
+}
+
+/**
+ * Summarize a set of messages into a single summary message using the model.
+ * Mirrors deepagents' `createSummary` + `buildSummaryMessage` so `/compact`
+ * produces the same summary message shape the middleware used to.
+ *
+ * @param {Array} messagesToSummarize - The messages to summarize
+ * @param {Object} model - The chat model used to generate the summary
+ * @returns {Promise<Object>} A HumanMessage containing the summary
+ */
+async function createSummaryMessage(messagesToSummarize, model) {
+	const conversation = getBufferString(messagesToSummarize);
+	const prompt = SUMMARY_PROMPT.replace("{conversation}", conversation);
+	const summary = (await model.invoke([new HumanMessage({ content: prompt })])).text;
+	return new HumanMessage({
+		content: `Here is a summary of the conversation to date:\n\n${summary}`,
+		additional_kwargs: { lc_source: "summarization" },
+	});
+}
+
+/**
  * Compact the agent's message state by removing messages that contain vision
- * blocks (base64 image data) and trimming the remaining older messages so the
- * context window is compressed.
+ * blocks (base64 image data), summarizing the older messages into a single
+ * summary message, and preserving the most recent `keepRecent` messages.
  *
  * The routine walks the agent's message state (via `agent.getState`), filters
- * out vision-bearing messages, trims the remaining messages to the most recent
- * `keepRecent`, and writes the result back to the checkpointer via
+ * out vision-bearing messages, summarizes the older messages (via the model)
+ * into a summary message, and writes the result back to the checkpointer via
  * `agent.updateState`. Because the `messages` channel uses a reducer that
  * merges by message ID, the update is prefixed with a `RemoveMessage` carrying
  * the `__remove_all__` sentinel so the existing history is fully replaced
@@ -199,14 +308,12 @@ function toConversationExchange(message) {
  * @param {Object} [sessionState] - Optional session state manager to sync
  * @param {Object} [options] - Compaction options
  * @param {number} [options.keepRecent=20] - Number of recent messages to retain after trimming
- * @param {Object} [options.backend] - The deepagents backend used for history offload
  * @param {Object} [options.model] - The chat model used to generate the summary
  * @returns {Promise<{ok: boolean, removedVision: number, trimmed: number, remaining: number, error?: string}>}
  *   Result describing what was removed and trimmed
  */
 export async function compactAgentContext(agent, config, sessionState, options = {}) {
 	const keepRecent = options.keepRecent ?? 20;
-	const backend = options.backend;
 	const model = options.model;
 
 	let state;
@@ -221,40 +328,38 @@ export async function compactAgentContext(agent, config, sessionState, options =
 		return { ok: true, removedVision: 0, trimmed: 0, remaining: 0 };
 	}
 
-	// Force a real summarization through the deepagents SummarizationMiddleware,
-	// bypassing the configured trigger threshold. This produces a summary message
-	// plus the preserved recent messages. When the middleware is unavailable
-	// (no backend/model), fall back to the legacy trim-only behavior.
-	let summarized;
-	if (backend && model) {
+	// Filter out vision-bearing messages (readImage ToolMessages with base64
+	// data and image_url content blocks) from the message set.
+	const filtered = messages.filter((m) => !hasVisionBlock(m));
+	const removedVision = messages.length - filtered.length;
+
+	// Summarize the older messages into a summary message and preserve the most
+	// recent `keepRecent` messages. When the model is unavailable, fall back to
+	// the legacy trim-only behavior.
+	let finalMessages = filtered;
+	let trimmed = 0;
+	if (model) {
 		try {
-			summarized = await forceSummarize({
-				backend,
-				keep: { type: "messages", value: keepRecent },
-				state: state.values,
-				model,
-			});
+			// Drop any prior summary messages so we only summarize real history.
+			const history = filtered.filter((m) => !isSummaryMessage(m));
+			const cutoffIndex = determineCutoffIndex(history, keepRecent);
+			if (cutoffIndex > 0) {
+				const messagesToSummarize = history.slice(0, cutoffIndex);
+				const preservedMessages = history.slice(cutoffIndex);
+				const summaryMessage = await createSummaryMessage(messagesToSummarize, model);
+				finalMessages = [summaryMessage, ...preservedMessages];
+				trimmed = messagesToSummarize.length;
+			}
 		} catch (err) {
-			logger.warn(
-				{ error: err.message },
-				"[compact] forced summarization failed; falling back to trim",
-			);
+			logger.warn({ error: err.message }, "[compact] summarization failed; falling back to trim");
 		}
 	}
 
-	// Filter out vision-bearing messages (readImage ToolMessages with base64
-	// data and image_url content blocks) from the summarized set.
-	const filtered = (summarized || messages).filter((m) => !hasVisionBlock(m));
-	const removedVision = (summarized ? summarized.length : messages.length) - filtered.length;
-
-	// When summarization succeeded, the middleware already applied the keep
-	// policy (summary + preserved recent messages). Re-trimming here would drop
-	// the summary message, so only trim on the fallback path.
-	let trimmed = 0;
-	let finalMessages = filtered;
-	if (!summarized && filtered.length > keepRecent) {
-		trimmed = filtered.length - keepRecent;
-		finalMessages = filtered.slice(-keepRecent);
+	// When summarization did not run (no model, or it failed), trim the older
+	// messages beyond the keep window.
+	if (finalMessages.length > keepRecent && !finalMessages.some((m) => isSummaryMessage(m))) {
+		trimmed = finalMessages.length - keepRecent;
+		finalMessages = finalMessages.slice(-keepRecent);
 	}
 
 	// Replace the checkpointer state with the compacted message set.
@@ -286,7 +391,7 @@ export async function compactAgentContext(agent, config, sessionState, options =
 
 /**
  * Create a Deep Agents orchestrator with coding and utility sub-agents.
- * Uses deepagents middleware for filesystem, memory, skills, and summarization.
+ * Uses deepagents middleware for filesystem, memory, and skills.
  * @param {import("@langchain/langgraph").BaseCheckpointSaver | null} [checkpointer=null] - Optional checkpointer
  * @returns {Promise<{agent: Object, model: Object}>} The orchestrator agent and its chat model
  */
@@ -408,15 +513,15 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 
 	// All discovered skills are available to the orchestrator
 
-	// Composite backend shared by the orchestrator and the summarization
-	// middleware (which offloads conversation history to it).
+	// Composite backend shared by the orchestrator and the compaction path
+	// (which offloads conversation history to it).
 	const backend = new CompositeBackend(coreBackend, {
 		[contextRoute]: contextBackend,
 	});
 
 	// Token-budget enforcement middleware. Registered LAST: AgentNode composes
 	// the wrapModelCall chain backwards, so the last entry is innermost and
-	// observes the final post-summarization/post-truncation message set.
+	// observes the final post-truncation message set.
 	// Returns null when maxTokensMinute is 0/unset, so it is spread in conditionally.
 	// The `onContextWindowExceeded` callback compacts the context via the agent's
 	// exposed compaction path and lets the middleware re-send the request once.
@@ -432,54 +537,17 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 		},
 	});
 
-	// Configurable summarization middleware. Registered BEFORE the token-budget
-	// middleware so the budget observes the post-summarization message set.
-	// Returns null when the `summarization` config section is absent or
-	// `enabled` is false, so unset config is a true no-op (deepagents' library
-	// default of 170k trigger / keep 6 applies). When enabled, the returned
-	// middleware is named `SummarizationMiddleware`, which displaces the library
-	// default via same-name merge semantics in `createDeepAgent`.
-	// Derive the summarization trigger from the provider model context length.
-	// The configured token value is a guess that drifts from reality as models
-	// change. When the model's real context window is smaller than the
-	// configured trigger, the conversation overflows before summarization fires;
-	// when larger, we summarize too early. Resolve the context length at init
-	// and override the trigger with 80% of it. The 80% is hardcoded; no config
-	// schema change. If the context length cannot be resolved (unreachable,
-	// model not found, field absent), fall back to the configured token value so
+	// Resolve the real model context length so the caller can propagate it to
+	// the TUI (e.g. the status-bar context window) instead of the orchestrator
+	// mutating the shared config singleton. `undefined` when the context length
+	// could not be resolved (unreachable, model not found, field absent) so
 	// startup never blocks on a network call.
 	const contextLength = await getModelContextLength(providerConfig);
-	// Mutate the shared config singleton so the derived trigger and the
-	// server-derived context window are visible everywhere they are read
-	// (e.g. the /settings view and the TUI status-bar context meter).
-	// `loadConfig()` is cached, so this is the same object the SettingsPanel
-	// reads. The derived trigger is also used by the middleware created below.
-	if (contextLength !== undefined) {
-		const triggerTokens = Math.floor(contextLength * 0.8);
-		logger.info(
-			{ contextLength, triggerTokens },
-			"[summarization] derived trigger from provider model context length",
-		);
-		config.summarization.trigger = { type: "tokens", value: triggerTokens };
-		// Also update the active provider's context window so the TUI status bar
-		// spinner reflects the real model context length rather than the
-		// configured default. `providerName` is the config key (e.g. "openai").
-		if (config.providers?.[providerName]) {
-			config.providers[providerName].contextWindow = contextLength;
-		}
-	}
 
-	const summarizationMiddleware = createSummarizationMiddlewareFromConfig({
-		backend,
-		config: config.summarization,
-	});
-
-	// Image-dispatch middleware. Registered AFTER summarization and BEFORE
-	// token-budget: AgentNode composes the wrapModelCall chain backwards, so the
-	// last entry is innermost. Registering after summarization means this
-	// middleware observes the final post-summarization message set; registering
-	// before token-budget means the budget sees the injected image when
-	// estimating context cost.
+	// Image-dispatch middleware. Registered BEFORE token-budget: AgentNode
+	// composes the wrapModelCall chain backwards, so the last entry is
+	// innermost. Registering before token-budget means the budget sees the
+	// injected image when estimating context cost.
 	const imageDispatchMiddleware = createImageDispatchMiddleware();
 
 	const agent = createDeepAgent({
@@ -493,7 +561,6 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 		...(checkpointer && { checkpointer }),
 		middleware: [
 			createCodeInterpreterMiddleware(),
-			...(summarizationMiddleware ? [summarizationMiddleware] : []),
 			imageDispatchMiddleware,
 			...(tokenBudgetMiddleware ? [tokenBudgetMiddleware] : []),
 		],
@@ -505,7 +572,7 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	// a LangGraph runnable config (with `thread_id`), an optional session state
 	// manager to sync, plus optional options.
 	agent.compactContext = async (config, sessionState, options) =>
-		compactAgentContext(agent, config, sessionState, { ...options, backend, model });
+		compactAgentContext(agent, config, sessionState, { ...options, model });
 
 	// Wire the middleware's 400 context-window handler to the agent's compaction
 	// path. The middleware is created before the agent, so this closure is set

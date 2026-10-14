@@ -15,7 +15,6 @@ import { LruSchema } from "./schemas/lru.js";
 import { PersistenceSchema } from "./schemas/persistence.js";
 import { SkillAgentMapSchema } from "./schemas/skillAgentMap.js";
 import { SubAgentsTemperatureSchema } from "./schemas/subAgentsTemperature.js";
-import { SummarizationSchema } from "./schemas/summarization.js";
 import { VectorConfigSchema } from "./schemas/vector.js";
 import { ImageSchema } from "./schemas/image.js";
 import { McpSchema } from "./schemas/mcp.js";
@@ -70,7 +69,6 @@ export const ConfigSchema = z.object({
 	skillAgentMap: SkillAgentMapSchema,
 	cwd: z.string().default(""),
 	subAgentsTemperature: SubAgentsTemperatureSchema,
-	summarization: SummarizationSchema.default({}),
 	vector: VectorConfigSchema.default({}),
 	image: ImageSchema.default({}),
 	mcp: McpSchema,

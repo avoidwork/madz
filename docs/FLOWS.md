@@ -273,7 +273,7 @@ createDeepAgentsOrchestrator(checkpointer)
     ├── checkpointer (if provided)
     ├── middleware: [createCodeInterpreterMiddleware(), ...(tokenBudgetMiddleware ? [...] : [])]
     │   └── deepagents adds its own stack: filesystem, subagents, skills,
-    │       summarization, patch-tool-calls
+    │       patch-tool-calls
     └── streamTransformers: [() => createTurnTransformer()]
     })
 

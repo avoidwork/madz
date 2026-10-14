@@ -11,7 +11,7 @@ The top-level agent that coordinates the whole session. Built by `createDeepAgen
 A specialized agent that the orchestrator delegates to. There are 12 defined in `src/agent/agentDefinitions.js` (coding, search, debug, code-review, research, testing, documentation, security-audit, performance, textEditor, seoAnalyst, translator). Each carries its own tool set and system prompt.
 
 ### Deep Agents
-The library (`deepagents`) that compiles the agent loop. It supplies the middleware stack (filesystem, subagents, skills, summarization, patch-tool-calls). madz adds its own middleware on top.
+The library (`deepagents`) that compiles the agent loop. It supplies the middleware stack (filesystem, subagents, skills, patch-tool-calls). madz adds its own middleware on top.
 
 ### Backend
 An abstraction over file I/O. madz uses two from the `deepagents` library:

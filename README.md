@@ -990,11 +990,6 @@ Graceful shutdown flushes all buffered log entries to disk before process exit.
 | `search`      | `tavily.apiKey`                      | _(empty)_                                | Tavily search API key                        |
 | `skillAgentMap` | `[].pattern`                       | _(none)_                                 | Regex pattern to match skill names            |
 |               | `[].agent`                           | _(none)_                                 | Agent name to assign when pattern matches     |
-| `summarization` | `enabled`                          | `false`                                  | Enable proactive context compaction           |
-|               | `trigger.type`                       | `tokens`                                 | Trigger type (`tokens`, `messages`, `fraction`) |
-|               | `trigger.value`                      | `100000`                                 | Trigger threshold value                       |
-|               | `keep.type`                          | `messages`                               | Keep type (`tokens`, `messages`, `fraction`)  |
-|               | `keep.value`                         | `10`                                     | Messages/tokens to keep after compaction      |
 | `vector`      | `model`                              | `local`                                  | Embedding model (`local` or `openai`)         |
 |               | `projects.<name>.rootDir`            | `.`                                      | Project root directory to scan                |
 |               | `projects.<name>.dbPath`             | _(none)_                                 | Path to sqlite-vec database file              |
@@ -1030,27 +1025,9 @@ tui:
 
 Each element renders only when its boolean is `true` **and** its data is present — e.g., `tokens` also requires `openai.rateLimit.maxTokensMinute > 0`, and `quote`/`model`/`version` require a non-empty value.
 
-### Summarization
+### Context Compaction
 
-The `summarization` section controls proactive context compaction. When `enabled` is `false` (the default), deepagents' library default applies — a 170k token trigger that keeps the last 6 messages, and compaction only happens **reactively** after a request overflows the context window. When `enabled` is `true`, madz registers a custom `SummarizationMiddleware` that fires at the configured `trigger` instead, so compaction is **proactive**.
-
-The `trigger` and `keep` values each take a `type` of `tokens`, `messages`, or `fraction`:
-
-```yaml
-summarization:
-  enabled: true
-  trigger:
-    type: tokens
-    value: 100000
-  keep:
-    type: messages
-    value: 10
-```
-
-- **`trigger`** — the threshold at which compaction fires. `tokens` counts input tokens, `messages` counts messages, `fraction` is a fraction of the model's max input tokens (0–1).
-- **`keep`** — how much history to retain after compaction. Must be passed explicitly; deepagents defaults `keep` to 20 messages when a `trigger` is supplied without it, silently moving it from the fallback 6.
-
-**Note:** the custom middleware reaches the **orchestrator only**. Subagents are not forked, so they keep the library default `SummarizationMiddleware`.
+The `/compact` slash command manually compresses the context window on demand. It removes messages that contain vision blocks (base64 image data from `readImage` and `image_url` content blocks), summarizes the older messages into a single summary message via the model, and preserves the most recent messages. The `/compact` command is the only compaction path — there is no automatic summarization middleware.
 
 ### Rate Limiting
 

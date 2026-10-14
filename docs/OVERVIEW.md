@@ -153,7 +153,7 @@ The provider instance is consumed by the Deep Agents orchestrator (`createDeepAg
 
 ## Deep Agents
 
-`src/agent/deepAgents.js` — Deep Agents orchestrator with 12 specialized subagents. The `deepagents` library supplies the middleware stack (filesystem, subagents, skills, summarization, patch-tool-calls); madz adds `createCodeInterpreterMiddleware()` (`@langchain/quickjs`) and, when `rateLimit.maxTokensMinute > 0`, `createTokenBudgetMiddleware()`.
+`src/agent/deepAgents.js` — Deep Agents orchestrator with 12 specialized subagents. The `deepagents` library supplies the middleware stack (filesystem, subagents, skills, patch-tool-calls); madz adds `createCodeInterpreterMiddleware()` (`@langchain/quickjs`) and, when `rateLimit.maxTokensMinute > 0`, `createTokenBudgetMiddleware()`.
 
 **Orchestrator construction (`createDeepAgentsOrchestrator`):**
 

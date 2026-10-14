@@ -31,8 +31,8 @@ export function readUsageTokens(result) {
  *
  * Register it LAST in `createDeepAgent({ middleware: [...] })`. `AgentNode`
  * composes the chain backwards, so the last entry is innermost: it observes
- * the final post-summarization/post-truncation message set and charges the
- * window from the request that is actually sent.
+ * the final post-truncation message set and charges the window from the
+ * request that is actually sent.
  *
  * @param {Object} options - Middleware options
  * @param {number} options.maxTokensMinute - Rolling tokens-per-minute budget.

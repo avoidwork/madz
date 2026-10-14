@@ -201,14 +201,6 @@ agent:
     baseUrl: ""            # empty = tool not registered
     model: tev1:4b
     temperature: 0
-summarization:
-  enabled: true
-  trigger:
-    type: tokens
-    value: 100000
-  keep:
-    type: messages
-    value: 10
 lru:
   size: 100
   ttl: 600000

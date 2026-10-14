@@ -162,49 +162,6 @@ describe("createDeepAgentsOrchestrator", () => {
 			mock.reset();
 		}
 	});
-
-	it("should derive the summarization trigger from the provider model context length", async () => {
-		// Set valid email env vars so provider validation passes
-		process.env.EMAIL_GMAIL_CLIENT_ID = "test-client-id";
-		process.env.EMAIL_GMAIL_CLIENT_SECRET = "test-client-secret";
-		process.env.EMAIL_GMAIL_REFRESH_TOKEN = "test-refresh-token";
-
-		// Mock the models endpoint to return max_model_len for the configured model.
-		mock.method(globalThis, "fetch", async () => ({
-			ok: true,
-			json: async () => ({ data: [{ id: "gpt-4o", max_model_len: 131072 }] }),
-		}));
-
-		try {
-			const { createDeepAgentsOrchestrator } = await import("../../src/agent/deepAgents.js");
-			const result = await createDeepAgentsOrchestrator();
-			assert.ok(result, "Should create orchestrator");
-			assert.ok(result.agent, "Should return the agent");
-		} finally {
-			mock.reset();
-		}
-	});
-
-	it("should fall back to the configured trigger when context length cannot be resolved", async () => {
-		// Set valid email env vars so provider validation passes
-		process.env.EMAIL_GMAIL_CLIENT_ID = "test-client-id";
-		process.env.EMAIL_GMAIL_CLIENT_SECRET = "test-client-secret";
-		process.env.EMAIL_GMAIL_REFRESH_TOKEN = "test-refresh-token";
-
-		// Mock the models endpoint to be unreachable.
-		mock.method(globalThis, "fetch", async () => {
-			throw new Error("network error");
-		});
-
-		try {
-			const { createDeepAgentsOrchestrator } = await import("../../src/agent/deepAgents.js");
-			const result = await createDeepAgentsOrchestrator();
-			assert.ok(result, "Should create orchestrator");
-			assert.ok(result.agent, "Should return the agent");
-		} finally {
-			mock.reset();
-		}
-	});
 });
 
 describe("modelIdentifier colon sanitization", () => {
@@ -391,9 +348,8 @@ describe("compactAgentContext", () => {
 		assert.strictEqual(updated.messages[1].content, "message 20");
 	});
 
-	it("forces summarization when backend and model are provided", async () => {
+	it("summarizes older messages when a model is provided", async () => {
 		const { HumanMessage } = await import("@langchain/core/messages");
-		const { LocalShellBackend } = await import("deepagents");
 		const { compactAgentContext } = await import("../../src/agent/deepAgents.js");
 		const messages = [
 			new HumanMessage("one"),
@@ -402,19 +358,13 @@ describe("compactAgentContext", () => {
 			new HumanMessage("four"),
 		];
 		const { agent, updated } = makeMockAgent(messages);
-		// Real backend + mock model so the forced summarization path is exercised.
-		// The middleware calls model.invoke to produce a summary; the backend
-		// offload failure is caught internally and it proceeds with the summary.
-		const backend = new LocalShellBackend({
-			rootDir: process.cwd(),
-			virtualMode: false,
-			inheritEnv: true,
-		});
+		// Mock model so the direct summarization path is exercised. The model
+		// produces a summary; the older messages are replaced by the summary
+		// message and the most recent `keepRecent` messages are preserved.
 		const model = {
 			invoke: async () => ({ text: "This is a summary." }),
 		};
 		const result = await compactAgentContext(agent, { configurable: { thread_id: "t1" } }, null, {
-			backend,
 			model,
 			keepRecent: 2,
 		});

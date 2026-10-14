@@ -20,12 +20,10 @@ import { logger } from "../shared/logger.js";
  * stripped from the ToolMessage content (replaced with a short stub) so the
  * model never receives it as plain text tokens.
  *
- * Register it AFTER the summarization middleware and BEFORE the token-budget
- * middleware in `createDeepAgent({ middleware: [...] })`. `AgentNode` composes
- * the chain backwards, so the last entry is innermost: registering after
- * summarization means this middleware observes the final post-summarization
- * message set, and registering before token-budget means the budget sees the
- * injected image when estimating context cost.
+ * Register it BEFORE the token-budget middleware in
+ * `createDeepAgent({ middleware: [...] })`. `AgentNode` composes the chain
+ * backwards, so the last entry is innermost: registering before token-budget
+ * means the budget sees the injected image when estimating context cost.
  *
  * @returns {Object} The middleware
  */
