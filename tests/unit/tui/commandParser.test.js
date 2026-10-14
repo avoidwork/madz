@@ -337,6 +337,7 @@ describe("CommandParser", () => {
 	describe("isViewCommand()", () => {
 		it("returns true for view-switching commands", () => {
 			assert.strictEqual(parser.isViewCommand("/skills"), true);
+			assert.strictEqual(parser.isViewCommand("/subagents"), true);
 			assert.strictEqual(parser.isViewCommand("/memories"), true);
 			assert.strictEqual(parser.isViewCommand("/sessions"), true);
 			assert.strictEqual(parser.isViewCommand("/settings"), true);

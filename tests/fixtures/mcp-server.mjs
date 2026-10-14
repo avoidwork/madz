@@ -52,6 +52,9 @@ async function main() {
 }
 
 main().catch((err) => {
+	// Standalone MCP server process entry point — stderr is the only channel
+	// for surfacing a fatal startup error to the parent process.
+	// eslint-disable-next-line no-console
 	console.error(err);
 	process.exit(1);
 });

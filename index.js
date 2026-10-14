@@ -226,12 +226,35 @@ async function callProvider(_name, _providerConfig, message, streamingCallback, 
 		messages: [new HumanMessage(message)],
 	};
 
-	for await (const [_namespace, mode, payload] of await agent.stream(input, {
+	for await (const [namespace, mode, payload] of await agent.stream(input, {
 		...config,
 		...options,
 		streamMode: ["messages", "tools"],
 		subgraphs: true,
 	})) {
+		// With `subgraphs: true`, the root graph yields a namespace like
+		// `["model_request:<uuid>"]` and each subagent subgraph yields a
+		// namespace containing a `tools:` segment (e.g.
+		// `["tools:call_abc123", "model_request:<uuid>"]`). The orchestrator's
+		// own output has NO `tools:` segment, so a `tools:` prefix check is the
+		// correct discriminator (mirrors the deepagents library's own
+		// `isSubagentNamespace`). Subagent events are emitted with a
+		// `subagent_` prefix and carry the namespace so the TUI can route them
+		// to a dedicated SUBAGENTS store instead of folding them into the
+		// orchestrator's assistant bubble.
+		//
+		// However, the orchestrator's OWN tool calls are also emitted under a
+		// `tools:` namespace (e.g. `["tools:<id>"]` — length 1). A subagent
+		// subgraph always adds a second segment (a nested `model_request:` or
+		// `tools:`), so a namespace is subagent-scoped only when it has a
+		// `tools:` segment AND more than one segment. This keeps the
+		// orchestrator's tool calls in the conversation view while routing
+		// subagent activity to the SUBAGENTS store.
+		const isSubagent =
+			Array.isArray(namespace) &&
+			namespace.length > 1 &&
+			namespace.some((part) => part.startsWith("tools:"));
+
 		if (mode === "messages") {
 			const [msg] = payload;
 			const msgType = msg?._getType ? msg._getType() : msg?.type;
@@ -244,16 +267,27 @@ async function callProvider(_name, _providerConfig, message, streamingCallback, 
 				// is false, tool text is skipped entirely.
 				if (msgType === "tool") {
 					if (showToolResults !== false && streamingCallback) {
-						streamingCallback({ type: "tool", text, name: msg?.name });
+						streamingCallback({
+							type: isSubagent ? "subagent_tool" : "tool",
+							text,
+							name: msg?.name,
+							namespace,
+						});
 					}
 
 					continue;
 				}
 
-				collectedContent += text;
+				if (!isSubagent) {
+					collectedContent += text;
+				}
 
 				if (streamingCallback) {
-					streamingCallback({ type: "message", text });
+					streamingCallback({
+						type: isSubagent ? "subagent_message" : "message",
+						text,
+						namespace,
+					});
 				}
 			}
 
@@ -261,9 +295,15 @@ async function callProvider(_name, _providerConfig, message, streamingCallback, 
 			const reasoningContent =
 				msg?.additional_kwargs?.reasoning_content ?? msg?.additional_kwargs?.reasoning;
 			if (reasoningContent) {
-				collectedReasoning += reasoningContent;
+				if (!isSubagent) {
+					collectedReasoning += reasoningContent;
+				}
 				if (streamingCallback) {
-					streamingCallback({ type: "reasoning", text: reasoningContent });
+					streamingCallback({
+						type: isSubagent ? "subagent_reasoning" : "reasoning",
+						text: reasoningContent,
+						namespace,
+					});
 				}
 			}
 
@@ -271,9 +311,15 @@ async function callProvider(_name, _providerConfig, message, streamingCallback, 
 			if (Array.isArray(msg?.content)) {
 				for (const block of msg.content) {
 					if (block?.type === "reasoning" && block.reasoning) {
-						collectedReasoning += block.reasoning;
+						if (!isSubagent) {
+							collectedReasoning += block.reasoning;
+						}
 						if (streamingCallback) {
-							streamingCallback({ type: "reasoning", text: block.reasoning });
+							streamingCallback({
+								type: isSubagent ? "subagent_reasoning" : "reasoning",
+								text: block.reasoning,
+								namespace,
+							});
 						}
 					}
 				}
@@ -282,16 +328,18 @@ async function callProvider(_name, _providerConfig, message, streamingCallback, 
 			// payload is StreamToolsOutput with event, name, etc.
 			if (payload?.event === "on_tool_start") {
 				streamingCallback({
-					type: "on_tool_start",
+					type: isSubagent ? "subagent_tool_start" : "on_tool_start",
 					name: payload.name,
 					data: { input: payload.input },
+					namespace,
 				});
 			}
 			if (payload?.event === "on_tool_end") {
 				streamingCallback({
-					type: "on_tool_end",
+					type: isSubagent ? "subagent_tool_end" : "on_tool_end",
 					name: payload.name,
 					data: { output: payload.output },
+					namespace,
 				});
 			}
 		}

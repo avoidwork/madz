@@ -71,6 +71,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 		onContextChange,
 		onCompactingChange,
 		onInterruptInput,
+		onSubagentUpdate,
 		onQuit,
 		onNewSession,
 		onViewChange,
@@ -107,6 +108,10 @@ const ConversationArea = forwardRef(function ConversationArea(
 	const toolMessageTokensRef = useRef(0);
 	const contextUpdateTimerRef = useRef(null);
 	const pendingContextRef = useRef({ content: "" });
+	// Subagent store is lifted to App state. The streaming handler reports each
+	// subagent_* event via onSubagentUpdate, which updates App's state and
+	// re-renders the SUBAGENTS panel live. This component no longer owns the
+	// store — it just forwards events upward.
 
 	const skillList = registry ? registry.list() : [];
 	const parser = new CommandParser();
@@ -649,6 +654,21 @@ const ConversationArea = forwardRef(function ConversationArea(
 			return async (event) => {
 				if (shouldAbort()) return;
 				try {
+					// Subagent events are routed to the dedicated subagent store
+					// keyed by namespace, never to the orchestrator's assistant
+					// bubble. This keeps each subagent's reasoning/message
+					// segments and tool calls separate from the main conversation.
+					if (
+						event.type === "subagent_message" ||
+						event.type === "subagent_reasoning" ||
+						event.type === "subagent_tool" ||
+						event.type === "subagent_tool_start" ||
+						event.type === "subagent_tool_end"
+					) {
+						onSubagentUpdate?.(event);
+						return;
+					}
+
 					const currentEvents =
 						messageListRef.current?.getMessageData(streamingMsgIdRef.current)?.events || [];
 					messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
