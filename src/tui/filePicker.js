@@ -105,6 +105,22 @@ export function sortFiles(files) {
 }
 
 /**
+ * Determine the status message to render below the input line.
+ * Returns the message text when the picker has no matching files (or is still
+ * loading), and an empty string when files are available. The empty message is
+ * rendered on a distinct line below the input line so the user's typed text
+ * remains visible when the `@` filter matches nothing.
+ * @param {boolean} loaded - Whether the initial glob has completed
+ * @param {number} count - The number of filtered files
+ * @returns {string} The status message to render below the input line
+ */
+export function getPickerStatusMessage(loaded, count) {
+	if (!loaded) return " Loading files...";
+	if (count === 0) return " No matching files.";
+	return "";
+}
+
+/**
  * FilePicker — a self-contained input + file list component.
  * Owns a single useInput handler for printable chars (insert at cursor),
  * backspace (delete before cursor), left/right (move cursor), up/down
@@ -236,33 +252,40 @@ export function FilePicker({ value, onChange, onClose, cwd }) {
 	const at = value[cursor] || " ";
 	const after = value.slice(cursor + 1);
 
+	// The status message (loading / no matches) renders on a distinct line below
+	// the input line, so the user's typed text remains visible when the filter
+	// matches nothing. When files are available, the file list renders instead.
+	const statusMessage = getPickerStatusMessage(loaded, filteredFiles.length);
+
 	return React.createElement(
 		Box,
 		{ flexDirection: "column", width: "100%", paddingX: 1 },
 		React.createElement(
-			Text,
-			null,
-			before,
-			React.createElement(Text, { inverse: true }, at),
-			after,
+			Box,
+			{ flexDirection: "row" },
+			React.createElement(
+				Text,
+				null,
+				before,
+				React.createElement(Text, { inverse: true }, at),
+				after,
+			),
 		),
-		!loaded
-			? React.createElement(Text, { color: "gray" }, " Loading files...")
-			: filteredFiles.length === 0
-				? React.createElement(Text, { color: "gray" }, " No matching files.")
-				: visibleFiles.map((file, i) => {
-						const isSelected = windowStart + i === clampedIndex;
-						return React.createElement(
-							Box,
-							{ key: file, flexDirection: "row" },
-							React.createElement(
-								Text,
-								{ color: isSelected ? "cyan" : undefined },
-								isSelected ? "▸ " : "  ",
-								file,
-							),
-						);
-					}),
+		statusMessage
+			? React.createElement(Text, { color: "gray" }, statusMessage)
+			: visibleFiles.map((file, i) => {
+					const isSelected = windowStart + i === clampedIndex;
+					return React.createElement(
+						Box,
+						{ key: file, flexDirection: "row" },
+						React.createElement(
+							Text,
+							{ color: isSelected ? "cyan" : undefined },
+							isSelected ? "▸ " : "  ",
+							file,
+						),
+					);
+				}),
 	);
 }
 

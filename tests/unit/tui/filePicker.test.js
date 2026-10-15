@@ -5,6 +5,7 @@ import {
 	shouldOpenPicker,
 	replaceToken,
 	sortFiles,
+	getPickerStatusMessage,
 	MAX_VISIBLE,
 } from "../../../src/tui/filePicker.js";
 
@@ -191,5 +192,19 @@ describe("sortFiles", () => {
 describe("MAX_VISIBLE", () => {
 	it("is 3", () => {
 		assert.strictEqual(MAX_VISIBLE, 3);
+	});
+});
+
+describe("getPickerStatusMessage", () => {
+	it("returns the loading message before the glob completes", () => {
+		assert.strictEqual(getPickerStatusMessage(false, 0), " Loading files...");
+	});
+
+	it("returns the empty message when the filter matches no files", () => {
+		assert.strictEqual(getPickerStatusMessage(true, 0), " No matching files.");
+	});
+
+	it("returns an empty string when files are available", () => {
+		assert.strictEqual(getPickerStatusMessage(true, 3), "");
 	});
 });
