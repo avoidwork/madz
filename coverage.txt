@@ -10,7 +10,7 @@
 ℹ   deepAgents.js                |  94.53 |    71.74 |   76.47 | 88-89 117-118 142 158-160 238-242 270-277 318-319 429-431 515-517
 ℹ  config                        |        |          |         | 
 ℹ   config.js                    | 100.00 |   100.00 |  100.00 | 
-ℹ   loader.js                    |  97.23 |    88.80 |   90.48 | 408-409 468-470 495 497 561-565 575-578
+ℹ   loader.js                    |  97.23 |    88.71 |   90.48 | 408-409 468-470 495 497 561-565 575-578
 ℹ   parse.js                     | 100.00 |   100.00 |  100.00 | 
 ℹ   patch.js                     | 100.00 |   100.00 |  100.00 | 
 ℹ   schemas                      |        |          |         | 
@@ -30,12 +30,12 @@
 ℹ    tui.js                      | 100.00 |   100.00 |  100.00 | 
 ℹ    vector.js                   | 100.00 |   100.00 |  100.00 | 
 ℹ  memory                        |        |          |         | 
-ℹ   context.js                   |  97.44 |    78.79 |  100.00 | 114-116
+ℹ   context.js                   |  95.73 |    69.70 |  100.00 | 112-116
 ℹ   expireEphemeralMemories.js   |  93.15 |    73.68 |  100.00 | 25-27 68-69
 ℹ   gc.js                        | 100.00 |   100.00 |  100.00 | 
 ℹ   index.js                     | 100.00 |   100.00 |  100.00 | 
 ℹ   profile.js                   | 100.00 |    98.41 |  100.00 | 
-ℹ   prompts.js                   | 100.00 |   100.00 |  100.00 | 
+ℹ   prompts.js                   | 100.00 |    88.89 |  100.00 | 
 ℹ   reader.js                    | 100.00 |    94.44 |  100.00 | 
 ℹ   retention.js                 |  30.99 |   100.00 |    0.00 | 15-35 44-71
 ℹ   screenshots.js               | 100.00 |   100.00 |  100.00 | 
@@ -70,10 +70,10 @@
 ℹ   logger.js                    |  79.53 |    66.67 |  100.00 | 87-98 123-132 137 139-141 164-166 176-180 203-211 217-222 239 273-274 276-278 297-299 307-309 317-319 327-329 337-339
 ℹ  skills                        |        |          |         | 
 ℹ   agentMapper.js               |  83.33 |    62.50 |  100.00 | 12-13 23-25
-ℹ   discoverer.js                |  99.10 |    92.31 |  100.00 | 174-175
-ℹ   registry.js                  |  87.77 |    72.97 |   77.78 | 104-105 153-162 173-175 201-207 215-219 227-231 264-265
+ℹ   discoverer.js                |  99.10 |    91.94 |  100.00 | 174-175
+ℹ   registry.js                  |  87.77 |    61.29 |   77.78 | 104-105 153-162 173-175 201-207 215-219 227-231 264-265
 ℹ   types.js                     | 100.00 |   100.00 |  100.00 | 
-ℹ   validator.js                 | 100.00 |   100.00 |   80.00 | 
+ℹ   validator.js                 |  96.35 |    97.50 |   80.00 | 130-134
 ℹ  stream                        |        |          |         | 
 ℹ   transformers                 |        |          |         | 
 ℹ    index.js                    | 100.00 |   100.00 |  100.00 | 
@@ -99,7 +99,7 @@
 ℹ     msgraph.js                 | 100.00 |    90.48 |  100.00 | 
 ℹ    schemas.js                  | 100.00 |   100.00 |  100.00 | 
 ℹ   clarify                      |        |          |         | 
-ℹ    index.js                    | 100.00 |    94.12 |  100.00 | 
+ℹ    index.js                    | 100.00 |    95.00 |  100.00 | 
 ℹ   code                         |        |          |         | 
 ℹ    index.js                    | 100.00 |   100.00 |  100.00 | 
 ℹ    indexCode.js                | 100.00 |    87.50 |  100.00 | 
@@ -217,6 +217,25 @@
 ℹ  workspace                     |        |          |         | 
 ℹ   loadAgents.js                | 100.00 |    87.50 |  100.00 | 
 ℹ -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-ℹ all files                      |  91.43 |    88.72 |   86.89 | 
+ℹ all files                      |  91.40 |    88.58 |   86.89 | 
 ℹ -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ℹ end of coverage report
+
+✖ failing tests:
+
+test at tests/unit/prompts.test.js:102:2
+✖ removes decision tool instruction when agent.decision.baseUrl is empty (6.038295ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(!result.includes("**Decision tool:**"))
+  
+      at TestContext.<anonymous> (file:///home/jason/Projects/madz.worktrees/6d2c2a44ec2890f9/tests/unit/prompts.test.js:111:10)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

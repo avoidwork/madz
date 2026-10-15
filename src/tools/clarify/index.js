@@ -50,8 +50,11 @@ export async function clarifyImpl(input, options) {
 
 	// Since TUI is terminal-based, return as answered with placeholder
 	// The actual answer comes via the next agent interaction's conversation history
+	// Echo the question (and choices if provided) back so the user sees what was asked
 	return JSON.stringify({
 		answered: true,
+		question,
+		...(choices && choices.length > 0 ? { choices } : {}),
 		answer: "(user_reply_pending)",
 		source: choices && choices.length > 0 ? "choices" : "open_ended",
 	});
@@ -65,7 +68,7 @@ export async function clarifyImpl(input, options) {
 export const clarify = tool(clarifyImpl, {
 	name: "clarify",
 	description:
-		"Send a clarification question to the user. Supports open-ended questions and choice prompts. Stores the question for session context in memory/context/clarifications.md.",
+		"Send a clarification question to the user. Supports open-ended questions and choice prompts. Stores the question for session context in memory/context/clarifications.md and echoes the question (and choices) back in the result.",
 	schema: z.object({
 		question: z.string().describe("The clarification question to ask the user"),
 		choices: z
