@@ -27,6 +27,7 @@ describe("clarify", () => {
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.answered, true);
 		assert.strictEqual(parsed.source, "open_ended");
+		assert.strictEqual(parsed.question, "What is your name?");
 	});
 
 	it("returns choices when choices array provided", async () => {
@@ -37,6 +38,8 @@ describe("clarify", () => {
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.answered, true);
 		assert.strictEqual(parsed.source, "choices");
+		assert.strictEqual(parsed.question, "Which language?");
+		assert.deepStrictEqual(parsed.choices, ["Python", "JavaScript"]);
 	});
 
 	it("creates clarifications file", async () => {
