@@ -190,6 +190,15 @@ export function createChatModel(config) {
 			if (delta.reasoning !== undefined && delta.reasoning_content === undefined) {
 				delta = { ...delta, reasoning_content: delta.reasoning };
 			}
+			// Copilot's proxy emits a roleless first delta for reasoning models
+			// (the first chunk carries reasoning_content but no `role`). The
+			// converter maps a roleless delta to a ChatMessageChunk, which fails
+			// AgentNode's `isInternalModelResponse` check ("expected AIMessage or
+			// Command, got object"). Default the role to "assistant" so the chunk
+			// becomes an AIMessageChunk and the concatenated stream is an AIMessage.
+			if (delta.role === undefined) {
+				delta = { ...delta, role: "assistant" };
+			}
 			return origDelta(delta, rawResponse, defaultRole);
 		};
 
