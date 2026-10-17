@@ -1,5 +1,6 @@
-import { tool } from "@langchain/core/tools";
 import { z } from "zod";
+import { interrupt } from "@langchain/langgraph";
+import { tool } from "@langchain/core/tools";
 import { writeFile, mkdir, readFile, access } from "node:fs/promises";
 
 /**
@@ -17,7 +18,15 @@ async function pathExists(filePath) {
 }
 
 /**
- * Core clarification logic: format choices, store question, append to file.
+ * Core clarification logic: format choices, store question, interrupt the
+ * agent to surface the question to the user, and capture the reply.
+ *
+ * The tool pauses the graph via LangGraph's `interrupt()`, which requires a
+ * checkpointer. The interrupt value carries the question (and choices) so the
+ * TUI can render a prompt. The graph is resumed with `Command({ resume })`,
+ * and the resumed value is the user's answer. Only then is `answered` true.
+ *
+ * The question is also appended to the clarifications file for session context.
  * @param {z.infer<typeof ClarifySchema>} input - The tool input
  * @param {object} options - Runtime options
  * @param {string} [options.clarificationsFile] - Path to clarifications file (default "memory/context/clarifications.md")
@@ -48,14 +57,18 @@ export async function clarifyImpl(input, options) {
 	const existing = (await pathExists(filePath)) ? await readFile(filePath, "utf-8") : "";
 	await writeFile(filePath, existing + "\n\n" + entry + "\n", "utf-8");
 
-	// Since TUI is terminal-based, return as answered with placeholder
-	// The actual answer comes via the next agent interaction's conversation history
-	// Echo the question (and choices if provided) back so the user sees what was asked
+	// Pause the agent and surface the question to the user. The interrupt value
+	// carries the question (and choices) so the TUI can render a prompt. The
+	// graph is resumed with `Command({ resume })`, and the resumed value is the
+	// user's answer. `interrupt()` returns the resume value when the graph is
+	// re-invoked, so `answered` is only true once a real answer is received.
+	const answer = interrupt({ question, ...(choices && choices.length > 0 ? { choices } : {}) });
+
 	return JSON.stringify({
 		answered: true,
 		question,
 		...(choices && choices.length > 0 ? { choices } : {}),
-		answer: "(user_reply_pending)",
+		answer,
 		source: choices && choices.length > 0 ? "choices" : "open_ended",
 	});
 }
@@ -68,7 +81,7 @@ export async function clarifyImpl(input, options) {
 export const clarify = tool(clarifyImpl, {
 	name: "clarify",
 	description:
-		"Send a clarification question to the user. Supports open-ended questions and choice prompts. Stores the question for session context in memory/context/clarifications.md and echoes the question (and choices) back in the result.",
+		"Send a clarification question to the user. Supports open-ended questions and choice prompts. Interrupts the agent to surface the question, captures the user's reply, and stores the question for session context in memory/context/clarifications.md.",
 	schema: z.object({
 		question: z.string().describe("The clarification question to ask the user"),
 		choices: z

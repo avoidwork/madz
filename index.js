@@ -29,6 +29,7 @@ import { loadSession } from "./src/session/loader.js";
 
 import React from "react";
 import { HumanMessage } from "@langchain/core/messages";
+import { INTERRUPT, Command } from "@langchain/langgraph";
 
 const { setConfigValue } = await import("./src/config/loader.js");
 const { createDeepAgentsOrchestrator } = await import("./src/agent/deepAgents.js");
@@ -222,6 +223,7 @@ async function callProvider(_name, _providerConfig, message, streamingCallback, 
 
 	let collectedContent = "";
 	let collectedReasoning = "";
+	let interrupted = false;
 	const input = {
 		messages: [new HumanMessage(message)],
 	};
@@ -229,7 +231,7 @@ async function callProvider(_name, _providerConfig, message, streamingCallback, 
 	for await (const [namespace, mode, payload] of await agent.stream(input, {
 		...config,
 		...options,
-		streamMode: ["messages", "tools"],
+		streamMode: ["messages", "tools", "values"],
 		subgraphs: true,
 	})) {
 		// With `subgraphs: true`, the root graph yields a namespace like
@@ -254,6 +256,29 @@ async function callProvider(_name, _providerConfig, message, streamingCallback, 
 			Array.isArray(namespace) &&
 			namespace.length > 1 &&
 			namespace.some((part) => part.startsWith("tools:"));
+
+		// Detect a human-in-the-loop interrupt (e.g. the `clarify` tool calling
+		// `interrupt()`). The interrupt surfaces as a `values` chunk carrying an
+		// `__interrupt__` array. When one fires, surface the question (and
+		// choices) to the TUI via the streaming callback and stop consuming the
+		// stream — the agent is paused and must be resumed with a `Command`.
+		if (mode === "values" && payload && Array.isArray(payload[INTERRUPT])) {
+			const interrupts = payload[INTERRUPT];
+			const first = interrupts[0];
+			const value = first?.value;
+			if (value && streamingCallback) {
+				streamingCallback({
+					type: "clarify",
+					question: value.question,
+					choices: value.choices,
+					interruptId: first?.id,
+				});
+			}
+			// The agent is paused; stop consuming the stream so the caller can
+			// surface the question and resume with the user's answer.
+			interrupted = true;
+			break;
+		}
 
 		if (mode === "messages") {
 			const [msg] = payload;
@@ -350,6 +375,154 @@ async function callProvider(_name, _providerConfig, message, streamingCallback, 
 		content: collectedContent,
 		reasoning: collectedReasoning || undefined,
 		tokens: { input: 0, output: 0 },
+		interrupted,
+	};
+}
+
+/**
+ * Resume a paused agent (e.g. after a `clarify` interrupt) with the user's
+ * answer. Re-invokes the graph with `Command({ resume })` on the same thread,
+ * which continues the paused node and streams the rest of the response.
+ * @param {string} answer - The user's answer to the clarification question
+ * @param {Function} [streamingCallback] - Callback for streamed chunks
+ * @param {AbortSignal} [signal] - Abort signal
+ * @returns {Promise<Object>} The resumed response
+ */
+async function resumeProvider(answer, streamingCallback, signal) {
+	const config = {
+		...currentSessionConfig(),
+		configurable: { thread_id: sessionState.getSessionId() },
+	};
+
+	const options = {
+		maxTokens: providerConfig.maxTokens,
+		signal,
+		recursionLimit: config.agent?.recursionLimit,
+	};
+
+	let collectedContent = "";
+	let collectedReasoning = "";
+	let interrupted = false;
+
+	for await (const [namespace, mode, payload] of await agent.stream(
+		new Command({ resume: answer }),
+		{
+			...config,
+			...options,
+			streamMode: ["messages", "tools", "values"],
+			subgraphs: true,
+		},
+	)) {
+		const isSubagent =
+			Array.isArray(namespace) &&
+			namespace.length > 1 &&
+			namespace.some((part) => part.startsWith("tools:"));
+
+		// Handle a nested interrupt (e.g. a second clarify question).
+		if (mode === "values" && payload && Array.isArray(payload[INTERRUPT])) {
+			const interrupts = payload[INTERRUPT];
+			const first = interrupts[0];
+			const value = first?.value;
+			if (value && streamingCallback) {
+				streamingCallback({
+					type: "clarify",
+					question: value.question,
+					choices: value.choices,
+					interruptId: first?.id,
+				});
+			}
+			interrupted = true;
+			break;
+		}
+
+		if (mode === "messages") {
+			const [msg] = payload;
+			const msgType = msg?._getType ? msg._getType() : msg?.type;
+			const text = msg?.text ?? "";
+
+			if (text) {
+				if (msgType === "tool") {
+					if (showToolResults !== false && streamingCallback) {
+						streamingCallback({
+							type: isSubagent ? "subagent_tool" : "tool",
+							text,
+							name: msg?.name,
+							namespace,
+						});
+					}
+					continue;
+				}
+
+				if (!isSubagent) {
+					collectedContent += text;
+				}
+
+				if (streamingCallback) {
+					streamingCallback({
+						type: isSubagent ? "subagent_message" : "message",
+						text,
+						namespace,
+					});
+				}
+			}
+
+			const reasoningContent =
+				msg?.additional_kwargs?.reasoning_content ?? msg?.additional_kwargs?.reasoning;
+			if (reasoningContent) {
+				if (!isSubagent) {
+					collectedReasoning += reasoningContent;
+				}
+				if (streamingCallback) {
+					streamingCallback({
+						type: isSubagent ? "subagent_reasoning" : "reasoning",
+						text: reasoningContent,
+						namespace,
+					});
+				}
+			}
+
+			if (Array.isArray(msg?.content)) {
+				for (const block of msg.content) {
+					if (block?.type === "reasoning" && block.reasoning) {
+						if (!isSubagent) {
+							collectedReasoning += block.reasoning;
+						}
+						if (streamingCallback) {
+							streamingCallback({
+								type: isSubagent ? "subagent_reasoning" : "reasoning",
+								text: block.reasoning,
+								namespace,
+							});
+						}
+					}
+				}
+			}
+		} else if (mode === "tools" && streamingCallback) {
+			if (payload?.event === "on_tool_start") {
+				streamingCallback({
+					type: isSubagent ? "subagent_tool_start" : "on_tool_start",
+					name: payload.name,
+					data: { input: payload.input },
+					namespace,
+				});
+			}
+			if (payload?.event === "on_tool_end") {
+				streamingCallback({
+					type: isSubagent ? "subagent_tool_end" : "on_tool_end",
+					name: payload.name,
+					data: { output: payload.output },
+					namespace,
+				});
+			}
+		}
+	}
+
+	return {
+		provider: providerName,
+		content: collectedContent,
+		reasoning: collectedReasoning || undefined,
+		tokens: { input: 0, output: 0 },
+		interrupted,
 	};
 }
 
@@ -513,6 +686,7 @@ if (isMain) {
 				registry,
 				sessionState,
 				dispatchProvider,
+				resumeProvider,
 				scheduleManager,
 				appInfo,
 				authPrompt,
@@ -559,6 +733,7 @@ export {
 	registry,
 	tracer,
 	dispatchProvider,
+	resumeProvider,
 	handleConversation,
 	handleShutdown,
 	scheduleManager,

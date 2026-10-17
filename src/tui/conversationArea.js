@@ -63,6 +63,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 		registry,
 		sessionState,
 		dispatchProvider,
+		resumeProvider,
 		scheduleManager,
 		onSaveSession,
 		gcManager,
@@ -108,6 +109,10 @@ const ConversationArea = forwardRef(function ConversationArea(
 	const toolMessageTokensRef = useRef(0);
 	const contextUpdateTimerRef = useRef(null);
 	const pendingContextRef = useRef({ content: "" });
+	// Tracks a pending clarification question surfaced by the `clarify` tool.
+	// When set, the next user input is treated as the answer and routed to
+	// `resumeProvider` instead of dispatching a new message.
+	const pendingClarifyRef = useRef(null);
 	// Subagent store is lifted to App state. The streaming handler reports each
 	// subagent_* event via onSubagentUpdate, which updates App's state and
 	// re-renders the SUBAGENTS panel live. This component no longer owns the
@@ -350,6 +355,18 @@ const ConversationArea = forwardRef(function ConversationArea(
 		// Reset the tool-message token accumulator at the start of each turn so
 		// tool tokens from a previous turn do not leak into the next.
 		toolMessageTokensRef.current = 0;
+
+		// If a clarification question is pending, the input is the user's answer.
+		// Route it to `resumeProvider` to continue the paused agent rather than
+		// dispatching a new message.
+		if (pendingClarifyRef.current) {
+			pendingClarifyRef.current = null;
+			addMessage({ role: "user", content: text });
+			onStatusChange?.("Streaming...");
+			await resumeClarify(text);
+			return;
+		}
+
 		onStatusChange?.("Streaming...");
 		// silentUser: dispatch the message without rendering it as a user message
 		// in the TUI (e.g., synthesized skill prompts). The assistant's streaming
@@ -669,6 +686,22 @@ const ConversationArea = forwardRef(function ConversationArea(
 						return;
 					}
 
+					// A `clarify` interrupt fired. Surface the question to the
+					// user and arm the pending-clarify state so the next input is
+					// routed to `resumeProvider` as the answer.
+					if (event.type === "clarify") {
+						const question = event.question || "";
+						const choices = event.choices || [];
+						const promptText =
+							choices.length > 0
+								? `${question}\n\nOptions:\n${choices.map((c, i) => `${i + 1}. ${c}`).join("\n")}`
+								: question;
+						addMessage({ role: "system", content: promptText });
+						pendingClarifyRef.current = { question, choices };
+						onStatusChange?.("Clarification needed");
+						return;
+					}
+
 					const currentEvents =
 						messageListRef.current?.getMessageData(streamingMsgIdRef.current)?.events || [];
 					messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
@@ -797,6 +830,101 @@ const ConversationArea = forwardRef(function ConversationArea(
 			};
 		},
 	);
+
+	/**
+	 * Resume a paused agent after a `clarify` interrupt, streaming the
+	 * continuation into a fresh assistant bubble.
+	 * @param {string} answer - The user's answer to the clarification question
+	 * @param {Object} pending - The pending clarification state
+	 */
+	const resumeClarify = async (answer) => {
+		if (shouldAbort()) return;
+		const assistantTime = getTimestamp();
+		const turnStartTime = Date.now();
+		streamingMsgIdRef.current = messageListRef.current.addMessage("assistant", "", {
+			time: assistantTime,
+			streaming: true,
+			turnStartTime,
+		});
+		if (messageCountRef) {
+			messageCountRef.current = messageListRef.current?.getMessageCount() || 0;
+		}
+
+		let committedContentRef = { current: "" };
+		const committedReasoningRef = { current: "" };
+		const lastToolCallDisplayRef = { current: "" };
+		let todoStatusLines = "";
+		/** @type {Object<string, number>} */
+		const completedToolCalls = {};
+
+		abortControllerRef.current = new AbortController();
+		isStreamingRef.current = true;
+
+		try {
+			const preStreamContextSize = contextSize;
+			const dispatchPromise = resumeProvider(
+				answer,
+				createStreamingHandler(
+					committedContentRef,
+					committedReasoningRef,
+					lastToolCallDisplayRef,
+					undefined,
+					preStreamContextSize,
+					updateContextDisplay,
+					completedToolCalls,
+					turnStartTime,
+				),
+				abortControllerRef.current?.signal,
+			);
+			dispatchPromiseRef.current = dispatchPromise;
+			const _response = await dispatchPromise;
+
+			if (shouldAbort()) return;
+
+			finalizeStreaming(
+				committedContentRef.current,
+				committedReasoningRef.current,
+				lastToolCallDisplayRef.current,
+				todoStatusLines,
+				turnStartTime,
+				completedToolCalls,
+			);
+
+			if (sessionState) {
+				sessionState.addExchange({
+					role: "assistant",
+					content: committedContentRef.current,
+				});
+				updateContextSize(sessionState, config);
+			}
+			if (onSaveSession) {
+				onSaveSession();
+			}
+			gcManager?.();
+			onStatusChange?.("Received response");
+		} catch (err) {
+			if (err.name === "AbortError") {
+				if (sessionState) {
+					sessionState.removeLastAssistantToolCallMessage();
+					sessionState.popExchange();
+				}
+				onStatusChange?.("Interrupted.");
+			} else {
+				if (onSaveSession) {
+					onSaveSession();
+				}
+				onStatusChange?.("Something went wrong");
+				addMessage({
+					role: "system",
+					content: `I couldn't connect right now - ${err.message}. Try sending your message again?`,
+				});
+			}
+		} finally {
+			abortControllerRef.current = null;
+			isStreamingRef.current = false;
+		}
+		gcManager?.();
+	};
 
 	/**
 	 * Finalize streaming message.
