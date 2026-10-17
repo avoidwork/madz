@@ -1,5 +1,6 @@
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert";
+import { AIMessageChunk, ChatMessageChunk } from "@langchain/core/messages";
 import {
 	createChatModel,
 	resetTokenBudget,
@@ -185,6 +186,113 @@ describe("createChatModel Copilot credential handling", () => {
 			rateLimit: { maxRetries: 6 },
 		});
 		assert.strictEqual(typeof model.clientConfig.fetch, "function");
+	});
+});
+
+describe("createChatModel roleless delta normalization", () => {
+	beforeEach(() => {
+		resetTokenBudget();
+	});
+
+	// Regression guard for the Copilot "expected AIMessage or Command, got object"
+	// error. Copilot's proxy emits a roleless first delta for reasoning models
+	// (the first chunk carries reasoning_content but no `role`). The converter
+	// maps a roleless delta to a ChatMessageChunk, which fails AgentNode's
+	// `isInternalModelResponse` check. The patch must default the role to
+	// "assistant" so the chunk becomes an AIMessageChunk.
+	it("defaults a roleless delta to assistant so it becomes an AIMessageChunk", () => {
+		const model = createChatModel({
+			type: "github-copilot",
+			model: "gpt-4o",
+			base_url: "https://api.githubcopilot.com",
+			temperature: 0.4,
+			maxTokens: -1,
+			rateLimit: { maxRetries: 6 },
+		});
+		const conv = model.completions._convertCompletionsDeltaToBaseMessageChunk.bind(
+			model.completions,
+		);
+		const chunk = conv(
+			{ content: "", reasoning_content: "thinking..." },
+			{ id: "x", choices: [{ index: 0 }], usage: {} },
+			undefined,
+		);
+		assert.ok(chunk instanceof AIMessageChunk, "roleless delta must become an AIMessageChunk");
+		assert.ok(!(chunk instanceof ChatMessageChunk), "must not fall through to ChatMessageChunk");
+	});
+
+	// The agent dispatch path calls model.bindTools(), which constructs a NEW
+	// ChatOpenAI (and a new ChatOpenAICompletions) via withConfig(). An
+	// instance-level patch is orphaned and never fires. The patch MUST be on the
+	// prototype so it survives the rebuild.
+	it("survives bindTools so the agent dispatch path sees the fix", () => {
+		const model = createChatModel({
+			type: "github-copilot",
+			model: "gpt-4o",
+			base_url: "https://api.githubcopilot.com",
+			temperature: 0.4,
+			maxTokens: -1,
+			rateLimit: { maxRetries: 6 },
+		});
+		const bound = model.bindTools([
+			{ name: "read_file", description: "d", schema: { type: "object", properties: {} } },
+		]);
+		assert.notStrictEqual(bound, model, "bindTools must return a new model");
+		const conv = bound.completions._convertCompletionsDeltaToBaseMessageChunk.bind(
+			bound.completions,
+		);
+		const chunk = conv(
+			{ content: "", reasoning_content: "thinking..." },
+			{ id: "x", choices: [{ index: 0 }], usage: {} },
+			undefined,
+		);
+		assert.ok(
+			chunk instanceof AIMessageChunk,
+			"roleless delta must become an AIMessageChunk after bindTools",
+		);
+	});
+
+	it("defaults a roleless tool-call delta to assistant", () => {
+		const model = createChatModel({
+			type: "github-copilot",
+			model: "gpt-4o",
+			base_url: "https://api.githubcopilot.com",
+			temperature: 0.4,
+			maxTokens: -1,
+			rateLimit: { maxRetries: 6 },
+		});
+		const conv = model.completions._convertCompletionsDeltaToBaseMessageChunk.bind(
+			model.completions,
+		);
+		const chunk = conv(
+			{ tool_calls: [{ index: 0, id: "call_1", function: { name: "ls", arguments: "{}" } }] },
+			{ id: "x", choices: [{ index: 0 }], usage: {} },
+			undefined,
+		);
+		assert.ok(
+			chunk instanceof AIMessageChunk,
+			"roleless tool-call delta must become an AIMessageChunk",
+		);
+	});
+
+	it("preserves an explicit assistant role", () => {
+		const model = createChatModel({
+			type: "github-copilot",
+			model: "gpt-4o",
+			base_url: "https://api.githubcopilot.com",
+			temperature: 0.4,
+			maxTokens: -1,
+			rateLimit: { maxRetries: 6 },
+		});
+		const conv = model.completions._convertCompletionsDeltaToBaseMessageChunk.bind(
+			model.completions,
+		);
+		const chunk = conv(
+			{ role: "assistant", content: "hello" },
+			{ id: "x", choices: [{ index: 0 }], usage: {} },
+			undefined,
+		);
+		assert.ok(chunk instanceof AIMessageChunk);
 	});
 });
 

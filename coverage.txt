@@ -30,7 +30,7 @@
 ℹ    tui.js                      | 100.00 |   100.00 |  100.00 | 
 ℹ    vector.js                   | 100.00 |   100.00 |  100.00 | 
 ℹ  memory                        |        |          |         | 
-ℹ   context.js                   |  95.73 |    69.70 |  100.00 | 112-116
+ℹ   context.js                   |  97.44 |    78.79 |  100.00 | 114-116
 ℹ   expireEphemeralMemories.js   |  93.15 |    73.68 |  100.00 | 25-27 68-69
 ℹ   gc.js                        | 100.00 |   100.00 |  100.00 | 
 ℹ   index.js                     | 100.00 |   100.00 |  100.00 | 
@@ -46,7 +46,7 @@
 ℹ   imageDispatchMiddleware.js   |  96.00 |    84.21 |   83.33 | 71-73 171-174
 ℹ   index.js                     | 100.00 |   100.00 |  100.00 | 
 ℹ   modelInfo.js                 | 100.00 |   100.00 |  100.00 | 
-ℹ   openai.js                    |  93.73 |    84.62 |   70.00 | 62-64 171 186-193 200-203
+ℹ   openai.js                    |  96.21 |    82.14 |   80.00 | 62-64 171 191-192 209-212
 ℹ   summarizationMiddleware.js   | 100.00 |   100.00 |  100.00 | 
 ℹ   tokenBudget.js               | 100.00 |    90.32 |   86.67 | 
 ℹ   tokenBudgetMiddleware.js     | 100.00 |    79.66 |   85.71 | 
@@ -70,10 +70,10 @@
 ℹ   logger.js                    |  79.53 |    66.67 |  100.00 | 87-98 123-132 137 139-141 164-166 176-180 203-211 217-222 239 273-274 276-278 297-299 307-309 317-319 327-329 337-339
 ℹ  skills                        |        |          |         | 
 ℹ   agentMapper.js               |  83.33 |    62.50 |  100.00 | 12-13 23-25
-ℹ   discoverer.js                |  99.10 |    91.94 |  100.00 | 174-175
-ℹ   registry.js                  |  87.77 |    61.29 |   77.78 | 104-105 153-162 173-175 201-207 215-219 227-231 264-265
+ℹ   discoverer.js                |  99.10 |    92.31 |  100.00 | 174-175
+ℹ   registry.js                  |  87.77 |    72.97 |   77.78 | 104-105 153-162 173-175 201-207 215-219 227-231 264-265
 ℹ   types.js                     | 100.00 |   100.00 |  100.00 | 
-ℹ   validator.js                 |  96.35 |    97.50 |   80.00 | 130-134
+ℹ   validator.js                 | 100.00 |   100.00 |   80.00 | 
 ℹ  stream                        |        |          |         | 
 ℹ   transformers                 |        |          |         | 
 ℹ    index.js                    | 100.00 |   100.00 |  100.00 | 
@@ -217,19 +217,19 @@
 ℹ  workspace                     |        |          |         | 
 ℹ   loadAgents.js                | 100.00 |    87.50 |  100.00 | 
 ℹ -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-ℹ all files                      |  91.40 |    88.58 |   86.89 | 
+ℹ all files                      |  91.45 |    88.68 |   86.96 | 
 ℹ -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ℹ end of coverage report
 
 ✖ failing tests:
 
 test at tests/unit/prompts.test.js:102:2
-✖ removes decision tool instruction when agent.decision.baseUrl is empty (6.038295ms)
+✖ removes decision tool instruction when agent.decision.baseUrl is empty (31.021316ms)
   AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
   
     assert.ok(!result.includes("**Decision tool:**"))
   
-      at TestContext.<anonymous> (file:///home/jason/Projects/madz.worktrees/6d2c2a44ec2890f9/tests/unit/prompts.test.js:111:10)
+      at TestContext.<anonymous> (file:///home/jason/Projects/madz/tests/unit/prompts.test.js:111:10)
       at async Test.run (node:internal/test_runner/test:1208:7)
       at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
     generatedMessage: true,
