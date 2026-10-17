@@ -221,6 +221,37 @@ describe("createChatModel roleless delta normalization", () => {
 		assert.ok(!(chunk instanceof ChatMessageChunk), "must not fall through to ChatMessageChunk");
 	});
 
+	// The agent dispatch path calls model.bindTools(), which constructs a NEW
+	// ChatOpenAI (and a new ChatOpenAICompletions) via withConfig(). An
+	// instance-level patch is orphaned and never fires. The patch MUST be on the
+	// prototype so it survives the rebuild.
+	it("survives bindTools so the agent dispatch path sees the fix", () => {
+		const model = createChatModel({
+			type: "github-copilot",
+			model: "gpt-4o",
+			base_url: "https://api.githubcopilot.com",
+			temperature: 0.4,
+			maxTokens: -1,
+			rateLimit: { maxRetries: 6 },
+		});
+		const bound = model.bindTools([
+			{ name: "read_file", description: "d", schema: { type: "object", properties: {} } },
+		]);
+		assert.notStrictEqual(bound, model, "bindTools must return a new model");
+		const conv = bound.completions._convertCompletionsDeltaToBaseMessageChunk.bind(
+			bound.completions,
+		);
+		const chunk = conv(
+			{ content: "", reasoning_content: "thinking..." },
+			{ id: "x", choices: [{ index: 0 }], usage: {} },
+			undefined,
+		);
+		assert.ok(
+			chunk instanceof AIMessageChunk,
+			"roleless delta must become an AIMessageChunk after bindTools",
+		);
+	});
+
 	it("defaults a roleless tool-call delta to assistant", () => {
 		const model = createChatModel({
 			type: "github-copilot",

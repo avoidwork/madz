@@ -175,42 +175,47 @@ export function createChatModel(config) {
 		});
 	}
 
-	// Normalize vLLM's 'reasoning' field to OpenAI's 'reasoning_content'
-	// LangChain's converter only reads 'reasoning_content', so vLLM's
-	// reasoning tokens are silently dropped without this normalization.
+	// Normalize vLLM's 'reasoning' field to OpenAI's 'reasoning_content', and
+	// default a roleless stream delta to 'assistant' (Copilot's proxy emits a
+	// roleless first delta for reasoning models). LangChain's converter only
+	// reads 'reasoning_content', so vLLM's reasoning tokens are silently dropped
+	// without this normalization; and a roleless delta maps to a ChatMessageChunk,
+	// which fails AgentNode's `isInternalModelResponse` check.
+	//
+	// These are patched on the PROTOTYPE, not the instance. The agent dispatch
+	// path calls `model.bindTools()`, which constructs a NEW ChatOpenAI (and a
+	// new ChatOpenAICompletions) via `withConfig()`; an instance-level patch is
+	// orphaned and never fires. Patching the prototype survives the rebuild.
 	if (model.completions) {
-		const origDelta = model.completions._convertCompletionsDeltaToBaseMessageChunk.bind(
-			model.completions,
-		);
-		model.completions._convertCompletionsDeltaToBaseMessageChunk = (
-			delta,
-			rawResponse,
-			defaultRole,
-		) => {
-			if (delta.reasoning !== undefined && delta.reasoning_content === undefined) {
-				delta = { ...delta, reasoning_content: delta.reasoning };
-			}
-			// Copilot's proxy emits a roleless first delta for reasoning models
-			// (the first chunk carries reasoning_content but no `role`). The
-			// converter maps a roleless delta to a ChatMessageChunk, which fails
-			// AgentNode's `isInternalModelResponse` check ("expected AIMessage or
-			// Command, got object"). Default the role to "assistant" so the chunk
-			// becomes an AIMessageChunk and the concatenated stream is an AIMessage.
-			if (delta.role === undefined) {
-				delta = { ...delta, role: "assistant" };
-			}
-			return origDelta(delta, rawResponse, defaultRole);
-		};
+		const completionsProto = Object.getPrototypeOf(model.completions);
+		const origDelta = completionsProto._convertCompletionsDeltaToBaseMessageChunk;
+		if (typeof origDelta === "function" && !completionsProto.__madzDeltaPatched) {
+			completionsProto._convertCompletionsDeltaToBaseMessageChunk = function (
+				delta,
+				rawResponse,
+				defaultRole,
+			) {
+				if (delta.reasoning !== undefined && delta.reasoning_content === undefined) {
+					delta = { ...delta, reasoning_content: delta.reasoning };
+				}
+				if (delta.role === undefined) {
+					delta = { ...delta, role: "assistant" };
+				}
+				return origDelta.call(this, delta, rawResponse, defaultRole);
+			};
+			completionsProto.__madzDeltaPatched = true;
+		}
 
-		const origMsg = model.completions._convertCompletionsMessageToBaseMessage.bind(
-			model.completions,
-		);
-		model.completions._convertCompletionsMessageToBaseMessage = (message, rawResponse) => {
-			if (message.reasoning !== undefined && message.reasoning_content === undefined) {
-				message = { ...message, reasoning_content: message.reasoning };
-			}
-			return origMsg(message, rawResponse);
-		};
+		const origMsg = completionsProto._convertCompletionsMessageToBaseMessage;
+		if (typeof origMsg === "function" && !completionsProto.__madzMsgPatched) {
+			completionsProto._convertCompletionsMessageToBaseMessage = function (message, rawResponse) {
+				if (message.reasoning !== undefined && message.reasoning_content === undefined) {
+					message = { ...message, reasoning_content: message.reasoning };
+				}
+				return origMsg.call(this, message, rawResponse);
+			};
+			completionsProto.__madzMsgPatched = true;
+		}
 	}
 
 	return model;
