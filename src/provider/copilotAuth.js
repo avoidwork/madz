@@ -384,6 +384,57 @@ function isAgentInitiated(body) {
 }
 
 /**
+ * Content-part types that carry an image, across the three Copilot API shapes:
+ * `image_url` (Completions API), `input_image` (Responses API), and `image`
+ * (Anthropic Messages API). Matching opencode's vision detection.
+ * @type {ReadonlySet<string>}
+ */
+const VISION_PART_TYPES = Object.freeze(new Set(["image_url", "input_image", "image"]));
+
+/**
+ * Determine whether a message content value carries image content. Recurses
+ * into Anthropic `tool_result` blocks, which can nest images in their own
+ * `content` array — matching opencode's Messages API detection.
+ * @param {string|Array} content - The message content
+ * @returns {boolean} True if any part carries an image
+ */
+function hasImageParts(content) {
+	if (!Array.isArray(content)) return false;
+	return content.some((part) => {
+		if (!part || typeof part !== "object") return false;
+		if (VISION_PART_TYPES.has(part.type)) return true;
+		if (part.type === "tool_result") return hasImageParts(part.content);
+		return false;
+	});
+}
+
+/**
+ * Determine whether a Copilot request carries image content anywhere in the
+ * conversation.
+ *
+ * GitHub's Copilot API rejects vision requests that omit the
+ * `Copilot-Vision-Request` header with `400 missing required
+ * Copilot-Vision-Request header for vision requests`. The header is required
+ * whenever the payload contains an image — not only when the final message
+ * carries it — so this scans every message, matching opencode, which checks
+ * the whole body rather than the last item.
+ *
+ * Handles all three request shapes opencode supports: Completions
+ * (`body.messages` + `image_url`), Responses (`body.input` + `input_image`),
+ * and the Anthropic Messages shim (`body.messages` + `image`, including images
+ * nested inside `tool_result` blocks).
+ * @param {Object} [body] - The parsed request body
+ * @returns {boolean} True if the request includes image content
+ */
+function isVisionRequest(body) {
+	if (!body) return false;
+	let items = [];
+	if (Array.isArray(body.messages)) items = body.messages;
+	else if (Array.isArray(body.input)) items = body.input;
+	return items.some((item) => hasImageParts(item?.content));
+}
+
+/**
  * Detect the synthetic-attachment sentinel in a message content value, which
  * may be a string or an array of content blocks.
  * @param {string|Array} content - The message content
@@ -445,6 +496,15 @@ export function createCopilotFetch(memoryDir) {
 			}
 		}
 		headers.set("x-initiator", isAgentInitiated(body) ? "agent" : "user");
+		// GitHub's Copilot API requires this marker on any request whose payload
+		// contains an image; without it the request fails with
+		// `400 missing required Copilot-Vision-Request header for vision
+		// requests`. Set it whenever image content is present, matching
+		// opencode. It is a routing hint, not a capability toggle, so sending it
+		// for a non-vision-capable model is harmless.
+		if (isVisionRequest(body)) {
+			headers.set("Copilot-Vision-Request", "true");
+		}
 		headers.set("Openai-Intent", "conversation-edits");
 		headers.set("X-GitHub-Api-Version", API_VERSION);
 		headers.set("User-Agent", `madz/${APP_VERSION}`);
