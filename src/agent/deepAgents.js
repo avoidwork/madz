@@ -489,7 +489,7 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	// 408/409/429/>=500, so a Copilot 403 would otherwise pass through).
 	const copilotRetryMiddleware =
 		providerConfig.type === "github-copilot"
-			? createCopilotRetryMiddleware({ maxRetries: 3 })
+			? createCopilotRetryMiddleware({ maxRetries: 10 })
 			: null;
 
 	const agent = createDeepAgent({
