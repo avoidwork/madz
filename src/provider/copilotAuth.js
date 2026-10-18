@@ -115,7 +115,34 @@ export function authFilePath(memoryDir) {
 export const API_VERSION = "2026-06-01";
 
 /**
- * Read the persisted Copilot token.
+ * In-memory Copilot refresh-token state. This is the single source of truth
+ * for the Authorization header on every request. It is initialized from the
+ * persisted auth file (or the OAuth device-flow response) and updated whenever
+ * a fresh token is obtained. Requests decorate the header from this state —
+ * they never delete it.
+ * @type {string|null}
+ */
+let copilotToken = null;
+
+/**
+ * Set the in-memory Copilot token state. Called when a token is loaded from
+ * disk or obtained from the OAuth device flow.
+ * @param {string|null} token - The refresh token, or null to clear
+ */
+export function setCopilotToken(token) {
+	copilotToken = token;
+}
+
+/**
+ * Get the in-memory Copilot token state.
+ * @returns {string|null} The refresh token, or null if not set
+ */
+export function getCopilotToken() {
+	return copilotToken;
+}
+
+/**
+ * Read the persisted Copilot token from disk and update the in-memory state.
  * @param {string} [memoryDir] - The memory directory
  * @returns {Promise<string|null>} The access token, or null if not present
  */
@@ -124,14 +151,17 @@ export async function getToken(memoryDir) {
 	try {
 		const data = await readFile(file, "utf8");
 		const parsed = JSON.parse(data);
-		return parsed?.access_token || null;
+		const token = parsed?.access_token || null;
+		copilotToken = token;
+		return token;
 	} catch {
 		return null;
 	}
 }
 
 /**
- * Persist the Copilot token to the auth file with mode `0o600`.
+ * Persist the Copilot token to the auth file with mode `0o600` and update the
+ * in-memory state.
  * @param {string} token - The access token to persist
  * @param {string} [memoryDir] - The memory directory
  * @returns {Promise<void>}
@@ -143,6 +173,7 @@ export async function persist(token, memoryDir) {
 		mode: 0o600,
 		flag: "w",
 	});
+	copilotToken = token;
 }
 
 /**
@@ -157,6 +188,7 @@ export async function clearToken(memoryDir) {
 	} catch {
 		// Ignore missing file.
 	}
+	copilotToken = null;
 }
 
 /**
@@ -392,14 +424,12 @@ function containsSentinel(content) {
  */
 export function createCopilotFetch(memoryDir) {
 	return async (input, init = {}) => {
-		const oauthToken = await getToken(memoryDir);
+		// Load the token from disk into state if not already set, then decorate
+		// the Authorization header from state. We never delete the header — we
+		// simply set it, which overrides whatever the SDK injected (the
+		// placeholder apiKey). This mirrors opencode's approach.
+		const oauthToken = copilotToken ?? (await getToken(memoryDir));
 		const headers = new Headers(init.headers || {});
-		// The OpenAI SDK injects an `x-api-key`/`authorization` from the
-		// placeholder apiKey; drop them so the real bearer is authoritative.
-		// Must happen BEFORE setting our own Authorization (Headers is
-		// case-insensitive, so a later delete would remove our bearer).
-		headers.delete("x-api-key");
-		headers.delete("authorization");
 		if (oauthToken) {
 			headers.set("Authorization", `Bearer ${oauthToken}`);
 		}

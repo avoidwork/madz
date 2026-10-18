@@ -16,6 +16,7 @@ import {
 	getAuthPrompt,
 	createCopilotFetch,
 	setAuthRequiredHandler,
+	setCopilotToken,
 	CLIENT_ID,
 	API_VERSION,
 } from "../../../src/provider/copilotAuth.js";
@@ -29,6 +30,8 @@ let memoryDir;
 beforeEach(async () => {
 	tmp = await mkdtemp(join(tmpdir(), "copilot-auth-"));
 	memoryDir = join(tmp, "memory");
+	// Reset the module-level token state so tests are isolated.
+	setCopilotToken(null);
 });
 
 afterEach(async () => {
