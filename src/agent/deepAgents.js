@@ -21,6 +21,7 @@ import {
 	forceSummarize,
 } from "../provider/summarizationMiddleware.js";
 import { createImageDispatchMiddleware } from "../provider/imageDispatchMiddleware.js";
+import { createEvictionAwareFilesystemMiddleware } from "./evictionCeiling.js";
 import {
 	buildToolConfig,
 	getToolsForAgentTypes,
@@ -42,9 +43,12 @@ import { createTurnTransformer } from "../stream/transformers/index.js";
  * @param {Object} model - Chat model instance (orchestrator model)
  * @param {SkillRegistry} skillRegistry - Skill registry instance
  * @param {Object} config - Resolved config object
+ * @param {Object} [backend] - Backend shared with the agent, used by each
+ *   subagent's filesystem middleware. Defaults to the library's StateBackend
+ *   when omitted.
  * @returns {Promise<Object[]>} Array of subagent definitions
  */
-export async function createSubagentDefinitions(allTools, model, skillRegistry, config) {
+export async function createSubagentDefinitions(allTools, model, skillRegistry, config, backend) {
 	const allAgents = await getAllAgents();
 	const providerConfig = getActiveProviderConfig(config);
 	// Build a Map keyed by tool name once so per-agent tool lookups are O(1)
@@ -82,6 +86,15 @@ export async function createSubagentDefinitions(allTools, model, skillRegistry, 
 			description: `${agentDef.description}${toolList}`,
 			model: agentModel,
 			tools: filteredTools,
+			// deepagents does NOT propagate the orchestrator's custom middleware to
+			// inline subagents — `buildSubagentMiddleware` merges only each spec's own
+			// `middleware` (parent custom middleware reaches just the auto-injected
+			// `general-purpose` subagent). Without this, every configured subagent
+			// keeps deepagents' 20,000-token eviction default and destroys
+			// `readImage` results before ImageDispatch can build a vision block.
+			// A fresh instance per subagent mirrors the library's own per-subagent
+			// `createSubagentDefaultMiddleware`.
+			middleware: [createEvictionAwareFilesystemMiddleware({ backend, model: agentModel, config })],
 		};
 
 		// Attach skills array only if this agent has coding-specific skills
@@ -399,21 +412,24 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	const contextBackend = createContextBackend();
 	const contextRoute = "/" + config.memory.contextDir.replace(/^\.?\//, "");
 
+	// Composite backend shared by the orchestrator, the summarization middleware
+	// (which offloads conversation history to it), and the subagent filesystem
+	// middleware built below — deepagents binds each subagent's filesystem tools
+	// and eviction writes to the same backend the agent uses.
+	const backend = new CompositeBackend(coreBackend, {
+		[contextRoute]: contextBackend,
+	});
+
 	// Create subagent definitions with filtered tools and agent-specific skills
 	const subagentDefinitions = await createSubagentDefinitions(
 		allTools,
 		model,
 		skillRegistry,
 		config,
+		backend,
 	);
 
 	// All discovered skills are available to the orchestrator
-
-	// Composite backend shared by the orchestrator and the summarization
-	// middleware (which offloads conversation history to it).
-	const backend = new CompositeBackend(coreBackend, {
-		[contextRoute]: contextBackend,
-	});
 
 	// Token-budget enforcement middleware. Registered LAST: AgentNode composes
 	// the wrapModelCall chain backwards, so the last entry is innermost and
@@ -492,6 +508,22 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 			? createCopilotRetryMiddleware({ maxRetries: 3 })
 			: null;
 
+	// Replacement for deepagents' FilesystemMiddleware with an eviction ceiling
+	// derived from `image.maxSize`. The library evicts any ToolMessage whose
+	// stringified content exceeds `toolTokenLimitBeforeEvict * 4` characters
+	// (default 20,000 tokens -> 80,000 chars), which destroys `readImage`'s
+	// base64 JSON before ImageDispatch can turn it into a vision block.
+	// Displaces the library default via same-name merge in `mergeMiddlewareStack`
+	// — the mechanism our SummarizationMiddleware above also relies on. The name
+	// is asserted in tests: if it drifts, a second copy stacks and the bug
+	// survives while looking fixed.
+	const filesystemMiddleware = createEvictionAwareFilesystemMiddleware({
+		backend,
+		permissions: [],
+		model,
+		config,
+	});
+
 	const agent = createDeepAgent({
 		model,
 		tools: orchestratorTools,
@@ -502,6 +534,7 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 		...(skillPaths.length > 0 && { skills: skillPaths }),
 		...(checkpointer && { checkpointer }),
 		middleware: [
+			filesystemMiddleware,
 			createCodeInterpreterMiddleware(),
 			...(summarizationMiddleware ? [summarizationMiddleware] : []),
 			imageDispatchMiddleware,
