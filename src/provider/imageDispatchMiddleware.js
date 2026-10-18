@@ -4,6 +4,14 @@ import { sendImageImpl } from "../tools/image/sendImage.js";
 import { logger } from "../shared/logger.js";
 
 /**
+ * Sentinel text marker prepended to the trigger prompt of a synthetic
+ * multimodal message injected by this middleware. It lets consumers (e.g. the
+ * Copilot `x-initiator` classifier) recognize that the message is the agent's
+ * own tool output being fed back as vision input, not a fresh user turn.
+ */
+export const SYNTHETIC_ATTACHMENT_PROMPT = "Attached media from tool result:";
+
+/**
  * Create the `ImageDispatch` middleware that dispatches `readImage` results to
  * the LLM as multimodal vision input.
  *
@@ -110,11 +118,14 @@ export function createImageDispatchMiddleware() {
 
 			if (imageBlocks.length > 0) {
 				// Pair the image with the prompt that triggered the `readImage`
-				// call, not the most recent user prompt.
+				// call, not the most recent user prompt. The trigger prompt is
+				// prefixed with the sentinel so consumers (e.g. the Copilot
+				// `x-initiator` classifier) can recognize this as the agent's
+				// own tool output, not a fresh user turn.
 				const triggerPrompt =
 					toolCallPrompts.get(imageBlocks[0].toolCallId) ?? "Analyze the provided image.";
 				const content = [
-					{ type: "text", text: triggerPrompt },
+					{ type: "text", text: `${SYNTHETIC_ATTACHMENT_PROMPT} ${triggerPrompt}` },
 					...imageBlocks.map(({ block }) => block),
 				];
 				request.messages = [...strippedMessages, new HumanMessage({ content })];

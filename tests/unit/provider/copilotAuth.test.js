@@ -16,10 +16,11 @@ import {
 	getAuthPrompt,
 	createCopilotFetch,
 	setAuthRequiredHandler,
-	exchangeCopilotToken,
-	clearExchangeCache,
+	setCopilotToken,
 	CLIENT_ID,
+	API_VERSION,
 } from "../../../src/provider/copilotAuth.js";
+import { SYNTHETIC_ATTACHMENT_PROMPT } from "../../../src/provider/imageDispatchMiddleware.js";
 
 /** @type {string} */
 let tmp;
@@ -29,6 +30,8 @@ let memoryDir;
 beforeEach(async () => {
 	tmp = await mkdtemp(join(tmpdir(), "copilot-auth-"));
 	memoryDir = join(tmp, "memory");
+	// Reset the module-level token state so tests are isolated.
+	setCopilotToken(null);
 });
 
 afterEach(async () => {
@@ -366,166 +369,17 @@ describe("getAuthPrompt", () => {
 	});
 });
 
-describe("exchangeCopilotToken", () => {
-	it("exchanges the OAuth token for a short-lived bearer", async () => {
-		const origFetch = globalThis.fetch;
-		let capturedUrl;
-		let capturedHeaders;
-		globalThis.fetch = async (url, init) => {
-			capturedUrl = url;
-			capturedHeaders = new Headers(init.headers);
-			return new Response(
-				JSON.stringify({
-					token: "short-lived",
-					expires_at: new Date(Date.now() + 60_000).toISOString(),
-					endpoints: { api: "https://api.githubcopilot.com" },
-				}),
-				{ status: 200, headers: { "Content-Type": "application/json" } },
-			);
-		};
-		try {
-			const result = await exchangeCopilotToken("oauth-token");
-			assert.strictEqual(result.token, "short-lived");
-			assert.strictEqual(result.api, "https://api.githubcopilot.com");
-			assert.ok(result.expiresAt > Date.now());
-			assert.strictEqual(capturedUrl, "https://api.githubcopilot.com/copilot_internal/v2/token");
-			assert.strictEqual(capturedHeaders.get("Authorization"), "token oauth-token");
-		} finally {
-			globalThis.fetch = origFetch;
-			clearExchangeCache();
-		}
-	});
-
-	it("caches the exchanged bearer and reuses it before expiry", async () => {
-		const origFetch = globalThis.fetch;
-		let calls = 0;
-		globalThis.fetch = async () => {
-			calls += 1;
-			return new Response(
-				JSON.stringify({
-					token: "short-lived",
-					expires_at: new Date(Date.now() + 60_000).toISOString(),
-				}),
-				{ status: 200 },
-			);
-		};
-		try {
-			const first = await exchangeCopilotToken("oauth-token");
-			const second = await exchangeCopilotToken("oauth-token");
-			assert.strictEqual(first.token, "short-lived");
-			assert.strictEqual(second.token, "short-lived");
-			assert.strictEqual(calls, 1);
-		} finally {
-			globalThis.fetch = origFetch;
-			clearExchangeCache();
-		}
-	});
-
-	it("re-exchanges when the cached bearer has expired", async () => {
-		const origFetch = globalThis.fetch;
-		let calls = 0;
-		globalThis.fetch = async () => {
-			calls += 1;
-			return new Response(
-				JSON.stringify({
-					token: `short-lived-${calls}`,
-					expires_at:
-						calls === 1
-							? new Date(Date.now() - 60_000).toISOString()
-							: new Date(Date.now() + 60_000).toISOString(),
-				}),
-				{ status: 200 },
-			);
-		};
-		try {
-			clearExchangeCache();
-			const first = await exchangeCopilotToken("oauth-token");
-			assert.strictEqual(first.token, "short-lived-1");
-			// The cached entry is expired, so this re-exchanges.
-			const result = await exchangeCopilotToken("oauth-token");
-			assert.strictEqual(result.token, "short-lived-2");
-			assert.strictEqual(calls, 2);
-		} finally {
-			globalThis.fetch = origFetch;
-			clearExchangeCache();
-		}
-	});
-
-	it("throws on a non-ok exchange response", async () => {
-		const origFetch = globalThis.fetch;
-		globalThis.fetch = async () => new Response("nope", { status: 500 });
-		try {
-			await assert.rejects(() => exchangeCopilotToken("oauth-token"));
-		} finally {
-			globalThis.fetch = origFetch;
-			clearExchangeCache();
-		}
-	});
-
-	it("falls back to the OAuth token as bearer on a 404 (enterprise unsupported)", async () => {
-		const origFetch = globalThis.fetch;
-		globalThis.fetch = async () => new Response("not found", { status: 404 });
-		try {
-			const result = await exchangeCopilotToken("oauth-token");
-			assert.strictEqual(result.token, "oauth-token");
-			assert.strictEqual(result.api, null);
-			assert.ok(result.expiresAt > Date.now());
-		} finally {
-			globalThis.fetch = origFetch;
-			clearExchangeCache();
-		}
-	});
-
-	it("still throws on a 401 (genuine auth failure)", async () => {
-		const origFetch = globalThis.fetch;
-		globalThis.fetch = async () => new Response("unauthorized", { status: 401 });
-		try {
-			await assert.rejects(() => exchangeCopilotToken("oauth-token"));
-		} finally {
-			globalThis.fetch = origFetch;
-			clearExchangeCache();
-		}
-	});
-
-	it("throws on invalid JSON in the exchange response", async () => {
-		const origFetch = globalThis.fetch;
-		globalThis.fetch = async () => new Response("not-json", { status: 200 });
-		try {
-			await assert.rejects(() => exchangeCopilotToken("oauth-token"));
-		} finally {
-			globalThis.fetch = origFetch;
-			clearExchangeCache();
-		}
-	});
-
-	it("throws when the exchange response is missing a token", async () => {
-		const origFetch = globalThis.fetch;
-		globalThis.fetch = async () =>
-			new Response(JSON.stringify({ expires_at: "2025-01-01T00:00:00Z" }), { status: 200 });
-		try {
-			await assert.rejects(() => exchangeCopilotToken("oauth-token"));
-		} finally {
-			globalThis.fetch = origFetch;
-			clearExchangeCache();
-		}
-	});
-});
-
 describe("createCopilotFetch", () => {
-	it("injects the exchanged bearer token, not the raw OAuth token", async () => {
+	it("injects the raw OAuth token as a bearer, with no exchange", async () => {
 		await persist("oauth-token", memoryDir);
 		const origFetch = globalThis.fetch;
 		let capturedHeaders;
 		let capturedUrl;
+		let exchangeHit = false;
 		globalThis.fetch = async (url, init) => {
 			if (url.includes("/copilot_internal/v2/token")) {
-				return new Response(
-					JSON.stringify({
-						token: "short-lived",
-						expires_at: new Date(Date.now() + 60_000).toISOString(),
-					}),
-					{ status: 200 },
-				);
+				exchangeHit = true;
+				return new Response("nope", { status: 404 });
 			}
 			capturedUrl = url;
 			capturedHeaders = new Headers(init.headers);
@@ -536,11 +390,84 @@ describe("createCopilotFetch", () => {
 			await copilotFetch("https://api.githubcopilot.com/v1/chat/completions", {
 				method: "POST",
 			});
-			assert.strictEqual(capturedHeaders.get("Authorization"), "Bearer short-lived");
+			assert.strictEqual(capturedHeaders.get("Authorization"), "Bearer oauth-token");
 			assert.strictEqual(capturedUrl, "https://api.githubcopilot.com/v1/chat/completions");
+			assert.strictEqual(exchangeHit, false);
 		} finally {
 			globalThis.fetch = origFetch;
-			clearExchangeCache();
+		}
+	});
+
+	it("sets the Copilot headers (api version, intent, user-agent, x-initiator)", async () => {
+		await persist("oauth-token", memoryDir);
+		const origFetch = globalThis.fetch;
+		let capturedHeaders;
+		globalThis.fetch = async (_url, init) => {
+			capturedHeaders = new Headers(init.headers);
+			return new Response("ok", { status: 200 });
+		};
+		try {
+			const copilotFetch = createCopilotFetch(memoryDir);
+			await copilotFetch("https://api.githubcopilot.com/v1/chat/completions", {
+				method: "POST",
+				body: JSON.stringify({ messages: [{ role: "user", content: "hi" }] }),
+			});
+			assert.strictEqual(capturedHeaders.get("X-GitHub-Api-Version"), API_VERSION);
+			assert.strictEqual(capturedHeaders.get("Openai-Intent"), "conversation-edits");
+			assert.ok(capturedHeaders.get("User-Agent").startsWith("madz/"));
+			assert.strictEqual(capturedHeaders.get("x-initiator"), "user");
+		} finally {
+			globalThis.fetch = origFetch;
+		}
+	});
+
+	it("marks a request as agent-initiated when the last message is not a user message", async () => {
+		await persist("oauth-token", memoryDir);
+		const origFetch = globalThis.fetch;
+		let capturedHeaders;
+		globalThis.fetch = async (_url, init) => {
+			capturedHeaders = new Headers(init.headers);
+			return new Response("ok", { status: 200 });
+		};
+		try {
+			const copilotFetch = createCopilotFetch(memoryDir);
+			await copilotFetch("https://api.githubcopilot.com/v1/chat/completions", {
+				method: "POST",
+				body: JSON.stringify({ messages: [{ role: "assistant", content: "thinking" }] }),
+			});
+			assert.strictEqual(capturedHeaders.get("x-initiator"), "agent");
+		} finally {
+			globalThis.fetch = origFetch;
+		}
+	});
+
+	it("marks a synthetic image-attachment message as agent-initiated", async () => {
+		await persist("oauth-token", memoryDir);
+		const origFetch = globalThis.fetch;
+		let capturedHeaders;
+		globalThis.fetch = async (_url, init) => {
+			capturedHeaders = new Headers(init.headers);
+			return new Response("ok", { status: 200 });
+		};
+		try {
+			const copilotFetch = createCopilotFetch(memoryDir);
+			await copilotFetch("https://api.githubcopilot.com/v1/chat/completions", {
+				method: "POST",
+				body: JSON.stringify({
+					messages: [
+						{
+							role: "user",
+							content: [
+								{ type: "text", text: `${SYNTHETIC_ATTACHMENT_PROMPT} analyze this screenshot` },
+								{ type: "image_url", image_url: { url: "data:image/png;base64,xxx" } },
+							],
+						},
+					],
+				}),
+			});
+			assert.strictEqual(capturedHeaders.get("x-initiator"), "agent");
+		} finally {
+			globalThis.fetch = origFetch;
 		}
 	});
 
@@ -562,28 +489,11 @@ describe("createCopilotFetch", () => {
 		}
 	});
 
-	it("clears the token and invokes the re-auth handler on 401 when re-exchange fails", async () => {
+	it("clears the token and invokes the re-auth handler on 401", async () => {
 		await persist("oauth-token", memoryDir);
 		const origFetch = globalThis.fetch;
 		let handlerCalled = false;
-		let exchangeCalls = 0;
-		globalThis.fetch = async (url) => {
-			if (url.includes("/copilot_internal/v2/token")) {
-				exchangeCalls += 1;
-				if (exchangeCalls === 1) {
-					return new Response(
-						JSON.stringify({
-							token: "short-lived",
-							expires_at: new Date(Date.now() + 60_000).toISOString(),
-						}),
-						{ status: 200 },
-					);
-				}
-				// Re-exchange fails (OAuth token expired).
-				return new Response("unauthorized", { status: 401 });
-			}
-			return new Response("unauthorized", { status: 401 });
-		};
+		globalThis.fetch = async () => new Response("unauthorized", { status: 401 });
 		setAuthRequiredHandler(() => {
 			handlerCalled = true;
 		});
@@ -598,49 +508,6 @@ describe("createCopilotFetch", () => {
 		} finally {
 			globalThis.fetch = origFetch;
 			setAuthRequiredHandler(null);
-			clearExchangeCache();
-		}
-	});
-
-	it("re-exchanges and retries on 401 when re-exchange succeeds", async () => {
-		await persist("oauth-token", memoryDir);
-		const origFetch = globalThis.fetch;
-		let handlerCalled = false;
-		let apiCalls = 0;
-		let exchangeCalls = 0;
-		globalThis.fetch = async (url, _init) => {
-			if (url.includes("/copilot_internal/v2/token")) {
-				exchangeCalls += 1;
-				return new Response(
-					JSON.stringify({
-						token: `short-lived-${exchangeCalls}`,
-						expires_at: new Date(Date.now() + 60_000).toISOString(),
-					}),
-					{ status: 200 },
-				);
-			}
-			apiCalls += 1;
-			if (apiCalls === 1) {
-				return new Response("unauthorized", { status: 401 });
-			}
-			return new Response("ok", { status: 200 });
-		};
-		setAuthRequiredHandler(() => {
-			handlerCalled = true;
-		});
-		try {
-			const copilotFetch = createCopilotFetch(memoryDir);
-			const res = await copilotFetch("https://api.githubcopilot.com/v1/chat/completions", {
-				method: "POST",
-			});
-			assert.strictEqual(res.status, 200);
-			assert.strictEqual(handlerCalled, false);
-			assert.strictEqual(apiCalls, 2);
-			assert.strictEqual(exchangeCalls, 2);
-		} finally {
-			globalThis.fetch = origFetch;
-			setAuthRequiredHandler(null);
-			clearExchangeCache();
 		}
 	});
 
@@ -648,18 +515,7 @@ describe("createCopilotFetch", () => {
 		await persist("oauth-token", memoryDir);
 		const origFetch = globalThis.fetch;
 		let handlerCalled = false;
-		globalThis.fetch = async (url) => {
-			if (url.includes("/copilot_internal/v2/token")) {
-				return new Response(
-					JSON.stringify({
-						token: "short-lived",
-						expires_at: new Date(Date.now() + 60_000).toISOString(),
-					}),
-					{ status: 200 },
-				);
-			}
-			return new Response("ok", { status: 200 });
-		};
+		globalThis.fetch = async () => new Response("ok", { status: 200 });
 		setAuthRequiredHandler(() => {
 			handlerCalled = true;
 		});
@@ -674,69 +530,6 @@ describe("createCopilotFetch", () => {
 		} finally {
 			globalThis.fetch = origFetch;
 			setAuthRequiredHandler(null);
-			clearExchangeCache();
-		}
-	});
-
-	it("honors endpoints.api as the base URL for API requests", async () => {
-		await persist("oauth-token", memoryDir);
-		const origFetch = globalThis.fetch;
-		let capturedUrl;
-		globalThis.fetch = async (url) => {
-			if (url.includes("/copilot_internal/v2/token")) {
-				return new Response(
-					JSON.stringify({
-						token: "short-lived",
-						expires_at: new Date(Date.now() + 60_000).toISOString(),
-						endpoints: { api: "https://ghe.example.com" },
-					}),
-					{ status: 200 },
-				);
-			}
-			capturedUrl = url;
-			return new Response("ok", { status: 200 });
-		};
-		try {
-			const copilotFetch = createCopilotFetch(memoryDir);
-			await copilotFetch("https://api.githubcopilot.com/v1/chat/completions", {
-				method: "POST",
-			});
-			assert.strictEqual(capturedUrl, "https://ghe.example.com/v1/chat/completions");
-		} finally {
-			globalThis.fetch = origFetch;
-			clearExchangeCache();
-		}
-	});
-
-	it("rewrites the base URL when the input is a Request object", async () => {
-		await persist("oauth-token", memoryDir);
-		const origFetch = globalThis.fetch;
-		let capturedUrl;
-		globalThis.fetch = async (url) => {
-			const urlStr = typeof url === "string" ? url : url.url;
-			if (urlStr.includes("/copilot_internal/v2/token")) {
-				return new Response(
-					JSON.stringify({
-						token: "short-lived",
-						expires_at: new Date(Date.now() + 60_000).toISOString(),
-						endpoints: { api: "https://ghe.example.com" },
-					}),
-					{ status: 200 },
-				);
-			}
-			capturedUrl = urlStr;
-			return new Response("ok", { status: 200 });
-		};
-		try {
-			const copilotFetch = createCopilotFetch(memoryDir);
-			const req = new Request("https://api.githubcopilot.com/v1/chat/completions", {
-				method: "POST",
-			});
-			await copilotFetch(req);
-			assert.strictEqual(capturedUrl, "https://ghe.example.com/v1/chat/completions");
-		} finally {
-			globalThis.fetch = origFetch;
-			clearExchangeCache();
 		}
 	});
 });

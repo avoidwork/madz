@@ -1,7 +1,10 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
 import { HumanMessage, ToolMessage, AIMessage } from "@langchain/core/messages";
-import { createImageDispatchMiddleware } from "../../../src/provider/imageDispatchMiddleware.js";
+import {
+	createImageDispatchMiddleware,
+	SYNTHETIC_ATTACHMENT_PROMPT,
+} from "../../../src/provider/imageDispatchMiddleware.js";
 
 /**
  * Build a minimal wrapModelCall request with the given messages.
@@ -46,7 +49,10 @@ describe("imageDispatchMiddleware wrapModelCall", () => {
 		const last = captured.messages[captured.messages.length - 1];
 		assert.strictEqual(last._getType(), "human");
 		assert.strictEqual(last.content.length, 2);
-		assert.deepStrictEqual(last.content[0], { type: "text", text: "analyze this screenshot" });
+		assert.deepStrictEqual(last.content[0], {
+			type: "text",
+			text: `${SYNTHETIC_ATTACHMENT_PROMPT} analyze this screenshot`,
+		});
 		assert.deepStrictEqual(last.content[1], {
 			type: "image_url",
 			image_url: { url: "data:image/png;base64,iVBORw0KGgo=" },
@@ -105,7 +111,10 @@ describe("imageDispatchMiddleware wrapModelCall", () => {
 
 		const last = captured.messages[captured.messages.length - 1];
 		assert.strictEqual(last._getType(), "human");
-		assert.deepStrictEqual(last.content[0], { type: "text", text: "analyze this screenshot" });
+		assert.deepStrictEqual(last.content[0], {
+			type: "text",
+			text: `${SYNTHETIC_ATTACHMENT_PROMPT} analyze this screenshot`,
+		});
 	});
 
 	it("injects the image only once and does not re-attach it to a later unrelated prompt", async () => {

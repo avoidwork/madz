@@ -1,6 +1,12 @@
 import { readFile, writeFile, mkdir, unlink } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
+import { createRequire } from "node:module";
+import { SYNTHETIC_ATTACHMENT_PROMPT } from "./imageDispatchMiddleware.js";
+
+const _require = createRequire(import.meta.url);
+/** The application version, read from package.json for the User-Agent header. */
+const APP_VERSION = _require("../../package.json").version;
 
 /**
  * GitHub Copilot OAuth device-flow auth module.
@@ -15,7 +21,7 @@ import { setTimeout as sleep } from "node:timers/promises";
  */
 
 /** Public OAuth client id for GitHub Copilot. Not a credential. */
-export const CLIENT_ID = "Iv1.b507a08c87ecfe98";
+export const CLIENT_ID = "Ov23li8tweQw6odWQebz";
 
 /** Default Copilot API base URL. */
 export const DEFAULT_BASE_URL = "https://api.githubcopilot.com";
@@ -105,103 +111,38 @@ export function authFilePath(memoryDir) {
 	return memoryDir ? join(memoryDir, "auth.json") : AUTH_FILE;
 }
 
-/**
- * In-memory cache of exchanged Copilot bearer tokens, keyed by the OAuth
- * device-flow token. Each entry stores the short-lived bearer, its expiry
- * timestamp (ms since epoch), and the `endpoints.api` base URL (if any).
- * @type {Map<string, { token: string, expiresAt: number, api: string|null }>}
- */
-const exchangeCache = new Map();
+/** GitHub Copilot API version header value. */
+export const API_VERSION = "2026-06-01";
 
 /**
- * Exchange the OAuth device-flow token for a short-lived API bearer at
- * `copilot_internal/v2/token`. The raw OAuth token is normally never sent to
- * the Copilot API — it is only used here to obtain the short-lived bearer.
- *
- * On enterprise/GHE deployments the exchange endpoint may be unsupported
- * (404/405). In that case the OAuth token is returned directly as the bearer
- * (opencode's approach) rather than failing. Genuine auth failures (401/403)
- * still throw.
- *
- * The result is cached in memory, keyed by the OAuth token, and re-exchanged
- * on expiry. When the exchange response provides `endpoints.api`, it is
- * returned so callers can use it as the API base URL.
- * @param {string} oauthToken - The OAuth device-flow access token
- * @param {Object} [opts] - Options
- * @param {string} [opts.baseUrl] - The Copilot token exchange base URL (defaults to `DEFAULT_BASE_URL`)
- * @returns {Promise<{ token: string, expiresAt: number, api: string|null }>}
- *   The short-lived bearer, its expiry timestamp (ms), and the API base URL
+ * In-memory Copilot refresh-token state. This is the single source of truth
+ * for the Authorization header on every request. It is initialized from the
+ * persisted auth file (or the OAuth device-flow response) and updated whenever
+ * a fresh token is obtained. Requests decorate the header from this state —
+ * they never delete it.
+ * @type {string|null}
  */
-export async function exchangeCopilotToken(oauthToken, opts = {}) {
-	const baseUrl = opts.baseUrl || DEFAULT_BASE_URL;
-	const cached = exchangeCache.get(oauthToken);
-	if (cached && cached.expiresAt > Date.now()) {
-		return cached;
-	}
+let copilotToken = null;
 
-	const res = await fetch(`${baseUrl}/copilot_internal/v2/token`, {
-		method: "GET",
-		headers: {
-			Authorization: `token ${oauthToken}`,
-			Accept: "application/json",
-		},
-	});
-	if (!res.ok) {
-		// Enterprise/GHE deployments may not support the `copilot_internal/v2/token`
-		// exchange endpoint. When it returns 404/405 (unsupported), fall back to
-		// sending the OAuth token directly as a bearer (opencode's approach) rather
-		// than failing. Genuine auth failures (401/403) still throw.
-		if (res.status === 404 || res.status === 405) {
-			const result = {
-				token: oauthToken,
-				expiresAt: Date.now() + 60 * 60 * 1000,
-				api: null,
-			};
-			exchangeCache.set(oauthToken, result);
-			return result;
-		}
-		const text = await res.text().catch(() => "");
-		throw new Error(
-			`Copilot token exchange failed: ${res.status} ${res.statusText}${text ? ` — ${text.slice(0, 200)}` : ""}`,
-		);
-	}
-	const text = await res.text();
-	let data;
-	try {
-		data = JSON.parse(text);
-	} catch {
-		throw new Error(`Copilot token exchange returned invalid JSON: ${text.slice(0, 200)}`);
-	}
-	if (!data.token) {
-		throw new Error("Copilot token exchange response missing token");
-	}
-
-	const expiresAt = data.expires_at ? Date.parse(data.expires_at) : Date.now() + 60 * 60 * 1000;
-	const result = {
-		token: data.token,
-		expiresAt,
-		api: data.endpoints?.api || null,
-	};
-	exchangeCache.set(oauthToken, result);
-	return result;
+/**
+ * Set the in-memory Copilot token state. Called when a token is loaded from
+ * disk or obtained from the OAuth device flow.
+ * @param {string|null} token - The refresh token, or null to clear
+ */
+export function setCopilotToken(token) {
+	copilotToken = token;
 }
 
 /**
- * Clear the in-memory exchange cache for a given OAuth token (or all entries
- * when no token is supplied). Used when a request returns 401 so the next
- * call re-exchanges for a fresh bearer.
- * @param {string} [oauthToken] - The OAuth token to evict, or all entries if omitted
+ * Get the in-memory Copilot token state.
+ * @returns {string|null} The refresh token, or null if not set
  */
-export function clearExchangeCache(oauthToken) {
-	if (oauthToken) {
-		exchangeCache.delete(oauthToken);
-	} else {
-		exchangeCache.clear();
-	}
+export function getCopilotToken() {
+	return copilotToken;
 }
 
 /**
- * Read the persisted Copilot token.
+ * Read the persisted Copilot token from disk and update the in-memory state.
  * @param {string} [memoryDir] - The memory directory
  * @returns {Promise<string|null>} The access token, or null if not present
  */
@@ -210,14 +151,17 @@ export async function getToken(memoryDir) {
 	try {
 		const data = await readFile(file, "utf8");
 		const parsed = JSON.parse(data);
-		return parsed?.access_token || null;
+		const token = parsed?.access_token || null;
+		copilotToken = token;
+		return token;
 	} catch {
 		return null;
 	}
 }
 
 /**
- * Persist the Copilot token to the auth file with mode `0o600`.
+ * Persist the Copilot token to the auth file with mode `0o600` and update the
+ * in-memory state.
  * @param {string} token - The access token to persist
  * @param {string} [memoryDir] - The memory directory
  * @returns {Promise<void>}
@@ -229,6 +173,7 @@ export async function persist(token, memoryDir) {
 		mode: 0o600,
 		flag: "w",
 	});
+	copilotToken = token;
 }
 
 /**
@@ -243,6 +188,7 @@ export async function clearToken(memoryDir) {
 	} catch {
 		// Ignore missing file.
 	}
+	copilotToken = null;
 }
 
 /**
@@ -404,80 +350,113 @@ export async function getAuthPrompt(opts = {}) {
 }
 
 /**
- * Rewrite a request URL to use the `endpoints.api` base URL from the exchange
- * response. When the input URL uses the default Copilot API base, its origin
- * (scheme + host) is replaced with the origin of `api`, preserving the path.
- * Otherwise the URL is returned unchanged.
- * @param {string|Request} input - The fetch input (URL string or Request)
- * @param {string} api - The `endpoints.api` base URL from the exchange response
- * @returns {string|Request} The rewritten input
+ * Determine whether a Copilot request is agent-initiated or user-initiated,
+ * mirroring opencode's heuristic. A request is agent-initiated when the last
+ * message is not a plain user text message (e.g. it is a tool call, a tool
+ * result, or a continuation after a tool call). This drives the `x-initiator`
+ * header that GitHub Copilot uses to classify the interaction.
+ *
+ * A synthetic multimodal message injected by the image-dispatch middleware is
+ * also agent-initiated: it is the agent's own tool output (a `readImage`
+ * result) being fed back as vision input, not a fresh user turn. Such a
+ * message carries the `SYNTHETIC_ATTACHMENT_PROMPT` sentinel in its text, so
+ * it is classified as agent even though its role is `user`.
+ * @param {Object} [body] - The parsed request body
+ * @returns {boolean} True if the request is agent-initiated
  */
-function rewriteBaseUrl(input, api) {
-	if (!api) return input;
-	const url = typeof input === "string" ? input : input.url;
-	if (url.startsWith(api)) return input;
-	if (url.startsWith(DEFAULT_BASE_URL)) {
-		const apiUrl = new URL(api);
-		const inputUrl = new URL(url);
-		inputUrl.protocol = apiUrl.protocol;
-		inputUrl.host = apiUrl.host;
-		const rewritten = inputUrl.toString();
-		if (typeof input === "string") return rewritten;
-		return new Request(rewritten, input);
+function isAgentInitiated(body) {
+	if (!body) return false;
+	// Completions API
+	if (Array.isArray(body.messages)) {
+		const last = body.messages[body.messages.length - 1];
+		if (!last) return false;
+		if (last.role === "user" && containsSentinel(last.content)) return true;
+		return last.role !== "user";
 	}
-	return input;
+	// Responses API
+	if (Array.isArray(body.input)) {
+		const last = body.input[body.input.length - 1];
+		if (!last) return false;
+		if (last.role === "user" && containsSentinel(last.content)) return true;
+		return last.role !== "user";
+	}
+	return false;
 }
 
 /**
- * Create a fetch interceptor that injects `Authorization: Bearer <short-lived-token>`
- * on every request. The raw OAuth device-flow token is exchanged at
- * `copilot_internal/v2/token` for a short-lived bearer before each request,
- * and the result is cached in memory keyed by the OAuth token. This is passed
- * to `ChatOpenAI` as `configuration.fetch` so it survives `bindTools()` and
- * picks up a re-auth without rebuilding the model.
+ * Detect the synthetic-attachment sentinel in a message content value, which
+ * may be a string or an array of content blocks.
+ * @param {string|Array} content - The message content
+ * @returns {boolean} True if the content carries the sentinel
+ */
+function containsSentinel(content) {
+	if (typeof content === "string") return content.includes(SYNTHETIC_ATTACHMENT_PROMPT);
+	if (Array.isArray(content)) {
+		return content.some(
+			(block) =>
+				(block?.type === "text" || block?.type === "input_text") &&
+				typeof block.text === "string" &&
+				block.text.includes(SYNTHETIC_ATTACHMENT_PROMPT),
+		);
+	}
+	return false;
+}
+
+/**
+ * Create a fetch interceptor that injects `Authorization: Bearer <oauth-token>`
+ * on every request, matching opencode's approach. The raw OAuth device-flow
+ * access token is a valid Copilot bearer — it is sent directly, with no
+ * `copilot_internal/v2/token` exchange. This avoids both the 403 faux
+ * rate-limit (from hammering the exchange endpoint) and the 400 malformed
+ * header (from an exchanged token that is empty or malformed).
  *
- * When a response returns 401 (short-lived bearer expired or invalid), the
- * interceptor clears the cached bearer and re-exchanges for a fresh one,
- * retrying the request once. If the re-exchange fails (e.g. the OAuth token
- * is also expired), it clears the stored token and invokes the registered
- * `authRequiredHandler` so the caller can surface a fresh device-flow prompt.
+ * The interceptor also sets the headers GitHub Copilot expects: the API
+ * version, an `Openai-Intent`, a `User-Agent`, and `x-initiator` (agent/user)
+ * derived from the request body. This is passed to `ChatOpenAI` as
+ * `configuration.fetch` so it survives `bindTools()` and picks up a re-auth
+ * without rebuilding the model.
+ *
+ * When a response returns 401 (token expired or invalid), the interceptor
+ * clears the stored token and invokes the registered `authRequiredHandler` so
+ * the caller can surface a fresh device-flow prompt.
  * @param {string} [memoryDir] - The memory directory
  * @returns {Function} A fetch-compatible function
  */
 export function createCopilotFetch(memoryDir) {
 	return async (input, init = {}) => {
-		const oauthToken = await getToken(memoryDir);
+		// Load the token from disk into state if not already set, then decorate
+		// the Authorization header from state. We never delete the header — we
+		// simply set it, which overrides whatever the SDK injected (the
+		// placeholder apiKey). This mirrors opencode's approach.
+		const oauthToken = copilotToken ?? (await getToken(memoryDir));
 		const headers = new Headers(init.headers || {});
 		if (oauthToken) {
+			headers.set("Authorization", `Bearer ${oauthToken}`);
+		}
+
+		// Derive x-initiator from the request body. The body may be a string
+		// (JSON) or already parsed; guard against parse failures.
+		let body = init.body;
+		if (typeof body === "string") {
 			try {
-				const exchanged = await exchangeCopilotToken(oauthToken);
-				headers.set("Authorization", `Bearer ${exchanged.token}`);
-				input = rewriteBaseUrl(input, exchanged.api);
+				body = JSON.parse(body);
 			} catch {
-				await clearToken(memoryDir);
-				if (authRequiredHandler) {
-					authRequiredHandler();
-				}
-				return new Response("Unauthorized", { status: 401 });
+				body = undefined;
 			}
 		}
+		headers.set("x-initiator", isAgentInitiated(body) ? "agent" : "user");
+		headers.set("Openai-Intent", "conversation-edits");
+		headers.set("X-GitHub-Api-Version", API_VERSION);
+		headers.set("User-Agent", `madz/${APP_VERSION}`);
+
 		let res = await fetch(input, { ...init, headers });
 		if (res.status === 401 && oauthToken) {
-			// The short-lived bearer was rejected. Clear the cache and
-			// re-exchange for a fresh one, then retry once. If the exchange
-			// fails (e.g. the OAuth token is also expired), clear the stored
-			// token and invoke the re-auth handler.
-			clearExchangeCache(oauthToken);
-			try {
-				const exchanged = await exchangeCopilotToken(oauthToken);
-				headers.set("Authorization", `Bearer ${exchanged.token}`);
-				input = rewriteBaseUrl(input, exchanged.api);
-				res = await fetch(input, { ...init, headers });
-			} catch {
-				await clearToken(memoryDir);
-				if (authRequiredHandler) {
-					authRequiredHandler();
-				}
+			// The bearer was rejected (expired or invalid). Clear the stored
+			// token and invoke the re-auth handler so the caller can surface a
+			// fresh device-flow prompt.
+			await clearToken(memoryDir);
+			if (authRequiredHandler) {
+				authRequiredHandler();
 			}
 		}
 		return res;
