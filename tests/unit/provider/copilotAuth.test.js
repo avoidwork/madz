@@ -19,6 +19,7 @@ import {
 	CLIENT_ID,
 	API_VERSION,
 } from "../../../src/provider/copilotAuth.js";
+import { SYNTHETIC_ATTACHMENT_PROMPT } from "../../../src/provider/imageDispatchMiddleware.js";
 
 /** @type {string} */
 let tmp;
@@ -430,6 +431,36 @@ describe("createCopilotFetch", () => {
 			await copilotFetch("https://api.githubcopilot.com/v1/chat/completions", {
 				method: "POST",
 				body: JSON.stringify({ messages: [{ role: "assistant", content: "thinking" }] }),
+			});
+			assert.strictEqual(capturedHeaders.get("x-initiator"), "agent");
+		} finally {
+			globalThis.fetch = origFetch;
+		}
+	});
+
+	it("marks a synthetic image-attachment message as agent-initiated", async () => {
+		await persist("oauth-token", memoryDir);
+		const origFetch = globalThis.fetch;
+		let capturedHeaders;
+		globalThis.fetch = async (_url, init) => {
+			capturedHeaders = new Headers(init.headers);
+			return new Response("ok", { status: 200 });
+		};
+		try {
+			const copilotFetch = createCopilotFetch(memoryDir);
+			await copilotFetch("https://api.githubcopilot.com/v1/chat/completions", {
+				method: "POST",
+				body: JSON.stringify({
+					messages: [
+						{
+							role: "user",
+							content: [
+								{ type: "text", text: `${SYNTHETIC_ATTACHMENT_PROMPT} analyze this screenshot` },
+								{ type: "image_url", image_url: { url: "data:image/png;base64,xxx" } },
+							],
+						},
+					],
+				}),
 			});
 			assert.strictEqual(capturedHeaders.get("x-initiator"), "agent");
 		} finally {
