@@ -83,6 +83,30 @@ The system SHALL inject `Authorization: Bearer <short-lived-token>` on every Cop
 - **WHEN** `createChatModel` builds a `github-copilot` model with `OPENAI_API_KEY` unset in the environment
 - **THEN** the client is constructed without throwing `Missing credentials`
 
+#### Scenario: Initiator header reflects the last message
+- **WHEN** the last message in the body is not a plain user text message
+- **THEN** `x-initiator` is `agent`, otherwise `user`
+
+#### Scenario: Synthetic image attachment is agent-initiated
+- **WHEN** the last message is a user message carrying the synthetic-attachment sentinel
+- **THEN** `x-initiator` is `agent`
+
+#### Scenario: Standard Copilot headers are set
+- **WHEN** any Copilot model request is made
+- **THEN** `Openai-Intent` is `conversation-edits`, `X-GitHub-Api-Version` is the configured API version, and `User-Agent` is prefixed with the application name and version
+
+#### Scenario: Vision header is set for image payloads
+- **WHEN** the request body contains image content in any message
+- **THEN** the outgoing request carries `Copilot-Vision-Request: true`
+
+#### Scenario: Vision header is omitted for text payloads
+- **WHEN** the request body contains no image content
+- **THEN** the outgoing request carries no `Copilot-Vision-Request` header
+
+#### Scenario: Re-auth on 401
+- **WHEN** a request returns 401 and a token was sent
+- **THEN** the stored token is cleared and the registered auth-required handler is invoked
+
 ### Requirement: Enterprise Copilot base URL derivation
 The system SHALL derive the Copilot API base URL for enterprise/GHE deployments as `https://copilot-api.<domain>` (matching opencode), instead of `https://<domain>/api/v1`. When no enterprise URL is configured, the public default `https://api.githubcopilot.com` SHALL be used.
 
