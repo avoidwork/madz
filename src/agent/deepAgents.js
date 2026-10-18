@@ -15,7 +15,6 @@ import { createChatModel, resolveCopilotModel } from "../provider/openai.js";
 import { getModelContextLength } from "../provider/modelInfo.js";
 import { getActiveProviderConfig, getActiveProviderName } from "../provider/index.js";
 import { createTokenBudgetMiddleware } from "../provider/tokenBudgetMiddleware.js";
-import { createCopilotRetryMiddleware } from "../provider/copilotRetryMiddleware.js";
 import {
 	createSummarizationMiddlewareFromConfig,
 	forceSummarize,
@@ -483,15 +482,6 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	// estimating context cost.
 	const imageDispatchMiddleware = createImageDispatchMiddleware();
 
-	// Copilot 403 retry middleware. Registered LAST so it is innermost and
-	// retries the raw model call. Only wired for GitHub Copilot connections,
-	// which signal rate limiting with 403 (the OpenAI SDK only retries
-	// 408/409/429/>=500, so a Copilot 403 would otherwise pass through).
-	const copilotRetryMiddleware =
-		providerConfig.type === "github-copilot"
-			? createCopilotRetryMiddleware({ maxRetries: 3 })
-			: null;
-
 	const agent = createDeepAgent({
 		model,
 		tools: orchestratorTools,
@@ -505,7 +495,6 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 			createCodeInterpreterMiddleware(),
 			...(summarizationMiddleware ? [summarizationMiddleware] : []),
 			imageDispatchMiddleware,
-			...(copilotRetryMiddleware ? [copilotRetryMiddleware] : []),
 			...(tokenBudgetMiddleware ? [tokenBudgetMiddleware] : []),
 		],
 		streamTransformers: [() => createTurnTransformer()],
