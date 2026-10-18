@@ -1,6 +1,9 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
-import { createCopilotRetryMiddleware } from "../../../src/provider/copilotRetryMiddleware.js";
+import {
+	createCopilotRetryMiddleware,
+	DEFAULT_COPILOT_RETRY_MS,
+} from "../../../src/provider/copilotRetryMiddleware.js";
 
 /** No-op sleep so retry tests do not wait real seconds. */
 const noSleep = async () => {};
@@ -87,6 +90,23 @@ describe("createCopilotRetryMiddleware", () => {
 			/rate limited/,
 		);
 		assert.strictEqual(calls, 1);
+	});
+
+	it("uses the default delay when no retry-after header is present", async () => {
+		const delays = [];
+		const mw = createCopilotRetryMiddleware({
+			maxRetries: 1,
+			sleep: async (ms) => delays.push(ms),
+		});
+		await assert.rejects(
+			mw.wrapModelCall(makeRequest(), async () => {
+				const err = new Error("rate limited");
+				err.status = 403;
+				throw err;
+			}),
+			/rate limited/,
+		);
+		assert.deepStrictEqual(delays, [DEFAULT_COPILOT_RETRY_MS]);
 	});
 
 	it("honors the retry-after header for the delay", async () => {

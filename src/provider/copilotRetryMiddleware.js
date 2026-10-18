@@ -3,7 +3,7 @@ import { getRetryDelayMs } from "./openai.js";
 import { logger } from "../shared/logger.js";
 
 /** Default delay (ms) between Copilot 403 retries when no `retry-after` header is present. */
-export const DEFAULT_COPILOT_RETRY_MS = 5_000;
+export const DEFAULT_COPILOT_RETRY_MS = 10_000;
 
 /**
  * Create the Copilot 403 retry middleware.
