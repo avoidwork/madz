@@ -90,7 +90,7 @@ export async function createSubagentDefinitions(allTools, model, skillRegistry, 
 			// `middleware` (parent custom middleware reaches just the auto-injected
 			// `general-purpose` subagent). Without this, every configured subagent
 			// keeps deepagents' 20,000-token eviction default and destroys
-			// `readImage` results before ImageDispatch can build a vision block.
+			// `readImage` results before the model can see them.
 			// A fresh instance per subagent mirrors the library's own per-subagent
 			// `createSubagentDefaultMiddleware`.
 			middleware: [createEvictionAwareFilesystemMiddleware({ backend, model: agentModel })],
@@ -510,7 +510,7 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	// fixed to fit image payloads. The library evicts any ToolMessage whose
 	// stringified content exceeds `toolTokenLimitBeforeEvict * 4` characters
 	// (default 20,000 tokens -> 80,000 chars), which destroys `readImage`'s
-	// base64 JSON before ImageDispatch can turn it into a vision block.
+	// base64 JSON before the model can see it.
 	// Displaces the library default via same-name merge in `mergeMiddlewareStack`
 	// — the mechanism our SummarizationMiddleware above also relies on. The name
 	// is asserted in tests: if it drifts, a second copy stacks and the bug

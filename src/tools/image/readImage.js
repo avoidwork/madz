@@ -5,7 +5,9 @@ import { readFile, stat } from "node:fs/promises";
 import { extname } from "node:path";
 import { loadConfig } from "../../config/loader.js";
 import { validatePath } from "../common.js";
-import { sendImageImpl } from "./sendImage.js";
+
+// An unknown MIME type falls back to image/png so a valid data URI is always built.
+const DEFAULT_MIME_TYPE = "image/png";
 
 // MIME type map for common image extensions.
 const MIME_TYPES = {
@@ -21,6 +23,8 @@ const MIME_TYPES = {
 	".tif": "image/tiff",
 	".ico": "image/x-icon",
 };
+
+const MIME_TYPES_SET = new Set(Object.values(MIME_TYPES));
 
 /**
  * Detect the MIME type of an image from its file extension.
@@ -105,11 +109,16 @@ export async function readImageImpl(input, options = {}) {
 	const maxDimension = config.image?.maxDimension || DEFAULT_MAX_DIMENSION;
 	buffer = await constrainDimensions(buffer, mimeType, maxDimension);
 
-	// Build the content block via sendImageImpl and return it as-is. LangChain
-	// keeps an array of content blocks intact (no JSON.stringify), so the
-	// ImageDispatch middleware reads the `image_url` block directly.
-	const [, imageBlock] = sendImageImpl({ data: buffer.toString("base64"), mimeType, text: "" });
-	return [imageBlock];
+	// Return an image content block. LangChain keeps an array of content
+	// blocks intact (no JSON.stringify), so the model receives the image
+	// straight from the tool message.
+	const dataUriMime = MIME_TYPES_SET.has(mimeType) ? mimeType : DEFAULT_MIME_TYPE;
+	return [
+		{
+			type: "image_url",
+			image_url: { url: `data:${dataUriMime};base64,${buffer.toString("base64")}` },
+		},
+	];
 }
 
 const ReadImageSchema = z.object({

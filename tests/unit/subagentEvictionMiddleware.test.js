@@ -5,7 +5,7 @@
  * `general-purpose` subagent only. The 12 configured subagents receive just each
  * spec's own `middleware` array, so the replacement must be attached to every
  * definition we generate — otherwise they keep the library's 20,000-token
- * eviction default and destroy `readImage` results before ImageDispatch runs.
+ * eviction default and destroy `readImage` results before the model sees them.
  */
 
 import { describe, it } from "node:test";
