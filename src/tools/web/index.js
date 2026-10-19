@@ -14,13 +14,13 @@ const config = loadConfig();
  * Uses sharp (native, fast) for the resize. Returns the base64 PNG.
  *
  * If `maxSize` is provided, the output is re-encoded at progressively smaller
- * widths and PNG quality until it fits under the byte budget. This closes the
+ * widths and JPEG quality until it fits under the byte budget. This closes the
  * loop with readImage: a screenshot produced here can never exceed the size
  * limit readImage enforces.
  * @param {string} data - Base64-encoded PNG
  * @param {number} maxWidth - Maximum width in pixels
  * @param {number} [maxSize] - Byte budget. Optional.
- * @returns {Promise<string>} Base64-encoded resized PNG
+ * @returns {Promise<string>} Base64-encoded resized JPEG
  */
 export async function resizeScreenshot(data, maxWidth, maxSize) {
 	const { default: sharp } = await import("sharp");
@@ -31,21 +31,21 @@ export async function resizeScreenshot(data, maxWidth, maxSize) {
 	const sizeLimit = maxSize || 0;
 
 	let resized = buffer;
-	if (widthLimit && widthLimit < buffer.length) {
+	if (widthLimit) {
 		resized = await sharp(buffer)
 			.resize({ width: widthLimit, withoutEnlargement: true })
-			.png()
+			.jpeg({ quality: 80 })
 			.toBuffer();
 	}
 
 	// If a byte budget is set and the resized image still exceeds it, re-encode
-	// at progressively smaller widths and PNG quality until it fits.
+	// at progressively smaller widths and JPEG quality until it fits.
 	if (sizeLimit > 0 && resized.length > sizeLimit) {
 		const qualitySteps = [80, 60, 40, 20];
 		for (const quality of qualitySteps) {
 			const candidate = await sharp(buffer)
 				.resize({ width: widthLimit, withoutEnlargement: true })
-				.png({ quality })
+				.jpeg({ quality })
 				.toBuffer();
 			if (candidate.length <= sizeLimit) {
 				return candidate.toString("base64");
@@ -57,7 +57,7 @@ export async function resizeScreenshot(data, maxWidth, maxSize) {
 			width = Math.floor(width / 2);
 			const candidate = await sharp(buffer)
 				.resize({ width, withoutEnlargement: true })
-				.png({ quality: 60 })
+				.jpeg({ quality: 60 })
 				.toBuffer();
 			if (candidate.length <= sizeLimit) {
 				return candidate.toString("base64");
@@ -683,10 +683,10 @@ export async function screenshotWebImpl(input, options = {}) {
 		let data = await page.screenshot({ fullPage: true, encoding: "base64" });
 		await page.close();
 		data = await resize(data, widthLimit, sizeLimit);
-		const filename = `screenshot-${Date.now()}.png`;
+		const filename = `screenshot-${Date.now()}.jpg`;
 		const path = join(config.cwd, config.memory.screenshotsDir, filename);
 		await writeFile(path, Buffer.from(data, "base64"));
-		return JSON.stringify({ ok: true, mimeType: "image/png", path });
+		return JSON.stringify({ ok: true, mimeType: "image/jpeg", path });
 	} catch (err) {
 		return JSON.stringify({ ok: false, error: `Screenshot failed: ${err.message}` });
 	} finally {

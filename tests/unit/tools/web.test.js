@@ -275,7 +275,7 @@ describe("resizeScreenshot", () => {
 		assert.strictEqual(meta.width, 1024);
 	});
 
-	it("leaves an image unchanged when it is within the max width", async () => {
+	it("keeps the dimensions of an image within the max width and encodes it as JPEG", async () => {
 		const { default: sharp } = await import("sharp");
 		const buf = await sharp({
 			create: { width: 800, height: 600, channels: 3, background: { r: 50, g: 50, b: 50 } },
@@ -284,7 +284,10 @@ describe("resizeScreenshot", () => {
 			.toBuffer();
 		const b64 = buf.toString("base64");
 		const resized = await resizeScreenshot(b64, 1024);
-		assert.strictEqual(resized, b64);
+		const meta = await sharp(Buffer.from(resized, "base64")).metadata();
+		assert.strictEqual(meta.format, "jpeg");
+		assert.strictEqual(meta.width, 800);
+		assert.strictEqual(meta.height, 600);
 	});
 
 	it("re-encodes to fit a byte budget when the resized image exceeds maxSize", async () => {
