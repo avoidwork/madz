@@ -5,6 +5,7 @@ import { readFile, stat } from "node:fs/promises";
 import { extname } from "node:path";
 import { loadConfig } from "../../config/loader.js";
 import { validatePath } from "../common.js";
+import { sendImageImpl } from "./sendImage.js";
 
 // MIME type map for common image extensions.
 const MIME_TYPES = {
@@ -69,7 +70,7 @@ async function constrainDimensions(buffer, mimeType, maxDimension) {
  * @param {z.infer<typeof ReadImageSchema>} input - Tool input
  * @param {object} [options] - Runtime options for test injection
  * @param {string[]} [options.allowedPaths] - Sandbox-allowed paths
- * @returns {Promise<string>} JSON result string
+ * @returns {Promise<Array|string>} `[image_url block]` on success; a JSON error string on failure
  */
 export async function readImageImpl(input, options = {}) {
 	const { path: filePath, maxSize } = input;
@@ -120,11 +121,11 @@ export async function readImageImpl(input, options = {}) {
 	const maxDimension = config.image?.maxDimension || DEFAULT_MAX_DIMENSION;
 	buffer = await constrainDimensions(buffer, mimeType, maxDimension);
 
-	return JSON.stringify({
-		ok: true,
-		mimeType,
-		data: buffer.toString("base64"),
-	});
+	// Build the content block via sendImageImpl and return it as-is. LangChain
+	// keeps an array of content blocks intact (no JSON.stringify), so the
+	// ImageDispatch middleware reads the `image_url` block directly.
+	const [, imageBlock] = sendImageImpl({ data: buffer.toString("base64"), mimeType, text: "" });
+	return [imageBlock];
 }
 
 const ReadImageSchema = z.object({

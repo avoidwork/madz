@@ -17,6 +17,7 @@ after(() => {
 	rmSync(testDir, { recursive: true, force: true });
 });
 
+const b64 = (r) => r[0].image_url.url.split(",")[1];
 describe("readImage tool", () => {
 	it("has correct tool metadata", () => {
 		assert.strictEqual(readImage.name, "readImage");
@@ -29,9 +30,10 @@ describe("readImage tool", () => {
 		writeFileSync(filePath, Buffer.alloc(50 * 1024, 1));
 
 		const result = await readImageImpl({ path: filePath }, { allowedPaths: [testDir] });
-		const parsed = JSON.parse(result);
 
-		assert.strictEqual(parsed.ok, true);
+		assert.ok(Array.isArray(result));
+		assert.strictEqual(result[0].type, "image_url");
+		assert.ok(result[0].image_url.url.startsWith("data:image/png;base64,"));
 	});
 
 	it("rejects a file above the size limit", async () => {
@@ -56,10 +58,7 @@ describe("readImage tool", () => {
 		writeFileSync(filePath, src);
 
 		const result = await readImageImpl({ path: filePath }, { allowedPaths: [testDir] });
-		const parsed = JSON.parse(result);
-
-		assert.strictEqual(parsed.ok, true);
-		const meta = await sharp(Buffer.from(parsed.data, "base64")).metadata();
+		const meta = await sharp(Buffer.from(b64(result), "base64")).metadata();
 		assert.strictEqual(meta.width, 5000);
 		assert.strictEqual(meta.height, 2500);
 	});
@@ -74,8 +73,16 @@ describe("readImage tool", () => {
 		writeFileSync(filePath, src);
 
 		const result = await readImageImpl({ path: filePath }, { allowedPaths: [testDir] });
-		const parsed = JSON.parse(result);
 
-		assert.strictEqual(parsed.data, src.toString("base64"));
+		assert.strictEqual(b64(result), src.toString("base64"));
+	});
+
+	it("defaults an unknown extension to image/png", async () => {
+		const filePath = join(testDir, "mystery.xyz");
+		writeFileSync(filePath, Buffer.alloc(100, 1));
+
+		const result = await readImageImpl({ path: filePath }, { allowedPaths: [testDir] });
+
+		assert.ok(result[0].image_url.url.startsWith("data:image/png;base64,"));
 	});
 });

@@ -1,6 +1,5 @@
 import { createMiddleware } from "langchain";
 import { HumanMessage, ToolMessage } from "@langchain/core/messages";
-import { sendImageImpl } from "../tools/image/sendImage.js";
 import { logger } from "../shared/logger.js";
 
 /**
@@ -149,26 +148,16 @@ export function createImageDispatchMiddleware() {
  * @returns {Object|null} An `image_url` content block, or `null` to skip
  */
 function buildImageBlock(content) {
-	let parsed;
-	try {
-		parsed = JSON.parse(content);
-	} catch {
-		logger.warn("[imageDispatch] failed to parse readImage tool result; skipping");
-		return null;
+	// Success: readImage returns `[{ type: "image_url", image_url }]`.
+	if (Array.isArray(content)) {
+		const block = content.find((b) => b?.type === "image_url" && b.image_url?.url);
+		// Skip a data URI with an empty payload (`data:<mime>;base64,`).
+		const payload = block?.image_url.url.split(",")[1];
+		return payload ? block : null;
 	}
-
-	if (parsed?.ok !== true) return null;
-	if (!parsed.data || typeof parsed.data !== "string" || parsed.data.length === 0) return null;
-
-	// `sendImageImpl` returns `[{ type: "text", text }, { type: "image_url", image_url }]`.
-	// The middleware reuses its content-building logic but only needs the `image_url`
-	// block; the text block is assembled once from the user's prompt.
-	const contentArray = sendImageImpl({
-		data: parsed.data,
-		mimeType: parsed.mimeType,
-		text: "",
-	});
-	return contentArray[1];
+	// Failure: readImage returns a JSON error string (`{ ok: false, error }`).
+	// Nothing to dispatch; the model sees the error text unchanged.
+	return null;
 }
 
 /**

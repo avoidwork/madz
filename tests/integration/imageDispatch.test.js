@@ -96,19 +96,11 @@ describe("integration - image dispatch middleware injects vision input", () => {
 		});
 
 	const makeReadImageTool = () =>
-		tool(
-			() =>
-				JSON.stringify({
-					ok: true,
-					mimeType: "image/png",
-					data: "iVBORw0KGgo=",
-				}),
-			{
-				name: "readImage",
-				description: "Read an image file and return base64 + MIME type",
-				schema: z.object({ path: z.string() }),
-			},
-		);
+		tool(() => [{ type: "image_url", image_url: { url: "data:image/png;base64,iVBORw0KGgo=" } }], {
+			name: "readImage",
+			description: "Read an image file and return base64 + MIME type",
+			schema: z.object({ path: z.string() }),
+		});
 
 	it("injects the image content block into the next model request", async () => {
 		stubFetch();

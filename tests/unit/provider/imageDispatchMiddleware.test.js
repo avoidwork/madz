@@ -33,7 +33,7 @@ describe("imageDispatchMiddleware wrapModelCall", () => {
 				tool_calls: [{ name: "readImage", args: { path: "/tmp/x.png" }, id: "call_1" }],
 			}),
 			new ToolMessage({
-				content: JSON.stringify({ ok: true, mimeType: "image/png", data: "iVBORw0KGgo=" }),
+				content: [{ type: "image_url", image_url: { url: "data:image/png;base64,iVBORw0KGgo=" } }],
 				name: "readImage",
 				tool_call_id: "call_1",
 			}),
@@ -68,7 +68,7 @@ describe("imageDispatchMiddleware wrapModelCall", () => {
 				tool_calls: [{ name: "readImage", args: { path: "/tmp/x.png" }, id: "call_1" }],
 			}),
 			new ToolMessage({
-				content: JSON.stringify({ ok: true, mimeType: "image/png", data: "iVBORw0KGgo=" }),
+				content: [{ type: "image_url", image_url: { url: "data:image/png;base64,iVBORw0KGgo=" } }],
 				name: "readImage",
 				tool_call_id: "call_1",
 			}),
@@ -96,7 +96,7 @@ describe("imageDispatchMiddleware wrapModelCall", () => {
 				tool_calls: [{ name: "readImage", args: { path: "/tmp/x.png" }, id: "call_1" }],
 			}),
 			new ToolMessage({
-				content: JSON.stringify({ ok: true, mimeType: "image/png", data: "iVBORw0KGgo=" }),
+				content: [{ type: "image_url", image_url: { url: "data:image/png;base64,iVBORw0KGgo=" } }],
 				name: "readImage",
 				tool_call_id: "call_1",
 			}),
@@ -120,7 +120,7 @@ describe("imageDispatchMiddleware wrapModelCall", () => {
 	it("injects the image only once and does not re-attach it to a later unrelated prompt", async () => {
 		const mw = createImageDispatchMiddleware();
 		const readImageToolMessage = new ToolMessage({
-			content: JSON.stringify({ ok: true, mimeType: "image/png", data: "iVBORw0KGgo=" }),
+			content: [{ type: "image_url", image_url: { url: "data:image/png;base64,iVBORw0KGgo=" } }],
 			name: "readImage",
 			tool_call_id: "call_1",
 		});
@@ -170,27 +170,6 @@ describe("imageDispatchMiddleware wrapModelCall", () => {
 		assert.strictEqual(human2.content, "summarize this code");
 	});
 
-	it("defaults unknown MIME type to image/png", async () => {
-		const mw = createImageDispatchMiddleware();
-		const request = makeRequest([
-			new HumanMessage({ content: "analyze" }),
-			new ToolMessage({
-				content: JSON.stringify({ ok: true, mimeType: "image/weird", data: "AAAA" }),
-				name: "readImage",
-				tool_call_id: "call_1",
-			}),
-		]);
-
-		let captured;
-		await mw.wrapModelCall(request, async (req) => {
-			captured = req;
-			return {};
-		});
-
-		const last = captured.messages[captured.messages.length - 1];
-		assert.strictEqual(last.content[1].image_url.url, "data:image/png;base64,AAAA");
-	});
-
 	it("skips an ok:false readImage result", async () => {
 		const mw = createImageDispatchMiddleware();
 		const request = makeRequest([
@@ -216,7 +195,7 @@ describe("imageDispatchMiddleware wrapModelCall", () => {
 		const request = makeRequest([
 			new HumanMessage({ content: "analyze" }),
 			new ToolMessage({
-				content: JSON.stringify({ ok: true, mimeType: "image/png", data: "" }),
+				content: [{ type: "image_url", image_url: { url: "data:image/png;base64," } }],
 				name: "readImage",
 				tool_call_id: "call_1",
 			}),
@@ -259,12 +238,12 @@ describe("imageDispatchMiddleware wrapModelCall", () => {
 				],
 			}),
 			new ToolMessage({
-				content: JSON.stringify({ ok: true, mimeType: "image/png", data: "AAA=" }),
+				content: [{ type: "image_url", image_url: { url: "data:image/png;base64,AAA=" } }],
 				name: "readImage",
 				tool_call_id: "call_1",
 			}),
 			new ToolMessage({
-				content: JSON.stringify({ ok: true, mimeType: "image/jpeg", data: "BBB=" }),
+				content: [{ type: "image_url", image_url: { url: "data:image/jpeg;base64,BBB=" } }],
 				name: "readImage",
 				tool_call_id: "call_2",
 			}),

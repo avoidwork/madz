@@ -66,9 +66,9 @@ describe("image screenshot -> read flow", () => {
 		writeFileSync(filePath, resizedBuf);
 
 		const result = await readImageImpl({ path: filePath }, { allowedPaths: [testDir] });
-		const parsed = JSON.parse(result);
 
-		assert.strictEqual(parsed.ok, true, `readImage should succeed: ${parsed.error || ""}`);
+		assert.ok(Array.isArray(result), `readImage should succeed: ${result}`);
+		assert.strictEqual(result[0].type, "image_url");
 	});
 
 	it("readImage rejects a file above the configured limit", async () => {

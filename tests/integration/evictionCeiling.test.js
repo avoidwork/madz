@@ -244,15 +244,16 @@ describe("integration - readImage survives eviction and reaches the model as vis
 				messages: [{ role: "user", content: "analyze this screenshot" }],
 			});
 
-			// 1. The persisted ToolMessage is still parseable JSON with a payload.
+			// 1. The persisted ToolMessage is still an intact image block.
 			const toolMessage = result.messages.find(
 				(m) => (m._getType?.() ?? m.type) === "tool" && m.name === "readImage",
 			);
 			assert.ok(toolMessage, "expected a readImage ToolMessage in the transcript");
-			const parsed = JSON.parse(String(toolMessage.content));
-			assert.strictEqual(parsed.ok, true, "tool result must not be eviction prose");
-			assert.ok(parsed.data.length > 0, "base64 payload must be intact");
-			assert.strictEqual(parsed.data.length, base64Length);
+			assert.ok(Array.isArray(toolMessage.content), "tool result must not be eviction prose");
+			const url = toolMessage.content[0].image_url.url;
+			const data = url.slice(url.indexOf(",") + 1);
+			assert.ok(data.length > 0, "base64 payload must be intact");
+			assert.strictEqual(data.length, base64Length);
 
 			// 2. ImageDispatch built the vision block end to end.
 			const messages = lastRequestBody?.messages ?? [];
