@@ -234,3 +234,4 @@ cwd: ""
 image:
   maxSize: 100000
   maxWidth: 1024
+  maxDimension: 5000

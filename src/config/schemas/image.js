@@ -16,6 +16,9 @@ export const MAX_IMAGE_MAX_SIZE = 500000;
 /** Default base64 budget for `readImage` results. */
 export const DEFAULT_IMAGE_MAX_SIZE = 100000;
 
+/** Default cap on image width/height in pixels for `readImage`. */
+export const DEFAULT_IMAGE_MAX_DIMENSION = 5000;
+
 export const ImageSchema = z.object({
 	maxSize: z
 		.number()
@@ -24,4 +27,5 @@ export const ImageSchema = z.object({
 		.max(MAX_IMAGE_MAX_SIZE)
 		.default(DEFAULT_IMAGE_MAX_SIZE),
 	maxWidth: z.number().int().positive().default(1024),
+	maxDimension: z.number().int().positive().default(DEFAULT_IMAGE_MAX_DIMENSION),
 });

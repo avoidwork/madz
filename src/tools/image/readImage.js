@@ -1,5 +1,6 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
+import sharp from "sharp";
 import { readFile, stat } from "node:fs/promises";
 import { extname } from "node:path";
 import { loadConfig } from "../../config/loader.js";
@@ -28,6 +29,35 @@ const MIME_TYPES = {
 function detectMimeType(filePath) {
 	const ext = extname(filePath).toLowerCase();
 	return MIME_TYPES[ext] || "application/octet-stream";
+}
+
+const DEFAULT_MAX_DIMENSION = 5000;
+
+/**
+ * Downscale a raster image so neither width nor height exceeds `maxDimension`,
+ * preserving aspect ratio and never enlarging. SVG and undecodable inputs are
+ * returned unchanged.
+ * @param {Buffer} buffer - Image bytes
+ * @param {string} mimeType - Image MIME type
+ * @param {number} maxDimension - Maximum width/height in pixels
+ * @returns {Promise<Buffer>} The original or resized bytes
+ */
+async function constrainDimensions(buffer, mimeType, maxDimension) {
+	if (mimeType === "image/svg+xml" || mimeType === "application/octet-stream") return buffer;
+	try {
+		const { width, height } = await sharp(buffer).metadata();
+		if (!width || !height || (width <= maxDimension && height <= maxDimension)) return buffer;
+		return await sharp(buffer)
+			.resize({
+				width: maxDimension,
+				height: maxDimension,
+				fit: "inside",
+				withoutEnlargement: true,
+			})
+			.toBuffer();
+	} catch (_err) {
+		return buffer;
+	}
 }
 
 /**
@@ -86,9 +116,13 @@ export async function readImageImpl(input, options = {}) {
 		return JSON.stringify({ ok: false, error: `Failed to read file: ${err.message}` });
 	}
 
+	const mimeType = detectMimeType(validation.path);
+	const maxDimension = config.image?.maxDimension || DEFAULT_MAX_DIMENSION;
+	buffer = await constrainDimensions(buffer, mimeType, maxDimension);
+
 	return JSON.stringify({
 		ok: true,
-		mimeType: detectMimeType(validation.path),
+		mimeType,
 		data: buffer.toString("base64"),
 	});
 }
@@ -106,6 +140,7 @@ export const readImage = tool(readImageImpl, {
 		"Do NOT use read_file for images: read_file returns raw octet-stream binary that poisons the " +
 		"session and errors the inference provider. Validates the path against the sandbox allowlist " +
 		"and enforces a configurable size limit (image.maxSize, default 100000 bytes) on the base64-encoded " +
-		"output, so the raw file may be up to maxSize * 1.33 bytes. Uses async file system operations.",
+		"output, so the raw file may be up to maxSize * 1.33 bytes. Images wider or taller than image.maxDimension " +
+		"(default 5000 px) are downscaled, preserving aspect ratio. Uses async file system operations.",
 	schema: ReadImageSchema,
 });

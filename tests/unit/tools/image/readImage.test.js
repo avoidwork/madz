@@ -3,6 +3,7 @@ import assert from "node:assert";
 import { writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import sharp from "sharp";
 import { readImage, readImageImpl } from "../../../../src/tools/image/readImage.js";
 
 let testDir;
@@ -43,5 +44,38 @@ describe("readImage tool", () => {
 
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("exceeds max read size"));
+	});
+
+	it("downscales images exceeding maxDimension preserving aspect ratio", async () => {
+		const filePath = join(testDir, "wide.png");
+		const src = await sharp({
+			create: { width: 6000, height: 3000, channels: 3, background: "#000" },
+		})
+			.png()
+			.toBuffer();
+		writeFileSync(filePath, src);
+
+		const result = await readImageImpl({ path: filePath }, { allowedPaths: [testDir] });
+		const parsed = JSON.parse(result);
+
+		assert.strictEqual(parsed.ok, true);
+		const meta = await sharp(Buffer.from(parsed.data, "base64")).metadata();
+		assert.strictEqual(meta.width, 5000);
+		assert.strictEqual(meta.height, 2500);
+	});
+
+	it("leaves images within maxDimension untouched", async () => {
+		const filePath = join(testDir, "small.png");
+		const src = await sharp({
+			create: { width: 100, height: 50, channels: 3, background: "#000" },
+		})
+			.png()
+			.toBuffer();
+		writeFileSync(filePath, src);
+
+		const result = await readImageImpl({ path: filePath }, { allowedPaths: [testDir] });
+		const parsed = JSON.parse(result);
+
+		assert.strictEqual(parsed.data, src.toString("base64"));
 	});
 });
