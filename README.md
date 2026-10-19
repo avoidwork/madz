@@ -655,7 +655,7 @@ All built-in tools are defined in `src/tools/` and registered as LangChain tools
 | `renderWeb` | Render a URL in headless Chromium and return the JS-aware extracted text — for JavaScript-heavy pages (SPAs, dashboards, paywalled content). |
 | `sampling` | Capture emotional moments as ephemeral memories. Rate-limited to 1 per 60 minutes. Stored with `expiresAt` frontmatter. |
 | `scanAgents` | Scan for `AGENTS.md` workspace rules files in a target directory. Returns file contents or empty string. |
-| `screenshotWeb` | Render a URL in headless Chromium and return a base64 PNG screenshot for vision analysis. |
+| `screenshotWeb` | Render a URL in headless Chromium, save a JPEG screenshot to `memory/screenshots/`, and return its path plus MIME type for vision analysis. |
 | `searchCode` | Semantic code search using vector similarity. Finds conceptually related code even when exact keywords don't match — e.g., searching for "authentication" finds login handlers, token validation, and auth middleware. |
 | `searchSession` | Search past conversations by keyword query, full retrieval by conversation ID, or browse all sessions. |
 | `searchWeb` | Search the web via DuckDuckGo, Google, Bing, SearXNG, Custom, or Tavily endpoints. |
