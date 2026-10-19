@@ -532,4 +532,204 @@ describe("createCopilotFetch", () => {
 			setAuthRequiredHandler(null);
 		}
 	});
+
+	// GitHub's Copilot API rejects any payload containing an image unless the
+	// request carries `Copilot-Vision-Request: true`, failing with
+	// `400 missing required Copilot-Vision-Request header for vision requests`.
+	// Detection must cover all three Copilot API shapes and scan the whole body,
+	// not just the final message — matching opencode.
+	describe("Copilot-Vision-Request header", () => {
+		/**
+		 * Run a request through the interceptor and return the captured headers.
+		 * @param {Object} body - The request body to send
+		 * @param {string} [url] - The request URL
+		 * @returns {Promise<Headers>} The headers seen by fetch
+		 */
+		async function captureHeaders(body, url = "https://api.githubcopilot.com/v1/chat/completions") {
+			await persist("oauth-token", memoryDir);
+			const origFetch = globalThis.fetch;
+			/** @type {Headers} */
+			let capturedHeaders;
+			globalThis.fetch = async (_url, init) => {
+				capturedHeaders = new Headers(init.headers);
+				return new Response("ok", { status: 200 });
+			};
+			try {
+				const copilotFetch = createCopilotFetch(memoryDir);
+				await copilotFetch(url, { method: "POST", body: JSON.stringify(body) });
+			} finally {
+				globalThis.fetch = origFetch;
+			}
+			return capturedHeaders;
+		}
+
+		it("sets the header for a Completions API image_url part", async () => {
+			const headers = await captureHeaders({
+				messages: [
+					{
+						role: "user",
+						content: [
+							{ type: "text", text: "what is in this image?" },
+							{ type: "image_url", image_url: { url: "data:image/png;base64,xxx" } },
+						],
+					},
+				],
+			});
+			assert.strictEqual(headers.get("Copilot-Vision-Request"), "true");
+		});
+
+		it("sets the header for a Responses API input_image part", async () => {
+			const headers = await captureHeaders(
+				{
+					input: [
+						{
+							role: "user",
+							content: [{ type: "input_image", image_url: "data:image/png;base64,xxx" }],
+						},
+					],
+				},
+				"https://api.githubcopilot.com/responses",
+			);
+			assert.strictEqual(headers.get("Copilot-Vision-Request"), "true");
+		});
+
+		it("sets the header for an Anthropic Messages API image part", async () => {
+			const headers = await captureHeaders(
+				{
+					messages: [
+						{
+							role: "user",
+							content: [
+								{ type: "text", text: "describe this" },
+								{ type: "image", source: { type: "base64", media_type: "image/png", data: "xxx" } },
+							],
+						},
+					],
+				},
+				"https://api.githubcopilot.com/v1/messages",
+			);
+			assert.strictEqual(headers.get("Copilot-Vision-Request"), "true");
+		});
+
+		it("sets the header for an image nested inside an Anthropic tool_result", async () => {
+			const headers = await captureHeaders(
+				{
+					messages: [
+						{
+							role: "user",
+							content: [
+								{
+									type: "tool_result",
+									tool_use_id: "tu_1",
+									content: [
+										{
+											type: "image",
+											source: { type: "base64", media_type: "image/png", data: "xxx" },
+										},
+									],
+								},
+							],
+						},
+					],
+				},
+				"https://api.githubcopilot.com/v1/messages",
+			);
+			assert.strictEqual(headers.get("Copilot-Vision-Request"), "true");
+		});
+
+		it("sets the header when the image is not in the final message", async () => {
+			// opencode scans the whole body: an image earlier in the conversation
+			// still marks the request as vision.
+			const headers = await captureHeaders({
+				messages: [
+					{
+						role: "user",
+						content: [{ type: "image_url", image_url: { url: "data:image/png;base64,xxx" } }],
+					},
+					{ role: "assistant", content: "a cat" },
+					{ role: "user", content: "and what colour is it?" },
+				],
+			});
+			assert.strictEqual(headers.get("Copilot-Vision-Request"), "true");
+		});
+
+		it("omits the header for a text-only request", async () => {
+			const headers = await captureHeaders({
+				messages: [{ role: "user", content: "hello there" }],
+			});
+			assert.strictEqual(headers.get("Copilot-Vision-Request"), null);
+		});
+
+		it("omits the header when content blocks are non-image arrays", async () => {
+			const headers = await captureHeaders({
+				messages: [
+					{
+						role: "user",
+						content: [{ type: "text", text: "no image here" }],
+					},
+				],
+			});
+			assert.strictEqual(headers.get("Copilot-Vision-Request"), null);
+		});
+
+		it("omits the header when the body is not JSON", async () => {
+			await persist("oauth-token", memoryDir);
+			const origFetch = globalThis.fetch;
+			/** @type {Headers} */
+			let capturedHeaders;
+			globalThis.fetch = async (_url, init) => {
+				capturedHeaders = new Headers(init.headers);
+				return new Response("ok", { status: 200 });
+			};
+			try {
+				const copilotFetch = createCopilotFetch(memoryDir);
+				await copilotFetch("https://api.githubcopilot.com/v1/chat/completions", {
+					method: "POST",
+					body: "not json at all",
+				});
+			} finally {
+				globalThis.fetch = origFetch;
+			}
+			assert.strictEqual(capturedHeaders.get("Copilot-Vision-Request"), null);
+		});
+
+		it("detects vision when the body is already a parsed object", async () => {
+			await persist("oauth-token", memoryDir);
+			const origFetch = globalThis.fetch;
+			/** @type {Headers} */
+			let capturedHeaders;
+			globalThis.fetch = async (_url, init) => {
+				capturedHeaders = new Headers(init.headers);
+				return new Response("ok", { status: 200 });
+			};
+			try {
+				const copilotFetch = createCopilotFetch(memoryDir);
+				await copilotFetch("https://api.githubcopilot.com/v1/chat/completions", {
+					method: "POST",
+					body: {
+						messages: [
+							{
+								role: "user",
+								content: [{ type: "image_url", image_url: { url: "data:image/png;base64,xxx" } }],
+							},
+						],
+					},
+				});
+			} finally {
+				globalThis.fetch = origFetch;
+			}
+			assert.strictEqual(capturedHeaders.get("Copilot-Vision-Request"), "true");
+		});
+
+		it("tolerates malformed content entries without throwing", async () => {
+			const headers = await captureHeaders({
+				messages: [
+					{ role: "user", content: [null, "a bare string", { type: "text", text: "hi" }] },
+					{ role: "assistant", content: null },
+					{ role: "user" },
+				],
+			});
+			assert.strictEqual(headers.get("Copilot-Vision-Request"), null);
+		});
+	});
 });
