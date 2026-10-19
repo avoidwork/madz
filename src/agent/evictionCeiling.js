@@ -17,17 +17,12 @@ export const ENVELOPE_HEADROOM = 128;
 export const CHARS_PER_TOKEN = 4;
 
 /**
- * Defense-in-depth bounds for the base64 budget. `src/config/schemas/image.js`
- * already rejects values outside this range at config-parse time; these guards
- * keep a caller that bypasses the schema (or a config object built by hand in
- * a test) from producing a ceiling of 0 — which deepagents treats as
- * "eviction disabled" — or an unbounded one.
+ * Fixed base64 character budget for the eviction ceiling. `readImage` no
+ * longer enforces a size limit (the model handles whatever it is sent), so the
+ * ceiling must sit above any realistic image or deepagents' 20,000-token
+ * default (80,000 chars) would evict it and replace it with prose.
  */
-const MIN_SIZE_LIMIT = 1024;
-const MAX_SIZE_LIMIT = 500000;
-
-/** Default base64 budget when `image.maxSize` is absent or unusable. */
-const DEFAULT_SIZE_LIMIT = 100000;
+export const IMAGE_EVICTION_BUDGET_CHARS = 2000000;
 
 /**
  * Map a model instance's class name to the provider prefix used to build a
@@ -116,33 +111,19 @@ export function resolveProfileFilesystemTools(model) {
 }
 
 /**
- * Derive deepagents' `toolTokenLimitBeforeEvict` from `image.maxSize`.
+ * Derive deepagents' `toolTokenLimitBeforeEvict`: the fixed image budget plus
+ * envelope headroom, divided by `CHARS_PER_TOKEN` (deepagents evicts when the
+ * stringified content exceeds `limit * 4` characters).
  *
- * `image.maxSize` budgets the **base64 characters** `readImage` returns (per
- * its own docstring), and the ToolMessage content is that base64 wrapped in a
- * small JSON envelope. deepagents evicts when the stringified content exceeds
- * `toolTokenLimitBeforeEvict * 4` characters, so the ceiling is the base64
- * budget plus envelope headroom, divided by 4.
- *
- * The factor is deliberately NOT `maxSize * 1.33`: that would re-apply the
- * base64 expansion to a number that is already an encoded budget, inflating the
- * ceiling 1.77x. `readImage`'s own size check stays the primary gate; this only
- * raises the ceiling that has to accommodate it.
- *
- * @param {Object} config - Resolved config object (reads `image.maxSize`)
  * @returns {number} The token limit to pass as `toolTokenLimitBeforeEvict`
  */
-export function deriveToolTokenLimitBeforeEvict(config) {
-	const raw = config?.image?.maxSize;
-	const candidate = Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : DEFAULT_SIZE_LIMIT;
-	const sizeLimit = Math.min(Math.max(candidate, MIN_SIZE_LIMIT), MAX_SIZE_LIMIT);
-
-	return Math.ceil((sizeLimit + ENVELOPE_HEADROOM) / CHARS_PER_TOKEN);
+export function deriveToolTokenLimitBeforeEvict() {
+	return Math.ceil((IMAGE_EVICTION_BUDGET_CHARS + ENVELOPE_HEADROOM) / CHARS_PER_TOKEN);
 }
 
 /**
  * Build madz's replacement for deepagents' `FilesystemMiddleware`, configured
- * with an eviction ceiling derived from `image.maxSize`.
+ * with a fixed eviction ceiling large enough for image payloads.
  *
  * The returned middleware MUST keep the name `"FilesystemMiddleware"`:
  * deepagents merges custom middleware over its defaults with a Map keyed by
@@ -158,16 +139,10 @@ export function deriveToolTokenLimitBeforeEvict(config) {
  * @param {Object} options.backend - Backend shared with the agent (state-backed)
  * @param {Object[]} [options.permissions=[]] - Filesystem permission rules
  * @param {Object|string} options.model - Chat model instance or "provider:model" spec
- * @param {Object} options.config - Resolved config object (reads `image.maxSize`)
  * @returns {Object} The middleware, named `"FilesystemMiddleware"`
  */
-export function createEvictionAwareFilesystemMiddleware({
-	backend,
-	permissions = [],
-	model,
-	config,
-}) {
-	const toolTokenLimitBeforeEvict = deriveToolTokenLimitBeforeEvict(config);
+export function createEvictionAwareFilesystemMiddleware({ backend, permissions = [], model }) {
+	const toolTokenLimitBeforeEvict = deriveToolTokenLimitBeforeEvict();
 
 	return createFilesystemMiddleware({
 		backend,

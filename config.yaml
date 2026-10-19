@@ -232,5 +232,5 @@ subAgentsTemperature:
   translator: 0.3
 cwd: ""
 image:
-  maxSize: 100000
-  maxWidth: 1024
+  maxWidth: 1920
+  maxDimension: 5000

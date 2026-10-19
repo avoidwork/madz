@@ -9,60 +9,25 @@ import { launchBrowser, openPage, DEFAULT_TIMEOUT } from "./browser.js";
 const config = loadConfig();
 
 /**
- * Resize and re-encode a base64 PNG screenshot so it fits within a max width
- * and stays consumable by readImage (which enforces image.maxSize).
- * Uses sharp (native, fast) for the resize. Returns the base64 PNG.
- *
- * If `maxSize` is provided, the output is re-encoded at progressively smaller
- * widths and PNG quality until it fits under the byte budget. This closes the
- * loop with readImage: a screenshot produced here can never exceed the size
- * limit readImage enforces.
+ * Resize and re-encode a base64 PNG screenshot so it fits within a max width.
+ * Uses sharp (native, fast) for the resize. Returns the base64 JPEG.
  * @param {string} data - Base64-encoded PNG
  * @param {number} maxWidth - Maximum width in pixels
- * @param {number} [maxSize] - Byte budget. Optional.
- * @returns {Promise<string>} Base64-encoded resized PNG
+ * @returns {Promise<string>} Base64-encoded resized JPEG
  */
-export async function resizeScreenshot(data, maxWidth, maxSize) {
+export async function resizeScreenshot(data, maxWidth) {
 	const { default: sharp } = await import("sharp");
 	const buffer = Buffer.from(data, "base64");
 	const metadata = await sharp(buffer).metadata();
 
 	const widthLimit = metadata.width && metadata.width > maxWidth ? maxWidth : metadata.width;
-	const sizeLimit = maxSize || 0;
 
 	let resized = buffer;
-	if (widthLimit && widthLimit < buffer.length) {
+	if (widthLimit) {
 		resized = await sharp(buffer)
 			.resize({ width: widthLimit, withoutEnlargement: true })
-			.png()
+			.jpeg({ quality: 80 })
 			.toBuffer();
-	}
-
-	// If a byte budget is set and the resized image still exceeds it, re-encode
-	// at progressively smaller widths and PNG quality until it fits.
-	if (sizeLimit > 0 && resized.length > sizeLimit) {
-		const qualitySteps = [80, 60, 40, 20];
-		for (const quality of qualitySteps) {
-			const candidate = await sharp(buffer)
-				.resize({ width: widthLimit, withoutEnlargement: true })
-				.png({ quality })
-				.toBuffer();
-			if (candidate.length <= sizeLimit) {
-				return candidate.toString("base64");
-			}
-		}
-		// Last resort: halve the width until it fits.
-		let width = widthLimit;
-		while (width > 1) {
-			width = Math.floor(width / 2);
-			const candidate = await sharp(buffer)
-				.resize({ width, withoutEnlargement: true })
-				.png({ quality: 60 })
-				.toBuffer();
-			if (candidate.length <= sizeLimit) {
-				return candidate.toString("base64");
-			}
-		}
 	}
 
 	return resized.toString("base64");
@@ -647,7 +612,7 @@ export async function renderWebImpl(input, options = {}) {
 /// -- Web screenshot --
 
 /**
- * Render a URL in headless Chromium, save the PNG screenshot to disk, and
+ * Render a URL in headless Chromium, save the JPEG screenshot to disk, and
  * return the file path plus MIME type so readImage can read it for vision analysis.
  * @param {object} input - Tool input with URL
  * @param {string} input.url - URL to render
@@ -672,21 +637,20 @@ export async function screenshotWebImpl(input, options = {}) {
 		return JSON.stringify({ ok: false, error: `URL rejected: ${validation.reason}` });
 	}
 
-	const widthLimit = maxWidth || config.image?.maxWidth || 1024;
-	const sizeLimit = config.image?.maxSize || 100000;
+	const widthLimit = maxWidth || config.image?.maxWidth || 1920;
 
 	let browser;
 	try {
 		browser = await launch({ timeout });
-		const page = await open(browser, timeout);
+		const page = await open(browser, timeout, { width: widthLimit, height: 1080 });
 		await page.goto(url, { waitUntil: "networkidle0", timeout });
 		let data = await page.screenshot({ fullPage: true, encoding: "base64" });
 		await page.close();
-		data = await resize(data, widthLimit, sizeLimit);
-		const filename = `screenshot-${Date.now()}.png`;
+		data = await resize(data, widthLimit);
+		const filename = `screenshot-${Date.now()}.jpg`;
 		const path = join(config.cwd, config.memory.screenshotsDir, filename);
 		await writeFile(path, Buffer.from(data, "base64"));
-		return JSON.stringify({ ok: true, mimeType: "image/png", path });
+		return JSON.stringify({ ok: true, mimeType: "image/jpeg", path });
 	} catch (err) {
 		return JSON.stringify({ ok: false, error: `Screenshot failed: ${err.message}` });
 	} finally {
@@ -763,11 +727,10 @@ export const renderWeb = tool(renderWebImpl, {
 export const screenshotWeb = tool(screenshotWebImpl, {
 	name: "screenshotWeb",
 	description:
-		"Render a URL in headless Chromium, save the PNG screenshot to disk under " +
+		"Render a URL in headless Chromium, save the JPEG screenshot to disk under " +
 		"memory/screenshots/, and return the file path plus MIME type. Feed the " +
 		"returned path to readImage for vision analysis. Validates the URL against " +
-		"the sandbox allowlist. Resizes the screenshot to maxWidth (default 1024) " +
-		"so it stays consumable by readImage's image.maxSize limit.",
+		"the sandbox allowlist. Resizes the screenshot to maxWidth (default 1920).",
 	schema: z.object({
 		url: z.string().url().describe("URL to render"),
 		timeout: z
@@ -781,6 +744,6 @@ export const screenshotWeb = tool(screenshotWebImpl, {
 			.int()
 			.positive()
 			.optional()
-			.describe("Max screenshot width in pixels (default: 1024)"),
+			.describe("Max screenshot width in pixels (default: 1920)"),
 	}),
 });

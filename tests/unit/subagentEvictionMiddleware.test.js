@@ -5,7 +5,7 @@
  * `general-purpose` subagent only. The 12 configured subagents receive just each
  * spec's own `middleware` array, so the replacement must be attached to every
  * definition we generate — otherwise they keep the library's 20,000-token
- * eviction default and destroy `readImage` results before ImageDispatch runs.
+ * eviction default and destroy `readImage` results before the model sees them.
  */
 
 import { describe, it } from "node:test";
@@ -67,7 +67,6 @@ describe("createSubagentDefinitions eviction middleware", () => {
 	const config = {
 		providers: { openai: {} },
 		subAgentsTemperature: {},
-		image: { maxSize: 100000 },
 	};
 
 	it("attaches a FilesystemMiddleware replacement to every subagent definition", async () => {
@@ -89,9 +88,9 @@ describe("createSubagentDefinitions eviction middleware", () => {
 		}
 	});
 
-	it("builds each subagent's replacement with the config-derived ceiling", async () => {
+	it("builds each subagent's replacement with the fixed ceiling", async () => {
 		const definitions = await createSubagentDefinitions([], {}, new SkillRegistry(), config);
-		const ceilingChars = deriveToolTokenLimitBeforeEvict(config) * 4;
+		const ceilingChars = deriveToolTokenLimitBeforeEvict() * 4;
 
 		for (const def of definitions) {
 			const middleware = def.middleware.find((m) => m.name === "FilesystemMiddleware");
@@ -105,7 +104,7 @@ describe("createSubagentDefinitions eviction middleware", () => {
 			const result = await middleware.wrapToolCall(request, async () => message);
 
 			// Under the library's 20,000 default this payload (100,128 chars) would
-			// have been evicted; surviving proves the ceiling is config-derived.
+			// have been evicted; surviving proves the ceiling is raised.
 			assert.ok(
 				ceilingChars > 20000 * 4,
 				"payload must exceed deepagents' hardcoded default to be meaningful",
@@ -116,7 +115,7 @@ describe("createSubagentDefinitions eviction middleware", () => {
 
 	it("still evicts above the ceiling in a subagent", async () => {
 		const definitions = await createSubagentDefinitions([], {}, new SkillRegistry(), config);
-		const ceilingChars = deriveToolTokenLimitBeforeEvict(config) * 4;
+		const ceilingChars = deriveToolTokenLimitBeforeEvict() * 4;
 		const middleware = definitions[0].middleware.find((m) => m.name === "FilesystemMiddleware");
 		const { evicted, content } = await runWrapToolCall(
 			middleware,
@@ -127,30 +126,12 @@ describe("createSubagentDefinitions eviction middleware", () => {
 		assert.ok(content.includes("large_tool_results"));
 	});
 
-	it("honours a custom image.maxSize in the subagent path", async () => {
-		const customConfig = {
-			providers: { openai: {} },
-			subAgentsTemperature: {},
-			image: { maxSize: 200000 },
-		};
-		const definitions = await createSubagentDefinitions([], {}, new SkillRegistry(), customConfig);
-		const ceilingChars = deriveToolTokenLimitBeforeEvict(customConfig) * 4;
-		const middleware = definitions[0].middleware.find((m) => m.name === "FilesystemMiddleware");
-		const { evicted, content } = await runWrapToolCall(
-			middleware,
-			makeReadImageMessage(ceilingChars),
-		);
-
-		assert.strictEqual(evicted, false);
-		assert.strictEqual(JSON.parse(content).ok, true);
-	});
-
 	it("defaults the backend to the library StateBackend when none is passed", async () => {
 		// Existing callers pass four arguments; the fifth must stay optional.
 		const definitions = await createSubagentDefinitions([], {}, new SkillRegistry(), config);
 		const middleware = definitions[0].middleware.find((m) => m.name === "FilesystemMiddleware");
 		const state = { files: {} };
-		const message = makeReadImageMessage(deriveToolTokenLimitBeforeEvict(config) * 4 + 1);
+		const message = makeReadImageMessage(deriveToolTokenLimitBeforeEvict() * 4 + 1);
 		const request = {
 			toolCall: { name: message.name, id: message.tool_call_id },
 			runtime: { state },

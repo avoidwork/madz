@@ -2,7 +2,6 @@ import { readFile, writeFile, mkdir, unlink } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { createRequire } from "node:module";
-import { SYNTHETIC_ATTACHMENT_PROMPT } from "./imageDispatchMiddleware.js";
 
 const _require = createRequire(import.meta.url);
 /** The application version, read from package.json for the User-Agent header. */
@@ -355,12 +354,7 @@ export async function getAuthPrompt(opts = {}) {
  * message is not a plain user text message (e.g. it is a tool call, a tool
  * result, or a continuation after a tool call). This drives the `x-initiator`
  * header that GitHub Copilot uses to classify the interaction.
- *
- * A synthetic multimodal message injected by the image-dispatch middleware is
- * also agent-initiated: it is the agent's own tool output (a `readImage`
- * result) being fed back as vision input, not a fresh user turn. Such a
- * message carries the `SYNTHETIC_ATTACHMENT_PROMPT` sentinel in its text, so
- * it is classified as agent even though its role is `user`.
+
  * @param {Object} [body] - The parsed request body
  * @returns {boolean} True if the request is agent-initiated
  */
@@ -370,14 +364,12 @@ function isAgentInitiated(body) {
 	if (Array.isArray(body.messages)) {
 		const last = body.messages[body.messages.length - 1];
 		if (!last) return false;
-		if (last.role === "user" && containsSentinel(last.content)) return true;
 		return last.role !== "user";
 	}
 	// Responses API
 	if (Array.isArray(body.input)) {
 		const last = body.input[body.input.length - 1];
 		if (!last) return false;
-		if (last.role === "user" && containsSentinel(last.content)) return true;
 		return last.role !== "user";
 	}
 	return false;
@@ -432,25 +424,6 @@ function isVisionRequest(body) {
 	if (Array.isArray(body.messages)) items = body.messages;
 	else if (Array.isArray(body.input)) items = body.input;
 	return items.some((item) => hasImageParts(item?.content));
-}
-
-/**
- * Detect the synthetic-attachment sentinel in a message content value, which
- * may be a string or an array of content blocks.
- * @param {string|Array} content - The message content
- * @returns {boolean} True if the content carries the sentinel
- */
-function containsSentinel(content) {
-	if (typeof content === "string") return content.includes(SYNTHETIC_ATTACHMENT_PROMPT);
-	if (Array.isArray(content)) {
-		return content.some(
-			(block) =>
-				(block?.type === "text" || block?.type === "input_text") &&
-				typeof block.text === "string" &&
-				block.text.includes(SYNTHETIC_ATTACHMENT_PROMPT),
-		);
-	}
-	return false;
 }
 
 /**

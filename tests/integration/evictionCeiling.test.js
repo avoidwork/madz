@@ -8,15 +8,13 @@ import { ChatOpenAI } from "@langchain/openai";
 import { ToolMessage } from "@langchain/core/messages";
 import sharp from "sharp";
 import { readImage } from "../../src/tools/image/readImage.js";
-import { createImageDispatchMiddleware } from "../../src/provider/imageDispatchMiddleware.js";
 import {
 	createEvictionAwareFilesystemMiddleware,
 	deriveToolTokenLimitBeforeEvict,
 } from "../../src/agent/evictionCeiling.js";
-import { logger } from "../../src/shared/logger.js";
 
-const MAX_SIZE = 100000;
-const CEILING_CHARS = deriveToolTokenLimitBeforeEvict({ image: { maxSize: MAX_SIZE } }) * 4;
+const TARGET_BASE64_CHARS = 100000;
+const CEILING_CHARS = deriveToolTokenLimitBeforeEvict() * 4;
 
 /**
  * Deterministic pseudo-random bytes: incompressible, so PNG output scales
@@ -172,22 +170,16 @@ const makeModel = () =>
 
 /**
  * End-to-end acceptance criterion for issue #1429: a real `readImage` whose
- * base64 payload sits just under `image.maxSize` must survive the filesystem
- * middleware's eviction check and still reach the model as a vision block.
- *
- * Before the fix, deepagents' 20,000-token default evicted the ToolMessage at
- * 80,000 chars; `buildImageBlock` then JSON.parsed the eviction prose, threw,
- * logged "[imageDispatch] failed to parse readImage tool result; skipping", and
- * returned null — so the model saw text only. This drives a REAL createAgent
- * with the REAL readImage tool, the REAL replacement middleware, and the REAL
- * ImageDispatch middleware against a mocked fetch.
+ * base64 payload is above deepagents' 80,000-char default must survive the
+ * filesystem middleware's eviction check and reach the model as an image block
+ * inside the tool message. Drives a REAL createAgent with the REAL readImage
+ * tool and the REAL replacement middleware against a mocked fetch.
  */
 describe("integration - readImage survives eviction and reaches the model as vision", () => {
 	let testDir;
 	let originalFetch;
 	let fetchCalls;
 	let lastRequestBody;
-	let warnLines;
 
 	before(() => {
 		testDir = join(tmpdir(), `eviction-e2e-${Date.now()}`);
@@ -202,21 +194,19 @@ describe("integration - readImage survives eviction and reaches the model as vis
 		originalFetch = globalThis.fetch;
 		fetchCalls = 0;
 		lastRequestBody = null;
-		warnLines = [];
 	});
 
 	afterEach(() => {
 		globalThis.fetch = originalFetch;
 	});
 
-	it("keeps a near-maxSize readImage result intact and injects its vision block", async () => {
-		// Budget for the JSON envelope that wraps the base64 payload.
-		const { path, base64Length } = await writePngNear(testDir, MAX_SIZE - 128);
+	it("keeps a large readImage result intact and sends its image block to the model", async () => {
+		const { path, base64Length } = await writePngNear(testDir, TARGET_BASE64_CHARS - 128);
 		assert.ok(
 			base64Length > 20000 * 4,
 			`payload (${base64Length}) must exceed the old 80,000-char default`,
 		);
-		assert.ok(base64Length < CEILING_CHARS, "payload must sit under the derived ceiling");
+		assert.ok(base64Length < CEILING_CHARS, "payload must sit under the ceiling");
 
 		globalThis.fetch = async (_url, init) => {
 			fetchCalls += 1;
@@ -224,63 +214,43 @@ describe("integration - readImage survives eviction and reaches the model as vis
 			return fetchCalls === 1 ? toolCallCompletion(path) : chatCompletion("a screenshot");
 		};
 
-		// Capture the warn that was the observable fingerprint of the bug.
-		const originalWarn = logger.warn;
-		logger.warn = (...args) => {
-			warnLines.push(args.map((a) => (typeof a === "string" ? a : "")).join(" "));
-		};
+		const agent = createAgent({
+			model: makeModel(),
+			tools: [readImage],
+			middleware: [createEvictionAwareFilesystemMiddleware({})],
+		});
 
-		try {
-			const agent = createAgent({
-				model: makeModel(),
-				tools: [readImage],
-				middleware: [
-					createEvictionAwareFilesystemMiddleware({ config: { image: { maxSize: MAX_SIZE } } }),
-					createImageDispatchMiddleware(),
-				],
-			});
+		const result = await agent.invoke({
+			messages: [{ role: "user", content: "analyze this screenshot" }],
+		});
 
-			const result = await agent.invoke({
-				messages: [{ role: "user", content: "analyze this screenshot" }],
-			});
+		// 1. The persisted ToolMessage is still an intact image block.
+		const toolMessage = result.messages.find(
+			(m) => (m._getType?.() ?? m.type) === "tool" && m.name === "readImage",
+		);
+		assert.ok(toolMessage, "expected a readImage ToolMessage in the transcript");
+		assert.ok(Array.isArray(toolMessage.content), "tool result must not be eviction prose");
+		const url = toolMessage.content[0].image_url.url;
+		const data = url.slice(url.indexOf(",") + 1);
+		assert.ok(data.length > 0, "base64 payload must be intact");
+		assert.strictEqual(data.length, base64Length);
 
-			// 1. The persisted ToolMessage is still parseable JSON with a payload.
-			const toolMessage = result.messages.find(
-				(m) => (m._getType?.() ?? m.type) === "tool" && m.name === "readImage",
-			);
-			assert.ok(toolMessage, "expected a readImage ToolMessage in the transcript");
-			const parsed = JSON.parse(String(toolMessage.content));
-			assert.strictEqual(parsed.ok, true, "tool result must not be eviction prose");
-			assert.ok(parsed.data.length > 0, "base64 payload must be intact");
-			assert.strictEqual(parsed.data.length, base64Length);
-
-			// 2. ImageDispatch built the vision block end to end.
-			const messages = lastRequestBody?.messages ?? [];
-			const hasImageBlock = messages.some((msg) =>
-				Array.isArray(msg.content)
-					? msg.content.some(
-							(block) =>
-								block.type === "image_url" &&
-								block.image_url?.url?.startsWith("data:image/png;base64,"),
-						)
-					: false,
-			);
-			assert.ok(hasImageBlock, "expected the model request to carry the image content block");
-
-			// 3. The bug's fingerprint never fired.
-			assert.deepStrictEqual(
-				warnLines.filter((line) => line.includes("failed to parse readImage")),
-				[],
-			);
-		} finally {
-			logger.warn = originalWarn;
-		}
+		// 2. The model request carries the image block from the tool message.
+		const messages = lastRequestBody?.messages ?? [];
+		const hasImageBlock = messages.some((msg) =>
+			Array.isArray(msg.content)
+				? msg.content.some(
+						(block) =>
+							block.type === "image_url" &&
+							block.image_url?.url?.startsWith("data:image/png;base64,"),
+					)
+				: false,
+		);
+		assert.ok(hasImageBlock, "expected the model request to carry the image content block");
 	});
 
 	it("evicts a payload above the ceiling instead of blowing the context window", async () => {
-		const middleware = createEvictionAwareFilesystemMiddleware({
-			config: { image: { maxSize: MAX_SIZE } },
-		});
+		const middleware = createEvictionAwareFilesystemMiddleware({});
 		const { evicted, content } = await runWrapToolCall(
 			middleware,
 			makeReadImageMessage(CEILING_CHARS + 1, "call_over"),
