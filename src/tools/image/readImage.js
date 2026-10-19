@@ -63,17 +63,15 @@ async function constrainDimensions(buffer, mimeType, maxDimension) {
 
 /**
  * Read an image file from disk and return its base64-encoded contents.
- * Validates the path against the sandbox allowlist and enforces a configurable
- * size limit (`image.maxSize`, default `100000` bytes). The limit is applied to
- * the base64-encoded output, so the raw file may be up to `maxSize * 1.33` bytes
- * (base64 expands bytes by ~1.33x). Uses async `node:fs/promises`.
+ * Validates the path against the sandbox allowlist. Images larger than
+ * `image.maxDimension` are downscaled. Uses async `node:fs/promises`.
  * @param {z.infer<typeof ReadImageSchema>} input - Tool input
  * @param {object} [options] - Runtime options for test injection
  * @param {string[]} [options.allowedPaths] - Sandbox-allowed paths
  * @returns {Promise<Array|string>} `[image_url block]` on success; a JSON error string on failure
  */
 export async function readImageImpl(input, options = {}) {
-	const { path: filePath, maxSize } = input;
+	const { path: filePath } = input;
 
 	if (!filePath || typeof filePath !== "string" || filePath.trim().length === 0) {
 		return JSON.stringify({ ok: false, error: "Path is required and must be a non-empty string" });
@@ -81,7 +79,6 @@ export async function readImageImpl(input, options = {}) {
 
 	const config = loadConfig();
 	const allowedPaths = options.allowedPaths || config.sandbox?.paths || [];
-	const sizeLimit = maxSize || config.image?.maxSize || 100000;
 
 	// Validate the path against the sandbox allowlist
 	const validation = validatePath(filePath, allowedPaths);
@@ -89,24 +86,11 @@ export async function readImageImpl(input, options = {}) {
 		return JSON.stringify({ ok: false, error: validation.error });
 	}
 
-	// Check the file exists and its size
-	let stats;
+	// Check the file exists
 	try {
-		stats = await stat(validation.path);
+		await stat(validation.path);
 	} catch (_err) {
 		return JSON.stringify({ ok: false, error: `File not found: ${filePath}` });
-	}
-
-	// Base64 encoding expands raw bytes by ~1.33x (4 chars per 3 bytes). The
-	// size limit applies to the encoded output, so allow the raw file up to
-	// `sizeLimit * 1.33`.
-	const encodedLimit = Math.ceil(sizeLimit * 1.33);
-
-	if (stats.size > encodedLimit) {
-		return JSON.stringify({
-			ok: false,
-			error: `File size (${stats.size} bytes) exceeds max read size (${encodedLimit} bytes).`,
-		});
 	}
 
 	// Read the file and encode as base64
@@ -139,9 +123,8 @@ export const readImage = tool(readImageImpl, {
 		"so it can be passed directly to an LLM for vision analysis. Use this tool for ANY task " +
 		"requiring vision — reading a screenshot, inspecting a diagram, or sending an image to the LLM. " +
 		"Do NOT use read_file for images: read_file returns raw octet-stream binary that poisons the " +
-		"session and errors the inference provider. Validates the path against the sandbox allowlist " +
-		"and enforces a configurable size limit (image.maxSize, default 100000 bytes) on the base64-encoded " +
-		"output, so the raw file may be up to maxSize * 1.33 bytes. Images wider or taller than image.maxDimension " +
+		"session and errors the inference provider. Validates the path against the sandbox allowlist. " +
+		"Images wider or taller than image.maxDimension " +
 		"(default 5000 px) are downscaled, preserving aspect ratio. Uses async file system operations.",
 	schema: ReadImageSchema,
 });

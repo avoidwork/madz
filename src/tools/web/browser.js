@@ -60,10 +60,12 @@ export async function launchBrowser(options = {}) {
  * Open a new page in the browser with a per-call navigation timeout.
  * @param {import("puppeteer-core").Browser} browser - The launched browser
  * @param {number} [timeout=30000] - Navigation timeout in milliseconds
+ * @param {{width: number, height: number}} [viewport] - Viewport size; Puppeteer's 800x600 default when omitted
  * @returns {Promise<import("puppeteer-core").Page>} The opened page
  */
-export async function openPage(browser, timeout = DEFAULT_TIMEOUT) {
+export async function openPage(browser, timeout = DEFAULT_TIMEOUT, viewport) {
 	const page = await browser.newPage();
+	if (viewport) await page.setViewport(viewport);
 	page.setDefaultNavigationTimeout(timeout);
 	page.setDefaultTimeout(timeout);
 	return page;

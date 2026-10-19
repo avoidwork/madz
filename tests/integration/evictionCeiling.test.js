@@ -16,7 +16,7 @@ import {
 import { logger } from "../../src/shared/logger.js";
 
 const MAX_SIZE = 100000;
-const CEILING_CHARS = deriveToolTokenLimitBeforeEvict({ image: { maxSize: MAX_SIZE } }) * 4;
+const CEILING_CHARS = deriveToolTokenLimitBeforeEvict() * 4;
 
 /**
  * Deterministic pseudo-random bytes: incompressible, so PNG output scales
@@ -234,10 +234,7 @@ describe("integration - readImage survives eviction and reaches the model as vis
 			const agent = createAgent({
 				model: makeModel(),
 				tools: [readImage],
-				middleware: [
-					createEvictionAwareFilesystemMiddleware({ config: { image: { maxSize: MAX_SIZE } } }),
-					createImageDispatchMiddleware(),
-				],
+				middleware: [createEvictionAwareFilesystemMiddleware({}), createImageDispatchMiddleware()],
 			});
 
 			const result = await agent.invoke({

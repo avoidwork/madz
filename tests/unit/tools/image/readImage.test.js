@@ -36,18 +36,6 @@ describe("readImage tool", () => {
 		assert.ok(result[0].image_url.url.startsWith("data:image/png;base64,"));
 	});
 
-	it("rejects a file above the size limit", async () => {
-		const filePath = join(testDir, "above.png");
-		// 200KB raw — over the encoded limit (100000 * 1.33 = 133000)
-		writeFileSync(filePath, Buffer.alloc(200 * 1024, 1));
-
-		const result = await readImageImpl({ path: filePath }, { allowedPaths: [testDir] });
-		const parsed = JSON.parse(result);
-
-		assert.strictEqual(parsed.ok, false);
-		assert.ok(parsed.error.includes("exceeds max read size"));
-	});
-
 	it("downscales images exceeding maxDimension preserving aspect ratio", async () => {
 		const filePath = join(testDir, "wide.png");
 		const src = await sharp({

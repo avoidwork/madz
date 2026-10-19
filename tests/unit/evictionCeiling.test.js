@@ -1,13 +1,13 @@
 /**
- * Tests for the config-driven tool-result eviction ceiling.
+ * Tests for the tool-result eviction ceiling.
  *
  * Guards three things:
  * 1. The replacement middleware carries the exact name deepagents'
  *    `mergeMiddlewareStack` keys on — otherwise a second FilesystemMiddleware
  *    stacks instead of displacing and the bug survives while looking fixed.
- * 2. The ceiling is derived from `image.maxSize` as base64 characters (never
- *    `maxSize * 1.33`) and can never be 0/undefined.
- * 3. Eviction actually stops at the derived ceiling and still fires above it.
+ * 2. The ceiling is a fixed image budget plus envelope headroom and can never
+ *    be 0/undefined.
+ * 3. Eviction actually stops at the ceiling and still fires above it.
  */
 
 import { describe, it } from "node:test";
@@ -18,12 +18,8 @@ import {
 	deriveToolTokenLimitBeforeEvict,
 	createEvictionAwareFilesystemMiddleware,
 	ENVELOPE_HEADROOM,
+	IMAGE_EVICTION_BUDGET_CHARS,
 } from "../../src/agent/evictionCeiling.js";
-import {
-	DEFAULT_IMAGE_MAX_SIZE,
-	MIN_IMAGE_MAX_SIZE,
-	MAX_IMAGE_MAX_SIZE,
-} from "../../src/config/schemas/image.js";
 
 /**
  * Build a `readImage`-shaped ToolMessage whose stringified content is exactly
@@ -64,62 +60,26 @@ async function runWrapToolCall(middleware, message, state) {
 }
 
 describe("deriveToolTokenLimitBeforeEvict", () => {
-	it("derives from the default image.maxSize as base64 characters", () => {
-		const limit = deriveToolTokenLimitBeforeEvict({});
-		assert.strictEqual(limit, Math.ceil((DEFAULT_IMAGE_MAX_SIZE + ENVELOPE_HEADROOM) / 4));
-		assert.strictEqual(limit, 25032);
+	it("derives from the fixed image budget as characters", () => {
+		const limit = deriveToolTokenLimitBeforeEvict();
+		assert.strictEqual(limit, Math.ceil((IMAGE_EVICTION_BUDGET_CHARS + ENVELOPE_HEADROOM) / 4));
 	});
 
-	it("derives from a custom image.maxSize", () => {
-		const limit = deriveToolTokenLimitBeforeEvict({ image: { maxSize: 200000 } });
-		assert.strictEqual(limit, Math.ceil((200000 + ENVELOPE_HEADROOM) / 4));
-		assert.strictEqual(limit, 50032);
-	});
-
-	it("falls back to the default when image.maxSize is unset", () => {
-		assert.strictEqual(deriveToolTokenLimitBeforeEvict({}), 25032);
-		assert.strictEqual(deriveToolTokenLimitBeforeEvict({ image: {} }), 25032);
-		assert.strictEqual(deriveToolTokenLimitBeforeEvict(undefined), 25032);
-	});
-
-	it("falls back to the default when image.maxSize is zero", () => {
-		assert.strictEqual(deriveToolTokenLimitBeforeEvict({ image: { maxSize: 0 } }), 25032);
-	});
-
-	it("never returns 0 or undefined for hostile values", () => {
-		for (const value of [NaN, -1, "abc", null, Infinity, 0.5]) {
-			const limit = deriveToolTokenLimitBeforeEvict({ image: { maxSize: value } });
-			assert.ok(Number.isInteger(limit), `expected integer for ${String(value)}`);
-			assert.ok(limit > 0, `expected positive for ${String(value)}`);
-		}
-	});
-
-	it("clamps an oversized value so eviction cannot be disabled", () => {
-		const limit = deriveToolTokenLimitBeforeEvict({ image: { maxSize: 999999999 } });
-		assert.strictEqual(limit, Math.ceil((MAX_IMAGE_MAX_SIZE + ENVELOPE_HEADROOM) / 4));
-	});
-
-	it("clamps an undersized value so eviction stays meaningful", () => {
-		const limit = deriveToolTokenLimitBeforeEvict({ image: { maxSize: 1 } });
-		assert.strictEqual(limit, Math.ceil((MIN_IMAGE_MAX_SIZE + ENVELOPE_HEADROOM) / 4));
-	});
-
-	it("does NOT apply the base64 expansion factor (no * 1.33)", () => {
-		const limit = deriveToolTokenLimitBeforeEvict({ image: { maxSize: 100000 } });
-		// The inverted derivation would be ceil(ceil(100000 * 1.33) / 4) = 33250.
-		assert.notStrictEqual(limit, Math.ceil(Math.ceil(100000 * 1.33) / 4));
-		assert.ok(limit < Math.ceil(Math.ceil(100000 * 1.33) / 4));
+	it("is a positive integer well above deepagents' 20,000-token default", () => {
+		const limit = deriveToolTokenLimitBeforeEvict();
+		assert.ok(Number.isInteger(limit));
+		assert.ok(limit > 20000);
 	});
 });
 
 describe("createEvictionAwareFilesystemMiddleware", () => {
 	it("is named exactly FilesystemMiddleware so the same-name merge displaces the default", () => {
-		const middleware = createEvictionAwareFilesystemMiddleware({ config: {} });
+		const middleware = createEvictionAwareFilesystemMiddleware({});
 		assert.strictEqual(middleware.name, "FilesystemMiddleware");
 	});
 
 	it("supplies all eight filesystem tools when the profile excludes none", () => {
-		const middleware = createEvictionAwareFilesystemMiddleware({ config: {} });
+		const middleware = createEvictionAwareFilesystemMiddleware({});
 		assert.deepStrictEqual(
 			middleware.tools.map((tool) => tool.name),
 			["ls", "read_file", "write_file", "edit_file", "delete", "glob", "grep", "execute"],
@@ -134,7 +94,6 @@ describe("createEvictionAwareFilesystemMiddleware", () => {
 		);
 		const middleware = createEvictionAwareFilesystemMiddleware({
 			model: "openai:eviction-ceiling-probe",
-			config: {},
 		});
 		assert.deepStrictEqual(
 			middleware.tools.map((tool) => tool.name),
@@ -149,7 +108,6 @@ describe("createEvictionAwareFilesystemMiddleware", () => {
 		);
 		const middleware = createEvictionAwareFilesystemMiddleware({
 			model: "openai:eviction-ceiling-readfile-probe",
-			config: {},
 		});
 		assert.ok(middleware.tools.some((tool) => tool.name === "read_file"));
 	});
@@ -163,7 +121,7 @@ describe("createEvictionAwareFilesystemMiddleware", () => {
 		// model instance: `getName()` for the provider hint and `model_name` /
 		// `modelName` for the identifier hint.
 		const model = { getName: () => "ChatOpenAI", model_name: "eviction-ceiling-instance-probe" };
-		const middleware = createEvictionAwareFilesystemMiddleware({ model, config: {} });
+		const middleware = createEvictionAwareFilesystemMiddleware({ model });
 		assert.deepStrictEqual(
 			middleware.tools.map((tool) => tool.name),
 			["read_file", "write_file", "edit_file", "delete", "glob"],
@@ -181,7 +139,7 @@ describe("createEvictionAwareFilesystemMiddleware", () => {
 			getName: () => "ChatAnthropic",
 			model_name: "anthropic:eviction-ceiling-colon-probe",
 		};
-		const middleware = createEvictionAwareFilesystemMiddleware({ model, config: {} });
+		const middleware = createEvictionAwareFilesystemMiddleware({ model });
 		assert.deepStrictEqual(
 			middleware.tools.map((tool) => tool.name),
 			["ls", "read_file", "write_file", "edit_file", "delete", "glob", "grep"],
@@ -192,7 +150,7 @@ describe("createEvictionAwareFilesystemMiddleware", () => {
 		// Mirrors deepagents' third resolution step: `getHarnessProfile(providerHint)`.
 		registerHarnessProfile("google", createHarnessProfile({ excludedTools: ["execute"] }));
 		const model = { getName: () => "ChatGoogleGenerativeAI" };
-		const middleware = createEvictionAwareFilesystemMiddleware({ model, config: {} });
+		const middleware = createEvictionAwareFilesystemMiddleware({ model });
 		assert.deepStrictEqual(
 			middleware.tools.map((tool) => tool.name),
 			["ls", "read_file", "write_file", "edit_file", "delete", "glob", "grep"],
@@ -201,24 +159,22 @@ describe("createEvictionAwareFilesystemMiddleware", () => {
 
 	it("falls back to all tools when the model yields no profile", () => {
 		const model = { getName: () => "SomeUnknownModelWrapper" };
-		const middleware = createEvictionAwareFilesystemMiddleware({ model, config: {} });
+		const middleware = createEvictionAwareFilesystemMiddleware({ model });
 		assert.strictEqual(middleware.tools.length, 8);
 	});
 });
 
-describe("eviction at the derived ceiling", () => {
-	const maxSize = 100000;
-	const limit = deriveToolTokenLimitBeforeEvict({ image: { maxSize } });
-	const ceilingChars = limit * 4;
-
-	it("does not evict a readImage result just under image.maxSize", async () => {
-		const middleware = createEvictionAwareFilesystemMiddleware({
+describe("eviction at the ceiling", () => {
+	const ceilingChars = deriveToolTokenLimitBeforeEvict() * 4;
+	const makeMiddleware = () =>
+		createEvictionAwareFilesystemMiddleware({
 			backend: () => new StateBackend({ state: { files: {} } }),
-			config: { image: { maxSize } },
 		});
+
+	it("does not evict a readImage result just under the ceiling", async () => {
 		const state = { files: {} };
 		const message = makeReadImageMessage(ceilingChars - 1);
-		const { evicted, content } = await runWrapToolCall(middleware, message, state);
+		const { evicted, content } = await runWrapToolCall(makeMiddleware(), message, state);
 
 		assert.strictEqual(evicted, false);
 		const parsed = JSON.parse(content);
@@ -227,63 +183,30 @@ describe("eviction at the derived ceiling", () => {
 	});
 
 	it("does not evict at exactly the ceiling", async () => {
-		const middleware = createEvictionAwareFilesystemMiddleware({
-			backend: () => new StateBackend({ state: { files: {} } }),
-			config: { image: { maxSize } },
-		});
 		const state = { files: {} };
 		const message = makeReadImageMessage(ceilingChars);
 		assert.strictEqual(String(message.content).length, ceilingChars);
-		const { evicted, content } = await runWrapToolCall(middleware, message, state);
+		const { evicted, content } = await runWrapToolCall(makeMiddleware(), message, state);
 
 		assert.strictEqual(evicted, false);
 		assert.strictEqual(JSON.parse(content).ok, true);
 	});
 
 	it("still evicts above the ceiling rather than blowing the context window", async () => {
-		const middleware = createEvictionAwareFilesystemMiddleware({
-			backend: () => new StateBackend({ state: { files: {} } }),
-			config: { image: { maxSize } },
-		});
 		const state = { files: {} };
 		const message = makeReadImageMessage(ceilingChars + 1);
-		const { evicted, content } = await runWrapToolCall(middleware, message, state);
+		const { evicted, content } = await runWrapToolCall(makeMiddleware(), message, state);
 
 		assert.strictEqual(evicted, true);
 		assert.ok(content.includes("large_tool_results"), "should point at the eviction path");
-		// The eviction prose is what broke ImageDispatch: it is not JSON.
-		assert.throws(() => JSON.parse(content));
 	});
 
-	it("evicts at the old 80,000-char default when the ceiling is raised", async () => {
-		// Regression guard for the original bug: 100,000 chars survived eviction
-		// only after the ceiling became config-derived.
-		const middleware = createEvictionAwareFilesystemMiddleware({
-			backend: () => new StateBackend({ state: { files: {} } }),
-			config: { image: { maxSize } },
-		});
+	it("does not evict a payload above deepagents' 80,000-char default", async () => {
 		const state = { files: {} };
 		const message = makeReadImageMessage(100000);
 		assert.ok(100000 > 20000 * 4, "payload must exceed deepagents' hardcoded 80,000-char default");
-		const { evicted, content } = await runWrapToolCall(middleware, message, state);
+		const { evicted } = await runWrapToolCall(makeMiddleware(), message, state);
 
 		assert.strictEqual(evicted, false);
-		assert.strictEqual(JSON.parse(content).ok, true);
-	});
-
-	it("honours a custom image.maxSize ceiling", async () => {
-		const customMaxSize = 200000;
-		const customLimit = deriveToolTokenLimitBeforeEvict({ image: { maxSize: customMaxSize } });
-		const middleware = createEvictionAwareFilesystemMiddleware({
-			backend: () => new StateBackend({ state: { files: {} } }),
-			config: { image: { maxSize: customMaxSize } },
-		});
-		const state = { files: {} };
-		// Above the default ceiling, below the custom one.
-		const message = makeReadImageMessage(customLimit * 4);
-		const { evicted, content } = await runWrapToolCall(middleware, message, state);
-
-		assert.strictEqual(evicted, false);
-		assert.strictEqual(JSON.parse(content).ok, true);
 	});
 });

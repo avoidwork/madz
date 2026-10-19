@@ -20,7 +20,6 @@ import {
 	createSummarizationMiddlewareFromConfig,
 	forceSummarize,
 } from "../provider/summarizationMiddleware.js";
-import { createImageDispatchMiddleware } from "../provider/imageDispatchMiddleware.js";
 import { createEvictionAwareFilesystemMiddleware } from "./evictionCeiling.js";
 import {
 	buildToolConfig,
@@ -94,7 +93,7 @@ export async function createSubagentDefinitions(allTools, model, skillRegistry, 
 			// `readImage` results before ImageDispatch can build a vision block.
 			// A fresh instance per subagent mirrors the library's own per-subagent
 			// `createSubagentDefaultMiddleware`.
-			middleware: [createEvictionAwareFilesystemMiddleware({ backend, model: agentModel, config })],
+			middleware: [createEvictionAwareFilesystemMiddleware({ backend, model: agentModel })],
 		};
 
 		// Attach skills array only if this agent has coding-specific skills
@@ -497,7 +496,6 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	// middleware observes the final post-summarization message set; registering
 	// before token-budget means the budget sees the injected image when
 	// estimating context cost.
-	const imageDispatchMiddleware = createImageDispatchMiddleware();
 
 	// Copilot 403 retry middleware. Registered LAST so it is innermost and
 	// retries the raw model call. Only wired for GitHub Copilot connections,
@@ -509,7 +507,7 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 			: null;
 
 	// Replacement for deepagents' FilesystemMiddleware with an eviction ceiling
-	// derived from `image.maxSize`. The library evicts any ToolMessage whose
+	// fixed to fit image payloads. The library evicts any ToolMessage whose
 	// stringified content exceeds `toolTokenLimitBeforeEvict * 4` characters
 	// (default 20,000 tokens -> 80,000 chars), which destroys `readImage`'s
 	// base64 JSON before ImageDispatch can turn it into a vision block.
@@ -521,7 +519,6 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 		backend,
 		permissions: [],
 		model,
-		config,
 	});
 
 	const agent = createDeepAgent({
@@ -537,7 +534,6 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 			filesystemMiddleware,
 			createCodeInterpreterMiddleware(),
 			...(summarizationMiddleware ? [summarizationMiddleware] : []),
-			imageDispatchMiddleware,
 			...(copilotRetryMiddleware ? [copilotRetryMiddleware] : []),
 			...(tokenBudgetMiddleware ? [tokenBudgetMiddleware] : []),
 		],
