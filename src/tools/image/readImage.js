@@ -36,7 +36,7 @@ function detectMimeType(filePath) {
 	return MIME_TYPES[ext] || "application/octet-stream";
 }
 
-const DEFAULT_MAX_DIMENSION = 5000;
+const DEFAULT_MAX_DIMENSION = 3000;
 
 /**
  * Downscale a raster image so neither width nor height exceeds `maxDimension`,
@@ -134,6 +134,6 @@ export const readImage = tool(readImageImpl, {
 		"Do NOT use read_file for images: read_file returns raw octet-stream binary that poisons the " +
 		"session and errors the inference provider. Validates the path against the sandbox allowlist. " +
 		"Images wider or taller than image.maxDimension " +
-		"(default 5000 px) are downscaled, preserving aspect ratio. Uses async file system operations.",
+		"(default 3000 px) are downscaled, preserving aspect ratio. Uses async file system operations.",
 	schema: ReadImageSchema,
 });

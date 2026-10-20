@@ -242,4 +242,4 @@ subAgentsTemperature:
 cwd: ""
 image:
   maxWidth: 1920
-  maxDimension: 5000
+  maxDimension: 3000
