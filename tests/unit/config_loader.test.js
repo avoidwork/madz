@@ -363,6 +363,30 @@ describe("buildReverseMap", () => {
 		assert.ok(map.has("MEMORY_DIRECTORY"), "Should have MEMORY_DIRECTORY");
 	});
 
+	it("contains memory.maxEntries path", () => {
+		const map = buildReverseMap(ConfigSchema);
+		assert.ok(map.has("MEMORY_MAX_ENTRIES"), "Should have MEMORY_MAX_ENTRIES");
+		assert.strictEqual(map.get("MEMORY_MAX_ENTRIES"), "memory.maxEntries");
+	});
+
+	it("contains calendar.active path", () => {
+		const map = buildReverseMap(ConfigSchema);
+		assert.ok(map.has("ACTIVE"), "Should have ACTIVE");
+		assert.strictEqual(map.get("ACTIVE"), "calendar.active");
+	});
+
+	it("contains tui.statusBar.project path", () => {
+		const map = buildReverseMap(ConfigSchema);
+		assert.ok(map.has("TUI_STATUS_BAR_PROJECT"), "Should have TUI_STATUS_BAR_PROJECT");
+		assert.strictEqual(map.get("TUI_STATUS_BAR_PROJECT"), "tui.statusBar.project");
+	});
+
+	it("contains schedules.logPath path", () => {
+		const map = buildReverseMap(ConfigSchema);
+		assert.ok(map.has("SCHEDULES_LOG_PATH"), "Should have SCHEDULES_LOG_PATH");
+		assert.strictEqual(map.get("SCHEDULES_LOG_PATH"), "schedules.logPath");
+	});
+
 	it("contains telemetry paths", () => {
 		const map = buildReverseMap(ConfigSchema);
 		assert.ok(map.has("TELEMETRY_ENABLED"), "Should have TELEMETRY_ENABLED");
@@ -473,6 +497,34 @@ describe("syncEnv", () => {
 		assert.strictEqual(raw.tui.name, "multi-tui");
 		assert.strictEqual(raw.telemetry.enabled, true);
 		assert.strictEqual(raw.memory.directory, "/custom/memory/");
+	});
+
+	it("materializes memory.maxEntries from MEMORY_MAX_ENTRIES", () => {
+		process.env.MEMORY_MAX_ENTRIES = "200";
+		const raw = {};
+		syncEnv(raw, ["memory"]);
+		assert.strictEqual(raw.memory.maxEntries, 200);
+	});
+
+	it("materializes calendar.active from ACTIVE", () => {
+		process.env.ACTIVE = "msgraph";
+		const raw = {};
+		syncEnv(raw, ["calendar"]);
+		assert.strictEqual(raw.calendar.active, "msgraph");
+	});
+
+	it("materializes tui.statusBar.project from TUI_STATUS_BAR_PROJECT", () => {
+		process.env.TUI_STATUS_BAR_PROJECT = "false";
+		const raw = {};
+		syncEnv(raw, ["tui"]);
+		assert.strictEqual(raw.tui.statusBar.project, false);
+	});
+
+	it("materializes schedules.logPath from SCHEDULES_LOG_PATH", () => {
+		process.env.SCHEDULES_LOG_PATH = "/tmp/madz.log";
+		const raw = {};
+		syncEnv(raw, ["schedules"]);
+		assert.strictEqual(raw.schedules.logPath, "/tmp/madz.log");
 	});
 
 	it("returns the raw object (same reference)", () => {
