@@ -289,33 +289,41 @@ export const TOOLS = {
  * @param {object} options - Build configuration
  * @param {string[]} options.permissions - Enabled sandbox permissions from config
  * @param {string[]} options.allowedPaths - Sandbox-allowed paths
- * @param {string} options.maxReadSize - Maximum read size string (e.g., "1mb")
  * @param {object} [options.registry] - SkillRegistry instance for skill creation
  * @param {string} [options.sessionsDir] - Path to sessions directory
- * @param {object} [options.safety] - Code sandbox safety config
- * @param {object} [options.timeout] - Code execution timeout config
- * @param {string} [options.memoryLimit] - Code execution memory limit string
  * @param {string} [options.contextDir] - Directory for memory entries
- * @param {number} [options.ephemeralTtlDays] - TTL for ephemeral memories
- * @param {number} [options.ephemeralMaxEntries] - Max concurrent ephemeral entries
  * @param {object} [options.config] - Resolved config object from loadConfig()
  * @param {object} [options.config.providers] - Provider configs (openai, openrouter, fal)
  * @param {object} [options.config.search] - Search backend configs
  * @returns {Promise<object[]>} Array of LangChain Tool instances
  */
+
+/**
+ * Runtime option keys that `buildToolConfig` legitimately carries in
+ * `runtimeOptions` — either consumed during tool registration (the resolved
+ * provider API keys and decision config) or passed through as runtime
+ * plumbing. A config-derived key extracted into `runtimeOptions` but absent
+ * from this list is dead: it is built and then dropped. The guard test
+ * (`tests/unit/tool_index.test.js`) fails CI if a `runtimeOptions` key is
+ * added without a corresponding entry here.
+ */
+export const CONSUMED_RUNTIME_OPTION_KEYS = [
+	"allowedPaths",
+	"registry",
+	"sessionsDir",
+	"contextDir",
+	"openaiApiKey",
+	"falApiKey",
+	"decisionConfig",
+];
+
 export async function buildToolConfig(options) {
 	const {
 		permissions = [],
 		allowedPaths = [],
-		maxReadSize = "1mb",
 		registry,
 		sessionsDir = "memory/sessions/",
-		safety,
-		timeout,
-		memoryLimit,
 		contextDir = "memory/context/",
-		ephemeralTtlDays = 7,
-		ephemeralMaxEntries = 10,
 		config,
 	} = options;
 
@@ -326,51 +334,16 @@ export async function buildToolConfig(options) {
 	const credentials = providersOpenAI?.credentials || {};
 	const falCredentials = providersFal?.credentials || {};
 
-	const search = config?.search || {};
-	const searchExa = search?.exa || {};
-	const searchFirecrawl = search?.firecrawl || {};
-	const searchTavily = search?.tavily || {};
-	const searchBrave = search?.brave || {};
-	const searchParallel = search?.parallel || {};
-	const searchSearxng = search?.searxng || {};
-	const searchBing = search?.bing || {};
-	const searchCustom = search?.custom || {};
-
 	const enabledSet = new Set(permissions);
 	const tools = [];
 	const runtimeOptions = {
 		allowedPaths,
-		maxReadSize,
 		registry,
 		sessionsDir,
-		safety,
-		timeout,
-		memoryLimit,
 		contextDir,
-		ephemeralTtlDays,
-		ephemeralMaxEntries,
 		// Resolved provider API keys from config (env var resolved values)
 		openaiApiKey: credentials?.apiKey,
 		falApiKey: falCredentials?.apiKey,
-		// Resolved search backend configs from config
-		searchExaApiKey: searchExa?.apiKey,
-		searchFirecrawlApiKey: searchFirecrawl?.apiKey,
-		searchTavilyApiKey: searchTavily?.apiKey,
-		searchBraveApiKey: searchBrave?.apiKey,
-		searchParallelApiKey: searchParallel?.apiKey,
-		searchSearxngUrl: searchSearxng?.url,
-		searchBingApiKey: searchBing?.apiKey,
-		searchCustomConfig: {
-			url: searchCustom?.url,
-			method: searchCustom?.method,
-			body: searchCustom?.body,
-			headers: searchCustom?.headers,
-			queryKey: searchCustom?.queryKey,
-			titleField: searchCustom?.titleField,
-			urlField: searchCustom?.urlField,
-			descriptionField: searchCustom?.descriptionField,
-			apiKey: searchCustom?.apiKey,
-		},
 		// Resolved decision config from config.agent.decision
 		decisionConfig: config?.agent?.decision,
 	};
@@ -496,6 +469,14 @@ export async function buildToolConfig(options) {
 			logger.warn({ error: err.message }, `[mcp] MCP tool discovery failed: ${err.message}`);
 		}
 	}
+
+	// Expose the runtimeOptions keys so the guard test can assert every key is
+	// consumed (see CONSUMED_RUNTIME_OPTION_KEYS). Attached as a non-enumerable
+	// property so it does not affect array iteration.
+	Object.defineProperty(tools, "_runtimeOptionKeys", {
+		value: Object.keys(runtimeOptions),
+		enumerable: false,
+	});
 
 	return tools;
 }

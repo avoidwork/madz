@@ -59,18 +59,12 @@ describe("applyDotPathMutation", () => {
 			providers: {},
 			sandbox: {
 				paths: ["memory/", "skills/"],
-				timeout: { seconds: 30, gracePeriod: 5 },
-				memoryLimit: "512m",
-				safety: { urlFilter: true, pythonImportHook: true },
-				env: { allowlist: ["PATH", "HOME"] },
 				permissions: [],
-				maxReadSize: "1mb",
 			},
 			memory: {
 				directory: "memory/",
 				contextDir: "memory/context/",
 				toolsDir: "memory/tools/",
-				errorsDir: "memory/errors/",
 				schedulesDir: "memory/schedules/",
 			},
 			telemetry: {
@@ -78,14 +72,12 @@ describe("applyDotPathMutation", () => {
 				exporter: {
 					protocol: "console",
 					endpoint: "http://localhost:4318",
-					batch: { maxSize: 512, scheduledDelay: 5000 },
 				},
 				sampling: { ratio: 0.1 },
-				redact: { paths: ["credentials.apiKey"] },
 			},
-			schedules: { maxConcurrent: 1, entries: [] },
+			schedules: { syncOnInit: true },
 			tui: { name: "madz" },
-			persistence: { mode: "memory", sqlite_path: "memory/checkpoints.db" },
+			persistence: { mode: "memory" },
 			email: { provider: { type: "gmail" } },
 			calendar: {},
 		});
@@ -93,8 +85,8 @@ describe("applyDotPathMutation", () => {
 
 	it("parses and applies integer value", () => {
 		const config = makeBaseConfig();
-		applyDotPathMutation(config, "sandbox.timeout.seconds", "60");
-		assert.strictEqual(config.sandbox.timeout.seconds, 60);
+		applyDotPathMutation(config, "memory.maxEntries", "60");
+		assert.strictEqual(config.memory.maxEntries, 60);
 	});
 
 	it("parses and applies boolean value", () => {
@@ -119,7 +111,7 @@ describe("applyDotPathMutation", () => {
 	it("keeps other sections unchanged after mutation", () => {
 		const config = makeBaseConfig();
 		const originalTelemetry = structuredClone(config.telemetry);
-		applyDotPathMutation(config, "schedules.maxConcurrent", "5");
+		applyDotPathMutation(config, "memory.maxEntries", "5");
 		assert.deepStrictEqual(config.telemetry, originalTelemetry);
 	});
 
@@ -127,7 +119,7 @@ describe("applyDotPathMutation", () => {
 		const config = makeBaseConfig();
 		// This will fail validation because "newSection" is not in the schema,
 		// so we test with a path that creates intermediates within existing structure
-		applyDotPathMutation(config, "sandbox.timeout.gracePeriod", "10");
-		assert.strictEqual(config.sandbox.timeout.gracePeriod, 10);
+		applyDotPathMutation(config, "memory.maxEntries", "10");
+		assert.strictEqual(config.memory.maxEntries, 10);
 	});
 });

@@ -164,13 +164,6 @@ describe("_resolveEnvRecursively — nested containers", () => {
 		const result = _resolveEnvRecursively(config, []);
 		assert.deepStrictEqual(result.paths, ["a/", "b/"]);
 	});
-
-	it("resolves SANDBOX_GRACE_PERIOD", () => {
-		process.env.SANDBOX_GRACE_PERIOD = "10";
-		const config = { sandbox: { timeout: { gracePeriod: 5 } } };
-		const result = _resolveEnvRecursively(config, []);
-		assert.strictEqual(result.sandbox.timeout.gracePeriod, 10);
-	});
 });
 
 describe("_resolveEnvRecursively — TUI options", () => {
@@ -223,13 +216,11 @@ describe("_resolveEnvRecursively — Persistence options", () => {
 
 	it("resolves all Persistence env vars", () => {
 		process.env.PERSISTENCE_MODE = "sqlite";
-		process.env.PERSISTENCE_SQLITE_PATH = "/data/madz.db";
 		const config = {
-			persistence: { mode: "memory", sqlite_path: "memory/checkpoints.db" },
+			persistence: { mode: "memory" },
 		};
 		const result = _resolveEnvRecursively(config, []);
 		assert.strictEqual(result.persistence.mode, "sqlite");
-		assert.strictEqual(result.persistence.sqlite_path, "/data/madz.db");
 	});
 });
 
@@ -345,10 +336,10 @@ describe("buildReverseMap", () => {
 		assert.ok(map instanceof Map);
 	});
 
-	it("contains sandbox paths with timeout dropped", () => {
+	it("contains sandbox paths", () => {
 		const map = buildReverseMap(ConfigSchema);
-		assert.ok(map.has("SANDBOX_SECONDS"), "Should have SANDBOX_SECONDS");
-		assert.strictEqual(map.get("SANDBOX_SECONDS"), "sandbox.timeout.seconds");
+		assert.ok(map.has("SANDBOX_PATHS"), "Should have SANDBOX_PATHS");
+		assert.strictEqual(map.get("SANDBOX_PATHS"), "sandbox.paths");
 	});
 
 	it("contains vector config paths", () => {
@@ -399,7 +390,7 @@ describe("buildReverseMap", () => {
 
 	it("contains email paths", () => {
 		const map = buildReverseMap(ConfigSchema);
-		assert.ok(map.has("EMAIL_DEFAULT_FOLDER"), "Should have EMAIL_DEFAULT_FOLDER");
+		assert.ok(map.has("EMAIL_PROVIDER_TYPE"), "Should have EMAIL_PROVIDER_TYPE");
 	});
 
 	it("contains cwd (runtime-only, but schema has it)", () => {
@@ -437,18 +428,11 @@ describe("syncEnv", () => {
 	});
 
 	it("materializes nested structure with DROPPED_KEYS", () => {
-		// SANDBOX_SECONDS maps to sandbox.timeout.seconds — "timeout" is a DROPPED_KEY
-		process.env.SANDBOX_SECONDS = "120";
+		// MEMORY_MAX_ENTRIES maps to memory.maxEntries — "memory" is a DROPPED_KEY
+		process.env.MEMORY_MAX_ENTRIES = "120";
 		const raw = {};
-		syncEnv(raw, ["sandbox"]);
-		assert.strictEqual(raw.sandbox.timeout.seconds, 120);
-	});
-
-	it("materializes sandbox timeout path", () => {
-		process.env.SANDBOX_SECONDS = "120";
-		const raw = {};
-		syncEnv(raw, ["sandbox"]);
-		assert.strictEqual(raw.sandbox.timeout.seconds, 120);
+		syncEnv(raw, ["memory"]);
+		assert.strictEqual(raw.memory.maxEntries, 120);
 	});
 
 	it("is idempotent — does not override existing YAML keys", () => {
@@ -482,10 +466,10 @@ describe("syncEnv", () => {
 	});
 
 	it("handles numeric env var values", () => {
-		process.env.SANDBOX_SECONDS = "300";
+		process.env.MEMORY_MAX_ENTRIES = "300";
 		const raw = {};
-		syncEnv(raw, ["sandbox"]);
-		assert.strictEqual(raw.sandbox.timeout.seconds, 300);
+		syncEnv(raw, ["memory"]);
+		assert.strictEqual(raw.memory.maxEntries, 300);
 	});
 
 	it("handles multiple env vars together", () => {

@@ -214,16 +214,6 @@ describe("Email Provider Config Schemas", () => {
 			assert.strictEqual(result.data.enabled, false);
 		});
 
-		test("should accept encoding", () => {
-			const result = CopilotProviderConfigSchema.safeParse({
-				type: "github-copilot",
-				model: "gpt-4o",
-				encoding: "cl100k_base",
-			});
-			assert.strictEqual(result.success, true);
-			assert.strictEqual(result.data.encoding, "cl100k_base");
-		});
-
 		test("should reject non-boolean enabled", () => {
 			const result = CopilotProviderConfigSchema.safeParse({
 				type: "github-copilot",
@@ -245,9 +235,6 @@ describe("Email Provider Config Schemas", () => {
 		test("should validate a complete email config", () => {
 			const result = EmailConfigSchema.safeParse({
 				provider: { type: "gmail", clientId: "id", clientSecret: "secret", refreshToken: "token" },
-				defaultFolder: "INBOX",
-				maxAttachments: 10,
-				maxAttachmentSize: "25mb",
 			});
 			assert.strictEqual(result.success, true);
 		});
@@ -257,8 +244,6 @@ describe("Email Provider Config Schemas", () => {
 				provider: { type: "imap", user: "user", password: "pass" },
 			});
 			assert.strictEqual(result.success, true);
-			assert.strictEqual(result.data.defaultFolder, "INBOX");
-			assert.strictEqual(result.data.maxAttachments, 10);
 		});
 
 		test("should reject config with invalid provider", () => {

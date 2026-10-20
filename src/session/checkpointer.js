@@ -22,7 +22,6 @@ export async function ensureCheckpointsDir(checkpointsDir, cwdParam = cwd) {
  * @param {Object} fullConfig - Full application config containing both persistence and memory sections
  * @param {Object} fullConfig.persistence - Persistence configuration
  * @param {"memory"|"sqlite"} fullConfig.persistence.mode - Persistence mode
- * @param {string} [fullConfig.persistence.sqlite_path] - Optional explicit SQLite DB path
  * @param {Object} fullConfig.memory - Memory configuration
  * @param {string} fullConfig.memory.checkpointsDir - Directory for checkpoint files
  * @returns {import("@langchain/langgraph").BaseCheckpointSaver | null} A checkpointer instance, or null if mode is not supported
@@ -51,7 +50,6 @@ export function createCheckpointer(fullConfig) {
  * Create an SQLite-backed checkpointer.
  * @param {Object} fullConfig - Full application config containing persistence and memory sections
  * @param {Object} fullConfig.persistence - Persistence configuration
- * @param {string} [fullConfig.persistence.sqlite_path] - Optional explicit SQLite DB path
  * @param {Object} fullConfig.memory - Memory configuration
  * @param {string} fullConfig.memory.checkpointsDir - Directory for checkpoint files
  * @returns {import("@langchain/langgraph-checkpoint-sqlite").SqliteSaver}

@@ -10,21 +10,14 @@ function makeBase() {
 		calendar: {},
 		sandbox: {
 			paths: ["./", "!node_modules/", "/tmp"],
-			timeout: { seconds: 30, gracePeriod: 5 },
-			memoryLimit: "512m",
-			safety: { urlFilter: true, pythonImportHook: true },
-			env: { allowlist: ["PATH", "HOME", "NODE_ENV"] },
 			permissions: [],
-			maxReadSize: "1mb",
 			skillScanPaths: [".skills/", "skills/"],
-			trustProjectSkills: true,
 		},
 		search: {},
 		memory: {
 			directory: "memory/",
 			contextDir: "memory/context/",
 			toolsDir: "memory/tools/",
-			errorsDir: "memory/errors/",
 			schedulesDir: "memory/schedules/",
 		},
 		telemetry: {
@@ -32,16 +25,13 @@ function makeBase() {
 			exporter: {
 				protocol: "console",
 				endpoint: "http://localhost:4318",
-				batch: { maxSize: 512, scheduledDelay: 5000 },
 			},
 			sampling: { ratio: 0.1 },
-			redact: { paths: ["credentials.apiKey"] },
 		},
-		schedules: { maxConcurrent: 1, entries: [] },
+		schedules: { syncOnInit: true },
 		tui: { name: "madz" },
 		agent: {},
-		lru: {},
-		persistence: { mode: "memory", sqlite_path: "memory/checkpoints.db" },
+		persistence: { mode: "memory" },
 		cwd: "",
 	};
 }

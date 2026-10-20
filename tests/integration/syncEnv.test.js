@@ -80,12 +80,12 @@ describe("syncEnv integration — env-var-driven config materialization", () => 
 	});
 
 	it("handles numeric env var values", () => {
-		process.env.SANDBOX_SECONDS = "300";
+		process.env.MEMORY_MAX_ENTRIES = "300";
 
 		const raw = {};
 		syncEnv(raw, KNOWN_SECTIONS);
 
-		assert.strictEqual(raw.sandbox.timeout.seconds, 300);
+		assert.strictEqual(raw.memory.maxEntries, 300);
 	});
 
 	it("handles multiple env vars across different sections", () => {

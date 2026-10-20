@@ -14,11 +14,10 @@ import { ConfigSchema } from "../../../src/config/config.js";
  */
 function makeValidConfig() {
 	return ConfigSchema.parse({
-		telemetry: { enabled: false, sampling: { ratio: 0.1 }, redact: { paths: [] } },
-		lru: { size: 100, ttl: 600000 },
+		telemetry: { enabled: false, sampling: { ratio: 0.1 } },
 		cwd: "/tmp",
 		email: { provider: { type: "imap", user: "test", password: "test" } },
-		sandbox: { timeout: { default: 30000 }, safety: { maxMemory: 100 }, env: {} },
+		sandbox: { paths: ["./"], permissions: [] },
 		skillAgentMap: [],
 	});
 }
@@ -210,9 +209,9 @@ describe("applyDotPathMutation", () => {
 
 	it("applies a numeric mutation", () => {
 		const config = makeValidConfig();
-		config.lru.size = 100;
-		applyDotPathMutation(config, "lru.size", "500");
-		assert.strictEqual(config.lru.size, 500);
+		config.memory.maxEntries = 100;
+		applyDotPathMutation(config, "memory.maxEntries", "500");
+		assert.strictEqual(config.memory.maxEntries, 500);
 	});
 
 	it("applies a string mutation", () => {

@@ -84,7 +84,6 @@ export const OpenaiProviderConfigSchema = z.object({
 	enabled: z.boolean().default(true),
 	base_url: z.string().url().default("https://api.openai.com/v1"),
 	model: z.string().min(1),
-	encoding: z.string().optional(),
 	credentials: OpenAICredentialsSchema,
 	temperature: z.number().min(0).max(2).default(0.4),
 	maxTokens: z.number().int().min(-1).default(-1),
@@ -98,7 +97,6 @@ export const CopilotProviderConfigSchema = z.object({
 	enabled: z.boolean().default(true),
 	base_url: z.string().url().default("https://api.githubcopilot.com"),
 	model: z.string().min(1),
-	encoding: z.string().optional(),
 	enterpriseUrl: z.string().url().optional(),
 	temperature: z.number().min(0).max(2).default(0.4),
 	maxTokens: z.number().int().min(-1).default(-1),
@@ -149,9 +147,6 @@ export const EmailProviderSchema = z.discriminatedUnion("type", [
 
 export const EmailConfigSchema = z.object({
 	provider: EmailProviderSchema.default({ type: "gmail" }),
-	defaultFolder: z.string().nullable().default("INBOX"),
-	maxAttachments: z.number().int().positive().default(10),
-	maxAttachmentSize: z.string().nullable().default("25mb"),
 });
 
 // --- Calendar Provider Config Schemas ---
@@ -164,7 +159,6 @@ const _GoogleCalendarCredentialsSchema = z.object({
 });
 
 const GoogleCalendarConfigSchema = z.object({
-	type: z.literal("google").default("google"),
 	apiKey: z.string().optional().default(""),
 	serviceAccountKey: z.string().optional().default(""),
 	serviceAccountEmail: z.string().optional().default(""),
@@ -180,11 +174,9 @@ const _MsGraphCredentialsSchema = z.object({
 });
 
 const MsGraphConfigSchema = z.object({
-	type: z.literal("msgraph").default("msgraph"),
 	tenantId: z.string().optional().default(""),
 	clientId: z.string().optional().default(""),
 	clientSecret: z.string().optional().default(""),
-	delegatedUser: z.string().optional().default(""),
 	rateLimit: RateLimitSchema.default({ requestsPerMinute: 60 }),
 });
 

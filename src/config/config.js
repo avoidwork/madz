@@ -11,7 +11,6 @@ import { TelemetrySchema } from "./schemas/telemetry.js";
 import { SchedulesSchema } from "./schemas/schedules.js";
 import { TuiSchema } from "./schemas/tui.js";
 import { AgentSchema } from "./schemas/agent.js";
-import { LruSchema } from "./schemas/lru.js";
 import { PersistenceSchema } from "./schemas/persistence.js";
 import { SkillAgentMapSchema } from "./schemas/skillAgentMap.js";
 import { SubAgentsTemperatureSchema } from "./schemas/subAgentsTemperature.js";
@@ -31,7 +30,6 @@ export {
 	SchedulesSchema,
 	TuiSchema,
 	AgentSchema,
-	LruSchema,
 	PersistenceSchema,
 	SkillAgentMapSchema,
 	VectorConfigSchema,
@@ -44,9 +42,6 @@ export const ConfigSchema = z.object({
 	providers: ProvidersSchema.default({}),
 	email: EmailConfigSchema.default({
 		provider: { type: "gmail" },
-		defaultFolder: "INBOX",
-		maxAttachments: 10,
-		maxAttachmentSize: "25mb",
 	}),
 	calendar: CalendarConfigSchema.default({}),
 	sandbox: SandboxScopeSchema.default({}),
@@ -57,15 +52,12 @@ export const ConfigSchema = z.object({
 		exporter: {
 			protocol: "console",
 			endpoint: "http://localhost:4318",
-			batch: { maxSize: 512, scheduledDelay: 5000 },
 		},
 		sampling: { ratio: 0.1 },
-		redact: { paths: ["credentials.apiKey"] },
 	}),
 	schedules: SchedulesSchema.default({}),
 	tui: TuiSchema.default({}),
 	agent: AgentSchema.default({}),
-	lru: LruSchema.default({}),
 	persistence: PersistenceSchema.default({}),
 	skillAgentMap: SkillAgentMapSchema,
 	cwd: z.string().default(""),
