@@ -47,8 +47,8 @@ describe("readImage tool", () => {
 
 		const result = await readImageImpl({ path: filePath }, { allowedPaths: [testDir] });
 		const meta = await sharp(Buffer.from(b64(result), "base64")).metadata();
-		assert.strictEqual(meta.width, 5000);
-		assert.strictEqual(meta.height, 2500);
+		assert.strictEqual(meta.width, 3000);
+		assert.strictEqual(meta.height, 1500);
 	});
 
 	it("leaves images within maxDimension untouched", async () => {
