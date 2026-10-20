@@ -34,6 +34,11 @@ providers:
       maxRetries: 6
       maxConcurrency: 4
       maxTokensMinute: 0
+  fal:
+    type: fal
+    model: fal-ai/flux
+    credentials:
+      apiKey: ""
 email:
   provider:
     type: gmail
@@ -70,6 +75,7 @@ search:
     descriptionField: ""
     apiKey: ""
 calendar:
+  active: google
   google:
     type: google
     apiKey: ""
@@ -147,6 +153,7 @@ memory:
   checkpointsDir: memory/checkpoints/
   toolsDir: memory/tools/
   ephemeralLimit: 5
+  maxEntries: 100
   ephemeral:
     ttlDays: 7
     maxEntries: 10
@@ -173,6 +180,7 @@ schedules:
   maxConcurrent: 1
   mode: inprocess
   syncOnInit: true
+  logPath: ""
   entries: []
 tui:
   name: madz
@@ -189,6 +197,7 @@ tui:
     tokens: true
     quote: true
     version: true
+    project: true
 agent:
   recursionLimit: 1000
   autoContinueLimit: 1000

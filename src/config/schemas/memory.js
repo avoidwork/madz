@@ -16,6 +16,7 @@ export const MemorySchema = z.object({
 	screenshotsDir: z.string().default("memory/screenshots/"),
 	toolsDir: z.string().default("memory/tools/"),
 	ephemeralLimit: z.number().int().positive().default(5),
+	maxEntries: z.number().int().positive().default(100),
 	ephemeral: z
 		.object({
 			ttlDays: z.number().int().positive().default(7),
