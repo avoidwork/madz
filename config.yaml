@@ -34,12 +34,11 @@ providers:
       maxRetries: 6
       maxConcurrency: 4
       maxTokensMinute: 0
-  # fal: Optional image-generation backend. Uncomment and set credentials.apiKey
-  # to enable the `generateImage` tool (gated at src/tools/index.js:329,411).
-  #   type: fal
-  #   model: fal-ai/flux
-  #   credentials:
-  #     apiKey: ""
+  fal:
+    type: fal
+    model: fal-ai/flux
+    credentials:
+      apiKey: ""
 email:
   provider:
     type: gmail
