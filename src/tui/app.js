@@ -173,7 +173,7 @@ function App({
 		const projectName = projectPath.includes("projects/")
 			? projectPath.slice(projectPath.lastIndexOf("projects/") + "projects/".length)
 			: projectPath;
-		pendingSilentMessageRef.current = `We are working in projects/${projectName}`;
+		pendingSilentMessageRef.current = `We are working in projects/${projectName}. Skills are in your skills/ directory.`;
 	}, []);
 
 	/**
@@ -185,7 +185,8 @@ function App({
 		setCurrentView(PANELS.CONVERSATION);
 		inputAreaRef.current?.setStatusMessage("Active project cleared.");
 		// Silently notify the agent that we've returned to the root directory.
-		pendingSilentMessageRef.current = "We are now working in madz root directory";
+		pendingSilentMessageRef.current =
+			"We are now working in madz root directory. Skills are in your skills/ directory.";
 	}, [config]);
 
 	// Dispatch a staged silent message once the conversation area is mounted.
