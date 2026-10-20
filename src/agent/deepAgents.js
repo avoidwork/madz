@@ -375,15 +375,9 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	const buildOptions = {
 		permissions: config.sandbox.permissions || [],
 		allowedPaths: config.sandbox.paths,
-		maxReadSize: config.sandbox.maxReadSize || "1mb",
 		registry: skillRegistry,
 		sessionsDir: join(config.cwd, config.memory.sessionsDir),
-		safety: config.sandbox.safety,
-		timeout: config.sandbox.timeout,
-		memoryLimit: config.sandbox.memoryLimit,
 		contextDir: join(config.cwd, config.memory.contextDir),
-		ephemeralTtlDays: config.memory?.ephemeral?.ttlDays || 7,
-		ephemeralMaxEntries: config.memory?.ephemeral?.maxEntries || 10,
 		config,
 	};
 

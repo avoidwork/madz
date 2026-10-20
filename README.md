@@ -78,7 +78,7 @@ Most coding agents are a thin layer over a model. `madz` is the opposite — it 
 
 - **Self-contained.** The container ships a full toolchain: Node.js 26, Python 3, Ruby, Go, Java (OpenJDK 21), Rust, Terraform, tflint, Chromium, ripgrep, git, the GitHub CLI, and three package managers (npm, yarn, pnpm). It is a working dev box, not a chat window. You can SSH into it and do real work.
 - **A teammate, not a tool.** `madz` channels the cinematic soul of Mads Mikkelsen — the calm precision of Hannibal Lecter, the quiet intensity of Le Chiffre, the steady hand of Galen Erso. It speaks with measured cadence, dry humor, and a genuine point of view. It remembers your context, adapts to your energy, and works *with* you rather than at you. This isn't a gimmick — it's what makes long sessions feel collaborative instead of transactional.
-- **Security-first.** Filesystem access is confined to an allowlist/denylist of paths, and outbound URLs are filtered by scheme and hostname — blocked schemes include `file://`, `gopher://`, and `dict://`. Built-in tools are gated by explicit permissions, and skill metadata is schema-validated before it is registered. Sensitive fields are redacted from telemetry. This is layered containment by design — not a promise that the agent is harmless, but a set of constraints that narrow what any single tool can reach.
+- **Security-first.** Filesystem access is confined to an allowlist/denylist of paths, and outbound URLs are filtered by scheme and hostname — blocked schemes include `file://`, `gopher://`, and `dict://`. Built-in tools are gated by explicit permissions, and skill metadata is schema-validated before it is registered. This is layered containment by design — not a promise that the agent is harmless, but a set of constraints that narrow what any single tool can reach.
 - **Autonomous.** A Deep Agents orchestrator routes work to a family of specialized subagents — code review, coding, debugging, security auditing, testing, performance, research, and more. It can read your codebase, find bugs, write fixes, run tests, and open PRs without you driving every step.
 - **Auditable.** The entire system state is Markdown. Memory, context, sessions, schedules, and skill definitions are all plain files under version control. `git log` is your audit trail — essential for regulated environments where you must prove what happened and why.
 - **Local-first.** Data stays in your environment. Nothing leaves the container unless you explicitly configure it to. Secrets are loaded only from environment variables and never logged or hardcoded.
@@ -341,7 +341,7 @@ Volume mounts (`memory/`, `skills/`) are owned by the `madz` user with group `no
 
 ### Environment Variables
 
-All configuration is controlled via environment variables in the `docker run` command. Variable names follow `UPPER_SNAKE_CASE` of the config key path (e.g., `sandbox.timeout.seconds` → `SANDBOX_TIMEOUT_SECONDS`). Container keys like `providers`, `credentials`, `timeout`, and `search` are dropped from the env var name.
+All configuration is controlled via environment variables in the `docker run` command. Variable names follow `UPPER_SNAKE_CASE` of the config key path (e.g., `sandbox.permissions` → `SANDBOX_PERMISSIONS`). Container keys like `providers`, `credentials`, and `search` are dropped from the env var name.
 
 `madz` supports two override patterns:
 
@@ -373,7 +373,6 @@ The active provider is selected by the `enabled` flag, not by config position or
 | `OPENAI_MAX_RETRIES`         | `6`                         | Max retries for API calls  |
 | `OPENAI_MAX_TOKENS`          | `4096`                      | Max output tokens          |
 | `OPENAI_MODEL`               | `gpt-4o`                    | Model name                 |
-| `OPENAI_REQUESTS_PER_MINUTE` | `60`                        | Rate limit for API calls   |
 | `OPENAI_TEMPERATURE`         | `0.4`                       | Sampling temperature (0–2) |
 | `COPILOT_ENABLED`            | `false`                     | Enable the GitHub Copilot provider |
 | `COPILOT_BASE_URL`           | `https://api.githubcopilot.com` | Copilot API endpoint URL |
@@ -423,17 +422,9 @@ The active provider is selected by the `enabled` flag, not by config position or
 
 | Variable                       | Default                    | Description                                |
 | ------------------------------ | -------------------------- | ------------------------------------------ |
-| `SANDBOX_ENV_ALLOWLIST`        | `PATH, HOME, NODE_ENV`     | Allowed env vars (comma-separated)         |
-| `SANDBOX_GRACE_PERIOD`         | `5`                        | Kill grace period in seconds               |
-| `SANDBOX_MAX_READ_SIZE`        | `1mb`                      | Max file read size                         |
-| `SANDBOX_MEMORY_LIMIT`         | `512m`                     | Heap limit (`--max-old-space-size`)        |
 | `SANDBOX_PATHS`                | `memory/, skills/, tmp/`   | Allowed filesystem paths (comma-separated) |
 | `SANDBOX_PERMISSIONS`          | _(none)_                   | Permission grants                          |
-| `SANDBOX_PYTHON_IMPORT_HOOK`   | `true`                     | Prevent subprocess import                  |
 | `SANDBOX_SKILL_SCAN_PATHS`     | `.skills/, skills/` | Skill scan paths (comma-separated)         |
-| `SANDBOX_TIMEOUT_SECONDS`      | `30`                       | Max execution time in seconds              |
-| `SANDBOX_TRUST_PROJECT_SKILLS` | `true`                     | Trust skills in project root               |
-| `SANDBOX_URL_FILTER`           | `true`                     | Outbound URL blocking                      |
 
 **Optional — Memory:**
 
@@ -441,7 +432,6 @@ The active provider is selected by the `enabled` flag, not by config position or
 | --------------------------- | ------------------- | ------------------------------ |
 | `MEMORY_CONTEXT_DIR`        | `memory/context/`   | Context file directory         |
 | `MEMORY_DIRECTORY`          | `memory/`           | Base directory for persistence |
-| `MEMORY_ERRORS_DIR`         | `memory/errors/`    | Error log directory            |
 | `MEMORY_GC_ENABLED`         | `true`              | Enable V8 garbage collection   |
 | `MEMORY_GC_IDLE_TIMEOUT_MS` | `300000`            | Idle timeout before GC (ms)    |
 | `MEMORY_GC_MAX_GC_PER_HOUR` | `4`                 | Max GC calls per hour          |
@@ -454,17 +444,15 @@ The active provider is selected by the `enabled` flag, not by config position or
 | ------------------------------------ | ----------------------- | ------------------------------ |
 | `TELEMETRY_ENABLED`                  | `false`                 | Enable OpenTelemetry export    |
 | `TELEMETRY_EXPORTER_ENDPOINT`        | `http://localhost:4318` | OTLP endpoint URL              |
-| `TELEMETRY_EXPORTER_MAX_SIZE`        | `512`                   | Batch size before flush        |
 | `TELEMETRY_EXPORTER_PROTOCOL`        | `console`               | Exporter protocol              |
-| `TELEMETRY_EXPORTER_SCHEDULED_DELAY` | `5000`                  | Scheduled flush interval in ms |
 | `TELEMETRY_SAMPLING_RATIO`           | `0.1`                   | Trace probability              |
 
 **Optional — Schedules:**
 
 | Variable                   | Default     | Description                 |
 | -------------------------- | ----------- | --------------------------- |
-| `SCHEDULES_MAX_CONCURRENT` | `1`         | Max parallel scheduled runs |
-| `SCHEDULES_MODE`           | `inprocess` | Scheduling backend          |
+| `SCHEDULES_SYNC_ON_INIT`    | `true`      | Sync crontab from persisted job definitions |
+| `SCHEDULES_LOG_PATH`        | _(empty)_   | Cron log file path           |
 
 **Optional — TUI:**
 
@@ -495,15 +483,12 @@ The active provider is selected by the `enabled` flag, not by config position or
 | Variable                        | Default  | Description                                    |
 | ------------------------------- | -------- | ---------------------------------------------- |
 | `AGENT_RECURSION_LIMIT`         | `1000`   | Max graph execution steps per call             |
-| `AGENT_AUTO_CONTINUE_LIMIT`     | `1000`   | Max consecutive auto-continue attempts before circuit breaker triggers |
-| `AGENT_NODE_TIMEOUT`            | `600000` | Superstep timeout in milliseconds (default 10 minutes) |
 
 **Optional — Persistence:**
 
 | Variable                  | Default                 | Description              |
 | ------------------------- | ----------------------- | ------------------------ |
-| `PERSISTENCE_MODE`        | `memory`                | Storage backend          |
-| `PERSISTENCE_SQLITE_PATH` | `memory/checkpoints.db` | SQLite checkpointer path |
+| `PERSISTENCE_MODE`        | `sqlite`                | Storage backend          |
 
 **Optional — Summarization:**
 
@@ -568,12 +553,7 @@ The cache enforces a maximum size (default: 100 entries) with LRU eviction and a
 
 **Streaming support:** For streaming calls, the cache is checked before the stream begins. If cached, the stored response is returned immediately. On successful stream completion, the aggregated final response is stored — individual streaming chunks are never cached. Failed or aborted streams do not cache partial responses.
 
-**Configuration:** Cache parameters are configurable via the `lru` section in `config.yaml`:
-
-| Key | Default | Description |
-| --- | --- | --- |
-| `lru.size` | `100` | Maximum number of cached entries |
-| `lru.ttl` | `600000` | Time-to-live in milliseconds (10 minutes) |
+**Configuration:** Cache parameters are fixed at build time — the LRU cache uses a hardcoded maximum size (500 entries) and is not configurable via `config.yaml`.
 
 ### Agent
 
@@ -740,7 +720,6 @@ agent:
   decision:
     baseUrl: ""            # empty = tool not registered
     model: tev1:4b
-    temperature: 0
 ```
 
 Set `baseUrl` to your local Ollama instance (e.g. `http://localhost:11434`) to enable it. Requires **Ollama 0.35+**, and the model is pulled via `ollama pull tev1:4b` (4.5GB, 256K context) or `ollama pull tev1:0.8b` (812MB).
@@ -816,7 +795,7 @@ Skills themselves are `SKILL.md` instruction files interpreted by the agent — 
 
 ### Telemetry
 
-Optional `@opentelemetry/sdk-node` integration. Configurable exporter (console, OTLP HTTP, OTLP gRPC), probability sampling, and automatic redaction of sensitive fields (API keys, auth headers).
+Optional `@opentelemetry/sdk-node` integration. Configurable exporter (console, OTLP HTTP, OTLP gRPC) and probability sampling.
 
 ### Vector Search
 
@@ -838,7 +817,7 @@ Semantic code search using local vector embeddings and SQLite-based KNN retrieva
 
 ### Cron Scheduler
 
-Recurring job definitions in `config.yaml`. Scheduling is delegated to the system crontab — there is no in-process clock tick loop. Each invocation inherits the current session's memory context and sandbox permissions. Max-concurrency control prevents run overlap (currently a no-op, kept for API compatibility).
+Recurring job definitions in `config.yaml`. Scheduling is delegated to the system crontab — there is no in-process clock tick loop. Each invocation inherits the current session's memory context and sandbox permissions.
 
 On first onboarding completion, `madz` automatically installs a `reflection-daily` cron job (`0 2 * * *`) into the system crontab. Job definitions are persisted as JSON in `memory/schedules/` and managed under the `madz-schedules` block.
 
@@ -860,7 +839,7 @@ On first onboarding completion, `madz` automatically installs a `reflection-dail
 │   ├── scheduler/              # Cron-based job runner
 │   ├── session/                # Per-session state & context windows
 │   ├── stream/                 # Stream transformers
-│   ├── telemetry/              # OpenTelemetry tracing & redaction
+│   ├── telemetry/              # OpenTelemetry tracing
 │   ├── tools/                  # Built-in LangChain tools
 │   │   ├── code/               # Semantic code search & indexing (searchCode, indexCode)
 │   │   ├── config/             # getConfig tool
@@ -916,7 +895,6 @@ Graceful shutdown flushes all buffered log entries to disk before process exit.
 |               | `openai.credentials.apiKey`          | _(empty)_                                | API key for authentication                    |
 |               | `openai.temperature`                 | `0.4`                                    | Sampling temperature (0–2)                    |
 |               | `openai.maxTokens`                   | `4096`                                   | Max output tokens                             |
-|               | `openai.rateLimit.requestsPerMinute` | `60`                                     | Rate limit for API calls                      |
 |               | `openai.rateLimit.maxRetries`       | `6`                                      | Max retry attempts on transient errors         |
 |               | `openai.rateLimit.maxConcurrency`   | _(unset)_                                | Max concurrent requests (defaults to Infinity) |
 |               | `openai.rateLimit.maxTokensMinute`  | `0`                                      | Rolling tokens-per-minute budget; `0` disables the throttle |
@@ -927,41 +905,27 @@ Graceful shutdown flushes all buffered log entries to disk before process exit.
 |               | `copilot.enterpriseUrl`              | _(empty)_                                | GitHub Enterprise (GHEC) URL for Copilot      |
 |               | `copilot.temperature`                | `0.4`                                    | Sampling temperature (0–2)                    |
 |               | `copilot.maxTokens`                  | `4096`                                   | Max output tokens                             |
-|               | `copilot.rateLimit.requestsPerMinute`| `60`                                     | Rate limit for API calls                      |
 |               | `copilot.rateLimit.maxRetries`       | `6`                                      | Max retry attempts on transient errors         |
 |               | `copilot.rateLimit.maxConcurrency`   | _(unset)_                                | Max concurrent requests (defaults to Infinity) |
 |               | `copilot.rateLimit.maxTokensMinute`  | `0`                                      | Rolling tokens-per-minute budget; `0` disables the throttle |
 | `sandbox`     | `paths`                              | `["memory/", "skills/", "tmp/"]` | Allowed filesystem paths                      |
-|               | `timeout.seconds`                    | `30`                                     | _(no consumer — retained for config compat)_  |
-|               | `timeout.gracePeriod`                | `5`                                      | _(no consumer — retained for config compat)_  |
-|               | `memoryLimit`                        | `"512m"`                                 | _(no consumer — retained for config compat)_  |
-|               | `safety.urlFilter`                   | `true`                                   | Outbound URL blocking                         |
-|               | `safety.pythonImportHook`            | `true`                                   | _(no consumer — retained for config compat)_  |
-|               | `env.allowlist`                      | `["PATH", "HOME", "NODE_ENV"]`           | _(no consumer — retained for config compat)_  |
 |               | `permissions`                        | `["filesystem:read", ...]`               | Permission grants                             |
-|               | `maxReadSize`                        | `"1mb"`                                  | Max file read size                            |
 |               | `skillScanPaths`                     | `["skills/", ".skills/"]`         | Skill discovery paths (comma-separated)       |
-|               | `trustProjectSkills`                 | `true`                                   | Trust skills in project root                  |
 | `memory`      | `directory`                          | `memory/`                                | Base directory for persistence                |
 |               | `contextDir`                         | `memory/context/`                        | Context file directory                        |
 |               | `toolsDir`                           | `memory/tools/`                          | Tool metadata directory                       |
-|               | `errorsDir`                          | `memory/errors/`                         | Error log directory                           |
 |               | `schedulesDir`                       | `memory/schedules/`                      | Cron result files directory                   |
+|               | `ephemeralLimit`                     | `5`                                      | Max concurrent ephemeral memories             |
+|               | `maxEntries`                         | `100`                                    | Max memory entries                            |
 |               | `gc.enabled`                         | `true`                                   | Enable V8 garbage collection                  |
 |               | `gc.idleTimeoutMs`                   | `300000`                                 | Idle timeout before GC triggers (ms)          |
 |               | `gc.maxGcPerHour`                    | `4`                                      | Max GC calls per hour                         |
-|               | `ephemeral.ttlDays`                  | `7`                                      | TTL for ephemeral memories in days            |
-|               | `ephemeral.maxEntries`               | `10`                                     | Max concurrent ephemeral entries              |
 | `telemetry`   | `enabled`                            | `false`                                  | Enable OpenTelemetry export                   |
 |               | `exporter.protocol`                  | `console`                                | Exporter protocol (`console`, `http`, `grpc`) |
 |               | `exporter.endpoint`                  | `http://localhost:4318`                  | OTLP endpoint URL                             |
-|               | `exporter.batch.maxSize`             | `512`                                    | Batch size before flush                       |
-|               | `exporter.batch.scheduledDelay`      | `5000`                                   | Scheduled flush interval in ms                |
 |               | `sampling.ratio`                     | `0.1`                                    | Trace probability                             |
-|               | `redact.paths`                       | `["credentials.apiKey", ...]`            | Sensitive field paths for redaction           |
-| `schedules`   | `maxConcurrent`                      | `1`                                      | Max parallel scheduled runs                   |
-|               | `mode`                               | `inprocess`                              | Scheduling backend (`inprocess`, `system`)    |
-|               | `syncOnInit`                         | `true`                                   | Sync crontab from persisted job definitions   |
+| `schedules`   | `syncOnInit`                         | `true`                                   | Sync crontab from persisted job definitions   |
+|               | `logPath`                            | _(empty)_                                | Cron log file path                           |
 | `tui`         | `mouseScrollLines`                   | `1`                                      | Lines to scroll per mouse wheel event         |
 |               | `name`                               | `madz`                                   | TUI identifier in banner                      |
 |               | `showToolResults`                    | `true`                                  | Display tool call result lines in the TUI     |
@@ -975,18 +939,13 @@ Graceful shutdown flushes all buffered log entries to disk before process exit.
 |               | `statusBar.quote`                    | `true`                                  | Show the rotating quote in the status bar     |
 |               | `statusBar.version`                  | `true`                                  | Show the version in the status bar            |
 | `agent`       | `recursionLimit`                     | `1000`                                   | Max graph execution steps per agent call      |
-|               | `autoContinueLimit`                  | `1000`                                   | Max consecutive auto-continue attempts before circuit breaker triggers |
-|               | `nodeTimeout`                        | `600000`                                 | Superstep timeout in milliseconds (default 10 minutes) |
 | `mcp`         | `<name>.transport`                   | _(none)_                                 | MCP transport (`stdio`, `http`, `sse`)        |
 |               | `<name>.command`                     | _(none)_                                 | Command for `stdio` servers                   |
 |               | `<name>.args`                        | `[]`                                     | Args for `stdio` servers                      |
 |               | `<name>.env`                         | _(none)_                                 | Env vars for `stdio` servers                  |
 |               | `<name>.url`                         | _(none)_                                 | URL for `http`/`sse` servers                  |
 |               | `<name>.agents`                      | `["orchestrator"]`                       | Agent types that receive the server's tools   |
-| `lru`         | `size`                             | `100`                                    | Maximum number of cached LLM responses        |
-|               | `ttl`                              | `600000`                                 | Cache entry TTL in milliseconds (10 minutes)  |
-| `persistence` | `mode`                               | `memory`                                 | Storage backend (`memory`, `sqlite`)          |
-|               | `sqlite_path`                        | `memory/checkpoints.db`                  | SQLite checkpointer file path                 |
+| `persistence` | `mode`                               | `sqlite`                                 | Storage backend (`memory`, `sqlite`)          |
 | `search`      | `tavily.apiKey`                      | _(empty)_                                | Tavily search API key                        |
 | `skillAgentMap` | `[].pattern`                       | _(none)_                                 | Regex pattern to match skill names            |
 |               | `[].agent`                           | _(none)_                                 | Agent name to assign when pattern matches     |

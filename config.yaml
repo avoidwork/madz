@@ -4,7 +4,6 @@ providers:
     enabled: true
     base_url: https://api.openai.com/v1
     model: gpt-4o
-    encoding: cl100k_base
     credentials:
       apiKey:
     temperature: 0.4
@@ -13,7 +12,6 @@ providers:
     reasoning:
       effort: medium
     rateLimit:
-      requestsPerMinute: 120
       maxRetries: 6
       maxConcurrency: 4
       maxTokensMinute: 0
@@ -22,7 +20,6 @@ providers:
     enabled: false
     base_url: https://api.githubcopilot.com
     model: gpt-4o
-    encoding: cl100k_base
     enterpriseUrl:
     temperature: 0.4
     maxTokens: -1
@@ -30,7 +27,6 @@ providers:
     reasoning:
       effort: medium
     rateLimit:
-      requestsPerMinute: 120
       maxRetries: 6
       maxConcurrency: 4
       maxTokensMinute: 0
@@ -43,9 +39,6 @@ email:
   provider:
     type: gmail
     userId: me
-  defaultFolder: INBOX
-  maxAttachments: 10
-  maxAttachmentSize: 25mb
 search:
   duckduckgo:
     region: ""
@@ -77,7 +70,6 @@ search:
 calendar:
   active: google
   google:
-    type: google
     apiKey: ""
     serviceAccountKey: ""
     serviceAccountEmail: ""
@@ -85,11 +77,9 @@ calendar:
     rateLimit:
       requestsPerMinute: 60
   msgraph:
-    type: msgraph
     tenantId: ""
     clientId: ""
     clientSecret: ""
-    delegatedUser: ""
     rateLimit:
       requestsPerMinute: 60
 sandbox:
@@ -99,41 +89,14 @@ sandbox:
   skillScanPaths:
     - "skills/"
     - ".skills/"
-  timeout:
-    seconds: 600
-    gracePeriod: 5
-  memoryLimit: 128mb
-  safety:
-    urlFilter: true
-    pythonImportHook: true
-  env:
-    allowlist:
-      - PATH
-      - HOME
-      - NODE_ENV
-      - OPENAI_API_KEY
-      - AUTH_API_KEY
-      - EMAIL_IMAP_HOST
-      - EMAIL_IMAP_PORT
-      - EMAIL_IMAP_SECURE
-      - EMAIL_IMAP_USER
-      - EMAIL_IMAP_PASSWORD
-      - EMAIL_SMTP_HOST
-      - EMAIL_SMTP_PORT
-      - EMAIL_DEFAULT_FOLDER
-      - EMAIL_MAX_ATTACHMENTS
-      - EMAIL_MAX_ATTACHMENT_SIZE
   permissions:
     - filesystem:read
     - filesystem:write
     - filesystem:exec
     - process:spawn
     - network:outbound
-  maxReadSize: 10mb
-  trustProjectSkills: true
 persistence:
   mode: sqlite
-  sqlite_path: memory/checkpoints/checkpoints.db
 
 vector:
   model: local
@@ -145,8 +108,6 @@ vector:
 memory:
   directory: memory/
   contextDir: memory/context/
-  subAgentsDir: memory/sub-agents/
-  errorsDir: memory/errors/
   schedulesDir: memory/schedules/
   sessionsDir: memory/sessions/
   screenshotsDir: memory/screenshots/
@@ -154,9 +115,6 @@ memory:
   toolsDir: memory/tools/
   ephemeralLimit: 5
   maxEntries: 100
-  ephemeral:
-    ttlDays: 7
-    maxEntries: 10
   gc:
     enabled: true
     idleTimeoutMs: 300000
@@ -166,22 +124,11 @@ telemetry:
   exporter:
     protocol: console
     endpoint: http://localhost:4318
-    batch:
-      maxSize: 512
-      scheduledDelay: 5000
   sampling:
     ratio: 0.1
-  redact:
-    paths:
-      - credentials.apiKey
-      - headers.authorization
-      - request.headers.x-api-key
 schedules:
-  maxConcurrent: 1
-  mode: inprocess
   syncOnInit: true
   logPath: ""
-  entries: []
 tui:
   name: madz
   overscan: 10
@@ -200,16 +147,9 @@ tui:
     project: true
 agent:
   recursionLimit: 1000
-  autoContinueLimit: 1000
-  nodeTimeout: 600000
-  deepAgents:
-    codingAgent:
-      description: "Specialized agent for code-related tasks including file editing, debugging, and implementation."
-      temperature: 0.3
   decision:
     baseUrl: ""            # empty = tool not registered
     model: tev1:4b
-    temperature: 0
 summarization:
   enabled: true
   trigger:
@@ -218,9 +158,6 @@ summarization:
   keep:
     type: messages
     value: 10
-lru:
-  size: 100
-  ttl: 600000
 skillAgentMap:
   - pattern: "^openspec-"
     agent: coding

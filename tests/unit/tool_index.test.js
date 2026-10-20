@@ -252,3 +252,28 @@ describe("tools - buildToolConfig MCP", () => {
 		assert.ok(Array.isArray(tools), "should return an array even without mcp config");
 	});
 });
+
+describe("tools - runtimeOptions guard", () => {
+	it("every runtimeOptions key has a consumer", async () => {
+		const { buildToolConfig, CONSUMED_RUNTIME_OPTION_KEYS } =
+			await import("../../src/tools/index.js");
+		const tools = await buildToolConfig({
+			permissions: ["filesystem:read", "filesystem:write", "network:outbound"],
+			config: {
+				providers: {
+					openai: { credentials: { apiKey: "test" } },
+					fal: { credentials: { apiKey: "test" } },
+				},
+				agent: { decision: { baseUrl: "http://localhost:11434" } },
+			},
+		});
+		const runtimeKeys = tools._runtimeOptionKeys;
+		assert.ok(Array.isArray(runtimeKeys), "should expose runtimeOptions keys");
+		for (const key of runtimeKeys) {
+			assert.ok(
+				CONSUMED_RUNTIME_OPTION_KEYS.includes(key),
+				`runtimeOptions key "${key}" has no consumer — add it to CONSUMED_RUNTIME_OPTION_KEYS or remove it`,
+			);
+		}
+	});
+});

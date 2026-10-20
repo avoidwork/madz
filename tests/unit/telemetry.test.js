@@ -5,60 +5,6 @@ import assert from "node:assert/strict";
 // Telemetry module tests — pure functions, no OTel SDK dependency needed
 // ---------------------------------------------------------------------------
 
-describe("telemetry — redaction.js", () => {
-	it("createRedactionMiddleware returns a function", async () => {
-		const { createRedactionMiddleware } = await import("../../src/telemetry/redaction.js");
-		assert.equal(typeof createRedactionMiddleware, "function");
-	});
-
-	it("createRedactionMiddleware redacts dotted paths", async () => {
-		const { createRedactionMiddleware } = await import("../../src/telemetry/redaction.js");
-		const redact = createRedactionMiddleware(["credentials.apiKey"]);
-		const result = redact({ credentials: { apiKey: "secret", user: "jason" } });
-		assert.equal(result.credentials.apiKey, "[REDACTED]");
-		assert.equal(result.credentials.user, "jason");
-	});
-
-	it("createRedactionMiddleware handles null/undefined attributes", async () => {
-		const { createRedactionMiddleware } = await import("../../src/telemetry/redaction.js");
-		const redact = createRedactionMiddleware(["key"]);
-		assert.equal(redact(null), null);
-		assert.equal(redact(undefined), undefined);
-	});
-
-	it("createRedactionMiddleware handles non-object attributes", async () => {
-		const { createRedactionMiddleware } = await import("../../src/telemetry/redaction.js");
-		const redact = createRedactionMiddleware(["key"]);
-		assert.equal(redact("string"), "string");
-		assert.equal(redact(42), 42);
-	});
-
-	it("createRedactionMiddleware with empty paths returns attributes unchanged", async () => {
-		const { createRedactionMiddleware } = await import("../../src/telemetry/redaction.js");
-		const redact = createRedactionMiddleware([]);
-		const result = redact({ a: 1, b: 2 });
-		assert.deepEqual(result, { a: 1, b: 2 });
-	});
-
-	it("redactAttributes redacts matching keys case-insensitively", async () => {
-		const { redactAttributes } = await import("../../src/telemetry/redaction.js");
-		const result = redactAttributes({ apiKey: "secret", name: "test" }, ["apikey"]);
-		assert.equal(result.apiKey, "[REDACTED]");
-		assert.equal(result.name, "test");
-	});
-
-	it("redactAttributes returns empty object for null input", async () => {
-		const { redactAttributes } = await import("../../src/telemetry/redaction.js");
-		assert.deepEqual(redactAttributes(null, ["key"]), {});
-	});
-
-	it("redactAttributes handles empty redactKeys", async () => {
-		const { redactAttributes } = await import("../../src/telemetry/redaction.js");
-		const result = redactAttributes({ a: 1 }, []);
-		assert.deepEqual(result, { a: 1 });
-	});
-});
-
 describe("telemetry — llmInstrumenter.js", () => {
 	it("instrumentLlmCall returns span context with attributes", async () => {
 		const { instrumentLlmCall } = await import("../../src/telemetry/llmInstrumenter.js");
@@ -279,8 +225,6 @@ describe("telemetry — index.js exports", () => {
 		assert.equal(typeof telemetry.getTracer, "function");
 		assert.equal(typeof telemetry.shutdownTelemetry, "function");
 		assert.equal(typeof telemetry.isTelemetryEnabled, "function");
-		assert.equal(typeof telemetry.createRedactionMiddleware, "function");
-		assert.equal(typeof telemetry.redactAttributes, "function");
 		assert.equal(typeof telemetry.instrumentLlmCall, "function");
 		assert.equal(typeof telemetry.instrumentSkillExecution, "function");
 		assert.equal(typeof telemetry.createTokenCounter, "function");

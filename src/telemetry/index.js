@@ -1,5 +1,4 @@
 export { initTelemetry, getTracer, shutdownTelemetry, isTelemetryEnabled } from "./provider.js";
-export { createRedactionMiddleware, redactAttributes } from "./redaction.js";
 export { instrumentLlmCall } from "./llmInstrumenter.js";
 export { instrumentSkillExecution } from "./skillInstrumenter.js";
 export { createTokenCounter, createDurationHistogram } from "./metrics.js";
