@@ -210,6 +210,20 @@ export const MessageList = React.memo(
 				const id = (++_messageIdCounter).toString();
 				const stableContent = content || "";
 
+				// Clear a stale `streaming: true` on any prior assistant message.
+				// When a new message segment (e.g., a system message) is added after
+				// an assistant message, the prior assistant bubble must stop showing
+				// its spinner even if the stream ended without `finalizeStreaming` or
+				// `handleInterrupt` firing `streaming: false`. The newly added message
+				// is not yet in the list, so it is never affected by this loop.
+				for (const existingId of idsRef.current) {
+					const existing = dataRef.current.get(existingId);
+					if (existing?.role === "assistant" && existing.streaming) {
+						dataRef.current.set(existingId, { ...existing, streaming: false });
+						publish(`msg-${existingId}`, dataRef.current.get(existingId));
+					}
+				}
+
 				// Store content in a separate ref for reference stability —
 				// the same string reference persists across updates so React.memo
 				// can skip re-renders when content hasn't actually changed.

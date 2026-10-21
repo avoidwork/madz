@@ -495,6 +495,11 @@ export function MessageBubbleInner({
 			)
 		: null;
 
+	// Defensive guard: only render the spinner when the bubble is genuinely
+	// pending (no content and no segments). Even if `localStreaming` is stale
+	// `true` (e.g., a stream ended without `finalizeStreaming`/`handleInterrupt`
+	// firing `streaming: false`), a bubble that has content or segments must
+	// never show a spinner — it renders as a completed message.
 	const pendingState =
 		role === "assistant" && localStreaming && segments.length === 0 && !localContent;
 

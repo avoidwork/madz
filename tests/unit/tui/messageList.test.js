@@ -36,6 +36,17 @@ function createImperativeApi() {
 		addMessage(role, content, options = {}) {
 			const id = (++_messageIdCounter).toString();
 			const stableContent = content || "";
+
+			// Clear a stale `streaming: true` on any prior assistant message.
+			// Mirrors the real implementation in messageList.js.
+			for (const existingId of idsRef.current) {
+				const existing = dataRef.current.get(existingId);
+				if (existing?.role === "assistant" && existing.streaming) {
+					dataRef.current.set(existingId, { ...existing, streaming: false });
+					publish(`msg-${existingId}`, dataRef.current.get(existingId));
+				}
+			}
+
 			contentRef.current.set(id, stableContent);
 			dataRef.current.set(id, {
 				id,
@@ -309,6 +320,21 @@ describe("MessageList — imperative API", () => {
 			const id = api.addMessage("assistant", "text", { events });
 			const data = api.getMessageData(id);
 			assert.strictEqual(data.events, events);
+		});
+
+		it("clears stale streaming on a prior assistant message when a new segment is added", () => {
+			const assistantId = api.addMessage("assistant", "", { streaming: true });
+			assert.strictEqual(api.getMessageData(assistantId).streaming, true);
+
+			// Adding a subsequent message segment (e.g., a system message) must
+			// clear the stale streaming flag on the prior assistant bubble.
+			api.addMessage("system", "Interrupted");
+			assert.strictEqual(api.getMessageData(assistantId).streaming, false);
+		});
+
+		it("does not clear streaming on the newly added assistant message", () => {
+			const assistantId = api.addMessage("assistant", "", { streaming: true });
+			assert.strictEqual(api.getMessageData(assistantId).streaming, true);
 		});
 	});
 
