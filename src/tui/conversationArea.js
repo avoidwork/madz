@@ -68,9 +68,9 @@ const ConversationArea = forwardRef(function ConversationArea(
 		onSaveSession,
 		gcManager,
 		gcTrigger,
-		onStatusChange,
 		onContextChange,
 		onCompactingChange,
+		onStreamingChange,
 		onInterruptInput,
 		onSubagentUpdate,
 		onQuit,
@@ -198,9 +198,6 @@ const ConversationArea = forwardRef(function ConversationArea(
 			});
 		}
 
-		// Set status message for visual feedback
-		onStatusChange?.("Interrupted.");
-
 		// Wait for the dispatchProvider promise to resolve
 		const dispatchPromise = dispatchPromiseRef.current;
 		dispatchPromiseRef.current = null;
@@ -216,15 +213,13 @@ const ConversationArea = forwardRef(function ConversationArea(
 	/**
 	 * Compact the context window on demand.
 	 * Invokes the agent's compaction routine, syncs the TUI conversation view,
-	 * recomputes the context size, and reports the result via onStatusChange.
+	 * recomputes the context size.
 	 */
 	const handleCompact = async () => {
 		if (!compactContext) {
-			onStatusChange?.("Compaction is not available.");
 			addMessage({ role: "system", content: "Compaction is not available." });
 			return;
 		}
-		onStatusChange?.("Compacting context window...");
 		const compactMsgId = addMessage({ role: "system", content: "Compacting context window..." });
 		try {
 			const result = await compactContext();
@@ -238,18 +233,15 @@ const ConversationArea = forwardRef(function ConversationArea(
 				}
 				const detail = parts.length > 0 ? parts.join(", ") : "no changes needed";
 				const msg = `Context compacted: ${detail}.`;
-				onStatusChange?.(msg);
 				messageListRef.current?.updateMessage(compactMsgId, { content: msg });
 				// Recompute the context size so the status bar reflects the reduced window.
 				await updateContextSize(sessionState, config);
 			} else {
 				const msg = `Compaction failed: ${result?.error || "unknown error"}`;
-				onStatusChange?.(msg);
 				messageListRef.current?.updateMessage(compactMsgId, { content: msg });
 			}
 		} catch (err) {
 			const msg = `Compaction failed: ${err.message}`;
-			onStatusChange?.(msg);
 			messageListRef.current?.updateMessage(compactMsgId, { content: msg });
 		}
 	};
@@ -300,7 +292,6 @@ const ConversationArea = forwardRef(function ConversationArea(
 			}
 			if (result.action === "clear") {
 				messageListRef.current?.clear();
-				onStatusChange?.(result.message || "Conversation cleared.");
 				return;
 			}
 			if (result.action === "compact") {
@@ -308,7 +299,6 @@ const ConversationArea = forwardRef(function ConversationArea(
 				return;
 			}
 			if (result.action === "unknown") {
-				onStatusChange?.(result.message);
 				return;
 			}
 			if (result.action === "view") {
@@ -330,9 +320,6 @@ const ConversationArea = forwardRef(function ConversationArea(
 			} else {
 				// Show the user's command in the chat display for non-skill commands
 				addMessage({ role: "user", content: trimmed });
-				if (result.action !== "help" && result.action !== "skill") {
-					onStatusChange?.(result.message || result.action + " executed");
-				}
 			}
 			if (
 				result.message &&
@@ -345,7 +332,6 @@ const ConversationArea = forwardRef(function ConversationArea(
 			}
 		} catch (err) {
 			addMessage({ role: "system", content: `Command error: ${err.message}` });
-			onStatusChange?.("Something went wrong");
 		}
 	};
 
@@ -362,12 +348,10 @@ const ConversationArea = forwardRef(function ConversationArea(
 		if (pendingClarifyRef.current) {
 			pendingClarifyRef.current = null;
 			addMessage({ role: "user", content: text });
-			onStatusChange?.("Streaming...");
 			await resumeClarify(text);
 			return;
 		}
 
-		onStatusChange?.("Streaming...");
 		// silentUser: dispatch the message without rendering it as a user message
 		// in the TUI (e.g., synthesized skill prompts). The assistant's streaming
 		// response still renders normally.
@@ -410,6 +394,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 
 		abortControllerRef.current = new AbortController();
 		isStreamingRef.current = true;
+		onStreamingChange?.(true);
 
 		try {
 			const preStreamContextSize = contextSize;
@@ -483,19 +468,16 @@ const ConversationArea = forwardRef(function ConversationArea(
 				onSaveSession();
 			}
 			gcManager?.();
-			onStatusChange?.("Received response");
 		} catch (err) {
 			if (err.name === "AbortError") {
 				if (sessionState) {
 					sessionState.removeLastAssistantToolCallMessage();
 					sessionState.popExchange();
 				}
-				onStatusChange?.("Interrupted.");
 			} else {
 				if (onSaveSession) {
 					onSaveSession();
 				}
-				onStatusChange?.("Something went wrong");
 				addMessage({
 					role: "system",
 					content: `I couldn't connect right now - ${err.message}. Try sending your message again?`,
@@ -504,6 +486,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 		} finally {
 			abortControllerRef.current = null;
 			isStreamingRef.current = false;
+			onStreamingChange?.(false);
 		}
 		gcManager?.();
 	};
@@ -533,7 +516,6 @@ const ConversationArea = forwardRef(function ConversationArea(
 		// still in the window even with an empty conversation, so the counter must
 		// reflect that baseline — not a misleading 0.
 		await updateContextSize(sessionState, config);
-		onStatusChange?.("New session started.");
 		addMessage({
 			role: "system",
 			content: `New session started (thread: ${newSession.sessionId.slice(0, 8)}...).`,
@@ -698,7 +680,6 @@ const ConversationArea = forwardRef(function ConversationArea(
 								: question;
 						addMessage({ role: "system", content: promptText });
 						pendingClarifyRef.current = { question, choices };
-						onStatusChange?.("Clarification needed");
 						return;
 					}
 
@@ -859,6 +840,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 
 		abortControllerRef.current = new AbortController();
 		isStreamingRef.current = true;
+		onStreamingChange?.(true);
 
 		try {
 			const preStreamContextSize = contextSize;
@@ -901,19 +883,16 @@ const ConversationArea = forwardRef(function ConversationArea(
 				onSaveSession();
 			}
 			gcManager?.();
-			onStatusChange?.("Received response");
 		} catch (err) {
 			if (err.name === "AbortError") {
 				if (sessionState) {
 					sessionState.removeLastAssistantToolCallMessage();
 					sessionState.popExchange();
 				}
-				onStatusChange?.("Interrupted.");
 			} else {
 				if (onSaveSession) {
 					onSaveSession();
 				}
-				onStatusChange?.("Something went wrong");
 				addMessage({
 					role: "system",
 					content: `I couldn't connect right now - ${err.message}. Try sending your message again?`,
@@ -922,6 +901,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 		} finally {
 			abortControllerRef.current = null;
 			isStreamingRef.current = false;
+			onStreamingChange?.(false);
 		}
 		gcManager?.();
 	};

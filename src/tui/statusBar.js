@@ -101,7 +101,7 @@ export function renderContextMeter(contextSize, contextWindow) {
  * Input text entry is handled by InputPanel with IRC-style prompt ("> text" / ": text").
  */
 export const StatusBar = React.memo(function StatusBar({
-	statusMessage = "",
+	isStreaming = false,
 	skillCount = 0,
 	messageCount = 0,
 	contextSize = 0,
@@ -116,7 +116,6 @@ export const StatusBar = React.memo(function StatusBar({
 	project = "",
 }) {
 	const contextColor = isCompacting ? "red" : "#606060";
-	const isStreaming = statusMessage === "Sending..." || statusMessage === "Streaming...";
 	const spinnerColor = getContextUtilizationColor(contextSize, contextWindow);
 	const showModel = statusBar.model !== false && model;
 	const showSkills = statusBar.skills !== false;

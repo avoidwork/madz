@@ -42,13 +42,13 @@ const InputArea = forwardRef(function InputArea(
 		searchQuery = "",
 		onSearchQueryChange,
 		commandList = [],
+		isStreaming = false,
 	},
 	ref,
 ) {
 	const [inputText, setInputText] = useState(initialValue);
 	const [historyIndex, setHistoryIndex] = useState(-1);
 	const [chatHistory, setChatHistory] = useState([]);
-	const [statusMessage, setStatusMessage] = useState("Ready");
 	const [contextSize, setContextSize] = useState(0);
 	const [isCompacting, setIsCompacting] = useState(false);
 	const [quoteIndex, setQuoteIndex] = useState(-1);
@@ -210,7 +210,6 @@ const InputArea = forwardRef(function InputArea(
 			});
 			setHistoryIndex(-1);
 		},
-		setStatusMessage,
 		setContextSize,
 		setIsCompacting,
 		isPickerOpen: () => pickerOpenRef.current,
@@ -227,7 +226,7 @@ const InputArea = forwardRef(function InputArea(
 		// StatusBar only in normal mode (not during onboarding)
 		!showBanner && !showOnboarding
 			? React.createElement(StatusBar, {
-					statusMessage,
+					isStreaming,
 					skillCount,
 					messageCount,
 					contextSize,
