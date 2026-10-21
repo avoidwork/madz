@@ -52,6 +52,31 @@ describe("MessageBubbleInner", () => {
 			assert.ok(typeof result === "string");
 			assert.ok(result.includes("You"));
 		});
+
+		it("does not render a spinner when the bubble has content despite a stale streaming flag", () => {
+			// A stale `streaming: true` on a bubble that already has content must
+			// not render the spinner — the bubble renders as a completed message.
+			const result = renderBubble({ streaming: true, content: "completed response" });
+			assert.ok(typeof result === "string");
+			assert.ok(result.includes("completed response"));
+			// The spinner renders a thinking word; assert none of the thinking
+			// words appear, confirming the pending spinner is suppressed.
+			for (const word of THINKING_WORDS) {
+				assert.ok(!result.includes(word), `spinner word "${word}" should not render`);
+			}
+		});
+
+		it("does not render a spinner when the bubble has segments despite a stale streaming flag", () => {
+			const result = renderBubble({
+				streaming: true,
+				segments: [{ type: "message", content: "partial response" }],
+			});
+			assert.ok(typeof result === "string");
+			assert.ok(result.includes("partial response"));
+			for (const word of THINKING_WORDS) {
+				assert.ok(!result.includes(word), `spinner word "${word}" should not render`);
+			}
+		});
 	});
 
 	describe("pub/sub deduplication", () => {
