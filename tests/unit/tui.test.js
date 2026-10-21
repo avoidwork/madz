@@ -1275,7 +1275,6 @@ describe("ConversationArea - imperative handle", () => {
 			React.createElement(ConversationArea, {
 				config: { tui: { name: "madz" } },
 				messageCountRef,
-				onStatusChange: () => {},
 				onContextChange: () => {},
 				onCompactingChange: () => {},
 				onInterruptInput: () => {},
@@ -1303,7 +1302,6 @@ describe("ConversationArea - imperative handle", () => {
 				React.createElement(ConversationArea, {
 					config: { tui: { name: "madz" } },
 					messageCountRef,
-					onStatusChange: () => {},
 					onContextChange: () => {},
 					onCompactingChange: () => {},
 					onInterruptInput: () => {},

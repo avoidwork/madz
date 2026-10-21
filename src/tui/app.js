@@ -71,6 +71,7 @@ function App({
 	// ConversationArea's streaming handler reports each subagent event here via
 	// onSubagentUpdate, which updates this state and re-renders the panel.
 	const [subagentStore, setSubagentStore] = useState({});
+	const [isStreaming, setIsStreaming] = useState(false);
 	const lastInterruptTimeRef = useRef(0);
 	const { exit } = useApp();
 	const exitRef = useRef(exit);
@@ -115,10 +116,10 @@ function App({
 	// configured default so the status bar reflects the live model context.
 	const contextWindow = contextLength ?? activeProvider?.contextWindow ?? 0;
 
-	// Stable callbacks — flow status/context/compacting from ConversationArea into InputArea
-	const onStatusChange = useCallback((msg) => inputAreaRef.current?.setStatusMessage(msg), []);
+	// Stable callbacks — flow context/compacting from ConversationArea into InputArea
 	const onContextChange = useCallback((size) => inputAreaRef.current?.setContextSize(size), []);
 	const onCompactingChange = useCallback((val) => inputAreaRef.current?.setIsCompacting(val), []);
+	const onStreamingChange = useCallback((val) => setIsStreaming(val), []);
 	const onInterruptInput = useCallback(() => inputAreaRef.current?.clearInput(), []);
 	// Fold a subagent event into the App-level subagent store. Called by the
 	// ConversationArea's streaming handler for each subagent_* event. Updating
@@ -153,7 +154,6 @@ function App({
 		// trigger and the command picker does not immediately re-open — matching
 		// the slash autocomplete's replaceCommandToken behavior.
 		setPendingInput(`/${skillName} `);
-		inputAreaRef.current?.setStatusMessage(`Selected ${skillName} — press Enter to run or append.`);
 	}, []);
 
 	/**
@@ -165,7 +165,6 @@ function App({
 	const handleSelectProject = useCallback((projectPath) => {
 		setActiveProject(projectPath);
 		setCurrentView(PANELS.CONVERSATION);
-		inputAreaRef.current?.setStatusMessage(`Active project: ${projectPath}`);
 		// Silently notify the agent that we're now working in the selected project.
 		// The conversation area is unmounted during the panel view, so stage the
 		// message and dispatch it once it mounts. Derive the project name the same
@@ -183,7 +182,6 @@ function App({
 	const handleClearProject = useCallback(() => {
 		setActiveProject("");
 		setCurrentView(PANELS.CONVERSATION);
-		inputAreaRef.current?.setStatusMessage("Active project cleared.");
 		// Silently notify the agent that we've returned to the root directory.
 		pendingSilentMessageRef.current =
 			"We are now working in madz root directory. Skills are in your skills/ directory.";
@@ -671,9 +669,9 @@ function App({
 							onSaveSession,
 							gcManager,
 							gcTrigger,
-							onStatusChange,
 							onContextChange,
 							onCompactingChange,
+							onStreamingChange,
 							onInterruptInput,
 							onSubagentUpdate,
 							onQuit: handleQuit,
@@ -720,6 +718,7 @@ function App({
 						conversationAreaRef.current?.setSearchQuery?.(query);
 					},
 					commandList,
+					isStreaming,
 				})
 			: null,
 	);

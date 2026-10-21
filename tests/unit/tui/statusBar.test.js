@@ -498,7 +498,7 @@ describe("StatusBar per-item visibility", () => {
 		const result = renderToString(
 			React.createElement(StatusBar, {
 				...baseProps,
-				statusMessage: "Streaming...",
+				isStreaming: true,
 				statusBar: {
 					model: false,
 					skills: false,
