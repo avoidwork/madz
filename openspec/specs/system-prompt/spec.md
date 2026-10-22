@@ -33,3 +33,10 @@ The `loadSystemPrompt` function in `src/memory/prompts.js` SHALL conditionally i
 - **WHEN** the decision tool instruction is injected
 - **THEN** it SHALL appear as a standalone, unnumbered block near the top of the prompt, and SHALL NOT be part of a numbered directive list
 
+### Requirement: Tool output fallback directive
+The `SYSTEM_PROMPT.md` SHALL include a fallback directive instructing tools to save their outputs to `memory/tools/` when a tool does not handle the concern itself.
+
+#### Scenario: Fallback directive present
+- **WHEN** `SYSTEM_PROMPT.md` is loaded
+- **THEN** it contains a directive stating tool outputs should be saved to `memory/tools/` when a tool does not handle the concern itself
+
