@@ -60,6 +60,19 @@ describe("clarify", () => {
 		assert.strictEqual(existsSync(CLARIFICATION_FILE), true);
 	});
 
+	it("defaults clarifications file to config.memory.toolsDir when no option provided", async () => {
+		setup();
+		await runClarifyInGraph(
+			{
+				question: "Default path question",
+				choices: ["A", "B"],
+			},
+			{},
+		);
+		const defaultFile = join(process.cwd(), "memory", "tools", "clarifications.md");
+		assert.strictEqual(existsSync(defaultFile), true);
+	});
+
 	it("interrupts the graph when no resume value is provided", async () => {
 		setup();
 		const result = await runClarifyInGraph(

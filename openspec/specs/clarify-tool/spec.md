@@ -39,3 +39,10 @@ The `clarify` tool `description` SHALL note that it interrupts the agent to surf
 - **WHEN** the `clarify` tool is registered
 - **THEN** its `description` mentions that it interrupts the agent to surface the question and captures the user's reply
 
+### Requirement: Clarify tool description references memory/tools
+The `clarify` tool `description` SHALL reference `memory/tools/` as the location where clarification questions are stored for session context.
+
+#### Scenario: Description references tools directory
+- **WHEN** the `clarify` tool is registered
+- **THEN** its `description` mentions `memory/tools/` as the storage location for clarification questions
+

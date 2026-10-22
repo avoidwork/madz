@@ -7,8 +7,9 @@
 import { z } from "zod";
 import { tool } from "@langchain/core/tools";
 import PptxGenJS from "pptxgenjs";
-import { resolve, dirname } from "node:path";
+import { resolve, dirname, join } from "node:path";
 import { readFile, mkdir, writeFile } from "node:fs/promises";
+import { loadConfig } from "../../config/loader.js";
 
 // ---------------------------------------------------------------------------
 // Error class
@@ -113,7 +114,10 @@ const slideSchema = z.object({
  * Full presentation input schema.
  */
 export const generatePptxSchema = z.object({
-	outputPath: z.string().describe("Absolute path for the output .pptx file"),
+	outputPath: z
+		.string()
+		.optional()
+		.describe("Absolute path for the output .pptx file (defaults to config.memory.toolsDir)"),
 	templatePath: z.string().optional().describe("Path to an existing .pptx template file"),
 	slideWidth: z
 		.number()
@@ -483,7 +487,7 @@ export async function loadTemplate(templatePath) {
 /**
  * Create a PowerPoint presentation from structured content.
  * @param {object} input - Tool input matching generatePptxSchema
- * @param {string} input.outputPath - Output file path
+ * @param {string} [input.outputPath] - Output file path (defaults to config.memory.toolsDir)
  * @param {string} [input.templatePath] - Optional template file path
  * @param {number} [input.slideWidth] - Slide width in inches
  * @param {number} [input.slideHeight] - Slide height in inches
@@ -492,7 +496,11 @@ export async function loadTemplate(templatePath) {
  */
 export async function createPptx(input) {
 	const validated = generatePptxSchema.parse(input);
-	const { outputPath, templatePath, slideWidth, slideHeight, slides } = validated;
+	const { templatePath, slideWidth, slideHeight, slides } = validated;
+	const config = loadConfig();
+	const toolsDir = config.memory?.toolsDir || "memory/tools/";
+	const outputPath =
+		validated.outputPath || join(config.cwd, toolsDir, `presentation-${Date.now()}.pptx`);
 
 	// Validate output path
 	const pathValidation = validateOutputPath(outputPath);

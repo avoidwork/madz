@@ -201,7 +201,7 @@ describe("generatePdf", () => {
 			assert.ok(result.error.includes("At least 2 PDF file paths"));
 		});
 
-		it("requires outputPath or base64", async () => {
+		it("defaults outputPath to config.memory.toolsDir when omitted", async () => {
 			const pdf1 = await createTestPdf();
 			const pdf2 = await createTestPdf();
 			await writeFile(join(TEST_DIR, "a.pdf"), pdf1);
@@ -213,8 +213,8 @@ describe("generatePdf", () => {
 					filePaths: [join(TEST_DIR, "a.pdf"), join(TEST_DIR, "b.pdf")],
 				}),
 			);
-			assert.strictEqual(result.ok, false);
-			assert.ok(result.error.includes("outputPath or base64"));
+			assert.strictEqual(result.ok, true);
+			assert.ok(result.filePath.includes("memory/tools/"));
 		});
 
 		it("merges two PDFs", async () => {

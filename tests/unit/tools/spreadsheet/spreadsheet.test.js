@@ -840,6 +840,24 @@ describe("spreadsheet", () => {
 				/* ignore */
 			}
 		});
+
+		it("should default outputPath to config.memory.toolsDir when omitted", async () => {
+			const data = [{ name: "Alice", age: "30" }];
+			const result = await callSpreadsheet({
+				action: "export",
+				data,
+				format: "xlsx",
+			});
+			assert.strictEqual(result.format, "xlsx");
+			assert.strictEqual(result.status, "generated");
+			assert.ok(result.outputPath.includes("memory/tools/"));
+			assert.ok(result.outputPath.endsWith(".xlsx"));
+			try {
+				fs.unlinkSync(result.outputPath);
+			} catch {
+				/* ignore */
+			}
+		});
 	});
 
 	describe("unknown action", () => {

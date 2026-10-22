@@ -2,6 +2,8 @@ import { z } from "zod";
 import { interrupt } from "@langchain/langgraph";
 import { tool } from "@langchain/core/tools";
 import { writeFile, mkdir, readFile, access } from "node:fs/promises";
+import { join, dirname } from "node:path";
+import { loadConfig } from "../../config/loader.js";
 
 /**
  * Check if a file path is accessible.
@@ -29,12 +31,15 @@ async function pathExists(filePath) {
  * The question is also appended to the clarifications file for session context.
  * @param {z.infer<typeof ClarifySchema>} input - The tool input
  * @param {object} options - Runtime options
- * @param {string} [options.clarificationsFile] - Path to clarifications file (default "memory/context/clarifications.md")
+ * @param {string} [options.clarificationsFile] - Path to clarifications file (default "memory/tools/clarifications.md")
  * @returns {Promise<string>} Clarification result
  */
 export async function clarifyImpl(input, options) {
 	const { question, choices } = input;
-	const clarificationsFile = options?.clarificationsFile || "memory/context/clarifications.md";
+	const config = loadConfig();
+	const toolsDir = config.memory?.toolsDir || "memory/tools/";
+	const clarificationsFile =
+		options?.clarificationsFile || join(config.cwd, toolsDir, "clarifications.md");
 
 	// Format choices as numbered list if provided
 	let choicesFormatted = "";
@@ -47,15 +52,16 @@ export async function clarifyImpl(input, options) {
 	const entry = `## Clarification: ${question}\n\n- Time: ${timestamp}\n${choicesFormatted ? `\n- Options: ${choicesFormatted.replace(/\n/g, ", ")}` : ""}`;
 
 	// Ensure directory exists
-	const dir = clarificationsFile.split("/").slice(0, -1).join("/");
-	if (dir && !(await pathExists("./" + dir))) {
-		await mkdir("./" + dir, { recursive: true });
+	const dir = dirname(clarificationsFile);
+	if (dir && !(await pathExists(dir))) {
+		await mkdir(dir, { recursive: true });
 	}
 
 	// Append to clarifications file
-	const filePath = "./" + clarificationsFile;
-	const existing = (await pathExists(filePath)) ? await readFile(filePath, "utf-8") : "";
-	await writeFile(filePath, existing + "\n\n" + entry + "\n", "utf-8");
+	const existing = (await pathExists(clarificationsFile))
+		? await readFile(clarificationsFile, "utf-8")
+		: "";
+	await writeFile(clarificationsFile, existing + "\n\n" + entry + "\n", "utf-8");
 
 	// Pause the agent and surface the question to the user. The interrupt value
 	// carries the question (and choices) so the TUI can render a prompt. The
@@ -81,7 +87,7 @@ export async function clarifyImpl(input, options) {
 export const clarify = tool(clarifyImpl, {
 	name: "clarify",
 	description:
-		"Send a clarification question to the user. Supports open-ended questions and choice prompts. Interrupts the agent to surface the question, captures the user's reply, and stores the question for session context in memory/context/clarifications.md.",
+		"Send a clarification question to the user. Supports open-ended questions and choice prompts. Interrupts the agent to surface the question, captures the user's reply, and stores the question for session context in memory/tools/clarifications.md.",
 	schema: z.object({
 		question: z.string().describe("The clarification question to ask the user"),
 		choices: z

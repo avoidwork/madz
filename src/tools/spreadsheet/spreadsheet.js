@@ -6,10 +6,12 @@
 
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
+import { join } from "node:path";
 import { parseFormula } from "./formulaParser.js";
 import * as stats from "./stats.js";
 import * as csv from "./csv.js";
 import * as pivot from "./pivot.js";
+import { loadConfig } from "../../config/loader.js";
 
 // ─── Input Schema ────────────────────────────────────────────────────────────────
 
@@ -107,6 +109,20 @@ const SpreadsheetSchema = z.object({
 });
 
 // ─── Implementation ─────────────────────────────────────────────────────────────────
+
+/**
+ * Resolve the output path for a spreadsheet operation, defaulting to
+ * config.memory.toolsDir when omitted.
+ * @param {string} [outputPath] - Caller-supplied output path
+ * @param {string} [ext] - File extension for the default filename
+ * @returns {string} The resolved output path
+ */
+function resolveOutputPath(outputPath, ext = "xlsx") {
+	if (outputPath) return outputPath;
+	const config = loadConfig();
+	const toolsDir = config.memory?.toolsDir || "memory/tools/";
+	return join(config.cwd, toolsDir, `spreadsheet-${Date.now()}.${ext}`);
+}
 
 /**
  * Spreadsheet computation tool.
@@ -220,7 +236,8 @@ async function compute(input) {
  * @returns {Object} Generation result
  */
 async function generate(input) {
-	const { sheets, outputPath } = SpreadsheetSchema.parse(input);
+	const { sheets } = SpreadsheetSchema.parse(input);
+	const outputPath = resolveOutputPath(input.outputPath);
 
 	if (!sheets || sheets.length === 0) {
 		throw new Error("generate() requires at least one sheet");
@@ -337,7 +354,8 @@ async function csvExport(input) {
  * @returns {Object} Modification result
  */
 async function modify(input) {
-	const { inputPath, modifyOperations, outputPath } = SpreadsheetSchema.parse(input);
+	const { inputPath, modifyOperations } = SpreadsheetSchema.parse(input);
+	const outputPath = resolveOutputPath(input.outputPath);
 
 	// Validate input file exists
 	const fs = await import("node:fs");
@@ -448,7 +466,8 @@ async function modify(input) {
  * @returns {Object} Export result
  */
 async function exportData(input) {
-	const { data, format, outputPath } = SpreadsheetSchema.parse(input);
+	const { data, format } = SpreadsheetSchema.parse(input);
+	const outputPath = resolveOutputPath(input.outputPath, format === "xlsx" ? "xlsx" : "csv");
 
 	if (!data || data.length === 0) {
 		throw new Error("export() requires non-empty data");

@@ -2,7 +2,6 @@ import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import { homedir } from "node:os";
 import { loadConfig } from "../../config/loader.js";
 
 const TTS_MODELS = ["tts-1", "tts-1-hd"];
@@ -117,8 +116,9 @@ export async function textToSpeechImpl(input, options = {}) {
 		return JSON.stringify({ ok: false, error: result.error });
 	}
 
-	// Save to ~/voice-memos/
-	const memosDir = join(homedir(), "voice-memos");
+	// Save to config.memory.toolsDir
+	const toolsDir = config.memory?.toolsDir || "memory/tools/";
+	const memosDir = join(config.cwd, toolsDir);
 	await mkdir(memosDir, { recursive: true });
 	const timestamp = Date.now();
 	const filename = `${timestamp}_${voice}.mp3`;
@@ -141,7 +141,7 @@ export async function textToSpeechImpl(input, options = {}) {
 export const textToSpeech = tool(textToSpeechImpl, {
 	name: "textToSpeech",
 	description:
-		"Convert text to speech using OpenAI TTS (tts-1). Saves audio as MP3 to ~/voice-memos/[timestamp]_[voice].mp3 and returns a MEDIA: path. Requires OPENAI_API_KEY environment variable.",
+		"Convert text to speech using OpenAI TTS (tts-1). Saves audio as MP3 to memory/tools/[timestamp]_[voice].mp3 and returns a MEDIA: path. Requires OPENAI_API_KEY environment variable.",
 	schema: z.object({
 		text: z.string().min(1).max(4096).describe("Text to convert to speech"),
 		voice: z
