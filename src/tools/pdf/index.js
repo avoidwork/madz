@@ -8,8 +8,10 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { readFile, writeFile, stat } from "node:fs/promises";
+import { join } from "node:path";
 import { marked } from "marked";
 import { PDFDocument, rgb, StandardFonts, degrees } from "pdf-lib";
+import { loadConfig } from "../../config/loader.js";
 
 // --- Constants ---
 
@@ -764,6 +766,15 @@ export async function generatePdf(input) {
 			ok: false,
 			error: `Invalid action: ${action}. Must be one of: ${PDF_ACTIONS.join(", ")}`,
 		});
+	}
+
+	// Default outputPath to config.memory.toolsDir when omitted and not
+	// returning base64. splitPdf uses outputPattern, not outputPath, so it is
+	// left untouched here.
+	if (!actionInput.outputPath && !actionInput.base64Output && action !== "split") {
+		const config = loadConfig();
+		const toolsDir = config.memory?.toolsDir || "memory/tools/";
+		actionInput.outputPath = join(config.cwd, toolsDir, `document-${Date.now()}.pdf`);
 	}
 
 	switch (action) {

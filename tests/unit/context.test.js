@@ -217,6 +217,26 @@ describe("loadContext", () => {
 		assert.ok(result.includes("[Context: Note]"));
 		assert.ok(!result.includes("[Ephemeral:"));
 	});
+
+	it("does not include clarifications.md from memory/tools", async () => {
+		// clarifications.md now lives in memory/tools/ (config.memory.toolsDir),
+		// so loadContext() reading from memory/context/ must not pick it up.
+		const toolsDir = join(process.cwd(), "memory", "tools");
+		mkdirSync(toolsDir, { recursive: true });
+		writeFileSync(
+			join(toolsDir, "clarifications.md"),
+			"## Clarification: Should this be in the system prompt?",
+		);
+
+		writeFileSync(
+			join(fullTestDir, "note.md"),
+			"---\ntitle: Note\ntimestamp: 2024-01-01\n---\nNote content",
+		);
+
+		const result = await loadContext(testDir, 10);
+		assert.ok(result.includes("[Context: Note]"));
+		assert.ok(!result.includes("Should this be in the system prompt?"));
+	});
 });
 
 describe("parseFrontmatter in context", () => {

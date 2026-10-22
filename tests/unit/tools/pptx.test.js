@@ -43,9 +43,9 @@ describe("generatePptxSchema", () => {
 		assert.strictEqual(result.success, true);
 	});
 
-	it("rejects missing outputPath", () => {
+	it("accepts missing outputPath (defaults to config.memory.toolsDir)", () => {
 		const result = generatePptxSchema.safeParse({ slides: [] });
-		assert.strictEqual(result.success, false);
+		assert.strictEqual(result.success, true);
 	});
 
 	it("rejects missing slides", () => {

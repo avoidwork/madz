@@ -93,6 +93,23 @@ describe("textToSpeech", () => {
 		globalThis.fetch = origFetch;
 	});
 
+	it("saves audio to config.memory.toolsDir", async () => {
+		globalThis.fetch = async () => ({
+			ok: true,
+			arrayBuffer: async () => new Uint8Array([0x00]).buffer,
+		});
+		const result = await textToSpeechImpl(
+			{ text: "test speech text", voice: "nova", model: "tts-1" },
+			{ openaiApiKey: "sk-test" },
+		);
+		const parsed = JSON.parse(result);
+		assert.ok(parsed.ok);
+		assert.ok(parsed.path.startsWith("MEDIA:"));
+		assert.ok(parsed.path.includes("memory/tools/"));
+		assert.ok(parsed.path.endsWith(".mp3"));
+		globalThis.fetch = origFetch;
+	});
+
 	it("returns error on API failure", async () => {
 		globalThis.fetch = async () => ({
 			ok: false,

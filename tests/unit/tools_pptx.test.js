@@ -40,10 +40,9 @@ describe("generatePptxSchema", () => {
 		assert.strictEqual(result.slides.length, 0);
 	});
 
-	it("rejects missing outputPath", () => {
-		assert.throws(() => generatePptxSchema.parse({ slides: [] }), {
-			message: /outputPath/,
-		});
+	it("accepts missing outputPath (defaults to config.memory.toolsDir)", () => {
+		const result = generatePptxSchema.safeParse({ slides: [] });
+		assert.strictEqual(result.success, true);
 	});
 
 	it("rejects missing slides", () => {
@@ -721,6 +720,17 @@ describe("createPptx", () => {
 		// Verify file exists and is a valid PPTX
 		const stat = await readFile(outputPath);
 		assert.ok(stat);
+	});
+
+	it("defaults outputPath to config.memory.toolsDir when omitted", async () => {
+		const result = JSON.parse(
+			await createPptx({
+				slides: [],
+			}),
+		);
+		assert.strictEqual(result.ok, true);
+		assert.ok(result.filePath.includes("memory/tools/"));
+		assert.ok(result.filePath.endsWith(".pptx"));
 	});
 
 	it("creates a presentation with a single content slide", async () => {
