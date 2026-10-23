@@ -21,6 +21,7 @@ import {
 	forceSummarize,
 } from "../provider/summarizationMiddleware.js";
 import { createEvictionAwareFilesystemMiddleware } from "./evictionCeiling.js";
+import { createSkillsMiddleware } from "./skillsMiddleware.js";
 import {
 	buildToolConfig,
 	getToolsForAgentTypes,
@@ -527,6 +528,9 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 		middleware: [
 			filesystemMiddleware,
 			createCodeInterpreterMiddleware(),
+			...(skillPaths.length > 0
+				? [createSkillsMiddleware({ registry: skillRegistry, sources: skillPaths })]
+				: []),
 			...(summarizationMiddleware ? [summarizationMiddleware] : []),
 			...(copilotRetryMiddleware ? [copilotRetryMiddleware] : []),
 			...(tokenBudgetMiddleware ? [tokenBudgetMiddleware] : []),
