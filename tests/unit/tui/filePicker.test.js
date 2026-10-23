@@ -1,11 +1,14 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
+import React from "react";
+import { renderToString } from "ink";
 import {
 	deriveFilter,
 	shouldOpenPicker,
 	replaceToken,
 	sortFiles,
 	MAX_VISIBLE,
+	FilePicker,
 } from "../../../src/tui/filePicker.js";
 
 describe("deriveFilter", () => {
@@ -110,6 +113,47 @@ describe("deriveFilter", () => {
 		const result = deriveFilter("@-config.js", 11);
 		assert.strictEqual(result.active, true);
 		assert.strictEqual(result.filter, "-config.js");
+	});
+
+	it("is active on a typo filter that matches no files", () => {
+		// A typo like `@src/confg` (where `confg` does not exist) still yields an
+		// active filter, which is the precondition for the empty-message branch
+		// to render. The fix removes that branch so the input line is never
+		// obscured by a " No matching files." message.
+		const result = deriveFilter("read @src/confg", 15);
+		assert.strictEqual(result.active, true);
+		assert.strictEqual(result.filter, "src/confg");
+	});
+});
+
+describe("FilePicker render", () => {
+	it("does not render a 'No matching files.' empty message", () => {
+		// renderToString is synchronous and does not run effects, so the
+		// component renders in its initial (not-loaded) state. The empty-message
+		// branch must never render the " No matching files." text regardless of
+		// load state, so the input line is never obscured by a typo.
+		const result = renderToString(
+			React.createElement(FilePicker, {
+				value: "read @src/confg",
+				onChange: () => {},
+				onClose: () => {},
+				cwd: "/tmp",
+			}),
+		);
+		assert.ok(typeof result === "string");
+		assert.ok(!result.includes("No matching files."));
+	});
+
+	it("always renders the typed input line", () => {
+		const result = renderToString(
+			React.createElement(FilePicker, {
+				value: "read @src/confg",
+				onChange: () => {},
+				onClose: () => {},
+				cwd: "/tmp",
+			}),
+		);
+		assert.ok(result.includes("read @src/confg"));
 	});
 });
 
