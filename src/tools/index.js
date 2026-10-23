@@ -8,7 +8,7 @@ import { memory } from "./memory/index.js";
 import { sampling } from "./sampling/index.js";
 import { searchSession } from "./session/index.js";
 import { processTool } from "./process/index.js";
-import { createSkill } from "./skills/index.js";
+import { createSkill, skill, skillImpl } from "./skills/index.js";
 import { textToSpeech } from "./tts/index.js";
 import { searchWeb, extractWeb, renderWeb, screenshotWeb } from "./web/index.js";
 import { docxTool, pdfTool, pptxTool, xlsxTool } from "./fileExtract/index.js";
@@ -41,6 +41,7 @@ export const TOOL_PERMISSIONS = {
 	clarify: ["filesystem:read", "filesystem:write"],
 	cronJob: ["network:outbound"],
 	createSkill: ["filesystem:write"],
+	skill: ["filesystem:read"],
 	date: [],
 	generateImage: ["network:outbound"],
 	readImage: ["filesystem:read"],
@@ -96,6 +97,20 @@ export const TOOL_CLASSIFICATIONS = {
 	],
 	cronJob: ["orchestrator", "security-audit", "performance"],
 	createSkill: ["documentation"],
+	skill: [
+		"coding",
+		"search",
+		"debug",
+		"code-review",
+		"research",
+		"testing",
+		"documentation",
+		"security-audit",
+		"performance",
+		"textEditor",
+		"seoAnalyst",
+		"translator",
+	],
 	date: [
 		"search",
 		"debug",
@@ -234,6 +249,7 @@ export const ORCHESTRATOR_TOOLS = [
 	"scanAgents",
 	"sampling",
 	"createSkill",
+	"skill",
 	"searchCode",
 	"indexCode",
 	"getConfig",
@@ -246,6 +262,7 @@ export const TOOLS = {
 	clarify,
 	cronJob,
 	createSkill,
+	skill,
 	date,
 	generateImage,
 	readImage,
@@ -411,6 +428,19 @@ export async function buildToolConfig(options) {
 			case "webhook": {
 				if (!hasAllPerms) continue;
 				tools.push(TOOLS[toolName]());
+				continue;
+			}
+
+			case "skill": {
+				if (!hasAllPerms) continue;
+				// Inject the SkillRegistry into the tool's runtime options so the
+				// impl can look up skills and read their bodies on demand.
+				const skillTool = tool(
+					(input, options = {}) =>
+						skillImpl(input, { ...options, registry: runtimeOptions.registry }),
+					{ name: "skill", description: TOOLS.skill.description, schema: TOOLS.skill.schema },
+				);
+				tools.push(skillTool);
 				continue;
 			}
 
