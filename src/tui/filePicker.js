@@ -240,15 +240,11 @@ export function FilePicker({ value, onChange, onClose, cwd }) {
 		Box,
 		{ flexDirection: "column", width: "100%", paddingX: 1 },
 		React.createElement(
-			Box,
-			{ flexDirection: "row" },
-			React.createElement(
-				Text,
-				null,
-				before,
-				React.createElement(Text, { inverse: true }, at),
-				after,
-			),
+			Text,
+			null,
+			before,
+			React.createElement(Text, { inverse: true }, at),
+			after,
 		),
 		!loaded
 			? React.createElement(Text, { color: "gray" }, " Loading files...")

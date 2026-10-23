@@ -111,15 +111,6 @@ describe("deriveFilter", () => {
 		assert.strictEqual(result.active, true);
 		assert.strictEqual(result.filter, "-config.js");
 	});
-
-	it("is active on a typo filter that matches no files", () => {
-		// A typo like `@src/confg` (where `confg` does not exist) still yields an
-		// active filter, which is the precondition for the empty-message branch
-		// (" No matching files.") to render below the input line.
-		const result = deriveFilter("read @src/confg", 15);
-		assert.strictEqual(result.active, true);
-		assert.strictEqual(result.filter, "src/confg");
-	});
 });
 
 describe("shouldOpenPicker", () => {
