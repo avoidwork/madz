@@ -7,6 +7,10 @@ The documentation for the madz AI harness. This directory is organized for reade
 | If you want to... | Read this |
 |---|---|
 | **Get madz running** (Docker, config, first conversation) | [TUTORIAL.md](./TUTORIAL.md) |
+| **Run it in Docker / set env vars** | [DOCKER.md](./DOCKER.md) |
+| **Look up a feature, tool, or agent** | [FEATURES.md](./FEATURES.md) |
+| **Look up a config key** | [CONFIGURATION.md](./CONFIGURATION.md) |
+| **Set up for development / write skills** | [DEVELOPMENT.md](./DEVELOPMENT.md) |
 | **Understand the architecture** (how subsystems fit together) | [OVERVIEW.md](./OVERVIEW.md) |
 | **Trace how the code actually runs** (call chains, data flows) | [FLOWS.md](./FLOWS.md) |
 | **Understand the terminal interface** | [TUI.md](./TUI.md) and [TUI_FLOWS.md](./TUI_FLOWS.md) |
@@ -21,6 +25,10 @@ The documentation for the madz AI harness. This directory is organized for reade
 | Document | Audience | Assumes | Covers |
 |----------|----------|---------|--------|
 | [TUTORIAL.md](./TUTORIAL.md) | Novice → Advanced | Nothing | Setup, config, first conversation, working on projects, daily usage, troubleshooting |
+| [DOCKER.md](./DOCKER.md) | Operator | Docker | Building, running, SSH, environment variables |
+| [FEATURES.md](./FEATURES.md) | All | Nothing | Providers, agents, tools, MCP, skills, memory, sandbox, vector search, cron |
+| [CONFIGURATION.md](./CONFIGURATION.md) | Operator | Nothing | `config.yaml` reference, logging, status bar, summarization |
+| [DEVELOPMENT.md](./DEVELOPMENT.md) | Contributor | Node.js | Testing, setup, extending skills, directory layout |
 | [OVERVIEW.md](./OVERVIEW.md) | Intermediate → Advanced | TUTORIAL | Architecture, subsystems, data flows |
 | [FLOWS.md](./FLOWS.md) | Advanced | OVERVIEW | Call chains and data flows for every primary code path |
 | [TUI.md](./TUI.md) | Intermediate → Advanced | React, Ink | TUI design blueprint, current implementation, proposed features |
