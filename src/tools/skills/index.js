@@ -1,8 +1,8 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { dump } from "js-yaml";
-import { mkdir, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { mkdir, writeFile, readdir } from "node:fs/promises";
+import { join, relative } from "node:path";
 import {
 	validateSkillName,
 	validateSkillDescription,
@@ -249,5 +249,101 @@ export const createSkill = tool(createSkillImpl, {
 			.optional()
 			.default(false)
 			.describe("Create a scripts/ directory with a README.md placeholder"),
+	}),
+});
+
+/**
+ * Enumerate the supporting files (scripts/, references/, assets/) for a skill
+ * directory, excluding SKILL.md, capped at a fixed number of entries.
+ * @param {string} skillDir - The skill directory path
+ * @param {number} [limit=10] - Maximum number of files to return
+ * @returns {Promise<string[]>} Array of relative file paths
+ */
+async function enumerateSkillFiles(skillDir, limit = 10) {
+	const files = [];
+	const subdirs = ["scripts", "references", "assets"];
+
+	for (const subdir of subdirs) {
+		if (files.length >= limit) break;
+		const dir = join(skillDir, subdir);
+		try {
+			const entries = await readdir(dir, { withFileTypes: true });
+			for (const entry of entries) {
+				if (files.length >= limit) break;
+				if (entry.isDirectory()) continue;
+				files.push(relative(skillDir, join(dir, entry.name)));
+			}
+		} catch (_err) {
+			// Directory does not exist — skip.
+		}
+	}
+
+	return files;
+}
+
+/**
+ * Core logic for the `skill` tool. Loads a skill's SKILL.md body and a sampled
+ * inventory of its supporting files (scripts/, references/, assets/) on demand,
+ * so the agent can deterministically execute a skill's instructions.
+ * @param {z.infer<typeof SkillToolSchema>} input - The tool input
+ * @param {object} [options] - Runtime options
+ * @param {object} [options.registry] - SkillRegistry instance
+ * @returns {Promise<{ name: string, body: string, directory: string, files: string[] }>}
+ */
+export async function skillImpl(input, options = {}) {
+	const { name } = input;
+	const registry = options.registry;
+
+	if (!registry || typeof registry.get !== "function") {
+		return {
+			name,
+			body: "",
+			directory: "",
+			files: [],
+			error: "Skill registry is unavailable.",
+		};
+	}
+
+	const skill = registry.get(name);
+	if (!skill) {
+		return {
+			name,
+			body: "",
+			directory: "",
+			files: [],
+			error: `Skill "${name}" not found.`,
+		};
+	}
+
+	const body = await registry.getSkillBody(name);
+	if (!body) {
+		return {
+			name,
+			body: "",
+			directory: skill.metadata?._directory || "",
+			files: [],
+			error: `Skill "${name}" body could not be loaded.`,
+		};
+	}
+
+	const directory = skill.metadata?._directory || "";
+	const files = directory ? await enumerateSkillFiles(directory) : [];
+
+	return { name, body, directory, files };
+}
+
+/**
+ * Skill tool that loads a skill's SKILL.md body and supporting-file inventory.
+ * Takes a skill name and returns the full body plus a sampled list of the
+ * skill's supporting files (scripts/, references/, assets/), excluding SKILL.md.
+ * @param {z.infer<typeof SkillToolSchema>} input - The tool input
+ * @returns {Promise<{ name: string, body: string, directory: string, files: string[] }>}
+ */
+export const skill = tool(skillImpl, {
+	name: "skill",
+	description:
+		"Load a specialized skill when the task at hand matches one of the skills listed in the system prompt. Returns the full SKILL.md body plus a sampled inventory of the skill's supporting files (scripts/, references/, assets/). The skill name must match one of the registered skills.",
+	schema: z.object({
+		name: z.string().min(1).describe("The name of the skill to load"),
 	}),
 });
