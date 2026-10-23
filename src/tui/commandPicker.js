@@ -195,15 +195,11 @@ export function CommandPicker({ value, onChange, onClose, commandList = [] }) {
 		Box,
 		{ flexDirection: "column", width: "100%", paddingX: 1 },
 		React.createElement(
-			Box,
-			{ flexDirection: "row" },
-			React.createElement(
-				Text,
-				null,
-				before,
-				React.createElement(Text, { inverse: true }, at),
-				after,
-			),
+			Text,
+			null,
+			before,
+			React.createElement(Text, { inverse: true }, at),
+			after,
 		),
 		filteredCommands.length === 0
 			? React.createElement(Text, { color: "gray" }, " No matching commands.")
