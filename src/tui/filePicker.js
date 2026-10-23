@@ -249,7 +249,7 @@ export function FilePicker({ value, onChange, onClose, cwd }) {
 		!loaded
 			? React.createElement(Text, { color: "gray" }, " Loading files...")
 			: filteredFiles.length === 0
-				? React.createElement(Text, { color: "gray" }, " No matching files.")
+				? null
 				: visibleFiles.map((file, i) => {
 						const isSelected = windowStart + i === clampedIndex;
 						return React.createElement(
