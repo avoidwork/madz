@@ -31,22 +31,22 @@ Uses the [Deep Agents](https://github.com/langchain-ai/deepagentsjs) library to 
 
 **Built-in subagents:**
 
-Tool access below is the madz tool set each agent receives via `TOOL_CLASSIFICATIONS` in `src/tools/index.js`. All subagents also carry the deepagents filesystem tools (`readFile`, `writeFile`, `patch`, `searchFiles`) and task management (`todo`), which are not listed here.
+Tool access below is the madz tool set each agent receives via `TOOL_CLASSIFICATIONS` in `src/tools/index.js`. All subagents also carry the deepagents filesystem tools (`readFile`, `writeFile`, `patch`, `searchFiles`), which are not listed here.
 
 | Agent | Purpose | Tool Access |
 | ----- | ------- | ----------- |
-| `code-review` | Structured code reviews covering bugs, security, style, performance | `clarify`, `date`, `memory`, `scanAgents`, `searchCode`, `getConfig` |
-| `coding` | Code implementation with read-before-write discipline, complete shipping, convention adherence, and dead-code elimination | `clarify`, `date`, `readImage`, `memory`, `process`, `scanAgents`, `extractWeb`, `searchWeb`, `renderWeb`, `screenshotWeb`, `docx`, `pptx`, `xlsx`, `pdf`, `email`, `spreadsheet`, `calendar`, `generatePdf`, `namecom`, `generatePptx`, `api`, `graphql`, `json`, `yaml`, `data`, `webhook`, `searchCode`, `indexCode`, `getConfig` |
-| `debug` | Error tracing, reproduction, and fix proposals | `clarify`, `date`, `readImage`, `memory`, `process`, `docx`, `pptx`, `xlsx`, `pdf`, `email`, `spreadsheet`, `calendar`, `generatePdf`, `namecom`, `generatePptx`, `api`, `graphql`, `json`, `yaml`, `data`, `webhook`, `searchCode`, `indexCode`, `getConfig` |
-| `documentation` | Documentation updates, API docs generation, changelog maintenance | `clarify`, `createSkill`, `date`, `generateImage`, `readImage`, `memory`, `sampling`, `textToSpeech`, `docx`, `pptx`, `xlsx`, `pdf`, `email`, `spreadsheet`, `calendar`, `generatePdf`, `namecom`, `generatePptx`, `api`, `graphql`, `json`, `yaml`, `data`, `webhook`, `searchCode`, `getConfig` |
-| `performance` | Performance benchmarking, bottleneck identification, optimization suggestions | `clarify`, `cronJob`, `date`, `memory`, `process`, `calendar`, `searchCode`, `indexCode`, `getConfig` |
-| `research` | Multi-step research with source tracking and comprehensive reports | `clarify`, `date`, `readImage`, `memory`, `searchSession`, `extractWeb`, `searchWeb`, `renderWeb`, `screenshotWeb`, `docx`, `pptx`, `xlsx`, `pdf`, `email`, `spreadsheet`, `calendar`, `generatePdf`, `namecom`, `generatePptx`, `api`, `graphql`, `json`, `yaml`, `data`, `webhook`, `searchCode`, `getConfig` |
-| `search` | Multi-source search (web, docs, codebase) with synthesis | `clarify`, `date`, `readImage`, `memory`, `searchSession`, `extractWeb`, `searchWeb`, `renderWeb`, `screenshotWeb`, `docx`, `pptx`, `xlsx`, `pdf`, `email`, `spreadsheet`, `calendar`, `generatePdf`, `namecom`, `generatePptx`, `api`, `graphql`, `json`, `yaml`, `data`, `webhook`, `searchCode`, `getConfig` |
-| `security-audit` | Security scanning, dependency auditing, vulnerability detection | `clarify`, `cronJob`, `date`, `memory`, `scanAgents`, `searchCode`, `getConfig` |
-| `seoAnalyst` | SEO analysis — keyword density, meta description generation, SERP analysis, content optimization | `searchCode` |
-| `testing` | Test generation, gap analysis, and coverage improvements | `clarify`, `date`, `memory`, `searchCode`, `getConfig` |
-| `textEditor` | Text processing — summarize, rewrite, tone adjustment, grammar correction, shorten, expand | _(none)_ |
-| `translator` | Multi-language translation and language detection | _(none)_ |
+| `code-review` | Structured code reviews covering bugs, security, style, performance | `clarify`, `skill`, `date`, `memory`, `todo`, `scanAgents`, `searchCode`, `getConfig` |
+| `coding` | Code implementation with read-before-write discipline, complete shipping, convention adherence, and dead-code elimination | `clarify`, `skill`, `date`, `readImage`, `memory`, `todo`, `process`, `scanAgents`, `extractWeb`, `searchWeb`, `renderWeb`, `screenshotWeb`, `docx`, `pptx`, `xlsx`, `pdf`, `email`, `spreadsheet`, `calendar`, `generatePdf`, `namecom`, `generatePptx`, `api`, `graphql`, `json`, `yaml`, `data`, `webhook`, `searchCode`, `indexCode`, `getConfig` |
+| `debug` | Error tracing, reproduction, and fix proposals | `clarify`, `skill`, `date`, `readImage`, `memory`, `todo`, `process`, `docx`, `pptx`, `xlsx`, `pdf`, `email`, `spreadsheet`, `calendar`, `generatePdf`, `namecom`, `generatePptx`, `api`, `graphql`, `json`, `yaml`, `data`, `webhook`, `searchCode`, `indexCode`, `getConfig` |
+| `documentation` | Documentation updates, API docs generation, changelog maintenance | `clarify`, `createSkill`, `skill`, `date`, `generateImage`, `readImage`, `memory`, `todo`, `sampling`, `textToSpeech`, `docx`, `pptx`, `xlsx`, `pdf`, `email`, `spreadsheet`, `calendar`, `generatePdf`, `namecom`, `generatePptx`, `api`, `graphql`, `json`, `yaml`, `data`, `webhook`, `searchCode`, `getConfig` |
+| `performance` | Performance benchmarking, bottleneck identification, optimization suggestions | `clarify`, `cronJob`, `skill`, `date`, `memory`, `todo`, `process`, `calendar`, `searchCode`, `indexCode`, `getConfig` |
+| `research` | Multi-step research with source tracking and comprehensive reports | `clarify`, `skill`, `date`, `readImage`, `memory`, `todo`, `searchSession`, `extractWeb`, `searchWeb`, `renderWeb`, `screenshotWeb`, `docx`, `pptx`, `xlsx`, `pdf`, `email`, `spreadsheet`, `calendar`, `generatePdf`, `namecom`, `generatePptx`, `api`, `graphql`, `json`, `yaml`, `data`, `webhook`, `searchCode`, `getConfig` |
+| `search` | Multi-source search (web, docs, codebase) with synthesis | `clarify`, `skill`, `date`, `readImage`, `memory`, `todo`, `searchSession`, `extractWeb`, `searchWeb`, `renderWeb`, `screenshotWeb`, `docx`, `pptx`, `xlsx`, `pdf`, `email`, `spreadsheet`, `calendar`, `generatePdf`, `namecom`, `generatePptx`, `api`, `graphql`, `json`, `yaml`, `data`, `webhook`, `searchCode`, `getConfig` |
+| `security-audit` | Security scanning, dependency auditing, vulnerability detection | `clarify`, `cronJob`, `skill`, `date`, `memory`, `todo`, `scanAgents`, `searchCode`, `getConfig` |
+| `seoAnalyst` | SEO analysis — keyword density, meta description generation, SERP analysis, content optimization | `skill`, `searchCode` |
+| `testing` | Test generation, gap analysis, and coverage improvements | `clarify`, `skill`, `date`, `memory`, `todo`, `searchCode`, `getConfig` |
+| `textEditor` | Text processing — summarize, rewrite, tone adjustment, grammar correction, shorten, expand | `skill` |
+| `translator` | Multi-language translation and language detection | `skill` |
 
 **Default subagent temperatures:**
 
@@ -109,13 +109,15 @@ All built-in tools are defined in `src/tools/` and registered as LangChain tools
 | `searchCode` | Semantic code search using vector similarity. Finds conceptually related code even when exact keywords don't match — e.g., searching for "authentication" finds login handlers, token validation, and auth middleware. |
 | `searchSession` | Search past conversations by keyword query, full retrieval by conversation ID, or browse all sessions. |
 | `searchWeb` | Search the web via DuckDuckGo, Google, Bing, SearXNG, Custom, or Tavily endpoints. |
+| `skill` | Load a specialized skill when the task matches one listed in the system prompt. Returns the full SKILL.md body plus a sampled inventory of the skill's supporting files (scripts/, references/, assets/). |
 | `spreadsheet` | Spreadsheet computation and analysis. Actions: compute (sum, average, count, min, max, formula, median, stddev, variance), generate (create XLSX with formulas), analyze (pivot tables, filtering, groupBy, stats, percentile), csvImport, csvExport, modify (add/modify/delete cells and sheets), export (XLSX, CSV, JSON). |
 | `textToSpeech` | Convert text to speech via OpenAI TTS (tts-1/tts-1-hd). Saves MP3 to `~/voice-memos/`. |
+| `todo` | Task management with key-based CRUD. Actions: read (get all todos), create (add by key), update (modify by key), complete (mark done by key), delete (remove by key), list (all or filter by pending/completed), clear (remove all). Persists to `memory/tools/todo.json`. |
 | `webhook` | Webhook CRUD and HMAC verification with URL validation. |
 | `xlsx` | Read and extract content from `.xlsx` (Excel) spreadsheets. |
 | `yaml` | YAML parse, serialize, transform, filter, and access operations. |
 
-**Deep Agents tools:** Core filesystem operations (`readFile`, `writeFile`, `patch`, `searchFiles`) and task management (`todo`) are provided by [deepagentsjs](https://github.com/langchain-ai/deepagentsjs) and are not listed as madz-built-in tools.
+**Deep Agents tools:** Core filesystem operations (`readFile`, `writeFile`, `patch`, `searchFiles`) are provided by [deepagentsjs](https://github.com/langchain-ai/deepagentsjs) and are not listed as madz-built-in tools. Task management is provided by the madz `todo` tool above.
 
 **MCP tools:** Tools exposed by [Model Context Protocol](https://modelcontextprotocol.io) servers are discovered at runtime from the `mcp` config section and registered alongside the built-in tools. They are dynamic — not part of the static table above. See [MCP Servers](#mcp-servers).
 
@@ -233,9 +235,9 @@ Built-in tools are registered only when their required permissions are enabled f
 | Permission Required                 | Tools                                                                      |
 | ----------------------------------- | -------------------------------------------------------------------------- |
 | _(none)_                            | `date`, `textToSpeech`                                                    |
-| `filesystem:read`                   | `readImage`, `scanAgents`, `searchSession`, `docx`, `pptx`, `xlsx`, `pdf`, `reflectionSessions`, `json`, `yaml`, `data`, `searchCode`, `getConfig` |
+| `filesystem:read`                   | `readImage`, `scanAgents`, `searchSession`, `docx`, `pptx`, `xlsx`, `pdf`, `reflectionSessions`, `json`, `yaml`, `data`, `searchCode`, `getConfig`, `skill` |
 | `filesystem:write`                  | `createSkill`, `sampling`, `generatePptx`                                  |
-| `filesystem:read` + `filesystem:write` | `clarify`, `memory`, `spreadsheet`, `webhook`, `indexCode`              |
+| `filesystem:read` + `filesystem:write` | `clarify`, `memory`, `todo`, `spreadsheet`, `webhook`, `indexCode`      |
 | `filesystem:exec` + `process:spawn` | `process`                                                                  |
 | `network:outbound`                  | `cronJob`, `generateImage`, `extractWeb`, `searchWeb`, `renderWeb`, `screenshotWeb`, `email`, `calendar`, `namecom`, `api`, `graphql`, `decision` |
 | `filesystem:read` + `filesystem:write` + `network:outbound` | `generatePdf` |
