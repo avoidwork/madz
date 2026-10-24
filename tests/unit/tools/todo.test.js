@@ -43,7 +43,7 @@ describe("tools - todo", () => {
 	});
 
 	it("read returns structured JSON with todos and total", async () => {
-		await todoImpl({ action: "clear" }, getOptions());
+		await todoImpl({ action: "clear", confirm: true }, getOptions());
 		await todoImpl({ action: "create", key: "test-item", content: "Test content" }, getOptions());
 		const result = await todoImpl({ action: "read" }, getOptions());
 		assert.strictEqual(result.ok, true);
@@ -55,7 +55,7 @@ describe("tools - todo", () => {
 	});
 
 	it("create adds a todo with the given key", async () => {
-		await todoImpl({ action: "clear" }, getOptions());
+		await todoImpl({ action: "clear", confirm: true }, getOptions());
 		const result = await todoImpl(
 			{ action: "create", key: "fix-login-bug", content: "Fix the login" },
 			getOptions(),
@@ -68,7 +68,7 @@ describe("tools - todo", () => {
 	});
 
 	it("create accepts optional completed field", async () => {
-		await todoImpl({ action: "clear" }, getOptions());
+		await todoImpl({ action: "clear", confirm: true }, getOptions());
 		const result = await todoImpl(
 			{ action: "create", key: "done-task", content: "Already done", completed: true },
 			getOptions(),
@@ -79,8 +79,34 @@ describe("tools - todo", () => {
 		assert.strictEqual(readResult.todos[0].completed, true);
 	});
 
+	it("create sets default priority and timestamps", async () => {
+		await todoImpl({ action: "clear", confirm: true }, getOptions());
+		await todoImpl({ action: "create", key: "defaults", content: "Defaults" }, getOptions());
+		const readResult = await todoImpl({ action: "read" }, getOptions());
+		assert.strictEqual(readResult.todos[0].priority, "medium");
+		assert.ok(readResult.todos[0].createdAt);
+		assert.ok(readResult.todos[0].updatedAt);
+	});
+
+	it("create accepts explicit priority", async () => {
+		await todoImpl({ action: "clear", confirm: true }, getOptions());
+		await todoImpl(
+			{ action: "create", key: "high-pri", content: "Urgent", priority: "high" },
+			getOptions(),
+		);
+		const readResult = await todoImpl({ action: "read" }, getOptions());
+		assert.strictEqual(readResult.todos[0].priority, "high");
+	});
+
+	it("create preserves non-ASCII content", async () => {
+		await todoImpl({ action: "clear", confirm: true }, getOptions());
+		await todoImpl({ action: "create", key: "unicode", content: "café 日本語" }, getOptions());
+		const readResult = await todoImpl({ action: "read" }, getOptions());
+		assert.strictEqual(readResult.todos[0].content, "café 日本語");
+	});
+
 	it("create rejects duplicate key", async () => {
-		await todoImpl({ action: "clear" }, getOptions());
+		await todoImpl({ action: "clear", confirm: true }, getOptions());
 		await todoImpl({ action: "create", key: "dup-key", content: "First" }, getOptions());
 		const result = await todoImpl(
 			{ action: "create", key: "dup-key", content: "Second" },
@@ -91,14 +117,14 @@ describe("tools - todo", () => {
 	});
 
 	it("create requires key and content", async () => {
-		await todoImpl({ action: "clear" }, getOptions());
+		await todoImpl({ action: "clear", confirm: true }, getOptions());
 		const result = await todoImpl({ action: "create", key: "no-content" }, getOptions());
 		assert.strictEqual(result.ok, false);
 		assert.match(result.error, /create requires/);
 	});
 
 	it("update modifies content and completed", async () => {
-		await todoImpl({ action: "clear" }, getOptions());
+		await todoImpl({ action: "clear", confirm: true }, getOptions());
 		await todoImpl({ action: "create", key: "update-me", content: "Original" }, getOptions());
 		const result = await todoImpl(
 			{ action: "update", key: "update-me", content: "Updated", completed: true },
@@ -111,15 +137,33 @@ describe("tools - todo", () => {
 		assert.strictEqual(readResult.todos[0].completed, true);
 	});
 
+	it("update modifies priority and bumps updatedAt", async () => {
+		await todoImpl({ action: "clear", confirm: true }, getOptions());
+		await todoImpl({ action: "create", key: "prio", content: "P" }, getOptions());
+		const before = await todoImpl({ action: "read" }, getOptions());
+		await todoImpl({ action: "update", key: "prio", priority: "high" }, getOptions());
+		const after = await todoImpl({ action: "read" }, getOptions());
+		assert.strictEqual(after.todos[0].priority, "high");
+		assert.ok(after.todos[0].updatedAt >= before.todos[0].updatedAt);
+	});
+
+	it("update preserves non-ASCII content", async () => {
+		await todoImpl({ action: "clear", confirm: true }, getOptions());
+		await todoImpl({ action: "create", key: "u", content: "plain" }, getOptions());
+		await todoImpl({ action: "update", key: "u", content: "café" }, getOptions());
+		const readResult = await todoImpl({ action: "read" }, getOptions());
+		assert.strictEqual(readResult.todos[0].content, "café");
+	});
+
 	it("update rejects missing key", async () => {
-		await todoImpl({ action: "clear" }, getOptions());
+		await todoImpl({ action: "clear", confirm: true }, getOptions());
 		const result = await todoImpl({ action: "update", content: "No key" }, getOptions());
 		assert.strictEqual(result.ok, false);
 		assert.match(result.error, /update requires/);
 	});
 
 	it("update rejects unknown key", async () => {
-		await todoImpl({ action: "clear" }, getOptions());
+		await todoImpl({ action: "clear", confirm: true }, getOptions());
 		const result = await todoImpl(
 			{ action: "update", key: "missing", content: "Nope" },
 			getOptions(),
@@ -129,7 +173,7 @@ describe("tools - todo", () => {
 	});
 
 	it("complete marks a todo as done", async () => {
-		await todoImpl({ action: "clear" }, getOptions());
+		await todoImpl({ action: "clear", confirm: true }, getOptions());
 		await todoImpl({ action: "create", key: "finish-me", content: "Do it" }, getOptions());
 		const result = await todoImpl({ action: "complete", key: "finish-me" }, getOptions());
 		assert.deepStrictEqual(result, { ok: true, key: "finish-me" });
@@ -139,14 +183,14 @@ describe("tools - todo", () => {
 	});
 
 	it("complete rejects unknown key", async () => {
-		await todoImpl({ action: "clear" }, getOptions());
+		await todoImpl({ action: "clear", confirm: true }, getOptions());
 		const result = await todoImpl({ action: "complete", key: "missing" }, getOptions());
 		assert.strictEqual(result.ok, false);
 		assert.match(result.error, /not found/);
 	});
 
 	it("delete removes a todo by key", async () => {
-		await todoImpl({ action: "clear" }, getOptions());
+		await todoImpl({ action: "clear", confirm: true }, getOptions());
 		await todoImpl({ action: "create", key: "delete-me", content: "Remove" }, getOptions());
 		const result = await todoImpl({ action: "delete", key: "delete-me" }, getOptions());
 		assert.deepStrictEqual(result, { ok: true, key: "delete-me" });
@@ -156,14 +200,14 @@ describe("tools - todo", () => {
 	});
 
 	it("delete rejects unknown key", async () => {
-		await todoImpl({ action: "clear" }, getOptions());
+		await todoImpl({ action: "clear", confirm: true }, getOptions());
 		const result = await todoImpl({ action: "delete", key: "missing" }, getOptions());
 		assert.strictEqual(result.ok, false);
 		assert.match(result.error, /not found/);
 	});
 
 	it("list filters by pending and completed", async () => {
-		await todoImpl({ action: "clear" }, getOptions());
+		await todoImpl({ action: "clear", confirm: true }, getOptions());
 		await todoImpl({ action: "create", key: "pending-1", content: "Pending" }, getOptions());
 		await todoImpl(
 			{ action: "create", key: "done-1", content: "Done", completed: true },
@@ -179,11 +223,66 @@ describe("tools - todo", () => {
 		assert.strictEqual(completed.todos[0].key, "done-1");
 	});
 
-	it("clear removes all todos", async () => {
-		await todoImpl({ action: "clear" }, getOptions());
+	it("list sorts by priority then createdAt", async () => {
+		await todoImpl({ action: "clear", confirm: true }, getOptions());
+		await todoImpl({ action: "create", key: "low", content: "L", priority: "low" }, getOptions());
+		await todoImpl({ action: "create", key: "high", content: "H", priority: "high" }, getOptions());
+		await todoImpl(
+			{ action: "create", key: "med", content: "M", priority: "medium" },
+			getOptions(),
+		);
+
+		const result = await todoImpl({ action: "list" }, getOptions());
+		assert.deepStrictEqual(
+			result.todos.map((t) => t.key),
+			["high", "med", "low"],
+		);
+	});
+
+	it("reorder moves a todo to a position", async () => {
+		await todoImpl({ action: "clear", confirm: true }, getOptions());
 		await todoImpl({ action: "create", key: "a", content: "A" }, getOptions());
 		await todoImpl({ action: "create", key: "b", content: "B" }, getOptions());
+		await todoImpl({ action: "create", key: "c", content: "C" }, getOptions());
+
+		const result = await todoImpl({ action: "reorder", key: "c", position: 0 }, getOptions());
+		assert.deepStrictEqual(result, { ok: true, key: "c", position: 0 });
+
+		const readResult = await todoImpl({ action: "read" }, getOptions());
+		assert.deepStrictEqual(
+			readResult.todos.map((t) => t.key),
+			["c", "a", "b"],
+		);
+	});
+
+	it("reorder rejects out-of-range position", async () => {
+		await todoImpl({ action: "clear", confirm: true }, getOptions());
+		await todoImpl({ action: "create", key: "a", content: "A" }, getOptions());
+		const result = await todoImpl({ action: "reorder", key: "a", position: 5 }, getOptions());
+		assert.strictEqual(result.ok, false);
+		assert.match(result.error, /out of range/);
+	});
+
+	it("reorder rejects unknown key", async () => {
+		await todoImpl({ action: "clear", confirm: true }, getOptions());
+		const result = await todoImpl({ action: "reorder", key: "missing", position: 0 }, getOptions());
+		assert.strictEqual(result.ok, false);
+		assert.match(result.error, /not found/);
+	});
+
+	it("clear requires confirm", async () => {
+		await todoImpl({ action: "clear", confirm: true }, getOptions());
+		await todoImpl({ action: "create", key: "a", content: "A" }, getOptions());
 		const result = await todoImpl({ action: "clear" }, getOptions());
+		assert.strictEqual(result.ok, false);
+		assert.match(result.error, /confirm/);
+	});
+
+	it("clear removes all todos when confirmed", async () => {
+		await todoImpl({ action: "clear", confirm: true }, getOptions());
+		await todoImpl({ action: "create", key: "a", content: "A" }, getOptions());
+		await todoImpl({ action: "create", key: "b", content: "B" }, getOptions());
+		const result = await todoImpl({ action: "clear", confirm: true }, getOptions());
 		assert.deepStrictEqual(result, { ok: true });
 
 		const readResult = await todoImpl({ action: "read" }, getOptions());
@@ -197,7 +296,7 @@ describe("tools - todo", () => {
 	});
 
 	it("enforces maxTodos limit", async () => {
-		await todoImpl({ action: "clear" }, getOptions());
+		await todoImpl({ action: "clear", confirm: true }, getOptions());
 		await todoImpl(
 			{ action: "create", key: "one", content: "1" },
 			{ ...getOptions(), maxTodos: 1 },
@@ -227,8 +326,12 @@ describe("tools - todo helpers", () => {
 		assert.deepStrictEqual(findTodoByKey(data, "missing"), { found: false, todo: null });
 	});
 
-	it("validateRequired reports missing fields", () => {
+	it("validateRequired reports the actual missing field", () => {
 		assert.deepStrictEqual(validateRequired({ key: "a" }, ["key", "content"]), {
+			valid: false,
+			error: "content missing",
+		});
+		assert.deepStrictEqual(validateRequired({ content: "b" }, ["key", "content"]), {
 			valid: false,
 			error: "key missing",
 		});

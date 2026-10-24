@@ -59,6 +59,7 @@ Graceful shutdown flushes all buffered log entries to disk before process exit.
 |               | `schedulesDir`                       | `memory/schedules/`                      | Cron result files directory                   |
 |               | `ephemeralLimit`                     | `5`                                      | Max concurrent ephemeral memories             |
 |               | `maxEntries`                         | `100`                                    | Max memory entries                            |
+|               | `maxTodos`                           | `100`                                    | Max todo items                               |
 |               | `gc.enabled`                         | `true`                                   | Enable V8 garbage collection                  |
 |               | `gc.idleTimeoutMs`                   | `300000`                                 | Idle timeout before GC triggers (ms)          |
 |               | `gc.maxGcPerHour`                    | `4`                                      | Max GC calls per hour                         |

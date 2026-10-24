@@ -115,6 +115,7 @@ memory:
   toolsDir: memory/tools/
   ephemeralLimit: 5
   maxEntries: 100
+  maxTodos: 100
   gc:
     enabled: true
     idleTimeoutMs: 300000
