@@ -1,4 +1,4 @@
-## MODIFIED Requirements
+## ADDED Requirements
 
 ### Requirement: Command picker does not render an empty message when the filter has no matches
 The system SHALL not render a " No matching commands." empty message below the input line when the command picker's filter matches no commands; the typed input line SHALL remain fully visible and unobscured.
