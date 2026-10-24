@@ -127,4 +127,17 @@ describe("loadSystemPrompt", () => {
 		assert.ok(!result.includes("<!-- DECISION_TOOL_INSTRUCTION -->"));
 		delete process.env.AGENT_DECISION_BASE_URL;
 	});
+
+	it("includes todo tool directive for multi-step work planning", async () => {
+		writeFileSync(
+			join(fullTestDir, "prompts", "SYSTEM_PROMPT.md"),
+			"# System Prompt\n\n45. **Plan multi-step work with the `todo` tool.** Use the `todo` tool to plan multi-step work and chained skills execution. When starting new work, clear the todo list (`todo clear` with `confirm: true`) before creating new items. When continuing chained work, add new items without clearing, so the overall work state is maintained. When all work is done, clear the todo list.",
+		);
+
+		const { loadSystemPrompt } = await import("../../src/memory/prompts.js");
+		const result = await loadSystemPrompt(fullTestDir);
+		assert.ok(result.includes("Plan multi-step work with the `todo` tool"));
+		assert.ok(result.includes("clear the todo list"));
+		assert.ok(result.includes("add new items without clearing"));
+	});
 });
