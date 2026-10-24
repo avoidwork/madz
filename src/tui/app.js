@@ -336,6 +336,10 @@ function App({
 	const handleNewSession = useCallback(async () => {
 		await conversationAreaRef.current?.newSession();
 		inputAreaRef.current?.clearHistory();
+		// Reset the active project so the status bar project indicator is
+		// cleared. A new session has no project context, so leaving the prior
+		// selection in place would falsely imply one is active.
+		setActiveProject("");
 	}, []);
 
 	/**
