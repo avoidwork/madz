@@ -5,8 +5,6 @@
 
 import { describe, it, before, after, mock } from "node:test";
 import assert from "node:assert";
-import { renameSync, existsSync } from "node:fs";
-import { join } from "node:path";
 
 describe("createDeepAgentsOrchestrator", () => {
 	let savedApiKey;
@@ -74,30 +72,6 @@ describe("createDeepAgentsOrchestrator", () => {
 		};
 		const result = await createDeepAgentsOrchestrator(mockCheckpointer);
 		assert.ok(result, "Should return an orchestrator with checkpointer");
-	});
-
-	it("should handle missing AGENTS.md gracefully", async () => {
-		// Set valid email env vars so provider validation passes
-		process.env.EMAIL_GMAIL_CLIENT_ID = "test-client-id";
-		process.env.EMAIL_GMAIL_CLIENT_SECRET = "test-client-secret";
-		process.env.EMAIL_GMAIL_REFRESH_TOKEN = "test-refresh-token";
-
-		const agentsPath = join(process.cwd(), "AGENTS.md");
-		const backupPath = join(process.cwd(), "AGENTS.md.bak");
-
-		if (existsSync(agentsPath)) {
-			renameSync(agentsPath, backupPath);
-		}
-
-		try {
-			const { createDeepAgentsOrchestrator } = await import("../../src/agent/deepAgents.js");
-			const result = await createDeepAgentsOrchestrator();
-			assert.ok(result, "Should still create orchestrator without AGENTS.md");
-		} finally {
-			if (existsSync(backupPath)) {
-				renameSync(backupPath, agentsPath);
-			}
-		}
 	});
 
 	it("should handle email provider config validation failure gracefully", async () => {

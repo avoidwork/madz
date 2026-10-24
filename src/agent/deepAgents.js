@@ -4,7 +4,6 @@ import {
 	registerHarnessProfile,
 	createHarnessProfile,
 } from "deepagents";
-import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { InMemoryStore } from "@langchain/langgraph-checkpoint";
 import { RemoveMessage } from "@langchain/core/messages";
@@ -307,21 +306,11 @@ export async function compactAgentContext(agent, config, sessionState, options =
 export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	const config = loadConfig();
 	let systemPrompt = await loadSystemPrompt();
-	const agentsPath = join(config.cwd, "AGENTS.md");
 
 	// Discover skills from configured scopes
 	const skillRegistry = new SkillRegistry();
 	await skillRegistry.discover();
 	const skillPaths = skillRegistry.getSkillPaths();
-
-	// Load AGENTS.md directly into the system prompt to avoid deepagents'
-	// MemoryMiddleware injecting its own hardcoded memory guidelines.
-	try {
-		const agentsContent = await readFile(agentsPath, "utf-8");
-		systemPrompt = systemPrompt + "\n\n---\n\n" + agentsContent;
-	} catch {
-		logger.debug(`[deepAgents] Failed to load AGENTS.md: ${agentsPath}`);
-	}
 
 	// Create model from config
 	const providerName = getActiveProviderName(config);
