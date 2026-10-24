@@ -8,28 +8,8 @@ const config = loadConfig();
 const cwd = config.cwd;
 
 const DEFAULT_FILE = join(cwd, config.memory.toolsDir, "todo.json");
-const VALID_ACTIONS = [
-	"read",
-	"create",
-	"update",
-	"complete",
-	"delete",
-	"list",
-	"reorder",
-	"clear",
-];
+const VALID_ACTIONS = ["create", "update", "complete", "delete", "list", "clear"];
 const VALID_PRIORITIES = ["low", "medium", "high"];
-
-/**
- * Strip non-ASCII characters from a string. Used for keys only — content is
- * free text and must pass through untouched.
- * @param {string} str - The string to strip
- * @returns {string} The ASCII-only string
- */
-export function stripNonASCII(str) {
-	// eslint-disable-next-line no-control-regex
-	return str.replace(/[^\x00-\x7F]/g, "");
-}
 
 /**
  * Check if a file path exists.
@@ -96,8 +76,8 @@ export function validateRequired(input, fields) {
 
 /**
  * Sort todos by priority (high > medium > low). The sort is stable, so within
- * a priority group the stored array order is preserved — this is what makes
- * the `reorder` action meaningful. Missing priority defaults to medium.
+ * a priority group the stored array order is preserved. Missing priority
+ * defaults to medium.
  * @param {Array<object>} todos - Todos to sort
  * @returns {Array<object>} Sorted todos
  */
@@ -111,8 +91,8 @@ function sortTodos(todos) {
 }
 
 /**
- * Core todo logic implementing read, create, update, complete, delete, list,
- * reorder, and clear actions.
+ * Core todo logic implementing create, update, complete, delete, list, and
+ * clear actions.
  * @param {object} input - The tool input
  * @param {object} [options] - Runtime options
  * @param {string} [options.filePath] - Path to the todo JSON file (default: memory/tools/todo.json)
@@ -125,12 +105,6 @@ export async function todoImpl(input, options = {}) {
 	const { action } = input;
 
 	switch (action) {
-		case "read": {
-			const data = await loadTodos(filePath);
-			const todos = sortTodos(data.todos);
-			return { ok: true, todos, total: todos.length };
-		}
-
 		case "create": {
 			const validation = validateRequired(input, ["key", "content"]);
 			if (!validation.valid) {
@@ -239,32 +213,6 @@ export async function todoImpl(input, options = {}) {
 			return { ok: true, todos, total: todos.length };
 		}
 
-		case "reorder": {
-			const validation = validateRequired(input, ["key", "position"]);
-			if (!validation.valid) {
-				return { ok: false, error: `reorder requires: ${validation.error}` };
-			}
-
-			const data = await loadTodos(filePath);
-			const index = data.todos.findIndex((t) => t.key === input.key);
-			if (index === -1) {
-				return { ok: false, error: `Todo with key '${input.key}' not found` };
-			}
-
-			const position = input.position;
-			if (position < 0 || position >= data.todos.length) {
-				return {
-					ok: false,
-					error: `position '${position}' out of range (0-${data.todos.length - 1})`,
-				};
-			}
-
-			const [moved] = data.todos.splice(index, 1);
-			data.todos.splice(position, 0, moved);
-			await saveTodos(filePath, data);
-			return { ok: true, key: input.key, position };
-		}
-
 		case "clear": {
 			if (input.confirm !== true) {
 				return { ok: false, error: "clear requires confirm: true" };
@@ -282,10 +230,10 @@ export async function todoImpl(input, options = {}) {
 }
 
 /**
- * Task management tool with read, create, update, complete, delete, list,
- * reorder, and clear actions. Uses string keys for todo identification and
- * returns structured JSON responses. Todos carry priority (low/medium/high),
- * createdAt, and updatedAt. Persists to memory/tools/todo.json.
+ * Task management tool with create, update, complete, delete, list, and clear
+ * actions. Uses string keys for todo identification and returns structured
+ * JSON responses. Todos carry priority (low/medium/high), createdAt, and
+ * updatedAt. Persists to memory/tools/todo.json.
  */
 export const todo = tool(
 	(input) =>
@@ -296,18 +244,15 @@ export const todo = tool(
 	{
 		name: "todo",
 		description:
-			"Task management tool. Actions: read (get all todos), create (add a todo by key), update (modify by key), complete (mark done by key), delete (remove by key), list (all or filter by pending/completed), reorder (move a todo to a position), clear (remove all, requires confirm: true). Todos carry priority (low/medium/high), createdAt, and updatedAt. Persists to memory/tools/todo.json.",
+			"Task management tool. Actions: create (add a todo by key), update (modify by key), complete (mark done by key), delete (remove by key), list (all or filter by pending/completed), clear (remove all, requires confirm: true). Todos carry priority (low/medium/high), createdAt, and updatedAt. Persists to memory/tools/todo.json.",
 		schema: z.object({
 			action: z
-				.enum(["read", "create", "update", "complete", "delete", "list", "reorder", "clear"])
+				.enum(["create", "update", "complete", "delete", "list", "clear"])
 				.describe("Action to perform"),
 			key: z
 				.string()
 				.optional()
-				.transform((val) => (val !== undefined ? stripNonASCII(val) : undefined))
-				.describe(
-					"Todo key for create, update, complete, delete, and reorder actions. MUST use ASCII-only English text.",
-				),
+				.describe("Todo key for create, update, complete, and delete actions."),
 			content: z
 				.string()
 				.optional()
@@ -317,12 +262,6 @@ export const todo = tool(
 				.enum(VALID_PRIORITIES)
 				.optional()
 				.describe("Priority for create or update action (low, medium, high)"),
-			position: z
-				.number()
-				.int()
-				.nonnegative()
-				.optional()
-				.describe("Zero-based position for reorder action"),
 			filter: z
 				.enum(["all", "pending", "completed"])
 				.optional()
