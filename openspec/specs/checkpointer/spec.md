@@ -9,6 +9,10 @@ The system SHALL provide a `createCheckpointer(persistenceConfig)` function at `
 - **WHEN** `createCheckpointer` is called with `{ mode: "sqlite" }` or no argument
 - **THEN** the function returns an `AsyncSqliteSaver` instance from `@langchain/langgraph-checkpoint-sqlite` connected to the configured SQLite path
 
+#### Scenario: SQLite mode honors configured checkpointsDir
+- **WHEN** `createCheckpointer` is called with `{ mode: "sqlite" }` and `fullConfig.memory.checkpointsDir` is set to a custom directory
+- **THEN** the SQLite path is resolved from the configured `memory.checkpointsDir` rather than the hardcoded default
+
 #### Scenario: Memory mode returns InMemorySaver
 - **WHEN** `createCheckpointer` is called with `{ mode: "memory" }`
 - **THEN** the function returns an `InMemorySaver` instance from `langgraph-checkpoint`
