@@ -15,5 +15,6 @@ export const MemorySchema = z.object({
 	toolsDir: z.string().default("memory/tools/"),
 	ephemeralLimit: z.number().int().positive().default(5),
 	maxEntries: z.number().int().positive().default(100),
+	maxTodos: z.number().int().positive().default(100),
 	gc: MemoryGcSchema.default({ enabled: true, idleTimeoutMs: 300000, maxGcPerHour: 4 }),
 });

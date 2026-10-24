@@ -26,6 +26,7 @@ import { createYamlTool } from "./yaml/index.js";
 import { createDataTool } from "./data/index.js";
 import { createWebhookTool } from "./webhook/index.js";
 import { searchCode, indexCode } from "./code/index.js";
+import { todo } from "./todo/index.js";
 import { getConfig } from "./config/index.js";
 import { decision, decisionImpl, DecisionToolSchema } from "./decision/index.js";
 import { tool } from "@langchain/core/tools";
@@ -46,6 +47,7 @@ export const TOOL_PERMISSIONS = {
 	generateImage: ["network:outbound"],
 	readImage: ["filesystem:read"],
 	memory: ["filesystem:read", "filesystem:write"],
+	todo: ["filesystem:read", "filesystem:write"],
 	process: ["filesystem:exec", "process:spawn"],
 	sampling: ["filesystem:write"],
 	scanAgents: ["filesystem:read"],
@@ -125,6 +127,17 @@ export const TOOL_CLASSIFICATIONS = {
 	generateImage: ["documentation"],
 	readImage: ["search", "research", "coding", "documentation", "debug"],
 	memory: [
+		"search",
+		"debug",
+		"code-review",
+		"research",
+		"testing",
+		"documentation",
+		"security-audit",
+		"performance",
+		"coding",
+	],
+	todo: [
 		"search",
 		"debug",
 		"code-review",
@@ -239,6 +252,7 @@ export const ORCHESTRATOR_TOOLS = [
 	"cronJob",
 	"date",
 	"memory",
+	"todo",
 	"process",
 	"reflectionSessions",
 	"searchSession",
@@ -267,6 +281,7 @@ export const TOOLS = {
 	generateImage,
 	readImage,
 	memory,
+	todo,
 	process: processTool,
 	sampling,
 	scanAgents,
