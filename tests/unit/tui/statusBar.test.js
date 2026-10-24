@@ -328,6 +328,23 @@ describe("StatusBar project display", () => {
 		assert.ok(!result.includes("foo"), "should not render the project name");
 	});
 
+	it("omits the project element when project is an empty string", () => {
+		// After /new the active project is reset to "", so the status bar must
+		// not show a project indicator. This guards the /new session reset.
+		const result = renderToString(
+			React.createElement(StatusBar, {
+				statusMessage: "Ready",
+				skillCount: 1,
+				messageCount: 2,
+				contextSize: 3,
+				version: "1.0.0",
+				project: "",
+			}),
+		);
+		assert.ok(typeof result === "string");
+		assert.ok(!result.includes("foo"), "should not render the project name");
+	});
+
 	it("renders the project tag after the model name, not adjacent to it", () => {
 		const result = renderToString(
 			React.createElement(StatusBar, {
