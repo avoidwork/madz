@@ -383,6 +383,31 @@ describe("scheduler - ScheduleManager.runNow with skill", () => {
 		await assert.rejects(() => mgr.runNow("slow-job", scheduler), /execution timed out/);
 	});
 
+	it("clears the timeout timer when the sandbox resolves first", async () => {
+		const mgr = new ScheduleManager();
+		mgr.register([{ name: "fast-job", cron: "0 * * * *", skill: "fast-skill" }]);
+		const sandbox = async () => ({ stdout: "done", stderr: "", exitCode: 0 });
+		const scheduler = { sandbox, state: { timeoutMs: 10000 } };
+		const result = await mgr.runNow("fast-job", scheduler);
+		assert.strictEqual(result.exitCode, 0);
+		assert.strictEqual(result.stdout, "done");
+	});
+
+	it("passes an AbortSignal to the sandbox and aborts it on timeout", async () => {
+		const mgr = new ScheduleManager();
+		mgr.register([{ name: "abort-job", cron: "0 * * * *", skill: "abort-skill" }]);
+		let receivedSignal;
+		const sandbox = async (opts) => {
+			receivedSignal = opts.signal;
+			await new Promise((resolve) => setTimeout(resolve, 50000));
+			return { stdout: "", stderr: "", exitCode: 0 };
+		};
+		const scheduler = { sandbox, state: { timeoutMs: 10 } };
+		await assert.rejects(() => mgr.runNow("abort-job", scheduler), /execution timed out/);
+		assert.ok(receivedSignal instanceof AbortSignal);
+		assert.strictEqual(receivedSignal.aborted, true);
+	});
+
 	it("handles contextFile load failure gracefully", async () => {
 		const mgr = new ScheduleManager();
 		mgr.register([

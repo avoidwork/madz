@@ -204,20 +204,26 @@ export class ScheduleManager {
 		}
 
 		const sandbox = scheduler.sandbox || (() => ({ stdout: "", stderr: "", exitCode: 1 }));
+		// AbortController lets the timeout signal the sandbox so it can stop
+		// work past the deadline. The sandbox may or may not honor the signal;
+		// the timer is always cleared on settle regardless.
+		const controller = new AbortController();
+		let timer;
 		const result = await Promise.race([
 			sandbox({
 				skillName: entry.skill,
 				input: entry.input,
 				context: contextPrefix,
 				permissions: scheduler.state?.skills || [],
+				signal: controller.signal,
 			}),
-			new Promise((_, reject) =>
-				setTimeout(
-					() => reject(new Error(`Sandbox execution timed out after ${timeoutMs}ms`)),
-					timeoutMs,
-				),
-			),
-		]);
+			new Promise((_, reject) => {
+				timer = setTimeout(() => {
+					controller.abort();
+					reject(new Error(`Sandbox execution timed out after ${timeoutMs}ms`));
+				}, timeoutMs);
+			}),
+		]).finally(() => clearTimeout(timer));
 
 		const endTime = new Date().toISOString();
 		entry.lastRun = endTime;
