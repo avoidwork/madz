@@ -272,6 +272,25 @@ describe("tools - todo", () => {
 		assert.strictEqual(result.ok, false);
 		assert.match(result.error, /max todos/);
 	});
+
+	it("serializes concurrent creates so no update is lost", async () => {
+		await todoImpl({ action: "clear", confirm: true }, getOptions());
+		const keys = Array.from({ length: 20 }, (_, i) => `concurrent-${i}`);
+		await Promise.all(
+			keys.map((key) => todoImpl({ action: "create", key, content: key }, getOptions())),
+		);
+		const result = await todoImpl({ action: "list" }, getOptions());
+		assert.strictEqual(result.total, keys.length);
+		assert.deepStrictEqual(result.todos.map((t) => t.key).sort(), [...keys].sort());
+	});
+
+	it("does not leave a temp file behind after a write", async () => {
+		await todoImpl({ action: "clear", confirm: true }, getOptions());
+		await todoImpl({ action: "create", key: "atomic", content: "A" }, getOptions());
+		const tmpPath = TEST_FILE + ".tmp";
+		const { access } = await import("node:fs/promises");
+		await assert.rejects(access(tmpPath));
+	});
 });
 
 describe("tools - todo helpers", () => {
