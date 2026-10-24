@@ -202,7 +202,7 @@ export function CommandPicker({ value, onChange, onClose, commandList = [] }) {
 			after,
 		),
 		filteredCommands.length === 0
-			? React.createElement(Text, { color: "gray" }, " No matching commands.")
+			? null
 			: visibleCommands.map((command, i) => {
 					const isSelected = windowStart + i === clampedIndex;
 					return React.createElement(

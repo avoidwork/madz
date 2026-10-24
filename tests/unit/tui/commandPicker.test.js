@@ -1,10 +1,13 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
+import React from "react";
+import { renderToString } from "ink";
 import {
 	deriveCommandFilter,
 	shouldOpenCommandPicker,
 	replaceCommandToken,
 	MAX_VISIBLE,
+	CommandPicker,
 } from "../../../src/tui/commandPicker.js";
 
 describe("deriveCommandFilter", () => {
@@ -86,6 +89,47 @@ describe("deriveCommandFilter", () => {
 	it("is inactive when / is mid-word (he/he)", () => {
 		const result = deriveCommandFilter("he/he", 5);
 		assert.strictEqual(result.active, false);
+	});
+
+	it("is active on a typo filter that matches no commands", () => {
+		// A typo like `/confg` (where `confg` is not a command) still yields an
+		// active filter, which is the precondition for the empty-message branch
+		// to render. The fix removes that branch so the input line is never
+		// obscured by a " No matching commands." message.
+		const result = deriveCommandFilter("/confg", 7);
+		assert.strictEqual(result.active, true);
+		assert.strictEqual(result.filter, "confg");
+	});
+});
+
+describe("CommandPicker render", () => {
+	it("does not render a 'No matching commands.' empty message", () => {
+		// renderToString is synchronous and does not run effects, so the
+		// component renders in its initial state. The empty-message branch
+		// must never render the " No matching commands." text regardless of
+		// load state, so the input line is never obscured by a typo.
+		const result = renderToString(
+			React.createElement(CommandPicker, {
+				value: "/confg",
+				onChange: () => {},
+				onClose: () => {},
+				commandList: ["config"],
+			}),
+		);
+		assert.ok(typeof result === "string");
+		assert.ok(!result.includes("No matching commands."));
+	});
+
+	it("always renders the typed input line", () => {
+		const result = renderToString(
+			React.createElement(CommandPicker, {
+				value: "/confg",
+				onChange: () => {},
+				onClose: () => {},
+				commandList: ["config"],
+			}),
+		);
+		assert.ok(result.includes("/confg"));
 	});
 });
 
