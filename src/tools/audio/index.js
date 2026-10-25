@@ -87,7 +87,10 @@ async function callTranscribeApi(apiKey, filePath, language, prompt) {
 
 		if (!resp.ok) {
 			const text = await resp.text().catch(() => "");
-			return { ok: false, error: `OpenAI transcription error (${resp.status}): ${text.slice(0, 200)}` };
+			return {
+				ok: false,
+				error: `OpenAI transcription error (${resp.status}): ${text.slice(0, 200)}`,
+			};
 		}
 
 		const data = await resp.json();
@@ -180,7 +183,10 @@ export async function transcribeAudioImpl(input, options = {}) {
 	// Reject unsupported extensions
 	const ext = extname(validation.path).toLowerCase();
 	if (!AUDIO_EXTENSIONS.has(ext)) {
-		return JSON.stringify({ ok: false, error: `Unsupported audio format: "${ext}". Use one of: ${[...AUDIO_EXTENSIONS].join(", ")}` });
+		return JSON.stringify({
+			ok: false,
+			error: `Unsupported audio format: "${ext}". Use one of: ${[...AUDIO_EXTENSIONS].join(", ")}`,
+		});
 	}
 
 	const providers = config.providers || {};

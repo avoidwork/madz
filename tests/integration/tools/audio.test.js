@@ -51,10 +51,7 @@ describe("transcribeAudio integration", () => {
 		const filePath = join(TEST_DIR, "fixture.wav");
 		writeFileSync(filePath, buildWavFixture());
 
-		const result = await transcribeAudioImpl(
-			{ path: filePath },
-			{ allowedPaths: ALLOWED_PATHS },
-		);
+		const result = await transcribeAudioImpl({ path: filePath }, { allowedPaths: ALLOWED_PATHS });
 		const parsed = JSON.parse(result);
 
 		// The local Whisper model may not be downloadable in all environments,

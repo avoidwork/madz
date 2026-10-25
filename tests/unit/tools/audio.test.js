@@ -38,10 +38,7 @@ describe("transcribeAudio tool", () => {
 	});
 
 	it("rejects path outside sandbox allowlist", async () => {
-		const result = await transcribeAudioImpl(
-			{ path: "/etc/passwd" },
-			{ allowedPaths: [testDir] },
-		);
+		const result = await transcribeAudioImpl({ path: "/etc/passwd" }, { allowedPaths: [testDir] });
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("Access denied"));
@@ -60,10 +57,7 @@ describe("transcribeAudio tool", () => {
 	it("rejects unsupported extension", async () => {
 		const filePath = join(testDir, "notes.txt");
 		writeFileSync(filePath, "hello world");
-		const result = await transcribeAudioImpl(
-			{ path: filePath },
-			{ allowedPaths: [testDir] },
-		);
+		const result = await transcribeAudioImpl({ path: filePath }, { allowedPaths: [testDir] });
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("Unsupported audio format"));
@@ -72,10 +66,7 @@ describe("transcribeAudio tool", () => {
 	it("rejects file exceeding size limit", async () => {
 		const filePath = join(testDir, "large.mp3");
 		writeFileSync(filePath, Buffer.alloc(30 * 1024 * 1024, 1));
-		const result = await transcribeAudioImpl(
-			{ path: filePath },
-			{ allowedPaths: [testDir] },
-		);
+		const result = await transcribeAudioImpl({ path: filePath }, { allowedPaths: [testDir] });
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("exceeds max read size"));
@@ -135,7 +126,6 @@ describe("transcribeAudio tool", () => {
 		}
 	});
 });
-
 
 describe("transcribeAudio local backend", () => {
 	it("transcribes via local Whisper when no apiKey is provided", async () => {
