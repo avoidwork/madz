@@ -83,7 +83,7 @@ Skills follow the [Agent Skills spec](https://agentskills.io/specification). Eac
    name: your-skill
    description: What this skill does and when to use it.
    license: Apache-2.0          # optional
-    compatibility: Node.js 24+   # optional, max 500 chars
+    compatibility: Node.js 26+   # optional, max 500 chars
    metadata:
      author: me
      version: "1.0"             # optional string map
