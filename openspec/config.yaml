@@ -6,7 +6,7 @@ schema: spec-driven
 
 context: |
   ## Tech Stack
-  - **Runtime**: Node.js 24+ (ESM, `"type": "module"`)
+  - **Runtime**: Node.js 26+ (ESM, `"type": "module"`)
   - **Package Manager**: npm
   - **Agent Framework**: LangGraph (`@langchain/langgraph`) + DeepAgents (`deepagents`)
   - **LLM Provider**: OpenAI (`@langchain/openai`) — gpt-4o, cl100k_base encoding

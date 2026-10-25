@@ -3,7 +3,7 @@
 **A security-first, self-contained autonomous coding agent — with a cinematic soul.** | [denkerne.ai](https://denkerne.ai)
 
 [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD--3--Clause-blue.svg)](LICENSE)
-[![Node.js >= 24](https://img.shields.io/badge/node-%3E%3D24-brightgreen)](https://nodejs.org)
+[![Node.js >= 26](https://img.shields.io/badge/node-%3E%3D26-brightgreen)](https://nodejs.org)
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen)](docs/DEVELOPMENT.md#testing)
 
 `madz` is a fully self-contained development environment wrapped around an autonomous coding agent. It ships with a complete toolchain — Node.js, Python, Ruby, Go, Java, Rust, Terraform, Chromium, and more — plus a Deep Agents orchestrator, a sandboxed skill runtime, persistent memory, and a terminal UI. It's the whole package: a container you run, an agent you reach over SSH, and a teammate you trust to do real work in environments where auditability and containment matter.
@@ -33,7 +33,7 @@ This is what makes `madz` feel like a teammate rather than a tool — and it's a
 Most coding agents are a thin layer over a model. `madz` is the opposite — it is a **complete development environment** with an agent at its center. That distinction is the whole point.
 
 - **Self-contained.** The container ships a full toolchain: Node.js 26, Python 3, Ruby, Go, Java (OpenJDK 21), Rust, Terraform, tflint, Chromium, ripgrep, git, the GitHub CLI, and three package managers (npm, yarn, pnpm). It is a working dev box, not a chat window. You can SSH into it and do real work.
-- **A teammate, not a tool.** `madz` channels the cinematic soul of Mads Mikkelsen — the calm precision of Hannibal Lecter, the quiet intensity of Le Chiffre, the steady hand of Galen Erso. It speaks with measured cadence, dry humor, and a genuine point of view. It remembers your context, adapts to your energy, and works *with* you rather than at you. This isn't a gimmick — it's what makes long sessions feel collaborative instead of transactional.
+- **A teammate, not a tool.** `madz` channels the cinematic soul of Mads Mikkelsen — see [The Personality](#the-personality). It works *with* you rather than at you, and that's what makes long sessions feel collaborative instead of transactional.
 - **Security-first.** Filesystem access is confined to an allowlist/denylist of paths, and outbound URLs are filtered by scheme and hostname — blocked schemes include `file://`, `gopher://`, and `dict://`. Built-in tools are gated by explicit permissions, and skill metadata is schema-validated before it is registered. This is layered containment by design — not a promise that the agent is harmless, but a set of constraints that narrow what any single tool can reach.
 - **Autonomous.** A Deep Agents orchestrator routes work to a family of specialized subagents — code review, coding, debugging, security auditing, testing, performance, research, and more. It can read your codebase, find bugs, write fixes, run tests, and open PRs without you driving every step.
 - **Auditable.** The entire system state is Markdown. Memory, context, sessions, schedules, and skill definitions are all plain files under version control. `git log` is your audit trail — essential for regulated environments where you must prove what happened and why.
@@ -105,7 +105,7 @@ On first login `madz` starts the TUI and runs a short onboarding flow to build y
 
 ### Running locally (development)
 
-Requires Node.js 24 or later.
+Requires Node.js 26 or later.
 
 ```bash
 git clone https://github.com/avoidwork/madz.git
