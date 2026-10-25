@@ -26,14 +26,6 @@ const VALID_ACTIONS = [
 ];
 
 /**
- * Actions that require an explicit `force: true` opt-in before they may run.
- * These are destructive or history-rewriting operations that must never be
- * invoked implicitly.
- * @type {string[]}
- */
-const FORCE_ACTIONS = ["push", "rebase"];
-
-/**
  * Safe flags accepted by the `rev-parse` action. Free-form args are never
  * passed to git; only these enumerated flags (plus an optional ref) are.
  * @type {string[]}
@@ -181,7 +173,7 @@ function parseRefs(output) {
 }
 
 /**
- * Core git tool logic implementing all actions with guardrails.
+ * Core git tool logic implementing all actions.
  * @param {object} input - The tool input
  * @param {object} [options] - Runtime options
  * @param {string} [options.cwd] - Working directory for git commands
@@ -195,14 +187,6 @@ export async function gitImpl(input, options = {}) {
 		return {
 			ok: false,
 			error: `Unknown action: '${action}'. Valid actions: ${VALID_ACTIONS.join(", ")}`,
-		};
-	}
-
-	// Guardrail: destructive/force actions require explicit opt-in.
-	if (FORCE_ACTIONS.includes(action) && input.force !== true) {
-		return {
-			ok: false,
-			error: `Action '${action}' is destructive and requires force: true to proceed`,
 		};
 	}
 
@@ -289,10 +273,8 @@ export async function gitImpl(input, options = {}) {
 				if (!input.branch) {
 					return { ok: false, error: "branch delete requires a branch" };
 				}
-				if (input.force !== true) {
-					return { ok: false, error: "branch delete is destructive and requires force: true" };
-				}
-				const res = await runGit(["branch", "-D", input.branch], cwd);
+				const flag = input.force ? "-D" : "-d";
+				const res = await runGit(["branch", flag, input.branch], cwd);
 				if (res.code !== 0) {
 					return { ok: false, error: res.stderr.trim() || res.stdout.trim() };
 				}
@@ -330,7 +312,10 @@ export async function gitImpl(input, options = {}) {
 		case "push": {
 			const remote = input.remote || "origin";
 			const branch = input.branch || "HEAD";
-			const res = await runGit(["push", remote, branch], cwd);
+			const args = ["push"];
+			if (input.force) args.push("--force");
+			args.push(remote, branch);
+			const res = await runGit(args, cwd);
 			if (res.code !== 0) {
 				return { ok: false, error: res.stderr.trim() || res.stdout.trim() };
 			}
@@ -468,10 +453,10 @@ export async function gitImpl(input, options = {}) {
 					if (!input.path) {
 						return { ok: false, error: "worktree remove requires a path" };
 					}
-					if (input.force !== true) {
-						return { ok: false, error: "worktree remove is destructive and requires force: true" };
-					}
-					const res = await runGit(["worktree", "remove", "--force", input.path], cwd);
+					const args = ["worktree", "remove"];
+					if (input.force) args.push("--force");
+					args.push(input.path);
+					const res = await runGit(args, cwd);
 					if (res.code !== 0) {
 						return { ok: false, error: res.stderr.trim() || res.stdout.trim() };
 					}
@@ -602,17 +587,17 @@ export async function gitImpl(input, options = {}) {
 }
 
 /**
- * First-class git tool with guardrails. Wraps common git operations (status,
- * diff, log, branch, add, commit, push, pull, checkout, merge, rebase, stash,
- * show, tag, worktree, remote, rev-parse, ls-remote, fetch, describe) so madz
- * can perform git work safely and consistently instead of shelling out through
- * the process tool. Uses execFile("git", [args]) so args are passed as an
- * array and never interpreted by a shell.
+ * First-class git tool. Wraps common git operations (status, diff, log,
+ * branch, add, commit, push, pull, checkout, merge, rebase, stash, show, tag,
+ * worktree, remote, rev-parse, ls-remote, fetch, describe) so madz can perform
+ * git work consistently instead of shelling out through the process tool. Uses
+ * execFile("git", [args]) so args are passed as an array and never interpreted
+ * by a shell.
  */
 export const git = tool((input, options = {}) => gitImpl(input, options), {
 	name: "git",
 	description:
-		"Git tool with guardrails. Actions: status, diff, log, branch, add, commit, push, pull, checkout, merge, rebase, stash, show, tag, worktree, remote, rev-parse, ls-remote, fetch, describe. Diff supports cached/nameOnly/stat/patch/numstat modes; log supports subject-only; tag supports pattern; ls-remote supports --tags; checkout supports --detach. Destructive actions (push, rebase, worktree remove, branch delete) require force: true. Uses execFile('git', [args]) — never sh -c.",
+		"Git tool. Actions: status, diff, log, branch, add, commit, push, pull, checkout, merge, rebase, stash, show, tag, worktree, remote, rev-parse, ls-remote, fetch, describe. Diff supports cached/nameOnly/stat/patch/numstat modes; log supports subject-only; tag supports pattern; ls-remote supports --tags; checkout supports --detach. force passes --force to git (push --force, branch -D, worktree remove --force). Uses execFile('git', [args]) — never sh -c.",
 	schema: z.object({
 		action: z
 			.enum(VALID_ACTIONS)
@@ -638,7 +623,7 @@ export const git = tool((input, options = {}) => gitImpl(input, options), {
 			.boolean()
 			.optional()
 			.describe(
-				"Set to true to allow destructive actions (push, rebase, worktree remove, branch delete)",
+				"Set to true to pass --force to git (push --force, branch -D, worktree remove --force)",
 			),
 		sub: z
 			.string()
