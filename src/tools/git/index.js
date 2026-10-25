@@ -10,6 +10,7 @@ const VALID_ACTIONS = [
 	"add",
 	"commit",
 	"push",
+	"pull",
 	"checkout",
 	"merge",
 	"rebase",
@@ -233,6 +234,18 @@ export async function gitImpl(input, options = {}) {
 			return { ok: true, remote, branch };
 		}
 
+		case "pull": {
+			const remote = input.remote || "origin";
+			const branch = input.branch;
+			const args = ["pull", remote];
+			if (branch) args.push(branch);
+			const res = await runGit(args, cwd);
+			if (res.code !== 0) {
+				return { ok: false, error: res.stderr.trim() || res.stdout.trim() };
+			}
+			return { ok: true, remote, branch: branch || null, output: res.stdout.trim() };
+		}
+
 		case "checkout": {
 			if (!input.branch) {
 				return { ok: false, error: "checkout requires a branch" };
@@ -309,12 +322,12 @@ export async function gitImpl(input, options = {}) {
 export const git = tool((input, options = {}) => gitImpl(input, options), {
 	name: "git",
 	description:
-		"Git tool with guardrails. Actions: status, diff, log, branch, add, commit, push, checkout, merge, rebase, stash, show, tag. Destructive actions (push, rebase) require force: true. Uses execFile('git', [args]) — never sh -c.",
+		"Git tool with guardrails. Actions: status, diff, log, branch, add, commit, push, pull, checkout, merge, rebase, stash, show, tag. Destructive actions (push, rebase) require force: true. Uses execFile('git', [args]) — never sh -c.",
 	schema: z.object({
 		action: z
 			.enum(VALID_ACTIONS)
 			.describe(
-				"Action to perform (status, diff, log, branch, add, commit, push, checkout, merge, rebase, stash, show, tag)",
+				"Action to perform (status, diff, log, branch, add, commit, push, pull, checkout, merge, rebase, stash, show, tag)",
 			),
 		path: z.string().optional().describe("Path for status/diff/add actions"),
 		message: z.string().optional().describe("Commit message for commit action"),
