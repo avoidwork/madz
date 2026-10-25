@@ -17,6 +17,12 @@ const VALID_ACTIONS = [
 	"stash",
 	"show",
 	"tag",
+	"worktree",
+	"remote",
+	"rev-parse",
+	"ls-remote",
+	"fetch",
+	"describe",
 ];
 
 /**
@@ -26,6 +32,19 @@ const VALID_ACTIONS = [
  * @type {string[]}
  */
 const FORCE_ACTIONS = ["push", "rebase"];
+
+/**
+ * Safe flags accepted by the `rev-parse` action. Free-form args are never
+ * passed to git; only these enumerated flags (plus an optional ref) are.
+ * @type {string[]}
+ */
+const REV_PARSE_FLAGS = [
+	"--show-toplevel",
+	"--show-prefix",
+	"--is-inside-work-tree",
+	"--abbrev-ref",
+	"--short",
+];
 
 /**
  * Execute a git command with args passed as an array (never a shell string).
@@ -127,7 +146,42 @@ function parseTags(output) {
 }
 
 /**
- * Core git tool logic implementing all 13 actions with guardrails.
+ * Parse `git worktree list` output into a worktrees array.
+ * @param {string} output - Raw worktree list output
+ * @returns {Array<{ path: string, hash: string, branch: string | null }>}
+ */
+function parseWorktrees(output) {
+	return output
+		.split("\n")
+		.filter((line) => line.trim() !== "")
+		.map((line) => {
+			const parts = line.trim().split(/\s+/);
+			const path = parts[0];
+			const hash = parts[1] || "";
+			const branchMatch = line.match(/\[([^\]]+)\]/);
+			const branch = branchMatch ? branchMatch[1] : null;
+			return { path, hash, branch };
+		});
+}
+
+/**
+ * Parse `git ls-remote` output into a refs array.
+ * @param {string} output - Raw ls-remote output
+ * @returns {Array<{ hash: string, ref: string }>}
+ */
+function parseRefs(output) {
+	return output
+		.split("\n")
+		.filter((line) => line.trim() !== "")
+		.map((line) => {
+			const idx = line.indexOf("\t");
+			if (idx === -1) return { hash: line.trim(), ref: "" };
+			return { hash: line.slice(0, idx).trim(), ref: line.slice(idx + 1).trim() };
+		});
+}
+
+/**
+ * Core git tool logic implementing all actions with guardrails.
  * @param {object} input - The tool input
  * @param {object} [options] - Runtime options
  * @param {string} [options.cwd] - Working directory for git commands
@@ -195,6 +249,19 @@ export async function gitImpl(input, options = {}) {
 		}
 
 		case "branch": {
+			if (input.delete) {
+				if (!input.branch) {
+					return { ok: false, error: "branch delete requires a branch" };
+				}
+				if (input.force !== true) {
+					return { ok: false, error: "branch delete is destructive and requires force: true" };
+				}
+				const res = await runGit(["branch", "-D", input.branch], cwd);
+				if (res.code !== 0) {
+					return { ok: false, error: res.stderr.trim() || res.stdout.trim() };
+				}
+				return { ok: true, branch: input.branch, deleted: true };
+			}
 			const res = await runGit(["branch"], cwd);
 			if (res.code !== 0) {
 				return { ok: false, error: res.stderr.trim() || res.stdout.trim() };
@@ -246,11 +313,23 @@ export async function gitImpl(input, options = {}) {
 			return { ok: true, remote, branch: branch || null, output: res.stdout.trim() };
 		}
 
+		case "fetch": {
+			const remote = input.remote || "origin";
+			const args = ["fetch", remote];
+			if (input.branch) args.push(input.branch);
+			const res = await runGit(args, cwd);
+			if (res.code !== 0) {
+				return { ok: false, error: res.stderr.trim() || res.stdout.trim() };
+			}
+			return { ok: true, remote, branch: input.branch || null, output: res.stdout.trim() };
+		}
+
 		case "checkout": {
 			if (!input.branch) {
 				return { ok: false, error: "checkout requires a branch" };
 			}
-			const res = await runGit(["checkout", input.branch], cwd);
+			const args = input.create ? ["checkout", "-b", input.branch] : ["checkout", input.branch];
+			const res = await runGit(args, cwd);
 			if (res.code !== 0) {
 				return { ok: false, error: res.stderr.trim() || res.stdout.trim() };
 			}
@@ -297,11 +376,174 @@ export async function gitImpl(input, options = {}) {
 		}
 
 		case "tag": {
+			if (input.name) {
+				const args = ["tag", "-a", input.name, "-m", input.message || input.name];
+				if (input.ref) args.push(input.ref);
+				const res = await runGit(args, cwd);
+				if (res.code !== 0) {
+					return { ok: false, error: res.stderr.trim() || res.stdout.trim() };
+				}
+				return { ok: true, name: input.name, ref: input.ref || "HEAD" };
+			}
 			const res = await runGit(["tag"], cwd);
 			if (res.code !== 0) {
 				return { ok: false, error: res.stderr.trim() || res.stdout.trim() };
 			}
 			return { ok: true, tags: parseTags(res.stdout) };
+		}
+
+		case "worktree": {
+			const sub = input.sub || "list";
+			switch (sub) {
+				case "add": {
+					if (!input.path) {
+						return { ok: false, error: "worktree add requires a path" };
+					}
+					const args = ["worktree", "add"];
+					if (input.branch) {
+						args.push("-b", input.branch);
+					} else {
+						args.push("--detach");
+					}
+					args.push(input.path);
+					if (input.ref) args.push(input.ref);
+					const res = await runGit(args, cwd);
+					if (res.code !== 0) {
+						return { ok: false, error: res.stderr.trim() || res.stdout.trim() };
+					}
+					return {
+						ok: true,
+						path: input.path,
+						branch: input.branch || null,
+						ref: input.ref || null,
+					};
+				}
+
+				case "remove": {
+					if (!input.path) {
+						return { ok: false, error: "worktree remove requires a path" };
+					}
+					if (input.force !== true) {
+						return { ok: false, error: "worktree remove is destructive and requires force: true" };
+					}
+					const res = await runGit(["worktree", "remove", "--force", input.path], cwd);
+					if (res.code !== 0) {
+						return { ok: false, error: res.stderr.trim() || res.stdout.trim() };
+					}
+					return { ok: true, path: input.path, removed: true };
+				}
+
+				case "list": {
+					const res = await runGit(["worktree", "list"], cwd);
+					if (res.code !== 0) {
+						return { ok: false, error: res.stderr.trim() || res.stdout.trim() };
+					}
+					return { ok: true, worktrees: parseWorktrees(res.stdout) };
+				}
+
+				case "prune": {
+					const res = await runGit(["worktree", "prune"], cwd);
+					if (res.code !== 0) {
+						return { ok: false, error: res.stderr.trim() || res.stdout.trim() };
+					}
+					return { ok: true, pruned: true };
+				}
+
+				default:
+					return {
+						ok: false,
+						error: `Unknown worktree subcommand: '${sub}'. Valid: add, remove, list, prune`,
+					};
+			}
+		}
+
+		case "remote": {
+			const sub = input.sub || "get-url";
+			switch (sub) {
+				case "get-url": {
+					const remote = input.remote || "origin";
+					const res = await runGit(["remote", "get-url", remote], cwd);
+					if (res.code !== 0) {
+						return { ok: false, error: res.stderr.trim() || res.stdout.trim() };
+					}
+					return { ok: true, remote, url: res.stdout.trim() };
+				}
+
+				case "add": {
+					if (!input.remote || !input.url) {
+						return { ok: false, error: "remote add requires remote and url" };
+					}
+					const res = await runGit(["remote", "add", input.remote, input.url], cwd);
+					if (res.code !== 0) {
+						return { ok: false, error: res.stderr.trim() || res.stdout.trim() };
+					}
+					return { ok: true, remote: input.remote, url: input.url };
+				}
+
+				case "set-url": {
+					if (!input.remote || !input.url) {
+						return { ok: false, error: "remote set-url requires remote and url" };
+					}
+					const res = await runGit(["remote", "set-url", input.remote, input.url], cwd);
+					if (res.code !== 0) {
+						return { ok: false, error: res.stderr.trim() || res.stdout.trim() };
+					}
+					return { ok: true, remote: input.remote, url: input.url };
+				}
+
+				default:
+					return {
+						ok: false,
+						error: `Unknown remote subcommand: '${sub}'. Valid: get-url, add, set-url`,
+					};
+			}
+		}
+
+		case "rev-parse": {
+			if (input.flag) {
+				if (!REV_PARSE_FLAGS.includes(input.flag)) {
+					return {
+						ok: false,
+						error: `Invalid rev-parse flag: '${input.flag}'. Valid flags: ${REV_PARSE_FLAGS.join(", ")}`,
+					};
+				}
+				const args = ["rev-parse", input.flag];
+				if (input.flag === "--abbrev-ref") args.push(input.ref || "HEAD");
+				const res = await runGit(args, cwd);
+				if (res.code !== 0) {
+					return { ok: false, error: res.stderr.trim() || res.stdout.trim() };
+				}
+				return { ok: true, flag: input.flag, output: res.stdout.trim() };
+			}
+			if (input.ref) {
+				const res = await runGit(["rev-parse", input.ref], cwd);
+				if (res.code !== 0) {
+					return { ok: false, error: res.stderr.trim() || res.stdout.trim() };
+				}
+				return { ok: true, ref: input.ref, hash: res.stdout.trim() };
+			}
+			return { ok: false, error: "rev-parse requires a flag or ref" };
+		}
+
+		case "ls-remote": {
+			const remote = input.remote || "origin";
+			const args = ["ls-remote", remote];
+			if (input.ref) args.push(input.ref);
+			const res = await runGit(args, cwd);
+			if (res.code !== 0) {
+				return { ok: false, error: res.stderr.trim() || res.stdout.trim() };
+			}
+			return { ok: true, remote, refs: parseRefs(res.stdout) };
+		}
+
+		case "describe": {
+			const ref = input.ref || "HEAD";
+			const res = await runGit(["describe", "--tags", "--abbrev=0", ref], cwd);
+			if (res.code !== 0) {
+				// No tag found (or not a git repo) — match the skills' `|| echo ""` intent.
+				return { ok: true, ref, tag: null };
+			}
+			return { ok: true, ref, tag: res.stdout.trim() };
 		}
 
 		default:
@@ -314,30 +556,48 @@ export async function gitImpl(input, options = {}) {
 
 /**
  * First-class git tool with guardrails. Wraps common git operations (status,
- * diff, log, branch, add, commit, push, checkout, merge, rebase, stash, show,
- * tag) so madz can perform git work safely and consistently instead of
- * shelling out through the process tool. Uses execFile("git", [args]) so args
- * are passed as an array and never interpreted by a shell.
+ * diff, log, branch, add, commit, push, pull, checkout, merge, rebase, stash,
+ * show, tag, worktree, remote, rev-parse, ls-remote, fetch, describe) so madz
+ * can perform git work safely and consistently instead of shelling out through
+ * the process tool. Uses execFile("git", [args]) so args are passed as an
+ * array and never interpreted by a shell.
  */
 export const git = tool((input, options = {}) => gitImpl(input, options), {
 	name: "git",
 	description:
-		"Git tool with guardrails. Actions: status, diff, log, branch, add, commit, push, pull, checkout, merge, rebase, stash, show, tag. Destructive actions (push, rebase) require force: true. Uses execFile('git', [args]) — never sh -c.",
+		"Git tool with guardrails. Actions: status, diff, log, branch, add, commit, push, pull, checkout, merge, rebase, stash, show, tag, worktree, remote, rev-parse, ls-remote, fetch, describe. Destructive actions (push, rebase, worktree remove, branch delete) require force: true. Uses execFile('git', [args]) — never sh -c.",
 	schema: z.object({
 		action: z
 			.enum(VALID_ACTIONS)
 			.describe(
-				"Action to perform (status, diff, log, branch, add, commit, push, pull, checkout, merge, rebase, stash, show, tag)",
+				"Action to perform (status, diff, log, branch, add, commit, push, pull, checkout, merge, rebase, stash, show, tag, worktree, remote, rev-parse, ls-remote, fetch, describe)",
 			),
-		path: z.string().optional().describe("Path for status/diff/add actions"),
-		message: z.string().optional().describe("Commit message for commit action"),
-		branch: z.string().optional().describe("Branch for checkout/branch/merge/rebase/push actions"),
-		remote: z.string().optional().describe("Remote for push action"),
-		ref: z.string().optional().describe("Ref for show action"),
+		path: z.string().optional().describe("Path for status/diff/add/worktree actions"),
+		message: z
+			.string()
+			.optional()
+			.describe("Commit message for commit action, or tag message for tag create"),
+		branch: z
+			.string()
+			.optional()
+			.describe("Branch for checkout/branch/merge/rebase/push/fetch/worktree actions"),
+		remote: z.string().optional().describe("Remote for push/fetch/ls-remote/remote actions"),
+		ref: z.string().optional().describe("Ref for show/rev-parse/describe/tag/worktree actions"),
 		limit: z.number().int().positive().optional().describe("Limit for log action"),
 		force: z
 			.boolean()
 			.optional()
-			.describe("Set to true to allow destructive actions (push, rebase)"),
+			.describe(
+				"Set to true to allow destructive actions (push, rebase, worktree remove, branch delete)",
+			),
+		sub: z
+			.string()
+			.optional()
+			.describe("Subcommand for worktree (add/remove/list/prune) or remote (get-url/add/set-url)"),
+		name: z.string().optional().describe("Tag name for tag create action"),
+		url: z.string().optional().describe("URL for remote add/set-url action"),
+		flag: z.enum(REV_PARSE_FLAGS).optional().describe("Flag for rev-parse action"),
+		create: z.boolean().optional().describe("Set to true to create a branch on checkout (-b)"),
+		delete: z.boolean().optional().describe("Set to true to delete a branch (branch -D)"),
 	}),
 });

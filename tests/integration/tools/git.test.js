@@ -224,4 +224,185 @@ describe("integration - git tool", () => {
 		assert.strictEqual(result.ok, true);
 		assert.ok(result.tags.includes("v1.0.0"), "should list the created tag");
 	});
+
+	it("tag creates an annotated tag", async () => {
+		const result = await gitImpl(
+			{ action: "tag", name: "v1.1.0", message: "release v1.1.0" },
+			{ cwd: repoDir },
+		);
+		assert.strictEqual(result.ok, true);
+		assert.strictEqual(result.name, "v1.1.0");
+		const list = await gitImpl({ action: "tag" }, { cwd: repoDir });
+		assert.ok(list.tags.includes("v1.1.0"), "should list the annotated tag");
+	});
+
+	it("describe returns the nearest tag", async () => {
+		const result = await gitImpl({ action: "describe" }, { cwd: repoDir });
+		assert.strictEqual(result.ok, true);
+		assert.ok(result.tag, "should return a tag");
+	});
+
+	it("describe returns null when no tag exists", async () => {
+		const bare = mkdtempSync(join(tmpdir(), "madz-git-notag-"));
+		try {
+			git(bare, ["init", "-b", "main"]);
+			git(bare, ["config", "user.email", "test@example.com"]);
+			git(bare, ["config", "user.name", "Test User"]);
+			writeFileSync(join(bare, "file.txt"), "hello\n");
+			git(bare, ["add", "file.txt"]);
+			git(bare, ["commit", "-m", "initial"]);
+			const result = await gitImpl({ action: "describe" }, { cwd: bare });
+			assert.strictEqual(result.ok, true);
+			assert.strictEqual(result.tag, null);
+		} finally {
+			rmSync(bare, { recursive: true, force: true });
+		}
+	});
+
+	it("rev-parse returns the top-level directory", async () => {
+		const result = await gitImpl(
+			{ action: "rev-parse", flag: "--show-toplevel" },
+			{ cwd: repoDir },
+		);
+		assert.strictEqual(result.ok, true);
+		assert.strictEqual(result.output, repoDir);
+	});
+
+	it("rev-parse returns the current branch via --abbrev-ref", async () => {
+		git(repoDir, ["checkout", "main"]);
+		const result = await gitImpl({ action: "rev-parse", flag: "--abbrev-ref" }, { cwd: repoDir });
+		assert.strictEqual(result.ok, true);
+		assert.strictEqual(result.output, "main");
+	});
+
+	it("rev-parse resolves a ref to a hash", async () => {
+		const result = await gitImpl({ action: "rev-parse", ref: "HEAD" }, { cwd: repoDir });
+		assert.strictEqual(result.ok, true);
+		assert.ok(result.hash, "should return a hash");
+	});
+
+	it("remote get-url returns the origin URL", async () => {
+		const remoteDir = mkdtempSync(join(tmpdir(), "madz-git-remote-url-"));
+		try {
+			git(remoteDir, ["init", "--bare"]);
+			git(repoDir, ["remote", "add", "testorigin", remoteDir]);
+			const result = await gitImpl(
+				{ action: "remote", sub: "get-url", remote: "testorigin" },
+				{ cwd: repoDir },
+			);
+			assert.strictEqual(result.ok, true);
+			assert.strictEqual(result.url, remoteDir);
+		} finally {
+			rmSync(remoteDir, { recursive: true, force: true });
+		}
+	});
+
+	it("remote add registers a new remote", async () => {
+		const remoteDir = mkdtempSync(join(tmpdir(), "madz-git-remote-add-"));
+		try {
+			const result = await gitImpl(
+				{ action: "remote", sub: "add", remote: "upstream", url: remoteDir },
+				{ cwd: repoDir },
+			);
+			assert.strictEqual(result.ok, true);
+			const url = await gitImpl(
+				{ action: "remote", sub: "get-url", remote: "upstream" },
+				{ cwd: repoDir },
+			);
+			assert.strictEqual(url.url, remoteDir);
+		} finally {
+			rmSync(remoteDir, { recursive: true, force: true });
+		}
+	});
+
+	it("ls-remote lists remote refs", async () => {
+		const remoteDir = mkdtempSync(join(tmpdir(), "madz-git-lsremote-"));
+		try {
+			git(remoteDir, ["init", "--bare"]);
+			git(repoDir, ["remote", "add", "testls", remoteDir]);
+			git(repoDir, ["checkout", "main"]);
+			git(repoDir, ["push", "testls", "main", "--force"]);
+			const result = await gitImpl({ action: "ls-remote", remote: "testls" }, { cwd: repoDir });
+			assert.strictEqual(result.ok, true);
+			assert.ok(result.refs.length >= 1, "should list at least one ref");
+			assert.ok(
+				result.refs.some((r) => r.ref.includes("main")),
+				"should include the main ref",
+			);
+		} finally {
+			rmSync(remoteDir, { recursive: true, force: true });
+		}
+	});
+
+	it("fetch fetches from a remote", async () => {
+		const remoteDir = mkdtempSync(join(tmpdir(), "madz-git-fetch-"));
+		try {
+			git(remoteDir, ["init", "--bare"]);
+			git(repoDir, ["remote", "add", "testfetch", remoteDir]);
+			git(repoDir, ["checkout", "main"]);
+			git(repoDir, ["push", "testfetch", "main", "--force"]);
+			const result = await gitImpl({ action: "fetch", remote: "testfetch" }, { cwd: repoDir });
+			assert.strictEqual(result.ok, true);
+		} finally {
+			rmSync(remoteDir, { recursive: true, force: true });
+		}
+	});
+
+	it("worktree add creates a linked worktree", async () => {
+		const wtPath = join(tmpdir(), `madz-wt-${Date.now()}`);
+		try {
+			const result = await gitImpl(
+				{ action: "worktree", sub: "add", path: wtPath, branch: "wt-feature" },
+				{ cwd: repoDir },
+			);
+			assert.strictEqual(result.ok, true);
+			assert.strictEqual(result.path, wtPath);
+			assert.strictEqual(result.branch, "wt-feature");
+			const list = await gitImpl({ action: "worktree", sub: "list" }, { cwd: repoDir });
+			assert.ok(
+				list.worktrees.some((w) => w.path === wtPath),
+				"should list the new worktree",
+			);
+		} finally {
+			rmSync(wtPath, { recursive: true, force: true });
+		}
+	});
+
+	it("worktree remove removes a linked worktree", async () => {
+		const wtPath = join(tmpdir(), `madz-wt-remove-${Date.now()}`);
+		try {
+			await gitImpl(
+				{ action: "worktree", sub: "add", path: wtPath, branch: "wt-remove" },
+				{ cwd: repoDir },
+			);
+			const result = await gitImpl(
+				{ action: "worktree", sub: "remove", path: wtPath, force: true },
+				{ cwd: repoDir },
+			);
+			assert.strictEqual(result.ok, true);
+			assert.strictEqual(result.removed, true);
+		} finally {
+			rmSync(wtPath, { recursive: true, force: true });
+		}
+	});
+
+	it("checkout -b creates a new branch", async () => {
+		const result = await gitImpl(
+			{ action: "checkout", branch: "create-me", create: true },
+			{ cwd: repoDir },
+		);
+		assert.strictEqual(result.ok, true);
+		assert.strictEqual(result.branch, "create-me");
+		git(repoDir, ["checkout", "main"]);
+	});
+
+	it("branch -D deletes a branch", async () => {
+		git(repoDir, ["branch", "delete-me"]);
+		const result = await gitImpl(
+			{ action: "branch", delete: true, branch: "delete-me", force: true },
+			{ cwd: repoDir },
+		);
+		assert.strictEqual(result.ok, true);
+		assert.strictEqual(result.deleted, true);
+	});
 });
