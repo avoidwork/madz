@@ -27,6 +27,7 @@ import { createDataTool } from "./data/index.js";
 import { createWebhookTool } from "./webhook/index.js";
 import { searchCode, indexCode } from "./code/index.js";
 import { todo } from "./todo/index.js";
+import { file } from "./file/index.js";
 import { git } from "./git/index.js";
 import { getConfig } from "./config/index.js";
 import { decision, decisionImpl, DecisionToolSchema } from "./decision/index.js";
@@ -49,6 +50,7 @@ export const TOOL_PERMISSIONS = {
 	readImage: ["filesystem:read"],
 	memory: ["filesystem:read", "filesystem:write"],
 	todo: ["filesystem:read", "filesystem:write"],
+	file: ["filesystem:read", "filesystem:write"],
 	git: ["process:spawn"],
 	process: ["filesystem:exec", "process:spawn"],
 	sampling: ["filesystem:write"],
@@ -140,6 +142,17 @@ export const TOOL_CLASSIFICATIONS = {
 		"coding",
 	],
 	todo: [
+		"search",
+		"debug",
+		"code-review",
+		"research",
+		"testing",
+		"documentation",
+		"security-audit",
+		"performance",
+		"coding",
+	],
+	file: [
 		"search",
 		"debug",
 		"code-review",
@@ -286,6 +299,7 @@ export const TOOLS = {
 	readImage,
 	memory,
 	todo,
+	file,
 	git,
 	process: processTool,
 	sampling,
@@ -396,14 +410,11 @@ export async function buildToolConfig(options) {
 				continue;
 			}
 
-			case "readFile":
-			case "writeFile":
-			case "patch":
-			case "searchFiles":
 			case "scanAgents":
 			case "date":
 			case "cronJob":
-			case "git": {
+			case "git":
+			case "file": {
 				if (!hasAllPerms) continue;
 				tools.push(TOOLS[toolName]);
 				continue;
