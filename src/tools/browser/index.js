@@ -1,6 +1,7 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { mkdir, writeFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import { filterUrl } from "../../sandbox/urlFilter.js";
 import { loadConfig } from "../../config/loader.js";
@@ -158,7 +159,7 @@ function pruneSessions() {
  * @param {Function} options.launchBrowser - Browser launch factory
  * @param {Function} options.openPage - Page opener
  * @param {number} timeout - Per-call timeout in milliseconds
- * @returns {Promise<{ browser: object, page: object, sessionId: string|null }>}
+ * @returns {Promise<{ browser: object, page: object, sessionId: string }>}
  */
 async function resolveSession(input, options, timeout) {
 	const { launchBrowser: launch, openPage: open } = options;
@@ -176,12 +177,12 @@ async function resolveSession(input, options, timeout) {
 	const browser = await launch({ timeout });
 	const page = await open(browser, timeout);
 
-	if (sessionId) {
-		sessions.set(sessionId, { browser, page, lastUsed: Date.now() });
-		return { browser, page, sessionId };
-	}
-
-	return { browser, page, sessionId: null };
+	// Always persist the session so it can be reused. When the caller omits a
+	// sessionId, generate one and return it in the response; the idle GC
+	// reclaims sessions that are never reused.
+	const id = sessionId || randomUUID();
+	sessions.set(id, { browser, page, lastUsed: Date.now() });
+	return { browser, page, sessionId: id };
 }
 
 /**
@@ -303,24 +304,15 @@ export async function browserImpl(input, options = {}) {
 		// Close the session when explicitly requested.
 		if (input.action === "close") {
 			await browser.close().catch(() => {});
-			if (sessionId) sessions.delete(sessionId);
+			sessions.delete(sessionId);
 			return JSON.stringify({ ok: true, action: "close" });
 		}
 
-		// Ephemeral sessions (no sessionId) are closed after each call.
-		if (!sessionId) {
-			await page.close().catch(() => {});
-			await browser.close().catch(() => {});
-		}
-
-		return JSON.stringify(result);
+		// Every session is persisted. Return the sessionId so the caller can
+		// reuse it in subsequent calls; the idle GC reclaims unused sessions.
+		return JSON.stringify({ ...result, sessionId });
 	} catch (err) {
-		return JSON.stringify({ ok: false, error: `Browser action failed: ${err.message}` });
-	} finally {
-		// Always close ephemeral browsers; persistent sessions stay open.
-		if (!sessionId && browser) {
-			await browser.close().catch(() => {});
-		}
+		return JSON.stringify({ ok: false, error: `Browser action failed: ${err.message}`, sessionId });
 	}
 }
 
@@ -335,9 +327,9 @@ export const browser = tool(browserImpl, {
 		"screenshot, extract DOM text, wait for selectors/network-idle, and evaluate JavaScript " +
 		"in page context. The screenshot action captures a JPEG, saves it to memory/screenshots/, " +
 		"and returns its path plus MIME type so readImage can read it for vision analysis. " +
-		"Validates every outbound URL against the sandbox allowlist. Pass a sessionId to chain " +
-		"actions across calls within a persistent browser session; omit it for a per-call " +
-		"ephemeral session. Use this to act on a web page (forms, logins, SPAs) rather than just " +
-		"read it.",
+		"Validates every outbound URL against the sandbox allowlist. Every call returns a " +
+		"sessionId; pass it back to chain actions across calls within a persistent browser " +
+		"session. Unused sessions are reclaimed by an idle timeout. Use this to act on a web " +
+		"page (forms, logins, SPAs) rather than just read it.",
 	schema: BrowserToolSchema,
 });

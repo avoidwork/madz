@@ -283,7 +283,7 @@ describe("tools - file", () => {
 			writeFileSync(join(dir, "one.js"), "x");
 			writeFileSync(join(dir, "two.js"), "x");
 			writeFileSync(join(dir, "three.txt"), "x");
-			const result = await globImpl({ path: dir, glob: "**/*.js" }, getOptions());
+			const result = await globImpl({ path: dir, pattern: "**/*.js" }, getOptions());
 			assert.match(result, /one\.js/);
 			assert.match(result, /two\.js/);
 			assert.ok(!result.includes("three.txt"));

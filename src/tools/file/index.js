@@ -549,7 +549,7 @@ export async function globImpl(input, options) {
 		return `Error: ${resolved.error}`;
 	}
 
-	const pattern = input.glob || "**/*";
+	const pattern = input.pattern || "**/*";
 	const regex = globToRegex(pattern);
 	const results = [];
 	const seen = new Set();
@@ -708,8 +708,12 @@ export const file = tool(
 			content: z.string().optional().describe("Content to write (write action)"),
 			oldString: z.string().optional().describe("Text to find and replace (edit action)"),
 			newString: z.string().optional().describe("Replacement text (edit action)"),
-			pattern: z.string().optional().describe("Regex pattern to search for (search/grep action)"),
-			glob: z.string().optional().describe("Glob pattern to match (glob action)"),
+			pattern: z
+				.string()
+				.optional()
+				.describe(
+					"Regex pattern to search for (search/grep action), or glob pattern to match (glob action)",
+				),
 			maxResults: z
 				.number()
 				.int()

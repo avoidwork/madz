@@ -88,7 +88,7 @@ describe("tools - file integration", () => {
 	});
 
 	it("matches files by glob pattern", async () => {
-		const result = await globImpl({ path: TEST_DIR, glob: "**/*.js" }, getOptions());
+		const result = await globImpl({ path: TEST_DIR, pattern: "**/*.js" }, getOptions());
 		assert.match(result, /index\.js/);
 		assert.match(result, /util\.js/);
 		assert.match(result, /deep\.js/);

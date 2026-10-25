@@ -317,25 +317,21 @@ describe("browserImpl", () => {
 		assert.match(parsed.error, /Browser action failed/);
 	});
 
-	it("closes the browser in a finally block", async () => {
-		let closed = false;
+	it("generates and returns a sessionId when none is provided", async () => {
 		const { page } = makePage({
 			evaluate: async () => "Extracted text",
 		});
 		const result = await browserImpl(
 			{ action: "extract" },
 			{
-				launchBrowser: async () => ({
-					close: async () => {
-						closed = true;
-					},
-				}),
+				launchBrowser: async () => ({ close: async () => {} }),
 				openPage: async () => page,
 			},
 		);
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, true);
-		assert.strictEqual(closed, true);
+		assert.strictEqual(typeof parsed.sessionId, "string");
+		assert.ok(parsed.sessionId.length > 0);
 	});
 
 	it("reuses a persistent session when a sessionId is provided", async () => {
@@ -356,6 +352,35 @@ describe("browserImpl", () => {
 			{ launchBrowser, openPage: async () => page },
 		);
 		// The second call reuses the session, so the browser is only launched once.
+		assert.strictEqual(launchCount, 1);
+	});
+
+	it("reuses an auto-generated sessionId across calls", async () => {
+		const { page } = makePage({
+			evaluate: async () => "Extracted text",
+		});
+		let launchCount = 0;
+		const launchBrowser = async () => {
+			launchCount += 1;
+			return { close: async () => {} };
+		};
+		const first = JSON.parse(
+			await browserImpl(
+				{ action: "navigate", url: "https://example.com" },
+				{ launchBrowser, openPage: async () => page },
+			),
+		);
+		assert.strictEqual(first.ok, true);
+		assert.strictEqual(typeof first.sessionId, "string");
+		const second = JSON.parse(
+			await browserImpl(
+				{ action: "extract", sessionId: first.sessionId },
+				{ launchBrowser, openPage: async () => page },
+			),
+		);
+		assert.strictEqual(second.ok, true);
+		// The second call reuses the auto-generated session, so the browser is
+		// only launched once.
 		assert.strictEqual(launchCount, 1);
 	});
 
