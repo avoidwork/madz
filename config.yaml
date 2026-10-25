@@ -84,7 +84,6 @@ calendar:
       requestsPerMinute: 60
 sandbox:
   paths:
-    - "./"
     - "/tmp"
   skillScanPaths:
     - "skills/"
