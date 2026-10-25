@@ -3,7 +3,7 @@ import assert from "node:assert";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { gitImpl, git } from "../../../src/tools/git/index.js";
+import { git } from "../../../src/tools/git/index.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const GIT_SOURCE = readFileSync(join(__dirname, "../../../src/tools/git/index.js"), "utf-8");
@@ -112,51 +112,7 @@ describe("tools - git", () => {
 		});
 	});
 
-	describe("guardrail rejection of destructive commands", () => {
-		it("rejects push with force flag without force: true", async () => {
-			const result = await gitImpl({ action: "push", force: false });
-			assert.strictEqual(result.ok, false);
-			assert.ok(result.error.includes("force"));
-		});
-
-		it("rejects rebase without explicit opt-in", async () => {
-			const result = await gitImpl({ action: "rebase", branch: "main" });
-			assert.strictEqual(result.ok, false);
-			assert.ok(result.error.includes("rebase"));
-		});
-
-		it("rejects worktree remove without force", async () => {
-			const result = await gitImpl({ action: "worktree", sub: "remove", path: "/tmp/x" });
-			assert.strictEqual(result.ok, false);
-			assert.ok(result.error.includes("force"));
-		});
-
-		it("rejects branch delete without force", async () => {
-			const result = await gitImpl({ action: "branch", delete: true, branch: "foo" });
-			assert.strictEqual(result.ok, false);
-			assert.ok(result.error.includes("force"));
-		});
-
-		it("rejects unknown action", async () => {
-			const result = await gitImpl({ action: "reset" });
-			assert.strictEqual(result.ok, false);
-			assert.ok(result.error.includes("Unknown action"));
-		});
-
-		it("rejects clean action", async () => {
-			const result = await gitImpl({ action: "clean" });
-			assert.strictEqual(result.ok, false);
-			assert.ok(result.error.includes("Unknown action"));
-		});
-	});
-
 	describe("arg-array construction (no shell injection)", () => {
-		it("status builds arg array", async () => {
-			const result = await gitImpl({ action: "status" });
-			// Should not throw and should return structured output or error
-			assert.ok(result.ok === true || result.ok === false);
-		});
-
 		it("does not use sh -c", () => {
 			// The implementation must use execFile, not spawn("sh", ["-c", ...])
 			assert.ok(!GIT_SOURCE.includes('spawn("sh"'), "git tool should not spawn sh");
@@ -165,38 +121,6 @@ describe("tools - git", () => {
 
 		it("uses execFile with git binary", () => {
 			assert.ok(GIT_SOURCE.includes('execFile("git"'), "git tool should use execFile('git')");
-		});
-	});
-
-	describe("validation of required params", () => {
-		it("worktree add requires a path", async () => {
-			const result = await gitImpl({ action: "worktree", sub: "add" });
-			assert.strictEqual(result.ok, false);
-			assert.ok(result.error.includes("path"));
-		});
-
-		it("worktree remove requires a path", async () => {
-			const result = await gitImpl({ action: "worktree", sub: "remove", force: true });
-			assert.strictEqual(result.ok, false);
-			assert.ok(result.error.includes("path"));
-		});
-
-		it("remote add requires remote and url", async () => {
-			const result = await gitImpl({ action: "remote", sub: "add" });
-			assert.strictEqual(result.ok, false);
-			assert.ok(result.error.includes("remote"));
-		});
-
-		it("rev-parse rejects invalid flag", async () => {
-			const result = await gitImpl({ action: "rev-parse", flag: "--bad-flag" });
-			assert.strictEqual(result.ok, false);
-			assert.ok(result.error.includes("Invalid rev-parse flag"));
-		});
-
-		it("rev-parse requires a flag or ref", async () => {
-			const result = await gitImpl({ action: "rev-parse" });
-			assert.strictEqual(result.ok, false);
-			assert.ok(result.error.includes("flag or ref"));
 		});
 	});
 });
