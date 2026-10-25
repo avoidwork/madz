@@ -13,6 +13,7 @@ import { SessionsPanel } from "./sessionsPanel.js";
 import { ProjectsPanel } from "./projectsPanel.js";
 import { SubagentsPanel } from "./subagentsPanel.js";
 import { updateSubagentStore } from "./subagentStore.js";
+import { setProjectCwd } from "../workspace/project.js";
 import { getActiveProviderConfig } from "../provider/index.js";
 import { useMouseScroll, scaleScrollDelta } from "./useMouseScroll.js";
 import { buildLayout, extractSelection, mapCoordToChar } from "./selectionLayout.js";
@@ -164,6 +165,7 @@ function App({
 	 */
 	const handleSelectProject = useCallback((projectPath) => {
 		setActiveProject(projectPath);
+		setProjectCwd(projectPath);
 		setCurrentView(PANELS.CONVERSATION);
 		// Silently notify the agent that we're now working in the selected project.
 		// The conversation area is unmounted during the panel view, so stage the
@@ -181,6 +183,7 @@ function App({
 	 */
 	const handleClearProject = useCallback(() => {
 		setActiveProject("");
+		setProjectCwd("");
 		setCurrentView(PANELS.CONVERSATION);
 		// Silently notify the agent that we've returned to the root directory.
 		pendingSilentMessageRef.current = "We are now working in madz root directory.";
