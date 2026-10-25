@@ -6,7 +6,7 @@ import {
 	buildReverseMap,
 	syncEnv,
 } from "../../src/config/loader.js";
-import { ConfigSchema } from "../../src/config/config.js";
+import { ConfigSchema, _setResolvedConfig } from "../../src/config/config.js";
 
 describe("_resolveEnvRecursively — OpenAI provider", () => {
 	let saved = { ...process.env };
@@ -516,5 +516,35 @@ describe("syncEnv", () => {
 		const raw = {};
 		const result = syncEnv(raw, ["tui"]);
 		assert.strictEqual(result, raw);
+	});
+});
+
+describe("_setResolvedConfig — sandbox path normalization", () => {
+	it("replaces relative './' entries with the absolute cwd", () => {
+		const config = {
+			cwd: "/home/jason/Projects/madz",
+			sandbox: { paths: ["./", "/tmp", "!node_modules/"] },
+		};
+		_setResolvedConfig(config);
+		assert.deepStrictEqual(config.sandbox.paths, [
+			"/tmp",
+			"!node_modules/",
+			"/home/jason/Projects/madz",
+		]);
+	});
+
+	it("does not duplicate the cwd if already present", () => {
+		const config = {
+			cwd: "/home/jason/Projects/madz",
+			sandbox: { paths: ["/tmp", "/home/jason/Projects/madz"] },
+		};
+		_setResolvedConfig(config);
+		assert.deepStrictEqual(config.sandbox.paths, ["/tmp", "/home/jason/Projects/madz"]);
+	});
+
+	it("leaves the paths untouched when cwd is missing", () => {
+		const config = { sandbox: { paths: ["./", "/tmp"] } };
+		_setResolvedConfig(config);
+		assert.deepStrictEqual(config.sandbox.paths, ["./", "/tmp"]);
 	});
 });

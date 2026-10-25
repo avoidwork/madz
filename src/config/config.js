@@ -89,11 +89,36 @@ export function getSubAgentTemperature(agentName) {
 
 // Module-level reference to the resolved config, set by loader.js after loadConfig()
 let resolvedConfig = null;
+
+/**
+ * Normalize the sandbox allowlist so it is robust regardless of the process
+ * working directory. Replaces relative `"./"` entries (which resolve against
+ * `process.cwd()` and can drift) with the absolute `config.cwd`, so every
+ * consumer — path validation, tool allowlists, subagent scopes — sees the
+ * project root explicitly.
+ * @param {Object} config - The resolved config object (mutated in place)
+ */
+function normalizeSandboxPaths(config) {
+	const sandbox = config?.sandbox;
+	const paths = sandbox?.paths;
+	const cwd = config?.cwd;
+	if (!Array.isArray(paths) || !cwd) return;
+
+	// Drop relative "." / "./" entries; they resolve against process.cwd().
+	const filtered = paths.filter((p) => p !== "." && p !== "./");
+	// Append the absolute cwd if it isn't already present.
+	if (!filtered.includes(cwd)) {
+		filtered.push(cwd);
+	}
+	sandbox.paths = filtered;
+}
+
 /**
  * @internal - Called by loader.js to set the resolved config reference
  * @param {Object} config - The resolved config object
  */
 export function _setResolvedConfig(config) {
+	normalizeSandboxPaths(config);
 	resolvedConfig = config;
 }
 
