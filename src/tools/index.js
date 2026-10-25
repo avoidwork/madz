@@ -10,6 +10,7 @@ import { searchSession } from "./session/index.js";
 import { processTool } from "./process/index.js";
 import { createSkill, skill, skillImpl } from "./skills/index.js";
 import { textToSpeech } from "./tts/index.js";
+import { transcribeAudio } from "./audio/index.js";
 import { searchWeb } from "./web/index.js";
 import { browser } from "./browser/index.js";
 import { docxTool, pdfTool, pptxTool, xlsxTool } from "./fileExtract/index.js";
@@ -58,6 +59,7 @@ export const TOOL_PERMISSIONS = {
 	scanAgents: ["filesystem:read"],
 	searchSession: ["filesystem:read"],
 	textToSpeech: [],
+	transcribeAudio: ["filesystem:read", "network:outbound"],
 	searchWeb: ["network:outbound"],
 	browser: ["network:outbound"],
 	docx: ["filesystem:read"],
@@ -168,6 +170,7 @@ export const TOOL_CLASSIFICATIONS = {
 	scanAgents: ["security-audit", "code-review", "coding"],
 	searchSession: ["search", "research"],
 	textToSpeech: ["documentation"],
+	transcribeAudio: ["documentation", "search", "research", "coding", "debug"],
 	searchWeb: ["search", "research", "coding"],
 	browser: ["search", "research", "coding"],
 	docx: ["search", "research", "coding", "documentation", "debug"],
@@ -302,6 +305,7 @@ export const TOOLS = {
 	scanAgents,
 	searchSession,
 	textToSpeech,
+	transcribeAudio,
 	searchWeb,
 	browser,
 	docx: docxTool,
@@ -436,6 +440,12 @@ export async function buildToolConfig(options) {
 
 			case "textToSpeech": {
 				if (!runtimeOptions.openaiApiKey) continue;
+				tools.push(TOOLS[toolName]);
+				continue;
+			}
+
+			case "transcribeAudio": {
+				if (!hasAllPerms) continue;
 				tools.push(TOOLS[toolName]);
 				continue;
 			}
