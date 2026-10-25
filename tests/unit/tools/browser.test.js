@@ -1,6 +1,19 @@
-import { describe, it } from "node:test";
+import { describe, it, before, after } from "node:test";
 import assert from "node:assert/strict";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { browserImpl, BrowserToolSchema } from "../../../src/tools/browser/index.js";
+
+let screenshotsDir;
+
+before(async () => {
+	screenshotsDir = await mkdtemp(join(tmpdir(), "madz-browser-"));
+});
+
+after(async () => {
+	await rm(screenshotsDir, { recursive: true, force: true });
+});
 
 const makePage = (overrides = {}) => {
 	const calls = { actions: [] };
@@ -214,17 +227,25 @@ describe("browserImpl", () => {
 		assert.strictEqual(calls.actions[0].key, "Enter");
 	});
 
-	it("captures a screenshot as base64", async () => {
+	it("captures a screenshot, saves it to disk, and returns the path", async () => {
 		const { page, calls } = makePage();
 		const result = await browserImpl(
 			{ action: "screenshot" },
-			{ launchBrowser: async () => ({ close: async () => {} }), openPage: async () => page },
+			{
+				launchBrowser: async () => ({ close: async () => {} }),
+				openPage: async () => page,
+				screenshotsDir,
+			},
 		);
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, true);
-		assert.strictEqual(parsed.mimeType, "image/png");
-		assert.strictEqual(parsed.data, "base64data");
+		assert.strictEqual(parsed.mimeType, "image/jpeg");
+		assert.strictEqual(typeof parsed.path, "string");
+		assert.match(parsed.path, /\.jpg$/);
+		assert.strictEqual(parsed.path.startsWith(screenshotsDir), true);
 		assert.strictEqual(calls.actions[0].type, "screenshot");
+		assert.strictEqual(calls.actions[0].opts.type, "jpeg");
+		assert.strictEqual(calls.actions[0].opts.quality, 80);
 	});
 
 	it("extracts DOM text", async () => {

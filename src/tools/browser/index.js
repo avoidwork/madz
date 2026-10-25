@@ -1,6 +1,9 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
+import { mkdir, writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import { filterUrl } from "../../sandbox/urlFilter.js";
+import { loadConfig } from "../../config/loader.js";
 import { launchBrowser, openPage, DEFAULT_TIMEOUT } from "./browser.js";
 
 /**
@@ -186,9 +189,10 @@ async function resolveSession(input, options, timeout) {
  * @param {import("puppeteer-core").Page} page - The opened page
  * @param {object} input - The validated tool input
  * @param {number} timeout - Per-call timeout in milliseconds
+ * @param {string} [screenshotsDir] - Directory to save screenshots to (defaults to config)
  * @returns {Promise<object>} The action result
  */
-async function runAction(page, input, timeout) {
+async function runAction(page, input, timeout, screenshotsDir) {
 	switch (input.action) {
 		case "navigate": {
 			await page.goto(input.url, { waitUntil: "load", timeout });
@@ -217,8 +221,16 @@ async function runAction(page, input, timeout) {
 			const data = await page.screenshot({
 				fullPage: input.fullPage ?? true,
 				encoding: "base64",
+				type: "jpeg",
+				quality: 80,
 			});
-			return { ok: true, action: "screenshot", mimeType: "image/png", data };
+			const config = loadConfig();
+			const dir = screenshotsDir || join(config.cwd, config.memory.screenshotsDir);
+			await mkdir(dir, { recursive: true });
+			const filename = `screenshot-${Date.now()}.jpg`;
+			const path = join(dir, filename);
+			await writeFile(path, Buffer.from(data, "base64"));
+			return { ok: true, action: "screenshot", mimeType: "image/jpeg", path };
 		}
 		case "extract": {
 			const content = await page.evaluate(() => document.body?.innerText || "");
@@ -255,12 +267,14 @@ async function runAction(page, input, timeout) {
  * @param {object} [options] - Runtime options for test injection
  * @param {Function} [options.launchBrowser] - Browser launch factory (defaults to real one)
  * @param {Function} [options.openPage] - Page opener (defaults to real one)
+ * @param {string} [options.screenshotsDir] - Directory to save screenshots to (defaults to config)
  * @returns {Promise<string>} JSON result string
  */
 export async function browserImpl(input, options = {}) {
 	const launch = options.launchBrowser || launchBrowser;
 	const open = options.openPage || openPage;
 	const timeout = input.timeout || DEFAULT_TIMEOUT;
+	const screenshotsDir = options.screenshotsDir;
 
 	// Validate any URL-bearing action against the sandbox allowlist before
 	// launching the browser (SSRF protection).
@@ -284,7 +298,7 @@ export async function browserImpl(input, options = {}) {
 		page = resolved.page;
 		sessionId = resolved.sessionId;
 
-		const result = await runAction(page, input, timeout);
+		const result = await runAction(page, input, timeout, screenshotsDir);
 
 		// Close the session when explicitly requested.
 		if (input.action === "close") {
@@ -319,9 +333,11 @@ export const browser = tool(browserImpl, {
 	description:
 		"Drive a real headless Chromium browser — click, type, fill, navigate, press keys, " +
 		"screenshot, extract DOM text, wait for selectors/network-idle, and evaluate JavaScript " +
-		"in page context. Validates every outbound URL against the sandbox allowlist. Pass a " +
-		"sessionId to chain actions across calls within a persistent browser session; omit it for " +
-		"a per-call ephemeral session. Use this to act on a web page (forms, logins, SPAs) rather " +
-		"than just read it.",
+		"in page context. The screenshot action captures a JPEG, saves it to memory/screenshots/, " +
+		"and returns its path plus MIME type so readImage can read it for vision analysis. " +
+		"Validates every outbound URL against the sandbox allowlist. Pass a sessionId to chain " +
+		"actions across calls within a persistent browser session; omit it for a per-call " +
+		"ephemeral session. Use this to act on a web page (forms, logins, SPAs) rather than just " +
+		"read it.",
 	schema: BrowserToolSchema,
 });
