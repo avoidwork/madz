@@ -119,7 +119,7 @@ export const BrowserToolSchema = z.discriminatedUnion("action", [
 	}),
 	z.object({
 		action: z.literal("evaluate"),
-		fn: z.string().min(1).describe("JavaScript function body to run in page context"),
+		fn: z.string().min(1).describe("JavaScript expression to evaluate in page context"),
 		sessionId: z.string().optional().describe("Session ID to reuse a persistent browser"),
 		timeout: z
 			.number()
@@ -233,9 +233,7 @@ async function runAction(page, input, timeout) {
 			return { ok: true, action: "waitFor", selector: input.selector ?? null };
 		}
 		case "evaluate": {
-			// eslint-disable-next-line no-new-func
-			const fn = new Function(`return (${input.fn})`)();
-			const result = await page.evaluate(fn);
+			const result = await page.evaluate(input.fn);
 			return { ok: true, action: "evaluate", result };
 		}
 		case "close": {

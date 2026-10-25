@@ -107,7 +107,7 @@ describe("BrowserToolSchema", () => {
 	});
 
 	it("accepts an evaluate action", () => {
-		const result = BrowserToolSchema.safeParse({ action: "evaluate", fn: "() => document.title" });
+		const result = BrowserToolSchema.safeParse({ action: "evaluate", fn: "document.title" });
 		assert.strictEqual(result.success, true);
 	});
 
@@ -272,7 +272,7 @@ describe("browserImpl", () => {
 			},
 		});
 		const result = await browserImpl(
-			{ action: "evaluate", fn: "() => document.title" },
+			{ action: "evaluate", fn: "document.title" },
 			{ launchBrowser: async () => ({ close: async () => {} }), openPage: async () => page },
 		);
 		const parsed = JSON.parse(result);
