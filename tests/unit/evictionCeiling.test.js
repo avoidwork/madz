@@ -78,16 +78,25 @@ describe("createEvictionAwareFilesystemMiddleware", () => {
 		assert.strictEqual(middleware.name, "FilesystemMiddleware");
 	});
 
-	it("supplies all eight filesystem tools when the profile excludes none", () => {
+	it("supplies no filesystem tools — madz owns file I/O via the file tool", () => {
 		const middleware = createEvictionAwareFilesystemMiddleware({});
-		assert.deepStrictEqual(
-			middleware.tools.map((tool) => tool.name),
-			["ls", "read_file", "write_file", "edit_file", "delete", "glob", "grep", "execute"],
-		);
+		assert.deepStrictEqual(middleware.tools, []);
 	});
 
-	it("mirrors the harness profile's excludedTools for the model", () => {
-		// A unique model id keeps the global profile registry uncontaminated.
+	it("does not expose the library's eight filesystem tools", () => {
+		const middleware = createEvictionAwareFilesystemMiddleware({});
+		const names = middleware.tools.map((tool) => tool.name);
+		assert.ok(!names.includes("ls"));
+		assert.ok(!names.includes("read_file"));
+		assert.ok(!names.includes("write_file"));
+		assert.ok(!names.includes("edit_file"));
+		assert.ok(!names.includes("delete"));
+		assert.ok(!names.includes("glob"));
+		assert.ok(!names.includes("grep"));
+		assert.ok(!names.includes("execute"));
+	});
+
+	it("keeps the name FilesystemMiddleware regardless of model profile", () => {
 		registerHarnessProfile(
 			"openai:eviction-ceiling-probe",
 			createHarnessProfile({ excludedTools: ["execute", "grep", "ls"] }),
@@ -95,72 +104,48 @@ describe("createEvictionAwareFilesystemMiddleware", () => {
 		const middleware = createEvictionAwareFilesystemMiddleware({
 			model: "openai:eviction-ceiling-probe",
 		});
-		assert.deepStrictEqual(
-			middleware.tools.map((tool) => tool.name),
-			["read_file", "write_file", "edit_file", "delete", "glob"],
-		);
+		assert.strictEqual(middleware.name, "FilesystemMiddleware");
+		assert.deepStrictEqual(middleware.tools, []);
 	});
 
-	it("keeps read_file even when the profile excludes it", () => {
-		registerHarnessProfile(
-			"openai:eviction-ceiling-readfile-probe",
-			createHarnessProfile({ excludedTools: ["read_file", "ls"] }),
-		);
-		const middleware = createEvictionAwareFilesystemMiddleware({
-			model: "openai:eviction-ceiling-readfile-probe",
-		});
-		assert.ok(middleware.tools.some((tool) => tool.name === "read_file"));
-	});
-
-	it("resolves the profile from a model instance's provider and identifier", () => {
+	it("supplies no filesystem tools for a model instance", () => {
 		registerHarnessProfile(
 			"openai:eviction-ceiling-instance-probe",
 			createHarnessProfile({ excludedTools: ["execute", "grep", "ls"] }),
 		);
-		// Mirrors what deepagents' getModelProvider/getModelIdentifier read off a
-		// model instance: `getName()` for the provider hint and `model_name` /
-		// `modelName` for the identifier hint.
 		const model = { getName: () => "ChatOpenAI", model_name: "eviction-ceiling-instance-probe" };
 		const middleware = createEvictionAwareFilesystemMiddleware({ model });
-		assert.deepStrictEqual(
-			middleware.tools.map((tool) => tool.name),
-			["read_file", "write_file", "edit_file", "delete", "glob"],
-		);
+		assert.strictEqual(middleware.name, "FilesystemMiddleware");
+		assert.deepStrictEqual(middleware.tools, []);
 	});
 
-	it("resolves a colon-bearing identifier directly, without the provider prefix", () => {
+	it("supplies no filesystem tools for a colon-bearing identifier", () => {
 		registerHarnessProfile(
 			"anthropic:eviction-ceiling-colon-probe",
 			createHarnessProfile({ excludedTools: ["execute"] }),
 		);
-		// `identifierHint` already carries a provider, so the lookup uses it as-is
-		// rather than prefixing `providerHint` again.
 		const model = {
 			getName: () => "ChatAnthropic",
 			model_name: "anthropic:eviction-ceiling-colon-probe",
 		};
 		const middleware = createEvictionAwareFilesystemMiddleware({ model });
-		assert.deepStrictEqual(
-			middleware.tools.map((tool) => tool.name),
-			["ls", "read_file", "write_file", "edit_file", "delete", "glob", "grep"],
-		);
+		assert.strictEqual(middleware.name, "FilesystemMiddleware");
+		assert.deepStrictEqual(middleware.tools, []);
 	});
 
-	it("falls back to a provider-only profile when the identifier is absent", () => {
-		// Mirrors deepagents' third resolution step: `getHarnessProfile(providerHint)`.
+	it("supplies no filesystem tools for a provider-only profile", () => {
 		registerHarnessProfile("google", createHarnessProfile({ excludedTools: ["execute"] }));
 		const model = { getName: () => "ChatGoogleGenerativeAI" };
 		const middleware = createEvictionAwareFilesystemMiddleware({ model });
-		assert.deepStrictEqual(
-			middleware.tools.map((tool) => tool.name),
-			["ls", "read_file", "write_file", "edit_file", "delete", "glob", "grep"],
-		);
+		assert.strictEqual(middleware.name, "FilesystemMiddleware");
+		assert.deepStrictEqual(middleware.tools, []);
 	});
 
-	it("falls back to all tools when the model yields no profile", () => {
+	it("supplies no filesystem tools when the model yields no profile", () => {
 		const model = { getName: () => "SomeUnknownModelWrapper" };
 		const middleware = createEvictionAwareFilesystemMiddleware({ model });
-		assert.strictEqual(middleware.tools.length, 8);
+		assert.strictEqual(middleware.name, "FilesystemMiddleware");
+		assert.deepStrictEqual(middleware.tools, []);
 	});
 });
 
