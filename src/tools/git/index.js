@@ -31,7 +31,7 @@ const VALID_ACTIONS = [
  * invoked implicitly.
  * @type {string[]}
  */
-const FORCE_ACTIONS = ["push", "rebase"];
+const FORCE_ACTIONS = ["rebase"];
 
 /**
  * Safe flags accepted by the `rev-parse` action. Free-form args are never
@@ -612,7 +612,7 @@ export async function gitImpl(input, options = {}) {
 export const git = tool((input, options = {}) => gitImpl(input, options), {
 	name: "git",
 	description:
-		"Git tool with guardrails. Actions: status, diff, log, branch, add, commit, push, pull, checkout, merge, rebase, stash, show, tag, worktree, remote, rev-parse, ls-remote, fetch, describe. Diff supports cached/nameOnly/stat/patch/numstat modes; log supports subject-only; tag supports pattern; ls-remote supports --tags; checkout supports --detach. Destructive actions (push, rebase, worktree remove, branch delete) require force: true. Uses execFile('git', [args]) — never sh -c.",
+		"Git tool with guardrails. Actions: status, diff, log, branch, add, commit, push, pull, checkout, merge, rebase, stash, show, tag, worktree, remote, rev-parse, ls-remote, fetch, describe. Diff supports cached/nameOnly/stat/patch/numstat modes; log supports subject-only; tag supports pattern; ls-remote supports --tags; checkout supports --detach. Destructive actions (rebase, worktree remove, branch delete) require force: true. Uses execFile('git', [args]) — never sh -c.",
 	schema: z.object({
 		action: z
 			.enum(VALID_ACTIONS)
@@ -638,7 +638,7 @@ export const git = tool((input, options = {}) => gitImpl(input, options), {
 			.boolean()
 			.optional()
 			.describe(
-				"Set to true to allow destructive actions (push, rebase, worktree remove, branch delete)",
+				"Set to true to allow destructive actions (rebase, worktree remove, branch delete)",
 			),
 		sub: z
 			.string()

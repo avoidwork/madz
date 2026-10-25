@@ -113,10 +113,18 @@ describe("tools - git", () => {
 	});
 
 	describe("guardrail rejection of destructive commands", () => {
-		it("rejects push with force flag without force: true", async () => {
-			const result = await gitImpl({ action: "push", force: false });
-			assert.strictEqual(result.ok, false);
-			assert.ok(result.error.includes("force"));
+		it("does not gate push as destructive", () => {
+			// push is a plain `git push remote branch`, not a force push; it must
+			// not be blanket-gated as destructive. Assert the source rather than
+			// invoking a real push (which would hit the network).
+			assert.ok(
+				!GIT_SOURCE.includes('const FORCE_ACTIONS = ["push", "rebase"]'),
+				"push should not be in FORCE_ACTIONS",
+			);
+			assert.ok(
+				GIT_SOURCE.includes('const FORCE_ACTIONS = ["rebase"]'),
+				"FORCE_ACTIONS should only gate rebase",
+			);
 		});
 
 		it("rejects rebase without explicit opt-in", async () => {
