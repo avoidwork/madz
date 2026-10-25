@@ -83,6 +83,33 @@ describe("tools - git", () => {
 				assert.ok(result.success, `rev-parse flag '${flag}' should be valid`);
 			}
 		});
+
+		it("accepts diff mode flags", () => {
+			for (const flag of ["cached", "nameOnly", "stat", "patch", "numstat"]) {
+				const result = git.schema.safeParse({ action: "diff", [flag]: true });
+				assert.ok(result.success, `diff flag '${flag}' should be valid`);
+			}
+		});
+
+		it("accepts log subject flag", () => {
+			const result = git.schema.safeParse({ action: "log", subject: true });
+			assert.ok(result.success, "log subject flag should be valid");
+		});
+
+		it("accepts tag pattern", () => {
+			const result = git.schema.safeParse({ action: "tag", pattern: "1.*" });
+			assert.ok(result.success, "tag pattern should be valid");
+		});
+
+		it("accepts ls-remote tags flag", () => {
+			const result = git.schema.safeParse({ action: "ls-remote", tags: true });
+			assert.ok(result.success, "ls-remote tags flag should be valid");
+		});
+
+		it("accepts checkout detach flag", () => {
+			const result = git.schema.safeParse({ action: "checkout", detach: true });
+			assert.ok(result.success, "checkout detach flag should be valid");
+		});
 	});
 
 	describe("guardrail rejection of destructive commands", () => {

@@ -231,19 +231,55 @@ export async function gitImpl(input, options = {}) {
 		}
 
 		case "diff": {
-			const res = await runGit(["diff", "--numstat"], cwd);
+			const args = ["diff"];
+			if (input.cached) args.push("--cached");
+			// Default mode is numstat (backward compatible). Explicit modes
+			// override it: nameOnly, stat, patch, or numstat.
+			let mode = "numstat";
+			if (input.nameOnly) mode = "name-only";
+			else if (input.stat) mode = "stat";
+			else if (input.patch) mode = "patch";
+			else if (input.numstat) mode = "numstat";
+			if (mode === "name-only") args.push("--name-only");
+			else if (mode === "stat") args.push("--stat");
+			else if (mode === "numstat") args.push("--numstat");
+			// patch mode passes no format flag — raw unified diff.
+			if (input.ref) args.push(input.ref);
+			if (input.path) args.push(input.path);
+			const res = await runGit(args, cwd);
 			if (res.code !== 0) {
 				return { ok: false, error: res.stderr.trim() || res.stdout.trim() };
+			}
+			if (mode === "name-only") {
+				return { ok: true, files: res.stdout.split("\n").filter((l) => l.trim() !== "") };
+			}
+			if (mode === "stat" || mode === "patch") {
+				return { ok: true, output: res.stdout.trim() };
 			}
 			const { files, additions, deletions } = parseDiff(res.stdout);
 			return { ok: true, files, additions, deletions };
 		}
 
 		case "log": {
-			const limit = input.limit || 20;
-			const res = await runGit(["log", "--oneline", `-${limit}`], cwd);
+			const args = ["log"];
+			// Subject-only mode (--pretty=format:"%s") is used by git-tag and
+			// update-semver to collect commit messages for a delta description.
+			if (input.subject) {
+				args.push("--pretty=format:%s");
+			} else {
+				args.push("--oneline");
+			}
+			if (input.ref) {
+				args.push(input.ref);
+			} else if (input.limit) {
+				args.push(`-${input.limit}`);
+			}
+			const res = await runGit(args, cwd);
 			if (res.code !== 0) {
 				return { ok: false, error: res.stderr.trim() || res.stdout.trim() };
+			}
+			if (input.subject) {
+				return { ok: true, subjects: res.stdout.split("\n").filter((l) => l.trim() !== "") };
 			}
 			return { ok: true, commits: parseLog(res.stdout) };
 		}
@@ -325,6 +361,13 @@ export async function gitImpl(input, options = {}) {
 		}
 
 		case "checkout": {
+			if (input.detach) {
+				const res = await runGit(["checkout", "--detach"], cwd);
+				if (res.code !== 0) {
+					return { ok: false, error: res.stderr.trim() || res.stdout.trim() };
+				}
+				return { ok: true, detached: true };
+			}
 			if (!input.branch) {
 				return { ok: false, error: "checkout requires a branch" };
 			}
@@ -385,7 +428,9 @@ export async function gitImpl(input, options = {}) {
 				}
 				return { ok: true, name: input.name, ref: input.ref || "HEAD" };
 			}
-			const res = await runGit(["tag"], cwd);
+			const args = ["tag"];
+			if (input.pattern) args.push("-l", input.pattern);
+			const res = await runGit(args, cwd);
 			if (res.code !== 0) {
 				return { ok: false, error: res.stderr.trim() || res.stdout.trim() };
 			}
@@ -527,7 +572,9 @@ export async function gitImpl(input, options = {}) {
 
 		case "ls-remote": {
 			const remote = input.remote || "origin";
-			const args = ["ls-remote", remote];
+			const args = ["ls-remote"];
+			if (input.tags) args.push("--tags");
+			args.push(remote);
 			if (input.ref) args.push(input.ref);
 			const res = await runGit(args, cwd);
 			if (res.code !== 0) {
@@ -565,14 +612,17 @@ export async function gitImpl(input, options = {}) {
 export const git = tool((input, options = {}) => gitImpl(input, options), {
 	name: "git",
 	description:
-		"Git tool with guardrails. Actions: status, diff, log, branch, add, commit, push, pull, checkout, merge, rebase, stash, show, tag, worktree, remote, rev-parse, ls-remote, fetch, describe. Destructive actions (push, rebase, worktree remove, branch delete) require force: true. Uses execFile('git', [args]) — never sh -c.",
+		"Git tool with guardrails. Actions: status, diff, log, branch, add, commit, push, pull, checkout, merge, rebase, stash, show, tag, worktree, remote, rev-parse, ls-remote, fetch, describe. Diff supports cached/nameOnly/stat/patch/numstat modes; log supports subject-only; tag supports pattern; ls-remote supports --tags; checkout supports --detach. Destructive actions (push, rebase, worktree remove, branch delete) require force: true. Uses execFile('git', [args]) — never sh -c.",
 	schema: z.object({
 		action: z
 			.enum(VALID_ACTIONS)
 			.describe(
 				"Action to perform (status, diff, log, branch, add, commit, push, pull, checkout, merge, rebase, stash, show, tag, worktree, remote, rev-parse, ls-remote, fetch, describe)",
 			),
-		path: z.string().optional().describe("Path for status/diff/add/worktree actions"),
+		path: z
+			.string()
+			.optional()
+			.describe("Path for status/diff/add/worktree actions, or a path filter for diff"),
 		message: z
 			.string()
 			.optional()
@@ -599,5 +649,20 @@ export const git = tool((input, options = {}) => gitImpl(input, options), {
 		flag: z.enum(REV_PARSE_FLAGS).optional().describe("Flag for rev-parse action"),
 		create: z.boolean().optional().describe("Set to true to create a branch on checkout (-b)"),
 		delete: z.boolean().optional().describe("Set to true to delete a branch (branch -D)"),
+		detach: z.boolean().optional().describe("Set to true to detach HEAD (checkout --detach)"),
+		cached: z.boolean().optional().describe("Set to true to diff the staged index (--cached)"),
+		nameOnly: z
+			.boolean()
+			.optional()
+			.describe("Set to true to list changed file names only (--name-only)"),
+		stat: z.boolean().optional().describe("Set to true to show a diffstat (--stat)"),
+		patch: z.boolean().optional().describe("Set to true to show the full unified diff (raw patch)"),
+		numstat: z.boolean().optional().describe("Set to true to show numstat (default)"),
+		subject: z
+			.boolean()
+			.optional()
+			.describe("Set to true to list commit subjects only (log --pretty=format:%s)"),
+		pattern: z.string().optional().describe("Pattern for tag list (-l)"),
+		tags: z.boolean().optional().describe("Set to true to list remote tags (ls-remote --tags)"),
 	}),
 });
