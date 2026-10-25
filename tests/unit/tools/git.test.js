@@ -10,7 +10,7 @@ const GIT_SOURCE = readFileSync(join(__dirname, "../../../src/tools/git/index.js
 
 describe("tools - git", () => {
 	describe("Zod schema validation", () => {
-		it("validates all 13 actions", () => {
+		it("validates all 14 actions", () => {
 			const actions = [
 				"status",
 				"diff",
@@ -19,6 +19,7 @@ describe("tools - git", () => {
 				"add",
 				"commit",
 				"push",
+				"pull",
 				"checkout",
 				"merge",
 				"rebase",
