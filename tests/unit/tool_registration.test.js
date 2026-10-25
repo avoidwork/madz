@@ -75,7 +75,6 @@ describe("tool registration - integration", () => {
 		});
 		const toolNames = tools.map((t) => t.name);
 		assert.ok(toolNames.includes("searchWeb"));
-		assert.ok(toolNames.includes("extractWeb"));
 	});
 
 	it("registers web tools when searxng is configured", async () => {
@@ -88,7 +87,6 @@ describe("tool registration - integration", () => {
 		});
 		const toolNames = tools.map((t) => t.name);
 		assert.ok(toolNames.includes("searchWeb"));
-		assert.ok(toolNames.includes("extractWeb"));
 	});
 
 	it("registers web tools when bing is configured", async () => {
@@ -101,7 +99,6 @@ describe("tool registration - integration", () => {
 		});
 		const toolNames = tools.map((t) => t.name);
 		assert.ok(toolNames.includes("searchWeb"));
-		assert.ok(toolNames.includes("extractWeb"));
 	});
 
 	it("registers web tools when custom search is configured", async () => {
@@ -114,7 +111,6 @@ describe("tool registration - integration", () => {
 		});
 		const toolNames = tools.map((t) => t.name);
 		assert.ok(toolNames.includes("searchWeb"));
-		assert.ok(toolNames.includes("extractWeb"));
 	});
 
 	it("registers web tools without any search key (duckduckgo fallback)", async () => {
@@ -124,7 +120,6 @@ describe("tool registration - integration", () => {
 		});
 		const toolNames = tools.map((t) => t.name);
 		assert.ok(toolNames.includes("searchWeb"));
-		assert.ok(toolNames.includes("extractWeb"));
 	});
 
 	it("registers image_generate with network:outbound and fal", async () => {

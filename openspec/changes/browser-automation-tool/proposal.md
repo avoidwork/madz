@@ -9,7 +9,7 @@ madz's web toolset is read-only: `searchWeb`, `extractWeb`, `renderWeb`, and `sc
 - Validate every outbound URL against `filterUrl` (SSRF protection).
 - Return page text, a base64 screenshot (for `readImage`), or a JSON error string.
 - Register the tool in `TOOL_PERMISSIONS`, `TOOL_CLASSIFICATIONS`, `TOOLS`, and the `buildToolConfig` switch in `src/tools/index.js`.
-- Reuse the existing `launchBrowser`/`openPage` helpers in `src/tools/web/browser.js`.
+- Reuse the `launchBrowser`/`openPage` helpers in `src/tools/browser/browser.js`.
 
 ## Capabilities
 

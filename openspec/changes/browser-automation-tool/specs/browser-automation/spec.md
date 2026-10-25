@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Browser tool drives a headless browser
-The system SHALL provide a `browser` tool that drives a real headless Chromium browser via `puppeteer-core`, reusing the existing `launchBrowser`/`openPage` helpers in `src/tools/web/browser.js`.
+The system SHALL provide a `browser` tool that drives a real headless Chromium browser via `puppeteer-core`, reusing the `launchBrowser`/`openPage` helpers in `src/tools/browser/browser.js`.
 
 #### Scenario: Tool is registered
 - **WHEN** the tool registry is built via `buildToolConfig`

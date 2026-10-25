@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { openPage } from "../../../src/tools/web/browser.js";
+import { openPage } from "../../../src/tools/browser/browser.js";
 
 const makeBrowser = () => {
 	const calls = { viewport: null };

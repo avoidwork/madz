@@ -36,12 +36,12 @@ Tool access below is the madz tool set each agent receives via `TOOL_CLASSIFICAT
 | Agent | Purpose | Tool Access |
 | ----- | ------- | ----------- |
 | `code-review` | Structured code reviews covering bugs, security, style, performance | `clarify`, `skill`, `date`, `memory`, `todo`, `scanAgents`, `searchCode`, `getConfig` |
-| `coding` | Code implementation with read-before-write discipline, complete shipping, convention adherence, and dead-code elimination | `clarify`, `skill`, `date`, `readImage`, `memory`, `todo`, `process`, `scanAgents`, `extractWeb`, `searchWeb`, `renderWeb`, `screenshotWeb`, `docx`, `pptx`, `xlsx`, `pdf`, `email`, `spreadsheet`, `calendar`, `generatePdf`, `namecom`, `generatePptx`, `api`, `graphql`, `json`, `yaml`, `data`, `webhook`, `searchCode`, `indexCode`, `getConfig` |
+| `coding` | Code implementation with read-before-write discipline, complete shipping, convention adherence, and dead-code elimination | `clarify`, `skill`, `date`, `readImage`, `memory`, `todo`, `process`, `scanAgents`, `searchWeb`, `browser`, `docx`, `pptx`, `xlsx`, `pdf`, `email`, `spreadsheet`, `calendar`, `generatePdf`, `namecom`, `generatePptx`, `api`, `graphql`, `json`, `yaml`, `data`, `webhook`, `searchCode`, `indexCode`, `getConfig` |
 | `debug` | Error tracing, reproduction, and fix proposals | `clarify`, `skill`, `date`, `readImage`, `memory`, `todo`, `process`, `docx`, `pptx`, `xlsx`, `pdf`, `email`, `spreadsheet`, `calendar`, `generatePdf`, `namecom`, `generatePptx`, `api`, `graphql`, `json`, `yaml`, `data`, `webhook`, `searchCode`, `indexCode`, `getConfig` |
 | `documentation` | Documentation updates, API docs generation, changelog maintenance | `clarify`, `createSkill`, `skill`, `date`, `generateImage`, `readImage`, `memory`, `todo`, `sampling`, `textToSpeech`, `docx`, `pptx`, `xlsx`, `pdf`, `email`, `spreadsheet`, `calendar`, `generatePdf`, `namecom`, `generatePptx`, `api`, `graphql`, `json`, `yaml`, `data`, `webhook`, `searchCode`, `getConfig` |
 | `performance` | Performance benchmarking, bottleneck identification, optimization suggestions | `clarify`, `cronJob`, `skill`, `date`, `memory`, `todo`, `process`, `calendar`, `searchCode`, `indexCode`, `getConfig` |
-| `research` | Multi-step research with source tracking and comprehensive reports | `clarify`, `skill`, `date`, `readImage`, `memory`, `todo`, `searchSession`, `extractWeb`, `searchWeb`, `renderWeb`, `screenshotWeb`, `docx`, `pptx`, `xlsx`, `pdf`, `email`, `spreadsheet`, `calendar`, `generatePdf`, `namecom`, `generatePptx`, `api`, `graphql`, `json`, `yaml`, `data`, `webhook`, `searchCode`, `getConfig` |
-| `search` | Multi-source search (web, docs, codebase) with synthesis | `clarify`, `skill`, `date`, `readImage`, `memory`, `todo`, `searchSession`, `extractWeb`, `searchWeb`, `renderWeb`, `screenshotWeb`, `docx`, `pptx`, `xlsx`, `pdf`, `email`, `spreadsheet`, `calendar`, `generatePdf`, `namecom`, `generatePptx`, `api`, `graphql`, `json`, `yaml`, `data`, `webhook`, `searchCode`, `getConfig` |
+| `research` | Multi-step research with source tracking and comprehensive reports | `clarify`, `skill`, `date`, `readImage`, `memory`, `todo`, `searchSession`, `searchWeb`, `browser`, `docx`, `pptx`, `xlsx`, `pdf`, `email`, `spreadsheet`, `calendar`, `generatePdf`, `namecom`, `generatePptx`, `api`, `graphql`, `json`, `yaml`, `data`, `webhook`, `searchCode`, `getConfig` |
+| `search` | Multi-source search (web, docs, codebase) with synthesis | `clarify`, `skill`, `date`, `readImage`, `memory`, `todo`, `searchSession`, `searchWeb`, `browser`, `docx`, `pptx`, `xlsx`, `pdf`, `email`, `spreadsheet`, `calendar`, `generatePdf`, `namecom`, `generatePptx`, `api`, `graphql`, `json`, `yaml`, `data`, `webhook`, `searchCode`, `getConfig` |
 | `security-audit` | Security scanning, dependency auditing, vulnerability detection | `clarify`, `cronJob`, `skill`, `date`, `memory`, `todo`, `scanAgents`, `searchCode`, `getConfig` |
 | `seoAnalyst` | SEO analysis — keyword density, meta description generation, SERP analysis, content optimization | `skill`, `searchCode` |
 | `testing` | Test generation, gap analysis, and coverage improvements | `clarify`, `skill`, `date`, `memory`, `todo`, `searchCode`, `getConfig` |
@@ -82,12 +82,12 @@ All built-in tools are defined in `src/tools/` and registered as LangChain tools
 | `clarify` | Send clarification questions to the user with optional numbered choices. Zero permissions — always registered. |
 | `createSkill` | Create a spec-compliant skill directory with SKILL.md YAML frontmatter. Optionally scaffolds a `scripts/` directory. |
 | `cronJob` | Manage scheduled cron jobs — create, list, update, pause, resume, run, remove. Persisted to `memory/schedules/`. Available to the orchestrator agent. |
+| `browser` | Drive a real headless Chromium browser — click, type, fill, navigate, press keys, screenshot, extract DOM text, wait for selectors/network-idle, and evaluate JavaScript in page context. Validates every outbound URL against the sandbox allowlist. Pass a `sessionId` to chain actions across calls within a persistent browser session. |
 | `data` | Format conversion between JSON, YAML, and CSV. |
 | `date` | Return current date/time in ISO 8601 UTC or human-readable format. Zero permissions — always registered. |
 | `decision` | Make fast, structured decisions using a local decision model via Ollama's `/v1/systemone` endpoint. Accepts a `state` (string or JSON object/array) and a `questions` record (each with a `type` of `choice`, `noul`, or `score`), returning structured answers. Config-gated — only registered when `agent.decision.baseUrl` is set. |
 | `docx` | Read and extract content from `.docx` (Word) documents. |
 | `email` | Read, send, manage drafts, organize, and search emails. Actions: `read`, `send`, `draftSave`, `draftList`, `draftUpdate`, `draftDelete`, `organize`, `search`. Requires email provider credentials via environment variables. |
-| `extractWeb` | Extract readable text content from a web page URL. Supports summarization for large pages. |
 | `generateImage` | Generate images via FAL.ai flux/klein API. |
 | `generatePdf` | Generate PDFs from HTML or markdown, or manipulate existing PDFs (merge, split, watermark, signature, annotate). Use action to specify the operation. |
 | `generatePptx` | Generate PowerPoint presentations from a structured description. |
@@ -102,10 +102,8 @@ All built-in tools are defined in `src/tools/` and registered as LangChain tools
 | `process` | Execute shell commands and manage background processes. Actions: start (launch command), list (show all), log (read stdout/stderr), wait (wait for exit), kill (SIGTERM/SIGKILL), write (send stdin data), pause (SIGSTOP), resume (SIGCONT). |
 | `readImage` | Read an image file from disk and return its base64-encoded contents plus MIME type, for direct LLM vision analysis. |
 | `reflectionSessions` | Read session files, filter by date window and ignore patterns, extract user messages, and return structured data. |
-| `renderWeb` | Render a URL in headless Chromium and return the JS-aware extracted text — for JavaScript-heavy pages (SPAs, dashboards, paywalled content). |
 | `sampling` | Capture emotional moments as ephemeral memories. Rate-limited to 1 per 60 minutes. Stored with `expiresAt` frontmatter. |
 | `scanAgents` | Scan for `AGENTS.md` workspace rules files in a target directory. Returns file contents or empty string. |
-| `screenshotWeb` | Render a URL in headless Chromium, save a JPEG screenshot to `memory/screenshots/`, and return its path plus MIME type for vision analysis. |
 | `searchCode` | Semantic code search using vector similarity. Finds conceptually related code even when exact keywords don't match — e.g., searching for "authentication" finds login handlers, token validation, and auth middleware. |
 | `searchSession` | Search past conversations by keyword query, full retrieval by conversation ID, or browse all sessions. |
 | `searchWeb` | Search the web via DuckDuckGo, Google, Bing, SearXNG, Custom, or Tavily endpoints. |
@@ -239,7 +237,7 @@ Built-in tools are registered only when their required permissions are enabled f
 | `filesystem:write`                  | `createSkill`, `sampling`, `generatePptx`                                  |
 | `filesystem:read` + `filesystem:write` | `clarify`, `memory`, `todo`, `spreadsheet`, `webhook`, `indexCode`      |
 | `filesystem:exec` + `process:spawn` | `process`                                                                  |
-| `network:outbound`                  | `cronJob`, `generateImage`, `extractWeb`, `searchWeb`, `renderWeb`, `screenshotWeb`, `email`, `calendar`, `namecom`, `api`, `graphql`, `decision` |
+| `network:outbound`                  | `cronJob`, `generateImage`, `searchWeb`, `browser`, `email`, `calendar`, `namecom`, `api`, `graphql`, `decision` |
 | `filesystem:read` + `filesystem:write` + `network:outbound` | `generatePdf` |
 
 ### Memory System

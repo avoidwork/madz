@@ -1,6 +1,6 @@
 ## Context
 
-madz's web toolset (`searchWeb`, `extractWeb`, `renderWeb`, `screenshotWeb`) is read-only. There is no first-class way to act on a web page — click, type, fill, navigate, or extract data from authenticated or JavaScript-heavy SPAs. The existing `src/tools/web/browser.js` already provides `launchBrowser` and `openPage` helpers that resolve the system Chromium path (`/usr/bin/chromium`), apply the container-required `--no-sandbox --disable-dev-shm-usage` flags, and set per-call timeouts. `puppeteer-core` is already a dependency.
+madz's web toolset (`searchWeb`) is read-only. There is no first-class way to act on a web page — click, type, fill, navigate, or extract data from authenticated or JavaScript-heavy SPAs. The `src/tools/browser/browser.js` helper provides `launchBrowser` and `openPage` functions that resolve the system Chromium path (`/usr/bin/chromium`), apply the container-required `--no-sandbox --disable-dev-shm-usage` flags, and set per-call timeouts. `puppeteer-core` is already a dependency.
 
 ## Goals / Non-Goals
 
@@ -21,7 +21,7 @@ madz's web toolset (`searchWeb`, `extractWeb`, `renderWeb`, `screenshotWeb`) is 
 ## Decisions
 
 **Decision 1: Use `puppeteer-core` against system Chromium (not a bundled Puppeteer).**
-- Rationale: `puppeteer-core` is already a dependency, and `src/tools/web/browser.js` already resolves the system Chromium path and applies the container flags. Bundling a full Puppeteer download would bloat the image and duplicate the launch path.
+- Rationale: `puppeteer-core` is already a dependency, and `src/tools/browser/browser.js` already resolves the system Chromium path and applies the container flags. Bundling a full Puppeteer download would bloat the image and duplicate the launch path.
 - Alternative considered: shelling out to a CLI browser tool via `process` — rejected because it bypasses URL validation and is fragile.
 
 **Decision 2: Single `browser` tool with an `action` discriminator (not one tool per action).**

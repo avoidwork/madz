@@ -1,7 +1,7 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { filterUrl } from "../../sandbox/urlFilter.js";
-import { launchBrowser, openPage, DEFAULT_TIMEOUT } from "../web/browser.js";
+import { launchBrowser, openPage, DEFAULT_TIMEOUT } from "./browser.js";
 
 /**
  * Session registry for persistent browser sessions. Maps a `sessionId` to a
