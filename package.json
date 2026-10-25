@@ -1,6 +1,6 @@
 {
   "name": "@avoidwork/madz",
-  "version": "1.120.1",
+  "version": "1.121.0",
   "description": "A personality-driven AI harness channeling Mads Mikkelsen's cinematic soul.",
   "keywords": [
     "cli",
@@ -20,7 +20,7 @@
     "url": "git+https://github.com/avoidwork/madz.git"
   },
   "engines": {
-    "node": ">=24"
+    "node": ">=26"
   },
   "license": "BSD-3-Clause",
   "files": [

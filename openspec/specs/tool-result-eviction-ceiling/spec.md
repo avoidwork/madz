@@ -29,9 +29,9 @@ The system SHALL register its own filesystem middleware built via `createFilesys
 - **WHEN** the replacement middleware is constructed
 - **THEN** its `name` property is exactly `"FilesystemMiddleware"`
 
-#### Scenario: Replacement contributes the full filesystem tool set
+#### Scenario: Replacement supplies madz's file tool instead of the library's eight
 - **WHEN** the replacement middleware is constructed with no harness profile excluding tools
-- **THEN** its `tools` are the eight filesystem tools `ls`, `read_file`, `write_file`, `edit_file`, `delete`, `glob`, `grep`, `execute`, matching what a library-built instance contributes
+- **THEN** its `tools` are madz's own `file` tool (or no filesystem tools at all), not the library's eight `ls`, `read_file`, `write_file`, `edit_file`, `delete`, `glob`, `grep`, `execute`
 
 #### Scenario: Replacement passes the derived ceiling to the library factory
 - **WHEN** the replacement middleware is constructed for a given `image.maxSize`

@@ -28,7 +28,7 @@ The full `docker run` command with all optional variables is in the [Environment
 ## Prerequisites
 
 - **Docker** (for the recommended containerized experience)
-- **Node.js** 24 or later (optional — for local development only)
+- **Node.js** 26 or later (optional — for local development only)
 - **npm** (included with Node.js)
 - An LLM provider — a cloud API key (e.g., `OPENAI_API_KEY`) or a local OpenAI-compatible server (Ollama, vLLM, LiteLLM, LM Studio)
 
