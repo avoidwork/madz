@@ -22,17 +22,6 @@ Most coding agents are a thin layer over a model. `madz` is the opposite — a c
 
 That's why it fits enterprise development, security operations, regulated and high-assurance environments, and personal automation alike — the same containment and auditability that make it safe for a SOC team make it a dependable teammate for a solo developer.
 
-## See it work
-
-```
-$ ssh -p 2222 madz@localhost
-madz> audit src/ for SQL injection
-  → scanning 14 directories, 32,000 lines
-  → 1 finding: src/db/query.js:214 — string interpolation in SQL
-  → opening PR #1521 with fix + test
-madz> done. 1 vulnerability fixed, 1 PR opened.
-```
-
 ## The Personality
 
 `madz` isn't a blank slate. It's built on a persona — the cinematic soul of Mads Mikkelsen — and that persona shapes how it works with you. It's not decoration; it's the difference between a tool that answers and a teammate that engages.
