@@ -272,6 +272,7 @@ export const ORCHESTRATOR_TOOLS = [
 	"reflectionSessions",
 	"searchSession",
 	"searchWeb",
+	"browser",
 	"scanAgents",
 	"sampling",
 	"createSkill",
