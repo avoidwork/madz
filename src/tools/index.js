@@ -257,6 +257,7 @@ export const ORCHESTRATOR_TOOLS = [
 	"memory",
 	"todo",
 	"process",
+	"git",
 	"reflectionSessions",
 	"searchSession",
 	"searchWeb",

@@ -111,3 +111,23 @@ describe("orchestrator - readImage access", () => {
 		);
 	});
 });
+
+describe("orchestrator - git access", () => {
+	it("ORCHESTRATOR_TOOLS should include git", () => {
+		ok(ORCHESTRATOR_TOOLS.includes("git"), "ORCHESTRATOR_TOOLS should include git");
+	});
+
+	it("git should be classified for subagent types", () => {
+		ok(TOOL_CLASSIFICATIONS.git, "git should have a TOOL_CLASSIFICATIONS entry");
+		ok(
+			TOOL_CLASSIFICATIONS.git.includes("coding"),
+			"git should include coding in its classifications",
+		);
+	});
+
+	it("getToolsForAgentTypes should return git for coding type", async () => {
+		const tools = await loadTools();
+		const toolsForCoding = getToolsForAgentTypes(["coding"], tools);
+		ok(toolsForCoding.includes("git"), "getToolsForAgentTypes(['coding']) should include git");
+	});
+});
