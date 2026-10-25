@@ -10,7 +10,8 @@ import { searchSession } from "./session/index.js";
 import { processTool } from "./process/index.js";
 import { createSkill, skill, skillImpl } from "./skills/index.js";
 import { textToSpeech } from "./tts/index.js";
-import { searchWeb, extractWeb, renderWeb, screenshotWeb } from "./web/index.js";
+import { searchWeb } from "./web/index.js";
+import { browser } from "./browser/index.js";
 import { docxTool, pdfTool, pptxTool, xlsxTool } from "./fileExtract/index.js";
 import { reflectionSessions } from "./reflection/index.js";
 import { email } from "./email/tools.js";
@@ -57,10 +58,8 @@ export const TOOL_PERMISSIONS = {
 	scanAgents: ["filesystem:read"],
 	searchSession: ["filesystem:read"],
 	textToSpeech: [],
-	extractWeb: ["network:outbound"],
 	searchWeb: ["network:outbound"],
-	renderWeb: ["network:outbound"],
-	screenshotWeb: ["network:outbound"],
+	browser: ["network:outbound"],
 	docx: ["filesystem:read"],
 	pptx: ["filesystem:read"],
 	xlsx: ["filesystem:read"],
@@ -169,10 +168,8 @@ export const TOOL_CLASSIFICATIONS = {
 	scanAgents: ["security-audit", "code-review", "coding"],
 	searchSession: ["search", "research"],
 	textToSpeech: ["documentation"],
-	extractWeb: ["search", "research", "coding"],
 	searchWeb: ["search", "research", "coding"],
-	renderWeb: ["search", "research", "coding"],
-	screenshotWeb: ["search", "research", "coding"],
+	browser: ["search", "research", "coding"],
 	docx: ["search", "research", "coding", "documentation", "debug"],
 	pptx: ["search", "research", "coding", "documentation", "debug"],
 	xlsx: ["search", "research", "coding", "documentation", "debug"],
@@ -275,9 +272,7 @@ export const ORCHESTRATOR_TOOLS = [
 	"reflectionSessions",
 	"searchSession",
 	"searchWeb",
-	"extractWeb",
-	"renderWeb",
-	"screenshotWeb",
+	"browser",
 	"scanAgents",
 	"sampling",
 	"createSkill",
@@ -307,10 +302,8 @@ export const TOOLS = {
 	scanAgents,
 	searchSession,
 	textToSpeech,
-	extractWeb,
 	searchWeb,
-	renderWeb,
-	screenshotWeb,
+	browser,
 	docx: docxTool,
 	pptx: pptxTool,
 	xlsx: xlsxTool,
@@ -421,11 +414,16 @@ export async function buildToolConfig(options) {
 				continue;
 			}
 
-			case "searchWeb":
-			case "extractWeb": {
+			case "searchWeb": {
 				if (!hasAllPerms) continue;
 				// DuckDuckGo is the always-available keyless fallback engine,
-				// so searchWeb/extractWeb are always registered.
+				// so searchWeb is always registered.
+				tools.push(TOOLS[toolName]);
+				continue;
+			}
+
+			case "browser": {
+				if (!hasAllPerms) continue;
 				tools.push(TOOLS[toolName]);
 				continue;
 			}

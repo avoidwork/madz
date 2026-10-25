@@ -9,11 +9,12 @@ import {
 	stat,
 	unlink,
 } from "node:fs/promises";
-import { dirname, basename, join } from "node:path";
+import { dirname, basename, join, resolve } from "node:path";
 import { promisify } from "node:util";
 import { execFile } from "node:child_process";
 import { validatePath, checkFileLimit } from "../common.js";
 import { loadConfig } from "../../config/loader.js";
+import { getProjectCwd } from "../../workspace/project.js";
 
 const config = loadConfig();
 
@@ -21,6 +22,31 @@ const execFileAsync = promisify(execFile);
 
 const MAX_CONTENT_SIZE = 500 * 1024; // 500KB for write operations
 const VALID_ACTIONS = ["read", "write", "edit", "delete", "search", "ls", "glob", "grep"];
+
+/**
+ * Resolve the effective base directory for the file tool.
+ * Prefers the active project cwd (set by the TUI when the user selects a
+ * project), then falls back to `config.cwd`. This mirrors the `@` file picker,
+ * which globs the active project directory.
+ * @returns {string} The base directory for resolving relative paths
+ */
+export function resolveBaseDir() {
+	return getProjectCwd() || config.cwd || process.cwd();
+}
+
+/**
+ * Resolve the effective path for a file action.
+ * When `path` is omitted, defaults to the base directory. When `path` is
+ * relative, resolves it against the base directory so the tool operates within
+ * the active project rather than the process cwd.
+ * @param {string} [path] - The requested path (may be relative or omitted)
+ * @returns {string} The resolved absolute path
+ */
+export function resolveFilePath(path) {
+	if (!path) return resolveBaseDir();
+	if (resolve(path) === path) return path; // already absolute
+	return resolve(resolveBaseDir(), path);
+}
 
 // --- Helpers (restored from the removed src/tools/filesystem.js) ---
 
@@ -325,7 +351,8 @@ export async function nativeSearch(pattern, resolvedPath, maxResults) {
  * @returns {Promise<string>} File content or error
  */
 export async function readImpl(input, options) {
-	const resolved = validatePath(input.path, options.allowedPaths);
+	const path = resolveFilePath(input.path);
+	const resolved = validatePath(path, options.allowedPaths);
 	if (!resolved.allowed) {
 		return `Error: ${resolved.error}`;
 	}
@@ -362,7 +389,8 @@ export async function readImpl(input, options) {
  * @returns {Promise<string>} Result message
  */
 export async function writeImpl(input, options) {
-	const resolved = validatePath(input.path, options.allowedPaths);
+	const path = resolveFilePath(input.path);
+	const resolved = validatePath(path, options.allowedPaths);
 	if (!resolved.allowed) {
 		return `Error: ${resolved.error}`;
 	}
@@ -390,7 +418,8 @@ export async function writeImpl(input, options) {
  * @returns {Promise<string>} Edit result
  */
 export async function editImpl(input, options) {
-	const resolved = validatePath(input.path, options.allowedPaths);
+	const path = resolveFilePath(input.path);
+	const resolved = validatePath(path, options.allowedPaths);
 	if (!resolved.allowed) {
 		return `Error: ${resolved.error}`;
 	}
@@ -437,14 +466,15 @@ export async function editImpl(input, options) {
  * @returns {Promise<string>} Result message
  */
 export async function deleteImpl(input, options) {
-	const resolved = validatePath(input.path, options.allowedPaths);
+	const path = resolveFilePath(input.path);
+	const resolved = validatePath(path, options.allowedPaths);
 	if (!resolved.allowed) {
 		return `Error: ${resolved.error}`;
 	}
 
 	try {
 		await unlink(resolved.path);
-		return `Successfully deleted ${input.path}`;
+		return `Successfully deleted ${resolved.path}`;
 	} catch (err) {
 		return `Error: ${err.message}`;
 	}
@@ -457,7 +487,8 @@ export async function deleteImpl(input, options) {
  * @returns {Promise<string>} Search results
  */
 export async function searchImpl(input, options) {
-	const resolved = validatePath(input.path, options.allowedPaths);
+	const path = resolveFilePath(input.path);
+	const resolved = validatePath(path, options.allowedPaths);
 	if (!resolved.allowed) {
 		return `Error: ${resolved.error}`;
 	}
@@ -491,7 +522,8 @@ export async function searchImpl(input, options) {
  * @returns {Promise<string>} Directory listing
  */
 export async function lsImpl(input, options) {
-	const resolved = validatePath(input.path, options.allowedPaths);
+	const path = resolveFilePath(input.path);
+	const resolved = validatePath(path, options.allowedPaths);
 	if (!resolved.allowed) {
 		return `Error: ${resolved.error}`;
 	}
@@ -511,12 +543,13 @@ export async function lsImpl(input, options) {
  * @returns {Promise<string>} Matching file paths
  */
 export async function globImpl(input, options) {
-	const resolved = validatePath(input.path, options.allowedPaths);
+	const path = resolveFilePath(input.path);
+	const resolved = validatePath(path, options.allowedPaths);
 	if (!resolved.allowed) {
 		return `Error: ${resolved.error}`;
 	}
 
-	const pattern = input.glob || "**/*";
+	const pattern = input.pattern || "**/*";
 	const regex = globToRegex(pattern);
 	const results = [];
 	const seen = new Set();
@@ -561,7 +594,8 @@ export async function globImpl(input, options) {
  * @returns {Promise<string>} Matching lines
  */
 export async function grepImpl(input, options) {
-	const resolved = validatePath(input.path, options.allowedPaths);
+	const path = resolveFilePath(input.path);
+	const resolved = validatePath(path, options.allowedPaths);
 	if (!resolved.allowed) {
 		return `Error: ${resolved.error}`;
 	}
@@ -648,12 +682,17 @@ export const file = tool(
 	{
 		name: "file",
 		description:
-			"File system tool. Actions: read (file content with line numbers), write (create/overwrite a file), edit (apply a string replacement or unified diff), delete (remove a file), search (regex search via ripgrep with native fallback), ls (list directory entries), glob (match files by glob pattern), grep (search file contents). Every path is validated against the sandbox allowlist.",
+			"File system tool. Actions: read (file content with line numbers), write (create/overwrite a file), edit (apply a string replacement or unified diff), delete (remove a file), search (regex search via ripgrep with native fallback), ls (list directory entries), glob (match files by glob pattern), grep (search file contents). Every path is validated against the sandbox allowlist. Relative paths resolve against the active project cwd; omitting path defaults to the active project cwd (or config.cwd).",
 		schema: z.object({
 			action: z
 				.enum(VALID_ACTIONS)
 				.describe("Action to perform: read, write, edit, delete, search, ls, glob, grep"),
-			path: z.string().describe("Path to the file or directory"),
+			path: z
+				.string()
+				.optional()
+				.describe(
+					"Path to the file or directory. Relative paths resolve against the active project cwd; omit to default to the active project cwd (or config.cwd).",
+				),
 			offset: z
 				.number()
 				.int()
@@ -669,8 +708,12 @@ export const file = tool(
 			content: z.string().optional().describe("Content to write (write action)"),
 			oldString: z.string().optional().describe("Text to find and replace (edit action)"),
 			newString: z.string().optional().describe("Replacement text (edit action)"),
-			pattern: z.string().optional().describe("Regex pattern to search for (search/grep action)"),
-			glob: z.string().optional().describe("Glob pattern to match (glob action)"),
+			pattern: z
+				.string()
+				.optional()
+				.describe(
+					"Regex pattern to search for (search/grep action), or glob pattern to match (glob action)",
+				),
 			maxResults: z
 				.number()
 				.int()

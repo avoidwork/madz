@@ -9,7 +9,6 @@ describe("tools - buildToolConfig", () => {
 			"searchSession",
 			"clarify",
 			"searchWeb",
-			"extractWeb",
 			"generateImage",
 			"cronJob",
 			"textToSpeech",
@@ -123,7 +122,7 @@ describe("tools - buildToolConfig", () => {
 		const toolNames = tools.map((t) => t.name);
 		// Tier 1: 6 tools (terminal, process, searchSession, clarify, scanAgents)
 		// Tier 2: cronJob, sampling, date (no perms or network:outbound)
-		// No API keys: searchWeb/extractWeb/generateImage/textToSpeech won't register
+		// No API keys: searchWeb/generateImage/textToSpeech won't register
 		assert.ok(toolNames.length >= 9, "All tier 1 + tier 2 tools should register");
 		assert.ok(toolNames.includes("process"), "process should register");
 		assert.ok(toolNames.includes("cronJob"), "cronJob should register");
@@ -142,7 +141,7 @@ describe("tools - buildToolConfig", () => {
 		assert.ok(!toolNames.includes("memory"), "memory should NOT register with only read");
 	});
 
-	it("returns searchWeb and extractWeb with no search config (duckduckgo fallback)", async () => {
+	it("returns searchWeb with no search config (duckduckgo fallback)", async () => {
 		const { buildToolConfig } = await import("../../src/tools/index.js");
 		const tools = await buildToolConfig({
 			permissions: ["filesystem:read", "network:outbound"],
@@ -153,10 +152,6 @@ describe("tools - buildToolConfig", () => {
 		assert.ok(
 			toolNames.includes("searchWeb"),
 			"searchWeb should register with duckduckgo fallback",
-		);
-		assert.ok(
-			toolNames.includes("extractWeb"),
-			"extractWeb should register with duckduckgo fallback",
 		);
 	});
 

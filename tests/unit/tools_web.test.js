@@ -1,6 +1,6 @@
 import { describe, it, before, after } from "node:test";
 import assert from "node:assert";
-import { searchWebImpl, extractWebImpl, detectSearchBackend } from "../../src/tools/web/index.js";
+import { searchWebImpl, detectSearchBackend } from "../../src/tools/web/index.js";
 
 describe("searchWeb", () => {
 	let origFetch;
@@ -120,75 +120,6 @@ describe("searchWeb", () => {
 		const parsed = JSON.parse(result);
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("Custom") || parsed.error.includes("500"));
-	});
-});
-
-describe("web_extract", () => {
-	let origFetch;
-
-	before(() => {
-		origFetch = globalThis.fetch;
-	});
-
-	after(() => {
-		globalThis.fetch = origFetch;
-	});
-
-	it("requires URL", async () => {
-		const result = await extractWebImpl({});
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.ok, false);
-		assert.ok(parsed.error.includes("URL is required"));
-	});
-
-	it("rejects invalid URL format via filterUrl", async () => {
-		const result = await extractWebImpl({ url: "not-a-url" });
-		const parsed = JSON.parse(result);
-		assert.ok("ok" in parsed);
-	});
-
-	it("handles HTTP error response", async () => {
-		globalThis.fetch = async () => ({
-			ok: false,
-			status: 404,
-			statusText: "Not Found",
-		});
-		const result = await extractWebImpl({ url: "https://example.com/notfound" });
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.ok, false);
-		assert.ok(parsed.error.includes("HTTP 404") || parsed.error.includes("404"));
-	});
-
-	it("handles fetch failure", async () => {
-		globalThis.fetch = async () => {
-			throw new Error("Network error");
-		};
-		const result = await extractWebImpl({ url: "https://example.com" });
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.ok, false);
-		assert.ok(parsed.error.includes("Fetch failed"));
-	});
-
-	it("handles short page content", async () => {
-		globalThis.fetch = async () => ({
-			ok: true,
-			text: async () => "Short",
-		});
-		const result = await extractWebImpl({ url: "https://example.com" });
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.ok, false);
-		assert.ok(parsed.error.includes("too short") || parsed.error.includes("unreadable"));
-	});
-
-	it("handles large page with summarizeLarge", async () => {
-		globalThis.fetch = async () => ({
-			ok: true,
-			text: async () => "<html><body>" + "x".repeat(12000) + "</body></html>",
-		});
-		const result = await extractWebImpl({ url: "https://example.com", summarizeLarge: true });
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.ok, true);
-		assert.ok(parsed.content);
 	});
 });
 

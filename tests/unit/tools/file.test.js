@@ -13,10 +13,13 @@ import {
 	lsImpl,
 	globImpl,
 	grepImpl,
+	resolveBaseDir,
+	resolveFilePath,
 	generateUnifiedDiff,
 	fuzzyMatch,
 	levenshteinDistance,
 } from "../../../src/tools/file/index.js";
+import { setProjectCwd } from "../../../src/workspace/project.js";
 
 const TEST_DIR = join(process.cwd(), "memory", "__test_file__");
 const ALLOWED_PATHS = [TEST_DIR];
@@ -52,9 +55,9 @@ describe("tools - file", () => {
 			assert.strictEqual(result.success, false);
 		});
 
-		it("rejects a missing path", () => {
+		it("accepts an action without a path (defaults to project cwd)", () => {
 			const result = file.schema.safeParse({ action: "read" });
-			assert.strictEqual(result.success, false);
+			assert.strictEqual(result.success, true);
 		});
 
 		it("rejects a missing action", () => {
@@ -110,6 +113,59 @@ describe("tools - file", () => {
 			const filePath = join(TEST_DIR, "allowed.txt");
 			const result = await writeImpl({ path: filePath, content: "hello" }, getOptions());
 			assert.match(result, /Successfully wrote/);
+		});
+	});
+
+	describe("default path resolution", () => {
+		it("resolveBaseDir falls back to config.cwd when no project is active", () => {
+			setProjectCwd("");
+			const base = resolveBaseDir();
+			assert.strictEqual(typeof base, "string");
+			assert.ok(base.length > 0);
+		});
+
+		it("resolveBaseDir prefers the active project cwd", () => {
+			setProjectCwd("/tmp/project-a");
+			assert.strictEqual(resolveBaseDir(), "/tmp/project-a");
+			setProjectCwd("");
+		});
+
+		it("resolveFilePath returns the base dir when path is omitted", () => {
+			setProjectCwd("/tmp/project-a");
+			assert.strictEqual(resolveFilePath(), "/tmp/project-a");
+			setProjectCwd("");
+		});
+
+		it("resolveFilePath resolves a relative path against the project cwd", () => {
+			setProjectCwd("/tmp/project-a");
+			assert.strictEqual(resolveFilePath("src/index.js"), "/tmp/project-a/src/index.js");
+			setProjectCwd("");
+		});
+
+		it("resolveFilePath leaves an absolute path unchanged", () => {
+			setProjectCwd("/tmp/project-a");
+			assert.strictEqual(resolveFilePath("/etc/passwd"), "/etc/passwd");
+			setProjectCwd("");
+		});
+
+		it("lsImpl defaults to the active project cwd when path is omitted", async () => {
+			const projectDir = join(TEST_DIR, "default-ls");
+			mkdirSync(projectDir, { recursive: true });
+			writeFileSync(join(projectDir, "a.txt"), "a");
+			setProjectCwd(projectDir);
+			const result = await lsImpl({ action: "ls" }, getOptions());
+			assert.match(result, /a\.txt/);
+			setProjectCwd("");
+		});
+
+		it("readImpl resolves a relative path against the active project cwd", async () => {
+			const projectDir = join(TEST_DIR, "default-read");
+			mkdirSync(projectDir, { recursive: true });
+			writeFileSync(join(projectDir, "b.txt"), "hello");
+			setProjectCwd(projectDir);
+			const result = await readImpl({ action: "read", path: "b.txt" }, getOptions());
+			assert.match(result, /1\|hello/);
+			setProjectCwd("");
 		});
 	});
 
@@ -227,7 +283,7 @@ describe("tools - file", () => {
 			writeFileSync(join(dir, "one.js"), "x");
 			writeFileSync(join(dir, "two.js"), "x");
 			writeFileSync(join(dir, "three.txt"), "x");
-			const result = await globImpl({ path: dir, glob: "**/*.js" }, getOptions());
+			const result = await globImpl({ path: dir, pattern: "**/*.js" }, getOptions());
 			assert.match(result, /one\.js/);
 			assert.match(result, /two\.js/);
 			assert.ok(!result.includes("three.txt"));

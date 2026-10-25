@@ -207,7 +207,7 @@ buildToolConfig({ permissions, allowedPaths, maxReadSize, registry, sessionsDir,
 │   ├── hasAllPerms = requiredPerms.every(perm => enabledSet.has(perm))
 │   ├── switch toolName:
 │   │   ├── clarify | sampling | process → always create (no perms gate)
-│   │   ├── searchWeb | extractWeb → if hasAllPerms && any search backend configured
+│   │   ├── searchWeb → if hasAllPerms && any search backend configured
 │   │   ├── generateImage → if hasAllPerms && falApiKey
 │   │   ├── textToSpeech → if openaiApiKey
 │   │   ├── api | graphql | json | yaml | data | webhook → if hasAllPerms, via factory call
@@ -230,7 +230,7 @@ Tools are exported as ready LangChain `tool()` instances from `src/tools/index.j
 allTools = buildToolConfig(...)
 ├── orchestratorTools = allTools.filter(t => ORCHESTRATOR_TOOLS.includes(t.name))
 │   └── ORCHESTRATOR_TOOLS: clarify, cronJob, date, memory, process, reflectionSessions,
-│       searchSession, searchWeb, extractWeb, scanAgents, sampling, createSkill,
+│       searchSession, searchWeb, scanAgents, sampling, createSkill,
 │       searchCode, indexCode, getConfig, readImage
 └── per subagent: getToolsForAgentTypes([agentName], TOOLS)
     └── TOOL_CLASSIFICATIONS[toolName] is an array of agent names;
@@ -394,7 +394,7 @@ TOOL_PERMISSIONS (src/tools/index.js) — tool registers only when ALL required 
 ├── memory | spreadsheet | generatePdf | webhook → "filesystem:read" + "filesystem:write"
 │   (generatePdf also "network:outbound")
 ├── searchSession → "filesystem:read"
-├── searchWeb | extractWeb → "network:outbound" + search backend configured
+├── searchWeb → "network:outbound" + search backend configured
 ├── textToSpeech → [] + openaiApiKey
 ├── docx | pptx | xlsx | pdf → "filesystem:read"
 ├── email | calendar | api | graphql | namecom → "network:outbound"
@@ -405,7 +405,7 @@ TOOL_PERMISSIONS (src/tools/index.js) — tool registers only when ALL required 
 ### Search Backend Detection
 
 ```
-searchWeb/extractWeb register when any of runtimeOptions is set:
+searchWeb registers when any of runtimeOptions is set:
 └── searchExaApiKey || searchFirecrawlApiKey || searchTavilyApiKey ||
     searchParallelApiKey || searchSearxngUrl || searchBingApiKey ||
     (searchCustomConfig.url && searchCustomConfig.apiKey !== undefined)
@@ -416,9 +416,7 @@ searchWeb/extractWeb register when any of runtimeOptions is set:
 **Entry:** `src/tools/web/index.js`
 
 ```
-searchWeb / extractWeb:
-├── extractWeb: filterUrl(url, []) → blocks file://, gopher://, dict:// schemes
-├── fetch with AbortController timeout → response text → HTML-to-text
+searchWeb:
 └── searchWeb engine selection (priority order):
     ├── CUSTOM_SEARCH_URL (+apiKey) → custom endpoint
     ├── BING_API_KEY → bing search
@@ -760,7 +758,7 @@ index.js
 │     ├── tools/sampling/ → ephemeral memory capture
 │     ├── tools/scanAgents/ → workspace/loadAgents.js — AGENTS.md discovery
 │     ├── tools/reflection/ → reflectionSessions
-│     ├── tools/web/ → sandbox/urlFilter.js, fetch — searchWeb/extractWeb
+│     ├── tools/web/ → sandbox/urlFilter.js, fetch — searchWeb
 │     ├── tools/image/ → FAL_API_KEY — generateImage via queue.fal.run
 │     ├── tools/tts/ → OPENAI_API_KEY — textToSpeech via OpenAI audio endpoint
 │     ├── tools/fileExtract/ → docx/pptx/xlsx/pdf extraction (docx, pptx, xlsx, pdf tools)

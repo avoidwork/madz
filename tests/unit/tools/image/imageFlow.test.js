@@ -5,7 +5,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import sharp from "sharp";
 import { readImageImpl } from "../../../../src/tools/image/readImage.js";
-import { resizeScreenshot } from "../../../../src/tools/web/index.js";
 
 let testDir;
 
@@ -19,9 +18,9 @@ after(() => {
 });
 
 describe("image screenshot -> read flow", () => {
-	it("a ~100KB screenshot passes through resizeScreenshot and readImage", async () => {
-		// Build a realistic ~100KB screenshot
-		const w = 1280;
+	it("a large screenshot is downscaled by readImage and returned as an image_url block", async () => {
+		// Build a realistic large screenshot (wider than image.maxDimension default 3000)
+		const w = 4000;
 		const h = 2500;
 		const parts = [`<svg width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg">`];
 		parts.push('<rect width="100%" height="100%" fill="#f0f0f0"/>');
@@ -36,12 +35,9 @@ describe("image screenshot -> read flow", () => {
 			.png()
 			.toBuffer();
 
-		const resized = await resizeScreenshot(raw.toString("base64"), 1024);
-		const resizedBuf = Buffer.from(resized, "base64");
-
-		// Save and read it back
+		// Save the raw screenshot and let readImage downscale it internally.
 		const filePath = join(testDir, "screenshot.png");
-		writeFileSync(filePath, resizedBuf);
+		writeFileSync(filePath, raw);
 
 		const result = await readImageImpl({ path: filePath }, { allowedPaths: [testDir] });
 
