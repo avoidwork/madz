@@ -10,7 +10,7 @@ const GIT_SOURCE = readFileSync(join(__dirname, "../../../src/tools/git/index.js
 
 describe("tools - git", () => {
 	describe("Zod schema validation", () => {
-		it("validates all 14 actions", () => {
+		it("validates all 21 actions", () => {
 			const actions = [
 				"status",
 				"diff",
@@ -26,6 +26,12 @@ describe("tools - git", () => {
 				"stash",
 				"show",
 				"tag",
+				"worktree",
+				"remote",
+				"rev-parse",
+				"ls-remote",
+				"fetch",
+				"describe",
 			];
 			for (const action of actions) {
 				const result = git.schema.safeParse({ action });
@@ -56,6 +62,54 @@ describe("tools - git", () => {
 			});
 			assert.ok(result.success);
 		});
+
+		it("accepts worktree subcommands", () => {
+			for (const sub of ["add", "remove", "list", "prune"]) {
+				const result = git.schema.safeParse({ action: "worktree", sub });
+				assert.ok(result.success, `worktree sub '${sub}' should be valid`);
+			}
+		});
+
+		it("accepts remote subcommands", () => {
+			for (const sub of ["get-url", "add", "set-url"]) {
+				const result = git.schema.safeParse({ action: "remote", sub });
+				assert.ok(result.success, `remote sub '${sub}' should be valid`);
+			}
+		});
+
+		it("accepts rev-parse flags", () => {
+			for (const flag of ["--show-toplevel", "--abbrev-ref", "--short"]) {
+				const result = git.schema.safeParse({ action: "rev-parse", flag });
+				assert.ok(result.success, `rev-parse flag '${flag}' should be valid`);
+			}
+		});
+
+		it("accepts diff mode flags", () => {
+			for (const flag of ["cached", "nameOnly", "stat", "patch", "numstat"]) {
+				const result = git.schema.safeParse({ action: "diff", [flag]: true });
+				assert.ok(result.success, `diff flag '${flag}' should be valid`);
+			}
+		});
+
+		it("accepts log subject flag", () => {
+			const result = git.schema.safeParse({ action: "log", subject: true });
+			assert.ok(result.success, "log subject flag should be valid");
+		});
+
+		it("accepts tag pattern", () => {
+			const result = git.schema.safeParse({ action: "tag", pattern: "1.*" });
+			assert.ok(result.success, "tag pattern should be valid");
+		});
+
+		it("accepts ls-remote tags flag", () => {
+			const result = git.schema.safeParse({ action: "ls-remote", tags: true });
+			assert.ok(result.success, "ls-remote tags flag should be valid");
+		});
+
+		it("accepts checkout detach flag", () => {
+			const result = git.schema.safeParse({ action: "checkout", detach: true });
+			assert.ok(result.success, "checkout detach flag should be valid");
+		});
 	});
 
 	describe("guardrail rejection of destructive commands", () => {
@@ -69,6 +123,18 @@ describe("tools - git", () => {
 			const result = await gitImpl({ action: "rebase", branch: "main" });
 			assert.strictEqual(result.ok, false);
 			assert.ok(result.error.includes("rebase"));
+		});
+
+		it("rejects worktree remove without force", async () => {
+			const result = await gitImpl({ action: "worktree", sub: "remove", path: "/tmp/x" });
+			assert.strictEqual(result.ok, false);
+			assert.ok(result.error.includes("force"));
+		});
+
+		it("rejects branch delete without force", async () => {
+			const result = await gitImpl({ action: "branch", delete: true, branch: "foo" });
+			assert.strictEqual(result.ok, false);
+			assert.ok(result.error.includes("force"));
 		});
 
 		it("rejects unknown action", async () => {
@@ -99,6 +165,38 @@ describe("tools - git", () => {
 
 		it("uses execFile with git binary", () => {
 			assert.ok(GIT_SOURCE.includes('execFile("git"'), "git tool should use execFile('git')");
+		});
+	});
+
+	describe("validation of required params", () => {
+		it("worktree add requires a path", async () => {
+			const result = await gitImpl({ action: "worktree", sub: "add" });
+			assert.strictEqual(result.ok, false);
+			assert.ok(result.error.includes("path"));
+		});
+
+		it("worktree remove requires a path", async () => {
+			const result = await gitImpl({ action: "worktree", sub: "remove", force: true });
+			assert.strictEqual(result.ok, false);
+			assert.ok(result.error.includes("path"));
+		});
+
+		it("remote add requires remote and url", async () => {
+			const result = await gitImpl({ action: "remote", sub: "add" });
+			assert.strictEqual(result.ok, false);
+			assert.ok(result.error.includes("remote"));
+		});
+
+		it("rev-parse rejects invalid flag", async () => {
+			const result = await gitImpl({ action: "rev-parse", flag: "--bad-flag" });
+			assert.strictEqual(result.ok, false);
+			assert.ok(result.error.includes("Invalid rev-parse flag"));
+		});
+
+		it("rev-parse requires a flag or ref", async () => {
+			const result = await gitImpl({ action: "rev-parse" });
+			assert.strictEqual(result.ok, false);
+			assert.ok(result.error.includes("flag or ref"));
 		});
 	});
 });
