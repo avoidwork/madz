@@ -11,6 +11,7 @@ import { processTool } from "./process/index.js";
 import { createSkill, skill, skillImpl } from "./skills/index.js";
 import { textToSpeech } from "./tts/index.js";
 import { searchWeb, extractWeb, renderWeb, screenshotWeb } from "./web/index.js";
+import { browser } from "./browser/index.js";
 import { docxTool, pdfTool, pptxTool, xlsxTool } from "./fileExtract/index.js";
 import { reflectionSessions } from "./reflection/index.js";
 import { email } from "./email/tools.js";
@@ -59,6 +60,7 @@ export const TOOL_PERMISSIONS = {
 	searchWeb: ["network:outbound"],
 	renderWeb: ["network:outbound"],
 	screenshotWeb: ["network:outbound"],
+	browser: ["network:outbound"],
 	docx: ["filesystem:read"],
 	pptx: ["filesystem:read"],
 	xlsx: ["filesystem:read"],
@@ -160,6 +162,7 @@ export const TOOL_CLASSIFICATIONS = {
 	searchWeb: ["search", "research", "coding"],
 	renderWeb: ["search", "research", "coding"],
 	screenshotWeb: ["search", "research", "coding"],
+	browser: ["search", "research", "coding"],
 	docx: ["search", "research", "coding", "documentation", "debug"],
 	pptx: ["search", "research", "coding", "documentation", "debug"],
 	xlsx: ["search", "research", "coding", "documentation", "debug"],
@@ -296,6 +299,7 @@ export const TOOLS = {
 	searchWeb,
 	renderWeb,
 	screenshotWeb,
+	browser,
 	docx: docxTool,
 	pptx: pptxTool,
 	xlsx: xlsxTool,
@@ -414,6 +418,12 @@ export async function buildToolConfig(options) {
 				if (!hasAllPerms) continue;
 				// DuckDuckGo is the always-available keyless fallback engine,
 				// so searchWeb/extractWeb are always registered.
+				tools.push(TOOLS[toolName]);
+				continue;
+			}
+
+			case "browser": {
+				if (!hasAllPerms) continue;
 				tools.push(TOOLS[toolName]);
 				continue;
 			}
