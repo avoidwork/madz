@@ -271,6 +271,7 @@ export const ORCHESTRATOR_TOOLS = [
 	"todo",
 	"process",
 	"git",
+	"file",
 	"reflectionSessions",
 	"searchSession",
 	"searchWeb",
