@@ -191,7 +191,7 @@ async function resolveSession(input, options, timeout) {
 async function runAction(page, input, timeout) {
 	switch (input.action) {
 		case "navigate": {
-			await page.goto(input.url, { waitUntil: "networkidle0", timeout });
+			await page.goto(input.url, { waitUntil: "load", timeout });
 			return { ok: true, action: "navigate", url: input.url };
 		}
 		case "click": {
