@@ -1,6 +1,10 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { execFile } from "node:child_process";
+import { loadConfig } from "../../config/loader.js";
+import { getProjectCwd } from "../../workspace/project.js";
+
+const config = loadConfig();
 
 const VALID_ACTIONS = [
 	"status",
@@ -181,7 +185,7 @@ function parseRefs(output) {
  */
 export async function gitImpl(input, options = {}) {
 	const { action } = input;
-	const cwd = options.cwd;
+	const cwd = options.cwd || getProjectCwd() || config.cwd || process.cwd();
 
 	if (!VALID_ACTIONS.includes(action)) {
 		return {

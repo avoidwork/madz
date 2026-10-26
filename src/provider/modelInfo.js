@@ -57,7 +57,10 @@ export function parseNumCtx(parameters) {
  * Probes in order:
  * 1. The OpenAI-compatible models endpoint (`GET {base_url}/models`). If the
  *    entry matching the configured model has `max_model_len`, it's a vLLM
- *    endpoint and that value is returned.
+ *    endpoint and that value is returned. Copilot's `/models` response uses a
+ *    different shape (`limits.max_prompt` / `limits.context_window`, or
+ *    opencode's `max_prompt_tokens` / `max_context_window_tokens`); the usable
+ *    prompt budget is `max_prompt`, not `context_window`.
  * 2. The Ollama native endpoint (`POST {base_url}/api/show`). If the response
  *    has `model_info.<family>.context_length`, return it; otherwise parse
  *    `num_ctx` from the `parameters` string.
@@ -88,6 +91,18 @@ export async function getModelContextLength(providerConfig = {}) {
 		const entry = (data?.data || []).find((m) => m?.id === model);
 		if (entry && typeof entry.max_model_len === "number") {
 			return entry.max_model_len;
+		}
+		// Copilot's /models response uses a different shape: a `limits` object
+		// with `context_window` / `max_prompt`, or (per opencode) top-level
+		// `max_context_window_tokens` / `max_prompt_tokens`. The usable prompt
+		// budget is `max_prompt`, not `context_window` — the reported
+		// `context_window` (e.g. 400K/1M) is larger than what the API accepts.
+		if (entry) {
+			const limits = entry.limits;
+			const maxPrompt = limits?.max_prompt ?? entry.max_prompt_tokens;
+			if (typeof maxPrompt === "number") return maxPrompt;
+			const contextWindow = limits?.context_window ?? entry.max_context_window_tokens;
+			if (typeof contextWindow === "number") return contextWindow;
 		}
 	} catch {
 		// Fall through to the next candidate.

@@ -394,4 +394,38 @@ describe("resolveCopilotModel", () => {
 			globalThis.fetch = origFetch;
 		}
 	});
+
+	it("sends the Authorization Bearer header on the /models discovery request", async () => {
+		const origFetch = globalThis.fetch;
+		let capturedHeaders;
+		// The Copilot fetch interceptor reads the token from memory/auth.json
+		// (relative to cwd). Write a token so the real interceptor injects the
+		// bearer header, then clean up.
+		const fs = await import("node:fs/promises");
+		await fs.mkdir("memory", { recursive: true });
+		await fs.writeFile("memory/auth.json", JSON.stringify({ access_token: "test-token" }), {
+			mode: 0o600,
+		});
+		globalThis.fetch = async (url, init) => {
+			capturedHeaders = init?.headers;
+			return new Response(
+				JSON.stringify({ data: [{ id: "gpt-4o", model_picker_enabled: true }] }),
+				{ status: 200 },
+			);
+		};
+		try {
+			const result = await resolveCopilotModel({
+				type: "github-copilot",
+				model: "gpt-4o",
+				base_url: "https://api.githubcopilot.com",
+			});
+			assert.strictEqual(result, "gpt-4o");
+			const headers =
+				capturedHeaders instanceof Headers ? capturedHeaders : new Headers(capturedHeaders);
+			assert.strictEqual(headers.get("Authorization"), "Bearer test-token");
+		} finally {
+			globalThis.fetch = origFetch;
+			await fs.rm("memory/auth.json", { force: true });
+		}
+	});
 });
