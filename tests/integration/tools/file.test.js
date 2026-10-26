@@ -8,7 +8,6 @@ import {
 	writeImpl,
 	editImpl,
 	deleteImpl,
-	searchImpl,
 	grepImpl,
 	globImpl,
 	lsImpl,
@@ -74,8 +73,8 @@ describe("tools - file integration", () => {
 		assert.strictEqual(existsSync(filePath), false);
 	});
 
-	it("searches a fixture tree with ripgrep", async () => {
-		const result = await searchImpl({ path: TEST_DIR, pattern: "export const" }, getOptions());
+	it("searches a fixture tree with grep (search action removed)", async () => {
+		const result = await grepImpl({ path: TEST_DIR, pattern: "export const" }, getOptions());
 		assert.match(result, /index\.js/);
 		assert.match(result, /util\.js/);
 		assert.match(result, /deep\.js/);
