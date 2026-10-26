@@ -17,6 +17,7 @@ describe("tools - buildToolConfig", () => {
 			"scanAgents",
 			"createSkill",
 			"memory",
+			"grep",
 		];
 		for (const tool of expectedTools) {
 			assert.ok(TOOL_PERMISSIONS[tool], `Expected TOOL_PERMISSIONS to have ${tool}`);

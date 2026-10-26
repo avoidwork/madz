@@ -9,7 +9,6 @@ import {
 	writeImpl,
 	editImpl,
 	deleteImpl,
-	searchImpl,
 	lsImpl,
 	globImpl,
 	grepImpl,
@@ -66,7 +65,7 @@ describe("tools - file", () => {
 		});
 
 		it("accepts all valid actions", () => {
-			for (const action of ["read", "write", "edit", "delete", "search", "ls", "glob", "grep"]) {
+			for (const action of ["read", "write", "edit", "delete", "ls", "glob", "grep"]) {
 				const result = file.schema.safeParse({ action, path: "/tmp/x" });
 				assert.strictEqual(result.success, true, `action ${action} should be valid`);
 			}
@@ -287,24 +286,6 @@ describe("tools - file", () => {
 			assert.match(result, /one\.js/);
 			assert.match(result, /two\.js/);
 			assert.ok(!result.includes("three.txt"));
-		});
-	});
-
-	describe("search action", () => {
-		it("finds matching lines", async () => {
-			const dir = join(TEST_DIR, "searchdir");
-			mkdirSync(dir, { recursive: true });
-			writeFileSync(join(dir, "a.txt"), "alpha\nbeta\ngamma\n");
-			const result = await searchImpl({ path: dir, pattern: "beta" }, getOptions());
-			assert.match(result, /beta/);
-		});
-
-		it("returns no matches when nothing matches", async () => {
-			const dir = join(TEST_DIR, "searchdir2");
-			mkdirSync(dir, { recursive: true });
-			writeFileSync(join(dir, "a.txt"), "alpha\n");
-			const result = await searchImpl({ path: dir, pattern: "zzz" }, getOptions());
-			assert.match(result, /No matches found/);
 		});
 	});
 

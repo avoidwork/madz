@@ -21,7 +21,7 @@ const config = loadConfig();
 const execFileAsync = promisify(execFile);
 
 const MAX_CONTENT_SIZE = 500 * 1024; // 500KB for write operations
-const VALID_ACTIONS = ["read", "write", "edit", "delete", "search", "ls", "glob", "grep"];
+const VALID_ACTIONS = ["read", "write", "edit", "delete", "ls", "glob", "grep"];
 
 /**
  * Resolve the effective base directory for the file tool.
@@ -481,41 +481,6 @@ export async function deleteImpl(input, options) {
 }
 
 /**
- * Execute search action logic on raw input.
- * @param {object} input - { path, pattern, maxResults }
- * @param {object} options - { allowedPaths }
- * @returns {Promise<string>} Search results
- */
-export async function searchImpl(input, options) {
-	const path = resolveFilePath(input.path);
-	const resolved = validatePath(path, options.allowedPaths);
-	if (!resolved.allowed) {
-		return `Error: ${resolved.error}`;
-	}
-
-	try {
-		const limit = input.maxResults || 20;
-		const rgArgs = ["--line-number", "--no-heading", "-n", input.pattern, resolved.path].filter(
-			Boolean,
-		);
-		const { stdout } = await execFileAsync("rg", rgArgs, { timeout: 10000, encoding: "utf-8" });
-		const output = (stdout ?? "").trim();
-
-		if (!output) {
-			return "No matches found.";
-		}
-
-		const matches = output.split("\n").slice(0, limit);
-		return `Found ${matches.length} matches:\n\n${matches.join("\n")}`;
-	} catch (err) {
-		if (err.code === "ENOENT" || err.code === 1 || err.status === 1) {
-			return nativeSearch(input.pattern, resolved.path, input.maxResults || 20);
-		}
-		return `Error: ${err.message}`;
-	}
-}
-
-/**
  * Execute ls action logic on raw input.
  * @param {object} input - { path }
  * @param {object} options - { allowedPaths }
@@ -655,8 +620,6 @@ export async function fileImpl(input, options) {
 			return editImpl(input, options);
 		case "delete":
 			return deleteImpl(input, options);
-		case "search":
-			return searchImpl(input, options);
 		case "ls":
 			return lsImpl(input, options);
 		case "glob":
