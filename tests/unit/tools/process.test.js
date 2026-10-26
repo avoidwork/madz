@@ -5,6 +5,7 @@ import {
 	processTracker,
 	trackProcess,
 } from "../../../src/tools/process/index.js";
+import { setProjectCwd } from "../../../src/workspace/project.js";
 
 describe("process tool - unifiedProcessImpl", () => {
 	beforeEach(() => {
@@ -307,5 +308,38 @@ describe("process tool - trackProcess", () => {
 		stderrHandler(Buffer.from("error output"));
 		const entry = processTracker.get(pid);
 		assert.strictEqual(entry.stderr, "error output");
+	});
+});
+
+describe("process tool - cwd resolution", () => {
+	beforeEach(() => {
+		processTracker.clear();
+	});
+
+	it("resolves the working directory to the active project cwd", async () => {
+		const projectDir = process.cwd();
+		setProjectCwd(projectDir);
+		try {
+			const result = await unifiedProcessImpl({ action: "start", command: "pwd" });
+			assert.ok(result.includes("exitCode: 0"));
+			assert.ok(result.includes(projectDir));
+		} finally {
+			setProjectCwd("");
+		}
+	});
+
+	it("resolves the working directory for background processes", async () => {
+		const projectDir = process.cwd();
+		setProjectCwd(projectDir);
+		try {
+			const result = await unifiedProcessImpl({
+				action: "start",
+				command: "pwd",
+				background: true,
+			});
+			assert.ok(result.includes("Started process in background"));
+		} finally {
+			setProjectCwd("");
+		}
 	});
 });
