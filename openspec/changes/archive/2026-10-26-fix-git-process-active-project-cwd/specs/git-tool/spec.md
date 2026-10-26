@@ -1,4 +1,4 @@
-## MODIFIED Requirements
+## ADDED Requirements
 
 ### Requirement: Working directory resolution from active project cwd
 The system SHALL resolve the git tool's working directory from the active project cwd via `getProjectCwd()` from `src/workspace/project.js` when no explicit `options.cwd` is provided. The resolution order SHALL be `options.cwd || getProjectCwd() || config.cwd || process.cwd()`. The `path` parameter SHALL remain a pathspec and SHALL NOT change the run directory.

@@ -1,4 +1,4 @@
-## MODIFIED Requirements
+## ADDED Requirements
 
 ### Requirement: Working directory resolution from active project cwd
 The system SHALL resolve the process tool's working directory from the active project cwd via `getProjectCwd()` from `src/workspace/project.js` when spawning commands. The resolution order SHALL be `getProjectCwd() || config.cwd || process.cwd()`. This applies to both foreground and background spawns.
