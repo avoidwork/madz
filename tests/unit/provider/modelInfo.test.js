@@ -159,4 +159,79 @@ describe("getModelContextLength", () => {
 		assert.strictEqual(await getModelContextLength({}), undefined);
 		assert.strictEqual(await getModelContextLength({ base_url: "https://host" }), undefined);
 	});
+
+	it("returns limits.max_prompt from a Copilot-shaped /models response", async () => {
+		mock.method(globalThis, "fetch", async () => ({
+			ok: true,
+			json: async () => ({
+				data: [{ id: "gpt-4o", limits: { context_window: 1000000, max_prompt: 128000 } }],
+			}),
+		}));
+		const result = await getModelContextLength({
+			base_url: "https://api.githubcopilot.com",
+			model: "gpt-4o",
+			credentials: { apiKey: "sk-test" },
+		});
+		assert.strictEqual(result, 128000);
+	});
+
+	it("returns limits.context_window when limits.max_prompt is absent", async () => {
+		mock.method(globalThis, "fetch", async () => ({
+			ok: true,
+			json: async () => ({
+				data: [{ id: "gpt-4o", limits: { context_window: 1000000 } }],
+			}),
+		}));
+		const result = await getModelContextLength({
+			base_url: "https://api.githubcopilot.com",
+			model: "gpt-4o",
+			credentials: { apiKey: "sk-test" },
+		});
+		assert.strictEqual(result, 1000000);
+	});
+
+	it("returns max_prompt_tokens from an opencode-shaped /models response", async () => {
+		mock.method(globalThis, "fetch", async () => ({
+			ok: true,
+			json: async () => ({
+				data: [{ id: "gpt-4o", max_context_window_tokens: 1000000, max_prompt_tokens: 128000 }],
+			}),
+		}));
+		const result = await getModelContextLength({
+			base_url: "https://api.githubcopilot.com",
+			model: "gpt-4o",
+			credentials: { apiKey: "sk-test" },
+		});
+		assert.strictEqual(result, 128000);
+	});
+
+	it("returns max_context_window_tokens when max_prompt_tokens is absent", async () => {
+		mock.method(globalThis, "fetch", async () => ({
+			ok: true,
+			json: async () => ({
+				data: [{ id: "gpt-4o", max_context_window_tokens: 1000000 }],
+			}),
+		}));
+		const result = await getModelContextLength({
+			base_url: "https://api.githubcopilot.com",
+			model: "gpt-4o",
+			credentials: { apiKey: "sk-test" },
+		});
+		assert.strictEqual(result, 1000000);
+	});
+
+	it("returns undefined when the Copilot-shaped response has no usable context fields", async () => {
+		mock.method(globalThis, "fetch", async () => ({
+			ok: true,
+			json: async () => ({
+				data: [{ id: "gpt-4o", limits: {} }],
+			}),
+		}));
+		const result = await getModelContextLength({
+			base_url: "https://api.githubcopilot.com",
+			model: "gpt-4o",
+			credentials: { apiKey: "sk-test" },
+		});
+		assert.strictEqual(result, undefined);
+	});
 });
