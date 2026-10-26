@@ -245,7 +245,12 @@ export async function resolveCopilotModel(config = {}) {
 	if (!baseUrl) return model;
 
 	try {
-		const res = await fetch(`${baseUrl}/models`, {
+		// Copilot's /models endpoint is authenticated. Decorate the request
+		// with the same fetch interceptor used for model calls so the token is
+		// read fresh from memory/auth.json and 401 re-auth is handled
+		// consistently. The interceptor also sets the standard Copilot headers.
+		const copilotFetch = createCopilotFetch();
+		const res = await copilotFetch(`${baseUrl}/models`, {
 			headers: { Accept: "application/json" },
 		});
 		if (!res.ok) return model;
