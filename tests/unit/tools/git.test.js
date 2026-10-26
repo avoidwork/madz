@@ -1,6 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
-import { git } from "../../../src/tools/git/index.js";
+import { git, gitImpl } from "../../../src/tools/git/index.js";
+import { setProjectCwd } from "../../../src/workspace/project.js";
 
 describe("tools - git", () => {
 	describe("Zod schema validation", () => {
@@ -103,5 +104,37 @@ describe("tools - git", () => {
 			const result = git.schema.safeParse({ action: "checkout", detach: true });
 			assert.ok(result.success, "checkout detach flag should be valid");
 		});
+	});
+});
+
+describe("tools - git cwd resolution", () => {
+	it("git status succeeds against the selected project cwd", async () => {
+		const repoRoot = process.cwd();
+		setProjectCwd(repoRoot);
+		try {
+			const result = await gitImpl({ action: "status" }, {});
+			assert.strictEqual(result.ok, true);
+			assert.ok(result.branch);
+		} finally {
+			setProjectCwd("");
+		}
+	});
+
+	it("explicit options.cwd overrides the project cwd", async () => {
+		setProjectCwd("/tmp/nonexistent-project");
+		try {
+			const result = await gitImpl({ action: "status" }, { cwd: process.cwd() });
+			assert.strictEqual(result.ok, true);
+			assert.ok(result.branch);
+		} finally {
+			setProjectCwd("");
+		}
+	});
+
+	it("falls back to config.cwd when no project is active", async () => {
+		setProjectCwd("");
+		const result = await gitImpl({ action: "status" }, {});
+		assert.strictEqual(result.ok, true);
+		assert.ok(result.branch);
 	});
 });

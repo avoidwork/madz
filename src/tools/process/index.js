@@ -2,11 +2,15 @@ import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { spawn } from "node:child_process";
 import { logger } from "../../shared/logger.js";
+import { loadConfig } from "../../config/loader.js";
+import { getProjectCwd } from "../../workspace/project.js";
 
 /**
  * Process tracker shared between shell and process tools.
  * Maps process IDs to process entry objects.
  */
+const config = loadConfig();
+
 export const processTracker = new Map();
 let nextPid = 1000;
 
@@ -81,7 +85,7 @@ function executeForeground(command) {
 		let exitCode = -1;
 
 		const child = spawn("sh", ["-c", escapeCommand(command)], {
-			cwd: process.cwd(),
+			cwd: getProjectCwd() || config.cwd || process.cwd(),
 			timeout: 30000,
 		});
 
@@ -121,7 +125,7 @@ function executeForeground(command) {
 function executeBackground(command) {
 	try {
 		const child = spawn("sh", ["-c", escapeCommand(command)], {
-			cwd: process.cwd(),
+			cwd: getProjectCwd() || config.cwd || process.cwd(),
 			detached: true,
 			stdio: ["ignore", "pipe", "pipe"],
 		});
