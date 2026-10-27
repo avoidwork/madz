@@ -31,6 +31,7 @@ import { searchCode, indexCode } from "./code/index.js";
 import { todo } from "./todo/index.js";
 import { file } from "./file/index.js";
 import { grep } from "./grep/index.js";
+import { discovery } from "./discovery/index.js";
 import { git } from "./git/index.js";
 import { getConfig } from "./config/index.js";
 import { decision, decisionImpl, DecisionToolSchema } from "./decision/index.js";
@@ -55,6 +56,7 @@ export const TOOL_PERMISSIONS = {
 	todo: ["filesystem:read", "filesystem:write"],
 	file: ["filesystem:read", "filesystem:write"],
 	grep: ["filesystem:read"],
+	discovery: ["filesystem:read"],
 	git: ["process:spawn"],
 	process: ["filesystem:exec", "process:spawn"],
 	sampling: ["filesystem:write"],
@@ -177,6 +179,17 @@ export const TOOL_CLASSIFICATIONS = {
 		"performance",
 		"documentation",
 	],
+	discovery: [
+		"search",
+		"research",
+		"coding",
+		"debug",
+		"code-review",
+		"security-audit",
+		"testing",
+		"performance",
+		"documentation",
+	],
 	process: ["debug", "performance", "coding"],
 	git: ["coding", "debug", "code-review", "performance"],
 	sampling: ["documentation"],
@@ -286,6 +299,7 @@ export const ORCHESTRATOR_TOOLS = [
 	"git",
 	"file",
 	"grep",
+	"discovery",
 	"reflectionSessions",
 	"searchSession",
 	"searchWeb",
@@ -313,6 +327,7 @@ export const TOOLS = {
 	memory,
 	todo,
 	file,
+	discovery,
 	grep,
 	git,
 	process: processTool,
@@ -427,7 +442,8 @@ export async function buildToolConfig(options) {
 			case "date":
 			case "cronJob":
 			case "git":
-			case "file": {
+			case "file":
+			case "discovery": {
 				if (!hasAllPerms) continue;
 				tools.push(TOOLS[toolName]);
 				continue;

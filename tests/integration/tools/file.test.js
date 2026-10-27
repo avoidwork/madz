@@ -8,9 +8,6 @@ import {
 	writeImpl,
 	editImpl,
 	deleteImpl,
-	grepImpl,
-	globImpl,
-	lsImpl,
 } from "../../../src/tools/file/index.js";
 
 const TEST_DIR = join(process.cwd(), "memory", "__test_file_integration__");
@@ -73,32 +70,6 @@ describe("tools - file integration", () => {
 		assert.strictEqual(existsSync(filePath), false);
 	});
 
-	it("searches a fixture tree with grep (search action removed)", async () => {
-		const result = await grepImpl({ path: TEST_DIR, pattern: "export const" }, getOptions());
-		assert.match(result, /index\.js/);
-		assert.match(result, /util\.js/);
-		assert.match(result, /deep\.js/);
-	});
-
-	it("greps a fixture tree for a pattern", async () => {
-		const result = await grepImpl({ path: TEST_DIR, pattern: "export const" }, getOptions());
-		assert.match(result, /export const foo/);
-		assert.match(result, /export const bar/);
-	});
-
-	it("matches files by glob pattern", async () => {
-		const result = await globImpl({ path: TEST_DIR, pattern: "**/*.js" }, getOptions());
-		assert.match(result, /index\.js/);
-		assert.match(result, /util\.js/);
-		assert.match(result, /deep\.js/);
-		assert.ok(!result.includes("README.md"));
-	});
-
-	it("lists directory entries", async () => {
-		const result = await lsImpl({ path: TEST_DIR }, getOptions());
-		assert.match(result, /src/);
-	});
-
 	it("dispatches through fileImpl", async () => {
 		const filePath = join(TEST_DIR, "dispatch.txt");
 		const result = await fileImpl(
@@ -107,5 +78,10 @@ describe("tools - file integration", () => {
 		);
 		assert.match(result, /Successfully wrote/);
 		assert.strictEqual(readFileSync(filePath, "utf-8"), "dispatched");
+	});
+
+	it("rejects discovery actions through fileImpl", async () => {
+		const result = await fileImpl({ action: "ls", path: TEST_DIR }, getOptions());
+		assert.match(result, /Unknown action/);
 	});
 });

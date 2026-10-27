@@ -1,6 +1,6 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import { grepImpl } from "../file/index.js";
+import { grepImpl } from "../common.js";
 import { loadConfig } from "../../config/loader.js";
 
 const config = loadConfig();
@@ -23,7 +23,7 @@ const GrepSchema = z.object({
 
 /**
  * grep tool — perform a literal regex search across file contents.
- * Reuses the file tool's ripgrep/native-fs search logic. Every path is
+ * Reuses the shared ripgrep/native-fs search logic from common.js. Every path is
  * validated against the sandbox allowlist via `validatePath`.
  */
 export const grep = tool(

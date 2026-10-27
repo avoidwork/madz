@@ -9,15 +9,11 @@ import {
 	writeImpl,
 	editImpl,
 	deleteImpl,
-	lsImpl,
-	globImpl,
-	grepImpl,
-	resolveBaseDir,
-	resolveFilePath,
 	generateUnifiedDiff,
 	fuzzyMatch,
 	levenshteinDistance,
 } from "../../../src/tools/file/index.js";
+import { resolveBaseDir, resolveFilePath } from "../../../src/tools/common.js";
 import { setProjectCwd } from "../../../src/workspace/project.js";
 
 const TEST_DIR = join(process.cwd(), "memory", "__test_file__");
@@ -65,9 +61,16 @@ describe("tools - file", () => {
 		});
 
 		it("accepts all valid actions", () => {
-			for (const action of ["read", "write", "edit", "delete", "ls", "glob", "grep"]) {
+			for (const action of ["read", "write", "edit", "delete"]) {
 				const result = file.schema.safeParse({ action, path: "/tmp/x" });
 				assert.strictEqual(result.success, true, `action ${action} should be valid`);
+			}
+		});
+
+		it("rejects discovery actions (ls, glob, grep)", () => {
+			for (const action of ["ls", "glob", "grep"]) {
+				const result = file.schema.safeParse({ action, path: "/tmp/x" });
+				assert.strictEqual(result.success, false, `action ${action} should be invalid`);
 			}
 		});
 	});
@@ -144,16 +147,6 @@ describe("tools - file", () => {
 		it("resolveFilePath leaves an absolute path unchanged", () => {
 			setProjectCwd("/tmp/project-a");
 			assert.strictEqual(resolveFilePath("/etc/passwd"), "/etc/passwd");
-			setProjectCwd("");
-		});
-
-		it("lsImpl defaults to the active project cwd when path is omitted", async () => {
-			const projectDir = join(TEST_DIR, "default-ls");
-			mkdirSync(projectDir, { recursive: true });
-			writeFileSync(join(projectDir, "a.txt"), "a");
-			setProjectCwd(projectDir);
-			const result = await lsImpl({ action: "ls" }, getOptions());
-			assert.match(result, /a\.txt/);
 			setProjectCwd("");
 		});
 
@@ -263,42 +256,6 @@ describe("tools - file", () => {
 		});
 	});
 
-	describe("ls action", () => {
-		it("lists directory entries", async () => {
-			const dir = join(TEST_DIR, "lsdir");
-			mkdirSync(dir, { recursive: true });
-			writeFileSync(join(dir, "a.txt"), "a");
-			writeFileSync(join(dir, "b.txt"), "b");
-			const result = await lsImpl({ path: dir }, getOptions());
-			assert.match(result, /a\.txt/);
-			assert.match(result, /b\.txt/);
-		});
-	});
-
-	describe("glob action", () => {
-		it("matches files by glob pattern", async () => {
-			const dir = join(TEST_DIR, "globdir");
-			mkdirSync(dir, { recursive: true });
-			writeFileSync(join(dir, "one.js"), "x");
-			writeFileSync(join(dir, "two.js"), "x");
-			writeFileSync(join(dir, "three.txt"), "x");
-			const result = await globImpl({ path: dir, pattern: "**/*.js" }, getOptions());
-			assert.match(result, /one\.js/);
-			assert.match(result, /two\.js/);
-			assert.ok(!result.includes("three.txt"));
-		});
-	});
-
-	describe("grep action", () => {
-		it("finds matching lines", async () => {
-			const dir = join(TEST_DIR, "grepdir");
-			mkdirSync(dir, { recursive: true });
-			writeFileSync(join(dir, "a.txt"), "foo\nbar\nbaz\n");
-			const result = await grepImpl({ path: dir, pattern: "bar" }, getOptions());
-			assert.match(result, /bar/);
-		});
-	});
-
 	describe("fileImpl dispatch", () => {
 		it("dispatches to the correct action", async () => {
 			const filePath = join(TEST_DIR, "dispatch.txt");
@@ -311,6 +268,11 @@ describe("tools - file", () => {
 
 		it("returns an error for an unknown action", async () => {
 			const result = await fileImpl({ action: "execute", path: "/tmp/x" }, getOptions());
+			assert.match(result, /Unknown action/);
+		});
+
+		it("returns an error for a discovery action", async () => {
+			const result = await fileImpl({ action: "ls", path: TEST_DIR }, getOptions());
 			assert.match(result, /Unknown action/);
 		});
 	});

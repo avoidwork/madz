@@ -3,7 +3,7 @@ import assert from "node:assert";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { grep } from "../../../src/tools/grep/index.js";
-import { grepImpl, nativeSearch } from "../../../src/tools/file/index.js";
+import { grepImpl, nativeSearch } from "../../../src/tools/common.js";
 
 const TEST_DIR = join(process.cwd(), "memory", "__test_grep__");
 const ALLOWED_PATHS = [TEST_DIR];
