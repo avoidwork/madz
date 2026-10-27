@@ -12,6 +12,7 @@ import {
 import { dirname, basename, join, resolve } from "node:path";
 import { promisify } from "node:util";
 import { execFile } from "node:child_process";
+import fg from "fast-glob";
 import { validatePath, checkFileLimit } from "../common.js";
 import { loadConfig } from "../../config/loader.js";
 import { getProjectCwd } from "../../workspace/project.js";
@@ -22,6 +23,9 @@ const execFileAsync = promisify(execFile);
 
 const MAX_CONTENT_SIZE = 500 * 1024; // 500KB for write operations
 const VALID_ACTIONS = ["read", "write", "edit", "delete", "ls", "glob", "grep"];
+
+/** Directories excluded from the glob, matching the `@` file picker. */
+const EXCLUDED_DIRS = ["**/node_modules/**", "**/.git/**", "**/dist/**"];
 
 /**
  * Resolve the effective base directory for the file tool.
@@ -515,36 +519,12 @@ export async function globImpl(input, options) {
 	}
 
 	const pattern = input.pattern || "**/*";
-	const regex = globToRegex(pattern);
-	const results = [];
-	const seen = new Set();
-	const MAX_DEPTH = 50;
-
-	async function walk(dir, depth = 0) {
-		if (depth > MAX_DEPTH) return;
-		try {
-			const entries = await readdir(dir);
-			for (const entry of entries) {
-				const full = join(dir, entry);
-				if (seen.has(full)) continue;
-				seen.add(full);
-				try {
-					const statResult = await stat(full);
-					if (statResult.isDirectory()) {
-						await walk(full, depth + 1);
-					} else if (statResult.isFile() && regex.test(full)) {
-						results.push(full);
-					}
-				} catch {
-					// Skip inaccessible entries
-				}
-			}
-		} catch {
-			// Skip inaccessible directories
-		}
-	}
-
-	await walk(resolved.path);
+	const results = await fg(pattern, {
+		cwd: resolved.path,
+		onlyFiles: true,
+		ignore: EXCLUDED_DIRS,
+		dot: false,
+	});
 
 	if (results.length === 0) {
 		return "No files match the glob pattern.";
@@ -588,21 +568,7 @@ export async function grepImpl(input, options) {
 }
 
 /**
- * Convert a glob pattern to a RegExp.
- * @param {string} pattern - Glob pattern (e.g. "**" + "/*.js")
- * @returns {RegExp} Compiled regex
- */
-function globToRegex(pattern) {
-	const escaped = pattern
-		.replace(/[.+^${}()|[\]\\]/g, "\\$&")
-		.replace(/\*\*/g, ".*")
-		.replace(/\*/g, "[^/]*")
-		.replace(/\?/g, ".");
-	return new RegExp(escaped);
-}
-
-/**
- * Core file logic implementing read, write, edit, delete, search, ls, glob,
+ * Core file logic implementing read, write, edit, delete, ls, glob,
  * and grep actions.
  * @param {object} input - The tool input
  * @param {object} options - Runtime options (allowedPaths, maxReadSize)
