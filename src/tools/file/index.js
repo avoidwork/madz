@@ -25,7 +25,7 @@ const MAX_CONTENT_SIZE = 500 * 1024; // 500KB for write operations
 const VALID_ACTIONS = ["read", "write", "edit", "delete", "ls", "glob", "grep"];
 
 /** Directories excluded from the glob, matching the `@` file picker. */
-const EXCLUDED_DIRS = ["**/node_modules/**", "**/.git/**", "**/dist/**"];
+const EXCLUDED_DIRS = ["**/node_modules/**", "**/.git/**"];
 
 /**
  * Resolve the effective base directory for the file tool.
