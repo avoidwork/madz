@@ -357,7 +357,7 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	registerHarnessProfile(
 		modelIdentifier,
 		createHarnessProfile({
-			excludedTools: ["execute", "ls"],
+			excludedTools: ["execute", "grep", "ls"],
 		}),
 	);
 
