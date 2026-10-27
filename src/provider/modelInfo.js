@@ -107,10 +107,14 @@ export async function getModelContextLength(providerConfig = {}) {
 		// budget is `max_prompt`, not `context_window` — the reported
 		// `context_window` (e.g. 400K/1M) is larger than what the API accepts.
 		if (entry) {
-			const limits = entry.limits;
-			const maxPrompt = limits?.max_prompt ?? entry.max_prompt_tokens;
+			// Copilot nests limits under `capabilities.limits`.
+			const limits = entry.capabilities?.limits ?? entry.limits;
+			const maxPrompt = limits?.max_prompt_tokens ?? limits?.max_prompt ?? entry.max_prompt_tokens;
 			if (typeof maxPrompt === "number") return maxPrompt;
-			const contextWindow = limits?.context_window ?? entry.max_context_window_tokens;
+			const contextWindow =
+				limits?.max_context_window_tokens ??
+				limits?.context_window ??
+				entry.max_context_window_tokens;
 			if (typeof contextWindow === "number") return contextWindow;
 		}
 	} catch {
