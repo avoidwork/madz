@@ -99,7 +99,7 @@ describe("createEvictionAwareFilesystemMiddleware", () => {
 	it("keeps the name FilesystemMiddleware regardless of model profile", () => {
 		registerHarnessProfile(
 			"openai:eviction-ceiling-probe",
-			createHarnessProfile({ excludedTools: ["execute", "grep", "ls"] }),
+			createHarnessProfile({ excludedTools: ["execute", "ls"] }),
 		);
 		const middleware = createEvictionAwareFilesystemMiddleware({
 			model: "openai:eviction-ceiling-probe",
@@ -111,7 +111,7 @@ describe("createEvictionAwareFilesystemMiddleware", () => {
 	it("supplies no filesystem tools for a model instance", () => {
 		registerHarnessProfile(
 			"openai:eviction-ceiling-instance-probe",
-			createHarnessProfile({ excludedTools: ["execute", "grep", "ls"] }),
+			createHarnessProfile({ excludedTools: ["execute", "ls"] }),
 		);
 		const model = { getName: () => "ChatOpenAI", model_name: "eviction-ceiling-instance-probe" };
 		const middleware = createEvictionAwareFilesystemMiddleware({ model });

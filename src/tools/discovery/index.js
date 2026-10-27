@@ -2,12 +2,12 @@ import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { readdir, stat } from "node:fs/promises";
 import { join } from "node:path";
-import { resolveFilePath, validatePath } from "../common.js";
+import { resolveFilePath, validatePath, grepImpl } from "../common.js";
 import { loadConfig } from "../../config/loader.js";
 
 const config = loadConfig();
 
-const VALID_ACTIONS = ["ls", "glob"];
+const VALID_ACTIONS = ["ls", "glob", "grep"];
 
 /**
  * Execute ls action logic on raw input.
@@ -96,9 +96,9 @@ export async function globImpl(input, options) {
 }
 
 /**
- * Core discovery logic implementing ls and glob actions.
+ * Core discovery logic implementing ls, glob, and grep actions.
  * @param {object} input - The tool input
- * @param {object} options - Runtime options (allowedPaths)
+ * @param {object} options - Runtime options (allowedPaths, maxReadSize)
  * @returns {Promise<string>} Result string
  */
 export async function discoveryImpl(input, options) {
@@ -109,34 +109,46 @@ export async function discoveryImpl(input, options) {
 			return lsImpl(input, options);
 		case "glob":
 			return globImpl(input, options);
+		case "grep":
+			return grepImpl(input, options);
 		default:
 			return `Error: Unknown action: '${action}'. Valid actions: ${VALID_ACTIONS.join(", ")}`;
 	}
 }
 
 /**
- * Discovery tool with ls and glob actions. Path listing only — no content
- * read or write. Every path is validated against the sandbox allowlist via
- * `validatePath`.
+ * Discovery tool with ls, glob, and grep actions. Finds files and content —
+ * path listing (ls, glob) and content search (grep). No content mutation.
+ * Every path is validated against the sandbox allowlist via `validatePath`.
  */
 export const discovery = tool(
 	(input) =>
 		discoveryImpl(input, {
 			allowedPaths: config.sandbox?.paths || [],
+			maxReadSize: config.sandbox?.maxReadSize || "1mb",
 		}),
 	{
 		name: "discovery",
 		description:
-			"Path discovery tool. Actions: ls (list directory entries), glob (match files by glob pattern). Path listing only — no content read or write. Every path is validated against the sandbox allowlist. Relative paths resolve against the active project cwd; omitting path defaults to the active project cwd (or config.cwd).",
+			"Discovery tool. Actions: ls (list directory entries), glob (match files by glob pattern), grep (search file contents by regex). Finds files and content — no content mutation. Every path is validated against the sandbox allowlist. Relative paths resolve against the active project cwd; omitting path defaults to the active project cwd (or config.cwd).",
 		schema: z.object({
-			action: z.enum(VALID_ACTIONS).describe("Action to perform: ls, glob"),
+			action: z.enum(VALID_ACTIONS).describe("Action to perform: ls, glob, grep"),
 			path: z
 				.string()
 				.optional()
 				.describe(
 					"Path to the directory. Relative paths resolve against the active project cwd; omit to default to the active project cwd (or config.cwd).",
 				),
-			pattern: z.string().optional().describe("Glob pattern to match (glob action)"),
+			pattern: z
+				.string()
+				.optional()
+				.describe("Glob pattern to match (glob action) or regex to search for (grep action)"),
+			maxResults: z
+				.number()
+				.int()
+				.positive()
+				.optional()
+				.describe("Maximum number of results to return (grep action)"),
 		}),
 	},
 );

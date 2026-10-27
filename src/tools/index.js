@@ -30,7 +30,6 @@ import { createWebhookTool } from "./webhook/index.js";
 import { searchCode, indexCode } from "./code/index.js";
 import { todo } from "./todo/index.js";
 import { file } from "./file/index.js";
-import { grep } from "./grep/index.js";
 import { discovery } from "./discovery/index.js";
 import { git } from "./git/index.js";
 import { getConfig } from "./config/index.js";
@@ -55,7 +54,6 @@ export const TOOL_PERMISSIONS = {
 	memory: ["filesystem:read", "filesystem:write"],
 	todo: ["filesystem:read", "filesystem:write"],
 	file: ["filesystem:read", "filesystem:write"],
-	grep: ["filesystem:read"],
 	discovery: ["filesystem:read"],
 	git: ["process:spawn"],
 	process: ["filesystem:exec", "process:spawn"],
@@ -167,17 +165,6 @@ export const TOOL_CLASSIFICATIONS = {
 		"security-audit",
 		"performance",
 		"coding",
-	],
-	grep: [
-		"search",
-		"research",
-		"coding",
-		"debug",
-		"code-review",
-		"security-audit",
-		"testing",
-		"performance",
-		"documentation",
 	],
 	discovery: [
 		"search",
@@ -298,7 +285,6 @@ export const ORCHESTRATOR_TOOLS = [
 	"process",
 	"git",
 	"file",
-	"grep",
 	"discovery",
 	"reflectionSessions",
 	"searchSession",
@@ -328,9 +314,8 @@ export const TOOLS = {
 	todo,
 	file,
 	discovery,
-	grep,
-	git,
 	process: processTool,
+	git,
 	sampling,
 	scanAgents,
 	searchSession,

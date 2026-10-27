@@ -20,7 +20,7 @@ function cleanupTestFiles() {
 }
 
 function getOptions() {
-	return { allowedPaths: ALLOWED_PATHS };
+	return { allowedPaths: ALLOWED_PATHS, maxReadSize: "1mb" };
 }
 
 describe("tools - discovery", () => {
@@ -39,6 +39,11 @@ describe("tools - discovery", () => {
 				path: "/tmp/x",
 				pattern: "**/*.js",
 			});
+			assert.strictEqual(result.success, true);
+		});
+
+		it("accepts a valid grep action", () => {
+			const result = discovery.schema.safeParse({ action: "grep", pattern: "foo" });
 			assert.strictEqual(result.success, true);
 		});
 
@@ -94,6 +99,38 @@ describe("tools - discovery", () => {
 			writeFileSync(join(dir, "a.txt"), "x");
 			const result = await globImpl({ path: dir, pattern: "**/*.js" }, getOptions());
 			assert.match(result, /No files match/);
+		});
+	});
+
+	describe("grep action", () => {
+		it("finds matching lines", async () => {
+			const dir = join(TEST_DIR, "grepdir");
+			mkdirSync(dir, { recursive: true });
+			writeFileSync(join(dir, "a.txt"), "foo\nbar\nbaz\n");
+			const result = await discoveryImpl(
+				{ action: "grep", path: dir, pattern: "bar" },
+				getOptions(),
+			);
+			assert.match(result, /bar/);
+		});
+
+		it("returns no matches when nothing matches", async () => {
+			const dir = join(TEST_DIR, "grepdir2");
+			mkdirSync(dir, { recursive: true });
+			writeFileSync(join(dir, "a.txt"), "foo\n");
+			const result = await discoveryImpl(
+				{ action: "grep", path: dir, pattern: "zzz" },
+				getOptions(),
+			);
+			assert.match(result, /No matches found/);
+		});
+
+		it("validates path against the sandbox allowlist", async () => {
+			const result = await discoveryImpl(
+				{ action: "grep", path: "/etc/passwd", pattern: "root" },
+				getOptions(),
+			);
+			assert.match(result, /Error/);
 		});
 	});
 

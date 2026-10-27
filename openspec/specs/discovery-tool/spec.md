@@ -3,8 +3,8 @@
 ## Purpose
 TBD - created by archiving change split-file-tool-discovery-content. Update Purpose after archive.
 ## Requirements
-### Requirement: Discovery tool with ls and glob actions
-The system SHALL expose a `discovery` tool that uses an `action` key to select the operation, following the same pattern as the `file`, `todo`, and `memory` tools. The `action` field SHALL be required and SHALL accept one of `ls`, `glob`. The tool SHALL be gated by the `filesystem:read` permission only — it SHALL NOT perform content read or write.
+### Requirement: Discovery tool with ls, glob, and grep actions
+The system SHALL expose a `discovery` tool that uses an `action` key to select the operation, following the same pattern as the `file`, `todo`, and `memory` tools. The `action` field SHALL be required and SHALL accept one of `ls`, `glob`, `grep`. The tool SHALL be gated by the `filesystem:read` permission only — it SHALL NOT perform content read or write.
 
 #### Scenario: Ls action lists directory contents
 - **WHEN** the agent calls `discovery` with `action: "ls"` and a valid `path`
@@ -13,6 +13,10 @@ The system SHALL expose a `discovery` tool that uses an `action` key to select t
 #### Scenario: Glob action matches files
 - **WHEN** the agent calls `discovery` with `action: "glob"`, a valid `path`, and a `pattern`
 - **THEN** the tool returns matching file paths
+
+#### Scenario: Grep action searches file contents
+- **WHEN** the agent calls `discovery` with `action: "grep"`, a valid `path`, and a `pattern`
+- **THEN** the tool returns matching lines
 
 #### Scenario: Unknown action returns an error
 - **WHEN** the agent calls `discovery` with an `action` not in the valid set
@@ -29,10 +33,9 @@ The system SHALL validate every `path` passed to the `discovery` tool against th
 - **WHEN** the agent calls `discovery` with a `path` inside the configured `allowedPaths`
 - **THEN** the tool proceeds with the requested operation
 
-### Requirement: Discovery tool does not read content
-The system SHALL NOT grant the `discovery` tool any content-read or content-write capability. The `discovery` tool SHALL be registered with the `filesystem:read` permission only, and SHALL NOT expose `read`, `write`, `edit`, `delete`, or `grep` actions.
+### Requirement: Discovery tool does not mutate content
+The system SHALL NOT grant the `discovery` tool any content-mutation capability. The `discovery` tool SHALL be registered with the `filesystem:read` permission only, and SHALL NOT expose `read`, `write`, `edit`, or `delete` actions.
 
-#### Scenario: Discovery tool has no content actions
+#### Scenario: Discovery tool has no content-mutation actions
 - **WHEN** the agent inspects the `discovery` tool's valid actions
-- **THEN** the valid actions SHALL be only `ls` and `glob`
-
+- **THEN** the valid actions SHALL be only `ls`, `glob`, and `grep`

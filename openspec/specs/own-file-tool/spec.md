@@ -28,7 +28,7 @@ The system SHALL expose a single `file` tool that uses an `action` key to select
 
 #### Scenario: Discovery and search actions are rejected
 - **WHEN** the agent calls `file` with `action: "ls"`, `"glob"`, `"grep"`, or `"search"`
-- **THEN** the tool returns an error, as these actions moved to the `discovery` tool (`ls`/`glob`) and the standalone `grep` tool (`grep`/`search`)
+- **THEN** the tool returns an error, as these actions moved to the `discovery` tool (`ls`/`glob`/`grep`)
 
 ### Requirement: Path validation against sandbox allowlist
 The system SHALL validate every `path` passed to the `file` tool against the sandbox `allowedPaths` via `validatePath` from `src/tools/common.js`. If the path is outside the sandbox scope, the tool SHALL return an access-denied error and SHALL NOT perform any file operation.
@@ -69,4 +69,3 @@ The system SHALL NOT include an `execute` action in the `file` tool. Shell comma
 #### Scenario: Execute is not a valid action
 - **WHEN** the agent calls `file` with `action: "execute"`
 - **THEN** the tool returns an error listing the valid actions, and no shell command is executed
-

@@ -202,14 +202,14 @@ describe("Agent Definitions", () => {
 
 	describe("getToolsForAgentTypes", () => {
 		it("should return tools matching agent type classifications", () => {
-			const tools = getToolsForAgentTypes(["search"], { searchWeb: {}, grep: {} });
+			const tools = getToolsForAgentTypes(["search"], { searchWeb: {}, discovery: {} });
 			ok(Array.isArray(tools), "Should return an array");
 		});
 
 		it("should return tools matching multiple agent types", () => {
 			const tools = getToolsForAgentTypes(["search", "debug"], {
 				searchWeb: {},
-				grep: {},
+				discovery: {},
 				glob: {},
 				searchSession: {},
 				executeCode: {},
