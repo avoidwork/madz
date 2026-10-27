@@ -12,6 +12,8 @@
  * `undefined`. It never throws, so the caller falls back gracefully.
  */
 
+import { createCopilotFetch, base as copilotBase } from "./copilotAuth.js";
+
 /**
  * Construct the OpenAI-compatible models URL from a base URL without
  * duplicating a `/v1` prefix. The models route is `/models`, not `/v1/models`.
@@ -74,18 +76,25 @@ export function parseNumCtx(parameters) {
  * @returns {Promise<number|undefined>} The context length, or `undefined`
  */
 export async function getModelContextLength(providerConfig = {}) {
-	const baseUrl = providerConfig.base_url;
+	const isCopilot = providerConfig.type === "github-copilot";
+	const baseUrl =
+		isCopilot && providerConfig.enterpriseUrl
+			? copilotBase(providerConfig.enterpriseUrl)
+			: providerConfig.base_url;
 	const model = providerConfig.model;
 	const apiKey = providerConfig.credentials?.apiKey;
 
 	if (!baseUrl || !model) return undefined;
 
 	// Candidate 1: OpenAI-compatible models endpoint (vLLM exposes max_model_len).
-	const modelsUrl = buildModelsUrl(baseUrl);
+	// Copilot's route is `{base}/models` (no `/v1`) and needs the OAuth bearer,
+	// which the Copilot fetch interceptor injects.
+	const modelsUrl = isCopilot ? `${baseUrl.replace(/\/+$/, "")}/models` : buildModelsUrl(baseUrl);
 	try {
 		const headers = { Accept: "application/json" };
-		if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
-		const res = await fetch(modelsUrl, { headers });
+		if (apiKey && !isCopilot) headers.Authorization = `Bearer ${apiKey}`;
+		const doFetch = isCopilot ? createCopilotFetch() : fetch;
+		const res = await doFetch(modelsUrl, { headers });
 		if (!res.ok) throw new Error(`models endpoint returned ${res.status}`);
 		const data = await res.json();
 		const entry = (data?.data || []).find((m) => m?.id === model);
@@ -98,10 +107,14 @@ export async function getModelContextLength(providerConfig = {}) {
 		// budget is `max_prompt`, not `context_window` — the reported
 		// `context_window` (e.g. 400K/1M) is larger than what the API accepts.
 		if (entry) {
-			const limits = entry.limits;
-			const maxPrompt = limits?.max_prompt ?? entry.max_prompt_tokens;
+			// Copilot nests limits under `capabilities.limits`.
+			const limits = entry.capabilities?.limits ?? entry.limits;
+			const maxPrompt = limits?.max_prompt_tokens ?? limits?.max_prompt ?? entry.max_prompt_tokens;
 			if (typeof maxPrompt === "number") return maxPrompt;
-			const contextWindow = limits?.context_window ?? entry.max_context_window_tokens;
+			const contextWindow =
+				limits?.max_context_window_tokens ??
+				limits?.context_window ??
+				entry.max_context_window_tokens;
 			if (typeof contextWindow === "number") return contextWindow;
 		}
 	} catch {

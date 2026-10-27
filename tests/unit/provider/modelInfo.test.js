@@ -160,6 +160,25 @@ describe("getModelContextLength", () => {
 		assert.strictEqual(await getModelContextLength({ base_url: "https://host" }), undefined);
 	});
 
+	it("hits {base}/models (no /v1) for github-copilot", async () => {
+		let calledUrl;
+		mock.method(globalThis, "fetch", async (url) => {
+			calledUrl = String(url);
+			return {
+				ok: true,
+				status: 200,
+				json: async () => ({ data: [{ id: "gpt-4o", limits: { max_prompt: 64000 } }] }),
+			};
+		});
+		const result = await getModelContextLength({
+			type: "github-copilot",
+			base_url: "https://api.githubcopilot.com",
+			model: "gpt-4o",
+		});
+		assert.strictEqual(calledUrl, "https://api.githubcopilot.com/models");
+		assert.strictEqual(result, 64000);
+	});
+
 	it("returns limits.max_prompt from a Copilot-shaped /models response", async () => {
 		mock.method(globalThis, "fetch", async () => ({
 			ok: true,
