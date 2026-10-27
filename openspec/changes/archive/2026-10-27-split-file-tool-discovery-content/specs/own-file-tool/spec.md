@@ -23,20 +23,6 @@ The system SHALL expose a single `file` tool that uses an `action` key to select
 - **WHEN** the agent calls `file` with an `action` not in the valid set
 - **THEN** the tool returns an error listing the valid actions
 
-## REMOVED Requirements
-
-### Requirement: Search action finds matches
-**Reason**: The `search` action was redundant with the standalone `grep` tool and the `grep` action. It is removed as part of splitting the `file` tool along the access boundary.
-**Migration**: Use the standalone `grep` tool for regex content search.
-
-### Requirement: Ls action lists directory contents
-**Reason**: The `ls` action is moved to the new `discovery` tool, which is gated by `filesystem:read` only (path listing without content access).
-**Migration**: Use the `discovery` tool with `action: "ls"`.
-
-### Requirement: Glob action matches files
-**Reason**: The `glob` action is moved to the new `discovery` tool, which is gated by `filesystem:read` only (path listing without content access).
-**Migration**: Use the `discovery` tool with `action: "glob"`.
-
-### Requirement: Grep action searches file contents
-**Reason**: The `grep` action is removed; the standalone `grep` tool is the single content-search path.
-**Migration**: Use the standalone `grep` tool.
+#### Scenario: Discovery and search actions are rejected
+- **WHEN** the agent calls `file` with `action: "ls"`, `"glob"`, `"grep"`, or `"search"`
+- **THEN** the tool returns an error, as these actions moved to the `discovery` tool (`ls`/`glob`) and the standalone `grep` tool (`grep`/`search`)

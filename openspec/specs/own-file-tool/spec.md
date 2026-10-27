@@ -4,7 +4,7 @@
 TBD - created by archiving change own-file-tool. Update Purpose after archive.
 ## Requirements
 ### Requirement: Single file tool with action key
-The system SHALL expose a single `file` tool that uses an `action` key to select the operation, following the same pattern as the `todo` and `memory` tools. The `action` field SHALL be required and SHALL accept one of `read`, `write`, `edit`, `delete`, `search`, `ls`, `glob`, `grep`.
+The system SHALL expose a single `file` tool that uses an `action` key to select the operation, following the same pattern as the `todo` and `memory` tools. The `action` field SHALL be required and SHALL accept one of `read`, `write`, `edit`, `delete`.
 
 #### Scenario: Read action returns file content
 - **WHEN** the agent calls `file` with `action: "read"` and a valid `path`
@@ -22,25 +22,13 @@ The system SHALL expose a single `file` tool that uses an `action` key to select
 - **WHEN** the agent calls `file` with `action: "delete"` and a valid `path`
 - **THEN** the tool removes the file and returns a confirmation
 
-#### Scenario: Search action finds matches
-- **WHEN** the agent calls `file` with `action: "search"`, a valid `path`, and a `pattern`
-- **THEN** the tool returns matching lines with file paths and line numbers
-
-#### Scenario: Ls action lists directory contents
-- **WHEN** the agent calls `file` with `action: "ls"` and a valid `path`
-- **THEN** the tool returns the directory entries
-
-#### Scenario: Glob action matches files
-- **WHEN** the agent calls `file` with `action: "glob"`, a valid `path`, and a `glob` pattern
-- **THEN** the tool returns matching file paths
-
-#### Scenario: Grep action searches file contents
-- **WHEN** the agent calls `file` with `action: "grep"`, a valid `path`, and a `pattern`
-- **THEN** the tool returns matching lines
-
 #### Scenario: Unknown action returns an error
 - **WHEN** the agent calls `file` with an `action` not in the valid set
 - **THEN** the tool returns an error listing the valid actions
+
+#### Scenario: Discovery and search actions are rejected
+- **WHEN** the agent calls `file` with `action: "ls"`, `"glob"`, `"grep"`, or `"search"`
+- **THEN** the tool returns an error, as these actions moved to the `discovery` tool (`ls`/`glob`) and the standalone `grep` tool (`grep`/`search`)
 
 ### Requirement: Path validation against sandbox allowlist
 The system SHALL validate every `path` passed to the `file` tool against the sandbox `allowedPaths` via `validatePath` from `src/tools/common.js`. If the path is outside the sandbox scope, the tool SHALL return an access-denied error and SHALL NOT perform any file operation.
