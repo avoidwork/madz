@@ -30,6 +30,21 @@ providers:
       maxRetries: 6
       maxConcurrency: 4
       maxTokensMinute: 0
+  azure:
+    type: azure-openai
+    enabled: false
+    model: gpt-4o
+    endpoint:
+    apiVersion:
+    temperature: 0.4
+    maxTokens: -1
+    contextWindow: 128000
+    reasoning:
+      effort: medium
+    rateLimit:
+      maxRetries: 6
+      maxConcurrency: 4
+      maxTokensMinute: 0
   fal:
     type: fal
     model: fal-ai/flux

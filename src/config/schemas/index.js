@@ -3,6 +3,7 @@ export {
 	SearchConfigSchema,
 	RateLimitSchema,
 	CopilotProviderConfigSchema,
+	AzureProviderConfigSchema,
 } from "./providers.js";
 export { SandboxScopeSchema } from "./sandbox.js";
 export { MemorySchema, MemoryGcSchema } from "./memory.js";

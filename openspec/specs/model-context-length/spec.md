@@ -4,7 +4,7 @@
 TBD - created by archiving change derive-summarization-trigger-from-model-context. Update Purpose after archive.
 ## Requirements
 ### Requirement: Resolver probes all candidate endpoints
-The system SHALL provide `getModelContextLength(providerConfig)` that probes all candidate endpoints to determine the model's context window length, using whichever one succeeds. It SHALL NOT branch on the provider `type` field, because Ollama and vLLM both expose OpenAI-compatible APIs and are configured as `type: openai`. The one that succeeds determines the provider. The resolver SHALL also understand Copilot's `/models` response shape, reading the usable prompt budget (`max_prompt`, not `context_window`).
+The system SHALL provide `getModelContextLength(providerConfig)` that probes all candidate endpoints to determine the model's context window length, using whichever one succeeds. It SHALL NOT branch on the provider `type` field, because Ollama and vLLM both expose OpenAI-compatible APIs and are configured as `type: openai`. The one that succeeds determines the provider. The resolver SHALL also understand Copilot's `/models` response shape, reading the usable prompt budget (`max_prompt`, not `context_window`). For an `azure-openai` provider, which has no OpenAI-compatible `/models` endpoint, the resolver SHALL fall back to the configured `contextWindow` rather than probing.
 
 #### Scenario: vLLM endpoint returns max_model_len
 - **WHEN** `GET {base_url}/models` (with the `/v1` dedup logic above) returns a list containing an entry whose `id` matches the configured model and that entry has `max_model_len`
@@ -37,6 +37,10 @@ The system SHALL provide `getModelContextLength(providerConfig)` that probes all
 #### Scenario: Copilot endpoint has no usable context fields
 - **WHEN** the OpenAI-compatible models endpoint returns an entry for the configured model with neither `limits.max_prompt`/`limits.context_window` nor `max_prompt_tokens`/`max_context_window_tokens`
 - **THEN** the resolver falls through to the next candidate and ultimately returns `undefined`
+
+#### Scenario: Azure provider falls back to configured contextWindow
+- **WHEN** `getModelContextLength` is called with an `azure-openai` provider config
+- **THEN** the resolver returns the configured `contextWindow` without probing a `/models` endpoint
 
 ### Requirement: Resolver does not duplicate the /v1 prefix
 The resolver SHALL construct the OpenAI-compatible models URL from `base_url` without duplicating a `/v1` prefix. If `base_url` already ends with `/v1`, the resolver SHALL append `/models` (yielding `{base_url}/models`); otherwise it SHALL append `/v1/models`. The Ollama native `/api/show` endpoint SHALL be constructed relative to the base host, not the `/v1` prefix.

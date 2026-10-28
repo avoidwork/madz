@@ -4,6 +4,7 @@ import {
 	SearchConfigSchema,
 	EmailConfigSchema,
 	CalendarConfigSchema,
+	AzureProviderConfigSchema,
 } from "./schemas/providers.js";
 import { SandboxScopeSchema } from "./schemas/sandbox.js";
 import { MemorySchema } from "./schemas/memory.js";
@@ -34,6 +35,7 @@ export {
 	SkillAgentMapSchema,
 	VectorConfigSchema,
 	McpSchema,
+	AzureProviderConfigSchema,
 };
 
 // --- Root config ---

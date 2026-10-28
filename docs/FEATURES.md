@@ -13,6 +13,8 @@ Configurable provider dispatch with rate limiting and context-window trimming. m
 
 The active provider is selected by the `enabled` flag on each provider block in `config.yaml` (or the matching `*_ENABLED` env var), not by config position or `type`. **OpenAI is enabled by default.** To switch to GitHub Copilot, set `COPILOT_ENABLED=true` (and optionally `OPENAI_ENABLED=false`). Copilot authenticates via GitHub OAuth device flow — a bearer token is persisted to `memory/auth.json` and refreshed automatically, so no API key is required. For GitHub Enterprise Cloud (GHEC) deployments, set `COPILOT_ENTERPRISE_URL` to derive the API base.
 
+To run against models deployed in an Azure OpenAI / Microsoft Foundry resource, set `AZURE_OPENAI_ENABLED=true` and provide `AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_ENDPOINT` (or `AZURE_OPENAI_API_INSTANCE_NAME`), and `AZURE_OPENAI_API_DEPLOYMENT_NAME` (the deployment name acts as the model). `AZURE_OPENAI_API_VERSION` is optional. The Azure provider is backed by `AzureChatOpenAI` and reads authentication exclusively from environment variables — the key is never written to config or logged.
+
 ### LLM Response Caching
 
 A cache-aside LRU response cache sits between the agent and the LLM provider. On each call, the system checks the cache before invoking the API. A cache key is generated from the thread ID and a SHA-256 hash of the message content (`${threadId}_${hash}`). On a cache hit, the stored response is returned immediately without an API call. On a cache miss, the LLM is called and the response is stored for future lookups.
