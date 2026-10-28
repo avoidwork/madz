@@ -135,9 +135,27 @@ const KnownProviderSchemas = z.discriminatedUnion("type", [
 	BedrockProviderConfigSchema,
 ]);
 
+// Provider types validated by a strict schema. A config carrying one of these
+// `type` values must match its strict schema exactly — it must not fall through
+// to the passthrough branch (which would silently accept e.g. a `credentials`
+// block on a Bedrock provider). Unknown providers (e.g. `fal`, `openrouter`)
+// have no strict schema and pass through unchanged.
+const KNOWN_PROVIDER_TYPES = new Set(["openai", "github-copilot", "bedrock"]);
+
+const passthroughProvider = z
+	.record(z.string(), z.unknown())
+	.superRefine((val, ctx) => {
+		if (typeof val?.type === "string" && KNOWN_PROVIDER_TYPES.has(val.type)) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: `Provider type "${val.type}" must match its strict schema`,
+			});
+		}
+	});
+
 export const ProvidersSchema = z.record(
 	z.string(),
-	z.union([KnownProviderSchemas, z.record(z.string(), z.unknown())]),
+	z.union([KnownProviderSchemas, passthroughProvider]),
 );
 
 // --- Email Provider Config Schemas ---
