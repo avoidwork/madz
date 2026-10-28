@@ -30,7 +30,7 @@ import { createWebhookTool } from "./webhook/index.js";
 import { searchCode, indexCode } from "./code/index.js";
 import { todo } from "./todo/index.js";
 import { file } from "./file/index.js";
-import { grep } from "./grep/index.js";
+import { discovery } from "./discovery/index.js";
 import { git } from "./git/index.js";
 import { getConfig } from "./config/index.js";
 import { decision, decisionImpl, DecisionToolSchema } from "./decision/index.js";
@@ -54,7 +54,7 @@ export const TOOL_PERMISSIONS = {
 	memory: ["filesystem:read", "filesystem:write"],
 	todo: ["filesystem:read", "filesystem:write"],
 	file: ["filesystem:read", "filesystem:write"],
-	grep: ["filesystem:read"],
+	discovery: ["filesystem:read"],
 	git: ["process:spawn"],
 	process: ["filesystem:exec", "process:spawn"],
 	sampling: ["filesystem:write"],
@@ -166,7 +166,7 @@ export const TOOL_CLASSIFICATIONS = {
 		"performance",
 		"coding",
 	],
-	grep: [
+	discovery: [
 		"search",
 		"research",
 		"coding",
@@ -285,7 +285,7 @@ export const ORCHESTRATOR_TOOLS = [
 	"process",
 	"git",
 	"file",
-	"grep",
+	"discovery",
 	"reflectionSessions",
 	"searchSession",
 	"searchWeb",
@@ -313,7 +313,7 @@ export const TOOLS = {
 	memory,
 	todo,
 	file,
-	grep,
+	discovery,
 	git,
 	process: processTool,
 	sampling,
