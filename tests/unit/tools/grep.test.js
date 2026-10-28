@@ -2,8 +2,7 @@ import { describe, it, before, after } from "node:test";
 import assert from "node:assert";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { grep } from "../../../src/tools/grep/index.js";
-import { grepImpl, nativeSearch } from "../../../src/tools/file/index.js";
+import { discovery, grepImpl, nativeSearch } from "../../../src/tools/discovery/index.js";
 
 const TEST_DIR = join(process.cwd(), "memory", "__test_grep__");
 const ALLOWED_PATHS = [TEST_DIR];
@@ -29,23 +28,28 @@ describe("tools - grep", () => {
 	after(cleanupTestFiles);
 
 	describe("schema validation", () => {
-		it("accepts a valid pattern", () => {
-			const result = grep.schema.safeParse({ pattern: "foo" });
+		it("accepts a valid grep action", () => {
+			const result = discovery.schema.safeParse({ action: "grep", pattern: "foo" });
 			assert.strictEqual(result.success, true);
 		});
 
-		it("accepts a pattern with optional path and maxResults", () => {
-			const result = grep.schema.safeParse({ pattern: "foo", path: "/tmp/x", maxResults: 5 });
+		it("accepts a grep action with optional path and maxResults", () => {
+			const result = discovery.schema.safeParse({
+				action: "grep",
+				pattern: "foo",
+				path: "/tmp/x",
+				maxResults: 5,
+			});
 			assert.strictEqual(result.success, true);
 		});
 
-		it("rejects a missing pattern", () => {
-			const result = grep.schema.safeParse({ path: "/tmp/x" });
-			assert.strictEqual(result.success, false);
+		it("accepts a grep action without a pattern (pattern is optional in discovery)", () => {
+			const result = discovery.schema.safeParse({ action: "grep", path: "/tmp/x" });
+			assert.strictEqual(result.success, true);
 		});
 
 		it("rejects a non-positive maxResults", () => {
-			const result = grep.schema.safeParse({ pattern: "foo", maxResults: 0 });
+			const result = discovery.schema.safeParse({ action: "grep", pattern: "foo", maxResults: 0 });
 			assert.strictEqual(result.success, false);
 		});
 	});
@@ -71,7 +75,6 @@ describe("tools - grep", () => {
 			const dir = join(TEST_DIR, "grepdir3");
 			mkdirSync(dir, { recursive: true });
 			writeFileSync(join(dir, "a.txt"), "alpha\nbeta\ngamma\n");
-			// nativeSearch is the fallback used by grepImpl when rg is absent.
 			const result = await nativeSearch("beta", dir, 20);
 			assert.match(result, /beta/);
 		});
