@@ -76,6 +76,11 @@ export function parseNumCtx(parameters) {
  * @returns {Promise<number|undefined>} The context length, or `undefined`
  */
 export async function getModelContextLength(providerConfig = {}) {
+	// Azure OpenAI has no OpenAI-compatible `/models` endpoint, so probing would
+	// fail. Fall back to the configured `contextWindow` rather than probing.
+	if (providerConfig.type === "azure-openai") {
+		return providerConfig.contextWindow;
+	}
 	const isCopilot = providerConfig.type === "github-copilot";
 	const baseUrl =
 		isCopilot && providerConfig.enterpriseUrl

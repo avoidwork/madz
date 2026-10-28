@@ -253,4 +253,13 @@ describe("getModelContextLength", () => {
 		});
 		assert.strictEqual(result, undefined);
 	});
+
+	it("falls back to the configured contextWindow for azure-openai", async () => {
+		const result = await getModelContextLength({
+			type: "azure-openai",
+			model: "gpt-4o",
+			contextWindow: 128000,
+		});
+		assert.strictEqual(result, 128000);
+	});
 });

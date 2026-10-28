@@ -132,6 +132,12 @@ The active provider is selected by the `enabled` flag, not by config position or
 | `COPILOT_BASE_URL`           | `https://api.githubcopilot.com` | Copilot API endpoint URL |
 | `COPILOT_MODEL`              | `gpt-4o`                    | Copilot model name         |
 | `COPILOT_ENTERPRISE_URL`     | _(empty)_                   | GitHub Enterprise (GHEC) URL for Copilot |
+| `AZURE_OPENAI_ENABLED`       | `false`                     | Enable the Azure OpenAI provider |
+| `AZURE_OPENAI_API_KEY`       | _(empty)_                   | Azure OpenAI API key (from env, never config) |
+| `AZURE_OPENAI_ENDPOINT`      | _(empty)_                   | Azure OpenAI endpoint (e.g. `https://<resource>.openai.azure.com`) |
+| `AZURE_OPENAI_API_INSTANCE_NAME` | _(empty)_               | Azure OpenAI resource instance name (alternative to endpoint) |
+| `AZURE_OPENAI_API_DEPLOYMENT_NAME` | _(empty)_             | Azure OpenAI deployment name (acts as the model) |
+| `AZURE_OPENAI_API_VERSION`   | _(empty)_                   | Azure OpenAI API version (e.g. `2024-10-21`) |
 | `OPENROUTER_API_KEY`         | _(empty)_                   | OpenRouter API key         |
 | `OPENROUTER_MODEL`           | `openrouter/auto`           | OpenRouter model name      |
 

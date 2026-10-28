@@ -40,3 +40,5 @@ export function getActiveProviderConfig(config) {
 export function getActiveModelName(config) {
 	return getActiveProviderConfig(config).model || "";
 }
+
+export { createAzureChatModel, resolveAzureEndpoint } from "./azure.js";

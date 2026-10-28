@@ -1,4 +1,5 @@
 import { ChatOpenAI } from "@langchain/openai";
+import { createAzureChatModel } from "./azure.js";
 import { AIMessageChunk } from "@langchain/core/messages";
 import { createTokenBudget } from "./tokenBudget.js";
 import { createCopilotFetch, base } from "./copilotAuth.js";
@@ -100,6 +101,12 @@ export function getRetryDelayMs(err, defaultMs) {
  * @returns {ChatOpenAI} A configured ChatOpenAI instance
  */
 export function createChatModel(config) {
+	// Azure OpenAI is a distinct provider backed by AzureChatOpenAI. Delegate to
+	// the dedicated factory so the orchestrator and subagents get the right model
+	// without touching call sites. The existing openai/copilot paths are untouched.
+	if (config.type === "azure-openai") {
+		return createAzureChatModel(config);
+	}
 	const isCopilot = config.type === "github-copilot";
 	const opts = {
 		model: config.model,
