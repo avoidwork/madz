@@ -379,6 +379,7 @@ export const CONSUMED_RUNTIME_OPTION_KEYS = [
 	"openaiApiKey",
 	"falApiKey",
 	"decisionConfig",
+	"samplingEnabled",
 ];
 
 export async function buildToolConfig(options) {
@@ -410,6 +411,8 @@ export async function buildToolConfig(options) {
 		falApiKey: falCredentials?.apiKey,
 		// Resolved decision config from config.agent.decision
 		decisionConfig: config?.agent?.decision,
+		// Resolved sampling enable flag from config.agent.sampling
+		samplingEnabled: config?.agent?.sampling !== false,
 	};
 
 	for (const [toolName, requiredPerms] of Object.entries(TOOL_PERMISSIONS)) {
@@ -417,8 +420,13 @@ export async function buildToolConfig(options) {
 
 		switch (toolName) {
 			case "clarify":
-			case "sampling":
 			case "process": {
+				tools.push(TOOLS[toolName]);
+				continue;
+			}
+
+			case "sampling": {
+				if (!runtimeOptions.samplingEnabled) continue;
 				tools.push(TOOLS[toolName]);
 				continue;
 			}

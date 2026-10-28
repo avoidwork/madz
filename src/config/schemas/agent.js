@@ -8,4 +8,5 @@ export const DecisionSchema = z.object({
 export const AgentSchema = z.object({
 	recursionLimit: z.number().int().positive().default(1000),
 	decision: DecisionSchema.default({}),
+	sampling: z.boolean().default(true),
 });

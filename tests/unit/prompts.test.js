@@ -128,6 +128,38 @@ describe("loadSystemPrompt", () => {
 		delete process.env.AGENT_DECISION_BASE_URL;
 	});
 
+	it("removes sampling tool instruction when agent.sampling is false", async () => {
+		writeFileSync(
+			join(fullTestDir, "prompts", "SYSTEM_PROMPT.md"),
+			"# System Prompt\n\n<!-- SAMPLING_TOOL_INSTRUCTION -->\n\nYou are a helpful assistant.",
+		);
+
+		process.env.AGENT_SAMPLING = "false";
+		const configLoader = await import("../../src/config/loader.js");
+		configLoader._resetConfigCache();
+		const { loadSystemPrompt } = await import("../../src/memory/prompts.js");
+		const result = await loadSystemPrompt(fullTestDir);
+		assert.ok(!result.includes("**Sampling:**"));
+		assert.ok(!result.includes("<!-- SAMPLING_TOOL_INSTRUCTION -->"));
+		delete process.env.AGENT_SAMPLING;
+	});
+
+	it("injects sampling tool instruction when agent.sampling is enabled", async () => {
+		writeFileSync(
+			join(fullTestDir, "prompts", "SYSTEM_PROMPT.md"),
+			"# System Prompt\n\n<!-- SAMPLING_TOOL_INSTRUCTION -->\n\nYou are a helpful assistant.",
+		);
+
+		process.env.AGENT_SAMPLING = "true";
+		const configLoader = await import("../../src/config/loader.js");
+		configLoader._resetConfigCache();
+		const { loadSystemPrompt } = await import("../../src/memory/prompts.js");
+		const result = await loadSystemPrompt(fullTestDir);
+		assert.ok(result.includes("**Sampling:**"));
+		assert.ok(!result.includes("<!-- SAMPLING_TOOL_INSTRUCTION -->"));
+		delete process.env.AGENT_SAMPLING;
+	});
+
 	it("includes todo tool directive for multi-step work planning", async () => {
 		writeFileSync(
 			join(fullTestDir, "prompts", "SYSTEM_PROMPT.md"),
