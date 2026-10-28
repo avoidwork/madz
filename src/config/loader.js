@@ -295,8 +295,14 @@ export function syncEnv(raw, knownSections = KNOWN_SECTIONS) {
 	const subPathTemplates = new Map();
 	for (const [key, value] of reverseMap) {
 		if (key.startsWith("__record__:")) {
+			const envPrefix = key.slice("__record__:".length);
+			// Skip record patterns with an empty envPrefix. A dropped container
+			// key (e.g. `providers`) yields an empty envPrefix, which would match
+			// any env var starting with `_` (e.g. the shell's `_` variable) and
+			// materialize a bogus empty-key entry.
+			if (envPrefix === "") continue;
 			recordPatterns.push({
-				envPrefix: key.slice("__record__:".length),
+				envPrefix,
 				dotPrefix: value,
 			});
 		} else if (key.startsWith("__subpath__:")) {

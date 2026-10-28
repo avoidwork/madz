@@ -50,6 +50,17 @@ Graceful shutdown flushes all buffered log entries to disk before process exit.
 |               | `copilot.rateLimit.maxRetries`       | `6`                                      | Max retry attempts on transient errors         |
 |               | `copilot.rateLimit.maxConcurrency`   | _(unset)_                                | Max concurrent requests (defaults to Infinity) |
 |               | `copilot.rateLimit.maxTokensMinute`  | `0`                                      | Rolling tokens-per-minute budget; `0` disables the throttle |
+|               | `bedrock.enabled`                    | `false`                                  | Enable the AWS Bedrock provider             |
+|               | `bedrock.type`                       | `bedrock`                                | LLM provider type                           |
+|               | `bedrock.model`                      | _(required)_                             | Model ID, cross-region inference profile ID (`us.` prefix), or application inference profile ARN |
+|               | `bedrock.region`                     | _(required)_                             | AWS region (`BEDROCK_AWS_REGION` fallback `AWS_REGION`) |
+|               | `bedrock.applicationInferenceProfile` | _(empty)_                                | Application inference profile ARN           |
+|               | `bedrock.temperature`                | `0.4`                                    | Sampling temperature (0–2)                  |
+|               | `bedrock.maxTokens`                  | `-1`                                     | Max output tokens (`-1` = no cap)           |
+|               | `bedrock.contextWindow`              | `200000`                                 | Model context window length                 |
+|               | `bedrock.rateLimit.maxRetries`       | `6`                                      | Max retry attempts on transient errors       |
+|               | `bedrock.rateLimit.maxConcurrency`   | _(unset)_                                | Max concurrent requests (defaults to Infinity) |
+|               | `bedrock.rateLimit.maxTokensMinute`  | `0`                                      | Rolling tokens-per-minute budget; `0` disables the throttle |
 | `sandbox`     | `paths`                              | `["memory/", "skills/", "tmp/"]` | Allowed filesystem paths                      |
 |               | `permissions`                        | `["filesystem:read", ...]`               | Permission grants                             |
 |               | `skillScanPaths`                     | `["skills/", ".skills/"]`         | Skill discovery paths (comma-separated)       |

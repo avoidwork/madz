@@ -8,6 +8,7 @@ import {
 	EmailConfigSchema,
 	OpenaiProviderConfigSchema,
 	CopilotProviderConfigSchema,
+	BedrockProviderConfigSchema,
 } from "../../../src/config/schemas/providers.js";
 
 describe("Email Provider Config Schemas", () => {
@@ -228,6 +229,98 @@ describe("Email Provider Config Schemas", () => {
 				type: "github-copilot",
 			});
 			assert.strictEqual(result.success, false);
+		});
+	});
+
+	describe("BedrockProviderConfigSchema", () => {
+		test("should validate a complete Bedrock config", () => {
+			const result = BedrockProviderConfigSchema.safeParse({
+				type: "bedrock",
+				model: "us.anthropic.claude-sonnet-4-6",
+				region: "us-east-1",
+			});
+			assert.strictEqual(result.success, true);
+		});
+
+		test("should default enabled to true", () => {
+			const result = BedrockProviderConfigSchema.safeParse({
+				type: "bedrock",
+				model: "m",
+				region: "us-east-1",
+			});
+			assert.strictEqual(result.success, true);
+			assert.strictEqual(result.data.enabled, true);
+		});
+
+		test("should accept enabled false", () => {
+			const result = BedrockProviderConfigSchema.safeParse({
+				type: "bedrock",
+				model: "m",
+				region: "us-east-1",
+				enabled: false,
+			});
+			assert.strictEqual(result.success, true);
+			assert.strictEqual(result.data.enabled, false);
+		});
+
+		test("should reject non-boolean enabled", () => {
+			const result = BedrockProviderConfigSchema.safeParse({
+				type: "bedrock",
+				model: "m",
+				region: "us-east-1",
+				enabled: "yes",
+			});
+			assert.strictEqual(result.success, false);
+		});
+
+		test("should reject missing region", () => {
+			const result = BedrockProviderConfigSchema.safeParse({
+				type: "bedrock",
+				model: "m",
+			});
+			assert.strictEqual(result.success, false);
+		});
+
+		test("should reject missing model", () => {
+			const result = BedrockProviderConfigSchema.safeParse({
+				type: "bedrock",
+				region: "us-east-1",
+			});
+			assert.strictEqual(result.success, false);
+		});
+
+		test("should reject a credentials block", () => {
+			const result = BedrockProviderConfigSchema.safeParse({
+				type: "bedrock",
+				model: "m",
+				region: "us-east-1",
+				credentials: { apiKey: "secret" },
+			});
+			assert.strictEqual(result.success, false);
+		});
+
+		test("should accept an application inference profile", () => {
+			const result = BedrockProviderConfigSchema.safeParse({
+				type: "bedrock",
+				model: "m",
+				region: "us-east-1",
+				applicationInferenceProfile:
+					"arn:aws:bedrock:us-east-1:123:application-inference-profile/fm16bt65tzgx",
+			});
+			assert.strictEqual(result.success, true);
+			assert.strictEqual(
+				result.data.applicationInferenceProfile,
+				"arn:aws:bedrock:us-east-1:123:application-inference-profile/fm16bt65tzgx",
+			);
+		});
+
+		test("should accept a cross-region inference profile model", () => {
+			const result = BedrockProviderConfigSchema.safeParse({
+				type: "bedrock",
+				model: "us.anthropic.claude-sonnet-4-6",
+				region: "us-east-1",
+			});
+			assert.strictEqual(result.success, true);
 		});
 	});
 

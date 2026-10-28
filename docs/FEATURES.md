@@ -13,6 +13,12 @@ Configurable provider dispatch with rate limiting and context-window trimming. m
 
 The active provider is selected by the `enabled` flag on each provider block in `config.yaml` (or the matching `*_ENABLED` env var), not by config position or `type`. **OpenAI is enabled by default.** To switch to GitHub Copilot, set `COPILOT_ENABLED=true` (and optionally `OPENAI_ENABLED=false`). Copilot authenticates via GitHub OAuth device flow — a bearer token is persisted to `memory/auth.json` and refreshed automatically, so no API key is required. For GitHub Enterprise Cloud (GHEC) deployments, set `COPILOT_ENTERPRISE_URL` to derive the API base.
 
+To use **Amazon Bedrock**, add a `bedrock` provider block to `config.yaml` (or set `BEDROCK_ENABLED=true`). Bedrock is backed by `ChatBedrockConverse` from `@langchain/aws` and uses the Converse API, giving a uniform interface and tool-calling across model families (Claude, Llama, Nova, etc.). The `model` may be a model ID, a cross-region inference profile ID (`us.` prefix), or an application inference profile ARN (`applicationInferenceProfile`). A `region` is required (`BEDROCK_AWS_REGION`, falling back to `AWS_REGION`).
+
+Authentication is resolved in precedence order and never stored in config files: `AWS_BEARER_TOKEN_BEDROCK` (bearer token), then the `BEDROCK_AWS_ACCESS_KEY_ID` / `BEDROCK_AWS_SECRET_ACCESS_KEY` key pair (with optional `BEDROCK_AWS_SESSION_TOKEN`), then the default AWS credential chain (`AWS_PROFILE`, SSO, IAM role, ECS/EC2 metadata).
+
+**Least-privilege IAM:** grant only `bedrock:InvokeModel` and `bedrock:InvokeModelWithResponseStream` to the role or user that runs madz. Do not grant broader Bedrock or AWS permissions.
+
 ### LLM Response Caching
 
 A cache-aside LRU response cache sits between the agent and the LLM provider. On each call, the system checks the cache before invoking the API. A cache key is generated from the thread ID and a SHA-256 hash of the message content (`${threadId}_${hash}`). On a cache hit, the stored response is returned immediately without an API call. On a cache miss, the LLM is called and the response is stored for future lookups.

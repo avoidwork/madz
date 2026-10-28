@@ -2,6 +2,7 @@ import { ChatOpenAI } from "@langchain/openai";
 import { AIMessageChunk } from "@langchain/core/messages";
 import { createTokenBudget } from "./tokenBudget.js";
 import { createCopilotFetch, base } from "./copilotAuth.js";
+import { createBedrockModel } from "./bedrock.js";
 
 /** Default retry delay (ms) when a 429 carries no `retry-after` hint. */
 export const DEFAULT_RETRY_AFTER_MS = 60_000;
@@ -100,6 +101,12 @@ export function getRetryDelayMs(err, defaultMs) {
  * @returns {ChatOpenAI} A configured ChatOpenAI instance
  */
 export function createChatModel(config) {
+	// Dispatch Bedrock to its dedicated factory. The OpenAI factory carries
+	// OpenAI-specific opts (configuration.baseURL, reasoning.effort, apiKey)
+	// that do not apply to Bedrock, so it must not branch here.
+	if (config.type === "bedrock") {
+		return createBedrockModel(config);
+	}
 	const isCopilot = config.type === "github-copilot";
 	const opts = {
 		model: config.model,

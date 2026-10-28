@@ -105,6 +105,20 @@ export const CopilotProviderConfigSchema = z.object({
 	rateLimit: RateLimitSchema.default({ requestsPerMinute: 60 }),
 });
 
+export const BedrockProviderConfigSchema = z
+	.object({
+		type: z.literal("bedrock").default("bedrock"),
+		enabled: z.boolean().default(true),
+		model: z.string().min(1),
+		region: z.string().min(1),
+		applicationInferenceProfile: z.string().optional(),
+		temperature: z.number().min(0).max(2).default(0.4),
+		maxTokens: z.number().int().min(-1).default(-1),
+		contextWindow: z.number().int().positive().default(200000),
+		rateLimit: RateLimitSchema.default({ requestsPerMinute: 60 }),
+	})
+	.strict();
+
 const _OpenrouterProviderConfigSchema = z.object({
 	model: z.string().optional().default("openrouter/auto"),
 	credentials: OpenRouterCredentialsSchema,
@@ -115,7 +129,16 @@ const _FalProviderConfigSchema = z.object({
 	credentials: FalCredentialsSchema,
 });
 
-export const ProvidersSchema = z.object({}).passthrough();
+const KnownProviderSchemas = z.discriminatedUnion("type", [
+	OpenaiProviderConfigSchema,
+	CopilotProviderConfigSchema,
+	BedrockProviderConfigSchema,
+]);
+
+export const ProvidersSchema = z.record(
+	z.string(),
+	z.union([KnownProviderSchemas, z.record(z.string(), z.unknown())]),
+);
 
 // --- Email Provider Config Schemas ---
 

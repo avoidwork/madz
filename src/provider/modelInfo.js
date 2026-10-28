@@ -76,6 +76,12 @@ export function parseNumCtx(parameters) {
  * @returns {Promise<number|undefined>} The context length, or `undefined`
  */
 export async function getModelContextLength(providerConfig = {}) {
+	// Bedrock has no OpenAI-compatible or Ollama endpoint to probe. Use the
+	// config-driven contextWindow fallback directly rather than assuming an
+	// OpenAI-style or Copilot model listing.
+	if (providerConfig.type === "bedrock") {
+		return providerConfig.contextWindow;
+	}
 	const isCopilot = providerConfig.type === "github-copilot";
 	const baseUrl =
 		isCopilot && providerConfig.enterpriseUrl
