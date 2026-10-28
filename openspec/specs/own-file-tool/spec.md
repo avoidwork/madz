@@ -4,7 +4,7 @@
 TBD - created by archiving change own-file-tool. Update Purpose after archive.
 ## Requirements
 ### Requirement: Single file tool with action key
-The system SHALL expose a single `file` tool that uses an `action` key to select the operation, following the same pattern as the `todo` and `memory` tools. The `action` field SHALL be required and SHALL accept one of `read`, `write`, `edit`, `delete`, `search`, `ls`, `glob`, `grep`.
+The system SHALL expose a single `file` tool that uses an `action` key to select the operation, following the same pattern as the `todo` and `memory` tools. The `action` field SHALL be required and SHALL accept one of `read`, `write`, `edit`, `delete`.
 
 #### Scenario: Read action returns file content
 - **WHEN** the agent calls `file` with `action: "read"` and a valid `path`
@@ -22,21 +22,9 @@ The system SHALL expose a single `file` tool that uses an `action` key to select
 - **WHEN** the agent calls `file` with `action: "delete"` and a valid `path`
 - **THEN** the tool removes the file and returns a confirmation
 
-#### Scenario: Search action finds matches
-- **WHEN** the agent calls `file` with `action: "search"`, a valid `path`, and a `pattern`
-- **THEN** the tool returns matching lines with file paths and line numbers
-
-#### Scenario: Ls action lists directory contents
-- **WHEN** the agent calls `file` with `action: "ls"` and a valid `path`
-- **THEN** the tool returns the directory entries
-
-#### Scenario: Glob action matches files
-- **WHEN** the agent calls `file` with `action: "glob"`, a valid `path`, and a `glob` pattern
-- **THEN** the tool returns matching file paths
-
-#### Scenario: Grep action searches file contents
-- **WHEN** the agent calls `file` with `action: "grep"`, a valid `path`, and a `pattern`
-- **THEN** the tool returns matching lines
+#### Scenario: Discovery action returns an error
+- **WHEN** the agent calls `file` with `action: "ls"`, `"glob"`, or `"grep"`
+- **THEN** the tool returns an error indicating the action is not valid for the `file` tool
 
 #### Scenario: Unknown action returns an error
 - **WHEN** the agent calls `file` with an `action` not in the valid set
