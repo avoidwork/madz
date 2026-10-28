@@ -124,6 +124,18 @@ export const AzureProviderConfigSchema = z.object({
 	rateLimit: RateLimitSchema.default({ requestsPerMinute: 60 }),
 });
 
+export const BedrockProviderConfigSchema = z.object({
+	type: z.literal("bedrock").default("bedrock"),
+	enabled: z.boolean().default(true),
+	model: z.string().min(1),
+	region: z.string().min(1),
+	applicationInferenceProfile: z.string().min(1).optional(),
+	temperature: z.number().min(0).max(2).default(0.4),
+	maxTokens: z.number().int().min(-1).default(-1),
+	contextWindow: z.number().int().positive().default(200000),
+	rateLimit: RateLimitSchema.default({ requestsPerMinute: 60 }),
+});
+
 const _OpenrouterProviderConfigSchema = z.object({
 	model: z.string().optional().default("openrouter/auto"),
 	credentials: OpenRouterCredentialsSchema,

@@ -4,7 +4,7 @@
 TBD - created by archiving change derive-summarization-trigger-from-model-context. Update Purpose after archive.
 ## Requirements
 ### Requirement: Resolver probes all candidate endpoints
-The system SHALL provide `getModelContextLength(providerConfig)` that probes all candidate endpoints to determine the model's context window length, using whichever one succeeds. It SHALL NOT branch on the provider `type` field, because Ollama and vLLM both expose OpenAI-compatible APIs and are configured as `type: openai`. The one that succeeds determines the provider. The resolver SHALL also understand Copilot's `/models` response shape, reading the usable prompt budget (`max_prompt`, not `context_window`). For an `azure-openai` provider, which has no OpenAI-compatible `/models` endpoint, the resolver SHALL fall back to the configured `contextWindow` rather than probing.
+The system SHALL provide `getModelContextLength(providerConfig)` that probes all candidate endpoints to determine the model's context window length, using whichever one succeeds. It SHALL NOT branch on the provider `type` field, because Ollama and vLLM both expose OpenAI-compatible APIs and are configured as `type: openai`. The one that succeeds determines the provider. The resolver SHALL also understand Copilot's `/models` response shape, reading the usable prompt budget (`max_prompt`, not `context_window`). For an `azure-openai` provider, which has no OpenAI-compatible `/models` endpoint, the resolver SHALL fall back to the configured `contextWindow` rather than probing. For a `bedrock` provider, which also has no OpenAI-compatible `/models` endpoint, the resolver SHALL fall back to the configured `contextWindow` rather than probing.
 
 #### Scenario: vLLM endpoint returns max_model_len
 - **WHEN** `GET {base_url}/models` (with the `/v1` dedup logic above) returns a list containing an entry whose `id` matches the configured model and that entry has `max_model_len`
@@ -40,6 +40,10 @@ The system SHALL provide `getModelContextLength(providerConfig)` that probes all
 
 #### Scenario: Azure provider falls back to configured contextWindow
 - **WHEN** `getModelContextLength` is called with an `azure-openai` provider config
+- **THEN** the resolver returns the configured `contextWindow` without probing a `/models` endpoint
+
+#### Scenario: Bedrock provider falls back to configured contextWindow
+- **WHEN** `getModelContextLength` is called with a `bedrock` provider config
 - **THEN** the resolver returns the configured `contextWindow` without probing a `/models` endpoint
 
 ### Requirement: Resolver does not duplicate the /v1 prefix
