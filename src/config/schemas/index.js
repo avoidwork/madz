@@ -4,6 +4,7 @@ export {
 	RateLimitSchema,
 	CopilotProviderConfigSchema,
 	AzureProviderConfigSchema,
+	BedrockProviderConfigSchema,
 } from "./providers.js";
 export { SandboxScopeSchema } from "./sandbox.js";
 export { MemorySchema, MemoryGcSchema } from "./memory.js";

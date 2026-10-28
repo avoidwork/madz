@@ -1,5 +1,6 @@
 import { ChatOpenAI } from "@langchain/openai";
 import { createAzureChatModel } from "./azure.js";
+import { createBedrockChatModel } from "./bedrock.js";
 import { AIMessageChunk } from "@langchain/core/messages";
 import { createTokenBudget } from "./tokenBudget.js";
 import { createCopilotFetch, base } from "./copilotAuth.js";
@@ -106,6 +107,13 @@ export function createChatModel(config) {
 	// without touching call sites. The existing openai/copilot paths are untouched.
 	if (config.type === "azure-openai") {
 		return createAzureChatModel(config);
+	}
+	// AWS Bedrock is a distinct provider backed by ChatBedrockConverse. Delegate
+	// to the dedicated factory so the orchestrator and subagents get the right
+	// model without touching call sites. The existing openai/copilot paths are
+	// untouched.
+	if (config.type === "bedrock") {
+		return createBedrockChatModel(config);
 	}
 	const isCopilot = config.type === "github-copilot";
 	const opts = {

@@ -42,3 +42,4 @@ export function getActiveModelName(config) {
 }
 
 export { createAzureChatModel, resolveAzureEndpoint } from "./azure.js";
+export { createBedrockChatModel, resolveBedrockRegion } from "./bedrock.js";

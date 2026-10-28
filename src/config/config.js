@@ -5,6 +5,7 @@ import {
 	EmailConfigSchema,
 	CalendarConfigSchema,
 	AzureProviderConfigSchema,
+	BedrockProviderConfigSchema,
 } from "./schemas/providers.js";
 import { SandboxScopeSchema } from "./schemas/sandbox.js";
 import { MemorySchema } from "./schemas/memory.js";
@@ -36,6 +37,7 @@ export {
 	VectorConfigSchema,
 	McpSchema,
 	AzureProviderConfigSchema,
+	BedrockProviderConfigSchema,
 };
 
 // --- Root config ---
