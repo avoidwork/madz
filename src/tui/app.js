@@ -613,6 +613,8 @@ function App({
 			sessionState,
 			config,
 			onViewChange: handleViewChange,
+			onResumeSession: (conversation) =>
+				conversationAreaRef.current?.loadConversation(conversation),
 			activeView: currentView,
 		});
 	} else if (currentView === PANELS.PROJECTS) {

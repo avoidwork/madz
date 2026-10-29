@@ -38,9 +38,11 @@ function CyanIndicator({ isSelected = false }) {
  *   sessionState  - SessionStateManager instance
  *   config        - App config (for memory.sessionsDir)
  *   onViewChange  - Callback to switch back to conversation view
+ *   onResumeSession - Callback to load the resumed conversation into the
+ *                     always-mounted ConversationArea's message list
  *   activeView  - The current active view name (from PANELS)
  */
-export function SessionsPanel({ sessionState, config, onViewChange, activeView }) {
+export function SessionsPanel({ sessionState, config, onViewChange, onResumeSession, activeView }) {
 	const isActive = activeView === "sessions";
 	const [sessions, setSessions] = useState([]);
 	const [loading, setLoading] = useState(true);
@@ -155,6 +157,12 @@ export function SessionsPanel({ sessionState, config, onViewChange, activeView }
 				sessionState.createNewSession(sessionId);
 				sessionState.loadConversation(loaded.conversation);
 				sessionState.setSessionId(sessionId);
+				// Load the resumed conversation into the always-mounted
+				// ConversationArea's message list. The ConversationArea stays
+				// mounted across panel views (it is hidden, not unmounted), so
+				// its mount effect never re-runs and it would otherwise keep
+				// showing the previous session's messages.
+				onResumeSession?.(loaded.conversation);
 				// Navigate back to conversation view
 				onViewChange?.("conversation");
 			} catch (err) {
@@ -162,7 +170,7 @@ export function SessionsPanel({ sessionState, config, onViewChange, activeView }
 				setResuming(null);
 			}
 		},
-		[sessionState, config, onViewChange],
+		[sessionState, config, onViewChange, onResumeSession],
 	);
 
 	// Escape returns to conversation view
