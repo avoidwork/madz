@@ -184,6 +184,38 @@ describe("tools - buildToolConfig", () => {
 	});
 });
 
+describe("tools - sampling gating", () => {
+	it("registers sampling by default when agent.sampling is absent", async () => {
+		const { buildToolConfig } = await import("../../src/tools/index.js");
+		const tools = await buildToolConfig({
+			permissions: ["filesystem:write"],
+			config: {},
+		});
+		const toolNames = tools.map((t) => t.name);
+		assert.ok(toolNames.includes("sampling"), "sampling should register by default");
+	});
+
+	it("registers sampling when agent.sampling is true", async () => {
+		const { buildToolConfig } = await import("../../src/tools/index.js");
+		const tools = await buildToolConfig({
+			permissions: ["filesystem:write"],
+			config: { agent: { sampling: true } },
+		});
+		const toolNames = tools.map((t) => t.name);
+		assert.ok(toolNames.includes("sampling"), "sampling should register when enabled");
+	});
+
+	it("does not register sampling when agent.sampling is false", async () => {
+		const { buildToolConfig } = await import("../../src/tools/index.js");
+		const tools = await buildToolConfig({
+			permissions: ["filesystem:write"],
+			config: { agent: { sampling: false } },
+		});
+		const toolNames = tools.map((t) => t.name);
+		assert.ok(!toolNames.includes("sampling"), "sampling should NOT register when disabled");
+	});
+});
+
 describe("tools - MCP tool classification", () => {
 	beforeEach(async () => {
 		// Reset the module-level MCP classification registry between tests.

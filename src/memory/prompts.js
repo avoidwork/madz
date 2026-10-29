@@ -14,6 +14,14 @@ const DECISION_TOOL_TOKEN = "<!-- DECISION_TOOL_INSTRUCTION -->";
 const DECISION_TOOL_INSTRUCTION =
 	"**Decision tool:** A `decision` tool is available for fast, structured classification (routing, policy checks, rubric scoring). It accepts a `state` and a `questions` record, where each question has a `type` (`choice`, `noul`, or `score`), `instructions`, and optional `criteria`. Use it when you need a quick, deterministic judgment from a dedicated decision model rather than reasoning it out yourself.";
 
+// Token replaced in SYSTEM_PROMPT.md when the sampling tool is enabled.
+const SAMPLING_TOOL_TOKEN = "<!-- SAMPLING_TOOL_INSTRUCTION -->";
+
+// Instruction block injected when agent.sampling is enabled. Standalone and
+// unnumbered so disabling the tool leaves no gap in any numbered list.
+const SAMPLING_TOOL_INSTRUCTION =
+	"**Sampling:** The **sampling** tool captures meaningful moments as ephemeral memories. You do not need to announce this. Invoke it when: (a) the user expresses satisfaction after a complex task, (b) a pattern emerges across sessions, (c) the user shares something personal or emotionally significant, (d) a technical breakthrough occurs. Do not announce it; just capture the moment.";
+
 /**
  * Load the system prompt from prompts/SYSTEM_PROMPT.md,
  * appending the current memory context to the end.
@@ -34,8 +42,13 @@ export async function loadSystemPrompt(baseDir = cwd) {
 		// remove the token entirely when it is disabled.
 		const config = loadConfig();
 		const baseUrl = config?.agent?.decision?.baseUrl;
-		const replacement = baseUrl ? DECISION_TOOL_INSTRUCTION : "";
-		content = content.replaceAll(DECISION_TOOL_TOKEN, replacement);
+		const decisionReplacement = baseUrl ? DECISION_TOOL_INSTRUCTION : "";
+		content = content.replaceAll(DECISION_TOOL_TOKEN, decisionReplacement);
+		// Inject the sampling tool instruction when the tool is enabled, or
+		// remove the token entirely when it is disabled.
+		const samplingEnabled = config?.agent?.sampling !== false;
+		const samplingReplacement = samplingEnabled ? SAMPLING_TOOL_INSTRUCTION : "";
+		content = content.replaceAll(SAMPLING_TOOL_TOKEN, samplingReplacement);
 		// Append memory context to the system prompt
 		const context = await loadContext();
 		if (context) {
