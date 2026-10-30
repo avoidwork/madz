@@ -1,6 +1,8 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import { validatePath } from "../common.js";
+import { access } from "node:fs/promises";
+import { join } from "node:path";
+import { validatePath, checkFileLimit } from "../common.js";
 import { loadAgents } from "../../workspace/loadAgents.js";
 import { loadConfig } from "../../config/loader.js";
 
@@ -17,16 +19,33 @@ const ScanAgentsSchema = z.object({
  * Core scanAgents logic: delegate to loadAgents with validated path.
  * @param {z.infer<typeof ScanAgentsSchema>} input - The tool input
  * @param {object} options - Runtime options (allowedPaths, maxReadSize)
- * @returns {Promise<string>} File contents or empty string
+ * @returns {Promise<{ ok: boolean, agents?: string, error?: string }>} Structured result
  */
 export async function scanAgentsImpl(input, options) {
 	const targetPath = input.path || cwd;
 	const resolved = validatePath(targetPath, options.allowedPaths);
 	if (!resolved.allowed) {
-		return `Error: ${resolved.error}`;
+		return { ok: false, error: resolved.error };
 	}
 
-	return await loadAgents(resolved.path, options.maxReadSize);
+	const agentsPath = join(resolved.path, "AGENTS.md");
+
+	// No AGENTS.md → successful empty result
+	try {
+		await access(agentsPath);
+	} catch {
+		return { ok: true, agents: "" };
+	}
+
+	// Enforce size limit before delegating to loadAgents
+	if (options.maxReadSize) {
+		const limitCheck = await checkFileLimit(agentsPath, options.maxReadSize);
+		if (!limitCheck.ok) {
+			return { ok: false, error: limitCheck.error };
+		}
+	}
+
+	return { ok: true, agents: await loadAgents(resolved.path, options.maxReadSize) };
 }
 
 /**
