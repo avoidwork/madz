@@ -52,15 +52,14 @@ describe("transcribeAudio integration", () => {
 		writeFileSync(filePath, buildWavFixture());
 
 		const result = await transcribeAudioImpl({ path: filePath }, { allowedPaths: ALLOWED_PATHS });
-		const parsed = JSON.parse(result);
 
 		// The local Whisper model may not be downloadable in all environments,
 		// so accept either a successful transcription or a graceful error.
-		if (parsed.ok) {
-			assert.strictEqual(parsed.backend, "local");
-			assert.ok(typeof parsed.text === "string");
+		if (result.ok) {
+			assert.strictEqual(result.backend, "local");
+			assert.ok(typeof result.text === "string");
 		} else {
-			assert.ok(parsed.error.length > 0);
+			assert.ok(result.error.length > 0);
 		}
 	});
 
@@ -82,10 +81,9 @@ describe("transcribeAudio integration", () => {
 				{ path: filePath },
 				{ allowedPaths: ALLOWED_PATHS, openaiApiKey: "sk-test" },
 			);
-			const parsed = JSON.parse(result);
-			assert.strictEqual(parsed.ok, true);
-			assert.strictEqual(parsed.backend, "api");
-			assert.strictEqual(parsed.text, "transcribed from api");
+			assert.strictEqual(result.ok, true);
+			assert.strictEqual(result.backend, "api");
+			assert.strictEqual(result.text, "transcribed from api");
 		} finally {
 			globalThis.fetch = origFetch;
 		}
