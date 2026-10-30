@@ -32,57 +32,71 @@ async function pathExists(filePath) {
  * @param {z.infer<typeof ClarifySchema>} input - The tool input
  * @param {object} options - Runtime options
  * @param {string} [options.clarificationsFile] - Path to clarifications file (default "memory/tools/clarifications.md")
- * @returns {Promise<string>} Clarification result
+ * @returns {Promise<object>} Structured result object
  */
 export async function clarifyImpl(input, options) {
-	const { question, choices } = input;
-	const config = loadConfig();
-	const toolsDir = config.memory?.toolsDir || "memory/tools/";
-	const clarificationsFile =
-		options?.clarificationsFile || join(config.cwd, toolsDir, "clarifications.md");
+	let question;
+	let choices;
+	let clarificationsFile;
 
-	// Format choices as numbered list if provided
-	let choicesFormatted = "";
-	if (choices && choices.length > 0) {
-		choicesFormatted = "\n\nOptions:\n" + choices.map((c, i) => `${i + 1}. ${c}`).join("\n");
+	try {
+		({ question, choices } = input);
+		const config = loadConfig();
+		const toolsDir = config.memory?.toolsDir || "memory/tools/";
+		clarificationsFile =
+			options?.clarificationsFile || join(config.cwd, toolsDir, "clarifications.md");
+
+		// Format choices as numbered list if provided
+		let choicesFormatted = "";
+		if (choices && choices.length > 0) {
+			choicesFormatted = "\n\nOptions:\n" + choices.map((c, i) => `${i + 1}. ${c}`).join("\n");
+		}
+
+		// Store the question for session context
+		const timestamp = new Date().toISOString();
+		const entry = `## Clarification: ${question}\n\n- Time: ${timestamp}\n${choicesFormatted ? `\n- Options: ${choicesFormatted.replace(/\n/g, ", ")}` : ""}`;
+
+		// Ensure directory exists
+		const dir = dirname(clarificationsFile);
+		if (dir && !(await pathExists(dir))) {
+			await mkdir(dir, { recursive: true });
+		}
+
+		// Append to clarifications file
+		const existing = (await pathExists(clarificationsFile))
+			? await readFile(clarificationsFile, "utf-8")
+			: "";
+		await writeFile(clarificationsFile, existing + "\n\n" + entry + "\n", "utf-8");
+	} catch (error) {
+		return {
+			ok: false,
+			error: error instanceof Error ? error.message : String(error),
+		};
 	}
-
-	// Store the question for session context
-	const timestamp = new Date().toISOString();
-	const entry = `## Clarification: ${question}\n\n- Time: ${timestamp}\n${choicesFormatted ? `\n- Options: ${choicesFormatted.replace(/\n/g, ", ")}` : ""}`;
-
-	// Ensure directory exists
-	const dir = dirname(clarificationsFile);
-	if (dir && !(await pathExists(dir))) {
-		await mkdir(dir, { recursive: true });
-	}
-
-	// Append to clarifications file
-	const existing = (await pathExists(clarificationsFile))
-		? await readFile(clarificationsFile, "utf-8")
-		: "";
-	await writeFile(clarificationsFile, existing + "\n\n" + entry + "\n", "utf-8");
 
 	// Pause the agent and surface the question to the user. The interrupt value
 	// carries the question (and choices) so the TUI can render a prompt. The
 	// graph is resumed with `Command({ resume })`, and the resumed value is the
 	// user's answer. `interrupt()` returns the resume value when the graph is
 	// re-invoked, so `answered` is only true once a real answer is received.
+	// This call is intentionally outside the try/catch: `interrupt()` throws a
+	// `GraphInterrupt` control-flow signal that must propagate to the graph.
 	const answer = interrupt({ question, ...(choices && choices.length > 0 ? { choices } : {}) });
 
-	return JSON.stringify({
+	return {
+		ok: true,
 		answered: true,
 		question,
 		...(choices && choices.length > 0 ? { choices } : {}),
 		answer,
 		source: choices && choices.length > 0 ? "choices" : "open_ended",
-	});
+	};
 }
 
 /**
  * @param {z.infer<typeof ClarifySchema>} input
  * @param {object} _options - Runtime options
- * @returns {string}
+ * @returns {object}
  */
 export const clarify = tool(clarifyImpl, {
 	name: "clarify",
