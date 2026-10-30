@@ -15,30 +15,26 @@ describe("generateImage", () => {
 
 	it("requires prompt", async () => {
 		const result = await generateImageImpl({}, {});
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.ok, false);
-		assert.ok(parsed.error.includes("Prompt is required"));
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("Prompt is required"));
 	});
 
 	it("rejects empty prompt", async () => {
 		const result = await generateImageImpl({ prompt: "" }, {});
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.ok, false);
-		assert.ok(parsed.error.includes("Prompt is required"));
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("Prompt is required"));
 	});
 
 	it("rejects long prompts (>1000 chars)", async () => {
 		const result = await generateImageImpl({ prompt: "a".repeat(1001) }, {});
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.ok, false);
-		assert.ok(parsed.error.includes("1000 characters"));
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("1000 characters"));
 	});
 
 	it("returns error when falApiKey is not set", async () => {
 		const result = await generateImageImpl({ prompt: "a cat" }, {});
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.ok, false);
-		assert.ok(parsed.error.includes("FAL_API_KEY"));
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("FAL_API_KEY"));
 	});
 
 	it("uses falApiKey from options", async () => {
@@ -52,9 +48,8 @@ describe("generateImage", () => {
 			{ prompt: "a sunset" },
 			{ falApiKey: "sk-fake-fal-key" },
 		);
-		const parsed = JSON.parse(result);
-		assert.ok(parsed.ok);
-		assert.strictEqual(parsed.imageUrl, "https://fal.ai/generated.png");
+		assert.ok(result.ok);
+		assert.strictEqual(result.imageUrl, "https://fal.ai/generated.png");
 	});
 
 	it("calls FAL.ai with correct parameters", async () => {
@@ -71,8 +66,7 @@ describe("generateImage", () => {
 			};
 		};
 		const result = await generateImageImpl({ prompt: "a mountain" }, { falApiKey: "sk-test" });
-		const parsed = JSON.parse(result);
-		assert.ok(parsed.ok);
+		assert.ok(result.ok);
 	});
 
 	it("returns error on FAL.ai failure", async () => {
@@ -82,9 +76,8 @@ describe("generateImage", () => {
 			text: async () => "Rate limit exceeded",
 		});
 		const result = await generateImageImpl({ prompt: "test" }, { falApiKey: "sk-fake-key" });
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.ok, false);
-		assert.ok(parsed.error.includes("FAL.ai"));
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("FAL.ai"));
 	});
 
 	it("returns error when FAL.ai response has no images", async () => {
@@ -93,9 +86,8 @@ describe("generateImage", () => {
 			json: async () => ({ messages: [] }), // no images key
 		});
 		const result = await generateImageImpl({ prompt: "test" }, { falApiKey: "sk-fake-key" });
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.ok, false);
-		assert.ok(parsed.error.includes("missing image"));
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("missing image"));
 	});
 
 	it("returns error when fetch throws (network failure)", async () => {
@@ -103,8 +95,7 @@ describe("generateImage", () => {
 			throw new Error("Network error");
 		};
 		const result = await generateImageImpl({ prompt: "test" }, { falApiKey: "sk-fake-key" });
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.ok, false);
-		assert.ok(parsed.error.includes("Network error"));
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("Network error"));
 	});
 });
