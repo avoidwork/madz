@@ -151,9 +151,9 @@ describe("browserImpl", () => {
 			{ action: "navigate", url: "file:///etc/passwd" },
 			{ launchBrowser: launch },
 		);
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.ok, false);
-		assert.match(parsed.error, /URL rejected/);
+		assert.strictEqual(typeof result, "object");
+		assert.strictEqual(result.ok, false);
+		assert.match(result.error, /URL rejected/);
 	});
 
 	it("returns an error for an internal host on navigate", async () => {
@@ -161,9 +161,9 @@ describe("browserImpl", () => {
 			{ action: "navigate", url: "http://127.0.0.1/" },
 			{ launchBrowser: launch },
 		);
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.ok, false);
-		assert.match(parsed.error, /URL rejected/);
+		assert.strictEqual(typeof result, "object");
+		assert.strictEqual(result.ok, false);
+		assert.match(result.error, /URL rejected/);
 	});
 
 	it("navigates to a valid URL", async () => {
@@ -172,9 +172,9 @@ describe("browserImpl", () => {
 			{ action: "navigate", url: "https://example.com" },
 			{ launchBrowser: async () => ({ close: async () => {} }), openPage: async () => page },
 		);
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.ok, true);
-		assert.strictEqual(parsed.action, "navigate");
+		assert.strictEqual(typeof result, "object");
+		assert.strictEqual(result.ok, true);
+		assert.strictEqual(result.action, "navigate");
 		assert.strictEqual(calls.actions[0].type, "goto");
 		assert.strictEqual(calls.actions[0].url, "https://example.com");
 	});
@@ -185,8 +185,8 @@ describe("browserImpl", () => {
 			{ action: "click", selector: "#submit" },
 			{ launchBrowser: async () => ({ close: async () => {} }), openPage: async () => page },
 		);
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.ok, true);
+		assert.strictEqual(typeof result, "object");
+		assert.strictEqual(result.ok, true);
 		assert.strictEqual(calls.actions[0].type, "click");
 		assert.strictEqual(calls.actions[0].selector, "#submit");
 	});
@@ -197,8 +197,8 @@ describe("browserImpl", () => {
 			{ action: "type", selector: "#input", text: "hello" },
 			{ launchBrowser: async () => ({ close: async () => {} }), openPage: async () => page },
 		);
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.ok, true);
+		assert.strictEqual(typeof result, "object");
+		assert.strictEqual(result.ok, true);
 		assert.strictEqual(calls.actions[0].type, "type");
 		assert.strictEqual(calls.actions[0].text, "hello");
 	});
@@ -209,8 +209,8 @@ describe("browserImpl", () => {
 			{ action: "fill", selector: "#input", text: "hello" },
 			{ launchBrowser: async () => ({ close: async () => {} }), openPage: async () => page },
 		);
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.ok, true);
+		assert.strictEqual(typeof result, "object");
+		assert.strictEqual(result.ok, true);
 		assert.strictEqual(calls.actions[0].type, "$eval");
 		assert.strictEqual(calls.actions[1].type, "type");
 	});
@@ -221,8 +221,8 @@ describe("browserImpl", () => {
 			{ action: "press", key: "Enter" },
 			{ launchBrowser: async () => ({ close: async () => {} }), openPage: async () => page },
 		);
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.ok, true);
+		assert.strictEqual(typeof result, "object");
+		assert.strictEqual(result.ok, true);
 		assert.strictEqual(calls.actions[0].type, "press");
 		assert.strictEqual(calls.actions[0].key, "Enter");
 	});
@@ -237,12 +237,12 @@ describe("browserImpl", () => {
 				screenshotsDir,
 			},
 		);
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.ok, true);
-		assert.strictEqual(parsed.mimeType, "image/jpeg");
-		assert.strictEqual(typeof parsed.path, "string");
-		assert.match(parsed.path, /\.jpg$/);
-		assert.strictEqual(parsed.path.startsWith(screenshotsDir), true);
+		assert.strictEqual(typeof result, "object");
+		assert.strictEqual(result.ok, true);
+		assert.strictEqual(result.mimeType, "image/jpeg");
+		assert.strictEqual(typeof result.path, "string");
+		assert.match(result.path, /\.jpg$/);
+		assert.strictEqual(result.path.startsWith(screenshotsDir), true);
 		assert.strictEqual(calls.actions[0].type, "screenshot");
 		assert.strictEqual(calls.actions[0].opts.type, "jpeg");
 		assert.strictEqual(calls.actions[0].opts.quality, 80);
@@ -256,10 +256,10 @@ describe("browserImpl", () => {
 			{ action: "extract" },
 			{ launchBrowser: async () => ({ close: async () => {} }), openPage: async () => page },
 		);
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.ok, true);
-		assert.strictEqual(parsed.content, "Extracted text");
-		assert.strictEqual(parsed.contentLength, 14);
+		assert.strictEqual(typeof result, "object");
+		assert.strictEqual(result.ok, true);
+		assert.strictEqual(result.content, "Extracted text");
+		assert.strictEqual(result.contentLength, 14);
 	});
 
 	it("waits for a selector", async () => {
@@ -268,8 +268,8 @@ describe("browserImpl", () => {
 			{ action: "waitFor", selector: "#content" },
 			{ launchBrowser: async () => ({ close: async () => {} }), openPage: async () => page },
 		);
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.ok, true);
+		assert.strictEqual(typeof result, "object");
+		assert.strictEqual(result.ok, true);
 		assert.strictEqual(calls.actions[0].type, "waitForSelector");
 		assert.strictEqual(calls.actions[0].selector, "#content");
 	});
@@ -280,8 +280,8 @@ describe("browserImpl", () => {
 			{ action: "waitFor", waitUntil: "networkidle" },
 			{ launchBrowser: async () => ({ close: async () => {} }), openPage: async () => page },
 		);
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.ok, true);
+		assert.strictEqual(typeof result, "object");
+		assert.strictEqual(result.ok, true);
 		assert.strictEqual(calls.actions[0].type, "waitForNetworkIdle");
 	});
 
@@ -296,9 +296,9 @@ describe("browserImpl", () => {
 			{ action: "evaluate", fn: "document.title" },
 			{ launchBrowser: async () => ({ close: async () => {} }), openPage: async () => page },
 		);
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.ok, true);
-		assert.strictEqual(parsed.result, "title");
+		assert.strictEqual(typeof result, "object");
+		assert.strictEqual(result.ok, true);
+		assert.strictEqual(result.result, "title");
 		assert.strictEqual(calls.actions[0].type, "evaluate");
 	});
 
@@ -312,9 +312,9 @@ describe("browserImpl", () => {
 			{ action: "click", selector: "#missing" },
 			{ launchBrowser: async () => ({ close: async () => {} }), openPage: async () => page },
 		);
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.ok, false);
-		assert.match(parsed.error, /Browser action failed/);
+		assert.strictEqual(typeof result, "object");
+		assert.strictEqual(result.ok, false);
+		assert.match(result.error, /Browser action failed/);
 	});
 
 	it("generates and returns a sessionId when none is provided", async () => {
@@ -328,10 +328,10 @@ describe("browserImpl", () => {
 				openPage: async () => page,
 			},
 		);
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.ok, true);
-		assert.strictEqual(typeof parsed.sessionId, "string");
-		assert.ok(parsed.sessionId.length > 0);
+		assert.strictEqual(typeof result, "object");
+		assert.strictEqual(result.ok, true);
+		assert.strictEqual(typeof result.sessionId, "string");
+		assert.ok(result.sessionId.length > 0);
 	});
 
 	it("reuses a persistent session when a sessionId is provided", async () => {
@@ -364,20 +364,18 @@ describe("browserImpl", () => {
 			launchCount += 1;
 			return { close: async () => {} };
 		};
-		const first = JSON.parse(
-			await browserImpl(
-				{ action: "navigate", url: "https://example.com" },
-				{ launchBrowser, openPage: async () => page },
-			),
+		const first = await browserImpl(
+			{ action: "navigate", url: "https://example.com" },
+			{ launchBrowser, openPage: async () => page },
 		);
+		assert.strictEqual(typeof first, "object");
 		assert.strictEqual(first.ok, true);
 		assert.strictEqual(typeof first.sessionId, "string");
-		const second = JSON.parse(
-			await browserImpl(
-				{ action: "extract", sessionId: first.sessionId },
-				{ launchBrowser, openPage: async () => page },
-			),
+		const second = await browserImpl(
+			{ action: "extract", sessionId: first.sessionId },
+			{ launchBrowser, openPage: async () => page },
 		);
+		assert.strictEqual(typeof second, "object");
 		assert.strictEqual(second.ok, true);
 		// The second call reuses the auto-generated session, so the browser is
 		// only launched once.
@@ -400,9 +398,9 @@ describe("browserImpl", () => {
 			{ action: "close", sessionId: "s2" },
 			{ launchBrowser, openPage: async () => page },
 		);
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.ok, true);
-		assert.strictEqual(parsed.action, "close");
+		assert.strictEqual(typeof result, "object");
+		assert.strictEqual(result.ok, true);
+		assert.strictEqual(result.action, "close");
 		assert.strictEqual(closed, true);
 	});
 });
