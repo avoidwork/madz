@@ -75,12 +75,12 @@ describe("reflection tool", () => {
 			],
 		});
 
-		const result = JSON.parse(await reflectionImpl({}, defaultOpts));
-		assert.strictEqual(result.length, 1);
-		assert.strictEqual(result[0].sessionId, "thread-001");
-		assert.strictEqual(result[0].startedAt, iso);
-		assert.strictEqual(result[0].userMessages.length, 1);
-		assert.strictEqual(result[0].userMessages[0].content, "Hello");
+		const { results } = await reflectionImpl({}, defaultOpts);
+		assert.strictEqual(results.length, 1);
+		assert.strictEqual(results[0].sessionId, "thread-001");
+		assert.strictEqual(results[0].startedAt, iso);
+		assert.strictEqual(results[0].userMessages.length, 1);
+		assert.strictEqual(results[0].userMessages[0].content, "Hello");
 	});
 
 	// --- 3.3: handle empty sessions directory ---
@@ -92,8 +92,8 @@ describe("reflection tool", () => {
 			await rm(join(TEST_SESSIONS_DIR, f), { force: true });
 		}
 
-		const result = JSON.parse(await reflectionImpl({}, defaultOpts));
-		assert.deepStrictEqual(result, []);
+		const { results } = await reflectionImpl({}, defaultOpts);
+		assert.deepStrictEqual(results, []);
 	});
 
 	// --- 3.4: filter sessions by date window ---
@@ -117,9 +117,9 @@ describe("reflection tool", () => {
 			messages: [{ role: "user", content: "old", timestamp: old.toISOString() }],
 		});
 
-		const result = JSON.parse(await reflectionImpl({}, defaultOpts));
-		assert.strictEqual(result.length, 1);
-		assert.strictEqual(result[0].sessionId, "thread-recent");
+		const { results } = await reflectionImpl({}, defaultOpts);
+		assert.strictEqual(results.length, 1);
+		assert.strictEqual(results[0].sessionId, "thread-recent");
 	});
 
 	it("filters sessions by custom window (14 days)", async () => {
@@ -141,9 +141,9 @@ describe("reflection tool", () => {
 			messages: [{ role: "user", content: "old", timestamp: old.toISOString() }],
 		});
 
-		const result = JSON.parse(await reflectionImpl({ windowDays: 14 }, defaultOpts));
-		assert.strictEqual(result.length, 1);
-		assert.strictEqual(result[0].sessionId, "thread-window-recent");
+		const { results } = await reflectionImpl({ windowDays: 14 }, defaultOpts);
+		assert.strictEqual(results.length, 1);
+		assert.strictEqual(results[0].sessionId, "thread-window-recent");
 	});
 
 	it("excludes sessions outside window (3 days)", async () => {
@@ -165,9 +165,9 @@ describe("reflection tool", () => {
 			messages: [{ role: "user", content: "outside", timestamp: outside.toISOString() }],
 		});
 
-		const result = JSON.parse(await reflectionImpl({ windowDays: 3 }, defaultOpts));
-		assert.strictEqual(result.length, 1);
-		assert.strictEqual(result[0].sessionId, "thread-within");
+		const { results } = await reflectionImpl({ windowDays: 3 }, defaultOpts);
+		assert.strictEqual(results.length, 1);
+		assert.strictEqual(results[0].sessionId, "thread-within");
 	});
 
 	// --- 3.5: filter sessions by ignore patterns ---
@@ -189,9 +189,9 @@ describe("reflection tool", () => {
 			messages: [{ role: "user", content: "should be kept", timestamp: new Date().toISOString() }],
 		});
 
-		const result = JSON.parse(await reflectionImpl({ ignorePatterns: ["ignored"] }, defaultOpts));
-		assert.strictEqual(result.length, 1);
-		assert.strictEqual(result[0].sessionId, "kept");
+		const { results } = await reflectionImpl({ ignorePatterns: ["ignored"] }, defaultOpts);
+		assert.strictEqual(results.length, 1);
+		assert.strictEqual(results[0].sessionId, "kept");
 	});
 
 	it("excludes sessions matching ignore pattern in body", async () => {
@@ -213,11 +213,12 @@ describe("reflection tool", () => {
 			],
 		});
 
-		const result = JSON.parse(
-			await reflectionImpl({ ignorePatterns: ["Run the reflection skill"] }, defaultOpts),
+		const { results } = await reflectionImpl(
+			{ ignorePatterns: ["Run the reflection skill"] },
+			defaultOpts,
 		);
-		assert.strictEqual(result.length, 1);
-		assert.strictEqual(result[0].sessionId, "body-kept");
+		assert.strictEqual(results.length, 1);
+		assert.strictEqual(results[0].sessionId, "body-kept");
 	});
 
 	it("handles multiple ignore patterns", async () => {
@@ -242,11 +243,12 @@ describe("reflection tool", () => {
 			messages: [{ role: "user", content: "pattern C", timestamp: new Date().toISOString() }],
 		});
 
-		const result = JSON.parse(
-			await reflectionImpl({ ignorePatterns: ["pattern-a", "pattern-b"] }, defaultOpts),
+		const { results } = await reflectionImpl(
+			{ ignorePatterns: ["pattern-a", "pattern-b"] },
+			defaultOpts,
 		);
-		assert.strictEqual(result.length, 1);
-		assert.strictEqual(result[0].sessionId, "pattern-c");
+		assert.strictEqual(results.length, 1);
+		assert.strictEqual(results[0].sessionId, "pattern-c");
 	});
 
 	it("does not filter when ignorePatterns is empty", async () => {
@@ -264,8 +266,8 @@ describe("reflection tool", () => {
 			messages: [{ role: "user", content: "msg2", timestamp: new Date().toISOString() }],
 		});
 
-		const result = JSON.parse(await reflectionImpl({ ignorePatterns: [] }, defaultOpts));
-		assert.strictEqual(result.length, 2);
+		const { results } = await reflectionImpl({ ignorePatterns: [] }, defaultOpts);
+		assert.strictEqual(results.length, 2);
 	});
 
 	// --- wildcard ignore patterns ---
@@ -298,11 +300,9 @@ describe("reflection tool", () => {
 			],
 		});
 
-		const result = JSON.parse(
-			await reflectionImpl({ ignorePatterns: ["Run the * skill"] }, defaultOpts),
-		);
-		assert.strictEqual(result.length, 1);
-		assert.strictEqual(result[0].sessionId, "wildcard-kept");
+		const { results } = await reflectionImpl({ ignorePatterns: ["Run the * skill"] }, defaultOpts);
+		assert.strictEqual(results.length, 1);
+		assert.strictEqual(results[0].sessionId, "wildcard-kept");
 	});
 
 	it("supports * wildcard matching any characters", async () => {
@@ -320,9 +320,9 @@ describe("reflection tool", () => {
 			messages: [{ role: "user", content: "foo baz", timestamp: new Date().toISOString() }],
 		});
 
-		const result = JSON.parse(await reflectionImpl({ ignorePatterns: ["foo * baz"] }, defaultOpts));
-		assert.strictEqual(result.length, 1);
-		assert.strictEqual(result[0].sessionId, "star-no-match");
+		const { results } = await reflectionImpl({ ignorePatterns: ["foo * baz"] }, defaultOpts);
+		assert.strictEqual(results.length, 1);
+		assert.strictEqual(results[0].sessionId, "star-no-match");
 	});
 
 	// --- 3.6: extract only user messages ---
@@ -340,10 +340,10 @@ describe("reflection tool", () => {
 			],
 		});
 
-		const result = JSON.parse(await reflectionImpl({}, defaultOpts));
-		assert.strictEqual(result[0].userMessages.length, 2);
-		assert.strictEqual(result[0].userMessages[0].content, "Hello");
-		assert.strictEqual(result[0].userMessages[1].content, "How are you?");
+		const { results } = await reflectionImpl({}, defaultOpts);
+		assert.strictEqual(results[0].userMessages.length, 2);
+		assert.strictEqual(results[0].userMessages[0].content, "Hello");
+		assert.strictEqual(results[0].userMessages[1].content, "How are you?");
 	});
 
 	it("includes session with no user messages (empty array)", async () => {
@@ -356,9 +356,9 @@ describe("reflection tool", () => {
 			],
 		});
 
-		const result = JSON.parse(await reflectionImpl({}, defaultOpts));
-		assert.strictEqual(result.length, 1);
-		assert.deepStrictEqual(result[0].userMessages, []);
+		const { results } = await reflectionImpl({}, defaultOpts);
+		assert.strictEqual(results.length, 1);
+		assert.deepStrictEqual(results[0].userMessages, []);
 	});
 
 	// --- 3.7: return structured data format ---
@@ -373,14 +373,14 @@ describe("reflection tool", () => {
 			messages: [{ role: "user", content: "Test", timestamp: iso }],
 		});
 
-		const result = JSON.parse(await reflectionImpl({}, defaultOpts));
-		assert.strictEqual(result.length, 1);
-		assert.ok(result[0].sessionId);
-		assert.strictEqual(result[0].sessionId, "thread-structured");
-		assert.strictEqual(result[0].startedAt, iso);
-		assert.ok(Array.isArray(result[0].userMessages));
-		assert.strictEqual(result[0].userMessages[0].content, "Test");
-		assert.ok(result[0].userMessages[0].timestamp);
+		const { results } = await reflectionImpl({}, defaultOpts);
+		assert.strictEqual(results.length, 1);
+		assert.ok(results[0].sessionId);
+		assert.strictEqual(results[0].sessionId, "thread-structured");
+		assert.strictEqual(results[0].startedAt, iso);
+		assert.ok(Array.isArray(results[0].userMessages));
+		assert.strictEqual(results[0].userMessages[0].content, "Test");
+		assert.ok(results[0].userMessages[0].timestamp);
 	});
 
 	// --- 3.8: handle malformed YAML frontmatter ---
@@ -399,9 +399,9 @@ describe("reflection tool", () => {
 			messages: [{ role: "user", content: "valid", timestamp: new Date().toISOString() }],
 		});
 
-		const result = JSON.parse(await reflectionImpl({}, defaultOpts));
-		assert.strictEqual(result.length, 1);
-		assert.strictEqual(result[0].sessionId, "valid-session");
+		const { results } = await reflectionImpl({}, defaultOpts);
+		assert.strictEqual(results.length, 1);
+		assert.strictEqual(results[0].sessionId, "valid-session");
 	});
 
 	// --- 3.9: handle malformed JSON body ---
@@ -420,9 +420,9 @@ describe("reflection tool", () => {
 			messages: [{ role: "user", content: "valid", timestamp: new Date().toISOString() }],
 		});
 
-		const result = JSON.parse(await reflectionImpl({}, defaultOpts));
-		assert.strictEqual(result.length, 1);
-		assert.strictEqual(result[0].sessionId, "valid-json");
+		const { results } = await reflectionImpl({}, defaultOpts);
+		assert.strictEqual(results.length, 1);
+		assert.strictEqual(results[0].sessionId, "valid-json");
 	});
 
 	// --- mtime sorting: process all sessions within the window ---
@@ -440,8 +440,69 @@ describe("reflection tool", () => {
 			await new Promise((r) => setTimeout(r, 20));
 		}
 
-		const result = JSON.parse(await reflectionImpl({}, defaultOpts));
-		assert.ok(result.length >= 55, `Expected at least 55 results, got ${result.length}`);
+		const { results } = await reflectionImpl({}, defaultOpts);
+		assert.ok(results.length >= 55, `Expected at least 55 results, got ${results.length}`);
+	});
+});
+
+describe("reflection tool - structured response shape", () => {
+	beforeEach(async () => {
+		try {
+			await rm(TEST_SESSIONS_DIR, { recursive: true, force: true });
+		} catch {
+			// ignore
+		}
+		await mkdir(TEST_SESSIONS_DIR, { recursive: true });
+	});
+
+	after(async () => {
+		try {
+			await rm(TEST_SESSIONS_DIR, { recursive: true, force: true });
+		} catch {
+			// ignore
+		}
+	});
+
+	it("returns { ok: true, results } on success", async () => {
+		const now = new Date();
+		const iso = now.toISOString();
+		await writeSession("success-session", {
+			startedAt: iso,
+			endedAt: iso,
+			threadId: "thread-success",
+			messages: [{ role: "user", content: "Hello", timestamp: iso }],
+		});
+
+		const result = await reflectionImpl({}, defaultOpts);
+		assert.strictEqual(result.ok, true);
+		assert.ok(Array.isArray(result.results));
+		assert.strictEqual(result.results.length, 1);
+		assert.strictEqual(result.results[0].sessionId, "thread-success");
+		assert.strictEqual(result.error, undefined);
+	});
+
+	it("returns { ok: true, results: [] } when no sessions match", async () => {
+		// Clean up any leftover files
+		const files = await readdir(TEST_SESSIONS_DIR).catch(() => []);
+		for (const f of files) {
+			await rm(join(TEST_SESSIONS_DIR, f), { force: true });
+		}
+
+		const result = await reflectionImpl({}, defaultOpts);
+		assert.strictEqual(result.ok, true);
+		assert.deepStrictEqual(result.results, []);
+		assert.strictEqual(result.error, undefined);
+	});
+
+	it("returns { ok: false, error } when session discovery fails", async () => {
+		// Pass a non-existent sessions directory to force the find command to fail
+		const result = await reflectionImpl(
+			{},
+			{ sessionsDir: "memory/__nonexistent_reflection_dir__/" },
+		);
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error, "Expected an error message");
+		assert.strictEqual(result.results, undefined);
 	});
 });
 
