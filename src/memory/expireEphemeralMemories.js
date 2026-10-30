@@ -1,10 +1,22 @@
 import { readdir, unlink, readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { isAbsolute, join } from "node:path";
 import { parseFrontmatter } from "./reader.js";
 import { loadConfig } from "../config/loader.js";
 import { logger } from "../shared/logger.js";
 
 const cwd = loadConfig().cwd;
+
+/**
+ * Resolve the context directory to an absolute path, tolerating both
+ * absolute and relative inputs. When `contextDir` is absolute it is used
+ * as-is; when relative it is joined with `cwdParam`.
+ * @param {string} contextDir - Directory to resolve
+ * @param {string} [cwdParam] - Base directory for relative paths
+ * @returns {string} The resolved absolute directory
+ */
+export function resolveContextDir(contextDir, cwdParam = cwd) {
+	return isAbsolute(contextDir) ? contextDir : join(cwdParam, contextDir);
+}
 
 /**
  * Read an ephemeral memory file and extract frontmatter metadata.
@@ -14,7 +26,7 @@ const cwd = loadConfig().cwd;
  */
 export async function readEphemeralFile(contextDir, filename, cwdParam = cwd) {
 	try {
-		const filepath = join(cwdParam, contextDir, filename);
+		const filepath = join(resolveContextDir(contextDir, cwdParam), filename);
 		const content = await readFile(filepath, "utf-8");
 		const { frontmatter } = parseFrontmatter(content);
 		return {
@@ -48,9 +60,10 @@ export function isExpired(expiresAt, now) {
  */
 export async function expireEphemeralMemories(contextDir, nowStr, cwdParam = cwd) {
 	const checkNow = nowStr ? new Date(nowStr) : new Date();
+	const resolvedDir = resolveContextDir(contextDir, cwdParam);
 	let files;
 	try {
-		files = await readdir(join(cwdParam, contextDir));
+		files = await readdir(resolvedDir);
 	} catch (err) {
 		logger.debug(`[expireEphemeralMemories] Failed to read directory: ${err.message}`);
 		return 0;
@@ -58,9 +71,9 @@ export async function expireEphemeralMemories(contextDir, nowStr, cwdParam = cwd
 	let removed = 0;
 	for (const file of files) {
 		if (!file.endsWith(".md")) continue;
-		const info = await readEphemeralFile(contextDir, file);
+		const info = await readEphemeralFile(resolvedDir, file);
 		if (info && info.ephemeral && isExpired(info.expiresAt, checkNow)) {
-			const filepath = join(cwdParam, contextDir, file);
+			const filepath = join(resolvedDir, file);
 			try {
 				await unlink(filepath);
 				removed++;

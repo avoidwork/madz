@@ -1,6 +1,6 @@
 import { describe, it, after, beforeEach } from "node:test";
 import assert from "node:assert";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expireEphemeralMemories } from "../../src/memory/expireEphemeralMemories.js";
 
@@ -89,5 +89,25 @@ describe("expireEphemeralMemories", () => {
 		writeEphemeralFile("expired_border.md", "2026-06-04T23:59:59.000Z", "2026-06-01T00:00:00.000Z");
 		const removed = await expireEphemeralMemories(TEST_DIR, "2026-06-05T00:00:00.000Z");
 		assert.strictEqual(removed, 1);
+	});
+
+	it("resolves an absolute context directory and removes expired files", async () => {
+		writeEphemeralFile("expired.md", "2026-05-01T00:00:00.000Z", "2026-05-01T00:00:00.000Z");
+		writeEphemeralFile("active.md", "2027-01-01T00:00:00.000Z", "2026-06-01T00:00:00.000Z");
+		const removed = await expireEphemeralMemories(CWD, "2026-06-05T00:00:00.000Z");
+		assert.strictEqual(removed, 1);
+		assert.ok(!existsSync(join(CWD, "expired.md")), "expired file should be deleted");
+		assert.ok(existsSync(join(CWD, "active.md")), "non-expired file should be retained");
+	});
+
+	it("removes expired files and retains non-expired files with absolute path", async () => {
+		writeEphemeralFile("expired.md", "2026-05-01T00:00:00.000Z", "2026-05-01T00:00:00.000Z");
+		writeEphemeralFile("active.md", "2027-01-01T00:00:00.000Z", "2026-06-01T00:00:00.000Z");
+		writeNonEphemeralFile("persistent.md");
+		const removed = await expireEphemeralMemories(CWD, "2026-06-05T00:00:00.000Z");
+		assert.strictEqual(removed, 1);
+		assert.ok(!existsSync(join(CWD, "expired.md")), "expired file should be deleted");
+		assert.ok(existsSync(join(CWD, "active.md")), "non-expired file should be retained");
+		assert.ok(existsSync(join(CWD, "persistent.md")), "non-ephemeral file should be retained");
 	});
 });
