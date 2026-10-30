@@ -65,23 +65,23 @@ async function callTtsApi(apiKey, text, model, voice, speed) {
  * @param {object} input - Tool input
  * @param {object} [options] - Runtime options for test injection
  * @param {string} [options.openaiApiKey] - OpenAI API key (overrides config)
- * @returns {Promise<string>} JSON result string
+ * @returns {Promise<{ ok: boolean, path?: string, model?: string, voice?: string, error?: string }>}
  */
 export async function textToSpeechImpl(input, options = {}) {
 	const { text, voice = "alloy", model = "tts-1", speed = 1 } = input;
 
 	if (!text || typeof text !== "string" || text.trim().length === 0) {
-		return JSON.stringify({
+		return {
 			ok: false,
 			error: "Text is required and must be a non-empty string",
-		});
+		};
 	}
 
 	if (text.length > 4096) {
-		return JSON.stringify({
+		return {
 			ok: false,
 			error: "Text must be 4096 characters or fewer",
-		});
+		};
 	}
 
 	const config = loadConfig();
@@ -90,30 +90,30 @@ export async function textToSpeechImpl(input, options = {}) {
 	const credentials = providersOpenAI?.credentials || {};
 	const apiKey = options.openaiApiKey || credentials?.apiKey;
 	if (!apiKey) {
-		return JSON.stringify({
+		return {
 			ok: false,
 			error: "OPENAI_API_KEY is required for text-to-speech",
-		});
+		};
 	}
 
 	if (!TTS_MODELS.includes(model)) {
-		return JSON.stringify({
+		return {
 			ok: false,
 			error: `Invalid model: "${model}". Use one of: ${TTS_MODELS.join(", ")}`,
-		});
+		};
 	}
 
 	if (!TTS_VOICES.includes(voice)) {
-		return JSON.stringify({
+		return {
 			ok: false,
 			error: `Invalid voice: "${voice}". Use one of: ${TTS_VOICES.join(", ")}`,
-		});
+		};
 	}
 
 	const result = await callTtsApi(apiKey, text, model, voice, speed);
 
 	if (!result.ok) {
-		return JSON.stringify({ ok: false, error: result.error });
+		return { ok: false, error: result.error };
 	}
 
 	// Save to config.memory.toolsDir
@@ -125,18 +125,18 @@ export async function textToSpeechImpl(input, options = {}) {
 	const filePath = join(memosDir, filename);
 	await writeFile(filePath, result.buffer);
 
-	return JSON.stringify({
+	return {
 		ok: true,
 		path: `MEDIA:${filePath}`,
 		model,
 		voice,
-	});
+	};
 }
 
 /**
  * @param {z.infer<typeof TtsSchema>} input
  * @param {object} _options - Runtime options
- * @returns {string}
+ * @returns {Promise<{ ok: boolean, path?: string, model?: string, voice?: string, error?: string }>}
  */
 export const textToSpeech = tool(textToSpeechImpl, {
 	name: "textToSpeech",
