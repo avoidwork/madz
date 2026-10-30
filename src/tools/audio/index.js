@@ -148,13 +148,13 @@ async function transcribeLocal(filePath, language, prompt, options = {}) {
  * @param {object} [options] - Runtime options for test injection
  * @param {string[]} [options.allowedPaths] - Sandbox-allowed paths
  * @param {string} [options.openaiApiKey] - OpenAI API key (overrides config)
- * @returns {Promise<string>} JSON result string
+ * @returns {Promise<{ ok: boolean, text?: string, model?: string, backend?: string, error?: string }>} Structured result object
  */
 export async function transcribeAudioImpl(input, options = {}) {
 	const { path: filePath, language, prompt } = input;
 
 	if (!filePath || typeof filePath !== "string" || filePath.trim().length === 0) {
-		return JSON.stringify({ ok: false, error: "Path is required and must be a non-empty string" });
+		return { ok: false, error: "Path is required and must be a non-empty string" };
 	}
 
 	const config = loadConfig();
@@ -163,30 +163,30 @@ export async function transcribeAudioImpl(input, options = {}) {
 	// Validate the path against the sandbox allowlist
 	const validation = validatePath(filePath, allowedPaths);
 	if (!validation.allowed) {
-		return JSON.stringify({ ok: false, error: validation.error });
+		return { ok: false, error: validation.error };
 	}
 
 	// Check the file exists
 	try {
 		await stat(validation.path);
 	} catch (_err) {
-		return JSON.stringify({ ok: false, error: `File not found: ${filePath}` });
+		return { ok: false, error: `File not found: ${filePath}` };
 	}
 
 	// Enforce the size limit
 	const maxReadSize = config.tools?.audio?.maxSize || "25mb";
 	const sizeCheck = await checkFileLimit(validation.path, maxReadSize);
 	if (!sizeCheck.ok) {
-		return JSON.stringify({ ok: false, error: sizeCheck.error });
+		return { ok: false, error: sizeCheck.error };
 	}
 
 	// Reject unsupported extensions
 	const ext = extname(validation.path).toLowerCase();
 	if (!AUDIO_EXTENSIONS.has(ext)) {
-		return JSON.stringify({
+		return {
 			ok: false,
 			error: `Unsupported audio format: "${ext}". Use one of: ${[...AUDIO_EXTENSIONS].join(", ")}`,
-		});
+		};
 	}
 
 	const providers = config.providers || {};
@@ -199,27 +199,27 @@ export async function transcribeAudioImpl(input, options = {}) {
 	if (apiKey) {
 		const result = await callTranscribeApi(apiKey, validation.path, language, prompt);
 		if (!result.ok) {
-			return JSON.stringify({ ok: false, error: result.error });
+			return { ok: false, error: result.error };
 		}
-		return JSON.stringify({ ok: true, text: result.text, model: "whisper-1", backend: "api" });
+		return { ok: true, text: result.text, model: "whisper-1", backend: "api" };
 	}
 
 	const result = await transcribeLocal(validation.path, language, prompt, options);
 	if (!result.ok) {
-		return JSON.stringify({ ok: false, error: result.error });
+		return { ok: false, error: result.error };
 	}
-	return JSON.stringify({ ok: true, text: result.text, model: WHISPER_MODEL, backend: "local" });
+	return { ok: true, text: result.text, model: WHISPER_MODEL, backend: "local" };
 }
 
 /**
  * @param {z.infer<typeof TranscribeAudioSchema>} input
  * @param {object} _options - Runtime options
- * @returns {string}
+ * @returns {Promise<{ ok: boolean, text?: string, model?: string, backend?: string, error?: string }>} Structured result object
  */
 export const transcribeAudio = tool(transcribeAudioImpl, {
 	name: "transcribeAudio",
 	description:
-		"Transcribe an audio file to text. Uses the OpenAI audio/transcriptions endpoint when OPENAI_API_KEY is set, otherwise falls back to a local Whisper model. Returns a JSON string with the transcribed text.",
+		"Transcribe an audio file to text. Uses the OpenAI audio/transcriptions endpoint when OPENAI_API_KEY is set, otherwise falls back to a local Whisper model. Returns a structured object with the transcribed text.",
 	schema: z.object({
 		path: z.string().min(1).describe("Path to the audio file to transcribe"),
 		language: z.string().optional().describe("Optional language hint (e.g. 'en')"),
