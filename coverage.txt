@@ -63,11 +63,11 @@
 ℹ  session                       |        |          |         | 
 ℹ   checkpointer.js              | 100.00 |    81.82 |  100.00 | 
 ℹ   factory.js                   | 100.00 |   100.00 |  100.00 | 
-ℹ   loader.js                    |  63.64 |    37.50 |  100.00 | 27-50 64-65 69-70
+ℹ   loader.js                    |  20.78 |   100.00 |    0.00 | 16-51 53-77
 ℹ   onboarding.js                | 100.00 |    94.23 |  100.00 | 
 ℹ   saver.js                     |  98.18 |    82.35 |  100.00 | 47
 ℹ   shutdown.js                  | 100.00 |   100.00 |  100.00 | 
-ℹ   stateManager.js              | 100.00 |    94.44 |  100.00 | 
+ℹ   stateManager.js              |  96.82 |   100.00 |   94.74 | 144-150
 ℹ   window.js                    | 100.00 |    91.67 |  100.00 | 
 ℹ  shared                        |        |          |         | 
 ℹ   logger.js                    |  79.53 |    66.67 |  100.00 | 87-98 123-132 137 139-141 164-166 176-180 203-211 217-222 239 273-274 276-278 297-299 307-309 317-319 327-329 337-339
@@ -214,7 +214,7 @@
 ℹ   quotes.js                    | 100.00 |   100.00 |  100.00 | 
 ℹ   scrollView.js                |  96.67 |    87.10 |   57.89 | 149-153 181-183
 ℹ   selectionLayout.js           | 100.00 |    95.00 |  100.00 | 
-ℹ   sessionsPanel.js             |  83.91 |    41.86 |   92.31 | 67-70 101-102 118-119 123-125 132-136 153-155 169-171 180-181 196-202 205-211 222-225
+ℹ   sessionsPanel.js             |  76.25 |    41.67 |   76.92 | 67-70 101-102 118-119 123-125 132-136 146-171 180-181 196-202 205-211 222-225
 ℹ   settingsPanel.js             |  75.31 |    83.87 |   76.47 | 78-92 118-144 181-189 195-199 205-207
 ℹ   skillsPanel.js               |  89.69 |    71.43 |   71.43 | 67-69 75-81
 ℹ   statusBar.js                 |  99.06 |    98.11 |  100.00 | 29-30
@@ -231,6 +231,24 @@
 ℹ   loadAgents.js                | 100.00 |    87.50 |  100.00 | 
 ℹ   project.js                   | 100.00 |   100.00 |  100.00 | 
 ℹ ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-ℹ all files                      |  91.56 |    87.50 |   86.79 | 
+ℹ all files                      |  91.37 |    87.65 |   86.47 | 
 ℹ ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ℹ end of coverage report
+
+✖ failing tests:
+
+test at tests/unit/tui/sessionsPanel.test.js:68:2
+✖ loads the resumed conversation into the message list via onResumeSession (406.542805ms)
+  AssertionError [ERR_ASSERTION]: onResumeSession was called
+      at TestContext.<anonymous> (file:///home/jason/Projects/madz.worktrees/3be7a726c33fc45c/tests/unit/tui/sessionsPanel.test.js:106:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Promise.all (index 0)
+      at async Suite.run (node:internal/test_runner/test:1905:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: null,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
