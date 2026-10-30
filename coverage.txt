@@ -52,55 +52,55 @@
 ✖ failing tests:
 
 test at tests/integration/api.test.js:1:1
-✖ tests/integration/api.test.js (61.482946ms)
+✖ tests/integration/api.test.js (63.800851ms)
   'test failed'
 
 test at tests/integration/contextCostFromCheckpointer.test.js:1:1
-✖ tests/integration/contextCostFromCheckpointer.test.js (61.631536ms)
+✖ tests/integration/contextCostFromCheckpointer.test.js (63.701664ms)
   'test failed'
 
 test at tests/integration/copilotAuth.test.js:1:1
-✖ tests/integration/copilotAuth.test.js (58.885487ms)
+✖ tests/integration/copilotAuth.test.js (60.791678ms)
   'test failed'
 
 test at tests/integration/evictionCeiling.test.js:1:1
-✖ tests/integration/evictionCeiling.test.js (59.686001ms)
+✖ tests/integration/evictionCeiling.test.js (61.537108ms)
   'test failed'
 
 test at tests/integration/mcpTools.test.js:1:1
-✖ tests/integration/mcpTools.test.js (58.469977ms)
+✖ tests/integration/mcpTools.test.js (60.793361ms)
   'test failed'
 
 test at tests/integration/provider/azure.test.js:1:1
-✖ tests/integration/provider/azure.test.js (58.570656ms)
+✖ tests/integration/provider/azure.test.js (61.171952ms)
   'test failed'
 
 test at tests/integration/provider/bedrock.test.js:1:1
-✖ tests/integration/provider/bedrock.test.js (59.018026ms)
+✖ tests/integration/provider/bedrock.test.js (61.835218ms)
   'test failed'
 
 test at tests/integration/summarizationMiddleware.test.js:1:1
-✖ tests/integration/summarizationMiddleware.test.js (59.228181ms)
+✖ tests/integration/summarizationMiddleware.test.js (62.088304ms)
   'test failed'
 
 test at tests/integration/syncEnv.test.js:1:1
-✖ tests/integration/syncEnv.test.js (68.76267ms)
+✖ tests/integration/syncEnv.test.js (62.619862ms)
   'test failed'
 
 test at tests/integration/tools/audio.test.js:1:1
-✖ tests/integration/tools/audio.test.js (59.113535ms)
+✖ tests/integration/tools/audio.test.js (63.439562ms)
   'test failed'
 
 test at tests/integration/tools/discovery.test.js:1:1
-✖ tests/integration/tools/discovery.test.js (60.741984ms)
+✖ tests/integration/tools/discovery.test.js (64.325927ms)
   'test failed'
 
 test at tests/integration/tools/file.test.js:1:1
-✖ tests/integration/tools/file.test.js (68.025946ms)
+✖ tests/integration/tools/file.test.js (69.880169ms)
   'test failed'
 
 test at tests/integration/tui-virtual-scroll-view.test.js:1:1
-✖ tests/integration/tui-virtual-scroll-view.test.js (55.10175ms)
+✖ tests/integration/tui-virtual-scroll-view.test.js (51.018701ms)
   'test failed'
 
 test at tests/integration/vector/full-flow.test.js:62:2
@@ -112,10 +112,10 @@ test at tests/integration/vector/full-flow.test.js:88:2
   'test did not finish before its parent and was cancelled'
 
 test at tests/integration/vector/full-flow.test.js:9:1
-✖ vector full flow (4.724724ms)
+✖ vector full flow (4.216229ms)
   Error: Cannot find module 'better-sqlite3'
   Require stack:
-  - /home/jason/Projects/madz.worktrees/3f5be62956bdbb18/src/vector/store.js
+  - /home/jason/Projects/madz.worktrees/442e2856408f12a9/src/vector/store.js
       at Module._resolveFilename (node:internal/modules/cjs/loader:1603:15)
       at wrapResolveFilename (node:internal/modules/cjs/loader:1145:27)
       at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1169:10)
@@ -124,99 +124,99 @@ test at tests/integration/vector/full-flow.test.js:9:1
       at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
       at Module.require (node:internal/modules/cjs/loader:1713:12)
       at require (node:internal/modules/helpers:318:16)
-      at createVectorStore (file:///home/jason/Projects/madz.worktrees/3f5be62956bdbb18/src/vector/store.js:33:19)
-      at async SuiteContext.<anonymous> (file:///home/jason/Projects/madz.worktrees/3f5be62956bdbb18/tests/integration/vector/full-flow.test.js:52:11) {
+      at createVectorStore (file:///home/jason/Projects/madz.worktrees/442e2856408f12a9/src/vector/store.js:33:19)
+      at async SuiteContext.<anonymous> (file:///home/jason/Projects/madz.worktrees/442e2856408f12a9/tests/integration/vector/full-flow.test.js:52:11) {
     code: 'MODULE_NOT_FOUND',
-    requireStack: [ '/home/jason/Projects/madz.worktrees/3f5be62956bdbb18/src/vector/store.js' ]
+    requireStack: [ '/home/jason/Projects/madz.worktrees/442e2856408f12a9/src/vector/store.js' ]
   }
 
 test at tests/integration/webhook.test.js:1:1
-✖ tests/integration/webhook.test.js (82.326848ms)
+✖ tests/integration/webhook.test.js (93.633777ms)
   'test failed'
 
 test at tests/unit/agentDefinitions.test.js:1:1
-✖ tests/unit/agentDefinitions.test.js (71.058562ms)
+✖ tests/unit/agentDefinitions.test.js (60.853785ms)
   'test failed'
 
 test at tests/unit/api.test.js:1:1
-✖ tests/unit/api.test.js (51.99797ms)
+✖ tests/unit/api.test.js (53.94607ms)
   'test failed'
 
 test at tests/unit/checkpointer.test.js:1:1
-✖ tests/unit/checkpointer.test.js (53.176764ms)
+✖ tests/unit/checkpointer.test.js (47.373895ms)
   'test failed'
 
 test at tests/unit/config-subAgentsTemperature.test.js:1:1
-✖ tests/unit/config-subAgentsTemperature.test.js (70.702444ms)
+✖ tests/unit/config-subAgentsTemperature.test.js (53.529026ms)
   'test failed'
 
 test at tests/unit/config.test.js:1:1
-✖ tests/unit/config.test.js (52.144004ms)
+✖ tests/unit/config.test.js (46.480036ms)
   'test failed'
 
 test at tests/unit/config/mutate.test.js:1:1
-✖ tests/unit/config/mutate.test.js (68.912391ms)
+✖ tests/unit/config/mutate.test.js (58.797672ms)
   'test failed'
 
 test at tests/unit/config/patch.test.js:1:1
-✖ tests/unit/config/patch.test.js (63.422599ms)
+✖ tests/unit/config/patch.test.js (67.645432ms)
   'test failed'
 
 test at tests/unit/config/providers.test.js:1:1
-✖ tests/unit/config/providers.test.js (60.858213ms)
+✖ tests/unit/config/providers.test.js (65.638923ms)
   'test failed'
 
 test at tests/unit/config/schemas/image.test.js:1:1
-✖ tests/unit/config/schemas/image.test.js (59.950048ms)
+✖ tests/unit/config/schemas/image.test.js (54.596932ms)
   'test failed'
 
 test at tests/unit/config/schemas/mcp.test.js:1:1
-✖ tests/unit/config/schemas/mcp.test.js (60.068971ms)
+✖ tests/unit/config/schemas/mcp.test.js (56.816761ms)
   'test failed'
 
 test at tests/unit/config/schemas/memory.test.js:1:1
-✖ tests/unit/config/schemas/memory.test.js (59.817017ms)
+✖ tests/unit/config/schemas/memory.test.js (52.883974ms)
   'test failed'
 
 test at tests/unit/config/skillAgentMap.test.js:1:1
-✖ tests/unit/config/skillAgentMap.test.js (60.560273ms)
+✖ tests/unit/config/skillAgentMap.test.js (55.263414ms)
   'test failed'
 
 test at tests/unit/config/summarization.test.js:1:1
-✖ tests/unit/config/summarization.test.js (61.54858ms)
+✖ tests/unit/config/summarization.test.js (63.292065ms)
   'test failed'
 
 test at tests/unit/config_loader.test.js:1:1
-✖ tests/unit/config_loader.test.js (62.394429ms)
+✖ tests/unit/config_loader.test.js (70.572279ms)
   'test failed'
 
 test at tests/unit/config_persistence.test.js:1:1
-✖ tests/unit/config_persistence.test.js (63.122285ms)
+✖ tests/unit/config_persistence.test.js (63.879538ms)
   'test failed'
 
 test at tests/unit/context.test.js:1:1
-✖ tests/unit/context.test.js (68.366266ms)
+✖ tests/unit/context.test.js (72.927183ms)
   'test failed'
 
 test at tests/unit/contextBackend.test.js:1:1
-✖ tests/unit/contextBackend.test.js (63.839633ms)
+✖ tests/unit/contextBackend.test.js (62.629049ms)
   'test failed'
 
 test at tests/unit/conversationPanel.test.js:1:1
-✖ tests/unit/conversationPanel.test.js (55.493135ms)
+✖ tests/unit/conversationPanel.test.js (56.125353ms)
   'test failed'
 
 test at tests/unit/coreBackend.test.js:1:1
-✖ tests/unit/coreBackend.test.js (61.078116ms)
+✖ tests/unit/coreBackend.test.js (61.422453ms)
   'test failed'
 
 test at tests/unit/data.test.js:1:1
-✖ tests/unit/data.test.js (56.878707ms)
+✖ tests/unit/data.test.js (70.127233ms)
   'test failed'
 
 test at tests/unit/deepAgents.test.js:48:2
-✖ should create an orchestrator instance (2.015245ms)
-  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'deepagents' imported from /home/jason/Projects/madz.worktrees/3f5be62956bdbb18/src/agent/deepAgents.js
+✖ should create an orchestrator instance (1.468218ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'deepagents' imported from /home/jason/Projects/madz.worktrees/442e2856408f12a9/src/agent/deepAgents.js
       at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
       at packageResolve (node:internal/modules/esm/resolve:751:25)
       at moduleResolve (node:internal/modules/esm/resolve:840:18)
@@ -231,8 +231,8 @@ test at tests/unit/deepAgents.test.js:48:2
   }
 
 test at tests/unit/deepAgents.test.js:62:2
-✖ should accept an optional checkpointer (1.986381ms)
-  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'deepagents' imported from /home/jason/Projects/madz.worktrees/3f5be62956bdbb18/src/agent/deepAgents.js
+✖ should accept an optional checkpointer (1.233647ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'deepagents' imported from /home/jason/Projects/madz.worktrees/442e2856408f12a9/src/agent/deepAgents.js
       at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
       at packageResolve (node:internal/modules/esm/resolve:751:25)
       at moduleResolve (node:internal/modules/esm/resolve:840:18)
@@ -247,8 +247,8 @@ test at tests/unit/deepAgents.test.js:62:2
   }
 
 test at tests/unit/deepAgents.test.js:77:2
-✖ should handle email provider config validation failure gracefully (0.767341ms)
-  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'deepagents' imported from /home/jason/Projects/madz.worktrees/3f5be62956bdbb18/src/agent/deepAgents.js
+✖ should handle email provider config validation failure gracefully (0.379493ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'deepagents' imported from /home/jason/Projects/madz.worktrees/442e2856408f12a9/src/agent/deepAgents.js
       at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
       at packageResolve (node:internal/modules/esm/resolve:751:25)
       at moduleResolve (node:internal/modules/esm/resolve:840:18)
@@ -263,8 +263,8 @@ test at tests/unit/deepAgents.test.js:77:2
   }
 
 test at tests/unit/deepAgents.test.js:91:2
-✖ should handle email provider instance validation failure gracefully (1.183893ms)
-  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'googleapis' imported from /home/jason/Projects/madz.worktrees/3f5be62956bdbb18/src/tools/email/providers/gmail.js
+✖ should handle email provider instance validation failure gracefully (0.824369ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'googleapis' imported from /home/jason/Projects/madz.worktrees/442e2856408f12a9/src/tools/email/providers/gmail.js
       at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
       at packageResolve (node:internal/modules/esm/resolve:751:25)
       at moduleResolve (node:internal/modules/esm/resolve:840:18)
@@ -279,8 +279,8 @@ test at tests/unit/deepAgents.test.js:91:2
   }
 
 test at tests/unit/deepAgents.test.js:116:2
-✖ should handle email provider creation failure gracefully (0.616118ms)
-  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'googleapis' imported from /home/jason/Projects/madz.worktrees/3f5be62956bdbb18/src/tools/email/providers/gmail.js
+✖ should handle email provider creation failure gracefully (0.512062ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'googleapis' imported from /home/jason/Projects/madz.worktrees/442e2856408f12a9/src/tools/email/providers/gmail.js
       at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
       at packageResolve (node:internal/modules/esm/resolve:751:25)
       at moduleResolve (node:internal/modules/esm/resolve:840:18)
@@ -295,8 +295,8 @@ test at tests/unit/deepAgents.test.js:116:2
   }
 
 test at tests/unit/deepAgents.test.js:140:2
-✖ should derive the summarization trigger from the provider model context length (0.895422ms)
-  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'deepagents' imported from /home/jason/Projects/madz.worktrees/3f5be62956bdbb18/src/agent/deepAgents.js
+✖ should derive the summarization trigger from the provider model context length (0.921061ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'deepagents' imported from /home/jason/Projects/madz.worktrees/442e2856408f12a9/src/agent/deepAgents.js
       at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
       at packageResolve (node:internal/modules/esm/resolve:751:25)
       at moduleResolve (node:internal/modules/esm/resolve:840:18)
@@ -311,8 +311,8 @@ test at tests/unit/deepAgents.test.js:140:2
   }
 
 test at tests/unit/deepAgents.test.js:162:2
-✖ should fall back to the configured trigger when context length cannot be resolved (0.635794ms)
-  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'deepagents' imported from /home/jason/Projects/madz.worktrees/3f5be62956bdbb18/src/agent/deepAgents.js
+✖ should fall back to the configured trigger when context length cannot be resolved (0.597142ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'deepagents' imported from /home/jason/Projects/madz.worktrees/442e2856408f12a9/src/agent/deepAgents.js
       at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
       at packageResolve (node:internal/modules/esm/resolve:751:25)
       at moduleResolve (node:internal/modules/esm/resolve:840:18)
@@ -327,8 +327,8 @@ test at tests/unit/deepAgents.test.js:162:2
   }
 
 test at tests/unit/deepAgents.test.js:222:2
-✖ should include a Tools: list in descriptions of tool-capable subagents (0.636155ms)
-  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'deepagents' imported from /home/jason/Projects/madz.worktrees/3f5be62956bdbb18/src/agent/deepAgents.js
+✖ should include a Tools: list in descriptions of tool-capable subagents (0.650872ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'deepagents' imported from /home/jason/Projects/madz.worktrees/442e2856408f12a9/src/agent/deepAgents.js
       at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
       at packageResolve (node:internal/modules/esm/resolve:751:25)
       at moduleResolve (node:internal/modules/esm/resolve:840:18)
@@ -343,8 +343,8 @@ test at tests/unit/deepAgents.test.js:222:2
   }
 
 test at tests/unit/deepAgents.test.js:249:2
-✖ should match tool names in description to getToolsForAgentTypes (0.523504ms)
-  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'deepagents' imported from /home/jason/Projects/madz.worktrees/3f5be62956bdbb18/src/agent/deepAgents.js
+✖ should match tool names in description to getToolsForAgentTypes (0.69752ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'deepagents' imported from /home/jason/Projects/madz.worktrees/442e2856408f12a9/src/agent/deepAgents.js
       at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
       at packageResolve (node:internal/modules/esm/resolve:751:25)
       at moduleResolve (node:internal/modules/esm/resolve:840:18)
@@ -359,8 +359,8 @@ test at tests/unit/deepAgents.test.js:249:2
   }
 
 test at tests/unit/deepAgents.test.js:310:2
-✖ removes readImage ToolMessages with non-empty data (0.693754ms)
-  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'deepagents' imported from /home/jason/Projects/madz.worktrees/3f5be62956bdbb18/src/agent/deepAgents.js
+✖ removes readImage ToolMessages with non-empty data (0.765989ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'deepagents' imported from /home/jason/Projects/madz.worktrees/442e2856408f12a9/src/agent/deepAgents.js
       at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
       at packageResolve (node:internal/modules/esm/resolve:751:25)
       at moduleResolve (node:internal/modules/esm/resolve:840:18)
@@ -375,8 +375,8 @@ test at tests/unit/deepAgents.test.js:310:2
   }
 
 test at tests/unit/deepAgents.test.js:331:2
-✖ removes messages with image_url content blocks (0.543501ms)
-  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'deepagents' imported from /home/jason/Projects/madz.worktrees/3f5be62956bdbb18/src/agent/deepAgents.js
+✖ removes messages with image_url content blocks (0.648979ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'deepagents' imported from /home/jason/Projects/madz.worktrees/442e2856408f12a9/src/agent/deepAgents.js
       at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
       at packageResolve (node:internal/modules/esm/resolve:751:25)
       at moduleResolve (node:internal/modules/esm/resolve:840:18)
@@ -391,8 +391,8 @@ test at tests/unit/deepAgents.test.js:331:2
   }
 
 test at tests/unit/deepAgents.test.js:350:2
-✖ trims older messages beyond keepRecent (0.514957ms)
-  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'deepagents' imported from /home/jason/Projects/madz.worktrees/3f5be62956bdbb18/src/agent/deepAgents.js
+✖ trims older messages beyond keepRecent (0.52719ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'deepagents' imported from /home/jason/Projects/madz.worktrees/442e2856408f12a9/src/agent/deepAgents.js
       at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
       at packageResolve (node:internal/modules/esm/resolve:751:25)
       at moduleResolve (node:internal/modules/esm/resolve:840:18)
@@ -407,8 +407,8 @@ test at tests/unit/deepAgents.test.js:350:2
   }
 
 test at tests/unit/deepAgents.test.js:368:2
-✖ forces summarization when backend and model are provided (0.497023ms)
-  Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@langchain/core' imported from /home/jason/Projects/madz.worktrees/3f5be62956bdbb18/tests/unit/deepAgents.test.js
+✖ forces summarization when backend and model are provided (0.413367ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@langchain/core' imported from /home/jason/Projects/madz.worktrees/442e2856408f12a9/tests/unit/deepAgents.test.js
       at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
       at packageResolve (node:internal/modules/esm/resolve:751:25)
       at moduleResolve (node:internal/modules/esm/resolve:840:18)
@@ -423,8 +423,8 @@ test at tests/unit/deepAgents.test.js:368:2
   }
 
 test at tests/unit/deepAgents.test.js:409:2
-✖ updates sessionState.getConversation() when provided (0.562336ms)
-  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'deepagents' imported from /home/jason/Projects/madz.worktrees/3f5be62956bdbb18/src/agent/deepAgents.js
+✖ updates sessionState.getConversation() when provided (0.508635ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'deepagents' imported from /home/jason/Projects/madz.worktrees/442e2856408f12a9/src/agent/deepAgents.js
       at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
       at packageResolve (node:internal/modules/esm/resolve:751:25)
       at moduleResolve (node:internal/modules/esm/resolve:840:18)
@@ -439,8 +439,8 @@ test at tests/unit/deepAgents.test.js:409:2
   }
 
 test at tests/unit/deepAgents.test.js:434:2
-✖ flattens content blocks when loading the conversation into sessionState (0.490622ms)
-  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'deepagents' imported from /home/jason/Projects/madz.worktrees/3f5be62956bdbb18/src/agent/deepAgents.js
+✖ flattens content blocks when loading the conversation into sessionState (0.509557ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'deepagents' imported from /home/jason/Projects/madz.worktrees/442e2856408f12a9/src/agent/deepAgents.js
       at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
       at packageResolve (node:internal/modules/esm/resolve:751:25)
       at moduleResolve (node:internal/modules/esm/resolve:840:18)
@@ -455,8 +455,8 @@ test at tests/unit/deepAgents.test.js:434:2
   }
 
 test at tests/unit/deepAgents.test.js:479:2
-✖ flattens file, image, and unknown content blocks (0.581312ms)
-  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'deepagents' imported from /home/jason/Projects/madz.worktrees/3f5be62956bdbb18/src/agent/deepAgents.js
+✖ flattens file, image, and unknown content blocks (1.36291ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'deepagents' imported from /home/jason/Projects/madz.worktrees/442e2856408f12a9/src/agent/deepAgents.js
       at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
       at packageResolve (node:internal/modules/esm/resolve:751:25)
       at moduleResolve (node:internal/modules/esm/resolve:840:18)
@@ -471,8 +471,8 @@ test at tests/unit/deepAgents.test.js:479:2
   }
 
 test at tests/unit/deepAgents.test.js:513:2
-✖ handles empty message state (1.337503ms)
-  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'deepagents' imported from /home/jason/Projects/madz.worktrees/3f5be62956bdbb18/src/agent/deepAgents.js
+✖ handles empty message state (0.482166ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'deepagents' imported from /home/jason/Projects/madz.worktrees/442e2856408f12a9/src/agent/deepAgents.js
       at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
       at packageResolve (node:internal/modules/esm/resolve:751:25)
       at moduleResolve (node:internal/modules/esm/resolve:840:18)
@@ -487,8 +487,8 @@ test at tests/unit/deepAgents.test.js:513:2
   }
 
 test at tests/unit/deepAgents.test.js:524:2
-✖ returns ok with no changes when no vision messages exist (0.44189ms)
-  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'deepagents' imported from /home/jason/Projects/madz.worktrees/3f5be62956bdbb18/src/agent/deepAgents.js
+✖ returns ok with no changes when no vision messages exist (0.407856ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'deepagents' imported from /home/jason/Projects/madz.worktrees/442e2856408f12a9/src/agent/deepAgents.js
       at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
       at packageResolve (node:internal/modules/esm/resolve:751:25)
       at moduleResolve (node:internal/modules/esm/resolve:840:18)
@@ -503,8 +503,8 @@ test at tests/unit/deepAgents.test.js:524:2
   }
 
 test at tests/unit/deepAgents.test.js:536:2
-✖ returns an error result when getState throws (0.424517ms)
-  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'deepagents' imported from /home/jason/Projects/madz.worktrees/3f5be62956bdbb18/src/agent/deepAgents.js
+✖ returns an error result when getState throws (0.402927ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'deepagents' imported from /home/jason/Projects/madz.worktrees/442e2856408f12a9/src/agent/deepAgents.js
       at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
       at packageResolve (node:internal/modules/esm/resolve:751:25)
       at moduleResolve (node:internal/modules/esm/resolve:840:18)
@@ -519,92 +519,92 @@ test at tests/unit/deepAgents.test.js:536:2
   }
 
 test at tests/unit/deepAgentsEviction.test.js:1:1
-✖ tests/unit/deepAgentsEviction.test.js (58.560918ms)
+✖ tests/unit/deepAgentsEviction.test.js (69.320408ms)
   'test failed'
 
 test at tests/unit/discoverer.test.js:1:1
-✖ tests/unit/discoverer.test.js (59.194488ms)
+✖ tests/unit/discoverer.test.js (72.458963ms)
   'test failed'
 
 test at tests/unit/evictionCeiling.test.js:1:1
-✖ tests/unit/evictionCeiling.test.js (53.54736ms)
+✖ tests/unit/evictionCeiling.test.js (63.624499ms)
   'test failed'
 
 test at tests/unit/fileExtract/docx.test.js:1:1
-✖ tests/unit/fileExtract/docx.test.js (54.458883ms)
+✖ tests/unit/fileExtract/docx.test.js (63.882052ms)
   'test failed'
 
 test at tests/unit/fileExtract/pdf.test.js:1:1
-✖ tests/unit/fileExtract/pdf.test.js (55.544983ms)
+✖ tests/unit/fileExtract/pdf.test.js (59.975344ms)
   'test failed'
 
 test at tests/unit/fileExtract/pptx.test.js:1:1
-✖ tests/unit/fileExtract/pptx.test.js (55.214953ms)
+✖ tests/unit/fileExtract/pptx.test.js (63.76925ms)
   'test failed'
 
 test at tests/unit/fileExtract/xlsx.test.js:1:1
-✖ tests/unit/fileExtract/xlsx.test.js (53.030791ms)
+✖ tests/unit/fileExtract/xlsx.test.js (63.253812ms)
   'test failed'
 
 test at tests/unit/fileExtract/zipExtractor.test.js:1:1
-✖ tests/unit/fileExtract/zipExtractor.test.js (54.964112ms)
+✖ tests/unit/fileExtract/zipExtractor.test.js (67.983417ms)
   'test failed'
 
 test at tests/unit/gc.test.js:1:1
-✖ tests/unit/gc.test.js (62.276547ms)
+✖ tests/unit/gc.test.js (62.282979ms)
   'test failed'
 
 test at tests/unit/graphql.test.js:1:1
-✖ tests/unit/graphql.test.js (53.297902ms)
+✖ tests/unit/graphql.test.js (61.973558ms)
   'test failed'
 
 test at tests/unit/json.test.js:1:1
-✖ tests/unit/json.test.js (54.379003ms)
+✖ tests/unit/json.test.js (62.763782ms)
   'test failed'
 
 test at tests/unit/logger.test.js:1:1
-✖ tests/unit/logger.test.js (63.021056ms)
+✖ tests/unit/logger.test.js (65.075123ms)
   'test failed'
 
 test at tests/unit/markdownText.test.js:1:1
-✖ tests/unit/markdownText.test.js (51.704519ms)
+✖ tests/unit/markdownText.test.js (64.782554ms)
   'test failed'
 
 test at tests/unit/memory.test.js:1:1
-✖ tests/unit/memory.test.js (63.602558ms)
+✖ tests/unit/memory.test.js (64.821998ms)
   'test failed'
 
 test at tests/unit/memory_expireEphemeral.test.js:1:1
-✖ tests/unit/memory_expireEphemeral.test.js (63.575767ms)
+✖ tests/unit/memory_expireEphemeral.test.js (65.290378ms)
   'test failed'
 
 test at tests/unit/memory_gc.test.js:1:1
-✖ tests/unit/memory_gc.test.js (62.647935ms)
+✖ tests/unit/memory_gc.test.js (74.394519ms)
   'test failed'
 
 test at tests/unit/memory_profile.test.js:1:1
-✖ tests/unit/memory_profile.test.js (62.066513ms)
+✖ tests/unit/memory_profile.test.js (74.639559ms)
   'test failed'
 
 test at tests/unit/memory_reader.test.js:1:1
-✖ tests/unit/memory_reader.test.js (61.872438ms)
+✖ tests/unit/memory_reader.test.js (66.448433ms)
   'test failed'
 
 test at tests/unit/messageListApi.test.js:1:1
-✖ tests/unit/messageListApi.test.js (62.576981ms)
+✖ tests/unit/messageListApi.test.js (56.165899ms)
   'test failed'
 
 test at tests/unit/onboarding.test.js:1:1
-✖ tests/unit/onboarding.test.js (74.19301ms)
+✖ tests/unit/onboarding.test.js (64.356734ms)
   'test failed'
 
 test at tests/unit/profile.test.js:1:1
-✖ tests/unit/profile.test.js (65.853926ms)
+✖ tests/unit/profile.test.js (64.875228ms)
   'test failed'
 
 test at tests/unit/prompts.test.js:37:2
-✖ loads SYSTEM_PROMPT.md content (5.885795ms)
-  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'zod' imported from /home/jason/Projects/madz.worktrees/3f5be62956bdbb18/src/config/config.js
+✖ loads SYSTEM_PROMPT.md content (5.45698ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'zod' imported from /home/jason/Projects/madz.worktrees/442e2856408f12a9/src/config/config.js
       at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
       at packageResolve (node:internal/modules/esm/resolve:751:25)
       at moduleResolve (node:internal/modules/esm/resolve:840:18)
@@ -619,8 +619,8 @@ test at tests/unit/prompts.test.js:37:2
   }
 
 test at tests/unit/prompts.test.js:49:2
-✖ strips YAML frontmatter from SYSTEM_PROMPT.md (1.362269ms)
-  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'zod' imported from /home/jason/Projects/madz.worktrees/3f5be62956bdbb18/src/config/config.js
+✖ strips YAML frontmatter from SYSTEM_PROMPT.md (1.061925ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'zod' imported from /home/jason/Projects/madz.worktrees/442e2856408f12a9/src/config/config.js
       at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
       at packageResolve (node:internal/modules/esm/resolve:751:25)
       at moduleResolve (node:internal/modules/esm/resolve:840:18)
@@ -635,8 +635,8 @@ test at tests/unit/prompts.test.js:49:2
   }
 
 test at tests/unit/prompts.test.js:61:2
-✖ appends context to system prompt when context exists (2.39011ms)
-  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'zod' imported from /home/jason/Projects/madz.worktrees/3f5be62956bdbb18/src/config/config.js
+✖ appends context to system prompt when context exists (0.89463ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'zod' imported from /home/jason/Projects/madz.worktrees/442e2856408f12a9/src/config/config.js
       at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
       at packageResolve (node:internal/modules/esm/resolve:751:25)
       at moduleResolve (node:internal/modules/esm/resolve:840:18)
@@ -651,8 +651,8 @@ test at tests/unit/prompts.test.js:61:2
   }
 
 test at tests/unit/prompts.test.js:80:2
-✖ returns prompt content when context is empty (no crash) (1.351639ms)
-  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'zod' imported from /home/jason/Projects/madz.worktrees/3f5be62956bdbb18/src/config/config.js
+✖ returns prompt content when context is empty (no crash) (0.958781ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'zod' imported from /home/jason/Projects/madz.worktrees/442e2856408f12a9/src/config/config.js
       at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
       at packageResolve (node:internal/modules/esm/resolve:751:25)
       at moduleResolve (node:internal/modules/esm/resolve:840:18)
@@ -667,8 +667,8 @@ test at tests/unit/prompts.test.js:80:2
   }
 
 test at tests/unit/prompts.test.js:96:2
-✖ returns empty string when SYSTEM_PROMPT.md does not exist (1.305162ms)
-  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'zod' imported from /home/jason/Projects/madz.worktrees/3f5be62956bdbb18/src/config/config.js
+✖ returns empty string when SYSTEM_PROMPT.md does not exist (0.968079ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'zod' imported from /home/jason/Projects/madz.worktrees/442e2856408f12a9/src/config/config.js
       at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
       at packageResolve (node:internal/modules/esm/resolve:751:25)
       at moduleResolve (node:internal/modules/esm/resolve:840:18)
@@ -683,8 +683,8 @@ test at tests/unit/prompts.test.js:96:2
   }
 
 test at tests/unit/prompts.test.js:102:2
-✖ removes decision tool instruction when agent.decision.baseUrl is empty (1.444724ms)
-  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'zod' imported from /home/jason/Projects/madz.worktrees/3f5be62956bdbb18/src/config/config.js
+✖ removes decision tool instruction when agent.decision.baseUrl is empty (1.193252ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'zod' imported from /home/jason/Projects/madz.worktrees/442e2856408f12a9/src/config/config.js
       at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
       at packageResolve (node:internal/modules/esm/resolve:751:25)
       at moduleResolve (node:internal/modules/esm/resolve:840:18)
@@ -699,8 +699,8 @@ test at tests/unit/prompts.test.js:102:2
   }
 
 test at tests/unit/prompts.test.js:115:2
-✖ injects decision tool instruction when agent.decision.baseUrl is set (1.305402ms)
-  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'zod' imported from /home/jason/Projects/madz.worktrees/3f5be62956bdbb18/src/config/config.js
+✖ injects decision tool instruction when agent.decision.baseUrl is set (1.301234ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'zod' imported from /home/jason/Projects/madz.worktrees/442e2856408f12a9/src/config/config.js
       at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
       at packageResolve (node:internal/modules/esm/resolve:751:25)
       at moduleResolve (node:internal/modules/esm/resolve:840:18)
@@ -715,8 +715,8 @@ test at tests/unit/prompts.test.js:115:2
   }
 
 test at tests/unit/prompts.test.js:131:2
-✖ removes sampling tool instruction when agent.sampling is false (0.880715ms)
-  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'zod' imported from /home/jason/Projects/madz.worktrees/3f5be62956bdbb18/src/config/config.js
+✖ removes sampling tool instruction when agent.sampling is false (1.108052ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'zod' imported from /home/jason/Projects/madz.worktrees/442e2856408f12a9/src/config/config.js
       at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
       at packageResolve (node:internal/modules/esm/resolve:751:25)
       at moduleResolve (node:internal/modules/esm/resolve:840:18)
@@ -731,8 +731,8 @@ test at tests/unit/prompts.test.js:131:2
   }
 
 test at tests/unit/prompts.test.js:147:2
-✖ injects sampling tool instruction when agent.sampling is enabled (0.912424ms)
-  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'zod' imported from /home/jason/Projects/madz.worktrees/3f5be62956bdbb18/src/config/config.js
+✖ injects sampling tool instruction when agent.sampling is enabled (1.071002ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'zod' imported from /home/jason/Projects/madz.worktrees/442e2856408f12a9/src/config/config.js
       at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
       at packageResolve (node:internal/modules/esm/resolve:751:25)
       at moduleResolve (node:internal/modules/esm/resolve:840:18)
@@ -747,8 +747,8 @@ test at tests/unit/prompts.test.js:147:2
   }
 
 test at tests/unit/prompts.test.js:163:2
-✖ includes todo tool directive for multi-step work planning (1.452148ms)
-  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'zod' imported from /home/jason/Projects/madz.worktrees/3f5be62956bdbb18/src/config/config.js
+✖ includes todo tool directive for multi-step work planning (1.213219ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'zod' imported from /home/jason/Projects/madz.worktrees/442e2856408f12a9/src/config/config.js
       at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
       at packageResolve (node:internal/modules/esm/resolve:751:25)
       at moduleResolve (node:internal/modules/esm/resolve:840:18)
@@ -763,48 +763,48 @@ test at tests/unit/prompts.test.js:163:2
   }
 
 test at tests/unit/provider.test.js:1:1
-✖ tests/unit/provider.test.js (60.831794ms)
+✖ tests/unit/provider.test.js (57.175305ms)
   'test failed'
 
 test at tests/unit/provider/azure.test.js:1:1
-✖ tests/unit/provider/azure.test.js (62.495859ms)
+✖ tests/unit/provider/azure.test.js (61.610756ms)
   'test failed'
 
 test at tests/unit/provider/bedrock.test.js:1:1
-✖ tests/unit/provider/bedrock.test.js (58.898542ms)
+✖ tests/unit/provider/bedrock.test.js (60.046679ms)
   'test failed'
 
 test at tests/unit/provider/copilotRetryMiddleware.test.js:1:1
-✖ tests/unit/provider/copilotRetryMiddleware.test.js (61.044322ms)
+✖ tests/unit/provider/copilotRetryMiddleware.test.js (55.924214ms)
   'test failed'
 
 test at tests/unit/provider/index.test.js:1:1
-✖ tests/unit/provider/index.test.js (57.104823ms)
+✖ tests/unit/provider/index.test.js (56.068386ms)
   'test failed'
 
 test at tests/unit/provider/openai.test.js:1:1
-✖ tests/unit/provider/openai.test.js (51.920104ms)
+✖ tests/unit/provider/openai.test.js (55.375375ms)
   'test failed'
 
 test at tests/unit/provider/summarizationMiddleware.test.js:1:1
-✖ tests/unit/provider/summarizationMiddleware.test.js (55.459322ms)
+✖ tests/unit/provider/summarizationMiddleware.test.js (56.338413ms)
   'test failed'
 
 test at tests/unit/provider/tokenBudgetMiddleware.test.js:1:1
-✖ tests/unit/provider/tokenBudgetMiddleware.test.js (53.353385ms)
+✖ tests/unit/provider/tokenBudgetMiddleware.test.js (55.537859ms)
   'test failed'
 
 test at tests/unit/pubsub.test.js:1:1
-✖ tests/unit/pubsub.test.js (49.824909ms)
+✖ tests/unit/pubsub.test.js (56.438621ms)
   'test failed'
 
 test at tests/unit/reader.test.js:1:1
-✖ tests/unit/reader.test.js (52.375019ms)
+✖ tests/unit/reader.test.js (56.520695ms)
   'test failed'
 
 test at tests/unit/registry.test.js:194:2
-✖ creates skills directory when missing (2.400949ms)
-  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'js-yaml' imported from /home/jason/Projects/madz.worktrees/3f5be62956bdbb18/src/skills/discoverer.js
+✖ creates skills directory when missing (1.63411ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'js-yaml' imported from /home/jason/Projects/madz.worktrees/442e2856408f12a9/src/skills/discoverer.js
       at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
       at packageResolve (node:internal/modules/esm/resolve:751:25)
       at moduleResolve (node:internal/modules/esm/resolve:840:18)
@@ -819,8 +819,8 @@ test at tests/unit/registry.test.js:194:2
   }
 
 test at tests/unit/registry.test.js:211:2
-✖ succeeds when directory already exists (0.651224ms)
-  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'js-yaml' imported from /home/jason/Projects/madz.worktrees/3f5be62956bdbb18/src/skills/discoverer.js
+✖ succeeds when directory already exists (0.993206ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'js-yaml' imported from /home/jason/Projects/madz.worktrees/442e2856408f12a9/src/skills/discoverer.js
       at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
       at packageResolve (node:internal/modules/esm/resolve:751:25)
       at moduleResolve (node:internal/modules/esm/resolve:840:18)
@@ -835,8 +835,8 @@ test at tests/unit/registry.test.js:211:2
   }
 
 test at tests/unit/saver.test.js:50:3
-✖ should write session file with correct content (2.734537ms)
-  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'zod' imported from /home/jason/Projects/madz.worktrees/3f5be62956bdbb18/src/config/config.js
+✖ should write session file with correct content (2.944331ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'zod' imported from /home/jason/Projects/madz.worktrees/442e2856408f12a9/src/config/config.js
       at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
       at packageResolve (node:internal/modules/esm/resolve:751:25)
       at moduleResolve (node:internal/modules/esm/resolve:840:18)
@@ -851,8 +851,8 @@ test at tests/unit/saver.test.js:50:3
   }
 
 test at tests/unit/saver.test.js:71:3
-✖ should default filename to unsaved.md when threadId is empty (1.223158ms)
-  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'zod' imported from /home/jason/Projects/madz.worktrees/3f5be62956bdbb18/src/config/config.js
+✖ should default filename to unsaved.md when threadId is empty (1.460133ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'zod' imported from /home/jason/Projects/madz.worktrees/442e2856408f12a9/src/config/config.js
       at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
       at packageResolve (node:internal/modules/esm/resolve:751:25)
       at moduleResolve (node:internal/modules/esm/resolve:840:18)
@@ -867,8 +867,8 @@ test at tests/unit/saver.test.js:71:3
   }
 
 test at tests/unit/saver.test.js:81:3
-✖ should escape double quotes in string frontmatter values (1.136084ms)
-  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'zod' imported from /home/jason/Projects/madz.worktrees/3f5be62956bdbb18/src/config/config.js
+✖ should escape double quotes in string frontmatter values (0.722146ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'zod' imported from /home/jason/Projects/madz.worktrees/442e2856408f12a9/src/config/config.js
       at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
       at packageResolve (node:internal/modules/esm/resolve:751:25)
       at moduleResolve (node:internal/modules/esm/resolve:840:18)
@@ -883,8 +883,8 @@ test at tests/unit/saver.test.js:81:3
   }
 
 test at tests/unit/saver.test.js:97:3
-✖ should escape backslashes in string frontmatter values (0.932622ms)
-  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'zod' imported from /home/jason/Projects/madz.worktrees/3f5be62956bdbb18/src/config/config.js
+✖ should escape backslashes in string frontmatter values (0.972446ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'zod' imported from /home/jason/Projects/madz.worktrees/442e2856408f12a9/src/config/config.js
       at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
       at packageResolve (node:internal/modules/esm/resolve:751:25)
       at moduleResolve (node:internal/modules/esm/resolve:840:18)
@@ -899,8 +899,8 @@ test at tests/unit/saver.test.js:97:3
   }
 
 test at tests/unit/saver.test.js:113:3
-✖ should escape newlines in string frontmatter values (0.916922ms)
-  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'zod' imported from /home/jason/Projects/madz.worktrees/3f5be62956bdbb18/src/config/config.js
+✖ should escape newlines in string frontmatter values (0.982876ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'zod' imported from /home/jason/Projects/madz.worktrees/442e2856408f12a9/src/config/config.js
       at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
       at packageResolve (node:internal/modules/esm/resolve:751:25)
       at moduleResolve (node:internal/modules/esm/resolve:840:18)
@@ -915,8 +915,8 @@ test at tests/unit/saver.test.js:113:3
   }
 
 test at tests/unit/saver.test.js:129:3
-✖ should handle normal string values without special characters (1.060292ms)
-  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'zod' imported from /home/jason/Projects/madz.worktrees/3f5be62956bdbb18/src/config/config.js
+✖ should handle normal string values without special characters (0.866667ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'zod' imported from /home/jason/Projects/madz.worktrees/442e2856408f12a9/src/config/config.js
       at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
       at packageResolve (node:internal/modules/esm/resolve:751:25)
       at moduleResolve (node:internal/modules/esm/resolve:840:18)
@@ -931,64 +931,64 @@ test at tests/unit/saver.test.js:129:3
   }
 
 test at tests/unit/scheduler.test.js:1:1
-✖ tests/unit/scheduler.test.js (60.804542ms)
+✖ tests/unit/scheduler.test.js (51.733113ms)
   'test failed'
 
 test at tests/unit/scheduler/cron.test.js:1:1
-✖ tests/unit/scheduler/cron.test.js (61.292007ms)
+✖ tests/unit/scheduler/cron.test.js (56.414195ms)
   'test failed'
 
 test at tests/unit/session.test.js:1:1
-✖ tests/unit/session.test.js (62.414697ms)
+✖ tests/unit/session.test.js (64.66854ms)
   'test failed'
 
 test at tests/unit/session_onboarding.test.js:1:1
-✖ tests/unit/session_onboarding.test.js (63.943999ms)
+✖ tests/unit/session_onboarding.test.js (52.438137ms)
   'test failed'
 
 test at tests/unit/shell.test.js:1:1
-✖ tests/unit/shell.test.js (54.863402ms)
+✖ tests/unit/shell.test.js (52.123937ms)
   'test failed'
 
 test at tests/unit/shutdown.test.js:1:1
-✖ tests/unit/shutdown.test.js (61.650972ms)
+✖ tests/unit/shutdown.test.js (58.903431ms)
   'test failed'
 
 test at tests/unit/skills.test.js:1:1
-✖ tests/unit/skills.test.js (62.402434ms)
+✖ tests/unit/skills.test.js (50.481382ms)
   'test failed'
 
 test at tests/unit/skills/discoverer.test.js:1:1
-✖ tests/unit/skills/discoverer.test.js (68.345297ms)
+✖ tests/unit/skills/discoverer.test.js (57.888975ms)
   'test failed'
 
 test at tests/unit/skills/registry.test.js:1:1
-✖ tests/unit/skills/registry.test.js (60.279576ms)
+✖ tests/unit/skills/registry.test.js (58.491307ms)
   'test failed'
 
 test at tests/unit/skillsMiddleware.test.js:1:1
-✖ tests/unit/skillsMiddleware.test.js (59.535649ms)
+✖ tests/unit/skillsMiddleware.test.js (59.316968ms)
   'test failed'
 
 test at tests/unit/skills_discoverer.test.js:1:1
-✖ tests/unit/skills_discoverer.test.js (67.541446ms)
+✖ tests/unit/skills_discoverer.test.js (73.385043ms)
   'test failed'
 
 test at tests/unit/statusBar.test.js:1:1
-✖ tests/unit/statusBar.test.js (58.15752ms)
+✖ tests/unit/statusBar.test.js (66.171142ms)
   'test failed'
 
 test at tests/unit/stream/transformers/turn.test.js:1:1
-✖ tests/unit/stream/transformers/turn.test.js (66.823418ms)
+✖ tests/unit/stream/transformers/turn.test.js (56.510215ms)
   'test failed'
 
 test at tests/unit/subagentEvictionMiddleware.test.js:1:1
-✖ tests/unit/subagentEvictionMiddleware.test.js (71.326496ms)
+✖ tests/unit/subagentEvictionMiddleware.test.js (70.952784ms)
   'test failed'
 
 test at tests/unit/telemetry.test.js:9:2
-✖ instrumentLlmCall returns span context with attributes (1.686728ms)
-  Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@opentelemetry/semantic-conventions' imported from /home/jason/Projects/madz.worktrees/3f5be62956bdbb18/src/telemetry/llmInstrumenter.js
+✖ instrumentLlmCall returns span context with attributes (1.734908ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@opentelemetry/semantic-conventions' imported from /home/jason/Projects/madz.worktrees/442e2856408f12a9/src/telemetry/llmInstrumenter.js
       at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
       at packageResolve (node:internal/modules/esm/resolve:751:25)
       at moduleResolve (node:internal/modules/esm/resolve:840:18)
