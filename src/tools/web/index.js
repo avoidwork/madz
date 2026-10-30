@@ -407,13 +407,13 @@ export function detectSearchBackend(options = config) {
  * Execute web search using the detected engine.
  * @param {object} input - Tool input
  * @param {object} [options] - Config object (defaults to module-level config)
- * @returns {Promise<string>} JSON result string
+ * @returns {Promise<object>} Structured result object
  */
 export async function searchWebImpl(input, options = config) {
 	const { query, limit = 5 } = input;
 
 	if (!query || typeof query !== "string" || query.trim().length === 0) {
-		return JSON.stringify({ ok: false, error: "Query is required and must be a non-empty string" });
+		return { ok: false, error: "Query is required and must be a non-empty string" };
 	}
 
 	const clampedLimit = Math.min(Math.max(Number(limit) || 5, 1), 100);
@@ -458,17 +458,17 @@ export async function searchWebImpl(input, options = config) {
 	}
 
 	if (!result.ok) {
-		return JSON.stringify({ ok: false, error: result.error });
+		return { ok: false, error: result.error };
 	}
 
-	return JSON.stringify({ ok: true, backend, query, results: result.results });
+	return { ok: true, backend, query, results: result.results };
 }
 
 /// -- Tool definitions --
 
 /**
  * @param {z.infer<typeof WebSearchSchema>} input - Tool input with query
- * @returns {string} JSON result string
+ * @returns {object} Structured result object
  */
 export const searchWeb = tool(searchWebImpl, {
 	name: "searchWeb",

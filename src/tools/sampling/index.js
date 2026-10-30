@@ -99,7 +99,7 @@ export async function countEphemeralMemoryFiles(contextDir, nowStr) {
  * @param {number} [options.maxEntries] - Max ephemeral entries (overrides default 10)
  * @param {number} [options.cooldownMs] - Cooldown in ms (overrides default 60min)
  * @param {string} [options.lastWritten] - ISO timestamp of last write (overrides module state)
- * @returns {Promise<string>} Result JSON string
+ * @returns {Promise<object>} Structured result object
  */
 export async function samplingImpl(input, options = {}) {
 	const { content } = input;
@@ -112,10 +112,10 @@ export async function samplingImpl(input, options = {}) {
 	const lastWritten = options.lastWritten;
 
 	if (!content || (typeof content === "string" && content.trim() === "")) {
-		return JSON.stringify({
+		return {
 			ok: false,
 			error: "Sampling requires non-empty content",
-		});
+		};
 	}
 
 	// Check cooldown
@@ -123,20 +123,20 @@ export async function samplingImpl(input, options = {}) {
 		const elapsed = Date.now() - new Date(lastWritten).getTime();
 		if (elapsed < cooldownMs) {
 			const remaining = Math.ceil(((cooldownMs - elapsed) / 1000 / 60) * 10) / 10;
-			return JSON.stringify({
+			return {
 				ok: false,
 				error: `Cooldown active. Wait ${remaining.toFixed(1)} minutes`,
-			});
+			};
 		}
 	}
 
 	// Check capacity
 	const currentCount = await countEphemeralMemoryFiles(contextDir);
 	if (currentCount >= maxEntries) {
-		return JSON.stringify({
+		return {
 			ok: false,
 			error: `Capacity limit reached (${maxEntries})`,
-		});
+		};
 	}
 
 	// Calculate expiration and write
@@ -151,7 +151,7 @@ export async function samplingImpl(input, options = {}) {
 		path: filepath,
 	};
 
-	return JSON.stringify(result);
+	return result;
 }
 
 /**
@@ -180,7 +180,7 @@ export const sampling = tool(
 		const result = await samplingImpl(input);
 
 		// Update _lastWritten if successful
-		const parsed = JSON.parse(result);
+		const parsed = result;
 		if (parsed.ok && parsed.createdAt) {
 			_lastWritten = parsed.createdAt;
 		}

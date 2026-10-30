@@ -25,23 +25,20 @@ describe("transcribeAudio tool", () => {
 
 	it("rejects missing path", async () => {
 		const result = await transcribeAudioImpl({}, { allowedPaths: [testDir] });
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.ok, false);
-		assert.ok(parsed.error.includes("Path is required"));
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("Path is required"));
 	});
 
 	it("rejects empty path", async () => {
 		const result = await transcribeAudioImpl({ path: "" }, { allowedPaths: [testDir] });
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.ok, false);
-		assert.ok(parsed.error.includes("Path is required"));
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("Path is required"));
 	});
 
 	it("rejects path outside sandbox allowlist", async () => {
 		const result = await transcribeAudioImpl({ path: "/etc/passwd" }, { allowedPaths: [testDir] });
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.ok, false);
-		assert.ok(parsed.error.includes("Access denied"));
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("Access denied"));
 	});
 
 	it("rejects non-existent file", async () => {
@@ -49,27 +46,24 @@ describe("transcribeAudio tool", () => {
 			{ path: join(testDir, "missing.mp3") },
 			{ allowedPaths: [testDir] },
 		);
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.ok, false);
-		assert.ok(parsed.error.includes("File not found"));
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("File not found"));
 	});
 
 	it("rejects unsupported extension", async () => {
 		const filePath = join(testDir, "notes.txt");
 		writeFileSync(filePath, "hello world");
 		const result = await transcribeAudioImpl({ path: filePath }, { allowedPaths: [testDir] });
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.ok, false);
-		assert.ok(parsed.error.includes("Unsupported audio format"));
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("Unsupported audio format"));
 	});
 
 	it("rejects file exceeding size limit", async () => {
 		const filePath = join(testDir, "large.mp3");
 		writeFileSync(filePath, Buffer.alloc(30 * 1024 * 1024, 1));
 		const result = await transcribeAudioImpl({ path: filePath }, { allowedPaths: [testDir] });
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.ok, false);
-		assert.ok(parsed.error.includes("exceeds max read size"));
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("exceeds max read size"));
 	});
 
 	it("calls OpenAI API when apiKey is provided", async () => {
@@ -93,10 +87,10 @@ describe("transcribeAudio tool", () => {
 				{ path: filePath },
 				{ allowedPaths: [testDir], openaiApiKey: "sk-test" },
 			);
-			const parsed = JSON.parse(result);
-			assert.strictEqual(parsed.ok, true);
-			assert.strictEqual(parsed.text, "Hello world");
-			assert.strictEqual(parsed.backend, "api");
+			assert.strictEqual(result.ok, true);
+			assert.strictEqual(result.text, "Hello world");
+			assert.strictEqual(result.model, "whisper-1");
+			assert.strictEqual(result.backend, "api");
 		} finally {
 			globalThis.fetch = origFetch;
 		}
@@ -118,9 +112,8 @@ describe("transcribeAudio tool", () => {
 				{ path: filePath },
 				{ allowedPaths: [testDir], openaiApiKey: "sk-test" },
 			);
-			const parsed = JSON.parse(result);
-			assert.strictEqual(parsed.ok, false);
-			assert.ok(parsed.error.includes("OpenAI transcription error"));
+			assert.strictEqual(result.ok, false);
+			assert.ok(result.error.includes("OpenAI transcription error"));
 		} finally {
 			globalThis.fetch = origFetch;
 		}
@@ -138,10 +131,9 @@ describe("transcribeAudio local backend", () => {
 			{ path: filePath },
 			{ allowedPaths: [testDir], openaiApiKey: "", loadPipeline },
 		);
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.ok, true);
-		assert.strictEqual(parsed.backend, "local");
-		assert.strictEqual(parsed.text, "local transcription");
+		assert.strictEqual(result.ok, true);
+		assert.strictEqual(result.backend, "local");
+		assert.strictEqual(result.text, "local transcription");
 	});
 
 	it("passes language and prompt to the local pipeline", async () => {
@@ -158,8 +150,7 @@ describe("transcribeAudio local backend", () => {
 			{ path: filePath, language: "en", prompt: "context" },
 			{ allowedPaths: [testDir], openaiApiKey: "", loadPipeline },
 		);
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.ok, true);
+		assert.strictEqual(result.ok, true);
 		assert.strictEqual(capturedOpts.language, "en");
 		assert.strictEqual(capturedOpts.prompt, "context");
 	});
@@ -176,8 +167,7 @@ describe("transcribeAudio local backend", () => {
 			{ path: filePath },
 			{ allowedPaths: [testDir], openaiApiKey: "", loadPipeline },
 		);
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.ok, false);
-		assert.ok(parsed.error.includes("Local transcription failed"));
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("Local transcription failed"));
 	});
 });
