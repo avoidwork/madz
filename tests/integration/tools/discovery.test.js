@@ -40,21 +40,24 @@ describe("tools - discovery integration", () => {
 
 	it("searches a fixture tree with grep", async () => {
 		const result = await grepImpl({ path: TEST_DIR, pattern: "export const" }, getOptions());
-		assert.match(result, /index\.js/);
-		assert.match(result, /util\.js/);
-		assert.match(result, /deep\.js/);
+		assert.strictEqual(result.ok, true);
+		assert.ok(result.matches.some((m) => m.includes("index.js")));
+		assert.ok(result.matches.some((m) => m.includes("util.js")));
+		assert.ok(result.matches.some((m) => m.includes("deep.js")));
 	});
 
 	it("matches files by glob pattern", async () => {
 		const result = await globImpl({ path: TEST_DIR, pattern: "**/*.js" }, getOptions());
-		assert.match(result, /index\.js/);
-		assert.match(result, /util\.js/);
-		assert.match(result, /deep\.js/);
-		assert.ok(!result.includes("README.md"));
+		assert.strictEqual(result.ok, true);
+		assert.ok(result.matches.some((m) => m.includes("index.js")));
+		assert.ok(result.matches.some((m) => m.includes("util.js")));
+		assert.ok(result.matches.some((m) => m.includes("deep.js")));
+		assert.ok(!result.matches.some((m) => m.includes("README.md")));
 	});
 
 	it("lists directory entries", async () => {
 		const result = await lsImpl({ path: TEST_DIR }, getOptions());
-		assert.match(result, /src/);
+		assert.strictEqual(result.ok, true);
+		assert.ok(result.entries.includes("src"));
 	});
 });

@@ -2,25 +2,31 @@
 
 ## Purpose
 TBD - created by archiving change merge-shell-process-tools. Update Purpose after archive.
+
 ## Requirements
+
 ### Requirement: Unified process tool with action-based routing
-The system SHALL provide a single `process` tool that handles both command execution and process lifecycle management through an `action` parameter. The tool SHALL support the following actions: `start`, `wait`, `kill`, `log`, `write`, `pause`, `resume`, `list`.
+The system SHALL provide a single `process` tool that handles both command execution and process lifecycle management through an `action` parameter. The tool SHALL support the following actions: `start`, `wait`, `kill`, `log`, `write`, `pause`, `resume`, `list`. The tool SHALL return a native structured object on every path: `{ ok: true, ... }` on success and `{ ok: false, error: ... }` on failure.
 
 #### Scenario: Start action launches a command
 - **WHEN** the `process` tool is called with `action: "start"` and `command: "ls -la"`
-- **THEN** the system executes the command and returns the result (foreground) or PID (background)
+- **THEN** the system executes the command and returns `{ ok: true, exitCode, stdout, stderr }` (foreground) or `{ ok: true, pid, command }` (background)
 
 #### Scenario: Start action with background flag
 - **WHEN** the `process` tool is called with `action: "start"`, `command: "sleep 60"`, and `background: true`
-- **THEN** the system starts the process in background mode, captures stdout/stderr via piped streams, registers the PID in the tracker, and returns the PID
+- **THEN** the system starts the process in background mode, captures stdout/stderr via piped streams, registers the PID in the tracker, and returns `{ ok: true, pid, command }`
 
 #### Scenario: Log action returns captured output
 - **WHEN** the `process` tool is called with `action: "log"` and a valid `processId`
-- **THEN** the system returns the captured stdout and stderr from the process
+- **THEN** the system returns `{ ok: true, stdout, stderr }` with the captured output from the process
 
 #### Scenario: List action shows all processes
 - **WHEN** the `process` tool is called with `action: "list"`
-- **THEN** the system returns a JSON array of all tracked processes with pid, command, status, and uptime
+- **THEN** the system returns `{ ok: true, entries: [...] }` where `entries` is an array of all tracked processes with pid, command, status, and uptime
+
+#### Scenario: Error paths return structured failure
+- **WHEN** the `process` tool is called with an invalid action, a missing required field, or a non-existent processId
+- **THEN** the system returns `{ ok: false, error: "<message>" }` with a descriptive error message
 
 ### Requirement: Background process stdio capture
 The system SHALL spawn background processes with `stdio: ["ignore", "pipe", "pipe"]` to capture stdout and stderr. The captured output SHALL be stored in the processTracker entry and retrievable via the `log` action.
@@ -85,4 +91,3 @@ The system SHALL resolve the process tool's working directory from the active pr
 #### Scenario: Falls back to config.cwd when no project is active
 - **WHEN** no project is active (`getProjectCwd()` returns `""`) and the `process` tool is called with `action: "start"` and `command: "pwd"`
 - **THEN** the system runs the command in `config.cwd` (or `process.cwd()` if `config.cwd` is unset)
-

@@ -15,7 +15,8 @@ describe("process tool - unifiedProcessImpl", () => {
 
 	it("returns error when start action has no command", async () => {
 		const result = await unifiedProcessImpl({ action: "start" });
-		assert.ok(result.startsWith("Error: command is required"));
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("command is required"));
 	});
 
 	it("returns error for command exceeding max length", async () => {
@@ -23,27 +24,33 @@ describe("process tool - unifiedProcessImpl", () => {
 			action: "start",
 			command: "x".repeat(5000),
 		});
-		assert.ok(result.includes("exceeds maximum"));
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("exceeds maximum"));
 	});
 
 	it("returns error for unknown action", async () => {
 		const result = await unifiedProcessImpl({ action: "unknown", processId: 1 });
-		assert.ok(result.includes("Unknown action"));
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("Unknown action"));
 	});
 
 	it("returns error when processId is missing for non-start/list actions", async () => {
 		const result = await unifiedProcessImpl({ action: "log" });
-		assert.ok(result.includes("processId is required"));
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("processId is required"));
 	});
 
 	it("returns error when process is not found", async () => {
 		const result = await unifiedProcessImpl({ action: "log", processId: 9999 });
-		assert.ok(result.includes("not found"));
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("not found"));
 	});
 
 	it("returns empty list when no processes are tracked", async () => {
 		const result = await unifiedProcessImpl({ action: "list" });
-		assert.strictEqual(result, "[]");
+		assert.strictEqual(result.ok, true);
+		assert.ok(Array.isArray(result.entries));
+		assert.strictEqual(result.entries.length, 0);
 	});
 
 	it("starts a foreground command and returns output", async () => {
@@ -51,8 +58,9 @@ describe("process tool - unifiedProcessImpl", () => {
 			action: "start",
 			command: "echo hello",
 		});
-		assert.ok(result.includes("exitCode: 0"));
-		assert.ok(result.includes("hello"));
+		assert.strictEqual(result.ok, true);
+		assert.strictEqual(result.exitCode, 0);
+		assert.ok(result.stdout.includes("hello"));
 	});
 
 	it("starts a background command and returns PID message", async () => {
@@ -61,8 +69,9 @@ describe("process tool - unifiedProcessImpl", () => {
 			command: "echo bg-test",
 			background: true,
 		});
-		assert.ok(result.includes("Started process in background"));
-		assert.ok(result.includes("PID:"));
+		assert.strictEqual(result.ok, true);
+		assert.ok(result.pid !== undefined);
+		assert.strictEqual(result.command, "echo bg-test");
 	});
 
 	it("lists tracked processes after starting one", async () => {
@@ -72,11 +81,11 @@ describe("process tool - unifiedProcessImpl", () => {
 			background: true,
 		});
 		const listResult = await unifiedProcessImpl({ action: "list" });
-		const parsed = JSON.parse(listResult);
-		assert.ok(Array.isArray(parsed));
-		assert.ok(parsed.length > 0);
-		assert.ok(parsed[0].pid !== undefined);
-		assert.ok(parsed[0].command);
+		assert.strictEqual(listResult.ok, true);
+		assert.ok(Array.isArray(listResult.entries));
+		assert.ok(listResult.entries.length > 0);
+		assert.ok(listResult.entries[0].pid !== undefined);
+		assert.ok(listResult.entries[0].command);
 	});
 
 	it("returns log output for a completed process", async () => {
@@ -85,21 +94,21 @@ describe("process tool - unifiedProcessImpl", () => {
 			command: "echo log-test-output",
 			background: true,
 		});
-		// Extract PID from result
-		const pidMatch = startResult.match(/PID: (\d+)/);
-		assert.ok(pidMatch, "Should have a PID");
-		const pid = parseInt(pidMatch[1], 10);
+		assert.strictEqual(startResult.ok, true);
+		const pid = startResult.pid;
 
 		// Wait a bit for the process to complete
 		await new Promise((r) => setTimeout(r, 500));
 
 		const logResult = await unifiedProcessImpl({ action: "log", processId: pid });
-		assert.ok(logResult.includes("log-test-output"));
+		assert.strictEqual(logResult.ok, true);
+		assert.ok(logResult.stdout.includes("log-test-output"));
 	});
 
 	it("returns error for kill on non-existent process", async () => {
 		const result = await unifiedProcessImpl({ action: "kill", processId: 9999 });
-		assert.ok(result.includes("not found"));
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("not found"));
 	});
 
 	it("returns error for write on non-existent process", async () => {
@@ -108,22 +117,26 @@ describe("process tool - unifiedProcessImpl", () => {
 			processId: 9999,
 			data: "test",
 		});
-		assert.ok(result.includes("not found"));
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("not found"));
 	});
 
 	it("returns error for pause on non-existent process", async () => {
 		const result = await unifiedProcessImpl({ action: "pause", processId: 9999 });
-		assert.ok(result.includes("not found"));
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("not found"));
 	});
 
 	it("returns error for resume on non-existent process", async () => {
 		const result = await unifiedProcessImpl({ action: "resume", processId: 9999 });
-		assert.ok(result.includes("not found"));
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("not found"));
 	});
 
 	it("returns error for wait on non-existent process", async () => {
 		const result = await unifiedProcessImpl({ action: "wait", processId: 9999 });
-		assert.ok(result.includes("not found"));
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("not found"));
 	});
 
 	it("handles error starting background process gracefully", async () => {
@@ -134,7 +147,8 @@ describe("process tool - unifiedProcessImpl", () => {
 			background: true,
 		});
 		// Empty command will fail to spawn
-		assert.ok(typeof result === "string");
+		assert.strictEqual(typeof result, "object");
+		assert.strictEqual(typeof result.ok, "boolean");
 	});
 
 	it("captures stderr output from foreground command", async () => {
@@ -142,8 +156,9 @@ describe("process tool - unifiedProcessImpl", () => {
 			action: "start",
 			command: "echo stderr-output >&2",
 		});
-		assert.ok(result.includes("exitCode: 0"));
-		assert.ok(result.includes("stderr-output"));
+		assert.strictEqual(result.ok, true);
+		assert.strictEqual(result.exitCode, 0);
+		assert.ok(result.stderr.includes("stderr-output"));
 	});
 
 	it("handles foreground command spawn error", async () => {
@@ -151,7 +166,8 @@ describe("process tool - unifiedProcessImpl", () => {
 			action: "start",
 			command: "nonexistent-command-xyzzy",
 		});
-		assert.ok(typeof result === "string");
+		assert.strictEqual(typeof result, "object");
+		assert.strictEqual(typeof result.ok, "boolean");
 	});
 
 	it("waits for a background process to complete", async () => {
@@ -160,13 +176,12 @@ describe("process tool - unifiedProcessImpl", () => {
 			command: "echo wait-test",
 			background: true,
 		});
-		const pidMatch = startResult.match(/PID: (\d+)/);
-		assert.ok(pidMatch);
-		const pid = parseInt(pidMatch[1], 10);
+		assert.strictEqual(startResult.ok, true);
+		const pid = startResult.pid;
 
 		const waitResult = await unifiedProcessImpl({ action: "wait", processId: pid });
-		assert.ok(waitResult.includes("completed"));
-		assert.ok(waitResult.includes("wait-test"));
+		assert.strictEqual(waitResult.ok, true);
+		assert.ok(waitResult.stdout.includes("wait-test"));
 	});
 
 	it("kills a background process", async () => {
@@ -175,12 +190,12 @@ describe("process tool - unifiedProcessImpl", () => {
 			command: "sleep 30",
 			background: true,
 		});
-		const pidMatch = startResult.match(/PID: (\d+)/);
-		assert.ok(pidMatch);
-		const pid = parseInt(pidMatch[1], 10);
+		assert.strictEqual(startResult.ok, true);
+		const pid = startResult.pid;
 
 		const killResult = await unifiedProcessImpl({ action: "kill", processId: pid });
-		assert.ok(killResult.includes("SIGTERM"));
+		assert.strictEqual(killResult.ok, true);
+		assert.ok(killResult.message.includes("SIGTERM"));
 	});
 
 	it("pauses and resumes a background process", async () => {
@@ -189,15 +204,16 @@ describe("process tool - unifiedProcessImpl", () => {
 			command: "sleep 30",
 			background: true,
 		});
-		const pidMatch = startResult.match(/PID: (\d+)/);
-		assert.ok(pidMatch);
-		const pid = parseInt(pidMatch[1], 10);
+		assert.strictEqual(startResult.ok, true);
+		const pid = startResult.pid;
 
 		const pauseResult = await unifiedProcessImpl({ action: "pause", processId: pid });
-		assert.ok(pauseResult.includes("Paused"));
+		assert.strictEqual(pauseResult.ok, true);
+		assert.ok(pauseResult.message.includes("Paused"));
 
 		const resumeResult = await unifiedProcessImpl({ action: "resume", processId: pid });
-		assert.ok(resumeResult.includes("Resumed"));
+		assert.strictEqual(resumeResult.ok, true);
+		assert.ok(resumeResult.message.includes("Resumed"));
 
 		// Clean up
 		await unifiedProcessImpl({ action: "kill", processId: pid });
@@ -209,16 +225,16 @@ describe("process tool - unifiedProcessImpl", () => {
 			command: "cat",
 			background: true,
 		});
-		const pidMatch = startResult.match(/PID: (\d+)/);
-		assert.ok(pidMatch);
-		const pid = parseInt(pidMatch[1], 10);
+		assert.strictEqual(startResult.ok, true);
+		const pid = startResult.pid;
 
 		const writeResult = await unifiedProcessImpl({
 			action: "write",
 			processId: pid,
 			data: "hello stdin",
 		});
-		assert.ok(writeResult.includes("Wrote to stdin"));
+		assert.strictEqual(writeResult.ok, true);
+		assert.ok(writeResult.message.includes("Wrote to stdin"));
 
 		// Clean up
 		await unifiedProcessImpl({ action: "kill", processId: pid });
@@ -321,8 +337,9 @@ describe("process tool - cwd resolution", () => {
 		setProjectCwd(projectDir);
 		try {
 			const result = await unifiedProcessImpl({ action: "start", command: "pwd" });
-			assert.ok(result.includes("exitCode: 0"));
-			assert.ok(result.includes(projectDir));
+			assert.strictEqual(result.ok, true);
+			assert.strictEqual(result.exitCode, 0);
+			assert.ok(result.stdout.includes(projectDir));
 		} finally {
 			setProjectCwd("");
 		}
@@ -337,7 +354,8 @@ describe("process tool - cwd resolution", () => {
 				command: "pwd",
 				background: true,
 			});
-			assert.ok(result.includes("Started process in background"));
+			assert.strictEqual(result.ok, true);
+			assert.ok(result.pid !== undefined);
 		} finally {
 			setProjectCwd("");
 		}

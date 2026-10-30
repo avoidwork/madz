@@ -199,23 +199,29 @@ describe("samplingImpl", () => {
 	after(teardown);
 
 	it("rejects empty content", async () => {
-		const result = JSON.parse(await samplingImpl({ content: "" }, { contextDir: TEST_DIR }));
+		const result = await samplingImpl({ content: "" }, { contextDir: TEST_DIR });
+		assert.strictEqual(typeof result, "object", "should return a native object");
 		assert.strictEqual(result.ok, false);
 		assert.ok(result.error.toLowerCase().includes("content"));
 	});
 
 	it("rejects missing content", async () => {
-		const result = JSON.parse(await samplingImpl({}, { contextDir: TEST_DIR }));
+		const result = await samplingImpl({}, { contextDir: TEST_DIR });
+		assert.strictEqual(typeof result, "object", "should return a native object");
 		assert.strictEqual(result.ok, false);
 	});
 
 	it("writes an ephemeral file on success", async () => {
-		const result = JSON.parse(
-			await samplingImpl({ content: "joy" }, { contextDir: TEST_DIR, ttlDays: 7, maxEntries: 10 }),
+		const result = await samplingImpl(
+			{ content: "joy" },
+			{ contextDir: TEST_DIR, ttlDays: 7, maxEntries: 10 },
 		);
+		assert.strictEqual(typeof result, "object", "should return a native object");
 		assert.strictEqual(result.ok, true);
 		assert.strictEqual(result.message, "Ephemeral memory captured");
+		assert.ok(result.createdAt, "should include createdAt");
 		assert.ok(result.expiresAt, "should include expiresAt");
+		assert.ok(result.path, "should include path");
 		const files = await readdir(TEST_DIR);
 		assert.ok(
 			files.some((f) => f.endsWith(".md")),
@@ -224,29 +230,27 @@ describe("samplingImpl", () => {
 	});
 
 	it("rejects within cooldown period", async () => {
-		const result = JSON.parse(
-			await samplingImpl(
-				{ content: "test" },
-				{
-					contextDir: TEST_DIR,
-					cooldownMs: 3600000,
-					lastWritten: new Date().toISOString(),
-					maxEntries: 10,
-				},
-			),
+		const result = await samplingImpl(
+			{ content: "test" },
+			{
+				contextDir: TEST_DIR,
+				cooldownMs: 3600000,
+				lastWritten: new Date().toISOString(),
+				maxEntries: 10,
+			},
 		);
+		assert.strictEqual(typeof result, "object", "should return a native object");
 		assert.strictEqual(result.ok, false);
 		assert.ok(result.error.includes("Cooldown active"));
 	});
 
 	it("succeeds after cooldown expires", async () => {
 		const past = new Date(Date.now() - 4200 * 1000).toISOString();
-		const result = JSON.parse(
-			await samplingImpl(
-				{ content: "test" },
-				{ contextDir: TEST_DIR, cooldownMs: 3600000, lastWritten: past, maxEntries: 10 },
-			),
+		const result = await samplingImpl(
+			{ content: "test" },
+			{ contextDir: TEST_DIR, cooldownMs: 3600000, lastWritten: past, maxEntries: 10 },
 		);
+		assert.strictEqual(typeof result, "object", "should return a native object");
 		assert.strictEqual(result.ok, true);
 	});
 
@@ -261,9 +265,11 @@ describe("samplingImpl", () => {
 				"2026-06-01T00:00:00.000Z",
 			);
 		}
-		const result = JSON.parse(
-			await samplingImpl({ content: "test" }, { contextDir: TEST_DIR, maxEntries: max }),
+		const result = await samplingImpl(
+			{ content: "test" },
+			{ contextDir: TEST_DIR, maxEntries: max },
 		);
+		assert.strictEqual(typeof result, "object", "should return a native object");
 		assert.strictEqual(result.ok, false);
 		assert.ok(result.error.includes("Capacity limit"));
 	});
@@ -275,9 +281,8 @@ describe("samplingImpl", () => {
 			expiredPath,
 			'---\ntitle: "Expired"\ntimestamp: "2026-05-01T00:00:00.000Z"\nephemeral: true\nephemeral_expiresAt: "2026-05-01T00:00:00.000Z"\n---\n\nold content\n',
 		);
-		const result = JSON.parse(
-			await samplingImpl({ content: "test" }, { contextDir: TEST_DIR, maxEntries: 1 }),
-		);
+		const result = await samplingImpl({ content: "test" }, { contextDir: TEST_DIR, maxEntries: 1 });
+		assert.strictEqual(typeof result, "object", "should return a native object");
 		assert.strictEqual(result.ok, true);
 	});
 });
