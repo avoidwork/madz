@@ -60,7 +60,9 @@ describe("tools - grep", () => {
 			mkdirSync(dir, { recursive: true });
 			writeFileSync(join(dir, "a.txt"), "foo\nbar\nbaz\n");
 			const result = await grepImpl({ path: dir, pattern: "bar" }, getOptions());
-			assert.match(result, /bar/);
+			assert.strictEqual(result.ok, true);
+			assert.ok(result.matches.some((m) => m.includes("bar")));
+			assert.ok(result.count > 0);
 		});
 
 		it("returns no matches when nothing matches", async () => {
@@ -68,7 +70,9 @@ describe("tools - grep", () => {
 			mkdirSync(dir, { recursive: true });
 			writeFileSync(join(dir, "a.txt"), "foo\n");
 			const result = await grepImpl({ path: dir, pattern: "zzz" }, getOptions());
-			assert.match(result, /No matches found/);
+			assert.strictEqual(result.ok, true);
+			assert.deepStrictEqual(result.matches, []);
+			assert.strictEqual(result.count, 0);
 		});
 
 		it("uses native search as the fallback when rg is unavailable", async () => {
@@ -76,12 +80,15 @@ describe("tools - grep", () => {
 			mkdirSync(dir, { recursive: true });
 			writeFileSync(join(dir, "a.txt"), "alpha\nbeta\ngamma\n");
 			const result = await nativeSearch("beta", dir, 20);
-			assert.match(result, /beta/);
+			assert.strictEqual(result.ok, true);
+			assert.ok(result.matches.some((m) => m.includes("beta")));
+			assert.ok(result.count > 0);
 		});
 
 		it("validates path against the sandbox allowlist", async () => {
 			const result = await grepImpl({ path: "/etc/passwd", pattern: "root" }, getOptions());
-			assert.match(result, /Error/);
+			assert.strictEqual(result.ok, false);
+			assert.match(result.error, /Access denied/);
 		});
 	});
 });

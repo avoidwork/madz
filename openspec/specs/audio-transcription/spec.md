@@ -2,9 +2,11 @@
 
 ## Purpose
 TBD - created by archiving change audio-transcription-tool. Update Purpose after archive.
+
 ## Requirements
+
 ### Requirement: Transcribe audio file to text
-The system SHALL provide a `transcribeAudio` tool that converts an audio file to text, returning the transcribed text as a JSON string.
+The system SHALL provide a `transcribeAudio` tool that converts an audio file to text, returning a native structured object `{ ok: true, text, model, backend }` on success and `{ ok: false, error }` on failure.
 
 #### Scenario: Successful transcription via API
 - **WHEN** the tool is invoked with a valid path to an existing audio file within the sandbox allowlist and `openaiApiKey` is configured
@@ -64,4 +66,3 @@ The system SHALL perform all file system operations in the `transcribeAudio` too
 #### Scenario: Async file read
 - **WHEN** the tool reads the audio file
 - **THEN** it uses `node:fs/promises` async operations, not synchronous fs calls
-

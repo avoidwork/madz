@@ -1,254 +1,1001 @@
 ℹ start of coverage report
-ℹ ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-ℹ file                           | line % | branch % | funcs % | uncovered lines
-ℹ ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-ℹ src                            |        |          |         | 
-ℹ  agent                         |        |          |         | 
-ℹ   agentDefinitions.js          | 100.00 |   100.00 |  100.00 | 
-ℹ   contextBackend.js            | 100.00 |   100.00 |  100.00 | 
-ℹ   coreBackend.js               | 100.00 |   100.00 |  100.00 | 
-ℹ   deepAgents.js                |  94.79 |    69.66 |   76.47 | 101-102 130-131 155 171-173 251-255 283-290 321-322 429-431 542-544
-ℹ   evictionCeiling.js           | 100.00 |   100.00 |  100.00 | 
-ℹ   skillsMiddleware.js          | 100.00 |    87.50 |  100.00 | 
-ℹ  config                        |        |          |         | 
-ℹ   config.js                    | 100.00 |   100.00 |  100.00 | 
-ℹ   loader.js                    |  96.54 |    87.40 |   90.48 | 105-106 114-115 408-409 468-470 495 497 561-565 575-578
-ℹ   parse.js                     | 100.00 |   100.00 |  100.00 | 
-ℹ   patch.js                     | 100.00 |   100.00 |  100.00 | 
-ℹ   schemas                      |        |          |         | 
-ℹ    agent.js                    | 100.00 |   100.00 |  100.00 | 
-ℹ    image.js                    | 100.00 |   100.00 |  100.00 | 
-ℹ    mcp.js                      | 100.00 |   100.00 |  100.00 | 
-ℹ    memory.js                   | 100.00 |   100.00 |  100.00 | 
-ℹ    persistence.js              | 100.00 |   100.00 |  100.00 | 
-ℹ    providers.js                | 100.00 |   100.00 |  100.00 | 
-ℹ    sandbox.js                  | 100.00 |   100.00 |  100.00 | 
-ℹ    schedules.js                | 100.00 |   100.00 |  100.00 | 
-ℹ    skillAgentMap.js            | 100.00 |   100.00 |  100.00 | 
-ℹ    subAgentsTemperature.js     | 100.00 |   100.00 |  100.00 | 
-ℹ    summarization.js            | 100.00 |   100.00 |  100.00 | 
-ℹ    telemetry.js                | 100.00 |   100.00 |  100.00 | 
-ℹ    tui.js                      | 100.00 |   100.00 |  100.00 | 
-ℹ    vector.js                   | 100.00 |   100.00 |  100.00 | 
-ℹ  memory                        |        |          |         | 
-ℹ   context.js                   |  94.12 |    80.95 |  100.00 | 103-104 125-126 148-152
-ℹ   expireEphemeralMemories.js   |  94.19 |    86.36 |  100.00 | 37-39 81-82
-ℹ   gc.js                        | 100.00 |   100.00 |  100.00 | 
-ℹ   index.js                     | 100.00 |   100.00 |  100.00 | 
-ℹ   profile.js                   | 100.00 |    98.41 |  100.00 | 
-ℹ   prompts.js                   | 100.00 |   100.00 |  100.00 | 
-ℹ   reader.js                    | 100.00 |    94.44 |  100.00 | 
-ℹ   retention.js                 |  30.99 |   100.00 |    0.00 | 15-35 44-71
-ℹ   screenshots.js               | 100.00 |   100.00 |  100.00 | 
-ℹ   tools.js                     |  81.25 |   100.00 |    0.00 | 14-16
-ℹ   writer.js                    |  40.68 |   100.00 |    0.00 | 13-15 28-59
-ℹ  provider                      |        |          |         | 
-ℹ   azure.js                     |  94.55 |    87.50 |  100.00 | 89-90 95-98
-ℹ   bedrock.js                   | 100.00 |    93.33 |  100.00 | 
-ℹ   copilotAuth.js               |  99.40 |    89.89 |   90.91 | 140-141 375
-ℹ   copilotRetryMiddleware.js    | 100.00 |    80.00 |   75.00 | 
-ℹ   index.js                     | 100.00 |   100.00 |  100.00 | 
-ℹ   modelInfo.js                 | 100.00 |    98.28 |  100.00 | 
-ℹ   openai.js                    |  95.16 |    80.00 |   80.00 | 64-66 109-110 116-117 186 214-215 227-230
-ℹ   summarizationMiddleware.js   | 100.00 |   100.00 |  100.00 | 
-ℹ   tokenBudget.js               | 100.00 |    90.32 |   86.67 | 
-ℹ   tokenBudgetMiddleware.js     | 100.00 |    79.66 |   85.71 | 
-ℹ  sandbox                       |        |          |         | 
-ℹ   pathResolver.js              | 100.00 |   100.00 |  100.00 | 
-ℹ   urlFilter.js                 | 100.00 |    93.33 |  100.00 | 
-ℹ  scheduler                     |        |          |         | 
-ℹ   cron.js                      |  97.47 |    90.96 |   96.00 | 62-73 221 265 270-271
-ℹ   index.js                     | 100.00 |   100.00 |  100.00 | 
-ℹ   scheduler.js                 |  99.14 |    93.94 |   90.00 | 202-203
-ℹ  session                       |        |          |         | 
-ℹ   checkpointer.js              | 100.00 |    81.82 |  100.00 | 
-ℹ   factory.js                   | 100.00 |   100.00 |  100.00 | 
-ℹ   loader.js                    |  20.78 |   100.00 |    0.00 | 16-51 53-77
-ℹ   onboarding.js                | 100.00 |    94.23 |  100.00 | 
-ℹ   saver.js                     |  98.18 |    82.35 |  100.00 | 47
-ℹ   shutdown.js                  | 100.00 |   100.00 |  100.00 | 
-ℹ   stateManager.js              |  96.82 |   100.00 |   94.74 | 144-150
-ℹ   window.js                    | 100.00 |    91.67 |  100.00 | 
-ℹ  shared                        |        |          |         | 
-ℹ   logger.js                    |  79.53 |    66.67 |  100.00 | 87-98 123-132 137 139-141 164-166 176-180 203-211 217-222 239 273-274 276-278 297-299 307-309 317-319 327-329 337-339
-ℹ  skills                        |        |          |         | 
-ℹ   agentMapper.js               |  83.33 |    62.50 |  100.00 | 12-13 23-25
-ℹ   discoverer.js                |  99.10 |    91.94 |  100.00 | 174-175
-ℹ   registry.js                  |  91.37 |    71.88 |   83.33 | 104-105 155-156 173-175 201-207 215-219 227-231
-ℹ   types.js                     | 100.00 |   100.00 |  100.00 | 
-ℹ   validator.js                 |  96.35 |    97.50 |   80.00 | 130-134
-ℹ  stream                        |        |          |         | 
-ℹ   transformers                 |        |          |         | 
-ℹ    index.js                    | 100.00 |   100.00 |  100.00 | 
-ℹ    turn.js                     |  92.33 |    70.83 |   92.86 | 55-57 68-69 83-90 97-100 136-137 190 261-262
-ℹ  telemetry                     |        |          |         | 
-ℹ   flusher.js                   | 100.00 |   100.00 |  100.00 | 
-ℹ   index.js                     | 100.00 |   100.00 |  100.00 | 
-ℹ   llmInstrumenter.js           | 100.00 |   100.00 |  100.00 | 
-ℹ   metrics.js                   | 100.00 |   100.00 |  100.00 | 
-ℹ   provider.js                  |  81.82 |    45.45 |   80.00 | 17 22-28 41 49-51 67-68
-ℹ   sampler.js                   | 100.00 |   100.00 |  100.00 | 
-ℹ   skillInstrumenter.js         | 100.00 |   100.00 |  100.00 | 
-ℹ  tools                         |        |          |         | 
-ℹ   api                          |        |          |         | 
-ℹ    index.js                    |  96.12 |    98.36 |   83.33 | 59-70
-ℹ   audio                        |        |          |         | 
-ℹ    index.js                    |  86.84 |    76.09 |   37.50 | 32-36 46-56 99-101 108-118
-ℹ   browser                      |        |          |         | 
-ℹ    index.js                    |  98.51 |    88.89 |   62.50 | 148-150 256-257
-ℹ   calendar                     |        |          |         | 
-ℹ    index.js                    | 100.00 |    98.00 |  100.00 | 
-ℹ    providers                   |        |          |         | 
-ℹ     base.js                    | 100.00 |    98.21 |  100.00 | 
-ℹ     factory.js                 | 100.00 |   100.00 |  100.00 | 
-ℹ     google.js                  | 100.00 |    92.21 |  100.00 | 
-ℹ     msgraph.js                 | 100.00 |    90.48 |  100.00 | 
-ℹ    schemas.js                  | 100.00 |   100.00 |  100.00 | 
-ℹ   clarify                      |        |          |         | 
-ℹ    index.js                    | 100.00 |    95.83 |  100.00 | 
-ℹ   code                         |        |          |         | 
-ℹ    index.js                    | 100.00 |   100.00 |  100.00 | 
-ℹ    indexCode.js                | 100.00 |    87.50 |  100.00 | 
-ℹ    searchCode.js               |  72.51 |    66.67 |   57.14 | 57-59 64-65 69-72 75-76 108-110 116-118 154-157 166-211 217-218
-ℹ   common.js                    | 100.00 |    96.77 |  100.00 | 
-ℹ   config                       |        |          |         | 
-ℹ    index.js                    | 100.00 |   100.00 |  100.00 | 
-ℹ   cron                         |        |          |         | 
-ℹ    index.js                    |  98.26 |    91.35 |   77.78 | 93-94 106-107 226-227 303-304
-ℹ   data                         |        |          |         | 
-ℹ    index.js                    | 100.00 |    97.96 |  100.00 | 
-ℹ   date                         |        |          |         | 
-ℹ    index.js                    | 100.00 |   100.00 |  100.00 | 
-ℹ   decision                     |        |          |         | 
-ℹ    index.js                    |  97.35 |    95.45 |   50.00 | 55-57
-ℹ   discovery                    |        |          |         | 
-ℹ    index.js                    |  93.12 |    63.04 |   90.00 | 78 91-92 95-96 124-125 138-139 177-178 186-187 203 205 218-219
-ℹ   dns                          |        |          |         | 
-ℹ    index.js                    | 100.00 |   100.00 |  100.00 | 
-ℹ    namecom.js                  |  98.68 |    96.15 |   98.70 | 38-42 66-67
-ℹ   email                        |        |          |         | 
-ℹ    index.js                    | 100.00 |   100.00 |  100.00 | 
-ℹ    providers                   |        |          |         | 
-ℹ     base.js                    | 100.00 |   100.00 |  100.00 | 
-ℹ     gmail.js                   |  98.70 |    84.73 |   96.88 | 89-90 112-114 141-142
-ℹ     graph.js                   |  91.14 |    81.06 |   85.71 | 82-84 111-112 122-138 157-158 189-215 413-414 422-423
-ℹ     imap.js                    |  87.78 |    82.35 |   88.89 | 71-73 99-112 119-153 337-338
-ℹ    tools.js                    | 100.00 |    94.55 |   50.00 | 
-ℹ   file                         |        |          |         | 
-ℹ    index.js                    |  82.29 |    76.19 |   88.24 | 54-84 140-147 153-160 164-176 251-253 255-257 303-309 358-359 365-366 406-407 428 432 434 447-449
-ℹ   fileExtract                  |        |          |         | 
-ℹ    docx.js                     | 100.00 |    91.67 |  100.00 | 
-ℹ    docxParser.js               |  99.08 |    87.50 |  100.00 | 214-215
-ℹ    formatValidator.js          | 100.00 |   100.00 |  100.00 | 
-ℹ    index.js                    | 100.00 |   100.00 |  100.00 | 
-ℹ    pdf.js                      |  85.00 |    66.67 |  100.00 | 50-55 62-67
-ℹ    pdfParser.js                |  75.86 |    66.67 |   50.00 | 35 37-47 53-54
-ℹ    pptx.js                     | 100.00 |    88.89 |  100.00 | 
-ℹ    pptxParser.js               | 100.00 |    79.49 |  100.00 | 
-ℹ    xlsx.js                     | 100.00 |    91.67 |  100.00 | 
-ℹ    xlsxJson.js                 |  98.43 |    89.36 |  100.00 | 101-102
-ℹ    xlsxParser.js               |  82.21 |    83.33 |   88.89 | 47-48 93-112 130-137 150-156
-ℹ    zipExtractor.js             |  82.32 |    77.78 |   66.67 | 62-63 104-107 124-142 149-152
-ℹ   git                          |        |          |         | 
-ℹ    index.js                    |  38.66 |    30.00 |   50.00 | 55 83-99 106-115 122-133 140-142 149-161 168-177 191-195 201-202 222-249 252-273 276-293 296-302 305-314 317-327 330-339 342-350 353-369 372-380 383-391 394-399 402-408 411-427 430-492 495-534 537-560 563-573 576-583 586-589
-ℹ   graphql                      |        |          |         | 
-ℹ    index.js                    |  97.74 |    97.89 |   93.75 | 55-66
-ℹ   image                        |        |          |         | 
-ℹ    index.js                    | 100.00 |   100.00 |   50.00 | 
-ℹ    readImage.js                |  94.24 |    68.42 |  100.00 | 81-82 90-91 97-98 105-106
-ℹ   index.js                     |  99.65 |    97.59 |   91.67 | 563-564
-ℹ   json                         |        |          |         | 
-ℹ    index.js                    | 100.00 |    97.59 |  100.00 | 
-ℹ   memory                       |        |          |         | 
-ℹ    index.js                    |  96.53 |    83.56 |   93.33 | 56 99-100 195-199 299-301
-ℹ   pdf                          |        |          |         | 
-ℹ    index.js                    |  97.00 |    91.58 |   91.30 | 68-72 145-154 167-168 226-230 251 317-318 333-334
-ℹ   pptx                         |        |          |         | 
-ℹ    index.js                    |  98.63 |    94.12 |   92.31 | 478-481 536-537 557-558
-ℹ   process                      |        |          |         | 
-ℹ    index.js                    |  95.92 |    85.71 |   95.00 | 109 139-140 216-217 228-229 235-237 243-244
-ℹ   reflection                   |        |          |         | 
-ℹ    index.js                    |  95.18 |    82.00 |   91.67 | 58-62 127-128 151-152 206-207
-ℹ   sampling                     |        |          |         | 
-ℹ    index.js                    |  94.97 |    81.82 |   80.00 | 27 180-188
-ℹ   scanAgents                   |        |          |         | 
-ℹ    index.js                    | 100.00 |    80.00 |  100.00 | 
-ℹ   session                      |        |          |         | 
-ℹ    index.js                    |  97.06 |    71.19 |   94.12 | 71-72 118-119 128 181-182
-ℹ   skills                       |        |          |         | 
-ℹ    index.js                    |  93.41 |    81.94 |  100.00 | 93-94 127-134 154-161 177-179 194-195
-ℹ   spreadsheet                  |        |          |         | 
-ℹ    csv.js                      |  99.41 |    97.78 |  100.00 | 109
-ℹ    formulaParser.js            | 100.00 |    96.81 |  100.00 | 
-ℹ    index.js                    | 100.00 |   100.00 |  100.00 | 
-ℹ    pivot.js                    | 100.00 |    96.51 |  100.00 | 
-ℹ    spreadsheet.js              | 100.00 |    92.86 |  100.00 | 
-ℹ    stats.js                    |  99.16 |    96.19 |  100.00 | 237-238
-ℹ   todo                         |        |          |         | 
-ℹ    index.js                    |  97.65 |    92.19 |   88.89 | 194-195 212-213 266-268
-ℹ   tts                          |        |          |         | 
-ℹ    index.js                    | 100.00 |    85.71 |   50.00 | 
-ℹ   web                          |        |          |         | 
-ℹ    index.js                    |  95.48 |    68.89 |   56.67 | 36-37 51-52 55-57 96-98 312-314 378-380 447-448 450-451 453-454
-ℹ   webhook                      |        |          |         | 
-ℹ    index.js                    |  98.79 |    96.49 |  100.00 | 20-22
-ℹ   yaml                         |        |          |         | 
-ℹ    index.js                    | 100.00 |    94.44 |  100.00 | 
-ℹ  tui                           |        |          |         | 
-ℹ   app.js                       |  44.22 |    55.81 |   20.00 | 130 141 151-157 167-177 185-189 197-200 221-246 253-262 271-296 312-330 340-345 352-353 360-405 409-531 544-548 551-561 564-577 593-598 600-604 606-610 612-619 621-627 629-635 642-652 659-700 725-726
-ℹ   banner.js                    |  87.30 |   100.00 |   85.71 | 28-35
-ℹ   commandHelp.js               | 100.00 |   100.00 |  100.00 | 
-ℹ   commandParser.js             |  97.56 |    89.87 |  100.00 | 90-95
-ℹ   commandPicker.js             |  73.87 |    88.46 |   81.82 | 134-138 143-184 207-217
-ℹ   conversationPanel.js         |  95.45 |    95.83 |  100.00 | 26-31
-ℹ   filePicker.js                |  70.26 |    89.66 |   73.33 | 134-156 182-183 188-229 252-264
-ℹ   inputArea.js                 |  78.38 |    71.43 |   44.00 | 120-121 135 149-152 160-172 180-196 202-203 206-211 266-274 278-282 286-290
-ℹ   inputPanel.js                | 100.00 |   100.00 |  100.00 | 
-ℹ   markdownText.js              |  95.12 |    86.02 |   96.00 | 69 199-205 220-228 231-233
-ℹ   memoryPanel.js               |  13.04 |   100.00 |    0.00 | 14-16 24-32 43-230
-ℹ   messageBubble.js             |  93.61 |    89.36 |   77.14 | 312 316-334 358-363 411-416 519-522 534-537
-ℹ   messageList.js               |  78.84 |    76.19 |   48.94 | 159 176-179 220-225 267-339 348 355-360 443-468 478-480 487-489 497 505 513 522-526 535-542 550 558 566 576 585-591 600 608-613 635-637 726-736
-ℹ   messages.js                  | 100.00 |   100.00 |  100.00 | 
-ℹ   panels.js                    | 100.00 |   100.00 |  100.00 | 
-ℹ   projectsPanel.js             |  31.54 |   100.00 |   57.14 | 13-21 30-32 60-149
-ℹ   quotes.js                    | 100.00 |   100.00 |  100.00 | 
-ℹ   scrollView.js                |  96.67 |    87.10 |   57.89 | 149-153 181-183
-ℹ   selectionLayout.js           | 100.00 |    95.00 |  100.00 | 
-ℹ   sessionsPanel.js             |  76.25 |    41.67 |   76.92 | 67-70 101-102 118-119 123-125 132-136 146-171 180-181 196-202 205-211 222-225
-ℹ   settingsPanel.js             |  75.31 |    83.87 |   76.47 | 78-92 118-144 181-189 195-199 205-207
-ℹ   skillsPanel.js               |  89.69 |    71.43 |   71.43 | 67-69 75-81
-ℹ   statusBar.js                 |  99.06 |    98.11 |  100.00 | 29-30
-ℹ   subagentsPanel.js            |  95.35 |    72.41 |   85.71 | 54-56 81-85
-ℹ   subagentStore.js             | 100.00 |    82.61 |  100.00 | 
-ℹ   useMouseScroll.js            | 100.00 |   100.00 |  100.00 | 
-ℹ  vector                        |        |          |         | 
-ℹ   chunker.js                   |  98.81 |    95.45 |  100.00 | 159-160
-ℹ   embedder.js                  |  95.65 |    82.14 |   90.00 | 94 110-116
-ℹ   indexer.js                   |  94.14 |    86.27 |  100.00 | 111-112 148-149 176-177 233-234 248-250 257-259 279-281
-ℹ   indexerWorker.js             | 100.00 |    55.56 |  100.00 | 
-ℹ   store.js                     |  92.15 |    90.63 |   94.74 | 145-159 226-232 242
-ℹ  workspace                     |        |          |         | 
-ℹ   loadAgents.js                | 100.00 |    87.50 |  100.00 | 
-ℹ   project.js                   | 100.00 |   100.00 |  100.00 | 
-ℹ ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-ℹ all files                      |  91.37 |    87.65 |   86.47 | 
-ℹ ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ℹ ---------------------------------------------------------------------------------------------------------------
+ℹ file                     | line % | branch % | funcs % | uncovered lines
+ℹ ---------------------------------------------------------------------------------------------------------------
+ℹ src                      |        |          |         | 
+ℹ  provider                |        |          |         | 
+ℹ   copilotAuth.js         |  99.40 |    89.66 |   90.91 | 140-141 375
+ℹ   modelInfo.js           | 100.00 |    96.61 |  100.00 | 
+ℹ   tokenBudget.js         | 100.00 |    87.50 |   86.67 | 
+ℹ  sandbox                 |        |          |         | 
+ℹ   pathResolver.js        | 100.00 |   100.00 |  100.00 | 
+ℹ   urlFilter.js           |  98.08 |    89.66 |  100.00 | 37-38
+ℹ  telemetry               |        |          |         | 
+ℹ   flusher.js             | 100.00 |   100.00 |  100.00 | 
+ℹ   metrics.js             | 100.00 |   100.00 |  100.00 | 
+ℹ   sampler.js             | 100.00 |   100.00 |  100.00 | 
+ℹ   skillInstrumenter.js   | 100.00 |   100.00 |  100.00 | 
+ℹ  tools                   |        |          |         | 
+ℹ   calendar               |        |          |         | 
+ℹ    providers             |        |          |         | 
+ℹ     base.js              |  96.07 |    91.11 |   89.47 | 55-57 88-93
+ℹ   common.js              | 100.00 |    96.77 |  100.00 | 
+ℹ   email                  |        |          |         | 
+ℹ    providers             |        |          |         | 
+ℹ     base.js              | 100.00 |   100.00 |  100.00 | 
+ℹ     graph.js             |  91.14 |    81.06 |   85.71 | 82-84 111-112 122-138 157-158 189-215 413-414 422-423
+ℹ   fileExtract            |        |          |         | 
+ℹ    formatValidator.js    | 100.00 |   100.00 |  100.00 | 
+ℹ    pdfParser.js          |  74.14 |    66.67 |   50.00 | 34-35 37-47 53-54
+ℹ   spreadsheet            |        |          |         | 
+ℹ    formulaParser.js      | 100.00 |    96.80 |  100.00 | 
+ℹ    pivot.js              | 100.00 |    96.47 |  100.00 | 
+ℹ    stats.js              |  99.16 |    96.19 |  100.00 | 237-238
+ℹ  tui                     |        |          |         | 
+ℹ   commandHelp.js         | 100.00 |   100.00 |  100.00 | 
+ℹ   commandParser.js       |  97.56 |    86.67 |  100.00 | 90-95
+ℹ   messages.js            | 100.00 |   100.00 |  100.00 | 
+ℹ   panels.js              | 100.00 |   100.00 |  100.00 | 
+ℹ  vector                  |        |          |         | 
+ℹ   chunker.js             |  98.81 |    95.45 |  100.00 | 159-160
+ℹ   embedder.js            |  87.50 |    77.78 |   80.00 | 21-26 87-94 110-116 173-174
+ℹ   indexer.js             |  65.17 |    90.32 |   63.64 | 52-54 61-68 75-78 111-112 148-149 176-177 209-288
+ℹ   indexerWorker.js       |  93.94 |    18.18 |  100.00 | 49-50 64-65
+ℹ   store.js               |  11.95 |    66.67 |   10.00 | 35-292
+ℹ  workspace               |        |          |         | 
+ℹ   project.js             | 100.00 |   100.00 |  100.00 | 
+ℹ ---------------------------------------------------------------------------------------------------------------
+ℹ all files                |  90.12 |    91.49 |   91.37 | 
+ℹ ---------------------------------------------------------------------------------------------------------------
 ℹ end of coverage report
 
 ✖ failing tests:
 
-test at tests/unit/tui/sessionsPanel.test.js:68:2
-✖ loads the resumed conversation into the message list via onResumeSession (406.542805ms)
-  AssertionError [ERR_ASSERTION]: onResumeSession was called
-      at TestContext.<anonymous> (file:///home/jason/Projects/madz.worktrees/3be7a726c33fc45c/tests/unit/tui/sessionsPanel.test.js:106:10)
-      at async Test.run (node:internal/test_runner/test:1409:7)
-      at async Promise.all (index 0)
-      at async Suite.run (node:internal/test_runner/test:1905:7)
-      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
-    generatedMessage: false,
-    code: 'ERR_ASSERTION',
-    actual: null,
-    expected: true,
-    operator: '==',
-    diff: 'simple'
+test at tests/integration/api.test.js:1:1
+✖ tests/integration/api.test.js (60.237447ms)
+  'test failed'
+
+test at tests/integration/contextCostFromCheckpointer.test.js:1:1
+✖ tests/integration/contextCostFromCheckpointer.test.js (60.278604ms)
+  'test failed'
+
+test at tests/integration/copilotAuth.test.js:1:1
+✖ tests/integration/copilotAuth.test.js (57.526044ms)
+  'test failed'
+
+test at tests/integration/evictionCeiling.test.js:1:1
+✖ tests/integration/evictionCeiling.test.js (58.170515ms)
+  'test failed'
+
+test at tests/integration/mcpTools.test.js:1:1
+✖ tests/integration/mcpTools.test.js (57.274792ms)
+  'test failed'
+
+test at tests/integration/provider/azure.test.js:1:1
+✖ tests/integration/provider/azure.test.js (58.427668ms)
+  'test failed'
+
+test at tests/integration/provider/bedrock.test.js:1:1
+✖ tests/integration/provider/bedrock.test.js (59.237669ms)
+  'test failed'
+
+test at tests/integration/summarizationMiddleware.test.js:1:1
+✖ tests/integration/summarizationMiddleware.test.js (59.689558ms)
+  'test failed'
+
+test at tests/integration/syncEnv.test.js:1:1
+✖ tests/integration/syncEnv.test.js (61.285305ms)
+  'test failed'
+
+test at tests/integration/tools/audio.test.js:1:1
+✖ tests/integration/tools/audio.test.js (68.41666ms)
+  'test failed'
+
+test at tests/integration/tools/discovery.test.js:1:1
+✖ tests/integration/tools/discovery.test.js (61.716946ms)
+  'test failed'
+
+test at tests/integration/tools/file.test.js:1:1
+✖ tests/integration/tools/file.test.js (68.341659ms)
+  'test failed'
+
+test at tests/integration/tui-virtual-scroll-view.test.js:1:1
+✖ tests/integration/tui-virtual-scroll-view.test.js (55.281167ms)
+  'test failed'
+
+test at tests/integration/vector/full-flow.test.js:62:2
+✖ scans, chunks, embeds, stores, and queries source files
+  'test did not finish before its parent and was cancelled'
+
+test at tests/integration/vector/full-flow.test.js:88:2
+✖ skips unchanged files on re-index
+  'test did not finish before its parent and was cancelled'
+
+test at tests/integration/vector/full-flow.test.js:9:1
+✖ vector full flow (5.306307ms)
+  Error: Cannot find module 'better-sqlite3'
+  Require stack:
+  - /home/jason/Projects/madz.worktrees/9de91499816594d6/src/vector/store.js
+      at Module._resolveFilename (node:internal/modules/cjs/loader:1603:15)
+      at wrapResolveFilename (node:internal/modules/cjs/loader:1145:27)
+      at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1169:10)
+      at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1196:12)
+      at Module._load (node:internal/modules/cjs/loader:1370:5)
+      at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+      at Module.require (node:internal/modules/cjs/loader:1713:12)
+      at require (node:internal/modules/helpers:318:16)
+      at createVectorStore (file:///home/jason/Projects/madz.worktrees/9de91499816594d6/src/vector/store.js:33:19)
+      at async SuiteContext.<anonymous> (file:///home/jason/Projects/madz.worktrees/9de91499816594d6/tests/integration/vector/full-flow.test.js:52:11) {
+    code: 'MODULE_NOT_FOUND',
+    requireStack: [ '/home/jason/Projects/madz.worktrees/9de91499816594d6/src/vector/store.js' ]
   }
+
+test at tests/integration/webhook.test.js:1:1
+✖ tests/integration/webhook.test.js (82.350733ms)
+  'test failed'
+
+test at tests/unit/agentDefinitions.test.js:1:1
+✖ tests/unit/agentDefinitions.test.js (72.914719ms)
+  'test failed'
+
+test at tests/unit/api.test.js:1:1
+✖ tests/unit/api.test.js (56.227835ms)
+  'test failed'
+
+test at tests/unit/checkpointer.test.js:1:1
+✖ tests/unit/checkpointer.test.js (57.198669ms)
+  'test failed'
+
+test at tests/unit/config-subAgentsTemperature.test.js:1:1
+✖ tests/unit/config-subAgentsTemperature.test.js (66.770378ms)
+  'test failed'
+
+test at tests/unit/config.test.js:1:1
+✖ tests/unit/config.test.js (68.327443ms)
+  'test failed'
+
+test at tests/unit/config/mutate.test.js:1:1
+✖ tests/unit/config/mutate.test.js (46.080515ms)
+  'test failed'
+
+test at tests/unit/config/patch.test.js:1:1
+✖ tests/unit/config/patch.test.js (67.621327ms)
+  'test failed'
+
+test at tests/unit/config/providers.test.js:1:1
+✖ tests/unit/config/providers.test.js (62.216514ms)
+  'test failed'
+
+test at tests/unit/config/schemas/image.test.js:1:1
+✖ tests/unit/config/schemas/image.test.js (61.922772ms)
+  'test failed'
+
+test at tests/unit/config/schemas/mcp.test.js:1:1
+✖ tests/unit/config/schemas/mcp.test.js (61.720232ms)
+  'test failed'
+
+test at tests/unit/config/schemas/memory.test.js:1:1
+✖ tests/unit/config/schemas/memory.test.js (62.138758ms)
+  'test failed'
+
+test at tests/unit/config/skillAgentMap.test.js:1:1
+✖ tests/unit/config/skillAgentMap.test.js (62.224008ms)
+  'test failed'
+
+test at tests/unit/config/summarization.test.js:1:1
+✖ tests/unit/config/summarization.test.js (61.826121ms)
+  'test failed'
+
+test at tests/unit/config_loader.test.js:1:1
+✖ tests/unit/config_loader.test.js (61.971614ms)
+  'test failed'
+
+test at tests/unit/config_persistence.test.js:1:1
+✖ tests/unit/config_persistence.test.js (63.097088ms)
+  'test failed'
+
+test at tests/unit/context.test.js:1:1
+✖ tests/unit/context.test.js (67.880333ms)
+  'test failed'
+
+test at tests/unit/contextBackend.test.js:1:1
+✖ tests/unit/contextBackend.test.js (62.331971ms)
+  'test failed'
+
+test at tests/unit/conversationPanel.test.js:1:1
+✖ tests/unit/conversationPanel.test.js (54.500049ms)
+  'test failed'
+
+test at tests/unit/coreBackend.test.js:1:1
+✖ tests/unit/coreBackend.test.js (62.614101ms)
+  'test failed'
+
+test at tests/unit/data.test.js:1:1
+✖ tests/unit/data.test.js (58.091937ms)
+  'test failed'
+
+test at tests/unit/deepAgents.test.js:48:2
+✖ should create an orchestrator instance (2.060982ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'deepagents' imported from /home/jason/Projects/madz.worktrees/9de91499816594d6/src/agent/deepAgents.js
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
+      at packageResolve (node:internal/modules/esm/resolve:751:25)
+      at moduleResolve (node:internal/modules/esm/resolve:840:18)
+      at defaultResolve (node:internal/modules/esm/resolve:973:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:708:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:728:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:766:56)
+      at #resolve (node:internal/modules/esm/loader:690:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:610:35)
+      at ModuleJob.syncLink (node:internal/modules/esm/module_job:277:33) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+
+test at tests/unit/deepAgents.test.js:62:2
+✖ should accept an optional checkpointer (1.57536ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'deepagents' imported from /home/jason/Projects/madz.worktrees/9de91499816594d6/src/agent/deepAgents.js
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
+      at packageResolve (node:internal/modules/esm/resolve:751:25)
+      at moduleResolve (node:internal/modules/esm/resolve:840:18)
+      at defaultResolve (node:internal/modules/esm/resolve:973:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:708:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:728:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:766:56)
+      at #resolve (node:internal/modules/esm/loader:690:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:610:35)
+      at ModuleJob.syncLink (node:internal/modules/esm/module_job:277:33) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+
+test at tests/unit/deepAgents.test.js:77:2
+✖ should handle email provider config validation failure gracefully (0.525717ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'deepagents' imported from /home/jason/Projects/madz.worktrees/9de91499816594d6/src/agent/deepAgents.js
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
+      at packageResolve (node:internal/modules/esm/resolve:751:25)
+      at moduleResolve (node:internal/modules/esm/resolve:840:18)
+      at defaultResolve (node:internal/modules/esm/resolve:973:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:708:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:728:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:766:56)
+      at #resolve (node:internal/modules/esm/loader:690:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:610:35)
+      at ModuleJob.syncLink (node:internal/modules/esm/module_job:277:33) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+
+test at tests/unit/deepAgents.test.js:91:2
+✖ should handle email provider instance validation failure gracefully (0.949984ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'googleapis' imported from /home/jason/Projects/madz.worktrees/9de91499816594d6/src/tools/email/providers/gmail.js
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
+      at packageResolve (node:internal/modules/esm/resolve:751:25)
+      at moduleResolve (node:internal/modules/esm/resolve:840:18)
+      at defaultResolve (node:internal/modules/esm/resolve:973:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:708:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:728:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:766:56)
+      at #resolve (node:internal/modules/esm/loader:690:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:610:35)
+      at ModuleJob.syncLink (node:internal/modules/esm/module_job:277:33) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+
+test at tests/unit/deepAgents.test.js:116:2
+✖ should handle email provider creation failure gracefully (0.504167ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'googleapis' imported from /home/jason/Projects/madz.worktrees/9de91499816594d6/src/tools/email/providers/gmail.js
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
+      at packageResolve (node:internal/modules/esm/resolve:751:25)
+      at moduleResolve (node:internal/modules/esm/resolve:840:18)
+      at defaultResolve (node:internal/modules/esm/resolve:973:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:708:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:728:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:766:56)
+      at #resolve (node:internal/modules/esm/loader:690:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:610:35)
+      at ModuleJob.syncLink (node:internal/modules/esm/module_job:277:33) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+
+test at tests/unit/deepAgents.test.js:140:2
+✖ should derive the summarization trigger from the provider model context length (0.927171ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'deepagents' imported from /home/jason/Projects/madz.worktrees/9de91499816594d6/src/agent/deepAgents.js
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
+      at packageResolve (node:internal/modules/esm/resolve:751:25)
+      at moduleResolve (node:internal/modules/esm/resolve:840:18)
+      at defaultResolve (node:internal/modules/esm/resolve:973:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:708:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:728:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:766:56)
+      at #resolve (node:internal/modules/esm/loader:690:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:610:35)
+      at ModuleJob.syncLink (node:internal/modules/esm/module_job:277:33) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+
+test at tests/unit/deepAgents.test.js:162:2
+✖ should fall back to the configured trigger when context length cannot be resolved (0.534554ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'deepagents' imported from /home/jason/Projects/madz.worktrees/9de91499816594d6/src/agent/deepAgents.js
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
+      at packageResolve (node:internal/modules/esm/resolve:751:25)
+      at moduleResolve (node:internal/modules/esm/resolve:840:18)
+      at defaultResolve (node:internal/modules/esm/resolve:973:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:708:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:728:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:766:56)
+      at #resolve (node:internal/modules/esm/loader:690:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:610:35)
+      at ModuleJob.syncLink (node:internal/modules/esm/module_job:277:33) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+
+test at tests/unit/deepAgents.test.js:222:2
+✖ should include a Tools: list in descriptions of tool-capable subagents (0.573287ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'deepagents' imported from /home/jason/Projects/madz.worktrees/9de91499816594d6/src/agent/deepAgents.js
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
+      at packageResolve (node:internal/modules/esm/resolve:751:25)
+      at moduleResolve (node:internal/modules/esm/resolve:840:18)
+      at defaultResolve (node:internal/modules/esm/resolve:973:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:708:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:728:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:766:56)
+      at #resolve (node:internal/modules/esm/loader:690:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:610:35)
+      at ModuleJob.syncLink (node:internal/modules/esm/module_job:277:33) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+
+test at tests/unit/deepAgents.test.js:249:2
+✖ should match tool names in description to getToolsForAgentTypes (0.542609ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'deepagents' imported from /home/jason/Projects/madz.worktrees/9de91499816594d6/src/agent/deepAgents.js
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
+      at packageResolve (node:internal/modules/esm/resolve:751:25)
+      at moduleResolve (node:internal/modules/esm/resolve:840:18)
+      at defaultResolve (node:internal/modules/esm/resolve:973:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:708:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:728:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:766:56)
+      at #resolve (node:internal/modules/esm/loader:690:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:610:35)
+      at ModuleJob.syncLink (node:internal/modules/esm/module_job:277:33) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+
+test at tests/unit/deepAgents.test.js:310:2
+✖ removes readImage ToolMessages with non-empty data (0.618411ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'deepagents' imported from /home/jason/Projects/madz.worktrees/9de91499816594d6/src/agent/deepAgents.js
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
+      at packageResolve (node:internal/modules/esm/resolve:751:25)
+      at moduleResolve (node:internal/modules/esm/resolve:840:18)
+      at defaultResolve (node:internal/modules/esm/resolve:973:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:708:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:728:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:766:56)
+      at #resolve (node:internal/modules/esm/loader:690:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:610:35)
+      at ModuleJob.syncLink (node:internal/modules/esm/module_job:277:33) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+
+test at tests/unit/deepAgents.test.js:331:2
+✖ removes messages with image_url content blocks (0.392117ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'deepagents' imported from /home/jason/Projects/madz.worktrees/9de91499816594d6/src/agent/deepAgents.js
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
+      at packageResolve (node:internal/modules/esm/resolve:751:25)
+      at moduleResolve (node:internal/modules/esm/resolve:840:18)
+      at defaultResolve (node:internal/modules/esm/resolve:973:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:708:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:728:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:766:56)
+      at #resolve (node:internal/modules/esm/loader:690:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:610:35)
+      at ModuleJob.syncLink (node:internal/modules/esm/module_job:277:33) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+
+test at tests/unit/deepAgents.test.js:350:2
+✖ trims older messages beyond keepRecent (0.434246ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'deepagents' imported from /home/jason/Projects/madz.worktrees/9de91499816594d6/src/agent/deepAgents.js
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
+      at packageResolve (node:internal/modules/esm/resolve:751:25)
+      at moduleResolve (node:internal/modules/esm/resolve:840:18)
+      at defaultResolve (node:internal/modules/esm/resolve:973:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:708:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:728:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:766:56)
+      at #resolve (node:internal/modules/esm/loader:690:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:610:35)
+      at ModuleJob.syncLink (node:internal/modules/esm/module_job:277:33) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+
+test at tests/unit/deepAgents.test.js:368:2
+✖ forces summarization when backend and model are provided (0.281669ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@langchain/core' imported from /home/jason/Projects/madz.worktrees/9de91499816594d6/tests/unit/deepAgents.test.js
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
+      at packageResolve (node:internal/modules/esm/resolve:751:25)
+      at moduleResolve (node:internal/modules/esm/resolve:840:18)
+      at defaultResolve (node:internal/modules/esm/resolve:973:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:708:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:728:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:766:56)
+      at #resolve (node:internal/modules/esm/loader:690:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:610:35)
+      at node:internal/modules/esm/loader:639:32 {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+
+test at tests/unit/deepAgents.test.js:409:2
+✖ updates sessionState.getConversation() when provided (0.527591ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'deepagents' imported from /home/jason/Projects/madz.worktrees/9de91499816594d6/src/agent/deepAgents.js
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
+      at packageResolve (node:internal/modules/esm/resolve:751:25)
+      at moduleResolve (node:internal/modules/esm/resolve:840:18)
+      at defaultResolve (node:internal/modules/esm/resolve:973:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:708:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:728:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:766:56)
+      at #resolve (node:internal/modules/esm/loader:690:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:610:35)
+      at ModuleJob.syncLink (node:internal/modules/esm/module_job:277:33) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+
+test at tests/unit/deepAgents.test.js:434:2
+✖ flattens content blocks when loading the conversation into sessionState (0.439997ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'deepagents' imported from /home/jason/Projects/madz.worktrees/9de91499816594d6/src/agent/deepAgents.js
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
+      at packageResolve (node:internal/modules/esm/resolve:751:25)
+      at moduleResolve (node:internal/modules/esm/resolve:840:18)
+      at defaultResolve (node:internal/modules/esm/resolve:973:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:708:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:728:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:766:56)
+      at #resolve (node:internal/modules/esm/loader:690:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:610:35)
+      at ModuleJob.syncLink (node:internal/modules/esm/module_job:277:33) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+
+test at tests/unit/deepAgents.test.js:479:2
+✖ flattens file, image, and unknown content blocks (0.826863ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'deepagents' imported from /home/jason/Projects/madz.worktrees/9de91499816594d6/src/agent/deepAgents.js
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
+      at packageResolve (node:internal/modules/esm/resolve:751:25)
+      at moduleResolve (node:internal/modules/esm/resolve:840:18)
+      at defaultResolve (node:internal/modules/esm/resolve:973:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:708:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:728:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:766:56)
+      at #resolve (node:internal/modules/esm/loader:690:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:610:35)
+      at ModuleJob.syncLink (node:internal/modules/esm/module_job:277:33) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+
+test at tests/unit/deepAgents.test.js:513:2
+✖ handles empty message state (0.38858ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'deepagents' imported from /home/jason/Projects/madz.worktrees/9de91499816594d6/src/agent/deepAgents.js
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
+      at packageResolve (node:internal/modules/esm/resolve:751:25)
+      at moduleResolve (node:internal/modules/esm/resolve:840:18)
+      at defaultResolve (node:internal/modules/esm/resolve:973:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:708:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:728:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:766:56)
+      at #resolve (node:internal/modules/esm/loader:690:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:610:35)
+      at ModuleJob.syncLink (node:internal/modules/esm/module_job:277:33) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+
+test at tests/unit/deepAgents.test.js:524:2
+✖ returns ok with no changes when no vision messages exist (0.394882ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'deepagents' imported from /home/jason/Projects/madz.worktrees/9de91499816594d6/src/agent/deepAgents.js
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
+      at packageResolve (node:internal/modules/esm/resolve:751:25)
+      at moduleResolve (node:internal/modules/esm/resolve:840:18)
+      at defaultResolve (node:internal/modules/esm/resolve:973:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:708:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:728:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:766:56)
+      at #resolve (node:internal/modules/esm/loader:690:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:610:35)
+      at ModuleJob.syncLink (node:internal/modules/esm/module_job:277:33) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+
+test at tests/unit/deepAgents.test.js:536:2
+✖ returns an error result when getState throws (0.315162ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'deepagents' imported from /home/jason/Projects/madz.worktrees/9de91499816594d6/src/agent/deepAgents.js
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
+      at packageResolve (node:internal/modules/esm/resolve:751:25)
+      at moduleResolve (node:internal/modules/esm/resolve:840:18)
+      at defaultResolve (node:internal/modules/esm/resolve:973:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:708:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:728:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:766:56)
+      at #resolve (node:internal/modules/esm/loader:690:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:610:35)
+      at ModuleJob.syncLink (node:internal/modules/esm/module_job:277:33) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+
+test at tests/unit/deepAgentsEviction.test.js:1:1
+✖ tests/unit/deepAgentsEviction.test.js (58.910103ms)
+  'test failed'
+
+test at tests/unit/discoverer.test.js:1:1
+✖ tests/unit/discoverer.test.js (62.755858ms)
+  'test failed'
+
+test at tests/unit/evictionCeiling.test.js:1:1
+✖ tests/unit/evictionCeiling.test.js (50.244076ms)
+  'test failed'
+
+test at tests/unit/fileExtract/docx.test.js:1:1
+✖ tests/unit/fileExtract/docx.test.js (54.689786ms)
+  'test failed'
+
+test at tests/unit/fileExtract/pdf.test.js:1:1
+✖ tests/unit/fileExtract/pdf.test.js (54.418387ms)
+  'test failed'
+
+test at tests/unit/fileExtract/pptx.test.js:1:1
+✖ tests/unit/fileExtract/pptx.test.js (50.600095ms)
+  'test failed'
+
+test at tests/unit/fileExtract/xlsx.test.js:1:1
+✖ tests/unit/fileExtract/xlsx.test.js (55.017251ms)
+  'test failed'
+
+test at tests/unit/fileExtract/zipExtractor.test.js:1:1
+✖ tests/unit/fileExtract/zipExtractor.test.js (67.435888ms)
+  'test failed'
+
+test at tests/unit/gc.test.js:1:1
+✖ tests/unit/gc.test.js (53.768225ms)
+  'test failed'
+
+test at tests/unit/graphql.test.js:1:1
+✖ tests/unit/graphql.test.js (54.880204ms)
+  'test failed'
+
+test at tests/unit/json.test.js:1:1
+✖ tests/unit/json.test.js (55.358222ms)
+  'test failed'
+
+test at tests/unit/logger.test.js:1:1
+✖ tests/unit/logger.test.js (62.095186ms)
+  'test failed'
+
+test at tests/unit/markdownText.test.js:1:1
+✖ tests/unit/markdownText.test.js (62.728015ms)
+  'test failed'
+
+test at tests/unit/memory.test.js:1:1
+✖ tests/unit/memory.test.js (74.961223ms)
+  'test failed'
+
+test at tests/unit/memory_expireEphemeral.test.js:1:1
+✖ tests/unit/memory_expireEphemeral.test.js (69.346346ms)
+  'test failed'
+
+test at tests/unit/memory_gc.test.js:1:1
+✖ tests/unit/memory_gc.test.js (72.270209ms)
+  'test failed'
+
+test at tests/unit/memory_profile.test.js:1:1
+✖ tests/unit/memory_profile.test.js (74.724619ms)
+  'test failed'
+
+test at tests/unit/memory_reader.test.js:1:1
+✖ tests/unit/memory_reader.test.js (69.653313ms)
+  'test failed'
+
+test at tests/unit/messageListApi.test.js:1:1
+✖ tests/unit/messageListApi.test.js (49.411662ms)
+  'test failed'
+
+test at tests/unit/onboarding.test.js:1:1
+✖ tests/unit/onboarding.test.js (74.003945ms)
+  'test failed'
+
+test at tests/unit/profile.test.js:1:1
+✖ tests/unit/profile.test.js (72.721156ms)
+  'test failed'
+
+test at tests/unit/prompts.test.js:37:2
+✖ loads SYSTEM_PROMPT.md content (5.125398ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'zod' imported from /home/jason/Projects/madz.worktrees/9de91499816594d6/src/config/config.js
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
+      at packageResolve (node:internal/modules/esm/resolve:751:25)
+      at moduleResolve (node:internal/modules/esm/resolve:840:18)
+      at defaultResolve (node:internal/modules/esm/resolve:973:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:708:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:728:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:766:56)
+      at #resolve (node:internal/modules/esm/loader:690:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:610:35)
+      at ModuleJob.syncLink (node:internal/modules/esm/module_job:277:33) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+
+test at tests/unit/prompts.test.js:49:2
+✖ strips YAML frontmatter from SYSTEM_PROMPT.md (1.09623ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'zod' imported from /home/jason/Projects/madz.worktrees/9de91499816594d6/src/config/config.js
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
+      at packageResolve (node:internal/modules/esm/resolve:751:25)
+      at moduleResolve (node:internal/modules/esm/resolve:840:18)
+      at defaultResolve (node:internal/modules/esm/resolve:973:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:708:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:728:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:766:56)
+      at #resolve (node:internal/modules/esm/loader:690:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:610:35)
+      at ModuleJob.syncLink (node:internal/modules/esm/module_job:277:33) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+
+test at tests/unit/prompts.test.js:61:2
+✖ appends context to system prompt when context exists (0.929456ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'zod' imported from /home/jason/Projects/madz.worktrees/9de91499816594d6/src/config/config.js
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
+      at packageResolve (node:internal/modules/esm/resolve:751:25)
+      at moduleResolve (node:internal/modules/esm/resolve:840:18)
+      at defaultResolve (node:internal/modules/esm/resolve:973:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:708:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:728:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:766:56)
+      at #resolve (node:internal/modules/esm/loader:690:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:610:35)
+      at ModuleJob.syncLink (node:internal/modules/esm/module_job:277:33) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+
+test at tests/unit/prompts.test.js:80:2
+✖ returns prompt content when context is empty (no crash) (1.084257ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'zod' imported from /home/jason/Projects/madz.worktrees/9de91499816594d6/src/config/config.js
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
+      at packageResolve (node:internal/modules/esm/resolve:751:25)
+      at moduleResolve (node:internal/modules/esm/resolve:840:18)
+      at defaultResolve (node:internal/modules/esm/resolve:973:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:708:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:728:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:766:56)
+      at #resolve (node:internal/modules/esm/loader:690:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:610:35)
+      at ModuleJob.syncLink (node:internal/modules/esm/module_job:277:33) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+
+test at tests/unit/prompts.test.js:96:2
+✖ returns empty string when SYSTEM_PROMPT.md does not exist (1.046115ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'zod' imported from /home/jason/Projects/madz.worktrees/9de91499816594d6/src/config/config.js
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
+      at packageResolve (node:internal/modules/esm/resolve:751:25)
+      at moduleResolve (node:internal/modules/esm/resolve:840:18)
+      at defaultResolve (node:internal/modules/esm/resolve:973:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:708:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:728:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:766:56)
+      at #resolve (node:internal/modules/esm/loader:690:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:610:35)
+      at ModuleJob.syncLink (node:internal/modules/esm/module_job:277:33) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+
+test at tests/unit/prompts.test.js:102:2
+✖ removes decision tool instruction when agent.decision.baseUrl is empty (0.998406ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'zod' imported from /home/jason/Projects/madz.worktrees/9de91499816594d6/src/config/config.js
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
+      at packageResolve (node:internal/modules/esm/resolve:751:25)
+      at moduleResolve (node:internal/modules/esm/resolve:840:18)
+      at defaultResolve (node:internal/modules/esm/resolve:973:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:708:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:728:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:766:56)
+      at #resolve (node:internal/modules/esm/loader:690:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:610:35)
+      at ModuleJob.syncLink (node:internal/modules/esm/module_job:277:33) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+
+test at tests/unit/prompts.test.js:115:2
+✖ injects decision tool instruction when agent.decision.baseUrl is set (1.019485ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'zod' imported from /home/jason/Projects/madz.worktrees/9de91499816594d6/src/config/config.js
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
+      at packageResolve (node:internal/modules/esm/resolve:751:25)
+      at moduleResolve (node:internal/modules/esm/resolve:840:18)
+      at defaultResolve (node:internal/modules/esm/resolve:973:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:708:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:728:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:766:56)
+      at #resolve (node:internal/modules/esm/loader:690:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:610:35)
+      at ModuleJob.syncLink (node:internal/modules/esm/module_job:277:33) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+
+test at tests/unit/prompts.test.js:131:2
+✖ removes sampling tool instruction when agent.sampling is false (0.813268ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'zod' imported from /home/jason/Projects/madz.worktrees/9de91499816594d6/src/config/config.js
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
+      at packageResolve (node:internal/modules/esm/resolve:751:25)
+      at moduleResolve (node:internal/modules/esm/resolve:840:18)
+      at defaultResolve (node:internal/modules/esm/resolve:973:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:708:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:728:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:766:56)
+      at #resolve (node:internal/modules/esm/loader:690:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:610:35)
+      at ModuleJob.syncLink (node:internal/modules/esm/module_job:277:33) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+
+test at tests/unit/prompts.test.js:147:2
+✖ injects sampling tool instruction when agent.sampling is enabled (0.736764ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'zod' imported from /home/jason/Projects/madz.worktrees/9de91499816594d6/src/config/config.js
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
+      at packageResolve (node:internal/modules/esm/resolve:751:25)
+      at moduleResolve (node:internal/modules/esm/resolve:840:18)
+      at defaultResolve (node:internal/modules/esm/resolve:973:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:708:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:728:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:766:56)
+      at #resolve (node:internal/modules/esm/loader:690:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:610:35)
+      at ModuleJob.syncLink (node:internal/modules/esm/module_job:277:33) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+
+test at tests/unit/prompts.test.js:163:2
+✖ includes todo tool directive for multi-step work planning (0.885243ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'zod' imported from /home/jason/Projects/madz.worktrees/9de91499816594d6/src/config/config.js
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
+      at packageResolve (node:internal/modules/esm/resolve:751:25)
+      at moduleResolve (node:internal/modules/esm/resolve:840:18)
+      at defaultResolve (node:internal/modules/esm/resolve:973:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:708:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:728:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:766:56)
+      at #resolve (node:internal/modules/esm/loader:690:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:610:35)
+      at ModuleJob.syncLink (node:internal/modules/esm/module_job:277:33) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+
+test at tests/unit/provider.test.js:1:1
+✖ tests/unit/provider.test.js (68.269965ms)
+  'test failed'
+
+test at tests/unit/provider/azure.test.js:1:1
+✖ tests/unit/provider/azure.test.js (67.43165ms)
+  'test failed'
+
+test at tests/unit/provider/bedrock.test.js:1:1
+✖ tests/unit/provider/bedrock.test.js (67.023974ms)
+  'test failed'
+
+test at tests/unit/provider/copilotRetryMiddleware.test.js:1:1
+✖ tests/unit/provider/copilotRetryMiddleware.test.js (62.625873ms)
+  'test failed'
+
+test at tests/unit/provider/index.test.js:1:1
+✖ tests/unit/provider/index.test.js (61.900821ms)
+  'test failed'
+
+test at tests/unit/provider/openai.test.js:1:1
+✖ tests/unit/provider/openai.test.js (65.907968ms)
+  'test failed'
+
+test at tests/unit/provider/summarizationMiddleware.test.js:1:1
+✖ tests/unit/provider/summarizationMiddleware.test.js (60.150383ms)
+  'test failed'
+
+test at tests/unit/provider/tokenBudgetMiddleware.test.js:1:1
+✖ tests/unit/provider/tokenBudgetMiddleware.test.js (60.256513ms)
+  'test failed'
+
+test at tests/unit/pubsub.test.js:1:1
+✖ tests/unit/pubsub.test.js (55.113242ms)
+  'test failed'
+
+test at tests/unit/reader.test.js:1:1
+✖ tests/unit/reader.test.js (59.905052ms)
+  'test failed'
+
+test at tests/unit/registry.test.js:194:2
+✖ creates skills directory when missing (1.986491ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'js-yaml' imported from /home/jason/Projects/madz.worktrees/9de91499816594d6/src/skills/discoverer.js
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
+      at packageResolve (node:internal/modules/esm/resolve:751:25)
+      at moduleResolve (node:internal/modules/esm/resolve:840:18)
+      at defaultResolve (node:internal/modules/esm/resolve:973:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:708:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:728:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:766:56)
+      at #resolve (node:internal/modules/esm/loader:690:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:610:35)
+      at ModuleJob.syncLink (node:internal/modules/esm/module_job:277:33) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+
+test at tests/unit/registry.test.js:211:2
+✖ succeeds when directory already exists (0.663717ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'js-yaml' imported from /home/jason/Projects/madz.worktrees/9de91499816594d6/src/skills/discoverer.js
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
+      at packageResolve (node:internal/modules/esm/resolve:751:25)
+      at moduleResolve (node:internal/modules/esm/resolve:840:18)
+      at defaultResolve (node:internal/modules/esm/resolve:973:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:708:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:728:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:766:56)
+      at #resolve (node:internal/modules/esm/loader:690:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:610:35)
+      at ModuleJob.syncLink (node:internal/modules/esm/module_job:277:33) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+
+test at tests/unit/saver.test.js:50:3
+✖ should write session file with correct content (2.19325ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'zod' imported from /home/jason/Projects/madz.worktrees/9de91499816594d6/src/config/config.js
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
+      at packageResolve (node:internal/modules/esm/resolve:751:25)
+      at moduleResolve (node:internal/modules/esm/resolve:840:18)
+      at defaultResolve (node:internal/modules/esm/resolve:973:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:708:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:728:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:766:56)
+      at #resolve (node:internal/modules/esm/loader:690:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:610:35)
+      at ModuleJob.syncLink (node:internal/modules/esm/module_job:277:33) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+
+test at tests/unit/saver.test.js:71:3
+✖ should default filename to unsaved.md when threadId is empty (0.694755ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'zod' imported from /home/jason/Projects/madz.worktrees/9de91499816594d6/src/config/config.js
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
+      at packageResolve (node:internal/modules/esm/resolve:751:25)
+      at moduleResolve (node:internal/modules/esm/resolve:840:18)
+      at defaultResolve (node:internal/modules/esm/resolve:973:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:708:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:728:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:766:56)
+      at #resolve (node:internal/modules/esm/loader:690:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:610:35)
+      at ModuleJob.syncLink (node:internal/modules/esm/module_job:277:33) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+
+test at tests/unit/saver.test.js:81:3
+✖ should escape double quotes in string frontmatter values (0.699023ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'zod' imported from /home/jason/Projects/madz.worktrees/9de91499816594d6/src/config/config.js
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
+      at packageResolve (node:internal/modules/esm/resolve:751:25)
+      at moduleResolve (node:internal/modules/esm/resolve:840:18)
+      at defaultResolve (node:internal/modules/esm/resolve:973:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:708:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:728:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:766:56)
+      at #resolve (node:internal/modules/esm/loader:690:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:610:35)
+      at ModuleJob.syncLink (node:internal/modules/esm/module_job:277:33) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+
+test at tests/unit/saver.test.js:97:3
+✖ should escape backslashes in string frontmatter values (0.61257ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'zod' imported from /home/jason/Projects/madz.worktrees/9de91499816594d6/src/config/config.js
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
+      at packageResolve (node:internal/modules/esm/resolve:751:25)
+      at moduleResolve (node:internal/modules/esm/resolve:840:18)
+      at defaultResolve (node:internal/modules/esm/resolve:973:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:708:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:728:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:766:56)
+      at #resolve (node:internal/modules/esm/loader:690:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:610:35)
+      at ModuleJob.syncLink (node:internal/modules/esm/module_job:277:33) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+
+test at tests/unit/saver.test.js:113:3
+✖ should escape newlines in string frontmatter values (0.682472ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'zod' imported from /home/jason/Projects/madz.worktrees/9de91499816594d6/src/config/config.js
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
+      at packageResolve (node:internal/modules/esm/resolve:751:25)
+      at moduleResolve (node:internal/modules/esm/resolve:840:18)
+      at defaultResolve (node:internal/modules/esm/resolve:973:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:708:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:728:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:766:56)
+      at #resolve (node:internal/modules/esm/loader:690:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:610:35)
+      at ModuleJob.syncLink (node:internal/modules/esm/module_job:277:33) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+
+test at tests/unit/saver.test.js:129:3
+✖ should handle normal string values without special characters (0.63882ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'zod' imported from /home/jason/Projects/madz.worktrees/9de91499816594d6/src/config/config.js
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
+      at packageResolve (node:internal/modules/esm/resolve:751:25)
+      at moduleResolve (node:internal/modules/esm/resolve:840:18)
+      at defaultResolve (node:internal/modules/esm/resolve:973:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:708:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:728:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:766:56)
+      at #resolve (node:internal/modules/esm/loader:690:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:610:35)
+      at ModuleJob.syncLink (node:internal/modules/esm/module_job:277:33) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+
+test at tests/unit/scheduler.test.js:1:1
+✖ tests/unit/scheduler.test.js (56.008414ms)
+  'test failed'
+
+test at tests/unit/scheduler/cron.test.js:1:1
+✖ tests/unit/scheduler/cron.test.js (46.478472ms)
+  'test failed'
+
+test at tests/unit/session.test.js:1:1
+✖ tests/unit/session.test.js (54.812377ms)
+  'test failed'
+
+test at tests/unit/session_onboarding.test.js:1:1
+✖ tests/unit/session_onboarding.test.js (54.518154ms)
+  'test failed'
+
+test at tests/unit/shell.test.js:1:1
+✖ tests/unit/shell.test.js (54.385285ms)
+  'test failed'
+
+test at tests/unit/shutdown.test.js:1:1
+✖ tests/unit/shutdown.test.js (55.072275ms)
+  'test failed'
+
+test at tests/unit/skills.test.js:1:1
+✖ tests/unit/skills.test.js (61.204443ms)
+  'test failed'
+
+test at tests/unit/skills/discoverer.test.js:1:1
+✖ tests/unit/skills/discoverer.test.js (67.110076ms)
+  'test failed'
+
+test at tests/unit/skills/registry.test.js:1:1
+✖ tests/unit/skills/registry.test.js (77.351673ms)
+  'test failed'
+
+test at tests/unit/skillsMiddleware.test.js:1:1
+✖ tests/unit/skillsMiddleware.test.js (59.401427ms)
+  'test failed'
+
+test at tests/unit/skills_discoverer.test.js:1:1
+✖ tests/unit/skills_discoverer.test.js (63.637904ms)
+  'test failed'
+
+test at tests/unit/statusBar.test.js:1:1
+✖ tests/unit/statusBar.test.js (58.904613ms)
+  'test failed'
+
+test at tests/unit/stream/transformers/turn.test.js:1:1
+✖ tests/unit/stream/transformers/turn.test.js (66.634572ms)
+  'test failed'
+
+test at tests/unit/subagentEvictionMiddleware.test.js:1:1
+✖ tests/unit/subagentEvictionMiddleware.test.js (65.787342ms)
+  'test failed'
+
+test at tests/unit/telemetry.test.js:9:2
+✖ instrumentLlmCall returns span context with attributes (1.835828ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@opentelemetry/semantic-conventions' imported from /home/jason/Projects/madz.worktrees/9de91499816594d6/src/telemetry/llmInstrumenter.js
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:343:9)
+      at packageResolve (node:internal/modules/esm/resolve:751:25)
+      at moduleResolve (node:internal/modules/esm/resolve:840:18)
+      at defaultResolve (node:internal/modules/esm/resolve:973:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:708:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:728:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:766:56)
+      at #resolve (node:internal/modules/esm/loader:690:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:610:35)
+      at ModuleJob.syncLink (node:internal/modules/esm/module_job:277:33) {

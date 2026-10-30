@@ -185,21 +185,21 @@ describe("cronJob", () => {
 
 	it("requires action", async () => {
 		const result = await cronJobImpl({}, opts());
-		const parsed = JSON.parse(result);
+		const parsed = result;
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("Unknown action"));
 	});
 
 	it("rejects unknown action", async () => {
 		const result = await cronJobImpl({ action: "delete" }, opts());
-		const parsed = JSON.parse(result);
+		const parsed = result;
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("Unknown action"));
 	});
 
 	it("create requires name, cron, skill", async () => {
 		const result = await cronJobImpl({ action: "create", name: "test" }, opts());
-		const parsed = JSON.parse(result);
+		const parsed = result;
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("requires"));
 	});
@@ -209,7 +209,7 @@ describe("cronJob", () => {
 			{ action: "create", name: "test", cron: "not-valid", skill: "test-skill" },
 			opts(),
 		);
-		const parsed = JSON.parse(result);
+		const parsed = result;
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("Invalid cron"));
 	});
@@ -219,7 +219,7 @@ describe("cronJob", () => {
 			{ action: "create", name: "daily-report", cron: "0 9 * * *", skill: "report-gen" },
 			opts(),
 		);
-		const parsed = JSON.parse(result);
+		const parsed = result;
 		assert.strictEqual(parsed.ok, true);
 		assert.ok(parsed.job);
 		assert.strictEqual(parsed.job.name, "daily-report");
@@ -232,7 +232,7 @@ describe("cronJob", () => {
 			{ action: "create", name: "skill-only-job", cron: "0 9 * * *", skill: "report-gen" },
 			opts(),
 		);
-		const parsed = JSON.parse(result);
+		const parsed = result;
 		assert.strictEqual(parsed.ok, true);
 		assert.ok(parsed.job);
 		assert.strictEqual(parsed.job.skill, "report-gen");
@@ -254,7 +254,7 @@ describe("cronJob", () => {
 			},
 			opts(),
 		);
-		const parsed = JSON.parse(result);
+		const parsed = result;
 		assert.strictEqual(parsed.ok, true);
 		assert.strictEqual(
 			parsed.job.command,
@@ -268,7 +268,7 @@ describe("cronJob", () => {
 			{ action: "create", name: "skill-noinput-job", cron: "0 9 * * *", skill: "report-gen" },
 			opts(),
 		);
-		const parsed = JSON.parse(result);
+		const parsed = result;
 		assert.strictEqual(parsed.ok, true);
 		assert.strictEqual(
 			parsed.job.command,
@@ -288,7 +288,7 @@ describe("cronJob", () => {
 			},
 			opts(),
 		);
-		const parsed = JSON.parse(result);
+		const parsed = result;
 		assert.strictEqual(parsed.ok, true);
 		assert.strictEqual(parsed.job.command, "echo explicit");
 		await cronJobImpl({ action: "remove", name: "explicit-command-job" }, opts());
@@ -296,7 +296,7 @@ describe("cronJob", () => {
 
 	it("list returns created jobs", async () => {
 		const result = await cronJobImpl({ action: "list" }, opts());
-		const parsed = JSON.parse(result);
+		const parsed = result;
 		assert.strictEqual(parsed.ok, true);
 		assert.ok(parsed.jobs);
 		assert.ok(Array.isArray(parsed.jobs));
@@ -308,21 +308,21 @@ describe("cronJob", () => {
 			{ action: "update", name: "daily-report", skill: "weekly-report" },
 			opts(),
 		);
-		const parsed = JSON.parse(result);
+		const parsed = result;
 		assert.strictEqual(parsed.ok, true);
 		assert.strictEqual(parsed.job.skill, "weekly-report");
 	});
 
 	it("pauses a job", async () => {
 		const result = await cronJobImpl({ action: "pause", name: "daily-report" }, opts());
-		const parsed = JSON.parse(result);
+		const parsed = result;
 		assert.strictEqual(parsed.ok, true);
 		assert.strictEqual(parsed.job.enabled, false);
 	});
 
 	it("resumes a paused job", async () => {
 		const result = await cronJobImpl({ action: "resume", name: "daily-report" }, opts());
-		const parsed = JSON.parse(result);
+		const parsed = result;
 		assert.strictEqual(parsed.ok, true);
 		assert.strictEqual(parsed.job.enabled, true);
 	});
@@ -332,71 +332,71 @@ describe("cronJob", () => {
 			{ action: "create", name: "to-remove", cron: "0 0 * * *", skill: "test" },
 			opts(),
 		);
-		assert.strictEqual(JSON.parse(result).ok, true);
+		assert.strictEqual(result.ok, true);
 		const removeResult = await cronJobImpl({ action: "remove", name: "to-remove" }, opts());
-		const parsed = JSON.parse(removeResult);
+		const parsed = removeResult;
 		assert.strictEqual(parsed.ok, true);
 	});
 
 	it("rejects update for non-existent job", async () => {
 		const result = await cronJobImpl({ action: "update", name: "nonexistent" }, opts());
-		const parsed = JSON.parse(result);
+		const parsed = result;
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("not found"));
 	});
 
 	it("rejects remove for non-existent job", async () => {
 		const result = await cronJobImpl({ action: "remove", name: "nonexistent" }, opts());
-		const parsed = JSON.parse(result);
+		const parsed = result;
 		assert.strictEqual(parsed.ok, false);
 	});
 
 	it("rejects pause for non-existent job", async () => {
 		const result = await cronJobImpl({ action: "pause", name: "nonexistent" }, opts());
-		const parsed = JSON.parse(result);
+		const parsed = result;
 		assert.strictEqual(parsed.ok, false);
 	});
 
 	it("rejects resume for non-existent job", async () => {
 		const result = await cronJobImpl({ action: "resume", name: "nonexistent" }, opts());
-		const parsed = JSON.parse(result);
+		const parsed = result;
 		assert.strictEqual(parsed.ok, false);
 	});
 
 	it("rejects run for non-existent job", async () => {
 		const result = await cronJobImpl({ action: "run", name: "nonexistent" }, opts());
-		const parsed = JSON.parse(result);
+		const parsed = result;
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("not found"));
 	});
 
 	it("validates various cron expressions", async () => {
 		assert.strictEqual(
-			JSON.parse(
+			(
 				await cronJobImpl(
 					{ action: "create", name: "t1", cron: "*/15 * * * *", skill: "s" },
 					opts(),
-				),
+				)
 			).ok,
 			true,
 		);
 		// Step expressions
 		assert.strictEqual(
-			JSON.parse(
+			(
 				await cronJobImpl(
 					{ action: "create", name: "t2", cron: "0-30/5 * * * *", skill: "s" },
 					opts(),
-				),
+				)
 			).ok,
 			true,
 		);
 		// Comma-separated
 		assert.strictEqual(
-			JSON.parse(
+			(
 				await cronJobImpl(
 					{ action: "create", name: "t3", cron: "0,30 * * * *", skill: "s" },
 					opts(),
-				),
+				)
 			).ok,
 			true,
 		);
@@ -407,14 +407,14 @@ describe("cronJob", () => {
 			{ action: "create", name: "dup-job", cron: "0 0 * * *", skill: "test" },
 			opts(),
 		);
-		assert.strictEqual(JSON.parse(createResult).ok, true);
+		assert.strictEqual(createResult.ok, true);
 		// Now try to create again
 		const dupResult = await cronJobImpl(
 			{ action: "create", name: "dup-job", cron: "0 0 * * *", skill: "test" },
 			opts(),
 		);
-		assert.strictEqual(JSON.parse(dupResult).ok, false);
-		assert.ok(JSON.parse(dupResult).error.includes("already exists"));
+		assert.strictEqual(dupResult.ok, false);
+		assert.ok(dupResult.error.includes("already exists"));
 	});
 
 	it("rejects update with invalid cron expression", async () => {
@@ -426,7 +426,7 @@ describe("cronJob", () => {
 			{ action: "update", name: "bad-cron", cron: "invalid cron" },
 			opts(),
 		);
-		const parsed = JSON.parse(result);
+		const parsed = result;
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("Invalid cron") || parsed.error.includes("Invalid"));
 		await cronJobImpl({ action: "remove", name: "bad-cron" }, opts());
@@ -447,7 +447,7 @@ describe("cronJob", () => {
 			{ action: "update", name: "partial", skill: "skill-b" },
 			opts(),
 		);
-		const parsed = JSON.parse(result);
+		const parsed = result;
 		assert.strictEqual(parsed.ok, true);
 		assert.strictEqual(parsed.job.skill, "skill-b");
 		assert.ok(parsed.job.input);
@@ -456,35 +456,35 @@ describe("cronJob", () => {
 
 	it("rejects update without name", async () => {
 		const result = await cronJobImpl({ action: "update" }, opts());
-		const parsed = JSON.parse(result);
+		const parsed = result;
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("requires"));
 	});
 
 	it("rejects resume without name", async () => {
 		const result = await cronJobImpl({ action: "resume" }, opts());
-		const parsed = JSON.parse(result);
+		const parsed = result;
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("requires"));
 	});
 
 	it("rejects pause without name", async () => {
 		const result = await cronJobImpl({ action: "pause" }, opts());
-		const parsed = JSON.parse(result);
+		const parsed = result;
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("requires"));
 	});
 
 	it("rejects remove without name", async () => {
 		const result = await cronJobImpl({ action: "remove" }, opts());
-		const parsed = JSON.parse(result);
+		const parsed = result;
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("requires"));
 	});
 
 	it("rejects run without name", async () => {
 		const result = await cronJobImpl({ action: "run" }, opts());
-		const parsed = JSON.parse(result);
+		const parsed = result;
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("requires"));
 	});
@@ -498,7 +498,7 @@ describe("cronJob", () => {
 			{ action: "update", name: "cron-updated", cron: "30 6 * * *" },
 			opts(),
 		);
-		const parsed = JSON.parse(result);
+		const parsed = result;
 		assert.strictEqual(parsed.ok, true);
 		assert.strictEqual(parsed.job.cron, "30 6 * * *");
 		await cronJobImpl({ action: "remove", name: "cron-updated" }, opts());
@@ -519,7 +519,7 @@ describe("cronJob", () => {
 			{ action: "update", name: "input-merged", input: { c: 3 } },
 			opts(),
 		);
-		const parsed = JSON.parse(result);
+		const parsed = result;
 		assert.strictEqual(parsed.ok, true);
 		assert.deepStrictEqual(parsed.job.input, { a: 1, b: 2, c: 3 });
 		await cronJobImpl({ action: "remove", name: "input-merged" }, opts());
@@ -532,7 +532,7 @@ describe("cronJob", () => {
 		);
 		await cronJobImpl({ action: "pause", name: "paused-job" }, opts());
 		const result = await cronJobImpl({ action: "run", name: "paused-job" }, opts());
-		const parsed = JSON.parse(result);
+		const parsed = result;
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("paused"));
 		await cronJobImpl({ action: "remove", name: "paused-job" }, opts());
@@ -545,7 +545,7 @@ describe("cronJob", () => {
 			// ignore
 		}
 		const result = await cronJobImpl({ action: "list" }, opts());
-		const parsed = JSON.parse(result);
+		const parsed = result;
 		assert.strictEqual(parsed.ok, true);
 		assert.deepStrictEqual(parsed.jobs, []);
 	});
@@ -561,7 +561,7 @@ describe("cronJob", () => {
 			{ action: "update", name: "catch-test", input: circular },
 			opts(),
 		);
-		const parsed = JSON.parse(result);
+		const parsed = result;
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("Cron job error"));
 		await cronJobImpl({ action: "remove", name: "catch-test" }, opts());
@@ -578,7 +578,7 @@ describe("cronJob", () => {
 			opts(),
 		);
 		const result = await cronJobImpl({ action: "run", name: "dynamic-import-test" }, opts());
-		const parsed = JSON.parse(result);
+		const parsed = result;
 		assert.ok(parsed.ok !== undefined);
 		await cronJobImpl({ action: "remove", name: "dynamic-import-test" }, opts());
 	});
@@ -594,7 +594,7 @@ describe("cronJob", () => {
 			opts(),
 		);
 		const result = await cronJobImpl({ action: "run", name: "no-script-job" }, opts());
-		const parsed = JSON.parse(result);
+		const parsed = result;
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error.includes("no discoverable script"));
 		await cronJobImpl({ action: "remove", name: "no-script-job" }, opts());
@@ -618,11 +618,31 @@ describe("cronJob", () => {
 				opts(),
 			);
 			const result = await cronJobImpl({ action: "run", name: "exec-job" }, opts());
-			const parsed = JSON.parse(result);
+			const parsed = result;
 			assert.ok(parsed !== null);
 		} finally {
 			rmSync("skills/test-exec-skill", { recursive: true, force: true });
 			await cronJobImpl({ action: "remove", name: "exec-job" }, opts()).catch(() => {});
 		}
+	});
+
+	it("returns a native object (not a string) on success", async () => {
+		const result = await cronJobImpl(
+			{ action: "create", name: "native-success", cron: "0 0 * * *", skill: "test-skill" },
+			opts(),
+		);
+		assert.strictEqual(typeof result, "object");
+		assert.strictEqual(Array.isArray(result), false);
+		assert.strictEqual(result.ok, true);
+		assert.ok(result.job);
+		await cronJobImpl({ action: "remove", name: "native-success" }, opts());
+	});
+
+	it("returns a native object (not a string) on failure", async () => {
+		const result = await cronJobImpl({ action: "create", name: "native-fail" }, opts());
+		assert.strictEqual(typeof result, "object");
+		assert.strictEqual(Array.isArray(result), false);
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error);
 	});
 });
