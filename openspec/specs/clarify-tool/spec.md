@@ -2,7 +2,9 @@
 
 ## Purpose
 TBD - created by archiving change clarify-echo-question. Update Purpose after archive.
+
 ## Requirements
+
 ### Requirement: Clarify tool echoes the question back
 The `clarify` tool SHALL echo the clarification question back in its return value so the user sees what was asked.
 
@@ -30,7 +32,7 @@ The `clarify` tool SHALL pause the agent via LangGraph's `interrupt()` so the qu
 
 #### Scenario: Resume returns the user's answer
 - **WHEN** the paused graph is resumed with `Command({ resume: <answer> })`
-- **THEN** the `clarify` tool returns a JSON object with `answered` set to `true` and `answer` equal to the resumed value
+- **THEN** the `clarify` tool returns a native structured object with `ok` set to `true`, `answered` set to `true`, and `answer` equal to the resumed value
 
 ### Requirement: Clarify tool description notes the interrupt behavior
 The `clarify` tool `description` SHALL note that it interrupts the agent to surface the question and captures the user's reply.
@@ -46,3 +48,20 @@ The `clarify` tool `description` SHALL reference `memory/tools/` as the location
 - **WHEN** the `clarify` tool is registered
 - **THEN** its `description` mentions `memory/tools/` as the storage location for clarification questions
 
+### Requirement: Clarify tool returns a native structured object on success
+The `clarify` tool SHALL return a native structured object (not a `JSON.stringify`-wrapped string) on success, with an `ok` field set to `true` and the existing `answered`, `question`, `answer`, and `source` fields preserved.
+
+#### Scenario: Success returns a native object with ok true
+- **WHEN** the `clarify` tool completes successfully
+- **THEN** the returned value is a native object with `ok` equal to `true`, `answered` equal to `true`, and the `question`, `answer`, and `source` fields present
+
+#### Scenario: Success with choices preserves the choices field
+- **WHEN** the `clarify` tool is invoked with a non-empty `choices` array and completes successfully
+- **THEN** the returned native object includes a `choices` field equal to the input choices
+
+### Requirement: Clarify tool returns a native structured object on failure
+The `clarify` tool SHALL return a native structured object with `ok` set to `false` and an `error` field on failure, rather than throwing or returning a string.
+
+#### Scenario: Failure returns a native object with ok false
+- **WHEN** the `clarify` tool encounters an error
+- **THEN** the returned value is a native object with `ok` equal to `false` and an `error` field describing the failure

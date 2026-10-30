@@ -8,16 +8,23 @@ const DateSchema = z.object({
 /**
  * Core date logic: return current time as ISO 8601 or human-readable string.
  * @param {z.infer<typeof DateSchema>} input - The tool input
- * @returns {string} Current date/time in requested format
+ * @returns {{ ok: boolean, date?: string, format?: string, error?: string }} Current date/time in requested format
  */
 export function dateImpl(input) {
 	const { format = "iso" } = input;
-	return format === "human" ? new Date().toString() : new Date().toISOString();
+	if (format !== "iso" && format !== "human") {
+		return { ok: false, error: `Invalid format: ${format}. Expected "iso" or "human".` };
+	}
+	return {
+		ok: true,
+		date: format === "human" ? new Date().toString() : new Date().toISOString(),
+		format,
+	};
 }
 
 /**
  * @param {z.infer<typeof DateSchema>} input - Tool input
- * @returns {string} Current date/time
+ * @returns {{ ok: boolean, date?: string, format?: string, error?: string }} Structured date result
  */
 export const date = tool(dateImpl, {
 	name: "date",

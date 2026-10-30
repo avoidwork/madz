@@ -48,7 +48,7 @@ export function resolveFilePath(path) {
  * @param {string} pattern - Search pattern
  * @param {string} resolvedPath - Resolved path to search
  * @param {number} maxResults - Max results
- * @returns {Promise<string>} Search results
+ * @returns {Promise<{ok: boolean, matches: string[], count: number}>} Search results
  */
 export async function nativeSearch(pattern, resolvedPath, maxResults) {
 	const results = [];
@@ -98,30 +98,27 @@ export async function nativeSearch(pattern, resolvedPath, maxResults) {
 
 	await walk(resolvedPath);
 
-	if (results.length === 0) {
-		return "No matches found.";
-	}
-	return `Found ${results.length} matches:\n\n${results.join("\n")}`;
+	return { ok: true, matches: results, count: results.length };
 }
 
 /**
  * Execute ls action logic on raw input.
  * @param {object} input - { path }
  * @param {object} options - { allowedPaths }
- * @returns {Promise<string>} Directory listing
+ * @returns {Promise<{ok: boolean, entries?: string[], error?: string}>} Directory listing
  */
 export async function lsImpl(input, options) {
 	const path = resolveFilePath(input.path);
 	const resolved = validatePath(path, options.allowedPaths);
 	if (!resolved.allowed) {
-		return `Error: ${resolved.error}`;
+		return { ok: false, error: resolved.error };
 	}
 
 	try {
 		const entries = await readdir(resolved.path);
-		return entries.join("\n");
+		return { ok: true, entries };
 	} catch (err) {
-		return `Error: ${err.message}`;
+		return { ok: false, error: err.message };
 	}
 }
 
@@ -129,13 +126,13 @@ export async function lsImpl(input, options) {
  * Execute glob action logic on raw input.
  * @param {object} input - { path, pattern }
  * @param {object} options - { allowedPaths }
- * @returns {Promise<string>} Matching file paths
+ * @returns {Promise<{ok: boolean, matches?: string[], error?: string}>} Matching file paths
  */
 export async function globImpl(input, options) {
 	const path = resolveFilePath(input.path);
 	const resolved = validatePath(path, options.allowedPaths);
 	if (!resolved.allowed) {
-		return `Error: ${resolved.error}`;
+		return { ok: false, error: resolved.error };
 	}
 
 	const pattern = input.pattern || "**/*";
@@ -146,23 +143,20 @@ export async function globImpl(input, options) {
 		dot: false,
 	});
 
-	if (results.length === 0) {
-		return "No files match the glob pattern.";
-	}
-	return results.join("\n");
+	return { ok: true, matches: results };
 }
 
 /**
  * Execute grep action logic on raw input.
  * @param {object} input - { path, pattern, maxResults }
  * @param {object} options - { allowedPaths }
- * @returns {Promise<string>} Matching lines
+ * @returns {Promise<{ok: boolean, matches?: string[], count?: number, error?: string}>} Matching lines
  */
 export async function grepImpl(input, options) {
 	const path = resolveFilePath(input.path);
 	const resolved = validatePath(path, options.allowedPaths);
 	if (!resolved.allowed) {
-		return `Error: ${resolved.error}`;
+		return { ok: false, error: resolved.error };
 	}
 
 	try {
@@ -174,16 +168,16 @@ export async function grepImpl(input, options) {
 		const output = (stdout ?? "").trim();
 
 		if (!output) {
-			return "No matches found.";
+			return { ok: true, matches: [], count: 0 };
 		}
 
 		const matches = output.split("\n").slice(0, limit);
-		return `Found ${matches.length} matches:\n\n${matches.join("\n")}`;
+		return { ok: true, matches, count: matches.length };
 	} catch (err) {
 		if (err.code === "ENOENT" || err.code === 1 || err.status === 1) {
 			return nativeSearch(input.pattern, resolved.path, input.maxResults || 20);
 		}
-		return `Error: ${err.message}`;
+		return { ok: false, error: err.message };
 	}
 }
 
@@ -191,7 +185,7 @@ export async function grepImpl(input, options) {
  * Core discovery logic implementing ls, glob, and grep actions.
  * @param {object} input - The tool input
  * @param {object} options - Runtime options (allowedPaths)
- * @returns {Promise<string>} Result string
+ * @returns {Promise<{ok: boolean, entries?: string[], matches?: string[], count?: number, error?: string}>} Result
  */
 export async function discoveryImpl(input, options) {
 	const { action } = input;
@@ -204,7 +198,10 @@ export async function discoveryImpl(input, options) {
 		case "grep":
 			return grepImpl(input, options);
 		default:
-			return `Error: Unknown action: '${action}'. Valid actions: ${VALID_ACTIONS.join(", ")}`;
+			return {
+				ok: false,
+				error: `Unknown action: '${action}'. Valid actions: ${VALID_ACTIONS.join(", ")}`,
+			};
 	}
 }
 

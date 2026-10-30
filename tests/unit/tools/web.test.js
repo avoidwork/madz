@@ -40,16 +40,16 @@ describe("detectSearchBackend", () => {
 describe("searchWebImpl", () => {
 	it("returns an error for an empty query", async () => {
 		const result = await searchWebImpl({ query: "" });
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.ok, false);
-		assert.match(parsed.error, /Query is required/);
+		assert.strictEqual(typeof result, "object");
+		assert.strictEqual(result.ok, false);
+		assert.match(result.error, /Query is required/);
 	});
 
 	it("returns an error when the query is not a string", async () => {
 		const result = await searchWebImpl({ query: 123 });
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.ok, false);
-		assert.match(parsed.error, /Query is required/);
+		assert.strictEqual(typeof result, "object");
+		assert.strictEqual(result.ok, false);
+		assert.match(result.error, /Query is required/);
 	});
 
 	it("routes to tavily when tavily.apiKey is set and returns normalized results", async () => {
@@ -71,13 +71,13 @@ describe("searchWebImpl", () => {
 				{ query: "test", limit: 5 },
 				{ search: { tavily: { apiKey: "test-key" } } },
 			);
-			const parsed = JSON.parse(result);
-			assert.strictEqual(parsed.ok, true);
-			assert.strictEqual(parsed.backend, "tavily");
+			assert.strictEqual(typeof result, "object");
+			assert.strictEqual(result.ok, true);
+			assert.strictEqual(result.backend, "tavily");
 			assert.strictEqual(capturedUrl, "https://api.tavily.com/search");
 			assert.strictEqual(capturedInit.method, "POST");
 			assert.strictEqual(capturedInit.headers.Authorization, "Bearer test-key");
-			assert.strictEqual(parsed.results[0].description, "A snippet");
+			assert.strictEqual(result.results[0].description, "A snippet");
 		} finally {
 			fetchMock.mock.restore();
 		}
@@ -108,9 +108,9 @@ describe("searchWebImpl", () => {
 					},
 				},
 			);
-			const parsed = JSON.parse(result);
-			assert.strictEqual(parsed.ok, true);
-			assert.strictEqual(parsed.backend, "duckduckgo");
+			assert.strictEqual(typeof result, "object");
+			assert.strictEqual(result.ok, true);
+			assert.strictEqual(result.backend, "duckduckgo");
 			assert.strictEqual(capturedUrl.searchParams.get("kl"), "ca-en");
 			assert.strictEqual(capturedUrl.searchParams.get("safe"), "2");
 			assert.strictEqual(capturedUrl.searchParams.get("df"), "w");
