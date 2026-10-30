@@ -50,8 +50,9 @@ describe("tools - process (unified)", () => {
 				{ action: "start", command: "echo hello", background: false },
 				{ allowedPaths: ["/"], maxReadSize: "1mb" },
 			);
-			assert.ok(result.includes("hello"));
-			assert.ok(result.includes("exitCode"));
+			assert.strictEqual(result.ok, true);
+			assert.ok(result.stdout.includes("hello"));
+			assert.strictEqual(result.exitCode, 0);
 		});
 
 		it("executes ls command in foreground", async () => {
@@ -59,7 +60,8 @@ describe("tools - process (unified)", () => {
 				{ action: "start", command: "ls", background: false },
 				{ allowedPaths: ["/"], maxReadSize: "1mb" },
 			);
-			assert.ok(result.includes("exitCode"));
+			assert.strictEqual(result.ok, true);
+			assert.strictEqual(result.exitCode, 0);
 		});
 	});
 
@@ -85,9 +87,9 @@ describe("tools - process (unified)", () => {
 				{ action: "start", command: "sleep 30", background: true },
 				{ allowedPaths: ["/"], maxReadSize: "1mb" },
 			);
-			assert.ok(result.includes("Started process in background"));
-			const pidMatch = result.match(/PID: (\d+)/);
-			assert.ok(pidMatch, "Should contain PID");
+			assert.strictEqual(result.ok, true);
+			assert.ok(result.pid !== undefined);
+			assert.strictEqual(result.command, "sleep 30");
 		});
 
 		it("rejects command exceeding max length", async () => {
@@ -96,7 +98,8 @@ describe("tools - process (unified)", () => {
 				{ action: "start", command: longCommand, background: false },
 				{ allowedPaths: ["/"], maxReadSize: "1mb" },
 			);
-			assert.ok(result.includes("exceeds"));
+			assert.strictEqual(result.ok, false);
+			assert.ok(result.error.includes("exceeds"));
 		});
 	});
 
@@ -122,8 +125,9 @@ describe("tools - process (unified)", () => {
 				{ action: "list" },
 				{ allowedPaths: ["/"], maxReadSize: "1mb" },
 			);
-			const entries = JSON.parse(result);
-			assert.strictEqual(entries.length, 0);
+			assert.strictEqual(result.ok, true);
+			assert.ok(Array.isArray(result.entries));
+			assert.strictEqual(result.entries.length, 0);
 		});
 
 		it("list shows running process", async () => {
@@ -135,9 +139,9 @@ describe("tools - process (unified)", () => {
 				{ action: "list" },
 				{ allowedPaths: ["/"], maxReadSize: "1mb" },
 			);
-			const entries = JSON.parse(result);
-			assert.strictEqual(entries.length, 1);
-			assert.strictEqual(entries[0].command, "sleep 30");
+			assert.strictEqual(result.ok, true);
+			assert.strictEqual(result.entries.length, 1);
+			assert.strictEqual(result.entries[0].command, "sleep 30");
 		});
 
 		it("log captures stdout from background process", async () => {
@@ -155,7 +159,8 @@ describe("tools - process (unified)", () => {
 				{ action: "log", processId: pid },
 				{ allowedPaths: ["/"], maxReadSize: "1mb" },
 			);
-			assert.ok(result.includes("hello_world"));
+			assert.strictEqual(result.ok, true);
+			assert.ok(result.stdout.includes("hello_world"));
 		});
 
 		it("wait returns exit status", async () => {
@@ -173,7 +178,7 @@ describe("tools - process (unified)", () => {
 				{ action: "wait", processId: pid },
 				{ allowedPaths: ["/"], maxReadSize: "1mb" },
 			);
-			assert.ok(result.includes("completed"));
+			assert.strictEqual(result.ok, true);
 		});
 
 		it("kill terminates process", async () => {
@@ -189,7 +194,8 @@ describe("tools - process (unified)", () => {
 				{ action: "kill", processId: pid },
 				{ allowedPaths: ["/"], maxReadSize: "1mb" },
 			);
-			assert.ok(result.includes("SIGTERM"));
+			assert.strictEqual(result.ok, true);
+			assert.ok(result.message.includes("SIGTERM"));
 
 			// Wait for kill to complete
 			await new Promise((r) => setTimeout(r, 6000));
@@ -209,7 +215,8 @@ describe("tools - process (unified)", () => {
 				{ action: "write", processId: pid, data: "test input" },
 				{ allowedPaths: ["/"], maxReadSize: "1mb" },
 			);
-			assert.ok(result.includes("Wrote to stdin"));
+			assert.strictEqual(result.ok, true);
+			assert.ok(result.message.includes("Wrote to stdin"));
 			child.kill("SIGTERM");
 		});
 
@@ -218,7 +225,8 @@ describe("tools - process (unified)", () => {
 				{ action: "log", processId: 99999 },
 				{ allowedPaths: ["/"], maxReadSize: "1mb" },
 			);
-			assert.ok(result.includes("not found"));
+			assert.strictEqual(result.ok, false);
+			assert.ok(result.error.includes("not found"));
 		});
 
 		it("returns error for invalid action", async () => {
@@ -234,7 +242,8 @@ describe("tools - process (unified)", () => {
 				{ action: "invalid", processId: pid },
 				{ allowedPaths: ["/"], maxReadSize: "1mb" },
 			);
-			assert.ok(result.includes("Unknown action"));
+			assert.strictEqual(result.ok, false);
+			assert.ok(result.error.includes("Unknown action"));
 			child.kill("SIGTERM");
 		});
 
@@ -243,7 +252,8 @@ describe("tools - process (unified)", () => {
 				{ action: "log" },
 				{ allowedPaths: ["/"], maxReadSize: "1mb" },
 			);
-			assert.ok(result.includes("processId is required"));
+			assert.strictEqual(result.ok, false);
+			assert.ok(result.error.includes("processId is required"));
 		});
 	});
 });
