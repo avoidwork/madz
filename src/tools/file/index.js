@@ -282,18 +282,18 @@ export function generateUnifiedDiff(oldStr, newStr) {
  * Execute read action logic on raw input.
  * @param {object} input - { path, offset?, limit? }
  * @param {object} options - { allowedPaths, maxReadSize }
- * @returns {Promise<string>} File content or error
+ * @returns {Promise<{ok: boolean, content?: string, lines?: string[], error?: string}>} Structured result
  */
 export async function readImpl(input, options) {
 	const path = resolveFilePath(input.path);
 	const resolved = validatePath(path, options.allowedPaths);
 	if (!resolved.allowed) {
-		return `Error: ${resolved.error}`;
+		return { ok: false, error: resolved.error };
 	}
 
 	const limitCheck = await checkFileLimit(resolved.path, options.maxReadSize);
 	if (!limitCheck.ok) {
-		return limitCheck.error;
+		return { ok: false, error: limitCheck.error };
 	}
 
 	let content;
@@ -303,35 +303,42 @@ export async function readImpl(input, options) {
 		if (err.code === "ENOENT") {
 			const suggestion = await suggestSimilarFile(resolved.path);
 			const msg = suggestion ? `\n${suggestion}` : "";
-			return `Error: File not found: ${resolved.path}${msg}`;
+			return { ok: false, error: `File not found: ${resolved.path}${msg}` };
 		}
-		return `Error: ${err.message}`;
+		return { ok: false, error: err.message };
 	}
 	const lines = content.split("\n");
 
 	if (input.offset !== undefined && input.limit !== undefined) {
 		const sliced = lines.slice(input.offset, input.offset + input.limit);
-		return sliced.map((line, i) => `${input.offset + i + 1}|${line}`).join("\n");
+		return {
+			ok: true,
+			content,
+			lines: sliced.map((line, i) => `${input.offset + i + 1}|${line}`),
+		};
 	}
-	return lines.map((line, i) => `${i + 1}|${line}`).join("\n");
+	return { ok: true, content, lines: lines.map((line, i) => `${i + 1}|${line}`) };
 }
 
 /**
  * Execute write action logic on raw input.
  * @param {object} input - { path, content }
  * @param {object} options - { allowedPaths }
- * @returns {Promise<string>} Result message
+ * @returns {Promise<{ok: boolean, path?: string, bytesWritten?: number, error?: string}>} Structured result
  */
 export async function writeImpl(input, options) {
 	const path = resolveFilePath(input.path);
 	const resolved = validatePath(path, options.allowedPaths);
 	if (!resolved.allowed) {
-		return `Error: ${resolved.error}`;
+		return { ok: false, error: resolved.error };
 	}
 
 	const byteSize = Buffer.byteLength(input.content, "utf-8");
 	if (byteSize > MAX_CONTENT_SIZE) {
-		return `Error: Content size (${byteSize} bytes) exceeds maximum allowed size (${MAX_CONTENT_SIZE} bytes).`;
+		return {
+			ok: false,
+			error: `Content size (${byteSize} bytes) exceeds maximum allowed size (${MAX_CONTENT_SIZE} bytes).`,
+		};
 	}
 
 	const fileDir = dirname(resolved.path);
@@ -342,27 +349,27 @@ export async function writeImpl(input, options) {
 	}
 
 	await writeFileNode(resolved.path, input.content, "utf-8");
-	return `Successfully wrote ${input.content.length} bytes to ${input.path}`;
+	return { ok: true, path: input.path, bytesWritten: Buffer.byteLength(input.content, "utf-8") };
 }
 
 /**
  * Execute edit action logic on raw input.
  * @param {object} input - { path, oldString, newString }
  * @param {object} options - { allowedPaths, maxReadSize }
- * @returns {Promise<string>} Edit result
+ * @returns {Promise<{ok: boolean, changes?: number, diff?: string, error?: string, suggestions?: string[]}>} Structured result
  */
 export async function editImpl(input, options) {
 	const path = resolveFilePath(input.path);
 	const resolved = validatePath(path, options.allowedPaths);
 	if (!resolved.allowed) {
-		return `Error: ${resolved.error}`;
+		return { ok: false, error: resolved.error };
 	}
 
 	let content;
 	try {
 		content = await readFileNode(resolved.path, "utf-8");
 	} catch (err) {
-		return `Error: ${err.message}`;
+		return { ok: false, error: err.message };
 	}
 
 	const results = fuzzyMatch(input.oldString, content);
@@ -380,9 +387,11 @@ export async function editImpl(input, options) {
 				suggestions.push(line.trim());
 			}
 		}
-		const suggestionStr =
-			suggestions.length > 0 ? `Suggestions: ${suggestions.slice(0, 5).join(", ")}` : "";
-		return `Edit failed: Could not find matching text for oldString in the file.\n${suggestionStr}`;
+		return {
+			ok: false,
+			error: "Could not find matching text for oldString in the file.",
+			suggestions: suggestions.slice(0, 5),
+		};
 	}
 
 	const match = results.find((r) => r.found);
@@ -390,27 +399,27 @@ export async function editImpl(input, options) {
 	await writeFileNode(resolved.path, content, "utf-8");
 
 	const diff = generateUnifiedDiff(input.oldString, input.newString);
-	return `Edit applied successfully.\nChanges: 1\n${diff}`;
+	return { ok: true, changes: 1, diff };
 }
 
 /**
  * Execute delete action logic on raw input.
  * @param {object} input - { path }
  * @param {object} options - { allowedPaths }
- * @returns {Promise<string>} Result message
+ * @returns {Promise<{ok: boolean, path?: string, error?: string}>} Structured result
  */
 export async function deleteImpl(input, options) {
 	const path = resolveFilePath(input.path);
 	const resolved = validatePath(path, options.allowedPaths);
 	if (!resolved.allowed) {
-		return `Error: ${resolved.error}`;
+		return { ok: false, error: resolved.error };
 	}
 
 	try {
 		await unlink(resolved.path);
-		return `Successfully deleted ${resolved.path}`;
+		return { ok: true, path: resolved.path };
 	} catch (err) {
-		return `Error: ${err.message}`;
+		return { ok: false, error: err.message };
 	}
 }
 
@@ -418,7 +427,7 @@ export async function deleteImpl(input, options) {
  * Core file logic implementing read, write, edit, and delete actions.
  * @param {object} input - The tool input
  * @param {object} options - Runtime options (allowedPaths, maxReadSize)
- * @returns {Promise<string>} Result string
+ * @returns {Promise<{ok: boolean, ...}>} Structured result
  */
 export async function fileImpl(input, options) {
 	const { action } = input;
@@ -433,7 +442,10 @@ export async function fileImpl(input, options) {
 		case "delete":
 			return deleteImpl(input, options);
 		default:
-			return `Error: Unknown action: '${action}'. Valid actions: ${VALID_ACTIONS.join(", ")}`;
+			return {
+				ok: false,
+				error: `Unknown action: '${action}'. Valid actions: ${VALID_ACTIONS.join(", ")}`,
+			};
 	}
 }
 
