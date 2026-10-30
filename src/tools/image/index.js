@@ -56,43 +56,43 @@ async function generateWithFal(apiKey, prompt, timeout) {
  * @param {object} input - Tool input
  * @param {object} [options] - Runtime options for test injection
  * @param {string} [options.falApiKey] - FAL.ai API key (overrides config)
- * @returns {Promise<string>} JSON result string
+ * @returns {Promise<{ ok: boolean, imageUrl?: string, error?: string }>} Structured result
  */
 export async function generateImageImpl(input, options = {}) {
 	const { prompt, timeout } = input;
 
 	if (!prompt || typeof prompt !== "string" || prompt.trim().length === 0) {
-		return JSON.stringify({
+		return {
 			ok: false,
 			error: "Prompt is required and must be a non-empty string",
-		});
+		};
 	}
 
 	if (prompt.length > 1000) {
-		return JSON.stringify({ ok: false, error: "Prompt must be 1000 characters or fewer" });
+		return { ok: false, error: "Prompt must be 1000 characters or fewer" };
 	}
 
 	const config = loadConfig();
 	const apiKey = options.falApiKey ?? config.providers?.fal?.credentials?.apiKey;
 	if (!apiKey) {
-		return JSON.stringify({
+		return {
 			ok: false,
 			error: "FAL_API_KEY is required for image generation, or pass falApiKey parameter",
-		});
+		};
 	}
 
 	const timeoutMs = timeout || DEFAULT_TIMEOUT;
 	const result = await generateWithFal(apiKey, prompt, timeoutMs);
 	if (result.ok) {
-		return JSON.stringify({ ok: true, imageUrl: result.imageUrl });
+		return { ok: true, imageUrl: result.imageUrl };
 	}
-	return JSON.stringify({ ok: false, error: result.error });
+	return { ok: false, error: result.error };
 }
 
 /**
  * @param {z.infer<typeof ImageSchema>} input - Tool input
  * @param {object} _options - Runtime options
- * @returns {string} JSON result string
+ * @returns {Promise<{ ok: boolean, imageUrl?: string, error?: string }>} Structured result
  */
 export const generateImage = tool(generateImageImpl, {
 	name: "generateImage",
