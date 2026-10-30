@@ -76,7 +76,7 @@ function escapeCommand(command) {
 /**
  * Execute a command in foreground mode.
  * @param {string} command - Shell command to execute
- * @returns {Promise<string>} Command execution result
+ * @returns {Promise<{ok: boolean, exitCode?: number, stdout?: string, stderr?: string, error?: string}>} Command execution result
  */
 function executeForeground(command) {
 	return new Promise((resolve) => {
@@ -102,25 +102,19 @@ function executeForeground(command) {
 		});
 
 		child.on("close", () => {
-			resolve({ stdout: stdout.trim(), stderr: stderr.trim(), exitCode, running: false });
+			resolve({ ok: true, exitCode, stdout: stdout.trim(), stderr: stderr.trim() });
 		});
 
 		child.on("error", (err) => {
-			resolve({ stdout, stderr, exitCode: -1, running: false, error: err.message });
+			resolve({ ok: false, error: err.message });
 		});
-	}).then((result) =>
-		result.stderr
-			? `exitCode: ${result.exitCode}\nstdout: ${result.stdout}\nstderr: ${result.stderr}`
-			: result.error
-				? `Error: ${result.error}`
-				: `exitCode: ${result.exitCode}\nstdout: ${result.stdout}`,
-	);
+	});
 }
 
 /**
  * Execute a command in background mode with stdout/stderr capture.
  * @param {string} command - Shell command to execute
- * @returns {string} Background process start message
+ * @returns {{ok: boolean, pid?: number, command?: string, error?: string}} Background process start result
  */
 function executeBackground(command) {
 	try {
@@ -134,9 +128,9 @@ function executeBackground(command) {
 
 		child.unref();
 
-		return `Started process in background: ${command} (PID: ${pid})`;
+		return { ok: true, pid, command };
 	} catch (err) {
-		return `Error starting background process: ${err.message}`;
+		return { ok: false, error: err.message };
 	}
 }
 
@@ -144,7 +138,7 @@ function executeBackground(command) {
  * Unified process tool handler.
  * Routes on action: start, wait, kill, log, write, pause, resume, list.
  * @param {z.infer<typeof UnifiedProcessSchema>} input
- * @returns {Promise<string>} Tool execution result
+ * @returns {Promise<{ok: boolean, [key: string]: any}>} Tool execution result
  */
 export async function unifiedProcessImpl(input) {
 	const { action } = input;
@@ -152,12 +146,15 @@ export async function unifiedProcessImpl(input) {
 	// Start action: launch a new command
 	if (action === "start") {
 		if (!input.command) {
-			return "Error: command is required for 'start' action";
+			return { ok: false, error: "Error: command is required for 'start' action" };
 		}
 
 		const MAX_COMMAND_LENGTH = 4096;
 		if (input.command.length > MAX_COMMAND_LENGTH) {
-			return `Error: Command length (${input.command.length} chars) exceeds maximum (${MAX_COMMAND_LENGTH} chars).`;
+			return {
+				ok: false,
+				error: `Error: Command length (${input.command.length} chars) exceeds maximum (${MAX_COMMAND_LENGTH} chars).`,
+			};
 		}
 
 		if (input.background) {
@@ -177,35 +174,38 @@ export async function unifiedProcessImpl(input) {
 				uptime: `${Math.round((Date.now() - entry.startTime) / 1000)}s`,
 			});
 		}
-		return JSON.stringify(entries, null, 0);
+		return { ok: true, entries };
 	}
 
 	// All other actions require a processId
 	const pid = input.processId;
 	if (pid === undefined || pid === null) {
-		return "Error: processId is required for this action";
+		return { ok: false, error: "Error: processId is required for this action" };
 	}
 
 	// Validate action
 	const validActions = ["log", "wait", "kill", "write", "pause", "resume"];
 	if (!validActions.includes(action)) {
-		return `Error: Unknown action '${action}'. Supported: list, start, ${validActions.join(", ")}`;
+		return {
+			ok: false,
+			error: `Error: Unknown action '${action}'. Supported: list, start, ${validActions.join(", ")}`,
+		};
 	}
 
 	const entry = processTracker.get(pid);
 	if (!entry) {
-		return `Error: Process ${pid} not found`;
+		return { ok: false, error: `Error: Process ${pid} not found` };
 	}
 
 	switch (action) {
 		case "log":
-			return `Process ${pid} log:\nstdout: ${entry.stdout}\nstderr: ${entry.stderr}`;
+			return { ok: true, stdout: entry.stdout, stderr: entry.stderr };
 		case "wait":
 			return new Promise((resolve) => {
 				const checkInterval = setInterval(() => {
 					if (entry.status !== "running") {
 						clearInterval(checkInterval);
-						resolve(`Process ${pid} completed.\nstdout: ${entry.stdout}\nstderr: ${entry.stderr}`);
+						resolve({ ok: true, stdout: entry.stdout, stderr: entry.stderr });
 					}
 				}, 200);
 
@@ -213,7 +213,7 @@ export async function unifiedProcessImpl(input) {
 				setTimeout(() => {
 					clearInterval(checkInterval);
 					if (entry.status === "running") {
-						resolve(`Process ${pid} still running after timeout.`);
+						resolve({ ok: false, error: `Process ${pid} still running after timeout.` });
 					}
 				}, 60000);
 			});
@@ -230,33 +230,36 @@ export async function unifiedProcessImpl(input) {
 					}
 				}, 5000);
 				entry.status = "killing";
-				return `Sent SIGTERM to process ${pid}. Will force kill if unresponsive.`;
+				return {
+					ok: true,
+					message: `Sent SIGTERM to process ${pid}. Will force kill if unresponsive.`,
+				};
 			} catch (err) {
 				processTracker.delete(pid);
-				return `Error killing process ${pid}: ${err.message}`;
+				return { ok: false, error: `Error killing process ${pid}: ${err.message}` };
 			}
 		case "write":
 			try {
 				entry.child.stdin?.write(input.data || "");
-				return `Wrote to stdin of process ${pid}`;
+				return { ok: true, message: `Wrote to stdin of process ${pid}` };
 			} catch (err) {
-				return `Error writing to process ${pid}: ${err.message}`;
+				return { ok: false, error: `Error writing to process ${pid}: ${err.message}` };
 			}
 		case "pause":
 			try {
 				entry.child.kill("SIGSTOP");
 				entry.status = "paused";
-				return `Paused process ${pid}`;
+				return { ok: true, message: `Paused process ${pid}` };
 			} catch (err) {
-				return `Error pausing process ${pid}: ${err.message}`;
+				return { ok: false, error: `Error pausing process ${pid}: ${err.message}` };
 			}
 		case "resume":
 			try {
 				entry.child.kill("SIGCONT");
 				entry.status = "running";
-				return `Resumed process ${pid}`;
+				return { ok: true, message: `Resumed process ${pid}` };
 			} catch (err) {
-				return `Error resuming process ${pid}: ${err.message}`;
+				return { ok: false, error: `Error resuming process ${pid}: ${err.message}` };
 			}
 	}
 }
