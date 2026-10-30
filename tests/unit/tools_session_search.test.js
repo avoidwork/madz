@@ -20,14 +20,16 @@ describe("searchSession", () => {
 	before(setup);
 	after(teardown);
 
-	it("browse with no conversations directory returns missing message", async () => {
+	it("browse with no conversations directory returns ok:false error", async () => {
 		const result = await searchSessionImpl({}, { sessionsDir: "nonexistent_path/" });
-		assert.ok(result.includes("No conversations directory found"));
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("No conversations directory found"));
 	});
 
 	it("browse empty directory lists sessions", async () => {
 		const result = await searchSessionImpl({}, { sessionsDir: testSubDir });
-		assert.ok(typeof result === "string");
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("No conversations found"));
 	});
 
 	it("searches conversations by query", async () => {
@@ -36,8 +38,10 @@ describe("searchSession", () => {
 			"---\nsessionId: abc123\n---\nUser: Hello\nAssistant: Welcome to the session.",
 		);
 		const result = await searchSessionImpl({ query: "Welcome" }, { sessionsDir: testSubDir });
+		assert.strictEqual(result.ok, true);
 		assert.ok(
-			typeof result === "string" && (result.includes("Found") || result.includes("search")),
+			typeof result.snippets === "string" &&
+				(result.snippets.includes("Found") || result.snippets.includes("search")),
 		);
 	});
 
@@ -46,10 +50,10 @@ describe("searchSession", () => {
 			{ query: "xyz_not_in_any_file_123" },
 			{ sessionsDir: testSubDir },
 		);
+		assert.strictEqual(result.ok, false);
 		assert.ok(
-			typeof result === "string" &&
-				(result.includes("No conversations matched") ||
-					result.includes("no conversations matched")),
+			result.error.includes("No conversations matched") ||
+				result.error.includes("no conversations matched"),
 		);
 	});
 
@@ -62,8 +66,10 @@ describe("searchSession", () => {
 			{ conversationId: "abc123" },
 			{ sessionsDir: testSubDir },
 		);
+		assert.strictEqual(result.ok, true);
 		assert.ok(
-			typeof result === "string" && (result.includes("Conversation") || result.includes("abc123")),
+			typeof result.conversation === "string" &&
+				(result.conversation.includes("Conversation") || result.conversation.includes("abc123")),
 		);
 	});
 
@@ -72,19 +78,20 @@ describe("searchSession", () => {
 			{ conversationId: "does_not_match_anything_123_xyz" },
 			{ sessionsDir: testSubDir },
 		);
-		assert.ok(typeof result === "string" && result.includes("not found"));
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("not found"));
 	});
 
-	it("browse returns serialized JSON with file, date, sessionId, preview", async () => {
+	it("browse returns structured conversations with file, date, sessionId, preview", async () => {
 		writeFileSync(
 			join(testDir, "conv_sub", "browse-test.md"),
 			"---\nsessionId: browse-123\n---\ntest content browse",
 		);
 		const result = await searchSessionImpl({}, { sessionsDir: testSubDir });
-		const parsed = JSON.parse(result);
-		assert.ok(Array.isArray(parsed));
-		assert.ok(parsed.length > 0);
-		const conv = parsed.find((c) => c.file === "browse-test.md");
+		assert.strictEqual(result.ok, true);
+		assert.ok(Array.isArray(result.conversations));
+		assert.ok(result.conversations.length > 0);
+		const conv = result.conversations.find((c) => c.file === "browse-test.md");
 		assert.ok(conv);
 		assert.strictEqual(conv.sessionId, "browse-123");
 		assert.ok(typeof conv.preview === "string");
@@ -96,8 +103,8 @@ describe("searchSession", () => {
 			'---\nsessionId: json-sess\n---\n[{"role": "user", "content": "Hello world"}]',
 		);
 		const result = await searchSessionImpl({}, { sessionsDir: testSubDir });
-		const parsed = JSON.parse(result);
-		const jsonEntry = parsed.find((c) => c.file === "json-body.md");
+		assert.strictEqual(result.ok, true);
+		const jsonEntry = result.conversations.find((c) => c.file === "json-body.md");
 		assert.ok(jsonEntry);
 		// The preview should come from parsed[0].content
 		assert.ok(jsonEntry.preview.includes("Hello world"));
