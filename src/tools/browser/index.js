@@ -269,7 +269,7 @@ async function runAction(page, input, timeout, screenshotsDir) {
  * @param {Function} [options.launchBrowser] - Browser launch factory (defaults to real one)
  * @param {Function} [options.openPage] - Page opener (defaults to real one)
  * @param {string} [options.screenshotsDir] - Directory to save screenshots to (defaults to config)
- * @returns {Promise<string>} JSON result string
+ * @returns {Promise<object>} Structured result object
  */
 export async function browserImpl(input, options = {}) {
 	const launch = options.launchBrowser || launchBrowser;
@@ -282,7 +282,7 @@ export async function browserImpl(input, options = {}) {
 	if (input.action === "navigate") {
 		const validation = filterUrl(input.url, []);
 		if (!validation.allowed) {
-			return JSON.stringify({ ok: false, error: `URL rejected: ${validation.reason}` });
+			return { ok: false, error: `URL rejected: ${validation.reason}` };
 		}
 	}
 
@@ -305,20 +305,20 @@ export async function browserImpl(input, options = {}) {
 		if (input.action === "close") {
 			await browser.close().catch(() => {});
 			sessions.delete(sessionId);
-			return JSON.stringify({ ok: true, action: "close" });
+			return { ok: true, action: "close" };
 		}
 
 		// Every session is persisted. Return the sessionId so the caller can
 		// reuse it in subsequent calls; the idle GC reclaims unused sessions.
-		return JSON.stringify({ ...result, sessionId });
+		return { ...result, sessionId };
 	} catch (err) {
-		return JSON.stringify({ ok: false, error: `Browser action failed: ${err.message}`, sessionId });
+		return { ok: false, error: `Browser action failed: ${err.message}`, sessionId };
 	}
 }
 
 /**
  * @param {z.infer<typeof BrowserToolSchema>} input - Tool input
- * @returns {string} JSON result string
+ * @returns {object} Structured result object
  */
 export const browser = tool(browserImpl, {
 	name: "browser",
