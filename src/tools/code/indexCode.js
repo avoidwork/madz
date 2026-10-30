@@ -34,14 +34,17 @@ export const pool = new Piscina({
  * @param {z.infer<typeof CodeIndexSchema>} input - The tool input
  * @param {object} [options] - Runtime options for test injection
  * @param {object} [options.vector] - Vector config override (for testing)
- * @returns {Promise<string>} Formatted indexing results
+ * @returns {Promise<{ok: boolean, results?: Array<object>, error?: string}>} Structured indexing results
  */
 export async function indexCodeImpl(input, options = {}) {
 	const cfg = options.vector || vectorConfig;
 	const projects = cfg.projects || {};
 
 	if (Object.keys(projects).length === 0) {
-		return "No vector projects configured in config.yaml under vector.projects.";
+		return {
+			ok: false,
+			error: "No vector projects configured in config.yaml under vector.projects.",
+		};
 	}
 
 	const projectNames = input.project ? [input.project] : Object.keys(projects);
@@ -50,7 +53,7 @@ export async function indexCodeImpl(input, options = {}) {
 	for (const name of projectNames) {
 		const proj = projects[name];
 		if (!proj) {
-			results.push(`Project "${name}" not found in config.`);
+			results.push({ name, error: `Project "${name}" not found in config.` });
 			continue;
 		}
 
@@ -70,15 +73,18 @@ export async function indexCodeImpl(input, options = {}) {
 				ftsTokenize: cfg.ftsTokenize || "porter unicode61",
 			});
 
-			results.push(
-				`${name}: ${result.indexed} indexed, ${result.skipped} skipped, ${result.errors} errors`,
-			);
+			results.push({
+				name,
+				indexed: result.indexed,
+				skipped: result.skipped,
+				errors: result.errors,
+			});
 		} catch (err) {
-			results.push(`${name}: error — ${err.message}`);
+			results.push({ name, error: err.message });
 		}
 	}
 
-	return results.join("\n");
+	return { ok: true, results };
 }
 
 export const indexCode = tool(indexCodeImpl, {
