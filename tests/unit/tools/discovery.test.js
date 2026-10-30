@@ -78,7 +78,8 @@ describe("tools - discovery", () => {
 	describe("path validation", () => {
 		it("denies a path outside the sandbox allowlist", async () => {
 			const result = await lsImpl({ path: "/etc/passwd" }, getOptions());
-			assert.match(result, /Access denied/);
+			assert.strictEqual(result.ok, false);
+			assert.match(result.error, /Access denied/);
 		});
 
 		it("allows a path inside the sandbox allowlist", async () => {
@@ -86,7 +87,8 @@ describe("tools - discovery", () => {
 			mkdirSync(dir, { recursive: true });
 			writeFileSync(join(dir, "a.txt"), "a");
 			const result = await lsImpl({ path: dir }, getOptions());
-			assert.match(result, /a\.txt/);
+			assert.strictEqual(result.ok, true);
+			assert.ok(result.entries.includes("a.txt"));
 		});
 	});
 
@@ -128,7 +130,8 @@ describe("tools - discovery", () => {
 			writeFileSync(join(projectDir, "a.txt"), "a");
 			setProjectCwd(projectDir);
 			const result = await lsImpl({ action: "ls" }, getOptions());
-			assert.match(result, /a\.txt/);
+			assert.strictEqual(result.ok, true);
+			assert.ok(result.entries.includes("a.txt"));
 			setProjectCwd("");
 		});
 	});
@@ -140,8 +143,9 @@ describe("tools - discovery", () => {
 			writeFileSync(join(dir, "a.txt"), "a");
 			writeFileSync(join(dir, "b.txt"), "b");
 			const result = await lsImpl({ path: dir }, getOptions());
-			assert.match(result, /a\.txt/);
-			assert.match(result, /b\.txt/);
+			assert.strictEqual(result.ok, true);
+			assert.ok(result.entries.includes("a.txt"));
+			assert.ok(result.entries.includes("b.txt"));
 		});
 	});
 
@@ -153,16 +157,18 @@ describe("tools - discovery", () => {
 			writeFileSync(join(dir, "two.js"), "x");
 			writeFileSync(join(dir, "three.txt"), "x");
 			const result = await globImpl({ path: dir, pattern: "**/*.js" }, getOptions());
-			assert.match(result, /one\.js/);
-			assert.match(result, /two\.js/);
-			assert.ok(!result.includes("three.txt"));
+			assert.strictEqual(result.ok, true);
+			assert.ok(result.matches.some((m) => m.includes("one.js")));
+			assert.ok(result.matches.some((m) => m.includes("two.js")));
+			assert.ok(!result.matches.some((m) => m.includes("three.txt")));
 		});
 
 		it("returns no matches for an empty glob", async () => {
 			const dir = join(TEST_DIR, "globempty");
 			mkdirSync(dir, { recursive: true });
 			const result = await globImpl({ path: dir, pattern: "**/*.xyz" }, getOptions());
-			assert.match(result, /No files match/);
+			assert.strictEqual(result.ok, true);
+			assert.deepStrictEqual(result.matches, []);
 		});
 	});
 
@@ -172,7 +178,9 @@ describe("tools - discovery", () => {
 			mkdirSync(dir, { recursive: true });
 			writeFileSync(join(dir, "a.txt"), "foo\nbar\nbaz\n");
 			const result = await grepImpl({ path: dir, pattern: "bar" }, getOptions());
-			assert.match(result, /bar/);
+			assert.strictEqual(result.ok, true);
+			assert.ok(result.matches.some((m) => m.includes("bar")));
+			assert.ok(result.count > 0);
 		});
 
 		it("returns no matches when nothing matches", async () => {
@@ -180,7 +188,9 @@ describe("tools - discovery", () => {
 			mkdirSync(dir, { recursive: true });
 			writeFileSync(join(dir, "a.txt"), "foo\n");
 			const result = await grepImpl({ path: dir, pattern: "zzz" }, getOptions());
-			assert.match(result, /No matches found/);
+			assert.strictEqual(result.ok, true);
+			assert.deepStrictEqual(result.matches, []);
+			assert.strictEqual(result.count, 0);
 		});
 
 		it("uses native search as the fallback when rg is unavailable", async () => {
@@ -188,12 +198,15 @@ describe("tools - discovery", () => {
 			mkdirSync(dir, { recursive: true });
 			writeFileSync(join(dir, "a.txt"), "alpha\nbeta\ngamma\n");
 			const result = await nativeSearch("beta", dir, 20);
-			assert.match(result, /beta/);
+			assert.strictEqual(result.ok, true);
+			assert.ok(result.matches.some((m) => m.includes("beta")));
+			assert.ok(result.count > 0);
 		});
 
 		it("validates path against the sandbox allowlist", async () => {
 			const result = await grepImpl({ path: "/etc/passwd", pattern: "root" }, getOptions());
-			assert.match(result, /Error/);
+			assert.strictEqual(result.ok, false);
+			assert.match(result.error, /Access denied/);
 		});
 	});
 
@@ -203,12 +216,14 @@ describe("tools - discovery", () => {
 			mkdirSync(dir, { recursive: true });
 			writeFileSync(join(dir, "a.txt"), "x");
 			const result = await discoveryImpl({ action: "ls", path: dir }, getOptions());
-			assert.match(result, /a\.txt/);
+			assert.strictEqual(result.ok, true);
+			assert.ok(result.entries.includes("a.txt"));
 		});
 
 		it("returns an error for an unknown action", async () => {
 			const result = await discoveryImpl({ action: "read", path: "/tmp/x" }, getOptions());
-			assert.match(result, /Unknown action/);
+			assert.strictEqual(result.ok, false);
+			assert.match(result.error, /Unknown action/);
 		});
 	});
 });

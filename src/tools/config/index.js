@@ -9,11 +9,15 @@ import { loadConfig } from "../../config/loader.js";
  * Requires only filesystem:read permission — no input parameters needed.
  *
  * @param {z.infer<typeof GetConfigSchema>} _input - The tool input (empty object)
- * @returns {Promise<string>} JSON-serialized harness configuration
+ * @returns {Promise<{ ok: boolean, config?: object, error?: string }>} Structured result with the parsed config on success or an error message on failure
  */
 async function getConfigImpl(_input) {
-	const config = loadConfig();
-	return JSON.stringify(config, null, 2);
+	try {
+		const config = loadConfig();
+		return { ok: true, config };
+	} catch (err) {
+		return { ok: false, error: err.message };
+	}
 }
 
 export const getConfig = tool(getConfigImpl, {

@@ -29,6 +29,7 @@ describe("clarify", () => {
 			testOptions,
 			"Jason",
 		);
+		assert.strictEqual(result.ok, true);
 		assert.strictEqual(result.answered, true);
 		assert.strictEqual(result.source, "open_ended");
 		assert.strictEqual(result.question, "What is your name?");
@@ -41,6 +42,7 @@ describe("clarify", () => {
 			testOptions,
 			"Python",
 		);
+		assert.strictEqual(result.ok, true);
 		assert.strictEqual(result.answered, true);
 		assert.strictEqual(result.source, "choices");
 		assert.strictEqual(result.question, "Which language?");
@@ -84,6 +86,12 @@ describe("clarify", () => {
 		assert.deepStrictEqual(result.value.choices, ["red", "blue"]);
 	});
 
+	it("returns a native object with ok false on failure", async () => {
+		const result = await clarifyImpl(null, testOptions);
+		assert.strictEqual(result.ok, false);
+		assert.strictEqual(typeof result.error, "string");
+	});
+
 	after(teardown);
 });
 
@@ -99,9 +107,9 @@ async function runClarifyInGraph(input, options, resume) {
 
 	let parsedResult = null;
 	const node = async () => {
-		const raw = await clarifyImpl(input, options);
-		parsedResult = JSON.parse(raw);
-		return { messages: [parsedResult.answer ?? "interrupted"] };
+		const result = await clarifyImpl(input, options);
+		parsedResult = result;
+		return { messages: [result.answer ?? "interrupted"] };
 	};
 
 	const graph = new StateGraph(State)

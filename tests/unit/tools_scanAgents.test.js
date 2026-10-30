@@ -38,41 +38,46 @@ describe("scanAgents tool - scanAgentsImpl", () => {
 		await teardown();
 	});
 
-	it("returns file contents when AGENTS.md exists", async () => {
+	it("returns ok:true with file contents when AGENTS.md exists", async () => {
 		const result = await scanAgentsImpl({ path: TEST_DIR }, options);
+		assert.strictEqual(result.ok, true);
 		assert.ok(
-			result.includes("# Test AGENTS.md") && result.includes("This is test content."),
-			`Expected AGENTS.md content in result, got: ${result.substring(0, 100)}`,
+			result.agents.includes("# Test AGENTS.md") && result.agents.includes("This is test content."),
+			`Expected AGENTS.md content in result.agents, got: ${result.agents.substring(0, 100)}`,
 		);
 	});
 
-	it("returns empty string when AGENTS.md does not exist", async () => {
+	it("returns ok:true with empty agents when AGENTS.md does not exist", async () => {
 		const nonExistentDir = join(tmpdir(), "nonExistent-" + Date.now());
 		const result = await scanAgentsImpl({ path: nonExistentDir }, options);
-		assert.strictEqual(result, "");
+		assert.strictEqual(result.ok, true);
+		assert.strictEqual(result.agents, "");
 	});
 
-	it("returns empty string when target directory does not exist", async () => {
+	it("returns ok:true with empty agents when target directory does not exist", async () => {
 		const nonExistentDir = join(tmpdir(), "nonExistent-" + Date.now());
 		const result = await scanAgentsImpl({ path: nonExistentDir }, options);
-		assert.strictEqual(result, "");
+		assert.strictEqual(result.ok, true);
+		assert.strictEqual(result.agents, "");
 	});
 
-	it("returns error message for path traversal attempt", async () => {
+	it("returns ok:false with error for path traversal attempt", async () => {
 		const result = await scanAgentsImpl({ path: "../../../etc" }, options);
+		assert.strictEqual(result.ok, false);
 		assert.ok(
-			result.toLowerCase().includes("error") || result.toLowerCase().includes("not allowed"),
-			`Expected error for path traversal, got: ${result}`,
+			typeof result.error === "string" && result.error.length > 0,
+			`Expected a non-empty error string, got: ${JSON.stringify(result)}`,
 		);
 	});
 
-	it("returns error message when file exceeds size limit", async () => {
+	it("returns ok:false with error when file exceeds size limit", async () => {
 		const largeContent = "x".repeat(2 * 1024 * 1024); // 2MB
 		await writeFile(join(TEST_DIR, "AGENTS.md"), largeContent, "utf-8");
 		const result = await scanAgentsImpl({ path: TEST_DIR }, options);
+		assert.strictEqual(result.ok, false);
 		assert.ok(
-			result.toLowerCase().includes("error") || result.toLowerCase().includes("exceeds"),
-			`Expected error for oversized file, got: ${result}`,
+			typeof result.error === "string" && result.error.length > 0,
+			`Expected a non-empty error string, got: ${JSON.stringify(result)}`,
 		);
 	});
 

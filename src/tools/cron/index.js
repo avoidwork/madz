@@ -235,7 +235,7 @@ async function runJob(job, schedulesDir) {
  * @param {object} [options] - Runtime options
  * @param {string} [options.schedulesDir] - Directory for job persistence (default "memory/schedules/")
  * @param {object} [options.cron] - Cron module for testing
- * @returns {Promise<string>} JSON result string
+ * @returns {Promise<object>} Structured result object
  */
 export async function cronJobImpl(input, options) {
 	const { action } = input;
@@ -244,39 +244,39 @@ export async function cronJobImpl(input, options) {
 
 	const actions = ["create", "list", "update", "pause", "resume", "run", "remove"];
 	if (!actions.includes(action)) {
-		return JSON.stringify({
+		return {
 			ok: false,
 			error: `Unknown action: "${action}". Valid actions: ${actions.join(", ")}`,
-		});
+		};
 	}
 
 	try {
 		switch (action) {
 			case "list": {
 				const result = await listJobs(schedulesDir);
-				return JSON.stringify({ ok: true, ...result });
+				return { ok: true, ...result };
 			}
 
 			case "create": {
 				const { name, cron, skill, command, input: jobInput = {} } = input;
 				if (!name || !cron || (!skill && !command)) {
-					return JSON.stringify({
+					return {
 						ok: false,
 						error: "create requires: name, cron, and either skill or command",
-					});
+					};
 				}
 				if (!isValidCron(cron)) {
-					return JSON.stringify({
+					return {
 						ok: false,
 						error: `Invalid cron expression: "${cron}". Must be 5-6 fields (minute hour day month weekday)`,
-					});
+					};
 				}
 				const existing = await loadJob(name, schedulesDir);
 				if (existing) {
-					return JSON.stringify({
+					return {
 						ok: false,
 						error: `Job "${name}" already exists. Use "update" to modify it.`,
-					});
+					};
 				}
 				const now = new Date().toISOString();
 				const inputStr = Object.keys(jobInput).length ? ` ${JSON.stringify(jobInput)}` : "";
@@ -302,7 +302,7 @@ export async function cronJobImpl(input, options) {
 				if (cronResult.error) {
 					logger.warn(`[cronJob] Failed to register "${job.name}" in crontab: ${cronResult.error}`);
 				}
-				return JSON.stringify({ ok: true, message: `Job "${name}" created`, job });
+				return { ok: true, message: `Job "${name}" created`, job };
 			}
 
 			case "update": {
@@ -314,21 +314,21 @@ export async function cronJobImpl(input, options) {
 					input: updateInput,
 				} = input;
 				if (!updateName) {
-					return JSON.stringify({ ok: false, error: "update requires: name" });
+					return { ok: false, error: "update requires: name" };
 				}
 				const existing = await loadJob(updateName, schedulesDir);
 				if (!existing) {
-					return JSON.stringify({
+					return {
 						ok: false,
 						error: `Job "${updateName}" not found. Use "create" to add it.`,
-					});
+					};
 				}
 				if (updateCron) {
 					if (!isValidCron(updateCron)) {
-						return JSON.stringify({
+						return {
 							ok: false,
 							error: `Invalid cron expression: "${updateCron}".`,
-						});
+						};
 					}
 					existing.cron = updateCron;
 				}
@@ -347,87 +347,87 @@ export async function cronJobImpl(input, options) {
 						command: existing.command,
 					});
 				}
-				return JSON.stringify({ ok: true, message: `Job "${updateName}" updated`, job: existing });
+				return { ok: true, message: `Job "${updateName}" updated`, job: existing };
 			}
 
 			case "pause": {
 				const { name: pauseName } = input;
 				if (!pauseName) {
-					return JSON.stringify({ ok: false, error: "pause requires: name" });
+					return { ok: false, error: "pause requires: name" };
 				}
 				const existing = await loadJob(pauseName, schedulesDir);
 				if (!existing) {
-					return JSON.stringify({ ok: false, error: `Job "${pauseName}" not found` });
+					return { ok: false, error: `Job "${pauseName}" not found` };
 				}
 				existing.enabled = false;
 				existing.updatedAt = new Date().toISOString();
 				await saveJob(existing, schedulesDir);
-				return JSON.stringify({
+				return {
 					ok: true,
 					message: `Job "${pauseName}" paused`,
 					job: existing,
-				});
+				};
 			}
 
 			case "resume": {
 				const { name: resumeName } = input;
 				if (!resumeName) {
-					return JSON.stringify({ ok: false, error: "resume requires: name" });
+					return { ok: false, error: "resume requires: name" };
 				}
 				const existing = await loadJob(resumeName, schedulesDir);
 				if (!existing) {
-					return JSON.stringify({ ok: false, error: `Job "${resumeName}" not found` });
+					return { ok: false, error: `Job "${resumeName}" not found` };
 				}
 				existing.enabled = true;
 				existing.updatedAt = new Date().toISOString();
 				await saveJob(existing, schedulesDir);
-				return JSON.stringify({
+				return {
 					ok: true,
 					message: `Job "${resumeName}" resumed`,
 					job: existing,
-				});
+				};
 			}
 
 			case "run": {
 				const { name: runName } = input;
 				if (!runName) {
-					return JSON.stringify({ ok: false, error: "run requires: name" });
+					return { ok: false, error: "run requires: name" };
 				}
 				const existing = await loadJob(runName, schedulesDir);
 				if (!existing) {
-					return JSON.stringify({ ok: false, error: `Job "${runName}" not found` });
+					return { ok: false, error: `Job "${runName}" not found` };
 				}
 				const result = await runJob(existing, schedulesDir);
-				return JSON.stringify(result);
+				return result;
 			}
 
 			case "remove": {
 				const { name: removeName } = input;
 				if (!removeName) {
-					return JSON.stringify({ ok: false, error: "remove requires: name" });
+					return { ok: false, error: "remove requires: name" };
 				}
 				const existing = await loadJob(removeName, schedulesDir);
 				if (!existing) {
-					return JSON.stringify({ ok: false, error: `Job "${removeName}" not found` });
+					return { ok: false, error: `Job "${removeName}" not found` };
 				}
 				const filePath = join(schedulesDir, `${removeName}.json`);
 				await unlink(filePath);
 				await cronModule.remove(removeName);
-				return JSON.stringify({
+				return {
 					ok: true,
 					message: `Job "${removeName}" removed`,
-				});
+				};
 			}
 		}
 	} catch (err) {
-		return JSON.stringify({ ok: false, error: `Cron job error: ${err.message}` });
+		return { ok: false, error: `Cron job error: ${err.message}` };
 	}
 }
 
 /**
  * @param {z.infer<typeof CronSchema>} input - Tool input with action and parameters
  * @param {object} _options - Runtime options
- * @returns {string} JSON result string
+ * @returns {object} Structured result object
  */
 export const cronJob = tool(
 	(input) => cronJobImpl(input, { schedulesDir: config.memory.schedulesDir }),
