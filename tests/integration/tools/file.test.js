@@ -49,24 +49,29 @@ describe("tools - file integration", () => {
 
 		// write
 		const writeResult = await writeImpl({ path: filePath, content: "hello world" }, getOptions());
-		assert.match(writeResult, /Successfully wrote/);
+		assert.strictEqual(writeResult.ok, true);
+		assert.strictEqual(writeResult.path, filePath);
+		assert.strictEqual(writeResult.bytesWritten, 11);
 		assert.strictEqual(readFileSync(filePath, "utf-8"), "hello world");
 
 		// read
 		const readResult = await readImpl({ path: filePath }, getOptions());
-		assert.match(readResult, /1\|hello world/);
+		assert.strictEqual(readResult.ok, true);
+		assert.deepStrictEqual(readResult.lines, ["1|hello world"]);
 
 		// edit
 		const editResult = await editImpl(
 			{ path: filePath, oldString: "world", newString: "madz" },
 			getOptions(),
 		);
-		assert.match(editResult, /Edit applied successfully/);
+		assert.strictEqual(editResult.ok, true);
+		assert.strictEqual(editResult.changes, 1);
 		assert.strictEqual(readFileSync(filePath, "utf-8"), "hello madz");
 
 		// delete
 		const deleteResult = await deleteImpl({ path: filePath }, getOptions());
-		assert.match(deleteResult, /Successfully deleted/);
+		assert.strictEqual(deleteResult.ok, true);
+		assert.strictEqual(deleteResult.path, filePath);
 		assert.strictEqual(existsSync(filePath), false);
 	});
 
@@ -76,7 +81,8 @@ describe("tools - file integration", () => {
 			{ action: "write", path: filePath, content: "dispatched" },
 			getOptions(),
 		);
-		assert.match(result, /Successfully wrote/);
+		assert.strictEqual(result.ok, true);
+		assert.strictEqual(result.path, filePath);
 		assert.strictEqual(readFileSync(filePath, "utf-8"), "dispatched");
 	});
 });

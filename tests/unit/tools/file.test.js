@@ -81,41 +81,46 @@ describe("tools - file", () => {
 			const filePath = join(TEST_DIR, "read.txt");
 			writeFileSync(filePath, "line one\nline two\nline three\n");
 			const result = await readImpl({ path: filePath }, getOptions());
-			assert.match(result, /1\|line one/);
-			assert.match(result, /2\|line two/);
-			assert.match(result, /3\|line three/);
+			assert.strictEqual(result.ok, true);
+			assert.strictEqual(result.content, "line one\nline two\nline three\n");
+			assert.deepStrictEqual(result.lines, ["1|line one", "2|line two", "3|line three", "4|"]);
 		});
 
 		it("supports offset/limit pagination", async () => {
 			const filePath = join(TEST_DIR, "pagination.txt");
 			writeFileSync(filePath, "a\nb\nc\nd\ne\n");
 			const result = await readImpl({ path: filePath, offset: 1, limit: 2 }, getOptions());
-			assert.match(result, /2\|b/);
-			assert.match(result, /3\|c/);
-			assert.ok(!result.includes("1|a"));
+			assert.strictEqual(result.ok, true);
+			assert.deepStrictEqual(result.lines, ["2|b", "3|c"]);
+			assert.ok(!result.lines.includes("1|a"));
 		});
 
 		it("returns an error for a missing file", async () => {
 			const result = await readImpl({ path: join(TEST_DIR, "missing.txt") }, getOptions());
-			assert.match(result, /File not found/);
+			assert.strictEqual(result.ok, false);
+			assert.match(result.error, /File not found/);
 		});
 	});
 
 	describe("path validation", () => {
 		it("denies a path outside the sandbox allowlist", async () => {
 			const result = await readImpl({ path: "/etc/passwd" }, getOptions());
-			assert.match(result, /Access denied/);
+			assert.strictEqual(result.ok, false);
+			assert.match(result.error, /Access denied/);
 		});
 
 		it("denies a write outside the sandbox allowlist", async () => {
 			const result = await writeImpl({ path: "/etc/passwd", content: "x" }, getOptions());
-			assert.match(result, /Access denied/);
+			assert.strictEqual(result.ok, false);
+			assert.match(result.error, /Access denied/);
 		});
 
 		it("allows a path inside the sandbox allowlist", async () => {
 			const filePath = join(TEST_DIR, "allowed.txt");
 			const result = await writeImpl({ path: filePath, content: "hello" }, getOptions());
-			assert.match(result, /Successfully wrote/);
+			assert.strictEqual(result.ok, true);
+			assert.strictEqual(result.path, filePath);
+			assert.strictEqual(result.bytesWritten, 5);
 		});
 	});
 
@@ -157,7 +162,8 @@ describe("tools - file", () => {
 			writeFileSync(join(projectDir, "b.txt"), "hello");
 			setProjectCwd(projectDir);
 			const result = await readImpl({ action: "read", path: "b.txt" }, getOptions());
-			assert.match(result, /1\|hello/);
+			assert.strictEqual(result.ok, true);
+			assert.deepStrictEqual(result.lines, ["1|hello"]);
 			setProjectCwd("");
 		});
 	});
@@ -170,7 +176,8 @@ describe("tools - file", () => {
 				{ path: filePath },
 				{ allowedPaths: ALLOWED_PATHS, maxReadSize: "1kb" },
 			);
-			assert.match(result, /exceeds max read size/);
+			assert.strictEqual(result.ok, false);
+			assert.match(result.error, /exceeds max read size/);
 		});
 
 		it("reads a file within the max read size", async () => {
@@ -180,7 +187,8 @@ describe("tools - file", () => {
 				{ path: filePath },
 				{ allowedPaths: ALLOWED_PATHS, maxReadSize: "1kb" },
 			);
-			assert.match(result, /1\|small/);
+			assert.strictEqual(result.ok, true);
+			assert.deepStrictEqual(result.lines, ["1|small"]);
 		});
 	});
 
@@ -188,14 +196,16 @@ describe("tools - file", () => {
 		it("writes content to a file", async () => {
 			const filePath = join(TEST_DIR, "write.txt");
 			const result = await writeImpl({ path: filePath, content: "hello world" }, getOptions());
-			assert.match(result, /Successfully wrote/);
+			assert.strictEqual(result.ok, true);
+			assert.strictEqual(result.path, filePath);
+			assert.strictEqual(result.bytesWritten, 11);
 			assert.strictEqual(readFileSync(filePath, "utf-8"), "hello world");
 		});
 
 		it("creates parent directories", async () => {
 			const filePath = join(TEST_DIR, "nested", "deep", "file.txt");
 			const result = await writeImpl({ path: filePath, content: "nested" }, getOptions());
-			assert.match(result, /Successfully wrote/);
+			assert.strictEqual(result.ok, true);
 			assert.strictEqual(readFileSync(filePath, "utf-8"), "nested");
 		});
 
@@ -205,7 +215,8 @@ describe("tools - file", () => {
 				{ path: filePath, content: "x".repeat(600 * 1024) },
 				getOptions(),
 			);
-			assert.match(result, /exceeds maximum allowed size/);
+			assert.strictEqual(result.ok, false);
+			assert.match(result.error, /exceeds maximum allowed size/);
 		});
 	});
 
@@ -217,7 +228,10 @@ describe("tools - file", () => {
 				{ path: filePath, oldString: "brown", newString: "red" },
 				getOptions(),
 			);
-			assert.match(result, /Edit applied successfully/);
+			assert.strictEqual(result.ok, true);
+			assert.strictEqual(result.changes, 1);
+			assert.match(result.diff, /-brown/);
+			assert.match(result.diff, /\+red/);
 			assert.strictEqual(readFileSync(filePath, "utf-8"), "the quick red fox");
 		});
 
@@ -228,7 +242,8 @@ describe("tools - file", () => {
 				{ path: filePath, oldString: "nonexistent", newString: "x" },
 				getOptions(),
 			);
-			assert.match(result, /Edit failed/);
+			assert.strictEqual(result.ok, false);
+			assert.match(result.error, /Could not find matching text/);
 		});
 
 		it("uses fuzzy matching for whitespace drift", async () => {
@@ -238,7 +253,8 @@ describe("tools - file", () => {
 				{ path: filePath, oldString: "hello world", newString: "hi there" },
 				getOptions(),
 			);
-			assert.match(result, /Edit applied successfully/);
+			assert.strictEqual(result.ok, true);
+			assert.strictEqual(result.changes, 1);
 		});
 	});
 
@@ -247,13 +263,15 @@ describe("tools - file", () => {
 			const filePath = join(TEST_DIR, "delete.txt");
 			writeFileSync(filePath, "to delete");
 			const result = await deleteImpl({ path: filePath }, getOptions());
-			assert.match(result, /Successfully deleted/);
+			assert.strictEqual(result.ok, true);
+			assert.strictEqual(result.path, filePath);
 			assert.throws(() => readFileSync(filePath, "utf-8"));
 		});
 
 		it("returns an error for a missing file", async () => {
 			const result = await deleteImpl({ path: join(TEST_DIR, "no-such.txt") }, getOptions());
-			assert.match(result, /Error:/);
+			assert.strictEqual(result.ok, false);
+			assert.match(result.error, /ENOENT/);
 		});
 	});
 
@@ -264,17 +282,20 @@ describe("tools - file", () => {
 				{ action: "write", path: filePath, content: "data" },
 				getOptions(),
 			);
-			assert.match(result, /Successfully wrote/);
+			assert.strictEqual(result.ok, true);
+			assert.strictEqual(result.path, filePath);
 		});
 
 		it("returns an error for an unknown action", async () => {
 			const result = await fileImpl({ action: "execute", path: "/tmp/x" }, getOptions());
-			assert.match(result, /Unknown action/);
+			assert.strictEqual(result.ok, false);
+			assert.match(result.error, /Unknown action/);
 		});
 
 		it("returns an error for a discovery action", async () => {
 			const result = await fileImpl({ action: "ls", path: "/tmp/x" }, getOptions());
-			assert.match(result, /Unknown action/);
+			assert.strictEqual(result.ok, false);
+			assert.match(result.error, /Unknown action/);
 		});
 	});
 
