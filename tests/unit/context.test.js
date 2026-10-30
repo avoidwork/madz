@@ -1,6 +1,6 @@
 import { describe, it, after, beforeEach } from "node:test";
 import assert from "node:assert";
-import { mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { mkdirSync, writeFileSync, rmSync, utimesSync } from "node:fs";
 import { join } from "node:path";
 import { loadContext } from "../../src/memory/context.js";
 import { parseFrontmatter } from "../../src/memory/reader.js";
@@ -194,6 +194,93 @@ describe("loadContext", () => {
 			if (result.includes(`Ephemeral ${i}`)) count++;
 		}
 		assert.strictEqual(count, 5, "Should only load 5 ephemeral files by default");
+	});
+
+	it("reads only ephemeralLimit ephemeral files when more exist", async () => {
+		writeFileSync(
+			join(fullTestDir, "persistent.md"),
+			"---\ntitle: Persistent\ntimestamp: 2024-01-01\n---\nPersistent content",
+		);
+		// Create more ephemeral files than the default limit (5)
+		for (let i = 1; i <= 8; i++) {
+			writeFileSync(
+				join(fullTestDir, `ephemeral-${i}.md`),
+				`---\ntitle: Ephemeral ${i}\ntimestamp: 2024-01-0${i}\nephemeral: true\nephemeral_expiresAt: "2099-01-01T00:00:00.000Z"\n---\nEphemeral ${i} content`,
+			);
+		}
+
+		const result = await loadContext(testDir, 10);
+		let count = 0;
+		for (let i = 1; i <= 8; i++) {
+			if (result.includes(`Ephemeral ${i}`)) count++;
+		}
+		assert.strictEqual(count, 5, "Should only read 5 ephemeral files by default");
+	});
+
+	it("orders ephemeral files newest-first by mtime", async () => {
+		writeFileSync(
+			join(fullTestDir, "persistent.md"),
+			"---\ntitle: Persistent\ntimestamp: 2024-01-01\n---\nPersistent content",
+		);
+		// Create ephemeral files with distinct mtimes (oldest first)
+		const files = [
+			["ephemeral-old.md", "Ephemeral Old"],
+			["ephemeral-mid.md", "Ephemeral Mid"],
+			["ephemeral-new.md", "Ephemeral New"],
+		];
+		const baseTime = new Date("2024-01-01T00:00:00Z").getTime();
+		files.forEach(([name, title], idx) => {
+			const filepath = join(fullTestDir, name);
+			writeFileSync(
+				filepath,
+				`---\ntitle: ${title}\ntimestamp: 2024-01-0${idx + 1}\nephemeral: true\nephemeral_expiresAt: "2099-01-01T00:00:00.000Z"\n---\n${title} content`,
+			);
+			// Set mtime: old=base, mid=base+1d, new=base+2d
+			utimesSync(
+				filepath,
+				new Date(baseTime + idx * 86400000),
+				new Date(baseTime + idx * 86400000),
+			);
+		});
+
+		const result = await loadContext(testDir, 10);
+		const newIdx = result.indexOf("Ephemeral New");
+		const midIdx = result.indexOf("Ephemeral Mid");
+		const oldIdx = result.indexOf("Ephemeral Old");
+		assert.ok(newIdx !== -1, "Newest ephemeral should be present");
+		assert.ok(midIdx !== -1, "Middle ephemeral should be present");
+		assert.ok(oldIdx !== -1, "Oldest ephemeral should be present");
+		assert.ok(newIdx < midIdx, "Newest ephemeral should come before middle");
+		assert.ok(midIdx < oldIdx, "Middle ephemeral should come before oldest");
+	});
+
+	it("excludes ephemeral files outside the time range (expired)", async () => {
+		writeFileSync(
+			join(fullTestDir, "persistent.md"),
+			"---\ntitle: Persistent\ntimestamp: 2024-01-01\n---\nPersistent content",
+		);
+		// Expired ephemeral file (expiresAt in the past)
+		writeFileSync(
+			join(fullTestDir, "ephemeral-expired.md"),
+			'---\ntitle: Ephemeral Expired\ntimestamp: 2024-01-01\nephemeral: true\nephemeral_expiresAt: "2020-01-01T00:00:00.000Z"\n---\nExpired ephemeral content',
+		);
+		// Non-expired ephemeral file (expiresAt in the future)
+		writeFileSync(
+			join(fullTestDir, "ephemeral-active.md"),
+			'---\ntitle: Ephemeral Active\ntimestamp: 2024-01-02\nephemeral: true\nephemeral_expiresAt: "2099-01-01T00:00:00.000Z"\n---\nActive ephemeral content',
+		);
+
+		const result = await loadContext(testDir, 10);
+		assert.ok(
+			result.includes("[Ephemeral: Ephemeral Active]"),
+			"Active ephemeral should be present",
+		);
+		assert.ok(result.includes("Active ephemeral content"));
+		assert.ok(
+			!result.includes("[Ephemeral: Ephemeral Expired]"),
+			"Expired ephemeral should be excluded",
+		);
+		assert.ok(!result.includes("Expired ephemeral content"));
 	});
 
 	it("handles missing profile.md gracefully", async () => {
