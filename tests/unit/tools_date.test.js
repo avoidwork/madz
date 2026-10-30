@@ -65,14 +65,13 @@ describe("date tool - singleton export", () => {
 		assert.ok(date.schema, "Expected a schema to be defined");
 	});
 
-	it("invokes the tool and returns a JSON string of the structured result", async () => {
+	it("invokes the tool and returns the structured result directly", async () => {
 		const result = await date.invoke({});
-		const parsed = JSON.parse(result);
-		assert.strictEqual(parsed.ok, true);
-		assert.strictEqual(parsed.format, "iso");
+		assert.strictEqual(result.ok, true);
+		assert.strictEqual(result.format, "iso");
 		assert.ok(
-			/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(parsed.date),
-			`Expected ISO 8601 format, got: ${parsed.date}`,
+			/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(result.date),
+			`Expected ISO 8601 format, got: ${result.date}`,
 		);
 	});
 });

@@ -24,17 +24,11 @@ export function dateImpl(input) {
 
 /**
  * @param {z.infer<typeof DateSchema>} input - Tool input
- * @returns {Promise<string>} JSON string of the structured date result
+ * @returns {{ ok: boolean, date?: string, format?: string, error?: string }} Structured date result
  */
-export const date = tool(
-	async (input) => {
-		const result = dateImpl(input);
-		return JSON.stringify(result, null, 2);
-	},
-	{
-		name: "date",
-		description:
-			"Return the current date and time. Defaults to ISO 8601 UTC format; use format='human' for human-readable output.",
-		schema: DateSchema,
-	},
-);
+export const date = tool(dateImpl, {
+	name: "date",
+	description:
+		"Return the current date and time. Defaults to ISO 8601 UTC format; use format='human' for human-readable output.",
+	schema: DateSchema,
+});
