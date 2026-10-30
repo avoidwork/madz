@@ -30,7 +30,7 @@ async function exists(path) {
  * @param {object} [options] - Runtime options for test injection
  * @param {string} [options.cwd] - Working directory (overrides config)
  * @param {string} [options.sessionsDir] - Sessions subdirectory (overrides config)
- * @returns {Promise<string>} Search results or conversation content
+ * @returns {Promise<{ ok: boolean, conversation?: string, snippets?: string, conversations?: Array<{ file: string, date: string, sessionId: string, preview: string }>, error?: string }>} Structured search results or conversation content
  */
 export async function searchSessionImpl(input, options = {}) {
 	const config = loadConfig();
@@ -64,11 +64,11 @@ export const searchSession = tool(searchSessionImpl, {
  * Get full conversation by ID.
  * @param {string} sessionsDir - Sessions directory
  * @param {string} conversationId - Session/ID to find
- * @returns {Promise<string>} Full conversation content
+ * @returns {Promise<{ ok: boolean, conversation?: string, error?: string }>} Full conversation content
  */
 async function getFullConversation(sessionsDir, conversationId) {
 	if (!(await exists(sessionsDir))) {
-		return `No conversations directory found: ${sessionsDir}`;
+		return { ok: false, error: `No conversations directory found: ${sessionsDir}` };
 	}
 
 	const files = (await readdir(sessionsDir)).filter((f) => f.endsWith(".md"));
@@ -81,10 +81,10 @@ async function getFullConversation(sessionsDir, conversationId) {
 			frontmatter.sessionId || file.replace(/\.md$/, "").replace(/-[0-9T:._-]+/, "");
 		if (sessionId === conversationId || file.includes(conversationId)) {
 			const { content: body } = parseFrontmatter(content);
-			return `Conversation (${file}):\n\n${body}`;
+			return { ok: true, conversation: `Conversation (${file}):\n\n${body}` };
 		}
 	}
-	return `Conversation not found: ${conversationId}`;
+	return { ok: false, error: `Conversation not found: ${conversationId}` };
 }
 
 /**
@@ -111,11 +111,11 @@ async function runCmd(cmd, args, opts) {
  * @param {string} sessionsDir - Sessions directory
  * @param {string} query - Search keyword
  * @param {number} limit - Max results
- * @returns {Promise<string>} Search results
+ * @returns {Promise<{ ok: boolean, snippets?: string, error?: string }>} Search results
  */
 async function searchConversations(sessionsDir, query, limit) {
 	if (!(await exists(sessionsDir))) {
-		return `No conversations directory found: ${sessionsDir}`;
+		return { ok: false, error: `No conversations directory found: ${sessionsDir}` };
 	}
 
 	// grep -rniIn: recursive, fixed-string, case-insensitive, numbered, skip binary
@@ -130,7 +130,7 @@ async function searchConversations(sessionsDir, query, limit) {
 
 	const output = stdout?.trim() ?? stdout;
 	if (!output) {
-		return `No conversations matched query "${query}"`;
+		return { ok: false, error: `No conversations matched query "${query}"` };
 	}
 
 	// Parse grep output: "filepath:lineNum:content"
@@ -178,22 +178,25 @@ async function searchConversations(sessionsDir, query, limit) {
 	}
 
 	if (results.length === 0) {
-		return `No conversations matched query "${query}"`;
+		return { ok: false, error: `No conversations matched query "${query}"` };
 	}
 
-	return `Found ${results.length} matching snippets:\n\n${results.join("\n---\n")}`;
+	return {
+		ok: true,
+		snippets: `Found ${results.length} matching snippets:\n\n${results.join("\n---\n")}`,
+	};
 }
 
 /**
  * Browse and list available conversations.
  * @param {string} sessionsDir - Sessions directory
- * @returns {Promise<string>} List of conversations with metadata
+ * @returns {Promise<{ ok: boolean, conversations?: Array<{ file: string, date: string, sessionId: string, preview: string }>, error?: string }>} List of conversations with metadata
  */
 async function browseConversations(sessionsDir) {
 	const conversations = [];
 
 	if (!(await exists(sessionsDir))) {
-		return `No conversations directory found: ${sessionsDir}`;
+		return { ok: false, error: `No conversations directory found: ${sessionsDir}` };
 	}
 
 	const files = (await readdir(sessionsDir)).filter((f) => f.endsWith(".md"));
@@ -222,17 +225,16 @@ async function browseConversations(sessionsDir) {
 	}
 
 	if (conversations.length === 0) {
-		return "No conversations found";
+		return { ok: false, error: "No conversations found" };
 	}
 
-	return JSON.stringify(
-		conversations.map((c) => ({
+	return {
+		ok: true,
+		conversations: conversations.map((c) => ({
 			file: c.file,
 			date: c.date,
 			sessionId: c.sessionId,
 			preview: c.preview,
 		})),
-		null,
-		0,
-	);
+	};
 }
