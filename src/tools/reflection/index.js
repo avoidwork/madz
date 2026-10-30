@@ -99,7 +99,7 @@ function matchesIgnorePatterns(content, patterns) {
  * @param {z.infer<typeof ReflectionSchema>} input - The tool input
  * @param {object} options - Runtime options
  * @param {string} [options.sessionsDir] - Path to sessions directory
- * @returns {Promise<string>} JSON array of session data
+ * @returns {Promise<{ ok: boolean, results: Array<{ sessionId: string, startedAt: string, userMessages: Array<{ content: string, timestamp: string }> }>, error?: string }>} Structured result object
  */
 export async function reflectionImpl(input, options) {
 	const { ignorePatterns = [], windowDays = DEFAULT_WINDOW_DAYS } = input;
@@ -123,15 +123,15 @@ export async function reflectionImpl(input, options) {
 			"-printf",
 			"%T@ %p\n",
 		]);
-	} catch {
-		return JSON.stringify([]);
+	} catch (err) {
+		return { ok: false, error: `Failed to discover session files: ${err.message}` };
 	}
 
 	const lines = output.stdout
 		.trim()
 		.split("\n")
 		.filter((l) => l.length > 0);
-	if (lines.length === 0) return JSON.stringify([]);
+	if (lines.length === 0) return { ok: true, results: [] };
 
 	// Sort by mtime descending (newest first)
 	lines.sort((a, b) => parseFloat(b.split(" ")[0]) - parseFloat(a.split(" ")[0]));
@@ -194,7 +194,7 @@ export async function reflectionImpl(input, options) {
 		});
 	}
 
-	return JSON.stringify(results);
+	return { ok: true, results };
 }
 
 /**

@@ -62,25 +62,27 @@ describe("searchCode tool", () => {
 		store.close();
 	}
 
-	it("returns unknown project message when project not found", async () => {
+	it("returns unknown project error when project not found", async () => {
 		const { searchCodeImpl } = await import("../../../src/tools/code/searchCode.js");
 		const result = await searchCodeImpl(
 			{ query: "hello", topK: 5, project: "nonexistent" },
 			{ vector: { projects: { madz: { dbPath } } }, openaiApiKey: "test-key" },
 		);
-		assert.ok(result.includes('Unknown project "nonexistent"'), `Got: ${result}`);
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes('Unknown project "nonexistent"'), `Got: ${result.error}`);
 	});
 
-	it("returns unknown project message when no projects configured", async () => {
+	it("returns unknown project error when no projects configured", async () => {
 		const { searchCodeImpl } = await import("../../../src/tools/code/searchCode.js");
 		const result = await searchCodeImpl(
 			{ query: "hello", topK: 5 },
 			{ vector: { projects: {} }, openaiApiKey: "test-key" },
 		);
-		assert.ok(result.includes("none configured"), `Got: ${result}`);
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("none configured"), `Got: ${result.error}`);
 	});
 
-	it("returns no matching code message when index is empty", async () => {
+	it("returns no matching code error when index is empty", async () => {
 		const { searchCodeImpl } = await import("../../../src/tools/code/searchCode.js");
 		const emptyDb = join(tmpDir, "empty.db");
 		const result = await searchCodeImpl(
@@ -90,10 +92,11 @@ describe("searchCode tool", () => {
 				openaiApiKey: "test-key",
 			},
 		);
-		assert.ok(result.includes("No matching code found"), `Got: ${result}`);
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("No matching code found"), `Got: ${result.error}`);
 	});
 
-	it("returns formatted results from indexed data", async () => {
+	it("returns structured results from indexed data", async () => {
 		await seedData(dbPath);
 		const { searchCodeImpl } = await import("../../../src/tools/code/searchCode.js");
 		const result = await searchCodeImpl(
@@ -103,8 +106,15 @@ describe("searchCode tool", () => {
 				openaiApiKey: "test-key",
 			},
 		);
-		assert.ok(result.includes("src/foo.js"), `Got: ${result}`);
-		assert.ok(result.includes("distance:"), `Got: ${result}`);
+		assert.strictEqual(result.ok, true);
+		assert.ok(Array.isArray(result.results), "results should be an array");
+		assert.strictEqual(result.count, result.results.length);
+		const paths = result.results.map((r) => r.filePath);
+		assert.ok(paths.includes("src/foo.js"), `Got: ${JSON.stringify(paths)}`);
+		assert.ok(
+			result.results.every((r) => typeof r.score === "number"),
+			"score should be numeric",
+		);
 	});
 
 	it("filters results by fileFilter", async () => {
@@ -116,11 +126,13 @@ describe("searchCode tool", () => {
 				openaiApiKey: "test-key",
 			},
 		);
-		assert.ok(result.includes("src/foo.js"), `Got: ${result}`);
-		assert.ok(!result.includes("src/bar.js"), `Got: ${result}`);
+		assert.strictEqual(result.ok, true);
+		const paths = result.results.map((r) => r.filePath);
+		assert.ok(paths.includes("src/foo.js"), `Got: ${JSON.stringify(paths)}`);
+		assert.ok(!paths.includes("src/bar.js"), `Got: ${JSON.stringify(paths)}`);
 	});
 
-	it("returns no results message when fileFilter excludes everything", async () => {
+	it("returns no results error when fileFilter excludes everything", async () => {
 		const { searchCodeImpl } = await import("../../../src/tools/code/searchCode.js");
 		const result = await searchCodeImpl(
 			{ query: "hello", topK: 5, fileFilter: "nonexistent/*" },
@@ -129,7 +141,8 @@ describe("searchCode tool", () => {
 				openaiApiKey: "test-key",
 			},
 		);
-		assert.ok(result.includes("No results matching filter"), `Got: ${result}`);
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("No results matching filter"), `Got: ${result.error}`);
 	});
 
 	it("uses first project as default when no project specified", async () => {
@@ -141,7 +154,9 @@ describe("searchCode tool", () => {
 				openaiApiKey: "test-key",
 			},
 		);
-		assert.ok(result.includes("src/foo.js"), `Got: ${result}`);
+		assert.strictEqual(result.ok, true);
+		const paths = result.results.map((r) => r.filePath);
+		assert.ok(paths.includes("src/foo.js"), `Got: ${JSON.stringify(paths)}`);
 	});
 
 	it("handles store open failure gracefully", async () => {
@@ -153,7 +168,8 @@ describe("searchCode tool", () => {
 				openaiApiKey: "test-key",
 			},
 		);
-		assert.ok(result.includes("Failed to open vector store"), `Got: ${result}`);
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("Failed to open vector store"), `Got: ${result.error}`);
 	});
 
 	it("handles embed failure gracefully", async () => {
@@ -165,7 +181,8 @@ describe("searchCode tool", () => {
 				// No openaiApiKey — will fail
 			},
 		);
-		assert.ok(result.includes("Failed to embed query"), `Got: ${result}`);
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("Failed to embed query"), `Got: ${result.error}`);
 	});
 
 	it("fulltext mode returns FTS results with rank", async () => {
@@ -200,8 +217,39 @@ describe("searchCode tool", () => {
 				openaiApiKey: "test-key",
 			},
 		);
-		assert.ok(result.includes("src/debian.js"), `Got: ${result}`);
-		assert.ok(result.includes("rank:"), `Got: ${result}`);
+		assert.strictEqual(result.ok, true);
+		const paths = result.results.map((r) => r.filePath);
+		assert.ok(paths.includes("src/debian.js"), `Got: ${JSON.stringify(paths)}`);
+		assert.ok(
+			result.results.every((r) => typeof r.score === "number"),
+			"score should be numeric",
+		);
+		assert.ok(
+			result.results.every((r) => r.source === "fulltext"),
+			"source should be fulltext",
+		);
+	});
+
+	it("vector mode returns structured results with distance score", async () => {
+		const { searchCodeImpl } = await import("../../../src/tools/code/searchCode.js");
+		const result = await searchCodeImpl(
+			{ query: "hello", topK: 5, mode: "vector" },
+			{
+				vector: { projects: { test: { dbPath } }, model: "openai" },
+				openaiApiKey: "test-key",
+			},
+		);
+		assert.strictEqual(result.ok, true);
+		const paths = result.results.map((r) => r.filePath);
+		assert.ok(paths.includes("src/foo.js"), `Got: ${JSON.stringify(paths)}`);
+		assert.ok(
+			result.results.every((r) => typeof r.score === "number"),
+			"score should be numeric",
+		);
+		assert.ok(
+			result.results.every((r) => r.source === "vector"),
+			"source should be vector",
+		);
 	});
 
 	it("hybrid mode returns combined results with source annotation", async () => {
@@ -235,6 +283,10 @@ describe("searchCode tool", () => {
 				openaiApiKey: "test-key",
 			},
 		);
-		assert.ok(result.includes("source:"), `Got: ${result}`);
+		assert.strictEqual(result.ok, true);
+		assert.ok(
+			result.results.every((r) => typeof r.source === "string"),
+			"source should be present",
+		);
 	});
 });

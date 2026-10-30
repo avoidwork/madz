@@ -17,7 +17,7 @@ const vectorConfig = config.vector || {};
  * @param {z.infer<typeof CodeSearchSchema>} input - The tool input
  * @param {object} [options] - Runtime options for test injection
  * @param {object} [options.vector] - Vector config override (for testing)
- * @returns {Promise<string>} Formatted search results
+ * @returns {Promise<{ok: boolean, results?: Array<object>, count?: number, error?: string}>} Structured search results
  */
 export async function searchCodeImpl(input, options = {}) {
 	const cfg = options.vector || vectorConfig;
@@ -27,7 +27,10 @@ export async function searchCodeImpl(input, options = {}) {
 	const projectName = input.project || Object.keys(projects)[0];
 	if (!projectName || !projects[projectName]) {
 		const available = Object.keys(projects).join(", ") || "none configured";
-		return `Unknown project "${projectName}". Available projects: ${available}`;
+		return {
+			ok: false,
+			error: `Unknown project "${projectName}". Available projects: ${available}`,
+		};
 	}
 
 	const proj = projects[projectName];
@@ -42,7 +45,7 @@ export async function searchCodeImpl(input, options = {}) {
 		});
 		store.init();
 	} catch (err) {
-		return `Failed to open vector store at ${dbPath}: ${err.message}`;
+		return { ok: false, error: `Failed to open vector store at ${dbPath}: ${err.message}` };
 	}
 
 	try {
@@ -55,13 +58,17 @@ export async function searchCodeImpl(input, options = {}) {
 				results = store.searchFts(input.query, topK);
 			} catch (err) {
 				store.close();
-				return `FTS search failed: ${err.message}`;
+				return { ok: false, error: `FTS search failed: ${err.message}` };
 			}
 
 			store.close();
 
 			if (results.length === 0) {
-				return "No matching code found. Try running the indexCode tool first to index your source code.";
+				return {
+					ok: false,
+					error:
+						"No matching code found. Try running the indexCode tool first to index your source code.",
+				};
 			}
 
 			// Apply file filter if specified
@@ -72,19 +79,20 @@ export async function searchCodeImpl(input, options = {}) {
 			}
 
 			if (results.length === 0) {
-				return `No results matching filter "${input.fileFilter}".`;
+				return { ok: false, error: `No results matching filter "${input.fileFilter}".` };
 			}
 
 			// Format results
-			const lines = results.map(
-				(r, i) =>
-					`${i + 1}. ${r.filePath}:${r.lineStart}-${r.lineEnd} (rank: ${r.rank.toFixed(4)})\n` +
-					"```\n" +
-					r.content +
-					"\n```",
-			);
+			const formatted = results.map((r) => ({
+				filePath: r.filePath,
+				lineStart: r.lineStart,
+				lineEnd: r.lineEnd,
+				score: r.rank,
+				content: r.content,
+				source: "fulltext",
+			}));
 
-			return lines.join("\n\n");
+			return { ok: true, results: formatted, count: formatted.length };
 		}
 
 		// Hybrid mode — run both vector and FTS, merge via RRF
@@ -101,12 +109,12 @@ export async function searchCodeImpl(input, options = {}) {
 				embeddings = await embedder.embed([input.query]);
 			} catch (err) {
 				store.close();
-				return `Failed to embed query: ${err.message}`;
+				return { ok: false, error: `Failed to embed query: ${err.message}` };
 			}
 
 			if (embeddings.length === 0) {
 				store.close();
-				return "No embedding generated for the query.";
+				return { ok: false, error: "No embedding generated for the query." };
 			}
 
 			let results;
@@ -114,13 +122,17 @@ export async function searchCodeImpl(input, options = {}) {
 				results = store.hybridSearch(embeddings[0], input.query, topK);
 			} catch (err) {
 				store.close();
-				return `Hybrid search failed: ${err.message}`;
+				return { ok: false, error: `Hybrid search failed: ${err.message}` };
 			}
 
 			store.close();
 
 			if (results.length === 0) {
-				return "No matching code found. Try running the indexCode tool first to index your source code.";
+				return {
+					ok: false,
+					error:
+						"No matching code found. Try running the indexCode tool first to index your source code.",
+				};
 			}
 
 			// Apply file filter if specified
@@ -131,25 +143,27 @@ export async function searchCodeImpl(input, options = {}) {
 			}
 
 			if (results.length === 0) {
-				return `No results matching filter "${input.fileFilter}".`;
+				return { ok: false, error: `No results matching filter "${input.fileFilter}".` };
 			}
 
 			// Format results
-			const lines = results.map((r, i) => {
-				let scoreStr;
-				if (r.source === "vector") scoreStr = `distance: ${r.distance.toFixed(4)}`;
-				else if (r.source === "fulltext") scoreStr = `rank: ${r.rank.toFixed(4)}`;
-				else scoreStr = `distance: ${r.distance.toFixed(4)}, rank: ${r.rank.toFixed(4)}`;
+			const formatted = results.map((r) => {
+				let score;
+				if (r.source === "vector") score = r.distance;
+				else if (r.source === "fulltext") score = r.rank;
+				else score = r.distance;
 
-				return (
-					`${i + 1}. ${r.filePath}:${r.lineStart}-${r.lineEnd} (${scoreStr}, source: ${r.source})\n` +
-					"```\n" +
-					r.content +
-					"\n```"
-				);
+				return {
+					filePath: r.filePath,
+					lineStart: r.lineStart,
+					lineEnd: r.lineEnd,
+					score,
+					content: r.content,
+					source: r.source,
+				};
 			});
 
-			return lines.join("\n\n");
+			return { ok: true, results: formatted, count: formatted.length };
 		}
 
 		// Default: vector mode (existing behavior)
@@ -165,12 +179,12 @@ export async function searchCodeImpl(input, options = {}) {
 			embeddings = await embedder.embed([input.query]);
 		} catch (err) {
 			store.close();
-			return `Failed to embed query: ${err.message}`;
+			return { ok: false, error: `Failed to embed query: ${err.message}` };
 		}
 
 		if (embeddings.length === 0) {
 			store.close();
-			return "No embedding generated for the query.";
+			return { ok: false, error: "No embedding generated for the query." };
 		}
 
 		// Search
@@ -179,13 +193,17 @@ export async function searchCodeImpl(input, options = {}) {
 			results = store.search(embeddings[0], topK);
 		} catch (err) {
 			store.close();
-			return `Search failed: ${err.message}`;
+			return { ok: false, error: `Search failed: ${err.message}` };
 		}
 
 		store.close();
 
 		if (results.length === 0) {
-			return "No matching code found. Try running the indexCode tool first to index your source code.";
+			return {
+				ok: false,
+				error:
+					"No matching code found. Try running the indexCode tool first to index your source code.",
+			};
 		}
 
 		// Apply file filter if specified
@@ -196,19 +214,20 @@ export async function searchCodeImpl(input, options = {}) {
 		}
 
 		if (results.length === 0) {
-			return `No results matching filter "${input.fileFilter}".`;
+			return { ok: false, error: `No results matching filter "${input.fileFilter}".` };
 		}
 
 		// Format results
-		const lines = results.map(
-			(r, i) =>
-				`${i + 1}. ${r.filePath}:${r.lineStart}-${r.lineEnd} (distance: ${r.distance.toFixed(4)})\n` +
-				"```\n" +
-				r.content +
-				"\n```",
-		);
+		const formatted = results.map((r) => ({
+			filePath: r.filePath,
+			lineStart: r.lineStart,
+			lineEnd: r.lineEnd,
+			score: r.distance,
+			content: r.content,
+			source: "vector",
+		}));
 
-		return lines.join("\n\n");
+		return { ok: true, results: formatted, count: formatted.length };
 	} finally {
 		if (store) {
 			try {
