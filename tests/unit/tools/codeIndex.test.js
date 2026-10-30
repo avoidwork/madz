@@ -88,22 +88,29 @@ describe("indexCode tool", () => {
 		await pool.destroy();
 	});
 
-	it("returns message when no projects configured", async () => {
+	it("returns error when no projects configured", async () => {
 		const { indexCodeImpl } = await import("../../../src/tools/code/indexCode.js");
 		const result = await indexCodeImpl({}, { vector: { projects: {} } });
-		assert.ok(result.includes("No vector projects configured"), `Got: ${result}`);
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("No vector projects configured"), `Got: ${result.error}`);
 	});
 
-	it("returns unknown project message when project not found", async () => {
+	it("returns per-project error when project not found", async () => {
 		const { indexCodeImpl } = await import("../../../src/tools/code/indexCode.js");
 		const result = await indexCodeImpl(
 			{ project: "nonexistent" },
 			{ vector: { projects: { madz: { dbPath: "/tmp/test.db" } } } },
 		);
-		assert.ok(result.includes('Project "nonexistent" not found'), `Got: ${result}`);
+		assert.strictEqual(result.ok, true);
+		assert.strictEqual(result.results.length, 1);
+		assert.strictEqual(result.results[0].name, "nonexistent");
+		assert.ok(
+			result.results[0].error.includes('Project "nonexistent" not found'),
+			`Got: ${result.results[0].error}`,
+		);
 	});
 
-	it("dispatches project config to the pool and formats results", async () => {
+	it("dispatches project config to the pool and returns structured results", async () => {
 		const { indexCodeImpl } = await import("../../../src/tools/code/indexCode.js");
 		let dispatched;
 		mock.method(pool, "run", async (task) => {
@@ -116,7 +123,9 @@ describe("indexCode tool", () => {
 			{ vector: { projects: { madz: { dbPath: "/tmp/test.db", rootDir: "/tmp" } } } },
 		);
 
-		assert.strictEqual(result, "madz: 2 indexed, 1 skipped, 0 errors");
+		assert.strictEqual(result.ok, true);
+		assert.strictEqual(result.results.length, 1);
+		assert.deepStrictEqual(result.results[0], { name: "madz", indexed: 2, skipped: 1, errors: 0 });
 		assert.ok(dispatched, "pool.run should have been called");
 		assert.strictEqual(dispatched.dbPath, "/tmp/test.db");
 		assert.strictEqual(dispatched.rootDir, "/tmp");
@@ -139,7 +148,7 @@ describe("indexCode tool", () => {
 		assert.strictEqual(dispatched.force, true);
 	});
 
-	it("handles pool errors gracefully", async () => {
+	it("handles pool errors gracefully as per-project error", async () => {
 		const { indexCodeImpl } = await import("../../../src/tools/code/indexCode.js");
 		mock.method(pool, "run", async () => {
 			throw new Error("worker crashed");
@@ -150,7 +159,10 @@ describe("indexCode tool", () => {
 			{ vector: { projects: { madz: { dbPath: "/tmp/test.db" } } } },
 		);
 
-		assert.strictEqual(result, "madz: error — worker crashed");
+		assert.strictEqual(result.ok, true);
+		assert.strictEqual(result.results.length, 1);
+		assert.strictEqual(result.results[0].name, "madz");
+		assert.strictEqual(result.results[0].error, "worker crashed");
 	});
 
 	it("indexes all projects when no project specified", async () => {
@@ -173,8 +185,10 @@ describe("indexCode tool", () => {
 			},
 		);
 
+		assert.strictEqual(result.ok, true);
 		assert.strictEqual(calls.length, 2);
-		assert.ok(result.includes("madz: 1 indexed, 0 skipped, 0 errors"));
-		assert.ok(result.includes("other: 1 indexed, 0 skipped, 0 errors"));
+		assert.strictEqual(result.results.length, 2);
+		assert.deepStrictEqual(result.results[0], { name: "madz", indexed: 1, skipped: 0, errors: 0 });
+		assert.deepStrictEqual(result.results[1], { name: "other", indexed: 1, skipped: 0, errors: 0 });
 	});
 });
