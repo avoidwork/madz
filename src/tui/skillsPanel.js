@@ -45,19 +45,23 @@ export function SkillsPanel({ skills = [], onViewChange, onSelectSkill, activeVi
 	const limit = Math.max(1, rows - 4);
 
 	// Normalize skills to { name, description } — accept either string names
-	// or catalog entries from registry.getCatalog().
+	// or catalog entries from registry.getCatalog(). Sort alphabetically
+	// (case-insensitive) so the view reads cleanly, matching the slash-command
+	// autocomplete ordering in app.js.
 	const items = useMemo(
 		() =>
-			skills.map((s) => {
-				const name = typeof s === "string" ? s : s.name;
-				const description = typeof s === "string" ? "" : s.description || "";
-				return {
-					label: name,
-					description,
-					value: name,
-					key: name,
-				};
-			}),
+			skills
+				.map((s) => {
+					const name = typeof s === "string" ? s : s.name;
+					const description = typeof s === "string" ? "" : s.description || "";
+					return {
+						label: name,
+						description,
+						value: name,
+						key: name,
+					};
+				})
+				.sort((a, b) => a.label.localeCompare(b.label)),
 		[skills],
 	);
 
