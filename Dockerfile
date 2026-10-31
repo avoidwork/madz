@@ -75,6 +75,8 @@ COPY --chown=madz:node LICENSE index.js config.yaml ./
 COPY --chown=madz:node src/ ./src/
 COPY --chown=madz:node prompts/ ./prompts/
 COPY --chown=madz:node .skills/ ./.skills/
+# release-madz is part of the code repo, not the release image — remove it after copy
+RUN rm -rf ./.skills/release-madz/
 RUN mkdir -p ./projects && chown madz:node ./projects
 COPY --chown=madz:node docker-entrypoint.sh /docker-entrypoint.sh
 
