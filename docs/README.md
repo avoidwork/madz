@@ -7,6 +7,7 @@ The documentation for the madz AI harness. This directory is organized for reade
 | If you want to... | Read this |
 |---|---|
 | **Get madz running** (Docker, config, first conversation) | [TUTORIAL.md](./TUTORIAL.md) |
+| **Configure it** (LLM provider, decision model, projects, vector search) | [GETTING_STARTED.md](./GETTING_STARTED.md) |
 | **Run it in Docker / set env vars** | [DOCKER.md](./DOCKER.md) |
 | **Look up a feature, tool, or agent** | [FEATURES.md](./FEATURES.md) |
 | **Look up a config key** | [CONFIGURATION.md](./CONFIGURATION.md) |
@@ -26,6 +27,7 @@ The documentation for the madz AI harness. This directory is organized for reade
 | Document | Audience | Assumes | Covers |
 |----------|----------|---------|--------|
 | [TUTORIAL.md](./TUTORIAL.md) | Novice → Advanced | Nothing | Setup, config, first conversation, working on projects, daily usage, troubleshooting |
+| [GETTING_STARTED.md](./GETTING_STARTED.md) | Novice → Intermediate | Docker | Configuration decisions: LLM provider, decision model, project context, vector search |
 | [DOCKER.md](./DOCKER.md) | Operator | Docker | Building, running, SSH, environment variables |
 | [FEATURES.md](./FEATURES.md) | All | Nothing | Providers, agents, tools, MCP, skills, memory, sandbox, vector search, cron |
 | [CONFIGURATION.md](./CONFIGURATION.md) | Operator | Nothing | `config.yaml` reference, logging, status bar, summarization |
