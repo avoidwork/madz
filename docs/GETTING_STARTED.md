@@ -1,10 +1,10 @@
-# Getting Started: Configuration
+# Getting Started
 
 This guide walks you through the configuration decisions that turn `madz` from a running container into a working teammate. It assumes you have Docker and an LLM provider — the practical install steps live in [TUTORIAL.md](./TUTORIAL.md). Here we focus on *what to configure* and *why*.
 
 The four decisions, in the order you'll likely make them:
 
-1. **Pick your LLM provider** — any OpenAI-compatible endpoint.
+1. **Pick your LLM provider** — OpenAI-compatible, Azure OpenAI, AWS Bedrock, or GitHub Copilot.
 2. **Enable a decision model** — a fast local classifier for the harness's own routing.
 3. **Set project context** — tell madz *where* you're working.
 4. **Enable vector search** *(advanced)* — let madz find code by meaning.
@@ -13,7 +13,11 @@ The four decisions, in the order you'll likely make them:
 
 ## 1. Pick Your LLM Provider
 
-madz talks to its model through the **OpenAI chat-completions API**. That means it works with *any* provider that exposes that interface — not just OpenAI itself. The most common choices:
+madz supports four provider families. The active provider is selected by the `enabled` flag on its block in `config.yaml` (or the matching `*_ENABLED` env var), not by config position or `type`.
+
+### OpenAI-compatible endpoints
+
+madz talks to its model through the **OpenAI chat-completions API**, so it works with *any* provider that exposes that interface — not just OpenAI itself. The most common choices:
 
 | Provider | Notes |
 |----------|-------|
@@ -30,8 +34,6 @@ You point madz at one by setting three variables in your `.env`:
 | `OPENAI_BASE_URL` | The API endpoint. |
 | `OPENAI_MODEL` | The model name. |
 | `OPENAI_API_KEY` | Optional for local providers — many run without authentication. |
-
-### Example `.env` files
 
 *Ollama (local):*
 ```env
@@ -53,6 +55,40 @@ OPENAI_MODEL=gpt-4o
 OPENAI_BASE_URL=https://api.openai.com/v1
 ```
 
+### Azure OpenAI / Microsoft Foundry
+
+Set `AZURE_OPENAI_ENABLED=true` and provide the key, endpoint, and deployment name (the deployment name acts as the model). `AZURE_OPENAI_API_VERSION` is optional. The Azure provider is backed by `AzureChatOpenAI` and reads authentication exclusively from environment variables — the key is never written to config or logged.
+
+```env
+AZURE_OPENAI_ENABLED=true
+AZURE_OPENAI_API_KEY=xxxxxxxxxxxxxxxx
+AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com
+AZURE_OPENAI_API_DEPLOYMENT_NAME=gpt-4o
+# AZURE_OPENAI_API_VERSION=2024-08-01-preview
+```
+
+### AWS Bedrock
+
+Set `BEDROCK_ENABLED=true` and provide the region and a model. The model can be a model ID, a cross-region inference profile ID (e.g. `us.anthropic.claude-sonnet-4-6`), or an application inference profile ARN via `applicationInferenceProfile`. The Bedrock provider is backed by `ChatBedrockConverse` and never writes credentials to config or logs.
+
+```env
+BEDROCK_ENABLED=true
+BEDROCK_AWS_REGION=us-east-1
+BEDROCK_MODEL=us.anthropic.claude-sonnet-4-6
+```
+
+Authentication resolves in precedence order: `AWS_BEARER_TOKEN_BEDROCK` (bearer token), then the `BEDROCK_AWS_ACCESS_KEY_ID` / `BEDROCK_AWS_SECRET_ACCESS_KEY` pair (with optional `BEDROCK_AWS_SESSION_TOKEN` for temporary credentials), then the default AWS credential provider chain (`AWS_PROFILE`, SSO, IAM role, ECS/EC2 metadata). Grant least-privilege IAM permissions — `bedrock:InvokeModel` and `bedrock:InvokeModelWithResponseStream` — to the role or user that runs madz.
+
+### GitHub Copilot
+
+Set `COPILOT_ENABLED=true` (and optionally `OPENAI_ENABLED=false`). Copilot authenticates via GitHub OAuth device flow — a bearer token is persisted to `memory/auth.json` and refreshed automatically, so no API key is required. For GitHub Enterprise Cloud (GHEC) deployments, set `COPILOT_ENTERPRISE_URL` to derive the API base.
+
+```env
+COPILOT_ENABLED=true
+COPILOT_MODEL=gpt-4o
+# COPILOT_ENTERPRISE_URL=https://your-ghec-host
+```
+
 ### Docker networking gotcha
 
 When madz runs in a container and your model runs on the host, the container needs a way to reach it. Use `host.docker.internal` as the hostname:
@@ -63,7 +99,7 @@ OPENAI_BASE_URL=http://host.docker.internal:11434/v1
 
 On Linux, `host.docker.internal` may not resolve — use `--network host` instead.
 
-> **Reference:** [TUTORIAL.md](./TUTORIAL.md) §Configuration, [FEATURES.md](./FEATURES.md) §LLM Provider Abstraction, [CONFIGURATION.md](./CONFIGURATION.md) §Config Reference.
+> **Reference:** [FEATURES.md](./FEATURES.md) §LLM Provider Abstraction, [CONFIGURATION.md](./CONFIGURATION.md) §Config Reference.
 
 ---
 
