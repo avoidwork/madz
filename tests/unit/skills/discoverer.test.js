@@ -152,3 +152,58 @@ describe("discoverSkills with --- in body", () => {
 		assert.strictEqual(skills[0].metadata.description, "A skill with a table");
 	});
 });
+
+// --- discoverSkills bundledSkills filtering ---
+
+describe("discoverSkills bundledSkills filtering", () => {
+	beforeEach(setup);
+	afterEach(cleanup);
+
+	it("loads all skills from .skills/ by default", async () => {
+		const systemDir = join(testDir, ".skills");
+		mkdirSync(join(systemDir, "reflection"), { recursive: true });
+		mkdirSync(join(systemDir, "commit-push"), { recursive: true });
+		writeFileSync(
+			join(systemDir, "reflection", "SKILL.md"),
+			"---\nname: reflection\ndescription: A reflection skill\n---\n\nBody",
+		);
+		writeFileSync(
+			join(systemDir, "commit-push", "SKILL.md"),
+			"---\nname: commit-push\ndescription: A commit skill\n---\n\nBody",
+		);
+
+		const skills = await discoverSkills([".skills"]);
+		assert.strictEqual(skills.length, 2);
+	});
+
+	it("loads only reflection from .skills/ when bundledSkills is false", async () => {
+		const systemDir = join(testDir, ".skills");
+		mkdirSync(join(systemDir, "reflection"), { recursive: true });
+		mkdirSync(join(systemDir, "commit-push"), { recursive: true });
+		writeFileSync(
+			join(systemDir, "reflection", "SKILL.md"),
+			"---\nname: reflection\ndescription: A reflection skill\n---\n\nBody",
+		);
+		writeFileSync(
+			join(systemDir, "commit-push", "SKILL.md"),
+			"---\nname: commit-push\ndescription: A commit skill\n---\n\nBody",
+		);
+
+		const skills = await discoverSkills([".skills"], { bundledSkills: false });
+		assert.strictEqual(skills.length, 1);
+		assert.strictEqual(skills[0].name, "reflection");
+	});
+
+	it("does not filter user skills in skills/ when bundledSkills is false", async () => {
+		const userDir = join(testDir, "skills");
+		mkdirSync(join(userDir, "my-skill"), { recursive: true });
+		writeFileSync(
+			join(userDir, "my-skill", "SKILL.md"),
+			"---\nname: my-skill\ndescription: A user skill\n---\n\nBody",
+		);
+
+		const skills = await discoverSkills(["skills"], { bundledSkills: false });
+		assert.strictEqual(skills.length, 1);
+		assert.strictEqual(skills[0].name, "my-skill");
+	});
+});

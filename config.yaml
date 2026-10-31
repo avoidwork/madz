@@ -166,6 +166,7 @@ agent:
     baseUrl: ""            # empty = tool not registered
     model: tev1:4b
   sampling: true           # false = tool not registered
+  bundledSkills: true      # false = only 'reflection' loaded from .skills/
 summarization:
   enabled: true
   trigger:

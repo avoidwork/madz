@@ -32,10 +32,13 @@ export class SkillRegistry {
 	 * @param {string[]} [scope] - Array of directories to scan (defaults to sandbox.skillScanPaths from config)
 	 * @param {object} [options] - Discovery options
 	 * @param {boolean} [options.trustProjectSkills=true] - Trust project-level skills
+	 * @param {boolean} [options.bundledSkills=true] - When `false`, only the `reflection` skill is loaded from `.skills/`
 	 * @returns {Promise<Array<{ name: string, errors: string[], warnings: string[] }>>} Registration results
 	 */
 	async discover(scope = defaultScope, options = {}) {
-		const discovered = await discoverSkills(scope, options);
+		// Default bundledSkills from config when not explicitly passed.
+		const bundledSkills = options.bundledSkills ?? config.agent?.bundledSkills ?? true;
+		const discovered = await discoverSkills(scope, { ...options, bundledSkills });
 		const results = [];
 
 		for (const skill of discovered) {

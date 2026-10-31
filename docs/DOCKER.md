@@ -240,9 +240,13 @@ The active provider is selected by the `enabled` flag, not by config position or
 
 ### Agent
 
-| Variable                        | Default  | Description                                    |
-| ------------------------------- | -------- | ---------------------------------------------- |
-| `AGENT_RECURSION_LIMIT`         | `1000`   | Max graph execution steps per call             |
+| Variable                        | Default    | Description                                    |
+| ------------------------------- | ---------- | ---------------------------------------------- |
+| `AGENT_BUNDLED_SKILLS`          | `true`     | Load bundled `.skills/` skills; `false` loads only `reflection` |
+| `AGENT_DECISION_BASE_URL`       | _(empty)_  | Decision model base URL; empty disables the `decision` tool |
+| `AGENT_DECISION_MODEL`          | `tev1:4b`  | Decision model identifier                     |
+| `AGENT_RECURSION_LIMIT`         | `1000`     | Max graph execution steps per call             |
+| `AGENT_SAMPLING`                | `true`     | Enable the `sampling` tool; `false` disables registration |
 
 ### Persistence
 
