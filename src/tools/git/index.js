@@ -1,6 +1,7 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { execFile } from "node:child_process";
+import path from "node:path";
 import { loadConfig } from "../../config/loader.js";
 import { getProjectCwd } from "../../workspace/project.js";
 
@@ -180,7 +181,10 @@ function parseRefs(output) {
  * Core git tool logic implementing all actions.
  * @param {object} input - The tool input
  * @param {object} [options] - Runtime options
- * @param {string} [options.cwd] - Working directory for git commands
+ * @param {string} [options.cwd] - Working directory for git commands. This is a
+ *   direct-call-only override: the LangChain `tool()` wrapper passes
+ *   `RunnableConfig` as `options`, which never contains `cwd`. Production calls
+ *   always resolve via `getProjectCwd() || config.cwd || process.cwd()`.
  * @returns {Promise<object>} Result of the operation
  */
 export async function gitImpl(input, options = {}) {
@@ -280,9 +284,32 @@ export async function gitImpl(input, options = {}) {
 				const flag = input.force ? "-D" : "-d";
 				const res = await runGit(["branch", flag, input.branch], cwd);
 				if (res.code !== 0) {
-					return { ok: false, error: res.stderr.trim() || res.stdout.trim() };
+					const stderr = res.stderr.trim() || res.stdout.trim();
+					const worktreeMatch = stderr.match(
+						/cannot delete branch .* used by worktree at '([^']+)'/,
+					);
+					if (worktreeMatch) {
+						return {
+							ok: false,
+							error: stderr,
+							hint: `Branch '${input.branch}' is checked out in worktree at '${worktreeMatch[1]}'. Remove the worktree first (git worktree remove '${worktreeMatch[1]}') before deleting the branch.`,
+						};
+					}
+					return { ok: false, error: stderr };
 				}
 				return { ok: true, branch: input.branch, deleted: true };
+			}
+			if (input.create) {
+				if (!input.branch) {
+					return { ok: false, error: "branch create requires a branch" };
+				}
+				const args = ["branch", input.branch];
+				if (input.ref) args.push(input.ref);
+				const res = await runGit(args, cwd);
+				if (res.code !== 0) {
+					return { ok: false, error: res.stderr.trim() || res.stdout.trim() };
+				}
+				return { ok: true, branch: input.branch, ref: input.ref || null, created: true };
 			}
 			const res = await runGit(["branch"], cwd);
 			if (res.code !== 0) {
@@ -433,14 +460,32 @@ export async function gitImpl(input, options = {}) {
 					if (!input.path) {
 						return { ok: false, error: "worktree add requires a path" };
 					}
-					const args = ["worktree", "add"];
-					if (input.branch) {
-						args.push("-b", input.branch);
-					} else {
-						args.push("--detach");
+					// Reject paths that would create a nested worktree inside the
+					// current repo working tree (the nested-worktree footgun).
+					const rootRes = await runGit(["rev-parse", "--show-toplevel"], cwd);
+					if (rootRes.code === 0) {
+						const repoRoot = rootRes.stdout.trim();
+						const resolvedPath = path.resolve(cwd, input.path);
+						if (resolvedPath === repoRoot || resolvedPath.startsWith(repoRoot + path.sep)) {
+							return {
+								ok: false,
+								error: `worktree add path '${input.path}' is inside the repo working tree '${repoRoot}'. Use a path outside the repo to avoid a nested worktree.`,
+							};
+						}
 					}
-					args.push(input.path);
-					if (input.ref) args.push(input.ref);
+					const args = ["worktree", "add"];
+					if (input.branch && input.existing) {
+						// git worktree add <path> <existing-branch>
+						args.push(input.path, input.branch);
+					} else if (input.branch) {
+						// git worktree add -b <branch> <path> [<ref>]
+						args.push("-b", input.branch, input.path);
+						if (input.ref) args.push(input.ref);
+					} else {
+						// git worktree add --detach <path> [<ref>]
+						args.push("--detach", input.path);
+						if (input.ref) args.push(input.ref);
+					}
 					const res = await runGit(args, cwd);
 					if (res.code !== 0) {
 						return { ok: false, error: res.stderr.trim() || res.stdout.trim() };
@@ -462,7 +507,15 @@ export async function gitImpl(input, options = {}) {
 					args.push(input.path);
 					const res = await runGit(args, cwd);
 					if (res.code !== 0) {
-						return { ok: false, error: res.stderr.trim() || res.stdout.trim() };
+						const stderr = res.stderr.trim() || res.stdout.trim();
+						if (/contains modified or untracked files/.test(stderr)) {
+							return {
+								ok: false,
+								error: stderr,
+								hint: `Worktree at '${input.path}' contains modified or untracked files. Pass force: true to remove it with --force.`,
+							};
+						}
+						return { ok: false, error: stderr };
 					}
 					return { ok: true, path: input.path, removed: true };
 				}
@@ -601,7 +654,7 @@ export async function gitImpl(input, options = {}) {
 export const git = tool((input, options = {}) => gitImpl(input, options), {
 	name: "git",
 	description:
-		"Git tool. Actions: status, diff, log, branch, add, commit, push, pull, checkout, merge, rebase, stash, show, tag, worktree, remote, rev-parse, ls-remote, fetch, describe. Diff supports cached/nameOnly/stat/patch/numstat modes; log supports subject-only; tag supports pattern; ls-remote supports --tags; checkout supports --detach. force passes --force to git (push --force, branch -D, worktree remove --force). Uses execFile('git', [args]) — never sh -c.",
+		"Git tool. Actions: status, diff, log, branch, add, commit, push, pull, checkout, merge, rebase, stash, show, tag, worktree, remote, rev-parse, ls-remote, fetch, describe. Diff supports cached/nameOnly/stat/patch/numstat modes; log supports subject-only; tag supports pattern; ls-remote supports --tags; checkout supports --detach. branch supports create (git branch <name> [<ref>]) and delete (git branch -d/-D). worktree add supports existing (link to an existing branch) and validates the path; worktree remove returns a hint when --force is required. force passes --force to git (push --force, branch -D, worktree remove --force). Uses execFile('git', [args]) — never sh -c.",
 	schema: z.object({
 		action: z
 			.enum(VALID_ACTIONS)
@@ -636,9 +689,18 @@ export const git = tool((input, options = {}) => gitImpl(input, options), {
 		name: z.string().optional().describe("Tag name for tag create action"),
 		url: z.string().optional().describe("URL for remote add/set-url action"),
 		flag: z.enum(REV_PARSE_FLAGS).optional().describe("Flag for rev-parse action"),
-		create: z.boolean().optional().describe("Set to true to create a branch on checkout (-b)"),
+		create: z
+			.boolean()
+			.optional()
+			.describe("Set to true to create a branch on checkout (-b) or branch create"),
 		delete: z.boolean().optional().describe("Set to true to delete a branch (branch -D)"),
 		detach: z.boolean().optional().describe("Set to true to detach HEAD (checkout --detach)"),
+		existing: z
+			.boolean()
+			.optional()
+			.describe(
+				"Set to true to link a worktree to an existing branch (worktree add <path> <branch>)",
+			),
 		cached: z.boolean().optional().describe("Set to true to diff the staged index (--cached)"),
 		nameOnly: z
 			.boolean()
