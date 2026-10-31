@@ -1,5 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
+import path from "node:path";
 import { git, gitImpl } from "../../../src/tools/git/index.js";
 import { setProjectCwd } from "../../../src/workspace/project.js";
 
@@ -104,6 +105,22 @@ describe("tools - git", () => {
 			const result = git.schema.safeParse({ action: "checkout", detach: true });
 			assert.ok(result.success, "checkout detach flag should be valid");
 		});
+
+		it("accepts branch create flag", () => {
+			const result = git.schema.safeParse({ action: "branch", create: true, branch: "feature" });
+			assert.ok(result.success, "branch create flag should be valid");
+		});
+
+		it("accepts worktree existing flag", () => {
+			const result = git.schema.safeParse({
+				action: "worktree",
+				sub: "add",
+				path: "/tmp/worktree",
+				branch: "feature",
+				existing: true,
+			});
+			assert.ok(result.success, "worktree existing flag should be valid");
+		});
 	});
 });
 
@@ -121,7 +138,7 @@ describe("tools - git cwd resolution", () => {
 	});
 
 	it("explicit options.cwd overrides the project cwd", async () => {
-		setProjectCwd("/tmp/nonexistent-project");
+		setProjectCwd(path.join(process.cwd(), "tmp", "nonexistent-project"));
 		try {
 			const result = await gitImpl({ action: "status" }, { cwd: process.cwd() });
 			assert.strictEqual(result.ok, true);
