@@ -182,11 +182,13 @@ async function findSkillFiles(dir) {
  * @param {string[]} [scope] - Array of directories to scan (defaults to sandbox.skillScanPaths from config)
  * @param {object} [options] - Discovery options
  * @param {boolean} [options.trustProjectSkills=true] - Whether to trust project-level skills
+ * @param {boolean} [options.bundledSkills=true] - Whether to load bundled `.skills/` skills. When `false`,
+ *   only the `reflection` skill is loaded from the `.skills/` scope; user skills in `skills/` are unaffected.
  * @returns {Promise<Array<{ path: string, name: string, metadata: Object }>>}
  */
 export async function discoverSkills(scope = defaultScope, options = {}) {
 	const cwdParam = options.cwd || cwd;
-	const { trustProjectSkills: _trustProjectSkills = true } = options;
+	const { trustProjectSkills: _trustProjectSkills = true, bundledSkills = true } = options;
 	const allSkills = [];
 	const seenNames = new Map();
 
@@ -198,7 +200,14 @@ export async function discoverSkills(scope = defaultScope, options = {}) {
 			continue;
 		}
 
-		const skills = await findSkillFiles(fullScope);
+		let skills = await findSkillFiles(fullScope);
+
+		// When bundled skills are disabled, only the `reflection` skill is
+		// loaded from the system `.skills/` scope. User skills in `skills/`
+		// are unaffected.
+		if (!bundledSkills && scopePath.includes(".skills")) {
+			skills = skills.filter((skill) => skill.name === "reflection");
+		}
 
 		for (const skill of skills) {
 			const name = skill.metadata.name || skill.name;

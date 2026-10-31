@@ -83,6 +83,7 @@ Graceful shutdown flushes all buffered log entries to disk before process exit.
 |               | `statusBar.version`                  | `true`                                  | Show the version in the status bar            |
 | `agent`       | `recursionLimit`                     | `1000`                                   | Max graph execution steps per agent call      |
 |               | `sampling`                           | `true`                                   | Enable the `sampling` tool (ephemeral memory capture); `false` disables registration |
+|               | `bundledSkills`                      | `true`                                   | Load bundled `.skills/` skills; `false` loads only `reflection` from `.skills/` |
 | `mcp`         | `<name>.transport`                   | _(none)_                                 | MCP transport (`stdio`, `http`, `sse`)        |
 |               | `<name>.command`                     | _(none)_                                 | Command for `stdio` servers                   |
 |               | `<name>.args`                        | `[]`                                     | Args for `stdio` servers                      |
@@ -170,4 +171,5 @@ On a `429` rate-limit response, the request is retried once after the `retry-aft
 | `SKILL_AGENT_MAP_1_PATTERN`     | _(none)_  | Second skill-to-agent pattern       |
 | `SKILL_AGENT_MAP_1_AGENT`       | _(none)_  | Second skill-to-agent mapping       |
 | `AGENT_SAMPLING`                | `true`    | Enable the `sampling` tool; `false` disables registration |
+| `AGENT_BUNDLED_SKILLS`          | `true`    | Load bundled `.skills/` skills; `false` loads only `reflection` |
 

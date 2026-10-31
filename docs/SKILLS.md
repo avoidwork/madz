@@ -8,6 +8,8 @@ Skills are instruction files interpreted by the agent — they are not spawned i
 
 Skills are grouped by the agent that owns them (declared in frontmatter `metadata.agent`). The catalog below groups them by workflow domain.
 
+**Bundled skills toggle:** Set `agent.bundledSkills: false` in `config.yaml` (or `AGENT_BUNDLED_SKILLS=false`) to load only the `reflection` skill from `.skills/`. The other bundled skills are dev/release tooling that isn't required for day-to-day operation; user skills in `skills/` are unaffected.
+
 ## Git & Release Workflow
 
 | Skill | Description |
