@@ -52,4 +52,22 @@ describe("SkillsPanel", () => {
 		assert.ok(!result.includes("Alpha description."));
 		assert.ok(!result.includes("Beta description."));
 	});
+
+	it("sorts skills alphabetically regardless of input order", () => {
+		const result = renderToString(
+			React.createElement(SkillsPanel, {
+				skills: [
+					{ name: "zeta-skill", description: "Zeta description." },
+					{ name: "alpha-skill", description: "Alpha description." },
+					{ name: "mid-skill", description: "Mid description." },
+				],
+				activeView: "skills",
+			}),
+		);
+		const alphaIdx = result.indexOf("alpha-skill");
+		const midIdx = result.indexOf("mid-skill");
+		const zetaIdx = result.indexOf("zeta-skill");
+		assert.ok(alphaIdx !== -1 && midIdx !== -1 && zetaIdx !== -1);
+		assert.ok(alphaIdx < midIdx && midIdx < zetaIdx);
+	});
 });
