@@ -243,6 +243,7 @@ The active provider is selected by the `enabled` flag, not by config position or
 | Variable                        | Default  | Description                                    |
 | ------------------------------- | -------- | ---------------------------------------------- |
 | `AGENT_RECURSION_LIMIT`         | `1000`   | Max graph execution steps per call             |
+| `AGENT_BUNDLED_SKILLS`          | `true`   | Load bundled `.skills/` skills; `false` loads only `reflection` |
 
 ### Persistence
 
