@@ -11,6 +11,7 @@ The documentation for the madz AI harness. This directory is organized for reade
 | **Look up a feature, tool, or agent** | [FEATURES.md](./FEATURES.md) |
 | **Look up a config key** | [CONFIGURATION.md](./CONFIGURATION.md) |
 | **Set up for development / write skills** | [DEVELOPMENT.md](./DEVELOPMENT.md) |
+| **Look up a bundled skill** | [SKILLS.md](./SKILLS.md) |
 | **Understand the architecture** (how subsystems fit together) | [OVERVIEW.md](./OVERVIEW.md) |
 | **Trace how the code actually runs** (call chains, data flows) | [FLOWS.md](./FLOWS.md) |
 | **Understand the terminal interface** | [TUI.md](./TUI.md) and [TUI_FLOWS.md](./TUI_FLOWS.md) |
@@ -29,6 +30,7 @@ The documentation for the madz AI harness. This directory is organized for reade
 | [FEATURES.md](./FEATURES.md) | All | Nothing | Providers, agents, tools, MCP, skills, memory, sandbox, vector search, cron |
 | [CONFIGURATION.md](./CONFIGURATION.md) | Operator | Nothing | `config.yaml` reference, logging, status bar, summarization |
 | [DEVELOPMENT.md](./DEVELOPMENT.md) | Contributor | Node.js | Testing, setup, extending skills, directory layout |
+| [SKILLS.md](./SKILLS.md) | All | Nothing | The bundled skills shipped in `.skills/` |
 | [OVERVIEW.md](./OVERVIEW.md) | Intermediate → Advanced | TUTORIAL | Architecture, subsystems, data flows |
 | [FLOWS.md](./FLOWS.md) | Advanced | OVERVIEW | Call chains and data flows for every primary code path |
 | [TUI.md](./TUI.md) | Intermediate → Advanced | React, Ink | TUI design blueprint, current implementation, proposed features |
