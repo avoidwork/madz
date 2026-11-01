@@ -24,7 +24,11 @@ const ScanAgentsSchema = z.object({
  */
 export async function scanAgentsImpl(input, options) {
 	const targetPath = input.path || getProjectCwd() || config.cwd || process.cwd();
-	const resolved = validatePath(targetPath, options.allowedPaths);
+	// The orchestrator invokes the raw singleton without runtime options, so
+	// options.allowedPaths is undefined there. Fall back to the live config's
+	// sandbox allowlist — loadConfig() is cached, so this reflects app mutations.
+	const allowedPaths = options.allowedPaths || loadConfig().sandbox?.paths || [];
+	const resolved = validatePath(targetPath, allowedPaths);
 	if (!resolved.allowed) {
 		return { ok: false, error: resolved.error };
 	}
