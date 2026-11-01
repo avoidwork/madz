@@ -3,7 +3,8 @@ import assert from "node:assert";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { writeFile, rm, mkdir } from "node:fs/promises";
-import { scanAgentsImpl, scanAgents } from "../../src/tools/scanAgents/index.js";
+import { scanAgentsImpl } from "../../src/tools/scanAgents/index.js";
+import { setProjectCwd } from "../../src/workspace/project.js";
 import { buildToolConfig } from "../../src/tools/index.js";
 
 // Test fixtures
@@ -81,15 +82,27 @@ describe("scanAgents tool - scanAgentsImpl", () => {
 		);
 	});
 
-	it("uses process.cwd() when no path is provided", async () => {
-		// This test verifies the default path behavior
-		// We can't easily test process.cwd() without mocking, so we verify the schema accepts no path
-		const schema = scanAgents.schema;
-		const parsed = schema.parse({});
-		assert.ok(
-			!parsed.path || typeof parsed.path === "undefined",
-			"Expected path to be undefined when not provided",
-		);
+	it("resolves an omitted path against the active project cwd", async () => {
+		// A distinct project directory with its own AGENTS.md, under tmpdir()
+		// so it passes the sandbox allowlist.
+		const projectDir = join(tmpdir(), "scanAgents-project-" + Date.now());
+		const projectContent = "# Project AGENTS.md\n\nProject-specific rules.";
+		await mkdir(projectDir, { recursive: true });
+		await writeFile(join(projectDir, "AGENTS.md"), projectContent, "utf-8");
+
+		setProjectCwd(projectDir);
+		try {
+			const result = await scanAgentsImpl({}, options);
+			assert.strictEqual(result.ok, true);
+			assert.ok(
+				result.agents.includes("# Project AGENTS.md") &&
+					result.agents.includes("Project-specific rules."),
+				`Expected project AGENTS.md content, got: ${result.agents.substring(0, 100)}`,
+			);
+		} finally {
+			setProjectCwd("");
+			await rm(projectDir, { recursive: true, force: true });
+		}
 	});
 });
 
