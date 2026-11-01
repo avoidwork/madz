@@ -63,9 +63,11 @@ export function parseNumCtx(parameters) {
  *    different shape (`limits.max_prompt` / `limits.context_window`, or
  *    opencode's `max_prompt_tokens` / `max_context_window_tokens`); the usable
  *    prompt budget is `max_prompt`, not `context_window`.
- * 2. The Ollama native endpoint (`POST {base_url}/api/show`). If the response
- *    has `model_info.<family>.context_length`, return it; otherwise parse
- *    `num_ctx` from the `parameters` string.
+ * 2. The Ollama native endpoint (`POST {base_url}/api/show`). Ollama returns
+ *    `model_info` as a flat object of dotted keys (e.g. `gemma4.context_length`);
+ *    the resolver prefers `effective_context_length` (the runtime cap) over the
+ *    native `context_length`, and falls back to parsing `num_ctx` from the
+ *    `parameters` string.
  *
  * On any failure, returns `undefined` so the caller falls back gracefully.
  * @param {Object} providerConfig - The active provider configuration
@@ -139,13 +141,22 @@ export async function getModelContextLength(providerConfig = {}) {
 		});
 		if (!res.ok) throw new Error(`show endpoint returned ${res.status}`);
 		const data = await res.json();
+		// Ollama's /api/show returns model_info as a flat object of dotted keys
+		// (e.g. "gemma4.context_length": 131072), not nested family objects.
+		// Scan the flat keys: prefer effective_context_length (the runtime cap,
+		// min(native, OLLAMA_CONTEXT_LENGTH)), then native context_length.
 		const modelInfo = data?.model_info;
 		if (modelInfo && typeof modelInfo === "object") {
-			for (const family of Object.values(modelInfo)) {
-				if (family && typeof family.context_length === "number") {
-					return family.context_length;
+			let native;
+			for (const [key, value] of Object.entries(modelInfo)) {
+				if (key.endsWith(".effective_context_length") && typeof value === "number") {
+					return value;
+				}
+				if (key.endsWith(".context_length") && typeof value === "number") {
+					native = value;
 				}
 			}
+			if (typeof native === "number") return native;
 		}
 		const numCtx = parseNumCtx(data?.parameters);
 		if (numCtx !== undefined) return numCtx;

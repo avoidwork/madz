@@ -89,7 +89,7 @@ describe("getModelContextLength", () => {
 		mock.method(globalThis, "fetch", async () => ({
 			ok: true,
 			json: async () => ({
-				model_info: { gemma4: { context_length: 131072 } },
+				model_info: { "gemma4.context_length": 131072 },
 			}),
 		}));
 		const result = await getModelContextLength({
@@ -98,6 +98,40 @@ describe("getModelContextLength", () => {
 			credentials: { apiKey: "sk-test" },
 		});
 		assert.strictEqual(result, 131072);
+	});
+
+	it("prefers effective_context_length over native context_length", async () => {
+		mock.method(globalThis, "fetch", async () => ({
+			ok: true,
+			json: async () => ({
+				model_info: {
+					"gemma4.context_length": 131072,
+					"gemma4.effective_context_length": 8192,
+				},
+			}),
+		}));
+		const result = await getModelContextLength({
+			base_url: "https://host",
+			model: "gemma4",
+			credentials: { apiKey: "sk-test" },
+		});
+		assert.strictEqual(result, 8192);
+	});
+
+	it("returns undefined when model_info has no context_length keys", async () => {
+		mock.method(globalThis, "fetch", async () => ({
+			ok: true,
+			json: async () => ({
+				model_info: { "gemma4.architecture": "gemma4" },
+				parameters: "stop </think>",
+			}),
+		}));
+		const result = await getModelContextLength({
+			base_url: "https://host",
+			model: "gemma4",
+			credentials: { apiKey: "sk-test" },
+		});
+		assert.strictEqual(result, undefined);
 	});
 
 	it("parses num_ctx from the parameters string when context_length is absent", async () => {
