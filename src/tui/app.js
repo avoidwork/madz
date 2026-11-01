@@ -189,12 +189,10 @@ function App({
 		setCurrentView(PANELS.CONVERSATION);
 		// Silently notify the agent that we're now working in the selected project.
 		// The conversation area is unmounted during the panel view, so stage the
-		// message and dispatch it once it mounts. Derive the project name the same
-		// way the status bar does — the segment after the last "projects/".
-		const projectName = projectPath.includes("projects/")
-			? projectPath.slice(projectPath.lastIndexOf("projects/") + "projects/".length)
-			: projectPath;
-		pendingSilentMessageRef.current = `We are working in projects/${projectName}.`;
+		// message and dispatch it once it mounts. Use the absolute path so the
+		// agent's downstream path resolution (e.g. scanAgents) is not relative to
+		// a mutated process.cwd().
+		pendingSilentMessageRef.current = `We are working in ${projectPath}.`;
 	}, []);
 
 	/**
