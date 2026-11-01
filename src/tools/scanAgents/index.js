@@ -5,8 +5,9 @@ import { join } from "node:path";
 import { validatePath, checkFileLimit } from "../common.js";
 import { loadAgents } from "../../workspace/loadAgents.js";
 import { loadConfig } from "../../config/loader.js";
+import { getProjectCwd } from "../../workspace/project.js";
 
-const cwd = loadConfig().cwd;
+const config = loadConfig();
 
 const ScanAgentsSchema = z.object({
 	path: z
@@ -22,7 +23,7 @@ const ScanAgentsSchema = z.object({
  * @returns {Promise<{ ok: boolean, agents?: string, error?: string }>} Structured result
  */
 export async function scanAgentsImpl(input, options) {
-	const targetPath = input.path || cwd;
+	const targetPath = input.path || getProjectCwd() || config.cwd || process.cwd();
 	const resolved = validatePath(targetPath, options.allowedPaths);
 	if (!resolved.allowed) {
 		return { ok: false, error: resolved.error };
