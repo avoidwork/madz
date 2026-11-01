@@ -14,10 +14,29 @@ import { ProjectsPanel } from "./projectsPanel.js";
 import { SubagentsPanel } from "./subagentsPanel.js";
 import { updateSubagentStore } from "./subagentStore.js";
 import { setProjectCwd } from "../workspace/project.js";
+import { logger } from "../shared/logger.js";
 import { getActiveProviderConfig } from "../provider/index.js";
 import { useMouseScroll, scaleScrollDelta } from "./useMouseScroll.js";
 import { buildLayout, extractSelection, mapCoordToChar } from "./selectionLayout.js";
 import clipboardy from "clipboardy";
+
+/**
+ * Change the process working directory, guarding against an invalid target.
+ *
+ * `process.chdir` throws when the target path does not exist or cannot be
+ * entered; we record the failure through the structured logger rather than
+ * letting it propagate and crash the TUI (AGENTS.md 1.1 — no silent catch).
+ *
+ * @param {string} target - The directory to change into
+ * @returns {void}
+ */
+export function safeChdir(target) {
+	try {
+		process.chdir(target);
+	} catch (err) {
+		logger.error(`[tui] failed to change cwd to ${target}: ${err.message}`);
+	}
+}
 
 /**
  * App router — holds cross-cutting state and view routing.
@@ -166,6 +185,7 @@ function App({
 	const handleSelectProject = useCallback((projectPath) => {
 		setActiveProject(projectPath);
 		setProjectCwd(projectPath);
+		safeChdir(projectPath);
 		setCurrentView(PANELS.CONVERSATION);
 		// Silently notify the agent that we're now working in the selected project.
 		// The conversation area is unmounted during the panel view, so stage the
@@ -184,6 +204,7 @@ function App({
 	const handleClearProject = useCallback(() => {
 		setActiveProject("");
 		setProjectCwd("");
+		safeChdir(config.cwd || process.cwd());
 		setCurrentView(PANELS.CONVERSATION);
 		// Silently notify the agent that we've returned to the root directory.
 		pendingSilentMessageRef.current = "We are now working in madz root directory.";
@@ -343,7 +364,10 @@ function App({
 		// cleared. A new session has no project context, so leaving the prior
 		// selection in place would falsely imply one is active.
 		setActiveProject("");
-	}, []);
+		// Restore the process cwd to the configured root, consistent with
+		// clearing the active project.
+		safeChdir(config.cwd || process.cwd());
+	}, [config]);
 
 	/**
 	 * handleQuit — App-level exit.
