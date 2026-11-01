@@ -51,6 +51,9 @@ RUN TF_VER="1.16.3" && \
 
 # Environment
 ENV HOME=/home/madz
+# Pin the npm cache location so the chown target below is explicit and stable
+# rather than implicitly derived from HOME.
+ENV NPM_CONFIG_CACHE=/home/madz/.npm
 WORKDIR /app
 
 # Permissions
@@ -68,6 +71,17 @@ RUN npm install -g yarn pnpm
 
 # OpenSpec CLI — global module
 RUN npm install -g @fission-ai/openspec@latest
+
+# The global npm installs above run as root and populate the npm cache
+# (/home/madz/.npm, pinned via NPM_CONFIG_CACHE) as root. Re-chown it so the
+# madz user can read/write the cache without EACCES. This re-chown runs after
+# every global install, so a future `npm install -g` cannot silently re-break
+# ownership as long as it stays the last ownership operation on the cache.
+RUN chown -R madz:node /home/madz/.npm
+
+# Build-time assertion: fail the build if the npm cache is not owned by madz,
+# so the ownership regression cannot ship.
+RUN test "$(stat -c '%U' /home/madz/.npm)" = madz
 
 COPY --from=builder --chown=madz:node /app/node_modules ./node_modules
 COPY --from=builder --chown=madz:node /app/package*.json ./
