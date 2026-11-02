@@ -963,7 +963,7 @@ describe("Cron._ensureReflectionJob", () => {
 		assert.ok(files.includes("reflection-daily.json"));
 		const content = JSON.parse(readFileSync(join(testDir, "reflection-daily.json"), "utf-8"));
 		assert.strictEqual(content.name, "reflection-daily");
-		assert.strictEqual(content.cron, "0 2 * * *");
+		assert.strictEqual(content.cron, "30 23 * * *");
 		assert.strictEqual(content.enabled, true);
 	});
 
