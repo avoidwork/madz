@@ -255,7 +255,7 @@ Set explicitly by the user, these form the enduring foundation of the system. St
 Captured autonomously by the harness during operation, these record patterns, milestones, emotional tones, and recurring themes. Stored temporarily with automatic expiration via `expiresAt` frontmatter, they act as a living lens — subtly influencing how `madz` approaches future tasks, adapts its tone, and anticipates needs. They are not hardcoded; they evolve organically as the relationship deepens. Cleaned automatically by `expireEphemeralMemories()`.
 
 **Reflections**
-A daily cron job (`0 2 * * *`) installed automatically on first onboarding completion. Runs `/reflection` via `--chat` mode, generating a narrative reflection summary from recent session history. The job definition is persisted as `memory/schedules/reflection-daily.json` and registered in the system crontab under the `madz-schedules` block. Reflections are stored as canonical memories in `memory/context/` with `createdDate` and `updatedDate` metadata.
+A daily cron job (`30 23 * * *`) installed automatically on first onboarding completion. Runs `/reflection` via `--chat` mode, generating a narrative reflection summary from recent session history. The job definition is persisted as `memory/schedules/reflection-daily.json` and registered in the system crontab under the `madz-schedules` block. Reflections are stored as canonical memories in `memory/context/` with `createdDate` and `updatedDate` metadata.
 
 Together, these layers create a system that remembers what matters while naturally adapting to how you work. When you update or delete a canonical memory, follow it with `/new` so the current session reflects the change immediately.
 
@@ -293,5 +293,5 @@ Semantic code search using local vector embeddings and SQLite-based KNN retrieva
 
 Recurring job definitions in `config.yaml`. Scheduling is delegated to the system crontab — there is no in-process clock tick loop. Each invocation inherits the current session's memory context and sandbox permissions.
 
-On first onboarding completion, `madz` automatically installs a `reflection-daily` cron job (`0 2 * * *`) into the system crontab. Job definitions are persisted as JSON in `memory/schedules/` and managed under the `madz-schedules` block.
+On first onboarding completion, `madz` automatically installs a `reflection-daily` cron job (`30 23 * * *`) into the system crontab. Job definitions are persisted as JSON in `memory/schedules/` and managed under the `madz-schedules` block.
 

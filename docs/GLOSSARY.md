@@ -58,7 +58,7 @@ Long-term, user-defined context stored as individual `.md` files in `memory/cont
 Autonomously captured moments (victories, frustrations, insights) with automatic expiration via an `expiresAt` frontmatter field. Cleaned by `expireEphemeralMemories()` at startup.
 
 ### Reflection
-A daily-generated memory produced by a cron job (`0 2 * * *`) that runs the reflection skill. Stored as canonical memories with `createdDate` and `updatedDate` metadata.
+A daily-generated memory produced by a cron job (`30 23 * * *`) that runs the reflection skill. Stored as canonical memories with `createdDate` and `updatedDate` metadata.
 
 ## Sandbox
 

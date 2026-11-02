@@ -371,7 +371,7 @@ Once inside the interactive terminal, use these commands:
 `madz` operates on a **triple-layer** memory architecture:
 - **Canonical Memories:** Explicitly set by you. Stored as `.md` files in `memory/context/`. Loaded into every session. Includes profile, clarifications, reflections, and temporal captures.
 - **Ephemeral Memories:** Captured autonomously during operation. Record patterns, milestones, and tones. Auto-expire over time via `expiresAt` frontmatter field.
-- **Reflections:** Generated daily by a cron job (`0 2 * * *`) that runs the reflection skill in chat mode. Stored as canonical memories in `memory/context/` with `createdDate` and `updatedDate` metadata. The job file is ensured at startup by the scheduler's crontab sync and persisted as `memory/schedules/reflection-daily.json`.
+- **Reflections:** Generated daily by a cron job (`30 23 * * *`) that runs the reflection skill in chat mode. Stored as canonical memories in `memory/context/` with `createdDate` and `updatedDate` metadata. The job file is ensured at startup by the scheduler's crontab sync and persisted as `memory/schedules/reflection-daily.json`.
 
 *This triple-layer architecture powers the autonomous learning loop — canonical memories persist, ephemeral memories capture moments, and reflections synthesize patterns into lasting context.*
 

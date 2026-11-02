@@ -18,7 +18,7 @@ The system SHALL detect when a `profile.md` file is created for the first time (
 ### Requirement: Auto-create daily reflection cron job
 When a first-time profile is detected, the system SHALL automatically write a cron job definition to `memory/schedules/reflection-daily.json` with the following properties:
 - `name`: `"reflection-daily"`
-- `cron`: `"0 2 * * *"` (2am daily)
+- `cron`: `"30 23 * * *"` (11:30 PM daily)
 - `command`: `"cd /<cwd> && node index.js --chat \"/reflection\""` where `<cwd>` is the value of `process.cwd()` at the time of profile creation
 - `enabled`: `true`
 
@@ -26,9 +26,9 @@ When a first-time profile is detected, the system SHALL automatically write a cr
 - **WHEN** a first-time profile is created
 - **THEN** a file `memory/schedules/reflection-daily.json` is created with `name: "reflection-daily"`
 
-#### Scenario: Write job definition with 2am cron expression
+#### Scenario: Write job definition with 11:30 PM cron expression
 - **WHEN** a first-time profile is created
-- **THEN** the job definition contains `cron: "0 2 * * *"`
+- **THEN** the job definition contains `cron: "30 23 * * *"`
 
 #### Scenario: Write job definition with working directory in command
 - **WHEN** a first-time profile is created and `process.cwd()` is `/home/jason/Projects/madz`
