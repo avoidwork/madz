@@ -250,7 +250,7 @@ There is no LLM response cache. An earlier cache-aside LRU layer (`src/cache/llm
 
 - **Ephemeral Memories** — Autonomously captured moments (victories, frustrations, insights) with automatic expiration via `expiresAt` frontmatter field. Cleaned by `expireEphemeralMemories()` at startup. These create a living lens that subtly influences tone and awareness over time.
 
-- **Reflections** — Generated daily by a cron job (`0 2 * * *`) that runs the reflection skill via `node index.js --message "Run the reflection skill"`. Reflections are stored as canonical memories in `memory/context/` with `createdDate` and `updatedDate` metadata. The job definition is seeded by `Cron._ensureReflectionJob()` during `Cron.sync()` at startup and registered in the system crontab under the `madz-schedules` block.
+- **Reflections** — Generated daily by a cron job (`30 23 * * *`) that runs the reflection skill via `node index.js --message "Run the reflection skill"`. Reflections are stored as canonical memories in `memory/context/` with `createdDate` and `updatedDate` metadata. The job definition is seeded by `Cron._ensureReflectionJob()` during `Cron.sync()` at startup and registered in the system crontab under the `madz-schedules` block.
 
 ---
 
@@ -293,7 +293,7 @@ System skills (`.skills/`) are scanned first and shadow user skills (`skills/`).
 | `cron.js` | `Cron` object with static methods: `isAvailable()`, `add()`, `remove()`, `sync()`, `_ensureReflectionJob()`. Manages entries in system crontab using `# --- BEGIN madz-schedules ---` / `# --- END madz-schedules ---` block delimiters. `writeEnvCron()` dumps `process.env` to `.env.cron` so cron-fired commands inherit app env. |
 | `index.js` | Re-exports `ScheduleManager`, `Cron`, `writeEnvCron`. |
 
-The `reflection-daily` job (`0 2 * * *`) is seeded by `Cron._ensureReflectionJob()` at the start of `Cron.sync()` (called from `index.js` when `schedules.syncOnInit !== false`), persisted as `memory/schedules/reflection-daily.json`, and installed into the crontab by the sync. Its command is `cd <cwd> && node index.js --message "Run the reflection skill"`, prefixed with a `. .env.cron` source so the cron process inherits the app environment.
+The `reflection-daily` job (`30 23 * * *`) is seeded by `Cron._ensureReflectionJob()` at the start of `Cron.sync()` (called from `index.js` when `schedules.syncOnInit !== false`), persisted as `memory/schedules/reflection-daily.json`, and installed into the crontab by the sync. Its command is `cd <cwd> && node index.js --message "Run the reflection skill"`, prefixed with a `. .env.cron` source so the cron process inherits the app environment.
 
 ---
 

@@ -654,7 +654,7 @@ prepareCrontabCommand(command)
 
 ```
 reflection-daily (seeded by Cron._ensureReflectionJob at startup sync)
-├── cron: "0 2 * * *"
+├── cron: "30 23 * * *"
 ├── command: `cd <cwd> && node index.js --message "Run the reflection skill"`
 ├── persisted: memory/schedules/reflection-daily.json
 └── installed into system crontab by Cron.sync()

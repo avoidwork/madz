@@ -10,7 +10,7 @@ const BLOCK_END = "# --- END madz-schedules ---";
 // Default reflection-daily job definition
 const REFLECTION_JOB = {
 	name: "reflection-daily",
-	cron: "0 2 * * *",
+	cron: "30 23 * * *",
 	command: `cd ${process.cwd()} && node index.js --message "Run the reflection skill"`,
 	enabled: true,
 };
