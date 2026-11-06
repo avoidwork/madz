@@ -1,4 +1,5 @@
 import React from "react";
+import { Box, Text } from "ink";
 import TextInput from "ink-text-input";
 
 /**
@@ -23,14 +24,19 @@ export const InputPanel = React.memo(function InputPanel({
 	focus = true,
 	placeholder,
 }) {
-	return React.createElement(TextInput, {
-		value,
-		onChange,
-		onSubmit,
-		onFocus,
-		onBlur,
-		focus,
-		placeholder,
-		showCursor: true,
-	});
+	return React.createElement(
+		Box,
+		{ flexDirection: "row" },
+		React.createElement(Text, { color: "cyan" }, "> "),
+		React.createElement(TextInput, {
+			value,
+			onChange,
+			onSubmit,
+			onFocus,
+			onBlur,
+			focus,
+			placeholder,
+			showCursor: true,
+		}),
+	);
 });
