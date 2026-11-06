@@ -2,7 +2,9 @@
 
 ## Purpose
 TBD - created by archiving change replace-ref-based-messages-with-component-message-bubbles. Update Purpose after archive.
+
 ## Requirements
+
 ### Requirement: MessageBubble manages its own state via chunk accumulation
 The MessageBubble component SHALL maintain internal state for chunk accumulation, streaming status, reasoning content, active tool call, and tool call display via `useState`. Each bubble is a standalone React functional component that receives content updates through a pub/sub topic subscription. The streaming status SHALL be cleared when a new message segment arrives after the assistant message, so the spinner stops and the bubble renders as a completed message.
 
@@ -223,3 +225,21 @@ The MessageBubble component SHALL render tool messages as a distinct `tool` segm
 - **WHEN** multiple tool messages coalesce into a single tool segment
 - **THEN** they are joined with a blank line so distinct results don't run together
 
+### Requirement: MessageBubble formats the timestamp at render time
+The MessageBubble component SHALL accept a raw timestamp (a `Date` or an ISO8601 string) via the `time` prop and format it to a localized short-form time string at render time using `formatTime()`. The bubble SHALL NOT render the `time` prop verbatim. When the `time` prop is missing or cannot be parsed as a valid date, the bubble SHALL fall back to formatting the current time via `formatTime(new Date())`.
+
+#### Scenario: MessageBubble renders a localized short-form time from a Date
+- **WHEN** a MessageBubble is created with a `time` prop that is a valid `Date`
+- **THEN** it renders the localized short-form time string produced by `formatTime(date)`
+
+#### Scenario: MessageBubble renders a localized short-form time from an ISO8601 string
+- **WHEN** a MessageBubble is created with a `time` prop that is a valid ISO8601 string
+- **THEN** it renders the localized short-form time string produced by `formatTime(new Date(isoString))`
+
+#### Scenario: MessageBubble falls back to current time for an invalid timestamp
+- **WHEN** a MessageBubble is created with a `time` prop that is missing or cannot be parsed as a valid date
+- **THEN** it renders the localized short-form time string produced by `formatTime(new Date())`
+
+#### Scenario: Live and re-loaded sessions render the same timestamp format
+- **WHEN** a message is rendered from a live session and the same message is rendered from a re-loaded session
+- **THEN** both render the same localized short-form time string, not a raw ISO8601 timestamp
