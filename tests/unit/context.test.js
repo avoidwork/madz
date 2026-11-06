@@ -158,6 +158,16 @@ describe("loadContext", () => {
 			join(fullTestDir, "ephemeral-new.md"),
 			"---\ntitle: Ephemeral New\ntimestamp: 2024-01-03\n---\nNew ephemeral",
 		);
+		// Ephemeral files are sorted by filesystem mtime (newest first), not by
+		// frontmatter timestamp. Set distinct mtimes so the order is deterministic
+		// even when the two writes land on the same filesystem timestamp tick.
+		const baseTime = new Date("2024-01-01T00:00:00Z").getTime();
+		utimesSync(join(fullTestDir, "ephemeral-old.md"), new Date(baseTime), new Date(baseTime));
+		utimesSync(
+			join(fullTestDir, "ephemeral-new.md"),
+			new Date(baseTime + 86400000),
+			new Date(baseTime + 86400000),
+		);
 
 		const result = await loadContext(testDir, 10);
 		// Persistent should appear as [Context:]

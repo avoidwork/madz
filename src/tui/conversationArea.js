@@ -529,11 +529,12 @@ const ConversationArea = forwardRef(function ConversationArea(
 	const getTimestamp = () => formatTime(new Date());
 
 	/**
-	 * Calculate total context tokens (conversation + output budget) and set
-	 * contextSize. Uses the model's own tokenizer via
-	 * `model.getNumTokensFromMessages(messages)` so the count reflects the
-	 * message set the model sees, and adds the configured output budget
-	 * (`maxTokens`) to match the token-budget middleware's `estimateCost`.
+	 * Calculate total context tokens and set contextSize. Uses the model's own
+	 * tokenizer via `model.getNumTokensFromMessages(messages)` so the count
+	 * reflects the message set the model sees. The configured output budget
+	 * (`maxTokens`) is deliberately NOT added — the status-bar context meter
+	 * must reflect actual context usage against the context window, not the
+	 * reserved output budget.
 	 */
 	/**
 	 * Normalize a message into a real LangChain message object.
@@ -588,16 +589,14 @@ const ConversationArea = forwardRef(function ConversationArea(
 			if (systemPrompt) {
 				counted = [new SystemMessage(systemPrompt), ...counted];
 			}
-			const providerName = sessionState.getProvider();
-			const providerConfig = config?.providers?.[providerName] || {};
-			const maxTokens = providerConfig.maxTokens === -1 ? 0 : providerConfig.maxTokens || 0;
-
+			// The output budget (maxTokens) is intentionally not added to the
+			// count. The status-bar context meter must reflect actual context
+			// usage against the context window, not the reserved output budget.
 			let totalTokens = 0;
 			if (model && typeof model.getNumTokensFromMessages === "function") {
 				const { totalCount } = await model.getNumTokensFromMessages(counted);
 				totalTokens = totalCount;
 			}
-			totalTokens += maxTokens;
 			setContextSize(totalTokens);
 			onContextChange?.(totalTokens);
 		},
