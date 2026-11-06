@@ -8,7 +8,7 @@ import React, {
 } from "react";
 import { Box } from "ink";
 import { AIMessage, HumanMessage, SystemMessage } from "@langchain/core/messages";
-import { ConversationPanel, formatTime } from "./conversationPanel.js";
+import { ConversationPanel } from "./conversationPanel.js";
 import { CommandParser } from "./commandParser.js";
 import { createSession } from "../session/factory.js";
 import { setConfigValue } from "../config/loader.js";
@@ -523,10 +523,11 @@ const ConversationArea = forwardRef(function ConversationArea(
 	};
 
 	/**
-	 * Generate a timestamp string in HH:MM format.
-	 * @returns {string}
+	 * Generate a raw timestamp for a message bubble. The bubble formats it at
+	 * render time, so this returns a Date rather than a pre-formatted string.
+	 * @returns {Date}
 	 */
-	const getTimestamp = () => formatTime(new Date());
+	const getTimestamp = () => new Date();
 
 	/**
 	 * Calculate total context tokens and set contextSize. Uses the model's own

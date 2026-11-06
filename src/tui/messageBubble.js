@@ -6,6 +6,24 @@ import { getRoleLabel, formatCompletedToolCalls, hasCompletedToolCalls } from ".
 import { getRoleColors, getBubbleStyle, formatTime } from "./conversationPanel.js";
 
 /**
+ * Format a raw timestamp (a Date or an ISO8601 string) as a localized
+ * short-form time string for display in a message bubble.
+ *
+ * The bubble owns the formatting so live and re-loaded sessions render the
+ * same short-form time. If the timestamp is missing or cannot be parsed as a
+ * valid date, it falls back to the current time.
+ *
+ * @param {Date|string} [time] - Raw timestamp to format
+ * @returns {string} Localized short-form time string
+ */
+export function formatTimestamp(time) {
+	if (time === undefined || time === null) return formatTime(new Date());
+	const date = time instanceof Date ? time : new Date(time);
+	if (Number.isNaN(date.getTime())) return formatTime(new Date());
+	return formatTime(date);
+}
+
+/**
  * Curated list of action-oriented words for the assistant thinking state.
  * A random word is selected on each render to provide visual variety.
  * @type {string[]}
@@ -229,7 +247,7 @@ export function createSegmentThrottle(commit, throttleMs = 33) {
  * @param {string} props.role - Message role: "user" | "assistant" | "system"
  * @param {string} props.content - Initial content for first render
  * @param {string} props.topic - Pub/sub topic this bubble listens on
- * @param {string} [props.time] - Localized time string (e.g., "10:39 AM" for en-US, "22:39" for de-DE)
+ * @param {Date|string} [props.time] - Raw timestamp (a Date or an ISO8601 string) to format at render time
  * @param {string} props.assistantName - Name to display for assistant messages
  * @param {Array<{type: string, content: string}>} [props.segments] - Ordered content segments
  * @param {Object} [props.activeToolCall] - {name: string} for running tool
@@ -390,7 +408,12 @@ export function MessageBubbleInner({
 		prevContentLengthRef.current = text.length;
 	}, [text, streaming, scrollToBottom, onRemeasure, renderIndex]);
 
-	const ts = time || formatTime(new Date());
+	// Format the timestamp at render time so live and re-loaded sessions render
+	// the same localized short-form time. The `time` prop is a raw timestamp
+	// (a Date or an ISO8601 string); if it is missing or invalid, fall back to
+	// the current time. This centralizes formatting in the bubble rather than
+	// at divergent call sites.
+	const ts = formatTimestamp(time);
 	const colors = getRoleColors(role);
 	const bubble = getBubbleStyle(role);
 

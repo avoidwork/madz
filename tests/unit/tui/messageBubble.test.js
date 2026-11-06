@@ -10,6 +10,7 @@ import {
 	createPubSub,
 	createSegmentThrottle,
 	getRandomThinkingWord,
+	formatTimestamp,
 	THINKING_WORDS,
 } from "../../../src/tui/messageBubble.js";
 
@@ -165,6 +166,128 @@ describe("MessageBubbleInner", () => {
 			);
 			assert.ok(typeof result === "string");
 		});
+	});
+});
+
+describe("formatTimestamp", () => {
+	it("formats a Date as a localized short-form time string", () => {
+		const date = new Date("2026-11-06T12:39:00Z");
+		const result = formatTimestamp(date);
+		assert.ok(typeof result === "string");
+		assert.ok(result.length > 0);
+		assert.ok(!result.includes("T"), "should not render an ISO8601 timestamp");
+	});
+
+	it("formats an ISO8601 string as a localized short-form time string", () => {
+		const result = formatTimestamp("2026-11-06T12:39:00.000Z");
+		assert.ok(typeof result === "string");
+		assert.ok(result.length > 0);
+		assert.ok(!result.includes("T"), "should not render an ISO8601 timestamp");
+	});
+
+	it("formats a Date and an ISO8601 string for the same instant identically", () => {
+		const date = new Date("2026-11-06T12:39:00Z");
+		const fromDate = formatTimestamp(date);
+		const fromString = formatTimestamp("2026-11-06T12:39:00.000Z");
+		assert.strictEqual(fromDate, fromString, "Date and ISO8601 string should render the same time");
+	});
+
+	it("falls back to the current time when the timestamp is undefined", () => {
+		const result = formatTimestamp(undefined);
+		assert.ok(typeof result === "string");
+		assert.ok(result.length > 0);
+	});
+
+	it("falls back to the current time when the timestamp is null", () => {
+		const result = formatTimestamp(null);
+		assert.ok(typeof result === "string");
+		assert.ok(result.length > 0);
+	});
+
+	it("falls back to the current time when the timestamp is invalid", () => {
+		const result = formatTimestamp("not-a-valid-date");
+		assert.ok(typeof result === "string");
+		assert.ok(result.length > 0);
+	});
+});
+
+describe("MessageBubbleInner - timestamp rendering", () => {
+	it("renders a localized short-form time from a Date", () => {
+		const result = renderToString(
+			React.createElement(
+				PubSubContext.Provider,
+				{ value: { subscribe: () => {}, unsubscribe: () => {} } },
+				React.createElement(
+					ScrollContext.Provider,
+					{ value: { scrollToBottom: () => {} } },
+					React.createElement(MessageBubbleInner, {
+						role: "assistant",
+						content: "response",
+						time: new Date("2026-11-06T12:39:00Z"),
+						streaming: false,
+					}),
+				),
+			),
+		);
+		assert.ok(typeof result === "string");
+		assert.ok(!result.includes("T"), "should not render an ISO8601 timestamp");
+	});
+
+	it("renders a localized short-form time from an ISO8601 string", () => {
+		const result = renderToString(
+			React.createElement(
+				PubSubContext.Provider,
+				{ value: { subscribe: () => {}, unsubscribe: () => {} } },
+				React.createElement(
+					ScrollContext.Provider,
+					{ value: { scrollToBottom: () => {} } },
+					React.createElement(MessageBubbleInner, {
+						role: "assistant",
+						content: "response",
+						time: "2026-11-06T12:39:00.000Z",
+						streaming: false,
+					}),
+				),
+			),
+		);
+		assert.ok(typeof result === "string");
+		assert.ok(!result.includes("T"), "should not render an ISO8601 timestamp");
+	});
+
+	it("renders the same time for a Date and an ISO8601 string of the same instant", () => {
+		const fromDate = renderToString(
+			React.createElement(
+				PubSubContext.Provider,
+				{ value: { subscribe: () => {}, unsubscribe: () => {} } },
+				React.createElement(
+					ScrollContext.Provider,
+					{ value: { scrollToBottom: () => {} } },
+					React.createElement(MessageBubbleInner, {
+						role: "assistant",
+						content: "response",
+						time: new Date("2026-11-06T12:39:00Z"),
+						streaming: false,
+					}),
+				),
+			),
+		);
+		const fromString = renderToString(
+			React.createElement(
+				PubSubContext.Provider,
+				{ value: { subscribe: () => {}, unsubscribe: () => {} } },
+				React.createElement(
+					ScrollContext.Provider,
+					{ value: { scrollToBottom: () => {} } },
+					React.createElement(MessageBubbleInner, {
+						role: "assistant",
+						content: "response",
+						time: "2026-11-06T12:39:00.000Z",
+						streaming: false,
+					}),
+				),
+			),
+		);
+		assert.strictEqual(fromDate, fromString, "Date and ISO8601 string should render the same time");
 	});
 });
 
