@@ -6,6 +6,114 @@ import { stripAnsi, wrapText } from "./selectionLayout.js";
 import { hasCompletedToolCalls, normalizeCompletedToolCalls } from "./messages.js";
 
 /**
+ * Determine whether a new message chunk begins a fresh block rather than
+ * continuing the previous message segment.
+ *
+ * A chunk is treated as a boundary (new block) when it starts a new sentence
+ * (the previous content ends with sentence-ending punctuation and the chunk
+ * begins with a capital letter) or when it begins a block-level data structure
+ * (fenced code, heading, list item, numbered item, blockquote, or horizontal
+ * rule). Otherwise it is a mid-sequence continuation and should coalesce.
+ *
+ * @param {string} prevContent - The accumulated content of the prior message segment
+ * @param {string} newContent - The incoming message chunk
+ * @returns {boolean} True if the chunk should start a new block
+ */
+export function isMessageBoundary(prevContent, newContent) {
+	if (
+		(prevContent.endsWith(".") || prevContent.endsWith("?") || prevContent.endsWith("!")) &&
+		/^[A-Z]/.test(newContent)
+	) {
+		return true;
+	}
+	if (/^\s*(```|#{1,6}\s|[-*+]\s|\d+\.\s|>\s|---)/.test(newContent)) {
+		return true;
+	}
+	return false;
+}
+
+/**
+ * Coalesce an incoming segment into an existing ordered segment array.
+ *
+ * This is the single source of truth for how streaming segments merge. It is a
+ * pure function so the coalescing rules can be unit-tested in isolation and
+ * reused by the imperative API.
+ *
+ * Rules by incoming segment type:
+ * - `reasoning` — coalesces with the last reasoning segment even if a message
+ *   or tool interleaved, splitting only on a grammatical sentence boundary.
+ * - `tool` — always pushes a new segment (each renders with its own header).
+ * - `message` — coalesces with the immediately-previous message segment
+ *   (continuous streaming); if a tool or reasoning segment interleaved, walks
+ *   backwards to the last message segment and coalesces only when the new
+ *   chunk is a mid-sequence continuation (not a sentence or data boundary).
+ *
+ * @param {Array<{type: string, content: string}>} existing - Existing ordered segments
+ * @param {{type: string, content: string}} newSeg - The incoming segment to merge
+ * @returns {Array<{type: string, content: string}>} A new merged segments array
+ */
+export function coalesceSegment(existing, newSeg) {
+	const merged = existing.map((s) => ({ ...s }));
+	if (newSeg.type === "reasoning") {
+		// Reasoning coalesces with the last reasoning segment even if a message
+		// or tool interleaved between chunks — otherwise continuous reasoning
+		// gets split into separate reasoning blocks. Search backwards for the
+		// last reasoning segment.
+		let lastReasoning = null;
+		for (let i = merged.length - 1; i >= 0; i--) {
+			if (merged[i].type === "reasoning") {
+				lastReasoning = merged[i];
+				break;
+			}
+		}
+		// Grammatical sentence boundary: a period followed by a capital letter
+		// starts a new block; otherwise coalesce.
+		if (
+			lastReasoning &&
+			(lastReasoning.content.endsWith(".") ||
+				lastReasoning.content.endsWith("?") ||
+				lastReasoning.content.endsWith("!")) &&
+			/^[A-Z]/.test(newSeg.content)
+		) {
+			merged.push({ ...newSeg });
+		} else if (lastReasoning) {
+			lastReasoning.content += newSeg.content;
+		} else {
+			merged.push({ ...newSeg });
+		}
+	} else if (newSeg.type === "tool") {
+		// Each tool message gets its own segment so it renders as its own block
+		// with its own name header. No coalescing.
+		merged.push({ ...newSeg });
+	} else {
+		// Message segments. If the immediately-previous segment is also a
+		// message, coalesce unconditionally — this is the continuous streaming
+		// case where a single response arrives as many small chunks. If a tool
+		// or reasoning segment interleaved, walk backwards to find the last
+		// message segment and coalesce only when the new chunk is a mid-sequence
+		// continuation (not a sentence or data boundary).
+		const lastSeg = merged[merged.length - 1];
+		if (lastSeg && lastSeg.type === "message") {
+			lastSeg.content += newSeg.content;
+		} else {
+			let lastMessage = null;
+			for (let i = merged.length - 1; i >= 0; i--) {
+				if (merged[i].type === "message") {
+					lastMessage = merged[i];
+					break;
+				}
+			}
+			if (lastMessage && !isMessageBoundary(lastMessage.content, newSeg.content)) {
+				lastMessage.content += newSeg.content;
+			} else {
+				merged.push({ ...newSeg });
+			}
+		}
+	}
+	return merged;
+}
+
+/**
  * Pub/Sub wrapper component for MessageList children.
  * Supplies subscribe/unsubscribe/publish methods from MessageList via context.
  * @param {Object} props
@@ -273,48 +381,7 @@ export const MessageList = React.memo(
 					// coalesce with the last segment if same type, otherwise push.
 					if (updates.segments && existing.segments) {
 						const newSeg = updates.segments[updates.segments.length - 1];
-						const mergedSegments = existing.segments.map((s) => ({ ...s }));
-						if (newSeg.type === "reasoning") {
-							// Reasoning coalesces with the last reasoning segment even if
-							// a message interleaved between chunks — otherwise continuous
-							// reasoning gets split into separate reasoning blocks. Search backwards
-							// for the last reasoning segment.
-							let lastReasoning = null;
-							for (let i = mergedSegments.length - 1; i >= 0; i--) {
-								if (mergedSegments[i].type === "reasoning") {
-									lastReasoning = mergedSegments[i];
-									break;
-								}
-							}
-							// Grammatical sentence boundary: a period followed by a
-							// capital letter starts a new block; otherwise coalesce.
-							if (
-								lastReasoning &&
-								(lastReasoning.content.endsWith(".") ||
-									lastReasoning.content.endsWith("?") ||
-									lastReasoning.content.endsWith("!")) &&
-								/^[A-Z]/.test(newSeg.content)
-							) {
-								mergedSegments.push({ ...newSeg });
-							} else if (lastReasoning) {
-								lastReasoning.content += newSeg.content;
-							} else {
-								mergedSegments.push({ ...newSeg });
-							}
-						} else if (newSeg.type === "tool") {
-							// Each tool message gets its own segment so it renders as
-							// its own block with its own name header. No coalescing.
-							mergedSegments.push({ ...newSeg });
-						} else {
-							// Message segments require a type match to append; a mismatch
-							// (e.g., message after reasoning) forces a new block.
-							const lastSeg = mergedSegments[mergedSegments.length - 1];
-							if (lastSeg && lastSeg.type === newSeg.type) {
-								lastSeg.content += newSeg.content;
-							} else {
-								mergedSegments.push({ ...newSeg });
-							}
-						}
+						const mergedSegments = coalesceSegment(existing.segments, newSeg);
 						dataRef.current.set(id, { ...existing, ...updates, segments: mergedSegments });
 					} else {
 						dataRef.current.set(id, { ...existing, ...updates });
