@@ -255,6 +255,10 @@ const InputArea = forwardRef(function InputArea(
 				{
 					borderStyle: "round",
 					borderColor: "white",
+					borderTop: true,
+					borderBottom: false,
+					borderLeft: false,
+					borderRight: false,
 					width: "100%",
 				},
 				!pickerOpen && !commandPickerOpen && !searchMode
