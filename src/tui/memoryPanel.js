@@ -5,6 +5,7 @@ import { readdir, readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { parseFrontmatter } from "../memory/reader.js";
 import { ActiveItem, ActiveIndicator } from "./selectComponents.js";
+import { MarkdownText } from "./markdownText.js";
 
 /**
  * MemoryPanel — browse canonical user memories from memory/context/.
@@ -57,7 +58,7 @@ export function MemoryPanel({ config, onViewChange, activeView }) {
 						const content = await readFile(filepath, "utf-8");
 						const { frontmatter } = parseFrontmatter(content);
 						entries.push({
-							title: file.replace(/\.md$/, ""),
+							title: file.replace(/\.md$/, "").replace(/_/g, " "),
 							fileName: file,
 							path: filepath,
 							mtime: st.mtime,
@@ -132,7 +133,7 @@ export function MemoryPanel({ config, onViewChange, activeView }) {
 		return React.createElement(
 			Box,
 			{ flexDirection: "column", paddingX: 1 },
-			React.createElement(Text, { bold: true, color: "white" }, " Memory"),
+			React.createElement(Text, { bold: true, color: "white" }, " Memories"),
 			React.createElement(Text, { color: "gray" }, " Loading memories..."),
 		);
 	}
@@ -141,7 +142,7 @@ export function MemoryPanel({ config, onViewChange, activeView }) {
 		return React.createElement(
 			Box,
 			{ flexDirection: "column", paddingX: 1 },
-			React.createElement(Text, { bold: true, color: "white" }, " Memory"),
+			React.createElement(Text, { bold: true, color: "white" }, " Memories"),
 			React.createElement(Text, { color: "red" }, ` Error: ${error}`),
 		);
 	}
@@ -150,7 +151,7 @@ export function MemoryPanel({ config, onViewChange, activeView }) {
 		return React.createElement(
 			Box,
 			{ flexDirection: "column", paddingX: 1 },
-			React.createElement(Text, { bold: true, color: "white" }, " Memory"),
+			React.createElement(Text, { bold: true, color: "white" }, " Memories"),
 			React.createElement(Text, { color: "gray" }, " No memory entries."),
 		);
 	}
@@ -170,7 +171,7 @@ export function MemoryPanel({ config, onViewChange, activeView }) {
 	return React.createElement(
 		Box,
 		{ flexDirection: "column", paddingX: 1, flexGrow: 1 },
-		React.createElement(Text, { bold: true, color: "white" }, " Memory"),
+		React.createElement(Text, { bold: true, color: "white" }, " Memories"),
 		React.createElement(Text, { color: "gray" }, " ↑↓ navigate, Enter view, Escape back"),
 		React.createElement(SelectInput, {
 			items,
@@ -194,11 +195,9 @@ export function MemoryPanel({ config, onViewChange, activeView }) {
 								),
 							)
 						: null,
-					React.createElement(
-						Text,
-						null,
-						detailContent.body || React.createElement(Text, { color: "gray" }, " (empty)"),
-					),
+					detailContent.body
+						? React.createElement(MarkdownText, { content: detailContent.body })
+						: React.createElement(Text, { color: "gray" }, " (empty)"),
 				)
 			: null,
 	);
