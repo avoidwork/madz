@@ -247,7 +247,6 @@ const InputArea = forwardRef(function InputArea(
 			{
 				key: "input-wrapper",
 				flexDirection: "column",
-				paddingY: 0,
 			},
 			React.createElement(
 				Box,
@@ -258,6 +257,7 @@ const InputArea = forwardRef(function InputArea(
 					borderBottom: false,
 					borderLeft: false,
 					borderRight: false,
+					paddingX: 1,
 					width: "100%",
 				},
 				!pickerOpen && !commandPickerOpen && !searchMode

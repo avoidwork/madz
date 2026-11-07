@@ -3,17 +3,15 @@ import { Box, Text, useInput } from "ink";
 import { COMMAND_GROUPS } from "./commandHelp.js";
 
 export const BANNER_ART = `
- ___      ___       __       ________  ________
-|"  \\    /"  |     /""\\     |"      "\\("      "\\
- \\   \\  //   |    /    \\    (.  ___  :)\\___/   :)
- /\\\\  \\/.    |   /' /\\  \\   |: \\   ) ||  /  ___/
-|: \\.        |  //  __'  \\  (| (___\\ || //  \\__
-|.  \\    /:  | /   /  \\\\  \\ |:       :)(:   / "\\
-|___|\\__/|___|(___/    \\___)(________/  \\_______)
-
+   . .    .       . .       . .             
+.+'|=|\`+.=|\`+. .+'|=|\`+. .+'|=|\`+. |~~|=|~~|
+|  | \`+ | \`+ | |  | |  | |  | \`+ | |.+' |  |
+|  |  | |  | | |  |=|  | |  |  | |      |.+'
+|  |  | |  | | |  | |  | |  |  | |    .='   
+|  |  | |  | | |  | |  | |  |  | | .+'|    .
+|  |  | |  | | |  | |  | |  | .+ | |  | .+'|
+\`+.|  |.|  |+' \`+.| |..| \`+.|=|.+' |..|=|..|
 `.split("\n");
-
-const SEPARATOR = "─".repeat(70);
 
 /**
  * BBS-style startup banner with ASCII art and command help menu.
@@ -44,21 +42,36 @@ export function Banner({ onDismiss, version }) {
 	);
 
 	if (version) {
-		children.push(React.createElement(Text, { key: "version" }, version));
+		children.push(
+			React.createElement(
+				Box,
+				{ flexDirection: "column", marginTop: 1 },
+				React.createElement(Text, { key: "version" }, version),
+			),
+		);
 	}
 
 	children.push(
 		React.createElement(
 			Box,
 			{ flexDirection: "column", marginTop: 2 },
-			React.createElement(Text, { color: "white" }, SEPARATOR),
 			...bodyLines.map((line, i) =>
 				React.createElement(Text, { key: "cmd-" + i, color: "white" }, line),
 			),
-			React.createElement(Text, { color: "gray" }, SEPARATOR),
+		),
+	);
+
+	children.push(
+		React.createElement(
+			Box,
+			{ flexDirection: "column", marginTop: 2 },
 			React.createElement(Text, { color: "gray" }, "Press any key to continue..."),
 		),
 	);
 
-	return React.createElement(Box, { flexDirection: "column" }, ...children);
+	return React.createElement(
+		Box,
+		{ flexDirection: "column", paddingX: 1, paddingY: 1 },
+		...children,
+	);
 }
