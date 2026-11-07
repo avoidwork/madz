@@ -60,5 +60,9 @@ export function Banner({ onDismiss, version }) {
 		),
 	);
 
-	return React.createElement(Box, { flexDirection: "column" }, ...children);
+	return React.createElement(
+		Box,
+		{ flexDirection: "column", paddingX: 1, paddingY: 1 },
+		...children,
+	);
 }
