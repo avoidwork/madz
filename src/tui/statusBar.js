@@ -137,12 +137,6 @@ export const StatusBar = React.memo(function StatusBar({
 			flexDirection: "row",
 			alignItems: "center",
 			width: "100%",
-			borderStyle: "round",
-			borderColor: "gray",
-			borderTop: true,
-			borderBottom: true,
-			borderLeft: false,
-			borderRight: false,
 			justifyContent: "flex-start",
 		},
 		React.createElement(
