@@ -252,8 +252,6 @@ const InputArea = forwardRef(function InputArea(
 			React.createElement(
 				Box,
 				{
-					borderStyle: "round",
-					borderColor: "white",
 					width: "100%",
 				},
 				!pickerOpen && !commandPickerOpen && !searchMode
