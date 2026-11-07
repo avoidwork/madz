@@ -635,7 +635,7 @@ export function MessageBubbleInner({
 						React.createElement(
 							Text,
 							{ color: "cyan" },
-							React.createElement(Spinner, { type: "dots2" }),
+							React.createElement(Spinner, { type: "bounce" }),
 						),
 						React.createElement(Text, { color: "gray" }, ` ${thinkingWordRef.current}`),
 					)
