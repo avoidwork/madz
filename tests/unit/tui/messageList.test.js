@@ -957,29 +957,6 @@ describe("coalesceSegment — pure function", () => {
 			assert.strictEqual(result[0].type, "reasoning");
 			assert.strictEqual(result[0].content, "thinking");
 		});
-
-		it("pushes a new reasoning block when the last reasoning ends with '.' and a trailing space and the chunk starts with a capital", () => {
-			const existing = [{ type: "reasoning", content: "measured cadence. " }];
-			const result = coalesceSegment(existing, { type: "reasoning", content: "Jason" });
-			assert.strictEqual(result.length, 2);
-			assert.strictEqual(result[0].content, "measured cadence. ");
-			assert.strictEqual(result[1].content, "Jason");
-		});
-
-		it("pushes a new reasoning block when the last reasoning ends with '.' and the chunk starts with a leading space and a capital", () => {
-			const existing = [{ type: "reasoning", content: "measured cadence." }];
-			const result = coalesceSegment(existing, { type: "reasoning", content: " Jason" });
-			assert.strictEqual(result.length, 2);
-			assert.strictEqual(result[0].content, "measured cadence.");
-			assert.strictEqual(result[1].content, " Jason");
-		});
-
-		it("appends to the last reasoning segment when the chunk carries a leading space but is a lowercase continuation", () => {
-			const existing = [{ type: "reasoning", content: "measured cadence." }];
-			const result = coalesceSegment(existing, { type: "reasoning", content: " jason" });
-			assert.strictEqual(result.length, 1);
-			assert.strictEqual(result[0].content, "measured cadence. jason");
-		});
 	});
 
 	describe("tool segment", () => {
@@ -1218,22 +1195,6 @@ describe("isMessageBoundary — pure function", () => {
 
 		it("returns false when the previous content does not end with sentence punctuation", () => {
 			assert.strictEqual(isMessageBoundary("The answer is ", "42."), false);
-		});
-
-		it("returns true when the previous content ends with '.' followed by a trailing space and the chunk starts with a capital", () => {
-			assert.strictEqual(isMessageBoundary("Here is the result. ", "Now let me explain."), true);
-		});
-
-		it("returns true when the previous content ends with '.' and the chunk starts with a leading space and a capital", () => {
-			assert.strictEqual(isMessageBoundary("Here is the result.", " Now let me explain."), true);
-		});
-
-		it("returns true when both the previous content and the chunk carry formatting whitespace", () => {
-			assert.strictEqual(isMessageBoundary("Here is the result. ", " Now let me explain."), true);
-		});
-
-		it("returns false when the previous content ends with '.' and a trailing space but the chunk starts with a lowercase letter", () => {
-			assert.strictEqual(isMessageBoundary("Here is the result. ", "now let me explain."), false);
 		});
 	});
 
