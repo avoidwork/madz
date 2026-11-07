@@ -51,14 +51,19 @@ export function Banner({ onDismiss, version }) {
 		React.createElement(
 			Box,
 			{ flexDirection: "column", marginTop: 2 },
-			React.createElement(Text, { color: "white" }, SEPARATOR),
 			...bodyLines.map((line, i) =>
 				React.createElement(Text, { key: "cmd-" + i, color: "white" }, line),
 			),
-			React.createElement(Text, { color: "gray" }, SEPARATOR),
-			React.createElement(Text, { color: "gray" }, "Press any key to continue..."),
 		),
 	);
+
+        children.push(
+                React.createElement(
+                        Box,
+                        { flexDirection: "column", marginTop: 2 },
+                        React.createElement(Text, { color: "gray" }, "Press any key to continue..."),
+                ),
+        );
 
 	return React.createElement(
 		Box,
