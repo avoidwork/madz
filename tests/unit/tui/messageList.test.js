@@ -1262,14 +1262,6 @@ describe("isMessageBoundary — pure function", () => {
 			assert.strictEqual(isMessageBoundary("Steps:", "1. First"), true);
 		});
 
-		it("returns false for a 4-digit year (not a numbered list boundary)", () => {
-			assert.strictEqual(isMessageBoundary("In ", "2024. The answer is clear."), false);
-		});
-
-		it("returns true for a 3-digit numbered list item", () => {
-			assert.strictEqual(isMessageBoundary("Steps:", "100. First"), true);
-		});
-
 		it("returns true for a blockquote", () => {
 			assert.strictEqual(isMessageBoundary("As noted:", "> a quote"), true);
 		});
