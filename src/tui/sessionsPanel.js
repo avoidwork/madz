@@ -5,32 +5,7 @@ import { readdir, readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { parseFrontmatter } from "../memory/reader.js";
 import { loadSession } from "../session/loader.js";
-
-/**
- * Custom item renderer for SelectInput that highlights the selected row in cyan,
- * matching the /skills view. ink-select-input's default Item uses blue.
- * @param {{ isSelected?: boolean, label: string }} props - The item props.
- * @returns {React.ReactElement} The rendered item.
- */
-function CyanItem({ isSelected = false, label }) {
-	return React.createElement(Text, { color: isSelected ? "cyan" : undefined }, label);
-}
-
-/**
- * Custom indicator renderer for SelectInput that renders the pointer in cyan,
- * matching the /skills view. ink-select-input's default Indicator uses blue.
- * @param {{ isSelected?: boolean }} props - The indicator props.
- * @returns {React.ReactElement} The rendered indicator.
- */
-function CyanIndicator({ isSelected = false }) {
-	return React.createElement(
-		Box,
-		{ marginRight: 1 },
-		isSelected
-			? React.createElement(Text, { color: "cyan" }, "▸")
-			: React.createElement(Text, null, " "),
-	);
-}
+import { ActiveItem, ActiveIndicator } from "./selectComponents.js";
 
 /**
  * SessionsPanel — browse and resume past sessions.
@@ -187,7 +162,7 @@ export function SessionsPanel({ sessionState, config, onViewChange, onResumeSess
 		return React.createElement(
 			Box,
 			{ flexDirection: "column", paddingX: 1 },
-			React.createElement(Text, { bold: true, color: "cyan" }, " Sessions"),
+			React.createElement(Text, { bold: true, color: "white" }, " Sessions"),
 			React.createElement(Text, { color: "gray" }, " Loading sessions..."),
 		);
 	}
@@ -196,7 +171,7 @@ export function SessionsPanel({ sessionState, config, onViewChange, onResumeSess
 		return React.createElement(
 			Box,
 			{ flexDirection: "column", paddingX: 1 },
-			React.createElement(Text, { bold: true, color: "cyan" }, " Sessions"),
+			React.createElement(Text, { bold: true, color: "white" }, " Sessions"),
 			React.createElement(Text, { color: "red" }, ` Error: ${error}`),
 		);
 	}
@@ -205,7 +180,7 @@ export function SessionsPanel({ sessionState, config, onViewChange, onResumeSess
 		return React.createElement(
 			Box,
 			{ flexDirection: "column", paddingX: 1 },
-			React.createElement(Text, { bold: true, color: "cyan" }, " Sessions"),
+			React.createElement(Text, { bold: true, color: "white" }, " Sessions"),
 			React.createElement(Text, { color: "gray" }, " No saved sessions."),
 		);
 	}
@@ -247,14 +222,14 @@ export function SessionsPanel({ sessionState, config, onViewChange, onResumeSess
 	return React.createElement(
 		Box,
 		{ flexDirection: "column", paddingX: 1, flexGrow: 1 },
-		React.createElement(Text, { bold: true, color: "cyan" }, " Sessions"),
+		React.createElement(Text, { bold: true, color: "white" }, " Sessions"),
 		React.createElement(Text, { color: "gray" }, " ↑↓ navigate, Enter resume, Escape back"),
 		React.createElement(SelectInput, {
 			items,
 			isFocused: isActive,
 			limit,
-			indicatorComponent: CyanIndicator,
-			itemComponent: CyanItem,
+			indicatorComponent: ActiveIndicator,
+			itemComponent: ActiveItem,
 			onSelect: (item) => handleResume(item.value.sessionId),
 		}),
 	);

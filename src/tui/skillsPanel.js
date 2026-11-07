@@ -1,33 +1,7 @@
 import React, { useMemo } from "react";
 import { Box, Text, useInput, useWindowSize } from "ink";
 import SelectInput from "ink-select-input";
-
-/**
- * Custom item renderer for SelectInput that highlights the selected skill name
- * in cyan. Skill descriptions are intentionally not shown — the view lists
- * only the skill names.
- * @param {{ isSelected?: boolean, label: string }} props - The item props.
- * @returns {React.ReactElement} The rendered item.
- */
-function SkillItem({ isSelected = false, label }) {
-	return React.createElement(Text, { color: isSelected ? "cyan" : undefined }, label);
-}
-
-/**
- * Custom indicator renderer for SelectInput that renders the pointer in cyan,
- * matching the /skills view. ink-select-input's default Indicator uses blue.
- * @param {{ isSelected?: boolean }} props - The indicator props.
- * @returns {React.ReactElement} The rendered indicator.
- */
-function CyanIndicator({ isSelected = false }) {
-	return React.createElement(
-		Box,
-		{ marginRight: 1 },
-		isSelected
-			? React.createElement(Text, { color: "cyan" }, "▸")
-			: React.createElement(Text, null, " "),
-	);
-}
+import { ActiveItem, ActiveIndicator } from "./selectComponents.js";
 
 /**
  * Skills panel that lists registered skills for selection.
@@ -79,7 +53,7 @@ export function SkillsPanel({ skills = [], onViewChange, onSelectSkill, activeVi
 		return React.createElement(
 			Box,
 			{ flexDirection: "column", paddingX: 1 },
-			React.createElement(Text, { bold: true, color: "cyan" }, " Skills"),
+			React.createElement(Text, { bold: true, color: "white" }, " Skills"),
 			React.createElement(Text, { color: "gray" }, " No skills registered."),
 		);
 	}
@@ -87,14 +61,14 @@ export function SkillsPanel({ skills = [], onViewChange, onSelectSkill, activeVi
 	return React.createElement(
 		Box,
 		{ flexDirection: "column", paddingX: 1, flexGrow: 1 },
-		React.createElement(Text, { bold: true, color: "cyan" }, " Skills"),
+		React.createElement(Text, { bold: true, color: "white" }, " Skills"),
 		React.createElement(Text, { color: "gray" }, " ↑↓ navigate, Enter run, Escape back"),
 		React.createElement(SelectInput, {
 			items,
 			isFocused: isActive,
 			limit,
-			indicatorComponent: CyanIndicator,
-			itemComponent: SkillItem,
+			indicatorComponent: ActiveIndicator,
+			itemComponent: ActiveItem,
 			onSelect: (item) => onSelectSkill?.(item.value),
 		}),
 	);

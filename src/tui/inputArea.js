@@ -247,48 +247,59 @@ const InputArea = forwardRef(function InputArea(
 			{
 				key: "input-wrapper",
 				flexDirection: "column",
-				paddingX: 1,
 				paddingY: 0,
 			},
-			!pickerOpen && !commandPickerOpen && !searchMode
-				? React.createElement(InputPanel, {
-						key: focus ? "input-focused" : "input-unfocused",
-						value: inputText,
-						onChange: setInputText,
-						onSubmit: handleSubmit,
-						onFocus,
-						onBlur,
-						focus,
-					})
-				: null,
-			searchMode
-				? React.createElement(InputPanel, {
-						key: "search-input",
-						value: searchQuery,
-						onChange: onSearchQueryChange,
-						onSubmit: () => {},
-						onFocus,
-						onBlur,
-						focus: true,
-						placeholder: "Search...",
-					})
-				: null,
-			pickerOpen
-				? React.createElement(FilePicker, {
-						value: inputText,
-						onChange: setInputText,
-						onClose: () => setPickerOpen(false),
-						cwd: cwd || process.cwd(),
-					})
-				: null,
-			commandPickerOpen
-				? React.createElement(CommandPicker, {
-						value: inputText,
-						onChange: setInputText,
-						onClose: () => setCommandPickerOpen(false),
-						commandList,
-					})
-				: null,
+			React.createElement(
+				Box,
+				{
+					borderStyle: "round",
+					borderColor: "gray",
+					borderTop: true,
+					borderBottom: false,
+					borderLeft: false,
+					borderRight: false,
+					width: "100%",
+				},
+				!pickerOpen && !commandPickerOpen && !searchMode
+					? React.createElement(InputPanel, {
+							key: focus ? "input-focused" : "input-unfocused",
+							value: inputText,
+							onChange: setInputText,
+							onSubmit: handleSubmit,
+							onFocus,
+							onBlur,
+							focus,
+						})
+					: null,
+				searchMode
+					? React.createElement(InputPanel, {
+							key: "search-input",
+							value: searchQuery,
+							onChange: onSearchQueryChange,
+							onSubmit: () => {},
+							onFocus,
+							onBlur,
+							focus: true,
+							placeholder: "Search...",
+						})
+					: null,
+				pickerOpen
+					? React.createElement(FilePicker, {
+							value: inputText,
+							onChange: setInputText,
+							onClose: () => setPickerOpen(false),
+							cwd: cwd || process.cwd(),
+						})
+					: null,
+				commandPickerOpen
+					? React.createElement(CommandPicker, {
+							value: inputText,
+							onChange: setInputText,
+							onClose: () => setCommandPickerOpen(false),
+							commandList,
+						})
+					: null,
+			),
 		),
 	);
 });

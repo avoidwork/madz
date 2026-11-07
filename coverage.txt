@@ -170,7 +170,7 @@
 ℹ   reflection                   |        |          |         | 
 ℹ    index.js                    |  96.05 |    84.62 |   91.67 | 58-62 151-152 206-207
 ℹ   sampling                     |        |          |         | 
-ℹ    index.js                    |  94.97 |    81.82 |   80.00 | 27 180-188
+ℹ    index.js                    |  94.97 |    84.38 |   80.00 | 27 180-188
 ℹ   scanAgents                   |        |          |         | 
 ℹ    index.js                    | 100.00 |    71.43 |  100.00 | 
 ℹ   session                      |        |          |         | 
@@ -202,7 +202,7 @@
 ℹ   commandPicker.js             |  73.87 |    88.46 |   81.82 | 134-138 143-184 207-217
 ℹ   conversationPanel.js         |  95.45 |    95.83 |  100.00 | 26-31
 ℹ   filePicker.js                |  70.26 |    89.66 |   73.33 | 134-156 182-183 188-229 252-264
-ℹ   inputArea.js                 |  78.38 |    71.43 |   44.00 | 120-121 135 149-152 160-172 180-196 202-203 206-211 266-274 278-282 286-290
+ℹ   inputArea.js                 |  78.95 |    71.43 |   44.00 | 120-121 135 149-152 160-172 180-196 202-203 206-211 273-281 285-289 293-297
 ℹ   inputPanel.js                | 100.00 |   100.00 |  100.00 | 
 ℹ   markdownText.js              |  95.12 |    86.02 |   96.00 | 69 199-205 220-228 231-233
 ℹ   memoryPanel.js               |  13.04 |   100.00 |    0.00 | 14-16 24-32 43-230
@@ -217,7 +217,7 @@
 ℹ   sessionsPanel.js             |  83.91 |    41.86 |   92.31 | 67-70 101-102 118-119 123-125 132-136 153-155 169-171 180-181 196-202 205-211 222-225
 ℹ   settingsPanel.js             |  75.31 |    83.87 |   76.47 | 78-92 118-144 181-189 195-199 205-207
 ℹ   skillsPanel.js               |  90.10 |    73.33 |   75.00 | 71-73 79-85
-ℹ   statusBar.js                 |  99.06 |    98.11 |  100.00 | 29-30
+ℹ   statusBar.js                 |  99.05 |    98.11 |  100.00 | 29-30
 ℹ   subagentsPanel.js            |  95.35 |    72.41 |   85.71 | 54-56 81-85
 ℹ   subagentStore.js             | 100.00 |    82.61 |  100.00 | 
 ℹ   useMouseScroll.js            | 100.00 |   100.00 |  100.00 | 
@@ -231,6 +231,25 @@
 ℹ   loadAgents.js                |  88.00 |    42.86 |  100.00 | 17-18 32-33 38-39
 ℹ   project.js                   | 100.00 |   100.00 |  100.00 | 
 ℹ -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-ℹ all files                      |  91.52 |    87.51 |   86.88 | 
+ℹ all files                      |  91.52 |    87.52 |   86.88 | 
 ℹ -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ℹ end of coverage report
+
+✖ failing tests:
+
+test at tests/unit/context.test.js:131:2
+✖ filters out ephemeral files from main processing (7.574209ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(result.includes("[Context: Persistent]"))
+  
+      at TestContext.<anonymous> (file:///app/projects/madz/tests/unit/context.test.js:142:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

@@ -605,7 +605,16 @@ export function MessageBubbleInner({
 				paddingY: 1,
 				width: "100%",
 				gap: 1,
-				...(role === "system" || role === "user" ? { backgroundColor: "#0d0d0d" } : {}),
+				...(role === "system" || role === "user"
+					? {
+							borderStyle: "round",
+							borderColor: "gray",
+							borderTop: true,
+							borderBottom: true,
+							borderLeft: false,
+							borderRight: false,
+						}
+					: {}),
 			},
 			React.createElement(
 				Box,
@@ -626,9 +635,9 @@ export function MessageBubbleInner({
 						React.createElement(
 							Text,
 							{ color: "cyan" },
-							React.createElement(Spinner, { type: "dots2" }),
-							` ${thinkingWordRef.current}`,
+							React.createElement(Spinner, { type: "bounce" }),
 						),
+						React.createElement(Text, { color: "gray" }, ` ${thinkingWordRef.current}`),
 					)
 				: null,
 			toolCallEl,

@@ -4,32 +4,8 @@ import SelectInput from "ink-select-input";
 import { readdir, readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { parseFrontmatter } from "../memory/reader.js";
-
-/**
- * Custom item renderer for SelectInput that highlights the selected row in cyan,
- * matching the /skills view. ink-select-input's default Item uses blue.
- * @param {{ isSelected?: boolean, label: string }} props - The item props.
- * @returns {React.ReactElement} The rendered item.
- */
-function CyanItem({ isSelected = false, label }) {
-	return React.createElement(Text, { color: isSelected ? "cyan" : undefined }, label);
-}
-
-/**
- * Custom indicator renderer for SelectInput that renders the pointer in cyan,
- * matching the /skills view. ink-select-input's default Indicator uses blue.
- * @param {{ isSelected?: boolean }} props - The indicator props.
- * @returns {React.ReactElement} The rendered indicator.
- */
-function CyanIndicator({ isSelected = false }) {
-	return React.createElement(
-		Box,
-		{ marginRight: 1 },
-		isSelected
-			? React.createElement(Text, { color: "cyan" }, "▸")
-			: React.createElement(Text, null, " "),
-	);
-}
+import { ActiveItem, ActiveIndicator } from "./selectComponents.js";
+import { MarkdownText } from "./markdownText.js";
 
 /**
  * MemoryPanel — browse canonical user memories from memory/context/.
@@ -82,7 +58,7 @@ export function MemoryPanel({ config, onViewChange, activeView }) {
 						const content = await readFile(filepath, "utf-8");
 						const { frontmatter } = parseFrontmatter(content);
 						entries.push({
-							title: file.replace(/\.md$/, ""),
+							title: file.replace(/\.md$/, "").replace(/_/g, " "),
 							fileName: file,
 							path: filepath,
 							mtime: st.mtime,
@@ -157,7 +133,7 @@ export function MemoryPanel({ config, onViewChange, activeView }) {
 		return React.createElement(
 			Box,
 			{ flexDirection: "column", paddingX: 1 },
-			React.createElement(Text, { bold: true, color: "cyan" }, " Memory"),
+			React.createElement(Text, { bold: true, color: "white" }, " Memories"),
 			React.createElement(Text, { color: "gray" }, " Loading memories..."),
 		);
 	}
@@ -166,7 +142,7 @@ export function MemoryPanel({ config, onViewChange, activeView }) {
 		return React.createElement(
 			Box,
 			{ flexDirection: "column", paddingX: 1 },
-			React.createElement(Text, { bold: true, color: "cyan" }, " Memory"),
+			React.createElement(Text, { bold: true, color: "white" }, " Memories"),
 			React.createElement(Text, { color: "red" }, ` Error: ${error}`),
 		);
 	}
@@ -175,7 +151,7 @@ export function MemoryPanel({ config, onViewChange, activeView }) {
 		return React.createElement(
 			Box,
 			{ flexDirection: "column", paddingX: 1 },
-			React.createElement(Text, { bold: true, color: "cyan" }, " Memory"),
+			React.createElement(Text, { bold: true, color: "white" }, " Memories"),
 			React.createElement(Text, { color: "gray" }, " No memory entries."),
 		);
 	}
@@ -186,7 +162,7 @@ export function MemoryPanel({ config, onViewChange, activeView }) {
 			day: "numeric",
 		});
 		return {
-			label: `${entry.title}  ${dateStr}`,
+			label: `${dateStr}  ${entry.title}`,
 			value: entry,
 			key: entry.fileName,
 		};
@@ -195,14 +171,14 @@ export function MemoryPanel({ config, onViewChange, activeView }) {
 	return React.createElement(
 		Box,
 		{ flexDirection: "column", paddingX: 1, flexGrow: 1 },
-		React.createElement(Text, { bold: true, color: "cyan" }, " Memory"),
+		React.createElement(Text, { bold: true, color: "white" }, " Memories"),
 		React.createElement(Text, { color: "gray" }, " ↑↓ navigate, Enter view, Escape back"),
 		React.createElement(SelectInput, {
 			items,
 			isFocused: isActive,
 			limit,
-			indicatorComponent: CyanIndicator,
-			itemComponent: CyanItem,
+			indicatorComponent: ActiveIndicator,
+			itemComponent: ActiveItem,
 			onHighlight: loadDetail,
 			onSelect: loadDetail,
 		}),
@@ -219,11 +195,9 @@ export function MemoryPanel({ config, onViewChange, activeView }) {
 								),
 							)
 						: null,
-					React.createElement(
-						Text,
-						null,
-						detailContent.body || React.createElement(Text, { color: "gray" }, " (empty)"),
-					),
+					detailContent.body
+						? React.createElement(MarkdownText, { content: detailContent.body })
+						: React.createElement(Text, { color: "gray" }, " (empty)"),
 				)
 			: null,
 	);

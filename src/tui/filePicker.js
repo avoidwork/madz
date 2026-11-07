@@ -238,10 +238,10 @@ export function FilePicker({ value, onChange, onClose, cwd }) {
 
 	return React.createElement(
 		Box,
-		{ flexDirection: "column", width: "100%", paddingX: 1 },
+		{ flexDirection: "column", width: "100%" },
 		React.createElement(
 			Text,
-			null,
+			{ color: "white" },
 			before,
 			React.createElement(Text, { inverse: true }, at),
 			after,
@@ -257,7 +257,7 @@ export function FilePicker({ value, onChange, onClose, cwd }) {
 							{ key: file, flexDirection: "row" },
 							React.createElement(
 								Text,
-								{ color: isSelected ? "cyan" : undefined },
+								{ color: isSelected ? "white" : "gray" },
 								isSelected ? "▸ " : "  ",
 								file,
 							),

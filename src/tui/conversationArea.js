@@ -191,10 +191,17 @@ const ConversationArea = forwardRef(function ConversationArea(
 		abortControllerRef.current = new AbortController();
 		isStreamingRef.current = false;
 
-		// Update message list if there's a streaming message
+		// Update message list if there's a streaming message. Set turnDuration
+		// so the timer stays visible after an interrupt — the bubble renders the
+		// timer when `localStreaming || localTurnDuration`, and a plain
+		// `streaming: false` update leaves both falsy, hiding the elapsed time.
 		if (streamingMsgIdRef.current) {
+			const msgData = messageListRef.current?.getMessageData(streamingMsgIdRef.current);
+			const startTime = msgData?.turnStartTime;
+			const elapsed = startTime ? Date.now() - startTime : 0;
 			messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
 				streaming: false,
+				turnDuration: elapsed,
 			});
 		}
 

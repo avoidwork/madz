@@ -115,7 +115,7 @@ export const StatusBar = React.memo(function StatusBar({
 	statusBar = {},
 	project = "",
 }) {
-	const contextColor = isCompacting ? "red" : "#606060";
+	const contextColor = isCompacting ? "red" : "gray";
 	const spinnerColor = getContextUtilizationColor(contextSize, contextWindow);
 	const showModel = statusBar.model !== false && model;
 	const showSkills = statusBar.skills !== false;
@@ -137,8 +137,6 @@ export const StatusBar = React.memo(function StatusBar({
 			flexDirection: "row",
 			alignItems: "center",
 			width: "100%",
-			paddingX: 1,
-			backgroundColor: "#0d0d0d",
 			justifyContent: "flex-start",
 		},
 		React.createElement(
@@ -150,21 +148,21 @@ export const StatusBar = React.memo(function StatusBar({
 						{ color: spinnerColor },
 						React.createElement(Spinner, { type: "point" }),
 					)
-				: React.createElement(Text, { color: "#606060" }, "∙∙∙"),
+				: React.createElement(Text, { color: "gray" }, "∙∙∙"),
 
-			showModel ? React.createElement(Text, { key: "model", color: "#606060" }, " " + model) : null,
+			showModel ? React.createElement(Text, { key: "model", color: "gray" }, " " + model) : null,
 
 			showSkills
 				? React.createElement(
 						Text,
-						{ key: "skills", color: "#606060" },
+						{ key: "skills", color: "gray" },
 						" \u2219 \u26A1 " + formatNumber(skillCount),
 					)
 				: null,
 			showMessages
 				? React.createElement(
 						Text,
-						{ key: "messages", color: "#606060" },
+						{ key: "messages", color: "gray" },
 						" \u2219 \u{1F4AC} " + formatNumber(messageCount),
 					)
 				: null,
@@ -181,13 +179,13 @@ export const StatusBar = React.memo(function StatusBar({
 			showTokens
 				? React.createElement(
 						Text,
-						{ key: "tokens", color: "#606060" },
+						{ key: "tokens", color: "gray" },
 						" \u2219 \u{1F48E} " + formatSize(tokenCount) + "/" + formatSize(tokenBudget),
 					)
 				: null,
 
 			showProject
-				? React.createElement(Text, { key: "project", color: "#606060" }, " \u2219 " + projectName)
+				? React.createElement(Text, { key: "project", color: "gray" }, " \u2219 " + projectName)
 				: null,
 		),
 		showVersion
@@ -198,12 +196,12 @@ export const StatusBar = React.memo(function StatusBar({
 						? React.createElement(
 								Box,
 								{ key: "quote", flexShrink: 1, minWidth: 0 },
-								React.createElement(Text, { color: "#606060", wrap: "truncate-end" }, quote + "  "),
+								React.createElement(Text, { color: "gray", wrap: "truncate-end" }, quote + "  "),
 							)
 						: null,
 					React.createElement(
 						Text,
-						{ key: "version", color: "#606060", width: 10, flexShrink: 0, wrap: "truncate-end" },
+						{ key: "version", color: "gray", width: 10, flexShrink: 0, wrap: "truncate-end" },
 						version,
 					),
 				)
