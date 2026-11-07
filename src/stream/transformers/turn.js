@@ -34,14 +34,14 @@ export function createTurnTransformer() {
 	/** Track the last seen message IDs per namespace to detect new messages */
 	const lastSeenMessageIds = new Set();
 
+	/** Cap on the number of tracked message IDs, to bound memory over a session */
+	const MAX_SEEN_MESSAGE_IDS = 10000;
+
 	/** Whether we're inside a turn (between turn:start and turn:end) */
 	let inTurn = false;
 
 	/** Re-entrant guard */
 	let inSelfEmit = false;
-
-	/** @type {import("@langchain/langgraph").StreamEmitter | null} */
-	let _emitter = null;
 
 	/**
 	 * Check if a message is a HumanMessage.
@@ -172,6 +172,8 @@ export function createTurnTransformer() {
 
 	/**
 	 * Record all message IDs from the messages array into the seen set.
+	 * The set is capped to prevent unbounded growth over a long session —
+	 * once it exceeds MAX_SEEN_MESSAGE_IDS, the oldest entries are pruned.
 	 * @param {Array<unknown>} messages
 	 */
 	function recordSeenMessages(messages) {
@@ -179,15 +181,21 @@ export function createTurnTransformer() {
 			const id = getMessageId(msg);
 			if (id) lastSeenMessageIds.add(id);
 		}
+		// Prune the oldest entries once the set grows past the cap.
+		if (lastSeenMessageIds.size > MAX_SEEN_MESSAGE_IDS) {
+			const excess = lastSeenMessageIds.size - MAX_SEEN_MESSAGE_IDS;
+			let removed = 0;
+			for (const id of lastSeenMessageIds) {
+				if (removed >= excess) break;
+				lastSeenMessageIds.delete(id);
+				removed++;
+			}
+		}
 	}
 
 	return {
 		init() {
 			return { turns };
-		},
-
-		onRegister(emitterHandle) {
-			_emitter = emitterHandle;
 		},
 
 		/**
