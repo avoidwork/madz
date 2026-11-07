@@ -139,7 +139,7 @@ export const StatusBar = React.memo(function StatusBar({
 			width: "100%",
 			borderStyle: "round",
 			borderColor: "white",
-			borderTop: false,
+			borderTop: true,
 			borderBottom: true,
 			borderLeft: false,
 			borderRight: false,
