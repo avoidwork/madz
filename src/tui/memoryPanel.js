@@ -161,7 +161,7 @@ export function MemoryPanel({ config, onViewChange, activeView }) {
 			day: "numeric",
 		});
 		return {
-			label: `${entry.title}  ${dateStr}`,
+			label: `${dateStr}  ${entry.title}`,
 			value: entry,
 			key: entry.fileName,
 		};
