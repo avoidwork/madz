@@ -257,6 +257,7 @@ const InputArea = forwardRef(function InputArea(
 					borderBottom: false,
 					borderLeft: false,
 					borderRight: false,
+					paddingX: 1,
 					width: "100%",
 				},
 				!pickerOpen && !commandPickerOpen && !searchMode
