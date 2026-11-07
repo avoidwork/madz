@@ -171,6 +171,69 @@ describe("updateSubagentStore — segment coalescing", () => {
 		assert.strictEqual(store["task:abc"].segments.length, 2);
 	});
 
+	it("coalesces reasoning chunks that share an id into one block", () => {
+		let store = createSubagentStore();
+		store = updateSubagentStore(store, {
+			type: "subagent_reasoning",
+			namespace: ["task:abc"],
+			text: "thinking ",
+			id: "rs_1",
+		});
+		store = updateSubagentStore(store, {
+			type: "subagent_reasoning",
+			namespace: ["task:abc"],
+			text: "hard",
+			id: "rs_1",
+		});
+		assert.deepStrictEqual(store["task:abc"].segments, [
+			{ type: "reasoning", content: "thinking hard", id: "rs_1" },
+		]);
+	});
+
+	it("starts a new reasoning block when the id differs", () => {
+		let store = createSubagentStore();
+		store = updateSubagentStore(store, {
+			type: "subagent_reasoning",
+			namespace: ["task:abc"],
+			text: "first thought",
+			id: "rs_1",
+		});
+		store = updateSubagentStore(store, {
+			type: "subagent_reasoning",
+			namespace: ["task:abc"],
+			text: "second thought",
+			id: "rs_2",
+		});
+		assert.strictEqual(store["task:abc"].segments.length, 2);
+		assert.strictEqual(store["task:abc"].segments[0].id, "rs_1");
+		assert.strictEqual(store["task:abc"].segments[1].id, "rs_2");
+	});
+
+	it("coalesces reasoning across an interleaved message when ids match", () => {
+		let store = createSubagentStore();
+		store = updateSubagentStore(store, {
+			type: "subagent_reasoning",
+			namespace: ["task:abc"],
+			text: "measured cad",
+			id: "rs_1",
+		});
+		store = updateSubagentStore(store, {
+			type: "subagent_message",
+			namespace: ["task:abc"],
+			text: "Yo,",
+		});
+		store = updateSubagentStore(store, {
+			type: "subagent_reasoning",
+			namespace: ["task:abc"],
+			text: "ence.",
+			id: "rs_1",
+		});
+		assert.deepStrictEqual(store["task:abc"].segments, [
+			{ type: "reasoning", content: "measured cadence.", id: "rs_1" },
+			{ type: "message", content: "Yo," },
+		]);
+	});
+
 	it("keeps each tool segment as its own block", () => {
 		let store = createSubagentStore();
 		store = updateSubagentStore(store, {

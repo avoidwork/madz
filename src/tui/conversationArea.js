@@ -724,7 +724,13 @@ const ConversationArea = forwardRef(function ConversationArea(
 									(committedReasoningRef.current || "") + reasoningText;
 							}
 							messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
-								segments: [{ type: "reasoning", content: reasoningText }],
+								segments: [
+									{
+										type: "reasoning",
+										content: reasoningText,
+										...(event.id ? { id: event.id } : {}),
+									},
+								],
 								streaming: true,
 							});
 							messageListRef.current?._triggerRender();

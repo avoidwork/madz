@@ -343,6 +343,7 @@ async function callProvider(_name, _providerConfig, message, streamingCallback, 
 							streamingCallback({
 								type: isSubagent ? "subagent_reasoning" : "reasoning",
 								text: block.reasoning,
+								id: block.id,
 								namespace,
 							});
 						}
@@ -491,6 +492,7 @@ async function resumeProvider(answer, streamingCallback, signal) {
 							streamingCallback({
 								type: isSubagent ? "subagent_reasoning" : "reasoning",
 								text: block.reasoning,
+								id: block.id,
 								namespace,
 							});
 						}
