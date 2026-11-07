@@ -193,7 +193,7 @@ export function CommandPicker({ value, onChange, onClose, commandList = [] }) {
 
 	return React.createElement(
 		Box,
-		{ flexDirection: "column", width: "100%", paddingX: 1 },
+		{ flexDirection: "column", width: "100%" },
 		React.createElement(
 			Text,
 			{ color: "white" },
