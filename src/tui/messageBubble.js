@@ -634,10 +634,10 @@ export function MessageBubbleInner({
 						{ flexDirection: "row" },
 						React.createElement(
 							Text,
-							{ color: "gray" },
+							{ color: "green" },
 							React.createElement(Spinner, { type: "dots2" }),
-							` ${thinkingWordRef.current}`,
 						),
+						React.createElement(Text, { color: "gray" }, ` ${thinkingWordRef.current}`),
 					)
 				: null,
 			toolCallEl,
