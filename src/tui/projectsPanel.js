@@ -3,33 +3,7 @@ import { Box, Text, useInput, useWindowSize } from "ink";
 import SelectInput from "ink-select-input";
 import { readdir } from "node:fs/promises";
 import { join, resolve } from "node:path";
-
-/**
- * Custom indicator renderer for SelectInput that renders the pointer in cyan,
- * matching the /skills view. ink-select-input's default Indicator uses blue.
- * @param {{ isSelected?: boolean }} props - The indicator props.
- * @returns {React.ReactElement} The rendered indicator.
- */
-function CyanIndicator({ isSelected = false }) {
-	return React.createElement(
-		Box,
-		{ marginRight: 1 },
-		isSelected
-			? React.createElement(Text, { color: "cyan" }, "▸")
-			: React.createElement(Text, null, " "),
-	);
-}
-
-/**
- * Custom item renderer for SelectInput that highlights the selected project
- * name in cyan, matching the /skills view. ink-select-input's default Item
- * uses blue.
- * @param {{ isSelected?: boolean, label: string }} props - The item props.
- * @returns {React.ReactElement} The rendered item.
- */
-function ProjectItem({ isSelected = false, label }) {
-	return React.createElement(Text, { color: isSelected ? "cyan" : undefined }, label);
-}
+import { ActiveItem, ActiveIndicator } from "./selectComponents.js";
 
 /**
  * Filters directory entries to project directories, excluding hidden
@@ -135,8 +109,8 @@ export function ProjectsPanel({ cwd, onViewChange, onSelectProject, onClearProje
 			items,
 			isFocused: isActive,
 			limit,
-			indicatorComponent: CyanIndicator,
-			itemComponent: ProjectItem,
+			indicatorComponent: ActiveIndicator,
+			itemComponent: ActiveItem,
 			onSelect: (item) => {
 				if (item.value === "__clear__") {
 					onClearProject?.();
