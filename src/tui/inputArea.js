@@ -247,7 +247,6 @@ const InputArea = forwardRef(function InputArea(
 			{
 				key: "input-wrapper",
 				flexDirection: "column",
-				paddingX: 1,
 				paddingY: 0,
 			},
 			React.createElement(
