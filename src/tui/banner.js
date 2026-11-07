@@ -13,8 +13,6 @@ export const BANNER_ART = `
 
 `.split("\n");
 
-const SEPARATOR = "─".repeat(70);
-
 /**
  * BBS-style startup banner with ASCII art and command help menu.
  * Fixed top-left alignment. Dismisses on any key press.
@@ -57,13 +55,13 @@ export function Banner({ onDismiss, version }) {
 		),
 	);
 
-        children.push(
-                React.createElement(
-                        Box,
-                        { flexDirection: "column", marginTop: 2 },
-                        React.createElement(Text, { color: "gray" }, "Press any key to continue..."),
-                ),
-        );
+	children.push(
+		React.createElement(
+			Box,
+			{ flexDirection: "column", marginTop: 2 },
+			React.createElement(Text, { color: "gray" }, "Press any key to continue..."),
+		),
+	);
 
 	return React.createElement(
 		Box,
