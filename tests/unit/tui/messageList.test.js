@@ -8,6 +8,7 @@ import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert";
 import React from "react";
 import { renderToString } from "ink";
+import { coalesceSegment } from "../../../src/tui/messageList.js";
 
 /**
  * Simulate the MessageList imperative API logic in isolation.
@@ -73,38 +74,7 @@ function createImperativeApi() {
 				// Segment append/coalesce — mirrors the real implementation
 				if (updates.segments && existing.segments) {
 					const newSeg = updates.segments[updates.segments.length - 1];
-					const mergedSegments = existing.segments.map((s) => ({ ...s }));
-					if (newSeg.type === "reasoning") {
-						// Reasoning coalesces with the last reasoning segment even if
-						// a message interleaved between chunks.
-						let lastReasoning = null;
-						for (let i = mergedSegments.length - 1; i >= 0; i--) {
-							if (mergedSegments[i].type === "reasoning") {
-								lastReasoning = mergedSegments[i];
-								break;
-							}
-						}
-						if (
-							lastReasoning &&
-							(lastReasoning.content.endsWith(".") ||
-								lastReasoning.content.endsWith("?") ||
-								lastReasoning.content.endsWith("!")) &&
-							/^[A-Z]/.test(newSeg.content)
-						) {
-							mergedSegments.push({ ...newSeg });
-						} else if (lastReasoning) {
-							lastReasoning.content += newSeg.content;
-						} else {
-							mergedSegments.push({ ...newSeg });
-						}
-					} else {
-						const lastSeg = mergedSegments[mergedSegments.length - 1];
-						if (lastSeg && lastSeg.type === newSeg.type) {
-							lastSeg.content += newSeg.content;
-						} else {
-							mergedSegments.push({ ...newSeg });
-						}
-					}
+					const mergedSegments = coalesceSegment(existing.segments, newSeg);
 					dataRef.current.set(id, { ...existing, ...updates, segments: mergedSegments });
 				} else {
 					dataRef.current.set(id, { ...existing, ...updates });
@@ -442,6 +412,78 @@ describe("MessageList — imperative API", () => {
 			assert.strictEqual(data.segments.length, 2);
 			assert.strictEqual(data.segments[0].type, "reasoning");
 			assert.strictEqual(data.segments[1].type, "message");
+		});
+
+		it("coalesces a message across an interleaved tool when the chunk is mid-sequence", () => {
+			const id = api.addMessage("assistant", "", {
+				segments: [
+					{ type: "message", content: "Let me look up the current " },
+					{ type: "tool", content: "result", name: "searchWeb" },
+				],
+			});
+			api.updateMessage(id, {
+				segments: [{ type: "message", content: "weather in Ottawa." }],
+			});
+			const data = api.getMessageData(id);
+			assert.strictEqual(data.segments.length, 2);
+			assert.strictEqual(data.segments[0].type, "message");
+			assert.strictEqual(data.segments[0].content, "Let me look up the current weather in Ottawa.");
+			assert.strictEqual(data.segments[1].type, "tool");
+		});
+
+		it("starts a new message block across an interleaved tool when the chunk begins a sentence", () => {
+			const id = api.addMessage("assistant", "", {
+				segments: [
+					{ type: "message", content: "Here is the result." },
+					{ type: "tool", content: "result", name: "searchWeb" },
+				],
+			});
+			api.updateMessage(id, {
+				segments: [{ type: "message", content: "Now let me explain." }],
+			});
+			const data = api.getMessageData(id);
+			assert.strictEqual(data.segments.length, 3);
+			assert.strictEqual(data.segments[0].content, "Here is the result.");
+			assert.strictEqual(data.segments[1].type, "tool");
+			assert.strictEqual(data.segments[2].type, "message");
+			assert.strictEqual(data.segments[2].content, "Now let me explain.");
+		});
+
+		it("coalesces a message across interleaved tool and reasoning when the chunk is mid-sequence", () => {
+			const id = api.addMessage("assistant", "", {
+				segments: [
+					{ type: "message", content: "The answer is " },
+					{ type: "tool", content: "result", name: "searchWeb" },
+					{ type: "reasoning", content: "thinking" },
+				],
+			});
+			api.updateMessage(id, {
+				segments: [{ type: "message", content: "42." }],
+			});
+			const data = api.getMessageData(id);
+			assert.strictEqual(data.segments.length, 3);
+			assert.strictEqual(data.segments[0].type, "message");
+			assert.strictEqual(data.segments[0].content, "The answer is 42.");
+			assert.strictEqual(data.segments[1].type, "tool");
+			assert.strictEqual(data.segments[2].type, "reasoning");
+		});
+
+		it("starts a new message block when the chunk begins a data structure", () => {
+			const id = api.addMessage("assistant", "", {
+				segments: [
+					{ type: "message", content: "Here are the results:" },
+					{ type: "tool", content: "result", name: "searchWeb" },
+				],
+			});
+			api.updateMessage(id, {
+				segments: [{ type: "message", content: "- item one\n- item two" }],
+			});
+			const data = api.getMessageData(id);
+			assert.strictEqual(data.segments.length, 3);
+			assert.strictEqual(data.segments[0].content, "Here are the results:");
+			assert.strictEqual(data.segments[1].type, "tool");
+			assert.strictEqual(data.segments[2].type, "message");
+			assert.strictEqual(data.segments[2].content, "- item one\n- item two");
 		});
 	});
 
