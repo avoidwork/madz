@@ -3,7 +3,11 @@ import { Box, Text, useStdout, useWindowSize } from "ink";
 import { VirtualScrollView } from "./scrollView.js";
 import { MessageBubble, PubSubContext, ScrollContext } from "./messageBubble.js";
 import { stripAnsi, wrapText } from "./selectionLayout.js";
-import { hasCompletedToolCalls, normalizeCompletedToolCalls, coalesceSegments } from "./messages.js";
+import {
+	hasCompletedToolCalls,
+	normalizeCompletedToolCalls,
+	coalesceSegments,
+} from "./messages.js";
 
 /**
  * Pub/Sub wrapper component for MessageList children.

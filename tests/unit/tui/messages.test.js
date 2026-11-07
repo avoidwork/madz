@@ -120,10 +120,10 @@ describe("formatCompletedToolCalls", () => {
 
 describe("coalesceSegments", () => {
 	it("coalesces consecutive message chunks into one segment", () => {
-		const result = coalesceSegments(
-			[{ type: "message", content: "Hello " }],
-			{ type: "message", content: "world" },
-		);
+		const result = coalesceSegments([{ type: "message", content: "Hello " }], {
+			type: "message",
+			content: "world",
+		});
 		assert.deepStrictEqual(result, [{ type: "message", content: "Hello world" }]);
 	});
 
@@ -143,28 +143,29 @@ describe("coalesceSegments", () => {
 	});
 
 	it("keeps each tool segment as its own block", () => {
-		const result = coalesceSegments(
-			[{ type: "tool", content: "output one", name: "read_file" }],
-			{ type: "tool", content: "output two", name: "read_file" },
-		);
+		const result = coalesceSegments([{ type: "tool", content: "output one", name: "read_file" }], {
+			type: "tool",
+			content: "output two",
+			name: "read_file",
+		});
 		assert.strictEqual(result.length, 2);
 	});
 
 	it("coalesces reasoning chunks that share an id into one block", () => {
-		const result = coalesceSegments(
-			[{ type: "reasoning", content: "thinking ", id: "rs_1" }],
-			{ type: "reasoning", content: "hard", id: "rs_1" },
-		);
-		assert.deepStrictEqual(result, [
-			{ type: "reasoning", content: "thinking hard", id: "rs_1" },
-		]);
+		const result = coalesceSegments([{ type: "reasoning", content: "thinking ", id: "rs_1" }], {
+			type: "reasoning",
+			content: "hard",
+			id: "rs_1",
+		});
+		assert.deepStrictEqual(result, [{ type: "reasoning", content: "thinking hard", id: "rs_1" }]);
 	});
 
 	it("starts a new reasoning block when the id differs", () => {
-		const result = coalesceSegments(
-			[{ type: "reasoning", content: "first thought", id: "rs_1" }],
-			{ type: "reasoning", content: "second thought", id: "rs_2" },
-		);
+		const result = coalesceSegments([{ type: "reasoning", content: "first thought", id: "rs_1" }], {
+			type: "reasoning",
+			content: "second thought",
+			id: "rs_2",
+		});
 		assert.strictEqual(result.length, 2);
 		assert.strictEqual(result[0].id, "rs_1");
 		assert.strictEqual(result[1].id, "rs_2");
@@ -193,18 +194,18 @@ describe("coalesceSegments", () => {
 	});
 
 	it("starts a new reasoning block at a grammatical sentence boundary when no id is present", () => {
-		const result = coalesceSegments(
-			[{ type: "reasoning", content: "First thought." }],
-			{ type: "reasoning", content: "Second thought" },
-		);
+		const result = coalesceSegments([{ type: "reasoning", content: "First thought." }], {
+			type: "reasoning",
+			content: "Second thought",
+		});
 		assert.strictEqual(result.length, 2);
 	});
 
 	it("coalesces reasoning without an id when no sentence boundary is present", () => {
-		const result = coalesceSegments(
-			[{ type: "reasoning", content: "thinking " }],
-			{ type: "reasoning", content: "hard" },
-		);
+		const result = coalesceSegments([{ type: "reasoning", content: "thinking " }], {
+			type: "reasoning",
+			content: "hard",
+		});
 		assert.deepStrictEqual(result, [{ type: "reasoning", content: "thinking hard" }]);
 	});
 });
