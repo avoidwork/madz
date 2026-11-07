@@ -78,3 +78,79 @@ export function formatCompletedToolCalls(calls) {
 	const text = names.map((name) => (map[name] > 1 ? `${name} ×${map[name]}` : name)).join(", ");
 	return { total, text };
 }
+
+/**
+ * Coalesce a new segment into an existing segment list.
+ *
+ * - `reasoning` segments coalesce by identity. When the new segment carries an
+ *   `id`, it appends to the last reasoning segment with the same `id` — a
+ *   streamed reasoning block is split across chunks that share an id — and
+ *   starts a new block when the id is new or absent. When no `id` is present
+ *   (e.g. Chat Completions `reasoning_content`, which is a continuous string
+ *   with no block boundaries), it appends to the last reasoning segment,
+ *   respecting a grammatical sentence boundary (period/question/exclamation
+ *   followed by a capital) so distinct thoughts stay separate.
+ * - `message` segments append to the last segment when the type matches,
+ *   otherwise they start a new block.
+ * - `tool` segments always start a new block (each tool result is its own
+ *   block with its own name header).
+ *
+ * @param {Array<{type: string, content: string, name?: string, id?: string}>} segments - Existing segments.
+ * @param {{type: string, content: string, name?: string, id?: string}} newSeg - The new segment to fold in.
+ * @returns {Array<{type: string, content: string, name?: string, id?: string}>} The coalesced segments.
+ */
+export function coalesceSegments(segments, newSeg) {
+	const merged = segments.map((s) => ({ ...s }));
+
+	if (newSeg.type === "reasoning") {
+		// Find the reasoning segment to append to. Prefer one with the same id
+		// (a streamed block shares its id across chunks); fall back to the last
+		// reasoning segment when no id is present.
+		let target = null;
+		if (newSeg.id) {
+			for (let i = merged.length - 1; i >= 0; i--) {
+				if (merged[i].type === "reasoning" && merged[i].id === newSeg.id) {
+					target = merged[i];
+					break;
+				}
+			}
+		} else {
+			for (let i = merged.length - 1; i >= 0; i--) {
+				if (merged[i].type === "reasoning") {
+					target = merged[i];
+					break;
+				}
+			}
+		}
+		// Grammatical sentence boundary: a period followed by a capital letter
+		// starts a new block even when no id is present; otherwise coalesce.
+		if (
+			target &&
+			!newSeg.id &&
+			(target.content.endsWith(".") ||
+				target.content.endsWith("?") ||
+				target.content.endsWith("!")) &&
+			/^[A-Z]/.test(newSeg.content)
+		) {
+			merged.push({ ...newSeg });
+		} else if (target) {
+			target.content += newSeg.content;
+		} else {
+			merged.push({ ...newSeg });
+		}
+	} else if (newSeg.type === "tool") {
+		// Each tool message gets its own segment so it renders as its own block.
+		merged.push({ ...newSeg });
+	} else {
+		// Message segments require a type match to append; a mismatch (e.g.,
+		// message after reasoning) forces a new block.
+		const lastSeg = merged[merged.length - 1];
+		if (lastSeg && lastSeg.type === newSeg.type) {
+			lastSeg.content += newSeg.content;
+		} else {
+			merged.push({ ...newSeg });
+		}
+	}
+
+	return merged;
+}

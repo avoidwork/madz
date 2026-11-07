@@ -10,6 +10,7 @@ import {
 	normalizeCompletedToolCalls,
 	hasCompletedToolCalls,
 	formatCompletedToolCalls,
+	coalesceSegments,
 } from "../../../src/tui/messages.js";
 
 describe("getRoleLabel", () => {
@@ -114,5 +115,96 @@ describe("formatCompletedToolCalls", () => {
 			total: 2,
 			text: "read_file ×2",
 		});
+	});
+});
+
+describe("coalesceSegments", () => {
+	it("coalesces consecutive message chunks into one segment", () => {
+		const result = coalesceSegments(
+			[{ type: "message", content: "Hello " }],
+			{ type: "message", content: "world" },
+		);
+		assert.deepStrictEqual(result, [{ type: "message", content: "Hello world" }]);
+	});
+
+	it("starts a new message block when a reasoning segment interleaves", () => {
+		const result = coalesceSegments(
+			[
+				{ type: "message", content: "The answer is " },
+				{ type: "reasoning", content: "calculating..." },
+			],
+			{ type: "message", content: "42" },
+		);
+		assert.deepStrictEqual(result, [
+			{ type: "message", content: "The answer is " },
+			{ type: "reasoning", content: "calculating..." },
+			{ type: "message", content: "42" },
+		]);
+	});
+
+	it("keeps each tool segment as its own block", () => {
+		const result = coalesceSegments(
+			[{ type: "tool", content: "output one", name: "read_file" }],
+			{ type: "tool", content: "output two", name: "read_file" },
+		);
+		assert.strictEqual(result.length, 2);
+	});
+
+	it("coalesces reasoning chunks that share an id into one block", () => {
+		const result = coalesceSegments(
+			[{ type: "reasoning", content: "thinking ", id: "rs_1" }],
+			{ type: "reasoning", content: "hard", id: "rs_1" },
+		);
+		assert.deepStrictEqual(result, [
+			{ type: "reasoning", content: "thinking hard", id: "rs_1" },
+		]);
+	});
+
+	it("starts a new reasoning block when the id differs", () => {
+		const result = coalesceSegments(
+			[{ type: "reasoning", content: "first thought", id: "rs_1" }],
+			{ type: "reasoning", content: "second thought", id: "rs_2" },
+		);
+		assert.strictEqual(result.length, 2);
+		assert.strictEqual(result[0].id, "rs_1");
+		assert.strictEqual(result[1].id, "rs_2");
+	});
+
+	it("coalesces reasoning across an interleaved message when ids match", () => {
+		const result = coalesceSegments(
+			[
+				{ type: "reasoning", content: "measured cad", id: "rs_1" },
+				{ type: "message", content: "Yo," },
+			],
+			{ type: "reasoning", content: "ence.", id: "rs_1" },
+		);
+		assert.deepStrictEqual(result, [
+			{ type: "reasoning", content: "measured cadence.", id: "rs_1" },
+			{ type: "message", content: "Yo," },
+		]);
+	});
+
+	it("does not coalesce reasoning chunks with different ids even across a sentence boundary", () => {
+		const result = coalesceSegments(
+			[{ type: "reasoning", content: "measured cadence.", id: "rs_1" }],
+			{ type: "reasoning", content: "Jason", id: "rs_2" },
+		);
+		assert.strictEqual(result.length, 2);
+	});
+
+	it("starts a new reasoning block at a grammatical sentence boundary when no id is present", () => {
+		const result = coalesceSegments(
+			[{ type: "reasoning", content: "First thought." }],
+			{ type: "reasoning", content: "Second thought" },
+		);
+		assert.strictEqual(result.length, 2);
+	});
+
+	it("coalesces reasoning without an id when no sentence boundary is present", () => {
+		const result = coalesceSegments(
+			[{ type: "reasoning", content: "thinking " }],
+			{ type: "reasoning", content: "hard" },
+		);
+		assert.deepStrictEqual(result, [{ type: "reasoning", content: "thinking hard" }]);
 	});
 });
