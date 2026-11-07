@@ -3,14 +3,14 @@ import { Box, Text, useInput } from "ink";
 import { COMMAND_GROUPS } from "./commandHelp.js";
 
 export const BANNER_ART = `
- ___      ___       __       ________  ________
-|"  \\    /"  |     /""\\     |"      "\\("      "\\
- \\   \\  //   |    /    \\    (.  ___  :)\\___/   :)
- /\\\\  \\/.    |   /' /\\  \\   |: \\   ) ||  /  ___/
-|: \\.        |  //  __'  \\  (| (___\\ || //  \\__
-|.  \\    /:  | /   /  \\\\  \\ |:       :)(:   / "\\
-|___|\\__/|___|(___/    \\___)(________/  \\_______)
-
+   . .    .       . .       . .             
+.+'|=|\`+.=|\`+. .+'|=|\`+. .+'|=|\`+. |~~|=|~~|
+|  | \`+ | \`+ | |  | |  | |  | \`+ | |.+' |  |
+|  |  | |  | | |  |=|  | |  |  | |      |.+'
+|  |  | |  | | |  | |  | |  |  | |    .='   
+|  |  | |  | | |  | |  | |  |  | | .+'|    .
+|  |  | |  | | |  | |  | |  | .+ | |  | .+'|
+\`+.|  |.|  |+' \`+.| |..| \`+.|=|.+' |..|=|..|
 `.split("\n");
 
 /**
@@ -42,7 +42,13 @@ export function Banner({ onDismiss, version }) {
 	);
 
 	if (version) {
-		children.push(React.createElement(Text, { key: "version" }, version));
+		children.push(
+			React.createElement(
+				Box,
+				{ flexDirection: "column", marginTop: 1 },
+				React.createElement(Text, { key: "version" }, version),
+			),
+		);
 	}
 
 	children.push(
