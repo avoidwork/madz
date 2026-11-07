@@ -602,10 +602,10 @@ export function MessageBubbleInner({
 				key: `bubble-inner-${role}`,
 				flexDirection: "column",
 				paddingX: 0,
-				paddingY: 0,
+				paddingY: 1,
 				width: "100%",
 				gap: 1,
-				...(role === "system" || role === "user"
+				...(role === "user"
 					? {
 							borderStyle: "round",
 							borderColor: "gray",
