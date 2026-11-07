@@ -129,7 +129,7 @@ describe("updateSubagentStore — segment coalescing", () => {
 		]);
 	});
 
-	it("starts a new message block when a reasoning segment interleaves", () => {
+	it("coalesces a message across an interleaved reasoning segment when mid-sequence", () => {
 		let store = createSubagentStore();
 		store = updateSubagentStore(store, {
 			type: "subagent_message",
@@ -146,13 +146,69 @@ describe("updateSubagentStore — segment coalescing", () => {
 			namespace: ["task:abc"],
 			text: "42",
 		});
-		// The second message chunk does not match the last segment (reasoning),
-		// so it starts a new message block rather than appending to the first.
+		// The second message chunk is a mid-sequence continuation (lowercase,
+		// no sentence/data boundary), so it coalesces into the first message
+		// segment even though a reasoning segment interleaved.
+		const segs = store["task:abc"].segments;
+		assert.strictEqual(segs.length, 2);
+		assert.deepStrictEqual(segs[0], { type: "message", content: "The answer is 42" });
+		assert.deepStrictEqual(segs[1], { type: "reasoning", content: "calculating..." });
+	});
+
+	it("coalesces a message across an interleaved tool segment when mid-sequence", () => {
+		let store = createSubagentStore();
+		store = updateSubagentStore(store, {
+			type: "subagent_message",
+			namespace: ["task:abc"],
+			text: "Let me look up the current ",
+		});
+		store = updateSubagentStore(store, {
+			type: "subagent_tool",
+			namespace: ["task:abc"],
+			text: "result",
+			name: "searchWeb",
+		});
+		store = updateSubagentStore(store, {
+			type: "subagent_message",
+			namespace: ["task:abc"],
+			text: "weather in Ottawa.",
+		});
+		// The second message chunk is a mid-sequence continuation, so it
+		// coalesces into the first message segment even though a tool segment
+		// interleaved — matching the main panel's behavior.
+		const segs = store["task:abc"].segments;
+		assert.strictEqual(segs.length, 2);
+		assert.deepStrictEqual(segs[0], {
+			type: "message",
+			content: "Let me look up the current weather in Ottawa.",
+		});
+		assert.deepStrictEqual(segs[1], { type: "tool", content: "result", name: "searchWeb" });
+	});
+
+	it("starts a new message block across an interleaved tool when the chunk begins a sentence", () => {
+		let store = createSubagentStore();
+		store = updateSubagentStore(store, {
+			type: "subagent_message",
+			namespace: ["task:abc"],
+			text: "Here is the result.",
+		});
+		store = updateSubagentStore(store, {
+			type: "subagent_tool",
+			namespace: ["task:abc"],
+			text: "result",
+			name: "searchWeb",
+		});
+		store = updateSubagentStore(store, {
+			type: "subagent_message",
+			namespace: ["task:abc"],
+			text: "Now let me explain.",
+		});
+		// A period followed by a capital letter starts a new message block.
 		const segs = store["task:abc"].segments;
 		assert.strictEqual(segs.length, 3);
-		assert.deepStrictEqual(segs[0], { type: "message", content: "The answer is " });
-		assert.deepStrictEqual(segs[1], { type: "reasoning", content: "calculating..." });
-		assert.deepStrictEqual(segs[2], { type: "message", content: "42" });
+		assert.deepStrictEqual(segs[0], { type: "message", content: "Here is the result." });
+		assert.deepStrictEqual(segs[1], { type: "tool", content: "result", name: "searchWeb" });
+		assert.deepStrictEqual(segs[2], { type: "message", content: "Now let me explain." });
 	});
 
 	it("starts a new reasoning block at a grammatical sentence boundary", () => {
