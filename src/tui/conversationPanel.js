@@ -51,7 +51,7 @@ export function getRoleColors(role) {
 	const cache = getRoleColors._cache || (getRoleColors._cache = new Map());
 	if (!cache.has(role)) {
 		if (role === "user") {
-			cache.set(role, { label: "cyan", content: "white" });
+			cache.set(role, { label: "green", content: "white" });
 		} else if (role === "system") {
 			cache.set(role, { label: "yellow", content: "yellow" });
 		} else {
@@ -70,7 +70,7 @@ export function getBubbleStyle(role) {
 	const cache = getBubbleStyle._cache || (getBubbleStyle._cache = new Map());
 	if (!cache.has(role)) {
 		if (role === "user") {
-			cache.set(role, { alignment: "flex-start", border: "cyan" });
+			cache.set(role, { alignment: "flex-start", border: "green" });
 		} else if (role === "system") {
 			cache.set(role, { alignment: "flex-start", border: "yellow" });
 		} else {

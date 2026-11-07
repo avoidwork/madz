@@ -634,7 +634,7 @@ export function MessageBubbleInner({
 						{ flexDirection: "row" },
 						React.createElement(
 							Text,
-							{ color: "green" },
+							{ color: "cyan" },
 							React.createElement(Spinner, { type: "dots2" }),
 						),
 						React.createElement(Text, { color: "gray" }, ` ${thinkingWordRef.current}`),

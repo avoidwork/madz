@@ -56,9 +56,9 @@ export function formatSize(num) {
  * @returns {string} The color name for the streaming spinner
  */
 export function getContextUtilizationColor(contextSize, contextWindow) {
-	if (!contextWindow || contextWindow <= 0) return "green";
+	if (!contextWindow || contextWindow <= 0) return "cyan";
 	const utilization = (contextSize / contextWindow) * 100;
-	if (utilization <= 60) return "green";
+	if (utilization <= 60) return "cyan";
 	if (utilization <= 80) return "orange";
 	return "red";
 }
