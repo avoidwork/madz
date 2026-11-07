@@ -605,7 +605,17 @@ export function MessageBubbleInner({
 				paddingY: 1,
 				width: "100%",
 				gap: 1,
-				...(role === "system" || role === "user" ? { backgroundColor: "black" } : {}),
+				...(role === "system" ? { backgroundColor: "black" } : {}),
+				...(role === "user"
+					? {
+							borderStyle: "round",
+							borderColor: "gray",
+							borderTop: true,
+							borderBottom: true,
+							borderLeft: false,
+							borderRight: false,
+						}
+					: {}),
 			},
 			React.createElement(
 				Box,

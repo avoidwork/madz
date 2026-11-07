@@ -138,7 +138,7 @@ export const StatusBar = React.memo(function StatusBar({
 			alignItems: "center",
 			width: "100%",
 			borderStyle: "round",
-			borderColor: "white",
+			borderColor: "gray",
 			borderTop: true,
 			borderBottom: true,
 			borderLeft: false,
