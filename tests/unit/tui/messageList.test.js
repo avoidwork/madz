@@ -8,7 +8,7 @@ import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert";
 import React from "react";
 import { renderToString } from "ink";
-import { coalesceSegment } from "../../../src/tui/messageList.js";
+import { coalesceSegment, isMessageBoundary } from "../../../src/tui/messageList.js";
 
 /**
  * Simulate the MessageList imperative API logic in isolation.
@@ -881,6 +881,375 @@ describe("MessageList — in-conversation search", () => {
 			api.setSearchQuery("nonexistent");
 			assert.strictEqual(api.searchNext(), undefined);
 			assert.strictEqual(api.searchPrev(), undefined);
+		});
+	});
+});
+
+describe("coalesceSegment — pure function", () => {
+	describe("reasoning segment", () => {
+		it("pushes a new reasoning block when the last reasoning ends with sentence punctuation and the chunk starts with a capital", () => {
+			const existing = [{ type: "reasoning", content: "measured cadence." }];
+			const result = coalesceSegment(existing, { type: "reasoning", content: "Jason" });
+			assert.strictEqual(result.length, 2);
+			assert.strictEqual(result[0].content, "measured cadence.");
+			assert.strictEqual(result[1].content, "Jason");
+		});
+
+		it("pushes a new reasoning block when the last reasoning ends with '?' and the chunk starts with a capital", () => {
+			const existing = [{ type: "reasoning", content: "Is it so?" }];
+			const result = coalesceSegment(existing, { type: "reasoning", content: "Perhaps" });
+			assert.strictEqual(result.length, 2);
+			assert.strictEqual(result[0].content, "Is it so?");
+			assert.strictEqual(result[1].content, "Perhaps");
+		});
+
+		it("pushes a new reasoning block when the last reasoning ends with '!' and the chunk starts with a capital", () => {
+			const existing = [{ type: "reasoning", content: "Indeed!" }];
+			const result = coalesceSegment(existing, { type: "reasoning", content: "Now" });
+			assert.strictEqual(result.length, 2);
+			assert.strictEqual(result[0].content, "Indeed!");
+			assert.strictEqual(result[1].content, "Now");
+		});
+
+		it("appends to the last reasoning segment when there is no sentence boundary", () => {
+			const existing = [{ type: "reasoning", content: "measured cad" }];
+			const result = coalesceSegment(existing, { type: "reasoning", content: "ence." });
+			assert.strictEqual(result.length, 1);
+			assert.strictEqual(result[0].content, "measured cadence.");
+		});
+
+		it("appends to the last reasoning segment even when a message interleaved", () => {
+			const existing = [
+				{ type: "reasoning", content: "measured cad" },
+				{ type: "message", content: "Yo," },
+			];
+			const result = coalesceSegment(existing, { type: "reasoning", content: "ence." });
+			assert.strictEqual(result.length, 2);
+			assert.strictEqual(result[0].type, "reasoning");
+			assert.strictEqual(result[0].content, "measured cadence.");
+			assert.strictEqual(result[1].type, "message");
+		});
+
+		it("appends to the last reasoning segment even when a tool interleaved", () => {
+			const existing = [
+				{ type: "reasoning", content: "measured cad" },
+				{ type: "tool", content: "result", name: "searchWeb" },
+			];
+			const result = coalesceSegment(existing, { type: "reasoning", content: "ence." });
+			assert.strictEqual(result.length, 2);
+			assert.strictEqual(result[0].type, "reasoning");
+			assert.strictEqual(result[0].content, "measured cadence.");
+			assert.strictEqual(result[1].type, "tool");
+		});
+
+		it("pushes a new reasoning block when there is no prior reasoning segment", () => {
+			const existing = [{ type: "message", content: "Hello" }];
+			const result = coalesceSegment(existing, { type: "reasoning", content: "thinking" });
+			assert.strictEqual(result.length, 2);
+			assert.strictEqual(result[0].type, "message");
+			assert.strictEqual(result[1].type, "reasoning");
+			assert.strictEqual(result[1].content, "thinking");
+		});
+
+		it("pushes a new reasoning block when there are no existing segments", () => {
+			const result = coalesceSegment([], { type: "reasoning", content: "thinking" });
+			assert.strictEqual(result.length, 1);
+			assert.strictEqual(result[0].type, "reasoning");
+			assert.strictEqual(result[0].content, "thinking");
+		});
+	});
+
+	describe("tool segment", () => {
+		it("always pushes a new tool segment regardless of the previous segment", () => {
+			const existing = [{ type: "message", content: "Let me look up" }];
+			const result = coalesceSegment(existing, {
+				type: "tool",
+				content: "result",
+				name: "searchWeb",
+			});
+			assert.strictEqual(result.length, 2);
+			assert.strictEqual(result[0].type, "message");
+			assert.strictEqual(result[1].type, "tool");
+			assert.strictEqual(result[1].content, "result");
+			assert.strictEqual(result[1].name, "searchWeb");
+		});
+
+		it("pushes a new tool segment after a reasoning segment", () => {
+			const existing = [{ type: "reasoning", content: "thinking" }];
+			const result = coalesceSegment(existing, {
+				type: "tool",
+				content: "result",
+				name: "searchWeb",
+			});
+			assert.strictEqual(result.length, 2);
+			assert.strictEqual(result[0].type, "reasoning");
+			assert.strictEqual(result[1].type, "tool");
+		});
+
+		it("pushes a new tool segment when there are no existing segments", () => {
+			const result = coalesceSegment([], { type: "tool", content: "result", name: "searchWeb" });
+			assert.strictEqual(result.length, 1);
+			assert.strictEqual(result[0].type, "tool");
+		});
+	});
+
+	describe("message segment", () => {
+		it("appends to the immediately-previous message segment", () => {
+			const existing = [{ type: "message", content: "Hello " }];
+			const result = coalesceSegment(existing, { type: "message", content: "world" });
+			assert.strictEqual(result.length, 1);
+			assert.strictEqual(result[0].content, "Hello world");
+		});
+
+		it("appends to the last message segment across an interleaved tool when mid-sequence", () => {
+			const existing = [
+				{ type: "message", content: "Let me look up the current " },
+				{ type: "tool", content: "result", name: "searchWeb" },
+			];
+			const result = coalesceSegment(existing, { type: "message", content: "weather in Ottawa." });
+			assert.strictEqual(result.length, 2);
+			assert.strictEqual(result[0].type, "message");
+			assert.strictEqual(result[0].content, "Let me look up the current weather in Ottawa.");
+			assert.strictEqual(result[1].type, "tool");
+		});
+
+		it("appends to the last message segment across an interleaved reasoning when mid-sequence", () => {
+			const existing = [
+				{ type: "message", content: "The answer is " },
+				{ type: "reasoning", content: "thinking" },
+			];
+			const result = coalesceSegment(existing, { type: "message", content: "42." });
+			assert.strictEqual(result.length, 2);
+			assert.strictEqual(result[0].type, "message");
+			assert.strictEqual(result[0].content, "The answer is 42.");
+			assert.strictEqual(result[1].type, "reasoning");
+		});
+
+		it("appends to the last message segment across interleaved tool and reasoning when mid-sequence", () => {
+			const existing = [
+				{ type: "message", content: "The answer is " },
+				{ type: "tool", content: "result", name: "searchWeb" },
+				{ type: "reasoning", content: "thinking" },
+			];
+			const result = coalesceSegment(existing, { type: "message", content: "42." });
+			assert.strictEqual(result.length, 3);
+			assert.strictEqual(result[0].type, "message");
+			assert.strictEqual(result[0].content, "The answer is 42.");
+			assert.strictEqual(result[1].type, "tool");
+			assert.strictEqual(result[2].type, "reasoning");
+		});
+
+		it("pushes a new message block across an interleaved tool when the chunk starts a sentence", () => {
+			const existing = [
+				{ type: "message", content: "Here is the result." },
+				{ type: "tool", content: "result", name: "searchWeb" },
+			];
+			const result = coalesceSegment(existing, { type: "message", content: "Now let me explain." });
+			assert.strictEqual(result.length, 3);
+			assert.strictEqual(result[0].content, "Here is the result.");
+			assert.strictEqual(result[1].type, "tool");
+			assert.strictEqual(result[2].type, "message");
+			assert.strictEqual(result[2].content, "Now let me explain.");
+		});
+
+		it("pushes a new message block across an interleaved reasoning when the chunk starts a sentence", () => {
+			const existing = [
+				{ type: "message", content: "Done." },
+				{ type: "reasoning", content: "thinking" },
+			];
+			const result = coalesceSegment(existing, { type: "message", content: "Next step." });
+			assert.strictEqual(result.length, 3);
+			assert.strictEqual(result[0].content, "Done.");
+			assert.strictEqual(result[1].type, "reasoning");
+			assert.strictEqual(result[2].type, "message");
+			assert.strictEqual(result[2].content, "Next step.");
+		});
+
+		it("pushes a new message block when the chunk begins a data structure (list)", () => {
+			const existing = [
+				{ type: "message", content: "Here are the results:" },
+				{ type: "tool", content: "result", name: "searchWeb" },
+			];
+			const result = coalesceSegment(existing, {
+				type: "message",
+				content: "- item one\n- item two",
+			});
+			assert.strictEqual(result.length, 3);
+			assert.strictEqual(result[0].content, "Here are the results:");
+			assert.strictEqual(result[1].type, "tool");
+			assert.strictEqual(result[2].type, "message");
+			assert.strictEqual(result[2].content, "- item one\n- item two");
+		});
+
+		it("pushes a new message block when the chunk begins a fenced code block", () => {
+			const existing = [
+				{ type: "message", content: "Here is the code:" },
+				{ type: "tool", content: "result", name: "readFile" },
+			];
+			const result = coalesceSegment(existing, {
+				type: "message",
+				content: "```js\nconst x = 1;\n```",
+			});
+			assert.strictEqual(result.length, 3);
+			assert.strictEqual(result[2].type, "message");
+			assert.strictEqual(result[2].content, "```js\nconst x = 1;\n```");
+		});
+
+		it("pushes a new message block when the chunk begins a heading", () => {
+			const existing = [
+				{ type: "message", content: "Here is the section:" },
+				{ type: "tool", content: "result", name: "readFile" },
+			];
+			const result = coalesceSegment(existing, { type: "message", content: "# Overview" });
+			assert.strictEqual(result.length, 3);
+			assert.strictEqual(result[0].content, "Here is the section:");
+			assert.strictEqual(result[1].type, "tool");
+			assert.strictEqual(result[2].type, "message");
+			assert.strictEqual(result[2].content, "# Overview");
+		});
+
+		it("pushes a new message block when the chunk begins a numbered list", () => {
+			const existing = [
+				{ type: "message", content: "Steps:" },
+				{ type: "tool", content: "result", name: "readFile" },
+			];
+			const result = coalesceSegment(existing, { type: "message", content: "1. First\n2. Second" });
+			assert.strictEqual(result.length, 3);
+			assert.strictEqual(result[0].content, "Steps:");
+			assert.strictEqual(result[1].type, "tool");
+			assert.strictEqual(result[2].type, "message");
+			assert.strictEqual(result[2].content, "1. First\n2. Second");
+		});
+
+		it("pushes a new message block when the chunk begins a blockquote", () => {
+			const existing = [
+				{ type: "message", content: "As noted:" },
+				{ type: "tool", content: "result", name: "readFile" },
+			];
+			const result = coalesceSegment(existing, { type: "message", content: "> a quote" });
+			assert.strictEqual(result.length, 3);
+			assert.strictEqual(result[0].content, "As noted:");
+			assert.strictEqual(result[1].type, "tool");
+			assert.strictEqual(result[2].type, "message");
+			assert.strictEqual(result[2].content, "> a quote");
+		});
+
+		it("pushes a new message block when the chunk begins a horizontal rule", () => {
+			const existing = [
+				{ type: "message", content: "End of section" },
+				{ type: "tool", content: "result", name: "readFile" },
+			];
+			const result = coalesceSegment(existing, { type: "message", content: "---" });
+			assert.strictEqual(result.length, 3);
+			assert.strictEqual(result[0].content, "End of section");
+			assert.strictEqual(result[1].type, "tool");
+			assert.strictEqual(result[2].type, "message");
+			assert.strictEqual(result[2].content, "---");
+		});
+
+		it("pushes a new message block when there is no prior message segment", () => {
+			const existing = [{ type: "reasoning", content: "thinking" }];
+			const result = coalesceSegment(existing, { type: "message", content: "Hello" });
+			assert.strictEqual(result.length, 2);
+			assert.strictEqual(result[0].type, "reasoning");
+			assert.strictEqual(result[1].type, "message");
+			assert.strictEqual(result[1].content, "Hello");
+		});
+
+		it("pushes a new message block when there are no existing segments", () => {
+			const result = coalesceSegment([], { type: "message", content: "Hello" });
+			assert.strictEqual(result.length, 1);
+			assert.strictEqual(result[0].type, "message");
+			assert.strictEqual(result[0].content, "Hello");
+		});
+	});
+
+	describe("does not mutate the input array", () => {
+		it("returns a new array and leaves the existing segments untouched", () => {
+			const existing = [{ type: "message", content: "Hello " }];
+			const result = coalesceSegment(existing, { type: "message", content: "world" });
+			assert.notStrictEqual(result, existing);
+			assert.strictEqual(existing[0].content, "Hello ");
+			assert.strictEqual(result[0].content, "Hello world");
+		});
+	});
+});
+
+describe("isMessageBoundary — pure function", () => {
+	describe("sentence boundary", () => {
+		it("returns true when the previous content ends with '.' and the chunk starts with a capital", () => {
+			assert.strictEqual(isMessageBoundary("Here is the result.", "Now let me explain."), true);
+		});
+
+		it("returns true when the previous content ends with '?' and the chunk starts with a capital", () => {
+			assert.strictEqual(isMessageBoundary("Is it so?", "Perhaps."), true);
+		});
+
+		it("returns true when the previous content ends with '!' and the chunk starts with a capital", () => {
+			assert.strictEqual(isMessageBoundary("Indeed!", "Now."), true);
+		});
+
+		it("returns false when the previous content ends with '.' but the chunk starts with a lowercase letter", () => {
+			assert.strictEqual(isMessageBoundary("Here is the result.", "now let me explain."), false);
+		});
+
+		it("returns false when the previous content does not end with sentence punctuation", () => {
+			assert.strictEqual(isMessageBoundary("The answer is ", "42."), false);
+		});
+	});
+
+	describe("data structure boundary", () => {
+		it("returns true for a fenced code block", () => {
+			assert.strictEqual(isMessageBoundary("Here is the code:", "```js\nconst x = 1;\n```"), true);
+		});
+
+		it("returns true for a heading", () => {
+			assert.strictEqual(isMessageBoundary("Here is the section:", "# Overview"), true);
+		});
+
+		it("returns true for a bulleted list item", () => {
+			assert.strictEqual(isMessageBoundary("Here are the results:", "- item one"), true);
+		});
+
+		it("returns true for a bulleted list item with '*'", () => {
+			assert.strictEqual(isMessageBoundary("Here are the results:", "* item one"), true);
+		});
+
+		it("returns true for a bulleted list item with '+'", () => {
+			assert.strictEqual(isMessageBoundary("Here are the results:", "+ item one"), true);
+		});
+
+		it("returns true for a numbered list item", () => {
+			assert.strictEqual(isMessageBoundary("Steps:", "1. First"), true);
+		});
+
+		it("returns true for a blockquote", () => {
+			assert.strictEqual(isMessageBoundary("As noted:", "> a quote"), true);
+		});
+
+		it("returns true for a horizontal rule", () => {
+			assert.strictEqual(isMessageBoundary("End of section", "---"), true);
+		});
+
+		it("returns true for a data structure even when the previous content ends with sentence punctuation", () => {
+			assert.strictEqual(isMessageBoundary("Here are the results.", "- item one"), true);
+		});
+	});
+
+	describe("non-boundary", () => {
+		it("returns false for a plain mid-sequence continuation", () => {
+			assert.strictEqual(
+				isMessageBoundary("Let me look up the current ", "weather in Ottawa."),
+				false,
+			);
+		});
+
+		it("returns false for an empty chunk", () => {
+			assert.strictEqual(isMessageBoundary("Hello ", ""), false);
+		});
+
+		it("returns false when the chunk is a lowercase continuation after a period", () => {
+			assert.strictEqual(isMessageBoundary("Here is the result.", "now let me explain."), false);
 		});
 	});
 });
