@@ -601,8 +601,8 @@ export function MessageBubbleInner({
 			{
 				key: `bubble-inner-${role}`,
 				flexDirection: "column",
-				paddingX: 1,
-				paddingY: 1,
+				paddingX: 0,
+				paddingY: 0,
 				width: "100%",
 				gap: 1,
 				...(role === "system" || role === "user"
