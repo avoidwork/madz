@@ -53,7 +53,7 @@ export function SkillsPanel({ skills = [], onViewChange, onSelectSkill, activeVi
 		return React.createElement(
 			Box,
 			{ flexDirection: "column", paddingX: 1 },
-			React.createElement(Text, { bold: true, color: "cyan" }, " Skills"),
+			React.createElement(Text, { bold: true, color: "white" }, " Skills"),
 			React.createElement(Text, { color: "gray" }, " No skills registered."),
 		);
 	}
@@ -61,7 +61,7 @@ export function SkillsPanel({ skills = [], onViewChange, onSelectSkill, activeVi
 	return React.createElement(
 		Box,
 		{ flexDirection: "column", paddingX: 1, flexGrow: 1 },
-		React.createElement(Text, { bold: true, color: "cyan" }, " Skills"),
+		React.createElement(Text, { bold: true, color: "white" }, " Skills"),
 		React.createElement(Text, { color: "gray" }, " ↑↓ navigate, Enter run, Escape back"),
 		React.createElement(SelectInput, {
 			items,

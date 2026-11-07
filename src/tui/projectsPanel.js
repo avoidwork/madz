@@ -86,7 +86,7 @@ export function ProjectsPanel({ cwd, onViewChange, onSelectProject, onClearProje
 		return React.createElement(
 			Box,
 			{ flexDirection: "column", paddingX: 1 },
-			React.createElement(Text, { bold: true, color: "cyan" }, " Projects"),
+			React.createElement(Text, { bold: true, color: "white" }, " Projects"),
 			React.createElement(Text, { color: "gray" }, " Loading projects..."),
 		);
 	}
@@ -95,7 +95,7 @@ export function ProjectsPanel({ cwd, onViewChange, onSelectProject, onClearProje
 		return React.createElement(
 			Box,
 			{ flexDirection: "column", paddingX: 1 },
-			React.createElement(Text, { bold: true, color: "cyan" }, " Projects"),
+			React.createElement(Text, { bold: true, color: "white" }, " Projects"),
 			React.createElement(Text, { color: "gray" }, " No projects found in ./projects/."),
 		);
 	}
@@ -103,7 +103,7 @@ export function ProjectsPanel({ cwd, onViewChange, onSelectProject, onClearProje
 	return React.createElement(
 		Box,
 		{ flexDirection: "column", paddingX: 1, flexGrow: 1 },
-		React.createElement(Text, { bold: true, color: "cyan" }, " Projects"),
+		React.createElement(Text, { bold: true, color: "white" }, " Projects"),
 		React.createElement(Text, { color: "gray" }, " ↑↓ navigate, Enter select, Escape back"),
 		React.createElement(SelectInput, {
 			items,

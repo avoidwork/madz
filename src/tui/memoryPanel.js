@@ -132,7 +132,7 @@ export function MemoryPanel({ config, onViewChange, activeView }) {
 		return React.createElement(
 			Box,
 			{ flexDirection: "column", paddingX: 1 },
-			React.createElement(Text, { bold: true, color: "cyan" }, " Memory"),
+			React.createElement(Text, { bold: true, color: "white" }, " Memory"),
 			React.createElement(Text, { color: "gray" }, " Loading memories..."),
 		);
 	}
@@ -141,7 +141,7 @@ export function MemoryPanel({ config, onViewChange, activeView }) {
 		return React.createElement(
 			Box,
 			{ flexDirection: "column", paddingX: 1 },
-			React.createElement(Text, { bold: true, color: "cyan" }, " Memory"),
+			React.createElement(Text, { bold: true, color: "white" }, " Memory"),
 			React.createElement(Text, { color: "red" }, ` Error: ${error}`),
 		);
 	}
@@ -150,7 +150,7 @@ export function MemoryPanel({ config, onViewChange, activeView }) {
 		return React.createElement(
 			Box,
 			{ flexDirection: "column", paddingX: 1 },
-			React.createElement(Text, { bold: true, color: "cyan" }, " Memory"),
+			React.createElement(Text, { bold: true, color: "white" }, " Memory"),
 			React.createElement(Text, { color: "gray" }, " No memory entries."),
 		);
 	}
@@ -170,7 +170,7 @@ export function MemoryPanel({ config, onViewChange, activeView }) {
 	return React.createElement(
 		Box,
 		{ flexDirection: "column", paddingX: 1, flexGrow: 1 },
-		React.createElement(Text, { bold: true, color: "cyan" }, " Memory"),
+		React.createElement(Text, { bold: true, color: "white" }, " Memory"),
 		React.createElement(Text, { color: "gray" }, " ↑↓ navigate, Enter view, Escape back"),
 		React.createElement(SelectInput, {
 			items,

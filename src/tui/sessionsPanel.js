@@ -162,7 +162,7 @@ export function SessionsPanel({ sessionState, config, onViewChange, onResumeSess
 		return React.createElement(
 			Box,
 			{ flexDirection: "column", paddingX: 1 },
-			React.createElement(Text, { bold: true, color: "cyan" }, " Sessions"),
+			React.createElement(Text, { bold: true, color: "white" }, " Sessions"),
 			React.createElement(Text, { color: "gray" }, " Loading sessions..."),
 		);
 	}
@@ -171,7 +171,7 @@ export function SessionsPanel({ sessionState, config, onViewChange, onResumeSess
 		return React.createElement(
 			Box,
 			{ flexDirection: "column", paddingX: 1 },
-			React.createElement(Text, { bold: true, color: "cyan" }, " Sessions"),
+			React.createElement(Text, { bold: true, color: "white" }, " Sessions"),
 			React.createElement(Text, { color: "red" }, ` Error: ${error}`),
 		);
 	}
@@ -180,7 +180,7 @@ export function SessionsPanel({ sessionState, config, onViewChange, onResumeSess
 		return React.createElement(
 			Box,
 			{ flexDirection: "column", paddingX: 1 },
-			React.createElement(Text, { bold: true, color: "cyan" }, " Sessions"),
+			React.createElement(Text, { bold: true, color: "white" }, " Sessions"),
 			React.createElement(Text, { color: "gray" }, " No saved sessions."),
 		);
 	}
@@ -222,7 +222,7 @@ export function SessionsPanel({ sessionState, config, onViewChange, onResumeSess
 	return React.createElement(
 		Box,
 		{ flexDirection: "column", paddingX: 1, flexGrow: 1 },
-		React.createElement(Text, { bold: true, color: "cyan" }, " Sessions"),
+		React.createElement(Text, { bold: true, color: "white" }, " Sessions"),
 		React.createElement(Text, { color: "gray" }, " ↑↓ navigate, Enter resume, Escape back"),
 		React.createElement(SelectInput, {
 			items,

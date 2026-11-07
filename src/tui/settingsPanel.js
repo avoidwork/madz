@@ -186,7 +186,7 @@ export function SettingsPanel({ config, onViewChange, activeView }) {
 		return React.createElement(
 			Box,
 			{ flexDirection: "column", paddingX: 1 },
-			React.createElement(Text, { bold: true, color: "cyan" }, " Settings"),
+			React.createElement(Text, { bold: true, color: "white" }, " Settings"),
 			React.createElement(Text, { color: "gray" }, " No config available."),
 		);
 	}
@@ -194,7 +194,7 @@ export function SettingsPanel({ config, onViewChange, activeView }) {
 	return React.createElement(
 		Box,
 		{ flexDirection: "column", paddingX: 1, flexGrow: 1 },
-		React.createElement(Text, { bold: true, color: "cyan" }, " Settings"),
+		React.createElement(Text, { bold: true, color: "white" }, " Settings"),
 		React.createElement(
 			Text,
 			{ color: "gray" },
