@@ -28,15 +28,19 @@ export const InputPanel = React.memo(function InputPanel({
 		Box,
 		{ flexDirection: "row" },
 		React.createElement(Text, { color: "cyan" }, "> "),
-		React.createElement(TextInput, {
-			value,
-			onChange,
-			onSubmit,
-			onFocus,
-			onBlur,
-			focus,
-			placeholder,
-			showCursor: true,
-		}),
+		React.createElement(
+			Text,
+			{ color: "white" },
+			React.createElement(TextInput, {
+				value,
+				onChange,
+				onSubmit,
+				onFocus,
+				onBlur,
+				focus,
+				placeholder,
+				showCursor: true,
+			}),
+		),
 	);
 });

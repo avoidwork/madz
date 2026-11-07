@@ -156,13 +156,13 @@
 ℹ   image                        |        |          |         | 
 ℹ    index.js                    | 100.00 |   100.00 |   50.00 | 
 ℹ    readImage.js                |  94.24 |    68.42 |  100.00 | 81-82 90-91 97-98 105-106
-ℹ   index.js                     |  99.31 |    96.30 |   75.00 | 540-541 563-564
+ℹ   index.js                     |  99.65 |    97.59 |   91.67 | 563-564
 ℹ   json                         |        |          |         | 
 ℹ    index.js                    | 100.00 |    97.59 |  100.00 | 
 ℹ   memory                       |        |          |         | 
 ℹ    index.js                    |  96.53 |    83.56 |   93.33 | 56 99-100 195-199 299-301
 ℹ   pdf                          |        |          |         | 
-ℹ    index.js                    |  94.77 |    91.54 |   91.30 | 68-72 145-154 167-168 226-230 234-254 317-318 333-334
+ℹ    index.js                    |  97.00 |    91.58 |   91.30 | 68-72 145-154 167-168 226-230 251 317-318 333-334
 ℹ   pptx                         |        |          |         | 
 ℹ    index.js                    |  98.63 |    94.12 |   92.31 | 478-481 536-537 557-558
 ℹ   process                      |        |          |         | 
@@ -170,7 +170,7 @@
 ℹ   reflection                   |        |          |         | 
 ℹ    index.js                    |  96.05 |    84.62 |   91.67 | 58-62 151-152 206-207
 ℹ   sampling                     |        |          |         | 
-ℹ    index.js                    |  94.97 |    81.82 |   80.00 | 27 180-188
+ℹ    index.js                    |  94.97 |    84.38 |   80.00 | 27 180-188
 ℹ   scanAgents                   |        |          |         | 
 ℹ    index.js                    | 100.00 |    71.43 |  100.00 | 
 ℹ   session                      |        |          |         | 
@@ -217,7 +217,7 @@
 ℹ   sessionsPanel.js             |  83.91 |    41.86 |   92.31 | 67-70 101-102 118-119 123-125 132-136 153-155 169-171 180-181 196-202 205-211 222-225
 ℹ   settingsPanel.js             |  75.31 |    83.87 |   76.47 | 78-92 118-144 181-189 195-199 205-207
 ℹ   skillsPanel.js               |  90.10 |    73.33 |   75.00 | 71-73 79-85
-ℹ   statusBar.js                 |  99.06 |    98.11 |  100.00 | 29-30
+ℹ   statusBar.js                 |  99.05 |    98.11 |  100.00 | 29-30
 ℹ   subagentsPanel.js            |  95.35 |    72.41 |   85.71 | 54-56 81-85
 ℹ   subagentStore.js             | 100.00 |    82.61 |  100.00 | 
 ℹ   useMouseScroll.js            | 100.00 |   100.00 |  100.00 | 
@@ -231,146 +231,25 @@
 ℹ   loadAgents.js                |  88.00 |    42.86 |  100.00 | 17-18 32-33 38-39
 ℹ   project.js                   | 100.00 |   100.00 |  100.00 | 
 ℹ -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-ℹ all files                      |  91.46 |    87.48 |   86.75 | 
+ℹ all files                      |  91.52 |    87.52 |   86.88 | 
 ℹ -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ℹ end of coverage report
 
 ✖ failing tests:
 
-test at tests/integration/mcpTools.test.js:50:2
-✖ discovers and registers tools from the MCP server (1.168958ms)
-  AssertionError [ERR_ASSERTION]: should register the 'add' tool
-      at TestContext.<anonymous> (file:///app/projects/madz.worktrees/1bb668389afda668/tests/integration/mcpTools.test.js:52:10)
-      at Test.runInAsyncScope (node:async_hooks:226:14)
-      at Test.run (node:internal/test_runner/test:1402:25)
-      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
-      at async Promise.all (index 0)
-      at async Suite.run (node:internal/test_runner/test:1905:7)
-      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
-    generatedMessage: false,
+test at tests/unit/context.test.js:131:2
+✖ filters out ephemeral files from main processing (7.574209ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(result.includes("[Context: Persistent]"))
+  
+      at TestContext.<anonymous> (file:///app/projects/madz/tests/unit/context.test.js:142:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
     code: 'ERR_ASSERTION',
     actual: false,
     expected: true,
     operator: '==',
     diff: 'simple'
   }
-
-test at tests/integration/mcpTools.test.js:56:2
-✖ appends MCP tools to the built-in tool list (0.410458ms)
-  AssertionError [ERR_ASSERTION]: should have at least the two MCP tools
-      at TestContext.<anonymous> (file:///app/projects/madz.worktrees/1bb668389afda668/tests/integration/mcpTools.test.js:61:10)
-      at Test.runInAsyncScope (node:async_hooks:226:14)
-      at Test.run (node:internal/test_runner/test:1402:25)
-      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
-      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7) {
-    generatedMessage: false,
-    code: 'ERR_ASSERTION',
-    actual: false,
-    expected: true,
-    operator: '==',
-    diff: 'simple'
-  }
-
-test at tests/integration/mcpTools.test.js:64:2
-✖ classifies MCP tools by the per-server agents list (0.717833ms)
-  AssertionError [ERR_ASSERTION]: add tool should be classified for coding + search
-  + actual - expected
-  
-  + undefined
-  - [
-  -   'coding',
-  -   'search'
-  - ]
-  
-      at TestContext.<anonymous> (file:///app/projects/madz.worktrees/1bb668389afda668/tests/integration/mcpTools.test.js:65:10)
-      at Test.runInAsyncScope (node:async_hooks:226:14)
-      at Test.run (node:internal/test_runner/test:1402:25)
-      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
-      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7) {
-    generatedMessage: false,
-    code: 'ERR_ASSERTION',
-    actual: undefined,
-    expected: [ 'coding', 'search' ],
-    operator: 'deepStrictEqual',
-    diff: 'simple'
-  }
-
-test at tests/integration/mcpTools.test.js:82:2
-✖ returns executable LangChain tools (0.144625ms)
-  AssertionError [ERR_ASSERTION]: add tool should be present
-      at TestContext.<anonymous> (file:///app/projects/madz.worktrees/1bb668389afda668/tests/integration/mcpTools.test.js:84:10)
-      at Test.runInAsyncScope (node:async_hooks:226:14)
-      at Test.run (node:internal/test_runner/test:1402:25)
-      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
-      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7) {
-    generatedMessage: false,
-    code: 'ERR_ASSERTION',
-    actual: undefined,
-    expected: true,
-    operator: '==',
-    diff: 'simple'
-  }
-
-test at tests/unit/tools_pdf_generate.test.js:95:3
-✖ generates a valid PDF from HTML (120.57275ms)
-  Error: Could not find Chrome (ver. 156.0.8078.47). This can occur if either
-   1. you did not perform an installation before running the script (e.g. `npx puppeteer browsers install chrome`) or
-   2. your cache path is incorrectly configured (which is: /home/madz/.cache/puppeteer).
-  For (2), check out our guide on configuring puppeteer at https://pptr.dev/guides/configuration.
-      at ChromeLauncher.resolveExecutablePath (file:///app/node_modules/puppeteer-core/lib/puppeteer/node/BrowserLauncher.js:391:19)
-      at async ChromeLauncher.computeLaunchArguments (file:///app/node_modules/puppeteer-core/lib/puppeteer/node/ChromeLauncher.js:92:19)
-      at async ChromeLauncher.launch (file:///app/node_modules/puppeteer-core/lib/puppeteer/node/BrowserLauncher.js:94:28)
-      at async ChromeLauncher.launch (file:///app/node_modules/puppeteer-core/lib/puppeteer/node/ChromeLauncher.js:39:16)
-      at async PuppeteerNode.launch (file:///app/node_modules/puppeteer-core/lib/puppeteer/node/PuppeteerNode.js:124:16)
-      at async generatePdfFromHtml (file:///app/projects/madz.worktrees/1bb668389afda668/src/tools/pdf/index.js:233:18)
-      at async TestContext.<anonymous> (file:///app/projects/madz.worktrees/1bb668389afda668/tests/unit/tools_pdf_generate.test.js:98:5)
-      at async Test.run (node:internal/test_runner/test:1409:7)
-      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
-
-test at tests/unit/tools_pdf_generate.test.js:114:3
-✖ generates PDF with custom page options (76.743291ms)
-  Error: Could not find Chrome (ver. 156.0.8078.47). This can occur if either
-   1. you did not perform an installation before running the script (e.g. `npx puppeteer browsers install chrome`) or
-   2. your cache path is incorrectly configured (which is: /home/madz/.cache/puppeteer).
-  For (2), check out our guide on configuring puppeteer at https://pptr.dev/guides/configuration.
-      at ChromeLauncher.resolveExecutablePath (file:///app/node_modules/puppeteer-core/lib/puppeteer/node/BrowserLauncher.js:391:19)
-      at async ChromeLauncher.computeLaunchArguments (file:///app/node_modules/puppeteer-core/lib/puppeteer/node/ChromeLauncher.js:92:19)
-      at async ChromeLauncher.launch (file:///app/node_modules/puppeteer-core/lib/puppeteer/node/BrowserLauncher.js:94:28)
-      at async ChromeLauncher.launch (file:///app/node_modules/puppeteer-core/lib/puppeteer/node/ChromeLauncher.js:39:16)
-      at async PuppeteerNode.launch (file:///app/node_modules/puppeteer-core/lib/puppeteer/node/PuppeteerNode.js:124:16)
-      at async generatePdfFromHtml (file:///app/projects/madz.worktrees/1bb668389afda668/src/tools/pdf/index.js:233:18)
-      at async TestContext.<anonymous> (file:///app/projects/madz.worktrees/1bb668389afda668/tests/unit/tools_pdf_generate.test.js:117:5)
-      at async Test.run (node:internal/test_runner/test:1409:7)
-      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
-
-test at tests/unit/tools_pdf_generate.test.js:155:3
-✖ generates a valid PDF from markdown (73.042917ms)
-  Error: Could not find Chrome (ver. 156.0.8078.47). This can occur if either
-   1. you did not perform an installation before running the script (e.g. `npx puppeteer browsers install chrome`) or
-   2. your cache path is incorrectly configured (which is: /home/madz/.cache/puppeteer).
-  For (2), check out our guide on configuring puppeteer at https://pptr.dev/guides/configuration.
-      at ChromeLauncher.resolveExecutablePath (file:///app/node_modules/puppeteer-core/lib/puppeteer/node/BrowserLauncher.js:391:19)
-      at async ChromeLauncher.computeLaunchArguments (file:///app/node_modules/puppeteer-core/lib/puppeteer/node/ChromeLauncher.js:92:19)
-      at async ChromeLauncher.launch (file:///app/node_modules/puppeteer-core/lib/puppeteer/node/BrowserLauncher.js:94:28)
-      at async ChromeLauncher.launch (file:///app/node_modules/puppeteer-core/lib/puppeteer/node/ChromeLauncher.js:39:16)
-      at async PuppeteerNode.launch (file:///app/node_modules/puppeteer-core/lib/puppeteer/node/PuppeteerNode.js:124:16)
-      at async generatePdfFromHtml (file:///app/projects/madz.worktrees/1bb668389afda668/src/tools/pdf/index.js:233:18)
-      at async TestContext.<anonymous> (file:///app/projects/madz.worktrees/1bb668389afda668/tests/unit/tools_pdf_generate.test.js:158:5)
-      at async Test.run (node:internal/test_runner/test:1409:7)
-      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
-
-test at tests/unit/tools_pdf_generate.test.js:173:3
-✖ generates PDF with custom CSS (67.770208ms)
-  Error: Could not find Chrome (ver. 156.0.8078.47). This can occur if either
-   1. you did not perform an installation before running the script (e.g. `npx puppeteer browsers install chrome`) or
-   2. your cache path is incorrectly configured (which is: /home/madz/.cache/puppeteer).
-  For (2), check out our guide on configuring puppeteer at https://pptr.dev/guides/configuration.
-      at ChromeLauncher.resolveExecutablePath (file:///app/node_modules/puppeteer-core/lib/puppeteer/node/BrowserLauncher.js:391:19)
-      at async ChromeLauncher.computeLaunchArguments (file:///app/node_modules/puppeteer-core/lib/puppeteer/node/ChromeLauncher.js:92:19)
-      at async ChromeLauncher.launch (file:///app/node_modules/puppeteer-core/lib/puppeteer/node/BrowserLauncher.js:94:28)
-      at async ChromeLauncher.launch (file:///app/node_modules/puppeteer-core/lib/puppeteer/node/ChromeLauncher.js:39:16)
-      at async PuppeteerNode.launch (file:///app/node_modules/puppeteer-core/lib/puppeteer/node/PuppeteerNode.js:124:16)
-      at async generatePdfFromHtml (file:///app/projects/madz.worktrees/1bb668389afda668/src/tools/pdf/index.js:233:18)
-      at async TestContext.<anonymous> (file:///app/projects/madz.worktrees/1bb668389afda668/tests/unit/tools_pdf_generate.test.js:176:5)
-      at async Test.run (node:internal/test_runner/test:1409:7)
-      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
