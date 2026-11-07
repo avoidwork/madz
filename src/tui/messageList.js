@@ -20,10 +20,13 @@ import { hasCompletedToolCalls, normalizeCompletedToolCalls } from "./messages.j
  * @returns {boolean} True if the chunk should start a new block
  */
 export function isMessageBoundary(prevContent, newContent) {
-	if (
-		(prevContent.endsWith(".") || prevContent.endsWith("?") || prevContent.endsWith("!")) &&
-		/^[A-Z]/.test(newContent)
-	) {
+	// Trim whitespace only for the boundary decision — streaming LLMs often
+	// emit tokens with leading/trailing spaces for formatting. The stored
+	// content is preserved as-is; we just make a smarter call about whether
+	// this chunk starts a new sentence or data structure.
+	const prev = prevContent.trimEnd();
+	const next = newContent.trimStart();
+	if ((prev.endsWith(".") || prev.endsWith("?") || prev.endsWith("!")) && /^[A-Z]/.test(next)) {
 		return true;
 	}
 	if (/^\s*(```|#{1,6}\s|[-*+]\s|\d+\.\s|>\s|---)/.test(newContent)) {
@@ -67,13 +70,14 @@ export function coalesceSegment(existing, newSeg) {
 			}
 		}
 		// Grammatical sentence boundary: a period followed by a capital letter
-		// starts a new block; otherwise coalesce.
+		// starts a new block; otherwise coalesce. Trim whitespace for the
+		// decision only — streaming LLMs emit tokens with formatting spaces.
+		const prevReasoning = lastReasoning ? lastReasoning.content.trimEnd() : "";
+		const nextReasoning = newSeg.content.trimStart();
 		if (
 			lastReasoning &&
-			(lastReasoning.content.endsWith(".") ||
-				lastReasoning.content.endsWith("?") ||
-				lastReasoning.content.endsWith("!")) &&
-			/^[A-Z]/.test(newSeg.content)
+			(prevReasoning.endsWith(".") || prevReasoning.endsWith("?") || prevReasoning.endsWith("!")) &&
+			/^[A-Z]/.test(nextReasoning)
 		) {
 			merged.push({ ...newSeg });
 		} else if (lastReasoning) {
