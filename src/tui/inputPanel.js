@@ -27,7 +27,7 @@ export const InputPanel = React.memo(function InputPanel({
 	return React.createElement(
 		Box,
 		{ flexDirection: "row" },
-		React.createElement(Text, { color: "cyan" }, "> "),
+		React.createElement(Text, { color: "white" }, "> "),
 		React.createElement(
 			Text,
 			{ color: "white" },

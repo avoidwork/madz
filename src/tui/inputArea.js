@@ -254,7 +254,7 @@ const InputArea = forwardRef(function InputArea(
 				Box,
 				{
 					borderStyle: "round",
-					borderColor: "cyan",
+					borderColor: "white",
 					width: "100%",
 				},
 				!pickerOpen && !commandPickerOpen && !searchMode
