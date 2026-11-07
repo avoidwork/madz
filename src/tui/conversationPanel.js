@@ -55,7 +55,7 @@ export function getRoleColors(role) {
 		} else if (role === "system") {
 			cache.set(role, { label: "yellow", content: "yellow" });
 		} else {
-			cache.set(role, { label: "green", content: "white" });
+			cache.set(role, { label: "cyan", content: "white" });
 		}
 	}
 	return cache.get(role);
@@ -74,7 +74,7 @@ export function getBubbleStyle(role) {
 		} else if (role === "system") {
 			cache.set(role, { alignment: "flex-start", border: "yellow" });
 		} else {
-			cache.set(role, { alignment: "flex-start", border: "green" });
+			cache.set(role, { alignment: "flex-start", border: "cyan" });
 		}
 	}
 	return cache.get(role);
