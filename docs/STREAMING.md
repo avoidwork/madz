@@ -37,17 +37,7 @@ The coalescing rule differs by incoming segment type.
 ### Message segments
 
 - If the immediately-previous segment is also a message → **append** content to it.
-- If a `tool` or `reasoning` segment interleaved between message chunks → search
-  backwards for the last message segment. If it exists and the new chunk is a
-  **mid-sequence continuation** (not a sentence or data boundary), **append** to
-  it; otherwise **push** a new message segment (new block).
 - Otherwise → **push** a new message segment (new block).
-
-A chunk is a **boundary** (new block) when it starts a new sentence (the prior
-message content ends with `.`/`?`/`!` and the chunk begins with a capital
-letter) or when it begins a block-level data structure (fenced code ```` ``` ````,
-heading `#`, list item `-`/`*`/`+`, numbered item `1.`, blockquote `>`, or
-horizontal rule `---`). Otherwise it is a mid-sequence continuation and coalesces.
 
 ### Reasoning segments
 
@@ -85,12 +75,11 @@ Segments render in order:
 | incoming type | previous segment | result |
 |---------------|------------------|--------|
 | message | message | Append content to last message segment |
-| message | tool / reasoning (interleaved) | If last message exists and chunk is mid-sequence, append to it; else push new message segment |
+| message | reasoning | Push new message segment (new block) |
 | message | (none) | Push new message segment (first block) |
 | reasoning | last reasoning ends with `.`/`?`/`!` and new content starts with capital | Push new reasoning segment (new block) |
 | reasoning | last reasoning exists (no sentence boundary) | Append content to last reasoning segment |
 | reasoning | (none) | Push new reasoning segment (first block) |
-| tool | any | Push new tool segment (own block) |
 
 > **Note:** No timing-based coalescing exists. The earlier `250ms` timeout
 > proposal was never implemented — coalescing is driven purely by segment type
