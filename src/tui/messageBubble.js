@@ -444,11 +444,15 @@ export function MessageBubbleInner({
 			);
 		}
 		if (seg.type === "tool") {
-			const header = seg.name ? `🔧 ${seg.name}` : "🔧 Tool result";
+			// The tool name renders with a collapse arrow to its right: → when
+			// collapsed, ↓ when expanded. No character precedes the 🔧 glyph.
+			const label = seg.name ? seg.name : "Tool result";
+			const arrow = toolCallCollapsed ? "→" : "↓";
+			const header = `🔧 ${label} ${arrow}`;
 			return React.createElement(
 				Box,
 				{ key: `seg-${i}`, flexDirection: "column", flexShrink: 0 },
-				React.createElement(Text, { color: "gray" }, toolCallCollapsed ? header : `▾ ${header}`),
+				React.createElement(Text, { color: "gray" }, header),
 				...(toolCallCollapsed
 					? []
 					: seg.content
