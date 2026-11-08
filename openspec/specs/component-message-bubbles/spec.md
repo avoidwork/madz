@@ -42,7 +42,7 @@ The MessageBubble component SHALL maintain internal state for chunk accumulation
 - **THEN** it renders each line of tool call display output below the main content
 
 ### Requirement: MessageBubble renders reasoning content
-The MessageBubble component SHALL render reasoning segments as muted (gray) offset text without any unicode prefix. When a MessageBubble's reasoningContent is present and role is "assistant", it renders the reasoning content as muted text, with no `💭 ` prefix prepended. The reasoning block SHALL be collapsible: when collapsed it renders a single `💭 Thinking…` line, and when expanded it renders the full gray content. The collapse state SHALL be toggled by `ctrl+r` and SHALL default to collapsed.
+The MessageBubble component SHALL render reasoning segments as muted (gray) offset text without any unicode prefix. When a MessageBubble's reasoningContent is present and role is "assistant", it renders the reasoning content as muted text, with no `💭 ` prefix prepended. The reasoning block SHALL be collapsible: when collapsed it renders a single `💭 Thinking…` line, and when expanded it renders the full gray content. The collapse state SHALL be toggled by `ctrl+r` and SHALL also be toggled by a mouse click on the reasoning block header. The collapse state SHALL default to collapsed.
 
 #### Scenario: MessageBubble renders reasoning content without unicode prefix
 - **WHEN** a MessageBubble's reasoningContent is present and role is "assistant"
@@ -55,6 +55,14 @@ The MessageBubble component SHALL render reasoning segments as muted (gray) offs
 #### Scenario: MessageBubble expands a collapsed reasoning block
 - **WHEN** a collapsed reasoning block's toggle is activated again
 - **THEN** it renders the full gray reasoning content
+
+#### Scenario: MessageBubble toggles reasoning collapse on mouse click
+- **WHEN** a mouse click lands on a reasoning block header (`💭 Thinking…`)
+- **THEN** the reasoning collapse state flips, so a collapsed block expands and an expanded block collapses
+
+#### Scenario: MessageBubble ignores a mouse click outside any reasoning header
+- **WHEN** a mouse click lands outside any reasoning block header
+- **THEN** the reasoning collapse state is unchanged
 
 ### Requirement: MessageUpdate via Pub/Sub Topic System
 When `updateMessage(id, updates)` is called on MessageList, it SHALL publish the updates to a unique pub/sub topic keyed by message ID. Each MessageBubble subscribes to its own topic (`msg-{id}`) on mount and unsubscribes on unmount. This eliminates the need for the parent to hold refs to individual bubbles.
@@ -211,7 +219,7 @@ The MessageList component SHALL normalize legacy array-shaped `completedToolCall
 - **THEN** the stored message's `completedToolCalls` is unchanged
 
 ### Requirement: MessageBubble renders tool messages as a distinct tool segment
-The MessageBubble component SHALL render tool messages as a distinct `tool` segment type, shown as a collapsible block. When collapsed, it SHALL render a single `🔧 Tool result` line; when expanded, it SHALL render the full tool result content. The collapse state SHALL be toggled by `ctrl+t` and SHALL default to collapsed.
+The MessageBubble component SHALL render tool messages as a distinct `tool` segment type, shown as a collapsible block. When collapsed, it SHALL render a single `🔧 Tool result` line; when expanded, it SHALL render the full tool result content. The collapse state SHALL be toggled by `ctrl+t`, SHALL also be toggled by a mouse click on the tool block header, and SHALL default to collapsed.
 
 #### Scenario: MessageBubble renders a collapsed tool segment
 - **WHEN** a MessageBubble has a `tool` segment
@@ -224,6 +232,14 @@ The MessageBubble component SHALL render tool messages as a distinct `tool` segm
 #### Scenario: MessageBubble coalesces consecutive tool segments with a blank line
 - **WHEN** multiple tool messages coalesce into a single tool segment
 - **THEN** they are joined with a blank line so distinct results don't run together
+
+#### Scenario: MessageBubble toggles tool collapse on mouse click
+- **WHEN** a mouse click lands on a tool block header (`🔧 <name>`)
+- **THEN** the tool collapse state flips, so a collapsed block expands and an expanded block collapses
+
+#### Scenario: MessageBubble ignores a mouse click outside any tool header
+- **WHEN** a mouse click lands outside any tool block header
+- **THEN** the tool collapse state is unchanged
 
 ### Requirement: MessageBubble formats the timestamp at render time
 The MessageBubble component SHALL accept a raw timestamp (a `Date` or an ISO8601 string) via the `time` prop and format it to a localized short-form time string at render time using `formatTime()`. The bubble SHALL NOT render the `time` prop verbatim. When the `time` prop is missing or cannot be parsed as a valid date, the bubble SHALL fall back to formatting the current time via `formatTime(new Date())`.
@@ -243,3 +259,22 @@ The MessageBubble component SHALL accept a raw timestamp (a `Date` or an ISO8601
 #### Scenario: Live and re-loaded sessions render the same timestamp format
 - **WHEN** a message is rendered from a live session and the same message is rendered from a re-loaded session
 - **THEN** both render the same localized short-form time string, not a raw ISO8601 timestamp
+
+### Requirement: Block header clicks are validated and gated
+A mouse click SHALL toggle a collapsible block only when its coordinates fall within a rendered block header bounds, after compensating for the conversation scroll offset and clipping to the visible viewport. Clicks SHALL NOT toggle any block while a response is streaming. The ctrl+r / ctrl+t keyboard toggles SHALL remain unchanged.
+
+#### Scenario: Click on a scrolled header
+- **WHEN** the conversation is scrolled and a click lands on the on-screen row of a block header
+- **THEN** the matching collapse state flips
+
+#### Scenario: Click outside the visible viewport
+- **WHEN** a click lands outside the visible viewport
+- **THEN** no collapse state changes
+
+#### Scenario: Click while streaming
+- **WHEN** a response is streaming and a click lands on a block header
+- **THEN** no collapse state changes
+
+#### Scenario: Keyboard toggles remain
+- **WHEN** ctrl+r or ctrl+t is pressed
+- **THEN** the reasoning or tool collapse state flips as before
