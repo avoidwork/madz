@@ -7,7 +7,8 @@ import { describe, it } from "node:test";
 import assert from "node:assert";
 import React from "react";
 import { renderToString } from "ink";
-import { Banner, BANNER_ART, TAB_HINT, TAB_HINT_DETAIL } from "../../../src/tui/banner.js";
+import { Banner, BANNER_ART } from "../../../src/tui/banner.js";
+import { COMMAND_GROUPS } from "../../../src/tui/commandHelp.js";
 
 describe("Banner", () => {
 	it("renders ASCII art and command help", () => {
@@ -23,27 +24,18 @@ describe("Banner", () => {
 		assert.ok(typeof result === "string");
 	});
 
-	it("describes Tab as select mode, not read-only mode", () => {
-		assert.ok(TAB_HINT.includes("select mode"));
-		assert.ok(!TAB_HINT.includes("read-only"));
+	it("lists Tab as the fourth Toggles entry for select mode", () => {
+		const toggles = COMMAND_GROUPS.find((g) => g.group === "Toggles:");
+		assert.ok(toggles, "Toggles group exists");
+		assert.strictEqual(toggles.items.length, 4);
+		assert.strictEqual(toggles.items[3], "Tab - toggle select mode");
 	});
 
-	it("explains what select mode does and how to leave it", () => {
-		assert.ok(TAB_HINT.includes("select mode"));
-		assert.ok(TAB_HINT.includes("copy"));
-		assert.ok(TAB_HINT_DETAIL.includes("mouse"));
-		assert.ok(TAB_HINT_DETAIL.includes("Tab or typing returns"));
+	it("renders the Tab toggle entry and no separate Tab hint line", () => {
 		const result = renderToString(React.createElement(Banner, { onDismiss: () => {} }));
-		assert.ok(result.includes(TAB_HINT_DETAIL), "detail line rendered");
-	});
-
-	it("shows the Tab hint above the command menu", () => {
-		const result = renderToString(React.createElement(Banner, { onDismiss: () => {} }));
-		const hintAt = result.indexOf(TAB_HINT);
-		assert.ok(hintAt >= 0, "hint rendered");
-		assert.ok(hintAt < result.indexOf("Press any key"), "hint above footer");
-		const firstGroup = result.indexOf("Chat:");
-		if (firstGroup >= 0) assert.ok(hintAt < firstGroup, "hint above menu");
+		assert.ok(result.includes("Tab - toggle select mode"), "Tab entry rendered");
+		assert.ok(!result.includes("Tab: toggle select mode"), "old hint line removed");
+		assert.ok(!result.includes("read-only"));
 	});
 
 	it("renders without version", () => {

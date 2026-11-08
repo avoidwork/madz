@@ -13,12 +13,6 @@ export const BANNER_ART = `
 \`+.|  |.|  |+' \`+.| |..| \`+.|=|.+' |..|=|..|
 `.split("\n");
 
-/** Hint shown above the command menu explaining the Tab key. */
-export const TAB_HINT = "Tab: toggle select mode to drag-select and copy text";
-
-/** Second hint line: what select mode trades away and how to leave it. */
-export const TAB_HINT_DETAIL = "Select mode pauses mouse scroll and clicks. Tab or typing returns.";
-
 /**
  * BBS-style startup banner with ASCII art and command help menu.
  * Fixed top-left alignment. Dismisses on any key press.
@@ -56,15 +50,6 @@ export function Banner({ onDismiss, version }) {
 			),
 		);
 	}
-
-	children.push(
-		React.createElement(
-			Box,
-			{ key: "tab-hint", flexDirection: "column", marginTop: 2 },
-			React.createElement(Text, { color: "cyan" }, TAB_HINT),
-			React.createElement(Text, { color: "gray" }, TAB_HINT_DETAIL),
-		),
-	);
 
 	children.push(
 		React.createElement(
