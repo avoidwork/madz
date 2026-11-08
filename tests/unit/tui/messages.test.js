@@ -11,6 +11,7 @@ import {
 	hasCompletedToolCalls,
 	formatCompletedToolCalls,
 	coalesceSegments,
+	hasId,
 } from "../../../src/tui/messages.js";
 
 describe("getRoleLabel", () => {
@@ -241,5 +242,44 @@ describe("coalesceSegments", () => {
 			content: "hard",
 		});
 		assert.deepStrictEqual(result, [{ type: "reasoning", content: "thinking hard" }]);
+	});
+});
+
+describe("hasId", () => {
+	it("treats 0 as a present id", () => {
+		assert.strictEqual(hasId(0), true);
+	});
+
+	it("treats nullish and empty-string ids as absent", () => {
+		assert.strictEqual(hasId(undefined), false);
+		assert.strictEqual(hasId(null), false);
+		assert.strictEqual(hasId(""), false);
+	});
+
+	it("treats non-empty string and positive number ids as present", () => {
+		assert.strictEqual(hasId("rs_1"), true);
+		assert.strictEqual(hasId(3), true);
+	});
+});
+
+describe("coalesceSegments with id 0", () => {
+	it("coalesces message chunks that share id 0", () => {
+		const a = coalesceSegments([], { type: "message", content: "Hel", id: 0 });
+		const b = coalesceSegments(a, { type: "message", content: "lo", id: 0 });
+		assert.strictEqual(b.length, 1);
+		assert.strictEqual(b[0].content, "Hello");
+	});
+
+	it("starts a new message block when id 0 follows a different id", () => {
+		const a = coalesceSegments([], { type: "message", content: "one", id: 1 });
+		const b = coalesceSegments(a, { type: "message", content: "two", id: 0 });
+		assert.strictEqual(b.length, 2);
+	});
+
+	it("coalesces reasoning chunks that share id 0 and skips the sentence-boundary split", () => {
+		const a = coalesceSegments([], { type: "reasoning", content: "Done.", id: 0 });
+		const b = coalesceSegments(a, { type: "reasoning", content: "Next", id: 0 });
+		assert.strictEqual(b.length, 1);
+		assert.strictEqual(b[0].content, "Done.Next");
 	});
 });

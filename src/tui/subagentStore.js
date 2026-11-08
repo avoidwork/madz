@@ -9,7 +9,7 @@
  * without a React render.
  */
 
-import { coalesceSegments } from "./messages.js";
+import { coalesceSegments, hasId } from "./messages.js";
 
 /**
  * Create an empty subagent store.
@@ -71,7 +71,7 @@ export function updateSubagentStore(store, event) {
 					// Normalize the content-block index to `id` so message segments
 					// coalesce by block identity, mirroring how reasoning segments
 					// target by `id`.
-					...(event.index != null ? { id: event.index } : {}),
+					...(hasId(event.index) ? { id: event.index } : {}),
 				});
 			}
 			break;
@@ -82,7 +82,7 @@ export function updateSubagentStore(store, event) {
 				segments = coalesceSegments(segments, {
 					type: "reasoning",
 					content: text,
-					...(event.id ? { id: event.id } : {}),
+					...(hasId(event.id) ? { id: event.id } : {}),
 				});
 			}
 			break;

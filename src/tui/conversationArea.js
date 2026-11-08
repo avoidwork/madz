@@ -8,6 +8,7 @@ import React, {
 } from "react";
 import { Box } from "ink";
 import { AIMessage, HumanMessage, SystemMessage } from "@langchain/core/messages";
+import { hasId } from "./messages.js";
 import { ConversationPanel } from "./conversationPanel.js";
 import { CommandParser } from "./commandParser.js";
 import { createSession } from "../session/factory.js";
@@ -707,7 +708,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 									// Normalize the content-block index to `id` so message
 									// segments coalesce by block identity, mirroring how
 									// reasoning segments target by `id`.
-									...(event.index != null ? { id: event.index } : {}),
+									...(hasId(event.index) ? { id: event.index } : {}),
 								},
 							],
 							content: committedContentRef.current,
@@ -737,7 +738,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 									{
 										type: "reasoning",
 										content: reasoningText,
-										...(event.id ? { id: event.id } : {}),
+										...(hasId(event.id) ? { id: event.id } : {}),
 									},
 								],
 								streaming: true,

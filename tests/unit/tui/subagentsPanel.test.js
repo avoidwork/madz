@@ -472,3 +472,36 @@ describe("estimateSubagentHeight", () => {
 		assert.ok(long >= short);
 	});
 });
+
+describe("updateSubagentStore — id 0 coalescing", () => {
+	it("coalesces subagent message chunks whose content-block index is 0", () => {
+		let store = createSubagentStore();
+		for (const text of ["Hel", "lo"]) {
+			store = updateSubagentStore(store, {
+				type: "subagent_message",
+				namespace: ["tools:abc"],
+				text,
+				index: 0,
+			});
+		}
+		const { segments } = store["tools:abc"];
+		assert.strictEqual(segments.length, 1);
+		assert.strictEqual(segments[0].content, "Hello");
+		assert.strictEqual(segments[0].id, 0);
+	});
+
+	it("coalesces subagent reasoning chunks whose block id is 0", () => {
+		let store = createSubagentStore();
+		for (const text of ["Done.", "Next"]) {
+			store = updateSubagentStore(store, {
+				type: "subagent_reasoning",
+				namespace: ["tools:abc"],
+				text,
+				id: 0,
+			});
+		}
+		const { segments } = store["tools:abc"];
+		assert.strictEqual(segments.length, 1);
+		assert.strictEqual(segments[0].content, "Done.Next");
+	});
+});
