@@ -152,15 +152,11 @@ function App({
 	}, []);
 
 	// Stable click-toggle callbacks for the collapsible blocks. They flip the same
-	// booleans as ctrl+r / ctrl+t, but are ignored while a response streams.
-	const isStreamingRef = useRef(false);
-	isStreamingRef.current = isStreaming;
+	// booleans as ctrl+r / ctrl+t, and work during streaming too.
 	const onToggleReasoning = useCallback(() => {
-		if (isStreamingRef.current) return;
 		setReasoningCollapsed((prev) => !prev);
 	}, []);
 	const onToggleToolCall = useCallback(() => {
-		if (isStreamingRef.current) return;
 		setToolCallCollapsed((prev) => !prev);
 	}, []);
 

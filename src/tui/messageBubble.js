@@ -450,9 +450,8 @@ export function MessageBubbleInner({
 			React.createElement(Text, { color: "gray" }, text),
 		);
 	// Click handler: toggles the existing collapse state when the click lands on
-	// a reasoning/tool header. Ignored while streaming and for clicks elsewhere.
+	// a reasoning/tool header, including while streaming. Clicks elsewhere are ignored.
 	const handleClick = (event) => {
-		if (localStreaming) return;
 		const kind = hitHeader(event, [...headerNodesRef.current.values()], getScrollInfo?.());
 		if (kind === "reasoning") onToggleReasoning?.();
 		else if (kind === "tool") onToggleToolCall?.();

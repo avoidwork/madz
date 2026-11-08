@@ -166,13 +166,13 @@ describe("click-to-toggle collapsible blocks", () => {
 		assert.strictEqual(stats.state.reasoningCollapsed, true);
 	});
 
-	it("does not toggle while streaming", async () => {
+	it("toggles while streaming", async () => {
 		const { stdin, stdout, stats } = mount({ segments: SEGMENTS, streaming: true });
 		await tick(100);
 		const y = rowOf(stdout, "read_file");
 		assert.ok(y > 0);
 		await click(stdin, 4, y);
-		assert.strictEqual(stats.state.toolCallCollapsed, true);
+		assert.strictEqual(stats.state.toolCallCollapsed, false);
 	});
 
 	it("does not toggle for a click outside the visible viewport", async () => {
