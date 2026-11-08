@@ -23,6 +23,7 @@ import { buildLayout, extractSelection, mapCoordToChar } from "./selectionLayout
 import clipboardy from "clipboardy";
 import { findLinkAt } from "./linkHit.js";
 import { openUrl } from "./openUrl.js";
+import { isPrintableKey, routeNavKey, isMouseEnabled, shouldHandleClick } from "./selectMode.js";
 
 /**
  * Change the process working directory, guarding against an invalid target.
@@ -69,7 +70,9 @@ function App({
 	const [showBanner, setShowBanner] = useState(true);
 	const [showOnboarding, setShowOnboarding] = useState(!!onboarding);
 	const [onboardingResponse, setOnboardingResponse] = useState(0);
-	const [inputFocused, setInputFocused] = useState(true);
+	// Select mode: opt-in via Tab. Mouse reporting is off so the terminal can
+	// do native drag-select; default (false) keeps mouse reporting on.
+	const [selectMode, setSelectMode] = useState(false);
 	const [currentView, setCurrentView] = useState(PANELS.CONVERSATION);
 	const [pendingInput, setPendingInput] = useState("");
 	const [activeProject, setActiveProject] = useState("");
@@ -479,9 +482,9 @@ function App({
 		}
 
 		// Conversation view key handling
-		// Global keys always handled at app level, regardless of focus state
+		// Global keys always handled at app level, regardless of mode
 		if (input === "\t" || key.tab) {
-			setInputFocused((prev) => !prev);
+			setSelectMode((prev) => !prev);
 			return;
 		}
 
@@ -498,7 +501,7 @@ function App({
 				const next = !prev;
 				if (next) {
 					setSearchQuery("");
-					setInputFocused(true);
+					setSelectMode(false);
 				}
 				return next;
 			});
@@ -537,34 +540,37 @@ function App({
 			}
 		}
 
-		// Focus-aware key routing
-		if (inputFocused) {
-			if (key.upArrow) {
-				inputAreaRef.current?.navigateHistory("up");
-			} else if (key.downArrow) {
-				inputAreaRef.current?.navigateHistory("down");
-			}
-		} else {
+		// Select mode: any printable key exits it and is delivered to the input.
+		// The input is unfocused in select mode (it ignores keys), so forward
+		// the text explicitly. In search mode the search input is always
+		// focused and receives the key itself.
+		if (selectMode && isPrintableKey(input, key)) {
+			setSelectMode(false);
+			if (!searchMode) inputAreaRef.current?.appendInput?.(input);
+			return;
+		}
+
+		// Mode-aware key routing
+		const route = routeNavKey(selectMode, key);
+		if (route?.type === "history") {
+			inputAreaRef.current?.navigateHistory(route.direction);
+		} else if (route?.type === "scroll") {
 			// In the SUBAGENTS view, route scroll keys to the subagents panel
 			// (which has its own virtualized scroll). Otherwise route to the
 			// conversation area.
 			const scrollTarget =
 				currentView === PANELS.SUBAGENTS ? subagentsPanelRef.current : conversationAreaRef.current;
-			if (key.upArrow) scrollTarget?.scrollBy(-1);
-			if (key.downArrow) scrollTarget?.scrollBy(1);
-			if (key.pageUp) scrollTarget?.scrollBy(-(scrollTarget?.getViewportHeight?.() || 1));
-			if (key.pageDown) scrollTarget?.scrollBy(scrollTarget?.getViewportHeight?.() || 1);
+			const amount = route.unit === "page" ? scrollTarget?.getViewportHeight?.() || 1 : 1;
+			scrollTarget?.scrollBy(route.direction * amount);
 		}
 	});
 
 	const { rows, columns } = useWindowSize();
 
-	// Mouse-wheel scrolling and drag selection — active only when the
-	// conversation panel has focus (inputFocused is false, i.e. tabbed out of
-	// the input). When the input panel is focused, mouse reporting is disabled
-	// so mouse events bubble out to the terminal's native handling (text
-	// selection, link clicks). Also gated on the conversation view with the
-	// file picker closed, matching the keyboard scroll routing above.
+	// Mouse-wheel scrolling, drag selection and clicks — on by default and
+	// off only in select mode (Tab), where mouse events bubble out to the
+	// terminal's native handling (drag-select, copy). Handlers are also gated
+	// on the conversation view with the file picker closed.
 	useMouseScroll(
 		(delta) => {
 			if (currentView !== PANELS.CONVERSATION) return;
@@ -602,13 +608,11 @@ function App({
 				setSelection({ start: a, end: b });
 			}
 		},
-		// Enable mouse reporting only when the conversation panel has focus
-		// (tabbed out of the input). When the input is focused, mouse events
-		// bubble out to the terminal's native handling.
-		!inputFocused,
+		// Mouse reporting is enabled unless select mode is active.
+		isMouseEnabled(selectMode),
 		// Click (press+release on the same cell, no drag): open a link under the cursor.
 		(click) => {
-			if (inputFocused || currentView !== PANELS.CONVERSATION) return;
+			if (!shouldHandleClick(selectMode, currentView === PANELS.CONVERSATION)) return;
 			if (inputAreaRef.current?.isPickerOpen?.()) return;
 			const href = findLinkAt(click);
 			if (href) openUrl(href);
@@ -616,8 +620,8 @@ function App({
 	);
 
 	// Stable handlers for child components
-	const handleInputFocus = useCallback(() => setInputFocused(true), []);
-	const handleInputBlur = useCallback(() => setInputFocused(false), []);
+	const handleInputFocus = useCallback(() => setSelectMode(false), []);
+	const handleInputBlur = useCallback(() => setSelectMode(true), []);
 
 	// Determine which panel component to render
 	// Each panel derives its own isActive from the active view name.
@@ -671,7 +675,7 @@ function App({
 		MouseProvider,
 		{ autoEnable: false },
 		React.createElement(MouseGate, {
-			active: !inputFocused && currentView === PANELS.CONVERSATION,
+			active: isMouseEnabled(selectMode) && currentView === PANELS.CONVERSATION,
 		}),
 		React.createElement(
 			Box,
@@ -745,7 +749,7 @@ function App({
 						onSubmit: handleSubmit,
 						onFocus: handleInputFocus,
 						onBlur: handleInputBlur,
-						focus: inputFocused,
+						selectMode,
 						skillCount,
 						messageCountRef,
 						showBanner,

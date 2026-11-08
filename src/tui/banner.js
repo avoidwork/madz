@@ -14,7 +14,7 @@ export const BANNER_ART = `
 `.split("\n");
 
 /** Hint shown above the command menu explaining the Tab key. */
-export const TAB_HINT = "Tab: read-only mode with mouse scroll and click-to-expand";
+export const TAB_HINT = "Tab: select mode for native text selection and copy (any key exits)";
 
 /**
  * BBS-style startup banner with ASCII art and command help menu.

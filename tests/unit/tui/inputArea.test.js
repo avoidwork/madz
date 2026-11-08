@@ -6,7 +6,7 @@
 
 import { describe, it } from "node:test";
 import assert from "node:assert";
-import { getInputBorderColor, shouldShowInput } from "../../../src/tui/inputArea.js";
+import { getSelectModeBorderColor, shouldShowInput } from "../../../src/tui/inputArea.js";
 
 // We test the component logic by simulating the imperative API
 // that InputArea exposes via forwardRef + useImperativeHandle.
@@ -279,32 +279,32 @@ describe("InputArea — command picker gate logic", () => {
 	});
 });
 
-describe("InputArea — border color", () => {
-	it("is gray when the input is focused", () => {
-		assert.strictEqual(getInputBorderColor(true), "gray");
+describe("InputArea — border color (select mode)", () => {
+	it("is gray in the default mode", () => {
+		assert.strictEqual(getSelectModeBorderColor(false), "gray");
 	});
 
-	it("is cyan when the conversation panel is active (input not focused)", () => {
-		assert.strictEqual(getInputBorderColor(false), "cyan");
+	it("is cyan in select mode", () => {
+		assert.strictEqual(getSelectModeBorderColor(true), "cyan");
 	});
 
-	it("stays gray in search mode even when focus is false", () => {
-		assert.strictEqual(getInputBorderColor(false, true), "gray");
+	it("stays gray in search mode even when select mode is set", () => {
+		assert.strictEqual(getSelectModeBorderColor(true, true), "gray");
 	});
 });
 
 describe("InputArea — input visibility", () => {
-	it("shows the input when focused", () => {
-		assert.strictEqual(shouldShowInput({ focus: true }), true);
+	it("shows the input in the default mode", () => {
+		assert.strictEqual(shouldShowInput({}), true);
 	});
 
-	it("hides the input when the conversation panel is active", () => {
-		assert.strictEqual(shouldShowInput({ focus: false }), false);
+	it("keeps the input visible in select mode", () => {
+		assert.strictEqual(shouldShowInput({ selectMode: true }), true);
 	});
 
 	it("hides the main input while a picker or search is open", () => {
-		assert.strictEqual(shouldShowInput({ focus: true, pickerOpen: true }), false);
-		assert.strictEqual(shouldShowInput({ focus: true, commandPickerOpen: true }), false);
-		assert.strictEqual(shouldShowInput({ focus: true, searchMode: true }), false);
+		assert.strictEqual(shouldShowInput({ pickerOpen: true }), false);
+		assert.strictEqual(shouldShowInput({ commandPickerOpen: true }), false);
+		assert.strictEqual(shouldShowInput({ searchMode: true }), false);
 	});
 });

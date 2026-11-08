@@ -23,6 +23,11 @@ describe("Banner", () => {
 		assert.ok(typeof result === "string");
 	});
 
+	it("describes Tab as select mode, not read-only mode", () => {
+		assert.ok(TAB_HINT.includes("select mode"));
+		assert.ok(!TAB_HINT.includes("read-only"));
+	});
+
 	it("shows the Tab hint above the command menu", () => {
 		const result = renderToString(React.createElement(Banner, { onDismiss: () => {} }));
 		const hintAt = result.indexOf(TAB_HINT);

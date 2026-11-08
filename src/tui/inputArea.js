@@ -14,35 +14,34 @@ import { CommandPicker, shouldOpenCommandPicker } from "./commandPicker.js";
 import { QUOTES, getRandomQuoteIndex } from "./quotes.js";
 import { getSharedTokenBudget } from "../provider/openai.js";
 
-/** Border color of the input panel when the input is focused (or searching). */
+/** Border color of the input panel in the default (mouse) mode or while searching. */
 export const INPUT_BORDER_DEFAULT = "gray";
-/** Border color of the input panel when the conversation panel is active. */
-export const INPUT_BORDER_CONVERSATION_ACTIVE = "cyan";
+/** Border color of the input panel when select mode is active. */
+export const INPUT_BORDER_SELECT_MODE = "cyan";
 
 /**
- * Pick the input panel border color. Cyan signals the app is in the
- * conversation-active state (tabbed out of the input, mouse enabled).
- * @param {boolean} focus - Whether the input is focused
+ * Pick the input panel border color. Cyan signals select mode (Tab toggled,
+ * mouse reporting off so the terminal does native drag-select and copy).
+ * @param {boolean} selectMode - Whether select mode is active
  * @param {boolean} [searchMode=false] - Whether the search input is showing
  * @returns {string} Ink border color
  */
-export function getInputBorderColor(focus, searchMode = false) {
-	return !focus && !searchMode ? INPUT_BORDER_CONVERSATION_ACTIVE : INPUT_BORDER_DEFAULT;
+export function getSelectModeBorderColor(selectMode, searchMode = false) {
+	return selectMode && !searchMode ? INPUT_BORDER_SELECT_MODE : INPUT_BORDER_DEFAULT;
 }
 
 /**
- * Whether the main text input should be rendered. It is hidden while the
- * conversation panel is active (input not focused) so the bottom of the screen
- * collapses to just the cyan border line.
+ * Whether the main text input should be rendered. It stays mounted in select
+ * mode (unfocused) so the user can see where typed keys will land; it is
+ * hidden only while a picker or search input owns the bottom of the screen.
  * @param {Object} state
- * @param {boolean} state.focus - Whether the input is focused
  * @param {boolean} [state.pickerOpen] - File picker open
  * @param {boolean} [state.commandPickerOpen] - Command picker open
  * @param {boolean} [state.searchMode] - Search input showing
  * @returns {boolean} True when the main input should render
  */
-export function shouldShowInput({ focus, pickerOpen, commandPickerOpen, searchMode }) {
-	return Boolean(focus) && !pickerOpen && !commandPickerOpen && !searchMode;
+export function shouldShowInput({ pickerOpen, commandPickerOpen, searchMode } = {}) {
+	return !pickerOpen && !commandPickerOpen && !searchMode;
 }
 
 /**
@@ -56,7 +55,7 @@ const InputArea = forwardRef(function InputArea(
 		onSubmit,
 		onFocus,
 		onBlur,
-		focus,
+		selectMode = false,
 		skillCount,
 		messageCountRef,
 		showBanner,
@@ -226,6 +225,11 @@ const InputArea = forwardRef(function InputArea(
 				}
 			}
 		},
+		// Append text typed to leave select mode (the unfocused input ignores keys).
+		appendInput: (text) => {
+			setHistoryIndex(-1);
+			setInputText((prev) => prev + text);
+		},
 		clearInput: () => setInputText(""),
 		setInputText: (text) => setInputText(text),
 		getInputText: () => inputText,
@@ -283,8 +287,8 @@ const InputArea = forwardRef(function InputArea(
 				Box,
 				{
 					borderStyle: "round",
-					// Cyan signals the conversation panel is active (tabbed out of the input).
-					borderColor: getInputBorderColor(focus, searchMode),
+					// Cyan signals select mode (mouse reporting off, native selection).
+					borderColor: getSelectModeBorderColor(selectMode, searchMode),
 					borderTop: true,
 					borderBottom: false,
 					borderLeft: false,
@@ -292,15 +296,16 @@ const InputArea = forwardRef(function InputArea(
 					paddingX: 1,
 					width: "100%",
 				},
-				shouldShowInput({ focus, pickerOpen, commandPickerOpen, searchMode })
+				shouldShowInput({ pickerOpen, commandPickerOpen, searchMode })
 					? React.createElement(InputPanel, {
-							key: focus ? "input-focused" : "input-unfocused",
+							// Remount on mode change so the cursor lands at the end of the text.
+							key: selectMode ? "input-select-mode" : "input-active",
 							value: inputText,
 							onChange: setInputText,
 							onSubmit: handleSubmit,
 							onFocus,
 							onBlur,
-							focus,
+							focus: !selectMode,
 						})
 					: null,
 				searchMode

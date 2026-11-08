@@ -226,19 +226,18 @@ useInput((input, key))
 │   ├── key.escape → handleQuit() → process.exit(0)
 │   └── else → setShowBanner(false) → fall through
 ├── currentView !== conversation → defer to active panel's own useInput({ isActive })
-├── input === "\t" || key.tab → toggle inputFocused
+├── input === "\t" || key.tab → toggle selectMode
 ├── file picker open (inputAreaRef.isPickerOpen()) → bail (picker owns keystrokes)
 ├── key.escape → conversationAreaRef.interrupt() (500ms debounce)
-└── focus-aware routing:
-    ├── inputFocused:
+├── selectMode && printable input → exit select mode, inputAreaRef.appendInput(input)
+└── mode-aware routing:
+    ├── key.pageUp / key.pageDown → conversationAreaRef.scrollBy(∓viewportHeight) (both modes)
+    ├── default mode:
     │   ├── key.upArrow → inputAreaRef.navigateHistory("up")
-    │   ├── key.downArrow → inputAreaRef.navigateHistory("down")
-    │   └── printable input → inputAreaRef.insertText(input)
-    └── !inputFocused:
+    │   └── key.downArrow → inputAreaRef.navigateHistory("down")
+    └── selectMode:
         ├── key.upArrow → conversationAreaRef.scrollBy(-1)
-        ├── key.downArrow → conversationAreaRef.scrollBy(1)
-        ├── key.pageUp → conversationAreaRef.scrollBy(-viewportHeight)
-        └── key.pageDown → conversationAreaRef.scrollBy(viewportHeight)
+        └── key.downArrow → conversationAreaRef.scrollBy(1)
 ```
 
 > **Note:** The `useInput` handler is a single global listener in `App`. It routes based on phase (onboarding, banner, panel view) and focus state. When the file picker is open, it owns all keystrokes and the app-level handler bails. Escape interrupts a running stream (via `conversationAreaRef.interrupt()`) rather than quitting the app — quitting is only via `/quit`, `/exit`, or Escape while the banner is showing.
