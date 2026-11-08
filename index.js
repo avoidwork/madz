@@ -30,6 +30,7 @@ import { loadSession } from "./src/session/loader.js";
 import React from "react";
 import { HumanMessage } from "@langchain/core/messages";
 import { INTERRUPT, Command } from "@langchain/langgraph";
+import { isSubagentNamespace } from "./src/stream/namespace.js";
 
 const { setConfigValue } = await import("./src/config/loader.js");
 const { createDeepAgentsOrchestrator } = await import("./src/agent/deepAgents.js");
@@ -234,28 +235,12 @@ async function callProvider(_name, _providerConfig, message, streamingCallback, 
 		streamMode: ["messages", "tools", "values"],
 		subgraphs: true,
 	})) {
-		// With `subgraphs: true`, the root graph yields a namespace like
-		// `["model_request:<uuid>"]` and each subagent subgraph yields a
-		// namespace containing a `tools:` segment (e.g.
-		// `["tools:call_abc123", "model_request:<uuid>"]`). The orchestrator's
-		// own output has NO `tools:` segment, so a `tools:` prefix check is the
-		// correct discriminator (mirrors the deepagents library's own
-		// `isSubagentNamespace`). Subagent events are emitted with a
-		// `subagent_` prefix and carry the namespace so the TUI can route them
-		// to a dedicated SUBAGENTS store instead of folding them into the
-		// orchestrator's assistant bubble.
-		//
-		// However, the orchestrator's OWN tool calls are also emitted under a
-		// `tools:` namespace (e.g. `["tools:<id>"]` — length 1). A subagent
-		// subgraph always adds a second segment (a nested `model_request:` or
-		// `tools:`), so a namespace is subagent-scoped only when it has a
-		// `tools:` segment AND more than one segment. This keeps the
-		// orchestrator's tool calls in the conversation view while routing
-		// subagent activity to the SUBAGENTS store.
-		const isSubagent =
-			Array.isArray(namespace) &&
-			namespace.length > 1 &&
-			namespace.some((part) => part.startsWith("tools:"));
+		// With `subgraphs: true`, the orchestrator's own events carry an empty
+		// namespace (`[]`) and each subagent run is nested under a `tools:<id>`
+		// segment. Subagent events are emitted with a `subagent_` prefix and carry
+		// the namespace so the TUI routes them to the SUBAGENTS store instead of
+		// folding them into the orchestrator's assistant bubble.
+		const isSubagent = isSubagentNamespace(namespace);
 
 		// Detect a human-in-the-loop interrupt (e.g. the `clarify` tool calling
 		// `interrupt()`). The interrupt surfaces as a `values` chunk carrying an
@@ -419,10 +404,7 @@ async function resumeProvider(answer, streamingCallback, signal) {
 			subgraphs: true,
 		},
 	)) {
-		const isSubagent =
-			Array.isArray(namespace) &&
-			namespace.length > 1 &&
-			namespace.some((part) => part.startsWith("tools:"));
+		const isSubagent = isSubagentNamespace(namespace);
 
 		// Handle a nested interrupt (e.g. a second clarify question).
 		if (mode === "values" && payload && Array.isArray(payload[INTERRUPT])) {
