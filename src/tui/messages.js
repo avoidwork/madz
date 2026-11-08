@@ -80,6 +80,16 @@ export function formatCompletedToolCalls(calls) {
 }
 
 /**
+ * Whether a segment id is present. Ids can legitimately be `0` (a content-block
+ * index), so this must not rely on truthiness.
+ * @param {string|number|null|undefined} id - The segment id to test.
+ * @returns {boolean} True when the id is neither nullish nor an empty string.
+ */
+export function hasId(id) {
+	return id != null && id !== "";
+}
+
+/**
  * Coalesce a new segment into an existing segment list.
  *
  * - `reasoning` segments coalesce by identity. When the new segment carries an
@@ -110,7 +120,7 @@ export function coalesceSegments(segments, newSeg) {
 		// (a streamed block shares its id across chunks); fall back to the last
 		// reasoning segment when no id is present.
 		let target = null;
-		if (newSeg.id) {
+		if (hasId(newSeg.id)) {
 			for (let i = merged.length - 1; i >= 0; i--) {
 				if (merged[i].type === "reasoning" && merged[i].id === newSeg.id) {
 					target = merged[i];
@@ -129,7 +139,7 @@ export function coalesceSegments(segments, newSeg) {
 		// starts a new block even when no id is present; otherwise coalesce.
 		if (
 			target &&
-			!newSeg.id &&
+			!hasId(newSeg.id) &&
 			(target.content.endsWith(".") ||
 				target.content.endsWith("?") ||
 				target.content.endsWith("!")) &&
@@ -153,7 +163,7 @@ export function coalesceSegments(segments, newSeg) {
 		// match on the last segment (a mismatch, e.g. message after reasoning,
 		// forces a new block).
 		let target = null;
-		if (newSeg.id) {
+		if (hasId(newSeg.id)) {
 			for (let i = merged.length - 1; i >= 0; i--) {
 				if (merged[i].type === "message" && merged[i].id === newSeg.id) {
 					target = merged[i];
