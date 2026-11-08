@@ -38,6 +38,17 @@ describe("Banner", () => {
 		assert.ok(!result.includes("read-only"));
 	});
 
+	it("puts a blank line between command groups", () => {
+		const lines = renderToString(React.createElement(Banner, { onDismiss: () => {} })).split("\n");
+		for (const heading of ["Toggles:", "Command:"]) {
+			const at = lines.findIndex((l) => l.trim() === heading);
+			assert.ok(at > 0, heading + " rendered");
+			assert.strictEqual(lines[at - 1].trim(), "", "blank line above " + heading);
+		}
+		const chat = lines.findIndex((l) => l.trim() === "Chat:");
+		assert.ok(chat >= 0 && lines[chat + 1].trim() !== "", "no gap inside a group");
+	});
+
 	it("renders without version", () => {
 		const result = renderToString(React.createElement(Banner, { onDismiss: () => {} }));
 		assert.ok(typeof result === "string");

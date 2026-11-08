@@ -35,7 +35,6 @@ export function Banner({ onDismiss, version }) {
 	});
 
 	const lines = BANNER_ART.filter((l) => l.trim());
-	const bodyLines = COMMAND_GROUPS.flatMap((g) => [g.group, ...g.items.map((it) => "  " + it)]);
 
 	const children = lines.map((line, i) =>
 		React.createElement(Text, { key: "art-" + i, color: "cyan" }, line),
@@ -55,8 +54,15 @@ export function Banner({ onDismiss, version }) {
 		React.createElement(
 			Box,
 			{ flexDirection: "column", marginTop: 1 },
-			...bodyLines.map((line, i) =>
-				React.createElement(Text, { key: "cmd-" + i, color: "white" }, line),
+			...COMMAND_GROUPS.map((g, gi) =>
+				React.createElement(
+					Box,
+					{ key: "group-" + gi, flexDirection: "column", marginTop: gi === 0 ? 0 : 1 },
+					React.createElement(Text, { color: "white" }, g.group),
+					...g.items.map((it, i) =>
+						React.createElement(Text, { key: "cmd-" + i, color: "white" }, "  " + it),
+					),
+				),
 			),
 		),
 	);
