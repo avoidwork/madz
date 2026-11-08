@@ -31,6 +31,21 @@ export function getInputBorderColor(focus, searchMode = false) {
 }
 
 /**
+ * Whether the main text input should be rendered. It is hidden while the
+ * conversation panel is active (input not focused) so the bottom of the screen
+ * collapses to just the cyan border line.
+ * @param {Object} state
+ * @param {boolean} state.focus - Whether the input is focused
+ * @param {boolean} [state.pickerOpen] - File picker open
+ * @param {boolean} [state.commandPickerOpen] - Command picker open
+ * @param {boolean} [state.searchMode] - Search input showing
+ * @returns {boolean} True when the main input should render
+ */
+export function shouldShowInput({ focus, pickerOpen, commandPickerOpen, searchMode }) {
+	return Boolean(focus) && !pickerOpen && !commandPickerOpen && !searchMode;
+}
+
+/**
  * InputArea — owns all input and status state.
  * Renders StatusBar and InputPanel.
  * Reads messageCount from a ref exposed by ConversationArea.
@@ -277,7 +292,7 @@ const InputArea = forwardRef(function InputArea(
 					paddingX: 1,
 					width: "100%",
 				},
-				!pickerOpen && !commandPickerOpen && !searchMode
+				shouldShowInput({ focus, pickerOpen, commandPickerOpen, searchMode })
 					? React.createElement(InputPanel, {
 							key: focus ? "input-focused" : "input-unfocused",
 							value: inputText,

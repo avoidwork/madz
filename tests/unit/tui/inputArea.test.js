@@ -6,7 +6,7 @@
 
 import { describe, it } from "node:test";
 import assert from "node:assert";
-import { getInputBorderColor } from "../../../src/tui/inputArea.js";
+import { getInputBorderColor, shouldShowInput } from "../../../src/tui/inputArea.js";
 
 // We test the component logic by simulating the imperative API
 // that InputArea exposes via forwardRef + useImperativeHandle.
@@ -290,5 +290,21 @@ describe("InputArea — border color", () => {
 
 	it("stays gray in search mode even when focus is false", () => {
 		assert.strictEqual(getInputBorderColor(false, true), "gray");
+	});
+});
+
+describe("InputArea — input visibility", () => {
+	it("shows the input when focused", () => {
+		assert.strictEqual(shouldShowInput({ focus: true }), true);
+	});
+
+	it("hides the input when the conversation panel is active", () => {
+		assert.strictEqual(shouldShowInput({ focus: false }), false);
+	});
+
+	it("hides the main input while a picker or search is open", () => {
+		assert.strictEqual(shouldShowInput({ focus: true, pickerOpen: true }), false);
+		assert.strictEqual(shouldShowInput({ focus: true, commandPickerOpen: true }), false);
+		assert.strictEqual(shouldShowInput({ focus: true, searchMode: true }), false);
 	});
 });
