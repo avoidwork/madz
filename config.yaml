@@ -145,7 +145,7 @@ schedules:
 tui:
   name: Madz
   overscan: 10
-  mouseScrollLines: 1
+  mouseScrollLines: 3
   showToolResults: true
   reasoningCollapsed: true
   toolCallCollapsed: true
