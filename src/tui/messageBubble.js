@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useContext, useRef } from "react";
 import { Box, Text } from "ink";
+import { MouseContext } from "@ink-tools/ink-mouse";
 import Spinner from "ink-spinner";
 import { MarkdownText } from "./markdownText.js";
+import { HeaderClickRegistrar, findHeader } from "./headerClick.js";
 import { getRoleLabel, formatCompletedToolCalls, hasCompletedToolCalls } from "./messages.js";
 import { getRoleColors, getBubbleStyle, formatTime } from "./conversationPanel.js";
 
@@ -281,7 +283,27 @@ export function MessageBubbleInner({
 }) {
 	const [segments, setSegments] = useState(initialSegments || []);
 	const { subscribe, unsubscribe } = useContext(PubSubContext);
-	const { scrollToBottom } = useContext(ScrollContext);
+	const { scrollToBottom, getScrollInfo } = useContext(ScrollContext);
+	// Header nodes (reasoning / tool) keyed by segment index, populated via ref
+	// callbacks so a click can be hit-tested against the real header bounds.
+	const headerNodesRef = useRef(new Map());
+	// Per-block click state, keyed by segment index. A click toggles only that
+	// block and wins over the app-level (ctrl+r / ctrl+t) value. Whenever the
+	// app-level value changes it wins back: the matching overrides are dropped,
+	// so every block follows it and a stale click never reappears later.
+	const [blockOverrides, setBlockOverrides] = useState({});
+	const clearOverrides = (kind) =>
+		setBlockOverrides((prev) => {
+			const keys = Object.keys(prev).filter((k) => prev[k].kind === kind);
+			if (keys.length === 0) return prev;
+			const next = { ...prev };
+			for (const k of keys) delete next[k];
+			return next;
+		});
+	useEffect(() => clearOverrides("reasoning"), [reasoningCollapsed]);
+	useEffect(() => clearOverrides("tool"), [toolCallCollapsed]);
+	// Click-to-toggle is only wired when rendered under a MouseProvider.
+	const mouseEnabled = useContext(MouseContext) !== null;
 
 	// Subscribe to pub/sub updates — each update appends/coalesces a segment,
 	// triggering re-render of just this bubble without re-rendering the parent.
@@ -428,17 +450,51 @@ export function MessageBubbleInner({
 	// collapsible: when collapsed they render a single `💭 Thinking…` line,
 	// expandable on demand via a click/keyboard toggle.
 	let segmentOffset = 0;
+	// Header line wrapped in a Box whose node is tracked for click hit-testing.
+	// alignSelf keeps the clickable area to the header text, not the full row.
+	const headerEl = (i, kind, text) =>
+		React.createElement(
+			Box,
+			{
+				key: `header-${i}`,
+				alignSelf: "flex-start",
+				ref: (node) => {
+					if (node) headerNodesRef.current.set(i, { kind, node, index: i });
+					else headerNodesRef.current.delete(i);
+				},
+			},
+			React.createElement(Text, { color: "gray" }, text),
+		);
+	// Click handler: toggles the existing collapse state when the click lands on
+	// a reasoning/tool header, including while streaming. Clicks elsewhere are ignored.
+	const isCollapsed = (i, kind) => {
+		const global = kind === "reasoning" ? reasoningCollapsed : toolCallCollapsed;
+		const o = blockOverrides[i];
+		return o && o.kind === kind ? o.collapsed : global;
+	};
+	const handleClick = (event) => {
+		const header = findHeader(event, [...headerNodesRef.current.values()], getScrollInfo?.());
+		if (!header) return;
+		const { index, kind } = header;
+		const base = kind === "reasoning" ? reasoningCollapsed : toolCallCollapsed;
+		setBlockOverrides((prev) => {
+			const o = prev[index];
+			const current = o && o.kind === kind ? o.collapsed : base;
+			return { ...prev, [index]: { kind, collapsed: !current } };
+		});
+	};
 	const segmentEls = segments.map((seg, i) => {
 		if (seg.type === "reasoning") {
 			// The reasoning label renders with a collapse arrow to its right: → when
 			// collapsed, ↓ when expanded. No character precedes the 💭 glyph.
-			const arrow = reasoningCollapsed ? "→" : "↓";
+			const collapsed = isCollapsed(i, "reasoning");
+			const arrow = collapsed ? "→" : "↓";
 			const header = `💭 Thinking… ${arrow}`;
 			return React.createElement(
 				Box,
 				{ key: `seg-${i}`, flexDirection: "column", flexShrink: 0 },
-				React.createElement(Text, { color: "gray" }, header),
-				...(reasoningCollapsed
+				headerEl(i, "reasoning", header),
+				...(collapsed
 					? []
 					: seg.content
 							.split("\n")
@@ -455,13 +511,14 @@ export function MessageBubbleInner({
 			// The tool name renders with a collapse arrow to its right: → when
 			// collapsed, ↓ when expanded. No character precedes the 🔧 glyph.
 			const label = seg.name ? seg.name : "Tool result";
-			const arrow = toolCallCollapsed ? "→" : "↓";
+			const collapsed = isCollapsed(i, "tool");
+			const arrow = collapsed ? "→" : "↓";
 			const header = `🔧 ${label} ${arrow}`;
 			return React.createElement(
 				Box,
 				{ key: `seg-${i}`, flexDirection: "column", flexShrink: 0 },
-				React.createElement(Text, { color: "gray" }, header),
-				...(toolCallCollapsed
+				headerEl(i, "tool", header),
+				...(collapsed
 					? []
 					: seg.content
 							.split("\n")
@@ -656,6 +713,9 @@ export function MessageBubbleInner({
 			toolDisplayEl,
 			completedToolCallsEl,
 			timerEl,
+			mouseEnabled
+				? React.createElement(HeaderClickRegistrar, { key: "header-click", onClick: handleClick })
+				: null,
 		),
 	);
 }

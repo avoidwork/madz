@@ -14,6 +14,37 @@ import { CommandPicker, shouldOpenCommandPicker } from "./commandPicker.js";
 import { QUOTES, getRandomQuoteIndex } from "./quotes.js";
 import { getSharedTokenBudget } from "../provider/openai.js";
 
+/** Border color of the input panel when the input is focused (or searching). */
+export const INPUT_BORDER_DEFAULT = "gray";
+/** Border color of the input panel when the conversation panel is active. */
+export const INPUT_BORDER_CONVERSATION_ACTIVE = "cyan";
+
+/**
+ * Pick the input panel border color. Cyan signals the app is in the
+ * conversation-active state (tabbed out of the input, mouse enabled).
+ * @param {boolean} focus - Whether the input is focused
+ * @param {boolean} [searchMode=false] - Whether the search input is showing
+ * @returns {string} Ink border color
+ */
+export function getInputBorderColor(focus, searchMode = false) {
+	return !focus && !searchMode ? INPUT_BORDER_CONVERSATION_ACTIVE : INPUT_BORDER_DEFAULT;
+}
+
+/**
+ * Whether the main text input should be rendered. It is hidden while the
+ * conversation panel is active (input not focused) so the bottom of the screen
+ * collapses to just the cyan border line.
+ * @param {Object} state
+ * @param {boolean} state.focus - Whether the input is focused
+ * @param {boolean} [state.pickerOpen] - File picker open
+ * @param {boolean} [state.commandPickerOpen] - Command picker open
+ * @param {boolean} [state.searchMode] - Search input showing
+ * @returns {boolean} True when the main input should render
+ */
+export function shouldShowInput({ focus, pickerOpen, commandPickerOpen, searchMode }) {
+	return Boolean(focus) && !pickerOpen && !commandPickerOpen && !searchMode;
+}
+
 /**
  * InputArea — owns all input and status state.
  * Renders StatusBar and InputPanel.
@@ -252,7 +283,8 @@ const InputArea = forwardRef(function InputArea(
 				Box,
 				{
 					borderStyle: "round",
-					borderColor: "gray",
+					// Cyan signals the conversation panel is active (tabbed out of the input).
+					borderColor: getInputBorderColor(focus, searchMode),
 					borderTop: true,
 					borderBottom: false,
 					borderLeft: false,
@@ -260,7 +292,7 @@ const InputArea = forwardRef(function InputArea(
 					paddingX: 1,
 					width: "100%",
 				},
-				!pickerOpen && !commandPickerOpen && !searchMode
+				shouldShowInput({ focus, pickerOpen, commandPickerOpen, searchMode })
 					? React.createElement(InputPanel, {
 							key: focus ? "input-focused" : "input-unfocused",
 							value: inputText,

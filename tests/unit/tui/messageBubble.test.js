@@ -2,6 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert";
 import React from "react";
 import { renderToString } from "ink";
+import { MouseProvider } from "@ink-tools/ink-mouse";
 import {
 	MessageBubbleInner,
 	MessageBubble,
@@ -730,5 +731,56 @@ describe("MessageBubbleInner - tool call collapse", () => {
 		// Collapsed by default — the result lines are hidden, but the toggle label shows.
 		assert.ok(result.includes("tool result"));
 		assert.ok(!result.includes("Result: success"), "tool result should be collapsed by default");
+	});
+});
+
+describe("MessageBubbleInner click-toggle wiring", () => {
+	function renderWith(props) {
+		return renderToString(
+			React.createElement(
+				MouseProvider,
+				{ autoEnable: false },
+				React.createElement(
+					PubSubContext.Provider,
+					{ value: { subscribe: () => {}, unsubscribe: () => {} } },
+					React.createElement(
+						ScrollContext.Provider,
+						{ value: { scrollToBottom: () => {}, getScrollInfo: () => ({ offset: 0 }) } },
+						React.createElement(MessageBubbleInner, {
+							role: "assistant",
+							content: "",
+							streaming: false,
+							segments: [
+								{ type: "reasoning", content: "deep thought" },
+								{ type: "tool", name: "read_file", content: "tool body" },
+							],
+							...props,
+						}),
+					),
+				),
+			),
+		);
+	}
+
+	it("renders headers with arrows under a MouseProvider", () => {
+		const out = renderWith({
+			reasoningCollapsed: true,
+			toolCallCollapsed: true,
+		});
+		assert.ok(out.includes("💭 Thinking… →"));
+		assert.ok(out.includes("🔧 read_file →"));
+	});
+
+	it("renders identically without a MouseProvider (click wiring skipped)", () => {
+		const out = renderWith({ reasoningCollapsed: true, toolCallCollapsed: true });
+		assert.ok(out.includes("💭 Thinking… →"));
+		assert.ok(out.includes("🔧 read_file →"));
+	});
+
+	it("shows expanded bodies and ↓ arrows when not collapsed", () => {
+		const out = renderWith({ reasoningCollapsed: false, toolCallCollapsed: false });
+		assert.ok(out.includes("💭 Thinking… ↓"));
+		assert.ok(out.includes("deep thought"));
+		assert.ok(out.includes("tool body"));
 	});
 });

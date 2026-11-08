@@ -13,6 +13,9 @@ export const BANNER_ART = `
 \`+.|  |.|  |+' \`+.| |..| \`+.|=|.+' |..|=|..|
 `.split("\n");
 
+/** Hint shown above the command menu explaining the Tab key. */
+export const TAB_HINT = "Tab: read-only mode with mouse scroll and click-to-expand";
+
 /**
  * BBS-style startup banner with ASCII art and command help menu.
  * Fixed top-left alignment. Dismisses on any key press.
@@ -54,7 +57,15 @@ export function Banner({ onDismiss, version }) {
 	children.push(
 		React.createElement(
 			Box,
-			{ flexDirection: "column", marginTop: 2 },
+			{ key: "tab-hint", flexDirection: "column", marginTop: 2 },
+			React.createElement(Text, { color: "cyan" }, TAB_HINT),
+		),
+	);
+
+	children.push(
+		React.createElement(
+			Box,
+			{ flexDirection: "column", marginTop: 1 },
 			...bodyLines.map((line, i) =>
 				React.createElement(Text, { key: "cmd-" + i, color: "white" }, line),
 			),

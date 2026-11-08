@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState, forwardRef, useCallback } from "rea
 import { Box, Text, useStdout, useWindowSize } from "ink";
 import { VirtualScrollView } from "./scrollView.js";
 import { MessageBubble, PubSubContext, ScrollContext } from "./messageBubble.js";
+import { getBoundingClientRect } from "@ink-tools/ink-mouse";
 import { stripAnsi, wrapText } from "./selectionLayout.js";
 import {
 	hasCompletedToolCalls,
@@ -740,7 +741,13 @@ export const MessageList = React.memo(
 				ScrollContext.Provider,
 				{
 					value: React.useMemo(
-						() => ({ scrollToBottom: imperativeApiRef.current?.scrollToBottom }),
+						() => ({
+							scrollToBottom: imperativeApiRef.current?.scrollToBottom,
+							getScrollInfo: () => ({
+								offset: scrollRef.current?.getScrollOffset?.() ?? 0,
+								viewport: getBoundingClientRect(scrollRef.current?.getViewportNode?.() ?? null),
+							}),
+						}),
 						[],
 					),
 				},

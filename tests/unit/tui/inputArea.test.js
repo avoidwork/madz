@@ -6,6 +6,7 @@
 
 import { describe, it } from "node:test";
 import assert from "node:assert";
+import { getInputBorderColor, shouldShowInput } from "../../../src/tui/inputArea.js";
 
 // We test the component logic by simulating the imperative API
 // that InputArea exposes via forwardRef + useImperativeHandle.
@@ -275,5 +276,35 @@ describe("InputArea — command picker gate logic", () => {
 		const searchMode = false;
 		const shouldRender = !pickerOpen && !commandPickerOpen && !searchMode;
 		assert.strictEqual(shouldRender, false);
+	});
+});
+
+describe("InputArea — border color", () => {
+	it("is gray when the input is focused", () => {
+		assert.strictEqual(getInputBorderColor(true), "gray");
+	});
+
+	it("is cyan when the conversation panel is active (input not focused)", () => {
+		assert.strictEqual(getInputBorderColor(false), "cyan");
+	});
+
+	it("stays gray in search mode even when focus is false", () => {
+		assert.strictEqual(getInputBorderColor(false, true), "gray");
+	});
+});
+
+describe("InputArea — input visibility", () => {
+	it("shows the input when focused", () => {
+		assert.strictEqual(shouldShowInput({ focus: true }), true);
+	});
+
+	it("hides the input when the conversation panel is active", () => {
+		assert.strictEqual(shouldShowInput({ focus: false }), false);
+	});
+
+	it("hides the main input while a picker or search is open", () => {
+		assert.strictEqual(shouldShowInput({ focus: true, pickerOpen: true }), false);
+		assert.strictEqual(shouldShowInput({ focus: true, commandPickerOpen: true }), false);
+		assert.strictEqual(shouldShowInput({ focus: true, searchMode: true }), false);
 	});
 });

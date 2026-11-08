@@ -169,6 +169,7 @@ export const VirtualScrollView = React.memo(
 				scrollToTop: () => scrollTo(0),
 				scrollToBottom: () => scrollTo(getBottomOffset()),
 				getScrollOffset: () => scrollOffsetRef.current,
+				getViewportNode: () => viewportRef.current,
 				getContentHeight: () => totalHeight,
 				getViewportHeight: () => viewportHeight,
 				getBottomOffset,
