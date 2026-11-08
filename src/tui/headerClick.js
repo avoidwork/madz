@@ -45,19 +45,30 @@ export function applyScrollOffset(rect, offset = 0) {
  * the visible viewport (when one is known) and inside the header's scroll-
  * adjusted bounds.
  * @param {{x: number, y: number}} click - Click position (1-indexed terminal cell)
- * @param {Array<{kind: string, node: unknown}>} headers - Header nodes with their kind
+ * @param {Array<{kind: string, node: unknown}>} headers - Header entries (extra fields such as `index` are preserved)
  * @param {{offset?: number, viewport?: {left: number, top: number, right: number, bottom: number}}} [scroll] - Scroll info
- * @returns {string|null} The kind of the clicked header, or null for no hit
+ * @returns {Object|null} The clicked header entry, or null for no hit
  */
-export function hitHeader(click, headers, scroll = {}) {
+export function findHeader(click, headers, scroll = {}) {
 	const { offset = 0, viewport } = scroll;
 	if (!click || !Number.isFinite(click.x) || !Number.isFinite(click.y)) return null;
 	if (viewport && !isCellInRect(click.x, click.y, viewport)) return null;
-	for (const { kind, node } of headers) {
-		const rect = getBoundingClientRect(node);
-		if (rect && isCellInRect(click.x, click.y, applyScrollOffset(rect, offset))) return kind;
+	for (const header of headers) {
+		const rect = getBoundingClientRect(header.node);
+		if (rect && isCellInRect(click.x, click.y, applyScrollOffset(rect, offset))) return header;
 	}
 	return null;
+}
+
+/**
+ * Find the kind of the header a click landed on.
+ * @param {{x: number, y: number}} click - Click position (1-indexed terminal cell)
+ * @param {Array<{kind: string, node: unknown}>} headers - Header entries
+ * @param {Object} [scroll] - Scroll info (see {@link findHeader})
+ * @returns {string|null} The kind of the clicked header, or null for no hit
+ */
+export function hitHeader(click, headers, scroll = {}) {
+	return findHeader(click, headers, scroll)?.kind ?? null;
 }
 
 /**

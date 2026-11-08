@@ -86,8 +86,6 @@ const ConversationArea = forwardRef(function ConversationArea(
 		selection,
 		reasoningCollapsed,
 		toolCallCollapsed,
-		onToggleReasoning,
-		onToggleToolCall,
 		hidden = false,
 	},
 	ref,
@@ -1053,8 +1051,6 @@ const ConversationArea = forwardRef(function ConversationArea(
 			selection,
 			reasoningCollapsed,
 			toolCallCollapsed,
-			onToggleReasoning,
-			onToggleToolCall,
 		}),
 	);
 });

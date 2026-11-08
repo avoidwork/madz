@@ -129,8 +129,6 @@ export const MessageList = React.memo(
 			selection,
 			reasoningCollapsed = false,
 			toolCallCollapsed = true,
-			onToggleReasoning,
-			onToggleToolCall,
 		},
 		forwardRef,
 	) {
@@ -721,8 +719,6 @@ export const MessageList = React.memo(
 					selection: localSelection,
 					reasoningCollapsed,
 					toolCallCollapsed,
-					onToggleReasoning,
-					onToggleToolCall,
 				});
 			},
 			[
@@ -733,8 +729,6 @@ export const MessageList = React.memo(
 				scrollRef,
 				reasoningCollapsed,
 				toolCallCollapsed,
-				onToggleReasoning,
-				onToggleToolCall,
 			],
 		);
 

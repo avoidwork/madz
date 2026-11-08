@@ -151,15 +151,6 @@ function App({
 		setSubagentStore((prev) => updateSubagentStore(prev, event));
 	}, []);
 
-	// Stable click-toggle callbacks for the collapsible blocks. They flip the same
-	// booleans as ctrl+r / ctrl+t, and work during streaming too.
-	const onToggleReasoning = useCallback(() => {
-		setReasoningCollapsed((prev) => !prev);
-	}, []);
-	const onToggleToolCall = useCallback(() => {
-		setToolCallCollapsed((prev) => !prev);
-	}, []);
-
 	/**
 	 * onViewChange — switch between conversation and panel views.
 	 * The ConversationArea stays mounted across panel views, so the message
@@ -734,8 +725,6 @@ function App({
 								selection,
 								reasoningCollapsed,
 								toolCallCollapsed,
-								onToggleReasoning,
-								onToggleToolCall,
 								hidden: currentView !== PANELS.CONVERSATION,
 							}),
 							currentView !== PANELS.CONVERSATION ? panelComponent : null,

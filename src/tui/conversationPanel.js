@@ -104,8 +104,6 @@ export const ConversationPanel = React.memo(function ConversationPanel({
 	selection,
 	reasoningCollapsed = false,
 	toolCallCollapsed = true,
-	onToggleReasoning,
-	onToggleToolCall,
 }) {
 	const internalListRef = useRef(null);
 	const panelRef = messageListRef || internalListRef;
@@ -129,8 +127,6 @@ export const ConversationPanel = React.memo(function ConversationPanel({
 			selection,
 			reasoningCollapsed,
 			toolCallCollapsed,
-			onToggleReasoning,
-			onToggleToolCall,
 		}),
 	);
 });

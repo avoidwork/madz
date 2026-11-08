@@ -762,18 +762,16 @@ describe("MessageBubbleInner click-toggle wiring", () => {
 		);
 	}
 
-	it("renders headers with arrows when toggle callbacks are provided", () => {
+	it("renders headers with arrows under a MouseProvider", () => {
 		const out = renderWith({
 			reasoningCollapsed: true,
 			toolCallCollapsed: true,
-			onToggleReasoning: () => {},
-			onToggleToolCall: () => {},
 		});
 		assert.ok(out.includes("💭 Thinking… →"));
 		assert.ok(out.includes("🔧 read_file →"));
 	});
 
-	it("renders identically without toggle callbacks (no MouseProvider needed)", () => {
+	it("renders identically without a MouseProvider (click wiring skipped)", () => {
 		const out = renderWith({ reasoningCollapsed: true, toolCallCollapsed: true });
 		assert.ok(out.includes("💭 Thinking… →"));
 		assert.ok(out.includes("🔧 read_file →"));
