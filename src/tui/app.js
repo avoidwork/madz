@@ -21,6 +21,8 @@ import { MouseProvider } from "@ink-tools/ink-mouse";
 import { MouseGate } from "./headerClick.js";
 import { buildLayout, extractSelection, mapCoordToChar } from "./selectionLayout.js";
 import clipboardy from "clipboardy";
+import { findLinkAt } from "./linkHit.js";
+import { openUrl } from "./openUrl.js";
 
 /**
  * Change the process working directory, guarding against an invalid target.
@@ -604,6 +606,13 @@ function App({
 		// (tabbed out of the input). When the input is focused, mouse events
 		// bubble out to the terminal's native handling.
 		!inputFocused,
+		// Click (press+release on the same cell, no drag): open a link under the cursor.
+		(click) => {
+			if (inputFocused || currentView !== PANELS.CONVERSATION) return;
+			if (inputAreaRef.current?.isPickerOpen?.()) return;
+			const href = findLinkAt(click);
+			if (href) openUrl(href);
+		},
 	);
 
 	// Stable handlers for child components

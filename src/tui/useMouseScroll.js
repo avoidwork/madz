@@ -82,15 +82,19 @@ export function scaleScrollDelta(delta, lines = 1) {
  * @param {Function} [onSelect] - Called with `{ start: {x, y}, end: {x, y} }` on release
  * @param {Function} [onSelectionChange] - Called with `{ start: {x, y}, end: {x, y} }` on press/move for live highlighting
  * @param {boolean} [enabled=true] - Whether mouse reporting is active. When false, mouse events bubble out to the terminal.
+ * @param {Function} [onClick] - Called with `{ x, y }` when a left-button release lands on the press cell with no drag in between. Fires in addition to the unchanged `onSelect` path.
  * @returns {void}
  */
-export function useMouseScroll(onScroll, onSelect, onSelectionChange, enabled = true) {
+export function useMouseScroll(onScroll, onSelect, onSelectionChange, enabled = true, onClick) {
 	const onScrollRef = useRef(onScroll);
 	onScrollRef.current = onScroll;
 	const onSelectRef = useRef(onSelect);
 	onSelectRef.current = onSelect;
 	const onSelectionChangeRef = useRef(onSelectionChange);
 	onSelectionChangeRef.current = onSelectionChange;
+	const onClickRef = useRef(onClick);
+	onClickRef.current = onClick;
+	const draggedRef = useRef(false);
 	const bufferRef = useRef("");
 	const selectionRef = useRef(null);
 
@@ -124,7 +128,10 @@ export function useMouseScroll(onScroll, onSelect, onSelectionChange, enabled = 
 								start: { x: event.x, y: event.y },
 								end: { x: event.x, y: event.y },
 							};
+							draggedRef.current = false;
 						} else {
+							const { start } = selectionRef.current;
+							if (event.x !== start.x || event.y !== start.y) draggedRef.current = true;
 							selectionRef.current.end = { x: event.x, y: event.y };
 						}
 						// Notify for live highlighting during the drag.
@@ -133,8 +140,17 @@ export function useMouseScroll(onScroll, onSelect, onSelectionChange, enabled = 
 						// Release — finalize the selection.
 						const selection = selectionRef.current;
 						selectionRef.current = null;
+						const isClick =
+							selection !== null &&
+							!draggedRef.current &&
+							event.x === selection.start.x &&
+							event.y === selection.start.y;
+						draggedRef.current = false;
 						if (selection) {
 							onSelectRef.current?.(selection);
+						}
+						if (isClick) {
+							onClickRef.current?.({ x: event.x, y: event.y });
 						}
 					}
 				} else if (event.isPress) {

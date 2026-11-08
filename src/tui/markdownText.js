@@ -8,6 +8,14 @@ import ansiEscapes from "ansi-escapes";
 import supportsHyperlinks from "supports-hyperlinks";
 import Table from "cli-table3";
 import { lru } from "tiny-lru";
+import { stripAnsi } from "./selectionLayout.js";
+
+/**
+ * Link spans recorded by the renderer's `link()` during the current
+ * synchronous `marked.parse` call. `null` when no parse is collecting.
+ * @type {Array<{text: string, href: string}>|null}
+ */
+let activeLinks = null;
 
 // --- Utility: HTML entity unescaping ---
 function unescapeEntities(html) {
@@ -236,7 +244,11 @@ class TerminalRenderer extends Renderer {
 			out += this.o.href(href);
 			if (hasText) out += ")";
 		}
-		return this.o.link(out);
+		const rendered = this.o.link(out);
+		// Record the visible (ANSI-stripped) text so clicks can be mapped back to
+		// the href: the link text for OSC 8, or `text (url)` for the fallback.
+		if (activeLinks) activeLinks.push({ text: stripAnsi(rendered), href });
+		return rendered;
 	}
 
 	image({ href, title, text, tokens }) {
@@ -356,19 +368,36 @@ const parseCache = lru(MAX_CACHE_SIZE);
 // --- Public API (preserved) ---
 
 /**
+ * Parse markdown to ANSI terminal text plus the link spans it contains.
+ * The cache carries the link metadata alongside the rendered string.
+ * @param {string} markdown
+ * @returns {{text: string, links: Array<{text: string, href: string}>}} Rendered text and link spans in document order
+ */
+export function parseMarkdownWithLinks(markdown) {
+	const cached = parseCache.get(markdown);
+	if (cached !== undefined) {
+		return cached;
+	}
+	const previous = activeLinks;
+	activeLinks = [];
+	let parsed;
+	try {
+		parsed = { text: marked.parse(markdown).trim(), links: activeLinks };
+	} finally {
+		activeLinks = previous;
+	}
+	parseCache.set(markdown, parsed);
+	return parsed;
+}
+
+/**
  * Parse markdown to ANSI terminal text.
  * @param {string} markdown
  * @returns {string}
  */
 // node:coverage ignore next
 export function parseMarkdown(markdown) {
-	const cached = parseCache.get(markdown);
-	if (cached !== undefined) {
-		return cached;
-	}
-	const parsed = marked.parse(markdown).trim();
-	parseCache.set(markdown, parsed);
-	return parsed;
+	return parseMarkdownWithLinks(markdown).text;
 }
 
 /**

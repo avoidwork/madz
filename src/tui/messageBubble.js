@@ -4,6 +4,7 @@ import { MouseContext } from "@ink-tools/ink-mouse";
 import Spinner from "ink-spinner";
 import { MarkdownText } from "./markdownText.js";
 import { HeaderClickRegistrar, findHeader } from "./headerClick.js";
+import { setLinkTarget } from "./linkHit.js";
 import { getRoleLabel, formatCompletedToolCalls, hasCompletedToolCalls } from "./messages.js";
 import { getRoleColors, getBubbleStyle, formatTime } from "./conversationPanel.js";
 
@@ -499,6 +500,10 @@ export function MessageBubbleInner({
 			return { ...prev, [index]: { kind, collapsed: !current } };
 		});
 	};
+	// Registers a rendered markdown block so app-level link clicks can be
+	// hit-tested against its measured rect and rendered (not raw) text.
+	const linkRef = (id, content) => (node) =>
+		setLinkTarget(id, node ? { node, content, getScrollInfo } : null);
 	const segmentEls = segments.map((seg, i) => {
 		if (seg.type === "reasoning") {
 			// The reasoning label renders with a collapse arrow to its right: → when
@@ -547,7 +552,12 @@ export function MessageBubbleInner({
 		segmentOffset += seg.content.length;
 		return React.createElement(
 			Box,
-			{ key: `seg-${i}`, flexDirection: "row", flexShrink: 0 },
+			{
+				key: `seg-${i}`,
+				flexDirection: "row",
+				flexShrink: 0,
+				ref: linkRef(`${topic}-seg-${i}`, seg.content),
+			},
 			...parts.map((part, j) =>
 				React.createElement(MarkdownText, {
 					key: `seg-${i}-${j}`,
@@ -564,7 +574,11 @@ export function MessageBubbleInner({
 		!hasReasoning && segments.length === 0 && localContent
 			? React.createElement(
 					Box,
-					{ flexDirection: "row", flexShrink: 0 },
+					{
+						flexDirection: "row",
+						flexShrink: 0,
+						ref: linkRef(`${topic}-fallback`, localContent),
+					},
 					...splitHighlight(localContent, 0).map((part, j) =>
 						React.createElement(MarkdownText, {
 							key: `fallback-${j}`,

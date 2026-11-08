@@ -171,14 +171,14 @@ describe("useMouseScroll hook", () => {
 	});
 
 	// Wrapper component that invokes the hook so it can be rendered via Ink.
-	function Harness({ onScroll, onSelect, onSelectionChange, enabled }) {
-		useMouseScroll(onScroll, onSelect, onSelectionChange, enabled);
+	function Harness({ onScroll, onSelect, onSelectionChange, enabled, onClick }) {
+		useMouseScroll(onScroll, onSelect, onSelectionChange, enabled, onClick);
 		return React.createElement(React.Fragment, null);
 	}
 
-	function mountHook(onScroll, onSelect, onSelectionChange, enabled) {
+	function mountHook(onScroll, onSelect, onSelectionChange, enabled, onClick) {
 		const instance = render(
-			React.createElement(Harness, { onScroll, onSelect, onSelectionChange, enabled }),
+			React.createElement(Harness, { onScroll, onSelect, onSelectionChange, enabled, onClick }),
 		);
 		instances.push(instance);
 		return instance;
@@ -366,5 +366,92 @@ describe("useMouseScroll hook", () => {
 		handler(Buffer.from("\x1b[<0;20;8m"));
 		assert.deepStrictEqual(deltas, [-1]);
 		assert.deepStrictEqual(selected, { start: { x: 10, y: 5 }, end: { x: 20, y: 8 } });
+	});
+
+	it("fires onClick for a left press and release on the same cell", () => {
+		const clicks = [];
+		const selects = [];
+		mountHook(
+			() => {},
+			(s) => selects.push(s),
+			undefined,
+			true,
+			(c) => clicks.push(c),
+		);
+		const handler = stdinListeners.get("data");
+		handler(Buffer.from("\x1b[<0;10;5M"));
+		handler(Buffer.from("\x1b[<0;10;5m"));
+		assert.deepStrictEqual(clicks, [{ x: 10, y: 5 }]);
+		// The existing selection path is unchanged.
+		assert.strictEqual(selects.length, 1);
+	});
+
+	it("does not fire onClick when the release is on a different cell", () => {
+		const clicks = [];
+		mountHook(
+			() => {},
+			undefined,
+			undefined,
+			true,
+			(c) => clicks.push(c),
+		);
+		const handler = stdinListeners.get("data");
+		handler(Buffer.from("\x1b[<0;10;5M"));
+		handler(Buffer.from("\x1b[<0;11;5m"));
+		assert.deepStrictEqual(clicks, []);
+	});
+
+	it("does not fire onClick when the pointer dragged away and back", () => {
+		const clicks = [];
+		const selects = [];
+		mountHook(
+			() => {},
+			(s) => selects.push(s),
+			undefined,
+			true,
+			(c) => clicks.push(c),
+		);
+		const handler = stdinListeners.get("data");
+		handler(Buffer.from("\x1b[<0;10;5M"));
+		handler(Buffer.from("\x1b[<0;20;5M"));
+		handler(Buffer.from("\x1b[<0;10;5M"));
+		handler(Buffer.from("\x1b[<0;10;5m"));
+		assert.deepStrictEqual(clicks, []);
+		assert.strictEqual(selects.length, 1);
+	});
+
+	it("does not fire onClick for a release with no press or for wheel events", () => {
+		const clicks = [];
+		const deltas = [];
+		mountHook(
+			(d) => deltas.push(d),
+			undefined,
+			undefined,
+			true,
+			(c) => clicks.push(c),
+		);
+		const handler = stdinListeners.get("data");
+		handler(Buffer.from("\x1b[<0;10;5m"));
+		handler(Buffer.from("\x1b[<64;10;5M"));
+		assert.deepStrictEqual(clicks, []);
+		assert.deepStrictEqual(deltas, [-1]);
+	});
+
+	it("a drag that starts on a link selects and does not click", () => {
+		const clicks = [];
+		let selected = null;
+		mountHook(
+			() => {},
+			(s) => (selected = s),
+			undefined,
+			true,
+			(c) => clicks.push(c),
+		);
+		const handler = stdinListeners.get("data");
+		handler(Buffer.from("\x1b[<0;10;5M"));
+		handler(Buffer.from("\x1b[<0;18;5M"));
+		handler(Buffer.from("\x1b[<0;18;5m"));
+		assert.deepStrictEqual(clicks, []);
+		assert.deepStrictEqual(selected, { start: { x: 10, y: 5 }, end: { x: 18, y: 5 } });
 	});
 });
