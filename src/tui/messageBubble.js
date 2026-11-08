@@ -26,6 +26,22 @@ export function formatTimestamp(time) {
 }
 
 /**
+ * Pretty-print a JSON string for display. Tool output is usually structured
+ * JSON; while it is still streaming it is incomplete and fails to parse, in
+ * which case the original input is returned untouched.
+ *
+ * @param {string} arg - Raw tool output
+ * @returns {string} Indented JSON when `arg` is valid JSON, otherwise `arg`
+ */
+export function prettyJson(arg) {
+	try {
+		return JSON.stringify(JSON.parse(arg), null, 2);
+	} catch {
+		return arg;
+	}
+}
+
+/**
  * Curated list of action-oriented words for the assistant thinking state.
  * A random word is selected on each render to provide visual variety.
  * @type {string[]}
@@ -520,7 +536,7 @@ export function MessageBubbleInner({
 				headerEl(i, "tool", header),
 				...(collapsed
 					? []
-					: seg.content
+					: prettyJson(seg.content)
 							.split("\n")
 							.map((line, j) =>
 								React.createElement(Text, { key: `tool-${i}-${j}`, color: "gray" }, `  ${line}`),
@@ -579,7 +595,7 @@ export function MessageBubbleInner({
 				),
 				...(toolCallCollapsed
 					? []
-					: localToolCallDisplay
+					: prettyJson(localToolCallDisplay)
 							.split("\n")
 							.map((line, i) =>
 								React.createElement(Text, { key: `tool-${i}`, color: "gray" }, `  ${line}`),

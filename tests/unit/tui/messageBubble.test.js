@@ -12,8 +12,40 @@ import {
 	createSegmentThrottle,
 	getRandomThinkingWord,
 	formatTimestamp,
+	prettyJson,
 	THINKING_WORDS,
 } from "../../../src/tui/messageBubble.js";
+
+describe("prettyJson", () => {
+	it("indents valid JSON objects with 2 spaces", () => {
+		assert.strictEqual(
+			prettyJson('{"a":1,"b":[1,2]}'),
+			JSON.stringify({ a: 1, b: [1, 2] }, null, 2),
+		);
+	});
+
+	it("is idempotent on already-formatted JSON", () => {
+		const once = prettyJson('{"a":{"b":1}}');
+		assert.strictEqual(prettyJson(once), once);
+	});
+
+	it("returns truncated (streaming) JSON unchanged", () => {
+		const partial = '{"a":1,"b":[1,2';
+		assert.strictEqual(prettyJson(partial), partial);
+	});
+
+	it("returns plain text unchanged", () => {
+		assert.strictEqual(prettyJson("Result: success\nData: 42"), "Result: success\nData: 42");
+	});
+
+	it("returns an empty string unchanged", () => {
+		assert.strictEqual(prettyJson(""), "");
+	});
+
+	it("does not throw on non-string input", () => {
+		assert.strictEqual(prettyJson(undefined), undefined);
+	});
+});
 
 describe("MessageBubbleInner", () => {
 	function renderBubble(props) {
@@ -782,5 +814,22 @@ describe("MessageBubbleInner click-toggle wiring", () => {
 		assert.ok(out.includes("💭 Thinking… ↓"));
 		assert.ok(out.includes("deep thought"));
 		assert.ok(out.includes("tool body"));
+	});
+
+	it("pretty-prints JSON tool segment bodies when expanded", () => {
+		const out = renderWith({
+			toolCallCollapsed: false,
+			segments: [{ type: "tool", name: "read_file", content: '{"path":"a.js","ok":true}' }],
+		});
+		assert.ok(out.includes('"path": "a.js"'), "should indent key/value with a space");
+		assert.ok(!out.includes('{"path"'), "should not render compact JSON");
+	});
+
+	it("leaves partial JSON tool segment bodies as-is", () => {
+		const out = renderWith({
+			toolCallCollapsed: false,
+			segments: [{ type: "tool", name: "read_file", content: '{"path":"a.js","ok' }],
+		});
+		assert.ok(out.includes('{"path":"a.js","ok'));
 	});
 });
