@@ -50,11 +50,80 @@ export function createSummarizationMiddlewareFromConfig(options = {}) {
 
 	logger.info({ trigger, keep }, "[summarization] registering custom SummarizationMiddleware");
 
-	return createSummarizationMiddleware({
+	const inner = createSummarizationMiddleware({
 		backend,
 		trigger,
 		keep,
 	});
+
+	// The library compares `countTokensApproximately` (~chars/4) against the
+	// trigger, which disagrees with the real tokenizer the status bar uses, so
+	// the middleware can sit idle while the status bar already reports >80%.
+	// When a real token counter is supplied, decide with it instead.
+	if (typeof options.tokenCounter !== "function" || trigger.type !== "tokens") {
+		return inner;
+	}
+	return wrapWithTokenCounter({
+		inner,
+		forced: createSummarizationMiddleware({
+			backend,
+			trigger: { type: "messages", value: 0 },
+			keep,
+		}),
+		threshold: trigger.value,
+		tokenCounter: options.tokenCounter,
+	});
+}
+
+/**
+ * Reconstruct the messages the model would actually be sent, mirroring the
+ * library's `getEffectiveMessages`: after a summarization event the effective
+ * list is the summary message plus everything from the cutoff onward.
+ * @param {Array} messages - Raw state messages
+ * @param {Object} [state] - Agent state (may carry `_summarizationEvent`)
+ * @returns {Array} Effective messages
+ */
+function effectiveMessages(messages, state) {
+	const event = state?._summarizationEvent;
+	if (!event) return messages;
+	return [event.summaryMessage, ...messages.slice(event.cutoffIndex)];
+}
+
+/**
+ * Wrap the library middleware so the "should we summarize" decision uses an
+ * accurate token counter. Over threshold -> delegate to `forced` (a
+ * middleware whose trigger always fires, same keep policy). Otherwise -> the
+ * normal `inner` middleware, which keeps its context-overflow safety net.
+ * Any counter failure falls through to `inner` (library behavior).
+ * @param {Object} params - Wrap parameters
+ * @param {Object} params.inner - The configured library middleware
+ * @param {Object} params.forced - Same middleware with an always-firing trigger
+ * @param {number} params.threshold - Token threshold to fire at
+ * @param {Function} params.tokenCounter - async (messages) => token count
+ * @returns {Object} Middleware named `SummarizationMiddleware`
+ */
+function wrapWithTokenCounter({ inner, forced, threshold, tokenCounter }) {
+	return {
+		...inner,
+		wrapModelCall: async (request, handler) => {
+			let over = false;
+			try {
+				const messages = effectiveMessages(request.messages ?? [], request.state);
+				const counted = request.systemMessage ? [request.systemMessage, ...messages] : messages;
+				if (messages.length > 0) {
+					const tokens = await tokenCounter(counted);
+					over = tokens >= threshold;
+					logger.debug({ tokens, threshold, over }, "[summarization] token check");
+				}
+			} catch (err) {
+				logger.warn(
+					{ error: err.message },
+					"[summarization] token counter failed; using library estimate",
+				);
+			}
+			return (over ? forced : inner).wrapModelCall(request, handler);
+		},
+	};
 }
 
 /**

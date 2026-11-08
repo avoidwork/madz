@@ -35,6 +35,9 @@ export const SummarizationSchema = z
 		enabled: z.boolean().default(false),
 		trigger: SummarizationThresholdSchema.optional(),
 		keep: SummarizationThresholdSchema.optional(),
+		// Fraction of the model's context window at which to compact. Used to
+		// derive a `tokens` trigger when the context length can be resolved.
+		contextFraction: z.number().positive().max(1).default(0.8),
 	})
 	.strict()
 	.default({});

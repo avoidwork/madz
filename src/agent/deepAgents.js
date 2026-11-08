@@ -472,6 +472,12 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	const summarizationMiddleware = createSummarizationMiddlewareFromConfig({
 		backend,
 		config: config.summarization,
+		// Same tokenizer the status bar uses, so "80%" means the same thing in
+		// both places.
+		tokenCounter:
+			typeof model.getNumTokensFromMessages === "function"
+				? async (messages) => (await model.getNumTokensFromMessages(messages)).totalCount
+				: undefined,
 	});
 
 	// Image-dispatch middleware. Registered AFTER summarization and BEFORE
