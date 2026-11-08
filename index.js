@@ -312,6 +312,11 @@ async function callProvider(_name, _providerConfig, message, streamingCallback, 
 						type: isSubagent ? "subagent_message" : "message",
 						text,
 						namespace,
+						// The content-block index is the stable identifier for a
+						// streamed text block. It is normalized to `id` downstream
+						// so message segments coalesce by block identity, mirroring
+						// how reasoning segments target by `id`.
+						...(msg?.content?.[0]?.index != null ? { index: msg.content[0].index } : {}),
 					});
 				}
 			}
@@ -463,6 +468,11 @@ async function resumeProvider(answer, streamingCallback, signal) {
 						type: isSubagent ? "subagent_message" : "message",
 						text,
 						namespace,
+						// The content-block index is the stable identifier for a
+						// streamed text block. It is normalized to `id` downstream
+						// so message segments coalesce by block identity, mirroring
+						// how reasoning segments target by `id`.
+						...(msg?.content?.[0]?.index != null ? { index: msg.content[0].index } : {}),
 					});
 				}
 			}

@@ -90,8 +90,11 @@ export function formatCompletedToolCalls(calls) {
  *   with no block boundaries), it appends to the last reasoning segment,
  *   respecting a grammatical sentence boundary (period/question/exclamation
  *   followed by a capital) so distinct thoughts stay separate.
- * - `message` segments append to the last segment when the type matches,
- *   otherwise they start a new block.
+ * - `message` segments coalesce by identity. When the new segment carries an
+ *   `id` (a streamed text block's normalized content-block index), it appends
+ *   to the last message segment with the same `id` and starts a new block when
+ *   the id is new or absent. Without an `id`, it appends to the last segment
+ *   when the type matches, otherwise it starts a new block.
  * - `tool` segments always start a new block (each tool result is its own
  *   block with its own name header).
  *
@@ -141,12 +144,30 @@ export function coalesceSegments(segments, newSeg) {
 	} else if (newSeg.type === "tool") {
 		// Each tool message gets its own segment so it renders as its own block.
 		merged.push({ ...newSeg });
-	} else {
-		// Message segments require a type match to append; a mismatch (e.g.,
-		// message after reasoning) forces a new block.
-		const lastSeg = merged[merged.length - 1];
-		if (lastSeg && lastSeg.type === newSeg.type) {
-			lastSeg.content += newSeg.content;
+	} else if (newSeg.type === "message") {
+		// Message segments coalesce by identity. When the new segment carries an
+		// `id` (a streamed text block's normalized content-block index), it
+		// appends to the last message segment with the same `id` — a streamed
+		// block is split across chunks that share an id — and starts a new block
+		// when the id is new or absent. Without an `id`, fall back to a type
+		// match on the last segment (a mismatch, e.g. message after reasoning,
+		// forces a new block).
+		let target = null;
+		if (newSeg.id) {
+			for (let i = merged.length - 1; i >= 0; i--) {
+				if (merged[i].type === "message" && merged[i].id === newSeg.id) {
+					target = merged[i];
+					break;
+				}
+			}
+		} else {
+			const lastSeg = merged[merged.length - 1];
+			if (lastSeg && lastSeg.type === "message") {
+				target = lastSeg;
+			}
+		}
+		if (target) {
+			target.content += newSeg.content;
 		} else {
 			merged.push({ ...newSeg });
 		}

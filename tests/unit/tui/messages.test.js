@@ -142,6 +142,40 @@ describe("coalesceSegments", () => {
 		]);
 	});
 
+	it("coalesces message chunks that share an id into one block", () => {
+		const result = coalesceSegments([{ type: "message", content: "Hello ", id: "0" }], {
+			type: "message",
+			content: "world",
+			id: "0",
+		});
+		assert.deepStrictEqual(result, [{ type: "message", content: "Hello world", id: "0" }]);
+	});
+
+	it("starts a new message block when the id differs", () => {
+		const result = coalesceSegments([{ type: "message", content: "first ", id: "0" }], {
+			type: "message",
+			content: "second",
+			id: "1",
+		});
+		assert.strictEqual(result.length, 2);
+		assert.strictEqual(result[0].id, "0");
+		assert.strictEqual(result[1].id, "1");
+	});
+
+	it("coalesces message chunks across an interleaved reasoning segment when ids match", () => {
+		const result = coalesceSegments(
+			[
+				{ type: "message", content: "Hello ", id: "0" },
+				{ type: "reasoning", content: "thinking..." },
+			],
+			{ type: "message", content: "world", id: "0" },
+		);
+		assert.deepStrictEqual(result, [
+			{ type: "message", content: "Hello world", id: "0" },
+			{ type: "reasoning", content: "thinking..." },
+		]);
+	});
+
 	it("keeps each tool segment as its own block", () => {
 		const result = coalesceSegments([{ type: "tool", content: "output one", name: "read_file" }], {
 			type: "tool",
