@@ -7,7 +7,8 @@ import { describe, it } from "node:test";
 import assert from "node:assert";
 import React from "react";
 import { renderToString } from "ink";
-import { Banner, BANNER_ART, TAB_HINT } from "../../../src/tui/banner.js";
+import { Banner, BANNER_ART } from "../../../src/tui/banner.js";
+import { COMMAND_GROUPS } from "../../../src/tui/commandHelp.js";
 
 describe("Banner", () => {
 	it("renders ASCII art and command help", () => {
@@ -23,13 +24,29 @@ describe("Banner", () => {
 		assert.ok(typeof result === "string");
 	});
 
-	it("shows the Tab hint above the command menu", () => {
+	it("lists Tab as the fourth Toggles entry for select mode", () => {
+		const toggles = COMMAND_GROUPS.find((g) => g.group === "Toggles:");
+		assert.ok(toggles, "Toggles group exists");
+		assert.strictEqual(toggles.items.length, 4);
+		assert.strictEqual(toggles.items[3], "Tab - toggle select mode");
+	});
+
+	it("renders the Tab toggle entry and no separate Tab hint line", () => {
 		const result = renderToString(React.createElement(Banner, { onDismiss: () => {} }));
-		const hintAt = result.indexOf(TAB_HINT);
-		assert.ok(hintAt >= 0, "hint rendered");
-		assert.ok(hintAt < result.indexOf("Press any key"), "hint above footer");
-		const firstGroup = result.indexOf("Chat:");
-		if (firstGroup >= 0) assert.ok(hintAt < firstGroup, "hint above menu");
+		assert.ok(result.includes("Tab - toggle select mode"), "Tab entry rendered");
+		assert.ok(!result.includes("Tab: toggle select mode"), "old hint line removed");
+		assert.ok(!result.includes("read-only"));
+	});
+
+	it("puts a blank line between command groups", () => {
+		const lines = renderToString(React.createElement(Banner, { onDismiss: () => {} })).split("\n");
+		for (const heading of ["Toggles:", "Command:"]) {
+			const at = lines.findIndex((l) => l.trim() === heading);
+			assert.ok(at > 0, heading + " rendered");
+			assert.strictEqual(lines[at - 1].trim(), "", "blank line above " + heading);
+		}
+		const chat = lines.findIndex((l) => l.trim() === "Chat:");
+		assert.ok(chat >= 0 && lines[chat + 1].trim() !== "", "no gap inside a group");
 	});
 
 	it("renders without version", () => {

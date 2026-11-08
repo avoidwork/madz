@@ -126,14 +126,24 @@ management — no custom virtual scroll logic needed.
 | `getItemHeight(index)` | Get measured height of a specific item |
 | `getItemPosition(index)` | Get position and height of a specific item |
 
-### Keyboard Scrolling (when input is unfocused)
+### Keyboard and Mouse Scrolling
 
-| Key | Action |
-|-----|--------|
-| Up arrow | `scrollBy(-1)` |
-| Down arrow | `scrollBy(1)` |
-| PageUp | `scrollBy(-viewportHeight)` |
-| PageDown | `scrollBy(viewportHeight)` |
+Mouse reporting is **on by default**: the mouse wheel scrolls the conversation, clicks expand
+collapsed tool/reasoning blocks and open markdown links, and the input stays live for typing.
+
+| Key | Default mode | Select mode (Tab) |
+|-----|--------------|-------------------|
+| Up arrow | Input history (previous) | `scrollBy(-1)` |
+| Down arrow | Input history (next) | `scrollBy(1)` |
+| PageUp | `scrollBy(-viewportHeight)` | `scrollBy(-viewportHeight)` |
+| PageDown | `scrollBy(viewportHeight)` | `scrollBy(viewportHeight)` |
+
+**Select mode** is opt-in: Tab toggles it and the input border turns cyan. Mouse reporting is
+turned off so the terminal handles drag-select and copy/paste natively. Any printable key, Tab,
+or Ctrl+F (search) exits select mode; the printable key is delivered to the input. The input
+stays visible in select mode so you can see where typed keys will land. Whether the mouse wheel
+scrolls the conversation in select mode depends on the terminal (some translate it to arrow
+keys, which scroll the conversation; others scroll their own scrollback).
 
 ### Controlled Mode
 
@@ -164,12 +174,12 @@ setCursorPosition({ x: stringWidth(prompt + text), y: 1 });
 
 ### Behavior
 
-- **Input focused** — cursor shown at input position via `setCursorPosition({x, y})`
-- **Input unfocused** — cursor hidden via `setCursorPosition(undefined)`
+- **Default mode** — cursor shown at input position via `setCursorPosition({x, y})`
+- **Select mode** — cursor hidden via `setCursorPosition(undefined)`
 - **Blinking** — handled by the terminal emulator, not by Ink
 - **Character** — sourced from `config.tui.cursorChar` (set via terminal escape sequences)
 
-The TUI manages cursor visibility toggling based on input focus state. `useCursor` provides the
+The TUI manages cursor visibility toggling based on select mode. `useCursor` provides the
 positioning primitive; the TUI decides when to show or hide.
 
 ---
@@ -381,13 +391,14 @@ The command parser falls back to the skill registry: if the command name matches
 | Any character | Append to input | Visible |
 | Enter | Submit command | Visible → Hidden (after submit) |
 | Escape | Interrupt streaming / quit | Hidden |
-| Tab | Toggle input focus | N/A |
-| Up arrow (focused) | Scroll through command history | Visible |
-| Down arrow (focused) | Scroll forward through history | Visible |
-| Up arrow (unfocused) | Scroll output up | Hidden |
-| Down arrow (unfocused) | Scroll output down | Hidden |
-| PageUp (unfocused) | Scroll output up 1 page | Hidden |
-| PageDown (unfocused) | Scroll output down 1 page | Hidden |
+| Tab | Toggle select mode (cyan border, mouse reporting off) | N/A |
+| Any character (select mode) | Exit select mode and append to input | Visible |
+| Up arrow (default) | Scroll through command history | Visible |
+| Down arrow (default) | Scroll forward through history | Visible |
+| Up arrow (select mode) | Scroll output up | Hidden |
+| Down arrow (select mode) | Scroll output down | Hidden |
+| PageUp (both modes) | Scroll output up 1 page | Unchanged |
+| PageDown (both modes) | Scroll output down 1 page | Unchanged |
 
 ### Command History
 
@@ -678,7 +689,7 @@ const [statusMessage, setStatusMessage] = useState("Ready");
 const [chatHistory, setChatHistory] = useState([]);
 const [historyIndex, setHistoryIndex] = useState(-1);
 const [inputText, setInputText] = useState("");
-const [inputFocused, setInputFocused] = useState(true);
+const [selectMode, setSelectMode] = useState(false);
 const [contextSize, setContextSize] = useState(0);
 const [isCompacting, setIsCompacting] = useState(false);
 ```
@@ -777,7 +788,7 @@ interface TUIState {
 
   // Input
   inputText: string;
-  inputFocused: boolean;
+  selectMode: boolean;
 
   // Status
   statusMessage: string;
@@ -808,7 +819,7 @@ const initialState: TUIState = {
   chatHistory: [],
   historyIndex: -1,
   inputText: '',
-  inputFocused: true,
+  selectMode: false,
   statusMessage: 'Ready',
   contextSize: 0,
   isCompacting: false,

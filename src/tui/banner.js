@@ -13,9 +13,6 @@ export const BANNER_ART = `
 \`+.|  |.|  |+' \`+.| |..| \`+.|=|.+' |..|=|..|
 `.split("\n");
 
-/** Hint shown above the command menu explaining the Tab key. */
-export const TAB_HINT = "Tab: read-only mode with mouse scroll and click-to-expand";
-
 /**
  * BBS-style startup banner with ASCII art and command help menu.
  * Fixed top-left alignment. Dismisses on any key press.
@@ -38,7 +35,6 @@ export function Banner({ onDismiss, version }) {
 	});
 
 	const lines = BANNER_ART.filter((l) => l.trim());
-	const bodyLines = COMMAND_GROUPS.flatMap((g) => [g.group, ...g.items.map((it) => "  " + it)]);
 
 	const children = lines.map((line, i) =>
 		React.createElement(Text, { key: "art-" + i, color: "cyan" }, line),
@@ -57,17 +53,16 @@ export function Banner({ onDismiss, version }) {
 	children.push(
 		React.createElement(
 			Box,
-			{ key: "tab-hint", flexDirection: "column", marginTop: 2 },
-			React.createElement(Text, { color: "cyan" }, TAB_HINT),
-		),
-	);
-
-	children.push(
-		React.createElement(
-			Box,
 			{ flexDirection: "column", marginTop: 1 },
-			...bodyLines.map((line, i) =>
-				React.createElement(Text, { key: "cmd-" + i, color: "white" }, line),
+			...COMMAND_GROUPS.map((g, gi) =>
+				React.createElement(
+					Box,
+					{ key: "group-" + gi, flexDirection: "column", marginTop: gi === 0 ? 0 : 1 },
+					React.createElement(Text, { color: "white" }, g.group),
+					...g.items.map((it, i) =>
+						React.createElement(Text, { key: "cmd-" + i, color: "white" }, "  " + it),
+					),
+				),
 			),
 		),
 	);

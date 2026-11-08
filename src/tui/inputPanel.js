@@ -11,7 +11,7 @@ import TextInput from "ink-text-input";
  * @param {() => void} props.onSubmit - Callback when Enter is pressed
  * @param {() => void} props.onFocus - Callback when input gains focus
  * @param {() => void} props.onBlur - Callback when input loses focus
- * @param {boolean} [props.focus] - Whether the input should be focused
+ * @param {boolean} [props.focus] - Whether the input receives keys (false in select mode)
  * @param {string} [props.placeholder] - Placeholder text shown when value is empty
  * @returns {React.ReactElement}
  */
