@@ -430,17 +430,25 @@ export function MessageBubbleInner({
 	let segmentOffset = 0;
 	const segmentEls = segments.map((seg, i) => {
 		if (seg.type === "reasoning") {
-			if (reasoningCollapsed) {
-				return React.createElement(
-					Box,
-					{ key: `seg-${i}`, flexDirection: "row", flexShrink: 0 },
-					React.createElement(Text, { color: "gray" }, "💭 Thinking…"),
-				);
-			}
+			// The reasoning label renders with a collapse arrow to its right: → when
+			// collapsed, ↓ when expanded. No character precedes the 💭 glyph.
+			const arrow = reasoningCollapsed ? "→" : "↓";
+			const header = `💭 Thinking… ${arrow}`;
 			return React.createElement(
 				Box,
-				{ key: `seg-${i}`, flexDirection: "row", flexShrink: 0 },
-				React.createElement(Text, { color: "gray" }, seg.content),
+				{ key: `seg-${i}`, flexDirection: "column", flexShrink: 0 },
+				React.createElement(Text, { color: "gray" }, header),
+				...(reasoningCollapsed
+					? []
+					: seg.content
+							.split("\n")
+							.map((line, j) =>
+								React.createElement(
+									Text,
+									{ key: `reasoning-${i}-${j}`, color: "gray" },
+									`  ${line}`,
+								),
+							)),
 			);
 		}
 		if (seg.type === "tool") {

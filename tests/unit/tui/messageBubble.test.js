@@ -413,7 +413,7 @@ describe("MessageBubbleInner - reasoning content", () => {
 		assert.ok(result.includes("thinking"));
 	});
 
-	it("renders reasoning content without the unicode prefix", () => {
+	it("renders expanded reasoning with a 💭 header and the content below", () => {
 		const result = renderToString(
 			React.createElement(
 				PubSubContext.Provider,
@@ -431,11 +431,11 @@ describe("MessageBubbleInner - reasoning content", () => {
 			),
 		);
 		assert.ok(typeof result === "string");
-		assert.ok(result.includes("thinking"), "reasoning content should be rendered");
-		assert.ok(
-			!result.includes("💭"),
-			"reasoning content should not be prefixed with the unicode character",
-		);
+		// Default is expanded: the 💭 header with a ↓ arrow renders, and the
+		// reasoning content renders below it.
+		assert.ok(result.includes("💭"), "expanded reasoning should show the 💭 header");
+		assert.ok(result.includes("↓"), "expanded reasoning should show the ↓ arrow");
+		assert.ok(result.includes("thinking step by step"), "reasoning content should be rendered");
 	});
 
 	it("does not render reasoning when chunks exist (streaming started)", () => {
