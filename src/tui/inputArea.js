@@ -14,6 +14,22 @@ import { CommandPicker, shouldOpenCommandPicker } from "./commandPicker.js";
 import { QUOTES, getRandomQuoteIndex } from "./quotes.js";
 import { getSharedTokenBudget } from "../provider/openai.js";
 
+/** Border color of the input panel when the input is focused (or searching). */
+export const INPUT_BORDER_DEFAULT = "gray";
+/** Border color of the input panel when the conversation panel is active. */
+export const INPUT_BORDER_CONVERSATION_ACTIVE = "cyan";
+
+/**
+ * Pick the input panel border color. Cyan signals the app is in the
+ * conversation-active state (tabbed out of the input, mouse enabled).
+ * @param {boolean} focus - Whether the input is focused
+ * @param {boolean} [searchMode=false] - Whether the search input is showing
+ * @returns {string} Ink border color
+ */
+export function getInputBorderColor(focus, searchMode = false) {
+	return !focus && !searchMode ? INPUT_BORDER_CONVERSATION_ACTIVE : INPUT_BORDER_DEFAULT;
+}
+
 /**
  * InputArea — owns all input and status state.
  * Renders StatusBar and InputPanel.
@@ -252,7 +268,8 @@ const InputArea = forwardRef(function InputArea(
 				Box,
 				{
 					borderStyle: "round",
-					borderColor: "gray",
+					// Cyan signals the conversation panel is active (tabbed out of the input).
+					borderColor: getInputBorderColor(focus, searchMode),
 					borderTop: true,
 					borderBottom: false,
 					borderLeft: false,
