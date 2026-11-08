@@ -7,7 +7,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert";
 import React from "react";
 import { renderToString } from "ink";
-import { Banner, BANNER_ART } from "../../../src/tui/banner.js";
+import { Banner, BANNER_ART, TAB_HINT } from "../../../src/tui/banner.js";
 
 describe("Banner", () => {
 	it("renders ASCII art and command help", () => {
@@ -21,6 +21,15 @@ describe("Banner", () => {
 			React.createElement(Banner, { onDismiss: () => {}, version: "1.0.0" }),
 		);
 		assert.ok(typeof result === "string");
+	});
+
+	it("shows the Tab hint above the command menu", () => {
+		const result = renderToString(React.createElement(Banner, { onDismiss: () => {} }));
+		const hintAt = result.indexOf(TAB_HINT);
+		assert.ok(hintAt >= 0, "hint rendered");
+		assert.ok(hintAt < result.indexOf("Press any key"), "hint above footer");
+		const firstGroup = result.indexOf("Chat:");
+		if (firstGroup >= 0) assert.ok(hintAt < firstGroup, "hint above menu");
 	});
 
 	it("renders without version", () => {
