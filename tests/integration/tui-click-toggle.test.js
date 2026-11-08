@@ -273,4 +273,28 @@ describe("click-to-toggle collapsible blocks", () => {
 		assert.ok(!lastFrame(stdout).includes("first thought"), "clicked block collapsed");
 		assert.ok(lastFrame(stdout).includes("second thought"));
 	});
+
+	it("ctrl+t twice clears a manually expanded tool block (tools collapse again)", async () => {
+		const segments = [
+			{ type: "tool", name: "read_file", content: "body one" },
+			{ type: "tool", name: "write_file", content: "body two" },
+		];
+		const { stdin, stdout } = mount({ segments });
+		await tick(100);
+		await click(stdin, 4, rowOf(stdout, "write_file"));
+		assert.ok(lastFrame(stdout).includes("body two"));
+		assert.ok(!lastFrame(stdout).includes("body one"));
+
+		// ctrl+t: app-level expands everything.
+		instance.rerender(React.createElement(Harness, { segments, toolCallCollapsed: false }));
+		await tick(100);
+		assert.ok(lastFrame(stdout).includes("body one"));
+		assert.ok(lastFrame(stdout).includes("body two"));
+
+		// ctrl+t again: app-level collapses everything, including the clicked block.
+		instance.rerender(React.createElement(Harness, { segments, toolCallCollapsed: true }));
+		await tick(100);
+		assert.ok(!lastFrame(stdout).includes("body one"));
+		assert.ok(!lastFrame(stdout).includes("body two"), "clicked block collapsed too");
+	});
 });
