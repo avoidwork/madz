@@ -65,7 +65,14 @@ export function updateSubagentStore(store, event) {
 		case "subagent_message": {
 			const text = event.data?.text || event.text || "";
 			if (text) {
-				segments = coalesceSegments(segments, { type: "message", content: text });
+				segments = coalesceSegments(segments, {
+					type: "message",
+					content: text,
+					// Normalize the content-block index to `id` so message segments
+					// coalesce by block identity, mirroring how reasoning segments
+					// target by `id`.
+					...(event.index != null ? { id: event.index } : {}),
+				});
 			}
 			break;
 		}

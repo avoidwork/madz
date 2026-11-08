@@ -700,7 +700,16 @@ const ConversationArea = forwardRef(function ConversationArea(
 						const newText = event.data?.text || event.text || "";
 						committedContentRef.current = (committedContentRef.current || "") + newText;
 						messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
-							segments: [{ type: "message", content: newText }],
+							segments: [
+								{
+									type: "message",
+									content: newText,
+									// Normalize the content-block index to `id` so message
+									// segments coalesce by block identity, mirroring how
+									// reasoning segments target by `id`.
+									...(event.index != null ? { id: event.index } : {}),
+								},
+							],
 							content: committedContentRef.current,
 							streaming: true,
 						});

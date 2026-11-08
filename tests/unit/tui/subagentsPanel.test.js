@@ -112,6 +112,44 @@ describe("updateSubagentStore — segment coalescing", () => {
 		]);
 	});
 
+	it("coalesces message chunks that share an id into one block", () => {
+		let store = createSubagentStore();
+		store = updateSubagentStore(store, {
+			type: "subagent_message",
+			namespace: ["task:abc"],
+			text: "Hello ",
+			index: 0,
+		});
+		store = updateSubagentStore(store, {
+			type: "subagent_message",
+			namespace: ["task:abc"],
+			text: "world",
+			index: 0,
+		});
+		assert.deepStrictEqual(store["task:abc"].segments, [
+			{ type: "message", content: "Hello world", id: 0 },
+		]);
+	});
+
+	it("starts a new message block when the id differs", () => {
+		let store = createSubagentStore();
+		store = updateSubagentStore(store, {
+			type: "subagent_message",
+			namespace: ["task:abc"],
+			text: "first ",
+			index: 0,
+		});
+		store = updateSubagentStore(store, {
+			type: "subagent_message",
+			namespace: ["task:abc"],
+			text: "second",
+			index: 1,
+		});
+		assert.strictEqual(store["task:abc"].segments.length, 2);
+		assert.strictEqual(store["task:abc"].segments[0].id, 0);
+		assert.strictEqual(store["task:abc"].segments[1].id, 1);
+	});
+
 	it("coalesces consecutive reasoning chunks into one segment", () => {
 		let store = createSubagentStore();
 		store = updateSubagentStore(store, {
