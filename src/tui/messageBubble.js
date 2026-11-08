@@ -288,9 +288,20 @@ export function MessageBubbleInner({
 	// callbacks so a click can be hit-tested against the real header bounds.
 	const headerNodesRef = useRef(new Map());
 	// Per-block click state, keyed by segment index. A click toggles only that
-	// block; each override remembers the global (ctrl+r / ctrl+t) value it was
-	// made against, so flipping the global toggle takes precedence again.
+	// block and wins over the app-level (ctrl+r / ctrl+t) value. Whenever the
+	// app-level value changes it wins back: the matching overrides are dropped,
+	// so every block follows it and a stale click never reappears later.
 	const [blockOverrides, setBlockOverrides] = useState({});
+	const clearOverrides = (kind) =>
+		setBlockOverrides((prev) => {
+			const keys = Object.keys(prev).filter((k) => prev[k].kind === kind);
+			if (keys.length === 0) return prev;
+			const next = { ...prev };
+			for (const k of keys) delete next[k];
+			return next;
+		});
+	useEffect(() => clearOverrides("reasoning"), [reasoningCollapsed]);
+	useEffect(() => clearOverrides("tool"), [toolCallCollapsed]);
 	// Click-to-toggle is only wired when rendered under a MouseProvider.
 	const mouseEnabled = useContext(MouseContext) !== null;
 
@@ -459,7 +470,7 @@ export function MessageBubbleInner({
 	const isCollapsed = (i, kind) => {
 		const global = kind === "reasoning" ? reasoningCollapsed : toolCallCollapsed;
 		const o = blockOverrides[i];
-		return o && o.kind === kind && o.base === global ? o.collapsed : global;
+		return o && o.kind === kind ? o.collapsed : global;
 	};
 	const handleClick = (event) => {
 		const header = findHeader(event, [...headerNodesRef.current.values()], getScrollInfo?.());
@@ -468,8 +479,8 @@ export function MessageBubbleInner({
 		const base = kind === "reasoning" ? reasoningCollapsed : toolCallCollapsed;
 		setBlockOverrides((prev) => {
 			const o = prev[index];
-			const current = o && o.kind === kind && o.base === base ? o.collapsed : base;
-			return { ...prev, [index]: { kind, base, collapsed: !current } };
+			const current = o && o.kind === kind ? o.collapsed : base;
+			return { ...prev, [index]: { kind, collapsed: !current } };
 		});
 	};
 	const segmentEls = segments.map((seg, i) => {

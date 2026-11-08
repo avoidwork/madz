@@ -233,4 +233,44 @@ describe("click-to-toggle collapsible blocks", () => {
 		assert.ok(frame.includes("body two"));
 		assert.ok(!frame.includes("body one"));
 	});
+
+	it("app-level toggle overrides click state, and stale clicks do not return", async () => {
+		const segments = [
+			{ type: "reasoning", content: "first thought" },
+			{ type: "reasoning", content: "second thought" },
+		];
+		const { stdin, stdout } = mount({ segments });
+		await tick(100);
+		const rows = lastFrame(stdout)
+			.split("\n")
+			.map((l, i) => (l.includes("Thinking") ? i + 1 : -1))
+			.filter((r) => r > 0);
+		await click(stdin, 4, rows[1]);
+		assert.ok(lastFrame(stdout).includes("second thought"), "clicked block expanded");
+		assert.ok(!lastFrame(stdout).includes("first thought"));
+
+		// App-level value flips to expanded: every block follows it.
+		instance.rerender(React.createElement(Harness, { segments, reasoningCollapsed: false }));
+		await tick(100);
+		assert.ok(lastFrame(stdout).includes("first thought"));
+		assert.ok(lastFrame(stdout).includes("second thought"));
+
+		// ...and back to collapsed: every block follows, including the clicked one.
+		instance.rerender(React.createElement(Harness, { segments, reasoningCollapsed: true }));
+		await tick(100);
+		assert.ok(!lastFrame(stdout).includes("first thought"));
+		assert.ok(!lastFrame(stdout).includes("second thought"), "stale click did not return");
+	});
+
+	it("a click after an app-level change wins over the app value again", async () => {
+		const segments = [
+			{ type: "reasoning", content: "first thought" },
+			{ type: "reasoning", content: "second thought" },
+		];
+		const { stdin, stdout } = mount({ segments, reasoningCollapsed: false });
+		await tick(100);
+		await click(stdin, 4, rowOf(stdout, "Thinking"));
+		assert.ok(!lastFrame(stdout).includes("first thought"), "clicked block collapsed");
+		assert.ok(lastFrame(stdout).includes("second thought"));
+	});
 });

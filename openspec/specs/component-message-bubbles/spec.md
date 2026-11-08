@@ -261,7 +261,7 @@ The MessageBubble component SHALL accept a raw timestamp (a `Date` or an ISO8601
 - **THEN** both render the same localized short-form time string, not a raw ISO8601 timestamp
 
 ### Requirement: Block header clicks are validated and gated
-A mouse click SHALL toggle a collapsible block only when its coordinates fall within a rendered block header bounds, after compensating for the conversation scroll offset and clipping to the visible viewport. Clicks SHALL toggle blocks while a response is streaming. A click SHALL toggle only the clicked block, held as state local to the message bubble, and SHALL NOT change the app-level reasoning/tool collapse state or any other block. The ctrl+r / ctrl+t keyboard toggles SHALL remain unchanged and, when pressed, SHALL take precedence over earlier per-block click state.
+A mouse click SHALL toggle a collapsible block only when its coordinates fall within a rendered block header bounds, after compensating for the conversation scroll offset and clipping to the visible viewport. Clicks SHALL toggle blocks while a response is streaming. A click SHALL toggle only the clicked block, held as state local to the message bubble, and SHALL NOT change the app-level reasoning/tool collapse state or any other block. The ctrl+r / ctrl+t keyboard toggles SHALL remain unchanged and, when pressed, SHALL take precedence: every block of that kind follows the new app-level value and earlier per-block click state is discarded (a later click again overrides for that block only).
 
 #### Scenario: Click on a scrolled header
 - **WHEN** the conversation is scrolled and a click lands on the on-screen row of a block header
