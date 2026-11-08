@@ -75,6 +75,8 @@ function App({
 	const [selectMode, setSelectMode] = useState(false);
 	const [currentView, setCurrentView] = useState(PANELS.CONVERSATION);
 	const [pendingInput, setPendingInput] = useState("");
+	// Input history lives here so it survives InputArea unmounting in panel views.
+	const [inputHistory, setInputHistory] = useState([]);
 	const [activeProject, setActiveProject] = useState("");
 	// Global collapse toggles for reasoning and tool-call blocks. Toggled by
 	// the key handler (ctrl+r / ctrl+t) and threaded down to MessageBubble.
@@ -756,6 +758,8 @@ function App({
 			currentView === PANELS.CONVERSATION || showOnboarding
 				? React.createElement(InputArea, {
 						ref: inputAreaRef,
+						history: inputHistory,
+						onHistoryChange: setInputHistory,
 						onSubmit: handleSubmit,
 						onFocus: handleInputFocus,
 						onBlur: handleInputBlur,
