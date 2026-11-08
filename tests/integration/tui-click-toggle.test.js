@@ -115,6 +115,7 @@ function mount(props) {
 		stdin,
 		stdout,
 		patchConsole: false,
+		interactive: true,
 		exitOnCtrlC: false,
 	});
 	return { stdin, stdout, stats };

@@ -2,6 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert";
 import React from "react";
 import { renderToString } from "ink";
+import { MouseProvider } from "@ink-tools/ink-mouse";
 import {
 	MessageBubbleInner,
 	MessageBubble,
@@ -737,21 +738,25 @@ describe("MessageBubbleInner click-toggle wiring", () => {
 	function renderWith(props) {
 		return renderToString(
 			React.createElement(
-				PubSubContext.Provider,
-				{ value: { subscribe: () => {}, unsubscribe: () => {} } },
+				MouseProvider,
+				{ autoEnable: false },
 				React.createElement(
-					ScrollContext.Provider,
-					{ value: { scrollToBottom: () => {}, getScrollInfo: () => ({ offset: 0 }) } },
-					React.createElement(MessageBubbleInner, {
-						role: "assistant",
-						content: "",
-						streaming: false,
-						segments: [
-							{ type: "reasoning", content: "deep thought" },
-							{ type: "tool", name: "read_file", content: "tool body" },
-						],
-						...props,
-					}),
+					PubSubContext.Provider,
+					{ value: { subscribe: () => {}, unsubscribe: () => {} } },
+					React.createElement(
+						ScrollContext.Provider,
+						{ value: { scrollToBottom: () => {}, getScrollInfo: () => ({ offset: 0 }) } },
+						React.createElement(MessageBubbleInner, {
+							role: "assistant",
+							content: "",
+							streaming: false,
+							segments: [
+								{ type: "reasoning", content: "deep thought" },
+								{ type: "tool", name: "read_file", content: "tool body" },
+							],
+							...props,
+						}),
+					),
 				),
 			),
 		);
@@ -759,6 +764,8 @@ describe("MessageBubbleInner click-toggle wiring", () => {
 
 	it("renders headers with arrows when toggle callbacks are provided", () => {
 		const out = renderWith({
+			reasoningCollapsed: true,
+			toolCallCollapsed: true,
 			onToggleReasoning: () => {},
 			onToggleToolCall: () => {},
 		});
@@ -767,7 +774,7 @@ describe("MessageBubbleInner click-toggle wiring", () => {
 	});
 
 	it("renders identically without toggle callbacks (no MouseProvider needed)", () => {
-		const out = renderWith({});
+		const out = renderWith({ reasoningCollapsed: true, toolCallCollapsed: true });
 		assert.ok(out.includes("💭 Thinking… →"));
 		assert.ok(out.includes("🔧 read_file →"));
 	});
