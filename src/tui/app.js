@@ -17,6 +17,8 @@ import { setProjectCwd } from "../workspace/project.js";
 import { logger } from "../shared/logger.js";
 import { getActiveProviderConfig } from "../provider/index.js";
 import { useMouseScroll, scaleScrollDelta } from "./useMouseScroll.js";
+import { MouseProvider } from "@ink-tools/ink-mouse";
+import { MouseGate } from "./headerClick.js";
 import { buildLayout, extractSelection, mapCoordToChar } from "./selectionLayout.js";
 import clipboardy from "clipboardy";
 
@@ -147,6 +149,19 @@ function App({
 	// panel so it updates live.
 	const onSubagentUpdate = useCallback((event) => {
 		setSubagentStore((prev) => updateSubagentStore(prev, event));
+	}, []);
+
+	// Stable click-toggle callbacks for the collapsible blocks. They flip the same
+	// booleans as ctrl+r / ctrl+t, but are ignored while a response streams.
+	const isStreamingRef = useRef(false);
+	isStreamingRef.current = isStreaming;
+	const onToggleReasoning = useCallback(() => {
+		if (isStreamingRef.current) return;
+		setReasoningCollapsed((prev) => !prev);
+	}, []);
+	const onToggleToolCall = useCallback(() => {
+		if (isStreamingRef.current) return;
+		setToolCallCollapsed((prev) => !prev);
 	}, []);
 
 	/**
@@ -657,100 +672,109 @@ function App({
 	}
 
 	return React.createElement(
-		Box,
-		{ flexDirection: "column", width: "100%", height: rows },
-		showOnboarding
-			? React.createElement(OnboardingPanel, {
-					onboarding: onboarding,
-					responseId: onboardingResponse,
-					onComplete: () => {
-						setShowBanner(true);
-						setShowOnboarding(false);
-					},
-					onExit: () => {
-						setShowBanner(true);
-						setShowOnboarding(false);
-					},
-				})
-			: showBanner
-				? React.createElement(Banner, {
-						onDismiss: () => setShowBanner(false),
-						version: appInfo ? appInfo.version : undefined,
+		MouseProvider,
+		{ autoEnable: false },
+		React.createElement(MouseGate, {
+			active: !inputFocused && currentView === PANELS.CONVERSATION,
+		}),
+		React.createElement(
+			Box,
+			{ flexDirection: "column", width: "100%", height: rows },
+			showOnboarding
+				? React.createElement(OnboardingPanel, {
+						onboarding: onboarding,
+						responseId: onboardingResponse,
+						onComplete: () => {
+							setShowBanner(true);
+							setShowOnboarding(false);
+						},
+						onExit: () => {
+							setShowBanner(true);
+							setShowOnboarding(false);
+						},
 					})
-				: React.createElement(
-						Box,
-						{ flexDirection: "column", width: "100%", height: rows },
-						// ConversationArea stays mounted across panel views so the
-						// session (message list, scroll position, streaming state)
-						// survives the round-trip. When a panel is active it renders
-						// nothing (hidden), so the panel is shown in its place. The
-						// app-level key handler gates on `currentView`, so Escape in
-						// a panel view only switches back to conversation — it never
-						// reaches the interrupt path while a panel is active.
-						React.createElement(ConversationArea, {
-							ref: conversationAreaRef,
-							config,
-							registry,
-							sessionState,
-							dispatchProvider,
-							resumeProvider,
-							scheduleManager,
-							appInfo,
-							onSaveSession,
-							gcManager,
-							gcTrigger,
-							onContextChange,
-							onCompactingChange,
-							onStreamingChange,
-							onInterruptInput,
-							onSubagentUpdate,
-							onQuit: handleQuit,
-							onNewSession: handleNewSession,
-							onViewChange: handleViewChange,
-							messageCountRef,
-							compactContext,
-							getContextMessages,
-							model,
-							systemPrompt,
-							activeProject,
-							setActiveProject,
-							selection,
-							reasoningCollapsed,
-							toolCallCollapsed,
-							hidden: currentView !== PANELS.CONVERSATION,
-						}),
-						currentView !== PANELS.CONVERSATION ? panelComponent : null,
-					),
-		// InputArea — hidden during panel views
-		currentView === PANELS.CONVERSATION || showOnboarding
-			? React.createElement(InputArea, {
-					ref: inputAreaRef,
-					onSubmit: handleSubmit,
-					onFocus: handleInputFocus,
-					onBlur: handleInputBlur,
-					focus: inputFocused,
-					skillCount,
-					messageCountRef,
-					showBanner,
-					showOnboarding,
-					initialValue: pendingInput,
-					onInitialValueConsumed: () => setPendingInput(""),
-					appInfo,
-					tokenBudget,
-					contextWindow,
-					statusBar: config?.tui?.statusBar,
-					cwd: activeProject || config?.cwd || process.cwd(),
-					activeProject,
-					searchMode,
-					searchQuery,
-					onSearchQueryChange: (query) => {
-						setSearchQuery(query);
-						conversationAreaRef.current?.setSearchQuery?.(query);
-					},
-					commandList,
-					isStreaming,
-				})
-			: null,
+				: showBanner
+					? React.createElement(Banner, {
+							onDismiss: () => setShowBanner(false),
+							version: appInfo ? appInfo.version : undefined,
+						})
+					: React.createElement(
+							Box,
+							{ flexDirection: "column", width: "100%", height: rows },
+							// ConversationArea stays mounted across panel views so the
+							// session (message list, scroll position, streaming state)
+							// survives the round-trip. When a panel is active it renders
+							// nothing (hidden), so the panel is shown in its place. The
+							// app-level key handler gates on `currentView`, so Escape in
+							// a panel view only switches back to conversation — it never
+							// reaches the interrupt path while a panel is active.
+							React.createElement(ConversationArea, {
+								ref: conversationAreaRef,
+								config,
+								registry,
+								sessionState,
+								dispatchProvider,
+								resumeProvider,
+								scheduleManager,
+								appInfo,
+								onSaveSession,
+								gcManager,
+								gcTrigger,
+								onContextChange,
+								onCompactingChange,
+								onStreamingChange,
+								onInterruptInput,
+								onSubagentUpdate,
+								onQuit: handleQuit,
+								onNewSession: handleNewSession,
+								onViewChange: handleViewChange,
+								messageCountRef,
+								compactContext,
+								getContextMessages,
+								model,
+								systemPrompt,
+								activeProject,
+								setActiveProject,
+								selection,
+								reasoningCollapsed,
+								toolCallCollapsed,
+								onToggleReasoning,
+								onToggleToolCall,
+								hidden: currentView !== PANELS.CONVERSATION,
+							}),
+							currentView !== PANELS.CONVERSATION ? panelComponent : null,
+						),
+			// InputArea — hidden during panel views
+			currentView === PANELS.CONVERSATION || showOnboarding
+				? React.createElement(InputArea, {
+						ref: inputAreaRef,
+						onSubmit: handleSubmit,
+						onFocus: handleInputFocus,
+						onBlur: handleInputBlur,
+						focus: inputFocused,
+						skillCount,
+						messageCountRef,
+						showBanner,
+						showOnboarding,
+						initialValue: pendingInput,
+						onInitialValueConsumed: () => setPendingInput(""),
+						appInfo,
+						tokenBudget,
+						contextWindow,
+						statusBar: config?.tui?.statusBar,
+						cwd: activeProject || config?.cwd || process.cwd(),
+						activeProject,
+						searchMode,
+						searchQuery,
+						onSearchQueryChange: (query) => {
+							setSearchQuery(query);
+							conversationAreaRef.current?.setSearchQuery?.(query);
+						},
+						commandList,
+						isStreaming,
+					})
+				: null,
+		),
 	);
 }
 

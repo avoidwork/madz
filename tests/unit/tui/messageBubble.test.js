@@ -732,3 +732,50 @@ describe("MessageBubbleInner - tool call collapse", () => {
 		assert.ok(!result.includes("Result: success"), "tool result should be collapsed by default");
 	});
 });
+
+describe("MessageBubbleInner click-toggle wiring", () => {
+	function renderWith(props) {
+		return renderToString(
+			React.createElement(
+				PubSubContext.Provider,
+				{ value: { subscribe: () => {}, unsubscribe: () => {} } },
+				React.createElement(
+					ScrollContext.Provider,
+					{ value: { scrollToBottom: () => {}, getScrollInfo: () => ({ offset: 0 }) } },
+					React.createElement(MessageBubbleInner, {
+						role: "assistant",
+						content: "",
+						streaming: false,
+						segments: [
+							{ type: "reasoning", content: "deep thought" },
+							{ type: "tool", name: "read_file", content: "tool body" },
+						],
+						...props,
+					}),
+				),
+			),
+		);
+	}
+
+	it("renders headers with arrows when toggle callbacks are provided", () => {
+		const out = renderWith({
+			onToggleReasoning: () => {},
+			onToggleToolCall: () => {},
+		});
+		assert.ok(out.includes("💭 Thinking… →"));
+		assert.ok(out.includes("🔧 read_file →"));
+	});
+
+	it("renders identically without toggle callbacks (no MouseProvider needed)", () => {
+		const out = renderWith({});
+		assert.ok(out.includes("💭 Thinking… →"));
+		assert.ok(out.includes("🔧 read_file →"));
+	});
+
+	it("shows expanded bodies and ↓ arrows when not collapsed", () => {
+		const out = renderWith({ reasoningCollapsed: false, toolCallCollapsed: false });
+		assert.ok(out.includes("💭 Thinking… ↓"));
+		assert.ok(out.includes("deep thought"));
+		assert.ok(out.includes("tool body"));
+	});
+});

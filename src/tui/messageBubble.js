@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext, useRef } from "react";
 import { Box, Text } from "ink";
 import Spinner from "ink-spinner";
 import { MarkdownText } from "./markdownText.js";
+import { HeaderClickRegistrar, hitHeader } from "./headerClick.js";
 import { getRoleLabel, formatCompletedToolCalls, hasCompletedToolCalls } from "./messages.js";
 import { getRoleColors, getBubbleStyle, formatTime } from "./conversationPanel.js";
 
@@ -278,10 +279,15 @@ export function MessageBubbleInner({
 	selection,
 	reasoningCollapsed = false,
 	toolCallCollapsed = true,
+	onToggleReasoning,
+	onToggleToolCall,
 }) {
 	const [segments, setSegments] = useState(initialSegments || []);
 	const { subscribe, unsubscribe } = useContext(PubSubContext);
-	const { scrollToBottom } = useContext(ScrollContext);
+	const { scrollToBottom, getScrollInfo } = useContext(ScrollContext);
+	// Header nodes (reasoning / tool) keyed by segment index, populated via ref
+	// callbacks so a click can be hit-tested against the real header bounds.
+	const headerNodesRef = useRef(new Map());
 
 	// Subscribe to pub/sub updates — each update appends/coalesces a segment,
 	// triggering re-render of just this bubble without re-rendering the parent.
@@ -428,6 +434,29 @@ export function MessageBubbleInner({
 	// collapsible: when collapsed they render a single `💭 Thinking…` line,
 	// expandable on demand via a click/keyboard toggle.
 	let segmentOffset = 0;
+	// Header line wrapped in a Box whose node is tracked for click hit-testing.
+	// alignSelf keeps the clickable area to the header text, not the full row.
+	const headerEl = (i, kind, text) =>
+		React.createElement(
+			Box,
+			{
+				key: `header-${i}`,
+				alignSelf: "flex-start",
+				ref: (node) => {
+					if (node) headerNodesRef.current.set(i, { kind, node });
+					else headerNodesRef.current.delete(i);
+				},
+			},
+			React.createElement(Text, { color: "gray" }, text),
+		);
+	// Click handler: toggles the existing collapse state when the click lands on
+	// a reasoning/tool header. Ignored while streaming and for clicks elsewhere.
+	const handleClick = (event) => {
+		if (localStreaming) return;
+		const kind = hitHeader(event, [...headerNodesRef.current.values()], getScrollInfo?.());
+		if (kind === "reasoning") onToggleReasoning?.();
+		else if (kind === "tool") onToggleToolCall?.();
+	};
 	const segmentEls = segments.map((seg, i) => {
 		if (seg.type === "reasoning") {
 			// The reasoning label renders with a collapse arrow to its right: → when
@@ -437,7 +466,7 @@ export function MessageBubbleInner({
 			return React.createElement(
 				Box,
 				{ key: `seg-${i}`, flexDirection: "column", flexShrink: 0 },
-				React.createElement(Text, { color: "gray" }, header),
+				headerEl(i, "reasoning", header),
 				...(reasoningCollapsed
 					? []
 					: seg.content
@@ -460,7 +489,7 @@ export function MessageBubbleInner({
 			return React.createElement(
 				Box,
 				{ key: `seg-${i}`, flexDirection: "column", flexShrink: 0 },
-				React.createElement(Text, { color: "gray" }, header),
+				headerEl(i, "tool", header),
 				...(toolCallCollapsed
 					? []
 					: seg.content
@@ -656,6 +685,9 @@ export function MessageBubbleInner({
 			toolDisplayEl,
 			completedToolCallsEl,
 			timerEl,
+			onToggleReasoning || onToggleToolCall
+				? React.createElement(HeaderClickRegistrar, { key: "header-click", onClick: handleClick })
+				: null,
 		),
 	);
 }
