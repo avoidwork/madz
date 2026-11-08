@@ -14,7 +14,10 @@ export const BANNER_ART = `
 `.split("\n");
 
 /** Hint shown above the command menu explaining the Tab key. */
-export const TAB_HINT = "Tab: select mode for native text selection and copy (any key exits)";
+export const TAB_HINT = "Tab: toggle select mode to drag-select and copy text";
+
+/** Second hint line: what select mode trades away and how to leave it. */
+export const TAB_HINT_DETAIL = "Select mode pauses mouse scroll and clicks. Tab or typing returns.";
 
 /**
  * BBS-style startup banner with ASCII art and command help menu.
@@ -59,6 +62,7 @@ export function Banner({ onDismiss, version }) {
 			Box,
 			{ key: "tab-hint", flexDirection: "column", marginTop: 2 },
 			React.createElement(Text, { color: "cyan" }, TAB_HINT),
+			React.createElement(Text, { color: "gray" }, TAB_HINT_DETAIL),
 		),
 	);
 

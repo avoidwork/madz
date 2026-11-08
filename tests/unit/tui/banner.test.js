@@ -7,7 +7,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert";
 import React from "react";
 import { renderToString } from "ink";
-import { Banner, BANNER_ART, TAB_HINT } from "../../../src/tui/banner.js";
+import { Banner, BANNER_ART, TAB_HINT, TAB_HINT_DETAIL } from "../../../src/tui/banner.js";
 
 describe("Banner", () => {
 	it("renders ASCII art and command help", () => {
@@ -26,6 +26,15 @@ describe("Banner", () => {
 	it("describes Tab as select mode, not read-only mode", () => {
 		assert.ok(TAB_HINT.includes("select mode"));
 		assert.ok(!TAB_HINT.includes("read-only"));
+	});
+
+	it("explains what select mode does and how to leave it", () => {
+		assert.ok(TAB_HINT.includes("select mode"));
+		assert.ok(TAB_HINT.includes("copy"));
+		assert.ok(TAB_HINT_DETAIL.includes("mouse"));
+		assert.ok(TAB_HINT_DETAIL.includes("Tab or typing returns"));
+		const result = renderToString(React.createElement(Banner, { onDismiss: () => {} }));
+		assert.ok(result.includes(TAB_HINT_DETAIL), "detail line rendered");
 	});
 
 	it("shows the Tab hint above the command menu", () => {
