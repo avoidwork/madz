@@ -414,38 +414,39 @@ describe("SubagentsPanel", () => {
 		assert.ok(result.includes("read_file"));
 	});
 
-	it("always renders reasoning expanded (read-only view)", () => {
-		// The subagents panel is read-only and does not participate in the global
-		// collapse toggles — reasoning content is always visible.
-		const result = renderToString(
-			React.createElement(SubagentsPanel, {
-				subagentStore: {
-					"task:abc": {
-						namespace: "task:abc",
-						segments: [{ type: "reasoning", content: "secret thinking" }],
-						toolCalls: [],
-					},
-				},
-				activeView: "subagents",
-			}),
+	const reasoningStore = {
+		"task:abc": {
+			namespace: "task:abc",
+			segments: [{ type: "reasoning", content: "secret thinking" }],
+			toolCalls: [],
+		},
+	};
+	const toolStore = {
+		"task:abc": {
+			namespace: "task:abc",
+			segments: [{ type: "tool", content: "tool output", name: "read_file" }],
+			toolCalls: [],
+		},
+	};
+	const render = (subagentStore, props) =>
+		renderToString(
+			React.createElement(SubagentsPanel, { subagentStore, activeView: "subagents", ...props }),
 		);
-		assert.ok(result.includes("secret thinking"));
+
+	it("shows reasoning when reasoningCollapsed is false", () => {
+		assert.ok(render(reasoningStore, { reasoningCollapsed: false }).includes("secret thinking"));
 	});
 
-	it("always renders tool content expanded (read-only view)", () => {
-		const result = renderToString(
-			React.createElement(SubagentsPanel, {
-				subagentStore: {
-					"task:abc": {
-						namespace: "task:abc",
-						segments: [{ type: "tool", content: "tool output", name: "read_file" }],
-						toolCalls: [],
-					},
-				},
-				activeView: "subagents",
-			}),
-		);
-		assert.ok(result.includes("tool output"));
+	it("hides reasoning when the global reasoningCollapsed is true", () => {
+		assert.ok(!render(reasoningStore, { reasoningCollapsed: true }).includes("secret thinking"));
+	});
+
+	it("shows tool content when toolCallCollapsed is false", () => {
+		assert.ok(render(toolStore, { toolCallCollapsed: false }).includes("tool output"));
+	});
+
+	it("hides tool content when the global toolCallCollapsed is true", () => {
+		assert.ok(!render(toolStore, { toolCallCollapsed: true }).includes("tool output"));
 	});
 });
 
