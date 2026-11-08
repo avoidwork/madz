@@ -121,6 +121,55 @@ describe("integration - configurable summarization middleware fires at runtime",
 		assert.strictEqual(fetchCalls, 1, "no compaction should fire below the trigger");
 	});
 
+	const tokenConfig = {
+		enabled: true,
+		trigger: { type: "tokens", value: 100000 },
+		keep: { type: "messages", value: 1 },
+	};
+	const threeMessages = [
+		{ role: "user", content: "message one" },
+		{ role: "assistant", content: "reply one" },
+		{ role: "user", content: "message two" },
+	];
+
+	it("tokenCounter over threshold fires even when the library estimate is far below it", async () => {
+		stubFetch();
+		const mw = createSummarizationMiddlewareFromConfig({
+			backend: new StateBackend(),
+			config: tokenConfig,
+			tokenCounter: async () => 100000,
+		});
+		const agent = createAgent({ model: makeModel(), tools: [makeTool()], middleware: [mw] });
+		await agent.invoke({ messages: threeMessages });
+		assert.ok(fetchCalls >= 2, `expected compaction (>=2 fetches), got ${fetchCalls}`);
+	});
+
+	it("tokenCounter under threshold does not fire", async () => {
+		stubFetch();
+		const mw = createSummarizationMiddlewareFromConfig({
+			backend: new StateBackend(),
+			config: tokenConfig,
+			tokenCounter: async () => 99999,
+		});
+		const agent = createAgent({ model: makeModel(), tools: [makeTool()], middleware: [mw] });
+		await agent.invoke({ messages: threeMessages });
+		assert.strictEqual(fetchCalls, 1);
+	});
+
+	it("a throwing tokenCounter falls back to the library behavior", async () => {
+		stubFetch();
+		const mw = createSummarizationMiddlewareFromConfig({
+			backend: new StateBackend(),
+			config: tokenConfig,
+			tokenCounter: async () => {
+				throw new Error("boom");
+			},
+		});
+		const agent = createAgent({ model: makeModel(), tools: [makeTool()], middleware: [mw] });
+		await agent.invoke({ messages: threeMessages });
+		assert.strictEqual(fetchCalls, 1);
+	});
+
 	it("unset config reproduces today's behavior (no custom middleware, no compaction)", async () => {
 		stubFetch();
 		// config absent -> factory returns null -> no custom middleware.

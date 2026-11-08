@@ -154,6 +154,10 @@ summarization:
 - **`trigger`** — the threshold at which compaction fires. `tokens` counts input tokens, `messages` counts messages, `fraction` is a fraction of the model's max input tokens (0–1).
 - **`keep`** — how much history to retain after compaction. Must be passed explicitly; deepagents defaults `keep` to 20 messages when a `trigger` is supplied without it, silently moving it from the fallback 6.
 
+- **`contextFraction`** (default `0.8`) — when the model's context length can be resolved at startup, the trigger is overridden with `contextFraction × contextLength` tokens (the configured `trigger.value` is then only a fallback).
+
+For `tokens` triggers, madz decides using the model's real tokenizer (the same count the status bar shows) rather than the library's rough characters-per-token estimate, so a status bar at 80% means compaction fires. If the tokenizer is unavailable or errors, the library estimate is used.
+
 **Note:** the custom middleware reaches the **orchestrator only**. Subagents are not forked, so they keep the library default `SummarizationMiddleware`.
 
 ### Rate Limiting
