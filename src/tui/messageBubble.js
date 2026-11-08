@@ -447,7 +447,7 @@ export function MessageBubbleInner({
 			const header = seg.name ? `🔧 ${seg.name}` : "🔧 Tool result";
 			return React.createElement(
 				Box,
-				{ key: `seg-${i}`, flexDirection: "column", marginLeft: 2, flexShrink: 0 },
+				{ key: `seg-${i}`, flexDirection: "column", flexShrink: 0 },
 				React.createElement(Text, { color: "gray" }, toolCallCollapsed ? header : `▾ ${header}`),
 				...(toolCallCollapsed
 					? []
@@ -494,7 +494,7 @@ export function MessageBubbleInner({
 	const toolCallEl = hasActiveToolCall
 		? React.createElement(
 				Box,
-				{ flexDirection: "row", marginLeft: 2, flexShrink: 0 },
+				{ flexDirection: "row", flexShrink: 0 },
 				React.createElement(Text, { color: "gray" }, `- Running: ${localActiveToolCall.name} ...`),
 			)
 		: null;
@@ -502,7 +502,7 @@ export function MessageBubbleInner({
 	const toolDisplayEl = hasToolCallDisplay
 		? React.createElement(
 				Box,
-				{ flexDirection: "column", marginLeft: 2, flexShrink: 0 },
+				{ flexDirection: "column", flexShrink: 0 },
 				React.createElement(
 					Text,
 					{ color: "gray" },
@@ -565,7 +565,7 @@ export function MessageBubbleInner({
 		role === "assistant" && (localStreaming || localTurnDuration)
 			? React.createElement(
 					Box,
-					{ flexDirection: "row", marginLeft: 2, flexShrink: 0 },
+					{ flexDirection: "row", flexShrink: 0 },
 					React.createElement(Text, { color: "gray" }, `⏱  ${formatElapsed(displayElapsed)}`),
 				)
 			: null;
@@ -578,7 +578,7 @@ export function MessageBubbleInner({
 		role === "assistant" && hasCompletedToolCalls(localCompletedToolCalls)
 			? React.createElement(
 					Box,
-					{ flexDirection: "column", marginLeft: 2, flexShrink: 0 },
+					{ flexDirection: "column", flexShrink: 0 },
 					React.createElement(
 						Text,
 						{ color: "gray" },
@@ -642,8 +642,8 @@ export function MessageBubbleInner({
 				: null,
 			toolCallEl,
 			toolDisplayEl,
-			timerEl,
 			completedToolCallsEl,
+			timerEl,
 		),
 	);
 }
