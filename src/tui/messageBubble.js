@@ -433,13 +433,13 @@ export function MessageBubbleInner({
 			if (reasoningCollapsed) {
 				return React.createElement(
 					Box,
-					{ key: `seg-${i}`, flexDirection: "row", marginLeft: 2, flexShrink: 0 },
+					{ key: `seg-${i}`, flexDirection: "row", flexShrink: 0 },
 					React.createElement(Text, { color: "gray" }, "💭 Thinking…"),
 				);
 			}
 			return React.createElement(
 				Box,
-				{ key: `seg-${i}`, flexDirection: "row", marginLeft: 2, flexShrink: 0 },
+				{ key: `seg-${i}`, flexDirection: "row", flexShrink: 0 },
 				React.createElement(Text, { color: "gray" }, seg.content),
 			);
 		}
@@ -447,7 +447,7 @@ export function MessageBubbleInner({
 			const header = seg.name ? `🔧 ${seg.name}` : "🔧 Tool result";
 			return React.createElement(
 				Box,
-				{ key: `seg-${i}`, flexDirection: "column", marginLeft: 2, flexShrink: 0 },
+				{ key: `seg-${i}`, flexDirection: "column", flexShrink: 0 },
 				React.createElement(Text, { color: "gray" }, toolCallCollapsed ? header : `▾ ${header}`),
 				...(toolCallCollapsed
 					? []
