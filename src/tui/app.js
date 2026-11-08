@@ -434,6 +434,16 @@ function App({
 	}
 
 	// Focus-aware key routing
+	// Scroll the currently visible scrollable view (conversation or subagents)
+	// to the bottom after a global collapse toggle reflows content.
+	const scrollActiveViewToBottom = () => {
+		setTimeout(() => {
+			const target =
+				currentView === PANELS.SUBAGENTS ? subagentsPanelRef.current : conversationAreaRef.current;
+			target?.scrollToBottom?.();
+		}, 50);
+	};
+
 	useInput((input, key) => {
 		// Onboarding phase takes priority
 		if (showOnboarding) {
@@ -456,22 +466,18 @@ function App({
 		}
 
 		// Ctrl+r / Ctrl+t toggle the global collapse state for reasoning and
-		// tool-call blocks. These apply only to the conversation view — the
-		// SUBAGENTS panel is a read-only view that always renders expanded, so
-		// it does not participate in these toggles. Return early so the key
-		// never reaches the input panel (which would render the letter).
+		// tool-call blocks. The state is global: both the conversation view and
+		// the SUBAGENTS panel read it. Scroll-to-bottom targets the active view.
+		// Return early so the key never reaches the input panel (which would
+		// render the letter).
 		if (key.ctrl && input === "r") {
 			setReasoningCollapsed((prev) => !prev);
-			setTimeout(() => {
-				conversationAreaRef.current?.scrollToBottom?.();
-			}, 50);
+			scrollActiveViewToBottom();
 			return;
 		}
 		if (key.ctrl && input === "t") {
 			setToolCallCollapsed((prev) => !prev);
-			setTimeout(() => {
-				conversationAreaRef.current?.scrollToBottom?.();
-			}, 50);
+			scrollActiveViewToBottom();
 			return;
 		}
 
@@ -666,6 +672,8 @@ function App({
 		panelComponent = React.createElement(SubagentsPanel, {
 			ref: subagentsPanelRef,
 			subagentStore,
+			reasoningCollapsed,
+			toolCallCollapsed,
 			onViewChange: handleViewChange,
 			activeView: currentView,
 		});
@@ -675,7 +683,9 @@ function App({
 		MouseProvider,
 		{ autoEnable: false },
 		React.createElement(MouseGate, {
-			active: isMouseEnabled(selectMode) && currentView === PANELS.CONVERSATION,
+			active:
+				isMouseEnabled(selectMode) &&
+				(currentView === PANELS.CONVERSATION || currentView === PANELS.SUBAGENTS),
 		}),
 		React.createElement(
 			Box,
