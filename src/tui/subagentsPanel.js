@@ -1,6 +1,7 @@
 import React, { useMemo, useRef, useCallback, forwardRef, useImperativeHandle } from "react";
 import { Box, Text, useInput, useWindowSize } from "ink";
-import { MessageBubble } from "./messageBubble.js";
+import { getBoundingClientRect } from "@ink-tools/ink-mouse";
+import { MessageBubble, ScrollContext } from "./messageBubble.js";
 import { VirtualScrollView } from "./scrollView.js";
 
 /**
@@ -24,12 +25,23 @@ import { VirtualScrollView } from "./scrollView.js";
  *   activeView         - The current active view name (from PANELS).
  *   onViewChange       - Callback to switch back to conversation view.
  *
- * This is a read-only view: it always renders the message bubbles expanded
- * (reasoning and tool content visible). It does not participate in the global
- * ctrl+r / ctrl+t collapse toggles, which apply only to the conversation view.
+ *   reasoningCollapsed - Global collapse state for reasoning blocks (ctrl+r).
+ *   toolCallCollapsed  - Global collapse state for tool blocks (ctrl+t).
+ *
+ * The collapse props are the same App-level state the conversation view uses,
+ * so ctrl+r / ctrl+t drive both views. Clicking a reasoning/tool header toggles
+ * that block, exactly as in the conversation area: the panel provides the
+ * `ScrollContext` (scroll offset + viewport bounds) that MessageBubble's
+ * click hit-testing needs.
  */
 export const SubagentsPanel = forwardRef(function SubagentsPanel(
-	{ subagentStore = {}, activeView, onViewChange },
+	{
+		subagentStore = {},
+		activeView,
+		onViewChange,
+		reasoningCollapsed = true,
+		toolCallCollapsed = true,
+	},
 	ref,
 ) {
 	const isActive = activeView === "subagents";
@@ -73,8 +85,21 @@ export const SubagentsPanel = forwardRef(function SubagentsPanel(
 		isUserScrolledUpRef.current = offset < bottom;
 	}, []);
 
-	// Expose imperative scroll API so the app-level scroll keys (up/down/page)
-	// and the ctrl+r/ctrl+t scroll-to-bottom can route to this panel.
+	// Scroll context for MessageBubble click-to-toggle, mirroring MessageList:
+	// the bubble hit-tests header clicks against the scroll offset and viewport.
+	const scrollContextValue = useMemo(
+		() => ({
+			scrollToBottom: () => scrollRef.current?.scrollToBottom?.(),
+			getScrollInfo: () => ({
+				offset: scrollRef.current?.getScrollOffset?.() ?? 0,
+				viewport: getBoundingClientRect(scrollRef.current?.getViewportNode?.() ?? null),
+			}),
+		}),
+		[],
+	);
+
+	// Expose imperative scroll API so the app-level scroll keys (up/down/page),
+	// mouse wheel, and the ctrl+r/ctrl+t scroll-to-bottom can route to this panel.
 	useImperativeHandle(
 		ref,
 		() => ({
@@ -102,34 +127,37 @@ export const SubagentsPanel = forwardRef(function SubagentsPanel(
 	const viewportHeight = Math.max(1, rows - 4);
 
 	return React.createElement(
-		Box,
-		{ flexDirection: "column", padding: 1 },
-		React.createElement(VirtualScrollView, {
-			ref: scrollRef,
-			items: entries,
-			height: viewportHeight,
-			overscan: 2,
-			estimateHeight: (entry) => estimateSubagentHeight(entry),
-			renderItem: (entry) =>
-				React.createElement(
-					Box,
-					{ flexDirection: "column", marginBottom: 1 },
-					React.createElement(MessageBubble, {
-						role: "assistant",
-						content: (entry.segments || []).map((s) => s.content).join(""),
-						segments: entry.segments,
-						streaming: false,
-						assistantName: "subagent",
-						// Read-only view — always render expanded. The subagents
-						// panel does not participate in the global collapse toggles.
-						reasoningCollapsed: false,
-						toolCallCollapsed: false,
-					}),
-					renderToolCalls(entry.toolCalls),
-				),
-			onContentHeightChange: handleContentHeightChange,
-			onScroll: handleScroll,
-		}),
+		ScrollContext.Provider,
+		{ value: scrollContextValue },
+		React.createElement(
+			Box,
+			{ flexDirection: "column", padding: 1 },
+			React.createElement(VirtualScrollView, {
+				ref: scrollRef,
+				items: entries,
+				height: viewportHeight,
+				overscan: 2,
+				estimateHeight: (entry) => estimateSubagentHeight(entry),
+				renderItem: (entry) =>
+					React.createElement(
+						Box,
+						{ flexDirection: "column", marginBottom: 1 },
+						React.createElement(MessageBubble, {
+							role: "assistant",
+							content: (entry.segments || []).map((s) => s.content).join(""),
+							segments: entry.segments,
+							streaming: false,
+							assistantName: "subagent",
+							// Follow the global ctrl+r / ctrl+t collapse state.
+							reasoningCollapsed,
+							toolCallCollapsed,
+						}),
+						renderToolCalls(entry.toolCalls),
+					),
+				onContentHeightChange: handleContentHeightChange,
+				onScroll: handleScroll,
+			}),
+		),
 	);
 });
 

@@ -451,22 +451,35 @@ function App({
 		}
 
 		// Ctrl+r / Ctrl+t toggle the global collapse state for reasoning and
-		// tool-call blocks. These apply only to the conversation view — the
-		// SUBAGENTS panel is a read-only view that always renders expanded, so
-		// it does not participate in these toggles. Return early so the key
-		// never reaches the input panel (which would render the letter).
+		// tool-call blocks. The state is shared by the conversation view and the
+		// SUBAGENTS panel, so the toggle applies to whichever view is active.
+		// Return early so the key never reaches the input panel (which would
+		// render the letter).
+		const collapseScrollTarget = () =>
+			currentView === PANELS.SUBAGENTS ? subagentsPanelRef.current : conversationAreaRef.current;
 		if (key.ctrl && input === "r") {
 			setReasoningCollapsed((prev) => !prev);
 			setTimeout(() => {
-				conversationAreaRef.current?.scrollToBottom?.();
+				collapseScrollTarget()?.scrollToBottom?.();
 			}, 50);
 			return;
 		}
 		if (key.ctrl && input === "t") {
 			setToolCallCollapsed((prev) => !prev);
 			setTimeout(() => {
-				conversationAreaRef.current?.scrollToBottom?.();
+				collapseScrollTarget()?.scrollToBottom?.();
 			}, 50);
+			return;
+		}
+
+		// SUBAGENTS view — the panel has no input, so its scroll keys work
+		// regardless of input focus. Escape is handled by the panel itself.
+		if (currentView === PANELS.SUBAGENTS) {
+			const panel = subagentsPanelRef.current;
+			if (key.upArrow) panel?.scrollBy(-1);
+			if (key.downArrow) panel?.scrollBy(1);
+			if (key.pageUp) panel?.scrollBy(-(panel?.getViewportHeight?.() || 1));
+			if (key.pageDown) panel?.scrollBy(panel?.getViewportHeight?.() || 1);
 			return;
 		}
 
@@ -543,11 +556,7 @@ function App({
 				inputAreaRef.current?.navigateHistory("down");
 			}
 		} else {
-			// In the SUBAGENTS view, route scroll keys to the subagents panel
-			// (which has its own virtualized scroll). Otherwise route to the
-			// conversation area.
-			const scrollTarget =
-				currentView === PANELS.SUBAGENTS ? subagentsPanelRef.current : conversationAreaRef.current;
+			const scrollTarget = conversationAreaRef.current;
 			if (key.upArrow) scrollTarget?.scrollBy(-1);
 			if (key.downArrow) scrollTarget?.scrollBy(1);
 			if (key.pageUp) scrollTarget?.scrollBy(-(scrollTarget?.getViewportHeight?.() || 1));
@@ -563,13 +572,20 @@ function App({
 	// so mouse events bubble out to the terminal's native handling (text
 	// selection, link clicks). Also gated on the conversation view with the
 	// file picker closed, matching the keyboard scroll routing above.
+	// The SUBAGENTS view has no input panel, so mouse reporting is always on
+	// there (wheel scroll + header clicks), matching the conversation area.
+	const mouseActive =
+		currentView === PANELS.SUBAGENTS || (currentView === PANELS.CONVERSATION && !inputFocused);
 	useMouseScroll(
 		(delta) => {
+			const scaled = scaleScrollDelta(delta, config?.tui?.mouseScrollLines || 1);
+			if (currentView === PANELS.SUBAGENTS) {
+				subagentsPanelRef.current?.scrollBy(scaled);
+				return;
+			}
 			if (currentView !== PANELS.CONVERSATION) return;
 			if (inputAreaRef.current?.isPickerOpen?.()) return;
-			conversationAreaRef.current?.scrollBy(
-				scaleScrollDelta(delta, config?.tui?.mouseScrollLines || 1),
-			);
+			conversationAreaRef.current?.scrollBy(scaled);
 		},
 		(sel) => {
 			if (currentView !== PANELS.CONVERSATION) return;
@@ -601,9 +617,10 @@ function App({
 			}
 		},
 		// Enable mouse reporting only when the conversation panel has focus
-		// (tabbed out of the input). When the input is focused, mouse events
-		// bubble out to the terminal's native handling.
-		!inputFocused,
+		// (tabbed out of the input) or the subagents view is active. When the
+		// input is focused, mouse events bubble out to the terminal's native
+		// handling.
+		mouseActive,
 	);
 
 	// Stable handlers for child components
@@ -655,6 +672,8 @@ function App({
 			subagentStore,
 			onViewChange: handleViewChange,
 			activeView: currentView,
+			reasoningCollapsed,
+			toolCallCollapsed,
 		});
 	}
 
@@ -662,7 +681,7 @@ function App({
 		MouseProvider,
 		{ autoEnable: false },
 		React.createElement(MouseGate, {
-			active: !inputFocused && currentView === PANELS.CONVERSATION,
+			active: mouseActive,
 		}),
 		React.createElement(
 			Box,
