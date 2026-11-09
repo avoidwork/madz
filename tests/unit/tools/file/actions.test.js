@@ -4,6 +4,7 @@ import {
 	existsSync,
 	mkdirSync,
 	mkdtempSync,
+	readdirSync,
 	readFileSync,
 	rmSync,
 	statSync,
@@ -113,10 +114,98 @@ describe("tools - file actions", () => {
 			assert.strictEqual(readFileSync(p("dry.txt"), "utf-8"), "one\ntwo\nthree\n");
 		});
 
-		it("diff hunks carry real file line numbers", async () => {
+		it("diff hunks carry real file line numbers and context", async () => {
 			writeFileSync(p("ln.txt"), Array.from({ length: 20 }, (_, i) => `l${i + 1}`).join("\n"));
 			const r = await edit("ln.txt", { oldString: "l15", newString: "X", dryRun: true });
-			assert.match(r.diff, /@@ -15,1 \+15,1 @@/);
+			assert.match(r.diff, /^--- a\/ln\.txt\n\+\+\+ b\/ln\.txt\n/);
+			assert.match(r.diff, /@@ -12,7 \+12,7 @@/);
+			assert.match(r.diff, /-l15\n\+X/);
+		});
+
+		it("diff shows an insertion as a pure addition, not a rewrite", async () => {
+			writeFileSync(p("ins-diff.txt"), "a\nb\n");
+			const r = await edit("ins-diff.txt", {
+				startLine: 1,
+				endLine: 0,
+				newString: "N",
+				dryRun: true,
+			});
+			assert.deepStrictEqual(r.diff.split("\n").slice(2), ["@@ -1,2 +1,3 @@", "+N", " a", " b"]);
+		});
+
+		it("diff shows a deletion as a pure removal", async () => {
+			writeFileSync(p("del-diff.txt"), "a\nb\nc\n");
+			const r = await edit("del-diff.txt", { oldString: "b\n", newString: "", dryRun: true });
+			assert.deepStrictEqual(r.diff.split("\n").slice(2), ["@@ -1,3 +1,2 @@", " a", "-b", " c"]);
+		});
+
+		it("diff splits distant changes into separate hunks", async () => {
+			writeFileSync(
+				p("far.txt"),
+				Array.from({ length: 40 }, (_, i) => `line-${i + 1}-end`).join("\n"),
+			);
+			const r = await edit("far.txt", {
+				edits: [
+					{ oldString: "line-3-end", newString: "CHANGED-3" },
+					{ oldString: "line-38-end", newString: "CHANGED-38" },
+				],
+				dryRun: true,
+			});
+			assert.strictEqual(r.diff.split("\n").filter((l) => l.startsWith("@@")).length, 2);
+		});
+
+		it("diff covers replaceAll across the whole file", async () => {
+			writeFileSync(p("ra-diff.txt"), "x\nmid\nx\n");
+			const r = await edit("ra-diff.txt", { oldString: "x", newString: "Y", replaceAll: true });
+			assert.strictEqual(r.changes, 2);
+			assert.strictEqual(r.diff.split("\n").filter((l) => l.startsWith("-x")).length, 2);
+			assert.strictEqual(r.diff.split("\n").filter((l) => l.startsWith("+Y")).length, 2);
+		});
+
+		it("diff handles a missing trailing newline and large rewrites", async () => {
+			writeFileSync(p("nonl.txt"), "a\nb");
+			const r = await edit("nonl.txt", { oldString: "b", newString: "c", dryRun: true });
+			assert.match(r.diff, /\\ No newline at end of file/);
+			const big = Array.from({ length: 3000 }, (_, i) => `a${i}`).join("\n");
+			writeFileSync(p("big-diff.txt"), big);
+			const rewrite = await edit("big-diff.txt", {
+				oldString: big,
+				newString: big.replace(/a/g, "b"),
+				dryRun: true,
+			});
+			assert.strictEqual(rewrite.ok, true);
+			assert.strictEqual(rewrite.diff.split("\n").filter((l) => l.startsWith("-a")).length, 3000);
+		});
+
+		it("diff leaves no temporary directory behind", async () => {
+			// Private TMPDIR so edits running in parallel test processes cannot interfere.
+			const savedTmp = process.env.TMPDIR;
+			const privateTmp = mkdtempSync(join(tmpdir(), "madz-diff-probe-"));
+			process.env.TMPDIR = privateTmp;
+			try {
+				writeFileSync(p("tmpclean.txt"), "one\n");
+				await edit("tmpclean.txt", { oldString: "one", newString: "two" });
+				await edit("tmpclean.txt", { oldString: "nothing-here", newString: "x" });
+				assert.deepStrictEqual(readdirSync(privateTmp), []);
+			} finally {
+				if (savedTmp === undefined) delete process.env.TMPDIR;
+				else process.env.TMPDIR = savedTmp;
+				rmSync(privateTmp, { recursive: true, force: true });
+			}
+		});
+
+		it("reports a clear error when the diff binary is missing", async () => {
+			writeFileSync(p("nodiff.txt"), "one\n");
+			const savedPath = process.env.PATH;
+			process.env.PATH = "/nonexistent";
+			try {
+				const r = await edit("nodiff.txt", { oldString: "one", newString: "two" });
+				assert.strictEqual(r.ok, false);
+				assert.match(r.error, /diff' command is not installed/);
+				assert.strictEqual(readFileSync(p("nodiff.txt"), "utf-8"), "one\n");
+			} finally {
+				process.env.PATH = savedPath;
+			}
 		});
 
 		it("replaces a line range", async () => {
@@ -229,7 +318,7 @@ describe("tools - file actions", () => {
 		it("suggests a similar file, including a different extension", async () => {
 			writeFileSync(p("foo.js"), "x");
 			const r = await readImpl({ path: p("foo.ts") }, opts());
-			assert.match(r.error, /Did you mean: foo\.js/);
+			assert.match(r.error, /Did you mean: .*foo\.js/);
 		});
 	});
 

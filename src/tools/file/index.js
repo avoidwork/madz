@@ -6,6 +6,7 @@ import {
 	cp,
 	lstat,
 	mkdir,
+	mkdtemp,
 	readdir,
 	readFile as readFileNode,
 	rename,
@@ -14,21 +15,26 @@ import {
 	unlink,
 	writeFile as writeFileNode,
 } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import { tmpdir } from "node:os";
 import { basename, dirname, join, relative, resolve } from "node:path";
+import { promisify } from "node:util";
 import { validatePath, checkFileLimit } from "../common.js";
 import { loadConfig } from "../../config/loader.js";
 import { getProjectCwd } from "../../workspace/project.js";
-import { generateUnifiedDiff } from "./diff.js";
 import { fuzzyMatch, levenshteinDistance, lineNumberAt, suggestSimilarLines } from "./match.js";
 
-export { generateUnifiedDiff, fuzzyMatch, levenshteinDistance };
+export { fuzzyMatch, levenshteinDistance };
+
+const execFileAsync = promisify(execFile);
+const DIFF_TIMEOUT_MS = 10_000;
+const DIFF_MAX_BUFFER = 16 * 1024 * 1024;
 
 const config = loadConfig();
 
 const MAX_CONTENT_SIZE = 500 * 1024; // 500KB for write/append operations
 const PAGINATED_READ_LIMIT = "50mb"; // whole-file cap when offset/limit is used
 const MAX_LIST_ENTRIES = 1000;
-const MAX_DIFF_HUNKS = 20;
 const MAX_REPORTED_MATCHES = 10;
 const BINARY_SNIFF_BYTES = 8000;
 const SKIPPED_DIRS = new Set([".git", "node_modules"]);
@@ -211,6 +217,44 @@ async function writeAtomic(realPath, content) {
 }
 
 /**
+ * Produce a unified diff with GNU `diff -u`. Both versions are written to a
+ * private temporary directory (diff needs two file operands) that is always
+ * removed afterwards. `diff` exits 1 when the inputs differ, which is not an error.
+ * @param {string} before - Original text
+ * @param {string} after - Edited text
+ * @param {string} label - File name shown in the diff headers
+ * @returns {Promise<string>} Unified diff, with `a/<label>` and `b/<label>` headers
+ * @throws {Error} When `diff` is missing, times out, or fails
+ */
+async function unifiedDiff(before, after, label) {
+	const dir = await mkdtemp(join(tmpdir(), "madz-diff-"));
+	try {
+		const a = join(dir, "a");
+		const b = join(dir, "b");
+		await writeFileNode(a, before, "utf-8");
+		await writeFileNode(b, after, "utf-8");
+		try {
+			const { stdout } = await execFileAsync(
+				"diff",
+				["-u", "--label", `a/${label}`, "--label", `b/${label}`, "--", a, b],
+				{ timeout: DIFF_TIMEOUT_MS, maxBuffer: DIFF_MAX_BUFFER },
+			);
+			return stdout.replace(/\n$/, "");
+		} catch (err) {
+			if (err.code === 1 && typeof err.stdout === "string") return err.stdout.replace(/\n$/, "");
+			if (err.code === "ENOENT") {
+				throw new Error("The 'diff' command is not installed (install GNU diffutils).", {
+					cause: err,
+				});
+			}
+			throw new Error(`diff failed: ${err.stderr || err.message}`, { cause: err });
+		}
+	} finally {
+		await rm(dir, { recursive: true, force: true });
+	}
+}
+
+/**
  * Whether a path is a sandbox root or the filesystem root, which must never be
  * deleted or moved wholesale.
  * @param {string} realPath - Real path to check
@@ -338,7 +382,7 @@ function lineStarts(content) {
  * @param {object} edit - { oldString?, newString, replaceAll?, startLine?, endLine? }
  * @param {string} eol - The file's line ending
  * @param {number} index - Position in the edits array, for error messages
- * @returns {{ ok: true, content: string, hunks: string[], fuzzy: boolean, count: number } | { ok: false, error: string, suggestions?: string[], matches?: number[] }} Result
+ * @returns {{ ok: true, content: string, fuzzy: boolean, count: number } | { ok: false, error: string, suggestions?: string[], matches?: number[] }} Result
  */
 function applyEdit(content, edit, eol, index) {
 	const where = index === undefined ? "" : `edits[${index}]: `;
@@ -360,11 +404,9 @@ function applyEdit(content, edit, eol, index) {
 		const from = starts[edit.startLine - 1] ?? content.length;
 		const to = starts[endLine] ?? content.length;
 		const body = newString === "" || newString.endsWith("\n") ? newString : newString + eol;
-		const before = content.slice(from, to);
 		return {
 			ok: true,
 			content: content.slice(0, from) + body + content.slice(to),
-			hunks: [generateUnifiedDiff(before, body, { startLine: edit.startLine, headers: false })],
 			fuzzy: false,
 			count: 1,
 		};
@@ -392,24 +434,14 @@ function applyEdit(content, edit, eol, index) {
 	}
 
 	const targets = edit.replaceAll ? matches : [matches[0]];
-	const hunks = [];
 	let next = content;
 	// Apply back to front so earlier offsets stay valid.
 	for (const m of [...targets].reverse()) {
-		if (hunks.length < MAX_DIFF_HUNKS) {
-			hunks.unshift(
-				generateUnifiedDiff(m.matched, newString, {
-					startLine: lineNumberAt(content, m.start),
-					headers: false,
-				}),
-			);
-		}
 		next = next.slice(0, m.start) + newString + next.slice(m.end);
 	}
 	return {
 		ok: true,
 		content: next,
-		hunks,
 		fuzzy: targets.some((m) => m.tier !== "exact"),
 		count: targets.length,
 	};
@@ -437,20 +469,17 @@ export const editImpl = guarded(async (input, options) => {
 
 	const eol = text.content.includes("\r\n") ? "\r\n" : "\n";
 	let content = text.content;
-	const hunks = [];
 	let changes = 0;
 	let fuzzy = false;
 	for (let i = 0; i < edits.length; i++) {
 		const result = applyEdit(content, edits[i], eol, input.edits ? i : undefined);
 		if (!result.ok) return result;
 		content = result.content;
-		hunks.push(...result.hunks);
 		changes += result.count;
 		fuzzy ||= result.fuzzy;
 	}
 
-	const label = basename(t.path);
-	const diff = [`--- a/${label}`, `+++ b/${label}`, ...hunks].join("\n");
+	const diff = await unifiedDiff(text.content, content, basename(t.path));
 	if (input.dryRun) return { ok: true, changes, diff, fuzzy, dryRun: true };
 
 	await writeAtomic(t.realPath, content);
