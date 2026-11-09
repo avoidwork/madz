@@ -9,14 +9,20 @@ import { git, gitImpl } from "../../../src/tools/git/index.js";
 let dir;
 let remoteDir;
 const g = (input) => gitImpl(input, { cwd: dir });
-const sh = (...args) => execFileSync("git", args, { cwd: dir, encoding: "utf-8" });
+// Run test-side git without repo-selecting vars that a parent git hook may have set.
+const cleanEnv = () => {
+	const env = { ...process.env };
+	for (const name of Object.keys(env)) if (name.startsWith("GIT_")) delete env[name];
+	return env;
+};
+const sh = (...args) => execFileSync("git", args, { cwd: dir, encoding: "utf-8", env: cleanEnv() });
 const write = (name, content) => fs.writeFileSync(path.join(dir, name), content);
 
 describe("tools - git actions (real repo)", () => {
 	before(() => {
 		dir = fs.mkdtempSync(path.join(os.tmpdir(), "madz-git-"));
 		remoteDir = fs.mkdtempSync(path.join(os.tmpdir(), "madz-git-remote-"));
-		execFileSync("git", ["init", "--bare", "-b", "main"], { cwd: remoteDir });
+		execFileSync("git", ["init", "--bare", "-b", "main"], { cwd: remoteDir, env: cleanEnv() });
 		sh("init", "-b", "main");
 		sh("config", "user.name", "Test");
 		sh("config", "user.email", "t@example.com");
@@ -57,6 +63,17 @@ describe("tools - git actions (real repo)", () => {
 		assert.equal(by["b.txt"].staged, true);
 		assert.equal(by["new file.txt"].untracked, true);
 		assert.equal(s.clean, false);
+	});
+
+	it("status on a detached HEAD keeps a non-null branch and sets detached", async () => {
+		sh("checkout", "-q", "--detach");
+		try {
+			const s = await g({ action: "status" });
+			assert.equal(s.detached, true);
+			assert.equal(s.branch, "HEAD (no branch)");
+		} finally {
+			sh("checkout", "-q", "main");
+		}
 	});
 
 	it("restore unstages and discards", async () => {

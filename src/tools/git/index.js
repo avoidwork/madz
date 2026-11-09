@@ -84,6 +84,17 @@ const PROTECTED_BRANCHES = /^(main|master|trunk|develop|production)$/;
 const DANGEROUS_CONFIG_KEYS =
 	/^(core\.(sshcommand|editor|pager|hookspath|fsmonitor|askpass|gitproxy)|alias\.|credential\.|filter\.|diff\..*\.(command|textconv)|diff\.external|merge\..*\.driver|sequence\.editor|gpg\.|url\.|include|protocol\.|uploadpack\.|receive\.)/i;
 
+/** Environment variables that make git target a specific repository or index. */
+const REPO_ENV_VARS = [
+	"GIT_DIR",
+	"GIT_WORK_TREE",
+	"GIT_INDEX_FILE",
+	"GIT_OBJECT_DIRECTORY",
+	"GIT_ALTERNATE_OBJECT_DIRECTORIES",
+	"GIT_COMMON_DIR",
+	"GIT_PREFIX",
+];
+
 const DEFAULT_TIMEOUT_MS = 60_000;
 const NETWORK_TIMEOUT_MS = 180_000;
 const MAX_BUFFER = 64 * 1024 * 1024;
@@ -95,8 +106,12 @@ const DEFAULT_MAX_OUTPUT = 200_000;
  * @returns {NodeJS.ProcessEnv}
  */
 function buildEnv() {
+	const inherited = { ...process.env };
+	// Repo-selecting variables set by a parent git process (e.g. a pre-commit hook sets
+	// GIT_INDEX_FILE) would redirect every command away from `cwd`, so drop them.
+	for (const name of REPO_ENV_VARS) delete inherited[name];
 	return {
-		...process.env,
+		...inherited,
 		GIT_TERMINAL_PROMPT: "0",
 		GIT_EDITOR: "true",
 		GIT_SEQUENCE_EDITOR: "true",
@@ -370,7 +385,9 @@ function parseStatusZ(output) {
 		branch = initialMatch[1];
 		initial = true;
 	} else if (header.startsWith("HEAD (no branch)")) {
-		branch = null;
+		// Keep the historical non-null string so callers that read `branch` keep working;
+		// `detached` is the reliable signal.
+		branch = "HEAD (no branch)";
 		detached = true;
 	} else {
 		const bracket = header.match(/ \[(.*)\]$/);
