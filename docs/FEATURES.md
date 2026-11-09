@@ -39,14 +39,14 @@ Tool access below is the madz tool set each agent receives via `TOOL_CLASSIFICAT
 
 | Agent | Purpose | Tool Access |
 | ----- | ------- | ----------- |
-| `code-review` | Structured code reviews covering bugs, security, style, performance | `clarify`, `skill`, `date`, `memory`, `todo`, `scanAgents`, `searchCode`, `getConfig` |
-| `coding` | Code implementation with read-before-write discipline, complete shipping, convention adherence, and dead-code elimination | `clarify`, `skill`, `date`, `readImage`, `memory`, `todo`, `process`, `scanAgents`, `searchWeb`, `browser`, `docx`, `pptx`, `xlsx`, `pdf`, `email`, `spreadsheet`, `calendar`, `generatePdf`, `namecom`, `generatePptx`, `api`, `graphql`, `json`, `yaml`, `data`, `webhook`, `searchCode`, `indexCode`, `getConfig` |
+| `code-review` | Structured code reviews covering bugs, security, style, performance | `clarify`, `skill`, `date`, `memory`, `todo`, `agents`, `searchCode`, `getConfig` |
+| `coding` | Code implementation with read-before-write discipline, complete shipping, convention adherence, and dead-code elimination | `clarify`, `skill`, `date`, `readImage`, `memory`, `todo`, `process`, `agents`, `searchWeb`, `browser`, `docx`, `pptx`, `xlsx`, `pdf`, `email`, `spreadsheet`, `calendar`, `generatePdf`, `namecom`, `generatePptx`, `api`, `graphql`, `json`, `yaml`, `data`, `webhook`, `searchCode`, `indexCode`, `getConfig` |
 | `debug` | Error tracing, reproduction, and fix proposals | `clarify`, `skill`, `date`, `readImage`, `memory`, `todo`, `process`, `docx`, `pptx`, `xlsx`, `pdf`, `email`, `spreadsheet`, `calendar`, `generatePdf`, `namecom`, `generatePptx`, `api`, `graphql`, `json`, `yaml`, `data`, `webhook`, `searchCode`, `indexCode`, `getConfig` |
 | `documentation` | Documentation updates, API docs generation, changelog maintenance | `clarify`, `createSkill`, `skill`, `date`, `generateImage`, `readImage`, `memory`, `todo`, `sampling`, `textToSpeech`, `docx`, `pptx`, `xlsx`, `pdf`, `email`, `spreadsheet`, `calendar`, `generatePdf`, `namecom`, `generatePptx`, `api`, `graphql`, `json`, `yaml`, `data`, `webhook`, `searchCode`, `getConfig` |
 | `performance` | Performance benchmarking, bottleneck identification, optimization suggestions | `clarify`, `cronJob`, `skill`, `date`, `memory`, `todo`, `process`, `calendar`, `searchCode`, `indexCode`, `getConfig` |
 | `research` | Multi-step research with source tracking and comprehensive reports | `clarify`, `skill`, `date`, `readImage`, `memory`, `todo`, `searchSession`, `searchWeb`, `browser`, `docx`, `pptx`, `xlsx`, `pdf`, `email`, `spreadsheet`, `calendar`, `generatePdf`, `namecom`, `generatePptx`, `api`, `graphql`, `json`, `yaml`, `data`, `webhook`, `searchCode`, `getConfig` |
 | `search` | Multi-source search (web, docs, codebase) with synthesis | `clarify`, `skill`, `date`, `readImage`, `memory`, `todo`, `searchSession`, `searchWeb`, `browser`, `docx`, `pptx`, `xlsx`, `pdf`, `email`, `spreadsheet`, `calendar`, `generatePdf`, `namecom`, `generatePptx`, `api`, `graphql`, `json`, `yaml`, `data`, `webhook`, `searchCode`, `getConfig` |
-| `security-audit` | Security scanning, dependency auditing, vulnerability detection | `clarify`, `cronJob`, `skill`, `date`, `memory`, `todo`, `scanAgents`, `searchCode`, `getConfig` |
+| `security-audit` | Security scanning, dependency auditing, vulnerability detection | `clarify`, `cronJob`, `skill`, `date`, `memory`, `todo`, `agents`, `searchCode`, `getConfig` |
 | `seoAnalyst` | SEO analysis — keyword density, meta description generation, SERP analysis, content optimization | `skill`, `searchCode` |
 | `testing` | Test generation, gap analysis, and coverage improvements | `clarify`, `skill`, `date`, `memory`, `todo`, `searchCode`, `getConfig` |
 | `textEditor` | Text processing — summarize, rewrite, tone adjustment, grammar correction, shorten, expand | `skill` |
@@ -107,7 +107,7 @@ All built-in tools are defined in `src/tools/` and registered as LangChain tools
 | `readImage` | Read an image file from disk and return its base64-encoded contents plus MIME type, for direct LLM vision analysis. |
 | `reflectionSessions` | Read session files, filter by date window and ignore patterns, extract user messages, and return structured data. |
 | `sampling` | Capture emotional moments as ephemeral memories. Rate-limited to 1 per 60 minutes. Stored with `expiresAt` frontmatter. |
-| `scanAgents` | Scan for `AGENTS.md` workspace rules files in a target directory. Returns file contents or empty string. |
+| `agents` | Scan for `AGENTS.md` workspace rules files in a target directory. Returns file contents or empty string. |
 | `searchCode` | Semantic code search using vector similarity. Finds conceptually related code even when exact keywords don't match — e.g., searching for "authentication" finds login handlers, token validation, and auth middleware. |
 | `searchSession` | Search past conversations by keyword query, full retrieval by conversation ID, or browse all sessions. |
 | `searchWeb` | Search the web via DuckDuckGo, Google, Bing, SearXNG, Custom, or Tavily endpoints. |
@@ -237,7 +237,7 @@ Built-in tools are registered only when their required permissions are enabled f
 | Permission Required                 | Tools                                                                      |
 | ----------------------------------- | -------------------------------------------------------------------------- |
 | _(none)_                            | `date`, `textToSpeech`                                                    |
-| `filesystem:read`                   | `readImage`, `scanAgents`, `searchSession`, `docx`, `pptx`, `xlsx`, `pdf`, `reflectionSessions`, `json`, `yaml`, `data`, `searchCode`, `getConfig`, `skill` |
+| `filesystem:read`                   | `readImage`, `agents`, `searchSession`, `docx`, `pptx`, `xlsx`, `pdf`, `reflectionSessions`, `json`, `yaml`, `data`, `searchCode`, `getConfig`, `skill` |
 | `filesystem:write`                  | `createSkill`, `sampling`, `generatePptx`                                  |
 | `filesystem:read` + `filesystem:write` | `clarify`, `memory`, `todo`, `spreadsheet`, `webhook`, `indexCode`      |
 | `filesystem:exec` + `process:spawn` | `process`                                                                  |

@@ -1,12 +1,12 @@
 # scan-agents Specification
 ## Purpose
 
-The scanAgents tool enables agents to discover and load AGENTS.md files from a specified path or the current working directory. It returns file contents when found, an empty string when not found, and uses existing path validation infrastructure for safety. This is the foundational discovery mechanism that enabled the broader subAgent delegation infrastructure..
+The agents tool enables agents to discover and load AGENTS.md files from a specified path or the current working directory. It returns file contents when found, an empty string when not found, and uses existing path validation infrastructure for safety. This is the foundational discovery mechanism that enabled the broader subAgent delegation infrastructure..
 
 ## Requirements
 
 ### Requirement: Tool discovers AGENTS.md in specified path
-The scanAgents tool SHALL accept an optional `path` parameter and check for the
+The agents tool SHALL accept an optional `path` parameter and check for the
 existence of an `AGENTS.md` file at that location. If no path is provided, the
 tool SHALL resolve the default against the active project working directory
 (`getProjectCwd()`), falling back to `config.cwd` and then `process.cwd()`. The
@@ -36,7 +36,7 @@ module load.
 - **THEN** the tool checks for `AGENTS.md` in the specified directory
 
 ### Requirement: Tool returns file contents when AGENTS.md is found
-The scanAgents tool SHALL read and return the complete contents of the `AGENTS.md` file when it exists at the target path. The tool SHALL return a structured object `{ ok: true, agents: <content> }` where `<content>` is the complete file contents as a UTF-8 encoded string.
+The agents tool SHALL read and return the complete contents of the `AGENTS.md` file when it exists at the target path. The tool SHALL return a structured object `{ ok: true, agents: <content> }` where `<content>` is the complete file contents as a UTF-8 encoded string.
 
 #### Scenario: AGENTS.md exists and is readable
 - **WHEN** `AGENTS.md` exists at the target path and is readable
@@ -47,7 +47,7 @@ The scanAgents tool SHALL read and return the complete contents of the `AGENTS.m
 - **THEN** the tool returns `{ ok: true, agents: <content> }` with the content decoded as UTF-8
 
 ### Requirement: Tool completes silently when AGENTS.md is not found
-The scanAgents tool SHALL return `{ ok: true, agents: "" }` when `AGENTS.md` does not exist at the target path. The tool SHALL NOT log errors, throw exceptions, or return an error object in this case.
+The agents tool SHALL return `{ ok: true, agents: "" }` when `AGENTS.md` does not exist at the target path. The tool SHALL NOT log errors, throw exceptions, or return an error object in this case.
 
 #### Scenario: AGENTS.md does not exist
 - **WHEN** `AGENTS.md` does not exist at the target path
@@ -58,7 +58,7 @@ The scanAgents tool SHALL return `{ ok: true, agents: "" }` when `AGENTS.md` doe
 - **THEN** the tool returns `{ ok: true, agents: "" }`
 
 ### Requirement: Tool validates paths for safety
-The scanAgents tool SHALL use `validatePath` from `src/tools/common.js` to ensure the requested path is within allowed sandbox directories. The tool SHALL reject paths that attempt path traversal or access files outside allowed paths by returning `{ ok: false, error: <message> }`.
+The agents tool SHALL use `validatePath` from `src/tools/common.js` to ensure the requested path is within allowed sandbox directories. The tool SHALL reject paths that attempt path traversal or access files outside allowed paths by returning `{ ok: false, error: <message> }`.
 
 #### Scenario: Path is within allowed directories
 - **WHEN** the requested path resolves to an allowed directory
@@ -69,7 +69,7 @@ The scanAgents tool SHALL use `validatePath` from `src/tools/common.js` to ensur
 - **THEN** the tool returns `{ ok: false, error: <message> }` indicating the path is not allowed
 
 ### Requirement: Tool enforces file size limits
-The scanAgents tool SHALL use `checkFileLimit` from `src/tools/common.js` to verify that the `AGENTS.md` file does not exceed the configured maximum read size. Files exceeding this limit SHALL be rejected with `{ ok: false, error: <message> }`.
+The agents tool SHALL use `checkFileLimit` from `src/tools/common.js` to verify that the `AGENTS.md` file does not exceed the configured maximum read size. Files exceeding this limit SHALL be rejected with `{ ok: false, error: <message> }`.
 
 #### Scenario: AGENTS.md is within size limit
 - **WHEN** `AGENTS.md` exists and is within the maximum read size

@@ -207,11 +207,11 @@ The route key is derived from config: `"/" + config.memory.contextDir` (default 
 
 ## Scan Agents
 
-`src/tools/scanAgents/index.js` — scans for `AGENTS.md` files in a target directory. Delegates to `loadAgents()` from `src/workspace/loadAgents.js` with path validation.
+`src/tools/agents/index.js` — scans for `AGENTS.md` files in a target directory. Delegates to `loadAgents()` from `src/workspace/loadAgents.js` with path validation.
 
 | File | Purpose |
 |------|---------|
-| `index.js` | `scanAgents` — LangChain tool singleton requiring `filesystem:read`; `scanAgentsImpl()` — validates path via `resolvePath()`, delegates to `loadAgents()` |
+| `index.js` | `agents` — LangChain tool singleton requiring `filesystem:read`; `agentsImpl()` — validates path via `resolvePath()`, delegates to `loadAgents()` |
 
 **Key features:**
 

@@ -410,7 +410,7 @@ license: MIT
 
 Skills are stored in `skills/` and are version-controllable. Simple skills can be chained together into pipelines for complex multi-step processing, or composed by asking `madz` to coordinate between them.
 
-**Built-in tools:** Beyond skills, `madz` ships with built-in tools for common tasks. The Deep Agents orchestrator (`deepagents` library) handles multi-agent routing natively — see [Delegating Work to Subagents](#-delegating-work-to-subagents). The `scanAgents` tool scans for `AGENTS.md` workspace rules files. Other built-in tools include filesystem operations, shell execution, search, memory management, and more.
+**Built-in tools:** Beyond skills, `madz` ships with built-in tools for common tasks. The Deep Agents orchestrator (`deepagents` library) handles multi-agent routing natively — see [Delegating Work to Subagents](#-delegating-work-to-subagents). The `agents` tool scans for `AGENTS.md` workspace rules files. Other built-in tools include filesystem operations, shell execution, search, memory management, and more.
 
 ---
 

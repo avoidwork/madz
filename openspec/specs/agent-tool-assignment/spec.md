@@ -12,7 +12,7 @@ The orchestrator agent SHALL only receive tools necessary for its coordination r
 
 #### Scenario: Orchestrator has coordination tools
 - **WHEN** the orchestrator is created
-- **THEN** tools like `clarify`, `sessionSearch`, and `scanAgents` are available to the orchestrator
+- **THEN** tools like `clarify`, `sessionSearch`, and `agents` are available to the orchestrator
 
 ### Requirement: Subagents SHALL have execution tools for task completion
 Subagent agents SHALL receive tools necessary for their execution role: file operations, code editing, terminal access, and task management.

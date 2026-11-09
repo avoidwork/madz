@@ -3,12 +3,12 @@ import assert from "node:assert";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { writeFile, rm, mkdir } from "node:fs/promises";
-import { scanAgentsImpl } from "../../src/tools/scanAgents/index.js";
+import { agentsImpl } from "../../src/tools/agents/index.js";
 import { setProjectCwd } from "../../src/workspace/project.js";
 import { buildToolConfig } from "../../src/tools/index.js";
 
 // Test fixtures
-const TEST_DIR = join(tmpdir(), "scanAgents-test-" + Date.now());
+const TEST_DIR = join(tmpdir(), "agents-test-" + Date.now());
 const AGENTS_CONTENT = "# Test AGENTS.md\n\nThis is test content.";
 
 async function setup() {
@@ -24,7 +24,7 @@ async function teardown() {
 	}
 }
 
-describe("scanAgents tool - scanAgentsImpl", () => {
+describe("agents tool - agentsImpl", () => {
 	let options;
 
 	beforeEach(async () => {
@@ -40,7 +40,7 @@ describe("scanAgents tool - scanAgentsImpl", () => {
 	});
 
 	it("returns ok:true with file contents when AGENTS.md exists", async () => {
-		const result = await scanAgentsImpl({ path: TEST_DIR }, options);
+		const result = await agentsImpl({ path: TEST_DIR }, options);
 		assert.strictEqual(result.ok, true);
 		assert.ok(
 			result.agents.includes("# Test AGENTS.md") && result.agents.includes("This is test content."),
@@ -50,20 +50,20 @@ describe("scanAgents tool - scanAgentsImpl", () => {
 
 	it("returns ok:true with empty agents when AGENTS.md does not exist", async () => {
 		const nonExistentDir = join(tmpdir(), "nonExistent-" + Date.now());
-		const result = await scanAgentsImpl({ path: nonExistentDir }, options);
+		const result = await agentsImpl({ path: nonExistentDir }, options);
 		assert.strictEqual(result.ok, true);
 		assert.strictEqual(result.agents, "");
 	});
 
 	it("returns ok:true with empty agents when target directory does not exist", async () => {
 		const nonExistentDir = join(tmpdir(), "nonExistent-" + Date.now());
-		const result = await scanAgentsImpl({ path: nonExistentDir }, options);
+		const result = await agentsImpl({ path: nonExistentDir }, options);
 		assert.strictEqual(result.ok, true);
 		assert.strictEqual(result.agents, "");
 	});
 
 	it("returns ok:false with error for path traversal attempt", async () => {
-		const result = await scanAgentsImpl({ path: "../../../etc" }, options);
+		const result = await agentsImpl({ path: "../../../etc" }, options);
 		assert.strictEqual(result.ok, false);
 		assert.ok(
 			typeof result.error === "string" && result.error.length > 0,
@@ -74,7 +74,7 @@ describe("scanAgents tool - scanAgentsImpl", () => {
 	it("returns ok:false with error when file exceeds size limit", async () => {
 		const largeContent = "x".repeat(2 * 1024 * 1024); // 2MB
 		await writeFile(join(TEST_DIR, "AGENTS.md"), largeContent, "utf-8");
-		const result = await scanAgentsImpl({ path: TEST_DIR }, options);
+		const result = await agentsImpl({ path: TEST_DIR }, options);
 		assert.strictEqual(result.ok, false);
 		assert.ok(
 			typeof result.error === "string" && result.error.length > 0,
@@ -85,14 +85,14 @@ describe("scanAgents tool - scanAgentsImpl", () => {
 	it("resolves an omitted path against the active project cwd", async () => {
 		// A distinct project directory with its own AGENTS.md, under tmpdir()
 		// so it passes the sandbox allowlist.
-		const projectDir = join(tmpdir(), "scanAgents-project-" + Date.now());
+		const projectDir = join(tmpdir(), "agents-project-" + Date.now());
 		const projectContent = "# Project AGENTS.md\n\nProject-specific rules.";
 		await mkdir(projectDir, { recursive: true });
 		await writeFile(join(projectDir, "AGENTS.md"), projectContent, "utf-8");
 
 		setProjectCwd(projectDir);
 		try {
-			const result = await scanAgentsImpl({}, options);
+			const result = await agentsImpl({}, options);
 			assert.strictEqual(result.ok, true);
 			assert.ok(
 				result.agents.includes("# Project AGENTS.md") &&
@@ -106,13 +106,13 @@ describe("scanAgents tool - scanAgentsImpl", () => {
 	});
 });
 
-describe("scanAgents tool - buildToolConfig", () => {
-	it("registers scanAgents tool with filesystem:read permission", async () => {
+describe("agents tool - buildToolConfig", () => {
+	it("registers agents tool with filesystem:read permission", async () => {
 		const tools = await buildToolConfig({ permissions: ["filesystem:read"] });
 		const toolNames = tools.map((t) => t.name);
 		assert.ok(
-			toolNames.includes("scanAgents"),
-			`Expected 'scanAgents' tool to be registered, got: ${toolNames.join(", ")}`,
+			toolNames.includes("agents"),
+			`Expected 'agents' tool to be registered, got: ${toolNames.join(", ")}`,
 		);
 	});
 });
