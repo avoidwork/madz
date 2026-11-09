@@ -6,14 +6,16 @@ import { stat as statAsync, access } from "node:fs/promises";
  * Validate a file path against the sandbox allowlist.
  * @param {string} filePath - The file path to validate
  * @param {string[]} allowedPaths - List of allowed sandbox directories
- * @returns {{ allowed: boolean, path: string, error?: string }}
+ * @param {{ noFollow?: boolean }} [options] - `noFollow` leaves a symlink in the final
+ *   path component unresolved, so the link itself (not its target) is checked
+ * @returns {{ allowed: boolean, path: string, realPath?: string, error?: string }}
  */
-export function validatePath(filePath, allowedPaths) {
-	const { allowed, path } = resolvePath(filePath, allowedPaths);
+export function validatePath(filePath, allowedPaths, options) {
+	const { allowed, path, realPath } = resolvePath(filePath, allowedPaths, options);
 	if (!allowed) {
 		return { allowed: false, path, error: `Access denied: ${filePath} is outside sandbox scope` };
 	}
-	return { allowed: true, path };
+	return { allowed: true, path, realPath };
 }
 
 /**

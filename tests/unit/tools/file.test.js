@@ -11,7 +11,6 @@ import {
 	deleteImpl,
 	resolveBaseDir,
 	resolveFilePath,
-	generateUnifiedDiff,
 	fuzzyMatch,
 	levenshteinDistance,
 } from "../../../src/tools/file/index.js";
@@ -230,8 +229,9 @@ describe("tools - file", () => {
 			);
 			assert.strictEqual(result.ok, true);
 			assert.strictEqual(result.changes, 1);
-			assert.match(result.diff, /-brown/);
-			assert.match(result.diff, /\+red/);
+			assert.match(result.diff, /^--- a\/edit\.txt\n\+\+\+ b\/edit\.txt\n/);
+			assert.match(result.diff, /-the quick brown fox/);
+			assert.match(result.diff, /\+the quick red fox/);
 			assert.strictEqual(readFileSync(filePath, "utf-8"), "the quick red fox");
 		});
 
@@ -300,13 +300,6 @@ describe("tools - file", () => {
 	});
 
 	describe("helpers", () => {
-		it("generateUnifiedDiff produces a diff", () => {
-			const diff = generateUnifiedDiff("old\n", "new\n");
-			assert.match(diff, /--- a\/file/);
-			assert.match(diff, /-old/);
-			assert.match(diff, /\+new/);
-		});
-
 		it("fuzzyMatch finds an exact match", () => {
 			const result = fuzzyMatch("hello", "say hello world");
 			assert.strictEqual(result[0].found, true);
