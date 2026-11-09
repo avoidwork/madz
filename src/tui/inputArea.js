@@ -73,12 +73,17 @@ const InputArea = forwardRef(function InputArea(
 		onSearchQueryChange,
 		commandList = [],
 		isStreaming = false,
+		history: externalHistory,
+		onHistoryChange,
 	},
 	ref,
 ) {
 	const [inputText, setInputText] = useState(initialValue);
 	const [historyIndex, setHistoryIndex] = useState(-1);
-	const [chatHistory, setChatHistory] = useState([]);
+	// History may be owned by App so it survives unmounts (panel views).
+	const [localHistory, setLocalHistory] = useState([]);
+	const chatHistory = externalHistory ?? localHistory;
+	const setChatHistory = onHistoryChange ?? setLocalHistory;
 	const [contextSize, setContextSize] = useState(0);
 	const [isCompacting, setIsCompacting] = useState(false);
 	const [quoteIndex, setQuoteIndex] = useState(-1);
