@@ -182,8 +182,11 @@ describe("tools - git actions (real repo)", () => {
 		assert.ok(lf.files.includes("a.txt"));
 		const mv = await g({ action: "mv", path: "b.txt", to: "b2.txt" });
 		assert.equal(mv.ok, true, JSON.stringify(mv));
+		const blocked = await g({ action: "rm", path: "b2.txt" });
+		assert.equal(blocked.ok, false);
+		sh("commit", "-m", "rename");
 		const rm = await g({ action: "rm", path: "b2.txt" });
-		assert.equal(rm.ok, true);
+		assert.equal(rm.ok, true, JSON.stringify(rm));
 		sh("add", ".");
 		sh("commit", "-m", "tidy");
 	});
