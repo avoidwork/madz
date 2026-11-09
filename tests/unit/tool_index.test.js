@@ -14,7 +14,7 @@ describe("tools - buildToolConfig", () => {
 			"textToSpeech",
 			"sampling",
 			"date",
-			"scanAgents",
+			"agents",
 			"createSkill",
 			"memory",
 			"discovery",
@@ -74,17 +74,17 @@ describe("tools - buildToolConfig", () => {
 		delete process.env.CUSTOM_SEARCH_URL;
 	});
 
-	it("returns clarify + sampling + date + scanAgents with filesystem:read", async () => {
+	it("returns clarify + sampling + date + agents with filesystem:read", async () => {
 		const { buildToolConfig } = await import("../../src/tools/index.js");
 		const tools = await buildToolConfig({ permissions: ["filesystem:read"], maxReadSize: "1mb" });
 		const toolNames = tools.map((t) => t.name);
-		// filesystem:read enables: clarify, sampling, process (exempt), scanAgents,
+		// filesystem:read enables: clarify, sampling, process (exempt), agents,
 		// searchSession, date
 		assert.ok(toolNames.includes("clarify"));
 		assert.ok(toolNames.includes("sampling"));
 		assert.ok(toolNames.includes("process"), "process should register (exempt)");
 		assert.ok(toolNames.includes("date"));
-		assert.ok(toolNames.includes("scanAgents"));
+		assert.ok(toolNames.includes("agents"));
 		assert.ok(toolNames.includes("searchSession"));
 	});
 
@@ -121,7 +121,7 @@ describe("tools - buildToolConfig", () => {
 			maxReadSize: "1mb",
 		});
 		const toolNames = tools.map((t) => t.name);
-		// Tier 1: 6 tools (terminal, process, searchSession, clarify, scanAgents)
+		// Tier 1: 6 tools (terminal, process, searchSession, clarify, agents)
 		// Tier 2: cronJob, sampling, date (no perms or network:outbound)
 		// No API keys: searchWeb/generateImage/textToSpeech won't register
 		assert.ok(toolNames.length >= 9, "All tier 1 + tier 2 tools should register");
@@ -163,12 +163,12 @@ describe("tools - buildToolConfig", () => {
 			maxReadSize: "2mb",
 		});
 		const toolNames = tools.map((t) => t.name);
-		// filesystem:read + filesystem:write + network:outbound enables: clarify, sampling, process (exempt), scanAgents,
+		// filesystem:read + filesystem:write + network:outbound enables: clarify, sampling, process (exempt), agents,
 		// searchSession, date, reflectionSessions, docx, pptx, xlsx, pdf, api, graphql, webhook, data, json, yaml
 		assert.ok(toolNames.includes("clarify"));
 		assert.ok(toolNames.includes("sampling"));
 		assert.ok(toolNames.includes("date"));
-		assert.ok(toolNames.includes("scanAgents"));
+		assert.ok(toolNames.includes("agents"));
 		assert.ok(toolNames.includes("searchSession"));
 		assert.ok(toolNames.includes("reflectionSessions"));
 		assert.ok(toolNames.includes("docx"));

@@ -199,7 +199,7 @@ function App({
 		// Silently notify the agent that we're now working in the selected project.
 		// The conversation area is unmounted during the panel view, so stage the
 		// message and dispatch it once it mounts. Use the absolute path so the
-		// agent's downstream path resolution (e.g. scanAgents) is not relative to
+		// agent's downstream path resolution (e.g. agents) is not relative to
 		// a mutated process.cwd().
 		pendingSilentMessageRef.current = `We are working in ${projectPath}.`;
 	}, []);

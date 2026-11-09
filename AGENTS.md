@@ -143,7 +143,7 @@ Node.js-based AI harness application using LangGraph for state machines and Open
 │   │   ├── common.js           # Shared path/URL validation helpers
 │   │   ├── api/ calendar/ clarify/ code/ config/ cron/ data/ date/ dns/
 │   │   ├── email/ fileExtract/ graphql/ image/ json/ memory/ pdf/ pptx/
-│   │   ├── process/ reflection/ sampling/ scanAgents/ session/ skills/
+│   │   ├── process/ reflection/ sampling/ agents/ session/ skills/
 │   │   ├── spreadsheet/ tts/ web/ webhook/ yaml/
 │   │   └── ...                 # calendar/providers/, email/providers/ for backends
 │   ├── tui/                    # Terminal user interface (Ink)

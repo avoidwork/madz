@@ -1,7 +1,7 @@
 import { clarify } from "./clarify/index.js";
 import { cronJob } from "./cron/index.js";
 import { date } from "./date/index.js";
-import { scanAgents } from "./scanAgents/index.js";
+import { agents } from "./agents/index.js";
 import { generateImage } from "./image/index.js";
 import { readImage } from "./image/readImage.js";
 import { memory } from "./memory/index.js";
@@ -58,7 +58,7 @@ export const TOOL_PERMISSIONS = {
 	git: ["process:spawn"],
 	process: ["filesystem:exec", "process:spawn"],
 	sampling: ["filesystem:write"],
-	scanAgents: ["filesystem:read"],
+	agents: ["filesystem:read"],
 	searchSession: ["filesystem:read"],
 	textToSpeech: [],
 	transcribeAudio: ["filesystem:read", "network:outbound"],
@@ -180,7 +180,7 @@ export const TOOL_CLASSIFICATIONS = {
 	process: ["debug", "performance", "coding"],
 	git: ["coding", "debug", "code-review", "performance"],
 	sampling: ["documentation"],
-	scanAgents: ["security-audit", "code-review", "coding"],
+	agents: ["security-audit", "code-review", "coding"],
 	searchSession: ["search", "research"],
 	textToSpeech: ["documentation"],
 	transcribeAudio: ["documentation", "search", "research", "coding", "debug"],
@@ -290,7 +290,7 @@ export const ORCHESTRATOR_TOOLS = [
 	"searchSession",
 	"searchWeb",
 	"browser",
-	"scanAgents",
+	"agents",
 	"sampling",
 	"createSkill",
 	"skill",
@@ -317,7 +317,7 @@ export const TOOLS = {
 	git,
 	process: processTool,
 	sampling,
-	scanAgents,
+	agents,
 	searchSession,
 	textToSpeech,
 	transcribeAudio,
@@ -431,7 +431,7 @@ export async function buildToolConfig(options) {
 				continue;
 			}
 
-			case "scanAgents":
+			case "agents":
 			case "date":
 			case "cronJob":
 			case "git":

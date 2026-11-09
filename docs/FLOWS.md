@@ -220,7 +220,7 @@ buildToolConfig({ permissions, allowedPaths, maxReadSize, registry, sessionsDir,
 
 Tools are exported as ready LangChain `tool()` instances from `src/tools/index.js`, or built by per-domain factories (e.g. `createEmailProvider()`). Each tool file exports:
 
-1. **Core impl function** (e.g., `scanAgentsImpl(input, options)`)
+1. **Core impl function** (e.g., `agentsImpl(input, options)`)
 2. **Tool definition** (`tool(impl, { name, description, schema })`)
 3. **Factory function** where runtime options are needed (e.g., `createEmailProvider(config)`)
 
@@ -230,7 +230,7 @@ Tools are exported as ready LangChain `tool()` instances from `src/tools/index.j
 allTools = buildToolConfig(...)
 ├── orchestratorTools = allTools.filter(t => ORCHESTRATOR_TOOLS.includes(t.name))
 │   └── ORCHESTRATOR_TOOLS: clarify, cronJob, date, memory, process, reflectionSessions,
-│       searchSession, searchWeb, scanAgents, sampling, createSkill,
+│       searchSession, searchWeb, agents, sampling, createSkill,
 │       searchCode, indexCode, getConfig, readImage
 └── per subagent: getToolsForAgentTypes([agentName], TOOLS)
     └── TOOL_CLASSIFICATIONS[toolName] is an array of agent names;
@@ -389,7 +389,7 @@ TOOL_PERMISSIONS (src/tools/index.js) — tool registers only when ALL required 
 ├── createSkill → "filesystem:write"
 ├── date → [] (always)
 ├── generateImage → "network:outbound" + falApiKey
-├── readImage | scanAgents | reflectionSessions | searchCode | json | yaml | getConfig
+├── readImage | agents | reflectionSessions | searchCode | json | yaml | getConfig
 │   → "filesystem:read"
 ├── memory | spreadsheet | generatePdf | webhook → "filesystem:read" + "filesystem:write"
 │   (generatePdf also "network:outbound")
@@ -756,7 +756,7 @@ index.js
 │     ├── tools/date/ → date tool
 │     ├── tools/process/ → node:child_process — background process management
 │     ├── tools/sampling/ → ephemeral memory capture
-│     ├── tools/scanAgents/ → workspace/loadAgents.js — AGENTS.md discovery
+│     ├── tools/agents/ → workspace/loadAgents.js — AGENTS.md discovery
 │     ├── tools/reflection/ → reflectionSessions
 │     ├── tools/web/ → sandbox/urlFilter.js, fetch — searchWeb
 │     ├── tools/image/ → FAL_API_KEY — generateImage via queue.fal.run

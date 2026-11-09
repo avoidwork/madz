@@ -9,7 +9,7 @@ import { getProjectCwd } from "../../workspace/project.js";
 
 const config = loadConfig();
 
-const ScanAgentsSchema = z.object({
+const AgentsSchema = z.object({
 	path: z
 		.string()
 		.optional()
@@ -17,12 +17,12 @@ const ScanAgentsSchema = z.object({
 });
 
 /**
- * Core scanAgents logic: delegate to loadAgents with validated path.
- * @param {z.infer<typeof ScanAgentsSchema>} input - The tool input
+ * Core agents logic: delegate to loadAgents with validated path.
+ * @param {z.infer<typeof AgentsSchema>} input - The tool input
  * @param {object} options - Runtime options (allowedPaths, maxReadSize)
  * @returns {Promise<{ ok: boolean, agents?: string, error?: string }>} Structured result
  */
-export async function scanAgentsImpl(input, options) {
+export async function agentsImpl(input, options) {
 	const targetPath = input.path || getProjectCwd() || config.cwd || process.cwd();
 	// The orchestrator invokes the raw singleton without runtime options, so
 	// options.allowedPaths is undefined there. Fall back to the live config's
@@ -54,11 +54,11 @@ export async function scanAgentsImpl(input, options) {
 }
 
 /**
- * scanAgents tool — singleton export.
+ * agents tool — singleton export.
  */
-export const scanAgents = tool(scanAgentsImpl, {
-	name: "scanAgents",
+export const agents = tool(agentsImpl, {
+	name: "agents",
 	description:
 		"Scan for AGENTS.md in the current working directory or a specified path. If found, returns the file contents. If not found, returns an empty string silently.",
-	schema: ScanAgentsSchema,
+	schema: AgentsSchema,
 });

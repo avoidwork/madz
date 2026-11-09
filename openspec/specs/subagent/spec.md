@@ -1,7 +1,7 @@
 # subagent Specification
 ## Purpose
 
-The subAgent tool enables the main agent to spawn child processes for independent task execution. It supports single execution and fan-out (parallel/sequential) modes, requires explicit cwd for process isolation, tracks OS-level PIDs for lifecycle management, and excludes itself from sub-agent tool sets to prevent recursion. This is the core delegation infrastructure that evolved from the original scanAgents tool discovery..
+The subAgent tool enables the main agent to spawn child processes for independent task execution. It supports single execution and fan-out (parallel/sequential) modes, requires explicit cwd for process isolation, tracks OS-level PIDs for lifecycle management, and excludes itself from sub-agent tool sets to prevent recursion. This is the core delegation infrastructure that evolved from the original agents tool discovery..
 ## Requirements
 ### Requirement: Sub-agent tool spawns child processes
 The subAgent tool SHALL spawn `node index.js "PROMPT" sessionsDir` as an independent child process, inheriting the parent's environment variables while maintaining session isolation. Skills assigned to sub-agents via `metadata.agent` (either from frontmatter or `skillAgentMap` config) SHALL be loaded and passed to the sub-agent's context. When `subAgentsTemperature` config is set, the sub-agent's model SHALL be created with a per-agent temperature override derived from `config.subAgentsTemperature[agentName]`.
