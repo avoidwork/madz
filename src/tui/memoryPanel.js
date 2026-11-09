@@ -196,7 +196,11 @@ export function MemoryPanel({ config, onViewChange, activeView }) {
 							)
 						: null,
 					detailContent.body
-						? React.createElement(MarkdownText, { content: detailContent.body })
+						? React.createElement(
+								Box,
+								{ paddingX: 1, flexDirection: "column" },
+								React.createElement(MarkdownText, { content: detailContent.body }),
+							)
 						: React.createElement(Text, { color: "gray" }, " (empty)"),
 				)
 			: null,
