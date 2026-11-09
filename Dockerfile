@@ -54,6 +54,9 @@ ENV HOME=/home/madz
 # Pin the npm cache location so the chown target below is explicit and stable
 # rather than implicitly derived from HOME.
 ENV NPM_CONFIG_CACHE=/home/madz/.npm
+# Use the apt-installed Chromium for puppeteer (PDF tool) instead of a download.
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 WORKDIR /app
 
 # Permissions
