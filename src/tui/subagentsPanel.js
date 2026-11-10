@@ -147,7 +147,8 @@ export const SubagentsPanel = forwardRef(function SubagentsPanel(
 							reasoningCollapsed,
 							toolCallCollapsed,
 						}),
-						renderToolCalls(entry.toolCalls),
+						// Tool calls are already rendered by MessageBubble via the
+						// `tool` segments; don't render `entry.toolCalls` again.
 					),
 				onContentHeightChange: handleContentHeightChange,
 				onScroll: handleScroll,
@@ -168,28 +169,7 @@ export function estimateSubagentHeight(entry) {
 	let height = 1;
 	const text = (entry.segments || []).map((s) => s.content).join("");
 	if (text) height += Math.ceil(text.length / 80) || 1;
-	// Each tool call renders as a row in the compact list.
-	height += (entry.toolCalls || []).length;
+	// Each tool segment renders as at least one row (header) in MessageBubble.
+	height += (entry.segments || []).filter((s) => s.type === "tool").length;
 	return Math.max(1, height);
-}
-
-/**
- * Render a subagent's tool calls as a compact list.
- * @param {Array<Object>} toolCalls - The subagent's tool call entries.
- * @returns {React.ReactElement|null} The rendered tool-call list, or null.
- */
-function renderToolCalls(toolCalls) {
-	if (!toolCalls || toolCalls.length === 0) return null;
-
-	return React.createElement(
-		Box,
-		{ flexDirection: "column", marginTop: 1 },
-		...toolCalls.map((call, idx) =>
-			React.createElement(
-				Text,
-				{ key: idx, color: call.status === "error" ? "red" : "gray" },
-				`🔧 ${call.name}${call.status === "running" ? " (running)" : ""}`,
-			),
-		),
-	);
 }
