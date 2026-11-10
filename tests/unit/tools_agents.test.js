@@ -31,7 +31,7 @@ describe("agents tool - agentsImpl", () => {
 		await setup();
 		options = {
 			allowedPaths: [tmpdir()],
-			maxReadSize: "1mb",
+			maxReadSize: 1024 * 1024,
 		};
 	});
 
@@ -103,6 +103,61 @@ describe("agents tool - agentsImpl", () => {
 			setProjectCwd("");
 			await rm(projectDir, { recursive: true, force: true });
 		}
+	});
+});
+
+describe("agents tool - hardening", () => {
+	const dir = join(tmpdir(), "agents-hard-" + Date.now());
+	const options = { allowedPaths: [tmpdir()], maxReadSize: 1024 * 1024 };
+
+	beforeEach(async () => {
+		await mkdir(dir, { recursive: true });
+	});
+	afterEach(async () => {
+		await rm(dir, { recursive: true, force: true });
+	});
+
+	it("does not throw when options is undefined", async () => {
+		const result = await agentsImpl({ path: dir });
+		assert.ok(typeof result.ok === "boolean");
+	});
+
+	it("returns raw content without the Workspace Rules wrapper", async () => {
+		await writeFile(join(dir, "AGENTS.md"), "  hello  \n", "utf-8");
+		const result = await agentsImpl({ path: dir }, options);
+		assert.deepStrictEqual(result, { ok: true, agents: "hello" });
+	});
+
+	it("accepts a path to the AGENTS.md file itself", async () => {
+		await writeFile(join(dir, "AGENTS.md"), "direct", "utf-8");
+		const result = await agentsImpl({ path: join(dir, "AGENTS.md") }, options);
+		assert.deepStrictEqual(result, { ok: true, agents: "direct" });
+	});
+
+	it("errors when path is a file that is not AGENTS.md", async () => {
+		await writeFile(join(dir, "other.txt"), "x", "utf-8");
+		const result = await agentsImpl({ path: join(dir, "other.txt") }, options);
+		assert.strictEqual(result.ok, false);
+	});
+
+	it("falls back to the default size limit when none is supplied", async () => {
+		await writeFile(join(dir, "AGENTS.md"), "x".repeat(2 * 1024 * 1024), "utf-8");
+		const result = await agentsImpl({ path: dir }, { allowedPaths: [tmpdir()] });
+		assert.strictEqual(result.ok, false);
+	});
+
+	it("rejects an AGENTS.md symlink that escapes the sandbox", async () => {
+		const { symlink } = await import("node:fs/promises");
+		const outside = join(process.cwd(), "package.json");
+		await symlink(outside, join(dir, "AGENTS.md"));
+		const result = await agentsImpl({ path: dir }, options);
+		assert.strictEqual(result.ok, false);
+	});
+
+	it("reports unreadable-file errors instead of an empty success", async () => {
+		await mkdir(join(dir, "AGENTS.md"));
+		const result = await agentsImpl({ path: dir }, options);
+		assert.strictEqual(result.ok, false);
 	});
 });
 

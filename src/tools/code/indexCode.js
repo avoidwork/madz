@@ -65,7 +65,7 @@ export async function indexCodeImpl(input, options = {}) {
 				exclude: proj.exclude || ["node_modules/**", ".git/**", ".worktrees/**"],
 				chunkSize: proj.chunkSize || 96,
 				chunkOverlap: proj.chunkOverlap || 16,
-				maxFileSize: proj.maxFileSize || 524288,
+				maxFileSize: proj.maxFileSize || cfg.maxFileSize,
 				force: input.force || false,
 				model: cfg.model || "local",
 				openaiApiKey: cfg.openaiApiKey || options.openaiApiKey,

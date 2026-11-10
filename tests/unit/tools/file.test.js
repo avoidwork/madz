@@ -32,7 +32,7 @@ function cleanupTestFiles() {
 }
 
 function getOptions() {
-	return { allowedPaths: ALLOWED_PATHS, maxReadSize: "1mb" };
+	return { allowedPaths: ALLOWED_PATHS, maxReadSize: 1024 * 1024 };
 }
 
 describe("tools - file", () => {
@@ -173,7 +173,7 @@ describe("tools - file", () => {
 			writeFileSync(filePath, "x".repeat(2000));
 			const result = await readImpl(
 				{ path: filePath },
-				{ allowedPaths: ALLOWED_PATHS, maxReadSize: "1kb" },
+				{ allowedPaths: ALLOWED_PATHS, maxReadSize: 1024 },
 			);
 			assert.strictEqual(result.ok, false);
 			assert.match(result.error, /exceeds max read size/);
@@ -184,7 +184,7 @@ describe("tools - file", () => {
 			writeFileSync(filePath, "small");
 			const result = await readImpl(
 				{ path: filePath },
-				{ allowedPaths: ALLOWED_PATHS, maxReadSize: "1kb" },
+				{ allowedPaths: ALLOWED_PATHS, maxReadSize: 1024 },
 			);
 			assert.strictEqual(result.ok, true);
 			assert.deepStrictEqual(result.lines, ["1|small"]);

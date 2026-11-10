@@ -606,7 +606,7 @@ if (isMain) {
 				exclude: proj.exclude || ["node_modules/**", ".git/**", ".worktrees/**"],
 				chunkSize: proj.chunkSize || 96,
 				chunkOverlap: proj.chunkOverlap || 16,
-				maxFileSize: proj.maxFileSize || 524288,
+				maxFileSize: proj.maxFileSize || vectorConfig.maxFileSize,
 			});
 			store.close();
 			logger.info(

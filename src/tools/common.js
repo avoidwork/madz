@@ -67,7 +67,7 @@ export async function fetchWithTimeout(url, timeoutMs = 5000, allowlist = []) {
 /**
  * Read a file and check against max size limit.
  * @param {string} filePath - Resolved file path
- * @param {string} maxReadSize - Size limit string (e.g. "1mb")
+ * @param {number} maxReadSize - Size limit in bytes
  * @returns {Promise<{ ok: boolean, size?: number, limit?: number, error?: string }>}
  */
 export async function checkFileLimit(filePath, maxReadSize) {
@@ -78,7 +78,7 @@ export async function checkFileLimit(filePath, maxReadSize) {
 	}
 
 	const stats = await statAsync(filePath);
-	const maxSizeBytes = parseSizeString(maxReadSize);
+	const maxSizeBytes = typeof maxReadSize === "number" ? maxReadSize : parseSizeString(maxReadSize);
 
 	if (stats.size > maxSizeBytes) {
 		return {

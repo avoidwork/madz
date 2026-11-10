@@ -1,4 +1,5 @@
 import { readFile, stat } from "node:fs/promises";
+import { loadConfig } from "../config/loader.js";
 
 /**
  * Binary file extensions to skip during chunking.
@@ -129,11 +130,11 @@ export function chunkContent(filePath, content, chunkSize = 96, overlap = 16) {
  * @param {object} [options] - Chunking options
  * @param {number} [options.chunkSize=96] - Number of lines per chunk
  * @param {number} [options.overlap=16] - Number of overlapping lines
- * @param {number} [options.maxFileSize=524288] - Maximum file size in bytes
+ * @param {number} [options.maxFileSize] - Maximum file size in bytes (default: `vector.maxFileSize`)
  * @returns {Promise<Array<{filePath: string, lineStart: number, lineEnd: number, content: string}>>}
  */
 export async function chunkFile(filePath, options = {}) {
-	const { chunkSize = 96, overlap = 16, maxFileSize = 524288 } = options;
+	const { chunkSize = 96, overlap = 16, maxFileSize = loadConfig().vector.maxFileSize } = options;
 
 	// Skip binary extensions
 	if (hasBinaryExtension(filePath)) {

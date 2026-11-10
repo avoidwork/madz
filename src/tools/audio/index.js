@@ -174,7 +174,7 @@ export async function transcribeAudioImpl(input, options = {}) {
 	}
 
 	// Enforce the size limit
-	const maxReadSize = config.tools?.audio?.maxSize || "25mb";
+	const maxReadSize = config.sandbox.audio.maxFileSize;
 	const sizeCheck = await checkFileLimit(validation.path, maxReadSize);
 	if (!sizeCheck.ok) {
 		return { ok: false, error: sizeCheck.error };

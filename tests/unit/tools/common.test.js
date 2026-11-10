@@ -236,7 +236,7 @@ describe("checkFileLimit", () => {
 	it("returns ok for small file", async () => {
 		const filePath = join(testDir, "small.txt");
 		writeFileSync(filePath, "hello");
-		const result = await checkFileLimit(filePath, "1mb");
+		const result = await checkFileLimit(filePath, 1024 * 1024);
 		assert.strictEqual(result.ok, true);
 		assert.strictEqual(result.size, 5);
 	});
@@ -252,7 +252,7 @@ describe("checkFileLimit", () => {
 	});
 
 	it("returns error for nonexistent file", async () => {
-		const result = await checkFileLimit("/nonexistent/path/file.txt", "1mb");
+		const result = await checkFileLimit("/nonexistent/path/file.txt", 1024 * 1024);
 		assert.strictEqual(result.ok, false);
 		assert.ok(result.error.includes("File not found"));
 	});
@@ -260,7 +260,7 @@ describe("checkFileLimit", () => {
 	it("handles zero-byte file", async () => {
 		const filePath = join(testDir, "empty.txt");
 		writeFileSync(filePath, "");
-		const result = await checkFileLimit(filePath, "1mb");
+		const result = await checkFileLimit(filePath, 1024 * 1024);
 		assert.strictEqual(result.ok, true);
 		assert.strictEqual(result.size, 0);
 	});
