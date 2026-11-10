@@ -24,9 +24,9 @@ describe("tools - buildToolConfig", () => {
 		}
 	});
 
-	it("clarify has filesystem:read and filesystem:write permissions", async () => {
+	it("clarify requires no permissions (always registered; logging is best-effort)", async () => {
 		const { TOOL_PERMISSIONS } = await import("../../src/tools/index.js");
-		assert.deepStrictEqual(TOOL_PERMISSIONS.clarify, ["filesystem:read", "filesystem:write"]);
+		assert.deepStrictEqual(TOOL_PERMISSIONS.clarify, []);
 	});
 
 	it("sampling has filesystem:write permission", async () => {
