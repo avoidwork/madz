@@ -258,7 +258,7 @@ describe("cronJob", () => {
 		assert.strictEqual(parsed.ok, true);
 		assert.strictEqual(
 			parsed.job.command,
-			`cd ${process.cwd()} && node index.js --message "Run the report-gen skill ${JSON.stringify({ format: "pdf", region: "na" })}"`,
+			`cd ${process.cwd()} && node index.js --message "Run the report-gen skill ${JSON.stringify({ format: "pdf", region: "na" }).replaceAll('"', '\\"')}"`,
 		);
 		await cronJobImpl({ action: "remove", name: "skill-input-job" }, opts());
 	});
@@ -567,63 +567,61 @@ describe("cronJob", () => {
 		await cronJobImpl({ action: "remove", name: "catch-test" }, opts());
 	});
 
-	it("run executes via skill-script path when no scheduler is injected", async () => {
+	it("run executes the job command and records the outcome", async () => {
 		await cronJobImpl(
-			{
-				action: "create",
-				name: "dynamic-import-test",
-				cron: "0 0 * * *",
-				skill: "test-skill",
-			},
+			{ action: "create", name: "run-ok", cron: "0 0 * * *", command: "echo run-ok-output" },
 			opts(),
 		);
-		const result = await cronJobImpl({ action: "run", name: "dynamic-import-test" }, opts());
-		const parsed = result;
-		assert.ok(parsed.ok !== undefined);
-		await cronJobImpl({ action: "remove", name: "dynamic-import-test" }, opts());
+		const result = await cronJobImpl({ action: "run", name: "run-ok" }, opts());
+		assert.strictEqual(result.ok, true);
+		assert.ok(result.result.stdout.includes("run-ok-output"));
+		const { jobs } = await cronJobImpl({ action: "list" }, opts());
+		const job = jobs.find((j) => j.name === "run-ok");
+		assert.strictEqual(job.lastStatus, "success");
+		assert.strictEqual(job.lastExitCode, 0);
+		assert.ok(job.lastRun);
+		await cronJobImpl({ action: "remove", name: "run-ok" }, opts());
 	});
 
-	it("run returns error when skill has no discoverable script", async () => {
+	it("run reports failure and records the exit code for a failing command", async () => {
 		await cronJobImpl(
-			{
-				action: "create",
-				name: "no-script-job",
-				cron: "0 0 * * *",
-				skill: "nonexistent-skill",
-			},
+			{ action: "create", name: "run-fail", cron: "0 0 * * *", command: "exit 3" },
 			opts(),
 		);
-		const result = await cronJobImpl({ action: "run", name: "no-script-job" }, opts());
-		const parsed = result;
-		assert.strictEqual(parsed.ok, false);
-		assert.ok(parsed.error.includes("no discoverable script"));
-		await cronJobImpl({ action: "remove", name: "no-script-job" }, opts());
+		const result = await cronJobImpl({ action: "run", name: "run-fail" }, opts());
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("code 3"));
+		const { jobs } = await cronJobImpl({ action: "list" }, opts());
+		const job = jobs.find((j) => j.name === "run-fail");
+		assert.strictEqual(job.lastStatus, "failure");
+		assert.strictEqual(job.lastExitCode, 3);
+		await cronJobImpl({ action: "remove", name: "run-fail" }, opts());
 	});
 
-	it("run executes skill script when one is found", async () => {
-		const skillDir = "skills/test-exec-skill/scripts";
-		mkdirSync(skillDir, { recursive: true });
-		const scriptPath = join(skillDir, "run.sh");
-		writeFileSync(scriptPath, "#!/bin/bash\necho execution-success\n", "utf-8");
-		chmodSync(scriptPath, 0o755);
+	it("run works for command-only jobs (no skill)", async () => {
+		await cronJobImpl(
+			{ action: "create", name: "cmd-only", cron: "0 0 * * *", command: "echo cmd-only" },
+			opts(),
+		);
+		const result = await cronJobImpl({ action: "run", name: "cmd-only" }, opts());
+		assert.strictEqual(result.ok, true);
+		await cronJobImpl({ action: "remove", name: "cmd-only" }, opts());
+	});
 
-		try {
-			await cronJobImpl(
-				{
-					action: "create",
-					name: "exec-job",
-					cron: "0 0 * * *",
-					skill: "test-exec-skill",
-				},
-				opts(),
-			);
-			const result = await cronJobImpl({ action: "run", name: "exec-job" }, opts());
-			const parsed = result;
-			assert.ok(parsed !== null);
-		} finally {
-			rmSync("skills/test-exec-skill", { recursive: true, force: true });
-			await cronJobImpl({ action: "remove", name: "exec-job" }, opts()).catch(() => {});
-		}
+	it("run times out and kills a hung command", async () => {
+		await cronJobImpl(
+			{ action: "create", name: "run-hang", cron: "0 0 * * *", command: "sleep 30" },
+			opts(),
+		);
+		const started = Date.now();
+		const result = await cronJobImpl(
+			{ action: "run", name: "run-hang" },
+			opts({ runTimeout: 200 }),
+		);
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("timed out"));
+		assert.ok(Date.now() - started < 5000);
+		await cronJobImpl({ action: "remove", name: "run-hang" }, opts());
 	});
 
 	it("returns a native object (not a string) on success", async () => {
