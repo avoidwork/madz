@@ -122,6 +122,13 @@ sandbox:
     maxFileSize: 26214400
 api:
   maxBodySize: 10485760
+browser:
+  allowlist: []
+  timeoutMs: 30000
+  sessionIdleTimeoutMs: 300000
+  maxSessions: 5
+  maxContentChars: 200000
+  networkIdleMs: 500
 persistence:
   mode: sqlite
 vector:

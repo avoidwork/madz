@@ -198,6 +198,27 @@ api:
 - **`allowlist`** matches on parsed URL parts, never string prefixes. Entries can be a host, a `*.wildcard`, `host:port`, or a full origin with an optional path prefix. An empty list allows any host, **including internal and private addresses** (e.g. `localhost`, RFC 1918, `169.254.169.254`). Set an allowlist if you need to prevent that.
 - Redirects are followed manually and every hop is re-checked against the blocked schemes and the allowlist.
 
+### Browser Tool
+
+The `browser` tool takes its policy from the `browser` config section, not from model input:
+
+```yaml
+browser:
+  allowlist: []
+  timeoutMs: 30000
+  sessionIdleTimeoutMs: 300000
+  maxSessions: 5
+  maxContentChars: 200000
+  networkIdleMs: 500
+```
+
+- **`allowlist`** uses the same matching as the `api` tool (host, `*.wildcard`, `host:port`, or an origin with an optional path prefix). It is checked for every HTTP(S) request the page makes: the `navigate` URL, redirects, and sub-resources such as scripts, images, XHR and iframes. An empty list allows any host, **including internal and private addresses**; the `file:`, `gopher:` and `dict:` schemes are always blocked. `data:`, `blob:` and `about:` URLs never touch the network and are not checked. WebSocket connections are not covered by request interception.
+- **`timeoutMs`** is the default per-call timeout; a call's own `timeout` overrides it. It applies to every action.
+- **`sessionIdleTimeoutMs`** closes a session after this long without use. **`maxSessions`** caps open sessions; opening one beyond the cap closes the least recently used.
+- **`maxContentChars`** truncates the text `extract` and `evaluate` return, and the result is flagged `truncated`.
+- **`networkIdleMs`** is the quiet time `waitFor` treats as network idle.
+- Chromium runs with `--no-sandbox` (needed in the container), so it has no process isolation of its own. Keep `allowlist` set if the model should not reach internal hosts.
+
 ### Rate Limiting
 
 When `openai.rateLimit.maxTokensMinute` is set to a positive value, outgoing LLM requests are paced against a rolling 60-second token budget. Before a request is dispatched, its estimated token cost (input tokens plus the `maxTokens` output budget) is checked against the budget; if adding it would exceed the limit, the request is delayed until the window has room. Set to `0` (the default) to disable the throttle.
