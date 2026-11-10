@@ -170,4 +170,45 @@ describe("dataTransformationImpl", () => {
 		assert.ok(!result.ok);
 		assert.ok(result.error.includes("must contain an object or array"));
 	});
+
+	it("rejects format/action mismatch instead of throwing", async () => {
+		const result = await dataTransformationImpl({
+			action: "json-to-yaml",
+			input: "a,b\n1,2",
+			format: "csv",
+		});
+		assert.ok(!result.ok);
+		assert.ok(result.error.includes("Invalid format"));
+	});
+
+	it("rejects primitive JSON to CSV instead of throwing", async () => {
+		const result = await dataTransformationImpl({
+			action: "json-to-csv",
+			input: '"hello"',
+			format: "json",
+		});
+		assert.ok(!result.ok);
+		assert.ok(result.error.includes("must contain objects"));
+	});
+
+	it("preserves all keys for heterogeneous JSON to CSV", async () => {
+		const result = await dataTransformationImpl({
+			action: "json-to-csv",
+			input: '[{"a":1,"b":2},{"a":3,"c":4}]',
+			format: "json",
+		});
+		assert.ok(result.ok);
+		assert.ok(result.data.includes("a,b,c"));
+		assert.ok(result.data.includes("3,,4"));
+	});
+
+	it("mapping to a non-own property does not throw", async () => {
+		const result = await dataTransformationImpl({
+			action: "json-to-csv",
+			input: '[{"name":"Alice"}]',
+			format: "json",
+			mapping: '{"col":"toString"}',
+		});
+		assert.ok(result.ok);
+	});
 });
