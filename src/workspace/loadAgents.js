@@ -12,7 +12,7 @@ export const AGENTS_FILE_NAMES = ["AGENTS.md", "agents.md"];
  * from the same handle, so there is no check/read race and no repeated existence checks.
  * A missing file is a successful "not found" result; other failures are errors.
  * @param {string} filePath - Path of the file to read
- * @param {string} [maxReadSize] - Maximum file size to read (e.g., "1mb")
+ * @param {number} [maxReadSize] - Maximum file size to read, in bytes
  * @returns {Promise<{ ok: true, found: boolean, content: string } | { ok: false, error: string }>}
  */
 export async function readAgentsFile(filePath, maxReadSize) {
@@ -30,7 +30,8 @@ export async function readAgentsFile(filePath, maxReadSize) {
 		if (!stats.isFile()) {
 			return { ok: false, error: `Not a regular file: ${filePath}` };
 		}
-		if (maxReadSize && stats.size > parseSizeString(maxReadSize)) {
+		const limit = typeof maxReadSize === "number" ? maxReadSize : parseSizeString(maxReadSize);
+		if (maxReadSize && stats.size > limit) {
 			return {
 				ok: false,
 				error: `File size (${stats.size} bytes) exceeds max read size (${maxReadSize}).`,
@@ -49,7 +50,7 @@ export async function readAgentsFile(filePath, maxReadSize) {
  * Load AGENTS.md from a directory and format it for the system prompt.
  * @param {string} [targetCwd] - Directory to read AGENTS.md from. Defaults to the process
  *   working directory captured at import.
- * @param {string} [maxReadSize] - Maximum file size to read (e.g., "1mb")
+ * @param {number} [maxReadSize] - Maximum file size to read, in bytes
  * @returns {Promise<string>} Formatted prompt section, or empty string if no file is found
  * @throws {Error} If the file exists but cannot be read or exceeds the size limit
  */

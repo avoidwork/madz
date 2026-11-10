@@ -30,7 +30,7 @@ function cleanupTestFiles() {
 }
 
 function getOptions() {
-	return { allowedPaths: ALLOWED_PATHS, maxReadSize: "1mb" };
+	return { allowedPaths: ALLOWED_PATHS, maxReadSize: 1024 * 1024 };
 }
 
 describe("tools - discovery", () => {

@@ -48,7 +48,7 @@ describe("tools - process (unified)", () => {
 		it("executes echo command in foreground", async () => {
 			const result = await unifiedProcessImpl(
 				{ action: "start", command: "echo hello", background: false },
-				{ allowedPaths: ["/"], maxReadSize: "1mb" },
+				{ allowedPaths: ["/"], maxReadSize: 1024 * 1024 },
 			);
 			assert.strictEqual(result.ok, true);
 			assert.ok(result.stdout.includes("hello"));
@@ -58,7 +58,7 @@ describe("tools - process (unified)", () => {
 		it("executes ls command in foreground", async () => {
 			const result = await unifiedProcessImpl(
 				{ action: "start", command: "ls", background: false },
-				{ allowedPaths: ["/"], maxReadSize: "1mb" },
+				{ allowedPaths: ["/"], maxReadSize: 1024 * 1024 },
 			);
 			assert.strictEqual(result.ok, true);
 			assert.strictEqual(result.exitCode, 0);
@@ -85,7 +85,7 @@ describe("tools - process (unified)", () => {
 		it("starts background process and returns PID", async () => {
 			const result = await unifiedProcessImpl(
 				{ action: "start", command: "sleep 30", background: true },
-				{ allowedPaths: ["/"], maxReadSize: "1mb" },
+				{ allowedPaths: ["/"], maxReadSize: 1024 * 1024 },
 			);
 			assert.strictEqual(result.ok, true);
 			assert.ok(result.pid !== undefined);
@@ -96,7 +96,7 @@ describe("tools - process (unified)", () => {
 			const longCommand = "x".repeat(4097);
 			const result = await unifiedProcessImpl(
 				{ action: "start", command: longCommand, background: false },
-				{ allowedPaths: ["/"], maxReadSize: "1mb" },
+				{ allowedPaths: ["/"], maxReadSize: 1024 * 1024 },
 			);
 			assert.strictEqual(result.ok, false);
 			assert.ok(result.error.includes("exceeds"));
@@ -123,7 +123,7 @@ describe("tools - process (unified)", () => {
 		it("list shows empty array when no processes", async () => {
 			const result = await unifiedProcessImpl(
 				{ action: "list" },
-				{ allowedPaths: ["/"], maxReadSize: "1mb" },
+				{ allowedPaths: ["/"], maxReadSize: 1024 * 1024 },
 			);
 			assert.strictEqual(result.ok, true);
 			assert.ok(Array.isArray(result.entries));
@@ -133,11 +133,11 @@ describe("tools - process (unified)", () => {
 		it("list shows running process", async () => {
 			await unifiedProcessImpl(
 				{ action: "start", command: "sleep 30", background: true },
-				{ allowedPaths: ["/"], maxReadSize: "1mb" },
+				{ allowedPaths: ["/"], maxReadSize: 1024 * 1024 },
 			);
 			const result = await unifiedProcessImpl(
 				{ action: "list" },
-				{ allowedPaths: ["/"], maxReadSize: "1mb" },
+				{ allowedPaths: ["/"], maxReadSize: 1024 * 1024 },
 			);
 			assert.strictEqual(result.ok, true);
 			assert.strictEqual(result.entries.length, 1);
@@ -157,7 +157,7 @@ describe("tools - process (unified)", () => {
 
 			const result = await unifiedProcessImpl(
 				{ action: "log", processId: pid },
-				{ allowedPaths: ["/"], maxReadSize: "1mb" },
+				{ allowedPaths: ["/"], maxReadSize: 1024 * 1024 },
 			);
 			assert.strictEqual(result.ok, true);
 			assert.ok(result.stdout.includes("hello_world"));
@@ -176,7 +176,7 @@ describe("tools - process (unified)", () => {
 
 			const result = await unifiedProcessImpl(
 				{ action: "wait", processId: pid },
-				{ allowedPaths: ["/"], maxReadSize: "1mb" },
+				{ allowedPaths: ["/"], maxReadSize: 1024 * 1024 },
 			);
 			assert.strictEqual(result.ok, true);
 		});
@@ -192,7 +192,7 @@ describe("tools - process (unified)", () => {
 
 			const result = await unifiedProcessImpl(
 				{ action: "kill", processId: pid },
-				{ allowedPaths: ["/"], maxReadSize: "1mb" },
+				{ allowedPaths: ["/"], maxReadSize: 1024 * 1024 },
 			);
 			assert.strictEqual(result.ok, true);
 			assert.ok(result.message.includes("SIGTERM"));
@@ -213,7 +213,7 @@ describe("tools - process (unified)", () => {
 
 			const result = await unifiedProcessImpl(
 				{ action: "write", processId: pid, data: "test input" },
-				{ allowedPaths: ["/"], maxReadSize: "1mb" },
+				{ allowedPaths: ["/"], maxReadSize: 1024 * 1024 },
 			);
 			assert.strictEqual(result.ok, true);
 			assert.ok(result.message.includes("Wrote to stdin"));
@@ -223,7 +223,7 @@ describe("tools - process (unified)", () => {
 		it("returns error for non-existent process", async () => {
 			const result = await unifiedProcessImpl(
 				{ action: "log", processId: 99999 },
-				{ allowedPaths: ["/"], maxReadSize: "1mb" },
+				{ allowedPaths: ["/"], maxReadSize: 1024 * 1024 },
 			);
 			assert.strictEqual(result.ok, false);
 			assert.ok(result.error.includes("not found"));
@@ -240,7 +240,7 @@ describe("tools - process (unified)", () => {
 
 			const result = await unifiedProcessImpl(
 				{ action: "invalid", processId: pid },
-				{ allowedPaths: ["/"], maxReadSize: "1mb" },
+				{ allowedPaths: ["/"], maxReadSize: 1024 * 1024 },
 			);
 			assert.strictEqual(result.ok, false);
 			assert.ok(result.error.includes("Unknown action"));
@@ -250,7 +250,7 @@ describe("tools - process (unified)", () => {
 		it("returns error when processId required but missing", async () => {
 			const result = await unifiedProcessImpl(
 				{ action: "log" },
-				{ allowedPaths: ["/"], maxReadSize: "1mb" },
+				{ allowedPaths: ["/"], maxReadSize: 1024 * 1024 },
 			);
 			assert.strictEqual(result.ok, false);
 			assert.ok(result.error.includes("processId is required"));

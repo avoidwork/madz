@@ -8,7 +8,7 @@ const TEST_DIR = join(process.cwd(), "memory", "__test_discovery_integration__")
 const ALLOWED_PATHS = [TEST_DIR];
 
 function getOptions() {
-	return { allowedPaths: ALLOWED_PATHS, maxReadSize: "1mb" };
+	return { allowedPaths: ALLOWED_PATHS, maxReadSize: 1024 * 1024 };
 }
 
 function buildFixtureTree() {

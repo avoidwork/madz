@@ -7,8 +7,6 @@ import { AGENTS_FILE_NAMES, readAgentsFile } from "../../workspace/loadAgents.js
 import { loadConfig } from "../../config/loader.js";
 import { getProjectCwd } from "../../workspace/project.js";
 
-const DEFAULT_MAX_READ_SIZE = "1mb";
-
 const AgentsSchema = z.object({
 	path: z
 		.string()
@@ -35,7 +33,7 @@ export async function agentsImpl(input, options) {
 	// The orchestrator invokes the raw singleton without runtime options, so fall back to
 	// the live config. loadConfig() is cached, so this reflects app mutations.
 	const allowedPaths = opts.allowedPaths || config.sandbox?.paths || [];
-	const maxReadSize = opts.maxReadSize || config.sandbox?.maxReadSize || DEFAULT_MAX_READ_SIZE;
+	const maxReadSize = opts.maxReadSize || config.sandbox.maxReadSize;
 
 	const resolved = validatePath(targetPath, allowedPaths);
 	if (!resolved.allowed) {

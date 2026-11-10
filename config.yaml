@@ -109,6 +109,19 @@ sandbox:
     - filesystem:exec
     - process:spawn
     - network:outbound
+  # Size limits, all in bytes
+  maxReadSize: 1048576
+  maxPaginatedReadSize: 52428800
+  maxWriteSize: 512000
+  maxDiffBuffer: 16777216
+  git:
+    maxBuffer: 67108864
+  pdf:
+    maxFileSize: 52428800
+  audio:
+    maxFileSize: 26214400
+api:
+  maxBodySize: 10485760
 persistence:
   mode: sqlite
 vector:
@@ -116,6 +129,7 @@ vector:
   searchMode: hybrid
   fulltext: true
   ftsTokenize: "porter unicode61"
+  maxFileSize: 524288
   projects: {}
 memory:
   directory: memory/
@@ -195,3 +209,4 @@ cwd: ""
 image:
   maxWidth: 1920
   maxDimension: 3000
+  evictionBudgetChars: 2000000

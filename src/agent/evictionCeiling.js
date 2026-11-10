@@ -1,4 +1,5 @@
 import { createFilesystemMiddleware } from "deepagents";
+import { loadConfig } from "../config/loader.js";
 
 /**
  * Character allowance for the JSON envelope that wraps the base64 payload in a
@@ -17,22 +18,16 @@ export const ENVELOPE_HEADROOM = 128;
 export const CHARS_PER_TOKEN = 4;
 
 /**
- * Fixed base64 character budget for the eviction ceiling. `readImage` no
- * longer enforces a size limit (the model handles whatever it is sent), so the
- * ceiling must sit above any realistic image or deepagents' 20,000-token
- * default (80,000 chars) would evict it and replace it with prose.
- */
-export const IMAGE_EVICTION_BUDGET_CHARS = 2000000;
-
-/**
- * Derive deepagents' `toolTokenLimitBeforeEvict`: the fixed image budget plus
- * envelope headroom, divided by `CHARS_PER_TOKEN` (deepagents evicts when the
- * stringified content exceeds `limit * 4` characters).
+ * Derive deepagents' `toolTokenLimitBeforeEvict`: the configured image budget
+ * (`image.evictionBudgetChars`) plus envelope headroom, divided by
+ * `CHARS_PER_TOKEN` (deepagents evicts when the stringified content exceeds
+ * `limit * 4` characters).
  *
  * @returns {number} The token limit to pass as `toolTokenLimitBeforeEvict`
  */
 export function deriveToolTokenLimitBeforeEvict() {
-	return Math.ceil((IMAGE_EVICTION_BUDGET_CHARS + ENVELOPE_HEADROOM) / CHARS_PER_TOKEN);
+	const budget = loadConfig().image.evictionBudgetChars;
+	return Math.ceil((budget + ENVELOPE_HEADROOM) / CHARS_PER_TOKEN);
 }
 
 /**

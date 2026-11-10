@@ -31,7 +31,7 @@ describe("agents tool - agentsImpl", () => {
 		await setup();
 		options = {
 			allowedPaths: [tmpdir()],
-			maxReadSize: "1mb",
+			maxReadSize: 1024 * 1024,
 		};
 	});
 
@@ -108,7 +108,7 @@ describe("agents tool - agentsImpl", () => {
 
 describe("agents tool - hardening", () => {
 	const dir = join(tmpdir(), "agents-hard-" + Date.now());
-	const options = { allowedPaths: [tmpdir()], maxReadSize: "1mb" };
+	const options = { allowedPaths: [tmpdir()], maxReadSize: 1024 * 1024 };
 
 	beforeEach(async () => {
 		await mkdir(dir, { recursive: true });

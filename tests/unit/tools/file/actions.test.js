@@ -30,7 +30,7 @@ import {
 
 let root;
 let outside;
-const opts = () => ({ allowedPaths: [root], maxReadSize: "1mb" });
+const opts = () => ({ allowedPaths: [root], maxReadSize: 1024 * 1024 });
 const p = (name) => join(root, name);
 const edit = (name, input) => editImpl({ path: p(name), ...input }, opts());
 
@@ -301,7 +301,7 @@ describe("tools - file actions", () => {
 
 		it("paginates a file larger than the whole-file limit", async () => {
 			writeFileSync(p("large.txt"), "line\n".repeat(300_000));
-			const small = { allowedPaths: [root], maxReadSize: "100kb" };
+			const small = { allowedPaths: [root], maxReadSize: 100 * 1024 };
 			assert.strictEqual((await readImpl({ path: p("large.txt") }, small)).ok, false);
 			const page = await readImpl({ path: p("large.txt"), offset: 10, limit: 2 }, small);
 			assert.strictEqual(page.ok, true);

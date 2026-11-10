@@ -36,8 +36,6 @@ function detectMimeType(filePath) {
 	return MIME_TYPES[ext] || "application/octet-stream";
 }
 
-const DEFAULT_MAX_DIMENSION = 3000;
-
 /**
  * Downscale a raster image so neither width nor height exceeds `maxDimension`,
  * preserving aspect ratio and never enlarging. SVG and undecodable inputs are
@@ -106,7 +104,7 @@ export async function readImageImpl(input, options = {}) {
 	}
 
 	const mimeType = detectMimeType(validation.path);
-	const maxDimension = config.image?.maxDimension || DEFAULT_MAX_DIMENSION;
+	const maxDimension = config.image.maxDimension;
 	buffer = await constrainDimensions(buffer, mimeType, maxDimension);
 
 	// Return an image content block. LangChain keeps an array of content
