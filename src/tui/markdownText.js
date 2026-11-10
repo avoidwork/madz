@@ -72,7 +72,7 @@ function numberedLines(lines, indent) {
 		.map((line) => {
 			if (isPointedLine(line)) {
 				num++;
-				return line.replace(/\d+\./, num + ".");
+				return line;
 			}
 			return " ".repeat((num + 1).toString().length + 2) + line;
 		})
@@ -262,15 +262,16 @@ class TerminalRenderer extends Renderer {
 
 	list(token) {
 		const ordered = token.ordered;
+		const start = Number(token.start) || 1;
 		let body = "";
 		for (let j = 0; j < token.items.length; j++) {
-			body += this.listitem(token.items[j]);
+			body += this.listitem(token.items[j], ordered ? `${start + j}.` : "*");
 		}
 		body = this.o.list(body, ordered, this.tab);
 		return fixNestedLists(indentLines(this.tab, body), this.tab) + "\n\n";
 	}
 
-	listitem(item) {
+	listitem(item, marker = "*") {
 		// `marked` already emits a `checkbox` token in `item.tokens` for task
 		// items, and `checkbox()` renders it as `[ ] ` / `[X] `. Do NOT prepend
 		// the checkbox again here — doing so duplicates it (e.g. `[ ] [ ] Text`).
@@ -279,7 +280,7 @@ class TerminalRenderer extends Renderer {
 		var isNested = text.indexOf("\n") !== -1;
 		if (isNested) text = text.trim();
 
-		return "\n" + "* " + transform(text);
+		return "\n" + marker + " " + transform(text);
 	}
 
 	checkbox({ checked }) {

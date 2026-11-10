@@ -12,6 +12,7 @@ import {
 	getParseCacheStats,
 	MarkdownTextInner,
 } from "../../src/tui/markdownText.js";
+import { formatClarifyPrompt } from "../../src/shared/clarifyPrompt.js";
 
 // Helper: strip ANSI escape codes for comparison
 function stripAnsi(str) {
@@ -381,6 +382,64 @@ describe("parseMarkdown - ordered lists", () => {
 		assert.ok(stripped.includes("one"));
 		assert.ok(stripped.includes("five"));
 		assert.ok(stripped.includes("ten"));
+	});
+
+	it("numbers ordered list items instead of using bullets", () => {
+		const lines = stripAnsi(parseMarkdown("Steps:\n\n1. first\n2. second\n3. third"))
+			.split("\n")
+			.map((line) => line.trim())
+			.filter(Boolean);
+		assert.deepStrictEqual(lines, ["Steps:", "1. first", "2. second", "3. third"]);
+	});
+
+	it("numbers items sequentially from the list's starting number", () => {
+		const lines = stripAnsi(parseMarkdown("Steps:\n\n3. three\n9. nine"))
+			.split("\n")
+			.map((line) => line.trim())
+			.filter(Boolean);
+		assert.deepStrictEqual(lines, ["Steps:", "3. three", "4. nine"]);
+	});
+
+	it("numbers a list past nine items", () => {
+		const md = "Steps:\n\n" + Array.from({ length: 11 }, (_, i) => `${i + 1}. item`).join("\n");
+		const text = stripAnsi(parseMarkdown(md));
+		assert.ok(text.includes("9. item"));
+		assert.ok(text.includes("10. item"));
+		assert.ok(text.includes("11. item"));
+	});
+
+	it("does not alter numbers that are part of an item's text", () => {
+		const text = stripAnsi(parseMarkdown("Notes:\n\n1. version 2.0 released\n2. second"));
+		assert.ok(text.includes("1. version 2.0 released"));
+		assert.ok(text.includes("2. second"));
+	});
+
+	it("keeps bullets for unordered lists", () => {
+		const text = stripAnsi(parseMarkdown("Items:\n\n- a\n- b"));
+		assert.ok(text.includes("* a"));
+		assert.ok(text.includes("* b"));
+		assert.strictEqual(/\d\./.test(text), false);
+	});
+
+	it("numbers an ordered list nested in an unordered one", () => {
+		const text = stripAnsi(parseMarkdown("Items:\n\n- a\n  1. x\n  2. y\n- b"));
+		assert.ok(text.includes("* a"));
+		assert.ok(text.includes("1. x"));
+		assert.ok(text.includes("2. y"));
+	});
+
+	it("keeps bullets for an unordered list nested in an ordered one", () => {
+		const text = stripAnsi(parseMarkdown("Items:\n\n1. a\n   - x\n2. b"));
+		assert.ok(text.includes("1. a"));
+		assert.ok(text.includes("* x"));
+		assert.ok(text.includes("2. b"));
+	});
+
+	it("renders a clarify prompt's options as a numbered list", () => {
+		const text = stripAnsi(parseMarkdown(formatClarifyPrompt("Which?", ["Python", "Go"])));
+		assert.ok(text.includes("1. Python"));
+		assert.ok(text.includes("2. Go"));
+		assert.strictEqual(text.includes("* Python"), false);
 	});
 });
 
