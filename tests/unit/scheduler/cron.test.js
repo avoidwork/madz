@@ -1119,7 +1119,7 @@ describe("Cron._readJobsFromDisk", () => {
 		assert.strictEqual(jobs.length, 1);
 		assert.strictEqual(
 			jobs[0].command,
-			`cd ${process.cwd()} && node index.js --message "Run the report-gen skill ${JSON.stringify({ format: "pdf", region: "na" })}"`,
+			`cd ${process.cwd()} && node index.js --message "Run the report-gen skill ${JSON.stringify({ format: "pdf", region: "na" }).replaceAll('"', '\\"')}"`,
 		);
 	});
 

@@ -104,8 +104,31 @@ export function sanitizeCrontabCommand(command) {
  * @returns {string} The prepared command
  */
 export function prepareCrontabCommand(command) {
-	const sanitized = sanitizeCrontabCommand(command);
+	// An unescaped % in a crontab command line is turned into a newline by cron, so escape it.
+	const sanitized = sanitizeCrontabCommand(command).replace(/(?<!\\)%/g, "\\%");
 	return `. ${join(process.cwd(), ".env.cron")} 2>/dev/null || true && ${sanitized}`;
+}
+
+/**
+ * Escape a string for safe use inside a double-quoted shell string.
+ * @param {string} value - Raw value
+ * @returns {string} Value with \, ", $ and ` backslash-escaped
+ */
+function escapeDoubleQuoted(value) {
+	return String(value).replace(/[\\"$`]/g, "\\$&");
+}
+
+/**
+ * Build the shell command that runs a skill through the madz CLI.
+ * The skill name and serialized input are escaped so they cannot break out of
+ * the double-quoted --message argument.
+ * @param {string} skill - Skill name
+ * @param {object} [input] - Job input
+ * @returns {string} Shell command
+ */
+export function buildSkillCommand(skill, input) {
+	const inputStr = input && Object.keys(input).length ? ` ${JSON.stringify(input)}` : "";
+	return `cd ${process.cwd()} && node index.js --message "${escapeDoubleQuoted(`Run the ${skill} skill${inputStr}`)}"`;
 }
 
 /**
@@ -502,11 +525,7 @@ export const Cron = {
 					const content = await readFile(join(schedulesDir, file), "utf-8");
 					const job = JSON.parse(content);
 					if (job.name && job.cron && (job.skill || job.command)) {
-						const inputStr =
-							job.input && Object.keys(job.input).length ? ` ${JSON.stringify(job.input)}` : "";
-						const command =
-							job.command ||
-							`cd ${process.cwd()} && node index.js --message "Run the ${job.skill} skill${inputStr}"`;
+						const command = job.command || buildSkillCommand(job.skill, job.input);
 						jobs.push({
 							name: job.name,
 							cron: job.cron,
