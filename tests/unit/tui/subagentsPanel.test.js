@@ -398,20 +398,20 @@ describe("SubagentsPanel", () => {
 		assert.ok(result.includes("subagent says hi"));
 	});
 
-	it("renders subagent tool calls", () => {
+	it("renders each tool call once (no duplicate toolCalls list)", () => {
 		const result = renderToString(
 			React.createElement(SubagentsPanel, {
 				subagentStore: {
 					"task:abc": {
 						namespace: "task:abc",
-						segments: [],
+						segments: [{ type: "tool", content: "out", name: "read_file" }],
 						toolCalls: [{ name: "read_file", status: "done" }],
 					},
 				},
 				activeView: "subagents",
 			}),
 		);
-		assert.ok(result.includes("read_file"));
+		assert.strictEqual(result.split("🔧").length - 1, 1);
 	});
 
 	const reasoningStore = {
