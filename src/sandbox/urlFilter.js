@@ -222,7 +222,10 @@ export async function filterUrlResolved(url, allowlist = [], { resolve = resolve
 		return { allowed: false, reason: `DNS resolution failed for ${hostname}` };
 	}
 	if (addresses.some((address) => isInternalHost(address))) {
-		return { allowed: false, reason: `Blocked internal host: ${hostname} resolves to internal address` };
+		return {
+			allowed: false,
+			reason: `Blocked internal host: ${hostname} resolves to internal address`,
+		};
 	}
 	return base;
 }

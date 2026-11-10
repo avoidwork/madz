@@ -56,7 +56,10 @@ describe("api input validation", () => {
 
 	it("rejects invalid URL, method and unknown fields", async () => {
 		assert.match((await apiImpl({ url: "not-a-url" })).error, /Invalid input/);
-		assert.match((await apiImpl({ url: "https://example.com", method: "NOPE" })).error, /Invalid input/);
+		assert.match(
+			(await apiImpl({ url: "https://example.com", method: "NOPE" })).error,
+			/Invalid input/,
+		);
 		assert.match((await apiImpl({ method: "GET" })).error, /Invalid input/);
 	});
 
@@ -77,7 +80,10 @@ describe("api input validation", () => {
 	});
 
 	it("rejects a body on GET and body+form together", async () => {
-		assert.match((await makeApiRequest("https://example.com", { ...base, body: "x" })).error, /not allowed for GET/);
+		assert.match(
+			(await makeApiRequest("https://example.com", { ...base, body: "x" })).error,
+			/not allowed for GET/,
+		);
 		const both = await makeApiRequest("https://example.com", {
 			...base,
 			method: "POST",
@@ -160,7 +166,9 @@ describe("api SSRF protection", () => {
 	});
 
 	it("stops after maxRedirects", async () => {
-		const { fetch } = stub([res({ status: 302, headers: { location: "https://example.com/loop" } })]);
+		const { fetch } = stub([
+			res({ status: 302, headers: { location: "https://example.com/loop" } }),
+		]);
 		const r = await makeApiRequest("https://example.com/", { ...base, fetch, maxRedirects: 2 });
 		assert.match(r.error, /Too many redirects/);
 	});
@@ -205,7 +213,12 @@ describe("api redirects and credentials", () => {
 
 	it("turns POST into GET on 303 and drops the body", async () => {
 		const { fetch, calls } = stub([res({ status: 303, headers: { location: "/r" } }), res()]);
-		await makeApiRequest("https://example.com/", { ...base, fetch, method: "POST", body: { a: 1 } });
+		await makeApiRequest("https://example.com/", {
+			...base,
+			fetch,
+			method: "POST",
+			body: { a: 1 },
+		});
 		assert.strictEqual(calls[1].options.method, "GET");
 		assert.strictEqual(calls[1].options.body, undefined);
 	});
@@ -216,9 +229,15 @@ describe("api redirects and credentials", () => {
 			const r = await makeApiRequest("https://example.com/", { ...base, fetch, auth });
 			return { r, headers: calls[0]?.options.headers };
 		};
-		assert.strictEqual((await run({ type: "bearer", token: "t" })).headers.Authorization, "Bearer t");
+		assert.strictEqual(
+			(await run({ type: "bearer", token: "t" })).headers.Authorization,
+			"Bearer t",
+		);
 		const basic = await run({ type: "basic", username: "u", password: "p" });
-		assert.strictEqual(basic.headers.Authorization, `Basic ${Buffer.from("u:p").toString("base64")}`);
+		assert.strictEqual(
+			basic.headers.Authorization,
+			`Basic ${Buffer.from("u:p").toString("base64")}`,
+		);
 		const legacy = await run({ type: "basic", token: "u:p" });
 		assert.ok(legacy.headers.Authorization.startsWith("Basic "));
 		assert.strictEqual((await run({ type: "apikey", key: "X-K", token: "v" })).headers["X-K"], "v");
@@ -258,24 +277,37 @@ describe("api credential profiles", () => {
 	});
 
 	it("reports unknown and unconfigured credentials without leaking values", () => {
-		assert.match(resolveCredential("nope", policy, {}).error, /Unknown credential: nope \(available: github, svc\)/);
+		assert.match(
+			resolveCredential("nope", policy, {}).error,
+			/Unknown credential: nope \(available: github, svc\)/,
+		);
 		assert.match(resolveCredential("github", policy, {}).error, /GH_TOKEN is not set/);
 	});
 
 	it("sends the credential only to permitted hosts", async () => {
 		const { fetch, calls } = stub([res()]);
 		const runtime = { env: { GH_TOKEN: "abc" }, fetch, resolve: PUBLIC, sleep: noSleep };
-		const ok = await apiImpl({ url: "https://api.github.com/user", credential: "github" }, policy, runtime);
+		const ok = await apiImpl(
+			{ url: "https://api.github.com/user", credential: "github" },
+			policy,
+			runtime,
+		);
 		assert.strictEqual(ok.ok, true);
 		assert.strictEqual(calls[0].options.headers.Authorization, "Bearer abc");
-		const denied = await apiImpl({ url: "https://evil.com/", credential: "github" }, policy, runtime);
+		const denied = await apiImpl(
+			{ url: "https://evil.com/", credential: "github" },
+			policy,
+			runtime,
+		);
 		assert.match(denied.error, /not permitted for host evil.com/);
 		assert.strictEqual(calls.length, 1);
 	});
 
 	it("rejects incomplete profiles at config time", () => {
 		assert.throws(() => ApiSchema.parse({ credentials: { x: { type: "bearer" } } }));
-		assert.throws(() => ApiSchema.parse({ credentials: { x: { type: "basic", usernameEnv: "U" } } }));
+		assert.throws(() =>
+			ApiSchema.parse({ credentials: { x: { type: "basic", usernameEnv: "U" } } }),
+		);
 		assert.throws(() => ApiSchema.parse({ credentials: { x: { type: "apikey", tokenEnv: "T" } } }));
 	});
 });
@@ -283,7 +315,11 @@ describe("api credential profiles", () => {
 describe("api request building", () => {
 	it("appends query parameters to existing ones", async () => {
 		const { fetch, calls } = stub([res()]);
-		await makeApiRequest("https://example.com/a?x=1", { ...base, fetch, query: { q: "a b", n: 2, f: true } });
+		await makeApiRequest("https://example.com/a?x=1", {
+			...base,
+			fetch,
+			query: { q: "a b", n: 2, f: true },
+		});
 		const url = new URL(calls[0].url);
 		assert.strictEqual(url.searchParams.get("x"), "1");
 		assert.strictEqual(url.searchParams.get("q"), "a b");
@@ -293,7 +329,12 @@ describe("api request building", () => {
 
 	it("sends JSON for objects with a default Content-Type", async () => {
 		const { fetch, calls } = stub([res()]);
-		await makeApiRequest("https://example.com/", { ...base, fetch, method: "POST", body: { k: "v" } });
+		await makeApiRequest("https://example.com/", {
+			...base,
+			fetch,
+			method: "POST",
+			body: { k: "v" },
+		});
 		assert.strictEqual(calls[0].options.body, '{"k":"v"}');
 		assert.strictEqual(calls[0].options.headers["Content-Type"], "application/json");
 	});
@@ -307,7 +348,9 @@ describe("api request building", () => {
 			body: { k: "v" },
 			headers: { "content-type": "application/vnd.api+json" },
 		});
-		const names = Object.keys(calls[0].options.headers).filter((h) => h.toLowerCase() === "content-type");
+		const names = Object.keys(calls[0].options.headers).filter(
+			(h) => h.toLowerCase() === "content-type",
+		);
 		assert.deepStrictEqual(names, ["content-type"]);
 	});
 
@@ -322,13 +365,21 @@ describe("api request building", () => {
 		for (const body of [0, false, null, ""]) {
 			const { fetch, calls } = stub([res()]);
 			await makeApiRequest("https://example.com/", { ...base, fetch, method: "POST", body });
-			assert.strictEqual(calls[0].options.body, typeof body === "string" ? body : JSON.stringify(body));
+			assert.strictEqual(
+				calls[0].options.body,
+				typeof body === "string" ? body : JSON.stringify(body),
+			);
 		}
 	});
 
 	it("sends a body on DELETE", async () => {
 		const { fetch, calls } = stub([res()]);
-		await makeApiRequest("https://example.com/", { ...base, fetch, method: "DELETE", body: { id: 1 } });
+		await makeApiRequest("https://example.com/", {
+			...base,
+			fetch,
+			method: "DELETE",
+			body: { id: 1 },
+		});
 		assert.strictEqual(calls[0].options.body, '{"id":1}');
 	});
 
@@ -341,7 +392,10 @@ describe("api request building", () => {
 			form: { a: "x y", b: 2 },
 		});
 		assert.strictEqual(calls[0].options.body, "a=x+y&b=2");
-		assert.strictEqual(calls[0].options.headers["Content-Type"], "application/x-www-form-urlencoded");
+		assert.strictEqual(
+			calls[0].options.headers["Content-Type"],
+			"application/x-www-form-urlencoded",
+		);
 	});
 
 	it("supports HEAD and OPTIONS", async () => {
@@ -429,7 +483,9 @@ describe("api responses", () => {
 	});
 
 	it("measures the size cap in bytes, not characters", async () => {
-		const { fetch } = stub([new Response("é".repeat(600), { headers: { "content-type": "text/plain" } })]);
+		const { fetch } = stub([
+			new Response("é".repeat(600), { headers: { "content-type": "text/plain" } }),
+		]);
 		const r = await makeApiRequest("https://example.com/", { ...base, fetch, maxBodySize: 1024 });
 		assert.match(r.error, /too large/);
 	});
@@ -469,7 +525,12 @@ describe("api timeouts and retries", () => {
 
 	it("reports AbortError as a timeout", async () => {
 		const { fetch } = stub([Object.assign(new Error("aborted"), { name: "AbortError" })]);
-		const r = await makeApiRequest("https://example.com/", { ...base, fetch, maxRetries: 0, timeout: 100 });
+		const r = await makeApiRequest("https://example.com/", {
+			...base,
+			fetch,
+			maxRetries: 0,
+			timeout: 100,
+		});
 		assert.match(r.error, /timed out after 100ms/);
 	});
 
@@ -498,10 +559,20 @@ describe("api timeouts and retries", () => {
 
 	it("does not retry non-idempotent POST on 5xx or network errors", async () => {
 		const a = stub([res({ status: 503 })]);
-		await makeApiRequest("https://example.com/", { ...base, fetch: a.fetch, method: "POST", body: "x" });
+		await makeApiRequest("https://example.com/", {
+			...base,
+			fetch: a.fetch,
+			method: "POST",
+			body: "x",
+		});
 		assert.strictEqual(a.calls.length, 1);
 		const b = stub([new Error("ECONNRESET")]);
-		await makeApiRequest("https://example.com/", { ...base, fetch: b.fetch, method: "POST", body: "x" });
+		await makeApiRequest("https://example.com/", {
+			...base,
+			fetch: b.fetch,
+			method: "POST",
+			body: "x",
+		});
 		assert.strictEqual(b.calls.length, 1);
 	});
 
@@ -569,8 +640,11 @@ describe("api rate limiter", () => {
 		return {
 			now: () => t,
 			sleep: async (ms) => {
+				// Concurrent sleepers wait in parallel: all compute their wake time from the same instant.
+				const wake = t + ms;
 				sleeps.push(ms);
-				t += ms;
+				await Promise.resolve();
+				t = Math.max(t, wake);
 			},
 			sleeps,
 		};
