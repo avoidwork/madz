@@ -2,7 +2,6 @@
 
 The built-in capabilities of the madz harness — providers, agents, tools, MCP, skills, memory, sandbox, telemetry, vector search, and cron scheduling.
 
-
 ### Onboarding
 
 On first launch, `madz` starts an interactive onboarding flow that collects your profile — attractor (primary interest), expertise areas, dev tools, communication style preferences. This profile is stored as `memory/context/profile.md` and is loaded into the system prompt every session, making madz deeply personalized from the very first message. To re-trigger onboarding, delete `memory/context/profile.md` and restart.
@@ -37,37 +36,37 @@ Uses the [Deep Agents](https://github.com/langchain-ai/deepagentsjs) library to 
 
 Tool access below is the madz tool set each agent receives via `TOOL_CLASSIFICATIONS` in `src/tools/index.js`. All subagents also carry the deepagents filesystem tools (`readFile`, `writeFile`, `patch`, `searchFiles`), which are not listed here.
 
-| Agent | Purpose | Tool Access |
-| ----- | ------- | ----------- |
-| `code-review` | Structured code reviews covering bugs, security, style, performance | `clarify`, `skill`, `date`, `memory`, `todo`, `agents`, `searchCode`, `getConfig` |
-| `coding` | Code implementation with read-before-write discipline, complete shipping, convention adherence, and dead-code elimination | `clarify`, `skill`, `date`, `readImage`, `memory`, `todo`, `process`, `agents`, `searchWeb`, `browser`, `docx`, `pptx`, `xlsx`, `pdf`, `email`, `spreadsheet`, `calendar`, `generatePdf`, `namecom`, `generatePptx`, `api`, `graphql`, `json`, `yaml`, `data`, `webhook`, `searchCode`, `indexCode`, `getConfig` |
-| `debug` | Error tracing, reproduction, and fix proposals | `clarify`, `skill`, `date`, `readImage`, `memory`, `todo`, `process`, `docx`, `pptx`, `xlsx`, `pdf`, `email`, `spreadsheet`, `calendar`, `generatePdf`, `namecom`, `generatePptx`, `api`, `graphql`, `json`, `yaml`, `data`, `webhook`, `searchCode`, `indexCode`, `getConfig` |
-| `documentation` | Documentation updates, API docs generation, changelog maintenance | `clarify`, `createSkill`, `skill`, `date`, `generateImage`, `readImage`, `memory`, `todo`, `sampling`, `textToSpeech`, `docx`, `pptx`, `xlsx`, `pdf`, `email`, `spreadsheet`, `calendar`, `generatePdf`, `namecom`, `generatePptx`, `api`, `graphql`, `json`, `yaml`, `data`, `webhook`, `searchCode`, `getConfig` |
-| `performance` | Performance benchmarking, bottleneck identification, optimization suggestions | `clarify`, `cronJob`, `skill`, `date`, `memory`, `todo`, `process`, `calendar`, `searchCode`, `indexCode`, `getConfig` |
-| `research` | Multi-step research with source tracking and comprehensive reports | `clarify`, `skill`, `date`, `readImage`, `memory`, `todo`, `searchSession`, `searchWeb`, `browser`, `docx`, `pptx`, `xlsx`, `pdf`, `email`, `spreadsheet`, `calendar`, `generatePdf`, `namecom`, `generatePptx`, `api`, `graphql`, `json`, `yaml`, `data`, `webhook`, `searchCode`, `getConfig` |
-| `search` | Multi-source search (web, docs, codebase) with synthesis | `clarify`, `skill`, `date`, `readImage`, `memory`, `todo`, `searchSession`, `searchWeb`, `browser`, `docx`, `pptx`, `xlsx`, `pdf`, `email`, `spreadsheet`, `calendar`, `generatePdf`, `namecom`, `generatePptx`, `api`, `graphql`, `json`, `yaml`, `data`, `webhook`, `searchCode`, `getConfig` |
-| `security-audit` | Security scanning, dependency auditing, vulnerability detection | `clarify`, `cronJob`, `skill`, `date`, `memory`, `todo`, `agents`, `searchCode`, `getConfig` |
-| `seoAnalyst` | SEO analysis — keyword density, meta description generation, SERP analysis, content optimization | `skill`, `searchCode` |
-| `testing` | Test generation, gap analysis, and coverage improvements | `clarify`, `skill`, `date`, `memory`, `todo`, `searchCode`, `getConfig` |
-| `textEditor` | Text processing — summarize, rewrite, tone adjustment, grammar correction, shorten, expand | `skill` |
-| `translator` | Multi-language translation and language detection | `skill` |
+| Agent            | Purpose                                                                                                                   | Tool Access                                                                                                                                                                                                                                                                                                        |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `code-review`    | Structured code reviews covering bugs, security, style, performance                                                       | `clarify`, `skill`, `date`, `memory`, `todo`, `agents`, `searchCode`, `getConfig`                                                                                                                                                                                                                                  |
+| `coding`         | Code implementation with read-before-write discipline, complete shipping, convention adherence, and dead-code elimination | `clarify`, `skill`, `date`, `readImage`, `memory`, `todo`, `process`, `agents`, `searchWeb`, `browser`, `docx`, `pptx`, `xlsx`, `pdf`, `email`, `spreadsheet`, `calendar`, `generatePdf`, `namecom`, `generatePptx`, `api`, `graphql`, `json`, `yaml`, `data`, `webhook`, `searchCode`, `indexCode`, `getConfig`   |
+| `debug`          | Error tracing, reproduction, and fix proposals                                                                            | `clarify`, `skill`, `date`, `readImage`, `memory`, `todo`, `process`, `docx`, `pptx`, `xlsx`, `pdf`, `email`, `spreadsheet`, `calendar`, `generatePdf`, `namecom`, `generatePptx`, `api`, `graphql`, `json`, `yaml`, `data`, `webhook`, `searchCode`, `indexCode`, `getConfig`                                     |
+| `documentation`  | Documentation updates, API docs generation, changelog maintenance                                                         | `clarify`, `createSkill`, `skill`, `date`, `generateImage`, `readImage`, `memory`, `todo`, `sampling`, `textToSpeech`, `docx`, `pptx`, `xlsx`, `pdf`, `email`, `spreadsheet`, `calendar`, `generatePdf`, `namecom`, `generatePptx`, `api`, `graphql`, `json`, `yaml`, `data`, `webhook`, `searchCode`, `getConfig` |
+| `performance`    | Performance benchmarking, bottleneck identification, optimization suggestions                                             | `clarify`, `cronJob`, `skill`, `date`, `memory`, `todo`, `process`, `calendar`, `searchCode`, `indexCode`, `getConfig`                                                                                                                                                                                             |
+| `research`       | Multi-step research with source tracking and comprehensive reports                                                        | `clarify`, `skill`, `date`, `readImage`, `memory`, `todo`, `searchSession`, `searchWeb`, `browser`, `docx`, `pptx`, `xlsx`, `pdf`, `email`, `spreadsheet`, `calendar`, `generatePdf`, `namecom`, `generatePptx`, `api`, `graphql`, `json`, `yaml`, `data`, `webhook`, `searchCode`, `getConfig`                    |
+| `search`         | Multi-source search (web, docs, codebase) with synthesis                                                                  | `clarify`, `skill`, `date`, `readImage`, `memory`, `todo`, `searchSession`, `searchWeb`, `browser`, `docx`, `pptx`, `xlsx`, `pdf`, `email`, `spreadsheet`, `calendar`, `generatePdf`, `namecom`, `generatePptx`, `api`, `graphql`, `json`, `yaml`, `data`, `webhook`, `searchCode`, `getConfig`                    |
+| `security-audit` | Security scanning, dependency auditing, vulnerability detection                                                           | `clarify`, `cronJob`, `skill`, `date`, `memory`, `todo`, `agents`, `searchCode`, `getConfig`                                                                                                                                                                                                                       |
+| `seoAnalyst`     | SEO analysis — keyword density, meta description generation, SERP analysis, content optimization                          | `skill`, `searchCode`                                                                                                                                                                                                                                                                                              |
+| `testing`        | Test generation, gap analysis, and coverage improvements                                                                  | `clarify`, `skill`, `date`, `memory`, `todo`, `searchCode`, `getConfig`                                                                                                                                                                                                                                            |
+| `textEditor`     | Text processing — summarize, rewrite, tone adjustment, grammar correction, shorten, expand                                | `skill`                                                                                                                                                                                                                                                                                                            |
+| `translator`     | Multi-language translation and language detection                                                                         | `skill`                                                                                                                                                                                                                                                                                                            |
 
 **Default subagent temperatures:**
 
-| Agent | Temperature | Rationale |
-| ----- | ----------- | --------- |
-| `code-review` | 0.1 | Maximum precision for review |
-| `coding` | 0.3 | Balanced creativity and precision |
-| `debug` | 0.2 | Precision work |
-| `documentation` | 0.3 | Balanced output |
-| `performance` | 0.2 | Structured analysis |
-| `research` | 0.5 | Exploratory research |
-| `search` | 0.5 | Exploratory search |
-| `security-audit` | 0.1 | Maximum precision for security analysis |
-| `seoAnalyst` | 0.3 | Analytical precision with room for insight |
-| `testing` | 0.2 | Structured, deterministic output |
-| `textEditor` | 0.4 | Balanced creativity and precision for language |
-| `translator` | 0.3 | Nuanced translation with cultural fidelity |
+| Agent            | Temperature | Rationale                                      |
+| ---------------- | ----------- | ---------------------------------------------- |
+| `code-review`    | 0.1         | Maximum precision for review                   |
+| `coding`         | 0.3         | Balanced creativity and precision              |
+| `debug`          | 0.2         | Precision work                                 |
+| `documentation`  | 0.3         | Balanced output                                |
+| `performance`    | 0.2         | Structured analysis                            |
+| `research`       | 0.5         | Exploratory research                           |
+| `search`         | 0.5         | Exploratory search                             |
+| `security-audit` | 0.1         | Maximum precision for security analysis        |
+| `seoAnalyst`     | 0.3         | Analytical precision with room for insight     |
+| `testing`        | 0.2         | Structured, deterministic output               |
+| `textEditor`     | 0.4         | Balanced creativity and precision for language |
+| `translator`     | 0.3         | Nuanced translation with cultural fidelity     |
 
 Temperatures are configurable via `subAgentsTemperature` in `config.yaml` or environment variables (`SUB_AGENTS_TEMPERATURE_<AGENT_NAME>`).
 
@@ -79,45 +78,45 @@ The orchestrator also manages two filesystem backends via the deepagents `Compos
 
 All built-in tools are defined in `src/tools/` and registered as LangChain tools, gated by sandbox permissions.
 
-| Tool | Description |
-| ---- | ----------- |
-| `api` | REST API client with auth (bearer, basic, apikey), URL filtering, timeouts, and rate limiting. |
-| `calendar` | Read, create, and manage calendar events via Google Calendar API. |
-| `clarify` | Send clarification questions to the user with optional numbered choices. Zero permissions — always registered. |
-| `createSkill` | Create a spec-compliant skill directory with SKILL.md YAML frontmatter. Optionally scaffolds a `scripts/` directory. |
-| `cronJob` | Manage scheduled cron jobs — create, list, update, pause, resume, run, remove. Persisted to `memory/schedules/`. Available to the orchestrator agent. |
-| `browser` | Drive a real headless Chromium browser — click, type, fill, navigate, press keys, screenshot, extract DOM text, wait for selectors/network-idle, and evaluate JavaScript in page context. Validates every outbound URL against the sandbox allowlist. Pass a `sessionId` to chain actions across calls within a persistent browser session. |
-| `data` | Format conversion between JSON, YAML, and CSV. |
-| `date` | Return current date/time in ISO 8601 UTC or human-readable format. Zero permissions — always registered. |
-| `decision` | Make fast, structured decisions using a local decision model via Ollama's `/v1/systemone` endpoint. Accepts a `state` (string or JSON object/array) and a `questions` record (each with a `type` of `choice`, `noul`, or `score`), returning structured answers. Config-gated — only registered when `agent.decision.baseUrl` is set. |
-| `docx` | Read and extract content from `.docx` (Word) documents. |
-| `email` | Read, send, manage drafts, organize, and search emails. Actions: `read`, `send`, `draftSave`, `draftList`, `draftUpdate`, `draftDelete`, `organize`, `search`. Requires email provider credentials via environment variables. |
-| `generateImage` | Generate images via FAL.ai flux/klein API. |
-| `generatePdf` | Generate PDFs from HTML or markdown, or manipulate existing PDFs (merge, split, watermark, signature, annotate). Use action to specify the operation. |
-| `generatePptx` | Generate PowerPoint presentations from a structured description. |
-| `getConfig` | Get the full harness configuration as a parsed JSON object. |
-| `graphql` | GraphQL client with depth/complexity limits, introspection support, and rate limiting. |
-| `indexCode` | Index project source code for vector search. Scans configured project directories, chunks source files, generates embeddings, and stores them for semantic search. Runs incrementally — only processes changed files. |
-| `json` | JSON parse, serialize, transform, filter, and access operations. |
-| `memory` | Persistent key-value memory with CRUD actions (create, read, update, delete, list). Each entry stored as `.md` in `memory/context/` with `createdDate`/`updatedDate` metadata. |
-| `namecom` | DNS name resolution and lookup. |
-| `pdf` | Read and extract content from PDF documents. |
-| `pptx` | Read and extract content from `.pptx` (PowerPoint) documents. |
-| `process` | Execute shell commands and manage background processes. Actions: start (launch command), list (show all), log (read stdout/stderr), wait (wait for exit), kill (SIGTERM/SIGKILL), write (send stdin data), pause (SIGSTOP), resume (SIGCONT). |
-| `readImage` | Read an image file from disk and return its base64-encoded contents plus MIME type, for direct LLM vision analysis. |
-| `reflectionSessions` | Read session files, filter by date window and ignore patterns, extract user messages, and return structured data. |
-| `sampling` | Capture emotional moments as ephemeral memories. Rate-limited to 1 per 60 minutes. Stored with `expiresAt` frontmatter. |
-| `agents` | Scan for `AGENTS.md` workspace rules files in a target directory. Returns file contents or empty string. |
-| `searchCode` | Semantic code search using vector similarity. Finds conceptually related code even when exact keywords don't match — e.g., searching for "authentication" finds login handlers, token validation, and auth middleware. |
-| `searchSession` | Search past conversations by keyword query, full retrieval by conversation ID, or browse all sessions. |
-| `searchWeb` | Search the web via DuckDuckGo, Google, Bing, SearXNG, Custom, or Tavily endpoints. |
-| `skill` | Load a specialized skill when the task matches one listed in the system prompt. Returns the full SKILL.md body plus a sampled inventory of the skill's supporting files (scripts/, references/, assets/). |
-| `spreadsheet` | Spreadsheet computation and analysis. Actions: compute (sum, average, count, min, max, formula, median, stddev, variance), generate (create XLSX with formulas), analyze (pivot tables, filtering, groupBy, stats, percentile), csvImport, csvExport, modify (add/modify/delete cells and sheets), export (XLSX, CSV, JSON). |
-| `textToSpeech` | Convert text to speech via OpenAI TTS (tts-1/tts-1-hd). Saves MP3 to `~/voice-memos/`. |
-| `todo` | Task management with key-based CRUD. Actions: read (get all todos), create (add by key), update (modify by key), complete (mark done by key), delete (remove by key), list (all or filter by pending/completed), clear (remove all). Persists to `memory/tools/todo.json`. |
-| `webhook` | Webhook CRUD and HMAC verification with URL validation. |
-| `xlsx` | Read and extract content from `.xlsx` (Excel) spreadsheets. |
-| `yaml` | YAML parse, serialize, transform, filter, and access operations. |
+| Tool                 | Description                                                                                                                                                                                                                                                                                                                                                                                             |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `api`                | REST API client (GET/POST/PUT/DELETE/PATCH/HEAD/OPTIONS) with query, JSON, raw and form bodies. Authenticates through named server-side credential profiles (bearer, basic, apikey) so tokens never appear in model input. Re-validates every redirect hop, enforces a streamed byte cap and timeout, retries transient failures, and rate limits per host. Policy comes from the `api` config section. |
+| `calendar`           | Read, create, and manage calendar events via Google Calendar API.                                                                                                                                                                                                                                                                                                                                       |
+| `clarify`            | Send clarification questions to the user with optional numbered choices. Zero permissions — always registered.                                                                                                                                                                                                                                                                                          |
+| `createSkill`        | Create a spec-compliant skill directory with SKILL.md YAML frontmatter. Optionally scaffolds a `scripts/` directory.                                                                                                                                                                                                                                                                                    |
+| `cronJob`            | Manage scheduled cron jobs — create, list, update, pause, resume, run, remove. Persisted to `memory/schedules/`. Available to the orchestrator agent.                                                                                                                                                                                                                                                   |
+| `browser`            | Drive a real headless Chromium browser — click, type, fill, navigate, press keys, screenshot, extract DOM text, wait for selectors/network-idle, and evaluate JavaScript in page context. Validates every outbound URL against the sandbox allowlist. Pass a `sessionId` to chain actions across calls within a persistent browser session.                                                             |
+| `data`               | Format conversion between JSON, YAML, and CSV.                                                                                                                                                                                                                                                                                                                                                          |
+| `date`               | Return current date/time in ISO 8601 UTC or human-readable format. Zero permissions — always registered.                                                                                                                                                                                                                                                                                                |
+| `decision`           | Make fast, structured decisions using a local decision model via Ollama's `/v1/systemone` endpoint. Accepts a `state` (string or JSON object/array) and a `questions` record (each with a `type` of `choice`, `noul`, or `score`), returning structured answers. Config-gated — only registered when `agent.decision.baseUrl` is set.                                                                   |
+| `docx`               | Read and extract content from `.docx` (Word) documents.                                                                                                                                                                                                                                                                                                                                                 |
+| `email`              | Read, send, manage drafts, organize, and search emails. Actions: `read`, `send`, `draftSave`, `draftList`, `draftUpdate`, `draftDelete`, `organize`, `search`. Requires email provider credentials via environment variables.                                                                                                                                                                           |
+| `generateImage`      | Generate images via FAL.ai flux/klein API.                                                                                                                                                                                                                                                                                                                                                              |
+| `generatePdf`        | Generate PDFs from HTML or markdown, or manipulate existing PDFs (merge, split, watermark, signature, annotate). Use action to specify the operation.                                                                                                                                                                                                                                                   |
+| `generatePptx`       | Generate PowerPoint presentations from a structured description.                                                                                                                                                                                                                                                                                                                                        |
+| `getConfig`          | Get the full harness configuration as a parsed JSON object.                                                                                                                                                                                                                                                                                                                                             |
+| `graphql`            | GraphQL client with depth/complexity limits, introspection support, and rate limiting.                                                                                                                                                                                                                                                                                                                  |
+| `indexCode`          | Index project source code for vector search. Scans configured project directories, chunks source files, generates embeddings, and stores them for semantic search. Runs incrementally — only processes changed files.                                                                                                                                                                                   |
+| `json`               | JSON parse, serialize, transform, filter, and access operations.                                                                                                                                                                                                                                                                                                                                        |
+| `memory`             | Persistent key-value memory with CRUD actions (create, read, update, delete, list). Each entry stored as `.md` in `memory/context/` with `createdDate`/`updatedDate` metadata.                                                                                                                                                                                                                          |
+| `namecom`            | DNS name resolution and lookup.                                                                                                                                                                                                                                                                                                                                                                         |
+| `pdf`                | Read and extract content from PDF documents.                                                                                                                                                                                                                                                                                                                                                            |
+| `pptx`               | Read and extract content from `.pptx` (PowerPoint) documents.                                                                                                                                                                                                                                                                                                                                           |
+| `process`            | Execute shell commands and manage background processes. Actions: start (launch command), list (show all), log (read stdout/stderr), wait (wait for exit), kill (SIGTERM/SIGKILL), write (send stdin data), pause (SIGSTOP), resume (SIGCONT).                                                                                                                                                           |
+| `readImage`          | Read an image file from disk and return its base64-encoded contents plus MIME type, for direct LLM vision analysis.                                                                                                                                                                                                                                                                                     |
+| `reflectionSessions` | Read session files, filter by date window and ignore patterns, extract user messages, and return structured data.                                                                                                                                                                                                                                                                                       |
+| `sampling`           | Capture emotional moments as ephemeral memories. Rate-limited to 1 per 60 minutes. Stored with `expiresAt` frontmatter.                                                                                                                                                                                                                                                                                 |
+| `agents`             | Scan for `AGENTS.md` workspace rules files in a target directory. Returns file contents or empty string.                                                                                                                                                                                                                                                                                                |
+| `searchCode`         | Semantic code search using vector similarity. Finds conceptually related code even when exact keywords don't match — e.g., searching for "authentication" finds login handlers, token validation, and auth middleware.                                                                                                                                                                                  |
+| `searchSession`      | Search past conversations by keyword query, full retrieval by conversation ID, or browse all sessions.                                                                                                                                                                                                                                                                                                  |
+| `searchWeb`          | Search the web via DuckDuckGo, Google, Bing, SearXNG, Custom, or Tavily endpoints.                                                                                                                                                                                                                                                                                                                      |
+| `skill`              | Load a specialized skill when the task matches one listed in the system prompt. Returns the full SKILL.md body plus a sampled inventory of the skill's supporting files (scripts/, references/, assets/).                                                                                                                                                                                               |
+| `spreadsheet`        | Spreadsheet computation and analysis. Actions: compute (sum, average, count, min, max, formula, median, stddev, variance), generate (create XLSX with formulas), analyze (pivot tables, filtering, groupBy, stats, percentile), csvImport, csvExport, modify (add/modify/delete cells and sheets), export (XLSX, CSV, JSON).                                                                            |
+| `textToSpeech`       | Convert text to speech via OpenAI TTS (tts-1/tts-1-hd). Saves MP3 to `~/voice-memos/`.                                                                                                                                                                                                                                                                                                                  |
+| `todo`               | Task management with key-based CRUD. Actions: read (get all todos), create (add by key), update (modify by key), complete (mark done by key), delete (remove by key), list (all or filter by pending/completed), clear (remove all). Persists to `memory/tools/todo.json`.                                                                                                                              |
+| `webhook`            | Webhook CRUD and HMAC verification with URL validation.                                                                                                                                                                                                                                                                                                                                                 |
+| `xlsx`               | Read and extract content from `.xlsx` (Excel) spreadsheets.                                                                                                                                                                                                                                                                                                                                             |
+| `yaml`               | YAML parse, serialize, transform, filter, and access operations.                                                                                                                                                                                                                                                                                                                                        |
 
 **Deep Agents tools:** Core filesystem operations (`readFile`, `writeFile`, `patch`, `searchFiles`) are provided by [deepagentsjs](https://github.com/langchain-ai/deepagentsjs) and are not listed as madz-built-in tools. Task management is provided by the madz `todo` tool above.
 
@@ -149,11 +148,11 @@ mcp:
 
 #### Transports
 
-| Transport | Fields | Description |
-| --------- | ------ | ----------- |
-| `stdio` | `command`, `args`, `env?` | Local, process-spawned server (e.g., `npx`-launched). |
-| `http` | `url` | Streamable HTTP — the default for remote servers. |
-| `sse` | `url` | HTTP + SSE, for backwards compatibility with older servers. |
+| Transport | Fields                    | Description                                                 |
+| --------- | ------------------------- | ----------------------------------------------------------- |
+| `stdio`   | `command`, `args`, `env?` | Local, process-spawned server (e.g., `npx`-launched).       |
+| `http`    | `url`                     | Streamable HTTP — the default for remote servers.           |
+| `sse`     | `url`                     | HTTP + SSE, for backwards compatibility with older servers. |
 
 #### Classifying tools
 
@@ -165,7 +164,7 @@ mcp:
     transport: stdio
     command: npx
     args: ["-y", "@modelcontextprotocol/server-filesystem", "/path"]
-    agents: ["coding", "search"]   # tools go to these subagents
+    agents: ["coding", "search"] # tools go to these subagents
 ```
 
 - **No `agents`** → tools are added to the orchestrator.
@@ -192,7 +191,7 @@ Unlike a chat model, a decision model is not an agentic loop — it does not too
 ```yaml
 agent:
   decision:
-    baseUrl: ""            # empty = tool not registered
+    baseUrl: "" # empty = tool not registered
     model: tev1:4b
 ```
 
@@ -200,11 +199,11 @@ Set `baseUrl` to your local Ollama instance (e.g. `http://localhost:11434`) to e
 
 **Question types:**
 
-| Type | `criteria` | Answer fields |
-| ---- | ---------- | ------------- |
-| `choice` | An object mapping each option to a description (use `null` to let the option name describe itself) | `choice`, `probabilities`, `confidence` |
-| `noul` | Optional `{ "true": "...", "false": "..." }` to describe each side | `noul`, the probability that the answer is true |
-| `score` | An array of level descriptions, lowest first (levels numbered from 0) | `score` (probability-weighted level), `legend`, `probabilities`, `confidence` |
+| Type     | `criteria`                                                                                         | Answer fields                                                                 |
+| -------- | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `choice` | An object mapping each option to a description (use `null` to let the option name describe itself) | `choice`, `probabilities`, `confidence`                                       |
+| `noul`   | Optional `{ "true": "...", "false": "..." }` to describe each side                                 | `noul`, the probability that the answer is true                               |
+| `score`  | An array of level descriptions, lowest first (levels numbered from 0)                              | `score` (probability-weighted level), `legend`, `probabilities`, `confidence` |
 
 **Notes:**
 
@@ -234,15 +233,15 @@ System skills in `.skills/` are scanned first and shadow user skills of the same
 
 Built-in tools are registered only when their required permissions are enabled for the session. Tools like `date` have zero permissions and always register.
 
-| Permission Required                 | Tools                                                                      |
-| ----------------------------------- | -------------------------------------------------------------------------- |
-| _(none)_                            | `date`, `textToSpeech`                                                    |
-| `filesystem:read`                   | `readImage`, `agents`, `searchSession`, `docx`, `pptx`, `xlsx`, `pdf`, `reflectionSessions`, `json`, `yaml`, `data`, `searchCode`, `getConfig`, `skill` |
-| `filesystem:write`                  | `createSkill`, `sampling`, `generatePptx`                                  |
-| `filesystem:read` + `filesystem:write` | `clarify`, `memory`, `todo`, `spreadsheet`, `webhook`, `indexCode`      |
-| `filesystem:exec` + `process:spawn` | `process`                                                                  |
-| `network:outbound`                  | `cronJob`, `generateImage`, `searchWeb`, `browser`, `email`, `calendar`, `namecom`, `api`, `graphql`, `decision` |
-| `filesystem:read` + `filesystem:write` + `network:outbound` | `generatePdf` |
+| Permission Required                                         | Tools                                                                                                                                                   |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| _(none)_                                                    | `date`, `textToSpeech`                                                                                                                                  |
+| `filesystem:read`                                           | `readImage`, `agents`, `searchSession`, `docx`, `pptx`, `xlsx`, `pdf`, `reflectionSessions`, `json`, `yaml`, `data`, `searchCode`, `getConfig`, `skill` |
+| `filesystem:write`                                          | `createSkill`, `sampling`, `generatePptx`                                                                                                               |
+| `filesystem:read` + `filesystem:write`                      | `clarify`, `memory`, `todo`, `spreadsheet`, `webhook`, `indexCode`                                                                                      |
+| `filesystem:exec` + `process:spawn`                         | `process`                                                                                                                                               |
+| `network:outbound`                                          | `cronJob`, `generateImage`, `searchWeb`, `browser`, `email`, `calendar`, `namecom`, `api`, `graphql`, `decision`                                        |
+| `filesystem:read` + `filesystem:write` + `network:outbound` | `generatePdf`                                                                                                                                           |
 
 ### Memory System
 
@@ -263,7 +262,7 @@ Together, these layers create a system that remembers what matters while natural
 
 ### Sandbox RTE
 
-Filesystem and network access for built-in tools is constrained by `src/sandbox/`: `pathResolver.js` enforces an allowlist/denylist of paths (negative `!exclude/` rules win, traversal outside allowed roots is blocked), and `urlFilter.js` blocks `file://`, `gopher://`, and `dict://` plus internal IP ranges, with an optional hostname allowlist.
+Filesystem and network access for built-in tools is constrained by `src/sandbox/`: `pathResolver.js` enforces an allowlist/denylist of paths (negative `!exclude/` rules win, traversal outside allowed roots is blocked), and `urlFilter.js` blocks `file://`, `gopher://`, and `dict://` and applies an optional exact-match hostname allowlist. It does not block internal or private addresses on its own; configure an allowlist if you need that.
 
 Skills themselves are `SKILL.md` instruction files interpreted by the agent — they are not spawned into a separate process. There is no per-skill time limit, memory cap, or env-var filter; the container boundary is the isolation boundary. See [THREAT_MODEL.md](docs/THREAT_MODEL.md) for the honest boundary description.
 
@@ -278,12 +277,14 @@ Semantic code search using local vector embeddings and SQLite-based KNN retrieva
 **Architecture:** Source files are chunked into fixed-size line blocks with configurable overlap, embedded into 384-dimensional vectors via transformers.js (local) or OpenAI, and stored in a sqlite-vec virtual table for cosine-distance KNN search.
 
 **Modules:**
+
 - `src/vector/chunker.js` — Splits source files into line blocks (default: 96 lines, 16-line overlap)
 - `src/vector/embedder.js` — Generates embeddings via `Xenova/all-MiniLM-L6-v2` (local, default) or OpenAI `text-embedding-3-small`
 - `src/vector/store.js` — SQLite-backed vector store using `better-sqlite3` + `@photostructure/sqlite-vec`
 - `src/vector/indexer.js` — Orchestrates scanning, chunking, embedding, and storage with incremental mtime-based caching
 
 **Tools:**
+
 - `searchCode` — Query indexed code semantically. Available to orchestrator and all code-related subagents.
 - `indexCode` — Trigger indexing from conversation. Runs incrementally; pass `force: true` to re-index all files.
 
@@ -294,4 +295,3 @@ Semantic code search using local vector embeddings and SQLite-based KNN retrieva
 Recurring job definitions in `config.yaml`. Scheduling is delegated to the system crontab — there is no in-process clock tick loop. Each invocation inherits the current session's memory context and sandbox permissions.
 
 On first onboarding completion, `madz` automatically installs a `reflection-daily` cron job (`30 23 * * *`) into the system crontab. Job definitions are persisted as JSON in `memory/schedules/` and managed under the `madz-schedules` block.
-

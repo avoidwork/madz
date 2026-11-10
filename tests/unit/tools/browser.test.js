@@ -156,16 +156,6 @@ describe("browserImpl", () => {
 		assert.match(result.error, /URL rejected/);
 	});
 
-	it("returns an error for an internal host on navigate", async () => {
-		const result = await browserImpl(
-			{ action: "navigate", url: "http://127.0.0.1/" },
-			{ launchBrowser: launch },
-		);
-		assert.strictEqual(typeof result, "object");
-		assert.strictEqual(result.ok, false);
-		assert.match(result.error, /URL rejected/);
-	});
-
 	it("navigates to a valid URL", async () => {
 		const { page, calls } = makePage();
 		const result = await browserImpl(

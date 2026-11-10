@@ -56,10 +56,10 @@ Splits source files into fixed-size line blocks with configurable overlap. Avoid
 
 Generates 384-dimensional embeddings for code chunks. Two backends:
 
-| Mode | Provider | Model | Requirements |
-|------|----------|-------|-------------|
+| Mode              | Provider        | Model                     | Requirements                                           |
+| ----------------- | --------------- | ------------------------- | ------------------------------------------------------ |
 | `local` (default) | transformers.js | `Xenova/all-MiniLM-L6-v2` | Model downloaded on first use (~23 MB), cached locally |
-| `openai` | OpenAI API | `text-embedding-3-small` | `OPENAI_API_KEY` env var |
+| `openai`          | OpenAI API      | `text-embedding-3-small`  | `OPENAI_API_KEY` env var                               |
 
 The local pipeline loads lazily on first embed call and falls back gracefully if unavailable.
 
@@ -135,10 +135,10 @@ graph TD
 
 **Input schema:**
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `project` | string | all configured | Project name from `vector.projects` in config.yaml. Indexes all projects if omitted. |
-| `force` | boolean | `false` | Force re-index all files, ignoring the mtime cache |
+| Field     | Type    | Default        | Description                                                                          |
+| --------- | ------- | -------------- | ------------------------------------------------------------------------------------ |
+| `project` | string  | all configured | Project name from `vector.projects` in config.yaml. Indexes all projects if omitted. |
+| `force`   | boolean | `false`        | Force re-index all files, ignoring the mtime cache                                   |
 
 ### `src/tools/code/searchCode.js`
 
@@ -163,13 +163,13 @@ graph TD
 
 **Input schema:**
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `query` | string | required | Natural language query describing the code to find |
-| `topK` | number | 5 | Number of results (1–50) |
-| `project` | string | first configured | Project name from `vector.projects` in config.yaml |
-| `fileFilter` | string | optional | Glob pattern to filter results (e.g., `src/tools/*.js`) |
-| `mode` | string | `hybrid` | Search mode: `vector` (semantic similarity), `fulltext` (keyword FTS5), or `hybrid` (both, merged via Reciprocal Rank Fusion) |
+| Field        | Type   | Default          | Description                                                                                                                   |
+| ------------ | ------ | ---------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `query`      | string | required         | Natural language query describing the code to find                                                                            |
+| `topK`       | number | 5                | Number of results (1–50)                                                                                                      |
+| `project`    | string | first configured | Project name from `vector.projects` in config.yaml                                                                            |
+| `fileFilter` | string | optional         | Glob pattern to filter results (e.g., `src/tools/*.js`)                                                                       |
+| `mode`       | string | `hybrid`         | Search mode: `vector` (semantic similarity), `fulltext` (keyword FTS5), or `hybrid` (both, merged via Reciprocal Rank Fusion) |
 
 **Output:** Formatted list of matching code chunks with file paths, line ranges, content, and similarity scores (cosine distance for vector results, rank for full-text results, both for hybrid).
 
@@ -179,14 +179,14 @@ graph TD
 
 ```yaml
 vector:
-  model: local                    # "local" or "openai" — shared across all projects
+  model: local # "local" or "openai" — shared across all projects
   projects:
     madz:
-      rootDir: .                  # Root directory to scan
+      rootDir: . # Root directory to scan
       dbPath: memory/vectorSearch/madz.db
-      chunkSize: 96               # Lines per chunk
-      chunkOverlap: 16            # Overlap between consecutive chunks
-      maxFileSize: 524288         # Max file size in bytes (500 KB)
+      chunkSize: 96 # Lines per chunk
+      chunkOverlap: 16 # Overlap between consecutive chunks
+      maxFileSize: 524288 # Max file size in bytes (500 KB)
       include:
         - "src/**/*.js"
         - "src/**/*.mjs"
@@ -201,8 +201,8 @@ Each named project under `vector.projects` defines its own root directory, datab
 
 ### Environment Variables
 
-| Variable | Purpose |
-|----------|---------|
+| Variable         | Purpose                       |
+| ---------------- | ----------------------------- |
 | `OPENAI_API_KEY` | Required when `model: openai` |
 
 ## Usage
@@ -294,11 +294,11 @@ The following remain future work:
 
 ## Dependencies
 
-| Package | Version | Purpose |
-|---------|---------|---------|
-| `@photostructure/sqlite-vec` | ^1.1.1 | SQLite vector search extension (production-ready fork) |
-| `@xenova/transformers` | ^2.17.2 | In-process transformer inference via ONNX Runtime |
-| `better-sqlite3` | (existing) | Synchronous SQLite3 bindings |
+| Package                      | Version    | Purpose                                                |
+| ---------------------------- | ---------- | ------------------------------------------------------ |
+| `@photostructure/sqlite-vec` | ^1.1.1     | SQLite vector search extension (production-ready fork) |
+| `@xenova/transformers`       | ^2.17.2    | In-process transformer inference via ONNX Runtime      |
+| `better-sqlite3`             | (existing) | Synchronous SQLite3 bindings                           |
 
 ## Storage Layout
 

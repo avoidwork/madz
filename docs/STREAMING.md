@@ -41,12 +41,12 @@ rather than by type alone.
 
 `createStreamingHandler` handles these event types:
 
-| event type | segment produced |
-|------------|------------------|
-| `message` | `{ type: "message", content, id? }` — `id` is set from `event.index` |
-| `reasoning` | `{ type: "reasoning", content, id? }` — `id` is set from `event.id` |
-| `on_chat_model_stream` | `chunk.content` → message segment; `chunk.reasoning` → reasoning segment (no `id` — Chat Completions path) |
-| `on_tool_start` / `on_tool_end` / `tool_result` / `on_tool_error` | tool call display state (not segments) |
+| event type                                                        | segment produced                                                                                           |
+| ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `message`                                                         | `{ type: "message", content, id? }` — `id` is set from `event.index`                                       |
+| `reasoning`                                                       | `{ type: "reasoning", content, id? }` — `id` is set from `event.id`                                        |
+| `on_chat_model_stream`                                            | `chunk.content` → message segment; `chunk.reasoning` → reasoning segment (no `id` — Chat Completions path) |
+| `on_tool_start` / `on_tool_end` / `tool_result` / `on_tool_error` | tool call display state (not segments)                                                                     |
 
 The `index` → `id` normalization happens at the segment-construction site: the
 message segment spreads `{ id: event.index }` when `event.index` is present, and
@@ -112,18 +112,18 @@ Segments render in order:
 
 ## Behavior Table
 
-| incoming type | carries id | previous segment | result |
-|---------------|------------|------------------|--------|
-| message | yes (id) | last message with same id | Append content to that message segment |
-| message | yes (id) | no message with same id | Push new message segment (new block) |
-| message | no | message | Append content to last message segment |
-| message | no | reasoning | Push new message segment (new block) |
-| message | no | (none) | Push new message segment (first block) |
-| reasoning | yes (id) | last reasoning with same id | Append content to that reasoning segment |
-| reasoning | yes (id) | no reasoning with same id | Push new reasoning segment (new block) |
-| reasoning | no | last reasoning ends with `.`/`?`/`!` and new content starts with capital | Push new reasoning segment (new block) |
-| reasoning | no | last reasoning exists (no sentence boundary) | Append content to last reasoning segment |
-| reasoning | no | (none) | Push new reasoning segment (first block) |
+| incoming type | carries id | previous segment                                                         | result                                   |
+| ------------- | ---------- | ------------------------------------------------------------------------ | ---------------------------------------- |
+| message       | yes (id)   | last message with same id                                                | Append content to that message segment   |
+| message       | yes (id)   | no message with same id                                                  | Push new message segment (new block)     |
+| message       | no         | message                                                                  | Append content to last message segment   |
+| message       | no         | reasoning                                                                | Push new message segment (new block)     |
+| message       | no         | (none)                                                                   | Push new message segment (first block)   |
+| reasoning     | yes (id)   | last reasoning with same id                                              | Append content to that reasoning segment |
+| reasoning     | yes (id)   | no reasoning with same id                                                | Push new reasoning segment (new block)   |
+| reasoning     | no         | last reasoning ends with `.`/`?`/`!` and new content starts with capital | Push new reasoning segment (new block)   |
+| reasoning     | no         | last reasoning exists (no sentence boundary)                             | Append content to last reasoning segment |
+| reasoning     | no         | (none)                                                                   | Push new reasoning segment (first block) |
 
 > **Note:** No timing-based coalescing exists. The earlier `250ms` timeout
 > proposal was never implemented — coalescing is driven purely by block identity

@@ -1,6 +1,9 @@
 import { describe, it, before, after } from "node:test";
 import assert from "node:assert";
-import { makeApiRequest } from "../../src/tools/api/index.js";
+import { makeApiRequest as rawMakeApiRequest } from "../../src/tools/api/index.js";
+
+// No rate limiting in tests.
+const makeApiRequest = (url, options = {}) => rawMakeApiRequest(url, { rateLimit: 0, ...options });
 
 describe("api integration tests", () => {
 	let origFetch;
@@ -106,7 +109,8 @@ describe("api integration tests", () => {
 			text: async () => JSON.stringify({ error: "Not found" }),
 		});
 		const result = await makeApiRequest("https://example.com/nonexistent", { method: "GET" });
-		assert.strictEqual(result.ok, true);
+		assert.strictEqual(result.ok, false);
 		assert.strictEqual(result.status, 404);
+		assert.strictEqual(result.body, JSON.stringify({ error: "Not found" }));
 	});
 });

@@ -11,7 +11,6 @@ import {
 	checkFileLimit,
 	parseSizeString,
 } from "../../../src/tools/common.js";
-import { setTestMode } from "../../../src/sandbox/urlFilter.js";
 
 // --- parseSizeString ---
 
@@ -153,7 +152,6 @@ describe("fetchWithTimeout", () => {
 	let baseUrl;
 
 	before(() => {
-		setTestMode(true);
 		return new Promise((resolve) => {
 			server = createServer((req, res) => {
 				if (req.url === "/ok") {
@@ -181,7 +179,6 @@ describe("fetchWithTimeout", () => {
 	});
 
 	after(() => {
-		setTestMode(false);
 		if (server) server.close();
 	});
 

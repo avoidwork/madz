@@ -2,7 +2,7 @@
 
 Madz is an AI harness designed to learn, adapt, and assist. You speak to it through a terminal interface, a one-shot command, or a pipe into your scripts. It does not demand ceremony. It demands clarity.
 
-This guide takes you from zero to your first conversation — and then to working on *your* projects.
+This guide takes you from zero to your first conversation — and then to working on _your_ projects.
 
 ---
 
@@ -26,10 +26,10 @@ Docker packages an application and all its dependencies into a single, isolated 
 Before you run anything, it helps to have a mental model of the two "places" involved:
 
 - **Your host machine** — the computer you're sitting at. Your files live here: `./memory`, `./skills`, `~/projects`.
-- **The container** — an isolated environment running madz. It has its own filesystem at `/app`. madz runs *inside* the container; you talk to it over SSH.
+- **The container** — an isolated environment running madz. It has its own filesystem at `/app`. madz runs _inside_ the container; you talk to it over SSH.
 - **Bind mounts** — a bridge between the two. `-v ./memory:/app/memory` means "make the host's `./memory` directory appear at `/app/memory` inside the container." Changes on either side are visible on the other.
 
-The key idea: **the container is disposable, your data is not.** When you pull a new image or recreate the container, anything written *inside* the container's filesystem is lost. Anything in a bind mount or named volume survives. That's why the setup mounts `memory/` and `skills/` from your host — so your profile, memories, and skills persist across container upgrades.
+The key idea: **the container is disposable, your data is not.** When you pull a new image or recreate the container, anything written _inside_ the container's filesystem is lost. Anything in a bind mount or named volume survives. That's why the setup mounts `memory/` and `skills/` from your host — so your profile, memories, and skills persist across container upgrades.
 
 ---
 
@@ -47,13 +47,15 @@ docker ps   # confirm the container is Up
 ssh -p 2222 madz@localhost
 ```
 
-*This creates the data directories, writes your key to `.env`, starts the container, verifies it, and connects you. For full configuration and bind mount explanations, see below.*
+_This creates the data directories, writes your key to `.env`, starts the container, verifies it, and connects you. For full configuration and bind mount explanations, see below._
 
 **Step 1: Pull the official image**
+
 ```bash
 docker pull avoidwork/madz:latest
 ```
-*This downloads the pre-built application package from Docker Hub to your local machine.*
+
+_This downloads the pre-built application package from Docker Hub to your local machine._
 
 **Step 2: Prepare your data directories**
 
@@ -68,6 +70,7 @@ mkdir -p ./memory ./skills
 **SQLite checkpoints:** `madz` uses an SQLite-backed checkpointer for LangGraph state persistence. The checkpoint database lives in `memory/checkpoints/checkpoints.db`. Rather than bind-mounting this subdirectory to the host, use a Docker named volume. This keeps checkpoint data managed by Docker — no host-side directory needed, and the DB survives container recreation without touching local files.
 
 **Step 3: Run the container**
+
 ```bash
 docker run -d \
   --name madz \
@@ -79,25 +82,28 @@ docker run -d \
   avoidwork/madz:latest
 ```
 
-*Security Note: Avoid passing API keys directly via `-e` flags, as they will persist in your shell history. Instead, create a `.env` file in your project root with your variables and reference it with `--env-file .env`. For quick testing, you can still use `-e OPENAI_API_KEY="your-key"` directly, but remember to switch to `.env` for anything beyond a trial.*
+_Security Note: Avoid passing API keys directly via `-e` flags, as they will persist in your shell history. Instead, create a `.env` file in your project root with your variables and reference it with `--env-file .env`. For quick testing, you can still use `-e OPENAI_API_KEY="your-key"` directly, but remember to switch to `.env` for anything beyond a trial._
 
 **Example `.env` files:**
 
-*OpenAI (Cloud):*
+_OpenAI (Cloud):_
+
 ```env
 OPENAI_API_KEY=sk-proj-xxxxxxxxxxxxxxxx
 OPENAI_MODEL=gpt-4o
 OPENAI_BASE_URL=https://api.openai.com/v1
 ```
 
-*Ollama (Local):*
+_Ollama (Local):_
+
 ```env
 OPENAI_BASE_URL=http://host.docker.internal:11434/v1
 OPENAI_MODEL=gemma4:12b
 # OPENAI_API_KEY is optional for local providers
 ```
 
-*Custom model with explicit encoding:*
+_Custom model with explicit encoding:_
+
 ```env
 OPENAI_BASE_URL=http://your.inference.lan:8000/v1
 OPENAI_MODEL=Qwen/Qwen3-32B
@@ -106,24 +112,26 @@ OPENAI_ENCODING=qwen2_base
 
 When using a non-OpenAI model, you may need to set `OPENAI_ENCODING` to specify the tiktoken encoder name that matches the model's tokenizer. See the [Encoding Reference](../README.md#encoding-reference) in the README for common mappings.
 
-*Note for Docker users:* `host.docker.internal` is required so the container can reach the Ollama service running on your host machine. If you're on Linux, you may need to use `--network host` instead.
+_Note for Docker users:_ `host.docker.internal` is required so the container can reach the Ollama service running on your host machine. If you're on Linux, you may need to use `--network host` instead.
 
 **Flag breakdown:**
-| Flag | Purpose |
-|------|---------|
-| `-d` | Run in detached mode (background) |
-| `--name madz` | Assign a human-readable name to the container |
-| `-p 2222:22` | Map host port `2222` to container SSH port `22` (avoids conflicts with local SSH) |
-| `-v ./memory:/app/memory` | Bind mount host `./memory` into container `/app/memory` for persistence |
+
+| Flag                                          | Purpose                                                                               |
+| --------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `-d`                                          | Run in detached mode (background)                                                     |
+| `--name madz`                                 | Assign a human-readable name to the container                                         |
+| `-p 2222:22`                                  | Map host port `2222` to container SSH port `22` (avoids conflicts with local SSH)     |
+| `-v ./memory:/app/memory`                     | Bind mount host `./memory` into container `/app/memory` for persistence               |
 | `-v madz-checkpoints:/app/memory/checkpoints` | Named volume for SQLite checkpoint data (managed by Docker, no host directory needed) |
-| `-v ./skills:/app/skills` | Bind mount host `./skills` into container `/app/skills` for custom tools |
-| `--env-file .env` | Inject sensitive credentials securely from a local file |
+| `-v ./skills:/app/skills`                     | Bind mount host `./skills` into container `/app/skills` for custom tools              |
+| `--env-file .env`                             | Inject sensitive credentials securely from a local file                               |
 
-**Volumes vs. Bind Mounts:** Docker supports two persistence methods. *Volumes* are managed by Docker and live in `/var/lib/docker/volumes/`. *Bind mounts* (used here) link directly to a path on your host filesystem. We use bind mounts for `memory/` and `skills/` so you can read, edit, and version-control your memory and skills files directly from your terminal or editor. SQLite checkpoint data (`memory/checkpoints/`) uses a named volume instead — it's a binary database that doesn't need host-side editing, and Docker manages its lifecycle automatically.
+**Volumes vs. Bind Mounts:** Docker supports two persistence methods. _Volumes_ are managed by Docker and live in `/var/lib/docker/volumes/`. _Bind mounts_ (used here) link directly to a path on your host filesystem. We use bind mounts for `memory/` and `skills/` so you can read, edit, and version-control your memory and skills files directly from your terminal or editor. SQLite checkpoint data (`memory/checkpoints/`) uses a named volume instead — it's a binary database that doesn't need host-side editing, and Docker manages its lifecycle automatically.
 
-*Port collision?* If port `2222` is already in use, change the host port in the `-p` flag (e.g., `-p 2223:22`) and update your SSH command accordingly.
+_Port collision?_ If port `2222` is already in use, change the host port in the `-p` flag (e.g., `-p 2223:22`) and update your SSH command accordingly.
 
 **Verify it's alive:**
+
 ```bash
 docker ps            # STATUS should read "Up"
 docker logs madz     # boot log: scheduler sync, session init, TUI ready
@@ -155,6 +163,7 @@ Same flags, new image. Because `memory/`, `skills/`, and the checkpoint volume l
 `madz` reads its configuration from `config.yaml`. Sensitive values should be injected via environment variables to keep secrets out of version control. Secrets belong in the dark. Configuration belongs in the light.
 
 ### 🌐 LLM Providers & Sovereignty
+
 `madz` is architecturally designed for **local AI**. While it supports cloud endpoints, its core philosophy prioritizes **data sovereignty** and **privacy**. By running models locally, you keep your conversation history, memory files, and custom skills entirely on your machine. No telemetry. No external data routing. Just pure, unfiltered compute.
 
 **Any OpenAI-compatible endpoint works.** madz talks to its model through the OpenAI chat-completions API, so it works with any provider that exposes that interface — not just OpenAI itself. That includes:
@@ -169,27 +178,30 @@ You point madz at one by setting `OPENAI_BASE_URL` (and `OPENAI_MODEL`) in your 
 Cloud providers (OpenAI, OpenRouter, and others) are fully supported via the configuration below if latency or model availability dictates it, but the architecture assumes local-first by default.
 
 ### Environment Variable Mapping
+
 Config keys map to `UPPER_SNAKE_CASE` environment variables. Container-specific keys (`providers`, `credentials`, `timeout`, `search`) are stripped from the variable name.
 
-| Config Path | Environment Variable | Default |
-|-------------|----------------------|---------|
-| `providers.openai.credentials.apiKey` | `OPENAI_API_KEY` | *(required)* |
-| `providers.openai.model` | `OPENAI_MODEL` | `gpt-4o` |
-| `providers.openai.base_url` | `OPENAI_BASE_URL` | `https://api.openai.com/v1` |
-| `providers.openai.temperature` | `OPENAI_TEMPERATURE` | `0.4` |
-| `providers.openai.maxTokens` | `OPENAI_MAX_TOKENS` | `4096` |
-| `providers.openai.rateLimit.requestsPerMinute` | `OPENAI_REQUESTS_PER_MINUTE` | `120` |
-| `providers.openrouter.apiKey` | `OPENROUTER_API_KEY` | *(empty)* |
-| `providers.openrouter.model` | `OPENROUTER_MODEL` | `openrouter/auto` |
-| `providers.fal.credentials.apiKey` | `FAL_API_KEY` | *(empty)* |
-| `sandbox.timeout.seconds` | `SANDBOX_TIMEOUT_SECONDS` | `600` |
-| `sandbox.timeout.gracePeriod` | `SANDBOX_GRACE_PERIOD` | `5` |
-| `sandbox.maxReadSize` | `SANDBOX_MAX_READ_SIZE` | `10mb` |
+| Config Path                                    | Environment Variable         | Default                     |
+| ---------------------------------------------- | ---------------------------- | --------------------------- |
+| `providers.openai.credentials.apiKey`          | `OPENAI_API_KEY`             | _(required)_                |
+| `providers.openai.model`                       | `OPENAI_MODEL`               | `gpt-4o`                    |
+| `providers.openai.base_url`                    | `OPENAI_BASE_URL`            | `https://api.openai.com/v1` |
+| `providers.openai.temperature`                 | `OPENAI_TEMPERATURE`         | `0.4`                       |
+| `providers.openai.maxTokens`                   | `OPENAI_MAX_TOKENS`          | `4096`                      |
+| `providers.openai.rateLimit.requestsPerMinute` | `OPENAI_REQUESTS_PER_MINUTE` | `120`                       |
+| `providers.openrouter.apiKey`                  | `OPENROUTER_API_KEY`         | _(empty)_                   |
+| `providers.openrouter.model`                   | `OPENROUTER_MODEL`           | `openrouter/auto`           |
+| `providers.fal.credentials.apiKey`             | `FAL_API_KEY`                | _(empty)_                   |
+| `sandbox.timeout.seconds`                      | `SANDBOX_TIMEOUT_SECONDS`    | `600`                       |
+| `sandbox.timeout.gracePeriod`                  | `SANDBOX_GRACE_PERIOD`       | `5`                         |
+| `sandbox.maxReadSize`                          | `SANDBOX_MAX_READ_SIZE`      | `10mb`                      |
 
 > **Note:** The table reflects the shipped `config.yaml` defaults, which differ from the schema defaults in a few places. The schema default for `sandbox.timeout.seconds` is `30` (shipped: `600`), for `sandbox.maxReadSize` is `1mb` (shipped: `10mb`), and for `providers.openai.rateLimit.requestsPerMinute` is `60` (shipped: `120`). If you override any of these via env var, the value is a plain number (seconds, requests) or a size string (e.g., `10mb`, `500kb`).
 
 ### Inline References (Alternative)
+
 You can also reference environment variables directly in `config.yaml`:
+
 ```yaml
 providers:
   openai:
@@ -211,16 +223,17 @@ ssh -p 2222 madz@localhost
 
 The `madz` user has no password. On login the TUI launches automatically. Type `/exit` (or `/quit`) to leave; `Esc` interrupts a running response. When `madz` exits, the SSH session terminates with it — SSH login drops you straight into the TUI, not a shell. If you need a shell for inspection, use `docker exec -it madz /bin/sh` from the host instead (see Troubleshooting).
 
-*First command to try:* `Give me a quick system health check — CPU load, memory, and disk.`
+_First command to try:_ `Give me a quick system health check — CPU load, memory, and disk.`
 
 ### First Launch: The Living Profile
-On your very first run, `madz` will detect that no user profile exists and initiate an **interactive onboarding flow**. It will ask a series of targeted questions to build your initial profile (e.g., *"What do you build?"*, *"What tools do you use?"*, *"How direct should I be?"*), establishing a foundation for deep, immediate personalization.
+
+On your very first run, `madz` will detect that no user profile exists and initiate an **interactive onboarding flow**. It will ask a series of targeted questions to build your initial profile (e.g., _"What do you build?"_, _"What tools do you use?"_, _"How direct should I be?"_), establishing a foundation for deep, immediate personalization.
 
 This profile is saved to `memory/context/profile.md` and injected into the system prompt at the start of every session, ensuring consistent, tailored behavior from day one.
 
 Over time, `madz` autonomously captures **ephemeral memories** during operation. These entries log interaction patterns, decision milestones, and stylistic preferences, layering directly onto the base profile. The system prompt is dynamically rebuilt each session, ensuring consistent, context-aware behavior without manual intervention.
 
-*To re-trigger the initial profile setup, simply delete `memory/context/profile.md` and restart.*
+_To re-trigger the initial profile setup, simply delete `memory/context/profile.md` and restart._
 
 ---
 
@@ -307,7 +320,7 @@ The agent's indexing tool reads these from the environment — no file editing r
 
 **Set the active project explicitly.**
 
-The convention above lets the agent resolve a project by name. But sometimes you want to *pin* the working directory — so the file picker and the agent's file operations both target a specific project. Use `/projects`:
+The convention above lets the agent resolve a project by name. But sometimes you want to _pin_ the working directory — so the file picker and the agent's file operations both target a specific project. Use `/projects`:
 
 ```
 /projects
@@ -336,44 +349,47 @@ Or select `(clear active project)` at the top of the projects panel. The status 
 ---
 
 ## 🛠️ Daily Usage
+
 ### TUI Navigation
 
 Once inside the interactive terminal, use these commands:
 
-| Command | Action |
-|---------|--------|
-| `↑ / ↓` | Scroll conversation history |
-| `/help` | List available commands |
-| `/quit` | Exit the application |
-| `/exit` | Exit the application |
-| `/provider set <name>` | Switch LLM provider |
-| `/config set <path> <value>` | Mutate config at runtime |
-| `/schedule list` | List all scheduled jobs |
-| `/schedule pause <name>` | Pause a scheduled job |
-| `/schedule resume <name>` | Resume a paused job |
-| `/schedule run-now <name>` | Run a job immediately |
-| `/gc` | Trigger V8 garbage collection |
-| `/gc status` | Check GC availability and call count |
-| `/clear` | Clear current conversation |
-| `/new` | Start a fresh session |
-| `/sessions` | Open the sessions panel |
-| `/memories` | Open the memories panel |
-| `/skills` | Open the skills panel |
-| `/subagents` | Open the subagents panel — view each subagent's reasoning, message segments, and tool calls live during a multi-agent turn |
-| `/settings` | Open the settings panel |
-| `/projects` | Open the projects panel — select a project directory to set the active project |
-| `/projects clear` | Clear the active project back to the default |
-| `Ctrl+F` | Toggle in-conversation search |
-| `Ctrl+R` | Toggle reasoning block collapse/expand |
-| `Ctrl+T` | Toggle tool-call result block collapse/expand |
+| Command                      | Action                                                                                                                     |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `↑ / ↓`                      | Scroll conversation history                                                                                                |
+| `/help`                      | List available commands                                                                                                    |
+| `/quit`                      | Exit the application                                                                                                       |
+| `/exit`                      | Exit the application                                                                                                       |
+| `/provider set <name>`       | Switch LLM provider                                                                                                        |
+| `/config set <path> <value>` | Mutate config at runtime                                                                                                   |
+| `/schedule list`             | List all scheduled jobs                                                                                                    |
+| `/schedule pause <name>`     | Pause a scheduled job                                                                                                      |
+| `/schedule resume <name>`    | Resume a paused job                                                                                                        |
+| `/schedule run-now <name>`   | Run a job immediately                                                                                                      |
+| `/gc`                        | Trigger V8 garbage collection                                                                                              |
+| `/gc status`                 | Check GC availability and call count                                                                                       |
+| `/clear`                     | Clear current conversation                                                                                                 |
+| `/new`                       | Start a fresh session                                                                                                      |
+| `/sessions`                  | Open the sessions panel                                                                                                    |
+| `/memories`                  | Open the memories panel                                                                                                    |
+| `/skills`                    | Open the skills panel                                                                                                      |
+| `/subagents`                 | Open the subagents panel — view each subagent's reasoning, message segments, and tool calls live during a multi-agent turn |
+| `/settings`                  | Open the settings panel                                                                                                    |
+| `/projects`                  | Open the projects panel — select a project directory to set the active project                                             |
+| `/projects clear`            | Clear the active project back to the default                                                                               |
+| `Ctrl+F`                     | Toggle in-conversation search                                                                                              |
+| `Ctrl+R`                     | Toggle reasoning block collapse/expand                                                                                     |
+| `Ctrl+T`                     | Toggle tool-call result block collapse/expand                                                                              |
 
 ### Memory System
+
 `madz` operates on a **triple-layer** memory architecture:
+
 - **Canonical Memories:** Explicitly set by you. Stored as `.md` files in `memory/context/`. Loaded into every session. Includes profile, clarifications, reflections, and temporal captures.
 - **Ephemeral Memories:** Captured autonomously during operation. Record patterns, milestones, and tones. Auto-expire over time via `expiresAt` frontmatter field.
 - **Reflections:** Generated daily by a cron job (`30 23 * * *`) that runs the reflection skill in chat mode. Stored as canonical memories in `memory/context/` with `createdDate` and `updatedDate` metadata. The job file is ensured at startup by the scheduler's crontab sync and persisted as `memory/schedules/reflection-daily.json`.
 
-*This triple-layer architecture powers the autonomous learning loop — canonical memories persist, ephemeral memories capture moments, and reflections synthesize patterns into lasting context.*
+_This triple-layer architecture powers the autonomous learning loop — canonical memories persist, ephemeral memories capture moments, and reflections synthesize patterns into lasting context._
 
 Changes to canonical memory require a `/new` command to refresh the current session context.
 
@@ -448,10 +464,10 @@ All file operations use a virtual filesystem where `/` is the application root. 
 
 The orchestrator uses a `CompositeBackend` that routes file operations to different backends based on path prefix:
 
-| Virtual Path | Backend | Actual Resolution |
-|-------------|---------|-------------------|
-| `/package.json` | Core Backend | `<cwd>/package.json` |
-| `/src/tools/index.js` | Core Backend | `<cwd>/src/tools/index.js` |
+| Virtual Path                 | Backend         | Actual Resolution                 |
+| ---------------------------- | --------------- | --------------------------------- |
+| `/package.json`              | Core Backend    | `<cwd>/package.json`              |
+| `/src/tools/index.js`        | Core Backend    | `<cwd>/src/tools/index.js`        |
 | `/memory/context/profile.md` | Context Backend | `<cwd>/memory/context/profile.md` |
 
 This creates a clean, consistent namespace where the agent always sees `/` as the root, regardless of where the application is actually running. Path traversal is validated — resolved paths must stay within their backend's `rootDir`.
@@ -473,11 +489,11 @@ mcp:
 
 **Transports:**
 
-| Transport | Fields | Use for |
-| --------- | ------ | ------- |
-| `stdio` | `command`, `args`, `env?` | Local, process-spawned servers (e.g., `npx`-launched). |
-| `http` | `url` | Remote servers over Streamable HTTP (the default). |
-| `sse` | `url` | Older servers that only speak HTTP + SSE. |
+| Transport | Fields                    | Use for                                                |
+| --------- | ------------------------- | ------------------------------------------------------ |
+| `stdio`   | `command`, `args`, `env?` | Local, process-spawned servers (e.g., `npx`-launched). |
+| `http`    | `url`                     | Remote servers over Streamable HTTP (the default).     |
+| `sse`     | `url`                     | Older servers that only speak HTTP + SSE.              |
 
 **Classifying tools:** Each server can carry an `agents` list that routes its tools to specific agent types. When absent, tools default to the orchestrator.
 
@@ -513,51 +529,61 @@ You do not type agent names. You state the task; the orchestrator dispatches.
 
 ### Available Agent Types
 
-| Agent | Scope |
-|-------|-------|
-| `code-review` | Structured reviews: bugs, security, style, performance |
-| `coding` | Code editing, debugging, implementation, git operations |
-| `debug` | Error tracing, reproduction, and fix proposals |
-| `documentation` | Documentation updates, API docs, changelogs |
-| `performance` | Benchmarking, bottleneck identification, optimization |
-| `research` | Multi-step research with source tracking |
-| `search` | Multi-source search (web, docs, codebase) with synthesis |
-| `security-audit` | Security scanning and dependency auditing |
-| `seoAnalyst` | Keyword density, meta descriptions, SERP analysis |
-| `testing` | Test generation, gap analysis, coverage improvements |
-| `textEditor` | Text processing — summarize, rewrite, tone, grammar |
-| `translator` | Multi-language translation and language detection |
+| Agent            | Scope                                                    |
+| ---------------- | -------------------------------------------------------- |
+| `code-review`    | Structured reviews: bugs, security, style, performance   |
+| `coding`         | Code editing, debugging, implementation, git operations  |
+| `debug`          | Error tracing, reproduction, and fix proposals           |
+| `documentation`  | Documentation updates, API docs, changelogs              |
+| `performance`    | Benchmarking, bottleneck identification, optimization    |
+| `research`       | Multi-step research with source tracking                 |
+| `search`         | Multi-source search (web, docs, codebase) with synthesis |
+| `security-audit` | Security scanning and dependency auditing                |
+| `seoAnalyst`     | Keyword density, meta descriptions, SERP analysis        |
+| `testing`        | Test generation, gap analysis, coverage improvements     |
+| `textEditor`     | Text processing — summarize, rewrite, tone, grammar      |
+| `translator`     | Multi-language translation and language detection        |
 
 ### Concrete Examples
 
 **Commit and push:**
+
 ```
 Commit and push this branch — we have an open PR.
 ```
+
 The coding agent checks git status, stages changed files, crafts a commit message following the project's conventional commit format, and pushes to the remote branch. It will not push without explicit approval — see the notes below.
 
 **Run lint, fix, commit, push:**
+
 ```
 Run lint, fix any errors, then commit and push.
 ```
+
 The agent runs the project's lint command, identifies each issue, applies fixes, re-runs lint to verify, and proceeds to commit and push. If a fix is ambiguous or risky, it pauses and asks for guidance rather than guessing.
 
 **Update a PR:**
+
 ```
 Update PR #123 with the latest changes from this branch.
 ```
+
 The agent reads the current branch state, diffs against the target branch, and composes a meaningful description from the actual code changes.
 
 **Create an issue:**
+
 ```
 Create an issue for the memory leak in the session manager.
 ```
+
 The agent searches the codebase for relevant context, references related files, and creates the issue with a proper title, description, and labels.
 
 **Debug a failing test:**
+
 ```
 Debug the failing test in tests/unit/skills.test.js and fix it.
 ```
+
 The agent runs the test, analyzes the failure, traces the root cause through the relevant source files, applies a fix, and re-runs the test to confirm the fix without regressions.
 
 ### Best Practices
@@ -582,21 +608,23 @@ These guardrails exist so you can delegate with confidence. The agent is a colla
 ## 🔧 Troubleshooting
 
 ### Docker-Specific
-| Issue | Solution |
-|-------|----------|
-| `docker: command not found` | Install Docker Desktop (macOS/Windows) or Docker Engine (Linux). Verify with `docker --version`. |
-| **Is the container running?** | Check status with `docker ps -a \| grep madz`. If it's `Exited`, check logs with `docker logs madz`. |
-| Permission denied on `docker` commands | Add your user to the `docker` group: `sudo usermod -aG docker $USER`, then restart your terminal. |
-| Container exits immediately | Check logs: `docker logs madz`. Missing `OPENAI_API_KEY` or invalid config will cause early exit. |
-| SSH connection refused | Ensure port mapping is correct (`-p 2222:22`). Try `ssh -o StrictHostKeyChecking=no -p 2222 madz@localhost`. |
-| Memory/skills not persisting | Use volumes or bind mounts for persistent state. If using bind mounts, verify host directory permissions allow the `madz` user to read and write. |
-| Need a shell for inspection | SSH login launches the TUI directly — there is no interactive shell. Use `docker exec -it madz /bin/sh` instead. |
+
+| Issue                                  | Solution                                                                                                                                          |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `docker: command not found`            | Install Docker Desktop (macOS/Windows) or Docker Engine (Linux). Verify with `docker --version`.                                                  |
+| **Is the container running?**          | Check status with `docker ps -a \| grep madz`. If it's `Exited`, check logs with `docker logs madz`.                                              |
+| Permission denied on `docker` commands | Add your user to the `docker` group: `sudo usermod -aG docker $USER`, then restart your terminal.                                                 |
+| Container exits immediately            | Check logs: `docker logs madz`. Missing `OPENAI_API_KEY` or invalid config will cause early exit.                                                 |
+| SSH connection refused                 | Ensure port mapping is correct (`-p 2222:22`). Try `ssh -o StrictHostKeyChecking=no -p 2222 madz@localhost`.                                      |
+| Memory/skills not persisting           | Use volumes or bind mounts for persistent state. If using bind mounts, verify host directory permissions allow the `madz` user to read and write. |
+| Need a shell for inspection            | SSH login launches the TUI directly — there is no interactive shell. Use `docker exec -it madz /bin/sh` instead.                                  |
 
 ### General
-| Issue | Solution |
-|-------|----------|
-| **TUI not launching?** | Check the configuration — it's always a configuration issue. |
-| **Skill not executing?** | Check that the required permissions (`filesystem:read`, `filesystem:write`, etc.) are enabled in `config.yaml` under `sandbox.permissions`. |
-| **Session not persisting?** | Verify that `memory/` is writable and not mounted as read-only. |
 
-*Deploy with confidence. The machine waits for no one, but `madz` remembers everything.*
+| Issue                       | Solution                                                                                                                                    |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| **TUI not launching?**      | Check the configuration — it's always a configuration issue.                                                                                |
+| **Skill not executing?**    | Check that the required permissions (`filesystem:read`, `filesystem:write`, etc.) are enabled in `config.yaml` under `sandbox.permissions`. |
+| **Session not persisting?** | Verify that `memory/` is writable and not mounted as read-only.                                                                             |
+
+_Deploy with confidence. The machine waits for no one, but `madz` remembers everything._

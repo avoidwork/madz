@@ -2,7 +2,6 @@
 
 Setting up for local development, the directory layout, testing, and extending skills.
 
-
 ```
 /
 ├── index.js                    # Application entry point
@@ -39,7 +38,6 @@ Setting up for local development, the directory layout, testing, and extending s
 │   └── integration/            # End-to-end flow tests
 └── memory/                     # Persistent markdown storage
 ```
-
 
 ## Testing
 
@@ -103,4 +101,3 @@ A `postinstall` script at `scripts/patch-langchain-reasoning.mjs` applies two pa
 2. **`convertCompletionsDeltaToBaseMessageChunk`** — same for streaming deltas
 
 The patch is idempotent — it checks if the patch is already applied before modifying. It runs automatically on `npm install` via the `postinstall` hook.
-

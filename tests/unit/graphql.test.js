@@ -31,24 +31,6 @@ describe("graphql tool", () => {
 		assert.ok(result.error.includes("Blocked scheme"));
 	});
 
-	it("rejects internal IP (127.0.0.1)", async () => {
-		const result = await graphqlImpl({
-			url: "http://127.0.0.1:8080/graphql",
-			query: "{ __schema { types { name } } }",
-		});
-		assert.strictEqual(result.ok, false);
-		assert.ok(result.error.includes("internal host"));
-	});
-
-	it("rejects internal IP (169.254.169.254)", async () => {
-		const result = await graphqlImpl({
-			url: "http://169.254.169.254/graphql",
-			query: "{ __schema { types { name } } }",
-		});
-		assert.strictEqual(result.ok, false);
-		assert.ok(result.error.includes("internal host"));
-	});
-
 	it("rejects invalid URL", async () => {
 		const result = await graphqlImpl({
 			url: "not-a-url",

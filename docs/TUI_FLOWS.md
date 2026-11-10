@@ -198,18 +198,18 @@ User enters "/command ...", presses Enter (useInput)
 
 ### Dispatch Table (CommandParser constructor)
 
-| Command     | Subcommands              | Effect                           |
-|-------------|--------------------------|----------------------------------|
-| `/quit`     | —                        | `process.exit(0)`                |
-| `/exit`     | —                        | `process.exit(0)` (alias)        |
-| `/provider` | `set <name>`             | `sessionState.setProvider(name)` |
-| `/config`   | `set <path> <value>`     | `setConfigValue(config, path, v)`|
-| `/schedule` | `list`, `pause <n>`, `resume <n>`, `run-now <n>` | Schedule actions |
-| `/projects` | `clear`                  | Open projects panel / clear active project |
-| `/clear`    | —                        | Clear conversation messages      |
-| `/new`      | —                        | Start a fresh session            |
-| `/gc`       | `status`                 | Trigger V8 GC or show status     |
-| `/help`     | —                        | Available commands message       |
+| Command     | Subcommands                                      | Effect                                     |
+| ----------- | ------------------------------------------------ | ------------------------------------------ |
+| `/quit`     | —                                                | `process.exit(0)`                          |
+| `/exit`     | —                                                | `process.exit(0)` (alias)                  |
+| `/provider` | `set <name>`                                     | `sessionState.setProvider(name)`           |
+| `/config`   | `set <path> <value>`                             | `setConfigValue(config, path, v)`          |
+| `/schedule` | `list`, `pause <n>`, `resume <n>`, `run-now <n>` | Schedule actions                           |
+| `/projects` | `clear`                                          | Open projects panel / clear active project |
+| `/clear`    | —                                                | Clear conversation messages                |
+| `/new`      | —                                                | Start a fresh session                      |
+| `/gc`       | `status`                                         | Trigger V8 GC or show status               |
+| `/help`     | —                                                | Available commands message                 |
 
 **Note:** `/sessions`, `/memories`, `/skills`, `/settings`, and `/projects` are view-switching commands registered in the constructor that return `{ action: "view" }`. The actual registered commands are: quit, exit, provider, config, schedule, projects, clear, new, sessions, memories, skills, settings, help, gc.
 
@@ -256,6 +256,7 @@ ConversationPanel({ messages, assistantName, messageListRef })
 ```
 
 `MessageList` is the message store. It is a `React.memo`-wrapped `forwardRef` component that:
+
 - Holds messages in a `Map` keyed by id (`dataRef`), with `contentRef` keeping stable string references for unchanged content.
 - Exposes an imperative API via ref: `addMessage`, `updateMessage`, `getMessageData`, `getMessageCount`, `clear`, `setMessages`, `_triggerRender`.
 - Renders each message as a `MessageBubble` inside a `ScrollView` (`ink-scroll-view`).
@@ -285,14 +286,14 @@ prevPanel(current):
 
 **Panel components:**
 
-| Panel           | Component File          | Key Props              | State              |
-|-----------------|-------------------------|------------------------|--------------------|
-| Conversation    | conversationPanel.js    | `messages`, `assistantName`, `messageListRef` | messageListRef |
-| Skills          | skillsPanel.js          | `skills[]`             | searchQuery, focusedSkill |
-| Memory          | memoryPanel.js          | `entries[]`            | selectedEntry, focusIndex |
-| Settings        | settingsPanel.js        | `configSections[]`     | focusIndex, selectedSection |
-| Sessions        | sessionsPanel.js        | `sessions[]`           | selectedSession, focusIndex |
-| Projects        | projectsPanel.js        | `cwd`                  | selectedProject, focusIndex |
+| Panel        | Component File       | Key Props                                     | State                       |
+| ------------ | -------------------- | --------------------------------------------- | --------------------------- |
+| Conversation | conversationPanel.js | `messages`, `assistantName`, `messageListRef` | messageListRef              |
+| Skills       | skillsPanel.js       | `skills[]`                                    | searchQuery, focusedSkill   |
+| Memory       | memoryPanel.js       | `entries[]`                                   | selectedEntry, focusIndex   |
+| Settings     | settingsPanel.js     | `configSections[]`                            | focusIndex, selectedSection |
+| Sessions     | sessionsPanel.js     | `sessions[]`                                  | selectedSession, focusIndex |
+| Projects     | projectsPanel.js     | `cwd`                                         | selectedProject, focusIndex |
 
 Each panel (except Conversation) has its own internal `useInput` for arrow-key navigation. Panels are reached via the `/skills`, `/memories`, `/settings`, `/sessions`, and `/projects` commands (which return `{ action: "view" }`), or by cycling with Tab.
 
@@ -316,6 +317,7 @@ InputArea({ onSubmit, onFocus, onBlur, focus, skillCount, messageCountRef, showB
 ```
 
 `InputPanel` wraps `ink-text-input`:
+
 ```
 InputPanel({ value, onChange, onSubmit, onFocus, onBlur, focus })
 └── <TextInput value={value} onChange={onChange} onSubmit={onSubmit} focus={focus} />
@@ -425,6 +427,7 @@ handleChat → dispatchProvider(...) → await dispatchPromise
 ```
 
 Command errors are caught separately in `handleCommand`:
+
 ```
 handleCommand → parser.parse(...)
 └── catch (err):

@@ -484,7 +484,14 @@ export async function buildToolConfig(options) {
 				continue;
 			}
 
-			case "api":
+			case "api": {
+				if (!hasAllPerms) continue;
+				// Allowlist, rate limit and credential profiles come from server-side
+				// config; the model only references a credential by name.
+				tools.push(createApiTool(config?.api));
+				continue;
+			}
+
 			case "graphql":
 			case "json":
 			case "yaml":

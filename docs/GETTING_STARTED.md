@@ -1,13 +1,13 @@
 # Getting Started
 
-This guide walks you through the configuration decisions that turn `madz` from a running container into a working teammate. It assumes you have Docker and an LLM provider — the practical install steps live in [TUTORIAL.md](./TUTORIAL.md). Here we focus on *what to configure* and *why*.
+This guide walks you through the configuration decisions that turn `madz` from a running container into a working teammate. It assumes you have Docker and an LLM provider — the practical install steps live in [TUTORIAL.md](./TUTORIAL.md). Here we focus on _what to configure_ and _why_.
 
 The four decisions, in the order you'll likely make them:
 
 1. **Pick your LLM provider** — OpenAI-compatible, Azure OpenAI, AWS Bedrock, or GitHub Copilot.
 2. **Enable a decision model** — a fast local classifier for the harness's own routing.
-3. **Set project context** — tell madz *where* you're working.
-4. **Enable vector search** *(advanced)* — let madz find code by meaning.
+3. **Set project context** — tell madz _where_ you're working.
+4. **Enable vector search** _(advanced)_ — let madz find code by meaning.
 
 ---
 
@@ -17,38 +17,41 @@ madz supports four provider families. The active provider is selected by the `en
 
 ### OpenAI-compatible endpoints
 
-madz talks to its model through the **OpenAI chat-completions API**, so it works with *any* provider that exposes that interface — not just OpenAI itself. The most common choices:
+madz talks to its model through the **OpenAI chat-completions API**, so it works with _any_ provider that exposes that interface — not just OpenAI itself. The most common choices:
 
-| Provider | Notes |
-|----------|-------|
-| **Ollama** | The most straightforward local path. Install it, pull a model, point `OPENAI_BASE_URL` at it. |
-| **vLLM** | High-throughput self-hosted inference, OpenAI-compatible out of the box. |
-| **LiteLLM** | A proxy that fronts many backends behind a single OpenAI-compatible endpoint. |
-| **LM Studio**, **llama.cpp** | Any other OpenAI-compatible server. |
-| **OpenAI** (cloud) | The default. Requires an API key. |
+| Provider                     | Notes                                                                                         |
+| ---------------------------- | --------------------------------------------------------------------------------------------- |
+| **Ollama**                   | The most straightforward local path. Install it, pull a model, point `OPENAI_BASE_URL` at it. |
+| **vLLM**                     | High-throughput self-hosted inference, OpenAI-compatible out of the box.                      |
+| **LiteLLM**                  | A proxy that fronts many backends behind a single OpenAI-compatible endpoint.                 |
+| **LM Studio**, **llama.cpp** | Any other OpenAI-compatible server.                                                           |
+| **OpenAI** (cloud)           | The default. Requires an API key.                                                             |
 
 You point madz at one by setting three variables in your `.env`:
 
-| Variable | Purpose |
-|----------|---------|
-| `OPENAI_BASE_URL` | The API endpoint. |
-| `OPENAI_MODEL` | The model name. |
-| `OPENAI_API_KEY` | Optional for local providers — many run without authentication. |
+| Variable          | Purpose                                                         |
+| ----------------- | --------------------------------------------------------------- |
+| `OPENAI_BASE_URL` | The API endpoint.                                               |
+| `OPENAI_MODEL`    | The model name.                                                 |
+| `OPENAI_API_KEY`  | Optional for local providers — many run without authentication. |
 
-*Ollama (local):*
+_Ollama (local):_
+
 ```env
 OPENAI_BASE_URL=http://host.docker.internal:11434/v1
 OPENAI_MODEL=gemma4:12b
 # OPENAI_API_KEY is optional for local providers
 ```
 
-*vLLM (self-hosted):*
+_vLLM (self-hosted):_
+
 ```env
 OPENAI_BASE_URL=http://your.inference.lan:8000/v1
 OPENAI_MODEL=Qwen/Qwen3-32B
 ```
 
-*OpenAI (cloud):*
+_OpenAI (cloud):_
+
 ```env
 OPENAI_API_KEY=sk-proj-xxxxxxxxxxxxxxxx
 OPENAI_MODEL=gpt-4o
@@ -114,7 +117,7 @@ This is optional. An unconfigured install is unaffected — the tool simply isn'
 ```yaml
 agent:
   decision:
-    baseUrl: ""            # empty = tool not registered
+    baseUrl: "" # empty = tool not registered
     model: tev1:4b
 ```
 
@@ -132,11 +135,11 @@ agent:
 
 ### Question types
 
-| Type | Answer fields |
-|------|---------------|
-| `choice` | `choice`, `probabilities`, `confidence` |
-| `noul` | `noul`, the probability the answer is true |
-| `score` | `score` (probability-weighted level), `legend`, `probabilities`, `confidence` |
+| Type     | Answer fields                                                                 |
+| -------- | ----------------------------------------------------------------------------- |
+| `choice` | `choice`, `probabilities`, `confidence`                                       |
+| `noul`   | `noul`, the probability the answer is true                                    |
+| `score`  | `score` (probability-weighted level), `legend`, `probabilities`, `confidence` |
 
 ### Practical caveats
 
@@ -152,7 +155,7 @@ agent:
 
 ## 3. Set Project Context
 
-madz needs to know *where* you're working. Two things make this work: a mount, and a convention.
+madz needs to know _where_ you're working. Two things make this work: a mount, and a convention.
 
 ### Mount your projects
 
@@ -182,7 +185,7 @@ So naming a project is enough. The agent resolves the name to its directory and 
 
 ### Pin the active project with `/projects`
 
-The convention lets the agent resolve a project by name. But sometimes you want to *pin* the working directory — so the file picker and the agent's file operations both target a specific project:
+The convention lets the agent resolve a project by name. But sometimes you want to _pin_ the working directory — so the file picker and the agent's file operations both target a specific project:
 
 ```
 /projects
@@ -210,7 +213,7 @@ The active project is shown in the status bar and can be toggled via the `status
 
 ---
 
-## 4. Vector Search for Projects *(advanced)*
+## 4. Vector Search for Projects _(advanced)_
 
 Vector search lets madz find code by **meaning** rather than exact keyword matches — useful for debugging, refactoring, and feature implementation across a large codebase. This is an advanced configuration; skip it until you're comfortable with the basics.
 
@@ -220,14 +223,14 @@ Each named project under `vector.projects` defines its own root directory, datab
 
 ```yaml
 vector:
-  model: local                    # "local" or "openai" — shared across all projects
+  model: local # "local" or "openai" — shared across all projects
   projects:
     backendapi:
       rootDir: /app/projects/backend-api
       dbPath: /app/projects/backend-api/vector.db
-      chunkSize: 96               # Lines per chunk
-      chunkOverlap: 16            # Overlap between consecutive chunks
-      maxFileSize: 524288         # Max file size in bytes (500 KB)
+      chunkSize: 96 # Lines per chunk
+      chunkOverlap: 16 # Overlap between consecutive chunks
+      maxFileSize: 524288 # Max file size in bytes (500 KB)
       include:
         - "src/**/*.js"
         - "src/**/*.mjs"
@@ -284,4 +287,4 @@ A short checklist after configuration:
 
 ---
 
-*Configuration belongs in the light. Secrets belong in the dark.*
+_Configuration belongs in the light. Secrets belong in the dark._
