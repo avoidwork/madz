@@ -97,6 +97,9 @@ const REPO_ENV_VARS = [
 
 const DEFAULT_TIMEOUT_MS = 60_000;
 const NETWORK_TIMEOUT_MS = 180_000;
+// `commit` runs the pre-commit hook, which may execute a full test/coverage
+// suite. Give it a generous window so the hook can finish before we time out.
+const HOOK_TIMEOUT_MS = 600_000;
 const DEFAULT_MAX_OUTPUT = 200_000;
 
 /**
@@ -713,7 +716,9 @@ const handlers = {
 		if (input.message) args.push("-m", input.message);
 		else if (input.amend) args.push("--no-edit");
 		else return { ok: false, error: "commit requires a message" };
-		const res = await runGit(args, cwd);
+		// The pre-commit hook may run a full test/coverage suite, so allow a
+		// long window. `--no-verify` skips the hook, so the default suffices.
+		const res = await runGit(args, cwd, input.noVerify ? undefined : { timeout: HOOK_TIMEOUT_MS });
 		if (res.code !== 0) return fail(res, cwd);
 		const head = await runGit(["rev-parse", "--short", "HEAD"], cwd);
 		return {
