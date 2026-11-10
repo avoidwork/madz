@@ -1,6 +1,7 @@
 import { createVectorStore } from "./store.js";
 import { createEmbedder } from "./embedder.js";
 import { reindex } from "./indexer.js";
+import { loadConfig } from "../config/loader.js";
 
 /**
  * Piscina worker entry point for the indexCode tool.
@@ -57,7 +58,7 @@ export default async function indexWorker(config) {
 			exclude: exclude || ["node_modules/**", ".git/**", ".worktrees/**"],
 			chunkSize: chunkSize || 96,
 			chunkOverlap: chunkOverlap || 16,
-			maxFileSize: maxFileSize || 524288,
+			maxFileSize: maxFileSize || loadConfig().vector.maxFileSize,
 			force: force || false,
 		});
 	} finally {

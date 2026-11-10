@@ -32,7 +32,7 @@ describe("MCP server tool registration (integration)", () => {
 
 		tools = await buildToolConfig({
 			permissions: ["filesystem:read", "filesystem:write", "network:outbound"],
-			maxReadSize: "1mb",
+			maxReadSize: 1024 * 1024,
 			config,
 		});
 
@@ -101,7 +101,7 @@ describe("MCP server tool registration (integration)", () => {
 
 		const defaultTools = await buildToolConfig({
 			permissions: ["filesystem:read", "filesystem:write", "network:outbound"],
-			maxReadSize: "1mb",
+			maxReadSize: 1024 * 1024,
 			config,
 		});
 
@@ -131,7 +131,7 @@ describe("MCP server tool registration (integration)", () => {
 		// Should not throw — the failure path warns and skips.
 		const result = await buildToolConfig({
 			permissions: ["filesystem:read", "filesystem:write", "network:outbound"],
-			maxReadSize: "1mb",
+			maxReadSize: 1024 * 1024,
 			config,
 		});
 

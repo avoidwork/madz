@@ -28,12 +28,9 @@ export { fuzzyMatch, levenshteinDistance };
 
 const execFileAsync = promisify(execFile);
 const DIFF_TIMEOUT_MS = 10_000;
-const DIFF_MAX_BUFFER = 16 * 1024 * 1024;
 
 const config = loadConfig();
 
-const MAX_CONTENT_SIZE = 500 * 1024; // 500KB for write/append operations
-const PAGINATED_READ_LIMIT = "50mb"; // whole-file cap when offset/limit is used
 const MAX_LIST_ENTRIES = 1000;
 const MAX_REPORTED_MATCHES = 10;
 const BINARY_SNIFF_BYTES = 8000;
@@ -174,7 +171,7 @@ function target(input, options, field = "path", pathOptions) {
 /**
  * Read a text file, rejecting oversized and binary files.
  * @param {string} filePath - Real path to read
- * @param {string} maxReadSize - Size limit string such as "1mb"
+ * @param {number} maxReadSize - Size limit in bytes
  * @returns {Promise<{ ok: true, content: string } | { ok: false, error: string }>} Result
  */
 async function readText(filePath, maxReadSize) {
@@ -237,7 +234,7 @@ async function unifiedDiff(before, after, label) {
 			const { stdout } = await execFileAsync(
 				"diff",
 				["-u", "--label", `a/${label}`, "--label", `b/${label}`, "--", a, b],
-				{ timeout: DIFF_TIMEOUT_MS, maxBuffer: DIFF_MAX_BUFFER },
+				{ timeout: DIFF_TIMEOUT_MS, maxBuffer: config.sandbox.maxDiffBuffer },
 			);
 			return stdout.replace(/\n$/, "");
 		} catch (err) {
@@ -284,7 +281,9 @@ export const readImpl = guarded(async (input, options) => {
 	const paginated = input.offset !== undefined || input.limit !== undefined;
 	const text = await readText(
 		t.realPath,
-		paginated ? PAGINATED_READ_LIMIT : options.maxReadSize || "1mb",
+		paginated
+			? config.sandbox.maxPaginatedReadSize
+			: options.maxReadSize || config.sandbox.maxReadSize,
 	);
 	if (!text.ok) return text;
 
@@ -316,10 +315,10 @@ export const writeImpl = guarded(async (input, options) => {
 	if (!t.ok) return t;
 
 	const byteSize = Buffer.byteLength(input.content, "utf-8");
-	if (byteSize > MAX_CONTENT_SIZE) {
+	if (byteSize > config.sandbox.maxWriteSize) {
 		return {
 			ok: false,
-			error: `Content size (${byteSize} bytes) exceeds maximum allowed size (${MAX_CONTENT_SIZE} bytes).`,
+			error: `Content size (${byteSize} bytes) exceeds maximum allowed size (${config.sandbox.maxWriteSize} bytes).`,
 		};
 	}
 	const info = await stat(t.realPath).catch(() => null);
@@ -342,10 +341,10 @@ export const appendImpl = guarded(async (input, options) => {
 	if (!t.ok) return t;
 
 	const byteSize = Buffer.byteLength(input.content, "utf-8");
-	if (byteSize > MAX_CONTENT_SIZE) {
+	if (byteSize > config.sandbox.maxWriteSize) {
 		return {
 			ok: false,
-			error: `Content size (${byteSize} bytes) exceeds maximum allowed size (${MAX_CONTENT_SIZE} bytes).`,
+			error: `Content size (${byteSize} bytes) exceeds maximum allowed size (${config.sandbox.maxWriteSize} bytes).`,
 		};
 	}
 	await mkdir(dirname(t.realPath), { recursive: true });
@@ -464,7 +463,7 @@ export const editImpl = guarded(async (input, options) => {
 		return { ok: false, error: "edit requires oldString/newString or a non-empty 'edits' array" };
 	}
 
-	const text = await readText(t.realPath, options.maxReadSize || "1mb");
+	const text = await readText(t.realPath, options.maxReadSize || config.sandbox.maxReadSize);
 	if (!text.ok) return text;
 
 	const eol = text.content.includes("\r\n") ? "\r\n" : "\n";
@@ -675,7 +674,7 @@ export const file = tool(
 	(input) =>
 		fileImpl(input, {
 			allowedPaths: config.sandbox?.paths || [],
-			maxReadSize: config.sandbox?.maxReadSize || "1mb",
+			maxReadSize: config.sandbox.maxReadSize,
 		}),
 	{
 		name: "file",

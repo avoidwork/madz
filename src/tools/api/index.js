@@ -7,7 +7,6 @@ import { DEFAULT_RATE_LIMIT, createRateLimiter } from "./rateLimiter.js";
 
 const DEFAULT_TIMEOUT = 30000;
 const MAX_TIMEOUT = 120000;
-const DEFAULT_MAX_BODY_SIZE = 10 * 1024 * 1024; // 10MB
 const DEFAULT_MAX_REDIRECTS = 5;
 const DEFAULT_MAX_RETRIES = 2;
 const BASE_RETRY_DELAY = 250;
@@ -472,7 +471,7 @@ export async function makeApiRequest(
 		auth,
 		timeout = DEFAULT_TIMEOUT,
 		allowlist = [],
-		maxBodySize = DEFAULT_MAX_BODY_SIZE,
+		maxBodySize = ApiSchema.parse({}).maxBodySize,
 		maxRedirects = DEFAULT_MAX_REDIRECTS,
 		maxRetries = DEFAULT_MAX_RETRIES,
 		rateLimit = DEFAULT_RATE_LIMIT,
@@ -575,7 +574,9 @@ export const ApiInputSchema = z
 			.int()
 			.positive()
 			.optional()
-			.describe(`Maximum response body size in bytes (default and cap: ${DEFAULT_MAX_BODY_SIZE})`),
+			.describe(
+				"Maximum response body size in bytes (default and cap: the configured api.maxBodySize)",
+			),
 	})
 	.strict();
 
@@ -618,7 +619,7 @@ export async function apiImpl(input, policy = {}, runtime = {}) {
 		auth,
 		timeout: timeout ?? DEFAULT_TIMEOUT,
 		allowlist: parsedPolicy.allowlist,
-		maxBodySize: Math.min(maxBodySize ?? DEFAULT_MAX_BODY_SIZE, DEFAULT_MAX_BODY_SIZE),
+		maxBodySize: Math.min(maxBodySize ?? parsedPolicy.maxBodySize, parsedPolicy.maxBodySize),
 		maxRedirects: parsedPolicy.maxRedirects,
 		maxRetries: parsedPolicy.maxRetries,
 		rateLimit: parsedPolicy.rateLimit,

@@ -18,8 +18,8 @@ import {
 	deriveToolTokenLimitBeforeEvict,
 	createEvictionAwareFilesystemMiddleware,
 	ENVELOPE_HEADROOM,
-	IMAGE_EVICTION_BUDGET_CHARS,
 } from "../../src/agent/evictionCeiling.js";
+import { loadConfig } from "../../src/config/loader.js";
 
 /**
  * Build a `readImage`-shaped ToolMessage whose stringified content is exactly
@@ -60,9 +60,10 @@ async function runWrapToolCall(middleware, message, state) {
 }
 
 describe("deriveToolTokenLimitBeforeEvict", () => {
-	it("derives from the fixed image budget as characters", () => {
+	it("derives from the configured image budget as characters", () => {
 		const limit = deriveToolTokenLimitBeforeEvict();
-		assert.strictEqual(limit, Math.ceil((IMAGE_EVICTION_BUDGET_CHARS + ENVELOPE_HEADROOM) / 4));
+		const budget = loadConfig().image.evictionBudgetChars;
+		assert.strictEqual(limit, Math.ceil((budget + ENVELOPE_HEADROOM) / 4));
 	});
 
 	it("is a positive integer well above deepagents' 20,000-token default", () => {

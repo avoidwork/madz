@@ -15,7 +15,6 @@ import { loadConfig } from "../../config/loader.js";
 
 // --- Constants ---
 
-const DEFAULT_MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 const DEFAULT_WATERMARK_OPACITY = 0.3;
 const DEFAULT_WATERMARK_ROTATION = -45;
 
@@ -51,7 +50,7 @@ export async function checkFileSize(filePath, maxSizeBytes) {
  */
 export async function loadPdf(input) {
 	if (input.filePath) {
-		const sizeCheck = await checkFileSize(input.filePath, DEFAULT_MAX_FILE_SIZE);
+		const sizeCheck = await checkFileSize(input.filePath, loadConfig().sandbox.pdf.maxFileSize);
 		if (!sizeCheck.ok) return { ok: false, error: sizeCheck.error };
 		try {
 			const buffer = await readFile(input.filePath);
@@ -64,10 +63,10 @@ export async function loadPdf(input) {
 	if (input.base64) {
 		try {
 			const buffer = Buffer.from(input.base64, "base64");
-			if (buffer.length > DEFAULT_MAX_FILE_SIZE) {
+			if (buffer.length > loadConfig().sandbox.pdf.maxFileSize) {
 				return {
 					ok: false,
-					error: `Buffer size (${buffer.length} bytes) exceeds maximum allowed size (${DEFAULT_MAX_FILE_SIZE} bytes)`,
+					error: `Buffer size (${buffer.length} bytes) exceeds maximum allowed size (${loadConfig().sandbox.pdf.maxFileSize} bytes)`,
 				};
 			}
 			const pdf = await PDFDocument.load(buffer, { ignoreEncryption: true });
@@ -142,7 +141,7 @@ export async function loadImage(input) {
 	if (input.filePath) {
 		try {
 			const buffer = await readFile(input.filePath);
-			if (buffer.length > DEFAULT_MAX_FILE_SIZE) {
+			if (buffer.length > loadConfig().sandbox.pdf.maxFileSize) {
 				return { ok: false, error: "Image file exceeds maximum size" };
 			}
 			try {
@@ -320,7 +319,7 @@ export async function mergePdfs(input) {
 	const mergedPdf = await PDFDocument.create();
 
 	for (const filePath of filePaths) {
-		const sizeCheck = await checkFileSize(filePath, DEFAULT_MAX_FILE_SIZE);
+		const sizeCheck = await checkFileSize(filePath, loadConfig().sandbox.pdf.maxFileSize);
 		if (!sizeCheck.ok) {
 			return JSON.stringify({ ok: false, error: sizeCheck.error });
 		}
@@ -363,7 +362,7 @@ export async function splitPdf(input) {
 		});
 	}
 
-	const sizeCheck = await checkFileSize(filePath, DEFAULT_MAX_FILE_SIZE);
+	const sizeCheck = await checkFileSize(filePath, loadConfig().sandbox.pdf.maxFileSize);
 	if (!sizeCheck.ok) {
 		return JSON.stringify({ ok: false, error: sizeCheck.error });
 	}

@@ -1,9 +1,13 @@
 import { z } from "zod";
 
-/** Default cap on image width/height in pixels for `readImage`. */
-export const DEFAULT_IMAGE_MAX_DIMENSION = 3000;
-
 export const ImageSchema = z.object({
 	maxWidth: z.number().int().positive().default(1920),
-	maxDimension: z.number().int().positive().default(DEFAULT_IMAGE_MAX_DIMENSION),
+	/** Cap on image width/height in pixels for `readImage`. */
+	maxDimension: z.number().int().positive().default(3000),
+	/**
+	 * Base64 character budget for the tool-result eviction ceiling. `readImage`
+	 * enforces no size limit, so the ceiling must sit above any realistic image or
+	 * deepagents' default would evict it and replace it with prose.
+	 */
+	evictionBudgetChars: z.number().int().positive().default(2000000),
 });

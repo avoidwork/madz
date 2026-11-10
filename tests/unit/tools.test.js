@@ -160,13 +160,13 @@ describe("tools - checkFileLimit", () => {
 	});
 
 	it("returns ok when file is within limit", async () => {
-		const result = await checkFileLimit(testFile, "1mb");
+		const result = await checkFileLimit(testFile, 1024 * 1024);
 		assert.strictEqual(result.ok, true);
 		assert.strictEqual(result.size, 11);
 	});
 
 	it("returns error for non-existent file", async () => {
-		const result = await checkFileLimit(join(testDir, "nonexistent.txt"), "1mb");
+		const result = await checkFileLimit(join(testDir, "nonexistent.txt"), 1024 * 1024);
 		assert.strictEqual(result.ok, false);
 		assert.ok(result.error);
 	});
@@ -174,7 +174,7 @@ describe("tools - checkFileLimit", () => {
 	it("returns error when file exceeds max size", async () => {
 		const largeContent = "x".repeat(2 * 1024 * 1024); // 2MB
 		writeFileSync(largeFile, largeContent);
-		const result = await checkFileLimit(largeFile, "1mb");
+		const result = await checkFileLimit(largeFile, 1024 * 1024);
 		assert.strictEqual(result.ok, false);
 		assert.ok(result.error.includes("exceeds"));
 	});

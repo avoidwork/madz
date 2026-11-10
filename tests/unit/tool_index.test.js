@@ -76,7 +76,10 @@ describe("tools - buildToolConfig", () => {
 
 	it("returns clarify + sampling + date + agents with filesystem:read", async () => {
 		const { buildToolConfig } = await import("../../src/tools/index.js");
-		const tools = await buildToolConfig({ permissions: ["filesystem:read"], maxReadSize: "1mb" });
+		const tools = await buildToolConfig({
+			permissions: ["filesystem:read"],
+			maxReadSize: 1024 * 1024,
+		});
 		const toolNames = tools.map((t) => t.name);
 		// filesystem:read enables: clarify, sampling, process (exempt), agents,
 		// searchSession, date
@@ -92,7 +95,7 @@ describe("tools - buildToolConfig", () => {
 		const { buildToolConfig } = await import("../../src/tools/index.js");
 		const tools = await buildToolConfig({
 			permissions: ["filesystem:read", "filesystem:write"],
-			maxReadSize: "1mb",
+			maxReadSize: 1024 * 1024,
 		});
 		const toolNames = tools.map((t) => t.name);
 		assert.ok(toolNames.includes("clarify"), "clarify should always register");
@@ -118,7 +121,7 @@ describe("tools - buildToolConfig", () => {
 				"process:spawn",
 				"network:outbound",
 			],
-			maxReadSize: "1mb",
+			maxReadSize: 1024 * 1024,
 		});
 		const toolNames = tools.map((t) => t.name);
 		// Tier 1: 6 tools (terminal, process, searchSession, clarify, agents)
@@ -133,7 +136,7 @@ describe("tools - buildToolConfig", () => {
 		const { buildToolConfig } = await import("../../src/tools/index.js");
 		const tools = await buildToolConfig({
 			permissions: ["filesystem:read"],
-			maxReadSize: "1mb",
+			maxReadSize: 1024 * 1024,
 		});
 		const toolNames = tools.map((t) => t.name);
 		assert.ok(toolNames.includes("clarify"));
@@ -146,7 +149,7 @@ describe("tools - buildToolConfig", () => {
 		const { buildToolConfig } = await import("../../src/tools/index.js");
 		const tools = await buildToolConfig({
 			permissions: ["filesystem:read", "network:outbound"],
-			maxReadSize: "1mb",
+			maxReadSize: 1024 * 1024,
 			config: { search: {} },
 		});
 		const toolNames = tools.map((t) => t.name);
@@ -160,7 +163,7 @@ describe("tools - buildToolConfig", () => {
 		const { buildToolConfig } = await import("../../src/tools/index.js");
 		const tools = await buildToolConfig({
 			permissions: ["filesystem:read", "filesystem:write", "network:outbound"],
-			maxReadSize: "2mb",
+			maxReadSize: 2 * 1024 * 1024,
 		});
 		const toolNames = tools.map((t) => t.name);
 		// filesystem:read + filesystem:write + network:outbound enables: clarify, sampling, process (exempt), agents,
@@ -265,7 +268,7 @@ describe("tools - buildToolConfig MCP", () => {
 		const { buildToolConfig } = await import("../../src/tools/index.js");
 		const tools = await buildToolConfig({
 			permissions: ["filesystem:read"],
-			maxReadSize: "1mb",
+			maxReadSize: 1024 * 1024,
 			config: {},
 		});
 		assert.ok(!("mcpAdapter" in tools), "should not attach mcpAdapter when no servers configured");
@@ -275,7 +278,7 @@ describe("tools - buildToolConfig MCP", () => {
 		const { buildToolConfig } = await import("../../src/tools/index.js");
 		const tools = await buildToolConfig({
 			permissions: ["filesystem:read"],
-			maxReadSize: "1mb",
+			maxReadSize: 1024 * 1024,
 		});
 		assert.ok(Array.isArray(tools), "should return an array even without mcp config");
 	});

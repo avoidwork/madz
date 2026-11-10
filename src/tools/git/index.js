@@ -97,7 +97,6 @@ const REPO_ENV_VARS = [
 
 const DEFAULT_TIMEOUT_MS = 60_000;
 const NETWORK_TIMEOUT_MS = 180_000;
-const MAX_BUFFER = 64 * 1024 * 1024;
 const DEFAULT_MAX_OUTPUT = 200_000;
 
 /**
@@ -138,7 +137,7 @@ function runGit(args, cwd, opts = {}) {
 				encoding: "utf-8",
 				env: buildEnv(),
 				timeout: opts.timeout ?? DEFAULT_TIMEOUT_MS,
-				maxBuffer: MAX_BUFFER,
+				maxBuffer: getConfig().sandbox?.git?.maxBuffer,
 			},
 			(err, stdout, stderr) => {
 				if (err) {

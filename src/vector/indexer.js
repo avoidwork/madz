@@ -1,6 +1,7 @@
 import { readFile, stat, readdir, writeFile } from "node:fs/promises";
 import { join, relative, extname } from "node:path";
 import { chunkContent } from "./chunker.js";
+import { loadConfig } from "../config/loader.js";
 
 /**
  * Default glob patterns for files to include/exclude during indexing.
@@ -198,7 +199,7 @@ async function scanFiles(rootDir, includePatterns, excludePatterns) {
  * @param {string} options.rootDir - Project root directory
  * @param {number} [options.chunkSize=96] - Lines per chunk
  * @param {number} [options.chunkOverlap=16] - Overlap between chunks
- * @param {number} [options.maxFileSize=524288] - Max file size in bytes
+ * @param {number} [options.maxFileSize] - Max file size in bytes (default: `vector.maxFileSize`)
  * @param {string[]} [options.include] - Include patterns
  * @param {string[]} [options.exclude] - Exclude patterns
  * @param {boolean} [options.force=false] - Force re-index all files
@@ -210,7 +211,7 @@ export async function reindex(store, embedder, options) {
 		rootDir,
 		chunkSize = 96,
 		chunkOverlap = 16,
-		maxFileSize = 524288,
+		maxFileSize = loadConfig().vector.maxFileSize,
 		include = DEFAULT_INCLUDE,
 		exclude = DEFAULT_EXCLUDE,
 		force = false,

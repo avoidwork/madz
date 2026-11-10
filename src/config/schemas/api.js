@@ -46,6 +46,8 @@ export const ApiSchema = z.object({
 	maxRedirects: z.number().int().min(0).max(20).default(5),
 	/** Retries on 429/502/503/504 and transient network errors (non-idempotent methods retry 429 only). */
 	maxRetries: z.number().int().min(0).max(5).default(2),
+	/** Max response body size in bytes; also the cap on what the model may request. */
+	maxBodySize: z.number().int().positive().default(10485760),
 	/** Named credential profiles, referenced by the tool's `credential` field. */
 	credentials: z.record(z.string(), ApiCredentialSchema).default({}),
 });

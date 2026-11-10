@@ -16,8 +16,8 @@ const VectorProjectSchema = z.object({
 	chunkSize: z.number().int().positive().default(96),
 	/** Number of overlapping lines between consecutive chunks */
 	chunkOverlap: z.number().int().min(0).default(16),
-	/** Maximum file size in bytes to index (default 500KB) */
-	maxFileSize: z.number().int().positive().default(524288),
+	/** Maximum file size in bytes to index; falls back to `vector.maxFileSize` when omitted */
+	maxFileSize: z.number().int().positive().optional(),
 });
 
 /**
@@ -34,6 +34,8 @@ export const VectorConfigSchema = z.object({
 	fulltext: z.boolean().default(true),
 	/** FTS5 tokenizer configuration (e.g., "porter unicode61", "unicode61", "simple") */
 	ftsTokenize: z.string().default("porter unicode61"),
+	/** Default maximum file size in bytes to index, for projects that don't set their own */
+	maxFileSize: z.number().int().positive().default(524288),
 	/** Named project configurations */
 	projects: z.record(VectorProjectSchema).default({}),
 });

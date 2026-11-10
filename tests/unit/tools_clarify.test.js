@@ -19,7 +19,7 @@ function teardown() {
 describe("clarify", () => {
 	const testOptions = {
 		allowedPaths: [],
-		maxReadSize: "1mb",
+		maxReadSize: 1024 * 1024,
 		clarificationsFile: "./memory/__test_clarify__/clarifications.md",
 	};
 
