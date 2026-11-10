@@ -10,10 +10,6 @@ import {
 	deleteWebhook,
 	verifyWebhook,
 } from "../../src/tools/webhook/index.js";
-import { setTestMode } from "../../src/sandbox/urlFilter.js";
-
-// Enable test mode to allow internal IPs in integration tests
-setTestMode(true);
 
 const __dirname = join(process.cwd(), "tests", "integration");
 const FIXTURE_FILE = join(__dirname, "../fixtures/webhooks.json");

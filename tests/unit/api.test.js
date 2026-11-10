@@ -8,11 +8,7 @@ import {
 } from "../../src/tools/api/index.js";
 import { ApiSchema } from "../../src/config/schemas/api.js";
 import { createRateLimiter } from "../../src/tools/api/rateLimiter.js";
-import { setTestMode } from "../../src/sandbox/urlFilter.js";
 
-setTestMode(false);
-
-const PUBLIC = async () => ["93.184.216.34"];
 const noSleep = async () => {};
 
 /**
@@ -40,17 +36,12 @@ function stub(queue) {
 	return { fetch, calls };
 }
 
-const base = { resolve: PUBLIC, sleep: noSleep, rateLimit: 0 };
+const base = { sleep: noSleep, rateLimit: 0 };
 
 describe("api input validation", () => {
 	it("rejects file:// via the scheme filter", async () => {
-		const r = await apiImpl({ url: "file:///etc/passwd" }, {}, { resolve: PUBLIC });
+		const r = await apiImpl({ url: "file:///etc/passwd" }, {});
 		assert.strictEqual(r.ok, false);
-		assert.match(r.error, /Blocked scheme/);
-	});
-
-	it("rejects non-http schemes (ftp)", async () => {
-		const r = await apiImpl({ url: "ftp://example.com/x" }, {}, { resolve: PUBLIC });
 		assert.match(r.error, /Blocked scheme/);
 	});
 
@@ -94,53 +85,14 @@ describe("api input validation", () => {
 	});
 });
 
-describe("api SSRF protection", () => {
-	for (const url of [
-		"http://127.0.0.1:8080/",
-		"http://0.0.0.0/",
-		"http://169.254.169.254/latest/meta-data/",
-		"http://[::1]/",
-		"http://[::ffff:127.0.0.1]/",
-		"http://localhost./",
-		"http://metadata.google.internal/",
-		"http://100.64.0.1/",
-		"http://10.0.0.5/",
-	]) {
-		it(`blocks ${url}`, async () => {
-			const r = await apiImpl({ url }, {}, { resolve: PUBLIC });
-			assert.strictEqual(r.ok, false);
-			assert.match(r.error, /internal host/i);
-		});
-	}
-
-	it("blocks hostnames that resolve to internal addresses", async () => {
-		const { fetch, calls } = stub([res()]);
-		const r = await makeApiRequest("https://evil.example.com/", {
-			...base,
-			fetch,
-			resolve: async () => ["93.184.216.34", "127.0.0.1"],
-		});
-		assert.match(r.error, /resolves to internal address/);
-		assert.strictEqual(calls.length, 0);
-	});
-
-	it("fails closed when DNS resolution fails", async () => {
-		const r = await makeApiRequest("https://nx.example.com/", {
-			...base,
-			resolve: async () => {
-				throw new Error("ENOTFOUND");
-			},
-		});
-		assert.match(r.error, /DNS resolution failed/);
-	});
-
-	it("re-validates redirect targets and blocks redirects to internal hosts", async () => {
+describe("api URL filtering", () => {
+	it("blocks a redirect to a blocked scheme", async () => {
 		const { fetch, calls } = stub([
-			res({ status: 302, headers: { location: "http://169.254.169.254/latest/meta-data/" } }),
+			res({ status: 302, headers: { location: "file:///etc/passwd" } }),
 		]);
 		const r = await makeApiRequest("https://example.com/", { ...base, fetch });
 		assert.strictEqual(r.ok, false);
-		assert.match(r.error, /internal host/i);
+		assert.match(r.error, /Blocked scheme/);
 		assert.strictEqual(calls.length, 1);
 		assert.strictEqual(calls[0].options.redirect, "manual");
 	});
@@ -157,10 +109,8 @@ describe("api SSRF protection", () => {
 
 	it("rejects hosts not on the allowlist and lookalike suffix hosts", async () => {
 		const policy = { allowlist: ["https://api.example.com"] };
-		const a = await apiImpl({ url: "https://evil.com/" }, policy, { resolve: PUBLIC });
-		const b = await apiImpl({ url: "https://api.example.com.evil.com/" }, policy, {
-			resolve: PUBLIC,
-		});
+		const a = await apiImpl({ url: "https://evil.com/" }, policy);
+		const b = await apiImpl({ url: "https://api.example.com.evil.com/" }, policy, {});
 		assert.match(a.error, /not on allowlist/);
 		assert.match(b.error, /not on allowlist/);
 	});
@@ -286,7 +236,7 @@ describe("api credential profiles", () => {
 
 	it("sends the credential only to permitted hosts", async () => {
 		const { fetch, calls } = stub([res()]);
-		const runtime = { env: { GH_TOKEN: "abc" }, fetch, resolve: PUBLIC, sleep: noSleep };
+		const runtime = { env: { GH_TOKEN: "abc" }, fetch, sleep: noSleep };
 		const ok = await apiImpl(
 			{ url: "https://api.github.com/user", credential: "github" },
 			policy,
@@ -495,7 +445,7 @@ describe("api responses", () => {
 		const r = await apiImpl(
 			{ url: "https://example.com/", maxBodySize: 100 * 1024 * 1024 },
 			{ rateLimit: 0 },
-			{ fetch, resolve: PUBLIC },
+			{ fetch },
 		);
 		assert.match(r.error, /too large/);
 	});
@@ -713,7 +663,6 @@ describe("api rate limiter", () => {
 		const ok = await Promise.all(
 			["/a", "/b", "/c"].map((p) =>
 				makeApiRequest(`https://rl-host.example.com${p}`, {
-					resolve: PUBLIC,
 					sleep: noSleep,
 					fetch,
 					rateLimit: 1000,

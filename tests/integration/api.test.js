@@ -2,9 +2,8 @@ import { describe, it, before, after } from "node:test";
 import assert from "node:assert";
 import { makeApiRequest as rawMakeApiRequest } from "../../src/tools/api/index.js";
 
-// Offline DNS and no rate limiting so the tests never touch the network.
-const makeApiRequest = (url, options = {}) =>
-	rawMakeApiRequest(url, { resolve: async () => ["93.184.216.34"], rateLimit: 0, ...options });
+// No rate limiting in tests.
+const makeApiRequest = (url, options = {}) => rawMakeApiRequest(url, { rateLimit: 0, ...options });
 
 describe("api integration tests", () => {
 	let origFetch;

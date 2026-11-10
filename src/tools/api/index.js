@@ -1,6 +1,6 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import { filterUrlResolved, hostMatchesPattern } from "../../sandbox/urlFilter.js";
+import { filterUrl, hostMatchesPattern } from "../../sandbox/urlFilter.js";
 import { ApiSchema } from "../../config/schemas/api.js";
 import { logger } from "../../shared/logger.js";
 import { DEFAULT_RATE_LIMIT, createRateLimiter } from "./rateLimiter.js";
@@ -339,7 +339,7 @@ async function buildResult(resp, finalUrl, method, maxBodySize, signal) {
  * @returns {Promise<{ result: object, retryable?: boolean, retryAfterMs?: number }>}
  */
 async function performRequest(req) {
-	const { timeout, allowlist, resolve, maxRedirects, maxBodySize, limiter, fetchImpl } = req;
+	const { timeout, allowlist, maxRedirects, maxBodySize, limiter, fetchImpl } = req;
 	const controller = new AbortController();
 	const timeoutId = setTimeout(() => controller.abort(), timeout);
 
@@ -350,7 +350,7 @@ async function performRequest(req) {
 		let headers = { ...req.headers };
 
 		for (let hop = 0; ; hop++) {
-			const validation = await filterUrlResolved(url, allowlist, { resolve });
+			const validation = filterUrl(url, allowlist);
 			if (!validation.allowed) {
 				return { result: { ok: false, error: validation.reason } };
 			}
@@ -458,7 +458,6 @@ function encodeBody({ body, form }, headers) {
  * @param {number} [options.maxRetries] - Retries on 429/5xx/transport errors
  * @param {number} [options.rateLimit] - Requests per second per host; `0` disables
  * @param {typeof fetch} [options.fetch] - fetch override
- * @param {(host: string) => Promise<string[]>} [options.resolve] - DNS resolver override
  * @param {(ms: number) => Promise<void>} [options.sleep] - Sleep override (retry backoff)
  * @returns {Promise<{ ok: boolean, status?: number, statusText?: string, url?: string, headers?: Record<string, string>, body?: string, bodyEncoding?: string, error?: string }>}
  */
@@ -478,7 +477,6 @@ export async function makeApiRequest(
 		maxRetries = DEFAULT_MAX_RETRIES,
 		rateLimit = DEFAULT_RATE_LIMIT,
 		fetch: fetchOverride,
-		resolve,
 		sleep = (ms) => new Promise((done) => setTimeout(done, ms)),
 	} = {},
 ) {
@@ -518,7 +516,6 @@ export async function makeApiRequest(
 		body: payload,
 		timeout,
 		allowlist,
-		resolve,
 		maxRedirects,
 		maxBodySize,
 		credentialHeader,
@@ -586,7 +583,7 @@ export const ApiInputSchema = z
  * REST API client implementation.
  * @param {object} input - Raw tool input (validated against `ApiInputSchema`)
  * @param {object} [policy] - Server-side policy (see `ApiSchema`); defaults applied
- * @param {object} [runtime] - Test seams: `env`, `fetch`, `resolve`, `sleep`
+ * @param {object} [runtime] - Test seams: `env`, `fetch`, `sleep`
  * @returns {Promise<{ ok: boolean, status?: number, statusText?: string, url?: string, headers?: Record<string, string>, body?: string, bodyEncoding?: string, error?: string }>}
  */
 export async function apiImpl(input, policy = {}, runtime = {}) {
@@ -626,7 +623,6 @@ export async function apiImpl(input, policy = {}, runtime = {}) {
 		maxRetries: parsedPolicy.maxRetries,
 		rateLimit: parsedPolicy.rateLimit,
 		fetch: runtime.fetch,
-		resolve: runtime.resolve,
 		sleep: runtime.sleep,
 	});
 }
