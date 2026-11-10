@@ -8,6 +8,7 @@ import {
 	BedrockProviderConfigSchema,
 } from "./schemas/providers.js";
 import { SandboxScopeSchema } from "./schemas/sandbox.js";
+import { ApiSchema } from "./schemas/api.js";
 import { MemorySchema } from "./schemas/memory.js";
 import { TelemetrySchema } from "./schemas/telemetry.js";
 import { SchedulesSchema } from "./schemas/schedules.js";
@@ -49,6 +50,7 @@ export const ConfigSchema = z.object({
 	}),
 	calendar: CalendarConfigSchema.default({}),
 	sandbox: SandboxScopeSchema.default({}),
+	api: ApiSchema.default({}),
 	search: SearchConfigSchema.default({}),
 	memory: MemorySchema.default({}),
 	telemetry: TelemetrySchema.default({

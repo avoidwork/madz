@@ -1,6 +1,10 @@
 import { describe, it, before, after } from "node:test";
 import assert from "node:assert";
-import { makeApiRequest } from "../../src/tools/api/index.js";
+import { makeApiRequest as rawMakeApiRequest } from "../../src/tools/api/index.js";
+
+// Offline DNS and no rate limiting so the tests never touch the network.
+const makeApiRequest = (url, options = {}) =>
+	rawMakeApiRequest(url, { resolve: async () => ["93.184.216.34"], rateLimit: 0, ...options });
 
 describe("api integration tests", () => {
 	let origFetch;
@@ -106,7 +110,8 @@ describe("api integration tests", () => {
 			text: async () => JSON.stringify({ error: "Not found" }),
 		});
 		const result = await makeApiRequest("https://example.com/nonexistent", { method: "GET" });
-		assert.strictEqual(result.ok, true);
+		assert.strictEqual(result.ok, false);
 		assert.strictEqual(result.status, 404);
+		assert.strictEqual(result.body, JSON.stringify({ error: "Not found" }));
 	});
 });

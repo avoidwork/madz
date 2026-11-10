@@ -7,6 +7,7 @@ export {
 	BedrockProviderConfigSchema,
 } from "./providers.js";
 export { SandboxScopeSchema } from "./sandbox.js";
+export { ApiSchema, ApiCredentialSchema } from "./api.js";
 export { MemorySchema, MemoryGcSchema } from "./memory.js";
 export { TelemetrySchema, TelemetryExporterSchema } from "./telemetry.js";
 export { SchedulesSchema, ScheduleEntrySchema } from "./schedules.js";
