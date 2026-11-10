@@ -1,12 +1,17 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { openPage } from "../../../src/tools/browser/browser.js";
+import { loadConfig } from "../../../src/config/loader.js";
 
 const makeBrowser = () => {
-	const calls = { viewport: null };
+	const calls = { viewport: null, timeouts: [] };
 	const page = {
-		setDefaultNavigationTimeout() {},
-		setDefaultTimeout() {},
+		setDefaultNavigationTimeout(ms) {
+			calls.timeouts.push(ms);
+		},
+		setDefaultTimeout(ms) {
+			calls.timeouts.push(ms);
+		},
 		setViewport: async (v) => {
 			calls.viewport = v;
 		},
@@ -25,5 +30,12 @@ describe("openPage", () => {
 		const { browser, calls } = makeBrowser();
 		await openPage(browser, 1000);
 		assert.strictEqual(calls.viewport, null);
+	});
+
+	it("defaults the timeout to browser.timeoutMs", async () => {
+		const { browser, calls } = makeBrowser();
+		await openPage(browser);
+		const expected = loadConfig().browser.timeoutMs;
+		assert.deepStrictEqual(calls.timeouts, [expected, expected]);
 	});
 });
