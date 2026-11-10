@@ -23,12 +23,12 @@ This guide documents the coding conventions used throughout `madz`. It is derive
 
 ## Naming
 
-| Convention | Example | Used For |
-|---|---|---|
-| `camelCase` | `writeMemoryFile`, `resolvePath`, `contextList` | Functions, methods, variables |
+| Convention         | Example                                              | Used For                                 |
+| ------------------ | ---------------------------------------------------- | ---------------------------------------- |
+| `camelCase`        | `writeMemoryFile`, `resolvePath`, `contextList`      | Functions, methods, variables            |
 | `UPPER_SNAKE_CASE` | `PANELS`, `BLOCKED_SCHEMES`, `FRONTMATTER_DELIMITER` | Constants, frozen objects, static config |
-| `PascalCase` | `SkillRegistry`, `ScheduleManager`, `InputPanel` | Classes, React components |
-| kebab-case | `pathResolver.js`, `urlFilter.js` | File names |
+| `PascalCase`       | `SkillRegistry`, `ScheduleManager`, `InputPanel`     | Classes, React components                |
+| kebab-case         | `pathResolver.js`, `urlFilter.js`                    | File names                               |
 
 - **Private fields** use the `#` prefix — no additional prefix (e.g. `#skills` not `#_skills`).
 - **Variables that are intentionally unused** in function parameters (e.g., context not needed by a sub-handler) are prefixed with `_` (e.g., `_ctx`, `_scheduler`).
@@ -80,17 +80,17 @@ import { loadConfig } from "../config/loader.js";
 
   ```javascript
   export class ScheduleManager {
-      #scheduleEntry = new Map();
-      #queue;
-      #tickId = null;
+  	#scheduleEntry = new Map();
+  	#queue;
+  	#tickId = null;
 
-      constructor(maxConcurrent = 1) {
-          this.#queue = new ScheduleQueue(maxConcurrent);
-      }
+  	constructor(maxConcurrent = 1) {
+  		this.#queue = new ScheduleQueue(maxConcurrent);
+  	}
 
-      #clockTick(_scheduler) {
-          // ...
-      }
+  	#clockTick(_scheduler) {
+  		// ...
+  	}
   }
   ```
 
@@ -137,8 +137,8 @@ import { loadConfig } from "../config/loader.js";
   ```javascript
   const errors = [];
   for (const skill of skills) {
-      const result = safeParse(skill);
-      if (!result.success) errors.push({ name, ...result.error });
+  	const result = safeParse(skill);
+  	if (!result.success) errors.push({ name, ...result.error });
   }
   return { errors };
   ```
@@ -162,7 +162,7 @@ import { loadConfig } from "../config/loader.js";
 
   ```javascript
   await new Promise((resolve) => {
-      child.on("exit", resolve);
+  	child.on("exit", resolve);
   });
   ```
 
@@ -263,7 +263,7 @@ tests/
 
   The hook is `.husky/pre-commit`, installed by Husky via the `prepare` npm script. Because the final step is `git add -A`, files the hook regenerates — `coverage.txt`, plus anything `oxlint --fix` or `oxfmt --write` rewrote — are staged automatically, so the commit proceeds and includes them. The commit does **not** fail merely because the hook modified a file.
 
-  **Gotcha:** `git add -A` stages the *entire* working tree, not just what you staged before committing. Anything untracked and not gitignored gets swept into the commit. Stage selectively and check `git status` before committing, or expect unrelated files to ride along.
+  **Gotcha:** `git add -A` stages the _entire_ working tree, not just what you staged before committing. Anything untracked and not gitignored gets swept into the commit. Stage selectively and check `git status` before committing, or expect unrelated files to ride along.
 
 - **If a commit lands with content you did not intend to stage**, do **not** amend it. AGENTS.md §1.3 forbids amending outright. Add a follow-up commit instead.
 
@@ -271,12 +271,12 @@ tests/
 
 ## Anti-Patterns to Avoid
 
-| Anti-Pattern | Why |
-|---|---|
-| `export * from '...'` | Obscures the public API surface |
-| `console.log()` in production | Use `console.error()` for errors, structured logging where available |
-| Silent `catch {}` with no comment | Makes debugging nearly impossible |
-| `eval()`, `new Function()` | Security risk — reject input with validation instead |
-| Mutating a list while iterating | Use `Array.from()` copy or iterate indices |
-| Blocking I/O in `async` functions | Blocks the event loop; use `fs.promises` instead |
-| `handleShutdown` catching error but referencing wrong variable | Always match catch parameter name (`err`, not `_err`) |
+| Anti-Pattern                                                   | Why                                                                  |
+| -------------------------------------------------------------- | -------------------------------------------------------------------- |
+| `export * from '...'`                                          | Obscures the public API surface                                      |
+| `console.log()` in production                                  | Use `console.error()` for errors, structured logging where available |
+| Silent `catch {}` with no comment                              | Makes debugging nearly impossible                                    |
+| `eval()`, `new Function()`                                     | Security risk — reject input with validation instead                 |
+| Mutating a list while iterating                                | Use `Array.from()` copy or iterate indices                           |
+| Blocking I/O in `async` functions                              | Blocks the event loop; use `fs.promises` instead                     |
+| `handleShutdown` catching error but referencing wrong variable | Always match catch parameter name (`err`, not `_err`)                |

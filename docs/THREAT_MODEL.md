@@ -35,17 +35,17 @@ The threat model covers the runtime components:
 
 ## 2. Assets
 
-| Asset | Description | Sensitivity |
-|---|---|---|
-| **LLM API keys** | Provider credentials (`OPENAI_API_KEY`, etc.) | High — grants paid API access |
-| **Email credentials** | IMAP/SMTP credentials (`EMAIL_IMAP_PASSWORD`, etc.) | High — full mailbox access |
-| **Calendar / search API keys** | Google, MS Graph, Exa, Tavily, etc. | Medium-High |
-| **User conversation data** | Session history, memory files | High — personal/private |
-| **Skill scripts** | Executable code run by the agent | High — arbitrary code execution |
-| **Filesystem** | Project files, memory, checkpoints, vector DB | High — read/write/exec |
-| **Scheduled jobs** | Cron definitions and their inputs | Medium — can trigger skills |
-| **Outbound network** | Tool HTTP calls | Medium — SSRF surface |
-| **Telemetry spans** | OpenTelemetry traces | Medium — may contain PII |
+| Asset                          | Description                                         | Sensitivity                     |
+| ------------------------------ | --------------------------------------------------- | ------------------------------- |
+| **LLM API keys**               | Provider credentials (`OPENAI_API_KEY`, etc.)       | High — grants paid API access   |
+| **Email credentials**          | IMAP/SMTP credentials (`EMAIL_IMAP_PASSWORD`, etc.) | High — full mailbox access      |
+| **Calendar / search API keys** | Google, MS Graph, Exa, Tavily, etc.                 | Medium-High                     |
+| **User conversation data**     | Session history, memory files                       | High — personal/private         |
+| **Skill scripts**              | Executable code run by the agent                    | High — arbitrary code execution |
+| **Filesystem**                 | Project files, memory, checkpoints, vector DB       | High — read/write/exec          |
+| **Scheduled jobs**             | Cron definitions and their inputs                   | Medium — can trigger skills     |
+| **Outbound network**           | Tool HTTP calls                                     | Medium — SSRF surface           |
+| **Telemetry spans**            | OpenTelemetry traces                                | Medium — may contain PII        |
 
 ---
 
@@ -81,28 +81,28 @@ The threat model covers the runtime components:
 
 ## 4. Threat Actors
 
-| Actor | Trust | Capabilities |
-|---|---|---|
-| **Operator** | High | Full control. Not a threat in the normal model, but a misconfiguration source. |
-| **Malicious skill** | Low | A skill script that tries to escape the sandbox, exfiltrate secrets, or abuse the filesystem/network. |
-| **Prompt-injected agent** | Low | An LLM that is manipulated via prompt injection to call tools in unintended ways (e.g., read files, send email). |
-| **Remote attacker** | Low | Exploits exposed services (SSH, HTTP) or SSRF via tool URLs. |
-| **Supply chain** | Low | Malicious npm dependencies or skill packages. |
+| Actor                     | Trust | Capabilities                                                                                                     |
+| ------------------------- | ----- | ---------------------------------------------------------------------------------------------------------------- |
+| **Operator**              | High  | Full control. Not a threat in the normal model, but a misconfiguration source.                                   |
+| **Malicious skill**       | Low   | A skill script that tries to escape the sandbox, exfiltrate secrets, or abuse the filesystem/network.            |
+| **Prompt-injected agent** | Low   | An LLM that is manipulated via prompt injection to call tools in unintended ways (e.g., read files, send email). |
+| **Remote attacker**       | Low   | Exploits exposed services (SSH, HTTP) or SSRF via tool URLs.                                                     |
+| **Supply chain**          | Low   | Malicious npm dependencies or skill packages.                                                                    |
 
 ---
 
 ## 5. Attack Surface / Entry Points
 
-| Entry point | Component | Notes |
-|---|---|---|
-| Skill execution | Deep Agents skill system | Skills are `SKILL.md` instruction files interpreted by the LLM; any bundled scripts run through the agent's own `execute`/`process` tools, not a dedicated process sandbox |
-| Skill discovery | `src/skills/discoverer.js` | Scans `skills/` and `.skills/`; validates metadata |
-| Outbound HTTP | `src/sandbox/urlFilter.js`, `src/tools/api/` | Filters blocked schemes and enforces the host allowlist; the `api` tool re-validates every redirect hop |
-| Filesystem access | `src/sandbox/pathResolver.js` | Allowlist/denylist path rules |
-| Cron scheduling | `src/scheduler/cron.js`, `scheduler.js` | Reads job JSON, builds crontab, executes skills |
-| Config loading | `src/config/loader.js` | YAML + env var resolution + Zod validation |
-| Telemetry | `src/telemetry/redaction.js` | Redacts sensitive span attributes |
-| CLI entry | `index.js` | `--message`, `--session`, chat/interactive modes |
+| Entry point       | Component                                    | Notes                                                                                                                                                                      |
+| ----------------- | -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Skill execution   | Deep Agents skill system                     | Skills are `SKILL.md` instruction files interpreted by the LLM; any bundled scripts run through the agent's own `execute`/`process` tools, not a dedicated process sandbox |
+| Skill discovery   | `src/skills/discoverer.js`                   | Scans `skills/` and `.skills/`; validates metadata                                                                                                                         |
+| Outbound HTTP     | `src/sandbox/urlFilter.js`, `src/tools/api/` | Filters blocked schemes and enforces the host allowlist; the `api` tool re-validates every redirect hop                                                                    |
+| Filesystem access | `src/sandbox/pathResolver.js`                | Allowlist/denylist path rules                                                                                                                                              |
+| Cron scheduling   | `src/scheduler/cron.js`, `scheduler.js`      | Reads job JSON, builds crontab, executes skills                                                                                                                            |
+| Config loading    | `src/config/loader.js`                       | YAML + env var resolution + Zod validation                                                                                                                                 |
+| Telemetry         | `src/telemetry/redaction.js`                 | Redacts sensitive span attributes                                                                                                                                          |
+| CLI entry         | `index.js`                                   | `--message`, `--session`, chat/interactive modes                                                                                                                           |
 
 ---
 
@@ -113,16 +113,19 @@ The threat model covers the runtime components:
 **Threat:** A skill script escapes the sandbox to read/write files outside the allowed scope, access the network, or spawn processes.
 
 **Attack path:** There is no dedicated process sandbox. Skills are `SKILL.md` instruction files interpreted by the LLM; any bundled script is executed through the agent's own `execute`/`process` tools, which run as the application user with the full privileges of the harness process. The constraints that remain are enforced at the tool layer:
+
 - `pathResolver.js` — allowlist/denylist path rules (`resolvePath`), applied by `src/tools/common.js` for tool-side file access.
 - `urlFilter.js` — blocked-scheme and host-allowlist filtering for outbound tool requests. It makes no assumptions about network topology: there are no built-in IP or hostname lists.
 
 **Existing mitigations:**
+
 - Path resolution uses `resolve()` and prefix matching with `sep`, blocking traversal outside allowed roots — for tools that call it.
 - Negative rules (`!exclude/`) are checked first and override positives.
 - URL filtering blocks `file:`, `gopher:`, `dict:` and, when an allowlist is configured, any host not on it. It does not block internal addresses by itself.
 - Skill metadata is validated against `SkillMetadataSchema` (`validator.js`), including a `permissions` declaration.
 
 **Gaps / recommendations:**
+
 - **The `permissions` field is declarative, not enforced.** `SkillMetadataSchema` validates the scopes a skill claims, but nothing gates execution on them — the former `capability.js` / `envInjector.js` / `runner.js` enforcement path was removed as dead code. Treat skill permissions as documentation until an enforcement layer exists.
 - The tool-layer path/URL checks are **not** a security boundary in the OS sense. A raw shell command issued through `execute` bypasses `pathResolver` and `urlFilter` entirely. Consider running skills in a container or with OS-level sandboxing (e.g., `bubblewrap`, seccomp) for untrusted skills.
 - `trustProjectSkills: true` in config means project skills are trusted by default. Review this default — it assumes the repo's skills are safe.
@@ -132,14 +135,16 @@ The threat model covers the runtime components:
 
 **Threat:** The LLM is manipulated (via a prompt, a web page, an email, or a document) to call tools in unintended ways — e.g., read sensitive files, send email, or delete data.
 
-**Attack path:** The agent processes untrusted content (web search results, emails, documents) and the model decides to invoke a tool. The model is the decision-maker; the sandbox constrains *what* a tool can do, not *whether* it should.
+**Attack path:** The agent processes untrusted content (web search results, emails, documents) and the model decides to invoke a tool. The model is the decision-maker; the sandbox constrains _what_ a tool can do, not _whether_ it should.
 
 **Existing mitigations:**
+
 - Tools have Zod schemas (`src/tools/*/index.js`) validating inputs.
 - URL filter blocks `file:`, `gopher:`, `dict:` and non-allowlisted hosts (when an allowlist is set).
 - Sandbox permissions scope what a skill can do.
 
 **Gaps / recommendations:**
+
 - There is no "dangerous action" confirmation gate for tools like email-send or file-delete. Consider an approval/interrupt mechanism for high-impact tools.
 - Prompt injection is fundamentally an LLM problem; the harness should treat tool outputs as untrusted input and avoid echoing them back into prompts without sanitization.
 
@@ -150,6 +155,7 @@ The threat model covers the runtime components:
 **Attack path:** `filterUrl` is the gate. It blocks `file:`, `gopher:`, `dict:` schemes and, when an allowlist is set, any host not on it. It deliberately contains **no** built-in IP-range or hostname lists: reachability is decided by the allowlist, not by assumptions about the network the harness runs in.
 
 **Existing mitigations:**
+
 - `BLOCKED_SCHEMES` in `urlFilter.js`.
 - Allowlist enforcement when `allowlist` is non-empty. Matching is on parsed URL components: an exact host, a `*.example.com` wildcard, an optional port, or a full origin (with optional path prefix). It is never a string-prefix match, so `https://allowed.com.evil.com/` does not match `allowed.com`.
 - The `api` tool takes its allowlist, rate limit, redirect and retry limits from the server-side `api` config section. The model cannot supply or widen them.
@@ -157,6 +163,7 @@ The threat model covers the runtime components:
 - The `api` tool never accepts tokens in model input. Credentials are named profiles (`api.credentials`) that read secrets from environment variables at call time and can be restricted to specific hosts.
 
 **Gaps / recommendations:**
+
 - **No internal-address blocking.** With an empty allowlist, a request to `localhost`, an RFC 1918 address or a cloud metadata endpoint (e.g. `169.254.169.254`) is **allowed**. Operators who need that protection must configure an allowlist. Consider making the `api` allowlist required (default-deny).
 - **No DNS resolution check.** The filter inspects the URL text only. An allowlisted hostname that later resolves to an internal address, or DNS rebinding, is not detected.
 - `graphql`, `browser`, `webhook` and `common.js` use the same `filterUrl`, but redirect re-validation exists in the `api` tool only. The other tools rely on `fetch` defaults, which follow redirects without re-checking the target.
@@ -169,10 +176,12 @@ The threat model covers the runtime components:
 **Attack path:** There is no env-var filter between the harness process and skill execution. Skills run inside the agent process, which has access to all env vars. The former `envInjector.js` whitelist is gone, so `config.sandbox.env.allowlist` no longer constrains anything.
 
 **Existing mitigations:**
+
 - Secrets are loaded from env vars, not hardcoded.
 - Telemetry redaction masks configured paths.
 
 **Gaps / recommendations:**
+
 - Any skill — or prompt-injected tool call — can read the full process environment, including `OPENAI_API_KEY`, `AUTH_API_KEY`, and mail credentials. Review whether these need to live in the same process as skill execution, or whether secrets should be resolved lazily per-tool and never exposed to a general-purpose shell.
 
 ### 6.5 Cron Job Abuse
@@ -182,11 +191,13 @@ The threat model covers the runtime components:
 **Attack path:** `src/scheduler/` reads job JSON from disk, builds crontab entries, and executes skills via the sandbox. The derived command for skill-only jobs serializes `input` into the `--message` argument.
 
 **Existing mitigations:**
+
 - Jobs are validated (`name`, `cron`, `skill`/`command`).
 - Skill execution goes through the sandbox with permissions.
 - `enabled: false` jobs are skipped.
 
 **Gaps / recommendations:**
+
 - Job JSON files are read from the schedules directory with no integrity check. If an attacker can write to that directory, they can inject a job. Ensure the schedules directory is not writable by untrusted processes.
 - The `--message` argument is a shell string built from skill name + serialized input. If input contains shell metacharacters, it could break out of the quoted string. **Verify input is properly escaped/quoted** when building the command.
 
@@ -197,11 +208,13 @@ The threat model covers the runtime components:
 **Attack path:** `config.yaml` uses `${VAR_NAME}` interpolation or direct env vars. The loader resolves and validates via Zod.
 
 **Existing mitigations:**
+
 - Secrets only from env vars.
 - Telemetry redaction (`redaction.js`) masks configured paths.
 - Zod validation rejects malformed config.
 
 **Gaps / recommendations:**
+
 - `config.yaml` has empty-string placeholders for many API keys (`apiKey: ""`). Ensure these are never committed with real values.
 - Redaction is path-based; verify it covers all sensitive config paths (credentials, apiKey, clientSecret, etc.).
 
@@ -212,10 +225,12 @@ The threat model covers the runtime components:
 **Attack path:** `npm ci` installs dependencies; skills are discovered from `skills/` and `.skills/`.
 
 **Existing mitigations:**
+
 - Skill metadata validation (`validator.js`) checks name/description.
 - `npm audit` flags known vulnerabilities.
 
 **Gaps / recommendations:**
+
 - The dependency tree has 14 known vulnerabilities (see issue #1059). Track and remediate.
 - Skill validation checks metadata format, not code behavior. A skill's scripts are trusted at execution time.
 
@@ -223,21 +238,21 @@ The threat model covers the runtime components:
 
 ## 7. Mitigation Summary
 
-| Control | Where | Status |
-|---|---|---|
-| Path allowlist/denylist | `pathResolver.js` | ✅ Implemented (tool layer only) |
-| URL scheme blocklist + host allowlist | `urlFilter.js` | ✅ Implemented (no internal-address blocking; no DNS check) |
-| Redirect re-validation | `src/tools/api/` | ✅ Implemented for `api` only |
-| Server-side API policy and credential profiles | `src/config/schemas/api.js`, `src/tools/api/` | ✅ Implemented |
-| Skill metadata validation | `validator.js` | ✅ Implemented |
-| Telemetry redaction | `redaction.js` | ✅ Implemented |
-| Zod input validation | `src/tools/*/index.js` | ✅ Implemented |
-| Auth modes (jwt/apikey/none) | AGENTS.md | ⚠️ Verify implementation |
-| Skill permission enforcement | — | ❌ Declarative only (`permissions` is validated, never enforced) |
-| Env var whitelist | — | ❌ Removed with `envInjector.js`; `sandbox.env.allowlist` has no consumer |
-| Timeout + memory limit for skills | — | ❌ Removed with `runner.js` / `timeoutHandler.js`; `sandbox.timeout` / `sandbox.memoryLimit` have no skill-side consumer |
-| Capability → resource mapping | — | ❌ Removed with `capability.js` |
-| OS-level sandboxing | — | ❌ Not present |
+| Control                                        | Where                                         | Status                                                                                                                   |
+| ---------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Path allowlist/denylist                        | `pathResolver.js`                             | ✅ Implemented (tool layer only)                                                                                         |
+| URL scheme blocklist + host allowlist          | `urlFilter.js`                                | ✅ Implemented (no internal-address blocking; no DNS check)                                                              |
+| Redirect re-validation                         | `src/tools/api/`                              | ✅ Implemented for `api` only                                                                                            |
+| Server-side API policy and credential profiles | `src/config/schemas/api.js`, `src/tools/api/` | ✅ Implemented                                                                                                           |
+| Skill metadata validation                      | `validator.js`                                | ✅ Implemented                                                                                                           |
+| Telemetry redaction                            | `redaction.js`                                | ✅ Implemented                                                                                                           |
+| Zod input validation                           | `src/tools/*/index.js`                        | ✅ Implemented                                                                                                           |
+| Auth modes (jwt/apikey/none)                   | AGENTS.md                                     | ⚠️ Verify implementation                                                                                                 |
+| Skill permission enforcement                   | —                                             | ❌ Declarative only (`permissions` is validated, never enforced)                                                         |
+| Env var whitelist                              | —                                             | ❌ Removed with `envInjector.js`; `sandbox.env.allowlist` has no consumer                                                |
+| Timeout + memory limit for skills              | —                                             | ❌ Removed with `runner.js` / `timeoutHandler.js`; `sandbox.timeout` / `sandbox.memoryLimit` have no skill-side consumer |
+| Capability → resource mapping                  | —                                             | ❌ Removed with `capability.js`                                                                                          |
+| OS-level sandboxing                            | —                                             | ❌ Not present                                                                                                           |
 
 ---
 
@@ -257,6 +272,7 @@ The threat model covers the runtime components:
 ## 9. Review Cadence
 
 This threat model should be reviewed when:
+
 - A new tool or skill type is added.
 - The sandbox or scheduler changes.
 - A new external integration (email, calendar, search) is added.

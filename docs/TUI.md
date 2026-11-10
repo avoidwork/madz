@@ -1,8 +1,9 @@
 # TUI: Terminal Interface Blueprint
 
 *A design document for the new madz terminal interface. Grounded in the existing implementation (Ink
-+ `ink-scroll-view` + structured logger), inspired by the best patterns of bitchx IRC client. The
-core functionality stays the same — the new TUI renders it better.*
+
+- `ink-scroll-view` + structured logger), inspired by the best patterns of bitchx IRC client. The
+  core functionality stays the same — the new TUI renders it better.*
 
 ## What This Document Is
 
@@ -21,7 +22,7 @@ This is a **design blueprint** for the madz terminal interface. It describes the
 The interface is a terminal. Text flows in from the system, text flows out from the user. No panels,
 no tabs, no switching. One scrollable output area, one input line.
 
-> **Note:** "No panels, no tabs, no switching" is the **aspiration**, not the current state. The current implementation *does* have a panel system (`skillsPanel`, `memoryPanel`, `settingsPanel`, `projectsPanel`, `sessionsPanel`) reachable via `/skills`, `/memories`, `/settings`, `/projects`, `/sessions`. See §16 (Architectural Debt) for the proposal to remove them.
+> **Note:** "No panels, no tabs, no switching" is the **aspiration**, not the current state. The current implementation _does_ have a panel system (`skillsPanel`, `memoryPanel`, `settingsPanel`, `projectsPanel`, `sessionsPanel`) reachable via `/skills`, `/memories`, `/settings`, `/projects`, `/sessions`. See §16 (Architectural Debt) for the proposal to remove them.
 
 The IRC layout is borrowed for its elegance: messages accumulate above, input sits at the bottom,
 scrolling is natural. But the content is code, output, system responses — not conversation.
@@ -29,12 +30,12 @@ scrolling is natural. But the content is code, output, system responses — not 
 ### Core Tenets
 
 1. **Input is primary.** The user lives at the input line. The output area is secondary — read when
-needed, scroll when needed.
+   needed, scroll when needed.
 2. **Output is a log.** System output, code output, agent responses — all flow into the same stream.
 3. **Silence is the default.** The interface should feel like a quiet terminal — alive with output,
-not noise.
+   not noise.
 4. **Batteries included, not scripts required.** Runtime customizations (toggles, formats, filters)
-ship built-in. No config file editing needed for common changes.
+   ship built-in. No config file editing needed for common changes.
 
 ---
 
@@ -74,13 +75,13 @@ App (src/tui/app.js)
 
 ### Key Dependencies
 
-| Dependency | Role |
-|------------|------|
-| `ink` | TUI framework (Box, Text, useInput, useStdout, useWindowSize) |
-| `ink-scroll-view` | Scrollable viewport (ScrollView, scrollToBottom, scrollBy, remeasure) |
-| `fast-glob` | File autocomplete globbing (filePicker.js) |
-| `marked` + `marked-terminal` | Markdown → ANSI terminal rendering (markdownText.js) |
-| `tiktoken` | Conversation token counting (contextTokens.js, with character-count fallback) |
+| Dependency                   | Role                                                                          |
+| ---------------------------- | ----------------------------------------------------------------------------- |
+| `ink`                        | TUI framework (Box, Text, useInput, useStdout, useWindowSize)                 |
+| `ink-scroll-view`            | Scrollable viewport (ScrollView, scrollToBottom, scrollBy, remeasure)         |
+| `fast-glob`                  | File autocomplete globbing (filePicker.js)                                    |
+| `marked` + `marked-terminal` | Markdown → ANSI terminal rendering (markdownText.js)                          |
+| `tiktoken`                   | Conversation token counting (contextTokens.js, with character-count fallback) |
 
 > **Note:** `pino` is not a TUI dependency. The structured logger lives in `src/shared/logger.js` and is used by the backend, not the Ink components.
 
@@ -96,7 +97,9 @@ management — no custom virtual scroll logic needed.
 ```jsx
 // ConversationPanel wraps ScrollView around message bubbles
 <ScrollView ref={scrollRef} key="scroll">
-  {messages.map(msg => <MessageBubble key={msg.id} msg={msg} />)}
+	{messages.map((msg) => (
+		<MessageBubble key={msg.id} msg={msg} />
+	))}
 </ScrollView>
 ```
 
@@ -111,32 +114,32 @@ management — no custom virtual scroll logic needed.
 
 ### Scroll API (via ref)
 
-| Method | Purpose |
-|--------|---------|
-| `scrollToBottom()` | Scroll to the end of content |
-| `scrollBy(delta)` | Scroll by N rows (positive = down, negative = up) |
-| `scrollTo(offset)` | Scroll to absolute position |
-| `scrollToTop()` | Scroll to offset 0 |
-| `remeasure()` | Re-measure viewport dimensions (call on terminal resize) |
-| `remeasureItem(index)` | Force re-measure of a specific child (useful for dynamic content) |
-| `getViewportHeight()` | Get visible row count |
-| `getScrollOffset()` | Get current scroll position |
-| `getContentHeight()` | Get total content height |
-| `getBottomOffset()` | Get scroll offset when at bottom |
-| `getItemHeight(index)` | Get measured height of a specific item |
-| `getItemPosition(index)` | Get position and height of a specific item |
+| Method                   | Purpose                                                           |
+| ------------------------ | ----------------------------------------------------------------- |
+| `scrollToBottom()`       | Scroll to the end of content                                      |
+| `scrollBy(delta)`        | Scroll by N rows (positive = down, negative = up)                 |
+| `scrollTo(offset)`       | Scroll to absolute position                                       |
+| `scrollToTop()`          | Scroll to offset 0                                                |
+| `remeasure()`            | Re-measure viewport dimensions (call on terminal resize)          |
+| `remeasureItem(index)`   | Force re-measure of a specific child (useful for dynamic content) |
+| `getViewportHeight()`    | Get visible row count                                             |
+| `getScrollOffset()`      | Get current scroll position                                       |
+| `getContentHeight()`     | Get total content height                                          |
+| `getBottomOffset()`      | Get scroll offset when at bottom                                  |
+| `getItemHeight(index)`   | Get measured height of a specific item                            |
+| `getItemPosition(index)` | Get position and height of a specific item                        |
 
 ### Keyboard and Mouse Scrolling
 
 Mouse reporting is **on by default**: the mouse wheel scrolls the conversation, clicks expand
 collapsed tool/reasoning blocks and open markdown links, and the input stays live for typing.
 
-| Key | Default mode | Select mode (Tab) |
-|-----|--------------|-------------------|
-| Up arrow | Input history (previous) | `scrollBy(-1)` |
-| Down arrow | Input history (next) | `scrollBy(1)` |
-| PageUp | `scrollBy(-viewportHeight)` | `scrollBy(-viewportHeight)` |
-| PageDown | `scrollBy(viewportHeight)` | `scrollBy(viewportHeight)` |
+| Key        | Default mode                | Select mode (Tab)           |
+| ---------- | --------------------------- | --------------------------- |
+| Up arrow   | Input history (previous)    | `scrollBy(-1)`              |
+| Down arrow | Input history (next)        | `scrollBy(1)`               |
+| PageUp     | `scrollBy(-viewportHeight)` | `scrollBy(-viewportHeight)` |
+| PageDown   | `scrollBy(viewportHeight)`  | `scrollBy(viewportHeight)`  |
 
 **Select mode** is opt-in: Tab toggles it and the input border turns cyan. Mouse reporting is
 turned off so the terminal handles drag-select and copy/paste natively. Any printable key, Tab,
@@ -161,7 +164,7 @@ controlling cursor visibility and position. Passing `undefined` hides the cursor
 ### Configuration
 
 ```jsx
-import { useCursor } from 'ink';
+import { useCursor } from "ink";
 
 const { setCursorPosition } = useCursor();
 
@@ -193,29 +196,29 @@ reasoning content.
 
 ```typescript
 interface Message {
-  role: "user" | "assistant" | "system";
-  content: string;
-  time: string;              // HH:MM format
-  streaming?: boolean;       // True while content is being streamed
-  reasoningContent?: string; // Agent thinking (shown inline, truncated at 200 chars)
-  activeToolCall?: { name: string };    // Currently running tool
-  toolCallDisplay?: string;              // Completed tool calls (multi-line)
-  toolCalls?: { name: string }[];        // Tool call history
-  id?: string;               // Stable identifier for memoization
+	role: "user" | "assistant" | "system";
+	content: string;
+	time: string; // HH:MM format
+	streaming?: boolean; // True while content is being streamed
+	reasoningContent?: string; // Agent thinking (shown inline, truncated at 200 chars)
+	activeToolCall?: { name: string }; // Currently running tool
+	toolCallDisplay?: string; // Completed tool calls (multi-line)
+	toolCalls?: { name: string }[]; // Tool call history
+	id?: string; // Stable identifier for memoization
 }
 ```
 
 ### Role-Based Styling
 
-| Role | Label Color | Bubble Border | Alignment |
-|------|------------|---------------|-----------|
-| **user** | Green | Green | Right |
-| **system** | Yellow | Yellow | Left |
-| **assistant** | Cyan | Cyan | Left |
+| Role          | Label Color | Bubble Border | Alignment |
+| ------------- | ----------- | ------------- | --------- |
+| **user**      | Green       | Green         | Right     |
+| **system**    | Yellow      | Yellow        | Left      |
+| **assistant** | Cyan        | Cyan          | Left      |
 
 ### Message Bubble Rendering
 
-```
+````
 ┌───────────────────────────────────────────┐
 │ [14:23] Mads: Here's the code:            │
 │                                           │
@@ -228,7 +231,7 @@ interface Message {
 │                                           │
 │ (thinking) Analyzing the request...       │
 └───────────────────────────────────────────┘
-```
+````
 
 ### Memoization
 
@@ -269,15 +272,16 @@ tui:
 
 Toggle commands allow runtime overrides of the `config.yaml` defaults:
 
-| Toggle | Default | Description |
-|--------|---------|-------------|
-| `autoScroll` | `true` | Auto-scroll to bottom on new messages |
-| `timestamps` | `true` | Show timestamps on messages |
-| `commandEcho` | `true` | Echo user commands to output |
-| `cursorBreathe` | `true` | Enable breathing cursor model |
-| `debugOutput` | `false` | Show debug-level messages |
+| Toggle          | Default | Description                           |
+| --------------- | ------- | ------------------------------------- |
+| `autoScroll`    | `true`  | Auto-scroll to bottom on new messages |
+| `timestamps`    | `true`  | Show timestamps on messages           |
+| `commandEcho`   | `true`  | Echo user commands to output          |
+| `cursorBreathe` | `true`  | Enable breathing cursor model         |
+| `debugOutput`   | `false` | Show debug-level messages             |
 
 Usage:
+
 ```
 /toggle timestamps        → turns timestamps off
 /toggle timestamps        → turns timestamps on (toggle)
@@ -298,6 +302,7 @@ similar pattern:
 ```
 
 Format specifiers:
+
 - `%T` — timestamp (respects `timestamps` toggle)
 - `%t` — text body
 - `%B` — bold, `%n` — null color (reset)
@@ -319,12 +324,13 @@ The TUI could adopt a similar pattern:
 ```
 
 Available levels:
-| Level | Description |
-|-------|-------------|
-| `user` | User messages |
-| `assistant` | Agent responses |
-| `system` | System notifications |
-| `debug` | Debug/internal messages (hidden by default) |
+
+| Level       | Description                                 |
+| ----------- | ------------------------------------------- |
+| `user`      | User messages                               |
+| `assistant` | Agent responses                             |
+| `system`    | System notifications                        |
+| `debug`     | Debug/internal messages (hidden by default) |
 
 > **YAGNI:** Message-level filtering adds significant complexity (parsing, persistence, UI indicators). Implement only if there is a clear, demonstrated need.
 
@@ -342,31 +348,32 @@ table of registered commands, with fallback to skill execution.
 
 ### Registered Commands
 
-| Command | Behavior |
-|---------|----------|
-| `/quit` | Disconnect and exit |
-| `/exit` | Disconnect and exit (alias for `/quit`) |
-| `/clear` | Clear conversation |
-| `/new` | Start a new session |
-| `/help` | Show available commands |
-| `/config set <path> <value>` | Set a config value |
-| `/provider set <name>` | Switch AI provider |
-| `/schedule list` | List scheduled tasks |
-| `/schedule pause <name>` | Pause a scheduled task |
-| `/schedule resume <name>` | Resume a scheduled task |
-| `/schedule run-now <name>` | Run a scheduled task immediately |
-| `/projects` | Open the projects panel (select a project directory) |
-| `/projects clear` | Clear the active project |
-| `/gc` | Trigger V8 garbage collection |
-| `/gc status` | Show GC status |
-| `/sessions` | Open the sessions panel |
-| `/memories` | Open the memories panel |
-| `/skills` | Open the skills panel |
-| `/settings` | Open the settings panel |
+| Command                      | Behavior                                             |
+| ---------------------------- | ---------------------------------------------------- |
+| `/quit`                      | Disconnect and exit                                  |
+| `/exit`                      | Disconnect and exit (alias for `/quit`)              |
+| `/clear`                     | Clear conversation                                   |
+| `/new`                       | Start a new session                                  |
+| `/help`                      | Show available commands                              |
+| `/config set <path> <value>` | Set a config value                                   |
+| `/provider set <name>`       | Switch AI provider                                   |
+| `/schedule list`             | List scheduled tasks                                 |
+| `/schedule pause <name>`     | Pause a scheduled task                               |
+| `/schedule resume <name>`    | Resume a scheduled task                              |
+| `/schedule run-now <name>`   | Run a scheduled task immediately                     |
+| `/projects`                  | Open the projects panel (select a project directory) |
+| `/projects clear`            | Clear the active project                             |
+| `/gc`                        | Trigger V8 garbage collection                        |
+| `/gc status`                 | Show GC status                                       |
+| `/sessions`                  | Open the sessions panel                              |
+| `/memories`                  | Open the memories panel                              |
+| `/skills`                    | Open the skills panel                                |
+| `/settings`                  | Open the settings panel                              |
 
 ### Skill Execution
 
 Unrecognized `/command` patterns that match a registered skill name are executed as skills:
+
 ```
 /skillName [args]
 ```
@@ -386,19 +393,19 @@ The command parser falls back to the skill registry: if the command name matches
 
 ### Keyboard Shortcuts
 
-| Key | Action | Cursor |
-|-----|--------|--------|
-| Any character | Append to input | Visible |
-| Enter | Submit command | Visible → Hidden (after submit) |
-| Escape | Interrupt streaming / quit | Hidden |
-| Tab | Toggle select mode (cyan border, mouse reporting off) | N/A |
-| Any character (select mode) | Exit select mode and append to input | Visible |
-| Up arrow (default) | Scroll through command history | Visible |
-| Down arrow (default) | Scroll forward through history | Visible |
-| Up arrow (select mode) | Scroll output up | Hidden |
-| Down arrow (select mode) | Scroll output down | Hidden |
-| PageUp (both modes) | Scroll output up 1 page | Unchanged |
-| PageDown (both modes) | Scroll output down 1 page | Unchanged |
+| Key                         | Action                                                | Cursor                          |
+| --------------------------- | ----------------------------------------------------- | ------------------------------- |
+| Any character               | Append to input                                       | Visible                         |
+| Enter                       | Submit command                                        | Visible → Hidden (after submit) |
+| Escape                      | Interrupt streaming / quit                            | Hidden                          |
+| Tab                         | Toggle select mode (cyan border, mouse reporting off) | N/A                             |
+| Any character (select mode) | Exit select mode and append to input                  | Visible                         |
+| Up arrow (default)          | Scroll through command history                        | Visible                         |
+| Down arrow (default)        | Scroll forward through history                        | Visible                         |
+| Up arrow (select mode)      | Scroll output up                                      | Hidden                          |
+| Down arrow (select mode)    | Scroll output down                                    | Hidden                          |
+| PageUp (both modes)         | Scroll output up 1 page                               | Unchanged                       |
+| PageDown (both modes)       | Scroll output down 1 page                             | Unchanged                       |
 
 ### Command History
 
@@ -439,21 +446,22 @@ The status bar is a single row with a left-aligned cluster of indicators and a r
 ∙∙∙ [gpt-4o] [⚡12] [💬42] [◣ 1.2k] [💎 120/4096] [backend-api]      quote text   v1.88.0
 ```
 
-| Element | Config toggle | Content |
-|---------|---------------|---------|
-| Status indicator | — | `∙∙∙` (idle) or a spinner (streaming) |
-| Model | `statusBar.model` | The active model name, e.g. `[gpt-4o]` |
-| Skill count | `statusBar.skills` | Number of registered skills, `[⚡12]` |
-| Message count | `statusBar.messages` | Total messages in conversation, `[💬42]` |
-| Context size | `statusBar.context` | Conversation token estimate, `[◣ 1.2k]` |
-| Token budget | `statusBar.tokens` | Rolling budget usage, `[💎 120/4096]` (only when `maxTokensMinute > 0`) |
-| Active project | `statusBar.project` | The active project name, `[backend-api]` (only when a project is set) |
-| Quote | `statusBar.quote` | A rotating quote line (right-aligned) |
-| Version | `statusBar.version` | App version (right-aligned) |
+| Element          | Config toggle        | Content                                                                 |
+| ---------------- | -------------------- | ----------------------------------------------------------------------- |
+| Status indicator | —                    | `∙∙∙` (idle) or a spinner (streaming)                                   |
+| Model            | `statusBar.model`    | The active model name, e.g. `[gpt-4o]`                                  |
+| Skill count      | `statusBar.skills`   | Number of registered skills, `[⚡12]`                                   |
+| Message count    | `statusBar.messages` | Total messages in conversation, `[💬42]`                                |
+| Context size     | `statusBar.context`  | Conversation token estimate, `[◣ 1.2k]`                                 |
+| Token budget     | `statusBar.tokens`   | Rolling budget usage, `[💎 120/4096]` (only when `maxTokensMinute > 0`) |
+| Active project   | `statusBar.project`  | The active project name, `[backend-api]` (only when a project is set)   |
+| Quote            | `statusBar.quote`    | A rotating quote line (right-aligned)                                   |
+| Version          | `statusBar.version`  | App version (right-aligned)                                             |
 
 ### 🔶 Proposed Enhancement
 
 Add toggle/filter indicators to the status bar:
+
 ```
 [●] Ready  | [⚡12] [💬42] [◣ 1.2k]  [ts:1 scroll:1]
 ```
@@ -525,21 +533,21 @@ the TUI.
 ```jsx
 // Scroll to bottom with deferred timing
 const scrollHandle = () => {
-  if (scrollRef.current) {
-    scrollRef.current.scrollToBottom();
-  }
+	if (scrollRef.current) {
+		scrollRef.current.scrollToBottom();
+	}
 };
 const timer = setTimeout(scrollHandle, 0);
 
 // Terminal resize handling
 useEffect(() => {
-  const resizeHandler = () => {
-    if (scrollRef.current && stdout.isTTY && !process.env.CI) {
-      scrollRef.current.remeasure();
-    }
-  };
-  stdout.on("resize", resizeHandler);
-  return () => stdout.off("resize", resizeHandler);
+	const resizeHandler = () => {
+		if (scrollRef.current && stdout.isTTY && !process.env.CI) {
+			scrollRef.current.remeasure();
+		}
+	};
+	stdout.on("resize", resizeHandler);
+	return () => stdout.off("resize", resizeHandler);
 }, [stdout, scrollRef]);
 
 // Abort controller for streaming interruption
@@ -594,12 +602,13 @@ tracks whether the TUI is in auto-continue mode.
 ### Abort / Interrupt
 
 The `Escape` key triggers `handleInterrupt()`, which:
+
 1. Calls `abortControllerRef.current.abort()`
 2. Sets `isStreamingRef.current = false`
 3. Clears the streaming cursor from the last message
 4. Awaits the `dispatchPromise` (which throws `AbortError` and is caught by the try/catch)
 5. If interrupted during chat: pops the user message from sessionState, clears the partial assistant
-message, deletes the checkpointer thread
+   message, deletes the checkpointer thread
 6. If interrupted during skill: pops the user message, deletes the checkpointer thread
 
 ### Todo Queue Integration
@@ -647,6 +656,7 @@ A BBS-style ASCII art banner displays on first launch. It shows command help gro
 ### Onboarding Panel
 
 When no user profile exists, the onboarding flow activates:
+
 1. `OnboardingPanel` renders with prompts from the onboarding instance
 2. User responses are processed via `onboarding.processResponse()`
 3. Progress is shown as `(current/total)`
@@ -661,11 +671,11 @@ design is defined by four principles:
 
 1. **Input is primary.** The user lives at the input line. Output is secondary.
 2. **Silence is the default.** The interface should feel like a quiet terminal — alive with output,
-not noise.
+   not noise.
 3. **Batteries included.** Runtime customizations (toggles, formats, filters) should ship built-in —
-no config file editing required.
+   no config file editing required.
 4. **The terminal is the window.** `ink-scroll-view` handles scrolling, Ink handles rendering, the
-structured logger handles persistence.
+   structured logger handles persistence.
 
 The result is an interface that feels like a quiet terminal — present, alive, and ready for work.
 Not a dashboard. Not a tool. A workspace.
@@ -674,7 +684,7 @@ Not a dashboard. Not a tool. A workspace.
 
 ## 16. ⚠️ Architectural Debt & Proposed Improvements
 
-> **Status: Debt — documented trade-offs, not current behavior.** The recommendations in this section are not implemented. They describe how the TUI *could* be reorganized, not how it *is* organized.
+> **Status: Debt — documented trade-offs, not current behavior.** The recommendations in this section are not implemented. They describe how the TUI _could_ be reorganized, not how it _is_ organized.
 
 The current implementation works, but several structural decisions compound as the TUI grows. This
 section documents known debt and proposed improvements for future refactoring.
@@ -708,7 +718,7 @@ multiple layers. Extract into a `useStreaming()` hook that:
 - Handles the auto-continue circuit breaker
 - Exposes a clean `streamingState` object to the UI
 
-Separates *how we stream* from *what we stream*.
+Separates _how we stream_ from _what we stream_.
 
 ### 16.3 File Structure — Group by Concern, Not by Component
 
@@ -768,7 +778,7 @@ new command is a registration, not a switch case edit.
 
 ### 16.7 What to Keep the Same
 
-The *philosophy* — input is primary, output is a log, silence is the default. That's the right
+The _philosophy_ — input is primary, output is a log, silence is the default. That's the right
 mental model. It's the implementation scaffolding around it that should be reorganized.
 
 ---
@@ -781,60 +791,60 @@ This section provides the concrete types, interfaces, and patterns needed to imp
 
 ```typescript
 interface TUIState {
-  // Messages
-  messages: Message[];
-  chatHistory: string[];
-  historyIndex: number;
+	// Messages
+	messages: Message[];
+	chatHistory: string[];
+	historyIndex: number;
 
-  // Input
-  inputText: string;
-  selectMode: boolean;
+	// Input
+	inputText: string;
+	selectMode: boolean;
 
-  // Status
-  statusMessage: string;
-  contextSize: number;
-  isCompacting: boolean;
+	// Status
+	statusMessage: string;
+	contextSize: number;
+	isCompacting: boolean;
 
-  // Streaming
-  isStreaming: boolean;
-  isAutoContinuing: boolean;
-  autoContinueCount: number;
+	// Streaming
+	isStreaming: boolean;
+	isAutoContinuing: boolean;
+	autoContinueCount: number;
 
-  // Scroll
-  scrollOffset: number;
-  viewportHeight: number;
+	// Scroll
+	scrollOffset: number;
+	viewportHeight: number;
 
-  // Config overrides (runtime toggles)
-  toggles: {
-    autoScroll: boolean;
-    timestamps: boolean;
-    commandEcho: boolean;
-    cursorBreathe: boolean;
-    debugOutput: boolean;
-  };
+	// Config overrides (runtime toggles)
+	toggles: {
+		autoScroll: boolean;
+		timestamps: boolean;
+		commandEcho: boolean;
+		cursorBreathe: boolean;
+		debugOutput: boolean;
+	};
 }
 
 const initialState: TUIState = {
-  messages: [],
-  chatHistory: [],
-  historyIndex: -1,
-  inputText: '',
-  selectMode: false,
-  statusMessage: 'Ready',
-  contextSize: 0,
-  isCompacting: false,
-  isStreaming: false,
-  isAutoContinuing: false,
-  autoContinueCount: 0,
-  scrollOffset: 0,
-  viewportHeight: 0,
-  toggles: {
-    autoScroll: true,
-    timestamps: true,
-    commandEcho: true,
-    cursorBreathe: true,
-    debugOutput: false,
-  },
+	messages: [],
+	chatHistory: [],
+	historyIndex: -1,
+	inputText: "",
+	selectMode: false,
+	statusMessage: "Ready",
+	contextSize: 0,
+	isCompacting: false,
+	isStreaming: false,
+	isAutoContinuing: false,
+	autoContinueCount: 0,
+	scrollOffset: 0,
+	viewportHeight: 0,
+	toggles: {
+		autoScroll: true,
+		timestamps: true,
+		commandEcho: true,
+		cursorBreathe: true,
+		debugOutput: false,
+	},
 };
 ```
 
@@ -842,71 +852,78 @@ const initialState: TUIState = {
 
 ```typescript
 type TUIAction =
-  // Messages
-  | { type: 'ADD_MESSAGE'; message: Message }
-  | { type: 'UPDATE_MESSAGE'; id: string; updates: Partial<Message> }
-  | { type: 'CLEAR_MESSAGES' }
-  | { type: 'ADD_HISTORY'; text: string }
-  | { type: 'SET_HISTORY_INDEX'; index: number }
+	// Messages
+	| { type: "ADD_MESSAGE"; message: Message }
+	| { type: "UPDATE_MESSAGE"; id: string; updates: Partial<Message> }
+	| { type: "CLEAR_MESSAGES" }
+	| { type: "ADD_HISTORY"; text: string }
+	| { type: "SET_HISTORY_INDEX"; index: number }
 
-  // Input
-  | { type: 'SET_INPUT_TEXT'; text: string }
-  | { type: 'SUBMIT_INPUT' }
-  | { type: 'SET_INPUT_FOCUSED'; focused: boolean }
+	// Input
+	| { type: "SET_INPUT_TEXT"; text: string }
+	| { type: "SUBMIT_INPUT" }
+	| { type: "SET_INPUT_FOCUSED"; focused: boolean }
 
-  // Status
-  | { type: 'SET_STATUS'; message: string }
-  | { type: 'SET_CONTEXT_SIZE'; size: number }
-  | { type: 'SET_COMPACTING'; compacting: boolean }
+	// Status
+	| { type: "SET_STATUS"; message: string }
+	| { type: "SET_CONTEXT_SIZE"; size: number }
+	| { type: "SET_COMPACTING"; compacting: boolean }
 
-  // Streaming
-  | { type: 'SET_STREAMING'; streaming: boolean }
-  | { type: 'SET_AUTO_CONTINUING'; autoContinuing: boolean }
-  | { type: 'INCREMENT_AUTO_CONTINUE' }
-  | { type: 'RESET_AUTO_CONTINUE' }
+	// Streaming
+	| { type: "SET_STREAMING"; streaming: boolean }
+	| { type: "SET_AUTO_CONTINUING"; autoContinuing: boolean }
+	| { type: "INCREMENT_AUTO_CONTINUE" }
+	| { type: "RESET_AUTO_CONTINUE" }
 
-  // Scroll
-  | { type: 'SET_SCROLL_OFFSET'; offset: number }
-  | { type: 'SET_VIEWPORT_HEIGHT'; height: number }
+	// Scroll
+	| { type: "SET_SCROLL_OFFSET"; offset: number }
+	| { type: "SET_VIEWPORT_HEIGHT"; height: number }
 
-  // Config
-  | { type: 'TOGGLE_CONFIG'; key: keyof TUIState['toggles'] }
-  | { type: 'SET_CONFIG'; updates: Partial<TUIState['toggles']> };
+	// Config
+	| { type: "TOGGLE_CONFIG"; key: keyof TUIState["toggles"] }
+	| { type: "SET_CONFIG"; updates: Partial<TUIState["toggles"]> };
 ```
 
 ### 17.3 Command Registry Schema
 
 ```typescript
 interface Command {
-  name: string;
-  description: string;
-  usage: string;
-  validate: (args: string[]) => boolean | string; // returns error message on failure
-  execute: (
-    args: string[],
-    state: TUIState,
-    dispatch: React.Dispatch<TUIAction>,
-    helpers: CommandHelpers
-  ) => Promise<void> | void;
+	name: string;
+	description: string;
+	usage: string;
+	validate: (args: string[]) => boolean | string; // returns error message on failure
+	execute: (
+		args: string[],
+		state: TUIState,
+		dispatch: React.Dispatch<TUIAction>,
+		helpers: CommandHelpers,
+	) => Promise<void> | void;
 }
 
 interface CommandHelpers {
-  dispatchProvider: (message: string, provider: string, streamingCallback: StreamingCallback, signal: AbortSignal) => Promise<void>;
-  sessionState: SessionStateManager;
-  config: Config;
-  scrollRef: React.RefObject<ScrollViewRef>;
+	dispatchProvider: (
+		message: string,
+		provider: string,
+		streamingCallback: StreamingCallback,
+		signal: AbortSignal,
+	) => Promise<void>;
+	sessionState: SessionStateManager;
+	config: Config;
+	scrollRef: React.RefObject<ScrollViewRef>;
 }
 
 // Registration
 const commands: Record<string, Command> = {
-  quit: {
-    name: 'quit',
-    description: 'Disconnect and exit',
-    usage: '/quit',
-    validate: () => true,
-    execute: async () => { /* ... */ },
-  },
-  // ... more commands
+	quit: {
+		name: "quit",
+		description: "Disconnect and exit",
+		usage: "/quit",
+		validate: () => true,
+		execute: async () => {
+			/* ... */
+		},
+	},
+	// ... more commands
 };
 ```
 
@@ -914,76 +931,76 @@ const commands: Record<string, Command> = {
 
 ```typescript
 type StreamEventType =
-  | 'text'
-  | 'reasoning'
-  | 'tool_start'
-  | 'tool_end'
-  | 'tool_error'
-  | 'compaction_start'
-  | 'compaction_end'
-  | 'todo_status';
+	| "text"
+	| "reasoning"
+	| "tool_start"
+	| "tool_end"
+	| "tool_error"
+	| "compaction_start"
+	| "compaction_end"
+	| "todo_status";
 
 interface StreamingCallback {
-  (event: StreamEvent): void;
+	(event: StreamEvent): void;
 }
 
 interface StreamEvent {
-  type: StreamEventType;
-  content?: string;      // for 'text', 'reasoning'
-  toolName?: string;     // for 'tool_start', 'tool_end', 'tool_error'
-  toolArgs?: string;     // for 'tool_end'
-  error?: string;        // for 'tool_error'
-  status?: string;       // for 'todo_status'
+	type: StreamEventType;
+	content?: string; // for 'text', 'reasoning'
+	toolName?: string; // for 'tool_start', 'tool_end', 'tool_error'
+	toolArgs?: string; // for 'tool_end'
+	error?: string; // for 'tool_error'
+	status?: string; // for 'todo_status'
 }
 
 // Transformation logic (inside useStreaming hook)
 function handleStreamEvent(event: StreamEvent, state: TUIState): Partial<TUIState> {
-  switch (event.type) {
-    case 'text':
-      return {
-        isStreaming: true,
-        messages: updateLastMessage(state.messages, {
-          content: event.content,
-          streaming: true,
-        }),
-      };
-    case 'reasoning':
-      return {
-        messages: updateLastMessage(state.messages, {
-          reasoningContent: event.content,
-        }),
-      };
-    case 'tool_start':
-      return {
-        messages: updateLastMessage(state.messages, {
-          activeToolCall: { name: event.toolName! },
-        }),
-      };
-    case 'tool_end':
-      return {
-        messages: updateLastMessage(state.messages, {
-          activeToolCall: undefined,
-          toolCallDisplay: event.content,
-        }),
-      };
-    case 'tool_error':
-      return {
-        messages: updateLastMessage(state.messages, {
-          activeToolCall: undefined,
-          toolCallDisplay: event.error,
-        }),
-      };
-    case 'compaction_start':
-      return { isCompacting: true, statusMessage: 'Compacting context...' };
-    case 'compaction_end':
-      return { isCompacting: false, statusMessage: 'Ready' };
-    case 'todo_status':
-      return {
-        messages: updateLastMessage(state.messages, {
-          toolCallDisplay: event.status,
-        }),
-      };
-  }
+	switch (event.type) {
+		case "text":
+			return {
+				isStreaming: true,
+				messages: updateLastMessage(state.messages, {
+					content: event.content,
+					streaming: true,
+				}),
+			};
+		case "reasoning":
+			return {
+				messages: updateLastMessage(state.messages, {
+					reasoningContent: event.content,
+				}),
+			};
+		case "tool_start":
+			return {
+				messages: updateLastMessage(state.messages, {
+					activeToolCall: { name: event.toolName! },
+				}),
+			};
+		case "tool_end":
+			return {
+				messages: updateLastMessage(state.messages, {
+					activeToolCall: undefined,
+					toolCallDisplay: event.content,
+				}),
+			};
+		case "tool_error":
+			return {
+				messages: updateLastMessage(state.messages, {
+					activeToolCall: undefined,
+					toolCallDisplay: event.error,
+				}),
+			};
+		case "compaction_start":
+			return { isCompacting: true, statusMessage: "Compacting context..." };
+		case "compaction_end":
+			return { isCompacting: false, statusMessage: "Ready" };
+		case "todo_status":
+			return {
+				messages: updateLastMessage(state.messages, {
+					toolCallDisplay: event.status,
+				}),
+			};
+	}
 }
 ```
 
@@ -1020,6 +1037,7 @@ src/tui/
 ### 17.6 Test Strategy
 
 **Unit tests** (`tests/unit/tui/`):
+
 - `reducer.test.js` — All action types, edge cases (empty state, concurrent updates)
 - `commandParser.test.js` — Command validation, execution, unknown commands
 - `contextTokens.test.js` — tiktoken calculation, character-count fallback
@@ -1027,9 +1045,11 @@ src/tui/
 - `useStreaming.test.js` — Event transformation, auto-continue circuit breaker, abort handling
 
 **Integration tests** (`tests/integration/tui/`):
+
 - `full-flow.test.js` — User input → streaming → message display → command execution
 
 **Mocking**:
+
 - `dispatchProvider` — Mock with resolved promise, configurable streaming events
 - `tiktoken` — Mock with fixed token counts
 - `marked-terminal` — Mock with plain text output
@@ -1048,5 +1068,5 @@ src/tui/
 
 ---
 
-*Blueprint for the new madz terminal interface. Grounded in the existing implementation and the
-ink + ink-scroll-view libraries.*
+_Blueprint for the new madz terminal interface. Grounded in the existing implementation and the
+ink + ink-scroll-view libraries._
