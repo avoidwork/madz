@@ -335,6 +335,8 @@ export const MessageList = React.memo(
 				contentRef.current = new Map();
 
 				for (const m of msgs) {
+					// Cancelled tool messages stay in provider history but are not rendered.
+					if (m.cancelled) continue;
 					const id = (++_messageIdCounter).toString();
 					const stableContent = m.content || "";
 

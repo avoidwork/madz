@@ -9,6 +9,7 @@ import React, {
 import { Box } from "ink";
 import { AIMessage, HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { hasId } from "./messages.js";
+import { isCancelledToolEvent } from "../shared/cancelledToolMessage.js";
 import { ConversationPanel } from "./conversationPanel.js";
 import { CommandParser } from "./commandParser.js";
 import { createSession } from "../session/factory.js";
@@ -809,13 +810,17 @@ const ConversationArea = forwardRef(function ConversationArea(
 							toolMessageTokensRef.current += await countToolMessageTokens(model, toolText);
 							debouncedContextUpdate(committedContentRef.current);
 
-							// Render the tool text as a distinct `tool` segment so it
-							// shows as a separate block toggled by toolCallCollapsed.
-							messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
-								segments: [{ type: "tool", content: toolText, name: toolName }],
-								streaming: true,
-							});
-							messageListRef.current?._triggerRender();
+							// Cancelled tool calls (synthetic message) stay in provider
+							// context (counted above) but never render as a tool call.
+							if (!isCancelledToolEvent(event)) {
+								// Render the tool text as a distinct `tool` segment so it
+								// shows as a separate block toggled by toolCallCollapsed.
+								messageListRef.current?.updateMessage(streamingMsgIdRef.current, {
+									segments: [{ type: "tool", content: toolText, name: toolName }],
+									streaming: true,
+								});
+								messageListRef.current?._triggerRender();
+							}
 						}
 					}
 

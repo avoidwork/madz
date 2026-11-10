@@ -138,6 +138,7 @@ function createImperativeApi() {
 			dataRef.current = new Map();
 			contentRef.current = new Map();
 			for (const m of msgs) {
+				if (m.cancelled) continue;
 				const id = (++_messageIdCounter).toString();
 				const stableContent = m.content || "";
 				contentRef.current.set(id, stableContent);
@@ -473,6 +474,20 @@ describe("MessageList — imperative API", () => {
 			api.setMessages([
 				{ role: "user", content: "Hi" },
 				{ role: "assistant", content: "Hello" },
+			]);
+			assert.strictEqual(api.getMessageCount(), 2);
+		});
+
+		it("skips cancelled tool messages but keeps normal and non-cancelled error tool messages", () => {
+			api.setMessages([
+				{ role: "tool", content: "ok" },
+				{
+					role: "tool",
+					content:
+						"Tool call x with id 1 was cancelled - another message came in before it could be completed.",
+					cancelled: true,
+				},
+				{ role: "tool", content: "real failure" },
 			]);
 			assert.strictEqual(api.getMessageCount(), 2);
 		});
