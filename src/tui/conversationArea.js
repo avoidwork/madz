@@ -16,6 +16,7 @@ import { createSession } from "../session/factory.js";
 import { setConfigValue } from "../config/loader.js";
 import { isAvailable, getGcCalls } from "../memory/gc.js";
 import { logger } from "../shared/logger.js";
+import { formatClarifyPrompt } from "../shared/clarifyPrompt.js";
 
 /**
 /**
@@ -683,11 +684,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 					if (event.type === "clarify") {
 						const question = event.question || "";
 						const choices = event.choices || [];
-						const promptText =
-							choices.length > 0
-								? `${question}\n\nOptions:\n${choices.map((c, i) => `${i + 1}. ${c}`).join("\n")}`
-								: question;
-						addMessage({ role: "system", content: promptText });
+						addMessage({ role: "system", content: formatClarifyPrompt(question, choices) });
 						pendingClarifyRef.current = { question, choices };
 						return;
 					}
