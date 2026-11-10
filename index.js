@@ -29,8 +29,9 @@ import { loadSession } from "./src/session/loader.js";
 
 import React from "react";
 import { HumanMessage } from "@langchain/core/messages";
-import { INTERRUPT, Command } from "@langchain/langgraph";
+import { Command } from "@langchain/langgraph";
 import { isSubagentNamespace } from "./src/stream/namespace.js";
+import { surfaceInterrupt } from "./src/stream/interrupt.js";
 
 const { setConfigValue } = await import("./src/config/loader.js");
 const { createDeepAgentsOrchestrator } = await import("./src/agent/deepAgents.js");
@@ -205,13 +206,12 @@ const getContextMessages = async () => {
 	}
 };
 
-// Capture config value before callProvider shadows the name
 const showToolResults = config.tui?.showToolResults;
 
 async function callProvider(_name, _providerConfig, message, streamingCallback, signal) {
 	const isNewThread = sessionState.getConversation().length === 0;
 
-	const config = {
+	const threadConfig = {
 		...currentSessionConfig(),
 		configurable: { thread_id: sessionState.getSessionId(), isNewThread },
 	};
@@ -230,7 +230,7 @@ async function callProvider(_name, _providerConfig, message, streamingCallback, 
 	};
 
 	for await (const [namespace, mode, payload] of await agent.stream(input, {
-		...config,
+		...threadConfig,
 		...options,
 		streamMode: ["messages", "tools", "values"],
 		subgraphs: true,
@@ -247,18 +247,7 @@ async function callProvider(_name, _providerConfig, message, streamingCallback, 
 		// `__interrupt__` array. When one fires, surface the question (and
 		// choices) to the TUI via the streaming callback and stop consuming the
 		// stream — the agent is paused and must be resumed with a `Command`.
-		if (mode === "values" && payload && Array.isArray(payload[INTERRUPT])) {
-			const interrupts = payload[INTERRUPT];
-			const first = interrupts[0];
-			const value = first?.value;
-			if (value && streamingCallback) {
-				streamingCallback({
-					type: "clarify",
-					question: value.question,
-					choices: value.choices,
-					interruptId: first?.id,
-				});
-			}
+		if (surfaceInterrupt(mode, payload, streamingCallback)) {
 			// The agent is paused; stop consuming the stream so the caller can
 			// surface the question and resume with the user's answer.
 			interrupted = true;
@@ -380,7 +369,7 @@ async function callProvider(_name, _providerConfig, message, streamingCallback, 
  * @returns {Promise<Object>} The resumed response
  */
 async function resumeProvider(answer, streamingCallback, signal) {
-	const config = {
+	const threadConfig = {
 		...currentSessionConfig(),
 		configurable: { thread_id: sessionState.getSessionId() },
 	};
@@ -398,7 +387,7 @@ async function resumeProvider(answer, streamingCallback, signal) {
 	for await (const [namespace, mode, payload] of await agent.stream(
 		new Command({ resume: answer }),
 		{
-			...config,
+			...threadConfig,
 			...options,
 			streamMode: ["messages", "tools", "values"],
 			subgraphs: true,
@@ -407,18 +396,7 @@ async function resumeProvider(answer, streamingCallback, signal) {
 		const isSubagent = isSubagentNamespace(namespace);
 
 		// Handle a nested interrupt (e.g. a second clarify question).
-		if (mode === "values" && payload && Array.isArray(payload[INTERRUPT])) {
-			const interrupts = payload[INTERRUPT];
-			const first = interrupts[0];
-			const value = first?.value;
-			if (value && streamingCallback) {
-				streamingCallback({
-					type: "clarify",
-					question: value.question,
-					choices: value.choices,
-					interruptId: first?.id,
-				});
-			}
+		if (surfaceInterrupt(mode, payload, streamingCallback)) {
 			interrupted = true;
 			break;
 		}

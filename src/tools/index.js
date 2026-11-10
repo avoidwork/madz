@@ -44,7 +44,7 @@ import { logger } from "../shared/logger.js";
  * Clarify, sampling, and process are exempt (always registered).
  */
 export const TOOL_PERMISSIONS = {
-	clarify: ["filesystem:read", "filesystem:write"],
+	clarify: [],
 	cronJob: ["network:outbound"],
 	createSkill: ["filesystem:write"],
 	skill: ["filesystem:read"],

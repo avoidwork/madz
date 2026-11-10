@@ -382,7 +382,7 @@ createChatModel(config)
 
 ```
 TOOL_PERMISSIONS (src/tools/index.js) — tool registers only when ALL required perms enabled:
-├── clarify → ["filesystem:read", "filesystem:write"] (but always registered — switch exempt)
+├── clarify → [] (always registered)
 ├── sampling → ["filesystem:write"] (always registered — switch exempt)
 ├── process → ["filesystem:exec", "process:spawn"] (always registered — switch exempt)
 ├── cronJob → "network:outbound"
@@ -476,10 +476,20 @@ generateImage tool:
 **Entry:** `src/tools/clarify/index.js`
 
 ```
-clarify tool (always registered):
-├── build entry: question + timestamp + numbered choices (if provided)
-├── append to memory/context/clarifications.md (read + concat + write)
-└── return { status: "ok", message: "Clarification noted." }
+clarify tool (always registered, no permissions):
+├── normalizeChoices() → strip model-added numbers, trim, drop empties
+├── interrupt({ question, choices }) → graph pauses; TUI shows the numbered prompt
+├── on resume LangGraph re-runs the node, so side effects happen AFTER interrupt()
+├── resolveChoice() → a reply of "2", "2." or "2)" becomes choices[1] (original kept as `raw`)
+├── append { question, options, answer } to memory/tools/clarifications.md
+│   (appendFile, newlines flattened, best-effort: a logging failure never blocks the answer)
+└── return { ok, answered, question, choices?, answer, raw?, source }
+
+TUI (src/tui/conversationArea.js):
+├── "clarify" event → show prompt, set pendingClarifyRef
+├── next input → recorded in session state, routed to resumeProvider (Command({ resume }))
+├── Esc and /new clear pendingClarifyRef (the paused question is abandoned)
+└── handleChat and resumeClarify share runTurn(); an interrupted turn records no assistant exchange
 ```
 
 ## Cron Job Execution Flow

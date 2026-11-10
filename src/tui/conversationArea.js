@@ -157,6 +157,10 @@ const ConversationArea = forwardRef(function ConversationArea(
 	 * Interrupt the current streaming response.
 	 */
 	const handleInterrupt = async () => {
+		// Abandon any pending clarification: the paused question no longer
+		// applies, so the next message must not be routed to it as an answer.
+		pendingClarifyRef.current = null;
+
 		// Abort any active stream
 		if (abortControllerRef.current) {
 			abortControllerRef.current.abort();
@@ -341,6 +345,11 @@ const ConversationArea = forwardRef(function ConversationArea(
 		if (pendingClarifyRef.current) {
 			pendingClarifyRef.current = null;
 			addMessage({ role: "user", content: text });
+			if (sessionState) {
+				// Record the answer so an abort during the resumed turn pops this
+				// exchange rather than an unrelated earlier one.
+				sessionState.addExchange({ role: "user", content: text });
+			}
 			await resumeClarify(text);
 			return;
 		}
@@ -367,6 +376,20 @@ const ConversationArea = forwardRef(function ConversationArea(
 			updateContextSize(sessionState, config, [...contextMessages, new HumanMessage(text)]);
 		}
 
+		await runTurn((handler, signal) =>
+			dispatchProvider(text, sessionState ? sessionState.getProvider() : null, handler, signal),
+		);
+	};
+
+	/**
+	 * Run one assistant turn: open a streaming bubble, dispatch to the provider,
+	 * then finalize. Shared by normal chat and clarify resumes so the lifecycle
+	 * (abort handling, session bookkeeping, cleanup) cannot drift between them.
+	 * @param {(handler: Function, signal: AbortSignal) => Promise<Object>} dispatch - Starts the
+	 *   provider call with the streaming handler and abort signal
+	 * @returns {Promise<void>}
+	 */
+	const runTurn = async (dispatch) => {
 		const assistantTime = getTimestamp();
 		const turnStartTime = Date.now();
 		streamingMsgIdRef.current = messageListRef.current.addMessage("assistant", "", {
@@ -378,10 +401,10 @@ const ConversationArea = forwardRef(function ConversationArea(
 			messageCountRef.current = messageListRef.current?.getMessageCount() || 0;
 		}
 
-		let committedContentRef = { current: "" };
+		const committedContentRef = { current: "" };
 		const committedReasoningRef = { current: "" };
 		const lastToolCallDisplayRef = { current: "" };
-		let todoStatusLines = "";
+		const todoStatusLines = "";
 		/** @type {Object<string, number>} */
 		const completedToolCalls = {};
 
@@ -392,9 +415,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 		try {
 			const preStreamContextSize = contextSize;
 
-			const dispatchPromise = dispatchProvider(
-				text,
-				sessionState ? sessionState.getProvider() : null,
+			const dispatchPromise = dispatch(
 				createStreamingHandler(
 					committedContentRef,
 					committedReasoningRef,
@@ -409,9 +430,9 @@ const ConversationArea = forwardRef(function ConversationArea(
 			);
 
 			dispatchPromiseRef.current = dispatchPromise;
-			const _response = await dispatchPromise;
+			const response = await dispatchPromise;
 
-			let responseContent = committedContentRef.current;
+			const responseContent = committedContentRef.current;
 			const committedReasoning = committedReasoningRef.current;
 
 			if (shouldAbort()) return;
@@ -425,7 +446,10 @@ const ConversationArea = forwardRef(function ConversationArea(
 				completedToolCalls,
 			);
 
-			if (sessionState) {
+			// A turn that ended on a `clarify` interrupt is paused, not complete:
+			// the agent has not produced its answer yet, so no assistant exchange
+			// is recorded. The resumed turn records the real response.
+			if (sessionState && !response?.interrupted) {
 				sessionState.addExchange({
 					role: "assistant",
 					content: responseContent,
@@ -471,6 +495,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 	 * Start a new session.
 	 */
 	const handleNewSession = async () => {
+		pendingClarifyRef.current = null;
 		if (onSaveSession) {
 			await onSaveSession();
 		}
@@ -799,95 +824,10 @@ const ConversationArea = forwardRef(function ConversationArea(
 	 * Resume a paused agent after a `clarify` interrupt, streaming the
 	 * continuation into a fresh assistant bubble.
 	 * @param {string} answer - The user's answer to the clarification question
-	 * @param {Object} pending - The pending clarification state
+	 * @returns {Promise<void>}
 	 */
-	const resumeClarify = async (answer) => {
-		if (shouldAbort()) return;
-		const assistantTime = getTimestamp();
-		const turnStartTime = Date.now();
-		streamingMsgIdRef.current = messageListRef.current.addMessage("assistant", "", {
-			time: assistantTime,
-			streaming: true,
-			turnStartTime,
-		});
-		if (messageCountRef) {
-			messageCountRef.current = messageListRef.current?.getMessageCount() || 0;
-		}
-
-		let committedContentRef = { current: "" };
-		const committedReasoningRef = { current: "" };
-		const lastToolCallDisplayRef = { current: "" };
-		let todoStatusLines = "";
-		/** @type {Object<string, number>} */
-		const completedToolCalls = {};
-
-		abortControllerRef.current = new AbortController();
-		isStreamingRef.current = true;
-		onStreamingChange?.(true);
-
-		try {
-			const preStreamContextSize = contextSize;
-			const dispatchPromise = resumeProvider(
-				answer,
-				createStreamingHandler(
-					committedContentRef,
-					committedReasoningRef,
-					lastToolCallDisplayRef,
-					undefined,
-					preStreamContextSize,
-					updateContextDisplay,
-					completedToolCalls,
-					turnStartTime,
-				),
-				abortControllerRef.current?.signal,
-			);
-			dispatchPromiseRef.current = dispatchPromise;
-			const _response = await dispatchPromise;
-
-			if (shouldAbort()) return;
-
-			finalizeStreaming(
-				committedContentRef.current,
-				committedReasoningRef.current,
-				lastToolCallDisplayRef.current,
-				todoStatusLines,
-				turnStartTime,
-				completedToolCalls,
-			);
-
-			if (sessionState) {
-				sessionState.addExchange({
-					role: "assistant",
-					content: committedContentRef.current,
-				});
-				updateContextSize(sessionState, config);
-			}
-			if (onSaveSession) {
-				onSaveSession();
-			}
-			gcManager?.();
-		} catch (err) {
-			if (err.name === "AbortError") {
-				if (sessionState) {
-					sessionState.removeLastAssistantToolCallMessage();
-					sessionState.popExchange();
-				}
-			} else {
-				if (onSaveSession) {
-					onSaveSession();
-				}
-				addMessage({
-					role: "system",
-					content: `I couldn't connect right now - ${err.message}. Try sending your message again?`,
-				});
-			}
-		} finally {
-			abortControllerRef.current = null;
-			isStreamingRef.current = false;
-			onStreamingChange?.(false);
-		}
-		gcManager?.();
-	};
+	const resumeClarify = (answer) =>
+		runTurn((handler, signal) => resumeProvider(answer, handler, signal));
 
 	/**
 	 * Finalize streaming message.
