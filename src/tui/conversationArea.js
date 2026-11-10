@@ -39,23 +39,6 @@ export async function countToolMessageTokens(model, text) {
 }
 
 /**
- * Determine whether a completed turn should trigger a silent auto-continue.
- *
- * A turn is "reasoning-only" when the stream ended with reasoning segments
- * present but no message segments. In that case the model produced thinking
- * but no actual response, so we dispatch a silent "continue" to nudge it.
- *
- * @param {Array<{type: string, content: string}>} [segments] - The message's ordered content segments
- * @returns {boolean} True if a silent auto-continue should be dispatched
- */
-export function shouldAutoContinue(segments) {
-	const segs = segments || [];
-	const hasReasoning = segs.some((s) => s.type === "reasoning");
-	const hasMessage = segs.some((s) => s.type === "message");
-	return hasReasoning && !hasMessage;
-}
-
-/**
  * ConversationArea — owns all conversation and streaming state.
  * Communicates with InputArea exclusively via stable App-provided callbacks.
  * @type {React.ForwardRefRenderFunction}
@@ -430,31 +413,6 @@ const ConversationArea = forwardRef(function ConversationArea(
 
 			let responseContent = committedContentRef.current;
 			const committedReasoning = committedReasoningRef.current;
-
-			// Reasoning-only completion: the stream ended with reasoning but no
-			// message content. Dispatch a silent "continue" so the model produces
-			// an actual response. The signal is the bubble's streaming flag turning
-			// false (stream complete) combined with reasoning segments and no
-			// message segments.
-			if (!shouldAbort()) {
-				const msgData = messageListRef.current?.getMessageData(streamingMsgIdRef.current);
-				const segments = msgData?.segments || [];
-
-				if (shouldAutoContinue(segments)) {
-					// Finalize the reasoning bubble so its timer stops, then dispatch
-					// a silent continue that streams into a fresh assistant bubble.
-					finalizeStreaming(
-						responseContent,
-						committedReasoning,
-						lastToolCallDisplayRef.current,
-						todoStatusLines,
-						turnStartTime,
-						completedToolCalls,
-					);
-					await handleChat("Please continue.", { silentUser: true });
-					return;
-				}
-			}
 
 			if (shouldAbort()) return;
 

@@ -501,16 +501,6 @@ again?"
 4. Session is saved (onSaveSession callback)
 ```
 
-### Model Stuck in Thinking Loop
-
-```
-1. Auto-continue circuit breaker tracks consecutive empty responses
-2. After config.agent.autoContinueLimit (default 1000) empty responses:
-   - Show error message
-   - Reset counter
-   - User must rephrase or start new session
-```
-
 ### Output Retention
 
 The conversation is managed by `sessionState` (not the TUI). The TUI renders whatever messages are
@@ -591,13 +581,6 @@ User Input (Enter)
 The `streamingCallback` is set up in `handleChat()` / `handleCommand()` and passed to
 `dispatchProvider`. Each event type triggers a `setMessages()` call that clones the messages array
 and mutates the last (streaming) message in place.
-
-### Auto-Continue Circuit Breaker
-
-If the agent returns zero text output, the TUI automatically sends a "Please continue." signal. This
-repeats up to `config.agent.autoContinueLimit` (default 1000) times before triggering a circuit
-breaker error. The counter resets as soon as any text output arrives. An `isAutoContinuingRef` flag
-tracks whether the TUI is in auto-continue mode.
 
 ### Abort / Interrupt
 
@@ -807,8 +790,6 @@ interface TUIState {
 
 	// Streaming
 	isStreaming: boolean;
-	isAutoContinuing: boolean;
-	autoContinueCount: number;
 
 	// Scroll
 	scrollOffset: number;
@@ -834,8 +815,6 @@ const initialState: TUIState = {
 	contextSize: 0,
 	isCompacting: false,
 	isStreaming: false,
-	isAutoContinuing: false,
-	autoContinueCount: 0,
 	scrollOffset: 0,
 	viewportHeight: 0,
 	toggles: {
