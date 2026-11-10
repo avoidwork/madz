@@ -17,6 +17,8 @@ import { Cron, buildSkillCommand } from "../../scheduler/cron.js";
 import { logger } from "../../shared/logger.js";
 import { loadConfig } from "../../config/loader.js";
 
+const config = loadConfig();
+
 /// -- Constants --
 
 const ACTIONS = ["create", "list", "update", "pause", "resume", "run", "remove"];
@@ -30,20 +32,6 @@ const MAX_OUTPUT_BYTES = 1024 * 1024;
 const KILL_GRACE_MS = 2000;
 const DEFAULT_SCRIPT_TIMEOUT_MS = 30000;
 const DEFAULT_RUN_TIMEOUT_MS = 5 * 60 * 1000;
-
-/// -- Lazy config --
-
-/** @type {object|undefined} */
-let _config;
-
-/**
- * Load config on first use rather than at import time.
- * @returns {object} Harness config
- */
-function getConfig() {
-	if (!_config) _config = loadConfig();
-	return _config;
-}
 
 /// -- Validation --
 
@@ -207,7 +195,7 @@ function execChild(file, args, { timeout, cwd }) {
  * @returns {Promise<{ stdout: string, stderr: string, exitCode: number, timedOut: boolean, error?: string }>}
  */
 export function runScript(scriptPath, args = [], options = {}) {
-	const { timeout = DEFAULT_SCRIPT_TIMEOUT_MS, cwd = getConfig().cwd } = options;
+	const { timeout = DEFAULT_SCRIPT_TIMEOUT_MS, cwd = config.cwd } = options;
 	return execChild(scriptPath, args, { timeout, cwd });
 }
 
@@ -220,7 +208,7 @@ export function runScript(scriptPath, args = [], options = {}) {
  * @returns {Promise<{ stdout: string, stderr: string, exitCode: number, timedOut: boolean, error?: string }>}
  */
 function runCommand(command, options = {}) {
-	const { timeout = DEFAULT_RUN_TIMEOUT_MS, cwd = getConfig().cwd } = options;
+	const { timeout = DEFAULT_RUN_TIMEOUT_MS, cwd = config.cwd } = options;
 	return execChild("/bin/sh", ["-c", command], { timeout, cwd });
 }
 
@@ -692,7 +680,7 @@ async function handleAction(action, input, { schedulesDir, cronModule }) {
  * LangChain tool wrapper around {@link cronJobImpl}.
  */
 export const cronJob = tool(
-	(input) => cronJobImpl(input, { schedulesDir: getConfig().memory.schedulesDir }),
+	(input) => cronJobImpl(input, { schedulesDir: config.memory.schedulesDir }),
 	{
 		name: "cronJob",
 		description:
