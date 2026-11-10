@@ -5,6 +5,19 @@ import { parse } from "csv-parse/sync";
 import { stringify } from "csv-stringify/sync";
 
 /**
+ * Map each conversion action to the format of its input string.
+ * @type {Record<string, string>}
+ */
+const FORMAT_BY_ACTION = Object.freeze({
+	"json-to-yaml": "json",
+	"yaml-to-json": "yaml",
+	"json-to-csv": "json",
+	"csv-to-json": "csv",
+	"yaml-to-csv": "yaml",
+	"csv-to-yaml": "csv",
+});
+
+/**
  * Convert JSON string to YAML string.
  * @param {string} input - JSON string
  * @returns {{ ok: boolean, data?: string, error?: string }}
@@ -35,6 +48,14 @@ function jsonToCsv(input, mapping) {
 
 	const records = Array.isArray(obj) ? obj : [obj];
 
+	if (
+		!records.every(
+			(record) => typeof record === "object" && record !== null && !Array.isArray(record),
+		)
+	) {
+		return { ok: false, error: "JSON must contain objects for CSV conversion" };
+	}
+
 	let mapped = records;
 	if (mapping) {
 		let rules;
@@ -46,7 +67,7 @@ function jsonToCsv(input, mapping) {
 		mapped = records.map((record) => {
 			const row = {};
 			for (const [newKey, oldKey] of Object.entries(rules)) {
-				if (typeof oldKey === "string" && oldKey in record) {
+				if (typeof oldKey === "string" && Object.prototype.hasOwnProperty.call(record, oldKey)) {
 					row[newKey] = record[oldKey];
 				}
 			}
@@ -54,7 +75,7 @@ function jsonToCsv(input, mapping) {
 		});
 	}
 
-	const headers = mapped.length > 0 ? Object.keys(mapped[0]) : [];
+	const headers = [...new Set(mapped.flatMap((record) => Object.keys(record)))];
 	return { ok: true, data: stringify(mapped, { header: true, columns: headers }) };
 }
 
@@ -133,6 +154,8 @@ function validateFormat(input, format) {
 			} catch {
 				return { ok: false, error: "Invalid CSV input" };
 			}
+		default:
+			return { ok: false, error: `Unknown format: ${format}` };
 	}
 }
 
@@ -183,25 +206,38 @@ export async function dataTransformationImpl(input) {
 
 	const { action, input: dataInput, format, mapping } = validated.data;
 
+	// Cross-validate that the declared format matches the action's input format.
+	const expectedFormat = FORMAT_BY_ACTION[action];
+	if (format !== expectedFormat) {
+		return {
+			ok: false,
+			error: `Invalid format "${format}" for action "${action}" (expected "${expectedFormat}")`,
+		};
+	}
+
 	// Validate input format
 	const validation = validateFormat(dataInput, format);
 	if (!validation.ok) {
 		return validation;
 	}
 
-	switch (action) {
-		case "json-to-yaml":
-			return jsonToYaml(dataInput);
-		case "yaml-to-json":
-			return yamlToJson(dataInput);
-		case "json-to-csv":
-			return jsonToCsv(dataInput, mapping);
-		case "csv-to-json":
-			return csvToJson(dataInput);
-		case "yaml-to-csv":
-			return yamlToCsv(dataInput, mapping);
-		case "csv-to-yaml":
-			return csvToYaml(dataInput);
+	try {
+		switch (action) {
+			case "json-to-yaml":
+				return jsonToYaml(dataInput);
+			case "yaml-to-json":
+				return yamlToJson(dataInput);
+			case "json-to-csv":
+				return jsonToCsv(dataInput, mapping);
+			case "csv-to-json":
+				return csvToJson(dataInput);
+			case "yaml-to-csv":
+				return yamlToCsv(dataInput, mapping);
+			case "csv-to-yaml":
+				return csvToYaml(dataInput);
+		}
+	} catch (err) {
+		return { ok: false, error: err.message };
 	}
 }
 
