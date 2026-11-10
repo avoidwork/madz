@@ -85,14 +85,15 @@ export function setExecOverride(fn) {
 
 /**
  * Sanitize a command string for safe interpolation into crontab entries.
- * Strips line-breaking characters that would break crontab format parsing.
+ * Strips line-breaking characters and escapes unescaped `%` (cron turns an
+ * unescaped `%` into a newline) — both would break crontab format parsing.
  * Shell special characters ($, `, |, ;) are preserved — they are handled
  * by the shell at execution time.
  * @param {string} command - The command string to sanitize
  * @returns {string} The sanitized command
  */
 export function sanitizeCrontabCommand(command) {
-	return command.replace(/\r\n|\r|\n/g, "");
+	return command.replace(/\r\n|\r|\n/g, "").replace(/(?<!\\)%/g, "\\%");
 }
 
 /**
@@ -104,8 +105,7 @@ export function sanitizeCrontabCommand(command) {
  * @returns {string} The prepared command
  */
 export function prepareCrontabCommand(command) {
-	// An unescaped % in a crontab command line is turned into a newline by cron, so escape it.
-	const sanitized = sanitizeCrontabCommand(command).replace(/(?<!\\)%/g, "\\%");
+	const sanitized = sanitizeCrontabCommand(command);
 	return `. ${join(process.cwd(), ".env.cron")} 2>/dev/null || true && ${sanitized}`;
 }
 

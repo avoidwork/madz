@@ -95,6 +95,19 @@ describe("sanitizeCrontabCommand", () => {
 	it("handles only newlines", () => {
 		assert.strictEqual(sanitizeCrontabCommand("\n\r\n\r"), "");
 	});
+
+	it("escapes an unescaped % (cron treats it as a newline)", () => {
+		assert.strictEqual(sanitizeCrontabCommand("date +%Y-%m-%d"), "date +\\%Y-\\%m-\\%d");
+	});
+
+	it("does not double-escape an already escaped %", () => {
+		const cmd = "date +\\%Y";
+		assert.strictEqual(sanitizeCrontabCommand(cmd), cmd);
+	});
+
+	it("escapes % and strips newlines in the same command", () => {
+		assert.strictEqual(sanitizeCrontabCommand("echo 100%\necho done"), "echo 100\\%echo done");
+	});
 });
 
 // ---------------------------------------------------------------------------
@@ -125,6 +138,11 @@ describe("prepareCrontabCommand", () => {
 		const result = prepareCrontabCommand("");
 		assert.ok(result.startsWith(". "));
 		assert.ok(result.includes("&& "));
+	});
+
+	it("escapes % in the command", () => {
+		const result = prepareCrontabCommand("date +%Y");
+		assert.ok(result.endsWith("&& date +\\%Y"));
 	});
 
 	it("handles command with only whitespace", () => {
