@@ -7,6 +7,7 @@ import {
 import { join } from "node:path";
 import { InMemoryStore } from "@langchain/langgraph-checkpoint";
 import { RemoveMessage } from "@langchain/core/messages";
+import { isCancelledToolMessage } from "../shared/cancelledToolMessage.js";
 import { loadConfig } from "../config/loader.js";
 import { loadSystemPrompt } from "../memory/prompts.js";
 import { SkillRegistry } from "../skills/registry.js";
@@ -187,7 +188,9 @@ function toConversationExchange(message) {
 		content = JSON.stringify(content);
 	}
 
-	return { role, content: content ?? "" };
+	const exchange = { role, content: content ?? "" };
+	if (type === "tool" && isCancelledToolMessage(message)) exchange.cancelled = true;
+	return exchange;
 }
 
 /**
