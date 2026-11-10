@@ -97,7 +97,7 @@ The threat model covers the runtime components:
 |---|---|---|
 | Skill execution | Deep Agents skill system | Skills are `SKILL.md` instruction files interpreted by the LLM; any bundled scripts run through the agent's own `execute`/`process` tools, not a dedicated process sandbox |
 | Skill discovery | `src/skills/discoverer.js` | Scans `skills/` and `.skills/`; validates metadata |
-| Outbound HTTP | `src/sandbox/urlFilter.js` | Filters schemes, internal IPs, allowlist |
+| Outbound HTTP | `src/sandbox/urlFilter.js`, `src/tools/api/` | Filters blocked schemes and enforces the host allowlist; the `api` tool re-validates every redirect hop |
 | Filesystem access | `src/sandbox/pathResolver.js` | Allowlist/denylist path rules |
 | Cron scheduling | `src/scheduler/cron.js`, `scheduler.js` | Reads job JSON, builds crontab, executes skills |
 | Config loading | `src/config/loader.js` | YAML + env var resolution + Zod validation |
@@ -114,12 +114,12 @@ The threat model covers the runtime components:
 
 **Attack path:** There is no dedicated process sandbox. Skills are `SKILL.md` instruction files interpreted by the LLM; any bundled script is executed through the agent's own `execute`/`process` tools, which run as the application user with the full privileges of the harness process. The constraints that remain are enforced at the tool layer:
 - `pathResolver.js` — allowlist/denylist path rules (`resolvePath`), applied by `src/tools/common.js` for tool-side file access.
-- `urlFilter.js` — scheme and hostname filtering for outbound tool requests.
+- `urlFilter.js` — blocked-scheme and host-allowlist filtering for outbound tool requests. It makes no assumptions about network topology: there are no built-in IP or hostname lists.
 
 **Existing mitigations:**
 - Path resolution uses `resolve()` and prefix matching with `sep`, blocking traversal outside allowed roots — for tools that call it.
 - Negative rules (`!exclude/`) are checked first and override positives.
-- URL filtering blocks `file:`, `gopher:`, `dict:` and internal IP ranges.
+- URL filtering blocks `file:`, `gopher:`, `dict:` and, when an allowlist is configured, any host not on it. It does not block internal addresses by itself.
 - Skill metadata is validated against `SkillMetadataSchema` (`validator.js`), including a `permissions` declaration.
 
 **Gaps / recommendations:**
@@ -136,7 +136,7 @@ The threat model covers the runtime components:
 
 **Existing mitigations:**
 - Tools have Zod schemas (`src/tools/*/index.js`) validating inputs.
-- URL filter blocks internal IPs and non-allowlisted hosts.
+- URL filter blocks `file:`, `gopher:`, `dict:` and non-allowlisted hosts (when an allowlist is set).
 - Sandbox permissions scope what a skill can do.
 
 **Gaps / recommendations:**
@@ -147,17 +147,20 @@ The threat model covers the runtime components:
 
 **Threat:** A tool makes an outbound request to an internal service (e.g., cloud metadata endpoint, internal admin panel).
 
-**Attack path:** `filterUrl` is the gate. It blocks `file:`, `gopher:`, `dict:` schemes and internal IP ranges (RFC 1918, loopback, link-local, IPv6 ULA).
+**Attack path:** `filterUrl` is the gate. It blocks `file:`, `gopher:`, `dict:` schemes and, when an allowlist is set, any host not on it. It deliberately contains **no** built-in IP-range or hostname lists: reachability is decided by the allowlist, not by assumptions about the network the harness runs in.
 
 **Existing mitigations:**
-- `BLOCKED_SCHEMES` and `BLOCKED_IP_PATTERNS` in `urlFilter.js`.
-- Allowlist enforcement when `allowlist` is non-empty.
-- `isInternalHost` resolves `localhost` and `0.0.0.0`.
+- `BLOCKED_SCHEMES` in `urlFilter.js`.
+- Allowlist enforcement when `allowlist` is non-empty. Matching is on parsed URL components: an exact host, a `*.example.com` wildcard, an optional port, or a full origin (with optional path prefix). It is never a string-prefix match, so `https://allowed.com.evil.com/` does not match `allowed.com`.
+- The `api` tool takes its allowlist, rate limit, redirect and retry limits from the server-side `api` config section. The model cannot supply or widen them.
+- The `api` tool follows redirects manually (`redirect: "manual"`) and re-runs `filterUrl` on every hop, so a redirect cannot reach a blocked scheme or a host outside the allowlist. Credentials are dropped when a redirect crosses origins.
+- The `api` tool never accepts tokens in model input. Credentials are named profiles (`api.credentials`) that read secrets from environment variables at call time and can be restricted to specific hosts.
 
 **Gaps / recommendations:**
-- `isInternalHost` only checks literal IP patterns and `localhost`/`0.0.0.0`. It does **not** resolve DNS to detect a hostname that resolves to an internal IP (e.g., `http://internal-service/`). A DNS rebinding or a hostname pointing to a private IP could bypass the check. Consider resolving the hostname and validating the resolved IP.
-- The allowlist matching uses `url.startsWith(entry)` — a prefix match that could be bypassed with a crafted URL (e.g., `https://allowed.com.evil.com/`). Use exact hostname matching instead.
-- `_testMode` disables internal-IP blocking entirely. Ensure it is never enabled in production.
+- **No internal-address blocking.** With an empty allowlist, a request to `localhost`, an RFC 1918 address or a cloud metadata endpoint (e.g. `169.254.169.254`) is **allowed**. Operators who need that protection must configure an allowlist. Consider making the `api` allowlist required (default-deny).
+- **No DNS resolution check.** The filter inspects the URL text only. An allowlisted hostname that later resolves to an internal address, or DNS rebinding, is not detected.
+- `graphql`, `browser`, `webhook` and `common.js` use the same `filterUrl`, but redirect re-validation exists in the `api` tool only. The other tools rely on `fetch` defaults, which follow redirects without re-checking the target.
+- A raw shell command issued through `execute` bypasses `urlFilter` entirely (see §6.1).
 
 ### 6.4 Secret Exfiltration
 
@@ -223,7 +226,9 @@ The threat model covers the runtime components:
 | Control | Where | Status |
 |---|---|---|
 | Path allowlist/denylist | `pathResolver.js` | ✅ Implemented (tool layer only) |
-| URL scheme + internal IP filter | `urlFilter.js` | ✅ Implemented (DNS gap) |
+| URL scheme blocklist + host allowlist | `urlFilter.js` | ✅ Implemented (no internal-address blocking; no DNS check) |
+| Redirect re-validation | `src/tools/api/` | ✅ Implemented for `api` only |
+| Server-side API policy and credential profiles | `src/config/schemas/api.js`, `src/tools/api/` | ✅ Implemented |
 | Skill metadata validation | `validator.js` | ✅ Implemented |
 | Telemetry redaction | `redaction.js` | ✅ Implemented |
 | Zod input validation | `src/tools/*/index.js` | ✅ Implemented |
@@ -239,8 +244,8 @@ The threat model covers the runtime components:
 ## 8. Residual Risk & Recommendations
 
 1. **OS-level sandboxing** — The current sandbox is a constraint layer, not a security boundary. For untrusted skills, run in a container or with seccomp/bubblewrap.
-2. **DNS resolution in URL filter** — Resolve hostnames and validate the resolved IP to prevent SSRF via DNS rebinding or internal hostnames.
-3. **Exact allowlist matching** — Replace `url.startsWith(entry)` with exact hostname matching to prevent prefix-bypass.
+2. **Default-deny outbound allowlist** — Internal addresses are not blocked unless an allowlist is configured. Require an allowlist for the `api` tool, and consider the same for the other network tools. Optionally add DNS resolution to catch allowlisted names that resolve internally.
+3. **Redirect re-validation in other tools** — `graphql`, `browser`, `webhook` and `common.js` still follow redirects without re-checking the target; apply the `api` tool's manual-redirect approach.
 4. **Shell injection in cron command** — Verify the `--message` argument is properly escaped when building the derived command from skill + input.
 5. **Dangerous-action approval** — Add a confirmation gate for high-impact tools (email send, file delete).
 6. **Dependency remediation** — Track and remediate the 14 npm vulnerabilities (issue #1059).
