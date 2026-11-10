@@ -81,7 +81,7 @@ All built-in tools are defined in `src/tools/` and registered as LangChain tools
 
 | Tool | Description |
 | ---- | ----------- |
-| `api` | REST API client with auth (bearer, basic, apikey), URL filtering, timeouts, and rate limiting. |
+| `api` | REST API client (GET/POST/PUT/DELETE/PATCH/HEAD/OPTIONS) with query, JSON, raw and form bodies. Authenticates through named server-side credential profiles (bearer, basic, apikey) so tokens never appear in model input. Re-validates every redirect hop, enforces a streamed byte cap and timeout, retries transient failures, and rate limits per host. Policy comes from the `api` config section. |
 | `calendar` | Read, create, and manage calendar events via Google Calendar API. |
 | `clarify` | Send clarification questions to the user with optional numbered choices. Zero permissions — always registered. |
 | `createSkill` | Create a spec-compliant skill directory with SKILL.md YAML frontmatter. Optionally scaffolds a `scripts/` directory. |
@@ -263,7 +263,7 @@ Together, these layers create a system that remembers what matters while natural
 
 ### Sandbox RTE
 
-Filesystem and network access for built-in tools is constrained by `src/sandbox/`: `pathResolver.js` enforces an allowlist/denylist of paths (negative `!exclude/` rules win, traversal outside allowed roots is blocked), and `urlFilter.js` blocks `file://`, `gopher://`, and `dict://` plus internal IP ranges, with an optional hostname allowlist.
+Filesystem and network access for built-in tools is constrained by `src/sandbox/`: `pathResolver.js` enforces an allowlist/denylist of paths (negative `!exclude/` rules win, traversal outside allowed roots is blocked), and `urlFilter.js` blocks `file://`, `gopher://`, and `dict://` and applies an optional exact-match hostname allowlist. It does not block internal or private addresses on its own; configure an allowlist if you need that.
 
 Skills themselves are `SKILL.md` instruction files interpreted by the agent — they are not spawned into a separate process. There is no per-skill time limit, memory cap, or env-var filter; the container boundary is the isolation boundary. See [THREAT_MODEL.md](docs/THREAT_MODEL.md) for the honest boundary description.
 

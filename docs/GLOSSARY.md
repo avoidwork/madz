@@ -69,7 +69,10 @@ The constraint layer that limits what tools can do. It is **not** an OS-level se
 Path validation in `src/sandbox/pathResolver.js`. `resolvePath` returns `{ allowed, path }`; `assertPathAllowed` wraps it and throws. Used by `src/tools/common.js` for tool-side filesystem scope enforcement.
 
 ### filterUrl
-URL validation in `src/sandbox/urlFilter.js`. Blocks `file://`, `gopher://`, `dict://` schemes and internal IP ranges. Used for outbound tool requests.
+URL validation in `src/sandbox/urlFilter.js`. Blocks `file://`, `gopher://`, `dict://` schemes and, when an allowlist is given, any host not matching it (exact host, `*.wildcard`, optional port, or origin + path prefix; never a string prefix). It has no built-in IP or hostname lists, so internal addresses are reachable unless an allowlist excludes them. Used for outbound tool requests.
+
+### api.credentials
+Named credential profiles for the `api` tool, under the `api` section of `config.yaml`. A profile names the environment variables that hold its secret (`tokenEnv`, or `usernameEnv` + `passwordEnv`), so tokens never appear in config or in model input. The tool takes a `credential` name; `hosts` limits where it may be sent.
 
 ## Vector Search
 

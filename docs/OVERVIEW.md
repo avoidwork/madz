@@ -277,7 +277,7 @@ System skills (`.skills/`) are scanned first and shadow user skills (`skills/`).
 | File | Purpose |
 |------|---------|
 | `pathResolver.js` | `resolvePath()` / `assertPathAllowed()` — sandbox scope enforcement |
-| `urlFilter.js` | `filterUrl()` — blocks `file://`, `gopher://`, `dict://`; hostname allowlist |
+| `urlFilter.js` | `filterUrl()` — blocks `file://`, `gopher://`, `dict://`; exact-match hostname allowlist (host, `*.wildcard`, port, or origin + path prefix). No built-in internal-address blocking |
 
 **Status:** both modules are live — `src/tools/common.js` uses them for tool-side path/URL validation. The former process-sandbox runtime (`runner.js`, `envInjector.js`, `capability.js`, `timeoutHandler.js`, `index.js`) was removed as dead code: it had no production call path. Skills execute via the Deep Agents skill system, and scheduled skills via the system crontab (`node index.js --message "Run the <skill> skill"`). `ScheduleManager.runNow()` retains a `scheduler.sandbox` injection hook that defaults to a no-op stub; nothing injects an implementation.
 

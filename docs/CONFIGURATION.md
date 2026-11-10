@@ -53,6 +53,11 @@ Graceful shutdown flushes all buffered log entries to disk before process exit.
 | `sandbox`     | `paths`                              | `["memory/", "skills/", "tmp/"]` | Allowed filesystem paths                      |
 |               | `permissions`                        | `["filesystem:read", ...]`               | Permission grants                             |
 |               | `skillScanPaths`                     | `["skills/", ".skills/"]`         | Skill discovery paths (comma-separated)       |
+| `api`         | `allowlist`                          | `[]`                                     | Hosts the `api` tool may reach (exact host, `*.wildcard`, `host:port`, or origin URL). Empty allows any host; internal addresses are not blocked by default |
+|               | `rateLimit`                          | `10`                                     | Max `api` requests per second, per host; `0` disables |
+|               | `maxRedirects`                       | `5`                                      | Max redirects followed; each hop is re-validated; `0` returns 3xx responses as-is |
+|               | `maxRetries`                         | `2`                                      | Retries on 429/502/503/504 and transient network errors (non-idempotent methods retry 429 only) |
+|               | `credentials`                        | `{}`                                     | Named credential profiles (see below)          |
 | `memory`      | `directory`                          | `memory/`                                | Base directory for persistence                |
 |               | `contextDir`                         | `memory/context/`                        | Context file directory                        |
 |               | `toolsDir`                           | `memory/tools/`                          | Tool metadata directory                       |
@@ -159,6 +164,39 @@ summarization:
 For `tokens` triggers, madz decides using the model's real tokenizer (the same count the status bar shows) rather than the library's rough characters-per-token estimate, so a status bar at 80% means compaction fires. If the tokenizer is unavailable or errors, the library estimate is used.
 
 **Note:** the custom middleware reaches the **orchestrator only**. Subagents are not forked, so they keep the library default `SummarizationMiddleware`.
+
+### API Tool
+
+The `api` tool takes its policy from the `api` config section, not from model input: the model cannot supply an allowlist, rate limit, or token. It can only name a credential profile.
+
+```yaml
+api:
+  allowlist:
+    - api.github.com
+    - "*.example.com"
+  rateLimit: 10
+  maxRedirects: 5
+  maxRetries: 2
+  credentials:
+    github:
+      type: bearer
+      tokenEnv: GITHUB_TOKEN
+      hosts:
+        - api.github.com
+    internal-svc:
+      type: basic
+      usernameEnv: SVC_USER
+      passwordEnv: SVC_PASS
+    partner:
+      type: apikey
+      key: X-API-Key
+      tokenEnv: PARTNER_KEY
+```
+
+- **Credential profiles** hold the *names* of environment variables, never secrets. `bearer` needs `tokenEnv`; `apikey` needs `tokenEnv` and `key` (the header name); `basic` needs `usernameEnv` and `passwordEnv`. An incomplete profile fails config validation.
+- **`hosts`** limits where a credential may be sent (exact host or `*.wildcard`). Empty means any host the allowlist permits. Credentials are also dropped when a redirect crosses origins.
+- **`allowlist`** matches on parsed URL parts, never string prefixes. Entries can be a host, a `*.wildcard`, `host:port`, or a full origin with an optional path prefix. An empty list allows any host, **including internal and private addresses** (e.g. `localhost`, RFC 1918, `169.254.169.254`). Set an allowlist if you need to prevent that.
+- Redirects are followed manually and every hop is re-checked against the blocked schemes and the allowlist.
 
 ### Rate Limiting
 
