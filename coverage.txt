@@ -59,7 +59,7 @@
 ℹ   pathResolver.js              | 100.00 |    90.48 |  100.00 | 
 ℹ   urlFilter.js                 |  98.17 |    82.35 |  100.00 | 61-62
 ℹ  scheduler                     |        |          |         | 
-ℹ   cron.js                      |  97.55 |    91.05 |   96.30 | 62-73 244 288 293-294
+ℹ   cron.js                      |  97.55 |    90.48 |   96.30 | 62-73 244 288 293-294
 ℹ   index.js                     | 100.00 |   100.00 |  100.00 | 
 ℹ   scheduler.js                 |  99.14 |    93.94 |   90.00 | 202-203
 ℹ  session                       |        |          |         | 
@@ -131,7 +131,7 @@
 ℹ   decision                     |        |          |         | 
 ℹ    index.js                    |  98.24 |    96.88 |   66.67 | 102-104
 ℹ   discovery                    |        |          |         | 
-ℹ    index.js                    |  91.80 |    63.83 |   90.00 | 83 96-97 100-101 126-127 140-141 176-177 188-193 209 211 227-228
+ℹ    index.js                    |  91.92 |    63.04 |   90.00 | 84 100-101 104-105 130-131 144-145 180-181 192-197 213 215 231-232
 ℹ   dns                          |        |          |         | 
 ℹ    index.js                    | 100.00 |   100.00 |  100.00 | 
 ℹ    namecom.js                  |  98.68 |    96.15 |   98.70 | 38-42 66-67
@@ -144,7 +144,7 @@
 ℹ     imap.js                    |  87.78 |    82.35 |   88.89 | 71-73 99-112 119-153 337-338
 ℹ    tools.js                    | 100.00 |    94.55 |   50.00 | 
 ℹ   file                         |        |          |         | 
-ℹ    index.js                    |  97.81 |    91.24 |   92.86 | 108-109 211-213 239 532-534 604-607 675-677
+ℹ    index.js                    |  97.88 |    90.83 |   90.91 | 108-109 211-213 239 556-558 628-631 699-701
 ℹ    match.js                    | 100.00 |   100.00 |  100.00 | 
 ℹ   fileExtract                  |        |          |         | 
 ℹ    docx.js                     | 100.00 |    91.67 |  100.00 | 
@@ -180,7 +180,7 @@
 ℹ   reflection                   |        |          |         | 
 ℹ    index.js                    |  96.05 |    84.62 |   91.67 | 58-62 151-152 206-207
 ℹ   sampling                     |        |          |         | 
-ℹ    index.js                    |  94.97 |    80.00 |   80.00 | 27 180-188
+ℹ    index.js                    |  94.97 |    81.82 |   80.00 | 27 180-188
 ℹ   session                      |        |          |         | 
 ℹ    index.js                    |  97.08 |    71.19 |   94.12 | 71-72 118-119 128 181-182
 ℹ   skills                       |        |          |         | 
@@ -244,19 +244,19 @@
 ℹ   loadAgents.js                |  75.00 |    73.33 |   50.00 | 26-27 43 58-72
 ℹ   project.js                   | 100.00 |   100.00 |  100.00 | 
 ℹ -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-ℹ all files                      |  93.18 |    86.71 |   87.81 | 
+ℹ all files                      |  93.19 |    86.70 |   87.77 | 
 ℹ -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ℹ end of coverage report
 
 ✖ failing tests:
 
-test at tests/unit/tools_sampling.test.js:183:2
-✖ ignores non-.md files (4.153291ms)
+test at tests/unit/scheduler/cron.test.js:1071:2
+✖ skips non-.json files (5.327083ms)
   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
   
   0 !== 1
   
-      at TestContext.<anonymous> (file:///app/projects/madz/tests/unit/tools_sampling.test.js:193:10)
+      at TestContext.<anonymous> (file:///app/projects/madz/tests/unit/scheduler/cron.test.js:1078:10)
       at async Test.run (node:internal/test_runner/test:1409:7)
       at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7) {
     generatedMessage: true,
@@ -264,5 +264,22 @@ test at tests/unit/tools_sampling.test.js:183:2
     actual: 0,
     expected: 1,
     operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/unit/tools_cron_audit.test.js:210:2
+✖ remove keeps the job file when crontab removal fails (9.151208ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(jobs.find((j) => j.name === "rf"))
+  
+      at TestContext.<anonymous> (file:///app/projects/madz/tests/unit/tools_cron_audit.test.js:216:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: true,
+    operator: '==',
     diff: 'simple'
   }
