@@ -43,7 +43,8 @@ const { default: pkg } = await import(new URL("./package.json", import.meta.url)
 });
 
 const { ensureSessionsDir } = await import("./src/session/index.js");
-const { ensureToolsDir, ensureScreenshotsDir } = await import("./src/memory/index.js");
+const { ensureToolsDir, ensureScreenshotsDir, ensureContextDir } =
+	await import("./src/memory/index.js");
 
 // Ensure sessions directory exists before any subsystem initialization
 await ensureSessionsDir(config.memory.sessionsDir);
@@ -53,6 +54,9 @@ await ensureToolsDir(config.memory.toolsDir);
 
 // Ensure memory/screenshots directory exists before any subsystem initialization
 await ensureScreenshotsDir(config.memory.screenshotsDir);
+
+// Ensure memory/context directory exists before any subsystem initialization
+await ensureContextDir(config.memory.contextDir);
 
 // Initialize subsystems
 // Write .env.cron before any subsystem that may use cron

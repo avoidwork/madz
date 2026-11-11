@@ -33,7 +33,7 @@
 ℹ    tui.js                      | 100.00 |   100.00 |  100.00 | 
 ℹ    vector.js                   | 100.00 |   100.00 |  100.00 | 
 ℹ  memory                        |        |          |         | 
-ℹ   context.js                   |  94.12 |    80.95 |  100.00 | 103-104 125-126 148-152
+ℹ   context.js                   |  94.12 |    85.00 |  100.00 | 103-104 125-126 148-152
 ℹ   expireEphemeralMemories.js   |  94.19 |    86.36 |  100.00 | 37-39 81-82
 ℹ   gc.js                        | 100.00 |   100.00 |  100.00 | 
 ℹ   index.js                     | 100.00 |   100.00 |  100.00 | 
@@ -59,7 +59,7 @@
 ℹ   pathResolver.js              | 100.00 |    90.48 |  100.00 | 
 ℹ   urlFilter.js                 |  98.17 |    82.35 |  100.00 | 61-62
 ℹ  scheduler                     |        |          |         | 
-ℹ   cron.js                      |  97.55 |    90.48 |   96.30 | 62-73 244 288 293-294
+ℹ   cron.js                      |  97.55 |    91.05 |   96.30 | 62-73 244 288 293-294
 ℹ   index.js                     | 100.00 |   100.00 |  100.00 | 
 ℹ   scheduler.js                 |  99.14 |    93.94 |   90.00 | 202-203
 ℹ  session                       |        |          |         | 
@@ -123,7 +123,7 @@
 ℹ   config                       |        |          |         | 
 ℹ    index.js                    | 100.00 |   100.00 |  100.00 | 
 ℹ   cron                         |        |          |         | 
-ℹ    index.js                    |  93.74 |    84.77 |   83.72 | 57-58 95-96 135-140 247-248 303-304 326-328 342-343 415-416 565-567 596-597 607-610 617-618 633-637 648-650 662-664 675-676
+ℹ    index.js                    |  93.74 |    85.28 |   83.72 | 57-58 95-96 135-140 247-248 303-304 326-328 342-343 415-416 565-567 596-597 607-610 617-618 633-637 648-650 662-664 675-676
 ℹ   data                         |        |          |         | 
 ℹ    index.js                    |  98.91 |    96.55 |  100.00 | 158 240-241
 ℹ   date                         |        |          |         | 
@@ -168,9 +168,9 @@
 ℹ    readImage.js                |  94.16 |    72.22 |  100.00 | 79-80 88-89 95-96 103-104
 ℹ   index.js                     |  99.66 |    97.67 |   91.67 | 570-571
 ℹ   json                         |        |          |         | 
-ℹ    index.js                    | 100.00 |    97.59 |  100.00 | 
+ℹ    index.js                    |  99.63 |    96.55 |  100.00 | 238
 ℹ   memory                       |        |          |         | 
-ℹ    index.js                    |  96.53 |    83.56 |   93.33 | 56 99-100 195-199 299-301
+ℹ    index.js                    |  95.81 |    83.75 |   92.86 | 67-68 110-111 193-197 307-308 316-318
 ℹ   pdf                          |        |          |         | 
 ℹ    index.js                    |  97.55 |    92.00 |   91.30 | 67-71 144-153 166-167 250 316-317 332-333
 ℹ   pptx                         |        |          |         | 
@@ -244,42 +244,6 @@
 ℹ   loadAgents.js                |  75.00 |    73.33 |   50.00 | 26-27 43 58-72
 ℹ   project.js                   | 100.00 |   100.00 |  100.00 | 
 ℹ -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-ℹ all files                      |  93.19 |    86.70 |   87.77 | 
+ℹ all files                      |  93.18 |    86.74 |   87.76 | 
 ℹ -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ℹ end of coverage report
-
-✖ failing tests:
-
-test at tests/unit/scheduler/cron.test.js:1071:2
-✖ skips non-.json files (5.327083ms)
-  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
-  
-  0 !== 1
-  
-      at TestContext.<anonymous> (file:///app/projects/madz/tests/unit/scheduler/cron.test.js:1078:10)
-      at async Test.run (node:internal/test_runner/test:1409:7)
-      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7) {
-    generatedMessage: true,
-    code: 'ERR_ASSERTION',
-    actual: 0,
-    expected: 1,
-    operator: 'strictEqual',
-    diff: 'simple'
-  }
-
-test at tests/unit/tools_cron_audit.test.js:210:2
-✖ remove keeps the job file when crontab removal fails (9.151208ms)
-  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
-  
-    assert.ok(jobs.find((j) => j.name === "rf"))
-  
-      at TestContext.<anonymous> (file:///app/projects/madz/tests/unit/tools_cron_audit.test.js:216:10)
-      at async Test.run (node:internal/test_runner/test:1409:7)
-      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7) {
-    generatedMessage: true,
-    code: 'ERR_ASSERTION',
-    actual: undefined,
-    expected: true,
-    operator: '==',
-    diff: 'simple'
-  }

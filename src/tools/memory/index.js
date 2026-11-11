@@ -1,6 +1,6 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import { mkdir, writeFile, readFile, readdir, unlink, access } from "node:fs/promises";
+import { writeFile, readFile, readdir, unlink, access } from "node:fs/promises";
 import { join, basename } from "node:path";
 import { loadConfig } from "../../config/loader.js";
 
@@ -8,6 +8,16 @@ const config = loadConfig();
 const cwd = config.cwd;
 
 const DEFAULT_MAX_ENTRIES = 100;
+
+/**
+ * Resolve the entries directory against the project root.
+ * @param {string} contextDir - Relative or absolute entries directory
+ * @param {string} [cwdParam] - Project root (defaults to config.cwd)
+ * @returns {string} Absolute path to the entries directory
+ */
+function resolveContextDir(contextDir, cwdParam = cwd) {
+	return join(cwdParam, contextDir);
+}
 
 /**
  * Check if a file path exists.
@@ -51,11 +61,10 @@ function parseEntryContent(content) {
 		const i = line.indexOf(":");
 		if (i !== -1) {
 			let val = line.slice(i + 1).trim();
-			if (
-				(val.startsWith('"') && val.endsWith('"')) ||
-				(val.startsWith("'") && val.endsWith("'"))
-			) {
-				val = val.slice(1, -1);
+			if (val.startsWith('"') && val.endsWith('"')) {
+				val = val.slice(1, -1).replace(/\\"/g, '"').replace(/\\\\/g, "\\");
+			} else if (val.startsWith("'") && val.endsWith("'")) {
+				val = val.slice(1, -1).replace(/\\'/g, "'").replace(/\\\\/g, "\\");
 			}
 			frontmatter[line.slice(0, i).trim().toLowerCase()] = val;
 		}
@@ -92,43 +101,20 @@ function getEntryPath(key, contextDir, cwdParam = cwd) {
  * Get the list of entry files in the entries directory.
  * @returns {Promise<string[]>} List of entry filenames
  */
-async function getEntryFiles(contextDir) {
+async function getEntryFiles(contextDir, cwdParam = cwd) {
 	try {
-		return (await readdir(contextDir)).filter((f) => f.endsWith(".md"));
+		return (await readdir(resolveContextDir(contextDir, cwdParam))).filter((f) =>
+			f.endsWith(".md"),
+		);
 	} catch (_err) {
 		return [];
 	}
 }
 
 /**
- * Count the number of entry files in the directory.
- * @returns {Promise<number>} Number of entry files
- */
-async function countEntries(contextDir) {
-	try {
-		return (await readdir(contextDir)).filter((f) => f.endsWith(".md")).length;
-	} catch (_err) {
-		return 0;
-	}
-}
-
-/**
- * Validate the entry count against the maximum limit.
- * @param {number} maxEntries - Maximum allowed entries
- * @returns {Promise<void>}
- * @throws {Error} When limit would be exceeded
- */
-async function validateMaxEntries(maxEntries, contextDir) {
-	const count = await countEntries(contextDir);
-	if (count >= maxEntries) {
-		throw new Error(`Memory entries (${count}) exceed maximum (${maxEntries})`);
-	}
-}
-
-/**
  * Load a single entry by key.
  * @param {string} key - Entry key
- * @returns {Promise<{ found: boolean, value: string, createdDate: string, updatedDate: string } | null>}
+ * @returns {Promise<{ found: boolean, value: string, createdDate: string, updatedDate: string, key?: string } | null>}
  */
 async function loadEntry(key, contextDir, cwdParam = cwd) {
 	const filePath = getEntryPath(key, contextDir, cwdParam);
@@ -141,6 +127,7 @@ async function loadEntry(key, contextDir, cwdParam = cwd) {
 			value: body,
 			createdDate: created,
 			updatedDate: frontmatter.updateddate || created,
+			key: frontmatter.key,
 		};
 	} catch (_err) {
 		return null;
@@ -148,8 +135,19 @@ async function loadEntry(key, contextDir, cwdParam = cwd) {
 }
 
 /**
+ * Serialize a value for storage. Strings are stored verbatim; structured
+ * values are JSON-encoded so their shape survives a round-trip.
+ * @param {unknown} value - The value to serialize
+ * @returns {string} String representation for storage
+ */
+function serializeValue(value) {
+	if (typeof value === "string") return value;
+	return JSON.stringify(value, null, 2);
+}
+
+/**
  * Save a single entry to its file.
- * @param {string} key - Entry key
+ * @param {string} key - Entry key (original, stored in frontmatter)
  * @param {string} value - Entry value/body
  * @param {string} [createdDate] - Optional preserved creation date (omit for new entries)
  * @returns {Promise<void>}
@@ -158,10 +156,9 @@ async function saveEntry(key, value, createdDate, contextDir, cwdParam = cwd) {
 	const filePath = getEntryPath(key, contextDir, cwdParam);
 	const now = new Date().toISOString();
 	const created = createdDate || now;
-	await mkdir(join(cwdParam, contextDir), { recursive: true });
 	await writeFile(
 		filePath,
-		`---\ncreatedDate: "${created}"\nupdatedDate: "${now}"\n---\n\n${value}\n`,
+		`---\ncreatedDate: "${created}"\nupdatedDate: "${now}"\nkey: ${JSON.stringify(key)}\n---\n\n${value}\n`,
 		"utf-8",
 	);
 }
@@ -183,7 +180,7 @@ async function deleteEntry(key, contextDir, cwdParam = cwd) {
  * @param {z.infer<typeof MemorySchema>} input - The tool input
  * @param {object} options - Runtime options
  * @param {number} options.maxEntries - Maximum memory entries (default 100)
- * @returns {Promise<string>} Result of the operation
+ * @returns {Promise<object>} Result of the operation
  */
 export async function memoryImpl(input, options) {
 	const maxEntries = options.maxEntries || DEFAULT_MAX_ENTRIES;
@@ -192,86 +189,104 @@ export async function memoryImpl(input, options) {
 	const actions = ["create", "read", "update", "delete", "list"];
 
 	if (!actions.includes(action)) {
-		return JSON.stringify({
+		return {
 			ok: false,
 			error: `Unknown action: "${action}". Valid actions: ${actions.join(", ")}`,
-		});
+		};
 	}
 
 	try {
 		switch (action) {
 			case "create": {
 				if (!input.key || input.value === undefined) {
-					return JSON.stringify({ ok: false, error: "create requires: key and value" });
+					return { ok: false, error: "create requires: key and value" };
 				}
 				const cleanedKey = sanitizeKey(input.key);
-				await validateMaxEntries(maxEntries, contextDir, cwd);
-				await saveEntry(cleanedKey, String(input.value), undefined, contextDir, cwd);
-				return JSON.stringify({ ok: true, message: `Memory created: "${cleanedKey}"` });
+				const existing = await loadEntry(cleanedKey, contextDir, cwd);
+				if (existing && existing.found && existing.key && existing.key !== input.key) {
+					return {
+						ok: false,
+						error: `Key collision: "${input.key}" maps to existing entry "${existing.key}"`,
+					};
+				}
+				await saveEntry(input.key, serializeValue(input.value), undefined, contextDir, cwd);
+				return { ok: true, message: `Memory created: "${cleanedKey}"` };
 			}
 
 			case "read": {
 				if (!input.key) {
-					return JSON.stringify({ ok: false, error: "read requires: key" });
+					return { ok: false, error: "read requires: key" };
 				}
 				const entry = await loadEntry(input.key, contextDir, cwd);
 				if (!entry || !entry.found) {
-					return JSON.stringify({
+					return {
 						ok: false,
 						error: `Memory not found: "${sanitizeKey(input.key)}"`,
-					});
+					};
 				}
-				return JSON.stringify({
+				return {
 					ok: true,
-					key: sanitizeKey(input.key),
+					key: entry.key || sanitizeKey(input.key),
 					value: entry.value,
 					createdDate: entry.createdDate,
 					updatedDate: entry.updatedDate,
-				});
+				};
 			}
 
 			case "update": {
 				if (!input.key || input.value === undefined) {
-					return JSON.stringify({ ok: false, error: "update requires: key and value" });
+					return { ok: false, error: "update requires: key and value" };
 				}
 				const cleanedKey = sanitizeKey(input.key);
 				const existing = await loadEntry(cleanedKey, contextDir, cwd);
 				if (!existing || !existing.found) {
-					return JSON.stringify({
+					return {
 						ok: false,
 						error: `Memory not found: "${cleanedKey}". Use "create" to add it.`,
-					});
+					};
 				}
-				await saveEntry(cleanedKey, String(input.value), existing.createdDate, contextDir, cwd);
-				return JSON.stringify({ ok: true, message: `Memory updated: "${cleanedKey}"` });
+				if (existing.key && existing.key !== input.key) {
+					return {
+						ok: false,
+						error: `Key collision: "${input.key}" maps to existing entry "${existing.key}"`,
+					};
+				}
+				await saveEntry(
+					input.key,
+					serializeValue(input.value),
+					existing.createdDate,
+					contextDir,
+					cwd,
+				);
+				return { ok: true, message: `Memory updated: "${cleanedKey}"` };
 			}
 
 			case "delete": {
 				if (!input.key) {
-					return JSON.stringify({ ok: false, error: "delete requires: key" });
+					return { ok: false, error: "delete requires: key" };
 				}
 				const cleanedKey = sanitizeKey(input.key);
 				const deleted = await deleteEntry(cleanedKey, contextDir, cwd);
 				if (!deleted) {
-					return JSON.stringify({ ok: false, error: `Memory not found: "${cleanedKey}"` });
+					return { ok: false, error: `Memory not found: "${cleanedKey}"` };
 				}
-				return JSON.stringify({ ok: true, message: `Memory deleted: "${cleanedKey}"` });
+				return { ok: true, message: `Memory deleted: "${cleanedKey}"` };
 			}
 
 			case "list": {
-				const files = await getEntryFiles(contextDir);
+				const files = await getEntryFiles(contextDir, cwd);
 				const query = input.query || "";
 				const entries = [];
 
 				for (const file of files) {
-					const content = await readFile(join(contextDir, file), "utf-8");
+					const content = await readFile(join(resolveContextDir(contextDir, cwd), file), "utf-8");
 					const { frontmatter, body } = parseEntryContent(content);
 					const stem = basename(file, ".md").toLocaleLowerCase();
 					if (query && ![stem, body].join(" ").toLowerCase().includes(query.toLowerCase()))
 						continue;
 					const created = frontmatter.createddate || new Date().toISOString();
 					entries.push({
-						key: stem,
+						key: frontmatter.key || stem,
 						value: body,
 						createdDate: created,
 						updatedDate: frontmatter.updateddate || created,
@@ -283,11 +298,12 @@ export async function memoryImpl(input, options) {
 						a.updatedDate || a.createdDate || "",
 					),
 				);
-				return JSON.stringify({ ok: true, total: entries.length, entries });
+				const limited = entries.slice(0, maxEntries);
+				return { ok: true, total: entries.length, entries: limited };
 			}
 		}
 	} catch (err) {
-		return JSON.stringify({ ok: false, error: `Memory error: ${err.message}` });
+		return { ok: false, error: `Memory error: ${err.message}` };
 	}
 }
 

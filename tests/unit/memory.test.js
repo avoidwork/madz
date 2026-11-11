@@ -2,7 +2,7 @@ import { describe, it, before, after, afterEach } from "node:test";
 import assert from "node:assert";
 import { existsSync } from "node:fs";
 import { rm, realpath } from "node:fs/promises";
-import { ensureScreenshotsDir } from "../../src/memory/index.js";
+import { ensureScreenshotsDir, ensureContextDir } from "../../src/memory/index.js";
 
 describe("frontmatter parsing", () => {
 	function parseFrontmatter(content) {
@@ -308,6 +308,43 @@ describe("ensureScreenshotsDir", () => {
 		await ensureScreenshotsDir(dirPath);
 		assert.ok(existsSync(absTestDir + "/" + dirPath));
 		await ensureScreenshotsDir(dirPath);
+		assert.ok(existsSync(absTestDir + "/" + dirPath));
+	});
+});
+
+describe("ensureContextDir", () => {
+	const TEST_DIR = "memory/__test_ensure_context_dir__/";
+
+	let absTestDir;
+
+	before(async () => {
+		absTestDir = await realpath(process.cwd());
+		await rm(absTestDir + "/" + TEST_DIR, { recursive: true, force: true });
+	});
+
+	after(async () => {
+		await rm(absTestDir + "/" + TEST_DIR, { recursive: true, force: true });
+	});
+
+	afterEach(async () => {
+		const dir = absTestDir + "/" + TEST_DIR;
+		if (existsSync(dir)) {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("creates directory when missing", async () => {
+		const dirPath = TEST_DIR + "subdir/";
+		assert.ok(!existsSync(absTestDir + "/" + dirPath));
+		await ensureContextDir(dirPath);
+		assert.ok(existsSync(absTestDir + "/" + dirPath));
+	});
+
+	it("returns successfully when directory already exists", async () => {
+		const dirPath = TEST_DIR + "subdir2/";
+		await ensureContextDir(dirPath);
+		assert.ok(existsSync(absTestDir + "/" + dirPath));
+		await ensureContextDir(dirPath);
 		assert.ok(existsSync(absTestDir + "/" + dirPath));
 	});
 });
