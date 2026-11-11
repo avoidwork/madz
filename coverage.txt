@@ -123,7 +123,7 @@
 ℹ   config                       |        |          |         | 
 ℹ    index.js                    | 100.00 |   100.00 |  100.00 | 
 ℹ   cron                         |        |          |         | 
-ℹ    index.js                    |  93.32 |    84.77 |   83.72 | 57-58 95-96 135-140 247-248 303-304 326-328 342-343 351-353 415-416 565-567 596-597 607-610 617-618 633-637 648-650 662-664 675-676
+ℹ    index.js                    |  93.74 |    84.77 |   83.72 | 57-58 95-96 135-140 247-248 303-304 326-328 342-343 415-416 565-567 596-597 607-610 617-618 633-637 648-650 662-664 675-676
 ℹ   data                         |        |          |         | 
 ℹ    index.js                    |  98.91 |    96.55 |  100.00 | 158 240-241
 ℹ   date                         |        |          |         | 
@@ -131,7 +131,7 @@
 ℹ   decision                     |        |          |         | 
 ℹ    index.js                    |  98.24 |    96.88 |   66.67 | 102-104
 ℹ   discovery                    |        |          |         | 
-ℹ    index.js                    |  93.03 |    61.36 |   90.00 | 78 91-92 95-96 121-122 135-136 171-172 180-181 197 199 215-216
+ℹ    index.js                    |  91.80 |    63.83 |   90.00 | 83 96-97 100-101 126-127 140-141 176-177 188-193 209 211 227-228
 ℹ   dns                          |        |          |         | 
 ℹ    index.js                    | 100.00 |   100.00 |  100.00 | 
 ℹ    namecom.js                  |  98.68 |    96.15 |   98.70 | 38-42 66-67
@@ -250,25 +250,8 @@
 
 ✖ failing tests:
 
-test at tests/unit/context.test.js:307:2
-✖ handles no ephemeral files gracefully (7.505625ms)
-  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
-  
-    assert.ok(result.includes("[Context: Note]"))
-  
-      at TestContext.<anonymous> (file:///app/projects/madz/tests/unit/context.test.js:314:10)
-      at async Test.run (node:internal/test_runner/test:1409:7)
-      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7) {
-    generatedMessage: true,
-    code: 'ERR_ASSERTION',
-    actual: false,
-    expected: true,
-    operator: '==',
-    diff: 'simple'
-  }
-
 test at tests/unit/tools_sampling.test.js:183:2
-✖ ignores non-.md files (5.666209ms)
+✖ ignores non-.md files (4.153291ms)
   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
   
   0 !== 1
