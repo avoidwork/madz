@@ -1,4 +1,4 @@
-import { describe, it, after } from "node:test";
+import { describe, it, before, after } from "node:test";
 import assert from "node:assert";
 import { memoryImpl, sanitizeKey } from "../../src/tools/memory/index.js";
 import { mkdir, writeFile, rm, readFile } from "node:fs/promises";
@@ -72,6 +72,12 @@ describe("sanitizeKey", () => {
 });
 
 describe("memoryImpl", () => {
+	before(async () => {
+		// The tool no longer creates the directory on write (init does it via
+		// ensureContextDir), so the test must ensure it exists first.
+		await mkdir(DIR, { recursive: true });
+	});
+
 	after(async () => {
 		try {
 			await rm(DIR, { recursive: true, force: true });
@@ -83,17 +89,15 @@ describe("memoryImpl", () => {
 	// --- create ---
 
 	it("create requires key and value", async () => {
-		const result = JSON.parse(await memoryImpl({ action: "create" }, defaultOpts));
+		const result = await memoryImpl({ action: "create" }, defaultOpts);
 		assert.strictEqual(result.ok, false);
 		assert.ok(result.error.includes("requires"));
 	});
 
 	it("create stores entry as individual file", async () => {
-		const result = JSON.parse(
-			await memoryImpl(
-				{ action: "create", key: "test_entry_1", value: "Hello world" },
-				defaultOpts,
-			),
+		const result = await memoryImpl(
+			{ action: "create", key: "test_entry_1", value: "Hello world" },
+			defaultOpts,
 		);
 		assert.strictEqual(result.ok, true);
 		const content = await readFile(join(DIR, "test_entry_1.md"), "utf-8");
@@ -102,8 +106,9 @@ describe("memoryImpl", () => {
 	});
 
 	it("create writes with sanitized key", async () => {
-		const result = JSON.parse(
-			await memoryImpl({ action: "create", key: "My Pet", value: "Halo" }, defaultOpts),
+		const result = await memoryImpl(
+			{ action: "create", key: "My Pet", value: "Halo" },
+			defaultOpts,
 		);
 		assert.strictEqual(result.message.includes("my_pet"), true);
 		const f = await import("node:fs/promises");
@@ -114,23 +119,21 @@ describe("memoryImpl", () => {
 	it("create succeeds even when near maxEntries (retention handles pruning)", async () => {
 		const opts = { maxEntries: 1 };
 		await memoryImpl({ action: "create", key: "cap_first", value: "test" }, opts);
-		const result = JSON.parse(
-			await memoryImpl({ action: "create", key: "overflow", value: "nope" }, opts),
-		);
+		const result = await memoryImpl({ action: "create", key: "overflow", value: "nope" }, opts);
 		assert.strictEqual(result.ok, true);
 	});
 
 	// --- read ---
 
 	it("read requires key", async () => {
-		const result = JSON.parse(await memoryImpl({ action: "read" }, defaultOpts));
+		const result = await memoryImpl({ action: "read" }, defaultOpts);
 		assert.strictEqual(result.ok, false);
 		assert.ok(result.error.includes("requires"));
 	});
 
 	it("read returns entry data", async () => {
 		await writeEntry("read_test", "read value", "2026-01-01T00:00:00Z", "2026-02-01T00:00:00Z");
-		const result = JSON.parse(await memoryImpl({ action: "read", key: "read_test" }, defaultOpts));
+		const result = await memoryImpl({ action: "read", key: "read_test" }, defaultOpts);
 		assert.strictEqual(result.ok, true);
 		assert.strictEqual(result.value, "read value");
 		assert.strictEqual(result.createdDate, "2026-01-01T00:00:00Z");
@@ -138,9 +141,7 @@ describe("memoryImpl", () => {
 	});
 
 	it("read rejects non-existent key", async () => {
-		const result = JSON.parse(
-			await memoryImpl({ action: "read", key: "does_not_exist" }, defaultOpts),
-		);
+		const result = await memoryImpl({ action: "read", key: "does_not_exist" }, defaultOpts);
 		assert.strictEqual(result.ok, false);
 		assert.ok(result.error.includes("not found"));
 	});
@@ -148,26 +149,26 @@ describe("memoryImpl", () => {
 	// --- update ---
 
 	it("update requires key and value", async () => {
-		const result = JSON.parse(await memoryImpl({ action: "update" }, defaultOpts));
+		const result = await memoryImpl({ action: "update" }, defaultOpts);
 		assert.strictEqual(result.ok, false);
 		assert.ok(result.error.includes("requires"));
 	});
 
 	it("update updates existing entry", async () => {
 		await writeEntry("update_me", "old", "2026-01-01T00:00:00Z", "2026-01-01T00:00:00Z");
-		const result = JSON.parse(
-			await memoryImpl({ action: "update", key: "update_me", value: "new" }, defaultOpts),
+		const result = await memoryImpl(
+			{ action: "update", key: "update_me", value: "new" },
+			defaultOpts,
 		);
 		assert.strictEqual(result.ok, true);
-		const readResult = JSON.parse(
-			await memoryImpl({ action: "read", key: "update_me" }, defaultOpts),
-		);
+		const readResult = await memoryImpl({ action: "read", key: "update_me" }, defaultOpts);
 		assert.strictEqual(readResult.value, "new");
 	});
 
 	it("update rejects non-existent key", async () => {
-		const result = JSON.parse(
-			await memoryImpl({ action: "update", key: "no_such_key", value: "data" }, defaultOpts),
+		const result = await memoryImpl(
+			{ action: "update", key: "no_such_key", value: "data" },
+			defaultOpts,
 		);
 		assert.strictEqual(result.ok, false);
 		assert.ok(result.error.includes("not found"));
@@ -176,21 +177,21 @@ describe("memoryImpl", () => {
 	// --- delete ---
 
 	it("delete requires key", async () => {
-		const result = JSON.parse(await memoryImpl({ action: "delete" }, defaultOpts));
+		const result = await memoryImpl({ action: "delete" }, defaultOpts);
 		assert.strictEqual(result.ok, false);
 		assert.ok(result.error.includes("requires"));
 	});
 
 	it("delete removes entry file", async () => {
 		await writeEntry("del_test", "to delete", "2026-01-01T00:00:00Z", "2026-01-01T00:00:00Z");
-		const result = JSON.parse(await memoryImpl({ action: "delete", key: "del_test" }, defaultOpts));
+		const result = await memoryImpl({ action: "delete", key: "del_test" }, defaultOpts);
 		assert.strictEqual(result.ok, true);
 		const f = await import("node:fs/promises");
 		assert.rejects(f.readFile(join(DIR, "del_test.md")), "file should be deleted");
 	});
 
 	it("delete rejects non-existent key", async () => {
-		const result = JSON.parse(await memoryImpl({ action: "delete", key: "not_here" }, defaultOpts));
+		const result = await memoryImpl({ action: "delete", key: "not_here" }, defaultOpts);
 		assert.strictEqual(result.ok, false);
 		assert.ok(result.error.includes("not found"));
 	});
@@ -205,7 +206,7 @@ describe("memoryImpl", () => {
 			/* ignore */
 		}
 		await mkdir(DIR, { recursive: true });
-		const result = JSON.parse(await memoryImpl({ action: "list" }, defaultOpts));
+		const result = await memoryImpl({ action: "list" }, defaultOpts);
 		assert.strictEqual(result.ok, true);
 		assert.strictEqual(result.total, 0);
 		assert.deepStrictEqual(result.entries, []);
@@ -220,7 +221,7 @@ describe("memoryImpl", () => {
 		await writeEntry("a_list", "first", "2026-01-01T00:00:00Z", "2026-01-01T10:00:00Z");
 		await writeEntry("b_list", "second", "2026-01-01T00:00:00Z", "2026-02-01T10:00:00Z");
 		await writeEntry("c_list", "third", "2026-01-01T00:00:00Z", "2026-03-01T10:00:00Z");
-		const result = JSON.parse(await memoryImpl({ action: "list" }, defaultOpts));
+		const result = await memoryImpl({ action: "list" }, defaultOpts);
 		assert.strictEqual(result.ok, true);
 		assert.strictEqual(result.total, 3);
 		assert.strictEqual(result.entries[0].key, "c_list");
@@ -234,7 +235,7 @@ describe("memoryImpl", () => {
 		for (const f of existingFiles) await fs.unlink(join(DIR, f));
 		await writeEntry("list_a", "cat", "2026-01-01T00:00:00Z", "2026-01-01T00:00:00Z");
 		await writeEntry("list_b", "pizza", "2026-01-01T00:00:00Z", "2026-01-01T00:00:00Z");
-		const result = JSON.parse(await memoryImpl({ action: "list", query: "pizza" }, defaultOpts));
+		const result = await memoryImpl({ action: "list", query: "pizza" }, defaultOpts);
 		assert.strictEqual(result.ok, true);
 		assert.strictEqual(result.total, 1);
 		assert.strictEqual(result.entries[0].key, "list_b");
@@ -245,43 +246,36 @@ describe("memoryImpl", () => {
 		const existingFiles = await fs.readdir(DIR).catch(() => []);
 		for (const f of existingFiles) await fs.unlink(join(DIR, f));
 		await writeEntry("list_c", "PIZZA", "2026-01-01T00:00:00Z", "2026-01-01T00:00:00Z");
-		const result = JSON.parse(await memoryImpl({ action: "list", query: "pizza" }, defaultOpts));
+		const result = await memoryImpl({ action: "list", query: "pizza" }, defaultOpts);
 		assert.strictEqual(result.total, 1);
 	});
 
 	it("list returns empty for no match", async () => {
 		await writeEntry("list_d", "cat", "2026-01-01T00:00:00Z", "2026-01-01T00:00:00Z");
-		const result = JSON.parse(await memoryImpl({ action: "list", query: "xyz123" }, defaultOpts));
+		const result = await memoryImpl({ action: "list", query: "xyz123" }, defaultOpts);
 		assert.strictEqual(result.total, 0);
 	});
 
 	it("create with value converts non-string", async () => {
-		const result = JSON.parse(
-			await memoryImpl({ action: "create", key: "num_entry", value: 42 }, defaultOpts),
-		);
+		const result = await memoryImpl({ action: "create", key: "num_entry", value: 42 }, defaultOpts);
 		assert.strictEqual(result.ok, true);
-		const readResult = JSON.parse(
-			await memoryImpl({ action: "read", key: "num_entry" }, defaultOpts),
-		);
+		const readResult = await memoryImpl({ action: "read", key: "num_entry" }, defaultOpts);
 		assert.strictEqual(readResult.value, "42");
 	});
 
 	it("create round-trips structured values as JSON", async () => {
 		const value = { a: 1, b: [2, 3], c: { d: "x" } };
-		const result = JSON.parse(
-			await memoryImpl({ action: "create", key: "structured", value }, defaultOpts),
-		);
+		const result = await memoryImpl({ action: "create", key: "structured", value }, defaultOpts);
 		assert.strictEqual(result.ok, true);
-		const readResult = JSON.parse(
-			await memoryImpl({ action: "read", key: "structured" }, defaultOpts),
-		);
+		const readResult = await memoryImpl({ action: "read", key: "structured" }, defaultOpts);
 		assert.deepStrictEqual(JSON.parse(readResult.value), value);
 	});
 
 	it("create detects key collision from sanitization", async () => {
 		await memoryImpl({ action: "create", key: "foo-bar", value: "first" }, defaultOpts);
-		const result = JSON.parse(
-			await memoryImpl({ action: "create", key: "foo_bar", value: "second" }, defaultOpts),
+		const result = await memoryImpl(
+			{ action: "create", key: "foo_bar", value: "second" },
+			defaultOpts,
 		);
 		assert.strictEqual(result.ok, false);
 		assert.match(result.error, /collision/);
@@ -289,8 +283,9 @@ describe("memoryImpl", () => {
 
 	it("update detects key collision from sanitization", async () => {
 		await memoryImpl({ action: "create", key: "my-key", value: "first" }, defaultOpts);
-		const result = JSON.parse(
-			await memoryImpl({ action: "update", key: "my_key", value: "second" }, defaultOpts),
+		const result = await memoryImpl(
+			{ action: "update", key: "my_key", value: "second" },
+			defaultOpts,
 		);
 		assert.strictEqual(result.ok, false);
 		assert.match(result.error, /collision/);
@@ -303,9 +298,7 @@ describe("memoryImpl", () => {
 		await writeEntry("cap_a", "1", "2026-01-01T00:00:00Z", "2026-01-01T00:00:00Z");
 		await writeEntry("cap_b", "2", "2026-01-01T00:00:00Z", "2026-01-01T00:00:00Z");
 		await writeEntry("cap_c", "3", "2026-01-01T00:00:00Z", "2026-01-01T00:00:00Z");
-		const result = JSON.parse(
-			await memoryImpl({ action: "list" }, { ...defaultOpts, maxEntries: 2 }),
-		);
+		const result = await memoryImpl({ action: "list" }, { ...defaultOpts, maxEntries: 2 });
 		assert.strictEqual(result.total, 3);
 		assert.strictEqual(result.entries.length, 2);
 	});
