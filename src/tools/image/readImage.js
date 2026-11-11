@@ -76,7 +76,7 @@ export async function readImageImpl(input, options = {}) {
 	const { path: filePath } = input;
 
 	if (!filePath || typeof filePath !== "string" || filePath.trim().length === 0) {
-		return JSON.stringify({ ok: false, error: "Path is required and must be a non-empty string" });
+		return { ok: false, error: "Path is required and must be a non-empty string" };
 	}
 
 	const config = loadConfig();
@@ -85,14 +85,14 @@ export async function readImageImpl(input, options = {}) {
 	// Validate the path against the sandbox allowlist
 	const validation = validatePath(filePath, allowedPaths);
 	if (!validation.allowed) {
-		return JSON.stringify({ ok: false, error: validation.error });
+		return { ok: false, error: validation.error };
 	}
 
 	// Check the file exists
 	try {
 		await stat(validation.path);
 	} catch (_err) {
-		return JSON.stringify({ ok: false, error: `File not found: ${filePath}` });
+		return { ok: false, error: `File not found: ${filePath}` };
 	}
 
 	// Read the file and encode as base64
@@ -100,7 +100,7 @@ export async function readImageImpl(input, options = {}) {
 	try {
 		buffer = await readFile(validation.path);
 	} catch (err) {
-		return JSON.stringify({ ok: false, error: `Failed to read file: ${err.message}` });
+		return { ok: false, error: `Failed to read file: ${err.message}` };
 	}
 
 	const mimeType = detectMimeType(validation.path);

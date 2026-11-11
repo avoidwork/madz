@@ -29,7 +29,7 @@ export const xlsxSchema = z.object({
  * @param {object} input - Tool input
  * @param {string} input.filePath - Path to the XLSX file
  * @param {"markdown"|"json"} [input.format="markdown"] - Output format
- * @returns {Promise<string>} JSON result string
+ * @returns {Promise<{ ok: boolean, format?: string, content?: string, error?: string }>} Structured result
  */
 export async function xlsxExtract(input) {
 	const { filePath, format = "markdown" } = xlsxSchema.parse(input);
@@ -37,14 +37,14 @@ export async function xlsxExtract(input) {
 	// Validate format
 	const validation = validateFormat(filePath);
 	if (!validation.valid) {
-		return JSON.stringify({ ok: false, error: validation.error });
+		return { ok: false, error: validation.error };
 	}
 
 	// Read file
 	try {
 		await readFile(filePath);
 	} catch (err) {
-		return JSON.stringify({ ok: false, error: `Failed to read file: ${err.message}` });
+		return { ok: false, error: `Failed to read file: ${err.message}` };
 	}
 
 	// Extract ZIP content
@@ -52,25 +52,25 @@ export async function xlsxExtract(input) {
 	try {
 		zipContent = await extractZipXml(filePath);
 	} catch (err) {
-		return JSON.stringify({ ok: false, error: `ZIP extraction failed: ${err.message}` });
+		return { ok: false, error: `ZIP extraction failed: ${err.message}` };
 	}
 
 	if (format === "json") {
 		const jsonData = await xlsxToJson(zipContent);
-		return JSON.stringify({
+		return {
 			ok: true,
 			format: "json",
 			content: JSON.stringify(jsonData, null, 2),
-		});
+		};
 	}
 
 	const markdown = await xlsxToMarkdown(zipContent);
 
-	return JSON.stringify({
+	return {
 		ok: true,
 		format: "markdown",
 		content: markdown || "(empty spreadsheet)",
-	});
+	};
 }
 
 /**

@@ -60,21 +60,21 @@ describe("fileExtract/pptx", () => {
 	describe("pptxExtract", () => {
 		it("should return an error for non-existent files", async () => {
 			const result = await pptxExtract({ filePath: "/nonexistent/file.pptx" });
-			const parsed = JSON.parse(result);
+			const parsed = result;
 			assert.strictEqual(parsed.ok, false);
 			assert.ok(parsed.error.includes("Failed to read file"));
 		});
 
 		it("should return an error for unsupported formats", async () => {
 			const result = await pptxExtract({ filePath: "presentation.txt" });
-			const parsed = JSON.parse(result);
+			const parsed = result;
 			assert.strictEqual(parsed.ok, false);
 			assert.ok(parsed.error.includes("Unsupported format"));
 		});
 
 		it("should return an error for files without extensions", async () => {
 			const result = await pptxExtract({ filePath: "presentation" });
-			const parsed = JSON.parse(result);
+			const parsed = result;
 			assert.strictEqual(parsed.ok, false);
 			assert.ok(parsed.error.includes("No file extension"));
 		});
@@ -82,14 +82,14 @@ describe("fileExtract/pptx", () => {
 		it("should return an error for non-PPTX files with .pptx extension", async () => {
 			writeFileSync(pptxPath("test-fake-pptx.pptx"), "This is not a real PPTX file");
 			const result = await pptxExtract({ filePath: pptxPath("test-fake-pptx.pptx") });
-			const parsed = JSON.parse(result);
+			const parsed = result;
 			assert.strictEqual(parsed.ok, false);
 			assert.ok(parsed.error.includes("ZIP extraction failed"));
 		});
 
 		it("should extract content from a valid PPTX file", async () => {
 			const result = await pptxExtract({ filePath: pptxPath("test-minimal.pptx") });
-			const parsed = JSON.parse(result);
+			const parsed = result;
 			assert.strictEqual(parsed.ok, true);
 			assert.strictEqual(parsed.format, "markdown");
 			assert.ok(typeof parsed.content === "string");

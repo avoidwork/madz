@@ -39,7 +39,7 @@
 ℹ   gc.js                        | 100.00 |   100.00 |  100.00 | 
 ℹ   index.js                     | 100.00 |   100.00 |  100.00 | 
 ℹ   profile.js                   | 100.00 |    98.41 |  100.00 | 
-ℹ   prompts.js                   |  96.77 |    92.86 |  100.00 | 55-56
+ℹ   prompts.js                   | 100.00 |   100.00 |  100.00 | 
 ℹ   reader.js                    | 100.00 |    94.44 |  100.00 | 
 ℹ   retention.js                 |  30.99 |   100.00 |    0.00 | 15-35 44-71
 ℹ   screenshots.js               | 100.00 |   100.00 |  100.00 | 
@@ -119,12 +119,12 @@
 ℹ   code                         |        |          |         | 
 ℹ    index.js                    | 100.00 |   100.00 |  100.00 | 
 ℹ    indexCode.js                | 100.00 |    87.50 |  100.00 | 
-ℹ    searchCode.js               |  83.70 |    68.25 |   71.43 | 60-62 67-72 76-79 82-83 116-118 124-126 181-183 186-188 195-197 202-207 211-214 217-218 236-237
+ℹ    searchCode.js               |  85.94 |    71.21 |  100.00 | 96-101 114-115 118-123 127-128 150-151 157-158 188-189 192-193 200-201 204-209 213-214 222-223
 ℹ   common.js                    | 100.00 |    96.97 |  100.00 | 
 ℹ   config                       |        |          |         | 
 ℹ    index.js                    | 100.00 |   100.00 |  100.00 | 
 ℹ   cron                         |        |          |         | 
-ℹ    index.js                    |  93.74 |    85.28 |   83.72 | 57-58 95-96 135-140 247-248 303-304 326-328 342-343 415-416 565-567 596-597 607-610 617-618 633-637 648-650 662-664 675-676
+ℹ    index.js                    |  93.74 |    84.77 |   83.72 | 57-58 95-96 135-140 247-248 303-304 326-328 342-343 415-416 565-567 596-597 607-610 617-618 633-637 648-650 662-664 675-676
 ℹ   data                         |        |          |         | 
 ℹ    index.js                    |  98.91 |    96.55 |  100.00 | 158 240-241
 ℹ   date                         |        |          |         | 
@@ -175,30 +175,30 @@
 ℹ   pdf                          |        |          |         | 
 ℹ    index.js                    |  94.29 |    85.71 |  100.00 | 90-94 142-143 174-185 200-201 252-253 289 355-356 363-364 375-376 410-411 446-447 451-452 516-520 586-588 590-592 594-596 598-600 692-693 910 913-914
 ℹ   pptx                         |        |          |         | 
-ℹ    index.js                    |  98.63 |    94.12 |   92.31 | 478-481 536-537 557-558
+ℹ    index.js                    |  98.65 |    94.32 |   92.86 | 478-481 542-543 563-564
 ℹ   process                      |        |          |         | 
-ℹ    index.js                    |  95.96 |    86.44 |   94.74 | 109 133-134 216-217 228-229 238-240 246-247
+ℹ    index.js                    |  95.68 |    85.00 |   90.00 | 106 130-131 219-221 232-233 242-244 250-251
 ℹ   reflection                   |        |          |         | 
-ℹ    index.js                    |  96.05 |    84.62 |   91.67 | 58-62 151-152 206-207
+ℹ    index.js                    |  94.98 |    83.02 |   90.00 | 56-60 125-126 142-143 197-198
 ℹ   sampling                     |        |          |         | 
-ℹ    index.js                    |  94.97 |    81.82 |   80.00 | 27 180-188
+ℹ    index.js                    |  98.50 |    80.56 |  100.00 | 27 186-187
 ℹ   session                      |        |          |         | 
-ℹ    index.js                    |  97.08 |    71.19 |   94.12 | 71-72 118-119 128 181-182
+ℹ    index.js                    |  95.76 |    70.69 |  100.00 | 72-73 99-100 116-117 155-156 177-178
 ℹ   skills                       |        |          |         | 
-ℹ    index.js                    |  93.41 |    81.94 |  100.00 | 93-94 127-134 154-161 177-179 194-195
+ℹ    index.js                    |  93.39 |    81.94 |  100.00 | 92-93 126-133 153-160 176-178 193-194
 ℹ   spreadsheet                  |        |          |         | 
 ℹ    csv.js                      |  99.41 |    97.78 |  100.00 | 109
 ℹ    formulaParser.js            | 100.00 |    96.81 |  100.00 | 
 ℹ    index.js                    | 100.00 |   100.00 |  100.00 | 
 ℹ    pivot.js                    | 100.00 |    96.51 |  100.00 | 
-ℹ    spreadsheet.js              | 100.00 |    92.86 |  100.00 | 
+ℹ    spreadsheet.js              | 100.00 |    92.92 |  100.00 | 
 ℹ    stats.js                    |  99.16 |    96.19 |  100.00 | 237-238
 ℹ   todo                         |        |          |         | 
-ℹ    index.js                    |  97.65 |    92.19 |   88.89 | 194-195 212-213 266-268
+ℹ    index.js                    |  97.69 |    92.31 |   88.89 | 199-200 217-218 271-273
 ℹ   tts                          |        |          |         | 
 ℹ    index.js                    | 100.00 |    85.71 |   50.00 | 
 ℹ   web                          |        |          |         | 
-ℹ    index.js                    |  95.48 |    68.89 |   56.67 | 36-37 51-52 55-57 96-98 312-314 378-380 447-448 450-451 453-454
+ℹ    index.js                    |  95.53 |    69.92 |   60.00 | 36-37 51-52 55-57 96-98 312-314 383-385 452-453 455-456 458-459
 ℹ   webhook                      |        |          |         | 
 ℹ    index.js                    |  98.79 |    96.49 |  100.00 | 20-22
 ℹ   yaml                         |        |          |         | 
@@ -245,6 +245,178 @@
 ℹ   loadAgents.js                |  75.00 |    73.33 |   50.00 | 26-27 43 58-72
 ℹ   project.js                   | 100.00 |   100.00 |  100.00 | 
 ℹ -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-ℹ all files                      |  93.10 |    86.54 |   87.86 | 
+ℹ all files                      |  93.13 |    86.56 |   88.02 | 
 ℹ -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ℹ end of coverage report
+
+✖ failing tests:
+
+test at tests/unit/memory_profile.test.js:311:2
+✖ writes atomically — no .tmp file remains after write (6.551583ms)
+  Error: ENOENT: no such file or directory, scandir '/app/projects/madz/memory/__test_profile__'
+      at readdirSync (node:fs:1956:26)
+      at TestContext.<anonymous> (file:///app/projects/madz/tests/unit/memory_profile.test.js:320:17)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'scandir',
+    path: '/app/projects/madz/memory/__test_profile__'
+  }
+
+test at tests/unit/tools_pptx.test.js:707:2
+✖ creates a minimal presentation with no slides (21.184208ms)
+  SyntaxError [Error]: "[object Object]" is not valid JSON
+      at JSON.parse (<anonymous>)
+      at TestContext.<anonymous> (file:///app/projects/madz/tests/unit/tools_pptx.test.js:709:23)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Promise.all (index 0)
+      at async Suite.run (node:internal/test_runner/test:1905:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at tests/unit/tools_pptx.test.js:725:2
+✖ defaults outputPath to config.memory.toolsDir when omitted (4.178167ms)
+  SyntaxError [Error]: "[object Object]" is not valid JSON
+      at JSON.parse (<anonymous>)
+      at TestContext.<anonymous> (file:///app/projects/madz/tests/unit/tools_pptx.test.js:726:23)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at tests/unit/tools_pptx.test.js:736:2
+✖ creates a presentation with a single content slide (4.903125ms)
+  SyntaxError [Error]: "[object Object]" is not valid JSON
+      at JSON.parse (<anonymous>)
+      at TestContext.<anonymous> (file:///app/projects/madz/tests/unit/tools_pptx.test.js:738:23)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at tests/unit/tools_pptx.test.js:754:2
+✖ creates a presentation with multiple slides (3.934166ms)
+  SyntaxError [Error]: "[object Object]" is not valid JSON
+      at JSON.parse (<anonymous>)
+      at TestContext.<anonymous> (file:///app/projects/madz/tests/unit/tools_pptx.test.js:756:23)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at tests/unit/tools_pptx.test.js:770:2
+✖ creates a presentation with tables (3.471458ms)
+  SyntaxError [Error]: "[object Object]" is not valid JSON
+      at JSON.parse (<anonymous>)
+      at TestContext.<anonymous> (file:///app/projects/madz/tests/unit/tools_pptx.test.js:772:23)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at tests/unit/tools_pptx.test.js:794:2
+✖ creates a presentation with custom slide dimensions (2.354209ms)
+  SyntaxError [Error]: "[object Object]" is not valid JSON
+      at JSON.parse (<anonymous>)
+      at TestContext.<anonymous> (file:///app/projects/madz/tests/unit/tools_pptx.test.js:796:23)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at tests/unit/tools_pptx.test.js:807:2
+✖ rejects output path outside allowed directory (0.194333ms)
+  SyntaxError [Error]: "[object Object]" is not valid JSON
+      at JSON.parse (<anonymous>)
+      at TestContext.<anonymous> (file:///app/projects/madz/tests/unit/tools_pptx.test.js:808:23)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at tests/unit/tools_pptx.test.js:818:2
+✖ rejects invalid template path (0.868958ms)
+  SyntaxError [Error]: "[object Object]" is not valid JSON
+      at JSON.parse (<anonymous>)
+      at TestContext.<anonymous> (file:///app/projects/madz/tests/unit/tools_pptx.test.js:819:23)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at tests/unit/tools_pptx.test.js:830:2
+✖ rejects unsupported image format (0.208166ms)
+  SyntaxError [Error]: "[object Object]" is not valid JSON
+      at JSON.parse (<anonymous>)
+      at TestContext.<anonymous> (file:///app/projects/madz/tests/unit/tools_pptx.test.js:831:23)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at tests/unit/tools_pptx.test.js:841:2
+✖ creates presentation with valid image (3.887ms)
+  SyntaxError [Error]: "[object Object]" is not valid JSON
+      at JSON.parse (<anonymous>)
+      at TestContext.<anonymous> (file:///app/projects/madz/tests/unit/tools_pptx.test.js:843:23)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at tests/unit/tools_pptx.test.js:857:2
+✖ creates presentation with background color (2.6375ms)
+  SyntaxError [Error]: "[object Object]" is not valid JSON
+      at JSON.parse (<anonymous>)
+      at TestContext.<anonymous> (file:///app/projects/madz/tests/unit/tools_pptx.test.js:859:23)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at tests/unit/tools_pptx.test.js:868:2
+✖ creates presentation with two-column layout (3.245708ms)
+  SyntaxError [Error]: "[object Object]" is not valid JSON
+      at JSON.parse (<anonymous>)
+      at TestContext.<anonymous> (file:///app/projects/madz/tests/unit/tools_pptx.test.js:870:23)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at tests/unit/tools_pptx.test.js:885:2
+✖ creates presentation with comparison layout (2.67875ms)
+  SyntaxError [Error]: "[object Object]" is not valid JSON
+      at JSON.parse (<anonymous>)
+      at TestContext.<anonymous> (file:///app/projects/madz/tests/unit/tools_pptx.test.js:887:23)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at tests/unit/tools_pptx.test.js:902:2
+✖ creates presentation with image-only layout (3.542708ms)
+  SyntaxError [Error]: "[object Object]" is not valid JSON
+      at JSON.parse (<anonymous>)
+      at TestContext.<anonymous> (file:///app/projects/madz/tests/unit/tools_pptx.test.js:904:23)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at tests/unit/tools_pptx.test.js:918:2
+✖ creates presentation with quote layout (2.982792ms)
+  SyntaxError [Error]: "[object Object]" is not valid JSON
+      at JSON.parse (<anonymous>)
+      at TestContext.<anonymous> (file:///app/projects/madz/tests/unit/tools_pptx.test.js:920:23)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at tests/unit/tools_pptx.test.js:935:2
+✖ creates presentation with mixed slide types (3.250125ms)
+  SyntaxError [Error]: "[object Object]" is not valid JSON
+      at JSON.parse (<anonymous>)
+      at TestContext.<anonymous> (file:///app/projects/madz/tests/unit/tools_pptx.test.js:937:23)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at tests/unit/tools_pptx.test.js:956:2
+✖ creates parent directories for output path (2.682791ms)
+  SyntaxError [Error]: "[object Object]" is not valid JSON
+      at JSON.parse (<anonymous>)
+      at TestContext.<anonymous> (file:///app/projects/madz/tests/unit/tools_pptx.test.js:958:23)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at tests/unit/tools_sampling.test.js:295:2
+✖ applies the cooldown across consecutive invocations (8.396667ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  false !== true
+  
+      at TestContext.<anonymous> (file:///app/projects/madz/tests/unit/tools_sampling.test.js:298:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Promise.all (index 0)
+      at async Suite.run (node:internal/test_runner/test:1905:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

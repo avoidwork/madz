@@ -21,7 +21,7 @@ export const pdfSchema = z.object({
  * Extract content from a PDF file.
  * @param {object} input - Tool input
  * @param {string} input.filePath - Path to the PDF file
- * @returns {Promise<string>} JSON result string
+ * @returns {Promise<{ ok: boolean, format?: string, content?: string, reason?: string, error?: string }>} Structured result
  */
 export async function pdfExtract(input) {
 	const { filePath } = pdfSchema.parse(input);
@@ -29,7 +29,7 @@ export async function pdfExtract(input) {
 	// Validate format
 	const validation = validateFormat(filePath);
 	if (!validation.valid) {
-		return JSON.stringify({ ok: false, error: validation.error });
+		return { ok: false, error: validation.error };
 	}
 
 	// Read file
@@ -37,7 +37,7 @@ export async function pdfExtract(input) {
 	try {
 		buffer = await readFile(filePath);
 	} catch (err) {
-		return JSON.stringify({ ok: false, error: `Failed to read file: ${err.message}` });
+		return { ok: false, error: `Failed to read file: ${err.message}` };
 	}
 
 	// Extract text
@@ -47,26 +47,26 @@ export async function pdfExtract(input) {
 	} catch (err) {
 		if (err instanceof PdfExtractionError) {
 			if (err.reason === "no-text") {
-				return JSON.stringify({
+				return {
 					ok: true,
 					format: "markdown",
 					content: "",
-				});
+				};
 			}
-			return JSON.stringify({
+			return {
 				ok: false,
 				error: err.message,
 				reason: err.reason,
-			});
+			};
 		}
-		return JSON.stringify({ ok: false, error: `PDF extraction failed: ${err.message}` });
+		return { ok: false, error: `PDF extraction failed: ${err.message}` };
 	}
 
-	return JSON.stringify({
+	return {
 		ok: true,
 		format: "markdown",
 		content: markdown || "(no extractable text)",
-	});
+	};
 }
 
 /**

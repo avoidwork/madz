@@ -241,15 +241,15 @@ export async function generatePdfFromHtml(input) {
 	const { html, filePath, options } = input;
 
 	if (!html || typeof html !== "string") {
-		return JSON.stringify({ ok: false, error: "HTML string is required" });
+		return { ok: false, error: "HTML string is required" };
 	}
 	if (!filePath || typeof filePath !== "string") {
-		return JSON.stringify({ ok: false, error: "Output filePath is required" });
+		return { ok: false, error: "Output filePath is required" };
 	}
 
 	const resolved = resolvePdfPath(filePath);
 	if (!resolved.ok) {
-		return JSON.stringify({ ok: false, error: resolved.error });
+		return { ok: false, error: resolved.error };
 	}
 
 	const { default: puppeteer } = await import("puppeteer");
@@ -284,9 +284,9 @@ export async function generatePdfFromHtml(input) {
 			path: resolved.path,
 		});
 
-		return JSON.stringify({ ok: true, filePath: resolved.path });
+		return { ok: true, filePath: resolved.path };
 	} catch (err) {
-		return JSON.stringify({ ok: false, error: `PDF generation failed: ${err.message}` });
+		return { ok: false, error: `PDF generation failed: ${err.message}` };
 	} finally {
 		if (browser) await browser.close();
 	}
@@ -305,10 +305,10 @@ export async function generatePdfFromMarkdown(input) {
 	const { markdown, filePath, css, options } = input;
 
 	if (!markdown || typeof markdown !== "string") {
-		return JSON.stringify({ ok: false, error: "Markdown string is required" });
+		return { ok: false, error: "Markdown string is required" };
 	}
 	if (!filePath || typeof filePath !== "string") {
-		return JSON.stringify({ ok: false, error: "Output filePath is required" });
+		return { ok: false, error: "Output filePath is required" };
 	}
 
 	const html = marked.parse(markdown);
@@ -349,10 +349,10 @@ export async function mergePdfs(input) {
 	const { filePaths, outputPath, base64 } = input;
 
 	if (!filePaths || !Array.isArray(filePaths) || filePaths.length < 2) {
-		return JSON.stringify({ ok: false, error: "At least 2 PDF file paths are required" });
+		return { ok: false, error: "At least 2 PDF file paths are required" };
 	}
 	if (!outputPath && !base64) {
-		return JSON.stringify({ ok: false, error: "Either outputPath or base64 output is required" });
+		return { ok: false, error: "Either outputPath or base64 output is required" };
 	}
 
 	const mergedPdf = await PDFDocument.create();
@@ -360,11 +360,11 @@ export async function mergePdfs(input) {
 	for (const filePath of filePaths) {
 		const resolved = resolvePdfPath(filePath);
 		if (!resolved.ok) {
-			return JSON.stringify({ ok: false, error: resolved.error });
+			return { ok: false, error: resolved.error };
 		}
 		const sizeCheck = await checkFileSize(resolved.path, loadConfig().sandbox.pdf.maxFileSize);
 		if (!sizeCheck.ok) {
-			return JSON.stringify({ ok: false, error: sizeCheck.error });
+			return { ok: false, error: sizeCheck.error };
 		}
 		try {
 			const buffer = await readFile(resolved.path);
@@ -372,12 +372,12 @@ export async function mergePdfs(input) {
 			const pages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
 			pages.forEach((page) => mergedPdf.addPage(page));
 		} catch (err) {
-			return JSON.stringify({ ok: false, error: `Failed to merge ${filePath}: ${err.message}` });
+			return { ok: false, error: `Failed to merge ${filePath}: ${err.message}` };
 		}
 	}
 
 	const result = await savePdf(mergedPdf, { filePath: outputPath, base64 });
-	return JSON.stringify(result);
+	return result;
 }
 
 /**
@@ -393,26 +393,26 @@ export async function splitPdf(input) {
 	const { filePath, pageRange, outputPattern, base64 } = input;
 
 	if (!filePath || typeof filePath !== "string") {
-		return JSON.stringify({ ok: false, error: "Source filePath is required" });
+		return { ok: false, error: "Source filePath is required" };
 	}
 	if (!pageRange || typeof pageRange !== "string") {
-		return JSON.stringify({ ok: false, error: "Page range is required" });
+		return { ok: false, error: "Page range is required" };
 	}
 	if (!outputPattern && !base64) {
-		return JSON.stringify({
+		return {
 			ok: false,
 			error: "Either outputPattern or base64 output is required",
-		});
+		};
 	}
 
 	const resolved = resolvePdfPath(filePath);
 	if (!resolved.ok) {
-		return JSON.stringify({ ok: false, error: resolved.error });
+		return { ok: false, error: resolved.error };
 	}
 
 	const sizeCheck = await checkFileSize(resolved.path, loadConfig().sandbox.pdf.maxFileSize);
 	if (!sizeCheck.ok) {
-		return JSON.stringify({ ok: false, error: sizeCheck.error });
+		return { ok: false, error: sizeCheck.error };
 	}
 
 	const buffer = await readFile(resolved.path);
@@ -425,7 +425,7 @@ export async function splitPdf(input) {
 	} else {
 		const parsed = parsePageRange(pageRange, totalPages);
 		if (!parsed.ok) {
-			return JSON.stringify({ ok: false, error: parsed.error });
+			return { ok: false, error: parsed.error };
 		}
 		pagesToExtract = parsed.pages;
 	}
@@ -439,16 +439,16 @@ export async function splitPdf(input) {
 			const bytes = await newPdf.save();
 			results.push(Buffer.from(bytes).toString("base64"));
 		}
-		return JSON.stringify({ ok: true, base64: results });
+		return { ok: true, base64: results };
 	}
 
 	if (!outputPattern.includes("%d")) {
-		return JSON.stringify({ ok: false, error: "outputPattern must contain a %d placeholder" });
+		return { ok: false, error: "outputPattern must contain a %d placeholder" };
 	}
 
 	const patternResolved = resolvePdfPath(outputPattern);
 	if (!patternResolved.ok) {
-		return JSON.stringify({ ok: false, error: patternResolved.error });
+		return { ok: false, error: patternResolved.error };
 	}
 
 	// Write individual files
@@ -462,7 +462,7 @@ export async function splitPdf(input) {
 		createdFiles.push(outFile);
 	}
 
-	return JSON.stringify({ ok: true, files: createdFiles });
+	return { ok: true, files: createdFiles };
 }
 
 /**
@@ -497,15 +497,15 @@ export async function addWatermark(input) {
 	} = input;
 
 	if (!filePath && !base64) {
-		return JSON.stringify({ ok: false, error: "Either filePath or base64 is required" });
+		return { ok: false, error: "Either filePath or base64 is required" };
 	}
 	if (!text && !imagePath && !imageBase64) {
-		return JSON.stringify({ ok: false, error: "Either text or image watermark must be provided" });
+		return { ok: false, error: "Either text or image watermark must be provided" };
 	}
 
 	const loadResult = await loadPdf({ filePath, base64 });
 	if (!loadResult.ok) {
-		return JSON.stringify({ ok: false, error: loadResult.error });
+		return { ok: false, error: loadResult.error };
 	}
 
 	const pdf = loadResult.pdf;
@@ -513,10 +513,10 @@ export async function addWatermark(input) {
 	if (pages) {
 		for (const p of pages) {
 			if (p < 1 || p > pdf.getPageCount()) {
-				return JSON.stringify({
+				return {
 					ok: false,
 					error: `Page ${p} is out of range (1-${pdf.getPageCount()})`,
-				});
+				};
 			}
 		}
 		pagesToWatermark = pages.map((p) => p - 1);
@@ -570,7 +570,7 @@ export async function addWatermark(input) {
 	if (imagePath || imageBase64) {
 		const imageResult = await loadImage({ filePath: imagePath, base64: imageBase64 });
 		if (!imageResult.ok) {
-			return JSON.stringify({ ok: false, error: imageResult.error });
+			return { ok: false, error: imageResult.error };
 		}
 
 		for (const pageNum of pagesToWatermark) {
@@ -615,7 +615,7 @@ export async function addWatermark(input) {
 	}
 
 	const result = await savePdf(pdf, { filePath: outputPath, base64: base64Output });
-	return JSON.stringify(result);
+	return result;
 }
 
 /**
@@ -657,31 +657,31 @@ export async function embedSignature(input) {
 	} = input;
 
 	if (!filePath && !base64) {
-		return JSON.stringify({ ok: false, error: "Either filePath or base64 is required" });
+		return { ok: false, error: "Either filePath or base64 is required" };
 	}
 	if (!text && !imagePath && !imageBase64) {
-		return JSON.stringify({ ok: false, error: "Either text or image signature must be provided" });
+		return { ok: false, error: "Either text or image signature must be provided" };
 	}
 	if (typeof page !== "number" || typeof x !== "number" || typeof y !== "number") {
-		return JSON.stringify({
+		return {
 			ok: false,
 			error: "page, x, and y coordinates are required",
-		});
+		};
 	}
 
 	const loadResult = await loadPdf({ filePath, base64 });
 	if (!loadResult.ok) {
-		return JSON.stringify({ ok: false, error: loadResult.error });
+		return { ok: false, error: loadResult.error };
 	}
 
 	const pdf = loadResult.pdf;
 	const pageNum = page - 1;
 
 	if (pageNum < 0 || pageNum >= pdf.getPageCount()) {
-		return JSON.stringify({
+		return {
 			ok: false,
 			error: `Page ${page} is out of range (1-${pdf.getPageCount()})`,
-		});
+		};
 	}
 
 	const pdfPage = pdf.getPage(pageNum);
@@ -689,7 +689,7 @@ export async function embedSignature(input) {
 	if (text) {
 		const fontName = fontOptions?.name || "Helvetica";
 		if (!StandardFonts[fontName]) {
-			return JSON.stringify({ ok: false, error: `Unknown font: ${fontName}` });
+			return { ok: false, error: `Unknown font: ${fontName}` };
 		}
 		const fontSize = fontOptions?.size || 14;
 		const font = await pdf.embedFont(StandardFonts[fontName]);
@@ -706,7 +706,7 @@ export async function embedSignature(input) {
 	if (imagePath || imageBase64) {
 		const imageResult = await loadImage({ filePath: imagePath, base64: imageBase64 });
 		if (!imageResult.ok) {
-			return JSON.stringify({ ok: false, error: imageResult.error });
+			return { ok: false, error: imageResult.error };
 		}
 
 		pdfPage.drawImage(imageResult.image, {
@@ -718,7 +718,7 @@ export async function embedSignature(input) {
 	}
 
 	const result = await savePdf(pdf, { filePath: outputPath, base64: base64Output });
-	return JSON.stringify(result);
+	return result;
 }
 
 /**
@@ -744,15 +744,15 @@ export async function addAnnotations(input) {
 	const { filePath, base64, annotations, outputPath, base64Output } = input;
 
 	if (!filePath && !base64) {
-		return JSON.stringify({ ok: false, error: "Either filePath or base64 is required" });
+		return { ok: false, error: "Either filePath or base64 is required" };
 	}
 	if (!annotations || !Array.isArray(annotations) || annotations.length === 0) {
-		return JSON.stringify({ ok: false, error: "At least one annotation is required" });
+		return { ok: false, error: "At least one annotation is required" };
 	}
 
 	const loadResult = await loadPdf({ filePath, base64 });
 	if (!loadResult.ok) {
-		return JSON.stringify({ ok: false, error: loadResult.error });
+		return { ok: false, error: loadResult.error };
 	}
 
 	const pdf = loadResult.pdf;
@@ -767,18 +767,18 @@ export async function addAnnotations(input) {
 			typeof position.x !== "number" ||
 			typeof position.y !== "number"
 		) {
-			return JSON.stringify({
+			return {
 				ok: false,
 				error: "Each annotation requires type, page, and position (x, y)",
-			});
+			};
 		}
 
 		const pageNum = page - 1;
 		if (pageNum < 0 || pageNum >= pdf.getPageCount()) {
-			return JSON.stringify({
+			return {
 				ok: false,
 				error: `Page ${page} is out of range (1-${pdf.getPageCount()})`,
-			});
+			};
 		}
 
 		const pdfPage = pdf.getPage(pageNum);
@@ -832,15 +832,15 @@ export async function addAnnotations(input) {
 				break;
 			}
 			default:
-				return JSON.stringify({
+				return {
 					ok: false,
 					error: `Unknown annotation type: ${type}. Use "note", "highlight", or "stamp"`,
-				});
+				};
 		}
 	}
 
 	const result = await savePdf(pdf, { filePath: outputPath, base64: base64Output });
-	return JSON.stringify(result);
+	return result;
 }
 
 // --- Unified Tool ---
@@ -871,10 +871,10 @@ export async function generatePdf(input) {
 	const { action, ...actionInput } = input;
 
 	if (!action || !PDF_ACTIONS.includes(action)) {
-		return JSON.stringify({
+		return {
 			ok: false,
 			error: `Invalid action: ${action}. Must be one of: ${PDF_ACTIONS.join(", ")}`,
-		});
+		};
 	}
 
 	// Default outputPath to config.memory.toolsDir when omitted and not
@@ -907,10 +907,10 @@ export async function generatePdf(input) {
 			case "annotate":
 				return await addAnnotations(actionInput);
 			default:
-				return JSON.stringify({ ok: false, error: `Invalid action: ${action}` });
+				return { ok: false, error: `Invalid action: ${action}` };
 		}
 	} catch (err) {
-		return JSON.stringify({ ok: false, error: `PDF operation failed: ${err.message}` });
+		return { ok: false, error: `PDF operation failed: ${err.message}` };
 	}
 }
 

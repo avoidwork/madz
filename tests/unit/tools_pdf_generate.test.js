@@ -62,13 +62,13 @@ describe("generatePdf", () => {
 
 	describe("action validation", () => {
 		it("rejects invalid action", async () => {
-			const result = JSON.parse(await generatePdf({ action: "invalidAction" }));
+			const result = await generatePdf({ action: "invalidAction" });
 			assert.strictEqual(result.ok, false);
 			assert.ok(result.error.includes("Invalid action"));
 		});
 
 		it("rejects missing action", async () => {
-			const result = JSON.parse(await generatePdf({}));
+			const result = await generatePdf({});
 			assert.strictEqual(result.ok, false);
 			assert.ok(result.error.includes("Invalid action"));
 		});
@@ -76,31 +76,27 @@ describe("generatePdf", () => {
 
 	describe("generateHtml", () => {
 		it("requires html string", async () => {
-			const result = JSON.parse(
-				await generatePdf({
-					action: "generateHtml",
-					filePath: join(TEST_DIR, "test.html"),
-				}),
-			);
+			const result = await generatePdf({
+				action: "generateHtml",
+				filePath: join(TEST_DIR, "test.html"),
+			});
 			assert.strictEqual(result.ok, false);
 			assert.ok(result.error.includes("HTML string is required"));
 		});
 
 		it("requires filePath", async () => {
-			const result = JSON.parse(await generatePdf({ action: "generateHtml", html: "<p>test</p>" }));
+			const result = await generatePdf({ action: "generateHtml", html: "<p>test</p>" });
 			assert.strictEqual(result.ok, false);
 			assert.ok(result.error.includes("filePath is required"));
 		});
 
 		it("generates a valid PDF from HTML", async () => {
 			const outputPath = join(TEST_DIR, "html_output.pdf");
-			const result = JSON.parse(
-				await generatePdf({
-					action: "generateHtml",
-					html: "<html><body><h1>Hello World</h1></body></html>",
-					filePath: outputPath,
-				}),
-			);
+			const result = await generatePdf({
+				action: "generateHtml",
+				html: "<html><body><h1>Hello World</h1></body></html>",
+				filePath: outputPath,
+			});
 			assert.strictEqual(result.ok, true);
 			assert.ok(result.filePath.endsWith("html_output.pdf"));
 
@@ -113,17 +109,15 @@ describe("generatePdf", () => {
 
 		it("generates PDF with custom page options", async () => {
 			const outputPath = join(TEST_DIR, "html_options.pdf");
-			const result = JSON.parse(
-				await generatePdf({
-					action: "generateHtml",
-					html: "<html><body><p>Test content</p></body></html>",
-					filePath: outputPath,
-					options: {
-						format: "letter",
-						orientation: "landscape",
-					},
-				}),
-			);
+			const result = await generatePdf({
+				action: "generateHtml",
+				html: "<html><body><p>Test content</p></body></html>",
+				filePath: outputPath,
+				options: {
+					format: "letter",
+					orientation: "landscape",
+				},
+			});
 			assert.strictEqual(result.ok, true);
 
 			const buffer = await readFile(outputPath);
@@ -134,33 +128,27 @@ describe("generatePdf", () => {
 
 	describe("generateMarkdown", () => {
 		it("requires markdown string", async () => {
-			const result = JSON.parse(
-				await generatePdf({
-					action: "generateMarkdown",
-					filePath: join(TEST_DIR, "test.md"),
-				}),
-			);
+			const result = await generatePdf({
+				action: "generateMarkdown",
+				filePath: join(TEST_DIR, "test.md"),
+			});
 			assert.strictEqual(result.ok, false);
 			assert.ok(result.error.includes("Markdown string is required"));
 		});
 
 		it("requires filePath", async () => {
-			const result = JSON.parse(
-				await generatePdf({ action: "generateMarkdown", markdown: "# Test" }),
-			);
+			const result = await generatePdf({ action: "generateMarkdown", markdown: "# Test" });
 			assert.strictEqual(result.ok, false);
 			assert.ok(result.error.includes("filePath is required"));
 		});
 
 		it("generates a valid PDF from markdown", async () => {
 			const outputPath = join(TEST_DIR, "md_output.pdf");
-			const result = JSON.parse(
-				await generatePdf({
-					action: "generateMarkdown",
-					markdown: "# Hello World\n\nThis is a test.",
-					filePath: outputPath,
-				}),
-			);
+			const result = await generatePdf({
+				action: "generateMarkdown",
+				markdown: "# Hello World\n\nThis is a test.",
+				filePath: outputPath,
+			});
 			assert.strictEqual(result.ok, true);
 			assert.ok(result.filePath.endsWith("md_output.pdf"));
 
@@ -172,14 +160,12 @@ describe("generatePdf", () => {
 
 		it("generates PDF with custom CSS", async () => {
 			const outputPath = join(TEST_DIR, "md_css.pdf");
-			const result = JSON.parse(
-				await generatePdf({
-					action: "generateMarkdown",
-					markdown: "# Styled\n\nContent here.",
-					filePath: outputPath,
-					css: "body { color: red; }",
-				}),
-			);
+			const result = await generatePdf({
+				action: "generateMarkdown",
+				markdown: "# Styled\n\nContent here.",
+				filePath: outputPath,
+				css: "body { color: red; }",
+			});
 			assert.strictEqual(result.ok, true);
 
 			const buffer = await readFile(outputPath);
@@ -190,13 +176,11 @@ describe("generatePdf", () => {
 
 	describe("merge", () => {
 		it("requires at least 2 file paths", async () => {
-			const result = JSON.parse(
-				await generatePdf({
-					action: "merge",
-					filePaths: ["only_one.pdf"],
-					outputPath: join(TEST_DIR, "merged.pdf"),
-				}),
-			);
+			const result = await generatePdf({
+				action: "merge",
+				filePaths: ["only_one.pdf"],
+				outputPath: join(TEST_DIR, "merged.pdf"),
+			});
 			assert.strictEqual(result.ok, false);
 			assert.ok(result.error.includes("At least 2 PDF file paths"));
 		});
@@ -207,12 +191,10 @@ describe("generatePdf", () => {
 			await writeFile(join(TEST_DIR, "a.pdf"), pdf1);
 			await writeFile(join(TEST_DIR, "b.pdf"), pdf2);
 
-			const result = JSON.parse(
-				await generatePdf({
-					action: "merge",
-					filePaths: [join(TEST_DIR, "a.pdf"), join(TEST_DIR, "b.pdf")],
-				}),
-			);
+			const result = await generatePdf({
+				action: "merge",
+				filePaths: [join(TEST_DIR, "a.pdf"), join(TEST_DIR, "b.pdf")],
+			});
 			assert.strictEqual(result.ok, true);
 			assert.ok(result.filePath.includes("memory/tools/"));
 		});
@@ -224,13 +206,11 @@ describe("generatePdf", () => {
 			await writeFile(join(TEST_DIR, "b.pdf"), pdf2);
 
 			const outputPath = join(TEST_DIR, "merged.pdf");
-			const result = JSON.parse(
-				await generatePdf({
-					action: "merge",
-					filePaths: [join(TEST_DIR, "a.pdf"), join(TEST_DIR, "b.pdf")],
-					outputPath,
-				}),
-			);
+			const result = await generatePdf({
+				action: "merge",
+				filePaths: [join(TEST_DIR, "a.pdf"), join(TEST_DIR, "b.pdf")],
+				outputPath,
+			});
 			assert.strictEqual(result.ok, true);
 
 			const merged = await PDFDocument.load(await readFile(outputPath));
@@ -243,14 +223,12 @@ describe("generatePdf", () => {
 			await writeFile(join(TEST_DIR, "c.pdf"), pdf1);
 			await writeFile(join(TEST_DIR, "d.pdf"), pdf2);
 
-			const result = JSON.parse(
-				await generatePdf({
-					action: "merge",
-					filePaths: [join(TEST_DIR, "c.pdf"), join(TEST_DIR, "d.pdf")],
-					outputPath: join(TEST_DIR, "merged2.pdf"),
-					base64Output: true,
-				}),
-			);
+			const result = await generatePdf({
+				action: "merge",
+				filePaths: [join(TEST_DIR, "c.pdf"), join(TEST_DIR, "d.pdf")],
+				outputPath: join(TEST_DIR, "merged2.pdf"),
+				base64Output: true,
+			});
 			assert.strictEqual(result.ok, true);
 			assert.ok(result.base64);
 
@@ -268,13 +246,11 @@ describe("generatePdf", () => {
 			const pdf2 = await createTestPdf(1);
 			await writeFile(join(TEST_DIR, "small.pdf"), pdf2);
 
-			const result = JSON.parse(
-				await generatePdf({
-					action: "merge",
-					filePaths: [join(TEST_DIR, "large.pdf"), join(TEST_DIR, "small.pdf")],
-					outputPath: join(TEST_DIR, "merged_large.pdf"),
-				}),
-			);
+			const result = await generatePdf({
+				action: "merge",
+				filePaths: [join(TEST_DIR, "large.pdf"), join(TEST_DIR, "small.pdf")],
+				outputPath: join(TEST_DIR, "merged_large.pdf"),
+			});
 			assert.strictEqual(result.ok, false);
 			assert.ok(result.error.includes("exceeds maximum"));
 		});
@@ -282,18 +258,16 @@ describe("generatePdf", () => {
 
 	describe("split", () => {
 		it("requires filePath", async () => {
-			const result = JSON.parse(await generatePdf({ action: "split", pageRange: "1" }));
+			const result = await generatePdf({ action: "split", pageRange: "1" });
 			assert.strictEqual(result.ok, false);
 			assert.ok(result.error.includes("filePath is required"));
 		});
 
 		it("requires pageRange", async () => {
-			const result = JSON.parse(
-				await generatePdf({
-					action: "split",
-					filePath: join(TEST_DIR, "test.pdf"),
-				}),
-			);
+			const result = await generatePdf({
+				action: "split",
+				filePath: join(TEST_DIR, "test.pdf"),
+			});
 			assert.strictEqual(result.ok, false);
 			assert.ok(result.error.includes("Page range is required"));
 		});
@@ -302,13 +276,11 @@ describe("generatePdf", () => {
 			const pdf = await createTestPdf(2);
 			await writeFile(join(TEST_DIR, "split_src.pdf"), pdf);
 
-			const result = JSON.parse(
-				await generatePdf({
-					action: "split",
-					filePath: join(TEST_DIR, "split_src.pdf"),
-					pageRange: "1",
-				}),
-			);
+			const result = await generatePdf({
+				action: "split",
+				filePath: join(TEST_DIR, "split_src.pdf"),
+				pageRange: "1",
+			});
 			assert.strictEqual(result.ok, false);
 			assert.ok(result.error.includes("outputPattern or base64"));
 		});
@@ -318,14 +290,12 @@ describe("generatePdf", () => {
 			await writeFile(join(TEST_DIR, "src_range.pdf"), pdf);
 
 			const outputPath = join(TEST_DIR, "split_%d.pdf");
-			const result = JSON.parse(
-				await generatePdf({
-					action: "split",
-					filePath: join(TEST_DIR, "src_range.pdf"),
-					pageRange: "1-2",
-					outputPattern: outputPath,
-				}),
-			);
+			const result = await generatePdf({
+				action: "split",
+				filePath: join(TEST_DIR, "src_range.pdf"),
+				pageRange: "1-2",
+				outputPattern: outputPath,
+			});
 			assert.strictEqual(result.ok, true);
 			assert.strictEqual(result.files.length, 2);
 		});
@@ -335,14 +305,12 @@ describe("generatePdf", () => {
 			await writeFile(join(TEST_DIR, "src_pages.pdf"), pdf);
 
 			const outputPath = join(TEST_DIR, "split_pages_%d.pdf");
-			const result = JSON.parse(
-				await generatePdf({
-					action: "split",
-					filePath: join(TEST_DIR, "src_pages.pdf"),
-					pageRange: "1,3",
-					outputPattern: outputPath,
-				}),
-			);
+			const result = await generatePdf({
+				action: "split",
+				filePath: join(TEST_DIR, "src_pages.pdf"),
+				pageRange: "1,3",
+				outputPattern: outputPath,
+			});
 			assert.strictEqual(result.ok, true);
 			assert.strictEqual(result.files.length, 2);
 		});
@@ -352,14 +320,12 @@ describe("generatePdf", () => {
 			await writeFile(join(TEST_DIR, "src_all.pdf"), pdf);
 
 			const outputPath = join(TEST_DIR, "split_all_%d.pdf");
-			const result = JSON.parse(
-				await generatePdf({
-					action: "split",
-					filePath: join(TEST_DIR, "src_all.pdf"),
-					pageRange: "all",
-					outputPattern: outputPath,
-				}),
-			);
+			const result = await generatePdf({
+				action: "split",
+				filePath: join(TEST_DIR, "src_all.pdf"),
+				pageRange: "all",
+				outputPattern: outputPath,
+			});
 			assert.strictEqual(result.ok, true);
 			assert.strictEqual(result.files.length, 3);
 		});
@@ -368,14 +334,12 @@ describe("generatePdf", () => {
 			const pdf = await createTestPdf(2);
 			await writeFile(join(TEST_DIR, "src_b64.pdf"), pdf);
 
-			const result = JSON.parse(
-				await generatePdf({
-					action: "split",
-					filePath: join(TEST_DIR, "src_b64.pdf"),
-					pageRange: "1-2",
-					base64Output: true,
-				}),
-			);
+			const result = await generatePdf({
+				action: "split",
+				filePath: join(TEST_DIR, "src_b64.pdf"),
+				pageRange: "1-2",
+				base64Output: true,
+			});
 			assert.strictEqual(result.ok, true);
 			assert.ok(Array.isArray(result.base64));
 			assert.strictEqual(result.base64.length, 2);
@@ -392,14 +356,12 @@ describe("generatePdf", () => {
 			const pdf = await createTestPdf(2);
 			await writeFile(join(TEST_DIR, "src_invalid.pdf"), pdf);
 
-			const result = JSON.parse(
-				await generatePdf({
-					action: "split",
-					filePath: join(TEST_DIR, "src_invalid.pdf"),
-					pageRange: "1-5",
-					outputPattern: join(TEST_DIR, "out_%d.pdf"),
-				}),
-			);
+			const result = await generatePdf({
+				action: "split",
+				filePath: join(TEST_DIR, "src_invalid.pdf"),
+				pageRange: "1-5",
+				outputPattern: join(TEST_DIR, "out_%d.pdf"),
+			});
 			assert.strictEqual(result.ok, false);
 			assert.ok(result.error.includes("out of range"));
 		});
@@ -407,7 +369,7 @@ describe("generatePdf", () => {
 
 	describe("watermark", () => {
 		it("requires filePath or base64", async () => {
-			const result = JSON.parse(await generatePdf({ action: "watermark", text: "WATERMARK" }));
+			const result = await generatePdf({ action: "watermark", text: "WATERMARK" });
 			assert.strictEqual(result.ok, false);
 			assert.ok(result.error.includes("filePath or base64"));
 		});
@@ -416,13 +378,11 @@ describe("generatePdf", () => {
 			const pdf = await createTestPdf();
 			await writeFile(join(TEST_DIR, "wm_src.pdf"), pdf);
 
-			const result = JSON.parse(
-				await generatePdf({
-					action: "watermark",
-					filePath: join(TEST_DIR, "wm_src.pdf"),
-					outputPath: join(TEST_DIR, "wm_out.pdf"),
-				}),
-			);
+			const result = await generatePdf({
+				action: "watermark",
+				filePath: join(TEST_DIR, "wm_src.pdf"),
+				outputPath: join(TEST_DIR, "wm_out.pdf"),
+			});
 			assert.strictEqual(result.ok, false);
 			assert.ok(result.error.includes("text or image watermark"));
 		});
@@ -432,14 +392,12 @@ describe("generatePdf", () => {
 			await writeFile(join(TEST_DIR, "wm_all.pdf"), pdf);
 
 			const outputPath = join(TEST_DIR, "wm_all_out.pdf");
-			const result = JSON.parse(
-				await generatePdf({
-					action: "watermark",
-					filePath: join(TEST_DIR, "wm_all.pdf"),
-					text: "CONFIDENTIAL",
-					outputPath,
-				}),
-			);
+			const result = await generatePdf({
+				action: "watermark",
+				filePath: join(TEST_DIR, "wm_all.pdf"),
+				text: "CONFIDENTIAL",
+				outputPath,
+			});
 			assert.strictEqual(result.ok, true);
 
 			const outputPdf = await PDFDocument.load(await readFile(outputPath));
@@ -451,15 +409,13 @@ describe("generatePdf", () => {
 			await writeFile(join(TEST_DIR, "wm_pages.pdf"), pdf);
 
 			const outputPath = join(TEST_DIR, "wm_pages_out.pdf");
-			const result = JSON.parse(
-				await generatePdf({
-					action: "watermark",
-					filePath: join(TEST_DIR, "wm_pages.pdf"),
-					text: "PAGE 2 ONLY",
-					pages: [2],
-					outputPath,
-				}),
-			);
+			const result = await generatePdf({
+				action: "watermark",
+				filePath: join(TEST_DIR, "wm_pages.pdf"),
+				text: "PAGE 2 ONLY",
+				pages: [2],
+				outputPath,
+			});
 			assert.strictEqual(result.ok, true);
 
 			const outputPdf = await PDFDocument.load(await readFile(outputPath));
@@ -472,14 +428,12 @@ describe("generatePdf", () => {
 			const image = createTestImage();
 
 			const outputPath = join(TEST_DIR, "wm_img_out.pdf");
-			const result = JSON.parse(
-				await generatePdf({
-					action: "watermark",
-					filePath: join(TEST_DIR, "wm_img_src.pdf"),
-					imageBase64: image.toString("base64"),
-					outputPath,
-				}),
-			);
+			const result = await generatePdf({
+				action: "watermark",
+				filePath: join(TEST_DIR, "wm_img_src.pdf"),
+				imageBase64: image.toString("base64"),
+				outputPath,
+			});
 			assert.strictEqual(result.ok, true);
 
 			const outputPdf = await PDFDocument.load(await readFile(outputPath));
@@ -490,14 +444,12 @@ describe("generatePdf", () => {
 			const pdf = await createTestPdf();
 			await writeFile(join(TEST_DIR, "wm_b64_src.pdf"), pdf);
 
-			const result = JSON.parse(
-				await generatePdf({
-					action: "watermark",
-					filePath: join(TEST_DIR, "wm_b64_src.pdf"),
-					text: "WATERMARK",
-					base64Output: true,
-				}),
-			);
+			const result = await generatePdf({
+				action: "watermark",
+				filePath: join(TEST_DIR, "wm_b64_src.pdf"),
+				text: "WATERMARK",
+				base64Output: true,
+			});
 			assert.strictEqual(result.ok, true);
 			assert.ok(result.base64);
 
@@ -510,14 +462,12 @@ describe("generatePdf", () => {
 			const base64Input = Buffer.from(pdf).toString("base64");
 
 			const outputPath = join(TEST_DIR, "wm_b64in_out.pdf");
-			const result = JSON.parse(
-				await generatePdf({
-					action: "watermark",
-					base64: base64Input,
-					text: "FROM BASE64",
-					outputPath,
-				}),
-			);
+			const result = await generatePdf({
+				action: "watermark",
+				base64: base64Input,
+				text: "FROM BASE64",
+				outputPath,
+			});
 			assert.strictEqual(result.ok, true);
 
 			const outputPdf = await PDFDocument.load(await readFile(outputPath));
@@ -527,15 +477,13 @@ describe("generatePdf", () => {
 
 	describe("signature", () => {
 		it("requires filePath or base64", async () => {
-			const result = JSON.parse(
-				await generatePdf({
-					action: "signature",
-					text: "Signed",
-					page: 1,
-					x: 50,
-					y: 50,
-				}),
-			);
+			const result = await generatePdf({
+				action: "signature",
+				text: "Signed",
+				page: 1,
+				x: 50,
+				y: 50,
+			});
 			assert.strictEqual(result.ok, false);
 			assert.ok(result.error.includes("filePath or base64"));
 		});
@@ -544,15 +492,13 @@ describe("generatePdf", () => {
 			const pdf = await createTestPdf();
 			await writeFile(join(TEST_DIR, "sig_src.pdf"), pdf);
 
-			const result = JSON.parse(
-				await generatePdf({
-					action: "signature",
-					filePath: join(TEST_DIR, "sig_src.pdf"),
-					page: 1,
-					x: 50,
-					y: 50,
-				}),
-			);
+			const result = await generatePdf({
+				action: "signature",
+				filePath: join(TEST_DIR, "sig_src.pdf"),
+				page: 1,
+				x: 50,
+				y: 50,
+			});
 			assert.strictEqual(result.ok, false);
 			assert.ok(result.error.includes("text or image signature"));
 		});
@@ -561,13 +507,11 @@ describe("generatePdf", () => {
 			const pdf = await createTestPdf();
 			await writeFile(join(TEST_DIR, "sig_coords.pdf"), pdf);
 
-			const result = JSON.parse(
-				await generatePdf({
-					action: "signature",
-					filePath: join(TEST_DIR, "sig_coords.pdf"),
-					text: "Signed",
-				}),
-			);
+			const result = await generatePdf({
+				action: "signature",
+				filePath: join(TEST_DIR, "sig_coords.pdf"),
+				text: "Signed",
+			});
 			assert.strictEqual(result.ok, false);
 			assert.ok(result.error.includes("page, x, and y"));
 		});
@@ -577,17 +521,15 @@ describe("generatePdf", () => {
 			await writeFile(join(TEST_DIR, "sig_text_src.pdf"), pdf);
 
 			const outputPath = join(TEST_DIR, "sig_text_out.pdf");
-			const result = JSON.parse(
-				await generatePdf({
-					action: "signature",
-					filePath: join(TEST_DIR, "sig_text_src.pdf"),
-					text: "John Doe",
-					page: 1,
-					x: 50,
-					y: 700,
-					outputPath,
-				}),
-			);
+			const result = await generatePdf({
+				action: "signature",
+				filePath: join(TEST_DIR, "sig_text_src.pdf"),
+				text: "John Doe",
+				page: 1,
+				x: 50,
+				y: 700,
+				outputPath,
+			});
 			assert.strictEqual(result.ok, true);
 
 			const outputPdf = await PDFDocument.load(await readFile(outputPath));
@@ -600,17 +542,15 @@ describe("generatePdf", () => {
 			const image = createTestImage();
 
 			const outputPath = join(TEST_DIR, "sig_img_out.pdf");
-			const result = JSON.parse(
-				await generatePdf({
-					action: "signature",
-					filePath: join(TEST_DIR, "sig_img_src.pdf"),
-					imageBase64: image.toString("base64"),
-					page: 1,
-					x: 50,
-					y: 700,
-					outputPath,
-				}),
-			);
+			const result = await generatePdf({
+				action: "signature",
+				filePath: join(TEST_DIR, "sig_img_src.pdf"),
+				imageBase64: image.toString("base64"),
+				page: 1,
+				x: 50,
+				y: 700,
+				outputPath,
+			});
 			assert.strictEqual(result.ok, true);
 
 			const outputPdf = await PDFDocument.load(await readFile(outputPath));
@@ -621,16 +561,14 @@ describe("generatePdf", () => {
 			const pdf = await createTestPdf(1);
 			await writeFile(join(TEST_DIR, "sig_page.pdf"), pdf);
 
-			const result = JSON.parse(
-				await generatePdf({
-					action: "signature",
-					filePath: join(TEST_DIR, "sig_page.pdf"),
-					text: "Signed",
-					page: 5,
-					x: 50,
-					y: 50,
-				}),
-			);
+			const result = await generatePdf({
+				action: "signature",
+				filePath: join(TEST_DIR, "sig_page.pdf"),
+				text: "Signed",
+				page: 5,
+				x: 50,
+				y: 50,
+			});
 			assert.strictEqual(result.ok, false);
 			assert.ok(result.error.includes("out of range"));
 		});
@@ -639,17 +577,15 @@ describe("generatePdf", () => {
 			const pdf = await createTestPdf();
 			await writeFile(join(TEST_DIR, "sig_b64_src.pdf"), pdf);
 
-			const result = JSON.parse(
-				await generatePdf({
-					action: "signature",
-					filePath: join(TEST_DIR, "sig_b64_src.pdf"),
-					text: "Signed",
-					page: 1,
-					x: 50,
-					y: 50,
-					base64Output: true,
-				}),
-			);
+			const result = await generatePdf({
+				action: "signature",
+				filePath: join(TEST_DIR, "sig_b64_src.pdf"),
+				text: "Signed",
+				page: 1,
+				x: 50,
+				y: 50,
+				base64Output: true,
+			});
 			assert.strictEqual(result.ok, true);
 			assert.ok(result.base64);
 
@@ -660,12 +596,10 @@ describe("generatePdf", () => {
 
 	describe("annotate", () => {
 		it("requires filePath or base64", async () => {
-			const result = JSON.parse(
-				await generatePdf({
-					action: "annotate",
-					annotations: [{ type: "note", page: 1, position: { x: 0, y: 0 } }],
-				}),
-			);
+			const result = await generatePdf({
+				action: "annotate",
+				annotations: [{ type: "note", page: 1, position: { x: 0, y: 0 } }],
+			});
 			assert.strictEqual(result.ok, false);
 			assert.ok(result.error.includes("filePath or base64"));
 		});
@@ -674,13 +608,11 @@ describe("generatePdf", () => {
 			const pdf = await createTestPdf();
 			await writeFile(join(TEST_DIR, "ann_src.pdf"), pdf);
 
-			const result = JSON.parse(
-				await generatePdf({
-					action: "annotate",
-					filePath: join(TEST_DIR, "ann_src.pdf"),
-					annotations: [],
-				}),
-			);
+			const result = await generatePdf({
+				action: "annotate",
+				filePath: join(TEST_DIR, "ann_src.pdf"),
+				annotations: [],
+			});
 			assert.strictEqual(result.ok, false);
 			assert.ok(result.error.includes("At least one annotation"));
 		});
@@ -689,13 +621,11 @@ describe("generatePdf", () => {
 			const pdf = await createTestPdf();
 			await writeFile(join(TEST_DIR, "ann_fields.pdf"), pdf);
 
-			const result = JSON.parse(
-				await generatePdf({
-					action: "annotate",
-					filePath: join(TEST_DIR, "ann_fields.pdf"),
-					annotations: [{ type: "note" }],
-				}),
-			);
+			const result = await generatePdf({
+				action: "annotate",
+				filePath: join(TEST_DIR, "ann_fields.pdf"),
+				annotations: [{ type: "note" }],
+			});
 			assert.strictEqual(result.ok, false);
 			assert.ok(result.error.includes("type, page, and position"));
 		});
@@ -705,20 +635,18 @@ describe("generatePdf", () => {
 			await writeFile(join(TEST_DIR, "ann_highlight_src.pdf"), pdf);
 
 			const outputPath = join(TEST_DIR, "ann_highlight_out.pdf");
-			const result = JSON.parse(
-				await generatePdf({
-					action: "annotate",
-					filePath: join(TEST_DIR, "ann_highlight_src.pdf"),
-					annotations: [
-						{
-							type: "highlight",
-							page: 1,
-							position: { x: 50, y: 700, width: 100, height: 20 },
-						},
-					],
-					outputPath,
-				}),
-			);
+			const result = await generatePdf({
+				action: "annotate",
+				filePath: join(TEST_DIR, "ann_highlight_src.pdf"),
+				annotations: [
+					{
+						type: "highlight",
+						page: 1,
+						position: { x: 50, y: 700, width: 100, height: 20 },
+					},
+				],
+				outputPath,
+			});
 			assert.strictEqual(result.ok, true);
 
 			const outputPdf = await PDFDocument.load(await readFile(outputPath));
@@ -730,21 +658,19 @@ describe("generatePdf", () => {
 			await writeFile(join(TEST_DIR, "ann_note_src.pdf"), pdf);
 
 			const outputPath = join(TEST_DIR, "ann_note_out.pdf");
-			const result = JSON.parse(
-				await generatePdf({
-					action: "annotate",
-					filePath: join(TEST_DIR, "ann_note_src.pdf"),
-					annotations: [
-						{
-							type: "note",
-							page: 1,
-							position: { x: 50, y: 700 },
-							content: "This is a note",
-						},
-					],
-					outputPath,
-				}),
-			);
+			const result = await generatePdf({
+				action: "annotate",
+				filePath: join(TEST_DIR, "ann_note_src.pdf"),
+				annotations: [
+					{
+						type: "note",
+						page: 1,
+						position: { x: 50, y: 700 },
+						content: "This is a note",
+					},
+				],
+				outputPath,
+			});
 			assert.strictEqual(result.ok, true);
 
 			const outputPdf = await PDFDocument.load(await readFile(outputPath));
@@ -756,21 +682,19 @@ describe("generatePdf", () => {
 			await writeFile(join(TEST_DIR, "ann_stamp_src.pdf"), pdf);
 
 			const outputPath = join(TEST_DIR, "ann_stamp_out.pdf");
-			const result = JSON.parse(
-				await generatePdf({
-					action: "annotate",
-					filePath: join(TEST_DIR, "ann_stamp_src.pdf"),
-					annotations: [
-						{
-							type: "stamp",
-							page: 1,
-							position: { x: 50, y: 700 },
-							content: "APPROVED",
-						},
-					],
-					outputPath,
-				}),
-			);
+			const result = await generatePdf({
+				action: "annotate",
+				filePath: join(TEST_DIR, "ann_stamp_src.pdf"),
+				annotations: [
+					{
+						type: "stamp",
+						page: 1,
+						position: { x: 50, y: 700 },
+						content: "APPROVED",
+					},
+				],
+				outputPath,
+			});
 			assert.strictEqual(result.ok, true);
 
 			const outputPdf = await PDFDocument.load(await readFile(outputPath));
@@ -782,32 +706,30 @@ describe("generatePdf", () => {
 			await writeFile(join(TEST_DIR, "ann_multi_src.pdf"), pdf);
 
 			const outputPath = join(TEST_DIR, "ann_multi_out.pdf");
-			const result = JSON.parse(
-				await generatePdf({
-					action: "annotate",
-					filePath: join(TEST_DIR, "ann_multi_src.pdf"),
-					annotations: [
-						{
-							type: "highlight",
-							page: 1,
-							position: { x: 50, y: 700, width: 100, height: 20 },
-						},
-						{
-							type: "note",
-							page: 1,
-							position: { x: 200, y: 700 },
-							content: "Note here",
-						},
-						{
-							type: "stamp",
-							page: 1,
-							position: { x: 50, y: 600 },
-							content: "REVIEWED",
-						},
-					],
-					outputPath,
-				}),
-			);
+			const result = await generatePdf({
+				action: "annotate",
+				filePath: join(TEST_DIR, "ann_multi_src.pdf"),
+				annotations: [
+					{
+						type: "highlight",
+						page: 1,
+						position: { x: 50, y: 700, width: 100, height: 20 },
+					},
+					{
+						type: "note",
+						page: 1,
+						position: { x: 200, y: 700 },
+						content: "Note here",
+					},
+					{
+						type: "stamp",
+						page: 1,
+						position: { x: 50, y: 600 },
+						content: "REVIEWED",
+					},
+				],
+				outputPath,
+			});
 			assert.strictEqual(result.ok, true);
 
 			const outputPdf = await PDFDocument.load(await readFile(outputPath));
@@ -818,19 +740,17 @@ describe("generatePdf", () => {
 			const pdf = await createTestPdf();
 			await writeFile(join(TEST_DIR, "ann_type_src.pdf"), pdf);
 
-			const result = JSON.parse(
-				await generatePdf({
-					action: "annotate",
-					filePath: join(TEST_DIR, "ann_type_src.pdf"),
-					annotations: [
-						{
-							type: "invalid_type",
-							page: 1,
-							position: { x: 50, y: 50 },
-						},
-					],
-				}),
-			);
+			const result = await generatePdf({
+				action: "annotate",
+				filePath: join(TEST_DIR, "ann_type_src.pdf"),
+				annotations: [
+					{
+						type: "invalid_type",
+						page: 1,
+						position: { x: 50, y: 50 },
+					},
+				],
+			});
 			assert.strictEqual(result.ok, false);
 			assert.ok(result.error.includes("Unknown annotation type"));
 		});
@@ -839,19 +759,17 @@ describe("generatePdf", () => {
 			const pdf = await createTestPdf(1);
 			await writeFile(join(TEST_DIR, "ann_page_src.pdf"), pdf);
 
-			const result = JSON.parse(
-				await generatePdf({
-					action: "annotate",
-					filePath: join(TEST_DIR, "ann_page_src.pdf"),
-					annotations: [
-						{
-							type: "note",
-							page: 5,
-							position: { x: 50, y: 50 },
-						},
-					],
-				}),
-			);
+			const result = await generatePdf({
+				action: "annotate",
+				filePath: join(TEST_DIR, "ann_page_src.pdf"),
+				annotations: [
+					{
+						type: "note",
+						page: 5,
+						position: { x: 50, y: 50 },
+					},
+				],
+			});
 			assert.strictEqual(result.ok, false);
 			assert.ok(result.error.includes("out of range"));
 		});
@@ -860,20 +778,18 @@ describe("generatePdf", () => {
 			const pdf = await createTestPdf();
 			await writeFile(join(TEST_DIR, "ann_b64_src.pdf"), pdf);
 
-			const result = JSON.parse(
-				await generatePdf({
-					action: "annotate",
-					filePath: join(TEST_DIR, "ann_b64_src.pdf"),
-					annotations: [
-						{
-							type: "highlight",
-							page: 1,
-							position: { x: 50, y: 700, width: 100, height: 20 },
-						},
-					],
-					base64Output: true,
-				}),
-			);
+			const result = await generatePdf({
+				action: "annotate",
+				filePath: join(TEST_DIR, "ann_b64_src.pdf"),
+				annotations: [
+					{
+						type: "highlight",
+						page: 1,
+						position: { x: 50, y: 700, width: 100, height: 20 },
+					},
+				],
+				base64Output: true,
+			});
 			assert.strictEqual(result.ok, true);
 			assert.ok(result.base64);
 
@@ -887,15 +803,13 @@ describe("generatePdf", () => {
 			const pdf = await createTestPdf();
 			await writeFile(join(TEST_DIR, "wm_tl_src.pdf"), pdf);
 			const outputPath = join(TEST_DIR, "wm_tl_out.pdf");
-			const result = JSON.parse(
-				await generatePdf({
-					action: "watermark",
-					filePath: join(TEST_DIR, "wm_tl_src.pdf"),
-					text: "TOP LEFT",
-					position: "top-left",
-					outputPath,
-				}),
-			);
+			const result = await generatePdf({
+				action: "watermark",
+				filePath: join(TEST_DIR, "wm_tl_src.pdf"),
+				text: "TOP LEFT",
+				position: "top-left",
+				outputPath,
+			});
 			assert.strictEqual(result.ok, true);
 		});
 
@@ -903,15 +817,13 @@ describe("generatePdf", () => {
 			const pdf = await createTestPdf();
 			await writeFile(join(TEST_DIR, "wm_tr_src.pdf"), pdf);
 			const outputPath = join(TEST_DIR, "wm_tr_out.pdf");
-			const result = JSON.parse(
-				await generatePdf({
-					action: "watermark",
-					filePath: join(TEST_DIR, "wm_tr_src.pdf"),
-					text: "TOP RIGHT",
-					position: "top-right",
-					outputPath,
-				}),
-			);
+			const result = await generatePdf({
+				action: "watermark",
+				filePath: join(TEST_DIR, "wm_tr_src.pdf"),
+				text: "TOP RIGHT",
+				position: "top-right",
+				outputPath,
+			});
 			assert.strictEqual(result.ok, true);
 		});
 
@@ -919,15 +831,13 @@ describe("generatePdf", () => {
 			const pdf = await createTestPdf();
 			await writeFile(join(TEST_DIR, "wm_bl_src.pdf"), pdf);
 			const outputPath = join(TEST_DIR, "wm_bl_out.pdf");
-			const result = JSON.parse(
-				await generatePdf({
-					action: "watermark",
-					filePath: join(TEST_DIR, "wm_bl_src.pdf"),
-					text: "BOTTOM LEFT",
-					position: "bottom-left",
-					outputPath,
-				}),
-			);
+			const result = await generatePdf({
+				action: "watermark",
+				filePath: join(TEST_DIR, "wm_bl_src.pdf"),
+				text: "BOTTOM LEFT",
+				position: "bottom-left",
+				outputPath,
+			});
 			assert.strictEqual(result.ok, true);
 		});
 
@@ -935,41 +845,35 @@ describe("generatePdf", () => {
 			const pdf = await createTestPdf();
 			await writeFile(join(TEST_DIR, "wm_br_src.pdf"), pdf);
 			const outputPath = join(TEST_DIR, "wm_br_out.pdf");
-			const result = JSON.parse(
-				await generatePdf({
-					action: "watermark",
-					filePath: join(TEST_DIR, "wm_br_src.pdf"),
-					text: "BOTTOM RIGHT",
-					position: "bottom-right",
-					outputPath,
-				}),
-			);
+			const result = await generatePdf({
+				action: "watermark",
+				filePath: join(TEST_DIR, "wm_br_src.pdf"),
+				text: "BOTTOM RIGHT",
+				position: "bottom-right",
+				outputPath,
+			});
 			assert.strictEqual(result.ok, true);
 		});
 
 		it("returns error when image watermark fails to load", async () => {
 			const pdf = await createTestPdf();
 			await writeFile(join(TEST_DIR, "wm_imgfail_src.pdf"), pdf);
-			const result = JSON.parse(
-				await generatePdf({
-					action: "watermark",
-					filePath: join(TEST_DIR, "wm_imgfail_src.pdf"),
-					imagePath: join(TEST_DIR, "missing.png"),
-					outputPath: join(TEST_DIR, "wm_imgfail_out.pdf"),
-				}),
-			);
+			const result = await generatePdf({
+				action: "watermark",
+				filePath: join(TEST_DIR, "wm_imgfail_src.pdf"),
+				imagePath: join(TEST_DIR, "missing.png"),
+				outputPath: join(TEST_DIR, "wm_imgfail_out.pdf"),
+			});
 			assert.strictEqual(result.ok, false);
 			assert.ok(result.error.includes("Failed to load image"));
 		});
 
 		it("returns error when loadPdf fails for watermark", async () => {
-			const result = JSON.parse(
-				await generatePdf({
-					action: "watermark",
-					filePath: join(TEST_DIR, "missing.pdf"),
-					text: "WATERMARK",
-				}),
-			);
+			const result = await generatePdf({
+				action: "watermark",
+				filePath: join(TEST_DIR, "missing.pdf"),
+				text: "WATERMARK",
+			});
 			assert.strictEqual(result.ok, false);
 			assert.ok(result.error.includes("Failed to stat file"));
 		});
@@ -977,16 +881,14 @@ describe("generatePdf", () => {
 
 	describe("signature edge cases", () => {
 		it("returns error when loadPdf fails", async () => {
-			const result = JSON.parse(
-				await generatePdf({
-					action: "signature",
-					filePath: join(TEST_DIR, "missing.pdf"),
-					text: "Signed",
-					page: 1,
-					x: 50,
-					y: 50,
-				}),
-			);
+			const result = await generatePdf({
+				action: "signature",
+				filePath: join(TEST_DIR, "missing.pdf"),
+				text: "Signed",
+				page: 1,
+				x: 50,
+				y: 50,
+			});
 			assert.strictEqual(result.ok, false);
 			assert.ok(result.error.includes("Failed to stat file"));
 		});
@@ -994,16 +896,14 @@ describe("generatePdf", () => {
 		it("returns error when image signature fails to load", async () => {
 			const pdf = await createTestPdf();
 			await writeFile(join(TEST_DIR, "sig_imgfail_src.pdf"), pdf);
-			const result = JSON.parse(
-				await generatePdf({
-					action: "signature",
-					filePath: join(TEST_DIR, "sig_imgfail_src.pdf"),
-					imagePath: join(TEST_DIR, "missing.png"),
-					page: 1,
-					x: 50,
-					y: 50,
-				}),
-			);
+			const result = await generatePdf({
+				action: "signature",
+				filePath: join(TEST_DIR, "sig_imgfail_src.pdf"),
+				imagePath: join(TEST_DIR, "missing.png"),
+				page: 1,
+				x: 50,
+				y: 50,
+			});
 			assert.strictEqual(result.ok, false);
 			assert.ok(result.error.includes("Failed to load image"));
 		});
@@ -1011,13 +911,11 @@ describe("generatePdf", () => {
 
 	describe("annotate edge cases", () => {
 		it("returns error when loadPdf fails", async () => {
-			const result = JSON.parse(
-				await generatePdf({
-					action: "annotate",
-					filePath: join(TEST_DIR, "missing.pdf"),
-					annotations: [{ type: "note", page: 1, position: { x: 0, y: 0 } }],
-				}),
-			);
+			const result = await generatePdf({
+				action: "annotate",
+				filePath: join(TEST_DIR, "missing.pdf"),
+				annotations: [{ type: "note", page: 1, position: { x: 0, y: 0 } }],
+			});
 			assert.strictEqual(result.ok, false);
 			assert.ok(result.error.includes("Failed to stat file"));
 		});
@@ -1025,13 +923,11 @@ describe("generatePdf", () => {
 
 	describe("merge edge cases", () => {
 		it("returns error when a file cannot be loaded", async () => {
-			const result = JSON.parse(
-				await generatePdf({
-					action: "merge",
-					filePaths: [join(TEST_DIR, "missing.pdf"), join(TEST_DIR, "missing2.pdf")],
-					outputPath: join(TEST_DIR, "merge_fail.pdf"),
-				}),
-			);
+			const result = await generatePdf({
+				action: "merge",
+				filePaths: [join(TEST_DIR, "missing.pdf"), join(TEST_DIR, "missing2.pdf")],
+				outputPath: join(TEST_DIR, "merge_fail.pdf"),
+			});
 			assert.strictEqual(result.ok, false);
 			assert.ok(
 				result.error.includes("Failed to stat file") || result.error.includes("Failed to merge"),
@@ -1043,14 +939,12 @@ describe("generatePdf", () => {
 		it("returns error when file exceeds max size", async () => {
 			const largeBuffer = Buffer.alloc(51 * 1024 * 1024, 0x00);
 			await writeFile(join(TEST_DIR, "split_large.pdf"), largeBuffer);
-			const result = JSON.parse(
-				await generatePdf({
-					action: "split",
-					filePath: join(TEST_DIR, "split_large.pdf"),
-					pageRange: "1",
-					outputPattern: join(TEST_DIR, "split_out_%d.pdf"),
-				}),
-			);
+			const result = await generatePdf({
+				action: "split",
+				filePath: join(TEST_DIR, "split_large.pdf"),
+				pageRange: "1",
+				outputPattern: join(TEST_DIR, "split_out_%d.pdf"),
+			});
 			assert.strictEqual(result.ok, false);
 			assert.ok(result.error.includes("exceeds maximum"));
 		});
@@ -1146,26 +1040,22 @@ describe("generatePdf", () => {
 
 	describe("sandbox path enforcement", () => {
 		it("rejects a file path outside the sandbox", async () => {
-			const result = JSON.parse(
-				await generatePdf({
-					action: "watermark",
-					filePath: "/etc/passwd",
-					text: "WATERMARK",
-				}),
-			);
+			const result = await generatePdf({
+				action: "watermark",
+				filePath: "/etc/passwd",
+				text: "WATERMARK",
+			});
 			assert.strictEqual(result.ok, false);
 			assert.ok(result.error.includes("Access denied"));
 		});
 
 		it("rejects an image path outside the sandbox", async () => {
-			const result = JSON.parse(
-				await generatePdf({
-					action: "watermark",
-					filePath: join(TEST_DIR, "wm_src.pdf"),
-					imagePath: "/etc/passwd",
-					outputPath: join(TEST_DIR, "wm_out.pdf"),
-				}),
-			);
+			const result = await generatePdf({
+				action: "watermark",
+				filePath: join(TEST_DIR, "wm_src.pdf"),
+				imagePath: "/etc/passwd",
+				outputPath: join(TEST_DIR, "wm_out.pdf"),
+			});
 			assert.strictEqual(result.ok, false);
 			assert.ok(result.error.includes("Access denied"));
 		});
