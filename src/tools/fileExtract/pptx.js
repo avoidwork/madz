@@ -22,7 +22,7 @@ export const pptxSchema = z.object({
  * Extract content from a PPTX file.
  * @param {object} input - Tool input
  * @param {string} input.filePath - Path to the PPTX file
- * @returns {Promise<string>} JSON result string
+ * @returns {Promise<{ ok: boolean, format?: string, content?: string, error?: string }>} Structured result
  */
 export async function pptxExtract(input) {
 	const { filePath } = pptxSchema.parse(input);
@@ -30,14 +30,14 @@ export async function pptxExtract(input) {
 	// Validate format
 	const validation = validateFormat(filePath);
 	if (!validation.valid) {
-		return JSON.stringify({ ok: false, error: validation.error });
+		return { ok: false, error: validation.error };
 	}
 
 	// Read file
 	try {
 		await readFile(filePath);
 	} catch (err) {
-		return JSON.stringify({ ok: false, error: `Failed to read file: ${err.message}` });
+		return { ok: false, error: `Failed to read file: ${err.message}` };
 	}
 
 	// Extract ZIP content
@@ -45,17 +45,17 @@ export async function pptxExtract(input) {
 	try {
 		zipContent = await extractZipXml(filePath);
 	} catch (err) {
-		return JSON.stringify({ ok: false, error: `ZIP extraction failed: ${err.message}` });
+		return { ok: false, error: `ZIP extraction failed: ${err.message}` };
 	}
 
 	// Extract presentation content
 	const markdown = await pptxToMarkdown(zipContent);
 
-	return JSON.stringify({
+	return {
 		ok: true,
 		format: "markdown",
 		content: markdown || "(empty presentation)",
-	});
+	};
 }
 
 /**

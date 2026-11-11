@@ -204,7 +204,7 @@ describe("createPptx", () => {
 			outputPath,
 			slides: [{ layout: "title", title: "My Title", subtitle: "My Subtitle" }],
 		});
-		const parsed = JSON.parse(result);
+		const parsed = result;
 		assert.strictEqual(parsed.ok, true);
 		assert.strictEqual(parsed.slideCount, 1);
 
@@ -226,7 +226,7 @@ describe("createPptx", () => {
 				},
 			],
 		});
-		const parsed = JSON.parse(result);
+		const parsed = result;
 		assert.strictEqual(parsed.ok, true);
 	});
 
@@ -240,7 +240,7 @@ describe("createPptx", () => {
 				{ layout: "quote", quote: "A quote", quoteAttribution: "Author" },
 			],
 		});
-		const parsed = JSON.parse(result);
+		const parsed = result;
 		assert.strictEqual(parsed.ok, true);
 		assert.strictEqual(parsed.slideCount, 3);
 	});
@@ -251,7 +251,7 @@ describe("createPptx", () => {
 			outputPath,
 			slides: [],
 		});
-		const parsed = JSON.parse(result);
+		const parsed = result;
 		assert.strictEqual(parsed.ok, true);
 		assert.strictEqual(parsed.slideCount, 1);
 	});
@@ -275,7 +275,7 @@ describe("createPptx", () => {
 				},
 			],
 		});
-		const parsed = JSON.parse(result);
+		const parsed = result;
 		assert.strictEqual(parsed.ok, true);
 	});
 
@@ -284,7 +284,7 @@ describe("createPptx", () => {
 			outputPath: "/etc/passwd.pptx",
 			slides: [{ title: "Test" }],
 		});
-		const parsed = JSON.parse(result);
+		const parsed = result;
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error?.includes("outside allowed directory"));
 	});
@@ -292,7 +292,7 @@ describe("createPptx", () => {
 	it("returns a structured error for invalid input instead of throwing", async () => {
 		// Missing slides is invalid per the schema; createPptx must not throw.
 		const result = await createPptx({ outputPath: join(TMP_DIR, "invalid.pptx") });
-		const parsed = JSON.parse(result);
+		const parsed = result;
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error?.includes("Invalid input"));
 	});
@@ -306,7 +306,7 @@ describe("createPptx", () => {
 				},
 			],
 		});
-		const parsed = JSON.parse(result);
+		const parsed = result;
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error?.includes("Unsupported image format"));
 	});
@@ -319,7 +319,7 @@ describe("createPptx", () => {
 			templatePath: badTemplate,
 			slides: [{ title: "Test" }],
 		});
-		const parsed = JSON.parse(result);
+		const parsed = result;
 		assert.strictEqual(parsed.ok, false);
 		assert.ok(parsed.error?.includes("not a valid PPTX"));
 		await rm(badTemplate, { force: true });
@@ -355,7 +355,7 @@ describe("createPptx", () => {
 			slideHeight: 8,
 			slides: [{ title: "Custom" }],
 		});
-		const parsed = JSON.parse(result);
+		const parsed = result;
 		assert.strictEqual(parsed.ok, true);
 	});
 
@@ -370,7 +370,7 @@ describe("createPptx", () => {
 				},
 			],
 		});
-		const parsed = JSON.parse(result);
+		const parsed = result;
 		assert.strictEqual(parsed.ok, true);
 	});
 
@@ -386,7 +386,7 @@ describe("createPptx", () => {
 				},
 			],
 		});
-		const parsed = JSON.parse(result);
+		const parsed = result;
 		assert.strictEqual(parsed.ok, true);
 	});
 
@@ -402,7 +402,7 @@ describe("createPptx", () => {
 				},
 			],
 		});
-		const parsed = JSON.parse(result);
+		const parsed = result;
 		assert.strictEqual(parsed.ok, true);
 	});
 
@@ -418,7 +418,7 @@ describe("createPptx", () => {
 				},
 			],
 		});
-		const parsed = JSON.parse(result);
+		const parsed = result;
 		assert.strictEqual(parsed.ok, true);
 	});
 });

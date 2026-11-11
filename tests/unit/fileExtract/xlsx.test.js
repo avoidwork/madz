@@ -83,21 +83,21 @@ describe("fileExtract/xlsx", () => {
 	describe("xlsxExtract", () => {
 		it("should return an error for non-existent files", async () => {
 			const result = await xlsxExtract({ filePath: "/nonexistent/file.xlsx" });
-			const parsed = JSON.parse(result);
+			const parsed = result;
 			assert.strictEqual(parsed.ok, false);
 			assert.ok(parsed.error.includes("Failed to read file"));
 		});
 
 		it("should return an error for unsupported formats", async () => {
 			const result = await xlsxExtract({ filePath: "spreadsheet.txt" });
-			const parsed = JSON.parse(result);
+			const parsed = result;
 			assert.strictEqual(parsed.ok, false);
 			assert.ok(parsed.error.includes("Unsupported format"));
 		});
 
 		it("should return an error for files without extensions", async () => {
 			const result = await xlsxExtract({ filePath: "spreadsheet" });
-			const parsed = JSON.parse(result);
+			const parsed = result;
 			assert.strictEqual(parsed.ok, false);
 			assert.ok(parsed.error.includes("No file extension"));
 		});
@@ -105,14 +105,14 @@ describe("fileExtract/xlsx", () => {
 		it("should return an error for non-XLSX files with .xlsx extension", async () => {
 			writeFileSync(xlsxPath("test-fake-xlsx.xlsx"), "This is not a real XLSX file");
 			const result = await xlsxExtract({ filePath: xlsxPath("test-fake-xlsx.xlsx") });
-			const parsed = JSON.parse(result);
+			const parsed = result;
 			assert.strictEqual(parsed.ok, false);
 			assert.ok(parsed.error.includes("ZIP extraction failed"));
 		});
 
 		it("should extract markdown from a valid XLSX file", async () => {
 			const result = await xlsxExtract({ filePath: xlsxPath("test-minimal.xlsx") });
-			const parsed = JSON.parse(result);
+			const parsed = result;
 			assert.strictEqual(parsed.ok, true);
 			assert.strictEqual(parsed.format, "markdown");
 			assert.ok(typeof parsed.content === "string");
@@ -120,7 +120,7 @@ describe("fileExtract/xlsx", () => {
 
 		it("should extract JSON from a valid XLSX file", async () => {
 			const result = await xlsxExtract({ filePath: xlsxPath("test-minimal.xlsx"), format: "json" });
-			const parsed = JSON.parse(result);
+			const parsed = result;
 			assert.strictEqual(parsed.ok, true);
 			assert.strictEqual(parsed.format, "json");
 			assert.ok(typeof parsed.content === "string");

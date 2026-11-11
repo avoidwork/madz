@@ -497,10 +497,10 @@ export async function loadTemplate(templatePath) {
 export async function createPptx(input) {
 	const validated = generatePptxSchema.safeParse(input);
 	if (!validated.success) {
-		return JSON.stringify({
+		return {
 			ok: false,
 			error: `Invalid input: ${validated.error.issues.map((e) => `${e.path.join(".")}: ${e.message}`).join(", ")}`,
-		});
+		};
 	}
 	const { templatePath, slideWidth, slideHeight, slides } = validated.data;
 	const config = loadConfig();
@@ -511,12 +511,12 @@ export async function createPptx(input) {
 	// Validate output path
 	const pathValidation = validateOutputPath(outputPath, config.cwd);
 	if (!pathValidation.valid) {
-		return JSON.stringify({ ok: false, error: pathValidation.error });
+		return { ok: false, error: pathValidation.error };
 	}
 
 	// Validate template if provided
 	if (templatePath && !(await validateTemplatePath(templatePath))) {
-		return JSON.stringify({ ok: false, error: `${templatePath} is not a valid PPTX file` });
+		return { ok: false, error: `${templatePath} is not a valid PPTX file` };
 	}
 
 	// Validate all image paths
@@ -524,10 +524,10 @@ export async function createPptx(input) {
 		for (const img of slide.images || []) {
 			const imgValidation = await validateImagePath(img.path);
 			if (!imgValidation.valid) {
-				return JSON.stringify({
+				return {
 					ok: false,
 					error: `Image validation failed: ${imgValidation.error}`,
-				});
+				};
 			}
 		}
 	}
@@ -569,12 +569,12 @@ export async function createPptx(input) {
 		throw new PptxError(`Failed to save presentation: ${err.message}`, "save-failed");
 	}
 
-	return JSON.stringify({
+	return {
 		ok: true,
 		message: `Presentation saved to ${outputPath}`,
 		filePath: outputPath,
 		slideCount: slides.length || 1,
-	});
+	};
 }
 
 // ---------------------------------------------------------------------------

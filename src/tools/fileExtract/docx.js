@@ -22,7 +22,7 @@ export const docxSchema = z.object({
  * Extract content from a DOCX file.
  * @param {object} input - Tool input
  * @param {string} input.filePath - Path to the DOCX file
- * @returns {Promise<string>} JSON result string
+ * @returns {Promise<{ ok: boolean, format?: string, content?: string, error?: string }>} Structured result
  */
 export async function docxExtract(input) {
 	const { filePath } = docxSchema.parse(input);
@@ -30,14 +30,14 @@ export async function docxExtract(input) {
 	// Validate format
 	const validation = validateFormat(filePath);
 	if (!validation.valid) {
-		return JSON.stringify({ ok: false, error: validation.error });
+		return { ok: false, error: validation.error };
 	}
 
 	// Read file
 	try {
 		await readFile(filePath);
 	} catch (err) {
-		return JSON.stringify({ ok: false, error: `Failed to read file: ${err.message}` });
+		return { ok: false, error: `Failed to read file: ${err.message}` };
 	}
 
 	// Extract ZIP content
@@ -45,24 +45,24 @@ export async function docxExtract(input) {
 	try {
 		zipContent = await extractZipXml(filePath);
 	} catch (err) {
-		return JSON.stringify({ ok: false, error: `ZIP extraction failed: ${err.message}` });
+		return { ok: false, error: `ZIP extraction failed: ${err.message}` };
 	}
 
 	// Extract document content
 	const documentXml = zipContent.get("word/document.xml");
 	if (!documentXml) {
-		return JSON.stringify({ ok: false, error: "No word/document.xml found in archive" });
+		return { ok: false, error: "No word/document.xml found in archive" };
 	}
 
 	const markdown = await docxToMarkdown(documentXml);
 	const tables = await extractDocxTables(documentXml);
 	const content = markdown + tables;
 
-	return JSON.stringify({
+	return {
 		ok: true,
 		format: "markdown",
 		content: content || "(empty document)",
-	});
+	};
 }
 
 /**

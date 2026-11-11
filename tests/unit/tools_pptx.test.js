@@ -706,12 +706,10 @@ describe("createPptx", () => {
 
 	it("creates a minimal presentation with no slides", async () => {
 		const outputPath = join(TMP, "minimal.pptx");
-		const result = JSON.parse(
-			await createPptx({
-				outputPath,
-				slides: [],
-			}),
-		);
+		const result = await createPptx({
+			outputPath,
+			slides: [],
+		});
 		assert.strictEqual(result.ok, true);
 		assert.ok(result.message.includes("saved to"));
 		assert.strictEqual(result.filePath, outputPath);
@@ -723,11 +721,9 @@ describe("createPptx", () => {
 	});
 
 	it("defaults outputPath to config.memory.toolsDir when omitted", async () => {
-		const result = JSON.parse(
-			await createPptx({
-				slides: [],
-			}),
-		);
+		const result = await createPptx({
+			slides: [],
+		});
 		assert.strictEqual(result.ok, true);
 		assert.ok(result.filePath.includes("memory/tools/"));
 		assert.ok(result.filePath.endsWith(".pptx"));
@@ -735,232 +731,202 @@ describe("createPptx", () => {
 
 	it("creates a presentation with a single content slide", async () => {
 		const outputPath = join(TMP, "single-slide.pptx");
-		const result = JSON.parse(
-			await createPptx({
-				outputPath,
-				slides: [
-					{
-						layout: "content",
-						title: "Hello World",
-						content: "First slide\nSecond line",
-					},
-				],
-			}),
-		);
+		const result = await createPptx({
+			outputPath,
+			slides: [
+				{
+					layout: "content",
+					title: "Hello World",
+					content: "First slide\nSecond line",
+				},
+			],
+		});
 		assert.strictEqual(result.ok, true);
 		assert.strictEqual(result.slideCount, 1);
 	});
 
 	it("creates a presentation with multiple slides", async () => {
 		const outputPath = join(TMP, "multi-slide.pptx");
-		const result = JSON.parse(
-			await createPptx({
-				outputPath,
-				slides: [
-					{ layout: "title", title: "Title Slide", subtitle: "Subtitle" },
-					{ layout: "content", title: "Content", content: "Bullet 1\nBullet 2" },
-					{ layout: "quote", quote: "A quote", quoteAttribution: "Someone" },
-				],
-			}),
-		);
+		const result = await createPptx({
+			outputPath,
+			slides: [
+				{ layout: "title", title: "Title Slide", subtitle: "Subtitle" },
+				{ layout: "content", title: "Content", content: "Bullet 1\nBullet 2" },
+				{ layout: "quote", quote: "A quote", quoteAttribution: "Someone" },
+			],
+		});
 		assert.strictEqual(result.ok, true);
 		assert.strictEqual(result.slideCount, 3);
 	});
 
 	it("creates a presentation with tables", async () => {
 		const outputPath = join(TMP, "with-tables.pptx");
-		const result = JSON.parse(
-			await createPptx({
-				outputPath,
-				slides: [
-					{
-						title: "Data",
-						tables: [
-							{
-								headers: ["Name", "Role"],
-								rows: [
-									["Alice", "Engineer"],
-									["Bob", "Designer"],
-								],
-							},
-						],
-					},
-				],
-			}),
-		);
+		const result = await createPptx({
+			outputPath,
+			slides: [
+				{
+					title: "Data",
+					tables: [
+						{
+							headers: ["Name", "Role"],
+							rows: [
+								["Alice", "Engineer"],
+								["Bob", "Designer"],
+							],
+						},
+					],
+				},
+			],
+		});
 		assert.strictEqual(result.ok, true);
 	});
 
 	it("creates a presentation with custom slide dimensions", async () => {
 		const outputPath = join(TMP, "custom-dimensions.pptx");
-		const result = JSON.parse(
-			await createPptx({
-				outputPath,
-				slideWidth: 10,
-				slideHeight: 10,
-				slides: [{ title: "Square" }],
-			}),
-		);
+		const result = await createPptx({
+			outputPath,
+			slideWidth: 10,
+			slideHeight: 10,
+			slides: [{ title: "Square" }],
+		});
 		assert.strictEqual(result.ok, true);
 	});
 
 	it("rejects output path outside allowed directory", async () => {
-		const result = JSON.parse(
-			await createPptx({
-				outputPath: "/tmp/evil.pptx",
-				slides: [],
-			}),
-		);
+		const result = await createPptx({
+			outputPath: "/tmp/evil.pptx",
+			slides: [],
+		});
 		assert.strictEqual(result.ok, false);
 		assert.ok(result.error.includes("outside allowed directory"));
 	});
 
 	it("rejects invalid template path", async () => {
-		const result = JSON.parse(
-			await createPptx({
-				outputPath: join(TMP, "with-template.pptx"),
-				templatePath: join(FIXTURES, "not-a-pptx.txt"),
-				slides: [],
-			}),
-		);
+		const result = await createPptx({
+			outputPath: join(TMP, "with-template.pptx"),
+			templatePath: join(FIXTURES, "not-a-pptx.txt"),
+			slides: [],
+		});
 		assert.strictEqual(result.ok, false);
 		assert.ok(result.error.includes("not a valid PPTX"));
 	});
 
 	it("rejects unsupported image format", async () => {
-		const result = JSON.parse(
-			await createPptx({
-				outputPath: join(TMP, "with-image.pptx"),
-				slides: [{ images: [{ path: "/tmp/test.webp" }] }],
-			}),
-		);
+		const result = await createPptx({
+			outputPath: join(TMP, "with-image.pptx"),
+			slides: [{ images: [{ path: "/tmp/test.webp" }] }],
+		});
 		assert.strictEqual(result.ok, false);
 		assert.ok(result.error.includes("Image validation failed"));
 	});
 
 	it("creates presentation with valid image", async () => {
 		const outputPath = join(TMP, "with-image.pptx");
-		const result = JSON.parse(
-			await createPptx({
-				outputPath,
-				slides: [
-					{
-						layout: "image-only",
-						images: [{ path: join(FIXTURES, "test.png"), x: 0, y: 0, w: 6, h: 4 }],
-					},
-				],
-			}),
-		);
+		const result = await createPptx({
+			outputPath,
+			slides: [
+				{
+					layout: "image-only",
+					images: [{ path: join(FIXTURES, "test.png"), x: 0, y: 0, w: 6, h: 4 }],
+				},
+			],
+		});
 		assert.strictEqual(result.ok, true);
 	});
 
 	it("creates presentation with background color", async () => {
 		const outputPath = join(TMP, "bg-color.pptx");
-		const result = JSON.parse(
-			await createPptx({
-				outputPath,
-				slides: [{ backgroundColor: "#1A1A2E", title: "Dark Slide" }],
-			}),
-		);
+		const result = await createPptx({
+			outputPath,
+			slides: [{ backgroundColor: "#1A1A2E", title: "Dark Slide" }],
+		});
 		assert.strictEqual(result.ok, true);
 	});
 
 	it("creates presentation with two-column layout", async () => {
 		const outputPath = join(TMP, "two-column.pptx");
-		const result = JSON.parse(
-			await createPptx({
-				outputPath,
-				slides: [
-					{
-						layout: "two-column",
-						title: "Comparison",
-						content: "Option A\nOption B",
-					},
-				],
-			}),
-		);
+		const result = await createPptx({
+			outputPath,
+			slides: [
+				{
+					layout: "two-column",
+					title: "Comparison",
+					content: "Option A\nOption B",
+				},
+			],
+		});
 		assert.strictEqual(result.ok, true);
 	});
 
 	it("creates presentation with comparison layout", async () => {
 		const outputPath = join(TMP, "comparison.pptx");
-		const result = JSON.parse(
-			await createPptx({
-				outputPath,
-				slides: [
-					{
-						layout: "comparison",
-						title: "Before vs After",
-						content: "Before state\nAfter state",
-					},
-				],
-			}),
-		);
+		const result = await createPptx({
+			outputPath,
+			slides: [
+				{
+					layout: "comparison",
+					title: "Before vs After",
+					content: "Before state\nAfter state",
+				},
+			],
+		});
 		assert.strictEqual(result.ok, true);
 	});
 
 	it("creates presentation with image-only layout", async () => {
 		const outputPath = join(TMP, "image-only.pptx");
-		const result = JSON.parse(
-			await createPptx({
-				outputPath,
-				slides: [
-					{
-						layout: "image-only",
-						images: [{ path: join(FIXTURES, "test.jpg"), x: 0, y: 0, w: 6, h: 4 }],
-					},
-				],
-			}),
-		);
+		const result = await createPptx({
+			outputPath,
+			slides: [
+				{
+					layout: "image-only",
+					images: [{ path: join(FIXTURES, "test.jpg"), x: 0, y: 0, w: 6, h: 4 }],
+				},
+			],
+		});
 		assert.strictEqual(result.ok, true);
 	});
 
 	it("creates presentation with quote layout", async () => {
 		const outputPath = join(TMP, "quote.pptx");
-		const result = JSON.parse(
-			await createPptx({
-				outputPath,
-				slides: [
-					{
-						layout: "quote",
-						quote: "The only way to do great work is to love what you do.",
-						quoteAttribution: "Steve Jobs",
-					},
-				],
-			}),
-		);
+		const result = await createPptx({
+			outputPath,
+			slides: [
+				{
+					layout: "quote",
+					quote: "The only way to do great work is to love what you do.",
+					quoteAttribution: "Steve Jobs",
+				},
+			],
+		});
 		assert.strictEqual(result.ok, true);
 	});
 
 	it("creates presentation with mixed slide types", async () => {
 		const outputPath = join(TMP, "mixed.pptx");
-		const result = JSON.parse(
-			await createPptx({
-				outputPath,
-				slides: [
-					{ layout: "title", title: "Cover", subtitle: "A presentation" },
-					{ layout: "content", title: "Overview", content: "Point 1\nPoint 2" },
-					{
-						layout: "content",
-						title: "Data",
-						tables: [{ headers: ["X", "Y"], rows: [["1", "2"]] }],
-					},
-					{ layout: "quote", quote: "Wisdom", quoteAttribution: "Me" },
-				],
-			}),
-		);
+		const result = await createPptx({
+			outputPath,
+			slides: [
+				{ layout: "title", title: "Cover", subtitle: "A presentation" },
+				{ layout: "content", title: "Overview", content: "Point 1\nPoint 2" },
+				{
+					layout: "content",
+					title: "Data",
+					tables: [{ headers: ["X", "Y"], rows: [["1", "2"]] }],
+				},
+				{ layout: "quote", quote: "Wisdom", quoteAttribution: "Me" },
+			],
+		});
 		assert.strictEqual(result.ok, true);
 		assert.strictEqual(result.slideCount, 4);
 	});
 
 	it("creates parent directories for output path", async () => {
 		const outputPath = join(TMP, "nested", "deep", "presentation.pptx");
-		const result = JSON.parse(
-			await createPptx({
-				outputPath,
-				slides: [{ title: "Nested" }],
-			}),
-		);
+		const result = await createPptx({
+			outputPath,
+			slides: [{ title: "Nested" }],
+		});
 		assert.strictEqual(result.ok, true);
 	});
 
