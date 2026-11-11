@@ -83,6 +83,24 @@ describe("searchWebImpl", () => {
 		}
 	});
 
+	it("returns an error for invalid custom search headers", async () => {
+		const fetchMock = mock.method(globalThis, "fetch", async () => ({
+			ok: true,
+			status: 200,
+			json: async () => ({ results: [] }),
+		}));
+		try {
+			const result = await searchWebImpl(
+				{ query: "test", limit: 5 },
+				{ search: { custom: { url: "https://example.com/search", headers: "{ not json" } } },
+			);
+			assert.strictEqual(result.ok, false);
+			assert.match(result.error, /headers must be valid JSON/);
+		} finally {
+			fetchMock.mock.restore();
+		}
+	});
+
 	it("passes duckduckgo config params to the search URL", async () => {
 		let capturedUrl;
 		const fetchMock = mock.method(globalThis, "fetch", async (url) => {
