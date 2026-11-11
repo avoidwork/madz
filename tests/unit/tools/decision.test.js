@@ -1,6 +1,6 @@
 import { describe, it, mock } from "node:test";
 import assert from "node:assert/strict";
-import { decision, decisionImpl } from "../../../src/tools/decision/index.js";
+import { decision, decisionImpl, DecisionToolSchema } from "../../../src/tools/decision/index.js";
 import { buildToolConfig } from "../../../src/tools/index.js";
 
 const baseConfig = {
@@ -283,6 +283,72 @@ describe("decision tool", () => {
 			async () => decision.invoke({ questions: { q: { type: "noul", instructions: "x" } } }),
 			/state/i,
 		);
+	});
+});
+
+describe("decision tool - question schema", () => {
+	it("accepts a valid choice question", () => {
+		const result = DecisionToolSchema.safeParse({
+			state: "x",
+			questions: { q: { type: "choice", instructions: "i", criteria: { a: "A", b: "B" } } },
+		});
+		assert.strictEqual(result.success, true);
+	});
+
+	it("accepts a valid noul question without criteria", () => {
+		const result = DecisionToolSchema.safeParse({
+			state: "x",
+			questions: { q: { type: "noul", instructions: "i" } },
+		});
+		assert.strictEqual(result.success, true);
+	});
+
+	it("accepts a valid score question", () => {
+		const result = DecisionToolSchema.safeParse({
+			state: "x",
+			questions: { q: { type: "score", instructions: "i", criteria: ["Low", "High"] } },
+		});
+		assert.strictEqual(result.success, true);
+	});
+
+	it("rejects a choice question with array criteria", () => {
+		const result = DecisionToolSchema.safeParse({
+			state: "x",
+			questions: { q: { type: "choice", instructions: "i", criteria: ["a", "b"] } },
+		});
+		assert.strictEqual(result.success, false);
+	});
+
+	it("rejects a score question with record criteria", () => {
+		const result = DecisionToolSchema.safeParse({
+			state: "x",
+			questions: { q: { type: "score", instructions: "i", criteria: { a: "A" } } },
+		});
+		assert.strictEqual(result.success, false);
+	});
+
+	it("rejects a choice question with fewer than 2 options", () => {
+		const result = DecisionToolSchema.safeParse({
+			state: "x",
+			questions: { q: { type: "choice", instructions: "i", criteria: { a: "A" } } },
+		});
+		assert.strictEqual(result.success, false);
+	});
+
+	it("rejects a score question with fewer than 2 levels", () => {
+		const result = DecisionToolSchema.safeParse({
+			state: "x",
+			questions: { q: { type: "score", instructions: "i", criteria: ["Only"] } },
+		});
+		assert.strictEqual(result.success, false);
+	});
+
+	it("rejects an invalid question type", () => {
+		const result = DecisionToolSchema.safeParse({
+			state: "x",
+			questions: { q: { type: "foo", instructions: "i" } },
+		});
+		assert.strictEqual(result.success, false);
 	});
 });
 

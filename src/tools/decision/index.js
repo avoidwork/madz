@@ -5,16 +5,54 @@ import { filterUrl } from "../../sandbox/urlFilter.js";
 const DEFAULT_TIMEOUT = 30000;
 
 /**
- * Permissive schema for a single decision question.
- * The `questions` object is dynamic — named questions, each with a different
- * `type` (`choice`, `noul`, or `score`). We validate only the common shape and
- * pass the rest through to Ollama.
+ * Schema for a `choice` question — 2–26 named options with descriptions.
  */
-const QuestionSchema = z.object({
-	type: z.enum(["choice", "noul", "score"]),
-	instructions: z.string(),
-	criteria: z.union([z.record(z.string()), z.array(z.string())]).optional(),
+const ChoiceQuestionSchema = z.object({
+	type: z.literal("choice").describe("Choose one of several named options"),
+	instructions: z.string().describe("What to decide"),
+	criteria: z
+		.record(z.string())
+		.describe("Named options with descriptions (2-26)")
+		.refine((c) => Object.keys(c).length >= 2 && Object.keys(c).length <= 26, {
+			message: "choice criteria must have 2-26 named options",
+		}),
 });
+
+/**
+ * Schema for a `noul` (yes/no) question — optional descriptions for false/true.
+ */
+const NoulQuestionSchema = z.object({
+	type: z.literal("noul").describe("Yes/no probability question"),
+	instructions: z.string().describe("What to decide"),
+	criteria: z
+		.record(z.string())
+		.describe("Optional descriptions for 'false' and 'true'")
+		.optional(),
+});
+
+/**
+ * Schema for a `score` question — 2–10 ordered descriptions, lowest to highest.
+ */
+const ScoreQuestionSchema = z.object({
+	type: z.literal("score").describe("Score against ordered criteria"),
+	instructions: z.string().describe("What to decide"),
+	criteria: z
+		.array(z.string())
+		.describe("Ordered levels, lowest to highest (2-10)")
+		.refine((c) => c.length >= 2 && c.length <= 10, {
+			message: "score criteria must have 2-10 ordered levels",
+		}),
+});
+
+/**
+ * Schema for a single decision question, discriminated by `type`.
+ * Each type enforces its own criteria shape per the Ollama decision guide.
+ */
+const QuestionSchema = z.discriminatedUnion("type", [
+	ChoiceQuestionSchema,
+	NoulQuestionSchema,
+	ScoreQuestionSchema,
+]);
 
 /**
  * Permissive schema for the decision tool input.
