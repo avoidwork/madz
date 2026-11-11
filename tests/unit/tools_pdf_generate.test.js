@@ -102,7 +102,7 @@ describe("generatePdf", () => {
 				}),
 			);
 			assert.strictEqual(result.ok, true);
-			assert.strictEqual(result.filePath, outputPath);
+			assert.ok(result.filePath.endsWith("html_output.pdf"));
 
 			// Verify the PDF is valid
 			const buffer = await readFile(outputPath);
@@ -162,7 +162,7 @@ describe("generatePdf", () => {
 				}),
 			);
 			assert.strictEqual(result.ok, true);
-			assert.strictEqual(result.filePath, outputPath);
+			assert.ok(result.filePath.endsWith("md_output.pdf"));
 
 			const buffer = await readFile(outputPath);
 			const pdf = await PDFDocument.load(buffer);
@@ -954,7 +954,7 @@ describe("generatePdf", () => {
 				await generatePdf({
 					action: "watermark",
 					filePath: join(TEST_DIR, "wm_imgfail_src.pdf"),
-					imagePath: "/nonexistent/image.png",
+					imagePath: join(TEST_DIR, "missing.png"),
 					outputPath: join(TEST_DIR, "wm_imgfail_out.pdf"),
 				}),
 			);
@@ -966,7 +966,7 @@ describe("generatePdf", () => {
 			const result = JSON.parse(
 				await generatePdf({
 					action: "watermark",
-					filePath: "/nonexistent/file.pdf",
+					filePath: join(TEST_DIR, "missing.pdf"),
 					text: "WATERMARK",
 				}),
 			);
@@ -980,7 +980,7 @@ describe("generatePdf", () => {
 			const result = JSON.parse(
 				await generatePdf({
 					action: "signature",
-					filePath: "/nonexistent/file.pdf",
+					filePath: join(TEST_DIR, "missing.pdf"),
 					text: "Signed",
 					page: 1,
 					x: 50,
@@ -998,7 +998,7 @@ describe("generatePdf", () => {
 				await generatePdf({
 					action: "signature",
 					filePath: join(TEST_DIR, "sig_imgfail_src.pdf"),
-					imagePath: "/nonexistent/sig.png",
+					imagePath: join(TEST_DIR, "missing.png"),
 					page: 1,
 					x: 50,
 					y: 50,
@@ -1014,7 +1014,7 @@ describe("generatePdf", () => {
 			const result = JSON.parse(
 				await generatePdf({
 					action: "annotate",
-					filePath: "/nonexistent/file.pdf",
+					filePath: join(TEST_DIR, "missing.pdf"),
 					annotations: [{ type: "note", page: 1, position: { x: 0, y: 0 } }],
 				}),
 			);
@@ -1028,7 +1028,7 @@ describe("generatePdf", () => {
 			const result = JSON.parse(
 				await generatePdf({
 					action: "merge",
-					filePaths: ["/nonexistent/file.pdf", "/nonexistent/file2.pdf"],
+					filePaths: [join(TEST_DIR, "missing.pdf"), join(TEST_DIR, "missing2.pdf")],
 					outputPath: join(TEST_DIR, "merge_fail.pdf"),
 				}),
 			);
@@ -1126,7 +1126,7 @@ describe("generatePdf", () => {
 
 	describe("loadImage", () => {
 		it("returns error for non-existent image file", async () => {
-			const result = await loadImage({ filePath: "/nonexistent/image.png" });
+			const result = await loadImage({ filePath: join(TEST_DIR, "missing.png") });
 			assert.strictEqual(result.ok, false);
 			assert.ok(result.error.includes("Failed to load image"));
 		});
@@ -1141,6 +1141,33 @@ describe("generatePdf", () => {
 			const result = await loadImage({});
 			assert.strictEqual(result.ok, false);
 			assert.ok(result.error.includes("filePath or base64 must be provided for image"));
+		});
+	});
+
+	describe("sandbox path enforcement", () => {
+		it("rejects a file path outside the sandbox", async () => {
+			const result = JSON.parse(
+				await generatePdf({
+					action: "watermark",
+					filePath: "/etc/passwd",
+					text: "WATERMARK",
+				}),
+			);
+			assert.strictEqual(result.ok, false);
+			assert.ok(result.error.includes("Access denied"));
+		});
+
+		it("rejects an image path outside the sandbox", async () => {
+			const result = JSON.parse(
+				await generatePdf({
+					action: "watermark",
+					filePath: join(TEST_DIR, "wm_src.pdf"),
+					imagePath: "/etc/passwd",
+					outputPath: join(TEST_DIR, "wm_out.pdf"),
+				}),
+			);
+			assert.strictEqual(result.ok, false);
+			assert.ok(result.error.includes("Access denied"));
 		});
 	});
 

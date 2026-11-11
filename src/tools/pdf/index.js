@@ -8,17 +8,38 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { readFile, writeFile, stat } from "node:fs/promises";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { marked } from "marked";
 import { PDFDocument, rgb, StandardFonts, degrees } from "pdf-lib";
 import { loadConfig } from "../../config/loader.js";
+import { validatePath } from "../common.js";
+import { getProjectCwd } from "../../workspace/project.js";
 
 // --- Constants ---
 
 const DEFAULT_WATERMARK_OPACITY = 0.3;
 const DEFAULT_WATERMARK_ROTATION = -45;
 
+const config = loadConfig();
+
 // --- Helpers ---
+
+/**
+ * Resolve and validate a PDF-related path against the sandbox allowlist.
+ * Relative paths resolve against the active project cwd (or config.cwd), and
+ * symlinks are resolved so a link cannot lead outside the sandbox.
+ * @param {string} filePath - The path to resolve and validate
+ * @param {string[]} [allowedPaths] - Sandbox-allowed paths (defaults to config)
+ * @returns {{ ok: boolean, path?: string, error?: string }}
+ */
+function resolvePdfPath(filePath, allowedPaths = config.sandbox?.paths || []) {
+	const abs = resolve(getProjectCwd() || config.cwd || process.cwd(), filePath);
+	const resolved = validatePath(abs, allowedPaths);
+	if (!resolved.allowed) {
+		return { ok: false, error: resolved.error };
+	}
+	return { ok: true, path: resolved.path };
+}
 
 /**
  * Check if a file exceeds the maximum size limit.
@@ -50,10 +71,12 @@ export async function checkFileSize(filePath, maxSizeBytes) {
  */
 export async function loadPdf(input) {
 	if (input.filePath) {
-		const sizeCheck = await checkFileSize(input.filePath, loadConfig().sandbox.pdf.maxFileSize);
+		const resolved = resolvePdfPath(input.filePath);
+		if (!resolved.ok) return { ok: false, error: resolved.error };
+		const sizeCheck = await checkFileSize(resolved.path, loadConfig().sandbox.pdf.maxFileSize);
 		if (!sizeCheck.ok) return { ok: false, error: sizeCheck.error };
 		try {
-			const buffer = await readFile(input.filePath);
+			const buffer = await readFile(resolved.path);
 			const pdf = await PDFDocument.load(buffer, { ignoreEncryption: true });
 			return { ok: true, pdf };
 		} catch (err) {
@@ -92,8 +115,10 @@ export async function savePdf(pdf, output) {
 		return { ok: true, base64: Buffer.from(bytes).toString("base64") };
 	}
 	if (output.filePath) {
-		await writeFile(output.filePath, bytes);
-		return { ok: true, filePath: output.filePath };
+		const resolved = resolvePdfPath(output.filePath);
+		if (!resolved.ok) return { ok: false, error: resolved.error };
+		await writeFile(resolved.path, bytes);
+		return { ok: true, filePath: resolved.path };
 	}
 	return { ok: false, error: "Either filePath or base64 output must be specified" };
 }
@@ -111,6 +136,9 @@ export function parsePageRange(rangeStr, totalPages) {
 		if (part.includes("-")) {
 			const [start, end] = part.split("-").map(Number);
 			if (isNaN(start) || isNaN(end)) {
+				return { ok: false, error: `Invalid page range: ${part}` };
+			}
+			if (start > end) {
 				return { ok: false, error: `Invalid page range: ${part}` };
 			}
 			for (let i = start; i <= end; i++) {
@@ -139,16 +167,20 @@ export function parsePageRange(rangeStr, totalPages) {
  */
 export async function loadImage(input) {
 	if (input.filePath) {
+		const resolved = resolvePdfPath(input.filePath);
+		if (!resolved.ok) return { ok: false, error: resolved.error };
 		try {
-			const buffer = await readFile(input.filePath);
+			const buffer = await readFile(resolved.path);
 			if (buffer.length > loadConfig().sandbox.pdf.maxFileSize) {
 				return { ok: false, error: "Image file exceeds maximum size" };
 			}
 			try {
-				const image = await PDFDocument.create().then((doc) => doc.embedPng(buffer));
+				const doc = await PDFDocument.create();
+				const image = await doc.embedPng(buffer);
 				return { ok: true, image };
-			} catch {
-				const image = await PDFDocument.create().then((doc) => doc.embedJpg(buffer));
+			} catch (_err) {
+				const doc = await PDFDocument.create();
+				const image = await doc.embedJpg(buffer);
 				return { ok: true, image };
 			}
 		} catch (err) {
@@ -159,10 +191,12 @@ export async function loadImage(input) {
 		try {
 			const buffer = Buffer.from(input.base64, "base64");
 			try {
-				const image = await PDFDocument.create().then((doc) => doc.embedPng(buffer));
+				const doc = await PDFDocument.create();
+				const image = await doc.embedPng(buffer);
 				return { ok: true, image };
-			} catch {
-				const image = await PDFDocument.create().then((doc) => doc.embedJpg(buffer));
+			} catch (_err) {
+				const doc = await PDFDocument.create();
+				const image = await doc.embedJpg(buffer);
 				return { ok: true, image };
 			}
 		} catch (err) {
@@ -213,6 +247,11 @@ export async function generatePdfFromHtml(input) {
 		return JSON.stringify({ ok: false, error: "Output filePath is required" });
 	}
 
+	const resolved = resolvePdfPath(filePath);
+	if (!resolved.ok) {
+		return JSON.stringify({ ok: false, error: resolved.error });
+	}
+
 	const { default: puppeteer } = await import("puppeteer");
 
 	// Respect PUPPETEER_SKIP_CHROMIUM_DOWNLOAD — use system-installed Chromium
@@ -229,9 +268,9 @@ export async function generatePdfFromHtml(input) {
 	}
 	// Otherwise puppeteer bundles and downloads Chromium as usual
 
-	const browser = await puppeteer.launch(launchOpts);
-
+	let browser;
 	try {
+		browser = await puppeteer.launch(launchOpts);
 		const page = await browser.newPage();
 		await page.setContent(html, { waitUntil: "networkidle0" });
 
@@ -242,14 +281,14 @@ export async function generatePdfFromHtml(input) {
 
 		await page.pdf({
 			...pdfOptions,
-			path: filePath,
+			path: resolved.path,
 		});
 
-		return JSON.stringify({ ok: true, filePath });
+		return JSON.stringify({ ok: true, filePath: resolved.path });
 	} catch (err) {
 		return JSON.stringify({ ok: false, error: `PDF generation failed: ${err.message}` });
 	} finally {
-		await browser.close();
+		if (browser) await browser.close();
 	}
 }
 
@@ -319,12 +358,16 @@ export async function mergePdfs(input) {
 	const mergedPdf = await PDFDocument.create();
 
 	for (const filePath of filePaths) {
-		const sizeCheck = await checkFileSize(filePath, loadConfig().sandbox.pdf.maxFileSize);
+		const resolved = resolvePdfPath(filePath);
+		if (!resolved.ok) {
+			return JSON.stringify({ ok: false, error: resolved.error });
+		}
+		const sizeCheck = await checkFileSize(resolved.path, loadConfig().sandbox.pdf.maxFileSize);
 		if (!sizeCheck.ok) {
 			return JSON.stringify({ ok: false, error: sizeCheck.error });
 		}
 		try {
-			const buffer = await readFile(filePath);
+			const buffer = await readFile(resolved.path);
 			const pdf = await PDFDocument.load(buffer, { ignoreEncryption: true });
 			const pages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
 			pages.forEach((page) => mergedPdf.addPage(page));
@@ -362,12 +405,17 @@ export async function splitPdf(input) {
 		});
 	}
 
-	const sizeCheck = await checkFileSize(filePath, loadConfig().sandbox.pdf.maxFileSize);
+	const resolved = resolvePdfPath(filePath);
+	if (!resolved.ok) {
+		return JSON.stringify({ ok: false, error: resolved.error });
+	}
+
+	const sizeCheck = await checkFileSize(resolved.path, loadConfig().sandbox.pdf.maxFileSize);
 	if (!sizeCheck.ok) {
 		return JSON.stringify({ ok: false, error: sizeCheck.error });
 	}
 
-	const buffer = await readFile(filePath);
+	const buffer = await readFile(resolved.path);
 	const srcPdf = await PDFDocument.load(buffer, { ignoreEncryption: true });
 	const totalPages = srcPdf.getPageCount();
 
@@ -394,13 +442,22 @@ export async function splitPdf(input) {
 		return JSON.stringify({ ok: true, base64: results });
 	}
 
+	if (!outputPattern.includes("%d")) {
+		return JSON.stringify({ ok: false, error: "outputPattern must contain a %d placeholder" });
+	}
+
+	const patternResolved = resolvePdfPath(outputPattern);
+	if (!patternResolved.ok) {
+		return JSON.stringify({ ok: false, error: patternResolved.error });
+	}
+
 	// Write individual files
 	const createdFiles = [];
 	for (const pageNum of pagesToExtract) {
 		const newPdf = await PDFDocument.create();
 		const [page] = await newPdf.copyPages(srcPdf, [pageNum]);
 		newPdf.addPage(page);
-		const outFile = outputPattern.replace("%d", String(pageNum + 1));
+		const outFile = patternResolved.path.replace("%d", String(pageNum + 1));
 		await writeFile(outFile, await newPdf.save());
 		createdFiles.push(outFile);
 	}
@@ -452,9 +509,20 @@ export async function addWatermark(input) {
 	}
 
 	const pdf = loadResult.pdf;
-	const pagesToWatermark = pages
-		? pages.map((p) => p - 1)
-		: Array.from({ length: pdf.getPageCount() }, (_, i) => i);
+	let pagesToWatermark;
+	if (pages) {
+		for (const p of pages) {
+			if (p < 1 || p > pdf.getPageCount()) {
+				return JSON.stringify({
+					ok: false,
+					error: `Page ${p} is out of range (1-${pdf.getPageCount()})`,
+				});
+			}
+		}
+		pagesToWatermark = pages.map((p) => p - 1);
+	} else {
+		pagesToWatermark = Array.from({ length: pdf.getPageCount() }, (_, i) => i);
+	}
 
 	if (text) {
 		const font = await pdf.embedFont(StandardFonts.Helvetica);
@@ -512,9 +580,32 @@ export async function addWatermark(input) {
 			const imgWidth = width * 0.3;
 			const imgHeight = (imageResult.image.height / imageResult.image.width) * imgWidth;
 
+			let imgX, imgY;
+			switch (position) {
+				case "top-left":
+					imgX = 50;
+					imgY = height - 50 - imgHeight;
+					break;
+				case "top-right":
+					imgX = width - 50 - imgWidth;
+					imgY = height - 50 - imgHeight;
+					break;
+				case "bottom-left":
+					imgX = 50;
+					imgY = 50;
+					break;
+				case "bottom-right":
+					imgX = width - 50 - imgWidth;
+					imgY = 50;
+					break;
+				default: // center
+					imgX = width / 2 - imgWidth / 2;
+					imgY = height / 2 - imgHeight / 2;
+			}
+
 			page.drawImage(imageResult.image, {
-				x: width / 2 - imgWidth / 2,
-				y: height / 2 - imgHeight / 2,
+				x: imgX,
+				y: imgY,
 				width: imgWidth,
 				height: imgHeight,
 				opacity,
@@ -571,7 +662,7 @@ export async function embedSignature(input) {
 	if (!text && !imagePath && !imageBase64) {
 		return JSON.stringify({ ok: false, error: "Either text or image signature must be provided" });
 	}
-	if (!page || !x || !y) {
+	if (typeof page !== "number" || typeof x !== "number" || typeof y !== "number") {
 		return JSON.stringify({
 			ok: false,
 			error: "page, x, and y coordinates are required",
@@ -597,6 +688,9 @@ export async function embedSignature(input) {
 
 	if (text) {
 		const fontName = fontOptions?.name || "Helvetica";
+		if (!StandardFonts[fontName]) {
+			return JSON.stringify({ ok: false, error: `Unknown font: ${fontName}` });
+		}
 		const fontSize = fontOptions?.size || 14;
 		const font = await pdf.embedFont(StandardFonts[fontName]);
 
@@ -666,7 +760,13 @@ export async function addAnnotations(input) {
 	for (const annotation of annotations) {
 		const { type, page, position, content, color } = annotation;
 
-		if (!type || !page || !position || !position.x || !position.y) {
+		if (
+			!type ||
+			typeof page !== "number" ||
+			!position ||
+			typeof position.x !== "number" ||
+			typeof position.y !== "number"
+		) {
 			return JSON.stringify({
 				ok: false,
 				error: "Each annotation requires type, page, and position (x, y)",
@@ -691,10 +791,20 @@ export async function addAnnotations(input) {
 					y: position.y,
 					width: 20,
 					height: 20,
-					color: rgb(1, 1, 0),
+					color: annotationColor,
 					borderWidth: 1,
 					borderColor: rgb(0.8, 0.8, 0),
 				});
+				if (content) {
+					const font = await pdf.embedFont(StandardFonts.Helvetica);
+					pdfPage.drawText(content, {
+						x: position.x + 24,
+						y: position.y,
+						size: 10,
+						font,
+						color: annotationColor,
+					});
+				}
 				break;
 			}
 			case "highlight": {
@@ -768,31 +878,39 @@ export async function generatePdf(input) {
 	}
 
 	// Default outputPath to config.memory.toolsDir when omitted and not
-	// returning base64. splitPdf uses outputPattern, not outputPath, so it is
-	// left untouched here.
-	if (!actionInput.outputPath && !actionInput.base64Output && action !== "split") {
-		const config = loadConfig();
-		const toolsDir = config.memory?.toolsDir || "memory/tools/";
-		actionInput.outputPath = join(config.cwd, toolsDir, `document-${Date.now()}.pdf`);
+	// returning base64. Only actions that consume outputPath get the default;
+	// generation actions write to filePath and require an explicit path, and
+	// splitPdf uses outputPattern, not outputPath.
+	const usesOutputPath = ["merge", "watermark", "signature", "annotate"].includes(action);
+	if (usesOutputPath && !actionInput.outputPath && !actionInput.base64Output) {
+		const cfg = loadConfig();
+		const toolsDir = cfg.memory?.toolsDir || "memory/tools/";
+		actionInput.outputPath = join(cfg.cwd, toolsDir, `document-${Date.now()}.pdf`);
 	}
 
-	switch (action) {
-		case "generateHtml":
-			return generatePdfFromHtml(actionInput);
-		case "generateMarkdown":
-			return generatePdfFromMarkdown(actionInput);
-		case "merge":
-			// Normalize field name: mergePdfs expects base64, not base64Output
-			return mergePdfs({ ...actionInput, base64: actionInput.base64Output });
-		case "split":
-			// Normalize field name: splitPdf expects base64, not base64Output
-			return splitPdf({ ...actionInput, base64: actionInput.base64Output });
-		case "watermark":
-			return addWatermark(actionInput);
-		case "signature":
-			return embedSignature(actionInput);
-		case "annotate":
-			return addAnnotations(actionInput);
+	try {
+		switch (action) {
+			case "generateHtml":
+				return await generatePdfFromHtml(actionInput);
+			case "generateMarkdown":
+				return await generatePdfFromMarkdown(actionInput);
+			case "merge":
+				// Normalize field name: mergePdfs expects base64, not base64Output
+				return await mergePdfs({ ...actionInput, base64: actionInput.base64Output });
+			case "split":
+				// Normalize field name: splitPdf expects base64, not base64Output
+				return await splitPdf({ ...actionInput, base64: actionInput.base64Output });
+			case "watermark":
+				return await addWatermark(actionInput);
+			case "signature":
+				return await embedSignature(actionInput);
+			case "annotate":
+				return await addAnnotations(actionInput);
+			default:
+				return JSON.stringify({ ok: false, error: `Invalid action: ${action}` });
+		}
+	} catch (err) {
+		return JSON.stringify({ ok: false, error: `PDF operation failed: ${err.message}` });
 	}
 }
 
