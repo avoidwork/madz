@@ -177,12 +177,13 @@ let _lastWritten = undefined;
  */
 export const sampling = tool(
 	async (input) => {
-		const result = await samplingImpl(input);
+		// Feed the module-level last-written timestamp into the impl so the
+		// 60-minute cooldown actually applies across singleton invocations.
+		const result = await samplingImpl(input, { lastWritten: _lastWritten });
 
 		// Update _lastWritten if successful
-		const parsed = result;
-		if (parsed.ok && parsed.createdAt) {
-			_lastWritten = parsed.createdAt;
+		if (result.ok && result.createdAt) {
+			_lastWritten = result.createdAt;
 		}
 
 		return result;

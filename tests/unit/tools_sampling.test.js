@@ -10,6 +10,7 @@ import {
 	calculateExpirationTimestamp,
 	samplingImpl,
 	SamplingSchema,
+	sampling,
 } from "../../src/tools/sampling/index.js";
 
 const TEST_DIR = "memory/__test_sampling__/";
@@ -284,6 +285,23 @@ describe("samplingImpl", () => {
 		const result = await samplingImpl({ content: "test" }, { contextDir: TEST_DIR, maxEntries: 1 });
 		assert.strictEqual(typeof result, "object", "should return a native object");
 		assert.strictEqual(result.ok, true);
+	});
+});
+
+describe("sampling singleton", () => {
+	beforeEach(setup);
+	after(teardown);
+
+	it("applies the cooldown across consecutive invocations", async () => {
+		// First invocation succeeds and records _lastWritten.
+		const first = await sampling.invoke({ content: "first moment" });
+		assert.strictEqual(first.ok, true);
+
+		// A second invocation within the cooldown window must be rejected,
+		// proving the singleton feeds its last-written timestamp back in.
+		const second = await sampling.invoke({ content: "second moment" });
+		assert.strictEqual(second.ok, false);
+		assert.ok(second.error.includes("Cooldown active"), `Got: ${second.error}`);
 	});
 });
 
