@@ -989,6 +989,23 @@ describe("Namecom Implementation — with mocked fetch", () => {
 		assert.deepStrictEqual(result.data, { hello: "world" });
 	});
 
+	test("Authorization header encodes the actual credentials", async () => {
+		let capturedAuth;
+		global.fetch = async (url, options) => {
+			capturedAuth = options.headers.Authorization;
+			return {
+				ok: true,
+				status: 200,
+				json: async () => ({}),
+			};
+		};
+
+		await namecomImpl({ action: "hello" });
+		// testuser:testtoken base64-encoded
+		const expected = "Basic " + Buffer.from("testuser:testtoken").toString("base64");
+		assert.strictEqual(capturedAuth, expected);
+	});
+
 	test("getAccountBalance action", async () => {
 		global.fetch = async () => ({
 			ok: true,
