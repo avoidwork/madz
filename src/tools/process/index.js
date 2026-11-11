@@ -64,16 +64,6 @@ export function trackProcess(child, command) {
 }
 
 /**
- * Escape '--' sequences in a command so the tool parser doesn't treat them
- * as parameter delimiters.
- * @param {string} command - Raw shell command
- * @returns {string} Escaped command
- */
-function escapeCommand(command) {
-	return command.replace(/--/g, "\\-\\-");
-}
-
-/**
  * Execute a command in foreground mode.
  * @param {string} command - Shell command to execute
  * @returns {Promise<{ok: boolean, exitCode?: number, stdout?: string, stderr?: string, error?: string}>} Command execution result
@@ -83,8 +73,15 @@ function executeForeground(command) {
 		let stdout = "";
 		let stderr = "";
 		let exitCode = -1;
+		let settled = false;
 
-		const child = spawn("sh", ["-c", escapeCommand(command)], {
+		const finish = (result) => {
+			if (settled) return;
+			settled = true;
+			resolve(result);
+		};
+
+		const child = spawn("sh", ["-c", command], {
 			cwd: getProjectCwd() || config.cwd || process.cwd(),
 			timeout: 30000,
 		});
@@ -102,11 +99,11 @@ function executeForeground(command) {
 		});
 
 		child.on("close", () => {
-			resolve({ ok: true, exitCode, stdout: stdout.trim(), stderr: stderr.trim() });
+			finish({ ok: true, exitCode, stdout: stdout.trim(), stderr: stderr.trim() });
 		});
 
 		child.on("error", (err) => {
-			resolve({ ok: false, error: err.message });
+			finish({ ok: false, error: err.message });
 		});
 	});
 }
@@ -118,7 +115,7 @@ function executeForeground(command) {
  */
 function executeBackground(command) {
 	try {
-		const child = spawn("sh", ["-c", escapeCommand(command)], {
+		const child = spawn("sh", ["-c", command], {
 			cwd: getProjectCwd() || config.cwd || process.cwd(),
 			detached: true,
 			stdio: ["ignore", "pipe", "pipe"],
@@ -202,18 +199,25 @@ export async function unifiedProcessImpl(input) {
 			return { ok: true, stdout: entry.stdout, stderr: entry.stderr };
 		case "wait":
 			return new Promise((resolve) => {
+				let settled = false;
+				const finish = (result) => {
+					if (settled) return;
+					settled = true;
+					clearInterval(checkInterval);
+					clearTimeout(timeoutId);
+					resolve(result);
+				};
+
 				const checkInterval = setInterval(() => {
 					if (entry.status !== "running") {
-						clearInterval(checkInterval);
-						resolve({ ok: true, stdout: entry.stdout, stderr: entry.stderr });
+						finish({ ok: true, stdout: entry.stdout, stderr: entry.stderr });
 					}
 				}, 200);
 
 				// Timeout after 60 seconds
-				setTimeout(() => {
-					clearInterval(checkInterval);
+				const timeoutId = setTimeout(() => {
 					if (entry.status === "running") {
-						resolve({ ok: false, error: `Process ${pid} still running after timeout.` });
+						finish({ ok: false, error: `Process ${pid} still running after timeout.` });
 					}
 				}, 60000);
 			});
