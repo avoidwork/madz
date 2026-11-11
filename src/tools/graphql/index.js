@@ -368,7 +368,7 @@ export async function graphql(input) {
 	let parsed;
 	try {
 		parsed = JSON.parse(input);
-	} catch {
+	} catch (_err) {
 		return { ok: false, error: "Invalid JSON input" };
 	}
 	return graphqlImpl(parsed);
@@ -442,7 +442,7 @@ export async function introspectSchema(input) {
 	let parsed;
 	try {
 		parsed = JSON.parse(input);
-	} catch {
+	} catch (_err) {
 		return { ok: false, error: "Invalid JSON input" };
 	}
 
