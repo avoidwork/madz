@@ -1,11 +1,9 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import { readFile } from "node:fs/promises";
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
+import { readFile, readdir, stat } from "node:fs/promises";
+import { join } from "node:path";
 
 const DEFAULT_WINDOW_DAYS = 7;
-const execFileAsync = promisify(execFile);
 
 /**
  * Parse YAML frontmatter and JSON body from a session file.
@@ -51,13 +49,13 @@ function parseSessionFile(content) {
 	let messages = [];
 	try {
 		messages = JSON.parse(body);
-	} catch {
+	} catch (_err) {
 		// Try to extract a JSON array from the body if the full parse fails
 		const arrayMatch = body.match(/\[[\s\S]*\]/);
 		if (arrayMatch) {
 			try {
 				messages = JSON.parse(arrayMatch[0]);
-			} catch {
+			} catch (_err2) {
 				throw new Error("Invalid JSON body");
 			}
 		} else {
@@ -109,52 +107,45 @@ export async function reflectionImpl(input, options) {
 	cutoff.setDate(cutoff.getDate() - windowDays);
 	cutoff.setHours(0, 0, 0, 0);
 
-	// Use find to sort files by mtime (newest first), process all within window
-	let output;
+	// Discover session files and their mtimes using the filesystem API.
+	// Sorting by mtime (newest first) keeps the most recent sessions first.
+	let entries;
 	try {
-		output = await execFileAsync("find", [
-			sessionsDir,
-			"-maxdepth",
-			"1",
-			"-type",
-			"f",
-			"-name",
-			"*.md",
-			"-printf",
-			"%T@ %p\n",
-		]);
+		const names = await readdir(sessionsDir);
+		const files = [];
+		for (const name of names) {
+			if (!name.endsWith(".md")) continue;
+			const filePath = join(sessionsDir, name);
+			try {
+				const info = await stat(filePath);
+				if (info.isFile()) {
+					files.push({ filePath, mtime: info.mtimeMs });
+				}
+			} catch (_err) {
+				// Skip files that cannot be stat'ed
+			}
+		}
+		entries = files.sort((a, b) => b.mtime - a.mtime);
 	} catch (err) {
 		return { ok: false, error: `Failed to discover session files: ${err.message}` };
 	}
 
-	const lines = output.stdout
-		.trim()
-		.split("\n")
-		.filter((l) => l.length > 0);
-	if (lines.length === 0) return { ok: true, results: [] };
-
-	// Sort by mtime descending (newest first)
-	lines.sort((a, b) => parseFloat(b.split(" ")[0]) - parseFloat(a.split(" ")[0]));
-	const toParse = lines.map((line) => {
-		// Format: "<mtime> <path>" — split on first space only
-		const firstSpace = line.indexOf(" ");
-		return firstSpace === -1 ? line : line.slice(firstSpace + 1);
-	});
+	if (entries.length === 0) return { ok: true, results: [] };
 
 	const results = [];
 
-	for (const filePath of toParse) {
+	for (const { filePath } of entries) {
 		let content;
 		try {
 			content = await readFile(filePath, "utf-8");
-		} catch {
+		} catch (_err) {
 			continue;
 		}
 
 		let parsed;
 		try {
 			parsed = parseSessionFile(content);
-		} catch {
+		} catch (_err) {
 			continue;
 		}
 
