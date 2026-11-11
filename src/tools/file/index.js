@@ -292,13 +292,17 @@ export const readImpl = guarded(async (input, options) => {
 		return { ok: true, content: text.content, lines: lines.map((line, i) => `${i + 1}|${line}`) };
 	}
 
+	// A file ending in a newline yields a trailing empty element in the split.
+	// Exclude it from the line count so pagination reports hasMore accurately
+	// (the last page must not claim more lines exist).
+	const realLineCount = lines[lines.length - 1] === "" ? lines.length - 1 : lines.length;
 	const offset = input.offset ?? 0;
-	const end = input.limit === undefined ? lines.length : offset + input.limit;
+	const end = input.limit === undefined ? realLineCount : offset + input.limit;
 	return {
 		ok: true,
 		lines: lines.slice(offset, end).map((line, i) => `${offset + i + 1}|${line}`),
-		totalLines: lines.length,
-		hasMore: end < lines.length,
+		totalLines: realLineCount,
+		hasMore: end < realLineCount,
 	};
 });
 
@@ -396,6 +400,18 @@ function applyEdit(content, edit, eol, index) {
 		const endLine = edit.endLine ?? edit.startLine;
 		if (edit.startLine < 1 || edit.startLine > total + 1 || endLine < edit.startLine - 1) {
 			return { ok: false, error: `${where}invalid line range ${edit.startLine}-${endLine}` };
+		}
+		// Appending at the end of the file: startLine = total + 1 with endLine
+		// unset is a valid insert-at-end, not an out-of-range error.
+		if (endLine > total && edit.endLine === undefined) {
+			const from = starts[edit.startLine - 1] ?? content.length;
+			const body = newString === "" || newString.endsWith("\n") ? newString : newString + eol;
+			return {
+				ok: true,
+				content: content.slice(0, from) + body,
+				fuzzy: false,
+				count: 1,
+			};
 		}
 		if (endLine > total) {
 			return { ok: false, error: `${where}endLine ${endLine} is past the last line (${total})` };
@@ -526,7 +542,15 @@ export const listImpl = guarded(async (input, options) => {
 
 	const entries = [];
 	let truncated = false;
+	const visited = new Set();
 	const walk = async (dir) => {
+		// Track resolved real paths so a symlinked directory cannot cause
+		// infinite recursion through a loop.
+		const real = await stat(dir)
+			.then((s) => s.realpath)
+			.catch(() => null);
+		if (real && visited.has(real)) return;
+		if (real) visited.add(real);
 		for (const entry of await readdir(dir, { withFileTypes: true })) {
 			if (entries.length >= MAX_LIST_ENTRIES) {
 				truncated = true;

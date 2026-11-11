@@ -1,6 +1,6 @@
 import { describe, it, before, after } from "node:test";
 import assert from "node:assert";
-import { mkdirSync, rmSync, writeFileSync, readFileSync } from "node:fs";
+import { mkdirSync, rmSync, writeFileSync, readFileSync, symlinkSync } from "node:fs";
 import { join } from "node:path";
 import {
 	file,
@@ -9,6 +9,7 @@ import {
 	writeImpl,
 	editImpl,
 	deleteImpl,
+	listImpl,
 	resolveBaseDir,
 	resolveFilePath,
 	fuzzyMatch,
@@ -92,6 +93,23 @@ describe("tools - file", () => {
 			assert.strictEqual(result.ok, true);
 			assert.deepStrictEqual(result.lines, ["2|b", "3|c"]);
 			assert.ok(!result.lines.includes("1|a"));
+		});
+
+		it("reports hasMore false on the final page of a newline-terminated file", async () => {
+			const filePath = join(TEST_DIR, "pagination-hasmore.txt");
+			writeFileSync(filePath, "a\nb\nc\nd\n");
+			const result = await readImpl({ path: filePath, offset: 2, limit: 2 }, getOptions());
+			assert.strictEqual(result.ok, true);
+			assert.strictEqual(result.hasMore, false);
+			assert.strictEqual(result.totalLines, 4);
+		});
+
+		it("reports hasMore true when more lines remain", async () => {
+			const filePath = join(TEST_DIR, "pagination-hasmore2.txt");
+			writeFileSync(filePath, "a\nb\nc\nd\n");
+			const result = await readImpl({ path: filePath, offset: 0, limit: 2 }, getOptions());
+			assert.strictEqual(result.ok, true);
+			assert.strictEqual(result.hasMore, true);
 		});
 
 		it("returns an error for a missing file", async () => {
@@ -256,6 +274,29 @@ describe("tools - file", () => {
 			assert.strictEqual(result.ok, true);
 			assert.strictEqual(result.changes, 1);
 		});
+
+		it("appends at the end of a file via startLine = total + 1", async () => {
+			const filePath = join(TEST_DIR, "edit-append.txt");
+			writeFileSync(filePath, "line1\nline2\n");
+			const result = await editImpl(
+				{ path: filePath, startLine: 3, newString: "APPENDED" },
+				getOptions(),
+			);
+			assert.strictEqual(result.ok, true);
+			assert.strictEqual(result.changes, 1);
+			assert.strictEqual(readFileSync(filePath, "utf-8"), "line1\nline2\nAPPENDED\n");
+		});
+
+		it("inserts before a line via endLine = startLine - 1", async () => {
+			const filePath = join(TEST_DIR, "edit-insert.txt");
+			writeFileSync(filePath, "line1\nline2\n");
+			const result = await editImpl(
+				{ path: filePath, startLine: 2, endLine: 1, newString: "X" },
+				getOptions(),
+			);
+			assert.strictEqual(result.ok, true);
+			assert.strictEqual(readFileSync(filePath, "utf-8"), "line1\nX\nline2\n");
+		});
 	});
 
 	describe("delete action", () => {
@@ -272,6 +313,23 @@ describe("tools - file", () => {
 			const result = await deleteImpl({ path: join(TEST_DIR, "no-such.txt") }, getOptions());
 			assert.strictEqual(result.ok, false);
 			assert.match(result.error, /ENOENT/);
+		});
+	});
+
+	describe("list action", () => {
+		it("lists directory entries recursively without looping on a symlink", async () => {
+			const dir = join(TEST_DIR, "listdir");
+			mkdirSync(join(dir, "sub"), { recursive: true });
+			writeFileSync(join(dir, "sub", "b.txt"), "x");
+			try {
+				symlinkSync(dir, join(dir, "sub", "loop"));
+			} catch {
+				// symlink may not be supported on all platforms; skip
+			}
+			const result = await listImpl({ path: dir, recursive: true }, getOptions());
+			assert.strictEqual(result.ok, true);
+			assert.ok(result.entries.some((e) => e.path === "sub/b.txt"));
+			assert.ok(result.entries.some((e) => e.path === "sub/loop" && e.type === "symlink"));
 		});
 	});
 
