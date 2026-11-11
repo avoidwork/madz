@@ -18,7 +18,7 @@ function parseYaml(input) {
 
 /**
  * Serialize an object to a YAML string.
- * @param {string} input - JSON stringified object to serialize
+ * @param {object} input - Object to serialize
  * @param {object} [opts] - Serialization options
  * @returns {{ ok: boolean, data?: string, error?: string }}
  */
@@ -182,7 +182,7 @@ export async function yamlManipulation(input) {
 	let parsed;
 	try {
 		parsed = JSON.parse(input);
-	} catch {
+	} catch (_err) {
 		return { ok: false, error: "Invalid JSON input" };
 	}
 	return yamlManipulationImpl(parsed);
