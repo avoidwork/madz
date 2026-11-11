@@ -60,6 +60,7 @@ export async function nativeSearch(pattern, resolvedPath, maxResults) {
 	}
 	const seen = new Set();
 	const MAX_DEPTH = 50;
+	let totalCount = 0;
 
 	function isBinary(buffer) {
 		for (let i = 0; i < Math.min(buffer.length, 8192); i++) {
@@ -86,9 +87,12 @@ export async function nativeSearch(pattern, resolvedPath, maxResults) {
 						if (isBinary(buffer)) continue;
 						const content = buffer.toString("utf-8");
 						const lines = content.split("\n");
-						for (let i = 0; i < lines.length && results.length < maxResults; i++) {
+						for (let i = 0; i < lines.length; i++) {
 							if (regex.test(lines[i])) {
-								results.push(`${full}:${i + 1}: ${lines[i].trim()}`);
+								totalCount++;
+								if (results.length < maxResults) {
+									results.push(`${full}:${i + 1}: ${lines[i].trim()}`);
+								}
 							}
 						}
 					}
@@ -103,7 +107,7 @@ export async function nativeSearch(pattern, resolvedPath, maxResults) {
 
 	await walk(resolvedPath);
 
-	return { ok: true, matches: results, count: results.length };
+	return { ok: true, matches: results, count: totalCount };
 }
 
 /**
