@@ -209,6 +209,64 @@ describe("decision tool", () => {
 		}
 	});
 
+	it("rejects an empty object state", async () => {
+		const result = await decisionImpl(
+			{ state: {}, questions: { q: { type: "noul", instructions: "x" } } },
+			{ decisionConfig: baseConfig },
+		);
+		assert.strictEqual(result.ok, false);
+		assert.match(result.error, /state is required/);
+	});
+
+	it("rejects a blocked baseUrl scheme", async () => {
+		const result = await decisionImpl(
+			{ state: "x", questions: { q: { type: "noul", instructions: "x" } } },
+			{ decisionConfig: { ...baseConfig, baseUrl: "file:///etc/passwd" } },
+		);
+		assert.strictEqual(result.ok, false);
+		assert.match(result.error, /Invalid decision baseUrl/);
+	});
+
+	it("trims trailing slashes from baseUrl", async () => {
+		let capturedUrl;
+		const fetchMock = mock.method(globalThis, "fetch", async (url) => {
+			capturedUrl = url;
+			return {
+				ok: true,
+				status: 200,
+				json: async () => ({ model: "tev1:4b", answers: { q: { type: "noul", noul: 0.9 } } }),
+			};
+		});
+		try {
+			const result = await decisionImpl(
+				{ state: "x", questions: { q: { type: "noul", instructions: "x" } } },
+				{ decisionConfig: { ...baseConfig, baseUrl: "http://localhost:11434/" } },
+			);
+			assert.strictEqual(result.ok, true);
+			assert.strictEqual(capturedUrl, "http://localhost:11434/v1/systemone");
+		} finally {
+			fetchMock.mock.restore();
+		}
+	});
+
+	it("rejects an array answers response", async () => {
+		const fetchMock = mock.method(globalThis, "fetch", async () => ({
+			ok: true,
+			status: 200,
+			json: async () => ({ model: "tev1:4b", answers: [] }),
+		}));
+		try {
+			const result = await decisionImpl(
+				{ state: "x", questions: { q: { type: "noul", instructions: "x" } } },
+				{ decisionConfig: baseConfig },
+			);
+			assert.strictEqual(result.ok, false);
+			assert.match(result.error, /missing answers/);
+		} finally {
+			fetchMock.mock.restore();
+		}
+	});
+
 	it("rejects invalid question type via schema validation", async () => {
 		await assert.rejects(
 			async () =>

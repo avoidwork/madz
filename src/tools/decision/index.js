@@ -1,5 +1,6 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
+import { filterUrl } from "../../sandbox/urlFilter.js";
 
 const DEFAULT_TIMEOUT = 30000;
 
@@ -27,17 +28,25 @@ export const DecisionToolSchema = z.object({
 
 /**
  * Call Ollama's `/v1/systemone` endpoint for fast, structured classification.
- * @param {object} config - Decision config ({ baseUrl, model, temperature })
+ * @param {object} config - Decision config ({ baseUrl, model })
  * @param {object} input - Tool input ({ state, questions })
  * @param {number} timeout - Request timeout in ms
  * @returns {Promise<{ ok: boolean, answers?: object, error?: string }>}
  */
 async function callSystemOne(config, input, timeout) {
+	const baseUrl = config.baseUrl.replace(/\/+$/, "");
+	const url = `${baseUrl}/v1/systemone`;
+
+	const urlCheck = filterUrl(url);
+	if (!urlCheck.allowed) {
+		return { ok: false, error: `Invalid decision baseUrl: ${urlCheck.reason}` };
+	}
+
 	const controller = new AbortController();
 	const timeoutId = setTimeout(() => controller.abort(), timeout);
 
 	try {
-		const resp = await fetch(`${config.baseUrl}/v1/systemone`, {
+		const resp = await fetch(url, {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
@@ -57,7 +66,7 @@ async function callSystemOne(config, input, timeout) {
 		}
 
 		const data = await resp.json();
-		if (!data.answers || typeof data.answers !== "object") {
+		if (!data.answers || typeof data.answers !== "object" || Array.isArray(data.answers)) {
 			return { ok: false, error: "Ollama systemone response missing answers" };
 		}
 
@@ -73,7 +82,7 @@ async function callSystemOne(config, input, timeout) {
  * classification (routing, policy checks, rubric scoring).
  * @param {z.infer<typeof DecisionToolSchema>} input - Tool input
  * @param {object} [options] - Runtime options
- * @param {object} [options.decisionConfig] - Decision config ({ baseUrl, model, temperature })
+ * @param {object} [options.decisionConfig] - Decision config ({ baseUrl, model })
  * @returns {Promise<object>} Result object with structured answers
  */
 export async function decisionImpl(input, options = {}) {
@@ -86,10 +95,20 @@ export async function decisionImpl(input, options = {}) {
 	}
 
 	const { state, questions } = input;
-	if (state === undefined || state === null || state === "") {
+	const isEmptyState =
+		state === undefined ||
+		state === null ||
+		state === "" ||
+		(typeof state === "object" && Object.keys(state).length === 0);
+	if (isEmptyState) {
 		return { ok: false, error: "state is required and must be a non-empty string or object" };
 	}
-	if (!questions || typeof questions !== "object" || Object.keys(questions).length === 0) {
+	if (
+		!questions ||
+		typeof questions !== "object" ||
+		Array.isArray(questions) ||
+		Object.keys(questions).length === 0
+	) {
 		return { ok: false, error: "questions is required and must be a non-empty record" };
 	}
 
