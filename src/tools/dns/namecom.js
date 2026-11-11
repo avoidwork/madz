@@ -15,8 +15,8 @@ const BASE_URLS = Object.freeze({
 const ALLOWED_HOSTS = new Set(["api.name.com", "api.dev.name.com"]);
 
 /**
- * Validate credentials are present.
- * @returns {{ valid: boolean; errors?: string[] }}
+ * Validate credentials are present and return them for use in the request.
+ * @returns {{ valid: boolean; errors?: string[]; username?: string; token?: string }}
  */
 function validateCredentials() {
 	const errors = [];
@@ -25,7 +25,7 @@ function validateCredentials() {
 	if (!username) errors.push("NAMECOM_USERNAME is not set");
 	if (!token) errors.push("NAMECOM_TOKEN is not set");
 	if (errors.length > 0) return { valid: false, errors };
-	return { valid: true };
+	return { valid: true, username, token };
 }
 
 /**
