@@ -39,7 +39,7 @@ export function getActiveProvider(config) {
 
 	try {
 		return createEmailProvider(providerConfig);
-	} catch {
+	} catch (_err) {
 		return null;
 	}
 }
