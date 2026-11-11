@@ -7,7 +7,6 @@ import {
 	validateSkillName,
 	validateSkillDescription,
 	validateOptionalFields,
-	validateSkillSchema,
 } from "../../skills/validator.js";
 import { ensureSkillsDir } from "../../skills/registry.js";
 import { PermissionSchema } from "../../skills/types.js";
@@ -121,7 +120,7 @@ export async function createSkillImpl(input, options = {}) {
 	let createdPaths = [skillPath, skillMdPath];
 
 	try {
-		await ensureSkillsDir(skillsDir);
+		await ensureSkillsDir(skillsDir, cwdParam);
 		await mkdir(skillPath, { recursive: true });
 	} catch (err) {
 		return {
