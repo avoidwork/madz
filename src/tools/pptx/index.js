@@ -495,15 +495,21 @@ export async function loadTemplate(templatePath) {
  * @returns {Promise<string>} JSON result string
  */
 export async function createPptx(input) {
-	const validated = generatePptxSchema.parse(input);
-	const { templatePath, slideWidth, slideHeight, slides } = validated;
+	const validated = generatePptxSchema.safeParse(input);
+	if (!validated.success) {
+		return JSON.stringify({
+			ok: false,
+			error: `Invalid input: ${validated.error.issues.map((e) => `${e.path.join(".")}: ${e.message}`).join(", ")}`,
+		});
+	}
+	const { templatePath, slideWidth, slideHeight, slides } = validated.data;
 	const config = loadConfig();
 	const toolsDir = config.memory?.toolsDir || "memory/tools/";
 	const outputPath =
-		validated.outputPath || join(config.cwd, toolsDir, `presentation-${Date.now()}.pptx`);
+		validated.data.outputPath || join(config.cwd, toolsDir, `presentation-${Date.now()}.pptx`);
 
 	// Validate output path
-	const pathValidation = validateOutputPath(outputPath);
+	const pathValidation = validateOutputPath(outputPath, config.cwd);
 	if (!pathValidation.valid) {
 		return JSON.stringify({ ok: false, error: pathValidation.error });
 	}

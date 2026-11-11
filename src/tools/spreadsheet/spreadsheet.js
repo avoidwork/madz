@@ -357,9 +357,11 @@ async function modify(input) {
 	const { inputPath, modifyOperations } = SpreadsheetSchema.parse(input);
 	const outputPath = resolveOutputPath(input.outputPath);
 
-	// Validate input file exists
-	const fs = await import("node:fs");
-	if (!fs.existsSync(inputPath)) {
+	// Validate input file exists (async, non-blocking)
+	const { access } = await import("node:fs/promises");
+	try {
+		await access(inputPath);
+	} catch (_err) {
 		throw new Error(`Input file not found: ${inputPath}`);
 	}
 
