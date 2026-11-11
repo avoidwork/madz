@@ -161,6 +161,18 @@ describe("process tool - unifiedProcessImpl", () => {
 		assert.ok(result.stderr.includes("stderr-output"));
 	});
 
+	it("preserves double-dash flags in the command", async () => {
+		// The command must be passed to sh -c unchanged; a '--' flag must not be
+		// escaped into '\-\-'.
+		const result = await unifiedProcessImpl({
+			action: "start",
+			command: "echo --flag",
+		});
+		assert.strictEqual(result.ok, true);
+		assert.strictEqual(result.exitCode, 0);
+		assert.ok(result.stdout.includes("--flag"), `Got: ${result.stdout}`);
+	});
+
 	it("handles foreground command spawn error", async () => {
 		const result = await unifiedProcessImpl({
 			action: "start",
