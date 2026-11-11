@@ -343,9 +343,14 @@ async function searchWithCustom(cfg, query, limit) {
 			.replace(/\{\{query\}\}/g, encodeURIComponent(query))
 			.replace(/\{\{apiKey\}\}/g, apiKey);
 
-		const headers = cfg.headers
-			? JSON.parse(cfg.headers.replace(/\{\{apiKey\}\}/g, apiKey))
-			: { "Content-Type": "application/json" };
+		let headers = { "Content-Type": "application/json" };
+		if (cfg.headers) {
+			try {
+				headers = JSON.parse(cfg.headers.replace(/\{\{apiKey\}\}/g, apiKey));
+			} catch (_err) {
+				return { ok: false, error: "Custom search headers must be valid JSON" };
+			}
+		}
 
 		const method = (cfg.method || "POST").toUpperCase();
 		const body = ["POST", "PUT", "PATCH"].includes(method)
