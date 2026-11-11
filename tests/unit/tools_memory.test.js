@@ -111,14 +111,13 @@ describe("memoryImpl", () => {
 		assert.ok(files.some((f) => f.includes("my_pet")));
 	});
 
-	it("create fails when maxEntries exceeded", async () => {
+	it("create succeeds even when near maxEntries (retention handles pruning)", async () => {
 		const opts = { maxEntries: 1 };
 		await memoryImpl({ action: "create", key: "cap_first", value: "test" }, opts);
-		const failResult = JSON.parse(
+		const result = JSON.parse(
 			await memoryImpl({ action: "create", key: "overflow", value: "nope" }, opts),
 		);
-		assert.strictEqual(failResult.ok, false);
-		assert.ok(failResult.error.includes("exceed maximum"));
+		assert.strictEqual(result.ok, true);
 	});
 
 	// --- read ---
@@ -265,5 +264,49 @@ describe("memoryImpl", () => {
 			await memoryImpl({ action: "read", key: "num_entry" }, defaultOpts),
 		);
 		assert.strictEqual(readResult.value, "42");
+	});
+
+	it("create round-trips structured values as JSON", async () => {
+		const value = { a: 1, b: [2, 3], c: { d: "x" } };
+		const result = JSON.parse(
+			await memoryImpl({ action: "create", key: "structured", value }, defaultOpts),
+		);
+		assert.strictEqual(result.ok, true);
+		const readResult = JSON.parse(
+			await memoryImpl({ action: "read", key: "structured" }, defaultOpts),
+		);
+		assert.deepStrictEqual(JSON.parse(readResult.value), value);
+	});
+
+	it("create detects key collision from sanitization", async () => {
+		await memoryImpl({ action: "create", key: "foo-bar", value: "first" }, defaultOpts);
+		const result = JSON.parse(
+			await memoryImpl({ action: "create", key: "foo_bar", value: "second" }, defaultOpts),
+		);
+		assert.strictEqual(result.ok, false);
+		assert.match(result.error, /collision/);
+	});
+
+	it("update detects key collision from sanitization", async () => {
+		await memoryImpl({ action: "create", key: "my-key", value: "first" }, defaultOpts);
+		const result = JSON.parse(
+			await memoryImpl({ action: "update", key: "my_key", value: "second" }, defaultOpts),
+		);
+		assert.strictEqual(result.ok, false);
+		assert.match(result.error, /collision/);
+	});
+
+	it("list caps returned entries to maxEntries", async () => {
+		const fs = await import("node:fs/promises");
+		const existingFiles = await fs.readdir(DIR).catch(() => []);
+		for (const f of existingFiles) await fs.unlink(join(DIR, f));
+		await writeEntry("cap_a", "1", "2026-01-01T00:00:00Z", "2026-01-01T00:00:00Z");
+		await writeEntry("cap_b", "2", "2026-01-01T00:00:00Z", "2026-01-01T00:00:00Z");
+		await writeEntry("cap_c", "3", "2026-01-01T00:00:00Z", "2026-01-01T00:00:00Z");
+		const result = JSON.parse(
+			await memoryImpl({ action: "list" }, { ...defaultOpts, maxEntries: 2 }),
+		);
+		assert.strictEqual(result.total, 3);
+		assert.strictEqual(result.entries.length, 2);
 	});
 });
