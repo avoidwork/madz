@@ -117,7 +117,7 @@ describe("memoryImpl", () => {
 	});
 
 	it("create succeeds even when near maxEntries (retention handles pruning)", async () => {
-		const opts = { maxEntries: 1 };
+		const opts = { maxEntries: 1, contextDir: TEST_ENTRIES_DIR };
 		await memoryImpl({ action: "create", key: "cap_first", value: "test" }, opts);
 		const result = await memoryImpl({ action: "create", key: "overflow", value: "nope" }, opts);
 		assert.strictEqual(result.ok, true);
