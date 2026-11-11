@@ -37,6 +37,14 @@ describe("tools - todo", () => {
 		assert.deepStrictEqual(result, { ok: true, todos: [], total: 0 });
 	});
 
+	it("list tolerates a corrupted todo file", async () => {
+		const { writeFileSync } = await import("node:fs");
+		writeFileSync(TEST_FILE, "{ not valid json");
+		const result = await todoImpl({ action: "list" }, getOptions());
+		assert.strictEqual(result.ok, true);
+		assert.deepStrictEqual(result.todos, []);
+	});
+
 	it("list returns structured JSON with todos and total", async () => {
 		await todoImpl({ action: "clear", confirm: true }, getOptions());
 		await todoImpl({ action: "create", key: "test-item", content: "Test content" }, getOptions());

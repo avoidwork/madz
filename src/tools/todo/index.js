@@ -35,7 +35,12 @@ async function loadTodos(filePath) {
 		return { todos: [] };
 	}
 	const content = await readFile(filePath, "utf-8");
-	return JSON.parse(content);
+	try {
+		return JSON.parse(content);
+	} catch (_err) {
+		// Corrupted file — treat as empty rather than rejecting the call.
+		return { todos: [] };
+	}
 }
 
 /**
