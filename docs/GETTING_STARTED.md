@@ -108,7 +108,7 @@ On Linux, `host.docker.internal` may not resolve — use `--network host` instea
 
 ## 2. Enable a Decision Model
 
-The `decision` tool wraps Ollama's `/v1/systemone` endpoint for fast, structured classification — routing a task, checking a request against a policy, or scoring against a rubric. It is **not** an agentic loop: it returns structured answers from a single request, which is why it's exposed as a tool rather than a subagent.
+The `decision` tool wraps the SystemOne `/v1/systemone` endpoint for fast, structured classification — routing a task, checking a request against a policy, or scoring against a rubric. It is **not** an agentic loop: it returns structured answers from a single request, which is why it's exposed as a tool rather than a subagent.
 
 This is optional. An unconfigured install is unaffected — the tool simply isn't registered.
 

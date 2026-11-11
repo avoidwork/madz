@@ -4,11 +4,11 @@
 TBD - created by archiving change decision-tool. Update Purpose after archive.
 ## Requirements
 ### Requirement: decision tool returns structured answers
-The system SHALL provide a `decision` tool that calls Ollama's `/v1/systemone` endpoint and returns the structured `answers` from the model.
+The system SHALL provide a `decision` tool that calls the SystemOne `/v1/systemone` endpoint and returns the structured `answers` from the model.
 
 #### Scenario: Successful classification
 - **WHEN** an agent invokes the `decision` tool with a `state` and a `questions` record
-- **THEN** the tool SHALL send the `state` and `questions` to the configured Ollama `/v1/systemone` endpoint and return the structured `answers`
+- **THEN** the tool SHALL send the `state` and `questions` to the configured SystemOne `/v1/systemone` endpoint and return the structured `answers`
 
 #### Scenario: Choice question type
 - **WHEN** a question has `type: "choice"` with `instructions` and `criteria`
@@ -63,19 +63,19 @@ The `decision` tool SHALL validate that `state` and `questions` are present befo
 The `agent.decision` config block SHALL be preserved by the config schema so zod does not strip it.
 
 #### Scenario: Decision config preserved
-- **WHEN** `config.yaml` contains an `agent.decision` block with `baseUrl`, `model`, and `temperature`
+- **WHEN** `config.yaml` contains an `agent.decision` block with `baseUrl` and `model`
 - **THEN** the resolved config SHALL retain the `agent.decision` block
 
 #### Scenario: Default values
 - **WHEN** `agent.decision` is not present in `config.yaml`
-- **THEN** the resolved config SHALL default `baseUrl` to `""`, `model` to `"tev1:4b"`, and `temperature` to `0`
+- **THEN** the resolved config SHALL default `baseUrl` to `""` and `model` to `"tev1:4b"`
 
 ### Requirement: Decision config threaded at invoke time
 The `decision` tool SHALL receive the configured `decisionConfig` at invoke time so it uses the configured `agent.decision.baseUrl` instead of failing with a "not configured" error.
 
 #### Scenario: Configured decision config is used
 - **WHEN** the `decision` tool is registered with `agent.decision.baseUrl` set and is invoked
-- **THEN** `decisionImpl` SHALL receive a populated `decisionConfig` and SHALL call the configured Ollama `/v1/systemone` endpoint
+- **THEN** `decisionImpl` SHALL receive a populated `decisionConfig` and SHALL call the configured SystemOne `/v1/systemone` endpoint
 
 #### Scenario: Decision config not threaded
 - **WHEN** the `decision` tool is registered but `decisionConfig` is not threaded through at invoke time

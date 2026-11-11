@@ -46,7 +46,7 @@ const ScoreQuestionSchema = z.object({
 
 /**
  * Schema for a single decision question, discriminated by `type`.
- * Each type enforces its own criteria shape per the Ollama decision guide.
+ * Each type enforces its own criteria shape per the SystemOne decision guide.
  */
 const QuestionSchema = z.discriminatedUnion("type", [
 	ChoiceQuestionSchema,
@@ -65,7 +65,7 @@ export const DecisionToolSchema = z.object({
 });
 
 /**
- * Call Ollama's `/v1/systemone` endpoint for fast, structured classification.
+ * Call the SystemOne `/v1/systemone` endpoint for fast, structured classification.
  * @param {object} config - Decision config ({ baseUrl, model })
  * @param {object} input - Tool input ({ state, questions })
  * @param {number} timeout - Request timeout in ms
@@ -100,23 +100,23 @@ async function callSystemOne(config, input, timeout) {
 
 		if (!resp.ok) {
 			const text = await resp.text().catch(() => "");
-			return { ok: false, error: `Ollama systemone error (${resp.status}): ${text.slice(0, 200)}` };
+			return { ok: false, error: `SystemOne error (${resp.status}): ${text.slice(0, 200)}` };
 		}
 
 		const data = await resp.json();
 		if (!data.answers || typeof data.answers !== "object" || Array.isArray(data.answers)) {
-			return { ok: false, error: "Ollama systemone response missing answers" };
+			return { ok: false, error: "SystemOne response missing answers" };
 		}
 
 		return { ok: true, answers: data.answers };
 	} catch (err) {
 		clearTimeout(timeoutId);
-		return { ok: false, error: `Ollama systemone request failed: ${err.message}` };
+		return { ok: false, error: `SystemOne request failed: ${err.message}` };
 	}
 }
 
 /**
- * Decision tool — wraps Ollama's `/v1/systemone` endpoint for fast, structured
+ * Decision tool — wraps the SystemOne `/v1/systemone` endpoint for fast, structured
  * classification (routing, policy checks, rubric scoring).
  * @param {z.infer<typeof DecisionToolSchema>} input - Tool input
  * @param {object} [options] - Runtime options
@@ -165,6 +165,6 @@ export async function decisionImpl(input, options = {}) {
 export const decision = tool(decisionImpl, {
 	name: "decision",
 	description:
-		"Make fast, structured decisions using a local decision model via Ollama's /v1/systemone endpoint. Accepts a state (string or JSON object/array) and a questions record, where each question has a type (choice, noul, or score), instructions, and usually criteria. Returns the structured answers from the model. Config-gated: only registered when agent.decision.baseUrl is set.",
+		"Make fast, structured decisions using a local decision model via the SystemOne /v1/systemone endpoint. Accepts a state (string or JSON object/array) and a questions record, where each question has a type (choice, noul, or score), instructions, and usually criteria. Returns the structured answers from the model. Config-gated: only registered when agent.decision.baseUrl is set.",
 	schema: DecisionToolSchema,
 });
