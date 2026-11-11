@@ -289,6 +289,14 @@ describe("createPptx", () => {
 		assert.ok(parsed.error?.includes("outside allowed directory"));
 	});
 
+	it("returns a structured error for invalid input instead of throwing", async () => {
+		// Missing slides is invalid per the schema; createPptx must not throw.
+		const result = await createPptx({ outputPath: join(TMP_DIR, "invalid.pptx") });
+		const parsed = JSON.parse(result);
+		assert.strictEqual(parsed.ok, false);
+		assert.ok(parsed.error?.includes("Invalid input"));
+	});
+
 	it("rejects unsupported image format", async () => {
 		const result = await createPptx({
 			outputPath: join(TMP_DIR, "bad-image.pptx"),
