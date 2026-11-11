@@ -343,4 +343,34 @@ describe("json tool", () => {
 		assert.strictEqual(parsed.ok, true);
 		assert.strictEqual(parsed.data.hello, "world");
 	});
+
+	it("access does not throw when a primitive sits at an array-index position", async () => {
+		const result = await jsonManipulationImpl({
+			action: "access",
+			input: JSON.stringify({ a: 5 }),
+			path: "a.b[0]",
+		});
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("Path not found"));
+	});
+
+	it("access does not throw when a string primitive sits at an array-index position", async () => {
+		const result = await jsonManipulationImpl({
+			action: "access",
+			input: JSON.stringify({ a: "hello" }),
+			path: "a.x[0]",
+		});
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("Path not found"));
+	});
+
+	it("access returns a graceful error for a primitive with a single array index", async () => {
+		const result = await jsonManipulationImpl({
+			action: "access",
+			input: JSON.stringify({ a: 5 }),
+			path: "a[0]",
+		});
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("Not an array"));
+	});
 });

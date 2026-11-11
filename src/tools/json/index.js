@@ -18,10 +18,9 @@ function parseJson(input) {
 /**
  * Serialize an object to a JSON string.
  * @param {string} input - JSON stringified object to serialize
- * @param {object} [opts] - Serialization options
  * @returns {{ ok: boolean, data?: string, error?: string }}
  */
-function serializeJson(input, opts = {}) {
+function serializeJson(input) {
 	let obj;
 	try {
 		obj = typeof input === "string" ? JSON.parse(input) : input;
@@ -29,8 +28,7 @@ function serializeJson(input, opts = {}) {
 		return { ok: false, error: `Invalid JSON input: ${err.message}` };
 	}
 
-	const space = opts.space || 2;
-	return { ok: true, data: JSON.stringify(obj, null, space) };
+	return { ok: true, data: JSON.stringify(obj, null, 2) };
 }
 
 /**
@@ -136,6 +134,9 @@ function accessJsonPath(input, path) {
 		const match = part.match(/^(\w+)(\[\d+\])$/);
 		if (match) {
 			const [, key, idx] = match;
+			if (typeof current !== "object" || current === null) {
+				return { ok: false, error: `Path not found: ${path}` };
+			}
 			if (key in current) {
 				current = current[key];
 			} else {
@@ -233,6 +234,8 @@ export async function jsonManipulationImpl(input) {
 			const result = accessJsonPath(jsonInput, path);
 			return result.ok ? { ok: true, data: result.data } : result;
 		}
+		default:
+			return { ok: false, error: `Unknown action: ${action}` };
 	}
 }
 
