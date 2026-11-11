@@ -8,6 +8,53 @@ const config = loadConfig();
 const vectorConfig = config.vector || {};
 
 /**
+ * Escape a glob pattern into a safe regular expression source.
+ * Only `*` is treated as a wildcard; all other regex metacharacters are
+ * escaped so a user-supplied fileFilter cannot throw or match unexpectedly.
+ * @param {string} pattern - Glob pattern (e.g. "src/tools/*.js")
+ * @returns {string} Regular expression source
+ */
+function globToRegex(pattern) {
+	return pattern.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*");
+}
+
+/**
+ * Apply an optional file filter to a set of results.
+ * @param {Array<object>} results - Search results
+ * @param {string} [fileFilter] - Glob pattern to filter by file path
+ * @returns {Array<object>} Filtered results
+ */
+function applyFileFilter(results, fileFilter) {
+	if (!fileFilter) return results;
+	const filterRe = new RegExp(globToRegex(fileFilter));
+	return results.filter((r) => filterRe.test(r.filePath));
+}
+
+/**
+ * Format raw store results into the tool's public shape.
+ * @param {Array<object>} results - Raw search results from the store
+ * @param {string} source - Result source label ("vector", "fulltext", or "hybrid")
+ * @returns {Array<object>} Formatted results
+ */
+function formatResults(results, source) {
+	return results.map((r) => {
+		let score;
+		if (source === "fulltext") score = r.rank;
+		else if (source === "vector") score = r.distance;
+		else score = r.source === "fulltext" ? r.rank : r.distance;
+
+		return {
+			filePath: r.filePath,
+			lineStart: r.lineStart,
+			lineEnd: r.lineEnd,
+			score,
+			content: r.content,
+			source: source === "hybrid" ? r.source : source,
+		};
+	});
+}
+
+/**
  * Search source code using vector similarity search.
  *
  * Embeds the query using the configured embedding provider, then performs
@@ -43,8 +90,15 @@ export async function searchCodeImpl(input, options = {}) {
 			fulltext: cfg.fulltext !== false,
 			ftsTokenize: cfg.ftsTokenize || "porter unicode61",
 		});
-		store.init();
+		await store.init();
 	} catch (err) {
+		if (store) {
+			try {
+				store.close();
+			} catch (_err) {
+				// Ignore close errors
+			}
+		}
 		return { ok: false, error: `Failed to open vector store at ${dbPath}: ${err.message}` };
 	}
 
@@ -57,11 +111,8 @@ export async function searchCodeImpl(input, options = {}) {
 			try {
 				results = store.searchFts(input.query, topK);
 			} catch (err) {
-				store.close();
 				return { ok: false, error: `FTS search failed: ${err.message}` };
 			}
-
-			store.close();
 
 			if (results.length === 0) {
 				return {
@@ -71,28 +122,12 @@ export async function searchCodeImpl(input, options = {}) {
 				};
 			}
 
-			// Apply file filter if specified
-			if (input.fileFilter) {
-				const filterPattern = input.fileFilter.replace(/\*/g, ".*");
-				const filterRe = new RegExp(filterPattern);
-				results = results.filter((r) => filterRe.test(r.filePath));
-			}
-
+			results = applyFileFilter(results, input.fileFilter);
 			if (results.length === 0) {
 				return { ok: false, error: `No results matching filter "${input.fileFilter}".` };
 			}
 
-			// Format results
-			const formatted = results.map((r) => ({
-				filePath: r.filePath,
-				lineStart: r.lineStart,
-				lineEnd: r.lineEnd,
-				score: r.rank,
-				content: r.content,
-				source: "fulltext",
-			}));
-
-			return { ok: true, results: formatted, count: formatted.length };
+			return { ok: true, results: formatResults(results, "fulltext"), count: results.length };
 		}
 
 		// Hybrid mode — run both vector and FTS, merge via RRF
@@ -108,12 +143,10 @@ export async function searchCodeImpl(input, options = {}) {
 			try {
 				embeddings = await embedder.embed([input.query]);
 			} catch (err) {
-				store.close();
 				return { ok: false, error: `Failed to embed query: ${err.message}` };
 			}
 
 			if (embeddings.length === 0) {
-				store.close();
 				return { ok: false, error: "No embedding generated for the query." };
 			}
 
@@ -121,11 +154,8 @@ export async function searchCodeImpl(input, options = {}) {
 			try {
 				results = store.hybridSearch(embeddings[0], input.query, topK);
 			} catch (err) {
-				store.close();
 				return { ok: false, error: `Hybrid search failed: ${err.message}` };
 			}
-
-			store.close();
 
 			if (results.length === 0) {
 				return {
@@ -135,35 +165,12 @@ export async function searchCodeImpl(input, options = {}) {
 				};
 			}
 
-			// Apply file filter if specified
-			if (input.fileFilter) {
-				const filterPattern = input.fileFilter.replace(/\*/g, ".*");
-				const filterRe = new RegExp(filterPattern);
-				results = results.filter((r) => filterRe.test(r.filePath));
-			}
-
+			results = applyFileFilter(results, input.fileFilter);
 			if (results.length === 0) {
 				return { ok: false, error: `No results matching filter "${input.fileFilter}".` };
 			}
 
-			// Format results
-			const formatted = results.map((r) => {
-				let score;
-				if (r.source === "vector") score = r.distance;
-				else if (r.source === "fulltext") score = r.rank;
-				else score = r.distance;
-
-				return {
-					filePath: r.filePath,
-					lineStart: r.lineStart,
-					lineEnd: r.lineEnd,
-					score,
-					content: r.content,
-					source: r.source,
-				};
-			});
-
-			return { ok: true, results: formatted, count: formatted.length };
+			return { ok: true, results: formatResults(results, "hybrid"), count: results.length };
 		}
 
 		// Default: vector mode (existing behavior)
@@ -178,12 +185,10 @@ export async function searchCodeImpl(input, options = {}) {
 		try {
 			embeddings = await embedder.embed([input.query]);
 		} catch (err) {
-			store.close();
 			return { ok: false, error: `Failed to embed query: ${err.message}` };
 		}
 
 		if (embeddings.length === 0) {
-			store.close();
 			return { ok: false, error: "No embedding generated for the query." };
 		}
 
@@ -192,11 +197,8 @@ export async function searchCodeImpl(input, options = {}) {
 		try {
 			results = store.search(embeddings[0], topK);
 		} catch (err) {
-			store.close();
 			return { ok: false, error: `Search failed: ${err.message}` };
 		}
-
-		store.close();
 
 		if (results.length === 0) {
 			return {
@@ -206,33 +208,17 @@ export async function searchCodeImpl(input, options = {}) {
 			};
 		}
 
-		// Apply file filter if specified
-		if (input.fileFilter) {
-			const filterPattern = input.fileFilter.replace(/\*/g, ".*");
-			const filterRe = new RegExp(filterPattern);
-			results = results.filter((r) => filterRe.test(r.filePath));
-		}
-
+		results = applyFileFilter(results, input.fileFilter);
 		if (results.length === 0) {
 			return { ok: false, error: `No results matching filter "${input.fileFilter}".` };
 		}
 
-		// Format results
-		const formatted = results.map((r) => ({
-			filePath: r.filePath,
-			lineStart: r.lineStart,
-			lineEnd: r.lineEnd,
-			score: r.distance,
-			content: r.content,
-			source: "vector",
-		}));
-
-		return { ok: true, results: formatted, count: formatted.length };
+		return { ok: true, results: formatResults(results, "vector"), count: results.length };
 	} finally {
 		if (store) {
 			try {
 				store.close();
-			} catch {
+			} catch (_err) {
 				// Ignore close errors
 			}
 		}
