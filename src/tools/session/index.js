@@ -2,11 +2,12 @@ import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { readdir, readFile, access, stat } from "node:fs/promises";
 import { join } from "node:path";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { parseFrontmatter } from "../../memory/reader.js";
 import { loadConfig } from "../../config/loader.js";
 
-const config = loadConfig();
-export let cwd = config.cwd;
+const execFileAsync = promisify(execFile);
 const FS = Object.freeze({ MODE_RDONLY: 0 });
 
 /**
@@ -75,35 +76,15 @@ async function getFullConversation(sessionsDir, conversationId) {
 	for (const file of files) {
 		const filepath = join(sessionsDir, file);
 		const content = await readFile(filepath, "utf-8");
-		const { frontmatter } = parseFrontmatter(content);
+		const { frontmatter, content: body } = parseFrontmatter(content);
 
 		const sessionId =
 			frontmatter.sessionId || file.replace(/\.md$/, "").replace(/-[0-9T:._-]+/, "");
 		if (sessionId === conversationId || file.includes(conversationId)) {
-			const { content: body } = parseFrontmatter(content);
 			return { ok: true, conversation: `Conversation (${file}):\n\n${body}` };
 		}
 	}
 	return { ok: false, error: `Conversation not found: ${conversationId}` };
-}
-
-/**
- * Wrap `execFile` in a Promise for async/await usage.
- * @param {string} cmd - Command to execute
- * @param {string[]} args - Arguments array
- * @param {object} opts - execFile options (timeout, encoding)
- * @returns {Promise<{ stdout: string, stderr: string }>}
- * @private
- */
-async function runCmd(cmd, args, opts) {
-	return new Promise((resolve, reject) => {
-		import("node:child_process").then(({ execFile }) => {
-			execFile(cmd, args, opts, (err, stdout, stderr) => {
-				if (err) reject(err);
-				else resolve({ stdout, stderr });
-			});
-		});
-	});
 }
 
 /**
@@ -118,15 +99,23 @@ async function searchConversations(sessionsDir, query, limit) {
 		return { ok: false, error: `No conversations directory found: ${sessionsDir}` };
 	}
 
-	// grep -rniIn: recursive, fixed-string, case-insensitive, numbered, skip binary
-	let { stdout } = await runCmd("grep", ["-rI", "-niIn", query, sessionsDir], {
-		timeout: 10000,
-		encoding: "utf-8",
-	}).catch((err) => {
+	// grep -rniIn: recursive, fixed-string, case-insensitive, numbered, skip binary.
+	// The `--` terminates option parsing so a query that begins with '-' is
+	// treated as a literal search term, not a grep flag (argument injection).
+	let stdout = "";
+	try {
+		const { stdout: out } = await execFileAsync(
+			"grep",
+			["-rI", "-niIn", "--", query, sessionsDir],
+			{ timeout: 10000, encoding: "utf-8" },
+		);
+		stdout = out;
+	} catch (err) {
 		// exit code 1 = no match (not an error)
-		if (err.code === 1 || err.status === 1) return { stdout: "" };
-		return { stdout: "", stderr: err.message };
-	});
+		if (err.code !== 1 && err.status !== 1) {
+			return { ok: false, error: `Search failed: ${err.message}` };
+		}
+	}
 
 	const output = stdout?.trim() ?? stdout;
 	if (!output) {
@@ -148,16 +137,23 @@ async function searchConversations(sessionsDir, query, limit) {
 		byFile.set(file, arr);
 	}
 
-	// For each file, use sed to extract context lines (±2)
+	// For each file, use sed to extract context lines (±2). The file path is
+	// passed as an argument (not interpolated into a shell string), so shell
+	// metacharacters in the path cannot be interpreted.
 	const results = [];
 	for (const [file, lineMatches] of byFile) {
 		const startLine = Math.max(1, lineMatches[0].lineNum - 2);
 		const endLine = Math.max(lineMatches[lineMatches.length - 1].lineNum + 2, startLine);
-		const { stdout: sedOutput } = await runCmd(
-			"sh",
-			["-c", `sed -n '${startLine},${endLine}p' "$1"`, "_", file],
-			{ timeout: 5000, encoding: "utf-8" },
-		).catch(() => ({ stdout: "" }));
+		let sedOutput = "";
+		try {
+			const { stdout: out } = await execFileAsync("sed", ["-n", `${startLine},${endLine}p`, file], {
+				timeout: 5000,
+				encoding: "utf-8",
+			});
+			sedOutput = out;
+		} catch (_err) {
+			sedOutput = "";
+		}
 
 		const sedLines = sedOutput.split("\n");
 		const matchLineSet = new Set(lineMatches.map((m) => m.lineNum));

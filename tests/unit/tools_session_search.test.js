@@ -57,6 +57,17 @@ describe("searchSession", () => {
 		);
 	});
 
+	it("treats a query starting with a dash as a literal term", async () => {
+		// A query beginning with '-' must not be parsed as a grep flag.
+		writeFileSync(
+			join(testDir, "conv_sub", "dash-query.md"),
+			"---\nsessionId: dash-query\n---\nUser: -r flag-like text\nAssistant: response",
+		);
+		const result = await searchSessionImpl({ query: "-r" }, { sessionsDir: testSubDir });
+		assert.strictEqual(result.ok, true);
+		assert.ok(result.snippets.includes("-r"), `Got: ${result.snippets}`);
+	});
+
 	it("gets full conversation by matching ID", async () => {
 		writeFileSync(
 			join(testDir, "conv_sub", "abc123.md"),
