@@ -48,11 +48,16 @@ export function resolveFilePath(path) {
  * @param {string} pattern - Search pattern
  * @param {string} resolvedPath - Resolved path to search
  * @param {number} maxResults - Max results
- * @returns {Promise<{ok: boolean, matches: string[], count: number}>} Search results
+ * @returns {Promise<{ok: boolean, matches: string[], count: number, error?: string}>} Search results
  */
 export async function nativeSearch(pattern, resolvedPath, maxResults) {
 	const results = [];
-	const regex = new RegExp(pattern);
+	let regex;
+	try {
+		regex = new RegExp(pattern);
+	} catch (err) {
+		return { ok: false, matches: [], count: 0, error: `Invalid search pattern: ${err.message}` };
+	}
 	const seen = new Set();
 	const MAX_DEPTH = 50;
 
@@ -171,10 +176,17 @@ export async function grepImpl(input, options) {
 			return { ok: true, matches: [], count: 0 };
 		}
 
-		const matches = output.split("\n").slice(0, limit);
-		return { ok: true, matches, count: matches.length };
+		const allMatches = output.split("\n");
+		const matches = allMatches.slice(0, limit);
+		return { ok: true, matches, count: allMatches.length };
 	} catch (err) {
-		if (err.code === "ENOENT" || err.code === 1 || err.status === 1) {
+		// Exit code 1 means "no matches found" — a valid, empty result, not a
+		// missing binary. Return an empty result without a slow native walk.
+		if (err.code === 1 || err.status === 1) {
+			return { ok: true, matches: [], count: 0 };
+		}
+		// Only fall back to native search when ripgrep is genuinely unavailable.
+		if (err.code === "ENOENT") {
 			return nativeSearch(input.pattern, resolved.path, input.maxResults || 20);
 		}
 		return { ok: false, error: err.message };

@@ -208,6 +208,35 @@ describe("tools - discovery", () => {
 			assert.strictEqual(result.ok, false);
 			assert.match(result.error, /Access denied/);
 		});
+
+		it("reports the true match count even when truncated by maxResults", async () => {
+			const dir = join(TEST_DIR, "grepcount");
+			mkdirSync(dir, { recursive: true });
+			writeFileSync(join(dir, "a.txt"), Array(100).fill("foo").join("\n"));
+			const result = await grepImpl({ path: dir, pattern: "foo", maxResults: 10 }, getOptions());
+			assert.strictEqual(result.ok, true);
+			assert.strictEqual(result.count, 100);
+			assert.strictEqual(result.matches.length, 10);
+		});
+
+		it("returns an empty result for no matches without erroring", async () => {
+			const dir = join(TEST_DIR, "grepnomatch");
+			mkdirSync(dir, { recursive: true });
+			writeFileSync(join(dir, "a.txt"), "foo\n");
+			const result = await grepImpl({ path: dir, pattern: "nomatch_xyz" }, getOptions());
+			assert.strictEqual(result.ok, true);
+			assert.deepStrictEqual(result.matches, []);
+			assert.strictEqual(result.count, 0);
+		});
+
+		it("nativeSearch returns an error for an invalid regex instead of throwing", async () => {
+			const dir = join(TEST_DIR, "grepbadregex");
+			mkdirSync(dir, { recursive: true });
+			writeFileSync(join(dir, "a.txt"), "foo\n");
+			const result = await nativeSearch("[", dir, 20);
+			assert.strictEqual(result.ok, false);
+			assert.match(result.error, /Invalid search pattern/);
+		});
 	});
 
 	describe("discoveryImpl dispatch", () => {
