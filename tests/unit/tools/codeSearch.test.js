@@ -145,6 +145,20 @@ describe("searchCode tool", () => {
 		assert.ok(result.error.includes("No results matching filter"), `Got: ${result.error}`);
 	});
 
+	it("treats regex metacharacters in fileFilter as literals", async () => {
+		const { searchCodeImpl } = await import("../../../src/tools/code/searchCode.js");
+		// A fileFilter with regex metacharacters must not throw or match unexpectedly.
+		const result = await searchCodeImpl(
+			{ query: "hello", topK: 5, fileFilter: "src/foo(bar" },
+			{
+				vector: { projects: { test: { dbPath } }, model: "openai" },
+				openaiApiKey: "test-key",
+			},
+		);
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("No results matching filter"), `Got: ${result.error}`);
+	});
+
 	it("uses first project as default when no project specified", async () => {
 		const { searchCodeImpl } = await import("../../../src/tools/code/searchCode.js");
 		const result = await searchCodeImpl(
