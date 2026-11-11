@@ -16,7 +16,7 @@ const WEBHOOKS_DIR = join(__dirname, "../../../memory/tools");
 async function ensureWebhooksDir() {
 	try {
 		await access(WEBHOOKS_DIR);
-	} catch {
+	} catch (_err) {
 		const { mkdir } = await import("node:fs/promises");
 		await mkdir(WEBHOOKS_DIR, { recursive: true });
 	}
@@ -31,7 +31,7 @@ async function loadWebhooks() {
 		await access(WEBHOOKS_FILE);
 		const data = await readFile(WEBHOOKS_FILE, "utf-8");
 		return JSON.parse(data);
-	} catch {
+	} catch (_err) {
 		return [];
 	}
 }
@@ -150,7 +150,7 @@ export async function webhookManagement(input) {
 	let parsed;
 	try {
 		parsed = JSON.parse(input);
-	} catch {
+	} catch (_err) {
 		return { ok: false, error: "Invalid JSON input" };
 	}
 	return webhookManagementImpl(parsed);
