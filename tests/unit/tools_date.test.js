@@ -50,6 +50,16 @@ describe("date tool - dateImpl", () => {
 			"Expected distinct timestamps after 1+ second delay",
 		);
 	});
+
+	it("handles a direct call with no input argument", () => {
+		const result = dateImpl();
+		assert.strictEqual(result.ok, true);
+		assert.strictEqual(result.format, "iso");
+		assert.ok(
+			/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(result.date),
+			`Expected ISO 8601 format, got: ${result.date}`,
+		);
+	});
 });
 
 describe("date tool - singleton export", () => {
