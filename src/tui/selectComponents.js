@@ -23,7 +23,7 @@ export function ActiveIndicator({ isSelected = false }) {
 		Box,
 		{ marginRight: 1 },
 		isSelected
-			? React.createElement(Text, { color: "white" }, "▸")
+			? React.createElement(Text, { color: "white" }, "→")
 			: React.createElement(Text, { color: "gray" }, " "),
 	);
 }

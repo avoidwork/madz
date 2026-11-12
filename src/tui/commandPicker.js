@@ -211,7 +211,7 @@ export function CommandPicker({ value, onChange, onClose, commandList = [] }) {
 						React.createElement(
 							Text,
 							{ color: isSelected ? "white" : "gray" },
-							isSelected ? "▸ " : "  ",
+							isSelected ? "→ " : "  ",
 							command,
 						),
 					);
