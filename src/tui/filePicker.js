@@ -258,7 +258,7 @@ export function FilePicker({ value, onChange, onClose, cwd }) {
 							React.createElement(
 								Text,
 								{ color: isSelected ? "white" : "gray" },
-								isSelected ? "▸ " : "  ",
+								isSelected ? "→ " : "  ",
 								file,
 							),
 						);
