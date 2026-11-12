@@ -117,9 +117,10 @@
 ℹ   clarify                      |        |          |         | 
 ℹ    index.js                    | 100.00 |    91.67 |  100.00 | 
 ℹ   code                         |        |          |         | 
+ℹ    code.js                     | 100.00 |   100.00 |  100.00 | 
 ℹ    index.js                    | 100.00 |   100.00 |  100.00 | 
 ℹ    indexCode.js                | 100.00 |    87.50 |  100.00 | 
-ℹ    searchCode.js               |  85.94 |    71.21 |  100.00 | 96-101 114-115 118-123 127-128 150-151 157-158 188-189 192-193 200-201 204-209 213-214 222-223
+ℹ    searchCode.js               |  85.71 |    71.21 |  100.00 | 95-100 113-114 117-122 126-127 149-150 156-157 187-188 191-192 199-200 203-208 212-213 221-222
 ℹ   common.js                    | 100.00 |    96.97 |  100.00 | 
 ℹ   config                       |        |          |         | 
 ℹ    index.js                    | 100.00 |   100.00 |  100.00 | 
@@ -167,7 +168,7 @@
 ℹ   image                        |        |          |         | 
 ℹ    index.js                    | 100.00 |   100.00 |   50.00 | 
 ℹ    readImage.js                |  94.16 |    72.22 |  100.00 | 79-80 88-89 95-96 103-104
-ℹ   index.js                     |  99.66 |    97.67 |   91.67 | 570-571
+ℹ   index.js                     |  99.65 |    97.65 |   91.67 | 566-567
 ℹ   json                         |        |          |         | 
 ℹ    index.js                    |  99.63 |    96.55 |  100.00 | 238
 ℹ   memory                       |        |          |         | 
@@ -245,165 +246,14 @@
 ℹ   loadAgents.js                |  75.00 |    73.33 |   50.00 | 26-27 43 58-72
 ℹ   project.js                   | 100.00 |   100.00 |  100.00 | 
 ℹ -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-ℹ all files                      |  93.13 |    86.56 |   88.02 | 
+ℹ all files                      |  93.13 |    86.56 |   88.03 | 
 ℹ -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ℹ end of coverage report
 
 ✖ failing tests:
 
-test at tests/unit/memory_profile.test.js:311:2
-✖ writes atomically — no .tmp file remains after write (6.551583ms)
-  Error: ENOENT: no such file or directory, scandir '/app/projects/madz/memory/__test_profile__'
-      at readdirSync (node:fs:1956:26)
-      at TestContext.<anonymous> (file:///app/projects/madz/tests/unit/memory_profile.test.js:320:17)
-      at async Test.run (node:internal/test_runner/test:1409:7)
-      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7) {
-    errno: -2,
-    code: 'ENOENT',
-    syscall: 'scandir',
-    path: '/app/projects/madz/memory/__test_profile__'
-  }
-
-test at tests/unit/tools_pptx.test.js:707:2
-✖ creates a minimal presentation with no slides (21.184208ms)
-  SyntaxError [Error]: "[object Object]" is not valid JSON
-      at JSON.parse (<anonymous>)
-      at TestContext.<anonymous> (file:///app/projects/madz/tests/unit/tools_pptx.test.js:709:23)
-      at async Test.run (node:internal/test_runner/test:1409:7)
-      at async Promise.all (index 0)
-      at async Suite.run (node:internal/test_runner/test:1905:7)
-      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
-
-test at tests/unit/tools_pptx.test.js:725:2
-✖ defaults outputPath to config.memory.toolsDir when omitted (4.178167ms)
-  SyntaxError [Error]: "[object Object]" is not valid JSON
-      at JSON.parse (<anonymous>)
-      at TestContext.<anonymous> (file:///app/projects/madz/tests/unit/tools_pptx.test.js:726:23)
-      at async Test.run (node:internal/test_runner/test:1409:7)
-      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
-
-test at tests/unit/tools_pptx.test.js:736:2
-✖ creates a presentation with a single content slide (4.903125ms)
-  SyntaxError [Error]: "[object Object]" is not valid JSON
-      at JSON.parse (<anonymous>)
-      at TestContext.<anonymous> (file:///app/projects/madz/tests/unit/tools_pptx.test.js:738:23)
-      at async Test.run (node:internal/test_runner/test:1409:7)
-      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
-
-test at tests/unit/tools_pptx.test.js:754:2
-✖ creates a presentation with multiple slides (3.934166ms)
-  SyntaxError [Error]: "[object Object]" is not valid JSON
-      at JSON.parse (<anonymous>)
-      at TestContext.<anonymous> (file:///app/projects/madz/tests/unit/tools_pptx.test.js:756:23)
-      at async Test.run (node:internal/test_runner/test:1409:7)
-      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
-
-test at tests/unit/tools_pptx.test.js:770:2
-✖ creates a presentation with tables (3.471458ms)
-  SyntaxError [Error]: "[object Object]" is not valid JSON
-      at JSON.parse (<anonymous>)
-      at TestContext.<anonymous> (file:///app/projects/madz/tests/unit/tools_pptx.test.js:772:23)
-      at async Test.run (node:internal/test_runner/test:1409:7)
-      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
-
-test at tests/unit/tools_pptx.test.js:794:2
-✖ creates a presentation with custom slide dimensions (2.354209ms)
-  SyntaxError [Error]: "[object Object]" is not valid JSON
-      at JSON.parse (<anonymous>)
-      at TestContext.<anonymous> (file:///app/projects/madz/tests/unit/tools_pptx.test.js:796:23)
-      at async Test.run (node:internal/test_runner/test:1409:7)
-      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
-
-test at tests/unit/tools_pptx.test.js:807:2
-✖ rejects output path outside allowed directory (0.194333ms)
-  SyntaxError [Error]: "[object Object]" is not valid JSON
-      at JSON.parse (<anonymous>)
-      at TestContext.<anonymous> (file:///app/projects/madz/tests/unit/tools_pptx.test.js:808:23)
-      at async Test.run (node:internal/test_runner/test:1409:7)
-      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
-
-test at tests/unit/tools_pptx.test.js:818:2
-✖ rejects invalid template path (0.868958ms)
-  SyntaxError [Error]: "[object Object]" is not valid JSON
-      at JSON.parse (<anonymous>)
-      at TestContext.<anonymous> (file:///app/projects/madz/tests/unit/tools_pptx.test.js:819:23)
-      at async Test.run (node:internal/test_runner/test:1409:7)
-      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
-
-test at tests/unit/tools_pptx.test.js:830:2
-✖ rejects unsupported image format (0.208166ms)
-  SyntaxError [Error]: "[object Object]" is not valid JSON
-      at JSON.parse (<anonymous>)
-      at TestContext.<anonymous> (file:///app/projects/madz/tests/unit/tools_pptx.test.js:831:23)
-      at async Test.run (node:internal/test_runner/test:1409:7)
-      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
-
-test at tests/unit/tools_pptx.test.js:841:2
-✖ creates presentation with valid image (3.887ms)
-  SyntaxError [Error]: "[object Object]" is not valid JSON
-      at JSON.parse (<anonymous>)
-      at TestContext.<anonymous> (file:///app/projects/madz/tests/unit/tools_pptx.test.js:843:23)
-      at async Test.run (node:internal/test_runner/test:1409:7)
-      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
-
-test at tests/unit/tools_pptx.test.js:857:2
-✖ creates presentation with background color (2.6375ms)
-  SyntaxError [Error]: "[object Object]" is not valid JSON
-      at JSON.parse (<anonymous>)
-      at TestContext.<anonymous> (file:///app/projects/madz/tests/unit/tools_pptx.test.js:859:23)
-      at async Test.run (node:internal/test_runner/test:1409:7)
-      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
-
-test at tests/unit/tools_pptx.test.js:868:2
-✖ creates presentation with two-column layout (3.245708ms)
-  SyntaxError [Error]: "[object Object]" is not valid JSON
-      at JSON.parse (<anonymous>)
-      at TestContext.<anonymous> (file:///app/projects/madz/tests/unit/tools_pptx.test.js:870:23)
-      at async Test.run (node:internal/test_runner/test:1409:7)
-      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
-
-test at tests/unit/tools_pptx.test.js:885:2
-✖ creates presentation with comparison layout (2.67875ms)
-  SyntaxError [Error]: "[object Object]" is not valid JSON
-      at JSON.parse (<anonymous>)
-      at TestContext.<anonymous> (file:///app/projects/madz/tests/unit/tools_pptx.test.js:887:23)
-      at async Test.run (node:internal/test_runner/test:1409:7)
-      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
-
-test at tests/unit/tools_pptx.test.js:902:2
-✖ creates presentation with image-only layout (3.542708ms)
-  SyntaxError [Error]: "[object Object]" is not valid JSON
-      at JSON.parse (<anonymous>)
-      at TestContext.<anonymous> (file:///app/projects/madz/tests/unit/tools_pptx.test.js:904:23)
-      at async Test.run (node:internal/test_runner/test:1409:7)
-      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
-
-test at tests/unit/tools_pptx.test.js:918:2
-✖ creates presentation with quote layout (2.982792ms)
-  SyntaxError [Error]: "[object Object]" is not valid JSON
-      at JSON.parse (<anonymous>)
-      at TestContext.<anonymous> (file:///app/projects/madz/tests/unit/tools_pptx.test.js:920:23)
-      at async Test.run (node:internal/test_runner/test:1409:7)
-      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
-
-test at tests/unit/tools_pptx.test.js:935:2
-✖ creates presentation with mixed slide types (3.250125ms)
-  SyntaxError [Error]: "[object Object]" is not valid JSON
-      at JSON.parse (<anonymous>)
-      at TestContext.<anonymous> (file:///app/projects/madz/tests/unit/tools_pptx.test.js:937:23)
-      at async Test.run (node:internal/test_runner/test:1409:7)
-      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
-
-test at tests/unit/tools_pptx.test.js:956:2
-✖ creates parent directories for output path (2.682791ms)
-  SyntaxError [Error]: "[object Object]" is not valid JSON
-      at JSON.parse (<anonymous>)
-      at TestContext.<anonymous> (file:///app/projects/madz/tests/unit/tools_pptx.test.js:958:23)
-      at async Test.run (node:internal/test_runner/test:1409:7)
-      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
-
 test at tests/unit/tools_sampling.test.js:295:2
-✖ applies the cooldown across consecutive invocations (8.396667ms)
+✖ applies the cooldown across consecutive invocations (10.489375ms)
   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
   
   false !== true

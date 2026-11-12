@@ -27,7 +27,7 @@ import { createJsonTool } from "./json/index.js";
 import { createYamlTool } from "./yaml/index.js";
 import { createDataTool } from "./data/index.js";
 import { createWebhookTool } from "./webhook/index.js";
-import { searchCode, indexCode } from "./code/index.js";
+import { code } from "./code/index.js";
 import { todo } from "./todo/index.js";
 import { file } from "./file/index.js";
 import { discovery } from "./discovery/index.js";
@@ -81,8 +81,7 @@ export const TOOL_PERMISSIONS = {
 	yaml: ["filesystem:read"],
 	data: ["filesystem:read"],
 	webhook: ["filesystem:read", "filesystem:write"],
-	searchCode: ["filesystem:read"],
-	indexCode: ["filesystem:read", "filesystem:write"],
+	code: ["filesystem:read", "filesystem:write"],
 	getConfig: ["filesystem:read"],
 	decision: ["network:outbound"],
 };
@@ -203,7 +202,7 @@ export const TOOL_CLASSIFICATIONS = {
 	yaml: ["search", "research", "coding", "documentation", "debug"],
 	data: ["search", "research", "coding", "documentation", "debug"],
 	webhook: ["search", "research", "coding", "documentation", "debug"],
-	searchCode: [
+	code: [
 		"search",
 		"research",
 		"coding",
@@ -215,7 +214,6 @@ export const TOOL_CLASSIFICATIONS = {
 		"documentation",
 		"seoAnalyst",
 	],
-	indexCode: ["coding", "debug", "performance"],
 	getConfig: [
 		"coding",
 		"debug",
@@ -294,8 +292,7 @@ export const ORCHESTRATOR_TOOLS = [
 	"sampling",
 	"createSkill",
 	"skill",
-	"searchCode",
-	"indexCode",
+	"code",
 	"getConfig",
 	"readImage",
 	"decision",
@@ -340,8 +337,7 @@ export const TOOLS = {
 	yaml: createYamlTool,
 	data: createDataTool,
 	webhook: createWebhookTool,
-	searchCode,
-	indexCode,
+	code,
 	getConfig,
 	decision,
 };

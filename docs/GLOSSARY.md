@@ -103,7 +103,7 @@ Named project configurations under the `vector` section of `config.yaml`. Each d
 
 ### searchMode
 
-The default search mode for `searchCode`: `vector` (semantic similarity), `fulltext` (keyword FTS5), or `hybrid` (both, merged via Reciprocal Rank Fusion). Default is `hybrid`.
+The default search mode for the `code` tool's `search` action: `vector` (semantic similarity), `fulltext` (keyword FTS5), or `hybrid` (both, merged via Reciprocal Rank Fusion). Default is `hybrid`.
 
 ### RRF (Reciprocal Rank Fusion)
 

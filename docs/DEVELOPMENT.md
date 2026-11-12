@@ -20,7 +20,7 @@ Setting up for local development, the directory layout, testing, and extending s
 │   ├── stream/                 # Stream transformers
 │   ├── telemetry/              # OpenTelemetry tracing
 │   ├── tools/                  # Built-in LangChain tools
-│   │   ├── code/               # Semantic code search & indexing (searchCode, indexCode)
+│   │   ├── code/               # Semantic code search & indexing (code tool)
 │   │   ├── config/             # getConfig tool
 │   │   ├── pdf/                # PDF generation & manipulation (generatePdf)
 │   │   ├── pptx/               # PPTX creation (generatePptx)
