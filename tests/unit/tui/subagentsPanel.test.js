@@ -414,6 +414,45 @@ describe("SubagentsPanel", () => {
 		assert.strictEqual(result.split("🔧").length - 1, 1);
 	});
 
+	it("renders a running tool call when no tool segment exists yet", () => {
+		// A task that just started emits subagent_tool_start, which adds a
+		// toolCalls entry (status: "running") but no `tool` segment. The panel
+		// must render the running tool so the bubble isn't an empty header.
+		const result = renderToString(
+			React.createElement(SubagentsPanel, {
+				subagentStore: {
+					"task:abc": {
+						namespace: "task:abc",
+						segments: [],
+						toolCalls: [{ name: "read_file", status: "running" }],
+					},
+				},
+				activeView: "subagents",
+			}),
+		);
+		assert.ok(result.includes("read_file"), "running tool name should render");
+		assert.ok(result.includes("(running)"), "running status should render");
+	});
+
+	it("does not duplicate a completed tool call that has a tool segment", () => {
+		// A completed tool produces both a `tool` segment (rendered by
+		// MessageBubble) and a toolCalls entry. The panel must not render the
+		// toolCalls entry again.
+		const result = renderToString(
+			React.createElement(SubagentsPanel, {
+				subagentStore: {
+					"task:abc": {
+						namespace: "task:abc",
+						segments: [{ type: "tool", content: "out", name: "read_file" }],
+						toolCalls: [{ name: "read_file", status: "done" }],
+					},
+				},
+				activeView: "subagents",
+			}),
+		);
+		assert.strictEqual(result.split("🔧").length - 1, 1);
+	});
+
 	const reasoningStore = {
 		"task:abc": {
 			namespace: "task:abc",
