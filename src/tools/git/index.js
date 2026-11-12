@@ -307,12 +307,15 @@ function validateInput(input) {
 			}
 		}
 	}
-	for (const p of [
+	// Collect path inputs, including empty strings (which are falsy but invalid).
+	const pathInputs = [
 		...(input.paths || []),
-		...(input.path ? [input.path] : []),
-		...(input.to ? [input.to] : []),
-	]) {
+		...(input.path !== undefined && input.path !== null ? [input.path] : []),
+		...(input.to !== undefined && input.to !== null ? [input.to] : []),
+	];
+	for (const p of pathInputs) {
 		if (p.includes("\0")) return "Invalid path";
+		if (p.trim() === "") return "Invalid path: path may not be empty or whitespace-only";
 		if (p.startsWith("-")) return `Invalid path '${p}': prefix it with './' if it starts with '-'.`;
 	}
 	if (input.url !== undefined && (input.url.startsWith("-") || /^(ext|fd)::/i.test(input.url))) {
@@ -515,9 +518,21 @@ function parseRefs(output) {
 function parseBlame(output) {
 	const out = [];
 	let cur = null;
+	// Flush a pending record. Only emit records that captured a content line;
+	// a header with no following content (truncated/malformed output) is dropped
+	// rather than emitted as an empty entry.
+	const flush = () => {
+		if (cur && cur.content !== "") {
+			out.push(cur);
+		}
+		cur = null;
+	};
 	for (const line of output.split("\n")) {
 		const header = line.match(/^([0-9a-f]{40,64}) \d+ (\d+)/);
-		if (header && !cur) {
+		if (header) {
+			// A new header while a record is pending means the previous record
+			// never got a content line; flush it so it isn't lost or misattributed.
+			flush();
 			cur = { line: Number(header[2]), hash: header[1], author: "", summary: "", content: "" };
 		} else if (cur) {
 			if (line.startsWith("author ")) cur.author = line.slice(7);
@@ -529,6 +544,7 @@ function parseBlame(output) {
 			}
 		}
 	}
+	flush();
 	return out;
 }
 
@@ -1465,7 +1481,7 @@ const handlers = {
  *   always resolve via `getProjectCwd() || config.cwd || process.cwd()`.
  * @returns {Promise<object>} Result of the operation
  */
-export async function gitImpl(input, options = {}) {
+export async function gitImpl(input = {}, options = {}) {
 	const { action } = input;
 
 	if (!VALID_ACTIONS.includes(action)) {

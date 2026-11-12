@@ -344,6 +344,8 @@ describe("tools - git actions (real repo)", () => {
 			{ action: "push", remote: "--upload-pack=x" },
 			{ action: "clone", url: "ext::sh -c evil" },
 			{ action: "add", path: "-A" },
+			{ action: "add", path: "" },
+			{ action: "add", paths: ["   "] },
 		]) {
 			const r = await g(input);
 			assert.equal(r.ok, false, JSON.stringify(input));

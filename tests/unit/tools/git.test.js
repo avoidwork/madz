@@ -154,4 +154,10 @@ describe("tools - git cwd resolution", () => {
 		assert.strictEqual(result.ok, true);
 		assert.ok(result.branch);
 	});
+
+	it("handles a direct call with no input argument", async () => {
+		const result = await gitImpl();
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("Unknown action"), `Got: ${result.error}`);
+	});
 });
