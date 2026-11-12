@@ -1,2 +1,1 @@
-export { searchCode } from "./searchCode.js";
-export { indexCode } from "./indexCode.js";
+export { code } from "./code.js";

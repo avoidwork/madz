@@ -1,4 +1,3 @@
-import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { loadConfig } from "../../config/loader.js";
 import { createVectorStore } from "../../vector/store.js";
@@ -225,32 +224,29 @@ export async function searchCodeImpl(input, options = {}) {
 	}
 }
 
-export const searchCode = tool(searchCodeImpl, {
-	name: "searchCode",
-	description:
-		"Search source code using hybrid (vector + keyword), full-text, or vector similarity search. " +
-		"By default, uses hybrid mode combining semantic similarity with FTS5 keyword matching " +
-		"via Reciprocal Rank Fusion. " +
-		"Use 'mode: vector' for pure semantic search, or 'mode: fulltext' for exact keyword matches. " +
-		"Returns code chunks with file paths, line numbers, and similarity scores.",
-	schema: z.object({
-		query: z.string().min(1).describe("Natural language query describing the code to find"),
-		project: z
-			.string()
-			.optional()
-			.describe(
-				"Project name to search (as configured in vector.projects). Defaults to the first project.",
-			),
-		topK: z.number().int().positive().max(50).default(5).describe("Number of results to return"),
-		fileFilter: z
-			.string()
-			.optional()
-			.describe("Optional glob pattern to filter results by file path (e.g., 'src/tools/*.js')"),
-		mode: z
-			.enum(["vector", "fulltext", "hybrid"])
-			.default("hybrid")
-			.describe(
-				"Search mode: 'vector' (semantic similarity), 'fulltext' (keyword FTS5), or 'hybrid' (both with RRF fusion)",
-			),
-	}),
+/**
+ * Zod schema for the `code` tool's `search` action.
+ *
+ * @type {z.ZodObject}
+ */
+export const CodeSearchSchema = z.object({
+	action: z.literal("search").describe("Search the vector index for code matching a query"),
+	query: z.string().min(1).describe("Natural language query describing the code to find"),
+	project: z
+		.string()
+		.optional()
+		.describe(
+			"Project name to search (as configured in vector.projects). Defaults to the first project.",
+		),
+	topK: z.number().int().positive().max(50).default(5).describe("Number of results to return"),
+	fileFilter: z
+		.string()
+		.optional()
+		.describe("Optional glob pattern to filter results by file path (e.g., 'src/tools/*.js')"),
+	mode: z
+		.enum(["vector", "fulltext", "hybrid"])
+		.default("hybrid")
+		.describe(
+			"Search mode: 'vector' (semantic similarity), 'fulltext' (keyword FTS5), or 'hybrid' (both with RRF fusion)",
+		),
 });

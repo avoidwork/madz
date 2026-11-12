@@ -4,7 +4,7 @@ import { reindex } from "./indexer.js";
 import { loadConfig } from "../config/loader.js";
 
 /**
- * Piscina worker entry point for the indexCode tool.
+ * Piscina worker entry point for the `code` tool's `index` action.
  *
  * Runs the indexing work (scan, chunk, embed, store) off the main event loop.
  * Accepts plain project config (structured-cloneable) and creates the vector

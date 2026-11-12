@@ -1,4 +1,3 @@
-import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { Piscina } from "piscina";
 import { fileURLToPath } from "node:url";
@@ -87,21 +86,18 @@ export async function indexCodeImpl(input, options = {}) {
 	return { ok: true, results };
 }
 
-export const indexCode = tool(indexCodeImpl, {
-	name: "indexCode",
-	description:
-		"Index project source code for vector search. " +
-		"Scans configured project directories, chunks source files, generates embeddings, " +
-		"and stores them for semantic search via searchCode. " +
-		"Runs incrementally — only processes changed files. " +
-		"Use this after adding new code or changing project configuration.",
-	schema: z.object({
-		project: z
-			.string()
-			.optional()
-			.describe(
-				"Project name to index (as configured in vector.projects). Indexes all projects if omitted.",
-			),
-		force: z.boolean().default(false).describe("Force re-index all files, ignoring mtime cache"),
-	}),
+/**
+ * Zod schema for the `code` tool's `index` action.
+ *
+ * @type {z.ZodObject}
+ */
+export const CodeIndexSchema = z.object({
+	action: z.literal("index").describe("Index project source code for vector search"),
+	project: z
+		.string()
+		.optional()
+		.describe(
+			"Project name to index (as configured in vector.projects). Indexes all projects if omitted.",
+		),
+	force: z.boolean().default(false).describe("Force re-index all files, ignoring mtime cache"),
 });

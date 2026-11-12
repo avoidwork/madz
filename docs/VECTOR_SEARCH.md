@@ -113,13 +113,15 @@ Orchestrates the full indexing pipeline:
 
 **Incremental indexing:** Only processes files whose mtime has changed since the last index. Pass `--force` to re-index everything.
 
-### `src/tools/code/indexCode.js`
+### `src/tools/code/code.js`
 
-LangChain tool that dispatches indexing to a Piscina worker pool. This is the **primary** indexing path — invoked by the agent, not a CLI arg. Iterates over one or all configured projects, running each through the pool so the work stays off the main event loop.
+The `code` tool unifies indexing and search behind a single `action` discriminator. Both actions operate on the same per-project sqlite-vec store. `action: "index"` dispatches indexing to a Piscina worker pool (the **primary** indexing path — invoked by the agent, not a CLI arg), iterating over one or all configured projects so the work stays off the main event loop. `action: "search"` queries the store.
 
 ```mermaid
 graph TD
-    IDX["indexCode Tool"] -->|"pool.run()"| POOL["Piscina worker pool"]
+    CODE["code Tool"] --> ACT{"action"}
+    ACT -->|"index"| IDX["indexCodeImpl"]
+    IDX -->|"pool.run()"| POOL["Piscina worker pool"]
     POOL --> WK["indexerWorker.js"]
     WK --> RE["reindex()"]
     RE --> SCAN["Scan"]
@@ -131,47 +133,35 @@ graph TD
     RE --> CACHE["Update mtime cache"]
     STO --> DB["madz.db"]
     CACHE --> MTC["madz-mtimes.json"]
-```
-
-**Input schema:**
-
-| Field     | Type    | Default        | Description                                                                          |
-| --------- | ------- | -------------- | ------------------------------------------------------------------------------------ |
-| `project` | string  | all configured | Project name from `vector.projects` in config.yaml. Indexes all projects if omitted. |
-| `force`   | boolean | `false`        | Force re-index all files, ignoring the mtime cache                                   |
-
-### `src/tools/code/searchCode.js`
-
-LangChain tool available to the orchestrator and the code-related subagents — `search`, `research`, `coding`, `code-review`, `debug`, `security-audit`, `testing`, `performance`, `documentation`, and `seoAnalyst`.
-
-```mermaid
-graph TD
-    SC["searchCode Tool"] --> PROJ["Resolve project"]
+    ACT -->|"search"| SC["searchCodeImpl"]
+    SC --> PROJ["Resolve project"]
     PROJ --> OPEN["Open vector store"]
     OPEN --> MODE{"mode"}
-    MODE -->|"vector"| EMB["Embed query"]
-    EMB --> VEC["KNN search"]
+    MODE -->|"vector"| EMB2["Embed query"]
+    EMB2 --> VEC["KNN search"]
     MODE -->|"fulltext"| FTS["FTS5 search"]
-    MODE -->|"hybrid"| EMB2["Embed query"]
-    EMB2 --> HYB["Hybrid search (RRF)"]
-    VEC --> FILT["Apply fileFilter"]
-    FTS --> FILT
-    HYB --> FILT
-    FILT --> FMT["Format results"]
+    MODE -->|"hybrid"| EMB3["Embed query"]
+    EMB3 --> HYB["Hybrid search (RRF)"]
+    VEC --> FILT2["Apply fileFilter"]
+    FTS --> FILT2
+    HYB --> FILT2
+    FILT2 --> FMT["Format results"]
     FMT --> OUT["Return to orchestrator/subagent"]
 ```
 
-**Input schema:**
+**Input schema** (`action` discriminates the two shapes):
 
 | Field        | Type   | Default          | Description                                                                                                                   |
 | ------------ | ------ | ---------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `query`      | string | required         | Natural language query describing the code to find                                                                            |
-| `topK`       | number | 5                | Number of results (1–50)                                                                                                      |
+| `action`     | string | required         | `index` or `search`                                                                                                           |
+| `query`      | string | required (search) | Natural language query describing the code to find                                                                            |
+| `topK`       | number | 5 (search)       | Number of results (1–50)                                                                                                      |
 | `project`    | string | first configured | Project name from `vector.projects` in config.yaml                                                                            |
-| `fileFilter` | string | optional         | Glob pattern to filter results (e.g., `src/tools/*.js`)                                                                       |
-| `mode`       | string | `hybrid`         | Search mode: `vector` (semantic similarity), `fulltext` (keyword FTS5), or `hybrid` (both, merged via Reciprocal Rank Fusion) |
+| `fileFilter` | string | optional (search) | Glob pattern to filter results (e.g., `src/tools/*.js`)                                                                       |
+| `mode`       | string | `hybrid` (search) | Search mode: `vector` (semantic similarity), `fulltext` (keyword FTS5), or `hybrid` (both, merged via Reciprocal Rank Fusion) |
+| `force`      | boolean | `false` (index)  | Force re-index all files, ignoring the mtime cache                                                                            |
 
-**Output:** Formatted list of matching code chunks with file paths, line ranges, content, and similarity scores (cosine distance for vector results, rank for full-text results, both for hybrid).
+**Output:** For `search`, a formatted list of matching code chunks with file paths, line ranges, content, and similarity scores (cosine distance for vector results, rank for full-text results, both for hybrid). For `index`, per-project `{ indexed, skipped, errors }` counts.
 
 ## Configuration
 
@@ -209,12 +199,12 @@ Each named project under `vector.projects` defines its own root directory, datab
 
 ### Indexing
 
-Indexing is driven by the `indexCode` tool, available to any agent. It dispatches the work to a Piscina worker pool, so it runs off the main event loop:
+Indexing is driven by the `code` tool's `index` action, available to any agent. It dispatches the work to a Piscina worker pool, so it runs off the main event loop:
 
 ```
-indexCode()                # Index all configured projects
-indexCode(project="madz")  # Index a single project
-indexCode(force=true)      # Force re-index all files
+code(action="index")                # Index all configured projects
+code(action="index", project="madz")  # Index a single project
+code(action="index", force=true)      # Force re-index all files
 ```
 
 The CLI flag is a fallback that runs indexing inline (no worker pool):
@@ -231,21 +221,21 @@ Both paths iterate over every project in `vector.projects`, creating or updating
 
 ### Workflow
 
-Indexing and search are two halves of one workflow. **You must index before you can search** — `searchCode` returns a "Try running the indexCode tool first" hint when the store is empty. The typical flow is:
+Indexing and search are two halves of one workflow. **You must index before you can search** — the `code` tool's `search` action returns a "Try running the indexCode tool first" hint when the store is empty. The typical flow is:
 
-1. **Index** — run `indexCode` after adding code or changing project config, so the vector store reflects the current source tree.
-2. **Search** — run `searchCode` to find code by meaning. Re-index when the code changes.
+1. **Index** — run `code(action="index")` after adding code or changing project config, so the vector store reflects the current source tree.
+2. **Search** — run `code(action="search")` to find code by meaning. Re-index when the code changes.
 
 ### Querying
 
-Via the `searchCode` tool, available to any agent:
+Via the `code` tool's `search` action, available to any agent:
 
 ```
-searchCode(query="how does SSE streaming work", topK=3)
-searchCode(query="tool registration pattern", project="madz")
-searchCode(query="authentication flow", project="madz", fileFilter="src/tools/*.js")
-searchCode(query="tool registration pattern", mode="vector")    # pure semantic search
-searchCode(query="tool registration pattern", mode="fulltext")  # exact keyword match
+code(action="search", query="how does SSE streaming work", topK=3)
+code(action="search", query="tool registration pattern", project="madz")
+code(action="search", query="authentication flow", project="madz", fileFilter="src/tools/*.js")
+code(action="search", query="tool registration pattern", mode="vector")    # pure semantic search
+code(action="search", query="tool registration pattern", mode="fulltext")  # exact keyword match
 ```
 
 The `project` parameter selects which indexed project to search. Defaults to the first configured project if omitted. The `mode` parameter overrides the configured `searchMode` for a single call.
