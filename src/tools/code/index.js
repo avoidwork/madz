@@ -1,1 +1,1 @@
-export { code, codeImpl, CodeToolSchema } from "./code.js";
+export { code } from "./code.js";
