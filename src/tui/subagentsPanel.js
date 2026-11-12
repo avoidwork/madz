@@ -147,8 +147,13 @@ export const SubagentsPanel = forwardRef(function SubagentsPanel(
 							reasoningCollapsed,
 							toolCallCollapsed,
 						}),
-						// Tool calls are already rendered by MessageBubble via the
-						// `tool` segments; don't render `entry.toolCalls` again.
+						// Render tool calls that are not already represented as a
+						// `tool` segment. A running tool (subagent_tool_start) has a
+						// `toolCalls` entry but no segment yet, so it must render here
+						// or the bubble shows only an empty header. Completed tool
+						// calls are rendered by MessageBubble via their `tool` segment,
+						// so they are filtered out to avoid a duplicate.
+						renderToolCalls(entry),
 					),
 				onContentHeightChange: handleContentHeightChange,
 				onScroll: handleScroll,
@@ -171,5 +176,47 @@ export function estimateSubagentHeight(entry) {
 	if (text) height += Math.ceil(text.length / 80) || 1;
 	// Each tool segment renders as at least one row (header) in MessageBubble.
 	height += (entry.segments || []).filter((s) => s.type === "tool").length;
+	// Running tool calls (no segment yet) render as a single row here.
+	height += getPendingToolCalls(entry).length;
 	return Math.max(1, height);
+}
+
+/**
+ * Get the tool calls that are not already rendered by MessageBubble as a
+ * `tool` segment. A running tool (from `subagent_tool_start`) has a
+ * `toolCalls` entry but no segment yet, so it must render in the panel's own
+ * tool-call list. Completed tool calls are rendered by MessageBubble via their
+ * `tool` segment, so they are filtered out to avoid a duplicate.
+ * @param {{segments?: Array<{type: string}>, toolCalls?: Array<Object>}} entry
+ * @returns {Array<Object>} The tool calls that need a standalone row.
+ */
+export function getPendingToolCalls(entry) {
+	const toolNames = new Set(
+		(entry.segments || []).filter((s) => s.type === "tool").map((s) => s.name),
+	);
+	return (entry.toolCalls || []).filter((call) => !toolNames.has(call.name));
+}
+
+/**
+ * Render a subagent's tool calls that are not already shown as a `tool`
+ * segment. Running tools (no segment yet) render as a compact list so the
+ * panel shows live activity instead of an empty bubble.
+ * @param {{segments?: Array<{type: string}>, toolCalls?: Array<Object>}} entry
+ * @returns {React.ReactElement|null} The rendered tool-call list, or null.
+ */
+export function renderToolCalls(entry) {
+	const pending = getPendingToolCalls(entry);
+	if (pending.length === 0) return null;
+
+	return React.createElement(
+		Box,
+		{ flexDirection: "column", marginTop: 1 },
+		...pending.map((call, idx) =>
+			React.createElement(
+				Text,
+				{ key: idx, color: call.status === "error" ? "red" : "gray" },
+				`🔧 ${call.name}${call.status === "running" ? " (running)" : ""}`,
+			),
+		),
+	);
 }
