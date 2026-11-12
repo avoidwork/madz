@@ -15,7 +15,7 @@ export const findFreeSlots = CalendarProviderBase.findFreeSlots.bind(CalendarPro
  * @param {object} [options] - Runtime options
  * @returns {Promise<object>} Result object
  */
-export async function calendarImpl(input, options) {
+export async function calendarImpl(input = {}, options = {}) {
 	const { action } = input;
 
 	const validActions = ["read", "create", "update", "delete", "availability", "summary"];
@@ -124,9 +124,14 @@ export async function calendarImpl(input, options) {
 		}
 
 		case "summary": {
-			const { startDate, endDate } = input;
-			if (!startDate) {
-				return { ok: false, error: "startDate is required for summary action" };
+			const { startDate, endDate, eventId } = input;
+			// The schema allows a summary by date range (startDate) or by a single
+			// event (eventId). Require one of the two; the provider decides which.
+			if (!startDate && !eventId) {
+				return {
+					ok: false,
+					error: "startDate or eventId is required for summary action",
+				};
 			}
 			const effectiveEnd = endDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
 			try {

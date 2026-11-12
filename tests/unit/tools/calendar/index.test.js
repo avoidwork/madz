@@ -80,12 +80,27 @@ describe("calendarImpl", () => {
 		);
 	});
 
-	it("should return error for summary without startDate", async () => {
+	it("should return error for summary without startDate or eventId", async () => {
 		const result = await calendarImpl({ action: "summary" });
 		assert.strictEqual(result.ok, false);
 		assert.ok(
 			result.error.includes("Invalid calendar provider config") ||
 				result.error.includes("startDate"),
 		);
+	});
+
+	it("should accept summary with eventId (schema allows eventId as alternative)", async () => {
+		// The schema permits summary by eventId alone; the impl must not reject it
+		// with the "startDate or eventId is required" guard. It proceeds to the
+		// provider, which fails credential validation (no credentials configured).
+		const result = await calendarImpl({ action: "summary", eventId: "evt_123" });
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("Invalid calendar provider config"), `Got: ${result.error}`);
+	});
+
+	it("should handle a direct call with no input argument", async () => {
+		const result = await calendarImpl();
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("Unknown action"), `Got: ${result.error}`);
 	});
 });
