@@ -138,7 +138,7 @@ export function formatProfileContext(profileData) {
 		}
 	}
 	if (pairs.length === 0) return "";
-	return "[Context: Profile]\n" + pairs.join(", ");
+	return pairs.join(", ");
 }
 
 /**

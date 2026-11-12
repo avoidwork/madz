@@ -194,7 +194,7 @@ describe("formatProfileContext", () => {
 	it("formats non-empty attributes as key: value pairs", () => {
 		const data = { name: "Alice", dob: "1990", hobbies: "hiking", pets: "cat" };
 		const result = formatProfileContext(data);
-		assert.ok(result.startsWith("[Context: Profile]"));
+		assert.ok(!result.startsWith("[Context: Profile]"));
 		assert.ok(result.includes("name: Alice"));
 		assert.ok(result.includes("dob: 1990"));
 		assert.ok(result.includes("hobbies: hiking"));
@@ -204,7 +204,7 @@ describe("formatProfileContext", () => {
 	it("skips empty attributes", () => {
 		const data = { dob: "", hobbies: "reading", pet: "   " };
 		const result = formatProfileContext(data);
-		assert.ok(result.startsWith("[Context: Profile]"));
+		assert.ok(!result.startsWith("[Context: Profile]"));
 		assert.ok(!result.includes("dob:"));
 		assert.ok(!result.includes("pet:"));
 		assert.ok(result.includes("hobbies: reading"));
