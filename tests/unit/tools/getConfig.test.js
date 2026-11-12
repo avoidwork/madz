@@ -1,4 +1,4 @@
-import { describe, it } from "node:test";
+import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert";
 
 describe("getConfig tool", () => {
@@ -61,5 +61,60 @@ describe("getConfig tool", () => {
 		assert.strictEqual(getConfig.name, "getConfig");
 		assert.ok(typeof getConfig.description === "string");
 		assert.ok(getConfig.description.length > 0);
+	});
+});
+
+describe("getConfig tool - secret masking", () => {
+	let loader;
+	let mod;
+
+	beforeEach(async () => {
+		loader = await import("../../../src/config/loader.js");
+		mod = await import("../../../src/tools/config/index.js");
+		loader._resetConfigCache();
+		mod._resetGetConfigCache();
+	});
+
+	afterEach(() => {
+		delete process.env.OPENAI_API_KEY;
+		delete process.env.FAL_API_KEY;
+		loader._resetConfigCache();
+		mod._resetGetConfigCache();
+	});
+
+	it("masks resolved apiKey values in the config output", async () => {
+		process.env.OPENAI_API_KEY = "sk-test-secret-123";
+		process.env.FAL_API_KEY = "fal-secret-456";
+		const result = await mod.getConfig.invoke({});
+		assert.strictEqual(result.ok, true);
+		assert.strictEqual(result.config.providers.openai.credentials.apiKey, "***");
+		assert.strictEqual(result.config.providers.fal.credentials.apiKey, "***");
+	});
+
+	it("preserves empty-string credentials (not configured)", async () => {
+		const result = await mod.getConfig.invoke({});
+		// bing apiKey is empty in config.yaml and not set via env
+		assert.strictEqual(result.config.search.bing.apiKey, "");
+	});
+
+	it("does not mutate the source config object", async () => {
+		process.env.OPENAI_API_KEY = "sk-test-secret-123";
+		const config = loader.loadConfig();
+		const before = config.providers.openai.credentials.apiKey;
+		await mod.getConfig.invoke({});
+		assert.strictEqual(config.providers.openai.credentials.apiKey, before);
+	});
+
+	it("caches the masked result and reuses it across calls", async () => {
+		const r1 = await mod.getConfig.invoke({});
+		const r2 = await mod.getConfig.invoke({});
+		assert.strictEqual(r1.config, r2.config);
+	});
+
+	it("recomputes after cache reset", async () => {
+		const r1 = await mod.getConfig.invoke({});
+		mod._resetGetConfigCache();
+		const r2 = await mod.getConfig.invoke({});
+		assert.notStrictEqual(r1.config, r2.config);
 	});
 });
