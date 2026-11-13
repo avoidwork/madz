@@ -36,10 +36,10 @@ after(teardown);
 // ===========================================================================
 
 describe("formatProfileContext (pure)", () => {
-	it("formats valid profile data with [Context: Profile] prefix", () => {
+	it("formats valid profile data without a [Context: Profile] prefix", () => {
 		const data = { name: "Alice", dob: "1990", hobbies: "hiking" };
 		const result = formatProfileContext(data);
-		assert.ok(result.startsWith("[Context: Profile]"));
+		assert.ok(!result.startsWith("[Context: Profile]"));
 		assert.ok(result.includes("name: Alice"));
 		assert.ok(result.includes("dob: 1990"));
 		assert.ok(result.includes("hobbies: hiking"));
