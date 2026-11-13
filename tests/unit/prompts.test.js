@@ -160,6 +160,17 @@ describe("loadSystemPrompt", () => {
 		delete process.env.AGENT_SAMPLING;
 	});
 
+	it("ends the prompt with an open-ended runtime details header", async () => {
+		writeFileSync(
+			join(fullTestDir, "prompts", "SYSTEM_PROMPT.md"),
+			"# System Prompt\n\nYou are a helpful assistant.",
+		);
+
+		const { loadSystemPrompt } = await import("../../src/memory/prompts.js");
+		const result = await loadSystemPrompt(fullTestDir);
+		assert.ok(result.trimEnd().endsWith("## Runtime capabilities"));
+	});
+
 	it("includes todo tool directive for multi-step work planning", async () => {
 		writeFileSync(
 			join(fullTestDir, "prompts", "SYSTEM_PROMPT.md"),

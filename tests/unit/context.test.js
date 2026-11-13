@@ -334,6 +334,64 @@ describe("loadContext", () => {
 		assert.ok(result.includes("[Context: Note]"));
 		assert.ok(!result.includes("Should this be in the system prompt?"));
 	});
+
+	it("renders reflection.md under its own labeled section", async () => {
+		writeFileSync(
+			join(fullTestDir, "reflection.md"),
+			"---\ntimestamp: 2024-01-01\n---\nThe week opened on a quiet note.",
+		);
+		writeFileSync(
+			join(fullTestDir, "note.md"),
+			"---\ntitle: Note\ntimestamp: 2024-01-01\n---\nNote content",
+		);
+
+		const result = await loadContext(testDir, 10);
+		assert.ok(result.includes("## Reflection"));
+		assert.ok(result.includes("The week opened on a quiet note."));
+		// Reflection must not be swept into the generic memories bucket
+		assert.ok(!result.includes("[Context: reflection.md]"));
+		assert.ok(!result.includes("[Context: /app/projects/madz/memory/context/reflection.md]"));
+	});
+
+	it("orders sections as profile > memories > reflection > ephemeral", async () => {
+		writeFileSync(join(fullTestDir, "profile.md"), "name: Jason\nhobbies: photography");
+		writeFileSync(
+			join(fullTestDir, "reflection.md"),
+			"---\ntimestamp: 2024-01-01\n---\nReflection narrative",
+		);
+		writeFileSync(
+			join(fullTestDir, "note.md"),
+			"---\ntitle: Note\ntimestamp: 2024-01-01\n---\nNote content",
+		);
+		writeFileSync(
+			join(fullTestDir, "ephemeral-active.md"),
+			'---\ntitle: Ephemeral Active\ntimestamp: 2024-01-02\nephemeral: true\nephemeral_expiresAt: "2099-01-01T00:00:00.000Z"\n---\nActive ephemeral content',
+		);
+
+		const result = await loadContext(testDir, 10);
+		const profileIdx = result.indexOf("## Profile");
+		const memoriesIdx = result.indexOf("## Memories");
+		const reflectionIdx = result.indexOf("## Reflection");
+		const ephemeralIdx = result.indexOf("## Ephemeral");
+		assert.ok(profileIdx !== -1, "Profile section should be present");
+		assert.ok(memoriesIdx !== -1, "Memories section should be present");
+		assert.ok(reflectionIdx !== -1, "Reflection section should be present");
+		assert.ok(ephemeralIdx !== -1, "Ephemeral section should be present");
+		assert.ok(profileIdx < memoriesIdx, "Profile should come before Memories");
+		assert.ok(memoriesIdx < reflectionIdx, "Memories should come before Reflection");
+		assert.ok(reflectionIdx < ephemeralIdx, "Reflection should come before Ephemeral");
+	});
+
+	it("omits the reflection section when reflection.md is absent", async () => {
+		writeFileSync(
+			join(fullTestDir, "note.md"),
+			"---\ntitle: Note\ntimestamp: 2024-01-01\n---\nNote content",
+		);
+
+		const result = await loadContext(testDir, 10);
+		assert.ok(!result.includes("## Reflection"));
+		assert.ok(result.includes("## Memories"));
+	});
 });
 
 describe("parseFrontmatter in context", () => {

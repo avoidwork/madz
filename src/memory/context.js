@@ -12,6 +12,7 @@ const execFileAsync = promisify(execFile);
 
 const cwd = loadConfig().cwd;
 const PROFILE_FILENAME = "profile.md";
+const REFLECTION_FILENAME = "reflection.md";
 
 /**
  * Read recent context files and return their content as a combined string,
@@ -28,9 +29,9 @@ export async function loadContext(contextDir = "memory/context/", limit = 10, cw
 		// Load profile context block first
 		const profileBlock = await loadAndFormatProfile(fullPath, contextDir);
 
-		// Load all .md files (excluding profile.md)
+		// Load all .md files (excluding profile.md and reflection.md)
 		const allFiles = (await readdir(fullPath)).filter(
-			(f) => f.endsWith(".md") && f !== PROFILE_FILENAME,
+			(f) => f.endsWith(".md") && f !== PROFILE_FILENAME && f !== REFLECTION_FILENAME,
 		);
 
 		// Separate ephemeral and persistent files
@@ -64,13 +65,20 @@ export async function loadContext(contextDir = "memory/context/", limit = 10, cw
 			})
 			.join("\n");
 
+		// Load the reflection file into its own section (if present)
+		const reflectionBlock = await loadReflectionBlock(fullPath);
+
 		// Load ephemeral memories last (newest first, limited)
 		const ephemeralLimit = loadConfig().memory.ephemeralLimit;
 		const ephemeralBlocks = await loadEphemeralBlocks(fullPath, ephemeralLimit);
 
-		if (!profileBlock && !contextBlocks && !ephemeralBlocks) return "";
-		const result = (profileBlock ? profileBlock + "\n" : "") + contextBlocks + ephemeralBlocks;
-		return result;
+		if (!profileBlock && !contextBlocks && !reflectionBlock && !ephemeralBlocks) return "";
+		const sections = [];
+		if (profileBlock) sections.push(`## Profile\n${profileBlock}`);
+		if (contextBlocks) sections.push(`## Memories\n${contextBlocks}`);
+		if (reflectionBlock) sections.push(`## Reflection\n${reflectionBlock}`);
+		if (ephemeralBlocks) sections.push(`## Ephemeral\n${ephemeralBlocks}`);
+		return sections.join("\n\n");
 	} catch (err) {
 		logger.debug(`[context] Failed to load context: ${err.message}`);
 		return "";
@@ -132,6 +140,26 @@ async function loadEphemeralBlocks(fullPath, limit) {
 	}
 
 	return blocks.join("\n");
+}
+
+/**
+ * Load the reflection summary file and return its narrative body.
+ * The reflection file is written by the scheduled reflection skill and
+ * contains a narrative summary of recent session history. It is rendered
+ * as its own labeled section so the model knows what it is reading.
+ * @param {string} fullPath - Full path to the context directory
+ * @returns {Promise<string>} The reflection body or empty string
+ */
+async function loadReflectionBlock(fullPath) {
+	try {
+		const filepath = join(fullPath, REFLECTION_FILENAME);
+		const content = await readFile(filepath, "utf-8");
+		const { content: body } = parseFrontmatter(content);
+		return body.trim();
+	} catch (err) {
+		logger.debug(`[context] Failed to load reflection: ${err.message}`);
+		return "";
+	}
 }
 
 /**

@@ -22,6 +22,13 @@ const SAMPLING_TOOL_TOKEN = "<!-- SAMPLING_TOOL_INSTRUCTION -->";
 const SAMPLING_TOOL_INSTRUCTION =
 	"**Sampling:** The **sampling** tool captures meaningful moments as ephemeral memories. You do not need to announce this. Invoke it when: (a) the user expresses satisfaction after a complex task, (b) a pattern emerges across sessions, (c) the user shares something personal or emotionally significant, (d) a technical breakthrough occurs. Do not announce it; just capture the moment.";
 
+// Open-ended header appended to the end of the authored prompt. deepagents
+// middleware (skills, filesystem, memory, subagents) augments the system prompt
+// at model-call time via raw string concatenation (`SystemMessage.concat`), so
+// this header gives that injected content a clean landing spot instead of
+// blending into the authored content.
+const RUNTIME_HEADER = "## Runtime capabilities";
+
 /**
  * Load the system prompt from prompts/SYSTEM_PROMPT.md,
  * appending the current memory context to the end.
@@ -49,12 +56,16 @@ export async function loadSystemPrompt(baseDir = cwd) {
 		const samplingEnabled = config?.agent?.sampling !== false;
 		const samplingReplacement = samplingEnabled ? SAMPLING_TOOL_INSTRUCTION : "";
 		content = content.replaceAll(SAMPLING_TOOL_TOKEN, samplingReplacement);
-		// Append memory context to the system prompt
+		// Append memory context to the system prompt. The context is already
+		// structured with `##` section headers, so no separator is needed.
 		const context = await loadContext();
 		if (context) {
-			content = content + "\n\n---\n\n" + context;
+			content = content + "\n\n" + context;
 		}
-		return content;
+		// End the authored prompt with an open-ended header so runtime
+		// augmentations (skills, filesystem, memory, subagents) concat cleanly
+		// beneath it rather than blending into the authored content.
+		return content + "\n\n" + RUNTIME_HEADER;
 	} catch (err) {
 		logger.debug(`[prompts] Failed to load system prompt: ${err.message}`);
 		return "";
