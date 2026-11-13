@@ -17,7 +17,10 @@ export function parseSafeUrl(href) {
 	} catch {
 		return null;
 	}
-	return ALLOWED_PROTOCOLS.has(url.protocol) ? url : null;
+	if (!ALLOWED_PROTOCOLS.has(url.protocol)) return null;
+	// Reject embedded credentials (https://trusted.com@evil.com style spoofing).
+	if (url.username || url.password) return null;
+	return url;
 }
 
 /**

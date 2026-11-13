@@ -119,6 +119,10 @@ const InputArea = forwardRef(function InputArea(
 		if (pickerOpenRef.current) {
 			return;
 		}
+		// The pickers are mutually exclusive: don't open over the command picker.
+		if (commandPickerOpenRef.current) {
+			return;
+		}
 		setPickerOpen(true);
 	}, [inputText]);
 	/* node:coverage enable */

@@ -9,6 +9,8 @@ import supportsHyperlinks from "supports-hyperlinks";
 import Table from "cli-table3";
 import { lru } from "tiny-lru";
 import { stripAnsi } from "./selectionLayout.js";
+import { sanitizeForTerminal } from "./sanitize.js";
+import { parseSafeUrl } from "./openUrl.js";
 
 /**
  * Link spans recorded by the renderer's `link()` during the current
@@ -18,13 +20,10 @@ import { stripAnsi } from "./selectionLayout.js";
 let activeLinks = null;
 
 // --- Utility: HTML entity unescaping ---
+const ENTITY_MAP = { "&amp;": "&", "&lt;": "<", "&gt;": ">", "&quot;": '"', "&#39;": "'" };
 function unescapeEntities(html) {
-	return html
-		.replace(/&amp;/g, "&")
-		.replace(/&lt;/g, "<")
-		.replace(/&gt;/g, ">")
-		.replace(/&quot;/g, '"')
-		.replace(/&#39;/g, "'");
+	// Single pass so `&amp;lt;` becomes `&lt;` rather than being double-unescaped.
+	return html.replace(/&(?:amp|lt|gt|quot|#39);/g, (m) => ENTITY_MAP[m]);
 }
 
 // --- Utility: Colon escaping for code spans ---
@@ -97,7 +96,7 @@ function indentLines(indent, text) {
 
 // --- Utility: Emoji insertion ---
 function insertEmojis(text) {
-	return text.replace(/:([A-Za-z0-9_\-\-+]+?):/g, (emojiString) => {
+	return text.replace(/:([A-Za-z0-9_+-]+?):/g, (emojiString) => {
 		const emojiSign = emoji.get(emojiString);
 		if (!emojiSign) return emojiString;
 		return emojiSign + " ";
@@ -224,16 +223,14 @@ class TerminalRenderer extends Renderer {
 		const hasText = text && text !== href;
 		let out = "";
 
-		if (this.options?.sanitize) {
-			try {
-				const prot = decodeURIComponent(unescape(href))
-					.replace(/[^\w:]/g, "")
-					.toLowerCase();
-				if (prot.indexOf("javascript:") === 0) return "";
-			} catch {
-				return "";
-			}
+		// Only http(s)/mailto hrefs without control characters become real
+		// hyperlinks; anything else is rendered as plain text.
+		const safeUrl = parseSafeUrl(href);
+		const safeHref = safeUrl && sanitizeForTerminal(href) === href ? safeUrl.href : null;
+		if (!safeHref) {
+			return this.o.link(hasText ? undoColon(this.emoji(text)) : "");
 		}
+		href = safeHref;
 
 		if (supportsHyperlinks.stdout) {
 			const linkText = hasText ? undoColon(this.emoji(text)) : undoColon(this.emoji(href));
@@ -365,6 +362,7 @@ const STREAMING_CURSOR = "\u2588";
 const MAX_CACHE_SIZE = 500;
 
 const parseCache = lru(MAX_CACHE_SIZE);
+const STREAMING_CURSOR_RE = new RegExp(STREAMING_CURSOR, "g");
 
 // --- Public API (preserved) ---
 
@@ -375,6 +373,8 @@ const parseCache = lru(MAX_CACHE_SIZE);
  * @returns {{text: string, links: Array<{text: string, href: string}>}} Rendered text and link spans in document order
  */
 export function parseMarkdownWithLinks(markdown) {
+	// Untrusted text: drop terminal control characters before parsing.
+	markdown = sanitizeForTerminal(markdown);
 	const cached = parseCache.get(markdown);
 	if (cached !== undefined) {
 		return cached;
@@ -415,7 +415,7 @@ export function MarkdownTextInner({ content, backgroundColor }) {
 		return null;
 	}
 
-	const cleanContent = (content || "").replace(new RegExp(STREAMING_CURSOR, "g"), "");
+	const cleanContent = (content || "").replace(STREAMING_CURSOR_RE, "");
 	const parsed = parseMarkdown(cleanContent);
 
 	return React.createElement(Text, { color: "white", backgroundColor }, parsed);

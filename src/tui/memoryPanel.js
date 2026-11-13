@@ -5,6 +5,7 @@ import { readdir, readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { parseFrontmatter } from "../memory/reader.js";
 import { ActiveItem, ActiveIndicator } from "./selectComponents.js";
+import { sanitizeLine } from "./sanitize.js";
 import { MarkdownText } from "./markdownText.js";
 
 /**
@@ -58,7 +59,7 @@ export function MemoryPanel({ config, onViewChange, activeView }) {
 						const content = await readFile(filepath, "utf-8");
 						const { frontmatter } = parseFrontmatter(content);
 						entries.push({
-							title: file.replace(/\.md$/, "").replace(/_/g, " "),
+							title: sanitizeLine(file.replace(/\.md$/, "").replace(/_/g, " ")),
 							fileName: file,
 							path: filepath,
 							mtime: st.mtime,
@@ -191,7 +192,14 @@ export function MemoryPanel({ config, onViewChange, activeView }) {
 								Box,
 								{ flexDirection: "column", marginBottom: 1 },
 								...Object.entries(detailContent.frontmatter).map(([k, v]) =>
-									React.createElement(Text, { key: k, color: "gray" }, " ", k, ": ", String(v)),
+									React.createElement(
+										Text,
+										{ key: k, color: "gray" },
+										" ",
+										String(k),
+										": ",
+										sanitizeLine(String(v)),
+									),
 								),
 							)
 						: null,

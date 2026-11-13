@@ -124,6 +124,8 @@ function App({
 	// runs the previous effect's cleanup on every re-run — cancelling the poll
 	// there would kill it mid-flight when the user switches views.
 	const authPollCancelRef = useRef(null);
+	// Generation counter so a stale effect cleanup never clears a newer handler.
+	const authHandlerGenRef = useRef(0);
 
 	const skillCount = registry ? registry.list().length : 0;
 	const parser = new CommandParser();
@@ -253,13 +255,20 @@ function App({
 					`GitHub Copilot requires authentication.\n` +
 					`Open ${verificationUri} and enter code: ${userCode}`,
 			});
+			// Cancel any earlier poll so only one runs at a time.
+			authPollCancelRef.current?.();
 			let cancelled = false;
 			authPollCancelRef.current = () => {
 				cancelled = true;
 			};
-			const { pollForToken } = await import("../provider/copilotAuth.js");
-			const memoryDir = config?.memory?.directory || "memory/";
-			const result = await pollForToken(deviceCode, { memoryDir, deploymentType });
+			let result;
+			try {
+				const { pollForToken } = await import("../provider/copilotAuth.js");
+				const memoryDir = config?.memory?.directory || "memory/";
+				result = await pollForToken(deviceCode, { memoryDir, deploymentType });
+			} catch (err) {
+				result = { ok: false, error: err?.message || String(err) };
+			}
 			if (cancelled) return;
 			if (result.ok) {
 				conversationAreaRef.current?.addMessage({
@@ -297,6 +306,7 @@ function App({
 	useEffect(() => {
 		if (activeProvider.type !== "github-copilot") return;
 		let disposed = false;
+		const myGen = ++authHandlerGenRef.current;
 		import("../provider/copilotAuth.js").then(({ setAuthRequiredHandler }) => {
 			if (disposed) return;
 			setAuthRequiredHandler(async () => {
@@ -319,7 +329,8 @@ function App({
 		return () => {
 			disposed = true;
 			import("../provider/copilotAuth.js").then(({ setAuthRequiredHandler }) => {
-				setAuthRequiredHandler(null);
+				// Skip if a newer effect run has since registered its own handler.
+				if (authHandlerGenRef.current === myGen) setAuthRequiredHandler(null);
 			});
 		};
 	}, [activeProvider, config, startAuthPoll]);
@@ -380,6 +391,13 @@ function App({
 	 * handleQuit — App-level exit.
 	 */
 	const handleQuit = useCallback(() => {
+		// Belt and braces: make sure mouse reporting is off even if effect
+		// cleanups don't get to run before the process exits.
+		try {
+			process.stdout.write("\x1b[?1000l\x1b[?1002l\x1b[?1003l\x1b[?1006l");
+		} catch {
+			// stdout may be closed; nothing to restore
+		}
 		exit();
 		process.exit(0);
 	}, [exit]);
