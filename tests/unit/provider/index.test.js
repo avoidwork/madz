@@ -17,7 +17,7 @@ describe("getActiveProviderConfig", () => {
 		assert.deepStrictEqual(getActiveProviderConfig(config), { model: "gpt-4o" });
 	});
 
-	it("falls back to openai when no provider is configured", () => {
+	it("returns an empty object when no provider is configured", () => {
 		const config = { providers: {} };
 		assert.deepStrictEqual(getActiveProviderConfig(config), {});
 	});
@@ -40,17 +40,14 @@ describe("getActiveProviderConfig", () => {
 		});
 	});
 
-	it("falls back to the openai provider config when all providers are disabled", () => {
+	it("returns an empty object when all providers are disabled", () => {
 		const config = {
 			providers: {
 				openai: { model: "gpt-4o", enabled: false },
 				copilot: { model: "gpt-4o", type: "github-copilot", enabled: false },
 			},
 		};
-		assert.deepStrictEqual(getActiveProviderConfig(config), {
-			model: "gpt-4o",
-			enabled: false,
-		});
+		assert.deepStrictEqual(getActiveProviderConfig(config), {});
 	});
 
 	it("treats a provider without an enabled field as enabled", () => {
@@ -89,18 +86,18 @@ describe("getActiveProviderName", () => {
 		assert.strictEqual(getActiveProviderName(config), "copilot");
 	});
 
-	it("falls back to openai when no provider is enabled", () => {
+	it("returns an empty name when no provider is enabled", () => {
 		const config = {
 			providers: {
 				openai: { model: "gpt-4o", enabled: false },
 				copilot: { model: "gpt-4o", enabled: false },
 			},
 		};
-		assert.strictEqual(getActiveProviderName(config), "openai");
+		assert.strictEqual(getActiveProviderName(config), "");
 	});
 
-	it("returns openai when config has no providers", () => {
-		assert.strictEqual(getActiveProviderName({}), "openai");
+	it("returns an empty name when config has no providers", () => {
+		assert.strictEqual(getActiveProviderName({}), "");
 	});
 });
 

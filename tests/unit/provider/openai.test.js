@@ -60,11 +60,13 @@ describe("shared token budget across model instances", () => {
 		assert.strictEqual(getSharedTokenBudget(100000), getSharedTokenBudget(100000));
 	});
 
-	it("a different maxTokensMinute yields a different shared budget", () => {
+	it("a different maxTokensMinute updates the shared budget in place", () => {
 		createChatModel(makeConfig(100000));
-		const small = getSharedTokenBudget(50000);
-		const large = getSharedTokenBudget(100000);
-		assert.notStrictEqual(small, large);
+		const first = getSharedTokenBudget(100000);
+		first.consume(10);
+		const second = getSharedTokenBudget(50000);
+		assert.strictEqual(first, second);
+		assert.strictEqual(second.current(), 10);
 	});
 
 	it("resetTokenBudget yields a fresh budget for subsequent models", () => {

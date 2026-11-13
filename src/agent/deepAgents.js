@@ -4,7 +4,7 @@ import {
 	registerHarnessProfile,
 	createHarnessProfile,
 } from "deepagents";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { InMemoryStore } from "@langchain/langgraph-checkpoint";
 import { RemoveMessage } from "@langchain/core/messages";
 import { isCancelledToolMessage } from "../shared/cancelledToolMessage.js";
@@ -68,10 +68,13 @@ export async function createSubagentDefinitions(allTools, model, skillRegistry, 
 		// Create a per-agent model instance when a specific temperature is configured
 		let agentModel = model;
 		if (agentTemp !== undefined) {
-			agentModel = createChatModel({
-				...providerConfig,
-				temperature: agentTemp,
-			});
+			agentModel = createChatModel(
+				{
+					...providerConfig,
+					temperature: agentTemp,
+				},
+				{ memoryDir: resolve(config.cwd ?? ".", config.memory?.directory || "memory/") },
+			);
 		}
 
 		// Surface the tool list in the description so the orchestrator can see
@@ -314,12 +317,16 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	// Create model from config
 	const providerName = getActiveProviderName(config);
 	const providerConfig = getActiveProviderConfig(config);
+	if (!providerName) {
+		throw new Error("No enabled provider found: configure and enable a provider in `providers`");
+	}
+	const memoryDir = resolve(config.cwd ?? ".", config.memory?.directory || "memory/");
 	// For GitHub Copilot, resolve the configured model against the tenant's
 	// available models (best-effort; falls back to the configured string).
 	if (providerConfig.type === "github-copilot") {
-		providerConfig.model = await resolveCopilotModel(providerConfig);
+		providerConfig.model = await resolveCopilotModel(providerConfig, { memoryDir });
 	}
-	const model = createChatModel(providerConfig);
+	const model = createChatModel(providerConfig, { memoryDir });
 
 	// Validate email provider config at startup (non-blocking)
 	if (config.email?.provider?.type) {
@@ -447,7 +454,7 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	// schema change. If the context length cannot be resolved (unreachable,
 	// model not found, field absent), fall back to the configured token value so
 	// startup never blocks on a network call.
-	const contextLength = await getModelContextLength(providerConfig);
+	const contextLength = await getModelContextLength(providerConfig, { memoryDir });
 	// Mutate the shared config singleton so the derived trigger and the
 	// server-derived context window are visible everywhere they are read
 	// (e.g. the /settings view and the TUI status-bar context meter).

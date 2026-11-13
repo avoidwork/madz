@@ -1,11 +1,17 @@
-import { readFile, writeFile, mkdir, unlink } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { readFile, writeFile, mkdir, unlink, rename, chmod } from "node:fs/promises";
+import { dirname, join, resolve } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { createRequire } from "node:module";
 
 const _require = createRequire(import.meta.url);
 /** The application version, read from package.json for the User-Agent header. */
-const APP_VERSION = _require("../../package.json").version;
+const APP_VERSION = (() => {
+	try {
+		return _require("../../package.json").version || "0.0.0";
+	} catch {
+		return "0.0.0";
+	}
+})();
 
 /**
  * GitHub Copilot OAuth device-flow auth module.
@@ -58,16 +64,61 @@ export function setAuthRequiredHandler(handler) {
 	authRequiredHandler = handler;
 }
 
+/** Timeout (ms) applied to device-flow HTTP requests. */
+const REQUEST_TIMEOUT_MS = 15_000;
+
+/** A bare hostname: no userinfo, port, path, query, fragment, or whitespace. */
+const HOST_PATTERN = /^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$/i;
+
 /**
- * Normalize a domain by stripping any scheme and trailing slash.
+ * Whether the auth-required handler is currently running (single-flight).
+ * @type {boolean}
+ */
+let authFlowActive = false;
+
+/**
+ * In-flight device-flow polls keyed by device code (single-flight).
+ * @type {Map<string, Promise<Object>>}
+ */
+const pollsInFlight = new Map();
+
+/**
+ * A token the server rejected with 401. Never re-used from disk or memory, so
+ * the persisted file need not be deleted on the first 401.
+ * @type {string|null}
+ */
+let rejectedToken = null;
+
+/**
+ * Redact a response-body snippet for use in error messages: long token-like
+ * strings are masked and the result is truncated.
+ * @param {string} text - The raw text
+ * @returns {string} A safe snippet
+ */
+function redactSnippet(text) {
+	return String(text ?? "")
+		.replace(/\b(gh[a-z]_[A-Za-z0-9]+|[A-Za-z0-9_-]{20,})\b/g, "[redacted]")
+		.slice(0, 200);
+}
+
+/**
+ * Normalize a domain by stripping any scheme and trailing slash, and validate
+ * that the result is a bare hostname (no userinfo, port, path, query, fragment
+ * or whitespace) so credentials can never be steered to another destination.
  * @param {string} domain - The domain or URL to normalize
  * @returns {string} The normalized domain
+ * @throws {Error} When the domain is not a valid bare hostname
  */
 export function normalizeDomain(domain) {
-	return String(domain || DEFAULT_DOMAIN)
+	const host = String(domain || DEFAULT_DOMAIN)
+		.trim()
 		.replace(/^https?:\/\//i, "")
 		.replace(/\/+$/, "")
 		.replace(/^\/+/, "");
+	if (!HOST_PATTERN.test(host)) {
+		throw new Error("Invalid GitHub domain: must be a bare hostname");
+	}
+	return host;
 }
 
 /**
@@ -76,6 +127,9 @@ export function normalizeDomain(domain) {
  * @returns {{ deviceCodeUrl: string, tokenUrl: string }} The endpoint URLs
  */
 export function getUrls(domain) {
+	if (/^http:\/\//i.test(String(domain || ""))) {
+		throw new Error("GitHub device flow requires https");
+	}
 	const host = normalizeDomain(domain);
 	return {
 		deviceCodeUrl: `https://${host}/login/device/code`,
@@ -94,6 +148,7 @@ export function getUrls(domain) {
  */
 export function base(enterpriseUrl) {
 	if (enterpriseUrl) {
+		// normalizeDomain validates the host, so the base can't be redirected.
 		const host = normalizeDomain(enterpriseUrl);
 		return `https://copilot-api.${host}`;
 	}
@@ -111,7 +166,7 @@ export function authFilePath(memoryDir) {
 }
 
 /** GitHub Copilot API version header value. */
-export const API_VERSION = "2026-06-01";
+export const API_VERSION = process.env.COPILOT_API_VERSION || "2026-06-01";
 
 /**
  * In-memory Copilot refresh-token state. This is the single source of truth
@@ -129,6 +184,7 @@ let copilotToken = null;
  * @param {string|null} token - The refresh token, or null to clear
  */
 export function setCopilotToken(token) {
+	if (token !== rejectedToken) rejectedToken = null;
 	copilotToken = token;
 }
 
@@ -141,7 +197,8 @@ export function getCopilotToken() {
 }
 
 /**
- * Read the persisted Copilot token from disk and update the in-memory state.
+ * Read the persisted Copilot token from disk. Pure read: it does not modify the
+ * in-memory state. A token previously rejected with 401 is treated as absent.
  * @param {string} [memoryDir] - The memory directory
  * @returns {Promise<string|null>} The access token, or null if not present
  */
@@ -151,8 +208,7 @@ export async function getToken(memoryDir) {
 		const data = await readFile(file, "utf8");
 		const parsed = JSON.parse(data);
 		const token = parsed?.access_token || null;
-		copilotToken = token;
-		return token;
+		return token && token !== rejectedToken ? token : null;
 	} catch {
 		return null;
 	}
@@ -167,12 +223,22 @@ export async function getToken(memoryDir) {
  */
 export async function persist(token, memoryDir) {
 	const file = authFilePath(memoryDir);
-	await mkdir(dirname(file), { recursive: true });
-	await writeFile(file, JSON.stringify({ access_token: token, expires: 0 }), {
-		mode: 0o600,
-		flag: "w",
-	});
+	// Update memory first so a persistence failure still leaves a usable token.
 	copilotToken = token;
+	rejectedToken = null;
+	await mkdir(dirname(file), { recursive: true, mode: 0o700 });
+	const tmp = `${file}.${process.pid}.${Date.now()}.tmp`;
+	try {
+		await writeFile(tmp, JSON.stringify({ access_token: token, expires: 0 }), {
+			mode: 0o600,
+			flag: "w",
+		});
+		await rename(tmp, file);
+		await chmod(file, 0o600);
+	} catch (err) {
+		await unlink(tmp).catch(() => {});
+		throw err;
+	}
 }
 
 /**
@@ -225,18 +291,19 @@ export async function requestDeviceCode(opts = {}) {
 			Accept: "application/json",
 		},
 		body: body.toString(),
+		signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
 	});
 	if (!res.ok) {
 		const text = await res.text().catch(() => "");
 		throw new Error(
-			`Device code request failed: ${res.status} ${res.statusText}${text ? ` — ${text.slice(0, 200)}` : ""}`,
+			`Device code request failed: ${res.status} ${res.statusText}${text ? ` — ${redactSnippet(text)}` : ""}`,
 		);
 	}
 	const text = await res.text();
 	try {
 		return JSON.parse(text);
 	} catch {
-		throw new Error(`Device code request returned invalid JSON: ${text.slice(0, 200)}`);
+		throw new Error(`Device code request returned invalid JSON: ${redactSnippet(text)}`);
 	}
 }
 
@@ -254,49 +321,91 @@ export async function requestDeviceCode(opts = {}) {
  * @param {number} [opts.maxPollAttempts] - Maximum polling attempts (default 120)
  * @returns {Promise<{ ok: boolean, token?: string, error?: string }>} The result
  */
-export async function pollForToken(deviceCode, opts = {}) {
-	const { clientId = CLIENT_ID, memoryDir } = opts;
+export function pollForToken(deviceCode, opts = {}) {
+	// Single-flight: concurrent polls for the same device code share one loop.
+	const key = String(deviceCode?.device_code ?? "");
+	const existing = pollsInFlight.get(key);
+	if (existing) return existing;
+	const promise = runPoll(deviceCode, opts).finally(() => pollsInFlight.delete(key));
+	pollsInFlight.set(key, promise);
+	return promise;
+}
+
+/**
+ * The polling loop behind `pollForToken`.
+ * @param {Object} deviceCode - The device-code response
+ * @param {Object} opts - Options (see `pollForToken`)
+ * @returns {Promise<{ ok: boolean, token?: string, error?: string }>} The result
+ */
+async function runPoll(deviceCode, opts) {
+	const { clientId = CLIENT_ID, memoryDir, onStatus } = opts;
 	const { tokenUrl } = getUrls(resolveDomain(opts));
-	const interval = (deviceCode.interval ?? 5) * 1000;
+	let interval = (deviceCode.interval ?? 5) * 1000;
 	const safety = opts.pollSafetyMs ?? POLL_SAFETY_MS;
 	const maxAttempts = opts.maxPollAttempts ?? MAX_POLL_ATTEMPTS;
+	const deadline =
+		Number.isFinite(deviceCode.expires_in) && deviceCode.expires_in > 0
+			? Date.now() + deviceCode.expires_in * 1000
+			: Infinity;
+	const notify = (status) => {
+		try {
+			onStatus?.(status);
+		} catch {
+			// A failing status callback must not break the flow.
+		}
+	};
 	let attempts = 0;
 
 	while (attempts < maxAttempts) {
+		if (Date.now() >= deadline) return { ok: false, error: "Device code expired" };
 		attempts += 1;
 		const body = new URLSearchParams({
 			client_id: clientId,
 			device_code: deviceCode.device_code,
 			grant_type: "urn:ietf:params:oauth:grant-type:device_code",
 		});
-		const res = await fetch(tokenUrl, {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/x-www-form-urlencoded",
-				Accept: "application/json",
-			},
-			body: body.toString(),
-		});
-		const text = await res.text();
+		let text;
+		try {
+			const res = await fetch(tokenUrl, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/x-www-form-urlencoded",
+					Accept: "application/json",
+				},
+				body: body.toString(),
+				signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+			});
+			text = await res.text();
+		} catch (err) {
+			return { ok: false, error: `Token request failed: ${err?.message || err}` };
+		}
 		let data;
 		try {
 			data = JSON.parse(text);
 		} catch {
-			return { ok: false, error: `Token endpoint returned invalid JSON: ${text.slice(0, 200)}` };
+			return { ok: false, error: `Token endpoint returned invalid JSON: ${redactSnippet(text)}` };
 		}
 
 		if (data.access_token) {
-			await persist(data.access_token, memoryDir);
+			try {
+				await persist(data.access_token, memoryDir);
+			} catch {
+				// Persisting failed; the token is still usable in memory for this session.
+				setCopilotToken(data.access_token);
+			}
 			return { ok: true, token: data.access_token };
 		}
 
 		if (data.error === "authorization_pending") {
+			notify("pending");
 			await sleep(interval + safety);
 			continue;
 		}
 
 		if (data.error === "slow_down") {
-			// RFC 8628: add 5s to the interval on slow_down.
+			// RFC 8628: permanently add 5s to the interval on slow_down.
+			interval += 5_000;
+			notify("slow_down");
 			await sleep(interval + safety);
 			continue;
 		}
@@ -327,7 +436,7 @@ export async function pollForToken(deviceCode, opts = {}) {
  */
 export async function getAuthPrompt(opts = {}) {
 	const { memoryDir } = opts;
-	if (await getToken(memoryDir)) {
+	if (copilotToken || (await getToken(memoryDir))) {
 		return null;
 	}
 	try {
@@ -337,6 +446,8 @@ export async function getAuthPrompt(opts = {}) {
 		if (!verificationUri || !userCode) {
 			return null;
 		}
+		// `deviceCode` is returned because callers (the TUI) hand it to
+		// `pollForToken`; treat it as secret and never log it.
 		return {
 			verificationUri,
 			userCode,
@@ -441,25 +552,55 @@ function isVisionRequest(body) {
  * without rebuilding the model.
  *
  * When a response returns 401 (token expired or invalid), the interceptor
- * clears the stored token and invokes the registered `authRequiredHandler` so
+ * drops the in-memory token (without deleting the persisted file) and invokes the registered `authRequiredHandler` so
  * the caller can surface a fresh device-flow prompt.
  * @param {string} [memoryDir] - The memory directory
+ * @param {string} [baseUrl] - The Copilot API base URL; the token is only sent to its host
  * @returns {Function} A fetch-compatible function
  */
-export function createCopilotFetch(memoryDir) {
+export function createCopilotFetch(memoryDir, baseUrl = DEFAULT_BASE_URL) {
+	const dir = memoryDir ? resolve(memoryDir) : memoryDir;
+	let trustedHost;
+	try {
+		trustedHost = new URL(baseUrl).host;
+	} catch {
+		trustedHost = new URL(DEFAULT_BASE_URL).host;
+	}
 	return async (input, init = {}) => {
-		// Load the token from disk into state if not already set, then decorate
-		// the Authorization header from state. We never delete the header — we
-		// simply set it, which overrides whatever the SDK injected (the
-		// placeholder apiKey). This mirrors opencode's approach.
-		const oauthToken = copilotToken ?? (await getToken(memoryDir));
-		const headers = new Headers(init.headers || {});
-		if (oauthToken) {
-			headers.set("Authorization", `Bearer ${oauthToken}`);
+		// Only ever attach the token to the expected Copilot host.
+		let trusted = false;
+		try {
+			const url = typeof input === "string" || input instanceof URL ? input : input?.url;
+			const parsed = new URL(url);
+			trusted = parsed.protocol === "https:" && parsed.host === trustedHost;
+		} catch {
+			trusted = false;
 		}
 
-		// Derive x-initiator from the request body. The body may be a string
-		// (JSON) or already parsed; guard against parse failures.
+		const headers = new Headers(typeof input === "object" && input?.headers ? input.headers : {});
+		new Headers(init.headers || {}).forEach((value, key) => headers.set(key, value));
+
+		if (!trusted) {
+			// Never leak the SDK's placeholder or any bearer to a foreign host.
+			headers.delete("Authorization");
+			return fetch(input, { ...init, headers, redirect: "manual" });
+		}
+
+		// Load the token into state if not already set, then decorate the
+		// Authorization header from state, overriding the SDK's placeholder key.
+		let oauthToken = copilotToken;
+		if (!oauthToken) {
+			oauthToken = await getToken(dir);
+			if (oauthToken) copilotToken = oauthToken;
+		}
+		if (oauthToken) {
+			headers.set("Authorization", `Bearer ${oauthToken}`);
+		} else {
+			headers.delete("Authorization");
+		}
+
+		// Derive x-initiator from the request body. Only JSON strings and plain
+		// objects are inspected; streams and binary bodies are left alone.
 		let body = init.body;
 		if (typeof body === "string") {
 			try {
@@ -467,14 +608,22 @@ export function createCopilotFetch(memoryDir) {
 			} catch {
 				body = undefined;
 			}
+		} else if (
+			!body ||
+			typeof body !== "object" ||
+			ArrayBuffer.isView(body) ||
+			body instanceof ArrayBuffer ||
+			typeof body.getReader === "function" ||
+			typeof body.pipe === "function" ||
+			typeof body.append === "function"
+		) {
+			body = undefined;
 		}
 		headers.set("x-initiator", isAgentInitiated(body) ? "agent" : "user");
 		// GitHub's Copilot API requires this marker on any request whose payload
 		// contains an image; without it the request fails with
 		// `400 missing required Copilot-Vision-Request header for vision
-		// requests`. Set it whenever image content is present, matching
-		// opencode. It is a routing hint, not a capability toggle, so sending it
-		// for a non-vision-capable model is harmless.
+		// requests`. It is a routing hint, not a capability toggle.
 		if (isVisionRequest(body)) {
 			headers.set("Copilot-Vision-Request", "true");
 		}
@@ -482,14 +631,26 @@ export function createCopilotFetch(memoryDir) {
 		headers.set("X-GitHub-Api-Version", API_VERSION);
 		headers.set("User-Agent", `madz/${APP_VERSION}`);
 
-		let res = await fetch(input, { ...init, headers });
+		// Redirects are not followed so the bearer cannot be forwarded elsewhere.
+		const res = await fetch(input, { ...init, headers, redirect: "manual" });
 		if (res.status === 401 && oauthToken) {
-			// The bearer was rejected (expired or invalid). Clear the stored
-			// token and invoke the re-auth handler so the caller can surface a
-			// fresh device-flow prompt.
-			await clearToken(memoryDir);
-			if (authRequiredHandler) {
-				authRequiredHandler();
+			// The bearer was rejected. Drop it from memory (the persisted file is
+			// kept; the rejected value is simply never reused) and invoke the
+			// re-auth handler one flow at a time.
+			rejectedToken = oauthToken;
+			copilotToken = null;
+			if (authRequiredHandler && !authFlowActive) {
+				authFlowActive = true;
+				const handler = authRequiredHandler;
+				(async () => {
+					try {
+						await Promise.resolve(handler());
+					} catch {
+						// A failing handler must not affect the response.
+					} finally {
+						authFlowActive = false;
+					}
+				})();
 			}
 		}
 		return res;

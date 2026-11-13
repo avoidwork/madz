@@ -51,16 +51,25 @@ export function createSummarizationMiddlewareFromConfig(options = {}) {
 
 	const trigger = config.trigger;
 	if (!trigger) {
+		logger.warn("[summarization] enabled but missing trigger; falling back to library defaults");
+		return null;
+	}
+	if (
+		(trigger.type !== "messages" && trigger.type !== "tokens") ||
+		!Number.isFinite(trigger.value) ||
+		trigger.value <= 0
+	) {
 		logger.warn(
 			{ trigger },
-			"[summarization] enabled but missing trigger; falling back to library defaults",
+			"[summarization] invalid trigger (expected type messages|tokens with a positive value); falling back to library defaults",
 		);
 		return null;
 	}
 	const keep = resolveKeepMessages(config);
 	logger.info({ trigger, keep }, "[summarization] registering compaction middleware");
 
-	let failedAtLength = -1;
+	/** Message count at the last failed compaction, per thread. */
+	const failedAtLength = new Map();
 
 	/**
 	 * Count tokens for the messages the model would receive.
@@ -105,7 +114,9 @@ export function createSummarizationMiddlewareFromConfig(options = {}) {
 			hook: async (state, runtime) => {
 				const messages = state?.messages ?? [];
 				if (messages.length === 0) return undefined;
-				if (failedAtLength >= 0 && messages.length < failedAtLength + RETRY_AFTER_MESSAGES) {
+				const threadKey = runtime?.configurable?.thread_id ?? "";
+				const failedAt = failedAtLength.get(threadKey);
+				if (failedAt !== undefined && messages.length < failedAt + RETRY_AFTER_MESSAGES) {
 					return undefined;
 				}
 				let decision;
@@ -115,7 +126,7 @@ export function createSummarizationMiddlewareFromConfig(options = {}) {
 					logger.warn({ error: err?.message }, "[summarization] trigger check failed");
 					return undefined;
 				}
-				logger.info(
+				logger.debug(
 					{ tokens: decision.tokens, trigger, messages: messages.length, over: decision.over },
 					"[summarization] trigger check",
 				);
@@ -128,20 +139,22 @@ export function createSummarizationMiddlewareFromConfig(options = {}) {
 						logger.info({ messages: messages.length }, "[summarization] nothing to compact");
 						return undefined;
 					}
-					failedAtLength = -1;
+					failedAtLength.delete(threadKey);
 					logger.info(
 						{ summarized: result.summarized, kept: result.kept, offloadPath: result.offloadPath },
 						"[summarization] compacted history",
 					);
 					try {
-						onCompacted?.(result);
+						await Promise.resolve(onCompacted?.(result)).catch((err) => {
+							logger.warn({ error: err?.message }, "[summarization] onCompacted callback failed");
+						});
 					} catch (err) {
 						logger.warn({ error: err?.message }, "[summarization] onCompacted callback failed");
 					}
 					return { messages: [new RemoveMessage({ id: "__remove_all__" }), ...result.messages] };
 				} catch (err) {
 					// Leave state untouched; the 400 context-window handler is the safety net.
-					failedAtLength = messages.length;
+					failedAtLength.set(threadKey, messages.length);
 					logger.warn(
 						{ error: err?.message },
 						"[summarization] compaction failed; state unchanged",

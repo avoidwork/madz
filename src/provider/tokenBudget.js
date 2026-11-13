@@ -7,16 +7,18 @@
  * `reconcile` (adjust a reserved entry to actual usage), and a `release`
  * (remove a failed reservation). `consume`, `current`, and
  * `waitForCapacity` are retained for backward compatibility.
- * @param {number} maxTokensMinute - Rolling tokens-per-minute budget. 0 = disabled.
+ * @param {number} initialMax - Rolling tokens-per-minute budget. 0 = disabled.
  * @param {Object} [options] - Optional configuration
  * @param {number} [options.windowMs=60000] - Rolling window in milliseconds
  * @param {Function} [options.now] - Clock function returning current time in ms
  * @param {Function} [options.sleep] - Async sleep function (ms)
- * @returns {{consume: Function, current: Function, waitForCapacity: Function, reserve: Function, reconcile: Function, release: Function}} Token budget API
+ * @returns {{consume: Function, current: Function, waitForCapacity: Function, reserve: Function, reconcile: Function, release: Function, setLimit: Function}} Token budget API
  */
-export function createTokenBudget(maxTokensMinute, options = {}) {
+export function createTokenBudget(initialMax, options = {}) {
+	let maxTokensMinute = Number.isFinite(initialMax) && initialMax > 0 ? initialMax : 0;
 	const windowMs = options.windowMs ?? 60_000;
-	const now = options.now ?? (() => Date.now());
+	// Monotonic clock so wall-clock adjustments cannot corrupt the window.
+	const now = options.now ?? (() => performance.now());
 	const sleep = options.sleep ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
 	const entries = [];
 	let nextHandle = 1;
@@ -31,8 +33,9 @@ export function createTokenBudget(maxTokensMinute, options = {}) {
 	 */
 	function current() {
 		const cutoff = now() - windowMs;
-		while (entries.length > 0 && entries[0].timestamp <= cutoff) {
-			entries.shift();
+		// Scan all entries: reconcile can refresh timestamps out of order.
+		for (let i = entries.length - 1; i >= 0; i--) {
+			if (entries[i].timestamp <= cutoff) entries.splice(i, 1);
 		}
 		return entries.reduce((sum, entry) => sum + entry.tokens, 0);
 	}
@@ -43,6 +46,9 @@ export function createTokenBudget(maxTokensMinute, options = {}) {
 	 */
 	function consume(tokens) {
 		if (maxTokensMinute <= 0) return;
+		if (!Number.isFinite(tokens) || tokens < 0) {
+			throw new RangeError("tokens must be a finite non-negative number");
+		}
 		entries.push({ timestamp: now(), tokens, handle: nextHandle++ });
 	}
 
@@ -57,7 +63,7 @@ export function createTokenBudget(maxTokensMinute, options = {}) {
 	async function waitForCapacity(estimatedTokens) {
 		if (maxTokensMinute <= 0) return;
 		while (current() + estimatedTokens > maxTokensMinute && current() > 0) {
-			const oldest = entries[0];
+			const oldest = entries.reduce((a, b) => (b.timestamp < a.timestamp ? b : a));
 			const waitMs = oldest.timestamp + windowMs - now();
 			await sleep(waitMs > 0 ? waitMs : 1);
 		}
@@ -73,6 +79,9 @@ export function createTokenBudget(maxTokensMinute, options = {}) {
 	 */
 	function reserve(estimatedTokens) {
 		if (maxTokensMinute <= 0) return Promise.resolve(null);
+		if (!Number.isFinite(estimatedTokens) || estimatedTokens < 0) {
+			return Promise.reject(new RangeError("estimatedTokens must be a finite non-negative number"));
+		}
 		// Serialize: await the previous operation before checking capacity and
 		// recording, so concurrent callers cannot both pass the capacity check.
 		const prev = lock;
@@ -101,7 +110,18 @@ export function createTokenBudget(maxTokensMinute, options = {}) {
 	function reconcile(handle, actualTokens) {
 		if (maxTokensMinute <= 0) return;
 		const entry = entries.find((e) => e.handle === handle);
-		if (entry) entry.tokens = actualTokens;
+		if (!entry || !Number.isFinite(actualTokens) || actualTokens < 0) return;
+		entry.tokens = actualTokens;
+		// Usage is known only at completion, so charge it from now on.
+		entry.timestamp = now();
+	}
+
+	/**
+	 * Update the budget limit in place, keeping the consumed-token window.
+	 * @param {number} limit - New tokens-per-minute limit (finite, > 0; else disabled)
+	 */
+	function setLimit(limit) {
+		maxTokensMinute = Number.isFinite(limit) && limit > 0 ? limit : 0;
 	}
 
 	/**
@@ -116,5 +136,5 @@ export function createTokenBudget(maxTokensMinute, options = {}) {
 		if (idx !== -1) entries.splice(idx, 1);
 	}
 
-	return { consume, current, waitForCapacity, reserve, reconcile, release };
+	return { consume, current, waitForCapacity, reserve, reconcile, release, setLimit };
 }
