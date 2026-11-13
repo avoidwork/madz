@@ -346,7 +346,7 @@ describe("loadContext", () => {
 		);
 
 		const result = await loadContext(testDir, 10);
-		assert.ok(result.includes("## Reflection"));
+		assert.ok(result.includes("### REFLECTION"));
 		assert.ok(result.includes("The week opened on a quiet note."));
 		// Reflection must not be swept into the generic memories bucket
 		assert.ok(!result.includes("[Context: reflection.md]"));
@@ -369,10 +369,10 @@ describe("loadContext", () => {
 		);
 
 		const result = await loadContext(testDir, 10);
-		const profileIdx = result.indexOf("## Profile");
-		const memoriesIdx = result.indexOf("## Memories");
-		const reflectionIdx = result.indexOf("## Reflection");
-		const ephemeralIdx = result.indexOf("## Ephemeral");
+		const profileIdx = result.indexOf("### PROFILE");
+		const memoriesIdx = result.indexOf("### MEMORIES");
+		const reflectionIdx = result.indexOf("### REFLECTION");
+		const ephemeralIdx = result.indexOf("### EPHEMERAL");
 		assert.ok(profileIdx !== -1, "Profile section should be present");
 		assert.ok(memoriesIdx !== -1, "Memories section should be present");
 		assert.ok(reflectionIdx !== -1, "Reflection section should be present");
@@ -389,8 +389,8 @@ describe("loadContext", () => {
 		);
 
 		const result = await loadContext(testDir, 10);
-		assert.ok(!result.includes("## Reflection"));
-		assert.ok(result.includes("## Memories"));
+		assert.ok(!result.includes("### REFLECTION"));
+		assert.ok(result.includes("### MEMORIES"));
 	});
 });
 
