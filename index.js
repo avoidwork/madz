@@ -2,7 +2,6 @@
 
 import { realpathSync } from "node:fs";
 import { resolve } from "node:path";
-import { createInterface } from "node:readline/promises";
 import { fileURLToPath } from "node:url";
 import { HumanMessage } from "@langchain/core/messages";
 import { Command } from "@langchain/langgraph";
@@ -461,35 +460,12 @@ export function dispatchProvider(message, _sessionState = null, streamingCallbac
 }
 
 /**
- * Ask a clarification question on the terminal.
- * @param {{question: string, choices?: string[]}} clarify - The pending question
- * @returns {Promise<string|null>} The answer, or null when no terminal is available
- */
-async function askOnTerminal(clarify) {
-	if (!process.stdin.isTTY) return null;
-	const rl = createInterface({ input: process.stdin, output: process.stderr });
-	try {
-		const choices = clarify.choices || [];
-		let prompt = `\n${clarify.question}\n`;
-		choices.forEach((c, i) => {
-			prompt += `  ${i + 1}. ${c}\n`;
-		});
-		prompt += "> ";
-		const raw = (await rl.question(prompt)).trim();
-		const index = Number(raw);
-		return Number.isInteger(index) && index >= 1 && index <= choices.length
-			? choices[index - 1]
-			: raw;
-	} finally {
-		rl.close();
-	}
-}
-
-/**
- * Run one conversation turn (non-interactive). Handles clarify interrupts by
- * prompting on the terminal when one is available.
+ * Run one conversation turn (non-interactive). If the agent pauses to ask a
+ * clarifying question, the exchange is saved and an error carrying the question
+ * is thrown, since a one-shot run has no way to answer it.
  * @param {string} message - User message
  * @param {string} [sessionId] - Session to restore first
+ * @returns {Promise<Object>} The agent response
  */
 export async function handleConversation(message, sessionId = "") {
 	await bootstrap();
@@ -498,44 +474,32 @@ export async function handleConversation(message, sessionId = "") {
 		await resumeSession(sessionState, sessionsPath(), sessionId, config.cwd);
 	}
 
-	let pending = null;
-	const onChunk = (chunk) => {
+	let question = null;
+	const response = await callProvider(message, (chunk) => {
 		if (chunk.type === "clarify") {
-			pending = chunk;
+			question = chunk.question;
 		} else if (chunk.type === "message" && chunk.text) {
 			process.stdout.write(chunk.text);
 		}
-	};
-
-	let response = await callProvider(message, onChunk);
-	let content = response.content;
-	let reasoning = response.reasoning;
-
-	while (response.interrupted) {
-		const answer = pending ? await askOnTerminal(pending) : null;
-		if (answer == null) {
-			logger.warn(
-				"The agent asked a clarifying question but no terminal is available to answer it.",
-			);
-			break;
-		}
-		pending = null;
-		response = await resumeProvider(answer, onChunk);
-		content += response.content;
-		reasoning = (reasoning || "") + (response.reasoning || "") || undefined;
-	}
+	});
 
 	sessionState.addExchange({ role: "user", content: message });
 	sessionState.addExchange({
 		role: "assistant",
-		content,
-		reasoningContent: reasoning,
+		content: response.content,
+		reasoningContent: response.reasoning,
 	});
 
 	// Persist session after each exchange
 	await saveSession(sessionsPath(), sessionState.getConversation(), sessionState.getSessionId());
 
-	return { ...response, content, reasoning };
+	if (response.interrupted) {
+		throw new Error(
+			`The agent needs input: ${question ?? "(no question provided)"} Re-run with --mode interactive.`,
+		);
+	}
+
+	return response;
 }
 
 // ---------------------------------------------------------------------------
