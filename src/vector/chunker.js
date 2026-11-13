@@ -1,96 +1,36 @@
 import { readFile, stat } from "node:fs/promises";
-import { loadConfig } from "../config/loader.js";
-
-/**
- * Binary file extensions to skip during chunking.
- */
-const BINARY_EXTENSIONS = new Set([
-	".png",
-	".jpg",
-	".jpeg",
-	".gif",
-	".bmp",
-	".ico",
-	".webp",
-	".avif",
-	".mp3",
-	".wav",
-	".ogg",
-	".flac",
-	".aac",
-	".wma",
-	".mp4",
-	".avi",
-	".mkv",
-	".mov",
-	".wmv",
-	".webm",
-	".zip",
-	".tar",
-	".gz",
-	".bz2",
-	".xz",
-	".7z",
-	".rar",
-	".pdf",
-	".doc",
-	".docx",
-	".xls",
-	".xlsx",
-	".ppt",
-	".pptx",
-	".ttf",
-	".otf",
-	".woff",
-	".woff2",
-	".eot",
-	".o",
-	".so",
-	".dll",
-	".dylib",
-	".exe",
-	".wasm",
-	".pyc",
-	".pyo",
-	".pyd",
-	".DS_Store",
-	".gitkeep",
-]);
-
-/**
- * Check if a file path has a binary extension.
- * @param {string} filePath - Path to the file
- * @returns {boolean} True if the file extension is in the binary list
- */
-function hasBinaryExtension(filePath) {
-	const ext = filePath.slice(filePath.lastIndexOf(".")).toLowerCase();
-	return BINARY_EXTENSIONS.has(ext);
-}
-
-/**
- * Check if content contains null bytes (binary content heuristic).
- * @param {string} content - File content as string
- * @returns {boolean} True if null bytes are found
- */
-function hasNullBytes(content) {
-	return content.includes("\0");
-}
+import { getDefaultMaxFileSize, hasNullBytes, isBinaryPath, isSecretFile } from "./fileFilters.js";
 
 /**
  * Split source file content into fixed-size chunks with overlap.
  *
+ * Handles CRLF line endings and ignores the phantom empty line produced by a
+ * trailing newline.
+ *
  * @param {string} filePath - Path to the source file
  * @param {string} content - Full file content
- * @param {number} [chunkSize=96] - Number of lines per chunk
- * @param {number} [overlap=16] - Number of overlapping lines between chunks
+ * @param {number} [chunkSize=96] - Number of lines per chunk (> 0)
+ * @param {number} [overlap=16] - Number of overlapping lines between chunks (0 <= overlap < chunkSize)
  * @returns {Array<{filePath: string, lineStart: number, lineEnd: number, content: string}>}
  */
 export function chunkContent(filePath, content, chunkSize = 96, overlap = 16) {
+	if (!Number.isInteger(chunkSize) || chunkSize <= 0) {
+		throw new RangeError(`chunkSize must be a positive integer, got ${chunkSize}`);
+	}
+	if (!Number.isInteger(overlap) || overlap < 0 || overlap >= chunkSize) {
+		throw new RangeError(
+			`overlap must be an integer with 0 <= overlap < chunkSize, got ${overlap}`,
+		);
+	}
+
 	if (!content || content.length === 0) {
 		return [];
 	}
 
-	const lines = content.split("\n");
+	const lines = content.split("\n").map((l) => (l.endsWith("\r") ? l.slice(0, -1) : l));
+	if (lines.length > 1 && lines[lines.length - 1] === "") {
+		lines.pop();
+	}
 	const totalLines = lines.length;
 	const chunks = [];
 	const step = chunkSize - overlap;
@@ -100,19 +40,18 @@ export function chunkContent(filePath, content, chunkSize = 96, overlap = 16) {
 			filePath,
 			lineStart: 1,
 			lineEnd: totalLines,
-			content,
+			content: lines.join("\n"),
 		});
 		return chunks;
 	}
 
 	for (let start = 0; start < totalLines; start += step) {
 		const end = Math.min(start + chunkSize, totalLines);
-		const chunkLines = lines.slice(start, end);
 		chunks.push({
 			filePath,
 			lineStart: start + 1,
 			lineEnd: end,
-			content: chunkLines.join("\n"),
+			content: lines.slice(start, end).join("\n"),
 		});
 
 		if (end >= totalLines) {
@@ -124,7 +63,7 @@ export function chunkContent(filePath, content, chunkSize = 96, overlap = 16) {
 }
 
 /**
- * Chunk a file from disk, skipping binary files and files exceeding the size limit.
+ * Chunk a file from disk, skipping binary/secret files and files exceeding the size limit.
  *
  * @param {string} filePath - Absolute path to the file
  * @param {object} [options] - Chunking options
@@ -134,25 +73,21 @@ export function chunkContent(filePath, content, chunkSize = 96, overlap = 16) {
  * @returns {Promise<Array<{filePath: string, lineStart: number, lineEnd: number, content: string}>>}
  */
 export async function chunkFile(filePath, options = {}) {
-	const { chunkSize = 96, overlap = 16, maxFileSize = loadConfig().vector.maxFileSize } = options;
+	const { chunkSize = 96, overlap = 16, maxFileSize = getDefaultMaxFileSize() } = options;
 
-	// Skip binary extensions
-	if (hasBinaryExtension(filePath)) {
+	if (isBinaryPath(filePath) || isSecretFile(filePath)) {
 		return [];
 	}
 
-	// Check file size
 	try {
 		const stats = await stat(filePath);
 		if (stats.size > maxFileSize) {
 			return [];
 		}
 	} catch (_err) {
-		// File doesn't exist or can't be read — skip
 		return [];
 	}
 
-	// Read file content
 	let content;
 	try {
 		content = await readFile(filePath, "utf-8");
@@ -160,7 +95,6 @@ export async function chunkFile(filePath, options = {}) {
 		return [];
 	}
 
-	// Skip if content has null bytes (binary content)
 	if (hasNullBytes(content)) {
 		return [];
 	}

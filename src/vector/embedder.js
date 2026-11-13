@@ -1,6 +1,6 @@
 /**
  * Text embedding module supporting local inference via transformers.js
- * and fallback to OpenAI embeddings API.
+ * and (opt-in) fallback to the OpenAI embeddings API.
  *
  * @module vector/embedder
  */
@@ -8,33 +8,38 @@
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { debug, warn } from "./fileFilters.js";
 
 const OPENAI_MODEL = "text-embedding-3-small";
+const DEFAULT_OPENAI_URL = "https://api.openai.com/v1/embeddings";
+export const EMBEDDING_DIM = 384;
+const OPENAI_BATCH_SIZE = 64;
+const LOCAL_BATCH_SIZE = 16;
+const MAX_CHUNK_CHARS = 8000;
+const MAX_RETRIES = 4;
+const FETCH_TIMEOUT_MS = 30000;
+const MAX_ERROR_BODY = 300;
 
 /**
  * Resolve the absolute path to the onnxruntime-web WASM directory.
- * The trailing slash is required — ORT concatenates wasmPaths + filename
- * directly, so without it the path would be malformed (e.g. ".../distort-wasm-simd.wasm").
+ * The trailing slash is required — ORT concatenates wasmPaths + filename.
  *
  * @returns {string} Absolute path to onnxruntime-web/dist/ with trailing slash
  */
 function getOrtWasmDir() {
 	const moduleDir = dirname(fileURLToPath(import.meta.url));
 	const wasmDir = join(moduleDir, "../../node_modules/onnxruntime-web/dist/");
-	// Ensure trailing slash for ORT path concatenation
 	return wasmDir.endsWith("/") ? wasmDir : wasmDir + "/";
 }
 
+let onnxRedirected = false;
+
 /**
  * Redirect the CJS require cache so that `require("onnxruntime-node")`
- * resolves to `onnxruntime-web` instead. This must run BEFORE any
- * import of `@xenova/transformers`, because its bundle unconditionally
- * requires `onnxruntime-node` at import time via an eval escape hatch.
- *
- * On Alpine/musl the native binding crashes with ERR_DLOPEN_FAILED;
- * redirecting to the WASM build avoids that entirely.
+ * resolves to `onnxruntime-web` instead. Runs once per process.
  */
 function redirectOnnxRuntime() {
+	if (onnxRedirected) return;
 	const require = createRequire(import.meta.url);
 	const web = require("onnxruntime-web");
 	const nodeMain = require.resolve("onnxruntime-node");
@@ -44,6 +49,30 @@ function redirectOnnxRuntime() {
 		loaded: true,
 		exports: web,
 	};
+	onnxRedirected = true;
+}
+
+/**
+ * @param {number} ms - Milliseconds
+ * @returns {Promise<void>}
+ */
+function sleep(ms) {
+	return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Validate that an embedding has the expected dimension.
+ * @param {ArrayLike<number>} vec - Embedding
+ * @param {string} source - Label for error messages
+ * @returns {Float32Array}
+ */
+function checkDim(vec, source) {
+	if (!vec || vec.length !== EMBEDDING_DIM) {
+		throw new Error(
+			`${source} returned embedding of length ${vec?.length}, expected ${EMBEDDING_DIM}`,
+		);
+	}
+	return vec instanceof Float32Array ? vec : new Float32Array(vec);
 }
 
 /**
@@ -51,104 +80,143 @@ function redirectOnnxRuntime() {
  *
  * @param {object} options - Embedder options
  * @param {"local"|"openai"} [options.model="local"] - Embedding provider
- * @param {string} [options.openaiApiKey] - OpenAI API key for fallback
+ * @param {string} [options.openaiApiKey] - OpenAI API key
+ * @param {"openai"|null} [options.fallback] - Opt-in fallback provider when local fails
+ *   (default: none — code is never sent to a remote service unless requested)
+ * @param {string} [options.baseURL] - Override OpenAI embeddings endpoint (must be https)
  * @returns {{ embed: (texts: string|string[]) => Promise<Float32Array|Float32Array[]> }}
  */
 export function createEmbedder(options = {}) {
-	const { model = "local", openaiApiKey } = options;
+	const { model = "local", openaiApiKey, fallback = null, baseURL } = options;
 
-	/** @type {import("@xenova/transformers").PipelineFunction|null} */
-	let localPipeline = null;
-	let pipelineLoadAttempted = false;
+	let endpoint = DEFAULT_OPENAI_URL;
+	if (baseURL !== undefined && baseURL !== null) {
+		let parsed;
+		try {
+			parsed = new URL(baseURL);
+		} catch (err) {
+			throw new Error(`Invalid embedder baseURL: ${baseURL}`, { cause: err });
+		}
+		if (parsed.protocol !== "https:") {
+			throw new Error("Embedder baseURL must use https");
+		}
+		endpoint = parsed.toString();
+	}
+
+	/** @type {Promise<Function>|null} */
+	let pipelinePromise = null;
 
 	/**
-	 * Load the local transformers.js pipeline lazily.
-	 *
-	 * Two-part setup required on Alpine/musl:
-	 *   Part A — Redirect the CJS require cache so the bundle's
-	 *            unconditional `require("onnxruntime-node")` resolves
-	 *            to onnxruntime-web (WASM) instead of the native binding.
-	 *   Part B — Configure the WASM backend (wasmPaths, numThreads, proxy)
-	 *            before calling pipeline().
-	 *
-	 * @returns {Promise<import("@xenova/transformers").PipelineFunction|null>}
+	 * Load the local transformers.js pipeline lazily; the load promise is
+	 * cached and cleared on failure so a later call can retry.
+	 * @returns {Promise<Function>}
 	 */
-	async function getLocalPipeline() {
-		if (localPipeline) return localPipeline;
-		if (pipelineLoadAttempted) return null;
-
-		pipelineLoadAttempted = true;
-		try {
-			// Part A: Redirect native binding to WASM before transformers import
+	function getLocalPipeline() {
+		pipelinePromise ??= (async () => {
 			redirectOnnxRuntime();
-
-			// Part B: Import transformers and configure WASM backend
 			const { env, pipeline } = await import("@xenova/transformers");
 			env.backends.onnx.wasm.wasmPaths = getOrtWasmDir();
 			env.backends.onnx.wasm.numThreads = 1;
 			env.backends.onnx.wasm.proxy = false;
-
-			localPipeline = await pipeline("feature-extraction", "Xenova/all-MiniLM-L6-v2", {
-				quantized: true,
-			});
-			return localPipeline;
-		} catch (_err) {
-			return null;
-		}
+			return pipeline("feature-extraction", "Xenova/all-MiniLM-L6-v2", { quantized: true });
+		})().catch((err) => {
+			pipelinePromise = null;
+			debug(`local pipeline load failed: ${err?.message}`);
+			throw new Error("Local embedding pipeline not available", { cause: err });
+		});
+		return pipelinePromise;
 	}
 
 	/**
-	 * Embed text using the local transformers.js pipeline.
-	 * @param {string[]} texts - Array of text strings to embed
+	 * @param {string[]} texts - Texts to embed
 	 * @returns {Promise<Float32Array[]>}
 	 */
 	async function embedLocal(texts) {
 		const pipe = await getLocalPipeline();
-		if (!pipe) {
-			throw new Error("Local embedding pipeline not available");
-		}
-
 		const results = [];
-		for (const text of texts) {
-			const output = await pipe(text, { pooling: "mean", normalize: true });
-			results.push(new Float32Array(output.data));
+		for (let i = 0; i < texts.length; i += LOCAL_BATCH_SIZE) {
+			const batch = texts.slice(i, i + LOCAL_BATCH_SIZE);
+			const output = await pipe(batch, { pooling: "mean", normalize: true });
+			const data = output.data;
+			if (data.length !== batch.length * EMBEDDING_DIM) {
+				throw new Error(
+					`Local pipeline returned ${data.length} values for ${batch.length} texts, expected ${batch.length * EMBEDDING_DIM}`,
+				);
+			}
+			for (let j = 0; j < batch.length; j++) {
+				results.push(new Float32Array(data.slice(j * EMBEDDING_DIM, (j + 1) * EMBEDDING_DIM)));
+			}
 		}
 		return results;
 	}
 
 	/**
-	 * Embed text using OpenAI embeddings API.
-	 * @param {string[]} texts - Array of text strings to embed
+	 * Send a single batch to OpenAI with retry/backoff on 429/5xx.
+	 * @param {string[]} batch - Texts
+	 * @returns {Promise<Float32Array[]>}
+	 */
+	async function openAIBatch(batch) {
+		let lastErr;
+		for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+			if (attempt > 0) {
+				await sleep(Math.min(250 * 2 ** (attempt - 1), 8000));
+			}
+			let response;
+			try {
+				response = await fetch(endpoint, {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+						Authorization: `Bearer ${openaiApiKey}`,
+					},
+					body: JSON.stringify({
+						model: OPENAI_MODEL,
+						input: batch,
+						dimensions: EMBEDDING_DIM,
+					}),
+					signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+				});
+			} catch (err) {
+				lastErr = new Error(`OpenAI embedding request failed: ${err.message}`, { cause: err });
+				continue;
+			}
+
+			if (!response.ok) {
+				const body = (await response.text().catch(() => "")).slice(0, MAX_ERROR_BODY);
+				const err = new Error(`OpenAI embedding API error: ${response.status} ${body}`);
+				if (response.status === 429 || response.status >= 500) {
+					lastErr = err;
+					continue;
+				}
+				throw err;
+			}
+
+			const data = await response.json();
+			if (!data || !Array.isArray(data.data) || data.data.length !== batch.length) {
+				throw new Error(
+					`OpenAI embedding response malformed: expected ${batch.length} items, got ${Array.isArray(data?.data) ? data.data.length : "no data array"}`,
+				);
+			}
+			const sorted = [...data.data].sort((a, b) => a.index - b.index);
+			return sorted.map((item) => checkDim(item.embedding, "OpenAI"));
+		}
+		throw lastErr;
+	}
+
+	/**
+	 * @param {string[]} texts - Texts to embed
 	 * @returns {Promise<Float32Array[]>}
 	 */
 	async function embedOpenAI(texts) {
 		if (!openaiApiKey) {
-			throw new Error("OpenAI API key not configured for fallback embedding");
+			throw new Error("OpenAI API key not configured for OpenAI embedding");
 		}
-
-		const response = await fetch("https://api.openai.com/v1/embeddings", {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-				Authorization: `Bearer ${openaiApiKey}`,
-			},
-			body: JSON.stringify({
-				model: OPENAI_MODEL,
-				input: texts,
-				dimensions: 384,
-			}),
-		});
-
-		if (!response.ok) {
-			const errorBody = await response.text().catch(() => "");
-			throw new Error(`OpenAI embedding API error: ${response.status} ${errorBody}`);
+		const capped = texts.map((t) => (t.length > MAX_CHUNK_CHARS ? t.slice(0, MAX_CHUNK_CHARS) : t));
+		const results = [];
+		for (let i = 0; i < capped.length; i += OPENAI_BATCH_SIZE) {
+			results.push(...(await openAIBatch(capped.slice(i, i + OPENAI_BATCH_SIZE))));
 		}
-
-		const data = await response.json();
-		// Sort by index to maintain input order
-		data.data.sort((a, b) => a.index - b.index);
-
-		return data.data.map((item) => new Float32Array(item.embedding));
+		return results;
 	}
 
 	/**
@@ -166,11 +234,19 @@ export function createEmbedder(options = {}) {
 			try {
 				results = await embedLocal(inputArray);
 			} catch (localErr) {
-				// Fallback to OpenAI if local fails
+				if (fallback !== "openai") {
+					throw new Error(`Embedding failed: local (${localErr.message})`, { cause: localErr });
+				}
+				warn(
+					`local embedding failed (${localErr.message}); falling back to OpenAI — text is sent to a remote API`,
+				);
 				try {
 					results = await embedOpenAI(inputArray);
-				} catch (_fallbackErr) {
-					throw new Error(`Embedding failed: local (${localErr.message}), fallback also failed`);
+				} catch (fallbackErr) {
+					throw new Error(
+						`Embedding failed: local (${localErr.message}), fallback also failed (${fallbackErr.message})`,
+						{ cause: fallbackErr },
+					);
 				}
 			}
 		} else {
