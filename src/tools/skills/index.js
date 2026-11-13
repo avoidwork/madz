@@ -314,6 +314,16 @@ export async function skillImpl(input, options = {}) {
 		};
 	}
 
+	if (skill.disabled) {
+		return {
+			name,
+			body: "",
+			directory: "",
+			files: [],
+			error: `Skill "${name}" is disabled.`,
+		};
+	}
+
 	const body = await registry.getSkillBody(name);
 	if (!body) {
 		return {

@@ -374,8 +374,9 @@ describe("discoverSkills", () => {
 	});
 
 	it("handles name collisions — second occurrence is skipped", async () => {
-		const dir1 = join(FULL_TEST_DIR, "alpha-skill");
-		const dir2 = join(FULL_TEST_DIR, "beta-skill");
+		// Same directory name in two scopes: the first scanned wins
+		const dir1 = join(FULL_TEST_DIR, "scope-1", "collision-skill");
+		const dir2 = join(FULL_TEST_DIR, "scope-2", "collision-skill");
 		mkdirSync(dir1, { recursive: true });
 		mkdirSync(dir2, { recursive: true });
 
@@ -392,13 +393,16 @@ describe("discoverSkills", () => {
 			),
 		);
 
-		const skills = await discoverSkills([FULL_TEST_DIR]);
-		// Only the first one found (alphabetically: alpha-skill before beta-skill)
+		const skills = await discoverSkills([
+			join(FULL_TEST_DIR, "scope-1"),
+			join(FULL_TEST_DIR, "scope-2"),
+		]);
+		// Only the first scanned one is kept
 		assert.strictEqual(skills.length, 1);
 		assert.strictEqual(skills[0].metadata.description, "First occurrence");
 	});
 
-	it("handles .skills/ shadowing user skills/", async () => {
+	it("bundled .skills/ wins over user skills/", async () => {
 		// System skill in .skills/ should override user skill with same name
 		const systemDir = join(FULL_TEST_DIR, ".skills");
 		const systemSkillDir = join(systemDir, "shadow-skill");
@@ -418,11 +422,11 @@ describe("discoverSkills", () => {
 			["---", "name: shadow-skill", "description: User version", "---", "", "User body"].join("\n"),
 		);
 
-		// User scope first, then .skills/ — .skills/ shadows (prevents duplicate), first-found wins
+		// User scope first, then .skills/ — the bundled skill replaces the user one
 		const skills = await discoverSkills([userDir, systemDir]);
 		assert.strictEqual(skills.length, 1);
-		// First-found (user) stays in the array; .skills/ shadows by preventing the duplicate
-		assert.strictEqual(skills[0].metadata.description, "User version");
+		assert.strictEqual(skills[0].metadata.description, "System version");
+		assert.strictEqual(skills[0].bundled, true);
 	});
 
 	it("discovers both system and user skills when names do not collide", async () => {

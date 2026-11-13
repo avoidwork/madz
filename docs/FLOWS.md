@@ -182,9 +182,9 @@ registry.discover(scope = defaultScope, options = {})
 │       ├── stat → skip if not directory
 │       └── read SKILL.md → extractFrontmatter (YAML: name, description, license,
 │           compatibility, metadata, disabled)
-│           └── system skills (.skills/) are scanned first and shadow user skills
+│           └── bundled skills (.skills/) always win a name clash with user skills (any scan order)
 ├── for each skill in discovered:
-│   ├── { warnings } = validateSkillSchema(skill.metadata, dirName)
+│   ├── { skip, errors, warnings } = validateSkillSchema(skill.metadata, dirName)  (skip => not registered)
 │   │   └── validateSkillName (1-64 chars, lowercase alphanumeric + hyphens),
 │   │       validateSkillDescription (1-1024), validateOptionalFields
 │   └── #skills.set(name, { path, name, metadata, validated: true, errors, warnings, disabled })

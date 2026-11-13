@@ -91,7 +91,7 @@ The system SHALL implement progressive disclosure for skill activation in three 
 - **THEN** the model loads only the relevant SKILL.md files — unused skills remain at catalog level
 
 ### Requirement: Cross-Client Directory Scanning
-The system SHALL scan multiple directory scopes for skills: project-level `skills/`, project-level `.skills/` (system skills baked into the image), and user-level `~/.agents/skills/`. When the same skill name is found in multiple scopes, `.skills/` (system) shadows `skills/` (user), and project-level skills override user-level skills.
+The system SHALL scan multiple directory scopes for skills: project-level `skills/`, project-level `.skills/` (system skills baked into the image), and user-level `~/.agents/skills/`. When the same skill name is found in multiple scopes, `.skills/` (bundled) always takes precedence over `skills/` (user) regardless of scan order, and project-level skills override user-level skills.
 
 #### Scenario: Skills discovered in project-level skills directory
 - **WHEN** a skill exists in `<project>/skills/<name>/SKILL.md`
@@ -101,9 +101,9 @@ The system SHALL scan multiple directory scopes for skills: project-level `skill
 - **WHEN** a skill exists in `<project>/.skills/<name>/SKILL.md`
 - **THEN** the system discovers and registers the skill
 
-#### Scenario: System skill shadows user skill
+#### Scenario: Bundled skill wins over user skill
 - **WHEN** a skill named `code-review` exists in both `<project>/skills/` and `<project>/.skills/`
-- **THEN** the `.skills/` system skill takes precedence and the `skills/` user skill is shadowed with a logged warning
+- **THEN** the `.skills/` system skill takes precedence and the `skills/` user skill is ignored with a logged warning
 
 #### Scenario: Project-level skill overrides user-level
 - **WHEN** a skill named `code-review` exists in both `<project>/skills/` and `~/.agents/skills/`

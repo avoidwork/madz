@@ -93,21 +93,22 @@ export function validateOptionalFields(metadata) {
  * Validate a skill's metadata against Agent Skills spec constraints.
  * Returns { valid, skip } — skip is true when the skill should be outright rejected (empty desc, bad YAML).
  * Warnings are non-fatal (lenient validation) but still returned.
- * @param {Object} skill - The skill metadata object with at least a name
+ * Does not mutate its input.
+ * @param {Object} input - The skill metadata object with at least a name
  * @param {string} [dirName] - Parent directory name for name validation
  * @returns {{ valid: boolean, skip: boolean, errors: string[], warnings: string[] }}
  */
-export function validateSkillSchema(skill, dirName) {
+export function validateSkillSchema(input, dirName) {
 	const errors = [];
 	const warnings = [];
 
-	if (!skill.name) {
+	if (!input.name) {
 		errors.push("Skill must have a name");
 		return { valid: false, skip: true, errors, warnings };
 	}
 
-	// Cast name to string — YAML may parse numeric names as numbers
-	skill.name = String(skill.name);
+	// Cast name to string (YAML may parse numeric names as numbers) on a copy
+	const skill = { ...input, name: String(input.name) };
 
 	// Validate name constraints
 	const nameCheck = validateSkillName(skill.name, dirName);
@@ -127,9 +128,9 @@ export function validateSkillSchema(skill, dirName) {
 	// Validate entire metadata shape against zod schema
 	const fullResult = SkillMetadataSchema.safeParse(skill);
 	if (!fullResult.success) {
-		const errorDetails = fullResult.error?.errors
-			? fullResult.error.errors.map((e) => `${e.path}: ${e.message}`).join("; ")
-			: fullResult.error?.message || "unknown validation error";
+		const errorDetails = fullResult.error.issues
+			.map((e) => `${e.path.join(".")}: ${e.message}`)
+			.join("; ");
 		warnings.push(`Skill "${skill.name}" metadata validation: ${errorDetails}`);
 	}
 

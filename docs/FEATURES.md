@@ -227,7 +227,7 @@ The active project is the directory the file picker globs and the agent treats a
 
 Auto-discovers Agent Skills spec-compliant skills from a `skills/` directory structure. Each skill directory contains a `SKILL.md` file with YAML frontmatter (`name` required, 1-64 lowercase alphanumeric + hyphens; `description` required, 1-1024 characters; optional `license`, `compatibility`, `metadata`). Supports optional `scripts/` subdirectory containing executable scripts (detected by extension: `.py`, `.sh`, `.js`, `.rb`, `.ts`). The `createSkill` tool lets agents create new skills programmatically — validating spec constraints before writing `SKILL.md` and optionally scaffolding a `scripts/` directory.
 
-System skills in `.skills/` are scanned first and shadow user skills of the same name in `skills/`.
+Bundled skills in `.skills/` always take precedence over a user skill of the same name in `skills/`, regardless of scan order; the user skill is ignored with a warning.
 
 ### Permission Gating
 

@@ -1,6 +1,6 @@
 # Bundled Skills
 
-The skills that ship with madz in `.skills/`. Each is an [Agent Skills](https://agentskills.io/specification)-spec-compliant `SKILL.md` that the orchestrator loads on demand via the `skill` tool. They are scanned first and shadow user skills of the same name in `skills/`.
+The skills that ship with madz in `.skills/`. Each is an [Agent Skills](https://agentskills.io/specification)-spec-compliant `SKILL.md` that the orchestrator loads on demand via the `skill` tool. They always take precedence over a user skill of the same name in `skills/`, regardless of scan order; the user skill is ignored with a warning.
 
 ## How Skills Work
 
