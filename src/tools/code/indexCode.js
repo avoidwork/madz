@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { Piscina } from "piscina";
 import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { loadConfig } from "../../config/loader.js";
 
 const config = loadConfig();
@@ -58,8 +58,10 @@ export async function indexCodeImpl(input, options = {}) {
 
 		try {
 			const result = await pool.run({
-				dbPath: proj.dbPath,
-				rootDir: proj.rootDir || ".",
+				// Resolve against the original working directory, not process.cwd(), which
+				// the TUI changes when switching projects.
+				dbPath: resolve(config.cwd, proj.dbPath),
+				rootDir: resolve(config.cwd, proj.rootDir || "."),
 				include: proj.include || ["src/**/*.js", "src/**/*.mjs", "src/**/*.cjs"],
 				exclude: proj.exclude || ["node_modules/**", ".git/**", ".worktrees/**"],
 				chunkSize: proj.chunkSize || 96,
