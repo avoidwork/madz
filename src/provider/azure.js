@@ -6,8 +6,9 @@ import { getSharedTokenBudget } from "./openai.js";
  * @typedef {Object} AzureProviderConfig
  * @property {string} type - Always "azure-openai"
  * @property {string} model - The deployment name (acts as the model)
- * @property {string} [endpoint] - The Azure OpenAI endpoint (e.g. https://<resource>.openai.azure.com)
- * @property {string} [apiVersion] - The Azure OpenAI API version (e.g. 2024-10-21)
+ * @property {string} [apiVersion] - The Azure OpenAI API version (e.g. 2024-10-21);
+ *   `AZURE_OPENAI_API_VERSION` takes precedence. The endpoint is read from the
+ *   environment only (`AZURE_OPENAI_ENDPOINT`), not from config.
  * @property {number} [temperature] - Sampling temperature (0-2)
  * @property {number} [maxTokens] - Maximum output tokens
  * @property {boolean} [streaming] - Enable streaming token output
@@ -18,6 +19,14 @@ import { getSharedTokenBudget } from "./openai.js";
  * @property {Object} [reasoning] - Reasoning configuration (effort)
  */
 
+/** Allowed Azure OpenAI endpoint host suffixes. */
+const AZURE_HOST_SUFFIXES = [
+	".openai.azure.com",
+	".cognitiveservices.azure.com",
+	".openai.azure.us",
+	".openai.azure.cn",
+];
+
 /**
  * Resolve the Azure OpenAI endpoint from the environment.
  * Prefers `AZURE_OPENAI_ENDPOINT`; otherwise derives `https://<instance>.openai.azure.com`
@@ -26,9 +35,27 @@ import { getSharedTokenBudget } from "./openai.js";
  */
 export function resolveAzureEndpoint() {
 	const endpoint = process.env.AZURE_OPENAI_ENDPOINT;
-	if (endpoint) return endpoint.replace(/\/+$/, "");
+	if (endpoint) {
+		let url;
+		try {
+			url = new URL(endpoint);
+		} catch {
+			throw new Error("AZURE_OPENAI_ENDPOINT is not a valid URL");
+		}
+		if (url.protocol !== "https:" || !AZURE_HOST_SUFFIXES.some((s) => url.hostname.endsWith(s))) {
+			throw new Error(
+				"AZURE_OPENAI_ENDPOINT must be an https URL on an Azure host (e.g. *.openai.azure.com)",
+			);
+		}
+		return endpoint.replace(/\/+$/, "");
+	}
 	const instance = process.env.AZURE_OPENAI_API_INSTANCE_NAME;
-	if (instance) return `https://${instance}.openai.azure.com`;
+	if (instance) {
+		if (!/^[a-z0-9-]+$/.test(instance)) {
+			throw new Error("AZURE_OPENAI_API_INSTANCE_NAME may only contain a-z, 0-9 and '-'");
+		}
+		return `https://${instance}.openai.azure.com`;
+	}
 	return "";
 }
 

@@ -119,12 +119,12 @@ describe("createSummarizationMiddlewareFromConfig", () => {
 		assert.ok(await run(mw, { messages: msgs(10) }));
 	});
 
-	it("never fires for an unsupported trigger type", async () => {
+	it("returns null (with a warning) for an unsupported trigger type", async () => {
 		const mw = createSummarizationMiddlewareFromConfig({
 			model,
 			config: enabled({ trigger: { type: "fraction", value: 0.5 } }),
 		});
-		assert.strictEqual(await run(mw, { messages: msgs(50) }), undefined);
+		assert.strictEqual(mw, null);
 	});
 
 	it("leaves state unchanged when summarization fails, and backs off", async () => {

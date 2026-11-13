@@ -1,7 +1,9 @@
 import { ChatOpenAI } from "@langchain/openai";
 import { createAzureChatModel } from "./azure.js";
 import { createBedrockChatModel } from "./bedrock.js";
+import { resolve } from "node:path";
 import { AIMessageChunk } from "@langchain/core/messages";
+import { logger } from "../shared/logger.js";
 import { createTokenBudget } from "./tokenBudget.js";
 import { createCopilotFetch, base } from "./copilotAuth.js";
 
@@ -11,13 +13,15 @@ export const DEFAULT_RETRY_AFTER_MS = 60_000;
 // Module-level shared token budget. Every `createChatModel` call with
 // `maxTokensMinute > 0` paces against this single instance so the orchestrator
 // and all subagents share one rolling window (not an independent budget each).
-// Lazily created and keyed by `maxTokensMinute`; a changed value re-creates it.
+// Lazily created; a changed `maxTokensMinute` updates the limit of the existing
+// instance (via `setLimit`) so the rolling window of consumed tokens is kept.
 // Enforcement happens in the `TokenBudget` middleware
 // (`src/provider/tokenBudgetMiddleware.js`), which reads this same instance —
 // NOT by patching the returned model's `invoke`/`stream`, which `bindTools()`
 // would orphan.
 let sharedTokenBudget = null;
 let sharedTokenBudgetMax = 0;
+let patchWarned = false;
 
 /**
  * Get (or lazily create) the shared token budget for a given
@@ -26,8 +30,11 @@ let sharedTokenBudgetMax = 0;
  * @returns {Object} The shared token budget instance
  */
 export function getSharedTokenBudget(maxTokensMinute) {
-	if (sharedTokenBudget === null || sharedTokenBudgetMax !== maxTokensMinute) {
+	if (sharedTokenBudget === null) {
 		sharedTokenBudget = createTokenBudget(maxTokensMinute);
+		sharedTokenBudgetMax = maxTokensMinute;
+	} else if (sharedTokenBudgetMax !== maxTokensMinute) {
+		sharedTokenBudget.setLimit(maxTokensMinute);
 		sharedTokenBudgetMax = maxTokensMinute;
 	}
 	return sharedTokenBudget;
@@ -43,6 +50,25 @@ export function resetTokenBudget() {
 }
 
 /**
+ * Read a header from a `Headers` instance or a plain object (case-insensitive).
+ * @param {Headers|Object|undefined} headers - The headers container
+ * @param {string} name - Lower-case header name
+ * @returns {string|number|undefined} The header value, if any
+ */
+function readHeader(headers, name) {
+	if (!headers) return undefined;
+	if (typeof headers.get === "function") return headers.get(name) ?? undefined;
+	if (typeof headers === "object") {
+		const key = Object.keys(headers).find((k) => k.toLowerCase() === name);
+		return key === undefined ? undefined : headers[key];
+	}
+	return undefined;
+}
+
+const MIN_RETRY_DELAY_MS = 1_000;
+const MAX_RETRY_DELAY_MS = 120_000;
+
+/**
  * Resolve the retry delay for a rate-limit error.
  * Prefers the `retry-after` header (seconds or HTTP-date) when present;
  * otherwise returns the supplied default.
@@ -51,21 +77,22 @@ export function resetTokenBudget() {
  * @returns {number} Delay in milliseconds
  */
 export function getRetryDelayMs(err, defaultMs) {
+	const clamp = (ms) => Math.min(MAX_RETRY_DELAY_MS, Math.max(MIN_RETRY_DELAY_MS, ms));
 	const header =
-		err?.headers?.["retry-after"] ??
-		err?.headers?.["Retry-After"] ??
-		err?.response?.headers?.["retry-after"] ??
-		err?.response?.headers?.["Retry-After"];
-	if (header !== undefined) {
-		const seconds = Number(header);
-		if (!Number.isNaN(seconds) && seconds >= 0) return seconds * 1000;
-		const date = Date.parse(header);
-		if (!Number.isNaN(date)) {
-			const delay = date - Date.now();
-			return delay > 0 ? delay : defaultMs;
+		readHeader(err?.headers, "retry-after") ?? readHeader(err?.response?.headers, "retry-after");
+	if (header !== undefined && header !== null) {
+		const raw = String(header).trim();
+		if (raw !== "") {
+			const seconds = Number(raw);
+			if (Number.isFinite(seconds) && seconds >= 0) return clamp(seconds * 1000);
+			const date = Date.parse(raw);
+			if (!Number.isNaN(date)) {
+				const delay = date - Date.now();
+				if (delay > 0) return clamp(delay);
+			}
 		}
 	}
-	return defaultMs;
+	return clamp(defaultMs);
 }
 
 /**
@@ -99,9 +126,11 @@ export function getRetryDelayMs(err, defaultMs) {
  * enforcement lives in the `TokenBudget` middleware, because `bindTools()`
  * rebuilds the model object and would orphan any `invoke`/`stream` override.
  * @param {ProviderConfig} config - Provider configuration object
+ * @param {Object} [options] - Extra options
+ * @param {string} [options.memoryDir] - Memory directory holding `auth.json` (Copilot)
  * @returns {ChatOpenAI} A configured ChatOpenAI instance
  */
-export function createChatModel(config) {
+export function createChatModel(config, options = {}) {
 	// Azure OpenAI is a distinct provider backed by AzureChatOpenAI. Delegate to
 	// the dedicated factory so the orchestrator and subagents get the right model
 	// without touching call sites. The existing openai/copilot paths are untouched.
@@ -135,16 +164,25 @@ export function createChatModel(config) {
 		opts.configuration.baseURL = config.enterpriseUrl
 			? base(config.enterpriseUrl)
 			: config.base_url;
-		opts.configuration.fetch = createCopilotFetch();
+		const memoryDir = options.memoryDir ? resolve(options.memoryDir) : undefined;
+		opts.configuration.fetch = createCopilotFetch(memoryDir, opts.configuration.baseURL);
 		// The OpenAI SDK v7 client constructor throws `Missing credentials`
 		// when no apiKey/workloadIdentity/adminAPIKey is present, even when a
 		// custom fetch is supplied. Pass a non-empty placeholder so the
 		// credential check passes; the custom fetch interceptor overrides the
 		// Authorization header with the real bearer token on every request, so
-		// this placeholder is never sent to the API.
+		// this placeholder is never sent to the API. (Failing fast here would
+		// break the first-run device flow, where the model is built before the
+		// user has authenticated, so the placeholder is kept.)
 		opts.apiKey = "copilot";
 	} else {
-		opts.apiKey = config.credentials.apiKey;
+		const apiKey = config.credentials?.apiKey;
+		if (!apiKey) {
+			throw new Error(
+				`Provider "${config.type || "openai"}" requires credentials.apiKey to be configured`,
+			);
+		}
+		opts.apiKey = apiKey;
 	}
 
 	// `-1` means unlimited / no cap: omit maxTokens so the model uses its own
@@ -185,6 +223,11 @@ export function createChatModel(config) {
 			get() {
 				return this.additional_kwargs?.reasoning_content;
 			},
+			set(value) {
+				// Allow assignment (e.g. by constructors/spreads) without throwing.
+				if (!this.additional_kwargs) this.additional_kwargs = {};
+				this.additional_kwargs.reasoning_content = value;
+			},
 			enumerable: true,
 			configurable: true,
 		});
@@ -201,9 +244,22 @@ export function createChatModel(config) {
 	// path calls `model.bindTools()`, which constructs a NEW ChatOpenAI (and a
 	// new ChatOpenAICompletions) via `withConfig()`; an instance-level patch is
 	// orphaned and never fires. Patching the prototype survives the rebuild.
+	if (!model.completions && !patchWarned) {
+		patchWarned = true;
+		logger.warn("[provider] ChatOpenAI.completions missing; reasoning/role patches not applied");
+	}
 	if (model.completions) {
 		const completionsProto = Object.getPrototypeOf(model.completions);
 		const origDelta = completionsProto._convertCompletionsDeltaToBaseMessageChunk;
+		if (
+			typeof origDelta !== "function" ||
+			typeof completionsProto._convertCompletionsMessageToBaseMessage !== "function"
+		) {
+			if (!patchWarned) {
+				patchWarned = true;
+				logger.warn("[provider] LangChain converter internals missing; patches not applied");
+			}
+		}
 		if (typeof origDelta === "function" && !completionsProto.__madzDeltaPatched) {
 			completionsProto._convertCompletionsDeltaToBaseMessageChunk = function (
 				delta,
@@ -250,9 +306,11 @@ export function createChatModel(config) {
  * @param {string} config.model - The configured model name
  * @param {string} [config.enterpriseUrl] - The enterprise/GHE URL
  * @param {string} [config.base_url] - The provider base URL
+ * @param {Object} [options] - Extra options
+ * @param {string} [options.memoryDir] - Memory directory holding `auth.json`
  * @returns {Promise<string>} The resolved model name (configured string on failure)
  */
-export async function resolveCopilotModel(config = {}) {
+export async function resolveCopilotModel(config = {}, options = {}) {
 	const model = config.model;
 	if (!model) return model;
 
@@ -264,7 +322,8 @@ export async function resolveCopilotModel(config = {}) {
 		// with the same fetch interceptor used for model calls so the token is
 		// read fresh from memory/auth.json and 401 re-auth is handled
 		// consistently. The interceptor also sets the standard Copilot headers.
-		const copilotFetch = createCopilotFetch();
+		const memoryDir = options.memoryDir ? resolve(options.memoryDir) : undefined;
+		const copilotFetch = createCopilotFetch(memoryDir, baseUrl);
 		const res = await copilotFetch(`${baseUrl}/models`, {
 			headers: { Accept: "application/json" },
 		});

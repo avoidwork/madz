@@ -6,14 +6,15 @@ import { getSharedTokenBudget } from "./openai.js";
  * @typedef {Object} BedrockProviderConfig
  * @property {string} type - Always "bedrock"
  * @property {string} model - The model ID, cross-region inference profile ID (e.g. "us.anthropic.claude-sonnet-4-6"), or application inference profile ARN
- * @property {string} region - The AWS region (e.g. "us-east-1"); required
+ * @property {string} [region] - Ignored; the region is read from `BEDROCK_AWS_REGION` or `AWS_REGION`
  * @property {string} [applicationInferenceProfile] - An application inference profile ARN (alternative to `model`)
  * @property {number} [temperature] - Sampling temperature (0-2)
  * @property {number} [maxTokens] - Maximum output tokens
  * @property {boolean} [streaming] - Enable streaming token output
  * @property {Object} [rateLimit] - Rate limit configuration
- * @property {number} [rateLimit.maxRetries] - Maximum retry attempts (0-10, default: 6), mapped to the SDK client's `maxAttempts`
- * @property {number} [rateLimit.maxConcurrency] - Maximum concurrent requests (1+, optional)
+ * @property {number} [rateLimit.maxRetries] - Maximum retry attempts (0-10, default: 6), mapped to the SDK client's `maxAttempts` (maxRetries + 1)
+ * @property {Object} [reasoning] - Accepted but ignored for Bedrock
+ * @property {number} [rateLimit.maxConcurrency] - Accepted but ignored for Bedrock
  * @property {number} [rateLimit.maxTokensMinute] - Rolling tokens-per-minute budget (non-negative int, default: 0 = disabled)
  */
 
@@ -78,7 +79,20 @@ export function createBedrockChatModel(config) {
 	// `@langchain/aws` library does not surface `maxRetries` on the model; the
 	// retry/backoff behavior is configured on the underlying BedrockRuntimeClient.
 	if (config.rateLimit?.maxRetries !== undefined) {
-		opts.clientOptions = { maxAttempts: config.rateLimit.maxRetries };
+		// `maxAttempts` counts the initial attempt, so retries + 1.
+		opts.clientOptions = { maxAttempts: config.rateLimit.maxRetries + 1 };
+	}
+
+	// Static / temporary credentials (precedence 2). The Bedrock API key
+	// (`AWS_BEARER_TOKEN_BEDROCK`, precedence 1) is read by the AWS SDK itself,
+	// so explicit credentials are skipped when it is set.
+	const accessKeyId = process.env.BEDROCK_AWS_ACCESS_KEY_ID;
+	const secretAccessKey = process.env.BEDROCK_AWS_SECRET_ACCESS_KEY;
+	if (!process.env.AWS_BEARER_TOKEN_BEDROCK && accessKeyId && secretAccessKey) {
+		opts.credentials = { accessKeyId, secretAccessKey };
+		if (process.env.BEDROCK_AWS_SESSION_TOKEN) {
+			opts.credentials.sessionToken = process.env.BEDROCK_AWS_SESSION_TOKEN;
+		}
 	}
 
 	const model = new ChatBedrockConverse(opts);

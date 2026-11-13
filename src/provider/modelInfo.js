@@ -12,7 +12,32 @@
  * `undefined`. It never throws, so the caller falls back gracefully.
  */
 
+import { resolve } from "node:path";
 import { createCopilotFetch, base as copilotBase } from "./copilotAuth.js";
+import { logger } from "../shared/logger.js";
+
+/** Timeout (ms) for context-length probe requests. */
+const PROBE_TIMEOUT_MS = 5_000;
+
+/**
+ * Return `value` when it is a finite number > 0, otherwise `undefined`.
+ * @param {*} value - Candidate value
+ * @returns {number|undefined} The positive finite number, or undefined
+ */
+function positive(value) {
+	return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : undefined;
+}
+
+/**
+ * Whether a URL is plain http to a non-local host.
+ * @param {URL} url - The parsed URL
+ * @returns {boolean} True for insecure remote endpoints
+ */
+function isInsecureRemote(url) {
+	return (
+		url.protocol === "http:" && !["localhost", "127.0.0.1", "[::1]", "::1"].includes(url.hostname)
+	);
+}
 
 /**
  * Construct the OpenAI-compatible models URL from a base URL without
@@ -49,7 +74,7 @@ export function buildShowUrl(baseUrl) {
 export function parseNumCtx(parameters) {
 	if (typeof parameters !== "string") return undefined;
 	const match = parameters.match(/num_ctx\s+(\d+)/);
-	if (match) return Number(match[1]);
+	if (match) return positive(Number(match[1]));
 	return undefined;
 }
 
@@ -75,9 +100,11 @@ export function parseNumCtx(parameters) {
  * @param {string} providerConfig.model - The configured model name
  * @param {Object} [providerConfig.credentials] - Provider credentials
  * @param {string} [providerConfig.credentials.apiKey] - The API key
+ * @param {Object} [options] - Extra options
+ * @param {string} [options.memoryDir] - Memory directory holding `auth.json` (Copilot)
  * @returns {Promise<number|undefined>} The context length, or `undefined`
  */
-export async function getModelContextLength(providerConfig = {}) {
+export async function getModelContextLength(providerConfig = {}, options = {}) {
 	// Azure OpenAI and AWS Bedrock have no OpenAI-compatible `/models` endpoint,
 	// so probing would fail. Fall back to the configured `contextWindow` rather
 	// than probing.
@@ -94,19 +121,34 @@ export async function getModelContextLength(providerConfig = {}) {
 
 	if (!baseUrl || !model) return undefined;
 
+	let parsedBase;
+	try {
+		parsedBase = new URL(baseUrl);
+	} catch {
+		return undefined;
+	}
+	if (apiKey && !isCopilot && isInsecureRemote(parsedBase)) {
+		logger.warn("[provider] API key would be sent over http:// to a non-local host; omitting it");
+	}
+	const sendKey = Boolean(apiKey) && !isCopilot && !isInsecureRemote(parsedBase);
+
 	// Candidate 1: OpenAI-compatible models endpoint (vLLM exposes max_model_len).
 	// Copilot's route is `{base}/models` (no `/v1`) and needs the OAuth bearer,
 	// which the Copilot fetch interceptor injects.
 	const modelsUrl = isCopilot ? `${baseUrl.replace(/\/+$/, "")}/models` : buildModelsUrl(baseUrl);
 	try {
 		const headers = { Accept: "application/json" };
-		if (apiKey && !isCopilot) headers.Authorization = `Bearer ${apiKey}`;
-		const doFetch = isCopilot ? createCopilotFetch() : fetch;
-		const res = await doFetch(modelsUrl, { headers });
+		if (sendKey) headers.Authorization = `Bearer ${apiKey}`;
+		const memoryDir = options.memoryDir ? resolve(options.memoryDir) : undefined;
+		const doFetch = isCopilot ? createCopilotFetch(memoryDir, baseUrl) : fetch;
+		const res = await doFetch(modelsUrl, {
+			headers,
+			signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
+		});
 		if (!res.ok) throw new Error(`models endpoint returned ${res.status}`);
 		const data = await res.json();
 		const entry = (data?.data || []).find((m) => m?.id === model);
-		if (entry && typeof entry.max_model_len === "number") {
+		if (entry && positive(entry.max_model_len)) {
 			return entry.max_model_len;
 		}
 		// Copilot's /models response uses a different shape: a `limits` object
@@ -118,25 +160,33 @@ export async function getModelContextLength(providerConfig = {}) {
 			// Copilot nests limits under `capabilities.limits`.
 			const limits = entry.capabilities?.limits ?? entry.limits;
 			const maxPrompt = limits?.max_prompt_tokens ?? limits?.max_prompt ?? entry.max_prompt_tokens;
-			if (typeof maxPrompt === "number") return maxPrompt;
+			if (positive(maxPrompt)) return maxPrompt;
 			const contextWindow =
 				limits?.max_context_window_tokens ??
 				limits?.context_window ??
 				entry.max_context_window_tokens;
-			if (typeof contextWindow === "number") return contextWindow;
+			if (positive(contextWindow)) return contextWindow;
 		}
 	} catch {
 		// Fall through to the next candidate.
 	}
 
 	// Candidate 2: Ollama native endpoint.
-	const showUrl = buildShowUrl(baseUrl);
+	let showUrl;
 	try {
+		showUrl = buildShowUrl(baseUrl);
+	} catch {
+		return undefined;
+	}
+	try {
+		// Ollama's native endpoint is unauthenticated; the API key is only sent
+		// when the first probe would also have been allowed to carry it.
 		const headers = { "Content-Type": "application/json" };
-		if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
+		if (sendKey) headers.Authorization = `Bearer ${apiKey}`;
 		const res = await fetch(showUrl, {
 			method: "POST",
 			headers,
+			signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
 			body: JSON.stringify({ model }),
 		});
 		if (!res.ok) throw new Error(`show endpoint returned ${res.status}`);
@@ -149,14 +199,14 @@ export async function getModelContextLength(providerConfig = {}) {
 		if (modelInfo && typeof modelInfo === "object") {
 			let native;
 			for (const [key, value] of Object.entries(modelInfo)) {
-				if (key.endsWith(".effective_context_length") && typeof value === "number") {
+				if (key.endsWith(".effective_context_length") && positive(value)) {
 					return value;
 				}
-				if (key.endsWith(".context_length") && typeof value === "number") {
+				if (key.endsWith(".context_length") && positive(value)) {
 					native = value;
 				}
 			}
-			if (typeof native === "number") return native;
+			if (positive(native)) return native;
 		}
 		const numCtx = parseNumCtx(data?.parameters);
 		if (numCtx !== undefined) return numCtx;

@@ -5,6 +5,12 @@ import { logger } from "../shared/logger.js";
 /** Number of dispatch-level retries on a 429 when the token budget is enabled. */
 const RATE_LIMIT_RETRIES = 1;
 
+/** Number of re-sends after a context-window compaction. */
+const CONTEXT_RETRIES = 1;
+
+/** Output tokens reserved when `maxTokens` is unset (undefined / -1). */
+const DEFAULT_OUTPUT_RESERVE = 4096;
+
 /**
  * Extract the actual token usage (prompt + completion) from a dispatch
  * response. Returns the total when present, or 0 when the response carries no
@@ -13,11 +19,21 @@ const RATE_LIMIT_RETRIES = 1;
  * @returns {number} Actual prompt + completion tokens, or 0 when absent
  */
 export function readUsageTokens(result) {
-	const usage = result?.usage_metadata ?? result?.usage ?? result?.llmOutput?.usage;
+	// The handler may return an AIMessage directly or a ModelResponse
+	// (`{ result: [AIMessage, ...] }`); read usage from whichever is present.
+	const last = Array.isArray(result?.result) ? result.result[result.result.length - 1] : undefined;
+	const usage =
+		result?.usage_metadata ??
+		last?.usage_metadata ??
+		result?.usage ??
+		result?.llmOutput?.usage ??
+		last?.response_metadata?.usage ??
+		last?.response_metadata?.tokenUsage;
 	if (!usage) return 0;
-	const prompt = usage.prompt_tokens ?? usage.input_tokens ?? 0;
-	const completion = usage.completion_tokens ?? usage.output_tokens ?? 0;
-	const total = usage.total_tokens ?? prompt + completion;
+	const num = (v) => (Number.isFinite(v) && v > 0 ? v : 0);
+	const prompt = num(usage.prompt_tokens ?? usage.input_tokens ?? usage.promptTokens);
+	const completion = num(usage.completion_tokens ?? usage.output_tokens ?? usage.completionTokens);
+	const total = num(usage.total_tokens ?? usage.totalTokens);
 	return total > 0 ? total : prompt + completion;
 }
 
@@ -47,11 +63,12 @@ export function readUsageTokens(result) {
  *   400 context-window error is detected. It receives the error and the model
  *   request (so the caller can extract the thread_id). It should compact the
  *   context (e.g. via `agent.compactContext`) so the request can be re-sent once.
+ *   It may return a rebuilt request (with `messages`) to be used for the re-send.
  * @returns {Object|null} The middleware, or `null` when the budget is disabled
  */
 export function createTokenBudgetMiddleware(options = {}) {
 	const maxTokensMinute = options.maxTokensMinute || 0;
-	if (maxTokensMinute <= 0) return null;
+	if (!Number.isFinite(maxTokensMinute) || maxTokensMinute <= 0) return null;
 
 	const budget = options.budget ?? getSharedTokenBudget(maxTokensMinute);
 	const sleep = options.sleep ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
@@ -69,26 +86,39 @@ export function createTokenBudgetMiddleware(options = {}) {
 	async function estimateCost(request) {
 		const messages = request.messages ?? [];
 		let inputTokens = 0;
-		if (model && typeof model.getNumTokensFromMessages === "function") {
-			const { totalCount } = await model.getNumTokensFromMessages(messages);
-			inputTokens = totalCount;
+		try {
+			if (model && typeof model.getNumTokensFromMessages === "function") {
+				const { totalCount } = await model.getNumTokensFromMessages(messages);
+				inputTokens = totalCount;
+			} else {
+				inputTokens = countTokensApproximately(messages);
+			}
+		} catch {
+			inputTokens = countTokensApproximately(messages);
 		}
 		let toolTokens = 0;
 		if (request.tools && request.tools.length > 0) {
 			toolTokens = countTokensApproximately([], request.tools);
 		}
-		// `-1` means unlimited / no cap — treat it as 0 (no output budget) so the
-		// estimate is not off by one.
-		const outputBudget = options.maxTokens === -1 ? 0 : options.maxTokens || 0;
+		// Unset or `-1` (unlimited) maxTokens still reserves a default output
+		// budget so the estimate is not systematically low.
+		const unset = options.maxTokens === undefined || options.maxTokens === -1;
+		const outputBudget = unset
+			? DEFAULT_OUTPUT_RESERVE
+			: Number.isFinite(options.maxTokens) && options.maxTokens > 0
+				? options.maxTokens
+				: 0;
 		return inputTokens + toolTokens + outputBudget;
 	}
 
 	return createMiddleware({
 		name: "TokenBudget",
 		async wrapModelCall(request, handler) {
-			const estimatedCost = await estimateCost(request);
+			let estimatedCost = await estimateCost(request);
+			let rateRetries = 0;
+			let contextRetries = 0;
 
-			for (let attempt = 0; attempt <= RATE_LIMIT_RETRIES; attempt++) {
+			for (;;) {
 				// Atomically wait for capacity and record the reservation.
 				const handle = await budget.reserve(estimatedCost);
 				try {
@@ -104,18 +134,33 @@ export function createTokenBudgetMiddleware(options = {}) {
 					// A 400 context-window error means the conversation exceeds the
 					// model's context length. Compact the context and re-send once.
 					if (isContextWindowError(err)) {
-						if (attempt === 0 && typeof onContextWindowExceeded === "function") {
-							logger.warn(
-								{ message: err?.message },
-								"[provider] Context window exceeded; compacting and re-sending",
-							);
-							await onContextWindowExceeded(err, request);
-							// Re-pace before re-dispatching so the retry does not fire
-							// while the window is still over capacity.
-							await budget.waitForCapacity(estimatedCost);
-							continue;
+						if (
+							contextRetries >= CONTEXT_RETRIES ||
+							typeof onContextWindowExceeded !== "function"
+						) {
+							throw err;
 						}
-						throw err;
+						contextRetries++;
+						logger.warn(
+							{ message: err?.message },
+							"[provider] Context window exceeded; compacting and re-sending",
+						);
+						try {
+							const next = await onContextWindowExceeded(err, request);
+							// Honor a rebuilt request when the callback returns one.
+							if (next && typeof next === "object" && Array.isArray(next.messages)) {
+								request = next;
+							}
+						} catch (cbErr) {
+							logger.warn(
+								{ error: cbErr?.message },
+								"[provider] onContextWindowExceeded callback failed",
+							);
+							throw err;
+						}
+						// The compacted request is smaller; re-estimate before re-pacing.
+						estimatedCost = await estimateCost(request);
+						continue;
 					}
 
 					if (!isRateLimitError(err)) throw err;
@@ -127,14 +172,12 @@ export function createTokenBudgetMiddleware(options = {}) {
 						);
 					}
 					// The final attempt has no retry left; surface the error.
-					if (attempt === RATE_LIMIT_RETRIES) throw err;
+					if (rateRetries >= RATE_LIMIT_RETRIES) throw err;
+					rateRetries++;
 
 					const delay = getRetryDelayMs(err, DEFAULT_RETRY_AFTER_MS);
 					logger.warn({ delayMs: delay }, "[provider] Rate-limit hit; retrying after delay");
 					await sleep(delay);
-					// Re-pace before re-dispatching so the retry does not fire while the
-					// window is still over capacity.
-					await budget.waitForCapacity(estimatedCost);
 				}
 			}
 		},
@@ -161,5 +204,7 @@ function isContextWindowError(err) {
 	const status = err?.status ?? err?.response?.status;
 	if (status !== 400) return false;
 	const message = String(err?.message ?? err?.response?.data?.error?.message ?? "");
-	return /context|context length|context window|maximum .* length/i.test(message);
+	return /context_length_exceeded|maximum context length|context (length|window)|exceeds? the (model's )?(maximum )?context|too many tokens|prompt is too long/i.test(
+		message,
+	);
 }

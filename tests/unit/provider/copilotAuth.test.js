@@ -702,3 +702,30 @@ describe("createCopilotFetch", () => {
 		});
 	});
 });
+
+describe("copilot token safety", () => {
+	it("normalizeDomain rejects hosts with userinfo, port, path or whitespace", () => {
+		for (const bad of ["evil.com@github.com", "a.com:8080", "a.com/x?y", "a b.com", "a.com#x"]) {
+			assert.throws(() => normalizeDomain(bad), /Invalid GitHub domain/);
+		}
+	});
+
+	it("does not attach the token to a foreign host", async () => {
+		await persist("oauth-token", memoryDir);
+		const origFetch = globalThis.fetch;
+		let captured;
+		globalThis.fetch = async (_url, init) => {
+			captured = new Headers(init.headers);
+			return new Response("ok", { status: 200 });
+		};
+		try {
+			const copilotFetch = createCopilotFetch(memoryDir);
+			await copilotFetch("https://evil.example.com/x", {
+				headers: { Authorization: "Bearer copilot" },
+			});
+			assert.strictEqual(captured.get("Authorization"), null);
+		} finally {
+			globalThis.fetch = origFetch;
+		}
+	});
+});

@@ -106,7 +106,8 @@ describe("createCopilotRetryMiddleware", () => {
 			}),
 			/rate limited/,
 		);
-		assert.deepStrictEqual(delays, [DEFAULT_COPILOT_RETRY_MS]);
+		assert.strictEqual(delays.length, 1);
+		assert.ok(delays[0] >= DEFAULT_COPILOT_RETRY_MS / 2 && delays[0] <= DEFAULT_COPILOT_RETRY_MS);
 	});
 
 	it("honors the retry-after header for the delay", async () => {

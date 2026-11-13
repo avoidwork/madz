@@ -223,7 +223,7 @@ describe("createBedrockChatModel", () => {
 		);
 	});
 
-	it("maps rateLimit.maxRetries to the SDK maxAttempts", async () => {
+	it("maps rateLimit.maxRetries to the SDK maxAttempts (retries + 1)", async () => {
 		setBedrockEnv();
 		const model = createBedrockChatModel({
 			type: "bedrock",
@@ -234,7 +234,7 @@ describe("createBedrockChatModel", () => {
 			rateLimit: { maxRetries: 6 },
 		});
 		const maxAttempts = model.client.config.maxAttempts;
-		assert.strictEqual(typeof maxAttempts === "function" ? await maxAttempts() : maxAttempts, 6);
+		assert.strictEqual(typeof maxAttempts === "function" ? await maxAttempts() : maxAttempts, 7);
 	});
 
 	it("omits maxTokens when it is -1", () => {
