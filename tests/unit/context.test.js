@@ -372,7 +372,7 @@ describe("loadContext", () => {
 		const profileIdx = result.indexOf("### PROFILE");
 		const memoriesIdx = result.indexOf("### MEMORIES");
 		const reflectionIdx = result.indexOf("### REFLECTION");
-		const ephemeralIdx = result.indexOf("### EPHEMERAL");
+		const ephemeralIdx = result.indexOf("### EPHEMERAL MEMORIES");
 		assert.ok(profileIdx !== -1, "Profile section should be present");
 		assert.ok(memoriesIdx !== -1, "Memories section should be present");
 		assert.ok(reflectionIdx !== -1, "Reflection section should be present");

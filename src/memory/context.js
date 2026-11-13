@@ -77,7 +77,7 @@ export async function loadContext(contextDir = "memory/context/", limit = 10, cw
 		if (profileBlock) sections.push(`### PROFILE\n${profileBlock}`);
 		if (contextBlocks) sections.push(`### MEMORIES\n${contextBlocks}`);
 		if (reflectionBlock) sections.push(`### REFLECTION\n${reflectionBlock}`);
-		if (ephemeralBlocks) sections.push(`### EPHEMERAL\n${ephemeralBlocks}`);
+		if (ephemeralBlocks) sections.push(`### EPHEMERAL MEMORIES\n${ephemeralBlocks}`);
 		return sections.join("\n\n");
 	} catch (err) {
 		logger.debug(`[context] Failed to load context: ${err.message}`);
