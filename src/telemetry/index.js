@@ -2,5 +2,5 @@ export { initTelemetry, getTracer, shutdownTelemetry, isTelemetryEnabled } from 
 export { instrumentLlmCall } from "./llmInstrumenter.js";
 export { instrumentSkillExecution } from "./skillInstrumenter.js";
 export { createTokenCounter, createDurationHistogram } from "./metrics.js";
-export { createSampler, loadSampler } from "./sampler.js";
-export { queueSpan, flushPending, clearPending, getPendingCount } from "./flusher.js";
+export { createSampler, loadSampler, resolveSamplingRatio } from "./sampler.js";
+export { redactAttributes } from "./redaction.js";
