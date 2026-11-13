@@ -226,7 +226,7 @@ export async function persist(token, memoryDir) {
 	// Update memory first so a persistence failure still leaves a usable token.
 	copilotToken = token;
 	rejectedToken = null;
-	await mkdir(dirname(file), { recursive: true, mode: 0o700 });
+	await mkdir(dirname(file), { recursive: true });
 	const tmp = `${file}.${process.pid}.${Date.now()}.tmp`;
 	try {
 		await writeFile(tmp, JSON.stringify({ access_token: token, expires: 0 }), {

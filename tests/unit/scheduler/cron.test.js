@@ -9,7 +9,15 @@ import {
 	buildSkillCommand,
 } from "../../../src/scheduler/cron.js";
 import { execFileSync } from "node:child_process";
-import { rmSync, readFileSync, statSync, writeFileSync, mkdirSync, readdirSync } from "node:fs";
+import {
+	rmSync,
+	readFileSync,
+	statSync,
+	writeFileSync,
+	mkdirSync,
+	readdirSync,
+	symlinkSync,
+} from "node:fs";
 import { join } from "node:path";
 
 // ---------------------------------------------------------------------------
@@ -1517,9 +1525,10 @@ describe("Cron._ensureReflectionJob error handling", () => {
 	});
 
 	it("does not throw when the write fails", async () => {
-		const readOnly = join(dir, "ro");
-		mkdirSync(readOnly, { mode: 0o500 });
-		await assert.doesNotReject(() => Cron._ensureReflectionJob(readOnly));
+		// A dangling symlink as the job file: reading it gives ENOENT (so the job is
+		// recreated) but writing through it fails because its target directory is missing.
+		symlinkSync(join(dir, "missing", "x.json"), join(dir, "reflection-daily.json"));
+		await assert.doesNotReject(() => Cron._ensureReflectionJob(dir));
 	});
 
 	it("recreates the file when it is missing", async () => {

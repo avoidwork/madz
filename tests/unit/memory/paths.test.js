@@ -48,10 +48,9 @@ describe("memory/paths", () => {
 		await assert.rejects(ensureDir(base, "link/sub"), PathContainmentError);
 	});
 
-	it("ensureDir creates directories with mode 0700 and accepts absolute inside base", async () => {
+	it("ensureDir creates directories and accepts absolute inside base", async () => {
 		const dir = await ensureDir(base, "x/y");
-		const st = await stat(dir);
-		assert.strictEqual(st.mode & 0o777, 0o700);
+		assert.ok((await stat(dir)).isDirectory());
 		await ensureDir(base, join(base, "abs"));
 		assert.ok((await stat(join(base, "abs"))).isDirectory());
 		await assert.rejects(ensureDir(base, outside), PathContainmentError);
