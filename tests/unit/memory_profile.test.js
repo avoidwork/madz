@@ -260,13 +260,10 @@ describe("loadProfile (I/O)", () => {
 		assert.ok(typeof result.body === "string");
 	});
 
-	it("returns null when path is a directory (covers catch block lines 82-84)", async () => {
-		// access(F_OK) passes because the directory exists, but readFile throws
-		// (EISDIR), which is caught by the inner catch block at lines 82-84.
+	it("throws (not null) for non-ENOENT read errors such as EISDIR", async () => {
 		const dirPath = join(FULL_TEST_DIR, "is_a_directory.md");
 		mkdirSync(dirPath);
-		const result = await loadProfile(dirPath);
-		assert.strictEqual(result, null);
+		await assert.rejects(loadProfile(dirPath), (err) => err.code === "EISDIR");
 	});
 
 	it("skips comment lines and blank lines in the body", async () => {

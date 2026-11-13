@@ -1,8 +1,5 @@
-import { mkdir } from "node:fs/promises";
-import { join } from "node:path";
+import { ensureDir } from "./paths.js";
 import { loadConfig } from "../config/loader.js";
-
-const cwd = loadConfig().cwd;
 
 /**
  * Ensure the memory/tools directory exists by creating it if necessary.
@@ -10,7 +7,6 @@ const cwd = loadConfig().cwd;
  * @param {string} [cwdParam] - Base directory (defaults to project cwd)
  * @returns {Promise<void>}
  */
-export async function ensureToolsDir(toolsDir, cwdParam = cwd) {
-	const dir = join(cwdParam, toolsDir);
-	await mkdir(dir, { recursive: true });
+export async function ensureToolsDir(toolsDir, cwdParam = loadConfig().cwd) {
+	await ensureDir(cwdParam, toolsDir);
 }
