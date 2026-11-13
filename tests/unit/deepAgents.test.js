@@ -365,45 +365,43 @@ describe("compactAgentContext", () => {
 		assert.strictEqual(updated.messages[1].content, "message 20");
 	});
 
-	it("forces summarization when backend and model are provided", async () => {
+	it("summarizes older messages and keeps the most recent when a model is provided", async () => {
 		const { HumanMessage } = await import("@langchain/core/messages");
-		const { LocalShellBackend } = await import("deepagents");
 		const { compactAgentContext } = await import("../../src/agent/deepAgents.js");
-		const messages = [
-			new HumanMessage("one"),
-			new HumanMessage("two"),
-			new HumanMessage("three"),
-			new HumanMessage("four"),
-		];
+		const messages = ["one", "two", "three", "four"].map((t) => new HumanMessage(t));
 		const { agent, updated } = makeMockAgent(messages);
-		// Real backend + mock model so the forced summarization path is exercised.
-		// The middleware calls model.invoke to produce a summary; the backend
-		// offload failure is caught internally and it proceeds with the summary.
-		const backend = new LocalShellBackend({
-			rootDir: process.cwd(),
-			virtualMode: false,
-			inheritEnv: true,
-		});
-		const model = {
-			invoke: async () => ({ text: "This is a summary." }),
-		};
+		const model = { invoke: async () => ({ text: "This is a summary." }) };
 		const result = await compactAgentContext(agent, { configurable: { thread_id: "t1" } }, null, {
-			backend,
 			model,
 			keepRecent: 2,
 		});
 
 		assert.strictEqual(result.ok, true);
-		// The summary message replaces the older messages; the kept set is the
-		// summary + the 2 most recent messages. The summary is preserved (not
-		// re-trimmed), so the final set is summary + three + four.
-		assert.strictEqual(updated.messages.length, 4); // RemoveMessage sentinel + summary + 2 kept
-		assert.strictEqual(
-			updated.messages[1].content,
-			"Here is a summary of the conversation to date:\n\nThis is a summary.",
-		);
+		assert.strictEqual(updated.messages.length, 4);
+		assert.match(updated.messages[1].content, /^Here is a summary of the conversation to date:/);
+		assert.match(updated.messages[1].content, /This is a summary\./);
 		assert.strictEqual(updated.messages[2].content, "three");
 		assert.strictEqual(updated.messages[3].content, "four");
+	});
+
+	it("falls back to trimming when summarization fails", async () => {
+		const { HumanMessage } = await import("@langchain/core/messages");
+		const { compactAgentContext } = await import("../../src/agent/deepAgents.js");
+		const messages = Array.from({ length: 8 }, (_, i) => new HumanMessage(`m${i}`));
+		const { agent, updated } = makeMockAgent(messages);
+		const model = {
+			invoke: async () => {
+				throw new Error("model down");
+			},
+		};
+		const result = await compactAgentContext(agent, { configurable: { thread_id: "t1" } }, null, {
+			model,
+			keepRecent: 3,
+		});
+		assert.strictEqual(result.ok, true);
+		assert.strictEqual(result.trimmed, 5);
+		assert.strictEqual(updated.messages.length, 4);
+		assert.strictEqual(updated.messages[1].content, "m5");
 	});
 
 	it("updates sessionState.getConversation() when provided", async () => {

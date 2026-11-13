@@ -102,8 +102,8 @@ Graceful shutdown flushes all buffered log entries to disk before process exit.
 | `summarization` | `enabled`                           | `false`                          | Enable proactive context compaction                                                                                                                         |
 |                 | `trigger.type`                      | `tokens`                         | Trigger type (`tokens`, `messages`, `fraction`)                                                                                                             |
 |                 | `trigger.value`                     | `100000`                         | Trigger threshold value                                                                                                                                     |
-|                 | `keep.type`                         | `messages`                       | Keep type (`tokens`, `messages`, `fraction`)                                                                                                                |
-|                 | `keep.value`                        | `10`                             | Messages/tokens to keep after compaction                                                                                                                    |
+|                 | `keepMessages`                      | `5`                              | Most recent messages kept verbatim after compaction (older history becomes one summary)                                                                     |
+|                 | `keep` _(deprecated)_               | _(none)_                         | Legacy form; a `messages` value is used when `keepMessages` is unset                                                                                        |
 | `vector`        | `model`                             | `local`                          | Embedding model (`local` or `openai`)                                                                                                                       |
 |                 | `projects.<name>.rootDir`           | `.`                              | Project root directory to scan                                                                                                                              |
 |                 | `projects.<name>.dbPath`            | _(none)_                         | Path to sqlite-vec database file                                                                                                                            |
@@ -141,9 +141,7 @@ Each element renders only when its boolean is `true` **and** its data is present
 
 ### Summarization
 
-The `summarization` section controls proactive context compaction. When `enabled` is `false` (the default), deepagents' library default applies — a 170k token trigger that keeps the last 6 messages, and compaction only happens **reactively** after a request overflows the context window. When `enabled` is `true`, madz registers a custom `SummarizationMiddleware` that fires at the configured `trigger` instead, so compaction is **proactive**.
-
-The `trigger` and `keep` values each take a `type` of `tokens`, `messages`, or `fraction`:
+The `summarization` section controls proactive context compaction. When `enabled` is `false` (the default), deepagents' library default applies — a 170k token trigger that keeps the last 6 messages, and compaction only happens **reactively** after a request overflows the context window. When `enabled` is `true`, madz registers its own `SummarizationMiddleware` that fires at the configured `trigger`, so compaction is **proactive**.
 
 ```yaml
 summarization:
@@ -151,17 +149,18 @@ summarization:
   trigger:
     type: tokens
     value: 100000
-  keep:
-    type: messages
-    value: 10
+  keepMessages: 5
 ```
 
-- **`trigger`** — the threshold at which compaction fires. `tokens` counts input tokens, `messages` counts messages, `fraction` is a fraction of the model's max input tokens (0–1).
-- **`keep`** — how much history to retain after compaction. Must be passed explicitly; deepagents defaults `keep` to 20 messages when a `trigger` is supplied without it, silently moving it from the fallback 6.
+When the trigger fires, madz summarizes the history and **rewrites the checkpointer** to `[summary, ...last keepMessages messages]`. The system prompt is injected on every call rather than stored in state, so it is unaffected. The old history is not kept in state; the summarized messages are saved best-effort to `/conversation_history/` and the summary links to that file.
 
-- **`contextFraction`** (default `0.8`) — when the model's context length can be resolved at startup, the trigger is overridden with `contextFraction × contextLength` tokens (the configured `trigger.value` is then only a fallback).
+- **`trigger`** — the threshold at which compaction fires. `tokens` counts the system prompt plus all stored messages; `messages` counts stored messages. `fraction` is not supported by the proactive middleware.
+- **`keepMessages`** — how many recent messages stay verbatim (default `5`). The tail never starts on a tool result: if the boundary lands on one, the whole tool call and result are summarized and the tail shrinks (possibly to zero).
+- **`contextFraction`** (default `0.8`) — when the model's context length can be resolved at startup, the trigger is overridden with 80% of that context length (the configured `trigger.value` is then only a fallback).
 
-For `tokens` triggers, madz decides using the model's real tokenizer (the same count the status bar shows) rather than the library's rough characters-per-token estimate, so a status bar at 80% means compaction fires. If the tokenizer is unavailable or errors, the library estimate is used.
+The summary is stored as a user message (some providers reject mid-conversation system messages). If summarization fails, state is left unchanged, a warning is logged, and compaction is retried after a few more messages; the reactive context-window handler remains the safety net. `/compact` uses the same routine.
+
+Token counts come from the model's real tokenizer — the same count the status bar shows — so a status bar at 80% means compaction fires on the next model call. If the tokenizer is unavailable or errors, a characters-per-token estimate is used.
 
 **Note:** the custom middleware reaches the **orchestrator only**. Subagents are not forked, so they keep the library default `SummarizationMiddleware`.
 

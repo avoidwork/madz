@@ -106,4 +106,20 @@ describe("SummarizationSchema", () => {
 			assert.strictEqual(result.success, false);
 		});
 	});
+
+	describe("keepMessages", () => {
+		test("is optional and unset by default", () => {
+			assert.strictEqual(SummarizationSchema.parse({}).keepMessages, undefined);
+		});
+
+		test("accepts zero and positive integers", () => {
+			assert.strictEqual(SummarizationSchema.parse({ keepMessages: 0 }).keepMessages, 0);
+			assert.strictEqual(SummarizationSchema.parse({ keepMessages: 5 }).keepMessages, 5);
+		});
+
+		test("rejects negative and non-integer values", () => {
+			assert.throws(() => SummarizationSchema.parse({ keepMessages: -1 }));
+			assert.throws(() => SummarizationSchema.parse({ keepMessages: 2.5 }));
+		});
+	});
 });

@@ -16,10 +16,7 @@ import { getModelContextLength } from "../provider/modelInfo.js";
 import { getActiveProviderConfig, getActiveProviderName } from "../provider/index.js";
 import { createTokenBudgetMiddleware } from "../provider/tokenBudgetMiddleware.js";
 import { createCopilotRetryMiddleware } from "../provider/copilotRetryMiddleware.js";
-import {
-	createSummarizationMiddlewareFromConfig,
-	forceSummarize,
-} from "../provider/summarizationMiddleware.js";
+import { createSummarizationMiddlewareFromConfig } from "../provider/summarizationMiddleware.js";
 import { createEvictionAwareFilesystemMiddleware } from "./evictionCeiling.js";
 import { createSkillsMiddleware } from "./skillsMiddleware.js";
 import {
@@ -35,6 +32,7 @@ import { createContextBackend } from "./contextBackend.js";
 import { getAllAgents } from "./agentDefinitions.js";
 import { logger } from "../shared/logger.js";
 import { createCodeInterpreterMiddleware } from "@langchain/quickjs";
+import { compactMessages, DEFAULT_KEEP_MESSAGES } from "./compaction.js";
 import { createTurnTransformer } from "../stream/transformers/index.js";
 
 /**
@@ -147,7 +145,7 @@ export function hasVisionBlock(message) {
  * @param {Object} message - A LangChain message
  * @returns {{ role: string, content: string }} The simplified message
  */
-function toConversationExchange(message) {
+export function toConversationExchange(message) {
 	const type = message?._getType?.() ?? message?.type ?? message?.role;
 	let role = type;
 	if (type === "human") role = "user";
@@ -214,14 +212,14 @@ function toConversationExchange(message) {
  * @param {Object} config - LangGraph runnable config (with `thread_id`)
  * @param {Object} [sessionState] - Optional session state manager to sync
  * @param {Object} [options] - Compaction options
- * @param {number} [options.keepRecent=20] - Number of recent messages to retain after trimming
+ * @param {number} [options.keepRecent=5] - Number of recent messages to retain after trimming
  * @param {Object} [options.backend] - The deepagents backend used for history offload
  * @param {Object} [options.model] - The chat model used to generate the summary
  * @returns {Promise<{ok: boolean, removedVision: number, trimmed: number, remaining: number, error?: string}>}
  *   Result describing what was removed and trimmed
  */
 export async function compactAgentContext(agent, config, sessionState, options = {}) {
-	const keepRecent = options.keepRecent ?? 20;
+	const keepRecent = options.keepRecent ?? DEFAULT_KEEP_MESSAGES;
 	const backend = options.backend;
 	const model = options.model;
 
@@ -237,24 +235,22 @@ export async function compactAgentContext(agent, config, sessionState, options =
 		return { ok: true, removedVision: 0, trimmed: 0, remaining: 0 };
 	}
 
-	// Force a real summarization through the deepagents SummarizationMiddleware,
-	// bypassing the configured trigger threshold. This produces a summary message
-	// plus the preserved recent messages. When the middleware is unavailable
-	// (no backend/model), fall back to the legacy trim-only behavior.
+	// Summarize everything but the last `keepRecent` messages into one summary
+	// message. When the backend/model are unavailable, or summarization fails,
+	// fall back to the legacy trim-only behavior.
 	let summarized;
-	if (backend && model) {
+	if (model) {
 		try {
-			summarized = await forceSummarize({
-				backend,
-				keep: { type: "messages", value: keepRecent },
-				state: state.values,
+			const result = await compactMessages({
+				messages,
 				model,
+				backend,
+				keep: keepRecent,
+				threadId: config?.configurable?.thread_id,
 			});
+			summarized = result?.messages;
 		} catch (err) {
-			logger.warn(
-				{ error: err.message },
-				"[compact] forced summarization failed; falling back to trim",
-			);
+			logger.warn({ error: err.message }, "[compact] summarization failed; falling back to trim");
 		}
 	}
 
@@ -472,9 +468,17 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 		}
 	}
 
+	// Listeners notified after an automatic compaction rewrites the checkpointer,
+	// so the TUI can resync its conversation view and context meter.
+	const compactionListeners = new Set();
 	const summarizationMiddleware = createSummarizationMiddlewareFromConfig({
 		backend,
+		model,
+		systemPrompt,
 		config: config.summarization,
+		onCompacted: (result) => {
+			for (const listener of compactionListeners) listener(result);
+		},
 		// Same tokenizer the status bar uses, so "80%" means the same thing in
 		// both places.
 		tokenCounter:
@@ -540,6 +544,10 @@ export async function createDeepAgentsOrchestrator(checkpointer = null) {
 	// window on demand. The callback is bound to the agent instance and accepts
 	// a LangGraph runnable config (with `thread_id`), an optional session state
 	// manager to sync, plus optional options.
+	agent.onCompacted = (listener) => {
+		compactionListeners.add(listener);
+		return () => compactionListeners.delete(listener);
+	};
 	agent.compactContext = async (config, sessionState, options) =>
 		compactAgentContext(agent, config, sessionState, { ...options, backend, model });
 

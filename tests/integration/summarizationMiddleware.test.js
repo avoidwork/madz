@@ -1,6 +1,7 @@
 import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert";
 import { createAgent } from "langchain";
+import { MemorySaver } from "@langchain/langgraph";
 import { ChatOpenAI } from "@langchain/openai";
 import { StateBackend } from "deepagents";
 import { tool } from "@langchain/core/tools";
@@ -72,10 +73,11 @@ describe("integration - configurable summarization middleware fires at runtime",
 		stubFetch();
 		const mw = createSummarizationMiddlewareFromConfig({
 			backend: new StateBackend(),
+			model: makeModel(),
 			config: {
 				enabled: true,
 				trigger: { type: "messages", value: 2 },
-				keep: { type: "messages", value: 1 },
+				keepMessages: 1,
 			},
 		});
 		assert.ok(mw, "custom middleware should be built");
@@ -101,10 +103,11 @@ describe("integration - configurable summarization middleware fires at runtime",
 		stubFetch();
 		const mw = createSummarizationMiddlewareFromConfig({
 			backend: new StateBackend(),
+			model: makeModel(),
 			config: {
 				enabled: true,
 				trigger: { type: "messages", value: 10 },
-				keep: { type: "messages", value: 1 },
+				keepMessages: 1,
 			},
 		});
 		assert.ok(mw, "custom middleware should be built");
@@ -121,10 +124,41 @@ describe("integration - configurable summarization middleware fires at runtime",
 		assert.strictEqual(fetchCalls, 1, "no compaction should fire below the trigger");
 	});
 
+	it("rewrites the checkpointer to [summary, ...kept] instead of hiding old messages", async () => {
+		stubFetch();
+		const mw = createSummarizationMiddlewareFromConfig({
+			backend: new StateBackend(),
+			model: makeModel(),
+			config: { enabled: true, trigger: { type: "messages", value: 2 }, keepMessages: 1 },
+		});
+		const agent = createAgent({
+			model: makeModel(),
+			tools: [makeTool()],
+			middleware: [mw],
+			checkpointer: new MemorySaver(),
+		});
+		const cfg = { configurable: { thread_id: "rewrite" } };
+		await agent.invoke(
+			{
+				messages: [
+					{ role: "user", content: "message one" },
+					{ role: "assistant", content: "reply one" },
+					{ role: "user", content: "message two" },
+				],
+			},
+			cfg,
+		);
+		const { values } = await agent.getState(cfg);
+		const texts = values.messages.map((m) => String(m.content));
+		assert.ok(texts[0].startsWith("Here is a summary"), "first stored message is the summary");
+		assert.ok(!texts.includes("message one"), "old messages are gone from the checkpointer");
+		assert.ok(texts.includes("message two"), "the last message is kept");
+	});
+
 	const tokenConfig = {
 		enabled: true,
 		trigger: { type: "tokens", value: 100000 },
-		keep: { type: "messages", value: 1 },
+		keepMessages: 1,
 	};
 	const threeMessages = [
 		{ role: "user", content: "message one" },
@@ -136,6 +170,7 @@ describe("integration - configurable summarization middleware fires at runtime",
 		stubFetch();
 		const mw = createSummarizationMiddlewareFromConfig({
 			backend: new StateBackend(),
+			model: makeModel(),
 			config: tokenConfig,
 			tokenCounter: async () => 100000,
 		});
@@ -148,6 +183,7 @@ describe("integration - configurable summarization middleware fires at runtime",
 		stubFetch();
 		const mw = createSummarizationMiddlewareFromConfig({
 			backend: new StateBackend(),
+			model: makeModel(),
 			config: tokenConfig,
 			tokenCounter: async () => 99999,
 		});
@@ -156,10 +192,11 @@ describe("integration - configurable summarization middleware fires at runtime",
 		assert.strictEqual(fetchCalls, 1);
 	});
 
-	it("a throwing tokenCounter falls back to the library behavior", async () => {
+	it("a throwing tokenCounter falls back to the built-in estimate", async () => {
 		stubFetch();
 		const mw = createSummarizationMiddlewareFromConfig({
 			backend: new StateBackend(),
+			model: makeModel(),
 			config: tokenConfig,
 			tokenCounter: async () => {
 				throw new Error("boom");
@@ -173,7 +210,10 @@ describe("integration - configurable summarization middleware fires at runtime",
 	it("unset config reproduces today's behavior (no custom middleware, no compaction)", async () => {
 		stubFetch();
 		// config absent -> factory returns null -> no custom middleware.
-		const mw = createSummarizationMiddlewareFromConfig({ backend: new StateBackend() });
+		const mw = createSummarizationMiddlewareFromConfig({
+			backend: new StateBackend(),
+			model: makeModel(),
+		});
 		assert.strictEqual(mw, null, "unset config must be a true no-op");
 
 		const agent = createAgent({ model: makeModel(), tools: [makeTool()], middleware: [] });
