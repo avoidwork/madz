@@ -263,3 +263,25 @@ describe("getCurrentPrompt", () => {
 		assert.strictEqual(ob.getCurrentPrompt(), null);
 	});
 });
+
+describe("onboarding - constructor attributes and onSave", () => {
+	it("uses the attributes passed to the constructor", () => {
+		const attrs = [{ key: "color", prompt: "Favourite colour?", order: 0 }];
+		const ob = createOnboarding(attrs, { profilePath: join(FULL_TEST_DIR, "p.md") });
+		ob.processResponse("hi");
+		ob.processResponse("go");
+		assert.strictEqual(ob.getCurrentPrompt().prompt, "Favourite colour?");
+		ob.processResponse("blue");
+		assert.deepStrictEqual(ob.getProfileData(), { color: "blue" });
+	});
+	it("still reaches TRANSCEND when onSave throws", async () => {
+		const ob = create({
+			onSave: () => {
+				throw new Error("cb");
+			},
+		});
+		ob.processResponse("skip");
+		assert.strictEqual(await ob.save(), true);
+		assert.strictEqual(ob.getPhase(), PHASES.TRANSCEND);
+	});
+});

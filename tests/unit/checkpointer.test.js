@@ -96,3 +96,21 @@ describe("ensureCheckpointsDir", () => {
 		await rm(testDir, { recursive: true, force: true });
 	});
 });
+
+describe("createCheckpointer sqlite directory handling", () => {
+	it("creates a missing checkpoints dir under fullConfig.cwd", async () => {
+		const { mkdtemp } = await import("node:fs/promises");
+		const { tmpdir } = await import("node:os");
+		const { existsSync } = await import("node:fs");
+		const base = await mkdtemp(join(tmpdir(), "madz-cp-"));
+		const cp = createCheckpointer({
+			cwd: base,
+			persistence: { mode: "sqlite" },
+			memory: { checkpointsDir: "deep/checkpoints/" },
+		});
+		assert.ok(cp);
+		assert.ok(existsSync(join(base, "deep", "checkpoints", "checkpoints.db")));
+		cp.db.close();
+		await rm(base, { recursive: true, force: true });
+	});
+});

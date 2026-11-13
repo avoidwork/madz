@@ -49,14 +49,60 @@ describe("session - shutdown handler", () => {
 	});
 
 	it("handles onShutdown that throws", async () => {
-		// onShutdown is not wrapped in try/catch, so it should propagate
-		await assert.rejects(
+		// onShutdown errors are logged, not propagated
+		await assert.doesNotReject(
 			handleShutdown({
 				onShutdown: () => {
 					throw new Error("onShutdown error");
 				},
 			}),
 		);
+	});
+});
+
+describe("session - registerShutdownHandler hardening", () => {
+	const tick = () => new Promise((r) => setTimeout(r, 200));
+
+	it("exits with 143 for SIGTERM and 130 for SIGINT, even if handler throws", async () => {
+		const codes = [];
+		const remove1 = registerShutdownHandler(
+			() => {
+				throw new Error("boom");
+			},
+			{ exit: (c) => codes.push(c) },
+		);
+		process.emit("SIGTERM");
+		await tick();
+		remove1();
+		const remove2 = registerShutdownHandler(() => {}, { exit: (c) => codes.push(c) });
+		process.emit("SIGINT");
+		await tick();
+		remove2();
+		assert.deepStrictEqual(codes, [143, 130]);
+	});
+
+	it("runs the handler once on repeated signals", async () => {
+		let calls = 0;
+		const exits = [];
+		const remove = registerShutdownHandler(
+			async () => {
+				calls++;
+			},
+			{ exit: (c) => exits.push(c) },
+		);
+		process.emit("SIGINT");
+		process.emit("SIGTERM");
+		await tick();
+		remove();
+		assert.strictEqual(calls, 1);
+		assert.strictEqual(exits.length, 1);
+	});
+
+	it("removes listeners on cleanup", () => {
+		const before = process.listenerCount("SIGINT");
+		const remove = registerShutdownHandler(() => {}, { exit: () => {} });
+		remove();
+		assert.strictEqual(process.listenerCount("SIGINT"), before);
 	});
 });
 
@@ -81,7 +127,7 @@ describe("session - registerShutdownHandler", () => {
 
 	it("registers SIGTERM and SIGINT handlers", () => {
 		const handler = () => {};
-		const remove = registerShutdownHandler(handler);
+		const remove = registerShutdownHandler(handler, { exit: () => {} });
 
 		assert.strictEqual(process.listenerCount("SIGTERM"), originalListeners.SIGTERM.length + 1);
 		assert.strictEqual(process.listenerCount("SIGINT"), originalListeners.SIGINT.length + 1);
@@ -91,7 +137,7 @@ describe("session - registerShutdownHandler", () => {
 
 	it("returns a cleanup function that removes handlers", () => {
 		const handler = () => {};
-		const remove = registerShutdownHandler(handler);
+		const remove = registerShutdownHandler(handler, { exit: () => {} });
 
 		assert.strictEqual(process.listenerCount("SIGTERM"), originalListeners.SIGTERM.length + 1);
 
@@ -107,7 +153,7 @@ describe("session - registerShutdownHandler", () => {
 			handlerCalled = true;
 		};
 
-		const remove = registerShutdownHandler(handler);
+		const remove = registerShutdownHandler(handler, { exit: () => {} });
 
 		// Emit SIGTERM synchronously — the wrapped handler is async but we can
 		// wait for the microtask queue to drain
@@ -125,7 +171,7 @@ describe("session - registerShutdownHandler", () => {
 			handlerCalled = true;
 		};
 
-		const remove = registerShutdownHandler(handler);
+		const remove = registerShutdownHandler(handler, { exit: () => {} });
 
 		process.emit("SIGINT");
 		await new Promise((resolve) => setImmediate(resolve));
@@ -144,8 +190,8 @@ describe("session - registerShutdownHandler", () => {
 			_callCount++;
 		};
 
-		const remove1 = registerShutdownHandler(handler1);
-		const remove2 = registerShutdownHandler(handler2);
+		const remove1 = registerShutdownHandler(handler1, { exit: () => {} });
+		const remove2 = registerShutdownHandler(handler2, { exit: () => {} });
 
 		assert.strictEqual(process.listenerCount("SIGTERM"), originalListeners.SIGTERM.length + 2);
 
@@ -157,7 +203,7 @@ describe("session - registerShutdownHandler", () => {
 
 	it("removeHandlers is idempotent", () => {
 		const handler = () => {};
-		const remove = registerShutdownHandler(handler);
+		const remove = registerShutdownHandler(handler, { exit: () => {} });
 
 		remove();
 		// Calling remove again should not throw

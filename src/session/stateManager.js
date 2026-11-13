@@ -8,15 +8,15 @@ export class SessionStateManager {
 
 	/**
 	 * Create a new session state manager.
-	 * @param {Object} initialState - The initial session state
+	 * @param {Object} [initialState] - The initial session state (arrays are copied)
 	 */
-	constructor(initialState) {
+	constructor(initialState = {}) {
 		this.#state = {
 			provider: "openai",
-			conversation: [],
 			contextWindow: 20,
-			skills: [],
 			...initialState,
+			conversation: [...(initialState.conversation || [])],
+			skills: [...(initialState.skills || [])],
 			createdAt: initialState.createdAt || new Date().toISOString(),
 			updatedAt: new Date().toISOString(),
 		};
@@ -41,6 +41,7 @@ export class SessionStateManager {
 
 	/**
 	 * Get the conversation history.
+	 * Returns the live internal array (callers such as the TUI read it directly); do not mutate it.
 	 * @returns {Array}
 	 */
 	getConversation() {
@@ -88,11 +89,12 @@ export class SessionStateManager {
 	}
 
 	/**
-	 * Check if a message contains tool calls.
+	 * Check if a message contains tool calls (top-level `tool_calls` or `content.tool_calls`).
 	 * @param {{ role: string, content: string | object }} message - The message to check.
 	 * @returns {boolean} True if the message has tool_calls.
 	 */
 	#hasToolCalls(message) {
+		if (Array.isArray(message.tool_calls) && message.tool_calls.length > 0) return true;
 		if (typeof message.content === "object" && message.content !== null) {
 			return Array.isArray(message.content.tool_calls) && message.content.tool_calls.length > 0;
 		}
@@ -101,6 +103,7 @@ export class SessionStateManager {
 
 	/**
 	 * Get the active skills list.
+	 * Returns the live internal array; do not mutate it.
 	 * @returns {string[]}
 	 */
 	getSkills() {
@@ -127,10 +130,11 @@ export class SessionStateManager {
 	}
 
 	/**
-	 * Set the context window size.
+	 * Set the context window size. Non-finite input is ignored (previous value kept).
 	 * @param {number} size
 	 */
 	setContextWindow(size) {
+		if (!Number.isFinite(size)) return;
 		this.#state.contextWindow = Math.max(1, Math.floor(size));
 		this.#state.updatedAt = new Date().toISOString();
 	}
@@ -163,6 +167,8 @@ export class SessionStateManager {
 
 	/**
 	 * Get the current session ID used by the checkpointer.
+	 * Falls back to the provider name when no ID was set; every real path
+	 * (createSession, createNewSession, resumeSession) sets one first.
 	 * @returns {string}
 	 */
 	getSessionId() {
