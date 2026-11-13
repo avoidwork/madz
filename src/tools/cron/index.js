@@ -1,6 +1,5 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import { CronExpressionParser } from "cron-parser";
 import {
 	access,
 	constants,
@@ -14,6 +13,13 @@ import {
 import { join, resolve } from "node:path";
 import { spawn } from "node:child_process";
 import { Cron, buildSkillCommand } from "../../scheduler/cron.js";
+import {
+	NAME_PATTERN,
+	MAX_COMMAND_LENGTH,
+	isValidName,
+	isValidCron,
+	validateCommand,
+} from "../../scheduler/validate.js";
 import { logger } from "../../shared/logger.js";
 import { loadConfig } from "../../config/loader.js";
 
@@ -23,10 +29,6 @@ const config = loadConfig();
 
 const ACTIONS = ["create", "list", "update", "pause", "resume", "run", "remove"];
 
-/** Job and skill names: filesystem- and crontab-comment-safe, no separators or dots. */
-const NAME_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/;
-
-const MAX_COMMAND_LENGTH = 4096;
 const MAX_INPUT_BYTES = 8192;
 const MAX_OUTPUT_BYTES = 1024 * 1024;
 const KILL_GRACE_MS = 2000;
@@ -34,56 +36,6 @@ const DEFAULT_SCRIPT_TIMEOUT_MS = 30000;
 const DEFAULT_RUN_TIMEOUT_MS = 5 * 60 * 1000;
 
 /// -- Validation --
-
-/**
- * Check that a job or skill name is safe to use in paths and crontab comments.
- * @param {unknown} value - Candidate name
- * @returns {boolean}
- */
-function isValidName(value) {
-	return typeof value === "string" && NAME_PATTERN.test(value);
-}
-
-/**
- * Check that a raw shell command is acceptable for a crontab line.
- * @param {unknown} command - Candidate command
- * @returns {string|null} Error message, or null when valid
- */
-function validateCommand(command) {
-	if (typeof command !== "string" || command.trim() === "") {
-		return "command must be a non-empty string";
-	}
-	if (command.length > MAX_COMMAND_LENGTH) {
-		return `command must be at most ${MAX_COMMAND_LENGTH} characters`;
-	}
-	if (/[\r\n\0]/.test(command)) {
-		return "command must not contain newlines or null bytes";
-	}
-	return null;
-}
-
-const CRON_NAME_TOKENS =
-	/\b(sun|mon|tue|wed|thu|fri|sat|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\b/gi;
-
-/**
- * Validate a standard 5-field crontab expression.
- * Vixie cron has no seconds field and no ?, L, W or # modifiers, so those are rejected
- * even though the parser would accept them. Ranges are checked by cron-parser.
- * @param {unknown} expression - Cron expression
- * @returns {boolean}
- */
-function isValidCron(expression) {
-	if (typeof expression !== "string") return false;
-	const parts = expression.trim().split(/\s+/);
-	if (parts.length !== 5) return false;
-	if (/[?#LWlw]/.test(expression.replace(CRON_NAME_TOKENS, ""))) return false;
-	try {
-		CronExpressionParser.parse(parts.join(" "));
-		return true;
-	} catch (_err) {
-		return false;
-	}
-}
 
 /**
  * Validate job input is a plain object of bounded size.
