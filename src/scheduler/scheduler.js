@@ -1,8 +1,7 @@
 import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { logger } from "../shared/logger.js";
-
-const DEFAULT_TIMEOUT_MS = 60000;
+import { buildSkillCommand } from "./cron.js";
 
 /**
  * Schedule manager for CRUD operations on scheduled jobs.
@@ -57,7 +56,7 @@ export class ScheduleManager {
 
 					if (job.skill) {
 						entry.skill = job.skill;
-						entry.command = `cd ${process.cwd()} && node index.js --message "Run the ${job.skill} skill"`;
+						entry.command = buildSkillCommand(job.skill, job.input);
 					} else if (job.command) {
 						entry.command = job.command;
 					}
@@ -134,99 +133,5 @@ export class ScheduleManager {
 		if (!entry) return false;
 		entry.paused = false;
 		return true;
-	}
-
-	/**
-	 * Run a schedule immediately via the sandbox or command.
-	 * If the entry has a 'skill', uses the sandbox. If it has only a 'command',
-	 * spawns the command directly via shell.
-	 * @param {string} name - Schedule name
-	 * @param {Object} scheduler - The full scheduler instance for sandbox access
-	 * @returns {Promise<Object>} Execution result
-	 */
-	async runNow(name, scheduler) {
-		const entry = this.#scheduleEntry.get(name);
-		if (!entry) return { error: `Unknown schedule: ${name}` };
-
-		if (entry.paused) {
-			return { error: `Schedule "${name}" is paused` };
-		}
-
-		const timeoutMs = scheduler.state?.timeoutMs || DEFAULT_TIMEOUT_MS;
-
-		if (entry.command && !entry.skill) {
-			const { spawn } = await import("node:child_process");
-			return new Promise((resolve) => {
-				const child = spawn("/bin/sh", ["-c", entry.command], {
-					stdio: ["pipe", "pipe", "pipe"],
-				});
-
-				const chunks = { stdout: [], stderr: [] };
-				let settled = false;
-				const settle = (exitCode) => {
-					if (settled) return;
-					settled = true;
-					entry.lastRun = new Date().toISOString();
-					resolve({
-						stdout: Buffer.concat(chunks.stdout).toString(),
-						stderr: Buffer.concat(chunks.stderr).toString(),
-						exitCode,
-					});
-				};
-
-				child.stdout.on("data", (chunk) => chunks.stdout.push(chunk));
-				child.stderr.on("data", (chunk) => chunks.stderr.push(chunk));
-				child.on("exit", (code) => settle(code ?? 0));
-				child.on("error", () => settle(-1));
-
-				setTimeout(() => {
-					child.kill("SIGTERM");
-					setTimeout(() => settle(-1), 3000);
-				}, timeoutMs);
-			});
-		}
-
-		const contextDir = scheduler.state?.contextDir || "memory/context/";
-		let contextPrefix = "";
-		if (entry.contextFile) {
-			try {
-				const { readFile, access, constants } = await import("node:fs/promises");
-				const { loadContext } = await import("../memory/context.js");
-				try {
-					await access(entry.contextFile, constants.F_OK);
-					contextPrefix = await readFile(entry.contextFile, "utf-8");
-				} catch (_err) {
-					contextPrefix = await loadContext(contextDir);
-				}
-			} catch (err) {
-				logger.debug(`[scheduler] Context load failed: ${err.message}`);
-			}
-		}
-
-		const sandbox = scheduler.sandbox || (() => ({ stdout: "", stderr: "", exitCode: 1 }));
-		// AbortController lets the timeout signal the sandbox so it can stop
-		// work past the deadline. The sandbox may or may not honor the signal;
-		// the timer is always cleared on settle regardless.
-		const controller = new AbortController();
-		let timer;
-		const result = await Promise.race([
-			sandbox({
-				skillName: entry.skill,
-				input: entry.input,
-				context: contextPrefix,
-				permissions: scheduler.state?.skills || [],
-				signal: controller.signal,
-			}),
-			new Promise((_, reject) => {
-				timer = setTimeout(() => {
-					controller.abort();
-					reject(new Error(`Sandbox execution timed out after ${timeoutMs}ms`));
-				}, timeoutMs);
-			}),
-		]).finally(() => clearTimeout(timer));
-
-		const endTime = new Date().toISOString();
-		entry.lastRun = endTime;
-		return result;
 	}
 }

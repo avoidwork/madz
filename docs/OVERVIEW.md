@@ -281,7 +281,7 @@ System skills (`.skills/`) are scanned first and shadow user skills (`skills/`).
 | `pathResolver.js` | `resolvePath()` / `assertPathAllowed()` — sandbox scope enforcement                                                                                                                 |
 | `urlFilter.js`    | `filterUrl()` — allows only `http:`/`https:`; hostname allowlist (host, `*.wildcard`, port, or origin + path prefix; a bare host matches only the default port). No built-in internal-address blocking |
 
-**Status:** both modules are live — `src/tools/common.js` uses `resolvePath()` for tool-side path validation, and the `api`, `graphql`, `decision` and `browser` tools call `filterUrl()` directly. The former process-sandbox runtime (`runner.js`, `envInjector.js`, `capability.js`, `timeoutHandler.js`, `index.js`) was removed as dead code: it had no production call path. Skills execute via the Deep Agents skill system, and scheduled skills via the system crontab (`node index.js --message "Run the <skill> skill"`). `ScheduleManager.runNow()` retains a `scheduler.sandbox` injection hook that defaults to a no-op stub; nothing injects an implementation.
+**Status:** both modules are live — `src/tools/common.js` uses `resolvePath()` for tool-side path validation, and the `api`, `graphql`, `decision` and `browser` tools call `filterUrl()` directly. The former process-sandbox runtime (`runner.js`, `envInjector.js`, `capability.js`, `timeoutHandler.js`, `index.js`) was removed as dead code: it had no production call path. Skills execute via the Deep Agents skill system, and scheduled skills via the system crontab (`node index.js --message "Run the <skill> skill"`).
 
 ---
 
@@ -291,8 +291,8 @@ System skills (`.skills/`) are scanned first and shadow user skills (`skills/`).
 
 | File           | Purpose                                                                                                                                                                                                                                                                                                                              |
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `scheduler.js` | `ScheduleManager` — CRUD class (`register`, `list`, `pause`, `resume`, `runNow`) with `loadFromDisk()` static loader. No in-process scheduling.                                                                                                                                                                                      |
-| `cron.js`      | `Cron` object with static methods: `isAvailable()`, `add()`, `remove()`, `sync()`, `_ensureReflectionJob()`. Manages entries in system crontab using `# --- BEGIN madz-schedules ---` / `# --- END madz-schedules ---` block delimiters. `writeEnvCron()` dumps `process.env` to `.env.cron` so cron-fired commands inherit app env. |
+| `scheduler.js` | `ScheduleManager` — CRUD class (`register`, `list`, `pause`, `resume`) with `loadFromDisk()` static loader. No in-process scheduling.                                                                                                                                                                                      |
+| `cron.js`      | `Cron` object with static methods: `isAvailable()`, `add()`, `remove()`, `list()`, `sync()`, `_ensureReflectionJob()` (all writes serialized by an in-process mutex). Manages entries in system crontab using `# --- BEGIN madz-schedules ---` / `# --- END madz-schedules ---` block delimiters. `writeEnvCron()` dumps `process.env` to `.env.cron` so cron-fired commands inherit app env. |
 | `index.js`     | Re-exports `ScheduleManager`, `Cron`, `writeEnvCron`.                                                                                                                                                                                                                                                                                |
 
 The `reflection-daily` job (`30 23 * * *`) is seeded by `Cron._ensureReflectionJob()` at the start of `Cron.sync()` (called from `index.js` when `schedules.syncOnInit !== false`), persisted as `memory/schedules/reflection-daily.json`, and installed into the crontab by the sync. Its command is `cd <cwd> && node index.js --message "Run the reflection skill"`, prefixed with a `. .env.cron` source so the cron process inherits the app environment.
@@ -407,10 +407,6 @@ cronJob { action: "run", name }
 ScheduleManager.loadFromDisk(schedulesDir)
   └── entries stored in #scheduleEntry Map
 
-ScheduleManager.runNow(name, scheduler)
-  ├── entry = #scheduleEntry.get(name)
-  ├── command-only entry → spawn("/bin/sh", ["-c", command])
-  └── skill entry → scheduler.sandbox(...) (injected by caller; no production wiring)
 ```
 
 **Cron system flow:**
@@ -418,9 +414,9 @@ ScheduleManager.runNow(name, scheduler)
 ```
 Cron.sync(schedulesDir)
   ├── _ensureReflectionJob() → seed reflection-daily.json if missing
-  ├── _readJobsFromDisk() → desired state
-  ├── _readCrontab() → current state (madz-schedules block)
-  └── diff → replace block atomically via `crontab -`
+  ├── _readJobsFromDisk() → desired state (invalid/duplicate jobs skipped with a warning)
+  ├── _loadState() → current state (aborts without writing if `crontab -l` fails or the block is malformed)
+  └── diff prepared lines → replace block via `crontab -` (no write when unchanged)
 ```
 
 ---

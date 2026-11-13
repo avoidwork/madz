@@ -6,7 +6,9 @@ import {
 	writeEnvCron,
 	sanitizeCrontabCommand,
 	prepareCrontabCommand,
+	buildSkillCommand,
 } from "../../../src/scheduler/cron.js";
+import { execFileSync } from "node:child_process";
 import { rmSync, readFileSync, statSync, writeFileSync, mkdirSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
@@ -65,21 +67,10 @@ describe("sanitizeCrontabCommand", () => {
 		assert.strictEqual(sanitizeCrontabCommand(""), "");
 	});
 
-	it("strips \\n newlines", () => {
-		assert.strictEqual(sanitizeCrontabCommand("echo hello\nworld"), "echo helloworld");
-	});
-
-	it("strips \\r\\n (CRLF) newlines", () => {
-		assert.strictEqual(sanitizeCrontabCommand("echo hello\r\nworld"), "echo helloworld");
-	});
-
-	it("strips \\r (old-Mac) newlines", () => {
-		assert.strictEqual(sanitizeCrontabCommand("echo hello\rworld"), "echo helloworld");
-	});
-
-	it("handles mixed line endings", () => {
-		const input = "a\nb\r\nc\rd";
-		assert.strictEqual(sanitizeCrontabCommand(input), "abcd");
+	it("rejects \\n, \\r\\n, \\r and NUL instead of rewriting them", () => {
+		for (const bad of ["a\nb", "a\r\nb", "a\rb", "a\0b", "\n\r\n\r"]) {
+			assert.throws(() => sanitizeCrontabCommand(bad), /newlines or null bytes/);
+		}
 	});
 
 	it("preserves command with no newlines", () => {
@@ -92,10 +83,6 @@ describe("sanitizeCrontabCommand", () => {
 		assert.strictEqual(sanitizeCrontabCommand(cmd), cmd);
 	});
 
-	it("handles only newlines", () => {
-		assert.strictEqual(sanitizeCrontabCommand("\n\r\n\r"), "");
-	});
-
 	it("escapes an unescaped % (cron treats it as a newline)", () => {
 		assert.strictEqual(sanitizeCrontabCommand("date +%Y-%m-%d"), "date +\\%Y-\\%m-\\%d");
 	});
@@ -103,10 +90,6 @@ describe("sanitizeCrontabCommand", () => {
 	it("does not double-escape an already escaped %", () => {
 		const cmd = "date +\\%Y";
 		assert.strictEqual(sanitizeCrontabCommand(cmd), cmd);
-	});
-
-	it("escapes % and strips newlines in the same command", () => {
-		assert.strictEqual(sanitizeCrontabCommand("echo 100%\necho done"), "echo 100\\%echo done");
 	});
 });
 
@@ -128,10 +111,48 @@ describe("prepareCrontabCommand", () => {
 		assert.ok(result.includes("&& cd /app && node index.js"));
 	});
 
-	it("strips newlines from command", () => {
-		const result = prepareCrontabCommand("echo hello\nworld");
+	it("throws for a command containing newlines", () => {
+		assert.throws(() => prepareCrontabCommand("echo hello\nworld"), /newlines/);
+	});
+
+	it("marks the process as cron-started with MADZ_CRON=1", () => {
+		assert.ok(prepareCrontabCommand("echo t").includes("&& export MADZ_CRON=1 && echo t"));
+	});
+
+	it("produces a line that sources the env file and runs under /bin/sh", (t) => {
+		const dir = join(process.cwd(), "memory/__test_sh_line__");
+		mkdirSync(dir, { recursive: true });
+		t.after(() => rmSync(dir, { recursive: true, force: true }));
+		writeFileSync(join(dir, ".env.cron"), "export FROM_ENV='ok'\n");
+		t.mock.method(process, "cwd", () => dir);
+		const line = prepareCrontabCommand('echo "$FROM_ENV $MADZ_CRON"');
+		const out = execFileSync("/bin/sh", ["-c", line.replace(/\\%/g, "%")], { encoding: "utf-8" });
+		assert.strictEqual(out.trim(), "ok 1");
+	});
+
+	it("wraps the command and redirects to a quoted log path when logPath is set", () => {
+		const result = prepareCrontabCommand("echo hi", "/var/log/my madz.log");
+		assert.ok(result.endsWith("&& ( echo hi ) >> '/var/log/my madz.log' 2>&1"));
 		assert.ok(!result.includes("\n"));
-		assert.ok(!result.includes("\r"));
+	});
+
+	it("quotes embedded single quotes in the log path", () => {
+		const result = prepareCrontabCommand("echo hi", "/tmp/it's.log");
+		assert.ok(result.endsWith(">> '/tmp/it'\\''s.log' 2>&1"));
+	});
+
+	it("leaves a safe log path unquoted and adds no redirect without logPath", () => {
+		assert.ok(
+			prepareCrontabCommand("echo hi", "/tmp/madz.log").endsWith(
+				"( echo hi ) >> /tmp/madz.log 2>&1",
+			),
+		);
+		assert.ok(!prepareCrontabCommand("echo hi").includes(">>"));
+	});
+
+	it("quotes a cwd containing spaces for the env file", (t) => {
+		t.mock.method(process, "cwd", () => "/tmp/my dir");
+		assert.ok(prepareCrontabCommand("echo hi").startsWith(". '/tmp/my dir/.env.cron' 2>/dev/null"));
 	});
 
 	it("handles empty command — still produces prefix with trailing &&", () => {
@@ -319,16 +340,21 @@ describe("Cron._readCrontab", () => {
 		assert.strictEqual(content, "* * * * *  echo hello");
 	});
 
-	it("returns empty string when crontab -l fails", async () => {
-		const failingExec = (cmd) => {
-			if (cmd.includes("crontab -l")) {
-				return Promise.reject(new Error("no crontab"));
-			}
-			return Promise.reject(new Error(`Unexpected: ${cmd}`));
-		};
-		setExecOverride(failingExec);
-		const content = await Cron._readCrontab();
-		assert.strictEqual(content, "");
+	it("treats 'no crontab for <user>' as an empty crontab", async () => {
+		setExecOverride((cmd) => {
+			assert.ok(!cmd.includes("2>&1"));
+			return Promise.reject(
+				Object.assign(new Error("Command failed"), { code: 1, stderr: "no crontab for root\n" }),
+			);
+		});
+		assert.strictEqual(await Cron._readCrontab(), "");
+	});
+
+	it("throws a clear error when crontab -l fails for any other reason", async () => {
+		setExecOverride(() =>
+			Promise.reject(Object.assign(new Error("boom"), { stderr: "permission denied" })),
+		);
+		await assert.rejects(() => Cron._readCrontab(), /Failed to read crontab: boom/);
 	});
 
 	it("returns empty string when stdout is empty", async () => {
@@ -428,16 +454,24 @@ describe("Cron._splitBlock", () => {
 		});
 	});
 
-	it("handles unclosed block — treats everything after start as block", () => {
-		const input = "outside\n# --- BEGIN madz-schedules ---\nblock1\nblock2";
-		const result = Cron._splitBlock(input);
-		assert.deepStrictEqual(result, {
-			outsideLines: ["outside"],
-			blockLines: ["block1", "block2"],
-		});
+	it("throws on BEGIN without END", () => {
+		const input = "outside\n# --- BEGIN madz-schedules ---\nblock1\nuser job";
+		assert.throws(() => Cron._splitBlock(input), /BEGIN without END/);
 	});
 
-	it("handles multiple blocks — blockLines accumulates all blocks (inBlock toggles, no reset)", () => {
+	it("throws on END without BEGIN", () => {
+		assert.throws(
+			() => Cron._splitBlock("a\n# --- END madz-schedules ---\nb"),
+			/END without BEGIN/,
+		);
+	});
+
+	it("throws on a nested BEGIN", () => {
+		const b = "# --- BEGIN madz-schedules ---";
+		assert.throws(() => Cron._splitBlock(`${b}\n${b}\n# --- END madz-schedules ---`), /nested/);
+	});
+
+	it("handles multiple blocks — blockLines accumulates all blocks", () => {
 		const input = [
 			"# --- BEGIN madz-schedules ---",
 			"block1",
@@ -705,185 +739,6 @@ describe("Cron.remove", () => {
 		const result = await Cron.remove("test");
 		assert.strictEqual(result.removed, false);
 		assert.ok(result.error);
-	});
-});
-
-// ---------------------------------------------------------------------------
-// Cron.install
-// ---------------------------------------------------------------------------
-
-describe("Cron.install", () => {
-	let helper;
-
-	beforeEach(() => {
-		helper = mockExecBuilder();
-		helper.reset();
-		setExecOverride(helper.mockExec);
-	});
-
-	afterEach(() => {
-		setExecOverride(undefined);
-	});
-
-	it("installs multiple schedules", async () => {
-		const schedules = [
-			{ name: "job1", cron: "* * * * *", command: "echo 1" },
-			{ name: "job2", cron: "0 * * * *", command: "echo 2" },
-		];
-		const result = await Cron.install(schedules);
-		assert.strictEqual(result.installed, 2);
-		const crontab = helper.getCrontab();
-		assert.ok(crontab.includes("madz-schedule: job1"));
-		assert.ok(crontab.includes("madz-schedule: job2"));
-	});
-
-	it("excludes paused schedules", async () => {
-		const schedules = [
-			{ name: "active", cron: "* * * * *", command: "echo active", paused: false },
-			{ name: "paused", cron: "0 * * * *", command: "echo paused", paused: true },
-		];
-		const result = await Cron.install(schedules);
-		assert.strictEqual(result.installed, 1);
-		const crontab = helper.getCrontab();
-		assert.ok(crontab.includes("madz-schedule: active"));
-		assert.ok(!crontab.includes("madz-schedule: paused"));
-	});
-
-	it("replaces existing madz block entirely", async () => {
-		helper.setCrontab(
-			"# --- BEGIN madz-schedules ---\n* * * * *  echo old  # madz-schedule: old-job\n# --- END madz-schedules ---\n",
-		);
-		const schedules = [{ name: "new", cron: "* * * * *", command: "echo new" }];
-		const result = await Cron.install(schedules);
-		assert.strictEqual(result.installed, 1);
-		const crontab = helper.getCrontab();
-		assert.ok(!crontab.includes("old-job"));
-		assert.ok(crontab.includes("madz-schedule: new"));
-	});
-
-	it("handles empty schedules array — no block written", async () => {
-		const result = await Cron.install([]);
-		assert.strictEqual(result.installed, 0);
-		const crontab = helper.getCrontab();
-		assert.ok(!crontab.includes("madz-schedules"));
-	});
-
-	it("preserves outside lines when installing", async () => {
-		helper.setCrontab("SHELL=/bin/bash\nPATH=/usr/bin\n");
-		const schedules = [{ name: "job", cron: "* * * * *", command: "echo job" }];
-		await Cron.install(schedules);
-		const crontab = helper.getCrontab();
-		assert.ok(crontab.includes("SHELL=/bin/bash"));
-		assert.ok(crontab.includes("PATH=/usr/bin"));
-	});
-
-	it("returns error when crontab is unavailable", async () => {
-		const failingExec = (cmd) => {
-			if (cmd.includes("which crontab")) {
-				return Promise.reject(new Error("not found"));
-			}
-			return Promise.reject(new Error(`Unexpected: ${cmd}`));
-		};
-		setExecOverride(failingExec);
-		const result = await Cron.install([]);
-		assert.strictEqual(result.installed, 0);
-		assert.ok(result.error);
-	});
-
-	it("returns error when _writeCrontab fails", async () => {
-		const failingWriteExec = (cmd) => {
-			if (cmd.includes("which crontab")) {
-				return Promise.resolve({ stdout: "/usr/bin/crontab", stderr: "" });
-			}
-			if (cmd.includes("crontab -l")) {
-				return Promise.resolve({ stdout: "", stderr: "" });
-			}
-			if (cmd.includes("crontab -")) {
-				return Promise.reject(new Error("write failed"));
-			}
-			return Promise.reject(new Error(`Unexpected: ${cmd}`));
-		};
-		setExecOverride(failingWriteExec);
-		const result = await Cron.install([{ name: "test", cron: "* * * * *", command: "echo test" }]);
-		assert.strictEqual(result.installed, 0);
-		assert.ok(result.error);
-	});
-});
-
-// ---------------------------------------------------------------------------
-// Cron.uninstall
-// ---------------------------------------------------------------------------
-
-describe("Cron.uninstall", () => {
-	let helper;
-
-	beforeEach(() => {
-		helper = mockExecBuilder();
-		helper.reset();
-		setExecOverride(helper.mockExec);
-	});
-
-	afterEach(() => {
-		setExecOverride(undefined);
-	});
-
-	it("removes all madz-schedules entries and returns count", async () => {
-		await Cron.add({ name: "job1", cron: "* * * * *", command: "echo 1" });
-		await Cron.add({ name: "job2", cron: "0 * * * *", command: "echo 2" });
-		const count = await Cron.uninstall();
-		assert.strictEqual(count, 2);
-		const crontab = helper.getCrontab();
-		assert.ok(!crontab.includes("madz-schedules"));
-	});
-
-	it("returns 0 when no madz block exists", async () => {
-		helper.setCrontab("SHELL=/bin/bash\n");
-		const count = await Cron.uninstall();
-		assert.strictEqual(count, 0);
-	});
-
-	it("returns 0 when crontab is unavailable", async () => {
-		const failingExec = (cmd) => {
-			if (cmd.includes("which crontab")) {
-				return Promise.reject(new Error("not found"));
-			}
-			return Promise.reject(new Error(`Unexpected: ${cmd}`));
-		};
-		setExecOverride(failingExec);
-		const count = await Cron.uninstall();
-		assert.strictEqual(count, 0);
-	});
-
-	it("swallows write error and still returns count", async () => {
-		const failingWriteExec = (cmd) => {
-			if (cmd.includes("which crontab")) {
-				return Promise.resolve({ stdout: "/usr/bin/crontab", stderr: "" });
-			}
-			if (cmd.includes("crontab -l")) {
-				return Promise.resolve({
-					stdout:
-						"# --- BEGIN madz-schedules ---\n* * * * *  echo test  # madz-schedule: test\n# --- END madz-schedules ---\n",
-					stderr: "",
-				});
-			}
-			if (cmd.includes("crontab -")) {
-				return Promise.reject(new Error("write failed"));
-			}
-			return Promise.reject(new Error(`Unexpected: ${cmd}`));
-		};
-		setExecOverride(failingWriteExec);
-		// uninstall does not catch write errors — it will throw
-		await assert.rejects(() => Cron.uninstall(), /write failed/);
-	});
-
-	it("preserves outside lines when uninstalling", async () => {
-		helper.setCrontab(
-			"SHELL=/bin/bash\n# --- BEGIN madz-schedules ---\n* * * * *  echo job  # madz-schedule: job\n# --- END madz-schedules ---\n",
-		);
-		await Cron.uninstall();
-		const crontab = helper.getCrontab();
-		assert.ok(crontab.includes("SHELL=/bin/bash"));
-		assert.ok(!crontab.includes("madz-schedules"));
 	});
 });
 
@@ -1276,7 +1131,7 @@ describe("Cron.sync", () => {
 	it("skips unchanged jobs", async () => {
 		// Pre-populate crontab with an entry
 		helper.setCrontab(
-			"# --- BEGIN madz-schedules ---\n* * * * *  echo same  # madz-schedule: stable-job\n# --- END madz-schedules ---\n",
+			`# --- BEGIN madz-schedules ---\n* * * * *  ${prepareCrontabCommand("echo same")}  # madz-schedule: stable-job\n# --- END madz-schedules ---\n`,
 		);
 		// Create job file with identical content
 		writeFileSync(
@@ -1398,5 +1253,357 @@ describe("Cron.sync", () => {
 		// reflection-daily added, gone-job removed
 		assert.strictEqual(result.added, 1);
 		assert.strictEqual(result.removed, 1);
+	});
+
+	it("second sync with no change reports skipped and does not write", async () => {
+		writeFileSync(
+			join(testDir, "a-job.json"),
+			JSON.stringify({ name: "a-job", cron: "* * * * *", command: "echo a", enabled: true }),
+		);
+		const first = await Cron.sync(testDir);
+		assert.strictEqual(first.added, 2);
+		const writesBefore = helper.getCalls().filter((c) => c.command === "crontab -").length;
+		const second = await Cron.sync(testDir);
+		assert.deepStrictEqual(second, { added: 0, removed: 0, updated: 0, skipped: 2 });
+		const writesAfter = helper.getCalls().filter((c) => c.command === "crontab -").length;
+		assert.strictEqual(writesAfter, writesBefore);
+	});
+
+	it("aborts without writing when crontab -l fails for a real reason", async () => {
+		const calls = [];
+		setExecOverride((cmd, opts) => {
+			calls.push(cmd);
+			if (cmd.includes("which crontab")) return Promise.resolve({ stdout: "", stderr: "" });
+			if (cmd.includes("crontab -l")) {
+				return Promise.reject(Object.assign(new Error("denied"), { stderr: "permission denied" }));
+			}
+			return Promise.resolve({ stdout: "", stderr: "", opts });
+		});
+		const result = await Cron.sync(testDir);
+		assert.ok(result.error.includes("Failed to read crontab"));
+		assert.ok(!calls.includes("crontab -"));
+	});
+
+	it("aborts without writing when the madz block is unterminated", async () => {
+		helper.setCrontab(
+			"# --- BEGIN madz-schedules ---\n* * * * *  echo x  # madz-schedule: x\nuser job\n",
+		);
+		const result = await Cron.sync(testDir);
+		assert.ok(result.error.includes("BEGIN without END"));
+		assert.ok(!helper.getCalls().some((c) => c.command === "crontab -"));
+	});
+
+	it("skips invalid job files and warns instead of injecting crontab lines", async () => {
+		writeFileSync(
+			join(testDir, "bad.json"),
+			JSON.stringify({ name: "bad\n* * * * * evil", cron: "* * * * *", command: "echo x" }),
+		);
+		await Cron.sync(testDir);
+		assert.ok(!helper.getCrontab().includes("evil"));
+	});
+
+	it("preserves the user's own entries and MAILTO", async () => {
+		helper.setCrontab("MAILTO=me@example.com\n0 1 * * * /usr/bin/backup\n");
+		await Cron.sync(testDir);
+		const crontab = helper.getCrontab();
+		assert.ok(crontab.includes("MAILTO=me@example.com"));
+		assert.ok(crontab.includes("/usr/bin/backup"));
+	});
+
+	it("serializes concurrent operations so none is lost", async () => {
+		await Promise.all([
+			Cron.add({ name: "j1", cron: "* * * * *", command: "echo 1" }),
+			Cron.add({ name: "j2", cron: "* * * * *", command: "echo 2" }),
+			Cron.add({ name: "j3", cron: "* * * * *", command: "echo 3" }),
+		]);
+		const crontab = helper.getCrontab();
+		for (const n of ["j1", "j2", "j3"]) assert.ok(crontab.includes(`madz-schedule: ${n}`));
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Failure handling: failed reads, malformed blocks, write errors
+// ---------------------------------------------------------------------------
+
+describe("Cron mutation safety", () => {
+	const BEGIN = "# --- BEGIN madz-schedules ---";
+	const END = "# --- END madz-schedules ---";
+	let helper;
+	let failRead;
+
+	beforeEach(() => {
+		helper = mockExecBuilder();
+		helper.reset();
+		failRead = false;
+		setExecOverride((cmd, opts) => {
+			if (failRead && cmd.includes("crontab -l")) {
+				return Promise.reject(Object.assign(new Error("denied"), { stderr: "permission denied" }));
+			}
+			return helper.mockExec(cmd, opts);
+		});
+	});
+
+	afterEach(() => {
+		setExecOverride(undefined);
+	});
+
+	const writes = () => helper.getCalls().filter((c) => c.command === "crontab -");
+
+	it("add does not write when the read fails (user entries are not wiped)", async () => {
+		helper.setCrontab("MAILTO=me@example.com\n0 1 * * * /usr/bin/backup\n");
+		failRead = true;
+		const result = await Cron.add({ name: "t", cron: "* * * * *", command: "echo t" });
+		assert.strictEqual(result.added, false);
+		assert.match(result.error, /Failed to read crontab/);
+		assert.strictEqual(writes().length, 0);
+		assert.ok(helper.getCrontab().includes("MAILTO"));
+	});
+
+	it("remove does not write when the read fails", async () => {
+		failRead = true;
+		const result = await Cron.remove("t");
+		assert.strictEqual(result.removed, false);
+		assert.match(result.error, /Failed to read crontab/);
+		assert.strictEqual(writes().length, 0);
+	});
+
+	it("list throws when the read fails", async () => {
+		failRead = true;
+		await assert.rejects(() => Cron.list(), /Failed to read crontab/);
+	});
+
+	it("add and remove abort on an unterminated block without writing", async () => {
+		helper.setCrontab(`${BEGIN}\n* * * * *  echo x  # madz-schedule: x\n0 1 * * * user-job\n`);
+		const added = await Cron.add({ name: "t", cron: "* * * * *", command: "echo t" });
+		assert.strictEqual(added.added, false);
+		assert.match(added.error, /BEGIN without END/);
+		const removed = await Cron.remove("x");
+		assert.strictEqual(removed.removed, false);
+		assert.strictEqual(writes().length, 0);
+		assert.ok(helper.getCrontab().includes("user-job"));
+	});
+
+	it("add and remove abort on END without BEGIN", async () => {
+		helper.setCrontab(`user-job\n${END}\n`);
+		const added = await Cron.add({ name: "t", cron: "* * * * *", command: "echo t" });
+		assert.match(added.error, /END without BEGIN/);
+		assert.strictEqual(writes().length, 0);
+	});
+
+	it("add returns an error for a command containing newlines and does not write", async () => {
+		const result = await Cron.add({ name: "t", cron: "* * * * *", command: "echo a\necho b" });
+		assert.strictEqual(result.added, false);
+		assert.match(result.error, /newlines/);
+		assert.strictEqual(writes().length, 0);
+	});
+
+	it("add applies the log path redirect after setLogPath", async () => {
+		Cron.setLogPath("/var/log/madz cron.log");
+		try {
+			await Cron.add({ name: "t", cron: "* * * * *", command: "echo t" });
+		} finally {
+			Cron.setLogPath(undefined);
+		}
+		assert.ok(helper.getCrontab().includes("( echo t ) >> '/var/log/madz cron.log' 2>&1"));
+	});
+
+	it("add is a no-op write when the crontab already has the same content", async () => {
+		await Cron.add({ name: "t", cron: "* * * * *", command: "echo t" });
+		const before = writes().length;
+		await Cron.add({ name: "t", cron: "* * * * *", command: "echo t" });
+		assert.strictEqual(writes().length, before);
+	});
+
+	it("a failed operation does not break the queue for later operations", async () => {
+		failRead = true;
+		await Cron.add({ name: "a", cron: "* * * * *", command: "echo a" });
+		failRead = false;
+		const result = await Cron.add({ name: "b", cron: "* * * * *", command: "echo b" });
+		assert.strictEqual(result.added, true);
+	});
+
+	it("sync skips a job whose command cannot be prepared", async () => {
+		const dir = join(process.cwd(), "memory/__test_sync_skip__");
+		rmSync(dir, { recursive: true, force: true });
+		mkdirSync(dir, { recursive: true });
+		try {
+			const result = await Cron.sync(dir);
+			assert.strictEqual(result.added, 1);
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Cron._readJobsFromDisk validation
+// ---------------------------------------------------------------------------
+
+describe("Cron._readJobsFromDisk validation", () => {
+	const dir = join(process.cwd(), "memory/__test_read_jobs_validation__");
+
+	beforeEach(() => {
+		rmSync(dir, { recursive: true, force: true });
+		mkdirSync(dir, { recursive: true });
+	});
+
+	afterEach(() => {
+		rmSync(dir, { recursive: true, force: true });
+	});
+
+	const put = (file, job) => writeFileSync(join(dir, file), JSON.stringify(job));
+
+	it("skips a job whose name contains a newline", async () => {
+		put("a.json", { name: "evil\n* * * * * rm -rf /", cron: "* * * * *", command: "echo x" });
+		assert.deepStrictEqual(await Cron._readJobsFromDisk(dir), []);
+	});
+
+	it("skips a job whose cron field contains a newline", async () => {
+		put("a.json", { name: "a", cron: "* * * * *\n@reboot evil", command: "echo x" });
+		assert.deepStrictEqual(await Cron._readJobsFromDisk(dir), []);
+	});
+
+	it("skips a job with an invalid cron expression", async () => {
+		put("a.json", { name: "a", cron: "99 * * * *", command: "echo x" });
+		put("b.json", { name: "b", cron: "* * * * *", command: "echo x" });
+		const jobs = await Cron._readJobsFromDisk(dir);
+		assert.deepStrictEqual(
+			jobs.map((j) => j.name),
+			["b"],
+		);
+	});
+
+	it("skips a job whose command contains a newline", async () => {
+		put("a.json", { name: "a", cron: "* * * * *", command: "echo a\necho b" });
+		assert.deepStrictEqual(await Cron._readJobsFromDisk(dir), []);
+	});
+
+	it("keeps the first file (by file name) when two files share a job name", async () => {
+		put("1-first.json", { name: "dup", cron: "* * * * *", command: "echo first" });
+		put("2-second.json", { name: "dup", cron: "0 * * * *", command: "echo second" });
+		const jobs = await Cron._readJobsFromDisk(dir);
+		assert.strictEqual(jobs.length, 1);
+		assert.strictEqual(jobs[0].command, "echo first");
+	});
+
+	it("sync yields a single crontab line for duplicate names", async () => {
+		const helper = mockExecBuilder();
+		setExecOverride(helper.mockExec);
+		try {
+			put("1.json", { name: "dup", cron: "* * * * *", command: "echo first" });
+			put("2.json", { name: "dup", cron: "0 * * * *", command: "echo second" });
+			await Cron.sync(dir);
+			assert.strictEqual((helper.getCrontab().match(/madz-schedule: dup/g) || []).length, 1);
+		} finally {
+			setExecOverride(undefined);
+		}
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Cron._ensureReflectionJob error handling and quoting of cwd
+// ---------------------------------------------------------------------------
+
+describe("Cron._ensureReflectionJob error handling", () => {
+	const dir = join(process.cwd(), "memory/__test_reflection_errors__");
+
+	beforeEach(() => {
+		rmSync(dir, { recursive: true, force: true });
+		mkdirSync(dir, { recursive: true });
+	});
+
+	afterEach(() => {
+		rmSync(dir, { recursive: true, force: true });
+	});
+
+	it("does not overwrite a file that exists but cannot be read (not ENOENT)", async () => {
+		// A directory with the job's file name makes readFile fail with EISDIR, not ENOENT.
+		mkdirSync(join(dir, "reflection-daily.json"));
+		await Cron._ensureReflectionJob(dir);
+		assert.ok(statSync(join(dir, "reflection-daily.json")).isDirectory());
+	});
+
+	it("does not throw when the write fails", async () => {
+		const readOnly = join(dir, "ro");
+		mkdirSync(readOnly, { mode: 0o500 });
+		await assert.doesNotReject(() => Cron._ensureReflectionJob(readOnly));
+	});
+
+	it("recreates the file when it is missing", async () => {
+		await Cron._ensureReflectionJob(dir);
+		assert.ok(readdirSync(dir).includes("reflection-daily.json"));
+	});
+
+	it("quotes a cwd with spaces in the generated reflection command", async (t) => {
+		t.mock.method(process, "cwd", () => "/tmp/my dir");
+		await Cron._ensureReflectionJob(dir);
+		const job = JSON.parse(readFileSync(join(dir, "reflection-daily.json"), "utf-8"));
+		assert.strictEqual(
+			job.command,
+			"cd '/tmp/my dir' && node index.js --message \"Run the reflection skill\"",
+		);
+	});
+});
+
+describe("buildSkillCommand cwd quoting", () => {
+	it("keeps the unquoted form for a plain cwd", () => {
+		assert.strictEqual(
+			buildSkillCommand("x"),
+			`cd ${process.cwd()} && node index.js --message "Run the x skill"`,
+		);
+	});
+
+	it("quotes a cwd with spaces and single quotes", (t) => {
+		t.mock.method(process, "cwd", () => "/tmp/it's here");
+		assert.ok(buildSkillCommand("x").startsWith("cd '/tmp/it'\\''s here' && node"));
+	});
+});
+
+// ---------------------------------------------------------------------------
+// writeEnvCron hardening
+// ---------------------------------------------------------------------------
+
+describe("writeEnvCron hardening", () => {
+	const dir = join(process.cwd(), "memory/__test_env_cron__");
+	const envPath = join(dir, ".env.cron");
+
+	beforeEach(() => {
+		rmSync(dir, { recursive: true, force: true });
+		mkdirSync(dir, { recursive: true });
+		process.env.__TEST_CRON_OK = "yes";
+	});
+
+	afterEach(() => {
+		delete process.env.__TEST_CRON_OK;
+		delete process.env["BAD-NAME"];
+		delete process.env.MADZ_CRON;
+		rmSync(dir, { recursive: true, force: true });
+	});
+
+	it("skips variables whose names are not valid shell identifiers", async () => {
+		process.env["BAD-NAME"] = "x";
+		await writeEnvCron(dir);
+		const content = readFileSync(envPath, "utf-8");
+		assert.ok(content.includes("export __TEST_CRON_OK='yes'"));
+		assert.ok(!content.includes("BAD-NAME"));
+	});
+
+	it("re-applies mode 0o600 to an existing file with looser permissions", async () => {
+		writeFileSync(envPath, "old", { mode: 0o644 });
+		await writeEnvCron(dir);
+		assert.strictEqual(statSync(envPath).mode & 0o777, 0o600);
+	});
+
+	it("leaves no temp file behind", async () => {
+		await writeEnvCron(dir);
+		assert.deepStrictEqual(readdirSync(dir), [".env.cron"]);
+	});
+
+	it("does not overwrite .env.cron when started by cron (MADZ_CRON=1)", async () => {
+		writeFileSync(envPath, "export KEEP='me'\n");
+		process.env.MADZ_CRON = "1";
+		const result = await writeEnvCron(dir);
+		assert.deepStrictEqual(result, { written: false, skipped: true });
+		assert.strictEqual(readFileSync(envPath, "utf-8"), "export KEEP='me'\n");
 	});
 });

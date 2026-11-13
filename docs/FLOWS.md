@@ -606,16 +606,7 @@ scheduleManager.list() → [{ ...entry }]
 scheduleManager.pause(name) → entry.paused = true
 scheduleManager.resume(name) → entry.paused = false
 
-scheduleManager.runNow(name, scheduler)
-├── entry = #scheduleEntry.get(name)
-├── if !entry → { error: "Unknown schedule" }
-├── if entry.paused → { error: "Schedule is paused" }
-├── command-only entry → spawn("/bin/sh", ["-c", command]) with timeout
-│   └── collect stdout/stderr → { stdout, stderr, exitCode }
-└── skill entry → contextPrefix from entry.contextFile or loadContext(contextDir)
-    └── scheduler.sandbox({ skillName, input, context, permissions })
-        └── injected by caller; no production wiring exists — defaults to a no-op stub
-            (see Sandbox Validation)
+(There is no `runNow`: jobs are run on demand by the `cronJob` tool's `run` action, and on schedule by crond.)
 ```
 
 ## Cron System
@@ -629,35 +620,45 @@ Cron.isAvailable()
 ├── execSync("which crontab") → { available: true }
 └── catch → { available: false, error }
 
+(all mutating methods run through an in-process promise-chain mutex; cross-process races remain)
+
 Cron._readCrontab()
-├── execSync("crontab -l 2>&1") → crontab content
-└── if "no crontab" → return ""
+├── exec("crontab -l") → crontab content
+├── stderr/message "no crontab for <user>" → return ""
+└── any other failure → throw (callers abort without writing)
+
+Cron._splitBlock(crontab)
+└── BEGIN without END, END without BEGIN, nested BEGIN → throw (callers abort without writing)
 
 Cron.add({ name, cron, command })
-├── current = _readCrontab()
-├── if entry with matching name exists → { added: false, error: "already exists" }
+├── current = _loadState() (read + split; errors → { added: false, error })
+├── an entry with the same name is replaced
 ├── newEntry = `<cron>  <command>  # madz-schedule: <name>`
 ├── between BEGIN/END markers → insert newEntry
-├── execSync(`crontab -`) → write updated crontab
+├── write via `crontab -` (skipped when unchanged)
 └── return { added: true }
 
 Cron.remove(name)
 ├── current = _readCrontab()
 ├── filter out entry with matching name
-├── execSync(`crontab -`) → write updated crontab
+├── write via `crontab -` (skipped when unchanged)
 └── return { removed: true }
 
 Cron.sync(schedulesDir)
 ├── isAvailable() → bail with error if crontab missing
 ├── _ensureReflectionJob(schedulesDir) → seed reflection-daily.json if absent
-├── _readJobsFromDisk() → desired jobs (enabled only)
-├── _splitBlock(_readCrontab()) → current entries
-├── diff desired vs current → added / removed / updated / skipped
-└── replace the madz-schedules block atomically via `crontab -`
+├── _readJobsFromDisk() → desired jobs (invalid names/cron/commands skipped with a warning;
+│   duplicate names: first file wins)
+├── _loadState() → current entries (read/split errors → error field, no write)
+├── diff prepared crontab lines vs current → added / removed / updated / skipped
+└── replace the madz-schedules block via `crontab -` (skipped when nothing changed)
 
-prepareCrontabCommand(command)
-└── `. <cwd>/.env.cron 2>/dev/null || true && <sanitized command>`
-    └── cron-fired processes source .env.cron (written at boot by writeEnvCron())
+prepareCrontabCommand(command, logPath?)
+└── `. <cwd>/.env.cron 2>/dev/null || true && export MADZ_CRON=1 && <command>`
+    ├── cron-fired processes source .env.cron (written at boot by writeEnvCron())
+    ├── MADZ_CRON=1 makes writeEnvCron() leave .env.cron alone in cron-started processes
+    ├── with a log path the command becomes `( <command> ) >> '<logPath>' 2>&1`
+    └── commands containing CR/LF/NUL throw; `%` is escaped; cwd/env path are shell-quoted when needed
 ```
 
 ### Reflection Job

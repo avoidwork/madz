@@ -4,7 +4,7 @@ import { mkdirSync, rmSync, existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { ScheduleManager } from "../../src/scheduler/index.js";
-import { sanitizeCrontabCommand } from "../../src/scheduler/cron.js";
+import { sanitizeCrontabCommand, buildSkillCommand } from "../../src/scheduler/cron.js";
 
 // --- Helpers ---
 
@@ -90,30 +90,8 @@ describe("scheduler - ScheduleManager", () => {
 		assert.strictEqual(mgr.list()[0].paused, false);
 	});
 
-	it("runNow returns error for unknown schedule", async () => {
-		const mgr = new ScheduleManager();
-		const result = await mgr.runNow("nonexistent", {});
-		assert.ok(result.error);
-		assert.ok(result.error.includes("Unknown schedule"));
-	});
-
-	it("runNow returns error for paused schedule", async () => {
-		const mgr = new ScheduleManager();
-		mgr.register([{ name: "daily", cron: "0 9 * * *", skill: "host-info" }]);
-		mgr.pause("daily");
-		const result = await mgr.runNow("daily", {});
-		assert.ok(result.error);
-		assert.ok(result.error.includes("paused"));
-	});
-
-	it("runNow executes skill through sandbox", async () => {
-		const mgr = new ScheduleManager();
-		mgr.register([{ name: "daily", cron: "0 9 * * *", skill: "host-info" }]);
-		const sandbox = async () => ({ stdout: "done", stderr: "", exitCode: 0 });
-		const scheduler = { sandbox, state: {} };
-		const result = await mgr.runNow("daily", scheduler);
-		assert.strictEqual(result.exitCode, 0);
-		assert.strictEqual(result.stdout, "done");
+	it("no longer exposes runNow (removed; the cronJob tool runs jobs)", () => {
+		assert.strictEqual(typeof new ScheduleManager().runNow, "undefined");
 	});
 });
 
@@ -225,6 +203,39 @@ describe("scheduler - ScheduleManager.loadFromDisk", () => {
 		assert.ok(schedules[0].command.includes("test-skill"));
 	});
 
+	it("builds the skill command with buildSkillCommand (escaped, includes input)", async () => {
+		const input = { q: 'a"b$c' };
+		writeFileSync(
+			join(testDir, "esc-job.json"),
+			JSON.stringify({ name: "esc-job", cron: "0 * * * *", skill: 'x"y', input }),
+		);
+		const mgr = await ScheduleManager.loadFromDisk(testDir);
+		assert.strictEqual(mgr.list()[0].command, buildSkillCommand('x"y', input));
+		assert.ok(mgr.list()[0].command.includes('x\\"y'));
+	});
+
+	it("builds the skill command with buildSkillCommand (escaped, includes input)", async () => {
+		const input = { q: 'a"b$c' };
+		writeFileSync(
+			join(testDir, "esc-job.json"),
+			JSON.stringify({ name: "esc-job", cron: "0 * * * *", skill: 'x"y', input }),
+		);
+		const mgr = await ScheduleManager.loadFromDisk(testDir);
+		assert.strictEqual(mgr.list()[0].command, buildSkillCommand('x"y', input));
+		assert.ok(mgr.list()[0].command.includes('x\\"y'));
+	});
+
+	it("builds the skill command with buildSkillCommand (escaped, includes input)", async () => {
+		const input = { q: 'a"b$c' };
+		writeFileSync(
+			join(testDir, "esc-job.json"),
+			JSON.stringify({ name: "esc-job", cron: "0 * * * *", skill: 'x"y', input }),
+		);
+		const mgr = await ScheduleManager.loadFromDisk(testDir);
+		assert.strictEqual(mgr.list()[0].command, buildSkillCommand('x"y', input));
+		assert.ok(mgr.list()[0].command.includes('x\\"y'));
+	});
+
 	it("returns empty manager for nonexistent directory", async () => {
 		const mgr = await ScheduleManager.loadFromDisk(
 			join(tmpdir(), "scheduler-nonexistent-" + randomSuffix()),
@@ -309,125 +320,6 @@ describe("scheduler - ScheduleManager.register with command", () => {
 	});
 });
 
-// --- ScheduleManager runNow with command ---
-
-describe("scheduler - ScheduleManager.runNow with command", () => {
-	it("executes command directly when skill is absent", async () => {
-		const mgr = new ScheduleManager();
-		mgr.register([{ name: "cmd-job", cron: "0 * * * *", command: "echo hello from command" }]);
-		const scheduler = { state: { timeoutMs: 10000 } };
-		const result = await mgr.runNow("cmd-job", scheduler);
-		assert.strictEqual(result.exitCode, 0);
-		assert.ok(result.stdout.includes("hello from command"));
-	});
-
-	it("returns error for unknown command", async () => {
-		const mgr = new ScheduleManager();
-		mgr.register([{ name: "cmd-job", cron: "0 * * * *", command: "nonexistent-cmd-xyz" }]);
-		const scheduler = { state: { timeoutMs: 10000 } };
-		const result = await mgr.runNow("cmd-job", scheduler);
-		assert.notStrictEqual(result.exitCode, 0);
-	});
-
-	it("sets lastRun after command execution", async () => {
-		const mgr = new ScheduleManager();
-		mgr.register([{ name: "cmd-job", cron: "0 * * * *", command: "echo test" }]);
-		const scheduler = { state: { timeoutMs: 10000 } };
-		await mgr.runNow("cmd-job", scheduler);
-		assert.ok(mgr.list()[0].lastRun !== null);
-		assert.ok(new Date(mgr.list()[0].lastRun).getTime() > 0);
-	});
-});
-
-// --- ScheduleManager runNow with skill and contextFile ---
-
-describe("scheduler - ScheduleManager.runNow with skill", () => {
-	it("executes skill through sandbox with contextFile", async () => {
-		const ctxDir = makeTempDir("scheduler-ctx-");
-		try {
-			const ctxFile = join(ctxDir, "context.md");
-			writeFileSync(ctxFile, "custom context content");
-			const mgr = new ScheduleManager();
-			mgr.register([
-				{ name: "skill-job", cron: "0 * * * *", skill: "test-skill", contextFile: ctxFile },
-			]);
-			const sandbox = async (opts) => {
-				assert.strictEqual(opts.context, "custom context content");
-				return { stdout: "done", stderr: "", exitCode: 0 };
-			};
-			const scheduler = { sandbox, state: { timeoutMs: 10000 } };
-			const result = await mgr.runNow("skill-job", scheduler);
-			assert.strictEqual(result.exitCode, 0);
-		} finally {
-			removeDir(ctxDir);
-		}
-	});
-
-	it("executes skill through sandbox without contextFile", async () => {
-		const mgr = new ScheduleManager();
-		mgr.register([{ name: "skill-job", cron: "0 * * * *", skill: "test-skill" }]);
-		const sandbox = async () => ({ stdout: "done", stderr: "", exitCode: 0 });
-		const scheduler = { sandbox, state: { timeoutMs: 10000 } };
-		const result = await mgr.runNow("skill-job", scheduler);
-		assert.strictEqual(result.exitCode, 0);
-	});
-
-	it("handles sandbox timeout", async () => {
-		const mgr = new ScheduleManager();
-		mgr.register([{ name: "slow-job", cron: "0 * * * *", skill: "slow-skill" }]);
-		const sandbox = async () => {
-			await new Promise((resolve) => setTimeout(resolve, 50000));
-			return { stdout: "", stderr: "", exitCode: 0 };
-		};
-		const scheduler = { sandbox, state: { timeoutMs: 10 } };
-		await assert.rejects(() => mgr.runNow("slow-job", scheduler), /execution timed out/);
-	});
-
-	it("clears the timeout timer when the sandbox resolves first", async () => {
-		const mgr = new ScheduleManager();
-		mgr.register([{ name: "fast-job", cron: "0 * * * *", skill: "fast-skill" }]);
-		const sandbox = async () => ({ stdout: "done", stderr: "", exitCode: 0 });
-		const scheduler = { sandbox, state: { timeoutMs: 10000 } };
-		const result = await mgr.runNow("fast-job", scheduler);
-		assert.strictEqual(result.exitCode, 0);
-		assert.strictEqual(result.stdout, "done");
-	});
-
-	it("passes an AbortSignal to the sandbox and aborts it on timeout", async () => {
-		const mgr = new ScheduleManager();
-		mgr.register([{ name: "abort-job", cron: "0 * * * *", skill: "abort-skill" }]);
-		let receivedSignal;
-		const sandbox = async (opts) => {
-			receivedSignal = opts.signal;
-			await new Promise((resolve) => setTimeout(resolve, 50000));
-			return { stdout: "", stderr: "", exitCode: 0 };
-		};
-		const scheduler = { sandbox, state: { timeoutMs: 10 } };
-		await assert.rejects(() => mgr.runNow("abort-job", scheduler), /execution timed out/);
-		assert.ok(receivedSignal instanceof AbortSignal);
-		assert.strictEqual(receivedSignal.aborted, true);
-	});
-
-	it("handles contextFile load failure gracefully", async () => {
-		const mgr = new ScheduleManager();
-		mgr.register([
-			{
-				name: "ctx-job",
-				cron: "0 * * * *",
-				skill: "ctx-skill",
-				contextFile: "/nonexistent/path/ctx.md",
-			},
-		]);
-		const sandbox = async (_opts) => {
-			// Should still run even if context load fails
-			return { stdout: "done", stderr: "", exitCode: 0 };
-		};
-		const scheduler = { sandbox, state: { timeoutMs: 10000 } };
-		const result = await mgr.runNow("ctx-job", scheduler);
-		assert.strictEqual(result.exitCode, 0);
-	});
-});
-
 // --- sanitizeCrontabCommand ---
 
 describe("sanitizeCrontabCommand", () => {
@@ -436,19 +328,10 @@ describe("sanitizeCrontabCommand", () => {
 		assert.strictEqual(result, "node index.js --chat /reflection");
 	});
 
-	it("commands with newlines are sanitized", () => {
-		const result = sanitizeCrontabCommand("echo hello\nworld");
-		assert.strictEqual(result, "echo helloworld");
-	});
-
-	it("commands with carriage returns are sanitized", () => {
-		const result = sanitizeCrontabCommand("echo hello\rworld");
-		assert.strictEqual(result, "echo helloworld");
-	});
-
-	it("commands with CRLF are sanitized", () => {
-		const result = sanitizeCrontabCommand("echo hello\r\nworld");
-		assert.strictEqual(result, "echo helloworld");
+	it("commands with newlines, carriage returns or CRLF are rejected", () => {
+		assert.throws(() => sanitizeCrontabCommand("echo hello\nworld"), /newlines/);
+		assert.throws(() => sanitizeCrontabCommand("echo hello\rworld"), /newlines/);
+		assert.throws(() => sanitizeCrontabCommand("echo hello\r\nworld"), /newlines/);
 	});
 
 	it("shell special characters are preserved", () => {
@@ -457,17 +340,10 @@ describe("sanitizeCrontabCommand", () => {
 	});
 
 	it("empty string returns empty string", () => {
-		const result = sanitizeCrontabCommand("");
-		assert.strictEqual(result, "");
+		assert.strictEqual(sanitizeCrontabCommand(""), "");
 	});
 
 	it("whitespace-only commands are preserved as-is", () => {
-		const result = sanitizeCrontabCommand("   ");
-		assert.strictEqual(result, "   ");
-	});
-
-	it("multiple line breaks are all stripped", () => {
-		const result = sanitizeCrontabCommand("cmd1\n\n\ncmd2\r\ncmd3");
-		assert.strictEqual(result, "cmd1cmd2cmd3");
+		assert.strictEqual(sanitizeCrontabCommand("   "), "   ");
 	});
 });
