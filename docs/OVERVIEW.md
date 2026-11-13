@@ -268,7 +268,7 @@ There is no LLM response cache. An earlier cache-aside LRU layer (`src/cache/llm
 | `registry.js`    | `SkillRegistry` — Map-based `discover(scope)` (defaults to `sandbox.skillScanPaths`: `.skills/`, `skills/`), `get`, `list`, `enable`, `disable`, `getSkillPaths()`, `getSkillPathsForAgent()` |
 | `agentMapper.js` | `getAgentForSkill()` — resolves a skill's agent: frontmatter `metadata.agent` first, then `skillAgentMap` config regex patterns                                                               |
 
-System skills (`.skills/`) are scanned first and shadow user skills (`skills/`).
+Bundled skills (`.skills/`) always take precedence over a user skill (`skills/`) with the same name regardless of scan order; the user skill is ignored with a warning.
 
 ---
 

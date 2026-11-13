@@ -46,7 +46,7 @@ describe("SkillRegistry.discover name drift", () => {
 		assert.strictEqual(registry.get("my-skill").metadata.name, "my-skill");
 		assert.strictEqual(registry.list()[0], "my-skill");
 		// No drift warning when names match
-		assert.ok(!results[0].warnings.some((w) => w.includes("does not match directory")));
+		assert.ok(!results[0].warnings.some((w) => w.includes("does not match")));
 	});
 
 	it("uses the directory name as the canonical identifier when frontmatter name drifts", async () => {
@@ -70,7 +70,7 @@ describe("SkillRegistry.discover name drift", () => {
 		assert.strictEqual(registry.get("frontmatter-name"), null);
 	});
 
-	it("emits a warning when the frontmatter name drifts from the directory name", async () => {
+	it("emits exactly one warning when the frontmatter name drifts from the directory name", async () => {
 		const skillDir = join(testDir, "dir-name");
 		mkdirSync(skillDir, { recursive: true });
 		writeFileSync(
@@ -82,21 +82,9 @@ describe("SkillRegistry.discover name drift", () => {
 		const results = await registry.discover([testDir]);
 
 		assert.strictEqual(results.length, 1);
-		assert.ok(
-			results[0].warnings.some((w) =>
-				w.includes('frontmatter name "frontmatter-name" does not match directory name "dir-name"'),
-			),
-		);
-		// The warning is also present on the registered entry
-		assert.ok(
-			registry
-				.get("dir-name")
-				.warnings.some((w) =>
-					w.includes(
-						'frontmatter name "frontmatter-name" does not match directory name "dir-name"',
-					),
-				),
-		);
+		const drift = (w) => w.includes("frontmatter-name") && w.includes("dir-name");
+		assert.strictEqual(results[0].warnings.filter(drift).length, 1);
+		assert.strictEqual(registry.get("dir-name").warnings.filter(drift).length, 1);
 	});
 
 	it("does not emit a drift warning when frontmatter name matches the directory name", async () => {
@@ -111,7 +99,7 @@ describe("SkillRegistry.discover name drift", () => {
 		const results = await registry.discover([testDir]);
 
 		assert.strictEqual(results.length, 1);
-		assert.ok(!results[0].warnings.some((w) => w.includes("does not match directory")));
+		assert.ok(!results[0].warnings.some((w) => w.includes("does not match")));
 	});
 
 	it("surfaces the canonical directory name in the catalog", async () => {

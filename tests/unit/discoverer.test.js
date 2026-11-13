@@ -219,25 +219,24 @@ describe("discoverSkills", () => {
 	});
 
 	it("handles name collisions - second occurrence is skipped", async () => {
-		const dir1 = join(testDir, "collision-skill");
+		const dir1 = join(testDir, "one", "collision-skill");
 		mkdirSync(dir1, { recursive: true });
 		writeFileSync(
 			join(dir1, "SKILL.md"),
 			"---\nname: collision-skill\ndescription: First\n---\n\nBody",
 		);
 
-		const dir2 = join(testDir, "collision-alias");
+		const dir2 = join(testDir, "two", "collision-skill");
 		mkdirSync(dir2, { recursive: true });
 		writeFileSync(
 			join(dir2, "SKILL.md"),
 			"---\nname: collision-skill\ndescription: Second\n---\n\nBody",
 		);
 
-		const skills = await discoverSkills(["."]);
-		// Should only have one (the first directory alphabetically found)
-		// "collision-alias" sorts before "collision-skill", so that one is found first
+		const skills = await discoverSkills(["one", "two"]);
+		// Same directory name: the first scanned scope wins
 		assert.strictEqual(skills.length, 1);
-		assert.strictEqual(skills[0].metadata.name, "collision-skill");
+		assert.strictEqual(skills[0].metadata.description, "First");
 	});
 
 	it("skips skills without a name in frontmatter", async () => {

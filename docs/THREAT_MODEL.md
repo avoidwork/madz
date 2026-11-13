@@ -128,7 +128,7 @@ The threat model covers the runtime components:
 
 - **The `permissions` field is declarative, not enforced.** `SkillMetadataSchema` validates the scopes a skill claims, but nothing gates execution on them — the former `capability.js` / `envInjector.js` / `runner.js` enforcement path was removed as dead code. Treat skill permissions as documentation until an enforcement layer exists.
 - The tool-layer path/URL checks are **not** a security boundary in the OS sense. A raw shell command issued through `execute` bypasses `pathResolver` and `urlFilter` entirely. Consider running skills in a container or with OS-level sandboxing (e.g., `bubblewrap`, seccomp) for untrusted skills.
-- `trustProjectSkills: true` in config means project skills are trusted by default. Review this default — it assumes the repo's skills are safe.
+- Project skills are loaded from the configured scan paths without a trust gate, and there is no `trustProjectSkills` setting. A repository's `skills/` content becomes model instructions as-is; only skill directories whose real path escapes their scan directory (e.g. symlinks) are skipped.
 - There is no timeout or memory cap on skill-bundled scripts; the former `runner.js` limits (`--max-old-space-size`, `handleTimeout` grace period) no longer exist.
 
 ### 6.2 Prompt Injection → Tool Abuse
@@ -265,7 +265,7 @@ The threat model covers the runtime components:
 5. **Dangerous-action approval** — Add a confirmation gate for high-impact tools (email send, file delete).
 6. **Dependency remediation** — Track and remediate the 14 npm vulnerabilities (issue #1059).
 7. **Schedules directory integrity** — Ensure the schedules directory is not writable by untrusted processes.
-8. **Review `trustProjectSkills`** — Consider defaulting to `false` for untrusted repos.
+8. **Add a trust gate for project skills** — Project skills are loaded without any trust check (there is no `trustProjectSkills` setting); consider requiring explicit opt-in before loading skills from untrusted repos.
 
 ---
 

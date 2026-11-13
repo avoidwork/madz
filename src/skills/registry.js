@@ -3,6 +3,7 @@ import { join, relative } from "node:path";
 import { discoverSkills, defaultScope } from "./discoverer.js";
 import { validateSkillSchema } from "./validator.js";
 import { loadConfig } from "../config/loader.js";
+import { logger } from "../shared/logger.js";
 
 const config = loadConfig();
 const cwd = config.cwd || process.cwd();
@@ -10,6 +11,7 @@ const cwd = config.cwd || process.cwd();
 /**
  * Ensure the skills directory exists by creating it if necessary.
  * @param {string} [skillsDir="skills/"] - Path to the skills directory
+ * @param {string} [cwdParam] - Directory the skills directory is resolved against (defaults to the configured cwd)
  * @returns {Promise<void>}
  */
 export async function ensureSkillsDir(skillsDir = "skills/", cwdParam = cwd) {
@@ -19,19 +21,28 @@ export async function ensureSkillsDir(skillsDir = "skills/", cwdParam = cwd) {
 
 /**
  * Skill registry store that maintains a map of registered skills with metadata.
+ *
+ * Bundled (`.skills/`) skills always take precedence over a user skill with the same name,
+ * regardless of scan order; the user skill is ignored with a warning. Disabled skills stay
+ * visible to list()/has()/get() but are excluded from the catalog and skill paths.
  */
 export class SkillRegistry {
 	#skills = new Map();
 	#errors = [];
 	#catalog = [];
 	#bodyPaths = new Map();
+	// Names registered by discover(), so a re-discover can drop ones no longer on disk
+	#discovered = new Set();
 
 	/**
 	 * Discover and register all skills from configured scopes.
-	 * System skills (.skills/) are scanned first and shadow user skills (skills/).
+	 * Bundled skills (`.skills/`) always win a name clash with a user skill (`skills/`),
+	 * regardless of scan order. Re-running discover() drops previously discovered skills
+	 * that are no longer found, but keeps skills added through register().
+	 * Skills whose schema validation says skip are not registered; they are reported in the
+	 * results with their errors.
 	 * @param {string[]} [scope] - Array of directories to scan (defaults to sandbox.skillScanPaths from config)
 	 * @param {object} [options] - Discovery options
-	 * @param {boolean} [options.trustProjectSkills=true] - Trust project-level skills
 	 * @param {boolean} [options.bundledSkills=true] - When `false`, only the `reflection` skill is loaded from `.skills/`
 	 * @returns {Promise<Array<{ name: string, errors: string[], warnings: string[] }>>} Registration results
 	 */
@@ -40,80 +51,83 @@ export class SkillRegistry {
 		const bundledSkills = options.bundledSkills ?? config.agent?.bundledSkills ?? true;
 		const discovered = await discoverSkills(scope, { ...options, bundledSkills });
 		const results = [];
+		const found = new Set();
 
 		for (const skill of discovered) {
 			const dirName = skill.name;
-			const { warnings } = validateSkillSchema(skill.metadata, dirName);
-
-			// The directory name is the canonical kebab-case identifier. If the
-			// frontmatter `name` drifts from it, surface a warning so the drift
-			// is visible in registration results.
-			if (skill.metadata.name !== dirName) {
-				warnings.push(
-					`Skill frontmatter name "${skill.metadata.name}" does not match directory name "${dirName}"`,
-				);
+			// validateSkillName already warns when the frontmatter name differs from the directory
+			const { skip, errors, warnings } = validateSkillSchema(skill.metadata, dirName);
+			if (skip) {
+				logger.warn(`[registry] Skipping skill "${dirName}": ${errors.join("; ")}`);
+				results.push({ name: dirName, errors, warnings });
+				continue;
 			}
 
-			const entry = {
+			this.#skills.set(dirName, {
 				path: skill.path,
 				name: dirName,
 				metadata: skill.metadata,
+				bundled: skill.bundled,
 				validated: true,
 				errors: [],
 				warnings,
 				disabled: skill.metadata.disabled || false,
-			};
+			});
 
 			// Store the SKILL.md body path for progressive disclosure
 			if (skill.metadata._path) {
-				this.#bodyPaths.set(skill.name, skill.metadata._path);
+				this.#bodyPaths.set(dirName, skill.metadata._path);
 			}
-
-			this.#skills.set(skill.name, entry);
+			found.add(dirName);
 			results.push({ name: dirName, errors: [], warnings });
 		}
 
-		// Build catalog from validated skills
+		// Drop skills from a previous discover() that are no longer on disk
+		for (const name of this.#discovered) {
+			if (!found.has(name)) {
+				this.#skills.delete(name);
+				this.#bodyPaths.delete(name);
+			}
+		}
+		this.#discovered = found;
+
 		this.#rebuildCatalog();
 		return results;
 	}
 
 	/**
-	 * Rebuild the catalog from validated skills.
-	 * Sorted by location (.skills last), then by name within each location.
+	 * Rebuild the catalog from enabled, validated skills.
+	 * Sorted by location (bundled skills last), then by name within each location.
 	 */
 	#rebuildCatalog() {
-		this.#catalog = [];
-		for (const [_name, entry] of this.#skills) {
-			this.#catalog.push({
-				name: entry.name,
-				description: entry.metadata?.description || "",
-				location: entry.metadata?._path || entry.path,
-			});
+		const entries = [];
+		for (const entry of this.#skills.values()) {
+			if (!entry.disabled) entries.push(entry);
 		}
 
-		// Sort: by location first (.skills last), then by name
-		this.#catalog.sort((a, b) => {
-			const aIsSystem = a.location.includes(".skills");
-			const bIsSystem = b.location.includes(".skills");
+		entries.sort((a, b) => {
+			// Bundled skills always come last, preserving their order
+			if (a.bundled && !b.bundled) return 1;
+			if (!a.bundled && b.bundled) return -1;
+			if (a.bundled && b.bundled) return 0;
 
-			// .skills always comes last
-			if (aIsSystem && !bIsSystem) return 1;
-			if (!aIsSystem && bIsSystem) return -1;
-			if (aIsSystem && bIsSystem) return 0; // both system, preserve order
-
-			// Same location group — sort by name
-			if (a.location === b.location) {
+			const aLocation = a.metadata?._path || a.path;
+			const bLocation = b.metadata?._path || b.path;
+			if (aLocation === bLocation) {
 				return a.name.localeCompare(b.name);
 			}
-
-			// Different locations — sort by location path
-			return a.location.localeCompare(b.location);
+			return aLocation.localeCompare(bLocation);
 		});
+
+		this.#catalog = entries.map((entry) => ({
+			name: entry.name,
+			description: entry.metadata?.description || "",
+			location: entry.metadata?._path || entry.path,
+		}));
 	}
 
 	/**
-	 * Get a registered skill by name.
+	 * Get a registered skill by name. Disabled skills are still returned (check `disabled`).
 	 * @param {string} name - The skill name
 	 * @returns {Object | null} The skill or null if not found
 	 */
@@ -122,7 +136,7 @@ export class SkillRegistry {
 	}
 
 	/**
-	 * List all registered skill names.
+	 * List all registered skill names, including disabled skills.
 	 * @returns {string[]} Array of skill names
 	 */
 	list() {
@@ -130,7 +144,7 @@ export class SkillRegistry {
 	}
 
 	/**
-	 * Check if a skill is registered.
+	 * Check if a skill is registered (disabled skills count as registered).
 	 * @param {string} name - The skill name
 	 * @returns {boolean}
 	 */
@@ -140,11 +154,11 @@ export class SkillRegistry {
 
 	/**
 	 * Return the skill catalog (tier 1 progressive disclosure).
-	 * Contains name, description, and location for each skill.
-	 * @returns {Array<{ name: string, description: string, location: string }>}
+	 * Contains name, description, and location for each enabled skill (disabled ones are excluded).
+	 * @returns {Array<{ name: string, description: string, location: string }>} A copy of the catalog
 	 */
 	getCatalog() {
-		return this.#catalog;
+		return [...this.#catalog];
 	}
 
 	/**
@@ -159,18 +173,25 @@ export class SkillRegistry {
 		}
 		try {
 			return await readFile(bodyPath, "utf-8");
-		} catch (_err) {
+		} catch (err) {
+			logger.warn(`[registry] Failed to read skill body "${bodyPath}": ${err.message}`);
 			return null;
 		}
 	}
 
 	/**
-	 * Register a single skill with metadata.
+	 * Register a single skill with metadata. Refuses to replace a bundled skill.
 	 * @param {string} name - The skill name
 	 * @param {Object} metadata - The skill metadata
 	 * @returns {{ valid: boolean, errors: string[], warnings: string[] }}
 	 */
 	register(name, metadata) {
+		if (this.#skills.get(name)?.bundled) {
+			const errors = [`Skill "${name}" is a bundled skill and cannot be replaced`];
+			logger.warn(`[registry] ${errors[0]}`);
+			return { valid: false, errors, warnings: [] };
+		}
+
 		const { skip, errors, warnings } = validateSkillSchema({ name, ...metadata });
 		if (skip) {
 			this.#errors.push({ name, errors });
@@ -181,6 +202,7 @@ export class SkillRegistry {
 			path: metadata._path || "",
 			name,
 			metadata,
+			bundled: false,
 			validated: true,
 			errors: [],
 			warnings,
@@ -191,6 +213,8 @@ export class SkillRegistry {
 			this.#bodyPaths.set(name, metadata._path);
 		}
 
+		// A manual registration is no longer owned by discover()
+		this.#discovered.delete(name);
 		this.#rebuildCatalog();
 		return { valid: true, errors: [], warnings };
 	}
@@ -204,13 +228,14 @@ export class SkillRegistry {
 		const removed = this.#skills.delete(name);
 		if (removed) {
 			this.#bodyPaths.delete(name);
+			this.#discovered.delete(name);
 			this.#rebuildCatalog();
 		}
 		return removed;
 	}
 
 	/**
-	 * Disable a skill without removing it.
+	 * Disable a skill without removing it. It is excluded from the catalog and skill paths.
 	 * @param {string} name - The skill name
 	 * @returns {boolean} Success
 	 */
@@ -218,6 +243,7 @@ export class SkillRegistry {
 		const skill = this.#skills.get(name);
 		if (!skill) return false;
 		skill.disabled = true;
+		this.#rebuildCatalog();
 		return true;
 	}
 
@@ -230,24 +256,26 @@ export class SkillRegistry {
 		const skill = this.#skills.get(name);
 		if (!skill) return false;
 		skill.disabled = false;
+		this.#rebuildCatalog();
 		return true;
 	}
 
 	/**
-	 * Count of registered skills.
+	 * Count of registered skills (including disabled ones).
+	 * @returns {number} The number of registered skills
 	 */
 	get size() {
 		return this.#skills.size;
 	}
 
 	/**
-	 * Get all registered skill directory paths relative to the project root.
+	 * Get all enabled skill directory paths relative to the project root.
 	 * @returns {string[]} Array of relative skill directory paths
 	 */
 	getSkillPaths() {
 		const paths = [];
 		for (const [_name, entry] of this.#skills) {
-			if (entry.path) {
+			if (entry.path && !entry.disabled) {
 				paths.push(this.#relativePath(entry.path));
 			}
 		}
@@ -256,14 +284,14 @@ export class SkillRegistry {
 
 	/**
 	 * Get skill directory paths filtered by agent name, as relative paths.
-	 * Skills with metadata.agent matching the agentName are included.
+	 * Enabled skills whose frontmatter `metadata.agent` (or config-mapped agent) matches are included.
 	 * @param {string} agentName - Agent name to filter by
 	 * @returns {string[]} Array of matching relative skill directory paths
 	 */
 	getSkillPathsForAgent(agentName) {
 		const paths = [];
 		for (const [_name, entry] of this.#skills) {
-			if (entry.path && entry.metadata?.agent === agentName) {
+			if (entry.path && !entry.disabled && entry.metadata?.metadata?.agent === agentName) {
 				paths.push(this.#relativePath(entry.path));
 			}
 		}

@@ -23,7 +23,7 @@ The full `docker run` command with all optional variables is in the [Environment
 
 **Volume strategy:** `memory/` is bind-mounted to the host for persistent markdown storage (context, profiles, sessions). The `memory/checkpoints/` subdirectory is mounted as a separate named volume (`madz-checkpoints`) so SQLite checkpoint data lives in a Docker-managed volume rather than on the host filesystem — no host-side directory needed, and the checkpoint DB survives container recreation without touching local files.
 
-**Skills:** The image ships with system skills in `.skills/` (e.g., the reflection skill). Project skills in `skills/` are bind-mounted by the user and are discovered at runtime. System skills shadow user skills of the same name.
+**Skills:** The image ships with system skills in `.skills/` (e.g., the reflection skill). Project skills in `skills/` are bind-mounted by the user and are discovered at runtime. Bundled skills always take precedence over a user skill of the same name, regardless of scan order; the user skill is ignored with a warning.
 
 ## Prerequisites
 
