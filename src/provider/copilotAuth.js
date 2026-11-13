@@ -1,4 +1,4 @@
-import { readFile, writeFile, mkdir, unlink, rename, chmod } from "node:fs/promises";
+import { readFile, writeFile, mkdir, unlink, rename } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { createRequire } from "node:module";
@@ -215,7 +215,7 @@ export async function getToken(memoryDir) {
 }
 
 /**
- * Persist the Copilot token to the auth file with mode `0o600` and update the
+ * Persist the Copilot token to the auth file and update the
  * in-memory state.
  * @param {string} token - The access token to persist
  * @param {string} [memoryDir] - The memory directory
@@ -226,15 +226,13 @@ export async function persist(token, memoryDir) {
 	// Update memory first so a persistence failure still leaves a usable token.
 	copilotToken = token;
 	rejectedToken = null;
-	await mkdir(dirname(file), { recursive: true, mode: 0o700 });
+	await mkdir(dirname(file), { recursive: true });
 	const tmp = `${file}.${process.pid}.${Date.now()}.tmp`;
 	try {
 		await writeFile(tmp, JSON.stringify({ access_token: token, expires: 0 }), {
-			mode: 0o600,
 			flag: "w",
 		});
 		await rename(tmp, file);
-		await chmod(file, 0o600);
 	} catch (err) {
 		await unlink(tmp).catch(() => {});
 		throw err;

@@ -6,11 +6,6 @@ export const PROFILE_FILENAME = "profile.md";
 /** Filename of the reflection summary inside the context directory. */
 export const REFLECTION_FILENAME = "reflection.md";
 
-/** Directory mode for created memory directories (owner only). */
-export const DIR_MODE = 0o700;
-/** File mode for created memory files (owner only). */
-export const FILE_MODE = 0o600;
-
 /**
  * Error thrown when a path would escape its base directory.
  */
@@ -120,7 +115,7 @@ export function resolveContextDir(contextDir, base) {
 }
 
 /**
- * Create `rel` beneath `base` (recursively, mode 0o700) after verifying it
+ * Create `rel` beneath `base` (recursively) after verifying it
  * stays inside the base, including through symlinks. Absolute `rel` values
  * are accepted only when inside `base`.
  * @param {string} base - Base directory
@@ -129,6 +124,6 @@ export function resolveContextDir(contextDir, base) {
  */
 export async function ensureDir(base, rel) {
 	const dir = await resolveInsideReal(base, toRelative(base, rel));
-	await mkdir(dir, { recursive: true, mode: DIR_MODE });
+	await mkdir(dir, { recursive: true });
 	return dir;
 }

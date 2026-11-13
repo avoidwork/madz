@@ -4,7 +4,8 @@ import SelectInput from "ink-select-input";
 import { readdir, readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { parseFrontmatter } from "../memory/reader.js";
-import { loadSession } from "../session/loader.js";
+import { resumeSession } from "../session/resume.js";
+import { isValidSessionId } from "../session/sessionId.js";
 import { ActiveItem, ActiveIndicator } from "./selectComponents.js";
 import { sanitizeLine } from "./sanitize.js";
 
@@ -53,6 +54,8 @@ export function SessionsPanel({ sessionState, config, onViewChange, onResumeSess
 						const content = await readFile(filepath, "utf-8");
 						const { frontmatter, content: body } = parseFrontmatter(content);
 						const sessionId = file.replace(/\.md$/, "");
+						// Files whose name is not a valid session ID cannot be resumed
+						if (!isValidSessionId(sessionId)) continue;
 
 						// Synthesize a topic from the first user message
 						let topic = "";
@@ -124,15 +127,7 @@ export function SessionsPanel({ sessionState, config, onViewChange, onResumeSess
 			try {
 				const sessionsDir = config?.memory?.sessionsDir || "memory/sessions/";
 				const cwd = config?.cwd || process.cwd();
-				const loaded = await loadSession(sessionsDir, 20, sessionId, cwd);
-				if (!loaded || !loaded.conversation) {
-					setResuming(null);
-					return;
-				}
-				// Resume: createNewSession → loadConversation → setSessionId
-				sessionState.createNewSession(sessionId);
-				sessionState.loadConversation(loaded.conversation);
-				sessionState.setSessionId(sessionId);
+				const loaded = await resumeSession(sessionState, sessionsDir, sessionId, cwd);
 				// Load the resumed conversation into the always-mounted
 				// ConversationArea's message list. The ConversationArea stays
 				// mounted across panel views (it is hidden, not unmounted), so

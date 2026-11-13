@@ -486,28 +486,12 @@ describe("session - saveSession", () => {
 		assert.strictEqual(parsed[1].content.text, "hi there");
 	});
 
-	it("escapes backslashes in string frontmatter values", async () => {
+	it("escapes backslashes, quotes and newlines in string frontmatter values", async () => {
 		const dirPath = TEST_DIR + "fm-escape/";
 		await ensureSessionsDir(dirPath, absTestDir);
-		await saveSession(dirPath, [], "path\\to\\file", absTestDir);
-		const content = readFileSync(absTestDir + "/" + dirPath + "path\\to\\file.md", "utf-8");
-		assert.ok(content.includes('threadId: "path\\\\to\\\\file"'));
-	});
-
-	it("escapes double quotes in string frontmatter values", async () => {
-		const dirPath = TEST_DIR + "fm-quote/";
-		await ensureSessionsDir(dirPath, absTestDir);
-		await saveSession(dirPath, [], 'thread"quote', absTestDir);
-		const content = readFileSync(absTestDir + "/" + dirPath + 'thread"quote.md', "utf-8");
-		assert.ok(content.includes('threadId: "thread\\"quote"'));
-	});
-
-	it("escapes newlines in string frontmatter values", async () => {
-		const dirPath = TEST_DIR + "fm-newline/";
-		await ensureSessionsDir(dirPath, absTestDir);
-		await saveSession(dirPath, [], "line1\nline2", absTestDir);
-		const content = readFileSync(absTestDir + "/" + dirPath + "line1\nline2.md", "utf-8");
-		assert.ok(content.includes('threadId: "line1\\nline2"'));
+		await saveSession(dirPath, [{ role: "user", timestamp: 'a"b\\c\nd' }], "esc", absTestDir);
+		const content = readFileSync(absTestDir + "/" + dirPath + "esc.md", "utf-8");
+		assert.ok(content.includes('startedAt: "a\\"b\\\\c\\nd"'));
 	});
 
 	it("writes boolean values without quotes", async () => {
@@ -672,5 +656,49 @@ describe("session - state manager interrupt", () => {
 		// Last message is assistant (not user), so no cleanup needed
 		assert.strictEqual(result, false);
 		assert.strictEqual(manager.getConversation().length, 2);
+	});
+});
+
+describe("session - isolation and validation", () => {
+	it("accepts undefined initial state", () => {
+		assert.doesNotThrow(() => new SessionStateManager(undefined));
+	});
+	it("copies initial arrays", () => {
+		const skills = ["a"];
+		const conversation = [{ role: "user", content: "x" }];
+		const m = new SessionStateManager({ skills, conversation });
+		m.registerSkill("b");
+		m.addExchange({ role: "user", content: "y" });
+		assert.deepStrictEqual(skills, ["a"]);
+		assert.strictEqual(conversation.length, 1);
+	});
+	it("ignores non-finite context window", () => {
+		const m = new SessionStateManager({});
+		m.setContextWindow(NaN);
+		assert.strictEqual(m.getContextWindow(), 20);
+		m.setContextWindow(5);
+		m.setContextWindow(Infinity);
+		assert.strictEqual(m.getContextWindow(), 5);
+	});
+	it("detects top-level tool_calls on interrupt", () => {
+		const m = new SessionStateManager({});
+		m.addExchange({ role: "user", content: "q" });
+		m.addExchange({ role: "assistant", content: "", tool_calls: [{ id: "1", name: "t" }] });
+		assert.ok(m.removeLastAssistantToolCallMessage());
+		assert.ok(m.interrupt());
+		assert.strictEqual(m.getConversation().length, 0);
+	});
+});
+
+describe("session - window size normalisation", () => {
+	it("enforceContextWindow never returns null pruned", () => {
+		const r = enforceContextWindow([1, 2, 3], NaN);
+		assert.strictEqual(r.pruned, 2);
+		assert.deepStrictEqual(r.context, [3]);
+	});
+	it("trimConversation keeps at least 1 for 0, NaN and negatives", () => {
+		for (const n of [0, NaN, -1]) {
+			assert.deepStrictEqual(trimConversation(n)([1, 2, 3]), [3]);
+		}
 	});
 });

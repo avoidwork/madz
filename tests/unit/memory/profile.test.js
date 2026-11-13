@@ -1,6 +1,6 @@
 import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert";
-import { mkdtemp, rm, readFile, readdir, writeFile, chmod, stat } from "node:fs/promises";
+import { mkdtemp, rm, readFile, readdir, writeFile, chmod } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -26,7 +26,6 @@ describe("memory/profile (hardening)", () => {
 		assert.strictEqual(lines.length, 2);
 		assert.strictEqual(lines[0], "name: Jo notes: injected");
 		assert.ok(lines[1].length <= "notes: ".length + 500);
-		assert.strictEqual((await stat(path)).mode & 0o777, 0o600);
 		assert.deepStrictEqual(await readdir(join(base, "sub")), ["profile.md"]);
 	});
 

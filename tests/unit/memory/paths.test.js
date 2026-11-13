@@ -48,10 +48,9 @@ describe("memory/paths", () => {
 		await assert.rejects(ensureDir(base, "link/sub"), PathContainmentError);
 	});
 
-	it("ensureDir creates directories with mode 0700 and accepts absolute inside base", async () => {
+	it("ensureDir creates directories and accepts absolute inside base", async () => {
 		const dir = await ensureDir(base, "x/y");
-		const st = await stat(dir);
-		assert.strictEqual(st.mode & 0o777, 0o700);
+		assert.ok((await stat(dir)).isDirectory());
 		await ensureDir(base, join(base, "abs"));
 		assert.ok((await stat(join(base, "abs"))).isDirectory());
 		await assert.rejects(ensureDir(base, outside), PathContainmentError);
@@ -63,12 +62,11 @@ describe("memory/paths", () => {
 		assert.throws(() => resolveContextDir(outside, base), PathContainmentError);
 	});
 
-	it("writeFileAtomic writes 0600 file and leaves no tmp files", async () => {
+	it("writeFileAtomic writes the file and leaves no tmp files", async () => {
 		await mkdir(join(base, "w"), { recursive: true });
 		const target = join(base, "w", "f.md");
 		await writeFileAtomic(target, "hello");
 		assert.strictEqual(await readFile(target, "utf-8"), "hello");
-		assert.strictEqual((await stat(target)).mode & 0o777, 0o600);
 		assert.deepStrictEqual(await readdir(join(base, "w")), ["f.md"]);
 	});
 

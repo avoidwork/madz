@@ -405,9 +405,7 @@ describe("resolveCopilotModel", () => {
 		// bearer header, then clean up.
 		const fs = await import("node:fs/promises");
 		await fs.mkdir("memory", { recursive: true });
-		await fs.writeFile("memory/auth.json", JSON.stringify({ access_token: "test-token" }), {
-			mode: 0o600,
-		});
+		await fs.writeFile("memory/auth.json", JSON.stringify({ access_token: "test-token" }));
 		globalThis.fetch = async (url, init) => {
 			capturedHeaders = init?.headers;
 			return new Response(

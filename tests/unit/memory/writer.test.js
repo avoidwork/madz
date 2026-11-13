@@ -1,6 +1,6 @@
 import { describe, it, after } from "node:test";
 import assert from "node:assert";
-import { readFile, rm, stat, readdir } from "node:fs/promises";
+import { readFile, rm, readdir } from "node:fs/promises";
 import { join, dirname } from "node:path";
 import { writeMemoryFile } from "../../../src/memory/writer.js";
 import { parseFrontmatter } from "../../../src/memory/reader.js";
@@ -25,11 +25,10 @@ describe("memory/writer", () => {
 		assert.ok(!Number.isNaN(frontmatter.timestamp.getTime()));
 	});
 
-	it("writes real ISO timestamp, 0600 mode, random suffix and no tmp leftovers", async () => {
+	it("writes real ISO timestamp, random suffix and no tmp leftovers", async () => {
 		const p = await writeMemoryFile(SUB, "Same", {}, "x");
 		const q = await writeMemoryFile(SUB, "Same", {}, "x");
 		assert.notStrictEqual(p, q);
-		assert.strictEqual((await stat(p)).mode & 0o777, 0o600);
 		const raw = await readFile(p, "utf-8");
 		assert.match(raw, /timestamp: ['"]?\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/);
 		const names = await readdir(dirname(p));

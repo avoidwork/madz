@@ -25,7 +25,7 @@ const parsed = yargs(process.argv.slice(2))
 import { loadConfig } from "./src/config/loader.js";
 const config = loadConfig();
 import { fileURLToPath } from "node:url";
-import { loadSession } from "./src/session/loader.js";
+import { resumeSession } from "./src/session/resume.js";
 
 import React from "react";
 import { HumanMessage } from "@langchain/core/messages";
@@ -513,10 +513,7 @@ async function resumeProvider(answer, streamingCallback, signal) {
 async function handleConversation(message, sessionId = "") {
 	// Restore existing session if requested
 	if (sessionId) {
-		const { conversation } = await loadSession(config.cwd + "/" + "memory/sessions/", 20);
-		if (conversation && conversation.length > 0) {
-			conversation.forEach((msg) => sessionState.addExchange(msg));
-		}
+		await resumeSession(sessionState, "memory/sessions/", sessionId, config.cwd);
 	}
 
 	const response = await callProvider(null, null, message, (chunk) => {
@@ -618,7 +615,9 @@ if (isMain) {
 		try {
 			await handleConversation(message, chatSessionId);
 			process.stdout.write("\n");
-		} catch (_) {
+		} catch (err) {
+			logger.error(`Conversation failed: ${err.message}`);
+			await flushLogger();
 			process.exit(1);
 		}
 

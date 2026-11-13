@@ -1,9 +1,5 @@
-import {
-	saveProfile,
-	processOnboardingInput,
-	getAttribute,
-	sanitizeProfileData,
-} from "../memory/profile.js";
+import { saveProfile, processOnboardingInput, sanitizeProfileData } from "../memory/profile.js";
+import { logger } from "../shared/logger.js";
 
 /**
  * Phase constants for the onboarding state machine.
@@ -84,7 +80,7 @@ export class Onboarding {
 			return { prompt: ATTRACTOR_EXPLANATION, current: 0, total: this.#attributes.length };
 		}
 		if (this.#phase === PHASES.COLLECT) {
-			const attr = getAttribute(this.#index);
+			const attr = this.#attributes[this.#index];
 			if (!attr) return null;
 			return { prompt: attr.prompt, current: this.#index + 1, total: this.#attributes.length };
 		}
@@ -119,11 +115,7 @@ export class Onboarding {
 			if (ctrl === "exit") {
 				return { action: "exit" };
 			}
-			if (ctrl === "cancel") {
-				this.#phase = PHASES.SAVE;
-				return { action: "save" };
-			}
-			if (ctrl === "skip") {
+			if (ctrl === "cancel" || ctrl === "skip") {
 				this.#phase = PHASES.SAVE;
 				return { action: "save" };
 			}
@@ -151,7 +143,7 @@ export class Onboarding {
 			}
 			// Normal response = save current attribute value
 			if (userInput && userInput.trim()) {
-				const attr = getAttribute(this.#index);
+				const attr = this.#attributes[this.#index];
 				if (attr) {
 					this.#profileData[attr.key] = userInput.trim();
 				}
@@ -192,7 +184,11 @@ export class Onboarding {
 		await saveProfile(sanitized, this.#profilePath);
 		// Invoke the onSave callback if provided (e.g., auto-schedule)
 		if (this.#onSave) {
-			this.#onSave();
+			try {
+				this.#onSave();
+			} catch (err) {
+				logger.warn(`[onboarding] onSave callback failed: ${err.message}`);
+			}
 		}
 		this.#phase = PHASES.TRANSCEND;
 		return true;

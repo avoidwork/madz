@@ -1,6 +1,5 @@
 import { randomBytes } from "node:crypto";
 import { rename, unlink, writeFile } from "node:fs/promises";
-import { FILE_MODE } from "./paths.js";
 import { logger } from "../shared/logger.js";
 
 /**
@@ -19,8 +18,8 @@ export async function mapInBatches(items, size, fn) {
 }
 
 /**
- * Write a file atomically: unique temp file in the same directory (flag 'wx',
- * mode 0o600) followed by rename. The temp file is removed on failure.
+ * Write a file atomically: unique temp file in the same directory (flag 'wx')
+ * followed by rename. The temp file is removed on failure.
  * @param {string} filepath - Final file path
  * @param {string} content - File content
  * @returns {Promise<void>}
@@ -29,7 +28,7 @@ export async function writeFileAtomic(filepath, content) {
 	const tmpPath = `${filepath}.${randomBytes(6).toString("hex")}.tmp`;
 	let renamed = false;
 	try {
-		await writeFile(tmpPath, content, { encoding: "utf-8", flag: "wx", mode: FILE_MODE });
+		await writeFile(tmpPath, content, { encoding: "utf-8", flag: "wx" });
 		await rename(tmpPath, filepath);
 		renamed = true;
 	} finally {

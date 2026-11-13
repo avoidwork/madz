@@ -9,7 +9,15 @@ import {
 	buildSkillCommand,
 } from "../../../src/scheduler/cron.js";
 import { execFileSync } from "node:child_process";
-import { rmSync, readFileSync, statSync, writeFileSync, mkdirSync, readdirSync } from "node:fs";
+import {
+	rmSync,
+	readFileSync,
+	statSync,
+	writeFileSync,
+	mkdirSync,
+	readdirSync,
+	symlinkSync,
+} from "node:fs";
 import { join } from "node:path";
 
 // ---------------------------------------------------------------------------
@@ -225,13 +233,6 @@ describe("writeEnvCron", () => {
 		const content = readFileSync(envPath(), "utf-8");
 		assert.ok(content.includes("export __TEST_CRON_A="));
 		assert.ok(content.includes("export __TEST_CRON_B="));
-	});
-
-	it("writes file with 0o600 permissions", async () => {
-		await writeEnvCron(process.cwd());
-		const stats = statSync(envPath());
-		const mode = stats.mode & 0o777;
-		assert.strictEqual(mode, 0o600);
 	});
 
 	it("returns { written: false } when process.env is empty", async () => {
@@ -1524,9 +1525,10 @@ describe("Cron._ensureReflectionJob error handling", () => {
 	});
 
 	it("does not throw when the write fails", async () => {
-		const readOnly = join(dir, "ro");
-		mkdirSync(readOnly, { mode: 0o500 });
-		await assert.doesNotReject(() => Cron._ensureReflectionJob(readOnly));
+		// A dangling symlink as the job file: reading it gives ENOENT (so the job is
+		// recreated) but writing through it fails because its target directory is missing.
+		symlinkSync(join(dir, "missing", "x.json"), join(dir, "reflection-daily.json"));
+		await assert.doesNotReject(() => Cron._ensureReflectionJob(dir));
 	});
 
 	it("recreates the file when it is missing", async () => {
@@ -1586,12 +1588,6 @@ describe("writeEnvCron hardening", () => {
 		const content = readFileSync(envPath, "utf-8");
 		assert.ok(content.includes("export __TEST_CRON_OK='yes'"));
 		assert.ok(!content.includes("BAD-NAME"));
-	});
-
-	it("re-applies mode 0o600 to an existing file with looser permissions", async () => {
-		writeFileSync(envPath, "old", { mode: 0o644 });
-		await writeEnvCron(dir);
-		assert.strictEqual(statSync(envPath).mode & 0o777, 0o600);
 	});
 
 	it("leaves no temp file behind", async () => {

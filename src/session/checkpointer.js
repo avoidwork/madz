@@ -1,5 +1,6 @@
 import { MemorySaver } from "@langchain/langgraph";
 import { SqliteSaver } from "@langchain/langgraph-checkpoint-sqlite";
+import { mkdirSync } from "node:fs";
 import { mkdir } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { loadConfig } from "../config/loader.js";
@@ -52,11 +53,16 @@ export function createCheckpointer(fullConfig) {
  * @param {Object} fullConfig.persistence - Persistence configuration
  * @param {Object} fullConfig.memory - Memory configuration
  * @param {string} fullConfig.memory.checkpointsDir - Directory for checkpoint files
+ * @param {string} [fullConfig.cwd] - Base directory (defaults to project cwd, same as ensureCheckpointsDir)
  * @returns {import("@langchain/langgraph-checkpoint-sqlite").SqliteSaver}
  */
 function createSqliteCheckpointer(fullConfig) {
 	const checkpointsDir = fullConfig.memory?.checkpointsDir || "memory/checkpoints/";
-	const sqlitePath = resolve(checkpointsDir, "checkpoints.db");
+	const dir = resolve(fullConfig.cwd || cwd, checkpointsDir);
+	// Sync is acceptable: createCheckpointer is a synchronous factory called once
+	// at startup (not in an async request path) and SqliteSaver opens synchronously.
+	mkdirSync(dir, { recursive: true });
+	const sqlitePath = resolve(dir, "checkpoints.db");
 
 	const saver = SqliteSaver.fromConnString(sqlitePath);
 
