@@ -9,7 +9,16 @@ export const MAX_VISIBLE = 3;
 export const GLOB_DEBOUNCE_MS = 250;
 
 /** Directories excluded from the file glob. */
-const EXCLUDED_DIRS = ["**/node_modules/**", "**/.git/**", "**/dist/**"];
+const EXCLUDED_DIRS = [
+	"**/node_modules/**",
+	"**/.git/**",
+	"**/dist/**",
+	"**/build/**",
+	"**/coverage/**",
+	"**/.next/**",
+];
+/** Upper bound on cached file paths so huge repos stay responsive. */
+const MAX_FILES = 20000;
 
 /**
  * Derive the autocomplete filter from the token at the cursor.
@@ -138,11 +147,14 @@ export function FilePicker({ value, onChange, onClose, cwd }) {
 					ignore: EXCLUDED_DIRS,
 					dot: false,
 					deep: 10,
+					followSymbolicLinks: false,
+					suppressErrors: true,
 				});
 				if (!cancelled) {
 					// Sort once at cache time using locale collation so the list
 					// is human-friendly (accents and case handled naturally).
-					const sorted = sortFiles(results);
+					// Cap the cached list so huge repos stay responsive.
+					const sorted = sortFiles(results.slice(0, MAX_FILES));
 					filesRef.current = sorted;
 					setFiles(sorted);
 					setLoaded(true);
@@ -198,10 +210,12 @@ export function FilePicker({ value, onChange, onClose, cwd }) {
 				return;
 			}
 			if (key.upArrow) {
+				if (filteredFiles.length === 0) return;
 				setSelectedIndex((prev) => (prev <= 0 ? filteredFiles.length - 1 : prev - 1));
 				return;
 			}
 			if (key.downArrow) {
+				if (filteredFiles.length === 0) return;
 				setSelectedIndex((prev) => (prev >= filteredFiles.length - 1 ? 0 : prev + 1));
 				return;
 			}
@@ -221,11 +235,12 @@ export function FilePicker({ value, onChange, onClose, cwd }) {
 				}
 				return;
 			}
-			// Printable characters insert at cursor.
-			if (input && input.length === 1 && input >= " ") {
+			// Printable characters (or a pasted run of them) insert at cursor.
+			// eslint-disable-next-line no-control-regex
+			if (input && !/[\u0000-\u001f\u007f-\u009f]/.test(input)) {
 				const next = value.slice(0, cursor) + input + value.slice(cursor);
 				onChange(next);
-				setCursor((prev) => prev + 1);
+				setCursor((prev) => prev + input.length);
 			}
 		},
 		{ isActive: true },

@@ -49,7 +49,9 @@ export function buttonToDelta(button) {
  * @returns {boolean} True for button 0 (left-button drag), false otherwise
  */
 export function buttonToSelection(button) {
-	return button === 0;
+	// Strip modifier bits (shift 4, alt 8, ctrl 16) and the motion bit (32) so
+	// a held-button drag (code 32) is still recognised as the left button.
+	return (button & ~(4 | 8 | 16 | 32)) === 0;
 }
 
 /**
@@ -108,6 +110,9 @@ export function useMouseScroll(onScroll, onSelect, onSelectionChange, enabled = 
 		// events bubble out to the terminal.
 		if (!enabled) {
 			stdout.write("\x1b[?1000l\x1b[?1006l\x1b[?1002l");
+			selectionRef.current = null;
+			draggedRef.current = false;
+			bufferRef.current = "";
 			return;
 		}
 
@@ -140,6 +145,10 @@ export function useMouseScroll(onScroll, onSelect, onSelectionChange, enabled = 
 						// Release — finalize the selection.
 						const selection = selectionRef.current;
 						selectionRef.current = null;
+						if (selection && (event.x !== selection.start.x || event.y !== selection.start.y)) {
+							draggedRef.current = true;
+							selection.end = { x: event.x, y: event.y };
+						}
 						const isClick =
 							selection !== null &&
 							!draggedRef.current &&
@@ -158,13 +167,19 @@ export function useMouseScroll(onScroll, onSelect, onSelectionChange, enabled = 
 					if (delta !== null) onScrollRef.current?.(delta);
 				}
 			}
-			// Keep only trailing partial data after the last complete match.
-			bufferRef.current = bufferRef.current.slice(lastIndex);
+			// Keep only a trailing partial sequence; everything else (ordinary
+			// keystrokes included) is dropped so the buffer cannot grow unbounded.
+			const rest = bufferRef.current.slice(lastIndex);
+			const escAt = rest.lastIndexOf("\x1b");
+			bufferRef.current = escAt !== -1 && rest.length - escAt <= 32 ? rest.slice(escAt) : "";
 		};
 
 		stdin.on("data", handleData);
 		return () => {
 			stdin.off("data", handleData);
+			selectionRef.current = null;
+			draggedRef.current = false;
+			bufferRef.current = "";
 			stdout.write("\x1b[?1000l\x1b[?1006l\x1b[?1002l");
 		};
 	}, [enabled]);

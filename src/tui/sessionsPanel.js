@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { parseFrontmatter } from "../memory/reader.js";
 import { loadSession } from "../session/loader.js";
 import { ActiveItem, ActiveIndicator } from "./selectComponents.js";
+import { sanitizeLine } from "./sanitize.js";
 
 /**
  * SessionsPanel — browse and resume past sessions.
@@ -62,7 +63,7 @@ export function SessionsPanel({ sessionState, config, onViewChange, onResumeSess
 								const firstUser = exchanges.find((e) => e.role === "user");
 								if (firstUser?.content) {
 									const msg = firstUser.content;
-									topic = msg
+									topic = sanitizeLine(msg)
 										.replace(/[\n\r]+/g, " ")
 										.replace(/\s+/g, " ")
 										.trim()

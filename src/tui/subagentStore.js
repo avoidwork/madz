@@ -11,6 +11,9 @@
 
 import { coalesceSegments, hasId } from "./messages.js";
 
+/** Maximum tool-call records retained per subagent. */
+const MAX_TOOL_CALLS = 200;
+
 /**
  * Create an empty subagent store.
  * @returns {Object} An empty store keyed by namespace string.
@@ -104,9 +107,18 @@ export function updateSubagentStore(store, event) {
 			break;
 		}
 		case "subagent_tool_end": {
-			const last = toolCalls[toolCalls.length - 1];
-			if (last && last.status === "running") {
-				toolCalls[toolCalls.length - 1] = {
+			// Match the last running call with the same name (parallel calls of
+			// different tools no longer cross-pair).
+			let idx = -1;
+			for (let i = toolCalls.length - 1; i >= 0; i--) {
+				if (toolCalls[i].status === "running" && toolCalls[i].name === event.name) {
+					idx = i;
+					break;
+				}
+			}
+			const last = idx === -1 ? undefined : toolCalls[idx];
+			if (last) {
+				toolCalls[idx] = {
 					...last,
 					output: event.data?.output,
 					status: "done",
@@ -124,6 +136,11 @@ export function updateSubagentStore(store, event) {
 			break;
 	}
 
-	next[key] = { ...entry, segments, toolCalls };
+	next[key] = {
+		...entry,
+		segments,
+		// Cap history so long-running subagents don't grow without bound.
+		toolCalls: toolCalls.length > MAX_TOOL_CALLS ? toolCalls.slice(-MAX_TOOL_CALLS) : toolCalls,
+	};
 	return next;
 }

@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { Box, Text, useInput, useWindowSize } from "ink";
 import { ActiveItem, ActiveIndicator } from "./selectComponents.js";
+import { sanitizeLine } from "./sanitize.js";
 
 /**
  * Clamp a scroll offset so the selected row stays within the visible window.
@@ -38,13 +39,16 @@ function SettingsSelectList({ items, isFocused, limit, onSelect }) {
 	// Preserve the selection across item changes (expand/collapse). The selected
 	// row is always a section header, so it stays at the same index; we only
 	// clamp it and the offset to the valid range.
+	// Clamp the selection and offset to the valid range when items change.
+	// Selection is not a dependency: navigation already keeps the offset in
+	// range, and depending on it would re-run this on every keypress.
 	useEffect(() => {
-		setSelectedIndex((prev) => Math.min(prev, Math.max(0, items.length - 1)));
-		setOffset((prev) => {
-			const sel = Math.min(selectedIndex, Math.max(0, items.length - 1));
-			return clampOffset(prev, sel, items.length, limit);
+		setSelectedIndex((prev) => {
+			const sel = Math.min(prev, Math.max(0, items.length - 1));
+			setOffset((o) => clampOffset(o, sel, items.length, limit));
+			return sel;
 		});
-	}, [items, limit, selectedIndex]);
+	}, [items, limit]);
 
 	useInput(
 		(input, key) => {
@@ -152,7 +156,9 @@ export function SettingsPanel({ config, onViewChange, activeView }) {
 			});
 			if (isExpanded) {
 				for (const entry of flattenConfig(config?.[section])) {
-					const display = entry.value.length > 80 ? `${entry.value.slice(0, 80)}...` : entry.value;
+					const display = sanitizeLine(
+						entry.value.length > 80 ? `${entry.value.slice(0, 80)}...` : entry.value,
+					);
 					list.push({
 						label: `  ${entry.path}: ${display}`,
 						value: { type: "entry", path: entry.path },

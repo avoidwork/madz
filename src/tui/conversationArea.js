@@ -3,12 +3,14 @@ import React, {
 	useEffect,
 	useRef,
 	useCallback,
+	useMemo,
 	forwardRef,
 	useImperativeHandle,
 } from "react";
 import { Box } from "ink";
 import { AIMessage, HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { hasId } from "./messages.js";
+import { sanitizeLine } from "./sanitize.js";
 import { isCancelledToolEvent } from "../shared/cancelledToolMessage.js";
 import { ConversationPanel } from "./conversationPanel.js";
 import { CommandParser } from "./commandParser.js";
@@ -104,19 +106,28 @@ const ConversationArea = forwardRef(function ConversationArea(
 	// re-renders the SUBAGENTS panel live. This component no longer owns the
 	// store — it just forwards events upward.
 
-	const skillList = registry ? registry.list() : [];
-	const parser = new CommandParser();
+	const skillList = useMemo(() => (registry ? registry.list() : []), [registry]);
+	const parser = useMemo(() => new CommandParser(), []);
+
+	// Latest addMessage for the long-lived process handlers below.
+	const addMessageRef = useRef(null);
 
 	// Register global error handlers once on mount, remove on unmount
 	useEffect(() => {
 		function onUncaught(err) {
-			const stack = err?.stack ? `\n${err.stack}` : "";
-			addMessage({ role: "system", content: `Uncaught error: ${err.message}${stack}` });
+			// An uncaught exception leaves the process in an undefined state:
+			// restore the terminal, report it, and exit instead of continuing.
+			try {
+				process.stdout.write("\x1b[?1000l\x1b[?1002l\x1b[?1003l\x1b[?1006l");
+			} catch {
+				// stdout may be closed
+			}
+			process.stderr.write(`Uncaught error: ${err?.stack || err?.message || String(err)}\n`);
+			process.exit(1);
 		}
 		function onUnhandled(reason) {
-			const msg = reason?.message || String(reason);
-			const stack = reason?.stack ? `\n${reason.stack}` : "";
-			addMessage({ role: "system", content: `Unhandled rejection: ${msg}${stack}` });
+			const msg = sanitizeLine(reason?.message || String(reason));
+			addMessageRef.current?.({ role: "system", content: `Unhandled rejection: ${msg}` });
 		}
 		process.on("uncaughtException", onUncaught);
 		process.on("unhandledRejection", onUnhandled);
@@ -127,6 +138,10 @@ const ConversationArea = forwardRef(function ConversationArea(
 		return () => {
 			process.off("uncaughtException", onUncaught);
 			process.off("unhandledRejection", onUnhandled);
+			if (contextUpdateTimerRef.current) {
+				clearTimeout(contextUpdateTimerRef.current);
+				contextUpdateTimerRef.current = null;
+			}
 		};
 	}, []);
 
@@ -605,6 +620,7 @@ const ConversationArea = forwardRef(function ConversationArea(
 		}
 		return id;
 	};
+	addMessageRef.current = addMessage;
 
 	/**
 	 * Streaming event handler.
@@ -633,8 +649,12 @@ const ConversationArea = forwardRef(function ConversationArea(
 					if (text && cached.content !== text) {
 						cached.content = text;
 						if (model && typeof model.getNumTokensFromMessages === "function") {
-							const { totalCount } = await model.getNumTokensFromMessages([new AIMessage(text)]);
-							cached.tokens = totalCount;
+							try {
+								const { totalCount } = await model.getNumTokensFromMessages([new AIMessage(text)]);
+								cached.tokens = totalCount;
+							} catch {
+								cached.tokens = 0;
+							}
 						} else {
 							cached.tokens = 0;
 						}
