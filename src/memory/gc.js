@@ -1,7 +1,8 @@
-const WARNED_KEY = Symbol.for("madz.gc.warned");
-const gcCalls = [];
-
 import { logger } from "../shared/logger.js";
+
+const WARNED_KEY = Symbol.for("madz.gc.warned");
+const WINDOW_MS = 60 * 60 * 1000;
+const gcCalls = [];
 
 /**
  * Check whether V8's garbage collector is exposed via global.gc.
@@ -20,16 +21,10 @@ export function isAvailable() {
  */
 export function gc(maxGcPerHour = 4) {
 	const now = Date.now();
-	const windowStart = now - 60 * 60 * 1000;
+	const windowStart = now - WINDOW_MS;
 
-	// Prune calls outside the current hour window
-	for (let i = gcCalls.length - 1; i >= 0; i--) {
-		if (gcCalls[i] < windowStart) {
-			gcCalls.splice(i, 1);
-		} else {
-			break;
-		}
-	}
+	// Prune calls outside the current hour window (oldest first)
+	while (gcCalls.length && gcCalls[0] < windowStart) gcCalls.shift();
 
 	// Check rate limit
 	const hourCalls = gcCalls.length;
@@ -66,6 +61,7 @@ export function gc(maxGcPerHour = 4) {
  */
 export function initGC({ idleTimeoutMs, maxGcPerHour, onIdle }) {
 	let timerId = null;
+	let stopped = false;
 
 	function clearTimer() {
 		if (timerId !== null) {
@@ -76,10 +72,16 @@ export function initGC({ idleTimeoutMs, maxGcPerHour, onIdle }) {
 
 	function startTimer() {
 		clearTimer();
+		if (stopped) return;
 		timerId = setTimeout(() => {
 			timerId = null;
-			onIdle(gc(maxGcPerHour));
+			try {
+				onIdle(gc(maxGcPerHour));
+			} catch (err) {
+				logger.error(`[gc] Idle callback failed: ${err.message}`);
+			}
 		}, idleTimeoutMs);
+		if (typeof timerId?.unref === "function") timerId.unref();
 	}
 
 	startTimer();
@@ -96,6 +98,7 @@ export function initGC({ idleTimeoutMs, maxGcPerHour, onIdle }) {
 		 * Stop the GC manager and clear the idle timer.
 		 */
 		stop() {
+			stopped = true;
 			clearTimer();
 		},
 	};
@@ -108,8 +111,7 @@ export function initGC({ idleTimeoutMs, maxGcPerHour, onIdle }) {
  * @returns {number[]} Timestamps of GC calls within the last hour
  */
 export function getGcCalls() {
-	const now = Date.now();
-	const windowStart = now - 60 * 60 * 1000;
+	const windowStart = Date.now() - WINDOW_MS;
 	return gcCalls.filter((t) => t >= windowStart);
 }
 

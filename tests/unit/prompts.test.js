@@ -93,10 +93,9 @@ describe("loadSystemPrompt", () => {
 		assert.ok(result.includes("You are a helpful assistant."));
 	});
 
-	it("returns empty string when SYSTEM_PROMPT.md does not exist", async () => {
+	it("throws when SYSTEM_PROMPT.md does not exist", async () => {
 		const { loadSystemPrompt } = await import("../../src/memory/prompts.js");
-		const result = await loadSystemPrompt("__nonexistent_dir_xyz__");
-		assert.strictEqual(result, "");
+		await assert.rejects(loadSystemPrompt("__nonexistent_dir_xyz__"), { code: "ENOENT" });
 	});
 
 	it("removes decision tool instruction when agent.decision.baseUrl is empty", async () => {

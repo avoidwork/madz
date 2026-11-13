@@ -4,8 +4,6 @@ import { loadContext } from "./context.js";
 import { loadConfig } from "../config/loader.js";
 import { logger } from "../shared/logger.js";
 
-const cwd = loadConfig().cwd;
-
 // Token replaced in SYSTEM_PROMPT.md when the decision tool is enabled.
 const DECISION_TOOL_TOKEN = "<!-- DECISION_TOOL_INSTRUCTION -->";
 
@@ -20,7 +18,7 @@ const SAMPLING_TOOL_TOKEN = "<!-- SAMPLING_TOOL_INSTRUCTION -->";
 // Instruction block injected when agent.sampling is enabled. Standalone and
 // unnumbered so disabling the tool leaves no gap in any numbered list.
 const SAMPLING_TOOL_INSTRUCTION =
-	"**Sampling:** The **sampling** tool captures meaningful moments as ephemeral memories. You do not need to announce this. Invoke it when: (a) the user expresses satisfaction after a complex task, (b) a pattern emerges across sessions, (c) the user shares something personal or emotionally significant, (d) a technical breakthrough occurs. Do not announce it; just capture the moment.";
+	"**Sampling:** The **sampling** tool captures meaningful moments as ephemeral memories. Briefly tell the user when you capture a memory (one short sentence), and mention that they can ask to see or delete their memories at any time. Invoke it when: (a) the user expresses satisfaction after a complex task, (b) a pattern emerges across sessions, (c) the user shares something personal or emotionally significant, (d) a technical breakthrough occurs.";
 
 // Open-ended header appended to the end of the authored prompt. deepagents
 // middleware (skills, filesystem, memory, subagents) augments the system prompt
@@ -32,22 +30,19 @@ const RUNTIME_HEADER = "### RUNTIME CAPABILITIES";
 /**
  * Load the system prompt from prompts/SYSTEM_PROMPT.md,
  * appending the current memory context to the end.
- * @param {string} [baseDir=cwd] - Base directory for loading the prompt file
- * @returns {Promise<string>} System prompt text with appended context, or empty string if file not found
+ * @param {string} [baseDir] - Base directory for the prompt file and memory (defaults to config cwd)
+ * @returns {Promise<string>} System prompt text with appended context
+ * @throws {Error} When SYSTEM_PROMPT.md cannot be read (logged at error level)
  */
-export async function loadSystemPrompt(baseDir = cwd) {
+export async function loadSystemPrompt(baseDir) {
+	const config = loadConfig();
+	const root = baseDir ?? config.cwd;
+	const path = join(root, "prompts", "SYSTEM_PROMPT.md");
 	try {
-		const path = join(baseDir, "prompts", "SYSTEM_PROMPT.md");
 		let content = await readFile(path, "utf-8");
-		if (content.startsWith("---")) {
-			const closeIdx = content.indexOf("---", 3);
-			if (closeIdx !== -1) {
-				content = content.substring(closeIdx + 3).replace(/^\n+/, "");
-			}
-		}
+		content = content.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, "").replace(/^(\r?\n)+/, "");
 		// Inject the decision tool instruction when the tool is enabled, or
 		// remove the token entirely when it is disabled.
-		const config = loadConfig();
 		const baseUrl = config?.agent?.decision?.baseUrl;
 		const decisionReplacement = baseUrl ? DECISION_TOOL_INSTRUCTION : "";
 		content = content.replaceAll(DECISION_TOOL_TOKEN, decisionReplacement);
@@ -58,7 +53,7 @@ export async function loadSystemPrompt(baseDir = cwd) {
 		content = content.replaceAll(SAMPLING_TOOL_TOKEN, samplingReplacement);
 		// Append memory context to the system prompt. The context is already
 		// structured with `###` section headers, so no separator is needed.
-		const context = await loadContext();
+		const context = await loadContext(config.memory.contextDir, undefined, root);
 		if (context) {
 			content = content + "\n\n" + context;
 		}
@@ -67,7 +62,7 @@ export async function loadSystemPrompt(baseDir = cwd) {
 		// beneath it rather than blending into the authored content.
 		return content + "\n\n" + RUNTIME_HEADER;
 	} catch (err) {
-		logger.debug(`[prompts] Failed to load system prompt: ${err.message}`);
-		return "";
+		logger.error(`[prompts] Failed to load system prompt ${path}: ${err.message}`);
+		throw err;
 	}
 }

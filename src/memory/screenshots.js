@@ -1,16 +1,13 @@
-import { mkdir } from "node:fs/promises";
-import { join } from "node:path";
+import { ensureDir } from "./paths.js";
 import { loadConfig } from "../config/loader.js";
-
-const cwd = loadConfig().cwd;
 
 /**
  * Ensure the memory/screenshots directory exists by creating it if necessary.
+ * Created with owner-only permissions since screenshots may be sensitive.
  * @param {string} screenshotsDir - Path to screenshots directory
  * @param {string} [cwdParam] - Base directory (defaults to project cwd)
  * @returns {Promise<void>}
  */
-export async function ensureScreenshotsDir(screenshotsDir, cwdParam = cwd) {
-	const dir = join(cwdParam, screenshotsDir);
-	await mkdir(dir, { recursive: true });
+export async function ensureScreenshotsDir(screenshotsDir, cwdParam = loadConfig().cwd) {
+	await ensureDir(cwdParam, screenshotsDir);
 }
