@@ -1,7 +1,9 @@
 import { describe, it, before, after, mock } from "node:test";
 import assert from "node:assert";
 import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from "node:fs";
-import { join } from "node:path";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
+import { loadConfig } from "../../../src/config/loader.js";
 
 describe("indexCode worker", () => {
 	let origFetch;
@@ -130,6 +132,47 @@ describe("indexCode tool", () => {
 		assert.strictEqual(dispatched.dbPath, "/tmp/test.db");
 		assert.strictEqual(dispatched.rootDir, "/tmp");
 		assert.strictEqual(dispatched.force, false);
+	});
+
+	it("resolves relative dbPath and rootDir against config.cwd, not process.cwd()", async () => {
+		const { indexCodeImpl } = await import("../../../src/tools/code/indexCode.js");
+		const originalCwd = process.cwd();
+		let dispatched;
+		mock.method(pool, "run", async (task) => {
+			dispatched = task;
+			return { indexed: 0, skipped: 0, errors: 0 };
+		});
+
+		// The TUI chdirs into a project directory; paths must not follow it.
+		process.chdir(tmpdir());
+		try {
+			await indexCodeImpl(
+				{ project: "madz" },
+				{ vector: { projects: { madz: { dbPath: "memory/v.db", rootDir: "src" } } } },
+			);
+		} finally {
+			process.chdir(originalCwd);
+		}
+
+		const { cwd } = loadConfig();
+		assert.strictEqual(dispatched.dbPath, resolve(cwd, "memory/v.db"));
+		assert.strictEqual(dispatched.rootDir, resolve(cwd, "src"));
+	});
+
+	it("defaults rootDir to config.cwd when omitted", async () => {
+		const { indexCodeImpl } = await import("../../../src/tools/code/indexCode.js");
+		let dispatched;
+		mock.method(pool, "run", async (task) => {
+			dispatched = task;
+			return { indexed: 0, skipped: 0, errors: 0 };
+		});
+
+		await indexCodeImpl(
+			{ project: "madz" },
+			{ vector: { projects: { madz: { dbPath: "/tmp/test.db" } } } },
+		);
+
+		assert.strictEqual(dispatched.rootDir, resolve(loadConfig().cwd));
 	});
 
 	it("passes force flag through to the pool", async () => {

@@ -545,11 +545,11 @@ async function runIndexCode() {
 
 	for (const [name, proj] of Object.entries(projects)) {
 		logger.info(`Indexing project "${name}"...`);
-		const store = await createVectorStore(proj.dbPath);
+		const store = await createVectorStore(fromCwd(proj.dbPath));
 		try {
 			await store.init();
 			const result = await reindex(store, embedder, {
-				rootDir: proj.rootDir || ".",
+				rootDir: fromCwd(proj.rootDir || "."),
 				include: proj.include || ["src/**/*.js", "src/**/*.mjs", "src/**/*.cjs"],
 				exclude: proj.exclude || ["node_modules/**", ".git/**", ".worktrees/**"],
 				chunkSize: proj.chunkSize || 96,

@@ -1,7 +1,9 @@
 import { describe, it, before, after } from "node:test";
 import assert from "node:assert";
 import { mkdtempSync, rmSync } from "node:fs";
-import { join } from "node:path";
+import { tmpdir } from "node:os";
+import { join, relative } from "node:path";
+import { loadConfig } from "../../../src/config/loader.js";
 
 describe("searchCode tool", () => {
 	let origFetch;
@@ -70,6 +72,43 @@ describe("searchCode tool", () => {
 		);
 		assert.strictEqual(result.ok, false);
 		assert.ok(result.error.includes('Unknown project "nonexistent"'), `Got: ${result.error}`);
+	});
+
+	it("resolves a relative dbPath against config.cwd, not process.cwd()", async () => {
+		const { searchCodeImpl } = await import("../../../src/tools/code/searchCode.js");
+		const relDb = join(tmpDir, "relative.db");
+		const { createVectorStore } = await import("../../../src/vector/store.js");
+		const seed = await createVectorStore(relDb, { fulltext: true });
+		await seed.init();
+		seed.insertChunks([
+			{
+				filePath: "src/hello.js",
+				lineStart: 1,
+				lineEnd: 10,
+				content: "function hello() { return 42; }",
+				embedding: new Float32Array(384).fill(0.1),
+			},
+		]);
+		seed.close();
+		const originalCwd = process.cwd();
+
+		// The TUI chdirs into a project directory; the database path must not follow it.
+		process.chdir(tmpdir());
+		let result;
+		try {
+			result = await searchCodeImpl(
+				{ query: "hello", topK: 5, mode: "fulltext" },
+				{
+					vector: {
+						projects: { test: { dbPath: relative(loadConfig().cwd, relDb), fulltext: true } },
+					},
+				},
+			);
+		} finally {
+			process.chdir(originalCwd);
+		}
+
+		assert.strictEqual(result.ok, true, `Got: ${JSON.stringify(result)}`);
 	});
 
 	it("returns unknown project error when no projects configured", async () => {

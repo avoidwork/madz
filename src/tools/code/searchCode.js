@@ -1,3 +1,4 @@
+import { resolve } from "node:path";
 import { z } from "zod";
 import { loadConfig } from "../../config/loader.js";
 import { createVectorStore } from "../../vector/store.js";
@@ -80,7 +81,9 @@ export async function searchCodeImpl(input, options = {}) {
 	}
 
 	const proj = projects[projectName];
-	const dbPath = proj.dbPath;
+	// Resolve against the original working directory, not process.cwd(), which
+	// the TUI changes when switching projects.
+	const dbPath = resolve(config.cwd, proj.dbPath);
 	const mode = input.mode || cfg.searchMode || "hybrid";
 
 	let store;
