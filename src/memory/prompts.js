@@ -27,7 +27,7 @@ const SAMPLING_TOOL_INSTRUCTION =
 // at model-call time via raw string concatenation (`SystemMessage.concat`), so
 // this header gives that injected content a clean landing spot instead of
 // blending into the authored content.
-const RUNTIME_HEADER = "## Runtime capabilities";
+const RUNTIME_HEADER = "### RUNTIME CAPABILITIES";
 
 /**
  * Load the system prompt from prompts/SYSTEM_PROMPT.md,
@@ -57,7 +57,7 @@ export async function loadSystemPrompt(baseDir = cwd) {
 		const samplingReplacement = samplingEnabled ? SAMPLING_TOOL_INSTRUCTION : "";
 		content = content.replaceAll(SAMPLING_TOOL_TOKEN, samplingReplacement);
 		// Append memory context to the system prompt. The context is already
-		// structured with `##` section headers, so no separator is needed.
+		// structured with `###` section headers, so no separator is needed.
 		const context = await loadContext();
 		if (context) {
 			content = content + "\n\n" + context;
