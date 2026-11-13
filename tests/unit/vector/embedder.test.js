@@ -31,7 +31,7 @@ describe("createEmbedder", () => {
 				json: async () => ({
 					data: body.input.map((text, i) => ({
 						index: i,
-						embedding: Array.from({ length: 1536 }).fill(0.1),
+						embedding: Array.from({ length: 384 }).fill(0.1),
 					})),
 					model: "text-embedding-3-small",
 				}),
@@ -41,7 +41,7 @@ describe("createEmbedder", () => {
 		const embedder = createEmbedder({ model: "openai", openaiApiKey: "sk-test" });
 		const result = await embedder.embed("test query");
 		assert.ok(result instanceof Float32Array);
-		assert.strictEqual(result.length, 1536);
+		assert.strictEqual(result.length, 384);
 	});
 
 	it("handles batch embedding via OpenAI", async () => {
@@ -52,7 +52,7 @@ describe("createEmbedder", () => {
 				json: async () => ({
 					data: body.input.map((text, i) => ({
 						index: i,
-						embedding: Array.from({ length: 1536 }).fill(0.1 * (i + 1)),
+						embedding: Array.from({ length: 384 }).fill(0.1 * (i + 1)),
 					})),
 					model: "text-embedding-3-small",
 				}),
@@ -156,7 +156,11 @@ describe("createEmbedder", () => {
 		};
 
 		// With model: "local" and no openaiApiKey, local fails and fallback also fails
-		const embedder = createEmbedder({ model: "local", openaiApiKey: "sk-test" });
+		const embedder = createEmbedder({
+			model: "local",
+			openaiApiKey: "sk-test",
+			fallback: "openai",
+		});
 		// Local pipeline won't load, but OpenAI fallback is configured and mocked
 		const result = await embedder.embed("test");
 		assert.ok(result instanceof Float32Array, "Should fall back to OpenAI successfully");
@@ -179,7 +183,11 @@ describe("createEmbedder", () => {
 			};
 		};
 
-		const embedder = createEmbedder({ model: "local", openaiApiKey: "sk-test" });
+		const embedder = createEmbedder({
+			model: "local",
+			openaiApiKey: "sk-test",
+			fallback: "openai",
+		});
 		// Triggers getLocalPipeline → redirectOnnxRuntime + WASM config,
 		// then falls back to the mocked OpenAI endpoint
 		await embedder.embed("test");

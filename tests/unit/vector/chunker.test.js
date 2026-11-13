@@ -53,10 +53,8 @@ describe("chunkContent", () => {
 		}
 	});
 
-	it("handles overlap larger than chunk size gracefully", () => {
-		const content = "a\nb\nc";
-		const result = chunkContent("test.js", content, 3, 10);
-		assert.strictEqual(result.length, 1);
+	it("throws when overlap is not smaller than chunk size", () => {
+		assert.throws(() => chunkContent("test.js", "a\nb\nc", 3, 10), RangeError);
 	});
 
 	it("handles exact multiple of chunk size", () => {
@@ -87,12 +85,25 @@ describe("chunkContent", () => {
 		const result = chunkContent("test.js", "a\nb\nc\n", 96, 16);
 		assert.strictEqual(result.length, 1);
 		assert.strictEqual(result[0].lineStart, 1);
-		assert.strictEqual(result[0].lineEnd, 4);
+		assert.strictEqual(result[0].lineEnd, 3);
 	});
 
 	it("handles content with only newlines", () => {
 		const result = chunkContent("test.js", "\n\n\n", 2, 0);
 		assert.strictEqual(result.length, 2);
+	});
+
+	it("strips CRLF", () => {
+		const result = chunkContent("test.js", "a\r\nb\r\n", 96, 16);
+		assert.strictEqual(result[0].content, "a\nb");
+		assert.strictEqual(result[0].lineEnd, 2);
+	});
+
+	it("validates chunkSize and overlap", () => {
+		assert.throws(() => chunkContent("t.js", "a", 0, 0));
+		assert.throws(() => chunkContent("t.js", "a", 10, 10));
+		assert.throws(() => chunkContent("t.js", "a", 10, -1));
+		assert.doesNotThrow(() => chunkContent("t.js", "a", 10, 0));
 	});
 });
 
@@ -138,7 +149,6 @@ describe("chunkFile", () => {
 		const result = await chunkFile(filePath, { chunkSize: 96, overlap: 16, maxFileSize: 524288 });
 		assert.strictEqual(result.length, 1);
 		assert.strictEqual(result[0].lineStart, 1);
-		// Trailing newline creates an empty line — 4 lines total
-		assert.strictEqual(result[0].lineEnd, 4);
+		assert.strictEqual(result[0].lineEnd, 3);
 	});
 });
