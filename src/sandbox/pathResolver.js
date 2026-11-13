@@ -64,16 +64,17 @@ function realRule(rulePath) {
 
 /**
  * Split allowedPaths into positive rules and negative (exclusion) rules.
- * Negative rules start with "!".
- * @param {string[]} allowedPaths
+ * Negative rules start with "!". Non-string and empty rules are skipped (fail closed).
+ * @param {string[]} allowedPaths - Raw rules
  * @returns {{ positives: string[], negatives: string[] }}
  */
 function splitRules(allowedPaths) {
 	const positives = [];
 	const negatives = [];
 	for (const p of allowedPaths) {
-		if (typeof p === "string" && p.startsWith("!")) {
-			negatives.push(p.slice(1));
+		if (typeof p !== "string" || p === "") continue;
+		if (p.startsWith("!")) {
+			if (p.length > 1) negatives.push(p.slice(1));
 		} else {
 			positives.push(p);
 		}
@@ -82,20 +83,28 @@ function splitRules(allowedPaths) {
 }
 
 /**
- * Check if a resolved path matches a rule (positive or negative).
+ * Check if a resolved path matches a rule (positive or negative). Matching is
+ * case-sensitive: on case-insensitive filesystems it relies on realpath returning the
+ * canonical case for the checked path and for the rule.
  * @param {string} resolvedPath - The resolved absolute path to check
  * @param {string} rulePath - The rule path (without leading "!")
  * @returns {boolean}
  */
 function pathMatches(resolvedPath, rulePath) {
 	const resolvedRule = resolve(rulePath);
-	return resolvedPath === resolvedRule || resolvedPath.startsWith(resolvedRule + sep);
+	const prefix = resolvedRule.endsWith(sep) ? resolvedRule : resolvedRule + sep;
+	return resolvedPath === resolvedRule || resolvedPath.startsWith(prefix);
 }
 
 /**
  * Check if a resolved path falls within the allowed sandbox scope.
  * Negative rules (prefixed with "!") are checked first — if a path matches
  * any exclusion rule, access is denied regardless of positive rules.
+ * Relative rule paths resolve against `process.cwd()` at call time.
+ *
+ * Uses blocking fs calls (realpathSync etc.) on purpose: callers invoke this synchronously
+ * via validatePath in many tools, and making it async would ripple through all of them.
+ * Note the check-then-use gap: callers should open `realPath`, not the unresolved path.
  * @param {string} requestedPath - The absolute file path to check
  * @param {string[]} allowedPaths - List of allowed base paths (may include "!exclude/" patterns)
  * @param {{ noFollow?: boolean }} [options] - `noFollow` leaves a symlink in the final path
@@ -139,6 +148,7 @@ export function resolvePath(requestedPath, allowedPaths, options = {}) {
  * Throws AccessDeniedError if not allowed.
  * @param {string} requestedPath - The path to verify
  * @param {string[]} allowedPaths - Allowed directories
+ * @returns {string} The resolved absolute path
  * @throws {Error} If the path is outside the sandbox
  */
 export function assertPathAllowed(requestedPath, allowedPaths) {

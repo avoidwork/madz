@@ -1,12 +1,6 @@
 import { describe, it, before, after } from "node:test";
 import assert from "node:assert";
-import {
-	validatePath,
-	validateUrl,
-	fetchWithTimeout,
-	parseSizeString,
-	checkFileLimit,
-} from "../../src/tools/common.js";
+import { validatePath, parseSizeString, checkFileLimit } from "../../src/tools/common.js";
 import { writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 
@@ -36,94 +30,6 @@ describe("tools - validatePath", () => {
 	it("allows path in multiple scopes", () => {
 		const result = validatePath("skills/my-skill/main.js", ["memory/", "skills/"]);
 		assert.strictEqual(result.allowed, true);
-	});
-});
-
-describe("tools - validateUrl", () => {
-	it("allows valid http URL without allowlist", () => {
-		const result = validateUrl("http://example.com/api");
-		assert.strictEqual(result.allowed, true);
-	});
-
-	it("blocks file:// scheme", () => {
-		const result = validateUrl("file:///etc/passwd");
-		assert.strictEqual(result.allowed, false);
-		assert.ok(
-			result.reason.toLowerCase().includes("blocked") ||
-				result.reason.toLowerCase().includes("scheme"),
-		);
-	});
-
-	it("blocks gopher:// scheme", () => {
-		const result = validateUrl("gopher://example.com");
-		assert.strictEqual(result.allowed, false);
-	});
-
-	it("rejects empty URL", () => {
-		const result = validateUrl("");
-		assert.strictEqual(result.allowed, false);
-	});
-
-	it("rejects null URL", () => {
-		const result = validateUrl(null);
-		assert.strictEqual(result.allowed, false);
-	});
-
-	it("rejects invalid URL format", () => {
-		const result = validateUrl("not-a-valid-url");
-		assert.strictEqual(result.allowed, false);
-	});
-
-	it("checks URL against allowlist", () => {
-		const result = validateUrl("http://allowed.com/api", ["allowed.com"]);
-		assert.strictEqual(result.allowed, true);
-	});
-});
-
-describe("tools - fetchWithTimeout", () => {
-	it("rejects blocked scheme URL", async () => {
-		const result = await fetchWithTimeout("file:///etc/passwd");
-		assert.strictEqual(result.ok, false);
-		assert.ok(result.error);
-	});
-
-	it("rejects unreachable URL with timeout", async () => {
-		const result = await fetchWithTimeout("http://localhost:59999/slow", 500);
-		assert.strictEqual(result.ok, false);
-		assert.ok(result.error);
-	});
-
-	it("succeeds with valid response", async () => {
-		globalThis.fetch = async () => ({
-			ok: true,
-			text: async () => '{"hello":"world"}',
-		});
-		const result = await fetchWithTimeout("https://httpbin.org/get", 5000);
-		assert.strictEqual(result.ok, true);
-		assert.ok(result.body);
-		globalThis.fetch = undefined;
-	});
-
-	it("handles HTTP error status", async () => {
-		globalThis.fetch = async () => ({
-			ok: false,
-			status: 503,
-			text: async () => "Service Unavailable",
-		});
-		const result = await fetchWithTimeout("https://httpbin.org/status/503", 5000);
-		assert.strictEqual(result.ok, false);
-		assert.ok(result.error.includes("503"));
-		globalThis.fetch = undefined;
-	});
-
-	it("handles abort error as timeout", async () => {
-		globalThis.fetch = async () => {
-			throw new Error("Request timed out");
-		};
-		const result = await fetchWithTimeout("http://localhost:59999/slow", 100);
-		assert.strictEqual(result.ok, false);
-		assert.ok(result.error);
-		globalThis.fetch = undefined;
 	});
 });
 

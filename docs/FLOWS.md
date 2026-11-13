@@ -520,7 +520,7 @@ cronJob tool (actions: create, list, update, pause, resume, run, remove):
 
 **Entry:** `src/sandbox/pathResolver.js` → `resolvePath()` / `assertPathAllowed()`; `src/sandbox/urlFilter.js` → `filterUrl()`
 
-The sandbox module retains only the two modules with a live production call path: `src/tools/common.js` uses `resolvePath()` / `assertPathAllowed()` for tool-side filesystem scope enforcement and `filterUrl()` for outbound URL validation (blocked schemes, hostname allowlist).
+The sandbox module retains only the two modules with a live production call path: `src/tools/common.js` uses `resolvePath()` for tool-side filesystem scope enforcement, and the `api`, `graphql`, `decision` and `browser` tools call `filterUrl()` directly for outbound URL validation (http/https only, hostname allowlist).
 
 The former process-sandbox runtime — `runner.js`, `envInjector.js`, `capability.js`, `timeoutHandler.js`, `index.js` — was removed as dead code. It had **no production call path**: `index.js` `invokeSkill()` was a placeholder that resolved permissions and returned a stub, and `ScheduleManager.runNow()` only invokes a sandbox injected by the caller (nothing injects one). Skills now execute via the Deep Agents skill system; scheduled skills execute via the system crontab — see [Cron System](#cron-system).
 

@@ -483,3 +483,82 @@ describe("graphql — rateLimit()", () => {
 		rateLimit._testMode = originalMode;
 	});
 });
+
+describe("graphql — redirect re-validation", () => {
+	const originalFetch = globalThis.fetch;
+	const redirect = (location, status = 307) => ({
+		ok: false,
+		status,
+		headers: new Headers({ location }),
+	});
+	const okJson = (data) => ({ ok: true, status: 200, json: async () => ({ data }) });
+
+	afterEach(() => {
+		globalThis.fetch = originalFetch;
+	});
+
+	it("refuses a redirect to a host outside the allowlist", async () => {
+		const calls = [];
+		globalThis.fetch = async (url, options) => {
+			calls.push({ url, redirect: options.redirect });
+			return redirect("https://evil.com/graphql");
+		};
+		const result = await executeGraphQL(
+			"https://good.com/graphql",
+			"{ a }",
+			{},
+			undefined,
+			5000,
+			10,
+			1000,
+			["good.com"],
+		);
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("Redirect blocked"));
+		assert.strictEqual(calls.length, 1);
+		assert.strictEqual(calls[0].redirect, "manual");
+	});
+
+	it("follows a redirect that stays on the allowlist", async () => {
+		const urls = [];
+		globalThis.fetch = async (url) => {
+			urls.push(url);
+			return urls.length === 1 ? redirect("/v2/graphql", 308) : okJson({ a: 1 });
+		};
+		const result = await executeGraphQL(
+			"https://good.com/graphql",
+			"{ a }",
+			{},
+			undefined,
+			5000,
+			10,
+			1000,
+			["good.com"],
+		);
+		assert.deepStrictEqual(result, { ok: true, data: { a: 1 } });
+		assert.deepStrictEqual(urls, ["https://good.com/graphql", "https://good.com/v2/graphql"]);
+	});
+
+	it("stops after too many redirects", async () => {
+		globalThis.fetch = async () => redirect("https://good.com/loop");
+		const result = await executeGraphQL(
+			"https://good.com/graphql",
+			"{ a }",
+			{},
+			undefined,
+			5000,
+			10,
+			1000,
+			["good.com"],
+		);
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("Too many redirects"));
+	});
+
+	it("refuses a redirect to a non-http scheme", async () => {
+		globalThis.fetch = async () => redirect("ftp://good.com/x");
+		const result = await executeGraphQL("https://good.com/graphql", "{ a }");
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("Blocked scheme"));
+	});
+});

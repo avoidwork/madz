@@ -1,4 +1,3 @@
-import { filterUrl } from "../sandbox/urlFilter.js";
 import { resolvePath } from "../sandbox/pathResolver.js";
 import { stat as statAsync, access } from "node:fs/promises";
 
@@ -16,52 +15,6 @@ export function validatePath(filePath, allowedPaths, options) {
 		return { allowed: false, path, error: `Access denied: ${filePath} is outside sandbox scope` };
 	}
 	return { allowed: true, path, realPath };
-}
-
-/**
- * Validate a URL against blocked schemes and optional allowlist.
- * @param {string} url - The URL to validate
- * @param {string[]} [allowlist=[]] - Optional URL host allowlist
- * @returns {{ allowed: boolean, reason: string }}
- */
-export function validateUrl(url, allowlist = []) {
-	if (!url || typeof url !== "string") {
-		return { allowed: false, reason: "Invalid URL" };
-	}
-	return filterUrl(url, allowlist);
-}
-
-/**
- * Perform an HTTP GET request with configurable timeout and URL validation.
- * @param {string} url - The URL to fetch
- * @param {number} [timeoutMs=5000] - Timeout in milliseconds
- * @param {string[]} [allowlist=[]] - Optional URL host allowlist
- * @returns {Promise<{ ok: boolean, body?: string, error?: string }>}
- */
-export async function fetchWithTimeout(url, timeoutMs = 5000, allowlist = []) {
-	const validation = validateUrl(url, allowlist);
-	if (!validation.allowed) {
-		return { ok: false, error: validation.reason };
-	}
-
-	const controller = new AbortController();
-	const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-	try {
-		const response = await fetch(url, { signal: controller.signal });
-		clearTimeout(timeoutId);
-		const body = await response.text();
-		return {
-			ok: response.ok,
-			body: response.ok ? body : undefined,
-			error: response.ok ? undefined : `HTTP ${response.status}`,
-		};
-	} catch (err) {
-		clearTimeout(timeoutId);
-		const reason =
-			err.name === "AbortError" ? `Request timed out after ${timeoutMs}ms` : err.message;
-		return { ok: false, error: reason };
-	}
 }
 
 /**

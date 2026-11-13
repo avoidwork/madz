@@ -6,6 +6,8 @@ const DEFAULT_TIMEOUT = 30000;
 const DEFAULT_MAX_DEPTH = 10;
 const DEFAULT_MAX_COMPLEXITY = 1000;
 const DEFAULT_RATE_LIMIT = 10; // requests per second
+const MAX_REDIRECTS = 5;
+const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
 
 /**
  * Simple in-memory rate limiter — tracks request timestamps per URL.
@@ -170,6 +172,36 @@ function estimateComplexity(query) {
 }
 
 /**
+ * POST a GraphQL body, following redirects manually (re-sending the POST, since GraphQL needs
+ * it) so every hop is re-validated
+ * against the URL filter. Only a Content-Type header is sent, so no credentials can leak.
+ * @param {string} startUrl - Initial (already validated) endpoint URL
+ * @param {string} body - JSON request body
+ * @param {string[]} allowlist - URL allowlist
+ * @param {AbortSignal} signal - Abort signal covering all hops
+ * @returns {Promise<Response | { blocked: string }>} Final response, or the refusal reason
+ */
+async function postFollowingRedirects(startUrl, body, allowlist, signal) {
+	let url = startUrl;
+	for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+		const resp = await fetch(url, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body,
+			redirect: "manual",
+			signal,
+		});
+		const location = REDIRECT_STATUSES.has(resp.status) ? resp.headers.get("location") : null;
+		if (!location) return resp;
+		const next = new URL(location, url).toString();
+		const check = filterUrl(next, allowlist);
+		if (!check.allowed) return { blocked: `Redirect blocked: ${check.reason}` };
+		url = next;
+	}
+	return { blocked: `Too many redirects (max: ${MAX_REDIRECTS})` };
+}
+
+/**
  * Execute a GraphQL query or mutation.
  * @param {string} url - GraphQL endpoint URL
  * @param {string} query - GraphQL query/mutation string
@@ -232,14 +264,11 @@ export async function executeGraphQL(
 			...(operationName ? { operationName } : {}),
 		});
 
-		const resp = await fetch(url, {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body,
-			signal: controller.signal,
-		});
+		const resp = await postFollowingRedirects(url, body, allowlist, controller.signal);
 
 		clearTimeout(timeoutId);
+
+		if (resp.blocked) return { ok: false, error: resp.blocked };
 
 		if (!resp.ok) {
 			const text = await resp.text().catch(() => "");

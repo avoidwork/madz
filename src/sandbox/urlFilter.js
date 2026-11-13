@@ -1,4 +1,5 @@
-const BLOCKED_SCHEMES = new Set(["file:", "gopher:", "dict:"]);
+const ALLOWED_SCHEMES = new Set(["http:", "https:"]);
+const IPV4_LITERAL = /^\d+(?:\.\d+){3}$/;
 
 // Bare allowlist entry: `host`, `*.wildcard.host`, optionally with `:port`.
 const HOST_ENTRY = /^((?:\*\.)?[^\s:/*]+)(?::(\d+))?$/;
@@ -17,6 +18,8 @@ function normalizeHost(host) {
 
 /**
  * Match a hostname against an exact host or a `*.example.com` wildcard pattern.
+ * A wildcard matches subdomains at any depth but not the bare domain, needs at least two
+ * labels after `*.` (so `*.com` matches nothing), and never matches IP literals.
  * @param {string} hostname - Hostname to test
  * @param {string} pattern - Exact host or `*.` wildcard
  * @returns {boolean}
@@ -26,7 +29,11 @@ export function hostMatchesPattern(hostname, pattern) {
 	const host = normalizeHost(hostname);
 	const expected = normalizeHost(pattern.trim());
 	if (expected.startsWith("*.")) {
-		return host.endsWith(expected.slice(1));
+		const suffix = expected.slice(2);
+		const labels = suffix.split(".");
+		if (labels.length < 2 || labels.some((label) => label === "")) return false;
+		if (host.includes(":") || IPV4_LITERAL.test(host)) return false;
+		return host.endsWith(`.${suffix}`);
 	}
 	return host === expected;
 }
@@ -35,6 +42,9 @@ export function hostMatchesPattern(hostname, pattern) {
  * Match a URL against a single allowlist entry. An entry is either a URL
  * (scheme + host [+ port] [+ path prefix]) or a bare host / `host:port` /
  * `*.wildcard`. Matching is on parsed components, never on string prefixes.
+ * A URL-form entry (`https://host`) pins the scheme. A bare host entry without a port allows
+ * both http and https, but only on the request scheme's default port (80 / 443); use
+ * `host:port` to allow a non-default port.
  * @param {URL} parsed - Parsed request URL
  * @param {string} entry - Allowlist entry
  * @returns {boolean}
@@ -56,14 +66,15 @@ function matchesAllowlistEntry(parsed, entry) {
 		const [, hostPattern, port] = match;
 		if (!hostMatchesPattern(parsed.hostname, hostPattern)) return false;
 		const effectivePort = parsed.port || (parsed.protocol === "https:" ? "443" : "80");
-		return port === undefined || port === effectivePort;
+		const defaultPort = parsed.protocol === "https:" ? "443" : "80";
+		return effectivePort === (port ?? defaultPort);
 	} catch (_err) {
 		return false;
 	}
 }
 
 /**
- * Filter outbound URLs, blocking prohibited schemes and checking against an allowlist.
+ * Filter outbound URLs, allowing only http: and https: and checking against an allowlist.
  * Makes no assumptions about network topology: which hosts are reachable is decided by
  * the allowlist, not by built-in address or hostname lists.
  * @param {string} url - The URL to validate
@@ -79,7 +90,7 @@ export function filterUrl(url, allowlist = []) {
 		const parsed = new URL(url);
 		const scheme = parsed.protocol.toLowerCase();
 
-		if (BLOCKED_SCHEMES.has(scheme)) {
+		if (!ALLOWED_SCHEMES.has(scheme)) {
 			return { allowed: false, reason: `Blocked scheme: ${scheme}` };
 		}
 
@@ -102,7 +113,7 @@ export function isSchemeAllowed(url) {
 	if (!url || typeof url !== "string") return false;
 	try {
 		const scheme = new URL(url).protocol.toLowerCase();
-		return !BLOCKED_SCHEMES.has(scheme);
+		return ALLOWED_SCHEMES.has(scheme);
 	} catch (_err) {
 		return false;
 	}

@@ -53,7 +53,7 @@ Graceful shutdown flushes all buffered log entries to disk before process exit.
 | `sandbox`       | `paths`                             | `["memory/", "skills/", "tmp/"]` | Allowed filesystem paths                                                                                                                                    |
 |                 | `permissions`                       | `["filesystem:read", ...]`       | Permission grants                                                                                                                                           |
 |                 | `skillScanPaths`                    | `["skills/", ".skills/"]`        | Skill discovery paths (comma-separated)                                                                                                                     |
-| `api`           | `allowlist`                         | `[]`                             | Hosts the `api` tool may reach (exact host, `*.wildcard`, `host:port`, or origin URL). Empty allows any host; internal addresses are not blocked by default |
+| `api`           | `allowlist`                         | `[]`                             | Hosts the `api` tool may reach (exact host, `*.wildcard`, `host:port`, or origin URL; a bare host matches only the default port 80/443). Empty allows any host; internal addresses are not blocked by default |
 |                 | `rateLimit`                         | `10`                             | Max `api` requests per second, per host; `0` disables                                                                                                       |
 |                 | `maxRedirects`                      | `5`                              | Max redirects followed; each hop is re-validated; `0` returns 3xx responses as-is                                                                           |
 |                 | `maxRetries`                        | `2`                              | Retries on 429/502/503/504 and transient network errors (non-idempotent methods retry 429 only)                                                             |
@@ -194,8 +194,8 @@ api:
 
 - **Credential profiles** hold the _names_ of environment variables, never secrets. `bearer` needs `tokenEnv`; `apikey` needs `tokenEnv` and `key` (the header name); `basic` needs `usernameEnv` and `passwordEnv`. An incomplete profile fails config validation.
 - **`hosts`** limits where a credential may be sent (exact host or `*.wildcard`). Empty means any host the allowlist permits. Credentials are also dropped when a redirect crosses origins.
-- **`allowlist`** matches on parsed URL parts, never string prefixes. Entries can be a host, a `*.wildcard`, `host:port`, or a full origin with an optional path prefix. An empty list allows any host, **including internal and private addresses** (e.g. `localhost`, RFC 1918, `169.254.169.254`). Set an allowlist if you need to prevent that.
-- Redirects are followed manually and every hop is re-checked against the blocked schemes and the allowlist.
+- **`allowlist`** matches on parsed URL parts, never string prefixes. Entries can be a host, a `*.wildcard` (at least two labels after `*.`; never matches IP literals), `host:port`, or a full origin with an optional path prefix. A bare host without a port matches only the scheme's default port (80/443), so `localhost:11434` is needed for a non-default port, and an `https://host` entry pins the scheme. An empty list allows any host, **including internal and private addresses** (e.g. `localhost`, RFC 1918, `169.254.169.254`). Set an allowlist if you need to prevent that.
+- Redirects are followed manually and every hop is re-checked against the allowed schemes (`http:`/`https:` only) and the allowlist. The `graphql` tool re-validates redirect hops the same way.
 
 ### Browser Tool
 
@@ -211,7 +211,7 @@ browser:
   networkIdleMs: 500
 ```
 
-- **`allowlist`** uses the same matching as the `api` tool (host, `*.wildcard`, `host:port`, or an origin with an optional path prefix). It is checked for every HTTP(S) request the page makes: the `navigate` URL, redirects, and sub-resources such as scripts, images, XHR and iframes. An empty list allows any host, **including internal and private addresses**; the `file:`, `gopher:` and `dict:` schemes are always blocked. `data:`, `blob:` and `about:` URLs never touch the network and are not checked. WebSocket connections are not covered by request interception.
+- **`allowlist`** uses the same matching as the `api` tool (host, `*.wildcard`, `host:port`, or an origin with an optional path prefix). It is checked for every HTTP(S) request the page makes: the `navigate` URL, redirects, and sub-resources such as scripts, images, XHR and iframes. An empty list allows any host, **including internal and private addresses**; only `http:` and `https:` URLs are allowed, so every other scheme (`file:`, `gopher:`, `dict:`, `ftp:`, `ws:`, ...) is always blocked. `data:`, `blob:` and `about:` URLs never touch the network and are not checked. WebSocket connections are not covered by request interception.
 - **`timeoutMs`** is the default per-call timeout; a call's own `timeout` overrides it. It applies to every action.
 - **`sessionIdleTimeoutMs`** closes a session after this long without use. **`maxSessions`** caps open sessions; opening one beyond the cap closes the least recently used.
 - **`maxContentChars`** truncates the text `extract` and `evaluate` return, and the result is flagged `truncated`.

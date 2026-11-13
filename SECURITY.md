@@ -27,7 +27,7 @@ This project follows security best practices:
 
 - **OWASP Top 10** — All routes pass through authentication middleware. No hardcoded secrets. Parameterized queries with validated user input via zod schemas.
 - **Sandboxed Execution** — Skills run in isolated forked processes with time limits, memory caps, and allowlists for filesystem paths and outbound URLs.
-- **Allowlisted Schemes** — Blocked schemes include `file://`, `gopher://`, `dict://`.
+- **Allowlisted Schemes** — Only `http://` and `https://` are allowed; every other scheme (`file://`, `gopher://`, `dict://`, `ftp://`, `data:`, `ws://`, ...) is blocked.
 - **Authentication** — Supports `jwt`, `apikey`, and `none` (dev-only) modes. JWT enforces audience and issuer claims.
 - **Telemetry Redaction** — Sensitive fields (API keys, auth headers) are automatically redacted from traces.
 - **No Secret Exposure** — Secrets are only loaded from environment variables. Nothing is logged or hardcoded.
