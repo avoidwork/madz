@@ -122,10 +122,16 @@ export const VirtualScrollView = React.memo(
 			return measured !== undefined ? measured : estimateHeight(item);
 		});
 
+		// Content can shrink after a scroll (estimated heights are replaced by smaller
+		// measured ones), leaving the stored offset past the end and mounting nothing.
+		// Clamp at render time so the visible window always overlaps the content.
+		const contentHeight = heights.reduce((sum, h) => sum + h, 0);
+		const effectiveOffset = Math.max(0, Math.min(scrollOffset, contentHeight - viewportHeight));
+
 		const { start, end, offsets, totalHeight } = computeVisibleRange(
 			heights,
 			viewportHeight,
-			scrollOffset,
+			effectiveOffset,
 			overscan,
 		);
 
@@ -133,6 +139,15 @@ export const VirtualScrollView = React.memo(
 			() => Math.max(0, totalHeight - viewportHeight),
 			[totalHeight, viewportHeight],
 		);
+
+		// Keep the stored offset in step with the render-time clamp above so later
+		// relative scrolls (scrollBy) start from where the content actually is.
+		useEffect(() => {
+			if (scrollOffset !== effectiveOffset) {
+				scrollOffsetRef.current = effectiveOffset;
+				setScrollOffset(effectiveOffset);
+			}
+		}, [scrollOffset, effectiveOffset]);
 
 		const scrollTo = useCallback(
 			(offset) => {
@@ -222,7 +237,7 @@ export const VirtualScrollView = React.memo(
 					flexDirection: "column",
 					width: "100%",
 					flexShrink: 0,
-					contentOffsetY: scrollOffset,
+					contentOffsetY: effectiveOffset,
 				},
 				topSpacerHeight > 0
 					? React.createElement(Box, { key: "top-spacer", height: topSpacerHeight, flexShrink: 0 })
