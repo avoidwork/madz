@@ -27,7 +27,7 @@ const SAMPLING_TOOL_INSTRUCTION =
 // at model-call time via raw string concatenation (`SystemMessage.concat`), so
 // this header gives that injected content a clean landing spot instead of
 // blending into the authored content.
-const RUNTIME_DETAILS_HEADER = "## Runtime details";
+const RUNTIME_HEADER = "## Runtime capabilities";
 
 /**
  * Load the system prompt from prompts/SYSTEM_PROMPT.md,
@@ -65,7 +65,7 @@ export async function loadSystemPrompt(baseDir = cwd) {
 		// End the authored prompt with an open-ended header so runtime
 		// augmentations (skills, filesystem, memory, subagents) concat cleanly
 		// beneath it rather than blending into the authored content.
-		return content + "\n\n" + RUNTIME_DETAILS_HEADER;
+		return content + "\n\n" + RUNTIME_HEADER;
 	} catch (err) {
 		logger.debug(`[prompts] Failed to load system prompt: ${err.message}`);
 		return "";

@@ -168,7 +168,7 @@ describe("loadSystemPrompt", () => {
 
 		const { loadSystemPrompt } = await import("../../src/memory/prompts.js");
 		const result = await loadSystemPrompt(fullTestDir);
-		assert.ok(result.trimEnd().endsWith("## Runtime details"));
+		assert.ok(result.trimEnd().endsWith("## Runtime capabilities"));
 	});
 
 	it("includes todo tool directive for multi-step work planning", async () => {
