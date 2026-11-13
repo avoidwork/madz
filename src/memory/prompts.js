@@ -56,10 +56,11 @@ export async function loadSystemPrompt(baseDir = cwd) {
 		const samplingEnabled = config?.agent?.sampling !== false;
 		const samplingReplacement = samplingEnabled ? SAMPLING_TOOL_INSTRUCTION : "";
 		content = content.replaceAll(SAMPLING_TOOL_TOKEN, samplingReplacement);
-		// Append memory context to the system prompt
+		// Append memory context to the system prompt. The context is already
+		// structured with `##` section headers, so no separator is needed.
 		const context = await loadContext();
 		if (context) {
-			content = content + "\n\n---\n\n" + context;
+			content = content + "\n\n" + context;
 		}
 		// End the authored prompt with an open-ended header so runtime
 		// augmentations (skills, filesystem, memory, subagents) concat cleanly
