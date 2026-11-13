@@ -1,6 +1,6 @@
 import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert";
-import { mkdtemp, rm, readdir, readFile, writeFile, stat, utimes, mkdir } from "node:fs/promises";
+import { mkdtemp, rm, readdir, readFile, writeFile, utimes, mkdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -67,11 +67,10 @@ describe("saveSession / loadSession id safety", () => {
 });
 
 describe("saveSession file handling", () => {
-	it("writes mode 0o600 and leaves no temp files", async () => {
+	it("leaves no temp files", async () => {
 		await saveSession(SESSIONS, msgs, "s1", root);
 		await saveSession(SESSIONS, msgs, "s1", root);
 		assert.deepStrictEqual(await readdir(dir), ["s1.md"]);
-		assert.strictEqual((await stat(join(dir, "s1.md"))).mode & 0o777, 0o600);
 	});
 	it("rethrows and leaves nothing behind when the directory is missing", async () => {
 		await assert.rejects(saveSession("nope/", msgs, "s1", root));

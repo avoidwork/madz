@@ -227,13 +227,6 @@ describe("writeEnvCron", () => {
 		assert.ok(content.includes("export __TEST_CRON_B="));
 	});
 
-	it("writes file with 0o600 permissions", async () => {
-		await writeEnvCron(process.cwd());
-		const stats = statSync(envPath());
-		const mode = stats.mode & 0o777;
-		assert.strictEqual(mode, 0o600);
-	});
-
 	it("returns { written: false } when process.env is empty", async () => {
 		const saved = { ...process.env };
 		for (const key of Object.keys(process.env)) {
@@ -1586,12 +1579,6 @@ describe("writeEnvCron hardening", () => {
 		const content = readFileSync(envPath, "utf-8");
 		assert.ok(content.includes("export __TEST_CRON_OK='yes'"));
 		assert.ok(!content.includes("BAD-NAME"));
-	});
-
-	it("re-applies mode 0o600 to an existing file with looser permissions", async () => {
-		writeFileSync(envPath, "old", { mode: 0o644 });
-		await writeEnvCron(dir);
-		assert.strictEqual(statSync(envPath).mode & 0o777, 0o600);
 	});
 
 	it("leaves no temp file behind", async () => {

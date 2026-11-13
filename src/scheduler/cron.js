@@ -1,5 +1,5 @@
 import { exec } from "node:child_process";
-import { chmod, mkdir, readFile, readdir, rename, unlink, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, rename, unlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { logger } from "../shared/logger.js";
 import { isValidCron, isValidName, validateCommand } from "./validate.js";
@@ -57,7 +57,7 @@ function shellQuote(value) {
 /**
  * Write the .env.cron file with all environment variables from process.env.
  * Called on startup so cron jobs can source it for required variables.
- * Idempotent and atomic (temp file + rename, mode 0o600). Variables whose names are not valid
+ * Idempotent and atomic (temp file + rename). Variables whose names are not valid
  * shell identifiers are skipped. When the process was itself started by a cron job
  * (MADZ_CRON=1) the file is left untouched, because cron's minimal environment would
  * otherwise overwrite the full one.
@@ -89,8 +89,7 @@ export async function writeEnvCron(cwd) {
 
 	const tmpPath = join(cwd, `.env.cron.${process.pid}.tmp`);
 	try {
-		await writeFile(tmpPath, lines.join("\n") + "\n", { mode: 0o600 });
-		await chmod(tmpPath, 0o600);
+		await writeFile(tmpPath, lines.join("\n") + "\n");
 		await rename(tmpPath, envPath);
 		logger.debug(`[cron] Wrote .env.cron with ${lines.length} variables`);
 		return { written: true };

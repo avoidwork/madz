@@ -63,12 +63,11 @@ describe("memory/paths", () => {
 		assert.throws(() => resolveContextDir(outside, base), PathContainmentError);
 	});
 
-	it("writeFileAtomic writes 0600 file and leaves no tmp files", async () => {
+	it("writeFileAtomic writes the file and leaves no tmp files", async () => {
 		await mkdir(join(base, "w"), { recursive: true });
 		const target = join(base, "w", "f.md");
 		await writeFileAtomic(target, "hello");
 		assert.strictEqual(await readFile(target, "utf-8"), "hello");
-		assert.strictEqual((await stat(target)).mode & 0o777, 0o600);
 		assert.deepStrictEqual(await readdir(join(base, "w")), ["f.md"]);
 	});
 

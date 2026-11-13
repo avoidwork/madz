@@ -8,8 +8,6 @@ export const REFLECTION_FILENAME = "reflection.md";
 
 /** Directory mode for created memory directories (owner only). */
 export const DIR_MODE = 0o700;
-/** File mode for created memory files (owner only). */
-export const FILE_MODE = 0o600;
 
 /**
  * Error thrown when a path would escape its base directory.

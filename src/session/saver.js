@@ -31,7 +31,7 @@ function escapeYamlString(str) {
 
 /**
  * Save session exchanges to a file named by thread ID.
- * The write is atomic (temp file + rename) and the file is private (mode 0o600).
+ * The write is atomic (temp file + rename).
  * @param {string} sessionsDir - Path to sessions directory
  * @param {Array} conversation - Conversation exchanges to save
  * @param {string} [threadId] - Thread ID used as filename (empty writes unsaved.md)
@@ -72,10 +72,7 @@ export async function saveSession(sessionsDir, conversation, threadId = "", cwdP
 
 	const tmp = join(dir, `.${randomUUID()}.tmp`);
 	try {
-		// The temp file is new, so `mode` applies at creation (the umask can only remove bits).
-		// No chmod: it is redundant and fails on filesystems without POSIX permissions
-		// (SMB/CIFS, FAT, some FUSE and remapped bind mounts), which would lose the save.
-		await writeFile(tmp, content, { mode: 0o600 });
+		await writeFile(tmp, content);
 		await rename(tmp, target);
 	} catch (err) {
 		await rm(tmp, { force: true }).catch((cleanupErr) => {

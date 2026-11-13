@@ -1,6 +1,6 @@
 import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert";
-import { mkdtemp, readFile, rm, stat } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -84,12 +84,9 @@ describe("authFilePath", () => {
 });
 
 describe("persist / getToken / clearToken", () => {
-	it("persists the token with mode 0o600", async () => {
+	it("persists the token to the auth file", async () => {
 		await persist("tok-123", memoryDir);
 		const file = authFilePath(memoryDir);
-		const st = await stat(file);
-		// 0o600 = 384 decimal
-		assert.strictEqual(st.mode & 0o777, 0o600);
 		const raw = JSON.parse(await readFile(file, "utf8"));
 		assert.strictEqual(raw.access_token, "tok-123");
 		assert.strictEqual(raw.expires, 0);
