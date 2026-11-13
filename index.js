@@ -34,7 +34,8 @@ import { isSubagentNamespace } from "./src/stream/namespace.js";
 import { surfaceInterrupt } from "./src/stream/interrupt.js";
 
 const { setConfigValue } = await import("./src/config/loader.js");
-const { createDeepAgentsOrchestrator } = await import("./src/agent/deepAgents.js");
+const { createDeepAgentsOrchestrator, toConversationExchange } =
+	await import("./src/agent/deepAgents.js");
 const { getActiveModelName, getActiveProviderName } = await import("./src/provider/index.js");
 const { logger } = await import("./src/shared/logger.js");
 
@@ -195,6 +196,12 @@ const currentSessionConfig = () => ({
 // compress the context window on demand (via the `/compact` slash command).
 const compactContext = (options) =>
 	agent.compactContext(currentSessionConfig(), sessionState, options);
+
+// Automatic compaction rewrites the checkpointer mid-run; keep the session's
+// conversation in step so saved sessions and the TUI agree with the model.
+agent.onCompacted?.((result) => {
+	sessionState.loadConversation(result.messages.map(toConversationExchange));
+});
 
 // Expose the real LangChain message array from the checkpointer to the TUI so
 // the context counter reflects the full message set the model sees (tool calls,

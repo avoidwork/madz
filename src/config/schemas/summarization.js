@@ -34,7 +34,11 @@ export const SummarizationSchema = z
 	.object({
 		enabled: z.boolean().default(false),
 		trigger: SummarizationThresholdSchema.optional(),
+		// Deprecated: use `keepMessages`. A `messages` keep value is still honored.
 		keep: SummarizationThresholdSchema.optional(),
+		// Number of most recent messages kept verbatim after compaction; everything
+		// older is replaced by one summary message.
+		keepMessages: z.number().int().min(0).optional(),
 		// Fraction of the model's context window at which to compact. Used to
 		// derive a `tokens` trigger when the context length can be resolved.
 		contextFraction: z.number().positive().max(1).default(0.8),

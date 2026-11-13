@@ -191,9 +191,7 @@ summarization:
   trigger:
     type: tokens
     value: 100000
-  keep:
-    type: messages
-    value: 10
+  keepMessages: 5
 skillAgentMap:
   - pattern: "^openspec-"
     agent: coding
