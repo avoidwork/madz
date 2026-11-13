@@ -2,7 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert";
 import { join } from "node:path";
 import { resolvePath, assertPathAllowed } from "../../src/sandbox/pathResolver.js";
-import { filterUrl, isSchemeAllowed } from "../../src/sandbox/urlFilter.js";
+import { filterUrl, isSchemeAllowed, hostMatchesPattern } from "../../src/sandbox/urlFilter.js";
 
 describe("sandbox - path resolution", () => {
 	describe("resolvePath", () => {
@@ -26,6 +26,17 @@ describe("sandbox - path resolution", () => {
 			assert.strictEqual(result.allowed, true);
 		});
 
+		it("ignores non-string and empty rules instead of throwing", () => {
+			assert.strictEqual(resolvePath("memory/a.md", [null]).allowed, false);
+			assert.strictEqual(resolvePath("memory/a.md", [undefined, 5, "", "!"]).allowed, false);
+			assert.strictEqual(resolvePath("memory/a.md", [null, "memory/"]).allowed, true);
+		});
+
+		it("root rule matches paths under /", () => {
+			assert.strictEqual(resolvePath("/etc/hostname", ["/"]).allowed, true);
+			assert.strictEqual(resolvePath("/", ["/"]).allowed, true);
+			assert.strictEqual(resolvePath("/etc/hostname", ["/", "!/etc"]).allowed, false);
+		});
 		it("rejects path with parent traversal", () => {
 			const result = resolvePath("memory/../../../etc/passwd", ["memory/"]);
 			assert.strictEqual(result.allowed, false);
@@ -166,12 +177,70 @@ describe("sandbox - URL filtering", () => {
 			const result = filterUrl("http://any-domain.com/path");
 			assert.strictEqual(result.allowed, true);
 		});
+
+		it("only allows http and https schemes", () => {
+			for (const url of [
+				"ftp://example.com/x",
+				"ws://example.com/",
+				"wss://example.com/",
+				"data:text/plain,hi",
+				"javascript:alert(1)",
+			]) {
+				const result = filterUrl(url);
+				assert.strictEqual(result.allowed, false, url);
+				assert.ok(result.reason.startsWith("Blocked scheme: "), url);
+			}
+		});
+
+		it("bare host entry allows http and https on default ports only", () => {
+			const list = ["good.com"];
+			assert.strictEqual(filterUrl("http://good.com/", list).allowed, true);
+			assert.strictEqual(filterUrl("https://good.com/", list).allowed, true);
+			assert.strictEqual(filterUrl("https://good.com:443/", list).allowed, true);
+			assert.strictEqual(filterUrl("http://good.com:8080/", list).allowed, false);
+			assert.strictEqual(filterUrl("https://good.com:8443/", list).allowed, false);
+			// 443 is not the default for http
+			assert.strictEqual(filterUrl("http://good.com:443/", list).allowed, false);
+		});
+
+		it("host:port entry keeps working and URL-form entry pins the scheme", () => {
+			assert.strictEqual(filterUrl("http://localhost:11434/x", ["localhost:11434"]).allowed, true);
+			assert.strictEqual(filterUrl("http://localhost:80/", ["localhost:11434"]).allowed, false);
+			assert.strictEqual(filterUrl("http://good.com/", ["https://good.com"]).allowed, false);
+			assert.strictEqual(filterUrl("https://good.com/", ["https://good.com"]).allowed, true);
+		});
+
+		it("wildcard matches subdomains at any depth but not the apex", () => {
+			const list = ["*.good.com"];
+			assert.strictEqual(filterUrl("https://a.good.com/", list).allowed, true);
+			assert.strictEqual(filterUrl("https://a.b.good.com/", list).allowed, true);
+			assert.strictEqual(filterUrl("https://good.com/", list).allowed, false);
+			assert.strictEqual(filterUrl("https://evilgood.com/", list).allowed, false);
+		});
+
+		it("single-label and empty wildcards match nothing", () => {
+			assert.strictEqual(hostMatchesPattern("example.com", "*.com"), false);
+			assert.strictEqual(hostMatchesPattern("com", "*.com"), false);
+			assert.strictEqual(hostMatchesPattern("example.com", "*."), false);
+			assert.strictEqual(filterUrl("https://example.com/", ["*.com"]).allowed, false);
+		});
+
+		it("wildcards never match IP literals", () => {
+			assert.strictEqual(hostMatchesPattern("1.2.3.4", "*.2.3.4"), false);
+			assert.strictEqual(filterUrl("http://10.1.2.3/", ["*.1.2.3"]).allowed, false);
+			assert.strictEqual(hostMatchesPattern("[::1]", "*.ip6.arpa"), false);
+		});
 	});
 
 	describe("isSchemeAllowed", () => {
 		it("allows http", () => assert.strictEqual(isSchemeAllowed("http://example.com"), true));
 		it("allows https", () => assert.strictEqual(isSchemeAllowed("https://example.com"), true));
 		it("blocks file://", () => assert.strictEqual(isSchemeAllowed("file:///etc/passwd"), false));
+		it("blocks other non-http schemes", () => {
+			for (const u of ["ftp://x.com", "ws://x.com", "data:text/plain,a", "javascript:1"]) {
+				assert.strictEqual(isSchemeAllowed(u), false, u);
+			}
+		});
 		it("returns false for invalid URL format (catch block)", () => {
 			const result = isSchemeAllowed("://missing-scheme");
 			assert.strictEqual(result, false);

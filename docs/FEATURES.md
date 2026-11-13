@@ -262,7 +262,7 @@ Together, these layers create a system that remembers what matters while natural
 
 ### Sandbox RTE
 
-Filesystem and network access for built-in tools is constrained by `src/sandbox/`: `pathResolver.js` enforces an allowlist/denylist of paths (negative `!exclude/` rules win, traversal outside allowed roots is blocked), and `urlFilter.js` blocks `file://`, `gopher://`, and `dict://` and applies an optional exact-match hostname allowlist. It does not block internal or private addresses on its own; configure an allowlist if you need that.
+Filesystem and network access for built-in tools is constrained by `src/sandbox/`: `pathResolver.js` enforces an allowlist/denylist of paths (negative `!exclude/` rules win, traversal outside allowed roots is blocked), and `urlFilter.js` allows only `http:` and `https:` URLs and applies an optional hostname allowlist (a bare host matches only the scheme's default port; use `host:port` for others). It does not block internal or private addresses on its own; configure an allowlist if you need that.
 
 Skills themselves are `SKILL.md` instruction files interpreted by the agent — they are not spawned into a separate process. There is no per-skill time limit, memory cap, or env-var filter; the container boundary is the isolation boundary. See [THREAT_MODEL.md](docs/THREAT_MODEL.md) for the honest boundary description.
 

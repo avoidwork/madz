@@ -89,7 +89,7 @@ Path validation in `src/sandbox/pathResolver.js`. `resolvePath` returns `{ allow
 
 ### filterUrl
 
-URL validation in `src/sandbox/urlFilter.js`. Blocks `file://`, `gopher://`, `dict://` schemes and, when an allowlist is given, any host not matching it (exact host, `*.wildcard`, optional port, or origin + path prefix; never a string prefix). It has no built-in IP or hostname lists, so internal addresses are reachable unless an allowlist excludes them. Used for outbound tool requests.
+URL validation in `src/sandbox/urlFilter.js`. Allows only `http:` and `https:` schemes and, when an allowlist is given, any host not matching it (exact host, `*.wildcard` with at least two labels after the `*.`, optional port, or origin + path prefix; never a string prefix). A bare host entry matches only the request scheme's default port (80/443); use `host:port` for others and an `https://host` entry to pin the scheme. Wildcards never match IP literals. It has no built-in IP or hostname lists, so internal addresses are reachable unless an allowlist excludes them. Used for outbound tool requests.
 
 ### api.credentials
 
