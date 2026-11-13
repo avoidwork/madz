@@ -1,29 +1,34 @@
-/**
- * Apply a sampling ratio to determine which spans to keep.
- * @param {number} ratio - Sampling ratio (0.0 to 1.0)
- * @returns {{ ratio: number, shouldSample: Function }}
- */
-export function createSampler(ratio = 0.1) {
-	const prob = Math.max(0, Math.min(1, ratio));
+import { ParentBasedSampler, TraceIdRatioBasedSampler } from "@opentelemetry/sdk-trace";
 
-	/**
-	 * Determine if a span should be sampled.
-	 * @returns {boolean}
-	 */
-	return {
-		ratio: prob,
-		shouldSample: function () {
-			return Math.random() < prob;
-		},
-	};
+const DEFAULT_RATIO = 0.1;
+
+/**
+ * Resolve the sampling ratio from telemetry config. A ratio of 0 is honoured.
+ * @param {Object} [config] - Telemetry config with sampling.ratio
+ * @returns {number} Ratio clamped to [0, 1]
+ */
+export function resolveSamplingRatio(config) {
+	const ratio = config?.sampling?.ratio ?? DEFAULT_RATIO;
+	return Math.max(0, Math.min(1, ratio));
 }
 
 /**
- * Load sampler configuration from telemetry config.
- * @param {Object} config - Telemetry config with sampling.ratio
- * @returns {{ ratio: number, shouldSample: Function }}
+ * Create an OpenTelemetry sampler that honours the parent decision and
+ * samples root spans by trace-id ratio.
+ * @param {number} [ratio] - Sampling ratio (0.0 to 1.0)
+ * @returns {import("@opentelemetry/sdk-trace").Sampler} The sampler
  */
-export function loadSampler(config = {}) {
-	const ratio = (config.sampling && config.sampling.ratio) || 0.1;
-	return createSampler(ratio);
+export function createSampler(ratio = DEFAULT_RATIO) {
+	return new ParentBasedSampler({
+		root: new TraceIdRatioBasedSampler(resolveSamplingRatio({ sampling: { ratio } })),
+	});
+}
+
+/**
+ * Load a sampler from telemetry config.
+ * @param {Object} [config] - Telemetry config with sampling.ratio
+ * @returns {import("@opentelemetry/sdk-trace").Sampler} The sampler
+ */
+export function loadSampler(config) {
+	return createSampler(resolveSamplingRatio(config));
 }

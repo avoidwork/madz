@@ -60,6 +60,7 @@ export const ConfigSchema = z.object({
 		exporter: {
 			protocol: "console",
 			endpoint: "http://localhost:4318",
+			timeoutMs: 10000,
 		},
 		sampling: { ratio: 0.1 },
 	}),

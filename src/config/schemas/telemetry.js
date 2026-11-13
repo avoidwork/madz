@@ -3,6 +3,7 @@ import { z } from "zod";
 const TelemetryExporterSchema = z.object({
 	protocol: z.enum(["console", "http", "grpc"]).default("console"),
 	endpoint: z.string().url().default("http://localhost:4318"),
+	timeoutMs: z.number().int().positive().default(10000),
 });
 
 export const TelemetrySchema = z.object({
@@ -10,8 +11,11 @@ export const TelemetrySchema = z.object({
 	exporter: TelemetryExporterSchema.default({
 		protocol: "console",
 		endpoint: "http://localhost:4318",
+		timeoutMs: 10000,
 	}),
-	sampling: z.object({
-		ratio: z.number().min(0).max(1).default(0.1),
-	}),
+	sampling: z
+		.object({
+			ratio: z.number().min(0).max(1).default(0.1),
+		})
+		.default({ ratio: 0.1 }),
 });
