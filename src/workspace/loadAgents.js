@@ -31,10 +31,10 @@ export async function readAgentsFile(filePath, maxReadSize) {
 			return { ok: false, error: `Not a regular file: ${filePath}` };
 		}
 		const limit = typeof maxReadSize === "number" ? maxReadSize : parseSizeString(maxReadSize);
-		if (maxReadSize && stats.size > limit) {
+		if (limit && stats.size > limit) {
 			return {
 				ok: false,
-				error: `File size (${stats.size} bytes) exceeds max read size (${maxReadSize}).`,
+				error: `File size (${stats.size} bytes) exceeds max read size (${limit}).`,
 			};
 		}
 		const content = await handle.readFile("utf-8");
