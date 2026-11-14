@@ -142,7 +142,7 @@ export const SubagentsPanel = forwardRef(function SubagentsPanel(
 							content: (entry.segments || []).map((s) => s.content).join(""),
 							segments: entry.segments,
 							streaming: false,
-							assistantName: "subagent",
+							assistantName: "Subagent",
 							// Global ctrl+r / ctrl+t state, shared with the conversation.
 							reasoningCollapsed,
 							toolCallCollapsed,
