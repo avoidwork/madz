@@ -123,4 +123,76 @@ describe("textToSpeech", () => {
 		assert.ok(result.error.includes("TTS request failed"));
 		globalThis.fetch = origFetch;
 	});
+
+	it("rejects non-numeric speed", async () => {
+		const result = await textToSpeechImpl(
+			{ text: "Hello", speed: "fast" },
+			{ openaiApiKey: "sk-test" },
+		);
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("Speed must be a finite number"));
+	});
+
+	it("rejects NaN speed", async () => {
+		const result = await textToSpeechImpl(
+			{ text: "Hello", speed: NaN },
+			{ openaiApiKey: "sk-test" },
+		);
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("Speed must be a finite number"));
+	});
+
+	it("rejects audio buffer exceeding maxWriteSize", async () => {
+		globalThis.fetch = async () => ({
+			ok: true,
+			arrayBuffer: async () => new Uint8Array(600000).buffer,
+		});
+		const result = await textToSpeechImpl({ text: "Hello" }, { openaiApiKey: "sk-test" });
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("exceeds maximum allowed size"));
+		globalThis.fetch = origFetch;
+	});
+
+	it("returns structured error when filesystem write fails", async () => {
+		globalThis.fetch = async () => ({
+			ok: true,
+			arrayBuffer: async () => new Uint8Array([0x00]).buffer,
+		});
+		// Point outputPath at a location that cannot be created/written
+		const result = await textToSpeechImpl(
+			{ text: "Hello", outputPath: "/proc/1/mem/tts-test.mp3" },
+			{ openaiApiKey: "sk-test", allowedPaths: ["/proc"] },
+		);
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("Failed to save audio"));
+		globalThis.fetch = origFetch;
+	});
+
+	it("rejects output path outside sandbox allowlist", async () => {
+		globalThis.fetch = async () => ({
+			ok: true,
+			arrayBuffer: async () => new Uint8Array([0x00]).buffer,
+		});
+		const result = await textToSpeechImpl(
+			{ text: "Hello", outputPath: "/etc/passwd" },
+			{ openaiApiKey: "sk-test", allowedPaths: ["/tmp"] },
+		);
+		assert.strictEqual(result.ok, false);
+		assert.ok(result.error.includes("Access denied"));
+		globalThis.fetch = origFetch;
+	});
+
+	it("honors an explicit outputPath override", async () => {
+		globalThis.fetch = async () => ({
+			ok: true,
+			arrayBuffer: async () => new Uint8Array([0x00]).buffer,
+		});
+		const result = await textToSpeechImpl(
+			{ text: "Hello", outputPath: "/tmp/tts-test-output.mp3" },
+			{ openaiApiKey: "sk-test", allowedPaths: ["/tmp"] },
+		);
+		assert.strictEqual(result.ok, true);
+		assert.ok(result.path.includes("/tmp/tts-test-output.mp3"));
+		globalThis.fetch = origFetch;
+	});
 });
