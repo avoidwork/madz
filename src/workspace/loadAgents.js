@@ -1,6 +1,5 @@
 import { open } from "node:fs/promises";
 import { join } from "node:path";
-import { parseSizeString } from "../tools/common.js";
 
 const cwd = process.cwd();
 
@@ -30,7 +29,7 @@ export async function readAgentsFile(filePath, maxReadSize) {
 		if (!stats.isFile()) {
 			return { ok: false, error: `Not a regular file: ${filePath}` };
 		}
-		const limit = typeof maxReadSize === "number" ? maxReadSize : parseSizeString(maxReadSize);
+		const limit = maxReadSize;
 		if (limit && stats.size > limit) {
 			return {
 				ok: false,
