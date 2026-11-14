@@ -225,7 +225,16 @@ export const TOOL_CLASSIFICATIONS = {
 		"documentation",
 		"security-audit",
 	],
-	decision: ["orchestrator", "coding", "research"],
+	decision: [
+		"orchestrator",
+		"coding",
+		"research",
+		"code-review",
+		"security-audit",
+		"debug",
+		"testing",
+		"performance",
+	],
 };
 
 /**

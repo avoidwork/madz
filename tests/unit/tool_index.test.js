@@ -263,6 +263,26 @@ describe("tools - MCP tool classification", () => {
 	});
 });
 
+describe("tools - decision tool classification", () => {
+	it("routes decision to judgment-heavy subagents", async () => {
+		const { getToolsForAgentTypes, TOOLS } = await import("../../src/tools/index.js");
+		const targetAgents = ["code-review", "security-audit", "debug", "testing", "performance"];
+		for (const agent of targetAgents) {
+			const matches = getToolsForAgentTypes([agent], TOOLS);
+			assert.ok(matches.includes("decision"), `decision should be classified for ${agent}`);
+		}
+	});
+
+	it("excludes decision from synthesis subagents", async () => {
+		const { getToolsForAgentTypes, TOOLS } = await import("../../src/tools/index.js");
+		const excludedAgents = ["search", "documentation", "textEditor", "seoAnalyst", "translator"];
+		for (const agent of excludedAgents) {
+			const matches = getToolsForAgentTypes([agent], TOOLS);
+			assert.ok(!matches.includes("decision"), `decision should NOT be classified for ${agent}`);
+		}
+	});
+});
+
 describe("tools - buildToolConfig MCP", () => {
 	it("is a no-op when no mcp servers are configured", async () => {
 		const { buildToolConfig } = await import("../../src/tools/index.js");
