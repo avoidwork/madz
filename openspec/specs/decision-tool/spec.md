@@ -2,7 +2,9 @@
 
 ## Purpose
 TBD - created by archiving change decision-tool. Update Purpose after archive.
+
 ## Requirements
+
 ### Requirement: decision tool returns structured answers
 The system SHALL provide a `decision` tool that calls the SystemOne `/v1/systemone` endpoint and returns the structured `answers` from the model.
 
@@ -34,7 +36,7 @@ The `decision` tool SHALL be registered only when `agent.decision.baseUrl` is pr
 - **THEN** the `decision` tool SHALL NOT be registered in the tool index
 
 ### Requirement: Permission model
-The `decision` tool SHALL require `network:outbound` permission and SHALL be available to the orchestrator and the `coding` and `research` subagents.
+The `decision` tool SHALL require `network:outbound` permission and SHALL be available to the orchestrator and the `coding`, `research`, `code-review`, `security-audit`, `debug`, `testing`, and `performance` subagents.
 
 #### Scenario: Network permission required
 - **WHEN** the tool index is built with `network:outbound` enabled and `agent.decision.baseUrl` set
@@ -45,8 +47,12 @@ The `decision` tool SHALL require `network:outbound` permission and SHALL be ava
 - **THEN** `decision` SHALL be present in `ORCHESTRATOR_TOOLS`
 
 #### Scenario: Sub-agent availability
-- **WHEN** a `coding` or `research` subagent is created
+- **WHEN** a `coding`, `research`, `code-review`, `security-audit`, `debug`, `testing`, or `performance` subagent is created
 - **THEN** `decision` SHALL be available to that agent
+
+#### Scenario: Not available to synthesis subagents
+- **WHEN** a `search`, `documentation`, `textEditor`, `seoAnalyst`, or `translator` subagent is created
+- **THEN** `decision` SHALL NOT be available to that agent
 
 ### Requirement: Input validation
 The `decision` tool SHALL validate that `state` and `questions` are present before sending the request.
@@ -80,4 +86,3 @@ The `decision` tool SHALL receive the configured `decisionConfig` at invoke time
 #### Scenario: Decision config not threaded
 - **WHEN** the `decision` tool is registered but `decisionConfig` is not threaded through at invoke time
 - **THEN** `decisionImpl` SHALL NOT return a misleading "not configured" error when `agent.decision.baseUrl` is set
-
