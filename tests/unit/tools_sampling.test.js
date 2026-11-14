@@ -294,12 +294,12 @@ describe("sampling singleton", () => {
 
 	it("applies the cooldown across consecutive invocations", async () => {
 		// First invocation succeeds and records _lastWritten.
-		const first = await sampling.invoke({ content: "first moment" });
+		const first = await sampling.invoke({ content: "first moment", contextDir: TEST_DIR });
 		assert.strictEqual(first.ok, true);
 
 		// A second invocation within the cooldown window must be rejected,
 		// proving the singleton feeds its last-written timestamp back in.
-		const second = await sampling.invoke({ content: "second moment" });
+		const second = await sampling.invoke({ content: "second moment", contextDir: TEST_DIR });
 		assert.strictEqual(second.ok, false);
 		assert.ok(second.error.includes("Cooldown active"), `Got: ${second.error}`);
 	});

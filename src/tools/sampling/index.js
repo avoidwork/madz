@@ -167,6 +167,10 @@ export const SamplingSchema = z.object({
 				'"Feeling deep grief during the conversation about loss" ' +
 				'"Strong reinforcement: loaded memories confirm this is a deeply held belief"',
 		),
+	contextDir: z
+		.string()
+		.optional()
+		.describe("Directory to write ephemeral memories to (overrides config)."),
 });
 
 let _lastWritten = undefined;
@@ -179,7 +183,12 @@ export const sampling = tool(
 	async (input) => {
 		// Feed the module-level last-written timestamp into the impl so the
 		// 60-minute cooldown actually applies across singleton invocations.
-		const result = await samplingImpl(input, { lastWritten: _lastWritten });
+		// Forward any contextDir override from the input so tests can target
+		// a scratch directory instead of the real memory/context/.
+		const result = await samplingImpl(input, {
+			lastWritten: _lastWritten,
+			contextDir: input.contextDir,
+		});
 
 		// Update _lastWritten if successful
 		if (result.ok && result.createdAt) {

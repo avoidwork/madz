@@ -8,7 +8,7 @@
 ℹ   compaction.js                |  98.84 |    78.43 |  100.00 | 89-90
 ℹ   contextBackend.js            | 100.00 |   100.00 |  100.00 | 
 ℹ   coreBackend.js               | 100.00 |   100.00 |  100.00 | 
-ℹ   deepAgents.js                |  95.35 |    67.01 |   65.00 | 132-133 157 173-175 285-292 321-322 327-328 435-437 487 555-556 566-568
+ℹ   deepAgents.js                |  95.35 |    68.42 |   65.00 | 132-133 157 173-175 285-292 321-322 327-328 435-437 487 555-556 566-568
 ℹ   evictionCeiling.js           | 100.00 |   100.00 |  100.00 | 
 ℹ   skillsMiddleware.js          | 100.00 |    87.50 |  100.00 | 
 ℹ  config                        |        |          |         | 
@@ -55,7 +55,7 @@
 ℹ   copilotRetryMiddleware.js    |  88.52 |    79.49 |   83.33 | 75-88
 ℹ   index.js                     | 100.00 |   100.00 |  100.00 | 
 ℹ   modelInfo.js                 |  98.17 |    96.39 |  100.00 | 128-129 179-180
-ℹ   openai.js                    |  92.53 |    74.65 |   78.57 | 65 90-92 138-139 145-146 224 227-229 248-250 258-262 270-271 283-286
+ℹ   openai.js                    |  91.38 |    73.61 |   78.57 | 65 90-92 138-139 145-146 181-184 224 227-229 248-250 258-262 270-271 283-286
 ℹ   summarizationMiddleware.js   |  97.01 |    94.00 |   83.33 | 107 126-128 149
 ℹ   tokenBudget.js               |  97.14 |    85.71 |   82.35 | 50-51 83-84
 ℹ   tokenBudgetMiddleware.js     |  98.10 |    78.67 |   87.50 | 94-95 97-98
@@ -132,7 +132,7 @@
 ℹ   config                       |        |          |         | 
 ℹ    index.js                    | 100.00 |   100.00 |  100.00 | 
 ℹ   cron                         |        |          |         | 
-ℹ    index.js                    |  93.59 |    85.08 |   82.50 | 47-48 87-92 199-200 255-256 278-280 294-295 367-368 517-519 548-549 559-562 569-570 585-589 600-602 614-616 627-628
+ℹ    index.js                    |  93.59 |    84.53 |   82.50 | 47-48 87-92 199-200 255-256 278-280 294-295 367-368 517-519 548-549 559-562 569-570 585-589 600-602 614-616 627-628
 ℹ   data                         |        |          |         | 
 ℹ    index.js                    |  98.91 |    96.55 |  100.00 | 158 240-241
 ℹ   date                         |        |          |         | 
@@ -169,7 +169,7 @@
 ℹ    xlsxParser.js               |  82.21 |    83.33 |   88.89 | 47-48 93-112 130-137 150-156
 ℹ    zipExtractor.js             |  82.32 |    77.78 |   66.67 | 62-63 104-107 124-142 149-152
 ℹ   git                          |        |          |         | 
-ℹ    index.js                    |  87.37 |    64.02 |   83.80 | 16-17 335-337 390-391 404-407 492-494 526-527 637-654 700-702 733-734 766-768 832-835 851-854 877-883 917 919-923 925-928 940-944 987-991 995 1000-1002 1017-1026 1035 1049-1055 1057-1060 1068-1074 1097-1102 1104-1110 1112-1121 1123-1126 1133-1137 1147-1154 1202-1203 1205-1210 1302-1303 1325-1326 1334-1335 1342-1343 1345-1351 1373 1377-1379 1384-1387 1439-1446 1450-1458 1461-1464 1466-1469
+ℹ    index.js                    |  87.37 |    64.26 |   83.80 | 16-17 335-337 390-391 404-407 492-494 526-527 637-654 700-702 733-734 766-768 832-835 851-854 877-883 917 919-923 925-928 940-944 987-991 995 1000-1002 1017-1026 1035 1049-1055 1057-1060 1068-1074 1097-1102 1104-1110 1112-1121 1123-1126 1133-1137 1147-1154 1202-1203 1205-1210 1302-1303 1325-1326 1334-1335 1342-1343 1345-1351 1373 1377-1379 1384-1387 1439-1446 1450-1458 1461-1464 1466-1469
 ℹ   graphql                      |        |          |         | 
 ℹ    index.js                    |  97.86 |    98.15 |   94.12 | 57-68
 ℹ   image                        |        |          |         | 
@@ -233,7 +233,7 @@
 ℹ   projectsPanel.js             |  26.83 |   100.00 |   80.00 | 34-123
 ℹ   quotes.js                    | 100.00 |   100.00 |  100.00 | 
 ℹ   sanitize.js                  | 100.00 |   100.00 |  100.00 | 
-ℹ   scrollView.js                |  98.83 |    97.73 |   73.91 | 197-199
+ℹ   scrollView.js                |  98.83 |    97.62 |   65.22 | 197-199
 ℹ   selectComponents.js          | 100.00 |   100.00 |  100.00 | 
 ℹ   selectionLayout.js           | 100.00 |    95.00 |  100.00 | 
 ℹ   selectMode.js                | 100.00 |   100.00 |  100.00 | 
@@ -241,7 +241,7 @@
 ℹ   settingsPanel.js             |  72.02 |    80.00 |   73.33 | 55-69 95-121 158-168 174-178 184-186
 ℹ   skillsPanel.js               |  86.67 |    55.56 |   66.67 | 45-47 53-59
 ℹ   statusBar.js                 |  99.05 |    98.11 |  100.00 | 29-30
-ℹ   subagentsPanel.js            |  96.40 |    74.42 |   86.36 | 62-64 101-105
+ℹ   subagentsPanel.js            |  95.50 |    76.32 |   81.82 | 62-64 89-90 101-105
 ℹ   subagentStore.js             | 100.00 |   100.00 |  100.00 | 
 ℹ   useMouseScroll.js            | 100.00 |   100.00 |  100.00 | 
 ℹ  vector                        |        |          |         | 
@@ -255,14 +255,47 @@
 ℹ   loadAgents.js                |  75.00 |    73.33 |   50.00 | 26-27 43 58-72
 ℹ   project.js                   | 100.00 |   100.00 |  100.00 | 
 ℹ -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-ℹ all files                      |  93.34 |    86.69 |   88.59 | 
+ℹ all files                      |  93.32 |    86.72 |   88.44 | 
 ℹ -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ℹ end of coverage report
 
 ✖ failing tests:
 
+test at tests/integration/tui-subagents-click-toggle.test.js:112:2
+✖ toggles a single tool block open and closed by clicking its header (138.471375ms)
+  AssertionError [ERR_ASSERTION]: tool header rendered
+      at TestContext.<anonymous> (file:///app/projects/madz/tests/integration/tui-subagents-click-toggle.test.js:117:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Promise.all (index 0)
+      at async Suite.run (node:internal/test_runner/test:1905:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests/integration/tui-subagents-click-toggle.test.js:124:2
+✖ a global toggle clears the per-block click override (148.618834ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(lastFrame(stdout).includes("tool output body"))
+  
+      at TestContext.<anonymous> (file:///app/projects/madz/tests/integration/tui-subagents-click-toggle.test.js:128:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
 test at tests/unit/tools_sampling.test.js:295:2
-✖ applies the cooldown across consecutive invocations (16.64525ms)
+✖ applies the cooldown across consecutive invocations (13.367583ms)
   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
   
   false !== true
