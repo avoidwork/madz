@@ -45,7 +45,7 @@ function makeStdout() {
 }
 
 const tick = (ms = 40) => new Promise((r) => setTimeout(r, ms));
-const lastFrame = (stdout) => stdout.frames.filter((f) => f.includes("subagent")).at(-1) || "";
+const lastFrame = (stdout) => stdout.frames.filter((f) => f.includes("Subagent")).at(-1) || "";
 
 /** 1-indexed terminal row of the first line containing `needle`. */
 function rowOf(stdout, needle) {
