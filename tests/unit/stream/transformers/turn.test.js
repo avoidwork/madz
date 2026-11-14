@@ -312,6 +312,42 @@ describe("createTurnTransformer", () => {
 		assert.strictEqual(events[1].type, "turn:end");
 	});
 
+	it("finalize uses the last event timestamp for consistency", async () => {
+		const tf = createTurnTransformer();
+		const { turns } = tf.init();
+
+		tf.process(
+			makeEvent({
+				method: "updates",
+				data: { values: { messages: [humanMsg("hello", "h1")] } },
+				timestamp: 1000,
+			}),
+		);
+
+		tf.finalize();
+		turns.close();
+		const events = await collect(turns);
+		assert.strictEqual(events[1].timestamp, 1000);
+	});
+
+	it("fail uses the last event timestamp for consistency", async () => {
+		const tf = createTurnTransformer();
+		const { turns } = tf.init();
+
+		tf.process(
+			makeEvent({
+				method: "updates",
+				data: { values: { messages: [humanMsg("hello", "h1")] } },
+				timestamp: 1000,
+			}),
+		);
+
+		tf.fail(new Error("boom"));
+		turns.close();
+		const events = await collect(turns);
+		assert.strictEqual(events[1].timestamp, 1000);
+	});
+
 	it("emits turn:end on fail if still in a turn", async () => {
 		const tf = createTurnTransformer();
 		const { turns } = tf.init();
@@ -454,5 +490,49 @@ describe("createTurnTransformer", () => {
 		turns.close();
 		const events = await collect(turns);
 		assert.strictEqual(events.length, 2);
+	});
+
+	it("bounds the seen-message set so pruned old IDs are re-detected", async () => {
+		const tf = createTurnTransformer();
+		const { turns } = tf.init();
+
+		// Process more than MAX_SEEN_MESSAGE_IDS (1000) unique human messages,
+		// each as a complete turn (human → ai) so the oldest IDs get pruned
+		// from the seen set.
+		for (let i = 0; i < 1005; i++) {
+			tf.process(
+				makeEvent({
+					method: "updates",
+					data: { values: { messages: [humanMsg(`msg ${i}`, `h${i}`)] } },
+					timestamp: 1000 + i * 2,
+				}),
+			);
+			tf.process(
+				makeEvent({
+					method: "updates",
+					data: {
+						values: { messages: [humanMsg(`msg ${i}`, `h${i}`), aiMsg(`resp ${i}`, `a${i}`)] },
+					},
+					timestamp: 1001 + i * 2,
+				}),
+			);
+		}
+
+		// Re-send the very first message ID, which should have been pruned.
+		// It must be treated as new again (emits turn:start).
+		tf.process(
+			makeEvent({
+				method: "updates",
+				data: { values: { messages: [humanMsg("first", "h0")] } },
+				timestamp: 5000,
+			}),
+		);
+
+		turns.close();
+		const events = await collect(turns);
+		// 1005 turns × 2 events (start+end) + 1 re-detected turn:start.
+		assert.strictEqual(events.length, 2011);
+		assert.strictEqual(events[2010].type, "turn:start");
+		assert.strictEqual(events[2010].messageId, "h0");
 	});
 });
