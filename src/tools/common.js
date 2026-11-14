@@ -31,37 +31,15 @@ export async function checkFileLimit(filePath, maxReadSize) {
 	}
 
 	const stats = await statAsync(filePath);
-	const maxSizeBytes = typeof maxReadSize === "number" ? maxReadSize : parseSizeString(maxReadSize);
 
-	if (stats.size > maxSizeBytes) {
+	if (stats.size > maxReadSize) {
 		return {
 			ok: false,
 			size: stats.size,
-			limit: maxSizeBytes,
+			limit: maxReadSize,
 			error: `File size (${stats.size} bytes) exceeds max read size (${maxReadSize}). Use limit/offset to paginate.`,
 		};
 	}
 
 	return { ok: true, size: stats.size };
-}
-
-/**
- * Parse a size string like "1mb", "512kb", "1024" to bytes.
- * @param {string} sizeStr - Size string
- * @returns {number} Size in bytes
- */
-export function parseSizeString(sizeStr) {
-	const match = sizeStr
-		.trim()
-		.toLowerCase()
-		.match(/^(\d+(?:\.\d+)?)\s*(b|kb|mb|gb)?$/);
-	if (!match) {
-		return 1024 * 1024; // default 1mb
-	}
-
-	const value = parseFloat(match[1]);
-	const unit = match[2] || "b";
-	const multipliers = { b: 1, kb: 1024, mb: 1024 * 1024, gb: 1024 * 1024 * 1024 };
-
-	return Math.floor(value * (multipliers[unit] || 1));
 }

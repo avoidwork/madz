@@ -1,6 +1,6 @@
 import { describe, it, before, after } from "node:test";
 import assert from "node:assert";
-import { validatePath, parseSizeString, checkFileLimit } from "../../src/tools/common.js";
+import { validatePath, checkFileLimit } from "../../src/tools/common.js";
 import { writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 
@@ -30,28 +30,6 @@ describe("tools - validatePath", () => {
 	it("allows path in multiple scopes", () => {
 		const result = validatePath("skills/my-skill/main.js", ["memory/", "skills/"]);
 		assert.strictEqual(result.allowed, true);
-	});
-});
-
-describe("tools - parseSizeString", () => {
-	it("parses '1mb' to bytes", () => {
-		assert.strictEqual(parseSizeString("1mb"), 1024 * 1024);
-	});
-
-	it("parses '512kb' to bytes", () => {
-		assert.strictEqual(parseSizeString("512kb"), 512 * 1024);
-	});
-
-	it("parses '1024' as bytes", () => {
-		assert.strictEqual(parseSizeString("1024"), 1024);
-	});
-
-	it("parses '2gb' to bytes", () => {
-		assert.strictEqual(parseSizeString("2gb"), 2 * 1024 * 1024 * 1024);
-	});
-
-	it("defaults to 1mb for invalid string", () => {
-		assert.strictEqual(parseSizeString("invalid"), 1024 * 1024);
 	});
 });
 
