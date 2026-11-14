@@ -31,6 +31,9 @@ export function createTurnTransformer() {
 	/** Track pending tool calls by their ID */
 	const pendingToolCalls = new Map();
 
+	/** Maximum number of seen message IDs to retain before pruning. */
+	const MAX_SEEN_MESSAGE_IDS = 1000;
+
 	/** Track the last seen message IDs per namespace to detect new messages */
 	const lastSeenMessageIds = new Set();
 
@@ -40,8 +43,9 @@ export function createTurnTransformer() {
 	/** Re-entrant guard */
 	let inSelfEmit = false;
 
-	/** @type {import("@langchain/langgraph").StreamEmitter | null} */
-	let _emitter = null;
+	/** Timestamp of the most recently processed event, used as a consistent
+	 * fallback for finalize/fail which have no event of their own. */
+	let lastTimestamp = 0;
 
 	/**
 	 * Check if a message is a HumanMessage.
@@ -172,6 +176,8 @@ export function createTurnTransformer() {
 
 	/**
 	 * Record all message IDs from the messages array into the seen set.
+	 * Prunes the oldest entries once the set exceeds MAX_SEEN_MESSAGE_IDS so
+	 * long-running sessions don't grow the set without bound.
 	 * @param {Array<unknown>} messages
 	 */
 	function recordSeenMessages(messages) {
@@ -179,15 +185,18 @@ export function createTurnTransformer() {
 			const id = getMessageId(msg);
 			if (id) lastSeenMessageIds.add(id);
 		}
+		// A Set preserves insertion order, so the oldest IDs are at the front.
+		// Drop them until we're back under the cap.
+		while (lastSeenMessageIds.size > MAX_SEEN_MESSAGE_IDS) {
+			const oldest = lastSeenMessageIds.values().next().value;
+			if (oldest === undefined) break;
+			lastSeenMessageIds.delete(oldest);
+		}
 	}
 
 	return {
 		init() {
 			return { turns };
-		},
-
-		onRegister(emitterHandle) {
-			_emitter = emitterHandle;
 		},
 
 		/**
@@ -198,6 +207,11 @@ export function createTurnTransformer() {
 		process(event) {
 			// Guard against re-entrant self-processing
 			if (inSelfEmit) return true;
+
+			// Track the latest event timestamp for consistent finalize/fail output.
+			if (typeof event.params?.timestamp === "number") {
+				lastTimestamp = event.params.timestamp;
+			}
 
 			const method = event.method;
 
@@ -268,7 +282,7 @@ export function createTurnTransformer() {
 				inTurn = false;
 				turns.push({
 					type: "turn:end",
-					timestamp: Date.now(),
+					timestamp: lastTimestamp,
 				});
 			}
 		},
@@ -279,7 +293,7 @@ export function createTurnTransformer() {
 				inTurn = false;
 				turns.push({
 					type: "turn:end",
-					timestamp: Date.now(),
+					timestamp: lastTimestamp,
 				});
 			}
 		},
