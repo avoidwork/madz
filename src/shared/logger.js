@@ -67,6 +67,17 @@ export function redactPIIFromObject(obj) {
 }
 
 /**
+ * Redact PII from a variable list of structured log arguments. Each arg is
+ * passed through redactPIIFromObject so nested string values (emails, IPs,
+ * phones, etc.) are scrubbed before reaching the log sink.
+ * @param {unknown[]} args - The structured log arguments
+ * @returns {unknown[]} The redacted arguments
+ */
+function redactArgs(args) {
+	return args.map((arg) => redactPIIFromObject(arg));
+}
+
+/**
  * Safely log an error from within a catch block without risking recursion or
  * throwing. Uses the structured `logger` singleton when it is available and
  * not the source of the failure; otherwise falls back to a guarded
@@ -79,8 +90,8 @@ export function logError(err, context = "") {
 	const message = context ? `${context}: ${err?.message ?? err}` : (err?.message ?? String(err));
 	/* node:coverage disable — defensive, requires the logger and stderr to throw */
 	try {
-		if (typeof pinoLogger?.debug === "function") {
-			pinoLogger.debug(message);
+		if (typeof pinoLogger?.error === "function") {
+			pinoLogger.error(message);
 			return;
 		}
 	} catch (logErr) {
@@ -291,7 +302,7 @@ export async function flush() {
 export const logger = {
 	info: (msg, ...args) => {
 		try {
-			pinoLogger.info(redactPII(msg), ...args);
+			pinoLogger.info(redactPII(msg), ...redactArgs(args));
 			/* node:coverage disable — defensive, requires pino to throw */
 		} catch (err) {
 			// Log the failure without recursing into the logger singleton
@@ -301,7 +312,7 @@ export const logger = {
 	},
 	warn: (msg, ...args) => {
 		try {
-			pinoLogger.warn(redactPII(msg), ...args);
+			pinoLogger.warn(redactPII(msg), ...redactArgs(args));
 			/* node:coverage disable — defensive, requires pino to throw */
 		} catch (err) {
 			// Log the failure without recursing into the logger singleton
@@ -311,7 +322,7 @@ export const logger = {
 	},
 	error: (msg, ...args) => {
 		try {
-			pinoLogger.error(redactPII(msg), ...args);
+			pinoLogger.error(redactPII(msg), ...redactArgs(args));
 			/* node:coverage disable — defensive, requires pino to throw */
 		} catch (err) {
 			// Log the failure without recursing into the logger singleton
@@ -321,7 +332,7 @@ export const logger = {
 	},
 	debug: (msg, ...args) => {
 		try {
-			pinoLogger.debug(redactPII(msg), ...args);
+			pinoLogger.debug(redactPII(msg), ...redactArgs(args));
 			/* node:coverage disable — defensive, requires pino to throw */
 		} catch (err) {
 			// Log the failure without recursing into the logger singleton
@@ -331,7 +342,7 @@ export const logger = {
 	},
 	fatal: (msg, ...args) => {
 		try {
-			pinoLogger.fatal(redactPII(msg), ...args);
+			pinoLogger.fatal(redactPII(msg), ...redactArgs(args));
 			/* node:coverage disable — defensive, requires pino to throw */
 		} catch (err) {
 			// Log the failure without recursing into the logger singleton
