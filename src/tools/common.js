@@ -31,14 +31,13 @@ export async function checkFileLimit(filePath, maxReadSize) {
 	}
 
 	const stats = await statAsync(filePath);
-	const maxSizeBytes = maxReadSize;
 
-	if (stats.size > maxSizeBytes) {
+	if (stats.size > maxReadSize) {
 		return {
 			ok: false,
 			size: stats.size,
-			limit: maxSizeBytes,
-			error: `File size (${stats.size} bytes) exceeds max read size (${maxSizeBytes}). Use limit/offset to paginate.`,
+			limit: maxReadSize,
+			error: `File size (${stats.size} bytes) exceeds max read size (${maxReadSize}). Use limit/offset to paginate.`,
 		};
 	}
 
