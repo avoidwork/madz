@@ -570,6 +570,10 @@ const ConversationArea = forwardRef(function ConversationArea(
 		sessionState.createNewSession(newSession.sessionId);
 		setIsCompacting(false);
 		onCompactingChange?.(false);
+		// Reset the auto-continue counter so the loop guard is scoped per-session,
+		// not per-process. A reasoning loop is a per-thread phenomenon; a fresh
+		// session must not inherit a counter exhausted by a prior thread.
+		autoContinueCountRef.current = 0;
 		messageListRef.current?.clear();
 		// Recompute the context size for the fresh thread rather than hard-setting
 		// 0. The system prompt (SYSTEM_PROMPT.md + AGENTS.md + memory context) is
