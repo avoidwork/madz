@@ -1,10 +1,10 @@
-node_modules
+downloads
 memory
-!tests/unit/memory/
+node_modules
+projects
 skills
 tmp
-downloads
-projects
+!tests/unit/memory/
 *-feature-goals.md
 *-feature-prompt.md
 *-audit-results.md
@@ -12,9 +12,9 @@ projects
 *-pr-number.txt
 *-archive-output.md
 *-archive-error.md
+!src/downloads
 !src/memory
 !src/skills
-!src/downloads
 .env
 .env.cron
 memory/tools/webhooks.json
