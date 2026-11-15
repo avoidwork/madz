@@ -32,6 +32,7 @@ import { todo } from "./todo/index.js";
 import { file } from "./file/index.js";
 import { discovery } from "./discovery/index.js";
 import { git } from "./git/index.js";
+import { env } from "./env/index.js";
 import { getConfig } from "./config/index.js";
 import { decision, decisionImpl, DecisionToolSchema } from "./decision/index.js";
 import { tool } from "@langchain/core/tools";
@@ -56,6 +57,7 @@ export const TOOL_PERMISSIONS = {
 	file: ["filesystem:read", "filesystem:write"],
 	discovery: ["filesystem:read"],
 	git: ["process:spawn"],
+	env: ["env:read"],
 	process: ["filesystem:exec", "process:spawn"],
 	sampling: ["filesystem:write"],
 	agents: ["filesystem:read"],
@@ -178,6 +180,17 @@ export const TOOL_CLASSIFICATIONS = {
 	],
 	process: ["debug", "performance", "coding"],
 	git: ["coding", "debug", "code-review", "performance"],
+	env: [
+		"coding",
+		"debug",
+		"performance",
+		"search",
+		"code-review",
+		"research",
+		"testing",
+		"documentation",
+		"security-audit",
+	],
 	sampling: ["documentation"],
 	agents: ["security-audit", "code-review", "coding"],
 	searchSession: ["search", "research"],
@@ -305,6 +318,7 @@ export const ORCHESTRATOR_TOOLS = [
 	"getConfig",
 	"readImage",
 	"decision",
+	"env",
 ];
 
 // Tool instances keyed by tool name
@@ -321,6 +335,7 @@ export const TOOLS = {
 	file,
 	discovery,
 	git,
+	env,
 	process: processTool,
 	sampling,
 	agents,
@@ -440,7 +455,8 @@ export async function buildToolConfig(options) {
 			case "date":
 			case "cronJob":
 			case "git":
-			case "file": {
+			case "file":
+			case "env": {
 				if (!hasAllPerms) continue;
 				tools.push(TOOLS[toolName]);
 				continue;
