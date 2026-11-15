@@ -120,6 +120,18 @@ export function createLoopDetectionMiddleware(options = {}) {
 	}
 
 	/**
+	 * Clear both hash windows for a thread. Called when a nudge is injected (or
+	 * on escalation) so the model gets a fresh slate — otherwise it could repeat
+	 * the same phrase on its next turn and immediately re-trigger detection.
+	 * @param {{messageHashes: {hash: string, ts: number}[], reasoningHashes: {hash: string, ts: number}[]}} thread - The thread state
+	 * @returns {void}
+	 */
+	function clearHashes(thread) {
+		thread.messageHashes = [];
+		thread.reasoningHashes = [];
+	}
+
+	/**
 	 * Record a hash with a timestamp in a bounded rolling window, evicting the
 	 * oldest entry when the window exceeds `windowSize` or the TTL.
 	 * @param {{hash: string, ts: number}[]} window - The hash window array
@@ -203,6 +215,7 @@ export function createLoopDetectionMiddleware(options = {}) {
 						"[loopDetection] escalating to context compaction",
 					);
 					thread.nudges = [];
+					clearHashes(thread);
 					if (typeof onCompact === "function") {
 						try {
 							await onCompact(threadKey);
@@ -213,8 +226,11 @@ export function createLoopDetectionMiddleware(options = {}) {
 					return undefined;
 				}
 
-				// Otherwise inject the nudge and record it.
+				// Otherwise inject the nudge and record it. Clear the hash windows
+				// so the model gets a fresh slate — otherwise it could repeat the
+				// same phrase on its next turn and immediately re-trigger.
 				thread.nudges.push(nowMs);
+				clearHashes(thread);
 				logger.warn(
 					{ thread: threadKey, nudges: thread.nudges.length },
 					"[loopDetection] detected loop; injecting nudge",

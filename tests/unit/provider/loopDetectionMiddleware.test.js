@@ -100,6 +100,18 @@ describe("createLoopDetectionMiddleware", () => {
 		assert.strictEqual(out.messages[0].content, "You're looping");
 	});
 
+	it("clears hash windows after injecting a nudge, preventing immediate re-trigger", async () => {
+		const mw = createLoopDetectionMiddleware({ config: config() });
+		// Build up a loop and inject a nudge.
+		await run(mw, { messages: [ai("same")] });
+		await run(mw, { messages: [ai("same")] });
+		const out = await run(mw, { messages: [ai("same")] });
+		assert.ok(out);
+		// The model repeats the same phrase on its next turn. Because the hash
+		// windows were cleared on injection, this must NOT immediately re-trigger.
+		assert.strictEqual(await run(mw, { messages: [ai("same")] }), undefined);
+	});
+
 	it("tracks message and reasoning content independently", async () => {
 		const mw = createLoopDetectionMiddleware({ config: config() });
 		// Same reasoning, different text: reasoning loop should trigger.
@@ -144,6 +156,13 @@ describe("createLoopDetectionMiddleware", () => {
 		assert.strictEqual(await run(mw, { messages: [ai("same")] }), undefined);
 	});
 
+	// Trigger a single loop detection (3 identical messages, since threshold is 2).
+	const triggerLoop = async (mw, text = "same") => {
+		await run(mw, { messages: [ai(text)] });
+		await run(mw, { messages: [ai(text)] });
+		return run(mw, { messages: [ai(text)] });
+	};
+
 	it("escalates to onCompact after the escalation count within the window", async () => {
 		let compacted = 0;
 		const mw = createLoopDetectionMiddleware({
@@ -152,12 +171,13 @@ describe("createLoopDetectionMiddleware", () => {
 				compacted++;
 			},
 		});
-		// Trigger 3 nudges (threshold 2, so 3 identical messages each time).
+		// 3 nudges injected (each clears the hash window), then the 4th loop
+		// detection escalates to compaction.
 		for (let i = 0; i < 3; i++) {
-			await run(mw, { messages: [ai("same")] });
-			await run(mw, { messages: [ai("same")] });
-			await run(mw, { messages: [ai("same")] });
+			assert.ok(await triggerLoop(mw));
 		}
+		// The 4th loop detection reaches the escalation count and compacts.
+		assert.strictEqual(await triggerLoop(mw), undefined);
 		assert.strictEqual(compacted, 1);
 	});
 
@@ -172,39 +192,26 @@ describe("createLoopDetectionMiddleware", () => {
 			now: () => clock,
 		});
 		// First nudge at t=0.
-		await run(mw, { messages: [ai("same")] });
-		await run(mw, { messages: [ai("same")] });
-		await run(mw, { messages: [ai("same")] });
+		assert.ok(await triggerLoop(mw));
 		// Advance clock past the window; nudges should be pruned.
 		clock = 200;
-		await run(mw, { messages: [ai("same")] });
-		await run(mw, { messages: [ai("same")] });
-		await run(mw, { messages: [ai("same")] });
-		// Only 1 nudge remains in the new window, so no compaction.
+		// Two more nudges in the new window (below escalationCount 3), so no compaction.
+		assert.ok(await triggerLoop(mw));
+		assert.ok(await triggerLoop(mw));
 		assert.strictEqual(compacted, 0);
 	});
 
 	it("does not compact below the escalation count", async () => {
 		let compacted = 0;
 		const mw = createLoopDetectionMiddleware({
-			config: config({ windowSize: 3 }),
+			config: config(),
 			onCompact: () => {
 				compacted++;
 			},
 		});
-		// Produce exactly 2 nudges (below escalationCount 3) by alternating
-		// content so the small window evicts the looped hash between nudges.
-		// Nudge 1: "same" appears 3 times.
-		await run(mw, { messages: [ai("same")] });
-		await run(mw, { messages: [ai("same")] });
-		await run(mw, { messages: [ai("same")] });
-		// Evict "same" from the window with different content.
-		await run(mw, { messages: [ai("x")] });
-		await run(mw, { messages: [ai("y")] });
-		// Nudge 2: "z" appears 3 times.
-		await run(mw, { messages: [ai("z")] });
-		await run(mw, { messages: [ai("z")] });
-		await run(mw, { messages: [ai("z")] });
+		// Only 2 nudges (below escalationCount 3).
+		assert.ok(await triggerLoop(mw));
+		assert.ok(await triggerLoop(mw));
 		assert.strictEqual(compacted, 0);
 	});
 
@@ -215,12 +222,12 @@ describe("createLoopDetectionMiddleware", () => {
 				throw new Error("boom");
 			},
 		});
-		// Trigger 3 nudges; the throwing onCompact must not propagate.
+		// 3 nudges, then the 4th loop detection escalates; the throwing
+		// onCompact must not propagate.
 		for (let i = 0; i < 3; i++) {
-			await run(mw, { messages: [ai("same")] });
-			await run(mw, { messages: [ai("same")] });
-			await run(mw, { messages: [ai("same")] });
+			assert.ok(await triggerLoop(mw));
 		}
+		await triggerLoop(mw);
 	});
 
 	it("maintains independent state per thread", async () => {
