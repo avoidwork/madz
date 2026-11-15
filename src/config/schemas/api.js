@@ -48,6 +48,8 @@ export const ApiSchema = z.object({
 	maxRetries: z.number().int().min(0).max(5).default(2),
 	/** Max response body size in bytes; also the cap on what the model may request. */
 	maxBodySize: z.number().int().positive().default(10485760),
+	/** Directory (relative to cwd) where `download` streams are saved by default. */
+	downloadsDir: z.string().default("downloads/"),
 	/** Named credential profiles, referenced by the tool's `credential` field. */
 	credentials: z.record(z.string(), ApiCredentialSchema).default({}),
 });

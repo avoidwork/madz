@@ -1,5 +1,8 @@
 import { describe, it, before, after } from "node:test";
 import assert from "node:assert";
+import { mkdtempSync, writeFileSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { makeApiRequest as rawMakeApiRequest } from "../../src/tools/api/index.js";
 
 // No rate limiting in tests.
@@ -112,5 +115,57 @@ describe("api integration tests", () => {
 		assert.strictEqual(result.ok, false);
 		assert.strictEqual(result.status, 404);
 		assert.strictEqual(result.body, JSON.stringify({ error: "Not found" }));
+	});
+
+	it("downloads a response body to disk", async () => {
+		const dir = mkdtempSync(join(tmpdir(), "api-int-dl-"));
+		const out = join(dir, "out.bin");
+		try {
+			const bytes = new Uint8Array([9, 8, 7, 6]);
+			mockFetch({
+				ok: true,
+				status: 200,
+				headers: new Map([["content-type", "application/octet-stream"]]),
+				body: new ReadableStream({
+					start(controller) {
+						controller.enqueue(bytes);
+						controller.close();
+					},
+				}),
+			});
+			const result = await makeApiRequest("https://example.com/download", {
+				method: "GET",
+				download: out,
+				allowedPaths: [dir],
+			});
+			assert.strictEqual(result.ok, true);
+			assert.strictEqual(result.path, out);
+			assert.deepStrictEqual([...readFileSync(out)], [...bytes]);
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("uploads a local file as multipart/form-data", async () => {
+		const dir = mkdtempSync(join(tmpdir(), "api-int-up-"));
+		const src = join(dir, "in.bin");
+		writeFileSync(src, Buffer.from([1, 2, 3]));
+		try {
+			mockFetch({
+				ok: true,
+				status: 200,
+				headers: new Map([["content-type", "application/json"]]),
+				text: async () => JSON.stringify({ ok: true }),
+			});
+			const result = await makeApiRequest("https://example.com/upload", {
+				method: "POST",
+				file: src,
+				allowedPaths: [dir],
+			});
+			assert.strictEqual(result.ok, true);
+			assert.strictEqual(result.status, 200);
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
 	});
 });

@@ -508,8 +508,9 @@ export async function buildToolConfig(options) {
 			case "api": {
 				if (!hasAllPerms) continue;
 				// Allowlist, rate limit and credential profiles come from server-side
-				// config; the model only references a credential by name.
-				tools.push(createApiTool(config?.api));
+				// config; the model only references a credential by name. The sandbox
+				// path allowlist is threaded for download/file path validation.
+				tools.push(createApiTool(config?.api, { allowedPaths: runtimeOptions.allowedPaths }));
 				continue;
 			}
 

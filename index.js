@@ -135,12 +135,17 @@ async function doBootstrap() {
 		await import("./src/agent/deepAgents.js");
 	const { ensureToolsDir, ensureScreenshotsDir, ensureContextDir, expireEphemeralMemories } =
 		await import("./src/memory/index.js");
+	const { ensureDownloadsDir } = await import("./src/downloads/index.js");
 
-	// Ensure storage directories exist before any subsystem initialization
-	await ensureSessionsDir(config.memory.sessionsDir);
-	await ensureToolsDir(config.memory.toolsDir);
-	await ensureScreenshotsDir(config.memory.screenshotsDir);
-	await ensureContextDir(config.memory.contextDir);
+	// Ensure storage directories exist before any subsystem initialization.
+	// These are independent, so create them in parallel.
+	await Promise.all([
+		ensureSessionsDir(config.memory.sessionsDir),
+		ensureToolsDir(config.memory.toolsDir),
+		ensureScreenshotsDir(config.memory.screenshotsDir),
+		ensureContextDir(config.memory.contextDir),
+		ensureDownloadsDir(config.api.downloadsDir),
+	]);
 
 	const schedulesDir = fromCwd(config.memory?.schedulesDir || "memory/schedules/");
 
