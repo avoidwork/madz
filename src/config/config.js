@@ -21,6 +21,7 @@ import { SubAgentsTemperatureSchema } from "./schemas/subAgentsTemperature.js";
 import { SummarizationSchema } from "./schemas/summarization.js";
 import { VectorConfigSchema } from "./schemas/vector.js";
 import { ImageSchema } from "./schemas/image.js";
+import { SqlConfigSchema } from "./schemas/sql.js";
 import { McpSchema } from "./schemas/mcp.js";
 
 // Re-export individual schemas for backward compatibility
@@ -37,6 +38,7 @@ export {
 	PersistenceSchema,
 	SkillAgentMapSchema,
 	VectorConfigSchema,
+	SqlConfigSchema,
 	McpSchema,
 	AzureProviderConfigSchema,
 	BedrockProviderConfigSchema,
@@ -74,6 +76,7 @@ export const ConfigSchema = z.object({
 	summarization: SummarizationSchema.default({}),
 	vector: VectorConfigSchema.default({}),
 	image: ImageSchema.default({}),
+	sql: SqlConfigSchema.default({}),
 	mcp: McpSchema,
 });
 
